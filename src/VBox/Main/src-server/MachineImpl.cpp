@@ -4829,7 +4829,7 @@ HRESULT Machine::mountMedium(const com::Utf8Str &aName,
 
             default:
                 return setError(VBOX_E_INVALID_OBJECT_STATE,
-                                tr("The device at port %d, device %d of controller '%s' of this virtual machine is not removeable"),
+                                tr("The device at port %d, device %d of controller '%s' of this virtual machine is not removable"),
                                 aControllerPort,
                                 aDevice,
                                 aName.c_str());
@@ -9408,7 +9408,7 @@ HRESULT Machine::i_loadStorageDevices(StorageController *aStorageController,
                                                          medium);
                 if (rc == VBOX_E_OBJECT_NOT_FOUND)
                     // This is not an error. The host drive or UUID might have vanished, so just go
-                    // ahead without this removeable medium attachment
+                    // ahead without this removable medium attachment
                     rc = S_OK;
             break;
 

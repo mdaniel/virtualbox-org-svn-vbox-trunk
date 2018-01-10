@@ -10,3 +10,4 @@ _Ubuntu_raring   = UBUNTU_13_04
 _Ubuntu_quantal  = UBUNTU_12_10
 _Ubuntu_precise  = UBUNTU_12_04
 _Ubuntu_lucid    = UBUNTU_10_04
+_Pardus_17       = PARDUS_17_1

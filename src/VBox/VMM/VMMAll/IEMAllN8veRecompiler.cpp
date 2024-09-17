@@ -10014,7 +10014,7 @@ l_profile_again:
             if (pfnLiveness)
                 pfnLiveness(pCallEntry, &paLivenessEntries[idxCall], &paLivenessEntries[idxCall - 1]);
             else
-                IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(&paLivenessEntries[idxCall - 1], &paLivenessEntries[idxCall]);
+                IEM_LIVENESS_RAW_INIT_WITH_CALL_AND_POTENTIAL_CALL(&paLivenessEntries[idxCall - 1], &paLivenessEntries[idxCall]);
             pCallEntry--;
             idxCall--;
         }

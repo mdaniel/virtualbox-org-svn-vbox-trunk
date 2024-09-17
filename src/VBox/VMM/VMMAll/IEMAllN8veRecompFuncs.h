@@ -5804,16 +5804,15 @@ DECLINLINE(void) iemNativeEFlagsOptimizationStats(PIEMRECOMPILERSTATE pReNative,
         IEMLIVENESSBIT const     LivenessClobbered    =
         {
               pLivenessEntry->aBits[IEMLIVENESS_BIT_WRITE].bm64
-            & ~(  pLivenessEntry->aBits[IEMLIVENESS_BIT_READ].bm64
-                | pLivenessEntry->aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64
-                | pLivenessEntry->aBits[IEMLIVENESS_BIT_OTHER].bm64)
+            & ~(  pLivenessEntry->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64
+                | pLivenessEntry->aBits[IEMLIVENESS_BIT_READ].bm64
+                | pLivenessEntry->aBits[IEMLIVENESS_BIT_CALL].bm64)
         };
         IEMLIVENESSBIT const     LivenessDelayable =
         {
-              pLivenessEntry->aBits[IEMLIVENESS_BIT_WRITE].bm64
-            & pLivenessEntry->aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64
+              pLivenessEntry->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64
             & ~(  pLivenessEntry->aBits[IEMLIVENESS_BIT_READ].bm64
-                | pLivenessEntry->aBits[IEMLIVENESS_BIT_OTHER].bm64)
+                | pLivenessEntry->aBits[IEMLIVENESS_BIT_CALL].bm64)
         };
 #  define CHECK_FLAG_AND_UPDATE_STATS(a_fEfl, a_fLivenessMember, a_CoreStatName) \
             if (fEflOutput & (a_fEfl)) \

@@ -70,7 +70,7 @@
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 AssertCompile(IEMLIVENESSBIT0_XCPT_OR_CALL == 0 && IEMLIVENESSBIT1_XCPT_OR_CALL != 0);
-# define IEM_LIVENESS_MARK_XCPT_OR_CALL() do { \
+# define IEM_LIVENESS_MARK_CALL_OR_POT_CALL_INTERNAL() do { \
             if (!fDoneXpctOrCall) \
             { \
                 LiveStateBit0.bm64 |= pIncoming->Bit0.bm64 & pIncoming->Bit1.bm64 & ~LiveMask.bm64; \
@@ -80,15 +80,26 @@ AssertCompile(IEMLIVENESSBIT0_XCPT_OR_CALL == 0 && IEMLIVENESSBIT1_XCPT_OR_CALL 
                 fDoneXpctOrCall  = true;                /* when compiling with gcc and cl.exe on x86 - may on arm, though. */ \
             } \
         } while (0)
+# define IEM_LIVENESS_MARK_POTENTIAL_CALL() IEM_LIVENESS_MARK_CALL_OR_POT_CALL_INTERNAL()
+# define IEM_LIVENESS_MARK_CALL()           IEM_LIVENESS_MARK_CALL_OR_POT_CALL_INTERNAL()
 #else
-# define IEM_LIVENESS_MARK_XCPT_OR_CALL() do { \
+# define IEM_LIVENESS_MARK_POTENTIAL_CALL() do { \
             if (!fDoneXpctOrCall) \
             { \
                 LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 |= pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64 & ~LiveMask.bm64; \
-                LiveState.aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64 |= IEMLIVENESSBIT_MASK; \
                 LiveMask.bm64   |= IEMLIVENESSBIT_MASK; \
                 fDoneXpctOrCall  = true; \
             } \
+            LiveState.aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 |= IEMLIVENESSBIT_MASK; \
+        } while (0)
+# define IEM_LIVENESS_MARK_CALL() do { \
+            if (!fDoneXpctOrCall) \
+            { \
+                LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 |= pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64 & ~LiveMask.bm64; \
+                LiveMask.bm64   |= IEMLIVENESSBIT_MASK; \
+                fDoneXpctOrCall  = true; \
+            } \
+            LiveState.aBits[IEMLIVENESS_BIT_CALL].bm64 |= IEMLIVENESSBIT_MASK; \
         } while (0)
 #endif
 
@@ -223,13 +234,13 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 
 
 #define IEM_LIVENESS_MEM(a_iSeg) do { \
-        IEM_LIVENESS_MARK_XCPT_OR_CALL(); \
+        IEM_LIVENESS_MARK_POTENTIAL_CALL(); \
         IEM_LIVENESS_SEG_ATTRIB_INPUT(a_iSeg); \
         IEM_LIVENESS_SEG_BASE_INPUT(a_iSeg); \
         IEM_LIVENESS_SEG_LIMIT_INPUT(a_iSeg); \
     } while (0)
 
-#define IEM_LIVENESS_MEM_FLAT() IEM_LIVENESS_MARK_XCPT_OR_CALL()
+#define IEM_LIVENESS_MEM_FLAT() IEM_LIVENESS_MARK_POTENTIAL_CALL()
 
 #define IEM_LIVENESS_STACK() do { \
         IEM_LIVENESS_MEM(X86_SREG_SS); \
@@ -243,17 +254,17 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 
 
 #define IEM_LIVENESS_PC_NO_FLAGS()                  NOP()
-#define IEM_LIVENESS_PC_WITH_FLAGS()                IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
-#define IEM_LIVENESS_PC16_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
-#define IEM_LIVENESS_PC32_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
-#define IEM_LIVENESS_PC32_FLAT_JMP_NO_FLAGS()       IEM_LIVENESS_MARK_XCPT_OR_CALL()
-#define IEM_LIVENESS_PC64_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_XCPT_OR_CALL()
-#define IEM_LIVENESS_PC64_INTRAPG_JMP_NO_FLAGS()    IEM_LIVENESS_MARK_XCPT_OR_CALL() /* Typically ends TB. */
-#define IEM_LIVENESS_PC16_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
-#define IEM_LIVENESS_PC32_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
-#define IEM_LIVENESS_PC32_FLAT_JMP_WITH_FLAGS()     IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
-#define IEM_LIVENESS_PC64_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
-#define IEM_LIVENESS_PC64_INTRAPG_JMP_WITH_FLAGS()  IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
+#define IEM_LIVENESS_PC_WITH_FLAGS()                IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
+#define IEM_LIVENESS_PC16_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
+#define IEM_LIVENESS_PC32_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
+#define IEM_LIVENESS_PC32_FLAT_JMP_NO_FLAGS()       IEM_LIVENESS_MARK_POTENTIAL_CALL()
+#define IEM_LIVENESS_PC64_JMP_NO_FLAGS()            IEM_LIVENESS_MARK_POTENTIAL_CALL()
+#define IEM_LIVENESS_PC64_INTRAPG_JMP_NO_FLAGS()    IEM_LIVENESS_MARK_POTENTIAL_CALL() /* Typically ends TB. */
+#define IEM_LIVENESS_PC16_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
+#define IEM_LIVENESS_PC32_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther); IEM_LIVENESS_SEG_LIMIT_INPUT(X86_SREG_CS)
+#define IEM_LIVENESS_PC32_FLAT_JMP_WITH_FLAGS()     IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
+#define IEM_LIVENESS_PC64_JMP_WITH_FLAGS()          IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
+#define IEM_LIVENESS_PC64_INTRAPG_JMP_WITH_FLAGS()  IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflOther)
 
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEM_MC_END() \
@@ -278,14 +289,14 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
         /* since that already imports all the incoming state. Saves a lot with cl.exe. */ \
         if (!fDoneXpctOrCall) \
         { \
-            pOutgoing->aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64 = LiveState.aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_POT_XCPT_OR_CALL].bm64); \
+            pOutgoing->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = LiveState.aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 \
+                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64); \
             pOutgoing->aBits[IEMLIVENESS_BIT_READ].bm64  = LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 \
                                                          | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64); \
             pOutgoing->aBits[IEMLIVENESS_BIT_WRITE].bm64 = LiveState.aBits[IEMLIVENESS_BIT_WRITE].bm64 \
                                                          | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_WRITE].bm64); \
-            pOutgoing->aBits[IEMLIVENESS_BIT_OTHER].bm64 = LiveState.aBits[IEMLIVENESS_BIT_OTHER].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_OTHER].bm64); \
+            pOutgoing->aBits[IEMLIVENESS_BIT_CALL].bm64  = LiveState.aBits[IEMLIVENESS_BIT_CALL].bm64 \
+                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_CALL].bm64); \
         } \
         else \
             *pOutgoing = LiveState; \
@@ -453,30 +464,32 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_CALC_RM_EFF_ADDR_THREADED_64_ADDR32(a_GCPtrEff, a_bRmEx, a_uSibAndRspOffset, a_u32Disp, a_cbImm) \
     IEM_MC_CALC_RM_EFF_ADDR_THREADED_64(a_GCPtrEff, a_bRmEx, a_uSibAndRspOffset, a_u32Disp, a_cbImm)
 
-/* At present we don't know what any CIMPL may require as input, so we do XPCT/CALL. */
+/* At present we don't know what any CIMPL may require as input, however they
+   shouldn't ever throw an exception, so it should suffice to mark them as
+   unconditional calls. */
 #define IEM_MC_CALL_CIMPL_1_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_CALL()
 #define IEM_MC_CALL_CIMPL_2_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_CALL()
 #define IEM_MC_CALL_CIMPL_3_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_CALL()
 #define IEM_MC_CALL_CIMPL_4_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3) \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_CALL()
 #define IEM_MC_CALL_CIMPL_5_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3, a4) \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_CALL()
 
 #define IEM_MC_DEFER_TO_CIMPL_0_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 #define IEM_MC_DEFER_TO_CIMPL_1_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 #define IEM_MC_DEFER_TO_CIMPL_2_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 #define IEM_MC_DEFER_TO_CIMPL_3_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 #define IEM_MC_DEFER_TO_CIMPL_4_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 #define IEM_MC_DEFER_TO_CIMPL_5_RET_THREADED(a_cbInstr, a_fFlags, a_fGstShwFlush, a_pfnCImpl, a0, a1, a2, a3, a4) \
-    IEM_LIVENESS_RAW_INIT_WITH_XCPT_OR_CALL(pOutgoing, pIncoming)
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming)
 
 /* Any 8-bit register fetch, store or modification only works on part of the register
    and must therefore be considered INPUTs. */
@@ -502,20 +515,20 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 
 #define IEM_MC_NO_NATIVE_RECOMPILE()                                NOP()
 
-#define IEM_MC_RAISE_DIVIDE_ERROR()                                 IEM_LIVENESS_MARK_XCPT_OR_CALL()
-#define IEM_MC_MAYBE_RAISE_DEVICE_NOT_AVAILABLE()                   IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR0_INPUT()
-#define IEM_MC_MAYBE_RAISE_WAIT_DEVICE_NOT_AVAILABLE()              IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR0_INPUT()
-#define IEM_MC_MAYBE_RAISE_FPU_XCPT()                               IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_FSW_INPUT()
+#define IEM_MC_RAISE_DIVIDE_ERROR()                                 IEM_LIVENESS_MARK_POTENTIAL_CALL()
+#define IEM_MC_MAYBE_RAISE_DEVICE_NOT_AVAILABLE()                   IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR0_INPUT()
+#define IEM_MC_MAYBE_RAISE_WAIT_DEVICE_NOT_AVAILABLE()              IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR0_INPUT()
+#define IEM_MC_MAYBE_RAISE_FPU_XCPT()                               IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_FSW_INPUT()
 #define IEM_MC_MAYBE_RAISE_AVX_RELATED_XCPT() \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_CR4_INPUT(); IEM_LIVENESS_XCR0_INPUT()
+    IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_CR4_INPUT(); IEM_LIVENESS_XCR0_INPUT()
 #define IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT() \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_CR4_INPUT()
+    IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_CR4_INPUT()
 #define IEM_MC_MAYBE_RAISE_MMX_RELATED_XCPT() \
-    IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_FSW_INPUT()
-#define IEM_MC_RAISE_GP0_IF_CPL_NOT_ZERO()                          IEM_LIVENESS_MARK_XCPT_OR_CALL()
-#define IEM_MC_RAISE_GP0_IF_EFF_ADDR_UNALIGNED(a_EffAddr, a_cbAlign) IEM_LIVENESS_MARK_XCPT_OR_CALL()
-#define IEM_MC_MAYBE_RAISE_FSGSBASE_XCPT()                          IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR4_INPUT()
-#define IEM_MC_MAYBE_RAISE_NON_CANONICAL_ADDR_GP0(a_u64Addr)        IEM_LIVENESS_MARK_XCPT_OR_CALL()
+    IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR0_INPUT(); IEM_LIVENESS_FSW_INPUT()
+#define IEM_MC_RAISE_GP0_IF_CPL_NOT_ZERO()                          IEM_LIVENESS_MARK_POTENTIAL_CALL() /**< @todo not conditional */
+#define IEM_MC_RAISE_GP0_IF_EFF_ADDR_UNALIGNED(a_EffAddr, a_cbAlign) IEM_LIVENESS_MARK_POTENTIAL_CALL()
+#define IEM_MC_MAYBE_RAISE_FSGSBASE_XCPT()                          IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR4_INPUT()
+#define IEM_MC_MAYBE_RAISE_NON_CANONICAL_ADDR_GP0(a_u64Addr)        IEM_LIVENESS_MARK_POTENTIAL_CALL()
 
 #define IEM_MC_LOCAL(a_Type, a_Name)                                NOP()
 #define IEM_MC_LOCAL_ASSIGN(a_Type, a_Name, a_Value)                NOP()
@@ -1154,10 +1167,10 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 
 #define IEM_MC_CALL_MMX_AIMPL_2(a_pfnAImpl, a0, a1)                                             NOP()
 #define IEM_MC_CALL_MMX_AIMPL_3(a_pfnAImpl, a0, a1, a2)                                         NOP()
-#define IEM_MC_CALL_SSE_AIMPL_2(a_pfnAImpl, a0, a1)                                             IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR4_INPUT()
-#define IEM_MC_CALL_SSE_AIMPL_3(a_pfnAImpl, a0, a1, a2)                                         IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR4_INPUT()
-#define IEM_MC_CALL_AVX_AIMPL_2(a_pfnAImpl, a0, a1)                                             IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR4_INPUT()
-#define IEM_MC_CALL_AVX_AIMPL_3(a_pfnAImpl, a0, a1, a2)                                         IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_XCPT_OR_CALL(); IEM_LIVENESS_CR4_INPUT()
+#define IEM_MC_CALL_SSE_AIMPL_2(a_pfnAImpl, a0, a1)                                             IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR4_INPUT()
+#define IEM_MC_CALL_SSE_AIMPL_3(a_pfnAImpl, a0, a1, a2)                                         IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR4_INPUT()
+#define IEM_MC_CALL_AVX_AIMPL_2(a_pfnAImpl, a0, a1)                                             IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR4_INPUT()
+#define IEM_MC_CALL_AVX_AIMPL_3(a_pfnAImpl, a0, a1, a2)                                         IEM_LIVENESS_MXCSR_MODIFY(); IEM_LIVENESS_MARK_POTENTIAL_CALL(); IEM_LIVENESS_CR4_INPUT()
 
 #define IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit) \
     do { if (     (a_fBit) == X86_EFL_CF) IEM_LIVENESS_ONE_EFLAG_INPUT(fEflCf); \

@@ -194,7 +194,8 @@ RWLockHandle *VirtualBoxBase::lockHandle() const
 
     // getLockingClass() is overridden by many subclasses to return
     // one of the locking classes listed at the top of AutoLock.h
-    RWLockHandle *objLock = new RWLockHandle(getLockingClass());
+    // getComponentName() returns the class name by default.
+    RWLockHandle *objLock = new RWLockHandle(getLockingClass(), getComponentName());
     if (!ASMAtomicCmpXchgPtr(&mObjectLock, objLock, NULL))
     {
         delete objLock;

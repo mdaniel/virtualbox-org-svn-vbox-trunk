@@ -54,7 +54,7 @@ static const RTMSINTERVAL s_aUpdateTimeoutSteps[] = { 500, 200, 100, 50, 20, 10,
 
 
 VirtualBox::ClientWatcher::ClientWatcher() :
-    mLock(LOCKCLASS_OBJECTSTATE)
+    mLock(LOCKCLASS_OBJECTSTATE, "ClientWatcher")
 {
     AssertReleaseFailed();
 }
@@ -91,7 +91,7 @@ VirtualBox::ClientWatcher::ClientWatcher(const ComObjPtr<VirtualBox> &pVirtualBo
     mVirtualBox(pVirtualBox),
     mThread(NIL_RTTHREAD),
     mUpdateReq(CWUPDATEREQARG),
-    mLock(LOCKCLASS_OBJECTSTATE)
+    mLock(LOCKCLASS_OBJECTSTATE, "ClientWatcher")
 {
 #if defined(RT_OS_WINDOWS)
     /* Misc state. */

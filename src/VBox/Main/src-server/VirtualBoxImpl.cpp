@@ -292,29 +292,29 @@ struct VirtualBox::Data
         : pMainConfigFile(NULL)
         , uuidMediaRegistry("48024e5c-fdd9-470f-93af-ec29f7ea518c")
         , uRegistryNeedsSaving(0)
-        , lockMachines(LOCKCLASS_LISTOFMACHINES)
+        , lockMachines(LOCKCLASS_LISTOFMACHINES, "Machines")
         , allMachines(lockMachines)
-        , lockGuestOSTypes(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockGuestOSTypes(LOCKCLASS_LISTOFOTHEROBJECTS, "GuestOSTypes")
         , allGuestOSTypes(lockGuestOSTypes)
-        , lockMedia(LOCKCLASS_LISTOFMEDIA)
+        , lockMedia(LOCKCLASS_LISTOFMEDIA, "Media")
         , allHardDisks(lockMedia)
         , allDVDImages(lockMedia)
         , allFloppyImages(lockMedia)
-        , lockSharedFolders(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockSharedFolders(LOCKCLASS_LISTOFOTHEROBJECTS, "SharedFolders")
         , allSharedFolders(lockSharedFolders)
-        , lockDHCPServers(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockDHCPServers(LOCKCLASS_LISTOFOTHEROBJECTS, "DHCPServers")
         , allDHCPServers(lockDHCPServers)
-        , lockNATNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockNATNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "NATNetworks")
         , allNATNetworks(lockNATNetworks)
 #ifdef VBOX_WITH_VMNET
-        , lockHostOnlyNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockHostOnlyNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "HostOnlyNetworks")
         , allHostOnlyNetworks(lockHostOnlyNetworks)
 #endif /* VBOX_WITH_VMNET */
 #ifdef VBOX_WITH_CLOUD_NET
-        , lockCloudNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockCloudNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "CloudNetworks")
         , allCloudNetworks(lockCloudNetworks)
 #endif /* VBOX_WITH_CLOUD_NET */
-        , mtxProgressOperations(LOCKCLASS_PROGRESSLIST)
+        , mtxProgressOperations(LOCKCLASS_PROGRESSLIST, "ProgressOperations")
         , pClientWatcher(NULL)
         , threadAsyncEvent(NIL_RTTHREAD)
         , pAsyncEventQ(NULL)
@@ -557,7 +557,7 @@ HRESULT VirtualBox::init()
     if (sAPIVersion.isEmpty())
         sAPIVersion = VBOX_API_VERSION_STRING;
     if (!spMtxNatNetworkNameToRefCountLock)
-        spMtxNatNetworkNameToRefCountLock = new RWLockHandle(LOCKCLASS_VIRTUALBOXOBJECT);
+        spMtxNatNetworkNameToRefCountLock = new RWLockHandle(LOCKCLASS_VIRTUALBOXOBJECT, "spMtxNatNetworkNameToRefCountLock");
 
     LogFlowThisFunc(("Version: %s, Package: %s, API Version: %s\n", sVersion.c_str(), sPackageType.c_str(), sAPIVersion.c_str()));
 

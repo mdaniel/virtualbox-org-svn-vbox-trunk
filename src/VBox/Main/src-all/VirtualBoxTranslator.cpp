@@ -146,7 +146,7 @@ static int vboxGetDefaultUserLanguage(char *pszName, size_t cbName)
 }
 
 VirtualBoxTranslator::VirtualBoxTranslator()
-    : util::RWLockHandle(util::LOCKCLASS_TRANSLATOR)
+    : util::RWLockHandle(util::LOCKCLASS_TRANSLATOR, "VirtualBoxTranslator")
     , m_cInstanceRefs(0)
     , m_pDefaultComponent(NULL)
     , m_strLanguage("C")

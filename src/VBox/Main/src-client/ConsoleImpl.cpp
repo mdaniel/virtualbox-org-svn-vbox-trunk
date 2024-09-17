@@ -430,7 +430,7 @@ Console::Console()
     , mUsbCardReader(NULL)
 #endif
     , mBusMgr(NULL)
-    , mLedLock(LOCKCLASS_LISTOFOTHEROBJECTS /* must be higher than LOCKCLASS_OTHEROBJECT */)
+    , mLedLock(LOCKCLASS_LISTOFOTHEROBJECTS /* must be higher than LOCKCLASS_OTHEROBJECT */, "LedLock")
     , muLedGen(0)
     , muLedTypeGen(0)
     , mcLedSets(0)

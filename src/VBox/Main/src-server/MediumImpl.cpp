@@ -177,7 +177,7 @@ struct Medium::Data
           size(0),
           readers(0),
           preLockState(MediumState_NotCreated),
-          queryInfoSem(LOCKCLASS_MEDIUMQUERY),
+          queryInfoSem(LOCKCLASS_MEDIUMQUERY, "queryInfoSem"),
           queryInfoRunning(false),
           type(MediumType_Normal),
           devType(DeviceType_HardDisk),

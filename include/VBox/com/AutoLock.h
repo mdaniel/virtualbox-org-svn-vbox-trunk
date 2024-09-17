@@ -180,7 +180,7 @@ private:
 class RWLockHandle : public LockHandle
 {
 public:
-    RWLockHandle(VBoxLockingClass lockClass);
+    RWLockHandle(VBoxLockingClass lockClass, const char *pszName = NULL);
     virtual ~RWLockHandle();
 
     virtual bool isWriteLockOnCurrentThread() const;

@@ -4798,7 +4798,10 @@ void UIStorageSettingsEditor::prepareAttachmentWidget()
                 /* Prepare slot combo: */
                 m_pComboSlot = new QComboBox(pWidgetAttachment);
                 if (m_pComboSlot)
+                {
+                    m_pComboSlot->setSizePolicy(QSizePolicy(QSizePolicy::Ignored, QSizePolicy::Minimum));
                     pLayoutContainer->addWidget(m_pComboSlot);
+                }
 
                 /* Prepare slot combo: */
                 m_pToolButtonOpen = new QIToolButton(pWidgetAttachment);

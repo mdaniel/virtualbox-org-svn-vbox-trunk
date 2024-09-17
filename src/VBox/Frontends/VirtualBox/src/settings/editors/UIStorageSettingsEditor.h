@@ -500,6 +500,8 @@ private:
 
         /** Holds the right pane attachment widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorInformation;
+        /** Holds the information container instance. */
+        QStackedWidget   *m_pContainerInformation;
         /** Holds the HD format label instance. */
         QLabel           *m_pLabelHDFormat;
         /** Holds the HD format field instance. */

@@ -210,9 +210,14 @@ HRESULT GraphicsAdapter::setGraphicsControllerType(GraphicsControllerType_T aGra
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    mParent->i_setModified(Machine::IsModified_GraphicsAdapter);
-    mData.backup();
-    mData->graphicsControllerType = aGraphicsControllerType;
+    if (mData->graphicsControllerType != aGraphicsControllerType)
+    {
+        mParent->i_setModified(Machine::IsModified_GraphicsAdapter);
+        mData.backup();
+        mData->graphicsControllerType = aGraphicsControllerType;
+
+        i_updateFeatures();
+    }
 
     return S_OK;
 }
@@ -263,26 +268,15 @@ HRESULT GraphicsAdapter::setFeature(GraphicsFeature_T aFeature, BOOL aEnabled)
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    /* Validate if the given feature is supported by this graphics controller on the given VM platform. */
-    if (!PlatformProperties::s_isGraphicsControllerFeatureSupported(mParent->i_getPlatform()->i_getArchitecture(),
-                                                                    mData->graphicsControllerType, aFeature))
+    /* Validate if the given feature to be enabled is supported by this graphics controller on the given VM platform.
+     * Disabling always is allowed for all graphics controllers. */
+    if (   aEnabled
+        && !PlatformProperties::s_isGraphicsControllerFeatureSupported(mParent->i_getPlatform()->i_getArchitecture(),
+                                                                       mData->graphicsControllerType, aFeature))
         return setError(VBOX_E_NOT_SUPPORTED, tr("The graphics controller does not support the given feature"));
 
-    bool *pfSetting = NULL;
-    switch (aFeature)
-    {
-        case GraphicsFeature_Acceleration2DVideo:
-            pfSetting = &mData->fAccelerate2DVideo;
-            break;
 
-        case GraphicsFeature_Acceleration3D:
-            pfSetting = &mData->fAccelerate3D;
-            break;
-
-        default:
-            break;
-    }
-
+    bool *pfSetting = i_getFeatureMemberBool(aFeature);
     if (!pfSetting)
         return setError(E_NOTIMPL, tr("The given feature is not implemented"));
 
@@ -291,7 +285,8 @@ HRESULT GraphicsAdapter::setFeature(GraphicsFeature_T aFeature, BOOL aEnabled)
         mParent->i_setModified(Machine::IsModified_GraphicsAdapter);
         mData.backup();
 
-        *pfSetting = RT_BOOL(aEnabled);
+        /* Note: We have to re-evaluate the feature member here, as mData.backup() above changed the pointers. */
+        *i_getFeatureMemberBool(aFeature) = RT_BOOL(aEnabled);
     }
 
     return S_OK;
@@ -384,6 +379,8 @@ HRESULT GraphicsAdapter::i_loadSettings(const settings::GraphicsAdapter &data)
 
     mData.assignCopy(&data);
 
+    i_updateFeatures();
+
     return S_OK;
 }
 
@@ -473,4 +470,52 @@ void GraphicsAdapter::i_copyFrom(GraphicsAdapter *aThat)
     /* this will back up current data */
     mData.assignCopy(aThat->mData);
 }
-/* vi: set tabstop=4 shiftwidth=4 expandtab: */
+
+/**
+ * Returns the pointer to a boolean feature member of a given graphics feature.
+ *
+ * @returns Pointer to a boolean feature member of a given graphics feature, or NULL if not found / implemented.
+ * @param   aFeature            Graphics feature to return boolean feature member for.
+ */
+bool *GraphicsAdapter::i_getFeatureMemberBool(GraphicsFeature_T aFeature)
+{
+    switch (aFeature)
+    {
+        case GraphicsFeature_Acceleration2DVideo: return &mData->fAccelerate2DVideo;
+        case GraphicsFeature_Acceleration3D:      return &mData->fAccelerate3D;
+        default:
+            break;
+    }
+
+    return NULL;
+}
+
+/**
+ * Updates all enabled features for the currently set graphics controller type.
+ *
+ * This will disable enabled features if the currently set graphics controller type does not support it.
+ */
+void GraphicsAdapter::i_updateFeatures()
+{
+    struct FEATUREMEMBER2ENUM
+    {
+        bool             *pfFeatureMember;
+        GraphicsFeature_T enmFeature;
+    };
+
+    static FEATUREMEMBER2ENUM s_aFeatures[] =
+    {
+        { &mData->fAccelerate2DVideo, GraphicsFeature_Acceleration2DVideo },
+        { &mData->fAccelerate3D,      GraphicsFeature_Acceleration3D },
+    };
+
+    for (size_t i = 0; i < RT_ELEMENTS(s_aFeatures); i++)
+    {
+        if (*s_aFeatures[i].pfFeatureMember)
+            *s_aFeatures[i].pfFeatureMember
+                = PlatformProperties::s_isGraphicsControllerFeatureSupported(mParent->i_getPlatform()->i_getArchitecture(),
+                                                                             mData->graphicsControllerType,
+                                                                             s_aFeatures[i].enmFeature);
+    }
+}
+

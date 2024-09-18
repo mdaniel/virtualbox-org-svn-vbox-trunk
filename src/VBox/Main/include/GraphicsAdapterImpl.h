@@ -61,9 +61,11 @@ public:
     HRESULT i_loadSettings(const settings::GraphicsAdapter &data);
     HRESULT i_saveSettings(settings::GraphicsAdapter &data);
 
-    void i_rollback();
-    void i_commit();
-    void i_copyFrom(GraphicsAdapter *aThat);
+    void  i_rollback();
+    void  i_commit();
+    void  i_copyFrom(GraphicsAdapter *aThat);
+    bool *i_getFeatureMemberBool(GraphicsFeature_T aFeature);
+    void  i_updateFeatures();
 
 private:
 

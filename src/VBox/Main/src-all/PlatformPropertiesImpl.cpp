@@ -847,6 +847,8 @@ int PlatformProperties::s_getSupportedGraphicsControllerFeatures(PlatformArchite
             switch (enmController)
             {
 #ifdef VBOX_WITH_VMSVGA
+                case GraphicsControllerType_VMSVGA:
+                    RT_FALL_THROUGH();
                 case GraphicsControllerType_VBoxSVGA:
                 {
 #if defined(VBOX_WITH_VIDEOHWACCEL) || defined(VBOX_WITH_3D_ACCELERATION) /* Work around zero-sized arrays. */

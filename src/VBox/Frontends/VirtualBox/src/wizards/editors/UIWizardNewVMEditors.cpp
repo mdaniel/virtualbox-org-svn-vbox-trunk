@@ -64,7 +64,6 @@ void UIUserNamePasswordGroupBox::prepare()
     m_pUserNamePasswordEditor = new UIUserNamePasswordEditor;
     AssertReturnVoid(m_pUserNamePasswordEditor);
     m_pUserNamePasswordEditor->setLabelsVisible(true);
-    m_pUserNamePasswordEditor->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     pUserNameContainerLayout->addWidget(m_pUserNamePasswordEditor);
 
     connect(m_pUserNamePasswordEditor, &UIUserNamePasswordEditor::sigPasswordChanged,

@@ -49,6 +49,7 @@ class UIHostnameDomainNameEditor : public QWidget
 signals:
 
     void sigHostnameDomainNameChanged(const QString &strHostNameDomain, bool fIsComplete);
+    void sigProductKeyChanged(const QString &strProductKey);
 
 public:
 
@@ -65,8 +66,7 @@ public:
     bool isComplete() const;
     void mark();
 
-    int firstColumnWidth() const;
-    void setFirstColumnWidth(int iWidth);
+    void disableEnableProductKeyWidgets(bool fEnabled);
 
 private slots:
 
@@ -81,9 +81,11 @@ private:
 
     QILineEdit *m_pHostnameLineEdit;
     QILineEdit *m_pDomainNameLineEdit;
+    QILineEdit *m_pProductKeyLineEdit;
 
     QLabel *m_pHostnameLabel;
     QLabel *m_pDomainNameLabel;
+    QLabel *m_pProductKeyLabel;
     QGridLayout *m_pMainLayout;
 };
 

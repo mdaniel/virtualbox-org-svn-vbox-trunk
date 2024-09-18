@@ -224,8 +224,6 @@ void UIGAInstallationGroupBox::sltToggleWidgetsEnabled(bool fEnabled)
 
 UIAdditionalUnattendedOptions::UIAdditionalUnattendedOptions(QWidget *pParent /* = 0 */)
     : QGroupBox(pParent)
-    , m_pProductKeyLabel(0)
-    , m_pProductKeyLineEdit(0)
     , m_pHostnameDomainNameEditor(0)
     , m_pStartHeadlessCheckBox(0)
 {
@@ -237,21 +235,6 @@ void UIAdditionalUnattendedOptions::prepare()
     m_pMainLayout = new QGridLayout(this);
     m_pMainLayout->setColumnStretch(0, 0);
     m_pMainLayout->setColumnStretch(1, 1);
-    m_pProductKeyLabel = new QLabel;
-    if (m_pProductKeyLabel)
-    {
-        m_pProductKeyLabel->setAlignment(Qt::AlignRight);
-        m_pProductKeyLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-        m_pMainLayout->addWidget(m_pProductKeyLabel, 0, 0);
-    }
-    m_pProductKeyLineEdit = new QILineEdit;
-    if (m_pProductKeyLineEdit)
-    {
-        m_pProductKeyLineEdit->setInputMask(">NNNNN-NNNNN-NNNNN-NNNNN-NNNNN;#");
-        if (m_pProductKeyLabel)
-            m_pProductKeyLabel->setBuddy(m_pProductKeyLineEdit);
-        m_pMainLayout->addWidget(m_pProductKeyLineEdit, 0, 1, 1, 2);
-    }
 
     m_pHostnameDomainNameEditor = new UIHostnameDomainNameEditor;
     if (m_pHostnameDomainNameEditor)
@@ -262,11 +245,12 @@ void UIAdditionalUnattendedOptions::prepare()
         m_pMainLayout->addWidget(m_pStartHeadlessCheckBox, 3, 1);
 
     if (m_pHostnameDomainNameEditor)
+    {
         connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigHostnameDomainNameChanged,
                 this, &UIAdditionalUnattendedOptions::sigHostnameDomainNameChanged);
-    if (m_pProductKeyLineEdit)
-        connect(m_pProductKeyLineEdit, &QILineEdit::textChanged,
+        connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigProductKeyChanged,
                 this, &UIAdditionalUnattendedOptions::sigProductKeyChanged);
+    }
     if (m_pStartHeadlessCheckBox)
         connect(m_pStartHeadlessCheckBox, &QCheckBox::toggled,
                 this, &UIAdditionalUnattendedOptions::sigStartHeadlessChanged);
@@ -280,28 +264,12 @@ void UIAdditionalUnattendedOptions::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Additional Options"));
 
-    if (m_pProductKeyLabel)
-        m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
-
     if (m_pStartHeadlessCheckBox)
     {
         m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
         m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
                                                                "unattended guest OS installation of newly created virtual machine."));
     }
-
-    int iMaxWidth = 0;
-    if (m_pProductKeyLabel)
-        iMaxWidth = qMax(m_pProductKeyLabel->minimumSizeHint().width(), iMaxWidth);
-    if (m_pHostnameDomainNameEditor)
-        iMaxWidth = qMax(m_pHostnameDomainNameEditor->firstColumnWidth(), iMaxWidth);
-    if (iMaxWidth > 0)
-    {
-        m_pMainLayout->setColumnMinimumWidth(0, iMaxWidth);
-        m_pHostnameDomainNameEditor->setFirstColumnWidth(iMaxWidth);
-    }
-    if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("Holds the product key."));
 }
 
 QString UIAdditionalUnattendedOptions::hostname() const
@@ -358,10 +326,8 @@ void UIAdditionalUnattendedOptions::mark()
 
 void UIAdditionalUnattendedOptions::disableEnableProductKeyWidgets(bool fEnabled)
 {
-    if (m_pProductKeyLabel)
-        m_pProductKeyLabel->setEnabled(fEnabled);
-    if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setEnabled(fEnabled);
+    if (m_pHostnameDomainNameEditor)
+        m_pHostnameDomainNameEditor->disableEnableProductKeyWidgets(fEnabled);
 }
 
 /*********************************************************************************************************************************

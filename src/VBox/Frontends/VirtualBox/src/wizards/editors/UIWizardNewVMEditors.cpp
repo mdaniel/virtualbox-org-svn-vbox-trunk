@@ -224,24 +224,16 @@ void UIGAInstallationGroupBox::sltToggleWidgetsEnabled(bool fEnabled)
 UIAdditionalUnattendedOptions::UIAdditionalUnattendedOptions(QWidget *pParent /* = 0 */)
     : QGroupBox(pParent)
     , m_pHostnameDomainNameEditor(0)
-    , m_pStartHeadlessCheckBox(0)
 {
     prepare();
 }
 
 void UIAdditionalUnattendedOptions::prepare()
 {
-    m_pMainLayout = new QGridLayout(this);
-    m_pMainLayout->setColumnStretch(0, 0);
-    m_pMainLayout->setColumnStretch(1, 1);
-
+    m_pMainLayout = new QHBoxLayout(this);
     m_pHostnameDomainNameEditor = new UIHostnameDomainNameEditor;
     if (m_pHostnameDomainNameEditor)
-        m_pMainLayout->addWidget(m_pHostnameDomainNameEditor, 1, 0, 2, 3);
-
-    m_pStartHeadlessCheckBox = new QCheckBox;
-    if (m_pStartHeadlessCheckBox)
-        m_pMainLayout->addWidget(m_pStartHeadlessCheckBox, 3, 1);
+        m_pMainLayout->addWidget(m_pHostnameDomainNameEditor);
 
     if (m_pHostnameDomainNameEditor)
     {
@@ -249,10 +241,9 @@ void UIAdditionalUnattendedOptions::prepare()
                 this, &UIAdditionalUnattendedOptions::sigHostnameDomainNameChanged);
         connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigProductKeyChanged,
                 this, &UIAdditionalUnattendedOptions::sigProductKeyChanged);
-    }
-    if (m_pStartHeadlessCheckBox)
-        connect(m_pStartHeadlessCheckBox, &QCheckBox::toggled,
+        connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigStartHeadlessChanged,
                 this, &UIAdditionalUnattendedOptions::sigStartHeadlessChanged);
+    }
 
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
@@ -262,13 +253,6 @@ void UIAdditionalUnattendedOptions::prepare()
 void UIAdditionalUnattendedOptions::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Additional Options"));
-
-    if (m_pStartHeadlessCheckBox)
-    {
-        m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
-        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
-                                                               "unattended guest OS installation of newly created virtual machine."));
-    }
 }
 
 QString UIAdditionalUnattendedOptions::hostname() const

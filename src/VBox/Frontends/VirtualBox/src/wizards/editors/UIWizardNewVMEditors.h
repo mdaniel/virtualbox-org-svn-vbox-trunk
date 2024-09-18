@@ -37,7 +37,7 @@
 
 /* Forward declarations: */
 class QCheckBox;
-class QGridLayout;
+class QHBoxLayout;
 class QLabel;
 class QILineEdit;
 class UIBaseMemoryEditor;
@@ -151,11 +151,8 @@ private:
 
     void prepare();
 
-
-
     UIHostnameDomainNameEditor *m_pHostnameDomainNameEditor;
-    QCheckBox *m_pStartHeadlessCheckBox;
-    QGridLayout *m_pMainLayout;
+    QHBoxLayout *m_pMainLayout;
 };
 
 

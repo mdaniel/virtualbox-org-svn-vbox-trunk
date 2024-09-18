@@ -36,6 +36,7 @@
 #include <QWidget>
 
 /* Forward declarations: */
+class QCheckBox;
 class QGridLayout;
 class QLabel;
 class QILineEdit;
@@ -50,6 +51,7 @@ signals:
 
     void sigHostnameDomainNameChanged(const QString &strHostNameDomain, bool fIsComplete);
     void sigProductKeyChanged(const QString &strProductKey);
+    void sigStartHeadlessChanged(bool fChecked);
 
 public:
 
@@ -87,6 +89,7 @@ private:
     QLabel *m_pDomainNameLabel;
     QLabel *m_pProductKeyLabel;
     QGridLayout *m_pMainLayout;
+    QCheckBox *m_pStartHeadlessCheckBox;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_editors_UIHostnameDomainNameEditor_h */

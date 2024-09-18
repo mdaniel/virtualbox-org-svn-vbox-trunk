@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -55,6 +56,7 @@ UIHostnameDomainNameEditor::UIHostnameDomainNameEditor(QWidget *pParent /*  = 0 
     , m_pDomainNameLabel(0)
     , m_pProductKeyLabel(0)
     , m_pMainLayout(0)
+    , m_pStartHeadlessCheckBox(0)
 {
     prepare();
 }
@@ -126,6 +128,13 @@ void UIHostnameDomainNameEditor::sltRetranslateUI()
         m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
     if (m_pProductKeyLineEdit)
         m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("Holds the product key."));
+
+    if (m_pStartHeadlessCheckBox)
+    {
+        m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
+        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
+                                                               "unattended guest OS installation of newly created virtual machine."));
+    }
 }
 
 void UIHostnameDomainNameEditor::addLineEdit(int &iRow, QLabel *&pLabel, QILineEdit *&pLineEdit, QGridLayout *pLayout)
@@ -151,14 +160,10 @@ void UIHostnameDomainNameEditor::addLineEdit(int &iRow, QLabel *&pLabel, QILineE
 void UIHostnameDomainNameEditor::prepare()
 {
     m_pMainLayout = new QGridLayout;
-    m_pMainLayout->setColumnStretch(0, 0);
-    m_pMainLayout->setColumnStretch(1, 1);
     if (!m_pMainLayout)
         return;
     setLayout(m_pMainLayout);
     int iRow = 0;
-
-
 
     addLineEdit(iRow, m_pProductKeyLabel, m_pProductKeyLineEdit, m_pMainLayout);
     addLineEdit(iRow, m_pHostnameLabel, m_pHostnameLineEdit, m_pMainLayout);
@@ -167,7 +172,7 @@ void UIHostnameDomainNameEditor::prepare()
     if (m_pProductKeyLineEdit)
     {
         m_pProductKeyLineEdit->setInputMask(">NNNNN-NNNNN-NNNNN-NNNNN-NNNNN;#");
-        m_pProductKeyLineEdit->setMinimumWidth(fontMetrics().horizontalAdvance("NNNNN-NNNNN-NNNNN-NNNNN-NNNNN"));
+        m_pProductKeyLineEdit->setMinimumWidthByText("NNNNN-NNNNN-NNNNN-NNNNN-NNNNN");
     }
 
     /* Host name and domain should be strings of minimum length of 2 and composed of alpha numerics, '-', and '.'
@@ -185,6 +190,16 @@ void UIHostnameDomainNameEditor::prepare()
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIHostnameDomainNameEditor::sltRetranslateUI);
+
+    m_pStartHeadlessCheckBox = new QCheckBox;
+    if (m_pStartHeadlessCheckBox)
+        m_pMainLayout->addWidget(m_pStartHeadlessCheckBox, iRow, 1, 1, 3);
+
+    if (m_pStartHeadlessCheckBox)
+        connect(m_pStartHeadlessCheckBox, &QCheckBox::toggled,
+                this, &UIHostnameDomainNameEditor::sigStartHeadlessChanged);
+
+    sltRetranslateUI();
 }
 
 void UIHostnameDomainNameEditor::sltHostnameChanged()

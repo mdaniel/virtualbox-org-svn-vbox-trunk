@@ -3331,6 +3331,13 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 /** Recompiler liveness info: modified SSE register (i.e. input & output)  */
 #define IEM_MC_LIVENESS_XREG_MODIFY(a_iXReg)            ((void)0)
 
+/** Recompiler liveness info: input MXCSR */
+#define IEM_MC_LIVENESS_MXCSR_INPUT()                   ((void)0)
+/** Recompiler liveness info: clobbered MXCSR */
+#define IEM_MC_LIVENESS_MXCSR_CLOBBER()                 ((void)0)
+/** Recompiler liveness info: modified MXCSR (i.e. input & output)  */
+#define IEM_MC_LIVENESS_MXCSR_MODIFY()                  ((void)0)
+
 /** @todo add more as needed. */
 
 /** @}  */

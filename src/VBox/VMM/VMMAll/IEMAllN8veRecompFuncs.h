@@ -265,6 +265,9 @@ iemNativeRegFlushPendingSpecificWrite(PIEMRECOMPILERSTATE pReNative, uint32_t of
 #define IEM_MC_LIVENESS_XREG_CLOBBER(a_iXReg)   ((void)0)
 #define IEM_MC_LIVENESS_XREG_MODIFY(a_iXReg)    ((void)0)
 
+#define IEM_MC_LIVENESS_MXCSR_INPUT()           ((void)0)
+#define IEM_MC_LIVENESS_MXCSR_CLOBBER()         ((void)0)
+#define IEM_MC_LIVENESS_MXCSR_MODIFY()          ((void)0)
 
 
 /*********************************************************************************************************************************

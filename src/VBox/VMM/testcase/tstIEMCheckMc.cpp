@@ -1163,6 +1163,10 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPU pVCpu, uint8_t bRm);
 #define IEM_MC_LIVENESS_XREG_CLOBBER(a_iXReg)                           ((void)a_iXReg)
 #define IEM_MC_LIVENESS_XREG_MODIFY(a_iXReg)                            ((void)a_iXReg)
 
+#define IEM_MC_LIVENESS_MXCSR_INPUT()                                   ((void)0)
+#define IEM_MC_LIVENESS_MXCSR_CLOBBER()                                 ((void)0)
+#define IEM_MC_LIVENESS_MXCSR_MODIFY()                                  ((void)0)
+
 /** @}  */
 
 #include "../VMMAll/IEMAllIntprTables1.cpp"

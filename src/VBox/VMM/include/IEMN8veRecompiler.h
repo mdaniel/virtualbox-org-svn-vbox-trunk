@@ -49,7 +49,6 @@
  * Enables liveness analysis.  */
 #if 1 || defined(DOXYGEN_RUNNING)
 # define IEMNATIVE_WITH_LIVENESS_ANALYSIS
-/*# define IEMLIVENESS_EXTENDED_LAYOUT*/
 #endif
 
 /** @def IEMNATIVE_WITH_EFLAGS_SKIPPING
@@ -68,6 +67,27 @@
 #elif defined(DOXYGEN_RUNNING)
 # define IEMNATIVE_STRICT_EFLAGS_SKIPPING
 #endif
+
+/** @def IEMNATIVE_WITH_EFLAGS_POSTPONING
+ * Enables delaying EFLAGS calculations/updating to conditional code paths
+ * that are (hopefully) not taken so frequently.
+ *
+ * This can only help with case where there is an conditional
+ * call/exception/tbexit that needs the flag, but in the default code stream the
+ * flag will be clobbered.  Useful for TlbMiss scenarios and sequences of memory
+ * based instructions clobbering status flags. */
+#if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) || defined(DOXYGEN_RUNNING)
+# if 0
+#  define IEMNATIVE_WITH_EFLAGS_POSTPONING
+# endif
+#endif
+
+/** @def IEMLIVENESS_EXTENDED_LAYOUT
+ * Enables the extended liveness data layout.  */
+#if defined(IEMNATIVE_WITH_EFLAGS_POSTPONING) || defined(DOXYGEN_RUNNING) || 0
+# define IEMLIVENESS_EXTENDED_LAYOUT
+#endif
+
 
 #ifdef VBOX_WITH_STATISTICS
 /** Always count instructions for now. */

@@ -2362,8 +2362,18 @@ typedef struct IEMCPU
 
     /** Native recompiler: Number of times status flags calc has been skipped. */
     STAMCOUNTER             StatNativeEflSkippedArithmetic;
+    /** Native recompiler: Total number instructions in this category. */
+    STAMCOUNTER             StatNativeEflTotalArithmetic;
+
     /** Native recompiler: Number of times status flags calc has been skipped. */
     STAMCOUNTER             StatNativeEflSkippedLogical;
+    /** Native recompiler: Total number instructions in this category. */
+    STAMCOUNTER             StatNativeEflTotalLogical;
+
+    /** Native recompiler: Number of times status flags calc has been skipped. */
+    STAMCOUNTER             StatNativeEflSkippedShift;
+    /** Native recompiler: Total number instructions in this category. */
+    STAMCOUNTER             StatNativeEflTotalShift;
 
     /** Native recompiler: Number of opportunities to skip EFLAGS.CF updating. */
     STAMCOUNTER             StatNativeLivenessEflCfSkippable;
@@ -2536,9 +2546,9 @@ typedef struct IEMCPU
     /** @} */
 
 #ifdef IEM_WITH_TLB_TRACE
-    uint64_t                au64Padding[4];
+    //uint64_t                au64Padding[0];
 #else
-    uint64_t                au64Padding[6];
+    uint64_t                au64Padding[2];
 #endif
 
 #ifdef IEM_WITH_TLB_TRACE

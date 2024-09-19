@@ -3586,7 +3586,7 @@ class IEMThreadedGenerator(object):
                 if fHaveRecompFunc:
                     oOut.write('    iemNativeLivenessFunc_BltIn_%s,\n' % (sFuncNm,))
                 else:
-                    oOut.write('    NULL, /*BltIn_%s*/\n' % (sFuncNm,))
+                    oOut.write('    iemNativeLivenessFunc_ThreadedCall, /*BltIn_%s*/\n' % (sFuncNm,))
 
             iThreadedFunction = 1 + len(self.katBltIns);
             for sVariation in ThreadedFunctionVariation.kasVariationsEmitOrder:
@@ -3602,7 +3602,7 @@ class IEMThreadedGenerator(object):
                         if oVariation.oNativeRecomp and oVariation.oNativeRecomp.isRecompilable():
                             oOut.write('    /*%4u*/ %s,\n' % (iThreadedFunction, sName,));
                         else:
-                            oOut.write('    /*%4u*/ NULL /*%s*/,\n' % (iThreadedFunction, sName,));
+                            oOut.write('    /*%4u*/ iemNativeLivenessFunc_ThreadedCall /*%s*/,\n' % (iThreadedFunction, sName,));
 
             oOut.write(  '};\n'
                        + '\n');

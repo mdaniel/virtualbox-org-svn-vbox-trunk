@@ -64,7 +64,7 @@
         /* Define local variables that we use to accumulate the liveness state changes in. */ \
         IEMLIVENESSENTRY LiveState       = { { 0, 0, 0, 0 } }; \
         IEMLIVENESSBIT   LiveMask        = { 0 }; \
-        bool             fDoneXpctOrCall = false
+        bool             fNoInherit      = false
 #endif
 
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
@@ -84,22 +84,12 @@ AssertCompile(IEMLIVENESSBIT0_XCPT_OR_CALL == 0 && IEMLIVENESSBIT1_XCPT_OR_CALL 
 # define IEM_LIVENESS_MARK_CALL()           IEM_LIVENESS_MARK_CALL_OR_POT_CALL_INTERNAL()
 #else
 # define IEM_LIVENESS_MARK_POTENTIAL_CALL() do { \
-            if (!fDoneXpctOrCall) \
-            { \
-                LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 |= pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64 & ~LiveMask.bm64; \
-                LiveMask.bm64   |= IEMLIVENESSBIT_MASK; \
-                fDoneXpctOrCall  = true; \
-            } \
             LiveState.aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 |= IEMLIVENESSBIT_MASK; \
         } while (0)
 # define IEM_LIVENESS_MARK_CALL() do { \
-            if (!fDoneXpctOrCall) \
-            { \
-                LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 |= pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64 & ~LiveMask.bm64; \
-                LiveMask.bm64   |= IEMLIVENESSBIT_MASK; \
-                fDoneXpctOrCall  = true; \
-            } \
             LiveState.aBits[IEMLIVENESS_BIT_CALL].bm64 |= IEMLIVENESSBIT_MASK; \
+            LiveMask.bm64                              |= IEMLIVENESSBIT_MASK; \
+            fNoInherit                                  = true; /* full mask */ \
         } while (0)
 #endif
 
@@ -284,19 +274,18 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
     }
 #else
 # define IEM_MC_END() \
-        /* Combine the incoming state with what we've accumulated in this block. */ \
-        /* We can help the compiler by skipping OR'ing when having applied XPCT_OR_CALL, */ \
-        /* since that already imports all the incoming state. Saves a lot with cl.exe. */ \
-        if (!fDoneXpctOrCall) \
+        /* Use the mask to effect inheriting. */ \
+        if (!fNoInherit) \
         { \
+            uint64_t const fInhMask = ~LiveMask.bm64; \
             pOutgoing->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = LiveState.aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64); \
-            pOutgoing->aBits[IEMLIVENESS_BIT_READ].bm64  = LiveState.aBits[IEMLIVENESS_BIT_READ].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_READ].bm64); \
+                                                                | (pIncoming->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 & fInhMask); \
+            pOutgoing->aBits[IEMLIVENESS_BIT_READ ].bm64 = LiveState.aBits[IEMLIVENESS_BIT_READ ].bm64 \
+                                                       | (pIncoming->aBits[IEMLIVENESS_BIT_READ ].bm64 & fInhMask); \
             pOutgoing->aBits[IEMLIVENESS_BIT_WRITE].bm64 = LiveState.aBits[IEMLIVENESS_BIT_WRITE].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_WRITE].bm64); \
-            pOutgoing->aBits[IEMLIVENESS_BIT_CALL].bm64  = LiveState.aBits[IEMLIVENESS_BIT_CALL].bm64 \
-                                                         | (~LiveMask.bm64 & pIncoming->aBits[IEMLIVENESS_BIT_CALL].bm64); \
+                                                       | (pIncoming->aBits[IEMLIVENESS_BIT_WRITE].bm64 & fInhMask); \
+            pOutgoing->aBits[IEMLIVENESS_BIT_CALL ].bm64 = LiveState.aBits[IEMLIVENESS_BIT_CALL ].bm64 \
+                                                       | (pIncoming->aBits[IEMLIVENESS_BIT_CALL ].bm64 & fInhMask); \
         } \
         else \
             *pOutgoing = LiveState; \

@@ -3172,7 +3172,7 @@ static uint8_t iemNativeRegAllocFindFree(PIEMRECOMPILERSTATE pReNative, uint32_t
 
 #ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
         /*
-         * When we have livness information, we use it to kick out all shadowed
+         * When we have liveness information, we use it to kick out all shadowed
          * guest register that will not be needed any more in this TB.  If we're
          * lucky, this may prevent us from ending up here again.
          *
@@ -3184,20 +3184,8 @@ static uint8_t iemNativeRegAllocFindFree(PIEMRECOMPILERSTATE pReNative, uint32_t
         if (idxCurCall > 0)
         {
             PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[idxCurCall - 1];
+            uint64_t                 fToFreeMask    = IEMLIVENESS_STATE_GET_CAN_BE_FREED_SET(pLivenessEntry);
 
-# ifndef IEMLIVENESS_EXTENDED_LAYOUT
-            /* Construct a mask of the guest registers in the UNUSED and XCPT_OR_CALL state. */
-            AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL == 2);
-            uint64_t fToFreeMask = pLivenessEntry->Bit0.bm64 ^ pLivenessEntry->Bit1.bm64; /* mask of regs in either UNUSED */
-#else
-            /* Construct a mask of the registers not in the read or write state.
-               Note! We could skips writes, if they aren't from us, as this is just
-                     a hack to prevent trashing registers that have just been written
-                     or will be written when we retire the current instruction. */
-            uint64_t fToFreeMask = ~pLivenessEntry->aBits[IEMLIVENESS_BIT_READ].bm64
-                                 & ~pLivenessEntry->aBits[IEMLIVENESS_BIT_WRITE].bm64
-                                 & IEMLIVENESSBIT_MASK;
-#endif
             /* Merge EFLAGS. */
             uint64_t fTmp = fToFreeMask & (fToFreeMask >> 3);   /* AF2,PF2,CF2,Other2 = AF,PF,CF,Other & OF,SF,ZF,AF */
             fTmp &= fTmp >> 2;                                  /*         CF3,Other3 = AF2,PF2 & CF2,Other2  */
@@ -4943,20 +4931,8 @@ static uint8_t iemNativeSimdRegAllocFindFree(PIEMRECOMPILERSTATE pReNative, uint
         if (idxCurCall > 0)
         {
             PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[idxCurCall - 1];
+            uint64_t const           fToFreeMask    = IEMLIVENESS_STATE_GET_CAN_BE_FREED_SET(pLivenessEntry);
 
-# ifndef IEMLIVENESS_EXTENDED_LAYOUT
-            /* Construct a mask of the guest registers in the UNUSED and XCPT_OR_CALL state. */
-            AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL == 2);
-            uint64_t fToFreeMask = pLivenessEntry->Bit0.bm64 ^ pLivenessEntry->Bit1.bm64; /* mask of regs in either UNUSED */
-#else
-            /* Construct a mask of the registers not in the read or write state.
-               Note! We could skips writes, if they aren't from us, as this is just
-                     a hack to prevent trashing registers that have just been written
-                     or will be written when we retire the current instruction. */
-            uint64_t fToFreeMask = ~pLivenessEntry->aBits[IEMLIVENESS_BIT_READ].bm64
-                                 & ~pLivenessEntry->aBits[IEMLIVENESS_BIT_WRITE].bm64
-                                 & IEMLIVENESSBIT_MASK;
-#endif
             /* If it matches any shadowed registers. */
             if (pReNative->Core.bmGstRegShadows & fToFreeMask)
             {
@@ -6536,6 +6512,16 @@ iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, PCIEMTHRD
     off = iemNativeEmitCheckCallRetAndPassUp(pReNative, off, pCallEntry->idxInstr);
 
     return off;
+}
+
+
+/**
+ * The default liveness function, matching iemNativeEmitThreadedCall.
+ */
+IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_ThreadedCall)
+{
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming);
+    RT_NOREF(pCallEntry);
 }
 
 #ifdef VBOX_WITH_STATISTICS
@@ -10011,19 +9997,11 @@ l_profile_again:
         while (idxCall > 0)
         {
             PFNIEMNATIVELIVENESSFUNC const pfnLiveness = g_apfnIemNativeLivenessFunctions[pCallEntry->enmFunction];
-            if (pfnLiveness)
-                pfnLiveness(pCallEntry, &paLivenessEntries[idxCall], &paLivenessEntries[idxCall - 1]);
-            else
-                IEM_LIVENESS_RAW_INIT_WITH_CALL_AND_POTENTIAL_CALL(&paLivenessEntries[idxCall - 1], &paLivenessEntries[idxCall]);
+            Assert(pfnLiveness);
+            pfnLiveness(pCallEntry, &paLivenessEntries[idxCall], &paLivenessEntries[idxCall - 1]);
             pCallEntry--;
             idxCall--;
         }
-
-# ifdef VBOX_WITH_STATISTICS
-        /* Check if there are any EFLAGS optimization to be had here.  This requires someone settings them
-           to 'clobbered' rather that 'input'.  */
-        /** @todo */
-# endif
     }
 #endif
 
@@ -10142,7 +10120,12 @@ l_profile_again:
 # ifndef IEMLIVENESS_EXTENDED_LAYOUT
                 static const char s_achState[] = "CUXI";
 # else
-                static const char s_achState[] = "UxRrWwMmCcQqKkNn";
+                /*                                0123   4567   89ab   cdef */
+                /*                                              CCCC   CCCC */
+                /*                                       WWWW          WWWW */
+                /*                                  RR     RR     RR     RR */
+                /*                                 P P    P P    P P    P P */
+                static const char s_achState[] = "UxRr" "WwMm" "CcQq" "KkNn";
 # endif
 
                 char szGpr[17];

@@ -713,6 +713,9 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 
 /** @name 64-bit value masks for IEMLIVENESSENTRY.
  * @{ */                                      /*         0xzzzzyyyyxxxxwwww */
+/** @todo Changing this to 0x003ffffffffffffe would reduce the liveness code
+ * size by 3.2% on arm in extended layout.  That means moving kIemNativeGstReg_Pc
+ * to zero, which may have other consequences so needs to be tested in full first. */
 #define IEMLIVENESSBIT_MASK                     UINT64_C(0x003ffffffffeffff)
 
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
@@ -748,6 +751,15 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
  * The mask entry (3rd one above) will be used both when updating the outgoing
  * state and when merging in incoming state for registers not touched by the
  * current call.
+ *
+ *
+ * Extended Layout:
+ *
+ * The extended layout variation differs from the above as it records the
+ * different register accesses as individual bits, and it is currently used for
+ * the delayed EFLAGS calculation experiments.   The latter means that
+ * calls/tb-exits and potential calls/exceptions/tb-exits are recorded
+ * separately so the latter can be checked for in combination with clobbering.
  *
  * @{ */
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
@@ -795,20 +807,33 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 /** The number of bits per state.   */
 # define IEMLIVENESS_STATE_BIT_COUNT    2
 
-/** Check if we're expecting read & write accesses to a register with the given (previous) liveness state. */
+/** Check if we're expecting read & write accesses to a register with the given (previous) liveness state.
+ * @note only used in assertions. */
 # define IEMLIVENESS_STATE_IS_MODIFY_EXPECTED(a_uState)  ((uint32_t)((a_uState) - 1U) >= (uint32_t)(IEMLIVENESS_STATE_INPUT - 1U))
-/** Check if we're expecting read accesses to a register with the given (previous) liveness state. */
+/** Check if we're expecting read accesses to a register with the given (previous) liveness state.
+ * @note only used in assertions. */
 # define IEMLIVENESS_STATE_IS_INPUT_EXPECTED(a_uState)   IEMLIVENESS_STATE_IS_MODIFY_EXPECTED(a_uState)
 /** Check if a register clobbering is expected given the (previous) liveness state.
  * The state must be either CLOBBERED or XCPT_OR_CALL, but it may also
- * include INPUT if the register is used in more than one place. */
+ * include INPUT if the register is used in more than one place.
+ * @note only used in assertions. */
 # define IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(a_uState) ((uint32_t)(a_uState) != IEMLIVENESS_STATE_UNUSED)
 
 /** Check if all status flags are going to be clobbered and doesn't need
  *  calculating in the current step.
- * @param a_pCurEntry  The current liveness entry. */
-# define IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(a_pCurEntry)  \
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code. */
+# define IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(a_pCurEntry) \
     ( (((a_pCurEntry)->Bit0.bm64 | (a_pCurEntry)->Bit1.bm64) & IEMLIVENESSBIT_STATUS_EFL_MASK) == 0 )
+
+/** Construct a mask of the guest registers in the UNUSED and XCPT_OR_CALL
+ *  states, as these are no longer needed.
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code. */
+AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL == 2);
+# define IEMLIVENESS_STATE_GET_CAN_BE_FREED_SET(a_pCurEntry) \
+    ( (a_pCurEntry)->Bit0.bm64 ^ (a_pCurEntry)->Bit1.bm64 )
+
 
 #else  /* IEMLIVENESS_EXTENDED_LAYOUT */
 /** The register is not used any more. */
@@ -838,6 +863,18 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
              | (a_pCurEntry)->aBits[IEMLIVENESS_BIT_CALL].bm64) \
           & IEMLIVENESSBIT_STATUS_EFL_MASK) )
 
+/** Construct a mask of the registers not in the read or write state.
+ * @note  We could skips writes, if they aren't from us, as this is just a hack
+ *        to prevent trashing registers that have just been written or will be
+ *        written when we retire the current instruction.
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code. */
+# define IEMLIVENESS_STATE_GET_CAN_BE_FREED_SET(a_pCurEntry) \
+            (  ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_READ].bm64 \
+             & ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_WRITE].bm64 \
+             & IEMLIVENESSBIT_MASK )
+
+
 #endif /* IEMLIVENESS_EXTENDED_LAYOUT */
 /** @} */
 
@@ -865,7 +902,10 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 #endif
 
 /** Initializing the outgoing state with a potential xcpt or call state.
- * This only works when all later changes will be IEMLIVENESS_STATE_INPUT. */
+ * This only works when all later changes will be IEMLIVENESS_STATE_INPUT.
+ *
+ * @note Must invoke IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL when done!
+ */
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) \
     do { \
@@ -876,14 +916,31 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 # define IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) \
     do { \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = IEMLIVENESSBIT_MASK; \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = (a_pIncoming)->aBits[IEMLIVENESS_BIT_READ].bm64; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = 0; \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 = 0; \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_CALL          ].bm64 = 0; \
     } while (0)
 #endif
 
+/** Completes IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL after applying any
+ * other state modifications.
+ */
+#ifndef IEMLIVENESS_EXTENDED_LAYOUT
+# define IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) ((void)0)
+#else
+# define IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) \
+    do { \
+        uint64_t const fInhMask = ~(  (a_pOutgoing)->aBits[IEMLIVENESS_BIT_CALL].bm64 \
+                                    | (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE].bm64); \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 |= (a_pIncoming)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 & fInhMask; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 |= (a_pIncoming)->aBits[IEMLIVENESS_BIT_READ].bm64  & fInhMask; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 |= (a_pIncoming)->aBits[IEMLIVENESS_BIT_WRITE].bm64 & fInhMask; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_CALL          ].bm64 |= (a_pIncoming)->aBits[IEMLIVENESS_BIT_CALL].bm64  & fInhMask; \
+    } while (0)
+#endif
+
 /** Initializing the outgoing state with an unconditional call state.
- * This only works when all later changes will be IEMLIVENESS_STATE_INPUT. */
+ * This should only really be used alone. */
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEM_LIVENESS_RAW_INIT_WITH_CALL(a_pOutgoing, a_pIncoming) \
     do { \
@@ -893,16 +950,18 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 #else
 # define IEM_LIVENESS_RAW_INIT_WITH_CALL(a_pOutgoing, a_pIncoming) \
     do { \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = 0; \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = (a_pIncoming)->aBits[IEMLIVENESS_BIT_READ].bm64; \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 = 0; \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_CALL          ].bm64 = IEMLIVENESSBIT_MASK; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = 0; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = 0; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 = 0; \
+        RT_NOREF(a_pIncoming); \
     } while (0)
 #endif
 
+#if 0 /* unused */
 /** Initializing the outgoing state with an unconditional call state as well as
  *  an potential call/exception preceeding it.
- * This should only be used alone, really. */
+ * This should only really be used alone. */
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEM_LIVENESS_RAW_INIT_WITH_CALL_AND_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) \
     do { \
@@ -913,10 +972,11 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 # define IEM_LIVENESS_RAW_INIT_WITH_CALL_AND_POTENTIAL_CALL(a_pOutgoing, a_pIncoming) \
     do { \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 = IEMLIVENESSBIT_MASK; \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = (a_pIncoming)->aBits[IEMLIVENESS_BIT_READ].bm64; \
-        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 = 0; \
         (a_pOutgoing)->aBits[IEMLIVENESS_BIT_CALL          ].bm64 = IEMLIVENESSBIT_MASK; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_READ          ].bm64 = 0; \
+        (a_pOutgoing)->aBits[IEMLIVENESS_BIT_WRITE         ].bm64 = 0; \
     } while (0)
+#endif
 #endif
 
 /** Adds a segment base register as input to the outgoing state. */
@@ -1862,6 +1922,7 @@ DECL_HIDDEN_THROW(uint32_t) iemNativeEmitCImplCall(PIEMRECOMPILERSTATE pReNative
                                                    uint64_t uParam0, uint64_t uParam1, uint64_t uParam2);
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                                       PCIEMTHRDEDCALLENTRY pCallEntry);
+IEM_DECL_IEMNATIVELIVENESSFUNC_PROTO(iemNativeLivenessFunc_ThreadedCall);
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitLeaGprByGstRegRef(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxGprDst,
                                                            IEMNATIVEGSTREGREF enmClass, uint8_t idxRegInClass);
 

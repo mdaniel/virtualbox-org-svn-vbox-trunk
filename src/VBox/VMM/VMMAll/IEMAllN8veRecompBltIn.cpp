@@ -189,7 +189,7 @@ IEM_DECL_IEMNATIVERECOMPFUNC_DEF(iemNativeRecompFunc_BltIn_DeferToCImpl0)
 
 IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_DeferToCImpl0)
 {
-    IEM_LIVENESS_RAW_INIT_WITH_CALL_AND_POTENTIAL_CALL(pOutgoing, pIncoming);
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 
@@ -392,6 +392,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckIrq)
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     IEM_LIVENESS_RAW_EFLAGS_ONE_INPUT(pOutgoing, fEflOther);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 
@@ -410,6 +411,7 @@ IEM_DECL_IEMNATIVERECOMPFUNC_DEF(iemNativeRecompFunc_BltIn_CheckTimers)
 IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckTimers)
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 
@@ -428,6 +430,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckTimersAndIrq
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     IEM_LIVENESS_RAW_EFLAGS_ONE_INPUT(pOutgoing, fEflOther);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 
@@ -454,6 +457,7 @@ IEM_DECL_IEMNATIVERECOMPFUNC_DEF(iemNativeRecompFunc_BltIn_CheckMode)
 IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckMode)
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 
@@ -1790,6 +1794,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLim)
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CHECK_CS_LIM(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1818,6 +1823,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndOpco
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1844,6 +1850,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodes)
 {
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1872,6 +1879,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesConsi
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1910,6 +1918,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndPcAn
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_CHECK_PC_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1942,6 +1951,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckPcAndOpcodes
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CHECK_PC_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -1977,6 +1987,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckPcAndOpcodes
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_CHECK_PC_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2015,6 +2026,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndOpco
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_LOAD_TLB_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2051,6 +2063,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesLoadi
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_LOAD_TLB_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2089,6 +2102,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesLoadi
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_LOAD_TLB_AFTER_BRANCH(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2133,6 +2147,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndOpco
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_CHECK_OPCODES(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2170,6 +2185,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesAcros
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_CHECK_OPCODES(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2210,6 +2226,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesAcros
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_CHECK_OPCODES(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2246,6 +2263,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndOpco
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2280,6 +2298,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesOnNex
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2316,6 +2335,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesOnNex
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2348,6 +2368,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckCsLimAndOpco
     LIVENESS_CHECK_CS_LIM(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2378,6 +2399,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesOnNew
     IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2411,6 +2433,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_CheckOpcodesOnNew
     LIVENESS_CONSIDER_CS_LIM_CHECKING(pOutgoing);
     LIVENESS_LOAD_TLB_FOR_NEW_PAGE(pOutgoing, pCallEntry);
     LIVENESS_CHECK_OPCODES(pOutgoing);
+    IEM_LIVENESS_RAW_FINISH_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 #endif
@@ -2458,8 +2481,8 @@ IEM_DECL_IEMNATIVERECOMPFUNC_DEF(iemNativeRecompFunc_BltIn_Jump)
 
 IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_Jump)
 {
-    /** @todo This isn't right:    */
-    IEM_LIVENESS_RAW_INIT_WITH_POTENTIAL_CALL(pOutgoing, pIncoming);
+    /* We could also use UNUSED here, but this'll is equivialent (at the moment). */
+    IEM_LIVENESS_RAW_INIT_WITH_CALL(pOutgoing, pIncoming);
     RT_NOREF(pCallEntry);
 }
 

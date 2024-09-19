@@ -163,6 +163,7 @@ void UIHostnameDomainNameEditor::prepare()
     if (!m_pMainLayout)
         return;
     setLayout(m_pMainLayout);
+    m_pMainLayout->setContentsMargins(0, 0, 0, 0);
     int iRow = 0;
 
     addLineEdit(iRow, m_pProductKeyLabel, m_pProductKeyLineEdit, m_pMainLayout);

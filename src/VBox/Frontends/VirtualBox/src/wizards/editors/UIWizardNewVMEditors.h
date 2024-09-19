@@ -152,7 +152,6 @@ private:
     void prepare();
 
     UIHostnameDomainNameEditor *m_pHostnameDomainNameEditor;
-    QHBoxLayout *m_pMainLayout;
 };
 
 

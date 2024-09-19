@@ -61,11 +61,12 @@ UIUserNamePasswordGroupBox::UIUserNamePasswordGroupBox(QWidget *pParent /* = 0 *
 void UIUserNamePasswordGroupBox::prepare()
 {
     QVBoxLayout *pUserNameContainerLayout = new QVBoxLayout(this);
+    pUserNameContainerLayout->setContentsMargins(0, 0, 0, 0);
     m_pUserNamePasswordEditor = new UIUserNamePasswordEditor;
     AssertReturnVoid(m_pUserNamePasswordEditor);
     m_pUserNamePasswordEditor->setLabelsVisible(true);
-    pUserNameContainerLayout->addWidget(m_pUserNamePasswordEditor);
-
+    pUserNameContainerLayout->addWidget(m_pUserNamePasswordEditor, Qt::AlignTop);
+    pUserNameContainerLayout->setStretch(0, 0);
     connect(m_pUserNamePasswordEditor, &UIUserNamePasswordEditor::sigPasswordChanged,
             this, &UIUserNamePasswordGroupBox::sigPasswordChanged);
     connect(m_pUserNamePasswordEditor, &UIUserNamePasswordEditor::sigUserNameChanged,
@@ -73,6 +74,7 @@ void UIUserNamePasswordGroupBox::prepare()
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIUserNamePasswordGroupBox::sltRetranslateUI);
+    pUserNameContainerLayout->addStretch(1);
 }
 
 void UIUserNamePasswordGroupBox::sltRetranslateUI()
@@ -230,11 +232,11 @@ UIAdditionalUnattendedOptions::UIAdditionalUnattendedOptions(QWidget *pParent /*
 
 void UIAdditionalUnattendedOptions::prepare()
 {
-    m_pMainLayout = new QHBoxLayout(this);
+    QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     m_pHostnameDomainNameEditor = new UIHostnameDomainNameEditor;
     if (m_pHostnameDomainNameEditor)
-        m_pMainLayout->addWidget(m_pHostnameDomainNameEditor);
-
+        pMainLayout->addWidget(m_pHostnameDomainNameEditor, Qt::AlignTop);
+    pMainLayout->setStretch(0, 0);
     if (m_pHostnameDomainNameEditor)
     {
         connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigHostnameDomainNameChanged,
@@ -248,6 +250,7 @@ void UIAdditionalUnattendedOptions::prepare()
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIAdditionalUnattendedOptions::sltRetranslateUI);
+    pMainLayout->addStretch(1);
 }
 
 void UIAdditionalUnattendedOptions::sltRetranslateUI()

@@ -6665,7 +6665,10 @@ static void dxSetupPipeline(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext)
     /* Unbind render target views because they mught be (re-)used as shader resource views. */
     DXDEVICE *pDXDevice = dxDeviceGet(pThisCC->svga.p3dState);
     pDXDevice->pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
-    for (unsigned i = 0; i < SVGA3D_DX11_1_MAX_UAVIEWS; ++i)
+    uint32_t const cMaxUAViews = pDXDevice->FeatureLevel >= D3D_FEATURE_LEVEL_11_1
+                               ? SVGA3D_DX11_1_MAX_UAVIEWS
+                               : SVGA3D_MAX_UAVIEWS;
+    for (uint32_t i = 0; i < cMaxUAViews; ++i)
     {
         ID3D11UnorderedAccessView *pNullUA = 0;
         pDXDevice->pImmediateContext->CSSetUnorderedAccessViews(i, 1, &pNullUA, NULL);
@@ -6725,7 +6728,7 @@ static void dxSetupPipeline(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext)
      * Compute shader unordered access views
      */
 
-    for (uint32_t idxUA = 0; idxUA < SVGA3D_DX11_1_MAX_UAVIEWS; ++idxUA)
+    for (uint32_t idxUA = 0; idxUA < cMaxUAViews; ++idxUA)
     {
         SVGA3dUAViewId const viewId = pDXContext->svgaDXContext.csuaViewIds[idxUA];
         if (viewId != SVGA3D_INVALID_ID)
@@ -6783,7 +6786,7 @@ static void dxSetupPipeline(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext)
         }
     }
 
-    for (uint32_t idxUA = 0; idxUA < SVGA3D_DX11_1_MAX_UAVIEWS; ++idxUA)
+    for (uint32_t idxUA = 0; idxUA < cMaxUAViews; ++idxUA)
     {
         SVGA3dUAViewId const viewId = pDXContext->svgaDXContext.uaViewIds[idxUA];
         if (viewId != SVGA3D_INVALID_ID)
@@ -7506,7 +7509,10 @@ static int dxSetRenderTargets(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
     UINT NumUAVs = 0;
     ID3D11UnorderedAccessView *apUnorderedAccessViews[SVGA3D_DX11_1_MAX_UAVIEWS];
     UINT aUAVInitialCounts[SVGA3D_DX11_1_MAX_UAVIEWS];
-    for (uint32_t idxUA = 0; idxUA < SVGA3D_DX11_1_MAX_UAVIEWS; ++idxUA)
+    uint32_t const cMaxUAViews = pDevice->FeatureLevel >= D3D_FEATURE_LEVEL_11_1
+                               ? SVGA3D_DX11_1_MAX_UAVIEWS
+                               : SVGA3D_MAX_UAVIEWS;
+    for (uint32_t idxUA = 0; idxUA < cMaxUAViews; ++idxUA)
     {
         apUnorderedAccessViews[idxUA] =  NULL;
         aUAVInitialCounts[idxUA] = (UINT)-1;
@@ -9934,7 +9940,10 @@ static int dxSetCSUnorderedAccessViews(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT p
     uint32_t const *pUAIds = &pDXContext->svgaDXContext.csuaViewIds[0];
     ID3D11UnorderedAccessView *papUnorderedAccessView[SVGA3D_DX11_1_MAX_UAVIEWS];
     UINT aUAVInitialCounts[SVGA3D_DX11_1_MAX_UAVIEWS];
-    for (uint32_t i = 0; i < SVGA3D_DX11_1_MAX_UAVIEWS; ++i)
+    uint32_t const cMaxUAViews = pDevice->FeatureLevel >= D3D_FEATURE_LEVEL_11_1
+                               ? SVGA3D_DX11_1_MAX_UAVIEWS
+                               : SVGA3D_MAX_UAVIEWS;
+    for (uint32_t i = 0; i < cMaxUAViews; ++i)
     {
         papUnorderedAccessView[i] = NULL;
         aUAVInitialCounts[i] = (UINT)-1;
@@ -9953,7 +9962,7 @@ static int dxSetCSUnorderedAccessViews(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT p
         }
     }
 
-    dxCSUnorderedAccessViewSet(pDevice, 0, SVGA3D_DX11_1_MAX_UAVIEWS, papUnorderedAccessView, aUAVInitialCounts);
+    dxCSUnorderedAccessViewSet(pDevice, 0, cMaxUAViews, papUnorderedAccessView, aUAVInitialCounts);
     return VINF_SUCCESS;
 }
 

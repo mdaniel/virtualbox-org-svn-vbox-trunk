@@ -3753,7 +3753,7 @@ static SVGACBStatus vmsvgaR3CmdBufProcessCommands(PPDMDEVINS pDevIns, PVGASTATE 
         uint32_t const cmdId = *(uint32_t *)pu8Cmd;
         uint32_t cbCmd = sizeof(uint32_t);
 
-        LogFunc(("[cid=%d] %s %d\n", (int32_t)idDXContext, vmsvgaR3FifoCmdToString(cmdId), cmdId));
+        LogFlowFunc(("[cid=%d] %s %u\n", (int32_t)idDXContext, vmsvgaR3FifoCmdToString(cmdId), cmdId));
 # ifdef LOG_ENABLED
 #  ifdef VBOX_WITH_VMSVGA3D
         if (   (cmdId >= SVGA_3D_CMD_BASE && cmdId < SVGA_3D_CMD_MAX)
@@ -3776,7 +3776,6 @@ static SVGACBStatus vmsvgaR3CmdBufProcessCommands(PPDMDEVINS pDevIns, PVGASTATE 
          * the cbCmd value is ignored (and pu8Cmd still points to the failed command).
          */
         /** @todo This code is very similar to the FIFO loop command processing. Think about merging. */
-        LogFlow(("cmdId=%u\n", cmdId));
         switch (cmdId)
         {
             case SVGA_CMD_INVALID_CMD:

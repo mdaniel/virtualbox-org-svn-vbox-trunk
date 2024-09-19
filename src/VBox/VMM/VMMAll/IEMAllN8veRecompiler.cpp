@@ -2898,8 +2898,8 @@ DECL_HIDDEN_CONST(IEMANTIVEGSTREGINFO const) g_aGstShadowInfo[] =
     /* [kIemNativeGstReg_GprFirst + X86_GREG_x13] = */  { CPUMCTX_OFF_AND_SIZE(r13),                "r13", },
     /* [kIemNativeGstReg_GprFirst + X86_GREG_x14] = */  { CPUMCTX_OFF_AND_SIZE(r14),                "r14", },
     /* [kIemNativeGstReg_GprFirst + X86_GREG_x15] = */  { CPUMCTX_OFF_AND_SIZE(r15),                "r15", },
-    /* [kIemNativeGstReg_Pc] = */                       { CPUMCTX_OFF_AND_SIZE(rip),                "rip", },
     /* [kIemNativeGstReg_Cr0] = */                      { CPUMCTX_OFF_AND_SIZE(cr0),                "cr0", },
+    /* [kIemNativeGstReg_Cr4] = */                      { CPUMCTX_OFF_AND_SIZE(cr4),                "cr4", },
     /* [kIemNativeGstReg_FpuFcw] = */                   { CPUMCTX_OFF_AND_SIZE(XState.x87.FCW),     "fcw", },
     /* [kIemNativeGstReg_FpuFsw] = */                   { CPUMCTX_OFF_AND_SIZE(XState.x87.FSW),     "fsw", },
     /* [kIemNativeGstReg_SegBaseFirst + 0] = */         { CPUMCTX_OFF_AND_SIZE(aSRegs[0].u64Base),  "es_base", },
@@ -2926,10 +2926,16 @@ DECL_HIDDEN_CONST(IEMANTIVEGSTREGINFO const) g_aGstShadowInfo[] =
     /* [kIemNativeGstReg_SegSelFirst + 3] = */          { CPUMCTX_OFF_AND_SIZE(aSRegs[3].Sel),      "ds", },
     /* [kIemNativeGstReg_SegSelFirst + 4] = */          { CPUMCTX_OFF_AND_SIZE(aSRegs[4].Sel),      "fs", },
     /* [kIemNativeGstReg_SegSelFirst + 5] = */          { CPUMCTX_OFF_AND_SIZE(aSRegs[5].Sel),      "gs", },
-    /* [kIemNativeGstReg_Cr4] = */                      { CPUMCTX_OFF_AND_SIZE(cr4),                "cr4", },
     /* [kIemNativeGstReg_Xcr0] = */                     { CPUMCTX_OFF_AND_SIZE(aXcr[0]),            "xcr0", },
     /* [kIemNativeGstReg_MxCsr] = */                    { CPUMCTX_OFF_AND_SIZE(XState.x87.MXCSR),   "mxcsr", },
     /* [kIemNativeGstReg_EFlags] = */                   { CPUMCTX_OFF_AND_SIZE(eflags),             "eflags", },
+    /* [kIemNativeGstReg_EFlags.Cf] = */                { UINT32_MAX, 0,                            "efl.cf", },
+    /* [kIemNativeGstReg_EFlags.Of] = */                { UINT32_MAX, 0,                            "efl.of", },
+    /* [kIemNativeGstReg_EFlags.Af] = */                { UINT32_MAX, 0,                            "efl.af", },
+    /* [kIemNativeGstReg_EFlags.Zf] = */                { UINT32_MAX, 0,                            "efl.zf", },
+    /* [kIemNativeGstReg_EFlags.Sf] = */                { UINT32_MAX, 0,                            "efl.sf", },
+    /* [kIemNativeGstReg_EFlags.Of] = */                { UINT32_MAX, 0,                            "efl.of", },
+    /* [kIemNativeGstReg_Pc] = */                       { CPUMCTX_OFF_AND_SIZE(rip),                "rip", },
 #undef CPUMCTX_OFF_AND_SIZE
 };
 AssertCompile(RT_ELEMENTS(g_aGstShadowInfo) == kIemNativeGstReg_End);

@@ -633,24 +633,24 @@ typedef union IEMLIVENESSBIT
     RT_GCC_EXTENSION struct
     {                                     /*   bit no */
         uint64_t    bmGprs      : 16;   /**< 0x00 /  0: The 16 general purpose registers. */
-        uint64_t    fUnusedPc   :  1;   /**< 0x10 / 16: (PC in ) */
-        uint64_t    fCr0        :  1;   /**< 0x11 / 17: */
+        uint64_t    fCr0        :  1;   /**< 0x10 / 16: */
+        uint64_t    fCr4        :  1;   /**< 0x11 / 17: */
         uint64_t    fFcw        :  1;   /**< 0x12 / 18: */
         uint64_t    fFsw        :  1;   /**< 0x13 / 19: */
         uint64_t    bmSegBase   :  6;   /**< 0x14 / 20: */
         uint64_t    bmSegAttrib :  6;   /**< 0x1a / 26: */
         uint64_t    bmSegLimit  :  6;   /**< 0x20 / 32: */
         uint64_t    bmSegSel    :  6;   /**< 0x26 / 38: */
-        uint64_t    fCr4        :  1;   /**< 0x2c / 44: */
-        uint64_t    fXcr0       :  1;   /**< 0x2d / 45: */
-        uint64_t    fMxCsr      :  1;   /**< 0x2e / 46: */
-        uint64_t    fEflOther   :  1;   /**< 0x2f / 47: Other EFLAGS bits   (~X86_EFL_STATUS_BITS & X86_EFL_LIVE_MASK). First! */
-        uint64_t    fEflCf      :  1;   /**< 0x30 / 48: Carry flag          (X86_EFL_CF / 0). */
-        uint64_t    fEflPf      :  1;   /**< 0x31 / 49: Parity flag         (X86_EFL_PF / 2). */
-        uint64_t    fEflAf      :  1;   /**< 0x32 / 50: Auxilary carry flag (X86_EFL_AF / 4). */
-        uint64_t    fEflZf      :  1;   /**< 0x33 / 51: Zero flag           (X86_EFL_ZF / 6). */
-        uint64_t    fEflSf      :  1;   /**< 0x34 / 52: Signed flag         (X86_EFL_SF / 7). */
-        uint64_t    fEflOf      :  1;   /**< 0x35 / 53: Overflow flag       (X86_EFL_OF / 12). */
+        uint64_t    fXcr0       :  1;   /**< 0x2c / 44: */
+        uint64_t    fMxCsr      :  1;   /**< 0x2d / 45: */
+        uint64_t    fEflOther   :  1;   /**< 0x2e / 46: Other EFLAGS bits   (~X86_EFL_STATUS_BITS & X86_EFL_LIVE_MASK). First! */
+        uint64_t    fEflCf      :  1;   /**< 0x2f / 47: Carry flag          (X86_EFL_CF / 0). */
+        uint64_t    fEflPf      :  1;   /**< 0x30 / 48: Parity flag         (X86_EFL_PF / 2). */
+        uint64_t    fEflAf      :  1;   /**< 0x31 / 59: Auxilary carry flag (X86_EFL_AF / 4). */
+        uint64_t    fEflZf      :  1;   /**< 0x32 / 50: Zero flag           (X86_EFL_ZF / 6). */
+        uint64_t    fEflSf      :  1;   /**< 0x33 / 51: Signed flag         (X86_EFL_SF / 7). */
+        uint64_t    fEflOf      :  1;   /**< 0x34 / 52: Overflow flag       (X86_EFL_OF / 12). */
+        uint64_t    fUnusedPc   :  1;   /**< 0x35 / 53: (PC in ) */
         uint64_t    uUnused     : 10;     /* 0x36 / 54 -> 0x40/64 */
     };
 } IEMLIVENESSBIT;
@@ -713,10 +713,7 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 
 /** @name 64-bit value masks for IEMLIVENESSENTRY.
  * @{ */                                      /*         0xzzzzyyyyxxxxwwww */
-/** @todo Changing this to 0x003ffffffffffffe would reduce the liveness code
- * size by 3.2% on arm in extended layout.  That means moving kIemNativeGstReg_Pc
- * to zero, which may have other consequences so needs to be tested in full first. */
-#define IEMLIVENESSBIT_MASK                     UINT64_C(0x003ffffffffeffff)
+#define IEMLIVENESSBIT_MASK                     UINT64_C(0x001fffffffffffff)
 
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEMLIVENESSBIT0_XCPT_OR_CALL           UINT64_C(0x0000000000000000)
@@ -726,8 +723,8 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 # define IEMLIVENESSBIT1_ALL_UNUSED             UINT64_C(0x0000000000000000)
 #endif
 
-#define IEMLIVENESSBIT_ALL_EFL_MASK             UINT64_C(0x003f800000000000)
-#define IEMLIVENESSBIT_STATUS_EFL_MASK          UINT64_C(0x003f000000000000)
+#define IEMLIVENESSBIT_ALL_EFL_MASK             UINT64_C(0x001fc00000000000)
+#define IEMLIVENESSBIT_STATUS_EFL_MASK          UINT64_C(0x001f800000000000)
 
 #ifndef IEMLIVENESS_EXTENDED_LAYOUT
 # define IEMLIVENESSBIT0_ALL_EFL_INPUT          IEMLIVENESSBIT_ALL_EFL_MASK
@@ -1056,8 +1053,8 @@ typedef enum IEMNATIVEGSTREG : uint8_t
 {
     kIemNativeGstReg_GprFirst      = 0,
     kIemNativeGstReg_GprLast       = kIemNativeGstReg_GprFirst + 15,
-    kIemNativeGstReg_Pc,
     kIemNativeGstReg_Cr0,
+    kIemNativeGstReg_Cr4,
     kIemNativeGstReg_FpuFcw,
     kIemNativeGstReg_FpuFsw,
     kIemNativeGstReg_SegBaseFirst,
@@ -1068,14 +1065,16 @@ typedef enum IEMNATIVEGSTREG : uint8_t
     kIemNativeGstReg_SegLimitLast  = kIemNativeGstReg_SegLimitFirst + 5,
     kIemNativeGstReg_SegSelFirst,
     kIemNativeGstReg_SegSelLast    = kIemNativeGstReg_SegSelFirst + 5,
-    kIemNativeGstReg_Cr4,
     kIemNativeGstReg_Xcr0,
     kIemNativeGstReg_MxCsr,
-    kIemNativeGstReg_EFlags,            /**< 32-bit, includes internal flags - last! */
+    kIemNativeGstReg_EFlags,            /**< 32-bit, includes internal flags. */
+    /* 6 entry gap for liveness EFlags subdivisions. */
+    kIemNativeGstReg_Pc            = kIemNativeGstReg_EFlags + 7,
     kIemNativeGstReg_End
 } IEMNATIVEGSTREG;
 AssertCompile((int)kIemNativeGstReg_SegLimitFirst == 32);
 AssertCompile((UINT64_C(0x7f) << kIemNativeGstReg_EFlags) == IEMLIVENESSBIT_ALL_EFL_MASK);
+AssertCompile(RT_BIT_64(kIemNativeGstReg_Pc) - UINT64_C(1) == IEMLIVENESSBIT_MASK);
 
 /** @name Helpers for converting register numbers to IEMNATIVEGSTREG values.
  * @{  */

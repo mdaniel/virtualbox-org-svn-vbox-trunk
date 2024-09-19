@@ -2545,13 +2545,6 @@ int UpdateAdditionsProcess::onOutputCallback(uint32_t uHandle, const BYTE *pbDat
             pstrLine->setNull();
             cch++;
         }
-
-        while (cbData)
-        {
-            pstrLine->append(*cch);
-            cch++;
-            cbData--;
-        }
     }
 
     return vrc;

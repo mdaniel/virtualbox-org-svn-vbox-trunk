@@ -138,12 +138,10 @@ RTR3DECL(int) RTR3InitDll(uint32_t fFlags);
  */
 RTR3DECL(int) RTR3InitEx(uint32_t iVersion, uint32_t fFlags, int cArgs, char ***ppapszArgs, const char *pszProgramPath);
 
-#if 0 /** @todo implement RTR3Term. */
 /**
  * Terminates the runtime library.
  */
 RTR3DECL(void) RTR3Term(void);
-#endif
 
 /**
  * Is IPRT succesfully initialized?

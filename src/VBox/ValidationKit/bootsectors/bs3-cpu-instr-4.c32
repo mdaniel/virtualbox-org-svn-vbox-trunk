@@ -1698,6 +1698,221 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
               /*xcpt?    */ true, true },                                                                                                                                                                     \
 
 /**
+ * Table D-9: Scalar double-precision floating-point invalid values.
+ * For instructions: maxsd, minsd.
+ **/
+#define FP64_TABLE_D9_SD_INVALIDS \
+    /* QNan, QNan (Masked). */                                                                                           \
+    /*0 */{ { /*src2     */ { FP64_QNAN(0), FP64_RAND_V2(0), FP64_RAND_V0(1), FP64_RAND_V1(0) } },                       \
+            { /*src1     */ { FP64_QNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(0), FP64_RAND_V1(1), FP64_RAND_V2(0) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V3(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V3(1) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V0(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V1(0), FP64_RAND_V0(0), FP64_RAND_V2(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V1(0), FP64_RAND_V0(0), FP64_RAND_V2(1) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+    /* QNan, SNan (Masked). */                                                                                           \
+          { { /*src2     */ { FP64_QNAN(0), FP64_RAND_V1(0), FP64_RAND_V3(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_SNAN(0), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V2(0) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V2(0) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V2(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V1(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V3(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V3(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+    /* SNan, QNan (Masked). */                                                                                           \
+          { { /*src2     */ { FP64_SNAN(0), FP64_RAND_V2(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } },                       \
+            { /*src1     */ { FP64_QNAN(0), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } },                       \
+            { /* =>      */ { FP64_SNAN(0), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ,                                                          \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_IE,                                           \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_IE,                                           \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V2(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } }, \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V2(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V1(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } },       \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } },       \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } },       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+    /* SNan, SNan (Masked). */                                                                                           \
+          { { /*src2     */ { FP64_SNAN(0), FP64_RAND_V1(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_SNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_SNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(0), FP64_RAND_V0(1), FP64_RAND_V2(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(0), FP64_RAND_V3(0), FP64_RAND_V0(1) } }, \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V0(0), FP64_RAND_V3(0), FP64_RAND_V0(1) } }, \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V1(1), FP64_RAND_V1(1), FP64_RAND_V2(0) } },       \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_V2), FP64_RAND_V2(1), FP64_RAND_V3(1), FP64_RAND_V1(1) } },       \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(1), FP64_RAND_V3(1), FP64_RAND_V1(1) } },       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+    /* QNan, Normal (Masked). */                                                                                         \
+          { { /*src2     */ { FP64_QNAN(0), FP64_RAND_V3(1), FP64_RAND_V2(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_1(0),    FP64_RAND_V2(1), FP64_RAND_V2(1), FP64_RAND_V1(1) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V2(1), FP64_RAND_V2(1), FP64_RAND_V1(1) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                  \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                  \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                  \
+              /*xcpt?    */ false, false },                                                                              \
+    /* SNan, Normal (Masked). */                                                                                         \
+          { { /*src2     */ { FP64_SNAN(1), FP64_RAND_V0(1), FP64_RAND_V2(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_1(0),    FP64_RAND_V0(1), FP64_RAND_V1(1), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_SNAN(1), FP64_RAND_V0(1), FP64_RAND_V1(1), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                         \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                          \
+              /*xcpt?    */ false, false },                                                                              \
+    /* QNan, QNan (Unmasked). */                                                                                         \
+    /*0 */{ { /*src2     */ { FP64_QNAN(0), FP64_RAND_V2(0), FP64_RAND_V0(1), FP64_RAND_V1(0) } },                       \
+            { /*src1     */ { FP64_QNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(0), FP64_RAND_V1(1), FP64_RAND_V2(0) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V3(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V3(1) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V0(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V1(0), FP64_RAND_V0(0), FP64_RAND_V2(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V1(0), FP64_RAND_V0(0), FP64_RAND_V2(1) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+    /* QNan, SNan (Unmasked). */                                                                                         \
+          { { /*src2     */ { FP64_QNAN(0), FP64_RAND_V1(0), FP64_RAND_V3(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_SNAN(0), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V2(0) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V0(1), FP64_RAND_V1(0), FP64_RAND_V2(0) } },                       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V2(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V1(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V3(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } }, \
+            { /* =>      */ { FP64_QNAN_V(0, FP64_FRAC_V0),       FP64_RAND_V3(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+    /* SNan, QNan (Unmasked). */                                                                                         \
+          { { /*src2     */ { FP64_SNAN(0), FP64_RAND_V2(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } },                       \
+            { /*src1     */ { FP64_QNAN(0), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } },                       \
+            { /* =>      */ { FP64_SNAN(0), FP64_RAND_V1(1), FP64_RAND_V2(0), FP64_RAND_V3(0) } },                       \
+              /*mxcsr:in */ X86_MXCSR_FZ,                                                                                \
+              /*128:out  */ X86_MXCSR_FZ | X86_MXCSR_IE,                                                                 \
+              /*256:out  */ X86_MXCSR_FZ | X86_MXCSR_IE,                                                                 \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(1), FP64_RAND_V3(0), FP64_RAND_V1(1) } }, \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V2(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } }, \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V2(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V1(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } },       \
+            { /*src1     */ { FP64_QNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } },       \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(0), FP64_RAND_V3(0), FP64_RAND_V2(1) } },       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+    /* SNan, SNan (Unmasked). */                                                                                         \
+          { { /*src2     */ { FP64_SNAN(0), FP64_RAND_V1(1), FP64_RAND_V0(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_SNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_SNAN(0), FP64_RAND_V3(0), FP64_RAND_V2(0), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V1(0), FP64_RAND_V0(1), FP64_RAND_V2(1) } }, \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MAX), FP64_RAND_V0(0), FP64_RAND_V3(0), FP64_RAND_V0(1) } }, \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_RAND_V0(0), FP64_RAND_V3(0), FP64_RAND_V0(1) } }, \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+          { { /*src2     */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V1(1), FP64_RAND_V1(1), FP64_RAND_V2(0) } },       \
+            { /*src1     */ { FP64_SNAN_V(0, FP64_FRAC_V2), FP64_RAND_V2(1), FP64_RAND_V3(1), FP64_RAND_V1(1) } },       \
+            { /* =>      */ { FP64_SNAN_V(0, FP64_FRAC_V1), FP64_RAND_V2(1), FP64_RAND_V3(1), FP64_RAND_V1(1) } },       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+    /* QNan, Normal (Unmasked). */                                                                                       \
+          { { /*src2     */ { FP64_QNAN(0), FP64_RAND_V3(1), FP64_RAND_V2(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_1(0),    FP64_RAND_V2(1), FP64_RAND_V2(1), FP64_RAND_V1(1) } },                       \
+            { /* =>      */ { FP64_QNAN(0), FP64_RAND_V2(1), FP64_RAND_V2(1), FP64_RAND_V1(1) } },                       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+    /* SNan, Normal (Masked). */                                                                                         \
+          { { /*src2     */ { FP64_SNAN(1), FP64_RAND_V0(1), FP64_RAND_V2(1), FP64_RAND_V2(0) } },                       \
+            { /*src1     */ { FP64_1(0),    FP64_RAND_V0(1), FP64_RAND_V1(1), FP64_RAND_V3(1) } },                       \
+            { /* =>      */ { FP64_SNAN(1), FP64_RAND_V0(1), FP64_RAND_V1(1), FP64_RAND_V3(1) } },                       \
+              /*mxcsr:in */ 0,                                                                                           \
+              /*128:out  */ X86_MXCSR_IE,                                                                                \
+              /*256:out  */ X86_MXCSR_IE,                                                                                \
+              /*xcpt?    */ true, true },                                                                                \
+
+
+/**
  * Returns the name of an X86 exception given the vector.
  *
  * @returns Name of the exception.
@@ -10960,8 +11175,11 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxsd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE,
               /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE,
               /*xcpt?    */ false, false },
-     /** @todo More Denormals. */
-    /** @todo Invalids. */
+    /** @todo More Denormals. */
+    /*
+     * Invalids.
+     */
+    /*56*/ FP64_TABLE_D9_SD_INVALIDS
     };
 
 #define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues

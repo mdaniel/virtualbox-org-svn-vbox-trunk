@@ -1130,6 +1130,11 @@ HRESULT PlatformProperties::getSupportedStorageBuses(std::vector<StorageBus_T> &
         {
             static const StorageBus_T aStorageBuses[] =
             {
+                StorageBus_SATA,
+                StorageBus_SCSI,
+                StorageBus_SAS,
+                StorageBus_USB,
+                StorageBus_PCIe,
                 StorageBus_VirtioSCSI
             };
             aSupportedStorageBuses.assign(aStorageBuses,
@@ -1174,6 +1179,11 @@ HRESULT PlatformProperties::getSupportedStorageControllerTypes(std::vector<Stora
         {
             static const StorageControllerType_T aStorageControllerTypes[] =
             {
+                StorageControllerType_IntelAhci,
+                StorageControllerType_LsiLogic,
+                StorageControllerType_LsiLogicSas,
+                StorageControllerType_USB,
+                StorageControllerType_NVMe,
                 StorageControllerType_VirtioSCSI
             };
             aSupportedStorageControllerTypes.assign(aStorageControllerTypes,

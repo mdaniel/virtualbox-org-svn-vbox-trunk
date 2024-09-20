@@ -45,7 +45,11 @@
 #include "nsIEventTarget.idl"
 
 %{C++
-#include <iprt/thread.h>
+#ifdef VBOX
+# include <iprt/thread.h>
+#else
+typedef struct RTTHREADINT *RTTHREAD;
+#endif
 
 // {13D86C61-00A9-11d3-9F2A-00400553EEF0}
 #define NS_EVENTQUEUE_CID \
@@ -104,4 +108,3 @@ interface nsIEventQueue : nsIEventTarget
     // itself any time after this.
     void stopAcceptingEvents();
 };
-

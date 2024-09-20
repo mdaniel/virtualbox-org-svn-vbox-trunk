@@ -48,7 +48,11 @@
 
 #include "prtypes.h"
 
-#include <iprt/types.h>
+#ifdef VBOX
+# include <iprt/types.h>
+#else
+# include <stdint.h>
+#endif
 
 #ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
 #define LL_MaxInt VBoxNsllLL_MaxInt
@@ -59,6 +63,7 @@
 
 PR_BEGIN_EXTERN_C
 
+#ifdef VBOX
 /***********************************************************************
 ** DEFINES:     LL_MaxInt
 **              LL_MinInt
@@ -92,6 +97,7 @@ DECL_FORCE_INLINE(PRUint64) LL_MaxUint(void)
 #define LL_MININT   LL_MinInt()
 #define LL_ZERO     LL_Zero()
 #define LL_MAXUINT  LL_MaxUint()
+#endif
 
 #if PR_BYTES_PER_LONG == 8
 #define LL_INIT(hi, lo)  ((hi ## L << 32) + lo ## L)

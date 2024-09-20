@@ -40,7 +40,9 @@
 
 #include "prtypes.h"
 
-#include <iprt/types.h>
+#ifdef VBOX
+# include <iprt/types.h>
+#endif
 
 #ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
 #define PR_EnterMonitor VBoxNsprPR_EnterMonitor
@@ -58,6 +60,7 @@ PR_BEGIN_EXTERN_C
 
 typedef struct PRMonitor PRMonitor;
 
+#ifdef VBOX
 /*
 ** Create a new monitor. Monitors are re-entrant locks with a single built-in
 ** condition variable.
@@ -128,6 +131,7 @@ NSPR_API(PRStatus) PR_NotifyAll(PRMonitor *mon);
 NSPR_API(uint32_t) PR_GetMonitorEntryCount(PRMonitor *mon);
 
 NSPR_API(PRMonitor*) PR_NewNamedMonitor(const char* name);
+#endif
 
 PR_END_EXTERN_C
 

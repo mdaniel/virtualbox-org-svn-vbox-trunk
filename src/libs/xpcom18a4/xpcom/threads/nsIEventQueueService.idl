@@ -50,7 +50,11 @@
 %{C++
 #include "plevent.h"
 
-#include <iprt/thread.h>
+#ifdef VBOX
+# include <iprt/thread.h>
+#else
+typedef struct RTTHREADINT *RTTHREAD;
+#endif
 
 /* be761f00-a3b0-11d2-996c-0080c7cb1080 */
 #define NS_EVENTQUEUESERVICE_CID \

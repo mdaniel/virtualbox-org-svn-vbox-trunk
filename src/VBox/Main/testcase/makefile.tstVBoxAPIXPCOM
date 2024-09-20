@@ -47,6 +47,8 @@ endif
 # RT_OS_DARWIN, RT_OS_SOLARIS...
 DEFS_XPCOM += RT_OS_LINUX
 
+# Adjust this to match your platform, pick from RT_ARCH_AMD64, RT_ARCH_ARM64
+DEFS_XPCOM += RT_ARCH_AMD64
 
 #
 # Link with the public XPCOM libraries

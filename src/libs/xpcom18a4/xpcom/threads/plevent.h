@@ -187,10 +187,12 @@ and to ensure that no more events will be delivered for that owner.
 #include "prtypes.h"
 #include "prmon.h"
 
-#include <iprt/critsect.h>
-#include <iprt/list.h>
-#include <iprt/semaphore.h>
-#include <iprt/thread.h>
+#ifdef VBOX
+# include <iprt/critsect.h>
+# include <iprt/list.h>
+# include <iprt/semaphore.h>
+# include <iprt/thread.h>
+#endif
 
 #ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
 #define PL_DestroyEvent VBoxNsplPL_DestroyEvent
@@ -227,6 +229,8 @@ PR_BEGIN_EXTERN_C
 
 typedef struct PLEvent PLEvent;
 typedef struct PLEventQueue PLEventQueue;
+
+#ifdef VBOX
 
 /*******************************************************************************
  * Event Queue Operations
@@ -440,6 +444,8 @@ PR_EXTERN(PRBool)
 PR_EXTERN(PRBool)
 PL_IsQueueNative(PLEventQueue *queue);
 
+#endif /* VBOX */
+
 /*******************************************************************************
  * Event Operations
  ******************************************************************************/
@@ -460,6 +466,8 @@ typedef void*
 */
 typedef void
 (PR_CALLBACK *PLDestroyEventProc)(PLEvent* self);
+
+#ifdef VBOX
 
 /*
 ** Initializes an event. Usually events are embedded in a larger event
@@ -606,6 +614,7 @@ PL_UnregisterEventIDFunc(PLEventQueue *aSelf);
 
 #endif /* XP_UNIX */
 
+#endif /* VBOX */
 
 /* ----------------------------------------------------------------------- */
 

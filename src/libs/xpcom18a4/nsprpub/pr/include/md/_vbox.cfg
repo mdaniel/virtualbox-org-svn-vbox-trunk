@@ -39,7 +39,8 @@
 #ifndef nspr_vboxcfg___
 #define nspr_vboxcfg___
 
-#include <iprt/cdefs.h>
+#ifdef VBOX
+# include <iprt/cdefs.h>
 
 #ifdef RT_LITTLE_ENDIAN
 #undef IS_BIG_ENDIAN
@@ -49,6 +50,11 @@
 # define  IS_BIG_ENDIAN 1
 #else
 # error "Unknown endianess"
+#endif
+#else
+/* Assume little endian hosts as VBox doesn't run on anything else right now. */
+# undef IS_BIG_ENDIAN
+# define IS_LITTLE_ENDIAN
 #endif
 
 #define HAVE_LONG_LONG

@@ -1821,8 +1821,34 @@ DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE 
                                                             IEMNATIVEGSTREG enmGstReg,
                                                             IEMNATIVEGSTREGUSE enmIntendedUse = kIemNativeGstRegUse_ReadOnly,
                                                             bool fNoVolatileRegs = false, bool fSkipLivenessAssert = false);
+#if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                               IEMNATIVEGSTREGUSE enmIntendedUse, uint64_t fRead,
+                                                               uint64_t fWrite = 0, uint64_t fPotentialCall = 0);
+#else
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREGUSE enmIntendedUse,
+                                   uint64_t fRead, uint64_t fWrite = 0, uint64_t fPotentialCall = 0)
+{
+    RT_NOREF(fRead, fWrite, fPotentialCall);
+    return iemNativeRegAllocTmpForGuestReg(pReNative, poff, kIemNativeGstReg_EFlags, enmIntendedUse);
+}
+#endif
+
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
                                                                             IEMNATIVEGSTREG enmGstReg);
+#if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestEFlagsIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                                               uint64_t fRead, uint64_t fWrite = 0);
+#else
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlagsIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                   uint64_t fRead, uint64_t fWrite = 0)
+{
+    RT_NOREF(fRead, fWrite);
+    return iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(pReNative, poff, kIemNativeGstReg_EFlags);
+}
+#endif
 
 DECL_HIDDEN_THROW(uint32_t) iemNativeRegAllocArgs(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cArgs);
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAssignRc(PIEMRECOMPILERSTATE pReNative, uint8_t idxHstReg);
@@ -2351,16 +2377,24 @@ iemNativeLivenessGetStateByGstReg(PCIEMLIVENESSENTRY pLivenessEntry, IEMNATIVEGS
     return uRet;
 }
 
-
 # ifdef VBOX_STRICT
+
 /** For assertions only - caller checks that idxCurCall isn't zero. */
 DECL_FORCE_INLINE(uint32_t)
 iemNativeLivenessGetPrevStateByGstReg(PIEMRECOMPILERSTATE pReNative, IEMNATIVEGSTREG enmGstReg)
 {
     return iemNativeLivenessGetStateByGstReg(&pReNative->paLivenessEntries[pReNative->idxCurCall - 1], enmGstReg);
 }
-# endif /* VBOX_STRICT */
 
+
+/** For assertions only - caller checks that idxCurCall isn't zero. */
+DECL_FORCE_INLINE(uint32_t)
+iemNativeLivenessGetPrevStateByGstRegEx(PIEMRECOMPILERSTATE pReNative, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeLivenessGetStateByGstRegEx(&pReNative->paLivenessEntries[pReNative->idxCurCall - 1], enmGstReg);
+}
+
+# endif /* VBOX_STRICT */
 #endif /* IEMNATIVE_WITH_LIVENESS_ANALYSIS */
 
 

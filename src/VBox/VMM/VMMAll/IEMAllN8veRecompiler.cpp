@@ -3566,48 +3566,16 @@ iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t 
 
 
 /**
- * Allocates a temporary host general purpose register for keeping a guest
- * register value.
+ * Common worker for iemNativeRegAllocTmpForGuestReg() and
+ * iemNativeRegAllocTmpForGuestEFlags().
  *
- * Since we may already have a register holding the guest register value,
- * code will be emitted to do the loading if that's not the case. Code may also
- * be emitted if we have to free up a register to satify the request.
- *
- * @returns The host register number; throws VBox status code on failure, so no
- *          need to check the return value.
- * @param   pReNative       The native recompile state.
- * @param   poff            Pointer to the variable with the code buffer
- *                          position. This will be update if we need to move a
- *                          variable from register to stack in order to satisfy
- *                          the request.
- * @param   enmGstReg       The guest register that will is to be updated.
- * @param   enmIntendedUse  How the caller will be using the host register.
- * @param   fNoVolatileRegs Set if no volatile register allowed, clear if any
- *                          register is okay (default).  The ASSUMPTION here is
- *                          that the caller has already flushed all volatile
- *                          registers, so this is only applied if we allocate a
- *                          new register.
- * @param   fSkipLivenessAssert     Hack for liveness input validation of EFLAGS.
- * @sa      iemNativeRegAllocTmpForGuestRegIfAlreadyPresent
+ * See iemNativeRegAllocTmpForGuestReg() for details.
  */
-DECL_HIDDEN_THROW(uint8_t)
-iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
-                                IEMNATIVEGSTREGUSE enmIntendedUse /*= kIemNativeGstRegUse_ReadOnly*/,
-                                bool fNoVolatileRegs /*= false*/, bool fSkipLivenessAssert /*= false*/)
+static uint8_t
+iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
+                                      IEMNATIVEGSTREGUSE enmIntendedUse, bool fNoVolatileRegs)
 {
     Assert(enmGstReg < kIemNativeGstReg_End && g_aGstShadowInfo[enmGstReg].cb != 0);
-#ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
-    AssertMsg(   fSkipLivenessAssert
-              || pReNative->idxCurCall == 0
-              || enmGstReg == kIemNativeGstReg_Pc
-              || (enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
-                  ? IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
-                  : enmIntendedUse == kIemNativeGstRegUse_ForUpdate
-                  ? IEMLIVENESS_STATE_IS_MODIFY_EXPECTED( iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
-                  : IEMLIVENESS_STATE_IS_INPUT_EXPECTED(  iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)) ),
-              ("%s - %u\n", g_aGstShadowInfo[enmGstReg].pszName, iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)));
-#endif
-    RT_NOREF(fSkipLivenessAssert);
 #if defined(LOG_ENABLED) || defined(VBOX_STRICT)
     static const char * const s_pszIntendedUse[] = { "fetch", "update", "full write", "destructive calc" };
 #endif
@@ -3785,37 +3753,108 @@ iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, I
 
 
 /**
- * Allocates a temporary host general purpose register that already holds the
- * given guest register value.
+ * Allocates a temporary host general purpose register for keeping a guest
+ * register value.
  *
- * The use case for this function is places where the shadowing state cannot be
- * modified due to branching and such.  This will fail if the we don't have a
- * current shadow copy handy or if it's incompatible.  The only code that will
- * be emitted here is value checking code in strict builds.
+ * Since we may already have a register holding the guest register value,
+ * code will be emitted to do the loading if that's not the case. Code may also
+ * be emitted if we have to free up a register to satify the request.
  *
- * The intended use can only be readonly!
- *
- * @returns The host register number, UINT8_MAX if not present.
+ * @returns The host register number; throws VBox status code on failure, so no
+ *          need to check the return value.
  * @param   pReNative       The native recompile state.
- * @param   poff            Pointer to the instruction buffer offset.
- *                          Will be updated in strict builds if a register is
- *                          found.
+ * @param   poff            Pointer to the variable with the code buffer
+ *                          position. This will be update if we need to move a
+ *                          variable from register to stack in order to satisfy
+ *                          the request.
  * @param   enmGstReg       The guest register that will is to be updated.
- * @note    In strict builds, this may throw instruction buffer growth failures.
- *          Non-strict builds will not throw anything.
- * @sa iemNativeRegAllocTmpForGuestReg
+ * @param   enmIntendedUse  How the caller will be using the host register.
+ * @param   fNoVolatileRegs Set if no volatile register allowed, clear if any
+ *                          register is okay (default).  The ASSUMPTION here is
+ *                          that the caller has already flushed all volatile
+ *                          registers, so this is only applied if we allocate a
+ *                          new register.
+ * @param   fSkipLivenessAssert     Hack for liveness input validation of EFLAGS.
+ * @sa      iemNativeRegAllocTmpForGuestRegIfAlreadyPresent
  */
 DECL_HIDDEN_THROW(uint8_t)
-iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
+                                IEMNATIVEGSTREGUSE enmIntendedUse /*= kIemNativeGstRegUse_ReadOnly*/,
+                                bool fNoVolatileRegs /*= false*/, bool fSkipLivenessAssert /*= false*/)
 {
-    Assert(enmGstReg < kIemNativeGstReg_End && g_aGstShadowInfo[enmGstReg].cb != 0);
 #ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
-    AssertMsg(   pReNative->idxCurCall == 0
-              || IEMLIVENESS_STATE_IS_INPUT_EXPECTED(iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
+    AssertMsg(   fSkipLivenessAssert
+              || pReNative->idxCurCall == 0
               || enmGstReg == kIemNativeGstReg_Pc
-              || enmGstReg == kIemNativeGstReg_EFlags /** @todo EFlags shadowing+liveness is weird and needs fixing (@bugref{10720}) */,
+              || (enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
+                  ? IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
+                  : enmIntendedUse == kIemNativeGstRegUse_ForUpdate
+                  ? IEMLIVENESS_STATE_IS_MODIFY_EXPECTED( iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
+                  : IEMLIVENESS_STATE_IS_INPUT_EXPECTED(  iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)) ),
               ("%s - %u\n", g_aGstShadowInfo[enmGstReg].pszName, iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)));
 #endif
+    RT_NOREF(fSkipLivenessAssert);
+
+    return iemNativeRegAllocTmpForGuestRegCommon(pReNative, poff, enmGstReg, enmIntendedUse, fNoVolatileRegs);
+}
+
+
+#if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
+/**
+ * Specialized version of iemNativeRegAllocTmpForGuestReg for EFLAGS.
+ *
+ * This takes additional arguments for covering liveness assertions in strict
+ * builds, it's otherwise the same as iemNativeRegAllocTmpForGuestReg() with
+ * kIemNativeGstReg_EFlags as argument.
+ */
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREGUSE enmIntendedUse,
+                                   uint64_t fRead, uint64_t fWrite /*= 0*/, uint64_t fPotentialCall /*= 0*/)
+{
+    if (pReNative->idxCurCall != 0 && (fRead || fWrite /*|| fPotentialCall*/))
+    {
+        Assert(!(fRead & ~IEMLIVENESSBIT_ALL_EFL_MASK));
+        Assert(!(fWrite & ~IEMLIVENESSBIT_ALL_EFL_MASK));
+        Assert(!(fPotentialCall & ~IEMLIVENESSBIT_ALL_EFL_MASK));
+        uint64_t const fAll = fRead | fWrite /*| fPotentialCall*/;
+        uint32_t       fState;
+# define MY_ASSERT_ONE_EFL(a_enmGstEfl) \
+        fState = iemNativeLivenessGetPrevStateByGstRegEx(pReNative, (IEMNATIVEGSTREG)(a_enmGstEfl)); \
+        AssertMsg(   !( fAll   & RT_BIT_64(a_enmGstEfl)) \
+                  || (  fRead  & RT_BIT_64(a_enmGstEfl) \
+                      ? fWrite & RT_BIT_64(a_enmGstEfl) \
+                        ? IEMLIVENESS_STATE_IS_MODIFY_EXPECTED(fState) \
+                        : IEMLIVENESS_STATE_IS_INPUT_EXPECTED(fState) \
+                      : IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(fState) \
+                      ) \
+                  , ("%s - %u\n", #a_enmGstEfl, fState))
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OTHER);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_CF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_PF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_AF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_ZF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_SF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OF);
+# undef MY_ASSERT_ONE_EFL
+    }
+    RT_NOREF(fPotentialCall);
+    return iemNativeRegAllocTmpForGuestRegCommon(pReNative, poff, kIemNativeGstReg_EFlags,
+                                                 enmIntendedUse, false /*fNoVolatileRegs*/);
+}
+#endif
+
+
+
+/**
+ * Common worker for iemNativeRegAllocTmpForGuestRegIfAlreadyPresent and
+ * iemNativeRegAllocTmpForGuestEFlagsIfAlreadyPresent.
+ *
+ * See iemNativeRegAllocTmpForGuestRegIfAlreadyPresent() for details.
+ */
+DECL_FORCE_INLINE(uint8_t)
+iemNativeRegAllocTmpForGuestRegIfAlreadyPresentCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    Assert(enmGstReg < kIemNativeGstReg_End && g_aGstShadowInfo[enmGstReg].cb != 0);
 
     /*
      * First check if the guest register value is already in a host register.
@@ -3851,6 +3890,90 @@ iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, u
 
     return UINT8_MAX;
 }
+
+
+/**
+ * Allocates a temporary host general purpose register that already holds the
+ * given guest register value.
+ *
+ * The use case for this function is places where the shadowing state cannot be
+ * modified due to branching and such.  This will fail if the we don't have a
+ * current shadow copy handy or if it's incompatible.  The only code that will
+ * be emitted here is value checking code in strict builds.
+ *
+ * The intended use can only be readonly!
+ *
+ * @returns The host register number, UINT8_MAX if not present.
+ * @param   pReNative       The native recompile state.
+ * @param   poff            Pointer to the instruction buffer offset.
+ *                          Will be updated in strict builds if a register is
+ *                          found.
+ * @param   enmGstReg       The guest register that will is to be updated.
+ * @note    In strict builds, this may throw instruction buffer growth failures.
+ *          Non-strict builds will not throw anything.
+ * @sa iemNativeRegAllocTmpForGuestReg
+ */
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+#ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
+    AssertMsg(   pReNative->idxCurCall == 0
+              || IEMLIVENESS_STATE_IS_INPUT_EXPECTED(iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
+              || enmGstReg == kIemNativeGstReg_Pc
+              , ("%s - %u\n", g_aGstShadowInfo[enmGstReg].pszName, iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)));
+#endif
+    return iemNativeRegAllocTmpForGuestRegIfAlreadyPresentCommon(pReNative, poff, enmGstReg);
+}
+
+
+#if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
+/**
+ * Specialized version of iemNativeRegAllocTmpForGuestRegIfAlreadyPresent for
+ * EFLAGS.
+ *
+ * This takes additional arguments for covering liveness assertions in strict
+ * builds, it's otherwise the same as
+ * iemNativeRegAllocTmpForGuestRegIfAlreadyPresent() with
+ * kIemNativeGstReg_EFlags as argument.
+ *
+ * @note The @a fWrite parameter is necessary to complete the liveness picture,
+ *       as iemNativeEmitFetchEFlags() may fetch flags in prep for a later
+ *       commit.  It the operation clobbers all the flags, @a fRead will be
+ *       zero, so better verify the whole picture while we're here.
+ */
+DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpForGuestEFlagsIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                                              uint64_t fRead, uint64_t fWrite /*=0*/)
+{
+    if (pReNative->idxCurCall != 0)
+    {
+        Assert(fRead | fWrite);
+        Assert(!(fRead & ~IEMLIVENESSBIT_ALL_EFL_MASK));
+        Assert(!(fWrite & ~IEMLIVENESSBIT_ALL_EFL_MASK));
+        uint64_t const fAll = fRead | fWrite;
+        uint32_t       fState;
+# define MY_ASSERT_ONE_EFL(a_enmGstEfl) \
+        fState = iemNativeLivenessGetPrevStateByGstRegEx(pReNative, (IEMNATIVEGSTREG)(a_enmGstEfl)); \
+        AssertMsg(   !( fAll   & RT_BIT_64(a_enmGstEfl)) \
+                  || (  fRead  & RT_BIT_64(a_enmGstEfl) \
+                      ? fWrite & RT_BIT_64(a_enmGstEfl) \
+                        ? IEMLIVENESS_STATE_IS_MODIFY_EXPECTED(fState) \
+                        : IEMLIVENESS_STATE_IS_INPUT_EXPECTED(fState) \
+                      : IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(fState) \
+                      ) \
+                  , ("%s - %u\n", #a_enmGstEfl, fState))
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OTHER);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_CF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_PF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_AF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_ZF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_SF);
+        MY_ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OF);
+# undef MY_ASSERT_ONE_EFL
+    }
+    RT_NOREF(fRead);
+    return iemNativeRegAllocTmpForGuestRegIfAlreadyPresentCommon(pReNative, poff, kIemNativeGstReg_EFlags);
+}
+#endif
 
 
 /**

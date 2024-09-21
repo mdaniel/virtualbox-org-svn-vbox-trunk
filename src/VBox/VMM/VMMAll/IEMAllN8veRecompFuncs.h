@@ -438,9 +438,9 @@ iemNativeEmitFinishInstructionFlagsCheck(PIEMRECOMPILERSTATE pReNative, uint32_t
      */
     off = iemNativeRegFlushPendingWrites(pReNative, off);
 
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ForUpdate, false /*fNoVolatileRegs*/,
-                                                              true /*fSkipLivenessAssert*/);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
+                                                                 RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER),
+                                                                 RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER));
     off = iemNativeEmitTestAnyBitsInGprAndTbExitIfAnySet(pReNative, off, idxEflReg,
                                                          X86_EFL_TF | CPUMCTX_DBG_HIT_DRX_MASK | CPUMCTX_DBG_DBGF_MASK,
                                                          kIemNativeLabelType_ReturnWithFlags);
@@ -1794,8 +1794,8 @@ iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t c
                     /* intel real mode segment push. 10890XE adds the 2nd of half EFLAGS to a
                        PUSH FS in real mode, so we have to try emulate that here.
                        We borrow the now unused idxReg1 from the TLB lookup code here. */
-                    uint8_t idxRegEfl = iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(pReNative, &off,
-                                                                                        kIemNativeGstReg_EFlags);
+                    uint8_t const idxRegEfl = iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(pReNative, &off,
+                                                                                              kIemNativeGstReg_EFlags);
                     if (idxRegEfl != UINT8_MAX)
                     {
 #ifdef ARCH_AMD64
@@ -3347,19 +3347,64 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitEndIf(PIEMRECOMPILERSTATE pReNative, ui
 }
 
 
+/**
+ * Helper function to convert X86_EFL_xxx masks to liveness masks.
+ *
+ * The compiler should be able to figure this out at compile time, so sprinkling
+ * constexpr where ever possible here to nudge it along.
+ */
+template<uint32_t const a_fEfl>
+RT_CONSTEXPR uint64_t iemNativeEflagsToLivenessMask(void)
+{
+    return (a_fEfl & ~X86_EFL_STATUS_BITS ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER) : 0)
+         | (a_fEfl & X86_EFL_CF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_CF)    : 0)
+         | (a_fEfl & X86_EFL_PF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_PF)    : 0)
+         | (a_fEfl & X86_EFL_AF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_AF)    : 0)
+         | (a_fEfl & X86_EFL_ZF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_ZF)    : 0)
+         | (a_fEfl & X86_EFL_SF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_SF)    : 0)
+         | (a_fEfl & X86_EFL_OF           ? RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OF)    : 0);
+}
+
+
+/**
+ * Helper function to convert a single X86_EFL_xxxx value to bit number.
+ *
+ * The compiler should be able to figure this out at compile time, so sprinkling
+ * constexpr where ever possible here to nudge it along.
+ */
+template<uint32_t const a_fEfl>
+RT_CONSTEXPR unsigned iemNativeEflagsToSingleBitNo(void)
+{
+    AssertCompile(   a_fEfl == X86_EFL_CF
+                  || a_fEfl == X86_EFL_PF
+                  || a_fEfl == X86_EFL_AF
+                  || a_fEfl == X86_EFL_ZF
+                  || a_fEfl == X86_EFL_SF
+                  || a_fEfl == X86_EFL_OF
+                  || a_fEfl == X86_EFL_DF);
+    return a_fEfl == X86_EFL_CF ? X86_EFL_CF_BIT
+         : a_fEfl == X86_EFL_PF ? X86_EFL_PF_BIT
+         : a_fEfl == X86_EFL_AF ? X86_EFL_AF_BIT
+         : a_fEfl == X86_EFL_ZF ? X86_EFL_ZF_BIT
+         : a_fEfl == X86_EFL_SF ? X86_EFL_SF_BIT
+         : a_fEfl == X86_EFL_OF ? X86_EFL_OF_BIT
+         :                        X86_EFL_DF_BIT;
+}
+
+
 #define IEM_MC_IF_EFL_ANY_BITS_SET(a_fBits) \
-        off = iemNativeEmitIfEflagAnysBitsSet(pReNative, off, (a_fBits)); \
+        off = iemNativeEmitIfEflagAnysBitsSet(pReNative, off, (a_fBits), iemNativeEflagsToLivenessMask<a_fBits>()); \
         do {
 
 /** Emits code for IEM_MC_IF_EFL_ANY_BITS_SET. */
-DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl)
+DECL_INLINE_THROW(uint32_t)
+iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitsInEfl);
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
 
     /* Test and jump. */
     off = iemNativeEmitTestAnyBitsInGprAndJmpToLabelIfNoneSet(pReNative, off, idxEflReg, fBitsInEfl, pEntry->idxLabelElse);
@@ -3375,18 +3420,18 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE 
 
 
 #define IEM_MC_IF_EFL_NO_BITS_SET(a_fBits) \
-        off = iemNativeEmitIfEflagNoBitsSet(pReNative, off, (a_fBits)); \
+        off = iemNativeEmitIfEflagNoBitsSet(pReNative, off, (a_fBits), iemNativeEflagsToLivenessMask<a_fBits>()); \
         do {
 
 /** Emits code for IEM_MC_IF_EFL_NO_BITS_SET. */
-DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl)
+DECL_INLINE_THROW(uint32_t)
+iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitsInEfl);
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
 
     /* Test and jump. */
     off = iemNativeEmitTestAnyBitsInGprAndJmpToLabelIfAnySet(pReNative, off, idxEflReg, fBitsInEfl, pEntry->idxLabelElse);
@@ -3402,21 +3447,19 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pR
 
 
 #define IEM_MC_IF_EFL_BIT_SET(a_fBit) \
-        off = iemNativeEmitIfEflagsBitSet(pReNative, off, (a_fBit)); \
+        off = iemNativeEmitIfEflagsBitSet(pReNative, off, iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                          iemNativeEflagsToLivenessMask<a_fBit>()); \
         do {
 
 /** Emits code for IEM_MC_IF_EFL_BIT_SET. */
-DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitInEfl)
+DECL_INLINE_THROW(uint32_t)
+iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitInEfl);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
-
-    unsigned const iBitNo = ASMBitFirstSetU32(fBitInEfl) - 1;
-    Assert(RT_BIT_32(iBitNo) == fBitInEfl);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
 
     /* Test and jump. */
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfNotSet(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse);
@@ -3432,21 +3475,19 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReN
 
 
 #define IEM_MC_IF_EFL_BIT_NOT_SET(a_fBit) \
-        off = iemNativeEmitIfEflagsBitNotSet(pReNative, off, (a_fBit)); \
+        off = iemNativeEmitIfEflagsBitNotSet(pReNative, off, iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                             iemNativeEflagsToLivenessMask<a_fBit>()); \
         do {
 
 /** Emits code for IEM_MC_IF_EFL_BIT_NOT_SET. */
-DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitInEfl)
+DECL_INLINE_THROW(uint32_t)
+iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitInEfl);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
-
-    unsigned const iBitNo = ASMBitFirstSetU32(fBitInEfl) - 1;
-    Assert(RT_BIT_32(iBitNo) == fBitInEfl);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
 
     /* Test and jump. */
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfSet(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse);
@@ -3461,35 +3502,34 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE p
 }
 
 
-#define IEM_MC_IF_EFL_BITS_EQ(a_fBit1, a_fBit2)         \
-    off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, a_fBit1, a_fBit2, false /*fInverted*/); \
+#define IEM_MC_IF_EFL_BITS_EQ(a_fBit1, a_fBit2) \
+    off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, false /*fInverted*/, \
+                                            iemNativeEflagsToSingleBitNo<a_fBit1>(), \
+                                            iemNativeEflagsToSingleBitNo<a_fBit2>(), \
+                                            iemNativeEflagsToLivenessMask<a_fBit1 | a_fBit2>()); \
     do {
 
-#define IEM_MC_IF_EFL_BITS_NE(a_fBit1, a_fBit2)         \
-    off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, a_fBit1, a_fBit2, true /*fInverted*/); \
+#define IEM_MC_IF_EFL_BITS_NE(a_fBit1, a_fBit2) \
+    off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, true /*fInverted*/, \
+                                            iemNativeEflagsToSingleBitNo<a_fBit1>(), \
+                                            iemNativeEflagsToSingleBitNo<a_fBit2>(), \
+                                            iemNativeEflagsToLivenessMask<a_fBit1 | a_fBit2>()); \
     do {
 
 /** Emits code for IEM_MC_IF_EFL_BITS_EQ and IEM_MC_IF_EFL_BITS_NE. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
-                                  uint32_t fBit1InEfl, uint32_t fBit2InEfl, bool fInverted)
+                                  bool fInverted, unsigned iBitNo1, unsigned iBitNo2, uint64_t fLivenessEflBits)
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBit1InEfl | fBit2InEfl);
+    Assert(iBitNo1 != iBitNo2);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
-
-    unsigned const iBitNo1 = ASMBitFirstSetU32(fBit1InEfl) - 1;
-    Assert(RT_BIT_32(iBitNo1) == fBit1InEfl);
-
-    unsigned const iBitNo2 = ASMBitFirstSetU32(fBit2InEfl) - 1;
-    Assert(RT_BIT_32(iBitNo2) == fBit2InEfl);
-    Assert(iBitNo1 != iBitNo2);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
 
 #ifdef RT_ARCH_AMD64
-    uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, fBit1InEfl);
+    uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, RT_BIT_64(iBitNo1));
 
     off = iemNativeEmitAndGpr32ByGpr32(pReNative, off, idxTmpReg, idxEflReg);
     if (iBitNo1 > iBitNo2)
@@ -3535,20 +3575,31 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
 
 
 #define IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) \
-    off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, a_fBit, a_fBit1, a_fBit2, false /*fInverted*/); \
+    off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, false /*fInverted*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit1>(), \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit2>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit | a_fBit1 | a_fBit2>()); \
     do {
 
 #define IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2) \
-    off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, a_fBit, a_fBit1, a_fBit2, true /*fInverted*/); \
+    off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, true /*fInverted*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit1>(), \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit2>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit | a_fBit1 | a_fBit2>()); \
     do {
 
 /** Emits code for IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ and
  *  IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE. */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitInEfl,
-                                              uint32_t fBit1InEfl, uint32_t fBit2InEfl, bool fInverted)
+iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off, bool fInverted,
+                                              unsigned iBitNo, unsigned iBitNo1, unsigned iBitNo2, uint64_t fLivenessEflBits)
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitInEfl | fBit1InEfl | fBit2InEfl);
+    Assert(iBitNo1 != iBitNo);
+    Assert(iBitNo2 != iBitNo);
+    Assert(iBitNo2 != iBitNo1);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo) | RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* We need an if-block label for the non-inverted variant. */
@@ -3556,24 +3607,10 @@ iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uin
                                                                  pReNative->paLabels[pEntry->idxLabelElse].uData) : UINT32_MAX;
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ReadOnly);
-
-    /* Translate the flag masks to bit numbers. */
-    unsigned const iBitNo = ASMBitFirstSetU32(fBitInEfl) - 1;
-    Assert(RT_BIT_32(iBitNo) == fBitInEfl);
-
-    unsigned const iBitNo1 = ASMBitFirstSetU32(fBit1InEfl) - 1;
-    Assert(RT_BIT_32(iBitNo1) == fBit1InEfl);
-    Assert(iBitNo1 != iBitNo);
-
-    unsigned const iBitNo2 = ASMBitFirstSetU32(fBit2InEfl) - 1;
-    Assert(RT_BIT_32(iBitNo2) == fBit2InEfl);
-    Assert(iBitNo2 != iBitNo);
-    Assert(iBitNo2 != iBitNo1);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
 
 #ifdef RT_ARCH_AMD64
-    uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, fBit1InEfl); /* This must come before we jump anywhere! */
+    uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, RT_BIT_64(iBitNo1)); /* This must come before we jump anywhere! */
 #elif defined(RT_ARCH_ARM64)
     uint8_t const idxTmpReg = iemNativeRegAllocTmp(pReNative, &off);
 #endif
@@ -3722,27 +3759,31 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitIfRcxEcxIsNotOne(PIEMRECOMPILERSTATE pR
 
 
 #define IEM_MC_IF_CX_IS_NOT_ONE_AND_EFL_BIT_SET(a_fBit) \
-    off = iemNativeEmitIfCxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, true /*fCheckIfSet*/); \
+    off = iemNativeEmitIfCxIsNotOneAndTestEflagsBit(pReNative, off, true /*fCheckIfSet*/, \
+                                                    iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                    iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 #define IEM_MC_IF_CX_IS_NOT_ONE_AND_EFL_BIT_NOT_SET(a_fBit) \
-    off = iemNativeEmitIfCxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, false /*fCheckIfSet*/); \
+    off = iemNativeEmitIfCxIsNotOneAndTestEflagsBit(pReNative, off, false /*fCheckIfSet*/, \
+                                                    iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                    iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 /** Emits code for IEM_MC_IF_CX_IS_NOT_ONE_AND_EFL_BIT_SET and
  *  IEM_MC_IF_CX_IS_NOT_ONE_AND_EFL_BIT_NOT_SET. */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitInEfl, bool fCheckIfSet)
+iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off,
+                                          bool fCheckIfSet, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitInEfl);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* We have to load both RCX and EFLAGS before we can start branching,
        otherwise we'll end up in the else-block with an inconsistent
        register allocator state.
        Doing EFLAGS first as it's more likely to be loaded, right? */
-    uint8_t const idxEflReg    = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                                 kIemNativeGstRegUse_ReadOnly);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
     uint8_t const idxGstRcxReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xCX),
                                                                  kIemNativeGstRegUse_ReadOnly);
 
@@ -3759,8 +3800,6 @@ iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_
 #endif
 
     /* Check the EFlags bit. */
-    unsigned const iBitNo = ASMBitFirstSetU32(fBitInEfl) - 1;
-    Assert(RT_BIT_32(iBitNo) == fBitInEfl);
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfCc(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse,
                                                      !fCheckIfSet /*fJmpIfSet*/);
 
@@ -3773,19 +3812,27 @@ iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_
 
 
 #define IEM_MC_IF_ECX_IS_NOT_ONE_AND_EFL_BIT_SET(a_fBit) \
-    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, true /*fCheckIfSet*/, false /*f64Bit*/); \
+    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, true /*fCheckIfSet*/, false /*f64Bit*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 #define IEM_MC_IF_ECX_IS_NOT_ONE_AND_EFL_BIT_NOT_SET(a_fBit) \
-    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, false /*fCheckIfSet*/, false /*f64Bit*/); \
+    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, false /*fCheckIfSet*/, false /*f64Bit*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 #define IEM_MC_IF_RCX_IS_NOT_ONE_AND_EFL_BIT_SET(a_fBit) \
-    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, true /*fCheckIfSet*/, true /*f64Bit*/); \
+    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, true /*fCheckIfSet*/, true /*f64Bit*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 #define IEM_MC_IF_RCX_IS_NOT_ONE_AND_EFL_BIT_NOT_SET(a_fBit) \
-    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, a_fBit, false /*fCheckIfSet*/, true /*f64Bit*/); \
+    off = iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(pReNative, off, false /*fCheckIfSet*/, true /*f64Bit*/, \
+                                                        iemNativeEflagsToSingleBitNo<a_fBit>(), \
+                                                        iemNativeEflagsToLivenessMask<a_fBit>()); \
     do {
 
 /** Emits code for IEM_MC_IF_ECX_IS_NOT_ONE_AND_EFL_BIT_SET,
@@ -3793,18 +3840,18 @@ iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_
  *  IEM_MC_IF_RCX_IS_NOT_ONE_AND_EFL_BIT_SET and
  *  IEM_MC_IF_RCX_IS_NOT_ONE_AND_EFL_BIT_NOT_SET. */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off,
-                                               uint32_t fBitInEfl, bool fCheckIfSet, bool f64Bit)
+iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off, bool fCheckIfSet, bool f64Bit,
+                                              unsigned iBitNo, uint64_t fLivenessEFlBit)
+
 {
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitInEfl);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* We have to load both RCX and EFLAGS before we can start branching,
        otherwise we'll end up in the else-block with an inconsistent
        register allocator state.
        Doing EFLAGS first as it's more likely to be loaded, right? */
-    uint8_t const idxEflReg    = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                                 kIemNativeGstRegUse_ReadOnly);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEFlBit);
     uint8_t const idxGstRcxReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xCX),
                                                                  kIemNativeGstRegUse_ReadOnly);
 
@@ -3818,8 +3865,6 @@ iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uin
         off = iemNativeEmitTestIfGpr32EqualsImmAndJmpToLabel(pReNative, off, idxGstRcxReg, 1, pEntry->idxLabelElse);
 
     /* Check the EFlags bit. */
-    unsigned const iBitNo = ASMBitFirstSetU32(fBitInEfl) - 1;
-    Assert(RT_BIT_32(iBitNo) == fBitInEfl);
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfCc(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse,
                                                      !fCheckIfSet /*fJmpIfSet*/);
 
@@ -5844,29 +5889,31 @@ DECLINLINE(void) iemNativeEFlagsOptimizationStats(PIEMRECOMPILERSTATE pReNative,
 
 #undef  IEM_MC_FETCH_EFLAGS /* should not be used */
 #define IEM_MC_FETCH_EFLAGS_EX(a_EFlags, a_fEflInput, a_fEflOutput) \
-    off = iemNativeEmitFetchEFlags(pReNative, off, a_EFlags, a_fEflInput, a_fEflOutput)
+    off = iemNativeEmitFetchEFlags<a_fEflInput,  iemNativeEflagsToLivenessMask<a_fEflInput>(),\
+                                   a_fEflOutput, iemNativeEflagsToLivenessMask<a_fEflOutput>()>(pReNative, off, a_EFlags)
 
 /** Handles IEM_MC_FETCH_EFLAGS_EX. */
+template<uint32_t const a_fEflInput,  uint64_t const a_fLivenessEflInput,
+         uint32_t const a_fEflOutput, uint64_t const a_fLivenessEflOutput>
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEFlags,
-                         uint32_t fEflInput, uint32_t fEflOutput)
+iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEFlags)
 {
     IEMNATIVE_ASSERT_VAR_IDX(pReNative, idxVarEFlags);
     IEMNATIVE_ASSERT_VAR_SIZE(pReNative, idxVarEFlags, sizeof(uint32_t));
-    RT_NOREF(fEflInput, fEflOutput);
+    /** @todo fix NOT AssertCompile(a_fEflInput != 0 || a_fEflOutput != 0); */
 
 #ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
 # ifdef VBOX_STRICT
     if (   pReNative->idxCurCall != 0
-        && (fEflInput != 0 || fEflOutput != 0) /* for NOT these are both zero for now. */)
+        && (a_fEflInput != 0 || a_fEflOutput != 0) /* for NOT these are both zero for now. */)
     {
-        PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall - 1];
-        uint32_t const           fBoth          = fEflInput | fEflOutput;
+        PCIEMLIVENESSENTRY const    pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall - 1];
+        RT_CONSTEXPR uint32_t const fBoth          = a_fEflInput | a_fEflOutput;
 # define ASSERT_ONE_EFL(a_fElfConst, a_idxField) \
             AssertMsg(   !(fBoth & (a_fElfConst)) \
-                      || (!(fEflInput & (a_fElfConst)) \
+                      || (!(a_fEflInput & (a_fElfConst)) \
                           ? IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)) \
-                          : !(fEflOutput & (a_fElfConst)) \
+                          : !(a_fEflOutput & (a_fElfConst)) \
                           ? IEMLIVENESS_STATE_IS_INPUT_EXPECTED(  iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)) \
                           : IEMLIVENESS_STATE_IS_MODIFY_EXPECTED( iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)) ), \
                       ("%s - %u\n", #a_fElfConst, iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)))
@@ -5882,7 +5929,7 @@ iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t id
 # endif
 #endif
 
-    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fEflInput);
+    IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, a_fEflInput);
 
     /** @todo This could be prettier...*/
     /** @todo Also, the shadowing+liveness handling of EFlags is currently
@@ -5895,16 +5942,16 @@ iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t id
         /** @todo We could use kIemNativeGstRegUse_ReadOnly here when fOutput is
          *        zero, but since iemNativeVarRegisterSet clears the shadowing,
          *        that's counter productive... */
-        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                                  kIemNativeGstRegUse_ForUpdate, false /*fNoVolatileRegs*/,
-                                                                  true /** @todo EFlags shadowing+liveness weirdness (@bugref{10720}). */);
+        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
+                                                                     a_fLivenessEflInput, a_fLivenessEflOutput);
         iemNativeVarRegisterSet(pReNative, idxVarEFlags, idxGstReg, off, true /*fAllocated*/);
     }
     else
     {
         /* Register argument variable: Avoid assertions in generic call code and load it the traditional way. */
         uint8_t const idxVarReg = iemNativeVarRegisterAcquire(pReNative, idxVarEFlags, &off, false /*fInitialized*/);
-        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(pReNative, &off, kIemNativeGstReg_EFlags);
+        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestEFlagsIfAlreadyPresent(pReNative, &off,
+                                                                                     a_fLivenessEflInput, a_fLivenessEflOutput);
         if (idxGstReg != UINT8_MAX)
         {
             off = iemNativeEmitLoadGprFromGpr32(pReNative, off, idxVarReg, idxGstReg);
@@ -5925,21 +5972,50 @@ iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t id
 #undef  IEM_MC_COMMIT_EFLAGS /* should not be used */
 #define IEM_MC_COMMIT_EFLAGS_EX(a_EFlags, a_fEflInput, a_fEflOutput) \
     IEMNATIVE_EFLAGS_OPTIMIZATION_STATS(a_fEflInput, a_fEflOutput); \
-    off = iemNativeEmitCommitEFlags(pReNative, off, a_EFlags, a_fEflOutput, true /*fUpdateSkipping*/)
+    off = iemNativeEmitCommitEFlags<true /*fUpdateSkipping*/, a_fEflOutput, \
+                                    iemNativeEflagsToLivenessMask<a_fEflInput>(), \
+                                    iemNativeEflagsToLivenessMask<a_fEflOutput>()>(pReNative, off, a_EFlags)
 
 #undef IEM_MC_COMMIT_EFLAGS_OPT /* should not be used */
 #define IEM_MC_COMMIT_EFLAGS_OPT_EX(a_EFlags, a_fEflInput, a_fEflOutput) \
     IEMNATIVE_EFLAGS_OPTIMIZATION_STATS(a_fEflInput, a_fEflOutput); \
-    off = iemNativeEmitCommitEFlags(pReNative, off, a_EFlags, a_fEflOutput, false /*fUpdateSkipping*/)
+    off = iemNativeEmitCommitEFlags<false /*fUpdateSkipping*/, a_fEflOutput, \
+                                    iemNativeEflagsToLivenessMask<a_fEflInput>(), \
+                                    iemNativeEflagsToLivenessMask<a_fEflOutput>()>(pReNative, off, a_EFlags)
 
 /** Handles IEM_MC_COMMIT_EFLAGS_EX. */
-DECL_INLINE_THROW(uint32_t)
-iemNativeEmitCommitEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEFlags, uint32_t fEflOutput,
-                          bool fUpdateSkipping)
+template<bool const a_fUpdateSkipping, uint32_t const a_fEflOutput,
+         uint64_t const a_fLivenessEflInputBits, uint64_t const a_fLivenessEflOutputBits>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitCommitEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEFlags)
 {
-    RT_NOREF(fEflOutput);
     uint8_t const idxReg = iemNativeVarRegisterAcquire(pReNative, idxVarEFlags, &off, true /*fInitialized*/);
     IEMNATIVE_ASSERT_VAR_SIZE(pReNative, idxVarEFlags, sizeof(uint32_t));
+
+#ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
+# ifdef VBOX_STRICT
+    if (   pReNative->idxCurCall != 0
+        && (a_fLivenessEflInputBits != 0 || a_fLivenessEflOutputBits != 0) /* for NOT these are both zero for now. */)
+    {
+        PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall - 1];
+# define ASSERT_ONE_EFL(a_idxField) \
+            if RT_CONSTEXPR_IF(((a_fLivenessEflInputBits | a_fLivenessEflOutputBits) & RT_BIT_64(a_idxField)) != 0) \
+                AssertMsg(!(a_fLivenessEflInputBits & RT_BIT_64(a_idxField)) \
+                          ? IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)) \
+                          : !(a_fLivenessEflOutputBits & RT_BIT_64(a_idxField)) \
+                          ? IEMLIVENESS_STATE_IS_INPUT_EXPECTED(  iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)) \
+                          : IEMLIVENESS_STATE_IS_MODIFY_EXPECTED( iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)), \
+                          ("%s - %u\n", #a_idxField, iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, a_idxField)))
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OTHER);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_CF);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_PF);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_AF);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_ZF);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_SF);
+        ASSERT_ONE_EFL(IEMLIVENESSBIT_IDX_EFL_OF);
+# undef ASSERT_ONE_EFL
+    }
+# endif
+#endif
 
 #ifdef VBOX_STRICT
     off = iemNativeEmitTestAnyBitsInGpr(pReNative, off, idxReg, X86_EFL_RA1_MASK);
@@ -5954,20 +6030,18 @@ iemNativeEmitCommitEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     off = iemNativeEmitBrk(pReNative, off, UINT32_C(0x2002));
     iemNativeFixupFixedJump(pReNative, offFixup, off);
 
-    /** @todo validate that only bits in the fElfOutput mask changed. */
+    /** @todo validate that only bits in the a_fEflOutput mask changed. */
 #endif
 
 #ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
-    if (fUpdateSkipping)
+    if RT_CONSTEXPR_IF(a_fUpdateSkipping)
     {
-        if ((fEflOutput & X86_EFL_STATUS_BITS) == X86_EFL_STATUS_BITS)
+        if RT_CONSTEXPR_IF((a_fEflOutput & X86_EFL_STATUS_BITS) == X86_EFL_STATUS_BITS)
             off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
         else
-            off = iemNativeEmitAndImmIntoVCpuU32(pReNative, off, ~(fEflOutput & X86_EFL_STATUS_BITS),
+            off = iemNativeEmitAndImmIntoVCpuU32(pReNative, off, ~(a_fEflOutput & X86_EFL_STATUS_BITS),
                                                  RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
     }
-#else
-    RT_NOREF_PV(fUpdateSkipping);
 #endif
 
     iemNativeRegClearAndMarkAsGstRegShadow(pReNative, idxReg, kIemNativeGstReg_EFlags, off);
@@ -5985,29 +6059,29 @@ typedef enum IEMNATIVEMITEFLOP
 } IEMNATIVEMITEFLOP;
 
 #define IEM_MC_SET_EFL_BIT(a_fBit) \
-    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Set>(pReNative, off, a_fBit)
+    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Set,   a_fBit, iemNativeEflagsToLivenessMask<a_fBit>()>(pReNative, off)
 
 #define IEM_MC_CLEAR_EFL_BIT(a_fBit) \
-    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Clear>(pReNative, off, a_fBit)
+    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Clear, a_fBit, iemNativeEflagsToLivenessMask<a_fBit>()>(pReNative, off)
 
 #define IEM_MC_FLIP_EFL_BIT(a_fBit) \
-    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Flip>(pReNative, off, a_fBit)
+    off = iemNativeEmitModifyEFlagsBit<kIemNativeEmitEflOp_Flip,  a_fBit, iemNativeEflagsToLivenessMask<a_fBit>()>(pReNative, off)
 
 /** Handles IEM_MC_SET_EFL_BIT/IEM_MC_CLEAR_EFL_BIT/IEM_MC_FLIP_EFL_BIT. */
-template<IEMNATIVEMITEFLOP const a_enmOp>
-DECL_INLINE_THROW(uint32_t) iemNativeEmitModifyEFlagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fEflBit)
+template<IEMNATIVEMITEFLOP const a_enmOp, uint32_t const a_fEflBit, uint64_t const a_fLivenessEflBit>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitModifyEFlagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off)
 {
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_EFlags,
-                                                              kIemNativeGstRegUse_ForUpdate, false /*fNoVolatileRegs*/,
-                                                              true /*fSkipLivenessAssert*/); /** @todo proper liveness / eflags fix */
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
+                                                                 a_enmOp == kIemNativeEmitEflOp_Flip ? a_fLivenessEflBit : 0,
+                                                                 a_fLivenessEflBit);
 
     /* Using 'if constexpr' forces code elimination in debug builds with VC. */
     if RT_CONSTEXPR_IF(a_enmOp == kIemNativeEmitEflOp_Set)
-        off = iemNativeEmitOrGpr32ByImm(pReNative, off, idxEflReg, fEflBit);
+        off = iemNativeEmitOrGpr32ByImm(pReNative, off, idxEflReg, a_fEflBit);
     else if RT_CONSTEXPR_IF(a_enmOp == kIemNativeEmitEflOp_Clear)
-        off = iemNativeEmitAndGpr32ByImm(pReNative, off, idxEflReg, ~fEflBit);
+        off = iemNativeEmitAndGpr32ByImm(pReNative, off, idxEflReg, ~a_fEflBit);
     else if RT_CONSTEXPR_IF(a_enmOp == kIemNativeEmitEflOp_Flip)
-        off = iemNativeEmitXorGpr32ByImm(pReNative, off, idxEflReg, fEflBit);
+        off = iemNativeEmitXorGpr32ByImm(pReNative, off, idxEflReg, a_fEflBit);
     else
         AssertCompile(   a_enmOp == kIemNativeEmitEflOp_Set /* AssertCompile(false) works with VC 2019 but not clang 15. */
                       || a_enmOp == kIemNativeEmitEflOp_Clear

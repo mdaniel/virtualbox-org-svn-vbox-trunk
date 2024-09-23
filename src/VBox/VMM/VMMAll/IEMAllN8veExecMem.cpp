@@ -225,10 +225,8 @@ typedef struct IEMEXECMEMCHUNK
     void                   *pvChunkRw;
     /** Pointer to the readable/executable view of the memory chunk. */
     void                   *pvChunkRx;
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     /** Pointer to the context structure detailing the per chunk common code. */
     PCIEMNATIVEPERCHUNKCTX  pCtx;
-#endif
 #ifdef IN_RING3
     /**
      * Pointer to the unwind information.
@@ -802,7 +800,6 @@ iemExecMemAllocatorAllocFromChunk(PVMCPU pVCpu, uint32_t idxChunk, uint32_t cbRe
 }
 
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
 /**
  * For getting the per-chunk context detailing common code for a TB.
  *
@@ -822,7 +819,6 @@ DECLHIDDEN(PCIEMNATIVEPERCHUNKCTX) iemExecMemGetTbChunkCtx(PVMCPU pVCpu, PCIEMTB
     }
     return NULL;
 }
-#endif
 
 
 #ifdef IN_RING3
@@ -1501,9 +1497,7 @@ static int iemExecMemAllocatorGrow(PVMCPUCC pVCpu, PIEMEXECMEMALLOCATOR pExecMem
 
     void *pvChunkRx = (void *)AddrRemapped;
 #else
-# if defined(IN_RING3) || defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE)
     int   rc        = VINF_SUCCESS;
-# endif
     void *pvChunkRx = pvChunk;
 #endif
 
@@ -1530,20 +1524,15 @@ static int iemExecMemAllocatorGrow(PVMCPUCC pVCpu, PIEMEXECMEMALLOCATOR pExecMem
     pExecMemAllocator->cbFree      += pExecMemAllocator->cbChunk;
 
     /* If there is a chunk context init callback call it. */
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-    pExecMemAllocator->aChunks[idxChunk].pCtx = iemNativeRecompileAttachExecMemChunkCtx(pVCpu, idxChunk);
-    if (pExecMemAllocator->aChunks[idxChunk].pCtx)
-#endif
-    {
+    rc = iemNativeRecompileAttachExecMemChunkCtx(pVCpu, idxChunk, &pExecMemAllocator->aChunks[idxChunk].pCtx);
 #ifdef IN_RING3
-        /*
-         * Initialize the unwind information (this cannot really fail atm).
-         * (This sets pvUnwindInfo.)
-         */
+    /*
+     * Initialize the unwind information (this cannot really fail atm).
+     * (This sets pvUnwindInfo.)
+     */
+    if (RT_SUCCESS(rc))
         rc = iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(pVCpu, pExecMemAllocator, pvChunkRx, idxChunk);
 #endif
-    }
-#if defined(IN_RING3) || defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE)
     if (RT_SUCCESS(rc))
     { /* likely */ }
     else
@@ -1566,7 +1555,6 @@ static int iemExecMemAllocatorGrow(PVMCPUCC pVCpu, PIEMEXECMEMALLOCATOR pExecMem
         RTMemPageFree(pvChunk, pExecMemAllocator->cbChunk);
         return rc;
     }
-#endif
 
     return VINF_SUCCESS;
 }
@@ -1617,13 +1605,11 @@ int iemExecMemAllocatorInit(PVMCPU pVCpu, uint64_t cbMax, uint64_t cbInitial, ui
                 cbChunk = RT_BIT_32(ASMBitLastSetU32(cbChunk));
         }
     }
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-# if   defined(RT_OS_AMD64)
+#if   defined(RT_OS_AMD64)
     Assert(cbChunk <= _2G);
-# elif defined(RT_OS_ARM64)
+#elif defined(RT_OS_ARM64)
     if (cbChunk > _128M)
         cbChunk = _128M; /* Max relative branch distance is +/-2^(25+2) = +/-0x8000000 (134 217 728). */
-# endif
 #endif
 
     if (cbChunk > cbMax)

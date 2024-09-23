@@ -8309,7 +8309,7 @@ iemNativeEmitJccTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf
     IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     /* jcc rel32 */
     pCodeBuf[off++] = 0x0f;
     pCodeBuf[off++] = (uint8_t)enmCond | 0x80;
@@ -8339,19 +8339,15 @@ iemNativeEmitJccTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVELAB
     IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-# ifdef RT_ARCH_AMD64
+#ifdef RT_ARCH_AMD64
     off = iemNativeEmitJccTbExitEx(pReNative, iemNativeInstrBufEnsure(pReNative, off, 6), off, enmExitReason, enmCond);
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
     off = iemNativeEmitJccTbExitEx(pReNative, iemNativeInstrBufEnsure(pReNative, off, 2), off, enmExitReason, enmCond);
-# else
-#  error "Port me!"
-# endif
+#else
+# error "Port me!"
+#endif
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     return off;
-#else
-    return iemNativeEmitJccToNewLabel(pReNative, off, enmExitReason, 0 /*uData*/, enmCond);
-#endif
 }
 
 
@@ -8424,8 +8420,7 @@ iemNativeEmitTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf, u
 
     iemNativeMarkCurCondBranchAsExiting(pReNative);
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-# ifdef RT_ARCH_AMD64
+#ifdef RT_ARCH_AMD64
     /* jmp rel32 */
     pCodeBuf[off++] = 0xe9;
     iemNativeAddTbExitFixup(pReNative, off, enmExitReason);
@@ -8434,19 +8429,14 @@ iemNativeEmitTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf, u
     pCodeBuf[off++] = 0xff;
     pCodeBuf[off++] = 0xff;
 
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
     iemNativeAddTbExitFixup(pReNative, off, enmExitReason);
     pCodeBuf[off++] = Armv8A64MkInstrB(-1);
 
-# else
-#  error "Port me!"
-# endif
-    return off;
-
 #else
-    uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
-    return iemNativeEmitJmpToLabelEx(pReNative, pCodeBuf, off, idxLabel);
+# error "Port me!"
 #endif
+    return off;
 }
 
 
@@ -8461,8 +8451,7 @@ iemNativeEmitTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVELABELT
     if (fActuallyExitingTb)
         iemNativeMarkCurCondBranchAsExiting(pReNative);
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-# ifdef RT_ARCH_AMD64
+#ifdef RT_ARCH_AMD64
     PIEMNATIVEINSTR pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 6);
 
     /* jmp rel32 */
@@ -8473,20 +8462,16 @@ iemNativeEmitTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVELABELT
     pCodeBuf[off++] = 0xff;
     pCodeBuf[off++] = 0xff;
 
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
     PIEMNATIVEINSTR pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 1);
     iemNativeAddTbExitFixup(pReNative, off, enmExitReason);
     pCodeBuf[off++] = Armv8A64MkInstrB(-1);
 
-# else
-#  error "Port me!"
-# endif
+#else
+# error "Port me!"
+#endif
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     return off;
-
-#else
-    return iemNativeEmitJmpToNewLabel(pReNative, off, enmExitReason);
-#endif
 }
 
 
@@ -8586,7 +8571,7 @@ iemNativeEmitTestBitInGprAndTbExitIfSet(PIEMRECOMPILERSTATE pReNative, uint32_t 
 {
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     Assert(iBitNo < 64);
     uint8_t * const pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 5);
     if (iBitNo < 8)
@@ -8637,7 +8622,7 @@ iemNativeEmitTestIfGprIsNotZeroAndTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNA
 {
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     /* test reg32,reg32  / test reg64,reg64 */
     if (f64Bit)
         pCodeBuf[off++] = X86_OP_REX_W | (iGprSrc < 8 ? 0 : X86_OP_REX_R | X86_OP_REX_B);
@@ -8670,7 +8655,7 @@ DECL_INLINE_THROW(uint32_t)
 iemNativeEmitTestIfGprIsNotZeroAndTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                          uint8_t iGprSrc, bool f64Bit, IEMNATIVELABELTYPE enmExitReason)
 {
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     off = iemNativeEmitTestIfGprIsNotZeroAndTbExitEx(pReNative, iemNativeInstrBufEnsure(pReNative, off, 3 + 6),
                                                      off, iGprSrc, f64Bit, enmExitReason);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
@@ -8694,7 +8679,7 @@ iemNativeEmitTestIfGprIsZeroAndTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIV
                                         uint8_t iGprSrc, bool f64Bit, IEMNATIVELABELTYPE enmExitReason)
 {
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     /* test reg32,reg32  / test reg64,reg64 */
     if (f64Bit)
         pCodeBuf[off++] = X86_OP_REX_W | (iGprSrc < 8 ? 0 : X86_OP_REX_R | X86_OP_REX_B);
@@ -8727,7 +8712,7 @@ DECL_INLINE_THROW(uint32_t)
 iemNativeEmitTestIfGprIsZeroAndTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                       uint8_t iGprSrc, bool f64Bit, IEMNATIVELABELTYPE enmExitReason)
 {
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     off = iemNativeEmitTestIfGprIsZeroAndTbExitEx(pReNative, iemNativeInstrBufEnsure(pReNative, off, 3 + 6),
                                                   off, iGprSrc, f64Bit, enmExitReason);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);

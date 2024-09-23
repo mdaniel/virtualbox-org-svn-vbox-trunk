@@ -2055,9 +2055,7 @@ static PIEMRECOMPILERSTATE iemNativeReInit(PIEMRECOMPILERSTATE pReNative, PCIEMT
     pReNative->cLabels                     = 0;
     pReNative->bmLabelTypes                = 0;
     pReNative->cFixups                     = 0;
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     pReNative->cTbExitFixups               = 0;
-#endif
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     pReNative->pDbgInfo->cEntries          = 0;
     pReNative->pDbgInfo->offNativeLast     = UINT32_MAX;
@@ -2216,9 +2214,7 @@ static void iemNativeTerm(PIEMRECOMPILERSTATE pReNative)
     RTMemFree(pReNative->pInstrBuf);
     RTMemFree(pReNative->paLabels);
     RTMemFree(pReNative->paFixups);
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     RTMemFree(pReNative->paTbExitFixups);
-#endif
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     RTMemFree(pReNative->pDbgInfo);
 #endif
@@ -2253,18 +2249,14 @@ static PIEMRECOMPILERSTATE iemNativeInit(PVMCPUCC pVCpu, PCIEMTB pTb)
     pReNative->pInstrBuf      = (PIEMNATIVEINSTR)RTMemAllocZ(_64K);
     pReNative->paLabels       = (PIEMNATIVELABEL)RTMemAllocZ(sizeof(IEMNATIVELABEL) * _8K / cFactor);
     pReNative->paFixups       = (PIEMNATIVEFIXUP)RTMemAllocZ(sizeof(IEMNATIVEFIXUP) * _16K / cFactor);
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     pReNative->paTbExitFixups = (PIEMNATIVEEXITFIXUP)RTMemAllocZ(sizeof(IEMNATIVEEXITFIXUP) * _8K / cFactor);
-#endif
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     pReNative->pDbgInfo       = (PIEMTBDBG)RTMemAllocZ(RT_UOFFSETOF_DYN(IEMTBDBG, aEntries[_16K / cFactor]));
 #endif
     if (RT_LIKELY(   pReNative->pInstrBuf
                   && pReNative->paLabels
-                  && pReNative->paFixups)
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-        && pReNative->paTbExitFixups
-#endif
+                  && pReNative->paFixups
+                  && pReNative->paTbExitFixups)
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
         && pReNative->pDbgInfo
 #endif
@@ -2276,9 +2268,7 @@ static PIEMRECOMPILERSTATE iemNativeInit(PVMCPUCC pVCpu, PCIEMTB pTb)
         pReNative->cInstrBufAlloc     = _64K / sizeof(IEMNATIVEINSTR);
         pReNative->cLabelsAlloc       = _8K  / cFactor;
         pReNative->cFixupsAlloc       = _16K / cFactor;
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
         pReNative->cTbExitFixupsAlloc = _8K  / cFactor;
-#endif
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
         pReNative->cDbgInfoAlloc      = _16K / cFactor;
 #endif
@@ -2321,7 +2311,7 @@ iemNativeLabelCreate(PIEMRECOMPILERSTATE pReNative, IEMNATIVELABELTYPE enmType,
                      uint32_t offWhere /*= UINT32_MAX*/, uint16_t uData /*= 0*/)
 {
     Assert(uData == 0 || enmType >= kIemNativeLabelType_FirstWithMultipleInstances);
-#if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
+#if defined(RT_ARCH_AMD64)
     Assert(enmType >= kIemNativeLabelType_LoopJumpTarget);
 #endif
 
@@ -2511,7 +2501,6 @@ iemNativeAddFixup(PIEMRECOMPILERSTATE pReNative, uint32_t offWhere, uint32_t idx
 }
 
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
 /**
  * Adds a fixup to the per chunk tail code.
  *
@@ -2552,7 +2541,6 @@ iemNativeAddTbExitFixup(PIEMRECOMPILERSTATE pReNative, uint32_t offWhere, IEMNAT
     paTbExitFixups[cTbExitFixups].enmExitReason  = enmExitReason;
     pReNative->cTbExitFixups = cTbExitFixups + 1;
 }
-#endif
 
 
 /**
@@ -6721,50 +6709,6 @@ iemNativeEmitCoreViaLookupDoOne(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
     return off;
 }
 
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-
-/**
- * Worker for iemNativeEmitReturnBreakViaLookup.
- */
-static uint32_t iemNativeEmitViaLookupDoOne(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t offReturnBreak,
-                                            IEMNATIVELABELTYPE enmLabel, uintptr_t pfnHelper)
-{
-    uint32_t const idxLabel = iemNativeLabelFind(pReNative, enmLabel);
-    if (idxLabel != UINT32_MAX)
-    {
-        iemNativeLabelDefine(pReNative, idxLabel, off);
-        off = iemNativeEmitCoreViaLookupDoOne(pReNative, off, offReturnBreak, pfnHelper);
-    }
-    return off;
-}
-
-
-/**
- * Emits the code at the ReturnBreakViaLookup, ReturnBreakViaLookupWithIrq,
- * ReturnBreakViaLookupWithTlb and ReturnBreakViaLookupWithTlbAndIrq labels
- * (returns VINF_IEM_REEXEC_FINISH_WITH_FLAGS or jumps to the next TB).
- */
-static uint32_t iemNativeEmitReturnBreakViaLookup(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t idxReturnBreakLabel)
-{
-    uint32_t const offReturnBreak = pReNative->paLabels[idxReturnBreakLabel].off;
-    Assert(offReturnBreak < off);
-
-    /*
-     * The lookup table index is in IEMNATIVE_CALL_ARG1_GREG for all.
-     * The GCPhysPc is in IEMNATIVE_CALL_ARG2_GREG for ReturnBreakViaLookupWithPc.
-     */
-    off = iemNativeEmitViaLookupDoOne(pReNative, off, offReturnBreak, kIemNativeLabelType_ReturnBreakViaLookup,
-                                      (uintptr_t)iemNativeHlpReturnBreakViaLookup<false /*a_fWithIrqCheck*/>);
-    off = iemNativeEmitViaLookupDoOne(pReNative, off, offReturnBreak, kIemNativeLabelType_ReturnBreakViaLookupWithIrq,
-                                      (uintptr_t)iemNativeHlpReturnBreakViaLookup<true /*a_fWithIrqCheck*/>);
-    off = iemNativeEmitViaLookupDoOne(pReNative, off, offReturnBreak, kIemNativeLabelType_ReturnBreakViaLookupWithTlb,
-                                      (uintptr_t)iemNativeHlpReturnBreakViaLookupWithTlb<false /*a_fWithIrqCheck*/>);
-    off = iemNativeEmitViaLookupDoOne(pReNative, off, offReturnBreak, kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq,
-                                      (uintptr_t)iemNativeHlpReturnBreakViaLookupWithTlb<true /*a_fWithIrqCheck*/>);
-    return off;
-}
-
-#endif /* !IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE */
 
 /**
  * Emits the code at the ReturnWithFlags label (returns VINF_IEM_REEXEC_FINISH_WITH_FLAGS).
@@ -6774,26 +6718,6 @@ static uint32_t iemNativeEmitCoreReturnWithFlags(PIEMRECOMPILERSTATE pReNative, 
     /* set the return status  */
     return iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_RET_GREG, VINF_IEM_REEXEC_FINISH_WITH_FLAGS);
 }
-
-
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-/**
- * Emits the code at the ReturnWithFlags label (returns VINF_IEM_REEXEC_FINISH_WITH_FLAGS).
- */
-static uint32_t iemNativeEmitReturnWithFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t idxReturnLabel)
-{
-    uint32_t const idxLabel = iemNativeLabelFind(pReNative, kIemNativeLabelType_ReturnWithFlags);
-    if (idxLabel != UINT32_MAX)
-    {
-        iemNativeLabelDefine(pReNative, idxLabel, off);
-        /* set the return status  */
-        off = iemNativeEmitCoreReturnWithFlags(pReNative, off);
-        /* jump back to the return sequence. */
-        off = iemNativeEmitJmpToLabel(pReNative, off, idxReturnLabel);
-    }
-    return off;
-}
-#endif
 
 
 /**
@@ -6806,26 +6730,6 @@ static uint32_t iemNativeEmitCoreReturnBreakFF(PIEMRECOMPILERSTATE pReNative, ui
 }
 
 
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-/**
- * Emits the code at the ReturnBreakFF label (returns VINF_IEM_REEXEC_BREAK_FF).
- */
-static uint32_t iemNativeEmitReturnBreakFF(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t idxReturnLabel)
-{
-    uint32_t const idxLabel = iemNativeLabelFind(pReNative, kIemNativeLabelType_ReturnBreakFF);
-    if (idxLabel != UINT32_MAX)
-    {
-        iemNativeLabelDefine(pReNative, idxLabel, off);
-        /* set the return status */
-        off = iemNativeEmitCoreReturnBreakFF(pReNative, off);
-        /* jump back to the return sequence. */
-        off = iemNativeEmitJmpToLabel(pReNative, off, idxReturnLabel);
-    }
-    return off;
-}
-#endif
-
-
 /**
  * Emits the code at the ReturnBreak label (returns VINF_IEM_REEXEC_BREAK).
  */
@@ -6834,26 +6738,6 @@ static uint32_t iemNativeEmitCoreReturnBreak(PIEMRECOMPILERSTATE pReNative, uint
     /* set the return status */
     return iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_RET_GREG, VINF_IEM_REEXEC_BREAK);
 }
-
-
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-/**
- * Emits the code at the ReturnBreak label (returns VINF_IEM_REEXEC_BREAK).
- */
-static uint32_t iemNativeEmitReturnBreak(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t idxReturnLabel)
-{
-    uint32_t const idxLabel = iemNativeLabelFind(pReNative, kIemNativeLabelType_ReturnBreak);
-    if (idxLabel != UINT32_MAX)
-    {
-        iemNativeLabelDefine(pReNative, idxLabel, off);
-        /* set the return status */
-        off = iemNativeEmitCoreReturnBreak(pReNative, off);
-        /* jump back to the return sequence. */
-        off = iemNativeEmitJmpToLabel(pReNative, off, idxReturnLabel);
-    }
-    return off;
-}
-#endif
 
 
 /**
@@ -6892,27 +6776,6 @@ static uint32_t iemNativeEmitCoreRcFiddling(PIEMRECOMPILERSTATE pReNative, uint3
     off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)iemNativeHlpExecStatusCodeFiddling);
     return off;
 }
-
-
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-/**
- * Emits the RC fiddling code for handling non-zero return code or rcPassUp.
- */
-static uint32_t iemNativeEmitRcFiddling(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t idxReturnLabel)
-{
-    /*
-     * Generate the rc + rcPassUp fiddling code if needed.
-     */
-    uint32_t const idxLabel = iemNativeLabelFind(pReNative, kIemNativeLabelType_NonZeroRetOrPassUp);
-    if (idxLabel != UINT32_MAX)
-    {
-        iemNativeLabelDefine(pReNative, idxLabel, off);
-        off = iemNativeEmitCoreRcFiddling(pReNative, off);
-        off = iemNativeEmitJmpToLabel(pReNative, off, idxReturnLabel);
-    }
-    return off;
-}
-#endif
 
 
 /**
@@ -7002,27 +6865,6 @@ static uint32_t iemNativeEmitCoreEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t 
 
     return off;
 }
-
-
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-/**
- * Emits a standard epilog.
- */
-static uint32_t iemNativeEmitEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t *pidxReturnLabel)
-{
-    /*
-     * Define label for common return point.
-     */
-    *pidxReturnLabel = UINT32_MAX;
-    uint32_t const idxReturn = iemNativeLabelCreate(pReNative, kIemNativeLabelType_Return, off);
-    *pidxReturnLabel = idxReturn;
-
-    /*
-     * Emit the code.
-     */
-    return iemNativeEmitCoreEpilog(pReNative, off);
-}
-#endif
 
 
 #ifndef IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
@@ -9073,11 +8915,7 @@ static const char *iemNativeGetLabelName(IEMNATIVELABELTYPE enmLabel, bool fComm
         STR_CASE_CMN(ObsoleteTb);
         STR_CASE_CMN(NeedCsLimChecking);
         STR_CASE_CMN(CheckBranchMiss);
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
         STR_CASE_CMN(ReturnSuccess);
-#else
-        STR_CASE_CMN(Return);
-#endif
         STR_CASE_CMN(ReturnBreak);
         STR_CASE_CMN(ReturnBreakFF);
         STR_CASE_CMN(ReturnWithFlags);
@@ -9107,9 +8945,7 @@ typedef struct IEMNATIVDISASMSYMCTX
 {
     PVMCPU                  pVCpu;
     PCIEMTB                 pTb;
-# ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     PCIEMNATIVEPERCHUNKCTX  pCtx;
-# endif
 # ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     PCIEMTBDBG              pDbgInfo;
 # endif
@@ -9122,12 +8958,11 @@ typedef IEMNATIVDISASMSYMCTX *PIEMNATIVDISASMSYMCTX;
  */
 static const char *iemNativeDisasmGetSymbol(PIEMNATIVDISASMSYMCTX pSymCtx, uintptr_t uAddress, char *pszBuf, size_t cbBuf)
 {
-#if defined(IEMNATIVE_WITH_TB_DEBUG_INFO) || defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE)
     PCIEMTB const   pTb       = pSymCtx->pTb;
     uintptr_t const offNative = (uAddress - (uintptr_t)pTb->Native.paInstructions) / sizeof(IEMNATIVEINSTR);
     if (offNative <= pTb->Native.cInstructions)
     {
-# ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
+#ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
         /*
          * Scan debug info for a matching label.
          * Since the debug info should be 100% linear, we can do a binary search here.
@@ -9195,9 +9030,8 @@ static const char *iemNativeDisasmGetSymbol(PIEMNATIVDISASMSYMCTX pSymCtx, uintp
                 }
             }
         }
-# endif
+#endif
     }
-# ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     else
     {
         PCIEMNATIVEPERCHUNKCTX const pChunkCtx = pSymCtx->pCtx;
@@ -9206,9 +9040,7 @@ static const char *iemNativeDisasmGetSymbol(PIEMNATIVDISASMSYMCTX pSymCtx, uintp
                 if ((PIEMNATIVEINSTR)uAddress == pChunkCtx->apExitLabels[i])
                     return iemNativeGetLabelName((IEMNATIVELABELTYPE)i, true /*fCommonCode*/);
     }
-# endif
-#endif
-    RT_NOREF(pSymCtx, uAddress, pszBuf, cbBuf);
+    RT_NOREF(pszBuf, cbBuf);
     return NULL;
 }
 
@@ -9304,16 +9136,10 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
     DISCPUMODE              enmGstCpuMode = (pTb->fFlags & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT ? DISCPUMODE_16BIT
                                           : (pTb->fFlags & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT ? DISCPUMODE_32BIT
                                           :                                                            DISCPUMODE_64BIT;
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-# ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
+#ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb, iemExecMemGetTbChunkCtx(pVCpu, pTb), pDbgInfo };
-# else
-    IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb, iemExecMemGetTbChunkCtx(pVCpu, pTb) };
-# endif
-#elif defined(IEMNATIVE_WITH_TB_DEBUG_INFO)
-    IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb, pDbgInfo };
 #else
-    IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb };
+    IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb, iemExecMemGetTbChunkCtx(pVCpu, pTb) };
 #endif
 #if   defined(RT_ARCH_AMD64) && !defined(VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER)
     DISCPUMODE const        enmHstCpuMode = DISCPUMODE_64BIT;
@@ -9852,8 +9678,6 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
 }
 
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-
 /** Emit alignment padding between labels / functions.   */
 DECL_INLINE_THROW(uint32_t)
 iemNativeRecompileEmitAlignmentPadding(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fAlignMask)
@@ -9880,14 +9704,17 @@ iemNativeRecompileEmitAlignmentPadding(PIEMRECOMPILERSTATE pReNative, uint32_t o
  * Allocates a per-chunk context directly from the chunk itself and place the
  * common code there.
  *
- * @returns Pointer to the chunk context start.
+ * @returns VBox status code.
  * @param   pVCpu       The cross context virtual CPU structure of the calling
  *                      thread.
  * @param   idxChunk    The index of the chunk being added and requiring a
  *                      common code context.
+ * @param   ppCtx       Where to return the pointer to the chunk context start.
  */
-DECLHIDDEN(PCIEMNATIVEPERCHUNKCTX) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t idxChunk)
+DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t idxChunk, PCIEMNATIVEPERCHUNKCTX *ppCtx)
 {
+    *ppCtx = NULL;
+
     /*
      * Allocate a new recompiler state (since we're likely to be called while
      * the default one is fully loaded already with a recompiled TB).
@@ -9895,7 +9722,7 @@ DECLHIDDEN(PCIEMNATIVEPERCHUNKCTX) iemNativeRecompileAttachExecMemChunkCtx(PVMCP
      * This is a bit of overkill, but this isn't a frequently used code path.
      */
     PIEMRECOMPILERSTATE pReNative = iemNativeInit(pVCpu, NULL);
-    AssertReturn(pReNative, NULL);
+    AssertReturn(pReNative, VERR_NO_MEMORY);
 
 # if   defined(RT_ARCH_AMD64)
     uint32_t const fAlignMask = 15;
@@ -10028,7 +9855,7 @@ DECLHIDDEN(PCIEMNATIVEPERCHUNKCTX) iemNativeRecompileAttachExecMemChunkCtx(PVMCP
     {
         Log(("iemNativeRecompileAttachExecMemChunkCtx: Caught %Rrc while recompiling!\n", rc));
         iemNativeTerm(pReNative);
-        return NULL;
+        return rc;
     }
     IEMNATIVE_CATCH_LONGJMP_END(pReNative);
 
@@ -10068,10 +9895,10 @@ DECLHIDDEN(PCIEMNATIVEPERCHUNKCTX) iemNativeRecompileAttachExecMemChunkCtx(PVMCP
     iemExecMemAllocatorReadyForUse(pVCpu, pCtx, cbCtx + cbCode);
 
     iemNativeTerm(pReNative);
-    return pCtx;
+    *ppCtx = pCtx;
+    return VINF_SUCCESS;
 }
 
-#endif /* IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE */
 
 /**
  * Recompiles the given threaded TB into a native one.
@@ -10317,113 +10144,16 @@ l_profile_again:
         /* Flush any pending writes before returning from the last instruction (RIP updates, etc.). */
         off = iemNativeRegFlushPendingWrites(pReNative, off);
 
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-        /*
-         * Successful return, so clear the return register (eax, w0).
-         */
-        off = iemNativeEmitGprZero(pReNative, off, IEMNATIVE_CALL_RET_GREG);
-
-        /*
-         * Emit the epilog code.
-         */
-        uint32_t idxReturnLabel;
-        off = iemNativeEmitEpilog(pReNative, off, &idxReturnLabel);
-#else
         /*
          * Jump to the common per-chunk epilog code.
          */
         //off = iemNativeEmitBrk(pReNative, off, 0x1227);
         off = iemNativeEmitTbExit(pReNative, off, kIemNativeLabelType_ReturnSuccess);
-#endif
-
-#ifndef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-        /*
-         * Generate special jump labels.
-         */
-        off = iemNativeEmitRcFiddling(pReNative, off, idxReturnLabel);
-
-        bool const fReturnBreakViaLookup = RT_BOOL(  pReNative->bmLabelTypes
-                                                   & (  RT_BIT_64(kIemNativeLabelType_ReturnBreakViaLookup)
-                                                      | RT_BIT_64(kIemNativeLabelType_ReturnBreakViaLookupWithIrq)
-                                                      | RT_BIT_64(kIemNativeLabelType_ReturnBreakViaLookupWithTlb)
-                                                      | RT_BIT_64(kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq)));
-        if (fReturnBreakViaLookup)
-        {
-            uint32_t const idxReturnBreakLabel = iemNativeLabelCreate(pReNative, kIemNativeLabelType_ReturnBreak);
-            off = iemNativeEmitReturnBreak(pReNative, off, idxReturnLabel);
-            off = iemNativeEmitReturnBreakViaLookup(pReNative, off, idxReturnBreakLabel);
-        }
-        else if (pReNative->bmLabelTypes & RT_BIT_64(kIemNativeLabelType_ReturnBreak))
-            off = iemNativeEmitReturnBreak(pReNative, off, idxReturnLabel);
-
-        if (pReNative->bmLabelTypes & RT_BIT_64(kIemNativeLabelType_ReturnBreakFF))
-            off = iemNativeEmitReturnBreakFF(pReNative, off, idxReturnLabel);
-
-        if (pReNative->bmLabelTypes & RT_BIT_64(kIemNativeLabelType_ReturnWithFlags))
-            off = iemNativeEmitReturnWithFlags(pReNative, off, idxReturnLabel);
 
         /*
-         * Generate simple TB tail labels that just calls a help with a pVCpu
-         * arg and either return or longjmps/throws a non-zero status.
-         *
-         * The array entries must be ordered by enmLabel value so we can index
-         * using fTailLabels bit numbers.
+         * Generate tail labels with jumps to the common per-chunk code on non-x86 hosts.
          */
-        typedef IEM_DECL_NATIVE_HLP_PTR(int, PFNIEMNATIVESIMPLETAILLABELCALL,(PVMCPUCC pVCpu));
-        static struct
-        {
-            IEMNATIVELABELTYPE              enmLabel;
-            PFNIEMNATIVESIMPLETAILLABELCALL pfnCallback;
-        } const g_aSimpleTailLabels[] =
-        {
-            {   kIemNativeLabelType_Invalid,                NULL },
-            {   kIemNativeLabelType_RaiseDe,                iemNativeHlpExecRaiseDe },
-            {   kIemNativeLabelType_RaiseUd,                iemNativeHlpExecRaiseUd },
-            {   kIemNativeLabelType_RaiseSseRelated,        iemNativeHlpExecRaiseSseRelated },
-            {   kIemNativeLabelType_RaiseAvxRelated,        iemNativeHlpExecRaiseAvxRelated },
-            {   kIemNativeLabelType_RaiseSseAvxFpRelated,   iemNativeHlpExecRaiseSseAvxFpRelated },
-            {   kIemNativeLabelType_RaiseNm,                iemNativeHlpExecRaiseNm },
-            {   kIemNativeLabelType_RaiseGp0,               iemNativeHlpExecRaiseGp0 },
-            {   kIemNativeLabelType_RaiseMf,                iemNativeHlpExecRaiseMf },
-            {   kIemNativeLabelType_RaiseXf,                iemNativeHlpExecRaiseXf },
-            {   kIemNativeLabelType_ObsoleteTb,             iemNativeHlpObsoleteTb },
-            {   kIemNativeLabelType_NeedCsLimChecking,      iemNativeHlpNeedCsLimChecking },
-            {   kIemNativeLabelType_CheckBranchMiss,        iemNativeHlpCheckBranchMiss },
-        };
-
-        AssertCompile(RT_ELEMENTS(g_aSimpleTailLabels) == (unsigned)kIemNativeLabelType_LastSimple + 1U);
-        AssertCompile(kIemNativeLabelType_Invalid == 0);
-        uint64_t fTailLabels = pReNative->bmLabelTypes & (RT_BIT_64(kIemNativeLabelType_LastSimple + 1U) - 2U);
-        if (fTailLabels)
-        {
-            do
-            {
-                IEMNATIVELABELTYPE const enmLabel = (IEMNATIVELABELTYPE)(ASMBitFirstSetU64(fTailLabels) - 1U);
-                fTailLabels &= ~RT_BIT_64(enmLabel);
-                Assert(g_aSimpleTailLabels[enmLabel].enmLabel == enmLabel);
-
-                uint32_t const idxLabel = iemNativeLabelFind(pReNative, enmLabel);
-                Assert(idxLabel != UINT32_MAX);
-                if (idxLabel != UINT32_MAX)
-                {
-                    iemNativeLabelDefine(pReNative, idxLabel, off);
-
-                    /* int pfnCallback(PVMCPUCC pVCpu) */
-                    off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
-                    off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)g_aSimpleTailLabels[enmLabel].pfnCallback);
-
-                    /* jump back to the return sequence. */
-                    off = iemNativeEmitJmpToLabel(pReNative, off, idxReturnLabel);
-                }
-
-            } while (fTailLabels);
-        }
-
-#else /* IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE */
-        /*
-         * Generate tail labels with jumps to the common per-chunk code.
-         */
-# ifndef RT_ARCH_AMD64
+#ifndef RT_ARCH_AMD64
         Assert(!(pReNative->bmLabelTypes & (  RT_BIT_64(kIemNativeLabelType_ReturnSuccess)
                                             | RT_BIT_64(kIemNativeLabelType_Invalid) )));
         AssertCompile(kIemNativeLabelType_Invalid == 0);
@@ -10441,10 +10171,9 @@ l_profile_again:
                 off = iemNativeEmitTbExit(pReNative, off, enmLabel);
             } while (fTailLabels);
         }
-# else
+#else
         Assert(!(pReNative->bmLabelTypes & (RT_BIT_64(kIemNativeLabelType_LastTbExit + 1) - 1U))); /* Should not be used! */
-# endif
-#endif /* IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE */
+#endif
     }
     IEMNATIVE_CATCH_LONGJMP_BEGIN(pReNative, rc);
     {
@@ -10475,20 +10204,15 @@ l_profile_again:
     /*
      * Allocate executable memory, copy over the code we've generated.
      */
-    PIEMTBALLOCATOR const pTbAllocator = pVCpu->iem.s.pTbAllocatorR3;
+    PIEMTBALLOCATOR const  pTbAllocator = pVCpu->iem.s.pTbAllocatorR3;
     if (pTbAllocator->pDelayedFreeHead)
         iemTbAllocatorProcessDelayedFrees(pVCpu, pVCpu->iem.s.pTbAllocatorR3);
 
-    PIEMNATIVEINSTR       paFinalInstrBufRx = NULL;
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-    PCIEMNATIVEPERCHUNKCTX pCtx             = NULL;
-    PIEMNATIVEINSTR const paFinalInstrBuf   = iemExecMemAllocatorAlloc(pVCpu, off * sizeof(IEMNATIVEINSTR), pTb,
-                                                                       &paFinalInstrBufRx, &pCtx);
+    PIEMNATIVEINSTR        paFinalInstrBufRx = NULL;
+    PCIEMNATIVEPERCHUNKCTX pCtx              = NULL;
+    PIEMNATIVEINSTR const  paFinalInstrBuf   = iemExecMemAllocatorAlloc(pVCpu, off * sizeof(IEMNATIVEINSTR), pTb,
+                                                                        &paFinalInstrBufRx, &pCtx);
 
-#else
-    PIEMNATIVEINSTR const paFinalInstrBuf   = iemExecMemAllocatorAlloc(pVCpu, off * sizeof(IEMNATIVEINSTR), pTb,
-                                                                       &paFinalInstrBufRx, NULL);
-#endif
     AssertReturn(paFinalInstrBuf, pTb);
     memcpy(paFinalInstrBuf, pReNative->pInstrBuf, off * sizeof(paFinalInstrBuf[0]));
 
@@ -10549,7 +10273,6 @@ l_profile_again:
         AssertFailed();
     }
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     /*
      * Apply TB exit fixups.
      */
@@ -10561,22 +10284,21 @@ l_profile_again:
         Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(paTbExitFixups[i].enmExitReason));
         RTPTRUNION const Ptr = { &paFinalInstrBuf[paTbExitFixups[i].off] };
 
-# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         Assert(paTbExitFixups[i].off + 4 <= off);
         intptr_t const offDisp = pCtx->apExitLabels[paTbExitFixups[i].enmExitReason] - &paFinalInstrBufRx[paTbExitFixups[i].off + 4];
         Assert(offDisp >= INT32_MIN && offDisp <= INT32_MAX);
         *Ptr.pi32 = (int32_t)offDisp;
 
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
         intptr_t const offDisp = pCtx->apExitLabels[paTbExitFixups[i].enmExitReason] - &paFinalInstrBufRx[paTbExitFixups[i].off];
         Assert(offDisp >= -33554432 && offDisp < 33554432);
         *Ptr.pu32 = (*Ptr.pu32 & UINT32_C(0xfc000000)) | ((uint32_t)offDisp & UINT32_C(0x03ffffff));
 
-# else
-#  error "Port me!"
-# endif
-    }
+#else
+# error "Port me!"
 #endif
+    }
 
     iemExecMemAllocatorReadyForUse(pVCpu, paFinalInstrBufRx, off * sizeof(IEMNATIVEINSTR));
     STAM_REL_PROFILE_ADD_PERIOD(&pVCpu->iem.s.StatTbNativeCode, off * sizeof(IEMNATIVEINSTR));

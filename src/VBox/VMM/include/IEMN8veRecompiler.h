@@ -100,12 +100,6 @@
 # define IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
 #endif
 
-/** @def IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
- * Enable this to use common epilogue and tail code for all TBs in a chunk. */
-#if 1 || defined(DOXYGEN_RUNNING)
-# define IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-#endif
-
 
 /** @name Stack Frame Layout
  *
@@ -520,25 +514,13 @@ typedef enum
     kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq,
     kIemNativeLabelType_ReturnWithFlags,
     kIemNativeLabelType_NonZeroRetOrPassUp,
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     kIemNativeLabelType_ReturnSuccess,          /**< Sets eax/w0 to zero and returns. */
-#else
-    kIemNativeLabelType_Return,
-#endif
     /** The last fixup for branches that can span almost the whole TB length.
      * @note Whether kIemNativeLabelType_Return needs to be one of these is
      *       a bit questionable, since nobody jumps to it except other tail code. */
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     kIemNativeLabelType_LastWholeTbBranch = kIemNativeLabelType_ReturnSuccess,
-#else
-    kIemNativeLabelType_LastWholeTbBranch = kIemNativeLabelType_Return,
-#endif
     /** The last fixup for branches that exits the TB. */
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     kIemNativeLabelType_LastTbExit        = kIemNativeLabelType_ReturnSuccess,
-#else
-    kIemNativeLabelType_LastTbExit        = kIemNativeLabelType_Return,
-#endif
 
     /** Loop-jump target. */
     kIemNativeLabelType_LoopJumpTarget,
@@ -578,6 +560,7 @@ typedef struct IEMNATIVELABEL
 typedef IEMNATIVELABEL *PIEMNATIVELABEL;
 
 
+
 /** Native code generator fixup types.  */
 typedef enum
 {
@@ -611,7 +594,7 @@ typedef struct IEMNATIVEFIXUP
 /** Pointer to a native code generator fixup. */
 typedef IEMNATIVEFIXUP *PIEMNATIVEFIXUP;
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
+
 
 /** Native code generator fixup to per chunk TB tail code. */
 typedef struct IEMNATIVEEXITFIXUP
@@ -637,7 +620,6 @@ typedef IEMNATIVEPERCHUNKCTX *PIEMNATIVEPERCHUNKCTX;
 /** Pointer to const per-chunk recompiler context. */
 typedef const IEMNATIVEPERCHUNKCTX *PCIEMNATIVEPERCHUNKCTX;
 
-#endif /* IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE */
 
 
 /**
@@ -1624,14 +1606,12 @@ typedef struct IEMRECOMPILERSTATE
     /** Buffer used by the recompiler for recording fixups when generating code. */
     PIEMNATIVEFIXUP             paFixups;
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
     /** Actual number of fixups in paTbExitFixups. */
     uint32_t                    cTbExitFixups;
     /** Max number of entries allowed in paTbExitFixups before reallocating it. */
     uint32_t                    cTbExitFixupsAlloc;
     /** Buffer used by the recompiler for recording fixups when generating code. */
     PIEMNATIVEEXITFIXUP         paTbExitFixups;
-#endif
 
 #if defined(IEMNATIVE_WITH_TB_DEBUG_INFO) || defined(VBOX_WITH_STATISTICS)
     /** Statistics: The idxInstr+1 value at the last PC update. */
@@ -1857,9 +1837,8 @@ DECLHIDDEN(uint32_t)        iemNativeLabelFind(PIEMRECOMPILERSTATE pReNative, IE
                                                uint32_t offWhere = UINT32_MAX, uint16_t uData = 0) RT_NOEXCEPT;
 DECL_HIDDEN_THROW(void)     iemNativeAddFixup(PIEMRECOMPILERSTATE pReNative, uint32_t offWhere, uint32_t idxLabel,
                                               IEMNATIVEFIXUPTYPE enmType, int8_t offAddend = 0);
-#ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
-DECL_HIDDEN_THROW(void)     iemNativeAddTbExitFixup(PIEMRECOMPILERSTATE pReNative, uint32_t offWhere, IEMNATIVELABELTYPE enmExitReason);
-#endif
+DECL_HIDDEN_THROW(void)     iemNativeAddTbExitFixup(PIEMRECOMPILERSTATE pReNative, uint32_t offWhere,
+                                                    IEMNATIVELABELTYPE enmExitReason);
 DECL_HIDDEN_THROW(PIEMNATIVEINSTR) iemNativeInstrBufEnsureSlow(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t cInstrReq);
 
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, bool fPreferVolatile = true);

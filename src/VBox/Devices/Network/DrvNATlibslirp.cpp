@@ -57,6 +57,7 @@
 
 #ifdef RT_OS_WINDOWS
 # include <iprt/win/winsock2.h>
+# include "winpoll.h"
 # define inet_aton(x, y) inet_pton(2, x, y)
 # define AF_INET6 23
 #endif
@@ -92,12 +93,6 @@
 *********************************************************************************************************************************/
 #define DRVNAT_MAXFRAMESIZE (16 * 1024)
 #define DRVNAT_DEFAULT_TIMEOUT (3600*1000)
-
-/**
- * @todo: This is a bad hack to prevent freezing the guest during high network
- *        activity. Windows host only. This needs to be fixed properly.
- */
-#define VBOX_NAT_DELAY_HACK
 
 #define GET_EXTRADATA(pdrvins, node, name, rc, type, type_name, var)                                  \
     do {                                                                                                \
@@ -608,7 +603,8 @@ static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho)
     size_t cbIgnored;
     rc = RTPipeWrite(pThis->hPipeWrite, "", 1, &cbIgnored);
 #else
-    RT_NOREF(pThis);
+    /* kick WSAWaitForMultipleEvents */
+    rc = WSASetEvent(pThis->hWakeupEvent);
 #endif
     AssertRC(rc);
 }
@@ -707,9 +703,10 @@ static DECLCALLBACK(void) drvNATNetworkUp_NotifyLinkChanged(PPDMINETWORKUP pInte
 static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
     PDRVNAT pThis = PDMINS_2_DATA(pDrvIns, PDRVNAT);
-#ifdef RT_OS_WINDOWS
+#ifdef VBOX_NAT_DELAY_HACK
     unsigned int cBreak = 0;
-#else /* RT_OS_WINDOWS */
+#endif
+#ifndef RT_OS_WINDOWS
     unsigned int cPollNegRet = 0;
     drvNAT_AddPollCb(RTPipeToNative(pThis->hPipeRead), SLIRP_POLL_IN | SLIRP_POLL_HUP, pThis);
     pThis->pNATState->polls[0].fd = RTPipeToNative(pThis->hPipeRead);
@@ -788,16 +785,13 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         slirp_pollfds_fill(pThis->pNATState->pSlirp, &uTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
         drvNAT_UpdateTimeout(&uTimeout, pThis);
 
-        int cChangedFDs = WSAPoll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
-        int error = WSAGetLastError();
+        int cChangedFDs;
+        int error = RTWinPoll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */, &cChangedFDs, pThis->hWakeupEvent);
 
-        if (cChangedFDs < 0)
+        if (error != 0)
         {
             LogFlow(("NAT: WSAPoll returned %d (error %d)\n", cChangedFDs, error));
             LogFlow(("NSOCK = %d\n", pThis->pNATState->nsock));
-
-            if (error == 10022)
-                RTThreadSleep(100);
         }
 
         if (cChangedFDs == 0)
@@ -1698,11 +1692,14 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 #endif
 
 #ifndef RT_OS_WINDOWS
-    /**
-     * Create the control pipe.
-     */
+    // Create the control pipe.
     rc = RTPipeCreate(&pThis->hPipeRead, &pThis->hPipeWrite, 0 /*fFlags*/);
     AssertRCReturn(rc, rc);
+#else
+    // Create the wakeup event handle.
+    pThis->hWakeupEvent = NULL;
+    pThis->hWakeupEvent = CreateEvent(NULL, FALSE, FALSE, NULL); /* auto-reset event */
+    Assert(pThis->hWakeupEvent != NULL);
 #endif
 
     rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pSlirpThread, pThis, drvNATAsyncIoThread,

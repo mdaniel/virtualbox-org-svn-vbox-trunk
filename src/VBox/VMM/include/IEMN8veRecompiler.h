@@ -1060,7 +1060,7 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
 /** @def IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY
  * Debug assertion that the required flags are available and not incorrectly postponed.
  */
-#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
 # define IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded) \
     AssertMsg(!((a_pReNative)->fPostponingEFlags & (a_fEflNeeded)), \
               ("%#x & %#x -> %#x\n", (a_pReNative)->fPostponingEFlags, \

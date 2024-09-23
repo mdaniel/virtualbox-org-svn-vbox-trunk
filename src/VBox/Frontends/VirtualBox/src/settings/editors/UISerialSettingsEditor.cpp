@@ -265,8 +265,12 @@ void UISerialSettingsEditor::sltHandleStandardPortOptionActivated(const QString 
     /* Update availability: */
     ulong uIRQ, uIOAddress;
     bool fStd = UITranslator::toCOMPortNumbers(strText, uIRQ, uIOAddress);
+    if (m_pLabelIRQ)
+        m_pLabelIRQ->setEnabled(!fStd);
     if (m_pLineEditIRQ)
         m_pLineEditIRQ->setEnabled(!fStd);
+    if (m_pLabelIOAddress)
+        m_pLabelIOAddress->setEnabled(!fStd);
     if (m_pLineEditIOAddress)
         m_pLineEditIOAddress->setEnabled(!fStd);
     if (fStd)

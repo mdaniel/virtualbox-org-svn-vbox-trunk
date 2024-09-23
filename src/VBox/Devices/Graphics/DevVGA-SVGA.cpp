@@ -6800,6 +6800,245 @@ static void vmsvgaR3InitFIFO(PVGASTATE pThis, PVGASTATECC pThisCC)
 
 # ifdef VBOX_WITH_VMSVGA3D
 /**
+ * Tweak the host 3D capabilities (pThis->svga.au32DevCaps).
+ *
+ * @returns VBox status code.
+ * @param   pThis     The shared VGA/VMSVGA instance data.
+ * @param   pThisCC   The VGA/VMSVGA state for ring-3.
+ */
+static void vmsvgaR3Censor3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
+{
+    RT_NOREF(pThisCC);
+
+    /*
+     * Hide extended VBoxSVGA capabilities if they are not enabled.
+     */
+    if (!pThis->svga.fVBoxExtensions)
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_3D] &= VBSVGA3D_CAP_3D;
+
+    /*
+     * D3D11 does not support multisampling for a number of formats:
+     * https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/format-support-for-direct3d-11-1-feature-level-hardware
+     * "Format support for Direct3D Feature Level 11.1 hardware"
+     * Implementations on non-Windows hosts may report such support.
+     * Windows 11 guest actually checks this.
+     */
+    static const uint32_t aDevCapNoMsaa[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32_FLOAT_X8X24,
+        SVGA3D_DEVCAP_DXFMT_X32_G8X24_UINT,
+        SVGA3D_DEVCAP_DXFMT_R10G10B10_XR_BIAS_A2_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R24_UNORM_X8,
+        SVGA3D_DEVCAP_DXFMT_X24_G8_UINT,
+        SVGA3D_DEVCAP_DXFMT_R9G9B9E5_SHAREDEXP,
+        SVGA3D_DEVCAP_DXFMT_R8G8_B8G8_UNORM,
+        SVGA3D_DEVCAP_DXFMT_G8R8_G8B8_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC1_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC1_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC1_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_BC2_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC2_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC2_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_BC3_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC3_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC3_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_BC4_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC4_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC4_SNORM,
+        SVGA3D_DEVCAP_DXFMT_BC5_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC5_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC5_SNORM,
+        SVGA3D_DEVCAP_DXFMT_BC6H_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC6H_UF16,
+        SVGA3D_DEVCAP_DXFMT_BC6H_SF16,
+        SVGA3D_DEVCAP_DXFMT_BC7_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_BC7_UNORM,
+        SVGA3D_DEVCAP_DXFMT_BC7_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_NV12,
+        SVGA3D_DEVCAP_DXFMT_YUY2,
+        SVGA3D_DEVCAP_DXFMT_P8
+    };
+
+    for (unsigned i = 0; i < RT_ELEMENTS(aDevCapNoMsaa); ++i)
+        pThis->svga.au32DevCaps[aDevCapNoMsaa[i]] &= ~SVGA3D_DXFMT_MULTISAMPLE;
+
+    /*
+     * Formats belonging to the same group must have the same multisample capability.
+     */
+    static const uint32_t aDevCapR32G32B32A32[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32G32B32A32_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32A32_UINT,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32A32_SINT,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32A32_FLOAT
+    };
+
+    static const uint32_t aDevCapR32G32B32[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32G32B32_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32_FLOAT,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32_UINT,
+        SVGA3D_DEVCAP_DXFMT_R32G32B32_SINT
+    };
+
+    static const uint32_t aDevCapR16G16B16A16[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_UINT,
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_SNORM,
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_SINT,
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_FLOAT,
+        SVGA3D_DEVCAP_DXFMT_R16G16B16A16_UNORM
+    };
+
+    static const uint32_t aDevCapR32G32[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32G32_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R32G32_UINT,
+        SVGA3D_DEVCAP_DXFMT_R32G32_SINT,
+        SVGA3D_DEVCAP_DXFMT_R32G32_FLOAT
+    };
+
+    static const uint32_t aDevCapR32G8X24[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32G8X24_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_D32_FLOAT_S8X24_UINT
+    };
+
+    static const uint32_t aDevCapR10G10B10A2[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R10G10B10A2_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R10G10B10A2_UINT,
+        SVGA3D_DEVCAP_DXFMT_R10G10B10A2_UNORM
+    };
+
+    static const uint32_t aDevCapR8G8B8A8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_UINT,
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_SINT,
+        SVGA3D_DEVCAP_DXFMT_R8G8B8A8_SNORM
+    };
+
+    static const uint32_t aDevCapR16G16[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R16G16_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R16G16_UINT,
+        SVGA3D_DEVCAP_DXFMT_R16G16_SINT,
+        SVGA3D_DEVCAP_DXFMT_R16G16_FLOAT,
+        SVGA3D_DEVCAP_DXFMT_R16G16_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R16G16_SNORM
+    };
+
+    static const uint32_t aDevCapR32[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R32_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_D32_FLOAT,
+        SVGA3D_DEVCAP_DXFMT_R32_UINT,
+        SVGA3D_DEVCAP_DXFMT_R32_SINT,
+        SVGA3D_DEVCAP_DXFMT_R32_FLOAT
+    };
+
+    static const uint32_t aDevCapR24G8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R24G8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_D24_UNORM_S8_UINT
+    };
+
+    static const uint32_t aDevCapR8G8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R8G8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R8G8_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R8G8_UINT,
+        SVGA3D_DEVCAP_DXFMT_R8G8_SINT,
+        SVGA3D_DEVCAP_DXFMT_R8G8_SNORM
+    };
+
+    static const uint32_t aDevCapR16[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R16_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R16_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R16_UINT,
+        SVGA3D_DEVCAP_DXFMT_R16_SNORM,
+        SVGA3D_DEVCAP_DXFMT_R16_SINT,
+        SVGA3D_DEVCAP_DXFMT_R16_FLOAT,
+        SVGA3D_DEVCAP_DXFMT_D16_UNORM
+    };
+
+    static const uint32_t aDevCapR8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_R8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_R8_UNORM,
+        SVGA3D_DEVCAP_DXFMT_R8_UINT,
+        SVGA3D_DEVCAP_DXFMT_R8_SNORM,
+        SVGA3D_DEVCAP_DXFMT_R8_SINT
+    };
+
+    static const uint32_t aDevCapB8G8R8A8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_B8G8R8A8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_B8G8R8A8_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_B8G8R8A8_UNORM
+    };
+
+    static const uint32_t aDevCapB8G8R8X8[] =
+    {
+        SVGA3D_DEVCAP_DXFMT_B8G8R8X8_TYPELESS,
+        SVGA3D_DEVCAP_DXFMT_B8G8R8X8_UNORM_SRGB,
+        SVGA3D_DEVCAP_DXFMT_B8G8R8X8_UNORM
+    };
+
+    typedef struct _FormatGroup
+    {
+        uint32_t cFormats;
+        uint32_t const *pau32DevCaps;
+        char const *szGroupName;
+    } FormatGroup;
+
+    #define FORMAT_GROUP_ENTRY(aFormat) { RT_ELEMENTS(aDevCap##aFormat), aDevCap##aFormat, #aFormat }
+    static const FormatGroup aFormatGroup[] =
+    {
+        FORMAT_GROUP_ENTRY(R32G32B32A32),
+        FORMAT_GROUP_ENTRY(R32G32B32),
+        FORMAT_GROUP_ENTRY(R16G16B16A16),
+        FORMAT_GROUP_ENTRY(R32G32),
+        FORMAT_GROUP_ENTRY(R32G8X24),
+        FORMAT_GROUP_ENTRY(R10G10B10A2),
+        FORMAT_GROUP_ENTRY(R8G8B8A8),
+        FORMAT_GROUP_ENTRY(R16G16),
+        FORMAT_GROUP_ENTRY(R32),
+        FORMAT_GROUP_ENTRY(R24G8),
+        FORMAT_GROUP_ENTRY(R8G8),
+        FORMAT_GROUP_ENTRY(R16),
+        FORMAT_GROUP_ENTRY(R8),
+        FORMAT_GROUP_ENTRY(B8G8R8A8),
+        FORMAT_GROUP_ENTRY(B8G8R8X8)
+    };
+    #undef FORMAT_GROUP_ENTRY
+
+    for (unsigned iGroup = 0; iGroup < RT_ELEMENTS(aFormatGroup); ++iGroup)
+    {
+        FormatGroup const *pGroup = &aFormatGroup[iGroup];
+
+        /* Verify that all formats have the same MSAA capability. */
+        uint32_t const fMSAA = pThis->svga.au32DevCaps[pGroup->pau32DevCaps[0]] & SVGA3D_DXFMT_MULTISAMPLE;
+        for (unsigned i = 1; i < pGroup->cFormats; ++i)
+        {
+            if (fMSAA != (pThis->svga.au32DevCaps[pGroup->pau32DevCaps[i]] & SVGA3D_DXFMT_MULTISAMPLE))
+            {
+                /* If different MSAA capabilities have been detected. then disable MSAA for the group. */
+                LogRel(("VMSVGA3d: disabling MSAA for %s\n", pGroup->szGroupName));
+                for (unsigned j = 0; j < pGroup->cFormats; ++j)
+                    pThis->svga.au32DevCaps[pGroup->pau32DevCaps[j]] &= ~SVGA3D_DXFMT_MULTISAMPLE;
+                break;
+            }
+        }
+    }
+}
+
+/**
  * Initializes the host 3D capabilities (pThis->svga.au32DevCaps).
  *
  * @returns VBox status code.
@@ -6809,30 +7048,35 @@ static void vmsvgaR3InitFIFO(PVGASTATE pThis, PVGASTATECC pThisCC)
 static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
 {
     /* Query the capabilities and store them in the pThis->svga.au32DevCaps array. */
-    bool const fSavedBuffering = RTLogRelSetBuffering(true);
+
+    uint32_t au32FailedCapsBitmap[(RT_ELEMENTS(pThis->svga.au32DevCaps) + 31) / 32];
+    RT_ZERO(au32FailedCapsBitmap);
 
     for (unsigned i = 0; i < RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
     {
         uint32_t val = 0;
         int rc = vmsvga3dQueryCaps(pThisCC, (SVGA3dDevCapIndex)i, &val);
         if (RT_SUCCESS(rc))
-        {
-            if (!pThis->svga.fVBoxExtensions)
-            {
-                /* Hide extended VBoxSVGA capabilities. */
-                if (i == SVGA3D_DEVCAP_3D)
-                    val &= VBSVGA3D_CAP_3D;
-            }
             pThis->svga.au32DevCaps[i] = val;
-        }
         else
+        {
+            ASMBitSet(au32FailedCapsBitmap, i);
             pThis->svga.au32DevCaps[i] = 0;
+        }
+    }
 
+    vmsvgaR3Censor3DCaps(pThis, pThisCC);
+
+    bool const fSavedBuffering = RTLogRelSetBuffering(true);
+
+    for (unsigned i = 0; i < RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
+    {
         /* LogRel the capability value. */
+        uint32_t const val = pThis->svga.au32DevCaps[i];
         if (i < SVGA3D_DEVCAP_MAX)
         {
             char const *pszDevCapName = &vmsvgaDevCapIndexToString((SVGA3dDevCapIndex)i)[sizeof("SVGA3D_DEVCAP")];
-            if (RT_SUCCESS(rc))
+            if (!ASMBitTest(au32FailedCapsBitmap, i))
             {
                 if (   i == SVGA3D_DEVCAP_MAX_POINT_SIZE
                     || i == SVGA3D_DEVCAP_MAX_LINE_WIDTH
@@ -6845,10 +7089,10 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
                     LogRel(("VMSVGA3d: cap[%u]=%#010x {%s}\n", i, val, pszDevCapName));
             }
             else
-                LogRel(("VMSVGA3d: cap[%u]=failed rc=%Rrc {%s}\n", i, rc, pszDevCapName));
+                LogRel(("VMSVGA3d: cap[%u]=%#010x -{%s}\n", i, val, pszDevCapName));
         }
         else
-            LogRel(("VMSVGA3d: new cap[%u]=%#010x rc=%Rrc\n", i, val, rc));
+            LogRel(("VMSVGA3d: new cap[%u]=%#010x%s\n", i, val, ASMBitTest(au32FailedCapsBitmap, i) ? " -" : ""));
     }
 
     RTLogRelSetBuffering(fSavedBuffering);

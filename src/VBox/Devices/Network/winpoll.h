@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef VBOX_INCLUDED_SRC_NAT_winpoll_h
-#define VBOX_INCLUDED_SRC_NAT_winpoll_h
+#ifndef VBOX_INCLUDED_SRC_Network_winpoll_h
+#define VBOX_INCLUDED_SRC_Network_winpoll_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -60,4 +60,4 @@ struct pollfd {
 RT_C_DECLS_BEGIN
 int RTWinPoll(struct pollfd *pFds, unsigned int nfds, int timeout, int *pNready, HANDLE phControl);
 RT_C_DECLS_END
-#endif /* !VBOX_INCLUDED_SRC_NAT_winpoll_h */
+#endif /* !VBOX_INCLUDED_SRC_Network_winpoll_h */

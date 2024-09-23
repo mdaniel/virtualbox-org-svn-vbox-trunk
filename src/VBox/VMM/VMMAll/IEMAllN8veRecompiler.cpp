@@ -6867,122 +6867,6 @@ static uint32_t iemNativeEmitCoreEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t 
 }
 
 
-#ifndef IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
-/**
- * Emits a standard prolog.
- */
-static uint32_t iemNativeEmitProlog(PIEMRECOMPILERSTATE pReNative, uint32_t off)
-{
-#ifdef RT_ARCH_AMD64
-    /*
-     * Set up a regular xBP stack frame, pushing all non-volatile GPRs,
-     * reserving 64 bytes for stack variables plus 4 non-register argument
-     * slots.  Fixed register assignment: xBX = pReNative;
-     *
-     * Since we always do the same register spilling, we can use the same
-     * unwind description for all the code.
-     */
-    uint8_t *const pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 32);
-    pbCodeBuf[off++] = 0x50 + X86_GREG_xBP;     /* push rbp */
-    pbCodeBuf[off++] = X86_OP_REX_W;            /* mov rbp, rsp */
-    pbCodeBuf[off++] = 0x8b;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, X86_GREG_xBP, X86_GREG_xSP);
-    pbCodeBuf[off++] = 0x50 + X86_GREG_xBX;     /* push rbx */
-    AssertCompile(IEMNATIVE_REG_FIXED_PVMCPU == X86_GREG_xBX);
-# ifdef RT_OS_WINDOWS
-    pbCodeBuf[off++] = X86_OP_REX_W;            /* mov rbx, rcx ; RBX = pVCpu */
-    pbCodeBuf[off++] = 0x8b;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, X86_GREG_xBX, X86_GREG_xCX);
-    pbCodeBuf[off++] = 0x50 + X86_GREG_xSI;     /* push rsi */
-    pbCodeBuf[off++] = 0x50 + X86_GREG_xDI;     /* push rdi */
-# else
-    pbCodeBuf[off++] = X86_OP_REX_W;            /* mov rbx, rdi ; RBX = pVCpu */
-    pbCodeBuf[off++] = 0x8b;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, X86_GREG_xBX, X86_GREG_xDI);
-# endif
-    pbCodeBuf[off++] = X86_OP_REX_B;            /* push r12 */
-    pbCodeBuf[off++] = 0x50 + X86_GREG_x12 - 8;
-    pbCodeBuf[off++] = X86_OP_REX_B;            /* push r13 */
-    pbCodeBuf[off++] = 0x50 + X86_GREG_x13 - 8;
-    pbCodeBuf[off++] = X86_OP_REX_B;            /* push r14 */
-    pbCodeBuf[off++] = 0x50 + X86_GREG_x14 - 8;
-    pbCodeBuf[off++] = X86_OP_REX_B;            /* push r15 */
-    pbCodeBuf[off++] = 0x50 + X86_GREG_x15 - 8;
-
-# ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER_LONGJMP
-    /* Save the frame pointer. */
-    off = iemNativeEmitStoreGprToVCpuU64Ex(pbCodeBuf, off, X86_GREG_xBP, RT_UOFFSETOF(VMCPUCC, iem.s.pvTbFramePointerR3));
-# endif
-
-    off = iemNativeEmitSubGprImm(pReNative, off,    /* sub rsp, byte 28h */
-                                 X86_GREG_xSP,
-                                   IEMNATIVE_FRAME_ALIGN_SIZE
-                                 + IEMNATIVE_FRAME_VAR_SIZE
-                                 + IEMNATIVE_FRAME_STACK_ARG_COUNT * 8
-                                 + IEMNATIVE_FRAME_SHADOW_ARG_COUNT * 8);
-    AssertCompile(!(IEMNATIVE_FRAME_VAR_SIZE & 0xf));
-    AssertCompile(!(IEMNATIVE_FRAME_STACK_ARG_COUNT & 0x1));
-    AssertCompile(!(IEMNATIVE_FRAME_SHADOW_ARG_COUNT & 0x1));
-
-#elif RT_ARCH_ARM64
-    /*
-     * We set up a stack frame exactly like on x86, only we have to push the
-     * return address our selves here.  We save all non-volatile registers.
-     */
-    uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 16);
-
-# ifdef RT_OS_DARWIN /** @todo This seems to be requirement by libunwind for JIT FDEs. Investigate further as been unable
-                      * to figure out where the BRK following AUTHB*+XPACB* stuff comes from in libunwind.  It's
-                      * definitely the dwarf stepping code, but till found it's very tedious to figure out whether it's
-                      * in any way conditional, so just emitting this instructions now and hoping for the best... */
-    /* pacibsp */
-    pu32CodeBuf[off++] = ARMV8_A64_INSTR_PACIBSP;
-# endif
-
-    /* stp x19, x20, [sp, #-IEMNATIVE_FRAME_SAVE_REG_SIZE] ; Allocate space for saving registers and place x19+x20 at the bottom. */
-    AssertCompile(IEMNATIVE_FRAME_SAVE_REG_SIZE < 64*8);
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_PreIndex,
-                                                 ARMV8_A64_REG_X19, ARMV8_A64_REG_X20, ARMV8_A64_REG_SP,
-                                                 -IEMNATIVE_FRAME_SAVE_REG_SIZE / 8);
-    /* Save x21 thru x28 (SP remains unchanged in the kSigned variant). */
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
-                                                 ARMV8_A64_REG_X21, ARMV8_A64_REG_X22, ARMV8_A64_REG_SP, 2);
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
-                                                 ARMV8_A64_REG_X23, ARMV8_A64_REG_X24, ARMV8_A64_REG_SP, 4);
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
-                                                 ARMV8_A64_REG_X25, ARMV8_A64_REG_X26, ARMV8_A64_REG_SP, 6);
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
-                                                 ARMV8_A64_REG_X27, ARMV8_A64_REG_X28, ARMV8_A64_REG_SP, 8);
-    /* Save the BP and LR (ret address) registers at the top of the frame. */
-    pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(false /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
-                                                 ARMV8_A64_REG_BP,  ARMV8_A64_REG_LR,  ARMV8_A64_REG_SP, 10);
-    AssertCompile(IEMNATIVE_FRAME_SAVE_REG_SIZE / 8 == 12);
-    /* add bp, sp, IEMNATIVE_FRAME_SAVE_REG_SIZE - 16 ; Set BP to point to the old BP stack address. */
-    pu32CodeBuf[off++] = Armv8A64MkInstrAddSubUImm12(false /*fSub*/, ARMV8_A64_REG_BP,
-                                                     ARMV8_A64_REG_SP, IEMNATIVE_FRAME_SAVE_REG_SIZE - 16);
-
-    /* sub sp, sp, IEMNATIVE_FRAME_VAR_SIZE ;  Allocate the variable area from SP. */
-    pu32CodeBuf[off++] = Armv8A64MkInstrAddSubUImm12(true /*fSub*/, ARMV8_A64_REG_SP, ARMV8_A64_REG_SP, IEMNATIVE_FRAME_VAR_SIZE);
-
-    /* mov r28, r0  */
-    off = iemNativeEmitLoadGprFromGprEx(pu32CodeBuf, off, IEMNATIVE_REG_FIXED_PVMCPU, IEMNATIVE_CALL_ARG0_GREG);
-    /* mov r27, r1  */
-    off = iemNativeEmitLoadGprFromGprEx(pu32CodeBuf, off, IEMNATIVE_REG_FIXED_PCPUMCTX, IEMNATIVE_CALL_ARG1_GREG);
-
-# ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER_LONGJMP
-    /* Save the frame pointer. */
-    off = iemNativeEmitStoreGprToVCpuU64Ex(pu32CodeBuf, off, ARMV8_A64_REG_BP, RT_UOFFSETOF(VMCPUCC, iem.s.pvTbFramePointerR3),
-                                           ARMV8_A64_REG_X2);
-# endif
-
-#else
-# error "port me"
-#endif
-    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
-    return off;
-}
-#endif
-
 
 /*********************************************************************************************************************************
 *   Emitters for IEM_MC_ARG_XXX, IEM_MC_LOCAL, IEM_MC_LOCAL_CONST, ++                                                            *
@@ -9981,13 +9865,6 @@ l_profile_again:
     int             rc         = VINF_SUCCESS;
     IEMNATIVE_TRY_SETJMP(pReNative, rc)
     {
-#ifndef IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
-        /*
-         * Emit prolog code (fixed).
-         */
-        off = iemNativeEmitProlog(pReNative, off);
-#endif
-
         /*
          * Convert the calls to native code.
          */

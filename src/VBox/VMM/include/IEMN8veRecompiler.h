@@ -94,12 +94,6 @@
 # define IEMNATIVE_WITH_INSTRUCTION_COUNTING
 #endif
 
-/** @def IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
- * Enables having only a single prologue for native TBs. */
-#if 1 || defined(DOXYGEN_RUNNING)
-# define IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
-#endif
-
 
 /** @name Stack Frame Layout
  *
@@ -2820,14 +2814,12 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPcWriteback(PIEMRECOMPILERSTATE pReNati
 #endif /* IEMNATIVE_WITH_DELAYED_PC_UPDATING  */
 
 
-#ifdef IEMNATIVE_WITH_RECOMPILER_PROLOGUE_SINGLETON
 /** @note iemNativeTbEntry returns VBOXSTRICTRC, but we don't declare it as
  *        it saves us the trouble of a hidden parameter on MSC/amd64. */
-# ifdef RT_ARCH_AMD64
+#ifdef RT_ARCH_AMD64
 extern "C" IEM_DECL_NATIVE_HLP_DEF(int, iemNativeTbEntry, (PVMCPUCC pVCpu, uintptr_t pfnTbBody));
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
 extern "C" IEM_DECL_NATIVE_HLP_DEF(int, iemNativeTbEntry, (PVMCPUCC pVCpu, PCPUMCTX pCpumCtx, uintptr_t pfnTbBody));
-# endif
 #endif
 
 #ifdef IEMNATIVE_WITH_SIMD_FP_NATIVE_EMITTERS

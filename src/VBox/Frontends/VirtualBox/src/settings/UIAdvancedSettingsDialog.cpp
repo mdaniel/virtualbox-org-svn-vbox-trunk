@@ -35,6 +35,7 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGridLayout>
+#include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
 #include <QProgressBar>
@@ -43,6 +44,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSlider>
+#include <QSpinBox>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QToolButton>
@@ -982,6 +984,19 @@ bool UIAdvancedSettingsDialog::eventFilter(QObject *pObject, QEvent *pEvent)
         }
     }
 
+    /* Handle enabled-change events: */
+    if (pEvent->type() == QEvent::EnabledChange)
+    {
+        /* Check if watched object is of widget type: */
+        QWidget *pWidget = qobject_cast<QWidget*>(pObject);
+        if (pWidget)
+        {
+            QFont font = pWidget->font();
+            font.setItalic(!pWidget->isEnabledTo(0));
+            pWidget->setFont(font);
+        }
+    }
+
     /* Call to base-class: */
     return QMainWindow::eventFilter(pObject, pEvent);
 }
@@ -1024,6 +1039,18 @@ void UIAdvancedSettingsDialog::polishEvent()
     /* Prevent handler from calling twice: */
     m_fPolished = true;
 
+    /* Make sure widgets disabled initially have font updated: */
+    foreach (QWidget *pChild, findChildren<QWidget*>())
+    {
+        const bool fDisabled = !pChild->isEnabledTo(0);
+        if (fDisabled)
+        {
+            QFont font = pChild->font();
+            font.setItalic(fDisabled);
+            pChild->setFont(font);
+        }
+    }
+
     /* Install event-filters for all the required children.
      * These children can be added together with pages. */
     foreach (QWidget *pChild, findChildren<QWidget*>())
@@ -1033,8 +1060,12 @@ void UIAdvancedSettingsDialog::polishEvent()
             || qobject_cast<QAbstractScrollArea*>(pChild->parent())
             || qobject_cast<QAbstractSpinBox*>(pChild)
             || qobject_cast<QAbstractSpinBox*>(pChild->parent())
+            || qobject_cast<QCheckBox*>(pChild)
             || qobject_cast<QComboBox*>(pChild)
+            || qobject_cast<QLabel*>(pChild)
+            || qobject_cast<QLineEdit*>(pChild)
             || qobject_cast<QSlider*>(pChild)
+            || qobject_cast<QSpinBox*>(pChild)
             || qobject_cast<QTabWidget*>(pChild)
             || qobject_cast<QTabWidget*>(pChild->parent()))
             pChild->installEventFilter(this);

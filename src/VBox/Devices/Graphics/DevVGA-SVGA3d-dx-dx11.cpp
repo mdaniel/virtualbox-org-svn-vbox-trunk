@@ -859,6 +859,7 @@ static int dxFormatAllowMultisample(DXGI_FORMAT dxgiFormat)
         case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
         case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
         case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+        case DXGI_FORMAT_R32G32B32_FLOAT:
             return false;
         default: break;
     }

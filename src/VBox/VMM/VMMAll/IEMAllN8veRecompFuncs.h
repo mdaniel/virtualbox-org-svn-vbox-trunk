@@ -3400,6 +3400,7 @@ RT_CONSTEXPR unsigned iemNativeEflagsToSingleBitNo(void)
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  fBitsInEfl);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitsInEfl);
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3427,6 +3428,7 @@ iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  fBitsInEfl);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fBitsInEfl);
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3455,6 +3457,7 @@ iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint3
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3483,6 +3486,7 @@ iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigne
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3522,6 +3526,7 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                   bool fInverted, unsigned iBitNo1, unsigned iBitNo2, uint64_t fLivenessEflBits)
 {
     Assert(iBitNo1 != iBitNo2);
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3599,6 +3604,7 @@ iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uin
     Assert(iBitNo1 != iBitNo);
     Assert(iBitNo2 != iBitNo);
     Assert(iBitNo2 != iBitNo1);
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo) | RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo) | RT_BIT_32(iBitNo1) | RT_BIT_32(iBitNo2));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3776,6 +3782,7 @@ DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                           bool fCheckIfSet, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -3844,6 +3851,7 @@ iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uin
                                               unsigned iBitNo, uint64_t fLivenessEFlBit)
 
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  RT_BIT_32(iBitNo));
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, RT_BIT_32(iBitNo));
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
@@ -4118,6 +4126,7 @@ iemNativeEmitCallCImplCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_
                              uint64_t fGstShwFlush, uintptr_t pfnCImpl, uint8_t cArgs)
 
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  X86_EFL_STATUS_BITS);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, X86_EFL_STATUS_BITS);
 
 #ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
@@ -5929,6 +5938,7 @@ iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t id
 # endif
 #endif
 
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  a_fEflInput);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, a_fEflInput);
 
     /** @todo This could be prettier...*/
@@ -6245,9 +6255,9 @@ iemNativeEmitRefEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
     IEMNATIVE_ASSERT_VAR_SIZE(pReNative, idxVarRef, sizeof(void *));
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
-    Assert(!(pReNative->fSkippingEFlags & fEflInput));
-    pReNative->fSkippingEFlags &= ~fEflOutput;
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  fEflInput);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fEflInput);
+    pReNative->fSkippingEFlags &= ~fEflOutput;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
 
     /* Updating the skipping according to the outputs is a little early, but

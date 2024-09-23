@@ -1045,6 +1045,49 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
 #endif
 /** @} */
 
+/** @def IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY
+ * Debug assertion that the required flags are available and not incorrectly skipped.
+ */
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(a_pReNative, a_fEflNeeded) \
+    AssertMsg(!((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), \
+              ("%#x & %#x -> %#x\n", (a_pReNative)->fSkippingEFlags, \
+               a_fEflNeeded, (a_pReNative)->fSkippingEFlags & (a_fEflNeeded) ))
+#else
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(a_pReNative, a_fEflNeeded) ((void)0)
+#endif
+
+/** @def IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY
+ * Debug assertion that the required flags are available and not incorrectly postponed.
+ */
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+# define IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded) \
+    AssertMsg(!((a_pReNative)->fPostponingEFlags & (a_fEflNeeded)), \
+              ("%#x & %#x -> %#x\n", (a_pReNative)->fPostponingEFlags, \
+               a_fEflNeeded, (a_pReNative)->fPostponingEFlags & (a_fEflNeeded) ))
+#else
+# define IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded) ((void)0)
+#endif
+
+/** @def IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING
+ * Debug assertion that the required flags are available and not incorrectly
+ * skipped or postponed.
+ */
+#if defined(IEMNATIVE_WITH_EFLAGS_SKIPPING) && defined(IEMNATIVE_WITH_EFLAGS_POSTPONING)
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) \
+    AssertMsg(!(((a_pReNative)->fSkippingEFlags | (a_pReNative)->fPostponingEFlags) & (a_fEflNeeded)), \
+              ("(%#x | %#x) & %#x -> %#x\n", (a_pReNative)->fSkippingEFlags, (a_pReNative)->fPostponingEFlags, \
+               a_fEflNeeded, ((a_pReNative)->fSkippingEFlags | (a_pReNative)->fPostponingEFlags) & (a_fEflNeeded) ))
+#elif defined(IEMNATIVE_WITH_EFLAGS_SKIPPING)
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) \
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(a_pReNative, a_fEflNeeded)
+#elif defined(IEMNATIVE_WITH_EFLAGS_POSTPONING) \
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) \
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded)
+#else
+# define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) ((void)0)
+#endif
+
 /** @def IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK
  * Checks that the EFLAGS bits specified by @a a_fEflNeeded are actually
  * calculated and up to date.  This is to double check that we haven't skipped
@@ -1053,16 +1096,10 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  */
 #ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
 # define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) do { \
-        AssertMsg(!((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), \
-                  ("%#x & %#x -> %#x; off=%#x\n", (a_pReNative)->fSkippingEFlags, a_fEflNeeded, \
-                  ((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), a_off)); \
         (a_off) = iemNativeEmitEFlagsSkippingCheck(a_pReNative, a_off, a_fEflNeeded); \
     } while (0)
 #else
-# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) \
-    AssertMsg(!((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), \
-              ("%#x & %#x -> %#x; off=%#x\n", (a_pReNative)->fSkippingEFlags, a_fEflNeeded, \
-              ((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), a_off))
+# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) do { } while (0)
 #endif
 
 

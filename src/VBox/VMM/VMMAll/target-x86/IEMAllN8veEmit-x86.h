@@ -213,7 +213,8 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
      * See if we can skip this wholesale.
      */
     PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall];
-    if (IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry))
+    if (   IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry)
+        && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedLogical);
         pReNative->fSkippingEFlags |= X86_EFL_STATUS_BITS;
@@ -321,7 +322,8 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
      * See if we can skip this wholesale.
      */
     PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall];
-    if (IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry))
+    if (   IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry)
+        && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedArithmetic);
         pReNative->fSkippingEFlags |= X86_EFL_STATUS_BITS;
@@ -1576,7 +1578,8 @@ RT_NOREF(pReNative, off, idxRegEfl, idxRegResult, idxRegSrc, idxRegCount, cOpBit
      * See if we can skip this wholesale.
      */
     PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall];
-    if (IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry))
+    if (   IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry)
+        && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedShift);
         pReNative->fSkippingEFlags |= X86_EFL_STATUS_BITS;

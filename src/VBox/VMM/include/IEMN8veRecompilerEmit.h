@@ -8277,6 +8277,7 @@ iemNativeEmitLoadArgGregWithVarAddr(PIEMRECOMPILERSTATE pReNative, uint32_t off,
 }
 
 
+
 /*********************************************************************************************************************************
 *   TB exiting helpers.                                                                                                          *
 *********************************************************************************************************************************/
@@ -8304,6 +8305,8 @@ DECL_FORCE_INLINE_THROW(uint32_t)
 iemNativeEmitJccTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf, uint32_t off,
                          IEMNATIVELABELTYPE enmExitReason, IEMNATIVEINSTRCOND enmCond)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
 #if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
@@ -8332,7 +8335,10 @@ iemNativeEmitJccTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitJccTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVELABELTYPE enmExitReason, IEMNATIVEINSTRCOND enmCond)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
+
 #ifdef IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE
 # ifdef RT_ARCH_AMD64
     off = iemNativeEmitJccTbExitEx(pReNative, iemNativeInstrBufEnsure(pReNative, off, 6), off, enmExitReason, enmCond);
@@ -8412,6 +8418,8 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitJlTbExit(PIEMRECOMPILERSTATE pReNative,
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf, uint32_t off, IEMNATIVELABELTYPE enmExitReason)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
     iemNativeMarkCurCondBranchAsExiting(pReNative);
@@ -8446,6 +8454,8 @@ DECL_INLINE_THROW(uint32_t)
 iemNativeEmitTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVELABELTYPE enmExitReason,
                     bool fActuallyExitingTb = true)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here. */
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
 
     if (fActuallyExitingTb)
@@ -8575,6 +8585,7 @@ iemNativeEmitTestBitInGprAndTbExitIfSet(PIEMRECOMPILERSTATE pReNative, uint32_t 
                                         uint8_t iGprSrc, uint8_t iBitNo, IEMNATIVELABELTYPE enmExitReason)
 {
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
+
 #if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
     Assert(iBitNo < 64);
     uint8_t * const pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 5);
@@ -8607,6 +8618,8 @@ iemNativeEmitTestBitInGprAndTbExitIfSet(PIEMRECOMPILERSTATE pReNative, uint32_t 
 #else
     /* ARM64 doesn't have the necessary jump range, so we jump via local label
        just like when we keep everything local. */
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
     return iemNativeEmitTestBitInGprAndJmpToLabelIfCc(pReNative, off, iGprSrc, iBitNo, idxLabel, true /*fJmpIfSet*/);
 #endif
@@ -8623,6 +8636,7 @@ iemNativeEmitTestIfGprIsNotZeroAndTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNA
                                            uint8_t iGprSrc, bool f64Bit, IEMNATIVELABELTYPE enmExitReason)
 {
     Assert(IEMNATIVELABELTYPE_IS_EXIT_REASON(enmExitReason));
+
 #if defined(IEMNATIVE_WITH_RECOMPILER_PER_CHUNK_TAIL_CODE) && defined(RT_ARCH_AMD64)
     /* test reg32,reg32  / test reg64,reg64 */
     if (f64Bit)
@@ -8638,6 +8652,8 @@ iemNativeEmitTestIfGprIsNotZeroAndTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNA
 #else
     /* ARM64 doesn't have the necessary jump range, so we jump via local label
        just like when we keep everything local. */
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
     return iemNativeEmitTestIfGprIsZeroOrNotZeroAndJmpToLabelEx(pReNative, pCodeBuf, off, iGprSrc,
                                                                 f64Bit, true /*fJmpIfNotZero*/, idxLabel);
@@ -8660,6 +8676,8 @@ iemNativeEmitTestIfGprIsNotZeroAndTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     return off;
 #else
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
     return iemNativeEmitTestIfGprIsZeroOrNotZeroAndJmpToLabel(pReNative, off, iGprSrc, f64Bit, true /*fJmpIfNotZero*/, idxLabel);
 #endif
@@ -8691,6 +8709,8 @@ iemNativeEmitTestIfGprIsZeroAndTbExitEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIV
 #else
     /* ARM64 doesn't have the necessary jump range, so we jump via local label
        just like when we keep everything local. */
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
     return iemNativeEmitTestIfGprIsZeroOrNotZeroAndJmpToLabelEx(pReNative, pCodeBuf, off, iGprSrc,
                                                                 f64Bit, false /*fJmpIfNotZero*/, idxLabel);
@@ -8713,6 +8733,8 @@ iemNativeEmitTestIfGprIsZeroAndTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t of
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     return off;
 #else
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
+    IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS); /** @todo emit postponed stuff here and invert the condition. */
     uint32_t const idxLabel = iemNativeLabelCreate(pReNative, enmExitReason, UINT32_MAX /*offWhere*/, 0 /*uData*/);
     return iemNativeEmitTestIfGprIsZeroOrNotZeroAndJmpToLabel(pReNative, off, iGprSrc, f64Bit, false /*fJmpIfNotZero*/, idxLabel);
 #endif

@@ -594,12 +594,15 @@ class NativeRecompFunctionVariation(object):
             if oStmt.sName == 'IEM_MC_BEGIN':
                 oNewStmt = copy.deepcopy(oStmt);
                 oNewStmt.sName = 'IEM_MC_BEGIN_EX';
-                fWithoutFlags = (    self.oVariation.isWithFlagsCheckingAndClearingVariation()
-                                 and self.oVariation.oParent.hasWithFlagsCheckingAndClearingVariation());
-                if fWithoutFlags or self.oVariation.oParent.dsCImplFlags:
+                fWithFlags    = self.oVariation.isWithFlagsCheckingAndClearingVariation();
+                fWithoutFlags = not fWithFlags and self.oVariation.oParent.hasWithFlagsCheckingAndClearingVariation();
+                if fWithFlags or fWithoutFlags or self.oVariation.oParent.dsCImplFlags:
                     if fWithoutFlags:
                         oNewStmt.asParams[0] = ' | '.join(sorted(  list(self.oVariation.oParent.oMcBlock.dsMcFlags.keys())
                                                                  + ['IEM_MC_F_WITHOUT_FLAGS',] ));
+                    else:
+                        oNewStmt.asParams[0] = ' | '.join(sorted(  list(self.oVariation.oParent.oMcBlock.dsMcFlags.keys())
+                                                                 + ['IEM_MC_F_WITH_FLAGS',] ));
                     if self.oVariation.oParent.dsCImplFlags:
                         oNewStmt.asParams[1] = ' | '.join(sorted(self.oVariation.oParent.dsCImplFlags.keys()));
                     if 'IEM_CIMPL_F_CALLS_CIMPL' in self.oVariation.oParent.dsCImplFlags:

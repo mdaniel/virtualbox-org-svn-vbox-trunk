@@ -6562,6 +6562,7 @@ iemNativeEmitCImplCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxI
 DECL_HIDDEN_THROW(uint32_t)
 iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, PCIEMTHRDEDCALLENTRY pCallEntry)
 {
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  X86_EFL_STATUS_BITS);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, X86_EFL_STATUS_BITS);
 
     /* We don't know what the threaded function is doing so we must flush all pending writes. */
@@ -6921,6 +6922,7 @@ static uint32_t iemNativeEmitCoreEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t 
 {
     pReNative->Core.bmHstRegs |= RT_BIT_32(IEMNATIVE_CALL_RET_GREG); /* HACK: For IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK (return register is already set to status code). */
 
+    IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  X86_EFL_STATUS_BITS);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, X86_EFL_STATUS_BITS);
 
     /* HACK: For IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK (return register is already set to status code). */
@@ -10306,12 +10308,7 @@ l_profile_again:
         if (!cThreadedCalls)
             STAM_REL_COUNTER_INC(&pVCpu->iem.s.StatNativeFullyRecompiledTbs);
 
-#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
-        Assert(pReNative->fSkippingEFlags == 0);
-#endif
-#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-        Assert(pReNative->fPostponingEFlags == 0);
-#endif
+        IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative, UINT32_MAX);
 
 #ifdef VBOX_WITH_STATISTICS
         off = iemNativeEmitNativeTbExitStats(pReNative, off, RT_UOFFSETOF(VMCPUCC, iem.s.StatNativeTbFinished));

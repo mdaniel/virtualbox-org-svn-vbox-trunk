@@ -1052,10 +1052,17 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  * @note has to be placed in
  */
 #ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
-# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) \
-    do { (a_off) = iemNativeEmitEFlagsSkippingCheck(a_pReNative, a_off, a_fEflNeeded); } while (0)
+# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) do { \
+        AssertMsg(!((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), \
+                  ("%#x & %#x -> %#x; off=%#x\n", (a_pReNative)->fSkippingEFlags, a_fEflNeeded, \
+                  ((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), a_off)); \
+        (a_off) = iemNativeEmitEFlagsSkippingCheck(a_pReNative, a_off, a_fEflNeeded); \
+    } while (0)
 #else
-# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) do { } while (0)
+# define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) \
+    AssertMsg(!((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), \
+              ("%#x & %#x -> %#x; off=%#x\n", (a_pReNative)->fSkippingEFlags, a_fEflNeeded, \
+              ((a_pReNative)->fSkippingEFlags & (a_fEflNeeded)), a_off))
 #endif
 
 
@@ -1647,6 +1654,12 @@ typedef struct IEMRECOMPILERSTATE
 #endif
     /** The call number of the last CheckIrq, UINT32_MAX if not seen. */
     uint32_t                    idxLastCheckIrqCallNo;
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+    uint32_t                    fSkippingEFlags;
+#endif
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    uint32_t                    fPostponingEFlags;
+#endif
 
     /** Core state requiring care with branches. */
     IEMNATIVECORESTATE          Core;

@@ -2067,6 +2067,12 @@ static PIEMRECOMPILERSTATE iemNativeReInit(PIEMRECOMPILERSTATE pReNative, PCIEMT
     pReNative->uCondSeqNo                  = 0;
     pReNative->uCheckIrqSeqNo              = 0;
     pReNative->uTlbSeqNo                   = 0;
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+    pReNative->fSkippingEFlags             = 0;
+#endif
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    pReNative->fPostponingEFlags           = 0;
+#endif
 
 #ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
     pReNative->Core.offPc                  = 0;
@@ -10299,6 +10305,13 @@ l_profile_again:
         STAM_REL_PROFILE_ADD_PERIOD(&pVCpu->iem.s.StatNativeCallsThreaded,   cThreadedCalls);
         if (!cThreadedCalls)
             STAM_REL_COUNTER_INC(&pVCpu->iem.s.StatNativeFullyRecompiledTbs);
+
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+        Assert(pReNative->fSkippingEFlags == 0);
+#endif
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+        Assert(pReNative->fPostponingEFlags == 0);
+#endif
 
 #ifdef VBOX_WITH_STATISTICS
         off = iemNativeEmitNativeTbExitStats(pReNative, off, RT_UOFFSETOF(VMCPUCC, iem.s.StatNativeTbFinished));

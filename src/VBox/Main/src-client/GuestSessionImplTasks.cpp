@@ -2751,6 +2751,14 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
     if (   RT_FAILURE(vrc)
         && !fSilent)
     {
+        Utf8Str cmdLine;
+        for (size_t iArg = 0; iArg < procInfo.mArguments.size(); iArg++)
+        {
+            cmdLine.append(procInfo.mArguments.at(iArg));
+            if (iArg < procInfo.mArguments.size() - 1)
+                cmdLine.append(" ");
+        }
+
         switch (vrc)
         {
             case VERR_GSTCTL_PROCESS_EXIT_CODE:
@@ -2760,13 +2768,13 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
                 Assert(vrc == VERR_GSTCTL_PROCESS_EXIT_CODE);
                 setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
                                   Utf8StrFmt(tr("Running update file \"%s\" on guest failed with exit code %d"),
-                                             procInfo.mExecutable.c_str(), iExitCode));
+                                             cmdLine.c_str(), iExitCode));
                 break;
 
             }
             case VERR_GSTCTL_GUEST_ERROR:
                 setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR, tr("Running update file on guest failed"),
-                                  GuestErrorInfo(GuestErrorInfo::Type_Process, vrcGuest, procInfo.mExecutable.c_str()));
+                                  GuestErrorInfo(GuestErrorInfo::Type_Process, vrcGuest, cmdLine.c_str()));
                 break;
 
             case VERR_INVALID_STATE: /** @todo Special guest control vrc needed! */
@@ -2777,8 +2785,8 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
 
             default:
                 setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
-                                  Utf8StrFmt(tr("Error while running update file \"%s\" on guest: %Rrc"),
-                                             procInfo.mExecutable.c_str(), vrc));
+                                  Utf8StrFmt(tr("Error while running update command \"%s\" on guest: %Rrc"),
+                                             cmdLine.c_str(), vrc));
                 break;
         }
     }
@@ -2805,6 +2813,7 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
 
         /* Check if Guest Additions kernel modules were loaded. */
         GuestProcessStartupInfo procInfo;
+        procInfo.mName = "Kernel modules status check";
         procInfo.mFlags = ProcessCreateFlag_None;
         procInfo.mExecutable = Utf8Str("/bin/sh");;
         procInfo.mArguments.push_back(procInfo.mExecutable); /* Set argv0. */
@@ -2816,6 +2825,7 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
         {
             /* Replace the last argument with corresponding value and check
              * if Guest Additions user services were started. */
+            procInfo.mName = "User services status check";
             procInfo.mArguments.pop_back();
             procInfo.mArguments.push_back("status-user");
 
@@ -2837,12 +2847,16 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
 /**
  * Helper function which waits until Guest Additions services started.
  *
+ * Newly created guest session needs to be closed by caller.
+ *
  * @returns 0 on success or VERR_TIMEOUT if guest services were not
  *          started on time.
- * @param   pGuest      Guest interface to use.
- * @param   osType      Guest type.
+ * @param   pGuest          Guest interface to use.
+ * @param   osType          Guest type.
+ * @param   pNewSession     Output parameter for newly established guest type.
  */
-int GuestSessionTaskUpdateAdditions::waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType)
+int GuestSessionTaskUpdateAdditions::waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType,
+                                                         ComObjPtr<GuestSession> &pNewSession)
 {
     int vrc                         = VERR_GSTCTL_GUEST_ERROR;
     int vrcRet                      = VERR_TIMEOUT;
@@ -2854,42 +2868,40 @@ int GuestSessionTaskUpdateAdditions::waitForGuestSession(ComObjPtr<Guest> pGuest
 
     do
     {
-        ComObjPtr<GuestSession> pSession;
         GuestCredentials        guestCreds;
         GuestSessionStartupInfo startupInfo;
 
-        startupInfo.mName           = "Guest Additions connection checker";
+        startupInfo.mName           = "Guest Additions connection check";
         startupInfo.mOpenTimeoutMS  = 100;
 
-        vrc = pGuest->i_sessionCreate(startupInfo, guestCreds, pSession);
+        vrc = pGuest->i_sessionCreate(startupInfo, guestCreds, pNewSession);
         if (RT_SUCCESS(vrc))
         {
-            Assert(!pSession.isNull());
+            Assert(!pNewSession.isNull());
 
             int vrcGuest = VERR_GSTCTL_GUEST_ERROR; /* unused. */
-            vrc = pSession->i_startSession(&vrcGuest);
+            vrc = pNewSession->i_startSession(&vrcGuest);
             if (RT_SUCCESS(vrc))
             {
                 /* Wait for VBoxService to start. */
                 GuestSessionWaitResult_T enmWaitResult = GuestSessionWaitResult_None;
                 int vrcGuest2 = VINF_SUCCESS; /* unused. */
-                vrc = pSession->i_waitFor(GuestSessionWaitForFlag_Start, 100 /* timeout, ms */, enmWaitResult, &vrcGuest2);
+                vrc = pNewSession->i_waitFor(GuestSessionWaitForFlag_Start, 100 /* timeout, ms */, enmWaitResult, &vrcGuest2);
                 if (RT_SUCCESS(vrc))
                 {
                     /* Make sure Guest Additions were reloaded on the guest side. */
-                    vrc = checkGuestAdditionsStatus(pSession, osType);
+                    vrc = checkGuestAdditionsStatus(pNewSession, osType);
                     if (RT_SUCCESS(vrc))
                         LogRel(("Guest Additions Update: Guest Additions were successfully reloaded after installation\n"));
                     else
                         LogRel(("Guest Additions Update: Guest Additions were failed to reload after installation, please consider rebooting the guest\n"));
 
-                    vrc = pSession->Close();
                     vrcRet = VINF_SUCCESS;
                     break;
                 }
             }
 
-            vrc = pSession->Close();
+            vrc = pNewSession->Close();
         }
 
         RTThreadSleep(100);
@@ -3363,11 +3375,20 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                     {
                         if (pSession->i_isTerminated())
                         {
+                            ComObjPtr<GuestSession> pNewSession;
+
                             LogRel(("Guest Additions Update: Old guest session has terminated, waiting updated guest services to start\n"));
 
                             /* Wait for VBoxService to restart. */
-                            vrc = waitForGuestSession(pSession->i_getParent(), osType);
-                            if (RT_FAILURE(vrc))
+                            vrc = waitForGuestSession(pSession->i_getParent(), osType, pNewSession);
+                            if (RT_SUCCESS(vrc))
+                            {
+                                hrc = pNewSession->i_directoryRemove(strUpdateDir, DIRREMOVEREC_FLAG_RECURSIVE | DIRREMOVEREC_FLAG_CONTENT_AND_DIR, &vrc);
+                                LogRel(("Cleanup Guest Additions update directory '%s', hrc=%Rrc, vrc=%Rrc\n",
+                                        strUpdateDir.c_str(), hrc, vrc));
+                                pNewSession->Close();
+                            }
+                            else
                                 hrc = setUpdateErrorMsg(VBOX_E_IPRT_ERROR,
                                                         Utf8StrFmt(tr("Guest services were not restarted, please reinstall Guest Additions manually")));
                         }

@@ -458,7 +458,7 @@ protected:
     HRESULT setUpdateErrorMsg(HRESULT hrc, const Utf8Str &strMsg, const GuestErrorInfo &guestErrorInfo);
 
     int checkGuestAdditionsStatus(GuestSession *pSession, eOSType osType);
-    int waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType);
+    int waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType, ComObjPtr<GuestSession> &pNewSession);
 
     /** Files to handle. */
     std::vector<ISOFile>        mFiles;

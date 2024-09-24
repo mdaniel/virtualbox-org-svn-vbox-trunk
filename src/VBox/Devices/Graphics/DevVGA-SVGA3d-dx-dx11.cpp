@@ -4602,27 +4602,10 @@ static DECLCALLBACK(int) vmsvga3dBackSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurf
     rc = vmsvga3dSurfaceFromSid(pThisCC->svga.p3dState, dest.sid, &pDstSurface);
     AssertRCReturn(rc, rc);
 
-/** @todo Implement a separate code paths for memory->texture, texture->memory and memory->memory transfers */
+/** @todo Implement a separate code paths for memory->texture, texture->memory */
     LogFunc(("src%s sid = %u -> dst%s sid = %u\n",
              pSrcSurface->pBackendSurface ? "" : " sysmem", pSrcSurface->id,
              pDstSurface->pBackendSurface ? "" : " sysmem", pDstSurface->id));
-
-    //DXDEVICE *pDevice = dxDeviceGet(pThisCC->svga.p3dState);
-    //AssertReturn(pDevice->pDevice, VERR_INVALID_STATE);
-
-    if (pSrcSurface->pBackendSurface == NULL)
-    {
-        rc = vmsvga3dBackSurfaceCreateTexture(pThisCC, pSrcSurface);
-        AssertRCReturn(rc, rc);
-    }
-
-    if (pDstSurface->pBackendSurface == NULL)
-    {
-        rc = vmsvga3dBackSurfaceCreateTexture(pThisCC, pDstSurface);
-        AssertRCReturn(rc, rc);
-    }
-
-    DXDEVICE *pDXDevice = &pBackend->dxDevice;
 
     /* Clip the box. */
     PVMSVGA3DMIPMAPLEVEL pSrcMipLevel;
@@ -4635,6 +4618,61 @@ static DECLCALLBACK(int) vmsvga3dBackSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurf
 
     SVGA3dCopyBox clipBox = *pBox;
     vmsvgaR3ClipCopyBox(&pSrcMipLevel->mipmapSize, &pDstMipLevel->mipmapSize, &clipBox);
+
+    if (pSrcSurface->pBackendSurface == NULL && pDstSurface->pBackendSurface == NULL)
+    {
+        AssertReturn(pSrcSurface->format == pDstSurface->format, VERR_INVALID_PARAMETER);
+        AssertReturn(pSrcSurface->cbBlock == pDstSurface->cbBlock, VERR_INVALID_PARAMETER);
+        AssertReturn(pSrcMipLevel->pSurfaceData && pDstMipLevel->pSurfaceData, VERR_INVALID_STATE);
+
+        uint32_t const cxBlocks = (clipBox.w + pSrcSurface->cxBlock - 1) / pSrcSurface->cxBlock;
+        uint32_t const cyBlocks = (clipBox.h + pSrcSurface->cyBlock - 1) / pSrcSurface->cyBlock;
+        uint32_t const cbRow = cxBlocks * pSrcSurface->cbBlock;
+
+        uint8_t const *pu8Src = (uint8_t *)pSrcMipLevel->pSurfaceData
+                + (clipBox.srcx / pSrcSurface->cxBlock) * pSrcSurface->cbBlock
+                + (clipBox.srcy / pSrcSurface->cyBlock) * pSrcMipLevel->cbSurfacePitch
+                + clipBox.srcz * pSrcMipLevel->cbSurfacePlane;
+
+        uint8_t *pu8Dst = (uint8_t *)pDstMipLevel->pSurfaceData
+                + (clipBox.x / pDstSurface->cxBlock) * pDstSurface->cbBlock
+                + (clipBox.y / pDstSurface->cyBlock) * pDstMipLevel->cbSurfacePitch
+                + clipBox.z * pDstMipLevel->cbSurfacePlane;
+
+        for (uint32_t z = 0; z < clipBox.d; ++z)
+        {
+            uint8_t const *pu8PlaneSrc = pu8Src;
+            uint8_t *pu8PlaneDst = pu8Dst;
+
+            for (uint32_t y = 0; y < cyBlocks; ++y)
+            {
+                memcpy(pu8PlaneDst, pu8PlaneSrc, cbRow);
+                pu8PlaneDst += pDstMipLevel->cbSurfacePitch;
+                pu8PlaneSrc += pSrcMipLevel->cbSurfacePitch;
+            }
+
+            pu8Src += pSrcMipLevel->cbSurfacePlane;
+            pu8Dst += pDstMipLevel->cbSurfacePlane;
+        }
+
+        return VINF_SUCCESS;
+    }
+
+    //DXDEVICE *pDevice = dxDeviceGet(pThisCC->svga.p3dState);
+    //AssertReturn(pDevice->pDevice, VERR_INVALID_STATE);
+    DXDEVICE *pDXDevice = &pBackend->dxDevice;
+
+    if (pSrcSurface->pBackendSurface == NULL)
+    {
+        rc = vmsvga3dBackSurfaceCreateTexture(pThisCC, pSrcSurface);
+        AssertRCReturn(rc, rc);
+    }
+
+    if (pDstSurface->pBackendSurface == NULL)
+    {
+        rc = vmsvga3dBackSurfaceCreateTexture(pThisCC, pDstSurface);
+        AssertRCReturn(rc, rc);
+    }
 
     UINT DstSubresource = vmsvga3dCalcSubresource(dest.mipmap, dest.face, pDstSurface->cLevels);
     UINT DstX = clipBox.x;

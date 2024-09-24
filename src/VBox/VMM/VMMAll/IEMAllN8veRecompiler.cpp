@@ -8830,9 +8830,9 @@ typedef struct IEMNATIVDISASMSYMCTX
     PVMCPU                  pVCpu;
     PCIEMTB                 pTb;
     PCIEMNATIVEPERCHUNKCTX  pCtx;
-# ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
+#ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     PCIEMTBDBG              pDbgInfo;
-# endif
+#endif
 } IEMNATIVDISASMSYMCTX;
 typedef IEMNATIVDISASMSYMCTX *PIEMNATIVDISASMSYMCTX;
 
@@ -8914,7 +8914,7 @@ static const char *iemNativeDisasmGetSymbol(PIEMNATIVDISASMSYMCTX pSymCtx, uintp
                 }
             }
         }
-#endif
+#endif /* IEMNATIVE_WITH_TB_DEBUG_INFO */
     }
     else
     {
@@ -9202,7 +9202,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                             continue;
                         }
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
+# ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
                         case kIemTbDbgEntryType_GuestSimdRegShadowing:
                         {
                             PCIEMTBDBGENTRY const pEntry    = &pDbgInfo->aEntries[iDbgEntry];
@@ -9219,7 +9219,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                                                 g_apszIemNativeHstSimdRegNames[pEntry->GuestSimdRegShadowing.idxHstSimdRegPrev]);
                             continue;
                         }
-#endif
+# endif
 
                         case kIemTbDbgEntryType_Label:
                         {
@@ -9240,15 +9240,15 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                             Assert(offDbgNativeNext >= offNative);
                             break;
 
-#ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
+# ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
                         case kIemTbDbgEntryType_DelayedPcUpdate:
                             pHlp->pfnPrintf(pHlp, "  Updating guest PC value by %u (cInstrSkipped=%u)\n",
                                             pDbgInfo->aEntries[iDbgEntry].DelayedPcUpdate.offPc,
                                             pDbgInfo->aEntries[iDbgEntry].DelayedPcUpdate.cInstrSkipped);
                             continue;
-#endif
+# endif
 
-#ifdef IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK
+# ifdef IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK
                         case kIemTbDbgEntryType_GuestRegDirty:
                         {
                             PCIEMTBDBGENTRY const pEntry    = &pDbgInfo->aEntries[iDbgEntry];
@@ -9269,7 +9269,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                                                (uint64_t)pDbgInfo->aEntries[iDbgEntry].GuestRegWriteback.fGstReg
                                             << (pDbgInfo->aEntries[iDbgEntry].GuestRegWriteback.cShift * 25));
                             continue;
-#endif
+# endif
 
                         default:
                             AssertFailed();
@@ -9462,12 +9462,12 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
         while (offNative < cNative)
         {
             PCIEMNATIVEINSTR const pNativeCur = &paNative[offNative];
-# ifndef VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER
+#ifndef VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER
             uint32_t               cbInstr    = sizeof(paNative[0]);
             int const              rc         = DISInstr(pNativeCur, enmHstCpuMode, &Dis, &cbInstr);
             if (RT_SUCCESS(rc))
             {
-#  if defined(RT_ARCH_AMD64)
+# if defined(RT_ARCH_AMD64)
                 if (Dis.pCurInstr->uOpcode == OP_NOP && cbInstr == 7) /* iemNativeEmitMarker */
                 {
                     uint32_t const uInfo = *(uint32_t const *)&Dis.Instr.ab[3];
@@ -9482,36 +9482,36 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                         pHlp->pfnPrintf(pHlp, "    %p: nop ; unknown marker: %#x (%d)\n", pNativeCur, uInfo, uInfo);
                 }
                 else
-#  endif
+# endif
                 {
-#  ifdef RT_ARCH_AMD64
+# ifdef RT_ARCH_AMD64
                     DISFormatYasmEx(&Dis, szDisBuf, sizeof(szDisBuf),
                                     DIS_FMT_FLAGS_BYTES_WIDTH_MAKE(10) | DIS_FMT_FLAGS_BYTES_LEFT
                                     | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
                                     iemNativeDisasmGetSymbolCb, &SymCtx);
-#  elif defined(RT_ARCH_ARM64)
+# elif defined(RT_ARCH_ARM64)
                     DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
                                      DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
                                      iemNativeDisasmGetSymbolCb, &SymCtx);
-#  else
-#   error "Port me"
-#  endif
+# else
+#  error "Port me"
+# endif
                     pHlp->pfnPrintf(pHlp, "    %p: %s\n", pNativeCur, szDisBuf);
                 }
             }
             else
             {
-#  if defined(RT_ARCH_AMD64)
+# if defined(RT_ARCH_AMD64)
                 pHlp->pfnPrintf(pHlp, "    %p:  %.*Rhxs - disassembly failure %Rrc\n",
                                 pNativeCur, RT_MIN(cNative - offNative, 16), pNativeCur, rc);
-#  else
+# else
                 pHlp->pfnPrintf(pHlp, "    %p:  %#010RX32 - disassembly failure %Rrc\n", pNativeCur, *pNativeCur, rc);
-#  endif
+# endif
                 cbInstr = sizeof(paNative[0]);
             }
             offNative += cbInstr / sizeof(paNative[0]);
 
-# else  /* VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER */
+#else  /* VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER */
             cs_insn *pInstr;
             size_t   cInstrs = cs_disasm(hDisasm, (const uint8_t *)pNativeCur, (cNative - offNative) * sizeof(*pNativeCur),
                                          (uintptr_t)pNativeCur, 1, &pInstr);
@@ -9520,7 +9520,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                 Assert(cInstrs == 1);
                 const char * const pszAnnotation = iemNativeDisasmAnnotateCapstone(&SymCtx, pInstr, szDisBuf, sizeof(szDisBuf));
                 size_t const       cchOp         = strlen(pInstr->op_str);
-#  if defined(RT_ARCH_AMD64)
+# if defined(RT_ARCH_AMD64)
                 if (pszAnnotation)
                     pHlp->pfnPrintf(pHlp, "    %p: %.*Rhxs %-7s %s%*s ; %s\n",
                                     pNativeCur, pInstr->size, pNativeCur, pInstr->mnemonic, pInstr->op_str,
@@ -9529,7 +9529,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                     pHlp->pfnPrintf(pHlp, "    %p: %.*Rhxs %-7s %s\n",
                                     pNativeCur, pInstr->size, pNativeCur, pInstr->mnemonic, pInstr->op_str);
 
-#  else
+# else
                 if (pszAnnotation)
                     pHlp->pfnPrintf(pHlp, "    %p: %#010RX32 %-7s %s%*s ; %s\n",
                                     pNativeCur, *pNativeCur, pInstr->mnemonic, pInstr->op_str,
@@ -9537,21 +9537,21 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                 else
                     pHlp->pfnPrintf(pHlp, "    %p: %#010RX32 %-7s %s\n",
                                     pNativeCur, *pNativeCur, pInstr->mnemonic, pInstr->op_str);
-#  endif
+# endif
                 offNative += pInstr->size / sizeof(*pNativeCur);
                 cs_free(pInstr, cInstrs);
             }
             else
             {
-#  if defined(RT_ARCH_AMD64)
+# if defined(RT_ARCH_AMD64)
                 pHlp->pfnPrintf(pHlp, "    %p:  %.*Rhxs - disassembly failure %d\n",
                                 pNativeCur, RT_MIN(cNative - offNative, 16), pNativeCur, cs_errno(hDisasm)));
-#  else
+# else
                 pHlp->pfnPrintf(pHlp, "    %p:  %#010RX32 - disassembly failure %d\n", pNativeCur, *pNativeCur, cs_errno(hDisasm));
-#  endif
+# endif
                 offNative++;
             }
-# endif /* VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER */
+#endif /* VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER */
         }
     }
 
@@ -9570,13 +9570,13 @@ iemNativeRecompileEmitAlignmentPadding(PIEMRECOMPILERSTATE pReNative, uint32_t o
     {
         PIEMNATIVEINSTR pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, fAlignMask + 1);
         while (off & fAlignMask)
-# if   defined(RT_ARCH_AMD64)
+#if   defined(RT_ARCH_AMD64)
             pCodeBuf[off++] = 0xcc;
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
             pCodeBuf[off++] = Armv8A64MkInstrBrk(0xcccc);
-# else
-#  error "port me"
-# endif
+#else
+# error "port me"
+#endif
     }
     return off;
 }
@@ -9608,13 +9608,13 @@ DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t i
     PIEMRECOMPILERSTATE pReNative = iemNativeInit(pVCpu, NULL);
     AssertReturn(pReNative, VERR_NO_MEMORY);
 
-# if   defined(RT_ARCH_AMD64)
+#if   defined(RT_ARCH_AMD64)
     uint32_t const fAlignMask = 15;
-# elif defined(RT_ARCH_ARM64)
+#elif defined(RT_ARCH_ARM64)
     uint32_t const fAlignMask = 31 / 4;
-# else
-#  error "port me"
-# endif
+#else
+# error "port me"
+#endif
     uint32_t aoffLabels[kIemNativeLabelType_LastTbExit + 1] = {0};
     int      rc  = VINF_SUCCESS;
     uint32_t off = 0;
@@ -9721,19 +9721,19 @@ DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t i
                 off = iemNativeEmitCoreEpilog(pReNative, off);
             else
             {
-# ifdef VBOX_STRICT
+#ifdef VBOX_STRICT
                 off = iemNativeEmitBrk(pReNative, off, 0x2201);
-# endif
+#endif
                 off = iemNativeEmitJmpToFixed(pReNative, off, offReturnWithStatus);
             }
         }
 
 
-# ifdef VBOX_STRICT
+#ifdef VBOX_STRICT
         /* Make sure we've generate code for all labels. */
         for (uint32_t i = kIemNativeLabelType_Invalid + 1; i < RT_ELEMENTS(aoffLabels); i++)
             Assert(aoffLabels[i] != 0 || i == kIemNativeLabelType_ReturnSuccess);
-# endif
+#endif
     }
     IEMNATIVE_CATCH_LONGJMP_BEGIN(pReNative, rc);
     {

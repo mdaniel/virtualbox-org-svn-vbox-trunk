@@ -2871,7 +2871,10 @@ UIStorageSettingsEditor::UIStorageSettingsEditor(QWidget *pParent /* = 0 */)
     , m_pSpinboxPortCount(0)
     , m_pCheckBoxIoCache(0)
     , m_pLabelSeparatorAttributes(0)
-    , m_pLabelMedium(0)
+    , m_pContainerMediumLabels(0)
+    , m_pLabelHD(0)
+    , m_pLabelCD(0)
+    , m_pLabelFD(0)
     , m_pComboSlot(0)
     , m_pToolButtonOpen(0)
     , m_pContainerForCheckBoxes1(0)
@@ -3000,7 +3003,9 @@ void UIStorageSettingsEditor::setConfigurationAccessLevel(ConfigurationAccessLev
 
     /* Polish attachments pane availability: */
     m_pLabelSeparatorAttributes->setEnabled(fMachineInValidMode);
-    m_pLabelMedium->setEnabled(fMachineOffline || (fMachineOnline && enmDeviceType != KDeviceType_HardDisk));
+    m_pLabelHD->setEnabled(fMachineOffline);
+    m_pLabelCD->setEnabled(fMachineOffline || fMachineOnline);
+    m_pLabelFD->setEnabled(fMachineOffline || fMachineOnline);
     m_pComboSlot->setEnabled(fMachineOffline);
     m_pToolButtonOpen->setEnabled(fMachineOffline || (fMachineOnline && enmDeviceType != KDeviceType_HardDisk));
     m_pCheckBoxPassthrough->setEnabled(fMachineOffline);
@@ -3196,6 +3201,9 @@ void UIStorageSettingsEditor::sltRetranslateUI()
     m_pCheckBoxIoCache->setToolTip(tr("When checked, allows to use host I/O caching capabilities."));
     m_pCheckBoxIoCache->setText(tr("Use Host I/O Cache"));
     m_pLabelSeparatorAttributes->setText(tr("Attributes"));
+    m_pLabelHD->setText(tr("Hard &Disk:"));
+    m_pLabelCD->setText(tr("Optical &Drive:"));
+    m_pLabelFD->setText(tr("Floppy &Drive:"));
     m_pComboSlot->setToolTip(tr("Selects the slot on the storage controller used by this attachment. The available slots depend "
                                 "on the type of the controller and other attachments on it."));
     m_pToolButtonOpen->setText(QString());
@@ -3597,13 +3605,11 @@ void UIStorageSettingsEditor::sltGetInformation()
                 switch (enmDeviceType)
                 {
                     case KDeviceType_HardDisk:
-                        m_pLabelMedium->setText(tr("Hard &Disk:"));
                         m_pToolButtonOpen->setIcon(iconPool()->icon(PixmapType_HDAttachmentNormal));
                         m_pToolButtonOpen->setToolTip(tr("Choose or create a virtual hard disk file. The virtual machine will "
                                                          "see the data in the file as the contents of the virtual hard disk."));
                         break;
                     case KDeviceType_DVD:
-                        m_pLabelMedium->setText(tr("Optical &Drive:"));
                         m_pToolButtonOpen->setIcon(iconPool()->icon(PixmapType_CDAttachmentNormal));
                         m_pToolButtonOpen->setToolTip(tr("Choose a virtual optical disk or a physical drive to use with the "
                                                          "virtual drive. The virtual machine will see a disk inserted into the "
@@ -3611,7 +3617,6 @@ void UIStorageSettingsEditor::sltGetInformation()
                                                          "as its contents."));
                         break;
                     case KDeviceType_Floppy:
-                        m_pLabelMedium->setText(tr("Floppy &Drive:"));
                         m_pToolButtonOpen->setIcon(iconPool()->icon(PixmapType_FDAttachmentNormal));
                         m_pToolButtonOpen->setToolTip(tr("Choose a virtual floppy disk or a physical drive to use with the "
                                                          "virtual drive. The virtual machine will see a disk inserted into the "
@@ -3635,8 +3640,22 @@ void UIStorageSettingsEditor::sltGetInformation()
                                              && enmDeviceType != KDeviceType_HardDisk)
                                          || (   m_enmConfigurationAccessLevel == ConfigurationAccessLevel_Partial_Running
                                              && enmDeviceType == KDeviceType_HardDisk && fIsHotPluggable);
-                m_pLabelMedium->setEnabled(fIsEditable);
+                m_pLabelHD->setEnabled(fIsEditable);
+                m_pLabelCD->setEnabled(fIsEditable);
+                m_pLabelFD->setEnabled(fIsEditable);
                 m_pToolButtonOpen->setEnabled(fIsEditable);
+
+                /* Prepare medium label to show: */
+                int iIndexForMediumLabel = 0;
+                switch (enmDeviceType)
+                {
+                    case KDeviceType_HardDisk: iIndexForMediumLabel = 0; break;
+                    case KDeviceType_DVD: iIndexForMediumLabel = 1; break;
+                    case KDeviceType_Floppy: iIndexForMediumLabel = 2; break;
+                    default: break;
+                }
+                /* Trigger information to show: */
+                m_pContainerMediumLabels->setCurrentIndex(iIndexForMediumLabel);
 
                 /* Prepare setting #1 to show: */
                 int iIndexForSetting1 = 0;
@@ -4780,12 +4799,35 @@ void UIStorageSettingsEditor::prepareAttachmentWidget()
             if (m_pLabelSeparatorAttributes)
                 m_pLayoutAttachment->addWidget(m_pLabelSeparatorAttributes, 0, 0, 1, 3);
 
-            /* Prepare medium label: */
-            m_pLabelMedium = new QLabel(pWidgetAttachment);
-            if (m_pLabelMedium)
+            /* Prepare medium label container: */
+            m_pContainerMediumLabels = new QStackedWidget(pWidgetAttachment);
+            if (m_pContainerMediumLabels)
             {
-                m_pLabelMedium->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                m_pLayoutAttachment->addWidget(m_pLabelMedium, 1, 1);
+                /* Prepare HD label: */
+                m_pLabelHD = new QLabel(m_pContainerMediumLabels);
+                if (m_pLabelHD)
+                {
+                    m_pLabelHD->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                    m_pContainerMediumLabels->addWidget(m_pLabelHD);
+                }
+
+                /* Prepare CD label: */
+                m_pLabelCD = new QLabel(m_pContainerMediumLabels);
+                if (m_pLabelCD)
+                {
+                    m_pLabelCD->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                    m_pContainerMediumLabels->addWidget(m_pLabelCD);
+                }
+
+                /* Prepare FD label: */
+                m_pLabelFD = new QLabel(m_pContainerMediumLabels);
+                if (m_pLabelFD)
+                {
+                    m_pLabelFD->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                    m_pContainerMediumLabels->addWidget(m_pLabelFD);
+                }
+
+                m_pLayoutAttachment->addWidget(m_pContainerMediumLabels, 1, 1);
             }
 
             /* Prepare slot layout: */
@@ -4807,8 +4849,12 @@ void UIStorageSettingsEditor::prepareAttachmentWidget()
                 m_pToolButtonOpen = new QIToolButton(pWidgetAttachment);
                 if (m_pToolButtonOpen)
                 {
-                    if (m_pLabelMedium)
-                        m_pLabelMedium->setBuddy(m_pToolButtonOpen);
+                    if (m_pLabelHD)
+                        m_pLabelHD->setBuddy(m_pToolButtonOpen);
+                    if (m_pLabelCD)
+                        m_pLabelCD->setBuddy(m_pToolButtonOpen);
+                    if (m_pLabelFD)
+                        m_pLabelFD->setBuddy(m_pToolButtonOpen);
 
                     /* Prepare open medium menu: */
                     QMenu *pOpenMediumMenu = new QMenu(m_pToolButtonOpen);

@@ -479,8 +479,14 @@ private:
 
         /** Holds the right pane attachment widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorAttributes;
-        /** Holds the medium label instance. */
-        QLabel           *m_pLabelMedium;
+        /** Holds the medium label container instance. */
+        QStackedWidget   *m_pContainerMediumLabels;
+        /** Holds the HD label instance. */
+        QLabel           *m_pLabelHD;
+        /** Holds the CD label instance. */
+        QLabel           *m_pLabelCD;
+        /** Holds the FD label instance. */
+        QLabel           *m_pLabelFD;
         /** Holds the slot combo instance. */
         QComboBox        *m_pComboSlot;
         /** Holds the open tool-button instance. */

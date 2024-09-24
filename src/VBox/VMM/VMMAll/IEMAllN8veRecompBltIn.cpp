@@ -205,7 +205,7 @@ IEM_DECL_IEMNATIVELIVENESSFUNC_DEF(iemNativeLivenessFunc_BltIn_DeferToCImpl0)
  * Worker for the CheckIrq, CheckTimers and CheckTimersAndIrq builtins below.
  */
 template<bool const a_fCheckTimers, bool const a_fCheckIrqs>
-DECL_FORCE_INLINE(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off)
+DECL_FORCE_INLINE_THROW(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off)
 {
     uint8_t const         idxEflReg  = !a_fCheckIrqs ? UINT8_MAX
                                      : iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly,
@@ -274,11 +274,39 @@ DECL_FORCE_INLINE(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCommon(P
 
         /* OR in VM::fGlobalForcedActions.  We access the member via pVCpu.
            No need to mask anything here.  Unfortunately, it's a 32-bit
-           variable, so we can't OR it directly on x86. */
+           variable, so we can't OR it directly on x86.
+
+           Note! We take a tiny liberty here and ASSUME that the VM and associated
+                 VMCPU mappings are less than 2 GiB away from one another, so we
+                 can access VM::fGlobalForcedActions via a 32-bit signed displacement.
+
+                 This is _only_ a potential issue with VMs using the _support_ _driver_
+                 for manging the structure, as it maps the individual bits separately
+                 and the mapping order differs between host platforms.  Linux may
+                 map the VM structure higher than the VMCPU ones, whereas windows may
+                 do put the VM structure in the lowest address.  On all hosts there
+                 is a chance that virtual memory fragmentation could cause the bits to
+                 end up at a greater distance from one another, but it is rather
+                 doubtful and we just ASSUME it won't happen for now...
+
+                 When the VM structure is allocated in userland, there is one
+                 allocation for it and all the associated VMCPU components, thus no
+                 problems. */
         AssertCompile(VM_FF_ALL_MASK == UINT32_MAX);
         intptr_t const offGlobalForcedActions = (intptr_t)&pReNative->pVCpu->CTX_SUFF(pVM)->fGlobalForcedActions
                                               - (intptr_t)pReNative->pVCpu;
-        Assert((int32_t)offGlobalForcedActions == offGlobalForcedActions);
+        if (RT_LIKELY((int32_t)offGlobalForcedActions == offGlobalForcedActions))
+        { /* likely */ }
+        else
+        {
+            LogRelMax(16, ("!!WARNING!! offGlobalForcedActions=%#zx pVM=%p pVCpu=%p - CheckTimersAndIrqsCommon\n",
+                           offGlobalForcedActions, pReNative->pVCpu->CTX_SUFF(pVM), pReNative->pVCpu));
+# ifdef IEM_WITH_THROW_CATCH
+            AssertFailedStmt(IEMNATIVE_DO_LONGJMP(NULL, VERR_IEM_IPE_9));
+# else
+            AssertReleaseFailed();
+# endif
+        }
 
 # ifdef RT_ARCH_AMD64
         if (idxTmpReg2 >= 8)
@@ -294,6 +322,7 @@ DECL_FORCE_INLINE(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCommon(P
         off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off + 64, kIemNativeInstrCond_e);
 
 # elif defined(RT_ARCH_ARM64)
+        Assert(offGlobalForcedActions < 0);
         off = iemNativeEmitGprBySignedVCpuLdStEx(pCodeBuf, off, idxTmpReg2, (int32_t)offGlobalForcedActions,
                                                  kArmv8A64InstrLdStType_Ld_Word, sizeof(uint32_t));
         off = iemNativeEmitOrGprByGprEx(pCodeBuf, off, idxTmpReg1, idxTmpReg2);

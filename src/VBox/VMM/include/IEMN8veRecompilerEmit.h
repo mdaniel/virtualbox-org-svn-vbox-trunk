@@ -508,7 +508,6 @@ iemNativeEmitGprByVCpuDisp(uint8_t *pbCodeBuf, uint32_t off, uint8_t iGprReg, ui
 DECL_FORCE_INLINE(uint32_t)
 iemNativeEmitGprByVCpuSignedDisp(uint8_t *pbCodeBuf, uint32_t off, uint8_t iGprReg, int32_t offVCpu)
 {
-    Assert(offVCpu < 0);
     if (offVCpu < 128 && offVCpu >= -128)
     {
         pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_MEM1, iGprReg & 7, IEMNATIVE_REG_FIXED_PVMCPU);
@@ -620,9 +619,8 @@ DECL_FORCE_INLINE_THROW(uint32_t)
 iemNativeEmitGprBySignedVCpuLdStEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGprReg, int32_t offVCpu,
                                    ARMV8A64INSTRLDSTTYPE enmOperation, unsigned cbData, uint8_t iGprTmp = UINT8_MAX)
 {
-    Assert(offVCpu < 0);
-    Assert((uint32_t)-offVCpu < RT_BIT_32(28)); /* we should be way out of range for problematic sign extending issues. */
-    Assert(!((uint32_t)-offVCpu & (cbData - 1)));
+    Assert((uint32_t)RT_ABS(offVCpu) < RT_BIT_32(28)); /* we should be way out of range for problematic sign extending issues. */
+    Assert(!((uint32_t)RT_ABS(offVCpu) & (cbData - 1)));
 
    /*
      * For negative offsets we need to use put the displacement in a register

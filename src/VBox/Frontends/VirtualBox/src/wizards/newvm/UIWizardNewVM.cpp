@@ -341,7 +341,7 @@ bool UIWizardNewVM::attachDefaultDevices()
     if (!success)
     {
         /* Unregister VM on failure: */
-        const QVector<CMedium> media = m_machine.Unregister(KCleanupMode_DetachAllReturnHardDisksOnly);
+        const QVector<CMedium> media = m_machine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
         if (!m_machine.isOk())
             UINotificationMessage::cannotRemoveMachine(m_machine, notificationCenter());
         else

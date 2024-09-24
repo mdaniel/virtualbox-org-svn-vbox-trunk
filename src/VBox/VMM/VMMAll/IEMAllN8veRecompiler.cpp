@@ -9751,7 +9751,8 @@ DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t i
     uint32_t const        cbCode              = off * sizeof(IEMNATIVEINSTR);
     PIEMNATIVEINSTR       paFinalCommonCodeRx = NULL;
     pCtx = (PIEMNATIVEPERCHUNKCTX)iemExecMemAllocatorAllocFromChunk(pVCpu, idxChunk, cbCtx + cbCode, &paFinalCommonCodeRx);
-    AssertLogRelMsgReturn(pCtx, ("cbCtx=%#x cbCode=%#x idxChunk=%#x\n", cbCtx, cbCode, idxChunk), NULL);
+    AssertLogRelMsgReturnStmt(pCtx, ("cbCtx=%#x cbCode=%#x idxChunk=%#x\n", cbCtx, cbCode, idxChunk),
+                              iemNativeTerm(pReNative), VERR_OUT_OF_RESOURCES);
 
     /*
      * Copy over the generated code.

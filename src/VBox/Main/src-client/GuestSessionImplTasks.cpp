@@ -2737,9 +2737,8 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
         if (RT_SUCCESS(vrcGuest))
         {
             vrc = guestProc.wait(&vrcGuest);
-            /** @todo Newer Linux Guest Additions can update w/o requiring a guest reboot.
-             *        This involves terminating VBoxService on the guest, which in turn terminates
-             *        the Guest Control session this updater task was relying on.
+            /** @todo Linux Guest Additions terminate VBoxService when updating (via uninstall.sh),
+             *        which in turn terminates the Guest Control session this updater task was relying on.
              *        This leads into a VERR_NOT_FOUND error, as the Guest Session is not around anymore.
              *        Fend this off for now, but needs a clean(er) solution long-term. See @bugref{10776}. */
             if (vrc == VERR_NOT_FOUND)

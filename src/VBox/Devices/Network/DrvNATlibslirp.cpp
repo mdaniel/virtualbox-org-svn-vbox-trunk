@@ -1052,7 +1052,11 @@ static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterfac
     AssertReturnVoid(pNATState);
     AssertReturnVoid(pNATState->pSlirp);
 
-    slirp_set_vdomainname(pNATState->pSlirp, pDnsConf->szDomainName);
+    if (pDnsConf->szDomainName[0] == '\0')
+        slirp_set_vdomainname(pNATState->pSlirp, NULL);
+    else
+        slirp_set_vdomainname(pNATState->pSlirp, pDnsConf->szDomainName);
+
     slirp_set_vdnssearch(pNATState->pSlirp, pDnsConf->papszSearchDomains);
     /** @todo Convert the papszNameServers entries to IP address and tell about
      *        the first IPv4 and IPv6 ones. */

@@ -81,6 +81,62 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
+       <para>GUI: Multiple window layout and translation related fixes</para>
+      </listitem>
+
+      <listitem>
+       <para>GUI: Improve keyboard shortcuts in VM settings window</para>
+      </listitem>
+
+      <listitem>
+       <para>GUI: On VM removal delete all VM files for VMs created using Unattended Install</para>
+      </listitem>
+
+      <listitem>
+       <para>GUI: Fixed enabling 3D acceleration in the VM settings</para>
+      </listitem>
+
+      <listitem>
+       <para>GUI: Removed the BETA label from the macOS/Arm UI</para>
+      </listitem>
+
+      <listitem>
+       <para>NAT: Fixed slow performance on Windows host (bugs #22164 and #22180)</para>
+      </listitem>
+
+      <listitem>
+       <para>NAT: Fixed DHCP problems with certain guests when domain is empty</para>
+      </listitem>
+
+      <listitem>
+       <para>3D: Fixed black screen with Windows VMs</para>
+      </listitem>
+
+      <listitem>
+       <para>3D: Fixed rendering issues caused by incorrect view handling</para>
+      </listitem>
+
+      <listitem>
+       <para>3D: Allow enabling for Arm platform VMs</para>
+      </listitem>
+
+      <listitem>
+       <para>GCM: Fixed problem with loading saved state created by 7.0.x</para>
+      </listitem>
+
+      <listitem>
+       <para>API: Correctly handle NVRAM state with legacy BIOS and remove it on VM deletion</para>
+      </listitem>
+
+      <listitem>
+       <para>API: Fixed UEFI Secure Boot state querying when the VM was never started</para>
+      </listitem>
+
+      <listitem>
+       <para>Guest Additions: Fixed error message on automatic upgrading</para>
+      </listitem>
+
+      <listitem>
        <para>SDK: Fixed building code using the XPCOM bindings (bug #22174)</para>
       </listitem>
 

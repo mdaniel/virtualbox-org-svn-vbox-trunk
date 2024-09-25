@@ -4458,15 +4458,15 @@
     </message>
     <message>
         <source>TLS</source>
-        <translation type="unfinished"></translation>
+        <translation>TLS</translation>
     </message>
     <message>
         <source>RDP</source>
-        <translation type="unfinished"></translation>
+        <translation>RDP</translation>
     </message>
     <message>
         <source>NEGOTIATE</source>
-        <translation type="unfinished"></translation>
+        <translation>Согласованный</translation>
     </message>
 </context>
 <context>
@@ -13608,7 +13608,7 @@
     </message>
     <message>
         <source>Authentication &amp;Method:</source>
-        <translation>&amp;Метод аутентификации:</translation>
+        <translation>Метод &amp;аутентификации:</translation>
     </message>
     <message>
         <source>Selects the VRDP authentication method.</source>
@@ -13636,11 +13636,11 @@
     </message>
     <message>
         <source>&amp;Security Method:</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Метод безопасности:</translation>
     </message>
     <message>
         <source>Selects the VRDP security method.</source>
-        <translation type="unfinished"></translation>
+        <translation>Позволяет выбрать метод безопасности сервера удалённого доступа.</translation>
     </message>
 </context>
 <context>

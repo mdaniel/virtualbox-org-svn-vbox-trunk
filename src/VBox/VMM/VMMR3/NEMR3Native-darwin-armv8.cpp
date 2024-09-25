@@ -1374,6 +1374,13 @@ static DECLCALLBACK(int) nemR3DarwinNativeInitVCpuOnEmt(PVM pVM, PVMCPU pVCpu, V
         return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
                           "Setting MPIDR_EL1 failed on vCPU %u: %#x (%Rrc)", idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
 
+#if 0 /* Will triger an VM-exit if the guest hits a breakpoint, handy for debugging the MS bootloader. */
+    hrc != hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, true);
+    if (hrc != HV_SUCCESS)
+        return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
+                          "Trapping debug exceptions on vCPU %u: %#x (%Rrc)", idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
+#endif
+
     return VINF_SUCCESS;
 }
 
@@ -1674,14 +1681,14 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionDataAbort(PVM pVM, PVMCPU pVCp
     {
         u64Val = nemR3DarwinGetGReg(pVCpu, uReg);
         rcStrict = PGMPhysWrite(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
-        Log4(("MmioExit/%u: %08RX64: WRITE %#x LB %u, %.*Rhxs -> rcStrict=%Rrc\n",
+        Log4(("MmioExit/%u: %08RX64: WRITE %#RGp LB %u, %.*Rhxs -> rcStrict=%Rrc\n",
               pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
               &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
     }
     else
     {
         rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
-        Log4(("MmioExit/%u: %08RX64: READ %#x LB %u -> %.*Rhxs rcStrict=%Rrc\n",
+        Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs rcStrict=%Rrc\n",
               pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
               &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
         if (rcStrict == VINF_SUCCESS)
@@ -1897,7 +1904,11 @@ static VBOXSTRICTRC nemR3DarwinHandleExitException(PVM pVM, PVMCPU pVCpu, const 
         {
             /* No need to halt if there is an interrupt pending already. */
             if (VMCPU_FF_IS_ANY_SET(pVCpu, (VMCPU_FF_INTERRUPT_IRQ | VMCPU_FF_INTERRUPT_FIQ)))
+            {
+                LogFlowFunc(("IRQ | FIQ set => VINF_SUCCESS\n"));
+                pVCpu->cpum.GstCtx.Pc.u64 += fInsn32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
                 return VINF_SUCCESS;
+            }
 
             /* Set the vTimer expiration in order to get out of the halt at the right point in time. */
             if (   (pVCpu->cpum.GstCtx.CntvCtlEl0 & ARMV8_CNTV_CTL_EL0_AARCH64_ENABLE)
@@ -1907,7 +1918,12 @@ static VBOXSTRICTRC nemR3DarwinHandleExitException(PVM pVM, PVMCPU pVCpu, const 
 
                 /* Check whether it expired and start executing guest code. */
                 if (cTicksVTimer >= pVCpu->cpum.GstCtx.CntvCValEl0)
+                {
+                    LogFlowFunc(("Guest timer expired (cTicksVTimer=%RU64 CntvCValEl0=%RU64) => VINF_SUCCESS\n",
+                                 cTicksVTimer, pVCpu->cpum.GstCtx.CntvCValEl0));
+                    pVCpu->cpum.GstCtx.Pc.u64 += fInsn32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
                     return VINF_SUCCESS;
+                }
 
                 uint64_t cTicksVTimerToExpire = pVCpu->cpum.GstCtx.CntvCValEl0 - cTicksVTimer;
                 uint64_t cNanoSecsVTimerToExpire = ASMMultU64ByU32DivByU32(cTicksVTimerToExpire, RT_NS_1SEC, (uint32_t)pVM->nem.s.u64CntFrqHz);
@@ -1919,7 +1935,12 @@ static VBOXSTRICTRC nemR3DarwinHandleExitException(PVM pVM, PVMCPU pVCpu, const 
                  * between CPU load when the guest is idle and performance).
                  */
                 if (cNanoSecsVTimerToExpire < 2 * RT_NS_1MS)
+                {
+                    LogFlowFunc(("Guest timer expiration < 2ms (cNanoSecsVTimerToExpire=%RU64) => VINF_SUCCESS\n",
+                                 cNanoSecsVTimerToExpire));
+                    pVCpu->cpum.GstCtx.Pc.u64 += fInsn32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
                     return VINF_SUCCESS;
+                }
 
                 LogFlowFunc(("Set vTimer activation to cNanoSecsVTimerToExpire=%#RX64 (CntvCValEl0=%#RX64, u64VTimerOff=%#RX64 cTicksVTimer=%#RX64 u64CntFrqHz=%#RX64)\n",
                              cNanoSecsVTimerToExpire, pVCpu->cpum.GstCtx.CntvCValEl0, pVM->nem.s.u64VTimerOff, cTicksVTimer, pVM->nem.s.u64CntFrqHz));
@@ -1928,6 +1949,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExitException(PVM pVM, PVMCPU pVCpu, const 
             else
                 TMCpuSetVTimerNextActivation(pVCpu, UINT64_MAX);
 
+            pVCpu->cpum.GstCtx.Pc.u64 += fInsn32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
             return VINF_EM_HALT;
         }
         case ARMV8_ESR_EL2_EC_UNKNOWN:

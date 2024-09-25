@@ -4453,6 +4453,18 @@
         <comment>IndicatorType</comment>
         <translation>Estensione della tastiera</translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDefaultMachineFolderEditor</name>
@@ -13603,6 +13615,14 @@
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation>Se marcata, sono consentite connessioni simultanee multiple alla MV.</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

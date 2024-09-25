@@ -5453,6 +5453,18 @@
         <comment>IndicatorType</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
@@ -18499,6 +18511,14 @@
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation>선택하면 가상 머신에 동시에 하나 이상의 연결을 허용합니다.</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

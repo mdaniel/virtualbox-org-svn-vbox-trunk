@@ -6563,6 +6563,18 @@
         <comment>IndicatorType</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
@@ -27877,6 +27889,14 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation>仮想マシンへの複数の同時接続を許可します。</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

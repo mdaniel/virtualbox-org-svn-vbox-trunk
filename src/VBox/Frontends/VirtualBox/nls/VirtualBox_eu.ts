@@ -5482,6 +5482,18 @@
         <comment>IndicatorType</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
@@ -21462,6 +21474,14 @@
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation type="unfinished">Hautatutakoan, MB-ra elkarketa ugari aldiberean baimentzen dira.</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

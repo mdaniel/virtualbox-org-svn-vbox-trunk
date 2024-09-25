@@ -5826,6 +5826,18 @@
         <comment>IndicatorType</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
@@ -16092,6 +16104,14 @@
     </message>
     <message>
         <source>Holds the VRDP Server port number. You may specify 0 (zero), to select port 3389, the standard port for RDP.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

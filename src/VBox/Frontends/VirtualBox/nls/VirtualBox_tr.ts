@@ -4446,6 +4446,18 @@
         <comment>IndicatorType</comment>
         <translation>Klavye Uzantısı</translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDefaultMachineFolderEditor</name>
@@ -13584,6 +13596,14 @@
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation>İşaretlendiğinde, VM&apos;e çoklu eşzamanlı bağlantılar yapmaya izin verilir.</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

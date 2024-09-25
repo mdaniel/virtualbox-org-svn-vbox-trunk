@@ -5815,6 +5815,18 @@
         <comment>IndicatorType</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
@@ -24872,6 +24884,14 @@ Będzie ona używana przez wszystkie moduły VirtualBox, aby móc rozróżnić t
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation type="unfinished">Po zaznaczeniu tej opcji, zostanie dozwolonych wiele jednoczesnych połączeń do maszyny wirtualnej.</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

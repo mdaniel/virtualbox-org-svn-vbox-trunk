@@ -73,6 +73,7 @@ struct UIDataSettingsMachineDisplay
         , m_fRemoteDisplayServerSupported(false)
         , m_fRemoteDisplayServerEnabled(false)
         , m_strRemoteDisplayPort(QString())
+        , m_remoteDisplaySecurityMethod(UIVRDESecurityMethod_Max)
         , m_remoteDisplayAuthType(KAuthType_Null)
         , m_uRemoteDisplayTimeout(0)
         , m_fRemoteDisplayMultiConnAllowed(false)
@@ -100,6 +101,7 @@ struct UIDataSettingsMachineDisplay
                && (m_fRemoteDisplayServerSupported == other.m_fRemoteDisplayServerSupported)
                && (m_fRemoteDisplayServerEnabled == other.m_fRemoteDisplayServerEnabled)
                && (m_strRemoteDisplayPort == other.m_strRemoteDisplayPort)
+               && (m_remoteDisplaySecurityMethod == other.m_remoteDisplaySecurityMethod)
                && (m_remoteDisplayAuthType == other.m_remoteDisplayAuthType)
                && (m_uRemoteDisplayTimeout == other.m_uRemoteDisplayTimeout)
                && (m_fRemoteDisplayMultiConnAllowed == other.m_fRemoteDisplayMultiConnAllowed)
@@ -268,6 +270,8 @@ struct UIDataSettingsMachineDisplay
     bool                     m_fRemoteDisplayServerEnabled;
     /** Holds the remote display server port. */
     QString                  m_strRemoteDisplayPort;
+    /** Holds the remote display server security method. */
+    UIVRDESecurityMethod     m_remoteDisplaySecurityMethod;
     /** Holds the remote display server auth type. */
     KAuthType                m_remoteDisplayAuthType;
     /** Holds the remote display server timeout. */
@@ -411,6 +415,8 @@ void UIMachineSettingsDisplay::loadToCacheFrom(QVariant &data)
         /* Gather old 'Remote Display' data: */
         oldDisplayData.m_fRemoteDisplayServerEnabled = comVrdeServer.GetEnabled();
         oldDisplayData.m_strRemoteDisplayPort = comVrdeServer.GetVRDEProperty("TCP/Ports");
+        oldDisplayData.m_remoteDisplaySecurityMethod =
+            gpConverter->fromInternalString<UIVRDESecurityMethod>(comVrdeServer.GetVRDEProperty("Security/Method"));
         oldDisplayData.m_remoteDisplayAuthType = comVrdeServer.GetAuthType();
         oldDisplayData.m_uRemoteDisplayTimeout = comVrdeServer.GetAuthTimeout();
         oldDisplayData.m_fRemoteDisplayMultiConnAllowed = comVrdeServer.GetAllowMultiConnection();
@@ -493,6 +499,7 @@ void UIMachineSettingsDisplay::getFromCache()
         {
             m_pEditorVRDESettings->setFeatureEnabled(oldDisplayData.m_fRemoteDisplayServerEnabled);
             m_pEditorVRDESettings->setPort(oldDisplayData.m_strRemoteDisplayPort);
+            m_pEditorVRDESettings->setSecurityMethod(oldDisplayData.m_remoteDisplaySecurityMethod);
             m_pEditorVRDESettings->setAuthType(oldDisplayData.m_remoteDisplayAuthType);
             m_pEditorVRDESettings->setTimeout(QString::number(oldDisplayData.m_uRemoteDisplayTimeout));
             m_pEditorVRDESettings->setMultipleConnectionsAllowed(oldDisplayData.m_fRemoteDisplayMultiConnAllowed);
@@ -569,6 +576,7 @@ void UIMachineSettingsDisplay::putToCache()
         /* Gather new 'Remote Display' data: */
         newDisplayData.m_fRemoteDisplayServerEnabled = m_pEditorVRDESettings->isFeatureEnabled();
         newDisplayData.m_strRemoteDisplayPort = m_pEditorVRDESettings->port();
+        newDisplayData.m_remoteDisplaySecurityMethod = m_pEditorVRDESettings->securityMethod();
         newDisplayData.m_remoteDisplayAuthType = m_pEditorVRDESettings->authType();
         newDisplayData.m_uRemoteDisplayTimeout = m_pEditorVRDESettings->timeout().toULong();
         newDisplayData.m_fRemoteDisplayMultiConnAllowed = m_pEditorVRDESettings->isMultipleConnectionsAllowed();
@@ -1196,6 +1204,12 @@ bool UIMachineSettingsDisplay::saveRemoteDisplayData()
             if (fSuccess && newDisplayData.m_strRemoteDisplayPort != oldDisplayData.m_strRemoteDisplayPort)
             {
                 comServer.SetVRDEProperty("TCP/Ports", newDisplayData.m_strRemoteDisplayPort);
+                fSuccess = comServer.isOk();
+            }
+            /* Save remote display server security method: */
+            if (fSuccess && newDisplayData.m_remoteDisplaySecurityMethod != oldDisplayData.m_remoteDisplaySecurityMethod)
+            {
+                comServer.SetVRDEProperty("Security/Method", gpConverter->toInternalString(newDisplayData.m_remoteDisplaySecurityMethod));
                 fSuccess = comServer.isOk();
             }
             /* Save remote display server auth type: */

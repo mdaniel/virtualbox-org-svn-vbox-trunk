@@ -39,6 +39,7 @@
 #include "UIMediumDefs.h"
 #include "UISettingsDefs.h"
 #include "UITranslator.h"
+#include "UIVRDESettingsEditor.h"
 #if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
 # include "UIDesktopWidgetWatchdog.h"
 #endif
@@ -2902,4 +2903,50 @@ template<> SHARED_LIBRARY_STUFF VMActivityOverviewColumn UIConverter::fromIntern
     if (strVMActivityOverviewColumn.compare("VMExits", Qt::CaseInsensitive) == 0)
         return VMActivityOverviewColumn_VMExits;
     return VMActivityOverviewColumn_Max;
+}
+
+/* QString <= UIVRDESecurityMethod: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIVRDESecurityMethod &enmSecurityMethod) const
+{
+    QString strResult;
+    switch (enmSecurityMethod)
+    {
+        case UIVRDESecurityMethod_TLS:       strResult = QApplication::translate("UICommon", "TLS"); break;
+        case UIVRDESecurityMethod_RDP:       strResult = QApplication::translate("UICommon", "RDP"); break;
+        case UIVRDESecurityMethod_Negotiate: strResult = QApplication::translate("UICommon", "NEGOTIATE"); break;
+        default:
+        {
+            AssertMsgFailed(("No text for security method=%d", enmSecurityMethod));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* QString <= UIVRDESecurityMethod: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIVRDESecurityMethod &enmSecurityMethod) const
+{
+    QString strResult;
+    switch (enmSecurityMethod)
+    {
+        case UIVRDESecurityMethod_TLS:       strResult = QString(); break;
+        case UIVRDESecurityMethod_RDP:       strResult = QString("RDP"); break;
+        case UIVRDESecurityMethod_Negotiate: strResult = QString("NEGOTIATE"); break;
+        default:
+        {
+            AssertMsgFailed(("No text for security method=%d", enmSecurityMethod));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* UIVRDESecurityMethod <= QString: */
+template<> SHARED_LIBRARY_STUFF UIVRDESecurityMethod UIConverter::fromInternalString<UIVRDESecurityMethod>(const QString &strSecurityMethod) const
+{
+    if (strSecurityMethod.compare("RDP", Qt::CaseInsensitive) == 0)
+        return UIVRDESecurityMethod_RDP;
+    if (strSecurityMethod.compare("NEGOTIATE", Qt::CaseInsensitive) == 0)
+        return UIVRDESecurityMethod_Negotiate;
+    return UIVRDESecurityMethod_TLS;
 }

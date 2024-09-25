@@ -40,12 +40,15 @@
 UIVRDESettingsEditor::UIVRDESettingsEditor(QWidget *pParent /* = 0 */)
     : UIEditor(pParent)
     , m_fFeatureEnabled(false)
+    , m_enmSecurityMethod(UIVRDESecurityMethod_Max)
     , m_enmAuthType(KAuthType_Max)
     , m_fMultipleConnectionsAllowed(false)
     , m_pCheckboxFeature(0)
     , m_pWidgetSettings(0)
     , m_pLabelPort(0)
     , m_pEditorPort(0)
+    , m_pLabelSecurityMethod(0)
+    , m_pComboSecurityMethod(0)
     , m_pLabelAuthMethod(0)
     , m_pComboAuthType(0)
     , m_pLabelTimeout(0)
@@ -99,6 +102,22 @@ void UIVRDESettingsEditor::setPort(const QString &strPort)
 QString UIVRDESettingsEditor::port() const
 {
     return m_pEditorPort ? m_pEditorPort->text() : m_strPort;
+}
+
+void UIVRDESettingsEditor::setSecurityMethod(const UIVRDESecurityMethod &enmMethod)
+{
+    /* Update cached value and
+     * combo if value has changed: */
+    if (m_enmSecurityMethod != enmMethod)
+    {
+        m_enmSecurityMethod = enmMethod;
+        repopulateComboSecurityMethod();
+    }
+}
+
+UIVRDESecurityMethod UIVRDESettingsEditor::securityMethod() const
+{
+    return m_pComboSecurityMethod ? m_pComboSecurityMethod->currentData().value<UIVRDESecurityMethod>() : m_enmSecurityMethod;
 }
 
 void UIVRDESettingsEditor::setAuthType(const KAuthType &enmType)
@@ -166,6 +185,18 @@ void UIVRDESettingsEditor::sltRetranslateUI()
     if (m_pEditorPort)
         m_pEditorPort->setToolTip(tr("Holds the VRDP Server port number. You may specify 0 (zero), to select port 3389, the "
                                      "standard port for RDP."));
+
+    if (m_pLabelSecurityMethod)
+        m_pLabelSecurityMethod->setText(tr("&Security Method:"));
+    if (m_pComboSecurityMethod)
+    {
+        for (int iIndex = 0; iIndex < m_pComboSecurityMethod->count(); ++iIndex)
+        {
+            const UIVRDESecurityMethod enmType = m_pComboSecurityMethod->itemData(iIndex).value<UIVRDESecurityMethod>();
+            m_pComboSecurityMethod->setItemText(iIndex, gpConverter->toString(enmType));
+        }
+        m_pComboSecurityMethod->setToolTip(tr("Selects the VRDP security method."));
+    }
 
     if (m_pLabelAuthMethod)
         m_pLabelAuthMethod->setText(tr("Authentication &Method:"));
@@ -263,12 +294,30 @@ void UIVRDESettingsEditor::prepareWidgets()
                     pLayoutRemoteDisplaySettings->addWidget(m_pEditorPort, 0, 1, 1, 2);
                 }
 
+                /* Prepare 'security method' label: */
+                m_pLabelSecurityMethod = new QLabel(m_pWidgetSettings);
+                if (m_pLabelSecurityMethod)
+                {
+                    m_pLabelSecurityMethod->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelSecurityMethod, 1, 0);
+                }
+                /* Prepare 'security method' combo: */
+                m_pComboSecurityMethod = new QComboBox(m_pWidgetSettings);
+                if (m_pComboSecurityMethod)
+                {
+                    if (m_pLabelSecurityMethod)
+                        m_pLabelSecurityMethod->setBuddy(m_pComboSecurityMethod);
+                    m_pComboSecurityMethod->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+
+                    pLayoutRemoteDisplaySettings->addWidget(m_pComboSecurityMethod, 1, 1, 1, 2);
+                }
+
                 /* Prepare 'auth type' label: */
                 m_pLabelAuthMethod = new QLabel(m_pWidgetSettings);
                 if (m_pLabelAuthMethod)
                 {
                     m_pLabelAuthMethod->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelAuthMethod, 1, 0);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelAuthMethod, 2, 0);
                 }
                 /* Prepare 'auth type' combo: */
                 m_pComboAuthType = new QComboBox(m_pWidgetSettings);
@@ -278,7 +327,7 @@ void UIVRDESettingsEditor::prepareWidgets()
                         m_pLabelAuthMethod->setBuddy(m_pComboAuthType);
                     m_pComboAuthType->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 
-                    pLayoutRemoteDisplaySettings->addWidget(m_pComboAuthType, 1, 1, 1, 2);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pComboAuthType, 2, 1, 1, 2);
                 }
 
                 /* Prepare 'timeout' label: */
@@ -286,7 +335,7 @@ void UIVRDESettingsEditor::prepareWidgets()
                 if (m_pLabelTimeout)
                 {
                     m_pLabelTimeout->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelTimeout, 2, 0);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelTimeout, 3, 0);
                 }
                 /* Prepare 'timeout' editor: */
                 m_pEditorTimeout = new QLineEdit(m_pWidgetSettings);
@@ -296,7 +345,7 @@ void UIVRDESettingsEditor::prepareWidgets()
                         m_pLabelTimeout->setBuddy(m_pEditorTimeout);
                     m_pEditorTimeout->setValidator(new QIntValidator(this));
 
-                    pLayoutRemoteDisplaySettings->addWidget(m_pEditorTimeout, 2, 1, 1, 2);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pEditorTimeout, 3, 1, 1, 2);
                 }
 
                 /* Prepare 'options' label: */
@@ -304,12 +353,12 @@ void UIVRDESettingsEditor::prepareWidgets()
                 if (m_pLabelOptions)
                 {
                     m_pLabelOptions->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelOptions, 3, 0);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pLabelOptions, 4, 0);
                 }
                 /* Prepare 'multiple connections' check-box: */
                 m_pCheckboxMultipleConnections = new QCheckBox(m_pWidgetSettings);
                 if (m_pCheckboxMultipleConnections)
-                    pLayoutRemoteDisplaySettings->addWidget(m_pCheckboxMultipleConnections, 3, 1);
+                    pLayoutRemoteDisplaySettings->addWidget(m_pCheckboxMultipleConnections, 4, 1);
             }
 
             pLayout->addWidget(m_pWidgetSettings, 1, 1, 1, 2);
@@ -329,6 +378,32 @@ void UIVRDESettingsEditor::prepareConnections()
         connect(m_pEditorPort, &QLineEdit::textChanged, this, &UIVRDESettingsEditor::sigChanged);
     if (m_pEditorTimeout)
         connect(m_pEditorTimeout, &QLineEdit::textChanged, this, &UIVRDESettingsEditor::sigChanged);
+}
+
+void UIVRDESettingsEditor::repopulateComboSecurityMethod()
+{
+    if (m_pComboSecurityMethod)
+    {
+        /* Clear combo first of all: */
+        m_pComboSecurityMethod->clear();
+
+        QVector<UIVRDESecurityMethod> securityMethods = QVector<UIVRDESecurityMethod>() << UIVRDESecurityMethod_TLS
+                                                                                        << UIVRDESecurityMethod_RDP
+                                                                                        << UIVRDESecurityMethod_Negotiate;
+
+        /* Take into account currently cached value: */
+        if (!securityMethods.contains(m_enmSecurityMethod))
+            securityMethods.prepend(m_enmSecurityMethod);
+
+        /* Populate combo finally: */
+        foreach (const UIVRDESecurityMethod &enmType, securityMethods)
+            m_pComboSecurityMethod->addItem(gpConverter->toString(enmType), QVariant::fromValue(enmType));
+
+        /* Look for proper index to choose: */
+        const int iIndex = m_pComboSecurityMethod->findData(QVariant::fromValue(m_enmSecurityMethod));
+        if (iIndex != -1)
+            m_pComboSecurityMethod->setCurrentIndex(iIndex);
+    }
 }
 
 void UIVRDESettingsEditor::repopulateComboAuthType()

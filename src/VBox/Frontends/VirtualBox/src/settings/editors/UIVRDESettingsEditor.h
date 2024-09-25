@@ -44,6 +44,16 @@ class QLabel;
 class QLineEdit;
 class QWidget;
 
+/** VRDE Security Methods. */
+enum UIVRDESecurityMethod
+{
+    UIVRDESecurityMethod_TLS,
+    UIVRDESecurityMethod_RDP,
+    UIVRDESecurityMethod_Negotiate,
+    UIVRDESecurityMethod_Max
+};
+Q_DECLARE_METATYPE(UIVRDESecurityMethod);
+
 /** UIEditor sub-class used as a VRDE settings editor. */
 class SHARED_LIBRARY_STUFF UIVRDESettingsEditor : public UIEditor
 {
@@ -72,6 +82,11 @@ public:
     /** Returns port. */
     QString port() const;
 
+    /** Defines security @a enmMethod. */
+    void setSecurityMethod(const UIVRDESecurityMethod &enmMethod);
+    /** Returns security method. */
+    UIVRDESecurityMethod securityMethod() const;
+
     /** Defines auth @a enmType. */
     void setAuthType(const KAuthType &enmType);
     /** Returns auth type. */
@@ -86,7 +101,6 @@ public:
     void setMultipleConnectionsAllowed(bool fAllowed);
     /** Returns whether multiple connections allowed. */
     bool isMultipleConnectionsAllowed() const;
-
 
 private slots:
 
@@ -105,21 +119,25 @@ private:
     /** Prepares connections. */
     void prepareConnections();
 
+    /** Repopulates security method combo-box. */
+    void repopulateComboSecurityMethod();
     /** Repopulates auth type combo-box. */
     void repopulateComboAuthType();
 
     /** @name Values
      * @{ */
         /** Holds whether feature is enabled. */
-        bool       m_fFeatureEnabled;
+        bool                  m_fFeatureEnabled;
         /** Holds the port. */
-        QString    m_strPort;
+        QString               m_strPort;
+        /** Holds the security method. */
+        UIVRDESecurityMethod  m_enmSecurityMethod;
         /** Holds the auth type. */
-        KAuthType  m_enmAuthType;
+        KAuthType             m_enmAuthType;
         /** Holds the timeout. */
-        QString    m_strTimeout;
+        QString               m_strTimeout;
         /** Returns whether multiple connections allowed. */
-        bool       m_fMultipleConnectionsAllowed;
+        bool                  m_fMultipleConnectionsAllowed;
     /** @} */
 
     /** @name Widgets
@@ -132,9 +150,13 @@ private:
         QLabel    *m_pLabelPort;
         /** Holds the port editor instance. */
         QLineEdit *m_pEditorPort;
-        /** Holds the port auth method label instance. */
+        /** Holds the security method label instance. */
+        QLabel    *m_pLabelSecurityMethod;
+        /** Holds the security method combo instance. */
+        QComboBox *m_pComboSecurityMethod;
+        /** Holds the auth method label instance. */
         QLabel    *m_pLabelAuthMethod;
-        /** Holds the port auth method combo instance. */
+        /** Holds the auth method combo instance. */
         QComboBox *m_pComboAuthType;
         /** Holds the timeout label instance. */
         QLabel    *m_pLabelTimeout;

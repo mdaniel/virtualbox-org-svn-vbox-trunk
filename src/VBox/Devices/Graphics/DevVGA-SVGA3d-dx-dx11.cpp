@@ -2618,11 +2618,19 @@ static int vmsvga3dBackSurfaceCreateTexture(PVGASTATECC pThisCC, PVMSVGA3DSURFAC
     else
         dxgiFormatDynamic = dxgiFormatTypeless;
 
+    UINT const BindFlags = dxBindFlags(pSurface->f.surfaceFlags);
+
     /*
      * Create D3D11 texture object.
+     *
+     * No initial data for multisample resources.
+     * On NVidia the host driver does not allow initial data for large textures with D3D11_BIND_DECODER flag.
      */
     D3D11_SUBRESOURCE_DATA *paInitialData = NULL;
-    if (pSurface->paMipmapLevels[0].pSurfaceData && pSurface->surfaceDesc.multisampleCount <= 1)
+    if (   pSurface->paMipmapLevels[0].pSurfaceData
+        && pSurface->surfaceDesc.multisampleCount <= 1
+        && (BindFlags & D3D11_BIND_DECODER) == 0
+       )
     {
         /* Can happen for a non GBO surface or if GBO texture was updated prior to creation of the hardware resource. */
         uint32_t const cSubresource = numMipLevels * pSurface->surfaceDesc.numArrayElements;
@@ -11385,13 +11393,7 @@ static int dxGetVideoCapDecodeProfile(PVGASTATECC pThisCC, DXDEVICE *pDXDevice, 
     UINT ProfileCount = pDXDevice->pVideoDevice->GetVideoDecoderProfileCount();
     ProfileCount = RT_MIN(ProfileCount, cbData / sizeof(paDecodeProfileInfo[0]));
 
-#ifndef DEBUG_sunlover
-    /** @todo Allocation of video decoder output texture often fails on NVidia. Disable video decoding for now. */
-    if (pThisCC->svga.p3dState->pBackend->VendorId == 0x10de)
-        ProfileCount = 0;
-#else
     RT_NOREF(pThisCC);
-#endif
 
     for (UINT i = 0; i < ProfileCount; ++i)
     {

@@ -2737,15 +2737,15 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
         if (RT_SUCCESS(vrcGuest))
         {
             vrc = guestProc.wait(&vrcGuest);
-            /** @todo Linux Guest Additions terminate VBoxService when updating (via uninstall.sh),
-             *        which in turn terminates the Guest Control session this updater task was relying on.
-             *        This leads into a VERR_NOT_FOUND error, as the Guest Session is not around anymore.
-             *        Fend this off for now, but needs a clean(er) solution long-term. See @bugref{10776}. */
-            if (vrc == VERR_NOT_FOUND)
+            if (RT_SUCCESS(vrc))
+                vrc = guestProc.getTerminationStatus();
+            else if (vrc == VERR_NOT_FOUND)
+                /** @todo Linux Guest Additions terminate VBoxService when updating (via uninstall.sh),
+                 *        which in turn terminates the Guest Control session this updater task was relying on.
+                 *        This leads into a VERR_NOT_FOUND error, as the Guest Session is not around anymore.
+                 *        Fend this off for now, but needs a clean(er) solution long-term. See @bugref{10776}. */
                 vrc = VINF_SUCCESS;
         }
-        if (RT_SUCCESS(vrc))
-            vrc = guestProc.getTerminationStatus();
     }
 
     if (   RT_FAILURE(vrc)
@@ -3375,20 +3375,11 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                     {
                         if (pSession->i_isTerminated())
                         {
-                            ComObjPtr<GuestSession> pNewSession;
-
                             LogRel(("Guest Additions Update: Old guest session has terminated, waiting updated guest services to start\n"));
 
-                            /* Wait for VBoxService to restart. */
-                            vrc = waitForGuestSession(pSession->i_getParent(), osType, pNewSession);
-                            if (RT_SUCCESS(vrc))
-                            {
-                                hrc = pNewSession->i_directoryRemove(strUpdateDir, DIRREMOVEREC_FLAG_RECURSIVE | DIRREMOVEREC_FLAG_CONTENT_AND_DIR, &vrc);
-                                LogRel(("Cleanup Guest Additions update directory '%s', hrc=%Rrc, vrc=%Rrc\n",
-                                        strUpdateDir.c_str(), hrc, vrc));
-                                pNewSession->Close();
-                            }
-                            else
+                            /* Wait for VBoxService to restart and re-establish guest session. */
+                            vrc = waitForGuestSession(pSession->i_getParent(), osType, pSession);
+                            if (RT_FAILURE(vrc))
                                 hrc = setUpdateErrorMsg(VBOX_E_IPRT_ERROR,
                                                         Utf8StrFmt(tr("Guest services were not restarted, please reinstall Guest Additions manually")));
                         }
@@ -3399,6 +3390,14 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                                                     Utf8StrFmt(tr("Old guest session is still active, guest services were not restarted "
                                                                   "after installation, please reinstall Guest Additions manually")));
                         }
+                    }
+
+                    /* Remove temporary update files on the guest side before reporting completion. */
+                    if (!pSession->i_isTerminated())
+                    {
+                        hrc = pSession->i_directoryRemove(strUpdateDir, DIRREMOVEREC_FLAG_RECURSIVE | DIRREMOVEREC_FLAG_CONTENT_AND_DIR, &vrc);
+                        LogRel(("Cleanup Guest Additions update directory '%s', hrc=%Rrc, vrc=%Rrc\n",
+                                strUpdateDir.c_str(), hrc, vrc));
                     }
 
                     if (RT_SUCCESS(vrc))

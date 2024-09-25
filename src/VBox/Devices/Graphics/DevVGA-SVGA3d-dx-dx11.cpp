@@ -2671,7 +2671,7 @@ static int vmsvga3dBackSurfaceCreateTexture(PVGASTATECC pThisCC, PVMSVGA3DSURFAC
         td.SampleDesc.Count   = 1;
         td.SampleDesc.Quality = 0;
         td.Usage              = D3D11_USAGE_DEFAULT;
-        td.BindFlags          = dxBindFlags(pSurface->f.surfaceFlags);
+        td.BindFlags          = BindFlags;
         td.CPUAccessFlags     = 0; /** @todo */
         td.MiscFlags          = MiscFlags | D3D11_RESOURCE_MISC_TEXTURECUBE; /** @todo */
         if (   numMipLevels > 1
@@ -2725,7 +2725,7 @@ static int vmsvga3dBackSurfaceCreateTexture(PVGASTATECC pThisCC, PVMSVGA3DSURFAC
         td.ArraySize          = pSurface->surfaceDesc.numArrayElements;
         td.Format             = dxgiFormat;
         td.Usage              = D3D11_USAGE_DEFAULT;
-        td.BindFlags          = dxBindFlags(pSurface->f.surfaceFlags);
+        td.BindFlags          = BindFlags;
         td.CPUAccessFlags     = 0;
         td.MiscFlags          = MiscFlags; /** @todo */
         if (   numMipLevels > 1
@@ -2783,7 +2783,7 @@ static int vmsvga3dBackSurfaceCreateTexture(PVGASTATECC pThisCC, PVMSVGA3DSURFAC
             td.MipLevels          = numMipLevels;
             td.Format             = dxgiFormat;
             td.Usage              = D3D11_USAGE_DEFAULT;
-            td.BindFlags          = dxBindFlags(pSurface->f.surfaceFlags);
+            td.BindFlags          = BindFlags;
             td.CPUAccessFlags     = 0; /** @todo */
             td.MiscFlags          = MiscFlags; /** @todo */
             if (   numMipLevels > 1
@@ -2840,7 +2840,7 @@ static int vmsvga3dBackSurfaceCreateTexture(PVGASTATECC pThisCC, PVMSVGA3DSURFAC
             td.SampleDesc.Count   = pSurface->surfaceDesc.multisampleCount;
             td.SampleDesc.Quality = 0;
             td.Usage              = D3D11_USAGE_DEFAULT;
-            td.BindFlags          = dxBindFlags(pSurface->f.surfaceFlags);
+            td.BindFlags          = BindFlags;
             td.CPUAccessFlags     = 0; /** @todo */
             td.MiscFlags          = MiscFlags; /** @todo */
             if (   numMipLevels > 1

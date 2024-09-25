@@ -392,14 +392,14 @@ VBOXINSTALLHELPER_EXPORT VBoxTrayShowBallonMsg(HWND hwndParent, int string_size,
                 VBOXTRAY_IPC_HDR_MAGIC,
                 VBOXTRAY_IPC_HDR_VERSION,
                 VBOXTRAYIPCMSGTYPE_SHOW_BALLOON_MSG,
-                cbPayload
+                (uint32_t)cbPayload
             };
 
             /*
              * Convert the parametes and put them into the payload structure.
              */
-            pPayload->cchMsg   = cchMsg;
-            pPayload->cchTitle = cchTitle;
+            pPayload->cchMsg   = (uint32_t)cchMsg;
+            pPayload->cchTitle = (uint32_t)cchTitle;
             char *psz = &pPayload->szzStrings[0];
             int rc = RTUtf16ToUtf8Ex(pMsgEntry->text, RTSTR_MAX, &psz, cchMsg + 1, NULL);
             if (RT_SUCCESS(rc))
@@ -548,7 +548,7 @@ VBOXINSTALLHELPER_EXPORT DumpLog(HWND hWndParent, int string_size, WCHAR *variab
                                 int rc = RTUtf16ToUtf8(pwszBuf, &pszUtf8);
                                 if (RT_SUCCESS(rc))
                                 {
-                                    WriteFile(hFile, pszUtf8, strlen(pszUtf8), &dwIgn, NULL);
+                                    WriteFile(hFile, pszUtf8, (DWORD)strlen(pszUtf8), &dwIgn, NULL);
                                     if (fNeedsNewline)
                                         WriteFile(hFile, RT_STR_TUPLE("\r\n"), &dwIgn, NULL);
                                     RTStrFree(pszUtf8);

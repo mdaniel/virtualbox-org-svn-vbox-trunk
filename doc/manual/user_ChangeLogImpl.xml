@@ -81,7 +81,7 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
-       <para>GUI: Added multiple window layout and translation related fixes</para>
+        <para>GUI: Added multiple window layout and translation related fixes</para>
       </listitem>
 
       <listitem>
@@ -90,56 +90,56 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>GUI: Added an option to change the remote display security method</para>
+        <para>GUI: Added an option to change the remote display security method</para>
       </listitem>
 
       <listitem>
-       <para>GUI: Removed the BETA label from the macOS/Arm UI</para>
+        <para>GUI: Removed the BETA label from the macOS/Arm UI</para>
       </listitem>
 
       <listitem>
-       <para>NAT: Fixed slow performance on Windows host (bugs #22164 and #22180)</para>
+        <para>NAT: Fixed slow performance on Windows host (bugs #22164 and #22180)</para>
       </listitem>
 
       <listitem>
-       <para>NAT: Fixed DHCP problems with certain guests when domain is empty</para>
+        <para>NAT: Fixed DHCP problems with certain guests when domain is empty</para>
       </listitem>
 
       <listitem>
-       <para>3D: Fixed enabling 3D acceleration in the VM settings</para>
+        <para>3D: Fixed enabling 3D acceleration in the VM settings</para>
       </listitem>
 
       <listitem>
-       <para>3D: Fixed black screen with Windows VMs</para>
+        <para>3D: Fixed black screen with Windows VMs</para>
       </listitem>
 
       <listitem>
-       <para>3D: Fixed rendering issues caused by incorrect view handling</para>
+        <para>3D: Fixed rendering issues caused by incorrect view handling</para>
       </listitem>
 
       <listitem>
-       <para>3D: Added possibility to enable 3D acceleration function for Arm platform VMs</para>
+        <para>3D: Added possibility to enable 3D acceleration function for Arm platform VMs</para>
       </listitem>
 
       <listitem>
-       <para>GCM: Fixed problem with loading saved state created by 7.0.x</para>
+        <para>GCM: Fixed problem with loading saved state created by 7.0.x</para>
       </listitem>
 
       <listitem>
-       <para>API: Fixed an issue with incorrect handling of NVRAM state with legacy BIOS
-         and its removal on VM deletion</para>
+        <para>API: Fixed an issue with incorrect handling of NVRAM state with legacy BIOS
+          and its removal on VM deletion</para>
       </listitem>
 
       <listitem>
-       <para>API: Fixed UEFI Secure Boot state querying when the VM was never started</para>
+        <para>API: Fixed UEFI Secure Boot state querying when the VM was never started</para>
       </listitem>
 
       <listitem>
-       <para>Guest Additions: Fixed error message on automatic upgrading</para>
+        <para>Guest Additions: Fixed error message on automatic upgrading</para>
       </listitem>
 
       <listitem>
-       <para>SDK: Fixed building code using the XPCOM bindings (bug #22174)</para>
+        <para>SDK: Fixed building code using the XPCOM bindings (bug #22174)</para>
       </listitem>
 
     </itemizedlist>
@@ -218,7 +218,7 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>virtio-net: Follow up fixes for FreeBSD 12.3 and pfSense 2.6.0 (bug #21201)</para>
+        <para>virtio-net: Follow up fixes for FreeBSD 12.3 and pfSense 2.6.0 (bug #21201)</para>
       </listitem>
 
       <listitem>

@@ -85,15 +85,11 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>GUI: Improve keyboard shortcuts in VM settings window</para>
-      </listitem>
-
-      <listitem>
        <para>GUI: On VM removal delete all VM files for VMs created using Unattended Install</para>
       </listitem>
 
       <listitem>
-       <para>GUI: Fixed enabling 3D acceleration in the VM settings</para>
+       <para>GUI: Added VM settings remote display security method option</para>
       </listitem>
 
       <listitem>
@@ -106,6 +102,10 @@ Rules for adding a changelog entry to make them look more uniform:
 
       <listitem>
        <para>NAT: Fixed DHCP problems with certain guests when domain is empty</para>
+      </listitem>
+
+      <listitem>
+       <para>3D: Fixed enabling 3D acceleration in the VM settings</para>
       </listitem>
 
       <listitem>

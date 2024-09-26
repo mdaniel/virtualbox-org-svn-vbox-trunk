@@ -81,11 +81,12 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
-       <para>GUI: Multiple window layout and translation related fixes</para>
+       <para>GUI: Added multiple window layout and translation related fixes</para>
       </listitem>
 
       <listitem>
-       <para>GUI: On VM removal delete all VM files for VMs created using Unattended Install</para>
+       <para>GUI: Fixed an issue when temporary files were abandoned on VM removal
+         for VMs which were created using Unattended Install feature</para>
       </listitem>
 
       <listitem>
@@ -117,7 +118,7 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>3D: Allow enabling for Arm platform VMs</para>
+       <para>3D: Added possibility to enable 3D acceleration function for Arm platform VMs</para>
       </listitem>
 
       <listitem>
@@ -125,7 +126,8 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>API: Correctly handle NVRAM state with legacy BIOS and remove it on VM deletion</para>
+       <para>API: Fixed an issue with incorrect handling of NVRAM state with legacy BIOS
+         and its removal on VM deletion</para>
       </listitem>
 
       <listitem>

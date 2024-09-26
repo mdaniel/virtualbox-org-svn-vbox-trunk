@@ -2929,7 +2929,7 @@ template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIVR
     QString strResult;
     switch (enmSecurityMethod)
     {
-        case UIVRDESecurityMethod_TLS:       strResult = QString(); break;
+        case UIVRDESecurityMethod_TLS:       strResult = QString("TLS"); break;
         case UIVRDESecurityMethod_RDP:       strResult = QString("RDP"); break;
         case UIVRDESecurityMethod_Negotiate: strResult = QString("NEGOTIATE"); break;
         default:

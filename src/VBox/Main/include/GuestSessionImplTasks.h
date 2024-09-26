@@ -382,8 +382,9 @@ public:
 
     UpdateAdditionsStartupInfo(void)
     {
-        /* We want to have stdout / stderr handled by default for update processes. */
-        mFlags = ProcessCreateFlag_WaitForStdOut | ProcessCreateFlag_WaitForStdErr;
+        /* We want to have stdout / stderr handled by default for update processes
+         * (disabled as a workaround for #10776). */
+        mFlags = ProcessCreateFlag_None;
     }
 };
 

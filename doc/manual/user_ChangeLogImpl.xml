@@ -85,12 +85,12 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>GUI: Fixed an issue when temporary files were abandoned on VM removal
-         for VMs which were created using Unattended Install feature</para>
+       <para>GUI: Fixed an issue that meant VMs created using Unattended Install
+         were not removed cleanly</para>
       </listitem>
 
       <listitem>
-       <para>GUI: Added VM settings remote display security method option</para>
+       <para>GUI: Added an option to change the remote display security method</para>
       </listitem>
 
       <listitem>

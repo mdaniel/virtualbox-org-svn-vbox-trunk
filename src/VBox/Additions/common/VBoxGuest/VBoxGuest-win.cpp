@@ -47,6 +47,7 @@
 
 #include <iprt/asm.h>
 #include <iprt/asm-amd64-x86.h>
+#include <iprt/buildconfig.h>
 #include <iprt/critsect.h>
 #include <iprt/dbg.h>
 #include <iprt/err.h>
@@ -340,9 +341,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
     BOOLEAN fCheckedBuild = PsGetVersion(&ulMajorVer, &ulMinorVer, &ulBuildNo, NULL);
 
     /* Use RTLogBackdoorPrintf to make sure that this goes to VBox.log on the host. */
-    RTLogBackdoorPrintf("VBoxGuest: Windows version %u.%u, build %u\n", ulMajorVer, ulMinorVer, ulBuildNo);
-    if (fCheckedBuild)
-        RTLogBackdoorPrintf("VBoxGuest: Windows checked build\n");
+    RTLogBackdoorPrintf("VBoxGuest: %s r%s Windows version %u.%u, build %u%s\n",
+                        RTBldCfgVersion(), RTBldCfgRevisionStr(), ulMajorVer, ulMinorVer, ulBuildNo,
+                        fCheckedBuild ? ", checked build" : "");
 
 #ifdef VBOX_STRICT
     vgdrvNtDoTests();

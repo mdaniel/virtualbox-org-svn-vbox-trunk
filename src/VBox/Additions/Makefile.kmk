@@ -406,7 +406,10 @@ ifndef VBOX_WITHOUT_ADDITIONS_ISO
 			, --chmod a+x:/$(substr $(spec), 1, $(expr $(pos =,$(spec)) - 1))) \
 		--volume-id="VBOXADDITIONS_$(VBOX_VERSION_STRING_RAW)_$(VBOX_SVN_REV)" \
 		--name-setup=joliet \
-		--volume-id="VBox_GAs_$(VBOX_VERSION_STRING_RAW)"
+		--volume-id="VBox_GAs_$(VBOX_VERSION_STRING_RAW)" \
+		--name-setup="iso+joliet" \
+		--publisher="$(VBOX_VENDOR)" \
+		--preparer="$(VBOX_VENDOR)"
 
  $(VBOX_PATH_ADDITIONS_ISO)/VBoxGuestAdditions.zip: $(VBOX_PATH_ADDITIONS_ISO)/VBoxGuestAdditions.iso
 	$(call MSG_L1,Zipping image $@)

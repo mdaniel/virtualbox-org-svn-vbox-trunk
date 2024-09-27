@@ -228,17 +228,10 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
  #       the Info.plist file goes into Resources.
  #
  if defined(VBOX_WITH_QTGUI) && !defined(VBOX_ONLY_SDK) && "$(KBUILD_TARGET)" == "darwin"
-  ifdef VBOX_WITH_QT6
-   include $(KBUILD_PATH)/units/qt6.kmk
-   VBOX_QT_FWRK_VER := A
-   VBOX_QT_PATH     := $(PATH_SDK_QT6)
-   VBOX_QT_PATH_LIB := $(PATH_SDK_QT6_LIB)
-  else
-   include $(KBUILD_PATH)/units/qt5.kmk
-   VBOX_QT_FWRK_VER := 5
-   VBOX_QT_PATH     := $(PATH_SDK_QT5)
-   VBOX_QT_PATH_LIB := $(PATH_SDK_QT5_LIB)
-  endif
+  include $(KBUILD_PATH)/units/qt6.kmk
+  VBOX_QT_FWRK_VER := A
+  VBOX_QT_PATH     := $(PATH_SDK_QT6)
+  VBOX_QT_PATH_LIB := $(PATH_SDK_QT6_LIB)
 
   INSTALLS += qt-bin
   qt-bin_INST = $(INST_VIRTUALBOX)Contents/
@@ -258,27 +251,15 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
   	$(VBOX_QT_PATH)/plugins/sqldrivers/libqsqlite$(SUFF_DLL)=>plugins/sqldrivers/libqsqlite$(SUFF_DLL) \
   	$(VBOX_QT_PATH)/plugins/styles/libqmacstyle$(SUFF_DLL)=>plugins/styles/libqmacstyle$(SUFF_DLL)
   ifdef VBOX_WITH_QT_DSYMS
-   ifndef VBOX_WITH_QT6
-    qt-bin_SOURCES += $(foreach qtplat, libqcocoa libqminimal libqoffscreen, \
-    		$(VBOX_QT_PATH)/plugins/platforms/$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/platforms/$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/platforms/$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)$(SUFF_DLL)=>plugins/platforms/$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)$(SUFF_DLL))
-    qt-bin_SOURCES += $(foreach qtsqldrv, libqsqlite, \
-    		$(VBOX_QT_PATH)/plugins/sqldrivers/$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/sqldrivers/$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/sqldrivers/$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)$(SUFF_DLL)=>plugins/sqldrivers/$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)$(SUFF_DLL))
-    qt-bin_SOURCES += $(foreach qtstyl, libqmacstyle, \
-    		$(VBOX_QT_PATH)/plugins/styles/$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/styles/$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/styles/$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)$(SUFF_DLL)=>plugins/styles/$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)$(SUFF_DLL))
-   else # qt6
-    qt-bin_SOURCES += $(foreach qtplat, qcocoa qminimal qoffscreen, \
-    		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat))
-    qt-bin_SOURCES += $(foreach qtsqldrv, qsqlite, \
-    		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv))
-    qt-bin_SOURCES += $(foreach qtstyl, qmacstyle, \
-    		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist \
-    		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl))
-   endif # qt6
+   qt-bin_SOURCES += $(foreach qtplat, qcocoa qminimal qoffscreen, \
+   		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat))
+   qt-bin_SOURCES += $(foreach qtsqldrv, qsqlite, \
+   		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv))
+   qt-bin_SOURCES += $(foreach qtstyl, qmacstyle, \
+   		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl))
   endif
   qt-bin_SYMLINKS = $(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
   		Frameworks/$(qtmod).framework/Versions/Current=>$(VBOX_QT_FWRK_VER) \
@@ -295,51 +276,28 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
   		"$(2)",) # HACK ALERT! Using $(source_type_prefix) to detect EXEC_SOURCES.
  else if defined(VBOX_WITH_QTGUI) && !defined(VBOX_ONLY_SDK) && (defined(VBOX_WITH_ORACLE_QT) || defined(VBOX_WITH_QT_PAYLOAD))
   # win x11
-  ifndef VBOX_WITH_QT6
-   include $(KBUILD_PATH)/units/qt5.kmk
-  else
-   include $(KBUILD_PATH)/units/qt6.kmk
-  endif
+  include $(KBUILD_PATH)/units/qt6.kmk
 
   INSTALLS += qt-bin
   qt-bin_MODE := 755
   qt-bin_INST  = $(INST_BIN)
 
   ifeq ($(KBUILD_TARGET),win)
-   ifndef VBOX_WITH_QT6
-    qt-bin_SOURCES = \
-    	$(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/bin/$(qtmod)$(SUFF_DLL)))
-    qt-bin_SOURCES += \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/plugins/platforms/qwindows$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qwindows$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/plugins/platforms/qminimal$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qminimal$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/plugins/platforms/qoffscreen$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qoffscreen$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/plugins/sqldrivers/qsqlite$(VBOX_QT_DBG)$(SUFF_DLL))=>sqldrivers/qsqlite$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT5)/plugins/styles/qwindowsvistastyle$(VBOX_QT_DBG)$(SUFF_DLL))=>styles/qwindowsvistastyle$(VBOX_QT_DBG)$(SUFF_DLL)
-    ifdef VBOX_WITH_QT_PDBS
-     qt-bin_SOURCES += $(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(wildcard $(PATH_SDK_QT5)/qt*/$(VBOX_PATH_QT_LIB)/$(qtmod).pdb))
-    endif
-   else # qt6
-    qt-bin_SOURCES = \
-    	$(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/bin/$(qtmod)$(SUFF_DLL)))
-    qt-bin_SOURCES += \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qwindows$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qwindows$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qminimal$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qminimal$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qoffscreen$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qoffscreen$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/sqldrivers/qsqlite$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>sqldrivers/qsqlite$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
-    	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/styles/qwindowsvistastyle$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>styles/qwindowsvistastyle$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL)
-    ifdef VBOX_WITH_QT_PDBS
-     qt-bin_SOURCES += $(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(wildcard $(PATH_SDK_QT6)/qt*/$(VBOX_PATH_QT_LIB)/$(qtmod).pdb))
-    endif
-   endif # qt6
+   qt-bin_SOURCES = \
+   	$(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/bin/$(qtmod)$(SUFF_DLL)))
+   qt-bin_SOURCES += \
+   	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qwindows$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qwindows$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
+   	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qminimal$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qminimal$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
+   	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/platforms/qoffscreen$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>platforms/qoffscreen$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
+   	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/sqldrivers/qsqlite$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>sqldrivers/qsqlite$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL) \
+   	$(call VBOX_RE_SIGN_DLL_FN,qt-bin,$(PATH_SDK_QT6)/plugins/styles/qwindowsvistastyle$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL))=>styles/qwindowsvistastyle$(VBOX_QT_POSTFIX)$(VBOX_QT_DBG)$(SUFF_DLL)
+   ifdef VBOX_WITH_QT_PDBS
+    qt-bin_SOURCES += $(foreach qtmod,$(VBOX_QT_MOD_NAMES),$(wildcard $(PATH_SDK_QT6)/qt*/$(VBOX_PATH_QT_LIB)/$(qtmod).pdb))
+   endif
 
   else # x11
-   ifndef VBOX_WITH_QT6
-    VBOX_QT_VERSION       := 5.15.2
-    VBOX_QT_VERSION_MAJOR := 5
-   else
-    VBOX_QT_VERSION       := 6.5.3
-    VBOX_QT_VERSION_MAJOR := 6
-   endif
+   VBOX_QT_VERSION       := 6.5.3
+   VBOX_QT_VERSION_MAJOR := 6
    ifdef VBOX_WITH_HARDENING
     # The wildcards are necessary to install the libs instead of the symlinks
     qt-bin_SOURCES = \

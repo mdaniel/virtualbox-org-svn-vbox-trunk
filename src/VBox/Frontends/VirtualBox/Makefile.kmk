@@ -106,9 +106,7 @@ VirtualBox_NAME           = VirtualBox
 VirtualBox_DEPS           = $(UICommon_0_OUTDIR)/include/COMWrappers
 VirtualBox_SDKS.win       = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
 VirtualBox_DEFS           =
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- VirtualBox_DEFS         += VBOX_IS_QT6_OR_LATER
-endif
+VirtualBox_DEFS          += VBOX_IS_QT6_OR_LATER
 VirtualBox_DEFS.debug     = VBOX_CHECK_STATE # QT_FATAL_ASSERT
 VirtualBox_DEFS.linux     = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
 VirtualBox_DEFS.solaris   = VBOX_WS_NIX
@@ -123,9 +121,8 @@ VirtualBox_DEFS.win       += VBOX_WITH_MASKED_SEAMLESS # VBOX_WITH_TRANSLUCENT_S
 ifdef VBOX_WITH_VMNET
  VirtualBox_DEFS.darwin += VBOX_WITH_VMNET
 endif
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- VirtualBox_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
-endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# VirtualBox_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
 VirtualBox_DEFS.win       += UNICODE QT_DLL
 # Sort alphabetically!
 VirtualBox_DEFS           += \
@@ -177,9 +174,7 @@ endif
 VirtualBoxVM_DEPS           = $(UICommon_0_OUTDIR)/include/COMWrappers
 VirtualBoxVM_SDKS.win       = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
 VirtualBoxVM_DEFS           = VBOX_RUNTIME_UI
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- VirtualBoxVM_DEFS         += VBOX_IS_QT6_OR_LATER
-endif
+VirtualBoxVM_DEFS          += VBOX_IS_QT6_OR_LATER
 VirtualBoxVM_DEFS.debug     = VBOX_CHECK_STATE # QT_FATAL_ASSERT
 VirtualBoxVM_DEFS.linux     = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
 VirtualBoxVM_DEFS.solaris   = VBOX_WS_NIX
@@ -194,9 +189,8 @@ VirtualBoxVM_DEFS.win       += VBOX_WITH_MASKED_SEAMLESS # VBOX_WITH_TRANSLUCENT
 ifdef VBOX_WITH_VMNET
  VirtualBoxVM_DEFS.darwin   += VBOX_WITH_VMNET
 endif
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- VirtualBoxVM_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
-endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# VirtualBoxVM_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
 VirtualBoxVM_DEFS.win       += UNICODE QT_DLL
 # Sort alphabetically!
 VirtualBoxVM_DEFS           += \
@@ -242,9 +236,7 @@ endif
 UICommon_TEMPLATE = VBoxQtGuiDll
 UICommon_NAME = UICommon
 UICommon_DEFS         = VBOX_GUI_LIBRARY
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- UICommon_DEFS       += VBOX_IS_QT6_OR_LATER
-endif
+UICommon_DEFS        += VBOX_IS_QT6_OR_LATER
 UICommon_DEFS.darwin  = VBOX_WS_MAC
 UICommon_DEFS.freebsd = VBOX_WS_NIX
 UICommon_DEFS.linux   = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
@@ -254,9 +246,8 @@ UICommon_DEFS.debug   = VBOX_CHECK_STATE # QT_FATAL_ASSERT
 ifdef VBOX_WITH_VMNET
  UICommon_DEFS.darwin += VBOX_WITH_VMNET
 endif
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- UICommon_DEFS.darwin += VBOX_DARWIN_USE_NATIVE_CONTROLS
-endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# UICommon_DEFS.darwin += VBOX_DARWIN_USE_NATIVE_CONTROLS
 #UICommon_DEFS.win     += UNICODE QT_DLL
 # Sort alphabetically!
 UICommon_DEFS         += \

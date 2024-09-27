@@ -835,8 +835,6 @@ VBOX_WITH_QTGUI = 1
 ifeq ($(KBUILD_TARGET),darwin)
  VBOX_WITH_COCOA_QT = 1
 endif
-# Use Qt6 instead of Qt5.
-VBOX_WITH_QT6 := 1
 
 # VBox Ballooning Control frontend.
 VBOX_WITH_FE_BALLOONCTRL = 1
@@ -3953,11 +3951,7 @@ endif
 # Microsoft Visual C++.  We've been avoiding the native type for ever,
 # but now that is causing issues with Qt 6.x.
 #
-ifndef VBOX_WITH_QT6
- VBOX_VCC_WCHAR_T_VARIANT = -Zc:wchar_t-
-else
- VBOX_VCC_WCHAR_T_VARIANT = -Zc:wchar_t
-endif
+VBOX_VCC_WCHAR_T_VARIANT = -Zc:wchar_t
 
 
 #
@@ -7904,29 +7898,15 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
    endif
   else if1of ($(KBUILD_TARGET), win)
    ## @todo kBuild: Use qfilter[-out] here once kmk.exe is updated.
-   ifndef VBOX_WITH_QT6
-    VBOX_PATH_QT := $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v5*))
-    VBOX_PATH_QT := $(firstfile $(filter %-$(tolower $(VBOX_VCC_TOOL_STEM)),$(VBOX_PATH_QT)) \
-    		$(filter-out %-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(VBOX_PATH_QT)))
-    ifdef VBOX_PATH_QT
-     PATH_SDK_QT5  := $(VBOX_PATH_QT)
-     PATH_TOOL_QT5 := $(VBOX_PATH_QT)
-    endif
-   else # qt6
-    VBOX_PATH_QT := $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*))
-    VBOX_PATH_QT := $(firstfile $(filter %-$(tolower $(VBOX_VCC_TOOL_STEM)),$(VBOX_PATH_QT)) \
-    		$(filter-out %-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(VBOX_PATH_QT)))
-    ifdef VBOX_PATH_QT
-     PATH_SDK_QT6  := $(VBOX_PATH_QT)
-     PATH_TOOL_QT6 := $(VBOX_PATH_QT)
-    endif
-   endif # qt6
-  else if1of ($(KBUILD_TARGET), linux solaris)
-   ifndef VBOX_WITH_QT6
-    VBOX_PATH_QT ?= $(firstfile $(versortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v5*)))
-   else
-    VBOX_PATH_QT ?= $(firstfile $(versortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*)))
+   VBOX_PATH_QT := $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*))
+   VBOX_PATH_QT := $(firstfile $(filter %-$(tolower $(VBOX_VCC_TOOL_STEM)),$(VBOX_PATH_QT)) \
+   		$(filter-out %-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(VBOX_PATH_QT)))
+   ifdef VBOX_PATH_QT
+    PATH_SDK_QT6  := $(VBOX_PATH_QT)
+    PATH_TOOL_QT6 := $(VBOX_PATH_QT)
    endif
+  else if1of ($(KBUILD_TARGET), linux solaris)
+   VBOX_PATH_QT ?= $(firstfile $(versortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*)))
    ifneq ($(VBOX_PATH_QT),)
     VBOX_WITH_ORACLE_QT = 1
    endif
@@ -7936,7 +7916,7 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
  VBOX_PATH_QT_LIB ?= $(VBOX_PATH_QT)/lib
 
  ifdef VBOX_WITH_ORACLE_QT
-  if !defined(VBOX_WITH_QT6) || "$(KBUILD_TARGET)" != "darwin"
+  if "$(KBUILD_TARGET)" != "darwin"
    VBOX_QT_INFIX := VBox$(VBOX_QT_DBG)
   endif
   VBOX_QT_POSTFIX := VBox
@@ -7951,41 +7931,19 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
  endif
 
  ifeq ($(KBUILD_TARGET),darwin)
-  VBOX_QT_MOD := QtCore QtGui QtWidgets QtPrintSupport QtHelp QtNetwork QtSql
-  ifdef VBOX_WITH_QT6
-   VBOX_QT_MOD += QtStateMachine
-  else
-   VBOX_QT_MOD += QtMacExtras
-  endif
+  VBOX_QT_MOD := QtCore QtGui QtWidgets QtPrintSupport QtHelp QtNetwork QtSql QtStateMachine
  else if1of ($(KBUILD_TARGET), linux freebsd netbsd openbsd solaris win)
   if1of ($(KBUILD_TARGET), linux freebsd netbsd openbsd solaris)
-   ifndef VBOX_WITH_QT6
-    VBOX_QT_MOD += Qt5Core Qt5Gui Qt5Widgets Qt5PrintSupport $(if $(VBOX_GUI_USE_QGL),Qt5OpenGL,)
-    VBOX_QT_MOD += Qt5DBus Qt5Xml Qt5XcbQpa Qt5X11Extras Qt5Help Qt5Network Qt5Sql
-    VBOX_QT_PLUGINS = \
-    	plugins/platforms/libqxcb.so \
-    	plugins/platformthemes/libqgtk2.so \
-    	plugins/platformthemes/libqgtk3.so \
-    	plugins/sqldrivers/libqsqlite.so \
-    	plugins/styles/libqgtk2style.so \
-    	plugins/xcbglintegrations/libqxcb-glx-integration.so
-   else # qt6
-    VBOX_QT_MOD += Qt6Core Qt6Gui Qt6Widgets Qt6PrintSupport Qt6StateMachine
-    VBOX_QT_MOD += Qt6DBus Qt6Xml Qt6XcbQpa Qt6Help Qt6Network Qt6Sql
-    VBOX_QT_PLUGINS = \
-    	plugins/platforms/libqxcbVBox.so \
-    	plugins/platformthemes/libqgtk2VBox.so \
-    	plugins/platformthemes/libqgtk3VBox.so \
-    	plugins/sqldrivers/libqsqliteVBox.so \
-    	plugins/styles/libqgtk2styleVBox.so
-   endif # qt6
+   VBOX_QT_MOD += Qt6Core Qt6Gui Qt6Widgets Qt6PrintSupport Qt6StateMachine
+   VBOX_QT_MOD += Qt6DBus Qt6Xml Qt6XcbQpa Qt6Help Qt6Network Qt6Sql
+   VBOX_QT_PLUGINS = \
+   	plugins/platforms/libqxcbVBox.so \
+   	plugins/platformthemes/libqgtk2VBox.so \
+   	plugins/platformthemes/libqgtk3VBox.so \
+   	plugins/sqldrivers/libqsqliteVBox.so \
+   	plugins/styles/libqgtk2styleVBox.so
   else ifeq ($(KBUILD_TARGET),win)
-   ifndef VBOX_WITH_QT6
-    VBOX_QT_MOD += Qt5Core Qt5Gui Qt5Widgets Qt5PrintSupport $(if $(VBOX_GUI_USE_QGL),Qt5OpenGL,)
-    VBOX_QT_MOD += Qt5WinExtras Qt5Help Qt5Network Qt5Sql
-   else # qt6
-    VBOX_QT_MOD += Qt6Core Qt6Gui Qt6Widgets Qt6PrintSupport Qt6StateMachine Qt6Help Qt6Network Qt6Sql
-   endif # qt6
+   VBOX_QT_MOD += Qt6Core Qt6Gui Qt6Widgets Qt6PrintSupport Qt6StateMachine Qt6Help Qt6Network Qt6Sql
   endif # win
  endif # linux freebsd netbsd openbsd solaris win
 
@@ -8013,23 +7971,13 @@ ifdef VBOX_WITH_QTGUI
  # Template for building Qt GUI executables.
  #
  TEMPLATE_VBoxQtGuiExe = VBox Qt GUI Executable
- ifndef VBOX_WITH_QT6
-  TEMPLATE_VBoxQtGuiExe_USES    := qt5
-  TEMPLATE_VBoxQtGuiExe_QTTOOL  := QT5
-  TEMPLATE_VBoxQtGuiExe_MOCTOOL := QT5
-  TEMPLATE_VBoxQtGuiExe_UICTOOL := QT5
-  TEMPLATE_VBoxQtGuiExe_RCCTOOL := QT5
-  TEMPLATE_VBoxQtGuiExe_LRCTOOL := QT5
-  TEMPLATE_VBoxQtGuiExe_SDKS    := QT5
- else
-  TEMPLATE_VBoxQtGuiExe_USES    := qt6
-  TEMPLATE_VBoxQtGuiExe_QTTOOL  := QT6
-  TEMPLATE_VBoxQtGuiExe_MOCTOOL := QT6
-  TEMPLATE_VBoxQtGuiExe_UICTOOL := QT6
-  TEMPLATE_VBoxQtGuiExe_RCCTOOL := QT6
-  TEMPLATE_VBoxQtGuiExe_LRCTOOL := QT6
-  TEMPLATE_VBoxQtGuiExe_SDKS    := QT6
- endif
+ TEMPLATE_VBoxQtGuiExe_USES    := qt6
+ TEMPLATE_VBoxQtGuiExe_QTTOOL  := QT6
+ TEMPLATE_VBoxQtGuiExe_MOCTOOL := QT6
+ TEMPLATE_VBoxQtGuiExe_UICTOOL := QT6
+ TEMPLATE_VBoxQtGuiExe_RCCTOOL := QT6
+ TEMPLATE_VBoxQtGuiExe_LRCTOOL := QT6
+ TEMPLATE_VBoxQtGuiExe_SDKS    := QT6
  TEMPLATE_VBoxQtGuiExe_QT_INFIX = $(VBOX_QT_INFIX)
  TEMPLATE_VBoxQtGuiExe_DEFS = IN_RING3 QT_NO_DEBUG QT_THREAD_SUPPORT QT_SHARED HAVE_CONFIG_H $(ARCH_BITS_DEFS)
  TEMPLATE_VBoxQtGuiExe_RCDEFS = $(TEMPLATE_VBoxR3Exe_RCDEFS)
@@ -8155,9 +8103,7 @@ ifdef VBOX_WITH_QTGUI
   ifn1of ($(USERNAME), dsen serkan) # Bunch of stuff deprecated after 5.6.*. These guys knows how to deal with it. :)
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS += $(VBOX_GCC_Wno-deprecated-declarations)
   endif
-  ifdef VBOX_WITH_QT6
-   TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -std=gnu++17
-  endif
+  TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -std=gnu++17
   TEMPLATE_VBoxQtGuiExe_CXXFLAGS.x86 = -m32
   TEMPLATE_VBoxQtGuiExe_CXXFLAGS.amd64 = -m64
   TEMPLATE_VBoxQtGuiExe_CXXFLAGS.linux = -pthread
@@ -8176,9 +8122,7 @@ ifdef VBOX_WITH_QTGUI
   ifdef VBOX_WITH_NO_GCC_WARNING_POLICY
    TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS += $(VBOX_GCC_WERR)
   endif
-  ifdef VBOX_WITH_QT6
-   TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS += -std=gnu++17
-  endif
+  TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS += -std=gnu++17
   TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS.x86 = $(TEMPLATE_VBoxQtGuiExe_CXXFLAGS.x86)
   TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS.amd64 = $(TEMPLATE_VBoxQtGuiExe_CXXFLAGS.amd64)
   TEMPLATE_VBoxQtGuiExe_LDFLAGS = $(VBOX_GCC_SANITIZER_FLAGS) $(VBOX_GCC_SANITIZER_LDFLAGS)
@@ -8204,11 +8148,7 @@ ifdef VBOX_WITH_QTGUI
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS.darwin    += $(VBOX_DARWIN_DEF_SDK_CXXFLAGS)
    TEMPLATE_VBoxQtGuiExe_PCHFLAGS.darwin    += $(TEMPLATE_VBoxQtGuiExe_CXXFLAGS.darwin)
    TEMPLATE_VBoxQtGuiExe_OBJCFLAGS.darwin   += $(VBOX_DARWIN_DEF_SDK_OBJCFLAGS)
-   ifdef VBOX_WITH_QT6
-    TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS.darwin += $(VBOX_DARWIN_DEF_SDK_OBJCXXFLAGS)
-   else
-    TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS.darwin += $(VBOX_DARWIN_DEF_SDK_OBJCXXFLAGS)  $(VBOX_GCC_std)
-   endif
+   TEMPLATE_VBoxQtGuiExe_OBJCXXFLAGS.darwin += $(VBOX_DARWIN_DEF_SDK_OBJCXXFLAGS)
    TEMPLATE_VBoxQtGuiExe_LDFLAGS.darwin     += $(VBOX_DARWIN_DEF_SDK_LDFLAGS) -bind_at_load -Wl,-headerpad_max_install_names
    TEMPLATE_VBoxQtGuiExe_LIBS +=
    TEMPLATE_VBoxQtGuiExe_LIBPATH +=
@@ -8281,17 +8221,10 @@ ifdef VBOX_WITH_QTGUI
  endif # not darwin, os2 or win
 
  ifeq ($(KBUILD_TARGET),darwin)
-  ifndef VBOX_WITH_QT6
-   TEMPLATE_VBoxQtGuiExe_POST_CMDS = $(QUIET)install_name_tool $(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
-   		$(foreach prefix, @executable_path/../Frameworks/ $(VBOX_PATH_QT)/Frameworks/ $(PATH_SDK_QT5)/, \
-   			-change "$(prefix)$(qtmod).framework/Versions/5/$(qtmod)" \
-   			"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/5/$(qtmod)" ) ) "$(out)"
-  else
-   TEMPLATE_VBoxQtGuiExe_POST_CMDS = $(QUIET)install_name_tool $(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
-   		$(foreach prefix, @executable_path/../Frameworks/ $(VBOX_PATH_QT)/Frameworks/ $(PATH_SDK_QT6)/, \
-   			-change "$(prefix)$(qtmod).framework/Versions/A/$(qtmod)" \
-   			"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/A/$(qtmod)" ) ) "$(out)"
-  endif
+  TEMPLATE_VBoxQtGuiExe_POST_CMDS = $(QUIET)install_name_tool $(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
+  		$(foreach prefix, @executable_path/../Frameworks/ $(VBOX_PATH_QT)/Frameworks/ $(PATH_SDK_QT6)/, \
+  			-change "$(prefix)$(qtmod).framework/Versions/A/$(qtmod)" \
+  			"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/A/$(qtmod)" ) ) "$(out)"
  endif
 
  #
@@ -8323,13 +8256,8 @@ ifdef VBOX_WITH_NLS
  #
  TEMPLATE_VBoxNLS = VBox NLS template for installing translation files
  TEMPLATE_VBoxNLS_EXTENDS = VBoxR3Static
- ifndef VBOX_WITH_QT6
-  TEMPLATE_VBoxNLS_USES   := qt5
-  TEMPLATE_VBoxNLS_QTTOOL := QT5
- else
-  TEMPLATE_VBoxNLS_USES   := qt6
-  TEMPLATE_VBoxNLS_QTTOOL := QT6
- endif
+ TEMPLATE_VBoxNLS_USES   := qt6
+ TEMPLATE_VBoxNLS_QTTOOL := QT6
  TEMPLATE_VBoxNLS_QT_INFIX = $(VBOX_QT_INFIX)
  TEMPLATE_VBoxNLS_INSTTYPE = none
  TEMPLATE_VBoxNLS_LRCFLAGS += -silent

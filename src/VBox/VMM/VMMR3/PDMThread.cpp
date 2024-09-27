@@ -682,7 +682,7 @@ VMMR3DECL(int) PDMR3ThreadIAmSuspending(PPDMTHREAD pThread)
         }
     }
 
-    AssertLogRelMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
+    AssertLogRelMsgFailed(("rc=%d enmState=%d thread=%s\n", rc, pThread->enmState, RTThreadGetName(pThread->Thread)));
     pdmR3ThreadBailMeOut(pThread);
     return rc;
 }
@@ -718,7 +718,7 @@ VMMR3DECL(int) PDMR3ThreadIAmRunning(PPDMTHREAD pThread)
             return rc;
     }
 
-    AssertLogRelMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
+    AssertLogRelMsgFailed(("rc=%d enmState=%d thread=%s\n", rc, pThread->enmState, RTThreadGetName(pThread->Thread)));
     pdmR3ThreadBailMeOut(pThread);
     return rc;
 }

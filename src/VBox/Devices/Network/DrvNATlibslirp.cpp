@@ -465,8 +465,8 @@ static DECLCALLBACK(int) drvNATNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, siz
      */
     if (pThis->pSlirpThread->enmState != PDMTHREADSTATE_RUNNING)
     {
-        Log(("drvNATNetowrkUp_AllocBuf: returns VERR_NET_NO_NETWORK\n"));
-        return VERR_NET_NO_NETWORK;
+        Log(("drvNATNetowrkUp_AllocBuf: returns VERR_NET_DOWN\n"));
+        return VERR_NET_DOWN;
     }
 
     /*

@@ -682,7 +682,7 @@ VMMR3DECL(int) PDMR3ThreadIAmSuspending(PPDMTHREAD pThread)
         }
     }
 
-    AssertMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
+    AssertLogRelMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
     pdmR3ThreadBailMeOut(pThread);
     return rc;
 }
@@ -718,7 +718,7 @@ VMMR3DECL(int) PDMR3ThreadIAmRunning(PPDMTHREAD pThread)
             return rc;
     }
 
-    AssertMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
+    AssertLogRelMsgFailed(("rc=%d enmState=%d\n", rc, pThread->enmState));
     pdmR3ThreadBailMeOut(pThread);
     return rc;
 }
@@ -839,7 +839,11 @@ static DECLCALLBACK(int) pdmR3ThreadMain(RTTHREAD Thread, void *pvUser)
     }
 
     if (RT_FAILURE(rc))
-        LogRel(("PDMThread: Thread '%s' (%RTthrd) quit unexpectedly with rc=%Rrc.\n", RTThreadGetName(Thread), Thread, rc));
+        LogRel(("PDMThread: Thread '%s' (%RTthrd) quit unexpectedly with rc=%Rrc in state %d.\n",
+                RTThreadGetName(Thread), Thread, rc, pThread->enmState));
+    else if (pThread->enmState != PDMTHREADSTATE_TERMINATING)
+        LogRel(("PDMThread: Thread '%s' (%RTthrd) is quitting in state %d (expected %d).\n",
+                RTThreadGetName(Thread), Thread, pThread->enmState, PDMTHREADSTATE_TERMINATING));
 
     /*
      * Advance the state to terminating and then on to terminated.

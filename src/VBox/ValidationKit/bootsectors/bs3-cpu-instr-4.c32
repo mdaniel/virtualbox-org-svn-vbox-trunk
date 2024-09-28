@@ -11240,9 +11240,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
           { { /*src2     */ { FP32_0(0), FP32_RAND_V0(1), FP32_RAND_V1(0), FP32_RAND_V2(0), FP32_RAND_V7(0), FP32_RAND_V4(0), FP32_RAND_V5(0), FP32_RAND_V6(0) } },
             { /*src1     */ { FP32_0(1), FP32_RAND_V6(1), FP32_RAND_V5(0), FP32_RAND_V4(1), FP32_RAND_V7(0), FP32_RAND_V2(1), FP32_RAND_V1(0), FP32_RAND_V3(1) } },
             { /* =>      */ { FP32_0(0), FP32_RAND_V6(1), FP32_RAND_V5(0), FP32_RAND_V4(1), FP32_RAND_V7(0), FP32_RAND_V2(1), FP32_RAND_V1(0), FP32_RAND_V3(1) } },
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP32_0(1), FP32_RAND_V6(1), FP32_RAND_V5(1), FP32_RAND_V4(1), FP32_RAND_V3(1), FP32_RAND_V2(1), FP32_RAND_V1(1), FP32_RAND_V0(1) } },
             { /*src1     */ { FP32_0(0), FP32_RAND_V0(0), FP32_RAND_V1(1), FP32_RAND_V2(0), FP32_RAND_V7(1), FP32_RAND_V4(0), FP32_RAND_V5(1), FP32_RAND_V6(0) } },
@@ -11254,9 +11254,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
           { { /*src2     */ { FP32_0(1), FP32_RAND_V5(1), FP32_RAND_V3(0), FP32_RAND_V2(0), FP32_RAND_V3(1), FP32_RAND_V3(0), FP32_RAND_V4(1), FP32_RAND_V0(0) } },
             { /*src1     */ { FP32_0(0), FP32_RAND_V0(1), FP32_RAND_V1(1), FP32_RAND_V6(0), FP32_RAND_V7(1), FP32_RAND_V3(1), FP32_RAND_V5(1), FP32_RAND_V2(1) } },
             { /* =>      */ { FP32_0(1), FP32_RAND_V0(1), FP32_RAND_V1(1), FP32_RAND_V6(0), FP32_RAND_V7(1), FP32_RAND_V3(1), FP32_RAND_V5(1), FP32_RAND_V2(1) } },
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP32_0(1), FP32_RAND_V6(1), FP32_RAND_V5(1), FP32_RAND_V4(1), FP32_RAND_V3(1), FP32_RAND_V2(1), FP32_RAND_V1(1), FP32_RAND_V0(1) } },
             { /*src1     */ { FP32_0(1), FP32_RAND_V0(1), FP32_RAND_V1(0), FP32_RAND_V2(0), FP32_RAND_V7(0), FP32_RAND_V3(0), FP32_RAND_V6(1), FP32_RAND_V4(1) } },
@@ -11529,7 +11529,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
      */
     /*46*/{ { /*src2     */ { FP32_DENORM_MAX(0), FP32_RAND_V2(0), FP32_RAND_V7(1), FP32_RAND_V6(0), FP32_RAND_V2(0), FP32_RAND_V1(1), FP32_RAND_V7(0), FP32_RAND_V2(1) } },
             { /*src1     */ { FP32_0(0),          FP32_RAND_V3(0), FP32_RAND_V4(0), FP32_RAND_V5(1), FP32_RAND_V5(0), FP32_RAND_V6(1), FP32_RAND_V7(0), FP32_RAND_V1(1) } },
-            { /* =>      */ { FP32_0(0),          FP32_RAND_V3(1), FP32_RAND_V4(0), FP32_RAND_V5(1), FP32_RAND_V5(0), FP32_RAND_V6(1), FP32_RAND_V7(0), FP32_RAND_V1(1) } },
+            { /* =>      */ { FP32_DENORM_MAX(0), FP32_RAND_V3(0), FP32_RAND_V4(0), FP32_RAND_V5(1), FP32_RAND_V5(0), FP32_RAND_V6(1), FP32_RAND_V7(0), FP32_RAND_V1(1) } },
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_DE,
               /*256:out  */ X86_MXCSR_DE,
@@ -11637,7 +11637,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 

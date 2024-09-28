@@ -1442,9 +1442,9 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
           { { /*src2     */ { FP64_QNAN(0), FP64_QNAN_V(1, FP64_FRAC_NORM_MAX), FP64_NORM_V0(1),              FP64_QNAN_V(0, FP64_FRAC_V1) } },       \
             { /*src1     */ { FP64_1(0),    FP64_1(1),                          FP64_QNAN_V(1, FP64_FRAC_V0), FP64_NORM_V2(1)              } },       \
             { /* =>      */ { FP64_QNAN(0), FP64_QNAN_V(1, FP64_FRAC_NORM_MAX), FP64_NORM_V0(1),              FP64_QNAN_V(0, FP64_FRAC_V1) } },       \
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                                               \
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                                               \
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS,                                                                               \
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,                                                                                                      \
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                                                       \
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_IE,                                                                                       \
               /*xcpt?    */ false, false },                                                                                                           \
           { { /*src2     */ { FP64_SNAN(1), FP64_SNAN_V(1, FP64_FRAC_NORM_MAX), FP64_NORM_V0(1),              FP64_SNAN_V(0, FP64_FRAC_V1) } },       \
             { /*src1     */ { FP64_1(0),    FP64_1(0),                          FP64_SNAN_V(1, FP64_FRAC_V0), FP64_NORM_V2(1)              } },       \
@@ -1469,7 +1469,7 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
               /*xcpt?    */ true, true },                                                                                                             \
           { { /*src2     */ { FP64_SNAN(0), FP64_SNAN_V(0, FP64_FRAC_NORM_MIN), FP64_SNAN_V(0, FP64_FRAC_V1), FP64_SNAN_V(0, FP64_FRAC_V1) } },       \
             { /*src1     */ { FP64_QNAN(0), FP64_QNAN_V(0, FP64_FRAC_NORM_MAX), FP64_QNAN_V(0, FP64_FRAC_V2), FP64_QNAN_V(0, FP64_FRAC_V3) } },       \
-            { /* =>      */ { FP64_QNAN(0), FP64_QNAN_V(0, FP64_FRAC_NORM_MIN), FP64_QNAN_V(0, FP64_FRAC_V1), FP64_QNAN_V(0, FP64_FRAC_V1) } },       \
+            { /* =>      */ { FP64_SNAN(0), FP64_SNAN(0),                       FP64_QNAN_V(0, FP64_FRAC_V1), FP64_QNAN_V(0, FP64_FRAC_V1) } },       \
               /*mxcsr:in */ 0,                                                                                                                        \
               /*128:out  */ X86_MXCSR_IE,                                                                                                             \
               /*256:out  */ X86_MXCSR_IE,                                                                                                             \
@@ -11087,7 +11087,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
      */
     /*29*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0),          FP64_DENORM_MAX(0), FP64_0(0)         } },
             { /*src1     */ { FP64_0(0),          FP64_DENORM_MAX(1), FP64_0(0),          FP64_DENORM_MAX(1) } },
-            { /* =>      */ { FP64_0(0),          FP64_DENORM_MAX(1), FP64_0(0),          FP64_DENORM_MAX(1) } },
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0),          FP64_DENORM_MAX(0), FP64_0(0)          } },
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_DE,
               /*256:out  */ X86_MXCSR_DE,
@@ -11108,7 +11108,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0),          FP64_DENORM_MAX(0), FP64_0(0)          } },
             { /*src1     */ { FP64_0(0),          FP64_DENORM_MAX(0), FP64_0(0),          FP64_DENORM_MAX(0) } },
-            { /* =>      */ { FP64_0(0),          FP64_0(0),          FP64_0(0),          FP64_0(0)          } },
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_DENORM_MAX(0), FP64_DENORM_MAX(0), FP64_DENORM_MAX(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_DE,
               /*256:out  */ X86_MXCSR_DE,
@@ -11180,7 +11180,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -12738,7 +12738,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 

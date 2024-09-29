@@ -2474,32 +2474,30 @@ DECLINLINE(void) RTUInt128DivRemByU64(PRTUINT128U pQuotient, PRTUINT128U pRemain
  * MUL
  */
 # define EMIT_MUL_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnMul, a_Suffix, a_fIntelFlags) \
-IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_mul_u,a_cBitsWidth,a_Suffix), a_Args) \
+IEM_DECL_IMPL_DEF(uint32_t, RT_CONCAT3(iemAImpl_mul_u,a_cBitsWidth,a_Suffix), a_Args) \
 { \
     RTUINT ## a_cBitsWidth2x ## U Result; \
     a_fnMul(Result, a_fnLoadF1(), uFactor, a_cBitsWidth2x); \
     a_fnStore(Result); \
     \
     /* Calc EFLAGS: */ \
-    uint32_t fEfl = *pfEFlags; \
     if (a_fIntelFlags) \
     { /* Intel: 6700K and 10980XE behavior */ \
-        fEfl &= ~(X86_EFL_SF | X86_EFL_CF | X86_EFL_OF | X86_EFL_AF | X86_EFL_ZF | X86_EFL_PF); \
+        fEFlags &= ~(X86_EFL_SF | X86_EFL_CF | X86_EFL_OF | X86_EFL_AF | X86_EFL_ZF | X86_EFL_PF); \
         if (Result.s.Lo & RT_BIT_64(a_cBitsWidth - 1)) \
-            fEfl |= X86_EFL_SF; \
-        fEfl |= IEM_EFL_CALC_PARITY(Result.s.Lo); \
+            fEFlags |= X86_EFL_SF; \
+        fEFlags |= IEM_EFL_CALC_PARITY(Result.s.Lo); \
         if (Result.s.Hi != 0) \
-            fEfl |= X86_EFL_CF | X86_EFL_OF; \
+            fEFlags |= X86_EFL_CF | X86_EFL_OF; \
     } \
     else \
     { /* AMD: 3990X */ \
         if (Result.s.Hi != 0) \
-            fEfl |= X86_EFL_CF | X86_EFL_OF; \
+            fEFlags |= X86_EFL_CF | X86_EFL_OF; \
         else \
-            fEfl &= ~(X86_EFL_CF | X86_EFL_OF); \
+            fEFlags &= ~(X86_EFL_CF | X86_EFL_OF); \
     } \
-    *pfEFlags = fEfl; \
-    return 0; \
+    return fEFlags; \
 } \
 
 # define EMIT_MUL(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnMul) \
@@ -2508,14 +2506,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_mul_u,a_cBitsWidth,a_Suffix), a_Args)
     EMIT_MUL_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnMul, _amd,       0) \
 
 # ifndef DOXYGEN_RUNNING /* this totally confuses doxygen for some reason */
-EMIT_MUL(64, 128, (uint64_t *puA, uint64_t *puD, uint64_t uFactor, uint32_t *pfEFlags), (puA, puD, uFactor, pfEFlags),
+EMIT_MUL(64, 128, (uint64_t *puA, uint64_t *puD, uint64_t uFactor, uint32_t fEFlags), (puA, puD, uFactor, pfEFlags),
          MUL_LOAD_F1, MUL_STORE, MULDIV_MUL_U128)
 #  if !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY)
-EMIT_MUL(32, 64, (uint32_t *puA, uint32_t *puD, uint32_t uFactor, uint32_t *pfEFlags),  (puA, puD, uFactor, pfEFlags),
+EMIT_MUL(32, 64, (uint32_t *puA, uint32_t *puD, uint32_t uFactor, uint32_t fEFlags),  (puA, puD, uFactor, pfEFlags),
          MUL_LOAD_F1, MUL_STORE, MULDIV_MUL)
-EMIT_MUL(16, 32, (uint16_t *puA, uint16_t *puD, uint16_t uFactor, uint32_t *pfEFlags),  (puA, puD, uFactor, pfEFlags),
+EMIT_MUL(16, 32, (uint16_t *puA, uint16_t *puD, uint16_t uFactor, uint32_t fEFlags),  (puA, puD, uFactor, pfEFlags),
          MUL_LOAD_F1, MUL_STORE, MULDIV_MUL)
-EMIT_MUL(8, 16, (uint16_t *puAX, uint8_t uFactor, uint32_t *pfEFlags),                  (puAX,     uFactor, pfEFlags),
+EMIT_MUL(8, 16, (uint16_t *puAX, uint8_t uFactor, uint32_t fEFlags),                  (puAX,     uFactor, pfEFlags),
          MUL_LOAD_F1_U8, MUL_STORE_U8, MULDIV_MUL)
 #  endif /* !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY) */
 # endif /* !DOXYGEN_RUNNING */
@@ -2552,10 +2550,10 @@ EMIT_MULX(32, 64,  uint32_t, MULDIV_MUL, _fallback)
  */
 # define EMIT_IMUL_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnNeg, a_fnMul, \
                          a_Suffix, a_fIntelFlags) \
-IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args) \
+IEM_DECL_IMPL_DEF(uint32_t, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args) \
 { \
     RTUINT ## a_cBitsWidth2x ## U Result; \
-    uint32_t fEfl = *pfEFlags & ~(X86_EFL_CF | X86_EFL_OF); \
+    fEFlags &= ~(X86_EFL_CF | X86_EFL_OF); \
     \
     uint ## a_cBitsWidth ## _t const uFactor1 = a_fnLoadF1(); \
     if (!(uFactor1 & RT_BIT_64(a_cBitsWidth - 1))) \
@@ -2564,14 +2562,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args)
         { \
             a_fnMul(Result, uFactor1, uFactor2, a_cBitsWidth2x); \
             if (Result.s.Hi != 0 || Result.s.Lo >= RT_BIT_64(a_cBitsWidth - 1)) \
-                fEfl |= X86_EFL_CF | X86_EFL_OF; \
+                fEFlags |= X86_EFL_CF | X86_EFL_OF; \
         } \
         else \
         { \
             uint ## a_cBitsWidth ## _t const uPositiveFactor2 = UINT ## a_cBitsWidth ## _C(0) - uFactor2; \
             a_fnMul(Result, uFactor1, uPositiveFactor2, a_cBitsWidth2x); \
             if (Result.s.Hi != 0 || Result.s.Lo > RT_BIT_64(a_cBitsWidth - 1)) \
-                fEfl |= X86_EFL_CF | X86_EFL_OF; \
+                fEFlags |= X86_EFL_CF | X86_EFL_OF; \
             a_fnNeg(Result, a_cBitsWidth2x); \
         } \
     } \
@@ -2582,7 +2580,7 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args)
             uint ## a_cBitsWidth ## _t const uPositiveFactor1 = UINT ## a_cBitsWidth ## _C(0) - uFactor1; \
             a_fnMul(Result, uPositiveFactor1, uFactor2, a_cBitsWidth2x); \
             if (Result.s.Hi != 0 || Result.s.Lo > RT_BIT_64(a_cBitsWidth - 1)) \
-                fEfl |= X86_EFL_CF | X86_EFL_OF; \
+                fEFlags |= X86_EFL_CF | X86_EFL_OF; \
             a_fnNeg(Result, a_cBitsWidth2x); \
         } \
         else \
@@ -2591,20 +2589,19 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args)
             uint ## a_cBitsWidth ## _t const uPositiveFactor2 = UINT ## a_cBitsWidth ## _C(0) - uFactor2; \
             a_fnMul(Result, uPositiveFactor1, uPositiveFactor2, a_cBitsWidth2x); \
             if (Result.s.Hi != 0 || Result.s.Lo >= RT_BIT_64(a_cBitsWidth - 1)) \
-                fEfl |= X86_EFL_CF | X86_EFL_OF; \
+                fEFlags |= X86_EFL_CF | X86_EFL_OF; \
         } \
     } \
     a_fnStore(Result); \
     \
     if (a_fIntelFlags) \
     { \
-        fEfl &= ~(X86_EFL_AF | X86_EFL_ZF | X86_EFL_SF | X86_EFL_PF); \
+        fEFlags &= ~(X86_EFL_AF | X86_EFL_ZF | X86_EFL_SF | X86_EFL_PF); \
         if (Result.s.Lo & RT_BIT_64(a_cBitsWidth - 1)) \
-            fEfl |= X86_EFL_SF;  \
-        fEfl |= IEM_EFL_CALC_PARITY(Result.s.Lo & 0xff); \
+            fEFlags |= X86_EFL_SF;  \
+        fEFlags |= IEM_EFL_CALC_PARITY(Result.s.Lo & 0xff); \
     } \
-    *pfEFlags = fEfl; \
-    return 0; \
+    return fEFlags; \
 }
 # define EMIT_IMUL(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnNeg, a_fnMul) \
     EMIT_IMUL_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnNeg, a_fnMul, RT_NOTHING, 1) \
@@ -2612,14 +2609,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_imul_u,a_cBitsWidth,a_Suffix),a_Args)
     EMIT_IMUL_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoadF1, a_fnStore, a_fnNeg, a_fnMul, _amd,       0)
 
 # ifndef DOXYGEN_RUNNING /* this totally confuses doxygen for some reason */
-EMIT_IMUL(64, 128, (uint64_t *puA, uint64_t *puD, uint64_t uFactor2, uint32_t *pfEFlags), (puA, puD, uFactor2, pfEFlags),
+EMIT_IMUL(64, 128, (uint64_t *puA, uint64_t *puD, uint64_t uFactor2, uint32_t fEFlags), (puA, puD, uFactor2, pfEFlags),
           MUL_LOAD_F1, MUL_STORE, MULDIV_NEG_U128, MULDIV_MUL_U128)
 #  if !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY)
-EMIT_IMUL(32, 64, (uint32_t *puA, uint32_t *puD, uint32_t uFactor2, uint32_t *pfEFlags),  (puA, puD, uFactor2, pfEFlags),
+EMIT_IMUL(32, 64, (uint32_t *puA, uint32_t *puD, uint32_t uFactor2, uint32_t fEFlags),  (puA, puD, uFactor2, pfEFlags),
           MUL_LOAD_F1, MUL_STORE, MULDIV_NEG, MULDIV_MUL)
-EMIT_IMUL(16, 32, (uint16_t *puA, uint16_t *puD, uint16_t uFactor2, uint32_t *pfEFlags),  (puA, puD, uFactor2, pfEFlags),
+EMIT_IMUL(16, 32, (uint16_t *puA, uint16_t *puD, uint16_t uFactor2, uint32_t fEFlags),  (puA, puD, uFactor2, pfEFlags),
           MUL_LOAD_F1, MUL_STORE, MULDIV_NEG, MULDIV_MUL)
-EMIT_IMUL(8, 16, (uint16_t *puAX, uint8_t uFactor2, uint32_t *pfEFlags),                  (puAX,     uFactor2, pfEFlags),
+EMIT_IMUL(8, 16, (uint16_t *puAX, uint8_t uFactor2, uint32_t fEFlags),                  (puAX,     uFactor2, pfEFlags),
           MUL_LOAD_F1_U8, MUL_STORE_U8, MULDIV_NEG, MULDIV_MUL)
 #  endif /* !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY) */
 # endif /* !DOXYGEN_RUNNING */
@@ -2633,22 +2630,19 @@ EMIT_IMUL(8, 16, (uint16_t *puAX, uint8_t uFactor2, uint32_t *pfEFlags),        
 IEM_DECL_IMPL_DEF(uint32_t, iemAImpl_imul_two_u ## a_cBits,(uint32_t fEFlags, a_uType *puDst, a_uType uSrc)) \
 { \
     a_uType uIgn; \
-    iemAImpl_imul_u ## a_cBits(puDst, &uIgn, uSrc, &fEFlags); \
-    return fEFlags; \
+    return iemAImpl_imul_u ## a_cBits(puDst, &uIgn, uSrc, fEFlags); \
 } \
 \
 IEM_DECL_IMPL_DEF(uint32_t, iemAImpl_imul_two_u ## a_cBits ## _intel,(uint32_t fEFlags, a_uType *puDst, a_uType uSrc)) \
 { \
     a_uType uIgn; \
-    iemAImpl_imul_u ## a_cBits ## _intel(puDst, &uIgn, uSrc, &fEFlags); \
-    return fEFlags; \
+    return iemAImpl_imul_u ## a_cBits ## _intel(puDst, &uIgn, uSrc, fEFlags); \
 } \
 \
 IEM_DECL_IMPL_DEF(uint32_t, iemAImpl_imul_two_u ## a_cBits ## _amd,(uint32_t fEFlags, a_uType *puDst, a_uType uSrc)) \
 { \
     a_uType uIgn; \
-    iemAImpl_imul_u ## a_cBits ## _amd(puDst, &uIgn, uSrc, &fEFlags); \
-    return fEFlags; \
+    return iemAImpl_imul_u ## a_cBits ## _amd(puDst, &uIgn, uSrc, fEFlags); \
 }
 
 EMIT_IMUL_TWO(64, uint64_t)
@@ -2663,7 +2657,7 @@ EMIT_IMUL_TWO(16, uint16_t)
  */
 # define EMIT_DIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnDivRem, \
                         a_Suffix, a_fIntelFlags) \
-IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_div_u,a_cBitsWidth,a_Suffix),a_Args) \
+IEM_DECL_IMPL_DEF(uint32_t, RT_CONCAT3(iemAImpl_div_u,a_cBitsWidth,a_Suffix),a_Args) \
 { \
     RTUINT ## a_cBitsWidth2x ## U Dividend; \
     a_fnLoad(Dividend); \
@@ -2676,11 +2670,11 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_div_u,a_cBitsWidth,a_Suffix),a_Args) 
         \
         /* Calc EFLAGS: Intel 6700K and 10980XE leaves them alone.  AMD 3990X sets AF and clears PF, ZF and SF. */ \
         if (!a_fIntelFlags) \
-            *pfEFlags = (*pfEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
-        return 0; \
+            fEFlags = (fEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
+        return fEFlags; \
     } \
     /* #DE */ \
-    return -1; \
+    return 0; \
 }
 # define EMIT_DIV(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnDivRem) \
     EMIT_DIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnDivRem, RT_NOTHING, 1) \
@@ -2688,14 +2682,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_div_u,a_cBitsWidth,a_Suffix),a_Args) 
     EMIT_DIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnDivRem, _amd,       0)
 
 # ifndef DOXYGEN_RUNNING /* this totally confuses doxygen for some reason */
-EMIT_DIV(64,128,(uint64_t *puA, uint64_t *puD, uint64_t uDivisor, uint32_t *pfEFlags), (puA, puD, uDivisor, pfEFlags),
+EMIT_DIV(64,128,(uint64_t *puA, uint64_t *puD, uint64_t uDivisor, uint32_t fEFlags), (puA, puD, uDivisor, pfEFlags),
          DIV_LOAD, DIV_STORE, MULDIV_MODDIV_U128)
 #  if !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY)
-EMIT_DIV(32,64, (uint32_t *puA, uint32_t *puD, uint32_t uDivisor, uint32_t *pfEFlags), (puA, puD, uDivisor, pfEFlags),
+EMIT_DIV(32,64, (uint32_t *puA, uint32_t *puD, uint32_t uDivisor, uint32_t fEFlags), (puA, puD, uDivisor, pfEFlags),
          DIV_LOAD, DIV_STORE, MULDIV_MODDIV)
-EMIT_DIV(16,32, (uint16_t *puA, uint16_t *puD, uint16_t uDivisor, uint32_t *pfEFlags), (puA, puD, uDivisor, pfEFlags),
+EMIT_DIV(16,32, (uint16_t *puA, uint16_t *puD, uint16_t uDivisor, uint32_t fEFlags), (puA, puD, uDivisor, pfEFlags),
          DIV_LOAD, DIV_STORE, MULDIV_MODDIV)
-EMIT_DIV(8,16,  (uint16_t *puAX, uint8_t uDivisor, uint32_t *pfEFlags),                (puAX,     uDivisor, pfEFlags),
+EMIT_DIV(8,16,  (uint16_t *puAX, uint8_t uDivisor, uint32_t fEFlags),                (puAX,     uDivisor, pfEFlags),
          DIV_LOAD_U8, DIV_STORE_U8, MULDIV_MODDIV)
 #  endif /* !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY) */
 # endif /* !DOXYGEN_RUNNING */
@@ -2710,7 +2704,7 @@ EMIT_DIV(8,16,  (uint16_t *puAX, uint8_t uDivisor, uint32_t *pfEFlags),         
  */
 # define EMIT_IDIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnNeg, a_fnDivRem, \
                          a_Suffix, a_fIntelFlags) \
-IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args) \
+IEM_DECL_IMPL_DEF(uint32_t, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args) \
 { \
     /* Note! Skylake leaves all flags alone. */ \
     \
@@ -2747,8 +2741,8 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args)
                 { \
                     a_fnStore(Quotient.s.Lo, Remainder.s.Lo); \
                     if (!a_fIntelFlags) \
-                        *pfEFlags = (*pfEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
-                    return 0; \
+                        fEFlags = (fEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
+                    return fEFlags; \
                 } \
             } \
             else \
@@ -2758,8 +2752,8 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args)
                 { \
                     a_fnStore(UINT ## a_cBitsWidth ## _C(0) - Quotient.s.Lo, UINT ## a_cBitsWidth ## _C(0) - Remainder.s.Lo); \
                     if (!a_fIntelFlags) \
-                        *pfEFlags = (*pfEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
-                    return 0; \
+                        fEFlags = (fEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
+                    return fEFlags; \
                 } \
             } \
         } \
@@ -2772,8 +2766,8 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args)
                 { \
                     a_fnStore(UINT ## a_cBitsWidth ## _C(0) - Quotient.s.Lo, Remainder.s.Lo); \
                     if (!a_fIntelFlags) \
-                        *pfEFlags = (*pfEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
-                    return 0; \
+                        fEFlags = (fEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
+                    return fEFlags; \
                 } \
             } \
             else \
@@ -2783,14 +2777,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args)
                 { \
                     a_fnStore(Quotient.s.Lo, UINT ## a_cBitsWidth ## _C(0) - Remainder.s.Lo); \
                     if (!a_fIntelFlags) \
-                        *pfEFlags = (*pfEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
-                    return 0; \
+                        fEFlags = (fEFlags & ~(X86_EFL_PF | X86_EFL_ZF | X86_EFL_SF)) | X86_EFL_AF; \
+                    return fEFlags; \
                 } \
             } \
         } \
     } \
     /* #DE */ \
-    return -1; \
+    return 0; \
 }
 # define EMIT_IDIV(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnNeg, a_fnDivRem) \
      EMIT_IDIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnNeg, a_fnDivRem, RT_NOTHING, 1) \
@@ -2798,14 +2792,14 @@ IEM_DECL_IMPL_DEF(int, RT_CONCAT3(iemAImpl_idiv_u,a_cBitsWidth,a_Suffix),a_Args)
      EMIT_IDIV_INNER(a_cBitsWidth, a_cBitsWidth2x, a_Args, a_CallArgs, a_fnLoad, a_fnStore, a_fnNeg, a_fnDivRem, _amd,       0)
 
 # ifndef DOXYGEN_RUNNING /* this totally confuses doxygen for some reason */
-EMIT_IDIV(64,128,(uint64_t *puA, uint64_t *puD, uint64_t uDivisor, uint32_t *pfEFlags), (puA, puD, uDivisor, pfEFlags),
+EMIT_IDIV(64,128,(uint64_t *puA, uint64_t *puD, uint64_t uDivisor, uint32_t fEFlags), (puA, puD, uDivisor, pfEFlags),
           DIV_LOAD, DIV_STORE, MULDIV_NEG_U128, MULDIV_MODDIV_U128)
 #  if !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY)
-EMIT_IDIV(32,64,(uint32_t *puA, uint32_t *puD, uint32_t uDivisor, uint32_t *pfEFlags),  (puA, puD, uDivisor, pfEFlags),
+EMIT_IDIV(32,64,(uint32_t *puA, uint32_t *puD, uint32_t uDivisor, uint32_t fEFlags),  (puA, puD, uDivisor, pfEFlags),
           DIV_LOAD, DIV_STORE, MULDIV_NEG, MULDIV_MODDIV)
-EMIT_IDIV(16,32,(uint16_t *puA, uint16_t *puD, uint16_t uDivisor, uint32_t *pfEFlags),  (puA, puD, uDivisor, pfEFlags),
+EMIT_IDIV(16,32,(uint16_t *puA, uint16_t *puD, uint16_t uDivisor, uint32_t fEFlags),  (puA, puD, uDivisor, pfEFlags),
           DIV_LOAD, DIV_STORE, MULDIV_NEG, MULDIV_MODDIV)
-EMIT_IDIV(8,16,(uint16_t *puAX, uint8_t uDivisor, uint32_t *pfEFlags),                  (puAX,     uDivisor, pfEFlags),
+EMIT_IDIV(8,16,(uint16_t *puAX, uint8_t uDivisor, uint32_t fEFlags),                  (puAX,     uDivisor, pfEFlags),
           DIV_LOAD_U8, DIV_STORE_U8, MULDIV_NEG, MULDIV_MODDIV)
 #  endif /* !defined(RT_ARCH_X86) || defined(IEM_WITHOUT_ASSEMBLY) */
 # endif /* !DOXYGEN_RUNNING */

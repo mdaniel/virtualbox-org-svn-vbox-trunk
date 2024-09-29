@@ -2921,33 +2921,40 @@ iemNativeEmitMaybeRaiseAvxRelatedXcpt(PIEMRECOMPILERSTATE pReNative, uint32_t of
 }
 
 
-#define IEM_MC_RAISE_DIVIDE_ERROR() \
-    off = iemNativeEmitRaiseDivideError(pReNative, off, pCallEntry->idxInstr)
+#define IEM_MC_RAISE_DIVIDE_ERROR_IF_LOCAL_IS_ZERO(a_uVar) \
+    off = iemNativeEmitRaiseDivideErrorIfLocalIsZero(pReNative, off, a_uVar, pCallEntry->idxInstr)
 
 /**
- * Emits code to raise a \#DE.
+ * Emits code to raise a \#DE if a local variable is zero.
  *
  * @returns New code buffer offset, UINT32_MAX on failure.
  * @param   pReNative       The native recompile state.
  * @param   off             The code buffer offset.
+ * @param   idxVar          The variable to check. This must be 32-bit (EFLAGS).
  * @param   idxInstr        The current instruction.
  */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitRaiseDivideError(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxInstr)
+iemNativeEmitRaiseDivideErrorIfLocalIsZero(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVar, uint8_t idxInstr)
 {
-    /*
-     * Make sure we don't have any outstanding guest register writes as we may
-     */
+    IEMNATIVE_ASSERT_VAR_IDX(pReNative, idxVar);
+    IEMNATIVE_ASSERT_VAR_SIZE(pReNative, idxVar, sizeof(uint32_t));
+
+    /* Make sure we don't have any outstanding guest register writes as we may. */
     off = iemNativeRegFlushPendingWrites(pReNative, off);
 
+    /* Set the instruction number if we're counting. */
 #ifdef IEMNATIVE_WITH_INSTRUCTION_COUNTING
     off = iemNativeEmitStoreImmToVCpuU8(pReNative, off, idxInstr, RT_UOFFSETOF(VMCPUCC, iem.s.idxTbCurInstr));
 #else
     RT_NOREF(idxInstr);
 #endif
 
-    /* raise \#DE exception unconditionally. */
-    return iemNativeEmitTbExit(pReNative, off, kIemNativeLabelType_RaiseDe);
+    /* Do the job we're here for. */
+    uint8_t const idxVarReg = iemNativeVarRegisterAcquire(pReNative, idxVar, &off);
+    off = iemNativeEmitTestIfGprIsZeroAndTbExit(pReNative, off, idxVarReg, false /*f64Bit*/, kIemNativeLabelType_RaiseDe);
+    iemNativeVarRegisterRelease(pReNative, idxVar);
+
+    return off;
 }
 
 
@@ -2983,11 +2990,10 @@ iemNativeEmitRaiseGp0IfEffAddrUnaligned(PIEMRECOMPILERSTATE pReNative, uint32_t 
 #endif
 
     uint8_t const idxVarReg = iemNativeVarRegisterAcquire(pReNative, idxVarEffAddr, &off);
-
     off = iemNativeEmitTestAnyBitsInGprAndTbExitIfAnySet(pReNative, off, idxVarReg, cbAlign - 1,
                                                          kIemNativeLabelType_RaiseGp0);
-
     iemNativeVarRegisterRelease(pReNative, idxVarEffAddr);
+
     return off;
 }
 

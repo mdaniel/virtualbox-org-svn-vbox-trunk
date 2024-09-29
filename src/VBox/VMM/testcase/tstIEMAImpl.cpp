@@ -2990,11 +2990,12 @@ static RTEXITCODE MulDivU8Generate(uint32_t cTests, const char * const * papszNa
         {
             MULDIVU8_TEST_T Test;
             Test.fEflIn    = RandEFlags();
-            Test.fEflOut   = Test.fEflIn;
             Test.uDstIn    = RandU16Dst(iTest);
             Test.uDstOut   = Test.uDstIn;
             Test.uSrcIn    = RandU8Src(iTest);
-            Test.rc        = g_aMulDivU8[iFn].pfnNative(&Test.uDstOut, Test.uSrcIn, &Test.fEflOut);
+            uint32_t const fEflRet = g_aMulDivU8[iFn].pfnNative(&Test.uDstOut, Test.uSrcIn, Test.fEflIn);
+            Test.fEflOut   = fEflRet ? fEflRet : Test.fEflIn;
+            Test.rc        = fEflRet ? 0       : -1;
             GenerateBinaryWrite(&BinOut, &Test, sizeof(Test));
         }
         for (uint32_t iTest = 0; iTest < g_aMulDivU8[iFn].cFixedTests; iTest++)
@@ -3002,11 +3003,12 @@ static RTEXITCODE MulDivU8Generate(uint32_t cTests, const char * const * papszNa
             MULDIVU8_TEST_T Test;
             Test.fEflIn    = g_aMulDivU8[iFn].paFixedTests[iTest].fEflIn == UINT32_MAX ? RandEFlags()
                            : g_aMulDivU8[iFn].paFixedTests[iTest].fEflIn;
-            Test.fEflOut   = Test.fEflIn;
             Test.uDstIn    = g_aMulDivU8[iFn].paFixedTests[iTest].uDstIn;
             Test.uDstOut   = Test.uDstIn;
             Test.uSrcIn    = g_aMulDivU8[iFn].paFixedTests[iTest].uSrcIn;
-            Test.rc        = g_aMulDivU8[iFn].pfnNative(&Test.uDstOut, Test.uSrcIn, &Test.fEflOut);
+            uint32_t const fEflRet = g_aMulDivU8[iFn].pfnNative(&Test.uDstOut, Test.uSrcIn, Test.fEflIn);
+            Test.fEflOut   = fEflRet ? fEflRet : Test.fEflIn;
+            Test.rc        = fEflRet ? 0       : -1;
             if (g_aMulDivU8[iFn].paFixedTests[iTest].rc == 0 || g_aMulDivU8[iFn].paFixedTests[iTest].rc == -1)
                 Test.rc = g_aMulDivU8[iFn].paFixedTests[iTest].rc;
             GenerateBinaryWrite(&BinOut, &Test, sizeof(Test));
@@ -3021,27 +3023,23 @@ static uint64_t MulDivU8Bench(uint32_t cIterations, PFNIEMAIMPLMULDIVU8 pfn, MUL
 {
     uint32_t const fEflIn = pEntry->fEflIn;
     uint16_t const uDstIn = pEntry->uDstIn;
-    uint8_t  const uSrcIn  = pEntry->uSrcIn;
+    uint8_t  const uSrcIn = pEntry->uSrcIn;
     cIterations /= 4;
     RTThreadYield();
-    uint64_t const nsStart     = RTTimeNanoTS();
+    uint64_t const nsStart = RTTimeNanoTS();
     for (uint32_t i = 0; i < cIterations; i++)
     {
-        uint32_t fBenchEfl  = fEflIn;
         uint16_t uBenchDst = uDstIn;
-        pfn(&uBenchDst, uSrcIn, &fBenchEfl);
+        pfn(&uBenchDst, uSrcIn, fEflIn);
 
-        fBenchEfl = fEflIn;
         uBenchDst = uDstIn;
-        pfn(&uBenchDst, uSrcIn, &fBenchEfl);
+        pfn(&uBenchDst, uSrcIn, fEflIn);
 
-        fBenchEfl = fEflIn;
         uBenchDst = uDstIn;
-        pfn(&uBenchDst, uSrcIn, &fBenchEfl);
+        pfn(&uBenchDst, uSrcIn, fEflIn);
 
-        fBenchEfl = fEflIn;
         uBenchDst = uDstIn;
-        pfn(&uBenchDst, uSrcIn, &fBenchEfl);
+        pfn(&uBenchDst, uSrcIn, fEflIn);
     }
     return RTTimeNanoTS() - nsStart;
 }
@@ -3062,9 +3060,10 @@ static void MulDivU8Test(void)
         {
             for (uint32_t iTest = 0; iTest < cTests; iTest++ )
             {
-                uint32_t fEfl  = paTests[iTest].fEflIn;
-                uint16_t uDst  = paTests[iTest].uDstIn;
-                int      rc    = g_aMulDivU8[iFn].pfn(&uDst, paTests[iTest].uSrcIn, &fEfl);
+                uint16_t uDst = paTests[iTest].uDstIn;
+                uint32_t fEfl = pfn(&uDst, paTests[iTest].uSrcIn, paTests[iTest].fEflIn);
+                int      rc   = fEfl ? 0    : -1;
+                fEfl          = fEfl ? fEfl : paTests[iTest].fEflIn;
                 if (   uDst != paTests[iTest].uDstOut
                     || (fEfl | fEflIgn) != (paTests[iTest].fEflOut | fEflIgn)
                     || rc != paTests[iTest].rc)
@@ -3077,12 +3076,13 @@ static void MulDivU8Test(void)
                                  EFlagsDiff(fEfl | fEflIgn, paTests[iTest].fEflOut | fEflIgn));
                 else
                 {
-                     *g_pu16  = paTests[iTest].uDstIn;
-                     *g_pfEfl = paTests[iTest].fEflIn;
-                     rc = g_aMulDivU8[iFn].pfn(g_pu16, paTests[iTest].uSrcIn, g_pfEfl);
-                     RTTEST_CHECK(g_hTest, *g_pu16  == paTests[iTest].uDstOut);
-                     RTTEST_CHECK(g_hTest, (*g_pfEfl | fEflIgn) == (paTests[iTest].fEflOut | fEflIgn));
-                     RTTEST_CHECK(g_hTest, rc  == paTests[iTest].rc);
+                     *g_pu16 = paTests[iTest].uDstIn;
+                     fEfl = pfn(g_pu16, paTests[iTest].uSrcIn, paTests[iTest].fEflIn);
+                     rc   = fEfl ? 0    : -1;
+                     fEfl = fEfl ? fEfl : paTests[iTest].fEflIn;
+                     RTTEST_CHECK(g_hTest, *g_pu16 == paTests[iTest].uDstOut);
+                     RTTEST_CHECK(g_hTest, (fEfl | fEflIgn) == (paTests[iTest].fEflOut | fEflIgn));
+                     RTTEST_CHECK(g_hTest, rc == paTests[iTest].rc);
                 }
             }
 
@@ -3159,26 +3159,28 @@ static RTEXITCODE MulDivU ## a_cBits ## Generate(uint32_t cTests, const char * c
         for (uint32_t iTest = 0; iTest < cTests; iTest++ ) \
         { \
             Test.fEflIn    = RandEFlags(); \
-            Test.fEflOut   = Test.fEflIn; \
             Test.uDst1In   = RandU ## a_cBits ## Dst(iTest); \
             Test.uDst1Out  = Test.uDst1In; \
             Test.uDst2In   = RandU ## a_cBits ## Dst(iTest); \
             Test.uDst2Out  = Test.uDst2In; \
             Test.uSrcIn    = RandU ## a_cBits ## Src(iTest); \
-            Test.rc        = a_aSubTests[iFn].pfnNative(&Test.uDst1Out, &Test.uDst2Out, Test.uSrcIn, &Test.fEflOut); \
+            uint32_t const fEflRet = a_aSubTests[iFn].pfnNative(&Test.uDst1Out, &Test.uDst2Out, Test.uSrcIn, Test.fEflIn); \
+            Test.fEflOut   = fEflRet ? fEflRet : Test.fEflIn; \
+            Test.rc        = fEflRet ? 0       : -1; \
             GenerateBinaryWrite(&BinOut, &Test, sizeof(Test)); \
         } \
         for (uint32_t iTest = 0; iTest < a_aSubTests[iFn].cFixedTests; iTest++ ) \
         { \
             Test.fEflIn    = a_aSubTests[iFn].paFixedTests[iTest].fEflIn == UINT32_MAX ? RandEFlags() \
                            : a_aSubTests[iFn].paFixedTests[iTest].fEflIn; \
-            Test.fEflOut   = Test.fEflIn; \
             Test.uDst1In   = a_aSubTests[iFn].paFixedTests[iTest].uDst1In; \
             Test.uDst1Out  = Test.uDst1In; \
             Test.uDst2In   = a_aSubTests[iFn].paFixedTests[iTest].uDst2In; \
             Test.uDst2Out  = Test.uDst2In; \
             Test.uSrcIn    = a_aSubTests[iFn].paFixedTests[iTest].uSrcIn; \
-            Test.rc        = a_aSubTests[iFn].pfnNative(&Test.uDst1Out, &Test.uDst2Out, Test.uSrcIn, &Test.fEflOut); \
+            uint32_t const fEflRet = a_aSubTests[iFn].pfnNative(&Test.uDst1Out, &Test.uDst2Out, Test.uSrcIn, Test.fEflIn); \
+            Test.fEflOut   = fEflRet ? fEflRet : Test.fEflIn; \
+            Test.rc        = fEflRet ? 0       : -1; \
             if (a_aSubTests[iFn].paFixedTests[iTest].rc == 0 || a_aSubTests[iFn].paFixedTests[iTest].rc == -1) \
                 Test.rc = a_aSubTests[iFn].paFixedTests[iTest].rc; \
             GenerateBinaryWrite(&BinOut, &Test, sizeof(Test)); \
@@ -3215,28 +3217,24 @@ static uint64_t MulDivU ## a_cBits ## Bench(uint32_t cIterations, PFNIEMAIMPLMUL
     a_uType  const uSrcIn  = pEntry->uSrcIn; \
     cIterations /= 4; \
     RTThreadYield(); \
-    uint64_t const nsStart     = RTTimeNanoTS(); \
+    uint64_t const nsStart = RTTimeNanoTS(); \
     for (uint32_t i = 0; i < cIterations; i++) \
     { \
-        uint32_t fBenchEfl  = fEflIn; \
         a_uType  uBenchDst1 = uDst1In;  \
         a_uType  uBenchDst2 = uDst2In;  \
-        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, &fBenchEfl); \
+        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, fEflIn); \
         \
-        fBenchEfl  = fEflIn; \
         uBenchDst1 = uDst1In; \
         uBenchDst2 = uDst2In; \
-        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, &fBenchEfl); \
+        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, fEflIn); \
         \
-        fBenchEfl  = fEflIn; \
         uBenchDst1 = uDst1In; \
         uBenchDst2 = uDst2In; \
-        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, &fBenchEfl); \
+        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, fEflIn); \
         \
-        fBenchEfl  = fEflIn; \
         uBenchDst1 = uDst1In; \
         uBenchDst2 = uDst2In; \
-        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, &fBenchEfl); \
+        pfn(&uBenchDst1, &uBenchDst2, uSrcIn, fEflIn); \
     } \
     return RTTimeNanoTS() - nsStart; \
 } \
@@ -3257,10 +3255,11 @@ static void MulDivU ## a_cBits ## Test(void) \
         { \
             for (uint32_t iTest = 0; iTest < cTests; iTest++ ) \
             { \
-                uint32_t fEfl  = paTests[iTest].fEflIn; \
                 a_uType  uDst1 = paTests[iTest].uDst1In; \
                 a_uType  uDst2 = paTests[iTest].uDst2In; \
-                int rc = pfn(&uDst1, &uDst2, paTests[iTest].uSrcIn, &fEfl); \
+                uint32_t fEfl = pfn(&uDst1, &uDst2, paTests[iTest].uSrcIn, paTests[iTest].fEflIn); \
+                int      rc   = fEfl ? 0    : -1; \
+                fEfl          = fEfl ? fEfl : paTests[iTest].fEflIn; \
                 if (   uDst1 != paTests[iTest].uDst1Out \
                     || uDst2 != paTests[iTest].uDst2Out \
                     || (fEfl | fEflIgn) != (paTests[iTest].fEflOut | fEflIgn)\
@@ -3279,11 +3278,12 @@ static void MulDivU ## a_cBits ## Test(void) \
                 { \
                      *g_pu ## a_cBits        = paTests[iTest].uDst1In; \
                      *g_pu ## a_cBits ## Two = paTests[iTest].uDst2In; \
-                     *g_pfEfl                = paTests[iTest].fEflIn; \
-                     rc  = pfn(g_pu ## a_cBits, g_pu ## a_cBits ## Two, paTests[iTest].uSrcIn, g_pfEfl); \
+                     fEfl = pfn(g_pu ## a_cBits, g_pu ## a_cBits ## Two, paTests[iTest].uSrcIn, paTests[iTest].fEflIn); \
+                     rc   = fEfl ? 0    : -1; \
+                     fEfl = fEfl ? fEfl : paTests[iTest].fEflIn; \
                      RTTEST_CHECK(g_hTest, *g_pu ## a_cBits        == paTests[iTest].uDst1Out); \
                      RTTEST_CHECK(g_hTest, *g_pu ## a_cBits ## Two == paTests[iTest].uDst2Out); \
-                     RTTEST_CHECK(g_hTest, (*g_pfEfl | fEflIgn)    == (paTests[iTest].fEflOut | fEflIgn)); \
+                     RTTEST_CHECK(g_hTest, (fEfl | fEflIgn)        == (paTests[iTest].fEflOut | fEflIgn)); \
                      RTTEST_CHECK(g_hTest, rc                      == paTests[iTest].rc); \
                 } \
             } \

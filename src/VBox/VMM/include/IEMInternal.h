@@ -2365,16 +2365,22 @@ typedef struct IEMCPU
 
     /** Native recompiler: Number of times status flags calc has been skipped. */
     STAMCOUNTER             StatNativeEflSkippedArithmetic;
+    /** Native recompiler: Number of times status flags calc has been postponed. */
+    STAMCOUNTER             StatNativeEflPostponedArithmetic;
     /** Native recompiler: Total number instructions in this category. */
     STAMCOUNTER             StatNativeEflTotalArithmetic;
 
     /** Native recompiler: Number of times status flags calc has been skipped. */
     STAMCOUNTER             StatNativeEflSkippedLogical;
+    /** Native recompiler: Number of times status flags calc has been postponed. */
+    STAMCOUNTER             StatNativeEflPostponedLogical;
     /** Native recompiler: Total number instructions in this category. */
     STAMCOUNTER             StatNativeEflTotalLogical;
 
     /** Native recompiler: Number of times status flags calc has been skipped. */
     STAMCOUNTER             StatNativeEflSkippedShift;
+    /** Native recompiler: Number of times status flags calc has been postponed. */
+    STAMCOUNTER             StatNativeEflPostponedShift;
     /** Native recompiler: Total number instructions in this category. */
     STAMCOUNTER             StatNativeEflTotalShift;
 
@@ -2549,9 +2555,9 @@ typedef struct IEMCPU
     /** @} */
 
 #ifdef IEM_WITH_TLB_TRACE
-    //uint64_t                au64Padding[0];
+    uint64_t                au64Padding[5];
 #else
-    uint64_t                au64Padding[2];
+    uint64_t                au64Padding[7];
 #endif
 
 #ifdef IEM_WITH_TLB_TRACE
@@ -3537,28 +3543,28 @@ FNIEMAIMPLSHIFTU64 iemAImpl_sar_u64, iemAImpl_sar_u64_amd, iemAImpl_sar_u64_inte
 
 /** @name Multiplication and division operations.
  * @{ */
-typedef IEM_DECL_IMPL_TYPE(int, FNIEMAIMPLMULDIVU8,(uint16_t *pu16AX, uint8_t u8FactorDivisor, uint32_t *pEFlags));
+typedef IEM_DECL_IMPL_TYPE(uint32_t, FNIEMAIMPLMULDIVU8,(uint16_t *pu16AX, uint8_t u8FactorDivisor, uint32_t fEFlags));
 typedef FNIEMAIMPLMULDIVU8  *PFNIEMAIMPLMULDIVU8;
 FNIEMAIMPLMULDIVU8 iemAImpl_mul_u8,  iemAImpl_mul_u8_amd,  iemAImpl_mul_u8_intel;
 FNIEMAIMPLMULDIVU8 iemAImpl_imul_u8, iemAImpl_imul_u8_amd, iemAImpl_imul_u8_intel;
 FNIEMAIMPLMULDIVU8 iemAImpl_div_u8,  iemAImpl_div_u8_amd,  iemAImpl_div_u8_intel;
 FNIEMAIMPLMULDIVU8 iemAImpl_idiv_u8, iemAImpl_idiv_u8_amd, iemAImpl_idiv_u8_intel;
 
-typedef IEM_DECL_IMPL_TYPE(int, FNIEMAIMPLMULDIVU16,(uint16_t *pu16AX, uint16_t *pu16DX, uint16_t u16FactorDivisor, uint32_t *pEFlags));
+typedef IEM_DECL_IMPL_TYPE(uint32_t, FNIEMAIMPLMULDIVU16,(uint16_t *pu16AX, uint16_t *pu16DX, uint16_t u16FactorDivisor, uint32_t fEFlags));
 typedef FNIEMAIMPLMULDIVU16  *PFNIEMAIMPLMULDIVU16;
 FNIEMAIMPLMULDIVU16 iemAImpl_mul_u16,  iemAImpl_mul_u16_amd,  iemAImpl_mul_u16_intel;
 FNIEMAIMPLMULDIVU16 iemAImpl_imul_u16, iemAImpl_imul_u16_amd, iemAImpl_imul_u16_intel;
 FNIEMAIMPLMULDIVU16 iemAImpl_div_u16,  iemAImpl_div_u16_amd,  iemAImpl_div_u16_intel;
 FNIEMAIMPLMULDIVU16 iemAImpl_idiv_u16, iemAImpl_idiv_u16_amd, iemAImpl_idiv_u16_intel;
 
-typedef IEM_DECL_IMPL_TYPE(int, FNIEMAIMPLMULDIVU32,(uint32_t *pu32EAX, uint32_t *pu32EDX, uint32_t u32FactorDivisor, uint32_t *pEFlags));
+typedef IEM_DECL_IMPL_TYPE(uint32_t, FNIEMAIMPLMULDIVU32,(uint32_t *pu32EAX, uint32_t *pu32EDX, uint32_t u32FactorDivisor, uint32_t fEFlags));
 typedef FNIEMAIMPLMULDIVU32  *PFNIEMAIMPLMULDIVU32;
 FNIEMAIMPLMULDIVU32 iemAImpl_mul_u32,  iemAImpl_mul_u32_amd,  iemAImpl_mul_u32_intel;
 FNIEMAIMPLMULDIVU32 iemAImpl_imul_u32, iemAImpl_imul_u32_amd, iemAImpl_imul_u32_intel;
 FNIEMAIMPLMULDIVU32 iemAImpl_div_u32,  iemAImpl_div_u32_amd,  iemAImpl_div_u32_intel;
 FNIEMAIMPLMULDIVU32 iemAImpl_idiv_u32, iemAImpl_idiv_u32_amd, iemAImpl_idiv_u32_intel;
 
-typedef IEM_DECL_IMPL_TYPE(int, FNIEMAIMPLMULDIVU64,(uint64_t *pu64RAX, uint64_t *pu64RDX, uint64_t u64FactorDivisor, uint32_t *pEFlags));
+typedef IEM_DECL_IMPL_TYPE(uint32_t, FNIEMAIMPLMULDIVU64,(uint64_t *pu64RAX, uint64_t *pu64RDX, uint64_t u64FactorDivisor, uint32_t fEFlags));
 typedef FNIEMAIMPLMULDIVU64  *PFNIEMAIMPLMULDIVU64;
 FNIEMAIMPLMULDIVU64 iemAImpl_mul_u64,  iemAImpl_mul_u64_amd,  iemAImpl_mul_u64_intel;
 FNIEMAIMPLMULDIVU64 iemAImpl_imul_u64, iemAImpl_imul_u64_amd, iemAImpl_imul_u64_intel;

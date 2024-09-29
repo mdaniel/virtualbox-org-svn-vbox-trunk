@@ -108,7 +108,12 @@
     return iemRegRipNearReturnAndFinishClearingRF((pVCpu), IEM_GET_INSTR_LEN(pVCpu), (a_u16Pop), pVCpu->iem.s.enmEffOpSize)
 
 
-#define IEM_MC_RAISE_DIVIDE_ERROR()                     return iemRaiseDivideError(pVCpu)
+#define IEM_MC_RAISE_DIVIDE_ERROR_IF_LOCAL_IS_ZERO(a_uVar) \
+    do { \
+        if (RT_LIKELY((a_uVar) != 0)) \
+        { /* probable */ } \
+        else return iemRaiseDivideError(pVCpu); \
+    } while (0)
 #define IEM_MC_MAYBE_RAISE_DEVICE_NOT_AVAILABLE()       \
     do { \
         if (RT_LIKELY(!(pVCpu->cpum.GstCtx.cr0 & (X86_CR0_EM | X86_CR0_TS)))) \

@@ -2722,7 +2722,7 @@ class ThreadedFunction(object):
                         or (oStmt.sName.endswith('_AND_FINISH') and oStmt.sName.startswith('IEM_MC_'))
                         or oStmt.sName.startswith('IEM_MC_CALL_CIMPL_')
                         or oStmt.sName.startswith('IEM_MC_DEFER_TO_CIMPL_')
-                        or oStmt.sName in ('IEM_MC_RAISE_DIVIDE_ERROR',)):
+                        or oStmt.sName in ('IEM_MC_RAISE_DIVIDE_ERROR_IF_LOCAL_IS_ZERO',)):
                         aoDecoderStmts.pop();
                         if not fIsConditional:
                             aoDecoderStmts.extend(self.emitThreadedCallStmts());

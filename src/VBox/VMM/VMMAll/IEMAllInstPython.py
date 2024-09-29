@@ -3303,7 +3303,7 @@ g_dMcStmtParsers = {
     'IEM_MC_PUSH_U32':                                           (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_PUSH_U32_SREG':                                      (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_PUSH_U64':                                           (McBlock.parseMcGeneric,           True,  True,  True,  ),
-    'IEM_MC_RAISE_DIVIDE_ERROR':                                 (McBlock.parseMcGeneric,           True,  True,  True,  ),
+    'IEM_MC_RAISE_DIVIDE_ERROR_IF_LOCAL_IS_ZERO':                (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_RAISE_GP0_IF_CPL_NOT_ZERO':                          (McBlock.parseMcGeneric,           True,  True,  False, ),
     'IEM_MC_RAISE_GP0_IF_EFF_ADDR_UNALIGNED':                    (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_REF_EFLAGS':                                         (McBlock.parseMcGeneric,           False, False, True,  ),

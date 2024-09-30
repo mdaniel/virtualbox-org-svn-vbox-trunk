@@ -730,41 +730,30 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "Times liveness info helped finding the return register in iemNativeRegAllocFindFree.",
                         "/IEM/CPU%u/re/NativeRegFindFreeLivenessHelped", idCpu);
 
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflSkippedArithmetic,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Skipped all status flag updating, arithmetic instructions",
-                        "/IEM/CPU%u/re/NativeEFlags/ArithmeticSkipped", idCpu);
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflTotalArithmetic,        STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Total number of arithmetic intructions with status flag updating",
-                        "/IEM/CPU%u/re/NativeEFlags/ArithmeticTotal", idCpu);
-        RTStrPrintf(szPat, sizeof(szPat), "/IEM/CPU%u/re/NativeEFlags/ArithmeticTotal", idCpu);
-        RTStrPrintf(szVal, sizeof(szVal), "/IEM/CPU%u/re/NativeEFlags/ArithmeticSkipped", idCpu);
-        STAMR3RegisterPctOfSum(pVM->pUVM, STAMVISIBILITY_ALWAYS, STAMUNIT_PCT, szVal, false, szPat,
-                               "Skipped all status flag updating, arithmetic instructions, percentage",
-                               "/IEM/CPU%u/re/NativeEFlags/ArithmeticSkippedPct", idCpu);
-
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflSkippedLogical,         STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Skipped all status flag updating, logical instructions",
-                        "/IEM/CPU%u/re/NativeEFlags/LogicalSkipped", idCpu);
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflTotalLogical,           STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Total number of logical intructions with status flag updating",
-                        "/IEM/CPU%u/re/NativeEFlags/LogicalTotal", idCpu);
-        RTStrPrintf(szPat, sizeof(szPat), "/IEM/CPU%u/re/NativeEFlags/LogicalTotal", idCpu);
-        RTStrPrintf(szVal, sizeof(szVal), "/IEM/CPU%u/re/NativeEFlags/LogicalSkipped", idCpu);
-        STAMR3RegisterPctOfSum(pVM->pUVM, STAMVISIBILITY_ALWAYS, STAMUNIT_PCT, szVal, false, szPat,
-                               "Skipped all status flag updating, logical instructions, percentage",
-                               "/IEM/CPU%u/re/NativeEFlags/LogicalSkippedPct", idCpu);
-
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflSkippedShift,           STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Skipped all status flag updating, shift instructions",
-                        "/IEM/CPU%u/re/NativeEFlags/ShiftSkipped", idCpu);
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflTotalShift,             STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
-                        "Total number of shift intructions with status flag updating",
-                        "/IEM/CPU%u/re/NativeEFlags/ShiftTotal", idCpu);
-        RTStrPrintf(szPat, sizeof(szPat), "/IEM/CPU%u/re/NativeEFlags/ShiftTotal", idCpu);
-        RTStrPrintf(szVal, sizeof(szVal), "/IEM/CPU%u/re/NativeEFlags/ShiftSkipped", idCpu);
-        STAMR3RegisterPctOfSum(pVM->pUVM, STAMVISIBILITY_ALWAYS, STAMUNIT_PCT, szVal, false, szPat,
-                               "Skipped all status flag updating, shift instructions, percentage",
-                               "/IEM/CPU%u/re/NativeEFlags/ShiftSkippedPct", idCpu);
+#   define REG_NATIVE_EFL_GROUP(a_Lower, a_Camel) do { \
+        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflPostponed ## a_Camel, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, \
+                        "Postponed all status flag updating, " #a_Lower " instructions", \
+                        "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Postponed", idCpu); \
+        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflSkipped ## a_Camel,   STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, \
+                        "Skipped all status flag updating, " #a_Lower " instructions", \
+                        "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Skipped", idCpu); \
+        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflTotal ## a_Camel,     STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, \
+                        "Total number of " #a_Lower " intructions with status flag updating", \
+                        "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Total", idCpu); \
+        RTStrPrintf(szPat, sizeof(szPat), "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Total", idCpu); \
+        RTStrPrintf(szVal, sizeof(szVal), "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Postponed", idCpu); \
+        STAMR3RegisterPctOfSum(pVM->pUVM, STAMVISIBILITY_ALWAYS, STAMUNIT_PCT, szVal, false, szPat, \
+                               "Postponed all status flag updating, " #a_Lower " instructions, percentage", \
+                               "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "PostponedPct", idCpu); \
+        RTStrPrintf(szVal, sizeof(szVal), "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "Skipped", idCpu); \
+        STAMR3RegisterPctOfSum(pVM->pUVM, STAMVISIBILITY_ALWAYS, STAMUNIT_PCT, szVal, false, szPat, \
+                               "Skipped all status flag updating, " #a_Lower " instructions, percentage", \
+                               "/IEM/CPU%u/re/NativeEFlags/" #a_Camel "SkippedPct", idCpu); \
+    } while (0)
+        REG_NATIVE_EFL_GROUP(arithmetic, Arithmetic);
+        REG_NATIVE_EFL_GROUP(logical,    Logical);
+        REG_NATIVE_EFL_GROUP(shift,      Shift);
+#   undef REG_NATIVE_EFL_GROUP
 
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeLivenessEflCfSkippable,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "Skippable EFLAGS.CF updating",       "/IEM/CPU%u/re/NativeLivenessEFlags/CfSkippable", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeLivenessEflPfSkippable,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "Skippable EFLAGS.PF updating",       "/IEM/CPU%u/re/NativeLivenessEFlags/PfSkippable", idCpu);

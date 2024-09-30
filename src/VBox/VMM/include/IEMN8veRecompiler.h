@@ -81,6 +81,11 @@
 #  define IEMNATIVE_WITH_EFLAGS_POSTPONING
 # endif
 #endif
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+# ifndef IEMNATIVE_WITH_EFLAGS_SKIPPING
+#  error "IEMNATIVE_WITH_EFLAGS_POSTPONING requires IEMNATIVE_WITH_EFLAGS_SKIPPING at present"
+# endif
+#endif
 
 /** @def IEMLIVENESS_EXTENDED_LAYOUT
  * Enables the extended liveness data layout.  */
@@ -313,7 +318,7 @@ AssertCompile(IEMNATIVE_FRAME_VAR_SLOTS == 32);
 /** @def IEMNATIVE_CALL_VOLATILE_GREG_MASK
  * Mask of registers the callee will not save and may trash. */
 #ifdef RT_ARCH_AMD64
-# define IEMNATIVE_CALL_RET_GREG             X86_GREG_xAX
+# define IEMNATIVE_CALL_RET_GREG            X86_GREG_xAX
 
 # ifdef RT_OS_WINDOWS
 #  define IEMNATIVE_CALL_ARG_GREG_COUNT     4
@@ -434,6 +439,11 @@ AssertCompile(IEMNATIVE_FRAME_VAR_SLOTS == 32);
 #else
 # define IEMNATIVE_CALL_VOLATILE_NOTMP_GREG_MASK    IEMNATIVE_CALL_VOLATILE_GREG_MASK
 #endif
+
+/** @def IEMNATIVE_CALL_NONVOLATILE_GREG_MASK
+ * The allocatable non-volatile general purpose register set.  */
+#define IEMNATIVE_CALL_NONVOLATILE_GREG_MASK \
+    (~IEMNATIVE_CALL_VOLATILE_GREG_MASK & ~IEMNATIVE_REG_FIXED_MASK & IEMNATIVE_HST_GREG_MASK)
 /** @} */
 
 
@@ -479,11 +489,13 @@ AssertCompile(IEMNATIVE_FRAME_VAR_SLOTS == 32);
 typedef enum
 {
     kIemNativeLabelType_Invalid = 0,
-    /*
-     * Labels w/o data, only once instance per TB - aka exit reasons.
+    /** @name Exit reasons - Labels w/o data, only once instance per TB.
      *
-     * Note! Jumps to these requires instructions that are capable of spanning
-     *       the max TB length.
+     * The labels requiring register inputs are documented.
+     *
+     * @note Jumps to these requires instructions that are capable of spanning the
+     *       max TB length.
+     * @{
      */
     /* Simple labels comes first for indexing reasons. RaiseXx is order by the exception's numerical value(s). */
     kIemNativeLabelType_RaiseDe,                /**< Raise (throw) X86_XCPT_DE (00h). */
@@ -495,26 +507,42 @@ typedef enum
     kIemNativeLabelType_RaiseGp0,               /**< Raise (throw) X86_XCPT_GP (0dh) w/ errcd=0. */
     kIemNativeLabelType_RaiseMf,                /**< Raise (throw) X86_XCPT_MF (10h). */
     kIemNativeLabelType_RaiseXf,                /**< Raise (throw) X86_XCPT_XF (13h). */
-    kIemNativeLabelType_ObsoleteTb,
-    kIemNativeLabelType_NeedCsLimChecking,
-    kIemNativeLabelType_CheckBranchMiss,
+    kIemNativeLabelType_ObsoleteTb,             /**< Calls iemNativeHlpObsoleteTb (no inputs). */
+    kIemNativeLabelType_NeedCsLimChecking,      /**< Calls iemNativeHlpNeedCsLimChecking (no inputs). */
+    kIemNativeLabelType_CheckBranchMiss,        /**< Calls iemNativeHlpCheckBranchMiss (no inputs). */
     kIemNativeLabelType_LastSimple = kIemNativeLabelType_CheckBranchMiss,
-    /* Manually defined labels. */
-    kIemNativeLabelType_ReturnBreak,
-    kIemNativeLabelType_ReturnBreakFF,
-    kIemNativeLabelType_ReturnBreakViaLookup,
-    kIemNativeLabelType_ReturnBreakViaLookupWithIrq,
-    kIemNativeLabelType_ReturnBreakViaLookupWithTlb,
-    kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq,
+
+    /* Manually defined labels: */
+    /**< Returns with VINF_SUCCESS, no inputs. */
+    kIemNativeLabelType_ReturnSuccess,
+    /** Returns with VINF_IEM_REEXEC_FINISH_WITH_FLAGS, no inputs. */
     kIemNativeLabelType_ReturnWithFlags,
+    /** Returns with VINF_IEM_REEXEC_BREAK, no inputs. */
+    kIemNativeLabelType_ReturnBreak,
+    /** Returns with VINF_IEM_REEXEC_BREAK_FF, no inputs. */
+    kIemNativeLabelType_ReturnBreakFF,
+    /** The last TB exit label that doesn't have any input registers. */
+    kIemNativeLabelType_LastTbExitWithoutInputs = kIemNativeLabelType_ReturnBreakFF,
+
+    /** Argument registers 1, 2 & 3 are set up.  */
+    kIemNativeLabelType_ReturnBreakViaLookup,
+    /** Argument registers 1, 2 & 3 are set up.  */
+    kIemNativeLabelType_ReturnBreakViaLookupWithIrq,
+    /** Argument registers 1 & 2 are set up.  */
+    kIemNativeLabelType_ReturnBreakViaLookupWithTlb,
+    /** Argument registers 1 & 2 are set up.  */
+    kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq,
+    /** Return register holds the RC and the instruction number is in CL/RCX
+     * on amd64 and the 2rd argument register elsewhere. */
     kIemNativeLabelType_NonZeroRetOrPassUp,
-    kIemNativeLabelType_ReturnSuccess,          /**< Sets eax/w0 to zero and returns. */
+
     /** The last fixup for branches that can span almost the whole TB length.
      * @note Whether kIemNativeLabelType_Return needs to be one of these is
      *       a bit questionable, since nobody jumps to it except other tail code. */
-    kIemNativeLabelType_LastWholeTbBranch = kIemNativeLabelType_ReturnSuccess,
+    kIemNativeLabelType_LastWholeTbBranch = kIemNativeLabelType_NonZeroRetOrPassUp,
     /** The last fixup for branches that exits the TB. */
-    kIemNativeLabelType_LastTbExit        = kIemNativeLabelType_ReturnSuccess,
+    kIemNativeLabelType_LastTbExit        = kIemNativeLabelType_NonZeroRetOrPassUp,
+    /** @} */
 
     /** Loop-jump target. */
     kIemNativeLabelType_LoopJumpTarget,
@@ -537,6 +565,37 @@ typedef enum
 
 #define IEMNATIVELABELTYPE_IS_EXIT_REASON(a_enmLabel) \
     ((a_enmLabel) <= kIemNativeLabelType_LastTbExit && (a_enmLabel) > kIemNativeLabelType_Invalid)
+
+#define IEMNATIVELABELTYPE_IS_EXIT_WITHOUT_INPUTS(a_enmLabel) \
+    ((a_enmLabel) <= kIemNativeLabelType_LastTbExitWithoutInputs && (a_enmLabel) > kIemNativeLabelType_Invalid)
+
+/**
+ * Get the mask of input registers for an TB exit label.
+ * This will return zero for any non-exit lable.
+ */
+#ifdef RT_ARCH_AMD64
+# define IEMNATIVELABELTYPE_GET_INPUT_REG_MASK(a_enmLabel) \
+    (     (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookup \
+       || (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithIrq \
+     ? RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG3_GREG) \
+     :    (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithTlb \
+       || (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq \
+     ? RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG) \
+     : (a_enmLabel) == kIemNativeLabelType_NonZeroRetOrPassUp \
+     ? RT_BIT_32(IEMNATIVE_CALL_RET_GREG)  | RT_BIT_32(X86_GREG_xCX) /* <-- the difference */ \
+     : 0)
+# else
+# define IEMNATIVELABELTYPE_GET_INPUT_REG_MASK(a_enmLabel) \
+    (     (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookup \
+       || (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithIrq \
+     ? RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG3_GREG) \
+     :    (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithTlb \
+       || (a_enmLabel) == kIemNativeLabelType_ReturnBreakViaLookupWithTlbAndIrq \
+     ? RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG) | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG) \
+     : (a_enmLabel) == kIemNativeLabelType_NonZeroRetOrPassUp \
+     ? RT_BIT_32(IEMNATIVE_CALL_RET_GREG)  | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG) \
+     : 0)
+#endif
 
 
 /** Native code generator label definition. */
@@ -659,6 +718,7 @@ AssertCompileSize(IEMLIVENESSBIT, 8);
 #define IEMLIVENESSBIT_IDX_EFL_ZF       ((unsigned)kIemNativeGstReg_EFlags + 4)
 #define IEMLIVENESSBIT_IDX_EFL_SF       ((unsigned)kIemNativeGstReg_EFlags + 5)
 #define IEMLIVENESSBIT_IDX_EFL_OF       ((unsigned)kIemNativeGstReg_EFlags + 6)
+#define IEMLIVENESSBIT_IDX_EFL_COUNT    7
 
 
 /**
@@ -819,6 +879,18 @@ typedef IEMLIVENESSENTRY const *PCIEMLIVENESSENTRY;
 # define IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(a_pCurEntry) \
     ( (((a_pCurEntry)->Bit0.bm64 | (a_pCurEntry)->Bit1.bm64) & IEMLIVENESSBIT_STATUS_EFL_MASK) == 0 )
 
+/***
+ * Construct a mask of what will be clobbered and never used.
+ *
+ * This is mainly used with IEMLIVENESSBIT_STATUS_EFL_MASK to avoid
+ * unnecessary EFLAGS calculations.
+ *
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code.
+ */
+# define IEMLIVENESS_STATE_GET_WILL_BE_CLOBBERED_SET(a_pCurEntry) \
+    ( ~((a_pCurEntry)->Bit0.bm64 | (a_pCurEntry)->Bit1.bm64) & IEMLIVENESSBIT_MASK )
+
 /** Construct a mask of the guest registers in the UNUSED and XCPT_OR_CALL
  *  states, as these are no longer needed.
  * @param a_pCurEntry  The current liveness entry.
@@ -863,10 +935,44 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  * @param a_pCurEntry  The current liveness entry.
  * @note  Used by actual code. */
 # define IEMLIVENESS_STATE_GET_CAN_BE_FREED_SET(a_pCurEntry) \
-            (  ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_READ].bm64 \
-             & ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_WRITE].bm64 \
-             & IEMLIVENESSBIT_MASK )
+    (  ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_READ].bm64 \
+     & ~(a_pCurEntry)->aBits[IEMLIVENESS_BIT_WRITE].bm64 \
+     & IEMLIVENESSBIT_MASK )
 
+/***
+ * Construct a mask of what will be clobbered and never used.
+ *
+ * This is mainly used with IEMLIVENESSBIT_STATUS_EFL_MASK to avoid
+ * unnecessary EFLAGS calculations.
+ *
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code.
+ */
+# define IEMLIVENESS_STATE_GET_WILL_BE_CLOBBERED_SET(a_pCurEntry) \
+    (  (a_pCurEntry)->aBits[IEMLIVENESS_BIT_WRITE].bm64 \
+     & ~(  (a_pCurEntry)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 \
+         | (a_pCurEntry)->aBits[IEMLIVENESS_BIT_READ].bm64 \
+         | (a_pCurEntry)->aBits[IEMLIVENESS_BIT_CALL].bm64) )
+
+/**
+ * Construct a mask of what (EFLAGS) which can be postponed.
+ *
+ * The postponement is for the avoiding EFLAGS status bits calculations in the
+ * primary code stream whenever possible, and instead only do these in the TLB
+ * load and TB exit code paths which shouldn't be traveled quite as often.
+ * A requirement, though, is that the status bits will be clobbered later in the
+ * TB.
+ *
+ * User need to apply IEMLIVENESSBIT_STATUS_EFL_MASK if appropriate/necessary.
+ *
+ * @param a_pCurEntry  The current liveness entry.
+ * @note  Used by actual code.
+ */
+# define IEMLIVENESS_STATE_GET_CAN_BE_POSTPONED_SET(a_pCurEntry) \
+    (  (a_pCurEntry)->aBits[IEMLIVENESS_BIT_POTENTIAL_CALL].bm64 \
+     & (a_pCurEntry)->aBits[IEMLIVENESS_BIT_WRITE].bm64 \
+     & ~(  (a_pCurEntry)->aBits[IEMLIVENESS_BIT_READ].bm64 \
+         | (a_pCurEntry)->aBits[IEMLIVENESS_BIT_CALL].bm64) )
 
 #endif /* IEMLIVENESS_EXTENDED_LAYOUT */
 /** @} */
@@ -1038,9 +1144,9 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  */
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
 # define IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded) \
-    AssertMsg(!((a_pReNative)->fPostponingEFlags & (a_fEflNeeded)), \
-              ("%#x & %#x -> %#x\n", (a_pReNative)->fPostponingEFlags, \
-               a_fEflNeeded, (a_pReNative)->fPostponingEFlags & (a_fEflNeeded) ))
+    AssertMsg(!((a_pReNative)->PostponedEfl.fEFlags & (a_fEflNeeded)), \
+              ("%#x & %#x -> %#x\n", (a_pReNative)->PostponedEfl.fEFlags, \
+               a_fEflNeeded, (a_pReNative)->PostponedEfl.fEFlags & (a_fEflNeeded) ))
 #else
 # define IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(a_pReNative, a_fEflNeeded) ((void)0)
 #endif
@@ -1051,9 +1157,9 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  */
 #if defined(IEMNATIVE_WITH_EFLAGS_SKIPPING) && defined(IEMNATIVE_WITH_EFLAGS_POSTPONING)
 # define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) \
-    AssertMsg(!(((a_pReNative)->fSkippingEFlags | (a_pReNative)->fPostponingEFlags) & (a_fEflNeeded)), \
-              ("(%#x | %#x) & %#x -> %#x\n", (a_pReNative)->fSkippingEFlags, (a_pReNative)->fPostponingEFlags, \
-               a_fEflNeeded, ((a_pReNative)->fSkippingEFlags | (a_pReNative)->fPostponingEFlags) & (a_fEflNeeded) ))
+    AssertMsg(!(((a_pReNative)->fSkippingEFlags | (a_pReNative)->PostponedEfl.fEFlags) & (a_fEflNeeded)), \
+              ("(%#x | %#x) & %#x -> %#x\n", (a_pReNative)->fSkippingEFlags, (a_pReNative)->PostponedEfl.fEFlags, \
+               a_fEflNeeded, ((a_pReNative)->fSkippingEFlags | (a_pReNative)->PostponedEfl.fEFlags) & (a_fEflNeeded) ))
 #elif defined(IEMNATIVE_WITH_EFLAGS_SKIPPING)
 # define IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(a_pReNative, a_fEflNeeded) \
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(a_pReNative, a_fEflNeeded)
@@ -1076,6 +1182,33 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
     } while (0)
 #else
 # define IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(a_pReNative, a_off, a_fEflNeeded) do { } while (0)
+#endif
+
+
+/** @def IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS
+ * Number of extra instructions to allocate for each TB exit to account for
+ * postponed EFLAGS calculations.
+ */
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+# ifdef RT_ARCH_AMD64
+#  define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+# elif defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING)
+#  define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+# else
+#  error "port me"
+# endif
+#else
+# define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS    0
+#endif
+
+/** @def IEMNATIVE_CLEAR_POSTPONED_EFLAGS
+ * Helper macro function for calling iemNativeClearPostponedEFlags() when
+ * IEMNATIVE_WITH_EFLAGS_POSTPONING is enabled.
+ */
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+# define IEMNATIVE_CLEAR_POSTPONED_EFLAGS(a_pReNative, a_fEflClobbered) iemNativeClearPostponedEFlags<a_fEflClobbered>(a_pReNative)
+#else
+# define IEMNATIVE_CLEAR_POSTPONED_EFLAGS(a_pReNative, a_fEflClobbered) ((void)0)
 #endif
 
 
@@ -1532,6 +1665,18 @@ typedef IEMNATIVECORESTATE const *PCIEMNATIVECORESTATE;
 #endif
 
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+typedef enum IEMNATIVE_POSTPONED_EFL_OP_T : uint8_t
+{
+    kIemNativePostponedEflOp_Invalid = 0,
+    /** Logical operation.
+     * Operands: result register.
+     * @note This clears OF, CF and (undefined) AF, thus no need for inputs. */
+    kIemNativePostponedEflOp_Logical,
+    kIemNativePostponedEflOp_End
+} IEMNATIVE_POSTPONED_EFL_OP_T;
+#endif /* IEMNATIVE_WITH_EFLAGS_POSTPONING */
+
 /**
  * Conditional stack entry.
  */
@@ -1669,7 +1814,21 @@ typedef struct IEMRECOMPILERSTATE
     uint32_t                    fSkippingEFlags;
 #endif
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    uint32_t                    fPostponingEFlags;
+    struct
+    {
+        /** EFLAGS status bits that we're currently postponing the calculcation of. */
+        uint32_t                        fEFlags;
+        /** The postponed EFLAGS status bits calculation operation. */
+        IEMNATIVE_POSTPONED_EFL_OP_T    enmOp;
+        /** The bit-width of the postponed EFLAGS calculation. */
+        uint8_t                         cOpBits;
+        /** Host register holding result or first source for the delayed operation,
+         *  UINT8_MAX if not in use. */
+        uint8_t                         idxReg1;
+        /** Host register holding second source for the delayed operation,
+         *  UINT8_MAX if not in use. */
+        uint8_t                         idxReg2;
+    } PostponedEfl;
 #endif
 
     /** Core state requiring care with branches. */

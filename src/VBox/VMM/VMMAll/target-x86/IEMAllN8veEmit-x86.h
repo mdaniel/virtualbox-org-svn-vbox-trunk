@@ -194,26 +194,293 @@ iemNativeEmitAmd64OneByteModRmInstrRIEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, 
 
 #endif /* RT_ARCH_AMD64 */
 
+
+
+/*********************************************************************************************************************************
+*   EFLAGS                                                                                                                       *
+*********************************************************************************************************************************/
+
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+
+/** @def IEMNATIVE_POSTPONING_REG_MASK
+ * Register suitable for keeping the inputs or result for a postponed EFLAGS
+ * calculation.
+ *
+ * We use non-volatile register here so we don't have to save & restore them
+ * accross callouts (i.e. TLB loads).
+ *
+ * @note  On x86 we cannot use RDI and RSI because these are used by the
+ *        opcode checking code.  The usual joy of the x86 instruction set.
+ */
+# ifdef RT_ARCH_AMD64
+#  define IEMNATIVE_POSTPONING_REG_MASK \
+    (IEMNATIVE_CALL_NONVOLATILE_GREG_MASK & ~(RT_BIT_32(X86_GREG_xDI) | RT_BIT_32(X86_GREG_xSI)))
+# else
+#  define IEMNATIVE_POSTPONING_REG_MASK     IEMNATIVE_CALL_NONVOLATILE_GREG_MASK
+# endif
+
+/**
+ * This is normally invoked via IEMNATIVE_CLEAR_POSTPONED_EFLAGS().
+ */
+template<uint32_t const a_fEflClobbered>
+DECL_FORCE_INLINE(void) iemNativeClearPostponedEFlags(PIEMRECOMPILERSTATE pReNative)
+{
+    AssertCompile(!(a_fEflClobbered & ~X86_EFL_STATUS_BITS));
+    uint32_t fEFlags = pReNative->PostponedEfl.fEFlags;
+    if (fEFlags)
+    {
+        if RT_CONSTEXPR(a_fEflClobbered != X86_EFL_STATUS_BITS)
+        {
+            fEFlags &= ~a_fEflClobbered;
+            if (!fEFlags)
+            { /* likely */ }
+            else
+            {
+                Log5(("iemNativeClearPostponedEFlags: Clobbering %#x: %#x -> %#x (op=%d bits=%u)\n", a_fEflClobbered,
+                      pReNative->PostponedEfl.fEFlags, fEFlags, pReNative->PostponedEfl.enmOp, pReNative->PostponedEfl.cOpBits));
+                pReNative->PostponedEfl.fEFlags = fEFlags;
+                return;
+            }
+        }
+
+        /* Do cleanup.  */
+        Log5(("iemNativeClearPostponedEFlags: Cleanup of op=%u bits=%u efl=%#x upon clobbering %#x\n",
+              pReNative->PostponedEfl.enmOp, pReNative->PostponedEfl.cOpBits, pReNative->PostponedEfl.fEFlags, a_fEflClobbered));
+        pReNative->PostponedEfl.fEFlags = 0;
+        pReNative->PostponedEfl.enmOp   = kIemNativePostponedEflOp_Invalid;
+        pReNative->PostponedEfl.cOpBits = 0;
+        iemNativeRegFreeTmp(pReNative, pReNative->PostponedEfl.idxReg1);
+        if (pReNative->PostponedEfl.idxReg2 != UINT8_MAX)
+            iemNativeRegFreeTmp(pReNative, pReNative->PostponedEfl.idxReg2);
+        pReNative->PostponedEfl.idxReg1 = UINT8_MAX;
+        pReNative->PostponedEfl.idxReg2 = UINT8_MAX;
+    }
+}
+
+DECL_INLINE_THROW(uint32_t) iemNativeEmitPostponedEFlagsCalcLogical(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t cOpBits,
+                                                                    uint8_t idxRegResult, uint8_t idxRegEfl, uint8_t idxRegTmp)
+{
+#ifdef RT_ARCH_AMD64
+    /*
+     * Do an AND and collect flags and merge them with eflags.
+     */
+    /* Do TEST idxRegResult, idxRegResult to set flags. */
+    off = iemNativeEmitAmd64OneByteModRmInstrRREx(pCodeBuf, off, 0x84, 0x85, cOpBits, idxRegResult, idxRegResult);
+
+    if (idxRegTmp == X86_GREG_xAX)
+    {
+        /* sahf ; AH = EFLAGS */
+        pCodeBuf[off++] = 0x9e;
+        if (idxRegEfl <= X86_GREG_xBX)
+        {
+            /* mov [CDB]L, AH */
+            pCodeBuf[off++] = 0x88;
+            pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, idxRegEfl);
+        }
+        else
+        {
+            /* mov   AL, AH */
+            pCodeBuf[off++] = 0x88;
+            pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, 0 /*AL*/);
+            /* mov   xxL, AL */
+            pCodeBuf[off++] = idxRegEfl >= 8 ? X86_OP_REX_B : X86_OP_REX;
+            pCodeBuf[off++] = 0x88;
+            pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0 /*AL*/, idxRegEfl & 7);
+        }
+    }
+    else if (idxRegEfl != X86_GREG_xAX)
+    {
+        /* pushf */
+        pCodeBuf[off++] = 0x9c;
+        /* pop  tmp */
+        if (idxRegTmp >= 8)
+            pCodeBuf[off++] = X86_OP_REX_B;
+        pCodeBuf[off++] = 0x58 + (idxRegTmp & 7);
+        /* mov   byte(efl), byte(tmp) */
+        pCodeBuf[off++] = (idxRegEfl >= 8 ? X86_OP_REX_B : X86_OP_REX)
+                        | (idxRegTmp >= 8 ? X86_OP_REX_R : 0);
+        pCodeBuf[off++] = 0x88;
+        pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, idxRegTmp & 7, idxRegEfl & 7);
+    }
+    else
+    {
+        /* xchg al, ah  */
+        pCodeBuf[off++] = 0x86;
+        pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, 0 /*AL*/);
+        /* sahf ; AH = EFLAGS */
+        pCodeBuf[off++] = 0x9e;
+        /* xchg al, ah  */
+        pCodeBuf[off++] = 0x86;
+        pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, 0 /*AL*/);
+    }
+    /* BTC idxEfl, 11; Clear OF */
+    if (idxRegEfl >= 8)
+        pCodeBuf[off++] = X86_OP_REX_B;
+    pCodeBuf[off++] = 0xf;
+    pCodeBuf[off++] = 0xba;
+    pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 7, idxRegEfl & 7);
+    pCodeBuf[off++] = X86_EFL_OF_BIT;
+
+#elif defined(RT_ARCH_ARM64)
+    /*
+     * Calculate flags.
+     */
+    /* Clear the status bits. ~0x8D5 (or ~0x8FD) can't be AND immediate, so use idxRegTmp for constant. */
+    off = iemNativeEmitLoadGpr32ImmExT<~X86_EFL_STATUS_BITS>(pCodeBuf, off, idxRegTmp);
+    off = iemNativeEmitAndGpr32ByGpr32Ex(pCodeBuf, off, idxRegEfl, idxRegTmp);
+
+    /* N,Z -> SF,ZF */
+    if (cOpBits < 32)
+        pCodeBuf[off++] = Armv8A64MkInstrSetF8SetF16(idxRegResult, cOpBits > 8); /* sets NZ */
+    else
+        pCodeBuf[off++] = Armv8A64MkInstrAnds(ARMV8_A64_REG_XZR, idxRegResult, idxRegResult, cOpBits > 32 /*f64Bit*/);
+    pCodeBuf[off++] = Armv8A64MkInstrMrs(idxRegTmp, ARMV8_AARCH64_SYSREG_NZCV); /* Bits: 31=N; 30=Z; 29=C; 28=V; */
+    pCodeBuf[off++] = Armv8A64MkInstrLsrImm(idxRegTmp, idxRegTmp, 30);
+    pCodeBuf[off++] = Armv8A64MkInstrBfi(idxRegEfl, idxRegTmp, X86_EFL_ZF_BIT, 2, false /*f64Bit*/);
+    AssertCompile(X86_EFL_ZF_BIT + 1 == X86_EFL_SF_BIT);
+
+    /* Calculate 8-bit parity of the result. */
+    pCodeBuf[off++] = Armv8A64MkInstrEor(idxRegTmp, idxRegResult, idxRegResult, false /*f64Bit*/,
+                                         4 /*offShift6*/, kArmv8A64InstrShift_Lsr);
+    pCodeBuf[off++] = Armv8A64MkInstrEor(idxRegTmp, idxRegTmp,    idxRegTmp,    false /*f64Bit*/,
+                                         2 /*offShift6*/, kArmv8A64InstrShift_Lsr);
+    pCodeBuf[off++] = Armv8A64MkInstrEor(idxRegTmp, idxRegTmp,    idxRegTmp,    false /*f64Bit*/,
+                                         1 /*offShift6*/, kArmv8A64InstrShift_Lsr);
+    Assert(Armv8A64ConvertImmRImmS2Mask32(0, 0) == 1);
+    pCodeBuf[off++] = Armv8A64MkInstrEorImm(idxRegTmp, idxRegTmp, 0, 0, false /*f64Bit*/);
+    pCodeBuf[off++] = Armv8A64MkInstrBfi(idxRegEfl, idxRegTmp, X86_EFL_PF_BIT, 1, false /*f64Bit*/);
+
+#else
+# error "port me"
+#endif
+    return off;
+}
+
+
+template<uint32_t const a_bmInputRegs>
+static uint32_t iemNativeDoPostponedEFlagsAtTbExitInternal(PIEMRECOMPILERSTATE pReNative, uint32_t off, PIEMNATIVEINSTR pCodeBuf)
+{
+    /*
+     * We can't do regular register allocations here, but since we're in an exit
+     * path where all pending writes has been flushed and we have a known set of
+     * registers with input for the exit label, we do our own simple stuff here.
+     *
+     * Note! On x86 we prefer using RAX as the first TMP register, so we can
+     *       make use of LAHF which is typically faster than PUSHF/POP.  This
+     *       is why the idxRegTmp allocation is first when there is no EFLAG
+     *       shadow, since RAX is represented by bit 0 in the mask.
+     */
+    uint32_t bmAvailableRegs = ~(a_bmInputRegs | IEMNATIVE_REG_FIXED_MASK) & IEMNATIVE_HST_GREG_MASK;
+    if (pReNative->PostponedEfl.idxReg2 != UINT8_MAX)
+        bmAvailableRegs &= ~(RT_BIT_32(pReNative->PostponedEfl.idxReg1) | RT_BIT_32(pReNative->PostponedEfl.idxReg2));
+    else
+        bmAvailableRegs &= ~RT_BIT_32(pReNative->PostponedEfl.idxReg1);
+
+    /* Use existing EFLAGS shadow if available. */
+    uint8_t idxRegEfl, idxRegTmp;
+    if (pReNative->Core.bmGstRegShadowDirty & RT_BIT_64(kIemNativeGstReg_EFlags))
+    {
+        idxRegEfl = pReNative->Core.aidxGstRegShadows[kIemNativeGstReg_EFlags];
+        Assert(idxRegEfl < IEMNATIVE_HST_GREG_COUNT && (bmAvailableRegs & RT_BIT_32(idxRegEfl)));
+        bmAvailableRegs &= ~RT_BIT_32(idxRegEfl);
+#ifdef VBOX_STRICT
+        /** @todo check shadow register content. */
+#endif
+
+        idxRegTmp = ASMBitFirstSetU32(bmAvailableRegs) - 1;
+        bmAvailableRegs &= ~RT_BIT_32(idxRegTmp);
+    }
+    else
+    {
+        idxRegTmp = ASMBitFirstSetU32(bmAvailableRegs) - 1; /* allocate the temp register first to prioritize EAX on x86. */
+        bmAvailableRegs &= ~RT_BIT_32(idxRegTmp);
+
+        idxRegEfl = ASMBitFirstSetU32(bmAvailableRegs) - 1;
+        bmAvailableRegs &= ~RT_BIT_32(idxRegTmp);
+        off = iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, idxRegEfl, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
+    }
+    Assert(bmAvailableRegs != 0);
+
+    /*
+     * Do the actual EFLAGS calculation.
+     */
+    switch (pReNative->PostponedEfl.enmOp)
+    {
+        case kIemNativePostponedEflOp_Logical:
+            Assert(pReNative->PostponedEfl.idxReg2 == UINT8_MAX);
+            off = iemNativeEmitPostponedEFlagsCalcLogical(pCodeBuf, off, pReNative->PostponedEfl.cOpBits,
+                                                          pReNative->PostponedEfl.idxReg1, idxRegEfl, idxRegTmp);
+            break;
+
+        default:
+            AssertFailedBreak();
+    }
+
+    /*
+     * Store EFLAGS.
+     */
+    off = iemNativeEmitStoreGprToVCpuU32Ex(pCodeBuf, off, idxRegEfl, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
+    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+
+    return off;
+}
+
+
+
+template<uint32_t const a_bmInputRegs>
+DECL_FORCE_INLINE_THROW(uint32_t)
+iemNativeDoPostponedEFlagsAtTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off)
+{
+    if (pReNative->PostponedEfl.fEFlags)
+    {
+        PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS);
+        return iemNativeDoPostponedEFlagsAtTbExitInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
+    }
+    return off;
+}
+
+
+template<uint32_t const a_bmInputRegs>
+DECL_FORCE_INLINE_THROW(uint32_t)
+iemNativeDoPostponedEFlagsAtTbExitEx(PIEMRECOMPILERSTATE pReNative, uint32_t off, PIEMNATIVEINSTR pCodeBuf)
+{
+    if (pReNative->PostponedEfl.fEFlags)
+        return iemNativeDoPostponedEFlagsAtTbExitInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
+    return off;
+}
+
+
+#endif /* IEMNATIVE_WITH_EFLAGS_POSTPONING */
+
+
 /**
  * This is an implementation of IEM_EFL_UPDATE_STATUS_BITS_FOR_LOGICAL.
  *
  * It takes liveness stuff into account.
  */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEfl
+iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEfl,
+                              uint8_t cOpBits, uint8_t idxRegResult
 #ifndef RT_ARCH_AMD64
-                              , uint8_t cOpBits, uint8_t idxRegResult, bool fNativeFlags = false
+                              , bool fNativeFlags = false
 #endif
                               )
 {
     STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflTotalLogical);
+    IEMNATIVE_CLEAR_POSTPONED_EFLAGS(pReNative, X86_EFL_STATUS_BITS);
+    RT_NOREF(cOpBits, idxRegResult);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
     /*
      * See if we can skip this wholesale.
      */
     PCIEMLIVENESSENTRY const pLivenessEntry = &pReNative->paLivenessEntries[pReNative->idxCurCall];
-    if (   IEMLIVENESS_STATE_ARE_STATUS_EFL_TO_BE_CLOBBERED(pLivenessEntry)
+    uint64_t const           fEflClobbered  = IEMLIVENESS_STATE_GET_WILL_BE_CLOBBERED_SET(pLivenessEntry)
+                                            & IEMLIVENESSBIT_STATUS_EFL_MASK;
+# ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    uint64_t                 fEflPostponing;
+# endif
+    if (   fEflClobbered == IEMLIVENESSBIT_STATUS_EFL_MASK
         && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedLogical);
@@ -221,7 +488,28 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
         off = iemNativeEmitOrImmIntoVCpuU32(pReNative, off, X86_EFL_STATUS_BITS, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
+        Log5(("iemNativeEmitEFlagsForLogical: Skipping %#x\n", X86_EFL_STATUS_BITS));
     }
+# ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    else if (      (  (fEflPostponing = IEMLIVENESS_STATE_GET_CAN_BE_POSTPONED_SET(pLivenessEntry) & IEMLIVENESSBIT_STATUS_EFL_MASK)
+                    | fEflClobbered)
+                == IEMLIVENESSBIT_STATUS_EFL_MASK
+             && idxRegResult != UINT8_MAX)
+    {
+        STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflPostponedLogical);
+        pReNative->fSkippingEFlags       = 0;
+        pReNative->PostponedEfl.fEFlags  = X86_EFL_STATUS_BITS;
+        pReNative->PostponedEfl.enmOp    = kIemNativePostponedEflOp_Logical;
+        pReNative->PostponedEfl.cOpBits  = cOpBits;
+        pReNative->PostponedEfl.idxReg1  = iemNativeRegAllocTmpEx(pReNative, &off, IEMNATIVE_POSTPONING_REG_MASK, false);
+        /** @todo it would normally be possible to use idxRegResult, iff it is
+         *        already a non-volatile register and we can be user the caller
+         *        doesn't modify it.  That'll save a register move and allocation. */
+        off = iemNativeEmitLoadGprFromGpr(pReNative, off, pReNative->PostponedEfl.idxReg1, idxRegResult);
+        Log5(("iemNativeEmitEFlagsForLogical: Postponing %#x op=%u bits=%u reg1=%u\n", X86_EFL_STATUS_BITS,
+              kIemNativePostponedEflOp_Logical, cOpBits, pReNative->PostponedEfl.idxReg1));
+    }
+# endif
     else
 #endif
     {
@@ -316,6 +604,7 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
                                  )
 {
     STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflTotalArithmetic);
+    IEMNATIVE_CLEAR_POSTPONED_EFLAGS(pReNative, X86_EFL_STATUS_BITS);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
     /*
@@ -503,6 +792,11 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
 }
 
 
+
+/*********************************************************************************************************************************
+*   Bitwise Logical Operations                                                                                                   *
+*********************************************************************************************************************************/
+
 /**
  * The AND instruction will clear OF, CF and AF (latter is undefined) and
  * set the other flags according to the result.
@@ -520,7 +814,7 @@ iemNativeEmit_and_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones. */
@@ -552,7 +846,7 @@ iemNativeEmit_and_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 4, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones, and of
@@ -627,7 +921,7 @@ iemNativeEmit_test_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     iemNativeVarRegisterRelease(pReNative, idxVarDst);
 
 #ifdef RT_ARCH_AMD64
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
 #else
     off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegResult, cOpBits >= 32 /*fNativeFlags*/);
     iemNativeRegFreeTmp(pReNative, idxRegResult);
@@ -651,7 +945,7 @@ iemNativeEmit_test_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarDst);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones, and of
@@ -711,7 +1005,7 @@ iemNativeEmit_or_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones. */
@@ -744,7 +1038,7 @@ iemNativeEmit_or_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 1, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones, and of
@@ -794,7 +1088,7 @@ iemNativeEmit_xor_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones. */
@@ -827,7 +1121,7 @@ iemNativeEmit_xor_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 6, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl);
+    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones, and of
@@ -2732,8 +3026,8 @@ iemNativeEmitMxcsrUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t co
     off = iemNativeEmitInvBitsGpr(pReNative, off, idxRegTmp, idxRegTmp, false /*f64Bit*/);
     /* tmp &= mxcsr */
     off = iemNativeEmitAndGpr32ByGpr32(pReNative, off, idxRegMxCsrXcptFlags, idxRegTmp);
-    off = iemNativeEmitTestAnyBitsInGprAndTbExitIfAnySet(pReNative, off, idxRegMxCsrXcptFlags, X86_MXCSR_XCPT_FLAGS,
-                                                         kIemNativeLabelType_RaiseSseAvxFpRelated);
+    off = iemNativeEmitTbExitIfAnyBitsSetInGpr<kIemNativeLabelType_RaiseSseAvxFpRelated>(pReNative, off, idxRegMxCsrXcptFlags,
+                                                                                         X86_MXCSR_XCPT_FLAGS);
 
     uint8_t const idxSimdRegDst = iemNativeSimdRegAllocTmpForGuestSimdReg(pReNative, &off, IEMNATIVEGSTSIMDREG_SIMD(idxSimdGstRegDst),
                                                                           kIemNativeGstSimdRegLdStSz_Low128, kIemNativeGstRegUse_ForFullWrite);

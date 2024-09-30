@@ -8,7 +8,7 @@
  *      - Level 2  (Log2) : Details calls as they're recompiled.
  *      - Level 3  (Log3) : Disassemble native code after recompiling.
  *      - Level 4  (Log4) : Delayed PC updating.
- *      - Level 5  (Log5) : ...
+ *      - Level 5  (Log5) : Postponed and skipped EFLAGS calculations.
  *      - Level 6  (Log6) : ...
  *      - Level 7  (Log7) : ...
  *      - Level 8  (Log8) : ...
@@ -77,6 +77,7 @@
 #include "IEMN8veRecompilerEmit.h"
 #include "IEMN8veRecompilerTlbLookup.h"
 #include "IEMNativeFunctions.h"
+#include "target-x86/IEMAllN8veEmit-x86.h"
 
 
 /*
@@ -2069,7 +2070,11 @@ static PIEMRECOMPILERSTATE iemNativeReInit(PIEMRECOMPILERSTATE pReNative, PCIEMT
     pReNative->fSkippingEFlags             = 0;
 #endif
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    pReNative->fPostponingEFlags           = 0;
+    pReNative->PostponedEfl.fEFlags        = 0;
+    pReNative->PostponedEfl.enmOp          = kIemNativePostponedEflOp_Invalid;
+    pReNative->PostponedEfl.cOpBits        = 0;
+    pReNative->PostponedEfl.idxReg1        = UINT8_MAX;
+    pReNative->PostponedEfl.idxReg2        = UINT8_MAX;
 #endif
 
 #ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
@@ -6441,7 +6446,7 @@ iemNativeEmitCheckCallRetAndPassUp(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
     /* Jump to non-zero status return path. */
-    off = iemNativeEmitJnzTbExit(pReNative, off, kIemNativeLabelType_NonZeroRetOrPassUp);
+    off = iemNativeEmitTbExitJnz<kIemNativeLabelType_NonZeroRetOrPassUp>(pReNative, off);
 
     /* done. */
 
@@ -6449,17 +6454,18 @@ iemNativeEmitCheckCallRetAndPassUp(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
     /*
      * ARM64: w0 = call status code.
      */
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 1+3+3 + IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS);
+
 # ifdef IEMNATIVE_WITH_INSTRUCTION_COUNTING
-    off = iemNativeEmitLoadGprImm64(pReNative, off, ARMV8_A64_REG_X2, idxInstr);
+    AssertCompile(ARMV8_A64_REG_X2 == IEMNATIVE_CALL_ARG2_GREG);
+    off = iemNativeEmitLoadGprImmEx(pCodeBuf, off, ARMV8_A64_REG_X2, idxInstr);
 # endif
-    off = iemNativeEmitLoadGprFromVCpuU32(pReNative, off, ARMV8_A64_REG_X3, RT_UOFFSETOF(VMCPUCC, iem.s.rcPassUp));
+    off = iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, ARMV8_A64_REG_X3, RT_UOFFSETOF(VMCPUCC, iem.s.rcPassUp));
 
-    uint32_t *pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 3);
+    pCodeBuf[off++] = Armv8A64MkInstrOrr(ARMV8_A64_REG_X4, ARMV8_A64_REG_X3, ARMV8_A64_REG_X0, false /*f64Bit*/);
 
-    pu32CodeBuf[off++] = Armv8A64MkInstrOrr(ARMV8_A64_REG_X4, ARMV8_A64_REG_X3, ARMV8_A64_REG_X0, false /*f64Bit*/);
-
-    off = iemNativeEmitTestIfGprIsNotZeroAndTbExitEx(pReNative, pu32CodeBuf, off, ARMV8_A64_REG_X4, true /*f64Bit*/,
-                                                     kIemNativeLabelType_NonZeroRetOrPassUp);
+    off = iemNativeEmitTbExitIfGprIsNotZeroEx<kIemNativeLabelType_NonZeroRetOrPassUp>(pReNative, pCodeBuf, off,
+                                                                                      ARMV8_A64_REG_X4, true /*f64Bit*/);
 
 #else
 # error "port me"
@@ -9989,12 +9995,12 @@ l_profile_again:
                 szSegBase[X86_SREG_COUNT] = szSegAttrib[X86_SREG_COUNT] = szSegLimit[X86_SREG_COUNT]
                     = szSegSel[X86_SREG_COUNT] = '\0';
 
-                char szEFlags[8];
-                for (unsigned i = 0; i < 7; i++)
+                char szEFlags[IEMLIVENESSBIT_IDX_EFL_COUNT + 1];
+                for (unsigned i = 0; i < IEMLIVENESSBIT_IDX_EFL_COUNT; i++)
                     szEFlags[i] = s_achState[iemNativeLivenessGetStateByGstRegEx(pLivenessEntry, i + kIemNativeGstReg_EFlags)];
                 szEFlags[7] = '\0';
 
-                Log2(("liveness: grp=%s segbase=%s segattr=%s seglim=%s segsel=%s efl=%s\n",
+                Log2(("liveness: gpr=%s segbase=%s segattr=%s seglim=%s segsel=%s efl=%s\n",
                       szGpr, szSegBase, szSegAttrib, szSegLimit, szSegSel, szEFlags));
             }
 #endif
@@ -10026,7 +10032,7 @@ l_profile_again:
          * Jump to the common per-chunk epilog code.
          */
         //off = iemNativeEmitBrk(pReNative, off, 0x1227);
-        off = iemNativeEmitTbExit(pReNative, off, kIemNativeLabelType_ReturnSuccess);
+        off = iemNativeEmitTbExit<kIemNativeLabelType_ReturnSuccess, true, false>(pReNative, off);
 
         /*
          * Generate tail labels with jumps to the common per-chunk code on non-x86 hosts.
@@ -10038,6 +10044,7 @@ l_profile_again:
         uint64_t fTailLabels = pReNative->bmLabelTypes & (RT_BIT_64(kIemNativeLabelType_LastTbExit + 1U) - 2U);
         if (fTailLabels)
         {
+            PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, kIemNativeLabelType_LastTbExit + 1);
             do
             {
                 IEMNATIVELABELTYPE const enmLabel = (IEMNATIVELABELTYPE)(ASMBitFirstSetU64(fTailLabels) - 1U);
@@ -10046,8 +10053,15 @@ l_profile_again:
                 uint32_t const idxLabel = iemNativeLabelFind(pReNative, enmLabel);
                 AssertContinue(idxLabel != UINT32_MAX);
                 iemNativeLabelDefine(pReNative, idxLabel, off);
-                off = iemNativeEmitTbExit(pReNative, off, enmLabel);
+
+                iemNativeAddTbExitFixup(pReNative, off, enmLabel);
+# ifdef RT_ARCH_ARM64
+                pCodeBuf[off++] = Armv8A64MkInstrB(-1);
+# else
+#  error "port me"
+# endif
             } while (fTailLabels);
+            IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
         }
 #else
         Assert(!(pReNative->bmLabelTypes & (RT_BIT_64(kIemNativeLabelType_LastTbExit + 1) - 1U))); /* Should not be used! */

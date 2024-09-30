@@ -2944,6 +2944,9 @@ class McBlock(object):
         if sRet:
             asRet.append(sRet);
 
+        ## @todo Check that IEM_MC_REF_EFLAGS isn't used before memory fetches and does
+        # not have any stores or conditional raises afterwards.
+
         return asRet;
 
 

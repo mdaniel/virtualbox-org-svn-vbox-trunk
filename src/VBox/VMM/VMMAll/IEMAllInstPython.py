@@ -2924,6 +2924,46 @@ class McBlock(object):
                     return sRet;
         return None;
 
+    koReRefEflIllegalMemRough   = re.compile(r'^IEM_MC_.*(MEM|PUSH_U|POP_GREG|RETN|IND_CALL|REL_CALL)');
+    koReRefEflIllegalMemExclude = re.compile(r'^IEM_MC_.*(MEM_COMMIT|MEM_OP|FPU_|UPDATE_FSW)');
+    koReRefEflIllegalRaise      = re.compile(r'^IEM_MC_(RAISE|MAYBE_RAISE)');
+
+    def checkRefEFlagsUse(self, aoStmts, asState):
+        """
+        Checks that EFLAGS references comes after memory fetches and that there
+        are no memory stores or conditional raises afterwards.
+
+        The problem is postponed EFLAGS calculation management.  This gets a
+        lot easier if we can jettison any postponements when EFLAGS are
+        referenced.  If we had to deal with potential TB exits / exceptions
+        after they are referenced, this means it would have to delay the
+        cleanup until the IEM_MC_..._AND_FINISH statement which is kind of
+        complicated and not very efficient.
+        """
+        fSeenIt = asState.get('fSeenIt', False);
+        for iStmt, oStmt in enumerate(aoStmts):
+            if not oStmt.isCppStmt():
+                if oStmt.sName in ('IEM_MC_REF_EFLAGS', 'IEM_MC_REF_EFLAGS_EX',):
+                    fSeenIt = True;
+                elif (    fSeenIt
+                      and (    (    self.koReRefEflIllegalMemRough.match(oStmt.sName)
+                                and not self.koReRefEflIllegalMemExclude.match(oStmt.sName))
+                           or self.koReRefEflIllegalRaise.match(oStmt.sName) )):
+                    return "statement #%u: %s following REF_EFLAGS! That'll mess up EFLAGS calculation postponing" \
+                         % (iStmt + 1, oStmt.sName,);
+
+            # Go into branches.
+            if isinstance(oStmt, McStmtCond):
+                asState['fSeenIt'] = fSeenIt;
+                sRet = self.checkRefEFlagsUse(oStmt.aoIfBranch, asState);
+                if sRet:
+                    return sRet;
+                sRet = self.checkRefEFlagsUse(oStmt.aoElseBranch, asState);
+                if sRet:
+                    return sRet;
+                fSeenIt = asState['fSeenIt'];
+        return None;
+
     def check(self):
         """
         Performs some sanity checks on the block.
@@ -2944,8 +2984,9 @@ class McBlock(object):
         if sRet:
             asRet.append(sRet);
 
-        ## @todo Check that IEM_MC_REF_EFLAGS isn't used before memory fetches and does
-        # not have any stores or conditional raises afterwards.
+        sRet = self.checkRefEFlagsUse(aoStmts, {});
+        if sRet:
+            asRet.append(sRet);
 
         return asRet;
 

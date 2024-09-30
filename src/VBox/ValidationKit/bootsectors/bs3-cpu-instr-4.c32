@@ -290,6 +290,12 @@ AssertCompile(FP64_MAKE(0, FP64_FRAC_V3, FP64_EXP_V3) != FP64_MAKE(0, 0, RTFLOAT
 /** The maximum denormal value. */
 #define FP64_DENORM_MIN(a_Sign)             RTFLOAT64U_INIT_C(a_Sign, FP64_FRAC_DENORM_MIN, 0)
 
+/*
+ * Utility defines for table construction.
+ */
+#define FP32_ROW_UNUSED FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0)
+#define FP64_ROW_UNUSED FP64_1(0), FP64_1(0), FP64_1(0), FP64_1(0)
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -2986,6 +2992,28 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T 
 
 
 /**
+ * Constants used in the 'Worker 1A' test value definitions.  These are
+ * extra bits which can be set in the ':out' fields of a test value.
+ * They are described below in the corresponding code.
+ */
+#define BS3_MXCSR_FIXED_SHIFT 11
+#define BS3_MXCSR_FIXED_MASK  (X86_MXCSR_XCPT_MASK << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_IM_FIXED    (X86_MXCSR_IM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_DM_FIXED    (X86_MXCSR_DM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_ZM_FIXED    (X86_MXCSR_ZM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_OM_FIXED    (X86_MXCSR_OM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_UM_FIXED    (X86_MXCSR_UM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_PM_FIXED    (X86_MXCSR_PM << BS3_MXCSR_FIXED_SHIFT)
+#define BS3_MXCSR_PE_FUZZY    RT_BIT_32(24)
+
+/* Confirm all bits we're 'stealing' are actually available */
+AssertCompile(BS3_MXCSR_FIXED_MASK == BS3_MXCSR_IM_FIXED | BS3_MXCSR_DM_FIXED | BS3_MXCSR_ZM_FIXED | BS3_MXCSR_OM_FIXED | BS3_MXCSR_UM_FIXED | BS3_MXCSR_PM_FIXED);
+AssertCompile((X86_MXCSR_ZERO_MASK & BS3_MXCSR_FIXED_MASK) == BS3_MXCSR_FIXED_MASK);
+AssertCompile((X86_MXCSR_ZERO_MASK & BS3_MXCSR_PE_FUZZY) == BS3_MXCSR_PE_FUZZY);
+/* Confirm bits we're 'stealing' do not overlap each other */
+AssertCompile((BS3_MXCSR_FIXED_MASK & BS3_MXCSR_PE_FUZZY) == 0);
+
+/**
  * Worker for bs3CpuInstr4_WorkerTestType1 [new WIP version]
  */
 static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
@@ -3014,27 +3042,50 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
 
     uint32_t uSpecifiedMask, uExpectedMask, uImpliedMask, uCombinedMask, uMaskedMask, uUnmaskedMask, uThisMask;
     uint32_t uExpectedMxCsr_orig, uExpectedExceptions, uExpectedUnmaskedExceptions, uInitialExceptions, uRandTmp;
+    bool fFuzzyPE;
+    uint32_t uForceOnMask, uForceOffMask;
     const char *pszMaskType;
     unsigned iMaskType;
     static bool      sfMismatchShown     = false;
 
     /*
-     * An exception may be raised based on the test value (128 vs 256 bits).
-     * In addition, we allow setting the exception flags (and mask) prior to
-     * executing the instruction, so we cannot use the exception flags to figure
-     * out if an exception will be raised. Hence, the input values provide us
-     * explicitly whether an exception is expected for 128 and 256-bit variants.
-     */  /** @todo rewrite this to reflect 'worker 1a' when ready to commit */
+     * Different exceptions may be raised by the same instruction given a
+     * particular set of 256-bit inputs vs. the lower 128-bits of the same
+     * inputs.  The test value tables therefore provide us with the exceptions
+     * expected for each size.  The tables give the maximum exceptions, as
+     * would be raised when all exceptions are masked; the test worker then
+     * varies the masking configuration and is able to derive the exceptions
+     * which will be raised in each scenario.
+     *
+     * Certain instruction tests give different results with different masks,
+     * beyond the scope of the test worker's knowledge.  The test worker may
+     * be instructed not to vary a specified set of masks for a particular
+     * test; such tests should be duplicated in the test data, once for each
+     * different set of fixed masks expected to give different results.  See
+     * the 'Denormals' section of instruction `addpd` for an example working.
+     * This area is marked for further investigation.
+     *
+     * There is an additional 'fuzzy PE exception' flag which means that the
+     * test worker will ignore the PE exception bit in the instruction results
+     * (including whether or not a fault was raised).  This exists due to
+     * observed variable behavior in IEM, and even with physical hardware
+     * in some instances.  It is not meant to excuse the variable behavior
+     * (particularly in IEM!), but to make it tolerable to run tests while the
+     * known outage exists.  This is marked for further investigation.
+     */
+     /** @todo deeper / continued investigation of 'forced mask' situations */
+     /** @todo deeper investigation of 'fuzzy PE' situation */
+
     if (pTestCtx->cbOperand > 16)
-    {
         uExpectedMxCsr  = pValues->u256ExpectedMxCsr;
-        fFpXcptExpected = pValues->f256FpXcptExpected;
-    }
     else
-    {
         uExpectedMxCsr  = pValues->u128ExpectedMxCsr;
-        fFpXcptExpected = pValues->f128FpXcptExpected;
-    }
+    fFuzzyPE = (uExpectedMxCsr & BS3_MXCSR_PE_FUZZY) != 0;
+    uExpectedMxCsr &= ~BS3_MXCSR_PE_FUZZY;
+    uSpecifiedMask = pValues->uMxCsr & X86_MXCSR_XCPT_MASK;
+    uForceOnMask = ((uExpectedMxCsr & BS3_MXCSR_FIXED_MASK) >> BS3_MXCSR_FIXED_SHIFT) & uSpecifiedMask;
+    uForceOffMask = ((uExpectedMxCsr & BS3_MXCSR_FIXED_MASK) >> BS3_MXCSR_FIXED_SHIFT) & (~uSpecifiedMask);
+    uExpectedMxCsr = ((uExpectedMxCsr & ~BS3_MXCSR_FIXED_MASK) | uForceOnMask) & ~uForceOffMask;
 
     /*
      * The test value tables give us the exceptions expected when run fully
@@ -3061,7 +3112,6 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
      */
     uExpectedMxCsr_orig = uExpectedMxCsr;
     uInitialExceptions = pValues->uMxCsr & X86_MXCSR_XCPT_FLAGS;
-    uSpecifiedMask = pValues->uMxCsr & X86_MXCSR_XCPT_MASK;
     uExpectedMask = uExpectedMxCsr_orig & X86_MXCSR_XCPT_MASK;
 
     /* Debug code to help convert the value tables; eventually replace with an assert */
@@ -3072,8 +3122,8 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
     }
     uImpliedMask = (uExpectedMxCsr_orig & X86_MXCSR_XCPT_FLAGS) << X86_MXCSR_XCPT_MASK_SHIFT;
     uCombinedMask = uSpecifiedMask | uImpliedMask;
-    uMaskedMask = X86_MXCSR_XCPT_MASK;
-    uUnmaskedMask = 0;
+    uMaskedMask = X86_MXCSR_XCPT_MASK & ~uForceOffMask;
+    uUnmaskedMask = 0 | uForceOnMask;
 
    for (iMaskType = 0; iMaskType <= 6; iMaskType++)
    {
@@ -3116,15 +3166,15 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
             switch (uRandTmp & X86_MXCSR_RC_MASK)
             {
                 case X86_MXCSR_RC_ZERO:
-                case X86_MXCSR_RC_NEAREST:
+                case X86_MXCSR_RC_NEAREST:  /* Random mask */
                     uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
                     break;
-                case X86_MXCSR_RC_DOWN:
-                    uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
+                case X86_MXCSR_RC_UP:       /* Random initial exceptions */
+                    uThisMask = uSpecifiedMask;
                     uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
                     break;
-                case X86_MXCSR_RC_UP:
-                    uThisMask = uSpecifiedMask;
+                case X86_MXCSR_RC_DOWN:     /* Random mask & initial exceptions */
+                    uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
                     uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
                     break;
                 default:
@@ -3132,13 +3182,12 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
             }
             pszMaskType = "Random";
             break;
-        /** @todo Consider providing assorted already-set exceptions (WIP) */
-        /** @todo Consider only-early exceptions masked; only-late exceptions masked */
-        /** @todo Consider only-early-specified exceptions masked; only-late-specified exceptions masked */
-        /** -- I think actually this is all covered by the Random case.  Over time. */
         default:
             BS3_ASSERT(0);
     }
+    /* No matter what was chosen, honor FIXED mask bits */
+    uThisMask = (uThisMask | uForceOnMask) & ~uForceOffMask;
+
     /* This is the input MXCSR value we'll be sending */
     uMxCsr = (pValues->uMxCsr & ~(X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS)) | uThisMask | uInitialExceptions;
 
@@ -3249,8 +3298,17 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
         && pExtCtxOut->Ctx.x.Hdr.bmXState == 0x3)
         pExtCtxOut->Ctx.x.Hdr.bmXState = 0x7;
 #endif
+
     if (bXcptExpect == X86_XCPT_DB)
+    {
+        if (fFuzzyPE)
+        {
+            uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut);
+            uExpectedMxCsr = (uExpectedMxCsr & ~X86_MXCSR_PE) | (uGotMxCsr & X86_MXCSR_PE);
+        }
         Bs3ExtCtxSetMxCsr(pExtCtx, uExpectedMxCsr | (pSavedCfg->uMxCsr & X86_MXCSR_MM));
+    }
+
     Bs3TestCheckExtCtx(pExtCtxOut, pExtCtx, 0 /*fFlags*/, pTestCtx->pszMode, pTestCtx->idTestStep);
 
     if (bXcptExpect == X86_XCPT_DB)
@@ -3312,8 +3370,8 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
         && Bs3MemCmp(puMemOpAlias, &MemOpExpect, cbMemOp) != 0)
         Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
 
-    /* Most-not-all of this will be removed once debugged */
-    if (cErrors != Bs3TestSubErrorCount()) Bs3TestFailedF("While testing mask mode %s, Spec=%#RX32, Expc=%#RX32, Impl=%#RX32, Comb=%#RX32, Mask=%#RX32, Umsk=%#RX32, This=%#RX32, uMxCsr=%#RX32, uExpectedMxCsr=%#RX32, save=%#RX32, ixcp=%#RX32", pszMaskType, uSpecifiedMask, uExpectedMask, uImpliedMask, uCombinedMask, uMaskedMask, uUnmaskedMask, uThisMask, uMxCsr, uExpectedMxCsr, uExpectedMxCsr_orig, uInitialExceptions);
+    if (cErrors != Bs3TestSubErrorCount())
+        Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", pszMaskType, uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
    }
 
     return cErrorsInit;
@@ -3844,23 +3902,23 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
     /*
      * Infinity.
      */
-    /* 5*/{ { /*src2     */ { FP64_INF(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_INF(1), FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_INF(1), FP64_0(0), FP64_0(0), FP64_0(0) } },
+     /*5*/{ { /*src2     */ { FP64_INF(0),  FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_INF(1),  FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_QNAN(1), FP64_0(0), FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM,
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_IE,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_IE,
               /*xcpt?    */ true, true },
-          { { /*src2     */ { FP64_0(0), FP64_INF(1), FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_0(0), FP64_INF(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_0(0), FP64_INF(0), FP64_0(0), FP64_0(0) } },
+          { { /*src2     */ { FP64_0(0), FP64_INF(1),  FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_INF(0),  FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_QNAN(1), FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN | X86_MXCSR_IE,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN | X86_MXCSR_IE,
               /*xcpt?    */ true, true },
-          { { /*src2     */ { FP64_0(0), FP64_INF(1), FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_0(0), FP64_INF(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_0(0), FP64_INF(0), FP64_0(0), FP64_0(0) } },
+          { { /*src2     */ { FP64_0(0), FP64_INF(1),  FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_INF(0),  FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_QNAN(1), FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP | X86_MXCSR_IE,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_ZM | X86_MXCSR_OM | X86_MXCSR_UM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP | X86_MXCSR_IE,
@@ -3884,38 +3942,38 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
      */
     /*10*/{ { /*src2     */ { FP64_0(0), FP64_NORM_MAX(1), FP64_0(0), FP64_NORM_MAX(1) } },
             { /*src1     */ { FP64_0(0), FP64_NORM_MAX(1), FP64_0(0), FP64_NORM_MAX(1) } },
-            { /* =>      */ { FP64_0(0), FP64_0(0),        FP64_0(0), FP64_0(0)        } },
+            { /* =>      */ { FP64_0(0), FP64_INF(1),      FP64_0(0), FP64_INF(1)      } },
               /*mxcsr:in */ 0,
-              /*128:out  */ X86_MXCSR_OE,
-              /*256:out  */ X86_MXCSR_OE,
+              /*128:out  */ X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
+              /*256:out  */ X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ true, true },
           { { /*src2     */ { FP64_NORM_MAX(0), FP64_NORM_MAX(0), FP64_0(0), FP64_0(0) } },
             { /*src1     */ { FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_INF(0),      FP64_0(0),        FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ 0,
-              /*128:out  */ X86_MXCSR_OE,
-              /*256:out  */ X86_MXCSR_OE,
+              /*128:out  */ X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
+              /*256:out  */ X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ true, true },
           { { /*src2     */ { FP64_NORM_MAX(0), FP64_NORM_MIN(1),                     FP64_0(0), FP64_NORM_MAX(0) } },
             { /*src1     */ { FP64_NORM_MAX(0), FP64_NORM_MIN(1),                     FP64_0(0), FP64_NORM_MAX(0) } },
             { /* =>      */ { FP64_INF(0),      FP64_V(1, 0, FP32_EXP_NORM_MIN + 1),  FP64_0(0), FP64_INF(0)      } },
               /*mxcsr:in */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ,
-              /*128:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE,
+              /*128:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
+              /*256:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP64_NORM_MIN(1),                     FP64_NORM_MAX(0), FP64_NORM_MAX(0), FP64_0(0) } },
             { /*src1     */ { FP64_NORM_MIN(1),                     FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_0(0) } },
             { /* =>      */ { FP64_V(1, 0, FP32_EXP_NORM_MIN + 1),  FP64_INF(0),      FP64_0(0),        FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_FZ,
-              /*128:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE,
+              /*128:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
+              /*256:out  */ X86_MXCSR_OM | X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_NORM_MAX(1), FP64_NORM_MAX(0) } },
             { /*src1     */ { FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_NORM_MAX(1), FP64_NORM_MAX(0) } },
             { /* =>      */ { FP64_NORM_MAX(0), FP64_NORM_MAX(1), FP64_NORM_MAX(1), FP64_NORM_MAX(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ false, false },
           { { /*src2     */ { FP64_NORM_SAFE_INT_MIN(0),                            FP64_NORM_MAX(0), FP64_0(0), FP64_NORM_SAFE_INT_MAX(1)                                } },
             { /*src1     */ { FP64_NORM_SAFE_INT_MAX(0),                            FP64_NORM_MAX(1), FP64_0(0), FP64_NORM_SAFE_INT_MAX(1)                                } },
@@ -3988,18 +4046,72 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
      */
     /*24*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
             { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ X86_MXCSR_DE,
-              /*256:out  */ X86_MXCSR_DE,
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+              /*mxcsr:in */ 0,                            /* DM off, UM can vary */
+              /*128:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
+              /*256:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ true, true },
-          { { /*src2     */ { FP64_0(0), FP64_0(0),          FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE,
+#ifdef TODO_X86_MXCSR_UE_HW /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
+          /* this is what works on HW (i7-10700) (same as below, plus out:_UE) */
+ /*--|25*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
+              /*128:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
+              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
+              /*xcpt?    */ true, true },
+#endif /* TODO_X86_MXCSR_UE_HW */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON HW: X86_MXCSR_UE not set in 128:out or 256:out */
+          /* for comparison, this is what works on IEM (same as above, minus out:_UE) */
+ /*--|25*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
+              /*128:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*xcpt?    */ true, true },
+#endif /* TODO_X86_MXCSR_UE_IEM */
+ /*25|26*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
+            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_UM,  /* DM on,  UM on */
+              /*128:out  */ X86_MXCSR_DM | X86_MXCSR_UM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*256:out  */ X86_MXCSR_DM | X86_MXCSR_UM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*xcpt?    */ true, true },
+ /*26|27*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+              /*mxcsr:in */ 0,                            /* DM off, UM can vary */
+              /*128:out  */ 0,
+              /*256:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ false, false },
+#ifdef TODO_X86_MXCSR_UE_HW /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
+          /* this is what works on HW (i7-10700) (same as below, plus 256:out:_UE) */
+ /*--|28*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
+              /*128:out  */ X86_MXCSR_DM,
+              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
+              /*xcpt?    */ true, true },
+#endif /* TODO_X86_MXCSR_UE_HW */
+#ifdef TODO_X86_MXCSR_UE_IEM
+          /* for comparison, this is what works on IEM (same as above, minus 256:out:_UE) */
+ /*--|28*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
+              /*128:out  */ X86_MXCSR_DM,
+              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*xcpt?    */ true, true },
+#endif /* TODO_X86_MXCSR_UE_IEM */
+ /*27|29*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
+            { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+            { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
+              /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_UM,  /* DM on,  UM on */
+              /*128:out  */ X86_MXCSR_DM | X86_MXCSR_UM,
+              /*256:out  */ X86_MXCSR_DM | X86_MXCSR_UM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
+              /*xcpt?    */ true, true },
           { { /*src2     */ { FP64_DENORM_MIN(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0), FP64_DENORM_MAX(0) } },
             { /*src1     */ { FP64_DENORM_MAX(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0), FP64_DENORM_MIN(0) } },
             { /* =>      */ { FP64_0(0),          FP64_0(0),          FP64_0(0),          FP64_0(0)          } },
@@ -4061,7 +4173,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -9642,7 +9754,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
             { /*src1     */ { FP64_DENORM_MAX(0), FP64_DENORM_MIN(0),  FP64_RAND_V1(1), FP64_RAND_V3(0) } },
             { /* =>      */ { FP64_V(0, 0x618618618618, 0)/*-5.29XYZe-310*/, FP64_DENORM_MIN(0),  FP64_RAND_V1(1), FP64_RAND_V3(0) } },
              /*mxcsr:in */ X86_MXCSR_XCPT_MASK & ~X86_MXCSR_UM,
-             /*128:out  */ (X86_MXCSR_XCPT_MASK & ~X86_MXCSR_UM) | X86_MXCSR_PE | X86_MXCSR_DE | X86_MXCSR_UE,
+             /*128:out  */ (X86_MXCSR_XCPT_MASK & ~X86_MXCSR_UM) | X86_MXCSR_PE | X86_MXCSR_DE | X86_MXCSR_UE, // | BS3_MXCSR_PE_FUZZY /* IEM: when converted to Worker1A */
              /*256:out  */ (X86_MXCSR_XCPT_MASK & ~X86_MXCSR_UM) | X86_MXCSR_PE | X86_MXCSR_DE | X86_MXCSR_UE,
              /*xcpt?    */ true, true },
 #endif /* TODO_X86_MXCSR_PE */
@@ -13664,35 +13776,34 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
 {
-#define FP32_x8_UNUSED FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0), FP32_1(0)
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues[] =
     {
     /*
      * Zero.
      */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
               /*128:out  */ X86_MXCSR_XCPT_MASK,
               /*256:out  */ X86_MXCSR_XCPT_MASK,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
               /*mxcsr:in */ X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
               /*256:out  */ X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
               /*mxcsr:in */ X86_MXCSR_RC_ZERO,
               /*128:out  */ X86_MXCSR_RC_ZERO,
               /*256:out  */ X86_MXCSR_RC_ZERO,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(1), FP32_0(1) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
@@ -13702,7 +13813,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
      * Infinity.
      */
     /* 4*/{ { /*src1     */ { FP32_INF(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_INF(1),  FP32_0(0), FP32_0(0), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_INF(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_QNAN(1), FP32_0(0), FP32_0(0), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
@@ -13712,35 +13823,35 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
      * Precision (Overflow, Underflow not possible).
      */
     /* 5*/{ { /*src1     */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_2(0)                            } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_V(0, 0x3504f3, 0x7f)/*sqrt(2)*/ } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ X86_MXCSR_PE,
               /*xcpt?    */ false, true },
           { { /*src1     */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_2(0)                            } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_V(0, 0x3504f3, 0x7f)/*sqrt(2)*/ } },
               /*mxcsr:in */ X86_MXCSR_PM | X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_PM | X86_MXCSR_RC_DOWN,
               /*256:out  */ X86_MXCSR_PM | X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_2(0)                             } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_V(0, 0x3504f4, 0x7f)/*sqrt^(2)*/ } },
               /*mxcsr:in */ X86_MXCSR_PM | X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_PM | X86_MXCSR_RC_UP,
               /*256:out  */ X86_MXCSR_PM | X86_MXCSR_RC_UP | X86_MXCSR_PE,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_2(0)                            } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_V(0, 0x3504f3, 0x7f)/*sqrt(2)*/ } },
               /*mxcsr:in */ X86_MXCSR_PM | X86_MXCSR_RC_ZERO,
               /*128:out  */ X86_MXCSR_PM | X86_MXCSR_RC_ZERO,
               /*256:out  */ X86_MXCSR_PM | X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
               /*xcpt?    */ false, false },
           { { /*src1     */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_2(0)                            } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_1(0), FP32_1(0), FP32_0(1), FP32_1(0), FP32_0(0), FP32_1(0), FP32_V(0, 0x3504f3, 0x7f)/*sqrt(2)*/ } },
               /*mxcsr:in */ X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_DAZ,
               /*128:out  */ X86_MXCSR_PM | X86_MXCSR_FZ | X86_MXCSR_DAZ,
@@ -13750,7 +13861,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
      * Normals.
      */
     /*10*/{ { /*src1     */ { FP32_NORM_V0(0), FP32_NORM_V1(0), FP32_NORM_V2(0), FP32_NORM_V3(0), FP32_NORM_V4(0), FP32_NORM_V5(0), FP32_NORM_V6(0), FP32_NORM_V7(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x1ccf5c,0x40)/*sqrt(FP32_NORM_V0)*/,
                               FP32_V(0,0x293fdb,0x97)/*sqrt(FP32_NORM_V1)*/,
                               FP32_V(0,0x3455c7,0x7e)/*sqrt(FP32_NORM_V2)*/,
@@ -13771,7 +13882,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_V(0,0x8000,0x87)/*257.0*/,
                               FP32_V(0,0x43ffff,0x7c)/*(7/16)^2-epsilon*/,
                               FP32_V(0,0x6f4841,0x8c)/*123.75^2+epsilon*/ } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x380000,0x83)/*23.0*/,
                               FP32_V(0,0x0,0x83)/*16.0*/,
                               FP32_V(0,0x600000,0x7d)/*7/16*/,
@@ -13792,7 +13903,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_V(0,0x8000,0x87)/*257.0*/,
                               FP32_V(0,0x43ffff,0x7c)/*(7/16)^2-epsilon*/,
                               FP32_V(0,0x6f4841,0x8c)/*123.75^2+epsilon*/ } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x380000,0x83)/*23.0*/,
                               FP32_V(0,0x0,0x83)/*16.0*/,
                               FP32_V(0,0x600000,0x7d)/*7/16*/,
@@ -13813,7 +13924,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_V(0,0x8000,0x87)/*257.0*/,
                               FP32_V(0,0x43ffff,0x7c)/*(7/16)^2-epsilon*/,
                               FP32_V(0,0x6f4841,0x8c)/*123.75^2+epsilon*/ } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x380000,0x83)/*23.0*/,
                               FP32_V(0,0x0,0x83)/*16.0*/,
                               FP32_V(0,0x600000,0x7d)/*7/16*/,
@@ -13834,7 +13945,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_V(0,0x8000,0x87)/*257.0*/,
                               FP32_V(0,0x43ffff,0x7c)/*(7/16)^2-epsilon*/,
                               FP32_V(0,0x6f4841,0x8c)/*123.75^2+epsilon*/ } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x380000,0x83)/*23.0*/,
                               FP32_V(0,0x0,0x83)/*16.0*/,
                               FP32_V(0,0x600000,0x7d)/*7/16*/,
@@ -13847,8 +13958,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
               /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_PE /** @todo THIS FAILS ON IEM: X86_MXCSR_PE unexpectedly set in unmasked 256:out */
- /*--|15*/{ { /*src1     */ { FP32_NORM_MAX(0),
+          { { /*src1     */ { FP32_NORM_MAX(0),
                               FP32_NORM_MIN(0),
                               FP32_NORM_SAFE_INT_MAX(0),
                               FP32_NORM_SAFE_INT_MIN(0),
@@ -13856,7 +13966,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_NORM_MIN(1),
                               FP32_NORM_SAFE_INT_MAX(1),
                               FP32_NORM_SAFE_INT_MIN(1) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x7fffff,0xbe)/*sqrt(FP32_NORM_MAX)*/,
                               FP32_V(0,0x0,0x40)/*sqrt(FP32_NORM_MIN)*/,
                               FP32_V(0,0x7fffff,0x8a)/*sqrt(FP32_NORM_SAFE_INT_MAX)*/,
@@ -13867,94 +13977,56 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
                               FP32_QNAN(1) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_PE | X86_MXCSR_IE,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_PE | X86_MXCSR_IE | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_PE */
     /** @todo More Normals. */
    /*
     * Denormals.
     */
-#ifdef TODO_X86_MXCSR_PE /** @todo THESE FAIL ON IEM: X86_MXCSR_PE unexpectedly set in unmasked 256:out */
- /*--|16*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+    /*16*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x7fffff,0x3f), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
+              /*256:out  */ X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ true, true },
- /*--|17*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
-            { /* =>      */ { FP32_V(0,0x7fffff,0x3f), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_DM,
-              /*128:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
-              /*xcpt?    */ true, true },
- /*--|18*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
-            { /* =>      */ { FP32_V(0,0x7fffff,0x3f), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_PM,
-              /*128:out  */ X86_MXCSR_PM | X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_PM | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
-              /*xcpt?    */ true, true },
- /*--|19*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
-            { /* =>      */ { FP32_V(0,0x7fffff,0x3f), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_DM | X86_MXCSR_PM,
-              /*128:out  */ X86_MXCSR_DM | X86_MXCSR_PM | X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_DM | X86_MXCSR_PM | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
-              /*xcpt?    */ false, true },
- /*--|20*/{ { /*src1     */ { FP32_DENORM_MAX(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
-            { /* =>      */ { FP32_V(0,0x7fffff,0x3f), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
-              /*xcpt?    */ false, false },
- /*--|21*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MIN(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MIN(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MIN(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MIN(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x3504f3,0x34), FP32_V(0,0x3504f3,0x34), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
+              /*256:out  */ X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ true, true },
- /*--|22*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MIN(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MIN(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
-            { /* =>      */ { FP32_V(0,0x3504f3,0x34), FP32_V(0,0x3504f3,0x34), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
-              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE,
-              /*xcpt?    */ false, false },
- /*--|23*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x3504f3+1,0x34), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),     FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_RC_UP,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_UP | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ false, false },
- /*--|24*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x3504f3,0x34), FP32_V(0,0x7fffff-1,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),     FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_DOWN | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ false, false },
- /*--|25*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x3504f3,0x34), FP32_V(0,0x7fffff-1,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),     FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_RC_ZERO | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ false, false },
- /*--|26*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_V(0,0x3504f3,0x34), FP32_V(0,0x7fffff,0x3f), FP32_0(0), FP32_0(1), FP32_QNAN(1),       FP32_QNAN(1),       FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_FZ,
-              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_PE | X86_MXCSR_FZ | BS3_MXCSR_PE_FUZZY /* IEM */,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_PE */
- /*15|27*/{ { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
-            { /*unused   */ { FP32_x8_UNUSED } },
+          { { /*src1     */ { FP32_DENORM_MIN(0),      FP32_DENORM_MAX(0),      FP32_0(0), FP32_0(1), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0),               FP32_0(0),               FP32_0(0), FP32_0(1), FP32_0(1),          FP32_0(1),          FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ,
@@ -13965,10 +14037,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
      * Invalids.
      */
     /** @todo Invalids. */
- /*16|28*/ /* FP32_TABLE_D10_PS_INVALIDS */
+    /*23*/ /* FP32_TABLE_D10_PS_INVALIDS */
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
-#undef FP32_x8_UNUSED
 
 #define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =

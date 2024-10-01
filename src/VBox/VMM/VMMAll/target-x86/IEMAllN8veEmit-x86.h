@@ -236,7 +236,7 @@ DECL_FORCE_INLINE(void) iemNativeClearPostponedEFlags(PIEMRECOMPILERSTATE pReNat
             { /* likely */ }
             else
             {
-                Log5(("iemNativeClearPostponedEFlags: Clobbering %#x: %#x -> %#x (op=%d bits=%u)\n", a_fEflClobbered,
+                Log5(("EFLAGS: Clobbering %#x: %#x -> %#x (op=%d bits=%u) - iemNativeClearPostponedEFlags\n", a_fEflClobbered,
                       pReNative->PostponedEfl.fEFlags, fEFlags, pReNative->PostponedEfl.enmOp, pReNative->PostponedEfl.cOpBits));
                 pReNative->PostponedEfl.fEFlags = fEFlags;
                 return;
@@ -244,7 +244,7 @@ DECL_FORCE_INLINE(void) iemNativeClearPostponedEFlags(PIEMRECOMPILERSTATE pReNat
         }
 
         /* Do cleanup.  */
-        Log5(("iemNativeClearPostponedEFlags: Cleanup of op=%u bits=%u efl=%#x upon clobbering %#x\n",
+        Log5(("EFLAGS: Cleanup of op=%u bits=%u efl=%#x upon clobbering %#x - iemNativeClearPostponedEFlags\n",
               pReNative->PostponedEfl.enmOp, pReNative->PostponedEfl.cOpBits, pReNative->PostponedEfl.fEFlags, a_fEflClobbered));
         pReNative->PostponedEfl.fEFlags = 0;
         pReNative->PostponedEfl.enmOp   = kIemNativePostponedEflOp_Invalid;
@@ -547,11 +547,11 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
         && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedLogical);
-        pReNative->fSkippingEFlags |= X86_EFL_STATUS_BITS;
+        pReNative->fSkippingEFlags = X86_EFL_STATUS_BITS;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
         off = iemNativeEmitOrImmIntoVCpuU32(pReNative, off, X86_EFL_STATUS_BITS, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
-        Log5(("iemNativeEmitEFlagsForLogical: Skipping %#x\n", X86_EFL_STATUS_BITS));
+        Log5(("EFLAGS: Skipping %#x - iemNativeEmitEFlagsForLogical\n", X86_EFL_STATUS_BITS));
         return off;
     }
 # ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
@@ -569,7 +569,7 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
          *        already a non-volatile register and we can be user the caller
          *        doesn't modify it.  That'll save a register move and allocation. */
         off = iemNativeEmitLoadGprFromGpr(pReNative, off, pReNative->PostponedEfl.idxReg1, idxRegResult);
-        Log5(("iemNativeEmitEFlagsForLogical: Postponing %#x op=%u bits=%u reg1=%u\n", X86_EFL_STATUS_BITS,
+        Log5(("EFLAGS: Postponing %#x op=%u bits=%u reg1=%u - iemNativeEmitEFlagsForLogical\n", X86_EFL_STATUS_BITS,
               kIemNativePostponedEflOp_Logical, cOpBits, pReNative->PostponedEfl.idxReg1));
     }
 # endif
@@ -644,6 +644,8 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
     }
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+    if (pReNative->fSkippingEFlags)
+        Log5(("EFLAGS: fSkippingEFlags %#x -> 0 (iemNativeEmitEFlagsForLogical)\n", pReNative->fSkippingEFlags));
     pReNative->fSkippingEFlags = 0;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
     off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
@@ -678,7 +680,8 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
         && !(pReNative->fMc & IEM_MC_F_WITH_FLAGS))
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflSkippedArithmetic);
-        pReNative->fSkippingEFlags |= X86_EFL_STATUS_BITS;
+        pReNative->fSkippingEFlags = X86_EFL_STATUS_BITS;
+        Log5(("EFLAGS: Skipping %#x - iemNativeEmitEFlagsForArithmetic\n", X86_EFL_STATUS_BITS));
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
         off = iemNativeEmitOrImmIntoVCpuU32(pReNative, off, X86_EFL_STATUS_BITS, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
@@ -686,9 +689,6 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
     else
 #endif
     {
-#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
-        uint32_t fSkipped = 0;
-#endif
 #ifdef RT_ARCH_AMD64
         /*
          * Collect flags and merge them with eflags.
@@ -844,9 +844,11 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
-        pReNative->fSkippingEFlags = fSkipped;
+        if (pReNative->fSkippingEFlags)
+            Log5(("EFLAGS: fSkippingEFlags %#x -> 0 (iemNativeEmitEFlagsForArithmetic)\n", pReNative->fSkippingEFlags));
+        pReNative->fSkippingEFlags = 0;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
-        off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, fSkipped, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
+        off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
 #endif
     }
@@ -2105,6 +2107,8 @@ RT_NOREF(pReNative, off, idxRegEfl, idxRegResult, idxRegSrc, idxRegCount, cOpBit
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+        if (pReNative->fSkippingEFlags)
+            Log5(("EFLAGS: fSkippingEFlags %#x -> 0 (iemNativeEmitEFlagsForShift)\n", pReNative->fSkippingEFlags));
         pReNative->fSkippingEFlags = 0;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
         off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));

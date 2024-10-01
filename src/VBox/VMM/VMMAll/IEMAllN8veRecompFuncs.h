@@ -6057,6 +6057,9 @@ iemNativeEmitCommitEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     if RT_CONSTEXPR_IF(a_fUpdateSkippingAndPostponing)
     {
         Assert(!(pReNative->fSkippingEFlags & fElfInput)); RT_NOREF(fElfInput);
+        if (pReNative->fSkippingEFlags)
+            Log5(("EFLAGS: fSkippingEFlags %#x -> %#x (iemNativeEmitCommitEFlags)\n",
+                  pReNative->fSkippingEFlags, pReNative->fSkippingEFlags & ~(a_fEflOutput & X86_EFL_STATUS_BITS) ));
         if RT_CONSTEXPR_IF((a_fEflOutput & X86_EFL_STATUS_BITS) == X86_EFL_STATUS_BITS)
             pReNative->fSkippingEFlags  = 0;
         else
@@ -6120,6 +6123,21 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitModifyEFlagsBit(PIEMRECOMPILERSTATE pRe
 
     /* Free but don't flush the EFLAGS register. */
     iemNativeRegFreeTmp(pReNative, idxEflReg);
+
+#ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
+    /* Clear the bit in the skipped mask if we're clobbering and it's a status bit. */
+    if RT_CONSTEXPR_IF(   (a_enmOp == kIemNativeEmitEflOp_Set || a_enmOp == kIemNativeEmitEflOp_Clear)
+                       && (a_fEflBit & X86_EFL_STATUS_BITS))
+    {
+        if (pReNative->fSkippingEFlags)
+            Log5(("EFLAGS: fSkippingEFlags %#x -> %#x (iemNativeEmitModifyEFlagsBit)\n",
+                  pReNative->fSkippingEFlags, pReNative->fSkippingEFlags & ~a_fEflBit ));
+        pReNative->fSkippingEFlags &= ~a_fEflBit;
+# ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
+        off = iemNativeEmitAndImmIntoVCpuU32(pReNative, off, ~a_fEflBit, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
+# endif
+    }
+#endif
 
     return off;
 }
@@ -6268,6 +6286,9 @@ iemNativeEmitRefEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_AND_POSTPONING(pReNative,  fEflInput);
     IEMNATIVE_STRICT_EFLAGS_SKIPPING_EMIT_CHECK(pReNative, off, fEflInput);
+    if (pReNative->fSkippingEFlags)
+        Log5(("EFLAGS: fSkippingEFlags %#x -> %#x (iemNativeEmitRefEFlags)\n",
+              pReNative->fSkippingEFlags, pReNative->fSkippingEFlags & ~a_fEflOutput ));
     pReNative->fSkippingEFlags &= ~a_fEflOutput;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
 

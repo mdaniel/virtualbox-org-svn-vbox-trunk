@@ -558,14 +558,10 @@ iemNativeDoPostponedEFlagsAtTlbMiss(PIEMRECOMPILERSTATE pReNative, uint32_t off,
  *
  * It takes liveness stuff into account.
  */
-/** @todo make fNativeFlags a template argument. */
+template<bool a_fNeedToSetFlags>
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxVarEfl,
-                              uint8_t cOpBits, uint8_t idxRegResult
-#ifndef RT_ARCH_AMD64
-                              , bool fNativeFlags = false
-#endif
-                              )
+                              uint8_t cOpBits, uint8_t idxRegResult)
 {
     STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflTotalLogical);
     IEMNATIVE_CLEAR_POSTPONED_EFLAGS(pReNative, X86_EFL_STATUS_BITS);
@@ -623,12 +619,8 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
 #else
 # error "port me"
 #endif
-#ifndef RT_ARCH_AMD64
-        if (!fNativeFlags)
-            off = iemNativeEmitPostponedEFlagsCalcLogical<true>(pCodeBuf, off, cOpBits, idxRegResult, idxRegEfl, idxRegTmp);
-        else
-#endif
-            off = iemNativeEmitPostponedEFlagsCalcLogical<false>(pCodeBuf, off, cOpBits, idxRegResult, idxRegEfl, idxRegTmp);
+        off = iemNativeEmitPostponedEFlagsCalcLogical<a_fNeedToSetFlags>(pCodeBuf, off, cOpBits, idxRegResult,
+                                                                         idxRegEfl, idxRegTmp);
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
         iemNativeVarRegisterRelease(pReNative, idxVarEfl);
@@ -871,7 +863,7 @@ iemNativeEmit_and_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones. */
@@ -880,7 +872,7 @@ iemNativeEmit_and_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst, true /*fNativeFlags*/);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst, true /*fNativeFlags*/);
 #else
 # error "Port me"
 #endif
@@ -903,7 +895,7 @@ iemNativeEmit_and_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 4, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones, and of
@@ -931,7 +923,10 @@ iemNativeEmit_and_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     }
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst, cOpBits >= 32 /*fNativeFlags*/);
+    if (cOpBits >= 32)
+        off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    else
+        off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
     RT_NOREF_PV(cImmBits);
 
 #else
@@ -978,9 +973,12 @@ iemNativeEmit_test_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     iemNativeVarRegisterRelease(pReNative, idxVarDst);
 
 #ifdef RT_ARCH_AMD64
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
 #else
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegResult, cOpBits >= 32 /*fNativeFlags*/);
+    if (cOpBits >= 32)
+        off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegResult);
+    else
+        off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegResult);
     iemNativeRegFreeTmp(pReNative, idxRegResult);
 #endif
     return off;
@@ -1002,7 +1000,7 @@ iemNativeEmit_test_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarDst);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, UINT8_MAX);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit AND for the 8-bit and 16-bit bit ones, and of
@@ -1033,7 +1031,10 @@ iemNativeEmit_test_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarDst);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegResult, cOpBits >= 32 /*fNativeFlags*/);
+    if (cOpBits >= 32)
+        off = iemNativeEmitEFlagsForLogical<>(pReNative, off, idxVarEfl, cOpBits, idxRegResult);
+    else
+        off = iemNativeEmitEFlagsForLogical<>(pReNative, off, idxVarEfl, cOpBits, idxRegResult);
 
     iemNativeRegFreeTmp(pReNative, idxRegResult);
     RT_NOREF_PV(cImmBits);
@@ -1062,7 +1063,7 @@ iemNativeEmit_or_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones. */
@@ -1071,7 +1072,7 @@ iemNativeEmit_or_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #else
 # error "Port me"
@@ -1095,7 +1096,7 @@ iemNativeEmit_or_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 1, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones, and of
@@ -1117,7 +1118,7 @@ iemNativeEmit_or_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     }
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
     RT_NOREF_PV(cImmBits);
 
 #else
@@ -1145,7 +1146,7 @@ iemNativeEmit_xor_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones. */
@@ -1154,7 +1155,7 @@ iemNativeEmit_xor_r_r_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     iemNativeVarRegisterRelease(pReNative, idxVarSrc);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #else
 # error "Port me"
@@ -1178,7 +1179,7 @@ iemNativeEmit_xor_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     off = iemNativeEmitAmd64OneByteModRmInstrRIEx(pCodeBuf, off, 0x80, 0x83, 0x81, cOpBits, cImmBits, 6, idxRegDst, uImmOp);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<false>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
 
 #elif defined(RT_ARCH_ARM64)
     /* On ARM64 we use 32-bit OR for the 8-bit and 16-bit bit ones, and of
@@ -1200,7 +1201,7 @@ iemNativeEmit_xor_r_i_efl(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     }
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
-    off = iemNativeEmitEFlagsForLogical(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
+    off = iemNativeEmitEFlagsForLogical<true>(pReNative, off, idxVarEfl, cOpBits, idxRegDst);
     RT_NOREF_PV(cImmBits);
 
 #else

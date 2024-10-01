@@ -362,7 +362,8 @@ typedef struct VMSVGAState
     bool                        fVBoxExtensions;
     /** Whether MSAA support is enabled. */
     bool                        fVMSVGA3dMSAA;
-    bool                        afPadding[2];
+    bool                        fVMSVGA2dGBO;
+    bool                        afPadding[1];
     uint32_t                    uWidth;
     uint32_t                    uHeight;
     uint32_t                    uBpp;

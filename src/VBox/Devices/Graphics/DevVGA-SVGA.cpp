@@ -4069,8 +4069,29 @@ static SVGACBStatus vmsvgaR3CmdBufProcessCommands(PPDMDEVINS pDevIns, PVGASTATE 
                     { /* likely */ }
                     else
                     {
-                        LogRelMax(8, ("VMSVGA: 3D disabled, command %d skipped\n", cmdId));
-                        break;
+                        if (pThis->svga.fVMSVGA2dGBO &&
+                            (cmdId == SVGA_3D_CMD_SET_OTABLE_BASE64 ||
+                            cmdId == SVGA_3D_CMD_DEFINE_GB_MOB64   ||
+                            cmdId == SVGA_3D_CMD_DESTROY_GB_MOB    ||
+                            cmdId == SVGA_3D_CMD_DEFINE_GB_SURFACE ||
+                            cmdId == SVGA_3D_CMD_DESTROY_GB_SURFACE ||
+                            cmdId == SVGA_3D_CMD_BIND_GB_SURFACE   ||
+                            cmdId == SVGA_3D_CMD_INVALIDATE_GB_SURFACE ||
+                            cmdId == SVGA_3D_CMD_DEFINE_GB_SCREENTARGET ||
+                            cmdId == SVGA_3D_CMD_DESTROY_GB_SCREENTARGET ||
+                            cmdId == SVGA_3D_CMD_BIND_GB_SCREENTARGET ||
+                            cmdId == SVGA_3D_CMD_UPDATE_GB_IMAGE      ||
+                            cmdId == SVGA_3D_CMD_UPDATE_GB_SCREENTARGET ||
+                            cmdId == SVGA_3D_CMD_SURFACE_COPY)
+                        )
+                        {
+                            LogRelMax(8, ("VMSVGA: 3D disabled, but command %d will be processed\n", cmdId));
+                        }
+                        else
+                        {
+                            LogRelMax(8, ("VMSVGA: 3D disabled, command %d skipped\n", cmdId));
+                            break;
+                        }
                     }
 
                     /* Command data begins after the 32 bit command length. */
@@ -6770,7 +6791,8 @@ static void vmsvgaR3GetCaps(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t *pu32
     }
 
 # ifdef VBOX_WITH_VMSVGA3D
-    if (pThisCC->svga.pSvgaR3State->pFuncs3D)
+//  if (pThisCC->svga.pSvgaR3State->pFuncs3D)
+    if (pThis->svga.f3DEnabled)
         *pu32DeviceCaps |= SVGA_CAP_3D;
 # endif
 
@@ -7619,7 +7641,7 @@ int vmsvgaR3Init(PPDMDEVINS pDevIns)
 static void vmsvgaR3PowerOnDevice(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC, bool fLoadState)
 {
 # ifdef VBOX_WITH_VMSVGA3D
-    if (pThis->svga.f3DEnabled)
+    if (pThis->svga.f3DEnabled || pThis->svga.fVMSVGA2dGBO)
     {
         /* Load a 3D backend. */
         int rc = vmsvgaR3Init3dInterfaces(pDevIns, pThis, pThisCC);
@@ -7668,7 +7690,7 @@ static void vmsvgaR3PowerOnDevice(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATE
 #endif
 
 # ifdef VBOX_WITH_VMSVGA3D
-    if (pThis->svga.f3DEnabled)
+    if (pThis->svga.f3DEnabled || pThis->svga.fVMSVGA2dGBO)
     {
         PVMSVGAR3STATE pSVGAState = pThisCC->svga.pSvgaR3State;
         int rc = pSVGAState->pFuncs3D->pfnPowerOn(pDevIns, pThis, pThisCC);

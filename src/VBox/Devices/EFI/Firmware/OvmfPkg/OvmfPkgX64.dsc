@@ -969,6 +969,8 @@
 !ifndef $(VBOX)
   OvmfPkg/VirtioRngDxe/VirtioRng.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+!else
+  SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
 !endif
 !if $(PVSCSI_ENABLE) == TRUE
   OvmfPkg/PvScsiDxe/PvScsiDxe.inf

@@ -81,8 +81,12 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
-       <para>EFI: include missing LsiLogic MPT SCSI driver again to fix booting
+       <para>EFI: Include missing LsiLogic MPT SCSI driver again to fix booting
          from devices attached to this device if the EFI firmware is used (7.1.0 regression)</para>
+      </listitem>
+
+      <listitem>
+       <para>EFI: Restored broken network boot support (7.1.0 regression)</para>
       </listitem>
 
     </itemizedlist>

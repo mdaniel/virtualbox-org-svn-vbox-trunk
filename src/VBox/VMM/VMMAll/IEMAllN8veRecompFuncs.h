@@ -1752,11 +1752,17 @@ iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t c
         off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG2_GREG, idxRegPc);
     }
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)
+                                              | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /* Restore variables and guest shadow registers to volatile registers. */
     off = iemNativeVarRestoreVolatileRegsPostHlpCall(pReNative, off, fHstRegsNotToSave);
@@ -2450,11 +2456,16 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
     if (idxRegEffSp != IEMNATIVE_CALL_ARG1_GREG)
         off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, idxRegEffSp);
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /* Move the return register content to idxRegMemResult. */
     if (idxRegMemResult != IEMNATIVE_CALL_RET_GREG)
@@ -6262,9 +6273,9 @@ iemNativeEmitRefEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
 
     /* Updating the skipping according to the outputs is a little early, but
        we don't have any other hooks for references atm. */
-    if RT_CONSTEXPR((a_fEflOutput & X86_EFL_STATUS_BITS) == X86_EFL_STATUS_BITS)
+    if RT_CONSTEXPR_IF((a_fEflOutput & X86_EFL_STATUS_BITS) == X86_EFL_STATUS_BITS)
         off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
-    else if RT_CONSTEXPR((a_fEflOutput & X86_EFL_STATUS_BITS) != 0)
+    else if RT_CONSTEXPR_IF((a_fEflOutput & X86_EFL_STATUS_BITS) != 0)
         off = iemNativeEmitAndImmIntoVCpuU32(pReNative, off, ~(a_fEflOutput & X86_EFL_STATUS_BITS),
                                              RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
@@ -7154,6 +7165,8 @@ typedef enum IEMNATIVEMITMEMOP
 /** Emits code for IEM_MC_FETCH_MEM_U8/16/32/64 and IEM_MC_STORE_MEM_U8/16/32/64,
  * and IEM_MC_FETCH_MEM_FLAT_U8/16/32/64 and IEM_MC_STORE_MEM_FLAT_U8/16/32/64
  * (with iSegReg = UINT8_MAX). */
+/** @todo Pass enmOp, cbMem, fAlignMaskAndClt and a iSegReg == UINT8_MAX
+ *        indicator as template parameters. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off,  uint8_t idxVarValue, uint8_t iSegReg,
                                      uint8_t idxVarGCPtrMem, uint8_t cbMem, uint32_t fAlignMaskAndCtl, IEMNATIVEMITMEMOP enmOp,
@@ -7478,11 +7491,11 @@ iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off
         /*
          * For SIMD based variables we pass the reference on the stack for both fetches and stores.
          *
-         * @note There was a register variable assigned to the variable for the TlbLookup case above
+         * Note! There was a register variable assigned to the variable for the TlbLookup case above
          *       which must not be freed or the value loaded into the register will not be synced into the register
          *       further down the road because the variable doesn't know it had a variable assigned.
          *
-         * @note For loads it is not required to sync what is in the assigned register with the stack slot
+         * Note! For loads it is not required to sync what is in the assigned register with the stack slot
          *       as it will be overwritten anyway.
          */
         uint8_t const idxRegArgValue = iSegReg == UINT8_MAX ? IEMNATIVE_CALL_ARG2_GREG : IEMNATIVE_CALL_ARG3_GREG;
@@ -7519,11 +7532,34 @@ iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off
         off = iemNativeEmitLoadGpr8Imm(pReNative, off, IEMNATIVE_CALL_ARG2_GREG, iSegReg);
     }
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    if (enmOp == kIemNativeEmitMemOp_Store || cbMem == sizeof(RTUINT128U) || cbMem == sizeof(RTUINT256U))
+    {
+        if (iSegReg == UINT8_MAX)
+            off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)
+                                                      | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)>(pReNative, off, &TlbState,
+                                                                                             fHstRegsNotToSave);
+        else
+            off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)
+                                                      | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)
+                                                      | RT_BIT_32(IEMNATIVE_CALL_ARG3_GREG)>(pReNative, off, &TlbState,
+                                                                                             fHstRegsNotToSave);
+    }
+    else if (iSegReg == UINT8_MAX)
+        off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)>(pReNative, off, &TlbState,
+                                                                                         fHstRegsNotToSave);
+    else
+        off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)
+                                                  | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)>(pReNative, off, &TlbState,
+                                                                                         fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /*
      * Put the result in the right register if this is a fetch.
@@ -8500,11 +8536,17 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
                                                         IEMNATIVE_CALL_VOLATILE_GREG_MASK & ~RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG));
     }
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)
+                                              | RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /* Restore variables and guest shadow registers to volatile registers. */
     off = iemNativeVarRestoreVolatileRegsPostHlpCall(pReNative, off, fHstRegsNotToSave);
@@ -8843,11 +8885,16 @@ iemNativeEmitStackPopGReg(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     if (idxRegEffSp != IEMNATIVE_CALL_ARG1_GREG)
         off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, idxRegEffSp);
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<RT_BIT_32(IEMNATIVE_CALL_ARG1_GREG)>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /* Move the return register content to idxRegMemResult. */
     if (idxRegMemResult != IEMNATIVE_CALL_RET_GREG)
@@ -9466,6 +9513,17 @@ iemNativeEmitMemMapCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
         off = iemNativeEmitLoadGpr8Imm(pReNative, off, IEMNATIVE_CALL_ARG3_GREG, iSegReg);
     }
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. */
+    if (iSegReg == UINT8_MAX)
+        off = iemNativeDoPostponedEFlagsAtTlbMiss<RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)>(pReNative, off, &TlbState,
+                                                                                       fHstRegsNotToSave);
+    else
+        off = iemNativeDoPostponedEFlagsAtTlbMiss<  RT_BIT_32(IEMNATIVE_CALL_ARG2_GREG)
+                                                  | RT_BIT_32(IEMNATIVE_CALL_ARG3_GREG)>(pReNative, off, &TlbState,
+                                                                                         fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG1_GREG = &idxVarUnmapInfo; stackslot address, load any register with result after the call. */
     int32_t const offBpDispVarUnmapInfo = iemNativeStackCalcBpDisp(iemNativeVarGetStackSlot(pReNative, idxVarUnmapInfo));
     off = iemNativeEmitLeaGprByBp(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, offBpDispVarUnmapInfo);
@@ -9474,7 +9532,7 @@ iemNativeEmitMemMapCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /*
      * Put the output in the right registers.
@@ -9652,8 +9710,10 @@ iemNativeEmitMemCommitAndUnmap(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
-    /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, pfnFunction);
+    /* Done setting up parameters, make the call.
+       Note! Since we can only end up here if we took a TLB miss, any postponed EFLAGS
+             calculations has been done there already. Thus, a_fSkipEflChecks = true. */
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, pfnFunction);
 
     /* The bUnmapInfo variable is implictly free by these MCs. */
     iemNativeVarFreeLocal(pReNative, idxVarUnmapInfo);

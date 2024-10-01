@@ -322,7 +322,8 @@ DECL_FORCE_INLINE_THROW(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCo
 
         /* jz nothing_pending */
         uint32_t const offFixup1 = off;
-        off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off + 64, kIemNativeInstrCond_e);
+        off = iemNativeEmitJccToFixedEx(pCodeBuf, off, IEMNATIVE_HAS_POSTPONED_EFLAGS_CALCS(pReNative) ? off + 512 : off + 64,
+                                        kIemNativeInstrCond_e);
 
 # elif defined(RT_ARCH_ARM64)
         Assert(offGlobalForcedActions < 0);
@@ -333,7 +334,7 @@ DECL_FORCE_INLINE_THROW(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCo
         /* cbz nothing_pending */
         uint32_t const offFixup1 = off;
         off = iemNativeEmitTestIfGprIsZeroOrNotZeroAndJmpToFixedEx(pCodeBuf, off, idxTmpReg1, true /*f64Bit*/,
-                                                                   false /*fJmpIfNotZero*/, off + 16);
+                                                                   false /*fJmpIfNotZero*/, off);
 # else
 #  error "port me"
 # endif
@@ -372,6 +373,7 @@ DECL_FORCE_INLINE_THROW(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCo
          * nothing_pending:
          */
         iemNativeFixupFixedJump(pReNative, offFixup1, off);
+        IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     }
 
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
@@ -1438,6 +1440,11 @@ iemNativeEmitBltLoadTlbForNewPage(PIEMRECOMPILERSTATE pReNative, uint32_t off, P
     uint32_t const fHstRegsNotToSave = TlbState.getRegsNotToSave() | RT_BIT_32(idxRegGCPhys);
     off = iemNativeVarSaveVolatileRegsPreHlpCall(pReNative, off, fHstRegsNotToSave);
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. There are no restrictions on volatile registers here. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<0>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG1_GREG = offInstr */
     off = iemNativeEmitLoadGpr8Imm(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, offInstr);
 
@@ -1445,7 +1452,7 @@ iemNativeEmitBltLoadTlbForNewPage(PIEMRECOMPILERSTATE pReNative, uint32_t off, P
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)iemNativeHlpMemCodeNewPageTlbMissWithOff);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, (uintptr_t)iemNativeHlpMemCodeNewPageTlbMissWithOff);
 
     /* Move the result to the right register. */
     if (idxRegGCPhys != IEMNATIVE_CALL_RET_GREG)
@@ -1735,11 +1742,16 @@ iemNativeEmitBltLoadTlbAfterBranch(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
                                      | (idxRegDummy != UINT8_MAX ? RT_BIT_32(idxRegDummy) : 0);
     off = iemNativeVarSaveVolatileRegsPreHlpCall(pReNative, off, fHstRegsNotToSave);
 
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+    /* Do delayed EFLAGS calculations. There are no restrictions on volatile registers here. */
+    off = iemNativeDoPostponedEFlagsAtTlbMiss<0>(pReNative, off, &TlbState, fHstRegsNotToSave);
+#endif
+
     /* IEMNATIVE_CALL_ARG0_GREG = pVCpu */
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
 
     /* Done setting up parameters, make the call. */
-    off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)iemNativeHlpMemCodeNewPageTlbMiss);
+    off = iemNativeEmitCallImm<true /*a_fSkipEflChecks*/>(pReNative, off, (uintptr_t)iemNativeHlpMemCodeNewPageTlbMiss);
 
     /* Restore variables and guest shadow registers to volatile registers. */
     off = iemNativeVarRestoreVolatileRegsPostHlpCall(pReNative, off, fHstRegsNotToSave);

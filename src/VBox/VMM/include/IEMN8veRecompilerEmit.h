@@ -277,16 +277,16 @@ DECL_FORCE_INLINE(uint32_t) iemNativeEmitLoadGpr32ImmExT(PIEMNATIVEINSTR pCodeBu
     }
 
 #elif defined(RT_ARCH_ARM64)
-    if RT_CONSTEXPR((a_uImm32 >> 16) == 0)
+    if RT_CONSTEXPR_IF((a_uImm32 >> 16) == 0)
         /* movz gpr, imm16 */
         pCodeBuf[off++] = Armv8A64MkInstrMovZ(iGpr, a_uImm32,                    0, false /*f64Bit*/);
-    else if RT_CONSTEXPR((a_uImm32 & UINT32_C(0xffff)) == 0)
+    else if RT_CONSTEXPR_IF((a_uImm32 & UINT32_C(0xffff)) == 0)
         /* movz gpr, imm16, lsl #16 */
         pCodeBuf[off++] = Armv8A64MkInstrMovZ(iGpr, a_uImm32 >> 16,              1, false /*f64Bit*/);
-    else if RT_CONSTEXPR((a_uImm32 & UINT32_C(0xffff)) == UINT32_C(0xffff))
+    else if RT_CONSTEXPR_IF((a_uImm32 & UINT32_C(0xffff)) == UINT32_C(0xffff))
         /* movn gpr, imm16, lsl #16 */
         pCodeBuf[off++] = Armv8A64MkInstrMovN(iGpr, ~a_uImm32 >> 16,             1, false /*f64Bit*/);
-    else if RT_CONSTEXPR((a_uImm32 >> 16) == UINT32_C(0xffff))
+    else if RT_CONSTEXPR_IF((a_uImm32 >> 16) == UINT32_C(0xffff))
         /* movn gpr, imm16 */
         pCodeBuf[off++] = Armv8A64MkInstrMovN(iGpr, ~a_uImm32,                   0, false /*f64Bit*/);
     else
@@ -768,7 +768,7 @@ iemNativeEmitLoadGprFromVCpuU64(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
  * Emits a 32-bit GPR load of a VCpu value.
  * @note Bits 32 thru 63 in the GPR will be zero after the operation.
  */
-DECL_INLINE_THROW(uint32_t)
+DECL_FORCE_INLINE_THROW(uint32_t)
 iemNativeEmitLoadGprFromVCpuU32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGpr, uint32_t offVCpu)
 {
 #ifdef RT_ARCH_AMD64
@@ -813,17 +813,36 @@ iemNativeEmitLoadGprFromVCpuU32(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
  * Emits a 16-bit GPR load of a VCpu value.
  * @note Bits 16 thru 63 in the GPR will be zero after the operation.
  */
+DECL_FORCE_INLINE_THROW(uint32_t)
+iemNativeEmitLoadGprFromVCpuU16Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGpr, uint32_t offVCpu)
+{
+#ifdef RT_ARCH_AMD64
+    /* movzx reg32, mem16 */
+    if (iGpr >= 8)
+        pCodeBuf[off++] = X86_OP_REX_R;
+    pCodeBuf[off++] = 0x0f;
+    pCodeBuf[off++] = 0xb7;
+    off = iemNativeEmitGprByVCpuDisp(pCodeBuf, off, iGpr, offVCpu);
+
+#elif defined(RT_ARCH_ARM64)
+    off = iemNativeEmitGprByVCpuLdStEx(pCodeBuf, off, iGpr, offVCpu, kArmv8A64InstrLdStType_Ld_Half, sizeof(uint16_t));
+
+#else
+# error "port me"
+#endif
+    return off;
+}
+
+
+/**
+ * Emits a 16-bit GPR load of a VCpu value.
+ * @note Bits 16 thru 63 in the GPR will be zero after the operation.
+ */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitLoadGprFromVCpuU16(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t iGpr, uint32_t offVCpu)
 {
 #ifdef RT_ARCH_AMD64
-    /* movzx reg32, mem16 */
-    uint8_t *pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 8);
-    if (iGpr >= 8)
-        pbCodeBuf[off++] = X86_OP_REX_R;
-    pbCodeBuf[off++] = 0x0f;
-    pbCodeBuf[off++] = 0xb7;
-    off = iemNativeEmitGprByVCpuDisp(pbCodeBuf, off, iGpr, offVCpu);
+    off = iemNativeEmitLoadGprFromVCpuU16Ex(iemNativeInstrBufEnsure(pReNative, off, 8), off, iGpr, offVCpu);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
 #elif defined(RT_ARCH_ARM64)
@@ -7565,7 +7584,8 @@ iemNativeEmitTestAnyBitsInGpr(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
  *       must make sure this is possible!
  */
 DECL_FORCE_INLINE_THROW(uint32_t)
-iemNativeEmitTestAnyBitsInGpr32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGprSrc, uint32_t fBits)
+iemNativeEmitTestAnyBitsInGpr32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGprSrc, uint32_t fBits,
+                                  uint8_t iTmpReg = UINT8_MAX)
 {
     Assert(fBits != 0);
 
@@ -7591,6 +7611,7 @@ iemNativeEmitTestAnyBitsInGpr32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_
         pCodeBuf[off++] = RT_BYTE3(fBits);
         pCodeBuf[off++] = RT_BYTE4(fBits);
     }
+    RT_NOREF(iTmpReg);
 
 #elif defined(RT_ARCH_ARM64)
     /* ands xzr, src, #fBits */
@@ -7598,6 +7619,11 @@ iemNativeEmitTestAnyBitsInGpr32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_
     uint32_t uImmNandS = 0;
     if (Armv8A64ConvertMask32ToImmRImmS(fBits, &uImmNandS, &uImmR))
         pCodeBuf[off++] = Armv8A64MkInstrAndsImm(ARMV8_A64_REG_XZR, iGprSrc, uImmNandS, uImmR, false /*f64Bit*/);
+    else if (iTmpReg != UINT8_MAX)
+    {
+        off = iemNativeEmitLoadGpr32ImmEx(pCodeBuf, off, iTmpReg, fBits);
+        pCodeBuf[off++] = Armv8A64MkInstrAnds(ARMV8_A64_REG_XZR, iGprSrc, iTmpReg, false /*f64Bit*/);
+    }
     else
 # ifdef IEM_WITH_THROW_CATCH
         AssertFailedStmt(IEMNATIVE_DO_LONGJMP(NULL, VERR_IEM_IPE_9));
@@ -8218,7 +8244,7 @@ DECL_FORCE_INLINE(uint32_t) iemNativeEmitCallImmEx(PIEMNATIVEINSTR pCodeBuf, uin
 template<bool const a_fSkipEflChecks = false>
 DECL_INLINE_THROW(uint32_t) iemNativeEmitCallImm(PIEMRECOMPILERSTATE pReNative, uint32_t off, uintptr_t uPfn)
 {
-    if RT_CONSTEXPR(!a_fSkipEflChecks)
+    if RT_CONSTEXPR_IF(!a_fSkipEflChecks)
     {
         IEMNATIVE_ASSERT_EFLAGS_POSTPONING_ONLY(pReNative, X86_EFL_STATUS_BITS);
         IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(  pReNative, X86_EFL_STATUS_BITS);
@@ -8387,11 +8413,11 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitTbExitEx(PIEMRECOMPILERSTATE pReNative,
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
     AssertCompile(IEMNATIVELABELTYPE_IS_EXIT_REASON(a_enmExitReason));
 
-    if RT_CONSTEXPR(a_fActuallyExitingTb)
+    if RT_CONSTEXPR_IF(a_fActuallyExitingTb)
         iemNativeMarkCurCondBranchAsExiting(pReNative);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         off = iemNativeDoPostponedEFlagsAtTbExitEx<IEMNATIVELABELTYPE_GET_INPUT_REG_MASK(a_enmExitReason)>(pReNative, off,
                                                                                                            pCodeBuf);
 #endif
@@ -8428,11 +8454,11 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitTbExit(PIEMRECOMPILERSTATE pReNative, u
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
     AssertCompile(IEMNATIVELABELTYPE_IS_EXIT_REASON(a_enmExitReason));
 
-    if RT_CONSTEXPR(a_fActuallyExitingTb)
+    if RT_CONSTEXPR_IF(a_fActuallyExitingTb)
         iemNativeMarkCurCondBranchAsExiting(pReNative);
 
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         off = iemNativeDoPostponedEFlagsAtTbExit<IEMNATIVELABELTYPE_GET_INPUT_REG_MASK(a_enmExitReason)>(pReNative, off);
 #endif
 
@@ -8474,7 +8500,7 @@ iemNativeEmitTbExitJccEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf
     AssertCompile(IEMNATIVELABELTYPE_IS_EXIT_REASON(a_enmExitReason));
 
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         if (pReNative->PostponedEfl.fEFlags)
         {
             /* Jcc l_NonPrimaryCodeStreamTarget */
@@ -8737,7 +8763,7 @@ iemNativeEmitTbExitIfBitSetInGpr(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
     /** @todo Perhaps we should always apply the PostponedEfl code pattern here,
      *        it's the same number of instructions as the TST + B.CC stuff? */
 # ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         if (pReNative->PostponedEfl.fEFlags)
         {
             PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off,
@@ -8791,7 +8817,7 @@ iemNativeEmitTbExitIfGprIsNotZeroEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINS
 #elif defined(RT_ARCH_ARM64)
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
 # ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         if (pReNative->PostponedEfl.fEFlags)
         {
             pCodeBuf[off++] = Armv8A64MkInstrCbnz(1 /*l_NonPrimaryCodeStreamTarget*/, iGprSrc, f64Bit);
@@ -8866,7 +8892,7 @@ iemNativeEmitTbExitIfGprIsZeroEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR 
 #elif defined(RT_ARCH_ARM64)
     IEMNATIVE_ASSERT_EFLAGS_SKIPPING_ONLY(pReNative, X86_EFL_STATUS_BITS);
 # ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    if RT_CONSTEXPR(a_fPostponedEfl)
+    if RT_CONSTEXPR_IF(a_fPostponedEfl)
         if (pReNative->PostponedEfl.fEFlags)
         {
             pCodeBuf[off++] = Armv8A64MkInstrCbz(1 /*l_NonPrimaryCodeStreamTarget*/, iGprSrc, f64Bit);

@@ -229,7 +229,7 @@ DECL_FORCE_INLINE(void) iemNativeClearPostponedEFlags(PIEMRECOMPILERSTATE pReNat
     uint32_t fEFlags = pReNative->PostponedEfl.fEFlags;
     if (fEFlags)
     {
-        if RT_CONSTEXPR(a_fEflClobbered != X86_EFL_STATUS_BITS)
+        if RT_CONSTEXPR_IF(a_fEflClobbered != X86_EFL_STATUS_BITS)
         {
             fEFlags &= ~a_fEflClobbered;
             if (!fEFlags)
@@ -269,8 +269,8 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPostponedEFlagsCalcLogical(PIEMNATIVEIN
 
     if (idxRegTmp == X86_GREG_xAX)
     {
-        /* sahf ; AH = EFLAGS */
-        pCodeBuf[off++] = 0x9e;
+        /* lahf ; AH = EFLAGS */
+        pCodeBuf[off++] = 0x9f;
         if (idxRegEfl <= X86_GREG_xBX)
         {
             /* mov [CDB]L, AH */
@@ -307,8 +307,8 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPostponedEFlagsCalcLogical(PIEMNATIVEIN
         /* xchg al, ah  */
         pCodeBuf[off++] = 0x86;
         pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, 0 /*AL*/);
-        /* sahf ; AH = EFLAGS */
-        pCodeBuf[off++] = 0x9e;
+        /* lahf ; AH = EFLAGS */
+        pCodeBuf[off++] = 0x9f;
         /* xchg al, ah  */
         pCodeBuf[off++] = 0x86;
         pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 4 /*AH*/, 0 /*AL*/);
@@ -357,34 +357,57 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPostponedEFlagsCalcLogical(PIEMNATIVEIN
 }
 
 
-template<uint32_t const a_bmInputRegs>
-static uint32_t iemNativeDoPostponedEFlagsAtTbExitInternal(PIEMRECOMPILERSTATE pReNative, uint32_t off, PIEMNATIVEINSTR pCodeBuf)
+template<uint32_t const a_bmInputRegs, bool const a_fTlbMiss = false>
+static uint32_t iemNativeDoPostponedEFlagsInternal(PIEMRECOMPILERSTATE pReNative, uint32_t off, PIEMNATIVEINSTR pCodeBuf,
+                                                   uint32_t bmExtraTlbMissRegs = 0)
 {
     /*
-     * We can't do regular register allocations here, but since we're in an exit
-     * path where all pending writes has been flushed and we have a known set of
-     * registers with input for the exit label, we do our own simple stuff here.
+     * In the TB exit code path we cannot do regular register allocation.  Nor
+     * can we when we're in the TLB miss code, unless we're skipping the TLB
+     * lookup.  Since the latter isn't an important usecase and should get along
+     * fine on just volatile registers, we do not need to do anything special
+     * for it.
+     *
+     * So, we do our own register allocating here.  Any register goes in the TB
+     * exit path, excluding a_bmInputRegs, fixed and postponed related registers.
+     * In the TLB miss we can use any volatile register and temporary registers
+     * allocated in the TLB state.
      *
      * Note! On x86 we prefer using RAX as the first TMP register, so we can
      *       make use of LAHF which is typically faster than PUSHF/POP.  This
      *       is why the idxRegTmp allocation is first when there is no EFLAG
      *       shadow, since RAX is represented by bit 0 in the mask.
      */
-    uint32_t bmAvailableRegs = ~(a_bmInputRegs | IEMNATIVE_REG_FIXED_MASK) & IEMNATIVE_HST_GREG_MASK;
-    if (pReNative->PostponedEfl.idxReg2 != UINT8_MAX)
-        bmAvailableRegs &= ~(RT_BIT_32(pReNative->PostponedEfl.idxReg1) | RT_BIT_32(pReNative->PostponedEfl.idxReg2));
-    else
-        bmAvailableRegs &= ~RT_BIT_32(pReNative->PostponedEfl.idxReg1);
-
-    /* Use existing EFLAGS shadow if available. */
-    uint8_t idxRegEfl, idxRegTmp;
-    if (pReNative->Core.bmGstRegShadowDirty & RT_BIT_64(kIemNativeGstReg_EFlags))
+    uint32_t bmAvailableRegs;
+    if RT_CONSTEXPR_IF(!a_fTlbMiss)
     {
-        idxRegEfl = pReNative->Core.aidxGstRegShadows[kIemNativeGstReg_EFlags];
-        Assert(idxRegEfl < IEMNATIVE_HST_GREG_COUNT && (bmAvailableRegs & RT_BIT_32(idxRegEfl)));
+        bmAvailableRegs = ~(a_bmInputRegs | IEMNATIVE_REG_FIXED_MASK) & IEMNATIVE_HST_GREG_MASK;
+        if (pReNative->PostponedEfl.idxReg2 != UINT8_MAX)
+            bmAvailableRegs &= ~(RT_BIT_32(pReNative->PostponedEfl.idxReg1) | RT_BIT_32(pReNative->PostponedEfl.idxReg2));
+        else
+            bmAvailableRegs &= ~RT_BIT_32(pReNative->PostponedEfl.idxReg1);
+    }
+    else
+    {
+        /* Note! a_bmInputRegs takes precedence over bmExtraTlbMissRegs. */
+        bmAvailableRegs  = (IEMNATIVE_CALL_VOLATILE_GREG_MASK | bmExtraTlbMissRegs)
+                         & ~(a_bmInputRegs | IEMNATIVE_REG_FIXED_MASK)
+                         & IEMNATIVE_HST_GREG_MASK;
+    }
+
+    /* Use existing EFLAGS shadow if available. For the TLB-miss code path we
+       need to weed out volatile registers here, as they will no longer be valid. */
+    uint8_t idxRegTmp;
+    uint8_t idxRegEfl = pReNative->Core.aidxGstRegShadows[kIemNativeGstReg_EFlags];
+    if (   (pReNative->Core.bmGstRegShadows & RT_BIT_64(kIemNativeGstReg_EFlags))
+        && (!a_fTlbMiss || !(RT_BIT_32(idxRegEfl) & IEMNATIVE_CALL_VOLATILE_GREG_MASK)))
+    {
+        Assert(idxRegEfl < IEMNATIVE_HST_GREG_COUNT);
+        Assert(!(a_bmInputRegs & RT_BIT_32(idxRegEfl)));
+        if RT_CONSTEXPR_IF(!a_fTlbMiss) Assert(bmAvailableRegs & RT_BIT_32(idxRegEfl));
         bmAvailableRegs &= ~RT_BIT_32(idxRegEfl);
 #ifdef VBOX_STRICT
-        /** @todo check shadow register content. */
+        off = iemNativeEmitGuestRegValueCheckEx(pReNative, pCodeBuf, off, idxRegEfl, kIemNativeGstReg_EFlags);
 #endif
 
         idxRegTmp = ASMBitFirstSetU32(bmAvailableRegs) - 1;
@@ -419,6 +442,19 @@ static uint32_t iemNativeDoPostponedEFlagsAtTbExitInternal(PIEMRECOMPILERSTATE p
     /*
      * Store EFLAGS.
      */
+#ifdef VBOX_STRICT
+    /* check that X86_EFL_1 is set. */
+    uint32_t offFixup1;
+    off = iemNativeEmitTestBitInGprAndJmpToFixedIfSetEx(pCodeBuf, off, idxRegEfl, X86_EFL_1_BIT, off, &offFixup1);
+    off = iemNativeEmitBrkEx(pCodeBuf, off, 0x3330);
+    iemNativeFixupFixedJump(pReNative, offFixup1, off);
+    /* Check that X86_EFL_RAZ_LO_MASK is zero. */
+    off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegEfl, X86_EFL_RAZ_LO_MASK);
+    uint32_t const offFixup2 = off;
+    off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off, kIemNativeInstrCond_e);
+    off = iemNativeEmitBrkEx(pCodeBuf, off, 0x3331);
+    iemNativeFixupFixedJump(pReNative, offFixup2, off);
+#endif
     off = iemNativeEmitStoreGprToVCpuU32Ex(pCodeBuf, off, idxRegEfl, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
 
@@ -434,7 +470,7 @@ iemNativeDoPostponedEFlagsAtTbExit(PIEMRECOMPILERSTATE pReNative, uint32_t off)
     if (pReNative->PostponedEfl.fEFlags)
     {
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS);
-        return iemNativeDoPostponedEFlagsAtTbExitInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
+        return iemNativeDoPostponedEFlagsInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
     }
     return off;
 }
@@ -445,7 +481,22 @@ DECL_FORCE_INLINE_THROW(uint32_t)
 iemNativeDoPostponedEFlagsAtTbExitEx(PIEMRECOMPILERSTATE pReNative, uint32_t off, PIEMNATIVEINSTR pCodeBuf)
 {
     if (pReNative->PostponedEfl.fEFlags)
-        return iemNativeDoPostponedEFlagsAtTbExitInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
+        return iemNativeDoPostponedEFlagsInternal<a_bmInputRegs>(pReNative, off, pCodeBuf);
+    return off;
+}
+
+
+template<uint32_t const a_bmInputRegs>
+DECL_FORCE_INLINE_THROW(uint32_t)
+iemNativeDoPostponedEFlagsAtTlbMiss(PIEMRECOMPILERSTATE pReNative, uint32_t off, const IEMNATIVEEMITTLBSTATE *pTlbState,
+                                    uint32_t bmTmpRegs)
+{
+    if (pReNative->PostponedEfl.fEFlags)
+    {
+        PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS);
+        return iemNativeDoPostponedEFlagsInternal<a_bmInputRegs, true>(pReNative, off, pCodeBuf,
+                                                                       pTlbState->getRegsNotToSave() | bmTmpRegs);
+    }
     return off;
 }
 
@@ -489,15 +540,15 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
         off = iemNativeEmitOrImmIntoVCpuU32(pReNative, off, X86_EFL_STATUS_BITS, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
         Log5(("iemNativeEmitEFlagsForLogical: Skipping %#x\n", X86_EFL_STATUS_BITS));
+        return off;
     }
 # ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
-    else if (      (  (fEflPostponing = IEMLIVENESS_STATE_GET_CAN_BE_POSTPONED_SET(pLivenessEntry) & IEMLIVENESSBIT_STATUS_EFL_MASK)
-                    | fEflClobbered)
-                == IEMLIVENESSBIT_STATUS_EFL_MASK
-             && idxRegResult != UINT8_MAX)
+    if (      (  (fEflPostponing = IEMLIVENESS_STATE_GET_CAN_BE_POSTPONED_SET(pLivenessEntry) & IEMLIVENESSBIT_STATUS_EFL_MASK)
+               | fEflClobbered)
+           == IEMLIVENESSBIT_STATUS_EFL_MASK
+        && idxRegResult != UINT8_MAX)
     {
         STAM_COUNTER_INC(&pReNative->pVCpu->iem.s.StatNativeEflPostponedLogical);
-        pReNative->fSkippingEFlags       = 0;
         pReNative->PostponedEfl.fEFlags  = X86_EFL_STATUS_BITS;
         pReNative->PostponedEfl.enmOp    = kIemNativePostponedEflOp_Logical;
         pReNative->PostponedEfl.cOpBits  = cOpBits;
@@ -517,7 +568,7 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
         /*
          * Collect flags and merge them with eflags.
          */
-        /** @todo we could alternatively use SAHF here when host rax is free since,
+        /** @todo we could alternatively use LAHF here when host rax is free since,
          *        OF is cleared. */
         PIEMNATIVEINSTR pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 1);
         /* pushf - do this before any reg allocations as they may emit instructions too. */
@@ -578,14 +629,14 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
 # error "port me"
 #endif
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+    }
 
 #ifdef IEMNATIVE_WITH_EFLAGS_SKIPPING
-        pReNative->fSkippingEFlags &= ~X86_EFL_STATUS_BITS;
+    pReNative->fSkippingEFlags = 0;
 # ifdef IEMNATIVE_STRICT_EFLAGS_SKIPPING
-        off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
+    off = iemNativeEmitStoreImmToVCpuU32(pReNative, off, 0, RT_UOFFSETOF(VMCPU, iem.s.fSkippingEFlags));
 # endif
 #endif
-    }
     return off;
 }
 
@@ -1897,7 +1948,7 @@ RT_NOREF(pReNative, off, idxRegEfl, idxRegResult, idxRegSrc, idxRegCount, cOpBit
          */
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 64);
         /** @todo kIemNativeEmitEFlagsForShiftType_SignedRight: we could alternatively
-         *        use SAHF here when host rax is free since, OF is cleared. */
+         *        use LAHF here when host rax is free since, OF is cleared. */
         /* pushf */
         pCodeBuf[off++] = 0x9c;
         /* pop   tmp */

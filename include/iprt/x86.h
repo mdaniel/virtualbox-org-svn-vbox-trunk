@@ -189,6 +189,7 @@ typedef const X86RFLAGS *PCX86RFLAGS;
 #define X86_EFL_CF_BIT      0
 /** Bit 1 - Reserved, reads as 1. */
 #define X86_EFL_1           RT_BIT_32(1)
+#define X86_EFL_1_BIT       1
 /** Bit 2 - PF - Parity flag - Status flag. */
 #define X86_EFL_PF          RT_BIT_32(2)
 #define X86_EFL_PF_BIT      2

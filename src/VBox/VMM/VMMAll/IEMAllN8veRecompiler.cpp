@@ -5958,6 +5958,47 @@ iemNativeEmitLoadGprWithGstShadowReg(PIEMRECOMPILERSTATE pReNative, uint32_t off
 }
 
 
+/**
+ * Loads the guest shadow register @a enmGstReg into host reg @a idxHstReg, zero
+ * extending to 64-bit width, extended version.
+ *
+ * @returns New code buffer offset on success, UINT32_MAX on failure.
+ * @param   pCodeBuf    The code buffer.
+ * @param   off         The current code buffer position.
+ * @param   idxHstReg   The host register to load the guest register value into.
+ * @param   enmGstReg   The guest register to load.
+ *
+ * @note This does not mark @a idxHstReg as having a shadow copy of @a enmGstReg,
+ *       that is something the caller needs to do if applicable.
+ */
+DECL_HIDDEN_THROW(uint32_t)
+iemNativeEmitLoadGprWithGstShadowRegEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t idxHstReg, IEMNATIVEGSTREG enmGstReg)
+{
+    Assert((unsigned)enmGstReg < (unsigned)kIemNativeGstReg_End);
+    Assert(g_aGstShadowInfo[enmGstReg].cb != 0);
+
+    switch (g_aGstShadowInfo[enmGstReg].cb)
+    {
+        case sizeof(uint64_t):
+            return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, g_aGstShadowInfo[enmGstReg].off);
+        case sizeof(uint32_t):
+            return iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, idxHstReg, g_aGstShadowInfo[enmGstReg].off);
+        case sizeof(uint16_t):
+            return iemNativeEmitLoadGprFromVCpuU16Ex(pCodeBuf, off, idxHstReg, g_aGstShadowInfo[enmGstReg].off);
+#if 0 /* not present in the table. */
+        case sizeof(uint8_t):
+            return iemNativeEmitLoadGprFromVCpuU8Ex(pCodeBuf, off, idxHstReg, g_aGstShadowInfo[enmGstReg].off);
+#endif
+        default:
+#ifdef IEM_WITH_THROW_CATCH
+            AssertFailedStmt(IEMNATIVE_DO_LONGJMP(NULL, VERR_IPE_NOT_REACHED_DEFAULT_CASE));
+#else
+            AssertReleaseFailedReturn(off);
+#endif
+    }
+}
+
+
 #ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 /**
  * Loads the guest shadow SIMD register @a enmGstSimdReg into host SIMD reg @a idxHstSimdReg.
@@ -6002,54 +6043,165 @@ iemNativeEmitLoadSimdRegWithGstShadowSimdReg(PIEMRECOMPILERSTATE pReNative, uint
  * @note May of course trash IEMNATIVE_REG_FIXED_TMP0.
  *       Trashes EFLAGS on AMD64.
  */
-DECL_HIDDEN_THROW(uint32_t)
-iemNativeEmitTop32BitsClearCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxReg)
+DECL_FORCE_INLINE(uint32_t)
+iemNativeEmitTop32BitsClearCheckEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t idxReg)
 {
 # ifdef RT_ARCH_AMD64
-    uint8_t * const pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 20);
-
     /* rol reg64, 32 */
-    pbCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
-    pbCodeBuf[off++] = 0xc1;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
-    pbCodeBuf[off++] = 32;
+    pCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
+    pCodeBuf[off++] = 0xc1;
+    pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
+    pCodeBuf[off++] = 32;
 
     /* test reg32, ffffffffh */
     if (idxReg >= 8)
-        pbCodeBuf[off++] = X86_OP_REX_B;
-    pbCodeBuf[off++] = 0xf7;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
-    pbCodeBuf[off++] = 0xff;
-    pbCodeBuf[off++] = 0xff;
-    pbCodeBuf[off++] = 0xff;
-    pbCodeBuf[off++] = 0xff;
+        pCodeBuf[off++] = X86_OP_REX_B;
+    pCodeBuf[off++] = 0xf7;
+    pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
+    pCodeBuf[off++] = 0xff;
+    pCodeBuf[off++] = 0xff;
+    pCodeBuf[off++] = 0xff;
+    pCodeBuf[off++] = 0xff;
 
     /* je/jz +1 */
-    pbCodeBuf[off++] = 0x74;
-    pbCodeBuf[off++] = 0x01;
+    pCodeBuf[off++] = 0x74;
+    pCodeBuf[off++] = 0x01;
 
     /* int3 */
-    pbCodeBuf[off++] = 0xcc;
+    pCodeBuf[off++] = 0xcc;
 
     /* rol reg64, 32 */
-    pbCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
-    pbCodeBuf[off++] = 0xc1;
-    pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
-    pbCodeBuf[off++] = 32;
+    pCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
+    pCodeBuf[off++] = 0xc1;
+    pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
+    pCodeBuf[off++] = 32;
 
 # elif defined(RT_ARCH_ARM64)
-    uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 3);
     /* lsr tmp0, reg64, #32 */
-    pu32CodeBuf[off++] = Armv8A64MkInstrLsrImm(IEMNATIVE_REG_FIXED_TMP0, idxReg, 32);
+    pCodeBuf[off++] = Armv8A64MkInstrLsrImm(IEMNATIVE_REG_FIXED_TMP0, idxReg, 32);
     /* cbz tmp0, +1 */
-    pu32CodeBuf[off++] = Armv8A64MkInstrCbzCbnz(false /*fJmpIfNotZero*/, 2, IEMNATIVE_REG_FIXED_TMP0);
+    pCodeBuf[off++] = Armv8A64MkInstrCbzCbnz(false /*fJmpIfNotZero*/, 2, IEMNATIVE_REG_FIXED_TMP0);
     /* brk #0x1100 */
-    pu32CodeBuf[off++] = Armv8A64MkInstrBrk(UINT32_C(0x1100));
+    pCodeBuf[off++] = Armv8A64MkInstrBrk(UINT32_C(0x1100));
 
 # else
 #  error "Port me!"
 # endif
+    return off;
+}
+
+
+/**
+ * Emitting code that checks that the value of @a idxReg is UINT32_MAX or less.
+ *
+ * @note May of course trash IEMNATIVE_REG_FIXED_TMP0.
+ *       Trashes EFLAGS on AMD64.
+ */
+DECL_HIDDEN_THROW(uint32_t)
+iemNativeEmitTop32BitsClearCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxReg)
+{
+# ifdef RT_ARCH_AMD64
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 20);
+# elif defined(RT_ARCH_ARM64)
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 3);
+# else
+#  error "Port me!"
+# endif
+    off = iemNativeEmitTop32BitsClearCheckEx(pCodeBuf, off, idxReg);
     IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+    return off;
+}
+
+
+/**
+ * Emitting code that checks that the content of register @a idxReg is the same
+ * as what's in the guest register @a enmGstReg, resulting in a breakpoint
+ * instruction if that's not the case.
+ *
+ * @note May of course trash IEMNATIVE_REG_FIXED_TMP0.
+ *       Trashes EFLAGS on AMD64.
+ */
+DECL_HIDDEN_THROW(uint32_t) iemNativeEmitGuestRegValueCheckEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf,
+                                                              uint32_t off, uint8_t idxReg, IEMNATIVEGSTREG enmGstReg)
+{
+#if defined(IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK)
+    /* We can't check the value against whats in CPUMCTX if the register is already marked as dirty, so skip the check. */
+    if (pReNative->Core.bmGstRegShadowDirty & RT_BIT_64(enmGstReg))
+        return off;
+#endif
+
+# ifdef RT_ARCH_AMD64
+    /* cmp reg, [mem] */
+    if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint8_t))
+    {
+        if (idxReg >= 8)
+            pCodeBuf[off++] = X86_OP_REX_R;
+        pCodeBuf[off++] = 0x38;
+    }
+    else
+    {
+        if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint64_t))
+            pCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_R);
+        else
+        {
+            if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint16_t))
+                pCodeBuf[off++] = X86_OP_PRF_SIZE_OP;
+            else
+                AssertStmt(g_aGstShadowInfo[enmGstReg].cb == sizeof(uint32_t),
+                           IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_LABEL_IPE_6));
+            if (idxReg >= 8)
+                pCodeBuf[off++] = X86_OP_REX_R;
+        }
+        pCodeBuf[off++] = 0x39;
+    }
+    off = iemNativeEmitGprByVCpuDisp(pCodeBuf, off, idxReg, g_aGstShadowInfo[enmGstReg].off);
+
+    /* je/jz +1 */
+    pCodeBuf[off++] = 0x74;
+    pCodeBuf[off++] = 0x01;
+
+    /* int3 */
+    pCodeBuf[off++] = 0xcc;
+
+    /* For values smaller than the register size, we must check that the rest
+       of the register is all zeros. */
+    if (g_aGstShadowInfo[enmGstReg].cb < sizeof(uint32_t))
+    {
+        /* test reg64, imm32 */
+        pCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
+        pCodeBuf[off++] = 0xf7;
+        pCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
+        pCodeBuf[off++] = 0;
+        pCodeBuf[off++] = g_aGstShadowInfo[enmGstReg].cb > sizeof(uint8_t) ? 0 : 0xff;
+        pCodeBuf[off++] = 0xff;
+        pCodeBuf[off++] = 0xff;
+
+        /* je/jz +1 */
+        pCodeBuf[off++] = 0x74;
+        pCodeBuf[off++] = 0x01;
+
+        /* int3 */
+        pCodeBuf[off++] = 0xcc;
+    }
+    else if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint32_t))
+        iemNativeEmitTop32BitsClearCheckEx(pCodeBuf, off, idxReg);
+    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+
+# elif defined(RT_ARCH_ARM64)
+    /* mov TMP0, [gstreg] */
+    off = iemNativeEmitLoadGprWithGstShadowRegEx(pCodeBuf, off, IEMNATIVE_REG_FIXED_TMP0, enmGstReg);
+
+    /* sub tmp0, tmp0, idxReg */
+    pCodeBuf[off++] = Armv8A64MkInstrAddSubReg(true /*fSub*/, IEMNATIVE_REG_FIXED_TMP0, IEMNATIVE_REG_FIXED_TMP0, idxReg);
+    /* cbz tmp0, +2 */
+    pCodeBuf[off++] = Armv8A64MkInstrCbz(2, IEMNATIVE_REG_FIXED_TMP0);
+    /* brk #0x1000+enmGstReg */
+    pCodeBuf[off++] = Armv8A64MkInstrBrk((uint32_t)enmGstReg | UINT32_C(0x1000));
+    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+
+# else
+#  error "Port me!"
+# endif
     return off;
 }
 
@@ -6065,94 +6217,15 @@ iemNativeEmitTop32BitsClearCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
 DECL_HIDDEN_THROW(uint32_t)
 iemNativeEmitGuestRegValueCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxReg, IEMNATIVEGSTREG enmGstReg)
 {
-#if defined(IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK)
-    /* We can't check the value against whats in CPUMCTX if the register is already marked as dirty, so skip the check. */
-    if (pReNative->Core.bmGstRegShadowDirty & RT_BIT_64(enmGstReg))
-        return off;
-#endif
-
-# ifdef RT_ARCH_AMD64
-    uint8_t * const pbCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 32);
-
-    /* cmp reg, [mem] */
-    if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint8_t))
-    {
-        if (idxReg >= 8)
-            pbCodeBuf[off++] = X86_OP_REX_R;
-        pbCodeBuf[off++] = 0x38;
-    }
-    else
-    {
-        if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint64_t))
-            pbCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_R);
-        else
-        {
-            if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint16_t))
-                pbCodeBuf[off++] = X86_OP_PRF_SIZE_OP;
-            else
-                AssertStmt(g_aGstShadowInfo[enmGstReg].cb == sizeof(uint32_t),
-                           IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_LABEL_IPE_6));
-            if (idxReg >= 8)
-                pbCodeBuf[off++] = X86_OP_REX_R;
-        }
-        pbCodeBuf[off++] = 0x39;
-    }
-    off = iemNativeEmitGprByVCpuDisp(pbCodeBuf, off, idxReg, g_aGstShadowInfo[enmGstReg].off);
-
-    /* je/jz +1 */
-    pbCodeBuf[off++] = 0x74;
-    pbCodeBuf[off++] = 0x01;
-
-    /* int3 */
-    pbCodeBuf[off++] = 0xcc;
-
-    /* For values smaller than the register size, we must check that the rest
-       of the register is all zeros. */
-    if (g_aGstShadowInfo[enmGstReg].cb < sizeof(uint32_t))
-    {
-        /* test reg64, imm32 */
-        pbCodeBuf[off++] = X86_OP_REX_W | (idxReg < 8 ? 0 : X86_OP_REX_B);
-        pbCodeBuf[off++] = 0xf7;
-        pbCodeBuf[off++] = X86_MODRM_MAKE(X86_MOD_REG, 0, idxReg & 7);
-        pbCodeBuf[off++] = 0;
-        pbCodeBuf[off++] = g_aGstShadowInfo[enmGstReg].cb > sizeof(uint8_t) ? 0 : 0xff;
-        pbCodeBuf[off++] = 0xff;
-        pbCodeBuf[off++] = 0xff;
-
-        /* je/jz +1 */
-        pbCodeBuf[off++] = 0x74;
-        pbCodeBuf[off++] = 0x01;
-
-        /* int3 */
-        pbCodeBuf[off++] = 0xcc;
-        IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
-    }
-    else
-    {
-        IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
-        if (g_aGstShadowInfo[enmGstReg].cb == sizeof(uint32_t))
-            iemNativeEmitTop32BitsClearCheck(pReNative, off, idxReg);
-    }
-
-# elif defined(RT_ARCH_ARM64)
-    /* mov TMP0, [gstreg] */
-    off = iemNativeEmitLoadGprWithGstShadowReg(pReNative, off, IEMNATIVE_REG_FIXED_TMP0, enmGstReg);
-
-    uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 3);
-    /* sub tmp0, tmp0, idxReg */
-    pu32CodeBuf[off++] = Armv8A64MkInstrAddSubReg(true /*fSub*/, IEMNATIVE_REG_FIXED_TMP0, IEMNATIVE_REG_FIXED_TMP0, idxReg);
-    /* cbz tmp0, +1 */
-    pu32CodeBuf[off++] = Armv8A64MkInstrCbzCbnz(false /*fJmpIfNotZero*/, 2, IEMNATIVE_REG_FIXED_TMP0);
-    /* brk #0x1000+enmGstReg */
-    pu32CodeBuf[off++] = Armv8A64MkInstrBrk((uint32_t)enmGstReg | UINT32_C(0x1000));
-    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
-
+#ifdef RT_ARCH_AMD64
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 32);
+#elif defined(RT_ARCH_ARM64)
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 5);
 # else
 #  error "Port me!"
 # endif
-    return off;
+    return iemNativeEmitGuestRegValueCheckEx(pReNative, pCodeBuf, off, idxReg, enmGstReg);
 }
-
 
 # ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 #  ifdef RT_ARCH_AMD64

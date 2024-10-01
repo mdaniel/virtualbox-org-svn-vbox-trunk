@@ -1191,9 +1191,17 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
  */
 #ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
 # ifdef RT_ARCH_AMD64
-#  define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+#  ifdef VBOX_STRICT
+#   define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   64
+#  else
+#   define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+#  endif
 # elif defined(RT_ARCH_ARM64) || defined(DOXYGEN_RUNNING)
-#  define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+#  ifdef VBOX_STRICT
+#   define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   48
+#  else
+#   define IEMNATIVE_MAX_POSTPONED_EFLAGS_INSTRUCTIONS   32
+#  endif
 # else
 #  error "port me"
 # endif
@@ -1209,6 +1217,16 @@ AssertCompile(IEMLIVENESS_STATE_UNUSED == 1 && IEMLIVENESS_STATE_XCPT_OR_CALL ==
 # define IEMNATIVE_CLEAR_POSTPONED_EFLAGS(a_pReNative, a_fEflClobbered) iemNativeClearPostponedEFlags<a_fEflClobbered>(a_pReNative)
 #else
 # define IEMNATIVE_CLEAR_POSTPONED_EFLAGS(a_pReNative, a_fEflClobbered) ((void)0)
+#endif
+
+/** @def IEMNATIVE_HAS_POSTPONED_EFLAGS_CALCS
+ * Macro for testing whether there are currently any postponed EFLAGS calcs w/o
+ * needing to \#ifdef the check.
+ */
+#ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+# define IEMNATIVE_HAS_POSTPONED_EFLAGS_CALCS(a_pReNative) ((a_pReNative)->PostponedEfl.fEFlags != 0)
+#else
+# define IEMNATIVE_HAS_POSTPONED_EFLAGS_CALCS(a_pReNative) false
 #endif
 
 
@@ -2128,10 +2146,14 @@ DECLHIDDEN(void)            iemNativeVarFreeAllSlow(PIEMRECOMPILERSTATE pReNativ
 
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitLoadGprWithGstShadowReg(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                                                  uint8_t idxHstReg, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint32_t) iemNativeEmitLoadGprWithGstShadowRegEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off,
+                                                                   uint8_t idxHstReg, IEMNATIVEGSTREG enmGstReg);
 #ifdef VBOX_STRICT
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitTop32BitsClearCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxReg);
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitGuestRegValueCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxReg,
                                                             IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint32_t) iemNativeEmitGuestRegValueCheckEx(PIEMRECOMPILERSTATE pReNative, PIEMNATIVEINSTR pCodeBuf,
+                                                              uint32_t off, uint8_t idxReg, IEMNATIVEGSTREG enmGstReg);
 # ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 DECL_HIDDEN_THROW(uint32_t) iemNativeEmitGuestSimdRegValueCheck(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxSimdReg,
                                                                 IEMNATIVEGSTSIMDREG enmGstSimdReg,

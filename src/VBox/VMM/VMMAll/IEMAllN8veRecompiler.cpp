@@ -3104,6 +3104,7 @@ iemNativeRegFlushPendingWrite(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNA
  * @param   pReNative       The native recompile state.
  * @param   off             Current code buffer position.
  * @param   fFlushGstReg    The guest register set to flush (default is flush everything).
+ * @note    Must not modify the host status flags!
  */
 DECL_HIDDEN_THROW(uint32_t)
 iemNativeRegFlushDirtyGuest(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint64_t fFlushGstReg /*= UINT64_MAX*/)
@@ -3136,7 +3137,9 @@ iemNativeRegFlushDirtyGuest(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint64_
  * @param   off             Current code buffer position.
  * @param   idxHstReg       The host register.
  *
- * @note This doesn't do any unshadowing of guest registers from the host register.
+ * @note    This doesn't do any unshadowing of guest registers from the host register.
+ *
+ * @note    Must not modify the host status flags!
  */
 DECL_HIDDEN_THROW(uint32_t) iemNativeRegFlushDirtyGuestByHostRegShadow(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxHstReg)
 {
@@ -3177,6 +3180,8 @@ DECL_HIDDEN_THROW(uint32_t) iemNativeRegFlushDirtyGuestByHostRegShadow(PIEMRECOM
  * @throws  VBox status code if we're run into trouble spilling a variable of
  *          recording debug info.  Does NOT throw anything if we're out of
  *          registers, though.
+ *
+ * @note    Must not modify the host status flags!
  */
 static uint8_t iemNativeRegAllocFindFree(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, bool fPreferVolatile,
                                          uint32_t fRegMask = IEMNATIVE_HST_GREG_MASK & ~IEMNATIVE_REG_FIXED_MASK)
@@ -3469,6 +3474,8 @@ DECL_HIDDEN_THROW(uint32_t) iemNativeRegMoveOrSpillStackVar(PIEMRECOMPILERSTATE 
  * @param   fPreferVolatile Whether to prefer volatile over non-volatile
  *                          registers (@c true, default) or the other way around
  *                          (@c false, for iemNativeRegAllocTmpForGuestReg()).
+ *
+ * @note    Must not modify the host status flags!
  */
 DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, bool fPreferVolatile /*= true*/)
 {
@@ -7320,15 +7327,17 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarAllocAssign(PIEMRECOMPILERSTATE pReNative
  * fixed till we call iemNativeVarRegisterRelease.
  *
  * @returns The host register number.
- * @param   pReNative   The recompiler state.
- * @param   idxVar      The variable.
- * @param   poff        Pointer to the instruction buffer offset.
- *                      In case a register needs to be freed up or the value
- *                      loaded off the stack.
- * @param  fInitialized Set if the variable must already have been initialized.
- *                      Will throw VERR_IEM_VAR_NOT_INITIALIZED if this is not
- *                      the case.
- * @param  idxRegPref   Preferred register number or UINT8_MAX.
+ * @param   pReNative       The recompiler state.
+ * @param   idxVar          The variable.
+ * @param   poff            Pointer to the instruction buffer offset.
+ *                          In case a register needs to be freed up or the value
+ *                          loaded off the stack.
+ * @param   fInitialized    Set if the variable must already have been
+ *                          initialized. Will throw VERR_IEM_VAR_NOT_INITIALIZED
+ *                          if this is not the case.
+ * @param   idxRegPref      Preferred register number or UINT8_MAX.
+ *
+ * @note    Must not modify the host status flags!
  */
 DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff,
                                                        bool fInitialized /*= false*/, uint8_t idxRegPref /*= UINT8_MAX*/)

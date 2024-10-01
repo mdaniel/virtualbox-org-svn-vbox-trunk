@@ -2789,6 +2789,24 @@ DECL_HIDDEN_THROW(void) iemNativeDbgInfoAddGuestRegWriteback(PIEMRECOMPILERSTATE
 
 # endif /* defined(IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK) || defined(IEMNATIVE_WITH_SIMD_REG_ALLOCATOR) */
 
+# ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+/**
+ * Debug Info: Record info about emitting a postponed EFLAGS calculation.
+ */
+DECL_HIDDEN_THROW(void)
+iemNativeDbgInfoAddPostponedEFlagsCalc(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVE_POSTPONED_EFL_OP_T enmOp,
+                                       uint8_t cOpBits, uint8_t idxEmit)
+{
+    iemNativeDbgInfoAddNativeOffset(pReNative, off);
+    PIEMTBDBGENTRY const pEntry = iemNativeDbgInfoAddNewEntry(pReNative, pReNative->pDbgInfo);
+    pEntry->PostponedEflCalc.uType      = kIemTbDbgEntryType_PostponedEFlagsCalc;
+    pEntry->PostponedEflCalc.enmOp      = (unsigned)enmOp;
+    pEntry->PostponedEflCalc.cOpBits    = cOpBits;
+    pEntry->PostponedEflCalc.idxEmit    = idxEmit;
+    pEntry->PostponedEflCalc.uUnused    = 0;
+}
+# endif /* IEMNATIVE_WITH_EFLAGS_POSTPONING */
+
 #endif /* IEMNATIVE_WITH_TB_DEBUG_INFO */
 
 
@@ -9171,7 +9189,7 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                 offDbgNativeNext = UINT32_MAX;
                 for (; iDbgEntry < cDbgEntries; iDbgEntry++)
                 {
-                    switch (pDbgInfo->aEntries[iDbgEntry].Gen.uType)
+                    switch ((IEMTBDBGENTRYTYPE)pDbgInfo->aEntries[iDbgEntry].Gen.uType)
                     {
                         case kIemTbDbgEntryType_GuestInstruction:
                         {
@@ -9350,9 +9368,27 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                             continue;
 # endif
 
+# ifdef IEMNATIVE_WITH_EFLAGS_POSTPONING
+                        case kIemTbDbgEntryType_PostponedEFlagsCalc:
+                        {
+                            const char *pszOp = "!unknown!";
+                            switch ((IEMNATIVE_POSTPONED_EFL_OP_T)pDbgInfo->aEntries[iDbgEntry].PostponedEflCalc.enmOp)
+                            {
+                                case kIemNativePostponedEflOp_Logical: pszOp = "logical"; break;
+                                case kIemNativePostponedEflOp_Invalid: break;
+                                case kIemNativePostponedEflOp_End:     break;
+                            }
+                            pHlp->pfnPrintf(pHlp, "  Postponed EFLAGS calc #%u: %s %u bits\n",
+                                            pDbgInfo->aEntries[iDbgEntry].PostponedEflCalc.idxEmit, pszOp,
+                                            pDbgInfo->aEntries[iDbgEntry].PostponedEflCalc.cOpBits);
+                            continue;
+                        }
+# endif
                         default:
                             AssertFailed();
+                            continue;
                     }
+                    /* Break out of the loop at kIemTbDbgEntryType_NativeOffset. */
                     iDbgEntry++;
                     break;
                 }

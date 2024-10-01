@@ -755,6 +755,9 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
         REG_NATIVE_EFL_GROUP(shift,      Shift);
 #   undef REG_NATIVE_EFL_GROUP
 
+        STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeEflPostponedEmits, STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_NONE,
+                        "Postponed EFLAGS calculation emits", "/IEM/CPU%u/re/NativeEFlags/ZZEmits", idCpu);
+
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeLivenessEflCfSkippable,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "Skippable EFLAGS.CF updating",       "/IEM/CPU%u/re/NativeLivenessEFlags/CfSkippable", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeLivenessEflPfSkippable,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "Skippable EFLAGS.PF updating",       "/IEM/CPU%u/re/NativeLivenessEFlags/PfSkippable", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeLivenessEflAfSkippable,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "Skippable EFLAGS.AF updating",       "/IEM/CPU%u/re/NativeLivenessEFlags/AfSkippable", idCpu);

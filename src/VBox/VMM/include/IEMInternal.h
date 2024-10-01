@@ -1328,191 +1328,6 @@ typedef FNIEMTBNATIVE *PFNIEMTBNATIVE;
 
 
 /**
- * Translation block debug info entry type.
- */
-typedef enum IEMTBDBGENTRYTYPE
-{
-    kIemTbDbgEntryType_Invalid = 0,
-    /** The entry is for marking a native code position.
-     * Entries following this all apply to this position. */
-    kIemTbDbgEntryType_NativeOffset,
-    /** The entry is for a new guest instruction. */
-    kIemTbDbgEntryType_GuestInstruction,
-    /** Marks the start of a threaded call. */
-    kIemTbDbgEntryType_ThreadedCall,
-    /** Marks the location of a label. */
-    kIemTbDbgEntryType_Label,
-    /** Info about a host register shadowing a guest register. */
-    kIemTbDbgEntryType_GuestRegShadowing,
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
-    /** Info about a host SIMD register shadowing a guest SIMD register. */
-    kIemTbDbgEntryType_GuestSimdRegShadowing,
-#endif
-#ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
-    /** Info about a delayed RIP update. */
-    kIemTbDbgEntryType_DelayedPcUpdate,
-#endif
-#if defined(IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK) || defined(IEMNATIVE_WITH_SIMD_REG_ALLOCATOR)
-    /** Info about a shadowed guest register becoming dirty. */
-    kIemTbDbgEntryType_GuestRegDirty,
-    /** Info about register writeback/flush oepration. */
-    kIemTbDbgEntryType_GuestRegWriteback,
-#endif
-    kIemTbDbgEntryType_End
-} IEMTBDBGENTRYTYPE;
-
-/**
- * Translation block debug info entry.
- */
-typedef union IEMTBDBGENTRY
-{
-    /** Plain 32-bit view. */
-    uint32_t u;
-
-    /** Generic view for getting at the type field. */
-    struct
-    {
-        /** IEMTBDBGENTRYTYPE */
-        uint32_t    uType : 4;
-        uint32_t    uTypeSpecific : 28;
-    } Gen;
-
-    struct
-    {
-        /** kIemTbDbgEntryType_ThreadedCall1. */
-        uint32_t    uType      : 4;
-        /** Native code offset. */
-        uint32_t    offNative  : 28;
-    } NativeOffset;
-
-    struct
-    {
-        /** kIemTbDbgEntryType_GuestInstruction. */
-        uint32_t    uType      : 4;
-        uint32_t    uUnused    : 4;
-        /** The IEM_F_XXX flags. */
-        uint32_t    fExec      : 24;
-    } GuestInstruction;
-
-    struct
-    {
-        /* kIemTbDbgEntryType_ThreadedCall. */
-        uint32_t    uType       : 4;
-        /** Set if the call was recompiled to native code, clear if just calling
-         *  threaded function. */
-        uint32_t    fRecompiled : 1;
-        uint32_t    uUnused     : 11;
-        /** The threaded call number (IEMTHREADEDFUNCS). */
-        uint32_t    enmCall     : 16;
-    } ThreadedCall;
-
-    struct
-    {
-        /* kIemTbDbgEntryType_Label. */
-        uint32_t    uType      : 4;
-        uint32_t    uUnused    : 4;
-        /** The label type (IEMNATIVELABELTYPE).   */
-        uint32_t    enmLabel   : 8;
-        /** The label data. */
-        uint32_t    uData      : 16;
-    } Label;
-
-    struct
-    {
-        /* kIemTbDbgEntryType_GuestRegShadowing. */
-        uint32_t    uType         : 4;
-        uint32_t    uUnused       : 4;
-        /** The guest register being shadowed (IEMNATIVEGSTREG). */
-        uint32_t    idxGstReg     : 8;
-        /** The host new register number, UINT8_MAX if dropped. */
-        uint32_t    idxHstReg     : 8;
-        /** The previous host register number, UINT8_MAX if new.   */
-        uint32_t    idxHstRegPrev : 8;
-    } GuestRegShadowing;
-
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
-    struct
-    {
-        /* kIemTbDbgEntryType_GuestSimdRegShadowing. */
-        uint32_t    uType             : 4;
-        uint32_t    uUnused           : 4;
-        /** The guest register being shadowed (IEMNATIVEGSTSIMDREG). */
-        uint32_t    idxGstSimdReg     : 8;
-        /** The host new register number, UINT8_MAX if dropped. */
-        uint32_t    idxHstSimdReg     : 8;
-        /** The previous host register number, UINT8_MAX if new.   */
-        uint32_t    idxHstSimdRegPrev : 8;
-    } GuestSimdRegShadowing;
-#endif
-
-#ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING
-    struct
-    {
-        /* kIemTbDbgEntryType_DelayedPcUpdate. */
-        uint32_t    uType         : 4;
-        /** Number of instructions skipped. */
-        uint32_t    cInstrSkipped : 8;
-        /* The instruction offset added to the program counter. */
-        int32_t     offPc         : 20;
-    } DelayedPcUpdate;
-#endif
-
-#if defined(IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK) || defined(IEMNATIVE_WITH_SIMD_REG_ALLOCATOR)
-    struct
-    {
-        /* kIemTbDbgEntryType_GuestRegDirty. */
-        uint32_t    uType         : 4;
-        uint32_t    uUnused       : 11;
-        /** Flag whether this is about a SIMD (true) or general (false) register. */
-        uint32_t    fSimdReg      : 1;
-        /** The guest register index being marked as dirty. */
-        uint32_t    idxGstReg     : 8;
-        /** The host register number this register is shadowed in .*/
-        uint32_t    idxHstReg     : 8;
-    } GuestRegDirty;
-
-    struct
-    {
-        /* kIemTbDbgEntryType_GuestRegWriteback. */
-        uint32_t    uType         : 4;
-        /** Flag whether this is about a SIMD (true) or general (false) register flush. */
-        uint32_t    fSimdReg      : 1;
-        /** The mask shift. */
-        uint32_t    cShift        : 2;
-        /** The guest register mask being written back. */
-        uint32_t    fGstReg       : 25;
-    } GuestRegWriteback;
-#endif
-
-} IEMTBDBGENTRY;
-AssertCompileSize(IEMTBDBGENTRY, sizeof(uint32_t));
-/** Pointer to a debug info entry. */
-typedef IEMTBDBGENTRY *PIEMTBDBGENTRY;
-/** Pointer to a const debug info entry. */
-typedef IEMTBDBGENTRY const *PCIEMTBDBGENTRY;
-
-/**
- * Translation block debug info.
- */
-typedef struct IEMTBDBG
-{
-    /** This is the flat PC corresponding to IEMTB::GCPhysPc. */
-    RTGCPTR         FlatPc;
-    /** Number of entries in aEntries. */
-    uint32_t        cEntries;
-    /** The offset of the last kIemTbDbgEntryType_NativeOffset record. */
-    uint32_t        offNativeLast;
-    /** Debug info entries. */
-    RT_FLEXIBLE_ARRAY_EXTENSION
-    IEMTBDBGENTRY   aEntries[RT_FLEXIBLE_ARRAY];
-} IEMTBDBG;
-/** Pointer to TB debug info. */
-typedef IEMTBDBG *PIEMTBDBG;
-/** Pointer to const TB debug info. */
-typedef IEMTBDBG const *PCIEMTBDBG;
-
-
-/**
  * Translation block.
  *
  * The current plan is to just keep TBs and associated lookup hash table private
@@ -1595,10 +1410,10 @@ typedef struct IEMTB
     {
         /** Native recompilation debug info if enabled.
          * This is only generated by the native recompiler. */
-        PIEMTBDBG       pDbgInfo;
+        struct IEMTBDBG    *pDbgInfo;
         /** For threaded TBs and natives when debug info is disabled, this is the flat
          * PC corresponding to GCPhysPc. */
-        RTGCPTR         FlatPc;
+        RTGCPTR             FlatPc;
     };
 
     /* --- 64 byte cache line end --- */
@@ -2384,6 +2199,9 @@ typedef struct IEMCPU
     /** Native recompiler: Total number instructions in this category. */
     STAMCOUNTER             StatNativeEflTotalShift;
 
+    /** Native recompiler: Number of emits per postponement. */
+    STAMPROFILE             StatNativeEflPostponedEmits;
+
     /** Native recompiler: Number of opportunities to skip EFLAGS.CF updating. */
     STAMCOUNTER             StatNativeLivenessEflCfSkippable;
     /** Native recompiler: Number of opportunities to skip EFLAGS.PF updating. */
@@ -2555,9 +2373,9 @@ typedef struct IEMCPU
     /** @} */
 
 #ifdef IEM_WITH_TLB_TRACE
-    uint64_t                au64Padding[5];
+    uint64_t                au64Padding[1];
 #else
-    uint64_t                au64Padding[7];
+    uint64_t                au64Padding[3];
 #endif
 
 #ifdef IEM_WITH_TLB_TRACE

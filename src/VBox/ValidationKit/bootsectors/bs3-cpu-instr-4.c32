@@ -86,6 +86,8 @@
 
 #define FP32_NORM_MAX(a_Sign)               RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_NORM_MAX, FP32_EXP_NORM_MAX)
 #define FP32_NORM_MIN(a_Sign)               RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_NORM_MIN, FP32_EXP_NORM_MIN)
+#define FP32_DENORM_MAX(a_Sign)             RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_DENORM_MAX, 0)
+#define FP32_DENORM_MIN(a_Sign)             RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_DENORM_MIN, 0)
 #define FP32_0(a_Sign)                      RTFLOAT32U_INIT_ZERO(a_Sign)
 #define FP32_1(a_Sign)                      RTFLOAT32U_INIT_C(a_Sign, 0, RTFLOAT32U_EXP_BIAS)
 #define FP32_2(a_Sign)                      RTFLOAT32U_INIT_C(a_Sign, 0, RTFLOAT32U_EXP_BIAS + 1)
@@ -171,10 +173,14 @@ AssertCompile(FP32_MAKE(0, FP32_FRAC_V7, FP32_EXP_V7) != FP32_MAKE(0, 0, RTFLOAT
 /*
  * Single-precision floating-point denormals.
  */
-/** The maximum denormal value. */
-#define FP32_DENORM_MAX(a_Sign)             RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_DENORM_MAX, 0)
-/** The maximum denormal value. */
-#define FP32_DENORM_MIN(a_Sign)             RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_DENORM_MIN, 0)
+#define FP32_DENORM_V0(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x7fffff, 0)
+#define FP32_DENORM_V1(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x701010, 0)
+#define FP32_DENORM_V2(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x6fefbb, 0)
+#define FP32_DENORM_V3(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x5b5b2e, 0)
+#define FP32_DENORM_V4(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x000001, 0)
+#define FP32_DENORM_V5(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x000fff, 0)
+#define FP32_DENORM_V6(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x700b02, 0)
+#define FP32_DENORM_V7(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x10c01a, 0)
 
 /*
  * Single-precision random values (incl. potentially invalid values).
@@ -492,7 +498,7 @@ static uint8_t BS3_FAR *g_pbBufAlias;
 /** RW alias for the memory at g_pbBuf. */
 static uint8_t BS3_FAR *g_pbBufAliasAlloc;
 
-/** Exception type \#2 test configurations, 16 & 32 bytes strictly aligned. */
+/** Exception type \#2 test configurations (>=16 byte memory reference, unaligned). */
 static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig2[] =
 {
 /*
@@ -544,6 +550,33 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
     /* AMD only: */
     { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
     { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
+};
+
+/** Exception type \#4 test configurations (>=16 byte memory arguments, no alignment, no floating-point exceptions). */
+static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig4[] =
+{
+/*
+ *   X87 SSE SSE SSE     AVX      SSE        AVX  AVX      SSE       AVX     AMD/SSE <-- applies to
+ *                               +AVX       +AVX +AMD/SSE           +AMD/SSE
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0                       MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #0 */
+    { 0, 0,  0,  1,      1,       0,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #1 */
+    { 1, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #2 */
+    { 0, 1,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #3 */
+    { 0, 0,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM }, /* #4 */
+    { 0, 1,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM }, /* #5 */
+    { 0, 0,  0,  0,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #6 */
+    { 0, 0,  0,  1,      0,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #7 */
+    { 0, 0,  0,  1,      1,       1,         1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #8 */
+    { 0, 0,  0,  1,      1,       1,         0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #9 */
+    /* Memory misalignment and alignment checks: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #10 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #11 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #12 */
+    /* AMD only: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
 };
 
 /**
@@ -2388,6 +2421,13 @@ DECLINLINE(uint32_t) bs3CpuInstrX_SimpleRand(void)
 #define BS3_SKIPIT_REPORT_COUNT 1000000
 #undef  BS3_SKIPIT_DO_SKIP
 #undef  BS3_SKIPIT_DO_ARGS
+
+#ifdef DEBUG_ramshankar
+# undef  BS3_SKIPIT_DO_SKIP
+# define BS3_SKIPIT_DO_SKIP
+# undef  BS3_SKIPIT_AVG_SKIP
+# define BS3_SKIPIT_AVG_SKIP        80
+#endif
 
 #ifndef BS3_SKIPIT_DO_SKIP
 # define BS3_SKIPIT(bRing, iCfg, iTest, iVal, iVariant) (false)
@@ -13772,6 +13812,311 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
 
 
 /*
+ * [V]RCPPS.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpps(uint8_t bMode)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0)   } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK,
+              /*256:out  */ X86_MXCSR_XCPT_MASK,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0)   } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0)   } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_0(0)   } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0), FP32_INF(0) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+    /*
+     * Infinity.
+     */
+    /* 4*/{ { /*src1     */ { FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(0)   } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK,
+              /*256:out  */ X86_MXCSR_XCPT_MASK,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(0)   } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(0)   } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(1), FP32_INF(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(0),   FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_0(1)   } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+    /*
+     * Normals.
+     */
+    /* 8*/{ { /*src1     */ { FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1), FP32_1(0), FP32_1(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_V(0, 0, RTFLOAT32U_EXP_BIAS + 1)/*  2*/,
+                              FP32_V(1, 0, RTFLOAT32U_EXP_BIAS + 2)/* -4*/,
+                              FP32_V(0, 0, RTFLOAT32U_EXP_BIAS + 3)/*  8*/,
+                              FP32_V(1, 0, RTFLOAT32U_EXP_BIAS + 4)/*-16*/,
+                              FP32_NORM_MAX(0),
+                              FP32_NORM_MIN(0),
+                              FP32_NORM_MAX(1),
+                              FP32_NORM_MIN(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 2),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 3),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_BIAS - 4),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_BIAS - 5),
+                              FP32_0(0),
+                              FP32_V(0, 0x7ff000, RTFLOAT32U_EXP_MAX - 3),
+                              FP32_0(1),
+                              FP32_V(1, 0x7ff000, RTFLOAT32U_EXP_MAX - 3) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_V(0, 0x7fe800, RTFLOAT32U_EXP_BIAS - 2)/* 1.11111111110100000000000(bin)*2^0 */,
+                              FP32_V(0, 0xc01,    RTFLOAT32U_EXP_BIAS - 1)/* 1.00000000000110000000001(bin)*2^1 */,
+                              FP32_V(0, 0x7fe800, RTFLOAT32U_EXP_MAX  - 3)/* 1.11111111110100000000000(bin)*2^125 */,
+                              FP32_V(0, 0xc01,    RTFLOAT32U_EXP_MAX  - 2)/* 1.00000000000110000000001(bin)*2^126 */,
+                              FP32_V(0, 0xc01,    RTFLOAT32U_EXP_MAX  - 3)/* 1.00000000000110000000001(bin)*2^125 */,
+                              FP32_V(0, 0xc00,    RTFLOAT32U_EXP_MAX  - 2)/* 1.00000000000110000000000(bin)*2^126 */,
+                              FP32_V(0, 0xc02,    RTFLOAT32U_EXP_MAX  - 2)/* 1.00000000000110000000010(bin)*2^126 */,
+                              FP32_V(0, 0x7fe801, RTFLOAT32U_EXP_MAX  - 3)/* 1.11111111110100000000001(bin)*2^125 */ } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 4096, RTFLOAT32U_EXP_BIAS + 1),
+                              FP32_V(0, FP32_FRAC_DENORM_MAX - 4095, RTFLOAT32U_EXP_BIAS),
+                              FP32_V(0, 4096, 1),
+                              FP32_0(0),
+                              FP32_V(0, 0x7ff000, 1),
+                              FP32_0(0),
+                              FP32_0(0),
+                              FP32_V(0, 4096, 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_V(0, 0x5ca5b8, 0x93)/*1807543*/,
+                              FP32_V(0, 0x1ea980, 0x8f)/*81235*/,
+                              FP32_V(0, 0x253468, 0x93)/*1353357*/,
+                              FP32_V(0, 0x620b2d, 0x92)/*925874.8*/,
+                              FP32_V(0, 0x600000, 0x7e)/*0.875*/,
+                              FP32_V(0, 0x490fda, 0x80)/*3.1415926*/,
+                              FP32_V(1, 0,        0x7d)/*-0.250*/,
+                              FP32_V(1, 0x534000, 0x86)/*-211.25*/ } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_V(0, 1343488, 106),
+                              FP32_V(0, 5146624, 110),
+                              FP32_V(0, 4610048, 106),
+                              FP32_V(0, 1112064, 107),
+                              FP32_V(0, 1196032, 127),
+                              FP32_V(0, 2293760, 125),
+                              FP32_V(1, 8384512, 128),
+                              FP32_V(1, 1775616, 119) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK,
+              /*256:out  */ X86_MXCSR_XCPT_MASK,
+              /*xcpt?    */ false, false },
+   /*
+    * Denormals.
+    */
+    /*15*/{ { /*src1     */ { FP32_DENORM_MAX(0), FP32_DENORM_MAX(1), FP32_DENORM_MIN(0), FP32_DENORM_MIN(1), FP32_DENORM_MIN(0), FP32_DENORM_MIN(1), FP32_DENORM_MAX(1), FP32_DENORM_MAX(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(1),        FP32_INF(0)        } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK,
+              /*256:out  */ X86_MXCSR_XCPT_MASK,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_DENORM_MIN(1), FP32_DENORM_MIN(1), FP32_DENORM_MIN(0), FP32_DENORM_MIN(1), FP32_DENORM_MAX(0), FP32_DENORM_MAX(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(1),        FP32_INF(1),        FP32_INF(1),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(0)        } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_MIN(0), FP32_DENORM_MIN(1), FP32_DENORM_MAX(0), FP32_DENORM_MAX(1), FP32_DENORM_MIN(0), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_DENORM_MIN(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(1),        FP32_INF(0)        } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_MIN(0), FP32_DENORM_MIN(1), FP32_DENORM_MAX(0), FP32_DENORM_MAX(1), FP32_DENORM_MIN(0), FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_DENORM_MIN(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(0),        FP32_INF(1),        FP32_INF(1),        FP32_INF(0)        } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP | X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP | X86_MXCSR_FZ,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP | X86_MXCSR_FZ,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_V0(0), FP32_DENORM_V1(0), FP32_DENORM_V2(0), FP32_DENORM_V3(0), FP32_DENORM_V4(0), FP32_DENORM_V5(0), FP32_DENORM_V6(0), FP32_DENORM_V7(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(0),       FP32_INF(0),       FP32_INF(0),       FP32_INF(0),       FP32_INF(0),       FP32_INF(0),       FP32_INF(0),       FP32_INF(0)       } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_V0(1), FP32_DENORM_V1(1), FP32_DENORM_V2(1), FP32_DENORM_V3(1), FP32_DENORM_V4(1), FP32_DENORM_V5(1), FP32_DENORM_V6(1), FP32_DENORM_V7(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(1),       FP32_INF(1),       FP32_INF(1),       FP32_INF(1),       FP32_INF(1),       FP32_INF(1),       FP32_INF(1),       FP32_INF(1)       } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_V7(1), FP32_DENORM_V6(0), FP32_DENORM_V5(1), FP32_DENORM_V4(0), FP32_DENORM_V3(1), FP32_DENORM_V2(0), FP32_DENORM_V1(1), FP32_DENORM_V0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0)       } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_DENORM_V7(1), FP32_DENORM_V6(0), FP32_DENORM_V5(1), FP32_DENORM_V4(0), FP32_DENORM_V3(1), FP32_DENORM_V2(0), FP32_DENORM_V1(1), FP32_DENORM_V0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0),       FP32_INF(1),       FP32_INF(0)       } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*xcpt?    */ false, false },
+    /** @todo More Denormals. */
+    /** @todo Invalids. */
+    };
+
+#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
+    static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
+    {
+        { bs3CpuInstr4_rcpps_XMM1_XMM2_icebp_c16,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_rcpps_XMM1_FSxBX_icebp_c16,  255, RM_MEM, T_SSE,     1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_AVX_128, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_XMM1_FSxBX_icebp_c16, 255, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_YMM1_YMM2_icebp_c16,  255, RM_REG, T_AVX_256, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_YMM1_FSxBX_icebp_c16, 255, RM_MEM, T_AVX_256, 1, 1, 255, PASS_s_aValues },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests32[] =
+    {
+        { bs3CpuInstr4_rcpps_XMM1_XMM2_icebp_c32,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_rcpps_XMM1_FSxBX_icebp_c32,  255, RM_MEM, T_SSE,     1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_XMM1_XMM2_icebp_c32,  255, RM_REG, T_AVX_128, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_XMM1_FSxBX_icebp_c32, 255, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_YMM1_YMM2_icebp_c32,  255, RM_REG, T_AVX_256, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_YMM1_FSxBX_icebp_c32, 255, RM_MEM, T_AVX_256, 1, 1, 255, PASS_s_aValues },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests64[] =
+    {
+        { bs3CpuInstr4_rcpps_XMM1_XMM2_icebp_c64,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_rcpps_XMM1_FSxBX_icebp_c64,  255, RM_MEM, T_SSE,     1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_XMM1_XMM2_icebp_c64,  255, RM_REG, T_AVX_128, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_XMM1_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_YMM1_YMM2_icebp_c64,  255, RM_REG, T_AVX_256, 1, 1, 2,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_YMM1_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 1, 1, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_rcpps_XMM8_XMM9_icebp_c64,   255, RM_REG, T_SSE,     8, 8, 9,   PASS_s_aValues },
+        { bs3CpuInstr4_rcpps_XMM8_FSxBX_icebp_c64,  255, RM_MEM, T_SSE,     8, 8, 255, PASS_s_aValues },
+
+        { bs3CpuInstr4_vrcpps_XMM8_XMM9_icebp_c64,  255, RM_REG, T_AVX_128, 8, 8, 9,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_XMM8_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_128, 8, 8, 255, PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_YMM8_YMM9_icebp_c64,  255, RM_REG, T_AVX_256, 8, 8, 9,   PASS_s_aValues },
+        { bs3CpuInstr4_vrcpps_YMM8_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 8, 255, PASS_s_aValues },
+    };
+#undef PASS_s_aValues
+
+    static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                         g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
+}
+
+
+/*
  * [V]SQRTPS.
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
@@ -14418,6 +14763,7 @@ BS3_DECL(void) Main_pe32()
         { "[v]minpd",       bs3CpuInstr4_v_minpd,    0 },
         { "[v]minss",       bs3CpuInstr4_v_minss,    0 },
         { "[v]minsd",       bs3CpuInstr4_v_minsd,    0 },
+        { "[v]rcpps",       bs3CpuInstr4_v_rcpps,    0 },
         { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,   0 },
         { "[v]sqrtpd",      bs3CpuInstr4_v_sqrtpd,   0 },
 #endif

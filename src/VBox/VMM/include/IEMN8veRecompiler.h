@@ -77,7 +77,7 @@
  * flag will be clobbered.  Useful for TlbMiss scenarios and sequences of memory
  * based instructions clobbering status flags. */
 #if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) || defined(DOXYGEN_RUNNING)
-# if 0 || defined(DOXYGEN_RUNNING)
+# if 1 || defined(DOXYGEN_RUNNING)
 #  define IEMNATIVE_WITH_EFLAGS_POSTPONING
 # endif
 #endif

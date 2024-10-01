@@ -496,7 +496,7 @@ static uint32_t iemNativeDoPostponedEFlagsInternal(PIEMRECOMPILERSTATE pReNative
     off = iemNativeEmitBrkEx(pCodeBuf, off, 0x3330);
     iemNativeFixupFixedJump(pReNative, offFixup1, off);
     /* Check that X86_EFL_RAZ_LO_MASK is zero. */
-    off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegEfl, X86_EFL_RAZ_LO_MASK);
+    off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegEfl, X86_EFL_RAZ_LO_MASK, idxRegTmp);
     uint32_t const offFixup2 = off;
     off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off, kIemNativeInstrCond_e);
     off = iemNativeEmitBrkEx(pCodeBuf, off, 0x3331);

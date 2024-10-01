@@ -199,7 +199,9 @@ static struct file_operations   g_FileOps =
     fasync:         vgdrvLinuxFAsync,
     read:           vgdrvLinuxRead,
     poll:           vgdrvLinuxPoll,
+#if RTLNX_VER_MAX(6,12,0)
     llseek:         no_llseek,
+#endif
 };
 
 /** The miscdevice structure. */

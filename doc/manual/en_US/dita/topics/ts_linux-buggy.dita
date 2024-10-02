@@ -10,11 +10,7 @@
       </p>
     <ul>
       <li>
-        <p>
-            The Linux kernel version 2.6.18, and some 2.6.17 versions,
-            introduced a race condition that can cause boot crashes in
-            <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. Please use a kernel version 2.6.19 or later.
-          </p>
+        <p> The Linux kernel version 2.6.18, and some 2.6.17 versions, introduced a race condition that can cause boot failures in <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. Use kernel version 2.6.19 or later. </p>
       </li>
       <li>
         <p>
@@ -30,11 +26,7 @@ apic=debug and send a report.  Then try booting with the 'noapic' option</pre>
             <xref href="settings-system.dita">System Settings</xref>, or upgrade the guest to
             a newer kernel.
           </p>
-        <p>
-            See
-            <ph>http://www.mail-archive.com/git-commits-head@vger.kernel.org/msg30813.html</ph>
-            for details about the kernel fix.
-          </p>
+        <p> See <xref href="http://www.mail-archive.com/git-commits-head@vger.kernel.org/msg30813.html" format="html" scope="external">this message</xref>  for details about the kernel fix. </p>
       </li>
     </ul>
   </body>

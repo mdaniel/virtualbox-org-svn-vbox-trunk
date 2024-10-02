@@ -5,19 +5,8 @@
         Restoring a Snapshot</title>
   
   <body>
-    <p>
-        If a Windows guest is a member of an Active Directory domain and
-        the snapshot feature of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> is used, it could be
-        removed from the Active Direcory domain after you restore an
-        older snapshot.
-      </p>
-    <p>
-        This is caused by automatic machine password changes performed
-        by Windows at regular intervals for security purposes. You can
-        disable this feature as shown in the following article from
-        Microsoft:
-        <ph>http://support.microsoft.com/kb/154501</ph>.
-      </p>
+    <p> If a Windows guest is a member of an Active Directory domain and the snapshot feature of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> is used, it could be removed from the Active Directory domain after you restore an older snapshot. </p>
+    <p> This is caused by automatic machine password changes performed by Windows at regular intervals for security purposes. You can disable this feature as shown in this <xref href="http://support.microsoft.com/kb/154501" format="html" scope="external">article from Microsoft</xref>. </p>
   </body>
   
 </topic>

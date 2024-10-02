@@ -40,7 +40,7 @@
                         </row>
                         <row>
                             <entry>Arm64</entry>
-                            <entry>macOS (requires Apple Silicon hardware)</entry>
+                            <entry>macOS (requires Apple silicon hardware)</entry>
                             <entry>Arm64</entry>
                             <entry>Linux (various distributions)</entry>
                         </row>

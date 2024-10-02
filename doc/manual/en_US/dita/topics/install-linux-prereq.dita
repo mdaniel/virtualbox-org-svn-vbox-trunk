@@ -6,21 +6,14 @@
   <body>
     <p>For the various versions of Linux that are supported as host operating systems, see <xref
         href="hostossupport.dita#hostossupport"/>. </p>
-    <p>You may need to install the following packages on your Linux system before starting the installation. Some
-      systems will do this for you automatically when you install <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
+    <p>You may need to install the following package on your Linux system before starting the installation. Some systems will do this for you automatically when you install <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
     <ul>
       <li>
         <p>Qt 6.5.3 or later.</p>
       </li>
-      <li>
-        <p>SDL 2.0 or later. This graphics library is typically called <filepath>libsdl2</filepath> or similar. </p>
-      </li>
     </ul>
     <note>
-      <p>These packages are only required if you want to run the <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
-        graphical user interfaces. In particular, <userinput>VirtualBox</userinput>, the graphical VirtualBox Manager,
-        requires both Qt and SDL. If you only want to run <userinput>VBoxHeadless</userinput>, neither Qt nor SDL are
-        required. </p>
+      <p>Qt is only required if you want to run the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> graphical user interfaces. In particular, <userinput>VirtualBox</userinput>, the graphical VirtualBox Manager, requires Qt. If you only want to run <userinput>VBoxHeadless</userinput>, Qt is not required. </p>
     </note>
   </body>
   

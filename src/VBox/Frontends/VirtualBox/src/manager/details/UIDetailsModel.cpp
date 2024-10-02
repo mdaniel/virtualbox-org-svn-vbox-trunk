@@ -766,32 +766,18 @@ void UIDetailsModel::sltToggleAnimationFinished(DetailsElementType enmType, bool
 
 void UIDetailsModel::prepare()
 {
-    /* Prepare things: */
-    prepareScene();
-    prepareRoot();
-    prepareContextMenu();
-    loadSettings();
-}
-
-void UIDetailsModel::prepareScene()
-{
+    /* Prepare scene: */
     m_pScene = new QGraphicsScene(this);
     if (m_pScene)
         m_pScene->installEventFilter(this);
-}
 
-void UIDetailsModel::prepareRoot()
-{
+    /* Prepare root item: */
     m_pRoot = new UIDetailsGroup(scene());
-}
 
-void UIDetailsModel::prepareContextMenu()
-{
+    /* Prepare context-menu: */
     m_pContextMenu = new UIDetailsContextMenu(this);
-}
 
-void UIDetailsModel::loadSettings()
-{
+    /* Load stuff: */
     loadDetailsCategories();
     loadDetailsOptions();
 }
@@ -963,30 +949,19 @@ void UIDetailsModel::loadDetailsOptions(DetailsElementType enmType /* = DetailsE
     m_pContextMenu->updateOptionStates();
 }
 
-void UIDetailsModel::cleanupContextMenu()
-{
-    delete m_pContextMenu;
-    m_pContextMenu = 0;
-}
-
-void UIDetailsModel::cleanupRoot()
-{
-    delete m_pRoot;
-    m_pRoot = 0;
-}
-
-void UIDetailsModel::cleanupScene()
-{
-    delete m_pScene;
-    m_pScene = 0;
-}
-
 void UIDetailsModel::cleanup()
 {
-    /* Cleanup things: */
-    cleanupContextMenu();
-    cleanupRoot();
-    cleanupScene();
+    /* Cleanup context-menu: */
+    delete m_pContextMenu;
+    m_pContextMenu = 0;
+
+    /* Cleanup root item: */
+    delete m_pRoot;
+    m_pRoot = 0;
+
+    /* Cleanup scene: */
+    delete m_pScene;
+    m_pScene = 0;
 }
 
 bool UIDetailsModel::processContextMenuEvent(QGraphicsSceneContextMenuEvent *pEvent)

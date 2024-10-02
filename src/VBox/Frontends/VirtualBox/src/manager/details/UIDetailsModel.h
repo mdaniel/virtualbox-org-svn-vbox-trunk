@@ -200,26 +200,13 @@ private:
       * @{ */
         /** Prepares all. */
         void prepare();
-        /** Prepares scene. */
-        void prepareScene();
-        /** Prepares root. */
-        void prepareRoot();
-        /** Prepares context-menu. */
-        void prepareContextMenu();
-        /** Loads settings. */
-        void loadSettings();
+
         /** Loads details categories. */
         void loadDetailsCategories();
         /** Loads details options for certain category @a enmType.
           * @note enmType equal to DetailsElementType_Invalid means load everything. */
         void loadDetailsOptions(DetailsElementType enmType = DetailsElementType_Invalid);
 
-        /** Cleanups context-menu. */
-        void cleanupContextMenu();
-        /** Cleanups root. */
-        void cleanupRoot();
-        /** Cleanups scene. */
-        void cleanupScene();
         /** Cleanups all. */
         void cleanup();
     /** @} */

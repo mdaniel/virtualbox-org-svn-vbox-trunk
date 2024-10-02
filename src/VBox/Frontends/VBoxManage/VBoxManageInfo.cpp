@@ -1112,17 +1112,6 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     if (pSession)
         pSession->COMGETTER(Console)(pConsole.asOutParam());
 
-    ComPtr<IPlatform> platform;
-    CHECK_ERROR_RET(machine, COMGETTER(Platform)(platform.asOutParam()), hrc);
-    ComPtr<IPlatformProperties> platformProperties;
-    CHECK_ERROR_RET(platform, COMGETTER(Properties)(platformProperties.asOutParam()), hrc);
-
-    PlatformArchitecture_T platformArch;
-    CHECK_ERROR_RET(platform, COMGETTER(Architecture)(&platformArch), hrc);
-
-    ComPtr<IFirmwareSettings> firmwareSettings;
-    CHECK_ERROR_RET(machine, COMGETTER(FirmwareSettings)(firmwareSettings.asOutParam()), hrc);
-
     char szNm[80];
     char szValue[256];
 
@@ -1184,6 +1173,17 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         }
         return S_OK;
     }
+
+    ComPtr<IPlatform> platform;
+    CHECK_ERROR_RET(machine, COMGETTER(Platform)(platform.asOutParam()), hrc);
+    ComPtr<IPlatformProperties> platformProperties;
+    CHECK_ERROR_RET(platform, COMGETTER(Properties)(platformProperties.asOutParam()), hrc);
+
+    PlatformArchitecture_T platformArch;
+    CHECK_ERROR_RET(platform, COMGETTER(Architecture)(&platformArch), hrc);
+
+    ComPtr<IFirmwareSettings> firmwareSettings;
+    CHECK_ERROR_RET(machine, COMGETTER(FirmwareSettings)(firmwareSettings.asOutParam()), hrc);
 
     if (details == VMINFO_COMPACT)
     {

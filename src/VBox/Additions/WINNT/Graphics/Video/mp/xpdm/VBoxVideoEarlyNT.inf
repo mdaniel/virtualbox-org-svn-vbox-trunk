@@ -55,7 +55,7 @@ VBoxVideo.Display  = 11 ; system32
 CopyFiles = VBoxVideo.Miniport, VBoxVideo.Display
 
 [VBoxVideo.Miniport]
-VBoxVideo.sys,,,0x100
+VBoxVideo.sys,,,0x100      ; COPYFLG_PROTECTED_WINDOWS_DRIVER_FILE
 
 [VBoxVideo.Display]
 VBoxDisp.dll,,,0x00004000  ; COPYFLG_IN_USE_TRY_RENAME

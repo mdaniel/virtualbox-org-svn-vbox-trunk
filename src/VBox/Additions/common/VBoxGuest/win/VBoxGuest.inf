@@ -66,11 +66,11 @@ CopyFiles = VBoxGuest_CopyFiles, VBoxTray_CopyFiles
 AddReg = VBoxTray_Add_Reg
 
 [VBoxGuest_CopyFiles]
-VBoxGuest.sys
+VBoxGuest.sys,,,0x4000          ; COPYFLG_IN_USE_TRY_RENAME
 
 [VBoxTray_CopyFiles]
-VBoxTray.exe
-VBoxControl.exe
+VBoxTray.exe,,,0x4000           ; COPYFLG_IN_USE_TRY_RENAME
+VBoxControl.exe,,,0x4000        ; COPYFLG_IN_USE_TRY_RENAME
 
 [VBoxGuest_Install.Services]
 AddService = VBoxGuest, 0x00000002, VBoxGuest_ServiceInstallSection

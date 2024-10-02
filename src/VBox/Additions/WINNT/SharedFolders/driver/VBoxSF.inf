@@ -55,10 +55,10 @@ CopyFiles = VBoxSF_CopyFiles, VBoxMRXNP_CopyFiles
 AddReg = VBoxMRXNP_Add_Reg
 
 [VBoxSF_CopyFiles]
-VBoxSF.sys
+VBoxSF.sys,,,0x4000     ; COPYFLG_IN_USE_TRY_RENAME
 
 [VBoxMRXNP_CopyFiles]
-VBoxMRXNP.dll
+VBoxMRXNP.dll,,,0x4000  ; COPYFLG_IN_USE_TRY_RENAME
 
 [VBoxSF_Install.Services]
 AddService = VBoxSF, 0x00000002, VBoxSF_ServiceInstallSection

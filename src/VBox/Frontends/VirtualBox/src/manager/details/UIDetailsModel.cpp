@@ -34,6 +34,7 @@
 #include <QMetaEnum>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIDetails.h"
@@ -737,6 +738,12 @@ void UIDetailsModel::sltToggleElements(DetailsElementType type, bool fToggled)
     updateLayout();
 }
 
+void UIDetailsModel::sltDetachCOM()
+{
+    /* Clear model of unwanted machine-items: */
+    setItems(QList<UIVirtualMachineItem*>());
+}
+
 void UIDetailsModel::sltToggleAnimationFinished(DetailsElementType enmType, bool fToggled)
 {
     /* Cleanup animation callback: */
@@ -766,6 +773,10 @@ void UIDetailsModel::sltToggleAnimationFinished(DetailsElementType enmType, bool
 
 void UIDetailsModel::prepare()
 {
+    /* Install cleanup handler: */
+    connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
+            this, &UIDetailsModel::sltDetachCOM);
+
     /* Prepare scene: */
     m_pScene = new QGraphicsScene(this);
     if (m_pScene)

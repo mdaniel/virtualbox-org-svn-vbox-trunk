@@ -191,6 +191,9 @@ protected:
 
 private slots:
 
+    /** Handles command to detach COM. */
+    void sltDetachCOM();
+
     /** Handles sigal about details element of certain @a enmType toggling finished, making element @a fToggled. */
     void sltToggleAnimationFinished(DetailsElementType type, bool fToggled);
 

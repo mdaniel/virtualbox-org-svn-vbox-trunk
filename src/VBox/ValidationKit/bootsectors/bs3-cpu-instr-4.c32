@@ -84,6 +84,14 @@
 #define FP32_FRAC_DENORM_MAX                0x7fffff
 /** The min fraction value for a single-precision floating-point denormal. */
 #define FP32_FRAC_DENORM_MIN                1
+/** The max fraction value for a single-precision floating-point signalling NAN. */
+#define FP32_FRAC_SNAN_MAX                  0x3fffff
+/** The min fraction value for a single-precision floating-point signalling NAN. */
+#define FP32_FRAC_SNAN_MIN                  1
+/** The max fraction value for a single-precision floating-point quiet NAN. */
+#define FP32_FRAC_QNAN_MAX                  0x7fffff
+/** The min fraction value for a single-precision floating-point quiet NAN. */
+#define FP32_FRAC_QNAN_MIN                  0x400000
 
 #define FP32_NORM_MAX(a_Sign)               RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_NORM_MAX, FP32_EXP_NORM_MAX)
 #define FP32_NORM_MIN(a_Sign)               RTFLOAT32U_INIT_C(a_Sign, FP32_FRAC_NORM_MIN, FP32_EXP_NORM_MIN)
@@ -178,10 +186,41 @@ AssertCompile(FP32_MAKE(0, FP32_FRAC_V7, FP32_EXP_V7) != FP32_MAKE(0, 0, RTFLOAT
 #define FP32_DENORM_V1(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x701010, 0)
 #define FP32_DENORM_V2(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x6fefbb, 0)
 #define FP32_DENORM_V3(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x5b5b2e, 0)
-#define FP32_DENORM_V4(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x000001, 0)
+#define FP32_DENORM_V4(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x10c01a, 0)
 #define FP32_DENORM_V5(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x000fff, 0)
 #define FP32_DENORM_V6(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x700b02, 0)
-#define FP32_DENORM_V7(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x10c01a, 0)
+#define FP32_DENORM_V7(a_Sign)              RTFLOAT32U_INIT_C(a_Sign, 0x000001, 0)
+
+/*
+ * Single-precision floating-point invalids.
+ * (1 to 0x3fffff fractional part for SNANs and 0x400000 to 0x7fffff for QNAN).
+ */
+#define FP32_FRAC_INV_V0                    0x3fffff
+#define FP32_FRAC_INV_V1                    0x21301c
+#define FP32_FRAC_INV_V2                    0x3c0de0
+#define FP32_FRAC_INV_V3                    0x110110
+#define FP32_FRAC_INV_V4                    0x0f0f0f
+#define FP32_FRAC_INV_V5                    0x10f0f0
+#define FP32_FRAC_INV_V6                    0x3ebebe
+#define FP32_FRAC_INV_V7                    0x000001
+/* Single-precision floating-point signalling NANs (SNAN). */
+#define FP32_SNAN_V0(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V0)
+#define FP32_SNAN_V1(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V1)
+#define FP32_SNAN_V2(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V2)
+#define FP32_SNAN_V3(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V3)
+#define FP32_SNAN_V4(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V4)
+#define FP32_SNAN_V5(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V5)
+#define FP32_SNAN_V6(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V6)
+#define FP32_SNAN_V7(a_Sign)                RTFLOAT32U_INIT_SNAN_EX(a_Sign, FP32_FRAC_INV_V7)
+/* Single-precision floating-point quiet NANs (QNAN). */
+#define FP32_QNAN_V0(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V0)
+#define FP32_QNAN_V1(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V1)
+#define FP32_QNAN_V2(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V2)
+#define FP32_QNAN_V3(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V3)
+#define FP32_QNAN_V4(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V4)
+#define FP32_QNAN_V5(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V5)
+#define FP32_QNAN_V6(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V6)
+#define FP32_QNAN_V7(a_Sign)                RTFLOAT32U_INIT_QNAN_EX(a_Sign, FP32_FRAC_INV_V7)
 
 /*
  * Single-precision random values (incl. potentially invalid values).
@@ -14116,7 +14155,65 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpps(uint8_t bMode)
               /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_DAZ,
               /*xcpt?    */ false, false },
     /** @todo More Denormals. */
-    /** @todo Invalids. */
+    /*
+     * Invalids.
+     */
+    /*23*/{ { /*src1     */ { FP32_SNAN(0),      FP32_SNAN(1),      FP32_QNAN(0), FP32_QNAN(1), FP32_SNAN(1),      FP32_QNAN(1), FP32_QNAN(1), FP32_SNAN(1)      } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V(0, 1), FP32_QNAN_V(1, 1), FP32_QNAN(0), FP32_QNAN(1), FP32_QNAN_V(1, 1), FP32_QNAN(1), FP32_QNAN(1), FP32_QNAN_V(1, 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK,
+              /*256:out  */ X86_MXCSR_XCPT_MASK,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_SNAN(0),      FP32_SNAN(1),      FP32_QNAN(0), FP32_QNAN(1), FP32_SNAN(1),      FP32_QNAN(1), FP32_QNAN(1), FP32_SNAN(1)      } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V(0, 1), FP32_QNAN_V(1, 1), FP32_QNAN(0), FP32_QNAN(1), FP32_QNAN_V(1, 1), FP32_QNAN(1), FP32_QNAN(1), FP32_QNAN_V(1, 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_SNAN(0),      FP32_SNAN(1),      FP32_QNAN(0), FP32_QNAN(1), FP32_SNAN(1),      FP32_QNAN(1), FP32_QNAN(1), FP32_SNAN(1)      } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V(0, 1), FP32_QNAN_V(1, 1), FP32_QNAN(0), FP32_QNAN(1), FP32_QNAN_V(1, 1), FP32_QNAN(1), FP32_QNAN(1), FP32_QNAN_V(1, 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_SNAN(0),      FP32_SNAN(1),      FP32_QNAN(0), FP32_QNAN(1), FP32_SNAN(1),      FP32_QNAN(1), FP32_QNAN(1), FP32_SNAN(1)      } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V(0, 1), FP32_QNAN_V(1, 1), FP32_QNAN(0), FP32_QNAN(1), FP32_QNAN_V(1, 1), FP32_QNAN(1), FP32_QNAN(1), FP32_QNAN_V(1, 1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_DOWN,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_SNAN_V0(0), FP32_SNAN_V1(1), FP32_SNAN_V2(0), FP32_SNAN_V3(1), FP32_SNAN_V4(1), FP32_SNAN_V5(1), FP32_SNAN_V6(1), FP32_SNAN_V7(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V0(0), FP32_QNAN_V1(1), FP32_QNAN_V2(0), FP32_QNAN_V3(1), FP32_QNAN_V4(1), FP32_QNAN_V5(1), FP32_QNAN_V6(1), FP32_QNAN_V7(1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_ZERO,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(1), FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(1), FP32_QNAN_V0(0), FP32_QNAN_V0(1), FP32_QNAN_V0(1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_QNAN_V0(1), FP32_SNAN_V0(1), FP32_QNAN_V1(1), FP32_SNAN_V0(1), FP32_QNAN_V7(1), FP32_SNAN_V7(1), FP32_QNAN_V3(1), FP32_SNAN_V0(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V0(1), FP32_QNAN_V0(1), FP32_QNAN_V1(1), FP32_QNAN_V0(1), FP32_QNAN_V7(1), FP32_QNAN_V7(1), FP32_QNAN_V3(1), FP32_QNAN_V0(1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_FZ | X86_MXCSR_RC_UP,
+              /*xcpt?    */ false, false },
+          { { /*src1     */ { FP32_QNAN_V0(1), FP32_SNAN_V0(1), FP32_QNAN_V1(1), FP32_SNAN_V3(1), FP32_QNAN_V4(1), FP32_SNAN_V5(1), FP32_QNAN_V6(1), FP32_SNAN_V7(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_QNAN_V0(1), FP32_QNAN_V0(1), FP32_QNAN_V1(1), FP32_QNAN_V3(1), FP32_QNAN_V4(1), FP32_QNAN_V5(1), FP32_QNAN_V6(1), FP32_QNAN_V7(1) } },
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ,
+              /*256:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_DAZ,
+              /*xcpt?    */ false, false },
     };
 
 #define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues

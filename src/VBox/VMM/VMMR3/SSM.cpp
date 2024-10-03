@@ -303,7 +303,8 @@ AssertCompile(SSM_ZIP_BLOCK_SIZE / _1K * _1K == SSM_ZIP_BLOCK_SIZE);
  */
 #define SSM_ASSERT_WRITEABLE_RET(pSSM) \
     AssertMsgReturn(   pSSM->enmOp == SSMSTATE_SAVE_EXEC \
-                    || pSSM->enmOp == SSMSTATE_LIVE_EXEC,\
+                    || pSSM->enmOp == SSMSTATE_LIVE_EXEC \
+                    || pSSM->enmOp == SSMSTATE_OPEN_WRITE,\
                     ("Invalid state %d\n", pSSM->enmOp), VERR_SSM_INVALID_STATE);
 
 /**
@@ -371,6 +372,7 @@ typedef enum SSMSTATE
     SSMSTATE_LOAD_EXEC,
     SSMSTATE_LOAD_DONE,
     SSMSTATE_OPEN_READ,
+    SSMSTATE_OPEN_WRITE,
     SSMSTATE_END
 } SSMSTATE;
 
@@ -525,6 +527,11 @@ typedef struct SSMHANDLE
             uint8_t         abDataBuffer[4096];
             /** The maximum downtime given as milliseconds. */
             uint32_t        cMsMaxDowntime;
+
+            /** SSMSTATE_OPEN_WRITE: Number of allocated directory entries. */
+            uint32_t        cDirEntriesAlloced;
+            /** SSMSTATE_OPEN_WRITE: The directory. */
+            struct SSMFILEDIR *pDir;
         } Write;
 
         /** Read data. */
@@ -4734,21 +4741,11 @@ static int ssmR3WriteDirectory(PVM pVM, PSSMHANDLE pSSM, uint32_t *pcEntries)
 
 
 /**
- * Finalize the saved state stream, i.e. add the end unit, directory
- * and footer.
- *
- * @returns VBox status code (pSSM->rc).
- * @param   pVM                 The cross context VM structure.
- * @param   pSSM                The saved state handle.
+ * Writes out the END unit.
  */
-static int ssmR3SaveDoFinalization(PVM pVM, PSSMHANDLE pSSM)
+static int ssmR3WriteEndUnit(PSSMHANDLE pSSM)
 {
-    VM_ASSERT_EMT0(pVM);
-    Assert(RT_SUCCESS(pSSM->rc));
-
-    /*
-     * Write the end unit.
-     */
+    AssertRC(pSSM->rc);
     SSMFILEUNITHDRV2 UnitHdr;
     memcpy(&UnitHdr.szMagic[0], SSMFILEUNITHDR_END, sizeof(UnitHdr.szMagic));
     UnitHdr.offStream       = ssmR3StrmTell(&pSSM->Strm);
@@ -4765,39 +4762,118 @@ static int ssmR3SaveDoFinalization(PVM pVM, PSSMHANDLE pSSM)
     if (RT_FAILURE(rc))
     {
         LogRel(("SSM: Failed writing the end unit: %Rrc\n", rc));
-        return pSSM->rc = rc;
+        pSSM->rc = rc;
     }
+    return rc;
+}
 
-    /*
-     * Write the directory for the final units and then the footer.
-     */
+
+/**
+ * Writes out the file footer and sets the end of the stream.
+ */
+static int ssmR3WriteFileFooter(PSSMHANDLE pSSM, uint32_t cDirEntries)
+{
     SSMFILEFTR Footer;
-    rc = ssmR3WriteDirectory(pVM, pSSM, &Footer.cDirEntries);
-    if (RT_FAILURE(rc))
-    {
-        LogRel(("SSM: Failed writing the directory: %Rrc\n", rc));
-        return pSSM->rc = rc;
-    }
-
     memcpy(Footer.szMagic, SSMFILEFTR_MAGIC, sizeof(Footer.szMagic));
     Footer.offStream    = ssmR3StrmTell(&pSSM->Strm);
     Footer.u32StreamCRC = ssmR3StrmFinalCRC(&pSSM->Strm);
+    Footer.cDirEntries  = cDirEntries;
     Footer.u32Reserved  = 0;
     Footer.u32CRC       = 0;
     Footer.u32CRC       = RTCrc32(&Footer, sizeof(Footer));
     Log(("SSM: Footer at %#9llx: \n", Footer.offStream));
-    rc = ssmR3StrmWrite(&pSSM->Strm, &Footer, sizeof(Footer));
+    int rc = ssmR3StrmWrite(&pSSM->Strm, &Footer, sizeof(Footer));
     if (RT_SUCCESS(rc))
         rc = ssmR3StrmSetEnd(&pSSM->Strm);
-    if (RT_FAILURE(rc))
+    if (RT_SUCCESS(rc))
+        LogRel(("SSM: Footer at %#llx (%lld), %u directory entries.\n", Footer.offStream, Footer.offStream, Footer.cDirEntries));
+    else
     {
         LogRel(("SSM: Failed writing the footer: %Rrc\n", rc));
-        return pSSM->rc = rc;
+        pSSM->rc = rc;
     }
+    return rc;
+}
 
-    LogRel(("SSM: Footer at %#llx (%lld), %u directory entries.\n",
-            Footer.offStream, Footer.offStream, Footer.cDirEntries));
-    return VINF_SUCCESS;
+
+/**
+ * Finalize the saved state stream, i.e. add the end unit, directory
+ * and footer.
+ *
+ * @returns VBox status code (pSSM->rc).
+ * @param   pVM                 The cross context VM structure.
+ * @param   pSSM                The saved state handle.
+ */
+static int ssmR3SaveDoFinalization(PVM pVM, PSSMHANDLE pSSM)
+{
+    VM_ASSERT_EMT0(pVM);
+    Assert(RT_SUCCESS(pSSM->rc));
+
+    /*
+     * Write the end unit.
+     */
+    int rc = ssmR3WriteEndUnit(pSSM);
+    if (RT_SUCCESS(rc))
+    {
+        /*
+         * Write the directory for the final units and then the footer.
+         */
+        uint32_t cDirEntries = 0;
+        rc = ssmR3WriteDirectory(pVM, pSSM, &cDirEntries);
+        if (RT_SUCCESS(rc))
+        {
+            /*
+             * Write the footer.
+             */
+            rc = ssmR3WriteFileFooter(pSSM, cDirEntries);
+        }
+        else
+        {
+            LogRel(("SSM: Failed writing the directory: %Rrc\n", rc));
+            pSSM->rc = rc;
+        }
+    }
+    return rc;
+}
+
+
+/**
+ * Writes the file directory and footer.
+ *
+ * @returns VBox status code.
+ * @param   pSSM                The SSM handle.
+ */
+VMMR3DECL(int) SSMR3WriteFileFooter(PSSMHANDLE pSSM)
+{
+    AssertPtrReturn(pSSM, VERR_INVALID_POINTER);
+    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_WRITE, ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
+    AssertMsgReturn(pSSM->enmAfter == SSMAFTER_OPENED, ("%d\n", pSSM->enmAfter),VERR_INVALID_PARAMETER);
+    Assert(pSSM->fCancelled == SSMHANDLE_OK);
+
+    /*
+     * Write the directory.
+     */
+    PSSMFILEDIR pDir = pSSM->u.Write.pDir;
+    if (!pDir)
+    {
+        /* Allocate an empty directory as a placeholder. (Don't know we can
+           read this back, but whatever) */
+        pSSM->u.Write.pDir = pDir = (PSSMFILEDIR)RTMemAllocZ(RT_UOFFSETOF(SSMFILEDIR, aEntries[1]));
+        AssertReturn(pDir, VERR_NO_MEMORY);
+        pSSM->u.Write.cDirEntriesAlloced = 1;
+    }
+    memcpy(pDir->szMagic, SSMFILEDIR_MAGIC, sizeof(pDir->szMagic));
+    pDir->u32CRC = 0;
+    uint32_t const cbDir = RT_UOFFSETOF_DYN(SSMFILEDIR, aEntries[pDir->cEntries]);
+    pDir->u32CRC = RTCrc32(pDir, cbDir);
+    int rc = ssmR3StrmWrite(&pSSM->Strm, pDir, cbDir);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    /*
+     * Write the footer.
+     */
+    return ssmR3WriteFileFooter(pSSM, pDir->cEntries);
 }
 
 
@@ -4826,6 +4902,107 @@ static void ssmR3ProgressByUnit(PSSMHANDLE pSSM, uint32_t iUnit)
 
 
 /**
+ * Head code for saving a unit shared by ssmR3SaveDoExecRun() and
+ * SSMR3WriteUnitBegin().
+ */
+static int ssmR3SaveDoExecRunOneUnitBegin(PSSMHANDLE pSSM, PSSMUNIT pUnit, unsigned iUnit)
+{
+    /*
+     * Not all unit have a callback. Skip those which don't and
+     * make sure to keep the progress indicator up to date.
+     */
+    ssmR3ProgressByUnit(pSSM, iUnit);
+    pSSM->offEstUnitEnd += pUnit->cbGuess;
+    if (!pUnit->u.Common.pfnSaveExec)
+    {
+        pUnit->fCalled = true;
+        if (pUnit->cbGuess)
+            ssmR3ProgressByByte(pSSM, pSSM->offEstUnitEnd - pSSM->offEst);
+        return VINF_NO_CHANGE;
+    }
+    pUnit->offStream = ssmR3StrmTell(&pSSM->Strm);
+
+    /*
+     * Check for cancellation.
+     */
+    if (RT_UNLIKELY(ASMAtomicUoReadU32(&(pSSM)->fCancelled) == SSMHANDLE_CANCELLED))
+    {
+        LogRel(("SSM: Cancelled!\n"));
+        AssertRC(pSSM->rc);
+        return pSSM->rc = VERR_SSM_CANCELLED;
+    }
+
+    /*
+     * Write data unit header
+     */
+    SSMFILEUNITHDRV2 UnitHdr;
+    memcpy(&UnitHdr.szMagic[0], SSMFILEUNITHDR_MAGIC, sizeof(UnitHdr.szMagic));
+    UnitHdr.offStream       = pUnit->offStream;
+    UnitHdr.u32CurStreamCRC = ssmR3StrmCurCRC(&pSSM->Strm);
+    UnitHdr.u32CRC          = 0;
+    UnitHdr.u32Version      = pUnit->u32Version;
+    UnitHdr.u32Instance     = pUnit->u32Instance;
+    UnitHdr.u32Pass         = SSM_PASS_FINAL;
+    UnitHdr.fFlags          = 0;
+    UnitHdr.cbName          = (uint32_t)pUnit->cchName + 1;
+    memcpy(&UnitHdr.szName[0], &pUnit->szName[0], UnitHdr.cbName);
+    UnitHdr.u32CRC          = RTCrc32(&UnitHdr, RT_UOFFSETOF_DYN(SSMFILEUNITHDRV2, szName[UnitHdr.cbName]));
+    Log(("SSM: Unit at %#9llx: '%s', instance %u, pass %#x, version %u\n",
+         UnitHdr.offStream, UnitHdr.szName, UnitHdr.u32Instance, UnitHdr.u32Pass, UnitHdr.u32Version));
+    int rc = ssmR3StrmWrite(&pSSM->Strm, &UnitHdr, RT_UOFFSETOF_DYN(SSMFILEUNITHDRV2, szName[UnitHdr.cbName]));
+    if (RT_FAILURE(rc))
+    {
+        LogRel(("SSM: Failed to write unit header. rc=%Rrc\n", rc));
+        return pSSM->rc = rc;
+    }
+
+    ssmR3DataWriteBegin(pSSM);
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * Tail code for saving a unit shared by ssmR3SaveDoExecRun() and
+ * SSMR3WriteUnitComplete().
+ */
+static int ssmR3SaveDoExecRunOneUnitComplete(PSSMHANDLE pSSM)
+{
+    /*
+     * Write the termination record and flush the compression stream.
+     */
+    SSMRECTERM TermRec;
+    TermRec.u8TypeAndFlags   = SSM_REC_FLAGS_FIXED | SSM_REC_FLAGS_IMPORTANT | SSM_REC_TYPE_TERM;
+    TermRec.cbRec            = sizeof(TermRec) - 2;
+    if (pSSM->Strm.fChecksummed)
+    {
+        TermRec.fFlags       = SSMRECTERM_FLAGS_CRC32;
+        TermRec.u32StreamCRC = RTCrc32Finish(RTCrc32Process(ssmR3StrmCurCRC(&pSSM->Strm), &TermRec, 2));
+    }
+    else
+    {
+        TermRec.fFlags       = 0;
+        TermRec.u32StreamCRC = 0;
+    }
+    TermRec.cbUnit           = pSSM->offUnit + sizeof(TermRec);
+    int rc = ssmR3DataWriteRaw(pSSM, &TermRec, sizeof(TermRec));
+    if (RT_SUCCESS(rc))
+        rc = ssmR3DataWriteFinish(pSSM);
+    if (RT_FAILURE(rc))
+    {
+        LogRel(("SSM: Failed terminating unit: %Rrc\n", rc));
+        return pSSM->rc = rc;
+    }
+
+    /*
+     * Advance the progress indicator to the end of the current unit.
+     */
+    ssmR3ProgressByByte(pSSM, pSSM->offEstUnitEnd - pSSM->offEst);
+
+    return VINF_SUCCESS;
+}
+
+
+/**
  * Do the pfnSaveExec run.
  *
  * @returns VBox status code (pSSM->rc).
@@ -4842,58 +5019,20 @@ static int ssmR3SaveDoExecRun(PVM pVM, PSSMHANDLE pSSM)
     for (PSSMUNIT pUnit = pVM->ssm.s.pHead; pUnit; pUnit = pUnit->pNext, iUnit++)
     {
         /*
-         * Not all unit have a callback. Skip those which don't and
-         * make sure to keep the progress indicator up to date.
+         * Begin unit saving.
          */
-        ssmR3ProgressByUnit(pSSM, iUnit);
-        pSSM->offEstUnitEnd += pUnit->cbGuess;
-        if (!pUnit->u.Common.pfnSaveExec)
+        int rc = ssmR3SaveDoExecRunOneUnitBegin(pSSM, pUnit, iUnit);
+        if (rc != VINF_SUCCESS)
         {
-            pUnit->fCalled = true;
-            if (pUnit->cbGuess)
-                ssmR3ProgressByByte(pSSM, pSSM->offEstUnitEnd - pSSM->offEst);
-            continue;
-        }
-        pUnit->offStream = ssmR3StrmTell(&pSSM->Strm);
-
-        /*
-         * Check for cancellation.
-         */
-        if (RT_UNLIKELY(ASMAtomicUoReadU32(&(pSSM)->fCancelled) == SSMHANDLE_CANCELLED))
-        {
-            LogRel(("SSM: Cancelled!\n"));
-            AssertRC(pSSM->rc);
-            return pSSM->rc = VERR_SSM_CANCELLED;
-        }
-
-        /*
-         * Write data unit header
-         */
-        SSMFILEUNITHDRV2 UnitHdr;
-        memcpy(&UnitHdr.szMagic[0], SSMFILEUNITHDR_MAGIC, sizeof(UnitHdr.szMagic));
-        UnitHdr.offStream       = pUnit->offStream;
-        UnitHdr.u32CurStreamCRC = ssmR3StrmCurCRC(&pSSM->Strm);
-        UnitHdr.u32CRC          = 0;
-        UnitHdr.u32Version      = pUnit->u32Version;
-        UnitHdr.u32Instance     = pUnit->u32Instance;
-        UnitHdr.u32Pass         = SSM_PASS_FINAL;
-        UnitHdr.fFlags          = 0;
-        UnitHdr.cbName          = (uint32_t)pUnit->cchName + 1;
-        memcpy(&UnitHdr.szName[0], &pUnit->szName[0], UnitHdr.cbName);
-        UnitHdr.u32CRC          = RTCrc32(&UnitHdr, RT_UOFFSETOF_DYN(SSMFILEUNITHDRV2, szName[UnitHdr.cbName]));
-        Log(("SSM: Unit at %#9llx: '%s', instance %u, pass %#x, version %u\n",
-             UnitHdr.offStream, UnitHdr.szName, UnitHdr.u32Instance, UnitHdr.u32Pass, UnitHdr.u32Version));
-        int rc = ssmR3StrmWrite(&pSSM->Strm, &UnitHdr, RT_UOFFSETOF_DYN(SSMFILEUNITHDRV2, szName[UnitHdr.cbName]));
-        if (RT_FAILURE(rc))
-        {
-            LogRel(("SSM: Failed to write unit header. rc=%Rrc\n", rc));
-            return pSSM->rc = rc;
+            Assert(RT_FAILURE_NP(rc) || (!pUnit->u.Common.pfnSaveExec && rc == VINF_NO_CHANGE));
+            if (RT_SUCCESS(rc))
+                continue;
+            return rc;
         }
 
         /*
          * Call the execute handler.
          */
-        ssmR3DataWriteBegin(pSSM);
         ssmR3UnitCritSectEnter(pVM, pUnit);
         switch (pUnit->enmType)
         {
@@ -4929,35 +5068,14 @@ static int ssmR3SaveDoExecRun(PVM pVM, PSSMHANDLE pSSM)
         }
 
         /*
-         * Write the termination record and flush the compression stream.
+         * Finish the unit.
          */
-        SSMRECTERM TermRec;
-        TermRec.u8TypeAndFlags   = SSM_REC_FLAGS_FIXED | SSM_REC_FLAGS_IMPORTANT | SSM_REC_TYPE_TERM;
-        TermRec.cbRec            = sizeof(TermRec) - 2;
-        if (pSSM->Strm.fChecksummed)
-        {
-            TermRec.fFlags       = SSMRECTERM_FLAGS_CRC32;
-            TermRec.u32StreamCRC = RTCrc32Finish(RTCrc32Process(ssmR3StrmCurCRC(&pSSM->Strm), &TermRec, 2));
-        }
-        else
-        {
-            TermRec.fFlags       = 0;
-            TermRec.u32StreamCRC = 0;
-        }
-        TermRec.cbUnit           = pSSM->offUnit + sizeof(TermRec);
-        rc = ssmR3DataWriteRaw(pSSM, &TermRec, sizeof(TermRec));
-        if (RT_SUCCESS(rc))
-            rc = ssmR3DataWriteFinish(pSSM);
+        rc = ssmR3SaveDoExecRunOneUnitComplete(pSSM);
         if (RT_FAILURE(rc))
         {
-            LogRel(("SSM: Failed terminating unit: %Rrc\n", rc));
-            return pSSM->rc = rc;
+            Assert(RT_FAILURE_NP(pSSM->rc));
+            return rc;
         }
-
-        /*
-         * Advance the progress indicator to the end of the current unit.
-         */
-        ssmR3ProgressByByte(pSSM, pSSM->offEstUnitEnd - pSSM->offEst);
     } /* for each unit */
     ssmR3ProgressByUnit(pSSM, pVM->ssm.s.cUnits);
 
@@ -4966,6 +5084,113 @@ static int ssmR3SaveDoExecRun(PVM pVM, PSSMHANDLE pSSM)
               || pSSM->uPercent == 100 - pSSM->uPercentDone,
               ("%d\n", pSSM->uPercent));
     return VINF_SUCCESS;
+}
+
+
+/**
+ * Begins saving a unit to a SSM file/stream opened via SSMR3Open.
+ *
+ * @returns VBox status code.
+ * @param   pSSM            The saved state handle.
+ * @param   pszName         The unit name.
+ * @param   uVersion        The unit version.
+ * @param   uInstance       The unit instance number.
+ */
+VMMR3DECL(int) SSMR3WriteUnitBegin(PSSMHANDLE pSSM, const char *pszName, uint32_t uVersion, uint32_t uInstance)
+{
+    /*
+     * Validate input and state.
+     */
+    AssertPtrReturn(pSSM, VERR_INVALID_POINTER);
+    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_WRITE, ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
+    AssertMsgReturn(pSSM->enmAfter == SSMAFTER_OPENED, ("%d\n", pSSM->enmAfter),VERR_INVALID_PARAMETER);
+
+    AssertPtrReturn(pszName, VERR_INVALID_PARAMETER);
+    size_t const cchName = strlen(pszName);
+    AssertReturn(cchName > 0 && cchName < SSM_MAX_NAME_SIZE, VERR_INVALID_NAME);
+
+
+    /*
+     * We abuse u32CRC to indicate whether we've started a unit.
+     */
+    AssertRCReturn(pSSM->rc, pSSM->rc);
+    AssertReturn(!pSSM->u.Write.pDir || pSSM->u.Write.pDir->u32CRC == 0, pSSM->rc = VERR_INVALID_STATE);
+
+    /*
+     * Add the unit to the directory.
+     */
+    PSSMFILEDIR pDir     = pSSM->u.Write.pDir;
+    uint32_t    cAlloced = pSSM->u.Write.cDirEntriesAlloced;
+    if (!pDir || pDir->cEntries + 1 > cAlloced)
+    {
+        pDir = (PSSMFILEDIR)RTMemReallocZ(pDir, cAlloced ? RT_UOFFSETOF_DYN(SSMFILEDIR, aEntries[cAlloced]) : 0,
+                                          RT_UOFFSETOF_DYN(SSMFILEDIR, aEntries[cAlloced + 16]));
+        AssertReturn(pDir, pSSM->rc = VERR_NO_MEMORY);
+        pSSM->u.Write.cDirEntriesAlloced = cAlloced + 16;
+        pSSM->u.Write.pDir               = pDir;
+    }
+    pDir->aEntries[pDir->cEntries].off         = ssmR3StrmTell(&pSSM->Strm);
+    pDir->aEntries[pDir->cEntries].u32Instance = uInstance;
+    pDir->aEntries[pDir->cEntries].u32NameCRC  = RTCrc32(pszName, cchName);
+    pDir->cEntries++;
+
+    /*
+     * Create a unit structure and join paths with ssmR3SaveDoExecRun.
+     */
+    union
+    {
+        SSMUNIT Unit;
+        uint8_t abPadding[RT_UOFFSETOF(SSMUNIT, szName) + SSM_MAX_NAME_SIZE];
+    } u;
+    RT_ZERO(u);
+    u.Unit.enmType              = SSMUNITTYPE_EXTERNAL;
+    u.Unit.u32Version           = uVersion;
+    u.Unit.u32Instance          = uInstance;
+    u.Unit.offStream            = 0;
+    u.Unit.pCritSect            = NULL;
+    u.Unit.u.Common.pfnSaveExec = (PFNRT)~(uintptr_t)1; /* must be non-zero */
+    u.Unit.cbGuess              = 64; /* whatever */
+    u.Unit.cchName              = cchName;
+    memcpy(u.Unit.szName, pszName, cchName + 1);
+
+    int rc = ssmR3SaveDoExecRunOneUnitBegin(pSSM, &u.Unit, pDir->cEntries - 1);
+    if (rc == VINF_SUCCESS)
+        pSSM->u.Write.pDir->u32CRC = 1; /* See above. */
+    else
+        Assert(RT_FAILURE_NP(rc));
+    return rc;
+}
+
+
+/**
+ * Completes a unit started by SSMR3WriteUnitBegin().
+ *
+ * @returns VBox status code.
+ * @param   pSSM            The saved state handle.
+ */
+VMMR3DECL(int) SSMR3WriteUnitComplete(PSSMHANDLE pSSM)
+{
+    /*
+     * Validate input and state.
+     */
+    AssertPtrReturn(pSSM, VERR_INVALID_POINTER);
+    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_WRITE, ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
+    AssertMsgReturn(pSSM->enmAfter == SSMAFTER_OPENED, ("%d\n", pSSM->enmAfter),VERR_INVALID_PARAMETER);
+
+    AssertReturn(pSSM->u.Write.pDir, VERR_INVALID_STATE);
+    AssertReturn(pSSM->u.Write.pDir->cEntries > 0, VERR_INVALID_STATE);
+    AssertReturn(pSSM->u.Write.pDir->u32CRC == 1, VERR_INVALID_STATE);
+
+    AssertRCReturn(pSSM->rc, pSSM->rc);
+    pSSM->u.Write.pDir->u32CRC = 0;
+
+    /*
+     * Finish the unit.
+     */
+    int rc = ssmR3DataFlushBuffer(pSSM); /* will return SSMHANDLE::rc if it is set */
+    if (RT_SUCCESS(rc))
+        rc = ssmR3SaveDoExecRunOneUnitComplete(pSSM);
+    return rc;
 }
 
 
@@ -5103,6 +5328,55 @@ VMMR3_INT_DECL(int) SSMR3LiveDoStep2(PSSMHANDLE pSSM)
 
 
 /**
+ * Writes the file header.
+ *
+ * @returns VBox status code.
+ * @param   pSSM                The SSM handle.
+ * @param   cUnits              Copy of pVM->ssm.s.cUnits, typically.
+ */
+static int ssmR3WriteFileHeader(PSSMHANDLE pSSM, uint32_t cUnits)
+{
+    SSMFILEHDR FileHdr;
+    memcpy(&FileHdr.szMagic, SSMFILEHDR_MAGIC_V2_0, sizeof(FileHdr.szMagic));
+    FileHdr.u16VerMajor  = VBOX_VERSION_MAJOR;
+    FileHdr.u16VerMinor  = VBOX_VERSION_MINOR;
+    FileHdr.u32VerBuild  = VBOX_VERSION_BUILD;
+    FileHdr.u32SvnRev    = VMMGetSvnRev();
+    FileHdr.cHostBits    = HC_ARCH_BITS;
+    FileHdr.cbGCPhys     = sizeof(RTGCPHYS);
+    FileHdr.cbGCPtr      = sizeof(RTGCPTR);
+    FileHdr.u8Reserved   = 0;
+    FileHdr.cUnits       = cUnits;
+    FileHdr.fFlags       = SSMFILEHDR_FLAGS_STREAM_CRC32;
+    if (pSSM->fLiveSave)
+        FileHdr.fFlags  |= SSMFILEHDR_FLAGS_STREAM_LIVE_SAVE;
+    FileHdr.cbMaxDecompr = RT_SIZEOFMEMB(SSMHANDLE, u.Read.abDataBuffer);
+    FileHdr.u32CRC       = 0;
+    FileHdr.u32CRC       = RTCrc32(&FileHdr, sizeof(FileHdr));
+    return ssmR3StrmWrite(&pSSM->Strm, &FileHdr, sizeof(FileHdr));
+}
+
+
+/**
+ * Writes the file header.
+ *
+ * @returns VBox status code.
+ * @param   pSSM                The SSM handle.
+ * @param   cUnits              Number of units to advertise in the header.
+ */
+VMMR3DECL(int) SSMR3WriteFileHeader(PSSMHANDLE pSSM, uint32_t cUnits)
+{
+    AssertPtrReturn(pSSM, VERR_INVALID_POINTER);
+    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_WRITE, ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
+    AssertMsgReturn(pSSM->enmAfter == SSMAFTER_OPENED, ("%d\n", pSSM->enmAfter),VERR_INVALID_PARAMETER);
+    AssertMsgReturn(cUnits > 0 && cUnits < _4K, ("%d\n", cUnits),VERR_INVALID_PARAMETER);
+    Assert(pSSM->fCancelled == SSMHANDLE_OK);
+
+    return ssmR3WriteFileHeader(pSSM, cUnits);
+}
+
+
+/**
  * Writes the file header and clear the per-unit data.
  *
  * @returns VBox status code.
@@ -5114,37 +5388,19 @@ static int ssmR3WriteHeaderAndClearPerUnitData(PVM pVM, PSSMHANDLE pSSM)
     /*
      * Write the header.
      */
-    SSMFILEHDR FileHdr;
-    memcpy(&FileHdr.szMagic, SSMFILEHDR_MAGIC_V2_0, sizeof(FileHdr.szMagic));
-    FileHdr.u16VerMajor  = VBOX_VERSION_MAJOR;
-    FileHdr.u16VerMinor  = VBOX_VERSION_MINOR;
-    FileHdr.u32VerBuild  = VBOX_VERSION_BUILD;
-    FileHdr.u32SvnRev    = VMMGetSvnRev();
-    FileHdr.cHostBits    = HC_ARCH_BITS;
-    FileHdr.cbGCPhys     = sizeof(RTGCPHYS);
-    FileHdr.cbGCPtr      = sizeof(RTGCPTR);
-    FileHdr.u8Reserved   = 0;
-    FileHdr.cUnits       = pVM->ssm.s.cUnits;
-    FileHdr.fFlags       = SSMFILEHDR_FLAGS_STREAM_CRC32;
-    if (pSSM->fLiveSave)
-        FileHdr.fFlags  |= SSMFILEHDR_FLAGS_STREAM_LIVE_SAVE;
-    FileHdr.cbMaxDecompr = RT_SIZEOFMEMB(SSMHANDLE, u.Read.abDataBuffer);
-    FileHdr.u32CRC       = 0;
-    FileHdr.u32CRC       = RTCrc32(&FileHdr, sizeof(FileHdr));
-    int rc = ssmR3StrmWrite(&pSSM->Strm, &FileHdr, sizeof(FileHdr));
-    if (RT_FAILURE(rc))
-        return rc;
-
-    /*
-     * Clear the per unit flags and offsets.
-     */
-    for (PSSMUNIT pUnit = pVM->ssm.s.pHead; pUnit; pUnit = pUnit->pNext)
+    int rc = ssmR3WriteFileHeader(pSSM, pVM->ssm.s.cUnits);
+    if (RT_SUCCESS(rc))
     {
-        pUnit->fCalled   = false;
-        pUnit->offStream = RTFOFF_MIN;
+        /*
+         * Clear the per unit flags and offsets.
+         */
+        for (PSSMUNIT pUnit = pVM->ssm.s.pHead; pUnit; pUnit = pUnit->pNext)
+        {
+            pUnit->fCalled   = false;
+            pUnit->offStream = RTFOFF_MIN;
+        }
     }
-
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -9369,7 +9625,7 @@ VMMR3DECL(int) SSMR3ValidateFile(const char *pszFilename, PCSSMSTRMOPS pStreamOp
  * @param   pStreamOps      The stream method table. NULL if pszFilename is
  *                          used.
  * @param   pvStreamOps     The user argument to the stream methods.
- * @param   fFlags          Open flags. Reserved, must be 0.
+ * @param   fFlags          Open flags, SSM_OPEN_F_XXXX.
  * @param   ppSSM           Where to store the SSM handle.
  *
  * @thread  Any.
@@ -9383,33 +9639,60 @@ VMMR3DECL(int) SSMR3Open(const char *pszFilename, PCSSMSTRMOPS pStreamOps, void 
      * Validate input.
      */
     AssertReturn(!pszFilename != !pStreamOps, VERR_INVALID_POINTER);
-    AssertMsgReturn(!fFlags, ("%#x\n", fFlags), VERR_INVALID_PARAMETER);
+#ifndef SSM_STANDALONE
+    AssertMsgReturn(!(fFlags & ~SSM_OPEN_F_FOR_WRITING), ("%#x\n", fFlags), VERR_INVALID_FLAGS);
+#else
+    AssertMsgReturn(!fFlags, ("%#x\n", fFlags), VERR_INVALID_FLAGS);
+#endif
     AssertPtrReturn(ppSSM, VERR_INVALID_POINTER);
 
-    /*
-     * Allocate a handle.
-     */
-    PSSMHANDLE pSSM = (PSSMHANDLE)RTMemAllocZ(sizeof(*pSSM));
-    AssertReturn(pSSM, VERR_NO_MEMORY);
-
-    /*
-     * Try open the file and validate it.
-     */
-    int rc = ssmR3OpenFile(NULL, pszFilename, pStreamOps, pvStreamOps, false /*fChecksumIt*/,
-                           true /*fChecksumOnRead*/, 1 /*cBuffers*/, pSSM);
-    if (RT_SUCCESS(rc))
+    int rc;
+#ifndef SSM_STANDALONE
+    if (fFlags & SSM_OPEN_F_FOR_WRITING)
     {
-        pSSM->enmAfter = SSMAFTER_OPENED;
-        pSSM->enmOp    = SSMSTATE_OPEN_READ;
-        *ppSSM = pSSM;
-        LogFlow(("SSMR3Open: returns VINF_SUCCESS *ppSSM=%p\n", *ppSSM));
-        return VINF_SUCCESS;
+        /*
+         * Try create a new file.
+         */
+        PSSMHANDLE pSSM;
+        rc = ssmR3SaveDoCreateFile(NULL, pszFilename, pStreamOps, pvStreamOps, SSMAFTER_OPENED, NULL, NULL, &pSSM);
+        if (RT_SUCCESS(rc))
+        {
+            Log(("SSM: Starting state save to file '%s'...\n", pszFilename));
+            ssmR3StrmStartIoThread(&pSSM->Strm);
+            pSSM->enmOp = SSMSTATE_OPEN_WRITE;
+            *ppSSM = pSSM;
+            return VINF_SUCCESS;
+        }
+        Log(("SSMR3Open: Failed to open saved state file '%s' for writing: rc=%Rrc.\n",  pszFilename, rc));
+    }
+    else
+#endif /* !SSM_STANDALONE */
+    {
+        /*
+         * Allocate a handle.
+         */
+        PSSMHANDLE pSSM = (PSSMHANDLE)RTMemAllocZ(sizeof(*pSSM));
+        AssertReturn(pSSM, VERR_NO_MEMORY);
+
+        /*
+         * Try open the file and validate the header and stuff.
+         */
+        rc = ssmR3OpenFile(NULL, pszFilename, pStreamOps, pvStreamOps, false /*fChecksumIt*/,
+                               true /*fChecksumOnRead*/, 1 /*cBuffers*/, pSSM);
+        if (RT_SUCCESS(rc))
+        {
+            pSSM->enmAfter = SSMAFTER_OPENED;
+            pSSM->enmOp    = SSMSTATE_OPEN_READ;
+            *ppSSM = pSSM;
+            LogFlow(("SSMR3Open: returns VINF_SUCCESS *ppSSM=%p\n", *ppSSM));
+            return VINF_SUCCESS;
+        }
+
+        Log(("SSMR3Open: Failed to open saved state file '%s', rc=%Rrc.\n",  pszFilename, rc));
+        RTMemFree(pSSM);
     }
 
-    Log(("SSMR3Open: Failed to open saved state file '%s', rc=%Rrc.\n",  pszFilename, rc));
-    RTMemFree(pSSM);
     return rc;
-
 }
 
 
@@ -9431,17 +9714,23 @@ VMMR3DECL(int) SSMR3Close(PSSMHANDLE pSSM)
      */
     AssertPtrReturn(pSSM, VERR_INVALID_POINTER);
     AssertMsgReturn(pSSM->enmAfter == SSMAFTER_OPENED, ("%d\n", pSSM->enmAfter),VERR_INVALID_PARAMETER);
-    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_READ, ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
+    AssertMsgReturn(pSSM->enmOp == SSMSTATE_OPEN_READ || pSSM->enmOp == SSMSTATE_OPEN_WRITE,
+                    ("%d\n", pSSM->enmOp), VERR_INVALID_PARAMETER);
     Assert(pSSM->fCancelled == SSMHANDLE_OK);
 
     /*
      * Close the stream and free the handle.
      */
     int rc = ssmR3StrmClose(&pSSM->Strm, pSSM->rc == VERR_SSM_CANCELLED);
-    if (pSSM->u.Read.pZipDecompV1)
+    if (pSSM->enmOp == SSMSTATE_OPEN_READ && pSSM->u.Read.pZipDecompV1)
     {
         RTZipDecompDestroy(pSSM->u.Read.pZipDecompV1);
         pSSM->u.Read.pZipDecompV1 = NULL;
+    }
+    if (pSSM->enmOp == SSMSTATE_OPEN_WRITE && pSSM->u.Write.pDir)
+    {
+        RTMemFree(pSSM->u.Write.pDir);
+        pSSM->u.Write.pDir = NULL;
     }
     RTMemFree(pSSM);
     return rc;

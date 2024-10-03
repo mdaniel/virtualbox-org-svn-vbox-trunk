@@ -1223,10 +1223,18 @@ VMMR3DECL(int)          SSMR3Load(PVM pVM, const char *pszFilename, PCSSMSTRMOPS
                                   SSMAFTER enmAfter, PFNVMPROGRESS pfnProgress, void *pvProgressUser);
 VMMR3DECL(int)          SSMR3ValidateFile(const char *pszFilename, PCSSMSTRMOPS pStreamOps, void *pvStreamOps,
                                           bool fChecksumIt);
+
+/** Flag for SSMR3Open to create a new file for writing. */
+#define SSM_OPEN_F_FOR_WRITING      RT_BIT_32(0)
 VMMR3DECL(int)          SSMR3Open(const char *pszFilename, PCSSMSTRMOPS pStreamOps, void *pvStreamOps,
-                                  unsigned fFlags, PSSMHANDLE *ppSSM);
+                                  uint32_t fFlags, PSSMHANDLE *ppSSM);
 VMMR3DECL(int)          SSMR3Close(PSSMHANDLE pSSM);
 VMMR3DECL(int)          SSMR3Seek(PSSMHANDLE pSSM, const char *pszUnit, uint32_t iInstance, uint32_t *piVersion);
+VMMR3DECL(int)          SSMR3WriteFileHeader(PSSMHANDLE pSSM, uint32_t cUnits);
+VMMR3DECL(int)          SSMR3WriteUnitBegin(PSSMHANDLE pSSM, const char *pszName, uint32_t uVersion, uint32_t uInstance);
+VMMR3DECL(int)          SSMR3WriteUnitComplete(PSSMHANDLE pSSM);
+VMMR3DECL(int)          SSMR3WriteFileFooter(PSSMHANDLE pSSM);
+
 VMMR3DECL(int)          SSMR3HandleGetStatus(PSSMHANDLE pSSM);
 VMMR3DECL(int)          SSMR3HandleSetStatus(PSSMHANDLE pSSM, int iStatus);
 VMMR3DECL(SSMAFTER)     SSMR3HandleGetAfter(PSSMHANDLE pSSM);

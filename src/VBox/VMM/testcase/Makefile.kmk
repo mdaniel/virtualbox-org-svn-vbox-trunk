@@ -82,6 +82,9 @@ ifndef VBOX_ONLY_EXTPACKS_USE_IMPLIBS
   	tstPDMQueue \
   	tstSSM
   PROGRAMS.amd64 += tstIEMAImplAsm
+  if defined(VBOX_WITH_IEM_NATIVE_RECOMPILER) && defined(VBOX_WITH_IEM_RECOMPILER)
+   PROGRAMS += tstIEMN8veProfiling
+  endif
 
   if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
    PROGRAMS += \
@@ -706,6 +709,14 @@ ifeq ($(KBUILD_TARGET),win)
 else
  tstIEMCheckMc_CXXFLAGS = $(VBOX_C_CXX_FLAGS_NO_UNUSED_PARAMETERS) -Wno-unused-value -Wno-unused-variable -Wno-return-type
 endif
+
+#
+# Testcase for profiling the native recompiler.
+#
+tstIEMN8veProfiling_TEMPLATE := VBoxR3Exe
+tstIEMN8veProfiling_DEFS      = $(VMM_COMMON_DEFS)
+tstIEMN8veProfiling_SOURCES  := tstIEMN8veProfiling.cpp
+tstIEMN8veProfiling_LIBS      = $(LIB_VMM) $(LIB_RUNTIME)
 
 #
 # Saved state manager testcase.

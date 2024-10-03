@@ -1089,6 +1089,10 @@ VMMR3DECL(int)      IEMR3Term(PVM pVM)
                       RT_BIT_Z(pVCpu->iem.s.cTlbTraceEntriesShift) * sizeof(*pVCpu->iem.s.paTlbTraceEntries));
     }
 #endif
+#if defined(VBOX_WITH_IEM_NATIVE_RECOMPILER) && defined(VBOX_WITH_SAVE_THREADED_TBS_FOR_PROFILING)
+    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
+        iemThreadedSaveTbForProfilingCleanup(pVM->apCpusR3[idCpu]);
+#endif
     return VINF_SUCCESS;
 }
 

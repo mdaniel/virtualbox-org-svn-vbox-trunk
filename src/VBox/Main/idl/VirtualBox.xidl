@@ -2072,10 +2072,10 @@
       <param name="ruleName" type="wstring" dir="in"/>
     </method>
     <method name="start">
-      <rest request="post" path="/natnetworks/{networkid}/actions/"/>
+      <rest request="post" path="/natnetworks/{networkid}/action/"/>
     </method>
     <method name="stop">
-      <rest request="post" path="/natnetworks/{networkid}/actions/"/>
+      <rest request="post" path="/natnetworks/{networkid}/action/"/>
     </method>
   </interface>
 
@@ -2400,7 +2400,7 @@
     </method>
 
     <method name="start">
-      <rest request="post" path="/dhcpservers/{serverid}/actions/"/>
+      <rest request="post" path="/dhcpservers/{serverid}/action/"/>
       <desc>
         Starts DHCP server process.
         <result name="E_FAIL">
@@ -2420,7 +2420,7 @@
     </method>
 
     <method name="stop">
-      <rest request="post" path="/dhcpservers/{serverid}/actions/"/>
+      <rest request="post" path="/dhcpservers/{serverid}/action/"/>
       <desc>
         Stops DHCP server process.
         <result name="E_FAIL">
@@ -2430,7 +2430,7 @@
     </method>
 
     <method name="restart">
-      <rest request="post" path="/dhcpservers/{serverid}/actions/"/>
+      <rest request="post" path="/dhcpservers/{serverid}/action/"/>
       <desc>
         Restart running DHCP server process.
         <result name="E_FAIL">
@@ -2985,7 +2985,7 @@
     </attribute>
 
     <method name="composeMachineFilename">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns a recommended full path of the settings file name for a new virtual
         machine.
@@ -3185,7 +3185,7 @@
     </method>
 
     <method name="openMachine">
-      <rest name="open" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="open" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Opens a virtual machine from the existing settings file.
         The opened machine remains unregistered until you call
@@ -3231,7 +3231,7 @@
     </method>
 
     <method name="registerMachine">
-      <rest name="register" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="register" request="post" path="/vms/{vmid}/action/"/>
       <desc>
 
         Registers the machine previously created using
@@ -3278,7 +3278,7 @@
     </method>
 
     <method name="getMachinesByGroups">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Gets all machine references which are in one of the specified groups.
       </desc>
@@ -3293,7 +3293,7 @@
     </method>
 
     <method name="getMachineStates">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Gets the state of several machines in a single operation.
       </desc>
@@ -3318,7 +3318,7 @@
     </method>
 
     <method name="createUnattendedInstaller">
-      <rest request="post" path="/server/methods/"/>
+      <rest request="post" path="/server/method/"/>
       <desc>
         Creates a new <link to="IUnattended"/> guest installation object.  This can be used to
         analyze an installation ISO to create and configure a new machine for it to be installed
@@ -3409,7 +3409,7 @@
     </method>
 
     <method name="openMedium">
-      <rest request="post" path="/server/methods/"/>
+      <rest request="post" path="/server/method/"/>
       <desc>
         Finds existing media or opens a medium from an existing storage location.
 
@@ -3506,7 +3506,7 @@
     </method>
 
     <method name="getGuestOSType">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns an object describing the specified guest OS type.
 
@@ -3539,7 +3539,7 @@
     </method>
 
     <method name="getGuestOSSubtypesByFamilyId">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns a list of guest OS family subtypes for a corresponding
         guest OS family ID type.
@@ -3565,7 +3565,7 @@
     </method>
 
     <method name="getGuestOSDescsBySubtype">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns a list of guest OS family descriptions for a corresponding
         guest OS family subtype.
@@ -3640,7 +3640,7 @@
     </method>
 
     <method name="getExtraDataKeys">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns an array representing the global extra data keys which currently
         have values defined.
@@ -3651,7 +3651,7 @@
     </method>
 
     <method name="getExtraData">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Returns associated global extra data.
 
@@ -3675,7 +3675,7 @@
     </method>
 
     <method name="setExtraData">
-      <rest request="put" path="/server/methods/"/>
+      <rest request="put" path="/server/method/"/>
       <desc>
         Sets associated global extra data.
 
@@ -3913,7 +3913,7 @@
     </method>
 
     <method name="checkFirmwarePresent">
-      <rest request="get" path="/server/methods/"/>
+      <rest request="get" path="/server/method/"/>
       <desc>
         Check if this VirtualBox installation has a firmware
         of the given type available, either system-wide or per-user.
@@ -4417,7 +4417,7 @@
     </attribute>
 
     <method name="read">
-      <rest request="post" path="/appliances/{applianceid}/actions/"/>
+      <rest request="post" path="/appliances/{applianceid}/action/"/>
       <desc>
         Reads an OVF file into the appliance object.
 
@@ -4437,7 +4437,7 @@
     </method>
 
     <method name="interpret">
-      <rest request="post" path="/appliances/{applianceid}/actions/"/>
+      <rest request="post" path="/appliances/{applianceid}/action/"/>
       <desc>
         Interprets the OVF data that was read when the appliance was constructed. After
         calling this method, one can inspect the
@@ -4455,7 +4455,7 @@
     </method>
 
     <method name="importMachines">
-      <rest request="post" path="/appliances/{applianceid}/actions/"/>
+      <rest request="post" path="/appliances/{applianceid}/action/"/>
       <desc>
         Imports the appliance into VirtualBox by creating instances of <link to="IMachine" />
         and other interfaces that match the information contained in the appliance as
@@ -4495,7 +4495,7 @@
     </method>
 
     <method name="write">
-      <rest request="post" path="/appliances/{applianceid}/actions/"/>
+      <rest request="post" path="/appliances/{applianceid}/action/"/>
       <desc>
           Writes the contents of the appliance exports into a new OVF file.
 
@@ -8213,7 +8213,7 @@
     </attribute>
 
     <method name="lockMachine">
-      <rest name="lock" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="lock" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Locks the machine for the given session to enable the caller
         to make changes to the machine or start the VM or control
@@ -8313,7 +8313,7 @@
     </method>
 
     <method name="launchVMProcess">
-      <rest name="launch" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="launch" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Spawns a new process that will execute the virtual machine and obtains a shared
         lock on the machine for the calling session.
@@ -8978,7 +8978,7 @@
     </method>
 
     <method name="unmountMedium">
-      <rest name="unmount" request="post" path="/vms/{vmid}/media/actions/"/>
+      <rest name="unmount" request="post" path="/vms/{vmid}/media/action/"/>
       <desc>
         Unmounts any currently mounted medium (<link to="IMedium" />,
         identified by the given UUID @a id) to the given storage controller
@@ -9031,7 +9031,7 @@
     </method>
 
     <method name="mountMedium">
-      <rest name="mount" request="post" path="/vms/{vmid}/media/actions/"/>
+      <rest name="mount" request="post" path="/vms/{vmid}/media/action/"/>
       <desc>
         Mounts a medium (<link to="IMedium" />, identified
         by the given UUID @a id) to the given storage controller
@@ -9573,7 +9573,7 @@
     </method>
 
     <method name="unregister" wrap-hint-server="limitedcaller,passcaller">
-      <rest request="post" path="/vms/{vmid}/actions/"/>
+      <rest request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Unregisters a machine previously registered with
         <link to="IVirtualBox::registerMachine"/> and optionally do additional
@@ -9708,7 +9708,7 @@
     </method>
 
     <method name="exportTo">
-      <rest name="export" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="export" request="post" path="/vms/{vmid}/action/"/>
       <desc>Exports the machine to an OVF appliance. See <link to="IAppliance" /> for the
             steps required to export VirtualBox machines to OVF.
       </desc>
@@ -9749,7 +9749,7 @@
     </method>
 
     <method name="createSharedFolder">
-      <rest request="post" path="/vms/{vmid}/methods/"/>
+      <rest request="post" path="/vms/{vmid}/method/"/>
       <desc>
         Creates a new permanent shared folder by associating the given logical
         name with the given host path, adds it to the collection of shared
@@ -9786,7 +9786,7 @@
     </method>
 
     <method name="removeSharedFolder">
-      <rest request="delete" path="/vms/{vmid}/methods/"/>
+      <rest request="delete" path="/vms/{vmid}/method/"/>
       <desc>
         Removes the permanent shared folder with the given name previously
         created by <link to="#createSharedFolder"/> from the collection of
@@ -10292,7 +10292,7 @@
     </method>
 
     <method name="cloneTo">
-      <rest name="clone" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="clone" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Creates a clone of this machine, either as a full clone (which means
         creating independent copies of the hard disk media, save states and so
@@ -10328,7 +10328,7 @@
     </method>
 
     <method name="moveTo">
-      <rest name="move" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="move" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Move machine on to new place/folder
       </desc>
@@ -10355,7 +10355,7 @@
     </method>
 
     <method name="saveState">
-      <rest name="save" request="post" path="/vms/{vmid}/actions/"/>
+      <rest name="save" request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Saves the current execution state of a running virtual machine
         and stops its execution.
@@ -10429,7 +10429,7 @@
     </method>
 
     <method name="discardSavedState">
-      <rest request="post" path="/vms/{vmid}/actions/"/>
+      <rest request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Forcibly resets the machine to "Powered Off" state if it is
         currently in the "Saved" state previously created by <link to="#saveState"/>)
@@ -10457,7 +10457,7 @@
     </method>
 
     <method name="takeSnapshot">
-      <rest request="put" path="/vms/{vmid}/actions/"/>
+      <rest request="put" path="/vms/{vmid}/action/"/>
       <desc>
         Saves the current execution state
         and all settings of the machine and creates differencing images
@@ -10505,7 +10505,7 @@
     </method>
 
     <method name="deleteSnapshot">
-      <rest request="delete" path="/vms/{vmid}/actions/"/>
+      <rest request="delete" path="/vms/{vmid}/action/"/>
       <desc>
         Starts deleting the specified snapshot asynchronously.
         See <link to="ISnapshot" /> for an introduction to snapshots.
@@ -10577,7 +10577,7 @@
     </method>
 
     <method name="deleteSnapshotAndAllChildren">
-      <rest request="post" path="/vms/{vmid}/actions/"/>
+      <rest request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Starts deleting the specified snapshot and all its children
         asynchronously. See <link to="ISnapshot" /> for an introduction to
@@ -10611,7 +10611,7 @@
     </method>
 
     <method name="deleteSnapshotRange">
-      <rest request="post" path="/vms/{vmid}/actions/"/>
+      <rest request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Starts deleting the specified snapshot range. This is limited to
         linear snapshot lists, which means there may not be any other child
@@ -10650,7 +10650,7 @@
     </method>
 
     <method name="restoreSnapshot">
-      <rest request="post" path="/vms/{vmid}/actions/"/>
+      <rest request="post" path="/vms/{vmid}/action/"/>
       <desc>
         Starts resetting the machine's current state to the state contained
         in the given snapshot, asynchronously. All current settings of the
@@ -11183,7 +11183,7 @@
     </attribute>
 
     <method name="powerUp">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>
         Starts the virtual machine execution using the current machine
         state (that is, its current execution state, current settings and
@@ -11236,7 +11236,7 @@
     </method>
 
     <method name="powerUpPaused">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>
         Identical to powerUp except that the VM will enter the
         <link to="MachineState_Paused"/> state, instead of
@@ -11259,7 +11259,7 @@
     </method>
 
     <method name="powerDown">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>
         Initiates the power down procedure to stop the virtual machine
         execution.
@@ -11277,7 +11277,7 @@
     </method>
 
     <method name="reset">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>Resets the virtual machine.
         <result name="VBOX_E_INVALID_VM_STATE">
           Virtual machine not in Running state.
@@ -11289,7 +11289,7 @@
     </method>
 
     <method name="pause">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>Pauses the virtual machine execution.
         <result name="VBOX_E_INVALID_VM_STATE">
           Virtual machine not in Running state.
@@ -11301,7 +11301,7 @@
     </method>
 
     <method name="resume">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>Resumes the virtual machine execution.
         <result name="VBOX_E_INVALID_VM_STATE">
           Virtual machine not in Paused state.
@@ -11313,7 +11313,7 @@
     </method>
 
     <method name="powerButton">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>Sends the ACPI power button event to the guest.
         <result name="VBOX_E_INVALID_VM_STATE">
           Virtual machine not in Running state.
@@ -11325,7 +11325,7 @@
     </method>
 
     <method name="sleepButton">
-      <rest request="post" path="/vms/{vmid}/console/actions/"/>
+      <rest request="post" path="/vms/{vmid}/console/action/"/>
       <desc>Sends the ACPI sleep button event to the guest.
         <result name="VBOX_E_INVALID_VM_STATE">
           Virtual machine not in Running state.
@@ -11471,7 +11471,7 @@
     </method>
 
     <method name="createSharedFolder">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>
         Creates a transient new shared folder by associating the given logical
         name with the given host path, adds it to the collection of shared
@@ -11507,7 +11507,7 @@
     </method>
 
     <method name="removeSharedFolder">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>
         Removes a transient shared folder with the given name previously
         created by <link to="#createSharedFolder"/> from the collection of
@@ -11564,7 +11564,7 @@
     </method>
 
     <method name="addEncryptionPassword">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>
         Adds a password used for encryption/decryption.
 
@@ -11591,7 +11591,7 @@
     </method>
 
     <method name="addEncryptionPasswords">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>
         Adds a password used for encryption/decryption.
 
@@ -11618,7 +11618,7 @@
     </method>
 
     <method name="removeEncryptionPassword">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>
         Removes a password used for hard disk encryption/decryption from
         the running VM. As soon as the medium requiring this password
@@ -11634,7 +11634,7 @@
     </method>
 
     <method name="clearAllEncryptionPasswords">
-      <rest request="post" path="/vms/{vmid}/console/methods/"/>
+      <rest request="post" path="/vms/{vmid}/console/method/"/>
       <desc>Clears all provided supplied encryption passwords.</desc>
     </method>
   </interface>
@@ -18188,7 +18188,7 @@
     <attribute name="eventSource" type="IEventSource" readonly="yes" rest="suppress"/>
 
     <method name="waitForCompletion">
-      <rest request="post" path="/progresses/{progressid}/actions/"/>
+      <rest request="post" path="/progresses/{progressid}/action/"/>
       <desc>
           Waits until the task is done (including all sub-operations)
           with a given timeout in milliseconds; specify -1 for an indefinite wait.
@@ -18214,7 +18214,7 @@
     </method>
 
     <method name="waitForOperationCompletion">
-      <rest request="post" path="/progresses/{progressid}/actions/"/>
+      <rest request="post" path="/progresses/{progressid}/action/"/>
       <desc>
           Waits until the given operation is done with a given timeout in
           milliseconds; specify -1 for an indefinite wait.
@@ -18240,7 +18240,7 @@
     </method>
 
     <method name="cancel">
-      <rest request="post" path="/progresses/{progressid}/actions/"/>
+      <rest request="post" path="/progresses/{progressid}/action/"/>
       <desc>
         Cancels the task.
         <note>
@@ -19596,7 +19596,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="close" wrap-hint-server="passcaller">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Closes this medium.
 
@@ -19757,7 +19757,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     <!-- storage methods -->
 
     <method name="createBaseStorage">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts creating a hard disk storage unit (fixed/dynamic, according
         to the variant flags) in the background. The previous storage unit
@@ -19792,7 +19792,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="deleteStorage">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts deleting the storage unit of this medium.
 
@@ -19839,7 +19839,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     <!-- diff methods -->
 
     <method name="createDiffStorage" wrap-hint-server="passcaller">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts creating an empty differencing storage unit based on this
         medium in the format and at the location defined by the @a target
@@ -19877,7 +19877,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="mergeTo">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts merging the contents of this medium and all intermediate
         differencing media in the chain to the given target medium.
@@ -19960,7 +19960,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     <!-- clone method -->
 
     <method name="cloneTo">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts creating a clone of this medium in the format and at the
         location defined by the @a target argument.
@@ -20010,7 +20010,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="cloneToBase">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
     <desc>
     Starts creating a clone of this medium in the format and at the
     location defined by the @a target argument.
@@ -20058,7 +20058,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     <!-- other methods -->
 
     <method name="moveTo" wrap-hint-server="passcaller">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Changes the location of this medium. Some medium types may support
         changing the storage unit location by simply changing the value of the
@@ -20095,7 +20095,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="compact">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts compacting of this medium. This means that the medium is
         transformed into a possibly more compact storage representation.
@@ -20122,7 +20122,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="resize">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts resizing this medium. This means that the nominal size of the
         medium is set to the new value. Both increasing and decreasing the
@@ -20154,7 +20154,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="reset" wrap-hint-server="passcaller">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts erasing the contents of this differencing medium.
 
@@ -20181,7 +20181,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="changeEncryption">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
       <desc>
         Starts encryption of this medium. This means that the stored data in the
         medium is encrypted.
@@ -20275,7 +20275,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     </method>
 
     <method name="resizeAndCloneTo">
-      <rest request="post" path="/media/{mediumid}/actions/"/>
+      <rest request="post" path="/media/{mediumid}/action/"/>
 
       <desc>
         This is a helper function that combines the functionality of

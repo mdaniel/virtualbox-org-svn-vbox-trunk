@@ -8978,7 +8978,7 @@
     </method>
 
     <method name="unmountMedium">
-      <rest name="unmount" request="post" path="/vms/{vmid}/media/{mediumid}/actions/"/>
+      <rest name="unmount" request="post" path="/vms/{vmid}/media/actions/"/>
       <desc>
         Unmounts any currently mounted medium (<link to="IMedium" />,
         identified by the given UUID @a id) to the given storage controller
@@ -9031,7 +9031,7 @@
     </method>
 
     <method name="mountMedium">
-      <rest name="mount" request="post" path="/vms/{vmid}/media/{mediumid}/actions/"/>
+      <rest name="mount" request="post" path="/vms/{vmid}/media/actions/"/>
       <desc>
         Mounts a medium (<link to="IMedium" />, identified
         by the given UUID @a id) to the given storage controller
@@ -9086,7 +9086,7 @@
     </method>
 
     <method name="getMedium" const="yes">
-      <rest name="find" request="get" path="/vms/{vmid}/media/{mediumid}/"/>
+      <rest name="find" request="get" path="/vms/{vmid}/media/"/>
       <desc>
         Returns the virtual medium attached to a device slot of the specified
         bus.
@@ -10292,7 +10292,7 @@
     </method>
 
     <method name="cloneTo">
-      <rest name="clone" request="put" path="/vms/{vmid}/actions/"/>
+      <rest name="clone" request="post" path="/vms/{vmid}/actions/"/>
       <desc>
         Creates a clone of this machine, either as a full clone (which means
         creating independent copies of the hard disk media, save states and so

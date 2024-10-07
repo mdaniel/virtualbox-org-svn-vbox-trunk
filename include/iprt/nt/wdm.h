@@ -42,14 +42,9 @@
 /* Make sure we get the right prototypes. */
 #include <iprt/sanitized/intrin.h>
 
-#define _InterlockedExchange           _InterlockedExchange_StupidDDKVsCompilerCrap
-#define _InterlockedExchangeAdd        _InterlockedExchangeAdd_StupidDDKVsCompilerCrap
-#define _InterlockedCompareExchange    _InterlockedCompareExchange_StupidDDKVsCompilerCrap
-#define _InterlockedAddLargeStatistic  _InterlockedAddLargeStatistic_StupidDDKVsCompilerCrap
-#define _interlockedbittestandset      _interlockedbittestandset_StupidDDKVsCompilerCrap
-#define _interlockedbittestandreset    _interlockedbittestandreset_StupidDDKVsCompilerCrap
-#define _interlockedbittestandset64    _interlockedbittestandset64_StupidDDKVsCompilerCrap
-#define _interlockedbittestandreset64  _interlockedbittestandreset64_StupidDDKVsCompilerCrap
+#ifdef _M_IX86
+# define _InterlockedAddLargeStatistic _InterlockedAddLargeStatistic_StupidDDKVsCompilerCrap
+#endif
 
 #pragma warning(push)
 #pragma warning(disable:4163)
@@ -68,14 +63,9 @@
 #include <wdm.h>
 #pragma warning(pop)
 
-#undef  _InterlockedExchange
-#undef  _InterlockedExchangeAdd
-#undef  _InterlockedCompareExchange
-#undef  _InterlockedAddLargeStatistic
-#undef  _interlockedbittestandset
-#undef  _interlockedbittestandreset
-#undef  _interlockedbittestandset64
-#undef  _interlockedbittestandreset64
+#ifdef _M_IX86
+# undef  _InterlockedAddLargeStatistic
+#endif
 
 #endif /* !IPRT_INCLUDED_nt_wdm_h */
 

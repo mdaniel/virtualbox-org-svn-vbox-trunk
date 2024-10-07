@@ -229,6 +229,10 @@ private:
         void cleanup();
     /** @} */
 
+    /** Adjusts visibility for disabled state.
+      * @param  pWidget   Brings the widget to adjust visibility for. */
+    static void adjustVisibilityForDisabledState(QWidget *pWidget);
+
     /** Holds configuration access level. */
     ConfigurationAccessLevel  m_enmConfigurationAccessLevel;
 

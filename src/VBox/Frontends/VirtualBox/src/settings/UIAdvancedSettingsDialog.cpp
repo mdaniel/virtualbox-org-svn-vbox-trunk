@@ -989,11 +989,7 @@ bool UIAdvancedSettingsDialog::eventFilter(QObject *pObject, QEvent *pEvent)
         /* Check if watched object is of widget type: */
         QWidget *pWidget = qobject_cast<QWidget*>(pObject);
         if (pWidget)
-        {
-            QFont font = pWidget->font();
-            font.setItalic(!pWidget->isEnabledTo(0));
-            pWidget->setFont(font);
-        }
+            adjustVisibilityForDisabledState(pWidget);
     }
 
     /* Call to base-class: */
@@ -1040,15 +1036,8 @@ void UIAdvancedSettingsDialog::polishEvent()
 
     /* Make sure widgets disabled initially have font updated: */
     foreach (QWidget *pChild, findChildren<QWidget*>())
-    {
-        const bool fDisabled = !pChild->isEnabledTo(0);
-        if (fDisabled)
-        {
-            QFont font = pChild->font();
-            font.setItalic(fDisabled);
-            pChild->setFont(font);
-        }
-    }
+        if (!pChild->isEnabledTo(0))
+            adjustVisibilityForDisabledState(pChild);
 
     /* Install event-filters for all the widget children: */
     foreach (QWidget *pChild, findChildren<QWidget*>())
@@ -1623,6 +1612,14 @@ void UIAdvancedSettingsDialog::cleanup()
 
     /* Delete selector early! */
     delete m_pSelector;
+}
+
+/* static */
+void UIAdvancedSettingsDialog::adjustVisibilityForDisabledState(QWidget *pWidget)
+{
+    QFont font = pWidget->font();
+    font.setItalic(!pWidget->isEnabledTo(0));
+    pWidget->setFont(font);
 }
 
 #include "UIAdvancedSettingsDialog.moc"

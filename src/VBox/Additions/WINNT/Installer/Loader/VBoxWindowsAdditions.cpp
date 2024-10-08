@@ -31,8 +31,11 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
+#define UNICODE                     /* For resource related macros. */
 #include <iprt/cdefs.h>
 #include <iprt/win/windows.h>
+#include <Wintrust.h>
+#include <Softpub.h>
 #ifndef ERROR_ELEVATION_REQUIRED    /* Windows Vista and later. */
 # define ERROR_ELEVATION_REQUIRED  740
 #endif
@@ -42,6 +45,420 @@
 
 #include "NoCrtOutput.h"
 
+#ifdef VBOX_SIGNING_MODE
+# include "BuildCert.h"
+#endif
+
+
+#ifdef VBOX_SIGNING_MODE
+
+/**
+ * Checks the file signatures of both this stub program and the actual installer
+ * binary, making sure they use the same certificate as at build time and that
+ * the signature verifies correctly.
+ *
+ * @returns 0 on success, non-zero exit code on failure.
+ */
+static int CheckFileSignatures(wchar_t const *pwszExePath, HANDLE hFileExe, wchar_t const *pwszSelfPath, HANDLE hFileSelf)
+{
+    /*
+     * Check the OS version (bypassing shims).
+     *
+     * The RtlGetVersion API was added in windows 2000, so it's precense is a
+     * provides a minimum OS version indicator already.
+     */
+    LONG (__stdcall *pfnRtlGetVersion)(OSVERSIONINFOEXW *);
+    *(FARPROC *)&pfnRtlGetVersion = GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
+    if (!pfnRtlGetVersion)
+    {
+        /* double check it. */
+        DWORD const dwVersion = GetVersion();
+        if ((dwVersion & 0xff) < 5)
+            return 0;
+        return ErrorMsgRcSUS(40, "RtlGetVersion not present while Windows version is 5.0 or higher (", dwVersion, ")");
+    }
+    OSVERSIONINFOEXW WinOsInfoEx = { sizeof(WinOsInfoEx) };
+    NTSTATUS const   rcNt        = pfnRtlGetVersion(&WinOsInfoEx);
+    if (!RT_SUCCESS(rcNt))
+        return ErrorMsgRcSU(41, "RtlGetVersion failed: ", rcNt);
+
+    /* Skip both of these checks if pre-XP. */
+    if (   (WinOsInfoEx.dwMajorVersion == 5 && WinOsInfoEx.dwMinorVersion < 1)
+        || WinOsInfoEx.dwMajorVersion < 4)
+        return 0;
+
+    /*
+     * We need to find the system32 directory to load the WinVerifyTrust API.
+     */
+    static wchar_t const s_wszSlashWinTrustDll[] = L"\\Wintrust.dll";
+
+    /* Call GetSystemWindowsDirectoryW/GetSystemDirectoryW. */
+    wchar_t wszSysDll[MAX_PATH + sizeof(s_wszSlashWinTrustDll)] = { 0 };
+    UINT const cwcSystem32 = GetSystemDirectoryW(wszSysDll, MAX_PATH);
+    if (!cwcSystem32 || cwcSystem32 >= MAX_PATH)
+        return ErrorMsgRc(42, "GetSystemDirectoryW failed");
+
+    /* Load it: */
+    memcpy(&wszSysDll[cwcSystem32], s_wszSlashWinTrustDll, sizeof(s_wszSlashWinTrustDll));
+    DWORD   fLoadFlags      = LOAD_LIBRARY_SEARCH_SYSTEM32;
+    HMODULE hModWinTrustDll = LoadLibraryExW(wszSysDll, NULL, fLoadFlags);
+    if (!hModWinTrustDll && GetLastError() == ERROR_INVALID_PARAMETER)
+    {
+        fLoadFlags = 0;
+        hModWinTrustDll = LoadLibraryExW(wszSysDll, NULL, fLoadFlags);
+    }
+    if (!hModWinTrustDll)
+        return ErrorMsgRcSWSU(43, "Failed to load '", wszSysDll, "': ", GetLastError());
+
+    /* Resolve API: */
+    decltype(WinVerifyTrust) * const pfnWinVerifyTrust
+        = (decltype(WinVerifyTrust) *)GetProcAddress(hModWinTrustDll, "WinVerifyTrust");
+    if (!pfnWinVerifyTrust)
+        return ErrorMsgRc(44, "WinVerifyTrust not found");
+
+    /*
+     * We also need the Crypt32.dll for CryptQueryObject and CryptMsgGetParam.
+     */
+    /* Load it: */
+    static wchar_t const s_wszSlashCrypt32Dll[] = L"\\Crypt32.dll";
+    AssertCompile(sizeof(s_wszSlashCrypt32Dll) <= sizeof(s_wszSlashWinTrustDll));
+    memcpy(&wszSysDll[cwcSystem32], s_wszSlashCrypt32Dll, sizeof(s_wszSlashCrypt32Dll));
+    HMODULE const hModCrypt32Dll = LoadLibraryExW(wszSysDll, NULL, fLoadFlags);
+    if (!hModCrypt32Dll)
+        return ErrorMsgRcSWSU(45, "Failed to load '", wszSysDll, "': ", GetLastError());
+
+    /* Resolve APIs: */
+    decltype(CryptQueryObject) * const pfnCryptQueryObject
+        = (decltype(CryptQueryObject) *)GetProcAddress(hModCrypt32Dll, "CryptQueryObject");
+    if (!pfnCryptQueryObject)
+        return ErrorMsgRc(46, "CryptQueryObject not found");
+
+    decltype(CryptMsgClose) * const    pfnCryptMsgClose
+        = (decltype(CryptMsgClose) *)GetProcAddress(hModCrypt32Dll, "CryptMsgClose");
+    if (!pfnCryptQueryObject)
+        return ErrorMsgRc(47, "CryptMsgClose not found");
+
+    decltype(CryptMsgGetParam) * const pfnCryptMsgGetParam
+        = (decltype(CryptMsgGetParam) *)GetProcAddress(hModCrypt32Dll, "CryptMsgGetParam");
+    if (!pfnCryptQueryObject)
+        return ErrorMsgRc(48, "CryptMsgGetParam not found");
+
+    /*
+     * We'll verify the primary signer certificate first as that's something that
+     * should work even if SHA-256 isn't supported by the Windows crypto code.
+     */
+    struct
+    {
+        HANDLE          hFile;
+        wchar_t const  *pwszFile;
+
+        DWORD           fEncoding;
+        DWORD           dwContentType;
+        DWORD           dwFormatType;
+        HCERTSTORE      hCertStore;
+        HCRYPTMSG       hMsg;
+
+        DWORD           cbCert;
+        uint8_t        *pbCert;
+    } aExes[] =
+    {
+        { hFileSelf, pwszSelfPath,   0, 0, 0, NULL, NULL,   0, NULL },
+        { hFileExe,  pwszExePath,    0, 0, 0, NULL, NULL,   0, NULL },
+    };
+
+    HANDLE const hHeap  = GetProcessHeap();
+    int          rcExit = 0;
+    for (unsigned i = 0; i < RT_ELEMENTS(aExes) && rcExit == 0; i++)
+    {
+        if (!pfnCryptQueryObject(CERT_QUERY_OBJECT_FILE,
+                                 aExes[i].pwszFile,
+                                 CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+                                 CERT_QUERY_FORMAT_FLAG_BINARY,
+                                 0 /*fFlags*/,
+                                 &aExes[i].fEncoding,
+                                 &aExes[i].dwContentType,
+                                 &aExes[i].dwFormatType,
+                                 &aExes[i].hCertStore,
+                                 &aExes[i].hMsg,
+                                 NULL /*ppvContext*/))
+            rcExit = ErrorMsgRcSWSU(50 + i*4, "CryptQueryObject/FILE on '", aExes[i].pwszFile, "': ", GetLastError());
+        else if (!pfnCryptMsgGetParam(aExes[i].hMsg, CMSG_CERT_PARAM, 0, NULL, &aExes[i].cbCert))
+            rcExit = ErrorMsgRcSWSU(51 + i*4, "CryptMsgGetParam/CMSG_CERT_PARAM/size failed on '",
+                                    aExes[i].pwszFile, "': ", GetLastError());
+        else
+        {
+            DWORD const cbCert = aExes[i].cbCert;
+            aExes[i].pbCert = (uint8_t *)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, cbCert);
+            if (!aExes[i].pbCert)
+                rcExit = ErrorMsgRcSUS(52 + i*4, "Out of memory (", cbCert, " bytes) for signing certificate information");
+            else if (!pfnCryptMsgGetParam(aExes[i].hMsg, CMSG_CERT_PARAM, 0, aExes[i].pbCert, &aExes[i].cbCert))
+                rcExit = ErrorMsgRcSWSU(53 + i*4, "CryptMsgGetParam/CMSG_CERT_PARAM failed on '", aExes[i].pwszFile, "': ",
+                                        GetLastError());
+        }
+    }
+
+    if (rcExit == 0)
+    {
+        /* Do the two match? */
+        if (   aExes[0].cbCert != aExes[1].cbCert
+            || memcmp(aExes[0].pbCert, aExes[1].pbCert, aExes[0].cbCert) != 0)
+            rcExit = ErrorMsgRcSWS(58, "The certificate on '", pwszExePath, "' does not match.");
+        /* The two match, now do they match the one we're expecting to use? */
+        else if (   aExes[0].cbCert != g_cbBuildCert
+                 || memcmp(aExes[0].pbCert, g_abBuildCert, g_cbBuildCert) != 0)
+            rcExit = ErrorMsgRcSWS(59, "The signing certificate of '", pwszExePath, "' differs from the build certificate");
+        /* else: it all looks fine */
+    }
+
+    /* cleanup */
+    for (unsigned i = 0; i < RT_ELEMENTS(aExes); i++)
+    {
+        if (aExes[i].pbCert)
+        {
+            HeapFree(hHeap, 0, aExes[i].pbCert);
+            aExes[i].pbCert = NULL;
+        }
+        if (aExes[i].hMsg)
+        {
+            pfnCryptMsgClose(aExes[i].hMsg);
+            aExes[i].hMsg = NULL;
+        }
+    }
+    if (rcExit != 0)
+        return rcExit;
+
+    /*
+     * ASSUMING we're using SHA-256 for signing, we do a windows OS cutoff at Windows 7.
+     * For Windows Vista and older we skip this step.
+     */
+    if (   (WinOsInfoEx.dwMajorVersion == 6 && WinOsInfoEx.dwMinorVersion == 0)
+        || WinOsInfoEx.dwMajorVersion < 6)
+        return 0;
+
+    /*
+     * Construct input WinVerifyTrust parameters and call it on each of the executables in turn.
+     * This code was borrowed from SUPHardNt.
+     */
+    for (unsigned i = 0; i < RT_ELEMENTS(aExes); i++)
+    {
+        WINTRUST_FILE_INFO FileInfo = { 0 };
+        FileInfo.cbStruct      = sizeof(FileInfo);
+        FileInfo.pcwszFilePath = aExes[i].pwszFile;
+        FileInfo.hFile         = aExes[i].hFile;
+
+        GUID PolicyActionGuid = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+
+        WINTRUST_DATA TrustData = { 0 };
+        TrustData.cbStruct            = sizeof(TrustData);
+        TrustData.fdwRevocationChecks = WTD_REVOKE_NONE;  /* Keep simple for now. */
+        TrustData.dwStateAction       = WTD_STATEACTION_VERIFY;
+        TrustData.dwUIChoice          = WTD_UI_NONE;
+        TrustData.dwProvFlags         = 0;
+        if (WinOsInfoEx.dwMajorVersion >= 6)
+            TrustData.dwProvFlags     = WTD_CACHE_ONLY_URL_RETRIEVAL;
+        else
+            TrustData.dwProvFlags     = WTD_REVOCATION_CHECK_NONE;
+        TrustData.dwUnionChoice       = WTD_CHOICE_FILE;
+        TrustData.pFile               = &FileInfo;
+
+        HRESULT hrc = pfnWinVerifyTrust(NULL /*hwnd*/, &PolicyActionGuid, &TrustData);
+        if (hrc != S_OK)
+        {
+            /* Translate the eror constant */
+            const char *pszErrConst = NULL;
+            switch (hrc)
+            {
+                case TRUST_E_SYSTEM_ERROR:            pszErrConst = "TRUST_E_SYSTEM_ERROR";         break;
+                case TRUST_E_NO_SIGNER_CERT:          pszErrConst = "TRUST_E_NO_SIGNER_CERT";       break;
+                case TRUST_E_COUNTER_SIGNER:          pszErrConst = "TRUST_E_COUNTER_SIGNER";       break;
+                case TRUST_E_CERT_SIGNATURE:          pszErrConst = "TRUST_E_CERT_SIGNATURE";       break;
+                case TRUST_E_TIME_STAMP:              pszErrConst = "TRUST_E_TIME_STAMP";           break;
+                case TRUST_E_BAD_DIGEST:              pszErrConst = "TRUST_E_BAD_DIGEST";           break;
+                case TRUST_E_BASIC_CONSTRAINTS:       pszErrConst = "TRUST_E_BASIC_CONSTRAINTS";    break;
+                case TRUST_E_FINANCIAL_CRITERIA:      pszErrConst = "TRUST_E_FINANCIAL_CRITERIA";   break;
+                case TRUST_E_PROVIDER_UNKNOWN:        pszErrConst = "TRUST_E_PROVIDER_UNKNOWN";     break;
+                case TRUST_E_ACTION_UNKNOWN:          pszErrConst = "TRUST_E_ACTION_UNKNOWN";       break;
+                case TRUST_E_SUBJECT_FORM_UNKNOWN:    pszErrConst = "TRUST_E_SUBJECT_FORM_UNKNOWN"; break;
+                case TRUST_E_SUBJECT_NOT_TRUSTED:     pszErrConst = "TRUST_E_SUBJECT_NOT_TRUSTED";  break;
+                case TRUST_E_NOSIGNATURE:             pszErrConst = "TRUST_E_NOSIGNATURE";          break;
+                case TRUST_E_FAIL:                    pszErrConst = "TRUST_E_FAIL";                 break;
+                case TRUST_E_EXPLICIT_DISTRUST:       pszErrConst = "TRUST_E_EXPLICIT_DISTRUST";    break;
+                case CERT_E_EXPIRED:                  pszErrConst = "CERT_E_EXPIRED";               break;
+                case CERT_E_VALIDITYPERIODNESTING:    pszErrConst = "CERT_E_VALIDITYPERIODNESTING"; break;
+                case CERT_E_ROLE:                     pszErrConst = "CERT_E_ROLE";                  break;
+                case CERT_E_PATHLENCONST:             pszErrConst = "CERT_E_PATHLENCONST";          break;
+                case CERT_E_CRITICAL:                 pszErrConst = "CERT_E_CRITICAL";              break;
+                case CERT_E_PURPOSE:                  pszErrConst = "CERT_E_PURPOSE";               break;
+                case CERT_E_ISSUERCHAINING:           pszErrConst = "CERT_E_ISSUERCHAINING";        break;
+                case CERT_E_MALFORMED:                pszErrConst = "CERT_E_MALFORMED";             break;
+                case CERT_E_UNTRUSTEDROOT:            pszErrConst = "CERT_E_UNTRUSTEDROOT";         break;
+                case CERT_E_CHAINING:                 pszErrConst = "CERT_E_CHAINING";              break;
+                case CERT_E_REVOKED:                  pszErrConst = "CERT_E_REVOKED";               break;
+                case CERT_E_UNTRUSTEDTESTROOT:        pszErrConst = "CERT_E_UNTRUSTEDTESTROOT";     break;
+                case CERT_E_REVOCATION_FAILURE:       pszErrConst = "CERT_E_REVOCATION_FAILURE";    break;
+                case CERT_E_CN_NO_MATCH:              pszErrConst = "CERT_E_CN_NO_MATCH";           break;
+                case CERT_E_WRONG_USAGE:              pszErrConst = "CERT_E_WRONG_USAGE";           break;
+                case CERT_E_UNTRUSTEDCA:              pszErrConst = "CERT_E_UNTRUSTEDCA";           break;
+                case CERT_E_INVALID_POLICY:           pszErrConst = "CERT_E_INVALID_POLICY";        break;
+                case CERT_E_INVALID_NAME:             pszErrConst = "CERT_E_INVALID_NAME";          break;
+                case CRYPT_E_FILE_ERROR:              pszErrConst = "CRYPT_E_FILE_ERROR";           break;
+                case CRYPT_E_REVOKED:                 pszErrConst = "CRYPT_E_REVOKED";              break;
+            }
+            if (pszErrConst)
+                rcExit = ErrorMsgRcSWSS(60 + i, "WinVerifyTrust failed on '", pwszExePath, "': ", pszErrConst);
+            else
+                rcExit = ErrorMsgRcSWSX(60 + i, "WinVerifyTrust failed on '", pwszExePath, "': ", hrc);
+        }
+
+        /* clean up state data. */
+        TrustData.dwStateAction = WTD_STATEACTION_CLOSE;
+        FileInfo.hFile          = NULL;
+        hrc = pfnWinVerifyTrust(NULL /*hwnd*/, &PolicyActionGuid, &TrustData);
+    }
+
+    return rcExit;
+}
+
+#endif /* VBOX_SIGNING_MODE */
+
+/**
+ * strstr for haystacks w/o null termination.
+ */
+static const char *MyStrStrN(const char *pchHaystack, size_t cbHaystack, const char *pszNeedle)
+{
+    size_t const cchNeedle = strlen(pszNeedle);
+    char const   chFirst   = *pszNeedle;
+    if (cbHaystack >= cchNeedle)
+    {
+        cbHaystack -= cchNeedle - 1;
+        while (cbHaystack > 0)
+        {
+            const char *pchHit = (const char *)memchr(pchHaystack, chFirst, cbHaystack);
+            if (pchHit)
+            {
+                if (memcmp(pchHit, pszNeedle, cchNeedle) == 0)
+                    return pchHit;
+                pchHit++;
+                cbHaystack -= pchHit - pchHaystack;
+                pchHaystack = pchHit;
+            }
+            else
+                break;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Check that the executable file is "related" the one for the current process.
+ */
+static int CheckThatFileIsRelated(wchar_t const *pwszExePath, wchar_t const *pwszSelfPath)
+{
+    /*
+     * Start by checking version info.
+     */
+    /*
+     * Query the version info for the files:
+     */
+    DWORD const cbExeVerInfo  = GetFileVersionInfoSizeW(pwszExePath, NULL);
+    if (!cbExeVerInfo)
+        return ErrorMsgRcSWSU(20, "GetFileVersionInfoSizeW failed on '", pwszExePath, "': ", GetLastError());
+
+    DWORD const cbSelfVerInfo = GetFileVersionInfoSizeW(pwszSelfPath, NULL);
+    if (!cbSelfVerInfo)
+        return ErrorMsgRcSWSU(21, "GetFileVersionInfoSizeW failed on '", pwszSelfPath, "': ", GetLastError());
+
+    HANDLE const hHeap         = GetProcessHeap();
+    DWORD const  cbBothVerInfo = RT_ALIGN_32(cbExeVerInfo, 64) + RT_ALIGN_32(cbSelfVerInfo, 64);
+    void * const pvExeVerInfo  = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, cbBothVerInfo);
+    void * const pvSelfVerInfo = (uint8_t *)pvExeVerInfo + RT_ALIGN_32(cbExeVerInfo, 64);
+    if (!pvExeVerInfo)
+        return ErrorMsgRcSUS(22, "Out of memory (", cbBothVerInfo, " bytes) for version info");
+
+    int rcExit = 0;
+    if (!GetFileVersionInfoW(pwszExePath, 0, cbExeVerInfo, pvExeVerInfo))
+        rcExit = ErrorMsgRcSWSU(23, "GetFileVersionInfoW failed on '", pwszExePath, "': ", GetLastError());
+    else if (!GetFileVersionInfoW(pwszSelfPath, 0, cbSelfVerInfo, pvSelfVerInfo))
+        rcExit = ErrorMsgRcSWSU(24, "GetFileVersionInfoW failed on '", pwszSelfPath, "': ", GetLastError());
+
+    /*
+     * Compare the product and company strings, which should be identical.
+     */
+    static struct
+    {
+        wchar_t const *pwszQueryItem;
+        const char    *pszQueryErrorMsg1;
+        const char    *pszCompareErrorMsg1;
+    } const s_aIdenticalItems[] =
+    {
+        { L"\\StringFileInfo\\040904b0\\ProductName", "VerQueryValueW/ProductName failed on '", "Product string of '" },
+        { L"\\StringFileInfo\\040904b0\\CompanyName", "VerQueryValueW/CompanyName failed on '", "Company string of '" },
+    };
+
+    for (unsigned i = 0; i < RT_ELEMENTS(s_aIdenticalItems) && rcExit == 0; i++)
+    {
+        void *pvExeInfoItem  = NULL;
+        UINT  cbExeInfoItem  = 0;
+        void *pvSelfInfoItem = NULL;
+        UINT  cbSelfInfoItem = 0;
+        if (!VerQueryValueW(pvExeVerInfo, s_aIdenticalItems[i].pwszQueryItem, &pvExeInfoItem, &cbExeInfoItem))
+            rcExit = ErrorMsgRcSWSU(25 + i*3, s_aIdenticalItems[i].pszQueryErrorMsg1 , pwszExePath, "': ", GetLastError());
+        else  if (!VerQueryValueW(pvSelfVerInfo, s_aIdenticalItems[i].pwszQueryItem, &pvSelfInfoItem, &cbSelfInfoItem))
+            rcExit = ErrorMsgRcSWSU(26 + i*3, s_aIdenticalItems[i].pszQueryErrorMsg1, pwszSelfPath, "': ", GetLastError());
+        else if (   cbExeInfoItem != cbSelfInfoItem
+                 || memcmp(pvExeInfoItem, pvSelfInfoItem, cbSelfInfoItem) != 0)
+            rcExit = ErrorMsgRcSWS(27 + i*3, s_aIdenticalItems[i].pszCompareErrorMsg1, pwszExePath, "' does not match");
+    }
+                  
+    HeapFree(hHeap, 0, pvExeVerInfo);
+
+    /*
+     * Check that the file has a manifest that looks like it may belong to
+     * an NSIS installer.
+     */
+    if (rcExit == 0)
+    {
+        HMODULE hMod = LoadLibraryExW(pwszExePath, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+        if (!hMod && GetLastError() == ERROR_INVALID_PARAMETER)
+            hMod     = LoadLibraryExW(pwszExePath, NULL, LOAD_LIBRARY_AS_DATAFILE);
+        if (hMod)
+        {
+            HRSRC const hRsrcMt = FindResourceExW(hMod, RT_MANIFEST, MAKEINTRESOURCEW(1),
+                                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
+            if (hRsrcMt)
+            {
+                DWORD const   cbManifest = SizeofResource(hMod, hRsrcMt);
+                HGLOBAL const hGlobalMt  = LoadResource(hMod, hRsrcMt);
+                if (hGlobalMt)
+                {
+                    const char * const pchManifest = (const char *)LockResource(hGlobalMt);
+                    if (pchManifest)
+                    {
+                        /* Just look for a few strings we expect to always find the manifest. */
+                        if (!MyStrStrN(pchManifest, cbManifest, "Nullsoft.NSIS.exehead"))
+                            rcExit = 36;
+                        else if (!MyStrStrN(pchManifest, cbManifest, "requestedPrivileges"))
+                            rcExit = 37;
+                        else if (!MyStrStrN(pchManifest, cbManifest, "highestAvailable"))
+                            rcExit = 38;
+                        if (rcExit)
+                            rcExit = ErrorMsgRcSWSU(rcExit, "Manifest check of '", pwszExePath, "' failed: ", rcExit);
+                    }
+                    else
+                        rcExit = ErrorMsgRc(35, "LockResource/Manifest failed");
+                }
+                else
+                    rcExit = ErrorMsgRcSU(34, "LoadResource/Manifest failed: ", GetLastError());
+            }
+            else
+                rcExit = ErrorMsgRcSU(33, "FindResourceExW/Manifest failed: ", GetLastError());
+        }
+        else
+            rcExit = ErrorMsgRcSWSU(32, "LoadLibraryExW of '", pwszExePath, "' as datafile failed: ", GetLastError());
+    }
+
+    return rcExit;
+}
 
 static BOOL IsWow64(void)
 {
@@ -137,6 +554,9 @@ int main()
     if (cwcExePath == 0 || cwcExePath >= sizeof(wszExePath))
         return ErrorMsgRcLastErrSUR(13, "GetModuleFileNameW failed: ", cwcExePath);
 
+    WCHAR wszSelfPath[MAX_PATH];
+    memcpy(wszSelfPath, wszExePath, sizeof(wszSelfPath));
+
     /*
     * Strip the extension off the module name and construct the arch specific
     * one of the real installer program.
@@ -220,9 +640,52 @@ int main()
     }
 
     /*
+     * Open the executable for this process.
+     */
+    HANDLE hFileSelf = CreateFileW(wszSelfPath, GENERIC_READ, FILE_SHARE_READ, NULL /*pSecAttr*/, OPEN_EXISTING,
+                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+    if (hFileSelf == INVALID_HANDLE_VALUE && GetLastError() == ERROR_INVALID_PARAMETER)
+        hFileSelf    = CreateFileW(wszSelfPath, GENERIC_READ, FILE_SHARE_READ, NULL /*pSecAttr*/, OPEN_EXISTING,
+                                   FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFileSelf == INVALID_HANDLE_VALUE)
+    {
+        if (GetLastError() == ERROR_FILE_NOT_FOUND)
+            return ErrorMsgRcSW(17, "File not found: ", wszSelfPath);
+        return ErrorMsgRcSWSU(17, "Error opening '", wszSelfPath, "' for reading: ", GetLastError());
+    }
+
+
+    /*
+     * Open the file we're about to execute.
+     */
+    HANDLE hFileExe = CreateFileW(wszExePath, GENERIC_READ, FILE_SHARE_READ, NULL /*pSecAttr*/, OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+    if (hFileExe == INVALID_HANDLE_VALUE && GetLastError() == ERROR_INVALID_PARAMETER)
+        hFileExe    = CreateFileW(wszExePath, GENERIC_READ, FILE_SHARE_READ, NULL /*pSecAttr*/, OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFileExe == INVALID_HANDLE_VALUE)
+    {
+        if (GetLastError() == ERROR_FILE_NOT_FOUND)
+            return ErrorMsgRcSW(18, "File not found: ", wszExePath);
+        return ErrorMsgRcSWSU(18, "Error opening '", wszExePath, "' for reading: ", GetLastError());
+    }
+
+    /*
+     * Check that the file we're about to launch is related to us and safe to start.
+     */
+    int rcExit = CheckThatFileIsRelated(wszExePath, wszSelfPath);
+    if (rcExit != 0)
+        return rcExit;
+
+#ifdef VBOX_SIGNING_MODE
+    rcExit = CheckFileSignatures(wszExePath, hFileExe, wszSelfPath, hFileSelf);
+    if (rcExit != 0)
+        return rcExit;
+#endif
+
+    /*
      * Start the process.
      */
-    int                 rcExit      = 0;
     STARTUPINFOW        StartupInfo = { sizeof(StartupInfo), 0 };
     PROCESS_INFORMATION ProcInfo    = { 0 };
     SetLastError(740);

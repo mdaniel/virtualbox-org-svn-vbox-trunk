@@ -2506,6 +2506,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
     uint32_t        offRawData  = 0;
     uint32_t        cbRawData   = pModPe->cbHeaders;
     uint32_t        offLastPage = 0;
+    uint32_t        cbLastPage  = 0;
 
     uint32_t const  cbScratchReadMax = cbScratch / cbPage * cbPage;
     uint32_t        cbScratchRead    = 0;
@@ -2523,6 +2524,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
             uint32_t const offPageInFile = offRawData + offPageInSect;
             uint32_t const cbPageInFile  = RT_MIN(cbPage, cbRawData - offPageInSect);
             offLastPage = offPageInFile;
+            cbLastPage  = cbPageInFile;
 
             /* Calculate and output the page offset. */
             *(uint32_t *)pbDst = offPageInFile;
@@ -2623,7 +2625,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
     /*
      * Add the terminator entry.
      */
-    *(uint32_t *)pbDst = offLastPage + cbPage;
+    *(uint32_t *)pbDst = offLastPage + cbLastPage;
     RT_BZERO(&pbDst[sizeof(uint32_t)], cbHash);
 
     return VINF_SUCCESS;

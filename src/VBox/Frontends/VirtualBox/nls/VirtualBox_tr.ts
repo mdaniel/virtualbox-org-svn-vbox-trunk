@@ -4448,15 +4448,15 @@
     </message>
     <message>
         <source>TLS</source>
-        <translation type="unfinished"></translation>
+        <translation>TLS</translation>
     </message>
     <message>
         <source>RDP</source>
-        <translation type="unfinished"></translation>
+        <translation>RDP</translation>
     </message>
     <message>
         <source>NEGOTIATE</source>
-        <translation type="unfinished"></translation>
+        <translation>NEGOTIATE</translation>
     </message>
 </context>
 <context>
@@ -13599,11 +13599,11 @@
     </message>
     <message>
         <source>&amp;Security Method:</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Güvenlik Yöntemi:</translation>
     </message>
     <message>
         <source>Selects the VRDP security method.</source>
-        <translation type="unfinished"></translation>
+        <translation>VRDP güvenlik yöntemini seçer.</translation>
     </message>
 </context>
 <context>

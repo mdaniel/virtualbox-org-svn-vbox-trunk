@@ -315,9 +315,10 @@ $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(if $(VBOX_SIGNING_MODE),$(PATH_TARGET)/uninst.exe) \
 		$(if $(VBOX_WIN_ATTESTATION_SIGNING),$(PATH_OUT)/repackadd/$(VBOX_SIGNED_DRIVERS_ZIP_NAME)) \
 		$(VBOX_VERSION_STAMP) \
-		$$(VBoxDrvInst_1_STAGE_TARGET)
+		$$(VBoxDrvInst_1_STAGE_TARGET) \
+		| $(VBOX_SIGN_IMAGE_ORDERDEPS)
 	$(call MSG_L1,Creating $@, from $<)
-ifdef VBOX_WIN_ATTESTATION_SIGNING # Unpack the attestation signed drivers - this is an ugly has 'ing heck hack!
+ifdef VBOX_WIN_ATTESTATION_SIGNING # Unpack the attestation signed drivers - this is an ugly as 'ing heck hack!
 	$(TOOL_ZIP_UNPACK) -oj $(PATH_OUT)/repackadd/$(VBOX_SIGNED_DRIVERS_ZIP_NAME) -d $(PATH_STAGE_BIN)/additions/
 endif
 	$(REDIRECT) -C $(VBOX_PATH_WIN_ADD_INS_SRC) \
@@ -331,7 +332,7 @@ endif
 			$(if $(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_INSTALLER_ADD_LANGUAGES=1') \
 			$(foreach lang,$(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_BRAND_$(lang)_LICENSE_RTF=1') \
 			'$(subst /,\,$<)'
-	$(call VBOX_SIGN_FILE_FN,$@)
+	$(call VBOX_SIGN_IMAGE_FN,$@)
 
 
 ifdef VBOX_SIGNING_MODE
@@ -377,12 +378,13 @@ ifdef VBOX_SIGNING_MODE
 			'/DUNINSTALLER_ONLY=1' \
 			'$(subst /,\,$<)'
 
- $(PATH_TARGET)/uninst.exe: $(PATH_TARGET)/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH)-uninst.exe | $$(dir $$@)
+ $(PATH_TARGET)/uninst.exe: \
+ 		$(PATH_TARGET)/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH)-uninst.exe | $$(dir $$@) $(VBOX_SIGN_IMAGE_ORDERDEPS)
 	$(call MSG_L1,Creating $@, from $<)
 	$(QUIET)$(RM) -f $@
 	-$(REDIRECT) -E __COMPAT_LAYER=RUNASINVOKER -- $<
 	$(TEST) -f $@
-	$(call VBOX_SIGN_FILE_FN,$@)
+	$(call VBOX_SIGN_IMAGE_FN,$@)
 
 endif # VBOX_SIGNING_MODE
 

@@ -4505,16 +4505,16 @@ ifdef VBOX_SIGNING_MODE
   	"$(1)" \
   	$(if-expr "$4" == "2",$$(NLTAB),$(NLTAB))$(call VBOX_CCS_SIGN_CMD,driver$(if-expr "$3" == "/ph",_pagehash,),$1,,-digest_algo SHA2)
 
-  ## Sign an executable image.
+  ## Sign an executable image, normal method.
   # @param 1  The file to sign.
   # @param 2  File description. Optional.
   # @param 3  Set to 2 if the expression will be expanded twice before chopped into commands (for _CMDS).
   if1of (win_with_ev, $(VBOX_WITH_CORP_CODE_SIGNING))
-   VBOX_SIGN_IMAGE_FN        ?= $(call VBOX_SIGN_IMAGE_WITH_EV_FN,$(1),$(2),/ph,$(3))
-   VBOX_SIGN_IMAGE_ORDERDEPS ?= $(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS)
+   VBOX_SIGN_IMAGE_NORMAL_FN        ?= $(call VBOX_SIGN_IMAGE_WITH_EV_FN,$(1),$(2),/ph,$(3))
+   VBOX_SIGN_IMAGE_NORMAL_ORDERDEPS ?= $(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS)
   else
-   VBOX_SIGN_IMAGE_FN        ?= $(call VBOX_SIGN_FILE_FN,$(1),$(2),/ph,$(3))
-   VBOX_SIGN_IMAGE_ORDERDEPS ?= $(VBOX_SIGNTOOL_ORDERDEPS)
+   VBOX_SIGN_IMAGE_NORMAL_FN        ?= $(call VBOX_SIGN_FILE_FN,$(1),$(2),/ph,$(3))
+   VBOX_SIGN_IMAGE_NORMAL_ORDERDEPS ?= $(VBOX_SIGNTOOL_ORDERDEPS)
   endif
 
   ## Commands for signing a driver image after link.
@@ -4522,11 +4522,11 @@ ifdef VBOX_SIGNING_MODE
    VBOX_SIGN_DRIVER_CMDS      ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_PLAN_B_FN,$(out),,/ph,2))
    VBOX_SIGN_DRIVER_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS))
   else if $(intersects win_planc,$(VBOX_WITH_CORP_CODE_SIGNING))
-   VBOX_SIGN_DRIVER_CMDS      ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_FN,$(out),,2,nodual))
+   VBOX_SIGN_DRIVER_CMDS      ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_NORMAL_FN,$(out),,2,nodual))
    VBOX_SIGN_DRIVER_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS))
   else
-   VBOX_SIGN_DRIVER_CMDS      ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_FN,$(out),,2))
-   VBOX_SIGN_DRIVER_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_SIGN_IMAGE_ORDERDEPS))
+   VBOX_SIGN_DRIVER_CMDS      ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_NORMAL_FN,$(out),,2))
+   VBOX_SIGN_DRIVER_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_SIGN_IMAGE_NORMAL_ORDERDEPS))
   endif
 
   ## Create a security catalog file.
@@ -4552,6 +4552,18 @@ ifdef VBOX_SIGNING_MODE
    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT64_FN,$(1),$(2))
   endif
 
+  ## Functions + deps for signing an executable or a dll image. See VBOX_SIGN_IMAGE_NORMAL_FN for parameters.
+  if defined(VBOX_CERTIFICATE_SUBJECT_NAME) && $(intersects win_planb,$(VBOX_WITH_CORP_CODE_SIGNING))
+   VBOX_SIGN_IMAGE_FN             ?= $(call VBOX_SIGN_IMAGE_PLAN_B_FN,$(1),$(2),/ph,$(3))
+   VBOX_SIGN_IMAGE_ORDERDEPS      ?= $(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS)
+  else if defined(VBOX_CERTIFICATE_SUBJECT_NAME) && $(intersects win_planc,$(VBOX_WITH_CORP_CODE_SIGNING))
+   VBOX_SIGN_IMAGE_FN             ?= $(call VBOX_SIGN_IMAGE_PLAN_C_FN,$(1),$(2),/ph,$(3))
+   VBOX_SIGN_IMAGE_ORDERDEPS      ?= $(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS)
+  else
+   VBOX_SIGN_IMAGE_FN             ?= $(call VBOX_SIGN_IMAGE_NORMAL_FN,$(1),$(2),$(3))
+   VBOX_SIGN_IMAGE_ORDERDEPS      ?= $(VBOX_SIGN_IMAGE_NORMAL_ORDERDEPS)
+  endif
+
   # Go nuts, sign everything.
   if "$(VBOX_SIGNING_MODE)" == "release" || defined(VBOX_WITH_HARDENING)
    ## Commands for signing an executable or a dll image after link.
@@ -4562,8 +4574,8 @@ ifdef VBOX_SIGNING_MODE
     VBOX_SIGN_IMAGE_CMDS           ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_PLAN_C_FN,$(out),,/ph,2))
     VBOX_SIGN_IMAGE_CMDS_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_RTSIGNTOOL) $(VBOX_SIGNTOOL_ORDERDEPS))
    else
-    VBOX_SIGN_IMAGE_CMDS           ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_FN,$(out),,2))
-    VBOX_SIGN_IMAGE_CMDS_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_SIGN_IMAGE_ORDERDEPS))
+    VBOX_SIGN_IMAGE_CMDS           ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(call VBOX_SIGN_IMAGE_NORMAL_FN,$(out),,2))
+    VBOX_SIGN_IMAGE_CMDS_ORDERDEPS ?= $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_SIGN_IMAGE_NORMAL_ORDERDEPS))
    endif
   endif
   ## Enable signing of the additions drivers, i.e. create CAT files.

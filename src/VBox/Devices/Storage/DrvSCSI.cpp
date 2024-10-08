@@ -1036,15 +1036,16 @@ static DECLCALLBACK(void) drvscsiIoReqVScsiReqCompleted(VSCSIDEVICE hVScsiDevice
     ASMAtomicDecU32(&pThis->StatIoDepth);
 
     /* Sync buffers. */
+    size_t cbCopyIn = RT_MIN(pReq->cbBuf, cbXfer);
     if (   RT_SUCCESS(rcReq)
-        && pReq->cbBuf
+        && cbCopyIn
         && (   pReq->enmXferDir == PDMMEDIAEXIOREQSCSITXDIR_UNKNOWN
             || pReq->enmXferDir == PDMMEDIAEXIOREQSCSITXDIR_FROM_DEVICE))
     {
         RTSGBUF SgBuf;
         RTSgBufInit(&SgBuf, &pReq->Seg, 1);
         int rcCopy = pThis->pDevMediaExPort->pfnIoReqCopyFromBuf(pThis->pDevMediaExPort, (PDMMEDIAEXIOREQ)pReq,
-                                                                 &pReq->abAlloc[0], 0, &SgBuf, pReq->cbBuf);
+                                                                 &pReq->abAlloc[0], 0, &SgBuf, cbCopyIn);
         if (RT_FAILURE(rcCopy))
             rcReq = rcCopy;
     }

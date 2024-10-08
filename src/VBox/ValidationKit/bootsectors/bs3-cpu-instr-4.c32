@@ -2665,384 +2665,20 @@ typedef BS3CPUINSTR4_TEST1_CTX_T BS3_FAR *PBS3CPUINSTR4_TEST1_CTX_T;
 
 
 /**
- * Worker for bs3CpuInstr4_WorkerTestType1.
- */
-static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
-                                                   PCBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg)
-{
-    BS3CPUINSTR4_TEST1_T const BS3_FAR        *pTest   = pTestCtx->pTest;
-    BS3CPUINSTR4_TEST1_VALUES_T const BS3_FAR *pValues = &pTestCtx->pTest->paValues[pTestCtx->iVal];
-    PBS3TRAPFRAME    pTrapFrame          = pTestCtx->pTrapFrame;
-    PBS3REGCTX       pCtx                = pTestCtx->pCtx;
-    PBS3EXTCTX       pExtCtx             = pTestCtx->pExtCtx;
-    PBS3EXTCTX       pExtCtxOut          = pTestCtx->pExtCtxOut;
-    uint8_t BS3_FAR *puMemOp             = pTestCtx->puMemOp;
-    uint8_t BS3_FAR *puMemOpAlias        = pTestCtx->puMemOpAlias;
-    uint8_t          cbMemOp             = pTestCtx->cbMemOp;
-    uint8_t const    cbOperand           = pTestCtx->cbOperand;
-    uint8_t const    cbInstr             = ((uint8_t const BS3_FAR *)(uintptr_t)pTestCtx->pTest->pfnWorker)[-1];
-    uint8_t          bXcptExpect         = pTestCtx->bXcptExpect;
-    uint8_t const    bFpXcpt             = pTestCtx->pConfig->fCr4OsXmmExcpt ? X86_XCPT_XF : X86_XCPT_UD;
-    bool const       fSseInstr           = bs3CpuInstr4IsSse(pTest->enmType);
-    uint32_t         uMxCsr;
-    X86YMMREG        MemOpExpect;
-    uint16_t         cErrors;
-    uint32_t         uExpectedMxCsr;
-    bool             fFpXcptExpected;
-
-    /*
-     * An exception may be raised based on the test value (128 vs 256 bits).
-     * In addition, we allow setting the exception flags (and mask) prior to
-     * executing the instruction, so we cannot use the exception flags to figure
-     * out if an exception will be raised. Hence, the input values provide us
-     * explicitly whether an exception is expected for 128 and 256-bit variants.
-     */
-    if (pTestCtx->cbOperand > 16)
-    {
-        uExpectedMxCsr  = pValues->u256ExpectedMxCsr;
-        fFpXcptExpected = pValues->f256FpXcptExpected;
-    }
-    else
-    {
-        uExpectedMxCsr  = pValues->u128ExpectedMxCsr;
-        fFpXcptExpected = pValues->f128FpXcptExpected;
-    }
-
-    /*
-     * Set up the context and some expectations.
-     */
-    /* Destination. */
-    Bs3MemZero(&MemOpExpect, sizeof(MemOpExpect));
-    if (pTest->iRegDst == UINT8_MAX)
-    {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        Bs3MemSet(puMemOpAlias, 0xcc, cbMemOp);
-        if (bXcptExpect == X86_XCPT_DB)
-            MemOpExpect.ymm = pValues->uDstOut.ymm;
-        else
-            Bs3MemSet(&MemOpExpect, 0xcc, sizeof(MemOpExpect));
-    }
-
-    /* Source #1 (/ destination for SSE). */
-    if (pTest->iRegSrc1 == UINT8_MAX)
-    {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        Bs3MemCpy(puMemOpAlias, &pValues->uSrc1, cbMemOp);
-        if (pTest->iRegDst == UINT8_MAX)
-            BS3_ASSERT(fSseInstr);
-        else
-            MemOpExpect.ymm = pValues->uSrc1.ymm;
-    }
-    else if (fSseInstr)
-        Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm.DQWords.dqw0);
-    else
-        Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm, 32);
-
-    /* Source #2. */
-    if (pTest->iRegSrc2 == UINT8_MAX)
-    {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        BS3_ASSERT(pTest->iRegDst != UINT8_MAX && pTest->iRegSrc1 != UINT8_MAX);
-        Bs3MemCpy(puMemOpAlias, &pValues->uSrc2, cbMemOp);
-        MemOpExpect.ymm = pValues->uSrc2.ymm;
-    }
-    else if (fSseInstr)
-        Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm.DQWords.dqw0);
-    else
-        Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm, 32);
-
-    /* Memory pointer. */
-    if (pTest->enmRm >= RM_MEM)
-    {
-        BS3_ASSERT(   pTest->iRegDst  == UINT8_MAX
-                   || pTest->iRegSrc1 == UINT8_MAX
-                   || pTest->iRegSrc2 == UINT8_MAX);
-        Bs3RegCtxSetGrpSegFromCurPtr(pCtx, &pCtx->rbx, &pCtx->fs, puMemOp);
-    }
-
-    /* Setup MXCSR for the current test. */
-    uMxCsr = (pSavedCfg->uMxCsr & X86_MXCSR_MM) | pValues->uMxCsr;
-    BS3_ASSERT(!(uMxCsr & X86_MXCSR_MM));
-    BS3_ASSERT(!(uMxCsr & X86_MXCSR_DAZ) || g_fMxCsrDazSupported);
-    Bs3ExtCtxSetMxCsr(pExtCtx, uMxCsr);
-
-    /*
-     * Prepare globals and execute.
-     */
-    g_uBs3TrapEipHint = pCtx->rip.u32;
-    if (    bXcptExpect == X86_XCPT_DB
-        && !fFpXcptExpected)
-        g_uBs3TrapEipHint += cbInstr + 1;
-    Bs3TrapSetJmpAndRestoreWithExtCtxAndRm(pCtx, pExtCtx, pTrapFrame, pExtCtxOut);
-
-    /*
-     * Check the result.
-     *
-     * If a floating-point exception is expected, the destination is not updated by the instruction.
-     * In the case of SSE instructions, updating the destination here will work because it is the same
-     * as the source, but for AVX++ it won't because the destination is different and would contain 0s.
-     */
-    cErrors = Bs3TestSubErrorCount();
-    if (   bXcptExpect == X86_XCPT_DB
-        && !fFpXcptExpected
-        && pTest->iRegDst != UINT8_MAX)
-    {
-        if (fSseInstr)
-            Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm.DQWords.dqw0);
-        else
-            Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm, cbOperand);
-    }
-#if defined(DEBUG_aeichner) /** @todo Necessary kludge on a i7-1068NG7. */
-    if (   pExtCtx->enmMethod == BS3EXTCTXMETHOD_XSAVE
-        && pExtCtx->Ctx.x.Hdr.bmXState == 0x7
-        && pExtCtxOut->Ctx.x.Hdr.bmXState == 0x3)
-        pExtCtxOut->Ctx.x.Hdr.bmXState = 0x7;
-#endif
-    if (bXcptExpect == X86_XCPT_DB)
-        Bs3ExtCtxSetMxCsr(pExtCtx, uExpectedMxCsr | (pSavedCfg->uMxCsr & X86_MXCSR_MM));
-    Bs3TestCheckExtCtx(pExtCtxOut, pExtCtx, 0 /*fFlags*/, pTestCtx->pszMode, pTestCtx->idTestStep);
-
-    if (bXcptExpect == X86_XCPT_DB)
-    {
-        uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut) & ~X86_MXCSR_MM;
-
-        /* Check if the SIMD FP exception flags and mask (or lack of) are as expected. */
-        if (uGotMxCsr != uExpectedMxCsr)
-        {
-            char szExpectFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
-            char szExpectMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
-            char szExpectOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
-            char szGotFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
-            char szGotMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
-            char szGotOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
-            bs3CpuInstr4GetXcptFlags(&szExpectFlags[0],   sizeof(szExpectFlags),  uExpectedMxCsr);
-            bs3CpuInstr4GetXcptMasks(&szExpectMasks[0],   sizeof(szExpectMasks),  uExpectedMxCsr);
-            bs3CpuInstr4GetXcptOthers(&szExpectOthers[0], sizeof(szExpectOthers), uExpectedMxCsr);
-            bs3CpuInstr4GetXcptFlags(&szGotFlags[0],   sizeof(szGotFlags),  uGotMxCsr);
-            bs3CpuInstr4GetXcptMasks(&szGotMasks[0],   sizeof(szGotMasks),  uGotMxCsr);
-            bs3CpuInstr4GetXcptOthers(&szGotOthers[0], sizeof(szGotOthers), uGotMxCsr);
-            Bs3TestFailedF("Expected MXCSR %#RX32 (%s%s%s ) got MXCSR %#RX32 (%s%s%s )", uExpectedMxCsr,
-                           szExpectFlags, szExpectMasks, szExpectOthers, uGotMxCsr, szGotFlags, szGotMasks, szGotOthers);
-        }
-
-        /* Check if the SIMD FP exception (or lack of) is as expected. */
-        if (fFpXcptExpected)
-        {
-            if (pTrapFrame->bXcpt == bFpXcpt)
-            { /* likely */ }
-            else
-                Bs3TestFailedF("Expected floating-point xcpt %s, got %s", bs3CpuInstr4XcptName(bFpXcpt),
-                               bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
-        }
-        else if (pTrapFrame->bXcpt == X86_XCPT_DB)
-        { /* likely */ }
-        else
-            Bs3TestFailedF("Expected no xcpt, got %s", bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
-    }
-    /* Check if non-FP exception is as expected. */
-    else if (pTrapFrame->bXcpt != bXcptExpect)
-        Bs3TestFailedF("Expected xcpt %s, got %s", bs3CpuInstr4XcptName(bXcptExpect), bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
-
-    /* Kludge! Looks like EFLAGS.AC is cleared when raising #GP in real mode on the 10980XE. WEIRD! */
-    if (bMode == BS3_MODE_RM && (pCtx->rflags.u32 & X86_EFL_AC))
-    {
-        if (pTrapFrame->Ctx.rflags.u32 & X86_EFL_AC)
-            Bs3TestFailedF("Expected EFLAGS.AC to be cleared (bXcpt=%d)", pTrapFrame->bXcpt);
-        pTrapFrame->Ctx.rflags.u32 |= X86_EFL_AC;
-    }
-    if (bXcptExpect == X86_XCPT_PF)
-        pCtx->cr2.u = (uintptr_t)puMemOp;
-    Bs3TestCheckRegCtxEx(&pTrapFrame->Ctx, pCtx, bXcptExpect == X86_XCPT_DB && !fFpXcptExpected ? cbInstr + 1 : 0, 0 /*cbSpAdjust*/,
-                         (bXcptExpect == X86_XCPT_DB && !fFpXcptExpected) || BS3_MODE_IS_16BIT_SYS(bMode) ? 0 : X86_EFL_RF,
-                         pTestCtx->pszMode, pTestCtx->idTestStep);
-    pCtx->cr2.u = 0;
-
-    if (   pTest->enmRm >= RM_MEM
-        && Bs3MemCmp(puMemOpAlias, &MemOpExpect, cbMemOp) != 0)
-        Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
-
-    return cErrors;
-}
-
-
-/**
- * Test type #1 worker.
- */
-static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests, unsigned cTests,
-                                            PCBS3CPUINSTR4_CONFIG_T paConfigs, unsigned cConfigs)
-{
-    BS3REGCTX                   Ctx;
-    BS3TRAPFRAME                TrapFrame;
-    const char BS3_FAR * const  pszMode = Bs3GetModeName(bMode);
-    uint8_t                     bRing   = BS3_MODE_IS_V86(bMode) ? 3 : 0;
-    uint8_t BS3_FAR            *pbBuf   = g_pbBuf;
-    uint32_t                    cbBuf   = g_cbBuf;
-    PBS3EXTCTX                  pExtCtxOut;
-    PBS3EXTCTX                  pExtCtx = bs3CpuInstrXAllocExtCtxs(&pExtCtxOut);
-    if (pExtCtx)
-    { /* likely */ }
-    else
-        return 0;
-    if (pExtCtx->enmMethod != BS3EXTCTXMETHOD_ANCIENT)
-    { /* likely */ }
-    else
-    {
-        Bs3TestPrintf("Skipped due to ancient FPU state format\n");
-        return 0;
-    }
-
-    /* Ensure the structures are allocated before we sample the stack pointer. */
-    Bs3MemSet(&Ctx, 0, sizeof(Ctx));
-    Bs3MemSet(&TrapFrame, 0, sizeof(TrapFrame));
-
-    /*
-     * Create test context.
-     */
-    pbBuf = bs3CpuInstrXBufSetup(pbBuf, &cbBuf, bMode);
-    Bs3RegCtxSaveForMode(&Ctx, bMode, 1024);
-    bs3CpuInstr4SetupSseAndAvx(&Ctx, pExtCtx);
-
-    /*
-     * Run the tests in all rings since alignment issues may behave
-     * differently in ring-3 compared to ring-0.
-     */
-    for (;;)
-    {
-        unsigned fPf = 0;
-        do
-        {
-            unsigned iCfg;
-            for (iCfg = 0; iCfg < cConfigs; iCfg++)
-            {
-                unsigned                    iTest;
-                BS3CPUINSTRX_CONFIG_SAVED_T SavedCfg;
-                if (!bs3CpuInstr4ConfigReconfigure(&SavedCfg, &Ctx, pExtCtx, &paConfigs[iCfg], bMode))
-                    continue; /* unsupported config */
-
-                /*
-                 * Iterate the tests.
-                 */
-                for (iTest = 0; iTest < cTests; iTest++)
-                {
-                    BS3CPUINSTR4_TEST1_T const BS3_FAR *pTest = &paTests[iTest];
-                    unsigned const    cValues       = pTest->cValues;
-                    bool const        fSseInstr     = bs3CpuInstr4IsSse(pTest->enmType);
-                    bool const        fAvxInstr     = bs3CpuInstr4IsAvx(pTest->enmType);
-                    uint8_t const     cbOperand     = bs3CpuInstr4GetOperandSize(pTest->enmType);
-                    uint8_t const     cbMemOp       = bs3CpuInstrXMemOpSize(cbOperand, pTest->enmRm);
-                    uint8_t const     cbAlign       = cbMemOp;
-                    uint8_t BS3_FAR  *puMemOp       = bs3CpuInstrXBufForOperand(pbBuf, cbBuf, cbMemOp, cbAlign, &paConfigs[iCfg], fPf);
-                    uint8_t          *puMemOpAlias  = &g_pbBufAlias[(uintptr_t)puMemOp - (uintptr_t)pbBuf];
-                    uint8_t           bXcptExpect   = !g_afTypeSupports[pTest->enmType] ? X86_XCPT_UD
-                                                    : fSseInstr ? paConfigs[iCfg].bXcptSse
-                                                    : BS3_MODE_IS_RM_OR_V86(bMode) ? X86_XCPT_UD : paConfigs[iCfg].bXcptAvx;
-                    uint16_t         idTestStep     = bRing * 10000 + iCfg * 100 + iTest * 10;
-                    unsigned         cRecompRuns    = 0;
-                    unsigned const   cMaxRecompRuns = g_cBs3ThresholdNativeRecompiler + cValues;
-                    unsigned         iVal;
-
-                    /* If testing unaligned memory accesses (or #PF), skip register-only tests.  This
-                       allows setting bXcptSse and bXcptAvx to reflect the misaligned exceptions. */
-                    if (   (pTest->enmRm == RM_REG || pTest->enmRm == RM_MEM8)
-                        && (!paConfigs[iCfg].fAligned || paConfigs[iCfg].fAlignCheck || fPf))
-                        continue;
-
-                    /* #AC is only raised in ring-3. */
-                    if (bXcptExpect == X86_XCPT_AC)
-                    {
-                        if (bRing != 3)
-                            bXcptExpect = X86_XCPT_DB;
-                        else if (fAvxInstr)
-                            bXcptExpect = pTest->bAvxMisalignXcpt; /* they generally don't raise #AC */
-                    }
-
-                    if (fPf && bXcptExpect == X86_XCPT_DB)
-                        bXcptExpect = X86_XCPT_PF;
-
-                    Bs3RegCtxSetRipCsFromCurPtr(&Ctx, pTest->pfnWorker);
-
-                    /*
-                     * Iterate the test values and do the actual testing.
-                     */
-                    while (cRecompRuns < cMaxRecompRuns)
-                    {
-                        for (iVal = 0; iVal < cValues; iVal++, idTestStep++, cRecompRuns++)
-                        {
-                            uint16_t                 cErrors;
-                            BS3CPUINSTR4_TEST1_CTX_T TestCtx;
-
-                            if (BS3_SKIPIT(bRing, iCfg, iTest, iVal, 0))
-                                continue;
-
-                            /*
-                             * If the hardware does not support DAZ bit skip test values that set it.
-                             */
-                            if (   !g_fMxCsrDazSupported
-                                && (pTest->paValues[iVal].uMxCsr & X86_MXCSR_DAZ))
-                                continue;
-
-                            /*
-                             * Setup the test instruction context and pass it to the worker.
-                             * A few of these can be figured out by the worker but initializing
-                             * it outside the inner most loop is more optimal.
-                             */
-                            TestCtx.pConfig      = &paConfigs[iCfg];
-                            TestCtx.pTest        = pTest;
-                            TestCtx.iVal         = iVal;
-                            TestCtx.pszMode      = pszMode;
-                            TestCtx.pTrapFrame   = &TrapFrame;
-                            TestCtx.pCtx         = &Ctx;
-                            TestCtx.pExtCtx      = pExtCtx;
-                            TestCtx.pExtCtxOut   = pExtCtxOut;
-                            TestCtx.puMemOp      = (uint8_t *)puMemOp;
-                            TestCtx.puMemOpAlias = puMemOpAlias;
-                            TestCtx.cbMemOp      = cbMemOp;
-                            TestCtx.cbOperand    = cbOperand;
-                            TestCtx.bXcptExpect  = bXcptExpect;
-                            TestCtx.idTestStep   = idTestStep;
-                            cErrors = bs3CpuInstr4_WorkerTestType1_Inner(bMode, &TestCtx, &SavedCfg);
-                            if (cErrors != Bs3TestSubErrorCount())
-                            {
-                                if (paConfigs[iCfg].fAligned)
-                                    Bs3TestFailedF("%s: ring-%d/cfg#%u/test#%u/value#%u failed (bXcptExpect=%u %s, %s %u-bit)",
-                                                   Bs3GetModeName(bMode), bRing, iCfg, iTest, iVal,
-                                                   bXcptExpect, bs3CpuInstr4XcptName(bXcptExpect), fSseInstr ? "SSE" : "AVX", cbOperand * 8);
-                                else
-                                    Bs3TestFailedF("%s: ring-%d/cfg#%u/test#%u/value#%u failed (bXcptExpect=%u %s, puMemOp=%p, EFLAGS=%#RX32, %s %u-bit)",
-                                                   Bs3GetModeName(bMode), bRing, iCfg, iTest, iVal,
-                                                   bXcptExpect, bs3CpuInstr4XcptName(bXcptExpect), puMemOp,
-                                                   TrapFrame.Ctx.rflags.u32, fSseInstr ? "SSE" : "AVX", cbOperand * 8);
-                                Bs3TestPrintf("\n");
-                            }
-                        }
-                    }
-                }
-                bs3CpuInstrXConfigRestore(&SavedCfg, &Ctx, pExtCtx);
-            }
-        } while (fPf++ == 0 && BS3_MODE_IS_PAGED(bMode));
-
-        /*
-         * Next ring.
-         */
-        bRing++;
-        if (bRing > 3 || bMode == BS3_MODE_RM)
-            break;
-        Bs3RegCtxConvertToRingX(&Ctx, bRing);
-    }
-
-    /*
-     * Cleanup.
-     */
-    bs3CpuInstrXBufCleanup(pbBuf, cbBuf, bMode);
-    bs3CpuInstrXFreeExtCtxs(pExtCtx, pExtCtxOut);
-    return 0;
-}
-
-
-/**
- * Constants used in the 'Worker 1A' test value definitions.  These are
- * extra bits which can be set in the ':out' fields of a test value.
- * They are described below in the corresponding code.
+ * Constants used in test value definitions.  These are extra bits which
+ * can be set in the ':out' fields of a test value; stored in 'stolen'
+ * bits from the real x86 MXCSR CPU register definition.
+ *
+ * 'BS3_MXCSR_?M_FIXED' bits prevent the mask randomizer from changing
+ * the corresponding bit of the mask.  These can be used to 'split' an
+ * entry which produces different results under different masks,
+ * allowing both sets of results to be properly tested.
+ *
+ * 'BS3_MXCSR_PE_FUZZY' marks test value entries which are considered
+ * to have passed the test regardless of the value of X86_MXCSR_PE in
+ * the result.  Many, most, or possibly all instances of this represent
+ * bugs in the test value definitions and/or the CPU emulator IEM; all
+ * need further investigation.
  */
 #define BS3_MXCSR_FIXED_SHIFT 11
 #define BS3_MXCSR_FIXED_MASK  (X86_MXCSR_XCPT_MASK << BS3_MXCSR_FIXED_SHIFT)
@@ -3062,9 +2698,9 @@ AssertCompile((X86_MXCSR_ZERO_MASK & BS3_MXCSR_PE_FUZZY) == BS3_MXCSR_PE_FUZZY);
 AssertCompile((BS3_MXCSR_FIXED_MASK & BS3_MXCSR_PE_FUZZY) == 0);
 
 /**
- * Worker for bs3CpuInstr4_WorkerTestType1 [new WIP version]
+ * Worker for bs3CpuInstr4_WorkerTestType1.
  */
-static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
+static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
                                                    PCBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg)
 {
     BS3CPUINSTR4_TEST1_T const BS3_FAR        *pTest   = pTestCtx->pTest;
@@ -3427,9 +3063,9 @@ static uint16_t bs3CpuInstr4_WorkerTestType1A_Inner(uint8_t bMode, PBS3CPUINSTR4
 
 
 /**
- * Test type #1 worker [new WIP version].
+ * Test type #1 worker.
  */
-static uint8_t bs3CpuInstr4_WorkerTestType1A(uint8_t bMode, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests, unsigned cTests,
+static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests, unsigned cTests,
                                             PCBS3CPUINSTR4_CONFIG_T paConfigs, unsigned cConfigs)
 {
     BS3REGCTX                   Ctx;
@@ -3558,7 +3194,7 @@ static uint8_t bs3CpuInstr4_WorkerTestType1A(uint8_t bMode, BS3CPUINSTR4_TEST1_T
                             TestCtx.cbOperand    = cbOperand;
                             TestCtx.bXcptExpect  = bXcptExpect;
                             TestCtx.idTestStep   = idTestStep;
-                            cErrors = bs3CpuInstr4_WorkerTestType1A_Inner(bMode, &TestCtx, &SavedCfg);
+                            cErrors = bs3CpuInstr4_WorkerTestType1_Inner(bMode, &TestCtx, &SavedCfg);
                             if (cErrors != Bs3TestSubErrorCount())
                             {
                                 if (paConfigs[iCfg].fAligned)
@@ -3595,6 +3231,14 @@ static uint8_t bs3CpuInstr4_WorkerTestType1A(uint8_t bMode, BS3CPUINSTR4_TEST1_T
     bs3CpuInstrXFreeExtCtxs(pExtCtx, pExtCtxOut);
     return 0;
 }
+
+
+/** @todo 'master switch' turns on all IEM misbehaviors documented below */
+#ifdef TODO_EXPOSE_IEM_ERRATA
+# define TODO_X86_MXCSR_PE_IEM
+# define TODO_X86_MXCSR_PE_IEM_SSE
+# define TODO_X86_MXCSR_UE_IEM
+#endif /* TODO_EXPOSE_IEM_ERRATA */
 
 
 /*
@@ -3982,7 +3626,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -4184,24 +3828,13 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
               /*128:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
               /*256:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ true, true },
-#ifdef TODO_X86_MXCSR_UE_HW /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
-          /* this is what works on HW (i7-10700) (same as below, plus out:_UE) */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
  /*--|25*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
             { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
             { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
               /*128:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
               /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
-              /*xcpt?    */ true, true },
-#endif /* TODO_X86_MXCSR_UE_HW */
-#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON HW: X86_MXCSR_UE not set in 128:out or 256:out */
-          /* for comparison, this is what works on IEM (same as above, minus out:_UE) */
- /*--|25*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
-              /*128:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
-              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ true, true },
 #endif /* TODO_X86_MXCSR_UE_IEM */
  /*25|26*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
@@ -4218,24 +3851,13 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
               /*128:out  */ 0,
               /*256:out  */ BS3_MXCSR_DM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_UE_HW /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
-         /* this is what works on HW (i7-10700) (same as below, plus 256:out:_UE) */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
  /*--|28*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
             { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
               /*128:out  */ X86_MXCSR_DM,
               /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE | X86_MXCSR_UE,
-              /*xcpt?    */ true, true },
-#endif /* TODO_X86_MXCSR_UE_HW */
-#ifdef TODO_X86_MXCSR_UE_IEM
-         /* for comparison, this is what works on IEM (same as above, minus 256:out:_UE) */
- /*--|28*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
-            { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
-            { /* =>      */ { FP64_0(0), FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_DM,                 /* DM on,  UM off */
-              /*128:out  */ X86_MXCSR_DM,
-              /*256:out  */ X86_MXCSR_DM | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED | X86_MXCSR_DE,
               /*xcpt?    */ true, true },
 #endif /* TODO_X86_MXCSR_UE_IEM */
  /*27|29*/{ { /*src2     */ { FP64_0(0), FP64_0(0), FP64_0(0),          FP64_0(0) } },
@@ -4256,7 +3878,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
     /*
      * Invalids.
      */
-    /*27*/ FP64_TABLE_D1_PD_INVALIDS
+ /*29|31*/ FP64_TABLE_D1_PD_INVALIDS
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
@@ -4306,7 +3928,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -4553,7 +4175,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addss(uint8_t bMode)
 #ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out *AND* different output values */
  /*--|31*/{ { /*src2     */ { FP32_DENORM_MAX(0), FP32_RAND_x7_V5 } },
             { /*src1     */ { FP32_0(0),          FP32_RAND_x7_V4 } },
-            { /* =>      */ { FP32_0(0),          FP32_RAND_x7_V4 } },
+            { /* =>      */ { FP32_0(0),          FP32_RAND_x7_V4 } } /* result on HW (i7-10700) */,
     // IEM: { /* =>      */ { FP32_DENORM_MAX(0), FP32_RAND_x7_V4 } } /* result on IEM */,
               /*mxcsr:in */ X86_MXCSR_DM,
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
@@ -4638,7 +4260,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -4986,7 +4608,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -5360,7 +4982,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -5699,7 +5321,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -6122,7 +5744,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -6359,24 +5981,13 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subpd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED,
               /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED,
               /*xcpt?    */ true, true },
-#ifdef TODO_X86_MXCSR_UE_HW /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
-         /* this is what works on HW (i7-10700) (same as below, plus 256:out:_UE) */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
  /*--|30*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
             { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
             { /* =>      */ { FP64_DENORM_MAX(1), FP64_0(0), FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DM,
               /*128:out  */ X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
-              /*xcpt?    */ true, true },
-#endif /* TODO_X86_MXCSR_UE_HW */
-#ifdef TODO_X86_MXCSR_UE_IEM
-         /* for comparison, this is what works on IEM (same as above, minus 256:out:_UE) */
- /*--|30*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /*src1     */ { FP64_0(0),          FP64_0(0), FP64_0(0), FP64_0(0) } },
-            { /* =>      */ { FP64_DENORM_MAX(1), FP64_0(0), FP64_0(0), FP64_0(0) } },
-              /*mxcsr:in */ X86_MXCSR_DM,
-              /*128:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
-              /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ true, true },
 #endif /* TODO_X86_MXCSR_UE_IEM */
  /*30|31*/{ { /*src2     */ { FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0), FP64_0(0) } },
@@ -6386,14 +5997,14 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subpd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ true, true },
- /*31|32*/{ { /*src2     */ { FP64_0(0), FP64_0(0),          FP64_0(0), FP64_0(0) } },
+          { { /*src2     */ { FP64_0(0), FP64_0(0),          FP64_0(0), FP64_0(0) } },
             { /*src1     */ { FP64_0(0), FP64_DENORM_MAX(0), FP64_0(0), FP64_0(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(0),          FP64_0(0), FP64_0(0) } },
               /*mxcsr:in */ X86_MXCSR_DAZ | X86_MXCSR_XCPT_MASK,
               /*128:out  */ X86_MXCSR_DAZ | X86_MXCSR_XCPT_MASK,
               /*256:out  */ X86_MXCSR_DAZ | X86_MXCSR_XCPT_MASK,
               /*xcpt?    */ false, false },
- /*32|33*/{ { /*src2     */ { FP64_DENORM_MIN(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0), FP64_DENORM_MAX(0) } },
+          { { /*src2     */ { FP64_DENORM_MIN(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0), FP64_DENORM_MAX(0) } },
             { /*src1     */ { FP64_DENORM_MAX(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0), FP64_DENORM_MIN(0) } },
             { /* =>      */ { FP64_0(0),          FP64_0(0),          FP64_0(0),          FP64_0(0)          } },
               /*mxcsr:in */ X86_MXCSR_DAZ | X86_MXCSR_FZ | X86_MXCSR_RC_UP | X86_MXCSR_XCPT_MASK,
@@ -6454,7 +6065,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -6793,7 +6404,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -7166,7 +6777,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -7540,7 +7151,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -7847,7 +7458,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -8297,7 +7908,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -8609,7 +8220,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -8866,7 +8477,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -9200,7 +8811,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -9329,7 +8940,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_UM,
               /*256:out  */ X86_MXCSR_UM | X86_MXCSR_UE | X86_MXCSR_PE | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, true },
-#ifdef TODO_X86_MXCSR_PE /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 256:out */
+#ifdef TODO_X86_MXCSR_PE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 256:out */
  /*--|15*/{ { /*src2     */ { FP32_V(0,0,0x7e)/*0.50*/, FP32_1(1), FP32_1(0), FP32_1(0), FP32_NORM_MAX(1), FP32_1(0), FP32_NORM_MAX(1),     FP32_NORM_MAX(0) } },
             { /*src1     */ { FP32_NORM_MAX(0),         FP32_1(0), FP32_0(0), FP32_1(0), FP32_0(0),        FP32_1(0), FP32_1(0),            FP32_0(0)        } },
             { /* =>      */ { FP32_INF(0),              FP32_1(1), FP32_0(0), FP32_1(0), FP32_0(1),        FP32_1(0), FP32_V(1,0x200000,0), FP32_0(0)        } },
@@ -9337,7 +8948,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_OE | BS3_MXCSR_OM_FIXED,
               /*256:out  */ X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_OM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_PE */
+#endif /* TODO_X86_MXCSR_PE_IEM */
  /*14|16*/{ { /*src2     */ { FP32_V(0,0,0x7e)/*0.50*/, FP32_1(1), FP32_1(0), FP32_1(0), FP32_NORM_MAX(1), FP32_1(0), FP32_NORM_MAX(1),     FP32_NORM_MAX(0) } },
             { /*src1     */ { FP32_NORM_MAX(0),         FP32_1(0), FP32_0(0), FP32_1(0), FP32_0(0),        FP32_1(0), FP32_1(0),            FP32_0(0)        } },
             { /* =>      */ { FP32_INF(0),              FP32_1(1), FP32_0(0), FP32_1(0), FP32_0(1),        FP32_1(0), FP32_V(1,0x200000,0), FP32_0(0)        } },
@@ -9352,7 +8963,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_OM | X86_MXCSR_OE | X86_MXCSR_PE | BS3_MXCSR_OM_FIXED,
               /*256:out  */ X86_MXCSR_OM | X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_OM_FIXED,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_PE /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out or 256:out */
+#ifdef TODO_X86_MXCSR_PE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out or 256:out */
  /*--|18*/{ { /*src2     */ { FP32_NORM_MAX(0), FP32_NORM_MIN(0), FP32_1(0), FP32_1(0), FP32_NORM_MAX(0), FP32_1(1), FP32_1(0), FP32_NORM_MIN(0) } },
             { /*src1     */ { FP32_NORM_MIN(0), FP32_NORM_MAX(1), FP32_1(0), FP32_1(0), FP32_NORM_MIN(1), FP32_1(0), FP32_1(1), FP32_NORM_MAX(0) } },
             { /* =>      */ { FP32_0(0),        FP32_NORM_MAX(1), FP32_1(0), FP32_1(0), FP32_0(1),        FP32_1(1), FP32_1(1), FP32_NORM_MAX(0) } },
@@ -9360,7 +8971,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_OM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_OM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_PE */
+#endif /* TODO_X86_MXCSR_PE_IEM */
  /*16|19*/{ { /*src2     */ { FP32_NORM_MAX(0), FP32_NORM_MIN(0), FP32_1(0), FP32_1(0), FP32_NORM_MAX(0), FP32_1(1), FP32_1(0), FP32_NORM_MIN(0) } },
             { /*src1     */ { FP32_NORM_MIN(0), FP32_NORM_MAX(1), FP32_1(0), FP32_1(0), FP32_NORM_MIN(1), FP32_1(0), FP32_1(1), FP32_NORM_MAX(0) } },
             { /* =>      */ { FP32_0(0),        FP32_NORM_MAX(1), FP32_1(0), FP32_1(0), FP32_0(1),        FP32_1(1), FP32_1(1), FP32_NORM_MAX(0) } },
@@ -9602,7 +9213,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -9774,7 +9385,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_FZ,
               /*256:out  */ X86_MXCSR_FZ | X86_MXCSR_DE | X86_MXCSR_UE | X86_MXCSR_PE | BS3_MXCSR_PE_FUZZY /* i7-10700, IEM */,
               /*xcpt?    */ false, true },
-#ifdef TODO_X86_MXCSR_UE /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
  /*--|21*/{ { /*src2     */ { FP64_1(0), FP64_1(1), FP64_1(0),          FP64_1(0)          } },
             { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(1), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
@@ -9782,7 +9393,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
               /*128:out  */ 0,
               /*256:out  */ X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_UE */
+#endif /* TODO_X86_MXCSR_UE_IEM */
  /*21|22*/{ { /*src2     */ { FP64_1(0), FP64_1(1), FP64_1(0),          FP64_1(0)          } },
             { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(1), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
@@ -9790,7 +9401,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_UM,
               /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_UE /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
  /*--|23*/{ { /*src2     */ { FP64_1(0), FP64_1(1), FP64_1(0),          FP64_1(0)          } },
             { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(1), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
@@ -9798,7 +9409,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DM,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, true },
-#endif /* TODO_X86_MXCSR_UE */
+#endif /* TODO_X86_MXCSR_UE_IEM */
  /*22|24*/{ { /*src2     */ { FP64_1(0), FP64_1(1), FP64_1(0),          FP64_1(0)          } },
             { /*src1     */ { FP64_0(0), FP64_0(0), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
             { /* =>      */ { FP64_0(0), FP64_0(1), FP64_DENORM_MIN(0), FP64_DENORM_MAX(0) } },
@@ -9981,7 +9592,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -10240,7 +9851,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -10568,7 +10179,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED,
               /*256:out  */ -1,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_PE /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out */
+#ifdef TODO_X86_MXCSR_PE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out */
  /*--|41*/{ { /*            DENORM_MAX /       -42.0 = -5e-310  &_DE &!_PE(if DM && !UM) &_UE */
               /*src2     */ { FP64_V(1, 0x5000000000000, 0x404)/*-42.0*/,    FP64_0(0),          FP64_RAND_V2(0), FP64_RAND_V1(1) } },
             { /*src1     */ { FP64_DENORM_MAX(0),                            FP64_DENORM_MIN(0), FP64_RAND_V1(1), FP64_RAND_V3(0) } },
@@ -10577,7 +10188,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_PE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ -1,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_PE */
+#endif /* TODO_X86_MXCSR_PE_IEM */
  /*41|42*/{ { /*  UMASKED:  DENORM_MAX /        42.0 = 5e-310   &_DE &_PE(if UM) &_UE */
               /*src2     */ { FP64_V(0, 0x5000000000000, 0x404)/*-42.0*/,    FP64_0(0),          FP64_RAND_V2(0), FP64_RAND_V1(1) } },
             { /*src1     */ { FP64_DENORM_MAX(0),                            FP64_DENORM_MIN(0), FP64_RAND_V1(1), FP64_RAND_V3(0) } },
@@ -10594,7 +10205,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_PE | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED,
               /*256:out  */ -1,
               /*xcpt?    */ true, true },
-#ifdef TODO_X86_MXCSR_PE /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out */
+#ifdef TODO_X86_MXCSR_PE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_PE not set in 128:out */
  /*--|44*/{ { /* D~UMASKED: DENORM_MAX /        42.0 = 5e-310   &_DE &!_PE(if DM && !UM) &_UE */
               /*src2     */ { FP64_V(0, 0x5000000000000, 0x404)/*-42.0*/,    FP64_0(0),          FP64_RAND_V2(0), FP64_RAND_V1(1) } },
             { /*src1     */ { FP64_DENORM_MAX(0),                            FP64_DENORM_MIN(0), FP64_RAND_V1(1), FP64_RAND_V3(0) } },
@@ -10603,7 +10214,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_PE | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ -1,
               /*xcpt?    */ true, true },
-#endif /* TODO_X86_MXCSR_PE */
+#endif /* TODO_X86_MXCSR_PE_IEM */
  /*43|45*/{ { /* DAZ:       DENORM_MAX /       -42.0 = -0       &- */
               /*src2     */ { FP64_V(1, 0x5000000000000, 0x404)/*-42.0*/, FP64_0(0),          FP64_RAND_V2(0), FP64_RAND_V1(1) } },
             { /*src1     */ { FP64_DENORM_MAX(0),                         FP64_DENORM_MIN(0), FP64_RAND_V1(1), FP64_RAND_V3(0) } },
@@ -10663,7 +10274,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -10936,7 +10547,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED,
               /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_UE /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 128:out or 256:out */
  /*--|35*/{ { /*src2     */ { FP32_DENORM_MAX(0), FP32_0(0),          FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),                                   FP32_DENORM_MAX(0), FP32_DENORM_MAX(1),                                   FP32_0(0),          FP32_0(0)          } },
             { /*src1     */ { FP32_0(0),          FP32_DENORM_MAX(1), FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),                                   FP32_0(0),          FP32_DENORM_MAX(1),                                   FP32_DENORM_MAX(0), FP32_DENORM_MAX(1) } },
             { /* =>      */ { FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(0),          FP32_V(0, FP32_FRAC_NORM_MAX - 1, FP32_EXP_NORM_MIN), FP32_DENORM_MAX(1), FP32_V(1, FP32_FRAC_NORM_MAX - 1, FP32_EXP_NORM_MIN), FP32_DENORM_MAX(0), FP32_DENORM_MAX(1) } },
@@ -10944,7 +10555,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_UE */
+#endif /* TODO_X86_MXCSR_UE_IEM */
  /*35|36*/{ { /*src2     */ { FP32_DENORM_MAX(0), FP32_0(0),          FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),                                   FP32_DENORM_MAX(0), FP32_DENORM_MAX(1),                                   FP32_0(0),          FP32_0(0)          } },
             { /*src1     */ { FP32_0(0),          FP32_DENORM_MAX(1), FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),                                   FP32_0(0),          FP32_DENORM_MAX(1),                                   FP32_DENORM_MAX(0), FP32_DENORM_MAX(1) } },
             { /* =>      */ { FP32_DENORM_MAX(1), FP32_DENORM_MAX(1), FP32_0(0),          FP32_V(0, FP32_FRAC_NORM_MAX - 1, FP32_EXP_NORM_MIN), FP32_DENORM_MAX(1), FP32_V(1, FP32_FRAC_NORM_MAX - 1, FP32_EXP_NORM_MIN), FP32_DENORM_MAX(0), FP32_DENORM_MAX(1) } },
@@ -10973,7 +10584,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
               /*128:out  */ 0,
               /*256:out  */ X86_MXCSR_DE | BS3_MXCSR_DM_FIXED,
               /*xcpt?    */ false, false },
-#ifdef TODO_X86_MXCSR_UE /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
+#ifdef TODO_X86_MXCSR_UE_IEM /** @todo THIS FAILS ON IEM: X86_MXCSR_UE not set in 256:out */
  /*--|40*/{ { /*src2     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0),          FP32_0(0), FP32_0(0), FP32_0(0)} },
             { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_DENORM_MAX(0), FP32_0(0), FP32_0(0), FP32_0(0)} },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_DENORM_MAX(0), FP32_0(0), FP32_0(0), FP32_0(0)} },
@@ -10981,7 +10592,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DM,
               /*256:out  */ X86_MXCSR_DM | X86_MXCSR_DE | X86_MXCSR_UE | BS3_MXCSR_DM_FIXED | BS3_MXCSR_UM_FIXED,
               /*xcpt?    */ false, false },
-#endif /* TODO_X86_MXCSR_UE */
+#endif /* TODO_X86_MXCSR_UE_IEM */
  /*39|41*/{ { /*src2     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0),          FP32_0(0), FP32_0(0), FP32_0(0)} },
             { /*src1     */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_DENORM_MAX(0), FP32_0(0), FP32_0(0), FP32_0(0)} },
             { /* =>      */ { FP32_0(0), FP32_0(0), FP32_0(0), FP32_0(0), FP32_DENORM_MAX(0), FP32_0(0), FP32_0(0), FP32_0(0)} },
@@ -11078,7 +10689,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -11588,7 +11199,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -11908,7 +11519,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -12230,7 +11841,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -12687,7 +12298,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -13146,7 +12757,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -13466,7 +13077,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -13788,7 +13399,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -14245,7 +13856,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -14704,7 +14315,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
@@ -15067,8 +14678,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
-                                         g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
 }
 
 
@@ -15388,7 +14999,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 
@@ -15665,7 +15276,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtpd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
-    return bs3CpuInstr4_WorkerTestType1A(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
 }
 

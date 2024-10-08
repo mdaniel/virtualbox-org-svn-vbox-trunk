@@ -579,15 +579,15 @@ static int vgsvcVMInfoWinProcessesEnumerate(PVBOXSERVICEVMINFOPROC *ppaProcs, PD
                 paProcs[i].pSid = NULL;
 
                 int rc2 = vgsvcVMInfoWinProcessesGetTokenInfo(&paProcs[i], TokenUser);
-                if (RT_FAILURE(rc2) && g_cVerbosity)
+                if (RT_FAILURE(rc2) && g_cVerbosity > 2)
                     VGSvcError("Get token class 'user' for process %u failed, rc=%Rrc\n", paProcs[i].id, rc2);
 
                 rc2 = vgsvcVMInfoWinProcessesGetTokenInfo(&paProcs[i], TokenGroups);
-                if (RT_FAILURE(rc2) && g_cVerbosity)
+                if (RT_FAILURE(rc2) && g_cVerbosity > 2)
                     VGSvcError("Get token class 'groups' for process %u failed, rc=%Rrc\n", paProcs[i].id, rc2);
 
                 rc2 = vgsvcVMInfoWinProcessesGetTokenInfo(&paProcs[i], TokenStatistics);
-                if (RT_FAILURE(rc2) && g_cVerbosity)
+                if (RT_FAILURE(rc2) && g_cVerbosity > 2)
                     VGSvcError("Get token class 'statistics' for process %u failed, rc=%Rrc\n", paProcs[i].id, rc2);
             }
 

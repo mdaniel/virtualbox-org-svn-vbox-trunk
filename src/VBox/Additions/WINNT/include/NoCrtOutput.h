@@ -122,6 +122,14 @@ DECLINLINE(void) ErrorMsgU64(uint64_t uValue, bool fSigned = false)
 }
 
 
+DECLINLINE(void) ErrorMsgX64(uint64_t uValue)
+{
+    char szVal[128];
+    RTStrFormatU64(szVal, sizeof(szVal), uValue, 16, 0, 0, 0);
+    ErrorMsgStr(szVal);
+}
+
+
 DECLINLINE(int) ErrorMsg(const char *pszMsg)
 {
     ErrorMsgBegin(pszMsg);
@@ -196,11 +204,79 @@ DECLINLINE(int) ErrorMsgRc(int rcExit, const char *pszMsg)
 }
 
 
+DECLINLINE(int) ErrorMsgRcSU(int rcExit, const char *pszMsg1, uint64_t uValue)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgU64(uValue);
+    ErrorMsgEnd(NULL);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSX(int rcExit, const char *pszMsg1, uint64_t uValue)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgX64(uValue);
+    ErrorMsgEnd(NULL);
+    return rcExit;
+}
+
+
 DECLINLINE(int) ErrorMsgRcSUS(int rcExit, const char *pszMsg1, uint64_t uValue, const char *pszMsg2)
 {
     ErrorMsgBegin(pszMsg1);
     ErrorMsgU64(uValue);
     ErrorMsgEnd(pszMsg2);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSW(int rcExit, const char *pszMsg1, const wchar_t *pwszMsg2)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgWStr(pwszMsg2);
+    ErrorMsgEnd(NULL);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSWS(int rcExit, const char *pszMsg1, const wchar_t *pwszMsg2, const char *pszMsg3)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgWStr(pwszMsg2);
+    ErrorMsgEnd(pszMsg3);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSWSS(int rcExit, const char *pszMsg1, const wchar_t *pwszMsg2, const char *pszMsg3, const char *pszMsg4)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgWStr(pwszMsg2);
+    ErrorMsgStr(pszMsg3);
+    ErrorMsgEnd(pszMsg4);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSWSU(int rcExit, const char *pszMsg1, const wchar_t *pwszMsg2, const char *pszMsg3, uint64_t uValue4)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgWStr(pwszMsg2);
+    ErrorMsgStr(pszMsg3);
+    ErrorMsgU64(uValue4);
+    ErrorMsgEnd(NULL);
+    return rcExit;
+}
+
+
+DECLINLINE(int) ErrorMsgRcSWSX(int rcExit, const char *pszMsg1, const wchar_t *pwszMsg2, const char *pszMsg3, uint64_t uValue4)
+{
+    ErrorMsgBegin(pszMsg1);
+    ErrorMsgWStr(pwszMsg2);
+    ErrorMsgStr(pszMsg3);
+    ErrorMsgX64(uValue4);
+    ErrorMsgEnd(NULL);
     return rcExit;
 }
 

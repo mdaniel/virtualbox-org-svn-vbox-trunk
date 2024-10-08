@@ -594,6 +594,15 @@ extern int testRTSymlinkCreate(const char *pszSymlink, const char *pszTarget, RT
     return 0;
 }
 
+extern int testRTFileCopy(const char *pszSrc, const char *pszDst)
+{
+    if (g_fFailIfNotLowercase && !RTStrIsLowerCased(strpbrk(pszSrc, "/\\"))
+        && !RTStrIsLowerCased(strpbrk(pszDst, "/\\")))
+        return VERR_FILE_NOT_FOUND;
+    RT_NOREF2(pszSrc, pszDst);
+    return 0;
+}
+
 
 /*********************************************************************************************************************************
 *   Tests                                                                                                                        *
@@ -743,6 +752,53 @@ static SHFLROOT initWithWritableMapping(RTTEST hTest,
     return aParms[1].u.uint32;
 }
 
+static SHFLROOT initWithUnwritableMapping(RTTEST hTest,
+                                          VBOXHGCMSVCFNTABLE *psvcTable,
+                                          VBOXHGCMSVCHELPERS *psvcHelpers,
+                                          const char *pcszFolderName,
+                                          const char *pcszMapping,
+                                          bool fCaseSensitive = true,
+                                          SymlinkPolicy_T enmSymlinkPolicy = SymlinkPolicy_AllowedToAnyTarget)
+{
+    VBOXHGCMSVCPARM aParms[RT_MAX(SHFL_CPARMS_ADD_MAPPING,
+                                  SHFL_CPARMS_MAP_FOLDER)];
+    union TESTSHFLSTRING FolderName;
+    union TESTSHFLSTRING Mapping;
+    union TESTSHFLSTRING AutoMountPoint;
+    VBOXHGCMCALLHANDLE_TYPEDEF callHandle = { VINF_SUCCESS };
+    int rc;
+
+    initTable(psvcTable, psvcHelpers);
+    rc = VBoxHGCMSvcLoad(psvcTable);
+    AssertReleaseRC(rc);
+    AssertRelease(  psvcTable->pvService
+                  = RTTestGuardedAllocTail(hTest, psvcTable->cbClient));
+    RT_BZERO(psvcTable->pvService, psvcTable->cbClient);
+    fillTestShflString(&FolderName, pcszFolderName);
+    fillTestShflString(&Mapping, pcszMapping);
+    fillTestShflString(&AutoMountPoint, "");
+    HGCMSvcSetPv(&aParms[0], &FolderName,   RT_UOFFSETOF(SHFLSTRING, String)
+                                      + FolderName.string.u16Size);
+    HGCMSvcSetPv(&aParms[1], &Mapping,   RT_UOFFSETOF(SHFLSTRING, String)
+                                   + Mapping.string.u16Size);
+    HGCMSvcSetU32(&aParms[2], SHFL_ADD_MAPPING_F_CREATE_SYMLINKS);
+    HGCMSvcSetPv(&aParms[3], &AutoMountPoint, SHFLSTRING_HEADER_SIZE + AutoMountPoint.string.u16Size);
+    HGCMSvcSetU32(&aParms[4], enmSymlinkPolicy);
+    rc = psvcTable->pfnHostCall(psvcTable->pvService, SHFL_FN_ADD_MAPPING,
+                                SHFL_CPARMS_ADD_MAPPING, aParms);
+    AssertReleaseRC(rc);
+    HGCMSvcSetPv(&aParms[0], &Mapping,   RT_UOFFSETOF(SHFLSTRING, String)
+                                   + Mapping.string.u16Size);
+    HGCMSvcSetU32(&aParms[1], 0);  /* root */
+    HGCMSvcSetU32(&aParms[2], '/');  /* delimiter */
+    HGCMSvcSetU32(&aParms[3], fCaseSensitive);
+    psvcTable->pfnCall(psvcTable->pvService, &callHandle, 0,
+                       psvcTable->pvService, SHFL_FN_MAP_FOLDER,
+                       SHFL_CPARMS_MAP_FOLDER, aParms, 0);
+    AssertReleaseRC(callHandle.rc);
+    return aParms[1].u.uint32;
+}
+
 /** @todo Mappings should be automatically removed by unloading the service,
  *        but unloading is currently a no-op! */
 static void unmapAndRemoveMapping(RTTEST hTest, VBOXHGCMSVCFNTABLE *psvcTable,
@@ -794,6 +850,30 @@ static int createFile(VBOXHGCMSVCFNTABLE *psvcTable, SHFLROOT Root,
     if (pResult)
         *pResult = CreateParms.Result;
     return VINF_SUCCESS;
+}
+
+static int fileCopy(VBOXHGCMSVCFNTABLE *psvcTable, SHFLROOT Root,
+                    const char *pcszSrcFilename, const char *pcszDstFilename)
+{
+    VBOXHGCMSVCPARM aParms[SHFL_CPARMS_COPY_FILE];
+    union TESTSHFLSTRING srcPath;
+    union TESTSHFLSTRING dstPath;
+    VBOXHGCMCALLHANDLE_TYPEDEF callHandle = { VINF_SUCCESS };
+
+    fillTestShflString(&srcPath, pcszSrcFilename);
+    fillTestShflString(&dstPath, pcszDstFilename);
+
+    HGCMSvcSetU32(&aParms[0], Root);
+    HGCMSvcSetPv(&aParms[1], &srcPath,   RT_UOFFSETOF(SHFLSTRING, String)
+                                + srcPath.string.u16Size);
+    HGCMSvcSetU32(&aParms[2], Root);
+    HGCMSvcSetPv(&aParms[3], &dstPath,   RT_UOFFSETOF(SHFLSTRING, String)
+                                + dstPath.string.u16Size);
+    HGCMSvcSetU32(&aParms[4], 0);
+    psvcTable->pfnCall(psvcTable->pvService, &callHandle, 0,
+                       psvcTable->pvService, SHFL_FN_COPY_FILE,
+                       RT_ELEMENTS(aParms), aParms, 0);
+    return callHandle.rc;
 }
 
 static int createSymlink(VBOXHGCMSVCFNTABLE *psvcTable, SHFLROOT Root,
@@ -1055,6 +1135,54 @@ void testCreateDirSimple(RTTEST hTest)
     RTTEST_CHECK_MSG(hTest, g_testRTDirClose_hDir == hDir, (hTest, "hDir=%p\n", g_testRTDirClose_hDir));
 }
 
+void testCopyFileReadWrite(RTTEST hTest)
+{
+    VBOXHGCMSVCFNTABLE  svcTable;
+    VBOXHGCMSVCHELPERS  svcHelpers;
+    SHFLROOT Root;
+    const RTFILE hFile = (RTFILE) 0x10000;
+    SHFLCREATERESULT Result;
+    int rc;
+
+    RTTestSub(hTest, "Test copying files (RTFileCopy()) to a writable share");
+    Root = initWithWritableMapping(hTest, &svcTable, &svcHelpers,
+                                   "/test/mapping", "testname");
+    rc = fileCopy(&svcTable, Root, "file", "file-copy");
+    RTTEST_CHECK_RC_OK(hTest, rc);
+
+    unmapAndRemoveMapping(hTest, &svcTable, Root, "testname");
+    rc = svcTable.pfnDisconnect(NULL, 0, svcTable.pvService);
+    AssertReleaseRC(rc);
+    rc = svcTable.pfnUnload(NULL);
+    AssertReleaseRC(rc);
+    RTTestGuardedFree(hTest, svcTable.pvService);
+    RTTEST_CHECK_MSG(hTest, g_testRTFileClose_hFile == hFile,
+                     (hTest, "File=%u\n", (uintptr_t)g_testRTFileClose_hFile));
+}
+
+void testCopyFileReadOnly(RTTEST hTest)
+{
+    VBOXHGCMSVCFNTABLE  svcTable;
+    VBOXHGCMSVCHELPERS  svcHelpers;
+    SHFLROOT Root;
+    SHFLCREATERESULT Result;
+    int rc;
+
+    RTTestSub(hTest, "Test copying files (RTFileCopy()) to a read-only share");
+    Root = initWithUnwritableMapping(hTest, &svcTable, &svcHelpers,
+                                     "/test/mapping", "testname");
+    rc = fileCopy(&svcTable, Root, "file", "file-copy");
+    RTTEST_CHECK_MSG(hTest, rc == VERR_WRITE_PROTECT,
+                     (hTest, "RTFileCopy() copied a file to a read-only share: rc=%Rrc\n", rc));
+
+    unmapAndRemoveMapping(hTest, &svcTable, Root, "testname");
+    rc = svcTable.pfnDisconnect(NULL, 0, svcTable.pvService);
+    AssertReleaseRC(rc);
+    rc = svcTable.pfnUnload(NULL);
+    AssertReleaseRC(rc);
+    RTTestGuardedFree(hTest, svcTable.pvService);
+}
+
 static int testSymlinkCreationForSpecificPolicy(RTTEST hTest, SymlinkPolicy_T enmSymlinkPolicy)
 {
     VBOXHGCMSVCFNTABLE  svcTable;
@@ -1139,6 +1267,30 @@ void testSymlinkCreation(RTTEST hTest)
     RTTestSub(hTest, "Create variety of symlinks with different symlink policies");
     for (size_t i = 0; i < RT_ELEMENTS(aEnmSymlinkPolicy); i++)
         testSymlinkCreationForSpecificPolicy(hTest, aEnmSymlinkPolicy[i]);
+}
+
+void testSymlinkReadOnlyCreation(RTTEST hTest)
+{
+    VBOXHGCMSVCFNTABLE  svcTable;
+    VBOXHGCMSVCHELPERS  svcHelpers;
+    SHFLROOT Root;
+    SHFLCREATERESULT Result;
+    int rc;
+
+    RTTestSub(hTest, "Test creating symlink in a read-only share");
+    Root = initWithUnwritableMapping(hTest, &svcTable, &svcHelpers,
+                                     "/test/mapping", "testname");
+
+    rc = createSymlink(&svcTable, Root, "file", "symlink");
+    RTTEST_CHECK_MSG(hTest, rc == VERR_WRITE_PROTECT,
+                     (hTest, "RTSymlinkCreate() created a symlink in a read-only share: rc=%Rrc\n", rc));
+
+    unmapAndRemoveMapping(hTest, &svcTable, Root, "testname");
+    rc = svcTable.pfnDisconnect(NULL, 0, svcTable.pvService);
+    AssertReleaseRC(rc);
+    rc = svcTable.pfnUnload(NULL);
+    AssertReleaseRC(rc);
+    RTTestGuardedFree(hTest, svcTable.pvService);
 }
 
 void testReadFileSimple(RTTEST hTest)
@@ -1517,6 +1669,7 @@ static void testAPI(RTTEST hTest)
     testFSInfo(hTest);
     testRemove(hTest);
     testRename(hTest);
+    testCopyFile(hTest);
     testSymlink(hTest);
     testMappingsAdd(hTest);
     testMappingsRemove(hTest);

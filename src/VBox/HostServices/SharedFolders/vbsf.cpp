@@ -2548,6 +2548,20 @@ int vbsfRename(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pSrc, SHFLSTR
     return rc;
 }
 
+#ifdef UNITTEST
+/** Unit test the SHFL_FN_COPY_FILE API.  Located here as a form of API
+ * documentation. */
+void testCopyFile(RTTEST hTest)
+{
+    /* Verify copying a file within a read-write share. */
+    testCopyFileReadWrite(hTest);
+
+    /* Verify attempts to copy a file within a read-only share returns EROFS. */
+    testCopyFileReadOnly(hTest);
+    /* Add tests as required... */
+}
+#endif
+
 /**
  * Implements SHFL_FN_COPY_FILE (wrapping RTFileCopy).
  */
@@ -2574,10 +2588,17 @@ int vbsfCopyFile(SHFLCLIENTDATA *pClient, SHFLROOT idRootSrc, PCSHFLSTRING pStrP
         rc = vbsfBuildFullPath(pClient, idRootDst, pStrPathDst, pStrPathDst->u16Size + SHFLSTRING_HEADER_SIZE, &pszPathDst, NULL);
         if (RT_SUCCESS(rc))
         {
+            /* is the guest allowed to write to this share? */
+            bool fWritable;
+            rc = vbsfMappingsQueryWritable(pClient, idRootDst, &fWritable);
+            if (RT_FAILURE(rc) || !fWritable)
+                rc = VERR_WRITE_PROTECT;
+
             /*
              * Do the job.
              */
-            rc = RTFileCopy(pszPathSrc, pszPathDst);
+            if (RT_SUCCESS(rc))
+                rc = RTFileCopy(pszPathSrc, pszPathDst);
 
             vbsfFreeFullPath(pszPathDst);
         }
@@ -2596,8 +2617,11 @@ void testSymlink(RTTEST hTest)
 {
     /* If the number or types of parameters are wrong the API should fail. */
     testSymlinkBadParameters(hTest);
-    /* Add tests as required... */
+    /* Exercise symbolic link creation with various symlink policies in place. */
     testSymlinkCreation(hTest);
+    /* Verify attempts to create a symbolic link within a read-only share returns EROFS. */
+    testSymlinkReadOnlyCreation(hTest);
+    /* Add additional tests as required... */
 }
 #endif
 
@@ -2612,11 +2636,17 @@ int vbsfSymlink(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pSymlinkPath
     if (!BIT_FLAG(pClient->fu32Flags, SHFL_CF_UTF8))
         return VERR_NOT_IMPLEMENTED;
 
+    /* is the guest allowed to create symlinks in this share? */
     bool fSymlinksCreate;
     rc = vbsfMappingsQuerySymlinksCreate(pClient, root, &fSymlinksCreate);
-    AssertRCReturn(rc, rc);
-    if (!fSymlinksCreate)
+    if (RT_FAILURE(rc) || !fSymlinksCreate)
         return VERR_WRITE_PROTECT; /* XXX or VERR_TOO_MANY_SYMLINKS? */
+
+    /* is the guest allowed to write to this share? */
+    bool fWritable;
+    rc = vbsfMappingsQueryWritable(pClient, root, &fWritable);
+    if (RT_FAILURE(rc) || !fWritable)
+        return VERR_WRITE_PROTECT;
 
     rc = vbsfBuildFullPath(pClient, root, pSymlinkPath, pSymlinkPath->u16Size + SHFLSTRING_HEADER_SIZE, &pszFullSymlinkPath,
                            NULL);

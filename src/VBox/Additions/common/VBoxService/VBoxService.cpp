@@ -116,7 +116,7 @@
 /** The program name (derived from argv[0]). */
 char                *g_pszProgName =  (char *)"";
 /** The current verbosity level. */
-unsigned             g_cVerbosity = 2;
+unsigned             g_cVerbosity = 0;
 char                 g_szLogFile[RTPATH_MAX + 128] = "";
 char                 g_szPidFile[RTPATH_MAX] = "";
 /** Logging parameters. */
@@ -322,7 +322,7 @@ int VGSvcLogCreate(const char *pszLogFile)
 {
     /* Create release logger (stdout + file). */
     static const char * const s_apszGroups[] = VBOX_LOGGROUP_NAMES;
-    RTUINT fFlags = RTLOGFLAGS_PREFIX_THREAD /*| RTLOGFLAGS_PREFIX_TIME*/;
+    RTUINT fFlags = RTLOGFLAGS_PREFIX_THREAD | RTLOGFLAGS_PREFIX_TIME;
 #if defined(RT_OS_WINDOWS) || defined(RT_OS_OS2)
     fFlags |= RTLOGFLAGS_USECRLF;
 #endif

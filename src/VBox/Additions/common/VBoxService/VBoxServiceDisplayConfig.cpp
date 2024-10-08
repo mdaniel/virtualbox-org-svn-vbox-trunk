@@ -132,7 +132,7 @@ void ReconnectDisplays(uint32_t cDisplays, VMMDevDisplayDef *paDisplays)
             u32ConnectMask |= u32Mask;
     }
 
-    VGSvcVerbose(2, "ReconnectDisplays u32ConnectMask 0x%RX32, u32DisconnectMask 0x%RX32\n", u32ConnectMask, u32DisconnectMask);
+    VGSvcVerbose(3, "ReconnectDisplays u32ConnectMask 0x%RX32, u32DisconnectMask 0x%RX32\n", u32ConnectMask, u32DisconnectMask);
 
     EnumAdapters.NumAdapters = RT_ELEMENTS(EnumAdapters.Adapters);
     rcNt = g_pfnD3DKMTEnumAdapters(&EnumAdapters);
@@ -279,7 +279,7 @@ DECLCALLBACK(int) vgsvcDisplayConfigWorker(bool volatile *pfShutdown)
                 {
                     for(uint32_t i = 0; i < cDisplays; i++)
                     {
-                        VGSvcVerbose(3, "%u) Display[%u] flags=%#x (%dx%d)\n", i, aDisplays[i].idDisplay,
+                        VGSvcVerbose(2, "%u) Display[%u] flags=%#x (%dx%d)\n", i, aDisplays[i].idDisplay,
                             aDisplays[i].fDisplayFlags,
                             aDisplays[i].cx, aDisplays[i].cy);
                     }

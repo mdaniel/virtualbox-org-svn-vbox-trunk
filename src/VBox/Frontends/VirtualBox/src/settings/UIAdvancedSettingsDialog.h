@@ -43,6 +43,7 @@ class QGridLayout;
 class QProgressBar;
 class QShowEvent;
 class QStackedWidget;
+class QTimer;
 class QIDialogButtonBox;
 class UIFilterEditor;
 class UIModeCheckBox;
@@ -212,6 +213,9 @@ private slots:
     /** Handles signal about vertical scroll-area wheel-event. */
     void sltHandleVerticalScrollAreaWheelEvent();
 
+    /** Handles request to update disabled widgets look&feel: */
+    void sltUpdateDisabledWidgetsLookAndFeel();
+
 private:
 
     /** @name Prepare/cleanup cascade.
@@ -276,6 +280,9 @@ private:
 
     /** Stores the help tag per page. */
     QMap<int, QString>  m_pageHelpKeywords;
+
+    /** Holds the timer to update disabled widgets look&feel. */
+    QTimer *m_pTimerDisabledLookAndFeel;
 
     /** @name Widgets
      * @{ */

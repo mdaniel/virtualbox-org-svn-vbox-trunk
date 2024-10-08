@@ -789,6 +789,7 @@ UIAdvancedSettingsDialog::UIAdvancedSettingsDialog(QWidget *pParent,
     , m_pWarningPane(0)
     , m_fValid(true)
     , m_fSilent(true)
+    , m_pTimerDisabledLookAndFeel(0)
     , m_pLayoutMain(0)
     , m_pCheckBoxMode(0)
     , m_pEditorFilter(0)
@@ -983,13 +984,19 @@ bool UIAdvancedSettingsDialog::eventFilter(QObject *pObject, QEvent *pEvent)
         }
     }
 
-    /* Handle enabled-change events: */
-    if (pEvent->type() == QEvent::EnabledChange)
+    /* We'd like to accumulate multiple events of the same type to
+     * process them the bundled way, once after the last one arrived. */
+    switch (pEvent->type())
     {
-        /* Check if watched object is of widget type: */
-        QWidget *pWidget = qobject_cast<QWidget*>(pObject);
-        if (pWidget)
-            adjustLookAndFeelForDisabledWidget(pWidget);
+        /* Only enabled-change events useful for us: */
+        case QEvent::EnabledChange:
+        {
+            /* Start (or restart) corresponding timer: */
+            m_pTimerDisabledLookAndFeel->start();
+            break;
+        }
+        default:
+            break;
     }
 
     /* Call to base-class: */
@@ -1050,10 +1057,8 @@ void UIAdvancedSettingsDialog::polishEvent()
     /* Explicit centering according to our parent: */
     gpDesktop->centerWidget(this, parentWidget(), false);
 
-    /* Make sure widgets disabled initially have font updated: */
-    foreach (QWidget *pChild, findChildren<QWidget*>())
-        if (!pChild->isEnabledTo(0))
-            adjustLookAndFeelForDisabledWidget(pChild);
+    /* Make sure widgets disabled initially have look&feel updated: */
+    sltUpdateDisabledWidgetsLookAndFeel();
 }
 
 void UIAdvancedSettingsDialog::closeEvent(QCloseEvent *pEvent)
@@ -1442,8 +1447,25 @@ void UIAdvancedSettingsDialog::sltHandleVerticalScrollAreaWheelEvent()
         m_pSelector->selectById(iActualKey, true /* silently */);
 }
 
+void UIAdvancedSettingsDialog::sltUpdateDisabledWidgetsLookAndFeel()
+{
+    /* Make sure all child widgets have look&feel updated: */
+    foreach (QWidget *pChild, findChildren<QWidget*>())
+        adjustLookAndFeelForDisabledWidget(pChild);
+}
+
 void UIAdvancedSettingsDialog::prepare()
 {
+    /* Create timer to update disabled widgets look&feel: */
+    m_pTimerDisabledLookAndFeel = new QTimer(this);
+    if (m_pTimerDisabledLookAndFeel)
+    {
+        m_pTimerDisabledLookAndFeel->setSingleShot(true);
+        m_pTimerDisabledLookAndFeel->setInterval(50);
+        connect(m_pTimerDisabledLookAndFeel, &QTimer::timeout,
+                this, &UIAdvancedSettingsDialog::sltUpdateDisabledWidgetsLookAndFeel);
+    }
+
     /* Prepare central-widget: */
     setCentralWidget(new QWidget);
     if (centralWidget())

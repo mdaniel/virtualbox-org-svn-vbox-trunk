@@ -988,8 +988,9 @@ bool UIAdvancedSettingsDialog::eventFilter(QObject *pObject, QEvent *pEvent)
      * process them the bundled way, once after the last one arrived. */
     switch (pEvent->type())
     {
-        /* Only enabled-change events useful for us: */
+        /* Only enabled-change and resize events useful for us: */
         case QEvent::EnabledChange:
+        case QEvent::Resize:
         {
             /* Start (or restart) corresponding timer: */
             m_pTimerDisabledLookAndFeel->start();
@@ -1643,6 +1644,33 @@ void UIAdvancedSettingsDialog::adjustLookAndFeelForDisabledWidget(QWidget *pWidg
     QFont font = pWidget->font();
     font.setItalic(!pWidget->isEnabledTo(0));
     pWidget->setFont(font);
+
+    /* If widget is disabled and non of his parents have mask assigned: */
+    if (!pWidget->isEnabledTo(0) && !isOneOfWidgetParentsHasMask(pWidget))
+    {
+        /* Compose striped mask using tricky QImage=>QBitmap conversion: */
+        QImage img(pWidget->width(), pWidget->height(), QImage::Format_Mono);
+        for (int j = 0; j < img.height(); ++j)
+            for (int i = 0; i < img.width(); ++i)
+                img.setPixel(i, j, (i+j) % 10 == 0 ? 1 : 0);
+        /* Adjust mask to be striped for disabled widget: */
+        pWidget->setMask(QBitmap::fromImage(img, Qt::MonoOnly));
+    }
+    else
+    {
+        /* Disable mask for good: */
+        pWidget->clearMask();
+    }
+    pWidget->update();
+}
+
+/* static */
+bool UIAdvancedSettingsDialog::isOneOfWidgetParentsHasMask(QWidget *pWidget)
+{
+    AssertPtrReturn(pWidget, false);
+    if (QWidget *pParent = pWidget->parentWidget())
+        return !pParent->mask().isNull() || isOneOfWidgetParentsHasMask(pParent);
+    return false;
 }
 
 #include "UIAdvancedSettingsDialog.moc"

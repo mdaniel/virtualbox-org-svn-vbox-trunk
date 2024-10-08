@@ -236,6 +236,8 @@ private:
     /** Adjusts look&feel for disabled widget.
       * @param  pWidget   Brings the widget to adjust look&feel for. */
     static void adjustLookAndFeelForDisabledWidget(QWidget *pWidget);
+    /** Returns whether one of @a pWidget parents in hierarchy has mask assigned. */
+    static bool isOneOfWidgetParentsHasMask(QWidget *pWidget);
 
     /** Holds configuration access level. */
     ConfigurationAccessLevel  m_enmConfigurationAccessLevel;

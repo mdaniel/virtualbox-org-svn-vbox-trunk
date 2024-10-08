@@ -989,7 +989,7 @@ bool UIAdvancedSettingsDialog::eventFilter(QObject *pObject, QEvent *pEvent)
         /* Check if watched object is of widget type: */
         QWidget *pWidget = qobject_cast<QWidget*>(pObject);
         if (pWidget)
-            adjustVisibilityForDisabledState(pWidget);
+            adjustLookAndFeelForDisabledWidget(pWidget);
     }
 
     /* Call to base-class: */
@@ -1034,11 +1034,6 @@ void UIAdvancedSettingsDialog::polishEvent()
     /* Prevent handler from calling twice: */
     m_fPolished = true;
 
-    /* Make sure widgets disabled initially have font updated: */
-    foreach (QWidget *pChild, findChildren<QWidget*>())
-        if (!pChild->isEnabledTo(0))
-            adjustVisibilityForDisabledState(pChild);
-
     /* Install event-filters for all the widget children: */
     foreach (QWidget *pChild, findChildren<QWidget*>())
         if (qobject_cast<QWidget*>(pChild))
@@ -1054,6 +1049,11 @@ void UIAdvancedSettingsDialog::polishEvent()
     resize(minimumSizeHint());
     /* Explicit centering according to our parent: */
     gpDesktop->centerWidget(this, parentWidget(), false);
+
+    /* Make sure widgets disabled initially have font updated: */
+    foreach (QWidget *pChild, findChildren<QWidget*>())
+        if (!pChild->isEnabledTo(0))
+            adjustLookAndFeelForDisabledWidget(pChild);
 }
 
 void UIAdvancedSettingsDialog::closeEvent(QCloseEvent *pEvent)
@@ -1615,8 +1615,9 @@ void UIAdvancedSettingsDialog::cleanup()
 }
 
 /* static */
-void UIAdvancedSettingsDialog::adjustVisibilityForDisabledState(QWidget *pWidget)
+void UIAdvancedSettingsDialog::adjustLookAndFeelForDisabledWidget(QWidget *pWidget)
 {
+    /* Adjust font to be itelic for disabled widget: */
     QFont font = pWidget->font();
     font.setItalic(!pWidget->isEnabledTo(0));
     pWidget->setFont(font);

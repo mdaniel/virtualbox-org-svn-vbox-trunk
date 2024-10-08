@@ -229,9 +229,9 @@ private:
         void cleanup();
     /** @} */
 
-    /** Adjusts visibility for disabled state.
-      * @param  pWidget   Brings the widget to adjust visibility for. */
-    static void adjustVisibilityForDisabledState(QWidget *pWidget);
+    /** Adjusts look&feel for disabled widget.
+      * @param  pWidget   Brings the widget to adjust look&feel for. */
+    static void adjustLookAndFeelForDisabledWidget(QWidget *pWidget);
 
     /** Holds configuration access level. */
     ConfigurationAccessLevel  m_enmConfigurationAccessLevel;

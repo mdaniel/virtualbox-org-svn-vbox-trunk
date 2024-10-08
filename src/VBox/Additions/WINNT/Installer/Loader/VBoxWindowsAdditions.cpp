@@ -202,7 +202,7 @@ static int CheckFileSignatures(wchar_t const *pwszExePath, HANDLE hFileExe, wcha
         /* Do the two match? */
         if (   aExes[0].cbCert != aExes[1].cbCert
             || memcmp(aExes[0].pbCert, aExes[1].pbCert, aExes[0].cbCert) != 0)
-            rcExit = ErrorMsgRcSWS(58, "The certificate on '", pwszExePath, "' does not match.");
+            rcExit = ErrorMsgRcSWS(58, "The certificate used to sign '", pwszExePath, "' does not match.");
         /* The two match, now do they match the one we're expecting to use? */
         else if (   aExes[0].cbCert != g_cbBuildCert
                  || memcmp(aExes[0].pbCert, g_abBuildCert, g_cbBuildCert) != 0)

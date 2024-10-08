@@ -790,8 +790,8 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
 
         if (error != 0)
         {
-            LogFlow(("NAT: WSAPoll returned %d (error %d)\n", cChangedFDs, error));
-            LogFlow(("NSOCK = %d\n", pThis->pNATState->nsock));
+            LogRel(("NAT: WSAPoll returned %d (error %d)\n", cChangedFDs, error));
+            Log4(("NAT: NSOCK = %d\n", pThis->pNATState->nsock));
         }
 
         if (cChangedFDs == 0)
@@ -1051,6 +1051,8 @@ static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterfac
     SlirpState * const pNATState = pThis->pNATState;
     AssertReturnVoid(pNATState);
     AssertReturnVoid(pNATState->pSlirp);
+
+    LogRel(("NAT: DNS settings changed, triggering update\n"));
 
     if (pDnsConf->szDomainName[0] == '\0')
         slirp_set_vdomainname(pNATState->pSlirp, NULL);

@@ -79,10 +79,10 @@ ifdef VBOX_SIGNING_MODE
  VBoxWindowsAdditions_DEFS          += VBOX_SIGNING_MODE
  VBoxWindowsAdditions_INCS          += $(VBoxWindowsAdditions_0_OUTDIR)
  VBoxWindowsAdditions_INTERMEDIATES += \
- 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h  \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h \
  	$(VBoxWindowsAdditions_0_OUTDIR)/TimestampRootCerts.h
  VBoxWindowsAdditions_CLEAN         += \
- 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h  \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h \
  	$(VBoxWindowsAdditions_0_OUTDIR)/TimestampRootCerts.h
 
  # Dummy signed program that we can extract the signature from.

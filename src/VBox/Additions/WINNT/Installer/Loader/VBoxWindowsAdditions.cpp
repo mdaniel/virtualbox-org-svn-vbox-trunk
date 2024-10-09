@@ -1096,7 +1096,7 @@ int main()
         return rcExit;
 
 #ifdef VBOX_SIGNING_MODE
-# if 1 /* Use the IPRT code as it it will work on all windows versions without trouble. 
+# if 1 /* Use the IPRT code as it it will work on all windows versions without trouble.
           Added some 800KB to the executable, but so what. */
     rcExit = CheckFileSignatureIprt(wszExePath);
 # else

@@ -1584,6 +1584,22 @@ static PRTCRPKCS7SIGNERINFO SignToolPkcs7_FindNestedSignatureByIndex(PSIGNTOOLPK
 }
 
 
+/**
+ * Count the number of signatures, nested or otherwise.
+ *
+ * @returns Number of signatures.
+ * @param   pThis           The PKCS\#7 structure to search.
+ *
+ * @todo    Move into SPC or PKCS\#7.
+ */
+static uint32_t SignToolPkcs7_CountSignatures(PSIGNTOOLPKCS7 pThis)
+{
+    uint32_t             iNextSignature = 0;
+    PRTCRPKCS7SIGNEDDATA pSignedData    = NULL;
+    SignToolPkcs7_FindNestedSignatureByIndexWorker(pThis->pSignedData, &iNextSignature, UINT32_MAX / 2, &pSignedData);
+    return iNextSignature;
+}
+
 
 /**
  * Reads and decodes PKCS\#7 signature from the given executable, if it has one.
@@ -3293,7 +3309,7 @@ static RTEXITCODE HelpExtractExeSignerCert(PRTSTREAM pStrm, RTSIGNTOOLHELP enmLe
 {
     RT_NOREF_PV(enmLevel);
     RTStrmWrappedPrintf(pStrm, RTSTRMWRAPPED_F_HANGING_INDENT,
-                        "extract-exe-signer-cert [--ber|--cer|--der] [--signature-index|-i <num>] [--input|--exe|-e] <exe> [--output|-o] <outfile.cer>\n");
+                        "extract-exe-signer-cert [--as-c-array=name|--ber|--cer|--der] [--signature-index|-i <num>] [--input|--exe|-e] <exe> [--output|-o] <outfile.cer/h>\n");
     return RTEXITCODE_SUCCESS;
 }
 
@@ -3330,6 +3346,65 @@ static RTEXITCODE WriteCertToFile(PCRTCRX509CERTIFICATE pCert, const char *pszFi
 }
 
 
+static void PrintCertAsCArray(PCRTCRX509CERTIFICATE pCert, uint32_t iSignature, const char *pszBaseNm, PRTSTREAM pStrm)
+{
+    uint32_t const        cbCert = pCert->SeqCore.Asn1Core.cbHdr     + pCert->SeqCore.Asn1Core.cb;
+    uint8_t const * const pbCert = pCert->SeqCore.Asn1Core.uData.pu8 - pCert->SeqCore.Asn1Core.cbHdr;
+    if (iSignature == UINT32_MAX)
+        RTStrmPrintf(pStrm,
+                     "uint32_t const g_cb%s = %u;\n"
+                     "uint8_t const  g_ab%s[%u] =\n"
+                     "{",
+                     pszBaseNm, cbCert, pszBaseNm, cbCert);
+    else
+        RTStrmPrintf(pStrm, "static uint8_t const g_ab%sCert%u[%u] =\n{", pszBaseNm, iSignature, cbCert);
+    for (uint32_t off = 0; off < cbCert; off++)
+    {
+        if (off % 16 == 0)
+            RTStrmPrintf(pStrm, "\n   ");
+        RTStrmPrintf(pStrm, " %#04x,", pbCert[off]);
+    }
+    RTStrmPrintf(pStrm, "\n};\n\n");
+}
+
+
+static void PrintCertTableAsC(uint32_t cSignatures, const char *pszBaseNm, PRTSTREAM pStrm)
+{
+    RTStrmPrintf(pStrm,
+                 "uint32_t const g_c%s = %u;\n"
+                 "struct { uint8_t const *pbCert; size_t cbCert; } const g_a%s[%u] =\n"
+                 "{\n"
+                 , pszBaseNm, cSignatures, pszBaseNm, cSignatures ? cSignatures : 1);
+    for (uint32_t iSignature = 0; iSignature < cSignatures; iSignature++)
+        RTStrmPrintf(pStrm, "    { g_ab%sCert%u, sizeof(g_ab%sCert%u) },\n",
+                     pszBaseNm, iSignature, pszBaseNm, iSignature);
+    if (!cSignatures)
+        RTStrmPrintf(pStrm, "    { NULL, 0 } /* dummy */ \n");
+    RTStrmPrintf(pStrm, "};\n");
+}
+
+
+static RTEXITCODE WriteCertToFileAsC(PCRTCRX509CERTIFICATE pCert, const char *pszFilename, bool fForce, const char *pszBaseNm)
+{
+    RTEXITCODE rcExit;
+    PRTSTREAM  pStrm  = NULL;
+    int rc = RTStrmOpen(pszFilename, fForce ? "wt+" : "wtx", &pStrm);
+    if (RT_SUCCESS(rc))
+    {
+        PrintCertAsCArray(pCert, UINT32_MAX, pszBaseNm, pStrm);
+        rc = RTStrmClose(pStrm);
+        if (RT_SUCCESS(rc))
+            rcExit = RTEXITCODE_SUCCESS;
+        else
+            rcExit = RTMsgErrorExitFailure("Error writing/closing '%s': %Rrc", pszFilename, rc);
+    }
+    else
+        rcExit = RTMsgErrorExitFailure("Failed to open '%s' for writing: %Rrc", pszFilename, rc);
+    return rcExit;
+}
+
+
+
 static RTEXITCODE HandleExtractExeSignerCert(int cArgs, char **papszArgs)
 {
     /*
@@ -3345,6 +3420,7 @@ static RTEXITCODE HandleExtractExeSignerCert(int cArgs, char **papszArgs)
         { "--output",           'o', RTGETOPT_REQ_STRING  },
         { "--signature-index",  'i', RTGETOPT_REQ_UINT32  },
         { "--force",            'f', RTGETOPT_REQ_NOTHING },
+        { "--as-c-array",       'C', RTGETOPT_REQ_STRING  },
     };
 
     const char *pszExe = NULL;
@@ -3353,6 +3429,7 @@ static RTEXITCODE HandleExtractExeSignerCert(int cArgs, char **papszArgs)
     unsigned    cVerbosity   = 0;
     uint32_t    fCursorFlags = RTASN1CURSOR_FLAGS_DER;
     uint32_t    iSignature   = 0;
+    const char *pszCArrayNm  = NULL;
     bool        fForce       = false;
 
     RTGETOPTSTATE GetState;
@@ -3373,6 +3450,12 @@ static RTEXITCODE HandleExtractExeSignerCert(int cArgs, char **papszArgs)
             case 'i':   iSignature = ValueUnion.u32; break;
             case 'V':   return HandleVersion(cArgs, papszArgs);
             case 'h':   return HelpExtractExeSignerCert(g_pStdOut, RTSIGNTOOLHELP_FULL);
+
+            case 'C':
+                pszCArrayNm = *ValueUnion.psz ? ValueUnion.psz : NULL;
+                if (pszCArrayNm)
+                    iSignature = UINT32_MAX;
+                break;
 
             case VINF_GETOPT_NOT_OPTION:
                 if (!pszExe)
@@ -3402,28 +3485,78 @@ static RTEXITCODE HandleExtractExeSignerCert(int cArgs, char **papszArgs)
     RTEXITCODE rcExit = SignToolPkcs7Exe_InitFromFile(&This, pszExe, cVerbosity, enmLdrArch);
     if (rcExit == RTEXITCODE_SUCCESS)
     {
-        /* Find the signing certificate (ASSUMING that the certificate used is shipped in the set of certificates). */
-        PRTCRPKCS7SIGNEDDATA  pSignedData;
-        PCRTCRPKCS7SIGNERINFO pSignerInfo = SignToolPkcs7_FindNestedSignatureByIndex(&This, iSignature, &pSignedData);
-        rcExit = RTEXITCODE_FAILURE;
-        if (pSignerInfo)
+        if (pszCArrayNm == NULL || iSignature != UINT32_MAX)
         {
-            PCRTCRPKCS7ISSUERANDSERIALNUMBER pISN = &pSignedData->SignerInfos.papItems[0]->IssuerAndSerialNumber;
-            PCRTCRX509CERTIFICATE pCert;
-            pCert = RTCrPkcs7SetOfCerts_FindX509ByIssuerAndSerialNumber(&pSignedData->Certificates,
-                                                                        &pISN->Name, &pISN->SerialNumber);
-            if (pCert)
+            /* Find the signing certificate (ASSUMING that the certificate used is shipped in the set of certificates). */
+            PRTCRPKCS7SIGNEDDATA  pSignedData;
+            PCRTCRPKCS7SIGNERINFO pSignerInfo = SignToolPkcs7_FindNestedSignatureByIndex(&This, iSignature, &pSignedData);
+            rcExit = RTEXITCODE_FAILURE;
+            if (pSignerInfo)
             {
-                /*
-                 * Write it out.
-                 */
-                rcExit = WriteCertToFile(pCert, pszOut, fForce);
+                PCRTCRPKCS7ISSUERANDSERIALNUMBER pISN = &pSignedData->SignerInfos.papItems[0]->IssuerAndSerialNumber;
+                PCRTCRX509CERTIFICATE pCert;
+                pCert = RTCrPkcs7SetOfCerts_FindX509ByIssuerAndSerialNumber(&pSignedData->Certificates,
+                                                                            &pISN->Name, &pISN->SerialNumber);
+                if (pCert)
+                {
+                    /*
+                     * Write it out.
+                     */
+                    if (pszCArrayNm == NULL)
+                        rcExit = WriteCertToFile(pCert, pszOut, fForce);
+                    else
+                        rcExit = WriteCertToFileAsC(pCert, pszOut, fForce, pszCArrayNm);
+                }
+                else
+                    RTMsgError("Certificate not found.");
             }
             else
-                RTMsgError("Certificate not found.");
+                RTMsgError("Could not locate signature #%u!", iSignature);
         }
         else
-            RTMsgError("Could not locate signature #%u!", iSignature);
+        {
+            uint32_t const cSignatures = SignToolPkcs7_CountSignatures(&This);
+            if (cSignatures)
+            {
+                PRTSTREAM pStrm = NULL;
+                rc = RTStrmOpen(pszOut, fForce ? "wt+" : "wtx", &pStrm);
+                if (RT_SUCCESS(rc))
+                {
+                    for (iSignature = 0; iSignature < cSignatures; iSignature++)
+                    {
+                        PRTCRPKCS7SIGNEDDATA  pSignedData;
+                        PCRTCRPKCS7SIGNERINFO pSignerInfo = SignToolPkcs7_FindNestedSignatureByIndex(&This, iSignature, &pSignedData);
+                        if (!pSignerInfo)
+                        {
+                            rcExit = RTMsgErrorExitFailure("Could not locate signature #%u out of %u!", iSignature, cSignatures);
+                            break;
+                        }
+                        PCRTCRPKCS7ISSUERANDSERIALNUMBER pISN = &pSignedData->SignerInfos.papItems[0]->IssuerAndSerialNumber;
+                        PCRTCRX509CERTIFICATE pCert;
+                        pCert = RTCrPkcs7SetOfCerts_FindX509ByIssuerAndSerialNumber(&pSignedData->Certificates,
+                                                                                    &pISN->Name, &pISN->SerialNumber);
+                        if (pCert)
+                            PrintCertAsCArray(pCert, iSignature, pszCArrayNm, pStrm);
+                        else
+                        {
+                            rcExit = RTMsgErrorExitFailure("Could not locate certificate for signature #%u (out of %u)!",
+                                                           iSignature, cSignatures);
+                            break;
+                        }
+                    }
+
+                    PrintCertTableAsC(iSignature, pszCArrayNm, pStrm);
+
+                    rc = RTStrmClose(pStrm);
+                    if (RT_FAILURE(rc))
+                        rcExit = RTMsgErrorExitFailure("Error writing/closing '%s': %Rrc", pszOut, rc);
+                }
+                else
+                    rcExit = RTMsgErrorExitFailure("Failed to open '%s' for writing: %Rrc", pszOut, rc);
+            }
+            else
+                rcExit = RTMsgErrorExitFailure("No signatures found!");
+        }
 
         /* Delete the signature data. */
         SignToolPkcs7Exe_Delete(&This);
@@ -3446,6 +3579,7 @@ public:
     bool        fForce;
     /** Timestamp or main signature. */
     bool const  fTimestamp;
+    const char *pszBaseNm;
 
     BaseExtractState(bool a_fTimestamp)
         : pszFile(NULL)
@@ -3455,6 +3589,7 @@ public:
         , iSignature(0)
         , fForce(false)
         , fTimestamp(a_fTimestamp)
+        , pszBaseNm(NULL)
     {
     }
 };
@@ -3493,7 +3628,7 @@ public:
 /**
  * Locates the target signature and certificate collection.
  */
-static PRTCRPKCS7SIGNERINFO BaseExtractFindSignerInfo(SIGNTOOLPKCS7 *pThis, BaseExtractState *pState,
+static PRTCRPKCS7SIGNERINFO BaseExtractFindSignerInfo(SIGNTOOLPKCS7 *pThis, BaseExtractState *pState, bool fOptional,
                                                       PRTCRPKCS7SIGNEDDATA  *ppSignedData, PCRTCRPKCS7SETOFCERTS *ppCerts)
 {
     *ppSignedData = NULL;
@@ -3556,7 +3691,8 @@ static PRTCRPKCS7SIGNERINFO BaseExtractFindSignerInfo(SIGNTOOLPKCS7 *pThis, Base
                         RTMsgWarning("Timestamp signature attribute is empty!");
                 }
             }
-            RTMsgError("Cound not find a timestamp signature associated with signature #%u!", pState->iSignature);
+            if (!fOptional)
+                RTMsgError("Cound not find a timestamp signature associated with signature #%u!", pState->iSignature);
             pSignerInfo = NULL;
         }
         else
@@ -3565,7 +3701,7 @@ static PRTCRPKCS7SIGNERINFO BaseExtractFindSignerInfo(SIGNTOOLPKCS7 *pThis, Base
             *ppCerts      = &pSignedData->Certificates;
         }
     }
-    else
+    else if (!fOptional)
         RTMsgError("Could not locate signature #%u!", pState->iSignature);
     return pSignerInfo;
 }
@@ -3579,16 +3715,23 @@ static DECLCALLBACK(void) DumpToStdOutPrintfV(void *pvUser, const char *pszForma
 }
 
 
-static RTEXITCODE RootExtractWorker2(SIGNTOOLPKCS7 *pThis, RootExtractState *pState, PRTERRINFOSTATIC pStaticErrInfo)
+static RTEXITCODE RootExtractWorker3(SIGNTOOLPKCS7 *pThis, RootExtractState *pState, PRTSTREAM pStrm, uint32_t *pidxCert,
+                                     PRTERRINFOSTATIC pStaticErrInfo)
 {
     /*
      * Locate the target signature.
      */
+    bool const            fOptional = pidxCert != NULL && pStrm != NULL && pState->fTimestamp /*fOptional*/;
     PRTCRPKCS7SIGNEDDATA  pSignedData;
     PCRTCRPKCS7SETOFCERTS pCerts;
-    PCRTCRPKCS7SIGNERINFO pSignerInfo = BaseExtractFindSignerInfo(pThis,pState, &pSignedData, &pCerts);
+    PCRTCRPKCS7SIGNERINFO pSignerInfo = BaseExtractFindSignerInfo(pThis, pState, fOptional, &pSignedData, &pCerts);
     if (!pSignerInfo)
-        return RTMsgErrorExitFailure("Could not locate signature #%u!", pState->iSignature);
+    {
+        if (!fOptional)
+            return RTMsgErrorExitFailure("Could not locate signature #%u!", pState->iSignature);
+        return RTEXITCODE_SUCCESS;
+    }
+
 
     /* The next bit is modelled on first half of rtCrPkcs7VerifySignerInfo. */
 
@@ -3677,7 +3820,17 @@ static RTEXITCODE RootExtractWorker2(SIGNTOOLPKCS7 *pThis, RootExtractState *pSt
                                         /*
                                          * Now copy out the certificate.
                                          */
-                                        rcExit = WriteCertToFile(pRootCert, pState->pszOut, pState->fForce);
+                                        if (!pState->pszBaseNm)
+                                            rcExit = WriteCertToFile(pRootCert, pState->pszOut, pState->fForce);
+                                        else if (!pStrm)
+                                            rcExit = WriteCertToFileAsC(pRootCert, pState->pszOut, pState->fForce,
+                                                                        pState->pszBaseNm);
+                                        else
+                                        {
+                                            PrintCertAsCArray(pRootCert, *pidxCert, pState->pszBaseNm, pStrm);
+                                            *pidxCert += 1;
+                                            rcExit = RTEXITCODE_SUCCESS;
+                                        }
                                         break;
                                     }
                                 }
@@ -3712,6 +3865,40 @@ static RTEXITCODE RootExtractWorker2(SIGNTOOLPKCS7 *pThis, RootExtractState *pSt
     uint32_t cRefs = RTCrX509CertPathsRelease(hCertPaths);
     Assert(cRefs == 0); RT_NOREF(cRefs);
 
+    return rcExit;
+}
+
+
+static RTEXITCODE RootExtractWorker2(SIGNTOOLPKCS7 *pThis, RootExtractState *pState, PRTERRINFOSTATIC pStaticErrInfo)
+{
+    if (!pState->pszBaseNm || pState->iSignature != UINT32_MAX)
+        return RootExtractWorker3(pThis, pState, NULL, NULL, pStaticErrInfo);
+
+    /*
+     * Dump all these certificates.
+     */
+    uint32_t const cSignatures = SignToolPkcs7_CountSignatures(pThis);
+    if (!cSignatures)
+        return RTMsgErrorExitFailure("No signatures found!");
+
+    PRTSTREAM pStrm = NULL;
+    int rc = RTStrmOpen(pState->pszOut, pState->fForce ? "wt+" : "wtx", &pStrm);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExitFailure("Failed to open '%s' for writing: %Rrc", pState->pszOut, rc);
+
+    uint32_t   idxCert = 0; /* tracking separately, as we ignore missing timestamp chains. */
+    RTEXITCODE rcExit  = RTEXITCODE_SUCCESS;
+    for (uint32_t iSignature = 0; iSignature < cSignatures && rcExit == RTEXITCODE_SUCCESS; iSignature++)
+    {
+        pState->iSignature = iSignature;
+        rcExit = RootExtractWorker3(pThis, pState, pStrm, &idxCert, pStaticErrInfo);
+    }
+
+    PrintCertTableAsC(idxCert, pState->pszBaseNm, pStrm);
+
+    rc = RTStrmClose(pStrm);
+    if (RT_FAILURE(rc))
+        rcExit = RTMsgErrorExitFailure("Error writing/closing '%s': %Rrc", pState->pszOut, rc);
     return rcExit;
 }
 
@@ -3764,9 +3951,10 @@ static RTEXITCODE HelpExtractRootCommon(PRTSTREAM pStrm, RTSIGNTOOLHELP enmLevel
 {
     RT_NOREF_PV(enmLevel);
     RTStrmWrappedPrintf(pStrm, RTSTRMWRAPPED_F_HANGING_INDENT,
-                        "extract-%s-root [-v|--verbose] [-q|--quiet] [--signature-index|-i <num>] [--root <root-cert.der>] "
-                        "[--self-signed-roots-from-system] [--additional <supp-cert.der>] [--intermediate-certs-from-system] "
-                        "[--input] <signed-file> [-f|--force] [--output|-o] <outfile.cer>\n",
+                        "extract-%s-root [-v|--verbose] [-q|--quiet] [--as-c-array <name>] [--signature-index|-i <num>] "
+                        "[--root <root-cert.der>] [--self-signed-roots-from-system] [--additional <supp-cert.der>] "
+                        "[--intermediate-certs-from-system] [--input] <signed-file> "
+                        "[-f|--force] [--output|-o] <outfile.cer/h>\n",
                         fTimestamp ? "timestamp" : "signer");
     if (enmLevel == RTSIGNTOOLHELP_FULL)
     {
@@ -3782,6 +3970,10 @@ static RTEXITCODE HelpExtractRootCommon(PRTSTREAM pStrm, RTSIGNTOOLHELP enmLevel
                             "  -v, --verbose, -q, --quite\n"
                             "    Controls the noise level.  The '-v' options are accumlative while '-q' is absolute.\n"
                             "    Default: -q\n"
+                            "  -C <name>, --as-c-array <name>\n"
+                            "    Output a C header file containing the roots of all signatures (or a selected one if"
+                            "--signature-index is used again after this option.\n"
+                            "    Default: Output one binary certificate.\n"
                             "  -i <num>, --signature-index <num>\n"
                             "    Zero-based index of the signature to extract the root for.\n"
                             "    Default: -i 0\n"
@@ -3830,6 +4022,7 @@ static RTEXITCODE HandleExtractRootCommon(int cArgs, char **papszArgs, bool fTim
         { "--force",                         'f', RTGETOPT_REQ_NOTHING },
         { "--verbose",                       'v', RTGETOPT_REQ_NOTHING },
         { "--quiet",                         'q', RTGETOPT_REQ_NOTHING },
+        { "--as-c-array",                    'C', RTGETOPT_REQ_STRING  },
     };
     RTERRINFOSTATIC  StaticErrInfo;
     RootExtractState State(fTimestamp);
@@ -3872,6 +4065,12 @@ static RTEXITCODE HandleExtractRootCommon(int cArgs, char **papszArgs, bool fTim
             case 'q':   State.cVerbosity = 0; break;
             case 'V':   return HandleVersion(cArgs, papszArgs);
             case 'h':   return HelpExtractRootCommon(g_pStdOut, RTSIGNTOOLHELP_FULL, fTimestamp);
+
+            case 'C':
+                State.pszBaseNm = *ValueUnion.psz ? ValueUnion.psz : NULL;
+                if (State.pszBaseNm)
+                    State.iSignature = UINT32_MAX;
+                break;
 
             case VINF_GETOPT_NOT_OPTION:
                 if (!State.pszFile)

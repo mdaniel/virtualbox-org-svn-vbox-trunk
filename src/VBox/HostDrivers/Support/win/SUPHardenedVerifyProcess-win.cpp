@@ -116,7 +116,7 @@ typedef struct SUPHNTVPIMAGE
 
     /** Set if this is the DLL. */
     bool            fDll;
-    /** Set if the image is NTDLL an the verficiation code needs to watch out for
+    /** Set if the image is NTDLL and the verficiation code needs to watch out for
      *  the NtCreateSection patch. */
     bool            fNtCreateSectionPatch;
     /** Whether the API set schema hack needs to be applied when verifying memory
@@ -807,10 +807,52 @@ static int supHardNtVpVerifyImageMemoryCompare(PSUPHNTVPSTATE pThis, PSUPHNTVPIM
                                    "%s: Invalid image base: %p", pImage->pszName, uImageBase);
 
     uint32_t  const cbImage    = fIs32Bit ? pNtHdrs32->OptionalHeader.SizeOfImage : pNtHdrs->OptionalHeader.SizeOfImage;
-    if (RT_ALIGN_32(pImage->cbImage, PAGE_SIZE) != RT_ALIGN_32(cbImage, PAGE_SIZE) && !pImage->fApiSetSchemaOnlySection1)
-        return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
-                                   "%s: SizeOfImage (%#x) isn't close enough to the mapping size (%#x)",
-                                   pImage->pszName, cbImage, pImage->cbImage);
+    uint32_t  const cbImagePgAligned = RT_ALIGN_32(cbImage, PAGE_SIZE);
+    if (RT_ALIGN_32(pImage->cbImage, PAGE_SIZE) != cbImagePgAligned && !pImage->fApiSetSchemaOnlySection1)
+    {
+        /*
+         * Since 24h2, the kernel loader appends three pages to system images (from
+         * the looks of it).  This manifests in an additional 2 (or 1) mapping regions,
+         * one which is execute/read (one page in 27718) and a 2nd one which is reserved.
+         * They both assocated with the DLL section object, so not like the typical AV
+         * allocations placed right after DLLs for entertaining unsolicited code changes.
+         */
+        if (pImage->cbImage < cbImagePgAligned)
+            return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
+                                       "%s: SizeOfImage (%#x) is larger than the mapping size (%#x)",
+                                       pImage->pszName, cbImage, pImage->cbImage);
+
+        /* This code has to be paranoid, so we must put some kind of limit on this extra
+           space.  64KB is taken out of thin (late night office) air, as per usual. */
+        if (pImage->cbImage > cbImagePgAligned + _64K)
+            return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
+                                       "%s: SizeOfImage (%#x) isn't close enough to the mapping size (%#x) - diff %#x bytes; max expected is 64KB",
+                                       pImage->pszName, cbImage, pImage->cbImage, pImage->cbImage - cbImage);
+
+        /* Locate the mapping region for the extra pages: */
+        if (pImage->cRegions <= 1)
+            return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
+                                       "%s: SizeOfImage (%#x) is smaller than the mapping size (%#x) and there are less than two mapping regions!",
+                                       pImage->pszName, cbImage, pImage->cbImage);
+        uint32_t iRegion = pImage->cRegions - 1;
+        while (iRegion > 0 && pImage->aRegions[iRegion].uRva > cbImagePgAligned)
+            iRegion--;
+        if (pImage->aRegions[iRegion].uRva != cbImagePgAligned)
+            return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
+                                       "%s: SizeOfImage (%#x) is smaller than the mapping size (%#x) and we cannot locate the region(s) for the extra space! (iRegion=%d: uRva=%#x, expected %#x)",
+                                       pImage->pszName, cbImage, pImage->cbImage, iRegion, pImage->aRegions[iRegion].uRva,
+                                       cbImagePgAligned);
+
+        /* Check that none of the pages are both writable & executable. */
+        for (uint32_t i = iRegion; i < pImage->cRegions; i++)
+            if (pImage->aRegions[i].fProt & PAGE_EXECUTE_READWRITE)
+                return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
+                                           "%s: SizeOfImage (%#x) is smaller than the mapping size (%#x) and extra page %#x LB %#x are RWX (%#x)!",
+                                           pImage->pszName, cbImage, pImage->cbImage,
+                                           pImage->aRegions[i].uRva, pImage->aRegions[i].cb, pImage->aRegions[i].fProt);
+        /** @todo more restrictions on this? */
+    }
+
     if (cbImage != RTLdrSize(pImage->pCacheEntry->hLdrMod))
         return supHardNtVpSetInfo2(pThis, VERR_SUP_VP_BAD_IMAGE_SIZE,
                                    "%s: SizeOfImage (%#x) differs from what RTLdrSize returns (%#zx)",

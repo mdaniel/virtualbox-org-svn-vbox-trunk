@@ -78,6 +78,8 @@ typedef struct DRVTPMEMU
     PPDMDRVINS          pDrvIns;
     /** The VFS interface of the driver below for NVRAM/TPM state loading and storing. */
     PPDMIVFSCONNECTOR   pDrvVfs;
+    /** Pointer to the TPM port interface above. */
+    PPDMITPMPORT        pTpmPort;
 
     /** The TPM version we are emulating. */
     TPMVERSION          enmVersion;
@@ -479,6 +481,17 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
 #endif
 
     /*
+     * Query the TPM port interface of the device above.
+     */
+    pThis->pTpmPort = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMITPMPORT);
+    if (!pThis->pTpmPort)
+    {
+        AssertMsgFailed(("Configuration error: the above device/driver didn't export the TPM port interface!\n"));
+        return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
+                                N_("No TPM port interface above"));
+    }
+
+    /*
      * Try attach the VFS driver below and query it's VFS interface.
      */
     PPDMIBASE pBase = NULL;
@@ -528,6 +541,9 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
     if (RT_FAILURE(rc))
         return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
                                    N_("Configuration error: querying \"BufferSize\" resulted in %Rrc"), rc);
+
+    /* Limit to the buffer size of the device above. */
+    pThis->cbBuffer = RT_MIN(pThis->cbBuffer, pThis->pTpmPort->pfnGetMaxBufferSize(pThis->pTpmPort));
 
     uint32_t cbBufferMin = 0;
     uint32_t cbBuffer = TPMLIB_SetBufferSize(pThis->cbBuffer, &cbBufferMin, NULL /*max_size*/);

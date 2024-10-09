@@ -46,11 +46,426 @@
 #include "NoCrtOutput.h"
 
 #ifdef VBOX_SIGNING_MODE
-# include "BuildCert.h"
+# include "BuildCerts.h"
+# include "TimestampRootCerts.h"
 #endif
 
 
 #ifdef VBOX_SIGNING_MODE
+# if 1 /* Whether to use IPRT or Windows to verify the executable signatures. */
+/* This section is borrowed from RTSignTool.cpp */
+
+#  include <iprt/err.h>
+#  include <iprt/initterm.h>
+#  include <iprt/ldr.h>
+#  include <iprt/message.h>
+#  include <iprt/stream.h>
+#  include <iprt/crypto/pkcs7.h>
+#  include <iprt/crypto/store.h>
+
+class CryptoStore
+{
+public:
+    RTCRSTORE m_hStore;
+
+    CryptoStore()
+        : m_hStore(NIL_RTCRSTORE)
+    {
+    }
+
+    ~CryptoStore()
+    {
+        if (m_hStore != NIL_RTCRSTORE)
+        {
+            uint32_t cRefs = RTCrStoreRelease(m_hStore);
+            Assert(cRefs == 0); RT_NOREF(cRefs);
+            m_hStore = NIL_RTCRSTORE;
+        }
+    }
+
+    /**
+     * Adds one or more certificates from the given file.
+     *
+     * @returns boolean success indicator.
+     */
+    bool addFromFile(const char *pszFilename, PRTERRINFOSTATIC pStaticErrInfo)
+    {
+        int rc = RTCrStoreCertAddFromFile(this->m_hStore, RTCRCERTCTX_F_ADD_IF_NOT_FOUND | RTCRCERTCTX_F_ADD_CONTINUE_ON_ERROR,
+                                          pszFilename, RTErrInfoInitStatic(pStaticErrInfo));
+        if (RT_SUCCESS(rc))
+        {
+            if (RTErrInfoIsSet(&pStaticErrInfo->Core))
+                RTMsgWarning("Warnings loading certificate '%s': %s", pszFilename, pStaticErrInfo->Core.pszMsg);
+            return true;
+        }
+        RTMsgError("Error loading certificate '%s': %Rrc%#RTeim", pszFilename, rc, &pStaticErrInfo->Core);
+        return false;
+    }
+
+    /**
+     * Adds trusted self-signed certificates from the system.
+     *
+     * @returns boolean success indicator.
+     * @note The selection is self-signed rather than CAs here so that test signing
+     *       certificates will be included.
+     */
+    bool addSelfSignedRootsFromSystem(PRTERRINFOSTATIC pStaticErrInfo)
+    {
+        CryptoStore Tmp;
+        int rc = RTCrStoreCreateSnapshotOfUserAndSystemTrustedCAsAndCerts(&Tmp.m_hStore, RTErrInfoInitStatic(pStaticErrInfo));
+        if (RT_SUCCESS(rc))
+        {
+            RTCRSTORECERTSEARCH Search;
+            rc = RTCrStoreCertFindAll(Tmp.m_hStore, &Search);
+            if (RT_SUCCESS(rc))
+            {
+                PCRTCRCERTCTX pCertCtx;
+                while ((pCertCtx = RTCrStoreCertSearchNext(Tmp.m_hStore, &Search)) != NULL)
+                {
+                    /* Add it if it's a full fledged self-signed certificate, otherwise just skip: */
+                    if (   pCertCtx->pCert
+                        && RTCrX509Certificate_IsSelfSigned(pCertCtx->pCert))
+                    {
+                        int rc2 = RTCrStoreCertAddEncoded(this->m_hStore,
+                                                          pCertCtx->fFlags | RTCRCERTCTX_F_ADD_IF_NOT_FOUND,
+                                                          pCertCtx->pabEncoded, pCertCtx->cbEncoded, NULL);
+                        if (RT_FAILURE(rc2))
+                            RTMsgWarning("RTCrStoreCertAddEncoded failed for a certificate: %Rrc", rc2);
+                    }
+                    RTCrCertCtxRelease(pCertCtx);
+                }
+
+                int rc2 = RTCrStoreCertSearchDestroy(Tmp.m_hStore, &Search);
+                AssertRC(rc2);
+                return true;
+            }
+            RTMsgError("RTCrStoreCertFindAll failed: %Rrc", rc);
+        }
+        else
+            RTMsgError("RTCrStoreCreateSnapshotOfUserAndSystemTrustedCAsAndCerts failed: %Rrc%#RTeim", rc, &pStaticErrInfo->Core);
+        return false;
+    }
+
+    /**
+     * Adds trusted self-signed certificates from the system.
+     *
+     * @returns boolean success indicator.
+     */
+    bool addIntermediateCertsFromSystem(PRTERRINFOSTATIC pStaticErrInfo)
+    {
+        bool fRc = true;
+        RTCRSTOREID const s_aenmStoreIds[] = { RTCRSTOREID_SYSTEM_INTERMEDIATE_CAS, RTCRSTOREID_USER_INTERMEDIATE_CAS };
+        for (size_t i = 0; i < RT_ELEMENTS(s_aenmStoreIds); i++)
+        {
+            CryptoStore Tmp;
+            int rc = RTCrStoreCreateSnapshotById(&Tmp.m_hStore, s_aenmStoreIds[i], RTErrInfoInitStatic(pStaticErrInfo));
+            if (RT_SUCCESS(rc))
+            {
+                RTCRSTORECERTSEARCH Search;
+                rc = RTCrStoreCertFindAll(Tmp.m_hStore, &Search);
+                if (RT_SUCCESS(rc))
+                {
+                    PCRTCRCERTCTX pCertCtx;
+                    while ((pCertCtx = RTCrStoreCertSearchNext(Tmp.m_hStore, &Search)) != NULL)
+                    {
+                        /* Skip selfsigned certs as they're useless as intermediate certs (IIRC). */
+                        if (   pCertCtx->pCert
+                            && !RTCrX509Certificate_IsSelfSigned(pCertCtx->pCert))
+                        {
+                            int rc2 = RTCrStoreCertAddEncoded(this->m_hStore,
+                                                              pCertCtx->fFlags | RTCRCERTCTX_F_ADD_IF_NOT_FOUND,
+                                                              pCertCtx->pabEncoded, pCertCtx->cbEncoded, NULL);
+                            if (RT_FAILURE(rc2))
+                                RTMsgWarning("RTCrStoreCertAddEncoded failed for a certificate: %Rrc", rc2);
+                        }
+                        RTCrCertCtxRelease(pCertCtx);
+                    }
+
+                    int rc2 = RTCrStoreCertSearchDestroy(Tmp.m_hStore, &Search);
+                    AssertRC(rc2);
+                }
+                else
+                {
+                    RTMsgError("RTCrStoreCertFindAll/%d failed: %Rrc", s_aenmStoreIds[i], rc);
+                    fRc = false;
+                }
+            }
+            else
+            {
+                RTMsgError("RTCrStoreCreateSnapshotById/%d failed: %Rrc%#RTeim", s_aenmStoreIds[i], rc, &pStaticErrInfo->Core);
+                fRc = false;
+            }
+        }
+        return fRc;
+    }
+
+};
+
+typedef struct VERIFYEXESTATE
+{
+    CryptoStore RootStore;
+    CryptoStore KernelRootStore;
+    CryptoStore AdditionalStore;
+    bool        fKernel;
+    int         cVerbose;
+    enum { kSignType_Windows, kSignType_OSX } enmSignType;
+    RTLDRARCH   enmLdrArch;
+    uint32_t    cBad;
+    uint32_t    cOkay;
+    uint32_t    cTrustedCerts;
+    const char *pszFilename;
+    RTTIMESPEC  ValidationTime;
+
+    VERIFYEXESTATE()
+        : fKernel(false)
+        , cVerbose(0)
+        , enmSignType(kSignType_Windows)
+        , enmLdrArch(RTLDRARCH_WHATEVER)
+        , cBad(0)
+        , cOkay(0)
+        , cTrustedCerts(0)
+        , pszFilename(NULL)
+    {
+        RTTimeSpecSetSeconds(&ValidationTime, 0);
+    }
+} VERIFYEXESTATE;
+
+/**
+ * @callback_method_impl{FNRTCRPKCS7VERIFYCERTCALLBACK,
+ * Standard code signing.  Use this for Microsoft SPC.}
+ */
+static DECLCALLBACK(int) VerifyExecCertVerifyCallback(PCRTCRX509CERTIFICATE pCert, RTCRX509CERTPATHS hCertPaths, uint32_t fFlags,
+                                                      void *pvUser, PRTERRINFO pErrInfo)
+{
+    VERIFYEXESTATE * const pState = (VERIFYEXESTATE *)pvUser;
+
+    /* We don't set RTCRPKCS7VERIFY_SD_F_TRUST_ALL_CERTS, so it won't be NIL! */
+    Assert(hCertPaths != NIL_RTCRX509CERTPATHS);
+
+#  if 0 /* for debugging */
+    uint32_t const cPaths = RTCrX509CertPathsGetPathCount(hCertPaths);
+    RTMsgInfo("%s Path%s (pCert=%p hCertPaths=%p fFlags=%#x cPath=%d):",
+              fFlags & RTCRPKCS7VCC_F_TIMESTAMP ? "Timestamp" : "Signature", cPaths == 1 ? "" : "s",
+              pCert, hCertPaths, fFlags, cPaths);
+    for (uint32_t iPath = 0; iPath < cPaths; iPath++)
+    {
+        RTCrX509CertPathsDumpOne(hCertPaths, iPath, pState->cVerbose, RTStrmDumpPrintfV, g_pStdOut);
+        *pErrInfo->pszMsg = '\0';
+    }
+#  endif
+
+    /*
+     * Standard code signing capabilites required.
+     *
+     * Note! You may have to fix your test signing cert / releax this one to pass this.
+     */
+    int rc = RTCrPkcs7VerifyCertCallbackCodeSigning(pCert, hCertPaths, fFlags, NULL, pErrInfo);
+    if (RT_SUCCESS(rc))
+    {
+        /*
+         * Check if the signing certificate is a trusted one, i.e. one of the
+         * build certificates.
+         */
+        if (!(fFlags & RTCRPKCS7VCC_F_TIMESTAMP))
+            if (RTCrX509CertPathsGetPathCount(hCertPaths) == 1)
+                if (RTCrX509CertPathsGetPathLength(hCertPaths, 0) == 1)
+                {
+                    RTMsgInfo("Signed by trusted certificate.\n");
+                    pState->cTrustedCerts++;
+                }
+    }
+    else
+        RTMsgError("RTCrPkcs7VerifyCertCallbackCodeSigning(,,%#x,,) failed: %Rrc%#RTeim", fFlags, pErrInfo);
+    return rc;
+}
+
+/** @callback_method_impl{FNRTLDRVALIDATESIGNEDDATA}  */
+static DECLCALLBACK(int) VerifyExeCallback(RTLDRMOD hLdrMod, PCRTLDRSIGNATUREINFO pInfo, PRTERRINFO pErrInfo, void *pvUser)
+{
+    VERIFYEXESTATE * const pState = (VERIFYEXESTATE *)pvUser;
+    RT_NOREF_PV(hLdrMod);
+
+    switch (pInfo->enmType)
+    {
+        case RTLDRSIGNATURETYPE_PKCS7_SIGNED_DATA:
+        {
+            PCRTCRPKCS7CONTENTINFO pContentInfo = (PCRTCRPKCS7CONTENTINFO)pInfo->pvSignature;
+
+            if (pState->cVerbose > 0)
+                RTMsgInfo("Verifying '%s' signature #%u ...\n", pState->pszFilename, pInfo->iSignature + 1);
+
+#  if 0
+            /*
+             * Dump the signed data if so requested and it's the first one, assuming that
+             * additional signatures in contained wihtin the same ContentInfo structure.
+             */
+            if (pState->cVerbose > 1 && pInfo->iSignature == 0)
+                RTAsn1Dump(&pContentInfo->SeqCore.Asn1Core, 0, 0, RTStrmDumpPrintfV, g_pStdOut);
+#  endif
+
+            /*
+             * We'll try different alternative timestamps here.
+             */
+            struct { RTTIMESPEC TimeSpec; const char *pszDesc; } aTimes[3];
+            unsigned cTimes = 0;
+
+            /* The specified timestamp. */
+            if (RTTimeSpecGetSeconds(&pState->ValidationTime) != 0)
+            {
+                aTimes[cTimes].TimeSpec = pState->ValidationTime;
+                aTimes[cTimes].pszDesc  = "validation time";
+                cTimes++;
+            }
+
+            /* Linking timestamp: */
+            uint64_t uLinkingTime = 0;
+            int rc = RTLdrQueryProp(hLdrMod, RTLDRPROP_TIMESTAMP_SECONDS, &uLinkingTime, sizeof(uLinkingTime));
+            if (RT_SUCCESS(rc))
+            {
+                RTTimeSpecSetSeconds(&aTimes[cTimes].TimeSpec, uLinkingTime);
+                aTimes[cTimes].pszDesc = "at link time";
+                cTimes++;
+            }
+            else if (rc != VERR_NOT_FOUND)
+                RTMsgError("RTLdrQueryProp/RTLDRPROP_TIMESTAMP_SECONDS failed on '%s': %Rrc\n", pState->pszFilename, rc);
+
+            /* Now: */
+            RTTimeNow(&aTimes[cTimes].TimeSpec);
+            aTimes[cTimes].pszDesc = "now";
+            cTimes++;
+
+            /*
+             * Do the actual verification.
+             */
+            Assert(!pInfo->pvExternalData);
+            for (unsigned iTime = 0; iTime < cTimes; iTime++)
+            {
+                RTTIMESPEC TimeSpec = aTimes[iTime].TimeSpec;
+                rc = RTCrPkcs7VerifySignedData(pContentInfo,
+                                               RTCRPKCS7VERIFY_SD_F_COUNTER_SIGNATURE_SIGNING_TIME_ONLY
+                                               | RTCRPKCS7VERIFY_SD_F_ALWAYS_USE_SIGNING_TIME_IF_PRESENT
+                                               | RTCRPKCS7VERIFY_SD_F_ALWAYS_USE_MS_TIMESTAMP_IF_PRESENT
+                                               | RTCRPKCS7VERIFY_SD_F_CHECK_TRUST_ANCHORS
+                                               | RTCRPKCS7VERIFY_SD_F_UPDATE_VALIDATION_TIME,
+                                               pState->AdditionalStore.m_hStore, pState->RootStore.m_hStore,
+                                               &TimeSpec, VerifyExecCertVerifyCallback, pState, pErrInfo);
+                if (RT_SUCCESS(rc))
+                {
+                    Assert(rc == VINF_SUCCESS || rc == VINF_CR_DIGEST_DEPRECATED);
+                    const char * const pszNote = rc == VINF_CR_DIGEST_DEPRECATED ? " (deprecated digest)" : "";
+                    const char * const pszTime =    iTime == 0
+                                                 && RTTimeSpecCompare(&TimeSpec, &aTimes[iTime].TimeSpec) != 0
+                                               ? "at signing time" : aTimes[iTime].pszDesc;
+                    if (pInfo->cSignatures == 1)
+                        RTMsgInfo("'%s' is valid %s%s.\n", pState->pszFilename, pszTime, pszNote);
+                    else
+                        RTMsgInfo("'%s' signature #%u is valid %s%s.\n",
+                                  pState->pszFilename, pInfo->iSignature + 1, pszTime, pszNote);
+                    pState->cOkay++;
+                    return VINF_SUCCESS;
+                }
+                if (rc != VERR_CR_X509_CPV_NOT_VALID_AT_TIME)
+                {
+                    if (pInfo->cSignatures == 1)
+                        RTMsgError("%s: Failed to verify signature: %Rrc%#RTeim\n", pState->pszFilename, rc, pErrInfo);
+                    else
+                        RTMsgError("%s: Failed to verify signature #%u: %Rrc%#RTeim\n",
+                                   pState->pszFilename, pInfo->iSignature + 1, rc, pErrInfo);
+                    pState->cBad++;
+                    return VINF_SUCCESS;
+                }
+            }
+
+            if (pInfo->cSignatures == 1)
+                RTMsgError("%s: Signature is not valid at present or link time.\n", pState->pszFilename);
+            else
+                RTMsgError("%s: Signature #%u is not valid at present or link time.\n",
+                           pState->pszFilename, pInfo->iSignature + 1);
+            pState->cBad++;
+            return VINF_SUCCESS;
+        }
+
+        default:
+            return RTErrInfoSetF(pErrInfo, VERR_NOT_SUPPORTED, "Unsupported signature type: %d", pInfo->enmType);
+    }
+}
+
+/**
+ * Uses IPRT functionality to check that the executable is signed with a
+ * certiicate known to us.
+ *
+ * @returns 0 on success, non-zero exit code on failure.
+ */
+static int CheckFileSignatureIprt(wchar_t const *pwszExePath)
+{
+    RTR3InitExeNoArguments(RTR3INIT_FLAGS_STANDALONE_APP);
+    RTMsgInfo("Signing checking of '%ls'...\n", pwszExePath);
+
+    /* Initialize the state. */
+    VERIFYEXESTATE State;
+    int rc = RTCrStoreCreateInMem(&State.RootStore.m_hStore, 0);
+    if (RT_SUCCESS(rc))
+        rc = RTCrStoreCreateInMem(&State.KernelRootStore.m_hStore, 0);
+    if (RT_SUCCESS(rc))
+        rc = RTCrStoreCreateInMem(&State.AdditionalStore.m_hStore, 0);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Error creating in-memory certificate store: %Rrc", rc);
+
+    /* Add the build certificates to the root store. */
+    RTERRINFOSTATIC StaticErrInfo;
+    for (uint32_t i = 0; i < g_cBuildCerts; i++)
+    {
+        rc = RTCrStoreCertAddEncoded(State.RootStore.m_hStore, RTCRCERTCTX_F_ENC_X509_DER,
+                                     g_aBuildCerts[i].pbCert, g_aBuildCerts[i].cbCert, RTErrInfoInitStatic(&StaticErrInfo));
+        if (RT_FAILURE(rc))
+            return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to add build cert #%u to root store: %Rrc%#RTeim",
+                                  i, rc, &StaticErrInfo.Core);
+    }
+    uint32_t i = g_cTimestampRootCerts; /* avoids warning if g_cTimestampRootCerts is 0. */
+    while (i-- > 0)
+    {
+        rc = RTCrStoreCertAddEncoded(State.RootStore.m_hStore, RTCRCERTCTX_F_ENC_X509_DER,
+                                     g_aTimestampRootCerts[i].pbCert, g_aTimestampRootCerts[i].cbCert,
+                                     RTErrInfoInitStatic(&StaticErrInfo));
+        if (RT_FAILURE(rc))
+            return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to add build timestamp root cert #%u to root store: %Rrc%#RTeim",
+                                  i, rc, &StaticErrInfo.Core);
+    }
+
+    /*
+     * Open the executable image and verify it.
+     */
+    char *pszExePath = NULL;
+    rc = RTUtf16ToUtf8(pwszExePath, &pszExePath);
+    AssertRCReturn(rc, RTEXITCODE_FAILURE);
+    RTLDRMOD hLdrMod;
+    rc = RTLdrOpen(pszExePath, RTLDR_O_FOR_VALIDATION, RTLDRARCH_WHATEVER, &hLdrMod);
+    if (RT_SUCCESS(rc))
+    {
+        State.pszFilename = pszExePath;
+
+        rc = RTLdrVerifySignature(hLdrMod, VerifyExeCallback, &State, RTErrInfoInitStatic(&StaticErrInfo));
+        if (RT_FAILURE(rc))
+            RTMsgError("RTLdrVerifySignature failed on '%s': %Rrc%#RTeim\n", pszExePath, rc, &StaticErrInfo.Core);
+
+        RTStrFree(pszExePath);
+        RTLdrClose(hLdrMod);
+
+        if (RT_FAILURE(rc))
+            return rc != VERR_LDRVI_NOT_SIGNED ? RTEXITCODE_FAILURE : RTEXITCODE_SKIPPED;
+        if (State.cOkay > 0)
+        {
+            if (State.cTrustedCerts > 0)
+                return RTEXITCODE_SUCCESS;
+            RTMsgError("None of the build certificates were used for signing '%ls'!", pwszExePath);
+        }
+        return RTEXITCODE_FAILURE;
+    }
+    RTStrFree(pszExePath);
+    return RTEXITCODE_FAILURE;
+}
+
+# else /* Using Windows APIs */
 
 /**
  * Checks the file signatures of both this stub program and the actual installer
@@ -182,6 +597,8 @@ static int CheckFileSignatures(wchar_t const *pwszExePath, HANDLE hFileExe, wcha
                                  &aExes[i].hMsg,
                                  NULL /*ppvContext*/))
             rcExit = ErrorMsgRcSWSU(50 + i*4, "CryptQueryObject/FILE on '", aExes[i].pwszFile, "': ", GetLastError());
+/** @todo this isn't getting us what we want. It's just accessing the
+ *        certificates shipped with the signature. Sigh. */
         else if (!pfnCryptMsgGetParam(aExes[i].hMsg, CMSG_CERT_PARAM, 0, NULL, &aExes[i].cbCert))
             rcExit = ErrorMsgRcSWSU(51 + i*4, "CryptMsgGetParam/CMSG_CERT_PARAM/size failed on '",
                                     aExes[i].pwszFile, "': ", GetLastError());
@@ -319,6 +736,7 @@ static int CheckFileSignatures(wchar_t const *pwszExePath, HANDLE hFileExe, wcha
     return rcExit;
 }
 
+# endif /* Using Windows APIs. */
 #endif /* VBOX_SIGNING_MODE */
 
 /**
@@ -678,7 +1096,12 @@ int main()
         return rcExit;
 
 #ifdef VBOX_SIGNING_MODE
+# if 1 /* Use the IPRT code as it it will work on all windows versions without trouble. 
+          Added some 800KB to the executable, but so what. */
+    rcExit = CheckFileSignatureIprt(wszExePath);
+# else
     rcExit = CheckFileSignatures(wszExePath, hFileExe, wszSelfPath, hFileSelf);
+# endif
     if (rcExit != 0)
         return rcExit;
 #endif

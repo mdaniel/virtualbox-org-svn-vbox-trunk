@@ -76,9 +76,14 @@ ifdef VBOX_SIGNING_MODE
   VBoxWindowsAdditions_POST_CMDS.win = $(call VBOX_SIGN_IMAGE_FN,$(out),,2)
   VBoxWindowsAdditions_ORDERDEPS     = $(VBOX_SIGN_IMAGE_ORDERDEPS)
  endif
- VBoxWindowsAdditions_DEFS         += VBOX_SIGNING_MODE
- VBoxWindowsAdditions_INCS         += $(VBoxWindowsAdditions_0_OUTDIR)
- VBoxWindowsAdditions_INTERMEDIATES = $(VBoxWindowsAdditions_0_OUTDIR)/BuildCert.h
+ VBoxWindowsAdditions_DEFS          += VBOX_SIGNING_MODE
+ VBoxWindowsAdditions_INCS          += $(VBoxWindowsAdditions_0_OUTDIR)
+ VBoxWindowsAdditions_INTERMEDIATES += \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h  \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/TimestampRootCerts.h
+ VBoxWindowsAdditions_CLEAN         += \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h  \
+ 	$(VBoxWindowsAdditions_0_OUTDIR)/TimestampRootCerts.h
 
  # Dummy signed program that we can extract the signature from.
  BLDPROGS += bldAddSignedDummy
@@ -87,16 +92,14 @@ ifdef VBOX_SIGNING_MODE
  bldAddSignedDummy_ORDERDEPS = $(VBOX_SIGN_IMAGE_ORDERDEPS)
  bldAddSignedDummy_POST_CMDS = $(call VBOX_SIGN_IMAGE_FN,$(out),,2)
 
- # The certificate include file.
- $$(VBoxWindowsAdditions_0_OUTDIR)/BuildCert.h: \
- 		$(VBOX_BIN2C) \
- 		$(VBOX_RTSIGNTOOL) \
- 		$$(bldAddSignedDummy_1_TARGET) \
- 		| $$(dir $$@)
-	$(QUIET)$(RM) -f -- "$@" "$@.cer"
-	$(VBOX_RTSIGNTOOL) extract-exe-signer-cert --exe "$(bldAddSignedDummy_1_TARGET)" --output "$@.cer" --der
-	$(VBOX_BIN2C) -ascii --append BuildCert "$@.cer" "$@"
-	$(QUIET)$(RM) -f -- $@.cer
+ # The certificate include files.
+ $$(VBoxWindowsAdditions_0_OUTDIR)/BuildCerts.h: $(VBOX_RTSIGNTOOL) $$(bldAddSignedDummy_1_TARGET) | $$(dir $$@)
+	$(QUIET)$(RM) -f -- "$@"
+	$(VBOX_RTSIGNTOOL) extract-exe-signer-cert --as-c-array "BuildCerts" "$(bldAddSignedDummy_1_TARGET)" --output "$@"
+
+ $$(VBoxWindowsAdditions_0_OUTDIR)/TimestampRootCerts.h: $(VBOX_RTSIGNTOOL) $$(bldAddSignedDummy_1_TARGET) | $$(dir $$@)
+	$(QUIET)$(RM) -f -- "$@"
+	$(VBOX_RTSIGNTOOL) extract-timestamp-root -R --as-c-array "TimestampRootCerts" "$(bldAddSignedDummy_1_TARGET)" --output "$@"
 
  OTHER_CLEAN += $(VBOX_SUP_WIN_CERTS_FILE)
 

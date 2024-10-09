@@ -8363,7 +8363,7 @@ int vmsvgaR3GmrTransfer(PVGASTATE pThis, PVGASTATECC pThisCC, const SVGA3dTransf
         {
             if (pbDst - pbSrc < cbSrcPitch * cHeight)
             {
-                LogRelMax(8, ("Src buffer 0x%p overlaps Dst buffer 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
+                LogFlow(("Src buffer 0x%p overlaps Dst buffer 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
                     pbSrc, pbDst, cbSrcPitch, cbDstPitch, cbWidth, cHeight));
             }
         }
@@ -8371,13 +8371,13 @@ int vmsvgaR3GmrTransfer(PVGASTATE pThis, PVGASTATECC pThisCC, const SVGA3dTransf
         {
             if (pbSrc - pbDst < cbDstPitch * cHeight)
             {
-                LogRelMax(8, ("Dst buffer 0x%p overlaps Src buffer 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
+                LogFlow(("Dst buffer 0x%p overlaps Src buffer 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
                     pbDst, pbSrc, cbSrcPitch, cbDstPitch, cbWidth, cHeight));
             }
         }
         else
         {
-            LogRelMax(8, ("Src and Dst buffers are both start at 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
+            LogFlow(("Src and Dst buffers are both start at 0x%p, cbSrcPitch %d, cbDstPitch %d, cbWidth %u, cHeight %u\n",
                 pbSrc, cbSrcPitch, cbDstPitch, cbWidth, cHeight));
         }
 

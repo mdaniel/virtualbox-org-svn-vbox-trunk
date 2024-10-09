@@ -2911,6 +2911,40 @@ int GuestSessionTaskUpdateAdditions::waitForGuestSession(ComObjPtr<Guest> pGuest
     return vrcRet;
 }
 
+/**
+ * Helper function which retrieves guest platform architecture information.
+ *
+ * @returns Platform architecture type or PlatformArchitecture_None if
+ *          architecture information cannot be retrieved.
+ */
+PlatformArchitecture_T GuestSessionTaskUpdateAdditions::getPlatformArch(void)
+{
+    HRESULT hrc;
+    PlatformArchitecture_T enmArch = PlatformArchitecture_None;
+
+    ComObjPtr<GuestSession> pSession = mSession;
+    Assert(!pSession.isNull());
+
+    ComObjPtr<Guest> pGuest(pSession->i_getParent());
+    Assert(!pGuest.isNull());
+
+    ComObjPtr<Console> pConsole = pGuest->i_getConsole();
+    Assert(!pConsole.isNull());
+
+    const ComPtr<IMachine> pMachine = pConsole->i_machine();
+    Assert(!pMachine.isNull());
+
+    ComPtr<IPlatform> pPlatform;
+
+    hrc = pMachine->COMGETTER(Platform)(pPlatform.asOutParam());
+    AssertComRCReturn(hrc, PlatformArchitecture_None);
+
+    hrc = pPlatform->COMGETTER(Architecture)(&enmArch);
+    AssertComRCReturn(hrc, PlatformArchitecture_None);
+
+    return enmArch;
+}
+
 /** @copydoc GuestSessionTask::Run */
 int GuestSessionTaskUpdateAdditions::Run(void)
 {
@@ -3260,10 +3294,14 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                         }
                         case eOSType_Linux:
                         {
+                            bool fIsArm = getPlatformArch() == PlatformArchitecture_ARM;
+
+                            const Utf8Str strInstallerBinUC("VBOXLINUXADDITIONS" + Utf8Str(fIsArm ? "-ARM64" : "") + ".RUN");
+                            const Utf8Str strInstallerBin  ("VBoxLinuxAdditions" + Utf8Str(fIsArm ? "-arm64" : "") + ".run");
+
                             /* Copy over the installer to the guest but don't execute it.
                              * Execution will be done by the shell instead. */
-                            mFiles.push_back(ISOFile("VBOXLINUXADDITIONS.RUN",
-                                                     strUpdateDir + "VBoxLinuxAdditions.run", ISOFILE_FLAG_COPY_FROM_ISO));
+                            mFiles.push_back(ISOFile(strInstallerBinUC, strUpdateDir + strInstallerBin, ISOFILE_FLAG_COPY_FROM_ISO));
 
                             UpdateAdditionsStartupInfo siInstaller;
                             siInstaller.mName = "VirtualBox Linux Guest Additions Installer";
@@ -3273,7 +3311,7 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                             /* The argv[0] should contain full path to the shell we're using to execute the installer. */
                             siInstaller.mArguments.push_back("/bin/sh");
                             /* Now add the stuff we need in order to execute the installer.  */
-                            siInstaller.mArguments.push_back(strUpdateDir + "VBoxLinuxAdditions.run");
+                            siInstaller.mArguments.push_back(strUpdateDir + strInstallerBin);
                             /* Make sure to add "--nox11" to the makeself wrapper in order to not getting any blocking xterm
                              * window spawned when doing any unattended Linux GA installations. */
                             siInstaller.mArguments.push_back("--nox11");

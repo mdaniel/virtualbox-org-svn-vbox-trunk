@@ -461,6 +461,8 @@ protected:
     int checkGuestAdditionsStatus(GuestSession *pSession, eOSType osType);
     int waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType, ComObjPtr<GuestSession> &pNewSession);
 
+    PlatformArchitecture_T getPlatformArch(void);
+
     /** Files to handle. */
     std::vector<ISOFile>        mFiles;
     /** The (optionally) specified Guest Additions .ISO on the host

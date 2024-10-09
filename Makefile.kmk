@@ -229,50 +229,48 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
  #
  if defined(VBOX_WITH_QTGUI) && !defined(VBOX_ONLY_SDK) && "$(KBUILD_TARGET)" == "darwin"
   include $(KBUILD_PATH)/units/qt6.kmk
-  VBOX_QT_FWRK_VER := A
-  VBOX_QT_PATH     := $(PATH_SDK_QT6)
-  VBOX_QT_PATH_LIB := $(PATH_SDK_QT6_LIB)
 
   INSTALLS += qt-bin
   qt-bin_INST = $(INST_VIRTUALBOX)Contents/
+
   qt-bin_EXEC_SOURCES = $(foreach qtmod,$(VBOX_QT_MOD_NAMES), \
-  		$(VBOX_QT_PATH_LIB)/$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/$(qtmod)=>Frameworks/$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/$(qtmod))
+  		$(PATH_SDK_QT6_LIB)/$(qtmod).framework/Versions/A/$(qtmod)=>Frameworks/$(qtmod).framework/Versions/A/$(qtmod))
   qt-bin_SOURCES = $(foreach qtmod,$(VBOX_QT_MOD_NAMES), \
-  		$(VBOX_QT_PATH_LIB)/$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/Resources/Info.plist=>Frameworks/$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/Resources/Info.plist)
+  		$(PATH_SDK_QT6_LIB)/$(qtmod).framework/Versions/A/Resources/Info.plist=>Frameworks/$(qtmod).framework/Versions/A/Resources/Info.plist)
   ifdef VBOX_WITH_QT_DSYMS
    qt-bin_SOURCES += $(foreach qtmod,$(VBOX_QT_MOD_NAMES), \
-   		$(VBOX_QT_PATH_LIB)/$(qtmod).framework.dSYM/Contents/Info.plist=>Frameworks/$(qtmod).framework.dSYM/Contents/Info.plist \
-   		$(VBOX_QT_PATH_LIB)/$(qtmod).framework.dSYM/Contents/Resources/DWARF/$(qtmod)=>Frameworks/$(qtmod).framework.dSYM/Contents/Resources/DWARF/$(qtmod))
+   		$(PATH_SDK_QT6_LIB)/$(qtmod).framework.dSYM/Contents/Info.plist=>Frameworks/$(qtmod).framework.dSYM/Contents/Info.plist \
+   		$(PATH_SDK_QT6_LIB)/$(qtmod).framework.dSYM/Contents/Resources/DWARF/$(qtmod)=>Frameworks/$(qtmod).framework.dSYM/Contents/Resources/DWARF/$(qtmod))
   endif
   qt-bin_EXEC_SOURCES += \
-  	$(VBOX_QT_PATH)/plugins/platforms/libqcocoa$(SUFF_DLL)=>plugins/platforms/libqcocoa$(SUFF_DLL) \
-  	$(VBOX_QT_PATH)/plugins/platforms/libqminimal$(SUFF_DLL)=>plugins/platforms/libqminimal$(SUFF_DLL) \
-  	$(VBOX_QT_PATH)/plugins/platforms/libqoffscreen$(SUFF_DLL)=>plugins/platforms/libqoffscreen$(SUFF_DLL) \
-  	$(VBOX_QT_PATH)/plugins/sqldrivers/libqsqlite$(SUFF_DLL)=>plugins/sqldrivers/libqsqlite$(SUFF_DLL) \
-  	$(VBOX_QT_PATH)/plugins/styles/libqmacstyle$(SUFF_DLL)=>plugins/styles/libqmacstyle$(SUFF_DLL)
+  	$(PATH_SDK_QT6)/plugins/platforms/libqcocoa$(SUFF_DLL)=>plugins/platforms/libqcocoa$(SUFF_DLL) \
+  	$(PATH_SDK_QT6)/plugins/platforms/libqminimal$(SUFF_DLL)=>plugins/platforms/libqminimal$(SUFF_DLL) \
+  	$(PATH_SDK_QT6)/plugins/platforms/libqoffscreen$(SUFF_DLL)=>plugins/platforms/libqoffscreen$(SUFF_DLL) \
+  	$(PATH_SDK_QT6)/plugins/sqldrivers/libqsqlite$(SUFF_DLL)=>plugins/sqldrivers/libqsqlite$(SUFF_DLL) \
+  	$(PATH_SDK_QT6)/plugins/styles/libqmacstyle$(SUFF_DLL)=>plugins/styles/libqmacstyle$(SUFF_DLL)
   ifdef VBOX_WITH_QT_DSYMS
    qt-bin_SOURCES += $(foreach qtplat, qcocoa qminimal qoffscreen, \
-   		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist \
-   		$(VBOX_QT_PATH)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat))
+   		$(PATH_SDK_QT6)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(PATH_SDK_QT6)/plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat)=>plugins/platforms/lib$(qtplat)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtplat))
    qt-bin_SOURCES += $(foreach qtsqldrv, qsqlite, \
-   		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist \
-   		$(VBOX_QT_PATH)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv))
+   		$(PATH_SDK_QT6)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(PATH_SDK_QT6)/plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv)=>plugins/sqldrivers/lib$(qtsqldrv)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtsqldrv))
    qt-bin_SOURCES += $(foreach qtstyl, qmacstyle, \
-   		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist \
-   		$(VBOX_QT_PATH)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl))
+   		$(PATH_SDK_QT6)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Info.plist \
+   		$(PATH_SDK_QT6)/plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl)=>plugins/styles/lib$(qtstyl)$(SUFF_DLL).dSYM/Contents/Resources/DWARF/$(qtstyl))
   endif
   qt-bin_SYMLINKS = $(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
-  		Frameworks/$(qtmod).framework/Versions/Current=>$(VBOX_QT_FWRK_VER) \
-  		Frameworks/$(qtmod).framework/$(qtmod)=>Versions/$(VBOX_QT_FWRK_VER)/$(qtmod) \
-  		Frameworks/$(qtmod).framework/Resources=>Versions/$(VBOX_QT_FWRK_VER)/Resources)
+  		Frameworks/$(qtmod).framework/Versions/Current=>A \
+  		Frameworks/$(qtmod).framework/$(qtmod)=>Versions/A/$(qtmod) \
+  		Frameworks/$(qtmod).framework/Resources=>Versions/A/Resources)
   qt-bin_INSTALLER = $(INSTALL) $(if $(uid),-o $(uid)) $(if $(gid),-g $(gid)) $(if $(mode),-m $(mode)) $(4) -- "$(1)" "$(2)" \
   	$(if-expr "$(source_type_prefix)" == "EXEC_" \
   		,$(NLTAB)install_name_tool \
-  		$(if-expr "$(suffix $2)" == "", -id "$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Framework,@rpath)/$(notdir $(2)).framework/Version/$(VBOX_QT_FWRK_VER)/$(notdir $(2))",) \
+  		$(if-expr "$(suffix $2)" == "", -id "$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Framework,@rpath)/$(notdir $(2)).framework/Version/A/$(notdir $(2))",) \
   		$(foreach qtmod, $(VBOX_QT_MOD_NAMES), \
-  			$(foreach prefix, @executable_path/../Frameworks/ $(VBOX_PATH_QT)/Frameworks/ $(VBOX_QT_PATH)/, \
-  				-change "$(prefix)$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/$(qtmod)" \
-  				"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/$(VBOX_QT_FWRK_VER)/$(qtmod)") ) \
+  			$(foreach prefix, @executable_path/../Frameworks/ $(PATH_SDK_QT6)/Frameworks/ $(PATH_SDK_QT6)/, \
+  				-change "$(prefix)$(qtmod).framework/Versions/A/$(qtmod)" \
+  				"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/A/$(qtmod)") ) \
   		"$(2)",) # HACK ALERT! Using $(source_type_prefix) to detect EXEC_SOURCES.
  else if defined(VBOX_WITH_QTGUI) && !defined(VBOX_ONLY_SDK) && (defined(VBOX_WITH_ORACLE_QT) || defined(VBOX_WITH_QT_PAYLOAD))
   # win x11

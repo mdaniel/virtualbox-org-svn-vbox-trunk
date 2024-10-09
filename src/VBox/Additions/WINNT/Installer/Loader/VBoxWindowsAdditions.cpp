@@ -409,7 +409,7 @@ static int CheckThatFileIsRelated(wchar_t const *pwszExePath, wchar_t const *pws
                  || memcmp(pvExeInfoItem, pvSelfInfoItem, cbSelfInfoItem) != 0)
             rcExit = ErrorMsgRcSWS(27 + i*3, s_aIdenticalItems[i].pszCompareErrorMsg1, pwszExePath, "' does not match");
     }
-                  
+
     HeapFree(hHeap, 0, pvExeVerInfo);
 
     /*

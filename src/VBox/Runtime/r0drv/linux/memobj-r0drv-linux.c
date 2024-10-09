@@ -650,13 +650,19 @@ static int rtR0MemObjLinuxVMap(PRTR0MEMOBJLNX pMemLnx, bool fExecutable)
         /*
          * Use vmap - 2.4.22 and later.
          */
-#if RTLNX_VER_MIN(2,4,22) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
+#if RTLNX_VER_MIN(2,4,22) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(RT_ARCH_ARM64))
         pgprot_t fPg;
+# if defined(RT_ARCH_ARM64)
+        /* ARM64 architecture has no _PAGE_NX, _PAGE_PRESENT and _PAGE_RW flags.
+         * Closest alternatives would be PTE_PXN, PTE_UXN, PROT_DEFAULT and PTE_WRITE. */
+        pgprot_val(fPg) = _PAGE_KERNEL; /* (PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL). */
+# else /* !RT_ARCH_ARM64 */
         pgprot_val(fPg) = _PAGE_PRESENT | _PAGE_RW;
-# ifdef _PAGE_NX
+#  ifdef _PAGE_NX
         if (!fExecutable)
             pgprot_val(fPg) |= _PAGE_NX;
-# endif
+#  endif
+# endif /* RT_ARCH_ARM64 */
 
 # ifdef IPRT_USE_ALLOC_VM_AREA_FOR_EXEC
         if (fExecutable)
@@ -674,7 +680,7 @@ static int rtR0MemObjLinuxVMap(PRTR0MEMOBJLNX pMemLnx, bool fExecutable)
                     size_t i;
                     Assert(pMemLnx->pArea->size >= pMemLnx->Core.cb);   /* Note! includes guard page. */
                     Assert(pMemLnx->pArea->addr);
-#  ifdef _PAGE_NX
+#  if !defined(RT_ARCH_ARM64) && defined(_PAGE_NX)
                     pgprot_val(fPg) |= _PAGE_NX; /* Uses RTR0MemObjProtect to clear NX when memory ready, W^X fashion. */
 #  endif
                     pMemLnx->papPtesForArea = papPtes;
@@ -695,7 +701,7 @@ static int rtR0MemObjLinuxVMap(PRTR0MEMOBJLNX pMemLnx, bool fExecutable)
         else
 # endif
         {
-#  if defined(IPRT_USE_APPLY_TO_PAGE_RANGE_FOR_EXEC)
+#  if !defined(RT_ARCH_ARM64) && defined(IPRT_USE_APPLY_TO_PAGE_RANGE_FOR_EXEC)
             if (fExecutable)
                 pgprot_val(fPg) |= _PAGE_NX; /* Uses RTR0MemObjProtect to clear NX when memory ready, W^X fashion. */
 #  endif

@@ -7900,7 +7900,7 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
  #
  ifeq ($(VBOX_PATH_QT),)
   ifeq ($(KBUILD_TARGET),darwin)
-   VBOX_PATH_QT := $(lastword $(sort $(wildcard $(KBUILD_DEVTOOLS_TRG)/qt/v5*)))
+   VBOX_PATH_QT := $(lastword $(sort $(wildcard $(KBUILD_DEVTOOLS_TRG)/qt/v6*)))
    ifeq ($(VBOX_PATH_QT),)
     ifneq ($(wildcard /Library/Frameworks/QtCore.framework),)
      # Using the global installation (for OSE).

@@ -2570,7 +2570,6 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     uint32_t uForceOnMask, uForceOffMask;
     static const char * const s_apszMaskType[] = { "Specified", "Expected", "Implied", "Combined", "Masked", "Unmasked", "Random" };
     unsigned iMaskType;
-    static bool      sfMismatchShown     = false;
 
     /*
      * Different exceptions may be raised by the same instruction given a
@@ -2638,7 +2637,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
      * exceptions; fully masked; fully unmasked; with a random mask; with
      * random exceptions already turned on; both random mask & exceptions.
      */
-    for (iMaskType = 0; iMaskType <= RT_ELEMENTS(s_apszMaskType); iMaskType++)
+    for (iMaskType = 0; iMaskType < RT_ELEMENTS(s_apszMaskType); iMaskType++)
     {
         if (BS3_SKIPIT(0, 0, 0, pTestCtx->iVal, iMaskType))
             continue;

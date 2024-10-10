@@ -62,10 +62,10 @@ Rules for adding a changelog entry to make them look more uniform:
 
     Full example:
 
-        <listitem>
-          <para>Foo: Fixed something really important, really really long line
-            with lots more text not fitting into 80 columns</para>
-        </listitem>
+      <listitem>
+        <para>Foo: Fixed something really important, really really long line
+          with lots more text not fitting into 80 columns</para>
+      </listitem>
 -->
 <chapter>
 
@@ -73,7 +73,7 @@ Rules for adding a changelog entry to make them look more uniform:
                            So, we use chapter and xpointer="xpointer(/chapter/)" with xi:include. -->
   <sect1>
 
-    <title>Version X.Y.Z (date tbd)</title>
+    <title>Version 7.1.4 (2024-10-15)</title>
 
     <para>This is a maintenance release. The following items were fixed and/or
       added:</para>
@@ -81,53 +81,55 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
-       <para>FE/Qt: Added latest NLS update for Turkish, Indonesian and
-         Italian languages</para>
+        <para>GUI: Added latest NLS update for Turkish, Indonesian and
+          Italian languages</para>
       </listitem>
 
       <listitem>
-       <para>VMSVGA: Improved flickering, black screen and other screen
-         update issues with recent Linux kernels</para>
+        <para>VMSVGA: Improved flickering, black screen and other screen
+          update issues with recent Linux kernels (bug #21955)</para>
       </listitem>
 
       <listitem>
-       <para>NAT: Fixed issue with restoring 7.0.X saved state</para>
+        <para>NAT: Fixed issue with restoring 7.0.X saved state</para>
       </listitem>
 
       <listitem>
-       <para>VBoxManage: Fixed breakage of "list vms" and "showvminfo"
-         for inaccessible VMs</para>
+        <para>VBoxManage: Fixed breakage of "list vms" and "showvminfo"
+          for inaccessible VMs</para>
       </listitem>
 
       <listitem>
-       <para>Linux Guest Additions: Introduce initial support for kernel 6.12
-         (NOTE: In kernel 6.12, KVM initializes virtualization on module loading
-         by default. This prevents VirtualBox VMs from starting. In order to
-         avoid this, either add "kvm.enable_virt_at_load=0" parameter into kernel
-         command line or unload corresponding kvm_XXX module)</para>
+        <para>Windows host: Fixed system DLL size checking which failed
+          with Windows 11 24H2 and recent Insider Preview builds
+         (bug #22162)</para>
       </listitem>
 
       <listitem>
-       <para>Windows Guest Additions: Fixed issue when Shared Folders driver
-         was not loaded on the first reboot after upgrading Guest Additions (bug #22168)</para>
+        <para>Linux Guest Additions: Introduce initial support for kernel 6.12
+          (NOTE: In kernel 6.12, KVM initializes virtualization on module loading
+          by default. This prevents VirtualBox VMs from starting. In order to
+          avoid this, either add "kvm.enable_virt_at_load=0" parameter into kernel
+          command line or unload corresponding kvm_XXX module)</para>
       </listitem>
 
       <listitem>
-       <para>Linux/Arm Guest Additions: Added possibility to automatically upgrade
-         Guest Additions via Devices menu</para>
+        <para>Windows Guest Additions: Fixed issue when Shared Folders driver
+          was not loaded on the first reboot after upgrading Guest Additions (bug #22168)</para>
       </listitem>
 
       <listitem>
-       <para>Windows Guest Additions: Added general improvements to the installer</para>
+        <para>Linux/Arm Guest Additions: Added possibility to automatically upgrade
+          Guest Additions via Devices menu</para>
       </listitem>
 
       <listitem>
-       <para>EFI: Added missing LsiLogic MPT SCSI driver again to fix booting
-         from devices attached to this device if the EFI firmware is used (7.1.0 regression)</para>
+        <para>EFI: Added missing LsiLogic MPT SCSI driver again to fix booting
+          from devices attached to this device if the EFI firmware is used (7.1.0 regression)</para>
       </listitem>
 
       <listitem>
-       <para>EFI: Restored broken network boot support (7.1.0 regression)</para>
+        <para>EFI: Restored broken network boot support (7.1.0 regression)</para>
       </listitem>
 
     </itemizedlist>
@@ -147,8 +149,8 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-       <para>GUI: Fixed an issue that meant VMs created using Unattended Install
-         were not removed cleanly</para>
+        <para>GUI: Fixed an issue that meant VMs created using Unattended Install
+          were not removed cleanly</para>
       </listitem>
 
       <listitem>

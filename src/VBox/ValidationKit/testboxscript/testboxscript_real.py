@@ -314,7 +314,7 @@ class TestBoxScript(object):
                                                 + ',sec=ntlmv2'
                                                 + ',uid=' + str(os.getuid()) # pylint: disable=no-member
                                                 + ',gid=' + str(os.getgid()) # pylint: disable=no-member
-                                                + ',vers=3.0,nounix,file_mode=0555,dir_mode=0555,soft,ro'
+                                                + ',nounix,file_mode=0555,dir_mode=0555,soft,ro'
                                                 + sMountOpt,
                                                 '//%s/%s' % (sServer, sShare),
                                                 sMountPoint]);

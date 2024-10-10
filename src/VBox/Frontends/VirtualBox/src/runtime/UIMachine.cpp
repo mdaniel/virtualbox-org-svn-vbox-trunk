@@ -1177,7 +1177,7 @@ void UIMachine::sltChangeVisualState(UIVisualStateType visualState)
 void UIMachine::sltHandleAdditionsActualChange()
 {
     updateStateAdditionsActions();
-    emit sigAdditionsStateChange();
+    emit sigAdditionsStateActualChange();
 }
 
 void UIMachine::sltHandleAudioAdapterChange()

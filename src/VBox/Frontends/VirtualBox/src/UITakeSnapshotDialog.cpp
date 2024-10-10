@@ -40,7 +40,6 @@
 #include "VBoxUtils.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
-#include "UIHelpBrowserDialog.h"
 #include "UIShortcutPool.h"
 #include "UITakeSnapshotDialog.h"
 #include "UITranslationEventListener.h"

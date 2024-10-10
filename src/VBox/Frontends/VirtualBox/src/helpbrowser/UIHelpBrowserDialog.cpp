@@ -26,37 +26,31 @@
  */
 
 /* Qt includes: */
-#if defined(RT_OS_SOLARIS)
-# include <QFontDatabase>
-#endif
 #include <QLabel>
 #include <QMenuBar>
 #include <QStatusBar>
 
 /* GUI includes: */
 #include "UICommon.h"
-#include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
-#include "UIGlobalSession.h"
-#include "UIIconPool.h"
 #include "UIHelpBrowserDialog.h"
 #include "UIHelpBrowserWidget.h"
 #include "UINotificationObjects.h"
 #include "UITranslationEventListener.h"
-#ifdef VBOX_WS_MAC
-# include "VBoxUtils-darwin.h"
+#ifndef VBOX_WS_MAC
+# include "UIIconPool.h"
 #endif
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
 #include <VBox/version.h> /* VBOX_PRODUCT */
 
-QPointer<UIHelpBrowserDialog> UIHelpBrowserDialog::m_pInstance;
-
 
 /*********************************************************************************************************************************
 *   Class UIHelpBrowserDialog implementation.                                                                                    *
 *********************************************************************************************************************************/
+
+QPointer<UIHelpBrowserDialog> UIHelpBrowserDialog::m_pInstance;
 
 UIHelpBrowserDialog::UIHelpBrowserDialog(QWidget *pParent, QWidget *pCenterWidget, const QString &strHelpFilePath)
     : QIWithRestorableGeometry<QMainWindow>(pParent)

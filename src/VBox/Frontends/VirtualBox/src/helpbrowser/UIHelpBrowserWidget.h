@@ -32,11 +32,10 @@
 #endif
 
 /* Qt includes: */
-#include <QPair>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIManagerDialog.h"
+#include "QIManagerDialog.h" /* for EmbedTo */
 
 /* Forward declarations: */
 class QHBoxLayout;

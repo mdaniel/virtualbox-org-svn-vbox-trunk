@@ -43,7 +43,6 @@
 #include "UICommon.h"
 #include "UIConverter.h"
 #include "UIExtraDataManager.h"
-#include "UIHelpBrowserDialog.h"
 #include "UIIconPool.h"
 #include "UIMachine.h"
 #include "UIMessageCenter.h"

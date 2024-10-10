@@ -32,7 +32,6 @@
 #include <QtGlobal>
 #include <QtHelp/QHelpContentWidget>
 #include <QtHelp/QHelpEngine>
-#include <QtHelp/QHelpIndexWidget>
 #include <QtHelp/QHelpLink>
 #include <QtHelp/QHelpSearchEngine>
 #include <QtHelp/QHelpSearchQueryWidget>
@@ -46,25 +45,20 @@
 #include <QtPrintSupport/QPrinter>
 #include <QSplitter>
 #include <QVBoxLayout>
-#ifdef RT_OS_SOLARIS
-# include <QFontDatabase>
-#endif
 #include <QWidgetAction>
 
 /* GUI includes: */
-#include "QIAdvancedSlider.h"
 #include "QITabWidget.h"
 #include "QIToolBar.h"
 #include "QIToolButton.h"
-#include "UIActionPool.h"
 #include "UIExtraDataManager.h"
 #include "UIHelpViewer.h"
 #include "UIHelpBrowserWidget.h"
 #include "UIIconPool.h"
 #include "UITranslationEventListener.h"
 
-/* COM includes: */
-#include "CSystemProperties.h"
+/* Other VBox includes: */
+#include <iprt/assert.h>
 
 
 enum HelpBrowserTabs

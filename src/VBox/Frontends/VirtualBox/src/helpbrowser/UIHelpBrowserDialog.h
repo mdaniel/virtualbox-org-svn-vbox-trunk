@@ -32,6 +32,7 @@
 #endif
 
 /* Qt includes: */
+#include <QMainWindow>
 #include <QPointer>
 
 /* GUI includes: */

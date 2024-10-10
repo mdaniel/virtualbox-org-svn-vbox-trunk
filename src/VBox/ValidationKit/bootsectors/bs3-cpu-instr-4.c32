@@ -2665,7 +2665,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
             case 6:
                 /* This case must be last, as it trashes uSeenMasks & uInitialExceptions */
                 /* Also confirm 1:1 cases implemented :: mask type descriptions */
-                BS3_ASSERT(iMaskType == RT_ELEMENTS(s_apszMaskType));
+                BS3_ASSERT(iMaskType == RT_ELEMENTS(s_apszMaskType) - 1);
 
                 uRandTmp = bs3CpuInstrX_SimpleRand();
                 uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;

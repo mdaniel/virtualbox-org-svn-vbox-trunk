@@ -419,7 +419,7 @@ typedef struct BUSLOGIC
     /** Physical base address of the incoming mailboxes. */
     RTGCPHYS                        GCPhysAddrMailboxIncomingBase;
 
-    /** Critical section protecting access to the interrupt status register. */
+    /** Critical section protecting access to the interrupt status register and uMailboxIncomingPositionCurrent. */
     PDMCRITSECT                     CritSectIntr;
 
     /** Device presence indicators.
@@ -1390,13 +1390,23 @@ static void buslogicR3SendIncomingMailbox(PPDMDEVINS pDevIns, PBUSLOGIC pThis, R
     MbxIn.u.in.uReserved           = 0;
     MbxIn.u.in.uCompletionCode     = uMailboxCompletionCode;
 
+    int rc = PDMDevHlpCritSectEnter(pDevIns, &pThis->CritSectIntr, VINF_SUCCESS);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, &pThis->CritSectIntr, rc);
+
     RTGCPHYS GCPhysAddrMailboxIncoming = pThis->GCPhysAddrMailboxIncomingBase
                                        + (   pThis->uMailboxIncomingPositionCurrent
                                           * (pThis->fMbxIs24Bit ? sizeof(Mailbox24) : sizeof(Mailbox32)) );
 
+    /* Advance to next mailbox position. */
+    pThis->uMailboxIncomingPositionCurrent++;
+    if (pThis->uMailboxIncomingPositionCurrent >= pThis->cMailbox)
+        pThis->uMailboxIncomingPositionCurrent = 0;
+
+    PDMDevHlpCritSectLeave(pDevIns, &pThis->CritSectIntr);
+
     if (uMailboxCompletionCode != BUSLOGIC_MAILBOX_INCOMING_COMPLETION_ABORTED_NOT_FOUND)
     {
-        LogFlowFunc(("Completing CCB %RGp hstat=%u, dstat=%u, outgoing mailbox at %RGp\n", GCPhysAddrCCB,
+        LogFlowFunc(("Completing CCB %RGp hstat=%u, dstat=%u, incoming mailbox at %RGp\n", GCPhysAddrCCB,
                      uHostAdapterStatus, uDeviceStatus, GCPhysAddrMailboxIncoming));
 
         /* Update CCB. */
@@ -1429,13 +1439,8 @@ static void buslogicR3SendIncomingMailbox(PPDMDEVINS pDevIns, PBUSLOGIC pThis, R
         blPhysWriteMeta(pDevIns, pThis, GCPhysAddrMailboxIncoming, &MbxIn, sizeof(Mailbox32));
     }
 
-    int rc = PDMDevHlpCritSectEnter(pDevIns, &pThis->CritSectIntr, VINF_SUCCESS);
+    rc = PDMDevHlpCritSectEnter(pDevIns, &pThis->CritSectIntr, VINF_SUCCESS);
     PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, &pThis->CritSectIntr, rc);
-
-    /* Advance to next mailbox position. */
-    pThis->uMailboxIncomingPositionCurrent++;
-    if (pThis->uMailboxIncomingPositionCurrent >= pThis->cMailbox)
-        pThis->uMailboxIncomingPositionCurrent = 0;
 
 # ifdef LOG_ENABLED
     ASMAtomicIncU32(&pThis->cInMailboxesReadyIfLogEnabled);

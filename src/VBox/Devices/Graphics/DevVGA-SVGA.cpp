@@ -6791,8 +6791,7 @@ static void vmsvgaR3GetCaps(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t *pu32
     }
 
 # ifdef VBOX_WITH_VMSVGA3D
-//  if (pThisCC->svga.pSvgaR3State->pFuncs3D)
-    if (pThis->svga.f3DEnabled)
+  if (pThisCC->svga.pSvgaR3State->pFuncs3D)
         *pu32DeviceCaps |= SVGA_CAP_3D;
 # endif
 

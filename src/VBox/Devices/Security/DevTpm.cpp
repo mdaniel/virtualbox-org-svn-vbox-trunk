@@ -1640,7 +1640,7 @@ static DECLCALLBACK(void *) tpmR3QueryInterface(PPDMIBASE pInterface, const char
  */
 static DECLCALLBACK(uint32_t) tpmR3TpmPortGetMaxBufferSize(PPDMITPMPORT pInterface)
 {
-	RT_NOREF(pInterface);
+    RT_NOREF(pInterface);
     return TPM_DATA_BUFFER_SIZE_MAX;
 }
 

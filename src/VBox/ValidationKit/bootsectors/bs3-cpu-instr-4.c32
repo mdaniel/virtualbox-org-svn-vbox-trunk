@@ -2565,9 +2565,10 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
 
     uint32_t uSpecifiedMask, uExpectedMask, uImpliedMask, uCombinedMask, uMaskedMask, uUnmaskedMask, uThisMask;
     uint32_t uExpectedMxCsr_orig, uExpectedExceptions, uExpectedUnmaskedExceptions, uInitialExceptions, uRandTmp;
+    uint64_t uSeenMasks = 0;
     bool fFuzzyPE;
     uint32_t uForceOnMask, uForceOffMask;
-    const char *pszMaskType;
+    static const char * const s_apszMaskType[] = { "Specified", "Expected", "Implied", "Combined", "Masked", "Unmasked", "Random" };
     unsigned iMaskType;
     static bool      sfMismatchShown     = false;
 
@@ -2645,8 +2646,8 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     }
     uImpliedMask = (uExpectedMxCsr_orig & X86_MXCSR_XCPT_FLAGS) << X86_MXCSR_XCPT_MASK_SHIFT;
     uCombinedMask = uSpecifiedMask | uImpliedMask;
-    uMaskedMask = X86_MXCSR_XCPT_MASK & ~uForceOffMask;
-    uUnmaskedMask = 0 | uForceOnMask;
+    uMaskedMask = X86_MXCSR_XCPT_MASK;
+    uUnmaskedMask = 0;
 
    for (iMaskType = 0; iMaskType <= 6; iMaskType++)
    {
@@ -2657,34 +2658,24 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     {
         case 0:
             uThisMask = uSpecifiedMask;
-            pszMaskType = "Specified";
             break;
         case 1:
-            if (uExpectedMask == uSpecifiedMask) continue;
             uThisMask = uExpectedMask;
-            pszMaskType = "Expected";
             break;
         case 2:
-            if (uImpliedMask == uSpecifiedMask || uImpliedMask == uExpectedMask) continue;
             uThisMask = uImpliedMask;
-            pszMaskType = "Implied";
             break;
         case 3:
-            if (uCombinedMask == uSpecifiedMask || uCombinedMask == uExpectedMask || uCombinedMask == uImpliedMask) continue;
             uThisMask = uCombinedMask;
-            pszMaskType = "Combined";
             break;
         case 4:
-            if (uMaskedMask == uSpecifiedMask || uMaskedMask == uExpectedMask || uMaskedMask == uImpliedMask || uMaskedMask == uCombinedMask) continue;
             uThisMask = uMaskedMask;
-            pszMaskType = "Masked";
             break;
         case 5:
-            if (uUnmaskedMask == uSpecifiedMask || uUnmaskedMask == uExpectedMask || uUnmaskedMask == uImpliedMask || uUnmaskedMask == uCombinedMask) continue;
             uThisMask = uUnmaskedMask;
-            pszMaskType = "Unmasked";
             break;
         case 6:
+            /* This case must be last, as it trashes uSeenMasks & uInitialExceptions */
             uRandTmp = bs3CpuInstrX_SimpleRand();
             switch (uRandTmp & X86_MXCSR_RC_MASK)
             {
@@ -2695,21 +2686,26 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
                 case X86_MXCSR_RC_UP:       /* Random initial exceptions */
                     uThisMask = uSpecifiedMask;
                     uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
+                    uSeenMasks = 0;         /* Don't skip for same-mask */
                     break;
                 case X86_MXCSR_RC_DOWN:     /* Random mask & initial exceptions */
                     uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
                     uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
+                    uSeenMasks = 0;         /* Don't skip for same-mask */
                     break;
                 default:
                     BS3_ASSERT(0);
             }
-            pszMaskType = "Random";
             break;
         default:
             BS3_ASSERT(0);
     }
     /* No matter what was chosen, honor FIXED mask bits */
     uThisMask = (uThisMask | uForceOnMask) & ~uForceOffMask;
+
+    /* Skip millions of redundant tests imposed by the mask twiddling scheme */
+    if (uSeenMasks & (RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT))) continue;
+    uSeenMasks |= RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT);
 
     /* This is the input MXCSR value we'll be sending */
     uMxCsr = (pValues->uMxCsr & ~(X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS)) | uThisMask | uInitialExceptions;
@@ -2894,7 +2890,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
         Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
 
     if (cErrors != Bs3TestSubErrorCount())
-        Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", pszMaskType, uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
+        Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", s_apszMaskType[iMaskType], uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
    }
 
     return cErrorsInit;

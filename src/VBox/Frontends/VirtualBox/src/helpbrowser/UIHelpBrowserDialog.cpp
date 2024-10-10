@@ -26,12 +26,14 @@
  */
 
 /* Qt includes: */
+#include <QFileInfo>
 #include <QLabel>
 #include <QMenuBar>
 #include <QStatusBar>
 
 /* GUI includes: */
 #include "UICommon.h"
+#include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIHelpBrowserDialog.h"
 #include "UIHelpBrowserWidget.h"

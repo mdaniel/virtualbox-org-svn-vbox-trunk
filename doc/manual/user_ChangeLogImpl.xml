@@ -114,11 +114,6 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-        <para>Windows Guest Additions: Fixed issue when Shared Folders driver
-          was not loaded on the first reboot after upgrading Guest Additions (bug #22168)</para>
-      </listitem>
-
-      <listitem>
         <para>Linux/Arm Guest Additions: Added possibility to automatically upgrade
           Guest Additions via Devices menu</para>
       </listitem>

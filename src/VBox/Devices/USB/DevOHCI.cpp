@@ -3887,7 +3887,11 @@ static void ohciR3ServiceBulkList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pThis
                 VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                 if (enmDir != VUSBDIRECTION_INVALID)
                 {
+                    /* Must leave the lock here, see ohciR3ServicePeriodicList for details. */
+                    ohciR3Unlock(pThisCC);
                     pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                    ohciR3Lock(pThisCC);
+                    /** @todo should we re-read Ed here? */
                 }
             }
         }
@@ -3947,7 +3951,11 @@ static void ohciR3UndoBulkList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pThisCC)
                VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                if (enmDir != VUSBDIRECTION_INVALID)
                {
+                   /* Must leave the lock here, see ohciR3ServicePeriodicList for details. */
+                   ohciR3Unlock(pThisCC);
                    pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                   ohciR3Lock(pThisCC);
+                   /** @todo should we re-read Ed here? */
                }
             }
         }
@@ -4111,13 +4119,23 @@ static void ohciR3ServicePeriodicList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC p
                 /* If the ED is in 'skip' state, no transactions on it are allowed and we must
                  * cancel outstanding URBs, if any.
                  * First we need to determine the transfer direction, which may fail(!).
+                 *
+                 * Note! We *must* leave the critsect before calling the abort function as
+                 *       it typically wants to send synchronous requests to the URB IO thread
+                 *       which will enter the critsect when responding.  ohciR3StartFrame
+                 *       entered the critsect and I (bird) can't immediately spot any cached
+                 *       state info that could get obsoleted while we're doing this (except
+                 *       some logging stuff).
                  */
                 uint8_t uAddr  = Ed.hwinfo & ED_HWINFO_FUNCTION;
                 uint8_t uEndPt = (Ed.hwinfo & ED_HWINFO_ENDPOINT) >> ED_HWINFO_ENDPOINT_SHIFT;
                 VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                 if (enmDir != VUSBDIRECTION_INVALID)
                 {
+                    ohciR3Unlock(pThisCC);
                     pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                    ohciR3Lock(pThisCC);
+                    /** @todo should we re-read Ed here? */
                 }
             }
         }

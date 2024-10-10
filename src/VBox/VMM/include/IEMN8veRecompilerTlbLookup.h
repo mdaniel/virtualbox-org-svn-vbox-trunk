@@ -349,7 +349,6 @@ iemNativeEmitTlbLookup(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVEEMI
     uint32_t       offFixupLimitDone  = 0;
     if (a_fDataTlb && iSegReg != UINT8_MAX && (pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) != IEMMODE_64BIT)
     {
-off = iemNativeEmitBrkEx(pCodeBuf, off, 1); /** @todo this needs testing */
         /* cmp  seglim, regptr */
         if (pTlbState->idxRegPtr != UINT8_MAX && offDisp == 0)
             off = iemNativeEmitCmpGpr32WithGprEx(pCodeBuf, off, pTlbState->idxRegSegLimit, pTlbState->idxRegPtr);

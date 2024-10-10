@@ -780,17 +780,17 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         drvNAT_CheckTimeout(pThis);
 
 #else /* RT_OS_WINDOWS */
-        uint32_t uTimeout = DRVNAT_DEFAULT_TIMEOUT;
+        uint32_t msTimeout = DRVNAT_DEFAULT_TIMEOUT;
         pThis->pNATState->nsock = 0;
-        slirp_pollfds_fill(pThis->pNATState->pSlirp, &uTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
-        drvNAT_UpdateTimeout(&uTimeout, pThis);
+        slirp_pollfds_fill(pThis->pNATState->pSlirp, &msTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
+        drvNAT_UpdateTimeout(&msTimeout, pThis);
 
-        int cChangedFDs;
-        int error = RTWinPoll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */, &cChangedFDs, pThis->hWakeupEvent);
-
-        if (error != 0)
+        int cChangedFDs = 0;
+        int vrc = RTWinPoll(pThis->pNATState->polls, pThis->pNATState->nsock, msTimeout, &cChangedFDs, pThis->hWakeupEvent);
+        if (vrc != VINF_SUCCESS)
         {
-            LogRel(("NAT: WSAPoll returned %d (error %d)\n", cChangedFDs, error));
+            if (vrc != VERR_TIMEOUT)
+                LogRel(("NAT: WSAPoll returned vrc=%Rrc (cChangedFDs=%d)\n", vrc, cChangedFDs));
             Log4(("NAT: NSOCK = %d\n", pThis->pNATState->nsock));
         }
 

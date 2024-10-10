@@ -790,7 +790,7 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         if (vrc != VINF_SUCCESS)
         {
             if (vrc != VERR_TIMEOUT)
-                LogRel(("NAT: WSAPoll returned vrc=%Rrc (cChangedFDs=%d)\n", vrc, cChangedFDs));
+                LogRel(("NAT: RTWinPoll returned vrc=%Rrc (cChangedFDs=%d)\n", vrc, cChangedFDs));
             Log4(("NAT: NSOCK = %d\n", pThis->pNATState->nsock));
         }
 

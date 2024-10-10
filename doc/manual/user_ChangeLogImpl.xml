@@ -81,7 +81,48 @@ Rules for adding a changelog entry to make them look more uniform:
     <itemizedlist>
 
       <listitem>
-       <para>EFI: Include missing LsiLogic MPT SCSI driver again to fix booting
+       <para>FE/Qt: Added latest NLS update for Turkish, Indonesian and
+         Italian languages</para>
+      </listitem>
+
+      <listitem>
+       <para>VMSVGA: Improved flickering, black screen and other screen
+         update issues with recent Linux kernels</para>
+      </listitem>
+
+      <listitem>
+       <para>NAT: Fixed issue with restoring 7.0.X saved state</para>
+      </listitem>
+
+      <listitem>
+       <para>VBoxManage: Fixed breakage of "list vms" and "showvminfo"
+         for inaccessible VMs</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Guest Additions: Introduce initial support for kernel 6.12
+         (NOTE: In kernel 6.12, KVM initializes virtualization on module loading
+         by default. This prevents VirtualBox VMs from starting. In order to
+         avoid this, either add "kvm.enable_virt_at_load=0" parameter into kernel
+         command line or unload corresponding kvm_XXX module)</para>
+      </listitem>
+
+      <listitem>
+       <para>Windows Guest Additions: Fixed issue when Shared Folders driver
+         was not loaded on the first reboot after upgrading Guest Additions (bug #22168)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux/Arm Guest Additions: Added possibility to automatically upgrade
+         Guest Additions via Devices menu</para>
+      </listitem>
+
+      <listitem>
+       <para>Windows Guest Additions: Added general improvements to the installer</para>
+      </listitem>
+
+      <listitem>
+       <para>EFI: Added missing LsiLogic MPT SCSI driver again to fix booting
          from devices attached to this device if the EFI firmware is used (7.1.0 regression)</para>
       </listitem>
 

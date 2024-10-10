@@ -2611,287 +2611,276 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     uForceOffMask = ((uExpectedMxCsr & BS3_MXCSR_FIXED_MASK) >> BS3_MXCSR_FIXED_SHIFT) & (~uSpecifiedMask);
     uExpectedMxCsr = ((uExpectedMxCsr & ~BS3_MXCSR_FIXED_MASK) | uForceOnMask) & ~uForceOffMask;
 
-    /*
-     * The test value tables give us the exceptions expected when run fully
-     * masked.  Here we try the instruction under multiple mask schemes: as
-     * requested by the value table; as implied by the stated resulting
-     * exceptions; fully masked; fully unmasked; and possibly some
-     * combinations.
-     *
-     * This is WORK IN PROGRESS code, and unclear whether it will be
-     * completed or will turn out to have been a bad idea.  The idea is to
-     * convert the existing instruction test functions one by one to use
-     * this.  Tables need updating because (1) some output rows are wrong
-     * for instructions which always raise an exception fgiven the stated
-     * mask; (2) output exceptions may be wrong for instructions which
-     * always raise an early DE exception, but would return a late exception
-     * (PE, OE, UE) if DE were masked; (3) entries which specify any or all
-     * exceptions already on in MXCSR must be modified to only show output
-     * exceptions which will be *newly* raised by the instruction itself.
-     *
-     * Code indentation is being retained the same as the parent Worker1
-     * functions for now, to facilitate co-fixing of any other issues found
-     * while this is under development.  Indentation will be fixed if/when
-     * this becomes the replacement Worker1.
-     */
     uExpectedMxCsr_orig = uExpectedMxCsr;
     uInitialExceptions = pValues->uMxCsr & X86_MXCSR_XCPT_FLAGS;
     uExpectedMask = uExpectedMxCsr_orig & X86_MXCSR_XCPT_MASK;
 
-    /* Debug code to help convert the value tables; eventually replace with an assert */
-    if (!sfMismatchShown && (uSpecifiedMask != uExpectedMask))
-    {
-        Bs3TestFailedF("UNEXPECTED: specified mask %#RX32 != expected mask %#RX32 [only flagging 1st instance]\n", uExpectedMask, uSpecifiedMask);
-        sfMismatchShown = true;
-    }
+    /*
+     * The worker no longer insists that uSpecifiedMask == uExpectedMask.  While
+     * this is the usual state of affairs, a particular value entry could give
+     * different input and output masks to intentionally force extra testing of
+     * specific mask values.  This shouldn't actually provide any benefit since
+     * random masks will eventually (quickly -- in microseconds) hit all possible
+     * combinations; but perhaps there is some reason to do it in some cases?
+     * But in most cases, uSpecifiedMask, uExpectedMask, uImpliedMask, and
+     * uCombinedMask will be identical; duplicates will be filtered out by the
+     * uSeenMasks test.
+     */
     uImpliedMask = (uExpectedMxCsr_orig & X86_MXCSR_XCPT_FLAGS) << X86_MXCSR_XCPT_MASK_SHIFT;
     uCombinedMask = uSpecifiedMask | uImpliedMask;
     uMaskedMask = X86_MXCSR_XCPT_MASK;
     uUnmaskedMask = 0;
 
-   for (iMaskType = 0; iMaskType <= 6; iMaskType++)
-   {
-    if (BS3_SKIPIT(0, 0, 0, pTestCtx->iVal, iMaskType))
-        continue;
-
-    switch (iMaskType)
-    {
-        case 0:
-            uThisMask = uSpecifiedMask;
-            break;
-        case 1:
-            uThisMask = uExpectedMask;
-            break;
-        case 2:
-            uThisMask = uImpliedMask;
-            break;
-        case 3:
-            uThisMask = uCombinedMask;
-            break;
-        case 4:
-            uThisMask = uMaskedMask;
-            break;
-        case 5:
-            uThisMask = uUnmaskedMask;
-            break;
-        case 6:
-            /* This case must be last, as it trashes uSeenMasks & uInitialExceptions */
-            uRandTmp = bs3CpuInstrX_SimpleRand();
-            switch (uRandTmp & X86_MXCSR_RC_MASK)
-            {
-                case X86_MXCSR_RC_ZERO:
-                case X86_MXCSR_RC_NEAREST:  /* Random mask */
-                    uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
-                    break;
-                case X86_MXCSR_RC_UP:       /* Random initial exceptions */
-                    uThisMask = uSpecifiedMask;
-                    uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
-                    uSeenMasks = 0;         /* Don't skip for same-mask */
-                    break;
-                case X86_MXCSR_RC_DOWN:     /* Random mask & initial exceptions */
-                    uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
-                    uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
-                    uSeenMasks = 0;         /* Don't skip for same-mask */
-                    break;
-                default:
-                    BS3_ASSERT(0);
-            }
-            break;
-        default:
-            BS3_ASSERT(0);
-    }
-    /* No matter what was chosen, honor FIXED mask bits */
-    uThisMask = (uThisMask | uForceOnMask) & ~uForceOffMask;
-
-    /* Skip millions of redundant tests imposed by the mask twiddling scheme */
-    if (uSeenMasks & (RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT))) continue;
-    uSeenMasks |= RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT);
-
-    /* This is the input MXCSR value we'll be sending */
-    uMxCsr = (pValues->uMxCsr & ~(X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS)) | uThisMask | uInitialExceptions;
-
-    /* What exceptions does this test value claim to raise?  Only actual raises, not initially-on exceptions */
-    uExpectedExceptions = uExpectedMxCsr_orig & X86_MXCSR_XCPT_FLAGS;
-    uExpectedUnmaskedExceptions = uExpectedExceptions & ~(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT);
-
-    /* This is the output MXCSR value we will expect */
-    uExpectedMxCsr = (uExpectedMxCsr_orig & ~(X86_MXCSR_XCPT_MASK)) | uThisMask;
-
-    /* If we hit an unmasked early exception, late exceptions won't be raised. */
-    if (uExpectedUnmaskedExceptions & (X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_ZE))
-        uExpectedMxCsr &= ~(X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE);
-
-    /* However, all exceptions which are on before the instruction will still be on. */
-    uExpectedMxCsr |= uInitialExceptions;
-
-    /* A fault is raised only by unmasked exceptions which were caused by the instruction itself. */
-    fFpXcptExpected = (uExpectedUnmaskedExceptions != 0);
-
     /*
-     * Set up the context and some expectations.
+     * The test value tables give us the exceptions expected when run fully
+     * masked.  Here we try the instruction under multiple mask schemes:
+     * as requested by the value table; as implied by the stated resulting
+     * exceptions; fully masked; fully unmasked; with a random mask; with
+     * random exceptions already turned on; both random mask & exceptions.
      */
-    /* Destination. */
-    Bs3MemZero(&MemOpExpect, sizeof(MemOpExpect));
-    if (pTest->iRegDst == UINT8_MAX)
+    for (iMaskType = 0; iMaskType <= RT_ELEMENTS(s_apszMaskType); iMaskType++)
     {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        Bs3MemSet(puMemOpAlias, 0xcc, cbMemOp);
-        if (bXcptExpect == X86_XCPT_DB)
-            MemOpExpect.ymm = pValues->uDstOut.ymm;
-        else
-            Bs3MemSet(&MemOpExpect, 0xcc, sizeof(MemOpExpect));
-    }
+        if (BS3_SKIPIT(0, 0, 0, pTestCtx->iVal, iMaskType))
+            continue;
 
-    /* Source #1 (/ destination for SSE). */
-    if (pTest->iRegSrc1 == UINT8_MAX)
-    {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        Bs3MemCpy(puMemOpAlias, &pValues->uSrc1, cbMemOp);
+        switch (iMaskType)
+        {
+            case 0:
+                uThisMask = uSpecifiedMask;
+                break;
+            case 1:
+                uThisMask = uExpectedMask;
+                break;
+            case 2:
+                uThisMask = uImpliedMask;
+                break;
+            case 3:
+                uThisMask = uCombinedMask;
+                break;
+            case 4:
+                uThisMask = uMaskedMask;
+                break;
+            case 5:
+                uThisMask = uUnmaskedMask;
+                break;
+            case 6:
+                /* This case must be last, as it trashes uSeenMasks & uInitialExceptions */
+                /* Also confirm 1:1 cases implemented :: mask type descriptions */
+                BS3_ASSERT(iMaskType == RT_ELEMENTS(s_apszMaskType));
+
+                uRandTmp = bs3CpuInstrX_SimpleRand();
+                uThisMask = uRandTmp & X86_MXCSR_XCPT_MASK;
+                switch (uRandTmp & X86_MXCSR_RC_MASK)
+                {
+                    case X86_MXCSR_RC_ZERO:
+                    case X86_MXCSR_RC_NEAREST:  /* Random mask */
+                        break;
+                    case X86_MXCSR_RC_UP:       /* Random initial exceptions */
+                        uThisMask = uSpecifiedMask;
+                        RT_FALL_THRU();
+                    case X86_MXCSR_RC_DOWN:     /* Random mask & initial exceptions */
+                        uSeenMasks = 0;         /* Don't skip for same-mask */
+                        uInitialExceptions = uRandTmp & X86_MXCSR_XCPT_FLAGS;
+                        break;
+                    default:
+                        BS3_ASSERT(0);
+                }
+                break;
+            default:
+                BS3_ASSERT(0);
+        }
+        /* No matter what was chosen, honor FIXED mask bits */
+        uThisMask = (uThisMask | uForceOnMask) & ~uForceOffMask;
+
+        /* Skip millions of redundant tests imposed by the mask twiddling scheme */
+        if (uSeenMasks & (RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT))) continue;
+        uSeenMasks |= RT_BIT_64(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT);
+
+        /* This is the input MXCSR value we'll be sending */
+        uMxCsr = (pValues->uMxCsr & ~(X86_MXCSR_XCPT_MASK | X86_MXCSR_XCPT_FLAGS)) | uThisMask | uInitialExceptions;
+
+        /* What exceptions does this test value claim to raise?  Only actual raises, not initially-on exceptions */
+        uExpectedExceptions = uExpectedMxCsr_orig & X86_MXCSR_XCPT_FLAGS;
+        uExpectedUnmaskedExceptions = uExpectedExceptions & ~(uThisMask >> X86_MXCSR_XCPT_MASK_SHIFT);
+
+        /* This is the output MXCSR value we will expect */
+        uExpectedMxCsr = (uExpectedMxCsr_orig & ~(X86_MXCSR_XCPT_MASK)) | uThisMask;
+
+        /* If we hit an unmasked early exception, late exceptions won't be raised. */
+        if (uExpectedUnmaskedExceptions & (X86_MXCSR_DE | X86_MXCSR_IE | X86_MXCSR_ZE))
+            uExpectedMxCsr &= ~(X86_MXCSR_OE | X86_MXCSR_PE | X86_MXCSR_UE);
+
+        /* However, all exceptions which are on before the instruction will still be on. */
+        uExpectedMxCsr |= uInitialExceptions;
+
+        /* A fault is raised only by unmasked exceptions which were caused by the instruction itself. */
+        fFpXcptExpected = (uExpectedUnmaskedExceptions != 0);
+
+        /*
+         * Set up the context and some expectations.
+         */
+        /* Destination. */
+        Bs3MemZero(&MemOpExpect, sizeof(MemOpExpect));
         if (pTest->iRegDst == UINT8_MAX)
-            BS3_ASSERT(fSseInstr);
+        {
+            BS3_ASSERT(pTest->enmRm >= RM_MEM);
+            Bs3MemSet(puMemOpAlias, 0xcc, cbMemOp);
+            if (bXcptExpect == X86_XCPT_DB)
+                MemOpExpect.ymm = pValues->uDstOut.ymm;
+            else
+                Bs3MemSet(&MemOpExpect, 0xcc, sizeof(MemOpExpect));
+        }
+
+        /* Source #1 (/ destination for SSE). */
+        if (pTest->iRegSrc1 == UINT8_MAX)
+        {
+            BS3_ASSERT(pTest->enmRm >= RM_MEM);
+            Bs3MemCpy(puMemOpAlias, &pValues->uSrc1, cbMemOp);
+            if (pTest->iRegDst == UINT8_MAX)
+                BS3_ASSERT(fSseInstr);
+            else
+                MemOpExpect.ymm = pValues->uSrc1.ymm;
+        }
+        else if (fSseInstr)
+            Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm.DQWords.dqw0);
         else
-            MemOpExpect.ymm = pValues->uSrc1.ymm;
-    }
-    else if (fSseInstr)
-        Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm.DQWords.dqw0);
-    else
-        Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm, 32);
+            Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc1, &pValues->uSrc1.ymm, 32);
 
-    /* Source #2. */
-    if (pTest->iRegSrc2 == UINT8_MAX)
-    {
-        BS3_ASSERT(pTest->enmRm >= RM_MEM);
-        BS3_ASSERT(pTest->iRegDst != UINT8_MAX && pTest->iRegSrc1 != UINT8_MAX);
-        Bs3MemCpy(puMemOpAlias, &pValues->uSrc2, cbMemOp);
-        MemOpExpect.ymm = pValues->uSrc2.ymm;
-    }
-    else if (fSseInstr)
-        Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm.DQWords.dqw0);
-    else
-        Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm, 32);
-
-    /* Memory pointer. */
-    if (pTest->enmRm >= RM_MEM)
-    {
-        BS3_ASSERT(   pTest->iRegDst  == UINT8_MAX
-                   || pTest->iRegSrc1 == UINT8_MAX
-                   || pTest->iRegSrc2 == UINT8_MAX);
-        Bs3RegCtxSetGrpSegFromCurPtr(pCtx, &pCtx->rbx, &pCtx->fs, puMemOp);
-    }
-
-    /* Setup MXCSR for the current test. */
-    uMxCsr |= (pSavedCfg->uMxCsr & X86_MXCSR_MM);
-    BS3_ASSERT(!(uMxCsr & X86_MXCSR_MM));
-    BS3_ASSERT(!(uMxCsr & X86_MXCSR_DAZ) || g_fMxCsrDazSupported);
-    Bs3ExtCtxSetMxCsr(pExtCtx, uMxCsr);
-
-    /*
-     * Prepare globals and execute.
-     */
-    g_uBs3TrapEipHint = pCtx->rip.u32;
-    if (    bXcptExpect == X86_XCPT_DB
-        && !fFpXcptExpected)
-        g_uBs3TrapEipHint += cbInstr + 1;
-    Bs3TrapSetJmpAndRestoreWithExtCtxAndRm(pCtx, pExtCtx, pTrapFrame, pExtCtxOut);
-
-    /*
-     * Check the result.
-     *
-     * If a floating-point exception is expected, the destination is not updated by the instruction.
-     * In the case of SSE instructions, updating the destination here will work because it is the same
-     * as the source, but for AVX++ it won't because the destination is different and would contain 0s.
-     */
-    cErrors = Bs3TestSubErrorCount();
-    if (   bXcptExpect == X86_XCPT_DB
-        && !fFpXcptExpected
-        && pTest->iRegDst != UINT8_MAX)
-    {
-        if (fSseInstr)
-            Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm.DQWords.dqw0);
+        /* Source #2. */
+        if (pTest->iRegSrc2 == UINT8_MAX)
+        {
+            BS3_ASSERT(pTest->enmRm >= RM_MEM);
+            BS3_ASSERT(pTest->iRegDst != UINT8_MAX && pTest->iRegSrc1 != UINT8_MAX);
+            Bs3MemCpy(puMemOpAlias, &pValues->uSrc2, cbMemOp);
+            MemOpExpect.ymm = pValues->uSrc2.ymm;
+        }
+        else if (fSseInstr)
+            Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm.DQWords.dqw0);
         else
-            Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm, cbOperand);
-    }
-#if defined(DEBUG_aeichner) /** @todo Necessary kludge on a i7-1068NG7. */
-    if (   pExtCtx->enmMethod == BS3EXTCTXMETHOD_XSAVE
-        && pExtCtx->Ctx.x.Hdr.bmXState == 0x7
-        && pExtCtxOut->Ctx.x.Hdr.bmXState == 0x3)
-        pExtCtxOut->Ctx.x.Hdr.bmXState = 0x7;
+            Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegSrc2, &pValues->uSrc2.ymm, 32);
+
+        /* Memory pointer. */
+        if (pTest->enmRm >= RM_MEM)
+        {
+            BS3_ASSERT(   pTest->iRegDst  == UINT8_MAX
+                       || pTest->iRegSrc1 == UINT8_MAX
+                       || pTest->iRegSrc2 == UINT8_MAX);
+            Bs3RegCtxSetGrpSegFromCurPtr(pCtx, &pCtx->rbx, &pCtx->fs, puMemOp);
+        }
+
+        /* Setup MXCSR for the current test. */
+        uMxCsr |= (pSavedCfg->uMxCsr & X86_MXCSR_MM);
+        BS3_ASSERT(!(uMxCsr & X86_MXCSR_MM));
+        BS3_ASSERT(!(uMxCsr & X86_MXCSR_DAZ) || g_fMxCsrDazSupported);
+        Bs3ExtCtxSetMxCsr(pExtCtx, uMxCsr);
+
+        /*
+         * Prepare globals and execute.
+         */
+        g_uBs3TrapEipHint = pCtx->rip.u32;
+        if (    bXcptExpect == X86_XCPT_DB
+            && !fFpXcptExpected)
+            g_uBs3TrapEipHint += cbInstr + 1;
+        Bs3TrapSetJmpAndRestoreWithExtCtxAndRm(pCtx, pExtCtx, pTrapFrame, pExtCtxOut);
+
+        /*
+         * Check the result.
+         *
+         * If a floating-point exception is expected, the destination is not updated by the instruction.
+         * In the case of SSE instructions, updating the destination here will work because it is the same
+         * as the source, but for AVX++ it won't because the destination is different and would contain 0s.
+         */
+        cErrors = Bs3TestSubErrorCount();
+        if (   bXcptExpect == X86_XCPT_DB
+            && !fFpXcptExpected
+            && pTest->iRegDst != UINT8_MAX)
+        {
+            if (fSseInstr)
+                Bs3ExtCtxSetXmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm.DQWords.dqw0);
+            else
+                Bs3ExtCtxSetYmm(pExtCtx, pTest->iRegDst, &pValues->uDstOut.ymm, cbOperand);
+        }
+#if     defined(DEBUG_aeichner) /** @todo Necessary kludge on a i7-1068NG7. */
+        if (   pExtCtx->enmMethod == BS3EXTCTXMETHOD_XSAVE
+            && pExtCtx->Ctx.x.Hdr.bmXState == 0x7
+            && pExtCtxOut->Ctx.x.Hdr.bmXState == 0x3)
+            pExtCtxOut->Ctx.x.Hdr.bmXState = 0x7;
 #endif
 
-    if (bXcptExpect == X86_XCPT_DB)
-    {
-        if (fFuzzyPE)
+        if (bXcptExpect == X86_XCPT_DB)
         {
-            uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut);
-            uExpectedMxCsr = (uExpectedMxCsr & ~X86_MXCSR_PE) | (uGotMxCsr & X86_MXCSR_PE);
-        }
-        Bs3ExtCtxSetMxCsr(pExtCtx, uExpectedMxCsr | (pSavedCfg->uMxCsr & X86_MXCSR_MM));
-    }
-
-    Bs3TestCheckExtCtx(pExtCtxOut, pExtCtx, 0 /*fFlags*/, pTestCtx->pszMode, pTestCtx->idTestStep);
-
-    if (bXcptExpect == X86_XCPT_DB)
-    {
-        uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut) & ~X86_MXCSR_MM;
-
-        /* Check if the SIMD FP exception flags and mask (or lack of) are as expected. */
-        if (uGotMxCsr != uExpectedMxCsr)
-        {
-            char szExpectFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
-            char szExpectMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
-            char szExpectOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
-            char szGotFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
-            char szGotMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
-            char szGotOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
-            bs3CpuInstr4GetXcptFlags(&szExpectFlags[0],   sizeof(szExpectFlags),  uExpectedMxCsr);
-            bs3CpuInstr4GetXcptMasks(&szExpectMasks[0],   sizeof(szExpectMasks),  uExpectedMxCsr);
-            bs3CpuInstr4GetXcptOthers(&szExpectOthers[0], sizeof(szExpectOthers), uExpectedMxCsr);
-            bs3CpuInstr4GetXcptFlags(&szGotFlags[0],   sizeof(szGotFlags),  uGotMxCsr);
-            bs3CpuInstr4GetXcptMasks(&szGotMasks[0],   sizeof(szGotMasks),  uGotMxCsr);
-            bs3CpuInstr4GetXcptOthers(&szGotOthers[0], sizeof(szGotOthers), uGotMxCsr);
-            Bs3TestFailedF("Expected MXCSR %#RX32 (%s%s%s ) got MXCSR %#RX32 (%s%s%s )", uExpectedMxCsr,
-                           szExpectFlags, szExpectMasks, szExpectOthers, uGotMxCsr, szGotFlags, szGotMasks, szGotOthers);
+            if (fFuzzyPE)
+            {
+                uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut);
+                uExpectedMxCsr = (uExpectedMxCsr & ~X86_MXCSR_PE) | (uGotMxCsr & X86_MXCSR_PE);
+            }
+            Bs3ExtCtxSetMxCsr(pExtCtx, uExpectedMxCsr | (pSavedCfg->uMxCsr & X86_MXCSR_MM));
         }
 
-        /* Check if the SIMD FP exception (or lack of) is as expected. */
-        if (fFpXcptExpected)
+        Bs3TestCheckExtCtx(pExtCtxOut, pExtCtx, 0 /*fFlags*/, pTestCtx->pszMode, pTestCtx->idTestStep);
+
+        if (bXcptExpect == X86_XCPT_DB)
         {
-            if (pTrapFrame->bXcpt == bFpXcpt)
+            uint32_t const uGotMxCsr = Bs3ExtCtxGetMxCsr(pExtCtxOut) & ~X86_MXCSR_MM;
+
+            /* Check if the SIMD FP exception flags and mask (or lack of) are as expected. */
+            if (uGotMxCsr != uExpectedMxCsr)
+            {
+                char szExpectFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
+                char szExpectMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
+                char szExpectOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
+                char szGotFlags[FP_XCPT_FLAGS_NAMES_MAXLEN];
+                char szGotMasks[FP_XCPT_MASKS_NAMES_MAXLEN];
+                char szGotOthers[FP_XCPT_OTHERS_NAMES_MAXLEN];
+                bs3CpuInstr4GetXcptFlags(&szExpectFlags[0],   sizeof(szExpectFlags),  uExpectedMxCsr);
+                bs3CpuInstr4GetXcptMasks(&szExpectMasks[0],   sizeof(szExpectMasks),  uExpectedMxCsr);
+                bs3CpuInstr4GetXcptOthers(&szExpectOthers[0], sizeof(szExpectOthers), uExpectedMxCsr);
+                bs3CpuInstr4GetXcptFlags(&szGotFlags[0],   sizeof(szGotFlags),  uGotMxCsr);
+                bs3CpuInstr4GetXcptMasks(&szGotMasks[0],   sizeof(szGotMasks),  uGotMxCsr);
+                bs3CpuInstr4GetXcptOthers(&szGotOthers[0], sizeof(szGotOthers), uGotMxCsr);
+                Bs3TestFailedF("Expected MXCSR %#RX32 (%s%s%s ) got MXCSR %#RX32 (%s%s%s )", uExpectedMxCsr,
+                               szExpectFlags, szExpectMasks, szExpectOthers, uGotMxCsr, szGotFlags, szGotMasks, szGotOthers);
+            }
+
+            /* Check if the SIMD FP exception (or lack of) is as expected. */
+            if (fFpXcptExpected)
+            {
+                if (pTrapFrame->bXcpt == bFpXcpt)
+                { /* likely */ }
+                else
+                    Bs3TestFailedF("Expected floating-point xcpt %s, got %s", bs3CpuInstr4XcptName(bFpXcpt),
+                                   bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
+            }
+            else if (pTrapFrame->bXcpt == X86_XCPT_DB)
             { /* likely */ }
             else
-                Bs3TestFailedF("Expected floating-point xcpt %s, got %s", bs3CpuInstr4XcptName(bFpXcpt),
-                               bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
+                Bs3TestFailedF("Expected no xcpt, got %s", bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
         }
-        else if (pTrapFrame->bXcpt == X86_XCPT_DB)
-        { /* likely */ }
-        else
-            Bs3TestFailedF("Expected no xcpt, got %s", bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
+        /* Check if non-FP exception is as expected. */
+        else if (pTrapFrame->bXcpt != bXcptExpect)
+            Bs3TestFailedF("Expected xcpt %s, got %s", bs3CpuInstr4XcptName(bXcptExpect), bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
+
+        /* Kludge! Looks like EFLAGS.AC is cleared when raising #GP in real mode on the 10980XE. WEIRD! */
+        if (bMode == BS3_MODE_RM && (pCtx->rflags.u32 & X86_EFL_AC))
+        {
+            if (pTrapFrame->Ctx.rflags.u32 & X86_EFL_AC)
+                Bs3TestFailedF("Expected EFLAGS.AC to be cleared (bXcpt=%d)", pTrapFrame->bXcpt);
+            pTrapFrame->Ctx.rflags.u32 |= X86_EFL_AC;
+        }
+        if (bXcptExpect == X86_XCPT_PF)
+            pCtx->cr2.u = (uintptr_t)puMemOp;
+        Bs3TestCheckRegCtxEx(&pTrapFrame->Ctx, pCtx, bXcptExpect == X86_XCPT_DB && !fFpXcptExpected ? cbInstr + 1 : 0, 0 /*cbSpAdjust*/,
+                             (bXcptExpect == X86_XCPT_DB && !fFpXcptExpected) || BS3_MODE_IS_16BIT_SYS(bMode) ? 0 : X86_EFL_RF,
+                             pTestCtx->pszMode, pTestCtx->idTestStep);
+        pCtx->cr2.u = 0;
+
+        if (   pTest->enmRm >= RM_MEM
+            && Bs3MemCmp(puMemOpAlias, &MemOpExpect, cbMemOp) != 0)
+            Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
+
+        if (cErrors != Bs3TestSubErrorCount())
+            Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", s_apszMaskType[iMaskType], uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
     }
-    /* Check if non-FP exception is as expected. */
-    else if (pTrapFrame->bXcpt != bXcptExpect)
-        Bs3TestFailedF("Expected xcpt %s, got %s", bs3CpuInstr4XcptName(bXcptExpect), bs3CpuInstr4XcptName(pTrapFrame->bXcpt));
-
-    /* Kludge! Looks like EFLAGS.AC is cleared when raising #GP in real mode on the 10980XE. WEIRD! */
-    if (bMode == BS3_MODE_RM && (pCtx->rflags.u32 & X86_EFL_AC))
-    {
-        if (pTrapFrame->Ctx.rflags.u32 & X86_EFL_AC)
-            Bs3TestFailedF("Expected EFLAGS.AC to be cleared (bXcpt=%d)", pTrapFrame->bXcpt);
-        pTrapFrame->Ctx.rflags.u32 |= X86_EFL_AC;
-    }
-    if (bXcptExpect == X86_XCPT_PF)
-        pCtx->cr2.u = (uintptr_t)puMemOp;
-    Bs3TestCheckRegCtxEx(&pTrapFrame->Ctx, pCtx, bXcptExpect == X86_XCPT_DB && !fFpXcptExpected ? cbInstr + 1 : 0, 0 /*cbSpAdjust*/,
-                         (bXcptExpect == X86_XCPT_DB && !fFpXcptExpected) || BS3_MODE_IS_16BIT_SYS(bMode) ? 0 : X86_EFL_RF,
-                         pTestCtx->pszMode, pTestCtx->idTestStep);
-    pCtx->cr2.u = 0;
-
-    if (   pTest->enmRm >= RM_MEM
-        && Bs3MemCmp(puMemOpAlias, &MemOpExpect, cbMemOp) != 0)
-        Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
-
-    if (cErrors != Bs3TestSubErrorCount())
-        Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", s_apszMaskType[iMaskType], uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
-   }
 
     return cErrorsInit;
 }

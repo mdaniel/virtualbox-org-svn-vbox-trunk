@@ -863,7 +863,7 @@ static DECLCALLBACK(void) virtioNetR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp
                     pVirtq->fAttachedToVirtioCore  ? "" : "not attached to virtio core");
             }
             pHlp->pfnPrintf(pHlp, "\n");
-            virtioCoreR3VirtqInfo(pDevIns, pHlp, pszArgs, uVirtqNbr);
+            virtioCoreR3VirtqInfo(pDevIns, pHlp, &pThis->Virtio, pszArgs, uVirtqNbr);
             pHlp->pfnPrintf(pHlp, "    ---------------------------------------------------------------------\n");
             pHlp->pfnPrintf(pHlp, "\n");
         }
@@ -3635,7 +3635,8 @@ static DECLCALLBACK(int) virtioNetR3Construct(PPDMDEVINS pDevIns, int iInstance,
      * Register the debugger info callback (ignore errors).
      */
     char szTmp[128];
-    rc = PDMDevHlpDBGFInfoRegister(pDevIns, "virtionet", "Display virtionet info (help, net, features, state, pointers, queues, all)", virtioNetR3Info);
+    RTStrPrintf(szTmp, sizeof(szTmp), "virtionet%d", iInstance);
+    rc = PDMDevHlpDBGFInfoRegister(pDevIns, szTmp, "Display virtionet info (help, net, features, state, pointers, queues, all)", virtioNetR3Info);
     if (RT_FAILURE(rc))
         LogRel(("Failed to register DBGF info for device %s\n", szTmp));
     return rc;

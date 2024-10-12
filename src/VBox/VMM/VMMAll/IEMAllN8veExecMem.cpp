@@ -449,6 +449,204 @@ static void iemExecMemAllocatorPrune(PVMCPU pVCpu, PIEMEXECMEMALLOCATOR pExecMem
 #endif /* IEMEXECMEM_ALT_SUB_WITH_ALT_PRUNING */
 
 
+#if defined(VBOX_STRICT) || 0
+/**
+ * The old bitmap scanner code, for comparison and assertions.
+ */
+static uint32_t iemExecMemAllocatorFindReqFreeUnitsOld(uint64_t *pbmAlloc, uint32_t cToScan, uint32_t cReqUnits)
+{
+    /** @todo This can probably be done more efficiently for non-x86 systems. */
+    int iBit = ASMBitFirstClear(pbmAlloc, cToScan);
+    while (iBit >= 0 && (uint32_t)iBit <= cToScan - cReqUnits)
+    {
+        uint32_t idxAddBit = 1;
+        while (idxAddBit < cReqUnits && !ASMBitTest(pbmAlloc, (uint32_t)iBit + idxAddBit))
+            idxAddBit++;
+        if (idxAddBit >= cReqUnits)
+            return (uint32_t)iBit;
+        iBit = ASMBitNextClear(pbmAlloc, cToScan, iBit + idxAddBit - 1);
+    }
+    return UINT32_MAX;
+}
+#endif
+
+
+/**
+ * Bitmap scanner code that looks for a bunch of @a cReqUnits zero bits.
+ * 
+ * Booting win11 with a r165098 release build the average native TB size is
+ * around 9 units (of 256 bytes).  So, it is unlikely we need to scan any
+ * subsequent words once we hit a patch of zeros, thus @a a_fBig.
+ *
+ * @todo This needs more tweaking. While it *is* faster the the old code,
+ *       it doens't seem like it's all that much. :/
+ */
+template<const bool a_fBig>
+static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t c64WordsToScan, uint32_t cReqUnits)
+{
+    /*
+     * Scan the (section of the) allocation bitmap in 64-bit words.
+     */
+    unsigned cPrevLeadingZeros = 0;
+    for (uint32_t off = 0; off < c64WordsToScan; off++)
+    {
+        uint64_t uWord = pbmAlloc[off];
+        if (uWord == UINT64_MAX)
+        {
+            do
+            {
+                off++;
+                if (off < c64WordsToScan)
+                    uWord = pbmAlloc[off];
+                else
+                    return UINT32_MAX;
+            } while (uWord == UINT64_MAX);
+
+            cPrevLeadingZeros = 0;
+        }
+
+        if (uWord != 0)
+        {
+            /*
+             * Fend of large request we cannot satisfy before first.
+             */
+            if (!a_fBig || cReqUnits < 64 + cPrevLeadingZeros)
+            {
+#ifdef __GNUC__
+                unsigned cZerosInWord = __builtin_popcountl(~uWord);
+#else
+# ifdef RT_ARCH_AMD64
+                unsigned cZerosInWord = __popcnt64(~uWords);
+# else
+#  pragma message("need popcount intrinsic or something...") /** @todo port me: Win/ARM. */
+                unsigned cZerosInWord = 0;
+                for (uint64_t uTmp = ~uWords; uTmp; cZerosInWord++)
+                    uTmp &= uTmp - 1; /* Clears the least significant bit set. */
+# endif
+#endif
+                if (cZerosInWord + cPrevLeadingZeros >= cReqUnits)
+                {
+                    /* Check if we've got a patch of zeros at the trailing end
+                       when joined with the previous word: */
+#ifdef __GNUC__
+                    unsigned cTrailingZeros = __builtin_ctzl(uWord);
+#else
+                    unsigned cTrailingZeros = ASMBitFirstSetU64(uWord) - 1;
+#endif
+                    if (cPrevLeadingZeros + cTrailingZeros >= cReqUnits)
+                        return off * 64 - cPrevLeadingZeros;
+
+                    /*
+                     * Try leading zeros before we get on with the tedious stuff.
+                     */
+#ifdef __GNUC__
+                    cPrevLeadingZeros = __builtin_clzl(uWord);
+#else
+                    cPrevLeadingZeros = 64 - ASMBitLastSetU64(uWord);
+#endif
+                    if (cPrevLeadingZeros >= cReqUnits)
+                        return (off + 1) * 64 - cPrevLeadingZeros;
+
+                    /*
+                     * Check the popcount again sans leading & trailing before looking
+                     * inside the word.
+                     */
+                    cZerosInWord -= cPrevLeadingZeros + cTrailingZeros;
+                    if (cZerosInWord >= cReqUnits)
+                    {
+                        /* 1; 64 - 0 - 1 = 63; */
+                        unsigned const iBitLast = 64 - cPrevLeadingZeros - cReqUnits; /** @todo boundrary */
+                        unsigned       iBit     = cTrailingZeros;
+                        uWord >>= cTrailingZeros;
+                        do
+                        {
+                            Assert(uWord & 1);
+#ifdef __GNUC__
+                            unsigned iZeroBit = __builtin_ctzl(~uWord);
+#else
+                            unsigned iZeroBit = ASMBitFirstSetU64(~uWord) - 1;
+#endif
+                            iBit   += iZeroBit;
+                            uWord >>= iZeroBit;
+                            Assert(iBit <= iBitLast);
+                            Assert((uWord & 1) == 0);
+#ifdef __GNUC__
+                            unsigned cZeros = __builtin_ctzl(uWord);
+#else
+                            unsigned cZeros = ASMBitFirstSetU64(uWord) - 1;
+#endif
+                            if (cZeros >= cReqUnits)
+                                return off * 64 + iBit;
+
+                            cZerosInWord -= cZeros;  /* (may underflow as we will count shifted in zeros) */
+                            iBit         += cZeros;
+                            uWord       >>= cZeros;
+                        } while ((int)cZerosInWord >= (int)cReqUnits && iBit < iBitLast);
+                    }
+                    continue; /* we've already calculated cPrevLeadingZeros */
+                }
+            }
+
+            /* Update the leading (MSB) zero count. */
+#ifdef __GNUC__
+            cPrevLeadingZeros = __builtin_clzl(uWord);
+#else
+            cPrevLeadingZeros = 64 - ASMBitLastSetU64(uWord);
+#endif
+        }
+        /*
+         * uWord == 0
+         */
+        else
+        {
+            if RT_CONSTEXPR_IF(!a_fBig)
+                return off * 64 - cPrevLeadingZeros;
+            else
+            {
+                if (cPrevLeadingZeros + 64 >= cReqUnits)
+                    return off * 64 - cPrevLeadingZeros;
+                for (uint32_t off2 = off + 1;; off2++)
+                {
+                    if (off2 < c64WordsToScan)
+                    {
+                        uWord = pbmAlloc[off2];
+                        if (uWord == UINT64_MAX)
+                        {
+                            cPrevLeadingZeros = 0;
+                            break;
+                        }
+                        if (uWord == 0)
+                        {
+                            if (cPrevLeadingZeros + (off2 - off + 1) * 64 >= cReqUnits)
+                                return off * 64 - cPrevLeadingZeros;
+                        }
+                        else
+                        {
+#ifdef __GNUC__
+                            unsigned cTrailingZeros = uWord ? __builtin_ctzl(uWord) : 64;
+#else
+                            unsigned cTrailingZeros = uWord ? ASMBitFirstSetU64(uWord);
+#endif
+                            if (cPrevLeadingZeros + (off2 - off) * 64 + cTrailingZeros >= cReqUnits)
+                                return off * 64 - cPrevLeadingZeros;
+#ifdef __GNUC__
+                            cPrevLeadingZeros = __builtin_clzl(uWord);
+#else
+                            cPrevLeadingZeros = 64 - ASMBitLastSetU64(uWord);
+#endif
+                            break;
+                        }
+                    }
+                    else
+                        return UINT32_MAX;
+                }
+            }
+        }
+    }
+    return UINT32_MAX;
+}
+
+
 /**
  * Try allocate a block of @a cReqUnits in the chunk @a idxChunk.
  */
@@ -464,64 +662,62 @@ iemExecMemAllocatorAllocInChunkInt(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint6
     Assert(!(idxFirst & 63));
     Assert(cToScan + idxFirst <= pExecMemAllocator->cUnitsPerChunk);
     pbmAlloc += idxFirst / 64;
+    cToScan  += idxFirst & 63;
+    Assert(!(cToScan & 63));
 
-    /*
-     * Scan the bitmap for cReqUnits of consequtive clear bits
-     */
-    /** @todo This can probably be done more efficiently for non-x86 systems. */
-    int iBit = ASMBitFirstClear(pbmAlloc, cToScan);
-    while (iBit >= 0 && (uint32_t)iBit <= cToScan - cReqUnits)
-    {
-        uint32_t idxAddBit = 1;
-        while (idxAddBit < cReqUnits && !ASMBitTest(pbmAlloc, (uint32_t)iBit + idxAddBit))
-            idxAddBit++;
-        if (idxAddBit >= cReqUnits)
-        {
-            ASMBitSetRange(pbmAlloc, (uint32_t)iBit, (uint32_t)iBit + cReqUnits);
-
-            PIEMEXECMEMCHUNK const pChunk = &pExecMemAllocator->aChunks[idxChunk];
-            pChunk->cFreeUnits -= cReqUnits;
-            pChunk->idxFreeHint = (uint32_t)iBit + cReqUnits;
-
-            pExecMemAllocator->cAllocations += 1;
-            uint32_t const cbReq = cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT;
-            pExecMemAllocator->cbAllocated  += cbReq;
-            pExecMemAllocator->cbFree       -= cbReq;
-            pExecMemAllocator->idxChunkHint  = idxChunk;
-
-            void * const pvMemRw = (uint8_t *)pChunk->pvChunkRw
-                                 + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT);
-
-            if (ppChunkCtx)
-                *ppChunkCtx = pChunk->pCtx;
-
-            /*
-             * Initialize the header and return.
-             */
-# ifdef IEMEXECMEM_ALT_SUB_WITH_ALLOC_HEADER
-            PIEMEXECMEMALLOCHDR const pHdr = (PIEMEXECMEMALLOCHDR)pvMemRw;
-            pHdr->uMagic   = IEMEXECMEMALLOCHDR_MAGIC;
-            pHdr->idxChunk = idxChunk;
-            pHdr->pTb      = pTb;
-
-            if (ppvExec)
-                *ppvExec = (uint8_t *)pChunk->pvChunkRx
-                         + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT)
-                         + sizeof(*pHdr);
-
-            return pHdr + 1;
+#if 1
+    uint32_t const iBit = cReqUnits < 64
+                        ? iemExecMemAllocatorFindReqFreeUnits<false>(pbmAlloc, cToScan / 64, cReqUnits)
+                        : iemExecMemAllocatorFindReqFreeUnits<true>( pbmAlloc, cToScan / 64, cReqUnits);
+    Assert(iBit == iemExecMemAllocatorFindReqFreeUnitsOld(pbmAlloc, cToScan, cReqUnits));
 #else
-            if (ppvExec)
-                *ppvExec = (uint8_t *)pChunk->pvChunkRx
-                         + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT);
-
-            RT_NOREF(pTb);
-            return pvMem;
+    uint32_t const iBit = iemExecMemAllocatorFindReqFreeUnitsOld(pbmAlloc, cToScan, cReqUnits);
 #endif
-        }
+    if (iBit != UINT32_MAX)
+    {
+        ASMBitSetRange(pbmAlloc, (uint32_t)iBit, (uint32_t)iBit + cReqUnits);
 
-        iBit = ASMBitNextClear(pbmAlloc, cToScan, iBit + idxAddBit - 1);
+        PIEMEXECMEMCHUNK const pChunk = &pExecMemAllocator->aChunks[idxChunk];
+        pChunk->cFreeUnits -= cReqUnits;
+        pChunk->idxFreeHint = (uint32_t)iBit + cReqUnits;
+
+        pExecMemAllocator->cAllocations += 1;
+        uint32_t const cbReq = cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT;
+        pExecMemAllocator->cbAllocated  += cbReq;
+        pExecMemAllocator->cbFree       -= cbReq;
+        pExecMemAllocator->idxChunkHint  = idxChunk;
+
+        void * const pvMemRw = (uint8_t *)pChunk->pvChunkRw
+                             + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT);
+
+        if (ppChunkCtx)
+            *ppChunkCtx = pChunk->pCtx;
+
+        /*
+         * Initialize the header and return.
+         */
+# ifdef IEMEXECMEM_ALT_SUB_WITH_ALLOC_HEADER
+        PIEMEXECMEMALLOCHDR const pHdr = (PIEMEXECMEMALLOCHDR)pvMemRw;
+        pHdr->uMagic   = IEMEXECMEMALLOCHDR_MAGIC;
+        pHdr->idxChunk = idxChunk;
+        pHdr->pTb      = pTb;
+
+        if (ppvExec)
+            *ppvExec = (uint8_t *)pChunk->pvChunkRx
+                     + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT)
+                     + sizeof(*pHdr);
+
+        return pHdr + 1;
+#else
+        if (ppvExec)
+            *ppvExec = (uint8_t *)pChunk->pvChunkRx
+                     + ((idxFirst + (uint32_t)iBit) << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT);
+
+        RT_NOREF(pTb);
+        return pvMem;
+#endif
     }
+
     return NULL;
 }
 
@@ -668,12 +864,96 @@ DECLHIDDEN(void) iemExecMemAllocatorReadyForUse(PVMCPUCC pVCpu, void *pv, size_t
 {
 #ifdef RT_OS_DARWIN
     /*
-     * Flush the instruction cache:
-     *      https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon
+     * We need to synchronize the stuff we wrote to the data cache with the
+     * instruction cache, since these aren't coherent on arm (or at least not
+     * on Apple Mn CPUs).
+     *
+     * Note! Since we don't any share JIT'ed code with the other CPUs, we don't
+     *       really care whether the dcache is fully flushed back to memory. It
+     *       only needs to hit the level 2 cache, which the level 1 instruction
+     *       and data caches seems to be sharing.  In ARM terms, we need to reach
+     *       a point of unification (PoU), rather than a point of coherhency (PoC).
+     *
+     * https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon
+     *
+     * https://developer.arm.com/documentation/den0013/d/Caches/Point-of-coherency-and-unification
+     *
+     * Experimenting with the approach used by sys_icache_invalidate() and
+     * tweaking it a little, could let us shave off a bit of effort.  The thing
+     * that slows the apple code down on an M2 (runing Sonoma 13.4), seems to
+     * the 'DSB ISH' instructions performed every 20 icache line flushes.
+     * Skipping these saves ~100ns or more per TB when profiling the native
+     * recompiler on the TBs from a win11 full boot-desktop-shutdow sequence.
+     * Thus we will leave DCACHE_ICACHE_SYNC_WITH_WITH_IVAU_DSB undefined if we
+     * can.
+     *
+     * There appears not to be much difference between DSB options 'ISH',
+     * 'ISHST', 'NSH' and 'NSHST'.  The latter is theoretically all we need, so
+     * we'll use that one.
+     *
+     * See https://developer.arm.com/documentation/100941/0101/Barriers for
+     * details on the barrier options.
+     *
+     * Note! The CFG value "/IEM/HostICacheInvalidationViaHostAPI" can be used
+     *       to disabling the experimental code should it misbehave.
      */
-    /* sys_dcache_flush(pv, cb); - not necessary */
-    sys_icache_invalidate(pv, cb);
-    RT_NOREF(pVCpu);
+    uint8_t const fHostICacheInvalidation = pVCpu->iem.s.fHostICacheInvalidation;
+    if (!(fHostICacheInvalidation & IEMNATIVE_ICACHE_F_USE_HOST_API))
+    {
+#  define DCACHE_ICACHE_SYNC_DSB_OPTION "nshst"
+/*#  define DCACHE_ICACHE_SYNC_WITH_WITH_IVAU_DSB*/
+
+        /* Skipping this is fine, but doesn't impact perf much. */
+        __asm__ __volatile__("dsb " DCACHE_ICACHE_SYNC_DSB_OPTION);
+
+        /* Invalidate the icache for the range [pv,pv+cb). */
+#  ifdef DCACHE_ICACHE_SYNC_WITH_WITH_IVAU_DSB
+        size_t const cIvauDsbEvery= 20;
+        unsigned     cDsb         = cIvauDsbEvery;
+#  endif
+        size_t const cbCacheLine  = 64;
+        size_t       cbInvalidate = cb + ((uintptr_t)pv & (cbCacheLine - 1)) ;
+        size_t       cCacheLines  = RT_ALIGN_Z(cbInvalidate, cbCacheLine) / cbCacheLine;
+        uintptr_t    uPtr         = (uintptr_t)pv & ~(uintptr_t)(cbCacheLine - 1);
+        for (;; uPtr += cbCacheLine)
+        {
+            __asm__ /*__volatile__*/("ic ivau, %0" : : "r" (uPtr));
+            cCacheLines -= 1;
+            if (!cCacheLines)
+                break;
+#  ifdef DCACHE_ICACHE_SYNC_WITH_WITH_IVAU_DSB
+            cDsb -= 1;
+            if (cDsb != 0)
+            { /* likely */ }
+            else
+            {
+                __asm__ __volatile__("dsb " DCACHE_ICACHE_SYNC_DSB_OPTION);
+                cDsb = cIvauDsbEvery;
+            }
+#  endif
+        }
+
+        /*
+         * The DSB here is non-optional it seems.
+         *
+         * The following ISB can be omitted on M2 without any obvious sideeffects,
+         * it produces better number in the above mention profiling scenario.
+         * This could be related to the kHasICDSB flag in cpu_capabilities.h,
+         * but it doesn't look like that flag is set here (M2, Sonoma 13.4).
+         *
+         * I've made the inclusion of the ISH barrier as configurable and with
+         * a default of skipping it.
+         */
+        if (!(fHostICacheInvalidation & IEMNATIVE_ICACHE_F_END_WITH_ISH))
+            __asm__ __volatile__("dsb " DCACHE_ICACHE_SYNC_DSB_OPTION
+                                  ::: "memory");
+        else
+            __asm__ __volatile__("dsb " DCACHE_ICACHE_SYNC_DSB_OPTION "\n\t"
+                                 "isb"
+                                 ::: "memory");
+    }
+    else
+        sys_icache_invalidate(pv, cb);
 
 #elif defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
     RT_NOREF(pVCpu);

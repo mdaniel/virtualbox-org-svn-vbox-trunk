@@ -118,6 +118,14 @@
 #endif
 
 
+/*********************************************************************************************************************************
+*   Internal Functions                                                                                                           *
+*********************************************************************************************************************************/
+#if defined(VBOX_WITH_IEM_NATIVE_RECOMPILER) && defined(VBOX_WITH_SAVE_THREADED_TBS_FOR_PROFILING)
+static void iemThreadedSaveTbForProfiling(PVMCPU pVCpu, PCIEMTB pTb);
+#endif
+
+
 /**
  * Calculates the effective address of a ModR/M memory operand, extended version
  * for use in the recompilers.
@@ -3106,7 +3114,7 @@ VMMR3DECL(int) IEMR3ThreadedProfileRecompilingSavedTbs(PVM pVM, const char *pszF
                     AssertStmt(pTb->Thrd.cCalls      > 0 && pTb->Thrd.cCalls      <= _8K, rc = VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
                     AssertStmt(pTb->cbOpcodes        > 0 && pTb->cbOpcodes        <= _8K, rc = VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
                     AssertStmt(pTb->cRanges          > 0 && pTb->cRanges <= RT_ELEMENTS(pTb->aRanges), rc = VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
-                    AssertStmt(pTb->cTbLookupEntries > 0 && pTb->cTbLookupEntries <= _1K, rc = VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
+                    AssertStmt(pTb->cTbLookupEntries > 0 && pTb->cTbLookupEntries <= 136, rc = VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
 
                     if (RT_SUCCESS(rc))
                         for (uint32_t iRange = 0; iRange < pTb->cRanges; iRange++)

@@ -2272,16 +2272,16 @@ DECLINLINE(uint32_t) bs3CpuInstrX_SimpleRand(void)
  * Full test runs take ever longer as we add more instructions and fancier
  * ways of testing them.  In one example scenario, a debug build running
  * bs3-cpu-instr-3 under interpreted IEM went from 9000 to 800 seconds,
- * with BS3_SKIPIT_AVG_SKIP on the default 26.
+ * with BS3_SKIPIT_AVG_SKIP set to 26.
  *
- * To activate this 'developer's speed-testing mode', turn on
- * `#define BS3_SKIPIT_DO_SKIP' here.
+ * To activate this 'developer's speed-testing mode', define
+ * `BS3_SKIPIT_AVG_SKIP' to a positive integer like 10 or 200.
  *
  * BS3_SKIPIT_AVG_SKIP governs approximately how many micro-tests are
- * skipped in a row; e.g. the default of 26 means that on average, every
- * 26th micro-test is run during a particular test run.  (This is not 26x
- * faster, due to other activities which are not skipped!)  Note this is
- * only an average; the actual skips are random.
+ * skipped in a row; e.g. if set to 100, an average of 100 micro-tests
+ * in a row are skipped.  (This is not a full 100x faster, due to other
+ * activities which are not skipped!)  Note this is only an average;
+ * the actual skips are random.
  *
  * You can also modify bs3CpuInstrX_SkipIt() to focus on specific sub-tests,
  * using its (currently ignored) `bRing, iCfg, iTest, iVal, iVariant' args
@@ -2295,25 +2295,20 @@ DECLINLINE(uint32_t) bs3CpuInstrX_SimpleRand(void)
  *     VBoxManage setextradata vmname VBoxInternal/Devices/VMMDev/0/Config/TestingThresholdNativeRecompiler 2
  *     VBoxManage setextradata vmname VBoxInternal/IEM/NativeRecompileAtUsedCount 1
  */
-#define BS3_SKIPIT_AVG_SKIP          26
+#define BS3_SKIPIT_AVG_SKIP           0
 #define BS3_SKIPIT_REPORT_COUNT 1000000
-#undef  BS3_SKIPIT_DO_SKIP
 #undef  BS3_SKIPIT_DO_ARGS
 
 #ifdef DEBUG_ramshankar
-# undef  BS3_SKIPIT_DO_SKIP
-# define BS3_SKIPIT_DO_SKIP
 # undef  BS3_SKIPIT_AVG_SKIP
-# define BS3_SKIPIT_AVG_SKIP        80
+# define BS3_SKIPIT_AVG_SKIP         80
 #endif
 
-#ifndef BS3_SKIPIT_DO_SKIP
-# define BS3_SKIPIT(bRing, iCfg, iTest, iVal, iVariant) (false)
-#else
 static unsigned g_cSeen, g_cSkipped;
 
-static void bs3CpuInstrX_ShowTallies(void)
+static void bs3CpuInstrX_ShowTallies(bool always)
 {
+    if (!g_cSkipped && !always) return;
     Bs3TestPrintf("Micro-tests %d: tested %d / skipped %d\n", g_cSeen, g_cSeen - g_cSkipped, g_cSkipped);
 }
 
@@ -2336,11 +2331,10 @@ static bool bs3CpuInstrX_SkipIt(void)
         ++g_cSkipped;
 
     if (++g_cSeen % BS3_SKIPIT_REPORT_COUNT == 0)
-        bs3CpuInstrX_ShowTallies();
+        bs3CpuInstrX_ShowTallies(false);
     return fSkip;
 }
 
-#endif /* BS3_SKIPIT_DO_SKIP */
 
 /*
  * Test type #1.
@@ -14740,9 +14734,7 @@ BS3_DECL(void) Main_pe32()
                  * Do the tests.
                  */
                 Bs3TestDoModesByOne_pe32(g_aTests, RT_ELEMENTS(g_aTests), BS3TESTMODEBYONEENTRY_F_REAL_MODE_READY);
-#ifdef BS3_SKIPIT_DO_SKIP
-                bs3CpuInstrX_ShowTallies();
-#endif
+                bs3CpuInstrX_ShowTallies(true);
             }
             else
                 Bs3TestFailed("Failed to allocate 16K alias buffer (tiled addressable)");

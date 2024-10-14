@@ -1124,15 +1124,6 @@ void UINotificationMessage::cannotChangeKeyboardParameter(const CKeyboard &comKe
 }
 
 /* static */
-void UINotificationMessage::cannotChangeMouseParameter(const CMouse &comMouse)
-{
-    createMessage(
-        QApplication::translate("UIMessageCenter", "Mouse failure ..."),
-        QApplication::translate("UIMessageCenter", "Failed to change mouse parameter.") +
-        UIErrorString::formatErrorInfo(comMouse));
-}
-
-/* static */
 void UINotificationMessage::cannotChangeVirtualSystemDescriptionParameter(const CVirtualSystemDescription &comVsd,
                                                                           UINotificationCenter *pParent /* = 0 */)
 {

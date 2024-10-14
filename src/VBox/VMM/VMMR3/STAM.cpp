@@ -3169,7 +3169,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && pDesc->u.pCounter->c == 0)
                 return VINF_SUCCESS;
 
-            pArgs->pfnPrintf(pArgs, "%-32s %8llu %s\n", pDesc->pszName, pDesc->u.pCounter->c, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9llu %s\n", pDesc->pszName, pDesc->u.pCounter->c, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_PROFILE:
@@ -3179,7 +3179,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
                 return VINF_SUCCESS;
 
             uint64_t const u64 = pDesc->u.pProfile->cPeriods ? pDesc->u.pProfile->cPeriods : 1;
-            pArgs->pfnPrintf(pArgs, "%-32s %8llu %s (%12llu %s, %7llu %s, max %9llu, min %7lld)\n", pDesc->pszName,
+            pArgs->pfnPrintf(pArgs, "%-42s %9llu %s (%12llu %s, %7llu %s, max %9llu, min %7lld)\n", pDesc->pszName,
                              pDesc->u.pProfile->cTicks / u64, STAMR3GetUnit(pDesc->enmUnit),
                              pDesc->u.pProfile->cTicks, STAMR3GetUnit1(pDesc->enmUnit),
                              pDesc->u.pProfile->cPeriods, STAMR3GetUnit2(pDesc->enmUnit),
@@ -3191,7 +3191,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
         case STAMTYPE_RATIO_U32_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && !pDesc->u.pRatioU32->u32A && !pDesc->u.pRatioU32->u32B)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8u:%-8u %s\n", pDesc->pszName,
+            pArgs->pfnPrintf(pArgs, "%-42s %9u:%-8u %s\n", pDesc->pszName,
                              pDesc->u.pRatioU32->u32A, pDesc->u.pRatioU32->u32B, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
@@ -3199,7 +3199,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
         {
             char szBuf[512];
             pDesc->u.Callback.pfnPrint(pArgs->pUVM->pVM, pDesc->u.Callback.pvSample, szBuf, sizeof(szBuf));
-            pArgs->pfnPrintf(pArgs, "%-32s %s %s\n", pDesc->pszName, szBuf, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %s %s\n", pDesc->pszName, szBuf, STAMR3GetUnit(pDesc->enmUnit));
             break;
         }
 
@@ -3207,63 +3207,63 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
         case STAMTYPE_U8_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu8 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8u %s\n", pDesc->pszName, *pDesc->u.pu8, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9u %s\n", pDesc->pszName, *pDesc->u.pu8, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_X8:
         case STAMTYPE_X8_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu8 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8x %s\n", pDesc->pszName, *pDesc->u.pu8, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9x %s\n", pDesc->pszName, *pDesc->u.pu8, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_U16:
         case STAMTYPE_U16_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu16 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8u %s\n", pDesc->pszName, *pDesc->u.pu16, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9u %s\n", pDesc->pszName, *pDesc->u.pu16, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_X16:
         case STAMTYPE_X16_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu16 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8x %s\n", pDesc->pszName, *pDesc->u.pu16, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9x %s\n", pDesc->pszName, *pDesc->u.pu16, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_U32:
         case STAMTYPE_U32_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu32 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8u %s\n", pDesc->pszName, *pDesc->u.pu32, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9u %s\n", pDesc->pszName, *pDesc->u.pu32, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_X32:
         case STAMTYPE_X32_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu32 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8x %s\n", pDesc->pszName, *pDesc->u.pu32, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9x %s\n", pDesc->pszName, *pDesc->u.pu32, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_U64:
         case STAMTYPE_U64_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu64 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8llu %s\n", pDesc->pszName, *pDesc->u.pu64, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9llu %s\n", pDesc->pszName, *pDesc->u.pu64, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_X64:
         case STAMTYPE_X64_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pu64 == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8llx %s\n", pDesc->pszName, *pDesc->u.pu64, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9llx %s\n", pDesc->pszName, *pDesc->u.pu64, STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_BOOL:
         case STAMTYPE_BOOL_RESET:
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && *pDesc->u.pf == false)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %s %s\n", pDesc->pszName, *pDesc->u.pf ? "true    " : "false   ", STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %s %s\n", pDesc->pszName, *pDesc->u.pf ? "true    " : "false   ", STAMR3GetUnit(pDesc->enmUnit));
             break;
 
         case STAMTYPE_INTERNAL_SUM:
@@ -3275,7 +3275,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
                 case STAMTYPE_COUNTER:
                     if (pDesc->enmVisibility == STAMVISIBILITY_USED && pSum->u.Counter.c == 0)
                         return VINF_SUCCESS;
-                    pArgs->pfnPrintf(pArgs, "%-32s %8llu %s\n", pDesc->pszName, pSum->u.Counter.c, STAMR3GetUnit(pDesc->enmUnit));
+                    pArgs->pfnPrintf(pArgs, "%-42s %9llu %s\n", pDesc->pszName, pSum->u.Counter.c, STAMR3GetUnit(pDesc->enmUnit));
                     break;
 
                 case STAMTYPE_PROFILE:
@@ -3284,7 +3284,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
                         return VINF_SUCCESS;
 
                     uint64_t const u64 = pSum->u.Profile.cPeriods ? pSum->u.Profile.cPeriods : 1;
-                    pArgs->pfnPrintf(pArgs, "%-32s %8llu %s (%12llu %s, %7llu %s, max %9llu, min %7lld)\n", pDesc->pszName,
+                    pArgs->pfnPrintf(pArgs, "%-42s %9llu %s (%12llu %s, %7llu %s, max %9llu, min %7lld)\n", pDesc->pszName,
                                      pSum->u.Profile.cTicks / u64, STAMR3GetUnit(pDesc->enmUnit),
                                      pSum->u.Profile.cTicks, STAMR3GetUnit1(pDesc->enmUnit),
                                      pSum->u.Profile.cPeriods, STAMR3GetUnit2(pDesc->enmUnit),
@@ -3305,7 +3305,7 @@ static int stamR3PrintOne(PSTAMDESC pDesc, void *pvArg)
             stamR3PctOfSumRefresh(pDesc, pSum);
             if (pDesc->enmVisibility == STAMVISIBILITY_USED && pSum->u.Counter.c == 0)
                 return VINF_SUCCESS;
-            pArgs->pfnPrintf(pArgs, "%-32s %8llu %s\n", pDesc->pszName, pSum->u.Counter.c, STAMR3GetUnit(pDesc->enmUnit));
+            pArgs->pfnPrintf(pArgs, "%-42s %9llu %s\n", pDesc->pszName, pSum->u.Counter.c, STAMR3GetUnit(pDesc->enmUnit));
             break;
         }
 

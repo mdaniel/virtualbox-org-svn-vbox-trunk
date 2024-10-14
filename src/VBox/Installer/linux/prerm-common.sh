@@ -47,7 +47,7 @@ MY_PATH="${TARGET%/[!/]*}"
 cd "${MY_PATH}"
 . "./routines.sh"
 
-# Stop the ballon control service
+# Stop the balloon control service
 stop_init_script vboxballoonctrl-service >/dev/null 2>&1
 # Stop the autostart service
 stop_init_script vboxautostart-service >/dev/null 2>&1

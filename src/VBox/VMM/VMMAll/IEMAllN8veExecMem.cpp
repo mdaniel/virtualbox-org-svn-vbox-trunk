@@ -851,7 +851,6 @@ iemExecMemAllocatorAllocInChunkInt(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint6
 #endif
     }
 
-    pExecMemAllocator->cFruitlessChunkScans += 1;
     return NULL;
 }
 
@@ -888,10 +887,12 @@ iemExecMemAllocatorAllocInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t
         }
         void *pvRet = iemExecMemAllocatorAllocInChunkInt(pExecMemAllocator, pbmAlloc, 0,
                                                          RT_MIN(pExecMemAllocator->cUnitsPerChunk,
-                                                              RT_ALIGN_32(idxHint + cReqUnits, 64)),
+                                                                RT_ALIGN_32(idxHint + cReqUnits, 64*4)),
                                                          cReqUnits, idxChunk, pTb, (void **)ppaExec, ppChunkCtx);
+        if (!pvRet)
+            pExecMemAllocator->cFruitlessChunkScans += 1;
 #ifdef VBOX_WITH_STATISTICS
-        if (pvRet)
+        else
             pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
 #endif
         return (PIEMNATIVEINSTR)pvRet;

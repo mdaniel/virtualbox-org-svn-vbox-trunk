@@ -3190,7 +3190,7 @@ VMMR3DECL(int) IEMR3ThreadedProfileRecompilingSavedTbs(PVM pVM, const char *pszF
                          cTbs < cMinTbs && pTbAllocator->cInUseTbs + 2 <= pTbAllocator->cMaxTbs;
                          pTb = pTb->pNext)
                     {
-                        PIEMTB pTbCopy = iemThreadedTbDuplicate(pVM, pVCpu, pTbHead);
+                        PIEMTB pTbCopy = iemThreadedTbDuplicate(pVM, pVCpu, pTb);
                         if (!pTbCopy)
                             break;
                         *ppTbTail = pTbCopy;

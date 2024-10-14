@@ -293,6 +293,8 @@ typedef struct IEMEXECMEMALLOCATOR
     STAMPROFILE             StatAlloc;
     /** Total amount of memory not being usable currently due to IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE. */
     uint64_t                cbUnusable;
+    /** Allocation size distribution (in alloc units; 0 is the slop bucket). */
+    STAMCOUNTER             aStatSizes[16];
 #endif
 
 #if defined(IN_RING3) && !defined(RT_OS_WINDOWS)
@@ -500,8 +502,8 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
              * fills up, so it's definitely worth optimizing.
              *
              * The complicated code below is a bit faster on arm. Reducing the per TB cost
-             * from 4255ns to 4106ns (best run out of 10).  On win/x86 the gain isn't so
-             * marked, despite more full bitmap scans.
+             * from 4255ns to 4106ns (best run out of 10).  On win/amd64 there isn't an
+             * obvious gain here, at least not with the data currently being profiled.
              */
 #if 1
             off++;
@@ -638,26 +640,27 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
             cPrevLeadingZeros = 0;
         }
 
+        /*
+         * If we get down here, we have a word that isn't UINT64_MAX.
+         */
         if (uWord != 0)
         {
             /*
-             * Fend of large request we cannot satisfy before first.
+             * Fend of large request we cannot satisfy before the first set bit.
              */
             if (!a_fBig || cReqUnits < 64 + cPrevLeadingZeros)
             {
 #ifdef __GNUC__
                 unsigned cZerosInWord = __builtin_popcountl(~uWord);
-#else
-# ifdef RT_ARCH_AMD64
+#elif defined(_MSC_VER) && defined(RT_ARCH_AMD64)
                 unsigned cZerosInWord = __popcnt64(~uWord);
-# elif defined(RT_ARCH_ARM64)
+#elif defined(_MSC_VER) && defined(RT_ARCH_ARM64)
                 unsigned cZerosInWord = _CountOneBits64(~uWord);
-# else
-#  pragma message("need popcount intrinsic or something...") /** @todo port me: Win/ARM. */
+#else
+# pragma message("need popcount intrinsic or something...")
                 unsigned cZerosInWord = 0;
                 for (uint64_t uTmp = ~uWords; uTmp; cZerosInWord++)
                     uTmp &= uTmp - 1; /* Clears the least significant bit set. */
-# endif
 #endif
                 if (cZerosInWord + cPrevLeadingZeros >= cReqUnits)
                 {
@@ -736,7 +739,7 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
         {
             if RT_CONSTEXPR_IF(!a_fBig)
                 return off * 64 - cPrevLeadingZeros;
-            else
+            else /* keep else */
             {
                 if (cPrevLeadingZeros + 64 >= cReqUnits)
                     return off * 64 - cPrevLeadingZeros;
@@ -889,18 +892,10 @@ iemExecMemAllocatorAllocUnitsInChunkInner(PIEMEXECMEMALLOCATOR pExecMemAllocator
                                                      RT_MIN(pExecMemAllocator->cUnitsPerChunk,
                                                             RT_ALIGN_32(idxHint + cReqUnits, 64*4)),
                                                      cReqUnits, idxChunk, pTb, (void **)ppaExec, ppChunkCtx);
-    if (!pvRet)
-        pExecMemAllocator->cFruitlessChunkScans += 1;
-    return (PIEMNATIVEINSTR)pvRet;
-}
+    if (pvRet)
+        return (PIEMNATIVEINSTR)pvRet;
 
-
-DECL_FORCE_INLINE(PIEMNATIVEINSTR)
-iemExecMemAllocatorAllocUnitsInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cReqUnits, PIEMTB pTb,
-                                     PIEMNATIVEINSTR *ppaExec, PCIEMNATIVEPERCHUNKCTX *ppChunkCtx)
-{
-    if (cReqUnits <= pExecMemAllocator->aChunks[idxChunk].cFreeUnits)
-        return iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk, cReqUnits, pTb, ppaExec, ppChunkCtx);
+    pExecMemAllocator->cFruitlessChunkScans += 1;
     return NULL;
 }
 
@@ -909,8 +904,11 @@ DECLINLINE(PIEMNATIVEINSTR)
 iemExecMemAllocatorAllocBytesInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cbReq,
                                      PIEMNATIVEINSTR *ppaExec)
 {
-    return iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, iemExecMemAllocBytesToUnits(cbReq), NULL /*pTb*/,
-                                                ppaExec, NULL /*ppChunkCtx*/);
+    uint32_t const cReqUnits = iemExecMemAllocBytesToUnits(cbReq);
+    if (cReqUnits <= pExecMemAllocator->aChunks[idxChunk].cFreeUnits)
+        return iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk, cReqUnits, NULL /*pTb*/,
+                                                         ppaExec, NULL /*ppChunkCtx*/);
+    return NULL;
 }
 
 
@@ -937,37 +935,55 @@ DECLHIDDEN(PIEMNATIVEINSTR) iemExecMemAllocatorAlloc(PVMCPU pVCpu, uint32_t cbRe
     STAM_PROFILE_START(&pExecMemAllocator->StatAlloc, a);
 
     uint32_t const cReqUnits = iemExecMemAllocBytesToUnits(cbReq);
+    STAM_COUNTER_INC(&pExecMemAllocator->aStatSizes[cReqUnits < RT_ELEMENTS(pExecMemAllocator->aStatSizes) ? cReqUnits : 0]);
     for (unsigned iIteration = 0;; iIteration++)
     {
-        if (cbReq <= pExecMemAllocator->cbFree)
+        if (   cbReq * 2 <= pExecMemAllocator->cbFree
+            || (cReqUnits == 1 || pExecMemAllocator->cbFree >= IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE) )
         {
-            uint32_t const cChunks      = pExecMemAllocator->cChunks;
-            uint32_t const idxChunkHint = pExecMemAllocator->idxChunkHint < cChunks ? pExecMemAllocator->idxChunkHint : 0;
-            for (uint32_t idxChunk = idxChunkHint; idxChunk < cChunks; idxChunk++)
+            uint32_t const cChunks       = pExecMemAllocator->cChunks;
+            uint32_t const idxChunkHint  = pExecMemAllocator->idxChunkHint < cChunks ? pExecMemAllocator->idxChunkHint : 0;
+
+            /*
+             * We do two passes here, the first pass we skip chunks with fewer than cReqUnits * 16,
+             * the 2nd pass we skip chunks. The second pass checks the one skipped in the first pass.
+             */
+            for (uint32_t cMinFreePass = cReqUnits == 1 ? cReqUnits : cReqUnits * 16, cMaxFreePass = UINT32_MAX;;)
             {
-                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
-                                                                                  ppaExec, ppChunkCtx);
-                if (pRet)
-                {
-                    STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
+                for (uint32_t idxChunk = idxChunkHint; idxChunk < cChunks; idxChunk++)
+                    if (   pExecMemAllocator->aChunks[idxChunk].cFreeUnits >= cMinFreePass
+                        && pExecMemAllocator->aChunks[idxChunk].cFreeUnits <= cMaxFreePass)
+                    {
+                        PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk,
+                                                                                               cReqUnits, pTb, ppaExec, ppChunkCtx);
+                        if (pRet)
+                        {
+                            STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
 #ifdef VBOX_WITH_STATISTICS
-                    pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
+                            pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
 #endif
-                    return pRet;
-                }
-            }
-            for (uint32_t idxChunk = 0; idxChunk < idxChunkHint; idxChunk++)
-            {
-                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
-                                                                                  ppaExec, ppChunkCtx);
-                if (pRet)
-                {
-                    STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
+                            return pRet;
+                        }
+                    }
+                for (uint32_t idxChunk = 0; idxChunk < idxChunkHint; idxChunk++)
+                    if (   pExecMemAllocator->aChunks[idxChunk].cFreeUnits >= cMinFreePass
+                        && pExecMemAllocator->aChunks[idxChunk].cFreeUnits <= cMaxFreePass)
+                    {
+                        PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk,
+                                                                                               cReqUnits, pTb, ppaExec, ppChunkCtx);
+                        if (pRet)
+                        {
+                            STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
 #ifdef VBOX_WITH_STATISTICS
-                    pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
+                            pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
 #endif
-                    return pRet;
-                }
+                            return pRet;
+                        }
+                    }
+                if (cMinFreePass <= cReqUnits * 2)
+                    break;
+                cMaxFreePass = cMinFreePass - 1;
+                cMinFreePass = cReqUnits * 2;
             }
         }
 
@@ -980,8 +996,8 @@ DECLHIDDEN(PIEMNATIVEINSTR) iemExecMemAllocatorAlloc(PVMCPU pVCpu, uint32_t cbRe
             AssertLogRelRCReturn(rc, NULL);
 
             uint32_t const idxChunk = pExecMemAllocator->cChunks - 1;
-            PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
-                                                                              ppaExec, ppChunkCtx);
+            PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk, cReqUnits, pTb,
+                                                                                   ppaExec, ppChunkCtx);
             if (pRet)
             {
                 STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
@@ -2123,6 +2139,12 @@ int iemExecMemAllocatorInit(PVMCPU pVCpu, uint64_t cbMax, uint64_t cbInitial, ui
                      "Total number of bytes being unusable",    "/IEM/CPU%u/re/ExecMem/cbUnusable", pVCpu->idCpu);
     STAMR3RegisterFU(pUVM, &pExecMemAllocator->StatAlloc,       STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_TICKS_PER_CALL,
                      "Profiling the allocator",                 "/IEM/CPU%u/re/ExecMem/ProfAlloc", pVCpu->idCpu);
+    for (unsigned i = 1; i < RT_ELEMENTS(pExecMemAllocator->aStatSizes); i++)
+        STAMR3RegisterFU(pUVM, &pExecMemAllocator->aStatSizes[i], STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
+                         "Number of allocations of this number of allocation units",
+                         "/IEM/CPU%u/re/ExecMem/aSize%02u", pVCpu->idCpu, i);
+    STAMR3RegisterFU(pUVM, &pExecMemAllocator->aStatSizes[0], STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
+                     "Number of allocations 16 units or larger", "/IEM/CPU%u/re/ExecMem/aSize16OrLarger", pVCpu->idCpu);
 #endif
 #ifdef IEMEXECMEM_ALT_SUB_WITH_ALT_PRUNING
     STAMR3RegisterFU(pUVM, &pExecMemAllocator->StatPruneProf,   STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_TICKS_PER_CALL,

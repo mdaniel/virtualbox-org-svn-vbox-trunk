@@ -650,6 +650,8 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
 #else
 # ifdef RT_ARCH_AMD64
                 unsigned cZerosInWord = __popcnt64(~uWord);
+# elif defined(RT_ARCH_ARM64)
+                unsigned cZerosInWord = _CountOneBits64(~uWord);
 # else
 #  pragma message("need popcount intrinsic or something...") /** @todo port me: Win/ARM. */
                 unsigned cZerosInWord = 0;
@@ -855,49 +857,60 @@ iemExecMemAllocatorAllocInChunkInt(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint6
 }
 
 
-static PIEMNATIVEINSTR
-iemExecMemAllocatorAllocInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cbReq, PIEMTB pTb,
-                                PIEMNATIVEINSTR *ppaExec, PCIEMNATIVEPERCHUNKCTX *ppChunkCtx)
+/**
+ * Converts requested number of bytes into a unit count.
+ */
+DECL_FORCE_INLINE(uint32_t) iemExecMemAllocBytesToUnits(uint32_t cbReq)
 {
-    /*
-     * Figure out how much to allocate.
-     */
 #ifdef IEMEXECMEM_ALT_SUB_WITH_ALLOC_HEADER
-    uint32_t const cReqUnits = (cbReq + sizeof(IEMEXECMEMALLOCHDR) + IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE - 1)
+    return (cbReq + sizeof(IEMEXECMEMALLOCHDR) + IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE - 1)
 #else
-    uint32_t const cReqUnits = (cbReq + IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE - 1)
+    return (cbReq + IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE - 1)
 #endif
-                            >> IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT;
-    if (cReqUnits <= pExecMemAllocator->aChunks[idxChunk].cFreeUnits)
+        >> IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT;
+}
+
+
+DECL_FORCE_INLINE(PIEMNATIVEINSTR)
+iemExecMemAllocatorAllocUnitsInChunkInner(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cReqUnits,
+                                          PIEMTB pTb, PIEMNATIVEINSTR *ppaExec, PCIEMNATIVEPERCHUNKCTX *ppChunkCtx)
+{
+    uint64_t * const pbmAlloc = &pExecMemAllocator->pbmAlloc[pExecMemAllocator->cBitmapElementsPerChunk * idxChunk];
+    uint32_t const   idxHint  = pExecMemAllocator->aChunks[idxChunk].idxFreeHint & ~(uint32_t)63;
+    if (idxHint + cReqUnits <= pExecMemAllocator->cUnitsPerChunk)
     {
-        uint64_t * const pbmAlloc = &pExecMemAllocator->pbmAlloc[pExecMemAllocator->cBitmapElementsPerChunk * idxChunk];
-        uint32_t const   idxHint  = pExecMemAllocator->aChunks[idxChunk].idxFreeHint & ~(uint32_t)63;
-        if (idxHint + cReqUnits <= pExecMemAllocator->cUnitsPerChunk)
-        {
-            void *pvRet = iemExecMemAllocatorAllocInChunkInt(pExecMemAllocator, pbmAlloc, idxHint,
-                                                             pExecMemAllocator->cUnitsPerChunk - idxHint,
-                                                             cReqUnits, idxChunk, pTb, (void **)ppaExec, ppChunkCtx);
-            if (pvRet)
-            {
-#ifdef VBOX_WITH_STATISTICS
-                pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
-#endif
-                return (PIEMNATIVEINSTR)pvRet;
-            }
-        }
-        void *pvRet = iemExecMemAllocatorAllocInChunkInt(pExecMemAllocator, pbmAlloc, 0,
-                                                         RT_MIN(pExecMemAllocator->cUnitsPerChunk,
-                                                                RT_ALIGN_32(idxHint + cReqUnits, 64*4)),
+        void *pvRet = iemExecMemAllocatorAllocInChunkInt(pExecMemAllocator, pbmAlloc, idxHint,
+                                                         pExecMemAllocator->cUnitsPerChunk - idxHint,
                                                          cReqUnits, idxChunk, pTb, (void **)ppaExec, ppChunkCtx);
-        if (!pvRet)
-            pExecMemAllocator->cFruitlessChunkScans += 1;
-#ifdef VBOX_WITH_STATISTICS
-        else
-            pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
-#endif
-        return (PIEMNATIVEINSTR)pvRet;
+        if (pvRet)
+            return (PIEMNATIVEINSTR)pvRet;
     }
+    void *pvRet = iemExecMemAllocatorAllocInChunkInt(pExecMemAllocator, pbmAlloc, 0,
+                                                     RT_MIN(pExecMemAllocator->cUnitsPerChunk,
+                                                            RT_ALIGN_32(idxHint + cReqUnits, 64*4)),
+                                                     cReqUnits, idxChunk, pTb, (void **)ppaExec, ppChunkCtx);
+    if (!pvRet)
+        pExecMemAllocator->cFruitlessChunkScans += 1;
+    return (PIEMNATIVEINSTR)pvRet;
+}
+
+
+DECL_FORCE_INLINE(PIEMNATIVEINSTR)
+iemExecMemAllocatorAllocUnitsInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cReqUnits, PIEMTB pTb,
+                                     PIEMNATIVEINSTR *ppaExec, PCIEMNATIVEPERCHUNKCTX *ppChunkCtx)
+{
+    if (cReqUnits <= pExecMemAllocator->aChunks[idxChunk].cFreeUnits)
+        return iemExecMemAllocatorAllocUnitsInChunkInner(pExecMemAllocator, idxChunk, cReqUnits, pTb, ppaExec, ppChunkCtx);
     return NULL;
+}
+
+
+DECLINLINE(PIEMNATIVEINSTR)
+iemExecMemAllocatorAllocBytesInChunk(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint32_t idxChunk, uint32_t cbReq,
+                                     PIEMNATIVEINSTR *ppaExec)
+{
+    return iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, iemExecMemAllocBytesToUnits(cbReq), NULL /*pTb*/,
+                                                ppaExec, NULL /*ppChunkCtx*/);
 }
 
 
@@ -923,6 +936,7 @@ DECLHIDDEN(PIEMNATIVEINSTR) iemExecMemAllocatorAlloc(PVMCPU pVCpu, uint32_t cbRe
     AssertMsgReturn(cbReq > 32 && cbReq < _512K, ("%#x\n", cbReq), NULL);
     STAM_PROFILE_START(&pExecMemAllocator->StatAlloc, a);
 
+    uint32_t const cReqUnits = iemExecMemAllocBytesToUnits(cbReq);
     for (unsigned iIteration = 0;; iIteration++)
     {
         if (cbReq <= pExecMemAllocator->cbFree)
@@ -931,21 +945,27 @@ DECLHIDDEN(PIEMNATIVEINSTR) iemExecMemAllocatorAlloc(PVMCPU pVCpu, uint32_t cbRe
             uint32_t const idxChunkHint = pExecMemAllocator->idxChunkHint < cChunks ? pExecMemAllocator->idxChunkHint : 0;
             for (uint32_t idxChunk = idxChunkHint; idxChunk < cChunks; idxChunk++)
             {
-                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk, cbReq, pTb,
-                                                                             ppaExec, ppChunkCtx);
+                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
+                                                                                  ppaExec, ppChunkCtx);
                 if (pRet)
                 {
                     STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
+#ifdef VBOX_WITH_STATISTICS
+                    pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
+#endif
                     return pRet;
                 }
             }
             for (uint32_t idxChunk = 0; idxChunk < idxChunkHint; idxChunk++)
             {
-                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk, cbReq, pTb,
-                                                                             ppaExec, ppChunkCtx);
+                PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
+                                                                                  ppaExec, ppChunkCtx);
                 if (pRet)
                 {
                     STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
+#ifdef VBOX_WITH_STATISTICS
+                    pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
+#endif
                     return pRet;
                 }
             }
@@ -960,11 +980,14 @@ DECLHIDDEN(PIEMNATIVEINSTR) iemExecMemAllocatorAlloc(PVMCPU pVCpu, uint32_t cbRe
             AssertLogRelRCReturn(rc, NULL);
 
             uint32_t const idxChunk = pExecMemAllocator->cChunks - 1;
-            PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk, cbReq, pTb,
-                                                                         ppaExec, ppChunkCtx);
+            PIEMNATIVEINSTR const pRet = iemExecMemAllocatorAllocUnitsInChunk(pExecMemAllocator, idxChunk, cReqUnits, pTb,
+                                                                              ppaExec, ppChunkCtx);
             if (pRet)
             {
                 STAM_PROFILE_STOP(&pExecMemAllocator->StatAlloc, a);
+#ifdef VBOX_WITH_STATISTICS
+                pExecMemAllocator->cbUnusable += (cReqUnits << IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SHIFT) - cbReq;
+#endif
                 return pRet;
             }
             AssertFailed();
@@ -1196,7 +1219,7 @@ iemExecMemAllocatorAllocFromChunk(PVMCPU pVCpu, uint32_t idxChunk, uint32_t cbRe
     PIEMEXECMEMALLOCATOR pExecMemAllocator = pVCpu->iem.s.pExecMemAllocatorR3;
     AssertReturn(idxChunk < pExecMemAllocator->cChunks, NULL);
     Assert(cbReq < _1M);
-    return iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk, cbReq, NULL /*pTb*/, ppaExec, NULL /*ppChunkCtx*/);
+    return iemExecMemAllocatorAllocBytesInChunk(pExecMemAllocator, idxChunk, cbReq, ppaExec);
 }
 
 
@@ -1286,7 +1309,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
     unsigned const cbUnwindInfo     = sizeof(s_aOpcodes) + RT_UOFFSETOF(IMAGE_UNWIND_INFO, aOpcodes);
     unsigned const cbNeeded         = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY) * cFunctionEntries + cbUnwindInfo;
     PIMAGE_RUNTIME_FUNCTION_ENTRY const paFunctions
-        = (PIMAGE_RUNTIME_FUNCTION_ENTRY)iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk, cbNeeded, NULL, NULL, NULL);
+        = (PIMAGE_RUNTIME_FUNCTION_ENTRY)iemExecMemAllocatorAllocBytesInChunk(pExecMemAllocator, idxChunk, cbNeeded, NULL);
     AssertReturn(paFunctions, VERR_INTERNAL_ERROR_5);
     pExecMemAllocator->aChunks[idxChunk].pvUnwindInfo = paFunctions;
 
@@ -1521,8 +1544,8 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
      *
      * This seems to work best with ET_DYN.
      */
-    GDBJITSYMFILE * const pSymFile = (GDBJITSYMFILE *)iemExecMemAllocatorAllocInChunk(pExecMemAllocator, idxChunk,
-                                                                                      sizeof(GDBJITSYMFILE), NULL, NULL, NULL);
+    GDBJITSYMFILE * const pSymFile = (GDBJITSYMFILE *)iemExecMemAllocatorAllocBytesInChunk(pExecMemAllocator, idxChunk,
+                                                                                           sizeof(GDBJITSYMFILE), NULL);
     AssertReturn(pSymFile, VERR_INTERNAL_ERROR_5);
     unsigned const offSymFileInChunk = (uintptr_t)pSymFile - (uintptr_t)pvChunk;
 

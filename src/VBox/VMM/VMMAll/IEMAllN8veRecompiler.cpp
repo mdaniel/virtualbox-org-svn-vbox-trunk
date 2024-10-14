@@ -7814,7 +7814,7 @@ iemNativeVarSaveVolatileRegsPreHlpCall(PIEMRECOMPILERSTATE pReNative, uint32_t o
      */
     iemNativeSimdRegFlushGuestShadowsByHostMask(pReNative, IEMNATIVE_CALL_VOLATILE_SIMD_REG_MASK);
 
-    fHstRegs = pReNative->Core.bmHstSimdRegs & IEMNATIVE_CALL_VOLATILE_SIMD_REG_MASK;
+    fHstRegs = pReNative->Core.bmHstSimdRegs & (IEMNATIVE_CALL_VOLATILE_SIMD_REG_MASK & ~IEMNATIVE_SIMD_REG_FIXED_MASK);
     if (fHstRegs)
     {
         do
@@ -7823,10 +7823,8 @@ iemNativeVarSaveVolatileRegsPreHlpCall(PIEMRECOMPILERSTATE pReNative, uint32_t o
             fHstRegs &= ~RT_BIT_32(idxHstReg);
 
             /* Fixed reserved and temporary registers don't need saving. */
-            if (   pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_FixedReserved
-                || pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_FixedTmp)
-                continue;
-
+            /*Assert(   pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat != kIemNativeWhat_FixedReserved
+                   && pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat != kIemNativeWhat_FixedTmp); included below */
             Assert(pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_Var);
 
             uint8_t const idxVar = pReNative->Core.aHstSimdRegs[idxHstReg].idxVar;
@@ -7942,7 +7940,7 @@ iemNativeVarRestoreVolatileRegsPostHlpCall(PIEMRECOMPILERSTATE pReNative, uint32
         } while (fHstRegs);
     }
 #ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
-    fHstRegs = pReNative->Core.bmHstSimdRegs & IEMNATIVE_CALL_VOLATILE_SIMD_REG_MASK;
+    fHstRegs = pReNative->Core.bmHstSimdRegs & (IEMNATIVE_CALL_VOLATILE_SIMD_REG_MASK & ~IEMNATIVE_SIMD_REG_FIXED_MASK);
     if (fHstRegs)
     {
         do
@@ -7950,9 +7948,8 @@ iemNativeVarRestoreVolatileRegsPostHlpCall(PIEMRECOMPILERSTATE pReNative, uint32
             unsigned int const idxHstReg = ASMBitFirstSetU32(fHstRegs) - 1;
             fHstRegs &= ~RT_BIT_32(idxHstReg);
 
-            if (   pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_FixedTmp
-                || pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_FixedReserved)
-                continue;
+            /*Assert(   pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat != kIemNativeWhat_FixedTmp
+                   && pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat != kIemNativeWhat_FixedReserved); - included below. */
             Assert(pReNative->Core.aHstSimdRegs[idxHstReg].enmWhat == kIemNativeWhat_Var);
 
             uint8_t const idxVar = pReNative->Core.aHstSimdRegs[idxHstReg].idxVar;

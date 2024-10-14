@@ -275,6 +275,9 @@ typedef struct IEMEXECMEMALLOCATOR
      * portion corresponding to an chunk). */
     uint32_t                cBitmapElementsPerChunk;
 
+    /** Number of times we fruitlessly scanned a chunk for free space. */
+    uint64_t                cFruitlessChunkScans;
+
 #ifdef IEMEXECMEM_ALT_SUB_WITH_ALT_PRUNING
     /** The next chunk to prune in. */
     uint32_t                idxChunkPrune;
@@ -291,7 +294,6 @@ typedef struct IEMEXECMEMALLOCATOR
     /** Total amount of memory not being usable currently due to IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE. */
     uint64_t                cbUnusable;
 #endif
-
 
 #if defined(IN_RING3) && !defined(RT_OS_WINDOWS)
     /** Pointer to the array of unwind info running parallel to aChunks (same
@@ -473,7 +475,7 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnitsOld(uint64_t *pbmAlloc, uint3
 
 /**
  * Bitmap scanner code that looks for a bunch of @a cReqUnits zero bits.
- * 
+ *
  * Booting win11 with a r165098 release build the average native TB size is
  * around 9 units (of 256 bytes).  So, it is unlikely we need to scan any
  * subsequent words once we hit a patch of zeros, thus @a a_fBig.
@@ -493,6 +495,137 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
         uint64_t uWord = pbmAlloc[off];
         if (uWord == UINT64_MAX)
         {
+            /*
+             * Getting thru patches of UINT64_MAX is a frequent problem when the allocator
+             * fills up, so it's definitely worth optimizing.
+             *
+             * The complicated code below is a bit faster on arm. Reducing the per TB cost
+             * from 4255ns to 4106ns (best run out of 10).  On win/x86 the gain isn't so
+             * marked, despite more full bitmap scans.
+             */
+#if 1
+            off++;
+            uint32_t cQuads = (c64WordsToScan - off) / 4;
+
+            /* Align. */
+            if (cQuads > 1)
+                switch (((uintptr_t)&pbmAlloc[off] / sizeof(uint64_t)) & 3)
+                {
+                    case 0:
+                        break;
+                    case 1:
+                    {
+                        uWord           = pbmAlloc[off];
+                        uint64_t uWord1 = pbmAlloc[off + 1];
+                        uint64_t uWord2 = pbmAlloc[off + 2];
+                        if ((uWord & uWord1 & uWord2) == UINT64_MAX)
+                        {
+                            off   += 3;
+                            cQuads = (c64WordsToScan - off) / 4;
+                        }
+                        else if (uWord == UINT64_MAX)
+                        {
+                            if (uWord1 != UINT64_MAX)
+                            {
+                                uWord = uWord1;
+                                off  += 1;
+                            }
+                            else
+                            {
+                                uWord = uWord2;
+                                off  += 2;
+                            }
+                        }
+                        break;
+                    }
+                    case 2:
+                    {
+                        uWord           = pbmAlloc[off];
+                        uint64_t uWord1 = pbmAlloc[off + 1];
+                        if ((uWord & uWord1) == UINT64_MAX)
+                        {
+                            off   += 2;
+                            cQuads = (c64WordsToScan - off) / 4;
+                        }
+                        else if (uWord == UINT64_MAX)
+                        {
+                            uWord = uWord1;
+                            off  += 1;
+                        }
+                        break;
+                    }
+                    case 3:
+                        uWord = pbmAlloc[off];
+                        if (uWord == UINT64_MAX)
+                        {
+                            off++;
+                            cQuads = (c64WordsToScan - off) / 4;
+                        }
+                        break;
+                }
+            if (uWord == UINT64_MAX)
+            {
+                /* Looping over 32 bytes at a time. */
+                for (;;)
+                {
+                    if (cQuads-- > 0)
+                    {
+                        uWord           = pbmAlloc[off + 0];
+                        uint64_t uWord1 = pbmAlloc[off + 1];
+                        uint64_t uWord2 = pbmAlloc[off + 2];
+                        uint64_t uWord3 = pbmAlloc[off + 3];
+                        if ((uWord & uWord1 & uWord2 & uWord3) == UINT64_MAX)
+                            off += 4;
+                        else
+                        {
+                            if (uWord != UINT64_MAX)
+                            { }
+                            else if (uWord1 != UINT64_MAX)
+                            {
+                                uWord = uWord1;
+                                off += 1;
+                            }
+                            else if (uWord2 != UINT64_MAX)
+                            {
+                                uWord = uWord2;
+                                off += 2;
+                            }
+                            else
+                            {
+                                uWord = uWord3;
+                                off += 3;
+                            }
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (off < c64WordsToScan)
+                        {
+                            uWord = pbmAlloc[off];
+                            if (uWord != UINT64_MAX)
+                                break;
+                            off++;
+                            if (off < c64WordsToScan)
+                            {
+                                uWord = pbmAlloc[off];
+                                if (uWord != UINT64_MAX)
+                                    break;
+                                off++;
+                                if (off < c64WordsToScan)
+                                {
+                                    uWord = pbmAlloc[off];
+                                    if (uWord != UINT64_MAX)
+                                        break;
+                                    Assert(off + 1 == c64WordsToScan);
+                                }
+                            }
+                        }
+                        return UINT32_MAX;
+                    }
+                }
+            }
+#else
             do
             {
                 off++;
@@ -501,7 +634,7 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
                 else
                     return UINT32_MAX;
             } while (uWord == UINT64_MAX);
-
+#endif
             cPrevLeadingZeros = 0;
         }
 
@@ -516,7 +649,7 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
                 unsigned cZerosInWord = __builtin_popcountl(~uWord);
 #else
 # ifdef RT_ARCH_AMD64
-                unsigned cZerosInWord = __popcnt64(~uWords);
+                unsigned cZerosInWord = __popcnt64(~uWord);
 # else
 #  pragma message("need popcount intrinsic or something...") /** @todo port me: Win/ARM. */
                 unsigned cZerosInWord = 0;
@@ -623,9 +756,9 @@ static uint32_t iemExecMemAllocatorFindReqFreeUnits(uint64_t *pbmAlloc, uint32_t
                         else
                         {
 #ifdef __GNUC__
-                            unsigned cTrailingZeros = uWord ? __builtin_ctzl(uWord) : 64;
+                            unsigned cTrailingZeros = __builtin_ctzl(uWord);
 #else
-                            unsigned cTrailingZeros = uWord ? ASMBitFirstSetU64(uWord);
+                            unsigned cTrailingZeros = ASMBitFirstSetU64(uWord) - 1;
 #endif
                             if (cPrevLeadingZeros + (off2 - off) * 64 + cTrailingZeros >= cReqUnits)
                                 return off * 64 - cPrevLeadingZeros;
@@ -718,6 +851,7 @@ iemExecMemAllocatorAllocInChunkInt(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint6
 #endif
     }
 
+    pExecMemAllocator->cFruitlessChunkScans += 1;
     return NULL;
 }
 
@@ -1972,6 +2106,8 @@ int iemExecMemAllocatorInit(PVMCPU pVCpu, uint64_t cbMax, uint64_t cbInitial, ui
     STAMR3RegisterFU(pUVM, &pExecMemAllocator->StatPruneRecovered, STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES_PER_CALL,
                      "Bytes recovered while pruning",           "/IEM/CPU%u/re/ExecMem/PruningRecovered", pVCpu->idCpu);
 #endif
+    STAMR3RegisterFU(pUVM, &pExecMemAllocator->cFruitlessChunkScans, STAMTYPE_U64_RESET, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
+                     "Chunks fruitlessly scanned for free space", "/IEM/CPU%u/re/ExecMem/FruitlessChunkScans", pVCpu->idCpu);
 
     return VINF_SUCCESS;
 }

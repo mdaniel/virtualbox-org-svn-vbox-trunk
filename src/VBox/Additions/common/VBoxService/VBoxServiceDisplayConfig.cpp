@@ -77,7 +77,6 @@ static DECLCALLBACK(int) vgsvcDisplayConfigInit(void)
             rc = RTLdrGetSymbol(hLdrMod, "D3DKMTCloseAdapter", (void **)&g_pfnD3DKMTCloseAdapter);
         if (RT_SUCCESS(rc))
             rc = RTLdrGetSymbol(hLdrMod, "D3DKMTEscape", (void **)&g_pfnD3DKMTEscape);
-        AssertRC(rc);
         RTLdrClose(hLdrMod);
     }
 
@@ -99,7 +98,6 @@ static DECLCALLBACK(int) vgsvcDisplayConfigInit(void)
             rc = RTLdrGetSymbol(hLdrMod, "WTSQuerySessionInformationA", (void **)&g_pfnWTSQuerySessionInformationA);
         if (RT_SUCCESS(rc))
             rc = RTLdrGetSymbol(hLdrMod, "WTSEnumerateSessionsA", (void **)&g_pfnWTSEnumerateSessionsA);
-        AssertRC(rc);
         RTLdrClose(hLdrMod);
     }
 

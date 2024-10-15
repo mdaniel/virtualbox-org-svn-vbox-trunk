@@ -3593,19 +3593,15 @@ iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t 
  * Common worker for iemNativeRegAllocTmpForGuestReg() and
  * iemNativeRegAllocTmpForGuestEFlags().
  *
- * See iemNativeRegAllocTmpForGuestReg() for details.
+ * See iemNativeRegAllocTmpForGuestRegInt() for details.
  */
-static uint8_t
-iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
-                                      IEMNATIVEGSTREGUSE enmIntendedUse, bool fNoVolatileRegs)
+template<IEMNATIVEGSTREGUSE const a_enmIntendedUse, uint32_t const a_fRegMask>
+static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
 {
     Assert(enmGstReg < kIemNativeGstReg_End && g_aGstShadowInfo[enmGstReg].cb != 0);
 #if defined(LOG_ENABLED) || defined(VBOX_STRICT)
     static const char * const s_pszIntendedUse[] = { "fetch", "update", "full write", "destructive calc" };
 #endif
-    uint32_t const fRegMask = !fNoVolatileRegs
-                            ? IEMNATIVE_HST_GREG_MASK & ~IEMNATIVE_REG_FIXED_MASK
-                            : IEMNATIVE_HST_GREG_MASK & ~IEMNATIVE_REG_FIXED_MASK & ~IEMNATIVE_CALL_VOLATILE_GREG_MASK;
 
     /*
      * First check if the guest register value is already in a host register.
@@ -3628,12 +3624,12 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
             /** @todo would be nice to know if preserving the register is in any way helpful. */
             /* If the purpose is calculations, try duplicate the register value as
                we'll be clobbering the shadow. */
-            if (   enmIntendedUse == kIemNativeGstRegUse_Calculation
+            if (   a_enmIntendedUse == kIemNativeGstRegUse_Calculation
                 && (  ~pReNative->Core.bmHstRegs
                     & ~pReNative->Core.bmHstRegsWithGstShadow
                     & (~IEMNATIVE_REG_FIXED_MASK & IEMNATIVE_HST_GREG_MASK)))
             {
-                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, fRegMask);
+                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask);
 
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
 
@@ -3644,14 +3640,14 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
             }
             /* If the current register matches the restrictions, go ahead and allocate
                it for the caller. */
-            else if (fRegMask & RT_BIT_32(idxReg))
+            else if (a_fRegMask & RT_BIT_32(idxReg))
             {
                 pReNative->Core.bmHstRegs |= RT_BIT_32(idxReg);
                 pReNative->Core.aHstRegs[idxReg].enmWhat = kIemNativeWhat_Tmp;
                 pReNative->Core.aHstRegs[idxReg].idxVar  = UINT8_MAX;
-                if (enmIntendedUse != kIemNativeGstRegUse_Calculation)
-                    Log12(("iemNativeRegAllocTmpForGuestReg: Reusing %s for guest %s %s\n",
-                           g_apszIemNativeHstRegNames[idxReg], g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[enmIntendedUse]));
+                if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_Calculation)
+                    Log12(("iemNativeRegAllocTmpForGuestReg: Reusing %s for guest %s %s\n", g_apszIemNativeHstRegNames[idxReg],
+                           g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[a_enmIntendedUse]));
                 else
                 {
                     iemNativeRegClearGstRegShadowing(pReNative, idxReg, *poff);
@@ -3664,17 +3660,17 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
                means the call wants a non-volatile register (RSP push/pop scenario).) */
             else
             {
-                Assert(fNoVolatileRegs);
-                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, fRegMask & ~RT_BIT_32(idxReg),
-                                                                    !fNoVolatileRegs
-                                                                 && enmIntendedUse == kIemNativeGstRegUse_Calculation);
+                Assert(!(a_fRegMask & IEMNATIVE_CALL_VOLATILE_GREG_MASK));
+                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask & ~RT_BIT_32(idxReg),
+                                                                    (a_fRegMask & IEMNATIVE_CALL_VOLATILE_GREG_MASK)
+                                                                 && a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
-                if (enmIntendedUse != kIemNativeGstRegUse_Calculation)
+                if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_Calculation)
                 {
                     iemNativeRegTransferGstRegShadowing(pReNative, idxReg, idxRegNew, enmGstReg, *poff);
                     Log12(("iemNativeRegAllocTmpForGuestReg: Transfering %s to %s for guest %s %s\n",
                            g_apszIemNativeHstRegNames[idxReg], g_apszIemNativeHstRegNames[idxRegNew],
-                           g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[enmIntendedUse]));
+                           g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[a_enmIntendedUse]));
                 }
                 else
                     Log12(("iemNativeRegAllocTmpForGuestReg: Duplicated %s for guest %s into %s for destructive calc\n",
@@ -3691,33 +3687,33 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
              * Allocate a new register, copy the value and, if updating, the
              * guest shadow copy assignment to the new register.
              */
-            AssertMsg(   enmIntendedUse != kIemNativeGstRegUse_ForUpdate
-                      && enmIntendedUse != kIemNativeGstRegUse_ForFullWrite,
-                      ("This shouldn't happen: idxReg=%d enmGstReg=%d enmIntendedUse=%s\n",
-                       idxReg, enmGstReg, s_pszIntendedUse[enmIntendedUse]));
+            AssertMsg(   a_enmIntendedUse != kIemNativeGstRegUse_ForUpdate
+                      && a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite,
+                      ("This shouldn't happen: idxReg=%d enmGstReg=%d a_enmIntendedUse=%s\n",
+                       idxReg, enmGstReg, s_pszIntendedUse[a_enmIntendedUse]));
 
             /** @todo share register for readonly access. */
-            uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, fRegMask,
-                                                             enmIntendedUse == kIemNativeGstRegUse_Calculation);
+            uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask,
+                                                             a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
 
-            if (enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
+            if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
 
-            if (   enmIntendedUse != kIemNativeGstRegUse_ForUpdate
-                && enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
+            if RT_CONSTEXPR_IF(   a_enmIntendedUse != kIemNativeGstRegUse_ForUpdate
+                               && a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
                 Log12(("iemNativeRegAllocTmpForGuestReg: Duplicated %s for guest %s into %s for %s\n",
                        g_apszIemNativeHstRegNames[idxReg], g_aGstShadowInfo[enmGstReg].pszName,
-                       g_apszIemNativeHstRegNames[idxRegNew], s_pszIntendedUse[enmIntendedUse]));
+                       g_apszIemNativeHstRegNames[idxRegNew], s_pszIntendedUse[a_enmIntendedUse]));
             else
             {
                 iemNativeRegTransferGstRegShadowing(pReNative, idxReg, idxRegNew, enmGstReg, *poff);
                 Log12(("iemNativeRegAllocTmpForGuestReg: Moved %s for guest %s into %s for %s\n",
                        g_apszIemNativeHstRegNames[idxReg], g_aGstShadowInfo[enmGstReg].pszName,
-                       g_apszIemNativeHstRegNames[idxRegNew], s_pszIntendedUse[enmIntendedUse]));
+                       g_apszIemNativeHstRegNames[idxRegNew], s_pszIntendedUse[a_enmIntendedUse]));
             }
             idxReg = idxRegNew;
         }
-        Assert(RT_BIT_32(idxReg) & fRegMask); /* See assumption in fNoVolatileRegs docs. */
+        Assert(RT_BIT_32(idxReg) & a_fRegMask); /* See assumption in fNoVolatileRegs docs. */
 
 #ifdef VBOX_STRICT
         /* Strict builds: Check that the value is correct. */
@@ -3726,18 +3722,18 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
 
 #ifdef IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK
         /** @todo r=aeichner Implement for registers other than GPR as well. */
-        if (   (   enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
-                || enmIntendedUse == kIemNativeGstRegUse_ForUpdate)
-            && (   (   enmGstReg >= kIemNativeGstReg_GprFirst
+        if RT_CONSTEXPR_IF(   a_enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
+                           || a_enmIntendedUse == kIemNativeGstRegUse_ForUpdate)
+            if (   (   enmGstReg >= kIemNativeGstReg_GprFirst
                     && enmGstReg <= kIemNativeGstReg_GprLast)
-                || enmGstReg == kIemNativeGstReg_MxCsr))
-        {
+                || enmGstReg == kIemNativeGstReg_MxCsr)
+            {
 # ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
-            iemNativeDbgInfoAddNativeOffset(pReNative, *poff);
-            iemNativeDbgInfoAddGuestRegDirty(pReNative, false /*fSimdReg*/, enmGstReg, idxReg);
+                iemNativeDbgInfoAddNativeOffset(pReNative, *poff);
+                iemNativeDbgInfoAddGuestRegDirty(pReNative, false /*fSimdReg*/, enmGstReg, idxReg);
 # endif
-            pReNative->Core.bmGstRegShadowDirty |= RT_BIT_64(enmGstReg);
-        }
+                pReNative->Core.bmGstRegShadowDirty |= RT_BIT_64(enmGstReg);
+            }
 #endif
 
         return idxReg;
@@ -3746,30 +3742,31 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
     /*
      * Allocate a new register, load it with the guest value and designate it as a copy of the
      */
-    uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, fRegMask, enmIntendedUse == kIemNativeGstRegUse_Calculation);
+    uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask,
+                                                     a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
 
-    if (enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
+    if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
         *poff = iemNativeEmitLoadGprWithGstShadowReg(pReNative, *poff, idxRegNew, enmGstReg);
 
-    if (enmIntendedUse != kIemNativeGstRegUse_Calculation)
+    if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_Calculation)
         iemNativeRegMarkAsGstRegShadow(pReNative, idxRegNew, enmGstReg, *poff);
     Log12(("iemNativeRegAllocTmpForGuestReg: Allocated %s for guest %s %s\n",
-           g_apszIemNativeHstRegNames[idxRegNew], g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[enmIntendedUse]));
+           g_apszIemNativeHstRegNames[idxRegNew], g_aGstShadowInfo[enmGstReg].pszName, s_pszIntendedUse[a_enmIntendedUse]));
 
 #ifdef IEMNATIVE_WITH_DELAYED_REGISTER_WRITEBACK
     /** @todo r=aeichner Implement for registers other than GPR as well. */
-    if (   (   enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
-            || enmIntendedUse == kIemNativeGstRegUse_ForUpdate)
-        && (   (   enmGstReg >= kIemNativeGstReg_GprFirst
+    if RT_CONSTEXPR_IF(   a_enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
+                       || a_enmIntendedUse == kIemNativeGstRegUse_ForUpdate)
+        if (   (   enmGstReg >= kIemNativeGstReg_GprFirst
                 && enmGstReg <= kIemNativeGstReg_GprLast)
-            || enmGstReg == kIemNativeGstReg_MxCsr))
-    {
+            || enmGstReg == kIemNativeGstReg_MxCsr)
+        {
 # ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
-        iemNativeDbgInfoAddNativeOffset(pReNative, *poff);
-        iemNativeDbgInfoAddGuestRegDirty(pReNative, false /*fSimdReg*/, enmGstReg, idxRegNew);
+            iemNativeDbgInfoAddNativeOffset(pReNative, *poff);
+            iemNativeDbgInfoAddGuestRegDirty(pReNative, false /*fSimdReg*/, enmGstReg, idxRegNew);
 # endif
-        pReNative->Core.bmGstRegShadowDirty |= RT_BIT_64(enmGstReg);
-    }
+            pReNative->Core.bmGstRegShadowDirty |= RT_BIT_64(enmGstReg);
+        }
 #endif
 
     return idxRegNew;
@@ -3792,35 +3789,92 @@ iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNative, uint32_t *p
  *                          variable from register to stack in order to satisfy
  *                          the request.
  * @param   enmGstReg       The guest register that will is to be updated.
- * @param   enmIntendedUse  How the caller will be using the host register.
- * @param   fNoVolatileRegs Set if no volatile register allowed, clear if any
+ * @param   a_enmIntendedUse How the caller will be using the host register.
+ * @param   a_fNonVolatileRegs Set if no volatile register allowed, clear if any
  *                          register is okay (default).  The ASSUMPTION here is
  *                          that the caller has already flushed all volatile
  *                          registers, so this is only applied if we allocate a
  *                          new register.
- * @param   fSkipLivenessAssert     Hack for liveness input validation of EFLAGS.
  * @sa      iemNativeRegAllocTmpForGuestRegIfAlreadyPresent
  */
-DECL_HIDDEN_THROW(uint8_t)
-iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
-                                IEMNATIVEGSTREGUSE enmIntendedUse /*= kIemNativeGstRegUse_ReadOnly*/,
-                                bool fNoVolatileRegs /*= false*/, bool fSkipLivenessAssert /*= false*/)
+template<IEMNATIVEGSTREGUSE const a_enmIntendedUse, bool const a_fNonVolatileRegs>
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegInt(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
 {
 #ifdef IEMNATIVE_WITH_LIVENESS_ANALYSIS
-    AssertMsg(   fSkipLivenessAssert
-              || pReNative->idxCurCall == 0
+    AssertMsg(   pReNative->idxCurCall == 0
               || enmGstReg == kIemNativeGstReg_Pc
-              || (enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
+              || (a_enmIntendedUse == kIemNativeGstRegUse_ForFullWrite
                   ? IEMLIVENESS_STATE_IS_CLOBBER_EXPECTED(iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
-                  : enmIntendedUse == kIemNativeGstRegUse_ForUpdate
+                  : a_enmIntendedUse == kIemNativeGstRegUse_ForUpdate
                   ? IEMLIVENESS_STATE_IS_MODIFY_EXPECTED( iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg))
                   : IEMLIVENESS_STATE_IS_INPUT_EXPECTED(  iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)) ),
               ("%s - %u\n", g_aGstShadowInfo[enmGstReg].pszName, iemNativeLivenessGetPrevStateByGstReg(pReNative, enmGstReg)));
 #endif
-    RT_NOREF(fSkipLivenessAssert);
 
-    return iemNativeRegAllocTmpForGuestRegCommon(pReNative, poff, enmGstReg, enmIntendedUse, fNoVolatileRegs);
+    if RT_CONSTEXPR_IF(!a_fNonVolatileRegs)
+        return iemNativeRegAllocTmpForGuestRegCommon<a_enmIntendedUse,
+                                                       IEMNATIVE_HST_GREG_MASK
+                                                     & ~IEMNATIVE_REG_FIXED_MASK>(pReNative, poff, enmGstReg);
+    else /* keep else, is required by MSC */
+        return iemNativeRegAllocTmpForGuestRegCommon<a_enmIntendedUse,
+                                                       IEMNATIVE_HST_GREG_MASK
+                                                     & ~IEMNATIVE_REG_FIXED_MASK
+                                                     & ~IEMNATIVE_CALL_VOLATILE_GREG_MASK>(pReNative, poff, enmGstReg);
 }
+
+/* Variants including volatile registers: */
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ReadOnly, false>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ForUpdate, false>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegFullWrite(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ForFullWrite, false>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegCalculation(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_Calculation, false>(pReNative, poff, enmGstReg);
+}
+
+/* Variants excluding any volatile registers: */
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegReadOnlyNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ReadOnly, true>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegUpdateNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ForUpdate, true>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegFullWriteNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_ForFullWrite, true>(pReNative, poff, enmGstReg);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestRegCalculationNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg)
+{
+    return iemNativeRegAllocTmpForGuestRegInt<kIemNativeGstRegUse_Calculation, true>(pReNative, poff, enmGstReg);
+}
+
 
 
 #if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
@@ -3831,9 +3885,10 @@ iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, I
  * builds, it's otherwise the same as iemNativeRegAllocTmpForGuestReg() with
  * kIemNativeGstReg_EFlags as argument.
  */
-DECL_HIDDEN_THROW(uint8_t)
-iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREGUSE enmIntendedUse,
-                                   uint64_t fRead, uint64_t fWrite /*= 0*/, uint64_t fPotentialCall /*= 0*/)
+template<IEMNATIVEGSTREGUSE const a_enmIntendedUse>
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t fRead,
+                                   uint64_t fWrite /*= 0*/, uint64_t fPotentialCall /*= 0*/)
 {
     if (pReNative->idxCurCall != 0 && (fRead || fWrite /*|| fPotentialCall*/))
     {
@@ -3862,9 +3917,35 @@ iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff
 # undef MY_ASSERT_ONE_EFL
     }
     RT_NOREF(fPotentialCall);
-    return iemNativeRegAllocTmpForGuestRegCommon(pReNative, poff, kIemNativeGstReg_EFlags,
-                                                 enmIntendedUse, false /*fNoVolatileRegs*/);
+
+    AssertCompile(a_enmIntendedUse == kIemNativeGstRegUse_ReadOnly || a_enmIntendedUse == kIemNativeGstRegUse_ForUpdate);
+    if RT_CONSTEXPR_IF(a_enmIntendedUse == kIemNativeGstRegUse_ReadOnly)
+        return iemNativeRegAllocTmpForGuestRegCommon<kIemNativeGstRegUse_ReadOnly,
+                                                       IEMNATIVE_CALL_VOLATILE_GREG_MASK
+                                                     & IEMNATIVE_HST_GREG_MASK
+                                                     & ~IEMNATIVE_REG_FIXED_MASK>(pReNative, poff, kIemNativeGstReg_EFlags);
+    else /* keep else, is required by MSC */
+        return iemNativeRegAllocTmpForGuestRegCommon<kIemNativeGstRegUse_ForUpdate,
+                                                       IEMNATIVE_CALL_VOLATILE_GREG_MASK
+                                                     & IEMNATIVE_HST_GREG_MASK
+                                                     & ~IEMNATIVE_REG_FIXED_MASK>(pReNative, poff, kIemNativeGstReg_EFlags);
 }
+
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlagsReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                           uint64_t fRead, uint64_t fWrite /*= 0*/, uint64_t fPotentialCall /*= 0*/)
+{
+    return iemNativeRegAllocTmpForGuestEFlags<kIemNativeGstRegUse_ReadOnly>(pReNative, poff, fRead, fWrite, fPotentialCall);
+}
+
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlagsForUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t fRead,
+                                            uint64_t fWrite /*= 0*/, uint64_t fPotentialCall /*= 0*/)
+{
+    return iemNativeRegAllocTmpForGuestEFlags<kIemNativeGstRegUse_ForUpdate>(pReNative, poff, fRead, fWrite, fPotentialCall);
+}
+
 #endif
 
 

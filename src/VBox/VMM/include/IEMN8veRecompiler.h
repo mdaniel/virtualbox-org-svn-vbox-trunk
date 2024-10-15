@@ -2229,22 +2229,21 @@ DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative
                                                    bool fPreferVolatile = true);
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t uImm,
                                                     bool fPreferVolatile = true);
-DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
-                                                            IEMNATIVEGSTREG enmGstReg,
-                                                            IEMNATIVEGSTREGUSE enmIntendedUse = kIemNativeGstRegUse_ReadOnly,
-                                                            bool fNoVolatileRegs = false, bool fSkipLivenessAssert = false);
+
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegFullWrite(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegCalculation(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegReadOnlyNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegUpdateNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegFullWriteNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegCalculationNoVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
+
 #if defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) && defined(VBOX_STRICT)
-DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
-                                                               IEMNATIVEGSTREGUSE enmIntendedUse, uint64_t fRead,
-                                                               uint64_t fWrite = 0, uint64_t fPotentialCall = 0);
-#else
-DECL_FORCE_INLINE_THROW(uint8_t)
-iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREGUSE enmIntendedUse,
-                                   uint64_t fRead, uint64_t fWrite = 0, uint64_t fPotentialCall = 0)
-{
-    RT_NOREF(fRead, fWrite, fPotentialCall);
-    return iemNativeRegAllocTmpForGuestReg(pReNative, poff, kIemNativeGstReg_EFlags, enmIntendedUse);
-}
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestEFlagsReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                                       uint64_t fRead, uint64_t fWrite = 0, uint64_t fPotentialCall = 0);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestEFlagsForUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
+                                                                        uint64_t fRead, uint64_t fWrite = 0, uint64_t fPotentialCall = 0);
 #endif
 
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegIfAlreadyPresent(PIEMRECOMPILERSTATE pReNative, uint32_t *poff,
@@ -2844,6 +2843,11 @@ DECL_FORCE_INLINE(uint8_t) iemNativeRegMarkAllocated(PIEMRECOMPILERSTATE pReNati
 *   Register Allocator (GPR)                                                                                                     *
 *********************************************************************************************************************************/
 
+#ifdef RT_ARCH_ARM64
+# include <iprt/armv8.h>
+#endif
+
+
 /**
  * Marks host register @a idxHstReg as containing a shadow copy of guest
  * register @a enmGstReg.
@@ -3063,6 +3067,76 @@ iemNativeRegFlushPendingWrites(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint
 
     return off;
 }
+
+
+/**
+ * Allocates a temporary host general purpose register for keeping a guest
+ * register value.
+ *
+ * Since we may already have a register holding the guest register value,
+ * code will be emitted to do the loading if that's not the case. Code may also
+ * be emitted if we have to free up a register to satify the request.
+ *
+ * @returns The host register number; throws VBox status code on failure, so no
+ *          need to check the return value.
+ * @param   pReNative       The native recompile state.
+ * @param   poff            Pointer to the variable with the code buffer
+ *                          position. This will be update if we need to move a
+ *                          variable from register to stack in order to satisfy
+ *                          the request.
+ * @param   enmGstReg       The guest register that will is to be updated.
+ * @param   enmIntendedUse  How the caller will be using the host register.
+ * @param   fNoVolatileRegs Set if no volatile register allowed, clear if any
+ *                          register is okay (default).  The ASSUMPTION here is
+ *                          that the caller has already flushed all volatile
+ *                          registers, so this is only applied if we allocate a
+ *                          new register.
+ * @sa      iemNativeRegAllocTmpForGuestEFlags
+ *          iemNativeRegAllocTmpForGuestRegIfAlreadyPresent
+ *          iemNativeRegAllocTmpForGuestRegInt
+ */
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestReg(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg,
+                                IEMNATIVEGSTREGUSE const enmIntendedUse = kIemNativeGstRegUse_ReadOnly,
+                                bool const fNoVolatileRegs = false)
+{
+    if (enmIntendedUse == kIemNativeGstRegUse_ReadOnly)
+        return !fNoVolatileRegs
+             ? iemNativeRegAllocTmpForGuestRegReadOnly(pReNative, poff, enmGstReg)
+             : iemNativeRegAllocTmpForGuestRegReadOnlyNoVolatile(pReNative, poff, enmGstReg);
+    if (enmIntendedUse == kIemNativeGstRegUse_ForUpdate)
+        return !fNoVolatileRegs
+             ? iemNativeRegAllocTmpForGuestRegUpdate(pReNative, poff, enmGstReg)
+             : iemNativeRegAllocTmpForGuestRegUpdateNoVolatile(pReNative, poff, enmGstReg);
+    if (enmIntendedUse == kIemNativeGstRegUse_ForFullWrite)
+        return !fNoVolatileRegs
+             ? iemNativeRegAllocTmpForGuestRegFullWrite(pReNative, poff, enmGstReg)
+             : iemNativeRegAllocTmpForGuestRegFullWriteNoVolatile(pReNative, poff, enmGstReg);
+    Assert(enmIntendedUse == kIemNativeGstRegUse_Calculation);
+    return !fNoVolatileRegs
+         ? iemNativeRegAllocTmpForGuestRegCalculation(pReNative, poff, enmGstReg)
+         : iemNativeRegAllocTmpForGuestRegCalculationNoVolatile(pReNative, poff, enmGstReg);
+}
+
+#if !defined(IEMNATIVE_WITH_LIVENESS_ANALYSIS) || !defined(VBOX_STRICT)
+
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlagsReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t fRead,
+                                           uint64_t fWrite = 0, uint64_t fPotentialCall = 0)
+{
+    RT_NOREF(fRead, fWrite, fPotentialCall);
+    return iemNativeRegAllocTmpForGuestRegReadOnly(pReNative, poff, kIemNativeGstReg_EFlags);
+}
+
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeRegAllocTmpForGuestEFlagsForUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t fRead,
+                                            uint64_t fWrite = 0, uint64_t fPotentialCall = 0)
+{
+    RT_NOREF(fRead, fWrite, fPotentialCall);
+    return iemNativeRegAllocTmpForGuestRegUpdate(pReNative, poff, kIemNativeGstReg_EFlags);
+}
+
+#endif
 
 
 

@@ -439,9 +439,9 @@ iemNativeEmitFinishInstructionFlagsCheck(PIEMRECOMPILERSTATE pReNative, uint32_t
      */
     off = iemNativeRegFlushPendingWrites(pReNative, off);
 
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
-                                                                 RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER),
-                                                                 RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER));
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsForUpdate(pReNative, &off,
+                                                                          RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER),
+                                                                          RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER));
     off = iemNativeEmitTbExitIfAnyBitsSetInGpr<kIemNativeLabelType_ReturnWithFlags>(pReNative, off, idxEflReg,
                                                                                       X86_EFL_TF
                                                                                     | CPUMCTX_DBG_HIT_DRX_MASK
@@ -3426,7 +3426,7 @@ iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBits);
 
     /* Test and jump. */
     off = iemNativeEmitTestAnyBitsInGprAndJmpToLabelIfNoneSet(pReNative, off, idxEflReg, fBitsInEfl, pEntry->idxLabelElse);
@@ -3454,7 +3454,7 @@ iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint3
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBits);
 
     /* Test and jump. */
     off = iemNativeEmitTestAnyBitsInGprAndJmpToLabelIfAnySet(pReNative, off, idxEflReg, fBitsInEfl, pEntry->idxLabelElse);
@@ -3483,7 +3483,7 @@ iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigne
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBit);
 
     /* Test and jump. */
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfNotSet(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse);
@@ -3512,7 +3512,7 @@ iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsi
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBit);
 
     /* Test and jump. */
     off = iemNativeEmitTestBitInGprAndJmpToLabelIfSet(pReNative, off, idxEflReg, iBitNo, pEntry->idxLabelElse);
@@ -3552,7 +3552,7 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
     PIEMNATIVECOND const pEntry = iemNativeCondPushIf(pReNative);
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBits);
 
 #ifdef RT_ARCH_AMD64
     uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, RT_BIT_64(iBitNo1));
@@ -3634,7 +3634,7 @@ iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uin
                                                                  pReNative->paLabels[pEntry->idxLabelElse].uData) : UINT32_MAX;
 
     /* Get the eflags. */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBits);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBits);
 
 #ifdef RT_ARCH_AMD64
     uint8_t const idxTmpReg = iemNativeRegAllocTmpImm(pReNative, &off, RT_BIT_64(iBitNo1)); /* This must come before we jump anywhere! */
@@ -3811,7 +3811,7 @@ iemNativeEmitIfCxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uint32_
        otherwise we'll end up in the else-block with an inconsistent
        register allocator state.
        Doing EFLAGS first as it's more likely to be loaded, right? */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEflBit);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEflBit);
     uint8_t const idxGstRcxReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xCX),
                                                                  kIemNativeGstRegUse_ReadOnly);
 
@@ -3880,7 +3880,7 @@ iemNativeEmitIfRcxEcxIsNotOneAndTestEflagsBit(PIEMRECOMPILERSTATE pReNative, uin
        otherwise we'll end up in the else-block with an inconsistent
        register allocator state.
        Doing EFLAGS first as it's more likely to be loaded, right? */
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly, fLivenessEFlBit);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off, fLivenessEFlBit);
     uint8_t const idxGstRcxReg = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xCX),
                                                                  kIemNativeGstRegUse_ReadOnly);
 
@@ -5961,8 +5961,8 @@ iemNativeEmitFetchEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t id
         /** @todo We could use kIemNativeGstRegUse_ReadOnly here when fOutput is
          *        zero, but since iemNativeVarRegisterSet clears the shadowing,
          *        that's counter productive... */
-        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
-                                                                     a_fLivenessEflInput, a_fLivenessEflOutput);
+        uint8_t const idxGstReg = iemNativeRegAllocTmpForGuestEFlagsForUpdate(pReNative, &off,
+                                                                              a_fLivenessEflInput, a_fLivenessEflOutput);
         iemNativeVarRegisterSet(pReNative, idxVarEFlags, idxGstReg, off, true /*fAllocated*/);
     }
     else
@@ -6102,9 +6102,10 @@ typedef enum IEMNATIVEMITEFLOP
 template<IEMNATIVEMITEFLOP const a_enmOp, uint32_t const a_fEflBit, uint64_t const a_fLivenessEflBit>
 DECL_INLINE_THROW(uint32_t) iemNativeEmitModifyEFlagsBit(PIEMRECOMPILERSTATE pReNative, uint32_t off)
 {
-    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ForUpdate,
-                                                                 a_enmOp == kIemNativeEmitEflOp_Flip ? a_fLivenessEflBit : 0,
-                                                                 a_fLivenessEflBit);
+    uint8_t const idxEflReg = iemNativeRegAllocTmpForGuestEFlagsForUpdate(pReNative, &off,
+                                                                            a_enmOp == kIemNativeEmitEflOp_Flip
+                                                                          ? a_fLivenessEflBit : 0,
+                                                                          a_fLivenessEflBit);
 
     /* Using 'if constexpr' forces code elimination in debug builds with VC. */
     if RT_CONSTEXPR_IF(a_enmOp == kIemNativeEmitEflOp_Set)
@@ -9796,7 +9797,8 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPrepareFpuForUse(PIEMRECOMPILERSTATE pR
         }
 
         uint8_t const idxRegTmp = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
-        uint8_t const idxRegMxCsr = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_MxCsr, kIemNativeGstRegUse_ReadOnly);
+        uint8_t const idxRegMxCsr = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_MxCsr,
+                                                                    kIemNativeGstRegUse_ReadOnly);
 
         /*
          * Mask any exceptions and clear the exception status and save into MXCSR,
@@ -9848,7 +9850,8 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPrepareFpuForUse(PIEMRECOMPILERSTATE pR
          */
         /** @todo Check the host supported flags (needs additional work to get the host features from CPUM)
          *        and implement alternate handling if FEAT_AFP is present. */
-        uint8_t const idxRegMxCsr = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_MxCsr, kIemNativeGstRegUse_ReadOnly);
+        uint8_t const idxRegMxCsr = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_MxCsr,
+                                                                    kIemNativeGstRegUse_ReadOnly);
 
         PIEMNATIVEINSTR pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 10);
 

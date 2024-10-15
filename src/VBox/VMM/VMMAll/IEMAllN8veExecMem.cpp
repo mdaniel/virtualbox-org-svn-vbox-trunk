@@ -366,7 +366,11 @@ static void iemExecMemAllocatorPrune(PVMCPU pVCpu, PIEMEXECMEMALLOCATOR pExecMem
     /*
      * Before we can start, we must process delayed frees.
      */
+#if 1
+    PIEMTBALLOCATOR const pTbAllocator = iemTbAllocatorFreeBulkStart(pVCpu);
+#else
     iemTbAllocatorProcessDelayedFrees(pVCpu, pVCpu->iem.s.pTbAllocatorR3);
+#endif
 
     AssertCompile(RT_IS_POWER_OF_TWO(IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE));
 
@@ -454,12 +458,18 @@ static void iemExecMemAllocatorPrune(PVMCPU pVCpu, PIEMEXECMEMALLOCATOR pExecMem
             AssertBreakStmt(offChunk <= cbChunk, offChunk -= cbBlock - IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE);
             cbPruned += cbBlock;
 
+#if 1
+            iemTbAllocatorFreeBulk(pVCpu, pTbAllocator, pTb);
+#else
             iemTbAllocatorFree(pVCpu, pTb);
+#endif
         }
         else
             offChunk += IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE;
     }
     STAM_REL_PROFILE_ADD_PERIOD(&pExecMemAllocator->StatPruneRecovered, cbPruned);
+
+    pVCpu->iem.s.ppTbLookupEntryR3 = &pVCpu->iem.s.pTbLookupEntryDummyR3;
 
     /*
      * Save the current pruning point.

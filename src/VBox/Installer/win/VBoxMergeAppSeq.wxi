@@ -33,7 +33,7 @@
 
     <Custom Action="ca_VBoxSupDrvUninstArgModel" Before="ca_VBoxSupDrvUninst"
             Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
-    <Custom Action="ca_VBoxSupDrvUninst" After="InstallInitialize" 
+    <Custom Action="ca_VBoxSupDrvUninst" After="InstallInitialize"
             Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
 
 <?if $(env.VBOX_WITH_CRT_PACKING) = "no" ?>

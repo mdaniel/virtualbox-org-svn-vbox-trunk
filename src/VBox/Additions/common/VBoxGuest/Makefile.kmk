@@ -53,8 +53,8 @@ if defined(VBOX_WITH_ADDITION_DRIVERS) && "$(intersects $(KBUILD_TARGET), darwin
  VBoxGuest_NAME.solaris  = vboxguest
  VBoxGuest_INST.darwin   = $(INST_ADDITIONS)VBoxGuest.kext/Contents/MacOS/
  #if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS) # See Additions/WINNT/Makefile.kmk?
-  VBoxGuest_INSTTYPE.win = none
-  VBoxGuest_DEBUG_INSTTYPE.win = both
+ VBoxGuest_INSTTYPE.win  = none
+ VBoxGuest_DEBUG_INSTTYPE.win  = both
  #endif
  VBoxGuest_DEFS.haiku    = VBOX_SVN_REV=$(VBOX_SVN_REV) _KERNEL_MODE=1
  VBoxGuest_DEFS.solaris  = VBOX_SVN_REV=$(VBOX_SVN_REV)

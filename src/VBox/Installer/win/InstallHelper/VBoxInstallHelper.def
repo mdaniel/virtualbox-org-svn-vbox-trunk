@@ -44,6 +44,8 @@ EXPORTS
     UninstallNetLwf
     UninstallTAPInstances
     UninstallVBoxDrv
+    DriverInstall
+    DriverUninstall
     CreateHostOnlyInterface
     StopHostOnlyInterfaces
     UpdateHostOnlyInterfaces

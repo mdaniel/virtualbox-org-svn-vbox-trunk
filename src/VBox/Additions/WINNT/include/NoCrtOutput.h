@@ -488,6 +488,21 @@ DECLINLINE(void) PrintX64(uint64_t uValue)
 }
 
 
+DECLINLINE(void) PrintSS(const char *pszMsg1, const char *pszMsg2)
+{
+    PrintStr(pszMsg1);
+    PrintStr(pszMsg2);
+}
+
+
+DECLINLINE(void) PrintSSS(const char *pszMsg1, const char *pszMsg2, const char *pszMsg3)
+{
+    PrintStr(pszMsg1);
+    PrintStr(pszMsg2);
+    PrintStr(pszMsg3);
+}
+
+
 DECLINLINE(void) PrintSWS(const char *pszMsg1, const wchar_t *pwszMsg2, const char *pszMsg3)
 {
     PrintStr(pszMsg1);

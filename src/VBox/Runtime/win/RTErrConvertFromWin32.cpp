@@ -221,6 +221,7 @@ RTR3DECL(int)  RTErrConvertFromWin32(unsigned uNativeCode)
 
 
         case ERROR_SERVICE_ALREADY_RUNNING: return VERR_ALREADY_LOADED; /* Not the best match, but seen it with VBoxSup.sys. */
+        case ERROR_NOT_FOUND:               return VERR_NOT_FOUND;
 
 
         /*

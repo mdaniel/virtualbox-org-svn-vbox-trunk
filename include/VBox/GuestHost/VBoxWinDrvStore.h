@@ -41,6 +41,7 @@
 #endif
 
 #include <iprt/list.h>
+#include <iprt/path.h>
 #include <iprt/utf16.h>
 
 /** Maximum model PnP ID length (in characters). */

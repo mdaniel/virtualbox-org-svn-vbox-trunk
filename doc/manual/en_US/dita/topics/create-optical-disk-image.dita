@@ -3,8 +3,8 @@
 <topic xml:lang="en-us" id="create-optical-disk-image">
   <title>Creating a Virtual Optical Disk Image</title>
   <body>
-    <p>Use the <b outputclass="bold">VISO Creator</b> tool to create a virtual optical disk image. This enables you to
-      create a virtual ISO from selected files on the host. </p>
+    <p>Use the <b outputclass="bold">VISO Creator</b> tool to create a virtual optical disk image from selected files on the host. </p>
+    <p>A virtual ISO (VISO) differs from a real ISO because the files remain on the host, unless you choose to copy the files to the guest. This makes a VISO faster to create and use, and you do not need guest additions. A VISO is read-only and is ideal for use as installation media or reference data.</p>
     <ol>
       <li>
         <p>Display the <b outputclass="bold">Optical Disks</b> tab in Virtual Media Manager and click <b

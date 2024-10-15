@@ -40,6 +40,10 @@
 # pragma once
 #endif
 
+#include <iprt/types.h>
+
+RT_C_DECLS_BEGIN
+
 /** Windows driver installer handle. */
 typedef R3PTRTYPE(struct VBOXWINDRVINSTINTERNAL *) VBOXWINDRVINST;
 /** Pointer to a Windows driver installer handle. */
@@ -94,6 +98,8 @@ int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const
 int VBoxWinDrvInstInstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszSection, uint32_t fFlags);
 int VBoxWinDrvInstUninstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszModel, const char *pszPnPId, uint32_t fFlags);
 int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszSection, uint32_t fFlags);
+
+RT_C_DECLS_END
 
 #endif /* !VBOX_INCLUDED_GuestHost_VBoxWinDrvInst_h */
 

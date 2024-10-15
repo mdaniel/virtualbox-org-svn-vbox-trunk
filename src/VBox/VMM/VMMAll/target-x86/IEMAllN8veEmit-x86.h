@@ -598,7 +598,7 @@ iemNativeEmitEFlagsForLogical(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8
         pReNative->PostponedEfl.fEFlags  = X86_EFL_STATUS_BITS;
         pReNative->PostponedEfl.enmOp    = kIemNativePostponedEflOp_Logical;
         pReNative->PostponedEfl.cOpBits  = cOpBits;
-        pReNative->PostponedEfl.idxReg1  = iemNativeRegAllocTmpEx(pReNative, &off, IEMNATIVE_POSTPONING_REG_MASK, false);
+        pReNative->PostponedEfl.idxReg1  = iemNativeRegAllocTmpExPreferNonVolatile(pReNative, &off, IEMNATIVE_POSTPONING_REG_MASK);
         /** @todo it would normally be possible to use idxRegResult, iff it is
          *        already a non-volatile register and we can be user the caller
          *        doesn't modify it.  That'll save a register move and allocation. */

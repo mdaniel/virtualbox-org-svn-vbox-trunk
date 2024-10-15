@@ -2224,11 +2224,11 @@ DECL_HIDDEN_THROW(void)     iemNativeAddTbExitFixup(PIEMRECOMPILERSTATE pReNativ
                                                     IEMNATIVELABELTYPE enmExitReason);
 DECL_HIDDEN_THROW(PIEMNATIVEINSTR) iemNativeInstrBufEnsureSlow(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t cInstrReq);
 
-DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, bool fPreferVolatile = true);
-DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask,
-                                                   bool fPreferVolatile = true);
-DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t uImm,
-                                                    bool fPreferVolatile = true);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpPreferNonVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpExPreferNonVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t uImm);
 
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegReadOnly(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);
 DECL_HIDDEN_THROW(uint8_t)  iemNativeRegAllocTmpForGuestRegUpdate(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, IEMNATIVEGSTREG enmGstReg);

@@ -2056,7 +2056,7 @@ iemNativeEmitRipRelativeCallS16NoFlags(PIEMRECOMPILERSTATE pReNative, uint32_t o
     /* Allocate a temporary PC register. */
     uint8_t const idxPcRegOld = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_Pc,
                                                                 kIemNativeGstRegUse_Calculation, true /*fNoVolatileRegs*/);
-    uint8_t const idxPcRegNew = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
+    uint8_t const idxPcRegNew = iemNativeRegAllocTmpPreferNonVolatile(pReNative, &off);
 
     /* Calculate the new RIP. */
     off = iemNativeEmitAddGpr32Imm8(pReNative, off, idxPcRegOld, cbInstr);
@@ -2126,7 +2126,7 @@ iemNativeEmitEip32RelativeCallNoFlags(PIEMRECOMPILERSTATE pReNative, uint32_t of
     /* Allocate a temporary PC register. */
     uint8_t const idxPcRegOld = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_Pc,
                                                                 kIemNativeGstRegUse_ReadOnly, true /*fNoVolatileRegs*/);
-    uint8_t const idxPcRegNew = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
+    uint8_t const idxPcRegNew = iemNativeRegAllocTmpPreferNonVolatile(pReNative, &off);
 
     /* Update the EIP to get the return address. */
     off = iemNativeEmitAddGpr32Imm8(pReNative, off, idxPcRegOld, cbInstr);
@@ -2193,7 +2193,7 @@ iemNativeEmitRip64RelativeCallNoFlags(PIEMRECOMPILERSTATE pReNative, uint32_t of
     /* Allocate a temporary PC register. */
     uint8_t const idxPcRegOld = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_Pc,
                                                                 kIemNativeGstRegUse_ReadOnly, true /*fNoVolatileRegs*/);
-    uint8_t const idxPcRegNew = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
+    uint8_t const idxPcRegNew = iemNativeRegAllocTmpPreferNonVolatile(pReNative, &off);
 
     /* Update the RIP to get the return address. */
     off = iemNativeEmitAddGprImm8(pReNative, off, idxPcRegOld, cbInstr);
@@ -9796,7 +9796,7 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPrepareFpuForUse(PIEMRECOMPILERSTATE pR
             pReNative->fSimdRaiseXcptChecksEmitted |= IEMNATIVE_SIMD_HOST_FP_CTRL_REG_SAVED;
         }
 
-        uint8_t const idxRegTmp = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
+        uint8_t const idxRegTmp = iemNativeRegAllocTmpPreferNonVolatile(pReNative, &off);
         uint8_t const idxRegMxCsr = iemNativeRegAllocTmpForGuestReg(pReNative, &off, kIemNativeGstReg_MxCsr,
                                                                     kIemNativeGstRegUse_ReadOnly);
 
@@ -9828,7 +9828,7 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitPrepareFpuForUse(PIEMRECOMPILERSTATE pR
         iemNativeRegFreeTmp(pReNative, idxRegTmp);
 
 # elif defined(RT_ARCH_ARM64)
-        uint8_t const idxRegTmp = iemNativeRegAllocTmp(pReNative, &off, false /*fPreferVolatile*/);
+        uint8_t const idxRegTmp = iemNativeRegAllocTmpPreferNonVolatile(pReNative, &off);
 
         /* Need to save the host floating point control register the first time, clear FPSR. */
         if (!(pReNative->fSimdRaiseXcptChecksEmitted & IEMNATIVE_SIMD_HOST_FP_CTRL_REG_SAVED))

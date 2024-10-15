@@ -3471,13 +3471,14 @@ DECL_HIDDEN_THROW(uint32_t) iemNativeRegMoveOrSpillStackVar(PIEMRECOMPILERSTATE 
  * @param   poff            Pointer to the variable with the code buffer position.
  *                          This will be update if we need to move a variable from
  *                          register to stack in order to satisfy the request.
- * @param   fPreferVolatile Whether to prefer volatile over non-volatile
+ * @param   a_fPreferVolatile Whether to prefer volatile over non-volatile
  *                          registers (@c true, default) or the other way around
  *                          (@c false, for iemNativeRegAllocTmpForGuestReg()).
  *
  * @note    Must not modify the host status flags!
  */
-DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, bool fPreferVolatile /*= true*/)
+template<bool const a_fPreferVolatile>
+DECL_FORCE_INLINE_THROW(uint8_t) iemNativeRegAllocTmpInt(PIEMRECOMPILERSTATE pReNative, uint32_t *poff)
 {
     /*
      * Try find a completely unused register, preferably a call-volatile one.
@@ -3488,7 +3489,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, u
                    & (~IEMNATIVE_REG_FIXED_MASK & IEMNATIVE_HST_GREG_MASK);
     if (fRegs)
     {
-        if (fPreferVolatile)
+        if (a_fPreferVolatile)
             idxReg = (uint8_t)ASMBitFirstSetU32(  fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK
                                                 ? fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK : fRegs) - 1;
         else
@@ -3500,11 +3501,25 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, u
     }
     else
     {
-        idxReg = iemNativeRegAllocFindFree(pReNative, poff, fPreferVolatile);
+        idxReg = iemNativeRegAllocFindFree(pReNative, poff, a_fPreferVolatile);
         AssertStmt(idxReg != UINT8_MAX, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_REG_ALLOCATOR_NO_FREE_TMP));
         Log12(("iemNativeRegAllocTmp: %s (slow)\n", g_apszIemNativeHstRegNames[idxReg]));
     }
     return iemNativeRegMarkAllocated(pReNative, idxReg, kIemNativeWhat_Tmp);
+}
+
+
+/** See iemNativeRegAllocTmpInt for details.   */
+DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, uint32_t *poff)
+{
+    return iemNativeRegAllocTmpInt<true>(pReNative, poff);
+}
+
+
+/** See iemNativeRegAllocTmpInt for details.   */
+DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpPreferNonVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff)
+{
+    return iemNativeRegAllocTmpInt<false>(pReNative, poff);
 }
 
 
@@ -3523,8 +3538,8 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmp(PIEMRECOMPILERSTATE pReNative, u
  *                          registers (@c true, default) or the other way around
  *                          (@c false, for iemNativeRegAllocTmpForGuestReg()).
  */
-DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask,
-                                                  bool fPreferVolatile /*= true*/)
+template<bool const a_fPreferVolatile>
+DECL_FORCE_INLINE_THROW(uint8_t) iemNativeRegAllocTmpExInt(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask)
 {
     Assert(!(fRegMask & ~IEMNATIVE_HST_GREG_MASK));
     Assert(!(fRegMask & IEMNATIVE_REG_FIXED_MASK));
@@ -3539,7 +3554,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative,
                    & fRegMask;
     if (fRegs)
     {
-        if (fPreferVolatile)
+        if RT_CONSTEXPR_IF(a_fPreferVolatile)
             idxReg = (uint8_t)ASMBitFirstSetU32(  fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK
                                                 ? fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK : fRegs) - 1;
         else
@@ -3547,13 +3562,64 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative,
                                                 ? fRegs & ~IEMNATIVE_CALL_VOLATILE_GREG_MASK : fRegs) - 1;
         Assert(pReNative->Core.aHstRegs[idxReg].fGstRegShadows == 0);
         Assert(!(pReNative->Core.bmHstRegsWithGstShadow & RT_BIT_32(idxReg)));
-        Log12(("iemNativeRegAllocTmpEx: %s\n", g_apszIemNativeHstRegNames[idxReg]));
+        Log12(("iemNativeRegAllocTmpExInt: %s\n", g_apszIemNativeHstRegNames[idxReg]));
     }
     else
     {
-        idxReg = iemNativeRegAllocFindFree(pReNative, poff, fPreferVolatile, fRegMask);
+        idxReg = iemNativeRegAllocFindFree(pReNative, poff, a_fPreferVolatile, fRegMask);
         AssertStmt(idxReg != UINT8_MAX, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_REG_ALLOCATOR_NO_FREE_TMP));
-        Log12(("iemNativeRegAllocTmpEx: %s (slow)\n", g_apszIemNativeHstRegNames[idxReg]));
+        Log12(("iemNativeRegAllocTmpExInt: %s (slow)\n", g_apszIemNativeHstRegNames[idxReg]));
+    }
+    return iemNativeRegMarkAllocated(pReNative, idxReg, kIemNativeWhat_Tmp);
+}
+
+
+/** See iemNativeRegAllocTmpExInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask)
+{
+    return iemNativeRegAllocTmpExInt<true>(pReNative, poff, fRegMask);
+}
+
+
+/** See iemNativeRegAllocTmpExInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpExPreferNonVolatile(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask)
+{
+    return iemNativeRegAllocTmpExInt<false>(pReNative, poff, fRegMask);
+}
+
+
+/** Internal templated variation of iemNativeRegAllocTmpEx. */
+template<uint32_t const a_fRegMask, bool const a_fPreferVolatile>
+DECL_FORCE_INLINE_THROW(uint8_t) iemNativeRegAllocTmpExInt(PIEMRECOMPILERSTATE pReNative, uint32_t *poff)
+{
+    AssertCompile(!(a_fRegMask & ~IEMNATIVE_HST_GREG_MASK));
+    AssertCompile(!(a_fRegMask & IEMNATIVE_REG_FIXED_MASK));
+
+    /*
+     * Try find a completely unused register, preferably a call-volatile one.
+     */
+    uint8_t  idxReg;
+    uint32_t fRegs = ~pReNative->Core.bmHstRegs
+                   & ~pReNative->Core.bmHstRegsWithGstShadow
+                   & (~IEMNATIVE_REG_FIXED_MASK & IEMNATIVE_HST_GREG_MASK)
+                   & a_fRegMask;
+    if (fRegs)
+    {
+        if RT_CONSTEXPR_IF(a_fPreferVolatile)
+            idxReg = (uint8_t)ASMBitFirstSetU32(  fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK
+                                                ? fRegs & IEMNATIVE_CALL_VOLATILE_GREG_MASK : fRegs) - 1;
+        else
+            idxReg = (uint8_t)ASMBitFirstSetU32(  fRegs & ~IEMNATIVE_CALL_VOLATILE_GREG_MASK
+                                                ? fRegs & ~IEMNATIVE_CALL_VOLATILE_GREG_MASK : fRegs) - 1;
+        Assert(pReNative->Core.aHstRegs[idxReg].fGstRegShadows == 0);
+        Assert(!(pReNative->Core.bmHstRegsWithGstShadow & RT_BIT_32(idxReg)));
+        Log12(("iemNativeRegAllocTmpExInt: %s\n", g_apszIemNativeHstRegNames[idxReg]));
+    }
+    else
+    {
+        idxReg = iemNativeRegAllocFindFree(pReNative, poff, a_fPreferVolatile, a_fRegMask);
+        AssertStmt(idxReg != UINT8_MAX, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_REG_ALLOCATOR_NO_FREE_TMP));
+        Log12(("iemNativeRegAllocTmpExInt: %s (slow)\n", g_apszIemNativeHstRegNames[idxReg]));
     }
     return iemNativeRegMarkAllocated(pReNative, idxReg, kIemNativeWhat_Tmp);
 }
@@ -3574,16 +3640,13 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpEx(PIEMRECOMPILERSTATE pReNative,
  * @param   poff            Pointer to the variable with the code buffer position.
  * @param   uImm            The immediate value that the register must hold upon
  *                          return.
- * @param   fPreferVolatile Whether to prefer volatile over non-volatile
- *                          registers (@c true, default) or the other way around
- *                          (@c false).
- *
+ * @note    Prefers volatile registers.
  * @note    Reusing immediate values has not been implemented yet.
  */
 DECL_HIDDEN_THROW(uint8_t)
-iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t uImm, bool fPreferVolatile /*= true*/)
+iemNativeRegAllocTmpImm(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint64_t uImm)
 {
-    uint8_t const idxReg = iemNativeRegAllocTmp(pReNative, poff, fPreferVolatile);
+    uint8_t const idxReg = iemNativeRegAllocTmp(pReNative, poff);
     *poff = iemNativeEmitLoadGprImm64(pReNative, *poff, idxReg, uImm);
     return idxReg;
 }
@@ -3629,7 +3692,7 @@ static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNati
                     & ~pReNative->Core.bmHstRegsWithGstShadow
                     & (~IEMNATIVE_REG_FIXED_MASK & IEMNATIVE_HST_GREG_MASK)))
             {
-                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask);
+                uint8_t const idxRegNew = iemNativeRegAllocTmpExInt<a_fRegMask, true>(pReNative, poff);
 
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
 
@@ -3661,9 +3724,10 @@ static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNati
             else
             {
                 Assert(!(a_fRegMask & IEMNATIVE_CALL_VOLATILE_GREG_MASK));
-                uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask & ~RT_BIT_32(idxReg),
-                                                                    (a_fRegMask & IEMNATIVE_CALL_VOLATILE_GREG_MASK)
-                                                                 && a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
+                uint8_t const idxRegNew =    (a_fRegMask & IEMNATIVE_CALL_VOLATILE_GREG_MASK)
+                                          && a_enmIntendedUse == kIemNativeGstRegUse_Calculation
+                                        ? iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask & ~RT_BIT_32(idxReg))
+                                        : iemNativeRegAllocTmpExPreferNonVolatile(pReNative, poff, a_fRegMask & ~RT_BIT_32(idxReg));
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
                 if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_Calculation)
                 {
@@ -3693,8 +3757,9 @@ static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNati
                        idxReg, enmGstReg, s_pszIntendedUse[a_enmIntendedUse]));
 
             /** @todo share register for readonly access. */
-            uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask,
-                                                             a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
+            uint8_t const idxRegNew = a_enmIntendedUse == kIemNativeGstRegUse_Calculation
+                                    ? iemNativeRegAllocTmpExInt<a_fRegMask, true>(pReNative, poff)
+                                    : iemNativeRegAllocTmpExInt<a_fRegMask, false>(pReNative, poff);
 
             if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
                 *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxRegNew, idxReg);
@@ -3742,8 +3807,9 @@ static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNati
     /*
      * Allocate a new register, load it with the guest value and designate it as a copy of the
      */
-    uint8_t const idxRegNew = iemNativeRegAllocTmpEx(pReNative, poff, a_fRegMask,
-                                                     a_enmIntendedUse == kIemNativeGstRegUse_Calculation);
+    uint8_t const idxRegNew = a_enmIntendedUse != kIemNativeGstRegUse_Calculation
+                            ? iemNativeRegAllocTmpExInt<a_fRegMask, false>(pReNative, poff)
+                            : iemNativeRegAllocTmpExInt<a_fRegMask, true>(pReNative, poff);
 
     if RT_CONSTEXPR_IF(a_enmIntendedUse != kIemNativeGstRegUse_ForFullWrite)
         *poff = iemNativeEmitLoadGprWithGstShadowReg(pReNative, *poff, idxRegNew, enmGstReg);

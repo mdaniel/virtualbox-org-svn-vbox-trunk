@@ -322,10 +322,18 @@ typedef IEMEXECMEMALLOCATOR *PIEMEXECMEMALLOCATOR;
  */
 typedef struct IEMEXECMEMALLOCHDR
 {
-    /** Magic value / eyecatcher (IEMEXECMEMALLOCHDR_MAGIC). */
-    uint32_t        uMagic;
-    /** The allocation chunk (for speeding up freeing). */
-    uint32_t        idxChunk;
+    union
+    {
+        struct
+        {
+            /** Magic value / eyecatcher (IEMEXECMEMALLOCHDR_MAGIC). */
+            uint32_t        uMagic;
+            /** The allocation chunk (for speeding up freeing). */
+            uint32_t        idxChunk;
+        };
+        /** Combined magic and chunk index, for the pruning scanner code. */
+        uint64_t u64MagicAndChunkIdx;
+    };
     /** Pointer to the translation block the allocation belongs to.
      * This is the whole point of the header. */
     PIEMTB          pTb;
@@ -407,31 +415,46 @@ static void iemExecMemAllocatorPrune(PVMCPU pVCpu, PIEMEXECMEMALLOCATOR pExecMem
 
     /*
      * Do the pruning.  The current approach is the sever kind.
+     *
+     * This is memory bound, as we must load both the allocation header and the
+     * associated TB and then modify them. So, the CPU isn't all that unitilized
+     * here.  Try apply some prefetching to speed it up a tiny bit.
      */
-    uint64_t            cbPruned = 0;
-    uint8_t * const     pbChunk  = (uint8_t *)pExecMemAllocator->aChunks[idxChunk].pvChunkRx;
+    uint64_t            cbPruned            = 0;
+    uint64_t const      u64MagicAndChunkIdx = RT_MAKE_U64(IEMEXECMEMALLOCHDR_MAGIC, idxChunk);
+    uint8_t * const     pbChunk             = (uint8_t *)pExecMemAllocator->aChunks[idxChunk].pvChunkRx;
     while (offChunk < offPruneEnd)
     {
         PIEMEXECMEMALLOCHDR pHdr = (PIEMEXECMEMALLOCHDR)&pbChunk[offChunk];
 
-        /* Is this the start of an allocation block for TB? (We typically have
-           one allocation at the start of each chunk for the unwind info where
-           pTb is NULL.)  */
-        if (   pHdr->uMagic   == IEMEXECMEMALLOCHDR_MAGIC
-            && pHdr->pTb      != NULL
-            && pHdr->idxChunk == idxChunk)
+        /* Is this the start of an allocation block for a TB? (We typically
+           have one allocation at the start of each chunk for the unwind info
+           where pTb is NULL.)  */
+        PIEMTB pTb;
+        if (   pHdr->u64MagicAndChunkIdx == u64MagicAndChunkIdx
+            && RT_LIKELY((pTb = pHdr->pTb) != NULL))
         {
-            PIEMTB const pTb = pHdr->pTb;
             AssertPtr(pTb);
 
             uint32_t const cbBlock = RT_ALIGN_32(pTb->Native.cInstructions * sizeof(IEMNATIVEINSTR) + sizeof(*pHdr),
                                                  IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE);
-            AssertBreakStmt(offChunk + cbBlock <= cbChunk, offChunk += IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE); /* paranoia */
+
+            /* Prefetch the next header before freeing the current one and its TB. */
+            /** @todo Iff the block size was part of the header in some way, this could be
+             *        a tiny bit faster. */
+            offChunk += cbBlock;
+#if defined(_MSC_VER) && defined(RT_ARCH_AMD64)
+            _mm_prefetch((char *)&pbChunk[offChunk], _MM_HINT_T0);
+#elif defined(_MSC_VER) && defined(RT_ARCH_ARM64)
+            __prefetch(&pbChunk[offChunk]);
+#else
+            __builtin_prefetch(&pbChunk[offChunk], 1 /*rw*/);
+#endif
+            /* Some paranoia first, though.  */
+            AssertBreakStmt(offChunk <= cbChunk, offChunk -= cbBlock - IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE);
+            cbPruned += cbBlock;
 
             iemTbAllocatorFree(pVCpu, pTb);
-
-            cbPruned += cbBlock;
-            offChunk += cbBlock;
         }
         else
             offChunk += IEMEXECMEM_ALT_SUB_ALLOC_UNIT_SIZE;

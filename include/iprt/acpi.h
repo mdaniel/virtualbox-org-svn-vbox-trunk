@@ -321,7 +321,7 @@ typedef enum RTACPISTMT
     /** Break statement. */
     kAcpiStmt_Break,
     /** Continue statement. */
-    kAcpiStmt_Continue,
+    kAcpiStmt_Continue
 } RTACPISTMT;
 
 

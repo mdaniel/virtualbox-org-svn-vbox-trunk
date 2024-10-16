@@ -640,8 +640,9 @@ static void vbglR0HGCMInternalInitCall(VMMDevHGCMCall *pHGCMCall, PCVBGLIOCHGCMC
                         pDstPgLst->cPages           = (uint16_t)cPages; Assert(pDstPgLst->cPages == cPages);
                         for (iPage = 0; iPage < cPages; iPage++)
                         {
-                            pDstPgLst->aPages[iPage] = RTR0MemObjGetPagePhysAddr(hObj, iPage);
-                            Assert(pDstPgLst->aPages[iPage] != NIL_RTHCPHYS);
+                            RTGCPHYS64 * paPages = pDstPgLst->aPages;
+                            paPages[iPage] = RTR0MemObjGetPagePhysAddr(hObj, iPage);
+                            Assert(paPages[iPage] != NIL_RTHCPHYS);
                         }
 
                         offExtra += RT_UOFFSETOF_DYN(HGCMPageListInfo, aPages[cPages]);

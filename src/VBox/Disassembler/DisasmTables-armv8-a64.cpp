@@ -246,12 +246,16 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_0(Hints, 0xffffffff /*fFixedInsn*/
 
 /* CLREX */
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DecBarriers)
+    INVALID_OPCODE,
+    INVALID_OPCODE,
     DIS_ARMV8_OP(0xd503304f, "clrex",           OP_ARMV8_A64_CLREX,     DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(0xD503309f, "dsb",             OP_ARMV8_A64_DSB,       DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0xd50330bf, "dmb",             OP_ARMV8_A64_DMB,       DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DecBarriers)
     DIS_ARMV8_INSN_DECODE(kDisParmParseImm,            8,  4, 0 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_1(DecBarriers, 0xfffff0ff /*fFixedInsn*/, 0 /*fClass*/,
-                                                kDisArmV8OpcDecodeNop, RT_BIT_32(5), 5,
+                                                kDisArmV8OpcDecodeNop, RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7), 5,
                                                 kDisArmv8OpParmImm);
 
 
@@ -261,7 +265,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DecodeBarriers)
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo DSB - Encoding */
     DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* CLREX */
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo TCOMMIT */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo DSB - Encoding */
+    DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* DSB - Encoding */
     DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* DMB */
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo ISB */
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY                      /** @todo SB */

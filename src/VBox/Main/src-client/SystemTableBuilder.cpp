@@ -39,6 +39,7 @@
 #include <iprt/asm.h>
 #include <iprt/string.h>
 
+‚
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
@@ -217,7 +218,7 @@ int SystemTableBuilderAcpi::finishTables(RTGCPHYS GCPhysTblsStart, RTVFSIOSTREAM
     pXsdt->Hdr.bRevision    = 6;
     pXsdt->Hdr.bChkSum      = 0;
     pXsdt->Hdr.u32OemRevision = 1;
-    pXsdt->Hdr.u32CreatorRevision = 1; 
+    pXsdt->Hdr.u32CreatorRevision = 1;
 
     memcpy(&pXsdt->Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&pXsdt->Hdr.abOemTblId[0], "ORCL",                   4);
@@ -502,7 +503,7 @@ int SystemTableBuilderAcpi::buildMadt(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt)
     pMadt->Hdr.bRevision          = 6;
     pMadt->Hdr.bChkSum            = 0;
     pMadt->Hdr.u32OemRevision     = 1;
-    pMadt->Hdr.u32CreatorRevision = 1; 
+    pMadt->Hdr.u32CreatorRevision = 1;
 
     memcpy(&pMadt->Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&pMadt->Hdr.abOemTblId[0], "ORCL",                   4);
@@ -537,7 +538,7 @@ int SystemTableBuilderAcpi::buildMcfg(RTVFSIOSTREAM hVfsIos, size_t *pcbMcfg)
     pMcfg->Hdr.bRevision          = 6;
     pMcfg->Hdr.bChkSum            = 0;
     pMcfg->Hdr.u32OemRevision     = 1;
-    pMcfg->Hdr.u32CreatorRevision = 1; 
+    pMcfg->Hdr.u32CreatorRevision = 1;
 
     memcpy(&pMcfg->Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&pMcfg->Hdr.abOemTblId[0], "ORCL",                   4);
@@ -592,7 +593,7 @@ int SystemTableBuilderAcpi::buildGtdt(RTVFSIOSTREAM hVfsIos, size_t *pcbGtdt)
     Gtdt.Hdr.bRevision    = 6;
     Gtdt.Hdr.bChkSum      = 0;
     Gtdt.Hdr.u32OemRevision = 1;
-    Gtdt.Hdr.u32CreatorRevision = 1; 
+    Gtdt.Hdr.u32CreatorRevision = 1;
 
     memcpy(&Gtdt.Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&Gtdt.Hdr.abOemTblId[0], "ORCL",                   4);
@@ -620,7 +621,7 @@ int SystemTableBuilderAcpi::buildFadt(RTVFSIOSTREAM hVfsIos, RTGCPHYS GCPhysXDsd
     Fadt.Hdr.bRevision    = 6;
     Fadt.Hdr.bChkSum      = 0;
     Fadt.Hdr.u32OemRevision = 1;
-    Fadt.Hdr.u32CreatorRevision = 1; 
+    Fadt.Hdr.u32CreatorRevision = 1;
 
     memcpy(&Fadt.Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&Fadt.Hdr.abOemTblId[0], "ORCL",                   4);
@@ -648,7 +649,7 @@ int SystemTableBuilderAcpi::buildTpm20(RTVFSIOSTREAM hVfsIos, size_t *pcbTpm20)
     Tpm2.Hdr.bRevision    = ACPI_TPM20_REVISION;
     Tpm2.Hdr.bChkSum      = 0;
     Tpm2.Hdr.u32OemRevision = 1;
-    Tpm2.Hdr.u32CreatorRevision = 1; 
+    Tpm2.Hdr.u32CreatorRevision = 1;
 
     memcpy(&Tpm2.Hdr.abOemId[0],    "ORCLVB",                 6);
     memcpy(&Tpm2.Hdr.abOemTblId[0], "ORCL",                   4);

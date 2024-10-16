@@ -119,8 +119,8 @@ typedef struct IEMNATIVEEMITTLBSTATE
         ,       idxRegPtr(      a_pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(a_idxVarGCPtrMem)].enmKind
                              != kIemNativeVarKind_Immediate
                           && !fSkip
-                          ? iemNativeVarRegisterAcquire(a_pReNative, a_idxVarGCPtrMem, a_poff,
-                                                        true /*fInitialized*/, IEMNATIVE_CALL_ARG2_GREG)
+                          ? iemNativeVarRegisterAcquireInitedWithPref(a_pReNative, a_idxVarGCPtrMem, a_poff,
+                                                                      IEMNATIVE_CALL_ARG2_GREG)
                           : idxRegPtrHlp)
         ,   idxRegSegBase(a_iSegReg == UINT8_MAX || fSkip
                           ? UINT8_MAX

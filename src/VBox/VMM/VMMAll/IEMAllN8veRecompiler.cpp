@@ -7452,8 +7452,8 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarAllocAssign(PIEMRECOMPILERSTATE pReNative
     uint8_t const idxVar = IEMNATIVE_VAR_IDX_PACK(iemNativeVarAllocInt(pReNative, cbType));
     iemNativeVarSetKindToStack(pReNative, IEMNATIVE_VAR_IDX_PACK(idxVar));
 
-    uint8_t const idxVarOtherReg = iemNativeVarRegisterAcquire(pReNative, idxVarOther, poff, true /*fInitialized*/);
-    uint8_t const idxVarReg = iemNativeVarRegisterAcquire(pReNative, idxVar, poff);
+    uint8_t const idxVarOtherReg = iemNativeVarRegisterAcquireInited(pReNative, idxVarOther, poff);
+    uint8_t const idxVarReg      = iemNativeVarRegisterAcquire(pReNative, idxVar, poff);
 
 /** @todo combine MOV and AND using MOVZX/similar. */
     *poff = iemNativeEmitLoadGprFromGpr(pReNative, *poff, idxVarReg, idxVarOtherReg);
@@ -7482,21 +7482,26 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarAllocAssign(PIEMRECOMPILERSTATE pReNative
  * @param   poff            Pointer to the instruction buffer offset.
  *                          In case a register needs to be freed up or the value
  *                          loaded off the stack.
- * @param   fInitialized    Set if the variable must already have been
+ * @param   idxRegPref      Preferred register number or UINT8_MAX.
+ *
+ * @tparam  a_fInitialized  Set if the variable must already have been
  *                          initialized. Will throw VERR_IEM_VAR_NOT_INITIALIZED
  *                          if this is not the case.
- * @param   idxRegPref      Preferred register number or UINT8_MAX.
+ * @tparam  a_fWithRegPref  If idxRegPref is valid.
  *
  * @note    Must not modify the host status flags!
  */
-DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff,
-                                                       bool fInitialized /*= false*/, uint8_t idxRegPref /*= UINT8_MAX*/)
+template<bool const a_fInitialized, bool const a_fWithRegPref>
+DECL_FORCE_INLINE_THROW(uint8_t)
+iemNativeVarRegisterAcquireInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
 {
     IEMNATIVE_ASSERT_VAR_IDX(pReNative, idxVar);
     PIEMNATIVEVAR const pVar = &pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)];
     Assert(pVar->cbVar <= 8);
     Assert(!pVar->fRegAcquired);
+    Assert(!a_fWithRegPref || idxRegPref < RT_ELEMENTS(pReNative->Core.aHstRegs));
 
+    /** @todo inline this bit? */
     uint8_t idxReg = pVar->idxReg;
     if (idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs))
     {
@@ -7546,7 +7551,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNa
         iemNativeRegClearGstRegShadowing(pReNative, idxReg, *poff);
         Log11(("iemNativeVarRegisterAcquire: idxVar=%#x idxReg=%u (matching arg %u)\n", idxVar, idxReg, uArgNo));
     }
-    else if (   idxRegPref >= RT_ELEMENTS(pReNative->Core.aHstRegs)
+    else if (   !a_fWithRegPref
              || (pReNative->Core.bmHstRegs & RT_BIT_32(idxRegPref)))
     {
         /** @todo there must be a better way for this and boot cArgsX?   */
@@ -7591,7 +7596,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNa
     uint8_t const idxStackSlot = pVar->idxStackSlot;
     if (idxStackSlot < IEMNATIVE_FRAME_VAR_SLOTS)
     {
-        Assert(fInitialized);
+        Assert(a_fInitialized);
         int32_t const offDispBp = iemNativeStackCalcBpDisp(idxStackSlot);
         switch (pVar->cbVar)
         {
@@ -7607,7 +7612,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNa
     {
         Assert(idxStackSlot == UINT8_MAX);
         if (pVar->enmKind != kIemNativeVarKind_Immediate)
-            AssertStmt(!fInitialized, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_VAR_NOT_INITIALIZED));
+            AssertStmt(!a_fInitialized, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_VAR_NOT_INITIALIZED));
         else
         {
             /*
@@ -7615,7 +7620,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNa
              * required by IEM_MC_ADD_LOCAL_S16_TO_EFF_ADDR, IEM_MC_ADD_LOCAL_S32_TO_EFF_ADDR
              * and IEM_MC_ADD_LOCAL_S64_TO_EFF_ADDR in connection with BT, BTS, BTR, and BTC.
              */
-            AssertStmt(fInitialized, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_VAR_NOT_INITIALIZED));
+            AssertStmt(a_fInitialized, IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_VAR_NOT_INITIALIZED));
             Log11(("iemNativeVarRegisterAcquire: idxVar=%#x idxReg=%u uValue=%RX64 converting from immediate to stack\n",
                    idxVar, idxReg, pVar->u.uValue));
             *poff = iemNativeEmitLoadGprImm64(pReNative, *poff, idxReg, pVar->u.uValue);
@@ -7625,6 +7630,44 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNa
 
     pVar->fRegAcquired = true;
     return idxReg;
+}
+
+
+/** See iemNativeVarRegisterAcquireInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
+{
+    /* very likely */
+    //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 0]);
+    return iemNativeVarRegisterAcquireInt<false, false>(pReNative, idxVar, poff, UINT8_MAX);
+}
+
+
+/** See iemNativeVarRegisterAcquireInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquireInited(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
+{
+    /* even more likely */
+    //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 2]);
+    return iemNativeVarRegisterAcquireInt<true, false>(pReNative, idxVar, poff, UINT8_MAX);
+}
+
+
+/** See iemNativeVarRegisterAcquireInt for details. */
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeVarRegisterAcquireWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
+{
+    /* unused */
+    //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 4]);
+    return iemNativeVarRegisterAcquireInt<false, true>(pReNative, idxVar, poff, idxRegPref);
+}
+
+
+/** See iemNativeVarRegisterAcquireInt for details. */
+DECL_HIDDEN_THROW(uint8_t)
+iemNativeVarRegisterAcquireInitedWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
+{
+    /* very very likely */
+    //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 6]);
+    return iemNativeVarRegisterAcquireInt<true, true>(pReNative, idxVar, poff, idxRegPref);
 }
 
 

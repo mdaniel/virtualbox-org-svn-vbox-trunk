@@ -2342,8 +2342,10 @@ DECL_HIDDEN_THROW(void)     iemNativeVarSetKindToConst(PIEMRECOMPILERSTATE pReNa
 DECL_HIDDEN_THROW(void)     iemNativeVarSetKindToGstRegRef(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar,
                                                            IEMNATIVEGSTREGREF enmRegClass, uint8_t idxReg);
 DECL_HIDDEN_THROW(uint8_t)  iemNativeVarGetStackSlot(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar);
-DECL_HIDDEN_THROW(uint8_t)  iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff,
-                                                        bool fInitialized = false, uint8_t idxRegPref = UINT8_MAX);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeVarRegisterAcquireWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeVarRegisterAcquireInited(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff);
+DECL_HIDDEN_THROW(uint8_t)  iemNativeVarRegisterAcquireInitedWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref);
 #ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 DECL_HIDDEN_THROW(uint8_t)  iemNativeVarSimdRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff,
                                                             bool fInitialized = false, uint8_t idxRegPref = UINT8_MAX);

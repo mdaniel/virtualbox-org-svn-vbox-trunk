@@ -1,0 +1,320 @@
+/* $Id$ */
+/** @file
+ * GIC - Generic Interrupt Controller Architecture (GICv3) - Hyper-V interface.
+ */
+
+/*
+ * Copyright (C) 2024 Oracle and/or its affiliates.
+ *
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
+#define LOG_GROUP LOG_GROUP_DEV_APIC
+#include <iprt/nt/nt-and-windows.h>
+#include <iprt/nt/hyperv.h>
+#include <WinHvPlatform.h>
+
+#include <VBox/log.h>
+#include "GICInternal.h"
+#include "NEMInternal.h" /* Need access to the partition handle. */
+#include <VBox/vmm/gic.h>
+#include <VBox/vmm/cpum.h>
+#include <VBox/vmm/hm.h>
+#include <VBox/vmm/mm.h>
+#include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/ssm.h>
+#include <VBox/vmm/vm.h>
+
+#include <iprt/armv8.h>
+
+#ifndef VBOX_DEVICE_STRUCT_TESTCASE
+
+
+/*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
+
+
+/*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
+
+/**
+ * GICHv PDM instance data (per-VM).
+ */
+typedef struct GICHVDEV
+{
+    /** Pointer to the PDM device instance. */
+    PPDMDEVINSR3         pDevIns;
+    /** The partition handle grabbed from NEM. */
+    WHV_PARTITION_HANDLE hPartition;
+} GICHVDEV;
+/** Pointer to a GIC KVM device. */
+typedef GICHVDEV *PGICHVDEV;
+/** Pointer to a const GIC KVM device. */
+typedef GICHVDEV const *PCGICHVDEV;
+
+
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
+extern decltype(WHvRequestInterrupt) *  g_pfnWHvRequestInterrupt;
+
+/*
+ * Let the preprocessor alias the APIs to import variables for better autocompletion.
+ */
+#ifndef IN_SLICKEDIT
+# define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
+#endif
+
+#if 0
+/**
+ * System register ranges for the GICv3.
+ */
+static CPUMSYSREGRANGE const g_aSysRegRanges_GICv3[] =
+{
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,   ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,     "ICC_PMR_EL1"),
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR0_EL1,  ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1,   "ICC_IAR0_EL1 - ICC_AP0R3_EL1"),
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1, ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1,  "ICC_AP1R0_EL1 - ICC_NMIAR1_EL1"),
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_DIR_EL1,   ARMV8_AARCH64_SYSREG_ICC_SGI0R_EL1,   "ICC_DIR_EL1 - ICC_SGI0R_EL1"),
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR1_EL1,  ARMV8_AARCH64_SYSREG_ICC_IGRPEN1_EL1, "ICC_IAR1_EL1 - ICC_IGRPEN1_EL1"),
+};
+#endif
+
+
+/**
+ * Common worker for GICR3KvmSpiSet() and GICR3KvmPpiSet().
+ *
+ * @returns VBox status code.
+ * @param   pDevIns     The PDM KVM GIC device instance.
+ * @param   idCpu       The CPU ID for which the interrupt is updated (only valid for PPIs).
+ * @param   u32IrqType  The actual IRQ type (PPI or SPI).
+ * @param   uIntId      The interrupt ID to update.
+ * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
+ */
+DECLINLINE(int) gicR3HvSetIrq(PPDMDEVINS pDevIns, VMCPUID idCpu, bool fPpi, uint32_t uIntId, bool fAsserted)
+{
+    LogFlowFunc(("pDevIns=%p idCpu=%u fPpi=%RTbool uIntId=%u fAsserted=%RTbool\n",
+                 pDevIns, idCpu, fPpi, uIntId, fAsserted));
+
+    PGICHVDEV pThis = PDMDEVINS_2_DATA(pDevIns, PGICHVDEV);
+
+    WHV_INTERRUPT_CONTROL IntrCtrl;
+    IntrCtrl.TargetPartition                         = 0;
+    IntrCtrl.InterruptControl.InterruptType          = WHvArm64InterruptTypeFixed;
+    IntrCtrl.InterruptControl.LevelTriggered         = 1;
+    IntrCtrl.InterruptControl.LogicalDestinationMode = 0;
+    IntrCtrl.InterruptControl.Asserted               = fAsserted ? 1 : 0;
+    IntrCtrl.InterruptControl.Reserved               = 0;
+    IntrCtrl.DestinationAddress                      = fPpi ? RT_BIT(idCpu) : 0; /* SGI1R_EL1 */
+    IntrCtrl.RequestedVector                         = fPpi ? uIntId : uIntId;
+    IntrCtrl.TargetVtl                               = 0;
+    IntrCtrl.ReservedZ0                              = 0;
+    IntrCtrl.ReservedZ1                              = 0;
+    HRESULT hrc = WHvRequestInterrupt(pThis->hPartition, &IntrCtrl, sizeof(IntrCtrl));
+    if (SUCCEEDED(hrc))
+        return VINF_SUCCESS;
+
+    LogFlowFunc(("WHvRequestInterrupt() failed with %Rhrc (Last=%#x/%u)\n", hrc, RTNtLastStatusValue(), RTNtLastErrorValue()));
+    return VERR_NEM_IPE_9; /** @todo */
+}
+
+
+/**
+ * Sets the given SPI inside the in-kernel KVM GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVM         The VM instance.
+ * @param   uIntId      The SPI ID to update.
+ * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
+ */
+VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+{
+    PGIC pGic = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
+
+    /* idCpu is ignored for SPI interrupts. */
+    return gicR3HvSetIrq(pDevIns, 0 /*idCpu*/, false /*fPpi*/,
+                         uIntId + GIC_INTID_RANGE_SPI_START, fAsserted);
+}
+
+
+/**
+ * Sets the given PPI inside the in-kernel KVM GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The vCPU for whih the PPI state is updated.
+ * @param   uIntId      The PPI ID to update.
+ * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
+ */
+VMMR3_INT_DECL(int) GICR3NemPpiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+{
+    PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
+
+    return gicR3HvSetIrq(pDevIns, pVCpu->idCpu, true /*fPpi*/,
+                         uIntId + GIC_INTID_RANGE_PPI_START, fAsserted);
+}
+
+
+/**
+ * @interface_method_impl{PDMDEVREG,pfnReset}
+ */
+DECLCALLBACK(void) gicR3HvReset(PPDMDEVINS pDevIns)
+{
+    PVM pVM = PDMDevHlpGetVM(pDevIns);
+    VM_ASSERT_EMT0(pVM);
+    VM_ASSERT_IS_NOT_RUNNING(pVM);
+
+    RT_NOREF(pVM);
+
+    LogFlow(("GIC: gicR3HvReset\n"));
+}
+
+
+/**
+ * @interface_method_impl{PDMDEVREG,pfnDestruct}
+ */
+DECLCALLBACK(int) gicR3HvDestruct(PPDMDEVINS pDevIns)
+{
+    LogFlowFunc(("pDevIns=%p\n", pDevIns));
+    PDMDEV_CHECK_VERSIONS_RETURN_QUIET(pDevIns);
+
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * @interface_method_impl{PDMDEVREG,pfnConstruct}
+ */
+DECLCALLBACK(int) gicR3HvConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg)
+{
+    PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
+    PGICHVDEV       pThis    = PDMDEVINS_2_DATA(pDevIns, PGICHVDEV);
+    PCPDMDEVHLPR3   pHlp     = pDevIns->pHlpR3;
+    PVM             pVM      = PDMDevHlpGetVM(pDevIns);
+    PGIC            pGic     = VM_TO_GIC(pVM);
+    Assert(iInstance == 0); NOREF(iInstance);
+
+    /*
+     * Init the data.
+     */
+    pGic->pDevInsR3   = pDevIns;
+    pGic->fNemGic     = true;
+    pThis->pDevIns    = pDevIns;
+    pThis->hPartition = pVM->nem.s.hPartition;
+
+    /*
+     * Validate GIC settings.
+     */
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase", "");
+
+    /*
+     * Disable automatic PDM locking for this device.
+     */
+    int rc = PDMDevHlpSetDeviceCritSect(pDevIns, PDMDevHlpCritSectGetNop(pDevIns));
+    AssertRCReturn(rc, rc);
+
+    /*
+     * Register the GIC with PDM.
+     */
+    rc = PDMDevHlpApicRegister(pDevIns);
+    AssertLogRelRCReturn(rc, rc);
+
+    /*
+     * Query the MMIO ranges.
+     */
+    RTGCPHYS GCPhysMmioBaseDist = 0;
+    rc = pHlp->pfnCFGMQueryU64(pCfg, "DistributorMmioBase", &GCPhysMmioBaseDist);
+    if (RT_FAILURE(rc))
+        return PDMDEV_SET_ERROR(pDevIns, rc,
+                                N_("Configuration error: Failed to get the \"DistributorMmioBase\" value"));
+
+    RTGCPHYS GCPhysMmioBaseReDist = 0;
+    rc = pHlp->pfnCFGMQueryU64(pCfg, "RedistributorMmioBase", &GCPhysMmioBaseReDist);
+    if (RT_FAILURE(rc))
+        return PDMDEV_SET_ERROR(pDevIns, rc,
+                                N_("Configuration error: Failed to get the \"RedistributorMmioBase\" value"));
+
+    /** @todo Configure the MMIO bases when MS released a new SDK with support for it (currently hard coded in the FDT in the
+     *        Main constructor):
+     *     GICD: 0xffff0000
+     *     GICR: 0xeffee000 (0x20000 per VP)
+     *     GITS: 0xeff68000
+     */
+
+    gicR3HvReset(pDevIns);
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * GIC device registration structure.
+ */
+const PDMDEVREG g_DeviceGICNem =
+{
+    /* .u32Version = */             PDM_DEVREG_VERSION,
+    /* .uReserved0 = */             0,
+    /* .szName = */                 "gic-nem",
+    /* .fFlags = */                 PDM_DEVREG_FLAGS_DEFAULT_BITS | PDM_DEVREG_FLAGS_NEW_STYLE,
+    /* .fClass = */                 PDM_DEVREG_CLASS_PIC,
+    /* .cMaxInstances = */          1,
+    /* .uSharedVersion = */         42,
+    /* .cbInstanceShared = */       sizeof(GICHVDEV),
+    /* .cbInstanceCC = */           0,
+    /* .cbInstanceRC = */           0,
+    /* .cMaxPciDevices = */         0,
+    /* .cMaxMsixVectors = */        0,
+    /* .pszDescription = */         "Generic Interrupt Controller",
+#if defined(IN_RING3)
+    /* .szRCMod = */                "VMMRC.rc",
+    /* .szR0Mod = */                "VMMR0.r0",
+    /* .pfnConstruct = */           gicR3HvConstruct,
+    /* .pfnDestruct = */            gicR3HvDestruct,
+    /* .pfnRelocate = */            NULL,
+    /* .pfnMemSetup = */            NULL,
+    /* .pfnPowerOn = */             NULL,
+    /* .pfnReset = */               gicR3HvReset,
+    /* .pfnSuspend = */             NULL,
+    /* .pfnResume = */              NULL,
+    /* .pfnAttach = */              NULL,
+    /* .pfnDetach = */              NULL,
+    /* .pfnQueryInterface = */      NULL,
+    /* .pfnInitComplete = */        NULL,
+    /* .pfnPowerOff = */            NULL,
+    /* .pfnSoftReset = */           NULL,
+    /* .pfnReserved0 = */           NULL,
+    /* .pfnReserved1 = */           NULL,
+    /* .pfnReserved2 = */           NULL,
+    /* .pfnReserved3 = */           NULL,
+    /* .pfnReserved4 = */           NULL,
+    /* .pfnReserved5 = */           NULL,
+    /* .pfnReserved6 = */           NULL,
+    /* .pfnReserved7 = */           NULL,
+#else
+# error "Not in IN_RING3!"
+#endif
+    /* .u32VersionEnd = */          PDM_DEVREG_VERSION
+};
+
+#endif /* !VBOX_DEVICE_STRUCT_TESTCASE */
+

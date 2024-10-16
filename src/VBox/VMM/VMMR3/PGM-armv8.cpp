@@ -742,6 +742,7 @@ VMMDECL(PGMMODE) PGMGetShadowMode(PVMCPU pVCpu)
 }
 
 
+#ifdef DEBUG_aeichner
 DECLINLINE(int) pgmGstWalkReturnNotPresent(PVMCPUCC pVCpu, PPGMPTWALK pWalk, uint8_t uLevel)
 {
     NOREF(pVCpu);
@@ -772,6 +773,7 @@ DECLINLINE(int) pgmGstWalkReturnRsvdError(PVMCPUCC pVCpu, PPGMPTWALK pWalk, uint
                            | ((uint32_t)uLevel << PGM_WALKFAIL_LEVEL_SHIFT);
     return VERR_PAGE_TABLE_NOT_PRESENT;
 }
+#endif
 
 
 VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)

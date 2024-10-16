@@ -86,7 +86,7 @@ typedef struct RTACPITBLINT
     /** Byte buffer holding the actual table. */
     uint8_t                     *pbTblBuf;
     /** Size of the table buffer. */
-    size_t                      cbTblBuf;
+    uint32_t                    cbTblBuf;
     /** Current offset into the table buffer. */
     uint32_t                    offTblBuf;
     /** Flag whether the table is finalized. */
@@ -161,7 +161,7 @@ static void rtAcpiTblCopyStringPadWith(uint8_t *pbId, size_t cbId, const char *p
  * @param pThis                 The ACPI table instance.
  * @param cbAdd                 How many bytes to add to the package length.
  */
-DECL_FORCE_INLINE(void) rtAcpiTblUpdatePkgLength(PRTACPITBLINT pThis, size_t cbAdd)
+DECL_FORCE_INLINE(void) rtAcpiTblUpdatePkgLength(PRTACPITBLINT pThis, uint32_t cbAdd)
 {
     PRTACPITBLSTACKELEM pPkgElem = &pThis->paPkgStack[pThis->idxPkgStackElem];
     pPkgElem->cbPkg += cbAdd;
@@ -175,7 +175,7 @@ DECL_FORCE_INLINE(void) rtAcpiTblUpdatePkgLength(PRTACPITBLINT pThis, size_t cbA
  * @param pThis                 The ACPI table instance.
  * @param cbReq                 Amount of bytes requested.
  */
-static uint8_t *rtAcpiTblBufEnsureSpace(PRTACPITBLINT pThis, size_t cbReq)
+static uint8_t *rtAcpiTblBufEnsureSpace(PRTACPITBLINT pThis, uint32_t cbReq)
 {
     if (RT_LIKELY(pThis->cbTblBuf - pThis->offTblBuf >= cbReq))
     {
@@ -184,7 +184,7 @@ static uint8_t *rtAcpiTblBufEnsureSpace(PRTACPITBLINT pThis, size_t cbReq)
         return pb;
     }
 
-    size_t const cbNew = RT_ALIGN_Z(pThis->cbTblBuf + cbReq, _4K);
+    uint32_t const cbNew = RT_ALIGN_32(pThis->cbTblBuf + cbReq, _4K);
     uint8_t *pbNew = (uint8_t *)RTMemRealloc(pThis->pbTblBuf, cbNew);
     if (RT_UNLIKELY(!pbNew))
     {
@@ -323,8 +323,8 @@ static int rtAcpiTblPkgFinish(PRTACPITBLINT pThis, uint8_t bOp)
      *
      * Note! PkgLength will also include its own length.
      */
-    uint8_t *pbPkgLength = pPkgElem->pbPkgLength;
-    size_t  cbThisPkg    = pPkgElem->cbPkg;
+    uint8_t  *pbPkgLength = pPkgElem->pbPkgLength;
+    uint32_t cbThisPkg    = pPkgElem->cbPkg;
     if (cbThisPkg + 1 <= 63)
     {
         /* Remove the gap. */
@@ -418,7 +418,7 @@ DECLINLINE(void) rtAcpiTblAppendData(PRTACPITBLINT pThis, const void *pvData, si
  */
 DECLINLINE(void) rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszName)
 {
-    size_t cbName = *pszName == '\\' ? 5 : 4;
+    uint32_t cbName = *pszName == '\\' ? 5 : 4;
     uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, cbName);
     if (pb)
     {
@@ -547,7 +547,7 @@ RTDECL(int) RTAcpiTblFinalize(RTACPITBL hAcpiTbl)
 RTDECL(uint32_t) RTAcpiTblGetSize(RTACPITBL hAcpiTbl)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
-    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertPtrReturn(pThis, 0);
     AssertRCReturn(pThis->rcErr, 0);
     AssertReturn(pThis->fFinalized, 0);
 
@@ -706,7 +706,7 @@ RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz)
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
 
     rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_PREFIX_STRING);
-    rtAcpiTblAppendData(pThis, psz, strlen(psz) + 1);
+    rtAcpiTblAppendData(pThis, psz, (uint32_t)strlen(psz) + 1);
     return pThis->rcErr;
 }
 
@@ -760,11 +760,12 @@ RTDECL(int) RTAcpiTblBufferAppend(RTACPITBL hAcpiTbl, const void *pvBuf, size_t 
     PRTACPITBLINT pThis = hAcpiTbl;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
     AssertReturn(!cbBuf || RT_VALID_PTR(pvBuf), VERR_INVALID_PARAMETER);
+    AssertReturn(cbBuf <= UINT32_MAX, VERR_BUFFER_OVERFLOW);
 
     rtAcpiTblPkgStart(pThis, ACPI_AML_BYTE_CODE_OP_BUFFER);
     RTAcpiTblIntegerAppend(hAcpiTbl, cbBuf);
     if (pvBuf)
-        rtAcpiTblAppendData(pThis, pvBuf, cbBuf);
+        rtAcpiTblAppendData(pThis, pvBuf, (uint32_t)cbBuf);
     return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_BUFFER);
 }
 
@@ -813,7 +814,7 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
  * @param   pThis               The ACPI resource instance.
  * @param   cbReq               Number of free bytes required.
  */
-static uint8_t *rtAcpiResBufEnsureSpace(PRTACPIRESINT pThis, size_t cbReq)
+static uint8_t *rtAcpiResBufEnsureSpace(PRTACPIRESINT pThis, uint32_t cbReq)
 {
     if (RT_LIKELY(pThis->cbResBuf - pThis->offResBuf >= cbReq))
     {

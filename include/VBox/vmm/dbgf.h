@@ -828,8 +828,8 @@ typedef enum DBGFBPTYPE
     DBGFBPTYPE_INVALID = 0,
     /** Debug register. */
     DBGFBPTYPE_REG,
-    /** INT 3 instruction. */
-    DBGFBPTYPE_INT3,
+    /** Software breakpoint (INT 3 on x86, bkpt on AArch64). */
+    DBGFBPTYPE_SOFTWARE,
     /** Port I/O breakpoint. */
     DBGFBPTYPE_PORT_IO,
     /** Memory mapped I/O breakpoint. */
@@ -919,16 +919,31 @@ typedef struct DBGFBPPUB
             uint8_t         cb;
         } Reg;
 
-        /** INT3 breakpoint data. */
-        struct DBGFBPINT3
+        /** Software breakpoint data. */
+        struct DBGFBPSW
         {
             /** The flat GC address of the breakpoint. */
             RTGCUINTPTR     GCPtr;
             /** The physical address of the breakpoint. */
             RTGCPHYS        PhysAddr;
-            /** The byte value we replaced by the INT 3 instruction. */
-            uint8_t         bOrg;
-        } Int3;
+
+            /** Architecture specific breakpoint data. */
+            union
+            {
+                /** BKPT breakpoint data. */
+                struct
+                {
+                    /** The original instruction being replaced by the breakpoint. */
+                    uint32_t        u32Org;
+                } armv8;
+                /** Int 3 data. */
+                struct
+                {
+                    /** The byte value we replaced by the INT 3 instruction. */
+                    uint8_t         bOrg;
+                } x86;
+            } Arch;
+        } Sw;
 
         /** I/O port breakpoint data.   */
         struct DBGFBPPORTIO
@@ -958,7 +973,7 @@ typedef struct DBGFBPPUB
 } DBGFBPPUB;
 AssertCompileSize(DBGFBPPUB, 64 - 8);
 AssertCompileMembersAtSameOffset(DBGFBPPUB, u.GCPtr, DBGFBPPUB, u.Reg.GCPtr);
-AssertCompileMembersAtSameOffset(DBGFBPPUB, u.GCPtr, DBGFBPPUB, u.Int3.GCPtr);
+AssertCompileMembersAtSameOffset(DBGFBPPUB, u.GCPtr, DBGFBPPUB, u.Sw.GCPtr);
 
 /** Pointer to the visible breakpoint state. */
 typedef DBGFBPPUB *PDBGFBPPUB;
@@ -2046,7 +2061,7 @@ typedef enum DBGFREG
      * @{ */
     DBGFREG_ARMV8_FIRST,
     /** General purpose registers. */
-    DBGFREG_ARMV8_GREG_X0,
+    DBGFREG_ARMV8_GREG_X0 = DBGFREG_ARMV8_FIRST,
     DBGFREG_ARMV8_GREG_W0 = DBGFREG_ARMV8_GREG_X0,
     DBGFREG_ARMV8_GREG_X1,
     DBGFREG_ARMV8_GREG_W1 = DBGFREG_ARMV8_GREG_X1,

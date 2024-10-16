@@ -11374,7 +11374,7 @@ static void vmxHCPreRunGuestDebugStateUpdate(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxT
     /*
      * INT3 breakpoints - triggered by #BP exceptions.
      */
-    if (pVM->dbgf.ro.cEnabledInt3Breakpoints > 0)
+    if (pVM->dbgf.ro.cEnabledSwBreakpoints > 0)
         pDbgState->bmXcptExtra |= RT_BIT_32(X86_XCPT_BP);
 
     /*

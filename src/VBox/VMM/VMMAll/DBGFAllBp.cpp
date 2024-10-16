@@ -167,7 +167,11 @@ DECLINLINE(int) dbgfBpHit(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, DBGFBP hBp, 
     uint64_t cHits = ASMAtomicIncU64(&pBp->Pub.cHits); RT_NOREF(cHits);
 
     RT_NOREF(pCtx);
+#ifdef VBOX_VMM_TARGET_ARMV8
+    LogFlow(("dbgfBpHit: hit breakpoint %u at %RGv cHits=0x%RX64\n", hBp, pCtx->Pc.u64, cHits));
+#else
     LogFlow(("dbgfBpHit: hit breakpoint %u at %04x:%RGv cHits=0x%RX64\n", hBp, pCtx->cs.Sel, pCtx->rip, cHits));
+#endif
 
     int rc = VINF_EM_DBG_BREAKPOINT;
 #ifdef IN_RING0
@@ -185,6 +189,10 @@ DECLINLINE(int) dbgfBpHit(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, DBGFBP hBp, 
             rcStrict = pBpOwnerR0->pfnBpHitR0(pVM, pVCpu->idCpu, pBpR0->pvUserR0, hBp, &pBp->Pub, DBGF_BP_F_HIT_EXEC_BEFORE);
         if (rcStrict == VINF_SUCCESS)
         {
+# ifdef VBOX_VMM_TARGET_ARMV8
+            /** @todo Requires instruction interpreter. */
+            AssertFailed();
+# else
             uint8_t abInstr[DBGF_BP_INSN_MAX];
             RTGCPTR const GCPtrInstr = pVCpu->cpum.GstCtx.rip + pVCpu->cpum.GstCtx.cs.u64Base;
             rc = PGMPhysSimpleReadGCPtr(pVCpu, &abInstr[0], GCPtrInstr, sizeof(abInstr));
@@ -214,6 +222,7 @@ DECLINLINE(int) dbgfBpHit(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, DBGFBP hBp, 
                 }
                 else
                     rc = VBOXSTRICTRC_VAL(rcStrict);
+#endif
             }
         }
         else if (   rcStrict == VINF_DBGF_BP_HALT
@@ -364,7 +373,7 @@ static int dbgfBpL2Walk(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, uint32_t idxL2
             PDBGFBPINT   pBp = dbgfBpGetByHnd(pVM, hBp, &pBpR0);
 #endif
             if (   pBp
-                && DBGF_BP_PUB_GET_TYPE(&pBp->Pub) == DBGFBPTYPE_INT3)
+                && DBGF_BP_PUB_GET_TYPE(&pBp->Pub) == DBGFBPTYPE_SOFTWARE)
 #ifdef IN_RING3
                 return dbgfBpHit(pVM, pVCpu, pCtx, hBp, pBp);
 #else
@@ -471,6 +480,7 @@ VMM_INT_DECL(VBOXSTRICTRC) DBGFBpCheckPortIo(PVMCC pVM, PVMCPU pVCpu, RTIOPORT u
 }
 
 
+#ifndef VBOX_VMM_TARGET_ARMV8 /** @todo for hardware break-/watchpoints */
 /**
  * \#DB (Debug event) handler.
  *
@@ -524,6 +534,7 @@ VMM_INT_DECL(int) DBGFTrap01Handler(PVM pVM, PVMCPU pVCpu, PCPUMCTX pCtx, RTGCUI
     LogFlow(("DBGFRZTrap01Handler: guest debug event %#x at %04x:%RGv!\n", (uint32_t)uDr6, pCtx->cs.Sel, pCtx->rip));
     return VINF_EM_RAW_GUEST_TRAP;
 }
+#endif
 
 
 /**
@@ -550,9 +561,14 @@ VMM_INT_DECL(VBOXSTRICTRC) DBGFTrap03Handler(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX
     if (paBpLocL1)
     {
         RTGCPTR GCPtrBp;
+#ifdef VBOX_VMM_TARGET_ARMV8
+        int rc = VINF_SUCCESS;
+        GCPtrBp = pCtx->Pc.u64;
+#else
         int rc = SELMValidateAndConvertCSAddr(pVCpu, pCtx->eflags.u, pCtx->ss.Sel, pCtx->cs.Sel, &pCtx->cs,
                                               pCtx->rip /* no -1 outside non-rawmode */, &GCPtrBp);
         AssertRCReturn(rc, rc);
+#endif
 
         const uint16_t idxL1      = DBGF_BP_INT3_L1_IDX_EXTRACT_FROM_ADDR(GCPtrBp);
         const uint32_t u32L1Entry = ASMAtomicReadU32(&paBpLocL1[idxL1]);
@@ -573,9 +589,9 @@ VMM_INT_DECL(VBOXSTRICTRC) DBGFTrap03Handler(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX
                 PDBGFBPINT   pBp = dbgfBpGetByHnd(pVM, hBp, &pBpR0);
 #endif
                 if (   pBp
-                    && DBGF_BP_PUB_GET_TYPE(&pBp->Pub) == DBGFBPTYPE_INT3)
+                    && DBGF_BP_PUB_GET_TYPE(&pBp->Pub) == DBGFBPTYPE_SOFTWARE)
                 {
-                    if (pBp->Pub.u.Int3.GCPtr == (RTGCUINTPTR)GCPtrBp)
+                    if (pBp->Pub.u.Sw.GCPtr == (RTGCUINTPTR)GCPtrBp)
 #ifdef IN_RING3
                         rc = dbgfBpHit(pVM, pVCpu, pCtx, hBp, pBp);
 #else

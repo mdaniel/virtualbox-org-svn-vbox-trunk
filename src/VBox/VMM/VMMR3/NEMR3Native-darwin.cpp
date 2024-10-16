@@ -4116,7 +4116,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
     if (   !pVCpu->nem.s.fUseDebugLoop
         && !nemR3DarwinAnyExpensiveProbesEnabled()
         && !DBGFIsStepping(pVCpu)
-        && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledInt3Breakpoints)
+        && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledSwBreakpoints)
         rcStrict = nemR3DarwinRunGuestNormal(pVM, pVCpu);
     else
         rcStrict = nemR3DarwinRunGuestDebug(pVM, pVCpu);

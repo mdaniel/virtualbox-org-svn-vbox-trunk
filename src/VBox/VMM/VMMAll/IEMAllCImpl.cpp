@@ -2776,7 +2776,7 @@ IEM_CIMPL_DEF_2(iemCImpl_int, uint8_t, u8Int, IEMINT, enmInt)
     if (u8Int == 3)
     {
         PVMCC pVM = pVCpu->CTX_SUFF(pVM);
-        if (pVM->dbgf.ro.cEnabledInt3Breakpoints == 0)
+        if (pVM->dbgf.ro.cEnabledSwBreakpoints == 0)
         { /* likely: No vbox debugger breakpoints */ }
         else
         {

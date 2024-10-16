@@ -167,7 +167,7 @@ VMM_INT_DECL(bool) DBGFBpIsInt3Armed(PVM pVM)
 {
     /** @todo There was a todo here and returning false when I (bird) removed
      *        VBOX_WITH_LOTS_OF_DBGF_BPS, so this might not be correct. */
-    return pVM->dbgf.s.cEnabledInt3Breakpoints > 0;
+    return pVM->dbgf.s.cEnabledSwBreakpoints > 0;
 }
 
 

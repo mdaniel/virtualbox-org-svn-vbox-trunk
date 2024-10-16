@@ -2179,7 +2179,7 @@ static void hmR0SvmExportGuestXcptIntercepts(PVMCPUCC pVCpu, PSVMVMCB pVmcb)
             hmR0SvmClearXcptIntercept(pVCpu, pVmcb, X86_XCPT_UD);
 
         /* Trap #BP for INT3 debug breakpoints set by the VM debugger. */
-        if (pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledInt3Breakpoints)
+        if (pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledSwBreakpoints)
             hmR0SvmSetXcptIntercept(pVmcb, X86_XCPT_BP);
         else
             hmR0SvmClearXcptIntercept(pVCpu, pVmcb, X86_XCPT_BP);
@@ -4755,7 +4755,7 @@ VMMR0DECL(VBOXSTRICTRC) SVMR0RunGuestCode(PVMCPUCC pVCpu)
             if (   !pVCpu->hm.s.fUseDebugLoop
                 && (!VBOXVMM_ANY_PROBES_ENABLED() || !hmR0SvmAnyExpensiveProbesEnabled())
                 && !DBGFIsStepping(pVCpu)
-                && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledInt3Breakpoints)
+                && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledSwBreakpoints)
                 rc = hmR0SvmRunGuestCodeNormal(pVCpu, &cLoops);
             else
                 rc = hmR0SvmRunGuestCodeDebug(pVCpu, &cLoops);
@@ -5672,7 +5672,7 @@ static void hmR0SvmPreRunGuestDebugStateUpdate(PVMCPUCC pVCpu, PSVMTRANSIENT pSv
     /*
      * INT3 breakpoints - triggered by #BP exceptions.
      */
-    if (pVM->dbgf.ro.cEnabledInt3Breakpoints > 0)
+    if (pVM->dbgf.ro.cEnabledSwBreakpoints > 0)
         pDbgState->bmXcptExtra |= RT_BIT_32(X86_XCPT_BP);
 
     /*

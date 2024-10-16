@@ -860,6 +860,9 @@ VMMDECL(bool)           CPUMGetGuestFiqMasked(PVMCPUCC pVCpu);
 VMM_INT_DECL(uint8_t)   CPUMGetGuestEL(PVMCPUCC pVCpu);
 VMM_INT_DECL(bool)      CPUMGetGuestMmuEnabled(PVMCPUCC pVCpu);
 VMMDECL(VBOXSTRICTRC)   CPUMQueryGuestSysReg(PVMCPUCC pVCpu, uint32_t idSysReg, uint64_t *puValue);
+VMM_INT_DECL(RTGCPHYS)  CPUMGetEffectiveTtbr(PVMCPUCC pVCpu, RTGCPTR GCPtr);
+VMM_INT_DECL(uint64_t)  CPUMGetTcrEl1(PVMCPUCC pVCpu);
+VMM_INT_DECL(RTGCPTR)   CPUMGetGCPtrPacStripped(PVMCPUCC pVCpu, RTGCPTR GCPtr);
 /** @} */
 
 

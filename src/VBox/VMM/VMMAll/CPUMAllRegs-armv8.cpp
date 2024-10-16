@@ -335,7 +335,78 @@ VMM_INT_DECL(bool) CPUMGetGuestMmuEnabled(PVMCPUCC pVCpu)
     }
 
     Assert(bEl == ARMV8_AARCH64_EL_0 || bEl == ARMV8_AARCH64_EL_1);
-    return RT_BOOL(pVCpu->cpum.s.Guest.Sctlr.u64 & ARMV8_SCTLR_EL2_M);
+    return RT_BOOL(pVCpu->cpum.s.Guest.Sctlr.u64 & ARMV8_SCTLR_EL1_M);
+}
+
+
+/**
+ * Returns the effective TTBR value for the given guest context pointer.
+ *
+ * @returns Physical base address of the translation table being used, or RTGCPHYS_MAX
+ *          if MMU is disabled.
+ */
+VMM_INT_DECL(RTGCPHYS) CPUMGetEffectiveTtbr(PVMCPUCC pVCpu, RTGCPTR GCPtr)
+{
+    CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_PSTATE | CPUMCTX_EXTRN_SCTLR_TCR_TTBR);
+
+    uint8_t bEl = ARMV8_SPSR_EL2_AARCH64_GET_EL(pVCpu->cpum.s.Guest.fPState);
+    if (bEl == ARMV8_AARCH64_EL_2)
+    {
+        CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_SYSREG_EL2);
+        if (pVCpu->cpum.s.Guest.SctlrEl2.u64 & ARMV8_SCTLR_EL2_M)
+            return   (GCPtr & RT_BIT_64(55))
+                   ? ARMV8_TTBR_EL1_AARCH64_BADDR_GET(pVCpu->cpum.s.Guest.Ttbr1El2.u64)
+                   : ARMV8_TTBR_EL1_AARCH64_BADDR_GET(pVCpu->cpum.s.Guest.Ttbr0El2.u64);
+    }
+    else
+    {
+        Assert(bEl == ARMV8_AARCH64_EL_0 || bEl == ARMV8_AARCH64_EL_1);
+        if (pVCpu->cpum.s.Guest.Sctlr.u64 & ARMV8_SCTLR_EL1_M)
+            return   (GCPtr & RT_BIT_64(55))
+                   ? ARMV8_TTBR_EL1_AARCH64_BADDR_GET(pVCpu->cpum.s.Guest.Ttbr1.u64)
+                   : ARMV8_TTBR_EL1_AARCH64_BADDR_GET(pVCpu->cpum.s.Guest.Ttbr0.u64);
+    }
+
+    return RTGCPHYS_MAX;
+}
+
+
+/**
+ * Returns the current TCR_EL1 system register value for the given vCPU.
+ *
+ * @returns TCR_EL1 value
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ */
+VMM_INT_DECL(uint64_t) CPUMGetTcrEl1(PVMCPUCC pVCpu)
+{
+    CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_SCTLR_TCR_TTBR);
+    return pVCpu->cpum.s.Guest.Tcr.u64;
+}
+
+
+/**
+ * Returns the virtual address given in the input stripped from any potential
+ * pointer authentication code if enabled for the given vCPU.
+ *
+ * @returns Virtual address given in GCPtr stripped from any PAC (or reserved bits).
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ */
+VMM_INT_DECL(RTGCPTR) CPUMGetGCPtrPacStripped(PVMCPUCC pVCpu, RTGCPTR GCPtr)
+{
+    CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_SCTLR_TCR_TTBR);
+
+    /** @todo MTE support. */
+    bool fUpper = RT_BOOL(GCPtr & RT_BIT_64(55)); /* Save the determinator for upper lower range. */
+    uint8_t u8TxSz =   fUpper
+                     ? ARMV8_TCR_EL1_AARCH64_T1SZ_GET(pVCpu->cpum.s.Guest.Tcr.u64)
+                     : ARMV8_TCR_EL1_AARCH64_T0SZ_GET(pVCpu->cpum.s.Guest.Tcr.u64);
+    RTGCPTR fNonPacMask = RT_BIT_64(64 - u8TxSz) - 1; /* Get mask of non PAC bits. */
+    RTGCPTR fSign       =   fUpper
+                          ? ~fNonPacMask
+                          : 0;
+
+    return   (GCPtr & fNonPacMask)
+           | fSign;
 }
 
 

@@ -638,7 +638,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
 
         if (pSysTblsBldAcpi)
         {
-            vrc = pSysTblsBldAcpi->addMmioDevice("arm-pl061-gpio", 0, GCPhysMmioStart, _4K, iIrq); 
+            vrc = pSysTblsBldAcpi->addMmioDevice("arm-pl061-gpio", 0, GCPhysMmioStart, _4K, iIrq);
             VRC();
         }
 

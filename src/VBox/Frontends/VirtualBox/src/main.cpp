@@ -417,11 +417,12 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char ** /*envp*/)
             RTStrmPrintf(g_pStdErr, "No active display server, X11 or Wayland, detected. Exiting.\n");
             break;
         }
-        /* Default to wayland QPA in Wayland even if XWayland is available: */
-        if (enmDisplayServerType == VBGHDISPLAYSERVERTYPE_XWAYLAND)
-            RTEnvSet("QT_QPA_PLATFORM", "wayland");
-        else
+        if (VBGHDisplayServerTypeIsXAvailable(enmDisplayServerType))
+            /* Force using Qt platform plugin 'xcb', we have X11 specific code: */
             RTEnvSet("QT_QPA_PLATFORM", "xcb");
+        else
+            /* Assume pure Wayland (without a X server):*/
+            RTEnvSet("QT_QPA_PLATFORM", "wayland");
 #endif /* VBOX_WS_NIX */
 
         /* Console help preprocessing: */

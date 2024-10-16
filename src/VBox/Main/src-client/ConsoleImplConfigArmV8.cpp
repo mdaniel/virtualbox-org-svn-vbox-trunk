@@ -397,6 +397,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         PCFGMNODE pInst = NULL;         /* /Devices/Dev/0/ */
         PCFGMNODE pCfg = NULL;          /* /Devices/Dev/.../Config/ */
         PCFGMNODE pLunL0 = NULL;        /* /Devices/Dev/0/LUN#0/ */
+        PCFGMNODE pLunL1 = NULL;        /* /Devices/Dev/0/LUN#0/AttachedDriver/ */
 
         InsertConfigNode(pRoot, "Devices", &pDevices);
 
@@ -747,6 +748,79 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                                                         cbPciMmioEcam, GCPhysMmioStart, cbMmio, GCPhysPciMmio32, cbPciMmio32);
             VRC();
         }
+
+#if defined(VBOX_WITH_TPM)
+        /*
+         * Configure the Trusted Platform Module.
+         */
+        ComObjPtr<ITrustedPlatformModule> ptrTpm;
+        TpmType_T enmTpmType = TpmType_None;
+
+        hrc = pMachine->COMGETTER(TrustedPlatformModule)(ptrTpm.asOutParam());              H();
+        hrc = ptrTpm->COMGETTER(Type)(&enmTpmType);                                         H();
+        if (enmTpmType != TpmType_None)
+        {
+            hrc = pResMgr->assignSingleInterrupt("tpm", &iIrq);                               H();
+            hrc = pResMgr->assignMmioRegion("tpm", 5 * _1K, &GCPhysMmioStart, &cbMmio);       H();
+
+            InsertConfigNode(pDevices, "tpm", &pDev);
+            InsertConfigNode(pDev,     "0", &pInst);
+            InsertConfigInteger(pInst, "Trusted", 1); /* boolean */
+            InsertConfigNode(pInst,    "Config", &pCfg);
+            InsertConfigInteger(pCfg,  "MmioBase", GCPhysMmioStart);
+            InsertConfigInteger(pCfg,  "Irq",      iIrq);
+            //InsertConfigInteger(pCfg,  "Crb",      1); /* boolean */
+
+            InsertConfigNode(pInst,    "LUN#0", &pLunL0);
+
+            switch (enmTpmType)
+            {
+                case TpmType_v1_2:
+                case TpmType_v2_0:
+                    InsertConfigString(pLunL0, "Driver",               "TpmEmuTpms");
+                    InsertConfigNode(pLunL0,   "Config", &pCfg);
+                    InsertConfigInteger(pCfg, "TpmVersion", enmTpmType == TpmType_v1_2 ? 1 : 2);
+                    InsertConfigNode(pLunL0, "AttachedDriver", &pLunL1);
+                    InsertConfigString(pLunL1, "Driver", "NvramStore");
+                    break;
+                case TpmType_Host:
+#if defined(RT_OS_LINUX) || defined(RT_OS_WINDOWS)
+                    InsertConfigString(pLunL0, "Driver",               "TpmHost");
+                    InsertConfigNode(pLunL0,   "Config", &pCfg);
+#endif
+                    break;
+                case TpmType_Swtpm:
+                    hrc = ptrTpm->COMGETTER(Location)(bstr.asOutParam());                   H();
+                    InsertConfigString(pLunL0, "Driver",               "TpmEmu");
+                    InsertConfigNode(pLunL0,   "Config", &pCfg);
+                    InsertConfigString(pCfg,   "Location", bstr);
+                    break;
+                default:
+                    AssertFailedBreak();
+            }
+
+            vrc = RTFdtNodeAddF(hFdt, "tpm@%RGp", GCPhysMmioStart);                           VRC();
+            vrc = RTFdtNodePropertyAddCellsU32(hFdt, "interrupts", 3, 0x00, iIrq, 0x04);        VRC();
+            vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 2, GCPhysMmioStart, cbMmio);        VRC();
+            vrc = RTFdtNodePropertyAddStringList(hFdt, "compatible", 1, "tcg,tpm-tis-mmio");    VRC();
+            vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
+
+            if (pSysTblsBldAcpi)
+            {
+                vrc = pSysTblsBldAcpi->configureTpm2(false /*fCrb*/, GCPhysMmioStart, cbMmio, iIrq);
+                VRC();
+            }
+
+#if 0
+            /* Add the device for the physical presence interface. */
+            InsertConfigNode(   pDevices, "tpm-ppi",  &pDev);
+            InsertConfigNode(   pDev,     "0",        &pInst);
+            InsertConfigInteger(pInst,    "Trusted",  1); /* boolean */
+            InsertConfigNode(   pInst,    "Config",   &pCfg);
+            InsertConfigInteger(pCfg,     "MmioBase", TPM_PPI_MMIO_BASE_DEFAULT);
+#endif
+        }
+#endif
 
         /*
          * VMSVGA compliant graphics controller.

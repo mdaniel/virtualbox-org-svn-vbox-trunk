@@ -200,7 +200,7 @@ DECLINLINE(int) dbgfBpHit(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, DBGFBP hBp, 
             if (RT_SUCCESS(rc))
             {
                 /* Replace the int3 with the original instruction byte. */
-                abInstr[0] = pBp->Pub.u.Int3.bOrg;
+                abInstr[0] = pBp->Pub.u.Sw.bOrg;
                 rcStrict = IEMExecOneWithPrefetchedByPC(pVCpu, GCPtrInstr, &abInstr[0], sizeof(abInstr));
                 if (   rcStrict == VINF_SUCCESS
                     && DBGF_BP_PUB_IS_EXEC_AFTER(&pBp->Pub))

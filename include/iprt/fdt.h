@@ -177,7 +177,7 @@ RTDECL(int) RTFdtSetPhysBootCpuId(RTFDT hFdt, uint32_t idPhysBootCpu);
 
 
 /**
- * Adds a new ode with the given name under the currently active one.
+ * Adds a new node with the given name under the currently active one.
  *
  * @returns IPRT status code.
  * @param   hFdt            The flattened devicetree handle.
@@ -187,7 +187,7 @@ RTDECL(int) RTFdtNodeAdd(RTFDT hFdt, const char *pszName);
 
 
 /**
- * Adds a new ode with the given name under the currently active one.
+ * Adds a new node with the given name under the currently active one.
  *
  * @returns IPRT status code.
  * @param   hFdt            The flattened devicetree handle.
@@ -198,7 +198,7 @@ RTDECL(int) RTFdtNodeAddF(RTFDT hFdt, const char *pszNameFmt, ...) RT_IPRT_FORMA
 
 
 /**
- * Adds a new ode with the given name under the currently active one.
+ * Adds a new node with the given name under the currently active one.
  *
  * @returns IPRT status code.
  * @param   hFdt            The flattened devicetree handle.

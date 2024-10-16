@@ -1374,13 +1374,6 @@ static DECLCALLBACK(int) nemR3DarwinNativeInitVCpuOnEmt(PVM pVM, PVMCPU pVCpu, V
         return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
                           "Setting MPIDR_EL1 failed on vCPU %u: %#x (%Rrc)", idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
 
-#if 0 /* Will triger an VM-exit if the guest hits a breakpoint, handy for debugging the MS bootloader. */
-    hrc != hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, true);
-    if (hrc != HV_SUCCESS)
-        return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
-                          "Trapping debug exceptions on vCPU %u: %#x (%Rrc)", idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
-#endif
-
     return VINF_SUCCESS;
 }
 
@@ -1861,6 +1854,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedHvcInsn(PVM pVM, PVMCPU
         else
             nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
     }
+
     /** @todo What to do if immediate is != 0? */
 
     if (   rcStrict == VINF_SUCCESS
@@ -1952,6 +1946,16 @@ static VBOXSTRICTRC nemR3DarwinHandleExitException(PVM pVM, PVMCPU pVCpu, const 
             pVCpu->cpum.GstCtx.Pc.u64 += fInsn32Bit ? sizeof(uint32_t) : sizeof(uint16_t);
             return VINF_EM_HALT;
         }
+        case ARMV8_ESR_EL2_EC_AARCH64_BRK_INSN:
+        {
+            VBOXSTRICTRC rcStrict = DBGFTrap03Handler(pVCpu->CTX_SUFF(pVM), pVCpu, &pVCpu->cpum.GstCtx);
+            /** @todo Forward genuine guest traps to the guest by either single stepping instruction with debug exception trapping turned off
+             * or create instruction interpreter and inject exception ourselves. */
+            Assert(rcStrict == VINF_EM_DBG_BREAKPOINT);
+            return rcStrict;
+        }
+        case ARMV8_ESR_EL2_SS_EXCEPTION_FROM_LOWER_EL:
+            return VINF_EM_DBG_STEPPED;
         case ARMV8_ESR_EL2_EC_UNKNOWN:
         default:
             LogRel(("NEM/Darwin: Unknown Exception Class in syndrome: uEc=%u{%s} uIss=%#RX32 fInsn32Bit=%RTbool\n",
@@ -2043,9 +2047,29 @@ static VBOXSTRICTRC nemR3DarwinPreRunGuest(PVM pVM, PVMCPU pVCpu, bool fSingleSt
         nemR3DarwinLogState(pVM, pVCpu);
 #endif
 
-    /** @todo */ RT_NOREF(fSingleStepping);
     int rc = nemR3DarwinExportGuestState(pVM, pVCpu);
     AssertRCReturn(rc, rc);
+
+    /* In single stepping mode we will re-read SPSR and MDSCR and enable the software step bits. */
+    if (fSingleStepping)
+    {
+        uint64_t u64Tmp;
+        hv_return_t hrc = hv_vcpu_get_reg(pVCpu->nem.s.hVCpu, HV_REG_CPSR, &u64Tmp);
+        if (hrc == HV_SUCCESS)
+        {
+            u64Tmp |= ARMV8_SPSR_EL2_AARCH64_SS;
+            hrc = hv_vcpu_set_reg(pVCpu->nem.s.hVCpu, HV_REG_CPSR, u64Tmp);
+        }
+
+        hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_MDSCR_EL1, &u64Tmp);
+        if (hrc == HV_SUCCESS)
+        {
+            u64Tmp |= ARMV8_MDSCR_EL1_AARCH64_SS;
+            hrc = hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_MDSCR_EL1, u64Tmp);
+        }
+
+        AssertReturn(hrc == HV_SUCCESS, VERR_NEM_IPE_9);
+    }
 
     /* Check whether the vTimer interrupt was handled by the guest and we can unmask the vTimer. */
     if (pVCpu->nem.s.fVTimerActivated)
@@ -2177,6 +2201,115 @@ static VBOXSTRICTRC nemR3DarwinRunGuestNormal(PVM pVM, PVMCPU pVCpu)
 }
 
 
+/**
+ * The debug runloop.
+ *
+ * @returns Strict VBox status code.
+ * @param   pVM         The cross context VM structure.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ */
+static VBOXSTRICTRC nemR3DarwinRunGuestDebug(PVM pVM, PVMCPU pVCpu)
+{
+    /*
+     * The run loop.
+     *
+     * Current approach to state updating to use the sledgehammer and sync
+     * everything every time.  This will be optimized later.
+     */
+
+    bool const fSavedSingleInstruction = pVCpu->nem.s.fSingleInstruction;
+    pVCpu->nem.s.fSingleInstruction    = pVCpu->nem.s.fSingleInstruction || DBGFIsStepping(pVCpu);
+    pVCpu->nem.s.fUsingDebugLoop       = true;
+
+    /* Trap any debug exceptions. */
+    hv_return_t hrc = hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, true);
+    if (hrc != HV_SUCCESS)
+        return VMSetError(pVM, VERR_NEM_SET_REGISTERS_FAILED, RT_SRC_POS,
+                          "Trapping debug exceptions on vCPU %u failed: %#x (%Rrc)", pVCpu->idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
+
+    /* Update the vTimer offset after resuming if instructed. */
+    if (pVCpu->nem.s.fVTimerOffUpdate)
+    {
+        hrc = hv_vcpu_set_vtimer_offset(pVCpu->nem.s.hVCpu, pVM->nem.s.u64VTimerOff);
+        if (hrc != HV_SUCCESS)
+            return nemR3DarwinHvSts2Rc(hrc);
+
+        pVCpu->nem.s.fVTimerOffUpdate = false;
+
+        hrc = hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_CNTV_CTL_EL0, pVCpu->cpum.GstCtx.CntvCtlEl0);
+        if (hrc == HV_SUCCESS)
+            hrc = hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_CNTV_CVAL_EL0, pVCpu->cpum.GstCtx.CntvCValEl0);
+        if (hrc != HV_SUCCESS)
+            return nemR3DarwinHvSts2Rc(hrc);
+    }
+
+    /* Save the guest MDSCR_EL1 */
+    CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_SYSREG_DEBUG | CPUMCTX_EXTRN_PSTATE);
+    uint64_t u64RegMdscrEl1 = pVCpu->cpum.GstCtx.Mdscr.u64;
+
+    /*
+     * Poll timers and run for a bit.
+     */
+    /** @todo See if we cannot optimize this TMTimerPollGIP by only redoing
+     *        the whole polling job when timers have changed... */
+    uint64_t       offDeltaIgnored;
+    uint64_t const nsNextTimerEvt = TMTimerPollGIP(pVM, pVCpu, &offDeltaIgnored); NOREF(nsNextTimerEvt);
+    VBOXSTRICTRC    rcStrict        = VINF_SUCCESS;
+    for (unsigned iLoop = 0;; iLoop++)
+    {
+        bool const fStepping = pVCpu->nem.s.fSingleInstruction;
+
+        rcStrict = nemR3DarwinPreRunGuest(pVM, pVCpu, fStepping);
+        if (rcStrict != VINF_SUCCESS)
+            break;
+
+        hrc = nemR3DarwinRunGuest(pVM, pVCpu);
+        if (hrc == HV_SUCCESS)
+        {
+            /*
+             * Deal with the message.
+             */
+            rcStrict = nemR3DarwinHandleExit(pVM, pVCpu);
+            if (rcStrict == VINF_SUCCESS)
+            { /* hopefully likely */ }
+            else
+            {
+                LogFlow(("NEM/%u: breaking: nemR3DarwinHandleExit -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
+                STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
+                break;
+            }
+        }
+        else
+        {
+            AssertLogRelMsgFailedReturn(("hv_vcpu_run()) failed for CPU #%u: %#x \n",
+                                        pVCpu->idCpu, hrc), VERR_NEM_IPE_0);
+        }
+    } /* the run loop */
+
+    /* Restore single stepping state. */
+    if (pVCpu->nem.s.fSingleInstruction)
+    {
+        /** @todo This ASSUMES that guest code being single stepped is not modifying the MDSCR_EL1 register. */
+        CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_SYSREG_DEBUG | CPUMCTX_EXTRN_PSTATE);
+        Assert(pVCpu->cpum.GstCtx.Mdscr.u64 & ARMV8_MDSCR_EL1_AARCH64_SS);
+
+        pVCpu->cpum.GstCtx.Mdscr.u64 = u64RegMdscrEl1;
+    }
+
+    /* Restore debug exceptions trapping. */
+    hrc != hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, false);
+    if (hrc != HV_SUCCESS)
+        return VMSetError(pVM, VERR_NEM_SET_REGISTERS_FAILED, RT_SRC_POS,
+                          "Clearing trapping of debug exceptions on vCPU %u failed: %#x (%Rrc)", pVCpu->idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
+
+    pVCpu->nem.s.fUsingDebugLoop     = false;
+    pVCpu->nem.s.fSingleInstruction  = fSavedSingleInstruction;
+
+    return rcStrict;
+
+}
+
+
 VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 {
 #ifdef LOG_ENABLED
@@ -2242,17 +2375,13 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
     }
 
     VBOXSTRICTRC rcStrict;
-#if 0
     if (   !pVCpu->nem.s.fUseDebugLoop
-        && !nemR3DarwinAnyExpensiveProbesEnabled()
+        /*&& !nemR3DarwinAnyExpensiveProbesEnabled()*/
         && !DBGFIsStepping(pVCpu)
-        && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledInt3Breakpoints)
-#endif
+        && !pVCpu->CTX_SUFF(pVM)->dbgf.ro.cEnabledSwBreakpoints)
         rcStrict = nemR3DarwinRunGuestNormal(pVM, pVCpu);
-#if 0
     else
         rcStrict = nemR3DarwinRunGuestDebug(pVM, pVCpu);
-#endif
 
     if (rcStrict == VINF_EM_RAW_TO_R3)
         rcStrict = VINF_SUCCESS;

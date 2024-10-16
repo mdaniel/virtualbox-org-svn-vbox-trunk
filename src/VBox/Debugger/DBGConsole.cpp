@@ -732,10 +732,12 @@ static int dbgcProcessEvent(PDBGC pDbgc, PCDBGFEVENT pEvent)
             {
                 rc = DBGCCmdHlpRegPrintf(&pDbgc->CmdHlp, pEvent->idCpu, -1, pDbgc->fRegTerse);
 
+#ifndef VBOX_VMM_TARGET_ARMV8
                 /* Set the resume flag to ignore the breakpoint when resuming execution. */
                 if (   RT_SUCCESS(rc)
                     && pEvent->enmType == DBGFEVENT_BREAKPOINT)
                     rc = pDbgc->CmdHlp.pfnExec(&pDbgc->CmdHlp, "r eflags.rf = 1");
+#endif
             }
             else
                 pDbgc->idCpu = idCpuSaved;

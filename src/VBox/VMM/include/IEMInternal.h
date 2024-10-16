@@ -2400,6 +2400,9 @@ typedef struct IEMCPU
     STAMPROFILE             StatTimerPollFactorMultiplication;
     /** @} */
 
+
+    STAMCOUNTER             aStatAdHoc[8];
+
 #ifdef IEM_WITH_TLB_TRACE
     /*uint64_t                au64Padding[0];*/
 #else

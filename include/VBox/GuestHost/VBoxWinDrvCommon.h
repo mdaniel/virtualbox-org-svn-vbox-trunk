@@ -43,6 +43,8 @@
 #include <iprt/win/windows.h>
 #include <iprt/win/setupapi.h>
 
+#include <iprt/utf16.h>
+
 #if defined(RT_ARCH_AMD64)
 # define VBOXWINDRVINF_NATIVE_ARCH_STR     "AMD64"
 #elif defined(RT_ARCH_X86)

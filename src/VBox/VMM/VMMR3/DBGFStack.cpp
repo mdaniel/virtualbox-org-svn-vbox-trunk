@@ -75,14 +75,25 @@ typedef struct DBGFUNWINDCTX
     DBGFUNWINDCTX(PUVM pUVM, VMCPUID idCpu, PCCPUMCTX pInitialCtx, RTDBGAS hAs)
     {
         m_State.u32Magic     = RTDBGUNWINDSTATE_MAGIC;
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        m_State.enmArch      = RTLDRARCH_ARM64;
+#else
         m_State.enmArch      = RTLDRARCH_AMD64;
+#endif
         m_State.pfnReadStack = dbgfR3StackReadCallback;
         m_State.pvUser       = this;
         RT_ZERO(m_State.u);
         if (pInitialCtx)
         {
 #if defined(VBOX_VMM_TARGET_ARMV8)
-            AssertFailed();
+            AssertCompile(RT_ELEMENTS(m_State.u.armv8.auGprs) == RT_ELEMENTS(pInitialCtx->aGRegs));
+
+            m_State.uPc            = pInitialCtx->Pc.u64;
+            m_State.u.armv8.uSpEl0 = pInitialCtx->aSpReg[0].u64;
+            m_State.u.armv8.uSpEl1 = pInitialCtx->aSpReg[1].u64;
+
+            for (uint32_t i = 0; i < RT_ELEMENTS(m_State.u.armv8.auGprs); i++)
+                m_State.u.armv8.auGprs[i] = pInitialCtx->aGRegs[i].x;
 #else
             m_State.u.x86.auRegs[X86_GREG_xAX] = pInitialCtx->rax;
             m_State.u.x86.auRegs[X86_GREG_xCX] = pInitialCtx->rcx;
@@ -162,8 +173,12 @@ DBGFUNWINDCTX::~DBGFUNWINDCTX()
  */
 static DECLCALLBACK(int) dbgfR3StackReadCallback(PRTDBGUNWINDSTATE pThis, RTUINTPTR uSp, size_t cbToRead, void *pvDst)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    Assert(pThis->enmArch == RTLDRARCH_ARM64);
+#else
     Assert(   pThis->enmArch == RTLDRARCH_AMD64
            || pThis->enmArch == RTLDRARCH_X86_32);
+#endif
 
     PDBGFUNWINDCTX pUnwindCtx = (PDBGFUNWINDCTX)pThis->pvUser;
     DBGFADDRESS SrcAddr;
@@ -172,6 +187,9 @@ static DECLCALLBACK(int) dbgfR3StackReadCallback(PRTDBGUNWINDSTATE pThis, RTUINT
         DBGFR3AddrFromHostR0(&SrcAddr, uSp);
     else
     {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        DBGFR3AddrFromFlat(pUnwindCtx->m_pUVM, &SrcAddr, uSp);
+#else
         if (   pThis->enmArch == RTLDRARCH_X86_32
             || pThis->enmArch == RTLDRARCH_X86_16)
         {
@@ -182,6 +200,7 @@ static DECLCALLBACK(int) dbgfR3StackReadCallback(PRTDBGUNWINDSTATE pThis, RTUINT
         }
         else
             DBGFR3AddrFromFlat(pUnwindCtx->m_pUVM, &SrcAddr, uSp);
+#endif
     }
     if (RT_SUCCESS(rc))
         rc = DBGFR3MemRead(pUnwindCtx->m_pUVM, pUnwindCtx->m_idCpu, &SrcAddr, pvDst, cbToRead);
@@ -201,6 +220,14 @@ static DECLCALLBACK(int) dbgfR3StackReadCallback(PRTDBGUNWINDSTATE pThis, RTUINT
  */
 static bool dbgfR3UnwindCtxSetPcAndSp(PDBGFUNWINDCTX pUnwindCtx, PCDBGFADDRESS pAddrPC, PCDBGFADDRESS pAddrStack)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    Assert(pUnwindCtx->m_State.enmArch == RTLDRARCH_ARM64);
+
+    Assert(!DBGFADDRESS_IS_FAR(pAddrPC));
+    pUnwindCtx->m_State.uPc = pAddrPC->FlatPtr;
+    Assert(!DBGFADDRESS_IS_FAR(pAddrStack));
+    pUnwindCtx->m_State.u.armv8.uSpEl1 = pAddrStack->FlatPtr; /** @todo EL0 stack pointer. */
+#else
     Assert(   pUnwindCtx->m_State.enmArch == RTLDRARCH_AMD64
            || pUnwindCtx->m_State.enmArch == RTLDRARCH_X86_32);
 
@@ -218,6 +245,8 @@ static bool dbgfR3UnwindCtxSetPcAndSp(PDBGFUNWINDCTX pUnwindCtx, PCDBGFADDRESS p
         pUnwindCtx->m_State.u.x86.auRegs[X86_GREG_xSP] = pAddrStack->off;
         pUnwindCtx->m_State.u.x86.auSegs[X86_SREG_SS]  = pAddrStack->Sel;
     }
+#endif
+
     return true;
 }
 
@@ -292,6 +321,7 @@ DECLINLINE(int) dbgfR3StackRead(PUVM pUVM, VMCPUID idCpu, void *pvBuf, PCDBGFADD
     return rc;
 }
 
+#if !defined(VBOX_VMM_TARGET_ARMV8) /** @todo Unused on ARMv8 for now. */
 /**
  * Collects sure registers on frame exit.
  *
@@ -305,6 +335,78 @@ static int dbgfR3StackWalkCollectRegisterChanges(PUVM pUVM, PDBGFSTACKFRAME pFra
     pFrame->cSureRegs  = 0;
     pFrame->paSureRegs = NULL;
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    if (pState->enmArch == RTLDRARCH_ARM64)
+    {
+        if (pState->u.armv8.Loaded.fAll)
+        {
+            /*
+             * Count relevant registers.
+             */
+            uint32_t cRegs = 0;
+            if (pState->u.armv8.Loaded.s.fRegs)
+                for (uint32_t f = 1; f < RT_BIT_32(RT_ELEMENTS(pState->u.armv8.auGprs)); f <<= 1)
+                    if (pState->u.armv8.Loaded.s.fRegs & f)
+                        cRegs++;
+            if (pState->u.armv8.Loaded.s.fSpEl0)
+                cRegs++;
+            if (pState->u.armv8.Loaded.s.fSpEl1)
+                cRegs++;
+            if (pState->u.armv8.Loaded.s.fPc)
+                cRegs++;
+            if (cRegs > 0)
+            {
+                /*
+                 * Allocate the arrays.
+                 */
+                PDBGFREGVALEX paSureRegs = (PDBGFREGVALEX)MMR3HeapAllocZU(pUVM, MM_TAG_DBGF_STACK, sizeof(DBGFREGVALEX) * cRegs);
+                AssertReturn(paSureRegs, VERR_NO_MEMORY);
+                pFrame->paSureRegs = paSureRegs;
+                pFrame->cSureRegs  = cRegs;
+
+                /*
+                 * Popuplate the arrays.
+                 */
+                uint32_t iReg = 0;
+                if (pState->u.armv8.Loaded.s.fRegs)
+                    for (uint32_t i = 0; i < RT_ELEMENTS(pState->u.armv8.auGprs); i++)
+                        if (pState->u.armv8.Loaded.s.fRegs & RT_BIT(i))
+                        {
+                            paSureRegs[iReg].Value.u64 = pState->u.armv8.auGprs[i];
+                            paSureRegs[iReg].enmType   = DBGFREGVALTYPE_U64;
+                            paSureRegs[iReg].enmReg    = (DBGFREG)(DBGFREG_ARMV8_GREG_X0 + i);
+                            iReg++;
+                        }
+
+                if (iReg < cRegs)
+                {
+                    if (pState->u.armv8.Loaded.s.fSpEl0)
+                    {
+                        paSureRegs[iReg].Value.u64 = pState->u.armv8.uSpEl0;
+                        paSureRegs[iReg].enmType   = DBGFREGVALTYPE_U64;
+                        paSureRegs[iReg].enmReg    = DBGFREG_ARMV8_SP_EL0;
+                        iReg++;
+                    }
+                    if (pState->u.armv8.Loaded.s.fSpEl1)
+                    {
+                        paSureRegs[iReg].Value.u64 = pState->u.armv8.uSpEl1;
+                        paSureRegs[iReg].enmType   = DBGFREGVALTYPE_U64;
+                        paSureRegs[iReg].enmReg    = DBGFREG_ARMV8_SP_EL1;
+                        iReg++;
+                    }
+                    if (pState->u.armv8.Loaded.s.fPc)
+                    {
+                        paSureRegs[iReg].Value.u64 = pState->uPc;
+                        paSureRegs[iReg].enmType   = DBGFREGVALTYPE_U64;
+                        paSureRegs[iReg].enmReg    = DBGFREG_ARMV8_PC;
+                        iReg++;
+                    }
+                }
+                Assert(iReg == cRegs);
+            }
+        }
+    }
+#else
     if (   pState->enmArch == RTLDRARCH_AMD64
         || pState->enmArch == RTLDRARCH_X86_32
         || pState->enmArch == RTLDRARCH_X86_16)
@@ -392,11 +494,224 @@ static int dbgfR3StackWalkCollectRegisterChanges(PUVM pUVM, PDBGFSTACKFRAME pFra
             }
         }
     }
+#endif
 
     return VINF_SUCCESS;
 }
+#endif
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+/**
+ * Internal worker routine.
+ *
+ * On aarch64 the typical stack frame layout is like this:
+ *     ..  ..
+ *      4  return address
+ *      0  old fp; current fp points here
+ */
+DECL_NO_INLINE(static, int) dbgfR3StackWalk(PDBGFUNWINDCTX pUnwindCtx, PDBGFSTACKFRAME pFrame, bool fFirst)
+{
+    /*
+     * Stop if we got a read error in the previous run.
+     */
+    if (pFrame->fFlags & DBGFSTACKFRAME_FLAGS_LAST)
+        return VERR_NO_MORE_FILES;
+
+    /*
+     * Advance the frame (except for the first).
+     */
+    if (!fFirst) /** @todo we can probably eliminate this fFirst business... */
+    {
+        /* frame, pc and stack is taken from the existing frames return members. */
+        pFrame->AddrFrame = pFrame->AddrReturnFrame;
+        pFrame->AddrPC    = pFrame->AddrReturnPC;
+        pFrame->pSymPC    = pFrame->pSymReturnPC;
+        pFrame->pLinePC   = pFrame->pLineReturnPC;
+
+        /* increment the frame number. */
+        pFrame->iFrame++;
+
+        /* UNWIND_INFO_RET -> USED_UNWIND; return type */
+        if (!(pFrame->fFlags & DBGFSTACKFRAME_FLAGS_UNWIND_INFO_RET))
+            pFrame->fFlags &= ~DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO;
+        else
+        {
+            pFrame->fFlags |= DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO;
+            pFrame->fFlags &= ~DBGFSTACKFRAME_FLAGS_UNWIND_INFO_RET;
+            if (pFrame->enmReturnFrameReturnType != RTDBGRETURNTYPE_INVALID)
+            {
+                pFrame->enmReturnType = pFrame->enmReturnFrameReturnType;
+                pFrame->enmReturnFrameReturnType = RTDBGRETURNTYPE_INVALID;
+            }
+        }
+        pFrame->fFlags &= ~DBGFSTACKFRAME_FLAGS_TRAP_FRAME;
+    }
+
+    /*
+     * Figure the return address size and use the old PC to guess stack item size.
+     */
+    unsigned const cbRetAddr   = 8;
+    unsigned const cbStackItem = 8; /** @todo AARCH32. */
+    PVMCPUCC const pVCpu = pUnwindCtx->m_pUVM->pVM->apCpusR3[pUnwindCtx->m_idCpu];
+
+    /*
+     * Read the raw frame data.
+     * We double cbRetAddr in case we have a far return.
+     */
+    union
+    {
+        uint64_t *pu64;
+        uint32_t *pu32;
+        uint8_t  *pb;
+        void     *pv;
+    } u, uRet, uArgs, uBp;
+    size_t cbRead = cbRetAddr * 2 + cbStackItem + sizeof(pFrame->Args);
+    u.pv = alloca(cbRead);
+    uBp = u;
+    uRet.pb = u.pb + cbStackItem;
+    uArgs.pb = u.pb + cbStackItem + cbRetAddr;
+
+    Assert(DBGFADDRESS_IS_VALID(&pFrame->AddrFrame));
+    int rc = dbgfR3StackRead(pUnwindCtx->m_pUVM, pUnwindCtx->m_idCpu, u.pv, &pFrame->AddrFrame, cbRead, &cbRead);
+    if (   RT_FAILURE(rc)
+        || cbRead < cbRetAddr + cbStackItem)
+        pFrame->fFlags |= DBGFSTACKFRAME_FLAGS_LAST;
+
+    /*
+     * Return Frame address.
+     *
+     * If we used unwind info to get here, the unwind register context will be
+     * positioned after the return instruction has been executed.  We start by
+     * picking up the rBP register here for return frame and will try improve
+     * on it further down by using unwind info.
+     */
+    pFrame->AddrReturnFrame = pFrame->AddrFrame;
+    if (pFrame->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO)
+    {
+        AssertFailed(); /** @todo */
+    }
+    else
+    {
+        switch (cbStackItem)
+        {
+            case 4:     pFrame->AddrReturnFrame.off = *uBp.pu32; break;
+            case 8:     pFrame->AddrReturnFrame.off = CPUMGetGCPtrPacStripped(pVCpu, *uBp.pu64); break;
+            default:    AssertMsgFailedReturn(("cbStackItem=%d\n", cbStackItem), VERR_DBGF_STACK_IPE_1);
+        }
+
+        pFrame->AddrReturnFrame.FlatPtr += pFrame->AddrReturnFrame.off - pFrame->AddrFrame.off;
+    }
+
+    /*
+     * Return Stack Address.
+     */
+    pFrame->AddrReturnStack = pFrame->AddrReturnFrame;
+    if (pFrame->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO)
+    {
+        AssertFailed();
+    }
+    else
+    {
+        pFrame->AddrReturnStack.off     += cbStackItem + cbRetAddr;
+        pFrame->AddrReturnStack.FlatPtr += cbStackItem + cbRetAddr;
+    }
+
+    /*
+     * Return PC.
+     */
+    pFrame->AddrReturnPC = pFrame->AddrPC;
+    if (pFrame->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO)
+    {
+        AssertFailed();
+    }
+    else
+    {
+        switch (pFrame->enmReturnType)
+        {
+            case RTDBGRETURNTYPE_NEAR64:
+                if (DBGFADDRESS_IS_VALID(&pFrame->AddrReturnPC))
+                {
+                    pFrame->AddrReturnPC.FlatPtr += CPUMGetGCPtrPacStripped(pVCpu, *uRet.pu64) - pFrame->AddrReturnPC.off;
+                    pFrame->AddrReturnPC.off      = CPUMGetGCPtrPacStripped(pVCpu, *uRet.pu64);
+                }
+                else
+                    DBGFR3AddrFromFlat(pUnwindCtx->m_pUVM, &pFrame->AddrReturnPC, CPUMGetGCPtrPacStripped(pVCpu, *uRet.pu64));
+                break;
+            default:
+                AssertMsgFailed(("enmReturnType=%d\n", pFrame->enmReturnType));
+                return VERR_INVALID_PARAMETER;
+        }
+    }
+
+
+    pFrame->pSymReturnPC  = DBGFR3AsSymbolByAddrA(pUnwindCtx->m_pUVM, pUnwindCtx->m_hAs, &pFrame->AddrReturnPC,
+                                                  RTDBGSYMADDR_FLAGS_LESS_OR_EQUAL | RTDBGSYMADDR_FLAGS_SKIP_ABS_IN_DEFERRED,
+                                                  NULL /*poffDisp*/, NULL /*phMod*/);
+    pFrame->pLineReturnPC = DBGFR3AsLineByAddrA(pUnwindCtx->m_pUVM, pUnwindCtx->m_hAs, &pFrame->AddrReturnPC,
+                                                NULL /*poffDisp*/, NULL /*phMod*/);
+
+    /*
+     * Frame bitness flag.
+     */
+    /** @todo use previous return type for this? */
+    pFrame->fFlags &= ~(DBGFSTACKFRAME_FLAGS_32BIT | DBGFSTACKFRAME_FLAGS_64BIT);
+    switch (cbStackItem)
+    {
+        case 4: pFrame->fFlags |= DBGFSTACKFRAME_FLAGS_32BIT; break;
+        case 8: pFrame->fFlags |= DBGFSTACKFRAME_FLAGS_64BIT; break;
+        default:    AssertMsgFailedReturn(("cbStackItem=%d\n", cbStackItem), VERR_DBGF_STACK_IPE_2);
+    }
+
+    /*
+     * The arguments.
+     */
+    memcpy(&pFrame->Args, uArgs.pv, sizeof(pFrame->Args));
+
+    /*
+     * Collect register changes.
+     * Then call the OS layer to assist us (e.g. NT trap frames).
+     */
+    if (pFrame->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO)
+    {
+        AssertFailed();
+    }
+
+    /*
+     * Try use unwind information to locate the return frame pointer (for the
+     * next loop iteration).
+     */
+    Assert(!(pFrame->fFlags & DBGFSTACKFRAME_FLAGS_UNWIND_INFO_RET));
+    pFrame->enmReturnFrameReturnType = RTDBGRETURNTYPE_INVALID;
+    if (!(pFrame->fFlags & DBGFSTACKFRAME_FLAGS_LAST))
+    {
+        /* Set PC and SP if we didn't unwind our way here (context will then point
+           and the return PC and SP already). */
+        if (!(pFrame->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO))
+        {
+            dbgfR3UnwindCtxSetPcAndSp(pUnwindCtx, &pFrame->AddrReturnPC, &pFrame->AddrReturnStack);
+            pUnwindCtx->m_State.u.armv8.auGprs[ARMV8_A64_REG_BP] = pFrame->AddrReturnFrame.off;
+        }
+        if (pUnwindCtx->m_State.enmArch == RTLDRARCH_ARM64)
+            pUnwindCtx->m_State.u.armv8.Loaded.fAll = 0;
+        else
+            AssertFailed();
+        if (dbgfR3UnwindCtxDoOneFrame(pUnwindCtx))
+        {
+            Assert(!pUnwindCtx->m_fIsHostRing0);
+
+            DBGFADDRESS AddrReturnFrame = pFrame->AddrReturnFrame;
+            DBGFR3AddrFromFlat(pUnwindCtx->m_pUVM, &AddrReturnFrame, pUnwindCtx->m_State.u.armv8.FrameAddr);
+            pFrame->AddrReturnFrame = AddrReturnFrame;
+
+            pFrame->enmReturnFrameReturnType = pUnwindCtx->m_State.enmRetType;
+            pFrame->fFlags                  |= DBGFSTACKFRAME_FLAGS_UNWIND_INFO_RET;
+        }
+    }
+
+    return VINF_SUCCESS;
+}
+#else
 /**
  * Internal worker routine.
  *
@@ -792,6 +1107,7 @@ DECL_NO_INLINE(static, int) dbgfR3StackWalk(PDBGFUNWINDCTX pUnwindCtx, PDBGFSTAC
 
     return VINF_SUCCESS;
 }
+#endif
 
 
 /**
@@ -850,6 +1166,13 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
         {
             PVMCPU const   pVCpu      = pUVM->pVM->apCpusR3[idCpu];
             CPUMMODE const enmCpuMode = CPUMGetGuestMode(pVCpu);
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            /** @todo */
+            Assert(enmCpuMode == CPUMMODE_ARMV8_AARCH64); RT_NOREF(enmCpuMode);
+            fAddrMask = UINT64_MAX;
+            if (enmReturnType == RTDBGRETURNTYPE_INVALID)
+                pCur->enmReturnType = RTDBGRETURNTYPE_NEAR64;
+#else
             if (enmCpuMode == CPUMMODE_REAL)
             {
                 fAddrMask = UINT16_MAX;
@@ -869,8 +1192,10 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
                 if (enmReturnType == RTDBGRETURNTYPE_INVALID)
                     pCur->enmReturnType = RTDBGRETURNTYPE_NEAR64;
             }
+#endif
         }
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         if (enmReturnType == RTDBGRETURNTYPE_INVALID)
             switch (pCur->AddrPC.fFlags & DBGFADDRESS_FLAGS_TYPE_MASK)
             {
@@ -884,12 +1209,20 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
                     pCur->enmReturnType = RTDBGRETURNTYPE_NEAR32;
                     break;
             }
+#endif
 
 
 #if defined(VBOX_VMM_TARGET_ARMV8)
-        RT_NOREF(pAddrFrame, pAddrStack);
-        AssertFailed();
-        rc = VERR_NOT_IMPLEMENTED;
+        if (pAddrStack)
+            pCur->AddrStack = *pAddrStack;
+        else
+            DBGFR3AddrFromFlat(pUVM, &pCur->AddrStack, pCtx->aSpReg[1].u64 & fAddrMask); /** @todo EL0 stack. */
+
+        Assert(!(pCur->fFlags & DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO));
+        if (pAddrFrame)
+            pCur->AddrFrame = *pAddrFrame;
+        else
+            DBGFR3AddrFromFlat(pUVM, &pCur->AddrFrame, pCtx->aGRegs[ARMV8_A64_REG_BP].x & fAddrMask);
 #else
         if (pAddrStack)
             pCur->AddrStack = *pAddrStack;
@@ -916,11 +1249,15 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
         {
             pCur->enmReturnType = UnwindCtx.m_State.enmRetType;
             pCur->fFlags |= DBGFSTACKFRAME_FLAGS_USED_UNWIND_INFO;
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            DBGFR3AddrFromFlat(pUVM, &pCur->AddrFrame, UnwindCtx.m_State.u.armv8.FrameAddr);
+#else
             if (!UnwindCtx.m_fIsHostRing0)
                 rc = DBGFR3AddrFromSelOff(UnwindCtx.m_pUVM, UnwindCtx.m_idCpu, &pCur->AddrFrame,
                                           UnwindCtx.m_State.u.x86.FrameAddr.sel, UnwindCtx.m_State.u.x86.FrameAddr.off);
             else
                 DBGFR3AddrFromHostR0(&pCur->AddrFrame, UnwindCtx.m_State.u.x86.FrameAddr.off);
+#endif
         }
         /*
          * The first frame.

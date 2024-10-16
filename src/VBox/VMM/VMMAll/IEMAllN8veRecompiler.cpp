@@ -7493,7 +7493,7 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeVarAllocAssign(PIEMRECOMPILERSTATE pReNative
  */
 template<bool const a_fInitialized, bool const a_fWithRegPref>
 DECL_FORCE_INLINE_THROW(uint8_t)
-iemNativeVarRegisterAcquireInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
+iemNativeVarRegisterAcquireSlowInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
 {
     IEMNATIVE_ASSERT_VAR_IDX(pReNative, idxVar);
     PIEMNATIVEVAR const pVar = &pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)];
@@ -7501,15 +7501,9 @@ iemNativeVarRegisterAcquireInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, ui
     Assert(!pVar->fRegAcquired);
     Assert(!a_fWithRegPref || idxRegPref < RT_ELEMENTS(pReNative->Core.aHstRegs));
 
-    /** @todo inline this bit? */
-    uint8_t idxReg = pVar->idxReg;
-    if (idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs))
-    {
-        Assert(   pVar->enmKind > kIemNativeVarKind_Invalid
-               && pVar->enmKind < kIemNativeVarKind_End);
-        pVar->fRegAcquired = true;
-        return idxReg;
-    }
+    /* This slow code path only handles the case where no register have been
+       allocated for the variable yet. */
+    Assert(pVar->idxReg == UINT8_MAX);
 
     /*
      * If the kind of variable has not yet been set, default to 'stack'.
@@ -7537,6 +7531,7 @@ iemNativeVarRegisterAcquireInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, ui
     /** @todo Detect too early argument value fetches and warn about hidden
      * calls causing less optimal code to be generated in the python script. */
 
+    uint8_t       idxReg;
     uint8_t const uArgNo = pVar->uArgNo;
     if (   uArgNo < RT_ELEMENTS(g_aidxIemNativeCallRegs)
         && !(pReNative->Core.bmHstRegs & RT_BIT_32(g_aidxIemNativeCallRegs[uArgNo])))
@@ -7633,41 +7628,41 @@ iemNativeVarRegisterAcquireInt(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, ui
 }
 
 
-/** See iemNativeVarRegisterAcquireInt for details. */
-DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquire(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
+/** See iemNativeVarRegisterAcquireSlowInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquireSlow(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
 {
     /* very likely */
     //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 0]);
-    return iemNativeVarRegisterAcquireInt<false, false>(pReNative, idxVar, poff, UINT8_MAX);
+    return iemNativeVarRegisterAcquireSlowInt<false, false>(pReNative, idxVar, poff, UINT8_MAX);
 }
 
 
-/** See iemNativeVarRegisterAcquireInt for details. */
-DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquireInited(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
+/** See iemNativeVarRegisterAcquireSlowInt for details. */
+DECL_HIDDEN_THROW(uint8_t) iemNativeVarRegisterAcquireInitedSlow(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff)
 {
     /* even more likely */
     //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 2]);
-    return iemNativeVarRegisterAcquireInt<true, false>(pReNative, idxVar, poff, UINT8_MAX);
+    return iemNativeVarRegisterAcquireSlowInt<true, false>(pReNative, idxVar, poff, UINT8_MAX);
 }
 
 
-/** See iemNativeVarRegisterAcquireInt for details. */
+/** See iemNativeVarRegisterAcquireSlowInt for details. */
 DECL_HIDDEN_THROW(uint8_t)
-iemNativeVarRegisterAcquireWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
+iemNativeVarRegisterAcquireWithPrefSlow(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
 {
     /* unused */
     //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 4]);
-    return iemNativeVarRegisterAcquireInt<false, true>(pReNative, idxVar, poff, idxRegPref);
+    return iemNativeVarRegisterAcquireSlowInt<false, true>(pReNative, idxVar, poff, idxRegPref);
 }
 
 
-/** See iemNativeVarRegisterAcquireInt for details. */
+/** See iemNativeVarRegisterAcquireSlowInt for details. */
 DECL_HIDDEN_THROW(uint8_t)
-iemNativeVarRegisterAcquireInitedWithPref(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
+iemNativeVarRegisterAcquireInitedWithPrefSlow(PIEMRECOMPILERSTATE pReNative, uint8_t idxVar, uint32_t *poff, uint8_t idxRegPref)
 {
     /* very very likely */
     //STAM_REL_COUNTER_INC(&pReNative->pVCpu->iem.s.aStatAdHoc[(pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVar)].idxReg < RT_ELEMENTS(pReNative->Core.aHstRegs)) + 6]);
-    return iemNativeVarRegisterAcquireInt<true, true>(pReNative, idxVar, poff, idxRegPref);
+    return iemNativeVarRegisterAcquireSlowInt<true, true>(pReNative, idxVar, poff, idxRegPref);
 }
 
 

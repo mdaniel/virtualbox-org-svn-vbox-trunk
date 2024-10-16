@@ -79,6 +79,8 @@ typedef struct GICDEV
     volatile uint32_t           bmIntActive;
     /** The interrupt priority for each of the SGI/PPIs */
     volatile uint8_t            abIntPriority[GIC_SPI_MAX];
+    /** The interrupt routing information. */
+    volatile uint32_t           au32IntRouting[GIC_SPI_MAX];
 
     /** Flag whether group 0 interrupts are currently enabled. */
     volatile bool               fIrqGrp0Enabled;

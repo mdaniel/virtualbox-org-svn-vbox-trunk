@@ -1083,7 +1083,9 @@ VMMR3_INT_DECL(int) PGMR3DbgScanVirtual(PVM pVM, PVMCPU pVCpu, RTGCPTR GCPtr, RT
         }
         else
         {
+#ifndef VBOX_VMM_TARGET_ARMV8
             Assert(WalkGst.enmType != PGMPTWALKGSTTYPE_INVALID);
+#endif
             Assert(!Walk.fSucceeded);
             cbPrev = 0; /* ignore error. */
 
@@ -1092,6 +1094,7 @@ VMMR3_INT_DECL(int) PGMR3DbgScanVirtual(PVM pVM, PVMCPU pVCpu, RTGCPTR GCPtr, RT
              * is not present 512 times!
              */
             uint64_t cPagesCanSkip;
+#ifndef VBOX_VMM_TARGET_ARMV8
             switch (Walk.uLevel)
             {
                 case 1:
@@ -1140,13 +1143,52 @@ VMMR3_INT_DECL(int) PGMR3DbgScanVirtual(PVM pVM, PVMCPU pVCpu, RTGCPTR GCPtr, RT
                 GCPtr += (RTGCPTR)cPagesCanSkip << X86_PT_PAE_SHIFT;
                 continue;
             }
+#else
+            /** @todo Sketch, needs creating proper defines for constants in armv8.h and using these
+             * instead of hardcoding these here. */
+            switch (Walk.uLevel)
+            {
+                case 0:
+                case 1:
+                    cPagesCanSkip = (512 - ((GCPtr >> 21) & 0x1ff)) * 512
+                                  - ((GCPtr >> 12) & 0x1ff);
+                    Assert(!((GCPtr + ((RTGCPTR)cPagesCanSkip << 12)) & (RT_BIT_64(21) - 1)));
+                    break;
+                case 2:
+                    cPagesCanSkip = 512 - ((GCPtr >> 12) & 0x1ff);
+                    Assert(!((GCPtr + ((RTGCPTR)cPagesCanSkip << 12)) & (RT_BIT_64(12) - 1)));
+                    break;
+                case 3:
+                    /* page level, use cIncPages */
+                    cPagesCanSkip = 1;
+                    break;
+                default:
+                    AssertMsgFailed(("%d\n", Walk.uLevel));
+                    cPagesCanSkip = 0;
+                    break;
+            }
+
+            if (cPages <= cPagesCanSkip)
+                break;
+            fFullWalk = true;
+            if (cPagesCanSkip >= cIncPages)
+            {
+                cPages -= cPagesCanSkip;
+                GCPtr += (RTGCPTR)cPagesCanSkip << 12;
+                continue;
+            }
+#endif
         }
 
         /* advance to the next page. */
         if (cPages <= cIncPages)
             break;
         cPages -= cIncPages;
+#ifndef VBOX_VMM_TARGET_ARMV8
         GCPtr += (RTGCPTR)cIncPages << X86_PT_PAE_SHIFT;
+#else
+        GCPtr += (RTGCPTR)cIncPages << 12;
+#endif
 
         /* Yield the PGM lock every now and then. */
         if (!--cYieldCountDown)

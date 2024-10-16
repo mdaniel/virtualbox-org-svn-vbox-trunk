@@ -970,10 +970,18 @@ PeimEntryMP (
     Status = MeasureCRTMVersion ();
   }
 
+  /*
+   * Measuring the BIOS would break BitLocker when updating VirtualBox with a new UEFI firmware
+   * as the measurement would change requiring the user to enter the recovery key.
+   * As we have to trust the hypervisor anyway for now we also trust it with providing an untampered
+   * UEFI firmware image.
+   */
+#ifndef VBOX
   Status = MeasureMainBios ();
   if (EFI_ERROR (Status)) {
     return Status;
   }
+#endif
 
   //
   // Post callbacks:

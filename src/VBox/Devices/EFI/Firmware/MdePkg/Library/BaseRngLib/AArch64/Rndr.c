@@ -19,7 +19,14 @@
 #include "ArmRng.h"
 #include "BaseRngLibInternals.h"
 
+/*
+ * This is non XIP (eXecute In Place) safe.
+ * This is used very early on in the TPM code when tings are still directly running from the ROM region which is RX only,
+ * causing a write access fault, so avoid caching the flag and query it always.
+ */
+#ifndef VBOX
 STATIC BOOLEAN  mRndrSupported;
+#endif
 
 //
 // Bit mask used to determine if RNDR instruction is supported.
@@ -43,6 +50,7 @@ BaseRngLibConstructor (
   VOID
   )
 {
+#ifndef VBOX
   UINT64  Isar0;
 
   //
@@ -52,6 +60,7 @@ BaseRngLibConstructor (
   Isar0 = ArmReadIdIsar0 ();
 
   mRndrSupported = ((Isar0 & RNDR_MASK) != 0);
+#endif
 
   return EFI_SUCCESS;
 }
@@ -137,7 +146,11 @@ ArchIsRngSupported (
   VOID
   )
 {
+#ifndef VBOX
   return mRndrSupported;
+#else
+  return (ArmReadIdIsar0() & RNDR_MASK) != 0;
+#endif
 }
 
 /**
@@ -162,9 +175,15 @@ GetRngGuid (
     return EFI_INVALID_PARAMETER;
   }
 
+#ifndef VBOX
   if (!mRndrSupported) {
     return EFI_UNSUPPORTED;
   }
+#else
+  if (!(ArmReadIdIsar0() & RNDR_MASK)) {
+    return EFI_UNSUPPORTED;
+  }
+#endif
 
   //
   // If the platform advertises the algorithm behind RNDR instruction,

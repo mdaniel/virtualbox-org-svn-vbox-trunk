@@ -2852,7 +2852,8 @@ static bool iemThreadedCompileCheckIrqAfter(PVMCPUCC pVCpu, PIEMTB pTb)
  * @param   fExtraFlags Extra translation block flags: IEMTB_F_INHIBIT_SHADOW,
  *                      IEMTB_F_INHIBIT_NMI, IEMTB_F_CS_LIM_CHECKS.
  */
-static VBOXSTRICTRC iemThreadedCompile(PVMCC pVM, PVMCPUCC pVCpu, RTGCPHYS GCPhysPc, uint32_t fExtraFlags) IEM_NOEXCEPT_MAY_LONGJMP
+static IEM_DECL_MSC_GUARD_IGNORE VBOXSTRICTRC
+iemThreadedCompile(PVMCC pVM, PVMCPUCC pVCpu, RTGCPHYS GCPhysPc, uint32_t fExtraFlags) IEM_NOEXCEPT_MAY_LONGJMP
 {
     IEMTLBTRACE_TB_COMPILE(pVCpu, GCPhysPc);
     Assert(!(fExtraFlags & IEMTB_F_TYPE_MASK));
@@ -3572,7 +3573,7 @@ DECL_FORCE_INLINE(PIEMTB *) iemTbGetTbLookupEntryWithRip(PCIEMTB pTb, uint8_t uT
  *                  thread.
  * @param   pTb     The translation block to execute.
  */
-static VBOXSTRICTRC iemTbExec(PVMCPUCC pVCpu, PIEMTB pTb) IEM_NOEXCEPT_MAY_LONGJMP
+static IEM_DECL_MSC_GUARD_IGNORE VBOXSTRICTRC iemTbExec(PVMCPUCC pVCpu, PIEMTB pTb) IEM_NOEXCEPT_MAY_LONGJMP
 {
     Assert(!(pVCpu->iem.s.GCPhysInstrBuf & (RTGCPHYS)GUEST_PAGE_OFFSET_MASK));
 

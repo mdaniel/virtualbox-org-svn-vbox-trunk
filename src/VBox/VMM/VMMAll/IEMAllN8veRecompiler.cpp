@@ -156,7 +156,7 @@ DECL_FORCE_INLINE(bool) iemNativeHlpReturnBreakViaLookupIsIrqOrForceFlagPending(
 /**
  * Used by TB code when encountering a non-zero status or rcPassUp after a call.
  */
-template <bool const a_fWithIrqCheck>
+template<bool const a_fWithIrqCheck>
 IEM_DECL_NATIVE_HLP_DEF(uintptr_t, iemNativeHlpReturnBreakViaLookup,(PVMCPUCC pVCpu, uint8_t idxTbLookup,
                                                                      uint32_t fFlags, RTGCPHYS GCPhysPc))
 {
@@ -10066,7 +10066,7 @@ DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t i
  *                  thread.
  * @param   pTb     The threaded translation to recompile to native.
  */
-DECLHIDDEN(PIEMTB) iemNativeRecompile(PVMCPUCC pVCpu, PIEMTB pTb) RT_NOEXCEPT
+IEM_DECL_MSC_GUARD_IGNORE DECLHIDDEN(PIEMTB) iemNativeRecompile(PVMCPUCC pVCpu, PIEMTB pTb) RT_NOEXCEPT
 {
 #if 0 /* For profiling the native recompiler code. */
 l_profile_again:

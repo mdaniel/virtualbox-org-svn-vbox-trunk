@@ -3203,6 +3203,20 @@ typedef RTFDT                               RT_FAR *PRTFDT;
 /** A NIL Flattened Devicetree handle. */
 #define NIL_RTFDT                                  ((RTFDT)~(uintptr_t)0)
 
+/** ACPI table handle. */
+typedef struct RTACPITBLINT                 RT_FAR *RTACPITBL;
+/** Pointer to an ACPI table handle. */
+typedef RTACPITBL                           RT_FAR *PRTACPITBL;
+/** A NIL ACPI table handle. */
+#define NIL_RTACPITBL                              ((RTACPITBL)~(uintptr_t)0)
+
+/** ACPI resource handle. */
+typedef struct RTACPIRESINT                 RT_FAR *RTACPIRES;
+/** Pointer to an ACPI resource handle. */
+typedef RTACPIRES                           RT_FAR *PRTACPIRES;
+/** A NIL ACPI resource handle. */
+#define NIL_RTACPIRES                              ((RTACPIRES)~(uintptr_t)0)
+
 
 /**
  * Handle type.

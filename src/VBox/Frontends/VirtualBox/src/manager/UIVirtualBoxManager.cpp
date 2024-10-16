@@ -2372,7 +2372,7 @@ void UIVirtualBoxManager::sltExtensionPackInstalledUninstalled(const QString &st
 void UIVirtualBoxManager::prepare()
 {
 #ifdef VBOX_WS_NIX
-    NativeWindowSubsystem::setWMClass(uiCommon().X11ServerAvailable(), this, "VirtualBox Manager", "VirtualBox Manager");
+    NativeWindowSubsystem::setWMClass(this, "VirtualBox Manager", "VirtualBox Manager");
 #endif
 
 #ifdef VBOX_WS_MAC

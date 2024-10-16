@@ -266,7 +266,7 @@ bool UIKeyboardHandler::finaliseCaptureKeyboard()
          * S.a. UIKeyboardHandler::eventFilter for more information. */
 
 #elif defined(VBOX_WS_NIX)
-        if (uiCommon().X11ServerAvailable())
+        if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         {
             /* On X11, we are using XCB stuff to grab the keyboard.
              * This stuff is a part of the active keyboard grabbing functionality.
@@ -369,7 +369,7 @@ void UIKeyboardHandler::releaseKeyboard()
          * S.a. UIKeyboardHandler::eventFilter for more information. */
 
 #elif defined(VBOX_WS_NIX)
-        if (uiCommon().X11ServerAvailable())
+        if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         {
             /* On X11, we are using XCB stuff to grab the keyboard.
              * This stuff is a part of the active keyboard grabbing functionality.
@@ -818,7 +818,7 @@ bool UIKeyboardHandler::nativeEventFilter(void *pMessage, ulong uScreenId)
     }
 
 # elif defined(VBOX_WS_NIX)
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         /* Cast to XCB event: */
         xcb_generic_event_t *pEvent = static_cast<xcb_generic_event_t*>(pMessage);
@@ -1037,7 +1037,7 @@ void UIKeyboardHandler::loadSettings()
 {
     /* Global settings: */
 #ifdef VBOX_WS_NIX
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         /* Initialize the X keyboard subsystem: */
         initMappedX11Keyboard(NativeWindowSubsystem::X11GetDisplay(), gEDataManager->remappedScanCodes());
@@ -1785,7 +1785,7 @@ bool UIKeyboardHandler::processHotKey(int iHotKey, wchar_t *pHotKey)
     delete[] pList;
 
 #elif defined(VBOX_WS_NIX)
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         Q_UNUSED(pHotKey);
         Display *pDisplay = NativeWindowSubsystem::X11GetDisplay();
@@ -1862,7 +1862,7 @@ void UIKeyboardHandler::fixModifierState(LONG *piCodes, uint *puCount)
     }
 
 #elif defined(VBOX_WS_NIX)
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         Window   wDummy1, wDummy2;
         int      iDummy3, iDummy4, iDummy5, iDummy6;

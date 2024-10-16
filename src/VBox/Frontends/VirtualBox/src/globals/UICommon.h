@@ -121,9 +121,6 @@ public:
         /** X11: Returns whether the Window Manager we are running under is composition one. */
         bool isCompositingManagerRunning() const { return m_fCompositingManagerRunning; }
         /** Returns true if the detected display server type is either xorg or xwayland. */
-        bool X11ServerAvailable() const;
-        /** Returns display server type. */
-        VBGHDISPLAYSERVERTYPE displayServerType() const;
 #endif
         /** Returns the name of the host OS by using IHost::getOperatingSystem. */
         QString hostOperatingSystem() const;
@@ -381,8 +378,6 @@ private:
         X11WMType             m_enmWindowManagerType;
         /** X11: Holds whether the Window Manager we are running at is composition one. */
         bool                  m_fCompositingManagerRunning;
-        /** Unixes: Holds the display server type. */
-        VBGHDISPLAYSERVERTYPE m_enmDisplayServerType;
 #endif
 
         /** Holds whether host OS is in Dark mode. */

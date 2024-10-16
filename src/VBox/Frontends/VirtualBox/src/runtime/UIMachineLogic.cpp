@@ -510,7 +510,7 @@ void UIMachineLogic::sltMachineStateChanged()
         case KMachineState_Restoring:
         case KMachineState_TeleportingIn:
         {
-            if (uiCommon().X11ServerAvailable())
+            if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
             {
                 /* The keyboard handler may wish to do some release logging on startup.
                  * Tell it that the logger is now active. */

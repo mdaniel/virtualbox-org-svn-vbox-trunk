@@ -417,12 +417,11 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char ** /*envp*/)
             RTStrmPrintf(g_pStdErr, "No active display server, X11 or Wayland, detected. Exiting.\n");
             break;
         }
-        if (VBGHDisplayServerTypeIsXAvailable(enmDisplayServerType))
-            /* Force using Qt platform plugin 'xcb', we have X11 specific code: */
-            RTEnvSet("QT_QPA_PLATFORM", "xcb");
-        else
-            /* Assume pure Wayland (without a X server):*/
+        /* Default to wayland QPA in Wayland even if XWayland is available: */
+        if (enmDisplayServerType == VBGHDISPLAYSERVERTYPE_XWAYLAND)
             RTEnvSet("QT_QPA_PLATFORM", "wayland");
+        else
+            RTEnvSet("QT_QPA_PLATFORM", "xcb");
 #endif /* VBOX_WS_NIX */
 
         /* Console help preprocessing: */
@@ -518,7 +517,11 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char ** /*envp*/)
          * We did it to avoid various Qt crashes while testing widget attributes or acquiring winIds.
          * Yes, we aware of note that alien widgets faster to draw but the only widget we need to be fast
          * is viewport of VM which was always native since we are using his id for 3D service needs. */
+        /* We have realized that making all windows native messes up widget updates in several cases like
+           ssh forwarding, wayland qpa etc. Thus we experiment with not doing it any longer. */
+#if 0
         a.setAttribute(Qt::AA_NativeWindows);
+#endif
 
 # ifdef Q_OS_SOLARIS
         a.setStyle("fusion");

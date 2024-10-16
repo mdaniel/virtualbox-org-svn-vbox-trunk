@@ -322,8 +322,7 @@ bool UIMouseHandler::nativeEventFilter(void *pMessage, ulong uScreenId)
     RT_NOREF(pMessage, uScreenId);
 
 # elif defined(VBOX_WS_NIX)
-
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         /* Cast to XCB event: */
         xcb_generic_event_t *pEvent = static_cast<xcb_generic_event_t*>(pMessage);

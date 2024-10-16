@@ -57,12 +57,28 @@
 #define BOOL PRBool
 #include <dlfcn.h>
 
-bool NativeWindowSubsystem::isCompositingManagerRunning(bool fIsXServerAvailable)
+VBGHDISPLAYSERVERTYPE NativeWindowSubsystem::displayServerType()
 {
-    if (fIsXServerAvailable)
-        return X11IsCompositingManagerRunning();
-    return WaylandIsCompositingManagerRunning();
+    if (!qApp)
+        return VBGHDISPLAYSERVERTYPE_NONE;
+    QNativeInterface::QX11Application *pX11App = qApp->nativeInterface<QNativeInterface::QX11Application>();
+    if (pX11App)
+        return VBGHDISPLAYSERVERTYPE_X11;
+    QNativeInterface::QWaylandApplication *pWaylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
+    if (pWaylandApp)
+        return VBGHDISPLAYSERVERTYPE_PURE_WAYLAND;
+    return VBGHDISPLAYSERVERTYPE_NONE;
 }
+
+bool NativeWindowSubsystem::isCompositingManagerRunning()
+{
+    if (displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
+        return X11IsCompositingManagerRunning();
+    else if (displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+        return WaylandIsCompositingManagerRunning();
+    return false;
+}
+
 bool NativeWindowSubsystem::X11IsCompositingManagerRunning()
 {
     /* For each screen it manage, compositing manager MUST acquire ownership
@@ -74,15 +90,22 @@ bool NativeWindowSubsystem::X11IsCompositingManagerRunning()
 
 bool NativeWindowSubsystem::WaylandIsCompositingManagerRunning()
 {
-    /// @todo implement
-    return true;
+    QNativeInterface::QWaylandApplication *pWaylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
+    if (pWaylandApp)
+    {
+        if (pWaylandApp->compositor())
+            return true;
+    }
+    return false;
 }
 
-X11WMType NativeWindowSubsystem::windowManagerType(bool fIsXServerAvailable)
+X11WMType NativeWindowSubsystem::windowManagerType()
 {
-    if (fIsXServerAvailable)
+    if (displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         return X11WindowManagerType();
-    return WaylandWindowManagerType();
+    else if (displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+        return WaylandWindowManagerType();
+    return X11WMType_Unknown;
 }
 
 X11WMType NativeWindowSubsystem::WaylandWindowManagerType()
@@ -409,11 +432,13 @@ bool XXSendClientMessage(Display *pDpy, Window windowHandle, const char *pszMsg,
                       SubstructureRedirectMask, &ev) != 0;
 }
 
-bool NativeWindowSubsystem::activateWindow(bool fIsXServerAvailable, WId wId, bool fSwitchDesktop)
+bool NativeWindowSubsystem::activateWindow(WId wId, bool fSwitchDesktop)
 {
-    if (fIsXServerAvailable)
+    if (displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         return X11ActivateWindow(wId, fSwitchDesktop);
-    return WaylandActivateWindow(wId, fSwitchDesktop);
+    else if (displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+        return WaylandActivateWindow(wId, fSwitchDesktop);
+    return false;
 }
 
 bool NativeWindowSubsystem::X11ActivateWindow(WId wId, bool fSwitchDesktop)
@@ -654,11 +679,11 @@ void NativeWindowSubsystem::X11SetSkipPagerFlag(QWidget *pWidget)
     }
 }
 
-void NativeWindowSubsystem::setWMClass(bool fIsXServerAvailable, QWidget *pWidget, const QString &strNameString, const QString &strClassString)
+void NativeWindowSubsystem::setWMClass(QWidget *pWidget, const QString &strNameString, const QString &strClassString)
 {
-    if (fIsXServerAvailable)
+    if (displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         X11SetWMClass(pWidget, strNameString, strClassString);
-    else
+    else if (displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
         WaylandSetWMClass(pWidget, strNameString, strClassString);
 }
 
@@ -694,9 +719,9 @@ void NativeWindowSubsystem::WaylandSetWMClass(QWidget *pWidget, const QString &s
     /// @todo implement
 }
 
-void NativeWindowSubsystem::setXwaylandMayGrabKeyboardFlag(bool fIsXServerAvailable, QWidget *pWidget)
+void NativeWindowSubsystem::setXwaylandMayGrabKeyboardFlag(QWidget *pWidget)
 {
-    if (fIsXServerAvailable)
+    if (displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         XXSendClientMessage(NativeWindowSubsystem::X11GetDisplay(), pWidget->window()->winId(),
                             "_XWAYLAND_MAY_GRAB_KEYBOARD", 1);
 }

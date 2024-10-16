@@ -614,8 +614,7 @@ bool UIMachineView::nativeEventPreprocessor(const QByteArray &eventType, void *p
     }
 
 # elif defined(VBOX_WS_NIX)
-
-    if (uiCommon().X11ServerAvailable())
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         /* Make sure it's generic XCB event: */
         if (eventType != "xcb_generic_event_t")
@@ -2021,14 +2020,14 @@ void UIMachineView::focusOutEvent(QFocusEvent *pEvent)
 #ifdef VBOX_WS_NIX
 void UIMachineView::keyPressEvent(QKeyEvent *pEvent)
 {
-    if (uiCommon().displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
         uimachine()->putScancode(pEvent->nativeScanCode() - 8);
     QAbstractScrollArea::keyPressEvent(pEvent);
 }
 
 void UIMachineView::keyReleaseEvent(QKeyEvent *pEvent)
 {
-    if (uiCommon().displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
         uimachine()->putScancode((pEvent->nativeScanCode() - 8) | 0x80);
     QAbstractScrollArea::keyReleaseEvent(pEvent);
 }

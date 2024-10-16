@@ -770,7 +770,7 @@ void UIDesktopWidgetWatchdog::setTopLevelGeometry(QWidget *pWidget, int x, int y
     AssertPtrReturnVoid(pWidget);
 #ifdef VBOX_WS_NIX
 # define QWINDOWSIZE_MAX ((1<<24)-1)
-    if (pWidget->isWindow() && pWidget->isVisible() && uiCommon().X11ServerAvailable())
+    if (pWidget->isWindow() && pWidget->isVisible() && NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
     {
         // WORKAROUND:
         // X11 window managers are not required to accept geometry changes on
@@ -842,7 +842,7 @@ bool UIDesktopWidgetWatchdog::activateWindow(WId wId, bool fSwitchDesktop /* = t
 
 #elif defined(VBOX_WS_NIX)
 
-    fResult &= NativeWindowSubsystem::activateWindow(uiCommon().X11ServerAvailable(), wId, fSwitchDesktop);
+    fResult &= NativeWindowSubsystem::activateWindow(wId, fSwitchDesktop);
 
 #else
 

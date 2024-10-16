@@ -94,15 +94,17 @@ struct _XDisplay;
 /* Namespace for native window sub-system functions: */
 namespace NativeWindowSubsystem
 {
+    /** Determines display sever type by looking at QGuiApplication::nativeInterface() return  type: */
+    SHARED_LIBRARY_STUFF VBGHDISPLAYSERVERTYPE displayServerType();
     /** Wrapper function for X11IsCompositingManagerRunning and WaylandIsCompositingManagerRunning. */
-    bool isCompositingManagerRunning(bool fIsXServerAvailable);
+    bool isCompositingManagerRunning();
     /** X11: Determines and returns whether the compositing manager is running. */
     bool X11IsCompositingManagerRunning();
     /** Wayland: Determines and returns whether the compositing manager is running. */
     bool WaylandIsCompositingManagerRunning();
 
     /** Wrapper for window manager type functions. */
-    X11WMType windowManagerType(bool fIsXServerAvailable);
+    X11WMType windowManagerType();
     /** X11: Determines and returns current Window Manager type. */
     X11WMType X11WindowManagerType();
     /** Wayland: Determines and returns current Window Manager type. */
@@ -123,7 +125,7 @@ namespace NativeWindowSubsystem
     SHARED_LIBRARY_STUFF void toggleHostScrenSaver(bool fInhibit, QVector<DBusScreenSaverInhibitMethod*> &inOutInhibitMethods);
 
     /** Wrapper function for X11ActivateWindow or WaylandActivateWindow. */
-    bool activateWindow(bool fIsXServerAvailable, WId wId, bool fSwitchDesktop);
+    bool activateWindow(WId wId, bool fSwitchDesktop);
     /** Activates window with certain @a wId, @a fSwitchDesktop if requested. */
     bool X11ActivateWindow(WId wId, bool fSwitchDesktop);
     /** Activates window with certain @a wId, @a fSwitchDesktop if requested. */
@@ -140,7 +142,7 @@ namespace NativeWindowSubsystem
     SHARED_LIBRARY_STUFF void X11SetSkipPagerFlag(QWidget *pWidget);
 
     /** Wrapper function for WMClass setters. */
-    SHARED_LIBRARY_STUFF void setWMClass(bool fIsXServerAvailable, QWidget *pWidget, const QString &strNameString, const QString &strClassString);
+    SHARED_LIBRARY_STUFF void setWMClass(QWidget *pWidget, const QString &strNameString, const QString &strClassString);
     /** X11: Assigns WM_CLASS property for passed @a pWidget. */
     SHARED_LIBRARY_STUFF void X11SetWMClass(QWidget *pWidget, const QString &strNameString, const QString &strClassString);
     /** Wayland: Assigns WM_CLASS property for passed @a pWidget. */
@@ -150,7 +152,7 @@ namespace NativeWindowSubsystem
       *      make the WM turn our grab into a Wayland shortcut inhibition request,
       *      so that e.g. alt+tab will get send to the VM instead of moving the
       *      focus away from the VM. */
-    SHARED_LIBRARY_STUFF void setXwaylandMayGrabKeyboardFlag(bool fIsXServerAvailable, QWidget *pWidget);
+    SHARED_LIBRARY_STUFF void setXwaylandMayGrabKeyboardFlag(QWidget *pWidget);
 
     /** X11: Gets the X11 display pointer. */
     SHARED_LIBRARY_STUFF struct _XDisplay *X11GetDisplay();

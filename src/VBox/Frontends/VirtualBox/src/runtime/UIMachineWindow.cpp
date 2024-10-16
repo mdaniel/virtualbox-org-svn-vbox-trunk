@@ -153,9 +153,9 @@ void UIMachineWindow::prepare()
     if (gEDataManager->distinguishMachineWindowGroups(uiCommon().managedVMUuid()))
         strWindowName = QString("VirtualBox Machine UUID: %1").arg(uiCommon().managedVMUuid().toString());
     /* Assign WM_CLASS property: */
-    NativeWindowSubsystem::setWMClass(uiCommon().X11ServerAvailable(), this, strWindowName, strWindowClass);
+    NativeWindowSubsystem::setWMClass(this, strWindowName, strWindowClass);
     /* Tell the WM we are well behaved wrt Xwayland keyboard-grabs: */
-    NativeWindowSubsystem::setXwaylandMayGrabKeyboardFlag(uiCommon().X11ServerAvailable(), this);
+    NativeWindowSubsystem::setXwaylandMayGrabKeyboardFlag(this);
 #endif
 }
 

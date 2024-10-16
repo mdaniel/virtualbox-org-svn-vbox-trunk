@@ -152,7 +152,6 @@ UICommon::UICommon(UIType enmType)
 #ifdef VBOX_WS_NIX
     , m_enmWindowManagerType(X11WMType_Unknown)
     , m_fCompositingManagerRunning(false)
-    , m_enmDisplayServerType(VBGHDISPLAYSERVERTYPE_NONE)
 #endif
     , m_fDarkMode(false)
     , m_fSeparateProcess(false)
@@ -205,11 +204,6 @@ void UICommon::prepare()
 #ifdef VBOX_WS_MAC
     /* Determine OS release early: */
     m_enmMacOSVersion = determineOsRelease();
-#endif
-
-#ifdef VBOX_WS_NIX
-    /* Detect display server type: */
-    m_enmDisplayServerType = VBGHDisplayServerTypeDetect();
 #endif
 
     /* Create converter: */
@@ -277,10 +271,10 @@ void UICommon::prepare()
 
 #ifdef VBOX_WS_NIX
     /* Check whether we have compositing manager running: */
-    m_fCompositingManagerRunning = NativeWindowSubsystem::isCompositingManagerRunning(X11ServerAvailable());
+    m_fCompositingManagerRunning = NativeWindowSubsystem::isCompositingManagerRunning();
 
     /* Acquire current Window Manager type: */
-    m_enmWindowManagerType = NativeWindowSubsystem::windowManagerType(X11ServerAvailable());
+    m_enmWindowManagerType = NativeWindowSubsystem::windowManagerType();
 #endif /* VBOX_WS_NIX */
 
 #ifdef VBOX_WITH_DEBUGGER_GUI
@@ -808,18 +802,6 @@ MacOSXRelease UICommon::determineOsRelease()
     return MacOSXRelease_Old;
 }
 #endif /* VBOX_WS_MAC */
-
-#ifdef VBOX_WS_NIX
-bool UICommon::X11ServerAvailable() const
-{
-    return VBGHDisplayServerTypeIsXAvailable(m_enmDisplayServerType);
-}
-
-VBGHDISPLAYSERVERTYPE UICommon::displayServerType() const
-{
-    return m_enmDisplayServerType;
-}
-#endif
 
 QString UICommon::hostOperatingSystem() const
 {

@@ -2484,6 +2484,11 @@ typedef struct BS3CPUINSTR4_TEST1_MODE_T
 #define BS3CPUINSTR4_TEST1_MODES_INIT(a_aTests16, a_aTests32, a_aTests64) \
     { { a_aTests16, RT_ELEMENTS(a_aTests16) }, { a_aTests32, RT_ELEMENTS(a_aTests32) }, { a_aTests64, RT_ELEMENTS(a_aTests64) } }
 
+/** Utility macros for inserting value table references into test arrays. */
+#define PASS_s_aArray(s_aValues)  RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
+#define PASS_s_aValues            PASS_s_aArray(s_aValues)
+#define PASS_s_aValuesSR          PASS_s_aArray(s_aValuesSR)
+
 typedef struct BS3CPUINSTR4_TEST1_CTX_T
 {
     BS3CPUINSTR4_CONFIG_T const BS3_FAR *pConfig;      /**< The test execution environment configuration. */
@@ -3363,7 +3368,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addps(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -3405,7 +3409,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addps(uint8_t bMode)
         { bs3CpuInstr4_vaddps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vaddps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -3634,7 +3637,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -3676,7 +3678,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addpd(uint8_t bMode)
         { bs3CpuInstr4_vaddpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vaddpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -3940,7 +3941,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addss(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addss_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -3971,7 +3971,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addss(uint8_t bMode)
         { bs3CpuInstr4_vaddss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vaddss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -4249,7 +4248,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addsd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -4280,7 +4278,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsd(uint8_t bMode)
         { bs3CpuInstr4_vaddsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vaddsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -4571,7 +4568,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddps(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_haddps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -4613,7 +4609,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddps(uint8_t bMode)
         { bs3CpuInstr4_vhaddps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vhaddps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -4874,7 +4869,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddpd(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_haddpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -4916,7 +4910,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_haddpd(uint8_t bMode)
         { bs3CpuInstr4_vhaddpd_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vhaddpd_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -5251,7 +5244,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subps(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_subps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -5293,7 +5285,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subps(uint8_t bMode)
         { bs3CpuInstr4_vsubps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vsubps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -5538,7 +5529,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subpd(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_subpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -5580,7 +5570,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subpd(uint8_t bMode)
         { bs3CpuInstr4_vsubpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vsubpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -5850,7 +5839,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subss(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_subss_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -5881,7 +5869,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subss(uint8_t bMode)
         { bs3CpuInstr4_vsubss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vsubss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -6180,7 +6167,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subsd(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_subsd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -6211,7 +6197,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_subsd(uint8_t bMode)
         { bs3CpuInstr4_vsubsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vsubsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -6502,7 +6487,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubps(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_hsubps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -6544,7 +6528,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubps(uint8_t bMode)
         { bs3CpuInstr4_vhsubps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vhsubps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -6777,7 +6760,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubpd(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_hsubpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -6819,7 +6801,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_hsubpd(uint8_t bMode)
         { bs3CpuInstr4_vhsubpd_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vhsubpd_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -7178,7 +7159,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulps(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_mulps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -7220,7 +7200,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulps(uint8_t bMode)
         { bs3CpuInstr4_vmulps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmulps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -7457,7 +7436,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulpd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_mulpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -7499,7 +7477,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulpd(uint8_t bMode)
         { bs3CpuInstr4_vmulpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmulpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -7698,7 +7675,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulss(uint8_t bMode)
     /** @todo Overflow, Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_mulss_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -7729,7 +7705,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulss(uint8_t bMode)
         { bs3CpuInstr4_vmulss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmulss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -7994,7 +7969,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulsd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_mulsd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -8025,7 +7999,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_mulsd(uint8_t bMode)
         { bs3CpuInstr4_vmulsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmulsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -8341,7 +8314,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_divps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -8383,7 +8355,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divps(uint8_t bMode)
         { bs3CpuInstr4_vdivps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vdivps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -8678,7 +8649,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_divpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -8720,7 +8690,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divpd(uint8_t bMode)
         { bs3CpuInstr4_vdivpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vdivpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -8921,7 +8890,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divss(uint8_t bMode)
 
 /** @todo Make cdefs.h 'RT_ELEMENTS(arr), arr' macro?  But extra cast, here. */
 /** @todo Do this to existing instr-4 tests?  instr-3?  Beyond? */
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_divss_XMM1_XMM2_icebp_c16,        255,         RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -8952,7 +8920,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divss(uint8_t bMode)
         { bs3CpuInstr4_vdivss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vdivss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -9297,7 +9264,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
     /** @todo Underflow, Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_divsd_XMM1_XMM2_icebp_c16,        255,         RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -9328,7 +9294,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_divsd(uint8_t bMode)
         { bs3CpuInstr4_vdivsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vdivsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -9654,7 +9619,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addsubps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -9696,7 +9660,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubps(uint8_t bMode)
         { bs3CpuInstr4_vaddsubps_YMM13_YMM14_YMM15_icebp_c64, 255, RM_REG, T_AVX_256, 13, 14, 15,  PASS_s_aValues },
         { bs3CpuInstr4_vaddsubps_YMM13_YMM14_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 13, 14, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -10104,7 +10067,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubpd(uint8_t bMode)
     /** @todo Underflow; Precision; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_addsubpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE3, 1, 1, 2,   PASS_s_aValues },
@@ -10146,7 +10108,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsubpd(uint8_t bMode)
         { bs3CpuInstr4_vaddsubpd_YMM13_YMM14_YMM15_icebp_c64, 255, RM_REG, T_AVX_256, 13, 14, 15,  PASS_s_aValues },
         { bs3CpuInstr4_vaddsubpd_YMM13_YMM14_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 13, 14, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -10389,7 +10350,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxps(uint8_t bMode)
     /*35*/ FP32_TABLE_D9_PS_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_maxps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -10431,7 +10391,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxps(uint8_t bMode)
         { bs3CpuInstr4_vmaxps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmaxps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -10676,7 +10635,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
     /*35*/ FP64_TABLE_D9_PD_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_maxpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -10718,7 +10676,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxpd(uint8_t bMode)
         { bs3CpuInstr4_vmaxpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmaxpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -11088,7 +11045,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
     /** @todo Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_maxss_XMM3_XMM4_icebp_c16,  255, RM_REG, T_SSE, 3, 3, 4,   PASS_s_aValues },
@@ -11119,7 +11075,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxss(uint8_t bMode)
         { bs3CpuInstr4_vmaxss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmaxss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -11491,7 +11446,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxsd(uint8_t bMode)
     /*56*/ FP64_TABLE_D9_SD_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_maxsd_XMM3_XMM4_icebp_c16,  255, RM_REG, T_SSE2, 3, 3, 4,   PASS_s_aValues },
@@ -11522,7 +11476,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_maxsd(uint8_t bMode)
         { bs3CpuInstr4_vmaxsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vmaxsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -11765,7 +11718,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minps(uint8_t bMode)
     /*35*/ FP32_TABLE_D9_PS_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_minps_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -11807,7 +11759,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minps(uint8_t bMode)
         { bs3CpuInstr4_vminps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vminps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -12052,7 +12003,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minpd(uint8_t bMode)
     /*35*/ FP64_TABLE_D9_PD_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_minpd_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE2, 1, 1, 2,   PASS_s_aValues },
@@ -12094,7 +12044,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minpd(uint8_t bMode)
         { bs3CpuInstr4_vminpd_YMM8_YMM9_YMM10_icebp_c64, X86_XCPT_GP, RM_REG, T_AVX_256, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vminpd_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_GP, RM_MEM, T_AVX_256, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -12464,7 +12413,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minss(uint8_t bMode)
     /** @todo Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_minss_XMM3_XMM4_icebp_c16,  255, RM_REG, T_SSE, 3, 3, 4,   PASS_s_aValues },
@@ -12495,7 +12443,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minss(uint8_t bMode)
         { bs3CpuInstr4_vminss_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vminss_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -12867,7 +12814,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
     /*56*/ FP64_TABLE_D9_SD_INVALIDS
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_minsd_XMM3_XMM4_icebp_c16,  255, RM_REG, T_SSE2, 3, 3, 4,   PASS_s_aValues },
@@ -12898,7 +12844,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
         { bs3CpuInstr4_vminsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, 8, 9, 10,  PASS_s_aValues },
         { bs3CpuInstr4_vminsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 8, 9, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -13189,7 +13134,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpps(uint8_t bMode)
               /*256:out  */ X86_MXCSR_DAZ },
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_rcpps_XMM1_XMM2_icebp_c16,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -13231,7 +13175,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpps(uint8_t bMode)
         { bs3CpuInstr4_vrcpps_YMM8_YMM9_icebp_c64,  255, RM_REG, T_AVX_256, 8, 8, 9,   PASS_s_aValues },
         { bs3CpuInstr4_vrcpps_YMM8_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, 8, 8, 255, PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -14053,8 +13996,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpss(uint8_t bMode)
               /*256:out  */ -1 },
     };
 
-#define PASS_s_aValues   RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
-#define PASS_s_aValuesSR RT_ELEMENTS(s_aValuesSR), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValuesSR
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_rcpss_XMM1_XMM2_icebp_c16,  255, RM_REG, T_SSE, 1, 1, 2,   PASS_s_aValues },
@@ -14108,8 +14049,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rcpss(uint8_t bMode)
         { bs3CpuInstr4_vrcpss_XMM15_XMM15_XMM13_icebp_c64, X86_XCPT_AC, RM_REG, T_AVX_128, 15, 15, 13,  PASS_s_aValues   },
         { bs3CpuInstr4_vrcpss_XMM13_XMM14_XMM14_icebp_c64, X86_XCPT_AC, RM_REG, T_AVX_128, 13, 14, 14,  PASS_s_aValuesSR },
     };
-#undef PASS_s_aValues
-#undef PASS_s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -14365,7 +14304,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
     /** @todo Underflow; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_sqrtps_XMM1_XMM2_icebp_c16,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -14421,7 +14359,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtps(uint8_t bMode)
         { bs3CpuInstr4_vsqrtps_YMM1_YMM1_icebp_c64,  255, RM_REG, T_AVX_256, 1, 1, 1,   PASS_s_aValues },
         { bs3CpuInstr4_vsqrtps_YMM8_YMM8_icebp_c64,  255, RM_REG, T_AVX_256, 8, 8, 8,   PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -14633,7 +14570,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtpd(uint8_t bMode)
     /** @todo Underflow; Rounding; FZ etc. */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_sqrtpd_XMM1_XMM2_icebp_c16,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -14689,7 +14625,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtpd(uint8_t bMode)
         { bs3CpuInstr4_vsqrtpd_YMM1_YMM1_icebp_c64,  255, RM_REG, T_AVX_256, 1, 1, 1,   PASS_s_aValues },
         { bs3CpuInstr4_vsqrtpd_YMM8_YMM8_icebp_c64,  255, RM_REG, T_AVX_256, 8, 8, 8,   PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -14984,7 +14919,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtss(uint8_t bMode)
     /** @todo Invalids. */
     /*44*/ /* FP64_TABLE_D10_SS_INVALIDS */
     };
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
 
     /* Sanity-check subset for 'same register' instruction variants */
     static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValuesSR[] =
@@ -15070,7 +15004,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtss(uint8_t bMode)
     /** @todo Invalids. */
     /*11*/ /* FP64_TABLE_D10_SS_INVALIDS // or excerpt? */
     };
-#define PASS_s_aValuesSR RT_ELEMENTS(s_aValuesSR), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
@@ -15122,8 +15055,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtss(uint8_t bMode)
         { bs3CpuInstr4_vsqrtss_XMM8_XMM8_XMM8_icebp_c64,  X86_XCPT_AC, RM_REG, T_AVX_128, 8, 8, 8,   PASS_s_aValuesSR },
         { bs3CpuInstr4_vsqrtss_XMM1_XMM1_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValues   },
     };
-#undef PASS_s_aValues
-#undef PASS_s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -15418,7 +15349,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtsd(uint8_t bMode)
     /** @todo Invalids. */
     /*44*/ /* FP64_TABLE_D10_SD_INVALIDS */
     };
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
 
     /* Sanity-check subset for 'same register' instruction variants */
     static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValuesSR[] =
@@ -15504,7 +15434,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtsd(uint8_t bMode)
     /** @todo Invalids. */
     /*11*/ /* FP64_TABLE_D10_SD_INVALIDS // or excerpt? */
     };
-#define PASS_s_aValuesSR RT_ELEMENTS(s_aValuesSR), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
@@ -15556,8 +15485,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtsd(uint8_t bMode)
         { bs3CpuInstr4_vsqrtsd_XMM8_XMM8_XMM8_icebp_c64,  X86_XCPT_AC, RM_REG, T_AVX_128, 8, 8, 8,   PASS_s_aValuesSR },
         { bs3CpuInstr4_vsqrtsd_XMM1_XMM1_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValues   },
     };
-#undef PASS_s_aValues
-#undef PASS_s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -15759,7 +15686,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtps(uint8_t bMode)
     /*22*/ /* FP32_TABLE_D10_PS_INVALIDS */
     };
 
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_rsqrtps_XMM1_XMM2_icebp_c16,   255, RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues },
@@ -15815,7 +15741,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtps(uint8_t bMode)
         { bs3CpuInstr4_vrsqrtps_YMM1_YMM1_icebp_c64,  255, RM_REG, T_AVX_256, 1, 1, 1,   PASS_s_aValues },
         { bs3CpuInstr4_vrsqrtps_YMM8_YMM8_icebp_c64,  255, RM_REG, T_AVX_256, 8, 8, 8,   PASS_s_aValues },
     };
-#undef PASS_s_aValues
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
@@ -15995,7 +15920,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtss(uint8_t bMode)
     /** @todo Invalids. */
     /*25*/ /* FP32_TABLE_D10_SS_INVALIDS */
     };
-#define PASS_s_aValues RT_ELEMENTS(s_aValues), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValues
 
     /* Sanity-check subset for 'same register' instruction variants */
     static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValuesSR[] =
@@ -16022,7 +15946,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtss(uint8_t bMode)
               /*128:out  */ X86_MXCSR_DAZ,
               /*256:out  */ -1 },
     };
-#define PASS_s_aValuesSR RT_ELEMENTS(s_aValuesSR), (BS3CPUINSTR4_TEST1_VALUES_T *)s_aValuesSR
     static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
     {
         { bs3CpuInstr4_rsqrtss_XMM1_XMM2_icebp_c16,        255,         RM_REG, T_SSE,     1, 1, 2,   PASS_s_aValues   },
@@ -16072,8 +15995,6 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtss(uint8_t bMode)
         { bs3CpuInstr4_vrsqrtss_XMM1_XMM1_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, 1, 1, 255, PASS_s_aValuesSR },
         { bs3CpuInstr4_vrsqrtss_XMM8_XMM8_XMM8_icebp_c64,  X86_XCPT_AC, RM_REG, T_AVX_128, 8, 8, 8,   PASS_s_aValuesSR },
     };
-#undef PASS_s_aValues
-#undef PASS_s_aValuesSR
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);

@@ -3467,13 +3467,15 @@ DECL_HIDDEN_THROW(uint32_t) iemNativeRegMoveOrSpillStackVar(PIEMRECOMPILERSTATE 
  *
  * @returns The host register number; throws VBox status code on failure,
  *          so no need to check the return value.
- * @param   pReNative       The native recompile state.
- * @param   poff            Pointer to the variable with the code buffer position.
- *                          This will be update if we need to move a variable from
- *                          register to stack in order to satisfy the request.
- * @param   a_fPreferVolatile Whether to prefer volatile over non-volatile
- *                          registers (@c true, default) or the other way around
- *                          (@c false, for iemNativeRegAllocTmpForGuestReg()).
+ * @param   pReNative           The native recompile state.
+ * @param   poff                Pointer to the variable with the code buffer
+ *                              position. This will be update if we need to move
+ *                              a variable from register to stack in order to
+ *                              satisfy the request.
+ * @tparam  a_fPreferVolatile   Whether to prefer volatile over non-volatile
+ *                              registers (@c true, default) or the other way
+ *                              around (@c false, for
+ *                              iemNativeRegAllocTmpForGuestReg()).
  *
  * @note    Must not modify the host status flags!
  */
@@ -3529,14 +3531,16 @@ DECL_HIDDEN_THROW(uint8_t) iemNativeRegAllocTmpPreferNonVolatile(PIEMRECOMPILERS
  *
  * @returns The host register number; throws VBox status code on failure,
  *          so no need to check the return value.
- * @param   pReNative       The native recompile state.
- * @param   poff            Pointer to the variable with the code buffer position.
- *                          This will be update if we need to move a variable from
- *                          register to stack in order to satisfy the request.
- * @param   fRegMask        Mask of acceptable registers.
- * @param   fPreferVolatile Whether to prefer volatile over non-volatile
- *                          registers (@c true, default) or the other way around
- *                          (@c false, for iemNativeRegAllocTmpForGuestReg()).
+ * @param   pReNative           The native recompile state.
+ * @param   poff                Pointer to the variable with the code buffer
+ *                              position. This will be update if we need to move
+ *                              a variable from register to stack in order to
+ *                              satisfy the request.
+ * @param   fRegMask            Mask of acceptable registers.
+ * @tparam   a_fPreferVolatile  Whether to prefer volatile over non-volatile
+ *                              registers (@c true, default) or the other way
+ *                              around (@c false, for
+ *                              iemNativeRegAllocTmpForGuestReg()).
  */
 template<bool const a_fPreferVolatile>
 DECL_FORCE_INLINE_THROW(uint8_t) iemNativeRegAllocTmpExInt(PIEMRECOMPILERSTATE pReNative, uint32_t *poff, uint32_t fRegMask)
@@ -3849,18 +3853,19 @@ static uint8_t iemNativeRegAllocTmpForGuestRegCommon(PIEMRECOMPILERSTATE pReNati
  *
  * @returns The host register number; throws VBox status code on failure, so no
  *          need to check the return value.
- * @param   pReNative       The native recompile state.
- * @param   poff            Pointer to the variable with the code buffer
- *                          position. This will be update if we need to move a
- *                          variable from register to stack in order to satisfy
- *                          the request.
- * @param   enmGstReg       The guest register that will is to be updated.
- * @param   a_enmIntendedUse How the caller will be using the host register.
- * @param   a_fNonVolatileRegs Set if no volatile register allowed, clear if any
- *                          register is okay (default).  The ASSUMPTION here is
- *                          that the caller has already flushed all volatile
- *                          registers, so this is only applied if we allocate a
- *                          new register.
+ * @param   pReNative           The native recompile state.
+ * @param   poff                Pointer to the variable with the code buffer
+ *                              position. This will be update if we need to move
+ *                              a variable from register to stack in order to
+ *                              satisfy the request.
+ * @param   enmGstReg           The guest register that will is to be updated.
+ * @tparam  a_enmIntendedUse    How the caller will be using the host register.
+ * @tparam  a_fNonVolatileRegs  Set if no volatile register allowed, clear if
+ *                              any register is okay (default).
+ *                              The ASSUMPTION here is that the caller has
+ *                              already flushed all volatile registers,
+ *                              so this is only applied if we allocate a new
+ *                              register.
  * @sa      iemNativeRegAllocTmpForGuestRegIfAlreadyPresent
  */
 template<IEMNATIVEGSTREGUSE const a_enmIntendedUse, bool const a_fNonVolatileRegs>

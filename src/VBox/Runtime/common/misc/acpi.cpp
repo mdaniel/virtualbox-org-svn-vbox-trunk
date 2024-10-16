@@ -969,7 +969,7 @@ RTDECL(int) RTAcpiResourceSeal(RTACPIRES hAcpiRes)
 }
 
 
-RTDECL(int) RTAcpiResourceQueryBuffer(RTACPIRES hAcpiRes, const void **ppvRes, size_t *pcbBuf)
+RTDECL(int) RTAcpiResourceQueryBuffer(RTACPIRES hAcpiRes, const void **ppvRes, size_t *pcbRes)
 {
     PRTACPIRESINT pThis = hAcpiRes;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
@@ -977,7 +977,7 @@ RTDECL(int) RTAcpiResourceQueryBuffer(RTACPIRES hAcpiRes, const void **ppvRes, s
     AssertRCReturn(pThis->rcErr, pThis->rcErr);
 
     *ppvRes = pThis->pbResBuf;
-    *pcbBuf = pThis->offResBuf;
+    *pcbRes = pThis->offResBuf;
     return VINF_SUCCESS;
 }
 

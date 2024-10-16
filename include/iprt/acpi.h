@@ -69,7 +69,6 @@ RTDECL(uint8_t) RTAcpiChecksumGenerate(const void *pvData, size_t cbData);
 /**
  * Generates and writes the table header checksum for the given ACPI table.
  *
- * @returns nothing.
  * @param   pTbl                Pointer to the ACPI table to set the checksum for.
  * @param   cbTbl               Size of the table in bytes, including the ACPI table header.
  */
@@ -97,7 +96,7 @@ RTDECL(int) RTAcpiTblCreate(PRTACPITBL phAcpiTbl, uint32_t u32TblSig, uint8_t bR
 /**
  * Destroys the given ACPI table, freeing all resources.
  *
- * @parm   hAcpiTbl             The ACPI table handle to destroy.
+ * @param  hAcpiTbl             The ACPI table handle to destroy.
  */
 RTDECL(void) RTAcpiTblDestroy(RTACPITBL hAcpiTbl);
 
@@ -381,13 +380,13 @@ RTDECL(int) RTAcpiResourceSeal(RTACPIRES hAcpiRes);
  *
  * @returns IPRT status code.
  * @param   hAcpiRes            The ACPI resource handle.
- * @param   ppvBuf              Where to store the pointer to the buffer holding the encoded resource template on success.
- * @param   pcbBuf              Where to store the size of the encoded data in bytes on success.
+ * @param   ppvRes              Where to store the pointer to the buffer holding the encoded resource template on success.
+ * @param   pcbRes              Where to store the size of the encoded data in bytes on success.
  *
  * @note The ACPI resource must be successfully sealed with RTAcpiResourceSeal() for this function to succeed.
  *       Also the buffer pointer will only be valid until a call to any other RTAcpiResource* method.
  */
-RTDECL(int) RTAcpiResourceQueryBuffer(RTACPIRES hAcpiRes, const void **ppvRes, size_t *pcbBuf);
+RTDECL(int) RTAcpiResourceQueryBuffer(RTACPIRES hAcpiRes, const void **ppvRes, size_t *pcbRes);
 
 
 /**

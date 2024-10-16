@@ -153,7 +153,11 @@ READ_LOCK_STATUS   = TRUE
 !if $(ARCH) == AARCH64
   INF MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
   INF MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
+!ifndef $(VBOX)
   INF OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
+!else
+  INF VBoxPkg/VBoxAcpiPlatformDxe/VBoxAcpiPlatformDxe.inf
+!endif
 !endif
 
   #

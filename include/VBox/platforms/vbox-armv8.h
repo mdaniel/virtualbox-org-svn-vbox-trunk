@@ -65,10 +65,10 @@ typedef struct VBOXPLATFORMARMV8
     int64_t                     i64OffFdt;
     /** Size of the FDT in bytes, 0 if not available. */
     uint64_t                    cbFdt;
-    /** Offset to the RDSP/XSDP table for ACPI from the start of this descriptor, 0 if not available. */
-    int64_t                     i64OffAcpiXsdp;
-    /** Size of the RDSP/XSDP table, 0 if not available. */
-    uint64_t                    cbAcpiXsdp;
+    /** Offset to the start of the ACPI table region from the start of this descriptor, 0 if not available. */
+    int64_t                     i64OffAcpi;
+    /** Size of the ACPI region in bytes, 0 if not available. */
+    uint64_t                    cbAcpi;
     /** Offset to the start of the UEFI ROM region from the start of this descriptor, 0 if not available (doesn't make much sense though). */
     int64_t                     i64OffUefiRom;
     /** Size if the UEFI ROM region in bytes, 0 if not available. */
@@ -81,8 +81,12 @@ typedef struct VBOXPLATFORMARMV8
     int64_t                     i64OffMmio32;
     /** Size of the MMIO32 region in bytes, 0 if not available. */
     uint64_t                    cbMmio32;
+    /** Offset to the RDSP/XSDP table for ACPI from the start of this descriptor, 0 if not available. */
+    int64_t                     i64OffAcpiXsdp;
+    /** Size of the RDSP/XSDP table, 0 if not available. */
+    uint64_t                    cbAcpiXsdp;
     /** Padding to 64KiB. */
-    uint8_t                     abPadding[_64K - 4 * sizeof(uint32_t) - 12 * sizeof(uint64_t)];
+    uint8_t                     abPadding[_64K - 4 * sizeof(uint32_t) - 14 * sizeof(uint64_t)];
 } VBOXPLATFORMARMV8;
 AssertCompileSize(VBOXPLATFORMARMV8, _64K);
 typedef VBOXPLATFORMARMV8 *PVBOXPLATFORMARMV8;

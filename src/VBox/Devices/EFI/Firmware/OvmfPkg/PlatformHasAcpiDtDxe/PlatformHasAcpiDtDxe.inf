@@ -23,6 +23,7 @@
   MdeModulePkg/MdeModulePkg.dec
   MdePkg/MdePkg.dec
   OvmfPkg/OvmfPkg.dec
+  VBoxPkg/VBoxPkg.dec             # VBox: Added
 
 [LibraryClasses]
   BaseLib
@@ -31,6 +32,7 @@
   QemuFwCfgLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
+  VBoxArmPlatformLib              # VBox: Added
 
 [Guids]
   gEdkiiPlatformHasAcpiGuid       ## SOMETIMES_PRODUCES ## PROTOCOL

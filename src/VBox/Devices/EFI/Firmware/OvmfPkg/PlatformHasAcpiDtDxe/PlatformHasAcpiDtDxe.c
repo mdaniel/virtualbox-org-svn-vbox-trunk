@@ -15,6 +15,10 @@
 #include <Library/QemuFwCfgLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
+#ifdef VBOX
+# include <Library/VBoxArmPlatformLib.h>
+#endif
+
 EFI_STATUS
 EFIAPI
 PlatformHasAcpiDt (
@@ -31,6 +35,7 @@ PlatformHasAcpiDt (
   // unbootable anyway (due to lacking hardware description), so tolerate no
   // errors here.
   //
+#ifndef VBOX
   if ((MAX_UINTN == MAX_UINT64) &&
       !PcdGetBool (PcdForceNoAcpi) &&
       !EFI_ERROR (
@@ -40,6 +45,10 @@ PlatformHasAcpiDt (
            &FwCfgSize
            )
          ))
+#else
+  if (   !PcdGetBool (PcdForceNoAcpi)
+      && VBoxArmPlatformAcpiStartGetPhysAddr() != 0)
+#endif
   {
     //
     // Only make ACPI available on 64-bit systems, and only if QEMU generates

@@ -168,3 +168,45 @@ UINTN EFIAPI VBoxArmPlatformMmio32SizeGet(VOID)
 
     return pDesc->cbMmio32;
 }
+
+
+EFI_PHYSICAL_ADDRESS EFIAPI VBoxArmPlatformAcpiXsdpStartGetPhysAddr(VOID)
+{
+    PCVBOXPLATFORMARMV8 pDesc = (PCVBOXPLATFORMARMV8)VBoxArmPlatformDescGet();
+    ASSERT(pDesc->u32Magic == VBOXPLATFORMARMV8_MAGIC);
+
+    if (!pDesc->cbAcpiXsdp)
+        return 0;
+
+    return (EFI_PHYSICAL_ADDRESS)((UINTN)pDesc + pDesc->i64OffAcpiXsdp);
+}
+
+
+UINTN EFIAPI VBoxArmPlatformAcpiXsdpSizeGet(VOID)
+{
+    PCVBOXPLATFORMARMV8 pDesc = (PCVBOXPLATFORMARMV8)VBoxArmPlatformDescGet();
+    ASSERT(pDesc->u32Magic == VBOXPLATFORMARMV8_MAGIC);
+
+    return pDesc->cbAcpiXsdp;
+}
+
+
+EFI_PHYSICAL_ADDRESS EFIAPI VBoxArmPlatformAcpiStartGetPhysAddr(VOID)
+{
+    PCVBOXPLATFORMARMV8 pDesc = (PCVBOXPLATFORMARMV8)VBoxArmPlatformDescGet();
+    ASSERT(pDesc->u32Magic == VBOXPLATFORMARMV8_MAGIC);
+
+    if (!pDesc->cbAcpi)
+        return 0;
+
+    return (EFI_PHYSICAL_ADDRESS)((UINTN)pDesc + pDesc->i64OffAcpi);
+}
+
+
+UINTN EFIAPI VBoxArmPlatformAcpiSizeGet(VOID)
+{
+    PCVBOXPLATFORMARMV8 pDesc = (PCVBOXPLATFORMARMV8)VBoxArmPlatformDescGet();
+    ASSERT(pDesc->u32Magic == VBOXPLATFORMARMV8_MAGIC);
+
+    return pDesc->cbAcpi;
+}

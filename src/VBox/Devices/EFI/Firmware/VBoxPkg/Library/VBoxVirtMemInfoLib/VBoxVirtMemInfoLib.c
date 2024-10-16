@@ -45,7 +45,7 @@
 #include <Library/VBoxArmPlatformLib.h>
 
 // Number of Virtual Memory Map Descriptors
-#define MAX_VIRTUAL_MEMORY_MAP_DESCRIPTORS  7
+#define MAX_VIRTUAL_MEMORY_MAP_DESCRIPTORS  8
 
 /**
   Default library constructur that obtains the memory size from a PCD.
@@ -88,6 +88,7 @@ ArmVirtGetMemoryMap (
   )
 {
   ARM_MEMORY_REGION_DESCRIPTOR  *VirtualMemoryTable;
+  UINT8 idxMemDesc = 0;
 
   ASSERT (VirtualMemoryMap != NULL);
 
@@ -102,46 +103,62 @@ ArmVirtGetMemoryMap (
   }
 
   // System DRAM
-  VirtualMemoryTable[0].PhysicalBase = VBoxArmPlatformRamBaseStartGetPhysAddr();
-  VirtualMemoryTable[0].VirtualBase  = VirtualMemoryTable[0].PhysicalBase;
-  VirtualMemoryTable[0].Length       = VBoxArmPlatformRamBaseSizeGet();
-  VirtualMemoryTable[0].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK;
+  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformRamBaseStartGetPhysAddr();
+  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+  VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformRamBaseSizeGet();
+  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK;
+  idxMemDesc++;
 
   // Memory mapped peripherals
-  VirtualMemoryTable[1].PhysicalBase = VBoxArmPlatformMmioStartGetPhysAddr();
-  VirtualMemoryTable[1].VirtualBase  = VirtualMemoryTable[1].PhysicalBase;
-  VirtualMemoryTable[1].Length       = VBoxArmPlatformMmioSizeGet();
-  VirtualMemoryTable[1].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
+  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformMmioStartGetPhysAddr();
+  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+  VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformMmioSizeGet();
+  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
+  idxMemDesc++;
 
   // Map the FV region as normal executable memory
-  VirtualMemoryTable[2].PhysicalBase = VBoxArmPlatformUefiRomStartGetPhysAddr();
-  VirtualMemoryTable[2].VirtualBase  = VirtualMemoryTable[2].PhysicalBase;
-  VirtualMemoryTable[2].Length       = FixedPcdGet32 (PcdFvSize);
-  VirtualMemoryTable[2].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformUefiRomStartGetPhysAddr();
+  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+  VirtualMemoryTable[idxMemDesc].Length       = FixedPcdGet32 (PcdFvSize);
+  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  idxMemDesc++;
 
   // Map the FDT region readonnly.
-  VirtualMemoryTable[3].PhysicalBase = VBoxArmPlatformFdtGet();
-  VirtualMemoryTable[3].VirtualBase  = VirtualMemoryTable[3].PhysicalBase;
-  VirtualMemoryTable[3].Length       = VBoxArmPlatformFdtSizeGet();
-  VirtualMemoryTable[3].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformFdtGet();
+  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+  VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformFdtSizeGet();
+  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  idxMemDesc++;
 
   // Map the VBox descriptor region readonly.
-  VirtualMemoryTable[4].PhysicalBase = VBoxArmPlatformDescGetPhysAddr();
-  VirtualMemoryTable[4].VirtualBase  = VirtualMemoryTable[4].PhysicalBase;
-  VirtualMemoryTable[4].Length       = VBoxArmPlatformDescSizeGet();
-  VirtualMemoryTable[4].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformDescGetPhysAddr();
+  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+  VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformDescSizeGet();
+  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+  idxMemDesc++;
+
+  // Map the ACPI region if it exists.
+  if (VBoxArmPlatformAcpiSizeGet() != 0)
+  {
+    VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformAcpiStartGetPhysAddr();
+    VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+    VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformAcpiSizeGet();
+    VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO;
+    idxMemDesc++;
+  }
 
   // Map the MMIO32 region if it exists.
   if (VBoxArmPlatformMmio32SizeGet() != 0)
   {
-    VirtualMemoryTable[5].PhysicalBase = VBoxArmPlatformMmio32StartGetPhysAddr();
-    VirtualMemoryTable[5].VirtualBase  = VirtualMemoryTable[5].PhysicalBase;
-    VirtualMemoryTable[5].Length       = VBoxArmPlatformMmio32SizeGet();
-    VirtualMemoryTable[5].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
+    VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformMmio32StartGetPhysAddr();
+    VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+    VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformMmio32SizeGet();
+    VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
+    idxMemDesc++;
   }
 
   // End of Table
-  ZeroMem (&VirtualMemoryTable[6], sizeof (ARM_MEMORY_REGION_DESCRIPTOR));
+  ZeroMem (&VirtualMemoryTable[idxMemDesc], sizeof (ARM_MEMORY_REGION_DESCRIPTOR));
 
   for (UINTN i = 0; i < MAX_VIRTUAL_MEMORY_MAP_DESCRIPTORS; i++)
   {

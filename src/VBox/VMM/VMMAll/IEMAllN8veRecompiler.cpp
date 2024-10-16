@@ -3987,13 +3987,11 @@ iemNativeRegAllocTmpForGuestEFlags(PIEMRECOMPILERSTATE pReNative, uint32_t *poff
     AssertCompile(a_enmIntendedUse == kIemNativeGstRegUse_ReadOnly || a_enmIntendedUse == kIemNativeGstRegUse_ForUpdate);
     if RT_CONSTEXPR_IF(a_enmIntendedUse == kIemNativeGstRegUse_ReadOnly)
         return iemNativeRegAllocTmpForGuestRegCommon<kIemNativeGstRegUse_ReadOnly,
-                                                       IEMNATIVE_CALL_VOLATILE_GREG_MASK
-                                                     & IEMNATIVE_HST_GREG_MASK
+                                                       IEMNATIVE_HST_GREG_MASK
                                                      & ~IEMNATIVE_REG_FIXED_MASK>(pReNative, poff, kIemNativeGstReg_EFlags);
     else /* keep else, is required by MSC */
         return iemNativeRegAllocTmpForGuestRegCommon<kIemNativeGstRegUse_ForUpdate,
-                                                       IEMNATIVE_CALL_VOLATILE_GREG_MASK
-                                                     & IEMNATIVE_HST_GREG_MASK
+                                                       IEMNATIVE_HST_GREG_MASK
                                                      & ~IEMNATIVE_REG_FIXED_MASK>(pReNative, poff, kIemNativeGstReg_EFlags);
 }
 

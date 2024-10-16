@@ -280,6 +280,40 @@ typedef struct RTDBGUNWINDSTATE
             } Loaded;
         } x86;
 
+        /** RTLDRARCH_ARM, RTLDRARCH_ARM64. */
+        struct
+        {
+            /** General purpose registers, indexed by ARMV8_A64_REG_XXX. */
+            uint64_t    auGprs[31];
+            /** EL0 stack pointer. */
+            uint64_t    uSpEl0;
+            /** The EL1 stack pointer. */
+            uint64_t    uSpEl1;
+            /** The frame address. */
+            uint64_t    FrameAddr;
+
+            /** Bitmap tracking register we've loaded and which content can possibly be trusted. */
+            union
+            {
+                /** For effective clearing of the bits. */
+                uint64_t    fAll;
+                /** Detailed view. */
+                struct
+                {
+                    /** Bitmap indicating whether a GPR was loaded (parallel to auRegs). */
+                    uint32_t    fRegs;
+                    /** Set if uPc was loaded. */
+                    RT_GCC_EXTENSION uint8_t     fPc : 1;
+                    /** Set if FrameAddr was loaded. */
+                    RT_GCC_EXTENSION uint8_t     fFrameAddr : 1;
+                    /** Set if auSpEl0 was loaded. */
+                    RT_GCC_EXTENSION uint8_t     fSpEl0 : 1;
+                    /** Set if auSpEl1 was loaded. */
+                    RT_GCC_EXTENSION uint8_t     fSpEl1 : 1;
+                } s;
+            } Loaded;
+        } armv8;
+
         /** @todo add ARM and others as needed. */
     } u;
 

@@ -773,6 +773,26 @@ EMIT_INSTR_PLUS_ICEBP       rsqrtps,  XMM1, XMM1
 EMIT_INSTR_PLUS_ICEBP       vrsqrtps, XMM1, XMM1
 EMIT_INSTR_PLUS_ICEBP       vrsqrtps, YMM1, YMM1
 
+;
+;; [v]rsqrtss
+;
+EMIT_INSTR_PLUS_ICEBP       rsqrtss,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       rsqrtss,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   rsqrtss,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   rsqrtss,  XMM8, FSxBX
+
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM2, XMM3
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM2, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vrsqrtss, XMM8, XMM9, XMM10
+EMIT_INSTR_PLUS_ICEBP_C64   vrsqrtss, XMM8, XMM9, FSxBX
+
+EMIT_INSTR_PLUS_ICEBP       rsqrtss,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM2, XMM2
+EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vrsqrtss, XMM8, XMM8, XMM8
+
 %endif ; BS3_INSTANTIATING_CMN
 
 %include "bs3kit-template-footer.mac"   ; reset environment

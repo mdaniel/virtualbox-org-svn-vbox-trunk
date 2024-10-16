@@ -112,6 +112,10 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->abIntPriority); i++)
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", GIC_INTID_RANGE_SPI_START + i, pGicDev->abIntPriority[i]);
 
+    pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
+    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntRouting); i++)
+        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", GIC_INTID_RANGE_SPI_START + i, pGicDev->au32IntRouting[i]);
+
     pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicDev->fIrqGrp0Enabled);
     pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicDev->fIrqGrp1Enabled);
 }

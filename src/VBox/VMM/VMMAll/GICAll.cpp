@@ -210,23 +210,25 @@ DECLINLINE(void) gicReDistHasIrqPending(PGICCPU pThis, bool *pfIrq, bool *pfFiq)
     bool fIrqGrp0Enabled  = ASMAtomicReadBool(&pThis->fIrqGrp0Enabled);
     bool fIrqGrp1Enabled  = ASMAtomicReadBool(&pThis->fIrqGrp1Enabled);
 
-    /* Is anything enabled at all? */
-    uint32_t bmIntForward = (bmIntPending & bmIntEnabled) & ~bmIntActive; /* Exclude the currently active interrupt. */
-
     /* Only allow interrupts with higher priority than the current configured and running one. */
     uint8_t bPriority = RT_MIN(pThis->bInterruptPriority, pThis->abRunningPriorities[pThis->idxRunningPriority]);
 
-    for (uint32_t i = 0; i < RT_ELEMENTS(pThis->abIntPriority); i++)
+    /* Is anything enabled at all? */
+    uint32_t bmIntForward = (bmIntPending & bmIntEnabled) & ~bmIntActive; /* Exclude the currently active interrupt. */
+    if (bmIntForward)
     {
-        Log4(("SGI/PPI %u, configured priority %u, running priority %u\n", i, pThis->abIntPriority[i], bPriority));
-        if (   (bmIntForward & RT_BIT_32(i))
-            && pThis->abIntPriority[i] < bPriority)
-            break;
-        else
-            bmIntForward &= ~RT_BIT_32(i);
+        for (uint32_t i = 0; i < RT_ELEMENTS(pThis->abIntPriority); i++)
+        {
+            Log4(("SGI/PPI %u, configured priority %u, running priority %u\n", i, pThis->abIntPriority[i], bPriority));
+            if (   (bmIntForward & RT_BIT_32(i))
+                && pThis->abIntPriority[i] < bPriority)
+                break;
+            else
+                bmIntForward &= ~RT_BIT_32(i);
 
-        if (!bmIntForward)
-            break;
+            if (!bmIntForward)
+                break;
+        }
     }
 
     if (bmIntForward)
@@ -246,7 +248,7 @@ DECLINLINE(void) gicReDistHasIrqPending(PGICCPU pThis, bool *pfIrq, bool *pfFiq)
 }
 
 
-DECLINLINE(void) gicDistHasIrqPendingForVCpu(PGICDEV pThis, PGICCPU pGicVCpu, bool *pfIrq, bool *pfFiq)
+DECLINLINE(void) gicDistHasIrqPendingForVCpu(PGICDEV pThis, PGICCPU pGicVCpu, VMCPUID idCpu, bool *pfIrq, bool *pfFiq)
 {
     /* Read the interrupt state. */
     uint32_t u32RegIGrp0  = ASMAtomicReadU32(&pThis->u32RegIGrp0);
@@ -256,18 +258,27 @@ DECLINLINE(void) gicDistHasIrqPendingForVCpu(PGICDEV pThis, PGICCPU pGicVCpu, bo
     bool fIrqGrp0Enabled  = ASMAtomicReadBool(&pThis->fIrqGrp0Enabled);
     bool fIrqGrp1Enabled  = ASMAtomicReadBool(&pThis->fIrqGrp1Enabled);
 
-    /* Is anything enabled at all? */
-    uint32_t bmIntForward = (bmIntPending & bmIntEnabled) & ~bmIntActive; /* Exclude the currently active interrupt. */
-
     /* Only allow interrupts with higher priority than the current configured and running one. */
     uint8_t bPriority = RT_MIN(pGicVCpu->bInterruptPriority, pGicVCpu->abRunningPriorities[pGicVCpu->idxRunningPriority]);
-    for (uint32_t i = 0; i < RT_ELEMENTS(pThis->abIntPriority); i++)
+
+    /* Is anything enabled at all? */
+    uint32_t bmIntForward = (bmIntPending & bmIntEnabled) & ~bmIntActive; /* Exclude the currently active interrupt. */
+    if (bmIntForward)
     {
-        if (   (bmIntForward & RT_BIT_32(i))
-            && pThis->abIntPriority[i] < bPriority)
-            break;
-        else
-            bmIntForward &= ~RT_BIT_32(i);
+        for (uint32_t i = 0; i < RT_ELEMENTS(pThis->abIntPriority); i++)
+        {
+            Log4(("SPI %u, configured priority %u (routing %#x), running priority %u\n", i + GIC_INTID_RANGE_SPI_START, pThis->abIntPriority[i],
+                                                                                         pThis->au32IntRouting[i], bPriority));
+            if (   (bmIntForward & RT_BIT_32(i))
+                && pThis->abIntPriority[i] < bPriority
+                && pThis->au32IntRouting[i] == idCpu)
+                break;
+            else
+                bmIntForward &= ~RT_BIT_32(i);
+
+            if (!bmIntForward)
+                break;
+        }
     }
 
     if (bmIntForward)
@@ -302,7 +313,7 @@ static VBOXSTRICTRC gicReDistUpdateIrqState(PGICCPU pThis, PVMCPUCC pVCpu)
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     bool fIrqDist, fFiqDist;
-    gicDistHasIrqPendingForVCpu(pGicDev, pThis, &fIrqDist, &fFiqDist);
+    gicDistHasIrqPendingForVCpu(pGicDev, pThis, pVCpu->idCpu, &fIrqDist, &fFiqDist);
     fIrq |= fIrqDist;
     fFiq |= fFiqDist;
 
@@ -329,7 +340,7 @@ static VBOXSTRICTRC gicDistUpdateIrqState(PVMCC pVM, PGICDEV pThis)
         gicReDistHasIrqPending(pGicVCpu, &fIrq, &fFiq);
 
         bool fIrqDist, fFiqDist;
-        gicDistHasIrqPendingForVCpu(pThis, pGicVCpu, &fIrqDist, &fFiqDist);
+        gicDistHasIrqPendingForVCpu(pThis, pGicVCpu, i, &fIrqDist, &fFiqDist);
         fIrq |= fIrqDist;
         fFiq |= fFiqDist;
 
@@ -375,12 +386,19 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
     VMCPU_ASSERT_EMT(pVCpu);
     PGICDEV pThis  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
+    if (offReg >= GIC_DIST_REG_IROUTERn_OFF_START && offReg <= GIC_DIST_REG_IROUTERn_OFF_LAST)
+    {
+        *puValue = pThis->au32IntRouting[(offReg - GIC_DIST_REG_IROUTERn_OFF_START) / 4];
+        return VINF_SUCCESS;
+    }
+
     switch (offReg)
     {
         case GIC_DIST_REG_CTLR_OFF:
             *puValue =   (ASMAtomicReadBool(&pThis->fIrqGrp0Enabled) ? GIC_DIST_REG_CTRL_ENABLE_GRP0 : 0)
                        | (ASMAtomicReadBool(&pThis->fIrqGrp1Enabled) ? GIC_DIST_REG_CTRL_ENABLE_GRP1_NS : 0)
-                       | GIC_DIST_REG_CTRL_DS;
+                       | GIC_DIST_REG_CTRL_DS
+                       | GIC_DIST_REG_CTRL_ARE_S;
             break;
         case GIC_DIST_REG_TYPER_OFF:
             *puValue =   GIC_DIST_REG_TYPER_NUM_ITLINES_SET(1)  /** @todo 32 SPIs for now. */
@@ -467,15 +485,15 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         case GIC_DIST_REG_INMIn_OFF_START:
             AssertReleaseFailed();
             break;
-        case GIC_DIST_REG_IROUTERn_OFF_START: /* Only 32 lines for now. */
-            *puValue = 0; /** @todo */
-            break;
         case GIC_DIST_REG_PIDR2_OFF:
             *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(GIC_REDIST_REG_PIDR2_ARCH_REV_GICV3);
             break;
         case GIC_DIST_REG_IIDR_OFF:
         case GIC_DIST_REG_TYPER2_OFF:
             *puValue = 0;
+            break;
+        case GIC_DIST_REG_IROUTERn_OFF_START:
+            AssertFailed();
             break;
         default:
             *puValue = 0;
@@ -501,8 +519,10 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
 
     if (offReg >= GIC_DIST_REG_IROUTERn_OFF_START && offReg <= GIC_DIST_REG_IROUTERn_OFF_LAST)
     {
-        /** @todo Ignored for now, probably make this a MMIO2 region as it begins on 0x6000, see 12.9.22 of the GICv3 architecture
-         * reference manual. */
+        uint32_t idxReg = (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / 4;
+        LogFlowFunc(("GicDist: idxIRouter=%u uValue=%#x\n", idxReg, uValue));
+        if (idxReg < RT_ELEMENTS(pThis->au32IntRouting))
+            pThis->au32IntRouting[idxReg] = uValue;
         return VINF_SUCCESS;
     }
 
@@ -512,6 +532,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
         case GIC_DIST_REG_CTLR_OFF:
             ASMAtomicWriteBool(&pThis->fIrqGrp0Enabled, RT_BOOL(uValue & GIC_DIST_REG_CTRL_ENABLE_GRP0));
             ASMAtomicWriteBool(&pThis->fIrqGrp1Enabled, RT_BOOL(uValue & GIC_DIST_REG_CTRL_ENABLE_GRP1_NS));
+            Assert(!(uValue & GIC_DIST_REG_CTRL_ARE_NS));
             rcStrict = gicDistUpdateIrqState(pVM, pThis);
             break;
         case GIC_DIST_REG_STATUSR_OFF:
@@ -541,7 +562,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             rcStrict = gicDistUpdateIrqState(pVM, pThis);
             break;
         case GIC_DIST_REG_ICENABLERn_OFF_START:
-            //AssertReleaseFailed();
+            AssertReleaseFailed();
             break;
         case GIC_DIST_REG_ICENABLERn_OFF_START + 4: /* Only 32 lines for now. */
             ASMAtomicAndU32(&pThis->bmIntEnabled, ~uValue);
@@ -595,6 +616,15 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
             for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
             {
+#if 1
+                /** @todo r=aeichner This gross hack prevents Windows from hanging during boot because
+                 * it tries to set the interrupt priority for PCI interrupt lines to 0 which will cause an interrupt
+                 * storm later on because the lowest interrupt priority Windows seems to use is 32 for the per vCPU
+                 * timer.
+                 */
+                if ((uValue & 0xff) == 0)
+                    continue;
+#endif
                 pThis->abIntPriority[i] = (uint8_t)(uValue & 0xff);
                 uValue >>= 8;
             }
@@ -628,7 +658,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             AssertReleaseFailed();
             break;
         default:
-            AssertReleaseFailed();
+            //AssertReleaseFailed();
             break;
     }
 
@@ -968,6 +998,12 @@ VMM_INT_DECL(VBOXSTRICTRC) GICReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64
                 /* Drop priority. */
                 Assert((uint32_t)idxIntPending < RT_ELEMENTS(pThis->abIntPriority));
                 Assert(pThis->idxRunningPriority < RT_ELEMENTS(pThis->abRunningPriorities) - 1);
+
+                LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
+                             pThis->abRunningPriorities[pThis->idxRunningPriority],
+                             pThis->abIntPriority[idxIntPending],
+                             pThis->idxRunningPriority, pThis->idxRunningPriority + 1));
+
                 pThis->abRunningPriorities[++pThis->idxRunningPriority] = pThis->abIntPriority[idxIntPending];
 
                 /* Clear edge level interrupts like SGIs as pending. */
@@ -983,15 +1019,22 @@ VMM_INT_DECL(VBOXSTRICTRC) GICReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64
                 bmIntEnabled = ASMAtomicReadU32(&pGicDev->bmIntEnabled);
                 bmPending = (ASMAtomicReadU32(&pGicDev->bmIntPending) & bmIntEnabled) & ~bmIntActive;
                 idxIntPending = ASMBitFirstSet(&bmPending, sizeof(bmPending) * 8);
-                if (idxIntPending > -1)
+                if (   idxIntPending > -1
+                    && pGicDev->abIntPriority[idxIntPending] < pThis->bInterruptPriority)
                 {
                     /* Mark the interrupt as active. */
                     ASMAtomicOrU32(&pGicDev->bmIntActive, RT_BIT_32(idxIntPending));
 
                     /* Drop priority. */
-                    Assert((uint32_t)idxIntPending < RT_ELEMENTS(pThis->abIntPriority));
+                    Assert((uint32_t)idxIntPending < RT_ELEMENTS(pGicDev->abIntPriority));
                     Assert(pThis->idxRunningPriority < RT_ELEMENTS(pThis->abRunningPriorities) - 1);
-                    pThis->abRunningPriorities[++pThis->idxRunningPriority] = pThis->abIntPriority[idxIntPending];
+
+                    LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
+                                 pThis->abRunningPriorities[pThis->idxRunningPriority],
+                                 pThis->abIntPriority[idxIntPending],
+                                 pThis->idxRunningPriority, pThis->idxRunningPriority + 1));
+
+                    pThis->abRunningPriorities[++pThis->idxRunningPriority] = pGicDev->abIntPriority[idxIntPending];
 
                     *pu64Value = idxIntPending + GIC_INTID_RANGE_SPI_START;
                     gicReDistUpdateIrqState(pThis, pVCpu);
@@ -1005,8 +1048,28 @@ VMM_INT_DECL(VBOXSTRICTRC) GICReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_HPPIR1_EL1:
-            AssertReleaseFailed();
+        {
+            /** @todo Figure out the highest priority interrupt. */
+            uint32_t bmIntActive = ASMAtomicReadU32(&pThis->bmIntActive);
+            uint32_t bmIntEnabled = ASMAtomicReadU32(&pThis->bmIntEnabled);
+            uint32_t bmPending = (ASMAtomicReadU32(&pThis->bmIntPending) & bmIntEnabled) & ~bmIntActive;
+            int32_t idxIntPending = ASMBitFirstSet(&bmPending, sizeof(bmPending) * 8);
+            if (idxIntPending > -1)
+                *pu64Value = idxIntPending;
+            else
+            {
+                /** @todo This is wrong as the guest might decide to prioritize PPIs and SPIs differently. */
+                bmIntActive = ASMAtomicReadU32(&pGicDev->bmIntActive);
+                bmIntEnabled = ASMAtomicReadU32(&pGicDev->bmIntEnabled);
+                bmPending = (ASMAtomicReadU32(&pGicDev->bmIntPending) & bmIntEnabled) & ~bmIntActive;
+                idxIntPending = ASMBitFirstSet(&bmPending, sizeof(bmPending) * 8);
+                if (idxIntPending > -1)
+                    *pu64Value = idxIntPending + GIC_INTID_RANGE_SPI_START;
+                else
+                    *pu64Value = GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
+            }
             break;
+        }
         case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:
             *pu64Value = pThis->bBinaryPointGrp1 & 0x7;
             break;
@@ -1117,7 +1180,17 @@ VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
             if (u64Value & ARMV8_ICC_SGI1R_EL1_AARCH64_IRM)
             {
                 /* Route to all but this vCPU. */
-                AssertReleaseFailed();
+                for (uint32_t i = 0; i < pVCpu->pVMR3->cCpus; i++)
+                {
+                    if (i != pVCpu->idCpu)
+                    {
+                        PVMCPUCC pVCpuDst = VMMGetCpuById(pVCpu->CTX_SUFF(pVM), i);
+                        if (pVCpuDst)
+                            GICSgiSet(pVCpuDst, uIntId, true /*fAsserted*/);
+                        else
+                            AssertFailed();
+                    }
+                }
             }
             else
             {
@@ -1162,7 +1235,13 @@ VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
             /* Restore previous interrupt priority. */
             Assert(pThis->idxRunningPriority > 0);
             if (RT_LIKELY(pThis->idxRunningPriority))
+            {
+                LogFlowFunc(("Restoring interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
+                             pThis->abRunningPriorities[pThis->idxRunningPriority],
+                             pThis->abRunningPriorities[pThis->idxRunningPriority - 1],
+                             pThis->idxRunningPriority, pThis->idxRunningPriority - 1));
                 pThis->idxRunningPriority--;
+            }
             gicReDistUpdateIrqState(pThis, pVCpu);
             break;
         }

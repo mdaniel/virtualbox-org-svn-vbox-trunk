@@ -67,6 +67,7 @@
 
 #include "BusAssignmentManager.h"
 #include "ResourceAssignmentManager.h"
+#include "SystemTableBuilder.h"
 #ifdef VBOX_WITH_EXTPACK
 # include "ExtPackManagerImpl.h"
 #endif
@@ -187,6 +188,16 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                                                                                    VBOXPLATFORMARMV8_PHYS_ADDR + _1M,         /*GCPhysMmio32Start*/
                                                                                    _1G - (VBOXPLATFORMARMV8_PHYS_ADDR + _1M), /*cbMmio32*/
                                                                                    32                                         /*cInterrupts*/);
+    SystemTableBuilder *pSysTblsBldAcpi = NULL;
+
+    /*
+     * ACPI
+     */
+    BOOL fACPI;
+    hrc = firmwareSettings->COMGETTER(ACPIEnabled)(&fACPI);                                 H();
+    if (fACPI)
+        pSysTblsBldAcpi = SystemTableBuilder::createInstance(kSystemTableType_Acpi);
+
 
     /*
      * Get root node first.
@@ -270,6 +281,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible",         "fixed-clock");      VRC();
         vrc = RTFdtNodeFinalize(hFdt);
 
+        if (pSysTblsBldAcpi)
+        {
+            vrc = pSysTblsBldAcpi->configureClock();
+            VRC();
+        }
+
         /*
          * MM values.
          */
@@ -293,6 +310,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 2, GCPhysRam, cbRam);               VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "device_type",      "memory");             VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
+
+        if (pSysTblsBldAcpi)
+        {
+            vrc = pSysTblsBldAcpi->addMemory(GCPhysRam, cbRam);
+            VRC();
+        }
 
         /* Configure the CPUs in the system, only one socket and cluster at the moment. */
         vrc = RTFdtNodeAdd(hFdt, "cpus");                                                   VRC();
@@ -324,6 +347,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                 vrc = RTFdtNodePropertyAddString(hFdt, "enable-method",  "psci");           VRC();
             }
             vrc = RTFdtNodeFinalize(hFdt);                                                  VRC();
+
+            if (pSysTblsBldAcpi)
+            {
+                vrc = pSysTblsBldAcpi->addCpu(i);
+                VRC();
+            }
         }
 
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
@@ -440,6 +469,13 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddEmpty(   hFdt, "interrupt-controller");                               VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "#interrupt-cells", 3);                                VRC();
 
+        if (pSysTblsBldAcpi)
+        {
+            vrc = pSysTblsBldAcpi->configureGic(cCpus, GCPhysIntcDist, cbMmioIntcDist,
+                                                GCPhysIntcReDist, cbMmioIntcReDist);
+            VRC();
+        }
+
 #if 0
         vrc = RTFdtNodeAddF(hFdt, "its@%RX32", 0x08080000);                                 VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "phandle",          idPHandleIntCtrlMsi);  VRC();
@@ -473,6 +509,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
             vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 2, GCPhysMmioStart, cbMmio);    VRC();
             vrc = RTFdtNodePropertyAddString(  hFdt, "compatible", "qemu,fw-cfg-mmio");     VRC();
             vrc = RTFdtNodeFinalize(hFdt);                                                  VRC();
+
+            if (pSysTblsBldAcpi)
+            {
+                vrc = pSysTblsBldAcpi->addMmioDeviceNoIrq("qemu-fw-cfg", 0, GCPhysMmioStart, cbMmio);
+                VRC();
+            }
         }
 
         InsertConfigNode(pDevices, "flash-cfi",         &pDev);
@@ -529,6 +571,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
             vrc = RTFdtNodePropertyAddStringList(hFdt, "compatible", 2,
                                                  "arm,pl011", "arm,primecell");                     VRC();
             vrc = RTFdtNodeFinalize(hFdt);                                                          VRC();
+
+            if (pSysTblsBldAcpi)
+            {
+                vrc = pSysTblsBldAcpi->addMmioDevice("arm-pl011", ulInstance, GCPhysMmioStart, cbMmio, iIrq);
+                VRC();
+            }
 
             BOOL  fServer;
             hrc = serialPort->COMGETTER(Server)(&fServer);                                  H();
@@ -587,6 +635,12 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                                              "arm,pl061", "arm,primecell");                 VRC();
         vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 2, GCPhysMmioStart, cbMmio);        VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
+
+        if (pSysTblsBldAcpi)
+        {
+            vrc = pSysTblsBldAcpi->addMmioDevice("arm-pl061-gpio", 0, GCPhysMmioStart, _4K, iIrq); 
+            VRC();
+        }
 
         InsertConfigNode(pInst,    "LUN#0",           &pLunL0);
         InsertConfigString(pLunL0, "Driver",          "GpioButton");
@@ -677,6 +731,13 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddString(  hFdt, "device_type", "pci");                         VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible", "pci-host-ecam-generic");        VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                          VRC();
+
+        if (pSysTblsBldAcpi)
+        {
+            vrc = pSysTblsBldAcpi->configurePcieRootBus("pci-generic-ecam", aPinIrqs, GCPhysMmioStart, GCPhysPciMmioEcam,
+                                                        cbPciMmioEcam, GCPhysMmioStart, cbMmio, GCPhysPciMmio32, cbPciMmio32);
+            VRC();
+        }
 
         /*
          * VMSVGA compliant graphics controller.
@@ -801,6 +862,33 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
     hrc = pResMgr->queryMmio32Region(&GCPhysMmio32Start, &cbMmio32);
     Assert(SUCCEEDED(hrc));
 
+    RTGCPHYS GCPhysXsdp = NIL_RTGCPHYS;
+    size_t cbAcpiXsdp = 0;
+    size_t cbAcpi     = 0;
+    if (pSysTblsBldAcpi)
+    {
+        vrc = pSysTblsBldAcpi->finishTables(VBOXPLATFORMARMV8_PHYS_ADDR + sizeof(ArmV8Platform) + RT_ALIGN_64(cbFdt, _64K),
+                                            hVfsIosDesc, &GCPhysXsdp, &cbAcpiXsdp, &cbAcpi);
+        AssertRCReturn(vrc, vrc);
+        Assert(GCPhysXsdp > VBOXPLATFORMARMV8_PHYS_ADDR);
+
+        /* Dump the ACPI table for debugging purposes if requested. */
+        Bstr SysTblsDumpVal;
+        hrc = mMachine->GetExtraData(Bstr("VBoxInternal2/DumpSysTables").raw(),
+                                     SysTblsDumpVal.asOutParam());
+        if (   hrc == S_OK
+            && SysTblsDumpVal.isNotEmpty())
+        {
+            vrc = pSysTblsBldAcpi->dumpTables(Utf8Str(SysTblsDumpVal).c_str());
+            AssertRCReturn(vrc, vrc);
+        }
+
+        delete pSysTblsBldAcpi;
+
+        vrc = RTVfsIoStrmZeroFill(hVfsIosDesc, (RTFOFF)(RT_ALIGN_64(cbAcpi, _64K) - cbAcpi));
+        AssertRCReturn(vrc, vrc);
+    }
+
     ArmV8Platform.u32Magic            = VBOXPLATFORMARMV8_MAGIC;
     ArmV8Platform.u32Version          = VBOXPLATFORMARMV8_VERSION;
     ArmV8Platform.cbDesc              = sizeof(ArmV8Platform);
@@ -809,8 +897,13 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
     ArmV8Platform.cbRamBase           = cbRam;
     ArmV8Platform.i64OffFdt           = sizeof(ArmV8Platform);
     ArmV8Platform.cbFdt               = RT_ALIGN_64(cbFdt, _64K);
-    ArmV8Platform.i64OffAcpiXsdp      = 0;
-    ArmV8Platform.cbAcpiXsdp          = 0;
+    if (cbAcpi)
+    {
+        ArmV8Platform.i64OffAcpi      = sizeof(ArmV8Platform) + RT_ALIGN_64(cbFdt, _64K);
+        ArmV8Platform.cbAcpi          = RT_ALIGN_64(cbAcpi, _64K);
+        ArmV8Platform.i64OffAcpiXsdp  = GCPhysXsdp - VBOXPLATFORMARMV8_PHYS_ADDR;
+        ArmV8Platform.cbAcpiXsdp      = cbAcpiXsdp;
+    }
     ArmV8Platform.i64OffUefiRom       = -128 * _1M;
     ArmV8Platform.cbUefiRom           = _64M;
     ArmV8Platform.i64OffMmio          = GCPhysMmioStart - _128M;

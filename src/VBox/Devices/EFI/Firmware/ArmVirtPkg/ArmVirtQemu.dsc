@@ -477,6 +477,10 @@
       # Optimized SetMem doesn't work on VGA framebuffer.
       BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   }
+
+  MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
+  MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
+  MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
 !endif
 
   #

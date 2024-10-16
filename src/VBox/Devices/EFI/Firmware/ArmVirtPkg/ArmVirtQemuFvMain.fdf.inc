@@ -103,6 +103,10 @@ READ_LOCK_STATUS   = TRUE
 
 !ifdef $(VBOX)
   INF VBoxPkg/VmwSvga3Dxe/VmwSvga3VideoDxe.inf
+
+  INF MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
+  INF MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
+  INF MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
 !endif
 
 

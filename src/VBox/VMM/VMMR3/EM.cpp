@@ -883,7 +883,6 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
 #if !defined(VBOX_VMM_TARGET_ARMV8)
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_HM)
                     rc = EMR3HmSingleInstruction(pVM, pVCpu, 0 /*fFlags*/);
-#endif
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_NEM)
                     rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
                 else
@@ -892,7 +891,7 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                     if (rc == VINF_SUCCESS || rc == VINF_EM_RESCHEDULE)
                         rc = VINF_EM_DBG_STEPPED;
                 }
-#ifndef VBOX_VMM_TARGET_ARMV8
+
                 if (rc != VINF_EM_EMULATE_SPLIT_LOCK)
                 { /* likely */ }
                 else
@@ -901,6 +900,10 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                     if (rc == VINF_SUCCESS || rc == VINF_EM_RESCHEDULE)
                         rc = VINF_EM_DBG_STEPPED;
                 }
+#else
+                AssertMsg(pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_NEM,
+                          ("%u\n", pVCpu->em.s.enmState));
+                rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
 #endif
                 break;
 
@@ -2398,8 +2401,13 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                     }
                     else
                     {
+#ifdef VBOX_VMM_TARGET_ARMV8
+                        Log2(("EMR3ExecuteVM: %Rrc: %d -> %d\n", rc, enmOldState, EMSTATE_DEBUG_GUEST_NEM));
+                        pVCpu->em.s.enmState = EMSTATE_DEBUG_GUEST_NEM; /** @todo No IEM yet and this gets selected if enmOldState == EMSTATE_HALTED. */
+#else
                         Log2(("EMR3ExecuteVM: %Rrc: %d -> %d\n", rc, enmOldState, EMSTATE_DEBUG_GUEST_IEM));
                         pVCpu->em.s.enmState = EMSTATE_DEBUG_GUEST_IEM;
+#endif
                     }
                     break;
 

@@ -491,7 +491,6 @@ static DECLCALLBACK(void) vboxWinDrvInstLogCallback(VBOXWINDRIVERLOGTYPE enmType
 /**
  * Writes the driver log file header.
  *
- * @returns VBox status code.
  * @param   hLog                Handle to log file.
  * @param   pwszInfFile         INF file this log belongs to.
  */

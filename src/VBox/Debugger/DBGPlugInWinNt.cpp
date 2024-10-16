@@ -250,11 +250,11 @@ typedef struct DBGDIGGERWINNT
     /** Whether the information is valid or not.
      * (For fending off illegal interface method calls.) */
     bool                fValid;
-    /** 32-bit (true) or 64-bit (false) */
-    bool                f32Bit;
     /** Set if NT 3.1 was detected.
      * This implies both Misc.VirtualSize and NTMTE32::SizeOfImage are zero. */
     bool                fNt31;
+    /** Detected architecture. */
+    RTLDRARCH           enmArch;
 
     /** The NT version. */
     DBGDIGGERWINNTVER   enmVer;
@@ -270,7 +270,7 @@ typedef struct DBGDIGGERWINNT
     /** The address of the bootmgr image if early during boot. */
     DBGFADDRESS         BootMgrAddr;
     /** The address of the winload.exe image if early during boot.
-     * When this is set, f32Bit has also been determined.  */
+     * When this is set, enmArch has also been determined.  */
     DBGFADDRESS         WinLoadAddr;
 
     /** The address of the ntoskrnl.exe image. */
@@ -341,10 +341,12 @@ typedef DBGDIGGERWINNTRDR *PDBGDIGGERWINNTRDR;
 #define WINNT32_VALID_ADDRESS(Addr)         ((Addr) >         UINT32_C(0x80000000) && (Addr) <         UINT32_C(0xfffff000))
 /** Validates a 64-bit Windows NT kernel address */
 #define WINNT64_VALID_ADDRESS(Addr)         ((Addr) > UINT64_C(0xffff800000000000) && (Addr) < UINT64_C(0xfffffffffffff000))
+/** Returns whether this is a 32-bit Windows NT kernel. */
+#define WINNT_IS_32BIT(a_pThis)             ((a_pThis)->enmArch == RTLDRARCH_X86_32)
 /** Validates a kernel address. */
-#define WINNT_VALID_ADDRESS(pThis, Addr)    ((pThis)->f32Bit ? WINNT32_VALID_ADDRESS(Addr) : WINNT64_VALID_ADDRESS(Addr))
+#define WINNT_VALID_ADDRESS(pThis, Addr)    (WINNT_IS_32BIT(pThis) ? WINNT32_VALID_ADDRESS(Addr) : WINNT64_VALID_ADDRESS(Addr))
 /** Versioned and bitness wrapper. */
-#define WINNT_UNION(pThis, pUnion, Member)  ((pThis)->f32Bit ? (pUnion)->vX_32. Member : (pUnion)->vX_64. Member )
+#define WINNT_UNION(pThis, pUnion, Member)  (WINNT_IS_32BIT(pThis) ? (pUnion)->vX_32. Member : (pUnion)->vX_64. Member )
 
 /** The length (in chars) of the kernel file name (no path). */
 #define WINNT_KERNEL_BASE_NAME_LEN          12
@@ -442,7 +444,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgDiggerWinNtDbgPrintHit(PVM pVM, VMCPUID idC
     char aszPrefixStr[128]; /* Restricted size. */
     char aszFmtStr[_1K]; /* Restricted size. */
     DBGFADDRESS AddrVaList;
-    if (!pThis->f32Bit)
+    if (pThis->enmArch != RTLDRARCH_X86_32)
     {
         /*
          * Grab the prefix, component, level, format string pointer from the registers and the argument list from the
@@ -519,7 +521,7 @@ static bool dbgDiggerWinNtDbgPrintWrapperInsnIsCall(PDBGDIGGERWINNT pThis, PUVM 
     if (RT_SUCCESS(rc))
     {
         uint32_t cbInsn = 0;
-        rc = DISInstr(&abInstr[0], pThis->f32Bit ? DISCPUMODE_32BIT : DISCPUMODE_64BIT, &DisState, &cbInsn);
+        rc = DISInstr(&abInstr[0], pThis->enmArch == RTLDRARCH_X86_32 ? DISCPUMODE_32BIT : DISCPUMODE_64BIT, &DisState, &cbInsn);
         if (   RT_SUCCESS(rc)
             && DisState.pCurInstr->uOpcode == OP_CALL
             && DisState.Param1.fUse & DISUSE_IMMEDIATE)
@@ -701,7 +703,7 @@ static void dbgDiggerWinNtResolveKpcr(PDBGDIGGERWINNT pThis, PUVM pUVM, PCVMMR3V
             PDBGFADDRESS pKpcrAddr = &pThis->paKpcrAddr[idCpu];
             PDBGFADDRESS pKpcrbAddr = &pThis->paKpcrbAddr[idCpu];
 
-            if (pThis->f32Bit)
+            if (pThis->enmArch == RTLDRARCH_X86_32)
             {
                 /* Read FS base */
                 uint32_t GCPtrKpcrBase = 0;
@@ -969,10 +971,10 @@ static bool dbgDiggerWinNtIsBootMgr(PUVM pUVM, PCVMMR3VTABLE pVMM, PCDBGFADDRESS
  * early during the BIOS or EFI boot process.
  */
 static bool dbgDiggerWinNtIsWinLoad(PUVM pUVM, PCVMMR3VTABLE pVMM, PCDBGFADDRESS pAddr, uint8_t const *pbHdrs, size_t cbHdrs,
-                                    bool *pf32Bit, uint32_t *pcbImage, uint32_t *puNtMajorVersion, uint32_t *puNtMinorVersion)
+                                    RTLDRARCH *penmArch, uint32_t *pcbImage, uint32_t *puNtMajorVersion, uint32_t *puNtMinorVersion)
 {
-    if (pf32Bit)
-        *pf32Bit = false;
+    if (penmArch)
+        *penmArch = RTLDRARCH_X86_32;
     if (pcbImage)
         *pcbImage = 0;
     if (puNtMajorVersion)
@@ -1006,10 +1008,22 @@ static bool dbgDiggerWinNtIsWinLoad(PUVM pUVM, PCVMMR3VTABLE pVMM, PCDBGFADDRESS
         || pHdrs32->FileHeader.NumberOfSections >= 15)
         return false;
     bool f32Bit;
+    RTLDRARCH enmArch;
     if (pHdrs32->FileHeader.Machine == IMAGE_FILE_MACHINE_I386)
+    {
         f32Bit = true;
+        enmArch = RTLDRARCH_X86_32;
+    }
     else if (pHdrs32->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
+    {
         f32Bit = false;
+        enmArch = RTLDRARCH_AMD64;
+    }
+    else if (pHdrs32->FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
+    {
+        f32Bit = false;
+        enmArch = RTLDRARCH_ARM64;
+    }
     else
         return false;
     if (pHdrs32->FileHeader.SizeOfOptionalHeader != (f32Bit ? sizeof(IMAGE_OPTIONAL_HEADER32) : sizeof(IMAGE_OPTIONAL_HEADER64)))
@@ -1085,8 +1099,8 @@ static bool dbgDiggerWinNtIsWinLoad(PUVM pUVM, PCVMMR3VTABLE pVMM, PCDBGFADDRESS
     if (RTStrICmpAscii(szActualName, s_szWinLoadSys) != 0)
         return false;
 
-    if (pf32Bit)
-        *pf32Bit  = f32Bit;
+    if (penmArch)
+        *penmArch  = enmArch;
     if (pcbImage)
         *pcbImage = pHdrs32->OptionalHeader.SizeOfImage;
     /* Note! We could get more accurate version info from the resource section if we wanted to... */
@@ -1132,7 +1146,7 @@ static void dbgDiggerWinNtProcessImage(PDBGDIGGERWINNT pThis, PUVM pUVM, PCVMMR3
      * Use the common in-memory module reader to create a debug module.
      */
     if (enmArch == RTLDRARCH_WHATEVER)
-        enmArch = pThis->f32Bit ? RTLDRARCH_X86_32 : RTLDRARCH_AMD64;
+        enmArch = pThis->enmArch;
     RTERRINFOSTATIC ErrInfo;
     RTDBGMOD        hDbgMod = NIL_RTDBGMOD;
     int rc = pVMM->pfnDBGFR3ModInMem(pUVM, pImageAddr, pThis->fNt31 ? DBGFMODINMEM_F_PE_NT31 : 0, pszName, pszFilename,
@@ -1227,7 +1241,7 @@ static DECLCALLBACK(int) dbgDiggerWinNtIWinNt_QueryVersion(struct DBGFOSIWINNT *
     if (puBuildNumber)
         *puBuildNumber = pData->NtBuildNumber;
     if (pf32Bit)
-        *pf32Bit = pData->f32Bit;
+        *pf32Bit = WINNT_IS_32BIT(pData);
     return VINF_SUCCESS;
 }
 
@@ -1463,8 +1477,16 @@ static DECLCALLBACK(int)  dbgDiggerWinNtQueryVersion(PUVM pUVM, PCVMMR3VTABLE pV
         default:                        pszNtProductType = "";              break;
     }
 
+    const char *pszArch;
+    switch (pThis->enmArch)
+    {
+        case RTLDRARCH_X86_32: pszArch = "x86";   break;
+        case RTLDRARCH_AMD64:  pszArch = "AMD64"; break;
+        case RTLDRARCH_ARM64:  pszArch = "ARM64"; break;
+        default:               pszArch = "<??>";  break;
+    }
     RTStrPrintf(pszVersion, cchVersion, "%u.%u-%s%s (BuildNumber %u)", pThis->NtMajorVersion, pThis->NtMinorVersion,
-                pThis->f32Bit ? "x86" : "AMD64", pszNtProductType, pThis->NtBuildNumber);
+                pszArch, pszNtProductType, pThis->NtBuildNumber);
     return VINF_SUCCESS;
 }
 
@@ -1604,7 +1626,7 @@ static DECLCALLBACK(int)  dbgDiggerWinNtInit(PUVM pUVM, PCVMMR3VTABLE pVMM, void
     /*
      * Try figure the NT version.
      */
-    pVMM->pfnDBGFR3AddrFromFlat(pUVM, &Addr, pThis->f32Bit ? NTKUSERSHAREDDATA_WINNT32 : NTKUSERSHAREDDATA_WINNT64);
+    pVMM->pfnDBGFR3AddrFromFlat(pUVM, &Addr, WINNT_IS_32BIT(pThis) ? NTKUSERSHAREDDATA_WINNT32 : NTKUSERSHAREDDATA_WINNT64);
     rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, &Addr, &u, GUEST_PAGE_SIZE);
     if (RT_SUCCESS(rc))
     {
@@ -1640,7 +1662,7 @@ static DECLCALLBACK(int)  dbgDiggerWinNtInit(PUVM pUVM, PCVMMR3VTABLE pVMM, void
     {
         /* Read the validate the MTE. */
         NTMTE Mte;
-        rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, &Addr, &Mte, pThis->f32Bit ? sizeof(Mte.vX_32) : sizeof(Mte.vX_64));
+        rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, &Addr, &Mte, WINNT_IS_32BIT(pThis) ? sizeof(Mte.vX_32) : sizeof(Mte.vX_64));
         if (RT_FAILURE(rc))
             break;
         if (WINNT_UNION(pThis, &Mte, InLoadOrderLinks.Blink) != AddrPrev.FlatPtr)
@@ -1767,8 +1789,8 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
     RT_ZERO(pThis->KernelAddr);
     RT_ZERO(pThis->KernelMteAddr);
     RT_ZERO(pThis->PsLoadedModuleListAddr);
-    pThis->f32Bit = false;
-    pThis->fNt31  = false;
+    pThis->enmArch = RTLDRARCH_WHATEVER;
+    pThis->fNt31   = false;
 
     /*
      * Look for the BootMgr/BootLib.dll module at 0x400000.
@@ -1807,11 +1829,11 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
                                         pVMM->pfnDBGFR3AddrFromFlat(pUVM, &AddrMz,
                                                                     Addr.FlatPtr & ~(RTGCUINTPTR)GUEST_PAGE_OFFSET_MASK),
                                         &u.au8[0], sizeof(u));
-            bool f32Bit = false;
-            if (RT_SUCCESS(rc) && dbgDiggerWinNtIsWinLoad(pUVM, pVMM, &AddrMz, &u.au8[0], sizeof(u), &f32Bit, NULL, NULL, NULL))
+            RTLDRARCH enmArch = RTLDRARCH_WHATEVER;
+            if (RT_SUCCESS(rc) && dbgDiggerWinNtIsWinLoad(pUVM, pVMM, &AddrMz, &u.au8[0], sizeof(u), &enmArch, NULL, NULL, NULL))
             {
                 pThis->WinLoadAddr = AddrMz;
-                pThis->f32Bit      = f32Bit;
+                pThis->enmArch     = enmArch;
                 fRet = true;
                 break;
             }
@@ -1823,57 +1845,89 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
      * NT only runs in protected or long mode.
      */
     CPUMMODE const enmMode = pVMM->pfnDBGFR3CpuGetMode(pUVM, 0 /*idCpu*/);
-    if (enmMode != CPUMMODE_PROTECTED && enmMode != CPUMMODE_LONG)
+    if (enmMode != CPUMMODE_PROTECTED && enmMode != CPUMMODE_LONG && enmMode != CPUMMODE_ARMV8_AARCH64)
         return fRet;
     bool const      f64Bit = enmMode == CPUMMODE_LONG
-                          || (DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr) && !pThis->f32Bit);
+                          || enmMode == CPUMMODE_ARMV8_AARCH64
+                          || (DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr) && !WINNT_IS_32BIT(pThis));
     uint64_t const  uStart = f64Bit ? UINT64_C(0xffff800000000000) : UINT32_C(0x80001000);
     uint64_t const  uEnd   = f64Bit ? UINT64_C(0xffffffffffff0000) : UINT32_C(0xffff0000);
 
-    /*
-     * To approximately locate the kernel we examine the IDTR handlers.
-     *
-     * The exception/trap/fault handlers are all in NT kernel image, we pick
-     * KiPageFault here.
-     */
-    uint64_t uIdtrBase = 0;
-    uint16_t uIdtrLimit = 0;
-    int rc = pVMM->pfnDBGFR3RegCpuQueryXdtr(pUVM, 0, DBGFREG_IDTR, &uIdtrBase, &uIdtrLimit);
-    AssertRCReturn(rc, fRet);
-
-    const uint16_t cbMinIdtr = (X86_XCPT_PF + 1) * (f64Bit ? sizeof(X86DESC64GATE) : sizeof(X86DESCGATE));
-    if (uIdtrLimit < cbMinIdtr)
-        return fRet;
-
-    rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, pVMM->pfnDBGFR3AddrFromFlat(pUVM, &Addr, uIdtrBase), &u, cbMinIdtr);
-    if (RT_FAILURE(rc))
-        return fRet;
-
     uint64_t uKrnlStart = uStart;
     uint64_t uKrnlEnd   = uEnd;
-    if (f64Bit)
+
+    int rc;
+    if (enmMode == CPUMMODE_ARMV8_AARCH64)
     {
-        uint64_t uHandler = u.a64Gates[X86_XCPT_PF].u16OffsetLow
-                          | ((uint32_t)u.a64Gates[X86_XCPT_PF].u16OffsetHigh << 16)
-                          | ((uint64_t)u.a64Gates[X86_XCPT_PF].u32OffsetTop  << 32);
-        if (uHandler >= uStart && uHandler <= uEnd)
+        /*
+         * To approximately locate the kernel we use the exception table base address
+         * which contains actual instructions so it is located in the NT kernel image.
+         */
+        uint64_t uVBarBase = 0;
+        rc = pVMM->pfnDBGFR3RegCpuQueryU64(pUVM, 0, DBGFREG_ARMV8_VBAR_EL1, &uVBarBase);
+        AssertRCReturn(rc, fRet);
+
+        if (f64Bit)
         {
-            uKrnlStart = (uHandler & ~(uint64_t)_4M) - _512M;
-            uKrnlEnd   = (uHandler + (uint64_t)_4M) & ~(uint64_t)_4M;
+            if (uVBarBase >= uStart && uVBarBase <= uEnd)
+            {
+                uKrnlStart = (uVBarBase & ~(uint64_t)_4M) - _512M;
+                uKrnlEnd   = (uVBarBase + (uint64_t)_4M) & ~(uint64_t)_4M;
+            }
+            else if (!DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr))
+                return fRet;
         }
-        else if (!DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr))
+        else
+        {
+            AssertFailed();
             return fRet;
+        }
     }
     else
     {
-        uint32_t uHandler = RT_MAKE_U32(u.a32Gates[X86_XCPT_PF].u16OffsetLow, u.a32Gates[X86_XCPT_PF].u16OffsetHigh);
-        if (uHandler >= uStart && uHandler <= uEnd)
-        {
-            uKrnlStart = (uHandler & ~(uint64_t)_4M) - _64M;
-            uKrnlEnd   = (uHandler + (uint64_t)_4M) & ~(uint64_t)_4M;
-        }
-        else if (!DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr))
+        /*
+         * To approximately locate the kernel we examine the IDTR handlers.
+         *
+         * The exception/trap/fault handlers are all in NT kernel image, we pick
+         * KiPageFault here.
+         */
+        uint64_t uIdtrBase = 0;
+        uint16_t uIdtrLimit = 0;
+        rc = pVMM->pfnDBGFR3RegCpuQueryXdtr(pUVM, 0, DBGFREG_IDTR, &uIdtrBase, &uIdtrLimit);
+        AssertRCReturn(rc, fRet);
+
+        const uint16_t cbMinIdtr = (X86_XCPT_PF + 1) * (f64Bit ? sizeof(X86DESC64GATE) : sizeof(X86DESCGATE));
+        if (uIdtrLimit < cbMinIdtr)
             return fRet;
+
+        rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, pVMM->pfnDBGFR3AddrFromFlat(pUVM, &Addr, uIdtrBase), &u, cbMinIdtr);
+        if (RT_FAILURE(rc))
+            return fRet;
+
+        if (f64Bit)
+        {
+            uint64_t uHandler = u.a64Gates[X86_XCPT_PF].u16OffsetLow
+                              | ((uint32_t)u.a64Gates[X86_XCPT_PF].u16OffsetHigh << 16)
+                              | ((uint64_t)u.a64Gates[X86_XCPT_PF].u32OffsetTop  << 32);
+            if (uHandler >= uStart && uHandler <= uEnd)
+            {
+                uKrnlStart = (uHandler & ~(uint64_t)_4M) - _512M;
+                uKrnlEnd   = (uHandler + (uint64_t)_4M) & ~(uint64_t)_4M;
+            }
+            else if (!DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr))
+                return fRet;
+        }
+        else
+        {
+            uint32_t uHandler = RT_MAKE_U32(u.a32Gates[X86_XCPT_PF].u16OffsetLow, u.a32Gates[X86_XCPT_PF].u16OffsetHigh);
+            if (uHandler >= uStart && uHandler <= uEnd)
+            {
+                uKrnlStart = (uHandler & ~(uint64_t)_4M) - _64M;
+                uKrnlEnd   = (uHandler + (uint64_t)_4M) & ~(uint64_t)_4M;
+            }
+            else if (!DBGFADDRESS_IS_VALID(&pThis->WinLoadAddr))
+                return fRet;
+        }
     }
 
     /*
@@ -1975,7 +2029,7 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
                                     pThis->KernelAddr               = KernelAddr;
                                     pThis->KernelMteAddr            = MteAddr;
                                     pThis->PsLoadedModuleListAddr   = Addr;
-                                    pThis->f32Bit                   = true;
+                                    pThis->enmArch                  = RTLDRARCH_X86_32;
                                     pThis->fNt31                    = fNt31;
                                     return true;
                                 }
@@ -2002,13 +2056,14 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
             {
                 IMAGE_NT_HEADERS64 const *pHdrs = (IMAGE_NT_HEADERS64 const *)&u.au8[u.MzHdr.e_lfanew];
                 if (    pHdrs->Signature                            == IMAGE_NT_SIGNATURE
-                    &&  pHdrs->FileHeader.Machine                   == IMAGE_FILE_MACHINE_AMD64
-                    &&  pHdrs->FileHeader.SizeOfOptionalHeader      == sizeof(pHdrs->OptionalHeader)
+                    &&  (   pHdrs->FileHeader.Machine               == IMAGE_FILE_MACHINE_AMD64
+                         || pHdrs->FileHeader.Machine               == IMAGE_FILE_MACHINE_ARM64)
+                    //&&  pHdrs->FileHeader.SizeOfOptionalHeader      == sizeof(pHdrs->OptionalHeader)
                     &&  pHdrs->FileHeader.NumberOfSections          >= 10 /* the kernel has lots */
-                    &&      (pHdrs->FileHeader.Characteristics & (IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_DLL))
-                         == IMAGE_FILE_EXECUTABLE_IMAGE
+                    //&&      (pHdrs->FileHeader.Characteristics & (IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_DLL))
+                    //   == (IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_DLL)
                     &&  pHdrs->OptionalHeader.Magic                 == IMAGE_NT_OPTIONAL_HDR64_MAGIC
-                    &&  pHdrs->OptionalHeader.NumberOfRvaAndSizes   == IMAGE_NUMBEROF_DIRECTORY_ENTRIES
+                    //&&  pHdrs->OptionalHeader.NumberOfRvaAndSizes   == IMAGE_NUMBEROF_DIRECTORY_ENTRIES
                     )
                 {
                     /* Find the MTE. */
@@ -2059,12 +2114,14 @@ static DECLCALLBACK(bool)  dbgDiggerWinNtProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, vo
                                     && uMte3.v64.InLoadOrderLinks.Flink == MteAddr.FlatPtr
                                     && WINNT64_VALID_ADDRESS(uMte3.v64.InLoadOrderLinks.Blink) )
                                 {
-                                    Log(("DigWinNt: MteAddr=%RGv KernelAddr=%RGv SizeOfImage=%x &PsLoadedModuleList=%RGv (32-bit)\n",
+                                    Log(("DigWinNt: MteAddr=%RGv KernelAddr=%RGv SizeOfImage=%x &PsLoadedModuleList=%RGv (64-bit)\n",
                                          MteAddr.FlatPtr, KernelAddr.FlatPtr, uMte2.v64.SizeOfImage, Addr.FlatPtr));
                                     pThis->KernelAddr               = KernelAddr;
                                     pThis->KernelMteAddr            = MteAddr;
                                     pThis->PsLoadedModuleListAddr   = Addr;
-                                    pThis->f32Bit                   = false;
+                                    pThis->enmArch                  =   enmMode == CPUMMODE_LONG
+                                                                      ? RTLDRARCH_AMD64
+                                                                      : RTLDRARCH_ARM64;
                                     pThis->fNt31                    = false;
                                     return true;
                                 }
@@ -2111,7 +2168,7 @@ static DECLCALLBACK(int)  dbgDiggerWinNtConstruct(PUVM pUVM, PCVMMR3VTABLE pVMM,
     RT_NOREF(pUVM, pVMM);
     PDBGDIGGERWINNT pThis = (PDBGDIGGERWINNT)pvData;
     pThis->fValid      = false;
-    pThis->f32Bit      = false;
+    pThis->enmArch     = RTLDRARCH_WHATEVER;
     pThis->enmVer      = DBGDIGGERWINNTVER_UNKNOWN;
 
     pThis->IWinNt.u32Magic               = DBGFOSIWINNT_MAGIC;

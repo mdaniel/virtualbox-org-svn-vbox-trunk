@@ -596,6 +596,12 @@
 /** FPSR register - RW. */
 #define ARMV8_AARCH64_SYSREG_FPSR                   ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 4, 4, 1)
 
+/** PMCR_EL0 register - RW. */
+#define ARMV8_AARCH64_SYSREG_PMCR_EL0               ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 9, 12, 0)
+
+/** PMCCNTR_EL0 register - RW. */
+#define ARMV8_AARCH64_SYSREG_PMCCNTR_EL0            ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 9, 13, 0)
+
 /** ICC_SRE_EL2 register - RW. */
 #define ARMV8_AARCH64_SYSREG_ICC_SRE_EL2            ARMV8_AARCH64_SYSREG_ID_CREATE(3, 4, 12,  9, 5)
 
@@ -1398,10 +1404,18 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 #define ARMV8_TTBR_EL1_AARCH64_CNP_BIT                          0
 /** Bit 1 - 47 - Translation table base address. */
 #define ARMV8_TTBR_EL1_AARCH64_BADDR                            UINT64_C(0x0000fffffffffffe)
-#define ARMV8_TTBR_EL1_AARCH64_BADDR_GET(a_Ttbr)                (((a_Ttbr) & ARMV8_TTBR_EL1_AARCH64_BADDR) >> 1)
+#define ARMV8_TTBR_EL1_AARCH64_BADDR_GET(a_Ttbr)                ((a_Ttbr) & ARMV8_TTBR_EL1_AARCH64_BADDR)
 /** Bit 48 - 63 - ASID. */
 #define ARMV8_TTBR_EL1_AARCH64_ASID                             UINT64_C(0xffff000000000000)
 #define ARMV8_TTBR_EL1_AARCH64_ASID_GET(a_Ttbr)                 (((a_Ttbr) & ARMV8_TTBR_EL1_AARCH64_ASID) >> 48)
+/** @} */
+
+
+/** @name MDSCR_EL1 - MOnitor Debug System Control Register (EL1).
+ * @{ */
+/** Bit 0 - SS - Software step control bit. */
+#define ARMV8_MDSCR_EL1_AARCH64_SS                              RT_BIT_64(0)
+#define ARMV8_MDSCR_EL1_AARCH64_SS_BIT                          0
 /** @} */
 
 

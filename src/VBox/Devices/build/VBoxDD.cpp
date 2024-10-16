@@ -533,6 +533,9 @@ extern "C" DECLEXPORT(int) VBoxUsbRegister(PCPDMUSBREGCB pCallbacks, uint32_t u3
     rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbHidMou);
     if (RT_FAILURE(rc))
         return rc;
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbEth);
+    if (RT_FAILURE(rc))
+        return rc;
 #endif
 #ifdef VBOX_WITH_USB_VIDEO_IMPL
     rc = pCallbacks->pfnRegister(pCallbacks, &g_DevWebcam);

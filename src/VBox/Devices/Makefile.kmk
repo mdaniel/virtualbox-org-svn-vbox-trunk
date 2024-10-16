@@ -217,6 +217,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  	Network/DevPCNet.cpp \
  	Network/DevDP8390.cpp \
  	Network/Dev3C501.cpp \
+ 	Network/UsbEth.cpp \
  	PC/DevDMA.cpp \
  	PC/DevHPET.cpp \
  	PC/DevIoApic.cpp \

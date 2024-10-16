@@ -68,8 +68,8 @@
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 static DECLCALLBACK(int) dbgSymSrvOpen(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void **ppvHandle);
-static DECLCALLBACK(int) dbgSymSrvRead(PRTHTTPCALLBACKDATA pData, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead);
-static DECLCALLBACK(int) dbgSymSrvClose(PRTHTTPCALLBACKDATA pData, void *pvHandle);
+static DECLCALLBACK(int) dbgSymSrvRead(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead);
+static DECLCALLBACK(int) dbgSymSrvClose(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void *pvHandle);
 static DECLCALLBACK(int) dbgSymSrvQueryInfo(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, PRTFSOBJINFO pObjInfo, char **ppszMIMEHint);
 static DECLCALLBACK(int) dbgSymSrvDestroy(PRTHTTPCALLBACKDATA pData);
 
@@ -96,6 +96,8 @@ static const char *g_pszWinePath = NULL;
 /** Server callbacks. */
 static RTHTTPSERVERCALLBACKS g_SrvCallbacks =
 {
+    NULL,
+    NULL,
     dbgSymSrvOpen,
     dbgSymSrvRead,
     dbgSymSrvClose,
@@ -375,16 +377,16 @@ static DECLCALLBACK(int) dbgSymSrvOpen(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERR
 }
 
 
-static DECLCALLBACK(int) dbgSymSrvRead(PRTHTTPCALLBACKDATA pData, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead)
+static DECLCALLBACK(int) dbgSymSrvRead(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead)
 {
-    RT_NOREF(pData);
+    RT_NOREF(pReq, pData);
     return RTFileRead((RTFILE)pvHandle, pvBuf, cbBuf, pcbRead);
 }
 
 
-static DECLCALLBACK(int) dbgSymSrvClose(PRTHTTPCALLBACKDATA pData, void *pvHandle)
+static DECLCALLBACK(int) dbgSymSrvClose(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void *pvHandle)
 {
-    RT_NOREF(pData);
+    RT_NOREF(pReq, pData);
     return RTFileClose((RTFILE)pvHandle);
 }
 

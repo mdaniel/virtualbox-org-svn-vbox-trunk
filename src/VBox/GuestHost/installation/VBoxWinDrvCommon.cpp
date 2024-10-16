@@ -50,7 +50,7 @@
 # include <iprt/stream.h>
 #endif
 
-#include <VBox/GuestHost/VBoxWinDrvCommon.h>
+#include "VBoxWinDrvCommon.h"
 
 
 /*********************************************************************************************************************************

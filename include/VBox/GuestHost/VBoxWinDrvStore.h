@@ -44,7 +44,7 @@
 #include <iprt/path.h>
 #include <iprt/utf16.h>
 
-#include <VBox/GuestHost/VBoxWinDrvCommon.h>
+#include <VBox/GuestHost/VBoxWinDrvDefs.h>
 
 /** Maximum model PnP ID length (in characters). */
 #define VBOXWINDRVSTORE_MAX_PNP_ID          255

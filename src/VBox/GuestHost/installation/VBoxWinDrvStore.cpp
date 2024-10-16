@@ -50,8 +50,8 @@
 # include <iprt/stream.h>
 #endif
 
+#include <VBox/GuestHost/VBoxWinDrvCommon.h>
 #include <VBox/GuestHost/VBoxWinDrvStore.h>
-#include "VBoxWinDrvCommon.h"
 
 
 /*********************************************************************************************************************************
@@ -431,6 +431,10 @@ static int vboxWinDrvStoreEntryInitFromInf(PVBOXWINDRVSTOREENTRY pEntry, const c
                 RTUtf16Free(pwszModel);
             }
         }
+
+        int rc2 = VBoxWinDrvInfQuerySectionVer(hInf, &pEntry->Ver);
+        if (RT_SUCCESS(rc))
+            rc = rc2;
 
         RTUtf16Free(pwszFile);
     }

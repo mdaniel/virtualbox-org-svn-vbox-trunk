@@ -65,6 +65,7 @@ typedef enum RTLOGGROUP
 {
     /** Default logging group. */
     RTLOGGROUP_DEFAULT,
+    RTLOGGROUP_ACPI,
     RTLOGGROUP_CRYPTO,
     RTLOGGROUP_DBG,
     RTLOGGROUP_DBG_DWARF,
@@ -107,6 +108,7 @@ typedef enum RTLOGGROUP
  */
 #define RT_LOGGROUP_NAMES \
     "DEFAULT", \
+    "RT_ACPI", \
     "RT_CRYPTO", \
     "RT_DBG", \
     "RT_DBG_DWARF", \
@@ -127,7 +129,6 @@ typedef enum RTLOGGROUP
     "RT_TIME", \
     "RT_TIMER", \
     "RT_VFS", \
-    "RT_21", \
     "RT_22", \
     "RT_23", \
     "RT_24", \

@@ -878,6 +878,52 @@ typedef ACPIMCFGALLOC *PACPIMCFGALLOC;
 /** Pointer to a const ACPI MCFG Table. */
 typedef const ACPIMCFGALLOC *PCACPIMCFGALLOC;
 
+
+/**
+ * TPM: The ACPI table for a TPM 2.0 device
+  * (from: https://trustedcomputinggroup.org/wp-content/uploads/TCG_ACPIGeneralSpec_v1p3_r8_pub.pdf).
+ */
+#pragma pack(1)
+typedef struct ACPITPM20
+{
+    /** The common ACPI table header. */
+    ACPITBLHDR          Hdr;
+    /** The platform class. */
+    uint16_t            u16PlatCls;
+    /** Reserved. */
+    uint16_t            u16Rsvd0;
+    /** Address of the CRB control area or FIFO base address. */
+    uint64_t            u64BaseAddrCrbOrFifo;
+    /** The start method selector. */
+    uint32_t            u32StartMethod;
+    /** Following are start method specific parameters and optional LAML and LASA fields we don't implement right now. */
+    /** @todo */
+} ACPITPM20;
+AssertCompileSize(ACPITPM20, 52);
+#pragma pack()
+
+/** Revision of the TPM2.0 ACPI table. */
+#define ACPI_TPM20_REVISION                 4
+
+
+/** @name Possible values for the ACPITPM20::u16PlatCls member.
+ * @{ */
+/** Client platform. */
+#define ACPITBL_TPM20_PLAT_CLS_CLIENT       UINT16_C(0)
+/** Server platform. */
+#define ACPITBL_TPM20_PLAT_CLS_SERVER       UINT16_C(1)
+/** @} */
+
+
+/** @name Possible values for the ACPITPM20::u32StartMethod member.
+ * @{ */
+/** MMIO interface (TIS1.2+Cancel). */
+#define ACPITBL_TPM20_START_METHOD_TIS12    UINT16_C(6)
+/** CRB interface. */
+#define ACPITBL_TPM20_START_METHOD_CRB      UINT16_C(7)
+/** @} */
+
+
 /** @} */
 
 #endif /* !IPRT_INCLUDED_formats_acpi_tables_h */

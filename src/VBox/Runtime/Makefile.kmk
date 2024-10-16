@@ -574,6 +574,7 @@ RuntimeBaseR3_SOURCES      := \
 	common/misc/RTFileOpenV.cpp \
 	common/misc/RTMemWipeThoroughly.cpp \
 	common/misc/RTSystemFirmwareTypeName.cpp \
+	common/misc/acpi.cpp \
 	common/misc/assert.cpp \
 	common/misc/buildconfig.cpp \
 	common/misc/cidr.cpp \

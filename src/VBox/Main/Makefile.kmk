@@ -1183,6 +1183,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/ResourceAssignmentManager.cpp,) \
  	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/ResourceStoreImpl.cpp,) \
  	src-client/SessionImpl.cpp \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/SystemTableBuilder.cpp,) \
  	src-client/USBDeviceImpl.cpp \
  	src-client/VBoxDriversRegister.cpp \
  	src-client/VirtualBoxClientImpl.cpp \

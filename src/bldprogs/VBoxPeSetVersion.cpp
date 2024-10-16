@@ -272,7 +272,19 @@ static int UpdateFile(FILE *pFile, unsigned uNtVersion, PIMAGE_SECTION_HEADER *p
     if (NtHdrs.x32.Signature != IMAGE_NT_SIGNATURE)
         return Error("Invalid PE signature: %#x", NtHdrs.x32.Signature);
     uint32_t cbNewHdrs;
-    if (NtHdrs.x32.FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
+    if (NtHdrs.x32.FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
+    {
+        if (NtHdrs.x64.FileHeader.SizeOfOptionalHeader != sizeof(NtHdrs.x64.OptionalHeader))
+            return Error("Invalid optional header size: %#x", NtHdrs.x64.FileHeader.SizeOfOptionalHeader);
+        if (NtHdrs.x64.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            return Error("Invalid optional header magic: %#x", NtHdrs.x64.OptionalHeader.Magic);
+        if (!uNtVersion)
+            uNtVersion = MK_VER(10, 0);
+        else if (uNtVersion < MK_VER(10, 0))
+            return Error("Selected version is too old for ARM64: %u.%u", uNtVersion >> 8, uNtVersion & 0xff);
+        cbNewHdrs = sizeof(NtHdrsNew.x64);
+    }
+    else if (NtHdrs.x32.FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
     {
         if (NtHdrs.x64.FileHeader.SizeOfOptionalHeader != sizeof(NtHdrs.x64.OptionalHeader))
             return Error("Invalid optional header size: %#x", NtHdrs.x64.FileHeader.SizeOfOptionalHeader);
@@ -285,7 +297,7 @@ static int UpdateFile(FILE *pFile, unsigned uNtVersion, PIMAGE_SECTION_HEADER *p
         cbNewHdrs = sizeof(NtHdrsNew.x64);
     }
     else if (NtHdrs.x32.FileHeader.Machine != IMAGE_FILE_MACHINE_I386)
-        return Error("Not I386 or AMD64 machine: %#x", NtHdrs.x32.FileHeader.Machine);
+        return Error("Not I386, AMD64 or ARM64 machine: %#x", NtHdrs.x32.FileHeader.Machine);
     else
     {
         if (NtHdrs.x32.FileHeader.SizeOfOptionalHeader != sizeof(NtHdrs.x32.OptionalHeader))

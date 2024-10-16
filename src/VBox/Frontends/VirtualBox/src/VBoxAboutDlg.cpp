@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QGuiApplication>
 #include <QEvent>
 #include <QLabel>
 #include <QPainter>
@@ -117,7 +118,11 @@ void VBoxAboutDlg::sltRetranslateUI()
 #else
         m_strAboutText = strAboutText + "\n" + strVersionText.arg(m_strVersion);
 #endif
-        m_strAboutText = m_strAboutText + QString(" (Qt%1)").arg(qVersion());
+        QString strPlatformName = QGuiApplication::platformName();
+        if (strPlatformName.isEmpty())
+            m_strAboutText = m_strAboutText + QString(" (Qt%1)").arg(qVersion());
+        else
+            m_strAboutText = m_strAboutText + QString(" (Qt%1 on %2)").arg(qVersion()).arg(strPlatformName);
         m_strAboutText = m_strAboutText + "\n" + QString("Copyright %1 %2 %3.")
                                                          .arg(QChar(0xa9)).arg(VBOX_C_YEAR).arg(VBOX_VENDOR);
         m_pLabel->setText(m_strAboutText);

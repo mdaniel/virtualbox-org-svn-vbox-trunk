@@ -36,7 +36,7 @@
 
 #include <iprt/utf16.h>
 
-#include <VBox/GuestHost/VBoxWinDrvCommon.h>
+#include <VBox/GuestHost/VBoxWinDrvDefs.h>
 
 int VBoxWinDrvInfOpenEx(PCRTUTF16 pwszInfFile, PRTUTF16 pwszClassName, HINF *phInf);
 int VBoxWinDrvInfOpen(PCRTUTF16 pwszInfFile, HINF *phInf);

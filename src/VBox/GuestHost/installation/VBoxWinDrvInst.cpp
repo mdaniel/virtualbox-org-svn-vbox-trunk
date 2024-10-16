@@ -53,9 +53,11 @@
 
 #include <VBox/version.h>
 
-#include <VBox/GuestHost/VBoxWinDrvCommon.h>
+#include <VBox/GuestHost/VBoxWinDrvDefs.h>
 #include <VBox/GuestHost/VBoxWinDrvInst.h>
 #include <VBox/GuestHost/VBoxWinDrvStore.h>
+
+#include "VBoxWinDrvCommon.h"
 
 
 /*********************************************************************************************************************************

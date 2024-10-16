@@ -108,7 +108,7 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GICv3[] =
  * @returns VBox status code.
  * @param   pDevIns     The PDM KVM GIC device instance.
  * @param   idCpu       The CPU ID for which the interrupt is updated (only valid for PPIs).
- * @param   u32IrqType  The actual IRQ type (PPI or SPI).
+ * @param   fPpi        Flag whether this is a PPI or SPI.
  * @param   uIntId      The interrupt ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */

@@ -1276,7 +1276,8 @@ HRESULT PlatformProperties::getSupportedTpmTypes(std::vector<TpmType_T> &aSuppor
         {
             static const TpmType_T aTpmTypes[] =
             {
-                TpmType_None
+                TpmType_None,
+                TpmType_v2_0
             };
             aSupportedTpmTypes.assign(aTpmTypes,
                                       aTpmTypes + RT_ELEMENTS(aTpmTypes));

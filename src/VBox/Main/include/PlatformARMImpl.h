@@ -67,6 +67,12 @@ public:
     HRESULT i_loadSettings(const settings::PlatformARM &data);
     HRESULT i_saveSettings(settings::PlatformARM &data);
     HRESULT i_applyDefaults(GuestOSType *aOsType);
+
+private:
+
+    // wrapped IPlatformARM methods
+    HRESULT getCPUProperty(CPUPropertyTypeARM_T aProperty, BOOL *aValue);
+    HRESULT setCPUProperty(CPUPropertyTypeARM_T aProperty, BOOL aValue);
 };
 #endif /* !MAIN_INCLUDED_PlatformARMImpl_h */
 

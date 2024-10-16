@@ -152,6 +152,10 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                                      Global::stringifyPlatformArchitecture(platformArchHost));
 #endif
 
+    /* Get the ARM platform object. */
+    ComPtr<IPlatformARM> platformARM;
+    hrc = platform->COMGETTER(ARM)(platformARM.asOutParam());                               H();
+
     ComPtr<IPlatformProperties> pPlatformProperties;
     hrc = platform->COMGETTER(Properties)(pPlatformProperties.asOutParam());                H();
 
@@ -363,6 +367,11 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
          */
         PCFGMNODE pCpum;
         InsertConfigNode(pRoot, "CPUM", &pCpum);
+
+        /* Nested Virtualization. */
+        BOOL fNestedHWVirt = FALSE;
+        hrc = platformARM->GetCPUProperty(CPUPropertyTypeARM_HWVirt, &fNestedHWVirt); H();
+        InsertConfigInteger(pCpum, "NestedHWVirt", fNestedHWVirt ? true : false);
 
 
         /*

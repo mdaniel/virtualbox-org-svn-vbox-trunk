@@ -1228,6 +1228,9 @@ struct PlatformARM
     PlatformARM();
 
     bool operator==(const PlatformARM&) const;
+
+    /** Nested hardware virtualization. */
+    bool                    fNestedHWVirt;              //< requires settings version 1.20 (VirtualBox 7.1)
 };
 #endif /* VBOX_WITH_VIRT_ARMV8 */
 
@@ -1577,6 +1580,9 @@ private:
     void readStorageControllerAttributes(const xml::ElementNode &elmStorageController, StorageController &sctl);
     void readPlatformCPUIDTreeX86(const xml::ElementNode &elmChild, PlatformX86 &platX86);
     void readPlatformX86(const xml::ElementNode &elmPlatformX86OrHardware, PlatformX86 &platX86);
+#ifdef VBOX_WITH_VIRT_ARMV8
+    void readPlatformARM(const xml::ElementNode &elmPlatformARM, PlatformARM &platARM);
+#endif
     void readPlatform(const xml::ElementNode &elmPlatformOrHardware, Hardware &hw, Platform &plat);
     void readHardware(const xml::ElementNode &elmHardware, Hardware &hw);
     void readHardDiskAttachments_pre1_7(const xml::ElementNode &elmHardDiskAttachments, Storage &strg);
@@ -1600,6 +1606,9 @@ private:
     void readMachineEncrypted(const xml::ElementNode &elmMachine, PCVBOXCRYPTOIF pCryptoIf, const char *pszPassword);
 
     void buildPlatformX86XML(xml::ElementNode &elmParent, xml::ElementNode &elmCPU, const PlatformX86 &plat);
+#ifdef VBOX_WITH_VIRT_ARMV8
+    void buildPlatformARMXML(xml::ElementNode &elmParent, const PlatformARM &plat);
+#endif
     void buildPlatformXML(xml::ElementNode &elmParent, const Hardware &h, const Platform &plat);
     void buildHardwareXML(xml::ElementNode &elmParent, const Hardware &hw, uint32_t fl, std::list<xml::ElementNode*> *pllElementsWithUuidAttributes);
     void buildNetworkXML(NetworkAttachmentType_T mode, bool fEnabled, xml::ElementNode &elmParent, const NetworkAdapter &nic);

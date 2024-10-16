@@ -3968,14 +3968,15 @@ bool HostPCIDeviceAttachment::operator==(const HostPCIDeviceAttachment &a) const
 }
 
 #ifdef VBOX_WITH_VIRT_ARMV8
-PlatformARM::PlatformARM()
+PlatformARM::PlatformARM() :
+    fNestedHWVirt(false)
 {
 }
 
 bool PlatformARM::operator==(const PlatformARM& h) const
 {
-    RT_NOREF(h);
-    return true;
+    return (this == &h)
+        || (fNestedHWVirt == h.fNestedHWVirt);
 }
 #endif /* VBOX_WITH_VIRT_ARMV8 */
 
@@ -5305,6 +5306,33 @@ void MachineConfigFile::readPlatformX86(const xml::ElementNode &elmPlatformX86Or
     }
 }
 
+#ifdef VBOX_WITH_VIRT_ARMV8
+/**
+ * Reads the ARM platform settings.
+ *
+ * For settings >= v1.20 these were stored under the "Platform/arm" node.
+ *
+ * @param elmPlatformARM  Platform/arm node to read from.
+ * @param platARM         Where to store the ARM platform settings.
+ */
+void MachineConfigFile::readPlatformARM(const xml::ElementNode &elmPlatformARM,
+                                        PlatformARM &platARM)
+{
+    xml::NodesLoop nl1(elmPlatformARM);
+
+    const xml::ElementNode *pelChild;
+    while ((pelChild = nl1.forAllNodes()))
+    {
+        if (pelChild->nameEquals("CPU"))
+        {
+            const xml::ElementNode *pelmCPUChild;
+            if ((pelmCPUChild = pelChild->findChildElement("NestedHWVirt")))
+                pelmCPUChild->getAttributeValue("enabled", platARM.fNestedHWVirt);
+        }
+    }
+}
+#endif
+
 /**
  * Reads the platform settings.
  *
@@ -5442,7 +5470,11 @@ void MachineConfigFile::readPlatform(const xml::ElementNode &elmPlatformOrHardwa
 #ifdef VBOX_WITH_VIRT_ARMV8
         case PlatformArchitecture_ARM:
         {
-            /* Nothing here yet -- add ARM-specific stuff as soon as we have it. */
+            const xml::ElementNode *pelmPlatformARM;
+
+            pelmPlatformARM = elmPlatformOrHardware.findChildElement("arm");
+            if (pelmPlatformARM)
+                readPlatformARM(*pelmPlatformARM, plat.arm);
             break;
         }
 #endif
@@ -7349,6 +7381,30 @@ void MachineConfigFile::buildPlatformX86XML(xml::ElementNode &elmParent, xml::El
     }
 }
 
+#ifdef VBOX_WITH_VIRT_ARMV8
+/**
+ * Writes ARM-specific platform settings out to the XML.
+ *
+ * For settings >= v1.20 this creates a \<arm\> node under elmParent.
+ * keys under that. Called for both the \<Machine\> node and for snapshots.
+ *
+ * @param elmParent                         Parent element.
+ *                                          For settings >= v1.20 this is the \<Platform\> element.
+ * @param elmCPU                            CPU element platform-generic settings.
+ *                                          For settings >= v1.20 this is the \<Platform/CPU\> element.
+ * @param platARM                           ARM-specific platform settings to use for building the XML.
+ */
+void MachineConfigFile::buildPlatformARMXML(xml::ElementNode &elmParent, const PlatformARM &platARM)
+{
+    xml::ElementNode *pelmARMRoot = elmParent.createChild("arm");
+    xml::ElementNode *pelmARMCPU  = pelmARMRoot->createChild("CPU");
+
+    if (platARM.fNestedHWVirt)
+        pelmARMCPU->createChild("NestedHWVirt")->setAttribute("enabled", platARM.fNestedHWVirt);
+}
+#endif /* VBOX_WITH_VIRT_ARMV8 */
+
+
 /**
  * Stores platform-generic and platform-specific data and then writes out the XML.
  *
@@ -7464,7 +7520,13 @@ void MachineConfigFile::buildPlatformXML(xml::ElementNode &elmParent,
     /* We only store specific stuff for the selected platform. */
     if (plat.architectureType == PlatformArchitecture_x86)
         buildPlatformX86XML(*pelmPlatformOrHardware, *pelmCPU, plat.x86);
-    /** @todo Put ARM stuff here as soon as we have it. */
+#ifdef VBOX_WITH_VIRT_ARMV8
+    else if (plat.architectureType == PlatformArchitecture_ARM)
+    {
+        Assert(m->sv >= SettingsVersion_v1_20);
+        buildPlatformARMXML(*pelmPlatformOrHardware, plat.arm);
+    }
+#endif
 }
 
 /**

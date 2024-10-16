@@ -840,7 +840,14 @@ iemExecMemAllocatorAllocInChunkInt(PIEMEXECMEMALLOCATOR pExecMemAllocator, uint6
     uint32_t const iBit = cReqUnits < 64
                         ? iemExecMemAllocatorFindReqFreeUnits<false>(pbmAlloc, cToScan / 64, cReqUnits)
                         : iemExecMemAllocatorFindReqFreeUnits<true>( pbmAlloc, cToScan / 64, cReqUnits);
-    Assert(iBit == iemExecMemAllocatorFindReqFreeUnitsOld(pbmAlloc, cToScan, cReqUnits));
+# ifdef VBOX_STRICT
+    uint32_t const iBitOld = iemExecMemAllocatorFindReqFreeUnitsOld(pbmAlloc, cToScan, cReqUnits);
+    AssertMsg(   iBit == iBitOld
+              || (iBit / 64) == (iBitOld / 64), /* New algorithm will return trailing hit before middle. */
+              ("iBit=%#x (%#018RX64); iBitOld=%#x (%#018RX64); cReqUnits=%#x\n",
+               iBit, iBit != UINT32_MAX ? pbmAlloc[iBit / 64] : 0,
+               iBitOld, iBitOld != UINT32_MAX ? pbmAlloc[iBitOld / 64] : 0, cReqUnits));
+# endif
 #else
     uint32_t const iBit = iemExecMemAllocatorFindReqFreeUnitsOld(pbmAlloc, cToScan, cReqUnits);
 #endif

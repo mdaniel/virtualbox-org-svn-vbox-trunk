@@ -1302,7 +1302,7 @@ static DECLCALLBACK(int) usbEthNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
     pNth16->dwSignature   = USBNCMNTH16_SIGNATURE;
     pNth16->wHeaderLength = sizeof(*pNth16);
     pNth16->wSequence     = pThis->idSequence++;
-    pNth16->wBlockLength  = sizeof(*pNth16) + sizeof(*pNdp16) + cb;
+    pNth16->wBlockLength  = (uint16_t)(sizeof(*pNth16) + sizeof(*pNdp16) + cb);
     pNth16->wNdpIndex     = sizeof(*pNth16);
 
     /* Build NDP16. */
@@ -1310,14 +1310,14 @@ static DECLCALLBACK(int) usbEthNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
     pNdp16->wLength       = sizeof(*pNdp16);
     pNdp16->wNextNdpIndex = 0;
     pNdp16->DataGram0.wDatagramIndex  = sizeof(*pNth16) + sizeof(*pNdp16);
-    pNdp16->DataGram0.wDatagramLength = cb;
+    pNdp16->DataGram0.wDatagramLength = (uint16_t)cb;
     pNdp16->DataGram1.wDatagramIndex  = 0;
     pNdp16->DataGram1.wDatagramLength = 0;
 
     /* Copy frame over. */
     memcpy(pNdp16 + 1, pvBuf, cb);
 
-    pUrb->cbData = sizeof(*pNth16) + sizeof(*pNdp16) + cb;
+    pUrb->cbData = (uint32_t)(sizeof(*pNth16) + sizeof(*pNdp16) + cb);
     usbEthLinkDone(pThis, pUrb);
     RTCritSectLeave(&pThis->CritSect);
 

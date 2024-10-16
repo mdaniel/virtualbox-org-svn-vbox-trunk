@@ -208,7 +208,9 @@ VMMDECL(void) TMNotifyEndOfExecution(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uTsc)
     uint64_t       cTicks = uTsc - pVCpu->tm.s.uTscStartExecuting - SUPGetTscDeltaByCpuSetIndex(pVCpu->iHostCpuSet);
     uint64_t const uCpuHz = SUPGetCpuHzFromGipBySetIndex(g_pSUPGlobalInfoPage, pVCpu->iHostCpuSet);
 # endif
+# ifndef VBOX_VMM_TARGET_ARMV8 /* This is perfectly valid on ARM if the guest is halting in the hypervisor. */
     AssertStmt(cTicks <= uCpuHz << 2, cTicks = uCpuHz << 2); /* max 4 sec */
+# endif
 
     uint64_t cNsExecutingDelta;
     if (uCpuHz < _4G)

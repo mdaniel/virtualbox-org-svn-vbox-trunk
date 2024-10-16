@@ -86,6 +86,7 @@ typedef struct _VBOXWINDRVSTOREENTRY
 typedef VBOXWINDRVSTOREENTRY *PVBOXWINDRVSTOREENTRY;
 
 struct _VBOXWINDRVSTORE;
+/** Pointer to Windows driver store instance data. */
 typedef struct _VBOXWINDRVSTORE *PVBOXWINDRVSTORE;
 
 /**
@@ -166,8 +167,6 @@ typedef struct _VBOXWINDRVSTORE
     /** The backend this driver store uses. */
     VBOXWINDRVSTOREBACKEND Backend;
 } VBOXWINDRVSTORE;
-/** Pointer to Windows driver store instance data. */
-typedef VBOXWINDRVSTORE *PVBOXWINDRVSTORE;
 
 int VBoxWinDrvStoreCreate(PVBOXWINDRVSTORE *ppDrvStore);
 void VBoxWinDrvStoreDestroy(PVBOXWINDRVSTORE pDrvStore);

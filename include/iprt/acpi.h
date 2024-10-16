@@ -201,7 +201,7 @@ RTDECL(int) RTAcpiTblDeviceStart(RTACPITBL hAcpiTbl, const char *pszName);
  * @param   pszNameFmt          The name of the device as a format string.
  * @param   ...                 The format arguments.
  */
-RTDECL(int) RTAcpiTblDeviceStartF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ...); RT_IPRT_FORMAT_ATTR(2, 3);
+RTDECL(int) RTAcpiTblDeviceStartF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ...) RT_IPRT_FORMAT_ATTR(2, 3);
 
 
 /**
@@ -212,7 +212,7 @@ RTDECL(int) RTAcpiTblDeviceStartF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ..
  * @param   pszNameFmt          The name of the device as a format string.
  * @param   va                  The format arguments.
  */
-RTDECL(int) RTAcpiTblDeviceStartV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va); RT_IPRT_FORMAT_ATTR(2, 0);
+RTDECL(int) RTAcpiTblDeviceStartV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va) RT_IPRT_FORMAT_ATTR(2, 0);
 
 
 /**

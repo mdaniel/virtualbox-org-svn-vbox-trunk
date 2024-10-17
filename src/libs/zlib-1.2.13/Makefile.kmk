@@ -80,7 +80,7 @@ if defined(VBOX_WITH_ADDITIONS) || !defined(VBOX_WITHOUT_ADDITIONS)
  nsis-zlib-dll_NAME     = zlib1
  nsis-zlib-dll_DEFINES += ZLIB_DLL
  nsis-zlib-dll_INSTTYPE = stage
- nsis-zlib-dll_INST	   = $(INST_DEBUG)nsis-zlib/
+ nsis-zlib-dll_INST     = $(INST_DEBUG)nsis-zlib/
 
  INSTALLS.win += nsis-zlib-lib
  nsis-zlib-lib_TEMPLATE := DUMMY

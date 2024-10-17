@@ -608,7 +608,7 @@ static DECLCALLBACK(void) vgsvcGstCtrlTerm(void)
 
 
 /**
- * The 'vminfo' service description.
+ * The 'control' service description.
  */
 VBOXSERVICE g_Control =
 {

@@ -4446,6 +4446,7 @@ bool VGDrvCommonISR(PVBOXGUESTDEVEXT pDevExt)
                 fEvents = ASMInU32(pDevExt->IOPortBase + VMMDEV_PORT_OFF_REQUEST_FAST);
 #elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
                 AssertReleaseFailed(); /* No port I/O on ARM. */
+                fEvents = 0;
 #else
 # error "I have no memory of this architecture"
 #endif

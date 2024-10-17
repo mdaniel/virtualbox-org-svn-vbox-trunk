@@ -1505,7 +1505,7 @@ HRESULT UnattendedRhelInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rV
         /** @todo Maybe we should just remaster the ISO for redhat derivatives too?
          *        One less CDROM to mount. */
         /* Name the ISO. */
-        rVecArgs.append() = "--volume-id=\"VBox Unattended Boot\"";
+        rVecArgs.append() = "--volume-id=VBox Unattended Boot";
 
         /* Copy the isolinux directory from the original install ISO. */
         rVecArgs.append().append("--push-iso=").append(mpParent->i_getIsoPath());

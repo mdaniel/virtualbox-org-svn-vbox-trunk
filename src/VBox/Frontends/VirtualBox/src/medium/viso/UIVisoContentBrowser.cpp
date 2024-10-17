@@ -428,12 +428,7 @@ QStringList UIVisoContentBrowser::entryList()
     {
         if (iterator.value().isEmpty())
             continue;
-        QString strSource = iterator.key();
-        strSource.replace("\"", "\\\"");
-        QString strTarget = iterator.value();
-        strTarget.replace("\"", "\\\"");
-        /* We must quote %1 and %2 here, as those might contain spaces as part of a path or file name. */
-        QString strEntry = QString("\"%1\"=\"%2\"").arg(strSource).arg(strTarget);
+        QString strEntry = QString("%1=%2").arg(iterator.key()).arg(iterator.value());
         entryList << strEntry;
     }
     return entryList;

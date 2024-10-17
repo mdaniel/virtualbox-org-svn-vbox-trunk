@@ -113,9 +113,6 @@
 # error The setjmp approach must be enabled for the recompiler.
 #endif
 
-#if defined(IEMNATIVE_WITH_SIMD_FP_NATIVE_EMITTERS) && !defined(IEMNATIVE_WITH_SIMD_REG_ALLOCATOR)
-# error "IEMNATIVE_WITH_SIMD_FP_NATIVE_EMITTERS requires IEMNATIVE_WITH_SIMD_REG_ALLOCATOR"
-#endif
 
 
 /*********************************************************************************************************************************

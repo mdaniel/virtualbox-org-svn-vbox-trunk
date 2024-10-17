@@ -866,7 +866,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "/IEM/CPU%u/re/NativeEndIfOtherBranchDirty", idCpu);
 #  endif
 #  ifdef VBOX_WITH_STATISTICS
-#   ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeSimdRegFindFree, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
                         "Number of calls to iemNativeSimdRegAllocFindFree.",
                         "/IEM/CPU%u/re/NativeSimdRegFindFree", idCpu);
@@ -900,7 +899,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "/IEM/CPU%u/re/NativeMaybeSseXcptCheckOmitted", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeMaybeAvxXcptCheckOmitted,              STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "IEM_MC_MAYBE_RAISE_AVX_RELATED_XCPT() checks omitted",
                         "/IEM/CPU%u/re/NativeMaybeAvxXcptCheckOmitted", idCpu);
-#   endif
 
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeTbFinished, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
                         "Number of times the TB finishes execution completely",

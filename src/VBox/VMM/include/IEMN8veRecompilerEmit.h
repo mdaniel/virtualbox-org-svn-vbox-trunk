@@ -2353,7 +2353,6 @@ iemNativeEmitLoadGprByBpU8(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t 
 }
 
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 /**
  * Emits a 128-bit vector register load instruction with an BP relative source address.
  */
@@ -2401,8 +2400,6 @@ iemNativeEmitLoadVecRegByBpU256(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
 # error "port me"
 #endif
 }
-
-#endif
 
 
 /**
@@ -2553,7 +2550,6 @@ iemNativeEmitStoreImm64ByBp(PIEMRECOMPILERSTATE pReNative, uint32_t off, int32_t
     return iemNativeEmitStoreGprByBp(pReNative, off, offDisp, IEMNATIVE_REG_FIXED_TMP0);
 }
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 
 /**
  * Emits a 128-bit vector register store with an BP relative destination address.
@@ -2637,7 +2633,6 @@ iemNativeEmitStoreVecRegByBpU256(PIEMRECOMPILERSTATE pReNative, uint32_t off, in
 #endif
 }
 
-#endif /* IEMNATIVE_WITH_SIMD_REG_ALLOCATOR */
 #if defined(RT_ARCH_ARM64)
 
 /**
@@ -2713,7 +2708,6 @@ iemNativeEmitGprByGprLdSt(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     return off;
 }
 
-# ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 /**
  * Common bit of iemNativeEmitLoadVecRegByGprU128 and friends.
  *
@@ -2749,7 +2743,6 @@ iemNativeEmitVecRegByGprLdStEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t i
 # endif
     return off;
 }
-# endif
 
 
 /**
@@ -3175,7 +3168,6 @@ iemNativeEmitLoadGprByGprU16SignExtendedFromS8Ex(PIEMNATIVEINSTR pCodeBuf, uint3
 }
 
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 /**
  * Emits a 128-bit vector register load via a GPR base address with a displacement.
  *
@@ -3288,7 +3280,6 @@ iemNativeEmitLoadVecRegByGprU256(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
 #endif
     return off;
 }
-#endif
 
 
 /**
@@ -3604,7 +3595,6 @@ iemNativeEmitStoreImm8ByGprEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t uI
 }
 
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
 /**
  * Emits a 128-bit vector register store via a GPR base address with a displacement.
  *
@@ -3717,7 +3707,6 @@ iemNativeEmitStoreVecRegByGprU256(PIEMRECOMPILERSTATE pReNative, uint32_t off, u
 #endif
     return off;
 }
-#endif
 
 
 
@@ -8945,11 +8934,10 @@ iemNativeEmitTbExitIfGprIsZero(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint
 }
 
 
-#ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
+
 /*********************************************************************************************************************************
 *   SIMD helpers.                                                                                                                *
 *********************************************************************************************************************************/
-
 
 /**
  * Emits code to load the variable address into an argument GPR.
@@ -10542,7 +10530,6 @@ iemNativeEmitSimdBroadcastVecRegU128ToVecReg(PIEMRECOMPILERSTATE pReNative, uint
     return off;
 }
 
-#endif /* IEMNATIVE_WITH_SIMD_REG_ALLOCATOR */
 
 /** @} */
 

@@ -68,11 +68,11 @@ ifdef VBOX_WITH_XPDM
 
   $(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.sys \
   $(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxVideo.sys: $$(VBoxVideo_1_TARGET) | $$(dir $$@)
- 	$(INSTALL) -m 644 $< $(@D)
+	$(INSTALL) -m 644 $< $(@D)
 
   $(PATH_TARGET)/VBoxVideoCat.dir/VBoxDisp.dll \
   $(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxDisp.dll: $$(VBoxDisp_1_TARGET) | $$(dir $$@)
- 	$(INSTALL) -m 644 $< $(@D)
+	$(INSTALL) -m 644 $< $(@D)
 
   $(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.cat: \
   		$(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.inf \

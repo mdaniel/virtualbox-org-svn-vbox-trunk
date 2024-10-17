@@ -83,7 +83,7 @@ static VBOXDISPLAY_DRIVER_TYPE getVBoxDisplayDriverType(VBOXDISPLAYCONTEXT *pCtx
 
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnPreInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
  */
 static DECLCALLBACK(int) vbtrDispPreInit(void)
 {
@@ -91,7 +91,7 @@ static DECLCALLBACK(int) vbtrDispPreInit(void)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnOption}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
  */
 static DECLCALLBACK(int) vbtrDispOption(const char **ppszShort, int argc, char **argv, int *pi)
 {
@@ -101,7 +101,7 @@ static DECLCALLBACK(int) vbtrDispOption(const char **ppszShort, int argc, char *
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
 static DECLCALLBACK(int) vbtrDisplayInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 {
@@ -193,7 +193,7 @@ static DECLCALLBACK(int) vbtrDisplayInit(const PVBOXTRAYSVCENV pEnv, void **ppIn
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnDestroy}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
 static DECLCALLBACK(void) vbtrDisplayDestroy(void *pInstance)
 {
@@ -921,7 +921,7 @@ static BOOL DisplayChangeRequestHandler(PVBOXDISPLAYCONTEXT pCtx)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnWorker}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
 static DECLCALLBACK(int) vbtrDisplayWorker(void *pvInstance, bool volatile *pfShutdown)
 {

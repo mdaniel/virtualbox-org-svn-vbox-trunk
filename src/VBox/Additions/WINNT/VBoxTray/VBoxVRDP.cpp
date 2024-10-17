@@ -279,7 +279,7 @@ static void vboxExperienceRestore(uint32_t uLevel)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnPreInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
  */
 static DECLCALLBACK(int) vbtrVRDPPreInit(void)
 {
@@ -287,7 +287,7 @@ static DECLCALLBACK(int) vbtrVRDPPreInit(void)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnOption}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
  */
 static DECLCALLBACK(int) vbtrVRDPOption(const char **ppszShort, int argc, char **argv, int *pi)
 {
@@ -297,7 +297,7 @@ static DECLCALLBACK(int) vbtrVRDPOption(const char **ppszShort, int argc, char *
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
 static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 {
@@ -337,7 +337,7 @@ static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppInsta
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnDestroy}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
 static DECLCALLBACK(void) VBoxVRDPDestroy(void *pInstance)
 {
@@ -358,7 +358,7 @@ static DECLCALLBACK(void) VBoxVRDPDestroy(void *pInstance)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnWorker}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
 static DECLCALLBACK(int) vbtrVRDPWorker(void *pvInstance, bool volatile *pfShutdown)
 {

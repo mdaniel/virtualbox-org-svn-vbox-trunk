@@ -1209,7 +1209,7 @@ static void laDoActions(PVBOXLACONTEXT pCtx)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnPreInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
  */
 static DECLCALLBACK(int) vbtrLAPreInit(void)
 {
@@ -1218,7 +1218,7 @@ static DECLCALLBACK(int) vbtrLAPreInit(void)
 
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnOption}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
  */
 static DECLCALLBACK(int) vbtrLAOption(const char **ppszShort, int argc, char **argv, int *pi)
 {
@@ -1228,7 +1228,7 @@ static DECLCALLBACK(int) vbtrLAOption(const char **ppszShort, int argc, char **a
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
 DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 {
@@ -1284,7 +1284,7 @@ DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnDestroy}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
 DECLCALLBACK(void) vbtrLADestroy(void *pInstance)
 {
@@ -1307,7 +1307,7 @@ DECLCALLBACK(void) vbtrLADestroy(void *pInstance)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnWorker}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
 DECLCALLBACK(int) vbtrLAWorker(void *pInstance, bool volatile *pfShutdown)
 {

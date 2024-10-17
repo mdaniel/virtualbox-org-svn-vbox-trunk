@@ -905,7 +905,7 @@ static LRESULT CALLBACK vbtrShClWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnPreInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
  */
 static DECLCALLBACK(int) vbtrShClPreInit(void)
 {
@@ -913,7 +913,7 @@ static DECLCALLBACK(int) vbtrShClPreInit(void)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnOption}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
  */
 static DECLCALLBACK(int) vbtrShClOption(const char **ppszShort, int argc, char **argv, int *pi)
 {
@@ -923,7 +923,7 @@ static DECLCALLBACK(int) vbtrShClOption(const char **ppszShort, int argc, char *
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
 DECLCALLBACK(int) vbtrShClInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 {
@@ -993,7 +993,7 @@ DECLCALLBACK(int) vbtrShClInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnWorker}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
 DECLCALLBACK(int) vbtrShClWorker(void *pInstance, bool volatile *pfShutdown)
 {
@@ -1165,7 +1165,7 @@ DECLCALLBACK(int) vbtrShClWorker(void *pInstance, bool volatile *pfShutdown)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnStop}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnStop}
  */
 DECLCALLBACK(int) vbtrShClStop(void *pInstance)
 {
@@ -1192,7 +1192,7 @@ DECLCALLBACK(int) vbtrShClStop(void *pInstance)
 }
 
 /**
- * @interface_method_impl{VBOXSERVICEDESC,pfnDestroy}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
 DECLCALLBACK(void) vbtrShClDestroy(void *pInstance)
 {

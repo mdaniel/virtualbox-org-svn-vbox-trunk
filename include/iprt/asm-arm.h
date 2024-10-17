@@ -44,6 +44,25 @@
 # error "Not on ARM64 or ARM32"
 #endif
 
+#if defined(_MSC_VER) && RT_INLINE_ASM_USES_INTRIN
+/* Emit the intrinsics at all optimization levels. */
+# include <iprt/sanitized/intrin.h>
+# pragma intrinsic(_ReadStatusReg)
+# pragma intrinsic(_WriteStatusReg)
+# pragma intrinsic(_disable)
+# pragma intrinsic(_enable)
+# pragma intrinsic(__hvc)
+
+/*
+ * MSVC insists on having these defined using ARM64_SYSREG or it will
+ * fail to compile with "error C2284: "_ReadStatusReg": invalid argument for internal function, parameter 1"
+ * if we use our own definitions from iprt/armv8.h
+ */
+# define ARM64_SYSREG_DAIF       ARM64_SYSREG(3, 3,  4, 2, 1)
+# define ARM64_SYSREG_CNTFRQ_EL0 ARM64_SYSREG(3, 3, 14, 0, 0)
+# define ARM64_SYSREG_CNTCVT_EL0 ARM64_SYSREG(3, 3, 14, 0, 2)
+#endif
+
 /** @defgroup grp_rt_asm_arm  ARM Specific ASM Routines
  * @ingroup grp_rt_asm
  * @{
@@ -84,6 +103,8 @@ DECLINLINE(uint64_t) ASMReadTSC(void)
 #  endif
     return u64;
 
+#elif RT_INLINE_ASM_USES_INTRIN
+    return (uint64_t)_ReadStatusReg(ARM64_SYSREG_CNTCVT_EL0);
 # else
 #  error "Unsupported compiler"
 # endif
@@ -117,6 +138,8 @@ DECLINLINE(uint64_t) ASMReadCntFrqEl0(void)
 #  endif
     return u64;
 
+#elif RT_INLINE_ASM_USES_INTRIN
+    return (uint64_t)_ReadStatusReg(ARM64_SYSREG_CNTFRQ_EL0);
 # else
 #  error "Unsupported compiler"
 # endif
@@ -144,6 +167,8 @@ DECLINLINE(void) ASMIntEnable(void)
                          "msr cpsr_c, %0\n\t"
                          : "=r" (uFlags));
 #  endif
+# elif RT_INLINE_ASM_USES_INTRIN
+    _enable();
 # else
 #  error "Unsupported compiler"
 # endif
@@ -171,6 +196,8 @@ DECLINLINE(void) ASMIntDisable(void)
                          "msr cpsr_c, %0\n\t"
                          : "=r" (uFlags));
 #  endif
+# elif RT_INLINE_ASM_USES_INTRIN
+    _disable();
 # else
 #  error "Unsupported compiler"
 # endif
@@ -202,11 +229,15 @@ DECLINLINE(RTCCUINTREG) ASMIntDisableFlags(void)
                          : "=r" (uFlags)
                          , "=r" (uNewFlags));
 #  endif
+# elif RT_INLINE_ASM_USES_INTRIN
+    uFlags = _ReadStatusReg(ARM64_SYSREG_DAIF);
+    _disable();
 # else
 #  error "Unsupported compiler"
 # endif
     return uFlags;
 }
+#endif
 
 
 /**
@@ -228,6 +259,8 @@ DECLINLINE(RTCCUINTREG) ASMGetFlags(void)
 #  else
 #   error "Implementation required for arm32"
 #  endif
+# elif RT_INLINE_ASM_USES_INTRIN
+    uFlags = _ReadStatusReg(ARM64_SYSREG_DAIF);
 # else
 #  error "Unsupported compiler"
 # endif
@@ -253,6 +286,8 @@ DECLINLINE(void) ASMSetFlags(RTCCUINTREG uFlags)
 #  else
 #   error "Implementation required for arm32"
 #  endif
+# elif RT_INLINE_ASM_USES_INTRIN
+    _WriteStatusReg(ARM64_SYSREG_DAIF, uFlags);
 # else
 #  error "Unsupported compiler"
 # endif
@@ -270,12 +305,32 @@ DECLINLINE(bool) ASMIntAreEnabled(void)
     return ASMGetFlags() & 0xc0 /* IRQ and FIQ bits */ ? true : false;
 }
 
+
+#if 0 /* Later */
+/**
+ * Issue HVC call with a single argument.
+ */
+#if RT_INLINE_ASM_EXTERNAL
+DECLASM(void) ASMHvc(uint16_t u16Imm, uint32_t u32Arg0);
+#else
+DECLINLINE(void) ASMHvc(uint16_t u16Imm, uint32_t u32Arg0)
+{
+# if RT_INLINE_ASM_GNU_STYLE
+#  error "Later"
+# elif RT_INLINE_ASM_USES_INTRIN
+    __hvc(u16Imm, u32Val);
+# else
+#  error "Unsupported compiler"
+# endif
+}
 #endif
+#endif
+
 
 /**
  * Halts the CPU until interrupted.
  */
-#if RT_INLINE_ASM_EXTERNAL
+#if RT_INLINE_ASM_EXTERNAL || defined(_MSC_VER)
 DECLASM(void) ASMHalt(void);
 #else
 DECLINLINE(void) ASMHalt(void)

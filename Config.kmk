@@ -548,20 +548,20 @@ if1of ($(KBUILD_TARGET), win darwin)
  VBOX_WITH_NATIVE_NEM = 1
 endif
 # Enable NEM fallback if the driver is not available.
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64)
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64 win.arm64)
  VBOX_WITH_DRIVERLESS_NEM_FALLBACK = 1
 endif
 # Enable forced driverless mode by default.
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64)
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64 win.arm64)
  VBOX_WITH_DRIVERLESS_FORCED = 1
- ifn1of ($(KBUILD_TARGET), linux)
+ ifn1of ($(KBUILD_TARGET), linux win)
   VBOX_WITH_INTNET_SERVICE_IN_R3 = 1
  endif
 endif
 # Enables the new breakpoint handling code, see @bugref{8650}
 VBOX_WITH_DBGF_FLOW_TRACING = 1
 # Enables ARMv8 virtualization, see @bugref{10383}
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.arm64 win.arm64 linux.arm64)
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.arm64 linux.arm64 win.arm64)
  VBOX_WITH_VIRT_ARMV8 = 1
 endif
 if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), linux.amd64)
@@ -657,6 +657,10 @@ VBOX_WITH_HGSMI = 1
 # Enable Video 2D Acceleration.
 if1of ($(KBUILD_TARGET), darwin linux win freebsd)
  VBOX_WITH_VIDEOHWACCEL = 1
+endif
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.x86 win.amd64)
+ # Enable XPDM Video driver for XP and older guests.
+ VBOX_WITH_XPDM = 1
 endif
 # Enable Wddm Video driver for Vista+ guests.
 VBOX_WITH_WDDM = 1
@@ -2107,6 +2111,7 @@ DEFS.solaris     = RT_OS_SOLARIS _FILE_OFFSET_BITS=64
 DEFS.win         = RT_OS_WINDOWS __WIN__
 DEFS.win.x86     = __WIN32__
 DEFS.win.amd64   = __WIN64__
+DEFS.win.arm64   = __WIN64__
 # optional defines (use environment or make commandline)
 ifdef VBOX_WITH_STATISTICS
  DEFS += VBOX_WITH_STATISTICS
@@ -2212,9 +2217,17 @@ USES.win += vboximportchecker vboxsetpeversion
 ifdef VBOX_WITH_NEW_WINDOWS_DDK
  VBOX_WINDDK         ?= WINSDK10-KM
  VBOX_WINDDK_WLH     ?= $(VBOX_WINDDK)
- VBOX_WINDDK_GST_W8  ?= WINSDK10-KM-W8
+ if1of ($(KBUILD_TARGET_ARCH),x86 amd64)
+  VBOX_WINDDK_GST_W8  ?= WINSDK10-KM-W8
+ else
+  VBOX_WINDDK_GST_W8  ?= $(VBOX_WINDDK)
+ endif
  VBOX_WINDDK_GST_W7  ?= WINSDK10-KM-W7
- VBOX_WINDDK_GST_WLH ?= WINDDK71WLH
+ if1of ($(KBUILD_TARGET_ARCH),arm32 arm64)
+  VBOX_WINDDK_GST_WLH ?= $(VBOX_WINDDK_WLH)
+ else
+  VBOX_WINDDK_GST_WLH ?= WINDDK71WLH
+ endif
 else if1of ($(VBOX_VCC_TOOL_STEM), VCC110)
  VBOX_WINDDK         ?= WINDDK80
 else
@@ -4546,10 +4559,15 @@ ifdef VBOX_SIGNING_MODE
   endif
   VBOX_MAKE_CAT64_FN   ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),XP_X64;Server2003_X64;Vista_X64)
   VBOX_MAKE_CAT32_FN   ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),2000;XP_X86;Server2003_X86;Vista_X86)
+  VBOX_MAKE_CATARM64_FN ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),10_19H1_ARM64;10_CO_ARM64;Server10_ARM64;10_RS3_ARM64)
   ifeq ($(KBUILD_TARGET_ARCH),x86)
    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT32_FN,$(1),$(2))
   else
-   VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT64_FN,$(1),$(2))
+   ifeq ($(KBUILD_TARGET_ARCH),amd64)
+    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT64_FN,$(1),$(2))
+   else
+    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CATARM64_FN,$(1),$(2))
+   endif
   endif
 
   ## Functions + deps for signing an executable or a dll image. See VBOX_SIGN_IMAGE_NORMAL_FN for parameters.
@@ -4880,7 +4898,11 @@ endif
 ifeq ($(KBUILD_TARGET_ARCH),x86)
  VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INF32_FN,$(1),$(2))
 else
- VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INF64_FN,$(1),$(2))
+ ifeq ($(KBUILD_TARGET_ARCH),amd64)
+  VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INF64_FN,$(1),$(2))
+ else
+  VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INFARM64_FN,$(1),$(2))
+ endif
 endif
 ## Edit an inf file an x86 target.
 # @param    1   The inf file to edit.
@@ -4888,6 +4910,7 @@ endif
 VBOX_EDIT_INF32_FN = $(SED) $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;x86  *//' \
 	-e '/^;amd64 /d' \
+  -e '/^;arm64 /d' \
 	-e 's/@DOT-NT-ARCH@/.NTx86/g' \
 	-e 's/@COMMA-NT-ARCH@/,NTx86/g' \
 	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
@@ -4900,11 +4923,25 @@ VBOX_EDIT_INF64_FN = $(SED) \
 	$(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;amd64  *//' \
 	-e '/^;x86 /d' \
+  -e '/^;arm64 /d' \
 	-e 's/@DOT-NT-ARCH@/.NTAMD64/g' \
 	-e 's/@COMMA-NT-ARCH@/,NTAMD64/g' \
 	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
 	--output $(2) \
 	$(1)
+## Edit an inf file an arm64 target.
+# @param    1   The inf file to edit.
+# @param    2   The output file.
+VBOX_EDIT_INFARM64_FN = $(SED) \
+  $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
+  -e 's/^;arm64  *//' \
+  -e '/^;x86 /d' \
+  -e '/^;amd64 /d' \
+  -e 's/@DOT-NT-ARCH@/.NTARM64/g' \
+  -e 's/@COMMA-NT-ARCH@/,NTARM64/g' \
+  -e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
+  --output $(2) \
+  $(1)
 
 ## @def VBOX_RE_SIGN_DLL_FN
 # Helper macro for re-signing DLL images from tools that we ship so they won't
@@ -5634,15 +5671,21 @@ ifeq ($(VBOX_LDR_FMT),pe)
   TEMPLATE_VBoxR0_LDFLAGS          += -EmitVolatileMetadata:NO
  endif
  TEMPLATE_VBoxR0_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
+ TEMPLATE_VBoxR0_LDFLAGS.win.arm64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  ifneq ($(VBOX_VCC_CC_GUARD_CF),)
   TEMPLATE_VBoxR0_LDFLAGS.win.amd64 += -Include:__security_init_cookie  -Export:ModuleInitSecurityCookie=__security_init_cookie
   TEMPLATE_VBoxR0_LDFLAGS.win.x86  += -Include:___security_init_cookie -Export:ModuleInitSecurityCookie=__security_init_cookie
+  TEMPLATE_VBoxR0_LDFLAGS.win.arm64 += -Include:__security_init_cookie  -Export:ModuleInitSecurityCookie=__security_init_cookie
  endif
  TEMPLATE_VBoxR0_LIBS               = \
  	$(PATH_STAGE_LIB)/RuntimeR0Stub$(VBOX_SUFF_LIB)
  ifneq ($(VBOX_VCC_CC_GUARD_CF),)
-  TEMPLATE_VBoxR0_LIBS             += \
+  TEMPLATE_VBoxR0_LIBS.x86         += \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/BufferOverflowK.lib
+  TEMPLATE_VBoxR0_LIBS.amd64       += \
+  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/BufferOverflowK.lib
+  TEMPLATE_VBoxR0_LIBS.arm64       += \
+  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/BufferOverflowFastFailK.lib
   include $(KBUILD_PATH)/sdks/$(VBOX_WINDDK).kmk ## TODO: Add a kBuild feature for loading SDKs.
  endif
  TEMPLATE_VBoxR0_ORDERDEPS          = $(VBOX_SIGN_DRIVER_ORDERDEPS)
@@ -5806,6 +5849,9 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxR0Drv_DEFS.amd64         = _AMD64_
  TEMPLATE_VBoxR0Drv_DEFS.amd64        += WIN9X_COMPAT_SPINLOCK     # For Windows 8+ WDKs where it is no longer inlined but imported from ntoskrnl.
  TEMPLATE_VBoxR0Drv_DEFS.amd64        += NT_INLINE_IRQL NT_INLINE_GET_CURRENT_IRQL # Prevent W10 WDK from importing KeLowerIrql and KeGetCurrentIrql.
+ TEMPLATE_VBoxR0Drv_DEFS.arm64         = _ARM64_
+ TEMPLATE_VBoxR0Drv_DEFS.arm64        += WIN9X_COMPAT_SPINLOCK     # For Windows 8+ WDKs where it is no longer inlined but imported from ntoskrnl.
+ TEMPLATE_VBoxR0Drv_DEFS.arm64        += NT_INLINE_IRQL NT_INLINE_GET_CURRENT_IRQL # Prevent W10 WDK from importing KeLowerIrql and KeGetCurrentIrql.
  TEMPLATE_VBoxR0Drv_DEFS.win           = IPRT_NT_MAP_TO_ZW
  TEMPLATE_VBoxR0Drv_CXXFLAGS           = -Zi -Zl -GR- -EHs- -GF -Gz -GS- $(VBOX_VCC_WCHAR_T_VARIANT) $(VBOX_VCC_FP) -Gs4096 $(VBOX_VCC_OPT) \
  	-Gy $(VBOX_VCC_CC_GUARD_CF) $(VBOX_VCC_WARN_ALL) $(VBOX_VCC_WERR)
@@ -5837,6 +5883,7 @@ ifeq ($(KBUILD_TARGET),win)
   TEMPLATE_VBoxR0Drv_LDFLAGS          += -EmitVolatileMetadata:NO
  endif
  TEMPLATE_VBoxR0Drv_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
+ TEMPLATE_VBoxR0Drv_LDFLAGS.win.arm64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  TEMPLATE_VBoxR0Drv_ORDERDEPS          = $(VBOX_SIGN_DRIVER_ORDERDEPS)
  TEMPLATE_VBoxR0Drv_POST_CMDS          = $(VBOX_SIGN_DRIVER_CMDS)
 endif
@@ -6418,6 +6465,7 @@ ifeq ($(KBUILD_TARGET),win)
   TEMPLATE_VBoxR3Exe_LDFLAGS          += -IntegrityCheck
  endif
  TEMPLATE_VBoxR3Exe_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
+ TEMPLATE_VBoxR3Exe_LDFLAGS.win.arm64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142" # Don't waste space on x86/amd64-on-arm emulation optimizations.
   TEMPLATE_VBoxR3Exe_LDFLAGS          += -EmitVolatileMetadata:NO
  endif
@@ -7040,8 +7088,10 @@ ifeq ($(KBUILD_TARGET),win) # No CRT!
  	/DISALLOWLIB:ucrt$(VBOX_VCC_CRT_TYPE).lib
  TEMPLATE_VBoxR3HardenedExe_LDFLAGS.win.x86   = $(TEMPLATE_VBoxR3Exe_LDFLAGS.win.x86)   /entry:suplibHardenedWindowsMain
  TEMPLATE_VBoxR3HardenedExe_LDFLAGS.win.amd64 = $(TEMPLATE_VBoxR3Exe_LDFLAGS.win.amd64) /entry:suplibHardenedWindowsMain
+ TEMPLATE_VBoxR3HardenedExe_LDFLAGS.win.arm64 = $(TEMPLATE_VBoxR3Exe_LDFLAGS.win.arm64) /entry:suplibHardenedWindowsMain
  TEMPLATE_VBoxR3HardenedExe_LIBS.x86       = $(NOT_SUCH_VARIABLE)
  TEMPLATE_VBoxR3HardenedExe_LIBS.amd64     = $(NOT_SUCH_VARIABLE)
+ TEMPLATE_VBoxR3HardenedExe_LIBS.arm64     = $(NOT_SUCH_VARIABLE)
  TEMPLATE_VBoxR3HardenedExe_USES.win       = $(TEMPLATE_VBoxR3Exe_USES.win) vboximportchecker
  TEMPLATE_VBoxR3HardenedExe_VBOX_IMPORT_CHECKER.win = noimports
 else ifn1of ($(KBUILD_TARGET), os2)
@@ -8070,6 +8120,7 @@ ifdef VBOX_WITH_QTGUI
    TEMPLATE_VBoxQtGuiExe_LDFLAGS += -EmitVolatileMetadata:NO
   endif
   TEMPLATE_VBoxQtGuiExe_LDFLAGS.win.amd64 = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
+  TEMPLATE_VBoxQtGuiExe_LDFLAGS.win.arm64 = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
 
   TEMPLATE_VBoxQtGuiExe_SDKS += $(VBOX_WINPSDK)
   if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
@@ -8389,6 +8440,7 @@ ifeq ($(KBUILD_HOST),win)
  	/DISALLOWLIB:ucrt.lib \
  	/DISALLOWLIB:ucrtd.lib
  TEMPLATE_VBoxBldProg_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
+ TEMPLATE_VBoxBldProg_LDFLAGS.win.arm64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142" # Don't waste space on x86/amd64-on-arm emulation optimizations.
   TEMPLATE_VBoxBldProg_LDFLAGS          += -EmitVolatileMetadata:NO
  endif
@@ -8626,8 +8678,10 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxGuestR3ExeBase_USES.win                      = $(TEMPLATE_VBoxR3StaticBase_USES.win) vboximportchecker vboxsetpeversion
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.x86   = nt31
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.amd64 = xp64
+ TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.arm64 = w8
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.x86   = default
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.amd64 = default
+ TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.arm64 = default
  ifdef VBOX_WITH_NOCRT_STATIC
   TEMPLATE_VBoxGuestR3ExeBase_LDFLAGS.win.x86   = $(TEMPLATE_$(TEMPLATE_VBoxGuestR3ExeBase_EXTENDS)_LDFLAGS.win.x86) -NoOptIData
  else
@@ -8797,8 +8851,10 @@ TEMPLATE_VBoxGuestR3DllMinVista = VBox Guest User Dynamic Libraries w/ IPRT and 
 TEMPLATE_VBoxGuestR3DllMinVista_EXTENDS  = VBoxGuestR3Dll
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.amd64 = vista
+TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.arm64 = w8
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.amd64 = vista
+TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.arm64 = w10
 ifeq ($(KBUILD_TARGET),win)
  ifdef VBOX_WITH_NOCRT_STATIC
   TEMPLATE_VBoxGuestR3DllMinVista_LDFLAGS.win.x86 = $(filter-out -NoOptIData,$(TEMPLATE_VBoxGuestR3Dll_LDFLAGS.win.x86))
@@ -8815,6 +8871,7 @@ TEMPLATE_NewerVccVBoxGuestR3Dll_EXTENDS  = VBoxGuestR3DllNonPedantic
 if "$(KBUILD_TARGET)" == "win" && "$(VBOX_NEWER_VCC_TOOL_STEM)" != "$(VBOX_VCC_TOOL_STEM)"
  TEMPLATE_NewerVccVBoxGuestR3Dll_TOOL.win.x86    = $(VBOX_NEWER_VCC_TOOL_STEM)X86
  TEMPLATE_NewerVccVBoxGuestR3Dll_TOOL.win.amd64  = $(VBOX_NEWER_VCC_TOOL_STEM)AMD64
+ TEMPLATE_NewerVccVBoxGuestR3Dll_TOOL.win.arm64  = $(VBOX_NEWER_VCC_TOOL_STEM)ARM64
  TEMPLATE_NewerVccVBoxGuestR3Dll_CXXFLAGS        = \
  	$(filter-out $(VBOX_VCC_WARN_ALL) $(VBOX_VCC_WERR), $(TEMPLATE_VBoxGuestR3DllNonPedantic_CXXFLAGS)) \
  	$(VBOX_NEWER_VCC_WARN_ALL) $(VBOX_VCC_WERR)
@@ -8852,6 +8909,7 @@ TEMPLATE_NewerVccVBoxGuestR3DllMinVista = NewerVccVBoxGuestR3Dll with the newer 
 TEMPLATE_NewerVccVBoxGuestR3DllMinVista_EXTENDS := NewerVccVBoxGuestR3Dll
 TEMPLATE_NewerVccVBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.x86   := vista
 TEMPLATE_NewerVccVBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.amd64 := vista
+TEMPLATE_NewerVccVBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.arm64 := w10
 ifeq ($(KBUILD_TARGET),win)
  ifdef VBOX_WITH_NOCRT_STATIC
   TEMPLATE_NewerVccVBoxGuestR3DllMinVista_LDFLAGS.win.x86 = $(filter-out -NoOptIData,$(TEMPLATE_NewerVccVBoxGuestR3Dll_LDFLAGS.win.x86))
@@ -8988,6 +9046,8 @@ TEMPLATE_VBoxGuestR0Drv_EXTENDS     = VBoxR0Drv
 TEMPLATE_VBoxGuestR0Drv_INST        = $(INST_ADDITIONS)
 TEMPLATE_VBoxGuestR0Drv_SDKS.win.x86   = ReorderCompilerIncs $(VBOX_WINDDK_GST) $(VBOX_WINPSDK_GST_INCS)
 TEMPLATE_VBoxGuestR0Drv_SDKS.win.amd64 = ReorderCompilerIncs $(VBOX_WINDDK_GST) $(VBOX_WINPSDK_GST_INCS)
+TEMPLATE_VBoxGuestR0Drv_SDKS.win.arm32 = ReorderCompilerIncs $(VBOX_WINDDK_GST) $(VBOX_WINPSDK_GST_INCS)
+TEMPLATE_VBoxGuestR0Drv_SDKS.win.arm64 = ReorderCompilerIncs $(VBOX_WINDDK_GST) $(VBOX_WINPSDK_GST_INCS)
 TEMPLATE_VBoxGuestR0Drv_DEFS        = $(TEMPLATE_VBoxR0Drv_DEFS) IN_GUEST IN_GUEST_R0
 TEMPLATE_VBoxGuestR0Drv_DEFS.linux  = RT_NO_EXPORT_SYMBOL
 ifeq ($(KBUILD_TARGET),solaris)

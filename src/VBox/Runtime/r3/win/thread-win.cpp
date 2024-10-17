@@ -49,7 +49,11 @@
 #include <iprt/thread.h>
 #include "internal/iprt.h"
 
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/asm-arm.h>
+#endif
 #include <iprt/assert.h>
 #include <iprt/cpuset.h>
 #include <iprt/err.h>
@@ -243,9 +247,9 @@ static void rtThreadNativeUninitComAndOle(void)
     __try
     {
         void *pvTeb = NtCurrentTeb();
-# ifdef RT_ARCH_AMD64
+# if defined(RT_ARCH_AMD64) ||defined(RT_ARCH_ARM64)
         pOleTlsData = *(struct MySOleTlsData **)((uintptr_t)pvTeb + 0x1758); /*TEB.ReservedForOle*/
-# elif RT_ARCH_X86
+# elif defined(RT_ARCH_X86)
         pOleTlsData = *(struct MySOleTlsData **)((uintptr_t)pvTeb + 0x0f80); /*TEB.ReservedForOle*/
 # else
 #  error "Port me!"

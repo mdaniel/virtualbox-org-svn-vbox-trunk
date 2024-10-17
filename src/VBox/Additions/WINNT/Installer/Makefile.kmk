@@ -78,7 +78,7 @@ VBoxDrvInst_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4
 #
 PROGRAMS += RegCleanup
 RegCleanup_TEMPLATE     := VBoxGuestR3Exe
-if1of ($(KBUILD_TARGET_ARCH),amd64)
+if1of ($(KBUILD_TARGET_ARCH), amd64)
  RegCleanup_BLD_TRG_ARCH := x86
 endif
 RegCleanup_DEFS         := _WIN32_WINNT=0x0400

@@ -117,7 +117,9 @@ else # !VBOX_ONLY_ADDITIONS && !VBOX_ONLY_VALIDATIONKIT && !VBOX_ONLY_DOCS
   LIBRARIES += RuntimeR0
  endif
  LIBRARIES.solaris += RuntimeR0Stub
- LIBRARIES.win += RuntimeR0Stub RuntimeR3NoCrt
+ LIBRARIES.win += RuntimeR0Stub
+ LIBRARIES.win.x86 += RuntimeR3NoCrt
+ LIBRARIES.win.amd64 += RuntimeR3NoCrt
  ifndef VBOX_WITH_PARFAIT
   LIBRARIES.win.amd64 += RuntimeR3-x86
  endif
@@ -150,9 +152,14 @@ endif
 
 
 # Always build the ntdll import libraries on windows.
-LIBRARIES.win += RuntimeR3NtDll-x86
+if1of (amd64 x86, $(KBUILD_TARGET_ARCH) $(KBUILD_HOST_ARCH))
+ LIBRARIES.win += RuntimeR3NtDll-x86
+endif
 if1of (amd64, $(KBUILD_TARGET_ARCH) $(KBUILD_HOST_ARCH))
  LIBRARIES.win += RuntimeR3NtDll-amd64
+endif
+if1of (arm64, $(KBUILD_TARGET_ARCH) $(KBUILD_HOST_ARCH))
+ LIBRARIES.win += RuntimeR3NtDll-arm64
 endif
 
 
@@ -336,7 +343,7 @@ RuntimeBaseR3_DEFS          = \
 	RT_NO_GIP \
 	RT_WITHOUT_NOCRT_WRAPPERS \
 	NOFILEID
-if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
+if1of ($(KBUILD_TARGET_ARCH), amd64 x86 arm64)
  RuntimeBaseR3_DEFS         += \
  	IN_SUP_R3
 endif
@@ -882,8 +889,7 @@ RuntimeBaseR3_SOURCES.arm64 := \
 	common/asm/ASMMemZero32-generic.cpp \
 	common/asm/ASMMemFill32-generic.cpp \
 	common/asm/ASMMemFirstMismatchingU8-generic.cpp \
-	common/asm/ASMMemFirstNonZero-generic.cpp \
-	common/misc/zero-alt.S
+	common/asm/ASMMemFirstNonZero-generic.cpp
 RuntimeBaseR3_SOURCES.sparc32 += \
 	generic/RTMpGetDescription-generic-stub.cpp \
 	generic/system-page-size-generic.cpp \
@@ -1109,15 +1115,23 @@ RuntimeBaseR3_SOURCES.win = \
 	r3/win/utf8-win.cpp \
 	r3/win/RTUuidCreate-win.cpp \
 	win/errmsgwin.cpp \
-	win/RTErrConvertFromWin32.cpp \
-	common/string/mempcpy.asm
+	win/RTErrConvertFromWin32.cpp
 
 RuntimeBaseR3_SOURCES.win.amd64 := \
 	$(RuntimeWin64ASM_SOURCES) \
-	common/string/memrchr.asm
+	common/string/memrchr.asm \
+	common/string/mempcpy.asm
 RuntimeBaseR3_SOURCES.win.x86   := \
 	$(RuntimeWin32ASM_SOURCES) \
-	common/string/memrchr.asm
+	common/string/memrchr.asm \
+	common/string/mempcpy.asm
+RuntimeBaseR3_SOURCES.win.arm64 := \
+ 	generic/RTMpGetDescription-generic-stub.cpp \
+	common/string/memrchr.cpp \
+	common/string/mempcpy.cpp \
+	common/string/RTStrMemFind32.cpp \
+	common/misc/zero.cpp \
+	generic/system-page-size-generic.cpp
 
 RuntimeBaseR3_SOURCES.linux = \
 	common/ioqueue/ioqueue-aiofile-provider.cpp \
@@ -1222,12 +1236,14 @@ else
  	generic/RTMpGetDescription-generic-stub.cpp \
  	r3/posix/system-page-size-posix.cpp \
  	r3/linux/semevent-linux.cpp \
- 	r3/linux/semeventmulti-linux.cpp
+ 	r3/linux/semeventmulti-linux.cpp \
+	common/misc/zero-alt.S
  RuntimeBaseR3_SOURCES.linux.arm32 += \
  	generic/RTMpGetDescription-generic-stub.cpp \
  	r3/posix/system-page-size-posix.cpp \
  	r3/linux/semevent-linux.cpp \
- 	r3/linux/semeventmulti-linux.cpp
+ 	r3/linux/semeventmulti-linux.cpp \
+	common/misc/zero-alt.S
  ifdef RT_NEW_LINUX_MUTEX_CODE
   RuntimeBaseR3_SOURCES.linux.amd64 += \
   	r3/linux/semmutex-linux.cpp
@@ -1427,11 +1443,13 @@ RuntimeBaseR3_SOURCES.darwin.amd64 += \
 RuntimeBaseR3_SOURCES.darwin.arm32 += \
 	common/string/mempcpy.cpp \
 	common/string/memrchr.cpp \
+	common/misc/zero-alt.S \
 	generic/system-page-size-generic.cpp \
 	r3/darwin/RTMpGetDescription-generic.cpp
 RuntimeBaseR3_SOURCES.darwin.arm64 += \
 	common/string/mempcpy.cpp \
 	common/string/memrchr.cpp \
+	common/misc/zero-alt.S \
 	generic/system-page-size-generic.cpp \
 	r3/darwin/RTMpGetDescription-generic.cpp
 
@@ -2623,7 +2641,6 @@ RuntimeBldProg_SOURCES.darwin = $(filter-out \
 
 RuntimeBldProg_SOURCES.win = \
 	common/dbg/dbgmoddbghelp.cpp \
-	common/string/mempcpy.asm \
 	common/string/RTUtf16End.cpp \
 	common/string/RTUtf16NLenEx.cpp \
 	common/string/RTUtf16ICmpAscii.cpp \
@@ -2707,11 +2724,17 @@ RuntimeBldProg_SOURCES.arm64 = \
 
 RuntimeBldProg_SOURCES.win.amd64 := \
 	$(RuntimeWin64ASM_SOURCES) \
+	common/string/mempcpy.asm \
 	common/string/memrchr.asm
 
 RuntimeBldProg_SOURCES.win.x86   := \
 	$(RuntimeWin32ASM_SOURCES) \
+	common/string/mempcpy.asm \
 	common/string/memrchr.asm
+
+RuntimeBldProg_SOURCES.win.arm64 := \
+	$(RuntimeBaseR3_SOURCES.win.arm64) \
+	r3/win/mp-win.cpp
 
 ## @todo reduce this
 RuntimeBldProg_SOURCES.os2 += \
@@ -3084,7 +3107,7 @@ if1of ($(DLLS), VBoxRT)
  # .def file for windows.
  $(call KB_FN_DO_PASS0_ON_TARGET,VBoxRT)
  $(VBoxRT_0_OUTDIR)/VBoxRT.def: \
- 		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-$$(if-expr $$(KBUILD_TARGET_ARCH) == amd64,win64,win32).def \
+ 		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-$(KBUILD_TARGET_ARCH).def \
  		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-openssl-3.0.def \
  		$(if-expr "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.x86" && defined(VBOX_WITH_MORE_NT4_COMPAT_BINARIES) \
  			,$(PATH_SUB_CURRENT)/r3/win/VBoxRT-msvcr100-win32.def ,) \
@@ -3188,9 +3211,11 @@ endif
 # VBoxRTImp - Import library/hack.
 #
 ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.amd64)
- $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-vcc64.def r3/win/VBoxRT-win64.def)
+ $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-vcc64.def r3/win/VBoxRT-amd64.def)
 else ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.x86)
- $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-vcc32.def r3/win/VBoxRT-win32.def)
+ $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-vcc32.def r3/win/VBoxRT-x86.def)
+else ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.arm64)
+ $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-vcc-arm64.def r3/win/VBoxRT-arm64.def)
 else
  $(call VBOX_GENERATE_IMPORT_TARGET_FN,VBoxRTImp,VBoxRT,VBox/VBoxRTImp.def VBox/VBoxRTImp-gcc.def)
 endif
@@ -3219,14 +3244,21 @@ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.x86 win.amd64 linux.amd64 dar
     		$(PATH_SUB_CURRENT)/VBox/DefToAsmExterns.sed \
     		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp.def \
     		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp-vcc64.def \
-    		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-win64.def \
+    		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-amd64.def \
     		| $$(dir $$@)
    else ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.x86)
     $(VBoxRTStableCheck_0_OUTDIR)/VBoxRTStableCheckA.asm: \
     		$(PATH_SUB_CURRENT)/VBox/DefToAsmExternsVcc32.sed \
     		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp.def \
     		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp-vcc32.def \
-    		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-win32.def | $$(dir $$@)
+    		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-x86.def | $$(dir $$@)
+   else ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.arm64)
+    $(VBoxRTStableCheck_0_OUTDIR)/VBoxRTStableCheckA.asm: \
+    		$(PATH_SUB_CURRENT)/VBox/DefToAsmExterns.sed \
+    		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp.def \
+    		$(PATH_SUB_CURRENT)/VBox/VBoxRTImp-vcc-arm64.def \
+    		$(PATH_SUB_CURRENT)/r3/win/VBoxRT-arm64.def \
+    		| $$(dir $$@)
    else
     $(VBoxRTStableCheck_0_OUTDIR)/VBoxRTStableCheckA.asm: \
     		$(PATH_SUB_CURRENT)/VBox/DefToAsmExterns.sed \
@@ -3287,7 +3319,6 @@ RuntimeR3NoCrt_SOURCES  := \
 	common/string/RTStrICmpAscii.cpp \
 	common/string/RTStrNICmpAscii.cpp \
 	common/string/RTStrCopy.cpp \
-	common/string/RTStrEnd.asm \
 	common/string/RTUtf16Copy.cpp \
 	common/string/utf-16.cpp \
 	common/string/utf-8.cpp \
@@ -3310,7 +3341,9 @@ RuntimeR3NoCrt_SOURCES.x86 := \
 	common/string/strlen.asm \
 	common/string/strchr.asm \
 	common/string/strcmp.asm \
-	common/string/strncmp.asm
+	common/string/strncmp.asm \
+	common/string/RTStrEnd.asm
+
 RuntimeR3NoCrt_SOURCES.amd64 := \
 	common/string/memcpy.asm \
 	common/string/memchr.asm \
@@ -3320,7 +3353,8 @@ RuntimeR3NoCrt_SOURCES.amd64 := \
 	common/string/strlen.asm \
 	common/string/strchr.asm \
 	common/string/strcmp.asm \
-	common/string/strncmp.asm
+	common/string/strncmp.asm \
+	common/string/RTStrEnd.asm
 
 RuntimeR3NoCrt_SOURCES.win := \
 	r3/win/nocrt-startup-exe-win.cpp \
@@ -3801,7 +3835,6 @@ RuntimeR0Drv_SOURCES.win = \
 	common/path/RTPathFilenameUtf16.cpp \
 	common/path/RTPathChangeToUnixSlashes.cpp \
 	common/math/bignum.cpp \
-	common/misc/zero.asm \
 	common/string/RTStrPrintHexBytes.cpp \
 	common/string/RTUtf16Copy.cpp \
 	common/string/RTUtf16CopyAscii.cpp \
@@ -3815,12 +3848,6 @@ RuntimeR0Drv_SOURCES.win = \
 	common/string/strstrip.cpp \
 	generic/memsafer-generic.cpp \
 	common/misc/thread.cpp \
-	common/string/memcmp.asm \
-	common/string/memchr.asm \
-	common/string/memcpy.asm \
-	common/string/memset.asm \
-	common/string/memmove.asm \
-	common/string/strlen.asm \
 	common/string/strncmp.cpp \
 	common/string/strpbrk.cpp \
 	generic/RTAssertShouldPanic-generic.cpp \
@@ -3858,13 +3885,29 @@ RuntimeR0Drv_SOURCES.win = \
 	r0drv/nt/thread2-r0drv-nt.cpp \
 	r0drv/nt/time-r0drv-nt.cpp \
 	r0drv/nt/timer-r0drv-nt.cpp \
-	r0drv/nt/toxic-chkstk-r0drv-nt.asm \
 	r0drv/nt/RTTimerGetSystemGranularity-r0drv-nt.cpp
 
-RuntimeR0Drv_SOURCES.win.amd64 := $(RuntimeWin64ASM_SOURCES)
+RuntimeR0Drv_SOURCES.win.amd64 := $(RuntimeWin64ASM_SOURCES) \
+	common/misc/zero.asm \
+	common/string/memcmp.asm \
+	common/string/memchr.asm \
+	common/string/memcpy.asm \
+	common/string/memset.asm \
+	common/string/memmove.asm \
+	common/string/strlen.asm \
+	r0drv/nt/toxic-chkstk-r0drv-nt.asm
+
 RuntimeR0Drv_SOURCES.win.x86   := $(RuntimeWin32ASM_SOURCES) \
+	common/misc/zero.asm \
+	common/string/memcmp.asm \
+	common/string/memchr.asm \
+	common/string/memcpy.asm \
+	common/string/memset.asm \
+	common/string/memmove.asm \
+	common/string/strlen.asm \
 	r0drv/nt/nt3fakes-stub-r0drv-nt.cpp \
-	r0drv/nt/alloca-x86-r0drv-nt.asm
+	r0drv/nt/alloca-x86-r0drv-nt.asm \
+	r0drv/nt/toxic-chkstk-r0drv-nt.asm
 
 
 RuntimeR0Drv_SOURCES.darwin = \
@@ -4480,6 +4523,12 @@ if1of (win, $(KBUILD_TARGET) $(KBUILD_HOST))
 	$(QUIET)$(SED) -e '1,/EXPORTS/d' \
 		-e 's/^.*;;=[[:space:]]*\([^[:space:]]*\)[[:space:]]*$$/IMPLIB_EXPORT \1/' \
 		$< --append $@
+
+ RuntimeR3NtDll-arm64_TEMPLATE    = VBoxR3Dll
+ RuntimeR3NtDll-arm64_BLD_TRG_ARCH = arm64
+ RuntimeR3NtDll-arm64_ARFLAGS     = /NODEFAULTLIB /MACHINE:arm64
+ RuntimeR3NtDll-arm64_SOURCES     = \
+ 	r3/win/ntdll-mini-implib.def
 endif
 
 #

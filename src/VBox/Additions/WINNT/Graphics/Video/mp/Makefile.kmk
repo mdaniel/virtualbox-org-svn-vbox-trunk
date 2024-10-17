@@ -193,8 +193,10 @@ endif # VBOX_WITH_WDDM
 # Signing requires both miniport and display drivers so it'll be dealt with in the parent makefile.
 #
 if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
- VBoxVideo_INSTTYPE            = none
- VBoxVideo_DEBUG_INSTTYPE      = both
+ ifdef VBOX_WITH_XPDM
+  VBoxVideo_INSTTYPE            = none
+  VBoxVideo_DEBUG_INSTTYPE      = both
+ endif
  ifdef VBOX_WITH_WDDM
   VBoxWddm_INSTTYPE            = none
   VBoxWddm_DEBUG_INSTTYPE      = both

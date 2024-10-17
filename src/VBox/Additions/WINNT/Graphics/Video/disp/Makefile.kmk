@@ -34,76 +34,78 @@ ifdef VBOX_WITH_MESA3D
  endif
 endif
 
-#
-# VBoxDisp - Windows Guest Additions XPDM Display Driver
-#
-# Note. This has to run on NT4! (*_NT4 => *_W2K3 when targeting 64-bit.)
-#
-SYSMODS += VBoxDisp
-VBoxDisp_TEMPLATE      = VBoxGuestR0Drv
-VBoxDisp_SYSSUFF       = .dll
-VBoxDisp_SDKS          = ReorderCompilerIncs $(VBOX_WINDDK_GST_NT4)
-VBoxDisp_DEFS.x86      = _WIN32_WINNT=0x0501
-VBoxDisp_DEFS          = VBOX_WITH_DDRAW
-VBoxDisp_DEFS         += LOG_TO_BACKDOOR #LOG_ENABLED
-ifdef VBOX_WITH_VIDEOHWACCEL
- VBoxDisp_DEFS        += VBOX_WITH_VIDEOHWACCEL
-endif
-#VBoxDisp_DEFS         += VBOX_VBVA_ADJUST_RECT
-VBoxDisp_INCS          = \
-	../../../include \
-	.. \
-	$(VBOX_GRAPHICS_INCS)
-VBoxDisp_LDFLAGS.x86   = /Entry:DrvEnableDriver@12
-VBoxDisp_LDFLAGS.amd64 = /Entry:DrvEnableDriver
-VBoxDisp_SOURCES     = \
-	xpdm/VBoxDispDriver.cpp \
-	xpdm/VBoxDispMini.cpp \
-	xpdm/VBoxDispMouse.cpp \
-	xpdm/VBoxDispPalette.cpp \
-	xpdm/VBoxDispVBVA.cpp \
-	xpdm/VBoxDispDrawCmd.cpp \
-	xpdm/VBoxDispVRDP.cpp \
-	xpdm/VBoxDispVrdpBmp.cpp \
-	xpdm/VBoxDispVrdpTxt.cpp \
-	xpdm/VBoxDispDriverDDraw.cpp \
-	xpdm/VBoxDispDDraw.cpp \
-	xpdm/VBoxDisp.def \
-	xpdm/VBoxDisp.rc \
-	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIBase.cpp \
-	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIBuffers.cpp \
-	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIHostCmd.cpp \
-	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/VBVABase.cpp \
-	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/Modesetting.cpp
-ifdef VBOX_WITH_VIDEOHWACCEL
- VBoxDisp_SOURCES += \
- 	xpdm/VBoxDispVHWA.cpp \
- 	xpdm/VBoxDispDDrawVHWA.cpp
-endif
+ifdef VBOX_WITH_XPDM
+ #
+ # VBoxDisp - Windows Guest Additions XPDM Display Driver
+ #
+ # Note. This has to run on NT4! (*_NT4 => *_W2K3 when targeting 64-bit.)
+ #
+ SYSMODS += VBoxDisp
+ VBoxDisp_TEMPLATE      = VBoxGuestR0Drv
+ VBoxDisp_SYSSUFF       = .dll
+ VBoxDisp_SDKS          = ReorderCompilerIncs $(VBOX_WINDDK_GST_NT4)
+ VBoxDisp_DEFS.x86      = _WIN32_WINNT=0x0501
+ VBoxDisp_DEFS          = VBOX_WITH_DDRAW
+ VBoxDisp_DEFS         += LOG_TO_BACKDOOR #LOG_ENABLED
+ ifdef VBOX_WITH_VIDEOHWACCEL
+  VBoxDisp_DEFS        += VBOX_WITH_VIDEOHWACCEL
+ endif
+ #VBoxDisp_DEFS         += VBOX_VBVA_ADJUST_RECT
+ VBoxDisp_INCS          = \
+ 	../../../include \
+ 	.. \
+ 	$(VBOX_GRAPHICS_INCS)
+ VBoxDisp_LDFLAGS.x86   = /Entry:DrvEnableDriver@12
+ VBoxDisp_LDFLAGS.amd64 = /Entry:DrvEnableDriver
+ VBoxDisp_SOURCES     = \
+ 	xpdm/VBoxDispDriver.cpp \
+ 	xpdm/VBoxDispMini.cpp \
+ 	xpdm/VBoxDispMouse.cpp \
+ 	xpdm/VBoxDispPalette.cpp \
+ 	xpdm/VBoxDispVBVA.cpp \
+ 	xpdm/VBoxDispDrawCmd.cpp \
+ 	xpdm/VBoxDispVRDP.cpp \
+ 	xpdm/VBoxDispVrdpBmp.cpp \
+ 	xpdm/VBoxDispVrdpTxt.cpp \
+ 	xpdm/VBoxDispDriverDDraw.cpp \
+ 	xpdm/VBoxDispDDraw.cpp \
+ 	xpdm/VBoxDisp.def \
+ 	xpdm/VBoxDisp.rc \
+ 	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIBase.cpp \
+ 	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIBuffers.cpp \
+ 	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/HGSMIHostCmd.cpp \
+ 	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/VBVABase.cpp \
+ 	$(PATH_ROOT)/src/VBox/Additions/common/VBoxVideo/Modesetting.cpp
+ ifdef VBOX_WITH_VIDEOHWACCEL
+  VBoxDisp_SOURCES += \
+  	xpdm/VBoxDispVHWA.cpp \
+  	xpdm/VBoxDispDDrawVHWA.cpp
+ endif 
+ 
 
+ VBoxDisp_LIBS = \
+ 	$(VBOX_LIB_IPRT_GUEST_R0_NT4) \
+ 	$(VBOX_PATH_ADDITIONS_LIB)/HGSMIGuestR0Lib$(VBOX_SUFF_LIB) \
+ 	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/win32k.lib # Linker needs newer win32k.lib (for x86 at least); incompatible loadcfg.obj in the WDK 7.1 one.
+ ifneq ($(VBOX_VCC_CC_GUARD_CF),)
+  VBoxDisp_LIBS += \
+  	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowGDI.lib # for ___security_cookie
+ endif
+ VBoxDisp_USES.win += vboximportchecker
+ VBoxDisp_VBOX_IMPORT_CHECKER.win.x86 = nt4/r0
+ VBoxDisp_VBOX_IMPORT_CHECKER.win.amd64 = xp64/r0 
 
-VBoxDisp_LIBS = \
-	$(VBOX_LIB_IPRT_GUEST_R0_NT4) \
-	$(VBOX_PATH_ADDITIONS_LIB)/HGSMIGuestR0Lib$(VBOX_SUFF_LIB) \
-	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/win32k.lib # Linker needs newer win32k.lib (for x86 at least); incompatible loadcfg.obj in the WDK 7.1 one.
-ifneq ($(VBOX_VCC_CC_GUARD_CF),)
- VBoxDisp_LIBS += \
- 	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowGDI.lib # for ___security_cookie
-endif
-VBoxDisp_USES.win += vboximportchecker
-VBoxDisp_VBOX_IMPORT_CHECKER.win.x86 = nt4/r0
-VBoxDisp_VBOX_IMPORT_CHECKER.win.amd64 = xp64/r0
-
-# Signing requires both miniport and display drivers so it'll be dealt with in the parent makefile.
-if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
- VBoxDisp_INSTTYPE           := none
- VBoxDisp_DEBUG_INSTTYPE     := both
- ifdef VBOX_WITH_WDDM
-  VBoxDispD3D_INSTTYPE       := none
-  VBoxDispD3D_DEBUG_INSTTYPE := both
-  ifdef VBOX_WITH_WDDM_DX
-   VBoxDX_INSTTYPE           := none
-   VBoxDX_DEBUG_INSTTYPE     := both
+ # Signing requires both miniport and display drivers so it'll be dealt with in the parent makefile.
+ if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
+  VBoxDisp_INSTTYPE           := none
+  VBoxDisp_DEBUG_INSTTYPE     := both
+  ifdef VBOX_WITH_WDDM
+   VBoxDispD3D_INSTTYPE       := none
+   VBoxDispD3D_DEBUG_INSTTYPE := both
+   ifdef VBOX_WITH_WDDM_DX
+    VBoxDX_INSTTYPE           := none
+    VBoxDX_DEBUG_INSTTYPE     := both
+   endif
   endif
  endif
 endif

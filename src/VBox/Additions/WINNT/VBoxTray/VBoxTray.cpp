@@ -79,6 +79,13 @@ static int vboxTrayGlMsgTaskbarCreated(WPARAM lParam, LPARAM wParam);
 
 
 /*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
+typedef BOOL (WINAPI *PFNALLOCCONSOLE)(VOID);
+typedef BOOL (WINAPI *PFNATTACHCONSOLE)(DWORD);
+
+
+/*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /** Mutex for checking if VBoxTray already is running. */
@@ -95,6 +102,13 @@ HWND                  g_hwndToolWindow;
 NOTIFYICONDATA        g_NotifyIconData;
 
 uint32_t              g_fGuestDisplaysChanged = 0;
+
+
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
+DECL_HIDDEN_DATA(PFNALLOCCONSOLE)  g_pfnAllocConsole = NULL;  /* For W2K+. */
+DECL_HIDDEN_DATA(PFNATTACHCONSOLE) g_pfnAttachConsole = NULL; /* For W2K+. */
 
 
 /**
@@ -858,18 +872,20 @@ static int vboxTrayServiceMain(void)
  */
 static int vboxTrayAttachConsole(void)
 {
-    if (g_fHasConsole) /* Console already attached? Bail out. */
+    if (    g_fHasConsole       /* Console already attached? Bail out. */
+        || !g_pfnAttachConsole) /* AttachConsole() not available (NT <= 4.0)? */
         return VINF_SUCCESS;
 
     /* As we run with the WINDOWS subsystem, we need to either attach to or create an own console
      * to get any stdout / stderr output. */
     bool fAllocConsole = false;
-    if (!AttachConsole(ATTACH_PARENT_PROCESS))
+    if (!g_pfnAttachConsole(ATTACH_PARENT_PROCESS))
         fAllocConsole = true;
 
     if (fAllocConsole)
     {
-        if (!AllocConsole())
+        AssertPtrReturn(g_pfnAllocConsole, VERR_NOT_AVAILABLE);
+        if (!g_pfnAllocConsole())
             VBoxTrayShowError("Unable to attach to or allocate a console!");
         /* Continue running. */
     }
@@ -902,6 +918,26 @@ static int vboxTrayAttachConsole(void)
 static void vboxTrayDetachConsole()
 {
     g_fHasConsole = false;
+}
+
+/**
+ * Early initialization code, required for resolving dynamic symbols and such.
+ *
+ * @returns VBox status code.
+ */
+static int vboxTrayPreInit()
+{
+    RTLDRMOD hMod;
+    int rc = RTLdrLoadSystem("kernel32.dll", true /*fNoUnload*/, &hMod);
+    if (RT_SUCCESS(rc))
+    {
+        /* only W2K+, ignore rc */ RTLdrGetSymbol(hMod, "AllocConsole", (void **)&g_pfnAllocConsole);
+        /* only W2K+, ignore rc */ RTLdrGetSymbol(hMod, "AttachConsole", (void **)&g_pfnAttachConsole);
+
+        RTLdrClose(hMod);
+    }
+
+    return rc;
 }
 
 /**
@@ -997,6 +1033,10 @@ int main(int cArgs, char **papszArgs)
     int rc = RTR3InitExe(cArgs, &papszArgs, RTR3INIT_FLAGS_STANDALONE_APP);
     if (RT_FAILURE(rc))
         return RTMsgInitFailure(rc);
+
+    rc = vboxTrayPreInit();
+    if (RT_FAILURE(rc))
+        return VBoxTrayShowError(VBOX_VBOXTRAY_TITLE " Pre-init failed: %Rrc\n", rc);
 
     /* If a debugger is present, we always want to attach a console. */
     if (IsDebuggerPresent())

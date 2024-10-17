@@ -2357,13 +2357,14 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
                                       : a_enmEffOpSize == IEMMODE_32BIT
                                       ? sizeof(uint32_t)
                                       : sizeof(uint16_t);
-/** @todo the basic flatness should be detected by the threaded compiler step
- *        like for the other macros... */
-    bool      const fFlat           = IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) && a_enmEffOpSize != IEMMODE_16BIT; /* see note */
-    uintptr_t const pfnFunction     = fFlat
-                                      ?   a_enmEffOpSize == IEMMODE_64BIT
-                                        ? (uintptr_t)iemNativeHlpStackFlatFetchU64
-                                        : (uintptr_t)iemNativeHlpStackFlatFetchU32
+/** @todo the basic flatness could be detected by the threaded compiler step
+ *        like for the other macros... worth it? */
+    bool      const fFlat           = a_enmEffOpSize == IEMMODE_64BIT
+                                   || (a_enmEffOpSize == IEMMODE_32BIT /* see note */ && IEM_F_MODE_X86_IS_FLAT(pReNative->fExec));
+    uintptr_t const pfnFunction     = a_enmEffOpSize == IEMMODE_64BIT
+                                    ? (uintptr_t)iemNativeHlpStackFlatFetchU64
+                                    : fFlat
+                                      ? (uintptr_t)iemNativeHlpStackFlatFetchU32
                                       :   a_enmEffOpSize == IEMMODE_32BIT
                                         ? (uintptr_t)iemNativeHlpStackFetchU32
                                         : (uintptr_t)iemNativeHlpStackFetchU16;

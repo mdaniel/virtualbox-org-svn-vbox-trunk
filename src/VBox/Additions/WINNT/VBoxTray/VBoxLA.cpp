@@ -71,7 +71,7 @@
 *********************************************************************************************************************************/
 typedef struct _VBOXLACONTEXT
 {
-    const VBOXSERVICEENV *pEnv;
+    const VBOXTRAYSVCENV *pEnv;
 
     bool fLogEnabled;
     bool fDetachOnDisconnect;
@@ -1208,7 +1208,29 @@ static void laDoActions(PVBOXLACONTEXT pCtx)
     LogFlowFunc(("laDoActions: leave\n"));
 }
 
-DECLCALLBACK(int) VBoxLAInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
+/**
+ * @interface_method_impl{VBOXSERVICEDESC,pfnPreInit}
+ */
+static DECLCALLBACK(int) vbtrLAPreInit(void)
+{
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * @interface_method_impl{VBOXSERVICEDESC,pfnOption}
+ */
+static DECLCALLBACK(int) vbtrLAOption(const char **ppszShort, int argc, char **argv, int *pi)
+{
+    RT_NOREF(ppszShort, argc, argv, pi);
+
+    return -1;
+}
+
+/**
+ * @interface_method_impl{VBOXSERVICEDESC,pfnInit}
+ */
+DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
     AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
@@ -1261,7 +1283,10 @@ DECLCALLBACK(int) VBoxLAInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
     return VINF_SUCCESS;
 }
 
-DECLCALLBACK(void) VBoxLADestroy(void *pInstance)
+/**
+ * @interface_method_impl{VBOXSERVICEDESC,pfnDestroy}
+ */
+DECLCALLBACK(void) vbtrLADestroy(void *pInstance)
 {
     AssertPtrReturnVoid(pInstance);
 
@@ -1281,10 +1306,10 @@ DECLCALLBACK(void) VBoxLADestroy(void *pInstance)
     pCtx->pfnProcessIdToSessionId = NULL;
 }
 
-/*
- * Thread function to wait for and process property changes
+/**
+ * @interface_method_impl{VBOXSERVICEDESC,pfnWorker}
  */
-DECLCALLBACK(int) VBoxLAWorker(void *pInstance, bool volatile *pfShutdown)
+DECLCALLBACK(int) vbtrLAWorker(void *pInstance, bool volatile *pfShutdown)
 {
     AssertPtr(pInstance);
     LogFlowFunc(("pInstance=%p\n", pInstance));
@@ -1425,16 +1450,22 @@ DECLCALLBACK(int) VBoxLAWorker(void *pInstance, bool volatile *pfShutdown)
 /**
  * The service description.
  */
-VBOXSERVICEDESC g_SvcDescLA =
+VBOXTRAYSVCDESC g_SvcDescLA =
 {
     /* pszName. */
     "LA",
     /* pszDescription. */
     "Location Awareness",
+    /* pszUsage. */
+    NULL,
+    /* pszOptions. */
+    NULL,
     /* methods */
-    VBoxLAInit,
-    VBoxLAWorker,
+    vbtrLAPreInit,
+    vbtrLAOption,
+    vbtrLAInit,
+    vbtrLAWorker,
     NULL /* pfnStop */,
-    VBoxLADestroy
+    vbtrLADestroy
 };
 

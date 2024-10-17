@@ -215,6 +215,9 @@ int vboxDtInit()
     RT_ZERO(gVBoxDt);
     gVBoxDt.fIsInputDesktop = TRUE;
 
+    if (RT_FAILURE(rc))
+        VBoxTrayError("Initializing desktop tracking failed with %Rrc\n", rc);
+
     return rc;
 }
 

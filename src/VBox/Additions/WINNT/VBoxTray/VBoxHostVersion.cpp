@@ -31,8 +31,8 @@
 
 #include "VBoxHostVersion.h"
 #include "VBoxTray.h"
+#include "VBoxTrayInternal.h"
 #include "VBoxHelpers.h"
-
 
 
 /** @todo Move this part in VbglR3 and just provide a callback for the platform-specific
@@ -63,11 +63,9 @@ int VBoxCheckHostVersion(void)
                             "We recommend updating to the latest version (%s) by choosing the "
                             "install option from the Devices menu.", pszGuestVersion, pszHostVersion);
 
-                rc = hlpShowBalloonTip(g_hInstance, g_hwndToolWindow, ID_TRAYICON,
-                                       szMsg, szTitle,
-                                       5000 /* Time to display in msec */, NIIF_INFO);
-                if (RT_FAILURE(rc))
-                    LogFlowFunc(("Guest Additions update found; however: could not show version notifier balloon tooltip, rc=%Rrc\n", rc));
+                rc = VBoxTrayHlpShowBalloonTip(szMsg, szTitle, RT_MS_5SEC);
+
+                VBoxTrayInfo("Guest Additions update found: %s -> %s\n", pszGuestVersion, pszHostVersion);
             }
 
             /* Store host version to not notify again. */

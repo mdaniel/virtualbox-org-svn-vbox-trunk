@@ -70,9 +70,9 @@ class VBoxShClService : public BHandler
 };
 
 /* The shared clipboard service prototypes. */
-int vbtrShClInit(const VBOXSERVICEENV *pEnv, void **ppInstance, bool *pfStartThread);
+int vbtrShClInit(const VBOXTRAYSVCENV *pEnv, void **ppInstance, bool *pfStartThread);
 unsigned __stdcall VBoxShClThread(void *pInstance);
-void vbtrShClDestroy(const VBOXSERVICEENV *pEnv, void *pInstance);
+void vbtrShClDestroy(const VBOXTRAYSVCENV *pEnv, void *pInstance);
 
 #endif /* !GA_INCLUDED_SRC_haiku_VBoxTray_VBoxServiceDescriptor_h */
 

@@ -32,8 +32,8 @@
 #endif
 
 /* The restore service prototypes. */
-int                VBoxVRDPInit    (const VBOXSERVICEENV *pEnv, void **ppInstance, bool *pfStartThread);
+int                VBoxVRDPInit    (const VBOXTRAYSVCENV *pEnv, void **ppInstance, bool *pfStartThread);
 unsigned __stdcall VBoxVRDPThread  (void *pInstance);
-void               VBoxVRDPDestroy (const VBOXSERVICEENV *pEnv, void *pInstance);
+void               VBoxVRDPDestroy (const VBOXTRAYSVCENV *pEnv, void *pInstance);
 
 #endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxVRDP_h */

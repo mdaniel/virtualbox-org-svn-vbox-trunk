@@ -103,4 +103,12 @@ DWORD VBoxDisplayGetConfig(const DWORD NumDevices, DWORD *pDevPrimaryNum, DWORD 
 DWORD EnableAndResizeDispDev(DEVMODE *paDeviceModes, DISPLAY_DEVICE *paDisplayDevices, DWORD totalDispNum, UINT Id, DWORD aWidth, DWORD aHeight,
                              DWORD aBitsPerPixel, LONG aPosX, LONG aPosY, BOOL fEnabled, BOOL fExtDispSup);
 
+int                      VBoxTrayLogCreate(const char *pszLogFile);
+void                     VBoxTrayLogDestroy(void);
+
+void                     VBoxTrayInfo(const char *pszFormat, ...);
+RTEXITCODE               VBoxTrayError(const char *pszFormat, ...) RT_IPRT_FORMAT_ATTR(1, 2);
+void                     VBoxTrayVerbose(unsigned iLevel, const char *pszFormat, ...)  RT_IPRT_FORMAT_ATTR(2, 3);
+RTEXITCODE               VBoxTrayShowError(const char *pszFormat, ...);
+
 #endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTrayInternal_h */

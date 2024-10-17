@@ -275,7 +275,7 @@ typedef struct VBOXDNDEVENT
 typedef struct VBOXDNDCONTEXT
 {
     /** Pointer to the service environment. */
-    const VBOXSERVICEENV      *pEnv;
+    const VBOXTRAYSVCENV      *pEnv;
     /** Started indicator. */
     bool                       fStarted;
     /** Shutdown indicator. */

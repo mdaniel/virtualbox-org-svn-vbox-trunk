@@ -7389,7 +7389,7 @@ iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off
                                      ? iemNativeVarRegisterSetAndAcquire(pReNative, idxVarValue, IEMNATIVE_CALL_RET_GREG, &off)
                                      : iemNativeVarRegisterAcquire(pReNative, idxVarValue, &off);
 #endif
-    IEMNATIVEEMITTLBSTATE const TlbState(pReNative, &off, idxVarGCPtrMem, iSegReg, a_cbMem, offDisp);
+    IEMNATIVEEMITTLBSTATE const TlbState(pReNative, &off, idxVarGCPtrMem, iSegReg, a_fFlat, a_cbMem, offDisp);
 
 #ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
     uint8_t  idxRegValueStore = UINT8_MAX;
@@ -8521,15 +8521,15 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
                                                                                             kIemNativeGstReg_EFlags);
                         if (idxRegEfl != UINT8_MAX)
                         {
-#ifdef ARCH_AMD64
+# ifdef ARCH_AMD64
                             off = iemNativeEmitLoadGprFromGpr32(pReNative, off, TlbState.idxReg1, idxRegEfl);
                             off = iemNativeEmitAndGpr32ByImm(pReNative, off, TlbState.idxReg1,
                                                              UINT32_C(0xffff0000) & ~X86_EFL_RAZ_MASK);
-#else
+# else
                             off = iemNativeEmitGpr32EqGprAndImmEx(iemNativeInstrBufEnsure(pReNative, off, 3),
                                                                   off, TlbState.idxReg1, idxRegEfl,
                                                                   UINT32_C(0xffff0000) & ~X86_EFL_RAZ_MASK);
-#endif
+# endif
                             iemNativeRegFreeTmp(pReNative, idxRegEfl);
                         }
                         else
@@ -9340,7 +9340,7 @@ iemNativeEmitMemMapCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
     uint8_t  const idxRegMemResult   = !(pReNative->Core.bmHstRegs & RT_BIT_32(IEMNATIVE_CALL_RET_GREG))
                                      ? iemNativeVarRegisterSetAndAcquire(pReNative, idxVarMem, IEMNATIVE_CALL_RET_GREG, &off)
                                      : iemNativeVarRegisterAcquire(pReNative, idxVarMem, &off);
-    IEMNATIVEEMITTLBSTATE const TlbState(pReNative, &off, idxVarGCPtrMem, iSegReg, a_cbMem);
+    IEMNATIVEEMITTLBSTATE const TlbState(pReNative, &off, idxVarGCPtrMem, iSegReg, a_fFlat, a_cbMem);
     uint32_t const idxLabelTlbLookup = !TlbState.fSkip
                                      ? iemNativeLabelCreate(pReNative, kIemNativeLabelType_TlbLookup, UINT32_MAX, uTlbSeqNo)
                                      : UINT32_MAX;

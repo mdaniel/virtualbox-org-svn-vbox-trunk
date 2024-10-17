@@ -94,7 +94,7 @@ typedef struct IEMNATIVEEMITTLBSTATE
     uint64_t const  uAbsPtr;
 
     IEMNATIVEEMITTLBSTATE(PIEMRECOMPILERSTATE a_pReNative, uint32_t *a_poff, uint8_t a_idxVarGCPtrMem,
-                          uint8_t a_iSegReg, uint8_t a_cbMem, uint8_t a_offDisp = 0)
+                          uint8_t const a_iSegReg, bool const a_fFlat, uint8_t const a_cbMem, uint8_t const a_offDisp = 0)
 #ifdef IEMNATIVE_WITH_TLB_LOOKUP
         /* 32-bit and 64-bit wraparound will require special handling, so skip these for absolute addresses. */
         :           fSkip(      a_pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(a_idxVarGCPtrMem)].enmKind
@@ -122,13 +122,13 @@ typedef struct IEMNATIVEEMITTLBSTATE
                           ? iemNativeVarRegisterAcquireInitedWithPref(a_pReNative, a_idxVarGCPtrMem, a_poff,
                                                                       IEMNATIVE_CALL_ARG2_GREG)
                           : idxRegPtrHlp)
-        ,   idxRegSegBase(a_iSegReg == UINT8_MAX || fSkip
+        ,   idxRegSegBase(a_fFlat || a_iSegReg == UINT8_MAX || fSkip
                           ? UINT8_MAX
                           : iemNativeRegAllocTmpForGuestReg(a_pReNative, a_poff, IEMNATIVEGSTREG_SEG_BASE(a_iSegReg)))
-        ,  idxRegSegLimit((a_iSegReg == UINT8_MAX || (a_pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT) || fSkip
+        ,  idxRegSegLimit(a_fFlat || a_iSegReg == UINT8_MAX || (a_pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT || fSkip
                           ? UINT8_MAX
                           : iemNativeRegAllocTmpForGuestReg(a_pReNative, a_poff, IEMNATIVEGSTREG_SEG_LIMIT(a_iSegReg)))
-        , idxRegSegAttrib((a_iSegReg == UINT8_MAX || (a_pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT) || fSkip
+        , idxRegSegAttrib(a_fFlat || a_iSegReg == UINT8_MAX || (a_pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT || fSkip
                           ? UINT8_MAX
                           : iemNativeRegAllocTmpForGuestReg(a_pReNative, a_poff, IEMNATIVEGSTREG_SEG_ATTRIB(a_iSegReg)))
         ,         idxReg1(!fSkip ? iemNativeRegAllocTmp(a_pReNative, a_poff) : UINT8_MAX)
@@ -147,7 +147,8 @@ typedef struct IEMNATIVEEMITTLBSTATE
                           : a_pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(a_idxVarGCPtrMem)].u.uValue)
 
     {
-        RT_NOREF(a_cbMem, a_offDisp);
+        Assert(a_fFlat ? a_iSegReg == UINT8_MAX : a_iSegReg != UINT8_MAX);
+        RT_NOREF(a_offDisp);
     }
 
     /* Alternative constructor for PUSH and POP where we don't have a GCPtrMem

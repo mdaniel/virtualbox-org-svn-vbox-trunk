@@ -1778,8 +1778,9 @@ iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t c
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, cbMem, cbMem - 1,
-                                           IEM_ACCESS_TYPE_WRITE, idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        off = iemNativeEmitTlbLookup<true, cbMem, cbMem - 1, IEM_ACCESS_TYPE_WRITE>(pReNative, off, &TlbState, iSegReg,
+                                                                                    idxLabelTlbLookup, idxLabelTlbMiss,
+                                                                                    idxRegMemResult);
 
         /*
          * Emit code to do the actual storing / fetching.
@@ -2454,8 +2455,9 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, cbMem, cbMem - 1, IEM_ACCESS_TYPE_READ,
-                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        off = iemNativeEmitTlbLookup<true, cbMem, cbMem - 1, IEM_ACCESS_TYPE_READ>(pReNative, off, &TlbState, iSegReg,
+                                                                                   idxLabelTlbLookup, idxLabelTlbMiss,
+                                                                                   idxRegMemResult);
 
         /*
          * Emit code to load the value (from idxRegMemResult into idxRegMemResult).
@@ -7607,9 +7609,10 @@ iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, a_cbMem, a_fAlignMaskAndCtl,
-                                           a_enmOp == kIemNativeEmitMemOp_Store ? IEM_ACCESS_TYPE_WRITE : IEM_ACCESS_TYPE_READ,
-                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult, offDisp);
+        off = iemNativeEmitTlbLookup<true, a_cbMem, a_fAlignMaskAndCtl,
+                                     a_enmOp == kIemNativeEmitMemOp_Store ? IEM_ACCESS_TYPE_WRITE : IEM_ACCESS_TYPE_READ
+                                    >(pReNative, off, &TlbState, iSegReg, idxLabelTlbLookup, idxLabelTlbMiss,
+                                      idxRegMemResult, offDisp);
 
         /*
          * Emit code to do the actual storing / fetching.
@@ -8262,6 +8265,9 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
     /*
      * Assert sanity.
      */
+    AssertCompile(a_cBitsVar == 16 || a_cBitsVar  == 32 || a_cBitsVar  == 64);
+    AssertCompile(a_cBitsFlat == 0 || a_cBitsFlat == 32 || a_cBitsFlat == 64);
+    AssertCompile(!a_fIsSegReg || a_cBitsVar < 64);
     IEMNATIVE_ASSERT_VAR_IDX(pReNative, idxVarValue);
     PIEMNATIVEVAR const pVarValue = &pReNative->Core.aVars[IEMNATIVE_VAR_IDX_UNPACK(idxVarValue)];
 #ifdef VBOX_STRICT
@@ -8309,9 +8315,10 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
      * For 64-bit mode and flat 32-bit these two are the same.
      * (Code structure is very similar to that of PUSH)
      */
+    RT_CONSTEXPR
     uint8_t const cbMem       = a_cBitsVar / 8;
     bool const    fIsIntelSeg = a_fIsSegReg && IEM_IS_GUEST_CPU_INTEL(pReNative->pVCpu);
-    uint8_t const cbMemAccess = !fIsIntelSeg || (pReNative->fExec & IEM_F_MODE_MASK) == IEM_F_MODE_X86_16BIT
+    uint8_t const cbMemAccess = !a_fIsSegReg || !fIsIntelSeg || (pReNative->fExec & IEM_F_MODE_MASK) == IEM_F_MODE_X86_16BIT
                               ? cbMem : sizeof(uint16_t);
     uint8_t const idxRegRsp   = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xSP),
                                                                 kIemNativeGstRegUse_ForUpdate, true /*fNoVolatileRegs*/);
@@ -8472,8 +8479,20 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, cbMemAccess, cbMemAccess - 1,
-                                           IEM_ACCESS_TYPE_WRITE, idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        if (!a_fIsSegReg || cbMemAccess == cbMem)
+        {
+            Assert(cbMemAccess == cbMem);
+            off = iemNativeEmitTlbLookup<true, cbMem, cbMem - 1, IEM_ACCESS_TYPE_WRITE>(pReNative, off, &TlbState,
+                                                                                        iSegReg, idxLabelTlbLookup,
+                                                                                        idxLabelTlbMiss, idxRegMemResult);
+        }
+        else
+        {
+            Assert(cbMemAccess == sizeof(uint16_t));
+            off = iemNativeEmitTlbLookup<true, sizeof(uint16_t), sizeof(uint16_t) - 1,
+                                         IEM_ACCESS_TYPE_WRITE>(pReNative, off, &TlbState, iSegReg,
+                                                                idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        }
 
         /*
          * Emit code to do the actual storing / fetching.
@@ -8491,7 +8510,7 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
                     off = iemNativeEmitStoreGpr16ByGprEx(pCodeBuf, off, idxRegValue, idxRegMemResult);
                     break;
                 case 4:
-                    if (!fIsIntelSeg)
+                    if (!a_fIsSegReg || !fIsIntelSeg)
                         off = iemNativeEmitStoreGpr32ByGprEx(pCodeBuf, off, idxRegValue, idxRegMemResult);
                     else
                     {
@@ -8815,8 +8834,9 @@ iemNativeEmitStackPopGReg(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, cbMem, cbMem - 1, IEM_ACCESS_TYPE_READ,
-                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        off = iemNativeEmitTlbLookup<true, cbMem, cbMem - 1, IEM_ACCESS_TYPE_READ>(pReNative, off, &TlbState, iSegReg,
+                                                                                   idxLabelTlbLookup, idxLabelTlbMiss,
+                                                                                   idxRegMemResult);
 
         /*
          * Emit code to load the value (from idxRegMemResult into idxRegMemResult).
@@ -9413,8 +9433,9 @@ iemNativeEmitMemMapCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<true>(pReNative, off, &TlbState, iSegReg, a_cbMem, a_fAlignMaskAndCtl, a_fAccess,
-                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegMemResult);
+        off = iemNativeEmitTlbLookup<true, a_cbMem, a_fAlignMaskAndCtl, a_fAccess>(pReNative, off, &TlbState, iSegReg,
+                                                                                   idxLabelTlbLookup, idxLabelTlbMiss,
+                                                                                   idxRegMemResult);
 # ifdef IEM_WITH_TLB_STATISTICS
         off = iemNativeEmitIncStamCounterInVCpu(pReNative, off, TlbState.idxReg1, TlbState.idxReg2,
                                                 RT_UOFFSETOF(VMCPUCC,  iem.s.StatNativeTlbHitsForMapped));

@@ -1472,10 +1472,10 @@ iemNativeEmitBltLoadTlbForNewPage(PIEMRECOMPILERSTATE pReNative, uint32_t off, P
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<false>(pReNative, off, &TlbState,
-                                            IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) ? UINT8_MAX : X86_SREG_CS,
-                                            1 /*cbMem*/, 0 /*fAlignMask*/, IEM_ACCESS_TYPE_EXEC,
-                                            idxLabelTlbLookup, idxLabelTlbMiss, idxRegGCPhys, offInstr);
+        off = iemNativeEmitTlbLookup<false, 1 /*cbMem*/, 0 /*fAlignMask*/,
+                                     IEM_ACCESS_TYPE_EXEC>(pReNative, off, &TlbState,
+                                                           IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) ? UINT8_MAX : X86_SREG_CS,
+                                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegGCPhys, offInstr);
 
 # ifdef IEM_WITH_TLB_STATISTICS
         off = iemNativeEmitIncStamCounterInVCpu(pReNative, off, TlbState.idxReg1, TlbState.idxReg2,
@@ -1770,9 +1770,9 @@ iemNativeEmitBltLoadTlbAfterBranch(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<false, true>(pReNative, off, &TlbState, fIsFlat ? UINT8_MAX : X86_SREG_CS,
-                                                  1 /*cbMem*/, 0 /*fAlignMask*/, IEM_ACCESS_TYPE_EXEC,
-                                                  idxLabelTlbLookup, idxLabelTlbMiss, idxRegDummy);
+        off = iemNativeEmitTlbLookup<false, 1 /*cbMem*/, 0 /*fAlignMask*/,
+                                     IEM_ACCESS_TYPE_EXEC, true>(pReNative, off, &TlbState, fIsFlat ? UINT8_MAX : X86_SREG_CS,
+                                                                 idxLabelTlbLookup, idxLabelTlbMiss, idxRegDummy);
 
 # ifdef IEM_WITH_TLB_STATISTICS
         off = iemNativeEmitIncStamCounterInVCpu(pReNative, off, TlbState.idxReg1, TlbState.idxReg2,

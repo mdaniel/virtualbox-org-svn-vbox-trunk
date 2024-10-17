@@ -246,12 +246,12 @@ if !defined(VBOX_ONLY_BUILD)
  RTDbgSymCache_TEMPLATE = VBoxR3Tool
  RTDbgSymCache_SOURCES = RTDbgSymCache.cpp
 
-ifdef VBOX_WITH_LIBCURL
+ ifdef VBOX_WITH_LIBCURL
   # RTDbgSymSrv - Symbol cache proxy.
   PROGRAMS += RTDbgSymSrv
   RTDbgSymSrv_TEMPLATE = VBoxR3Tool
   RTDbgSymSrv_SOURCES = RTDbgSymSrv.cpp
-endif
+ endif
 
  # RTSignTool - Signing utility.
  PROGRAMS += RTSignTool

@@ -81,7 +81,7 @@ ifdef VBOX_WITH_XPDM
   	xpdm/VBoxDispVHWA.cpp \
   	xpdm/VBoxDispDDrawVHWA.cpp
  endif
- 
+
 
  VBoxDisp_LIBS = \
  	$(VBOX_LIB_IPRT_GUEST_R0_NT4) \

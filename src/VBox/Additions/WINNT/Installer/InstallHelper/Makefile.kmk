@@ -38,7 +38,9 @@ include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
 #
 DLLS += VBoxGuestInstallHelper
 VBoxGuestInstallHelper_TEMPLATE        := VBoxGuestR3Dll
-VBoxGuestInstallHelper_BLD_TRG_ARCH    := x86
+if1of ($(KBUILD_TARGET_ARCH),amd64)
+ VBoxGuestInstallHelper_BLD_TRG_ARCH    := x86
+endif
 VBoxGuestInstallHelper_INST            := repackadd/resources/VBoxGuestInstallHelper/
 ifdef VBOX_SIGN_ADDITIONS # (See the parent makefile.)
  VBoxGuestInstallHelper_INSTTYPE       := stage

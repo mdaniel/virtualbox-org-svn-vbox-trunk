@@ -2401,7 +2401,7 @@ typedef struct _FILE_DESIRED_STORAGE_CLASS_INFORMATION
 } FILE_DESIRED_STORAGE_CLASS_INFORMATION;
 typedef FILE_DESIRED_STORAGE_CLASS_INFORMATION *PFILE_DESIRED_STORAGE_CLASS_INFORMATION;
 # endif
-# if !defined(IPRT_NT_USE_WINTERNL) || (WDK_NTDDI_VERSION < NTDDI_WIN11_GE) /* Available since at least SDK 10.0.26100.0 (didn't bother to check for earlier version). */
+# if !defined(IPRT_NT_USE_WINTERNL) || !defined(NTDDI_WIN11_GE) || (WDK_NTDDI_VERSION < NTDDI_WIN11_GE) /* Available since at least SDK 10.0.26100.0 (didn't bother to check for earlier version). */
 typedef struct _FILE_STAT_INFORMATION
 {
     LARGE_INTEGER   FileId;

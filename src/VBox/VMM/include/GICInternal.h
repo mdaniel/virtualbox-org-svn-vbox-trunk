@@ -102,10 +102,8 @@ typedef struct GIC
 {
     /** The ring-3 device instance. */
     PPDMDEVINSR3                pDevInsR3;
-#if defined(RT_OS_LINUX) || defined(RT_OS_WINDOWS)
     /** Flag whether the in-kernel (KVM/Hyper-V) GIC of the NEM backend is used. */
     bool                        fNemGic;
-#endif
 } GIC;
 /** Pointer to GIC VM instance data. */
 typedef GIC *PGIC;

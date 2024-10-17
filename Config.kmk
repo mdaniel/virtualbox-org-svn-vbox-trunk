@@ -658,7 +658,7 @@ VBOX_WITH_HGSMI = 1
 if1of ($(KBUILD_TARGET), darwin linux win freebsd)
  VBOX_WITH_VIDEOHWACCEL = 1
 endif
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.x86 win.amd64)
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.x86 win.amd64)
  # Enable XPDM Video driver for XP and older guests.
  VBOX_WITH_XPDM = 1
 endif
@@ -2217,13 +2217,13 @@ USES.win += vboximportchecker vboxsetpeversion
 ifdef VBOX_WITH_NEW_WINDOWS_DDK
  VBOX_WINDDK         ?= WINSDK10-KM
  VBOX_WINDDK_WLH     ?= $(VBOX_WINDDK)
- if1of ($(KBUILD_TARGET_ARCH),x86 amd64)
+ if1of ($(KBUILD_TARGET_ARCH), x86 amd64)
   VBOX_WINDDK_GST_W8  ?= WINSDK10-KM-W8
  else
   VBOX_WINDDK_GST_W8  ?= $(VBOX_WINDDK)
  endif
  VBOX_WINDDK_GST_W7  ?= WINSDK10-KM-W7
- if1of ($(KBUILD_TARGET_ARCH),arm32 arm64)
+ if1of ($(KBUILD_TARGET_ARCH), arm32 arm64)
   VBOX_WINDDK_GST_WLH ?= $(VBOX_WINDDK_WLH)
  else
   VBOX_WINDDK_GST_WLH ?= WINDDK71WLH
@@ -4910,7 +4910,7 @@ endif
 VBOX_EDIT_INF32_FN = $(SED) $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;x86  *//' \
 	-e '/^;amd64 /d' \
-  -e '/^;arm64 /d' \
+	-e '/^;arm64 /d' \
 	-e 's/@DOT-NT-ARCH@/.NTx86/g' \
 	-e 's/@COMMA-NT-ARCH@/,NTx86/g' \
 	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
@@ -4923,25 +4923,25 @@ VBOX_EDIT_INF64_FN = $(SED) \
 	$(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;amd64  *//' \
 	-e '/^;x86 /d' \
-  -e '/^;arm64 /d' \
+	-e '/^;arm64 /d' \
 	-e 's/@DOT-NT-ARCH@/.NTAMD64/g' \
 	-e 's/@COMMA-NT-ARCH@/,NTAMD64/g' \
 	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
 	--output $(2) \
 	$(1)
-## Edit an inf file an arm64 target.
+## Edit an inf file for an arm64 target.
 # @param    1   The inf file to edit.
 # @param    2   The output file.
 VBOX_EDIT_INFARM64_FN = $(SED) \
-  $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
-  -e 's/^;arm64  *//' \
-  -e '/^;x86 /d' \
-  -e '/^;amd64 /d' \
-  -e 's/@DOT-NT-ARCH@/.NTARM64/g' \
-  -e 's/@COMMA-NT-ARCH@/,NTARM64/g' \
-  -e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
-  --output $(2) \
-  $(1)
+	$(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
+	-e 's/^;arm64  *//' \
+	-e '/^;x86 /d' \
+	-e '/^;amd64 /d' \
+	-e 's/@DOT-NT-ARCH@/.NTARM64/g' \
+	-e 's/@COMMA-NT-ARCH@/,NTARM64/g' \
+	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
+	--output $(2) \
+	$(1)
 
 ## @def VBOX_RE_SIGN_DLL_FN
 # Helper macro for re-signing DLL images from tools that we ship so they won't

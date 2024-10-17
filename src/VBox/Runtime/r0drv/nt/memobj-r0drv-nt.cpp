@@ -59,10 +59,10 @@
  * This is supposed to have a limit right below 256MB, but this appears
  * to actually be much lower. The values here have been determined experimentally.
  */
-#ifdef RT_ARCH_X86
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_ARM32)
 # define MAX_LOCK_MEM_SIZE   (32*1024*1024) /* 32MB */
 #endif
-#ifdef RT_ARCH_AMD64
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64)
 # define MAX_LOCK_MEM_SIZE   (24*1024*1024) /* 24MB */
 #endif
 

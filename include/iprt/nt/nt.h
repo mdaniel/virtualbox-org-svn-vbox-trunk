@@ -840,7 +840,7 @@ AssertCompileMemberOffset(KUSER_SHARED_DATA, XState,                    0x3d8);
 #ifndef KI_USER_SHARED_DATA
 # ifdef RT_ARCH_X86
 #  define KI_USER_SHARED_DATA           UINT32_C(0xffdf0000)
-# elif defined(RT_ARCH_AMD64)
+# elif defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64)
 #  define KI_USER_SHARED_DATA           UINT64_C(0xfffff78000000000)
 # else
 #  error "PORT ME - KI_USER_SHARED_DATA"
@@ -1618,6 +1618,12 @@ DECL_FORCE_INLINE(PPEB)     RTNtCurrentPeb(void) { return (PPEB)__readgsqword(RT
 DECL_FORCE_INLINE(uint32_t) RTNtCurrentThreadId(void) { return __readgsdword(RT_UOFFSETOF(TEB_COMMON, ClientId.UniqueThread)); }
 DECL_FORCE_INLINE(NTSTATUS) RTNtLastStatusValue(void) { return (NTSTATUS)__readgsdword(RT_UOFFSETOF(TEB_COMMON, LastStatusValue)); }
 DECL_FORCE_INLINE(uint32_t) RTNtLastErrorValue(void)  { return __readgsdword(RT_UOFFSETOF(TEB_COMMON, LastErrorValue)); }
+# elif defined(RT_ARCH_ARM64)
+DECL_FORCE_INLINE(PTEB)     RTNtCurrentTeb(void) { return (PTEB)__getReg(18); } /* The pointer to the TEB lives in x18. */
+DECL_FORCE_INLINE(PPEB)     RTNtCurrentPeb(void) { return RTNtCurrentTeb()->ProcessEnvironmentBlock; }
+DECL_FORCE_INLINE(uint32_t) RTNtCurrentThreadId(void) { return (uint32_t)(uintptr_t)RTNtCurrentTeb()->ClientId.UniqueThread; }
+DECL_FORCE_INLINE(NTSTATUS) RTNtLastStatusValue(void) { return RTNtCurrentTeb()->LastStatusValue; }
+DECL_FORCE_INLINE(uint32_t) RTNtLastErrorValue(void)  { return RTNtCurrentTeb()->LastErrorValue; }
 # else
 #  error "Port me"
 # endif
@@ -2395,6 +2401,7 @@ typedef struct _FILE_DESIRED_STORAGE_CLASS_INFORMATION
 } FILE_DESIRED_STORAGE_CLASS_INFORMATION;
 typedef FILE_DESIRED_STORAGE_CLASS_INFORMATION *PFILE_DESIRED_STORAGE_CLASS_INFORMATION;
 # endif
+# if !defined(IPRT_NT_USE_WINTERNL) || (WDK_NTDDI_VERSION < NTDDI_WIN11_GE) /* Available since at least SDK 10.0.26100.0 (didn't bother to check for earlier version). */
 typedef struct _FILE_STAT_INFORMATION
 {
     LARGE_INTEGER   FileId;
@@ -2410,6 +2417,8 @@ typedef struct _FILE_STAT_INFORMATION
     ACCESS_MASK     EffectiveAccess;
 } FILE_STAT_INFORMATION;
 typedef FILE_STAT_INFORMATION *PFILE_STAT_INFORMATION;
+# endif
+# ifndef LX_FILE_METADATA_HAS_UID
 typedef struct _FILE_STAT_LX_INFORMATION
 {
     LARGE_INTEGER   FileId;
@@ -2431,11 +2440,14 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG           LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION;
 typedef FILE_STAT_LX_INFORMATION *PFILE_STAT_LX_INFORMATION;
+# endif
+# ifndef FILE_CS_FLAG_CASE_SENSITIVE_DIR
 typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG           Flags;
 } FILE_CASE_SENSITIVE_INFORMATION;
 typedef FILE_CASE_SENSITIVE_INFORMATION *PFILE_CASE_SENSITIVE_INFORMATION;
+# endif
 
 typedef enum _FILE_INFORMATION_CLASS
 {

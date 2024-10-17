@@ -522,31 +522,31 @@
 
 
 /** Variant of IEM_MC_RETN_AND_FINISH for pre-386 targets. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_u16Pop, a_cbInstr) \
-    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_u16Pop), IEMMODE_16BIT)
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_cbPopArgs, a_cbInstr) \
+    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_cbPopArgs), IEMMODE_16BIT)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for 386+ targets. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_u16Pop), (a_enmEffOpSize))
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_cbPopArgs), (a_enmEffOpSize))
 
 /** Variant of IEM_MC_RETN_AND_FINISH for use in 64-bit code. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_u16Pop), (a_enmEffOpSize))
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    return iemRegRipNearReturnAndFinishNoFlags((pVCpu), a_cbInstr, (a_cbPopArgs), (a_enmEffOpSize))
 
 /** Variant of IEM_MC_RETN_AND_FINISH for pre-386 targets that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_u16Pop, a_cbInstr) \
-    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_u16Pop), IEMMODE_16BIT)
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_cbPopArgs, a_cbInstr) \
+    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_cbPopArgs), IEMMODE_16BIT)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for 386+ targets that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_u16Pop), (a_enmEffOpSize))
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_cbPopArgs), (a_enmEffOpSize))
 
 /** Variant of IEM_MC_RETN_AND_FINISH for use in 64-bit code that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_u16Pop), (a_enmEffOpSize))
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    return iemRegRipNearReturnAndFinishClearingRF((pVCpu), a_cbInstr, (a_cbPopArgs), (a_enmEffOpSize))
 
 #undef IEM_MC_RETN_AND_FINISH
 

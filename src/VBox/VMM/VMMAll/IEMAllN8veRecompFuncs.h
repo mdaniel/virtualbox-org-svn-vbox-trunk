@@ -2276,41 +2276,48 @@ iemNativeEmitStackPopForRetnUse32Sp(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint
 
 
 /** Variant of IEM_MC_RETN_AND_FINISH for pre-386 targets. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_u16Pop, a_cbInstr) \
-    off = iemNativeEmitRetn(pReNative, off, (a_cbInstr), (a_u16Pop), false /*f64Bit*/, IEMMODE_16BIT, pCallEntry->idxInstr)
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_cbPopArgs, a_cbInstr) \
+    off = iemNativeEmitRetn<IEMMODE_16BIT, false>(pReNative, off, (a_cbInstr), (a_cbPopArgs), pCallEntry->idxInstr)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for 386+ targets. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    off = iemNativeEmitRetn(pReNative, off, (a_cbInstr), (a_u16Pop), false /*f64Bit*/, (a_enmEffOpSize), pCallEntry->idxInstr)
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    Assert((a_enmEffOpSize) == IEMMODE_32BIT || (a_enmEffOpSize) == IEMMODE_16BIT); \
+    off = (a_enmEffOpSize) == IEMMODE_32BIT \
+        ? iemNativeEmitRetn<IEMMODE_32BIT, false>(pReNative, off, (a_cbInstr), (a_cbPopArgs), pCallEntry->idxInstr) \
+        : iemNativeEmitRetn<IEMMODE_16BIT, false>(pReNative, off, (a_cbInstr), (a_cbPopArgs), pCallEntry->idxInstr)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for use in 64-bit code. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    off = iemNativeEmitRetn(pReNative, off, (a_cbInstr), (a_u16Pop), true /*f64Bit*/, (a_enmEffOpSize), pCallEntry->idxInstr)
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    Assert((a_enmEffOpSize) == IEMMODE_64BIT || (a_enmEffOpSize) == IEMMODE_16BIT); \
+    off = (a_enmEffOpSize) == IEMMODE_64BIT \
+        ? iemNativeEmitRetn<IEMMODE_64BIT, true>(pReNative, off, (a_cbInstr), (a_cbPopArgs), pCallEntry->idxInstr) \
+        : iemNativeEmitRetn<IEMMODE_16BIT, true>(pReNative, off, (a_cbInstr), (a_cbPopArgs), pCallEntry->idxInstr)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for pre-386 targets that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_u16Pop, a_cbInstr) \
-    IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_u16Pop, a_cbInstr); \
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_cbPopArgs, a_cbInstr) \
+    IEM_MC_RETN_AND_FINISH_THREADED_PC16(a_cbPopArgs, a_cbInstr); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for 386+ targets that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_u16Pop, a_cbInstr, a_enmEffOpSize); \
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    IEM_MC_RETN_AND_FINISH_THREADED_PC32(a_cbPopArgs, a_cbInstr, a_enmEffOpSize); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
 /** Variant of IEM_MC_RETN_AND_FINISH for use in 64-bit code that checks and
  *  clears flags. */
-#define IEM_MC_RETN_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u16Pop, a_cbInstr, a_enmEffOpSize) \
-    IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_u16Pop, a_cbInstr, a_enmEffOpSize); \
+#define IEM_MC_RETN_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_cbPopArgs, a_cbInstr, a_enmEffOpSize) \
+    IEM_MC_RETN_AND_FINISH_THREADED_PC64(a_cbPopArgs, a_cbInstr, a_enmEffOpSize); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
 /** IEM_MC[|_FLAT32|_FLAT64]_RETN_AND_FINISH */
+template<IEMMODE const a_enmEffOpSize, bool const a_f64Bit>
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, uint16_t cbPop, bool f64Bit,
-                  IEMMODE enmEffOpSize, uint8_t idxInstr)
+iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, uint16_t cbPopArgs, uint8_t idxInstr)
 {
     RT_NOREF(cbInstr);
+    AssertCompile(a_enmEffOpSize == IEMMODE_64BIT || a_enmEffOpSize == IEMMODE_32BIT || a_enmEffOpSize == IEMMODE_16BIT);
 
 #ifdef VBOX_STRICT
     /*
@@ -2329,29 +2336,35 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
      * Determine the effective stack pointer, for non-FLAT modes we also update RSP.
      * For FLAT modes we'll do this in TlbDone as we'll be using the incoming RSP
      * directly as the effective stack pointer.
+     *
      * (Code structure is very similar to that of PUSH)
      *
      * Note! As a simplification, we treat opsize overridden returns (o16 ret)
      *       in FLAT 32-bit mode as if we weren't in FLAT mode since these
      *       aren't commonly used (or useful) and thus not in need of optimizing.
      *
-     * Note! For non flat modes the guest RSP is not allocated for update but rather for calculation
-     *       as the shadowed register would remain modified even if the return address throws a \#GP(0)
-     *       due to being outside the CS limit causing a wrong stack pointer value in the guest (see
-     *       the near return testcase in bs3-cpu-basic-2). If no exception is thrown the shadowing is transfered
-     *       to the new register returned by iemNativeRegAllocTmpForGuestReg() at the end.
+     * Note! For non-flat modes the guest RSP is not allocated for update but
+     *       rather for calculation as the shadowed register would remain modified
+     *       even if the return address throws a #GP(0) due to being outside the
+     *       CS limit causing a wrong stack pointer value in the guest (see the
+     *       near return testcase in bs3-cpu-basic-2). If no exception is thrown
+     *       the shadowing is transfered to the new register returned by
+     *       iemNativeRegAllocTmpForGuestReg() at the end.
      */
-    uint8_t   const cbMem           =   enmEffOpSize == IEMMODE_64BIT
+    RT_CONSTEXPR
+    uint8_t   const cbMem           =   a_enmEffOpSize == IEMMODE_64BIT
                                       ? sizeof(uint64_t)
-                                      : enmEffOpSize == IEMMODE_32BIT
+                                      : a_enmEffOpSize == IEMMODE_32BIT
                                       ? sizeof(uint32_t)
                                       : sizeof(uint16_t);
-    bool      const fFlat           = IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) && enmEffOpSize != IEMMODE_16BIT; /* see note */
+/** @todo the basic flatness should be detected by the threaded compiler step
+ *        like for the other macros... */
+    bool      const fFlat           = IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) && a_enmEffOpSize != IEMMODE_16BIT; /* see note */
     uintptr_t const pfnFunction     = fFlat
-                                      ?   enmEffOpSize == IEMMODE_64BIT
+                                      ?   a_enmEffOpSize == IEMMODE_64BIT
                                         ? (uintptr_t)iemNativeHlpStackFlatFetchU64
                                         : (uintptr_t)iemNativeHlpStackFlatFetchU32
-                                      :   enmEffOpSize == IEMMODE_32BIT
+                                      :   a_enmEffOpSize == IEMMODE_32BIT
                                         ? (uintptr_t)iemNativeHlpStackFetchU32
                                         : (uintptr_t)iemNativeHlpStackFetchU16;
     uint8_t   const idxRegRsp       = iemNativeRegAllocTmpForGuestReg(pReNative, &off, IEMNATIVEGSTREG_GPR(X86_GREG_xSP),
@@ -2379,16 +2392,16 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
         off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegSsAttr, X86DESCATTR_D);
         iemNativeRegFreeTmp(pReNative, idxRegSsAttr);
         offFixupJumpToUseOtherBitSp = off;
-        if (enmEffOpSize == IEMMODE_32BIT)
+        if RT_CONSTEXPR_IF(a_enmEffOpSize == IEMMODE_32BIT)
         {
             off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off /*8-bit suffices*/, kIemNativeInstrCond_e); /* jump if zero */
-            off = iemNativeEmitStackPopForRetnUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPop);
+            off = iemNativeEmitStackPopForRetnUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPopArgs);
         }
         else
         {
-            Assert(enmEffOpSize == IEMMODE_16BIT);
+            Assert(a_enmEffOpSize == IEMMODE_16BIT);
             off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off /*8-bit suffices*/, kIemNativeInstrCond_ne); /* jump if not zero */
-            off = iemNativeEmitStackPopForRetnUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPop,
+            off = iemNativeEmitStackPopForRetnUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPopArgs,
                                                       idxRegMemResult);
         }
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
@@ -2425,10 +2438,10 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
 #endif
         iemNativeFixupFixedJump(pReNative, offFixupJumpToUseOtherBitSp, off);
         if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
-            off = iemNativeEmitStackPopForRetnUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPop,
+            off = iemNativeEmitStackPopForRetnUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPopArgs,
                                                       idxRegMemResult);
         else
-            off = iemNativeEmitStackPopForRetnUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPop);
+            off = iemNativeEmitStackPopForRetnUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPopArgs);
         off = iemNativeEmitJmpToFixedEx(pCodeBuf, off, offLabelSpUpdateEnd);
         IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
     }
@@ -2524,22 +2537,22 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
 #endif /* IEMNATIVE_WITH_TLB_LOOKUP */
 
     /* Check limit before committing RIP and RSP (may #GP(0) + exit TB). */
-    if (!f64Bit)
+    if RT_CONSTEXPR_IF(!a_f64Bit)
 /** @todo we can skip this test in FLAT 32-bit mode. */
         off = iemNativeEmitCheckGpr32AgainstCsSegLimitMaybeRaiseGp0(pReNative, off, idxRegMemResult, idxInstr);
     /* Check that the address is canonical, raising #GP(0) + exit TB if it isn't. */
-    else if (enmEffOpSize == IEMMODE_64BIT)
+    else if RT_CONSTEXPR_IF(a_enmEffOpSize == IEMMODE_64BIT)
         off = iemNativeEmitCheckGprCanonicalMaybeRaiseGp0(pReNative, off, idxRegMemResult, idxInstr);
 
     /* Complete RSP calculation for FLAT mode. */
     if (idxRegEffSp == idxRegRsp)
     {
-        if (enmEffOpSize == IEMMODE_64BIT)
-            off = iemNativeEmitAddGprImm(pReNative, off, idxRegRsp, sizeof(uint64_t) + cbPop);
+        if RT_CONSTEXPR_IF(a_enmEffOpSize == IEMMODE_64BIT)
+            off = iemNativeEmitAddGprImm(pReNative, off, idxRegRsp, sizeof(uint64_t) + cbPopArgs);
         else
         {
-            Assert(enmEffOpSize == IEMMODE_32BIT);
-            off = iemNativeEmitAddGpr32Imm(pReNative, off, idxRegRsp, sizeof(uint32_t) + cbPop);
+            Assert(a_enmEffOpSize == IEMMODE_32BIT);
+            off = iemNativeEmitAddGpr32Imm(pReNative, off, idxRegRsp, sizeof(uint32_t) + cbPopArgs);
         }
     }
 

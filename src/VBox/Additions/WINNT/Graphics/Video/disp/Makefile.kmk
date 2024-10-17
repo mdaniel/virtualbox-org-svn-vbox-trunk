@@ -80,7 +80,7 @@ ifdef VBOX_WITH_XPDM
   VBoxDisp_SOURCES += \
   	xpdm/VBoxDispVHWA.cpp \
   	xpdm/VBoxDispDDrawVHWA.cpp
- endif 
+ endif
  
 
  VBoxDisp_LIBS = \
@@ -93,7 +93,7 @@ ifdef VBOX_WITH_XPDM
  endif
  VBoxDisp_USES.win += vboximportchecker
  VBoxDisp_VBOX_IMPORT_CHECKER.win.x86 = nt4/r0
- VBoxDisp_VBOX_IMPORT_CHECKER.win.amd64 = xp64/r0 
+ VBoxDisp_VBOX_IMPORT_CHECKER.win.amd64 = xp64/r0
 
  # Signing requires both miniport and display drivers so it'll be dealt with in the parent makefile.
  if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)

@@ -1576,6 +1576,9 @@ DECL_INLINE_THROW(uint32_t)
 iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t const idxRegPc,
                           uintptr_t pfnFunction, uint8_t idxInstr)
 {
+    AssertCompile(a_cBitsVar == 16 || a_cBitsVar  == 32 || a_cBitsVar  == 64);
+    AssertCompile(a_cBitsFlat == 0 || a_cBitsFlat == 32 || a_cBitsFlat == 64);
+
     /*
      * Assert sanity.
      */

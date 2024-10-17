@@ -83,7 +83,7 @@ void VBoxLoadICD(void)
 
     D3DKMTLoad();
 
-    Status = vboxDispKmtOpenAdapter(&hAdapter);
+    Status = VBoxWddmKmtOpenAdapter(&hAdapter);
     if (Status == STATUS_SUCCESS)
     {
         VBOXWDDM_QAI adapterInfo;
@@ -108,7 +108,7 @@ void VBoxLoadICD(void)
             }
         }
 
-        vboxDispKmtCloseAdapter(hAdapter);
+        VBoxWddmKmtCloseAdapter(hAdapter);
     }
 }
 

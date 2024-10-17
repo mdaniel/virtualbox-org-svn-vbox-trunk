@@ -305,7 +305,7 @@ static HRESULT vboxDispKmtOpenAdapterViaLuid(const VBOXDISPKMT_CALLBACKS *pCallb
     return E_FAIL;
 }
 
-HRESULT vboxDispKmtOpenAdapter(const VBOXDISPKMT_CALLBACKS *pCallbacks, PVBOXDISPKMT_ADAPTER pAdapter)
+HRESULT VBoxWddmKmtOpenAdapter(const VBOXDISPKMT_CALLBACKS *pCallbacks, PVBOXDISPKMT_ADAPTER pAdapter)
 {
     HRESULT hr = vboxDispKmtOpenAdapterViaHdc(pCallbacks, pAdapter);
     if (SUCCEEDED(hr))
@@ -318,7 +318,7 @@ HRESULT vboxDispKmtOpenAdapter(const VBOXDISPKMT_CALLBACKS *pCallbacks, PVBOXDIS
     return hr;
 }
 
-HRESULT vboxDispKmtCloseAdapter(PVBOXDISPKMT_ADAPTER pAdapter)
+HRESULT VBoxWddmKmtCloseAdapter(PVBOXDISPKMT_ADAPTER pAdapter)
 {
     D3DKMT_CLOSEADAPTER ClosaAdapterData = {0};
     ClosaAdapterData.hAdapter = pAdapter->hAdapter;

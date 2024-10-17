@@ -161,7 +161,9 @@ static DECLCALLBACK(int) vbtrDisplayInit(const PVBOXTRAYSVCENV pEnv, void **ppIn
         }
         else
             rc = VINF_SUCCESS;
-#endif
+#else  /* !VBOX_WITH_WDDM */
+        rc = VINF_SUCCESS;
+#endif /* VBOX_WITH_WDDM */
     }
     else if (uNtVersion < RTSYSTEM_MAKE_NT_VERSION(5, 0, 0)) /* Windows NT 4.0. */
     {
@@ -849,13 +851,15 @@ static void doResize(PVBOXDISPLAYCONTEXT pCtx,
 
 static BOOL DisplayChangeRequestHandler(PVBOXDISPLAYCONTEXT pCtx)
 {
-    VMMDevDisplayDef aDisplays[64];
-    uint32_t cDisplays = RT_ELEMENTS(aDisplays);
     int rc = VINF_SUCCESS;
 
+#ifdef VBOX_WITH_WDDM
+    VMMDevDisplayDef aDisplays[64];
+    uint32_t         cDisplays = RT_ELEMENTS(aDisplays);
+
     /* Multidisplay resize is still implemented only for Win7 and newer guests. */
-    if (pCtx->pEnv->dispIf.enmMode >= VBOXDISPIF_MODE_WDDM_W7 &&
-        RT_SUCCESS(rc = VbglR3GetDisplayChangeRequestMulti(cDisplays, &cDisplays, &aDisplays[0], true /* fAck */)))
+    if (   pCtx->pEnv->dispIf.enmMode >= VBOXDISPIF_MODE_WDDM_W7
+        && RT_SUCCESS(rc = VbglR3GetDisplayChangeRequestMulti(cDisplays, &cDisplays, &aDisplays[0], true /* fAck */)))
     {
         uint32_t i;
 
@@ -873,8 +877,9 @@ static BOOL DisplayChangeRequestHandler(PVBOXDISPLAYCONTEXT pCtx)
                 aDisplays[i].cBitsPerPixel));
         }
 
-        return VBoxDispIfResizeDisplayWin7(&pCtx->pEnv->dispIf, cDisplays, &aDisplays[0]);
+        return VBoxDispIfResizeDisplayWin7Wddm(&pCtx->pEnv->dispIf, cDisplays, &aDisplays[0]);
     }
+#endif /* VBOX_WITH_WDDM */
 
     /* Fall back to the single monitor resize request. */
 
@@ -980,6 +985,7 @@ static DECLCALLBACK(int) vbtrDisplayWorker(void *pvInstance, bool volatile *pfSh
             // Checking once a second whether or not WM_DISPLAYCHANGED happened.
             if (ASMAtomicXchgU32(&g_fGuestDisplaysChanged, 0))
             {
+#ifdef VBOX_WITH_WDDM
                 // XPDM driver has VBoxDispDrvNotify to receive such a notifications
                 if (pCtx->pEnv->dispIf.enmMode >= VBOXDISPIF_MODE_WDDM)
                 {
@@ -989,6 +995,7 @@ static DECLCALLBACK(int) vbtrDisplayWorker(void *pvInstance, bool volatile *pfSh
                     DWORD err = VBoxDispIfEscapeInOut(&pCtx->pEnv->dispIf, &EscapeHdr, 0);
                     LogFlowFunc(("VBoxDispIfEscapeInOut returned %d\n", err)); NOREF(err);
                 }
+#endif
             }
 
             /* sleep a bit to not eat too much CPU in case the above call always fails */

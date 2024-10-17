@@ -100,7 +100,7 @@ DWORD VBoxDispIfResizeModes(PCVBOXDISPIF const pIf, UINT iChangedMode, BOOL fEna
 DWORD VBoxDispIfCancelPendingResize(PCVBOXDISPIF const pIf);
 DWORD VBoxDispIfResizeStarted(PCVBOXDISPIF const pIf);
 
-BOOL VBoxDispIfResizeDisplayWin7(PCVBOXDISPIF const pIf, uint32_t cDispDef, const VMMDevDisplayDef *paDispDef);
+BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, const VMMDevDisplayDef *paDispDef);
 
 typedef struct VBOXDISPIF_SEAMLESS
 {

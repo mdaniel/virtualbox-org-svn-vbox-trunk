@@ -1273,7 +1273,7 @@ HRESULT GaDrvEnvKmt::Init(void)
     mKmtCallbacks.d3dkmt = D3DKMTFunctions();
 
     /* Figure out which adapter to use. */
-    NTSTATUS Status = vboxDispKmtOpenAdapter2(&mKmtCallbacks.hAdapter, &mKmtCallbacks.AdapterLuid);
+    NTSTATUS Status = VBoxWddmKmtOpenAdapter2(&mKmtCallbacks.hAdapter, &mKmtCallbacks.AdapterLuid);
     Assert(Status == STATUS_SUCCESS);
     if (Status == STATUS_SUCCESS)
     {
@@ -1297,7 +1297,7 @@ HRESULT GaDrvEnvKmt::Init(void)
             vboxDdiDeviceDestroy(&mKmtCallbacks, mKmtCallbacks.hDevice);
         }
 
-        vboxDispKmtCloseAdapter(mKmtCallbacks.hAdapter);
+        VBoxWddmKmtCloseAdapter(mKmtCallbacks.hAdapter);
     }
 
     return E_FAIL;

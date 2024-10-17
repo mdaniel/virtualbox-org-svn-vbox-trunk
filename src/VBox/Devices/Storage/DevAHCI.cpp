@@ -4396,13 +4396,20 @@ static bool ahciR3ReqSubmit(PPDMDEVINS pDevIns, PAHCI pThis, PAHCICC pThisCC, PA
         pAhciReq->cbTransfer = cbBuf;
         if (RT_SUCCESS(rc))
         {
+            PDMMEDIAEXIOREQSCSITXDIR enmTxDir = PDMMEDIAEXIOREQSCSITXDIR_NONE;
             if (cbBuf && (pAhciReq->fFlags & AHCI_REQ_XFER_2_HOST))
+            {
                 pAhciPort->Led.Asserted.s.fReading = pAhciPort->Led.Actual.s.fReading = 1;
+                enmTxDir = PDMMEDIAEXIOREQSCSITXDIR_FROM_DEVICE;
+            }
             else if (cbBuf)
+            {
                 pAhciPort->Led.Asserted.s.fWriting = pAhciPort->Led.Actual.s.fWriting = 1;
+                enmTxDir = PDMMEDIAEXIOREQSCSITXDIR_TO_DEVICE;
+            }
             rc = pAhciPortR3->pDrvMediaEx->pfnIoReqSendScsiCmd(pAhciPortR3->pDrvMediaEx, pAhciReq->hIoReq,
                                                              0, &pAhciReq->aATAPICmd[0], ATAPI_PACKET_SIZE,
-                                                             PDMMEDIAEXIOREQSCSITXDIR_UNKNOWN, NULL, cbBuf,
+                                                             enmTxDir, NULL, cbBuf,
                                                              &pAhciPort->abATAPISense[0], sizeof(pAhciPort->abATAPISense), NULL,
                                                              &pAhciReq->u8ScsiSts, 30 * RT_MS_1SEC);
         }

@@ -68,5 +68,39 @@ ifdef VBOX_WITH_32_ON_64_MAIN_API # 32-bit edition.
  VBox-zlib-x86_EXTENDS = VBox-zlib
 endif
 
+# Builds a Windows DLL in a separate tree so that it can be found by the scons build system.
+# Required for building NSIS (Windows Guest Additions installer) from source.
+if defined(VBOX_WITH_ADDITIONS) || !defined(VBOX_WITHOUT_ADDITIONS)
+ DLLS.win += nsis-zlib-dll
+ nsis-zlib-dll_TEMPLATE = VBoxR3DllNonPedantic
+ nsis-zlib-dll_SOURCES.win += \
+ 	win32/zlib1.rc \
+ 	win32/zlib.def
+ nsis-zlib-dll_EXTENDS  = VBox-zlib
+ nsis-zlib-dll_NAME     = zlib1
+ nsis-zlib-dll_DEFINES += ZLIB_DLL
+ nsis-zlib-dll_INSTTYPE = stage
+ nsis-zlib-dll_INST	   = $(INST_DEBUG)nsis-zlib/
+
+ INSTALLS.win += nsis-zlib-lib
+ nsis-zlib-lib_TEMPLATE := DUMMY
+ nsis-zlib-lib_EXTENDS   = nsis-zlib-dll
+ nsis-zlib-lib_MODE     := a+r,u+w
+ nsis-zlib-lib_DEPS     += \
+ 	$(nsis-zlib-dll_0_OUTDIR)/zlib1.lib
+ nsis-zlib-lib_INST      = $(INST_DEBUG)nsis-zlib/lib/
+ nsis-zlib-lib_SOURCES  := \
+ 	win32/zlib.def \
+ 	$(PATH_STAGE_LIB)/zlib1.lib=>zdll.lib
+
+ INSTALLS.win += nsis-zlib-include
+ nsis-zlib-include_TEMPLATE := DUMMY
+ nsis-zlib-include_MODE     := a+r,u+w
+ nsis-zlib-include_INST      = $(INST_DEBUG)nsis-zlib/include/
+ nsis-zlib-include_SOURCES  := \
+ 	zconf.h \
+ 	zlib.h
+endif
+
 include $(FILE_KBUILD_SUB_FOOTER)
 

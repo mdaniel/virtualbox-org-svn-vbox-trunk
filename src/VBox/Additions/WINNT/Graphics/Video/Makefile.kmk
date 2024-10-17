@@ -50,12 +50,12 @@ ifdef VBOX_WITH_XPDM
  VBoxVideo-inf_BLDDIRS.x86 = $(PATH_TARGET)/VBoxVideoEarlyNTCat.dir
 
  $(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.inf: $(PATH_SUB_CURRENT)/mp/xpdm/VBoxVideo.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
- 	$(call MSG_GENERATE,VBoxVideo-inf,$@,$<)
- 	$(call VBOX_EDIT_INF_FN,$<,$@)
+	$(call MSG_GENERATE,VBoxVideo-inf,$@,$<)
+	$(call VBOX_EDIT_INF_FN,$<,$@)
 
  $(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxVideoEarlyNT.inf: $(PATH_SUB_CURRENT)/mp/xpdm/VBoxVideoEarlyNT.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
- 	$(call MSG_GENERATE,VBoxVideoEarlyNT-inf,$@,$<)
- 	$(call VBOX_EDIT_INF_FN,$<,$@)
+	$(call MSG_GENERATE,VBoxVideoEarlyNT-inf,$@,$<)
+	$(call VBOX_EDIT_INF_FN,$<,$@)
 
  if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
   VBoxVideo-inf_SOURCES += \
@@ -78,15 +78,15 @@ ifdef VBOX_WITH_XPDM
   		$(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.inf \
   		$(PATH_TARGET)/VBoxVideoCat.dir/VBoxVideo.sys \
   		$(PATH_TARGET)/VBoxVideoCat.dir/VBoxDisp.dll
- 	$(call MSG_TOOL,Inf2Cat,VBoxVideo-inf,$@,$<)
- 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
+	$(call MSG_TOOL,Inf2Cat,VBoxVideo-inf,$@,$<)
+	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
 
   $(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxVideoEarlyNT.cat: \
   		$(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxVideoEarlyNT.inf \
   		$(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxVideo.sys \
   		$(PATH_TARGET)/VBoxVideoEarlyNTCat.dir/VBoxDisp.dll
- 	$(call MSG_TOOL,Inf2Cat,VBoxVideoEarlyNT-inf,$@,$<)
- 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
+	$(call MSG_TOOL,Inf2Cat,VBoxVideoEarlyNT-inf,$@,$<)
+	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
 
  endif # signing
 endif

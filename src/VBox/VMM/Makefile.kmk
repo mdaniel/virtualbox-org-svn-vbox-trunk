@@ -469,6 +469,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/PGMPool.cpp \
  	VMMR3/PGMSavedState.cpp \
  	VMMR3/PGMSharedPage.cpp \
+  	VMMR3/PMUR3.cpp \
  	VMMR3/SSM.cpp \
  	VMMR3/STAM.cpp \
  	VMMR3/TM.cpp \
@@ -502,6 +503,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMAll/EMAll.cpp \
  	VMMAll/GICAll.cpp \
  	VMMAll/GIMAll.cpp \
+ 	VMMAll/PMUAll.cpp \
  	VMMAll/TMAll.cpp \
  	VMMAll/TMAllCpu.cpp \
  	VMMAll/TMAllReal.cpp \

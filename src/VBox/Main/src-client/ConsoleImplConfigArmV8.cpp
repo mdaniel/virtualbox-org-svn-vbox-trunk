@@ -498,6 +498,17 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
 
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
+        /*
+         * Configure the perofrmance monitoring unit.
+         */
+        /** @todo Make this configurable and enable as default for Windows VMs because they assume a working PMU
+         * (which is not available in hardware on AppleSilicon).
+         */
+        InsertConfigNode(pDevices, "pmu",                &pDev);
+        InsertConfigNode(pDev,     "0",                  &pInst);
+        InsertConfigInteger(pInst, "Trusted",            1);
+        InsertConfigNode(pInst,    "Config",             &pCfg);
+
         RTGCPHYS GCPhysMmioStart;
         RTGCPHYS cbMmio;
         if (enmGraphicsController == GraphicsControllerType_QemuRamFB)

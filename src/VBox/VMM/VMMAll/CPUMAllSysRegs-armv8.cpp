@@ -33,6 +33,7 @@
 #include <VBox/vmm/cpum.h>
 #include "CPUMInternal-armv8.h"
 #include <VBox/vmm/gic.h>
+#include <VBox/vmm/pmu.h>
 #include <VBox/vmm/vmcc.h>
 #include <VBox/err.h>
 
@@ -181,6 +182,23 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_OslarEl1(PVMCPUCC pVCpu, uint32_t
 }
 
 
+
+/** @callback_method_impl{FNCPUMRDSYSREG} */
+static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_Pmu(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t *puValue)
+{
+    RT_NOREF_PV(pRange);
+    return PMUReadSysReg(pVCpu, idSysReg, puValue);
+}
+
+
+/** @callback_method_impl{FNCPUMWRSYSREG} */
+static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_Pmu(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t uValue, uint64_t uRawValue)
+{
+    RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
+    return PMUWriteSysReg(pVCpu, idSysReg, uValue);
+}
+
+
 /**
  * System register read function table.
  */
@@ -192,6 +210,7 @@ static const struct READSYSREGCLANG11WEIRDNOTHROW { PFNCPUMRDSYSREG pfnRdSysReg;
     { cpumSysRegRd_WriteOnly },
     { cpumSysRegRd_GicV3Icc  },
     { cpumSysRegRd_OslsrEl1  },
+    { cpumSysRegRd_Pmu       }
 };
 
 
@@ -206,6 +225,7 @@ static const struct WRITESYSREGCLANG11WEIRDNOTHROW { PFNCPUMWRSYSREG pfnWrSysReg
     { NULL }, /* Alias */
     { cpumSysRegWr_GicV3Icc },
     { cpumSysRegWr_OslarEl1 },
+    { cpumSysRegWr_Pmu      }
 };
 
 

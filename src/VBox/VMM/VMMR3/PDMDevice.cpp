@@ -35,6 +35,7 @@
 #include <VBox/vmm/pdm.h>
 #if defined(VBOX_VMM_TARGET_ARMV8)
 # include <VBox/vmm/gic.h>
+# include <VBox/vmm/pmu.h>
 #else
 # include <VBox/vmm/apic.h>
 #endif
@@ -703,6 +704,12 @@ static int pdmR3DevLoadModules(PVM pVM)
      * Register the internal VMM GIC device, NEM variant.
      */
     rc = pdmR3DevReg_Register(&RegCB.Core, &g_DeviceGICNem);
+    AssertRCReturn(rc, rc);
+
+    /*
+     * Register the internal VMM PMU device.
+     */
+    rc = pdmR3DevReg_Register(&RegCB.Core, &g_DevicePMU);
     AssertRCReturn(rc, rc);
 #else
     /*

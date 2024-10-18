@@ -1730,24 +1730,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedSysInsn(PVM pVM, PVMCPU
     if (fRead)
     {
         RT_NOREF(pVM);
-
-        /** @todo Windows assumes a working PMU which is not available on AppleSilicon. It uses it
-         * to determine the base frequency it seems (because without the * 100 multiplier the frequency
-         * is detetcted as 24MHz. This needs to be moved into a separate PMU emulation (to be created) for
-         * all backends to share (Linux/KVM when running on AppleSilicon hardware). */
-        if (   idSysReg == ARMV8_AARCH64_SYSREG_PMCR_EL0
-            || idSysReg == ARMV8_AARCH64_SYSREG_PMCCNTR_EL0
-            || idSysReg == ARMV8_AARCH64_SYSREG_PMCNTENCLR_EL0)
-        {
-            if (idSysReg == ARMV8_AARCH64_SYSREG_PMCCNTR_EL0)
-            {
-                u64Val = ASMReadTSC() * 100;
-            }
-            else
-                u64Val = 0;
-        }
-        else
-            rcStrict = CPUMQueryGuestSysReg(pVCpu, idSysReg, &u64Val);
+        rcStrict = CPUMQueryGuestSysReg(pVCpu, idSysReg, &u64Val);
         Log4(("SysInsnExit/%u: %08RX64: READ %u:%u:%u:%u:%u -> %#RX64 rcStrict=%Rrc\n",
               pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, uOp0, uOp1, uCRn, uCRm, uOp2, u64Val,
               VBOXSTRICTRC_VAL(rcStrict) ));
@@ -1756,18 +1739,8 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedSysInsn(PVM pVM, PVMCPU
     }
     else
     {
-        if (   idSysReg != ARMV8_AARCH64_SYSREG_PMCNTENCLR_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMOVSCLR_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMINTENCLR_EL1
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMCR_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMCCFILTR_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMCNTENSET_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMUSERENR_EL0
-            && idSysReg != ARMV8_AARCH64_SYSREG_PMCCNTR_EL0)
-        {
-            u64Val = nemR3DarwinGetGReg(pVCpu, uReg);
-            rcStrict = CPUMSetGuestSysReg(pVCpu, idSysReg, u64Val);
-        }
+        u64Val = nemR3DarwinGetGReg(pVCpu, uReg);
+        rcStrict = CPUMSetGuestSysReg(pVCpu, idSysReg, u64Val);
         Log4(("SysInsnExit/%u: %08RX64: WRITE %u:%u:%u:%u:%u %#RX64 -> rcStrict=%Rrc\n",
               pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, uOp0, uOp1, uCRn, uCRm, uOp2, u64Val,
               VBOXSTRICTRC_VAL(rcStrict) ));

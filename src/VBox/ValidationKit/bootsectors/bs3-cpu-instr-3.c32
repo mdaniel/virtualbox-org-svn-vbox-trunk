@@ -8866,7 +8866,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pslldq_v_psrldq(uint8_t bMode)
             /*src1*/ RTUINT256_INIT_C(0x1eddddac09633294, 0xf95c8eec40725633, 0x8800e95bbf9962c3, 0x43d3cda0238499fd),
             /* => */ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000) },  /* shift too far */
     };
-    static BS3CPUINSTR3_TEST1_T const s_aTests16[] = {
+    static BS3CPUINSTR3_TEST1_T const s_aTests16[] =
+    {
         {  bs3CpuInstr3_pslldq_XMM1_000h_icebp_c16,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX00), s_aValuesX00  },
         {  bs3CpuInstr3_pslldq_XMM1_005h_icebp_c16,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesL05), s_aValuesL05  },
         {  bs3CpuInstr3_pslldq_XMM1_012h_icebp_c16,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX12), s_aValuesX12  },
@@ -8887,7 +8888,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pslldq_v_psrldq(uint8_t bMode)
         {  bs3CpuInstr3_vpsrldq_YMM1_YMM2_005h_icebp_c16, 255, RM_REG, T_AVX2_256, 1, 2, 1, RT_ELEMENTS(s_aValuesR05), s_aValuesR05  },
         {  bs3CpuInstr3_vpsrldq_YMM1_YMM2_012h_icebp_c16, 255, RM_REG, T_AVX2_256, 1, 2, 1, RT_ELEMENTS(s_aValuesX12), s_aValuesX12  },
     };
-    static BS3CPUINSTR3_TEST1_T const s_aTests32[] = {
+    static BS3CPUINSTR3_TEST1_T const s_aTests32[] =
+    {
         {  bs3CpuInstr3_pslldq_XMM1_000h_icebp_c32,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX00), s_aValuesX00  },
         {  bs3CpuInstr3_pslldq_XMM1_005h_icebp_c32,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesL05), s_aValuesL05  },
         {  bs3CpuInstr3_pslldq_XMM1_012h_icebp_c32,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX12), s_aValuesX12  },
@@ -8908,7 +8910,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pslldq_v_psrldq(uint8_t bMode)
         {  bs3CpuInstr3_vpsrldq_YMM1_YMM2_005h_icebp_c32, 255, RM_REG, T_AVX2_256, 1, 2, 1, RT_ELEMENTS(s_aValuesR05), s_aValuesR05  },
         {  bs3CpuInstr3_vpsrldq_YMM1_YMM2_012h_icebp_c32, 255, RM_REG, T_AVX2_256, 1, 2, 1, RT_ELEMENTS(s_aValuesX12), s_aValuesX12  },
     };
-    static BS3CPUINSTR3_TEST1_T const s_aTests64[] = {
+    static BS3CPUINSTR3_TEST1_T const s_aTests64[] =
+    {
         {  bs3CpuInstr3_pslldq_XMM1_000h_icebp_c64,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX00), s_aValuesX00  },
         {  bs3CpuInstr3_pslldq_XMM1_005h_icebp_c64,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesL05), s_aValuesL05  },
         {  bs3CpuInstr3_pslldq_XMM1_012h_icebp_c64,       255, RM_REG, T_SSE2,     1, 1, 2, RT_ELEMENTS(s_aValuesX12), s_aValuesX12  },

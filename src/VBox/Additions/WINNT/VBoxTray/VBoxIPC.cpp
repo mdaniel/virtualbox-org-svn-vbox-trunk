@@ -224,10 +224,10 @@ static DECLCALLBACK(int) vbtrIPCOption(const char **ppszShort, int argc, char **
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
-DECLCALLBACK(int) vbtrIPCInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
+DECLCALLBACK(int) vbtrIPCInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
-    AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
+    AssertPtrReturn(ppvInstance, VERR_INVALID_POINTER);
 
     LogFlowFuncEnter();
 
@@ -253,7 +253,7 @@ DECLCALLBACK(int) vbtrIPCInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
                 pCtx->pEnv = pEnv;
                 RTListInit(&pCtx->SessionList);
 
-                *ppInstance = pCtx;
+                *ppvInstance = pCtx;
 
                 /* GetLastInputInfo only is available starting at Windows 2000 -- might fail. */
                 g_pfnGetLastInputInfo = (PFNGETLASTINPUTINFO)RTLdrGetSystemSymbol("User32.dll", "GetLastInputInfo");
@@ -274,17 +274,17 @@ DECLCALLBACK(int) vbtrIPCInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnStop}
  */
-DECLCALLBACK(void) VBoxIPCStop(void *pInstance)
+DECLCALLBACK(void) VBoxIPCStop(void *pvInstance)
 {
     /* Can be NULL if VBoxIPCInit failed. */
-    if (!pInstance)
+    if (!pvInstance)
         return;
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
-    LogFlowFunc(("Stopping pInstance=%p\n", pInstance));
+    LogFlowFunc(("Stopping pvInstance=%p\n", pvInstance));
 
     /* Shut down local IPC server. */
-    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pInstance;
+    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     if (pCtx->hServer != NIL_RTLOCALIPCSERVER)
@@ -315,13 +315,13 @@ DECLCALLBACK(void) VBoxIPCStop(void *pInstance)
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
-DECLCALLBACK(void) vbtrIPCDestroy(void *pInstance)
+DECLCALLBACK(void) vbtrIPCDestroy(void *pvInstance)
 {
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
-    LogFlowFunc(("Destroying pInstance=%p\n", pInstance));
+    LogFlowFunc(("Destroying pvInstance=%p\n", pvInstance));
 
-    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pInstance;
+    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     /* Shut down local IPC server. */
@@ -367,8 +367,8 @@ DECLCALLBACK(void) vbtrIPCDestroy(void *pInstance)
     if (RT_SUCCESS(rc))
         rc = rc2;
 
-    LogFlowFunc(("Destroyed pInstance=%p, rc=%Rrc\n",
-             pInstance, rc));
+    LogFlowFunc(("Destroyed pvInstance=%p, rc=%Rrc\n",
+             pvInstance, rc));
 }
 
 /**
@@ -569,10 +569,10 @@ static int vboxIPCSessionStop(PVBOXIPCSESSION pSession)
  * Thread function to wait for and process seamless mode change
  * requests
  */
-DECLCALLBACK(int) vbtrIPCWorker(void *pInstance, bool volatile *pfShutdown)
+DECLCALLBACK(int) vbtrIPCWorker(void *pvInstance, bool volatile *pfShutdown)
 {
-    AssertPtr(pInstance);
-    LogFlowFunc(("pInstance=%p\n", pInstance));
+    AssertPtr(pvInstance);
+    LogFlowFunc(("pvInstance=%p\n", pvInstance));
 
     LogFlowFuncEnter();
 
@@ -582,7 +582,7 @@ DECLCALLBACK(int) vbtrIPCWorker(void *pInstance, bool volatile *pfShutdown)
      */
     RTThreadUserSignal(RTThreadSelf());
 
-    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pInstance;
+    PVBOXIPCCONTEXT pCtx = (PVBOXIPCCONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     int rc;

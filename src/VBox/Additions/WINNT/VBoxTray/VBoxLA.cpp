@@ -1230,10 +1230,10 @@ static DECLCALLBACK(int) vbtrLAOption(const char **ppszShort, int argc, char **a
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
-DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
+DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
-    AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
+    AssertPtrReturn(ppvInstance, VERR_INVALID_POINTER);
 
     LogFlowFuncEnter();
 
@@ -1278,7 +1278,7 @@ DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 
     *(void **)&pCtx->pfnProcessIdToSessionId = RTLdrGetSystemSymbol("kernel32.dll", "ProcessIdToSessionId");
 
-    *ppInstance = pCtx;
+    *ppvInstance = pCtx;
     LogFlowFuncLeaveRC(VINF_SUCCESS);
     return VINF_SUCCESS;
 }
@@ -1286,13 +1286,13 @@ DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
-DECLCALLBACK(void) vbtrLADestroy(void *pInstance)
+DECLCALLBACK(void) vbtrLADestroy(void *pvInstance)
 {
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
-    LogFlowFunc(("Destroying pInstance=%p\n", pInstance));
+    LogFlowFunc(("Destroying pvInstance=%p\n", pvInstance));
 
-    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pInstance;
+    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     if (pCtx->u32GuestPropHandle != 0)
@@ -1309,10 +1309,10 @@ DECLCALLBACK(void) vbtrLADestroy(void *pInstance)
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
-DECLCALLBACK(int) vbtrLAWorker(void *pInstance, bool volatile *pfShutdown)
+DECLCALLBACK(int) vbtrLAWorker(void *pvInstance, bool volatile *pfShutdown)
 {
-    AssertPtr(pInstance);
-    LogFlowFunc(("pInstance=%p\n", pInstance));
+    AssertPtr(pvInstance);
+    LogFlowFunc(("pvInstance=%p\n", pvInstance));
 
     /*
      * Tell the control thread that it can continue
@@ -1320,7 +1320,7 @@ DECLCALLBACK(int) vbtrLAWorker(void *pInstance, bool volatile *pfShutdown)
      */
     RTThreadUserSignal(RTThreadSelf());
 
-    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pInstance;
+    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pvInstance;
 
     /*
      * On name change event (/VirtualBox/HostInfo/VRDP/Client/%ID%/Name)

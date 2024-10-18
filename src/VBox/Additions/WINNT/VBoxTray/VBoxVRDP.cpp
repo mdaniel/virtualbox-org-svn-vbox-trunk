@@ -299,10 +299,10 @@ static DECLCALLBACK(int) vbtrVRDPOption(const char **ppszShort, int argc, char *
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
  */
-static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppInstance)
+static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
-    AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
+    AssertPtrReturn(ppvInstance, VERR_INVALID_POINTER);
 
     LogFlowFuncEnter();
 
@@ -319,7 +319,7 @@ static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppInsta
         *(PFNRT *)&pCtx->pfnEnableTheming = RTLdrGetFunction(g_Ctx.hModUxTheme, "EnableTheming");
         *(PFNRT *)&pCtx->pfnIsThemeActive = RTLdrGetFunction(g_Ctx.hModUxTheme, "IsThemeActive");
 
-        *ppInstance = &g_Ctx;
+        *ppvInstance = &g_Ctx;
     }
     else
     {
@@ -339,13 +339,13 @@ static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppInsta
 /**
  * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
-static DECLCALLBACK(void) VBoxVRDPDestroy(void *pInstance)
+static DECLCALLBACK(void) VBoxVRDPDestroy(void *pvInstance)
 {
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
     LogFlowFuncEnter();
 
-    PVBOXVRDPCONTEXT pCtx = (PVBOXVRDPCONTEXT)pInstance;
+    PVBOXVRDPCONTEXT pCtx = (PVBOXVRDPCONTEXT)pvInstance;
 
     vboxExperienceRestore (pCtx->level);
     if (pCtx->hModUxTheme != NIL_RTLDRMOD)

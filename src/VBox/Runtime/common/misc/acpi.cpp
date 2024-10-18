@@ -40,6 +40,7 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP RTLOGGROUP_ACPI
 #include <iprt/acpi.h>
+#include <iprt/asm.h>
 #include <iprt/file.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>

@@ -4186,6 +4186,9 @@ ifn1of ($(VBOX_VCC_TOOL_STEM), VCC100 VCC110 VCC120)
  # as the VCC100 CRT typically ends up with its internal code page not being
  # CP_UTF8 but the default codepage for the locale.
  #
+ # This has also been hijacked for opting in on the new segmented heap in
+ # Windows 10.
+ #
  # @param 1 the output filename.
  # @param 2 the architecture (required for xp rtm)
  #
@@ -4197,6 +4200,7 @@ ifn1of ($(VBOX_VCC_TOOL_STEM), VCC100 VCC110 VCC120)
  	' <asmv3:application>' \
  	'  <asmv3:windowsSettings>' \
  	'   <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>' \
+       '   <heapType       xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>' \
  	'  </asmv3:windowsSettings>' \
  	' </asmv3:application>' \
  	'</assembly>' \

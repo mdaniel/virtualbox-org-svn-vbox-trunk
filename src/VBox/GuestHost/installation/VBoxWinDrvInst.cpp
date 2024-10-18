@@ -1504,6 +1504,11 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
     PVBOXWINDRVINSTINTERNAL pCtx = (PVBOXWINDRVINSTINTERNAL)RTMemAllocZ(sizeof(VBOXWINDRVINSTINTERNAL));
     if (pCtx)
     {
+        pCtx->u32Magic   = VBOXWINDRVINST_MAGIC;
+        pCtx->uVerbosity = uVerbosity;
+        pCtx->pfnLog     = pfnLog;
+        pCtx->pvUser     = pvUser;
+
         uint64_t const uNtVer = RTSystemGetNtVersion();
 
         vboxWinDrvInstLogInfo(pCtx, VBOX_PRODUCT " Version " VBOX_VERSION_STRING " - r%s", RTBldCfgRevisionStr());
@@ -1511,10 +1516,7 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
                                                                               RTSYSTEM_NT_VERSION_GET_MINOR(uNtVer),
                                                                               RTSYSTEM_NT_VERSION_GET_BUILD(uNtVer),
                                                                               RTBldCfgTargetArch());
-        pCtx->u32Magic   = VBOXWINDRVINST_MAGIC;
-        pCtx->uVerbosity = uVerbosity;
-        pCtx->pfnLog     = pfnLog;
-        pCtx->pvUser     = pvUser;
+
         rc = RTOnce(&g_vboxWinDrvInstResolveOnce, vboxWinDrvInstResolveOnce, pCtx);
         if (RT_SUCCESS(rc))
         {

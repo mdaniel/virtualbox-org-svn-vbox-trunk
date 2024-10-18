@@ -98,6 +98,11 @@ private:
 
     /** @name Widgets
      * @{ */
+        /** Holds the radio button group instance. */
+        QButtonGroup                           *m_pRadioButtonGroup;
+        /** Holds the radio button map instance. */
+        QMap<KUpdateChannel, QAbstractButton*>  m_mapRadioButtons;
+
         /** Holds the update check-box instance. */
         QCheckBox *m_pCheckBox;
         /** Holds the update settings widget instance. */
@@ -110,13 +115,6 @@ private:
         QLabel    *m_pLabelUpdateDate;
         /** Holds the update date field instance. */
         QLabel    *m_pFieldUpdateDate;
-        /** Holds the update filter label instance. */
-        QLabel    *m_pLabelUpdateFilter;
-
-        /** Holds the radio button group instance. */
-        QButtonGroup                           *m_pRadioButtonGroup;
-        /** Holds the radio button map instance. */
-        QMap<KUpdateChannel, QAbstractButton*>  m_mapRadioButtons;
     /** @} */
 };
 

@@ -366,7 +366,7 @@
 %define X86_CR0_WRITE_PROTECT               RT_BIT_32(16)
 %define X86_CR0_WP_BIT                      16
 %define X86_CR0_AM                          RT_BIT_32(18)
-%define X86_CR0_ALIGMENT_MASK               RT_BIT_32(18)
+%define X86_CR0_ALIGNMENT_MASK              RT_BIT_32(18)
 %define X86_CR0_AM_BIT                      18
 %define X86_CR0_NW                          RT_BIT_32(29)
 %define X86_CR0_NOT_WRITE_THROUGH           RT_BIT_32(29)

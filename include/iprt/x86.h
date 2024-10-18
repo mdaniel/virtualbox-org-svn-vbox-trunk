@@ -1003,7 +1003,7 @@ typedef const X86CPUIDFEATEDX *PCX86CPUIDFEATEDX;
 #define X86_CR0_WP_BIT                      16
 /** Bit 18 - AM - Alignment Mask (486+). */
 #define X86_CR0_AM                          RT_BIT_32(18)
-#define X86_CR0_ALIGMENT_MASK               RT_BIT_32(18)
+#define X86_CR0_ALIGNMENT_MASK              RT_BIT_32(18)
 #define X86_CR0_AM_BIT                      18
 /** Bit 29 - NW - Not Write-though (486+). */
 #define X86_CR0_NW                          RT_BIT_32(29)

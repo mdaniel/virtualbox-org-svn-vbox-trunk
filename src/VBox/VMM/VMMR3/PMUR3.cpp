@@ -82,6 +82,7 @@ DECLCALLBACK(void) pmuR3Reset(PPDMDEVINS pDevIns)
 
     LogFlow(("PMU: pmuR3Reset\n"));
 
+    RT_NOREF(pVM);
 #if 0
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {

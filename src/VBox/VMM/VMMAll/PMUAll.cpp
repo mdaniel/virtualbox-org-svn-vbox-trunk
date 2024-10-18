@@ -75,6 +75,7 @@ VMM_INT_DECL(VBOXSTRICTRC) PMUReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64
     PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 #endif
 
+    RT_NOREF(pVCpu);
     switch (u32Reg)
     {
         case ARMV8_AARCH64_SYSREG_PMCCNTR_EL0:
@@ -117,6 +118,7 @@ VMM_INT_DECL(VBOXSTRICTRC) PMUWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
     PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 #endif
 
+    RT_NOREF(pVCpu, u64Value);
     switch (u32Reg)
     {
         case ARMV8_AARCH64_SYSREG_PMCNTENCLR_EL0:
@@ -127,7 +129,6 @@ VMM_INT_DECL(VBOXSTRICTRC) PMUWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
         case ARMV8_AARCH64_SYSREG_PMCNTENSET_EL0:
         case ARMV8_AARCH64_SYSREG_PMUSERENR_EL0:
         case ARMV8_AARCH64_SYSREG_PMCCNTR_EL0:
-            RT_NOREF(u64Value);
             break;
         default:
             AssertReleaseFailed();

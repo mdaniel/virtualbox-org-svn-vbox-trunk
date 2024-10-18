@@ -745,12 +745,13 @@ RT_C_DECLS_END
  * Uninstalls a section of a given INF file.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the given section has not been found.
  * @param   pCtx                Windows driver installer context.
  * @param   pwszInfFile         INF file to execute.
  * @param   pwszSection         Section within INF file to uninstall.
  *                              Can have a platform decoration (e.g. "Foobar.NTx86").
  */
-static int vboxWinDrvUninstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF16 pwszInfFile, PRTUTF16 pwszSection)
+static int vboxWinDrvUninstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PCRTUTF16 pwszInfFile, PCRTUTF16 pwszSection)
 {
     AssertPtrReturn(pwszInfFile, VERR_INVALID_POINTER);
     AssertPtrReturn(pwszSection, VERR_INVALID_POINTER);
@@ -761,7 +762,10 @@ static int vboxWinDrvUninstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF1
     int rc = VBoxWinDrvInfOpen(pwszInfFile, &hInf);
     if (RT_FAILURE(rc))
     {
-        vboxWinDrvInstLogError(pCtx, "Unable to open INF file: %Rrc\n", rc);
+        if (rc == VERR_FILE_NOT_FOUND)
+            vboxWinDrvInstLogVerbose(pCtx, 1, "INF file not found anymore, skipping");
+        else
+            vboxWinDrvInstLogError(pCtx, "Unable to open INF file: %Rrc", rc);
         return rc;
     }
 
@@ -782,7 +786,10 @@ static int vboxWinDrvUninstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF1
         {
             DWORD const dwErr = GetLastError();
             if (dwErr == ERROR_SECTION_NOT_FOUND)
-                vboxWinDrvInstLogVerbose(pCtx, 1, "INF section \"%ls\" not found, skpping", wszSection);
+            {
+                vboxWinDrvInstLogVerbose(pCtx, 1, "INF section \"%ls\" not found", wszSection);
+                rc = VERR_NOT_FOUND;
+            }
             else
             {
                 rc = vboxWinDrvInstLogLastError(pCtx, "Could not uninstall INF services section \"%ls\"", wszSection);
@@ -818,6 +825,7 @@ static int vboxWinDrvUninstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF1
  * Installs a section of a given INF file.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the given section has not been found.
  * @param   pCtx                Windows driver installer context.
  * @param   pwszInfFile         INF file to execute.
  * @param   pwszSection         Section within INF file to install.
@@ -881,7 +889,10 @@ static int vboxWinDrvInstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF16 
         {
             DWORD const dwErr = GetLastError();
             if (dwErr == ERROR_SECTION_NOT_FOUND)
+            {
                 vboxWinDrvInstLogVerbose(pCtx, 1, "INF section \"%ls\" not found, skipping", wszSection);
+                rc = VERR_NOT_FOUND;
+            }
             else if (dwErr == ERROR_SERVICE_MARKED_FOR_DELETE)
                 vboxWinDrvInstLogWarn(pCtx, "Service in INF section \"%ls\" already marked for deletion, skipping", wszSection);
             else if (dwErr == ERROR_SERVICE_CANNOT_ACCEPT_CTRL)
@@ -926,9 +937,10 @@ static int vboxWinDrvInstallInfSectionEx(PVBOXWINDRVINSTINTERNAL pCtx, PRTUTF16 
 /**
  * Installs a section of a given INF file.
  *
- * Only supported for the VBOXWINDRVINSTMODE_INSTALL_EXECINF + VBOXWINDRVINSTMODE_UNINSTALL_EXECINF modes.
+ * Only supported for the VBOXWINDRVINSTMODE_INSTALL_INFSECTION + VBOXWINDRVINSTMODE_UNINSTALL_INFSECTION modes.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the given section has not been found.
  * @param   pCtx                Windows driver installer context.
  * @param   pParms              Windows driver installation parameters to use.
  */
@@ -938,6 +950,48 @@ static int vboxWinDrvInstallInfSection(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRV
                  || pParms->enmMode == VBOXWINDRVINSTMODE_UNINSTALL_INFSECTION, VERR_INVALID_PARAMETER);
 
     return vboxWinDrvInstallInfSectionEx(pCtx, pParms->pwszInfFile, pParms->u.ExecuteInf.pwszSection);
+}
+
+/**
+ * Tries probing a list of well-known sections for installation and will install the first one found.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   pParms              Windows driver installation parameters to use.
+ */
+static int vboxWinDrvInstallTryInfSections(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms)
+{
+    /* Sorted by most likely-ness. */
+    PRTUTF16 apwszTryInstallSections[] =
+    {
+        /* The more specific (using decorations), the better. Try these first. */
+        pParms->u.UnInstall.pwszModel,
+        /* Applies to primitive drivers. */
+        L"DefaultInstall" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
+        L"DefaultInstall"
+    };
+
+    int rc = VINF_SUCCESS; /* Shut up MSVC. */
+
+    for (int i = 0; i < RT_ELEMENTS(apwszTryInstallSections); i++)
+    {
+        PRTUTF16 const pwszSection = apwszTryInstallSections[i];
+
+        rc = vboxWinDrvInstallInfSectionEx(pCtx, pParms->pwszInfFile, pwszSection);
+        if (RT_SUCCESS(rc))
+            break;
+
+        if (rc != VERR_NOT_FOUND)
+            vboxWinDrvInstLogError(pCtx, "Installing INF section failed with %Rrc", rc);
+    }
+
+    if (rc == VERR_NOT_FOUND)
+    {
+        vboxWinDrvInstLogWarn(pCtx, "No matching installation section found -- buggy driver?");
+        rc = VINF_SUCCESS;
+    }
+
+    return rc;
 }
 
 /**
@@ -979,11 +1033,7 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                 {
                     rc = vboxWinDrvParmsDetermine(pCtx, pParms, true /* fForce */);
                     if (RT_SUCCESS(rc))
-                    {
-                        if (pParms->u.UnInstall.pwszModel)
-                            rc = vboxWinDrvInstallInfSectionEx(pCtx, pCtx->Parms.pwszInfFile,
-                                                               pParms->u.UnInstall.pwszModel);
-                    }
+                        /* rc ignored, keep going */ vboxWinDrvInstallTryInfSections(pCtx, pParms);
                 }
                 else
                     rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
@@ -1220,6 +1270,55 @@ static int vboxWinDrvQueryFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWIN
 }
 
 /**
+ * Tries probing a list of well-known sections for uninstallation and will uninstall the first one found.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   pParms              Windows driver uninstallation parameters to use.
+ * @param   pwszInfPathAbs      Absolute path of INF file to use for uninstallation.
+ */
+static int vboxWinDrvUninstallTryInfSections(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms, PCRTUTF16 pwszInfPathAbs)
+{
+    /* Sorted by most likely-ness. */
+    PRTUTF16 s_apwszTryInstallSections[] =
+    {
+        /* The more specific (using decorations), the better. Try these first. */
+        pParms->u.UnInstall.pwszModel,
+        /* Applies to primitive drivers. */
+        L"DefaultUninstall" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
+        L"DefaultUninstall"
+    };
+
+    int rc = VINF_SUCCESS; /* Shut up MSVC. */
+
+    for (int i = 0; i < RT_ELEMENTS(s_apwszTryInstallSections); i++)
+    {
+        PRTUTF16 const pwszSection = s_apwszTryInstallSections[i];
+
+        rc = vboxWinDrvUninstallInfSectionEx(pCtx, pwszInfPathAbs, pwszSection);
+        if (RT_SUCCESS(rc))
+            break;
+
+        if (rc == VERR_FILE_NOT_FOUND) /* File gone already. */
+        {
+            rc = VINF_SUCCESS;
+            break;
+        }
+
+        if (rc != VERR_FILE_NOT_FOUND)
+            vboxWinDrvInstLogError(pCtx, "Uninstalling INF section failed with %Rrc", rc);
+    }
+
+    if (rc == VERR_NOT_FOUND)
+    {
+        vboxWinDrvInstLogWarn(pCtx, "No matching uninstallation section found -- buggy driver?");
+        rc = VINF_SUCCESS;
+    }
+
+    return rc;
+}
+
+/**
  * Removes OEM INF files from the driver store.
  *
  * @returns VBox status code.
@@ -1251,11 +1350,6 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
 
         vboxWinDrvInstLogInfo(pCtx, "Uninstalling OEM INF \"%ls\" ...", wszInfPathAbs);
 
-        int rc2 = vboxWinDrvUninstallInfSectionEx(pCtx, wszInfPathAbs,
-                                                  L"DefaultUninstall" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR);
-        if (RT_FAILURE(rc2))
-            vboxWinDrvInstLogError(pCtx, "Uninstalling INF section failed with %Rrc", rc2);
-
         /*
          * Remove the driver from the driver store.
          */
@@ -1285,6 +1379,9 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
             vboxWinDrvInstLogInfo(pCtx, "Uninstalling OEM INF \"%ls\" successful", wszInfPathAbs);
         else
             rc = vboxWinDrvInstLogLastError(pCtx, "Uninstalling OEM INF \"%ls\" failed", wszInfPathAbs);
+
+        /* If anything failed above, try removing stuff ourselves as good as we can. */
+        /* rc ignored, keep going */ vboxWinDrvUninstallTryInfSections(pCtx, pParms, wszInfPathAbs);
     }
 
     return rc;

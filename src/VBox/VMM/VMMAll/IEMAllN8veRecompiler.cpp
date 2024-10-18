@@ -7097,22 +7097,33 @@ static uint32_t iemNativeEmitCoreEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t 
  * @returns Unpacked index.
  * @internal
  */
-static uint8_t iemNativeVarAllocInt(PIEMRECOMPILERSTATE pReNative, uint8_t cbType)
+DECL_INLINE_THROW(uint8_t) iemNativeVarAllocInt(PIEMRECOMPILERSTATE pReNative, uint8_t cbType)
 {
     Assert(cbType > 0 && cbType <= 64);
     unsigned const idxVar = ASMBitFirstSetU32(~pReNative->Core.bmVars) - 1;
     AssertStmt(idxVar < RT_ELEMENTS(pReNative->Core.aVars), IEMNATIVE_DO_LONGJMP(pReNative, VERR_IEM_VAR_EXHAUSTED));
+
     pReNative->Core.bmVars |= RT_BIT_32(idxVar);
-    pReNative->Core.aVars[idxVar].enmKind        = kIemNativeVarKind_Invalid;
-    pReNative->Core.aVars[idxVar].cbVar          = cbType;
-    pReNative->Core.aVars[idxVar].idxStackSlot   = UINT8_MAX;
-    pReNative->Core.aVars[idxVar].idxReg         = UINT8_MAX;
-    pReNative->Core.aVars[idxVar].uArgNo         = UINT8_MAX;
-    pReNative->Core.aVars[idxVar].idxReferrerVar = UINT8_MAX;
-    pReNative->Core.aVars[idxVar].enmGstReg      = kIemNativeGstReg_End;
-    pReNative->Core.aVars[idxVar].fRegAcquired   = false;
-    pReNative->Core.aVars[idxVar].u.uValue       = 0;
-    pReNative->Core.aVars[idxVar].fSimdReg       = false;
+
+    PIEMNATIVEVAR const pVar = &pReNative->Core.aVars[idxVar]; /* VS 2019 gets a bit weird on us otherwise. */
+#if 0
+    pVar->cbVar          = cbType;
+    pVar->enmKind        = kIemNativeVarKind_Invalid;
+    pVar->fRegAcquired   = false;
+    pVar->fSimdReg       = false;
+    pVar->idxReg         = UINT8_MAX;
+    pVar->uArgNo         = UINT8_MAX;
+    pVar->idxStackSlot   = UINT8_MAX;
+    pVar->idxReferrerVar = UINT8_MAX;
+    pVar->u.uValue       = 0;
+#else
+    /* Neither clang 15 nor VC++ 2019 is able to generate this from the above. */
+    AssertCompileMemberOffset(IEMNATIVEVAR, cbVar, 1);
+    AssertCompile((int)kIemNativeVarKind_Invalid == 0);
+    pVar->u32Init0       = (uint32_t)cbType << 8;
+    pVar->u32Init1       = UINT32_MAX;
+    pVar->u.uValue       = 0;
+#endif
     return idxVar;
 }
 
@@ -7821,9 +7832,6 @@ iemNativeVarRegisterAcquireForGuestReg(PIEMRECOMPILERSTATE pReNative, uint8_t id
             Log12(("iemNativeVarRegisterAcquireForGuestReg: Marking %s as copy of guest %s (full write)\n",
                    g_apszIemNativeHstRegNames[idxReg], g_aGstShadowInfo[enmGstReg].pszName));
         }
-        /** @todo figure this one out. We need some way of making sure the register isn't
-         * modified after this point, just in case we start writing crappy MC code. */
-        pVar->enmGstReg    = enmGstReg;
         pVar->fRegAcquired = true;
         return idxReg;
     }

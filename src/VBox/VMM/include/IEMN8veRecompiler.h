@@ -1562,32 +1562,44 @@ typedef enum IEMNATIVEVARKIND : uint8_t
 /** Variable or argument. */
 typedef struct IEMNATIVEVAR
 {
-    /** The kind of variable. */
-    IEMNATIVEVARKIND    enmKind;
-    /** The variable size in bytes. */
-    uint8_t             cbVar;
-    /** The first stack slot (uint64_t), except for immediate and references
-     *  where it usually is UINT8_MAX. This is allocated lazily, so if a variable
-     *  has a stack slot it has been initialized and has a value.  Unused variables
-     *  has neither a stack slot nor a host register assignment. */
-    uint8_t             idxStackSlot;
-    /** The host register allocated for the variable, UINT8_MAX if not. */
-    uint8_t             idxReg;
-    /** The argument number if argument, UINT8_MAX if regular variable. */
-    uint8_t             uArgNo;
-    /** If referenced, the index (unpacked) of the variable referencing this one,
-     * otherwise UINT8_MAX.  A referenced variable must only be placed on the stack
-     * and must be either kIemNativeVarKind_Stack or kIemNativeVarKind_Immediate. */
-    uint8_t             idxReferrerVar;
-    /** Guest register being shadowed here, kIemNativeGstReg_End(/UINT8_MAX) if not.
-     * @todo not sure what this really is for...   */
-    IEMNATIVEGSTREG     enmGstReg;
-    /** Flag whether this variable is held in a SIMD register (only supported for 128-bit and 256-bit variables),
-     * only valid when idxReg is not UINT8_MAX. */
-    bool                fSimdReg     : 1;
-    /** Set if the registered is currently used exclusively, false if the
-     *  variable is idle and the register can be grabbed. */
-    bool                fRegAcquired : 1;
+    union
+    {
+        struct
+        {
+            /** The kind of variable. */
+            IEMNATIVEVARKIND    enmKind;
+            /** The variable size in bytes. */
+            uint8_t             cbVar;
+            /** Set if the registered is currently used exclusively, false if the
+             *  variable is idle and the register can be grabbed. */
+            bool                fRegAcquired;
+            /** Flag whether this variable is held in a SIMD register (only supported for
+             * 128-bit and 256-bit variables), only valid when idxReg is not UINT8_MAX. */
+            bool                fSimdReg;
+        };
+        uint32_t        u32Init0;   /**< Init optimzation - cbVar is set, the other are initialized with zeros. */
+    };
+
+    union
+    {
+        struct
+        {
+            /** The host register allocated for the variable, UINT8_MAX if not. */
+            uint8_t             idxReg;
+            /** The argument number if argument, UINT8_MAX if regular variable. */
+            uint8_t             uArgNo;
+            /** The first stack slot (uint64_t), except for immediate and references
+             *  where it usually is UINT8_MAX. This is allocated lazily, so if a variable
+             *  has a stack slot it has been initialized and has a value.  Unused variables
+             *  has neither a stack slot nor a host register assignment. */
+            uint8_t             idxStackSlot;
+            /** If referenced, the index (unpacked) of the variable referencing this one,
+             * otherwise UINT8_MAX.  A referenced variable must only be placed on the stack
+             * and must be either kIemNativeVarKind_Stack or kIemNativeVarKind_Immediate. */
+            uint8_t             idxReferrerVar;
+        };
+        uint32_t        u32Init1;   /**< Init optimization; all these are initialized to 0xff. */
+    };
 
     union
     {
@@ -1605,6 +1617,7 @@ typedef struct IEMNATIVEVAR
         } GstRegRef;
     } u;
 } IEMNATIVEVAR;
+AssertCompileSize(IEMNATIVEVAR, 16);
 /** Pointer to a variable or argument. */
 typedef IEMNATIVEVAR *PIEMNATIVEVAR;
 /** Pointer to a const variable or argument. */

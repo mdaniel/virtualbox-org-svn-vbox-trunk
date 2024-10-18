@@ -197,6 +197,130 @@ iemNativeEmitAmd64OneByteModRmInstrRIEx(PIEMNATIVEINSTR pCodeBuf, uint32_t off, 
 
 
 /*********************************************************************************************************************************
+*   Guest Register Load & Store Helpers                                                                                          *
+*********************************************************************************************************************************/
+
+
+/**
+ * Alternative to iemNativeEmitLoadGprWithGstShadowRegEx() and
+ * iemNativeEmitLoadGprWithGstShadowReg() which should be more efficient as it
+ * lets the compiler do the equivalent of the g_aGstShadowInfo lookup.
+ *
+ * @note This does not mark @a idxHstReg as having a shadow copy of @a a_enmGstReg,
+ *       that is something the caller needs to do if applicable.
+ */
+template<IEMNATIVEGSTREG const a_enmGstReg>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitLoadGprWithGstRegExT(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t idxHstReg)
+{
+    /* 64-bit registers: */
+    if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Pc)
+        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.rip));
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Rsp)
+        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.rsp));
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_CsBase)
+        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.cs.u64Base));
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Cr0)
+    //    return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.cr0));
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Cr4)
+    //    return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.cr4));
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Xcr0)
+    //    return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.aXcr[0]));
+
+    /* 32-bit registers:   */
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_EFlags)
+        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_MxCsr)
+        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.MXCSR));
+
+    /* 16-bit registers */
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_FpuFcw)
+        return iemNativeEmitLoadGprFromVCpuU16Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.FCW));
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_FpuFsw)
+        return iemNativeEmitLoadGprFromVCpuU16Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.FSW));
+#if RT_CPLUSPLUS_PREREQ(201700) && !defined(__clang_major__)
+    else
+    {
+        AssertCompile(false);
+        return off;
+    }
+#endif
+}
+
+
+/** See iemNativeEmitLoadGprWithGstRegExT(). */
+template<IEMNATIVEGSTREG const a_enmGstReg>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitLoadGprWithGstRegT(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxHstReg)
+{
+#ifdef RT_ARCH_AMD64
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 16);
+#elif defined(RT_ARCH_ARM64)
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 6);
+#else
+# error "port me"
+#endif
+    off = iemNativeEmitLoadGprWithGstRegExT<a_enmGstReg>(pCodeBuf, off, idxHstReg);
+    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+    return off;
+}
+
+
+/**
+ * Store companion to iemNativeEmitLoadGprWithGstRegExT().
+ */
+template<IEMNATIVEGSTREG const a_enmGstReg>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitStoreGprToGstRegExT(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t idxHstReg,
+                                                             uint8_t idxTmpReg = IEMNATIVE_REG_FIXED_TMP0)
+{
+    /* 64-bit registers: */
+    if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Pc)
+        return iemNativeEmitStoreGprToVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.rip), idxTmpReg);
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Rsp)
+        return iemNativeEmitStoreGprToVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.rsp), idxTmpReg);
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Cr0)
+    //    return iemNativeEmitStoreGprToVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.cr0), idxTmpReg);
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Cr4)
+    //    return iemNativeEmitStoreGprToVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.cr4), idxTmpReg);
+    //else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_Xcr0)
+    //    return iemNativeEmitStoreGprToVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.aXcr[0]), idxTmpReg);
+    /* 32-bit registers:   */
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_EFlags)
+        return iemNativeEmitStoreGprToVCpuU32Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags), idxTmpReg);
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_MxCsr)
+        return iemNativeEmitStoreGprToVCpuU32Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.MXCSR), idxTmpReg);
+    /* 16-bit registers */
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_FpuFcw)
+        return iemNativeEmitStoreGprToVCpuU16Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.FCW), idxTmpReg);
+    else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_FpuFsw)
+        return iemNativeEmitStoreGprToVCpuU16Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.FSW), idxTmpReg);
+#if RT_CPLUSPLUS_PREREQ(201700) && !defined(__clang_major__)
+    else
+    {
+        AssertCompile(false);
+        return off;
+    }
+#endif
+}
+
+
+/** See iemNativeEmitLoadGprWithGstRegExT(). */
+template<IEMNATIVEGSTREG const a_enmGstReg>
+DECL_INLINE_THROW(uint32_t) iemNativeEmitStoreGprToGstRegT(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxHstReg)
+{
+#ifdef RT_ARCH_AMD64
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 16);
+#elif defined(RT_ARCH_ARM64)
+    PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 6);
+#else
+# error "port me"
+#endif
+    off = iemNativeEmitStoreGprToGstRegExT<a_enmGstReg>(pCodeBuf, off, idxHstReg);
+    IEMNATIVE_ASSERT_INSTR_BUF_ENSURE(pReNative, off);
+    return off;
+}
+
+
+
+/*********************************************************************************************************************************
 *   EFLAGS                                                                                                                       *
 *********************************************************************************************************************************/
 
@@ -467,7 +591,7 @@ static uint32_t iemNativeDoPostponedEFlagsInternal(PIEMRECOMPILERSTATE pReNative
 
         idxRegEfl = ASMBitFirstSetU32(bmAvailableRegs) - 1;
         bmAvailableRegs &= ~RT_BIT_32(idxRegTmp);
-        off = iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, idxRegEfl, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
+        off = iemNativeEmitLoadGprWithGstRegExT<kIemNativeGstReg_EFlags>(pCodeBuf, off, idxRegEfl);
     }
     Assert(bmAvailableRegs != 0);
 

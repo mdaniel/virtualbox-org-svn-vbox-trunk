@@ -934,7 +934,8 @@ iemNativeEmitStoreGprToVCpuU64(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint
  * @note Limited range on ARM64.
  */
 DECL_INLINE_THROW(uint32_t)
-iemNativeEmitStoreGprToVCpuU32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGpr, uint32_t offVCpu)
+iemNativeEmitStoreGprToVCpuU32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGpr, uint32_t offVCpu,
+                                 uint8_t iGprTmp = UINT8_MAX)
 {
 #ifdef RT_ARCH_AMD64
     /* mov mem32, reg32 */
@@ -942,9 +943,10 @@ iemNativeEmitStoreGprToVCpuU32Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t
         pCodeBuf[off++] = X86_OP_REX_R;
     pCodeBuf[off++] = 0x89;
     off = iemNativeEmitGprByVCpuDisp(pCodeBuf, off, iGpr, offVCpu);
+    RT_NOREF(iGprTmp);
 
 #elif defined(RT_ARCH_ARM64)
-    off = iemNativeEmitGprByVCpuLdStEx(pCodeBuf, off, iGpr, offVCpu, kArmv8A64InstrLdStType_St_Word, sizeof(uint32_t));
+    off = iemNativeEmitGprByVCpuLdStEx(pCodeBuf, off, iGpr, offVCpu, kArmv8A64InstrLdStType_St_Word, sizeof(uint32_t), iGprTmp);
 
 #else
 # error "port me"
@@ -970,6 +972,34 @@ iemNativeEmitStoreGprToVCpuU32(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint
 
 #elif defined(RT_ARCH_ARM64)
     off = iemNativeEmitGprByVCpuLdSt(pReNative, off, iGpr, offVCpu, kArmv8A64InstrLdStType_St_Word, sizeof(uint32_t));
+
+#else
+# error "port me"
+#endif
+    return off;
+}
+
+
+/**
+ * Emits a store of a GPR value to a 16-bit VCpu field.
+ *
+ * @note Limited range on ARM64.
+ */
+DECL_INLINE_THROW(uint32_t)
+iemNativeEmitStoreGprToVCpuU16Ex(PIEMNATIVEINSTR pCodeBuf, uint32_t off, uint8_t iGpr, uint32_t offVCpu,
+                                 uint8_t iGprTmp = UINT8_MAX)
+{
+#ifdef RT_ARCH_AMD64
+    /* mov mem16, reg16 */
+    pCodeBuf[off++] = X86_OP_PRF_SIZE_OP;
+    if (iGpr >= 8)
+        pCodeBuf[off++] = X86_OP_REX_R;
+    pCodeBuf[off++] = 0x89;
+    off = iemNativeEmitGprByVCpuDisp(pCodeBuf, off, iGpr, offVCpu);
+    RT_NOREF(iGprTmp);
+
+#elif defined(RT_ARCH_ARM64)
+    off = iemNativeEmitGprByVCpuLdStEx(pCodeBuf, off, iGpr, offVCpu, kArmv8A64InstrLdStType_St_Half, sizeof(uint16_t), iGprTmp);
 
 #else
 # error "port me"

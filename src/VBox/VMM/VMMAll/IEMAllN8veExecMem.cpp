@@ -322,6 +322,7 @@ typedef IEMEXECMEMALLOCATOR *PIEMEXECMEMALLOCATOR;
  */
 typedef struct IEMEXECMEMALLOCHDR
 {
+    RT_GCC_EXTENSION
     union
     {
         struct

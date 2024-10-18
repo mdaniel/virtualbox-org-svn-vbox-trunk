@@ -127,6 +127,7 @@ VMM_INT_DECL(VBOXSTRICTRC) PMUWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
         case ARMV8_AARCH64_SYSREG_PMCNTENSET_EL0:
         case ARMV8_AARCH64_SYSREG_PMUSERENR_EL0:
         case ARMV8_AARCH64_SYSREG_PMCCNTR_EL0:
+            RT_NOREF(u64Value);
             break;
         default:
             AssertReleaseFailed();

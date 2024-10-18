@@ -659,6 +659,9 @@ static void vboxWinDrvInstParmsDestroy(PVBOXWINDRVINSTPARMS pParms)
             break;
         }
 
+        case VBOXWINDRVINSTMODE_INVALID:
+            break;
+
         default:
             AssertFailed();
             break;

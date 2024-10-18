@@ -4200,7 +4200,7 @@ ifn1of ($(VBOX_VCC_TOOL_STEM), VCC100 VCC110 VCC120)
  	' <asmv3:application>' \
  	'  <asmv3:windowsSettings>' \
  	'   <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>' \
-       '   <heapType       xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>' \
+ 	'   <heapType       xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">SegmentHeap</heapType>' \
  	'  </asmv3:windowsSettings>' \
  	' </asmv3:application>' \
  	'</assembly>' \

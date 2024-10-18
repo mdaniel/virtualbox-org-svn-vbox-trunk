@@ -62,18 +62,6 @@ LegacyUninstall=1
 DelService=VBoxSup,0x00000200
 LegacyUninstall=1
 
-[Manufacturer]
-%ORACLE%=VBoxSup@COMMA-NT-ARCH@
-
-[VBoxSup@DOT-NT-ARCH@]
-%VBoxSup.DRVDESC%=VBoxSup_Install
-
-[VBoxSup_Install@DOT-NT-ARCH@]
-CopyFiles=VBoxSup_CopyFiles
-
-[VBoxSup_Install@DOT-NT-ARCH@.Services]
-AddService=VBoxSup,0x00000002,VBoxSup_Service
-
 [SourceDisksFiles]
 VBoxSup.sys=1
 

@@ -44,26 +44,26 @@ DriverPackageType=KernelService
 ;cat CatalogFile=VBoxUSBMon.cat
 ;PnpLockdown=1
 
-[DestinationDirs]
-DefaultDestDir = 12
-
-[Manufacturer]
-%ORACLE%=VBoxUSBMon@COMMA-NT-ARCH@
-
-[VBoxUSBMon@DOT-NT-ARCH@]
-%VBoxUSBMon_DrvDesc%=VBoxUSBMonDev
-
-[VBoxUSBMon@DOT-NT-ARCH@.Services]
-AddService=VBoxUSBMon,0x00000002,VBoxUSBMon_Service,VBoxUSBMon_AddEventLog
-
-[VBoxUSBMonDev@DOT-NT-ARCH@]
-CopyFiles=VBoxUSBMon_CopyFiles
+[SourceDisksNames]
+1=%VBoxUSBMon_DiskDesc%,
 
 [SourceDisksFiles]
 VBoxUSBMon.sys=1
 
-[SourceDisksNames]
-1=%VBoxUSBMon_DiskDesc%,
+[DestinationDirs]
+DefaultDestDir = 12
+
+[DefaultInstall@DOT-NT-ARCH@]
+%VBoxUSBMon_DrvDesc%=VBoxUSBMon
+CopyFiles=VBoxUSBMon_CopyFiles
+
+[DefaultInstall@DOT-NT-ARCH@.Services]
+AddService=VBoxUSBMon,0x00000002,VBoxUSBMon_Service,VBoxUSBMon_AddEventLog
+
+[DefaultUninstall@DOT-NT-ARCH@.Services]
+DelService = VBoxUSBMon
+DelReg     = VBoxUSBMon_AddEventLogRegistry
+LegacyUninstall=1
 
 [VBoxUSBMon_CopyFiles]
 VBoxUSBMon.sys

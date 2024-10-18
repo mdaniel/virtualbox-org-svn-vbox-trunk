@@ -204,8 +204,6 @@ static int vboxTrayCreateTrayIcon(void)
 
 /**
  * Removes VBoxTray's tray icon.
- *
- * @returns VBox status code.
  */
 static void vboxTrayRemoveTrayIcon(void)
 {

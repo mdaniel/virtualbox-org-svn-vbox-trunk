@@ -1892,7 +1892,7 @@ DECLCALLBACK(int) vbtrDnDStop(void *pvInstance)
 }
 
 /**
- * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
  */
 DECLCALLBACK(void) vbtrDnDDestroy(void *pvInstance)
 {

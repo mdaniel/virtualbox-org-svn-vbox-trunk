@@ -481,11 +481,13 @@ typedef struct BS3CPUINSTR4_CONFIG_T
     uint16_t    fCr4OsXmmExcpt  : 1;
     uint16_t    fXcr0Sse        : 1;
     uint16_t    fXcr0Avx        : 1;
+    uint16_t    fX87XcptPending : 1; /** unmasked x87 exception pending. */
     uint16_t    fAligned        : 1; /**< Aligned mem operands. If 0, they will be misaligned and tests w/o mem operands skipped. */
     uint16_t    fAlignCheck     : 1;
     uint16_t    fMxCsrMM        : 1; /**< AMD only */
     uint8_t     bXcptSse;
     uint8_t     bXcptAvx;
+    char *const pszCfgName;
 } BS3CPUINSTR4_CONFIG_T;
 /** Pointer to an execution environment configuration. */
 typedef BS3CPUINSTR4_CONFIG_T const BS3_FAR *PCBS3CPUINSTR4_CONFIG_T;
@@ -621,112 +623,184 @@ static uint8_t BS3_FAR *g_pbBufAlias;
 /** RW alias for the memory at g_pbBuf. */
 static uint8_t BS3_FAR *g_pbBufAliasAlloc;
 
-/** Exception type \#2 test configurations (>=16 byte memory reference, unaligned). */
+/** Exceptions type 2 (>=16 Byte Memory Reference, not explicitly aligned) test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 2A Table 2-19, "Type 2 Class Exception Conditions." */
 static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig2[] =
 {
-/*
- *   X87 SSE SSE SSE     AVX      SSE        AVX  AVX      SSE       AVX     AMD/SSE <-- applies to
- *                               +AVX       +AVX +AMD/SSE           +AMD/SSE
- *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0                       MXCSR
- *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #0 */
-    { 0, 0,  0,  1,      1,       0,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #1 */
-    { 1, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #2 */
-    { 0, 1,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #3 */
-    { 0, 0,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM }, /* #4 */
-    { 0, 1,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM }, /* #5 */
-    { 0, 0,  0,  0,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #6 */
-    { 0, 0,  0,  1,      0,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #7 */
-    { 0, 0,  0,  1,      1,       1,         1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #8 */
-    { 0, 0,  0,  1,      1,       1,         0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #9 */
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 0, 0,  0,  1,      1,       0,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "!MMEXCPT" }, /* #1 - CR4:OSXMMEXCPT: #UD instead of #XF for SIMD exceptions */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #2 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #3 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #4 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #5 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #6 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      0,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "!OSXSAVE" }, /* #7 - CR4:OSXSAVE=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!AVX" }, /* #8 - XCR0:AVX=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         0,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!SSE" }, /* #9 - XCR0:SSE+AVX=0: AVX => #UD */
     /* Memory misalignment and alignment checks: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #10 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #11 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB, "Misalign" }, /* #10 - misaligned data: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB, "AlChkMis" }, /* #11 - misaligned data + CR0:AM + fl:AC: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #12 - aligned data + CR0:AM + fl:AC: no effect */
     /* AMD only: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #13 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #14 */
 };
 
-/** Exception type \#3 test configurations (< 16-byte memory argument). */
+/** Exceptions type 3 (<16 Byte Memory Reference) test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 2A Table 2-20, "Type 3 Class Exception Conditions." */
 static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
 {
-/*
- *   X87 SSE SSE SSE     AVX      SSE        AVX  AVX      SSE       AVX     AMD/SSE <-- applies to
- *                               +AVX       +AVX +AMD/SSE           +AMD/SSE
- *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0                       MXCSR
- *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #0 */
-    { 0, 0,  0,  1,      1,       0,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #1 */
-    { 1, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #2 */
-    { 0, 1,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #3 */
-    { 0, 0,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM }, /* #4 */
-    { 0, 1,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM }, /* #5 */
-    { 0, 0,  0,  0,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #6 */
-    { 0, 0,  0,  1,      0,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #7 */
-    { 0, 0,  0,  1,      1,       1,         1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #8 */
-    { 0, 0,  0,  1,      1,       1,         0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #9 */
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 0, 0,  0,  1,      1,       0,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "!MMEXCPT" }, /* #1 - CR4:OSXMMEXCPT: #UD instead of #XF for SIMD exceptions */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #2 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #3 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #4 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #5 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #6 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      0,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "!OSXSAVE" }, /* #7 - CR4:OSXSAVE=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!AVX" }, /* #8 - XCR0:AVX=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         0,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!SSE" }, /* #9 - XCR0:SSE+AVX=0: AVX => #UD */
     /* Memory misalignment and alignment checks: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #10 */  /* [Avx]:DB */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      0,      X86_XCPT_AC, X86_XCPT_AC }, /* #11 */  /* [Avx]:AC */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "Misalign" }, /* #10 - misaligned data: no effect */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_AC, X86_XCPT_AC, "AlChkMis" }, /* #11 - misaligned data + CR0:AM + fl:AC: MMX/SSE/AVX => #AC */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #12 - aligned data + CR0:AM + fl:AC: no effect */
     /* AMD only: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #13 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #14 */
 };
 
-/** Exception type \#4 test configurations (>=16 byte memory arguments, no alignment, no floating-point exceptions). */
+/** Exceptions type 4 (>=16 Byte Memory Reference, not explicitly aligned, No Floating-point Exceptions) test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 2A Table 2-21, "Type 4 Class Exception Conditions." */
+/** Identical to g_aXcptConfig2 except no '!MMEXCPT' test for instructions which cannot raise SIMD exceptions */
 static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig4[] =
 {
-/*
- *   X87 SSE SSE SSE     AVX      SSE        AVX  AVX      SSE       AVX     AMD/SSE <-- applies to
- *                               +AVX       +AVX +AMD/SSE           +AMD/SSE
- *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0                       MXCSR
- *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #0 */
-    { 0, 0,  0,  1,      1,       0,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #1 */
-    { 1, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #2 */
-    { 0, 1,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #3 */
-    { 0, 0,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM }, /* #4 */
-    { 0, 1,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM }, /* #5 */
-    { 0, 0,  0,  0,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #6 */
-    { 0, 0,  0,  1,      0,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #7 */
-    { 0, 0,  0,  1,      1,       1,         1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #8 */
-    { 0, 0,  0,  1,      1,       1,         0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #9 */
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #1 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #2 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #3 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #4 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #5 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      0,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "!OSXSAVE" }, /* #6 - CR4:OSXSAVE=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!AVX" }, /* #7 - XCR0:AVX=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         0,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!SSE" }, /* #8 - XCR0:SSE+AVX=0: AVX => #UD */
     /* Memory misalignment and alignment checks: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #10 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB }, /* #11 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB, "Misalign" }, /* #9 - misaligned data: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB, "AlChkMis" }, /* #10 - misaligned data + CR0:AM + fl:AC: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #11 - aligned data + CR0:AM + fl:AC: no effect */
     /* AMD only: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #1j */
 };
 
-/** Exceptions type 5 (<16 byte memory arguments and not floating-point exceptions). */
+/** Exceptions type 5 (<16 Byte Memory Reference, No Floating-point Exceptions) test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 2A Table 2-22, "Type 5 Class Exception Conditions." */
+/** Identical to g_aXcptConfig3 except no '!MMEXCPT' test for instructions which cannot raise SIMD exceptions */
 static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig5[] =
 {
-/*
- *   X87 SSE SSE SSE     AVX      SSE        AVX  AVX      SSE       AVX     AMD/SSE <-- applies to
- *                               +AVX       +AVX +AMD/SSE           +AMD/SSE
- *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0                       MXCSR
- *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #0 */
-    { 0, 0,  0,  1,      1,       0,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #1 */
-    { 1, 0,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #2 */
-    { 0, 1,  0,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #3 */
-    { 0, 0,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM }, /* #4 */
-    { 0, 1,  1,  1,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM }, /* #5 */
-    { 0, 0,  0,  0,      1,       1,         1,   1,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB }, /* #6 */
-    { 0, 0,  0,  1,      0,       1,         1,   1,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #7 */
-    { 0, 0,  0,  1,      1,       1,         1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #8 */
-    { 0, 0,  0,  1,      1,       1,         0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD }, /* #9 */
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #1 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #2 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #3 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #4 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #5 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      0,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "!OSXSAVE" }, /* #6 - CR4:OSXSAVE=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!AVX" }, /* #7 - XCR0:AVX=0: AVX => #UD */
+    { 0, 0,  0,  1,      1,       1,         0,   0,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_UD, "XCR0!SSE" }, /* #8 - XCR0:SSE+AVX=0: AVX => #UD */
     /* Memory misalignment and alignment checks: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #10 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        1,      0,      X86_XCPT_AC, X86_XCPT_AC }, /* #11 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "Misalign" }, /* #9 - misaligned data: no effect */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_AC, X86_XCPT_AC, "AlChkMis" }, /* #10 - misaligned data + CR0:AM + fl:AC: MMX/SSE/AVX => #AC */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #11 - aligned data + CR0:AM + fl:AC: no effect */
     /* AMD only: */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP }, /* #13 */
-    { 0, 0,  0,  1,      1,       1,         1,   1,       1,        1,      1,      X86_XCPT_AC, X86_XCPT_GP }, /* #14 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #12 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #13 */
+};
+
+/** Exceptions type 23_4 test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 3B Table 23-4, "Exception Conditions for Legacy SIMD/MMX Instructions with FP Exception and 16-Byte Alignment" */
+/** For our purposes: same as g_aXcptConfig3 except drop the OSXSAVE & XCR0 tests, add pending x87 exception test */
+/** Instructions: cvtpd2pi, cvttpd2pi */
+static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig23_4[] =
+{
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 0, 0,  0,  1,      1,       0,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "!MMEXCPT" }, /* #1 - CR4:OSXMMEXCPT: #UD instead of #XF for SIMD exceptions */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #2 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #3 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #4 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #5 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #6 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   1,       1,        0,      0,      X86_XCPT_MF, X86_XCPT_DB, "x87Excpt" }, /* #7 - pending x87 exception */
+    /* AMD only: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #8 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #9 */
+    /* Memory misalignment and alignment checks: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "Misalign" }, /* #10 - misaligned data: no effect */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_AC, X86_XCPT_AC, "AlChkMis" }, /* #11 - misaligned data + CR0:AM + fl:AC: MMX/SSE/AVX => #AC */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #12 - aligned data + CR0:AM + fl:AC: no effect */
+};
+
+/** Exceptions type 23_5 test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 3B Table 23-5, "Exception Conditions for Legacy SIMD/MMX Instructions with XMM and FP Exception" */
+/** For our purposes: same as g_aXcptConfig4 except drop the OSXSAVE & XCR0 tests, add pending x87 exception test */
+/** Instructions: cvtpi2ps, cvtps2pi, cvttps2pi */
+static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig23_5[] =
+{
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 0, 0,  0,  1,      1,       0,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "!MMEXCPT" }, /* #1 - CR4:OSXMMEXCPT: #UD instead of #XF for SIMD exceptions */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #2 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #3 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #4 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #5 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #6 - CR4:OSFXSR=0: SSE => #UD */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   1,       1,        0,      0,      X86_XCPT_MF, X86_XCPT_DB, "x87Excpt" }, /* #7 - pending x87 exception */
+    /* AMD only: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #8 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #9 */
+    /* Memory misalignment and alignment checks: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB, "Misalign" }, /* #10 - misaligned data: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB, "AlChkMis" }, /* #11 - misaligned data + CR0:AM + fl:AC: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #12 - aligned data + CR0:AM + fl:AC: no effect */
+};
+
+/** Exceptions type 23_6 test configurations. */
+/** Intel 64 & IA-32 Architecture SDM Vol 3B Table 23-6, "Exception Conditions for Legacy SIMD/MMX Instructions with XMM and without FP Exception" */
+/** For our purposes: same as g_aXcptConfig4 except drop the OSXSAVE, OSXMMEXCPT, XCR0 tests */
+/** Instructions: cvtpi2pd */
+static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig23_6[] =
+{
+/*   X87 SSE SSE SSE     AVX      SSE+AVX    AVX  AVX  MMX(SSE) SSE       AVX+    AMD/SSE <-- applies to
+ *   CR0 CR0 CR0 CR4     CR4      CR4        XCR0 XCR0 FCW                AMD/SSE MXCSR
+ *   MP, EM, TS, OSFXSR, OSXSAVE, OSXMMEXCPT SSE, AVX, ES+,     fAligned, AC/AM,  MM,     bXcptSse,    bXcptAvx */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "(Normal)" }, /* #0 - normal */
+    { 1, 0,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_DB, X86_XCPT_DB, "CR0:MP=1" }, /* #1 - CR0:MP: no effect by itself */
+    { 0, 1,  0,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "CR0:EM=1" }, /* #2 - CR0:EM: MMX/SSE => #UD */
+    { 0, 0,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_NM, X86_XCPT_NM, "CR0:TS=1" }, /* #3 - CR0:TS: MMX/SSE/AVX => #NM */
+    { 0, 1,  1,  1,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_NM, "CR0:EMTS" }, /* #4 - CR0:EM+TS: MMX/SSE => #UD, AVX => #NM */
+    { 0, 0,  0,  0,      1,       1,         1,   1,   0,       1,        0,      0,      X86_XCPT_UD, X86_XCPT_DB, "OSFXSR=0" }, /* #5 - CR4:OSFXSR=0: SSE => #UD */
+    /* Memory misalignment and alignment checks: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      0,      X86_XCPT_GP, X86_XCPT_DB, "Misalign" }, /* #6 - misaligned data: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      0,      X86_XCPT_GP, X86_XCPT_DB, "AlChkMis" }, /* #7 - misaligned data + CR0:AM + fl:AC: SSE => #GP */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       1,        1,      0,      X86_XCPT_DB, X86_XCPT_DB, "AlChkAli" }, /* #8 - aligned data + CR0:AM + fl:AC: no effect */
+    /* AMD only: */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #9 */
+    { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #10 */
 };
 
 /**
@@ -1973,6 +2047,11 @@ static bool bs3CpuInstr4ConfigReconfigure(PBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg
     if (pConfig->fMxCsrMM && !g_fAmdMisalignedSse)
         return false;
 
+    /* Currently we skip pending x87 exceptions in real mode as they cannot be
+       caught, given that we preserve the bios int10h. */
+    if (pConfig->fX87XcptPending && BS3_MODE_IS_RM_OR_V86(bMode))
+        return false;
+
     /*
      * Modify the test context.
      */
@@ -2029,8 +2108,14 @@ static bool bs3CpuInstr4ConfigReconfigure(PBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg
         pCtx->cr0.u32    &= ~X86_CR0_AM;
     }
 
-    /** @todo Can we remove this? x87 FPU and SIMD are independent. */
-    Bs3ExtCtxSetFsw(pExtCtx, pSavedCfg->uFsw & ~(X86_FSW_ES | X86_FSW_B));
+    if (!pConfig->fX87XcptPending)
+        Bs3ExtCtxSetFsw(pExtCtx, pSavedCfg->uFsw & ~(X86_FSW_ES | X86_FSW_B));
+    else
+    {
+        Bs3ExtCtxSetFcw(pExtCtx, pSavedCfg->uFcw & ~X86_FCW_ZM);
+        Bs3ExtCtxSetFsw(pExtCtx, pSavedCfg->uFsw | X86_FSW_ZE | X86_FSW_ES | X86_FSW_B);
+        pCtx->cr0.u32 |= X86_CR0_NE;
+    }
 
     if (pConfig->fMxCsrMM)
         Bs3ExtCtxSetMxCsr(pExtCtx, pSavedCfg->uMxCsr | X86_MXCSR_MM);
@@ -2964,6 +3049,7 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T 
                     uint8_t           bXcptExpect   = !g_afTypeSupports[pTest->enmType] ? X86_XCPT_UD
                                                     : fSseInstr ? paConfigs[iCfg].bXcptSse
                                                     : BS3_MODE_IS_RM_OR_V86(bMode) ? X86_XCPT_UD : paConfigs[iCfg].bXcptAvx;
+                    /** @todo puts bRing[0..3] in 1xxxx digit, iCfg[0..14] in 11xx digits, iTest[0..80+] in 1x digit, and max(cRecompRuns, cValues)[0..80+] in 1 digit -- needs 32 bits */
                     uint16_t         idTestStep     = bRing * 10000 + iCfg * 100 + iTest * 10;
                     unsigned         cRecompRuns    = 0;
                     unsigned const   cMaxRecompRuns = g_cBs3ThresholdNativeRecompiler + cValues;
@@ -3028,15 +3114,14 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T 
                             cErrors = bs3CpuInstr4_WorkerTestType1_Inner(bMode, &TestCtx, &SavedCfg);
                             if (cErrors != Bs3TestSubErrorCount())
                             {
-                                if (paConfigs[iCfg].fAligned)
-                                    Bs3TestFailedF("%s: ring-%d/cfg#%u/test#%u/value#%u failed (bXcptExpect=%u %s, %s %u-bit)",
-                                                   Bs3GetModeName(bMode), bRing, iCfg, iTest, iVal,
-                                                   bXcptExpect, bs3CpuInstr4XcptName(bXcptExpect), fSseInstr ? "SSE" : "AVX", cbOperand * 8);
-                                else
-                                    Bs3TestFailedF("%s: ring-%d/cfg#%u/test#%u/value#%u failed (bXcptExpect=%u %s, puMemOp=%p, EFLAGS=%#RX32, %s %u-bit)",
-                                                   Bs3GetModeName(bMode), bRing, iCfg, iTest, iVal,
-                                                   bXcptExpect, bs3CpuInstr4XcptName(bXcptExpect), puMemOp,
-                                                   TrapFrame.Ctx.rflags.u32, fSseInstr ? "SSE" : "AVX", cbOperand * 8);
+#define PUMEMOP_MAXLEN          sizeof("puMemOp=0x0123456789abcdef, EFLAGS=0x01234567, ")
+                                char szPuMemOpStr[PUMEMOP_MAXLEN] = "";
+
+                                if (!paConfigs[iCfg].fAligned)
+                                    Bs3StrPrintf(szPuMemOpStr, PUMEMOP_MAXLEN, "puMemOp=%p, EFLAGS=%#RX32, ", puMemOp, TrapFrame.Ctx.rflags.u32);
+                                Bs3TestFailedF("%s: ring-%d/%u:%s/tst#%u/val#%u failed (bXcptExpect=%u %s, %s%s-%u)",
+                                               Bs3GetModeName(bMode), bRing, iCfg, paConfigs[iCfg].pszCfgName, iTest, iVal, bXcptExpect,
+                                               bs3CpuInstr4XcptName(bXcptExpect), szPuMemOpStr, fSseInstr ? "SSE" : "AVX", cbOperand * 8);
                                 Bs3TestPrintf("\n");
                             }
                         }
@@ -12598,6 +12683,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minss(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
+    /** Note: Intel 64 & IA-32 Architecture SDM Vol 2B says Table 2-19, "Type 2 Class Exception Conditions."; testing says Type 3 */
     return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
@@ -15211,7 +15297,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtss(uint8_t bMode)
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
     return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
-                                        g_aXcptConfig5, RT_ELEMENTS(g_aXcptConfig5));
+                                        g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
 
@@ -15641,7 +15727,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_sqrtsd(uint8_t bMode)
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
     return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
-                                        g_aXcptConfig5, RT_ELEMENTS(g_aXcptConfig5));
+                                        g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
 }
 
 
@@ -15897,7 +15983,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_rsqrtps(uint8_t bMode)
     static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
     unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
     return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
-                                        g_aXcptConfig2, RT_ELEMENTS(g_aXcptConfig2));
+                                        g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
 }
 
 

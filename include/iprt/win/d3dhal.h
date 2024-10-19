@@ -1,5 +1,5 @@
 /** @file
- * Safe way to include d3dkmthk.h.
+ * Safe way to include d3dhal.h.
  */
 
 /*
@@ -33,32 +33,25 @@
  * SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
  */
 
-#ifndef IPRT_INCLUDED_win_d3dkmthk_h
-#define IPRT_INCLUDED_win_d3dkmthk_h
+#ifndef IPRT_INCLUDED_win_d3dhal_h
+#define IPRT_INCLUDED_win_d3dhal_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
 
 #ifdef _MSC_VER
 # pragma warning(push)
-# if _MSC_VER >= 1900 /*RT_MSC_VER_VC140*/
-#  pragma warning(disable:4255) /* d3dkmthk.h(2061): warning C4255: 'PFND3DKMT_CHECKEXCLUSIVEOWNERSHIP': no function prototype given: converting '()' to '(void)' */
-# endif
 # if _MSC_VER >= 1930 /*RT_MSC_VER_VC143*/
-#  pragma warning(disable:5249) /* d3dkmthk.h(208): warning C5249: '_D3DKMDT_DISPLAYMODE_FLAGS::ModePruningReason' of type 'D3DKMDT_MODE_PRUNING_REASON' has named enumerators with values that cannot be represented in the given bit field width of '4'. */
+#  pragma warning(disable:5249) /* dxva9typ.h(361): warning C5249: '_DXVA_ExtendedFormat::NominalRange' of type 'DXVA_NominalRange' has named enumerators with values that cannot be represented in the given bit field width of '3'. */
 # endif
 #endif
 
-/* 10.0.22000.0 SDK: */
-#define DXGKDDI_INTERFACE_VERSION_WDDM_1_3 DXGKDDI_INTERFACE_VERSION_WDDM1_3
-#define DXGKDDI_INTERFACE_VERSION_WDDM_2_0 DXGKDDI_INTERFACE_VERSION_WDDM2_0
-#define DXGKDDI_INTERFACE_VERSION_WDDM1_3_M1 DXGKDDI_INTERFACE_VERSION_WDDM1_3
-
-#include <d3dkmthk.h>
+#include <d3dhal.h>
 
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
 
-#endif /* !IPRT_INCLUDED_win_d3dkmthk_h */
+
+#endif /* !IPRT_INCLUDED_win_d3dhal_h */
 

@@ -47,6 +47,9 @@
 # ifndef __cplusplus
 #  pragma warning(disable:4255) /* video.h(1776) : warning C4255: 'VideoPortGetCurrentIrql' : no function prototype given: converting '()' to '(void)' */
 # endif
+# if _MSC_VER >= 1930 /*RT_MSC_VER_VC143*/
+#  pragma warning(disable:5249) /* d3dkmdt.h(551): warning C5249: '_D3DKMDT_VIDEO_SIGNAL_INFO::<unnamed-tag>::ScanLineOrdering' of type 'D3DDDI_VIDEO_SIGNAL_SCANLINE_ORDERING' has named enumerators with values that cannot be represented in the given bit field width of '3'. */
+# endif
 #endif
 
 RT_C_DECLS_BEGIN

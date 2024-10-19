@@ -544,6 +544,7 @@ DECLINLINE(const char *) usbfilterGetString(PCUSBFILTER pFilter, USBFILTERIDX en
 
             default:
                 AssertMsgFailed(("%d\n", pFilter->aFields[enmFieldIdx].enmMatch));
+                RT_FALL_THROUGH();
             case USBFILTERMATCH_IGNORE:
             case USBFILTERMATCH_PRESENT:
             case USBFILTERMATCH_NUM_EXACT:
@@ -576,6 +577,7 @@ DECLINLINE(int) usbfilterGetNum(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)
 
             default:
                 AssertMsgFailed(("%d\n", pFilter->aFields[enmFieldIdx].enmMatch));
+                RT_FALL_THROUGH();
             case USBFILTERMATCH_IGNORE:
             case USBFILTERMATCH_PRESENT:
             case USBFILTERMATCH_NUM_EXPRESSION:

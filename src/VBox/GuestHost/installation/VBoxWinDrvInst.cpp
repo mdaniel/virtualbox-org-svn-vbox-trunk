@@ -1427,10 +1427,7 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
  */
 static int vboxWinDrvUninstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms)
 {
-    int rc = VINF_SUCCESS;
-
-    uint64_t const uNtVer = RTSystemGetNtVersion();
-
+    int rc;
     switch (pParms->enmMode)
     {
         case VBOXWINDRVINSTMODE_UNINSTALL:
@@ -1458,6 +1455,7 @@ static int vboxWinDrvUninstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVI
         }
 
         default:
+            rc = VINF_SUCCESS;
             break;
     }
 
@@ -1476,19 +1474,16 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
     /* Note: Other parameters might be optional, depending on the mode. */
     AssertReturn(!(pParms->fFlags & ~VBOX_WIN_DRIVERINSTALL_F_VALID_MASK), VERR_INVALID_PARAMETER);
 
-    bool const fInstall =    pParms->enmMode == (VBOXWINDRVINSTMODE_INSTALL)
-                          || pParms->enmMode == (VBOXWINDRVINSTMODE_INSTALL_INFSECTION);
+    bool const fInstall = pParms->enmMode == VBOXWINDRVINSTMODE_INSTALL
+                       || pParms->enmMode == VBOXWINDRVINSTMODE_INSTALL_INFSECTION;
 
-    uint64_t const uNtVer   = RTSystemGetNtVersion();
-
+    const char * const pszLogAction = fInstall ? "Installing" : "Uninstalling";
     if (pParms->pwszInfFile)
-        vboxWinDrvInstLogInfo(pCtx, "%s driver \"%ls\" ... ", fInstall ? "Installing" : "Uninstalling", pParms->pwszInfFile);
+        vboxWinDrvInstLogInfo(pCtx, "%s driver \"%ls\" ... ", pszLogAction, pParms->pwszInfFile);
     else if (pParms->u.UnInstall.pwszModel)
-        vboxWinDrvInstLogInfo(pCtx, "%s driver model \"%ls\" ... ", fInstall ? "Installing" : "Uninstalling",
-                              pParms->u.UnInstall.pwszModel);
+        vboxWinDrvInstLogInfo(pCtx, "%s driver model \"%ls\" ... ", pszLogAction, pParms->u.UnInstall.pwszModel);
     else if (pParms->u.UnInstall.pwszPnpId)
-        vboxWinDrvInstLogInfo(pCtx, "%s PnP ID \"%ls\" ... ", fInstall ? "Installing" : "Uninstalling",
-                              pParms->u.UnInstall.pwszPnpId);
+        vboxWinDrvInstLogInfo(pCtx, "%s PnP ID \"%ls\" ... ", pszLogAction, pParms->u.UnInstall.pwszPnpId);
 
     if (   pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT
         && g_pfnSetupSetNonInteractiveMode)

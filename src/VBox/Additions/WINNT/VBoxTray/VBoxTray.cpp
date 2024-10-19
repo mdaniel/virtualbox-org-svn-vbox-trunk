@@ -1406,7 +1406,7 @@ static LRESULT CALLBACK vboxToolWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
         case WM_DISPLAYCHANGE:
             ASMAtomicUoWriteU32(&g_fGuestDisplaysChanged, 1);
-            // No break or return is intentional here.
+            RT_FALL_THROUGH();
         case WM_VBOX_SEAMLESS_UPDATE:
         {
             if (VBoxCapsEntryIsEnabled(VBOXCAPS_ENTRY_IDX_SEAMLESS))

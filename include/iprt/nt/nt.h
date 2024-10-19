@@ -323,18 +323,18 @@
 /** @name Useful macros
  * @{ */
 /** Indicates that we're targeting native NT in the current source. */
-#define RTNT_USE_NATIVE_NT              1
+#define RTNT_USE_NATIVE_NT                  1
 /** Initializes a IO_STATUS_BLOCK. */
-#define RTNT_IO_STATUS_BLOCK_INITIALIZER  { STATUS_FAILED_DRIVER_ENTRY, ~(uintptr_t)42 }
+#define RTNT_IO_STATUS_BLOCK_INITIALIZER    { { STATUS_FAILED_DRIVER_ENTRY }, ~(uintptr_t)42 }
 /** Reinitializes a IO_STATUS_BLOCK. */
 #define RTNT_IO_STATUS_BLOCK_REINIT(a_pIos) \
     do { (a_pIos)->Status = STATUS_FAILED_DRIVER_ENTRY; (a_pIos)->Information = ~(uintptr_t)42; } while (0)
 /** Similar to INVALID_HANDLE_VALUE in the Windows environment. */
-#define RTNT_INVALID_HANDLE_VALUE         ( (HANDLE)~(uintptr_t)0 )
+#define RTNT_INVALID_HANDLE_VALUE           ( (HANDLE)~(uintptr_t)0 )
 /** Constant UNICODE_STRING initializer. */
-#define RTNT_CONSTANT_UNISTR(a_String)   { sizeof(a_String) - sizeof(WCHAR), sizeof(a_String), (WCHAR *)a_String }
+#define RTNT_CONSTANT_UNISTR(a_String)      { sizeof(a_String) - sizeof(WCHAR), sizeof(a_String), (WCHAR *)a_String }
 /** Null UNICODE_STRING initializer. */
-#define RTNT_NULL_UNISTR()               { 0, 0, NULL }
+#define RTNT_NULL_UNISTR()                  { 0, 0, NULL }
 
 /** Declaration wrapper for NT apis.
  * Adds nothrow.  Don't use with callbacks. */

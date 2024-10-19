@@ -2280,6 +2280,7 @@ HRESULT APIENTRY GaDdiOpenResource(HANDLE hDevice, D3DDDIARG_OPENRESOURCE *pReso
                 {
                     case VBOXWDDM_ALLOC_TYPE_STD_SHAREDPRIMARYSURFACE:
                         pRc->RcDesc.fFlags.Primary = 1;
+                        RT_FALL_THROUGH();
                     case VBOXWDDM_ALLOC_TYPE_STD_SHADOWSURFACE:
                     case VBOXWDDM_ALLOC_TYPE_STD_STAGINGSURFACE:
                         pRc->RcDesc.enmFormat      = pWddmAllocInfo->SurfDesc.format;
@@ -2289,6 +2290,7 @@ HRESULT APIENTRY GaDdiOpenResource(HANDLE hDevice, D3DDDIARG_OPENRESOURCE *pReso
                     default:
                         AssertFailed();
                         hr = E_INVALIDARG;
+                        break;
                 }
             }
 #ifdef VBOX_WITH_VMSVGA3D_DX9

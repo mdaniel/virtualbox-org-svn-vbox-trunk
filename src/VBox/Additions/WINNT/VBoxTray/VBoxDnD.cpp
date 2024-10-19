@@ -628,6 +628,8 @@ LRESULT CALLBACK VBoxDnDWnd::WndProc(HWND a_hWnd, UINT a_uMsg, WPARAM a_wParam, 
                 {
                     VBoxTrayInfo("DnD: Received quit message, shutting down ...\n");
                     PostQuitMessage(0);
+                    rc = VINF_SUCCESS;
+                    break;
                 }
 
 #ifdef VBOX_WITH_DRAG_AND_DROP_GH

@@ -40,7 +40,7 @@
 #include <d3d9types.h>
 //#include <d3dtypes.h>
 #include <D3dumddi.h>
-#include <d3dhal.h>
+#include <iprt/win/d3dhal.h>
 
 #endif /* !GA_INCLUDED_SRC_WINNT_Graphics_Video_disp_wddm_VBoxDispD3DBase_h */
 

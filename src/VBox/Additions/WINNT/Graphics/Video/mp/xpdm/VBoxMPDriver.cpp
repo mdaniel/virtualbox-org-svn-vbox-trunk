@@ -46,18 +46,14 @@
 /** Legacy VGA resource list. */
 static VIDEO_ACCESS_RANGE  g_aVBoxLegacyVGAResources[] =
 {
-    /* RangeStart               Length      I  V  S  P
-                                            n  i  h  a
-                                            I  s  a  s
-                                            o  i  r  s
-                                            S  b  a  i
-                                            p  l  b  v
-                                            a  e  l  e
-                                            c     e
-                                            e          */
-    { {0x000003B0, 0x00000000}, 0x0000000C, 1, 1, 1, 0 }, /* VGA regs (0x3B0-0x3BB) */
-    { {0x000003C0, 0x00000000}, 0x00000020, 1, 1, 1, 0 }, /* VGA regs (0x3C0-0x3DF) */
-    { {0x000A0000, 0x00000000}, 0x00020000, 0, 0, 1, 0 }, /* Frame buffer (0xA0000-0xBFFFF) */
+    /*                                       RangeInIoSpace
+                                              | RangeVisible
+                                              |  | RangeShareable
+                                              |  |  | RangePassive
+             RangeStart          RangeLength  v  v  v  v             */
+    { {{0x000003B0, 0x00000000}}, 0x0000000C, 1, 1, 1, 0 }, /* VGA regs (0x3B0-0x3BB) */
+    { {{0x000003C0, 0x00000000}}, 0x00000020, 1, 1, 1, 0 }, /* VGA regs (0x3C0-0x3DF) */
+    { {{0x000A0000, 0x00000000}}, 0x00020000, 0, 0, 1, 0 }, /* Frame buffer (0xA0000-0xBFFFF) */
 };
 
 /* Card info for property dialog */
@@ -80,7 +76,7 @@ VBoxDrvFindAdapter(IN PVOID HwDeviceExtension, IN PVOID HwContext, IN PWSTR Argu
     VP_STATUS rc;
     USHORT DispiId;
     ULONG cbVRAM = VBE_DISPI_TOTAL_VIDEO_MEMORY_BYTES;
-    PHYSICAL_ADDRESS phVRAM = {0};
+    PHYSICAL_ADDRESS phVRAM = {{0,0}};
     ULONG ulApertureSize = 0;
 
     PAGED_CODE();

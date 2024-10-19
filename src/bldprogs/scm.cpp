@@ -1408,6 +1408,9 @@ static int scmSettingsBaseHandleOpt(PSCMSETTINGSBASE pSettings, int rc, PRTGETOP
                 pszSrc += cchPattern + 1;
             }
             /* not reached */
+#if RT_MSC_PREREQ(RT_MSC_VER_VS2022) /* VS 2022 complains about fall thru, other compilers complains about unreachable code. */
+           break;
+#endif
         }
 
         case SCMOPT_TREAT_AS:

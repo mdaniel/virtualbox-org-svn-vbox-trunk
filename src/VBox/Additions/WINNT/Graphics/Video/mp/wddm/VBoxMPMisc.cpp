@@ -981,7 +981,7 @@ NTSTATUS vboxVideoAMgrCreate(PVBOXMP_DEVEXT pDevExt, PVBOXVIDEOCM_ALLOC_MGR pMgr
         AssertNtStatusSuccess(Status);
         if (Status == STATUS_SUCCESS)
         {
-            PHYSICAL_ADDRESS PhysicalAddress = {0};
+            PHYSICAL_ADDRESS PhysicalAddress = {{0,0}};
             PhysicalAddress.QuadPart = VBoxCommonFromDeviceExt(pDevExt)->phVRAM.QuadPart + offData;
             pMgr->pvData = (uint8_t*)MmMapIoSpace(PhysicalAddress, cbData, MmNonCached);
             Assert(pMgr->pvData);

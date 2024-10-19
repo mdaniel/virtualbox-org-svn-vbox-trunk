@@ -769,8 +769,9 @@ static int vboxWinDrvTryInfSection(PVBOXWINDRVINSTINTERNAL pCtx, PCRTUTF16 pwszI
     {
         /* The more specific (using decorations), the better. Try these first. Might be NULL. */
         pwszSection,
-        /* Applies to primitive (and legacy) drivers. */
-        L"DefaultUninstall"
+        /* The Default[Un]Install sections apply to primitive (and legacy) drivers. */
+           pCtx->Parms.enmMode == VBOXWINDRVINSTMODE_INSTALL
+        ?  L"DefaultInstall" : L"DefaultUninstall"
     };
 
     PCRTUTF16 apwszTryInstallDecorations[] =
@@ -808,13 +809,13 @@ static int vboxWinDrvTryInfSection(PVBOXWINDRVINSTINTERNAL pCtx, PCRTUTF16 pwszI
             }
 
             if (rc != VERR_NOT_FOUND)
-                vboxWinDrvInstLogError(pCtx, "Uninstalling INF section failed with %Rrc", rc);
+                vboxWinDrvInstLogError(pCtx, "Trying INF section failed with %Rrc", rc);
         }
     }
 
     if (rc == VERR_NOT_FOUND)
     {
-        vboxWinDrvInstLogWarn(pCtx, "No matching uninstallation section found -- buggy driver?");
+        vboxWinDrvInstLogWarn(pCtx, "No matching section to try found -- buggy driver?");
         rc = VINF_SUCCESS;
     }
 

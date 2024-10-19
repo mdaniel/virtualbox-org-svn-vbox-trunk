@@ -327,6 +327,8 @@
 #define RT_MSC_VER_VC142_U8     RT_MSC_VER_VS2019_U8    /**< Visual C++ 14.2 update 8. */
 #define RT_MSC_VER_VS2019_U11   (1929)                  /**< Visual Studio 2019, update 11. */
 #define RT_MSC_VER_VC142_U11    RT_MSC_VER_VS2019_U11   /**< Visual C++ 14.2 update 11. */
+#define RT_MSC_VER_VS2022       (1930)                  /**< Visual Studio 2022. */
+#define RT_MSC_VER_VC143        RT_MSC_VER_VS2022       /**< Visual C++ 14.3, aka Visual Studio 2022. */
 /** @} */
 
 /** @def RT_CLANG_PREREQ
@@ -1499,6 +1501,8 @@
 # define RT_FALL_THROUGH()      [[clang::fallthrough]]
 #elif RT_CLANG_PREREQ(12, 0) || RT_GNUC_PREREQ(7, 0)
 # define RT_FALL_THROUGH()      __attribute__((__fallthrough__))
+#elif RT_CPLUSPLUS_PREREQ(201700)
+# define RT_FALL_THROUGH()      [[fallthrough]]
 #else
 # define RT_FALL_THROUGH()      (void)0
 #endif

@@ -255,6 +255,7 @@ DECL_FORCE_INLINE(int) rtSemMutexRequestNoResume(RTSEMMUTEX hMutexSem, RTMSINTER
         case WAIT_ABANDONED:        return VERR_SEM_OWNER_DIED;
         default:
             AssertMsgFailed(("%u\n",  rc));
+            RT_FALL_THRU();
         case WAIT_FAILED:
         {
             int rc2 = RTErrConvertFromWin32(GetLastError());

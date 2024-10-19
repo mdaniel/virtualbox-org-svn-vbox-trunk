@@ -249,6 +249,7 @@ static int rtSystemWinQueryOSVersion(RTSYSOSINFO enmInfo, char *pszInfo, size_t 
 
                 default:
                     AssertFailed();
+                    RT_FALL_THROUGH();
                 case kRTWinOSType_UNKNOWN:
                     RTStrPrintf(szTmp, sizeof(szTmp), "Unknown %d v%u.%u",
                                 g_WinOsInfoEx.dwPlatformId, g_WinOsInfoEx.dwMajorVersion, g_WinOsInfoEx.dwMinorVersion);

@@ -711,6 +711,7 @@ RTDECL(int) RTDirRead(RTDIR hDir, PRTDIRENTRY pDirEntry, size_t *pcbDirEntry)
         {
             default:
                 AssertFailed();
+                RT_FALL_THRU();
             case 0:
                 pDirEntry->enmType = RTDIRENTRYTYPE_FILE;
                 break;

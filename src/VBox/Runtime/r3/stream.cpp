@@ -1683,6 +1683,7 @@ RTR3DECL(RTFOFF) RTStrmTell(PRTSTREAM pStream)
                         break;
                     default:
                         AssertFailed();
+                        RT_FALL_THROUGH();
                     case RTSTREAMBUFDIR_NONE:
                         break;
                 }

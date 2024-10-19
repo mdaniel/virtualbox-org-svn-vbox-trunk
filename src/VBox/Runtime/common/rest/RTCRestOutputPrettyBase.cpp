@@ -56,6 +56,19 @@ RTCRestOutputPrettyBase::~RTCRestOutputPrettyBase()
 }
 
 
+RTCRestOutputPrettyBase::RTCRestOutputPrettyBase(const RTCRestOutputPrettyBase &a_rThat) RT_NOEXCEPT
+    : RTCRestOutputBase(a_rThat)
+{
+}
+
+
+RTCRestOutputPrettyBase &RTCRestOutputPrettyBase::operator=(const RTCRestOutputPrettyBase &a_rThat) RT_NOEXCEPT
+{
+    RTCRestOutputBase::operator=(a_rThat);
+    return *this;
+}
+
+
 uint32_t RTCRestOutputPrettyBase::beginArray() RT_NOEXCEPT
 {
     output(RT_STR_TUPLE("["));

@@ -56,6 +56,19 @@ RTCRestOutputBase::~RTCRestOutputBase()
 }
 
 
+RTCRestOutputBase::RTCRestOutputBase(RTCRestOutputBase const &a_rThat) RT_NOEXCEPT
+    : m_uState(a_rThat.m_uState)
+{
+}
+
+
+RTCRestOutputBase &RTCRestOutputBase::operator=(RTCRestOutputBase const &a_rThat) RT_NOEXCEPT
+{
+    m_uState = a_rThat.m_uState;
+    return *this;
+}
+
+
 size_t RTCRestOutputBase::vprintf(const char *pszFormat, va_list va) RT_NOEXCEPT
 {
     return RTStrFormatV(printfOutputCallback, this, NULL, NULL, pszFormat, va);

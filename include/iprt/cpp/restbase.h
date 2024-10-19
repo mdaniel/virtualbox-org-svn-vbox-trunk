@@ -94,6 +94,10 @@ struct RT_DECL_CLASS RTCRestJsonCursor
             m_hValue = NIL_RTJSONVAL;
         }
     }
+
+#if RT_CPLUSPLUS_PREREQ(201100)
+    RTCRestJsonCursor &operator=(struct RTCRestJsonCursor const &a_rThat) = delete;
+#endif
 };
 
 
@@ -147,6 +151,10 @@ public:
      * @param   a_cbDst         Size of the destination buffer.
      */
     virtual char *getPath(RTCRestJsonCursor const &a_rCursor, char *a_pszDst, size_t a_cbDst) const RT_NOEXCEPT;
+
+#if RT_CPLUSPLUS_PREREQ(201100)
+    RTCRestJsonPrimaryCursor &operator=(RTCRestJsonPrimaryCursor const &a_rThat) = delete;
+#endif
 };
 
 

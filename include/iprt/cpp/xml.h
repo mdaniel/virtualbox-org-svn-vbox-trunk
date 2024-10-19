@@ -53,6 +53,11 @@
 #include <list>
 #include <memory>
 
+#if RT_MSC_PREREQ(RT_MSC_VER_VS2022)
+# pragma warning(push)
+# pragma warning(disable:5267) /* warning C5267: definition of implicit assignment operator for 'xml::Stream' is deprecated because it has a user-provided destructor */
+#endif
+
 
 /** @defgroup grp_rt_cpp_xml    C++ XML support
  * @ingroup grp_rt_cpp
@@ -200,7 +205,7 @@ public:
      * Throws ENotImplemented if this operation is not implemented for the
      * given stream.
      */
-    virtual void setPos (uint64_t aPos) = 0;
+    virtual void setPos(uint64_t aPos) = 0;
 };
 
 /**
@@ -1240,13 +1245,13 @@ private:
     Data *m;
 };
 
-#if defined(_MSC_VER)
-#pragma warning (default:4251)
-#endif
-
 /** @} */
 
-} // end namespace xml
+} /* end namespace xml */
+
+#if RT_MSC_PREREQ(RT_MSC_VER_VS2022)
+# pragma warning(pop)
+#endif
 
 #endif /* !IPRT_INCLUDED_cpp_xml_h */
 

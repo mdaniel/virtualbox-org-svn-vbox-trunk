@@ -531,7 +531,7 @@ protected:
 private:
     RTCString itemName;
 
-    virtual const RTCString& _getItemName()
+    virtual const RTCString &_getItemName()
     {
         return itemName;
     }
@@ -559,10 +559,20 @@ public:
         clear();
     }
 
-    /* There is no copying of this vector.  We'd need something like shared_ptr for that. */
-private:
-    HardwareItemVector(const VirtualSystem &);
+    /* We only support copying if the vector is empty, we'd need something like
+       shared_ptr for dealing with a populated list. (Problem found by VS 2022.) */
+    HardwareItemVector(const HardwareItemVector &a_rThat)
+        : std::vector<VirtualHardwareItem *>()
+    {
+        Assert(a_rThat.begin() == a_rThat.end());
+    }
 
+private:
+#if RT_CPLUSPLUS_PREREQ(201100) /* VC2022: No copy assignment operator (see copy constructor). */
+    HardwareItemVector &operator=(const HardwareItemVector &) = delete;
+#else
+    HardwareItemVector &operator=(const HardwareItemVector &);
+#endif
 };
 
 struct HardDiskController
@@ -666,15 +676,21 @@ struct VirtualSystem
     const xml::ElementNode *pelmVBoxMachine; // pointer to <vbox:Machine> element under <VirtualSystem> element or NULL if not present
 
     VirtualSystem()
-        : cimos(CIMOSType_CIMOS_Unknown),
-          ullMemorySize(0),
-          cCPUs(1),
-          fHasFloppyDrive(false),
-          fHasCdromDrive(false),
-          fHasUsbController(false),
-          pelmVBoxMachine(NULL)
+        : cimos(CIMOSType_CIMOS_Unknown)
+        , ullMemorySize(0)
+        , cCPUs(1)
+        , fHasFloppyDrive(false)
+        , fHasCdromDrive(false)
+        , fHasUsbController(false)
+        , pelmVBoxMachine(NULL)
     {
     }
+
+#if RT_CPLUSPLUS_PREREQ(201100) /* VC2022: Excplit default copy constructor and copy assignment operator to avoid warnings. */
+    /* Note! HardwareItemVector only allow copying if it's empty. */
+    VirtualSystem(VirtualSystem const &) = default;
+    VirtualSystem &operator=(VirtualSystem const &) = delete;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////

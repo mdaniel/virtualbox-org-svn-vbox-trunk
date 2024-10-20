@@ -1060,8 +1060,12 @@ class GuestToolboxStreamBlock
 public:
 
     GuestToolboxStreamBlock(void);
-
     virtual ~GuestToolboxStreamBlock(void);
+
+#if RT_CPLUSPLUS_PREREQ(201100) /* VC2022: Excplit default copy constructor and copy assignment operator to avoid warnings. */
+    GuestToolboxStreamBlock(GuestToolboxStreamBlock const &) = default;
+    GuestToolboxStreamBlock &operator=(GuestToolboxStreamBlock const &) = default;
+#endif
 
 public:
 

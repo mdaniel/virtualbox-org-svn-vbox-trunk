@@ -298,6 +298,10 @@ public:
 
         HWData();
         ~HWData();
+#if RT_CPLUSPLUS_PREREQ(201100) /* VC2022: Excplit default copy constructor and copy assignment operator to avoid warnings. */
+        HWData(HWData const &) = default;
+        HWData &operator=(HWData const &) = default;
+#endif
 
         Bstr                mHWVersion;
         Guid                mHardwareUUID;  /**< If Null, use mData.mUuid. */

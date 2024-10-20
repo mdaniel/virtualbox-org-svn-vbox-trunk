@@ -167,8 +167,10 @@ static const struct
 
 #endif
 
+#if 0 /* unused */
 /** WHV_MEMORY_ACCESS_TYPE names */
 static const char * const g_apszWHvMemAccesstypes[4] = { "read", "write", "exec", "!undefined!" };
+#endif
 /** NEM_WIN_PAGE_STATE_XXX names. */
 NEM_TMPL_STATIC const char * const g_apszPageStates[4] = { "not-set", "unmapped", "readable", "writable" };
 /** HV_INTERCEPT_ACCESS_TYPE names. */

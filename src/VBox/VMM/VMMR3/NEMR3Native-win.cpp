@@ -246,8 +246,10 @@ static const HV_X64_INTERCEPT_MESSAGE_HEADER *g_pX64MsgHdr;
 
 #endif
 
+#if 0 /* unused */
 /** WHV_MEMORY_ACCESS_TYPE names */
 static const char * const g_apszWHvMemAccesstypes[4] = { "read", "write", "exec", "!undefined!" };
+#endif
 
 
 /*********************************************************************************************************************************

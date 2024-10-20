@@ -261,11 +261,11 @@ DLLHost_InvokeStub(IRpcStubBuffer *pThis, RPCOLEMESSAGE *pMsg, IRpcChannelBuffer
         hrc = CStdStubBuffer_Invoke(pThis, pMsg, pBuf);
     else
     {
-        LogRel(("DLLHost_InvokeStub: Rejected call to CDLLHost::%s: rpcFlags=%#x cbBuffer=%#x dataRepresentation=%d buffer=%p:{%.*Rhxs} reserved1=%p reserved2={%p,%p,%p,%p,%p}\n",
-                pMsg->iMethod == 0 ? "QueryInterface" :
-                pMsg->iMethod == 1 ? "AddRef" :
-                pMsg->iMethod == 2 ? "ReleaseRef" :
-                pMsg->iMethod == 3 ? "DllGetClassObject" : "Unknown", pMsg->rpcFlags, pMsg->cbBuffer,
+        LogRel(("DLLHost_InvokeStub: Rejected call to CDLLHost::%s: iMethod=%#x rpcFlags=%#x cbBuffer=%#x dataRepresentation=%d buffer=%p:{%.*Rhxs} reserved1=%p reserved2={%p,%p,%p,%p,%p}\n",
+                iMethod == 0 ? "QueryInterface" :
+                iMethod == 1 ? "AddRef" :
+                iMethod == 2 ? "ReleaseRef" :
+                iMethod == 3 ? "DllGetClassObject" : "Unknown", pMsg->iMethod, pMsg->rpcFlags, pMsg->cbBuffer,
                 pMsg->dataRepresentation, pMsg->Buffer, RT_VALID_PTR(pMsg->Buffer) ? pMsg->cbBuffer : 0, pMsg->Buffer,
                 pMsg->reserved1, pMsg->reserved2[0], pMsg->reserved2[1], pMsg->reserved2[2], pMsg->reserved2[3], pMsg->reserved2[4]));
         hrc = E_ACCESSDENIED;

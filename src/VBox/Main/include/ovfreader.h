@@ -565,6 +565,7 @@ public:
         : std::vector<VirtualHardwareItem *>()
     {
         Assert(a_rThat.begin() == a_rThat.end());
+        RT_NOREF(a_rThat);
     }
 
 private:

@@ -99,11 +99,13 @@ UIMiniCancelButton::UIMiniCancelButton(QWidget *pParent /* = 0 */)
 *   Class UIHelpButton implementation.                                                                                           *
 *********************************************************************************************************************************/
 
+# ifdef VBOX_WS_MAC
 /* From: src/gui/styles/qmacstyle_mac.cpp */
 static const int PushButtonLeftOffset = 6;
 static const int PushButtonTopOffset = 4;
 static const int PushButtonRightOffset = 12;
 static const int PushButtonBottomOffset = 4;
+# endif
 
 UIHelpButton::UIHelpButton(QWidget *pParent /* = 0 */)
     : QPushButton(pParent)

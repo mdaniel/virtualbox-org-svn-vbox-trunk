@@ -277,22 +277,10 @@ HRESULT Platform::getX86(ComPtr<IPlatformX86> &aX86)
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    switch (m->bd->architectureType)
-    {
-        case PlatformArchitecture_x86:
-        {
-            if (mX86.isNotNull())
-            {
-                /* mX86 is constant during life time, no need to lock. */
-                return mX86.queryInterfaceTo(aX86.asOutParam());
-            }
-            break;
-        }
-
-        default:
-            /* For anything else return an error. */
-            break;
-    }
+    if (m->bd->architectureType == PlatformArchitecture_x86)
+        if (mX86.isNotNull())
+            /** @todo mX86 is constant during life time, no need to lock. */
+            return mX86.queryInterfaceTo(aX86.asOutParam());
 
     return setErrorBoth(VBOX_E_PLATFORM_ARCH_NOT_SUPPORTED, VERR_PLATFORM_ARCH_NOT_SUPPORTED,
                         "x86-specific platform settings are not available on this platform");
@@ -306,25 +294,14 @@ HRESULT Platform::getARM(ComPtr<IPlatformARM> &aARM)
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    switch (m->bd->architectureType)
-    {
 #ifdef VBOX_WITH_VIRT_ARMV8
-        case PlatformArchitecture_ARM:
-        {
-            if (mARM.isNotNull())
-            {
-                /* mARM is constant during life time, no need to lock. */
-                return mARM.queryInterfaceTo(aARM.asOutParam());
-            }
-            break;
-        }
+    if (m->bd->architectureType == PlatformArchitecture_ARM)
+        if (mARM.isNotNull())
+            /** @todo mARM is constant during life time, no need to lock... */
+            return mARM.queryInterfaceTo(aARM.asOutParam());
 #else
-        RT_NOREF(aARM);
+    RT_NOREF(aARM);
 #endif
-        default:
-            /* For anything else return an error. */
-            break;
-    }
 
     return setErrorBoth(VBOX_E_PLATFORM_ARCH_NOT_SUPPORTED, VERR_PLATFORM_ARCH_NOT_SUPPORTED,
                         "ARM-specific platform settings are not available on this platform");

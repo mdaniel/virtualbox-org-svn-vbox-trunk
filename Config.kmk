@@ -8102,6 +8102,14 @@ ifdef VBOX_WITH_QTGUI
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -wd5219 -wd5240
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS += /volatileMetadata- # Don't waste space on x86/amd64-on-arm emulation optimizations.
   endif
+  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC143" # (with qt 6.5.3 - reevalue when upgrading qt)
+   #   -wd5246: qobjectdefs.h(203): warning C5246: '_Elems': the initialization of a subobject should be wrapped in braces
+   #   -wd5249: qstyleoption.h(207): warning C5249: 'QStyleOptionHeaderV2::textElideMode' of type 'Qt::TextElideMode' has named enumerators with values that cannot be represented in the given bit field width of '2'
+   #   -wd5266: qhash.h(1083): warning C5266: 'const' qualifier on return type has no effect
+   #   -wd5267: qlist.h(50): warning C5267: definition of implicit copy constructor for 'QListSpecialMethods<T>' is deprecated because it has a user-provided destructor
+   TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -wd5246 -wd5249 -wd5266 -wd5267
+  endif
+
   TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -Gy
   if "$(VBOX_VCC_TOOL_STEM)" >= "VCC120"
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -Gw

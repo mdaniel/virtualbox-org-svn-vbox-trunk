@@ -1,6 +1,9 @@
 /* $Id$ */
 /** @file
  * DHCP server - DHCP options
+ *
+ * @note This file is also used by Main!
+ * @todo r=bird: Move to global include directory.
  */
 
 /*
@@ -68,6 +71,11 @@ public:
 
     virtual ~DhcpOption()
     {}
+
+#if RT_CPLUSPLUS_PREREQ(201100) /* VC2022: Excplit default copy constructor and copy assignment operator to avoid warnings. */
+    DhcpOption(DhcpOption const &) = default;
+    DhcpOption &operator=(DhcpOption const &) = default;
+#endif
 
 public:
     static DhcpOption *parse(uint8_t aOptCode, int aEnc, const char *pcszValue, int *prc = NULL);

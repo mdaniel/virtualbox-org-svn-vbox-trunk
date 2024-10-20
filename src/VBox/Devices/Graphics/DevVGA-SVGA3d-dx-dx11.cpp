@@ -1114,7 +1114,7 @@ static void dxLogRelVideoCaps(ID3D11VideoDevice *pVideoDevice)
 
     D3D11_VIDEO_DECODER_DESC DecoderDesc;
     // Commonly used D3D11_DECODER_PROFILE_H264_VLD_NOFGT
-    DecoderDesc.Guid         = { 0x1b81be68, 0xa0c7,0x11d3,0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5 };
+    DecoderDesc.Guid         = { 0x1b81be68, 0xa0c7,0x11d3,{0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5}};
     DecoderDesc.SampleWidth  = 1920;
     DecoderDesc.SampleHeight = 1080;
     DecoderDesc.OutputFormat = DXGI_FORMAT_NV12;
@@ -11460,7 +11460,7 @@ static int dxGetVideoCapDecodeConfig(DXDEVICE *pDXDevice, void *pvData, uint32 c
         if (SUCCEEDED(hr))
         {
             /* Filter out configs with encryption. */
-            static GUID const NoEncrypt = { 0x1b81beD0, 0xa0c7,0x11d3,0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5 };
+            static GUID const NoEncrypt = { 0x1b81beD0, 0xa0c7,0x11d3,{0xb9,0x84,0x00,0xc0,0x4f,0x2e,0x73,0xc5} };
             if (   memcmp(&NoEncrypt, &Config.guidConfigBitstreamEncryption, sizeof(GUID)) == 0
                 && memcmp(&NoEncrypt, &Config.guidConfigMBcontrolEncryption, sizeof(GUID)) == 0
                 && memcmp(&NoEncrypt, &Config.guidConfigResidDiffEncryption, sizeof(GUID)) == 0)

@@ -377,7 +377,6 @@ static int InstallWinVerifyTrustInterceptorInSetupApi(void)
             /*
              * Scan the symbol names.
              */
-            uint32_t const    cbHdrs      = pNtHdrs->OptionalHeader.SizeOfHeaders;
             uint32_t * const  pauNameRvas = (uint32_t  *)&pchRva2Ptr[paEntries[iImp].ImportNameTableRVA];
             uintptr_t * const paIat       = (uintptr_t *)&pchRva2Ptr[paEntries[iImp].ImportAddressTableRVA];
             for (uint32_t iSym = 0; pauNameRvas[iSym] != NULL; iSym++)

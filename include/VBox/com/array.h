@@ -1020,7 +1020,7 @@ public:
     /**
      * Const version of #operator[] that returns an array element by value.
      */
-    const T operator[] (size_t aIdx) const
+    T operator[] (size_t aIdx) const
     {
         AssertReturn(m.arr != NULL, *(const T *)&Zeroes[0]);
         AssertReturn(aIdx < size(), *(const T *)&Zeroes[0]);

@@ -845,20 +845,19 @@ static bool autostartSvcWinSetServiceStatus(DWORD dwStatus, int iWaitHint, DWORD
             SvcStatus.dwControlsAccepted = 0;
             break;
         default:
-            SvcStatus.dwControlsAccepted
-                = SERVICE_ACCEPT_STOP
-                | SERVICE_ACCEPT_SHUTDOWN;
+            SvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
             break;
     }
 
-    static DWORD dwCheckPoint = 0;
+    static DWORD s_dwCheckPoint = 0;
     switch (dwStatus)
     {
         case SERVICE_RUNNING:
         case SERVICE_STOPPED:
-            SvcStatus.dwCheckPoint       = 0;
+            SvcStatus.dwCheckPoint = 0;
+            break;
         default:
-            SvcStatus.dwCheckPoint       = ++dwCheckPoint;
+            SvcStatus.dwCheckPoint = ++s_dwCheckPoint;
             break;
     }
     return SetServiceStatus(g_hSupSvcWinCtrlHandler, &SvcStatus) != FALSE;

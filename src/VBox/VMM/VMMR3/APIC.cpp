@@ -1439,6 +1439,7 @@ DECLCALLBACK(int) apicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE p
     {
         case PDMAPICMODE_NONE:
             LogRel(("APIC: APIC maximum mode configured as 'None', effectively disabled/not-present!\n"));
+            RT_FALL_THROUGH();
         case PDMAPICMODE_APIC:
         case PDMAPICMODE_X2APIC:
             break;

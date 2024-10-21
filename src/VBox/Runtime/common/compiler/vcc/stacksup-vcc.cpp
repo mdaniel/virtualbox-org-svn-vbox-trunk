@@ -41,7 +41,11 @@
 #include "internal/nocrt.h"
 
 #include <iprt/asm.h>
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/asm-arm.h>
+#endif
 #ifndef IPRT_NOCRT_WITHOUT_FATAL_WRITE
 # include <iprt/assert.h>
 #endif
@@ -61,6 +65,8 @@
 # define MY_GET_PC_FROM_CONTEXT(a_pCtx)  ((a_pCtx)->Rip)
 #elif defined(RT_ARCH_X86)
 # define MY_GET_PC_FROM_CONTEXT(a_pCtx)  ((a_pCtx)->Eip)
+#elif defined(RT_ARCH_ARM64)
+# define MY_GET_PC_FROM_CONTEXT(a_pCtx)  ((a_pCtx)->Pc)
 #else
 # error "Port Me!"
 #endif
@@ -168,6 +174,8 @@ static DECL_NO_RETURN(void) rtVccFatalSecurityErrorWithCtx(uint32_t uFastFailCod
             /* .ExceptionAddress = */       (void *)pCpuCtx->Rip,
 # elif defined(RT_ARCH_X86)
             /* .ExceptionAddress = */       (void *)pCpuCtx->Eip,
+# elif defined(RT_ARCH_ARM64)
+            /* .ExceptionAddress = */       (void *)pCpuCtx->Pc,
 # else
 #  error "Port me!"
 # endif
@@ -338,6 +346,8 @@ void rtVccCheckContextFailed(PCONTEXT pCpuCtx)
                  pCpuCtx->Rip, pCpuCtx->Rsp, pCpuCtx->Rbp
 # elif defined(RT_ARCH_X86)
                  pCpuCtx->Eip, pCpuCtx->Esp, pCpuCtx->Ebp
+# elif defined(RT_ARCH_ARM64)
+                 pCpuCtx->Pc, pCpuCtx->Sp, pCpuCtx->Bp
 # else
 #  error "unsupported arch"
 # endif
@@ -349,6 +359,8 @@ void rtVccCheckContextFailed(PCONTEXT pCpuCtx)
     rtNoCrtFatalWritePtr((void *)pCpuCtx->Rip);
 # elif defined(RT_ARCH_X86)
     rtNoCrtFatalWritePtr((void *)pCpuCtx->Eip);
+# elif defined(RT_ARCH_ARM64)
+    rtNoCrtFatalWritePtr((void *)pCpuCtx->Pc);
 # else
 #  error "unsupported arch"
 # endif

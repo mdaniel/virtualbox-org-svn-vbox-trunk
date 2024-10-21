@@ -7946,13 +7946,20 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
     endif
    endif
   else if1of ($(KBUILD_TARGET), win)
-   ## @todo kBuild: Use qfilter[-out] here once kmk.exe is updated.
    VBOX_PATH_QT := $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*))
-   VBOX_PATH_QT := $(firstfile $(filter %-$(tolower $(VBOX_VCC_TOOL_STEM)),$(VBOX_PATH_QT)) \
-   		$(filter-out %-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(VBOX_PATH_QT)))
+   VBOX_PATH_QT := $(firstfile $(qfilter ,%-$(tolower $(VBOX_VCC_TOOL_STEM)),$(VBOX_PATH_QT)) \
+   		$(qfilter-out ,%-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(VBOX_PATH_QT)))
    ifdef VBOX_PATH_QT
     PATH_SDK_QT6  := $(VBOX_PATH_QT)
     PATH_TOOL_QT6 := $(VBOX_PATH_QT)
+    ifneq ($(KBUILD_HOST_ARCH),$(KBUILD_TARGET_ARCH))
+     PATH_TOOL_QT6 := $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST)/qt/v6*))
+     PATH_TOOL_QT6 := $(firstfile $(qfilter ,%-$(tolower $(VBOX_VCC_TOOL_STEM)),$(PATH_TOOL_QT6)) \
+     		$(qfilter-out ,%-vcc100 %-vcc110 %-vcc120 %-vcc140 %-vcc141 %-vcc142 %-vcc143 %-vcc150, $(PATH_TOOL_QT6)))
+     ifndef VBOX_PATH_QT
+     PATH_SDK_QT6  := $(VBOX_PATH_QT)
+     endif
+    endif
    endif
   else if1of ($(KBUILD_TARGET), linux solaris)
    VBOX_PATH_QT ?= $(firstfile $(versortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_TRG)/qt/v6*)))
@@ -8091,6 +8098,10 @@ ifdef VBOX_WITH_QTGUI
    #   -wd5266: qhash.h(1083): warning C5266: 'const' qualifier on return type has no effect
    #   -wd5267: qlist.h(50): warning C5267: definition of implicit copy constructor for 'QListSpecialMethods<T>' is deprecated because it has a user-provided destructor
    TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -wd5246 -wd5249 -wd5266 -wd5267
+  endif
+  if1of ($(KBUILD_TARGET_ARCH),arm64) # (with qt 6.8.0)
+   #   -wd4668: qnumeric.h(88): warning C4668: 'Q_CC_GNU' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'
+   TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -wd4668
   endif
 
   TEMPLATE_VBoxQtGuiExe_CXXFLAGS += -Gy

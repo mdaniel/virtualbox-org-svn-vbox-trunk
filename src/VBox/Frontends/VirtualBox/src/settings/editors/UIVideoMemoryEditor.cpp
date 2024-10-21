@@ -68,7 +68,7 @@ void UIVideoMemoryEditor::setValue(int iValue)
      * slider if value has changed: */
     if (m_iValue != iValue)
     {
-        m_iValue = RT_MIN(iValue, m_iMaxVRAM);
+        m_iValue = qMin(iValue, m_iMaxVRAM);
         if (m_pSlider)
             m_pSlider->setValue(m_iValue);
 
@@ -313,12 +313,11 @@ void UIVideoMemoryEditor::updateRequirements()
     if (m_strGuestOSTypeId.isEmpty())
         return;
 
-    /* Init visible maximum VRAM: */
-    int iMaxVRAMVisible = m_cGuestScreenCount * 32;
-
-    /* Get monitors count and recommended VRAM: */
+    /* Init recommended VRAM according to guest OS type and screen count: */
     int iNeedMBytes = UIGuestOSTypeHelpers::requiredVideoMemory(m_strGuestOSTypeId, m_cGuestScreenCount) / _1M;
 
+    /* Init visible maximum VRAM to be no less than 32MB per screen: */
+    int iMaxVRAMVisible = m_cGuestScreenCount * 32;
     /* Adjust visible maximum VRAM to be no less than 128MB (if possible): */
     if (iMaxVRAMVisible < 128 && m_iMaxVRAM >= 128)
         iMaxVRAMVisible = 128;
@@ -328,19 +327,20 @@ void UIVideoMemoryEditor::updateRequirements()
     {
         /* Adjust recommended VRAM to be no less than 128MB: */
         iNeedMBytes = qMax(iNeedMBytes, 128);
+
         /* Adjust visible maximum VRAM to be no less than 256MB (if possible): */
         if (iMaxVRAMVisible < 256 && m_iMaxVRAM >= 256)
             iMaxVRAMVisible = 256;
     }
 #endif /* VBOX_WITH_3D_ACCELERATION */
 
+    /* Adjust recommended VRAM to be no more than actual maximum VRAM: */
+    iNeedMBytes = qMin(iNeedMBytes, m_iMaxVRAM);
+
     /* Adjust visible maximum VRAM to be no less than initial VRAM: */
     iMaxVRAMVisible = qMax(iMaxVRAMVisible, m_iValue);
     /* Adjust visible maximum VRAM to be no less than recommended VRAM: */
     iMaxVRAMVisible = qMax(iMaxVRAMVisible, iNeedMBytes);
-
-    /* Adjust recommended VRAM to be no more than actual maximum VRAM: */
-    iNeedMBytes = qMin(iNeedMBytes, m_iMaxVRAM);
     /* Adjust visible maximum VRAM to be no more than actual maximum VRAM: */
     iMaxVRAMVisible = qMin(iMaxVRAMVisible, m_iMaxVRAM);
 

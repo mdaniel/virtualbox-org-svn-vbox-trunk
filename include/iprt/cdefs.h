@@ -1707,6 +1707,18 @@
 # define DECL_INVALID(a_RetType)    a_RetType
 #endif
 
+/** @def DECL_EXTERN_C
+ * Prepends an 'extern "C"' in C++ code.
+ * @param   a_RetTypeExpr   The return type, calling convention, function
+ *                          attributes, and whatnot expression of the function
+ *                          declaration.
+ */
+#ifdef __cplusplus
+# define DECL_EXTERN_C(a_RetTypeExpr)   extern "C" a_RetTypeExpr
+#else
+# define DECL_EXTERN_C(a_RetTypeExpr)   a_RetTypeExpr
+#endif
+
 /** @def DECLASM
  * How to declare an internal assembly function.
  * @param   a_RetType   The return type of the function declaration.
@@ -1734,8 +1746,8 @@
 # define RT_ASM_DECL_PRAGMA_WATCOM(a_RetType)       a_RetType
 # define RT_ASM_DECL_PRAGMA_WATCOM_386(a_RetType)   a_RetType
 #else
-# define RT_ASM_DECL_PRAGMA_WATCOM(a_RetType)       DECLASM(a_RetType)
-# define RT_ASM_DECL_PRAGMA_WATCOM_386(a_RetType)   DECLASM(a_RetType)
+# define RT_ASM_DECL_PRAGMA_WATCOM(a_RetType)       RT_DECL_ASM(a_RetType)
+# define RT_ASM_DECL_PRAGMA_WATCOM_386(a_RetType)   RT_DECL_ASM(a_RetType)
 #endif
 
 /** @def DECL_NO_RETURN
@@ -2110,6 +2122,24 @@
 # endif
 #else
 # define RTDECL(a_RetType)      DECL_IMPORT_NOTHROW(a_RetType) RTCALL
+#endif
+
+/** @def RT_DECL_ASM(a_RetType)
+ * Runtime Library assembly export or import declaration.
+ * Functions declared using this macro exists in all contexts.
+ * @param   a_RetType   The return type of the function declaration.
+ * @remarks This is only used inside IPRT.
+ * @note    This is compatible with DECLASM, just add hidden/import/export 
+ *          attributes to the function.
+ */
+#if defined(IN_RT_R3) || defined(IN_RT_RC) || defined(IN_RT_R0)
+# ifdef IN_RT_STATIC
+#  define RT_DECL_ASM(a_RetType) DECL_EXTERN_C(DECL_HIDDEN_NOTHROW(a_RetType RTCALL))
+# else
+#  define RT_DECL_ASM(a_RetType) DECL_EXTERN_C(DECL_EXPORT_NOTHROW(a_RetType RTCALL))
+# endif
+#else
+# define RT_DECL_ASM(a_RetType)  DECL_EXTERN_C(DECL_IMPORT_NOTHROW(a_RetType RTCALL))
 #endif
 
 /** @def RTDATADECL(a_Type)

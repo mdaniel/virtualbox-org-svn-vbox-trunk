@@ -363,7 +363,7 @@ DECLHIDDEN(int) rtR0InitNative(void)
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     GET_SYSTEM_ROUTINE(MmMapLockedPagesSpecifyCache);
 #else
-    /* MmMapLockedPagesSpecifyCache is a pre processor macro on arm64. */ 
+    /* MmMapLockedPagesSpecifyCache is a pre processor macro on arm64. */
     g_pfnrtMmMapLockedPagesSpecifyCache = (decltype(MmMapLockedPagesSpecifyCache) *)RTR0DbgKrnlInfoGetSymbol(hKrnlInfo, NULL, "MmMapLockedPagesSpecifyCache");
 #endif
     GET_SYSTEM_ROUTINE(MmAllocateContiguousMemorySpecifyCache);

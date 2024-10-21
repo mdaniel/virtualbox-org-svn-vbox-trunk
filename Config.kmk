@@ -1998,23 +1998,23 @@ $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES)\
 VBOX_ASTOOL.os2.x86 := NASM
 
 # Assembler tool flag config.
-VBOX_YASM_ASFLAGS.elf.x86    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf32 -DASM_FORMAT_ELF -g dwarf2
-VBOX_YASM_ASFLAGS.elf.amd64  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf64 -DASM_FORMAT_ELF -g dwarf2
-VBOX_YASM_ASFLAGS.macho.x86  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho32 -DASM_FORMAT_MACHO -g dwarf2
-VBOX_YASM_ASFLAGS.macho.x64  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho64 -DASM_FORMAT_MACHO -g dwarf2
-VBOX_YASM_ASFLAGS.pe.x86     = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win32 -DASM_FORMAT_PE -g cv8
-VBOX_YASM_ASFLAGS.pe.amd64   = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win64 -DASM_FORMAT_PE -g cv8
-VBOX_YASM_ASFLAGS.lx.x86     = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f obj -DASM_FORMAT_LX -g stubs
+VBOX_YASM_ASFLAGS.elf.x86      = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf32 -DASM_FORMAT_ELF -g dwarf2
+VBOX_YASM_ASFLAGS.elf.amd64    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf64 -DASM_FORMAT_ELF -g dwarf2
+VBOX_YASM_ASFLAGS.macho.x86    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho32 -DASM_FORMAT_MACHO -g dwarf2
+VBOX_YASM_ASFLAGS.macho.amd64  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho64 -DASM_FORMAT_MACHO -g dwarf2
+VBOX_YASM_ASFLAGS.pe.x86       = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win32 -DASM_FORMAT_PE -g cv8
+VBOX_YASM_ASFLAGS.pe.amd64     = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win64 -DASM_FORMAT_PE -g cv8
+VBOX_YASM_ASFLAGS.lx.x86       = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f obj -DASM_FORMAT_LX -g stubs
 $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
 ,$(eval VBOX_YASM_ASFLAGS.$(os).$(arch) = $$(VBOX_YASM_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
 
-VBOX_NASM_ASFLAGS.elf.x86   := -D__NASM__ -w+orphan-labels -f elf32 -DASM_FORMAT_ELF -F dwarf
-VBOX_NASM_ASFLAGS.elf.amd64 := -D__NASM__ -w+orphan-labels -f elf64 -DASM_FORMAT_ELF -F dwarf
-VBOX_NASM_ASFLAGS.macho.x86 := -D__NASM__ -w+orphan-labels -f macho32 -DASM_FORMAT_MACHO -F dwarf
-VBOX_NASM_ASFLAGS.macho.x64 := -D__NASM__ -w+orphan-labels -f macho64 -DASM_FORMAT_MACHO -F dwarf
-VBOX_NASM_ASFLAGS.pe.x86    := -D__NASM__ -w+orphan-labels -f win32 -DASM_FORMAT_PE -F cv8
-VBOX_NASM_ASFLAGS.pe.amd64  := -D__NASM__ -w+orphan-labels -f win64 -DASM_FORMAT_PE -F cv8
-VBOX_NASM_ASFLAGS.lx.x86    := -D__NASM__ -w+orphan-labels -f obj -DASM_FORMAT_LX -F stubs
+VBOX_NASM_ASFLAGS.elf.x86     := -D__NASM__ -w+orphan-labels -f elf32 -DASM_FORMAT_ELF -F dwarf
+VBOX_NASM_ASFLAGS.elf.amd64   := -D__NASM__ -w+orphan-labels -f elf64 -DASM_FORMAT_ELF -F dwarf
+VBOX_NASM_ASFLAGS.macho.x86   := -D__NASM__ -w+orphan-labels -f macho32 -DASM_FORMAT_MACHO -F dwarf
+VBOX_NASM_ASFLAGS.macho.amd64 := -D__NASM__ -w+orphan-labels -f macho64 -DASM_FORMAT_MACHO -F dwarf
+VBOX_NASM_ASFLAGS.pe.x86      := -D__NASM__ -w+orphan-labels -f win32 -DASM_FORMAT_PE -F cv8
+VBOX_NASM_ASFLAGS.pe.amd64    := -D__NASM__ -w+orphan-labels -f win64 -DASM_FORMAT_PE -F cv8
+VBOX_NASM_ASFLAGS.lx.x86      := -D__NASM__ -w+orphan-labels -f obj -DASM_FORMAT_LX -F stubs
 $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
 ,$(eval VBOX_NASM_ASFLAGS.$(os).$(arch) = $$(VBOX_NASM_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
 

@@ -2000,8 +2000,8 @@ VBOX_ASTOOL.os2.x86 := NASM
 # Assembler tool flag config.
 VBOX_YASM_ASFLAGS.elf.x86      = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf32 -DASM_FORMAT_ELF -g dwarf2
 VBOX_YASM_ASFLAGS.elf.amd64    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f elf64 -DASM_FORMAT_ELF -g dwarf2
-VBOX_YASM_ASFLAGS.macho.x86    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho32 -DASM_FORMAT_MACHO -g dwarf2
-VBOX_YASM_ASFLAGS.macho.amd64  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho64 -DASM_FORMAT_MACHO -g dwarf2
+VBOX_YASM_ASFLAGS.macho.x86    = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho32 -DASM_FORMAT_MACHO #-g dwarf2
+VBOX_YASM_ASFLAGS.macho.amd64  = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f macho64 -DASM_FORMAT_MACHO #-g dwarf2
 VBOX_YASM_ASFLAGS.pe.x86       = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win32 -DASM_FORMAT_PE -g cv8
 VBOX_YASM_ASFLAGS.pe.amd64     = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f win64 -DASM_FORMAT_PE -g cv8
 VBOX_YASM_ASFLAGS.lx.x86       = -D__YASM__ -Worphan-labels $(VBOX_YASM_Wno-segreg-in-64bit) -f obj -DASM_FORMAT_LX -g stubs
@@ -2018,13 +2018,13 @@ VBOX_NASM_ASFLAGS.lx.x86      := -D__NASM__ -w+orphan-labels -f obj -DASM_FORMAT
 $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
 ,$(eval VBOX_NASM_ASFLAGS.$(os).$(arch) = $$(VBOX_NASM_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
 
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.x86     := -DASM_FORMAT_ELF
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.amd64   := -DASM_FORMAT_ELF
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.arm64   := -DASM_FORMAT_ELF
+VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.x86     := -DASM_FORMAT_ELF -m32
+VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.amd64   := -DASM_FORMAT_ELF -m64
+VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.arm64   := -DASM_FORMAT_ELF -m64
 VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc32 := -DASM_FORMAT_ELF -m32
 VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc64 := -DASM_FORMAT_ELF -m64
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.x86   := -DASM_FORMAT_MACHO
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.amd64 := -DASM_FORMAT_MACHO
+VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.x86   := -DASM_FORMAT_MACHO -m32
+VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.amd64 := -DASM_FORMAT_MACHO -m64
 VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.arm64 := -DASM_FORMAT_MACHO
 VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.x86      := -DASM_FORMAT_PE
 VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.amd64    := -DASM_FORMAT_PE

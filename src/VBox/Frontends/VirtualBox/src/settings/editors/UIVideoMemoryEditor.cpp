@@ -39,6 +39,7 @@
 #include "UIVideoMemoryEditor.h"
 
 /* COM includes: */
+#include "CPlatformProperties.h"
 #include "CSystemProperties.h"
 
 
@@ -181,6 +182,7 @@ void UIVideoMemoryEditor::sltRetranslateUI()
 
     if (m_pLabelMemoryMin)
     {
+        m_pLabelMemoryMin->setText(tr("%1 MB").arg(0));
         m_pLabelMemoryMin->setToolTip(tr("Minimum possible video memory size."));
     }
     if (m_pLabelMemoryMax)
@@ -313,13 +315,25 @@ void UIVideoMemoryEditor::updateRequirements()
     if (m_strGuestOSTypeId.isEmpty())
         return;
 
+    /* Acquire minimum and maximum visible VRAM size on the basis of platform data: */
+    const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                        ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                        : KPlatformArchitecture_x86;
+    CPlatformProperties comPlatformProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    bool f3DAccelerationEnabled = false;
+#ifdef VBOX_WITH_3D_ACCELERATION
+    f3DAccelerationEnabled = m_f3DAccelerationEnabled;
+#endif
+    ULONG uMinVRAM = 0, uMaxVRAM = 0;
+    comPlatformProperties.GetSupportedVRAMRange(m_enmGraphicsControllerType, f3DAccelerationEnabled, uMinVRAM, uMaxVRAM);
+
     /* Init recommended VRAM according to guest OS type and screen count: */
     int iNeedMBytes = UIGuestOSTypeHelpers::requiredVideoMemory(m_strGuestOSTypeId, m_cGuestScreenCount) / _1M;
 
     /* Init visible maximum VRAM to be no less than 32MB per screen: */
     int iMaxVRAMVisible = m_cGuestScreenCount * 32;
     /* Adjust visible maximum VRAM to be no less than 128MB (if possible): */
-    if (iMaxVRAMVisible < 128 && m_iMaxVRAM >= 128)
+    if (iMaxVRAMVisible < 128 && uMaxVRAM >= 128)
         iMaxVRAMVisible = 128;
 
 #ifdef VBOX_WITH_3D_ACCELERATION
@@ -329,20 +343,20 @@ void UIVideoMemoryEditor::updateRequirements()
         iNeedMBytes = qMax(iNeedMBytes, 128);
 
         /* Adjust visible maximum VRAM to be no less than 256MB (if possible): */
-        if (iMaxVRAMVisible < 256 && m_iMaxVRAM >= 256)
+        if (iMaxVRAMVisible < 256 && uMaxVRAM >= 256)
             iMaxVRAMVisible = 256;
     }
 #endif /* VBOX_WITH_3D_ACCELERATION */
 
     /* Adjust recommended VRAM to be no more than actual maximum VRAM: */
-    iNeedMBytes = qMin(iNeedMBytes, m_iMaxVRAM);
+    iNeedMBytes = qMin(iNeedMBytes, (int)uMaxVRAM);
 
     /* Adjust visible maximum VRAM to be no less than initial VRAM: */
     iMaxVRAMVisible = qMax(iMaxVRAMVisible, m_iValue);
     /* Adjust visible maximum VRAM to be no less than recommended VRAM: */
     iMaxVRAMVisible = qMax(iMaxVRAMVisible, iNeedMBytes);
     /* Adjust visible maximum VRAM to be no more than actual maximum VRAM: */
-    iMaxVRAMVisible = qMin(iMaxVRAMVisible, m_iMaxVRAM);
+    iMaxVRAMVisible = qMin(iMaxVRAMVisible, (int)uMaxVRAM);
 
     if (m_pSpinBox)
         m_pSpinBox->setMaximum(iMaxVRAMVisible);
@@ -350,8 +364,9 @@ void UIVideoMemoryEditor::updateRequirements()
     {
         m_pSlider->setMaximum(iMaxVRAMVisible);
         m_pSlider->setPageStep(calculatePageStep(iMaxVRAMVisible));
-        m_pSlider->setWarningHint(1, qMin(iNeedMBytes, iMaxVRAMVisible));
-        m_pSlider->setOptimalHint(qMin(iNeedMBytes, iMaxVRAMVisible), iMaxVRAMVisible);
+        m_pSlider->setErrorHint(0, uMinVRAM);
+        m_pSlider->setWarningHint(uMinVRAM, iNeedMBytes);
+        m_pSlider->setOptimalHint(iNeedMBytes, iMaxVRAMVisible);
     }
     if (m_pLabelMemoryMax)
         m_pLabelMemoryMax->setText(tr("%1 MB").arg(iMaxVRAMVisible));

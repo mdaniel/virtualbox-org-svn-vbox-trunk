@@ -57,7 +57,8 @@
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /** How chatty we should be. */
-static uint32_t g_cVerbosity = 0;
+static uint32_t  g_cVerbosity = 0;
+static HINSTANCE g_hInstance;
 
 NTSTATUS SetDisplayDeviceState(bool bEnable)
 {
@@ -166,6 +167,187 @@ bool CheckDXFeatureLevel()
     return fResult;
 }
 
+#define WM_PRIV_RECREATE_ALL_WINDOWS WM_USER
+
+#define DISPLAYS_NUM_MAX 64
+static int    g_cHWnd = 0;
+static HWND   g_aHWnd[DISPLAYS_NUM_MAX];
+static HWND   g_hWndPrimary = NULL;
+static HBRUSH g_ahBrush[3];
+static WNDCLASSEX g_WindowClass;
+
+LRESULT CALLBACK WindowProcGDIFullScreen(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch(message)
+    {
+    case WM_DISPLAYCHANGE:
+        RTPrintf("WM_DISPLAYCHANGE: bpp %d, w %d, h %d\n", wParam, LOWORD(lParam), HIWORD(lParam));
+        if (g_hWndPrimary == hWnd)
+            PostMessage(g_hWndPrimary, WM_PRIV_RECREATE_ALL_WINDOWS, 0, 0);
+    break;
+
+    case WM_PAINT:
+    {
+        PAINTSTRUCT ps;
+        HDC hdc;
+
+        hdc = BeginPaint(hWnd, &ps);
+
+        if (RT_LIKELY(hdc))
+        {
+            int k, idScreen = -1;
+
+            for(k = 0; k < g_cHWnd; k++)
+            {
+                if (hWnd == g_aHWnd[k])
+                {
+                    idScreen = k;
+                    RTPrintf("WM_PAINT for DISPLAY%d hWnd 0x%x\n", idScreen, hWnd);
+                    break;
+                }
+            }
+
+            if (idScreen >= 0)
+            {
+                RECT r;
+
+                SelectObject(hdc, g_ahBrush[idScreen % 3]);
+                r = ps.rcPaint;
+                PatBlt(hdc, r.left, r.top, r.right - r.left, r.bottom - r.top, PATCOPY);
+            }
+
+            EndPaint(hWnd, &ps);
+        }
+    }
+    break;
+
+    case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE)
+            PostQuitMessage(0);
+    break;
+    }
+
+    return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+
+void CreateWindowForEachDisplay()
+{
+    DISPLAY_DEVICE dev;
+    HWND hWndPrimaryNew = g_hWndPrimary;
+    int k;
+
+    dev.cb = sizeof(dev);
+    for(k = 0; k < DISPLAYS_NUM_MAX && EnumDisplayDevices(NULL, k, &dev, 0); k++, g_cHWnd++)
+    {
+        RTPrintf("%d: %s 0x%x %s%s\n", k + 1, dev.DeviceName, dev.StateFlags,
+            (dev.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) ? "PRIMARY" : "",
+            (dev.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) ? " ATTACHED" : "");
+
+        DEVMODE mode = {};
+        if (EnumDisplaySettings(dev.DeviceName, ENUM_CURRENT_SETTINGS, &mode))
+        {
+            int x, y, w, h;
+            HWND hWnd;
+
+            x = mode.dmPosition.x;
+            y = mode.dmPosition.y;
+            w = mode.dmPelsWidth;
+            h = mode.dmPelsHeight;
+            RTPrintf("%s: (%d,%d)-(%dx%d)\n", mode.dmDeviceName, x, y, w, h);
+
+            hWnd = CreateWindowEx(WS_EX_TOPMOST,
+                TEXT("WindowClassGDIFullScreen"),
+                TEXT("Fullscreen GDI test"),
+                WS_VISIBLE | WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+                x, y, w, h,
+                NULL,
+                NULL,
+                g_hInstance,
+                NULL);
+
+            g_aHWnd[k] = hWnd;
+
+            RTPrintf("DISPLAY%d window 0x%x\n", k + 1, hWnd);
+
+            if (dev.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)
+            {
+                hWndPrimaryNew = hWnd;
+            }
+        }
+        else
+        {
+            g_aHWnd[k] = NULL;
+            RTPrintf("DISPLAY%d is disabled, skipped\n", k + 1);
+        }
+    }
+
+    g_hWndPrimary = hWndPrimaryNew;
+
+    for (k = 0; k < g_cHWnd; k++)
+    {
+        if (g_aHWnd[k])
+        {
+            RTPrintf("DISPLAY%d Show & Update for Window 0x%x\n", k, g_aHWnd[k]);
+            ShowWindow(g_aHWnd[k], TRUE);
+            UpdateWindow(g_aHWnd[k]);
+        }
+    }
+}
+
+bool ShowFullScreenWindows()
+{
+    g_WindowClass.cbSize = sizeof(WNDCLASSEX);
+    g_WindowClass.style = CS_HREDRAW | CS_VREDRAW;
+    g_WindowClass.lpfnWndProc = WindowProcGDIFullScreen;
+    g_WindowClass.hInstance = g_hInstance;
+    g_WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    g_WindowClass.hbrBackground = NULL;
+    g_WindowClass.lpszClassName = TEXT("WindowClassGDIFullScreen");
+
+    RegisterClassEx(&g_WindowClass);
+
+    g_ahBrush[0] = CreateSolidBrush(RGB(0, 0, 255));
+    g_ahBrush[1] = CreateSolidBrush(RGB(0, 255, 0));
+    g_ahBrush[2] = CreateSolidBrush(RGB(255, 0, 0));
+
+    PostMessage(NULL, WM_PRIV_RECREATE_ALL_WINDOWS, 0, 0);
+
+    while(TRUE)
+    {
+        MSG msg;
+
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_PRIV_RECREATE_ALL_WINDOWS)
+            {
+                g_hWndPrimary = NULL;
+
+                for(int k = 0; k < g_cHWnd; k++)
+                {
+                    if (RT_LIKELY(g_aHWnd[k]))
+                        DestroyWindow(g_aHWnd[k]);
+                }
+
+                RT_ZERO(g_aHWnd);
+                g_cHWnd = 0;
+
+                CreateWindowForEachDisplay();
+                continue;
+            }
+
+            if (msg.message == WM_QUIT)
+                break;
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+//      RenderFrame();
+    }
+
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     /*
@@ -174,6 +356,8 @@ int main(int argc, char **argv)
     int rc = RTR3InitExe(argc, &argv, 0);
     if (RT_FAILURE(rc))
         return RTMsgInitFailure(rc);
+
+    g_hInstance = GetModuleHandle(NULL);
 
     /*
      * Parse arguments.
@@ -204,6 +388,8 @@ int main(int argc, char **argv)
                 return RTGetOptPrintError(chOpt, &ValueUnion);
         }
     }
+
+    ShowFullScreenWindows();
 
     return !CheckDXFeatureLevel();
 }

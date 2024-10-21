@@ -518,7 +518,7 @@ VBox-xpcom-xptinfo_SOURCES = \
 $(evalcall VBOX_XPCOM_X86,VBox-xpcom-xptinfo)
 
 
-VBox-xpcom-xptcall_TEMPLATE = XPComDllYasm
+VBox-xpcom-xptcall_TEMPLATE = XPComDll
 VBox-xpcom-xptcall_INSTTYPE = none
 VBox-xpcom-xptcall_DEFS                  = _IMPL_NS_COM _IMPL_NS_BASE EXPORT_XPTC_API
 VBox-xpcom-xptcall_DEFS.darwin           = KEEP_STACK_16_BYTE_ALIGNED

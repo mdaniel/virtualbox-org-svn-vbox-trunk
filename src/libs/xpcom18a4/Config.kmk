@@ -41,12 +41,6 @@ VBOX_PATH_XPCOM_SRC := $(PATH_ROOT)/src/libs/xpcom18a4
 #
 TEMPLATE_XPComDll                     = XPCOM libraries (shared)
 TEMPLATE_XPComDll_EXTENDS             = VBoxR3DllNonPedantic
-## @todo correct inheritance here to make it use all the VBoxR3DllNonPedantic settings instead of overriding all of them.
-TEMPLATE_XPComDll_ASTOOL              = $(TEMPLATE_VBoxR3DllNonPedantic_TOOL)
-TEMPLATE_XPComDll_ASFLAGS             = $(NO_SUCH_VARIABLE)
-TEMPLATE_XPComDll_ASFLAGS.x86         = -m32
-TEMPLATE_XPComDll_ASFLAGS.amd64       = -m64
-TEMPLATE_XPComDll_ASDEFS              = $(NO_SUCH_VARIABLE)
 TEMPLATE_XPComDll_CXXFLAGS            = -g -pipe -ansi -Wall -Wno-unused -Wno-non-virtual-dtor \
 	$(VBOX_GCC_Wno-invalid-offsetof) -Wno-sign-compare -Wno-unused -Wno-ctor-dtor-privacy \
 	$(VBOX_GCC_fvisibility-inlines-hidden) $(VBOX_GCC_fvisibility-hidden) \
@@ -174,18 +168,6 @@ TEMPLATE_XPComDll_LIBS               += $(LIB_RUNTIME)
 
 
 #
-# Same as XPCOM except using YASM/NASM instead of the gnu/unix assembler.
-#
-TEMPLATE_XPComDllYasm              := XPCOM w/ yasm
-TEMPLATE_XPComDllYasm_EXTENDS      := XPComDll
-TEMPLATE_XPComDllYasm_ASTOOL        = $(TEMPLATE_VBoxR3DllNonPedantic_ASTOOL)
-TEMPLATE_XPComDllYasm_ASFLAGS       = $(TEMPLATE_VBoxR3DllNonPedantic_ASFLAGS)
-TEMPLATE_XPComDllYasm_ASFLAGS.x86   = $(TEMPLATE_VBoxR3DllNonPedantic_ASFLAGS.x86)
-TEMPLATE_XPComDllYasm_ASFLAGS.amd64 = $(TEMPLATE_VBoxR3DllNonPedantic_ASFLAGS.amd64)
-TEMPLATE_XPComDllYasm_ASDEFS        = $(TEMPLATE_VBoxR3DllNonPedantic_DEFS)
-
-
-#
 # Template for building the XPCOM executables.
 # Used as a base template by XPComTstExe and XPComIpcExe.
 #
@@ -273,12 +255,6 @@ TEMPLATE_XPComDll-x86_EXTENDS          = XPComDll
 TEMPLATE_XPComDll-x86_BLD_TRG_ARCH     = x86
 TEMPLATE_XPComDll-x86_DEFS             = $(TEMPLATE_XPComDll_DEFS) VBOX_IN_32_ON_64_MAIN_API
 TEMPLATE_XPComDll-x86_LIBS             = $(subst $(LIB_RUNTIME),$(VBOX_LIB_RUNTIME_X86),$(TEMPLATE_XPComDll_LIBS))
-
-TEMPLATE_XPComDllYasm-x86              = 32-bit XPCOM libraries (shared) with YASM as assembler.
-TEMPLATE_XPComDllYasm-x86_EXTENDS      = XPComDllYasm
-TEMPLATE_XPComDllYasm-x86_BLD_TRG_ARCH = x86
-TEMPLATE_XPComDllYasm-x86_DEFS         = $(TEMPLATE_XPComDllYasm_DEFS) VBOX_IN_32_ON_64_MAIN_API
-TEMPLATE_XPComDllYasm-x86_LIBS         = $(subst $(LIB_RUNTIME),$(VBOX_LIB_RUNTIME_X86),$(TEMPLATE_XPComDllYasm_LIBS))
 
 
 #

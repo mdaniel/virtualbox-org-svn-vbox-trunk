@@ -5565,7 +5565,7 @@ static uint32_t iemNativeSimdRegAllocLoadVecRegFromVecRegSz(PIEMRECOMPILERSTATE 
  *                          variable from register to stack in order to satisfy
  *                          the request.
  * @param   enmGstSimdReg   The guest SIMD register that will is to be updated.
- * @param   enmLoadSize     Load/store size.
+ * @param   enmLoadSz       Load/store size.
  * @param   enmIntendedUse  How the caller will be using the host register.
  * @param   fNoVolatileRegs Set if no volatile register allowed, clear if any
  *                          register is okay (default).  The ASSUMPTION here is

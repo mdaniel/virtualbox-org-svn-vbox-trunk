@@ -54,7 +54,7 @@
 #  ifdef RT_ARCH_AMD64
 #   pragma intrinsic(__stosq)
 #  endif
-# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_X86)
+# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 #  pragma intrinsic(__iso_volatile_load8)
 # endif
 #endif

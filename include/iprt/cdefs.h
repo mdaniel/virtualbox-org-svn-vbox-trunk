@@ -2129,7 +2129,7 @@
  * Functions declared using this macro exists in all contexts.
  * @param   a_RetType   The return type of the function declaration.
  * @remarks This is only used inside IPRT.
- * @note    This is compatible with DECLASM, just add hidden/import/export 
+ * @note    This is compatible with DECLASM, just add hidden/import/export
  *          attributes to the function.
  */
 #if defined(IN_RT_R3) || defined(IN_RT_RC) || defined(IN_RT_R0)

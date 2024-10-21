@@ -88,7 +88,7 @@ quint64 UIGuestOSTypeHelpers::requiredVideoMemory(const QString &strGuestOSTypeI
     for (int i = 0; i < cMonitors; ++i)
     {
         /* Calculate summary required memory amount in bits: */
-        uNeedBits += (screenSize.at(i) * /* with x height */
+        uNeedBits += (screenSize.at(i) * /* width x height */
                      32 + /* we will take the maximum possible bpp for now */
                      8 * _1M) + /* current cache per screen - may be changed in future */
                      8 * 4096; /* adapter info */

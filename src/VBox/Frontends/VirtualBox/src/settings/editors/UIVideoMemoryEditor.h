@@ -129,10 +129,6 @@ private:
         int  m_iMinVRAM;
         /** Holds the maximum upper limit of VRAM (MiB). */
         int  m_iMaxVRAM;
-        /** Holds the upper limit of VRAM (MiB) for this dialog.
-          * @note This value is lower than m_iMaxVRAM to save
-          *       careless users from setting useless big values. */
-        int  m_iMaxVRAMVisible;
     /** @} */
 
     /** @name Widgets

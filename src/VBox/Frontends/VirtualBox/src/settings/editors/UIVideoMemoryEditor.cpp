@@ -53,7 +53,6 @@ UIVideoMemoryEditor::UIVideoMemoryEditor(QWidget *pParent /* = 0 */)
 #endif
     , m_iMinVRAM(0)
     , m_iMaxVRAM(0)
-    , m_iMaxVRAMVisible(0)
     , m_pLayout(0)
     , m_pLabelMemory(0)
     , m_pSlider(0)
@@ -188,7 +187,7 @@ void UIVideoMemoryEditor::sltRetranslateUI()
     }
     if (m_pLabelMemoryMax)
     {
-        m_pLabelMemoryMax->setText(tr("%1 MB").arg(m_iMaxVRAMVisible));
+        m_pLabelMemoryMax->setText(tr("%1 MB").arg(m_iMaxVRAM));
         m_pLabelMemoryMax->setToolTip(tr("Maximum possible video memory size."));
     }
 }
@@ -227,7 +226,6 @@ void UIVideoMemoryEditor::prepare()
     const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     m_iMinVRAM = comProperties.GetMinGuestVRAM();
     m_iMaxVRAM = comProperties.GetMaxGuestVRAM();
-    m_iMaxVRAMVisible = m_iMaxVRAM;
 
     /* Create main layout: */
     m_pLayout = new QGridLayout(this);
@@ -254,8 +252,8 @@ void UIVideoMemoryEditor::prepare()
             if (m_pSlider)
             {
                 m_pSlider->setMinimum(m_iMinVRAM);
-                m_pSlider->setMaximum(m_iMaxVRAMVisible);
-                m_pSlider->setPageStep(calculatePageStep(m_iMaxVRAMVisible));
+                m_pSlider->setMaximum(m_iMaxVRAM);
+                m_pSlider->setPageStep(calculatePageStep(m_iMaxVRAM));
                 m_pSlider->setSingleStep(m_pSlider->pageStep() / 4);
                 m_pSlider->setTickInterval(m_pSlider->pageStep());
                 m_pSlider->setSnappingEnabled(true);
@@ -301,7 +299,7 @@ void UIVideoMemoryEditor::prepare()
             if (m_pLabelMemory)
                 m_pLabelMemory->setBuddy(m_pSpinBox);
             m_pSpinBox->setMinimum(m_iMinVRAM);
-            m_pSpinBox->setMaximum(m_iMaxVRAMVisible);
+            m_pSpinBox->setMaximum(m_iMaxVRAM);
             connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIVideoMemoryEditor::sltHandleSpinBoxChange);
             m_pLayout->addWidget(m_pSpinBox, 0, 2);
@@ -319,14 +317,14 @@ void UIVideoMemoryEditor::updateRequirements()
         return;
 
     /* Init visible maximum VRAM: */
-    m_iMaxVRAMVisible = m_cGuestScreenCount * 32;
+    int iMaxVRAMVisible = m_cGuestScreenCount * 32;
 
     /* Get monitors count and recommended VRAM: */
     int iNeedMBytes = UIGuestOSTypeHelpers::requiredVideoMemory(m_strGuestOSTypeId, m_cGuestScreenCount) / _1M;
 
     /* Adjust visible maximum VRAM to be no less than 128MB (if possible): */
-    if (m_iMaxVRAMVisible < 128 && m_iMaxVRAM >= 128)
-        m_iMaxVRAMVisible = 128;
+    if (iMaxVRAMVisible < 128 && m_iMaxVRAM >= 128)
+        iMaxVRAMVisible = 128;
 
 #ifdef VBOX_WITH_3D_ACCELERATION
     if (m_f3DAccelerationEnabled && m_f3DAccelerationSupported)
@@ -334,32 +332,32 @@ void UIVideoMemoryEditor::updateRequirements()
         /* Adjust recommended VRAM to be no less than 128MB: */
         iNeedMBytes = qMax(iNeedMBytes, 128);
         /* Adjust visible maximum VRAM to be no less than 256MB (if possible): */
-        if (m_iMaxVRAMVisible < 256 && m_iMaxVRAM >= 256)
-            m_iMaxVRAMVisible = 256;
+        if (iMaxVRAMVisible < 256 && m_iMaxVRAM >= 256)
+            iMaxVRAMVisible = 256;
     }
 #endif /* VBOX_WITH_3D_ACCELERATION */
 
     /* Adjust visible maximum VRAM to be no less than initial VRAM: */
-    m_iMaxVRAMVisible = qMax(m_iMaxVRAMVisible, m_iValue);
+    iMaxVRAMVisible = qMax(iMaxVRAMVisible, m_iValue);
     /* Adjust visible maximum VRAM to be no less than recommended VRAM: */
-    m_iMaxVRAMVisible = qMax(m_iMaxVRAMVisible, iNeedMBytes);
+    iMaxVRAMVisible = qMax(iMaxVRAMVisible, iNeedMBytes);
 
     /* Adjust recommended VRAM to be no more than actual maximum VRAM: */
     iNeedMBytes = qMin(iNeedMBytes, m_iMaxVRAM);
     /* Adjust visible maximum VRAM to be no more than actual maximum VRAM: */
-    m_iMaxVRAMVisible = qMin(m_iMaxVRAMVisible, m_iMaxVRAM);
+    iMaxVRAMVisible = qMin(iMaxVRAMVisible, m_iMaxVRAM);
 
     if (m_pSpinBox)
-        m_pSpinBox->setMaximum(m_iMaxVRAMVisible);
+        m_pSpinBox->setMaximum(iMaxVRAMVisible);
     if (m_pSlider)
     {
-        m_pSlider->setMaximum(m_iMaxVRAMVisible);
-        m_pSlider->setPageStep(calculatePageStep(m_iMaxVRAMVisible));
-        m_pSlider->setWarningHint(1, qMin(iNeedMBytes, m_iMaxVRAMVisible));
-        m_pSlider->setOptimalHint(qMin(iNeedMBytes, m_iMaxVRAMVisible), m_iMaxVRAMVisible);
+        m_pSlider->setMaximum(iMaxVRAMVisible);
+        m_pSlider->setPageStep(calculatePageStep(iMaxVRAMVisible));
+        m_pSlider->setWarningHint(1, qMin(iNeedMBytes, iMaxVRAMVisible));
+        m_pSlider->setOptimalHint(qMin(iNeedMBytes, iMaxVRAMVisible), iMaxVRAMVisible);
     }
     if (m_pLabelMemoryMax)
-        m_pLabelMemoryMax->setText(tr("%1 MB").arg(m_iMaxVRAMVisible));
+        m_pLabelMemoryMax->setText(tr("%1 MB").arg(iMaxVRAMVisible));
 }
 
 void UIVideoMemoryEditor::revalidate()

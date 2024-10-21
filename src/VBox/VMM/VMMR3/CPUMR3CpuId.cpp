@@ -2851,6 +2851,8 @@ static int cpumR3CpuIdReadConfig(PVM pVM, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pC
                                   "|PCID"
                                   "|INVPCID"
                                   "|FlushCmdMsr"
+                                  "|MdsClear"
+                                  "|ArchCapMsr"
                                   "|FMA"
                                   "|F16C"
                                   "|ABM"

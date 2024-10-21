@@ -6369,11 +6369,10 @@ DECLINLINE(void) ASMAtomicUoOrU32(uint32_t volatile RT_FAR *pu32, uint32_t u32) 
  */
 DECLINLINE(uint32_t) ASMAtomicUoOrExU32(uint32_t volatile RT_FAR *pu32, uint32_t u32) RT_NOTHROW_DEF
 {
-#if RT_INLINE_ASM_USES_INTRIN /** @todo Check what the compiler generates... */
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# if RT_INLINE_ASM_USES_INTRIN /** @todo Check what the compiler generates... */
     return (uint32_t)_InterlockedOr_nf((long volatile RT_FAR *)pu32, u32);
-
-#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# if defined(RTASM_ARM64_USE_FEAT_LSE)
+# elif defined(RTASM_ARM64_USE_FEAT_LSE)
     uint32_t u32OldRet;
     __asm__ __volatile__("Lstart_ASMAtomicOrExU32_%=:\n\t"
                          "ldset     %w[fBitsToSet], %w[uOldRet], %[pMem]\n\t"
@@ -6381,14 +6380,15 @@ DECLINLINE(uint32_t) ASMAtomicUoOrExU32(uint32_t volatile RT_FAR *pu32, uint32_t
                          , [uOldRet]    "=&r" (u32OldRet)
                          : [fBitsToSet] "r"   (u32)
                          : );
+    return u32OldRet;
 # else
+    uint32_t u32OldRet;
     RTASM_ARM_LOAD_MODIFY_STORE_RET_OLD_32(ASMAtomicUoOrExU32, pu32, NO_BARRIER,
                                            "orr %w[uNew], %w[uOld], %w[uVal]\n\t",
                                            "orr %[uNew], %[uOld], %[uVal]\n\t",
                                            [uVal] "r" (u32));
-# endif
     return u32OldRet;
-
+# endif
 #else
     return ASMAtomicOrExU32(pu32, u32); /* (we have no unordered cmpxchg primitive atm.) */
 #endif

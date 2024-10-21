@@ -202,7 +202,7 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
                 rc = RTErrConvertFromNtStatus(rcNt);
 
             NTSTATUS const rcNt2 = NtClose(hPath);
-            if (NT_SUCCESS(rcNt))
+            if (!NT_SUCCESS(rcNt2) && NT_SUCCESS(rcNt))
                 rcNt = rcNt2;
 
             if (!NT_SUCCESS(rcNt) && RT_SUCCESS_NP(rc))

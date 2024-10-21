@@ -1847,7 +1847,7 @@ endif
 # List of OSes and architectures we may possibly try build on/for.
 # This is used for the complicated assembler setup among other things.
 #
-VBOX_TARGET_OSES   := freebsd haiku linux netbsd openbsd solaris darwin os2 win
+VBOX_TARGET_OSES   := freebsd darwin haiku linux netbsd openbsd solaris darwin os2 win
 VBOX_TARGET_ARCHES := amd64 x86 arm64 sparc32 sparc64
 
 #

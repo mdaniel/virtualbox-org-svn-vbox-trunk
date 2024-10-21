@@ -30,6 +30,7 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QImageWriter>
 #include <QPainter>
@@ -313,6 +314,18 @@ void UIMachineLogic::sendMachineWindowsSizeHints()
      * send machine-view(s) size-hint(s) to the guest: */
     foreach(UIMachineWindow *pMachineWindow, machineWindows())
         pMachineWindow->sendMachineViewSizeHint();
+}
+
+void UIMachineLogic::openNetworkSettingsDialogTheModalWay()
+{
+    /* Open VM settings : Network page: */
+    openSettingsDialog("#network", QString(), true /* app modal */);
+    /* Create event loop to listen to VM settings dialog destroy signal: */
+    QEventLoop loop;
+    connect(m_settings.value(UIAdvancedSettingsDialog::Type_Machine),
+            &QObject::destroyed, &loop, &QEventLoop::quit);
+    /* Execute loop finally: */
+    loop.exec();
 }
 
 #ifdef VBOX_WS_MAC
@@ -2907,7 +2920,8 @@ void UIMachineLogic::askUserForTheDiskEncryptionPasswords()
 }
 
 void UIMachineLogic::openPreferencesDialog(const QString &strCategory /* = QString() */,
-                                           const QString &strControl /* = QString() */)
+                                           const QString &strControl /* = QString() */,
+                                           bool fAppModal /* = false */)
 {
     /* Do not process if window(s) missed! */
     if (!isMachineWindowsCreated())
@@ -2919,6 +2933,8 @@ void UIMachineLogic::openPreferencesDialog(const QString &strCategory /* = QStri
         m_settings[UIAdvancedSettingsDialog::Type_Global] = new UIAdvancedSettingsDialogGlobal(activeMachineWindow(),
                                                                                                strCategory,
                                                                                                strControl);
+        if (fAppModal)
+            m_settings.value(UIAdvancedSettingsDialog::Type_Machine)->setWindowModality(Qt::ApplicationModal);
         connect(m_settings.value(UIAdvancedSettingsDialog::Type_Global), &UIAdvancedSettingsDialog::sigClose,
                 this, &UIMachineLogic::sltClosePreferencesDialog);
         const bool fSuccess = m_settings.value(UIAdvancedSettingsDialog::Type_Global)->load();
@@ -2934,7 +2950,8 @@ void UIMachineLogic::openPreferencesDialog(const QString &strCategory /* = QStri
 }
 
 void UIMachineLogic::openSettingsDialog(const QString &strCategory /* = QString() */,
-                                        const QString &strControl /* = QString()*/)
+                                        const QString &strControl /* = QString()*/,
+                                        bool fAppModal /* = false */)
 {
     /* Do not process if window(s) missed! */
     if (!isMachineWindowsCreated())
@@ -2948,6 +2965,8 @@ void UIMachineLogic::openSettingsDialog(const QString &strCategory /* = QString(
                                                                                                  actionPool(),
                                                                                                  strCategory,
                                                                                                  strControl);
+        if (fAppModal)
+            m_settings.value(UIAdvancedSettingsDialog::Type_Machine)->setWindowModality(Qt::ApplicationModal);
         connect(m_settings.value(UIAdvancedSettingsDialog::Type_Machine), &UIAdvancedSettingsDialog::sigClose,
                 this, &UIMachineLogic::sltCloseSettingsDialog);
         const bool fSuccess = m_settings.value(UIAdvancedSettingsDialog::Type_Machine)->load();

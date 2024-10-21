@@ -2800,7 +2800,7 @@ bool UISession::preprocessInitialization()
         if (!failedInterfaceNames.isEmpty())
         {
             if (msgCenter().warnAboutNetworkInterfaceNotFound(machineName(), failedInterfaceNames.join(", ")))
-                machineLogic()->openNetworkSettingsDialog();
+                machineLogic()->openNetworkSettingsDialogTheModalWay();
             else
             {
                 LogRel(("GUI: Aborting startup due to preprocess initialization issue detected...\n"));

@@ -2322,6 +2322,7 @@ PREDEFINED             = \
     R3_ARCH_BITS=HC_ARCH_BITS \
     R0_ARCH_BITS=HC_ARCH_BITS \
     RTDECL(type)=type \
+    RT_DECL_NTAPI(type)=type \
     RT_EXPORT_SYMBOL(name)= \
     \
     RT_SRC_POS=1 \

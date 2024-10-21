@@ -601,6 +601,7 @@ PREDEFINED             =  \
     RTR0DECL(type)=type \
     RTR3DECL(type)=type \
     RTDATADECL(type)=type \
+    RT_DECL_ASM(type)=type \
     RT_DECL_NTAPI(type)=type \
     RT_EXPORT_SYMBOL(name)= \
     \

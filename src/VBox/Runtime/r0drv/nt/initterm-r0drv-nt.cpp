@@ -39,13 +39,22 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #include "the-nt-kernel.h"
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <iprt/asm-arm.h>
+#else
+# error "Port me"
+#endif
 #include <iprt/dbg.h>
 #include <iprt/errcore.h>
 #include <iprt/string.h>
 #include "internal/initterm.h"
 #include "internal-r0drv-nt.h"
 #include "symdb.h"
+#if !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86)
+# define RTNTSDB_NO_DATA
+#endif
 #include "symdbdata.h"
 
 
@@ -266,7 +275,9 @@ static bool rtR0NtTryMatchSymSet(PCRTNTSDBSET pSet, uint8_t *pbPrcb, const char 
     }
     __except(EXCEPTION_EXECUTE_HANDLER)
     {
+#ifndef RTNTSDB_NO_DATA
         DbgPrint("IPRT: %#d Exception\n", pSet - &g_artNtSdbSets[0]);
+#endif
         return false;
     }
 
@@ -349,7 +360,12 @@ DECLHIDDEN(int) rtR0InitNative(void)
     GET_SYSTEM_ROUTINE(MmAllocatePagesForMdl);
     GET_SYSTEM_ROUTINE(MmAllocatePagesForMdlEx);
     GET_SYSTEM_ROUTINE(MmFreePagesFromMdl);
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     GET_SYSTEM_ROUTINE(MmMapLockedPagesSpecifyCache);
+#else
+    /* MmMapLockedPagesSpecifyCache is a pre processor macro on arm64. */ 
+    g_pfnrtMmMapLockedPagesSpecifyCache = (decltype(MmMapLockedPagesSpecifyCache) *)RTR0DbgKrnlInfoGetSymbol(hKrnlInfo, NULL, "MmMapLockedPagesSpecifyCache");
+#endif
     GET_SYSTEM_ROUTINE(MmAllocateContiguousMemorySpecifyCache);
     GET_SYSTEM_ROUTINE(MmSecureVirtualMemory);
     GET_SYSTEM_ROUTINE(MmUnsecureVirtualMemory);
@@ -386,6 +402,7 @@ DECLHIDDEN(int) rtR0InitNative(void)
     g_uRtNtBuildNo  = OsVerInfo.uBuildNo;
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /*
      * HACK ALERT! (and déjà vu warning - remember win32k.sys on OS/2?)
      *
@@ -422,16 +439,16 @@ DECLHIDDEN(int) rtR0InitNative(void)
     uint8_t *pbPrcb;
     __try /* Warning. This try/except statement may provide some false safety. */
     {
-#if defined(RT_ARCH_X86)
+# if defined(RT_ARCH_X86)
         PKPCR    pPcr   = (PKPCR)__readfsdword(RT_UOFFSETOF(KPCR,SelfPcr));
         pbPrcb = (uint8_t *)pPcr->Prcb;
-#elif defined(RT_ARCH_AMD64)
+# elif defined(RT_ARCH_AMD64)
         PKPCR    pPcr   = (PKPCR)__readgsqword(RT_UOFFSETOF(KPCR,Self));
         pbPrcb = (uint8_t *)pPcr->CurrentPrcb;
-#else
-# error "port me"
+# else
+#  error "port me"
         pbPrcb = NULL;
-#endif
+# endif
     }
     __except(EXCEPTION_EXECUTE_HANDLER)
     {
@@ -499,17 +516,18 @@ DECLHIDDEN(int) rtR0InitNative(void)
 
     KeLowerIrql(OldIrql); /* Lowering the IRQL early in the hope that we may catch exceptions below. */
 
-#ifndef IN_GUEST
+# ifndef IN_GUEST
     if (!g_offrtNtPbQuantumEnd && !g_offrtNtPbDpcQueueDepth)
         DbgPrint("IPRT: Neither _KPRCB::QuantumEnd nor _KPRCB::DpcQueueDepth was not found! Kernel %u.%u %u %s\n",
                  OsVerInfo.uMajorVer, OsVerInfo.uMinorVer, OsVerInfo.uBuildNo, OsVerInfo.fChecked ? "checked" : "free");
-# ifdef DEBUG
+#  ifdef DEBUG
     else
         DbgPrint("IPRT: _KPRCB:{.QuantumEnd=%x/%d, .DpcQueueDepth=%x/%d} Kernel %u.%u %u %s\n",
                  g_offrtNtPbQuantumEnd, g_cbrtNtPbQuantumEnd, g_offrtNtPbDpcQueueDepth, g_offrtNtPbDpcQueueDepth,
                  OsVerInfo.uMajorVer, OsVerInfo.uMinorVer, OsVerInfo.uBuildNo, OsVerInfo.fChecked ? "checked" : "free");
+#  endif
 # endif
-#endif
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
 
     /*
      * Initialize multi processor stuff.  This registers a callback, so

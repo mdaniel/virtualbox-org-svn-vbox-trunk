@@ -1420,7 +1420,7 @@ DECLINLINE(bool) ASMAtomicCmpXchgU32(volatile uint32_t RT_FAR *pu32, const uint3
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
 #   if defined(RTASM_ARM64_USE_FEAT_LSE_WITHOUT_DMB)
     uint32_t const uOldActual = __casal32(pu32, u32Old, u32New);
 #   else
@@ -1617,7 +1617,7 @@ DECLINLINE(bool) ASMAtomicCmpXchgU64(volatile uint64_t RT_FAR *pu64, uint64_t u6
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
 #   if defined(RTASM_ARM64_USE_FEAT_LSE_WITHOUT_DMB)
     uint64_t const uOldActual = __casal64(pu64, u64Old, u64New);
 #   else
@@ -1997,7 +1997,7 @@ DECLINLINE(bool) ASMAtomicCmpXchgExU8(volatile uint8_t RT_FAR *pu8, const uint8_
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
 #   if defined(RTASM_ARM64_USE_FEAT_LSE)
 #    if defined(RTASM_ARM64_USE_FEAT_LSE_WITHOUT_DMB)
     uint8_t const uOldActual = __casal8(pu8, u8Old, u8New);
@@ -2165,7 +2165,7 @@ DECLINLINE(bool) ASMAtomicCmpXchgExU16(volatile uint16_t RT_FAR *pu16, const uin
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
 #   if defined(RTASM_ARM64_USE_FEAT_LSE)
 #    if defined(RTASM_ARM64_USE_FEAT_LSE_WITHOUT_DMB)
     uint16_t const uOldActual = __casal16(pu16, u16Old, u16New);
@@ -2333,7 +2333,7 @@ DECLINLINE(bool) ASMAtomicCmpXchgExU32(volatile uint32_t RT_FAR *pu32, const uin
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
 #   if defined(RTASM_ARM64_USE_FEAT_LSE)
 #    if defined(RTASM_ARM64_USE_FEAT_LSE_WITHOUT_DMB)
     uint32_t const uOldActual = __casal32(pu32, u32Old, u32New);
@@ -3001,7 +3001,7 @@ RTDECL(void) ASMSerializeInstruction(void) RT_NOTHROW_PROTO;
 #elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 DECLINLINE(void) ASMSerializeInstruction(void) RT_NOTHROW_DEF
 {
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dsb(_ARM64_BARRIER_SY);
 # else
     __asm__ __volatile__ (RTASM_ARM_DSB_SY :: RTASM_ARM_DSB_SY_IN_REG :);
@@ -3032,7 +3032,7 @@ DECLINLINE(void) ASMMemoryFence(void) RT_NOTHROW_DEF
     }
 # endif
 #elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_SY);
 # else
     __asm__ __volatile__ (RTASM_ARM_DMB_SY :: RTASM_ARM_DMB_SY_IN_REG :);
@@ -3067,7 +3067,7 @@ DECLINLINE(void) ASMWriteFence(void) RT_NOTHROW_DEF
     }
 # endif
 #elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_ST);
 # else
     __asm__ __volatile__ (RTASM_ARM_DMB_ST :: RTASM_ARM_DMB_ST_IN_REG :);
@@ -3098,7 +3098,7 @@ DECLINLINE(void) ASMReadFence(void) RT_NOTHROW_DEF
     }
 # endif
 #elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_LD);
 # else
     __asm__ __volatile__ (RTASM_ARM_DMB_LD :: RTASM_ARM_DMB_LD_IN_REG :);
@@ -3118,7 +3118,7 @@ DECLINLINE(void) ASMReadFence(void) RT_NOTHROW_DEF
 DECLINLINE(uint8_t) ASMAtomicReadU8(volatile uint8_t RT_FAR *pu8) RT_NOTHROW_DEF
 {
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return __load_acquire8(pu8);
 
 # else
@@ -3169,7 +3169,7 @@ DECLINLINE(uint8_t) ASMAtomicReadU8(volatile uint8_t RT_FAR *pu8) RT_NOTHROW_DEF
 DECLINLINE(uint8_t) ASMAtomicUoReadU8(volatile uint8_t RT_FAR *pu8) RT_NOTHROW_DEF
 {
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return (uint8_t)__iso_volatile_load8((volatile char *)pu8); /* (emits ldrsb, sign-extending it to 32-bit) */
 
 # else
@@ -3217,7 +3217,7 @@ DECLINLINE(int8_t) ASMAtomicReadS8(volatile int8_t RT_FAR *pi8) RT_NOTHROW_DEF
 DECLINLINE(int8_t) ASMAtomicUoReadS8(volatile int8_t RT_FAR *pi8) RT_NOTHROW_DEF
 {
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return __iso_volatile_load8((volatile const char *)pi8);
 
 # else
@@ -3249,7 +3249,7 @@ DECLINLINE(uint16_t) ASMAtomicReadU16(volatile uint16_t RT_FAR *pu16) RT_NOTHROW
 {
     Assert(!((uintptr_t)pu16 & 1));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return __load_acquire16(pu16);
 
 # else
@@ -3301,7 +3301,7 @@ DECLINLINE(uint16_t) ASMAtomicUoReadU16(volatile uint16_t RT_FAR *pu16) RT_NOTHR
 {
     Assert(!((uintptr_t)pu16 & 1));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return (uint16_t)__iso_volatile_load16((volatile int16_t *)pu16);  /* (emits ldrsh, sign-extending it to 32-bit) */
 
 # else
@@ -3351,7 +3351,7 @@ DECLINLINE(int16_t) ASMAtomicUoReadS16(volatile int16_t RT_FAR *pi16) RT_NOTHROW
 {
     Assert(!((uintptr_t)pi16 & 1));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return __iso_volatile_load16(pi16);
 
 # else
@@ -3383,7 +3383,7 @@ DECLINLINE(uint32_t) ASMAtomicReadU32(volatile uint32_t RT_FAR *pu32) RT_NOTHROW
 {
     Assert(!((uintptr_t)pu32 & 3));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return (uint32_t)__load_acquire32(pu32);
 
 # else
@@ -3438,7 +3438,7 @@ DECLINLINE(uint32_t) ASMAtomicUoReadU32(volatile uint32_t RT_FAR *pu32) RT_NOTHR
 {
     Assert(!((uintptr_t)pu32 & 3));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return (uint32_t)__iso_volatile_load32((volatile int32_t *)pu32);
 
 # else
@@ -3494,7 +3494,7 @@ DECLINLINE(int32_t) ASMAtomicUoReadS32(volatile int32_t RT_FAR *pi32) RT_NOTHROW
 {
     Assert(!((uintptr_t)pi32 & 3));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     return __iso_volatile_load32(pi32);
 
 # else
@@ -3601,7 +3601,7 @@ DECLINLINE(uint64_t) ASMAtomicReadU64(volatile uint64_t RT_FAR *pu64) RT_NOTHROW
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
     Assert(!((uintptr_t)pu64 & 7));
 
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
     u64 = (uint64_t)__load_acquire64(pu64);
 
 #  else
@@ -3725,7 +3725,7 @@ DECLINLINE(uint64_t) ASMAtomicUoReadU64(volatile uint64_t RT_FAR *pu64) RT_NOTHR
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
     Assert(!((uintptr_t)pu64 & 7));
-#  ifdef RT_INLINE_ASM_USES_INTRIN
+#  if RT_INLINE_ASM_USES_INTRIN
     u64 = (uint64_t)__iso_volatile_load64((volatile int64_t *)pu64);
 
 #  else
@@ -4184,7 +4184,7 @@ DECLINLINE(void) ASMAtomicWriteU8(volatile uint8_t RT_FAR *pu8, uint8_t u8) RT_N
 #if defined(RT_ARCH_ARM64)
     /* The DMB SY will ensure ordering a la x86, the stlrb is probably overkill
        as all byte accesses are single-copy atomic, which I think suffices here. */
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_SY);
     __stlr8(pu8, u8);
 # else
@@ -4257,7 +4257,7 @@ DECLINLINE(void) ASMAtomicWriteU16(volatile uint16_t RT_FAR *pu16, uint16_t u16)
 {
 #if defined(RT_ARCH_ARM64)
     /* See ASMAtomicWriteU8 comments. */
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_SY);
     __stlr16(pu16, u16);
 # else
@@ -4332,7 +4332,7 @@ DECLINLINE(void) ASMAtomicWriteU32(volatile uint32_t RT_FAR *pu32, uint32_t u32)
 {
 #if defined(RT_ARCH_ARM64)
    /* See ASMAtomicWriteU8 comments. */
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_SY);
     __stlr32(pu32, u32);
 # else
@@ -4415,7 +4415,7 @@ DECLINLINE(void) ASMAtomicWriteU64(volatile uint64_t RT_FAR *pu64, uint64_t u64)
 {
 #if defined(RT_ARCH_ARM64)
     /* See ASMAtomicWriteU8 comments. */
-# ifdef RT_INLINE_ASM_USES_INTRIN
+# if RT_INLINE_ASM_USES_INTRIN
     __dmb(_ARM64_BARRIER_SY);
     __stlr64(pu64, u64);
 # else

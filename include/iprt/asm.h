@@ -3170,7 +3170,7 @@ DECLINLINE(uint8_t) ASMAtomicUoReadU8(volatile uint8_t RT_FAR *pu8) RT_NOTHROW_D
 {
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 # ifdef RT_INLINE_ASM_USES_INTRIN
-    return (uint8_t)__iso_volatile_load8((volatile char *)pu8); /* (emits ldrsb, sign-extending it to 32-bit) */ 
+    return (uint8_t)__iso_volatile_load8((volatile char *)pu8); /* (emits ldrsb, sign-extending it to 32-bit) */
 
 # else
     uint32_t u32;
@@ -3302,7 +3302,7 @@ DECLINLINE(uint16_t) ASMAtomicUoReadU16(volatile uint16_t RT_FAR *pu16) RT_NOTHR
     Assert(!((uintptr_t)pu16 & 1));
 #if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 # ifdef RT_INLINE_ASM_USES_INTRIN
-    return (uint16_t)__iso_volatile_load16((volatile int16_t *)pu16);  /* (emits ldrsh, sign-extending it to 32-bit) */ 
+    return (uint16_t)__iso_volatile_load16((volatile int16_t *)pu16);  /* (emits ldrsh, sign-extending it to 32-bit) */
 
 # else
     uint32_t u32;
@@ -6297,7 +6297,7 @@ DECLINLINE(void) ASMAtomicUoOrU32(uint32_t volatile RT_FAR *pu32, uint32_t u32) 
 #  endif
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  if RT_INLINE_ASM_USES_INTRIN 
+#  if RT_INLINE_ASM_USES_INTRIN
     _InterlockedOr_nf((long volatile RT_FAR *)pu32, u32); /* similar to the non-lse code below */
 
   /* M1 benchmark: stset=1974  vs non-lse=6271 */
@@ -6476,7 +6476,7 @@ DECLINLINE(void) ASMAtomicUoAndU32(uint32_t volatile RT_FAR *pu32, uint32_t u32)
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 #  if RT_INLINE_ASM_USES_INTRIN
-    _InterlockedAnd_nf((volatile long *)pu32, (long)u32); /* similar to the non-lse code below */ 
+    _InterlockedAnd_nf((volatile long *)pu32, (long)u32); /* similar to the non-lse code below */
 #  elif defined(RTASM_ARM64_USE_FEAT_LSE)
     /* M1 benchmark: stclr=1884 vs non-lse=6299 (ps/call) */
     __asm__ __volatile__("Lstart_ASMAtomicUoAndU32_%=:\n\t"

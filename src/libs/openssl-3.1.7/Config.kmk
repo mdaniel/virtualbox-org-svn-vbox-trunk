@@ -242,9 +242,9 @@ TEMPLATE_LibCrypto = Template for the OpenSSL crypto library.
 TEMPLATE_LibCrypto_EXTENDS = VBoxR3RuntimeDllNonPedantic
 ifneq ($(KBUILD_TARGET),win)
  TEMPLATE_LibCrypto_ASTOOL.$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)  = $(VBOX_GCC_TOOL)
+ TEMPLATE_LibCrypto_ASTOOL.$(KBUILD_TARGET).x86                    = $(VBOX_GCC_TOOL)
  TEMPLATE_LibCrypto_ASFLAGS.$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH) = $(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH))
  TEMPLATE_LibCrypto_ASFLAGS.$(KBUILD_TARGET).x86                   = $(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(KBUILD_TARGET).x86)
- TEMPLATE_LibCrypto_ASFLAGS.$(KBUILD_TARGET).amd64                 = $(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(KBUILD_TARGET).amd64)
  TEMPLATE_LibCrypto_ASFLAGS                                        = -include $(VBOX_PATH_OPENSSL)/openssl-mangling.h
  TEMPLATE_LibCrypto_ASDEFS                                         = $(NO_SUCH_VARIABLE)
  TEMPLATE_LibCrypto_ASDEFS.darwin                                  = OPENSSL_MANGLE_ASM

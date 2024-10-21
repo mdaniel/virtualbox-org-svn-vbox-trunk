@@ -329,7 +329,7 @@ DECLINLINE(uint8_t) ASMProbeReadByte(const void RT_FAR *pvByte) RT_NOTHROW_DEF
     return u8;
 
 # elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
-#  if defined(RT_INLINE_ASM_USES_INTRIN)
+#  if RT_INLINE_ASM_USES_INTRIN
     return (uint8_t)__iso_volatile_load8((volatile const char *)pvByte);
 #  else
     uint32_t u32;

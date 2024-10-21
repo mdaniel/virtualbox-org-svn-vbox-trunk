@@ -42,6 +42,8 @@
 #include <iprt/cdefs.h>
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
 # include <iprt/nocrt/x86/fenv-x86-amd64.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/nocrt/arm64/fenv.h>
 #else
 # error "IPRT: no fenv.h available for this platform, or the platform define is missing!"
 #endif

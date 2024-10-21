@@ -369,10 +369,10 @@ if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
  VBoxVMM_VMMAll/PDMAllCritSect.cpp_CXXFLAGS          = /FAcs /Fa$(subst /,\\,$(outbase).cod)
 
  VBoxVMM_CLEAN += $(addprefix $(VBoxVMM_0_OUTDIR)/VMMAll/, \
-       IEMAll.cod IEMAllIntprTables1.cod IEMAllIntprTables2.cod IEMAllIntprTables3.cod IEMAllIntprTables4.cod IEMAllAImplC.cod \
-       IEMAllN8veExecMem.cod IEMAllN8veRecompiler.cod IEMAllN8veRecompFuncs1.cod IEMAllN8veRecompFuncs2.cod \
-       IEMAllThrdRecompiler.cod IEMAllThrdFuncsBltIn.cod IEMAllThrdTables1.cod IEMAllThrdFuncs.cod \
-	IEMAllN8veRecompBltIn.cod IEMAllN8veLiveness1.cod IEMAllN8veLiveness2.cod PGMAll.cod PDMAllCritSect.cod)
+ 		IEMAll.cod IEMAllIntprTables1.cod IEMAllIntprTables2.cod IEMAllIntprTables3.cod IEMAllIntprTables4.cod IEMAllAImplC.cod \
+ 		IEMAllN8veExecMem.cod IEMAllN8veRecompiler.cod IEMAllN8veRecompFuncs1.cod IEMAllN8veRecompFuncs2.cod \
+ 		IEMAllThrdRecompiler.cod IEMAllThrdFuncsBltIn.cod IEMAllThrdTables1.cod IEMAllThrdFuncs.cod \
+ 		IEMAllN8veRecompBltIn.cod IEMAllN8veLiveness1.cod IEMAllN8veLiveness2.cod PGMAll.cod PDMAllCritSect.cod)
 endif
 
 $(call VBOX_SET_VER_INFO_DLL,VBoxVMM,VirtualBox VMM) # Version info / description.
@@ -469,7 +469,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/PGMPool.cpp \
  	VMMR3/PGMSavedState.cpp \
  	VMMR3/PGMSharedPage.cpp \
-  	VMMR3/PMUR3.cpp \
+ 	VMMR3/PMUR3.cpp \
  	VMMR3/SSM.cpp \
  	VMMR3/STAM.cpp \
  	VMMR3/TM.cpp \

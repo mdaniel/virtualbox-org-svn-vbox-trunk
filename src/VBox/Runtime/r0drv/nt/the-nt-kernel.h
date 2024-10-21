@@ -47,18 +47,12 @@
 #endif
 #if (_MSC_VER >= 1400) && !defined(VBOX_WITH_PATCHED_DDK)
 # include <iprt/asm.h>
-# define _InterlockedExchange           _InterlockedExchange_StupidDDKVsCompilerCrap
-# define _InterlockedExchangeAdd        _InterlockedExchangeAdd_StupidDDKVsCompilerCrap
-# define _InterlockedCompareExchange    _InterlockedCompareExchange_StupidDDKVsCompilerCrap
 # define _InterlockedAddLargeStatistic  _InterlockedAddLargeStatistic_StupidDDKVsCompilerCrap
 # pragma warning(disable : 4163)
 RT_C_DECLS_BEGIN
 # include <iprt/nt/nt.h>
 RT_C_DECLS_END
 # pragma warning(default : 4163)
-# undef  _InterlockedExchange
-# undef  _InterlockedExchangeAdd
-# undef  _InterlockedCompareExchange
 # undef  _InterlockedAddLargeStatistic
 #else
 RT_C_DECLS_BEGIN

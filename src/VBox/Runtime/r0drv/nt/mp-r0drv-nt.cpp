@@ -41,6 +41,7 @@
 #include "the-nt-kernel.h"
 
 #include <iprt/mp.h>
+#include <iprt/alloca.h>
 #include <iprt/cpuset.h>
 #include <iprt/err.h>
 #include <iprt/asm.h>

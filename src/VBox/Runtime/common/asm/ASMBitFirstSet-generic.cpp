@@ -58,7 +58,7 @@ RT_DECL_ASM(int32_t) ASMBitFirstSet(const volatile void RT_FAR *pvBitmap, uint32
         if (u32 != 0)
         {
             size_t const iBaseBit = ((uintptr_t)pu - (uintptr_t)pvBitmap) * 8;
-            return iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u32)) - 1;
+            return (int32_t)(iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u32)) - 1);
         }
         pu     = (const volatile size_t RT_FAR *)((uintptr_t)pu + sizeof(uint32_t));
         cBits -= 32;
@@ -75,9 +75,9 @@ RT_DECL_ASM(int32_t) ASMBitFirstSet(const volatile void RT_FAR *pvBitmap, uint32
         {
             size_t const iBaseBit = ((uintptr_t)pu - (uintptr_t)pvBitmap) * 8;
 #if ARCH_BITS == 32
-            return iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u)) - 1;
+            return (int32_t)(iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u)) - 1);
 #elif ARCH_BITS == 64
-            return iBaseBit + ASMBitFirstSetU64(RT_LE2H_U64(u)) - 1;
+            return (int32_t)(iBaseBit + ASMBitFirstSetU64(RT_LE2H_U64(u)) - 1);
 #else
 # error "ARCH_BITS is not supported"
 #endif
@@ -97,7 +97,7 @@ RT_DECL_ASM(int32_t) ASMBitFirstSet(const volatile void RT_FAR *pvBitmap, uint32
         if (u32 != 0)
         {
             size_t const iBaseBit = ((uintptr_t)pu - (uintptr_t)pvBitmap) * 8;
-            return iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u32)) - 1;
+            return (int32_t)(iBaseBit + ASMBitFirstSetU32(RT_LE2H_U32(u32)) - 1);
         }
     }
 #endif

@@ -51,7 +51,6 @@ UIVideoMemoryEditor::UIVideoMemoryEditor(QWidget *pParent /* = 0 */)
     , m_f3DAccelerationSupported(false)
     , m_f3DAccelerationEnabled(false)
 #endif
-    , m_iMinVRAM(0)
     , m_iMaxVRAM(0)
     , m_pLayout(0)
     , m_pLabelMemory(0)
@@ -182,7 +181,6 @@ void UIVideoMemoryEditor::sltRetranslateUI()
 
     if (m_pLabelMemoryMin)
     {
-        m_pLabelMemoryMin->setText(tr("%1 MB").arg(m_iMinVRAM));
         m_pLabelMemoryMin->setToolTip(tr("Minimum possible video memory size."));
     }
     if (m_pLabelMemoryMax)
@@ -224,7 +222,6 @@ void UIVideoMemoryEditor::prepare()
 {
     /* Prepare common variables: */
     const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
-    m_iMinVRAM = comProperties.GetMinGuestVRAM();
     m_iMaxVRAM = comProperties.GetMaxGuestVRAM();
 
     /* Create main layout: */
@@ -251,7 +248,7 @@ void UIVideoMemoryEditor::prepare()
             m_pSlider = new QIAdvancedSlider(this);
             if (m_pSlider)
             {
-                m_pSlider->setMinimum(m_iMinVRAM);
+                m_pSlider->setMinimum(0);
                 m_pSlider->setMaximum(m_iMaxVRAM);
                 m_pSlider->setPageStep(calculatePageStep(m_iMaxVRAM));
                 m_pSlider->setSingleStep(m_pSlider->pageStep() / 4);
@@ -298,7 +295,7 @@ void UIVideoMemoryEditor::prepare()
             setFocusProxy(m_pSpinBox);
             if (m_pLabelMemory)
                 m_pLabelMemory->setBuddy(m_pSpinBox);
-            m_pSpinBox->setMinimum(m_iMinVRAM);
+            m_pSpinBox->setMinimum(0);
             m_pSpinBox->setMaximum(m_iMaxVRAM);
             connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIVideoMemoryEditor::sltHandleSpinBoxChange);

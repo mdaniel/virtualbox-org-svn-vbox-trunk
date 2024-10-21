@@ -113,7 +113,7 @@ private:
     /** @name Options
      * @{ */
         /** Holds the guest OS type Id. */
-        QString                 m_strGuestOSTypeId;
+        QString                  m_strGuestOSTypeId;
         /** Holds the guest screen count. */
         int                      m_cGuestScreenCount;
         /** Holds the graphics controller type. */
@@ -125,8 +125,6 @@ private:
         bool                     m_f3DAccelerationEnabled;
 #endif
 
-        /** Holds the minimum lower limit of VRAM (MiB). */
-        int  m_iMinVRAM;
         /** Holds the maximum upper limit of VRAM (MiB). */
         int  m_iMaxVRAM;
     /** @} */

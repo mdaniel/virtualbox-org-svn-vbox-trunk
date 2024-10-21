@@ -4264,7 +4264,7 @@ ifdef VBOX_SIGNING_MODE
    endif
   endif
 
-  VBOX_SIGNTOOL                ?= $(VBOX_RETRY) "$(VBOX_PATH_SIGN_TOOLS)/signtool.exe"
+  VBOX_SIGNTOOL                ?= $(VBOX_RETRY) $(requote sh,$(VBOX_PATH_SIGN_TOOLS)/signtool.exe)
   VBOX_SIGNTOOL_SHA1           ?= $(VBOX_SIGNTOOL)
   VBOX_SIGNTOOL_SHA1_ORDERDEPS ?=
   VBOX_SIGNTOOL_SHA2           ?= $(VBOX_SIGNTOOL)

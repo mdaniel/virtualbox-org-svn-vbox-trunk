@@ -185,6 +185,7 @@ typedef struct CPUMFEATURES
     uint8_t         cMaxPhysAddrWidth;
     /** The maximum linear address width of the CPU. */
     uint8_t         cMaxLinearAddrWidth;
+    uint16_t        uPadding;
 
     /** @name Granule sizes supported.
      * @{ */
@@ -699,7 +700,7 @@ typedef struct CPUMFEATURES
     /** @} */
 
     /** Padding to the required size to match CPUMFEATURES for x86/amd64. */
-    uint8_t         abPadding[6];
+    uint8_t         abPadding[4];
 } CPUMFEATURES;
 #ifndef VBOX_FOR_DTRACE_LIB
 AssertCompileSize(CPUMFEATURES, 48);

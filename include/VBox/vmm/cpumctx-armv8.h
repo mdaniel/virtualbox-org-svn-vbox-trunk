@@ -168,6 +168,7 @@ AssertCompileSize(CPUMCTXSYSREGPAKEY, 16);
  */
 typedef struct CPUMCTX
 {
+    uint64_t            uPadding0;
     /** The general purpose register array view. */
     CPUMCTXGREG         aGRegs[31];
     /** The NEON SIMD & FP register array view. */
@@ -190,12 +191,13 @@ typedef struct CPUMCTX
     CPUMCTXSYSREG       Ttbr1;
     /** The VBAR_EL1 register. */
     CPUMCTXSYSREG       VBar;
+    /** The MDSCR_EL1 register. */
+    CPUMCTXSYSREG       Mdscr;
+    uint64_t            uPadding1;
     /** Breakpoint registers, DBGB{C,V}n_EL1. */
     CPUMCTXSYSREGDBG    aBp[16];
     /** Watchpoint registers, DBGW{C,V}n_EL1. */
     CPUMCTXSYSREGDBG    aWp[16];
-    /** The MDSCR_EL1 register. */
-    CPUMCTXSYSREG       Mdscr;
     /** APDA key register state. */
     CPUMCTXSYSREGPAKEY  Apda;
     /** APDB key register state. */
@@ -293,14 +295,12 @@ typedef struct CPUMCTX
     uint64_t            fpcr;
     /** Floating point status register. */
     uint64_t            fpsr;
+    /* --  64 byte alignment boundrary -- */
     /** The internal PSTATE state (as given from SPSR_EL2). */
     uint64_t            fPState;
 
-    uint32_t            fPadding0;
-
     /** OS lock status accessed through OSLAR_EL1 and OSLSR_EL1. */
     bool                fOsLck;
-
     uint8_t             afPadding1[7];
 
     /** Externalized state tracker, CPUMCTX_EXTRN_XXX. */

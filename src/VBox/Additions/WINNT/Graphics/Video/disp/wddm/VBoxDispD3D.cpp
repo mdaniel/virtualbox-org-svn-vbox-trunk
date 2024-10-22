@@ -38,7 +38,7 @@
 #include "VBoxDispD3D.h"
 #include "VBoxDispDbg.h"
 
-#include <Psapi.h>
+#include <iprt/win/psapi.h>
 
 #define VBOXDISP_IS_MODULE_FUNC(_pvModule, _cbModule, _pfn) ( \
            (((uintptr_t)(_pfn)) >= ((uintptr_t)(_pvModule))) \

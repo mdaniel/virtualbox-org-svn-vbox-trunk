@@ -28,7 +28,7 @@
 #include "VBoxDispD3DCmn.h"
 
 #ifdef VBOXWDDMDISP_DEBUG_VEHANDLER
-# include <Psapi.h>
+# include <iprt/win/psapi.h>
 #endif
 
 #include <iprt/asm.h>

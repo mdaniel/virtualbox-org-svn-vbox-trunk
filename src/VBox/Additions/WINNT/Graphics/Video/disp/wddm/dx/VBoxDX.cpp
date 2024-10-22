@@ -520,6 +520,9 @@ SVGA3dSurfaceFormat vboxDXDxgiToSvgaFormat(DXGI_FORMAT enmDxgiFormat)
         case DXGI_FORMAT_V408:
         case DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE:
         case DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE:
+#ifdef NTDDI_WIN11_GE
+        case DXGI_FORMAT_A4B4G4R4_UNORM: /* Added in SDK w11/26100 or thereabouts. */
+#endif
         case DXGI_FORMAT_FORCE_UINT: /* warning */
             break;
     }

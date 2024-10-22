@@ -36,7 +36,7 @@
 #include <iprt/win/d3dkmthk.h>
 
 #include <d3d10umddi.h>
-#include <Psapi.h>
+#include <iprt/win/psapi.h>
 
 #include "VBoxDX.h"
 

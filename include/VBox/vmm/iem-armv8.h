@@ -82,6 +82,11 @@ typedef uint8_t IEMMODE;
  *       during decoding. */
 #define IEM_CPUMCTX_EXTRN_EXEC_DECODED_MEM_MASK    (  IEM_CPUMCTX_EXTRN_EXEC_DECODED_NO_MEM_MASK ) /** @todo */
 
+
+/** Placeholder.
+ * @todo this should probably be shared/generic. */
+#define IEMTARGETCPU_DYNAMIC                        UINT32_C(0)
+
 /** @} */
 
 RT_C_DECLS_END

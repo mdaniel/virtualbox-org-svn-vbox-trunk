@@ -1,5 +1,5 @@
 /** @file
- * Safe way to include winsock2.h.
+ * Safe way to include winsock.h.
  */
 
 /*

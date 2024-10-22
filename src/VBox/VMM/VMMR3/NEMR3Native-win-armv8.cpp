@@ -1458,6 +1458,7 @@ VMM_INT_DECL(int) NEMHCQueryCpuTick(PVMCPUCC pVCpu, uint64_t *pcTicks, uint32_t 
     VMCPU_ASSERT_EMT_RETURN(pVCpu, VERR_VM_THREAD_NOT_EMT);
     AssertReturn(VM_IS_NEM_ENABLED(pVM), VERR_NEM_IPE_9);
 
+#pragma message("NEMHCQueryCpuTick: Implement it!")
 #if 0 /** @todo */
     /* Call the offical API. */
     WHV_REGISTER_NAME  aenmNames[2] = { WHvX64RegisterTsc, WHvX64RegisterTscAux };
@@ -1471,6 +1472,8 @@ VMM_INT_DECL(int) NEMHCQueryCpuTick(PVMCPUCC pVCpu, uint64_t *pcTicks, uint32_t 
     *pcTicks = aValues[0].Reg64;
     if (puAux)
         *puAux = pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_TSC_AUX ? aValues[1].Reg64 : CPUMGetGuestTscAux(pVCpu);
+#else
+    RT_NOREF(pVCpu, pcTicks, puAux);
 #endif
     return VINF_SUCCESS;
 }
@@ -1497,6 +1500,7 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
     if (pVM->cCpus > 1)
         RTThreadYield(); /* Try decrease the chance that we get rescheduled in the middle. */
 
+#pragma message("NEMHCResumeCpuTickOnAll: Implement it!")
 #if 0 /** @todo */
     /* Start with the first CPU. */
     WHV_REGISTER_NAME  enmName   = WHvX64RegisterTsc;
@@ -1522,6 +1526,8 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
                                pVM->nem.s.hPartition, iCpu, uPausedTscValue, offDelta, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                               , VERR_NEM_SET_TSC);
     }
+#else
+    RT_NOREF(uPausedTscValue);
 #endif
 
     return VINF_SUCCESS;
@@ -1853,7 +1859,10 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT cons
                                             ? EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_WRITE)
                                             : EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_READ),
                                             pHdr->Pc, uHostTsc);
+#pragma message("nemR3WinHandleExitMemory: Why not calling nemR3WinCopyStateFromArmHeader?")
+/** @todo r=bird: Why is nemR3WinCopyStateFromArmHeader commented out? */
     //nemR3WinCopyStateFromArmHeader(pVCpu, &pExit->MemoryAccess.Header);
+    RT_NOREF_PV(pExitRec);
     rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, IEM_CPUMCTX_EXTRN_MUST_MASK);
     AssertRCReturn(rc, rc);
 

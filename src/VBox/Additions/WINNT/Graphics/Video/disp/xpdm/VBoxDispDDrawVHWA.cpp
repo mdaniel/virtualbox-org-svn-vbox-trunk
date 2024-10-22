@@ -25,6 +25,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+#define INITGUID /* Needed since SDK 10.26100 */
 #include "VBoxDisp.h"
 #include "VBoxDispDDraw.h"
 #include <iprt/asm.h>

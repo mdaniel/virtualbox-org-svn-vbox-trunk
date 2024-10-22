@@ -2195,6 +2195,10 @@ USES.win += vboximportchecker vboxsetpeversion
 #       compatibility helpers and stuff (copysup.lib).
 #       (WLH = windows longhorn, the codenamefor Vista).
 #
+# Note! WDK 10.0.26100.0 (Windows 11 24h2) no longer ships x86 kernel mode
+#       libraries.  So, for building 32-bit drivers, we must use an older
+#       WDK version (like 10.0.22621.0, or 10.0.22000.0).
+#
 ifdef VBOX_WITH_NEW_WINDOWS_DDK
  VBOX_WINDDK         ?= WINSDK10-KM
  VBOX_WINDDK_WLH     ?= $(VBOX_WINDDK)

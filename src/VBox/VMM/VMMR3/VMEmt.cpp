@@ -361,7 +361,7 @@ static int vmR3FatalWaitError(PUVMCPU pUVCpu, const char *pszFmt, int rcFmt)
 /**
  * The old halt loop.
  */
-static DECLCALLBACK(int) vmR3HaltOldDoHalt(PUVMCPU pUVCpu, const uint32_t fMask, uint64_t /* u64Now*/)
+static DECLCALLBACK(int) vmR3HaltOldDoHalt(PUVMCPU pUVCpu, const uint64_t fMask, uint64_t /* u64Now*/)
 {
     /*
      * Halt loop.
@@ -520,7 +520,7 @@ static DECLCALLBACK(int) vmR3HaltMethod1Init(PUVM pUVM)
  * switch to spinning for 10-30ms with occasional blocking until
  * the lag has been eliminated.
  */
-static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint32_t fMask, uint64_t u64Now)
+static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMask, uint64_t u64Now)
 {
     PUVM    pUVM    = pUVCpu->pUVM;
     PVMCPU  pVCpu   = pUVCpu->pVCpu;
@@ -744,7 +744,7 @@ static DECLCALLBACK(int) vmR3HaltGlobal1Init(PUVM pUVM)
  * The global 1 halt method - Block in GMM (ring-0) and let it
  * try take care of the global scheduling of EMT threads.
  */
-static DECLCALLBACK(int) vmR3HaltGlobal1Halt(PUVMCPU pUVCpu, const uint32_t fMask, uint64_t u64Now)
+static DECLCALLBACK(int) vmR3HaltGlobal1Halt(PUVMCPU pUVCpu, const uint64_t fMask, uint64_t u64Now)
 {
     PUVM    pUVM  = pUVCpu->pUVM;
     PVMCPU  pVCpu = pUVCpu->pVCpu;
@@ -1078,7 +1078,7 @@ static const struct VMHALTMETHODDESC
     /** The term function. */
     DECLR3CALLBACKMEMBER(void,  pfnTerm,(PUVM pUVM));
     /** The VMR3WaitHaltedU function. */
-    DECLR3CALLBACKMEMBER(int,   pfnHalt,(PUVMCPU pUVCpu, const uint32_t fMask, uint64_t u64Now));
+    DECLR3CALLBACKMEMBER(int,   pfnHalt,(PUVMCPU pUVCpu, const uint64_t fMask, uint64_t u64Now));
     /** The VMR3WaitU function. */
     DECLR3CALLBACKMEMBER(int,   pfnWait,(PUVMCPU pUVCpu));
     /** The VMR3NotifyCpuFFU function. */
@@ -1157,11 +1157,11 @@ VMMR3_INT_DECL(int) VMR3WaitHalted(PVM pVM, PVMCPU pVCpu, uint32_t fFlags)
      * Check Relevant FFs.
      */
 #if defined(VBOX_VMM_TARGET_ARMV8)
-    const uint32_t fMaskInterrupts =   ((fFlags & VMWAITHALTED_F_IGNORE_IRQS) ? VMCPU_FF_INTERRUPT_IRQ : 0)
-                                     | ((fFlags & VMWAITHALTED_F_IGNORE_FIQS) ? VMCPU_FF_INTERRUPT_FIQ : 0);
-    const uint32_t fMask = VMCPU_FF_EXTERNAL_HALTED_MASK & ~fMaskInterrupts;
+    const uint64_t fMaskInterrupts = ((fFlags & VMWAITHALTED_F_IGNORE_IRQS) ? VMCPU_FF_INTERRUPT_IRQ : 0)
+                                   | ((fFlags & VMWAITHALTED_F_IGNORE_FIQS) ? VMCPU_FF_INTERRUPT_FIQ : 0);
+    const uint64_t fMask = VMCPU_FF_EXTERNAL_HALTED_MASK & ~fMaskInterrupts;
 #else
-    const uint32_t fMask = !(fFlags & VMWAITHALTED_F_IGNORE_IRQS)
+    const uint64_t fMask = !(fFlags & VMWAITHALTED_F_IGNORE_IRQS)
         ? VMCPU_FF_EXTERNAL_HALTED_MASK
         : VMCPU_FF_EXTERNAL_HALTED_MASK & ~(VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC);
 #endif

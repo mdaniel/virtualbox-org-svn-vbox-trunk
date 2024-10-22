@@ -2725,11 +2725,13 @@ static int pgmR3PhysMmioMapLocked(PVM pVM, PVMCPU pVCpu, RTGCPHYS const GCPhys, 
                 return VINF_SUCCESS;
             }
 
+#ifdef VBOX_WITH_NATIVE_NEM
             /*
              * Failed, so revert it all as best as we can (the memory content in
              * the overlapping case is gone).
              */
             PGMHandlerPhysicalDeregister(pVM, GCPhys);
+#endif
         }
     }
 

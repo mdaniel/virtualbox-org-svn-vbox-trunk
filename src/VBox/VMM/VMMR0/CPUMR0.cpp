@@ -370,7 +370,8 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
         if (   RTX86IsValidStdRange(cStdRange)
             && cStdRange >= 7)
         {
-            uint32_t fEdxFeatures = ASMCpuId_EDX(7);
+            uint32_t fEdxFeatures;
+            ASMCpuId_Idx_ECX(7, 0, &u32Dummy, &u32Dummy, &u32Dummy, &fEdxFeatures);
             if (   (fEdxFeatures & X86_CPUID_STEXT_FEATURE_EDX_ARCHCAP)
                 && (fFeatures & X86_CPUID_FEATURE_EDX_MSR))
             {

@@ -39,13 +39,13 @@
 # pragma once
 #endif
 
-/* 
+/*
  * There is actually no problems with psapi.h, but we create a problem mixing
  * the Windows 7 WDK and a much more recent SDK, taking the psapi.h from the
  * latter and sdkddkver.h from the former.  The result is that the much newer
  * psapi.h file expects NTDDI_WIN10_CU to be defined, so we have to assit it
- * here to avoid this type of errors: 
- *  
+ * here to avoid this type of errors:
+ *
  * psapi.h(499): warning C4668: 'NTDDI_WIN10_CU' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'
  */
 #include <sdkddkver.h>

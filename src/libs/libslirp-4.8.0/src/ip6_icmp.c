@@ -44,7 +44,11 @@ static int icmp6_send(struct socket *so, struct mbuf *m, int hlen)
 {
     Slirp *slirp = m->slirp;
 
+#ifdef VBOX
+    struct sockaddr_in6 addr = { 0 }; /* Must zero all fields not explictly initialized below or sendto fails on windows. */
+#else
     struct sockaddr_in6 addr;
+#endif
 
     /*
      * The behavior of reading SOCK_DGRAM+IPPROTO_ICMP sockets is inconsistent
@@ -94,11 +98,6 @@ static int icmp6_send(struct socket *so, struct mbuf *m, int hlen)
 
     addr.sin6_family = AF_INET6;
     addr.sin6_addr = so->so_faddr6;
-#ifdef VBOX
-    addr.sin6_port = 0;
-    addr.sin6_flowinfo = 0;
-    addr.sin6_scope_id = 0;
-#endif
 
     slirp_insque(so, &so->slirp->icmp);
 

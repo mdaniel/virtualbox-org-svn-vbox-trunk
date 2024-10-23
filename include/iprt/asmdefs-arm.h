@@ -202,9 +202,46 @@ NAME(\a_Name):
         .private_extern NAME(\a_Name)
 #elif defined(ASM_FORMAT_ELF)
         .hidden         NAME(\a_Name)
+#elif defined(ASM_FORMAT_PE)
+        .def            NAME(\a_Name)
+        .type           32      /* function */
+        .endef
 #endif
         .globl          NAME(\a_Name)
 NAME(\a_Name):
+.endm
+
+
+/**
+ * Starts an exported procedure.
+ *
+ * @param   a_Name      The unmangled symbol name.
+ */
+.macro BEGINPROC_EXPORTED, a_Name
+#ifdef ASM_FORMAT_MACHO
+        //.private_extern NAME(\a_Name)
+#elif defined(ASM_FORMAT_ELF)
+        //.hidden         NAME(\a_Name)
+#elif defined(ASM_FORMAT_PE)
+        .pushsection    .drectve
+        .string "-export:\a_Name"
+        .popsection
+        .def            NAME(\a_Name)
+        .type           32      /* function */
+        .endef
+#endif
+        .globl          NAME(\a_Name)
+NAME(\a_Name):
+.endm
+
+
+/**
+ * Ends a procedure.
+ *
+ * @param   a_Name      The unmangled symbol name.
+ */
+.macro ENDPROC, a_Name
+NAME(\a_Name)\()_EndProc:
 .endm
 
 

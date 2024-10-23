@@ -45,7 +45,13 @@
 # include <iprt/param.h>
 #endif
 #include <iprt/asm.h>
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <iprt/asm-arm.h>
+#else
+# error "Port me!"
+#endif
 #include <iprt/asm-math.h>
 #include <iprt/cpuset.h>
 #include <iprt/handletable.h>
@@ -66,7 +72,11 @@
 # include <iprt/path.h>
 #endif
 #include <iprt/uint128.h>
-#include <iprt/x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/x86.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/armv8.h>
+#endif
 
 #include <VBox/param.h>
 #include <VBox/log.h>
@@ -188,22 +198,35 @@ static uint32_t supdrvGipFindCpuIndexForCpuId(PSUPGLOBALINFOPAGE pGip, RTCPUID i
  *
  * @returns APIC ID.
  * @param   pGip                The GIP, for SUPGIPGETCPU_XXX.
+ *
+ * @note    APIC ID == CPU ID on non-x86 platforms.
  */
 DECLINLINE(uint32_t) supdrvGipGetApicId(PSUPGLOBALINFOPAGE pGip)
 {
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     if (pGip->fGetGipCpu & SUPGIPGETCPU_APIC_ID_EXT_0B)
         return ASMGetApicIdExt0B();
     if (pGip->fGetGipCpu & SUPGIPGETCPU_APIC_ID_EXT_8000001E)
         return ASMGetApicIdExt8000001E();
     return ASMGetApicId();
+
+#elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
+    RT_NOREF(pGip);
+    return (uint32_t)ASMGetThreadIdRoEL0();
+#else
+# error "port me"
+#endif
 }
 
 
 /**
  * Gets the APIC ID using the best available method, slow version.
+ *
+ * @note    APIC ID == CPU ID on non-x86 platforms.
  */
 static uint32_t supdrvGipGetApicIdSlow(void)
 {
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint32_t const idApic = ASMGetApicId();
 
     /* The Intel CPU topology leaf: */
@@ -214,11 +237,11 @@ static uint32_t supdrvGipGetApicIdSlow(void)
         uint32_t uEbx = 0;
         uint32_t uEcx = 0;
         uint32_t uEdx = 0;
-#if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
+# if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
         ASMCpuId_Idx_ECX(0xb, 0, &uEax, &uEbx, &uEcx, &uEdx);
-#else
+# else
         ASMCpuIdExSlow(0xb, 0, 0, 0, &uEax, &uEbx, &uEcx, &uEdx);
-#endif
+# endif
         if ((uEcx >> 8) != 0) /* level type != invalid */
         {
             if ((uEdx & 0xff) == idApic)
@@ -237,7 +260,14 @@ static uint32_t supdrvGipGetApicIdSlow(void)
         AssertMsgFailed(("ASMGetApicIdExt8000001E=>%#x idApic=%#x\n", uOther, idApic));
     }
     return idApic;
+
+#elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
+    return (uint32_t)ASMGetThreadIdRoEL0();
+#else
+# error "port me"
+#endif
 }
+
 
 
 /*
@@ -329,20 +359,25 @@ typedef SUPDRVGIPDETECTGETCPU *PSUPDRVGIPDETECTGETCPU;
  */
 static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *pvUser1, void *pvUser2)
 {
-    PSUPDRVGIPDETECTGETCPU  pState = (PSUPDRVGIPDETECTGETCPU)pvUser1;
-    PSUPGLOBALINFOPAGE      pGip   = (PSUPGLOBALINFOPAGE)pvUser2;
+    PSUPDRVGIPDETECTGETCPU  pState  = (PSUPDRVGIPDETECTGETCPU)pvUser1;
+    PSUPGLOBALINFOPAGE      pGip    = (PSUPGLOBALINFOPAGE)pvUser2;
+    int const               iCpuSet = RTMpCpuIdToSetIndex(idCpu);
     uint32_t                fSupported = 0;
     uint32_t                idApic;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint32_t                uEax, uEbx, uEcx, uEdx;
-    int                     iCpuSet;
+#else
+    uint32_t const          uEax = 0; /* Dummy for LogRel. */
+#endif
     NOREF(pGip);
 
     AssertMsg(idCpu == RTMpCpuId(), ("idCpu=%#x RTMpCpuId()=%#x\n", idCpu, RTMpCpuId())); /* paranoia^3 */
 
+
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /*
      * Check that the CPU ID and CPU set index are interchangable.
      */
-    iCpuSet = RTMpCpuIdToSetIndex(idCpu);
     if ((RTCPUID)iCpuSet == idCpu)
     {
         AssertCompile(RT_IS_POWER_OF_TWO(RTCPUSET_MAX_CPUS));
@@ -355,11 +390,11 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
             /*
              * Check whether the IDTR.LIMIT contains a CPU number.
              */
-#ifdef RT_ARCH_X86
+# ifdef RT_ARCH_X86
             uint16_t const  cbIdt = sizeof(X86DESC64SYSTEM) * 256;
-#else
+# else
             uint16_t const  cbIdt = sizeof(X86DESCGATE)     * 256;
-#endif
+# endif
             RTIDTR          Idtr;
             ASMGetIDTR(&Idtr);
             if (Idtr.cbIdt >= cbIdt)
@@ -417,11 +452,11 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
     uEax = ASMCpuId_EAX(0);
     if (uEax >= UINT32_C(0xb) && RTX86IsValidStdRange(uEax))
     {
-#if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
+# if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
         ASMCpuId_Idx_ECX(0xb, 0, &uEax, &uEbx, &uEcx, &uEdx);
-#else
+# else
         ASMCpuIdExSlow(0xb, 0, 0, 0, &uEax, &uEbx, &uEcx, &uEdx);
-#endif
+# endif
         if ((uEcx >> 8) != 0) /* level type != invalid */
         {
             if (RT_LIKELY(   uEdx < RT_ELEMENTS(pGip->aiCpuFromApicId)
@@ -441,11 +476,11 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
     uEax = ASMCpuId_EAX(UINT32_C(0x80000000));
     if (uEax >= UINT32_C(0x8000001e) && RTX86IsValidExtRange(uEax))
     {
-#if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
+# if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
         ASMCpuId_Idx_ECX(UINT32_C(0x8000001e), 0, &uEax, &uEbx, &uEcx, &uEdx);
-#else
+# else
         ASMCpuIdExSlow(UINT32_C(0x8000001e), 0, 0, 0, &uEax, &uEbx, &uEcx, &uEdx);
-#endif
+# endif
         if (uEax || uEbx || uEcx || uEdx)
         {
             if (RT_LIKELY(   uEax < RT_ELEMENTS(pGip->aiCpuFromApicId)
@@ -464,9 +499,14 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
         }
     }
 
+#else  /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
+    idApic = supdrvGipGetApicIdSlow();
+#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
+
     /*
      * Check that the APIC ID is unique.
      */
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uEax = ASMGetApicId();
     if (RT_LIKELY(   uEax < RT_ELEMENTS(pGip->aiCpuFromApicId)
                   && (   idApic == UINT32_MAX
@@ -476,9 +516,11 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
         idApic = uEax;
         fSupported |= SUPGIPGETCPU_APIC_ID;
     }
-    else if (   idApic == UINT32_MAX
-             || idApic >= RT_ELEMENTS(pGip->aiCpuFromApicId) /* parnaoia */
-             || ASMAtomicBitTestAndSet(pState->bmApicId, idApic))
+    else
+#endif /* defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) */
+    if (   idApic == UINT32_MAX
+        || idApic >= RT_ELEMENTS(pGip->aiCpuFromApicId) /* parnaoia */
+        || ASMAtomicBitTestAndSet(pState->bmApicId, idApic))
     {
         AssertCompile(sizeof(pState->bmApicId) * 8 == RT_ELEMENTS(pGip->aiCpuFromApicId));
         ASMAtomicCmpXchgU32(&pState->idCpuProblem, idCpu, NIL_RTCPUID);
@@ -1766,6 +1808,7 @@ static bool supdrvGipInitDetermineAsyncTsc(uint64_t *poffMin)
  */
 static SUPGIPMODE supdrvGipInitDetermineTscMode(PSUPDRVDEVEXT pDevExt)
 {
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint64_t u64DiffCoresIgnored;
     uint32_t uEAX, uEBX, uECX, uEDX;
 
@@ -1837,6 +1880,14 @@ static SUPGIPMODE supdrvGipInitDetermineTscMode(PSUPDRVDEVEXT pDevExt)
     }
 
     return SUPGIPMODE_SYNC_TSC;
+
+#elif defined(RT_ARCH_ARM64)
+    RT_NOREF(pDevExt);
+    return SUPGIPMODE_INVARIANT_TSC;
+
+#else
+# error "Port me"
+#endif
 }
 
 
@@ -2967,7 +3018,11 @@ static bool supdrvTscDeltaSync2_Before(PSUPTSCDELTASYNC2 pMySync, PSUPTSCDELTASY
     RTCCUINTREG     fEFlags;
     TSCDELTA_DBG_VARS();
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     *pfEFlags = X86_EFL_IF | X86_EFL_1; /* should shut up most nagging compilers. */
+#else
+    *pfEFlags = 0;
+#endif
 
     /*
      * The master tells the worker to get on it's mark.
@@ -3997,7 +4052,9 @@ static int supdrvTscMeasureDeltaOne(PSUPDRVDEVEXT pDevExt, uint32_t idxWorker)
     PSUPGIPCPU          pGipCpuWorker = &pGip->aCPUs[idxWorker];
     PSUPGIPCPU          pGipCpuMaster;
     uint32_t            iGipCpuMaster;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint32_t            u32Tmp;
+#endif
 
     /* Validate input a bit. */
     AssertReturn(pGip, VERR_INVALID_PARAMETER);
@@ -4039,6 +4096,7 @@ static int supdrvTscMeasureDeltaOne(PSUPDRVDEVEXT pDevExt, uint32_t idxWorker)
     iGipCpuMaster = supdrvGipFindCpuIndexForCpuId(pGip, idMaster);
     AssertReturn(iGipCpuMaster < pGip->cCpus, VERR_INVALID_CPU_ID);
     pGipCpuMaster = &pGip->aCPUs[iGipCpuMaster];
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     if (   (   (pGipCpuMaster->idApic & ~1) == (pGipCpuWorker->idApic & ~1)
             && pGip->cOnlineCpus > 2
             && ASMHasCpuId()
@@ -4069,6 +4127,7 @@ static int supdrvTscMeasureDeltaOne(PSUPDRVDEVEXT pDevExt, uint32_t idxWorker)
                 break;
             }
     }
+#endif /* defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) */
 
     if (RTCpuSetIsMemberByIndex(&pGip->OnlineCpuSet, pGipCpuWorker->iCpuSet))
     {

@@ -782,8 +782,11 @@ if   !defined(VBOX_ONLY_DOCS) \
   	solaris/SUPDrv-solaris.c
   VBoxDrv_SOURCES.win     = \
   	win/SUPDrv-win.cpp \
-  	win/SUPDrvA-win.asm \
   	win/VBoxDrv.rc
+  VBoxDrv_SOURCES.win.x86 = \
+  	win/SUPDrvA-win.asm
+  VBoxDrv_SOURCES.win.amd64 = \
+  	win/SUPDrvA-win.asm
   ifdef VBOX_WITH_HARDENING
    VBoxDrv_SOURCES.win   += \
    	win/SUPHardenedVerifyImage-win.cpp \
@@ -806,8 +809,12 @@ if   !defined(VBOX_ONLY_DOCS) \
    SUPDrv-dtrace.cpp_DEFS.darwin += VBOX_PATH_MACOSX_DTRACE_H=\"$(VBOX_PATH_MACOSX_SDK)/usr/include/sys/dtrace.h\"
   endif
   ifn1of ($(KBUILD_TARGET), linux freebsd)
-   VBoxDrv_SOURCES       += \
+   VBoxDrv_SOURCES.x86   += \
    	SUPDrvTracerA.asm
+   VBoxDrv_SOURCES.amd64 += \
+   	SUPDrvTracerA.asm
+   VBoxDrv_SOURCES.arm64 += \
+   	SUPDrvTracerA-arm64.S
   endif
 
   linux/SUPDrv-linux.c_DEPS = $(VBOX_SVN_REV_HEADER)

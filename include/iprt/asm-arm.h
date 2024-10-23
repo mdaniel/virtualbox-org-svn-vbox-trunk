@@ -446,11 +446,11 @@ DECLINLINE(RTCCUINTREG) ASMGetThreadIdRoEL0(void)
 #  ifdef RT_ARCH_ARM64
     __asm__ __volatile__("Lstart_ASMGetThreadIdEl0_%=:\n\t"
                          "mrs %[uRet], TPIDRRO_EL0\n\t"
-                         : : [uRet] "r" (uRet));
+                         : [uRet] "=r" (uRet));
 #  else
     __asm__ __volatile__("Lstart_ASMGetThreadIdEl0_%=:\n\t"
                          "mrc p15, 0, %[uRet], c13, c0, 3\n\t" /* TPIDRURO */
-                         : : [uRet] "r" (uRet));
+                         : [uRet] "=r" (uRet));
 #  endif
     return uRet;
 # elif RT_INLINE_ASM_USES_INTRIN

@@ -56,11 +56,16 @@
 /*
  * MSVC insists on having these defined using ARM64_SYSREG or it will
  * fail to compile with "error C2284: "_ReadStatusReg": invalid argument for internal function, parameter 1"
- * if we use our own definitions from iprt/armv8.h
+ * if we use our own definitions from iprt/armv8.h 
+ *  
+ * The reason for this, is that ARM64_SYSREG masks off the top bit (bit 15) 
+ * whereas our macro doesn't.  So the reason is probably the implicitness 
+ * of the top bit in the MRS/MSR encoding.
  */
-# define ARM64_SYSREG_DAIF       ARM64_SYSREG(3, 3,  4, 2, 1)
-# define ARM64_SYSREG_CNTFRQ_EL0 ARM64_SYSREG(3, 3, 14, 0, 0)
-# define ARM64_SYSREG_CNTCVT_EL0 ARM64_SYSREG(3, 3, 14, 0, 2)
+# define ARM64_SYSREG_DAIF          ARM64_SYSREG(3, 3,  4, 2, 1)
+# define ARM64_SYSREG_CNTFRQ_EL0    ARM64_SYSREG(3, 3, 14, 0, 0)
+# define ARM64_SYSREG_CNTCVT_EL0    ARM64_SYSREG(3, 3, 14, 0, 2)
+# define ARM64_SYSREG_TPIDRRO_EL0   ARM64_SYSREG(3, 3, 13, 0, 3)
 #endif
 
 /** @defgroup grp_rt_asm_arm  ARM Specific ASM Routines
@@ -425,6 +430,35 @@ DECLINLINE(void) ASMInvalidateInternalCaches(void)
 }
 #endif
 
+#endif
+
+
+/**
+ * Get the TPIDRRO_EL0 register.
+ */
+#if RT_INLINE_ASM_EXTERNAL
+DECLASM(RTCCUINTREG) ASMGetThreadIdRoEL0(void);
+#else
+DECLINLINE(RTCCUINTREG) ASMGetThreadIdRoEL0(void)
+{
+# if RT_INLINE_ASM_GNU_STYLE
+    RTCCUINTREG uRet;
+#  ifdef RT_ARCH_ARM64
+    __asm__ __volatile__("Lstart_ASMGetThreadIdEl0_%=:\n\t"
+                         "mrs %[uRet], TPIDRRO_EL0\n\t"
+                         : : [uRet] "r" (uRet));
+#  else
+    __asm__ __volatile__("Lstart_ASMGetThreadIdEl0_%=:\n\t"
+                         "mrc p15, 0, %[uRet], c13, c0, 3\n\t" /* TPIDRURO */
+                         : : [uRet] "r" (uRet));
+#  endif
+    return uRet;
+# elif RT_INLINE_ASM_USES_INTRIN
+    return _ReadStatusReg(ARM64_SYSREG_TPIDRRO_EL0);
+# else
+#  error "Unsupported compiler"
+# endif
+}
 #endif
 
 

@@ -517,8 +517,8 @@ int SystemTableBuilderAcpi::buildMadt(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt)
 
 int SystemTableBuilderAcpi::buildMcfg(RTVFSIOSTREAM hVfsIos, size_t *pcbMcfg)
 {
-    uint8_t abMcfg[_1K];
-    size_t cbMcfg = 0;
+    uint8_t  abMcfg[_1K];
+    uint32_t cbMcfg = 0;
 
     RT_ZERO(abMcfg);
 

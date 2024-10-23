@@ -763,6 +763,8 @@ if   !defined(VBOX_ONLY_DOCS) \
    VBoxDrv_LIBS.win.x86   = \
    	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/BufferOverflowK.lib
   endif
+  VBoxDrv_LIBS.win.arm64  = \
+  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/BufferOverflowFastFailK.lib
 
   #VBoxDrv_LDFLAGS.darwin   = -Wl,-sectcreate,__TEXT,__info_plist,$(VBoxDrv.kext_0_OUTDIR)/Info.plist
   #VBoxDrv_LDFLAGS.darwin   = -v -Wl,-whyload -Wl,-v -Wl,-whatsloaded

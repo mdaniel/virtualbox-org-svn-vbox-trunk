@@ -779,7 +779,7 @@ DECLINLINE(PSUPGIPCPU) SUPGetGipCpuBySetIndex(PSUPGLOBALINFOPAGE pGip, uint32_t 
 }
 
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(RT_ARCH_ARM64) ||defined(RT_ARCH_ARM32)
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
 
 /** @internal */
 SUPDECL(uint64_t) SUPReadTscWithDelta(PSUPGLOBALINFOPAGE pGip);
@@ -792,17 +792,13 @@ SUPDECL(uint64_t) SUPReadTscWithDelta(PSUPGLOBALINFOPAGE pGip);
  */
 DECLINLINE(uint64_t) SUPReadTsc(void)
 {
-# if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)  /** @todo portme: ring-0 arm. */
-    return ASMReadTSC();
-# else
     PSUPGLOBALINFOPAGE pGip = g_pSUPGlobalInfoPage;
     if (!pGip || pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO)
         return ASMReadTSC();
     return SUPReadTscWithDelta(pGip);
-# endif
 }
 
-#endif /* X86 || AMD64 || ARM */
+#endif /* X86 || AMD64 || ARM64 || ARM32 */
 
 /** @internal */
 SUPDECL(int64_t) SUPGetTscDeltaSlow(PSUPGLOBALINFOPAGE pGip);

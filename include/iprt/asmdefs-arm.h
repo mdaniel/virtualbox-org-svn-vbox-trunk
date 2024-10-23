@@ -152,7 +152,7 @@
 # define NAME(a_SymbolC)    a_SymbolC
 #endif
 
-#ifndef RT_OS_WINDOWS
+
 /**
  * Returns the page address of the given symbol (used with the adrp instruction primarily).
  *
@@ -180,8 +180,6 @@
 #else
 # error "Port me!"
 #endif
-
-#endif /* RT_OS_WINDOWS */
 
 
 /**

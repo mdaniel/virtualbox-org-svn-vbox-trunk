@@ -535,7 +535,8 @@ BLDDIRS += $(foreach d, \
 			archive/plugins/platforms \
 			archive/plugins/platformthemes \
 			archive/plugins/sqldrivers \
-			archive/plugins/styles,) \
+			archive/plugins/styles \
+			archive/plugins/wayland-shell-integration,) \
 		$(if $(VBOX_WITH_PYTHON), \
 			archive/sdk/installer \
 			archive/sdk/installer/python \

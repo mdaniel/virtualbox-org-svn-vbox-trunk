@@ -455,8 +455,8 @@ int SystemTableBuilderAcpi::dumpTables(const char *pszFilename)
 
 int SystemTableBuilderAcpi::buildMadt(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt)
 {
-    uint8_t abMadt[_4K];
-    size_t cbMadt = 0;
+    uint8_t  abMadt[_4K];
+    uint32_t cbMadt = 0;
 
     RT_ZERO(abMadt);
 

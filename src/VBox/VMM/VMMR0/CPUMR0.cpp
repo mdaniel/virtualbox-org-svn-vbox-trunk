@@ -375,7 +375,8 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
                 && (fFeatures & X86_CPUID_FEATURE_EDX_MSR))
             {
                 /* Host: */
-                uint64_t fArchVal = ASMRdMsr(MSR_IA32_ARCH_CAPABILITIES);
+                uint64_t const fHostArchVal = ASMRdMsr(MSR_IA32_ARCH_CAPABILITIES);
+                uint64_t fArchVal = fHostArchVal;
                 pVM->cpum.s.HostFeatures.fArchRdclNo             = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RDCL_NO);
                 pVM->cpum.s.HostFeatures.fArchIbrsAll            = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_IBRS_ALL);
                 pVM->cpum.s.HostFeatures.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
@@ -393,12 +394,12 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
                 pVM->cpum.s.GuestFeatures.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
                 pVM->cpum.s.GuestFeatures.fArchVmmNeedNotFlushL1d = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_VMM_NEED_NOT_FLUSH_L1D);
                 pVM->cpum.s.GuestFeatures.fArchMdsNo              = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_MDS_NO);
-                LogRel(("CPUM: Host IA32_ARCH_CAPABILITIES %#RX64\n", fArchVal));
+                LogRel(("CPUM: IA32_ARCH_CAPABILITIES (Host=%#RX64 Guest=%#RX64)\n", fHostArchVal, fArchVal));
             }
             else
             {
                 pVM->cpum.s.HostFeatures.fArchCap = 0;
-                LogRel(("CPUM: Host IA32_ARCH_CAPABILITIES unsupported\n"));
+                LogRel(("CPUM: IA32_ARCH_CAPABILITIES unsupported\n"));
             }
         }
 

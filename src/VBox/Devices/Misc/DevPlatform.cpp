@@ -262,7 +262,7 @@ static void platformR3DestructResourceList(PPDMDEVINS pDevIns, PRTLISTANCHOR pLs
         if (pIt->pu8ResourceFree)
         {
             if (!pIt->fResourceId)
-                RTFileReadAllFree(pIt->pu8ResourceFree, (size_t)pIt->cbResource);
+                RTFileReadAllFree(pIt->pu8ResourceFree, pIt->cbResource);
             else
                 PDMDevHlpMMHeapFree(pDevIns, pIt->pu8ResourceFree);
         }
@@ -306,7 +306,8 @@ static DECLCALLBACK(void) platformR3MemSetup(PPDMDEVINS pDevIns, PDMDEVMEMSETUPC
     PDEVPLATFORMRESOURCE pIt;
     RTListForEach(&pThis->LstResourcesMem, pIt, DEVPLATFORMRESOURCE, NdLst)
     {
-        int rc = platformR3ResourceResolveContent(pDevIns, pThis, pIt, (void **)&pIt->pu8ResourceFree, (const void **)&pIt->pu8Resource, &pIt->cbResource);
+        int rc = platformR3ResourceResolveContent(pDevIns, pThis, pIt, (void **)&pIt->pu8ResourceFree,
+                                                  (const void **)&pIt->pu8Resource, &pIt->cbResource);
         if (RT_SUCCESS(rc))
         {
             rc = PDMDevHlpPhysWrite(pDevIns, platformR3ResourceGetLoadAddress(pDevIns, pIt), pIt->pu8Resource, pIt->cbResource);
@@ -315,7 +316,7 @@ static DECLCALLBACK(void) platformR3MemSetup(PPDMDEVINS pDevIns, PDMDEVMEMSETUPC
             if (pIt->pu8ResourceFree)
             {
                 if (!pIt->fResourceId)
-                    RTFileReadAllFree(pIt->pu8ResourceFree, (size_t)pIt->cbResource);
+                    RTFileReadAllFree(pIt->pu8ResourceFree, pIt->cbResource);
                 else
                     PDMDevHlpMMHeapFree(pDevIns, pIt->pu8ResourceFree);
             }
@@ -378,10 +379,15 @@ static int platformR3LoadRoms(PPDMDEVINS pDevIns, PDEVPLATFORM pThis)
     PDEVPLATFORMRESOURCE pIt;
     RTListForEach(&pThis->LstResourcesRom, pIt, DEVPLATFORMRESOURCE, NdLst)
     {
-        rc = platformR3ResourceResolveContent(pDevIns, pThis, pIt, (void **)&pIt->pu8ResourceFree, (void const **)&pIt->pu8Resource, &pIt->cbResource);
+        rc = platformR3ResourceResolveContent(pDevIns, pThis, pIt, (void **)&pIt->pu8ResourceFree,
+                                              (void const **)&pIt->pu8Resource, &pIt->cbResource);
         if (RT_SUCCESS(rc))
-            rc = PDMDevHlpROMRegister(pDevIns, platformR3ResourceGetLoadAddress(pDevIns, pIt), pIt->cbResource, pIt->pu8Resource, pIt->cbResource,
+        {
+            AssertLogRel((uint32_t)pIt->cbResource == pIt->cbResource);
+            rc = PDMDevHlpROMRegister(pDevIns, platformR3ResourceGetLoadAddress(pDevIns, pIt),
+                                      (uint32_t)pIt->cbResource, pIt->pu8Resource, (uint32_t)pIt->cbResource,
                                       PGMPHYS_ROM_FLAGS_SHADOWED | PGMPHYS_ROM_FLAGS_PERMANENT_BINARY, pIt->szName);
+        }
         AssertRCReturn(rc, rc);
     }
 

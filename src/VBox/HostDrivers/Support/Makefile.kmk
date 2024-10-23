@@ -935,7 +935,10 @@ if   !defined(VBOX_ONLY_DOCS) \
    ifdef VBOX_SIGNING_MODE
     VBoxSup-inf_SOURCES += \
     	$(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.sys \
-    	$(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.cat \
+    	$(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.cat
+    VBoxSup-inf_SOURCES.amd64 += \
+    	$(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.cat=>VBoxSup-PreW10.cat
+    VBoxSup-inf_SOURCES.x86 += \
     	$(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.cat=>VBoxSup-PreW10.cat
 
     $(PATH_TARGET)/VBoxSupCat.dir/VBoxSup.sys: $$(VBoxDrv_1_TARGET) | $$(dir $$@)

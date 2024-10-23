@@ -393,7 +393,8 @@ VBOX_WITH_NEW_WINDOWS_DDK = 1
 # Don't use the compiler CRT for statically linked modules, use IPRT with some
 # additional CRT functionality.
 # Note! This has only been tested with Visual C++ 2019.
-if "$(KBUILD_TARGET)" == "win" && "$(KBUILD_TYPE)" != "asan"
+## @todo the arm64 exclusion is temporary.
+if "$(KBUILD_TARGET)" == "win" && "$(KBUILD_TYPE)" != "asan" && "$(KBUILD_TARGET_ARCH)" != "arm64"
  VBOX_WITH_NOCRT_STATIC := 1
 endif
 

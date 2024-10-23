@@ -37,6 +37,7 @@ VBox-libvorbis_TEMPLATE   := VBoxR3DllNonPedanticFast
 ifn1of ($(KBUILD_TARGET), win) # Include our own config.h. Not required on Windows.
  VBox-libvorbis_DEFS      := HAVE_CONFIG_H
 endif
+VBox-libvorbis_CFLAGS.win.arm64 := -wd4101 # vorbisfile.c(1987): warning C4101: 'fpu': unreferenced local variable
 VBox-libvorbis_INCS       := \
 	. \
 	include \

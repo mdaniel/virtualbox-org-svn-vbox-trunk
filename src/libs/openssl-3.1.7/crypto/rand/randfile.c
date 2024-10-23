@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _MSC_VER             /* VBox */
+# include <iprt/alloca.h>   /* VBox: fix for missing _alloca prototype on win.arm64 */
+#endif                      /* VBox */
 
 #include <openssl/crypto.h>
 #include <openssl/rand.h>

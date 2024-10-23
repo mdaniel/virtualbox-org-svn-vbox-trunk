@@ -576,13 +576,25 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcCrc32X)
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcSubp)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,         16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcIrg)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcGmi)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg2Src64Bit)
-    INVALID_OPCODE,                                                                             /** @todo SUBP (FEAT_MTE). */
+    DIS_ARMV8_OP_ALT_DECODE(0x9ac00000, "subp",            OP_ARMV8_A64_SUBP,      DISOPTYPE_HARMLESS, Reg2SrcSubp),
     INVALID_OPCODE,
     DIS_ARMV8_OP(           0x9ac00800, "udiv",            OP_ARMV8_A64_UDIV,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(           0x9ac00c00, "sdiv",            OP_ARMV8_A64_SDIV,      DISOPTYPE_HARMLESS),
-    INVALID_OPCODE,                                                                             /** @todo IRG (FEAT_MTE). */
-    INVALID_OPCODE,                                                                             /** @todo GMI (FEAT_MTE). */
+    DIS_ARMV8_OP_ALT_DECODE(0x9ac01000, "irg",             OP_ARMV8_A64_IRG,       DISOPTYPE_HARMLESS, Reg2SrcIrg),
+    DIS_ARMV8_OP_ALT_DECODE(0x9ac01400, "gmi",             OP_ARMV8_A64_GMI,       DISOPTYPE_HARMLESS, Reg2SrcGmi),
     INVALID_OPCODE,
     INVALID_OPCODE,
     DIS_ARMV8_OP(           0x9ac02000, "lslv",            OP_ARMV8_A64_LSLV,      DISOPTYPE_HARMLESS),

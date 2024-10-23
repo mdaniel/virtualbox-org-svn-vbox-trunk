@@ -1271,6 +1271,9 @@ _TestProcA64:
         ;subps x0, x1, x3 - Requires FEAT_MTE
         ;subps x0, sp, sp - Requires FEAT_MTE
 
+        ;subp  x0, x1, x3 - Requires FEAT_MTE
+        ;subp  x0, sp, sp - Requires FEAT_MTE
+
         udiv w0, w1, wzr
         udiv x0, x1, xzr
 

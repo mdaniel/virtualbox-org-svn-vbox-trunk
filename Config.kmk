@@ -795,7 +795,7 @@ VBOX_WITH_GUEST_INSTALLER_UNICODE = 1
 # The kernel driver/module and related runtime libraries.
 # On Linux we build this as a test case instead.
 # On darwin we don't use a support driver.
-if "$(KBUILD_TARGET)" != "linux" && "$(KBUILD_TARGET)" != "darwin" && "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" != "win.arm64"
+if "$(KBUILD_TARGET)" != "linux" && "$(KBUILD_TARGET)" != "darwin"
  VBOX_WITH_VBOXDRV = 1
 endif
 # The main api.
@@ -4283,7 +4283,13 @@ ifdef VBOX_SIGNING_MODE
   VBOX_SIGNTOOL_SHA2           ?= $(VBOX_SIGNTOOL)
   VBOX_SIGNTOOL_SHA2_ORDERDEPS ?=
   VBOX_SIGNTOOL_ORDERDEPS      ?= $(VBOX_SIGNTOOL_SHA1_ORDERDEPS) $(VBOX_SIGNTOOL_SHA2_ORDERDEPS)
-  VBOX_INF2CAT                 ?= $(VBOX_PATH_SELFSIGN)/inf2cat.exe
+  ifndef VBOX_INF2CAT # Inf2Cat.exe is only found in the bin/*/x86 directory in WINSDK10. Arm64 requires a W10+ one.
+   VBOX_INF2CAT = $(requote sh,$(firstfile $(qwildcard , $(qaddsuffix ,/[Ii][Nn][Ff]2[Cc][Aa][Tt].[Ee][Xx][Ee], \
+      $(PATH_SDK_WINSDK10_BIN.x86)  \
+      $(PATH_SDK_WINSDK10_BIN) \
+      $(if-expr defined(PATH_SDK_WINSDK10_BASE_BIN) && defined(SDK_WINSDK10_VERSION),$(PATH_SDK_WINSDK10_BASE_BIN)/$(SDK_WINSDK10_VERSION)/x86) \
+      )) $(VBOX_PATH_SELFSIGN)/Inf2Cat.exe ))
+  endif
 
   ifeq ($(VBOX_SIGNING_MODE),test)
    VBOX_CERTIFICATE_SUBJECT_NAME ?= MyTestCertificate
@@ -4550,18 +4556,10 @@ ifdef VBOX_SIGNING_MODE
     VBOX_MAKE_CAT_HLP_FN += $(NL)$(TAB)$(call         VBOX_SIGN_FILE_FN,$(2),,,$(NL)$(TAB))
    endif
   endif
-  VBOX_MAKE_CAT64_FN   ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),XP_X64;Server2003_X64;Vista_X64)
-  VBOX_MAKE_CAT32_FN   ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),2000;XP_X86;Server2003_X86;Vista_X86)
-  VBOX_MAKE_CATARM64_FN ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),10_19H1_ARM64;10_CO_ARM64;Server10_ARM64;10_RS3_ARM64)
-  ifeq ($(KBUILD_TARGET_ARCH),x86)
-   VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT32_FN,$(1),$(2))
-  else
-   ifeq ($(KBUILD_TARGET_ARCH),amd64)
-    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CAT64_FN,$(1),$(2))
-   else
-    VBOX_MAKE_CAT_FN    ?= $(call VBOX_MAKE_CATARM64_FN,$(1),$(2))
-   endif
-  endif
+  VBOX_MAKE_CAT_FN.amd64  ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),XP_X64;Server2003_X64;Vista_X64)
+  VBOX_MAKE_CAT_FN.x86    ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),2000;XP_X86;Server2003_X86;Vista_X86)
+  VBOX_MAKE_CAT_FN.arm64  ?= $(call VBOX_MAKE_CAT_HLP_FN,$(1),$(2),10_19H1_ARM64;ServerRS5_ARM64;10_CO_ARM64;Server10_ARM64;10_RS3_ARM64)
+  VBOX_MAKE_CAT_FN         = $(VBOX_MAKE_CAT_FN.$(KBUILD_TARGET_ARCH))
 
   ## Functions + deps for signing an executable or a dll image. See VBOX_SIGN_IMAGE_NORMAL_FN for parameters.
   if defined(VBOX_CERTIFICATE_SUBJECT_NAME) && $(intersects win_planb,$(VBOX_WITH_CORP_CODE_SIGNING))
@@ -5668,9 +5666,9 @@ ifeq ($(VBOX_LDR_FMT),pe)
  TEMPLATE_VBoxR0_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  TEMPLATE_VBoxR0_LDFLAGS.win.arm64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  ifneq ($(VBOX_VCC_CC_GUARD_CF),)
-  TEMPLATE_VBoxR0_LDFLAGS.win.amd64 += -Include:__security_init_cookie  -Export:ModuleInitSecurityCookie=__security_init_cookie
+  TEMPLATE_VBoxR0_LDFLAGS.win.amd64 += -Include:__security_init_cookie -Export:ModuleInitSecurityCookie=__security_init_cookie
   TEMPLATE_VBoxR0_LDFLAGS.win.x86  += -Include:___security_init_cookie -Export:ModuleInitSecurityCookie=__security_init_cookie
-  TEMPLATE_VBoxR0_LDFLAGS.win.arm64 += -Include:__security_init_cookie  -Export:ModuleInitSecurityCookie=__security_init_cookie
+  TEMPLATE_VBoxR0_LDFLAGS.win.arm64 += -Include:__security_init_cookie -Export:ModuleInitSecurityCookie=__security_init_cookie
  endif
  TEMPLATE_VBoxR0_LIBS               = \
  	$(PATH_STAGE_LIB)/RuntimeR0Stub$(VBOX_SUFF_LIB)

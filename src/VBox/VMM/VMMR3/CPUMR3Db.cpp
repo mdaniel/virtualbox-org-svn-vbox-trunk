@@ -744,12 +744,18 @@ int cpumR3MsrApplyFudge(PVM pVM)
      * CPUID.ARCH_CAP(EAX=7h,ECX=0):EDX[bit 29] or the MSR feature bits in
      * MSR_IA32_ARCH_CAPABILITIES[bit 7], see @bugref{9630}.
      * Ignore writes to this MSR and return 0 on reads.
+     *
+     * Windows 11 24H2 incorrectly reads MSR_IA32_MCU_OPT_CTRL without
+     * checking CPUID.ARCH_CAP(EAX=7h,ECX=0).EDX[bit 9] or the MSR feature
+     * bits in MSR_IA32_ARCH_CAPABILITIES[bit 18], see @bugref{10794}.
+     * Ignore wrties to this MSR and return 0 on reads.
      */
     if (pVM->cpum.s.GuestFeatures.fArchCap)
     {
         static CPUMMSRRANGE const s_aTsxCtrl[] =
         {
             MVI(MSR_IA32_TSX_CTRL, "IA32_TSX_CTRL", 0),
+            MVI(MSR_IA32_MCU_OPT_CTRL, "IA32_MCU_OPT_CTRL", 0),
         };
         rc = cpumR3MsrApplyFudgeTable(pVM, &s_aTsxCtrl[0], RT_ELEMENTS(s_aTsxCtrl));
         AssertLogRelRCReturn(rc, rc);

@@ -73,6 +73,13 @@ NAME(g_cbEfiFirmware64):
 .type g_abEfiFirmware64 object
 .size g_cbEfiFirmware64, 4
 .type g_cbEfiFirmware64 object
+
+#elif defined(ASM_FORMAT_PE)
+/* Explit exportint: */
+.section .drectve
+.string "-export:g_abEfiFirmware32 -export:g_cbEfiFirmware32 -export:g_abEfiFirmware64 -export:g_cbEfiFirmware64"
+.section .text
+
 #endif
 
 #ifdef VBOX_WITH_VIRT_ARMV8
@@ -115,5 +122,12 @@ NAME(g_cbEfiFirmwareAArch64):
 .type g_abEfiFirmwareAArch64 object
 .size g_cbEfiFirmwareAArch64, 4
 .type g_cbEfiFirmwareAArch64 object
+
+#elif defined(ASM_FORMAT_PE)
+/* Explit exportint: */
+.section .drectve
+.string "-export:g_abEfiFirmwareAArch32 -export:g_cbEfiFirmwareAArch32 -export:g_abEfiFirmwareAArch64 -export:g_cbEfiFirmwareAArch64"
+.section .text
+
 # endif
-#endif
+#endif /*VBOX_WITH_VIRT_ARMV8 */

@@ -56,6 +56,8 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseImmAdr,
     kDisParmParseImmZero,
     kDisParmParseGprZr,
+    kDisParmParseGprZr32,
+    kDisParmParseGprZr64,
     kDisParmParseGprSp,
     kDisParmParseGprOff,
     kDisParmParseImmsImmrN,
@@ -88,21 +90,8 @@ typedef enum DISPARMPARSEIDX
 
 
 /**
- * Opcode structure.
+ * Decoder step.
  */
-typedef struct DISARMV8OPCODE
-{
-    /** The value of the fixed bits of the instruction. */
-    uint32_t            fValue;
-    /** Special flags for the opcode. */
-    uint32_t            fFlags;
-    /** The generic opcode structure. */
-    DISOPCODE           Opc;
-} DISARMV8OPCODE;
-/** Pointer to a const opcode. */
-typedef const DISARMV8OPCODE *PCDISARMV8OPCODE;
-
-
 typedef struct DISARMV8INSNPARAM
 {
     /** The parser to use for the decode step. */
@@ -122,6 +111,25 @@ typedef const DISARMV8INSNPARAM *PCDISARMV8INSNPARAM;
     { a_idxParse, a_idxBitStart, a_cBits, a_idxParam }
 
 #define DIS_ARMV8_INSN_PARAM_UNSET        UINT8_MAX
+
+
+/**
+ * Opcode structure.
+ */
+typedef struct DISARMV8OPCODE
+{
+    /** The value of the fixed bits of the instruction. */
+    uint32_t            fValue;
+    /** Special flags for the opcode. */
+    uint32_t            fFlags;
+    /** Pointer to an alternative decoder overriding the default one for the instruction class. */
+    PCDISARMV8INSNPARAM paDecode;
+    /** The generic opcode structure. */
+    DISOPCODE           Opc;
+} DISARMV8OPCODE;
+/** Pointer to a const opcode. */
+typedef const DISARMV8OPCODE *PCDISARMV8OPCODE;
+
 
 /**
  * Opcode decode index.
@@ -199,14 +207,18 @@ typedef const DISARMV8INSNCLASS *PCDISARMV8INSNCLASS;
 #define DISARMV8INSNCLASS_F_FORCED_32BIT                RT_BIT_32(3)
 
 
-#define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(a_Name) \
-    static const DISARMV8OPCODE g_aArmV8A64Insn ## a_Name ## Opcodes[] = {
 #define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(a_Name) \
+    static const DISARMV8INSNPARAM g_aArmV8A64Insn ## a_Name ## Decode[] = {
+#define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(a_Name) \
+        DIS_ARMV8_INSN_DECODE_TERM \
     }; \
     static const DISARMV8INSNPARAM g_aArmV8A64Insn ## a_Name ## Decode[] = {
+#define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(a_Name) \
+        DIS_ARMV8_INSN_DECODE_TERM \
+    }; \
+    static const DISARMV8OPCODE g_aArmV8A64Insn ## a_Name ## Opcodes[] = {
 #define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_4(a_Name, a_fFixedInsn, a_enmOpcDecode, a_fMask, a_cShift, \
                                                         a_enmParamType1, a_enmParamType2, a_enmParamType3, a_enmParamType4) \
-    DIS_ARMV8_INSN_DECODE_TERM \
     }; \
     static const DISARMV8INSNCLASS g_aArmV8A64Insn ## a_Name = { { kDisArmV8DecodeType_InsnClass, \
                                                                    RT_ELEMENTS(g_aArmV8A64Insn ## a_Name ## Opcodes) }, \
@@ -229,6 +241,7 @@ typedef const DISARMV8INSNCLASS *PCDISARMV8INSNCLASS;
 #define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_0(a_Name, a_fFixedInsn, a_enmOpcDecode, a_fMask, a_cShift) \
     DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_1(a_Name, a_fFixedInsn, a_enmOpcDecode, a_fMask, a_cShift, \
                                                     kDisArmv8OpParmNone)
+
 
 #define DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END \
     DIS_ARMV8_INSN_PARAM_NONE }

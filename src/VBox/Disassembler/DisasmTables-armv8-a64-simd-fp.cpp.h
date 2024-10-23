@@ -74,6 +74,12 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(DataProcSimdFpBit28_0, 31);
  *
  * Note: The opcode is selected based on the <opcode> field.
  */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvGpr2FpReg)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,             31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvGpr2FpReg)
     INVALID_OPCODE,
     INVALID_OPCODE,
@@ -83,12 +89,6 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvGpr2FpReg)
     INVALID_OPCODE,
     INVALID_OPCODE,
     INVALID_OPCODE,
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvGpr2FpReg)
-    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,             31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           5,  5, 1 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpFixedPConvGpr2FpReg, 0x7f3f0000 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(16) | RT_BIT_32(17) | RT_BIT_32(18), 16,
@@ -100,6 +100,12 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpFixedPConvGpr2FpReg, 0
  *
  * Note: The opcode is selected based on the <opcode> field.
  */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvFpReg2Gpr)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,             31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvFpReg2Gpr)
     DIS_ARMV8_OP(0x1e180000, "fcvtzs",          OP_ARMV8_A64_FCVTZS,    DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e190000, "fcvtzu",          OP_ARMV8_A64_FCVTZU,    DISOPTYPE_HARMLESS),
@@ -109,12 +115,6 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvFpReg2Gpr)
     INVALID_OPCODE,
     INVALID_OPCODE,
     INVALID_OPCODE,
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvFpReg2Gpr)
-    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,             31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpFixedPConvFpReg2Gpr, 0x7f3f0000 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(16) | RT_BIT_32(17) | RT_BIT_32(18), 16,
@@ -146,13 +146,13 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END(DataProcFpFixedPConv, RT_BIT_32(19) | RT_BIT_32(
  *
  * Note: The opcode is selected based on the <rmode>:<opcode> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpConvInt) /** @todo */
-    INVALID_OPCODE,
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpConvInt)
     DIS_ARMV8_INSN_DECODE(kDisParmParseSf,             31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpConvInt) /** @todo */
+    INVALID_OPCODE,
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpConvInt, 0xff3ffc00 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(16) | RT_BIT_32(17) | RT_BIT_32(18) | RT_BIT_32(19) | RT_BIT_32(20), 16,
@@ -164,14 +164,14 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpConvInt, 0xff3ffc00 /*
  *
  * Note: The opcode is selected based on the <opcode> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCondSelect)
-    DIS_ARMV8_OP(0x1e200c00, "fcsel",           OP_ARMV8_A64_FCSEL,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpCondSelect)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 2 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseCond,           12,  4, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCondSelect)
+    DIS_ARMV8_OP(0x1e200c00, "fcsel",           OP_ARMV8_A64_FCSEL,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_4(DataProcFpCondSelect, 0xff200c00 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(29), 29,
@@ -183,6 +183,11 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_4(DataProcFpCondSelect, 0xff200c00
  *
  * Note: The opcode is selected based on the <opcode> field.
  */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpDataProc2Src)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc2Src)
     DIS_ARMV8_OP(0x1e200800, "fmul",            OP_ARMV8_A64_FMUL,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e201800, "fdiv",            OP_ARMV8_A64_FDIV,      DISOPTYPE_HARMLESS),
@@ -194,11 +199,6 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc2Src)
     DIS_ARMV8_OP(0x1e207800, "fminnm",          OP_ARMV8_A64_FMINNM,    DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e208800, "fnmul",           OP_ARMV8_A64_FNMUL,     DISOPTYPE_HARMLESS),
     /* Rest of the 4 bit block is invalid */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpDataProc2Src)
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpDataProc2Src, 0xff20fc00 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15), 12,
@@ -212,6 +212,11 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpDataProc2Src, 0xff20fc
  *
  * Note: The opcode is selected based on the <opcode> field.
  */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpDataProc1Src)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseFpFixupFCvt,     0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc1Src)
     DIS_ARMV8_OP(0x1e204000, "fmov",            OP_ARMV8_A64_FMOV,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e20c000, "fabs",            OP_ARMV8_A64_FABS,      DISOPTYPE_HARMLESS),
@@ -233,11 +238,6 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc1Src)
     DIS_ARMV8_OP(0x1e28c000, "frint32x",        OP_ARMV8_A64_FRINT32X,  DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e294000, "frint64z",        OP_ARMV8_A64_FRINT64Z,  DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1e29c000, "frint64x",        OP_ARMV8_A64_FRINT64X,  DISOPTYPE_HARMLESS),
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpDataProc1Src)
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseFpFixupFCvt,     0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpDataProc1Src, 0xff3ffc00 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(15) | RT_BIT_32(16) | RT_BIT_32(17) | RT_BIT_32(18) | RT_BIT_32(19) | RT_BIT_32(20), 15,
@@ -251,13 +251,13 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpDataProc1Src, 0xff3ffc
  *
  * Note: The opcode is selected based on the op2<3:4> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCmpReg)
-    DIS_ARMV8_OP(0x1e202000, "fcmp",            OP_ARMV8_A64_FCMP,      DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1e202010, "fcmpe",           OP_ARMV8_A64_FCMPE,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpCmpReg)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCmpReg)
+    DIS_ARMV8_OP(0x1e202000, "fcmp",            OP_ARMV8_A64_FCMP,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1e202010, "fcmpe",           OP_ARMV8_A64_FCMPE,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpCmpReg, 0xff20fc1f /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(4), 4,
@@ -271,13 +271,13 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpCmpReg, 0xff20fc1f /*f
  *
  * Note: The opcode is selected based on the op2<3:4> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCmpZero)
-    DIS_ARMV8_OP(0x1e202008, "fcmp",            OP_ARMV8_A64_FCMP,      DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1e202018, "fcmpe",           OP_ARMV8_A64_FCMPE,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpCmpZero)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseImmZero,         0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCmpZero)
+    DIS_ARMV8_OP(0x1e202008, "fcmp",            OP_ARMV8_A64_FCMP,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1e202018, "fcmpe",           OP_ARMV8_A64_FCMPE,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpCmpZero, 0xff20fc1f /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(4), 4,
@@ -300,12 +300,12 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(DataProcFpCmp, 3);
  *
  * Note: The opcode is selected based on the <op> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpImm)
-    DIS_ARMV8_OP(0x1e201000, "fmov",            OP_ARMV8_A64_FMOV,      DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpImm)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseImm,            13,  8, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpImm)
+    DIS_ARMV8_OP(0x1e201000, "fmov",            OP_ARMV8_A64_FMOV,      DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpImm, 0xff201fe0 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7) | RT_BIT_32(8) | RT_BIT_32(9), 5,
@@ -319,15 +319,15 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(DataProcFpImm, 0xff201fe0 /*fFix
  *
  * Note: The opcode is selected based on the <op> field.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCondCmp)
-    DIS_ARMV8_OP(0x1e200400, "fccmp",           OP_ARMV8_A64_FCCMP,     DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1e200410, "fccmpe",          OP_ARMV8_A64_FCCMPE,    DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpCondCmp)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseImm,             0,  4, 2 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseCond,           12,  4, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpCondCmp)
+    DIS_ARMV8_OP(0x1e200400, "fccmp",           OP_ARMV8_A64_FCCMP,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1e200410, "fccmpe",          OP_ARMV8_A64_FCCMPE,    DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_4(DataProcFpCondCmp, 0xff200c10 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeNop,
                                                 RT_BIT_32(4), 4,
@@ -436,17 +436,17 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(DataProcSimdFpBit28_1_30_0_24_0, 21);
  *
  * Note: The o1,o0 bitfields are concatenated to form an index.
  */
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc3Src)
-    DIS_ARMV8_OP(0x1f000000, "fmadd",           OP_ARMV8_A64_FMADD,     DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1f008000, "fmsub",           OP_ARMV8_A64_FMSUB,     DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1f200000, "fnmadd",          OP_ARMV8_A64_FNMADD,    DISOPTYPE_HARMLESS),
-    DIS_ARMV8_OP(0x1f208000, "fnmsub",          OP_ARMV8_A64_FNMSUB,    DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpDataProc3Src)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          16,  5, 2 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,          10,  5, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpDataProc3Src)
+    DIS_ARMV8_OP(0x1f000000, "fmadd",           OP_ARMV8_A64_FMADD,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1f008000, "fmsub",           OP_ARMV8_A64_FMSUB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1f200000, "fnmadd",          OP_ARMV8_A64_FNMADD,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1f208000, "fnmsub",          OP_ARMV8_A64_FNMSUB,    DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_4(DataProcFpDataProc3Src, 0xff208000 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeCollate,
                                                 RT_BIT_32(15) | RT_BIT_32(21), 15,
@@ -481,6 +481,10 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(DataProcSimdFpBit28_1_30_0, 24);
  *
  * Note: The U,opcode bitfields are concatenated to form an index.
  */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcSimdScalarShiftByImm)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmHImmB,       16,  7, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcSimdScalarShiftByImm)
     DIS_ARMV8_OP(0x5f000400, "sshr",            OP_ARMV8_A64_SSHR,      DISOPTYPE_HARMLESS),
     INVALID_OPCODE,
@@ -501,10 +505,6 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcSimdScalarShiftByImm)
     INVALID_OPCODE,
     DIS_ARMV8_OP(0x5f009c00, "sqrshrn",         OP_ARMV8_A64_SQRSHRN,   DISOPTYPE_HARMLESS),
 #endif
-DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcSimdScalarShiftByImm)
-    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   5,  5, 1 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseImmHImmB,       16,  7, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcSimdScalarShiftByImm, 0xff80fc00 /*fFixedInsn*/,
                                                 kDisArmV8OpcDecodeCollate,
                                     /* opcode */  RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15)

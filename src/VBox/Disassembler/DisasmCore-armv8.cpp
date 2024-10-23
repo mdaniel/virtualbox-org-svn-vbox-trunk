@@ -79,6 +79,8 @@ static FNDISPARSEARMV8 disArmV8ParseImmRel;
 static FNDISPARSEARMV8 disArmV8ParseImmAdr;
 static FNDISPARSEARMV8 disArmV8ParseImmZero;
 static FNDISPARSEARMV8 disArmV8ParseGprZr;
+static FNDISPARSEARMV8 disArmV8ParseGprZr32;
+static FNDISPARSEARMV8 disArmV8ParseGprZr64;
 static FNDISPARSEARMV8 disArmV8ParseGprSp;
 static FNDISPARSEARMV8 disArmV8ParseGprOff;
 static FNDISPARSEARMV8 disArmV8ParseImmsImmrN;
@@ -128,6 +130,8 @@ static PFNDISPARSEARMV8 const g_apfnDisasm[kDisParmParseMax] =
     disArmV8ParseImmAdr,
     disArmV8ParseImmZero,
     disArmV8ParseGprZr,
+    disArmV8ParseGprZr32,
+    disArmV8ParseGprZr64,
     disArmV8ParseGprSp,
     disArmV8ParseGprOff,
     disArmV8ParseImmsImmrN,
@@ -301,6 +305,24 @@ static int disArmV8ParseGprZr(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE
         pParam->armv8.Op.Reg.enmRegType = kDisOpParamArmV8RegType_Gpr_64Bit;
     else
         pParam->armv8.Op.Reg.enmRegType = kDisOpParamArmV8RegType_Gpr_32Bit;
+    return VINF_SUCCESS;
+}
+
+
+static int disArmV8ParseGprZr32(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, pOp, pInsnClass, pf64Bit);
+    pParam->armv8.Op.Reg.idReg = disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits);
+    pParam->armv8.Op.Reg.enmRegType = kDisOpParamArmV8RegType_Gpr_32Bit;
+    return VINF_SUCCESS;
+}
+
+
+static int disArmV8ParseGprZr64(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, pOp, pInsnClass, pf64Bit);
+    pParam->armv8.Op.Reg.idReg = disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits);
+    pParam->armv8.Op.Reg.enmRegType = kDisOpParamArmV8RegType_Gpr_64Bit;
     return VINF_SUCCESS;
 }
 
@@ -949,6 +971,8 @@ static int disArmV8A64ParseInstruction(PDISSTATE pDis, uint32_t u32Insn, PCDISAR
 
     int rc = VINF_SUCCESS;
     PCDISARMV8INSNPARAM pDecode = &pInsnClass->paParms[0];
+    if (pOp->paDecode)
+        pDecode = &pOp->paDecode[0];
     while (   (pDecode->idxParse != kDisParmParseNop)
            && RT_SUCCESS(rc))
     {

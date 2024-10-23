@@ -1268,6 +1268,53 @@ _TestProcA64:
         dsb #0xe
         dsb #0xf
 
+        ;subps x0, x1, x3 - Requires FEAT_MTE
+        ;subps x0, sp, sp - Requires FEAT_MTE
+
+        udiv w0, w1, wzr
+        udiv x0, x1, xzr
+
+        sdiv w0, w1, wzr
+        sdiv x0, x1, xzr
+
+        lslv w0, w1, wzr
+        lslv x0, x1, xzr
+
+        lsrv w0, w1, wzr
+        lsrv x0, x1, xzr
+
+        asrv w0, w1, wzr
+        asrv x0, x1, xzr
+
+        rorv w0, w1, wzr
+        rorv x0, x1, xzr
+
+        crc32b w0, w1, wzr
+        crc32w w0, w1, wzr
+        crc32h w0, w1, wzr
+
+        crc32cb w0, w1, wzr
+        crc32cw w0, w1, wzr
+        crc32ch w0, w1, wzr
+
+        crc32x w0, w1, x3
+        crc32x w0, w1, xzr
+
+        crc32cx w0, w1, x3
+        crc32cx w0, w1, xzr
+
+        ;umax w0, w1, wzr - Requires FEAT_CSSC
+        ;umax x0, x1, xzr - Requires FEAT_CSSC
+
+        ;smax w0, w1, wzr - Requires FEAT_CSSC
+        ;smax x0, x1, xzr - Requires FEAT_CSSC
+
+        ;umin w0, w1, wzr - Requires FEAT_CSSC
+        ;umin x0, x1, xzr - Requires FEAT_CSSC
+
+        ;smin w0, w1, wzr - Requires FEAT_CSSC
+        ;smin x0, x1, xzr - Requires FEAT_CSSC
+
         ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.

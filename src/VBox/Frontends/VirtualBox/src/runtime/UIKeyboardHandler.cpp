@@ -2008,3 +2008,17 @@ void UIKeyboardHandler::setHostKeyComboPressedFlag(bool bPressed)
     m_fHostKeyComboPressInserted = bPressed;
     emit sigStateChange(state());
 }
+
+#ifdef VBOX_WS_NIX
+void UIKeyboardHandler::handleKeyEvent(quint32 nativeScanCode, bool fRelease)
+{
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+    {
+        /* On Linux xcb, wayland etc has an offset of 8 in scancodes (they start from 7 instead of 0): */
+        if (!fRelease)
+            uimachine()->putScancode(nativeScanCode - 8);
+        else
+            uimachine()->putScancode((nativeScanCode - 8) | 0x80);
+    }
+}
+#endif

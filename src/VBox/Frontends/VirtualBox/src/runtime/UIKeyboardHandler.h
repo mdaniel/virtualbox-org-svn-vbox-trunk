@@ -120,6 +120,10 @@ public:
       * @a bPressed is true for press and false for release inserts. */
     void setHostKeyComboPressedFlag(bool bPressed);
 
+#ifdef VBOX_WS_NIX
+    void handleKeyEvent(quint32 nativeScanCode, bool fRelease);
+#endif
+
 protected slots:
 
     /* Machine state-change handler: */

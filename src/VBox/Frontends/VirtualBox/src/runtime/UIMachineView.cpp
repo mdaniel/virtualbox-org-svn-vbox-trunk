@@ -2020,15 +2020,13 @@ void UIMachineView::focusOutEvent(QFocusEvent *pEvent)
 #ifdef VBOX_WS_NIX
 void UIMachineView::keyPressEvent(QKeyEvent *pEvent)
 {
-    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
-        uimachine()->putScancode(pEvent->nativeScanCode() - 8);
+    machineLogic()->keyboardHandler()->handleKeyEvent(pEvent->nativeScanCode(), false /* is release*/);
     QAbstractScrollArea::keyPressEvent(pEvent);
 }
 
 void UIMachineView::keyReleaseEvent(QKeyEvent *pEvent)
 {
-    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
-        uimachine()->putScancode((pEvent->nativeScanCode() - 8) | 0x80);
+    machineLogic()->keyboardHandler()->handleKeyEvent(pEvent->nativeScanCode(), true /* is release*/);
     QAbstractScrollArea::keyReleaseEvent(pEvent);
 }
 #endif

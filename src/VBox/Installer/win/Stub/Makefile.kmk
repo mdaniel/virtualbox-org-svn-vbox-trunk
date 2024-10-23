@@ -136,7 +136,7 @@ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/MsiLazyLoad.asm
 $$(VBoxStub_0_OUTDIR)/MsiLazyLoad.asm: $(PATH_SUB_CURRENT)/msi.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
-	$(VBOX_DEF_2_LAZY_LOAD) --system --library MSI.DLL --output "$@" $(filter %.def, $^)
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library MSI.DLL --output "$@" $(filter %.def, $^)
 
 # Dynamic import no. 2: CRYPTO32.DLL
 VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/Crypt32LazyLoad.asm
@@ -144,7 +144,7 @@ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/Crypt32LazyLoad.asm
 $$(VBoxStub_0_OUTDIR)/Crypt32LazyLoad.asm: $(PATH_SUB_CURRENT)/crypt32.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
-	$(VBOX_DEF_2_LAZY_LOAD) --system --library CRYPT32.DLL --output "$@" $(filter %.def, $^)
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library CRYPT32.DLL --output "$@" $(filter %.def, $^)
 
 # Dynamic import no. 3: WS2_32.DLL
 VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/Ws232LazyLoad.asm
@@ -152,7 +152,7 @@ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/Ws232LazyLoad.asm
 $$(VBoxStub_0_OUTDIR)/Ws232LazyLoad.asm: $(PATH_SUB_CURRENT)/ws2_32.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
-	$(VBOX_DEF_2_LAZY_LOAD) --system --library WS2_32.DLL --output "$@" $(filter %.def, $^)
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library WS2_32.DLL --output "$@" $(filter %.def, $^)
 
 # Dynamic import no. 4: USER32.DLL
 VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/User32LazyLoad.asm
@@ -160,7 +160,7 @@ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/User32LazyLoad.asm
 $$(VBoxStub_0_OUTDIR)/User32LazyLoad.asm: $(PATH_SUB_CURRENT)/user32.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
-	$(VBOX_DEF_2_LAZY_LOAD) --system --library USER32.DLL --output "$@" $(filter %.def, $^)
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library USER32.DLL --output "$@" $(filter %.def, $^)
 
 # Dynamic import no. 5: SHELL32.DLL
 VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/Shell32LazyLoad.asm
@@ -168,7 +168,7 @@ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/Shell32LazyLoad.asm
 $$(VBoxStub_0_OUTDIR)/Shell32LazyLoad.asm: $(PATH_SUB_CURRENT)/shell32.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
-	$(VBOX_DEF_2_LAZY_LOAD) --system --library SHELL32.DLL --output "$@" $(filter %.def, $^)
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library SHELL32.DLL --output "$@" $(filter %.def, $^)
 
 include $(FILE_KBUILD_SUB_FOOTER)
 

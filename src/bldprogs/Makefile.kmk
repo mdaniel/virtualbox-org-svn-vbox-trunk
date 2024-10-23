@@ -94,6 +94,7 @@ ifneq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),solaris.sparc64)
  BLDPROGS += VBoxDef2LazyLoad
 endif
 VBoxDef2LazyLoad_TEMPLATE = VBoxBldProg
+VBoxDef2LazyLoad_DEFS     = TARGET_$(toupper $(KBUILD_TARGET_ARCH))
 VBoxDef2LazyLoad_SOURCES  = VBoxDef2LazyLoad.cpp
 
 ifeq ($(KBUILD_TARGET),win)

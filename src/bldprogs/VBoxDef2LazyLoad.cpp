@@ -64,28 +64,29 @@ typedef MYEXPORT *PMYEXPORT;
 *********************************************************************************************************************************/
 /** @name Options
  * @{ */
-static const char  *g_pszOutput   = NULL;
-static const char  *g_pszLibrary  = NULL;
-static const char  *g_apszInputs[8] = { NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL };
-static unsigned     g_cInputs = 0;
-static bool         g_fIgnoreData = true;
-static bool         g_fWithExplictLoadFunction = false;
-static bool         g_fSystemLibrary = false;
-#if   defined(RT_ARCH_AMD64)
-static RTLDRARCH    g_enmTarget = RTLDRARCH_AMD64;
-#elif defined(RT_ARCH_X86)
-static RTLDRARCH    g_enmTarget = RTLDRARCH_X86_32;
-#elif defined(RT_ARCH_ARM64)
-static RTLDRARCH    g_enmTarget = RTLDRARCH_ARM64;
+static const char      *g_pszOutput   = NULL;
+static const char      *g_pszLibrary  = NULL;
+static const char      *g_apszInputs[8] = { NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL };
+static unsigned         g_cInputs = 0;
+static bool             g_fIgnoreData = true;
+static bool             g_fWithExplictLoadFunction = false;
+static bool             g_fSystemLibrary = false;
+#if   defined(TARGET_AMD64)
+static RTLDRARCH const  g_enmTargetDefault = RTLDRARCH_AMD64;
+#elif defined(TARGET_X86)
+static RTLDRARCH const  g_enmTargetDefault = RTLDRARCH_X86_32;
+#elif defined(TARGET_ARM64)
+static RTLDRARCH const  g_enmTargetDefault = RTLDRARCH_ARM64;
 #else
 # error "Port me!"
 #endif
+static RTLDRARCH        g_enmTarget = g_enmTargetDefault;
 /** @} */
 
 /** Pointer to the export name list head. */
-static PMYEXPORT    g_pExpHead  = NULL;
+static PMYEXPORT        g_pExpHead  = NULL;
 /** Pointer to the next pointer for insertion. */
-static PMYEXPORT   *g_ppExpNext = &g_pExpHead;
+static PMYEXPORT       *g_ppExpNext = &g_pExpHead;
 
 
 
@@ -1694,6 +1695,10 @@ static int usage(const char *pszArgv0)
            "  --system\n"
            "    The library is a system DLL to be loaded using RTLdrLoadSystem.\n"
            "    The default is to use SUPR3HardenedLdrLoadAppPriv to load it.\n"
+           "  --target <arch>, -t <arch>\n"
+           "    Sets the target architecture to produce assembly for.  Accepts: x86, amd64,\n"
+           "    arm64 and default.  Empty string is an alias for default.\n"
+           "    The build target architecture (KBUILD_TARGET_ARCH) is the default.\n"
            "\n"
            , pszArgv0);
 
@@ -1735,6 +1740,28 @@ int main(int argc, char **argv)
                 g_fWithExplictLoadFunction = false;
             else if (!strcmp(psz, "--system"))
                 g_fSystemLibrary = true;
+            else if (!strcmp(psz, "--target") || !strcmp(psz, "-t"))
+            {
+                if (++i >= argc)
+                {
+                    fprintf(stderr, "syntax error: Target architecture expected after '%s'.\n", psz);
+                    return RTEXITCODE_SYNTAX;
+                }
+                psz = argv[i];
+                if (strcmp(psz, "x86") == 0)
+                    g_enmTarget = RTLDRARCH_X86_32;
+                else if (strcmp(psz, "amd64") == 0)
+                    g_enmTarget = RTLDRARCH_AMD64;
+                else if (strcmp(psz, "arm64") == 0)
+                    g_enmTarget = RTLDRARCH_ARM64;
+                else if (*psz == '\0' || strcmp(psz, "default") == 0)
+                    g_enmTarget = g_enmTargetDefault;
+                else
+                {
+                    fprintf(stderr, "syntax error: Unknown target architecture '%s'!\n", psz);
+                    return RTEXITCODE_SYNTAX;
+                }
+            }
             /** @todo Support different load methods so this can be used on system libs and
              *        such if we like. */
             else if (   !strcmp(psz, "--help")

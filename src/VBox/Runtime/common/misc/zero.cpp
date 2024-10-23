@@ -43,7 +43,9 @@
 #include <iprt/param.h>
 #include <iprt/zero.h>
 
+#if !defined(RT_ARCH_ARM64) && !defined(RT_OS_LINUX)
 uint8_t const   g_abRTZeroPage[PAGE_SIZE] = { 0 };
+#endif
 uint8_t const   g_abRTZero4K[_4K] = { 0 };
 uint8_t const   g_abRTZero8K[_8K] = { 0 };
 uint8_t const   g_abRTZero16K[_16K] = { 0 };

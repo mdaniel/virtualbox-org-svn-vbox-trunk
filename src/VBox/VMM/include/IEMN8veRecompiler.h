@@ -1562,6 +1562,7 @@ typedef enum IEMNATIVEVARKIND : uint8_t
 /** Variable or argument. */
 typedef struct IEMNATIVEVAR
 {
+    RT_GCC_EXTENSION
     union
     {
         struct
@@ -1580,6 +1581,7 @@ typedef struct IEMNATIVEVAR
         uint32_t        u32Init0;   /**< Init optimzation - cbVar is set, the other are initialized with zeros. */
     };
 
+    RT_GCC_EXTENSION
     union
     {
         struct

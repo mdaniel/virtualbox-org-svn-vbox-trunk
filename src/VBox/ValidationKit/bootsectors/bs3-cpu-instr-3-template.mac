@@ -2282,23 +2282,23 @@ EMIT_INSTR_PLUS_ICEBP_C64  vpextrb, R9D,   XMM8, 000h
 EMIT_INSTR_PLUS_ICEBP_C64  vpextrb, FSxBX, XMM8, 0FFh
 EMIT_INSTR_PLUS_ICEBP_C64  vpextrb, FSxBX, XMM8, 000h
 
-%ifnmacro vpextrb_w1b_edx_xmm1 1
+%ifnmacro vpextrb_w1b_EDX_XMM1 1
  ; special encoding to prove that VEX.W is effectively ignored everywhere and that VEX.B only matter in 64-bit code.
- %macro vpextrb_w1b_edx_xmm1 1
+ %macro vpextrb_w1b_EDX_XMM1 1
         db      X86_OP_VEX3, 3 | X86_OP_VEX3_BYTE1_X | X86_OP_VEX3_BYTE1_R
         db      X86_OP_VEX3_BYTE2_P_066H | (X86_OP_VEX3_BYTE2_VVVV_NONE << X86_OP_VEX3_BYTE2_VVVV_SHIFT) | X86_OP_VEX3_BYTE2_W
         db      14h, X86_MODRM_MAKE(X86_MOD_REG, 1, X86_GREG_xDX), %1
  %endmacro
 
  ; invalid coding where VEX.L=1.
- %macro vpextrb_l1_edx_xmm1 1
+ %macro vpextrb_l1_EDX_XMM1 1
         db      X86_OP_VEX3, 3 | X86_OP_VEX3_BYTE1_X | X86_OP_VEX3_BYTE1_R | X86_OP_VEX3_BYTE1_B
         db      X86_OP_VEX3_BYTE2_P_066H | (X86_OP_VEX3_BYTE2_VVVV_NONE << X86_OP_VEX3_BYTE2_VVVV_SHIFT) | X86_OP_VEX3_BYTE2_L
         db      14h, X86_MODRM_MAKE(X86_MOD_REG, 1, X86_GREG_xDX), %1
  %endmacro
 %endif
-EMIT_INSTR_PLUS_ICEBP      vpextrb_w1b_edx_xmm1, 0FFh
-EMIT_INSTR_PLUS_ICEBP      vpextrb_l1_edx_xmm1, 0FFh
+EMIT_INSTR_PLUS_ICEBP      vpextrb_w1b_EDX_XMM1, 0FFh
+EMIT_INSTR_PLUS_ICEBP      vpextrb_l1_EDX_XMM1, 0FFh
 
 ;
 ; [V]PEXTRD
@@ -2459,45 +2459,45 @@ BS3CPUINSTR3_PROC_END_CMN
  %endmacro ; EMIT_NEG_VGATHER_INSTR
 
  ;; @param 1    instruction name
- ;; @param 2    'xmm' or 'ymm': type of destination register
- ;; @param 3    'xmm' or 'ymm': type of vector register
- ;; @param 4    'xmm' or 'ymm': type of mask register
+ ;; @param 2    'XMM' or 'YMM': type of destination register
+ ;; @param 3    'XMM' or 'YMM': type of vector register
+ ;; @param 4    'XMM' or 'YMM': type of mask register
  %macro EMIT_VGATHER_INSTR_BLOCK 4
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   0, %3 %+ 0, 1, %4 %+ 2   ;; UD: dest == index: v?gather?? ?mm0, [ebx+0+1*?mm0],   ?mm2
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   0, %3 %+ 1, 1, %4 %+ 0   ;; UD: dest  == mask: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm0
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   0, %3 %+ 1, 1, %4 %+ 1   ;; UD: index == mask: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm1
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   0, %3 %+ 1, 1, %4 %+ 2   ;;          baseline: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm2
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   2, %3 %+ 1, 1, %4 %+ 2   ;;           offset8: v?gather?? ?mm0, [ebx+2+1*?mm1],   ?mm2
-   EMIT_NEG_VGATHER_INSTR %1, %2 %+ 0, ebx,   2, %3 %+ 1, 1, %4 %+ 2   ;;          -offset8: v?gather?? ?mm0, [ebx-2+1*?mm1],   ?mm2
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx, 153, %3 %+ 1, 1, %4 %+ 2   ;;          offset32: v?gather?? ?mm0, [ebx+153+1*?mm1], ?mm2
-   EMIT_NEG_VGATHER_INSTR %1, %2 %+ 0, ebx, 153, %3 %+ 1, 1, %4 %+ 2   ;;         -offset32: v?gather?? ?mm0, [ebx-153+1*?mm1], ?mm2
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, ebx,   0, %3 %+ 1, 2, %4 %+ 2   ;;             scale: v?gather?? ?mm0, [ebx+0+2*?mm1],   ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   0, %3 %+ 0, 1, %4 %+ 2   ;; UD: dest == index: v?gather?? ?mm0, [ebx+0+1*?mm0],   ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   0, %3 %+ 1, 1, %4 %+ 0   ;; UD: dest  == mask: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm0
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   0, %3 %+ 1, 1, %4 %+ 1   ;; UD: index == mask: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm1
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   0, %3 %+ 1, 1, %4 %+ 2   ;;          baseline: v?gather?? ?mm0, [ebx+0+1*?mm1],   ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   2, %3 %+ 1, 1, %4 %+ 2   ;;           offset8: v?gather?? ?mm0, [ebx+2+1*?mm1],   ?mm2
+   EMIT_NEG_VGATHER_INSTR %1, %2 %+ 0, EBX,   2, %3 %+ 1, 1, %4 %+ 2   ;;          -offset8: v?gather?? ?mm0, [ebx-2+1*?mm1],   ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX, 153, %3 %+ 1, 1, %4 %+ 2   ;;          offset32: v?gather?? ?mm0, [ebx+153+1*?mm1], ?mm2
+   EMIT_NEG_VGATHER_INSTR %1, %2 %+ 0, EBX, 153, %3 %+ 1, 1, %4 %+ 2   ;;         -offset32: v?gather?? ?mm0, [ebx-153+1*?mm1], ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, EBX,   0, %3 %+ 1, 2, %4 %+ 2   ;;             scale: v?gather?? ?mm0, [ebx+0+2*?mm1],   ?mm2
   %if TMPL_BITS == 64
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, rbx,   0, %3 %+ 1, 1, %4 %+ 2   ;;   64-bit base reg: v?gather?? ?mm0, [rbx+0+1*?mm1],   ?mm2
-   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 8, r8d,   0, %3 %+ 9, 1, %4 %+ 10  ;;  64-bit-only regs: v?gather?? ?mm8, [r8d+0+1*?mm9],   ?mm10
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 0, RBX,   0, %3 %+ 1, 1, %4 %+ 2   ;;   64-bit base reg: v?gather?? ?mm0, [rbx+0+1*?mm1],   ?mm2
+   EMIT_ONE_VGATHER_INSTR %1, %2 %+ 8, R8D,   0, %3 %+ 9, 1, %4 %+ 10  ;;  64-bit-only regs: v?gather?? ?mm8, [r8d+0+1*?mm9],   ?mm10
   %endif
  %endmacro ; EMIT_VGATHER_INSTR_BLOCK
 
  ;; @param 1    instruction name
- ;; @param 2    'xmm' or 'ymm': type of destination register for 256-bit variants
- ;; @param 3    'xmm' or 'ymm': type of vector register for 256-bit variants
- ;; @param 4    'xmm' or 'ymm': type of mask register for 256-bit variants
+ ;; @param 2    'XMM' or 'YMM': type of destination register for 256-bit variants
+ ;; @param 3    'XMM' or 'YMM': type of vector register for 256-bit variants
+ ;; @param 4    'XMM' or 'YMM': type of mask register for 256-bit variants
  %macro EMIT_VGATHER_INSTR_BLOCKS 4
-  EMIT_VGATHER_INSTR_BLOCK %1, xmm, xmm, xmm
+  EMIT_VGATHER_INSTR_BLOCK %1, XMM, XMM, XMM
   EMIT_VGATHER_INSTR_BLOCK %1,  %2,  %3,  %4
  %endmacro ; EMIT_VGATHER_INSTR_BLOCKS
 
 %endif ; !EMIT_VGATHER_INSTR_DEFINED
 
-EMIT_VGATHER_INSTR_BLOCKS vgatherdps, ymm, ymm, ymm
-EMIT_VGATHER_INSTR_BLOCKS vgatherqps, xmm, ymm, xmm
-EMIT_VGATHER_INSTR_BLOCKS vgatherdpd, ymm, xmm, ymm
-EMIT_VGATHER_INSTR_BLOCKS vgatherqpd, ymm, ymm, ymm
+EMIT_VGATHER_INSTR_BLOCKS vgatherdps, YMM, YMM, YMM
+EMIT_VGATHER_INSTR_BLOCKS vgatherqps, XMM, YMM, XMM
+EMIT_VGATHER_INSTR_BLOCKS vgatherdpd, YMM, XMM, YMM
+EMIT_VGATHER_INSTR_BLOCKS vgatherqpd, YMM, YMM, YMM
 
-EMIT_VGATHER_INSTR_BLOCKS vpgatherdd, ymm, ymm, ymm
-EMIT_VGATHER_INSTR_BLOCKS vpgatherqd, xmm, ymm, xmm
-EMIT_VGATHER_INSTR_BLOCKS vpgatherdq, ymm, xmm, ymm
-EMIT_VGATHER_INSTR_BLOCKS vpgatherqq, ymm, ymm, ymm
+EMIT_VGATHER_INSTR_BLOCKS vpgatherdd, YMM, YMM, YMM
+EMIT_VGATHER_INSTR_BLOCKS vpgatherqd, XMM, YMM, XMM
+EMIT_VGATHER_INSTR_BLOCKS vpgatherdq, YMM, XMM, YMM
+EMIT_VGATHER_INSTR_BLOCKS vpgatherqq, YMM, YMM, YMM
 
 ;
 ; [V]MOVMSKPS

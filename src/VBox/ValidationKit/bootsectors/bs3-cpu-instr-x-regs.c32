@@ -1,0 +1,507 @@
+/* $Id$ */
+/** @file
+ * BS3Kit - bs3-cpu-instr-x - register reference constants & functions.
+ */
+
+/*
+ * Copyright (C) 2024 Oracle and/or its affiliates.
+ *
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * The contents of this file may alternatively be used under the terms
+ * of the Common Development and Distribution License Version 1.0
+ * (CDDL), a copy of it is provided in the "COPYING.CDDL" file included
+ * in the VirtualBox distribution, in which case the provisions of the
+ * CDDL are applicable instead of those of the GPL.
+ *
+ * You may elect to license modified versions of this file under the
+ * terms and conditions of either the GPL or the CDDL or both.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
+ */
+
+/** Simple unadorned x86 family register names to be used in instruction test value tables. */
+
+/**
+ *  Includes preliminary / placeholder support (in terms of knowing their
+ *  names and having space set aside) for AVX-512 registers ([XY]MM16..31,
+ *  ZMM, and k0..7), which VirtualBox does not yet support; and Intel APX
+ *  (R16..31) extended x86 general purpose registers -- which VirtualBox
+ *  does not yet support and Intel are not yet shipping.
+ */
+
+/**                     x0     x1     x2     x3     x4     x5     x6     x7     x8     x9     xA     xB     xC     xD     xE     xF
+ *                   /======  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  ======\
+ * 8-bit-L      | 0y | AL     CL     DL     BL     SPL    BPL    SIL    DIL    R8B    R9B    R10B   R11B   R12B   R13B   R14B   R15B  |
+ * 8-bit-L-APX  | 1y | R16B   R17B   R18B   R19B   R20B   R21B   R22B   R23B   R24B   R25B   R26B   R27B   R28B   R29B   R30B   R31B  |
+ * 16-bit       | 2y | AX     CX     DX     BX     SP     BP     SI     DI     R8W    R9W    R10W   R11W   R12W   R13W   R14W   R15W  |
+ * 16-bit-APX   | 3y | R16W   R17W   R18W   R19W   R20W   R21W   R22W   R23W   R24W   R25W   R26W   R27W   R28W   R29W   R30W   R31W  |
+ * 32-bit       | 4y | EAX    ECX    EDX    EBX    ESP    EBP    ESI    EDI    R8D    R9D    R10D   R11D   R12D   R13D   R14D   R15D  |
+ * 32-bit-APX   | 5y | R16D   R17D   R18D   R19D   R20D   R21D   R22D   R23D   R24D   R25D   R26D   R27D   R28D   R29D   R30D   R31D  |
+ * 64-bit       | 6y | RAX    RCX    RDX    RBX    RSP    RBP    RSI    RDI    R8     R9     R10    R11    R12    R13    R14    R15   |
+ * 64-bit-APX   | 7y | R16    R17    R18    R19    R20    R21    R22    R23    R24    R25    R26    R27    R28    R29    R30    R31   |
+ * XMM          | 8y | XMM0   XMM1   XMM2   XMM3   XMM4   XMM5   XMM6   XMM7   XMM8   XMM9   XMM10  XMM11  XMM12  XMM13  XMM14  XMM15 |
+ * XMM-AVX512   | 9y | XMM16  XMM17  XMM18  XMM19  XMM20  XMM21  XMM22  XMM23  XMM24  XMM25  XMM26  XMM27  XMM28  XMM29  XMM30  XMM31 |
+ * YMM          | Ay | YMM0   YMM1   YMM2   YMM3   YMM4   YMM5   YMM6   YMM7   YMM8   YMM9   YMM10  YMM11  YMM12  YMM13  YMM14  YMM15 |
+ * YMM-AVX512   | By | YMM16  YMM17  YMM18  YMM19  YMM20  YMM21  YMM22  YMM23  YMM24  YMM25  YMM26  YMM27  YMM28  YMM29  YMM30  YMM31 |
+ * ZMM          | Cy | ZMM0   ZMM1   ZMM2   ZMM3   ZMM4   ZMM5   ZMM6   ZMM7   ZMM8   ZMM9   ZMM10  ZMM11  ZMM12  ZMM13  ZMM14  ZMM15 |
+ * ZMM-AVX512   | Dy | ZMM16  ZMM17  ZMM18  ZMM19  ZMM20  ZMM21  ZMM22  ZMM23  ZMM24  ZMM25  ZMM26  ZMM27  ZMM28  ZMM29  ZMM30  ZMM31 |
+ * MMX / STn    | Ey/| MM0    MM1    MM2    MM3    MM4    MM5    MM6    MM7    ---    ---    ---    ---    ---    ---    ---    ---   |
+ * OpMask-kx    | Ey\| ---    ---    ---    ---    ---    ---    ---    ---    k0     k1     k2     k3     k4     k5     k6     k7    |
+ * SEGREG       | Fy/| CS     DS     ES     FS     GS     SS     ---    ---    ---    ---    ---    ---    ---    ---    ---    ---   |
+ * 8-bit-H      | Fy|| ---    ---    ---    ---    ---    ---    ---    ---    AH     CH     DH     BH     ---    ---    ---    ---   |
+ * Other/MEMREF | Fy\| ---    ---    ---    ---    ---    ---    xIP    xFL    ---    ---    ---    ---    NOREG (avail) FSxDI  FSxBX |
+ *                   \======  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====*/
+
+/** These values are used in uint8_t fields; the TODO values are *intended* to break compilation. */
+
+#define          BS3_REGISTER_FAMILY_AVX512_TODO       0x1000
+#define          BS3_REGISTER_FAMILY_APX_TODO          0x2000
+#define          BS3_REGISTER_FAMILY_OTHER_TODO        0x3000
+
+#define          BS3_REGISTER_FAMILY_MASK        0xE0
+#define          BS3_REGISTER_REGISTER_MASK      0x1F
+
+#define          BS3_REGISTER_FAMILY_8BIT_L      0x00
+#define          BS3_REGISTER_FAMILY_8BIT_L_LOW (0x00 | BS3_REGISTER_FAMILY_OTHER_TODO)
+#define AL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 0)
+#define CL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 1)
+#define DL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 2)
+#define BL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 3)
+#define SPL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 4)
+#define BPL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 5)
+#define SIL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 6)
+#define DIL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 7)
+#define R8B     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 8)
+#define R9B     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 9)
+#define R10B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 10)
+#define R11B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 11)
+#define R12B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 12)
+#define R13B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 13)
+#define R14B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 14)
+#define R15B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 15)
+#define          BS3_REGISTER_FAMILY_8BIT_L_APX (0x10 | BS3_REGISTER_FAMILY_APX_TODO)
+#define R16B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 16)
+#define R17B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 17)
+#define R18B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 18)
+#define R19B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 19)
+#define R20B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 20)
+#define R21B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 21)
+#define R22B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 22)
+#define R23B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 23)
+#define R24B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 24)
+#define R25B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 25)
+#define R26B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 26)
+#define R27B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 27)
+#define R28B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 28)
+#define R29B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 29)
+#define R30B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 30)
+#define R31B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 31)
+
+#define          BS3_REGISTER_FAMILY_16BIT       0x20
+#define AX      (BS3_REGISTER_FAMILY_16BIT      | 0)
+#define CX      (BS3_REGISTER_FAMILY_16BIT      | 1)
+#define DX      (BS3_REGISTER_FAMILY_16BIT      | 2)
+#define BX      (BS3_REGISTER_FAMILY_16BIT      | 3)
+#define SP      (BS3_REGISTER_FAMILY_16BIT      | 4)
+#define BP      (BS3_REGISTER_FAMILY_16BIT      | 5)
+#define SI      (BS3_REGISTER_FAMILY_16BIT      | 6)
+#define DI      (BS3_REGISTER_FAMILY_16BIT      | 7)
+#define R8W     (BS3_REGISTER_FAMILY_16BIT      | 8)
+#define R9W     (BS3_REGISTER_FAMILY_16BIT      | 9)
+#define R10W    (BS3_REGISTER_FAMILY_16BIT      | 10)
+#define R11W    (BS3_REGISTER_FAMILY_16BIT      | 11)
+#define R12W    (BS3_REGISTER_FAMILY_16BIT      | 12)
+#define R13W    (BS3_REGISTER_FAMILY_16BIT      | 13)
+#define R14W    (BS3_REGISTER_FAMILY_16BIT      | 14)
+#define R15W    (BS3_REGISTER_FAMILY_16BIT      | 15)
+#define          BS3_REGISTER_FAMILY_16BIT_APX  (0x30 | BS3_REGISTER_FAMILY_APX_TODO)
+#define R16W    (BS3_REGISTER_FAMILY_16BIT_APX  | 16)
+#define R17W    (BS3_REGISTER_FAMILY_16BIT_APX  | 17)
+#define R18W    (BS3_REGISTER_FAMILY_16BIT_APX  | 18)
+#define R19W    (BS3_REGISTER_FAMILY_16BIT_APX  | 19)
+#define R20W    (BS3_REGISTER_FAMILY_16BIT_APX  | 20)
+#define R21W    (BS3_REGISTER_FAMILY_16BIT_APX  | 21)
+#define R22W    (BS3_REGISTER_FAMILY_16BIT_APX  | 22)
+#define R23W    (BS3_REGISTER_FAMILY_16BIT_APX  | 23)
+#define R24W    (BS3_REGISTER_FAMILY_16BIT_APX  | 24)
+#define R25W    (BS3_REGISTER_FAMILY_16BIT_APX  | 25)
+#define R26W    (BS3_REGISTER_FAMILY_16BIT_APX  | 26)
+#define R27W    (BS3_REGISTER_FAMILY_16BIT_APX  | 27)
+#define R28W    (BS3_REGISTER_FAMILY_16BIT_APX  | 28)
+#define R29W    (BS3_REGISTER_FAMILY_16BIT_APX  | 29)
+#define R30W    (BS3_REGISTER_FAMILY_16BIT_APX  | 30)
+#define R31W    (BS3_REGISTER_FAMILY_16BIT_APX  | 31)
+
+#define          BS3_REGISTER_FAMILY_32BIT       0x40
+#define EAX     (BS3_REGISTER_FAMILY_32BIT      | 0)
+#define ECX     (BS3_REGISTER_FAMILY_32BIT      | 1)
+#define EDX     (BS3_REGISTER_FAMILY_32BIT      | 2)
+#define EBX     (BS3_REGISTER_FAMILY_32BIT      | 3)
+#define ESP     (BS3_REGISTER_FAMILY_32BIT      | 4)
+#define EBP     (BS3_REGISTER_FAMILY_32BIT      | 5)
+#define ESI     (BS3_REGISTER_FAMILY_32BIT      | 6)
+#define EDI     (BS3_REGISTER_FAMILY_32BIT      | 7)
+#define R8D     (BS3_REGISTER_FAMILY_32BIT      | 8)
+#define R9D     (BS3_REGISTER_FAMILY_32BIT      | 9)
+#define R10D    (BS3_REGISTER_FAMILY_32BIT      | 10)
+#define R11D    (BS3_REGISTER_FAMILY_32BIT      | 11)
+#define R12D    (BS3_REGISTER_FAMILY_32BIT      | 12)
+#define R13D    (BS3_REGISTER_FAMILY_32BIT      | 13)
+#define R14D    (BS3_REGISTER_FAMILY_32BIT      | 14)
+#define R15D    (BS3_REGISTER_FAMILY_32BIT      | 15)
+#define          BS3_REGISTER_FAMILY_32BIT_APX  (0x50 | BS3_REGISTER_FAMILY_APX_TODO)
+#define R16D    (BS3_REGISTER_FAMILY_32BIT_APX  | 16)
+#define R17D    (BS3_REGISTER_FAMILY_32BIT_APX  | 17)
+#define R18D    (BS3_REGISTER_FAMILY_32BIT_APX  | 18)
+#define R19D    (BS3_REGISTER_FAMILY_32BIT_APX  | 19)
+#define R20D    (BS3_REGISTER_FAMILY_32BIT_APX  | 20)
+#define R21D    (BS3_REGISTER_FAMILY_32BIT_APX  | 21)
+#define R22D    (BS3_REGISTER_FAMILY_32BIT_APX  | 22)
+#define R23D    (BS3_REGISTER_FAMILY_32BIT_APX  | 23)
+#define R24D    (BS3_REGISTER_FAMILY_32BIT_APX  | 24)
+#define R25D    (BS3_REGISTER_FAMILY_32BIT_APX  | 25)
+#define R26D    (BS3_REGISTER_FAMILY_32BIT_APX  | 26)
+#define R27D    (BS3_REGISTER_FAMILY_32BIT_APX  | 27)
+#define R28D    (BS3_REGISTER_FAMILY_32BIT_APX  | 28)
+#define R29D    (BS3_REGISTER_FAMILY_32BIT_APX  | 29)
+#define R30D    (BS3_REGISTER_FAMILY_32BIT_APX  | 30)
+#define R31D    (BS3_REGISTER_FAMILY_32BIT_APX  | 31)
+
+#define          BS3_REGISTER_FAMILY_64BIT       0x60
+#define RAX     (BS3_REGISTER_FAMILY_64BIT      | 0)
+#define RCX     (BS3_REGISTER_FAMILY_64BIT      | 1)
+#define RDX     (BS3_REGISTER_FAMILY_64BIT      | 2)
+#define RBX     (BS3_REGISTER_FAMILY_64BIT      | 3)
+#define RSP     (BS3_REGISTER_FAMILY_64BIT      | 4)
+#define RBP     (BS3_REGISTER_FAMILY_64BIT      | 5)
+#define RSI     (BS3_REGISTER_FAMILY_64BIT      | 6)
+#define RDI     (BS3_REGISTER_FAMILY_64BIT      | 7)
+#define R8      (BS3_REGISTER_FAMILY_64BIT      | 8)
+#define R9      (BS3_REGISTER_FAMILY_64BIT      | 9)
+#define R10     (BS3_REGISTER_FAMILY_64BIT      | 10)
+#define R11     (BS3_REGISTER_FAMILY_64BIT      | 11)
+#define R12     (BS3_REGISTER_FAMILY_64BIT      | 12)
+#define R13     (BS3_REGISTER_FAMILY_64BIT      | 13)
+#define R14     (BS3_REGISTER_FAMILY_64BIT      | 14)
+#define R15     (BS3_REGISTER_FAMILY_64BIT      | 15)
+#define          BS3_REGISTER_FAMILY_64BIT_APX  (0x70 | BS3_REGISTER_FAMILY_APX_TODO)
+#define R16     (BS3_REGISTER_FAMILY_64BIT_APX  | 16)
+#define R17     (BS3_REGISTER_FAMILY_64BIT_APX  | 17)
+#define R18     (BS3_REGISTER_FAMILY_64BIT_APX  | 18)
+#define R19     (BS3_REGISTER_FAMILY_64BIT_APX  | 19)
+#define R20     (BS3_REGISTER_FAMILY_64BIT_APX  | 20)
+#define R21     (BS3_REGISTER_FAMILY_64BIT_APX  | 21)
+#define R22     (BS3_REGISTER_FAMILY_64BIT_APX  | 22)
+#define R23     (BS3_REGISTER_FAMILY_64BIT_APX  | 23)
+#define R24     (BS3_REGISTER_FAMILY_64BIT_APX  | 24)
+#define R25     (BS3_REGISTER_FAMILY_64BIT_APX  | 25)
+#define R26     (BS3_REGISTER_FAMILY_64BIT_APX  | 26)
+#define R27     (BS3_REGISTER_FAMILY_64BIT_APX  | 27)
+#define R28     (BS3_REGISTER_FAMILY_64BIT_APX  | 28)
+#define R29     (BS3_REGISTER_FAMILY_64BIT_APX  | 29)
+#define R30     (BS3_REGISTER_FAMILY_64BIT_APX  | 30)
+#define R31     (BS3_REGISTER_FAMILY_64BIT_APX  | 31)
+
+#define          BS3_REGISTER_FAMILY_XMM         0x80
+#define XMM0    (BS3_REGISTER_FAMILY_XMM        | 0)
+#define XMM1    (BS3_REGISTER_FAMILY_XMM        | 1)
+#define XMM2    (BS3_REGISTER_FAMILY_XMM        | 2)
+#define XMM3    (BS3_REGISTER_FAMILY_XMM        | 3)
+#define XMM4    (BS3_REGISTER_FAMILY_XMM        | 4)
+#define XMM5    (BS3_REGISTER_FAMILY_XMM        | 5)
+#define XMM6    (BS3_REGISTER_FAMILY_XMM        | 6)
+#define XMM7    (BS3_REGISTER_FAMILY_XMM        | 7)
+#define XMM8    (BS3_REGISTER_FAMILY_XMM        | 8)
+#define XMM9    (BS3_REGISTER_FAMILY_XMM        | 9)
+#define XMM10   (BS3_REGISTER_FAMILY_XMM        | 10)
+#define XMM11   (BS3_REGISTER_FAMILY_XMM        | 11)
+#define XMM12   (BS3_REGISTER_FAMILY_XMM        | 12)
+#define XMM13   (BS3_REGISTER_FAMILY_XMM        | 13)
+#define XMM14   (BS3_REGISTER_FAMILY_XMM        | 14)
+#define XMM15   (BS3_REGISTER_FAMILY_XMM        | 15)
+#define          BS3_REGISTER_FAMILY_XMM_512    (0x90 | BS3_REGISTER_FAMILY_AVX512_TODO)
+#define XMM16   (BS3_REGISTER_FAMILY_XMM_512    | 16)
+#define XMM17   (BS3_REGISTER_FAMILY_XMM_512    | 17)
+#define XMM18   (BS3_REGISTER_FAMILY_XMM_512    | 18)
+#define XMM19   (BS3_REGISTER_FAMILY_XMM_512    | 19)
+#define XMM20   (BS3_REGISTER_FAMILY_XMM_512    | 20)
+#define XMM21   (BS3_REGISTER_FAMILY_XMM_512    | 21)
+#define XMM22   (BS3_REGISTER_FAMILY_XMM_512    | 22)
+#define XMM23   (BS3_REGISTER_FAMILY_XMM_512    | 23)
+#define XMM24   (BS3_REGISTER_FAMILY_XMM_512    | 24)
+#define XMM25   (BS3_REGISTER_FAMILY_XMM_512    | 25)
+#define XMM26   (BS3_REGISTER_FAMILY_XMM_512    | 26)
+#define XMM27   (BS3_REGISTER_FAMILY_XMM_512    | 27)
+#define XMM28   (BS3_REGISTER_FAMILY_XMM_512    | 28)
+#define XMM29   (BS3_REGISTER_FAMILY_XMM_512    | 29)
+#define XMM30   (BS3_REGISTER_FAMILY_XMM_512    | 30)
+#define XMM31   (BS3_REGISTER_FAMILY_XMM_512    | 31)
+
+#define          BS3_REGISTER_FAMILY_YMM         0xA0
+#define YMM0    (BS3_REGISTER_FAMILY_YMM        | 0)
+#define YMM1    (BS3_REGISTER_FAMILY_YMM        | 1)
+#define YMM2    (BS3_REGISTER_FAMILY_YMM        | 2)
+#define YMM3    (BS3_REGISTER_FAMILY_YMM        | 3)
+#define YMM4    (BS3_REGISTER_FAMILY_YMM        | 4)
+#define YMM5    (BS3_REGISTER_FAMILY_YMM        | 5)
+#define YMM6    (BS3_REGISTER_FAMILY_YMM        | 6)
+#define YMM7    (BS3_REGISTER_FAMILY_YMM        | 7)
+#define YMM8    (BS3_REGISTER_FAMILY_YMM        | 8)
+#define YMM9    (BS3_REGISTER_FAMILY_YMM        | 9)
+#define YMM10   (BS3_REGISTER_FAMILY_YMM        | 10)
+#define YMM11   (BS3_REGISTER_FAMILY_YMM        | 11)
+#define YMM12   (BS3_REGISTER_FAMILY_YMM        | 12)
+#define YMM13   (BS3_REGISTER_FAMILY_YMM        | 13)
+#define YMM14   (BS3_REGISTER_FAMILY_YMM        | 14)
+#define YMM15   (BS3_REGISTER_FAMILY_YMM        | 15)
+#define          BS3_REGISTER_FAMILY_YMM_512    (0xB0 | BS3_REGISTER_FAMILY_AVX512_TODO)
+#define YMM16   (BS3_REGISTER_FAMILY_YMM_512    | 16)
+#define YMM17   (BS3_REGISTER_FAMILY_YMM_512    | 17)
+#define YMM18   (BS3_REGISTER_FAMILY_YMM_512    | 18)
+#define YMM19   (BS3_REGISTER_FAMILY_YMM_512    | 19)
+#define YMM20   (BS3_REGISTER_FAMILY_YMM_512    | 20)
+#define YMM21   (BS3_REGISTER_FAMILY_YMM_512    | 21)
+#define YMM22   (BS3_REGISTER_FAMILY_YMM_512    | 22)
+#define YMM23   (BS3_REGISTER_FAMILY_YMM_512    | 23)
+#define YMM24   (BS3_REGISTER_FAMILY_YMM_512    | 24)
+#define YMM25   (BS3_REGISTER_FAMILY_YMM_512    | 25)
+#define YMM26   (BS3_REGISTER_FAMILY_YMM_512    | 26)
+#define YMM27   (BS3_REGISTER_FAMILY_YMM_512    | 27)
+#define YMM28   (BS3_REGISTER_FAMILY_YMM_512    | 28)
+#define YMM29   (BS3_REGISTER_FAMILY_YMM_512    | 29)
+#define YMM30   (BS3_REGISTER_FAMILY_YMM_512    | 30)
+#define YMM31   (BS3_REGISTER_FAMILY_YMM_512    | 31)
+
+#define          BS3_REGISTER_FAMILY_ZMM         0xC0
+#define          BS3_REGISTER_FAMILY_ZMM_LOW    (0xC0 | BS3_REGISTER_FAMILY_AVX512_TODO)
+#define ZMM0    (BS3_REGISTER_FAMILY_ZMM_LOW    | 0)
+#define ZMM1    (BS3_REGISTER_FAMILY_ZMM_LOW    | 1)
+#define ZMM2    (BS3_REGISTER_FAMILY_ZMM_LOW    | 2)
+#define ZMM3    (BS3_REGISTER_FAMILY_ZMM_LOW    | 3)
+#define ZMM4    (BS3_REGISTER_FAMILY_ZMM_LOW    | 4)
+#define ZMM5    (BS3_REGISTER_FAMILY_ZMM_LOW    | 5)
+#define ZMM6    (BS3_REGISTER_FAMILY_ZMM_LOW    | 6)
+#define ZMM7    (BS3_REGISTER_FAMILY_ZMM_LOW    | 7)
+#define ZMM8    (BS3_REGISTER_FAMILY_ZMM_LOW    | 8)
+#define ZMM9    (BS3_REGISTER_FAMILY_ZMM_LOW    | 9)
+#define ZMM10   (BS3_REGISTER_FAMILY_ZMM_LOW    | 10)
+#define ZMM11   (BS3_REGISTER_FAMILY_ZMM_LOW    | 11)
+#define ZMM12   (BS3_REGISTER_FAMILY_ZMM_LOW    | 12)
+#define ZMM13   (BS3_REGISTER_FAMILY_ZMM_LOW    | 13)
+#define ZMM14   (BS3_REGISTER_FAMILY_ZMM_LOW    | 14)
+#define ZMM15   (BS3_REGISTER_FAMILY_ZMM_LOW    | 15)
+#define          BS3_REGISTER_FAMILY_ZMM_512    (0xD0 | BS3_REGISTER_FAMILY_AVX512_TODO)
+#define ZMM16   (BS3_REGISTER_FAMILY_ZMM_512    | 16)
+#define ZMM17   (BS3_REGISTER_FAMILY_ZMM_512    | 17)
+#define ZMM18   (BS3_REGISTER_FAMILY_ZMM_512    | 18)
+#define ZMM19   (BS3_REGISTER_FAMILY_ZMM_512    | 19)
+#define ZMM20   (BS3_REGISTER_FAMILY_ZMM_512    | 20)
+#define ZMM21   (BS3_REGISTER_FAMILY_ZMM_512    | 21)
+#define ZMM22   (BS3_REGISTER_FAMILY_ZMM_512    | 22)
+#define ZMM23   (BS3_REGISTER_FAMILY_ZMM_512    | 23)
+#define ZMM24   (BS3_REGISTER_FAMILY_ZMM_512    | 24)
+#define ZMM25   (BS3_REGISTER_FAMILY_ZMM_512    | 25)
+#define ZMM26   (BS3_REGISTER_FAMILY_ZMM_512    | 26)
+#define ZMM27   (BS3_REGISTER_FAMILY_ZMM_512    | 27)
+#define ZMM28   (BS3_REGISTER_FAMILY_ZMM_512    | 28)
+#define ZMM29   (BS3_REGISTER_FAMILY_ZMM_512    | 29)
+#define ZMM30   (BS3_REGISTER_FAMILY_ZMM_512    | 30)
+#define ZMM31   (BS3_REGISTER_FAMILY_ZMM_512    | 31)
+
+#define          BS3_REGISTER_FAMILY_OTHER       0xE0
+#define          BS3_REGISTER_FAMILY_MMX         0xE0
+#define MM0     (BS3_REGISTER_FAMILY_MMX        | 0)
+#define MM1     (BS3_REGISTER_FAMILY_MMX        | 1)
+#define MM2     (BS3_REGISTER_FAMILY_MMX        | 2)
+#define MM3     (BS3_REGISTER_FAMILY_MMX        | 3)
+#define MM4     (BS3_REGISTER_FAMILY_MMX        | 4)
+#define MM5     (BS3_REGISTER_FAMILY_MMX        | 5)
+#define MM6     (BS3_REGISTER_FAMILY_MMX        | 6)
+#define MM7     (BS3_REGISTER_FAMILY_MMX        | 7)
+
+#define          BS3_REGISTER_FAMILY_OPMASK     (0xE8 | BS3_REGISTER_FAMILY_AVX512_TODO)
+#define k0      (BS3_REGISTER_FAMILY_OPMASK     | 0)
+#define k1      (BS3_REGISTER_FAMILY_OPMASK     | 1)
+#define k2      (BS3_REGISTER_FAMILY_OPMASK     | 2)
+#define k3      (BS3_REGISTER_FAMILY_OPMASK     | 3)
+#define k4      (BS3_REGISTER_FAMILY_OPMASK     | 4)
+#define k5      (BS3_REGISTER_FAMILY_OPMASK     | 5)
+#define k6      (BS3_REGISTER_FAMILY_OPMASK     | 6)
+#define k7      (BS3_REGISTER_FAMILY_OPMASK     | 7)
+
+#define          BS3_REGISTER_FAMILY_SEGREG     (0xF0 | BS3_REGISTER_FAMILY_OTHER_TODO)
+#define ES      (BS3_REGISTER_FAMILY_SEGREG     | 0)
+#define CS      (BS3_REGISTER_FAMILY_SEGREG     | 1)
+#define SS      (BS3_REGISTER_FAMILY_SEGREG     | 2)
+#define DS      (BS3_REGISTER_FAMILY_SEGREG     | 3)
+#define FS      (BS3_REGISTER_FAMILY_SEGREG     | 4)
+#define GS      (BS3_REGISTER_FAMILY_SEGREG     | 5)
+
+#define          BS3_REGISTER_FAMILY_IP         (0xF5 | BS3_REGISTER_FAMILY_OTHER_TODO)
+#define IP       BS3_REGISTER_FAMILY_IP
+#define EIP      BS3_REGISTER_FAMILY_IP
+#define RIP      BS3_REGISTER_FAMILY_IP
+#define xIP      BS3_REGISTER_FAMILY_IP
+
+#define          BS3_REGISTER_FAMILY_FL         (0xF6 | BS3_REGISTER_FAMILY_OTHER_TODO)
+#define FL       BS3_REGISTER_FAMILY_FL
+#define EFL      BS3_REGISTER_FAMILY_FL
+#define RFL      BS3_REGISTER_FAMILY_FL
+#define xFL      BS3_REGISTER_FAMILY_FL
+
+#define          BS3_REGISTER_FAMILY_8BIT_H     (0xE8 | BS3_REGISTER_FAMILY_OTHER_TODO)
+#define AH      (BS3_REGISTER_FAMILY_8BIT_H     | 0)
+#define CH      (BS3_REGISTER_FAMILY_8BIT_H     | 1)
+#define DH      (BS3_REGISTER_FAMILY_8BIT_H     | 2)
+#define BH      (BS3_REGISTER_FAMILY_8BIT_H     | 3)
+
+#define NOREG                                    0xFC
+
+#define          BS3_REGISTER_FAMILY_MEMREF      0xFE
+#define FSxDI   (BS3_REGISTER_FAMILY_MEMREF     | 0)
+#define FSxBX   (BS3_REGISTER_FAMILY_MEMREF     | 1)
+
+#define          BS3_REGISTER_FLAG_MEMREF        0x100
+#define          BS3_FSxREG(reg)                 (((reg) == FSxBX || (reg) == FSxDI) ? reg : ((reg) & BS3_REGISTER_REGISTER_MASK) | BS3_REGISTER_FLAG_MEMREF)
+
+#define BS3_REGISTER_NAME_MAXSIZE sizeof("(avail)")
+
+/**
+ * Get the name of a register from its identity value used in instruction test value tables.
+ *
+ * @returns  Name of register.
+ * @param    pszBuf  Where to store the name.
+ * @param    cchBuf  The size of the buffer.
+ * @param    uReg    The register identity value.
+ */
+static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, uint8_t uReg)
+{
+    const uint8_t uRegNum = uReg & BS3_REGISTER_REGISTER_MASK;
+    const uint8_t uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
+    static const char * const s_apsz8bitLNames[] = { "AL",  "CL",  "DL",  "BL",  "SPL", "BPL", "SIL", "DIL" };
+    static const char * const s_apsz16bitNames[] = { "AX",  "CX",  "DX",  "BX",  "SP",  "BP",  "SI",  "DI"  };
+    static const char * const s_apszOtherNames[] = { "MM0", "MM1", "MM2", "MM3", "MM4", "MM5", "MM6", "MM7",
+                                                     "k0",  "k1",  "k2",  "k3",  "k4",  "k5",  "k6",  "k7",
+                                                     "CS",  "DS",  "ES",  "FS",  "GS",  "SS",
+                                                                                               "xIP", "xFL",
+                                                     "AH",  "CH",  "DH",  "BH",
+                                                                       "NOREG", "(avail)", "FSxDI", "FSxBX" };
+    BS3_ASSERT(cchBuf >= BS3_REGISTER_NAME_MAXSIZE);
+
+    switch (uRegSet) {
+        case BS3_REGISTER_FAMILY_8BIT_L:
+            if (uRegNum < RT_ELEMENTS(s_apsz8bitLNames))
+                return Bs3StrPrintf(pszBuf, cchBuf, "%s", s_apsz8bitLNames[uRegNum]);
+            else
+                return Bs3StrPrintf(pszBuf, cchBuf, "R%dB", uRegNum);
+        case BS3_REGISTER_FAMILY_16BIT:
+            if (uRegNum < RT_ELEMENTS(s_apsz16bitNames))
+                return Bs3StrPrintf(pszBuf, cchBuf, "%s", s_apsz16bitNames[uRegNum]);
+            else
+                return Bs3StrPrintf(pszBuf, cchBuf, "R%dW", uRegNum);
+        case BS3_REGISTER_FAMILY_32BIT:
+            if (uRegNum < RT_ELEMENTS(s_apsz16bitNames))
+                return Bs3StrPrintf(pszBuf, cchBuf, "E%s", s_apsz16bitNames[uRegNum]);
+            else
+                return Bs3StrPrintf(pszBuf, cchBuf, "R%dD", uRegNum);
+        case BS3_REGISTER_FAMILY_64BIT:
+            if (uRegNum < RT_ELEMENTS(s_apsz16bitNames))
+                return Bs3StrPrintf(pszBuf, cchBuf, "R%s", s_apsz16bitNames[uRegNum]);
+            else
+                return Bs3StrPrintf(pszBuf, cchBuf, "R%d", uRegNum);
+        case BS3_REGISTER_FAMILY_XMM:
+            return Bs3StrPrintf(pszBuf, cchBuf, "XMM%d", uRegNum);
+        case BS3_REGISTER_FAMILY_YMM:
+            return Bs3StrPrintf(pszBuf, cchBuf, "YMM%d", uRegNum);
+        case BS3_REGISTER_FAMILY_ZMM:
+            return Bs3StrPrintf(pszBuf, cchBuf, "ZMM%d", uRegNum);
+        case BS3_REGISTER_FAMILY_OTHER:
+            return Bs3StrPrintf(pszBuf, cchBuf, "%s", s_apszOtherNames[uRegNum]);
+    }
+    return Bs3StrPrintf(pszBuf, cchBuf, "(?%02X?)", uReg);
+}
+
+/**
+ * Set a register within a testing context.  Intended to support a broad
+ * range of register types; this prototype so far only supports MMX, XMM,
+ * YMM, and hypothetically-but-not-yet-linked, general purpose registers
+ * other than their 8-bit sub-aliases.
+ *
+ * @returns  Nothing much of any interest (so far).
+ * @param    pExtCtx     The testing context to modify.
+ * @param    uReg        The register identity value to modify within that context.
+ * @param    pValue      Pointer to the data to store there.
+ * @param    pExtra      For BS3_REGISTER_FAMILY_XMM: flag whether to zero YMM-hi.
+ *                       For GPR references: pointer to general purpose register context.
+ */
+#define CLR_YmmHi (void *)true
+#define SET_YmmHi (void *)false
+
+static bool Bs3ExtCtxSetReg(PBS3EXTCTX pExtCtx, uint16_t uReg, void * pValue, void * pExtra)
+{
+    uint8_t    uRegNum = uReg & BS3_REGISTER_REGISTER_MASK;
+    uint8_t    uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
+    char       pszRegName[BS3_REGISTER_NAME_MAXSIZE];
+    PBS3REGCTX pCtx = (PBS3REGCTX)pExtra;  /* for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
+    bool       fZeroYMMHi = (bool)pExtra;  /* for BS3_REGISTER_FAMILY_XMM    */
+
+    if (uReg & BS3_REGISTER_FLAG_MEMREF || uReg == FSxBX || uReg == FSxDI)
+    {
+        uRegSet = BS3_REGISTER_FAMILY_MEMREF;
+        if (uReg == FSxBX) uRegNum = BX;
+        if (uReg == FSxDI) uRegNum = DI;
+        uRegNum &= BS3_REGISTER_REGISTER_MASK;
+    }
+
+    if (uRegNum < 16)
+    {
+        switch (uRegSet)
+        {
+            case BS3_REGISTER_FAMILY_16BIT:
+                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint16_t *)pValue), 2);
+            case BS3_REGISTER_FAMILY_32BIT:
+                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint32_t *)pValue), 4);
+            case BS3_REGISTER_FAMILY_64BIT:
+                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint64_t *)pValue), 8);
+            case BS3_REGISTER_FAMILY_XMM:
+                if (fZeroYMMHi)
+                    return Bs3ExtCtxSetXmm(pExtCtx, uRegNum, pValue);
+                else
+                    return Bs3ExtCtxSetYmm(pExtCtx, uRegNum, pValue, 16);
+            case BS3_REGISTER_FAMILY_YMM:
+                return Bs3ExtCtxSetYmm(pExtCtx, uRegNum, pValue, 32);
+            case BS3_REGISTER_FAMILY_MEMREF:
+                Bs3RegCtxSetGrpSegFromCurPtr(pCtx, (&pCtx->rax) + uRegNum, &pCtx->fs, pValue);
+                return true;
+            case BS3_REGISTER_FAMILY_OTHER:
+                if (uReg >= MM0 && uReg <= MM7)
+                    return Bs3ExtCtxSetMm(pExtCtx, uRegNum, (uint64_t)pValue, BS3EXTCTXTOPMM_SET);
+            case BS3_REGISTER_FAMILY_8BIT_L:
+            case BS3_REGISTER_FAMILY_ZMM:
+            default:
+                break;
+
+        }
+    }
+    if (uReg == NOREG)
+        return true;
+    /* FSxDI, FSxBX presumed handled by the callers, though that may change */
+
+    bs3CpuInstrXGetRegisterName(pszRegName, BS3_REGISTER_NAME_MAXSIZE, uReg);
+    return Bs3TestFailedF("Bs3ExtCtxSetReg() todo: handle register '%s' (%02X)", pszRegName, uReg);
+}

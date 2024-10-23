@@ -1771,6 +1771,7 @@ static RTEXITCODE SignToolPkcs7Exe_WriteSignatureToFile(PSIGNTOOLPKCS7EXE pThis,
             switch (enmLdrArch)
             {
                 case RTLDRARCH_AMD64:
+                case RTLDRARCH_ARM64:
                     cbNtHdrs = sizeof(IMAGE_NT_HEADERS64);
                     break;
                 case RTLDRARCH_X86_32:

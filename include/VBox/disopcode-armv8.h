@@ -50,6 +50,7 @@ enum OPCODESARMV8
     /** @name Full ARMv8 AArch64 opcode list.
      * @{ */
     OP_ARMV8_INVALID = 0,
+    OP_ARMV8_A64_ABS,
     OP_ARMV8_A64_ADC,
     OP_ARMV8_A64_ADCS,
     OP_ARMV8_A64_ADD,
@@ -130,6 +131,7 @@ enum OPCODESARMV8
     OP_ARMV8_A64_CMP,
     OP_ARMV8_A64_CMPP,
     OP_ARMV8_A64_CNEG,
+    OP_ARMV8_A64_CNT,
     OP_ARMV8_A64_CPP,
     /** @todo FEAT_MOPS instructions (CPYFP and friends). */
     OP_ARMV8_A64_CRC32B,
@@ -146,6 +148,7 @@ enum OPCODESARMV8
     OP_ARMV8_A64_CSETM,
     OP_ARMV8_A64_CSINC,
     OP_ARMV8_A64_CSNEG,
+    OP_ARMV8_A64_CTZ,
     OP_ARMV8_A64_DC,
     OP_ARMV8_A64_DCPS1,
     OP_ARMV8_A64_DCPS2,

@@ -563,7 +563,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg2Src32Bit)
     DIS_ARMV8_OP(0x1ac06800, "smin",            OP_ARMV8_A64_SMIN,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0x1ac06c00, "umin",            OP_ARMV8_A64_UMIN,      DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(Reg2Src32Bit, 0xffe0fc00 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
-                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(14), 10,
+                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15), 10,
                                                 kDisArmv8OpParmReg, kDisArmv8OpParmReg, kDisArmv8OpParmReg);
 
 
@@ -618,7 +618,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg2Src64Bit)
     DIS_ARMV8_OP(           0x9ac06800, "smin",            OP_ARMV8_A64_SMIN,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(           0x9ac06c00, "umin",            OP_ARMV8_A64_UMIN,      DISOPTYPE_HARMLESS)
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(Reg2Src64Bit, 0xffe0fc00 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
-                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(14), 10,
+                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15), 10,
                                                 kDisArmv8OpParmReg, kDisArmv8OpParmReg, kDisArmv8OpParmReg);
 
 
@@ -630,7 +630,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Subps)
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Subps)
     DIS_ARMV8_OP(0xbac00000, "subps",           OP_ARMV8_A64_SUBPS,     DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(Subps, 0xffe0fc00 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
-                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(14), 10,
+                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15), 10,
                                                 kDisArmv8OpParmReg, kDisArmv8OpParmReg, kDisArmv8OpParmReg);
 
 
@@ -657,6 +657,37 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(Reg2SrcSubps)
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg2SrcSubps, 29);
 
 
+/* RBIT/REV16/REV/CLZ/CLS/CTZ/CNT/ABS/REV32 */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Reg1SrcInsn)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg1SrcInsn)
+    DIS_ARMV8_OP(0x5ac00000, "rbit",            OP_ARMV8_A64_RBIT,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac00400, "rev16",           OP_ARMV8_A64_REV16,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac00800, "rev",             OP_ARMV8_A64_REV,       DISOPTYPE_HARMLESS), /** @todo REV32 if SF1 is 1 (why must this be so difficult ARM?). */
+    DIS_ARMV8_OP(0x5ac00c00, "rev",             OP_ARMV8_A64_REV,       DISOPTYPE_HARMLESS), /** @todo SF must be 1, otherwise unallocated. */
+    DIS_ARMV8_OP(0x5ac01000, "clz",             OP_ARMV8_A64_CLZ,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac01400, "cls",             OP_ARMV8_A64_CLS,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac01800, "ctz",             OP_ARMV8_A64_CTZ,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac01c00, "cnt",             OP_ARMV8_A64_CNT,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5ac02000, "abs",             OP_ARMV8_A64_ABS,       DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_2(Reg1SrcInsn, 0x7ffffc00 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
+                                                RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15), 10,
+                                                kDisArmv8OpParmReg, kDisArmv8OpParmReg);
+
+
+/**
+ * C4.1.95 - Data Processing - Register - 1-source
+ *
+ * Differentiate between standard and FEAT_PAuth instructions based on opcode2 field.
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(Reg1Src)
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg1SrcInsn),          /* Data-processing (1-source) */
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,               /* Data-processing (1-source, FEAT_PAuth) */
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg1Src, 16);
+
+
 /**
  * C4.1.95 - Data Processing - Register - 2-source / 1-source
  *
@@ -664,7 +695,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg2SrcSubps, 29);
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(Reg2Src1Src)
     DIS_ARMV8_DECODE_MAP_ENTRY(Reg2SrcSubps),        /* Data-processing (2-source) */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,              /** @todo Data-processing (1-source) */
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg1Src),             /* Data-processing (1-source) */
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg2Src1Src, 30);
 
 

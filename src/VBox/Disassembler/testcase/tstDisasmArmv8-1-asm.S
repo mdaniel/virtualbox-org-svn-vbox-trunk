@@ -1274,6 +1274,14 @@ _TestProcA64:
         ;subp  x0, x1, x3 - Requires FEAT_MTE
         ;subp  x0, sp, sp - Requires FEAT_MTE
 
+        ;gmi   x0, x1, x3  - Requires FEAT_MTE
+        ;gmi   x0, sp, x3  - Requires FEAT_MTE
+
+        ;irg   x0, x1, x3  - Requires FEAT_MTE
+        ;irg   x0, x1, xzr - Requires FEAT_MTE
+        ;irg   sp, sp, x3  - Requires FEAT_MTE
+        ;irg   sp, sp, xzr - Requires FEAT_MTE
+
         udiv w0, w1, wzr
         udiv x0, x1, xzr
 
@@ -1317,6 +1325,43 @@ _TestProcA64:
 
         ;smin w0, w1, wzr - Requires FEAT_CSSC
         ;smin x0, x1, xzr - Requires FEAT_CSSC
+
+        rbit w0, wzr
+        rbit w0, w1
+        rbit x0, xzr
+        rbit x0, x1
+
+        rev16 w0, wzr
+        rev16 w0, w1
+        rev16 x0, xzr
+        rev16 x0, x1
+
+        rev   w0, wzr
+        rev   w0, w1
+        rev   x0, xzr
+        rev   x0, x1
+
+        ; @todo rev32
+
+        clz   w0, wzr
+        clz   w0, w1
+        clz   x0, xzr
+        clz   x0, x1
+
+        cls   w0, wzr
+        cls   w0, w1
+        cls   x0, xzr
+        cls   x0, x1
+
+        ;ctz   w0, wzr - Requires FEAT_CSSC
+        ;ctz   w0, w1  - Requires FEAT_CSSC
+        ;ctz   x0, xzr - Requires FEAT_CSSC
+        ;ctz   x0, x1  - Requires FEAT_CSSC
+
+        ;cnt   w0, wzr - Requires FEAT_CSSC
+        ;cnt   w0, w1  - Requires FEAT_CSSC
+        ;cnt   x0, xzr - Requires FEAT_CSSC
+        ;cnt   x0, x1  - Requires FEAT_CSSC
 
         ;
         ; Keep last so the testcase can catch errors in

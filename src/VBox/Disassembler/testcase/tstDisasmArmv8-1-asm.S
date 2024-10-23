@@ -38,6 +38,32 @@ _TestProcA64:
         dgh
         xpaclri
 
+        pacia1716
+        pacib1716
+        autia1716
+        autib1716
+        esb
+        ;psb csync - Requires FEAT_SPE
+        tsb csync
+        gcsb dsync
+        csdb
+        clrbhb
+        paciaz
+        paciasp
+        pacibz
+        pacibsp
+        autiaz
+        autiasp
+        autibz
+        autibsp
+
+        bti
+        bti j
+        bti c
+        bti jc
+
+        chkfeat x16
+
         ; Control flow instructions
         svc #0xfefe
         hvc #0xdead

@@ -116,12 +116,14 @@ else # !VBOX_ONLY_ADDITIONS && !VBOX_ONLY_VALIDATIONKIT && !VBOX_ONLY_DOCS
  ifdef VBOX_WITH_R0_MODULES
   LIBRARIES += RuntimeR0
  endif
- LIBRARIES.solaris += RuntimeR0Stub
- LIBRARIES.win += RuntimeR0Stub
- LIBRARIES.win.x86 += RuntimeR3NoCrt
- LIBRARIES.win.amd64 += RuntimeR3NoCrt
+ LIBRARIES.solaris    += RuntimeR0Stub
+ LIBRARIES.win        += RuntimeR0Stub
+ LIBRARIES.win.x86    += RuntimeR3NoCrt
+ LIBRARIES.win.amd64  += RuntimeR3NoCrt
+ LIBRARIES.win.arm64  += RuntimeR3NoCrt
  ifndef VBOX_WITH_PARFAIT
   LIBRARIES.win.amd64 += RuntimeR3-x86
+  LIBRARIES.win.arm64 += RuntimeR3-x86
  endif
  ifdef VBOX_WITH_RAW_MODE
   LIBRARIES += RuntimeRC

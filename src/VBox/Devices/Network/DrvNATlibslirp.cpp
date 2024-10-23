@@ -608,8 +608,7 @@ static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho)
     int cbWritten = send(pThis->pWakeupSockPair[0], "", 1, NULL);
     if (cbWritten == SOCKET_ERROR)
     {
-        int error = WSAGetLastError();
-        Log4(("Notify NAT Thread Error %d\n", error));
+        Log4(("Notify NAT Thread Error %d\n", WSAGetLastError()));
     }
     else
     {

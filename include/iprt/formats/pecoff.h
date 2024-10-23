@@ -40,7 +40,9 @@
 # pragma once
 #endif
 
-#include <iprt/types.h>
+#ifndef __ASSEMBLER__
+# include <iprt/types.h>
+#endif
 #include <iprt/assertcompile.h>
 
 
@@ -50,6 +52,7 @@
  */
 
 
+#ifndef __ASSEMBLER__
 /**
  * PE & COFF file header.
  *
@@ -69,6 +72,7 @@ typedef struct _IMAGE_FILE_HEADER
 AssertCompileSize(IMAGE_FILE_HEADER, 0x14);
 typedef IMAGE_FILE_HEADER *PIMAGE_FILE_HEADER;
 typedef IMAGE_FILE_HEADER const *PCIMAGE_FILE_HEADER;
+#endif /* !__ASSEMBLER__ */
 
 
 /** @name IMAGE_FILE_MACHINE_XXX - PE & COFF machine types.
@@ -184,6 +188,7 @@ typedef IMAGE_FILE_HEADER const *PCIMAGE_FILE_HEADER;
 /** @} */
 
 
+#ifndef __ASSEMBLER__
 /**
  * PE data directory.
  *
@@ -199,6 +204,7 @@ typedef struct _IMAGE_DATA_DIRECTORY
 AssertCompileSize(IMAGE_DATA_DIRECTORY, 0x8);
 typedef IMAGE_DATA_DIRECTORY *PIMAGE_DATA_DIRECTORY;
 typedef IMAGE_DATA_DIRECTORY const *PCIMAGE_DATA_DIRECTORY;
+#endif /* !__ASSEMBLER__ */
 
 /** The standard number of data directories in the optional header.
  * I.e. the dimensions of IMAGE_OPTIONAL_HEADER32::DataDirectory and
@@ -206,6 +212,7 @@ typedef IMAGE_DATA_DIRECTORY const *PCIMAGE_DATA_DIRECTORY;
  */
 #define IMAGE_NUMBEROF_DIRECTORY_ENTRIES        0x10
 
+#ifndef __ASSEMBLER__
 
 /**
  * PE optional header, 32-bit version.
@@ -288,6 +295,8 @@ AssertCompileSize(IMAGE_OPTIONAL_HEADER64, 0xf0);
 typedef IMAGE_OPTIONAL_HEADER64 *PIMAGE_OPTIONAL_HEADER64;
 typedef IMAGE_OPTIONAL_HEADER64 const *PCIMAGE_OPTIONAL_HEADER64;
 
+#endif /* !__ASSEMBLER__ */
+
 /** @name Optional header magic values.
  * @{ */
 #define IMAGE_NT_OPTIONAL_HDR32_MAGIC       UINT16_C(0x010b)
@@ -357,6 +366,7 @@ typedef IMAGE_OPTIONAL_HEADER64 const *PCIMAGE_OPTIONAL_HEADER64;
 #define IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR    0xe
 /** @} */
 
+#ifndef __ASSEMBLER__
 
 /**
  * PE (NT) headers, 32-bit version.
@@ -388,6 +398,8 @@ AssertCompileMemberOffset(IMAGE_NT_HEADERS64, OptionalHeader, 24);
 typedef IMAGE_NT_HEADERS64 *PIMAGE_NT_HEADERS64;
 typedef IMAGE_NT_HEADERS64 const *PCIMAGE_NT_HEADERS64;
 
+#endif /* !__ASSEMBLER__ */
+
 /** The PE signature.
  * Used by IMAGE_NT_HEADERS32::Signature, IMAGE_NT_HEADERS64::Signature. */
 #define IMAGE_NT_SIGNATURE                  UINT32_C(0x00004550)
@@ -396,6 +408,7 @@ typedef IMAGE_NT_HEADERS64 const *PCIMAGE_NT_HEADERS64;
 /** Section header short name length (IMAGE_SECTION_HEADER::Name). */
 #define IMAGE_SIZEOF_SHORT_NAME             0x8
 
+#ifndef __ASSEMBLER__
 /**
  * PE & COFF section header.
  */
@@ -419,6 +432,7 @@ typedef struct _IMAGE_SECTION_HEADER
 AssertCompileSize(IMAGE_SECTION_HEADER, 40);
 typedef IMAGE_SECTION_HEADER *PIMAGE_SECTION_HEADER;
 typedef IMAGE_SECTION_HEADER const *PCIMAGE_SECTION_HEADER;
+#endif /* !__ASSEMBLER__ */
 
 /** @name IMAGE_SCN_XXX - Section header characteristics.
  * Used by IMAGE_SECTION_HEADER::Characteristics.
@@ -477,6 +491,7 @@ typedef IMAGE_SECTION_HEADER const *PCIMAGE_SECTION_HEADER;
 /** @} */
 
 
+#ifndef __ASSEMBLER__
 /**
  * PE image base relocations block header.
  *
@@ -496,6 +511,7 @@ typedef struct _IMAGE_BASE_RELOCATION
 AssertCompileSize(IMAGE_BASE_RELOCATION, 8);
 typedef IMAGE_BASE_RELOCATION *PIMAGE_BASE_RELOCATION;
 typedef IMAGE_BASE_RELOCATION const *PCIMAGE_BASE_RELOCATION;
+#endif /* !__ASSEMBLER__ */
 
 /** @name IMAGE_REL_BASED_XXX - PE base relocations.
  * Found in the IMAGE_DIRECTORY_ENTRY_BASERELOC data directory.
@@ -511,6 +527,8 @@ typedef IMAGE_BASE_RELOCATION const *PCIMAGE_BASE_RELOCATION;
 #define IMAGE_REL_BASED_DIR64               UINT16_C(0xa)
 #define IMAGE_REL_BASED_HIGH3ADJ            UINT16_C(0xb)
 /** @} */
+
+#ifndef __ASSEMBLER__
 
 /**
  * PE export directory entry.
@@ -566,7 +584,7 @@ typedef IMAGE_IMPORT_BY_NAME *PIMAGE_IMPORT_BY_NAME;
 typedef IMAGE_IMPORT_BY_NAME const *PCIMAGE_IMPORT_BY_NAME;
 
 
-#if 0
+# if 0
 /* The image_thunk_data32/64 structures are not very helpful except for getting RSI.
    keep them around till all the code has been converted. */
 typedef struct _IMAGE_THUNK_DATA64
@@ -594,7 +612,9 @@ typedef struct _IMAGE_THUNK_DATA32
 } IMAGE_THUNK_DATA32;
 typedef IMAGE_THUNK_DATA32 *PIMAGE_THUNK_DATA32;
 typedef IMAGE_THUNK_DATA32 const *PCIMAGE_THUNK_DATA32;
-#endif
+# endif
+
+#endif /* !__ASSEMBLER__ */
 
 /** @name PE import directory macros.
  * @{ */
@@ -606,6 +626,8 @@ typedef IMAGE_THUNK_DATA32 const *PCIMAGE_THUNK_DATA32;
 #define IMAGE_ORDINAL64(ord)                ((ord) &  UINT32_C(0xffff))
 #define IMAGE_SNAP_BY_ORDINAL64(ord)        (!!((ord) & IMAGE_ORDINAL_FLAG64))
 /** @} */
+
+#ifndef __ASSEMBLER__
 
 /** @name PE Resource directory
  * @{ */
@@ -646,8 +668,12 @@ typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY
 typedef IMAGE_RESOURCE_DIRECTORY_ENTRY *PIMAGE_RESOURCE_DIRECTORY_ENTRY;
 typedef IMAGE_RESOURCE_DIRECTORY_ENTRY const *PCIMAGE_RESOURCE_DIRECTORY_ENTRY;
 
+#endif /* !__ASSEMBLER__ */
+
 #define IMAGE_RESOURCE_NAME_IS_STRING       UINT32_C(0x80000000)
 #define IMAGE_RESOURCE_DATA_IS_DIRECTORY    UINT32_C(0x80000000)
+
+#ifndef __ASSEMBLER__
 
 typedef struct _IMAGE_RESOURCE_DIRECTORY_STRING
 {
@@ -677,10 +703,14 @@ typedef struct _IMAGE_RESOURCE_DATA_ENTRY
 typedef IMAGE_RESOURCE_DATA_ENTRY *PIMAGE_RESOURCE_DATA_ENTRY;
 typedef IMAGE_RESOURCE_DATA_ENTRY const *PCIMAGE_RESOURCE_DATA_ENTRY;
 
+#endif /* !__ASSEMBLER__ */
+
 /** @} */
 
 /** @name Image exception information
  * @{ */
+
+#ifndef __ASSEMBLER__
 
 /** This structure is used by AMD64 and "Itanic".
  * MIPS uses a different one.  ARM, SH3, SH4 and PPC on WinCE also uses a different one.  */
@@ -745,6 +775,8 @@ AssertCompileMemberOffset(IMAGE_UNWIND_INFO, aOpcodes, 4);
 typedef IMAGE_UNWIND_INFO *PIMAGE_UNWIND_INFO;
 typedef IMAGE_UNWIND_INFO const *PCIMAGE_UNWIND_INFO;
 
+#endif /* !__ASSEMBLER__ */
+
 /** IMAGE_UNW_FLAGS_XXX - IMAGE_UNWIND_INFO::Flags.
  * @{  */
 /** No handler.
@@ -762,6 +794,7 @@ typedef IMAGE_UNWIND_INFO const *PCIMAGE_UNWIND_INFO;
 #define IMAGE_UNW_FLAGS_CHAININFO       4
 /** @}  */
 
+#ifndef __ASSEMBLER__
 /**
  * AMD64 unwind opcodes.
  */
@@ -824,12 +857,15 @@ typedef enum IMAGE_AMD64_UNWIND_OP_CODES
      * MASM: .pushframe with-code  */
     IMAGE_AMD64_UWOP_PUSH_MACHFRAME
 } IMAGE_AMD64_UNWIND_OP_CODES;
+#endif /* !__ASSEMBLER__ */
+
 /** @} */
 
 
 
 /** @name Image load config directories
  * @{ */
+#ifndef __ASSEMBLER__
 
 /** @since Windows 10 (preview 9879) */
 typedef struct _IMAGE_LOAD_CONFIG_CODE_INTEGRITY
@@ -1933,9 +1969,11 @@ typedef IMAGE_LOAD_CONFIG_DIRECTORY64_V13   IMAGE_LOAD_CONFIG_DIRECTORY64;
 typedef PIMAGE_LOAD_CONFIG_DIRECTORY64_V13  PIMAGE_LOAD_CONFIG_DIRECTORY64;
 typedef PCIMAGE_LOAD_CONFIG_DIRECTORY64_V13 PCIMAGE_LOAD_CONFIG_DIRECTORY64;
 
+#endif /* !__ASSEMBLER__ */
 /** @} */
 
 
+#ifndef __ASSEMBLER__
 /**
  * PE certificate directory.
  *
@@ -1951,6 +1989,7 @@ typedef struct WIN_CERTIFICATE
 AssertCompileSize(WIN_CERTIFICATE, 16);
 typedef WIN_CERTIFICATE *PWIN_CERTIFICATE;
 typedef WIN_CERTIFICATE const *PCWIN_CERTIFICATE;
+#endif /* !__ASSEMBLER__ */
 
 /** @name WIN_CERT_REVISION_XXX - Certificate data directory revision.
  * Used WIN_CERTIFICATE::wRevision found in the IMAGE_DIRECTORY_ENTRY_SECURITY
@@ -1977,6 +2016,7 @@ typedef WIN_CERTIFICATE const *PCWIN_CERTIFICATE;
 #define WIN_CERTIFICATE_ALIGNMENT           UINT32_C(8)
 
 
+#ifndef __ASSEMBLER__
 /**
  * Debug directory.
  *
@@ -1996,6 +2036,7 @@ typedef struct _IMAGE_DEBUG_DIRECTORY
 AssertCompileSize(IMAGE_DEBUG_DIRECTORY, 28);
 typedef IMAGE_DEBUG_DIRECTORY *PIMAGE_DEBUG_DIRECTORY;
 typedef IMAGE_DEBUG_DIRECTORY const *PCIMAGE_DEBUG_DIRECTORY;
+#endif /* !__ASSEMBLER__ */
 
 /** @name IMAGE_DEBUG_TYPE_XXX - Debug format types.
  * Used by IMAGE_DEBUG_DIRECTORY::Type.
@@ -2025,6 +2066,7 @@ typedef IMAGE_DEBUG_DIRECTORY const *PCIMAGE_DEBUG_DIRECTORY;
 #define IMAGE_DEBUG_MISC_EXENAME            UINT32_C(1)
 /** @} */
 
+#ifndef __ASSEMBLER__
 
 /**
  * The format of IMAGE_DEBUG_TYPE_MISC debug info.
@@ -2040,7 +2082,6 @@ typedef struct _IMAGE_DEBUG_MISC
 AssertCompileSize(IMAGE_DEBUG_MISC, 16);
 typedef IMAGE_DEBUG_MISC *PIMAGE_DEBUG_MISC;
 typedef IMAGE_DEBUG_MISC const *PCIMAGE_DEBUG_MISC;
-
 
 
 /**
@@ -2066,9 +2107,12 @@ AssertCompileSize(IMAGE_SEPARATE_DEBUG_HEADER, 0x30);
 typedef IMAGE_SEPARATE_DEBUG_HEADER *PIMAGE_SEPARATE_DEBUG_HEADER;
 typedef IMAGE_SEPARATE_DEBUG_HEADER const *PCIMAGE_SEPARATE_DEBUG_HEADER;
 
+#endif /* !__ASSEMBLER__ */
+
 /** The signature of a IMAGE_SEPARATE_DEBUG_HEADER. */
 #define IMAGE_SEPARATE_DEBUG_SIGNATURE      UINT16_C(0x4944)
 
+#ifndef __ASSEMBLER__
 
 /**
  * The format of IMAGE_DEBUG_TYPE_COFF debug info.
@@ -2109,11 +2153,14 @@ AssertCompileSize(IMAGE_LINENUMBER, 6);
 typedef IMAGE_LINENUMBER *PIMAGE_LINENUMBER;
 typedef IMAGE_LINENUMBER const *PCIMAGE_LINENUMBER;
 
+#endif /* !__ASSEMBLER__ */
 
 /** The size of a IMAGE_SYMBOL & IMAGE_AUX_SYMBOL structure. */
 #define IMAGE_SIZE_OF_SYMBOL                18
 /** The size of a IMAGE_SYMBOL_EX & IMAGE_AUX_SYMBOL_EX structure. */
 #define IMAGE_SIZE_OF_SYMBOL_EX             20
+
+#ifndef __ASSEMBLER__
 
 /**
  * COFF symbol.
@@ -2289,6 +2336,8 @@ AssertCompileSize(IMAGE_AUX_SYMBOL_EX, IMAGE_SIZE_OF_SYMBOL_EX);
 typedef IMAGE_AUX_SYMBOL_EX *PIMAGE_AUX_SYMBOL_EX;
 typedef IMAGE_AUX_SYMBOL_EX const *PCIMAGE_AUX_SYMBOL_EX;
 
+#endif /* !__ASSEMBLER__ */
+
 /** @name Special COFF section numbers.
  * Used by IMAGE_SYMBOL::SectionNumber and IMAGE_SYMBOL_EX::SectionNumber
  * @{ */
@@ -2380,6 +2429,7 @@ typedef IMAGE_AUX_SYMBOL_EX const *PCIMAGE_AUX_SYMBOL_EX;
 /** @} */
 
 
+#ifndef __ASSEMBLER__
 /**
  * COFF relocation table entry.
  *
@@ -2404,6 +2454,7 @@ typedef struct _IMAGE_RELOCATION
 AssertCompileSize(IMAGE_RELOCATION, IMAGE_SIZEOF_RELOCATION);
 typedef IMAGE_RELOCATION *PIMAGE_RELOCATION;
 typedef IMAGE_RELOCATION const *PCIMAGE_RELOCATION;
+#endif /* !__ASSEMBLER__ */
 
 
 /** @name IMAGE_REL_AMD64_XXX - COFF relocations for AMD64 CPUs.

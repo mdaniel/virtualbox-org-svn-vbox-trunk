@@ -40,6 +40,19 @@
 #endif
 
 #include <iprt/cdefs.h>
+#ifdef ASM_FORMAT_PE
+# include <iprt/formats/pecoff.h>
+#endif
+
+/* Quick hack for #defines from pecoff.h */
+#define UINT8_C(v)      v
+#define UINT16_C(v)     v
+#define UINT32_C(v)     v
+#define UINT64_C(v)     v
+#define INT8_C(v)       v
+#define INT16_C(v)      v
+#define INT32_C(v)      v
+#define INT64_C(v)      v
 
 
 #if !defined(RT_ARCH_ARM64) && !defined(RT_ARCH_ARM32)
@@ -188,6 +201,13 @@
  * @param   a_Name      The unmangled symbol name.
  */
 .macro BEGINPROC, a_Name
+#if defined(ASM_FORMAT_PE)
+        .def            NAME(\a_Name)
+        .scl            IMAGE_SYM_CLASS_EXTERNAL
+        .type           IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT
+        .endef
+#endif
+        .globl          NAME(\a_Name)
 NAME(\a_Name):
 .endm
 
@@ -204,7 +224,8 @@ NAME(\a_Name):
         .hidden         NAME(\a_Name)
 #elif defined(ASM_FORMAT_PE)
         .def            NAME(\a_Name)
-        .type           32      /* function */
+        .scl            IMAGE_SYM_CLASS_EXTERNAL
+        .type           IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT
         .endef
 #endif
         .globl          NAME(\a_Name)
@@ -227,7 +248,8 @@ NAME(\a_Name):
         .string "-export:\a_Name"
         .popsection
         .def            NAME(\a_Name)
-        .type           32      /* function */
+        .scl            IMAGE_SYM_CLASS_EXTERNAL
+        .type           IMAGE_SYM_DTYPE_FUNCTION << N_BTSHFT
         .endef
 #endif
         .globl          NAME(\a_Name)

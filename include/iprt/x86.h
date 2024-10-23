@@ -2652,7 +2652,7 @@ AssertCompileSize(X86PTPAE, 4096);
 typedef X86PTPAE *PX86PTPAE;
 /** Pointer to a const page table. */
 typedef const X86PTPAE *PCX86PTPAE;
-#endif /* !__ASSEMBLY__ */
+#endif /* !__ASSEMBLER__ */
 
 /** The page shift to get the PA PTE index. */
 #define X86_PT_PAE_SHIFT                    12

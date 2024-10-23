@@ -559,6 +559,7 @@ VBoxSupLib_TEMPLATE = VBoxR3StaticNoCrt
 VBoxSupLib_SDKS.win = VBoxNtDll
 VBoxSupLib_LDFLAGS.win.amd64 = -Entry:DllMainEntrypoint
 VBoxSupLib_LDFLAGS.win.x86   = -Entry:DllMainEntrypoint
+VBoxSupLib_LDFLAGS.win.arm64 = -Entry:DllMainEntrypoint
 VBoxSupLib_DEFS = \
 	$(if $(VBOX_WITHOUT_DEBUGGER_CHECKS),VBOX_WITHOUT_DEBUGGER_CHECKS,)
 VBoxSupLib_SOURCES = \
@@ -772,8 +773,9 @@ if   !defined(VBOX_ONLY_DOCS) \
   ifdef VBOX_WITH_NATIVE_DTRACE
    VBoxDrv_LDFLAGS.solaris += -N drv/dtrace
   endif
-  VBoxDrv_LDFLAGS.win.x86 = -Entry:DriverEntry@8
+  VBoxDrv_LDFLAGS.win.x86   = -Entry:DriverEntry@8
   VBoxDrv_LDFLAGS.win.amd64 = -Entry:DriverEntry
+  VBoxDrv_LDFLAGS.win.arm64 = -Entry:DriverEntry
 
   VBoxDrv_SOURCES.darwin  = \
   	darwin/SUPDrv-darwin.cpp

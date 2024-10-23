@@ -47,12 +47,14 @@
 BEGINCODE
 
 /** Dummy stub function that just returns. */
+ALIGNCODE(32)
 BEGINPROC supdrvTracerProbeFireStub
         ret
 ENDPROC   supdrvTracerProbeFireStub
 
 
 /** Tail jump function. */
+ALIGNCODE(32)
 BEGINPROC_EXPORTED SUPR0TracerFireProbe
         adrp    x8, PAGE(NAME(g_pfnSupdrvProbeFireKernel))
         ldr     x8, [x8, PAGEOFF(NAME(g_pfnSupdrvProbeFireKernel))]

@@ -779,7 +779,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
   VBoxDD_SOURCES += \
   	Network/DrvNATlibslirp.cpp
   VBoxDD_SOURCES.win += \
-  	Network/RTWinPollLibslirp.cpp
+  	Network/RTWinSocketPair.cpp
   Network/DrvNATlibslirp.cpp_INCS   += \
   	$(PATH_ROOT)/src/libs/libslirp-4.8.0/src \
   	$(PATH_OUT)/obj/VBox-libslirp

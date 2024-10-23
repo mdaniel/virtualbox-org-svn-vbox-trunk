@@ -302,6 +302,16 @@ _TestProcA64:
         bic  w0, w1, w28, ROR #1
         bic  w0, w1, w28, ROR #31
 
+        bic  wzr, wzr, wzr
+        bic  wzr, wzr, wzr, LSL #1
+        bic  wzr, wzr, wzr, LSL #31
+        bic  wzr, wzr, wzr, LSR #1
+        bic  wzr, wzr, wzr, LSR #31
+        bic  wzr, wzr, wzr, ASR #1
+        bic  wzr, wzr, wzr, ASR #31
+        bic  wzr, wzr, wzr, ROR #1
+        bic  wzr, wzr, wzr, ROR #31
+
         bic  x0, x0, x27
         bic  x0, x1, x28, LSL #1
         bic  x0, x1, x28, LSL #63
@@ -311,6 +321,16 @@ _TestProcA64:
         bic  x0, x1, x28, ASR #63
         bic  x0, x1, x28, ROR #1
         bic  x0, x1, x28, ROR #63
+
+        bic  xzr, xzr, xzr
+        bic  xzr, xzr, xzr, LSL #1
+        bic  xzr, xzr, xzr, LSL #63
+        bic  xzr, xzr, xzr, LSR #1
+        bic  xzr, xzr, xzr, LSR #63
+        bic  xzr, xzr, xzr, ASR #1
+        bic  xzr, xzr, xzr, ASR #63
+        bic  xzr, xzr, xzr, ROR #1
+        bic  xzr, xzr, xzr, ROR #63
 
         orn  w0, w0, w27
         orn  w0, w1, w28, LSL #1
@@ -322,6 +342,16 @@ _TestProcA64:
         orn  w0, w1, w28, ROR #1
         orn  w0, w1, w28, ROR #31
 
+        orn  wzr, wzr, wzr
+        orn  wzr, wzr, wzr, LSL #1
+        orn  wzr, wzr, wzr, LSL #31
+        orn  wzr, wzr, wzr, LSR #1
+        orn  wzr, wzr, wzr, LSR #31
+        orn  wzr, wzr, wzr, ASR #1
+        orn  wzr, wzr, wzr, ASR #31
+        orn  wzr, wzr, wzr, ROR #1
+        orn  wzr, wzr, wzr, ROR #31
+
         orn  x0, x0, x27
         orn  x0, x1, x28, LSL #1
         orn  x0, x1, x28, LSL #63
@@ -331,6 +361,16 @@ _TestProcA64:
         orn  x0, x1, x28, ASR #63
         orn  x0, x1, x28, ROR #1
         orn  x0, x1, x28, ROR #63
+
+        orn  xzr, xzr, xzr
+        orn  xzr, xzr, xzr, LSL #1
+        orn  xzr, xzr, xzr, LSL #63
+        orn  xzr, xzr, xzr, LSR #1
+        orn  xzr, xzr, xzr, LSR #63
+        orn  xzr, xzr, xzr, ASR #1
+        orn  xzr, xzr, xzr, ASR #63
+        orn  xzr, xzr, xzr, ROR #1
+        orn  xzr, xzr, xzr, ROR #63
 
         eon  w0, w0, w27
         eon  w0, w1, w28, LSL #1
@@ -342,6 +382,16 @@ _TestProcA64:
         eon  w0, w1, w28, ROR #1
         eon  w0, w1, w28, ROR #31
 
+        eon  wzr, wzr, wzr
+        eon  wzr, wzr, wzr, LSL #1
+        eon  wzr, wzr, wzr, LSL #31
+        eon  wzr, wzr, wzr, LSR #1
+        eon  wzr, wzr, wzr, LSR #31
+        eon  wzr, wzr, wzr, ASR #1
+        eon  wzr, wzr, wzr, ASR #31
+        eon  wzr, wzr, wzr, ROR #1
+        eon  wzr, wzr, wzr, ROR #31
+
         eon  x0, x0, x27
         eon  x0, x1, x28, LSL #1
         eon  x0, x1, x28, LSL #63
@@ -351,6 +401,16 @@ _TestProcA64:
         eon  x0, x1, x28, ASR #63
         eon  x0, x1, x28, ROR #1
         eon  x0, x1, x28, ROR #63
+
+        eon  xzr, xzr, xzr
+        eon  xzr, xzr, xzr, LSL #1
+        eon  xzr, xzr, xzr, LSL #63
+        eon  xzr, xzr, xzr, LSR #1
+        eon  xzr, xzr, xzr, LSR #63
+        eon  xzr, xzr, xzr, ASR #1
+        eon  xzr, xzr, xzr, ASR #63
+        eon  xzr, xzr, xzr, ROR #1
+        eon  xzr, xzr, xzr, ROR #63
 
         bics w0, w0, w27
         bics w0, w1, w28, LSL #1
@@ -362,6 +422,16 @@ _TestProcA64:
         bics w0, w1, w28, ROR #1
         bics w0, w1, w28, ROR #31
 
+        bics wzr, wzr, wzr
+        bics wzr, wzr, wzr, LSL #1
+        bics wzr, wzr, wzr, LSL #31
+        bics wzr, wzr, wzr, LSR #1
+        bics wzr, wzr, wzr, LSR #31
+        bics wzr, wzr, wzr, ASR #1
+        bics wzr, wzr, wzr, ASR #31
+        bics wzr, wzr, wzr, ROR #1
+        bics wzr, wzr, wzr, ROR #31
+
         bics x0, x0, x27
         bics x0, x1, x28, LSL #1
         bics x0, x1, x28, LSL #63
@@ -372,104 +442,212 @@ _TestProcA64:
         bics x0, x1, x28, ROR #1
         bics x0, x1, x28, ROR #63
 
+        bics xzr, xzr, xzr
+        bics xzr, xzr, xzr, LSL #1
+        bics xzr, xzr, xzr, LSL #63
+        bics xzr, xzr, xzr, LSR #1
+        bics xzr, xzr, xzr, LSR #63
+        bics xzr, xzr, xzr, ASR #1
+        bics xzr, xzr, xzr, ASR #63
+        bics xzr, xzr, xzr, ROR #1
+        bics xzr, xzr, xzr, ROR #63
+
         ; Memory loads
         ldrb w0, [x28]
         ldrb w0, [x28, #1]
         ldrb w0, [x28, #4095]
 
+        ldrb w0, [sp]
+        ldrb w0, [sp, #1]
+        ldrb w0, [sp, #4095]
+
         ldrsb w0, [x28]
         ldrsb w0, [x28, #1]
         ldrsb w0, [x28, #4095]
+
+        ldrsb w0, [sp]
+        ldrsb w0, [sp, #1]
+        ldrsb w0, [sp, #4095]
 
         ldrsb x0, [x28]
         ldrsb x0, [x28, #1]
         ldrsb x0, [x28, #4095]
 
+        ldrsb x0, [sp]
+        ldrsb x0, [sp, #1]
+        ldrsb x0, [sp, #4095]
+
         ldrh w0, [x28]
         ldrh w0, [x28, #2]
         ldrh w0, [x28, #1024]
+
+        ldrh w0, [sp]
+        ldrh w0, [sp, #2]
+        ldrh w0, [sp, #1024]
 
         ldrsh w0, [x28]
         ldrsh w0, [x28, #2]
         ldrsh w0, [x28, #1024]
 
+        ldrsh w0, [sp]
+        ldrsh w0, [sp, #2]
+        ldrsh w0, [sp, #1024]
+
         ldrsh x0, [x28]
         ldrsh x0, [x28, #2]
         ldrsh x0, [x28, #1024]
+
+        ldrsh x0, [sp]
+        ldrsh x0, [sp, #2]
+        ldrsh x0, [sp, #1024]
 
         ldr x0, [x28]
         ldr x0, [x28, #8]
         ldr x0, [x28, #32760]
 
+        ldr x0, [sp]
+        ldr x0, [sp, #8]
+        ldr x0, [sp, #32760]
+
         ldr w0, [x28]
         ldr w0, [x28, #4]
         ldr w0, [x28, #16380]
+
+        ldr w0, [sp]
+        ldr w0, [sp, #4]
+        ldr w0, [sp, #16380]
 
         ldrsw x0, [x28]
         ldrsw x0, [x28, #4]
         ldrsw x0, [x28, #16380]
 
+        ldrsw x0, [sp]
+        ldrsw x0, [sp, #4]
+        ldrsw x0, [sp, #16380]
+
         ldurb w0, [x28]
         ldurb w0, [x28, #-256]
         ldurb w0, [x28, #255]
+
+        ldurb w0, [sp]
+        ldurb w0, [sp, #-256]
+        ldurb w0, [sp, #255]
 
         ldursb w0, [x28]
         ldursb w0, [x28, #-256]
         ldursb w0, [x28, #255]
 
+        ldursb w0, [sp]
+        ldursb w0, [sp, #-256]
+        ldursb w0, [sp, #255]
+
         ldursb x0, [x28]
         ldursb x0, [x28, #-256]
         ldursb x0, [x28, #255]
+
+        ldursb x0, [sp]
+        ldursb x0, [sp, #-256]
+        ldursb x0, [sp, #255]
 
         ldurh w0, [x28]
         ldurh w0, [x28, #-256]
         ldurh w0, [x28, #255]
 
+        ldurh w0, [sp]
+        ldurh w0, [sp, #-256]
+        ldurh w0, [sp, #255]
+
         ldursh w0, [x28]
         ldursh w0, [x28, #-256]
         ldursh w0, [x28, #255]
+
+        ldursh w0, [sp]
+        ldursh w0, [sp, #-256]
+        ldursh w0, [sp, #255]
 
         ldursh x0, [x28]
         ldursh x0, [x28, #-256]
         ldursh x0, [x28, #255]
 
+        ldursh x0, [sp]
+        ldursh x0, [sp, #-256]
+        ldursh x0, [sp, #255]
+
         ldur x0, [x28]
         ldur x0, [x28, #-256]
         ldur x0, [x28, #255]
+
+        ldur x0, [sp]
+        ldur x0, [sp, #-256]
+        ldur x0, [sp, #255]
 
         ldur w0, [x28]
         ldur w0, [x28, #-256]
         ldur w0, [x28, #255]
 
+        ldur w0, [sp]
+        ldur w0, [sp, #-256]
+        ldur w0, [sp, #255]
+
         ldursw x0, [x28]
         ldursw x0, [x28, #-256]
         ldursw x0, [x28, #255]
+
+        ldursw x0, [sp]
+        ldursw x0, [sp, #-256]
+        ldursw x0, [sp, #255]
 
         ldp w0, w1, [x28]
         ldp w0, w1, [x28, #4]
         ldp w0, w1, [x28, #-256]
         ldp w0, w1, [x28, #252]
 
+        ldp w0, w1, [sp]
+        ldp w0, w1, [sp, #4]
+        ldp w0, w1, [sp, #-256]
+        ldp w0, w1, [sp, #252]
+
         ldp x0, x1, [x28]
         ldp x0, x1, [x28, #8]
         ldp x0, x1, [x28, #-512]
         ldp x0, x1, [x28, #504]
 
+        ldp x0, x1, [sp]
+        ldp x0, x1, [sp, #8]
+        ldp x0, x1, [sp, #-512]
+        ldp x0, x1, [sp, #504]
+
         ldp w0, w1, [x28, #4]!
         ldp w0, w1, [x28, #-256]!
         ldp w0, w1, [x28, #252]!
+
+        ldp w0, w1, [sp, #4]!
+        ldp w0, w1, [sp, #-256]!
+        ldp w0, w1, [sp, #252]!
 
         ldp x0, x1, [x28, #8]!
         ldp x0, x1, [x28, #-512]!
         ldp x0, x1, [x28, #504]!
 
+        ldp x0, x1, [sp, #8]!
+        ldp x0, x1, [sp, #-512]!
+        ldp x0, x1, [sp, #504]!
+
         ldp w0, w1, [x28], #4
         ldp w0, w1, [x28], #-256
         ldp w0, w1, [x28], #252
 
+        ldp w0, w1, [sp], #4
+        ldp w0, w1, [sp], #-256
+        ldp w0, w1, [sp], #252
+
         ldp x0, x1, [x28], #8
         ldp x0, x1, [x28], #-512
         ldp x0, x1, [x28], #504
+
+        ldp x0, x1, [sp], #8
+        ldp x0, x1, [sp], #-512
+        ldp x0, x1, [sp], #504
 
         ldr  x0, [x1, x2]
         ldr  w0, [x1, x2]
@@ -481,17 +659,39 @@ _TestProcA64:
         ldr  w0, [x1, w2, UXTW #2]
         ldr  w0, [x1, w2, SXTW #2]
 
+        ldr  x0, [sp, x2]
+        ldr  w0, [sp, x2]
+        ldr  x0, [sp, x2, SXTX #0]
+        ldr  x0, [sp, x2, LSL  #3]  ; UXTX
+        ldr  x0, [sp, x2, SXTX #3]
+        ldr  w0, [sp, w2, UXTW #0]
+        ldr  w0, [sp, w2, SXTW #0]
+        ldr  w0, [sp, w2, UXTW #2]
+        ldr  w0, [sp, w2, SXTW #2]
+
         ldrb w0, [x1, x2]
         ldrb w0, [x1, x2, LSL  #0]  ; UXTX
         ldrb w0, [x1, x2, SXTX #0]
         ldrb w0, [x1, w2, UXTW #0]
         ldrb w0, [x1, w2, SXTW #0]
 
+        ldrb w0, [sp, x2]
+        ldrb w0, [sp, x2, LSL  #0]  ; UXTX
+        ldrb w0, [sp, x2, SXTX #0]
+        ldrb w0, [sp, w2, UXTW #0]
+        ldrb w0, [sp, w2, SXTW #0]
+
         ldrsb w0, [x1, x2]
         ldrsb w0, [x1, x2, LSL  #0] ; UXTX
         ldrsb w0, [x1, x2, SXTX #0]
         ldrsb w0, [x1, w2, UXTW #0]
         ldrsb w0, [x1, w2, SXTW #0]
+
+        ldrsb w0, [sp, x2]
+        ldrsb w0, [sp, x2, LSL  #0] ; UXTX
+        ldrsb w0, [sp, x2, SXTX #0]
+        ldrsb w0, [sp, w2, UXTW #0]
+        ldrsb w0, [sp, w2, SXTW #0]
 
         ldrh w0, [x1, x2]
         ;ldrh w0, [x1, x2, LSL  #0]  ; UXTX
@@ -503,6 +703,16 @@ _TestProcA64:
         ldrh w0, [x1, w2, UXTW #1]
         ldrh w0, [x1, w2, SXTW #1]
 
+        ldrh w0, [sp, x2]
+        ;ldrh w0, [sp, x2, LSL  #0]  ; UXTX
+        ldrh w0, [sp, x2, SXTX #0]
+        ldrh w0, [sp, x2, LSL  #1]   ; UXTX
+        ldrh w0, [sp, x2, SXTX #1]
+        ldrh w0, [sp, w2, UXTW #0]
+        ldrh w0, [sp, w2, SXTW #0]
+        ldrh w0, [sp, w2, UXTW #1]
+        ldrh w0, [sp, w2, SXTW #1]
+
         ldrsh w0, [x1, x2]
         ;ldrsh w0, [x1, x2, LSL  #0] ; UXTX
         ldrsh w0, [x1, x2, SXTX #0]
@@ -512,6 +722,16 @@ _TestProcA64:
         ldrsh w0, [x1, w2, SXTW #0]
         ldrsh w0, [x1, w2, UXTW #1]
         ldrsh w0, [x1, w2, SXTW #1]
+
+        ldrsh w0, [sp, x2]
+        ;ldrsh w0, [sp, x2, LSL  #0] ; UXTX
+        ldrsh w0, [sp, x2, SXTX #0]
+        ldrsh w0, [sp, x2, LSL  #1]   ; UXTX
+        ldrsh w0, [sp, x2, SXTX #1]
+        ldrsh w0, [sp, w2, UXTW #0]
+        ldrsh w0, [sp, w2, SXTW #0]
+        ldrsh w0, [sp, w2, UXTW #1]
+        ldrsh w0, [sp, w2, SXTW #1]
 
         ldrsw x0, [x1, x2]
         ;ldrsw x0, [x1, x2, LSL  #0] ; UXTX
@@ -523,65 +743,132 @@ _TestProcA64:
         ldrsw x0, [x1, w2, UXTW #2]
         ldrsw x0, [x1, w2, SXTW #2]
 
+        ldrsw x0, [sp, x2]
+        ;ldrsw x0, [sp, x2, LSL  #0] ; UXTX
+        ldrsw x0, [sp, x2, SXTX #0]
+        ldrsw x0, [sp, x2, LSL  #2]  ; UXTX
+        ldrsw x0, [sp, x2, SXTX #2]
+        ldrsw x0, [sp, w2, UXTW #0]
+        ldrsw x0, [sp, w2, SXTW #0]
+        ldrsw x0, [sp, w2, UXTW #2]
+        ldrsw x0, [sp, w2, SXTW #2]
+
         ; Memory stores
         strb w0, [x28]
         strb w0, [x28, #1]
         strb w0, [x28, #4095]
 
+        strb w0, [sp]
+        strb w0, [sp, #1]
+        strb w0, [sp, #4095]
+
         strh w0, [x28]
         strh w0, [x28, #2]
         strh w0, [x28, #1024]
+
+        strh w0, [sp]
+        strh w0, [sp, #2]
+        strh w0, [sp, #1024]
 
         str x0, [x28]
         str x0, [x28, #8]
         str x0, [x28, #32760]
 
+        str x0, [sp]
+        str x0, [sp, #8]
+        str x0, [sp, #32760]
+
         str w0, [x28]
         str w0, [x28, #4]
         str w0, [x28, #16380]
 
+        str w0, [sp]
+        str w0, [sp, #4]
+        str w0, [sp, #16380]
 
         sturb w0, [x28]
         sturb w0, [x28, #-256]
         sturb w0, [x28, #255]
 
+        sturb w0, [sp]
+        sturb w0, [sp, #-256]
+        sturb w0, [sp, #255]
+
         sturh w0, [x28]
         sturh w0, [x28, #-256]
         sturh w0, [x28, #255]
+
+        sturh w0, [sp]
+        sturh w0, [sp, #-256]
+        sturh w0, [sp, #255]
 
         stur x0, [x28]
         stur x0, [x28, #-256]
         stur x0, [x28, #255]
 
+        stur x0, [sp]
+        stur x0, [sp, #-256]
+        stur x0, [sp, #255]
+
         stur w0, [x28]
         stur w0, [x28, #-256]
         stur w0, [x28, #255]
+
+        stur w0, [sp]
+        stur w0, [sp, #-256]
+        stur w0, [sp, #255]
 
         stp w0, w1, [x28]
         stp w0, w1, [x28, #4]
         stp w0, w1, [x28, #-256]
         stp w0, w1, [x28, #252]
 
+        stp w0, w1, [sp]
+        stp w0, w1, [sp, #4]
+        stp w0, w1, [sp, #-256]
+        stp w0, w1, [sp, #252]
+
         stp x0, x1, [x28]
         stp x0, x1, [x28, #8]
         stp x0, x1, [x28, #-512]
         stp x0, x1, [x28, #504]
 
+        stp x0, x1, [sp]
+        stp x0, x1, [sp, #8]
+        stp x0, x1, [sp, #-512]
+        stp x0, x1, [sp, #504]
+
         stp w0, w1, [x28, #4]!
         stp w0, w1, [x28, #-256]!
         stp w0, w1, [x28, #252]!
+
+        stp w0, w1, [sp, #4]!
+        stp w0, w1, [sp, #-256]!
+        stp w0, w1, [sp, #252]!
 
         stp x0, x1, [x28, #8]!
         stp x0, x1, [x28, #-512]!
         stp x0, x1, [x28, #504]!
 
+        stp x0, x1, [sp, #8]!
+        stp x0, x1, [sp, #-512]!
+        stp x0, x1, [sp, #504]!
+
         stp w0, w1, [x28], #4
         stp w0, w1, [x28], #-256
         stp w0, w1, [x28], #252
 
+        stp w0, w1, [sp], #4
+        stp w0, w1, [sp], #-256
+        stp w0, w1, [sp], #252
+
         stp x0, x1, [x28], #8
         stp x0, x1, [x28], #-512
         stp x0, x1, [x28], #504
+
+        stp x0, x1, [sp], #8
+        stp x0, x1, [sp], #-512
+        stp x0, x1, [sp], #504
 
         str  x0, [x1, x2]
         str  w0, [x1, x2]
@@ -593,11 +880,27 @@ _TestProcA64:
         str  w0, [x1, w2, UXTW #2]
         str  w0, [x1, w2, SXTW #2]
 
+        str  x0, [sp, x2]
+        str  w0, [sp, x2]
+        str  x0, [sp, x2, SXTX #0]
+        str  x0, [sp, x2, LSL  #3]  ; UXTX
+        str  x0, [sp, x2, SXTX #3]
+        str  w0, [sp, w2, UXTW #0]
+        str  w0, [sp, w2, SXTW #0]
+        str  w0, [sp, w2, UXTW #2]
+        str  w0, [sp, w2, SXTW #2]
+
         strb w0, [x1, x2]
         strb w0, [x1, x2, LSL  #0x0]
         strb w0, [x1, x2, SXTX #0x0]
         strb w0, [x1, w2, UXTW #0x0]
         strb w0, [x1, w2, SXTW #0x0]
+
+        strb w0, [sp, x2]
+        strb w0, [sp, x2, LSL  #0x0]
+        strb w0, [sp, x2, SXTX #0x0]
+        strb w0, [sp, w2, UXTW #0x0]
+        strb w0, [sp, w2, SXTW #0x0]
 
         strh w0, [x1, x2]
         ;strh w0, [x1, x2, LSL  #0x0] ; UXTX
@@ -608,6 +911,16 @@ _TestProcA64:
         strh w0, [x1, w2, SXTW #0x0]
         strh w0, [x1, w2, UXTW #1]
         strh w0, [x1, w2, SXTW #1]
+
+        strh w0, [sp, x2]
+        ;strh w0, [sp, x2, LSL  #0x0] ; UXTX
+        strh w0, [sp, x2, SXTX #0x0]
+        strh w0, [sp, x2, LSL  #1]   ; UXTX
+        strh w0, [sp, x2, SXTX #1]
+        strh w0, [sp, w2, UXTW #0x0]
+        strh w0, [sp, w2, SXTW #0x0]
+        strh w0, [sp, w2, UXTW #1]
+        strh w0, [sp, w2, SXTW #1]
 
         ; Conditional compare
         ccmp x0, x1, #0x3, eq
@@ -937,6 +1250,23 @@ _TestProcA64:
 
         ;sqrshrn q0, dq, #1
         ;sqrshrn q0, q1, #64
+
+        dsb #0
+        dsb #1
+        dsb #2
+        dsb #3
+        dsb #4
+        dsb #5
+        dsb #6
+        dsb #7
+        dsb #8
+        dsb #9
+        dsb #0xa
+        dsb #0xb
+        dsb #0xc
+        dsb #0xd
+        dsb #0xe
+        dsb #0xf
 
         ;
         ; Keep last so the testcase can catch errors in

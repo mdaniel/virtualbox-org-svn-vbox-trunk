@@ -86,7 +86,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvGpr2FpReg)
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvGpr2FpReg)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           0,  5, 0 /*idxParam*/),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseReg,             5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpFixedPConvGpr2FpReg, 0x7f3f0000 /*fFixedInsn*/, DISARMV8INSNCLASS_F_SF /*fClass*/,
                                                 kDisArmV8OpcDecodeNop,
@@ -110,7 +110,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DataProcFpFixedPConvFpReg2Gpr)
     INVALID_OPCODE,
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcFpFixedPConvFpReg2Gpr)
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpType,         22,  2, DIS_ARMV8_INSN_PARAM_UNSET),
-    DIS_ARMV8_INSN_DECODE(kDisParmParseReg,             0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpReg,           5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseFpScale,        10,  6, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END_PARAMS_3(DataProcFpFixedPConvFpReg2Gpr, 0x7f3f0000 /*fFixedInsn*/, DISARMV8INSNCLASS_F_SF /*fClass*/,

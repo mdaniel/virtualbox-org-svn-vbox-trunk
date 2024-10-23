@@ -58,7 +58,8 @@ typedef enum DISOPPARAMARMV8REGTYPE
     kDisOpParamArmV8RegType_FpReg_Half,
     kDisOpParamArmV8RegType_Simd_Scalar_64Bit,
     kDisOpParamArmV8RegType_Simd_Scalar_128Bit,
-    kDisOpParamArmV8RegType_Simd_Vector
+    kDisOpParamArmV8RegType_Simd_Vector,
+    kDisOpParamArmV8RegType_Sp
 } DISOPPARAMARMV8REGTYPE;
 
 /**
@@ -68,7 +69,7 @@ typedef struct
 {
     /** The register type (DISOPPARAMARMV8REGTYPE). */
     uint8_t  enmRegType;
-    /** The register ID. */
+    /** The register ID (not applicable for kDisOpParamArmV8RegType_Sp). */
     uint8_t  idReg;
 } DISOPPARAMARMV8REG;
 AssertCompileSize(DISOPPARAMARMV8REG, sizeof(uint16_t));

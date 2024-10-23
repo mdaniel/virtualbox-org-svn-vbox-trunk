@@ -400,6 +400,11 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
+        case kDisOpParamArmV8RegType_Sp:
+        {
+            *pcchReg = 2;
+            return "sp";
+        }
         default:
             AssertFailed();
             *pcchReg = 0;

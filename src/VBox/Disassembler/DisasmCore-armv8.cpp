@@ -103,6 +103,7 @@ static FNDISPARSEARMV8 disArmV8ParseFpScale;
 static FNDISPARSEARMV8 disArmV8ParseFpFixupFCvt;
 static FNDISPARSEARMV8 disArmV8ParseSimdRegScalar;
 static FNDISPARSEARMV8 disArmV8ParseImmHImmB;
+static FNDISPARSEARMV8 disArmV8ParseSf;
 /** @}  */
 
 
@@ -151,7 +152,8 @@ static PFNDISPARSEARMV8 const g_apfnDisasm[kDisParmParseMax] =
     disArmV8ParseFpScale,
     disArmV8ParseFpFixupFCvt,
     disArmV8ParseSimdRegScalar,
-    disArmV8ParseImmHImmB
+    disArmV8ParseImmHImmB,
+    disArmV8ParseSf
 };
 
 
@@ -329,7 +331,7 @@ static int disArmV8ParseGprOff(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
 
 static int disArmV8ParseImmsImmrN(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
 {
-    RT_NOREF(pDis, pOp);
+    RT_NOREF(pDis, pOp, pInsnClass);
     AssertReturn(pInsnParm->cBits == 13, VERR_INTERNAL_ERROR_2);
 
     uint32_t u32ImmRaw = disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits);
@@ -337,8 +339,7 @@ static int disArmV8ParseImmsImmrN(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OP
     if (   (   (u32ImmRaw & RT_BIT_32(12))
             && !*pf64Bit)
         || (   !(u32ImmRaw & RT_BIT_32(12))
-            && *pf64Bit
-            && (pInsnClass->fClass & DISARMV8INSNCLASS_F_N_FORCED_1_ON_64BIT)))
+            && *pf64Bit))
         return VERR_DIS_INVALID_OPCODE;
 
     uint32_t uImm7SizeLen   = ((u32ImmRaw & RT_BIT_32(12)) >> 6) | (u32ImmRaw & 0x3f);
@@ -792,6 +793,17 @@ static int disArmV8ParseImmHImmB(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPC
 }
 
 
+static int disArmV8ParseSf(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, pOp, pInsnClass, pParam, pInsnParm);
+
+    Assert(pInsnParm->cBits == 1);
+    Assert(pInsnParm->idxBitStart == 31);
+    *pf64Bit = RT_BOOL(u32Insn & RT_BIT_32(31));
+    return VINF_SUCCESS;
+}
+
+
 static uint32_t disArmV8DecodeIllegal(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8INSNCLASS pInsnClass)
 {
     RT_NOREF(pDis, u32Insn, pInsnClass);
@@ -928,14 +940,7 @@ static int disArmV8A64ParseInstruction(PDISSTATE pDis, uint32_t u32Insn, PCDISAR
     pDis->pCurInstr = &pOp->Opc;
     Assert(&pOp->Opc != &g_ArmV8A64InvalidOpcode[0]);
 
-    bool f64Bit = false;
-
-    /** @todo Get rid of these and move them to the per opcode
-     * (SF can become a decoder step). */
-    if (pInsnClass->fClass & DISARMV8INSNCLASS_F_SF)
-        f64Bit = RT_BOOL(u32Insn & RT_BIT_32(31));
-    else if (pInsnClass->fClass & DISARMV8INSNCLASS_F_FORCED_64BIT)
-        f64Bit = true;
+    bool f64Bit = true;
 
     if (pOp->fFlags & DISARMV8INSNCLASS_F_FORCED_32BIT)
         f64Bit = false;

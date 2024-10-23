@@ -6336,8 +6336,8 @@ DECLINLINE(uint32_t) ASMAtomicUoOrExU32(uint32_t volatile RT_FAR *pu32, uint32_t
     return (uint32_t)_InterlockedOr_nf((long volatile RT_FAR *)pu32, u32);  /* similar to the non-lse code below */
 
 # else
-    uint32_t u32OldRet;
 #  if defined(RTASM_ARM64_USE_FEAT_LSE)
+    uint32_t u32OldRet;
     __asm__ __volatile__("Lstart_ASMAtomicOrExU32_%=:\n\t"
                          "ldset     %w[fBitsToSet], %w[uOldRet], %[pMem]\n\t"
                          : [pMem]       "+Q"  (*pu32)

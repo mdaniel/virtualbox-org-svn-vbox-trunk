@@ -252,18 +252,20 @@ static SUPFUNC g_aFunctions[] =
     /* name                                     function */
         /* Entries with absolute addresses determined at runtime, fixup
            code makes ugly ASSUMPTIONS about the order here: */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsIs64bit,          0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelCS,    0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelSS,    0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelDS,    0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelCS,         0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelSS,         0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelDS,         0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelES,         0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelFS,         0),   /* only-amd64, only-x86 */
-    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelGS,         0),   /* only-amd64, only-x86 */
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    SUPEXP_CUSTOM(      0,  SUPR0AbsIs64bit,       0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelCS, 0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelSS, 0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0Abs64bitKernelDS, 0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelCS,      0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelSS,      0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelDS,      0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelES,      0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelFS,      0),  /* not-arch-arm64 */
+    SUPEXP_CUSTOM(      0,  SUPR0AbsKernelGS,      0),  /* not-arch-arm64 */
+#endif
         /* Normal function & data pointers: */
-    SUPEXP_CUSTOM(      0,  g_pSUPGlobalInfoPage,     &g_pSUPGlobalInfoPage),            /* SED: DATA */
+    SUPEXP_CUSTOM(      0,  g_pSUPGlobalInfoPage,  &g_pSUPGlobalInfoPage),            /* SED: DATA */
     SUPEXP_STK_OKAY(    0,  SUPGetGIP),
     SUPEXP_STK_BACK(    1,  SUPReadTscWithDelta),
     SUPEXP_STK_BACK(    1,  SUPGetTscDeltaSlow),
@@ -276,19 +278,21 @@ static SUPFUNC g_aFunctions[] =
     SUPEXP_STK_BACK(    2,  SUPR0ComponentRegisterFactory),
     SUPEXP_STK_BACK(    5,  SUPR0ContAlloc),
     SUPEXP_STK_BACK(    2,  SUPR0ContFree),
-    SUPEXP_STK_BACK(    2,  SUPR0ChangeCR4),                /* only-amd64, only-x86 */
-    SUPEXP_STK_BACK(    1,  SUPR0EnableVTx),                /* only-amd64, only-x86 */
+    SUPEXP_STK_OKAY(    0,  SUPR0GetKernelFeatures),
+    SUPEXP_STK_BACK(    0,  SUPR0GetPagingMode),
     SUPEXP_STK_OKAY(    1,  SUPR0FpuBegin),
     SUPEXP_STK_OKAY(    1,  SUPR0FpuEnd),
-    SUPEXP_STK_BACK(    0,  SUPR0SuspendVTxOnCpu),          /* only-amd64, only-x86 */
-    SUPEXP_STK_BACK(    1,  SUPR0ResumeVTxOnCpu),           /* only-amd64, only-x86 */
-    SUPEXP_STK_OKAY(    1,  SUPR0GetCurrentGdtRw),          /* only-amd64, only-x86 */
-    SUPEXP_STK_OKAY(    0,  SUPR0GetKernelFeatures),
-    SUPEXP_STK_BACK(    3,  SUPR0GetHwvirtMsrs),            /* only-amd64, only-x86 */
-    SUPEXP_STK_BACK(    0,  SUPR0GetPagingMode),
-    SUPEXP_STK_BACK(    1,  SUPR0GetSvmUsability),          /* only-amd64, only-x86 */
-    SUPEXP_STK_BACK(    1,  SUPR0GetVTSupport),             /* only-amd64, only-x86 */
-    SUPEXP_STK_BACK(    1,  SUPR0GetVmxUsability),          /* only-amd64, only-x86 */
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    SUPEXP_STK_BACK(    2,  SUPR0ChangeCR4),            /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    1,  SUPR0EnableVTx),            /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    0,  SUPR0SuspendVTxOnCpu),      /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    1,  SUPR0ResumeVTxOnCpu),       /* not-arch-arm64 */
+    SUPEXP_STK_OKAY(    1,  SUPR0GetCurrentGdtRw),      /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    3,  SUPR0GetHwvirtMsrs),        /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    1,  SUPR0GetSvmUsability),      /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    1,  SUPR0GetVTSupport),         /* not-arch-arm64 */
+    SUPEXP_STK_BACK(    1,  SUPR0GetVmxUsability),      /* not-arch-arm64 */
+#endif
     SUPEXP_STK_BACK(    2,  SUPR0LdrIsLockOwnerByMod),
     SUPEXP_STK_BACK(    1,  SUPR0LdrLock),
     SUPEXP_STK_BACK(    1,  SUPR0LdrUnlock),
@@ -2410,19 +2414,6 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             return 0;
         }
 
-        case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_VT_CAPS):
-        {
-            /* validate */
-            PSUPVTCAPS pReq = (PSUPVTCAPS)pReqHdr;
-            REQ_CHECK_SIZES(SUP_IOCTL_VT_CAPS);
-
-            /* execute */
-            pReq->Hdr.rc = SUPR0QueryVTCaps(pSession, &pReq->u.Out.fCaps);
-            if (RT_FAILURE(pReq->Hdr.rc))
-                pReq->Hdr.cbOut = sizeof(pReq->Hdr);
-            return 0;
-        }
-
         case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_TRACER_OPEN):
         {
             /* validate */
@@ -2544,6 +2535,21 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
             return 0;
         }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+
+        case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_VT_CAPS):
+        {
+            /* validate */
+            PSUPVTCAPS pReq = (PSUPVTCAPS)pReqHdr;
+            REQ_CHECK_SIZES(SUP_IOCTL_VT_CAPS);
+
+            /* execute */
+            pReq->Hdr.rc = SUPR0QueryVTCaps(pSession, &pReq->u.Out.fCaps);
+            if (RT_FAILURE(pReq->Hdr.rc))
+                pReq->Hdr.cbOut = sizeof(pReq->Hdr);
+            return 0;
+        }
+
         case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_UCODE_REV):
         {
             /* validate */
@@ -2572,6 +2578,8 @@ static int supdrvIOCtlInnerUnrestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt,
                 pReq->Hdr.cbOut = sizeof(pReq->Hdr);
             return 0;
         }
+
+#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 
         default:
             Log(("Unknown IOCTL %#lx\n", (long)uIOCtl));
@@ -2645,6 +2653,7 @@ static int supdrvIOCtlInnerRestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt, P
             return 0;
         }
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         case SUP_CTL_CODE_NO_SIZE(SUP_IOCTL_VT_CAPS):
         {
             /* validate */
@@ -2657,6 +2666,7 @@ static int supdrvIOCtlInnerRestricted(uintptr_t uIOCtl, PSUPDRVDEVEXT pDevExt, P
                 pReq->Hdr.cbOut = sizeof(pReq->Hdr);
             return 0;
         }
+#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 
         default:
             Log(("Unknown IOCTL %#lx\n", (long)uIOCtl));
@@ -4224,6 +4234,8 @@ SUPR0DECL(SUPPAGINGMODE) SUPR0GetPagingMode(void)
 SUPR0_EXPORT_SYMBOL(SUPR0GetPagingMode);
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+
 /**
  * Change CR4 and take care of the kernel CR4 shadow if applicable.
  *
@@ -4240,7 +4252,6 @@ SUPR0_EXPORT_SYMBOL(SUPR0GetPagingMode);
  */
 SUPR0DECL(RTCCUINTREG) SUPR0ChangeCR4(RTCCUINTREG fOrMask, RTCCUINTREG fAndMask)
 {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # ifdef RT_OS_LINUX
     return supdrvOSChangeCR4(fOrMask, fAndMask);
 # else
@@ -4250,10 +4261,6 @@ SUPR0DECL(RTCCUINTREG) SUPR0ChangeCR4(RTCCUINTREG fOrMask, RTCCUINTREG fAndMask)
         ASMSetCR4(uNew);
     return uOld;
 # endif
-#else
-    RT_NOREF(fOrMask, fAndMask);
-    return RTCCUINTREG_MAX;
-#endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0ChangeCR4);
 
@@ -4269,12 +4276,12 @@ SUPR0_EXPORT_SYMBOL(SUPR0ChangeCR4);
  */
 SUPR0DECL(int) SUPR0EnableVTx(bool fEnable)
 {
-#if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
+# if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
     return supdrvOSEnableVTx(fEnable);
-#else
+# else
     RT_NOREF1(fEnable);
     return VERR_NOT_SUPPORTED;
-#endif
+# endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0EnableVTx);
 
@@ -4288,11 +4295,11 @@ SUPR0_EXPORT_SYMBOL(SUPR0EnableVTx);
  */
 SUPR0DECL(bool) SUPR0SuspendVTxOnCpu(void)
 {
-#if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
+# if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
     return supdrvOSSuspendVTxOnCpu();
-#else
+# else
     return false;
-#endif
+# endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0SuspendVTxOnCpu);
 
@@ -4306,24 +4313,24 @@ SUPR0_EXPORT_SYMBOL(SUPR0SuspendVTxOnCpu);
  */
 SUPR0DECL(void) SUPR0ResumeVTxOnCpu(bool fSuspended)
 {
-#if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
+# if defined(RT_OS_DARWIN) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
     supdrvOSResumeVTxOnCpu(fSuspended);
-#else
+# else
     RT_NOREF1(fSuspended);
     Assert(!fSuspended);
-#endif
+# endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0ResumeVTxOnCpu);
 
 
 SUPR0DECL(int) SUPR0GetCurrentGdtRw(RTHCUINTPTR *pGdtRw)
 {
-#if defined(RT_OS_LINUX) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
+# if defined(RT_OS_LINUX) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
     return supdrvOSGetCurrentGdtRw(pGdtRw);
-#else
+# else
     NOREF(pGdtRw);
     return VERR_NOT_IMPLEMENTED;
-#endif
+# endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0GetCurrentGdtRw);
 
@@ -4340,7 +4347,6 @@ SUPR0DECL(int) SUPR0GetVTSupport(uint32_t *pfCaps)
     Assert(pfCaps);
     *pfCaps = 0;
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /* Check if the CPU even supports CPUID (extremely ancient CPUs). */
     if (ASMHasCpuId())
     {
@@ -4391,7 +4397,6 @@ SUPR0DECL(int) SUPR0GetVTSupport(uint32_t *pfCaps)
             }
         }
     }
-#endif
     return VERR_UNSUPPORTED_CPU;
 }
 SUPR0_EXPORT_SYMBOL(SUPR0GetVTSupport);
@@ -4413,7 +4418,6 @@ SUPR0_EXPORT_SYMBOL(SUPR0GetVTSupport);
  */
 SUPR0DECL(int) SUPR0GetVmxUsability(bool *pfIsSmxModeAmbiguous)
 {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint64_t   fFeatMsr;
     bool       fMaybeSmxMode;
     bool       fMsrLocked;
@@ -4472,7 +4476,7 @@ SUPR0DECL(int) SUPR0GetVmxUsability(bool *pfIsSmxModeAmbiguous)
          * for it.
          */
         uint32_t fFeaturesECX, uDummy;
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
         /* Callers should have verified these at some point. */
         uint32_t uMaxId, uVendorEBX, uVendorECX, uVendorEDX;
         ASMCpuId(0, &uMaxId, &uVendorEBX, &uVendorECX, &uVendorEDX);
@@ -4480,7 +4484,7 @@ SUPR0DECL(int) SUPR0GetVmxUsability(bool *pfIsSmxModeAmbiguous)
         Assert(   RTX86IsIntelCpu(     uVendorEBX, uVendorECX, uVendorEDX)
                || RTX86IsViaCentaurCpu(uVendorEBX, uVendorECX, uVendorEDX)
                || RTX86IsShanghaiCpu(  uVendorEBX, uVendorECX, uVendorEDX));
-#endif
+# endif
         ASMCpuId(1, &uDummy, &uDummy, &fFeaturesECX, &uDummy);
         bool fSmxVmxHwSupport = false;
         if (   (fFeaturesECX & X86_CPUID_FEATURE_ECX_VMX)
@@ -4521,12 +4525,6 @@ SUPR0DECL(int) SUPR0GetVmxUsability(bool *pfIsSmxModeAmbiguous)
         *pfIsSmxModeAmbiguous = fIsSmxModeAmbiguous;
 
     return rc;
-
-#else  /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
-    if (pfIsSmxModeAmbiguous)
-        *pfIsSmxModeAmbiguous = false;
-    return VERR_UNSUPPORTED_CPU;
-#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 }
 SUPR0_EXPORT_SYMBOL(SUPR0GetVmxUsability);
 
@@ -4541,7 +4539,6 @@ SUPR0_EXPORT_SYMBOL(SUPR0GetVmxUsability);
  */
 SUPR0DECL(int) SUPR0GetSvmUsability(bool fInitSvm)
 {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     int      rc;
     uint64_t fVmCr;
     uint64_t fEfer;
@@ -4576,16 +4573,10 @@ SUPR0DECL(int) SUPR0GetSvmUsability(bool fInitSvm)
     else
         rc = VERR_SVM_DISABLED;
     return rc;
-
-#else  /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
-    RT_NOREF(fInitSvm);
-    return VERR_UNSUPPORTED_CPU;
-#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 }
 SUPR0_EXPORT_SYMBOL(SUPR0GetSvmUsability);
 
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /**
  * Queries the AMD-V and VT-x capabilities of the calling CPU.
  *
@@ -4671,7 +4662,6 @@ int VBOXCALL supdrvQueryVTCapsInternal(uint32_t *pfCaps)
 
     return rc;
 }
-#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 
 
 /**
@@ -4700,19 +4690,14 @@ SUPR0DECL(int) SUPR0QueryVTCaps(PSUPDRVSESSION pSession, uint32_t *pfCaps)
     AssertReturn(SUP_IS_SESSION_VALID(pSession), VERR_INVALID_PARAMETER);
     AssertPtrReturn(pfCaps, VERR_INVALID_POINTER);
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /*
      * Call common worker.
      */
     return supdrvQueryVTCapsInternal(pfCaps);
-#else
-    return VERR_UNSUPPORTED_CPU;
-#endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0QueryVTCaps);
 
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /**
  * Queries the CPU microcode revision.
  *
@@ -4779,7 +4764,6 @@ static int VBOXCALL supdrvQueryUcodeRev(uint32_t *puRevision)
 
     return rc;
 }
-#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 
 
 /**
@@ -4803,11 +4787,7 @@ SUPR0DECL(int) SUPR0QueryUcodeRev(PSUPDRVSESSION pSession, uint32_t *puRevision)
     /*
      * Call common worker.
      */
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     return supdrvQueryUcodeRev(puRevision);
-#else
-    return VERR_UNSUPPORTED_CPU;
-#endif
 }
 SUPR0_EXPORT_SYMBOL(SUPR0QueryUcodeRev);
 
@@ -4824,7 +4804,6 @@ SUPR0_EXPORT_SYMBOL(SUPR0QueryUcodeRev);
  */
 SUPR0DECL(int) SUPR0GetHwvirtMsrs(PSUPHWVIRTMSRS pMsrs, uint32_t fCaps, bool fForce)
 {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     int rc;
     RTTHREADPREEMPTSTATE PreemptState = RTTHREADPREEMPTSTATE_INITIALIZER;
     NOREF(fForce);
@@ -4915,13 +4894,10 @@ SUPR0DECL(int) SUPR0GetHwvirtMsrs(PSUPHWVIRTMSRS pMsrs, uint32_t fCaps, bool fFo
     RTThreadPreemptRestore(&PreemptState);
 
     return rc;
-
-#else  /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
-    RT_NOREF(pMsrs, fCaps, fForce);
-    return VERR_UNSUPPORTED_CPU;
-#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 }
 SUPR0_EXPORT_SYMBOL(SUPR0GetHwvirtMsrs);
+
+#endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 
 
 /**

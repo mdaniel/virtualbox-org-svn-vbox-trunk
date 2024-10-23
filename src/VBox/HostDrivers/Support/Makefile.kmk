@@ -613,6 +613,7 @@ if1of ($(VBOX_LDR_FMT), pe lx)
  		$(PATH_SUB_CURRENT)/SUPR0-def-$(VBOX_LDR_FMT).sed \
  		| $$(dir $$@)
 	$(SED) \
+		-e '/not-arch-$(KBUILD_TARGET_ARCH)/d' \
 		-f $(dir $<)/SUPR0-def-$(VBOX_LDR_FMT).sed \
 		--output $@ \
 		$<

@@ -816,7 +816,8 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                             pszReg = disasmFormatArmV8Reg(pDis, &pParam->armv8.GprIndex, &cchReg);
                             PUT_STR(pszReg, cchReg);
                         }
-                        else if (pParam->armv8.u.offBase)
+                        else if (   pParam->armv8.u.offBase
+                                 || (pParam->fUse & (DISUSE_POST_INDEXED | DISUSE_PRE_INDEXED)))
                         {
                             PUT_SZ(", #");
                             PUT_NUM_S16(pParam->armv8.u.offBase);

@@ -975,6 +975,55 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegUnscaledImm, RT_BIT_32(26), 26);
 
 
 /*
+ * STRB/LDRB/LDRSB/STRH/LDRH/LDRSH/STR/LDR/LDRSW/STR/LDR
+ *
+ * Note: The size,opc bitfields are concatenated to form an index.
+ */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRegImmPreIndexGpr)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSize,               30,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,               0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOffUnscaled, 12,  9, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPreIndexed,       0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRegImmPreIndexGpr)
+    DIS_ARMV8_OP(0x38000c00, "strb",            OP_ARMV8_A64_STRB,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x38400c00, "ldrb",            OP_ARMV8_A64_LDRB,      DISOPTYPE_HARMLESS),
+ DIS_ARMV8_OP_EX(0x38800c00, "ldrsb",           OP_ARMV8_A64_LDRSB,     DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+ DIS_ARMV8_OP_EX(0x38c00c00, "ldrsb",           OP_ARMV8_A64_LDRSB,     DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_32BIT),
+    DIS_ARMV8_OP(0x78000c00, "strh",            OP_ARMV8_A64_STRH,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x78400c00, "ldrh",            OP_ARMV8_A64_LDRH,      DISOPTYPE_HARMLESS),
+ DIS_ARMV8_OP_EX(0x78800c00, "ldrsh",           OP_ARMV8_A64_LDURSH,    DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+ DIS_ARMV8_OP_EX(0x78c00c00, "ldrsh",           OP_ARMV8_A64_LDURSH,    DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_32BIT),
+    DIS_ARMV8_OP(0xb8000c00, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0xb8400c00, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS),
+ DIS_ARMV8_OP_EX(0xb8800c00, "ldrsw",           OP_ARMV8_A64_LDURSW,    DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(0xf8000c00, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0xf8400c00, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegImmPreIndexGpr, 0xffe00c00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30) | RT_BIT_32(31), 22);
+
+
+/*
+ * C4.1.94.28 - Loads and Stores - Load/Store register (immediate pre-indexed) variants
+ *
+ * Differentiate further based on the VR field.
+ *
+ *     Bit  26
+ *     +-------------------------------------------
+ *           0 GPR variants.
+ *           1 SIMD/FP variants
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegImmPreIndex)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegImmPreIndexGpr),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegImmPreIndex, RT_BIT_32(26), 26);
+
+
+/*
  * C4.1.94 - Loads and Stores - Load/Store register variants
  *
  * Differentiate further based on the op2<1:0> field.
@@ -990,7 +1039,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegOp2_11_0)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegUnscaledImm),
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo */
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegImmPreIndex),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegOp2_11_0, RT_BIT_32(10) | RT_BIT_32(11), 10);
 
 

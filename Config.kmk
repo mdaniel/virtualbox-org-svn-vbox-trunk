@@ -8671,7 +8671,7 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxGuestR3ExeBase_USES.win                      = $(TEMPLATE_VBoxR3StaticBase_USES.win) vboximportchecker vboxsetpeversion
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.x86   = nt31
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.amd64 = xp64
- TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.arm64 = w10
+ TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.arm64 = w10-1709
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.x86   = default
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.amd64 = default
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.arm64 = default
@@ -8844,7 +8844,7 @@ TEMPLATE_VBoxGuestR3DllMinVista = VBox Guest User Dynamic Libraries w/ IPRT and 
 TEMPLATE_VBoxGuestR3DllMinVista_EXTENDS  = VBoxGuestR3Dll
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.amd64 = vista
-TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.arm64 = w10
+TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.arm64 = w10-1709
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.amd64 = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.arm64 = w10

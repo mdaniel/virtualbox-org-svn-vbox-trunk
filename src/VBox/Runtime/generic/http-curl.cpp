@@ -938,6 +938,9 @@ RTR3DECL(int) RTHttpSetProxyByUrl(RTHTTP hHttp, const char *pszUrl)
 
     if (!pszUrl || !*pszUrl)
         return RTHttpUseSystemProxySettings(pThis);
+
+    pThis->fUseSystemProxySettings = false;
+
     if (RTStrNICmpAscii(pszUrl, RT_STR_TUPLE("direct://")) == 0)
         return rtHttpUpdateAutomaticProxyDisable(pThis);
     return rtHttpConfigureProxyFromUrl(pThis, pszUrl);

@@ -1,6 +1,5 @@
 /* $Id$ */
 /** @file
- *
  * VirtualBox Object tracker implementation
  */
 

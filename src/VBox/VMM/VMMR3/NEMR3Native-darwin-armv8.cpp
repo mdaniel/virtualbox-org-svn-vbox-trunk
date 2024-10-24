@@ -1726,14 +1726,14 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionDataAbort(PVM pVM, PVMCPU pVCp
                     && (Dis.aParams[1].fUse & DISUSE_PRE_INDEXED))
                 {
                     /* The fault address is already the final address. */
-                    uint64_t u64Val = 0;
-                    rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
+                    uint8_t bVal = 0;
+                    rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &bVal, 1, PGMACCESSORIGIN_HM);
                     Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs rcStrict=%Rrc\n",
-                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
-                          &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, sizeof(bVal), sizeof(bVal),
+                          &bVal, VBOXSTRICTRC_VAL(rcStrict) ));
                     if (rcStrict == VINF_SUCCESS)
                     {
-                        nemR3DarwinSetGReg(pVCpu, Dis.aParams[0].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, u64Val);
+                        nemR3DarwinSetGReg(pVCpu, Dis.aParams[0].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, bVal);
                         /* Update the indexed register. */
                         pVCpu->cpum.GstCtx.aGRegs[Dis.aParams[1].armv8.Op.Reg.idReg].x += Dis.aParams[1].armv8.u.offBase;
                     }

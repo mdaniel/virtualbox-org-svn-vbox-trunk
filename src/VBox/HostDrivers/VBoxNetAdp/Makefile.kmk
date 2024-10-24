@@ -108,22 +108,28 @@ ifeq ($(KBUILD_TARGET),win)
  # VBoxNetAdp6.sys - The VirtualBox Adapter miniport driver.
  #
  ifdef VBOX_WITH_VBOXDRV
-  SYSMODS.win += VBoxNetAdp6
+  SYSMODS.win  += VBoxNetAdp6
+  INSTALLS.win += VBoxNetAdp6-inf
+
+  # The driver.
   VBoxNetAdp6_TEMPLATE = VBoxR0Drv
-  if defined(VBOX_SIGNING_MODE)
+  ifdef VBOX_SIGNING_MODE
    VBoxNetAdp6_INSTTYPE.win = none
    VBoxNetAdp6_DEBUG_INSTTYPE.win = both
   endif
-  VBoxNetAdp6_DEFS = IN_RT_R0 IN_SUP_STATIC
+  VBoxNetAdp6_DEFS            = IN_RT_R0 IN_SUP_STATIC
+  VBoxNetAdp6_DEFS           += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
+  VBoxNetAdp6_DEFS.win.x86   := NDIS60_MINIPORT=1 NDIS60=1
+  VBoxNetAdp6_DEFS.win.amd64 := NDIS60_MINIPORT=1 NDIS60=1
+  VBoxNetAdp6_DEFS.win.arm64 := NDIS630_MINIPORT=1 NDIS630=1
   VBoxNetAdp6_INCS := $(PATH_SUB_CURRENT)
   VBoxNetAdp6_SDKS = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
   VBoxNetAdp6_SOURCES = \
   	win/VBoxNetAdp-win.cpp \
   	win/VBoxNetAdp-win.rc
-  VBoxNetAdp6_DEFS += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
-  VBoxNetAdp6_DEFS += NDIS60_MINIPORT=1 NDIS60=1
-  VBoxNetAdp6_LDFLAGS.win.x86 = -Entry:DriverEntry@8
+  VBoxNetAdp6_LDFLAGS.win.x86   = -Entry:DriverEntry@8
   VBoxNetAdp6_LDFLAGS.win.amd64 = -Entry:DriverEntry
+  VBoxNetAdp6_LDFLAGS.win.arm64 = -Entry:DriverEntry
   VBoxNetAdp6_LIBS.win = \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/ntoskrnl.lib \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/hal.lib \
@@ -131,9 +137,10 @@ ifeq ($(KBUILD_TARGET),win)
   	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
   VBoxNetAdp6_LIBS = \
   	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
+  VBoxNetAdp6_LIBS.win.arm64 = \
+  	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/BufferOverflowFastFailK.lib
 
-
-  INSTALLS.win += VBoxNetAdp6-inf
+  # VBoxNetAdp6 INF & CAT files.
   VBoxNetAdp6-inf_TEMPLATE = VBoxR0DrvInfCat
   VBoxNetAdp6-inf_SOURCES = \
   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.inf
@@ -147,7 +154,10 @@ ifeq ($(KBUILD_TARGET),win)
   ifdef VBOX_SIGNING_MODE
    VBoxNetAdp6-inf_SOURCES += \
    	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.sys \
-   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat \
+   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat
+   VBoxNetAdp6-inf_SOURCES.win.x86 += \
+   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat=>VBoxNetAdp6-PreW10.cat
+   VBoxNetAdp6-inf_SOURCES.win.amd64 += \
    	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat=>VBoxNetAdp6-PreW10.cat
 
    $(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.sys: $$(VBoxNetAdp6_1_TARGET) | $$(dir $$@)
@@ -158,11 +168,9 @@ ifeq ($(KBUILD_TARGET),win)
    		$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.inf
 	$(call MSG_TOOL,Inf2Cat,VBoxNetFlt-inf,$@,$<)
 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
-
-  endif #  ifdef VBOX_SIGNING_MODE
- endif #  ifdef VBOX_WITH_VBOXDRV
-
-endif #ifeq ($(KBUILD_TARGET), win)
+  endif # VBOX_SIGNING_MODE
+ endif # VBOX_WITH_VBOXDRV
+endif # $(KBUILD_TARGET) == win
 
 ifeq ($(KBUILD_TARGET),linux)
  #

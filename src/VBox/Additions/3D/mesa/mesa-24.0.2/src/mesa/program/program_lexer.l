@@ -22,13 +22,15 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef IPRT_NO_CRT
+#ifndef IPRT_NO_CRT     /* VBox */
 #ifndef _MSC_VER
 #include <unistd.h>
+#else                   /* VBox */
+#include <io.h>         /* VBox */
 #endif
-#else
-#include <unistd.h>
-#endif
+#else                   /* VBox */
+#include <unistd.h>     /* VBox */
+#endif                  /* VBox */
 
 #include "util/glheader.h"
 

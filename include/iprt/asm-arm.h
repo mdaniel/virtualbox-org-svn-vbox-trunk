@@ -56,10 +56,10 @@
 /*
  * MSVC insists on having these defined using ARM64_SYSREG or it will
  * fail to compile with "error C2284: "_ReadStatusReg": invalid argument for internal function, parameter 1"
- * if we use our own definitions from iprt/armv8.h 
- *  
- * The reason for this, is that ARM64_SYSREG masks off the top bit (bit 15) 
- * whereas our macro doesn't.  So the reason is probably the implicitness 
+ * if we use our own definitions from iprt/armv8.h
+ *
+ * The reason for this, is that ARM64_SYSREG masks off the top bit (bit 15)
+ * whereas our macro doesn't.  So the reason is probably the implicitness
  * of the top bit in the MRS/MSR encoding.
  */
 # define ARM64_SYSREG_DAIF          ARM64_SYSREG(3, 3,  4, 2, 1)

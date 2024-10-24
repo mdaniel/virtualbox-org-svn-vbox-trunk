@@ -42,7 +42,8 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
  #
  # VBoxNetFlt.sys - The mixed case driver.
  #
- # Note! Note built for win.arm64.
+ # Note! Legacy driver not built for win.arm64, we only use and ship VBoxNetLwf there.
+ ## @todo Just drop VBoxNetFlt on win.*, min req is at least windows 7, which support ndis 6.20.
  #
  ifdef VBOX_WITH_VBOXDRV
   SYSMODS.darwin    += VBoxNetFlt
@@ -227,9 +228,12 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   ifdef VBOX_SIGNING_MODE
    VBoxNetLwf-inf_SOURCES += \
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys \
-   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat \
-   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
+   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat
    #	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwfNobj.dll
+   VBoxNetLwf-inf_SOURCES.win.x86 += \
+   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
+   VBoxNetLwf-inf_SOURCES.win.amd64 += \
+   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
 
    $(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys: $$(VBoxNetLwf_1_TARGET) | $$(dir $$@)
 	$(INSTALL) -m 644 $< $(@D)
@@ -384,10 +388,11 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   #
   # VBoxNetAdp.sys - The VirtualBox Adapter miniport driver.
   #
+  # Note! Legacy driver not built for win.arm64, we only use and ship VBoxNetAdp6 there.
+  ## @todo Just drop VBoxNetAdp on win.*, min req is at least windows 7, which support ndis 6.20. We don't need this, do we?
+  #
   ifdef VBOX_WITH_VBOXDRV
-   ifeq ($(KBUILD_TARGET_ARCH),arm64)
-    $(warning TODO: Port VBoxNetAdp to NDIS 6.3+ for win.amd64.)
-   else
+   ifneq ($(KBUILD_TARGET_ARCH),arm64)
     SYSMODS.win  += VBoxNetAdp
     INSTALLS.win += VBoxNetAdp-inf
    endif
@@ -406,7 +411,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   VBoxNetAdp_DEFS += VBOXNETFLT_NO_PACKET_QUEUE
   VBoxNetAdp_DEFS.x86   = NDIS50_MINIPORT=1 NDIS50=1
   VBoxNetAdp_DEFS.amd64 = NDIS50_MINIPORT=1 NDIS50=1
-  VBoxNetAdp_DEFS.arm64 = NDIS630_MINIPORT=1 NDIS630=1
   VBoxNetAdp_INCS := $(PATH_SUB_CURRENT)
   VBoxNetAdp_SDKS = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
   VBoxNetAdp_SOURCES = \
@@ -416,7 +420,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	win/drv/VBoxNetFlt-win.rc
   VBoxNetAdp_LDFLAGS.win.x86   = -Entry:DriverEntry@8
   VBoxNetAdp_LDFLAGS.win.amd64 = -Entry:DriverEntry
-  VBoxNetAdp_LDFLAGS.win.arm64 = -Entry:DriverEntry
   VBoxNetAdp_LIBS.win = \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/ntoskrnl.lib \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/hal.lib \
@@ -424,8 +427,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
   VBoxNetAdp_LIBS = \
   	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
-  VBoxNetAdp_LIBS.win.arm64 = \
-  	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/BufferOverflowFastFailK.lib
 
   # VBoxNetAdp .INF & .CAT files.
   VBoxNetAdp-inf_TEMPLATE = VBoxR0DrvInfCat

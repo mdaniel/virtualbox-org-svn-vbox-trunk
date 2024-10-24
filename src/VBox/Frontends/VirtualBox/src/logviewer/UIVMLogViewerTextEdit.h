@@ -112,6 +112,7 @@ private:
     void setMouseCursorLine(int lineNumber);
     /** If bookmark exists this function removes it, if not it adds the bookmark. */
     void toggleBookmark(const UIVMLogBookmark& bookmark);
+    void repositionToBottomToUpButtons();
 
     UIVMLogBookmark  m_iContextMenuBookmark;
     QWidget             *m_pLineNumberArea;

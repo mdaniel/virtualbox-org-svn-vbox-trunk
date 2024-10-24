@@ -1280,9 +1280,9 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
   TEMPLATE_VBoxDDR0OldGCC_EXTENDS := VBoxR0
   TEMPLATE_VBoxDDR0OldGCC_CXXFLAGS = $(filter-out -pedantic,$(TEMPLATE_$(TEMPLATE_VBoxDDR0OldGCC_EXTENDS)_CXXFLAGS))
 
-  VBoxDDR0_TEMPLATE       = VBoxDDR0OldGCC
+  VBoxDDR0_TEMPLATE     := VBoxDDR0OldGCC
  else
-  VBoxDDR0_TEMPLATE       = VBoxR0
+  VBoxDDR0_TEMPLATE     := VBoxR0
  endif
  VBoxDDR0_DEFS           = \
  	$(if $(VBOX_WITH_HGCM),VBOX_WITH_HGCM,) \
@@ -1292,7 +1292,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  VBoxDDR0_DEFS.win      += VBOX_WITH_WIN_PARPORT_SUP
  VBoxDDR0_INCS           = build $(VBOX_GRAPHICS_INCS)
  VBoxDDR0_INCS          += $(VBOX_PATH_VMSVGA_DEVICE_INC)
- VBoxDDR0_SDKS.win        = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
+ VBoxDDR0_SDKS.win       = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
  VBoxDDR0_SOURCES        = \
  	build/VBoxDDR0.cpp \
  	Bus/DevPCI.cpp \
@@ -1459,7 +1459,9 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  VBoxDDR0_LIBS          += \
  	$(VBOX_LIB_SUPR0)
 
- $(call VBOX_SET_VER_INFO_R0,VBoxDDR0,VirtualBox VMM Devices and Drivers$(COMMA) ring-0) # (last!)
+ ifdef VBOX_WITH_R0_MODULES
+  $(call VBOX_SET_VER_INFO_R0,VBoxDDR0,VirtualBox VMM Devices and Drivers$(COMMA) ring-0) # (last!)
+ endif
 
  ifdef VBOX_WITH_KMOD_WRAPPED_R0_MODS
   # Wrapper kmod for VBoxDDR0.r0
@@ -1594,7 +1596,9 @@ if defined(VBOX_WITH_EXTPACK) && defined(VBOX_WITH_EXTPACK_PUEL) && defined(VBOX
   $(if-expr defined(VBOX_WITH_VBOXR0_AS_DLL),DLLS,SYSMODS) += VBoxPciRawR0
   VBoxPciRawR0_TEMPLATE     = VBoxR0ExtPackPuel
   VBoxPciRawR0_SOURCES      = Bus/DevPciRaw.cpp
-  $(call VBOX_SET_VER_INFO_R0,VBoxPciRawR0,PUEL Extension Pack - PCI Passthrough Driver$(COMMA) ring-0)
+  ifdef VBOX_WITH_R0_MODULES
+   $(call VBOX_SET_VER_INFO_R0,VBoxPciRawR0,PUEL Extension Pack - PCI Passthrough Driver$(COMMA) ring-0)
+  endif
 
   Bus/DevPciRaw.cpp_INCS    = Bus
  endif
@@ -1630,7 +1634,7 @@ if defined(VBOX_WITH_EXTPACK) && defined(VBOX_WITH_EXTPACK_PUEL) && defined(VBOX
     	$(VBoxNvmeR0_0_OUTDIR)/VBoxNvmeR0.r0=>VBoxNvmeR0.r0 \
     	$(VBoxNvmeR0_0_OUTDIR)/VBoxNvmeR0.debug=>VBoxNvmeR0.debug
    endif
-  endif
+  endif # VBOX_WITH_R0_MODULES
 
   ifdef VBOX_WITH_RAW_MODE
    SYSMODS += VBoxNvmeRC

@@ -553,7 +553,7 @@ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.a
  VBOX_WITH_DRIVERLESS_NEM_FALLBACK = 1
 endif
 # Enable forced driverless mode by default.
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64 win.arm64)
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.amd64 darwin.arm64 linux.arm64)
  VBOX_WITH_DRIVERLESS_FORCED = 1
  ifn1of ($(KBUILD_TARGET), linux win)
   VBOX_WITH_INTNET_SERVICE_IN_R3 = 1
@@ -4886,19 +4886,11 @@ endif
 #
 # Windows .inf editing.
 #
-ifeq ($(KBUILD_TARGET_ARCH),x86)
- VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INF32_FN,$(1),$(2))
-else
- ifeq ($(KBUILD_TARGET_ARCH),amd64)
-  VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INF64_FN,$(1),$(2))
- else
-  VBOX_EDIT_INF_FN = $(call VBOX_EDIT_INFARM64_FN,$(1),$(2))
- endif
-endif
-## Edit an inf file an x86 target.
+VBOX_EDIT_INF_FN = $(VBOX_EDIT_INF_FN.$(KBUILD_TARGET_ARCH))
+## Edit an inf file a x86 target.
 # @param    1   The inf file to edit.
 # @param    2   The output file.
-VBOX_EDIT_INF32_FN = $(SED) $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
+VBOX_EDIT_INF_FN.x86 = $(SED) $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;x86  *//' \
 	-e '/^;amd64 /d' \
 	-e '/^;arm64 /d' \
@@ -4907,10 +4899,10 @@ VBOX_EDIT_INF32_FN = $(SED) $(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;
 	-e 's/^;edit-DriverVer.*/DriverVer = $(date-utc %m\/%d\/%Y),$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(expr $(VBOX_SVN_REV) % 50000) ; r$(VBOX_SVN_REV)/' \
 	--output $(2) \
 	$(1)
-## Edit an inf file an x86 target.
+## Edit an inf file an amd64 target.
 # @param    1   The inf file to edit.
 # @param    2   The output file.
-VBOX_EDIT_INF64_FN = $(SED) \
+VBOX_EDIT_INF_FN.amd64 = $(SED) \
 	$(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;amd64  *//' \
 	-e '/^;x86 /d' \
@@ -4923,7 +4915,7 @@ VBOX_EDIT_INF64_FN = $(SED) \
 ## Edit an inf file for an arm64 target.
 # @param    1   The inf file to edit.
 # @param    2   The output file.
-VBOX_EDIT_INFARM64_FN = $(SED) \
+VBOX_EDIT_INF_FN.arm64 = $(SED) \
 	$(if $(VBOX_SIGNING_MODE),-e 's/^;cat  *//', -e '/^;cat /d') \
 	-e 's/^;arm64  *//' \
 	-e '/^;x86 /d' \
@@ -5845,8 +5837,6 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxR0Drv_DEFS.amd64        += WIN9X_COMPAT_SPINLOCK     # For Windows 8+ WDKs where it is no longer inlined but imported from ntoskrnl.
  TEMPLATE_VBoxR0Drv_DEFS.amd64        += NT_INLINE_IRQL NT_INLINE_GET_CURRENT_IRQL # Prevent W10 WDK from importing KeLowerIrql and KeGetCurrentIrql.
  TEMPLATE_VBoxR0Drv_DEFS.arm64         = _ARM64_
- TEMPLATE_VBoxR0Drv_DEFS.arm64        += WIN9X_COMPAT_SPINLOCK     # For Windows 8+ WDKs where it is no longer inlined but imported from ntoskrnl.
- TEMPLATE_VBoxR0Drv_DEFS.arm64        += NT_INLINE_IRQL NT_INLINE_GET_CURRENT_IRQL # Prevent W10 WDK from importing KeLowerIrql and KeGetCurrentIrql.
  TEMPLATE_VBoxR0Drv_DEFS.win           = IPRT_NT_MAP_TO_ZW
  TEMPLATE_VBoxR0Drv_CXXFLAGS           = -Zi -Zl -GR- -EHs- -GF -Gz -GS- $(VBOX_VCC_WCHAR_T_VARIANT) $(VBOX_VCC_FP) -Gs4096 $(VBOX_VCC_OPT) \
  	-Gy $(VBOX_VCC_CC_GUARD_CF) $(VBOX_VCC_WARN_ALL) $(VBOX_VCC_WERR)
@@ -8681,7 +8671,7 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxGuestR3ExeBase_USES.win                      = $(TEMPLATE_VBoxR3StaticBase_USES.win) vboximportchecker vboxsetpeversion
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.x86   = nt31
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.amd64 = xp64
- TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.arm64 = w8
+ TEMPLATE_VBoxGuestR3ExeBase_VBOX_IMPORT_CHECKER.win.arm64 = w10
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.x86   = default
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.amd64 = default
  TEMPLATE_VBoxGuestR3ExeBase_VBOX_SET_PE_VERSION.win.arm64 = default
@@ -8854,7 +8844,7 @@ TEMPLATE_VBoxGuestR3DllMinVista = VBox Guest User Dynamic Libraries w/ IPRT and 
 TEMPLATE_VBoxGuestR3DllMinVista_EXTENDS  = VBoxGuestR3Dll
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.amd64 = vista
-TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.arm64 = w8
+TEMPLATE_VBoxGuestR3DllMinVista_VBOX_IMPORT_CHECKER.win.arm64 = w10
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.x86   = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.amd64 = vista
 TEMPLATE_VBoxGuestR3DllMinVista_VBOX_SET_PE_VERSION.win.arm64 = w10

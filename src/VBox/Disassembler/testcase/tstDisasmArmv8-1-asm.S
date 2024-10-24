@@ -95,8 +95,26 @@ _TestProcA64:
         ret x1
         ret x2
         ret x15
+        retaa
+        retab
         br  x15
+        braaz x15
+        brabz xzr
         blr x15
+        blraaz x15
+        blrabz xzr
+        eret
+        eretaa
+        eretab
+        drps
+        braa xzr, sp
+        braa x0, x1
+        brab xzr, sp
+        brab x0, x1
+        blraa xzr, sp
+        blraa x0, x1
+        blrab xzr, sp
+        blrab x0, x1
 
         ; System register access instructions
         msr ttbr0_el1, x0

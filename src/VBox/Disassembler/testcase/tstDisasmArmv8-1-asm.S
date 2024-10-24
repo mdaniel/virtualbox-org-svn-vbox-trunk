@@ -641,6 +641,78 @@ _TestProcA64:
         ldrsw x0, [sp, #-256]!
         ldrsw x0, [sp, #255]!
 
+        ldrb w0, [x28], #0
+        ldrb w0, [x28], #-256
+        ldrb w0, [x28], #255
+
+        ldrb w0, [sp], #0
+        ldrb w0, [sp], #-256
+        ldrb w0, [sp], #255
+
+        ldrsb w0, [x28], #0
+        ldrsb w0, [x28], #-256
+        ldrsb w0, [x28], #255
+
+        ldrsb w0, [sp], #0
+        ldrsb w0, [sp], #-256
+        ldrsb w0, [sp], #255
+
+        ldrsb x0, [x28], #0
+        ldrsb x0, [x28], #-256
+        ldrsb x0, [x28], #255
+
+        ldrsb x0, [sp], #0
+        ldrsb x0, [sp], #-256
+        ldrsb x0, [sp], #255
+
+        ldrh w0, [x28], #0
+        ldrh w0, [x28], #-256
+        ldrh w0, [x28], #255
+
+        ldrh w0, [sp], #0
+        ldrh w0, [sp], #-256
+        ldrh w0, [sp], #255
+
+        ldrsh w0, [x28], #0
+        ldrsh w0, [x28], #-256
+        ldrsh w0, [x28], #255
+
+        ldrsh w0, [sp], #0
+        ldrsh w0, [sp], #-256
+        ldrsh w0, [sp], #255
+
+        ldrsh x0, [x28], #0
+        ldrsh x0, [x28], #-256
+        ldrsh x0, [x28], #255
+
+        ldrsh x0, [sp], #0
+        ldrsh x0, [sp], #-256
+        ldrsh x0, [sp], #255
+
+        ldr x0, [x28], #0
+        ldr x0, [x28], #-256
+        ldr x0, [x28], #255
+
+        ldr x0, [sp], #0
+        ldr x0, [sp], #-256
+        ldr x0, [sp], #255
+
+        ldr w0, [x28], #0
+        ldr w0, [x28], #-256
+        ldr w0, [x28], #255
+
+        ldr w0, [sp], #0
+        ldr w0, [sp], #-256
+        ldr w0, [sp], #255
+
+        ldrsw x0, [x28], #0
+        ldrsw x0, [x28], #-256
+        ldrsw x0, [x28], #255
+
+        ldrsw x0, [sp], #0
+        ldrsw x0, [sp], #-256
+        ldrsw x0, [sp], #255
+
 
         ldurb w0, [x28]
         ldurb w0, [x28, #-256]
@@ -902,6 +974,71 @@ _TestProcA64:
         str w0, [sp]
         str w0, [sp, #4]
         str w0, [sp, #16380]
+
+        strb w0, [x28, #0]!
+        strb w0, [x28, #-256]!
+        strb w0, [x28, #255]!
+
+        strb w0, [sp, #0]!
+        strb w0, [sp, #-256]!
+        strb w0, [sp, #255]!
+
+        strh w0, [x28, #0]!
+        strh w0, [x28, #-256]!
+        strh w0, [x28, #255]!
+
+        strh w0, [sp, #0]!
+        strh w0, [sp, #-256]!
+        strh w0, [sp, #255]!
+
+        str x0, [x28, #0]!
+        str x0, [x28, #-256]!
+        str x0, [x28, #255]!
+
+        str x0, [sp, #0]!
+        str x0, [sp, #-256]!
+        str x0, [sp, #255]!
+
+        str w0, [x28, #0]!
+        str w0, [x28, #-256]!
+        str w0, [x28, #255]!
+
+        str w0, [sp, #0]!
+        str w0, [sp, #-256]!
+        str w0, [sp, #255]!
+
+
+        strb w0, [x28], #0
+        strb w0, [x28], #-256
+        strb w0, [x28], #255
+
+        strb w0, [sp], #0
+        strb w0, [sp], #-256
+        strb w0, [sp], #255
+
+        strh w0, [x28], #0
+        strh w0, [x28], #-256
+        strh w0, [x28], #255
+
+        strh w0, [sp], #0
+        strh w0, [sp], #-256
+        strh w0, [sp], #255
+
+        str x0, [x28], #0
+        str x0, [x28], #-256
+        str x0, [x28], #255
+
+        str x0, [sp], #0
+        str x0, [sp], #-256
+        str x0, [sp], #255
+
+        str w0, [x28], #0
+        str w0, [x28], #-256
+        str w0, [x28], #255
+
+        str w0, [sp], #0
+        str w0, [sp], #-256
+        str w0, [sp], #255
 
         sturb w0, [x28]
         sturb w0, [x28, #-256]

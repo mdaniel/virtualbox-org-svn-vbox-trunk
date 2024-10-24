@@ -817,7 +817,7 @@ static int vbglR3DnDHGRecvDataLoop(PVBGLR3GUESTDNDCMDCTX pCtx, PVBOXDNDSNDDATAHD
     if (pDataHdr->cbMeta)
     {
         uint64_t cbDataTmp = 0;
-        void    *pvDataTmp = RTMemAlloc(pDataHdr->cbMeta);
+        void    *pvDataTmp = RTMemAllocZ(pDataHdr->cbMeta);
         if (!pvDataTmp)
             rc = VERR_NO_MEMORY;
 

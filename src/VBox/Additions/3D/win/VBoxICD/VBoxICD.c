@@ -120,6 +120,9 @@ void VBoxLoadICD(void)
  * However it turned out that loading the real ICD from DLL_PROCESS_ATTACH works,
  * and loading it in a lazy way fails for unknown reason on 64 bit Windows.
  *
+ * Update 2024-10-24 / bird: It fails on AMD64 because you trash the parameter registers
+ *                           when making the call. duh.
+ *
  * So just call VBoxLoadICD from DLL_PROCESS_ATTACH.
  */
 BOOL WINAPI DllMain(HINSTANCE hDLLInst,

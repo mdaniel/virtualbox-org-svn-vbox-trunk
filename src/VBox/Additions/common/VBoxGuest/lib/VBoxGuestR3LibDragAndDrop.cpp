@@ -883,7 +883,7 @@ static int vbglR3DnDHGRecvDataMain(PVBGLR3GUESTDNDCMDCTX   pCtx,
     VBOXDNDDATAHDR dataHdr;
     RT_ZERO(dataHdr);
     dataHdr.cbMetaFmt = pCtx->cbMaxChunkSize;
-    dataHdr.pvMetaFmt = RTMemAlloc(dataHdr.cbMetaFmt);
+    dataHdr.pvMetaFmt = RTMemAllocZ(dataHdr.cbMetaFmt);
     if (!dataHdr.pvMetaFmt)
         return VERR_NO_MEMORY;
 

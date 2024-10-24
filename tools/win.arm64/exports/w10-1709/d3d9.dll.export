@@ -1,0 +1,30 @@
+;
+; Generated from: d3d9.dll
+;      Size file: 0x193260 (1651296)
+;         Format: PE
+;  Size of image: 0x197000 (1667072)
+;   Architecture: 7
+;      Timestamp: 0xa3a59457 - 2057-01-01T01:20:23
+;
+#16
+#17
+#18
+#19
+#20
+#21
+#22
+Direct3DShaderValidatorCreate9
+PSGPError
+PSGPSampleTexture
+D3DPERF_BeginEvent
+D3DPERF_EndEvent
+D3DPERF_GetStatus
+D3DPERF_QueryRepeatFrame
+D3DPERF_SetMarker
+D3DPERF_SetOptions
+D3DPERF_SetRegion
+DebugSetLevel
+DebugSetMute
+Direct3D9EnableMaximizedWindowedModeShim
+Direct3DCreate9
+Direct3DCreate9Ex

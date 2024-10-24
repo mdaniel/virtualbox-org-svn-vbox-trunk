@@ -150,7 +150,7 @@ unsigned long TrackedObjectData::i_checkRefCount(const Guid& aIID)
 
 /////////////////////////////////////////////////////////////////////////////
 // TrackedObjectsCollector
-///////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////
 class TrackedObjectsCollector;
 extern TrackedObjectsCollector gTrackedObjectsCollector;
 
@@ -763,7 +763,7 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                             /*
                              * Special case for the objects with lifeTime == 0.
                              * It's intended for such objects like Mediums or Machines or others.
-                             * The objects which live from the beginning but may be deleted by user manually. 
+                             * The objects which live from the beginning but may be deleted by user manually.
                              * for this object the idle time starts when user deletes it.
                              */
                             if (lifeTime == 0)

@@ -213,6 +213,7 @@ DECLINLINE(uint32_t) supdrvGipGetApicId(PSUPGLOBALINFOPAGE pGip)
 #elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
     RT_NOREF(pGip);
     return (uint32_t)ASMGetThreadIdRoEL0();
+
 #else
 # error "port me"
 #endif
@@ -263,6 +264,7 @@ static uint32_t supdrvGipGetApicIdSlow(void)
 
 #elif defined(RT_ARCH_ARM64) && defined(RT_OS_WINDOWS)
     return (uint32_t)ASMGetThreadIdRoEL0();
+
 #else
 # error "port me"
 #endif
@@ -372,7 +374,6 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
     NOREF(pGip);
 
     AssertMsg(idCpu == RTMpCpuId(), ("idCpu=%#x RTMpCpuId()=%#x\n", idCpu, RTMpCpuId())); /* paranoia^3 */
-
 
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /*

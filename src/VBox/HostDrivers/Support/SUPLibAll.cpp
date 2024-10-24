@@ -100,7 +100,7 @@ SUPDECL(uint64_t) SUPReadTscWithDelta(PSUPGLOBALINFOPAGE pGip)
         uint32_t cTries = 0;
         for (;;)
         {
-            uint16_t cbLim = ASMGetIdtrLimit();
+            uint16_t const cbLim = ASMGetIdtrLimit();
             uTsc = ASMReadTSC();
             if (RT_LIKELY(ASMGetIdtrLimit() == cbLim))
             {
@@ -123,7 +123,7 @@ SUPDECL(uint64_t) SUPReadTscWithDelta(PSUPGLOBALINFOPAGE pGip)
         uint32_t cTries = 0;
         for (;;)
         {
-            uint32_t idApic = ASMGetApicIdExt0B();
+            uint32_t const idApic = ASMGetApicIdExt0B();
             uTsc = ASMReadTSC();
             if (RT_LIKELY(ASMGetApicIdExt0B() == idApic))
             {
@@ -144,7 +144,7 @@ SUPDECL(uint64_t) SUPReadTscWithDelta(PSUPGLOBALINFOPAGE pGip)
         uint32_t cTries = 0;
         for (;;)
         {
-            uint32_t idApic = ASMGetApicIdExt8000001E();
+            uint32_t const idApic = ASMGetApicIdExt8000001E();
             uTsc = ASMReadTSC();
             if (RT_LIKELY(ASMGetApicIdExt8000001E() == idApic))
             {

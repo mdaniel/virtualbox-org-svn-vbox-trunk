@@ -1173,7 +1173,8 @@ DECLHIDDEN(int) disInstrWorkerArmV8(PDISSTATE pDis, PCDISOPCODE paOneByteMap, ui
 
     if (pDis->uCpuMode == DISCPUMODE_ARMV8_A64)
     {
-        *pcbInstr = sizeof(uint32_t);
+        if (pcbInstr)
+            *pcbInstr = sizeof(uint32_t);
 
         /* Instructions are always little endian and 4 bytes. */
         uint32_t u32Insn = disReadDWord(pDis, 0 /*offInstr*/);

@@ -35,6 +35,8 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_NEM
 #define VMCPU_INCL_CPUM_GST_CTX
+#define VBOX_DIS_WITH_ARMV8
+
 #include <VBox/vmm/nem.h>
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/em.h>
@@ -45,6 +47,7 @@
 #include "NEMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include <VBox/vmm/vmm.h>
+#include <VBox/dis.h>
 #include <VBox/gic.h>
 #include "dtrace/VBoxVMM.h"
 
@@ -1660,32 +1663,85 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionDataAbort(PVM pVM, PVMCPU pVCp
         }
     }
 
-    AssertReturn(fIsv, VERR_NOT_SUPPORTED); /** @todo Implement using IEM when this should occur. */
-
-    EMHistoryAddExit(pVCpu,
-                     fWrite
-                     ? EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_WRITE)
-                     : EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_READ),
-                     pVCpu->cpum.GstCtx.Pc.u64, ASMReadTSC());
-
-    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
-    uint64_t u64Val = 0;
-    if (fWrite)
+    VBOXSTRICTRC rcStrict;
+    if (fIsv)
     {
-        u64Val = nemR3DarwinGetGReg(pVCpu, uReg);
-        rcStrict = PGMPhysWrite(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
-        Log4(("MmioExit/%u: %08RX64: WRITE %#RGp LB %u, %.*Rhxs -> rcStrict=%Rrc\n",
-              pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
-              &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+        EMHistoryAddExit(pVCpu,
+                         fWrite
+                         ? EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_WRITE)
+                         : EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_READ),
+                         pVCpu->cpum.GstCtx.Pc.u64, ASMReadTSC());
+
+        uint64_t u64Val = 0;
+        if (fWrite)
+        {
+            u64Val = nemR3DarwinGetGReg(pVCpu, uReg);
+            rcStrict = PGMPhysWrite(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
+            Log4(("MmioExit/%u: %08RX64: WRITE %#RGp LB %u, %.*Rhxs -> rcStrict=%Rrc\n",
+                  pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
+                  &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+        }
+        else
+        {
+            rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
+            Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs rcStrict=%Rrc\n",
+                  pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
+                  &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+            if (rcStrict == VINF_SUCCESS)
+                nemR3DarwinSetGReg(pVCpu, uReg, f64BitReg, fSignExtend, u64Val);
+        }
     }
     else
     {
-        rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
-        Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs rcStrict=%Rrc\n",
-              pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
-              &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+        /** @todo Our UEFI firmware accesses the flash region with the following instruction
+         *        when the NVRAM actually contains data:
+         *             ldrb w9, [x6, #-0x0001]!
+         *        This is too complicated for the hardware so the ISV bit is not set. Until there
+         *        is a proper IEM implementation we just handle this here for now to avoid annoying
+         *        users too much.
+         */
+        /* The following ASSUMES that the vCPU state is completely synced. */
+
+        /* Read instruction. */
+        RTGCPTR GCPtrPage = pVCpu->cpum.GstCtx.Pc.u64 & ~(RTGCPTR)GUEST_PAGE_OFFSET_MASK;
+        const void *pvPageR3 = NULL;
+        PGMPAGEMAPLOCK  PageMapLock;
+
+        rcStrict = PGMPhysGCPtr2CCPtrReadOnly(pVCpu, GCPtrPage, &pvPageR3, &PageMapLock);
         if (rcStrict == VINF_SUCCESS)
-            nemR3DarwinSetGReg(pVCpu, uReg, f64BitReg, fSignExtend, u64Val);
+        {
+            uint32_t u32Instr = *(uint32_t *)((uint8_t *)pvPageR3 + (pVCpu->cpum.GstCtx.Pc.u64 - GCPtrPage));
+            PGMPhysReleasePageMappingLock(pVCpu->pVMR3, &PageMapLock);
+
+            DISSTATE Dis;
+            rcStrict = DISInstrWithPrefetchedBytes((uintptr_t)pVCpu->cpum.GstCtx.Pc.u64, DISCPUMODE_ARMV8_A64,  0 /*fFilter - none */,
+                                                   &u32Instr, sizeof(u32Instr), NULL, NULL, &Dis, NULL);
+            if (rcStrict == VINF_SUCCESS)
+            {
+                if (   Dis.pCurInstr->uOpcode == OP_ARMV8_A64_LDRB
+                    && Dis.aParams[0].armv8.enmType == kDisArmv8OpParmReg
+                    && Dis.aParams[0].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_32Bit
+                    && Dis.aParams[1].armv8.enmType == kDisArmv8OpParmAddrInGpr
+                    && Dis.aParams[1].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit
+                    && (Dis.aParams[1].fUse & DISUSE_PRE_INDEXED))
+                {
+                    /* The fault address is already the final address. */
+                    uint64_t u64Val = 0;
+                    rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u64Val, cbAcc, PGMACCESSORIGIN_HM);
+                    Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs rcStrict=%Rrc\n",
+                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, cbAcc, cbAcc,
+                          &u64Val, VBOXSTRICTRC_VAL(rcStrict) ));
+                    if (rcStrict == VINF_SUCCESS)
+                    {
+                        nemR3DarwinSetGReg(pVCpu, Dis.aParams[0].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, u64Val);
+                        /* Update the indexed register. */
+                        pVCpu->cpum.GstCtx.aGRegs[Dis.aParams[1].armv8.Op.Reg.idReg].x += Dis.aParams[1].armv8.u.offBase;
+                    }
+                }
+                else
+                    AssertFailedReturn(VERR_NOT_SUPPORTED);
+            }
+        }
     }
 
     if (rcStrict == VINF_SUCCESS)

@@ -780,11 +780,7 @@ VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
 {
     VMCPU_ASSERT_EMT(pVCpu);
     Assert(pWalk);
-#ifndef DEBUG_aeichner
-    AssertReleaseFailed();
-    RT_NOREF(pVCpu, GCPtr, pWalk);
-    return VERR_NOT_IMPLEMENTED;
-#else
+
     pWalk->fSucceeded = false;
 
     RTGCPHYS GCPhysPt = CPUMGetEffectiveTtbr(pVCpu, GCPtr);
@@ -929,7 +925,6 @@ VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
     pWalk->fSucceeded = true;
     pWalk->GCPhys     = (RTGCPHYS)(uPt & UINT64_C(0xfffffffff000)) | (GCPtr & (RTGCPTR)(_4K - 1));
     return VINF_SUCCESS;
-#endif
 }
 
 

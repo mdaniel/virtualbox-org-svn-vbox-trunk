@@ -49,6 +49,8 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   SYSMODS.win.x86   += VBoxNetFlt
   SYSMODS.win.amd64 += VBoxNetFlt
  endif
+
+ # The driver.
  VBoxNetFlt_TEMPLATE = VBoxR0Drv
  VBoxNetFlt_INST = $(INST_VBOXNETFLT)$(if $(eq $(KBUILD_TARGET),darwin),Contents/MacOS/)
  VBoxNetFlt_DEBUG_INST.darwin = $(patsubst %/,%,$(INST_VBOXNETFLT))
@@ -121,9 +123,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
 
 
  ifeq ($(KBUILD_TARGET),win)
-  #
-  # Windows extras.
-  #
+  # Windows: VBoxNetFlt INF & CAT files.
   ifdef VBOX_WITH_VBOXDRV
    INSTALLS.win.x86   += VBoxNetFlt-inf
    INSTALLS.win.amd64 += VBoxNetFlt-inf
@@ -164,14 +164,18 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
 
   endif # signing
+ endif
 
 
+ ifeq ($(KBUILD_TARGET),win)
   #
   # VBoxNetLwf.sys - The light-weight filter driver for NDIS6 (i.e. Windows only).
   #
   ifdef VBOX_WITH_VBOXDRV
-   SYSMODS.win += VBoxNetLwf
+   SYSMODS.win  += VBoxNetLwf
+   INSTALLS.win += VBoxNetLwf-inf
   endif
+  # The driver.
   VBoxNetLwf_TEMPLATE = VBoxR0Drv
   VBoxNetLwf_INST = $(INST_VBOXNETFLT)
   if defined(VBOX_SIGNING_MODE)
@@ -209,12 +213,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   VBoxNetLwf_LIBS = \
   	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
 
-  #
-  # VBoxNetLwf installation.
-  #
-  ifdef VBOX_WITH_VBOXDRV
-   INSTALLS.win += VBoxNetLwf-inf
-  endif
+  # VBoxNetLwf INF & CAT files.
   VBoxNetLwf-inf_TEMPLATE = VBoxR0DrvInfCat
   VBoxNetLwf-inf_SOURCES = \
   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.inf
@@ -230,8 +229,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys \
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat \
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
-
-   #	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwfNobj.dll \
+   #	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwfNobj.dll
 
    $(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys: $$(VBoxNetLwf_1_TARGET) | $$(dir $$@)
 	$(INSTALL) -m 644 $< $(@D)
@@ -244,9 +242,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    		$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.inf
 	$(call MSG_TOOL,Inf2Cat,VBoxNetLwf-inf,$@,$<)
 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
-
-  endif # signing
-
+  endif # VBOX_SIGNING_MODE
 
 
   #
@@ -396,6 +392,8 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
     INSTALLS.win += VBoxNetAdp-inf
    endif
   endif
+
+  # The driver.
   VBoxNetAdp_TEMPLATE = VBoxR0Drv
   #VBoxNetAdp_INST = $(INST_VBOXNETADP)
   if defined(VBOX_SIGNING_MODE)
@@ -429,7 +427,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   VBoxNetAdp_LIBS.win.arm64 = \
   	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/BufferOverflowFastFailK.lib
 
-  # The .INF and .CAT files associate with VBoxNetAdp.sys.
+  # VBoxNetAdp .INF & .CAT files.
   VBoxNetAdp-inf_TEMPLATE = VBoxR0DrvInfCat
   VBoxNetAdp-inf_SOURCES  = $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
   VBoxNetAdp-inf_CLEAN    = $(VBoxNetAdp-inf_SOURCES)

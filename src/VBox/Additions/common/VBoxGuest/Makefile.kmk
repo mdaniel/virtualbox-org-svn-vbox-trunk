@@ -89,7 +89,7 @@ if defined(VBOX_WITH_ADDITION_DRIVERS) && "$(intersects $(KBUILD_TARGET), darwin
  endif
  ifneq ($(KBUILD_TARGET),os2)
   ifeq ($(KBUILD_TARGET),win)
-   VBoxGuest_LDFLAGS.x86 = -Entry:DriverEntry@8
+   VBoxGuest_LDFLAGS.x86   = -Entry:DriverEntry@8
    VBoxGuest_LDFLAGS.amd64 = -Entry:DriverEntry
    VBoxGuest_LDFLAGS.arm64 = -Entry:DriverEntry
    ifeq ($(KBUILD_TARGET_ARCH),x86)
@@ -103,15 +103,13 @@ if defined(VBOX_WITH_ADDITION_DRIVERS) && "$(intersects $(KBUILD_TARGET), darwin
     ifneq ($(VBOX_VCC_CC_GUARD_CF),)
      VBoxGuest_LIBS.x86 += \
      	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowK.lib
-     VBoxGuest_LIBS.amd64 += \
-     	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowK.lib
-     VBoxGuest_LIBS.arm64 += \
-     	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowFastFailK.lib
     endif
    else
     VBoxGuest_LIBS       = \
     	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/ntoskrnl.lib \
     	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/hal.lib
+    VBoxGuest_LIBS.arm64 += \
+    	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowFastFailK.lib
    endif
    VBoxGuest_USES.win += vboximportchecker
    VBoxGuest_VBOX_IMPORT_CHECKER.win.x86 = nt31/r0

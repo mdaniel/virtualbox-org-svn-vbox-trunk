@@ -743,7 +743,8 @@ static RTEXITCODE handlerCpuRevision(int argc, char **argv)
     /** @todo There is no way to access MIDR_EL1 from userspace except for parsing the various
      * OS dependent ways (/proc/cpuinfo, sysctl, ...). Just fake it for now to get it running. */
     int cch = RTPrintf("%#x\n", 1);
-    return cch > 0 ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+    if (cch > 0)
+        return RTEXITCODE_SUCCESS;
 #endif
     return RTEXITCODE_FAILURE;
 }

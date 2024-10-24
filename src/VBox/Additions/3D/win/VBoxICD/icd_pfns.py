@@ -57,14 +57,13 @@ def GeneratePfns():
 
     for index in range(len(names)):
         fn = names[index]
-        c_file.write('FARPROC pfn_%s;\n' % fn)
+        c_file.write('FARPROC g_pfn_%s;\n' % fn) # init this to a dummy that returns 0?
     c_file.write('\n')
 
-    c_file.write("struct VBOXWDDMDLLPROC aIcdProcs[] =\n")
+    c_file.write("struct VBOXWDDMDLLPROC g_aIcdProcs[] =\n")
     c_file.write('{\n')
-    for index in range(len(names)):
-        fn = names[index]
-        c_file.write('    { "%s",  &pfn_%s },\n' % (fn, fn) )
+    for sFnNm in names:
+        c_file.write('    { "%s", &g_pfn_%s },\n' % (sFnNm, sFnNm) )
     c_file.write('    { NULL, NULL }\n')
     c_file.write('};\n')
 

@@ -45,7 +45,7 @@ static const char *g_pszChromiumDll =
 #endif
 ;
 
-extern struct VBOXWDDMDLLPROC aIcdProcs[];
+extern struct VBOXWDDMDLLPROC g_aIcdProcs[];
 
 HMODULE volatile g_hmodICD = NULL;
 
@@ -103,7 +103,7 @@ void VBoxLoadICD(void)
                 g_hmodICD = VBoxWddmLoadSystemDll(pszDll);
                 if (g_hmodICD)
                 {
-                    VBoxWddmLoadAdresses(g_hmodICD, aIcdProcs);
+                    VBoxWddmLoadAdresses(g_hmodICD, g_aIcdProcs);
                 }
             }
         }

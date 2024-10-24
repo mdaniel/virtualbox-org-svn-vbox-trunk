@@ -398,7 +398,7 @@ static int disArmV8ParseAddrGprSp(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OP
 
 static int disArmV8ParseRegFixed31(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
 {
-    RT_NOREF(pDis, pOp, pInsnClass, pf64Bit);
+    RT_NOREF(pDis, pOp, pInsnClass, pParam, pf64Bit);
     Assert(pParam->armv8.enmType == kDisArmv8OpParmNone);
 
     if (disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits) != 31)

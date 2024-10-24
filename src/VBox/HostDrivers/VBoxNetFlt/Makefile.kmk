@@ -42,8 +42,12 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
  #
  # VBoxNetFlt.sys - The mixed case driver.
  #
+ # Note! Note built for win.arm64.
+ #
  ifdef VBOX_WITH_VBOXDRV
-  SYSMODS += VBoxNetFlt
+  SYSMODS.darwin    += VBoxNetFlt
+  SYSMODS.win.x86   += VBoxNetFlt
+  SYSMODS.win.amd64 += VBoxNetFlt
  endif
  VBoxNetFlt_TEMPLATE = VBoxR0Drv
  VBoxNetFlt_INST = $(INST_VBOXNETFLT)$(if $(eq $(KBUILD_TARGET),darwin),Contents/MacOS/)
@@ -52,7 +56,14 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   VBoxNetFlt_INSTTYPE = none
   VBoxNetFlt_DEBUG_INSTTYPE = both
  endif
- VBoxNetFlt_DEFS = IN_RT_R0 IN_SUP_STATIC
+ VBoxNetFlt_DEFS      = IN_RT_R0 IN_SUP_STATIC
+ VBoxNetFlt_DEFS.win  = VBOXNETFLT_STATIC_CONFIG
+ VBoxNetFlt_DEFS.win += VBOXNETFLT_NO_PACKET_QUEUE
+ VBoxNetFlt_DEFS.win += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
+ VBoxNetFlt_DEFS.win += NDIS50_MINIPORT=1 NDIS50=1
+ ifdef VBOX_LOOPBACK_USEFLAGS
+  VBoxNetFlt_DEFS.win += VBOX_LOOPBACK_USEFLAGS
+ endif
  VBoxNetFlt_INCS = .
  VBoxNetFlt_SOURCES.darwin = \
  	darwin/VBoxNetFlt-darwin.cpp
@@ -62,17 +73,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
  	win/drv/VBoxNetFltM-win.cpp \
  	win/drv/VBoxNetFltRt-win.cpp \
  	win/drv/VBoxNetFlt-win.rc
- # with WINDDKWLH the WIN9X_COMPAT_SPINLOCK is needed to avoid inline declaration of KeInitializeSpinLock
- # otherwise the linker would complain about dumplicate _KeInitializeSpinLock@4 definition
- # in ntoskrnl.lib and our object files
- VBoxNetFlt_DEFS.win += WIN9X_COMPAT_SPINLOCK=1
- VBoxNetFlt_DEFS.win += VBOXNETFLT_STATIC_CONFIG
- VBoxNetFlt_DEFS.win += VBOXNETFLT_NO_PACKET_QUEUE
- VBoxNetFlt_DEFS.win += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
- VBoxNetFlt_DEFS.win += NDIS50_MINIPORT=1 NDIS50=1
- ifdef VBOX_LOOPBACK_USEFLAGS
-  VBoxNetFlt_DEFS.win += VBOX_LOOPBACK_USEFLAGS
- endif
  VBoxNetFlt_SOURCES = VBoxNetFlt.c
  #VBoxNetFlt_LDFLAGS.darwin = -v -Wl,-whyload -Wl,-v -Wl,-whatsloaded
  VBoxNetFlt_LDFLAGS.win.x86 = -Entry:DriverEntry@8
@@ -125,7 +125,8 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   # Windows extras.
   #
   ifdef VBOX_WITH_VBOXDRV
-   INSTALLS.win += VBoxNetFlt-inf
+   INSTALLS.win.x86   += VBoxNetFlt-inf
+   INSTALLS.win.amd64 += VBoxNetFlt-inf
   endif
   VBoxNetFlt-inf_TEMPLATE = VBoxR0DrvInfCat
   VBoxNetFlt-inf_SOURCES = \
@@ -166,10 +167,10 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
 
 
   #
-  # VBoxNetLwf.sys - The light-weight filter driver for NDIS6.
+  # VBoxNetLwf.sys - The light-weight filter driver for NDIS6 (i.e. Windows only).
   #
   ifdef VBOX_WITH_VBOXDRV
-   SYSMODS += VBoxNetLwf
+   SYSMODS.win += VBoxNetLwf
   endif
   VBoxNetLwf_TEMPLATE = VBoxR0Drv
   VBoxNetLwf_INST = $(INST_VBOXNETFLT)
@@ -178,33 +179,36 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    VBoxNetLwf_DEBUG_INSTTYPE = both
   endif
   VBoxNetLwf_DEFS = IN_RT_R0 IN_SUP_STATIC
-  VBoxNetLwf_INCS = .
-  VBoxNetLwf_SOURCES = VBoxNetFlt.c VBoxNetFlt.rc
-  VBoxNetLwf_SDKS.win = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
-  VBoxNetLwf_SOURCES.win = \
-  	win/drv/VBoxNetLwf-win.cpp
-  # with WINDDKWLH the WIN9X_COMPAT_SPINLOCK is needed to avoid inline declaration of KeInitializeSpinLock
-  # otherwise the linker would complain about dumplicate _KeInitializeSpinLock@4 definition
-  # in ntoskrnl.lib and our object files
-  VBoxNetLwf_DEFS.win += WIN9X_COMPAT_SPINLOCK=1 NDISLWF=1 DBG=1
+  VBoxNetLwf_DEFS.win = NDISLWF=1 DBG=1
   # VBoxNetLwf_DEFS.win += VBOXNETFLT_STATIC_CONFIG
   # VBoxNetLwf_DEFS.win += VBOXNETFLT_NO_PACKET_QUEUE
   # VBoxNetLwf_DEFS.win += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
-  VBoxNetLwf_DEFS.win += NDIS60=1
   # ifdef VBOX_LOOPBACK_USEFLAGS
   #  VBoxNetLwf_DEFS.win += VBOX_LOOPBACK_USEFLAGS
   # endif
-  # VBoxNetLwf_SOURCES = VBoxNetLwf.c
-  VBoxNetLwf_LDFLAGS.win.x86 = -Entry:DriverEntry@8
-  VBoxNetLwf_LDFLAGS.win.amd64 = -Entry:DriverEntry
+  VBoxNetLwf_DEFS.win.x86   = NDIS60=1
+  VBoxNetLwf_DEFS.win.amd64 = NDIS60=1
+  VBoxNetLwf_DEFS.win.arm64 = NDIS630=1 # The minimum version for non-x86/amd64.
+  VBoxNetLwf_SDKS.win = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
+  VBoxNetLwf_INCS = .
+  VBoxNetLwf_SOURCES = \
+  	win/drv/VBoxNetLwf-win.cpp \
+  	VBoxNetFlt.c \
+	VBoxNetFlt.rc
+  VBoxNetLwf_LDFLAGS.win.x86   := -Entry:DriverEntry@8
+  VBoxNetLwf_LDFLAGS.win.amd64 := -Entry:DriverEntry
+  VBoxNetLwf_LDFLAGS.win.arm64 := -Entry:DriverEntry
   VBoxNetLwf_LIBS.win = \
   	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/ntoskrnl.lib \
   	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/hal.lib \
   	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/ndis.lib \
   	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/netio.lib \
   	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
+  VBoxNetLwf_LIBS.win.arm64 = \
+  	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/BufferOverflowFastFailK.lib
   VBoxNetLwf_LIBS = \
   	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
+
   #
   # VBoxNetLwf installation.
   #
@@ -385,7 +389,12 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   # VBoxNetAdp.sys - The VirtualBox Adapter miniport driver.
   #
   ifdef VBOX_WITH_VBOXDRV
-   SYSMODS.win += VBoxNetAdp
+   ifeq ($(KBUILD_TARGET_ARCH),arm64)
+    $(warning TODO: Port VBoxNetAdp to NDIS 6.3+ for win.amd64.)
+   else
+    SYSMODS.win  += VBoxNetAdp
+    INSTALLS.win += VBoxNetAdp-inf
+   endif
   endif
   VBoxNetAdp_TEMPLATE = VBoxR0Drv
   #VBoxNetAdp_INST = $(INST_VBOXNETADP)
@@ -394,6 +403,12 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    VBoxNetAdp_DEBUG_INSTTYPE.win = both
   endif
   VBoxNetAdp_DEFS = IN_RT_R0 IN_SUP_STATIC
+  VBoxNetAdp_DEFS += VBOXNETFLT_STATIC_CONFIG VBOXNETADP
+  VBoxNetAdp_DEFS += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
+  VBoxNetAdp_DEFS += VBOXNETFLT_NO_PACKET_QUEUE
+  VBoxNetAdp_DEFS.x86   = NDIS50_MINIPORT=1 NDIS50=1
+  VBoxNetAdp_DEFS.amd64 = NDIS50_MINIPORT=1 NDIS50=1
+  VBoxNetAdp_DEFS.arm64 = NDIS630_MINIPORT=1 NDIS630=1
   VBoxNetAdp_INCS := $(PATH_SUB_CURRENT)
   VBoxNetAdp_SDKS = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
   VBoxNetAdp_SOURCES = \
@@ -401,12 +416,9 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	win/drv/VBoxNetFltM-win.cpp \
   	win/drv/VBoxNetFltRt-win.cpp \
   	win/drv/VBoxNetFlt-win.rc
-  VBoxNetAdp_DEFS += VBOXNETFLT_STATIC_CONFIG VBOXNETADP
-  VBoxNetAdp_DEFS.win += VBOXNETFLT_NO_PACKET_QUEUE
-  VBoxNetAdp_DEFS += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
-  VBoxNetAdp_DEFS += NDIS50_MINIPORT=1 NDIS50=1
-  VBoxNetAdp_LDFLAGS.win.x86 = -Entry:DriverEntry@8
+  VBoxNetAdp_LDFLAGS.win.x86   = -Entry:DriverEntry@8
   VBoxNetAdp_LDFLAGS.win.amd64 = -Entry:DriverEntry
+  VBoxNetAdp_LDFLAGS.win.arm64 = -Entry:DriverEntry
   VBoxNetAdp_LIBS.win = \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/ntoskrnl.lib \
   	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/hal.lib \
@@ -414,16 +426,14 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
   VBoxNetAdp_LIBS = \
   	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
+  VBoxNetAdp_LIBS.win.arm64 = \
+  	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/BufferOverflowFastFailK.lib
 
-
-  ifdef VBOX_WITH_VBOXDRV
-   INSTALLS.win += VBoxNetAdp-inf
-  endif
+  # The .INF and .CAT files associate with VBoxNetAdp.sys.
   VBoxNetAdp-inf_TEMPLATE = VBoxR0DrvInfCat
-  VBoxNetAdp-inf_SOURCES = \
-  	$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
-  VBoxNetAdp-inf_CLEAN = $(VBoxNetAdp-inf_SOURCES)
-  VBoxNetAdp-inf_BLDDIRS = $(PATH_TARGET)/VBoxNetAdpCat.dir
+  VBoxNetAdp-inf_SOURCES  = $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
+  VBoxNetAdp-inf_CLEAN    = $(VBoxNetAdp-inf_SOURCES)
+  VBoxNetAdp-inf_BLDDIRS  = $(PATH_TARGET)/VBoxNetAdpCat.dir
 
   $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf: $(PATH_SUB_CURRENT)/win/drv/VBoxNetAdp.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
 	$(call MSG_GENERATE,VBoxNetAdp-inf,$@,$<)
@@ -442,10 +452,9 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    		$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
 	$(call MSG_TOOL,Inf2Cat,VBoxNetFlt-inf,$@,$<)
 	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
+  endif # VBOX_SIGNING_MODE
 
-  endif #  ifdef VBOX_SIGNING_MODE
-
- endif #ifeq ($(KBUILD_TARGET), win)
+ endif # $(KBUILD_TARGET) == win
 
 else if1of ($(KBUILD_TARGET), solaris freebsd) ## @todo merge this with the mixed case stuff.
  #

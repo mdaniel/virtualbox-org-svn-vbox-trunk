@@ -4285,10 +4285,10 @@ ifdef VBOX_SIGNING_MODE
   VBOX_SIGNTOOL_ORDERDEPS      ?= $(VBOX_SIGNTOOL_SHA1_ORDERDEPS) $(VBOX_SIGNTOOL_SHA2_ORDERDEPS)
   ifndef VBOX_INF2CAT # Inf2Cat.exe is only found in the bin/*/x86 directory in WINSDK10. Arm64 requires a W10+ one.
    VBOX_INF2CAT = $(requote sh,$(firstfile $(qwildcard , $(qaddsuffix ,/[Ii][Nn][Ff]2[Cc][Aa][Tt].[Ee][Xx][Ee], \
-      $(PATH_SDK_WINSDK10_BIN.x86)  \
-      $(PATH_SDK_WINSDK10_BIN) \
-      $(if-expr defined(PATH_SDK_WINSDK10_BASE_BIN) && defined(SDK_WINSDK10_VERSION),$(PATH_SDK_WINSDK10_BASE_BIN)/$(SDK_WINSDK10_VERSION)/x86) \
-      )) $(VBOX_PATH_SELFSIGN)/Inf2Cat.exe ))
+   					$(PATH_SDK_WINSDK10_BIN.x86) \
+   					$(PATH_SDK_WINSDK10_BIN) \
+   					$(if-expr defined(PATH_SDK_WINSDK10_BASE_BIN) && defined(SDK_WINSDK10_VERSION),$(PATH_SDK_WINSDK10_BASE_BIN)/$(SDK_WINSDK10_VERSION)/x86) \
+   			)) $(VBOX_PATH_SELFSIGN)/Inf2Cat.exe ))
   endif
 
   ifeq ($(VBOX_SIGNING_MODE),test)

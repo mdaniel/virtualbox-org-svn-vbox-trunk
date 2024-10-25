@@ -139,17 +139,17 @@ QString UINewVersionChecker::platformInfo()
     /* Prepare platform report: */
     QString strPlatform;
 
-#if defined (Q_OS_WIN)
+#if defined (RT_OS_WINDOWS)
     strPlatform = "win";
-#elif defined (Q_OS_LINUX)
+#elif defined (RT_OS_LINUX)
     strPlatform = "linux";
-#elif defined (Q_OS_MACX)
+#elif defined (RT_OS_DARWIN)
     strPlatform = "macosx";
-#elif defined (Q_OS_OS2)
+#elif defined (RT_OS_OS2)
     strPlatform = "os2";
-#elif defined (Q_OS_FREEBSD)
+#elif defined (RT_OS_FREEBSD)
     strPlatform = "freebsd";
-#elif defined (Q_OS_SOLARIS)
+#elif defined (RT_OS_SOLARIS)
     strPlatform = "solaris";
 #else
     strPlatform = "unknown";

@@ -763,7 +763,7 @@ endif
 ifdef IPC_LOGGING
  TEMPLATE_XPComIpcDll_DEFS           += IPC_LOGGING
 endif
-TEMPLATE_XPComIpcDll_LIBS             = $(VBoxXPCOM_1_TARGET) $(TEMPLATE_XPComDll_LIBS)
+TEMPLATE_XPComIpcDll_LATE_LIBS        = $(VBoxXPCOM_1_TARGET) $(TEMPLATE_XPComDll_LATE_LIBS)
 ifneq ($(KBUILD_TARGET),win)
  ifeq ($(filter-out solaris.x86 %.amd64 %.sparc32 %.sparc64,$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)),) ## TODO: cleanup!
   if defined(VBOX_WITH_RELATIVE_RUNPATH) && !defined(VBOX_WITH_HARDENING)
@@ -779,7 +779,7 @@ endif
 TEMPLATE_XPComIpcDll-x86              = 32-bit XPCOM IPC libraries
 TEMPLATE_XPComIpcDll-x86_EXTENDS      = XPComIpcDll
 TEMPLATE_XPComIpcDll-x86_BLD_TRG_ARCH = x86
-TEMPLATE_XPComIpcDll-x86_LIBS         = $(VBoxXPCOM-x86_1_TARGET) $(TEMPLATE_XPComDll-x86_LIBS)
+TEMPLATE_XPComIpcDll-x86_LATE_LIBS    = $(VBoxXPCOM-x86_1_TARGET) $(TEMPLATE_XPComDll-x86_LATE_LIBS)
 
 TEMPLATE_XPComIpcExe               = XPCOM IPC executables
 TEMPLATE_XPComIpcExe_EXTENDS       = XPComExe
@@ -835,7 +835,7 @@ VBoxXPCOMIPCD_LDFLAGS.darwin = -install_name $(VBOX_DYLD_EXECUTABLE_PATH)/VBoxXP
 VBoxXPCOMIPCD_LIBS = \
 	$(VBox-xpcom-ipcshared_1_TARGET) \
 	$(VBoxXPCOM_1_TARGET) \
-	$(TEMPLATE_XPComDll_LIBS)
+	$(TEMPLATE_XPComDll_LATE_LIBS)
 
 
 #

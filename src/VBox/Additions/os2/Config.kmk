@@ -82,7 +82,7 @@ TEMPLATE_VBoxOs2Vac308_INCS = \
 	$(PATH_DDKVIDEO)/rel/os2c/include/base/os2 \
 	$(PATH_DDKVIDEO)/rel/os2c/include/base/os2/16bit
 
-TEMPLATE_VBoxOs2Vac308_LIBS = \
+TEMPLATE_VBoxOs2Vac308_LATE_LIBS = \
 	$(PATH_DDKVIDEO)/rel/os2c/lib/os2/os2386.lib \
 	$(PATH_TOOL_VAC308_LIB)/cppon30.lib
 

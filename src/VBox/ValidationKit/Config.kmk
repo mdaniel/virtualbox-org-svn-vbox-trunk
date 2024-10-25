@@ -52,7 +52,7 @@ VBOX_PATH_VALIDATIONKIT_SRC := $(PATH_ROOT)/src/VBox/ValidationKit
 # static version of our own libraries and not the system libs.
 #
 TEMPLATE_VBoxValidationKitR3Base = VBox Validation Kit ring-3 program base, both guest and host.
-TEMPLATE_VBoxValidationKitR3Base_EXTENDS = VBoxR3Static
+TEMPLATE_VBoxValidationKitR3Base_EXTENDS          = VBoxR3Static
 ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxValidationKitR3Base_LDFLAGS         = $(filter-out -IntegrityCheck, $(TEMPLATE_VBoxR3Static_LDFLAGS))
 else ifn1of ($(KBUILD_TARGET), darwin solaris win)
@@ -61,15 +61,15 @@ else ifn1of ($(KBUILD_TARGET), darwin solaris win)
  TEMPLATE_VBoxValidationKitR3Base_OBJCFLAGS       = $(filter-out -static, $(TEMPLATE_VBoxR3Static_OBJCFLAGS))
  TEMPLATE_VBoxValidationKitR3Base_LDFLAGS         = $(filter-out -static, $(TEMPLATE_VBoxR3Static_LDFLAGS))
 endif
-TEMPLATE_VBoxValidationKitR3Base_DEFS = $(filter-out VBOX_WITH_DTRACE,$(TEMPLATE_VBoxR3Static_DEFS))
-TEMPLATE_VBoxValidationKitR3Base_LIBS = $(TEMPLATE_VBoxR3Static_LIBS)
+TEMPLATE_VBoxValidationKitR3Base_DEFS             = $(filter-out VBOX_WITH_DTRACE,$(TEMPLATE_VBoxR3Static_DEFS))
+TEMPLATE_VBoxValidationKitR3Base_LATE_LIBS        = $(TEMPLATE_VBoxR3Static_LATE_LIBS)
 if1of ($(KBUILD_TARGET), linux)
  if $(VBOX_GCC_VERSION_CXX) < 40800
-  TEMPLATE_VBoxValidationKitR3Base_LIBS += supc++
-  TEMPLATE_VBoxValidationKitR3Base_LDTOOL = $(subst GXX,GCC,$(TEMPLATE_VBoxR3Static_TOOL))
+  TEMPLATE_VBoxValidationKitR3Base_LATE_LIBS     += supc++
+  TEMPLATE_VBoxValidationKitR3Base_LDTOOL         = $(subst GXX,GCC,$(TEMPLATE_VBoxR3Static_TOOL))
  endif
 endif
-TEMPLATE_VBoxValidationKitR3Base_LDFLAGS.darwin = $(TEMPLATE_VBoxR3Static_LDFLAGS.darwin) -framework IOKit
+TEMPLATE_VBoxValidationKitR3Base_LDFLAGS.darwin   = $(TEMPLATE_VBoxR3Static_LDFLAGS.darwin) -framework IOKit
 
 
 #
@@ -82,28 +82,28 @@ TEMPLATE_VBoxValidationKitR3_EXTENDS_BY = appending
 TEMPLATE_VBoxValidationKitR3_INST = $(INST_VALIDATIONKIT)$(KBUILD_TARGET)/$(KBUILD_TARGET_ARCH)/
 TEMPLATE_VBoxValidationKitR3_SDKS.win = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK) VBoxNtDll
 TEMPLATE_VBoxValidationKitR3_DEFS = IN_RT_R3
-TEMPLATE_VBoxValidationKitR3_LIBS.darwin = iconv
-TEMPLATE_VBoxValidationKitR3_LIBS.freebsd = iconv
-TEMPLATE_VBoxValidationKitR3_LIBS = \
+TEMPLATE_VBoxValidationKitR3_LATE_LIBS.darwin = iconv
+TEMPLATE_VBoxValidationKitR3_LATE_LIBS.freebsd = iconv
+TEMPLATE_VBoxValidationKitR3_LATE_LIBS = \
 	$(PATH_STAGE_LIB)/RuntimeR3$(VBOX_SUFF_LIB)
 ifeq ($(KBUILD_TARGET),solaris)
- TEMPLATE_VBoxValidationKitR3_LIBS += \
+ TEMPLATE_VBoxValidationKitR3_LATE_LIBS += \
  	kstat \
  	nsl \
  	contract
  if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
-  TEMPLATE_VBoxValidationKitR3_LIBS += \
+  TEMPLATE_VBoxValidationKitR3_LATE_LIBS += \
   	smbios
  endif
 endif
 ifneq ($(KBUILD_TARGET),win)
- TEMPLATE_VBoxValidationKitR3_LIBS += \
+ TEMPLATE_VBoxValidationKitR3_LATE_LIBS += \
  	$(SDK_VBoxZlib_LIBS)
 endif
 
 # Make VCC100 output work on NT3.x, NT4, W2K, XP and W2K3.
 ifndef VBOX_WITH_NOCRT_STATIC
- TEMPLATE_VBoxValidationKitR3_LIBS.win.x86 = \
+ TEMPLATE_VBoxValidationKitR3_LATE_LIBS.win.x86 = \
  	$(PATH_TOOL_$(TEMPLATE_VBoxValidationKitR3_TOOL.win.x86)_LIB)/oldnames.lib \
  	$(PATH_TOOL_$(TEMPLATE_VBoxValidationKitR3_TOOL.win.x86)_LIB)/libcmt$(VBOX_VCC_CRT_TYPE).lib \
  	$(PATH_TOOL_$(TEMPLATE_VBoxValidationKitR3_TOOL.win.x86)_LIB)/libcpmt$(VBOX_VCC_CRT_TYPE).lib \
@@ -146,7 +146,7 @@ TEMPLATE_VBoxValidationKitR3SupDrv = VBox Validation Kit ring-3 program, mainly 
 TEMPLATE_VBoxValidationKitR3SupDrv_EXTENDS = VBoxValidationKitR3
 TEMPLATE_VBoxValidationKitR3SupDrv_EXTENDS_BY = appending
 TEMPLATE_VBoxValidationKitR3SupDrv_DEFS = IN_SUP_R3
-TEMPLATE_VBoxValidationKitR3SupDrv_LIBS = \
+TEMPLATE_VBoxValidationKitR3SupDrv_LATE_LIBS = \
 	$(PATH_STAGE_LIB)/SUPR3Static$(VBOX_SUFF_LIB) \
 	$(PATH_STAGE_LIB)/RuntimeR3$(VBOX_SUFF_LIB)
 ifndef VBOX_WITH_NOCRT_STATIC
@@ -163,7 +163,7 @@ TEMPLATE_VBoxValidationKitR0_EXTENDS = VBoxR0
 TEMPLATE_VBoxValidationKitR0_EXTENDS_BY = appending
 TEMPLATE_VBoxValidationKitR0_INST = $(INST_VALIDATIONKIT)$(KBUILD_TARGET)/$(KBUILD_TARGET_ARCH)/
 TEMPLATE_VBoxValidationKitR0_DEFS = IN_RT_R0
-TEMPLATE_VBoxValidationKitR0_LIBS = \
+TEMPLATE_VBoxValidationKitR0_LATE_LIBS = \
 	$(PATH_STAGE_LIB)/RuntimeR0$(VBOX_SUFF_LIB) \
 	$(VBOX_LIB_SUPR0)
 

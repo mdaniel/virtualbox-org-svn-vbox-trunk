@@ -788,7 +788,7 @@ TEMPLATE_VBoxBS3KitImg_POST_CMDS = $(if $(eq $(tool_do),LINK_LIBRARY) \
 	$$(NLTAB)$(QUIET)$(RM_EXT) -f -- "$(out).tmp") \
 	$(eval .PRECIOUS: $(outbase).map) # ugly hack!
 
-TEMPLATE_VBoxBS3KitImg_LIBS = \
+TEMPLATE_VBoxBS3KitImg_LATE_LIBS = \
 	$(PATH_OBJ)/bs3kit-common-16/bs3kit-common-16.lib \
 	$(PATH_OBJ)/bs3kit-common-32/bs3kit-common-32.lib \
 	$(PATH_OBJ)/bs3kit-common-64/bs3kit-common-64.lib \
@@ -894,7 +894,7 @@ TEMPLATE_VBoxBS3KitHighImg_LDFLAGS   := system os2v2 flat dll \
 	option quiet, map, statics, verbose, symfile, objalign=4096, offset=0x800000 \
 	disable 1014, 1080
 
-TEMPLATE_VBoxBS3KitHighImg_LIBS = \
+TEMPLATE_VBoxBS3KitHighImg_LATE_LIBS = \
 	$(PATH_OBJ)/bs3kit-common-16/bs3kit-common-16-implib.lib \
 	$(PATH_OBJ)/bs3kit-common-32/bs3kit-common-32-implib.lib \
 	$(PATH_OBJ)/bs3kit-common-64/bs3kit-common-64-implib.lib \

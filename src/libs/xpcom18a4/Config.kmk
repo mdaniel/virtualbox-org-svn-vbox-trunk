@@ -164,7 +164,7 @@ TEMPLATE_XPComDll_ORDERDEPS           = $(foreach hdrinst, $(filter %-HEADERS, $
 	$(PATH_TARGET)/VBox-xpcom-idl-timestamp
 
 # When using IPRT in NSRP or/and using IPRT for logging, link with IPRT.
-TEMPLATE_XPComDll_LIBS               += $(LIB_RUNTIME)
+TEMPLATE_XPComDll_LATE_LIBS          += $(LIB_RUNTIME)
 
 
 #
@@ -181,12 +181,12 @@ TEMPLATE_XPComExe_INCS             = ipc/ipcd/shared/src \
 	$(VBOX_PATH_SDK)/bindings/xpcom/include/xpcom \
 	$(VBOX_PATH_SDK)/bindings/xpcom/include/ipcd \
 	.
-TEMPLATE_XPComExe_LIBS             = \
+TEMPLATE_XPComExe_LATE_LIBS        = \
 	$(VBox-xpcom-ipcshared_1_TARGET) \
 	$(VBoxXPCOM_1_TARGET) \
-	$(TEMPLATE_XPComDll_LIBS)
-TEMPLATE_XPComExe_LIBS.freebsd     = $(LIB_PTHREAD)
-TEMPLATE_XPComExe_LIBS.linux       = dl $(LIB_PTHREAD)
+	$(TEMPLATE_XPComDll_LATE_LIBS)
+TEMPLATE_XPComExe_LATE_LIBS.freebsd = $(LIB_PTHREAD)
+TEMPLATE_XPComExe_LATE_LIBS.linux  = dl $(LIB_PTHREAD)
 TEMPLATE_XPComExe_LDFLAGS.darwin   = -bind_at_load $(filter-out -current_version -compatibility_version $(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD),$(TEMPLATE_XPComDll_LDFLAGS.darwin))
 
 
@@ -232,7 +232,7 @@ TEMPLATE_XPComBldProg_CXXFLAGS.darwin    = $(TEMPLATE_VBoxAdvBldProg_CXXFLAGS.da
 TEMPLATE_XPComBldProg_CXXFLAGS.solaris   = $(TEMPLATE_VBoxAdvBldProg_CXXFLAGS.solaris)    -fno-omit-frame-pointer # for now anyway.
 TEMPLATE_XPComBldProg_LDFLAGS.darwin     = $(TEMPLATE_VBoxAdvBldProg_LDFLAGS.darwin)      -fpascal-strings -fshort-wchar -fno-rtti -fno-exceptions
 TEMPLATE_XPComBldProg_ORDERDEPS          = $(foreach hdrinst, $(filter %-HEADERS, $(INSTALLS)), $($(hdrinst)_1_TARGET))
-TEMPLATE_XPComBldProg_LIBS.darwin        = \
+TEMPLATE_XPComBldProg_LATE_LIBS.darwin   = \
 	iconv
 
 #
@@ -254,7 +254,7 @@ TEMPLATE_XPComDll-x86                  = 32-bit XPCOM libraries (shared)
 TEMPLATE_XPComDll-x86_EXTENDS          = XPComDll
 TEMPLATE_XPComDll-x86_BLD_TRG_ARCH     = x86
 TEMPLATE_XPComDll-x86_DEFS             = $(TEMPLATE_XPComDll_DEFS) VBOX_IN_32_ON_64_MAIN_API
-TEMPLATE_XPComDll-x86_LIBS             = $(subst $(LIB_RUNTIME),$(VBOX_LIB_RUNTIME_X86),$(TEMPLATE_XPComDll_LIBS))
+TEMPLATE_XPComDll-x86_LATE_LIBS        = $(subst $(LIB_RUNTIME),$(VBOX_LIB_RUNTIME_X86),$(TEMPLATE_XPComDll_LATE_LIBS))
 
 
 #

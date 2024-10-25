@@ -275,9 +275,9 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   # Template for NetFltInstall and friends.
   #
   TEMPLATE_VBoxNetFltR3 = Template for NetFltInstall, NetFltUninstall, NetAdpInstall, NetAdpUninstall, ++
-  TEMPLATE_VBoxNetFltR3_EXTENDS = VBoxR3Exe
-  TEMPLATE_VBoxNetFltR3_SDKS    = $(TEMPLATE_VBoxR3Exe_SDKS) ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK) VBoxNtDll VBoxWinNewDevLib
-  TEMPLATE_VBoxNetFltR3_LIBS    = $(TEMPLATE_VBoxR3Exe_LIBS) \
+  TEMPLATE_VBoxNetFltR3_EXTENDS   = VBoxR3Exe
+  TEMPLATE_VBoxNetFltR3_SDKS      = $(TEMPLATE_VBoxR3Exe_SDKS) ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK) VBoxNtDll VBoxWinNewDevLib
+  TEMPLATE_VBoxNetFltR3_LATE_LIBS = $(TEMPLATE_VBoxR3Exe_LATE_LIBS) \
   	$(WinNetConfigExe_1_TARGET) \
   	$(PATH_STAGE_LIB)/VBoxDrvCfgExe$(VBOX_SUFF_LIB) \
   	$(LIB_RUNTIME) \

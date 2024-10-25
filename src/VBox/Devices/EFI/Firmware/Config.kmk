@@ -159,9 +159,9 @@ TEMPLATE_VBoxEfiBldProg_INCS.arm = $(TEMPLATE_VBoxBldProg_INCS.arm) \
 TEMPLATE_VBoxEfiBldProg_INCS.arm64 = $(TEMPLATE_VBoxBldProg_INCS.arm64) \
 	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include/AArch64
 
-TEMPLATE_VBoxEfiBldProg_LIBS = \
+TEMPLATE_VBoxEfiBldProg_LATE_LIBS = \
 	$(VBOX_PATH_STAGE_EFI_BLDPROGS)/EfiBldCommonLib$(VBOX_SUFF_LIB) \
-	$(TEMPLATE_VBoxBldProg_LIBS)
+	$(TEMPLATE_VBoxBldProg_LATE_LIBS)
 ifn1of ($(KBUILD_HOST), win) # This stuff isn't up to our standard at all! :/
  TEMPLATE_VBoxEfiBldProg_CFLAGS = $(filter-out -pedantic,$(TEMPLATE_VBoxBldProg_CFLAGS)) \
  	-Wno-sign-compare -Wno-missing-prototypes -Wno-strict-prototypes \

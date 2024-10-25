@@ -125,12 +125,12 @@ TEMPLATE_VBoxMesa3DGuestR3Dll_INCS     = $(TEMPLATE_NewerVccVBoxGuestR3Dll_INCS)
 	$(VBOX_PATH_MESA)/src/gallium/include \
 	$(VBOX_PATH_3D)/win/VBoxWddmUmHlp
 ifdef VBOX_WITH_NOCRT_STATIC # Only the softfloat libs are added here as mesa includes a softfloat.h and we wish for no conflicts.
- TEMPLATE_VBoxMesa3DGuestR3Dll_LIBS.x86 = \
- 	$(filter-out $(VBOX_LIB_VBGL_R3_SHARED_X86),$(TEMPLATE_NewerVccVBoxGuestR3Dll_LIBS.x86)) \
+ TEMPLATE_VBoxMesa3DGuestR3Dll_LATE_LIBS.x86 = \
+ 	$(filter-out $(VBOX_LIB_VBGL_R3_SHARED_X86),$(TEMPLATE_NewerVccVBoxGuestR3Dll_LATE_LIBS.x86)) \
  	$(VBOX_LIB_IPRT_GUEST_R3_SHARED_X86) \
  	$(SDK_VBoxSoftFloatGuestR3Shared_LIBS.x86)
- TEMPLATE_VBoxMesa3DGuestR3Dll_LIBS.$(KBUILD_TARGET_ARCH) = \
- 	$(filter-out $(VBOX_LIB_VBGL_R3_SHARED),$(TEMPLATE_NewerVccVBoxGuestR3Dll_LIBS.$(KBUILD_TARGET))) \
+ TEMPLATE_VBoxMesa3DGuestR3Dll_LATE_LIBS.$(KBUILD_TARGET_ARCH) = \
+ 	$(filter-out $(VBOX_LIB_VBGL_R3_SHARED),$(TEMPLATE_NewerVccVBoxGuestR3Dll_LATE_LIBS.$(KBUILD_TARGET))) \
  	$(VBOX_LIB_IPRT_GUEST_R3_SHARED) \
  	$(SDK_VBoxSoftFloatGuestR3Shared_LIBS.$(KBUILD_TARGET_ARCH))
  TEMPLATE_VBoxMesa3DGuestR3Dll_LDFLAGS.win += $(TEMPLATE_NewerVccVBoxGuestR3Dll_LDFLAGS.win)

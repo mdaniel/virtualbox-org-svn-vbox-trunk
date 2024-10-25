@@ -3053,8 +3053,8 @@ if defined(VBOX_WITH_MORE_NT4_COMPAT_BINARIES) && "$(KBUILD_TARGET).$(KBUILD_TAR
  #
  TEMPLATE_VBoxR3RuntimeDllItself = xx
  TEMPLATE_VBoxR3RuntimeDllItself_EXTENDS = VBoxR3RuntimeDll
- TEMPLATE_VBoxR3RuntimeDllItself_LIBS.win.x86 = \
- 	$(filter-out $(PATH_STAGE_LIB)/RuntimeR3VccTricks%, $(TEMPLATE_VBoxR3RuntimeDll_LIBS.win.x86))
+ TEMPLATE_VBoxR3RuntimeDllItself_LATE_LIBS.win.x86 = \
+ 	$(filter-out $(PATH_STAGE_LIB)/RuntimeR3VccTricks%, $(TEMPLATE_VBoxR3RuntimeDll_LATE_LIBS.win.x86))
  TEMPLATE_VBoxR3RuntimeDllItself_DEFS   += IN_RING3 VCC_FAKES_TARGET_$(VBOX_VCC_TOOL_STEM) VCC_FAKES_TARGET=$(substr $(VBOX_VCC_TOOL_STEM),-3)
  TEMPLATE_VBoxR3RuntimeDllItself_SOURCES = \
  	r3/win/vcc-fakes-kernel32.cpp \

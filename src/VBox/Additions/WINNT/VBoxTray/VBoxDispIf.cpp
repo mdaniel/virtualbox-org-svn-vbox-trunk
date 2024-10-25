@@ -1947,8 +1947,10 @@ BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, 
                  * in the modeInfoArray array once."
                  * Try to find the source mode.
                  */
-                DISPLAYCONFIG_MODE_INFO *pSrcModeInfo = NULL;
-                int iSrcModeInfo = -1;
+                DISPLAYCONFIG_MODE_INFO *pSrcModeInfo = NULL, *pTgtModeInfo = NULL;
+                int iSrcModeInfo = -1, iTgtModeInfo = -1;
+                int cModeInfoNew = 0;
+
                 for (UINT j = 0; j < DispCfg.cModeInfoArray; ++j)
                 {
                     if (   DispCfg.pModeInfoArray[j].infoType == DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE
@@ -1960,12 +1962,29 @@ BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, 
                     }
                 }
 
-                if (pSrcModeInfo == NULL)
+                for (UINT j = 0; j < DispCfg.cModeInfoArray; ++j)
                 {
-                    /* No mode yet. Add the new mode to the ModeInfo array. */
+                    if (   DispCfg.pModeInfoArray[j].infoType == DISPLAYCONFIG_MODE_INFO_TYPE_TARGET
+                        && DispCfg.pModeInfoArray[j].id == pDispDef->idDisplay)
+                    {
+                        pTgtModeInfo = &DispCfg.pModeInfoArray[j];
+                        iTgtModeInfo = (int)j;
+                        break;
+                    }
+                }
+
+                if (pSrcModeInfo == NULL)
+                    cModeInfoNew++;
+
+                if (pTgtModeInfo == NULL)
+                    cModeInfoNew++;
+
+                if (cModeInfoNew > 0)
+                {
                     DISPLAYCONFIG_MODE_INFO *paModeInfo = (DISPLAYCONFIG_MODE_INFO *)RTMemRealloc(DispCfg.pModeInfoArray,
-                                                                                                    (DispCfg.cModeInfoArray + 1)
+                                                                                                    (DispCfg.cModeInfoArray + cModeInfoNew)
                                                                                                   * sizeof(paModeInfo[0]));
+
                     if (!paModeInfo)
                     {
                         WARN(("VBoxTray:(WDDM) Unable to re-allocate DispCfg.pModeInfoArray\n"));
@@ -1973,26 +1992,53 @@ BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, 
                     }
 
                     DispCfg.pModeInfoArray = paModeInfo;
-                    DispCfg.cModeInfoArray += 1;
 
-                    iSrcModeInfo = DispCfg.cModeInfoArray - 1;
-                    pSrcModeInfo = &DispCfg.pModeInfoArray[iSrcModeInfo];
-                    RT_ZERO(*pSrcModeInfo);
+                    if (pSrcModeInfo == NULL)
+                    {
+                        iSrcModeInfo = DispCfg.cModeInfoArray;
+                        pSrcModeInfo = &paModeInfo[iSrcModeInfo];
+                        DispCfg.cModeInfoArray++;
 
-                    pSrcModeInfo->infoType  = DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE;
-                    pSrcModeInfo->id        = pDispDef->idDisplay;
-                    pSrcModeInfo->adapterId = DispCfg.pModeInfoArray[0].adapterId;
+                        RT_ZERO(*pSrcModeInfo);
+                        pSrcModeInfo->infoType  = DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE;
+                        pSrcModeInfo->id        = pDispDef->idDisplay;
+                        pSrcModeInfo->adapterId = DispCfg.pModeInfoArray[0].adapterId;
+                    }
+
+                    if (pTgtModeInfo == NULL)
+                    {
+                        iTgtModeInfo = DispCfg.cModeInfoArray;
+                        pTgtModeInfo = &paModeInfo[iTgtModeInfo];
+                        DispCfg.cModeInfoArray++;
+
+                        RT_ZERO(*pTgtModeInfo);
+                        pTgtModeInfo->infoType  = DISPLAYCONFIG_MODE_INFO_TYPE_TARGET;
+                        pTgtModeInfo->id        = pDispDef->idDisplay;
+                        pTgtModeInfo->adapterId = DispCfg.pModeInfoArray[0].adapterId;
+
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.pixelRate = 0xfffffffe;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.hSyncFreq.Numerator = 0xfffffffe;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.hSyncFreq.Denominator = 0xfffffffe;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.vSyncFreq.Numerator = 0xfffffffe;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.vSyncFreq.Denominator = 0xfffffffe;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.videoStandard = 255;
+                        pTgtModeInfo->targetMode.targetVideoSignalInfo.scanLineOrdering = DISPLAYCONFIG_SCANLINE_ORDERING_PROGRESSIVE;
+                    }
                 }
 
                 /* Update the source mode information. */
                 if (pDispDef->fDisplayFlags & VMMDEV_DISPLAY_CX)
                 {
                     pSrcModeInfo->sourceMode.width = pDispDef->cx;
+                    pTgtModeInfo->targetMode.targetVideoSignalInfo.activeSize.cx =
+                    pTgtModeInfo->targetMode.targetVideoSignalInfo.totalSize.cx = pDispDef->cx;
                 }
 
                 if (pDispDef->fDisplayFlags & VMMDEV_DISPLAY_CY)
                 {
                     pSrcModeInfo->sourceMode.height = pDispDef->cy;
+                    pTgtModeInfo->targetMode.targetVideoSignalInfo.activeSize.cy =
+                    pTgtModeInfo->targetMode.targetVideoSignalInfo.totalSize.cy = pDispDef->cy;
                 }
 
                 if (pDispDef->fDisplayFlags & VMMDEV_DISPLAY_BPP)
@@ -2029,11 +2075,7 @@ BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, 
                 pPathInfo->sourceInfo.modeInfoIdx = iSrcModeInfo;
 
                 Assert(pPathInfo->targetInfo.id == pDispDef->idDisplay);
-                /* "If the index value is DISPLAYCONFIG_PATH_MODE_IDX_INVALID ..., this indicates
-                 * the mode information is not being specified. It is valid for the path plus source mode ...
-                 * information to be specified for a given path."
-                 */
-                pPathInfo->targetInfo.modeInfoIdx      = DISPLAYCONFIG_PATH_MODE_IDX_INVALID;
+                pPathInfo->targetInfo.modeInfoIdx      = iTgtModeInfo;
                 pPathInfo->targetInfo.outputTechnology = DISPLAYCONFIG_OUTPUT_TECHNOLOGY_HD15;
                 pPathInfo->targetInfo.rotation         = DISPLAYCONFIG_ROTATION_IDENTITY;
                 pPathInfo->targetInfo.scaling          = DISPLAYCONFIG_SCALING_PREFERRED;
@@ -2069,6 +2111,11 @@ BOOL VBoxDispIfResizeDisplayWin7Wddm(PCVBOXDISPIF const pIf, uint32_t cDispDef, 
         WARN(("VBoxTray:(WDDM) pfnSetDisplayConfig Failed to VALIDATE winEr %d.\n", winEr));
         vboxDispIfWddmDcLogRel(&DispCfg, fSetFlags);
         fSetFlags |= SDC_ALLOW_CHANGES;
+    }
+    else
+    {
+        WARN(("VBoxTray:(WDDM) pfnSetDisplayConfig Ok to VALIDATE winEr %d.\n", winEr));
+        vboxDispIfWddmDcLogRel(&DispCfg, fSetFlags);
     }
 
     winEr = vboxDispIfWddmDcSet(&DispCfg, fSetFlags | SDC_SAVE_TO_DATABASE | SDC_APPLY);

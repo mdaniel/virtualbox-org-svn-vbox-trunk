@@ -375,11 +375,6 @@ protected:
     /** Defines whether tool-tip should be shown. */
     void setShowToolTip(bool fShowToolTip);
 
-    /** Shows menu. */
-    void showMenu();
-    /** Hides menu. */
-    void hideMenu();
-
 private:
 
     /** Prepares all. */

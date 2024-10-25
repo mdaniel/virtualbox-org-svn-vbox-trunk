@@ -1047,17 +1047,6 @@ protected:
                 break;
         }
     }
-
-    /** Handles state change. */
-    virtual void handleStateChange() RT_OVERRIDE
-    {
-        switch (state())
-        {
-            case 0: showMenu(); break;
-            case 1: hideMenu(); break;
-            default: break;
-        }
-    }
 };
 
 /** Simple action extension, used as 'Perform Normal Start' action class. */

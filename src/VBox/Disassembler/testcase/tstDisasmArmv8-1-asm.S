@@ -496,6 +496,12 @@ _TestProcA64:
         bics xzr, xzr, xzr, ROR #1
         bics xzr, xzr, xzr, ROR #63
 
+        extr wzr, w0, w1, #0
+        extr wzr, w0, w1, #31
+
+        extr xzr, x0, x1, #0
+        extr xzr, x0, x1, #63
+
         ; Memory loads
         ldrb w0, [x28]
         ldrb w0, [x28, #1]

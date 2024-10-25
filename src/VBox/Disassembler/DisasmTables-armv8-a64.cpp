@@ -162,6 +162,19 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Bitfield, 0x7f800000 /*fFixedInsn*/,
                                        kDisArmV8OpcDecodeNop, RT_BIT_32(29) | RT_BIT_32(30), 29);
 
 
+/* SBFM/BFM/UBFM */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Extract) /** @todo N must match SF, and for sf == 0 -> imms<5> == 0. */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,           10,  6, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Extract)
+    DIS_ARMV8_OP(0x13800000, "extr",            OP_ARMV8_A64_EXTR,      DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Extract, 0x7fa00000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, 0, 0);
+
+
 /*
  * C4.1.65 of the ARMv8 architecture reference manual has the following table for the
  * data processing (immediate) instruction classes:
@@ -184,7 +197,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DataProcessingImm)
     DIS_ARMV8_DECODE_MAP_ENTRY(LogicalImm),
     DIS_ARMV8_DECODE_MAP_ENTRY(MoveWide),
     DIS_ARMV8_DECODE_MAP_ENTRY(Bitfield),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY                  /** @todo Extract */
+    DIS_ARMV8_DECODE_MAP_ENTRY(Extract)
 DIS_ARMV8_DECODE_MAP_DEFINE_END(DataProcessingImm, RT_BIT_32(23) | RT_BIT_32(24) | RT_BIT_32(25),  23);
 
 

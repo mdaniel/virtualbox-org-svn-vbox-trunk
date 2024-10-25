@@ -61,7 +61,6 @@ VBoxCredProv_LIBS    += \
 	$(PATH_SDK_$(VBOX_WINPSDK_GST_WLH)_LIB)/NetAPI32.Lib
 VBoxCredProv_VBOX_IMPORT_CHECKER.win.x86   := vista
 VBoxCredProv_VBOX_IMPORT_CHECKER.win.amd64 := vista
-VBoxCredProv_VBOX_IMPORT_CHECKER.win.arm64 := vista
 
 include $(FILE_KBUILD_SUB_FOOTER)
 

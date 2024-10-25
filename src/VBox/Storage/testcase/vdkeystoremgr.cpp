@@ -182,6 +182,7 @@ static DECLCALLBACK(int) handleCreate(HandlerArg *pArgs)
 
 static DECLCALLBACK(int) handleDump(HandlerArg *pArgs)
 {
+    RT_NOREF_PV(pArgs);
     return VERR_NOT_IMPLEMENTED;
 }
 

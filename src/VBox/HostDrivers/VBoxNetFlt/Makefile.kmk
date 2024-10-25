@@ -199,7 +199,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   VBoxNetLwf_SOURCES = \
   	win/drv/VBoxNetLwf-win.cpp \
   	VBoxNetFlt.c \
-	VBoxNetFlt.rc
+  	VBoxNetFlt.rc
   VBoxNetLwf_LDFLAGS.win.x86   := -Entry:DriverEntry@8
   VBoxNetLwf_LDFLAGS.win.amd64 := -Entry:DriverEntry
   VBoxNetLwf_LDFLAGS.win.arm64 := -Entry:DriverEntry

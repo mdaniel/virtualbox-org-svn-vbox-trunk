@@ -979,7 +979,7 @@ int main()
     * Strip the extension off the module name and construct the arch specific
     * one of the real installer program.
     */
-    DWORD off = cwcExePath - 1;
+    size_t off = cwcExePath - 1;
     while (   off > 0
            && (   wszExePath[off] != '/'
                && wszExePath[off] != '\\'

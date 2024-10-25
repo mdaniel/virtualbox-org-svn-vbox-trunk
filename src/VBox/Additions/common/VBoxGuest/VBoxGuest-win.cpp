@@ -1275,7 +1275,7 @@ static NTSTATUS vgdrvNtSetupDevice(PVBOXGUESTDEVEXTWIN pDevExt, PDEVICE_OBJECT p
             LogFunc(("Could not map physical address of VMMDev, rcNt=%#x\n", rcNt));
     }
 
-    LogFunc(("Returned with rcNt=%#x\n", rcNt));
+    LogRelFunc(("Returned with rcNt=%#x\n", rcNt));
     return rcNt;
 }
 

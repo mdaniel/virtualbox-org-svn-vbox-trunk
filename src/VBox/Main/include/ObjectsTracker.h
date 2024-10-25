@@ -206,4 +206,4 @@ private:
     bool i_checkObj(const com::Utf8Str& aObjId) const;
     int i_clear();
 };
-#endif /* MAIN_INCLUDED_ObjectsTracker_h */
+#endif /* !MAIN_INCLUDED_ObjectsTracker_h */

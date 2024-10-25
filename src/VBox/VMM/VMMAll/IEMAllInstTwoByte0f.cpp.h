@@ -3631,7 +3631,6 @@ FNIEMOP_DEF(iemOp_cvtpi2ps_Vps_Qpi)
         IEM_MC_STORE_XREG_XMM(IEM_GET_MODRM_REG(pVCpu, bRm), Dst);
 
         IEM_MC_ADVANCE_RIP_AND_FINISH();
-        IEM_MC_FPU_TO_MMX_MODE();
         IEM_MC_END();
     }
 }

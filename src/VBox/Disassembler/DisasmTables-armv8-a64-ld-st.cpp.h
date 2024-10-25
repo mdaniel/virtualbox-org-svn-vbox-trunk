@@ -448,6 +448,46 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegPairPostIndex, 0xffc00000 /*fFixed
 
 
 /*
+ * stnp/LDNP - no-allocate variant.
+ *
+ * Note: The opc,L bitfields are concatenated to form an index.
+ */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRegPairNoAllocGpr)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          10,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOff,     15,  7, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRegPairNoAllocGpr)
+ DIS_ARMV8_OP_EX(0x28000000, "stnp",            OP_ARMV8_A64_STNP,      DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_32BIT),
+ DIS_ARMV8_OP_EX(0x28400000, "ldnp",            OP_ARMV8_A64_LDNP,      DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_32BIT),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+ DIS_ARMV8_OP_EX(0xa8000000, "stnp",            OP_ARMV8_A64_STNP,      DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+ DIS_ARMV8_OP_EX(0xa8400000, "ldnp",            OP_ARMV8_A64_LDNP,      DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegPairNoAllocGpr, 0xffc00000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(22) | RT_BIT_32(30) | RT_BIT_32(31), 22);
+
+
+/*
+ * C4.1.94.21 - Loads and Stores - Load/Store register (immediate post-indexed) variants
+ *
+ * Differentiate further based on the VR field.
+ *
+ *     Bit  26
+ *     +-------------------------------------------
+ *           0 GPR variants.
+ *           1 SIMD/FP variants
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegPairNoAlloc)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPairNoAllocGpr),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegPairNoAlloc, RT_BIT_32(26), 26);
+
+
+/*
  * C4.1.94 - Loads and Stores - Load/Store register pair variants
  *
  * Differentiate further based on the op2<14:13> field.
@@ -460,7 +500,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegPairPostIndex, 0xffc00000 /*fFixed
  *           1  1 Load/store register pair (pre-indexed).
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegPair)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPairNoAlloc),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPairPostIndex),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPairOff),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPairPreIndex),

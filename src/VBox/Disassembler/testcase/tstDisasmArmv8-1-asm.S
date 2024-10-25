@@ -918,6 +918,26 @@ _TestProcA64:
         ldp x0, x1, [sp], #-512
         ldp x0, x1, [sp], #504
 
+        ldnp w0, w1, [x28]
+        ldnp w0, w1, [x28, #4]
+        ldnp w0, w1, [x28, #-256]
+        ldnp w0, w1, [x28, #252]
+
+        ldnp w0, w1, [sp]
+        ldnp w0, w1, [sp, #4]
+        ldnp w0, w1, [sp, #-256]
+        ldnp w0, w1, [sp, #252]
+
+        ldnp x0, x1, [x28]
+        ldnp x0, x1, [x28, #8]
+        ldnp x0, x1, [x28, #-512]
+        ldnp x0, x1, [x28, #504]
+
+        ldnp x0, x1, [sp]
+        ldnp x0, x1, [sp, #8]
+        ldnp x0, x1, [sp, #-512]
+        ldnp x0, x1, [sp, #504]
+
         ldr  x0, [x1, x2]
         ldr  w0, [x1, x2]
         ldr  x0, [x1, x2, SXTX #0]
@@ -1237,6 +1257,28 @@ _TestProcA64:
         stp x0, x1, [sp], #8
         stp x0, x1, [sp], #-512
         stp x0, x1, [sp], #504
+
+
+        stnp w0, w1, [x28]
+        stnp w0, w1, [x28, #4]
+        stnp w0, w1, [x28, #-256]
+        stnp w0, w1, [x28, #252]
+
+        stnp w0, w1, [sp]
+        stnp w0, w1, [sp, #4]
+        stnp w0, w1, [sp, #-256]
+        stnp w0, w1, [sp, #252]
+
+        stnp x0, x1, [x28]
+        stnp x0, x1, [x28, #8]
+        stnp x0, x1, [x28, #-512]
+        stnp x0, x1, [x28, #504]
+
+        stnp x0, x1, [sp]
+        stnp x0, x1, [sp, #8]
+        stnp x0, x1, [sp, #-512]
+        stnp x0, x1, [sp, #504]
+
 
         str  x0, [x1, x2]
         str  w0, [x1, x2]

@@ -786,6 +786,80 @@ _TestProcA64:
         ldursw x0, [sp, #-256]
         ldursw x0, [sp, #255]
 
+
+        ldtrb w0, [x28]
+        ldtrb w0, [x28, #-256]
+        ldtrb w0, [x28, #255]
+
+        ldtrb w0, [sp]
+        ldtrb w0, [sp, #-256]
+        ldtrb w0, [sp, #255]
+
+        ldtrsb w0, [x28]
+        ldtrsb w0, [x28, #-256]
+        ldtrsb w0, [x28, #255]
+
+        ldtrsb w0, [sp]
+        ldtrsb w0, [sp, #-256]
+        ldtrsb w0, [sp, #255]
+
+        ldtrsb x0, [x28]
+        ldtrsb x0, [x28, #-256]
+        ldtrsb x0, [x28, #255]
+
+        ldtrsb x0, [sp]
+        ldtrsb x0, [sp, #-256]
+        ldtrsb x0, [sp, #255]
+
+        ldtrh w0, [x28]
+        ldtrh w0, [x28, #-256]
+        ldtrh w0, [x28, #255]
+
+        ldtrh w0, [sp]
+        ldtrh w0, [sp, #-256]
+        ldtrh w0, [sp, #255]
+
+        ldtrsh w0, [x28]
+        ldtrsh w0, [x28, #-256]
+        ldtrsh w0, [x28, #255]
+
+        ldtrsh w0, [sp]
+        ldtrsh w0, [sp, #-256]
+        ldtrsh w0, [sp, #255]
+
+        ldtrsh x0, [x28]
+        ldtrsh x0, [x28, #-256]
+        ldtrsh x0, [x28, #255]
+
+        ldtrsh x0, [sp]
+        ldtrsh x0, [sp, #-256]
+        ldtrsh x0, [sp, #255]
+
+        ldtr x0, [x28]
+        ldtr x0, [x28, #-256]
+        ldtr x0, [x28, #255]
+
+        ldtr x0, [sp]
+        ldtr x0, [sp, #-256]
+        ldtr x0, [sp, #255]
+
+        ldtr w0, [x28]
+        ldtr w0, [x28, #-256]
+        ldtr w0, [x28, #255]
+
+        ldtr w0, [sp]
+        ldtr w0, [sp, #-256]
+        ldtr w0, [sp, #255]
+
+        ldtrsw x0, [x28]
+        ldtrsw x0, [x28, #-256]
+        ldtrsw x0, [x28, #255]
+
+        ldtrsw x0, [sp]
+        ldtrsw x0, [sp, #-256]
+        ldtrsw x0, [sp, #255]
+
+
         ldp w0, w1, [x28]
         ldp w0, w1, [x28, #4]
         ldp w0, w1, [x28, #-256]
@@ -1071,6 +1145,40 @@ _TestProcA64:
         stur w0, [sp]
         stur w0, [sp, #-256]
         stur w0, [sp, #255]
+
+
+        sttrb w0, [x28]
+        sttrb w0, [x28, #-256]
+        sttrb w0, [x28, #255]
+
+        sttrb w0, [sp]
+        sttrb w0, [sp, #-256]
+        sttrb w0, [sp, #255]
+
+        sttrh w0, [x28]
+        sttrh w0, [x28, #-256]
+        sttrh w0, [x28, #255]
+
+        sttrh w0, [sp]
+        sttrh w0, [sp, #-256]
+        sttrh w0, [sp, #255]
+
+        sttr x0, [x28]
+        sttr x0, [x28, #-256]
+        sttr x0, [x28, #255]
+
+        sttr x0, [sp]
+        sttr x0, [sp, #-256]
+        sttr x0, [sp, #255]
+
+        sttr w0, [x28]
+        sttr w0, [x28, #-256]
+        sttr w0, [x28, #255]
+
+        sttr w0, [sp]
+        sttr w0, [sp, #-256]
+        sttr w0, [sp, #255]
+
 
         stp w0, w1, [x28]
         stp w0, w1, [x28, #4]

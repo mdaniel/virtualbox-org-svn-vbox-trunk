@@ -81,8 +81,8 @@ static int vboxTrayGlMsgTaskbarCreated(WPARAM lParam, LPARAM wParam);
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
-typedef BOOL (WINAPI *PFNALLOCCONSOLE)(VOID);
-typedef BOOL (WINAPI *PFNATTACHCONSOLE)(DWORD);
+typedef BOOL (WINAPI *PFNALLOCCONSOLE)(VOID)   RT_NOEXCEPT;
+typedef BOOL (WINAPI *PFNATTACHCONSOLE)(DWORD) RT_NOEXCEPT;
 
 
 /*********************************************************************************************************************************

@@ -4658,27 +4658,47 @@ void UINotificationProgressNewVersionChecker::sltHandleProgressFinished()
     if (m_comUpdateHost.isNull() && !m_comUpdateHost.isOk())
         return;
 
-    bool const fUpdateAvailable = m_comUpdateHost.GetState() == KUpdateState_Available; /** @todo Handle other states. */
+    KUpdateState enmState = m_comUpdateHost.GetState();
     if (!m_comUpdateHost.isOk())
         return;
 
-    if (fUpdateAvailable)
+    switch (enmState)
     {
-        QString strVersion = m_comUpdateHost.GetVersion();
-        if (!m_comUpdateHost.isOk())
-            return;
-
-        QString strURL = m_comUpdateHost.GetDownloadUrl();
-        if (!m_comUpdateHost.isOk())
-            return;
-
-        UINotificationMessage::showUpdateSuccess(strVersion, strURL);
+        case KUpdateState_Available:
+        {
+            QString strVersion = m_comUpdateHost.GetVersion();
+            if (!m_comUpdateHost.isOk())
+                return;
+            QString strURL = m_comUpdateHost.GetDownloadUrl();
+            if (!m_comUpdateHost.isOk())
+                return;
+            UINotificationMessage::showUpdateSuccess(strVersion, strURL);
+            break;
+        }
+        case KUpdateState_NotAvailable:
+        {
+            if (m_fForcedCall)
+                UINotificationMessage::showUpdateNotFound();
+            break;
+        }
+        case KUpdateState_Invalid:
+        case KUpdateState_Error:
+        case KUpdateState_Max:
+            /* Error cases are handled not here: */
+            break;
+        case KUpdateState_Downloading:
+        case KUpdateState_Downloaded:
+        case KUpdateState_Installing:
+        case KUpdateState_Installed:
+        case KUpdateState_UserInteraction:
+        case KUpdateState_Canceled:
+        case KUpdateState_Maintenance:
+            /* These cases are not yet implemented in Main: */
+            break;
+        default:
+            break;
     }
-    else
-    {
-        if (m_fForcedCall)
-            UINotificationMessage::showUpdateNotFound();
-    }
+
 #endif /* VBOX_WITH_UPDATE_AGENT */
 }
 

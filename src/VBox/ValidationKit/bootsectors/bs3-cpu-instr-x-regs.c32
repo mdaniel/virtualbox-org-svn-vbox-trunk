@@ -333,6 +333,7 @@
 #define MM5     (BS3_REGISTER_FAMILY_MMX        | 5)
 #define MM6     (BS3_REGISTER_FAMILY_MMX        | 6)
 #define MM7     (BS3_REGISTER_FAMILY_MMX        | 7)
+#define          BS3_REGISTER_IS_MMX(uReg)      ((uReg) >= MM0 && (uReg) <= MM7)
 
 #define          BS3_REGISTER_FAMILY_OPMASK     (0xE8 | BS3_REGISTER_FAMILY_AVX512_TODO)
 #define k0      (BS3_REGISTER_FAMILY_OPMASK     | 0)
@@ -489,8 +490,9 @@ static bool Bs3ExtCtxSetReg(PBS3EXTCTX pExtCtx, uint16_t uReg, void * pValue, vo
                 Bs3RegCtxSetGrpSegFromCurPtr(pCtx, (&pCtx->rax) + uRegNum, &pCtx->fs, pValue);
                 return true;
             case BS3_REGISTER_FAMILY_OTHER:
-                if (uReg >= MM0 && uReg <= MM7)
-                    return Bs3ExtCtxSetMm(pExtCtx, uRegNum, (uint64_t)pValue, BS3EXTCTXTOPMM_SET);
+                if (BS3_REGISTER_IS_MMX(uReg))
+                    return Bs3ExtCtxSetMm(pExtCtx, uRegNum, *((uint64_t *)pValue), BS3EXTCTXTOPMM_AS_IS);
+                break;
             case BS3_REGISTER_FAMILY_8BIT_L:
             case BS3_REGISTER_FAMILY_ZMM:
             default:

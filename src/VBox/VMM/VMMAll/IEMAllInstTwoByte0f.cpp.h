@@ -3621,15 +3621,17 @@ FNIEMOP_DEF(iemOp_cvtpi2ps_Vps_Qpi)
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_MAYBE_RAISE_FPU_XCPT();
-        IEM_MC_FETCH_MEM_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_FPU_USAGE();
-        IEM_MC_FPU_TO_MMX_MODE();
+
+        IEM_MC_FETCH_MEM_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_XREG_XMM(Dst, IEM_GET_MODRM_REG(pVCpu, bRm)); /* Need it because the high quadword remains unchanged. */
 
         IEM_MC_CALL_SSE_AIMPL_2(iemAImpl_cvtpi2ps_u128, pDst, u64Src);
         IEM_MC_STORE_XREG_XMM(IEM_GET_MODRM_REG(pVCpu, bRm), Dst);
 
         IEM_MC_ADVANCE_RIP_AND_FINISH();
+        IEM_MC_FPU_TO_MMX_MODE();
         IEM_MC_END();
     }
 }

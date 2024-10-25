@@ -158,17 +158,14 @@ if defined(VBOX_WITH_TESTCASES) || defined(VBOX_WITH_VBOX_IMG)
   endif
 
  else
+  if1of ($(KBUILD_TARGET), os2 win)
+   vbox-img_SDKS := VBoxZlibStatic VBoxLzfStatic
+  else
+   vbox-img_SDKS := VBoxZlib VBoxLzf
+  endif
+  vbox-img_SDKS.win := VBoxNtDll
   vbox-img_LIBS = \
   	$(VBOX_LIB_RUNTIME_STATIC)
-  if1of ($(KBUILD_TARGET), os2 win)
-   vbox-img_LIBS += \
-   	$(SDK_VBoxLzfStatic_LIBS) \
-   	$(SDK_VBoxZlibStatic_LIBS)
-  else
-   vbox-img_LIBS += \
-   	$(SDK_VBoxLzf_LIBS) \
-   	$(SDK_VBoxZlib_LIBS)
-  endif
   ifeq ($(KBUILD_TARGET),linux)
    ifdef SDK_VBoxLibXml2_LIBS
     vbox-img_LIBS += xml2
@@ -180,8 +177,6 @@ if defined(VBOX_WITH_TESTCASES) || defined(VBOX_WITH_VBOX_IMG)
    endif
   else ifeq ($(KBUILD_TARGET),darwin)
    vbox-img_LIBS += iconv
-  else ifeq ($(KBUILD_TARGET),win)
-   vbox-img_SDKS.win = VBoxNtDll
   else ifeq ($(KBUILD_TARGET),solaris)
    vbox-img_LIBS += kstat efi
    ifdef SDK_VBoxLibXml2_LIBS
@@ -202,6 +197,11 @@ if   defined(VBOX_WITH_TESTCASES) && defined(VBOX_WITH_PLUGIN_CRYPT) \
  #
  vdkeystoremgr_TEMPLATE = VBoxR3Static
  vdkeystoremgr_DEFS += IN_VBOXDDU IN_VBOXDDU_STATIC VBOX_HDD_NO_DYNAMIC_BACKENDS
+ if1of ($(KBUILD_TARGET), os2 win)
+  vdkeystoremgr_SDKS = VBoxZlibStatic
+ else
+  vdkeystoremgr_SDKS = VBoxZlib
+ endif
  vdkeystoremgr_SOURCES = \
  	vdkeystoremgr.cpp \
  	../VDKeyStore.cpp
@@ -210,15 +210,6 @@ if   defined(VBOX_WITH_TESTCASES) && defined(VBOX_WITH_PLUGIN_CRYPT) \
  vdkeystoremgr_LIBS = \
  	$(VBOX_LIB_RUNTIME_STATIC) \
  	$(PATH_STAGE_LIB)/SUPR3$(VBOX_SUFF_LIB)
- if1of ($(KBUILD_TARGET), os2 win)
-  vdkeystoremgr_LIBS += \
-  	$(SDK_VBoxLzfStatic_LIBS) \
-  	$(SDK_VBoxZlibStatic_LIBS)
- else
-  vdkeystoremgr_LIBS += \
-  	$(SDK_VBoxLzf_LIBS) \
-  	$(SDK_VBoxZlib_LIBS)
- endif
  ifeq ($(KBUILD_TARGET),linux)
   ifdef SDK_VBoxLibXml2_LIBS
    vdkeystoremgr_LIBS += xml2

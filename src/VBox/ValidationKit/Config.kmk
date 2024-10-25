@@ -98,7 +98,7 @@ ifeq ($(KBUILD_TARGET),solaris)
 endif
 ifneq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxValidationKitR3_LATE_LIBS += \
- 	$(SDK_VBoxZlib_LIBS)
+ 	$(SDK_VBoxZlib_LATE_LIBS)
 endif
 
 # Make VCC100 output work on NT3.x, NT4, W2K, XP and W2K3.

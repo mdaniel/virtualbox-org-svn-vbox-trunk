@@ -2592,6 +2592,7 @@ typedef struct BS3CPUINSTR4_TEST1_CTX_T
     uint8_t                              cbInstr;      /**< Size of the instruction opcode. */
     uint8_t                              bXcptExpect;  /**< The expected exception while/after executing the instruction. */
     uint16_t                             idTestStep;   /**< The test iteration step. */
+    const char BS3_FAR                  *pszTestIdStr; /**< The test ID string for error printouts. */
 } BS3CPUINSTR4_TEST1_CTX_T;
 /** Pointer to a test 1 context. */
 typedef BS3CPUINSTR4_TEST1_CTX_T BS3_FAR *PBS3CPUINSTR4_TEST1_CTX_T;
@@ -2633,7 +2634,7 @@ AssertCompile((BS3_MXCSR_FIXED_MASK & BS3_MXCSR_PE_FUZZY) == 0);
 /**
  * Worker for bs3CpuInstr4_WorkerTestType1.
  */
-static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
+static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST1_CTX_T pTestCtx,
                                                    PCBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg)
 {
     BS3CPUINSTR4_TEST1_T const BS3_FAR        *pTest   = pTestCtx->pTest;
@@ -2655,9 +2656,9 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     uint32_t         uMxCsr;
     X86YMMREG        MemOpExpect;
     uint16_t         cErrors;
-    uint16_t         cErrorsInit         = Bs3TestSubErrorCount();
     uint32_t         uExpectedMxCsr;
     bool             fFpXcptExpected;
+    uint8_t          cbBytesExecuted;
 
     uint32_t uSpecifiedMask, uExpectedMask, uImpliedMask, uCombinedMask, uMaskedMask, uUnmaskedMask, uThisMask;
     uint32_t uExpectedMxCsr_orig, uExpectedExceptions, uExpectedUnmaskedExceptions, uInitialExceptions, uRandTmp;
@@ -2665,6 +2666,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
     bool fFuzzyPE;
     uint32_t uForceOnMask, uForceOffMask;
     static const char * const s_apszMaskType[] = { "Specified", "Expected", "Implied", "Combined", "Masked", "Unmasked", "Random" };
+    static const char * const s_apszMaskTyp[] =  { "spec",      "expc",     "impl",    "comb",     "mask",   "umsk",     "rand"   };
     unsigned iMaskType;
 
     if (fMemOp)
@@ -2867,9 +2869,8 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
         /*
          * Prepare globals and execute.
          */
-        g_uBs3TrapEipHint = pCtx->rip.u32;
-        if (fNonFpOK && !fFpXcptExpected)
-            g_uBs3TrapEipHint += cbInstr + 1;
+        cbBytesExecuted = (fNonFpOK && !fFpXcptExpected) ? cbInstr + 1 : 0;
+        g_uBs3TrapEipHint = pCtx->rip.u32 + cbBytesExecuted;
         Bs3TrapSetJmpAndRestoreWithExtCtxAndRm(pCtx, pExtCtx, pTrapFrame, pExtCtxOut);
 
         /*
@@ -2920,6 +2921,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
                 bs3CpuInstr4GetXcptFlags(&szGotFlags[0],   sizeof(szGotFlags),  uGotMxCsr);
                 bs3CpuInstr4GetXcptMasks(&szGotMasks[0],   sizeof(szGotMasks),  uGotMxCsr);
                 bs3CpuInstr4GetXcptOthers(&szGotOthers[0], sizeof(szGotOthers), uGotMxCsr);
+                Bs3TestFailedF("mask-mode %s, mask=%#RX32, in-except=%#RX32, expect-raise=%#RX32, in-MXCSR=%#RX32", s_apszMaskType[iMaskType], uThisMask, uInitialExceptions, uExpectedExceptions, uMxCsr);
                 Bs3TestFailedF("Expected MXCSR %#RX32 (%s%s%s ) got MXCSR %#RX32 (%s%s%s )", uExpectedMxCsr,
                                szExpectFlags, szExpectMasks, szExpectOthers, uGotMxCsr, szGotFlags, szGotMasks, szGotOthers);
             }
@@ -2951,7 +2953,7 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
         }
         if (bXcptExpect == X86_XCPT_PF)
             pCtx->cr2.u = (uintptr_t)puMemOp;
-        Bs3TestCheckRegCtxEx(&pTrapFrame->Ctx, pCtx, fNonFpOK && !fFpXcptExpected ? cbInstr + 1 : 0, 0 /*cbSpAdjust*/,
+        Bs3TestCheckRegCtxEx(&pTrapFrame->Ctx, pCtx, cbBytesExecuted, 0 /*cbSpAdjust*/,
                              (fNonFpOK && !fFpXcptExpected) || BS3_MODE_IS_16BIT_SYS(bMode) ? 0 : X86_EFL_RF,
                              pTestCtx->pszMode, pTestCtx->idTestStep);
         pCtx->cr2.u = 0;
@@ -2960,10 +2962,18 @@ static uint16_t bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_
             Bs3TestFailedF("Expected uMemOp %.*Rhxs, got %.*Rhxs", cbMemOp, &MemOpExpect, cbMemOp, puMemOpAlias);
 
         if (cErrors != Bs3TestSubErrorCount())
-            Bs3TestFailedF("Mask mode %s, mask=%#RX32, in-exceptions=%#RX32, in-MxCsr=%#RX32, expect-MxCsr=%#RX32", s_apszMaskType[iMaskType], uThisMask, uInitialExceptions, uMxCsr, uExpectedMxCsr);
-    }
+        {
+#define PUMEMOP_MAXSIZE sizeof("puMemOp=0x0123456789abcdef, EFLAGS=0x01234567, ")
+            char szPuMemOpStr[PUMEMOP_MAXSIZE] = "";
 
-    return cErrorsInit;
+            if (!pTestCtx->pConfig->fAligned)
+                Bs3StrPrintf(szPuMemOpStr, PUMEMOP_MAXSIZE, "puMemOp=%p, EFLAGS=%#RX32, ", puMemOp, pTestCtx->pTrapFrame->Ctx.rflags.u32);
+            Bs3TestFailedF("%s/%s failed (bXcptExpect=%u %s, %s%s-%u)",
+                           pTestCtx->pszTestIdStr, s_apszMaskTyp[iMaskType], bXcptExpect, bs3CpuInstr4XcptName(bXcptExpect),
+                           szPuMemOpStr, fSseInstr ? "SSE" : "AVX", pTestCtx->cbOperand * 8);
+            Bs3TestPrintf("\n");
+        }
+    }
 }
 
 
@@ -3071,7 +3081,8 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T 
                     {
                         for (iVal = 0; iVal < cValues; iVal++, idTestStep++, cRecompRuns++)
                         {
-                            uint16_t                 cErrors;
+#define TESTID_MAXSIZE sizeof("32-bit pae, v8086 pae: ring-3/(Normal)/tst#123/val#123")
+                            char szTestIdStr[TESTID_MAXSIZE];
                             BS3CPUINSTR4_TEST1_CTX_T TestCtx;
 
                             /*
@@ -3100,19 +3111,11 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, BS3CPUINSTR4_TEST1_T 
                             TestCtx.cbOperand    = cbOperand;
                             TestCtx.bXcptExpect  = bXcptExpect;
                             TestCtx.idTestStep   = idTestStep;
-                            cErrors = bs3CpuInstr4_WorkerTestType1_Inner(bMode, &TestCtx, &SavedCfg);
-                            if (cErrors != Bs3TestSubErrorCount())
-                            {
-#define PUMEMOP_MAXLEN          sizeof("puMemOp=0x0123456789abcdef, EFLAGS=0x01234567, ")
-                                char szPuMemOpStr[PUMEMOP_MAXLEN] = "";
+                            Bs3StrPrintf(szTestIdStr, TESTID_MAXSIZE, "%s: ring-%d/%u:%s/tst#%u/val#%u",
+                                         pszMode, bRing, iCfg, paConfigs[iCfg].pszCfgName, iTest, iVal);
+                            TestCtx.pszTestIdStr = szTestIdStr;
 
-                                if (!paConfigs[iCfg].fAligned)
-                                    Bs3StrPrintf(szPuMemOpStr, PUMEMOP_MAXLEN, "puMemOp=%p, EFLAGS=%#RX32, ", puMemOp, TrapFrame.Ctx.rflags.u32);
-                                Bs3TestFailedF("%s: ring-%d/%u:%s/tst#%u/val#%u failed (bXcptExpect=%u %s, %s%s-%u)",
-                                               Bs3GetModeName(bMode), bRing, iCfg, paConfigs[iCfg].pszCfgName, iTest, iVal, bXcptExpect,
-                                               bs3CpuInstr4XcptName(bXcptExpect), szPuMemOpStr, fSseInstr ? "SSE" : "AVX", cbOperand * 8);
-                                Bs3TestPrintf("\n");
-                            }
+                            bs3CpuInstr4_WorkerTestType1_Inner(bMode, &TestCtx, &SavedCfg);
                         }
                     }
                 }
@@ -3502,10 +3505,13 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addps(uint8_t bMode)
         { bs3CpuInstr4_vaddps_YMM1_YMM2_YMM3_icebp_c64,  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  PASS_s_aValues   },
         { bs3CpuInstr4_vaddps_YMM1_YMM2_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, PASS_s_aValues   },
 
-        { bs3CpuInstr4_addps_XMM1_XMM1_icebp_c64,        255, RM_REG, T_SSE,     XMM1, XMM1, XMM1,  PASS_s_aValuesSR },
-        { bs3CpuInstr4_vaddps_YMM1_YMM1_YMM1_icebp_c64,  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM1,  PASS_s_aValuesSR },
-        { bs3CpuInstr4_vaddps_YMM1_YMM1_YMM2_icebp_c64,  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM2,  PASS_s_aValuesSR },
-        { bs3CpuInstr4_vaddps_YMM1_YMM1_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, YMM1, YMM1, FSxBX, PASS_s_aValuesSR },
+        { bs3CpuInstr4_addps_XMM8_XMM9_icebp_c64,        255, RM_REG, T_SSE,     XMM8, XMM8, XMM9,  PASS_s_aValues   },
+        { bs3CpuInstr4_addps_XMM8_FSxBX_icebp_c64,       255, RM_MEM, T_SSE,     XMM8, XMM8, FSxBX, PASS_s_aValues   },
+
+        { bs3CpuInstr4_vaddps_XMM8_XMM9_XMM10_icebp_c64, 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, PASS_s_aValues   },
+        { bs3CpuInstr4_vaddps_XMM8_XMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, PASS_s_aValues   },
+        { bs3CpuInstr4_vaddps_YMM8_YMM9_YMM10_icebp_c64, 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, PASS_s_aValues   },
+        { bs3CpuInstr4_vaddps_YMM8_YMM9_FSxBX_icebp_c64, 255, RM_MEM, T_AVX_256, YMM8, YMM9, FSxBX, PASS_s_aValues   },
 
         { bs3CpuInstr4_addps_XMM1_XMM1_icebp_c64,        255, RM_REG, T_SSE,     XMM1, XMM1, XMM1,  PASS_s_aValuesSR },
         { bs3CpuInstr4_addps_XMM8_XMM8_icebp_c64,        255, RM_REG, T_SSE,     XMM8, XMM8, XMM8,  PASS_s_aValuesSR },
@@ -4499,7 +4505,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_addsd(uint8_t bMode)
         { bs3CpuInstr4_addsd_XMM8_XMM9_icebp_c64,        255,         RM_REG, T_SSE,     XMM8, XMM8, XMM9,  PASS_s_aValues   },
         { bs3CpuInstr4_addsd_XMM8_FSxBX_icebp_c64,       X86_XCPT_AC, RM_MEM, T_SSE,     XMM8, XMM8, FSxBX, PASS_s_aValues   },
 
-        { bs3CpuInstr4_vaddsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, XMM8, XMM9, XMM10,  PASS_s_aValues   },
+        { bs3CpuInstr4_vaddsd_XMM8_XMM9_XMM10_icebp_c64, 255,         RM_REG, T_AVX_128, XMM8, XMM9, XMM10, PASS_s_aValues   },
         { bs3CpuInstr4_vaddsd_XMM8_XMM9_FSxBX_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, PASS_s_aValues   },
 
         { bs3CpuInstr4_addsd_XMM1_XMM1_icebp_c64,        255,         RM_REG, T_SSE,     XMM1, XMM1, XMM1,  PASS_s_aValuesSR },

@@ -502,6 +502,18 @@ _TestProcA64:
         extr xzr, x0, x1, #0
         extr xzr, x0, x1, #63
 
+        csel xzr, x1, x2, eq
+        csel wzr, w1, w2, eq
+
+        csinc xzr, x1, x2, eq
+        csinc wzr, w1, w2, eq
+
+        csinv xzr, x1, x2, eq
+        csinv wzr, w1, w2, eq
+
+        csneg xzr, x1, x2, eq
+        csneg wzr, w1, w2, eq
+
         ; Memory loads
         ldrb w0, [x28]
         ldrb w0, [x28, #1]

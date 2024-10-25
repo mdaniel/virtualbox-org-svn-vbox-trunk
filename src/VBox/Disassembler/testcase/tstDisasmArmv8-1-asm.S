@@ -514,6 +514,21 @@ _TestProcA64:
         csneg xzr, x1, x2, eq
         csneg wzr, w1, w2, eq
 
+        madd wzr, w0, w1, w2
+        madd xzr, x0, x1, x2
+
+        msub wzr, w0, w1, w2
+        msub xzr, x0, x1, x2
+
+        smaddl xzr, w0, w1, x2
+        smsubl xzr, w0, w1, x2
+        umaddl xzr, w0, w1, x2
+        umsubl xzr, w0, w1, x2
+
+        smulh  xzr, x1, x2
+        umulh  xzr, x1, x2
+
+
         ; Memory loads
         ldrb w0, [x28]
         ldrb w0, [x28, #1]

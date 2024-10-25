@@ -803,6 +803,64 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(CondSel, 0x7fe00c00 /*fFixedInsn*/, kDisA
                                        RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(30), 10);
 
 
+/* MADD/MSUB (32-bit) */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Reg3Src32)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       10,  5, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg3Src32)
+    DIS_ARMV8_OP(0x1b000000, "madd",            OP_ARMV8_A64_MADD,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x1b008000, "msub",            OP_ARMV8_A64_MSUB,      DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Reg3Src32, 0xffe08000 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(15), 15);
+
+
+/* MADD/MSUB (64-bit) /SMADDL/SMSUBL/SMULH/UMADDL/UMSUBL/UMULH */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Reg3Src64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       10,  5, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg3Src64_32)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       10,  5, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg3Src64Mul) /** @todo Ra == 11111 (or is it ignored?) */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg3Src64)
+    DIS_ARMV8_OP(           0x9b000000, "madd",            OP_ARMV8_A64_MADD,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x9b008000, "msub",            OP_ARMV8_A64_MSUB,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x9b200000, "smaddl",          OP_ARMV8_A64_SMADDL,    DISOPTYPE_HARMLESS, Reg3Src64_32),
+    DIS_ARMV8_OP_ALT_DECODE(0x9b208000, "smsubl",          OP_ARMV8_A64_SMSUBL,    DISOPTYPE_HARMLESS, Reg3Src64_32),
+    DIS_ARMV8_OP_ALT_DECODE(0x9b400000, "smulh",           OP_ARMV8_A64_SMULH,     DISOPTYPE_HARMLESS, Reg3Src64Mul),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x9ba00000, "umaddl",          OP_ARMV8_A64_UMADDL,    DISOPTYPE_HARMLESS, Reg3Src64_32),
+    DIS_ARMV8_OP_ALT_DECODE(0x9ba08000, "umsubl",          OP_ARMV8_A64_UMSUBL,    DISOPTYPE_HARMLESS, Reg3Src64_32),
+    DIS_ARMV8_OP_ALT_DECODE(0x9bc00000, "umulh",           OP_ARMV8_A64_UMULH,     DISOPTYPE_HARMLESS, Reg3Src64Mul),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Reg3Src64, 0xffe08000 /*fFixedInsn*/, kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(15) | RT_BIT_32(21) | RT_BIT_32(22) | RT_BIT_32(23), 15);
+
+
+/**
+ * C4.1.95.12 - Data Processing - Register - 3-source
+ *
+ * We differentiate further based on SF because there are different instructions encoded
+ * for 32-bit and 64-bit.
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(Reg3Src)
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src32),        /* 3-source 32-bit */
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src64),        /* 3-source 64-bit */
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg3Src, 31);
+
+
 /*
  * C4.1.95 - Data Processing - Register
  *
@@ -830,14 +888,14 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DataProcReg)
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,
     DIS_ARMV8_DECODE_MAP_ENTRY(Reg2Src1Src),
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Data Processing 3-source. */
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Reg3Src),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(DataProcReg, RT_BIT_32(21) | RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(24), 21);
 
 

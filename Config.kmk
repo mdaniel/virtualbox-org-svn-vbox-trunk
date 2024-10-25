@@ -1852,58 +1852,57 @@ VBOX_TARGET_OSES   := freebsd darwin haiku linux netbsd openbsd solaris darwin o
 VBOX_TARGET_ARCHES := amd64 x86 arm64 sparc32 sparc64
 
 #
-# Windows only has mingw handy. On *nix we have to deal with cross compiling
-# 32-bit targets on 64-bit platforms, meaning we'll be using gcc32/g++32.
-# In the latter case we'll also have to disable all the all the R0 driver related stuff.
+# VBOX_GCC_TOOL is the kBuild tool name for gcc or clang.
+# VBOX_GCC32_TOOL is the same for 32-bit x86 code.
+#
+# Note! On Windows only the arm64 variant makes use of it.
 #
 ifndef VBOX_GCC_TOOL
  ifeq ($(KBUILD_TARGET),win)
-  ifeq ($(KBUILD_TARGET_ARCH),x86)
-   VBOX_GCC_TOOL := MINGW32
-   TOOL_MINGW32_CFLAGS := $(UNDEFINED) # override -g
-  else ifeq ($(KBUILD_TARGET_ARCH),amd64)
-   VBOX_GCC_TOOL := MINGWW64
-  else ifeq ($(KBUILD_TARGET_ARCH),arm64)
-   VBOX_GCC_TOOL := VCC143-CLANGXX
+  ifeq ($(KBUILD_TARGET_ARCH),arm64)
+   VBOX_GCC_TOOL  := VCC143-CLANGXX
   endif
  else ifeq ($(KBUILD_TARGET),os2)
-  VBOX_GCC_TOOL := GXX3OMF
+  VBOX_GCC_TOOL   := GXX3OMF
  else ifeq ($(KBUILD_TARGET),darwin)
   ifdef VBOX_WITH_EVEN_NEWER_XCODE
-   VBOX_GCC_TOOL := CLANGXXMACHO
+   VBOX_GCC_TOOL  := CLANGXXMACHO
    DARWINCMN_TOOLCHAIN_DIRS_IGNORE_DEVTOOLS = 1# Use the system toolchains, not anything from tools/darwin.*.
   else ifdef VBOX_WITH_NEW_XCODE
-   VBOX_GCC_TOOL := VBoxXcode62
+   VBOX_GCC_TOOL  := VBoxXcode62
   else
-   VBOX_GCC_TOOL := GXX4MACHO
+   VBOX_GCC_TOOL  := GXX4MACHO
   endif
  else ifeq ($(KBUILD_TARGET),haiku)
   # Haiku shouldn't pass '-r' to the linker by default
-  VBOX_GCC_TOOL := GXX3PLAIN
+  VBOX_GCC_TOOL   := GXX3PLAIN
  else ifeq ($(KBUILD_TARGET),solaris)
-  VBOX_GCC_TOOL := GXX3PLAIN
+  VBOX_GCC_TOOL   := GXX3PLAIN
   VBOX_GCC32_TOOL := GCC3PLAIN
   ifeq ($(KBUILD_HOST),solaris)
    TOOL_GXX3PLAIN_LD_SYSMOD ?= /usr/ccs/bin/ld
   endif
  else
-  VBOX_GCC_TOOL := GXX3
+  VBOX_GCC_TOOL   := GXX3
   ifeq ($(KBUILD_TARGET_ARCH).$(KBUILD_HOST_ARCH),x86.amd64) ## @todo mixing target/host here!
-   VBOX_GCC_TOOL := GXX32
+   VBOX_GCC_TOOL  := GXX32
    VBOX_WITH_VBOXDRV =
   else ifeq ($(KBUILD_TARGET_ARCH).$(KBUILD_HOST_ARCH),amd64.x86)
-   VBOX_GCC_TOOL := GXX64
+   VBOX_GCC_TOOL  := GXX64
    VBOX_WITH_VBOXDRV =
   endif
  endif
 endif
-ifndef VBOX_GCC32_TOOL
- ifeq ($(KBUILD_TARGET_ARCH),x86)
-  VBOX_GCC32_TOOL := $(VBOX_GCC_TOOL)
- else ifeq ($(KBUILD_TARGET),win)
-  VBOX_GCC32_TOOL := MINGW32
- else
-  VBOX_GCC32_TOOL := GCC32
+
+if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
+ ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.x86 win.amd64)
+  ifndef VBOX_GCC32_TOOL
+   ifeq ($(KBUILD_TARGET_ARCH),x86)
+    VBOX_GCC32_TOOL := $(VBOX_GCC_TOOL)
+   else
+    VBOX_GCC32_TOOL := GCC32
+   endif
+  endif
  endif
 endif
 
@@ -2019,19 +2018,21 @@ VBOX_NASM_ASFLAGS.lx.x86      := -D__NASM__ -w+orphan-labels -f obj -DASM_FORMAT
 $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
 ,$(eval VBOX_NASM_ASFLAGS.$(os).$(arch) = $$(VBOX_NASM_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
 
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.x86     := -DASM_FORMAT_ELF -m32
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.amd64   := -DASM_FORMAT_ELF -m64
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.arm64   := -DASM_FORMAT_ELF
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc32 := -DASM_FORMAT_ELF -m32
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc64 := -DASM_FORMAT_ELF -m64
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.x86   := -DASM_FORMAT_MACHO -m32
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.amd64 := -DASM_FORMAT_MACHO -m64
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.arm64 := -DASM_FORMAT_MACHO
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.x86      := -DASM_FORMAT_PE
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.amd64    := -DASM_FORMAT_PE
-VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.arm64    := -DASM_FORMAT_PE
-$(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
-,$(eval VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(os).$(arch) = $$(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
+ifdef VBOX_GCC_TOOL
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.x86     := -DASM_FORMAT_ELF -m32
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.amd64   := -DASM_FORMAT_ELF -m64
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.arm64   := -DASM_FORMAT_ELF
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc32 := -DASM_FORMAT_ELF -m32
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.elf.sparc64 := -DASM_FORMAT_ELF -m64
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.x86   := -DASM_FORMAT_MACHO -m32
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.amd64 := -DASM_FORMAT_MACHO -m64
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.arm64 := -DASM_FORMAT_MACHO
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.x86      := -DASM_FORMAT_PE
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.amd64    := -DASM_FORMAT_PE
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.arm64    := -DASM_FORMAT_PE
+ $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
+ ,$(eval VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(os).$(arch) = $$(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
+endif
 
 # Combine the above ASFLAGS with the ASTOOL for each os+arch variation.
 $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
@@ -3244,43 +3245,37 @@ endif
 
 ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
  #
- # GCC and YASM dynamic properties.
+ # GCC, YASM, PyLint, ++ dynamic properties.
+ #
  # Most of this is resolved on first kmk invocation and cached in PATH_OUT.
  #
  # Note! That a harmless warning is printed if the file doesn't exist.
  # Note! Changes in GCC are not detected automatically (yet).
  #
- ifneq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.arm64)
+ ifndef CLOSEPAR
+  CLOSEPAR := )
+ endif
+
+ # GCC macros.
+ ifdef VBOX_GCC_TOOL
+  # Load the tools files first.
   if $(pos VBox,$(VBOX_GCC_TOOL)) > 0
    include $(KBUILD_TOOL_PATHS)/$(VBOX_GCC_TOOL).kmk
   else
    include $(KBUILD_PATH)/tools/$(VBOX_GCC_TOOL).kmk
   endif
-  ifneq ($(VBOX_GCC_TOOL),$(VBOX_GCC32_TOOL))
-   if $(pos VBox,$(VBOX_GCC32_TOOL)) > 0
-    include $(KBUILD_TOOL_PATHS)/$(VBOX_GCC32_TOOL).kmk
-   else
-    include $(KBUILD_PATH)/tools/$(VBOX_GCC32_TOOL).kmk
+  ifdef VBOX_GCC32_TOOL
+   ifneq ($(VBOX_GCC_TOOL),$(VBOX_GCC32_TOOL))
+    if $(pos VBox,$(VBOX_GCC32_TOOL)) > 0
+     include $(KBUILD_TOOL_PATHS)/$(VBOX_GCC32_TOOL).kmk
+    else
+     include $(KBUILD_PATH)/tools/$(VBOX_GCC32_TOOL).kmk
+    endif
    endif
   endif
- endif
 
- # These tests never worked on Windows because of /dev/null, so, there
- # can be no harm in just dropping them until cygwin is mp safe.
- ifeq ($(KBUILD_HOST),win)
-  VBOX_GCC_CHECK_EX_CC = $(3)
-  VBOX_GCC_CHECK_EX_CXX = $(3)
-  VBOX_GCC_CHECK_EX_LD = $(3)
-  VBOX_GCC_CHECK_CC = $(2)
-  VBOX_GCC_CHECK_CXX = $(2)
-  VBOX_GCC_CHECK_LD = $(2)
-  VBOX_GCC32_CHECK_CXX = $(2)
- else
   # Note! The chcking for 'error: unknown warning option' is for clang on darwin not giving us a
   #       non-zero exit code when using an invalid option here, but it does later on.
-  ifndef CLOSEPAR
-   CLOSEPAR := )
-  endif
   VBOX_GCC_CHECK_EX_CC_CXX = $(shell \
   		if $(1) $(subst -Wno-,-W,$(2)) -Werror -c -o /dev/null $(4) > /dev/null 2>&1; then \
   		case "`LC_ALL=C $(1) $(subst -Wno-,-W,$(2)) -Werror -c -o /dev/null $(4) 2>&1`" in \
@@ -3298,47 +3293,40 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
   VBOX_GCC_CHECK_CC   = $(call VBOX_GCC_CHECK_EX_CC,  $(TOOL_$(VBOX_GCC_TOOL)_ENV_SETUP) $(TOOL_$(VBOX_GCC_TOOL)_CC),$1,$2)
   VBOX_GCC_CHECK_CXX  = $(call VBOX_GCC_CHECK_EX_CXX, $(TOOL_$(VBOX_GCC_TOOL)_ENV_SETUP) $(TOOL_$(VBOX_GCC_TOOL)_CXX),$1,$2)
   VBOX_GCC_CHECK_LD   = $(call VBOX_GCC_CHECK_EX_LD,  $(TOOL_$(VBOX_GCC_TOOL)_ENV_SETUP) $(TOOL_$(VBOX_GCC_TOOL)_LD),$1,$2)
-  VBOX_GCC32_CHECK_CXX = $(call VBOX_GCC_CHECK_EX_CXX, $(TOOL_$(VBOX_GCC32_TOOL)_ENV_SETUP) $(TOOL_$(VBOX_GCC32_TOOL)_CXX),$1,$2)
- endif
+  ifdef VBOX_GCC32_TOOL
+   VBOX_GCC32_CHECK_CXX = $(call VBOX_GCC_CHECK_EX_CXX, $(TOOL_$(VBOX_GCC32_TOOL)_ENV_SETUP) $(TOOL_$(VBOX_GCC32_TOOL)_CXX),$1,$2)
+  endif 
 
- ifeq ($(KBUILD_HOST),win)
-  # We're not using gcc on windows anymore, just cook the result.
-  VBOX_GCC_VERSION := $(expr 10000 * 3 + 100 * 3 + 3)
- else
   # This is kind of bad, the returned string needs to be re-evaluated before use.
-  # The reason for this hack is that the windows kmk_ash cannot deal with $((1+1)).
+  # The reason for this hack is that the windows kmk_ash cannot deal with $((1+1)). <-- no longer true.
   # Some versions of gcc (e.g. openSUSE11) return only major.minor on `gcc -dumpversion`.
   # gcc-5 of openSUSE42.1 only returns the major version on `gcc -dumpversion`!
   VBOX_GCC_VERSION = $(shell ($(1) -dumpfullversion 2>/dev/null || $(1) -dumpversion) | \
   	$(SED_EXT) 's|\([0-9][0-9]*\)\.\{0,1\}\([0-9]\{0,\}\)\.\{0,1\}\([0-9]\{0,\}\).*|$$(expr 10000 * \1 + 100 * $$(firstword \2 0) + $$(firstword \3 0))|' )
   ifeq ($(KBUILD_TARGET),darwin)
    VBOX_CLANG_VERSION = $(shell $(1) --version | \
-   		$(SED_EXT) -n 's|.*version \([0-9][0-9]*\)\.\{0,1\}\([0-9]\{0,\}\)\.\{0,1\}\([0-9]\{0,\}\).*|$$(expr 10000 * \1 + 100 * $$(firstword \2 0) + $$(firstword \3 0))|p' )
+   	$(SED_EXT) -n 's|.*version \([0-9][0-9]*\)\.\{0,1\}\([0-9]\{0,\}\)\.\{0,1\}\([0-9]\{0,\}\).*|$$(expr 10000 * \1 + 100 * $$(firstword \2 0) + $$(firstword \3 0))|p' )
   endif
- endif
+ endif # VBOX_GCC_TOOL
 
  # YASM macros
- ifndef DONT_USE_YASM
+ if !defined(DONT_USE_YASM) && "$(intersects $(KBUILD_HOST_ARCH) $(KBUILD_TARGET_ARCH), x86 amd64 arm64)" != ""
   include $(KBUILD_PATH)/tools/YASM.kmk
   if1of ($(KBUILD_HOST), win os2)
    VBOX_YASM_CHECK = $(if-expr "$(shell $(TOOL_YASM_AS) -e -o nul $1 - < /dev/null 2>&1)" == "",$(1),)
   else
    VBOX_YASM_CHECK = $(if-expr "$(shell $(TOOL_YASM_AS) -e -o /dev/null $1 - < /dev/null 2>&1)" == "",$(1),)
   endif
- else
-  VBOX_YASM_CHECK =
  endif
 
  # NASM macros (input and output must differ with recent versions (strcmp)).
- ifndef DONT_USE_NASM
+ if !defined(DONT_USE_NASM) && "$(intersects $(KBUILD_HOST_ARCH) $(KBUILD_TARGET_ARCH), x86 amd64 arm64)" != ""
   include $(KBUILD_PATH)/tools/NASM.kmk
   if1of ($(KBUILD_HOST), win os2)
    VBOX_NASM_CHECK = $(if-expr "$(shell $(TOOL_NASM_AS) -e -o nul $1 NUL 2>&1)" == "",$(1),$(2))
   else
    VBOX_NASM_CHECK = $(if-expr "$(shell $(TOOL_NASM_AS) -e -o /dev/./null $1 /dev/null 2>&1)" == "",$(1),$(2))
   endif
- else
-  VBOX_NASM_CHECK =
  endif
 
  # Figures the pylint version.
@@ -3419,11 +3407,13 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
   	$(VBOX_JAVA_HOME)/include \
   	$(VBOX_JAVA_HOME)/include/$(VBOX_MD_OS)
  endif # !darwin
+
  # The first transform the almost usless openjdk versions like "javac 9-Ubuntu" into something the 2nd expression groks.
  VBOX_JAVA_FIGURE_VERSION = $(shell $(1) -version 2>&1 \
  		| $(SED_EXT) -n \
  		-e 's/ \([0-9][0-9]*\)\(-[[:alpha:]][[:alpha:]]\)/ \1.0.0\2/' \
  	-e 's|^[^ ]* *\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\).*$(DOLLAR)|$$(expr \1 * 10000 + \2 * 100 + \3)|p' )
+
 
  # Test C and C++ files.
  $(PATH_OUT)/DynamicConfig.c $(PATH_OUT)/DynamicConfig.cpp:
@@ -3459,17 +3449,17 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_CLANG_VERSION_CC          ?= $(call VBOX_CLANG_VERSION,$(TOOL_$(VBOX_GCC_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_CLANG_VERSION_CXX         ?= $(call VBOX_CLANG_VERSION,$(TOOL_$(VBOX_GCC_TOOL)_CXX))'
  endif
- # HC compiler switch detection.
+ ifdef VBOX_GCC_TOOL
+  # HC compiler switch detection.
+	$(QUIET)$(APPEND) '$@' '# VBOX_GCC_TOOL=$(VBOX_GCC_TOOL)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_VERSION_CC            ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_VERSION_CXX           ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC_TOOL)_CXX))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_PATH_CC               ?= $(which $(TOOL_$(VBOX_GCC_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_PATH_CXX              ?= $(which $(TOOL_$(VBOX_GCC_TOOL)_CXX))'
- ifneq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.arm64)
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_LIBGCC                ?= $(shell $(TOOL_$(VBOX_GCC_TOOL)_CC) -print-libgcc-file-name)'
- endif
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-pointer-sign      ?= $(call VBOX_GCC_CHECK_CC,-Wno-pointer-sign,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-array_bounds      ?= $(call VBOX_GCC_CHECK_CC,-Wno-array-bounds,)'
- # -Wextra produces additional useful warnings but includes -Wno-missing-field-initializers (too noisy)
+  # -Wextra produces additional useful warnings but includes -Wno-missing-field-initializers (too noisy)
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wextra                ?= $(call VBOX_GCC_CHECK_CC,-Wextra,)'
 	$(QUIET)$(APPEND) '$@' 'ifneq ($$(VBOX_GCC_VERSION_CC),)'
 	$(QUIET)$(APPEND) '$@' ' if $$(VBOX_GCC_VERSION_CC) >= 40500'
@@ -3512,30 +3502,30 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_fdiagnostics-show-option ?= $(call VBOX_GCC_CHECK_CC,-fdiagnostics-show-option,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_fno-printf-return-value ?= $(call VBOX_GCC_CHECK_CC,-fno-printf-return-value,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wa_cma_nocompress_debug_sections ?= $(call VBOX_GCC_CHECK_CC,-Wa$(COMMA)--nocompress-debug-sections,)'
- # Produce code optimized for the most common IA32/AMD64/EM64T processors. Introduced with gcc version 4.2.
+  # Produce code optimized for the most common IA32/AMD64/EM64T processors. Introduced with gcc version 4.2.
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_mtune-generic         ?= $(call VBOX_GCC_CHECK_CC,-mtune=generic,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_LD_as_needed              ?= $(call VBOX_GCC_CHECK_LD,--as-needed,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_LD_hash_style_sysv        ?= $(call VBOX_GCC_CHECK_LD,--hash-style=sysv,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_LD_gc_sections            ?= $(call VBOX_GCC_CHECK_LD,--gc-sections,)'
- # Set default attribute for ELF and MACH-O symbols to ``hidden'' to reduce the number
- # of relocation entries and PLT indirections in shared libraries. Don't allow for gcc version < 4.
+  # Set default attribute for ELF and MACH-O symbols to ``hidden'' to reduce the number
+  # of relocation entries and PLT indirections in shared libraries. Don't allow for gcc version < 4.
 	$(QUIET)$(APPEND) '$@' 'ifneq ($$(VBOX_GCC_VERSION_CC),)'
 	$(QUIET)$(APPEND) '$@' ' if $$(VBOX_GCC_VERSION_CC) >= 40000'
 	$(QUIET)$(APPEND) '$@' '  VBOX_GCC_fvisibility-hidden  ?= $(call VBOX_GCC_CHECK_CC,-fvisibility=hidden -DVBOX_HAVE_VISIBILITY_HIDDEN -DRT_USE_VISIBILITY_DEFAULT,)'
 	$(QUIET)$(APPEND) '$@' ' endif'
 	$(QUIET)$(APPEND) '$@' 'endif'
- ifn1of ($(KBUILD_TARGET), haiku)
-  # Set default attribute for inline functions to ``hidden'' to reduce the number
-  # of relocation entries and PLT indirections in shared libraries. Don't allow for gcc version < 4.
+  ifn1of ($(KBUILD_TARGET), haiku)
+   # Set default attribute for inline functions to ``hidden'' to reduce the number
+   # of relocation entries and PLT indirections in shared libraries. Don't allow for gcc version < 4.
 	$(QUIET)$(APPEND) '$@' 'ifneq ($$(VBOX_GCC_VERSION_CXX),)'
 	$(QUIET)$(APPEND) '$@' ' if $$(VBOX_GCC_VERSION_CXX) >= 40000'
 	$(QUIET)$(APPEND) '$@' '  VBOX_GCC_fvisibility-inlines-hidden ?= $(call VBOX_GCC_CHECK_CXX,-fvisibility-inlines-hidden,)'
 	$(QUIET)$(APPEND) '$@' ' endif'
 	$(QUIET)$(APPEND) '$@' 'endif'
- endif
- # Prevent warnings about unused parameters as of gcc-4.8 / clang 6 as this warning is now very verbose
+  endif
+  # Prevent warnings about unused parameters as of gcc-4.8 / clang 6 as this warning is now very verbose
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-unused-parameter ?= $(call VBOX_GCC_CHECK_CC,-Wno-unused-parameter,)'
- # Clang 6.
+  # Clang 6.
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-language-extension-token ?= $(call VBOX_GCC_CHECK_CC,-Wno-language-extension-token,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-extended-offsetof ?= $(call VBOX_GCC_CHECK_CC,-Wno-extended-offsetof,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-gnu-folding-constant ?= $(call VBOX_GCC_CHECK_CC,-Wno-gnu-folding-constant,)'
@@ -3543,7 +3533,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-string-plus-int ?= $(call VBOX_GCC_CHECK_CC,-Wno-string-plus-int,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-nested-anon-types ?= $(call VBOX_GCC_CHECK_CC,-Wno-nested-anon-types,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-gnu-anonymous-struct ?= $(call VBOX_GCC_CHECK_CXX,-Wno-gnu-anonymous-struct,)'
- # Clang 11.
+  # Clang 11.
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-c++17-compat-mangling ?= $(call VBOX_GCC_CHECK_CXX,-Wno-c++17-compat-mangling,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-nullability-extension ?= $(call VBOX_GCC_CHECK_CXX,-Wno-nullability-extension,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-gnu-statement-expression ?= $(call VBOX_GCC_CHECK_CXX,-Wno-gnu-statement-expression,)'
@@ -3551,17 +3541,17 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-undefined-var-template ?= $(call VBOX_GCC_CHECK_CXX,-Wno-undefined-var-template,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-c11-extensions ?= $(call VBOX_GCC_CHECK_CXX,-Wno-c11-extensions,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-tautological-pointer-compare ?= $(call VBOX_GCC_CHECK_CC,-Wno-tautological-pointer-compare,)'
- # Clang 13.
+  # Clang 13.
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_Wno-deprecated-copy ?= $(call VBOX_GCC_CHECK_CC,-Wno-deprecated-copy,)'
- ifdef VBOX_WITH_R0_MOD_IBT_BRANCH_PROTECTION
+  ifdef VBOX_WITH_R0_MOD_IBT_BRANCH_PROTECTION
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_fcf-protection_branch ?= $(call VBOX_GCC_CHECK_CXX,-fcf-protection=branch,)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_fcf-protection_check  ?= $(call VBOX_GCC_CHECK_CXX,-fcf-protection=check)'
- endif
- ifeq ($(KBUILD_TARGET),solaris)
+  endif
+  ifeq ($(KBUILD_TARGET),solaris)
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_msave-args            ?= $(call VBOX_GCC_CHECK_CXX,-msave-args,)'
-  # Detect the solaris assembler. It is used by the the 4.x gcc compilers,
-  # apparently. It will not be able to handle IEMAll via a -pipe, only when
-  # passed a file. The solaris assmbler rulez ... not!
+   # Detect the solaris assembler. It is used by the the 4.x gcc compilers,
+   # apparently. It will not be able to handle IEMAll via a -pipe, only when
+   # passed a file. The solaris assmbler rulez ... not!
 	$(QUIET)$(APPEND) '$@' 'VBOX_AS_VERSION                ?= $(shell `gcc -print-prog-name=as` -V -o /dev/null < /dev/null 2>&1 | kmk_sed -e '1!d' -e 's/^as: *//' )'
 	$(QUIET)$(APPEND) '$@' 'if $$(pos Sun Compiler Common,$$(VBOX_AS_VERSION)) > 0'
 	$(QUIET)$(APPEND) '$@' ' VBOX_GCC_USING_SOLARIS_AS=1'
@@ -3569,35 +3559,38 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'ifndef VBOX_GCC_USING_SOLARIS_AS'
 	$(QUIET)$(APPEND) '$@' ' VBOX_GCC_pipe                 ?= -pipe'
 	$(QUIET)$(APPEND) '$@' 'endif'
- else
+  else
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC_pipe                  ?= -pipe'
- endif
- # Find the compiler includes for IPRT no-crt.
- # Note that `$(dir $(gcc -print-libgcc-file-name))/include does not work for a 64-bit cross build on a 32-bit build host.
- ifeq ($(KBUILD_HOST),win)
-  # With the cygwin issues and gcc on windows returning a useless path, just skip this on windows.
-	$(QUIET)$(APPEND) '$@' 'VBOX_PATH_GCC_INCS             ?= '
- else
+  endif
+  # Find the compiler includes for IPRT no-crt.
+  # Note that `$(dir $(gcc -print-libgcc-file-name))/include does not work for a 64-bit cross build on a 32-bit build host.
 	$(QUIET)$(APPEND) '$@' 'VBOX_PATH_GCC_INCS             ?= $(shell LC_ALL=C $(TOOL_$(VBOX_GCC_TOOL)_CC) -print-search-dirs|$(SED_EXT) -ne 's+^install: \(.*[^/][^/]*\)/+\1+p')/include'
- endif
- # 32-bit (GC) compiler switch detection.
+  ifdef VBOX_GCC32_TOOL
+  # 32-bit (GC) compiler switch detection.
+	$(QUIET)$(APPEND) '$@' '# VBOX_GCC32_TOOL=$(VBOX_GCC32_TOOL)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_PATH_CC             ?= $(which $(TOOL_$(VBOX_GCC32_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_PATH_CXX            ?= $(which $(TOOL_$(VBOX_GCC32_TOOL)_CXX))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_VERSION_CC          ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC32_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_VERSION_CXX         ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC32_TOOL)_CXX))'
-	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_LIBGCC              ?= $(shell $(TOOL_$(VBOX_GCC32_TOOL)_CC) -print-libgcc-file-name)'
+	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_LIBGCC              ?= $(shell "$(TOOL_$(VBOX_GCC32_TOOL)_CC)" -print-libgcc-file-name)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_Wno-variadic-macros ?= $(call VBOX_GCC32_CHECK_CXX,-Wno-variadic-macros,)'
- # darwin no_compact_linkedit starting at Xcode 3.2
- ifeq ($(KBUILD_HOST),darwin)
+  endif
+  # darwin no_compact_linkedit starting at Xcode 3.2
+  ifeq ($(KBUILD_HOST),darwin)
 	$(QUIET)$(APPEND) '$@' 'VBOX_LD_no_compact_linkedit    ?= $(call VBOX_GCC_CHECK_LD,-no_compact_linkedit,)'
- endif
- ifn1of ($(KBUILD_TARGET_ARCH), sparc32 sparc64)
+  endif
+ endif # ifdef VBOX_GCC_TOOL
+
+ ifdef VBOX_YASM_CHECK
   # YASM
 	$(QUIET)$(APPEND) '$@' '# debug: TOOL_YASM_AS="$(TOOL_YASM_AS)"'
 	$(QUIET)$(APPEND) '$@' 'VBOX_YASM_Wno-segreg-in-64bit  ?= $(call VBOX_YASM_CHECK,-Wno-segreg-in-64bit,)'
+ endif
+ ifdef VBOX_NASM_CHECK
   # NASM (--allow-64-bit: 2.12rc2)
 	$(QUIET)$(APPEND) '$@' 'VBOX_NASM_allow_64_bit         ?= $(call VBOX_NASM_CHECK,--allow-64-bit,)'
  endif
+
  if1of ($(KBUILD_TARGET), linux)
   ifeq ($(KBUILD_TARGET),$(KBUILD_HOST))
 	$(QUIET)$(RM) -f -- "$@.sanitizer.so" "$@.sanitizer32.so" '$@.sanitizer.c'
@@ -3664,8 +3657,8 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_JAVA_VERSION    := $(call VBOX_JAVA_FIGURE_VERSION, $(VBOX_JAVAC))'
  endif
 	$(QUIET)$(APPEND) '$@' '#$(which $(VBOX_XSLTPROC))'
-	$(QUIET)$(APPEND) '$@' 'VBOX_XSLTPROC_VERSION        := $$(firstword $(shell $(VBOX_XSLTPROC) --version | $(SED) -e /libxslt/q | $(SED) -e 's/^.*libxslt \([0-9][0-9]*\)[^0-9]*.*/\1/' ) 0)'
-	$(QUIET)$(APPEND) '$@' 'VBOX_XSLTPROC_LIBXML_VERSION := $$(firstword $(shell $(VBOX_XSLTPROC) --version | $(SED) -e /libxml/q  | $(SED) -e 's/^.*libxml \([0-9][0-9]*\)[^0-9]*.*/\1/'  ) 0)'
+	$(QUIET)$(APPEND) '$@' 'VBOX_XSLTPROC_VERSION        := $(firstword $(shell $(VBOX_XSLTPROC) --version | $(SED) -e /libxslt/q | $(SED) -e 's/^.*libxslt \([0-9][0-9]*\)[^0-9]*.*/\1/' ) 0)'
+	$(QUIET)$(APPEND) '$@' 'VBOX_XSLTPROC_LIBXML_VERSION := $(firstword $(shell $(VBOX_XSLTPROC) --version | $(SED) -e /libxml/q  | $(SED) -e 's/^.*libxml \([0-9][0-9]*\)[^0-9]*.*/\1/'  ) 0)'
 
 	$(QUIET)$(ECHO) '========= START OF $@ ========='
 	$(QUIET)$(CAT) $@

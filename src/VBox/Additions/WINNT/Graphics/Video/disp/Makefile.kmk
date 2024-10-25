@@ -82,7 +82,6 @@ ifdef VBOX_WITH_XPDM
   	xpdm/VBoxDispDDrawVHWA.cpp
  endif
 
-
  VBoxDisp_LIBS = \
  	$(VBOX_LIB_IPRT_GUEST_R0_NT4) \
  	$(VBOX_PATH_ADDITIONS_LIB)/HGSMIGuestR0Lib$(VBOX_SUFF_LIB) \

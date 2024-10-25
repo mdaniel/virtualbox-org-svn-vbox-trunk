@@ -70,20 +70,45 @@ BS3_PROC_BEGIN_CMN %1, BS3_PBC_NEAR
  %endif ; !BS3CPUINSTR4_PROC_BEGIN_CMN_DEFINED
 
 ;;
-; The EMIT_INSTR_PLUS_ICEBP macros is for creating a common function for and
-; named after a single instruction, followed by a looping ICEBP.
+; FSxBX and its variants allow a memory reference to be embedded into a test
+; instruction. `xBX' adjusts automatically to the addressing model: BX, EBX,
+; or RBX depending on the number of address bits. FSxBX_D and so on allow to
+; force a particular memory reference size; this is necessary for some AVX
+; instructions where the mentioned XMM/YMM/ZMM register size doesn't fully
+; control the memory size to be used. Macros are repeatedly redefined in
+; order to pick up the current address-model-specific `xBX' value. (Other
+; sizes could be defined: B=byte=1, W=word=2, T=tword=10(x87), z=zword=32)
 ;
-; This works like a prefix to the instruction invocation, only exception is that
-; instead of [fs:xBX] you write FSxBS as that's what is wanted in the name.
+ %ifndef BS3CPUINSTR4_DEFINE_FSxBX_DEFINED
+  %define BS3CPUINSTR4_DEFINE_FSxBX_DEFINED
+  %macro BS3CPUINSTR4_DEFINE_FSxBX 0
+   %define FSxBX [fs:xBX]           ; natural size of the instruction
+   %define FSxBX_D dword [fs:xBX]   ; dword =  32 bits =  4 bytes =  2 words
+   %define FSxBX_Q qword [fs:xBX]   ; qword =  64 bits =  8 bytes =  4 words
+   %define FSxBX_O oword [fs:xBX]   ; oword = 128 bits = 16 bytes =  8 words
+   %define FSxBX_Y yword [fs:xBX]   ; yword = 256 bits = 32 bytes = 16 words
+  %endmacro
+  %macro BS3CPUINSTR4_UNDEF_FSxBX 0
+   %undef  FSxBX
+   %undef  FSxBX_D
+   %undef  FSxBX_Q
+   %undef  FSxBX_O
+   %undef  FSxBX_Y
+  %endmacro
+ %endif ; !BS3CPUINSTR4_DEFINE_FSxBX_DEFINED
+
+;;
+; The EMIT_INSTR_PLUS_ICEBP macros is for creating a common function for and
+; named after a single instruction & args, followed by a looping ICEBP.
 ;
  %ifndef EMIT_INSTR_PLUS_ICEBP_DEFINED
   %define EMIT_INSTR_PLUS_ICEBP_DEFINED
 
   %macro EMIT_INSTR_PLUS_ICEBP 2
 BS3CPUINSTR4_PROC_BEGIN_CMN bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _icebp
-   %define FSxBX [fs:xBX]
+   BS3CPUINSTR4_DEFINE_FSxBX
         %1      %2
-   %undef  FSxBX
+   BS3CPUINSTR4_UNDEF_FSxBX
 .again:
         icebp
         jmp     .again
@@ -92,9 +117,9 @@ BS3_PROC_END_CMN            bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _icebp
 
   %macro EMIT_INSTR_PLUS_ICEBP 3
 BS3CPUINSTR4_PROC_BEGIN_CMN bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _ %+ %3 %+ _icebp
-   %define FSxBX [fs:xBX]
+   BS3CPUINSTR4_DEFINE_FSxBX
         %1      %2, %3
-   %undef  FSxBX
+   BS3CPUINSTR4_UNDEF_FSxBX
 .again:
         icebp
         jmp     .again
@@ -103,9 +128,9 @@ BS3_PROC_END_CMN            bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _ %+ %3 %+ _icebp
 
   %macro EMIT_INSTR_PLUS_ICEBP 4
 BS3CPUINSTR4_PROC_BEGIN_CMN bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _ %+ %3 %+ _ %+ %4 %+ _icebp
-   %define FSxBX [fs:xBX]
+   BS3CPUINSTR4_DEFINE_FSxBX
         %1      %2, %3, %4
-   %undef  FSxBX
+   BS3CPUINSTR4_UNDEF_FSxBX
 .again:
         icebp
         jmp     .again
@@ -114,9 +139,9 @@ BS3_PROC_END_CMN            bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _ %+ %3 %+ _ %+ %4
 
   %macro EMIT_INSTR_PLUS_ICEBP 5
 BS3CPUINSTR4_PROC_BEGIN_CMN bs3CpuInstr4_ %+ %1 %+ _ %+ %2 %+ _ %+ %3 %+ _ %+ %4 %+ _ %+ %5 %+ _icebp
-   %define FSxBX [fs:xBX]
+   BS3CPUINSTR4_DEFINE_FSxBX
         %1      %2, %3, %4, %5
-   %undef  FSxBX
+   BS3CPUINSTR4_UNDEF_FSxBX
 .again:
         icebp
         jmp     .again
@@ -844,6 +869,512 @@ EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM1, XMM2
 EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM2, XMM2
 EMIT_INSTR_PLUS_ICEBP       vrsqrtss, XMM1, XMM1, FSxBX
 EMIT_INSTR_PLUS_ICEBP_C64   vrsqrtss, XMM8, XMM8, XMM8
+
+;
+;; cvtpi2ps
+;
+; SSE-128, int32 -> fp32 (packed:2; from MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvtpi2ps, XMM1, MM1
+EMIT_INSTR_PLUS_ICEBP       cvtpi2ps, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2ps, XMM8, MM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2ps, XMM8, FSxBX
+; note: transition from x87 FPU to MMX; takes FPU exceptions (SDM does not mention MM forms only?)
+;
+;; cvtps2pi
+;
+; SSE-128, fp32 -> int32 (packed:2; to MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvtps2pi, MM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvtps2pi, MM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pi, MM1, XMM8
+; note: transition from x87 FPU to MMX; takes FPU exceptions
+
+;
+;; cvttps2pi
+;
+; SSE-128, fp32 -> int32 (packed:2; truncated; to MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvttps2pi, MM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvttps2pi, MM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttps2pi, MM1, XMM8
+; note: transition from x87 FPU to MMX; takes FPU exceptions
+;
+;; cvtsi2ss
+;
+; SSE-128, int32 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP       cvtsi2ss,  XMM1, EAX
+EMIT_INSTR_PLUS_ICEBP       cvtsi2ss,  XMM1, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM8, R8D
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM8, FSxBX_D
+; SSE-128, int64 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM1, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM1, FSxBX_Q
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM8, R8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2ss,  XMM8, FSxBX_Q
+; AVX-128, int32 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM2, EAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM2, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM9, R8D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM9, FSxBX_D
+; AVX-128, int64 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM2, RAX       ;; @todo this assembles in 16/32 mode; SDM says VEX.W1 ignored in non-64 bit
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM2, FSxBX_Q   ;; @todo this assembles in 16/32 mode; SDM says VEX.W1 ignored in non-64 bit
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM9, R8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM9, FSxBX_Q
+; AVX-128, int32 -> fp32, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM1, EAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM1, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM8, R8D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM8, FSxBX_D
+; AVX-128, int64 -> fp32, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM1, RAX       ;; @todo this assembles in 16/32 mode, but should it...?
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2ss, XMM1, XMM1, FSxBX_Q   ;; @todo this assembles in 16/32 mode, but should it...?
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM8, R8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2ss, XMM8, XMM8, FSxBX_Q
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+; @todo same-reg int32 -> fp32 (SDM says W1 ignored in 32-bit modes) (see above)
+
+;
+;; cvtss2si
+;
+; SSE-128, fp32 -> int32
+EMIT_INSTR_PLUS_ICEBP       cvtss2si,  EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvtss2si,  EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  R8D, FSxBX
+; SSE-128, fp32 -> int64
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  RAX, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  RAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2si,  R8,  FSxBX
+; AVX-128, fp32 -> int32
+EMIT_INSTR_PLUS_ICEBP       vcvtss2si, EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvtss2si, EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2si, R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2si, R8D, FSxBX
+; AVX-128, fp32 -> int64
+EMIT_INSTR_PLUS_ICEBP       vcvtss2si, RAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvtss2si, RAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2si, R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2si, R8,  FSxBX
+; @todo test with VEX.W=1 in 16/32-bit modes; SDM says behaves as if W=0
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+
+;
+;; cvttss2si
+;
+; SSE-128, fp32 -> int32 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttss2si,  EAX,  XMM1
+EMIT_INSTR_PLUS_ICEBP       cvttss2si,  EAX,  FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  R8D,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  R8D,  FSxBX
+; SSE-128, fp32 -> int64 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  RAX,  XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  RAX,  FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  R8,   XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvttss2si,  R8,   FSxBX
+; AVX-128, fp32 -> int32 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttss2si, EAX,  XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvttss2si, EAX,  FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttss2si, R8D,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttss2si, R8D,  FSxBX
+; AVX-128, fp32 -> int64 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttss2si, RAX,  XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvttss2si, RAX,  FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttss2si, R8,   XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttss2si, R8,   FSxBX
+; @todo test with VEX.W=1 in 16/32-bit modes; SDM says behaves as if W=0
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+
+;
+;; cvtpi2pd
+;
+; SSE-128, int32 -> fp64 (packed:2; from MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvtpi2pd, XMM1, MM1
+EMIT_INSTR_PLUS_ICEBP       cvtpi2pd, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2pd, XMM8, MM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2pd, XMM8, FSxBX
+; note: transition from x87 FPU to MMX; takes FPU exceptions (MM forms only)
+
+;
+;; cvtpd2pi
+;
+; SSE-128, fp64 -> int32 (packed:2; to MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvtpd2pi, MM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvtpd2pi, MM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2pi, MM1, XMM8
+; note: transition from x87 FPU to MMX; takes FPU exceptions
+
+;
+;; cvttpd2pi
+;
+; SSE-128, fp64 -> int32 (packed:2; truncated; to MMX register)
+EMIT_INSTR_PLUS_ICEBP       cvttpd2pi, MM1, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvttpd2pi, MM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttpd2pi, MM1, XMM8
+; note: transition from x87 FPU to MMX; takes FPU exceptions
+
+;
+;; cvtsi2sd
+;
+; SSE-128, int32 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP       cvtsi2sd,  XMM1, EAX
+EMIT_INSTR_PLUS_ICEBP       cvtsi2sd,  XMM1, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM8, R8D
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM8, FSxBX_D
+; SSE-128, int64 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM1, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM1, FSxBX_Q
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM8, R8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM8, FSxBX_Q
+; AVX-128, int32 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, EAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, EAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, FSxBX_D
+; AVX-128, int64 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, RAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, FSxBX_Q
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, FSxBX_Q
+; AVX-128, int32 -> fp64, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, EAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, FSxBX_D
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, EAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, FSxBX_D
+; AVX-128, int64 -> fp64, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, RAX
+EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, FSxBX_Q
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, FSxBX_Q
+; @todo test with VEX.W=1 in 16/32-bit modes; SDM says behaves as if W=0
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+
+;
+;; cvtsd2si
+;
+; SSE-128, fp64 -> int32 (single)
+EMIT_INSTR_PLUS_ICEBP       cvtsd2si,  EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvtsd2si,  EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  R8D, FSxBX
+; SSE-128, fp64 -> int64 (single)
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  RAX, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  RAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2si,  R8,  FSxBX
+; AVX-128, fp64 -> int32 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2si, EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2si, EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2si, R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2si, R8D, FSxBX
+; AVX-128, fp64 -> int64 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2si, RAX, XMM1   ;; @todo this assembles in 16/32 mode; SDM says VEX.W1 ignored in non-64 bit
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2si, RAX, FSxBX  ;; @todo this assembles in 16/32 mode; SDM says VEX.W1 ignored in non-64 bit
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2si, R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2si, R8,  FSxBX
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+; @todo same-reg int32 -> fp32 (SDM says W1 ignored in 32-bit modes) (see above)
+
+;
+;; cvttsd2si
+;
+; SSE-128, fp64 -> int32 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttsd2si,  EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       cvttsd2si,  EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  R8D, FSxBX
+; SSE-128, fp64 -> int64 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  RAX, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  RAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   cvttsd2si,  R8,  FSxBX
+; AVX-128, fp64 -> int32 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttsd2si, EAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvttsd2si, EAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttsd2si, R8D, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttsd2si, R8D, FSxBX
+; AVX-128, fp64 -> int64 (single; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttsd2si, RAX, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvttsd2si, RAX, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttsd2si, R8,  XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttsd2si, R8,  FSxBX
+; @todo test with VEX.W=1 in 16/32-bit modes; SDM says behaves as if W=0
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+
+;
+;; cvtdq2ps
+;
+; SSE-128, int32 -> fp32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       cvtdq2ps,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtdq2ps,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2ps,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2ps,  XMM8, FSxBX
+; AVX-128, int32 -> fp32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, XMM8, FSxBX
+; AVX-256, int32 -> fp32 (packed:8)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, YMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, YMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, YMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, YMM8, FSxBX
+; SSE-128, int32 -> fp32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       cvtdq2ps,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2ps,  XMM8, XMM8
+; AVX-128, int32 -> fp32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, XMM8, XMM8
+; AVX-256, int32 -> fp32, same-reg (packed:8)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2ps, YMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2ps, YMM8, YMM8
+
+;
+;; cvtps2dq
+;
+; SSE-128, fp32 -> int32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       cvtps2dq,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtps2dq,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2dq,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2dq,  XMM8, FSxBX
+; AVX-128, fp32 -> int32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, XMM8, FSxBX
+; AVX-256, fp32 -> int32 (packed:8)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, YMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, YMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, YMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, YMM8, FSxBX
+; SSE-128, fp32 -> int32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       cvtps2dq,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2dq,  XMM8, XMM8
+; AVX-128, fp32 -> int32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, XMM8, XMM8
+; AVX-256, fp32 -> int32, same-reg (packed:8)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2dq, YMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2dq, YMM8, YMM8
+
+;
+;; cvttps2dq
+;
+; SSE-128, fp32 -> int32 (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttps2dq,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvttps2dq,  XMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   cvttps2dq,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvttps2dq,  XMM8, FSxBX_O
+; AVX-128, fp32 -> int32 (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, XMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, XMM8, FSxBX_O
+; AVX-256, fp32 -> int32 (packed:8; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, YMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, YMM1, FSxBX_Y
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, YMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, YMM8, FSxBX_Y
+; AVX-128, fp32 -> int32, same-reg (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttps2dq,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvttps2dq,  XMM8, XMM8
+; AVX-128, fp32 -> int32, same-reg (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, XMM8, XMM8
+; AVX-256, fp32 -> int32, same-reg (packed:8; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttps2dq, YMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttps2dq, YMM8, YMM8
+
+;
+;; cvtdq2pd
+;
+; SSE-128, int32 -> fp64 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtdq2pd,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtdq2pd,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2pd,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2pd,  XMM8, FSxBX
+; AVX-128, int32 -> fp64 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, XMM8, FSxBX
+; AVX-256, int32 -> fp64 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, YMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, YMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, YMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, YMM8, FSxBX
+; SSE-128, int32 -> fp64, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtdq2pd,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtdq2pd,  XMM8, XMM8
+; AVX-128, int32 -> fp64, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, XMM8, XMM8
+; AVX-256, int32 -> fp64, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtdq2pd, YMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtdq2pd, YMM8, XMM8
+
+;
+;; cvtpd2dq
+;
+; SSE-128, fp64 -> int32 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtpd2dq,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtpd2dq,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2dq,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2dq,  XMM8, FSxBX
+; AVX-128, fp64 -> int32 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, XMM8, FSxBX
+; AVX-256, fp64 -> int32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, XMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, YMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, XMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, YMM8, FSxBX
+; SSE-128, fp64 -> int32, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtpd2dq,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2dq,  XMM8, XMM8
+; AVX-128, fp64 -> int32, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, XMM8, XMM8
+; AVX-256, fp64 -> int32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2dq, XMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2dq, XMM8, YMM8
+
+;
+;; cvttpd2dq
+;
+; SSE-128, fp64 -> int32 (packed:2; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttpd2dq,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvttpd2dq,  XMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   cvttpd2dq,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvttpd2dq,  XMM8, FSxBX_O
+; AVX-128, fp64 -> int32 (packed:2; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, FSxBX_O
+; AVX-256, fp64 -> int32 (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, FSxBX_Y
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, FSxBX_Y
+; AVX-128, fp64 -> int32, same-reg (packed:2; truncated)
+EMIT_INSTR_PLUS_ICEBP       cvttpd2dq,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvttpd2dq,  XMM8, XMM8
+; AVX-128, fp64 -> int32, same-reg (packed:2; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, XMM8
+; AVX-256, fp64 -> int32, same-reg (packed:4; truncated)
+EMIT_INSTR_PLUS_ICEBP       vcvttpd2dq, XMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvttpd2dq, XMM8, YMM8
+
+;
+;; cvtpd2ps
+;
+; SSE-128, fp64 -> fp32 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtpd2ps,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtpd2ps,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2ps,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2ps,  XMM8, FSxBX
+; AVX-128, fp64 -> fp32 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, FSxBX_O
+; AVX-256, fp64 -> fp32 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, YMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, FSxBX_Y
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, YMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, FSxBX_Y
+; SSE-128, fp64 -> fp32, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtpd2ps,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtpd2ps,  XMM8, XMM8
+; AVX-128, fp64 -> fp32, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, XMM8
+; AVX-256, fp64 -> fp32, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtpd2ps, XMM1, YMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtpd2ps, XMM8, YMM8
+
+;
+;; cvtps2pd
+;
+; SSE-128, fp32 -> fp64 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtps2pd,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtps2pd,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pd,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pd,  XMM8, FSxBX
+; AVX-128, fp32 -> fp64 (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, XMM8, FSxBX
+; AVX-256, fp32 -> fp64 (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, YMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, YMM1, FSxBX_O
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, YMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, YMM8, FSxBX_O
+; SSE-128, fp32 -> fp64, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       cvtps2pd,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pd,  XMM8, XMM8
+; AVX-128, fp32 -> fp64, same-reg (packed:2)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, XMM8, XMM8
+; AVX-256, fp32 -> fp64, same-reg (packed:4)
+EMIT_INSTR_PLUS_ICEBP       vcvtps2pd, YMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtps2pd, YMM8, XMM8
+
+;
+;; cvtsd2ss
+;
+; SSE-128, fp64 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP       cvtsd2ss,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtsd2ss,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2ss,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2ss,  XMM8, FSxBX
+; AVX-128, fp64 -> fp32 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2ss, XMM1, XMM2, XMM3
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2ss, XMM1, XMM2, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM8, XMM9, XMM10
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM8, XMM9, FSxBX
+; SSE-128, fp64 -> fp32, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       cvtsd2ss,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtsd2ss,  XMM8, XMM8
+; AVX-128, fp64 -> fp32, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2ss, XMM1, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM1, XMM1, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM1, XMM8, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM1, XMM8, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvtsd2ss, XMM1, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM8, XMM8, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsd2ss, XMM8, XMM8, FSxBX
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
+
+;
+;; cvtss2sd
+;
+; SSE-128, fp32 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP       cvtss2sd,  XMM1, XMM2
+EMIT_INSTR_PLUS_ICEBP       cvtss2sd,  XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2sd,  XMM8, XMM9
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2sd,  XMM8, FSxBX
+; AVX-128, fp32 -> fp64 (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtss2sd, XMM1, XMM2, XMM3
+EMIT_INSTR_PLUS_ICEBP       vcvtss2sd, XMM1, XMM2, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM8, XMM9, XMM10
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM8, XMM9, FSxBX
+; SSE-128, fp32 -> fp64, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       cvtss2sd,  XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   cvtss2sd,  XMM8, XMM8
+; AVX-128, fp32 -> fp64, same-reg (single)
+EMIT_INSTR_PLUS_ICEBP       vcvtss2sd, XMM1, XMM1, XMM1
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM1, XMM1, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM1, XMM8, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM1, XMM8, XMM1
+EMIT_INSTR_PLUS_ICEBP       vcvtss2sd, XMM1, XMM1, FSxBX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM8, XMM8, XMM8
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtss2sd, XMM8, XMM8, FSxBX
+; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...
 
 %endif ; BS3_INSTANTIATING_CMN
 

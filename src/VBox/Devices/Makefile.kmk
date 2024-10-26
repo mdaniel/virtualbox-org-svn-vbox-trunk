@@ -322,7 +322,9 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
   	$(PATH_STAGE_LIB)/HGSMIHostR3Lib$(VBOX_SUFF_LIB)
  endif
 
- ifdef VBOX_WITH_WDDM
+ # HACK ALERT! Code no longer builds without VBOX_WITH_WDDM, so while it's temporairly
+ # disabled on win.arm64 we keep pretending it is still enabled here. >-----vvvvvvvvv
+ if defined(VBOX_WITH_WDDM) || "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.arm64"
   VBoxDD_DEFS           += VBOX_WITH_WDDM
   VBoxDD_SOURCES        += \
   	Graphics/HGSMI/SHGSMIHost.cpp
@@ -422,7 +424,9 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
   endif
  endif
 
- ifdef VBOX_WITH_VDMA
+ # HACK ALERT! Code no longer builds without VBOX_WITH_VDMA, so while it's temporairly
+ # disabled on win.arm64 we keep pretending it is still enabled here. >-----vvvvvvvvv
+ if defined(VBOX_WITH_VDMA) || "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.arm64"
   VBoxDD_DEFS           += VBOX_WITH_VDMA
   VBoxDD_SOURCES        += \
   	Graphics/DevVGA_VDMA.cpp

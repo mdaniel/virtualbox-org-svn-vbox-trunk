@@ -663,7 +663,9 @@ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.x86 win.amd64)
  VBOX_WITH_XPDM = 1
 endif
 # Enable Wddm Video driver for Vista+ guests.
-VBOX_WITH_WDDM = 1
+ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64) ## @todo win.arm64: port the WDDM + VGA device to arm64.
+ VBOX_WITH_WDDM = 1
+endif
 # Lazy developer!!
 VBOXWDDM_WITH_VBVA = 1
 # Lazy developer!!
@@ -8719,7 +8721,7 @@ TEMPLATE_VBoxGuestR3ExeBase_LDFLAGS.linux    += $(VBOX_LD_hash_style_sysv)
 # Template for building normal R3 programs for the guest additions, strict.
 #
 TEMPLATE_VBoxGuestR3Exe = VBox Guest Program w/ IPRT and VBGL.
-TEMPLATE_VBoxGuestR3Exe_EXTENDS  = VBoxGuestR3ExeBase
+TEMPLATE_VBoxGuestR3Exe_EXTENDS := VBoxGuestR3ExeBase
 ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxGuestR3Exe_CFLAGS        = $(TEMPLATE_VBoxGuestR3ExeBase_CFLAGS) $(VBOX_VCC_WERR)
  TEMPLATE_VBoxGuestR3Exe_CXXFLAGS      = $(TEMPLATE_VBoxGuestR3ExeBase_CXXFLAGS) $(VBOX_VCC_WERR)

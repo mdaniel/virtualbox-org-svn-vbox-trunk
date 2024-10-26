@@ -59,7 +59,7 @@ ifneq ($(VBOX_VCC_CC_GUARD_CF),)
  	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowK.lib
 endif
 VBoxMouse_LATE_LIBS.arm64 = \
- 	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowFastFailK.lib
+	$(PATH_SDK_$(VBOX_WINDDK_GST)_LIB)/BufferOverflowFastFailK.lib
 VBoxMouse_USES.win += vboximportchecker
 VBoxMouse_VBOX_IMPORT_CHECKER.win.x86 = w2k/r0
 VBoxMouse_VBOX_IMPORT_CHECKER.win.amd64 = xp64/r0

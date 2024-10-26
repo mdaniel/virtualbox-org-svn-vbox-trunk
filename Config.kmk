@@ -3533,7 +3533,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_PATH_CXX                      ?= $(which $(TOOL_$(VBOX_GCC32_TOOL)_CXX))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_VERSION_CC                    ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC32_TOOL)_CC))'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_VERSION_CXX                   ?= $(call VBOX_GCC_VERSION,$(TOOL_$(VBOX_GCC32_TOOL)_CXX))'
-	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_LIBGCC                        ?= $(shell "$(TOOL_$(VBOX_GCC32_TOOL)_CC)" -print-libgcc-file-name)'
+	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_LIBGCC                        ?= $(shell $(TOOL_$(VBOX_GCC32_TOOL)_CC) -print-libgcc-file-name)'
 	$(QUIET)$(APPEND) '$@' 'VBOX_GCC32_Wno-variadic-macros           ?= $(call VBOX_GCC32_CHECK_CXX,-Wno-variadic-macros,)'
   endif
   # darwin no_compact_linkedit starting at Xcode 3.2

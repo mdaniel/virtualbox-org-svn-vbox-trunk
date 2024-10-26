@@ -386,9 +386,6 @@ endif
 VBOX_WITH_NEW_VCC = 1
 # Use this to disable control flow.
 #VBOX_WITHOUT_CONTROL_FLOW_GUARD = 1
-# Select Windows 11 SDK.
-## @todo remove this as well.
-VBOX_WITH_NEW_WINDOWS_SDK = 1
 # Don't use the compiler CRT for statically linked modules, use IPRT with some
 # additional CRT functionality.
 # Note! This has only been tested with Visual C++ 2019.
@@ -2234,34 +2231,16 @@ endif
 #
 # Decide which Windows SDK to use by default.
 #
-ifdef VBOX_WITH_NEW_WINDOWS_SDK
- VBOX_WINPSDK      ?= WINSDK10-UM
- VBOX_WINPSDK_INCS ?= $(VBOX_WINPSDK)-INCS
-else if1of ($(VBOX_VCC_TOOL_STEM), VCC110)
- VBOX_WINPSDK      ?= WINPSDK80
- VBOX_WINPSDK_INCS ?= $(VBOX_WINPSDK)INCS
-else
- VBOX_WINPSDK      ?= WINPSDK71
- VBOX_WINPSDK_INCS ?= $(VBOX_WINPSDK)INCS
-endif
-VBOX_WINPSDK_GST      ?= $(VBOX_WINPSDK)
-VBOX_WINPSDK_GST_INCS ?= $(VBOX_WINPSDK_INCS)
-ifneq ($(VBOX_WINPSDK_GST),WINPSDK71)
- VBOX_WINPSDK_GST_W8  ?= $(VBOX_WINPSDK_GST)
-else
- VBOX_WINPSDK_GST_W8  ?= WINPSDK80
-endif
-VBOX_WINPSDK_GST_W7   ?= $(VBOX_WINPSDK_GST)
-VBOX_WINPSDK_GST_WLH  ?= $(VBOX_WINPSDK_GST)
-VBOX_WINPSDK_GST_WXP  ?= $(VBOX_WINPSDK_GST)
-ifeq ($(KBUILD_TARGET_ARCH),x86)
- VBOX_WINPSDK_GST_W2K ?= $(VBOX_WINPSDK_GST)
- VBOX_WINPSDK_GST_NT4 ?= $(VBOX_WINPSDK_GST)
-else
- VBOX_WINPSDK_GST_W2K ?= $(VBOX_WINPSDK_GST_WXP)
- VBOX_WINPSDK_GST_NT4 ?= $(VBOX_WINPSDK_GST_WXP)
-endif
-
+VBOX_WINPSDK           ?= WINSDK10-UM
+VBOX_WINPSDK_INCS      ?= $(VBOX_WINPSDK)-INCS
+VBOX_WINPSDK_GST       ?= $(VBOX_WINPSDK)
+VBOX_WINPSDK_GST_INCS  ?= $(VBOX_WINPSDK_INCS)
+VBOX_WINPSDK_GST_W8    ?= $(VBOX_WINPSDK_GST)
+VBOX_WINPSDK_GST_W7    ?= $(VBOX_WINPSDK_GST)
+VBOX_WINPSDK_GST_WLH   ?= $(VBOX_WINPSDK_GST)
+VBOX_WINPSDK_GST_WXP   ?= $(VBOX_WINPSDK_GST)
+VBOX_WINPSDK_GST_W2K   ?= $(VBOX_WINPSDK_GST)
+VBOX_WINPSDK_GST_NT4   ?= $(VBOX_WINPSDK_GST)
 
 #
 # ARCH_BITS_DEFS.
@@ -2650,18 +2629,11 @@ VBOX_PATH_NSIS ?= $(KBUILD_DEVTOOLS)/win.x86/nsis/v3.09-log
 
 # Windows Installer XML (WIX) toolset.
 VBOX_PATH_WIX       ?= $(KBUILD_DEVTOOLS)/win.x86/wix/v4.0.5
-ifdef VBOX_WITH_NEW_WINDOWS_SDK
- VBOX_PATH_MSITRAN  ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiTran.Exe
- VBOX_PATH_MSIDB    ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiDb.Exe
- # Note! The scripts has been moved to Bin in v8.0.
- VBOX_PATH_WISUBSTG ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSubStg.vbs
- VBOX_PATH_WISUMINFO ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSumInf.vbs
-else
- VBOX_PATH_MSITRAN  ?= $(KBUILD_DEVTOOLS)/win.x86/sdk/v7.1/Bin/MsiTran.Exe
- VBOX_PATH_MSIDB    ?= $(KBUILD_DEVTOOLS)/win.x86/sdk/v7.1/Bin/MsiDb.Exe
- VBOX_PATH_WISUBSTG ?= $(KBUILD_DEVTOOLS)/win.x86/sdk/v7.1/Samples/sysmgmt/msi/scripts/WiSubStg.vbs
- VBOX_PATH_WISUMINFO ?= $(KBUILD_DEVTOOLS)/win.x86/sdk/v7.1/Samples/sysmgmt/msi/scripts/WiSumInf.vbs
-endif
+VBOX_PATH_MSITRAN   ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiTran.Exe
+VBOX_PATH_MSIDB     ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiDb.Exe
+# Note! The scripts has been moved to Bin in v8.0.
+VBOX_PATH_WISUBSTG  ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSubStg.vbs
+VBOX_PATH_WISUMINFO ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSumInf.vbs
 VBOX_PATH_DIFX      ?= $(KBUILD_DEVTOOLS)/win.$(KBUILD_TARGET_ARCH)/DIFx/v2.1-r3
 
 ifdef VBOX_OSE ## @todo try get rid of this crap! People can use the latest and greatest Yasm release, no need to check in the binary for OSE.
@@ -3806,11 +3778,6 @@ VBOX_VCC_WARN_ALL += -wd4548
 if "$(VBOX_VCC_TOOL_STEM)" >= "VCC143" && "$(KBUILD_TARGET_ARCH)" == "arm64"
  VBOX_VCC_WARN_ALL += -wd4746
 endif
-ifndef VBOX_WITH_NEW_WINDOWS_SDK
- #    -wd5031: iprt/win/windows.h(55): warning C5031: #pragma warning(pop): likely mismatch, popping warning state pushed in different file
- #    -wd5032: iprt/win/windows.h(37): warning C5032: detected #pragma warning(push) with no corresponding #pragma warning(pop)
- VBOX_VCC_WARN_ALL += -wd5031 -wd5032
-endif
 ifndef VBOX_NEWER_VCC_WARN_ALL
  if "$(VBOX_VCC_TOOL_STEM)" < "VCC120"
   VBOX_NEWER_VCC_WARN_ALL := $(VBOX_VCC_WARN_ALL) -wd4350 -wd4435
@@ -4244,20 +4211,8 @@ ifdef VBOX_SIGNING_MODE
    endif
   endif
   ifndef VBOX_PATH_SIGN_TOOLS
-   ifdef VBOX_WITH_NEW_WINDOWS_SDK
-    $(evalcall KB_FN_LOAD_SDK,$(VBOX_WINPSDK))
-    VBOX_PATH_SIGN_TOOLS = $(PATH_SDK_$(VBOX_WINPSDK)_BIN)
-   else
-    VBOX_PATH_SIGN_TOOLS := $(firstword $(rsort $(wildcard \
-    				$(addprefix $(KBUILD_DEVTOOLS)/win.x86/sdk/v8.1*/Bin/, x86 $(if-expr $(KBUILD_HOST_ARCH)=="amd64",x64,) ) )))
-    ifeq ($(VBOX_PATH_SIGN_TOOLS),)
-     VBOX_PATH_SIGN_TOOLS := $(firstword $(rsort $(wildcard \
-     				$(addprefix $(KBUILD_DEVTOOLS)/win.x86/sdk/v10*/Bin/, x86 $(if-expr $(KBUILD_HOST_ARCH)=="amd64",x64,) ) )))
-     ifeq ($(VBOX_PATH_SIGN_TOOLS),)
-      VBOX_PATH_SIGN_TOOLS := $(VBOX_PATH_SELFSIGN)
-     endif
-    endif
-   endif
+   $(evalcall KB_FN_LOAD_SDK,$(VBOX_WINPSDK))
+   VBOX_PATH_SIGN_TOOLS = $(PATH_SDK_$(VBOX_WINPSDK)_BIN)
   endif
 
   VBOX_SIGNTOOL                ?= $(VBOX_RETRY) $(requote sh,$(VBOX_PATH_SIGN_TOOLS)/signtool.exe)

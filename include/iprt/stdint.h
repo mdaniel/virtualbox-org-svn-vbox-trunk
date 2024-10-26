@@ -303,12 +303,10 @@ typedef uint64_t            uintptr_t;
  || !defined(INT16_C) \
  || !defined(INT32_C) \
  || !defined(INT64_C) \
- || !defined(INTMAX_C) \
  || !defined(UINT8_C) \
  || !defined(UINT16_C) \
  || !defined(UINT32_C) \
- || !defined(UINT64_C) \
- || !defined(UINTMAX_C)
+ || !defined(UINT64_C)
 # define INT8_C(Value)      (Value)
 # define INT16_C(Value)     (Value)
 # define UINT8_C(Value)     (Value)
@@ -324,6 +322,9 @@ typedef uint64_t            uintptr_t;
 #  define INT64_C(Value)    (Value ## LL)
 #  define UINT64_C(Value)   (Value ## ULL)
 # endif
+#endif
+#if !defined(INTMAX_C) \
+ || !defined(UINTMAX_C)
 # define INTMAX_C(Value)    INT64_C(Value)
 # define UINTMAX_C(Value)   UINT64_C(Value)
 #endif
@@ -358,7 +359,10 @@ typedef uint64_t            uintptr_t;
 # define UINT16_MAX         UINT16_C(0xffff)
 # define UINT32_MAX         UINT32_C(0xffffffff)
 # define UINT64_MAX         UINT64_C(0xffffffffffffffff)
-
+#endif
+#if !defined(INTMAX_MIN) \
+ || !defined(INTMAX_MAX) \
+ || !defined(UINTMAX_MAX)
 # define INTMAX_MIN         INT64_MIN
 # define INTMAX_MAX         INT64_MAX
 # define UINTMAX_MAX        UINT64_MAX

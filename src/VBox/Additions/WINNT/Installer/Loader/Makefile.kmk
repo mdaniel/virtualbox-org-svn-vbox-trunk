@@ -28,11 +28,19 @@
 SUB_DEPTH = ../../../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
-# This has to be 32-bit.
+#
+# On the final ISO this'll bit an x86 binary.
+#
+# However, to avoid building RuntimeGuestR3-x86 on arm64 when we won't use the
+# result anyway, we simplify by only building the x86 variant on amd64 and x86.
+# When packing we'll pick one of those, rather than the arm64 variant.
+#
 PROGRAMS += VBoxWindowsAdditions
 VBoxWindowsAdditions_TEMPLATE = VBoxGuestR3Exe
-if1of ($(KBUILD_TARGET_ARCH), amd64)
- VBoxWindowsAdditions_BLD_TRG_ARCH = x86
+if1of ($(KBUILD_TARGET_ARCH), x86 amd64)
+VBoxWindowsAdditions_BLD_TRG_ARCH = x86
+else
+VBoxWindowsAdditions_BLD_TRG_ARCH = $(KBUILD_TARGET_ARCH)
 endif
 VBoxWindowsAdditions_DEFS    = _WIN32_WINNT=0x0400
 VBoxWindowsAdditions_INCS    = ../../include
@@ -47,9 +55,9 @@ else
  	/DISALLOWLIB:msvcprt.lib \
  	/DISALLOWLIB:libcmt.lib
  VBoxWindowsAdditions_LIBS    = \
- 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(KBUILD_TARGET_ARCH))_LIB)/oldnames.lib \
- 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(KBUILD_TARGET_ARCH))_LIB)/libcmt.lib \
- 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(KBUILD_TARGET_ARCH))_LIB)/libcpmt.lib
+ 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(VBoxWindowsAdditions_BLD_TRG_ARCH))_LIB)/oldnames.lib \
+ 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(VBoxWindowsAdditions_BLD_TRG_ARCH))_LIB)/libcmt.lib \
+ 	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.$(VBoxWindowsAdditions_BLD_TRG_ARCH))_LIB)/libcpmt.lib
 endif
 VBoxWindowsAdditions_VBOX_IMPORT_CHECKER.win.x86 := nt4
 

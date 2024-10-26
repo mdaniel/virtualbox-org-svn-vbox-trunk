@@ -968,7 +968,7 @@ int main()
 
     SetLastError(NO_ERROR);
     WCHAR wszExePath[MAX_PATH] = { 0 };
-    DWORD cwcExePath = GetModuleFileNameW(NULL, wszExePath, sizeof(wszExePath));
+    size_t cwcExePath = GetModuleFileNameW(NULL, wszExePath, sizeof(wszExePath));
     if (cwcExePath == 0 || cwcExePath >= sizeof(wszExePath))
         return ErrorMsgRcLastErrSUR(13, "GetModuleFileNameW failed: ", cwcExePath);
 

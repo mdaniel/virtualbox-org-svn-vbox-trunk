@@ -4245,6 +4245,7 @@ ifdef VBOX_SIGNING_MODE
   endif
   ifndef VBOX_PATH_SIGN_TOOLS
    ifdef VBOX_WITH_NEW_WINDOWS_SDK
+    $(evalcall KB_FN_LOAD_SDK,$(VBOX_WINPSDK))
     VBOX_PATH_SIGN_TOOLS = $(PATH_SDK_$(VBOX_WINPSDK)_BIN)
    else
     VBOX_PATH_SIGN_TOOLS := $(firstword $(rsort $(wildcard \

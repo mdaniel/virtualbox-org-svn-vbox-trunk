@@ -2409,6 +2409,9 @@ static DWORD vboxDispIfWddmResizeDisplay(PCVBOXDISPIF const pIf, UINT Id, BOOL f
 
 DWORD VBoxDispIfResizeModes(PCVBOXDISPIF const pIf, UINT iChangedMode, BOOL fEnable, BOOL fExtDispSup, DISPLAY_DEVICE *paDisplayDevices, DEVMODE *paDeviceModes, UINT cDevModes)
 {
+#ifndef VBOX_WITH_WDDM
+    RT_NOREF(iChangedMode, fEnable, fExtDispSup, paDisplayDevices, paDeviceModes, cDevModes);
+#endif
     switch (pIf->enmMode)
     {
         case VBOXDISPIF_MODE_XPDM_NT4:
@@ -2419,8 +2422,6 @@ DWORD VBoxDispIfResizeModes(PCVBOXDISPIF const pIf, UINT iChangedMode, BOOL fEna
         case VBOXDISPIF_MODE_WDDM:
         case VBOXDISPIF_MODE_WDDM_W7:
             return vboxDispIfResizeModesWDDM(pIf, iChangedMode, fEnable, fExtDispSup, paDisplayDevices, paDeviceModes, cDevModes);
-#else
-        RT_NOREF(iChangedMode, fEnable, fExtDispSup, paDisplayDevices, paDeviceModes, cDevModes);
 #endif
         default:
             WARN(("unknown mode (%d)\n", pIf->enmMode));
@@ -2828,13 +2829,14 @@ DWORD VBoxDispIfSeamlessCreate(PCVBOXDISPIF const pIf, VBOXDISPIF_SEAMLESS *pSea
         case VBOXDISPIF_MODE_WDDM:
         case VBOXDISPIF_MODE_WDDM_W7:
             return vboxDispIfSeamlessCreateWDDM(pIf, pSeamless, hEvent);
-#else
-        RT_NOREF(hEvent);
 #endif
         default:
             break;
     }
 
+#ifndef VBOX_WITH_WDDM
+    RT_NOREF(hEvent);
+#endif
     WARN(("VBoxTray: VBoxDispIfSeamlessCreate: invalid mode %d\n", pIf->enmMode));
     return ERROR_INVALID_PARAMETER;
 }

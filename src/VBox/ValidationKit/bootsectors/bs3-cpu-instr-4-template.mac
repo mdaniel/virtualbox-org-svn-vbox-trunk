@@ -878,7 +878,7 @@ EMIT_INSTR_PLUS_ICEBP       cvtpi2ps, XMM1, MM1
 EMIT_INSTR_PLUS_ICEBP       cvtpi2ps, XMM1, FSxBX
 EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2ps, XMM8, MM1
 EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2ps, XMM8, FSxBX
-; note: transition from x87 FPU to MMX; takes FPU exceptions (SDM does not mention MM forms only?)
+
 ;
 ;; cvtps2pi
 ;
@@ -886,7 +886,6 @@ EMIT_INSTR_PLUS_ICEBP_C64   cvtpi2ps, XMM8, FSxBX
 EMIT_INSTR_PLUS_ICEBP       cvtps2pi, MM1, XMM1
 EMIT_INSTR_PLUS_ICEBP       cvtps2pi, MM1, FSxBX
 EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pi, MM1, XMM8
-; note: transition from x87 FPU to MMX; takes FPU exceptions
 
 ;
 ;; cvttps2pi
@@ -895,7 +894,7 @@ EMIT_INSTR_PLUS_ICEBP_C64   cvtps2pi, MM1, XMM8
 EMIT_INSTR_PLUS_ICEBP       cvttps2pi, MM1, XMM1
 EMIT_INSTR_PLUS_ICEBP       cvttps2pi, MM1, FSxBX
 EMIT_INSTR_PLUS_ICEBP_C64   cvttps2pi, MM1, XMM8
-; note: transition from x87 FPU to MMX; takes FPU exceptions
+
 ;
 ;; cvtsi2ss
 ;

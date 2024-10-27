@@ -1314,6 +1314,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
 {
     RT_NOREF(pVCpu);
 
+#  ifdef RT_AMD64
     /*
      * The AMD64 unwind opcodes.
      *
@@ -1360,11 +1361,46 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
     AssertCompile(-IEMNATIVE_FP_OFF_LAST_PUSH < 240 && -IEMNATIVE_FP_OFF_LAST_PUSH > 0);
     AssertCompile((-IEMNATIVE_FP_OFF_LAST_PUSH & 0xf) == 8);
 
+#  elif defined(RT_ARCH_ARM64)
+    /*
+     * The ARM64 unwind codes. 
+     *  
+     * See https://learn.microsoft.com/en-us/cpp/build/arm64-exception-handling?view=msvc-170 
+     */
+    static const uint8_t s_abOpcodes[] =
+    {
+        /* Prolog: None. */
+        0xe5,                                   /* end_c */
+        /* Epilog / unwind info: */
+        IEMNATIVE_FRAME_VAR_SIZE / 16,          /* alloc_s */
+        0xc8, 0x00,                             /* save_regp x19, x20, [sp + #0] */
+        0xc8, 0x82,                             /* save_regp x21, x22, [sp + #2*8] */
+        0xc9, 0x04,                             /* save_regp x23, x24, [sp + #4*8] */
+        0xc9, 0x86,                             /* save_regp x25, x26, [sp + #6*8] */
+        0xca, 0x08,                             /* save_regp x27, x28, [sp + #8*8] */
+        0x4a,                                   /* save_fplr x29, x30, [sp + #10*8] */
+        12*8 / 16,                              /* alloc_s  */
+        0xc4,                                   /* end */
+        0xc5                                    /* nop */
+    };
+    AssertCompile(!(sizeof(s_abOpcodes) & 3));
+    AssertCompile(!(IEMNATIVE_FRAME_VAR_SIZE & 15) && IEMNATIVE_FRAME_VAR_SIZE < 512);
+
+#  else
+#   error "Port me!"
+#  endif
+
     /*
      * Calc how much space we need and allocate it off the exec heap.
      */
-    unsigned const cFunctionEntries = 1;
+#  ifdef RT_ARCH_ARM64
+    unsigned const cbPerEntry       = _1M - 4;
+    unsigned const cFunctionEntries = (pExecMemAllocator->cbChunk + cbPerEntry - 1) / cbPerEntry;
+    unsigned const cbUnwindInfo     = (sizeof(uint32_t) * 2 + sizeof(s_abOpcodes)) * cFunctionEntries;
+#  else
     unsigned const cbUnwindInfo     = sizeof(s_aOpcodes) + RT_UOFFSETOF(IMAGE_UNWIND_INFO, aOpcodes);
+    unsigned const cFunctionEntries = 1;
+#  endif
     unsigned const cbNeeded         = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY) * cFunctionEntries + cbUnwindInfo;
     PIMAGE_RUNTIME_FUNCTION_ENTRY const paFunctions
         = (PIMAGE_RUNTIME_FUNCTION_ENTRY)iemExecMemAllocatorAllocBytesInChunk(pExecMemAllocator, idxChunk, cbNeeded, NULL);
@@ -1374,6 +1410,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
     /*
      * Initialize the structures.
      */
+#  ifdef RT_AMD64
     PIMAGE_UNWIND_INFO const pInfo = (PIMAGE_UNWIND_INFO)&paFunctions[cFunctionEntries];
 
     paFunctions[0].BeginAddress         = 0;
@@ -1383,8 +1420,37 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
     memcpy(pInfo, &s_UnwindInfo, RT_UOFFSETOF(IMAGE_UNWIND_INFO, aOpcodes));
     memcpy(&pInfo->aOpcodes[0], s_aOpcodes, sizeof(s_aOpcodes));
 
+#  elif defined(RT_ARCH_ARM64)
+
+    PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA pInfo = (PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA)&paFunctions[cFunctionEntries];
+    for (uint32_t i = 0, off = 0; i < cFunctionEntries; i++)
+    {
+        paFunctions[i].BeginAddress = off;
+        paFunctions[i].UnwindData   = (uint32_t)((uintptr_t)pInfo - (uintptr_t)pvChunk) | PdataRefToFullXdata;
+
+        uint32_t const cFunctionLengthInWords = RT_MAX(cbPerEntry, pExecMemAllocator->cbChunk - off) / 4;
+        pInfo[0].FunctionLength               = cFunctionLengthInWords;
+        pInfo[0].Version                      = 0;
+        pInfo[0].ExceptionDataPresent         = 0;
+        pInfo[0].EpilogInHeader               = 0;
+        pInfo[0].EpilogCount                  = 1;
+        pInfo[0].CodeWords                    = sizeof(s_abOpcodes) / sizeof(uint32_t);
+
+        pInfo[1].EpilogInfo.EpilogStartOffset = cFunctionLengthInWords;
+        pInfo[1].EpilogInfo.Reserved          = 0;
+        pInfo[1].EpilogInfo.EpilogStartIndex  = 1;
+        pInfo += 2;
+
+        memcpy(pInfo, s_abOpcodes, sizeof(s_abOpcodes));
+        pInfo += sizeof(s_abOpcodes) / sizeof(*pInfo);
+    }
+
+#  else
+#   error "Port me!"
+#  endif
+
     /*
-     * Register it.
+     * Register them.
      */
     uint8_t fRet = RtlAddFunctionTable(paFunctions, cFunctionEntries, (uintptr_t)pvChunk);
     AssertReturn(fRet, VERR_INTERNAL_ERROR_3); /* Nothing to clean up on failure, since its within the chunk itself. */

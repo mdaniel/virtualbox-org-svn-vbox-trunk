@@ -176,8 +176,10 @@ static const char * const g_apszWHvMemAccesstypes[4] = { "read", "write", "exec"
 #endif
 /** NEM_WIN_PAGE_STATE_XXX names. */
 NEM_TMPL_STATIC const char * const g_apszPageStates[4] = { "not-set", "unmapped", "readable", "writable" };
+#ifdef LOG_ENABLED
 /** HV_INTERCEPT_ACCESS_TYPE names. */
 static const char * const g_apszHvInterceptAccessTypes[4] = { "read", "write", "exec", "!undefined!" };
+#endif
 
 
 /*********************************************************************************************************************************
@@ -1866,8 +1868,10 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT cons
     rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, IEM_CPUMCTX_EXTRN_MUST_MASK);
     AssertRCReturn(rc, rc);
 
+#ifdef LOG_ENABLED
     uint8_t const cbInstr = pExit->MemoryAccess.InstructionByteCount;
     RTGCPTR const GCPtrVa = pExit->MemoryAccess.Gva;
+#endif
     RTGCPHYS const GCPhys = pExit->MemoryAccess.Gpa;
     uint64_t const uIss   = pExit->MemoryAccess.Syndrome;
     bool fIsv        = RT_BOOL(uIss & ARMV8_EC_ISS_DATA_ABRT_ISV);

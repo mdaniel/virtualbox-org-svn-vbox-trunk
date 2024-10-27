@@ -692,10 +692,26 @@ ifdef VBOX_WITH_IEM_RECOMPILER
   	$(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h.ts \
   	$(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
   $(call KB_FN_AUTO_CMD_DEPS,$(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h.ts)
-  $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h.ts \
-  +| $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h: \
-  		$(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veRecompiler.o \
-  		$(PATH_SUB_CURRENT)/dwarfdump-to-offsets.sed
+  ifeq ($(KBUILD_TARGET),win)
+   $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h.ts \
+   +| $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h: \
+   		$(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veRecompiler-obj.pdb \
+   		$(PATH_SUB_CURRENT)/pdbutil-to-offsets.sed
+	$(QUIET)$(call MSG_GENERATE,VBoxVMM,$@,IEMAllN8veRecompiler-obj.pdb)
+	$(QUIET)$(RM) -f -- "$@" "$@.tmp"
+	$(QUIET)$(MKDIR) -p -- "$(dir $@)"
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
+	$(QUIET)$(REDIRECT) -0 /dev/null -o "$@.tmp" -- \
+		$(TOOL_VCC143-CLANGXX_PREFIX2)pdbutil$(TOOL_VCC143-CLANGXX_SUFFIX2) \
+			pretty --with-name=VMCPU --with-name=IEMCPU "$<"
+	$(QUIET)$(SED) -n -f "$(filter %.sed,$^)" --output "$@" "$@.tmp"
+	$(QUIET)$(RM) -f "$@.tmp"
+	$(QUIET)$(CP) -v -f --changed -- "$@" "$(basename $@)"
+  else
+   $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h.ts \
+   +| $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h: \
+   		$(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veRecompiler.o \
+   		$(PATH_SUB_CURRENT)/dwarfdump-to-offsets.sed
 	$(QUIET)$(call MSG_GENERATE,VBoxVMM,$@,IEMAllN8veRecompiler.o)
 	$(QUIET)$(RM) -f -- "$@" "$@.tmp"
 	$(QUIET)$(MKDIR) -p -- "$(dir $@)"
@@ -705,9 +721,11 @@ ifdef VBOX_WITH_IEM_RECOMPILER
 	$(QUIET)$(SED) -n -f "$(filter %.sed,$^)" --output "$@" "$@.tmp"
 	$(QUIET)$(RM) -f "$@.tmp"
 	$(QUIET)$(CP) -v -f --changed -- "$@" "$(basename $@)"
+  endif
 
   # Set up the dependencies.
-  $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.o: $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
+  $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.o:   $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
+  $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.obj: $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
  endif
 
  #

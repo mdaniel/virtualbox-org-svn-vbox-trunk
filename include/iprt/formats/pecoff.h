@@ -714,15 +714,116 @@ typedef IMAGE_RESOURCE_DATA_ENTRY const *PCIMAGE_RESOURCE_DATA_ENTRY;
 
 /** This structure is used by AMD64 and "Itanic".
  * MIPS uses a different one.  ARM, SH3, SH4 and PPC on WinCE also uses a different one.  */
-typedef struct _IMAGE_RUNTIME_FUNCTION_ENTRY
+typedef struct _IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY
 {
     uint32_t    BeginAddress;
     uint32_t    EndAddress;
     uint32_t    UnwindInfoAddress;
-} IMAGE_RUNTIME_FUNCTION_ENTRY;
-AssertCompileSize(IMAGE_RUNTIME_FUNCTION_ENTRY, 12);
-typedef IMAGE_RUNTIME_FUNCTION_ENTRY *PIMAGE_RUNTIME_FUNCTION_ENTRY;
-typedef IMAGE_RUNTIME_FUNCTION_ENTRY const *PCIMAGE_RUNTIME_FUNCTION_ENTRY;
+} IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY;
+AssertCompileSize(IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY, 12);
+typedef IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY *PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY;
+typedef IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY const *PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY;
+
+/** The IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY::Flag values. */
+typedef enum ARM64_FNPDATA_FLAGS
+{
+    PdataRefToFullXdata = 0,
+    PdataPackedUnwindFunction,
+    PdataPackedUnwindFragment
+} ARM64_FNPDATA_FLAGS;
+
+/** The IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY::CR values. */
+typedef enum ARM64_FNPDATA_CR
+{
+    PdataCrUnchained = 0,
+    PdataCrUnchainedSavedLr,
+    PdataCrChainedWithPac,
+    PdataCrChained
+} ARM64_FNPDATA_CR;
+
+/** This structure is used by ARM64. */
+typedef struct _IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY
+{
+    uint32_t    BeginAddress;
+    RT_GCC_EXTENSION
+    union
+    {
+        uint32_t UnwindData;
+        RT_GCC_EXTENSION
+        struct
+        {
+            uint32_t Flag           : 2;
+            uint32_t FunctionLength : 11;
+            uint32_t RegF           : 3;
+            uint32_t RegI           : 4;
+            uint32_t H              : 1;
+            uint32_t CR             : 2;
+            uint32_t FrameSize      : 9;
+        };
+    };
+} IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY;
+AssertCompileSize(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY, 8);
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY *PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY;
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY const *PCIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY;
+
+/** UnwindData word \#0. */
+typedef struct IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_BITFIELDS
+{
+    uint32_t    FunctionLength              : 18;
+    uint32_t    Version                     : 2;
+    uint32_t    ExceptionDataPresent        : 1;
+    uint32_t    EpilogInHeader              : 1;
+    uint32_t    EpilogCount                 : 5;
+    uint32_t    CodeWords                   : 5;
+} IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_BITFIELDS;
+
+/** UnwindData word \#1, if present. */
+typedef struct IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EXTENDED_BITFIELDS
+{
+    uint32_t    ExtendedEpilogCount         : 16;
+    uint32_t    ExtendecodeWords            : 8;
+    uint32_t    Reserved                    : 8;
+} IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EXTENDED_BITFIELDS;
+
+/** UnwindData word \#2 or if no extended fields \#1. */
+typedef struct IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EPILOG_BITFIELDS
+{
+    uint32_t    EpilogStartOffset           : 18;
+    uint32_t    Reserved                    : 4;
+    uint32_t    EpilogStartIndex            : 10;
+} IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EPILOG_BITFIELDS;
+
+typedef union IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA
+{
+    uint32_t    HeaderData;
+    RT_GCC_EXTENSION
+    struct /* copy of IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_BITFIELDS above */
+    {
+        uint32_t    FunctionLength              : 18;
+        uint32_t    Version                     : 2;
+        uint32_t    ExceptionDataPresent        : 1;
+        uint32_t    EpilogInHeader              : 1;
+        uint32_t    EpilogCount                 : 5;
+        uint32_t    CodeWords                   : 5;
+    };
+    /* Non-standard, but convenient: */
+    IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EXTENDED_BITFIELDS ExtendedInfo;
+    IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EPILOG_BITFIELDS   EpilogInfo;
+} IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA;
+AssertCompileSize(IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA, 4);
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA;
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA *PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA;
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA const *PCIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA;
+
+#ifdef RT_ARCH_ARM64
+typedef IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY      IMAGE_RUNTIME_FUNCTION_ENTRY;
+typedef PIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY     PIMAGE_RUNTIME_FUNCTION_ENTRY;
+typedef PCIMAGE_ARM64_RUNTIME_FUNCTION_ENTRY    PCIMAGE_RUNTIME_FUNCTION_ENTRY;
+#else
+typedef IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY      IMAGE_RUNTIME_FUNCTION_ENTRY;
+typedef PIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY     PIMAGE_RUNTIME_FUNCTION_ENTRY;
+typedef PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY    PCIMAGE_RUNTIME_FUNCTION_ENTRY;
+#endif
 
 /**
  * An unwind code for AMD64 and ARM64.

@@ -885,7 +885,7 @@ iemNativeEmitEFlagsForArithmetic(PIEMRECOMPILERSTATE pReNative, uint32_t off, ui
                 pCodeBuf[off++] = Armv8A64MkInstrEor(idxTmpReg2,   idxRegDstIn, idxRegResult, false); /* (a_uDst) ^ (a_uResult) */
                 pCodeBuf[off++] = Armv8A64MkInstrAnd(idxTmpReg,    idxTmpReg,   idxTmpReg2,   false /*f64Bit*/);
             }
-            else if (uImmSrc & RT_BIT_32(cOpBits - 1))
+            else if (uImmSrc & RT_BIT_64(cOpBits - 1))
             {
                 if (fInvertCarry) /* HACK ALERT: fInvertCarry == sbb */
                     pCodeBuf[off++] = Armv8A64MkInstrBic(idxTmpReg, idxRegResult, idxRegDstIn, false);

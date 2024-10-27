@@ -3511,14 +3511,14 @@ static DECLCALLBACK(int) rtldrPE_HashImage(PRTLDRMODINTERNAL pMod, RTDIGESTTYPE 
  * @param   iEnd            Size of the table.
  * @param   uRva            The RVA of the function we want.
  */
-DECLINLINE(PCIMAGE_RUNTIME_FUNCTION_ENTRY)
-rtldrPE_LookupRuntimeFunctionEntry(PCIMAGE_RUNTIME_FUNCTION_ENTRY paFunctions, size_t iEnd, uint32_t uRva)
+DECLINLINE(PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY)
+rtldrPE_LookupRuntimeFunctionEntry_Amd64(PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY paFunctions, size_t iEnd, uint32_t uRva)
 {
     size_t iBegin = 0;
     while (iBegin < iEnd)
     {
         size_t const i = iBegin  + (iEnd - iBegin) / 2;
-        PCIMAGE_RUNTIME_FUNCTION_ENTRY pEntry = &paFunctions[i];
+        PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY pEntry = &paFunctions[i];
         if (uRva < pEntry->BeginAddress)
             iEnd = i;
         else if (uRva > pEntry->EndAddress)
@@ -3605,7 +3605,7 @@ static int rtldrPE_UnwindFrame_Amd64_IRet(PRTDBGUNWINDSTATE pState, uint8_t fErr
 
 
 static int rtldrPE_UnwindFrame_Amd64(PRTLDRMODPE pThis, void const *pvBits, PRTDBGUNWINDSTATE pState, uint32_t uRvaPc,
-                                     PCIMAGE_RUNTIME_FUNCTION_ENTRY pEntry)
+                                     PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY pEntry)
 {
     /* Did we find any unwind information? */
     if (!pEntry)
@@ -3614,7 +3614,7 @@ static int rtldrPE_UnwindFrame_Amd64(PRTLDRMODPE pThis, void const *pvBits, PRTD
     /*
      * Do the unwinding.
      */
-    IMAGE_RUNTIME_FUNCTION_ENTRY ChainedEntry;
+    IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY ChainedEntry;
     unsigned iFrameReg   = ~0U;
     unsigned offFrameReg = 0;
 
@@ -3633,7 +3633,7 @@ static int rtldrPE_UnwindFrame_Amd64(PRTLDRMODPE pThis, void const *pvBits, PRTD
             uint32_t uRva;
             uint8_t  ab[  RT_OFFSETOF(IMAGE_UNWIND_INFO, aOpcodes)
                         + sizeof(IMAGE_UNWIND_CODE) * 256
-                        + sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY)];
+                        + sizeof(IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY)];
         } uBuf;
         rc = rtldrPEReadPartByRvaInfoBuf(pThis, pvBits, pEntry->UnwindInfoAddress, sizeof(uBuf), &uBuf);
         if (RT_FAILURE(rc))
@@ -3868,7 +3868,7 @@ static int rtldrPE_UnwindFrame_Amd64(PRTLDRMODPE pThis, void const *pvBits, PRTD
          */
         if (!(pInfo->Flags & IMAGE_UNW_FLAGS_CHAININFO))
             break;
-        ChainedEntry = *(PCIMAGE_RUNTIME_FUNCTION_ENTRY)&pInfo->aOpcodes[(cOpcodes + 1) & ~1];
+        ChainedEntry = *(PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY)&pInfo->aOpcodes[(cOpcodes + 1) & ~1];
         pEntry = &ChainedEntry;
         AssertReturn(cChainLoops < 32, VERR_DBG_MALFORMED_UNWIND_INFO);
     }
@@ -3948,11 +3948,14 @@ static DECLCALLBACK(int) rtldrPE_UnwindFrame(PRTLDRMODINTERNAL pMod, void const 
         switch (pThis->Core.enmArch)
         {
             case RTLDRARCH_AMD64:
-                rc = rtldrPE_UnwindFrame_Amd64(pThis, pvBits, pState, uRvaPc,
-                                               rtldrPE_LookupRuntimeFunctionEntry((PCIMAGE_RUNTIME_FUNCTION_ENTRY)pvTable,
-                                                                                  cbTable / sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY),
-                                                                                  (uint32_t)uRvaPc));
+            {
+                PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY const pEntry
+                    = rtldrPE_LookupRuntimeFunctionEntry_Amd64((PCIMAGE_AMD64_RUNTIME_FUNCTION_ENTRY)pvTable,
+                                                               cbTable / sizeof(IMAGE_AMD64_RUNTIME_FUNCTION_ENTRY),
+                                                               (uint32_t)uRvaPc);
+                rc = rtldrPE_UnwindFrame_Amd64(pThis, pvBits, pState, uRvaPc, pEntry);
                 break;
+            }
 
             default:
                 rc = VERR_DBG_UNWIND_INFO_NOT_FOUND;

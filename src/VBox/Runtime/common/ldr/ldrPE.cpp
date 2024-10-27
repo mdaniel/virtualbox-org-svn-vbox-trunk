@@ -4130,9 +4130,10 @@ static void rtldrPEConvert32BitLoadConfigTo64Bit(PIMAGE_LOAD_CONFIG_DIRECTORY64 
     /*
      * volatile everywhere! Trying to prevent the compiler being a smarta$$ and reorder stuff.
      */
-    IMAGE_LOAD_CONFIG_DIRECTORY32_V13 volatile *pLoadCfg32 = (IMAGE_LOAD_CONFIG_DIRECTORY32_V13 volatile *)pLoadCfg;
-    IMAGE_LOAD_CONFIG_DIRECTORY64_V13 volatile *pLoadCfg64 = pLoadCfg;
+    IMAGE_LOAD_CONFIG_DIRECTORY32_V14 volatile *pLoadCfg32 = (IMAGE_LOAD_CONFIG_DIRECTORY32_V14 volatile *)pLoadCfg;
+    IMAGE_LOAD_CONFIG_DIRECTORY64_V14 volatile *pLoadCfg64 = pLoadCfg;
 
+    pLoadCfg64->GuardMemcpyFunctionPointer               = pLoadCfg32->GuardMemcpyFunctionPointer;
     pLoadCfg64->CastGuardOsDeterminedFailureMode         = pLoadCfg32->CastGuardOsDeterminedFailureMode;
     pLoadCfg64->GuardXFGTableDispatchFunctionPointer     = pLoadCfg32->GuardXFGTableDispatchFunctionPointer;
     pLoadCfg64->GuardXFGDispatchFunctionPointer          = pLoadCfg32->GuardXFGDispatchFunctionPointer;
@@ -4771,6 +4772,9 @@ static int rtldrPEValidateDirectoriesAndRememberStuff(PRTLDRMODPE pModPe, const 
     IMAGE_DATA_DIRECTORY Dir = pOptHdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG];
     if (Dir.Size)
     {
+        const size_t cbExpectV14 = !pModPe->f64Bit
+                                 ? sizeof(IMAGE_LOAD_CONFIG_DIRECTORY32_V14)
+                                 : sizeof(IMAGE_LOAD_CONFIG_DIRECTORY64_V14);
         const size_t cbExpectV13 = !pModPe->f64Bit
                                  ? sizeof(IMAGE_LOAD_CONFIG_DIRECTORY32_V13)
                                  : sizeof(IMAGE_LOAD_CONFIG_DIRECTORY64_V13);
@@ -4814,7 +4818,8 @@ static int rtldrPEValidateDirectoriesAndRememberStuff(PRTLDRMODPE pModPe, const 
         const size_t cbMaxKnown = cbExpectV12;
 
         bool fNewerStructureHack = false;
-        if (   Dir.Size != cbExpectV13
+        if (   Dir.Size != cbExpectV14
+            && Dir.Size != cbExpectV13
             && Dir.Size != cbExpectV12
             && Dir.Size != cbExpectV11
             && Dir.Size != cbExpectV10
@@ -4830,13 +4835,13 @@ static int rtldrPEValidateDirectoriesAndRememberStuff(PRTLDRMODPE pModPe, const 
         {
             fNewerStructureHack = Dir.Size > cbNewHack /* These structure changes are slowly getting to us! More futher down. */
                                && Dir.Size <= sizeof(u);
-            Log(("rtldrPEOpen: %s: load cfg dir: unexpected dir size of %u bytes, expected %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, or %zu.%s\n",
-                 pszLogName, Dir.Size, cbExpectV13, cbExpectV12, cbExpectV11, cbExpectV10, cbExpectV9, cbExpectV8, cbExpectV7, cbExpectV6, cbExpectV5, cbExpectV4, cbExpectV3, cbExpectV2, cbExpectV1,
+            Log(("rtldrPEOpen: %s: load cfg dir: unexpected dir size of %u bytes, expected %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, or %zu.%s\n",
+                 pszLogName, Dir.Size, cbExpectV14, cbExpectV13, cbExpectV12, cbExpectV11, cbExpectV10, cbExpectV9, cbExpectV8, cbExpectV7, cbExpectV6, cbExpectV5, cbExpectV4, cbExpectV3, cbExpectV2, cbExpectV1,
                  fNewerStructureHack ? " Will try ignore extra bytes if all zero." : ""));
             if (!fNewerStructureHack)
                 return RTErrInfoSetF(pErrInfo, VERR_LDRPE_LOAD_CONFIG_SIZE,
-                                     "Unexpected load config dir size of %u bytes; supported sized: %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, or %zu",
-                                     Dir.Size, cbExpectV13, cbExpectV12, cbExpectV11, cbExpectV10, cbExpectV9, cbExpectV8, cbExpectV7, cbExpectV6, cbExpectV5, cbExpectV4, cbExpectV3, cbExpectV2, cbExpectV1);
+                                     "Unexpected load config dir size of %u bytes; supported sized: %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, %zu, or %zu",
+                                     Dir.Size, cbExpectV14, cbExpectV13, cbExpectV12, cbExpectV11, cbExpectV10, cbExpectV9, cbExpectV8, cbExpectV7, cbExpectV6, cbExpectV5, cbExpectV4, cbExpectV3, cbExpectV2, cbExpectV1);
         }
 
         /*
@@ -4875,7 +4880,8 @@ static int rtldrPEValidateDirectoriesAndRememberStuff(PRTLDRMODPE pModPe, const 
             }
             /* Kludge #2: This happens a lot. Structure changes, but the linker doesn't get
                updated and stores some old size in the directory.  Use the header size. */
-            else if (   u.Cfg64.Size == cbExpectV13
+            else if (   u.Cfg64.Size == cbExpectV14
+                     || u.Cfg64.Size == cbExpectV13
                      || u.Cfg64.Size == cbExpectV12
                      || u.Cfg64.Size == cbExpectV11
                      || u.Cfg64.Size == cbExpectV10

@@ -101,6 +101,10 @@ static const char *iemGetTargetCpuName(uint32_t enmTargetCpu)
 #endif
 
 
+#if defined(RT_ARCH_ARM64) && defined(_MSC_VER)
+# pragma warning(disable:4883) /* profile build: IEMR3.cpp(114) : warning C4883: 'IEMR3Init': function size suppresses optimizations*/
+#endif
+
 /**
  * Initializes the interpreted execution manager.
  *

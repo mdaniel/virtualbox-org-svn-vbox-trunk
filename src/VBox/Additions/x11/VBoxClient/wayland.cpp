@@ -84,13 +84,14 @@ static DECLCALLBACK(int) vbclWaylandClipboardWorker(RTTHREAD hThreadSelf, void *
     if (RT_SUCCESS(rc))
     {
         /* Provide helper with host clipboard service connection handle. */
-        g_pWaylandHelperClipboard->pfnSetClipboardCtx(&ctx.CmdCtx);
+        g_pWaylandHelperClipboard->clip.pfnSetClipboardCtx(&ctx.CmdCtx);
 
         /* Process host events. */
         while (!ASMAtomicReadBool(&g_fShutdown))
         {
-            rc = VBClClipboardReadHostEvent(&ctx, g_pWaylandHelperClipboard->pfnHGClipReport,
-                                            g_pWaylandHelperClipboard->pfnGHClipRead);
+            rc = VBClClipboardReadHostEvent(&ctx,
+                                            g_pWaylandHelperClipboard->clip.pfnHGClipReport,
+                                            g_pWaylandHelperClipboard->clip.pfnGHClipRead);
             if (RT_FAILURE(rc))
             {
                 VBClLogInfo("cannot process host clipboard event, rc=%Rrc\n", rc);
@@ -178,7 +179,7 @@ static DECLCALLBACK(int) vbclWaylandHostInputFocusWorker(RTTHREAD hThreadSelf, v
                             {
                                 if (RTStrNCmp(pszValue, "0", GUEST_PROP_MAX_NAME_LEN) == 0)
                                 {
-                                    rc = g_pWaylandHelperClipboard->pfnPopup();
+                                    rc = g_pWaylandHelperClipboard->clip.pfnPopup();
                                     VBClLogVerbose(1, "trigger popup, rc=%Rrc\n", rc);
                                 }
                             }
@@ -237,9 +238,9 @@ static DECLCALLBACK(int) vbclWaylandInit(void)
             if (   fCaps & VBOX_WAYLAND_HELPER_CAP_CLIPBOARD
                 && !RT_VALID_PTR(g_pWaylandHelperClipboard))
             {
-                if (RT_VALID_PTR(g_apWaylandHelpers[idxHelper]->pfnInit))
+                if (RT_VALID_PTR(g_apWaylandHelpers[idxHelper]->clip.pfnInit))
                 {
-                    rc = g_apWaylandHelpers[idxHelper]->pfnInit();
+                    rc = g_apWaylandHelpers[idxHelper]->clip.pfnInit();
                     if (RT_SUCCESS(rc))
                         g_pWaylandHelperClipboard = g_apWaylandHelpers[idxHelper];
                     else
@@ -255,9 +256,9 @@ static DECLCALLBACK(int) vbclWaylandInit(void)
             if (   fCaps & VBOX_WAYLAND_HELPER_CAP_DND
                 && !RT_VALID_PTR(g_pWaylandHelperDnd))
             {
-                if (RT_VALID_PTR(g_apWaylandHelpers[idxHelper]->pfnInit))
+                if (RT_VALID_PTR(g_apWaylandHelpers[idxHelper]->dnd.pfnInit))
                 {
-                    rc = g_apWaylandHelpers[idxHelper]->pfnInit();
+                    rc = g_apWaylandHelpers[idxHelper]->dnd.pfnInit();
                     if (RT_SUCCESS(rc))
                         g_pWaylandHelperDnd = g_apWaylandHelpers[idxHelper];
                     else
@@ -388,13 +389,13 @@ static DECLCALLBACK(int) vbclWaylandTerm(void)
     VBClLogVerbose(1, "shutting down wayland service: clipboard & DnD helpers\n");
 
     if (   RT_VALID_PTR(g_pWaylandHelperClipboard)
-        && RT_VALID_PTR(g_pWaylandHelperClipboard->pfnTerm))
-        rc = g_pWaylandHelperClipboard->pfnTerm();
+        && RT_VALID_PTR(g_pWaylandHelperClipboard->clip.pfnTerm))
+        rc = g_pWaylandHelperClipboard->clip.pfnTerm();
 
     if (   RT_SUCCESS(rc)
         && RT_VALID_PTR(g_pWaylandHelperDnd)
-        && RT_VALID_PTR(g_pWaylandHelperDnd->pfnTerm))
-        rc = g_pWaylandHelperDnd->pfnTerm();
+        && RT_VALID_PTR(g_pWaylandHelperDnd->dnd.pfnTerm))
+        rc = g_pWaylandHelperDnd->dnd.pfnTerm();
 
     return rc;
 }

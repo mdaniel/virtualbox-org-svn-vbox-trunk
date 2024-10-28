@@ -136,22 +136,10 @@ typedef DECLCALLBACKTYPE(int, FNVBCLWLSESSIONCB, (vbcl_wl_session_type_t enmSess
 typedef FNVBCLWLSESSIONCB *PFNVBCLWLSESSIONCB;
 
 /**
- * Wayland Desktop Environment helper definition structure.
+ * Wayland Desktop Environment helper clipboard operations.
  */
 typedef struct
 {
-    /** A short helper name. 16 chars maximum (RTTHREAD_NAME_LEN). */
-    const char *pszName;
-
-    /**
-     * Probing callback.
-     *
-     * Called in attempt to detect if user is currently running Desktop Environment
-     * which is compatible with the helper.
-     *
-     * @returns Helpercapabilities bitmask as described by VBOX_WAYLAND_HELPER_CAP_XXX.
-     */
-    DECLCALLBACKMEMBER(int, pfnProbe, (void));
 
     /**
      * Initialization callback.
@@ -181,8 +169,59 @@ typedef struct
      */
     DECLCALLBACKMEMBER(int, pfnPopup, (void));
 
+    /** A callback to notify guest about new content in host clipboard. */
     PFNHOSTCLIPREPORTFMTS pfnHGClipReport;
+
+    /** Callback to notify guest that host wants to read clipboard data in specified format. */
     PFNHOSTCLIPREAD pfnGHClipRead;
+
+} VBCLWAYLANDHELPER_CLIPBOARD;
+
+/**
+ * Wayland Desktop Environment helper DnD operations.
+ */
+typedef struct
+{
+
+    /**
+     * Initialization callback.
+     *
+     * @returns IPRT status code.
+     */
+    DECLCALLBACKMEMBER(int, pfnInit, (void));
+
+    /**
+     * Termination callback.
+     *
+     * @returns IPRT status code.
+     */
+    DECLCALLBACKMEMBER(int, pfnTerm, (void));
+
+} VBCLWAYLANDHELPER_DND;
+
+/**
+ * Wayland Desktop Environment helper definition structure.
+ */
+typedef struct
+{
+    /** A short helper name. 16 chars maximum (RTTHREAD_NAME_LEN). */
+    const char *pszName;
+
+    /**
+     * Probing callback.
+     *
+     * Called in attempt to detect if user is currently running Desktop Environment
+     * which is compatible with the helper.
+     *
+     * @returns Helper capabilities bitmask as described by VBOX_WAYLAND_HELPER_CAP_XXX.
+     */
+    DECLCALLBACKMEMBER(int, pfnProbe, (void));
+
+    /** Helper functions for clipboard operations. */
+    VBCLWAYLANDHELPER_CLIPBOARD clip;
+
+    /** Helper functions for DnD operations. */
+    VBCLWAYLANDHELPER_DND dnd;
 
 } VBCLWAYLANDHELPER;
 

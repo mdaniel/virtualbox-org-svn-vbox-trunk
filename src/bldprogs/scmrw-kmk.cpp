@@ -786,7 +786,8 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
         {
             if (pchLine[offSrc] == '\\' && offSrc + 1 == cchLine)
             {
-                *pszDst++ = ' ';
+                if (pszDst[-1] != ' ')
+                    *pszDst++ = ' ';
                 *pszDst++ = '\\';
                 *pszDst   = '\0';
                 ScmStreamPutLine(pParser->pOut, pParser->szBuf, pszDst - pParser->szBuf, pParser->enmEol);

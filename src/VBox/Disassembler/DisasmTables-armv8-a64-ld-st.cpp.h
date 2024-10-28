@@ -128,6 +128,31 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegOffGpr, 0xffe00c00 /*fFixedInsn*/,
                                        RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30) | RT_BIT_32(31), 22);
 
 
+/* SIMD LDR/STR */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRegOffSimd)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize,   30,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,  0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,        16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseOption,        13,  3, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseS,             12,  1, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStRegOffSimd128)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize128, 0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,  0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,        16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseOption,        13,  3, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseS,             12,  1, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRegOffSimd)
+    DIS_ARMV8_OP(           0x3c200800, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x3c600800, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x3ca00800, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS, LdStRegOffSimd128), /** @todo size == 0. */
+    DIS_ARMV8_OP_ALT_DECODE(0x3ce00800, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, LdStRegOffSimd128), /** @todo size == 0. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegOffSimd, 0x3fe00c00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(22) | RT_BIT_32(23), 22);
+
+
 /*
  * C4.1.94 - Loads and Stores - Load/Store register (register offset) variants
  *
@@ -140,7 +165,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegOffGpr, 0xffe00c00 /*fFixedInsn*/,
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegOff)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegOffGpr),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegOffSimd),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegOff, RT_BIT_32(26), 26);
 
 

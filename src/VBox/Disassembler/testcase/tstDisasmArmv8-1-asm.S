@@ -1402,6 +1402,111 @@ _TestProcA64:
         ldr q31, [sp, #65520]
 
 
+        ldr  b0,  [x1, x2]
+        ldr  b31, [x1, x2]
+        ldr  b0,  [x1, x2, SXTX #0]
+        ldr  b0,  [x1, x2, LSL  #0]  ; UXTX
+        ldr  b0,  [x1, x2, SXTX #0]
+        ldr  b31, [x1, w2, UXTW #0]
+        ldr  b31, [x1, w2, SXTW #0]
+        ldr  b31, [x1, w2, UXTW #0]
+        ldr  b31, [x1, w2, SXTW #0]
+
+        ldr  b0,  [sp, x2]
+        ldr  b31, [sp, x2]
+        ldr  b0,  [sp, x2, SXTX #0]
+        ldr  b0,  [sp, x2, LSL  #0]  ; UXTX
+        ldr  b0,  [sp, x2, SXTX #0]
+        ldr  b31, [sp, w2, UXTW #0]
+        ldr  b31, [sp, w2, SXTW #0]
+        ldr  b31, [sp, w2, UXTW #0]
+        ldr  b31, [sp, w2, SXTW #0]
+
+
+        ldr  h0,  [x1, x2]
+        ldr  h31, [x1, x2]
+        ldr  h0,  [x1, x2, SXTX #1]
+        ldr  h0,  [x1, x2, LSL  #1]  ; UXTX
+        ldr  h0,  [x1, x2, SXTX #1]
+        ldr  h31, [x1, w2, UXTW #0]
+        ldr  h31, [x1, w2, SXTW #0]
+        ldr  h31, [x1, w2, UXTW #1]
+        ldr  h31, [x1, w2, SXTW #1]
+
+        ldr  h0,  [sp, x2]
+        ldr  h31, [sp, x2]
+        ldr  h0,  [sp, x2, SXTX #1]
+        ldr  h0,  [sp, x2, LSL  #1]  ; UXTX
+        ldr  h0,  [sp, x2, SXTX #1]
+        ldr  h31, [sp, w2, UXTW #0]
+        ldr  h31, [sp, w2, SXTW #0]
+        ldr  h31, [sp, w2, UXTW #1]
+        ldr  h31, [sp, w2, SXTW #1]
+
+
+        ldr  s0,  [x1, x2]
+        ldr  s31, [x1, x2]
+        ldr  s0,  [x1, x2, SXTX #2]
+        ldr  s0,  [x1, x2, LSL  #2]  ; UXTX
+        ldr  s0,  [x1, x2, SXTX #2]
+        ldr  s31, [x1, w2, UXTW #0]
+        ldr  s31, [x1, w2, SXTW #0]
+        ldr  s31, [x1, w2, UXTW #2]
+        ldr  s31, [x1, w2, SXTW #2]
+
+        ldr  s0,  [sp, x2]
+        ldr  s31, [sp, x2]
+        ldr  s0,  [sp, x2, SXTX #2]
+        ldr  s0,  [sp, x2, LSL  #2]  ; UXTX
+        ldr  s0,  [sp, x2, SXTX #2]
+        ldr  s31, [sp, w2, UXTW #0]
+        ldr  s31, [sp, w2, SXTW #0]
+        ldr  s31, [sp, w2, UXTW #2]
+        ldr  s31, [sp, w2, SXTW #2]
+
+
+        ldr  d0,  [x1, x2]
+        ldr  d31, [x1, x2]
+        ldr  d0,  [x1, x2, SXTX #3]
+        ldr  d0,  [x1, x2, LSL  #3]  ; UXTX
+        ldr  d0,  [x1, x2, SXTX #3]
+        ldr  d31, [x1, w2, UXTW #0]
+        ldr  d31, [x1, w2, SXTW #0]
+        ldr  d31, [x1, w2, UXTW #3]
+        ldr  d31, [x1, w2, SXTW #3]
+
+        ldr  d0,  [sp, x2]
+        ldr  d31, [sp, x2]
+        ldr  d0,  [sp, x2, SXTX #3]
+        ldr  d0,  [sp, x2, LSL  #3]  ; UXTX
+        ldr  d0,  [sp, x2, SXTX #3]
+        ldr  d31, [sp, w2, UXTW #0]
+        ldr  d31, [sp, w2, SXTW #0]
+        ldr  d31, [sp, w2, UXTW #3]
+        ldr  d31, [sp, w2, SXTW #3]
+
+
+        ldr  q0,  [x1, x2]
+        ldr  q31, [x1, x2]
+        ldr  q0,  [x1, x2, SXTX #4]
+        ldr  q0,  [x1, x2, LSL  #4]  ; UXTX
+        ldr  q0,  [x1, x2, SXTX #4]
+        ldr  q31, [x1, w2, UXTW #0]
+        ldr  q31, [x1, w2, SXTW #0]
+        ldr  q31, [x1, w2, UXTW #4]
+        ldr  q31, [x1, w2, SXTW #4]
+
+        ldr  q0,  [sp, x2]
+        ldr  q31, [sp, x2]
+        ldr  q0,  [sp, x2, SXTX #4]
+        ldr  q0,  [sp, x2, LSL  #4]  ; UXTX
+        ldr  q0,  [sp, x2, SXTX #4]
+        ldr  q31, [sp, w2, UXTW #0]
+        ldr  q31, [sp, w2, SXTW #0]
+        ldr  q31, [sp, w2, UXTW #4]
+        ldr  q31, [sp, w2, SXTW #4]
+
+
         ; SIMD memory stores
         str b0, [x0]
         str b0, [x0, #4095]
@@ -1432,6 +1537,111 @@ _TestProcA64:
 
         str q31, [sp]
         str q31, [sp, #65520]
+
+
+        str  b0,  [x1, x2]
+        str  b31, [x1, x2]
+        str  b0,  [x1, x2, SXTX #0]
+        str  b0,  [x1, x2, LSL  #0]  ; UXTX
+        str  b0,  [x1, x2, SXTX #0]
+        str  b31, [x1, w2, UXTW #0]
+        str  b31, [x1, w2, SXTW #0]
+        str  b31, [x1, w2, UXTW #0]
+        str  b31, [x1, w2, SXTW #0]
+
+        str  b0,  [sp, x2]
+        str  b31, [sp, x2]
+        str  b0,  [sp, x2, SXTX #0]
+        str  b0,  [sp, x2, LSL  #0]  ; UXTX
+        str  b0,  [sp, x2, SXTX #0]
+        str  b31, [sp, w2, UXTW #0]
+        str  b31, [sp, w2, SXTW #0]
+        str  b31, [sp, w2, UXTW #0]
+        str  b31, [sp, w2, SXTW #0]
+
+
+        str  h0,  [x1, x2]
+        str  h31, [x1, x2]
+        str  h0,  [x1, x2, SXTX #1]
+        str  h0,  [x1, x2, LSL  #1]  ; UXTX
+        str  h0,  [x1, x2, SXTX #1]
+        str  h31, [x1, w2, UXTW #0]
+        str  h31, [x1, w2, SXTW #0]
+        str  h31, [x1, w2, UXTW #1]
+        str  h31, [x1, w2, SXTW #1]
+
+        str  h0,  [sp, x2]
+        str  h31, [sp, x2]
+        str  h0,  [sp, x2, SXTX #1]
+        str  h0,  [sp, x2, LSL  #1]  ; UXTX
+        str  h0,  [sp, x2, SXTX #1]
+        str  h31, [sp, w2, UXTW #0]
+        str  h31, [sp, w2, SXTW #0]
+        str  h31, [sp, w2, UXTW #1]
+        str  h31, [sp, w2, SXTW #1]
+
+
+        str  s0,  [x1, x2]
+        str  s31, [x1, x2]
+        str  s0,  [x1, x2, SXTX #2]
+        str  s0,  [x1, x2, LSL  #2]  ; UXTX
+        str  s0,  [x1, x2, SXTX #2]
+        str  s31, [x1, w2, UXTW #0]
+        str  s31, [x1, w2, SXTW #0]
+        str  s31, [x1, w2, UXTW #2]
+        str  s31, [x1, w2, SXTW #2]
+
+        str  s0,  [sp, x2]
+        str  s31, [sp, x2]
+        str  s0,  [sp, x2, SXTX #2]
+        str  s0,  [sp, x2, LSL  #2]  ; UXTX
+        str  s0,  [sp, x2, SXTX #2]
+        str  s31, [sp, w2, UXTW #0]
+        str  s31, [sp, w2, SXTW #0]
+        str  s31, [sp, w2, UXTW #2]
+        str  s31, [sp, w2, SXTW #2]
+
+
+        str  d0,  [x1, x2]
+        str  d31, [x1, x2]
+        str  d0,  [x1, x2, SXTX #3]
+        str  d0,  [x1, x2, LSL  #3]  ; UXTX
+        str  d0,  [x1, x2, SXTX #3]
+        str  d31, [x1, w2, UXTW #0]
+        str  d31, [x1, w2, SXTW #0]
+        str  d31, [x1, w2, UXTW #3]
+        str  d31, [x1, w2, SXTW #3]
+
+        str  d0,  [sp, x2]
+        str  d31, [sp, x2]
+        str  d0,  [sp, x2, SXTX #3]
+        str  d0,  [sp, x2, LSL  #3]  ; UXTX
+        str  d0,  [sp, x2, SXTX #3]
+        str  d31, [sp, w2, UXTW #0]
+        str  d31, [sp, w2, SXTW #0]
+        str  d31, [sp, w2, UXTW #3]
+        str  d31, [sp, w2, SXTW #3]
+
+
+        str  q0,  [x1, x2]
+        str  q31, [x1, x2]
+        str  q0,  [x1, x2, SXTX #4]
+        str  q0,  [x1, x2, LSL  #4]  ; UXTX
+        str  q0,  [x1, x2, SXTX #4]
+        str  q31, [x1, w2, UXTW #0]
+        str  q31, [x1, w2, SXTW #0]
+        str  q31, [x1, w2, UXTW #4]
+        str  q31, [x1, w2, SXTW #4]
+
+        str  q0,  [sp, x2]
+        str  q31, [sp, x2]
+        str  q0,  [sp, x2, SXTX #4]
+        str  q0,  [sp, x2, LSL  #4]  ; UXTX
+        str  q0,  [sp, x2, SXTX #4]
+        str  q31, [sp, w2, UXTW #0]
+        str  q31, [sp, w2, SXTW #0]
+        str  q31, [sp, w2, UXTW #4]
+        str  q31, [sp, w2, SXTW #4]
 
 
         ; Add/subtract with carry

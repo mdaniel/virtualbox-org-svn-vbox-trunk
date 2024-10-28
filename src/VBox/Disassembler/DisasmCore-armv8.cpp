@@ -263,7 +263,7 @@ static int disArmV8ParseImmRel(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     Assert(pParam->armv8.enmType == kDisArmv8OpParmNone);
 
     pParam->armv8.enmType = kDisArmv8OpParmImmRel;
-    pParam->uValue = (int64_t)disArmV8ExtractBitVecFromInsnSignExtend(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits);
+    pParam->uValue = (int64_t)disArmV8ExtractBitVecFromInsnSignExtend(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits) * sizeof(uint32_t);
     if (pInsnParm->cBits <= 8)
     {
         pParam->armv8.cb = sizeof(int8_t);

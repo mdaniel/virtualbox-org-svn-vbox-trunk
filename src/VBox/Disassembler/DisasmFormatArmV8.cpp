@@ -69,6 +69,11 @@ static const char g_aszArmV8RegFpHalf[32][4] =
     "h0\0",  "h1\0",  "h2\0",  "h3\0",  "h4\0",  "h5\0",  "h6\0",  "h7\0",  "h8\0",  "h9\0",  "h10",  "h11",  "h12",  "h13",  "h14",  "h15",
     "h16",   "h17",   "h18",   "h19",   "h20",   "h21",   "h22",   "h23",   "h24",   "h25",   "h26",  "h27",  "h28",  "h29",  "h30",  "h31"
 };
+static const char g_aszArmV8RegSimdScalar8Bit[32][4] =
+{
+    "b0\0",  "b1\0",  "b2\0",  "b3\0",  "b4\0",  "b5\0",  "b6\0",  "b7\0",  "b8\0",  "b9\0",  "b10",  "b11",  "b12",  "b13",  "b14",  "b15",
+    "b16",   "b17",   "b18",   "b19",   "b20",   "b21",   "b22",   "b23",   "b24",   "b25",   "b26",  "b27",  "b28",  "b29",  "b30",  "b31"
+};
 static const char g_aszArmV8RegSimdScalar128Bit[32][4] =
 {
     "q0\0",  "q1\0",  "q2\0",  "q3\0",  "q4\0",  "q5\0",  "q6\0",  "q7\0",  "q8\0",  "q9\0",  "q10",  "q11",  "q12",  "q13",  "q14",  "q15",
@@ -361,6 +366,7 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
+        case kDisOpParamArmV8RegType_Simd_Scalar_32Bit:
         case kDisOpParamArmV8RegType_FpReg_Single:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
@@ -377,11 +383,19 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
+        case kDisOpParamArmV8RegType_Simd_Scalar_16Bit:
         case kDisOpParamArmV8RegType_FpReg_Half:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
             Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
             const char *psz = g_aszArmV8RegFpHalf[pReg->idReg];
+            *pcchReg = 2 + !!psz[2];
+            return psz;
+        }
+        case kDisOpParamArmV8RegType_Simd_Scalar_8Bit:
+        {
+            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar8Bit));
+            const char *psz = g_aszArmV8RegSimdScalar8Bit[pReg->idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
@@ -733,24 +747,24 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                     {
                         offDisplacement = (int8_t)pParam->uValue;
                         if (fFlags & DIS_FMT_FLAGS_RELATIVE_BRANCH)
-                            PUT_NUM_S8(offDisplacement * sizeof(uint32_t));
+                            PUT_NUM_S8(offDisplacement);
                     }
                     else if (pParam->fUse & DISUSE_IMMEDIATE16_REL)
                     {
                         offDisplacement = (int16_t)pParam->uValue;
                         if (fFlags & DIS_FMT_FLAGS_RELATIVE_BRANCH)
-                            PUT_NUM_S16(offDisplacement * sizeof(uint32_t));
+                            PUT_NUM_S16(offDisplacement);
                     }
                     else
                     {
                         offDisplacement = (int32_t)pParam->uValue;
                         if (fFlags & DIS_FMT_FLAGS_RELATIVE_BRANCH)
-                            PUT_NUM_S32(offDisplacement * sizeof(uint32_t));
+                            PUT_NUM_S32(offDisplacement);
                     }
                     if (fFlags & DIS_FMT_FLAGS_RELATIVE_BRANCH)
                         PUT_SZ(" ; (");
 
-                    RTUINTPTR uTrgAddr = pDis->uInstrAddr + (offDisplacement * sizeof(uint32_t));
+                    RTUINTPTR uTrgAddr = pDis->uInstrAddr + offDisplacement;
                     if (   pDis->uCpuMode == DISCPUMODE_ARMV8_A32
                         || pDis->uCpuMode == DISCPUMODE_ARMV8_T32)
                         PUT_NUM_32(uTrgAddr);

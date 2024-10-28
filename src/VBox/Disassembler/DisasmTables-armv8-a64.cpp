@@ -879,6 +879,55 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(Reg3Src)
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg3Src, 31);
 
 
+/* ADC/ADCS/SBC/SBCS */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AddSubCarry)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AddSubCarry)
+    DIS_ARMV8_OP(0x1a000000, "adc",             OP_ARMV8_A64_ADC,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x3a000000, "adcs",            OP_ARMV8_A64_ADCS,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x5a000000, "sbc",             OP_ARMV8_A64_SBC,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x7a000000, "sbcs",            OP_ARMV8_A64_SBCS,      DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AddSubCarry, 0x7fe0fc00 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(29) | RT_BIT_32(30), 29);
+
+
+/* RMIF */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(RotateIntoFlags)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        5,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,           15,  6, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,            0,  4, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(RotateIntoFlags)
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(0xba000400, "rmif",            OP_ARMV8_A64_RMIF,      DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(RotateIntoFlags, 0xffe07c10 /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(29), 29);
+
+
+/* SETF8/SETF16 */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(EvaluateIntoFlags)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        5,  5, 0 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(EvaluateIntoFlags)
+    DIS_ARMV8_OP(0x3a00080d, "setf8",           OP_ARMV8_A64_SETF8,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x3a00480d, "setf16",          OP_ARMV8_A64_SETF16,    DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(EvaluateIntoFlags, 0xfffffc1f /*fFixedInsn*/, kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(14), 14);
+
+
+/**
+ * C4.1.95 - Data Processing - Register
+ *
+ * Differentiate between add/sub (with carry) / rotate right / evaluate by op3<1:0>.
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(AddSubRotateEval)
+    DIS_ARMV8_DECODE_MAP_ENTRY(AddSubCarry),
+    DIS_ARMV8_DECODE_MAP_ENTRY(RotateIntoFlags),
+    DIS_ARMV8_DECODE_MAP_ENTRY(EvaluateIntoFlags),
+DIS_ARMV8_DECODE_MAP_DEFINE_END(AddSubRotateEval, RT_BIT_32(10) | RT_BIT_32(11), 10);
+
+
 /*
  * C4.1.95 - Data Processing - Register
  *
@@ -898,7 +947,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(Reg3Src, 31);
  *           1  x  x  x Data processing 3-source
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DataProcReg)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo Add/subtract with carry. */
+    DIS_ARMV8_DECODE_MAP_ENTRY(AddSubRotateEval),
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,
     DIS_ARMV8_DECODE_MAP_ENTRY(CondCmp),
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,

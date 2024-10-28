@@ -380,6 +380,8 @@
 
 #define          BS3_REGISTER_FLAG_MEMREF        0x100
 #define          BS3_FSxREG(reg)                 (((reg) == FSxBX || (reg) == FSxDI) ? reg : ((reg) & BS3_REGISTER_REGISTER_MASK) | BS3_REGISTER_FLAG_MEMREF)
+#define          BS3_REGISTER_IS_MEMREF(reg)     (((reg) & BS3_REGISTER_FLAG_MEMREF) || (((reg) & BS3_REGISTER_FAMILY_MEMREF) == BS3_REGISTER_FAMILY_MEMREF))
+#define          BS3_REGISTER_MEMREF_TO(reg)     (((reg) == FSxBX ? BX : (reg) == FSxDI ? DI : (reg)) & BS3_REGISTER_REGISTER_MASK)
 
 #define BS3_REGISTER_NAME_MAXSIZE sizeof("FSx(avail)")
 
@@ -481,14 +483,10 @@ static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUIN
     uint8_t     uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
     char        pszRegName[BS3_REGISTER_NAME_MAXSIZE];
 
-    if (uReg & BS3_REGISTER_FLAG_MEMREF || uReg == FSxBX || uReg == FSxDI)
+    if (BS3_REGISTER_IS_MEMREF(uReg))
     {
-        if (uRegSet <= BS3_REGISTER_FAMILY_64BIT)
-            uRegNum &= BS3_REGISTER_REGISTER_MASK;
-        else if (uReg == FSxBX)
-            uRegNum = BX;
-        else if (uReg == FSxDI)
-            uRegNum = DI;
+        if (uReg == FSxBX || uReg == FSxDI || uRegSet <= BS3_REGISTER_FAMILY_64BIT)
+            uRegNum = BS3_REGISTER_MEMREF_TO(uReg);
         else
             uRegNum = 255; /* Fall through to error handling below to complain about 'FSxZMM31' or whatever */
         uRegSet = BS3_REGISTER_FAMILY_MEMREF;

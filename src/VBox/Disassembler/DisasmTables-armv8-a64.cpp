@@ -612,9 +612,28 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LogShiftRegN)
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LogShiftRegN, RT_BIT_32(21), 21);
 
 
-DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(AddSubExtReg)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo */
-DIS_ARMV8_DECODE_MAP_DEFINE_END(AddSubExtReg, RT_BIT_32(24), 24);
+/* ADD/ADDS/SUB/SUBS */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AddSubExtReg)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseOption,        13,  3, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseShiftAmount,   10,  3, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AddSubExtRegS)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseOption,        13,  3, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseShiftAmount,   10,  3, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AddSubExtReg)
+    DIS_ARMV8_OP(           0x0b200000, "add",             OP_ARMV8_A64_ADD,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x2b200000, "adds",            OP_ARMV8_A64_ADDS,      DISOPTYPE_HARMLESS, AddSubExtRegS),
+    DIS_ARMV8_OP(           0x4b200000, "sub",             OP_ARMV8_A64_SUB,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x6b200000, "subs",            OP_ARMV8_A64_SUBS,      DISOPTYPE_HARMLESS, AddSubExtRegS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AddSubExtReg, 0x7fe00000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, RT_BIT_32(29) | RT_BIT_32(30), 29);
 
 
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(AddSubShiftExtReg)

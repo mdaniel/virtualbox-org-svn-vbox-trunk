@@ -237,6 +237,601 @@ _TestProcA64:
         cmp x0, x1, LSL #1
         cmp w0, w1, LSL #1
 
+        ; Add/Sub extended register
+        add w0, w1, w2
+
+        add x0, x1, x2
+        add sp, sp, xzr
+
+        add w0,  w1,  w2,  UXTB #1
+        add w0,  w1,  w2,  UXTB #2
+        add w0,  w1,  w2,  UXTB #3
+        add w0,  w1,  w2,  UXTB #4
+        add w28, w29, wzr, UXTB #1
+        add w28, w29, wzr, UXTB #2
+        add w28, w29, wzr, UXTB #3
+        add w28, w29, wzr, UXTB #4
+
+        add x0, x1,  w2, UXTB #1
+        add x0, x1,  w2, UXTB #2
+        add x0, x1,  w2, UXTB #3
+        add x0, x1,  w2, UXTB #4
+        add sp, sp, wzr, UXTB #1
+        add sp, sp, wzr, UXTB #2
+        add sp, sp, wzr, UXTB #3
+        add sp, sp, wzr, UXTB #4
+
+        add w0,  w1,  w2,  UXTH #1
+        add w0,  w1,  w2,  UXTH #2
+        add w0,  w1,  w2,  UXTH #3
+        add w0,  w1,  w2,  UXTH #4
+        add w28, w29, wzr, UXTH #1
+        add w28, w29, wzr, UXTH #2
+        add w28, w29, wzr, UXTH #3
+        add w28, w29, wzr, UXTH #4
+
+        add x0, x1,  w2, UXTH #1
+        add x0, x1,  w2, UXTH #2
+        add x0, x1,  w2, UXTH #3
+        add x0, x1,  w2, UXTH #4
+        add sp, sp, wzr, UXTH #1
+        add sp, sp, wzr, UXTH #2
+        add sp, sp, wzr, UXTH #3
+        add sp, sp, wzr, UXTH #4
+
+        add w0,  w1,  w2,  UXTW #1
+        add w0,  w1,  w2,  UXTW #2
+        add w0,  w1,  w2,  UXTW #3
+        add w0,  w1,  w2,  UXTW #4
+        add w28, w29, wzr, UXTW #1
+        add w28, w29, wzr, UXTW #2
+        add w28, w29, wzr, UXTW #3
+        add w28, w29, wzr, UXTW #4
+
+        add x0, x1,  w2, UXTW #1
+        add x0, x1,  w2, UXTW #2
+        add x0, x1,  w2, UXTW #3
+        add x0, x1,  w2, UXTW #4
+        add sp, sp, wzr, UXTW #1
+        add sp, sp, wzr, UXTW #2
+        add sp, sp, wzr, UXTW #3
+        add sp, sp, wzr, UXTW #4
+
+        add w0,  w1,  w2,  UXTX #1
+        add w0,  w1,  w2,  UXTX #2
+        add w0,  w1,  w2,  UXTX #3
+        add w0,  w1,  w2,  UXTX #4
+        add w28, w29, wzr, UXTX #1
+        add w28, w29, wzr, UXTX #2
+        add w28, w29, wzr, UXTX #3
+        add w28, w29, wzr, UXTX #4
+
+        add x0, x1,  x2, UXTX #1
+        add x0, x1,  x2, UXTX #2
+        add x0, x1,  x2, UXTX #3
+        add x0, x1,  x2, UXTX #4
+        add sp, sp, xzr, UXTX #1
+        add sp, sp, xzr, UXTX #2
+        add sp, sp, xzr, UXTX #3
+        add sp, sp, xzr, UXTX #4
+
+        add w0,  w1,  w2,  SXTB #1
+        add w0,  w1,  w2,  SXTB #2
+        add w0,  w1,  w2,  SXTB #3
+        add w0,  w1,  w2,  SXTB #4
+        add w28, w29, wzr, SXTB #1
+        add w28, w29, wzr, SXTB #2
+        add w28, w29, wzr, SXTB #3
+        add w28, w29, wzr, SXTB #4
+
+        add x0, x1,  w2, SXTB #1
+        add x0, x1,  w2, SXTB #2
+        add x0, x1,  w2, SXTB #3
+        add x0, x1,  w2, SXTB #4
+        add sp, sp, wzr, SXTB #1
+        add sp, sp, wzr, SXTB #2
+        add sp, sp, wzr, SXTB #3
+        add sp, sp, wzr, SXTB #4
+
+        add w0,  w1,  w2,  SXTH #1
+        add w0,  w1,  w2,  SXTH #2
+        add w0,  w1,  w2,  SXTH #3
+        add w0,  w1,  w2,  SXTH #4
+        add w28, w29, wzr, SXTH #1
+        add w28, w29, wzr, SXTH #2
+        add w28, w29, wzr, SXTH #3
+        add w28, w29, wzr, SXTH #4
+
+        add x0, x1,  w2, SXTH #1
+        add x0, x1,  w2, SXTH #2
+        add x0, x1,  w2, SXTH #3
+        add x0, x1,  w2, SXTH #4
+        add sp, sp, wzr, SXTH #1
+        add sp, sp, wzr, SXTH #2
+        add sp, sp, wzr, SXTH #3
+        add sp, sp, wzr, SXTH #4
+
+        add w0,  w1,  w2,  SXTW #1
+        add w0,  w1,  w2,  SXTW #2
+        add w0,  w1,  w2,  SXTW #3
+        add w0,  w1,  w2,  SXTW #4
+        add w28, w29, wzr, SXTW #1
+        add w28, w29, wzr, SXTW #2
+        add w28, w29, wzr, SXTW #3
+        add w28, w29, wzr, SXTW #4
+
+        add x0, x1,  w2, SXTW #1
+        add x0, x1,  w2, SXTW #2
+        add x0, x1,  w2, SXTW #3
+        add x0, x1,  w2, SXTW #4
+        add sp, sp, wzr, SXTW #1
+        add sp, sp, wzr, SXTW #2
+        add sp, sp, wzr, SXTW #3
+        add sp, sp, wzr, SXTW #4
+
+        add w0,  w1,  w2,  SXTX #1
+        add w0,  w1,  w2,  SXTX #2
+        add w0,  w1,  w2,  SXTX #3
+        add w0,  w1,  w2,  SXTX #4
+        add w28, w29, wzr, SXTX #1
+        add w28, w29, wzr, SXTX #2
+        add w28, w29, wzr, SXTX #3
+        add w28, w29, wzr, SXTX #4
+
+        add x0, x1,  x2, SXTX #1
+        add x0, x1,  x2, SXTX #2
+        add x0, x1,  x2, SXTX #3
+        add x0, x1,  x2, SXTX #4
+        add sp, sp, xzr, SXTX #1
+        add sp, sp, xzr, SXTX #2
+        add sp, sp, xzr, SXTX #3
+        add sp, sp, xzr, SXTX #4
+
+
+        adds w0, w1, w2
+        adds x0, x1, x2
+        adds xzr, sp, x2
+
+        adds w0,  w1,  w2,  UXTB #1
+        adds w0,  w1,  w2,  UXTB #2
+        adds w0,  w1,  w2,  UXTB #3
+        adds w0,  w1,  w2,  UXTB #4
+        adds w28, w29, wzr, UXTB #1
+        adds w28, w29, wzr, UXTB #2
+        adds w28, w29, wzr, UXTB #3
+        adds w28, w29, wzr, UXTB #4
+
+        adds x0, x1,  w2, UXTB #1
+        adds x0, x1,  w2, UXTB #2
+        adds x0, x1,  w2, UXTB #3
+        adds x0, x1,  w2, UXTB #4
+        adds xzr, sp, wzr, UXTB #1
+        adds xzr, sp, wzr, UXTB #2
+        adds xzr, sp, wzr, UXTB #3
+        adds xzr, sp, wzr, UXTB #4
+
+        adds w0,  w1,  w2,  UXTH #1
+        adds w0,  w1,  w2,  UXTH #2
+        adds w0,  w1,  w2,  UXTH #3
+        adds w0,  w1,  w2,  UXTH #4
+        adds w28, w29, wzr, UXTH #1
+        adds w28, w29, wzr, UXTH #2
+        adds w28, w29, wzr, UXTH #3
+        adds w28, w29, wzr, UXTH #4
+
+        adds x0, x1,  w2, UXTH #1
+        adds x0, x1,  w2, UXTH #2
+        adds x0, x1,  w2, UXTH #3
+        adds x0, x1,  w2, UXTH #4
+        adds xzr, sp, wzr, UXTH #1
+        adds xzr, sp, wzr, UXTH #2
+        adds xzr, sp, wzr, UXTH #3
+        adds xzr, sp, wzr, UXTH #4
+
+        adds w0,  w1,  w2,  UXTW #1
+        adds w0,  w1,  w2,  UXTW #2
+        adds w0,  w1,  w2,  UXTW #3
+        adds w0,  w1,  w2,  UXTW #4
+        adds w28, w29, wzr, UXTW #1
+        adds w28, w29, wzr, UXTW #2
+        adds w28, w29, wzr, UXTW #3
+        adds w28, w29, wzr, UXTW #4
+
+        adds x0, x1,  w2, UXTW #1
+        adds x0, x1,  w2, UXTW #2
+        adds x0, x1,  w2, UXTW #3
+        adds x0, x1,  w2, UXTW #4
+        adds xzr, sp, wzr, UXTW #1
+        adds xzr, sp, wzr, UXTW #2
+        adds xzr, sp, wzr, UXTW #3
+        adds xzr, sp, wzr, UXTW #4
+
+        adds w0,  w1,  w2,  UXTX #1
+        adds w0,  w1,  w2,  UXTX #2
+        adds w0,  w1,  w2,  UXTX #3
+        adds w0,  w1,  w2,  UXTX #4
+        adds w28, w29, wzr, UXTX #1
+        adds w28, w29, wzr, UXTX #2
+        adds w28, w29, wzr, UXTX #3
+        adds w28, w29, wzr, UXTX #4
+
+        adds x0, x1,  x2, UXTX #1
+        adds x0, x1,  x2, UXTX #2
+        adds x0, x1,  x2, UXTX #3
+        adds x0, x1,  x2, UXTX #4
+        adds xzr, sp, xzr, UXTX #1
+        adds xzr, sp, xzr, UXTX #2
+        adds xzr, sp, xzr, UXTX #3
+        adds xzr, sp, xzr, UXTX #4
+
+        adds w0,  w1,  w2,  SXTB #1
+        adds w0,  w1,  w2,  SXTB #2
+        adds w0,  w1,  w2,  SXTB #3
+        adds w0,  w1,  w2,  SXTB #4
+        adds w28, w29, wzr, SXTB #1
+        adds w28, w29, wzr, SXTB #2
+        adds w28, w29, wzr, SXTB #3
+        adds w28, w29, wzr, SXTB #4
+
+        adds x0, x1,  w2, SXTB #1
+        adds x0, x1,  w2, SXTB #2
+        adds x0, x1,  w2, SXTB #3
+        adds x0, x1,  w2, SXTB #4
+        adds xzr, sp, wzr, SXTB #1
+        adds xzr, sp, wzr, SXTB #2
+        adds xzr, sp, wzr, SXTB #3
+        adds xzr, sp, wzr, SXTB #4
+
+        adds w0,  w1,  w2,  SXTH #1
+        adds w0,  w1,  w2,  SXTH #2
+        adds w0,  w1,  w2,  SXTH #3
+        adds w0,  w1,  w2,  SXTH #4
+        adds w28, w29, wzr, SXTH #1
+        adds w28, w29, wzr, SXTH #2
+        adds w28, w29, wzr, SXTH #3
+        adds w28, w29, wzr, SXTH #4
+
+        adds x0, x1,  w2, SXTH #1
+        adds x0, x1,  w2, SXTH #2
+        adds x0, x1,  w2, SXTH #3
+        adds x0, x1,  w2, SXTH #4
+        adds xzr, sp, wzr, SXTH #1
+        adds xzr, sp, wzr, SXTH #2
+        adds xzr, sp, wzr, SXTH #3
+        adds xzr, sp, wzr, SXTH #4
+
+        adds w0,  w1,  w2,  SXTW #1
+        adds w0,  w1,  w2,  SXTW #2
+        adds w0,  w1,  w2,  SXTW #3
+        adds w0,  w1,  w2,  SXTW #4
+        adds w28, w29, wzr, SXTW #1
+        adds w28, w29, wzr, SXTW #2
+        adds w28, w29, wzr, SXTW #3
+        adds w28, w29, wzr, SXTW #4
+
+        adds x0, x1,  w2, SXTW #1
+        adds x0, x1,  w2, SXTW #2
+        adds x0, x1,  w2, SXTW #3
+        adds x0, x1,  w2, SXTW #4
+        adds xzr, sp, wzr, SXTW #1
+        adds xzr, sp, wzr, SXTW #2
+        adds xzr, sp, wzr, SXTW #3
+        adds xzr, sp, wzr, SXTW #4
+
+        adds w0,  w1,  w2,  SXTX #1
+        adds w0,  w1,  w2,  SXTX #2
+        adds w0,  w1,  w2,  SXTX #3
+        adds w0,  w1,  w2,  SXTX #4
+        adds w28, w29, wzr, SXTX #1
+        adds w28, w29, wzr, SXTX #2
+        adds w28, w29, wzr, SXTX #3
+        adds w28, w29, wzr, SXTX #4
+
+        adds x0, x1,  x2, SXTX #1
+        adds x0, x1,  x2, SXTX #2
+        adds x0, x1,  x2, SXTX #3
+        adds x0, x1,  x2, SXTX #4
+        adds xzr, sp, xzr, SXTX #1
+        adds xzr, sp, xzr, SXTX #2
+        adds xzr, sp, xzr, SXTX #3
+        adds xzr, sp, xzr, SXTX #4
+
+
+        sub w0, w1, w2
+
+        sub w0,  w1,  w2,  UXTB #1
+        sub w0,  w1,  w2,  UXTB #2
+        sub w0,  w1,  w2,  UXTB #3
+        sub w0,  w1,  w2,  UXTB #4
+        sub w28, w29, wzr, UXTB #1
+        sub w28, w29, wzr, UXTB #2
+        sub w28, w29, wzr, UXTB #3
+        sub w28, w29, wzr, UXTB #4
+
+        sub x0, x1,  w2, UXTB #1
+        sub x0, x1,  w2, UXTB #2
+        sub x0, x1,  w2, UXTB #3
+        sub x0, x1,  w2, UXTB #4
+        sub sp, sp, wzr, UXTB #1
+        sub sp, sp, wzr, UXTB #2
+        sub sp, sp, wzr, UXTB #3
+        sub sp, sp, wzr, UXTB #4
+
+        sub w0,  w1,  w2,  UXTH #1
+        sub w0,  w1,  w2,  UXTH #2
+        sub w0,  w1,  w2,  UXTH #3
+        sub w0,  w1,  w2,  UXTH #4
+        sub w28, w29, wzr, UXTH #1
+        sub w28, w29, wzr, UXTH #2
+        sub w28, w29, wzr, UXTH #3
+        sub w28, w29, wzr, UXTH #4
+
+        sub x0, x1,  w2, UXTH #1
+        sub x0, x1,  w2, UXTH #2
+        sub x0, x1,  w2, UXTH #3
+        sub x0, x1,  w2, UXTH #4
+        sub sp, sp, wzr, UXTH #1
+        sub sp, sp, wzr, UXTH #2
+        sub sp, sp, wzr, UXTH #3
+        sub sp, sp, wzr, UXTH #4
+
+        sub w0,  w1,  w2,  UXTW #1
+        sub w0,  w1,  w2,  UXTW #2
+        sub w0,  w1,  w2,  UXTW #3
+        sub w0,  w1,  w2,  UXTW #4
+        sub w28, w29, wzr, UXTW #1
+        sub w28, w29, wzr, UXTW #2
+        sub w28, w29, wzr, UXTW #3
+        sub w28, w29, wzr, UXTW #4
+
+        sub x0, x1,  w2, UXTW #1
+        sub x0, x1,  w2, UXTW #2
+        sub x0, x1,  w2, UXTW #3
+        sub x0, x1,  w2, UXTW #4
+        sub sp, sp, wzr, UXTW #1
+        sub sp, sp, wzr, UXTW #2
+        sub sp, sp, wzr, UXTW #3
+        sub sp, sp, wzr, UXTW #4
+
+        sub w0,  w1,  w2,  UXTX #1
+        sub w0,  w1,  w2,  UXTX #2
+        sub w0,  w1,  w2,  UXTX #3
+        sub w0,  w1,  w2,  UXTX #4
+        sub w28, w29, wzr, UXTX #1
+        sub w28, w29, wzr, UXTX #2
+        sub w28, w29, wzr, UXTX #3
+        sub w28, w29, wzr, UXTX #4
+
+        sub x0, x1,  x2, UXTX #1
+        sub x0, x1,  x2, UXTX #2
+        sub x0, x1,  x2, UXTX #3
+        sub x0, x1,  x2, UXTX #4
+        sub sp, sp, xzr, UXTX #1
+        sub sp, sp, xzr, UXTX #2
+        sub sp, sp, xzr, UXTX #3
+        sub sp, sp, xzr, UXTX #4
+
+        sub w0,  w1,  w2,  SXTB #1
+        sub w0,  w1,  w2,  SXTB #2
+        sub w0,  w1,  w2,  SXTB #3
+        sub w0,  w1,  w2,  SXTB #4
+        sub w28, w29, wzr, SXTB #1
+        sub w28, w29, wzr, SXTB #2
+        sub w28, w29, wzr, SXTB #3
+        sub w28, w29, wzr, SXTB #4
+
+        sub x0, x1,  w2, SXTB #1
+        sub x0, x1,  w2, SXTB #2
+        sub x0, x1,  w2, SXTB #3
+        sub x0, x1,  w2, SXTB #4
+        sub sp, sp, wzr, SXTB #1
+        sub sp, sp, wzr, SXTB #2
+        sub sp, sp, wzr, SXTB #3
+        sub sp, sp, wzr, SXTB #4
+
+        sub w0,  w1,  w2,  SXTH #1
+        sub w0,  w1,  w2,  SXTH #2
+        sub w0,  w1,  w2,  SXTH #3
+        sub w0,  w1,  w2,  SXTH #4
+        sub w28, w29, wzr, SXTH #1
+        sub w28, w29, wzr, SXTH #2
+        sub w28, w29, wzr, SXTH #3
+        sub w28, w29, wzr, SXTH #4
+
+        sub x0, x1,  w2, SXTH #1
+        sub x0, x1,  w2, SXTH #2
+        sub x0, x1,  w2, SXTH #3
+        sub x0, x1,  w2, SXTH #4
+        sub sp, sp, wzr, SXTH #1
+        sub sp, sp, wzr, SXTH #2
+        sub sp, sp, wzr, SXTH #3
+        sub sp, sp, wzr, SXTH #4
+
+        sub w0,  w1,  w2,  SXTW #1
+        sub w0,  w1,  w2,  SXTW #2
+        sub w0,  w1,  w2,  SXTW #3
+        sub w0,  w1,  w2,  SXTW #4
+        sub w28, w29, wzr, SXTW #1
+        sub w28, w29, wzr, SXTW #2
+        sub w28, w29, wzr, SXTW #3
+        sub w28, w29, wzr, SXTW #4
+
+        sub x0, x1,  w2, SXTW #1
+        sub x0, x1,  w2, SXTW #2
+        sub x0, x1,  w2, SXTW #3
+        sub x0, x1,  w2, SXTW #4
+        sub sp, sp, wzr, SXTW #1
+        sub sp, sp, wzr, SXTW #2
+        sub sp, sp, wzr, SXTW #3
+        sub sp, sp, wzr, SXTW #4
+
+        sub w0,  w1,  w2,  SXTX #1
+        sub w0,  w1,  w2,  SXTX #2
+        sub w0,  w1,  w2,  SXTX #3
+        sub w0,  w1,  w2,  SXTX #4
+        sub w28, w29, wzr, SXTX #1
+        sub w28, w29, wzr, SXTX #2
+        sub w28, w29, wzr, SXTX #3
+        sub w28, w29, wzr, SXTX #4
+
+        sub x0, x1,  x2, SXTX #1
+        sub x0, x1,  x2, SXTX #2
+        sub x0, x1,  x2, SXTX #3
+        sub x0, x1,  x2, SXTX #4
+        sub sp, sp, xzr, SXTX #1
+        sub sp, sp, xzr, SXTX #2
+        sub sp, sp, xzr, SXTX #3
+        sub sp, sp, xzr, SXTX #4
+
+
+        subs w0, w1, w2
+        subs x0, sp, xzr
+
+        subs w0,  w1,  w2,  UXTB #1
+        subs w0,  w1,  w2,  UXTB #2
+        subs w0,  w1,  w2,  UXTB #3
+        subs w0,  w1,  w2,  UXTB #4
+        subs w28, w29, wzr, UXTB #1
+        subs w28, w29, wzr, UXTB #2
+        subs w28, w29, wzr, UXTB #3
+        subs w28, w29, wzr, UXTB #4
+
+        subs x0, x1,  w2, UXTB #1
+        subs x0, x1,  w2, UXTB #2
+        subs x0, x1,  w2, UXTB #3
+        subs x0, x1,  w2, UXTB #4
+        subs x28, sp, wzr, UXTB #1 ; targetting xzr would produce an cmp alias instruction
+        subs x28, sp, wzr, UXTB #2
+        subs x28, sp, wzr, UXTB #3
+        subs x28, sp, wzr, UXTB #4
+
+        subs w0,  w1,  w2,  UXTH #1
+        subs w0,  w1,  w2,  UXTH #2
+        subs w0,  w1,  w2,  UXTH #3
+        subs w0,  w1,  w2,  UXTH #4
+        subs w28, w29, wzr, UXTH #1
+        subs w28, w29, wzr, UXTH #2
+        subs w28, w29, wzr, UXTH #3
+        subs w28, w29, wzr, UXTH #4
+
+        subs x0, x1,  w2, UXTH #1
+        subs x0, x1,  w2, UXTH #2
+        subs x0, x1,  w2, UXTH #3
+        subs x0, x1,  w2, UXTH #4
+        subs x28, sp, wzr, UXTH #1
+        subs x28, sp, wzr, UXTH #2
+        subs x28, sp, wzr, UXTH #3
+        subs x28, sp, wzr, UXTH #4
+
+        subs w0,  w1,  w2,  UXTW #1
+        subs w0,  w1,  w2,  UXTW #2
+        subs w0,  w1,  w2,  UXTW #3
+        subs w0,  w1,  w2,  UXTW #4
+        subs w28, w29, wzr, UXTW #1
+        subs w28, w29, wzr, UXTW #2
+        subs w28, w29, wzr, UXTW #3
+        subs w28, w29, wzr, UXTW #4
+
+        subs x0, x1,  w2, UXTW #1
+        subs x0, x1,  w2, UXTW #2
+        subs x0, x1,  w2, UXTW #3
+        subs x0, x1,  w2, UXTW #4
+        subs x28, sp, wzr, UXTW #1
+        subs x28, sp, wzr, UXTW #2
+        subs x28, sp, wzr, UXTW #3
+        subs x28, sp, wzr, UXTW #4
+
+        subs w0,  w1,  w2,  UXTX #1
+        subs w0,  w1,  w2,  UXTX #2
+        subs w0,  w1,  w2,  UXTX #3
+        subs w0,  w1,  w2,  UXTX #4
+        subs w28, w29, wzr, UXTX #1
+        subs w28, w29, wzr, UXTX #2
+        subs w28, w29, wzr, UXTX #3
+        subs w28, w29, wzr, UXTX #4
+
+        subs x0, x1,  x2, UXTX #1
+        subs x0, x1,  x2, UXTX #2
+        subs x0, x1,  x2, UXTX #3
+        subs x0, x1,  x2, UXTX #4
+        subs x28, sp, xzr, UXTX #1
+        subs x28, sp, xzr, UXTX #2
+        subs x28, sp, xzr, UXTX #3
+        subs x28, sp, xzr, UXTX #4
+
+        subs w0,  w1,  w2,  SXTB #1
+        subs w0,  w1,  w2,  SXTB #2
+        subs w0,  w1,  w2,  SXTB #3
+        subs w0,  w1,  w2,  SXTB #4
+        subs w28, w29, wzr, SXTB #1
+        subs w28, w29, wzr, SXTB #2
+        subs w28, w29, wzr, SXTB #3
+        subs w28, w29, wzr, SXTB #4
+
+        subs x0, x1,  w2, SXTB #1
+        subs x0, x1,  w2, SXTB #2
+        subs x0, x1,  w2, SXTB #3
+        subs x0, x1,  w2, SXTB #4
+        subs x28, sp, wzr, SXTB #1
+        subs x28, sp, wzr, SXTB #2
+        subs x28, sp, wzr, SXTB #3
+        subs x28, sp, wzr, SXTB #4
+
+        subs w0,  w1,  w2,  SXTH #1
+        subs w0,  w1,  w2,  SXTH #2
+        subs w0,  w1,  w2,  SXTH #3
+        subs w0,  w1,  w2,  SXTH #4
+        subs w28, w29, wzr, SXTH #1
+        subs w28, w29, wzr, SXTH #2
+        subs w28, w29, wzr, SXTH #3
+        subs w28, w29, wzr, SXTH #4
+
+        subs x0, x1,  w2, SXTH #1
+        subs x0, x1,  w2, SXTH #2
+        subs x0, x1,  w2, SXTH #3
+        subs x0, x1,  w2, SXTH #4
+        subs x28, sp, wzr, SXTH #1
+        subs x28, sp, wzr, SXTH #2
+        subs x28, sp, wzr, SXTH #3
+        subs x28, sp, wzr, SXTH #4
+
+        subs w0,  w1,  w2,  SXTW #1
+        subs w0,  w1,  w2,  SXTW #2
+        subs w0,  w1,  w2,  SXTW #3
+        subs w0,  w1,  w2,  SXTW #4
+        subs w28, w29, wzr, SXTW #1
+        subs w28, w29, wzr, SXTW #2
+        subs w28, w29, wzr, SXTW #3
+        subs w28, w29, wzr, SXTW #4
+
+        subs x0, x1,  w2, SXTW #1
+        subs x0, x1,  w2, SXTW #2
+        subs x0, x1,  w2, SXTW #3
+        subs x0, x1,  w2, SXTW #4
+        subs x28, sp, wzr, SXTW #1
+        subs x28, sp, wzr, SXTW #2
+        subs x28, sp, wzr, SXTW #3
+        subs x28, sp, wzr, SXTW #4
+
+        subs w0,  w1,  w2,  SXTX #1
+        subs w0,  w1,  w2,  SXTX #2
+        subs w0,  w1,  w2,  SXTX #3
+        subs w0,  w1,  w2,  SXTX #4
+        subs w28, w29, wzr, SXTX #1
+        subs w28, w29, wzr, SXTX #2
+        subs w28, w29, wzr, SXTX #3
+        subs w28, w29, wzr, SXTX #4
+
+        subs x0, x1,  x2, SXTX #1
+        subs x0, x1,  x2, SXTX #2
+        subs x0, x1,  x2, SXTX #3
+        subs x0, x1,  x2, SXTX #4
+        subs x28, sp, xzr, SXTX #1
+        subs x28, sp, xzr, SXTX #2
+        subs x28, sp, xzr, SXTX #3
+        subs x28, sp, xzr, SXTX #4
+
+
         ; Logical instructions
         and  x0,  x0,  #0xffff
         and  w0,  wzr, #0xffff

@@ -738,7 +738,7 @@ static int disArmV8ParseOption(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     uint32_t u32Opt = disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits);
 
     Assert(   pParam->armv8.enmExtend == kDisArmv8OpParmExtendNone
-           && (pParam->fUse & DISUSE_INDEX));
+           /*&& (pParam->fUse & DISUSE_INDEX)*/); /* For add/sub extended register. */
     switch (u32Opt)
     {
         case 0: pParam->armv8.enmExtend = kDisArmv8OpParmExtendUxtB; break;
@@ -753,10 +753,18 @@ static int disArmV8ParseOption(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
             AssertFailed();
     }
 
-    /* When option<0> is set to 0, the 32-bit name of the GPR is used, 64-bit when option<0> is set to 1. */
-    pParam->armv8.GprIndex.enmRegType =   RT_BOOL(u32Opt & 0x1)
-                                        ? kDisOpParamArmV8RegType_Gpr_64Bit
-                                        : kDisOpParamArmV8RegType_Gpr_32Bit;
+    /* When option<1:0> is b11, the 64-bit name of the GPR is used, 32-bit otherwise. */
+    if (pParam->fUse & DISUSE_INDEX)
+        pParam->armv8.GprIndex.enmRegType =   (u32Opt & 0x3) == 0x3
+                                            ? kDisOpParamArmV8RegType_Gpr_64Bit
+                                            : kDisOpParamArmV8RegType_Gpr_32Bit;
+    else
+    {
+        Assert(pParam->armv8.enmType == kDisArmv8OpParmReg);
+        pParam->armv8.Op.Reg.enmRegType =   ((u32Opt & 0x3) == 0x3 && *pf64Bit)
+                                          ? kDisOpParamArmV8RegType_Gpr_64Bit
+                                          : kDisOpParamArmV8RegType_Gpr_32Bit;
+    }
     return VINF_SUCCESS;
 }
 

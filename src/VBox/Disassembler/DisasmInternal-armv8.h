@@ -84,6 +84,7 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseFpScale,
     kDisParmParseFpFixupFCvt,
     kDisParmParseSimdRegSize,
+    kDisParmParseSimdRegSize32,
     kDisParmParseSimdRegSize64,
     kDisParmParseSimdRegSize128,
     kDisParmParseSimdRegScalar,

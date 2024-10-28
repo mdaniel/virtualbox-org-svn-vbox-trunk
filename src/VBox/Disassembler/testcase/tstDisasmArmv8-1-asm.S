@@ -1548,6 +1548,19 @@ _TestProcA64:
         ldur q31, [sp, #255]
 
 
+        ldnp s0,   s1, [x0]
+        ldnp s30, s31, [x0, #-256]
+        ldnp s23, s24, [x0, #252]
+
+        ldnp d0,   d1, [x0]
+        ldnp d30, d31, [x0, #-512]
+        ldnp d23, d24, [x0, #504]
+
+        ldnp q0,   q1, [x0]
+        ldnp q30, q31, [x0, #-1024]
+        ldnp q23, q24, [x0, #1008]
+
+
         ; SIMD memory stores
         str b0, [x0]
         str b0, [x0, #4095]
@@ -1724,6 +1737,19 @@ _TestProcA64:
         stur q0,  [sp]
         stur q0,  [sp, #-256]
         stur q31, [sp, #255]
+
+
+        stnp s0,   s1, [x0]
+        stnp s30, s31, [x0, #-256]
+        stnp s23, s24, [x0, #252]
+
+        stnp d0,   d1, [x0]
+        stnp d30, d31, [x0, #-512]
+        stnp d23, d24, [x0, #504]
+
+        stnp q0,   q1, [x0]
+        stnp q30, q31, [x0, #-1024]
+        stnp q23, q24, [x0, #1008]
 
 
         ; Add/subtract with carry

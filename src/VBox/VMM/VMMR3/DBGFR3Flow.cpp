@@ -250,8 +250,9 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsUncondJmp(uint16_t uOpc, PDBGFDISSTATE
  *
  * @returns Flag whether the given instruction is a call.
  * @param   uOpc        The opcode value from the disassembler.
+ * @param   fOpType     The opcode type flags for the given opcode.
  */
-DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc)
+DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc, uint32_t fOpType)
 {
 #ifdef VBOX_VMM_TARGET_ARMV8
     if (   uOpc == OP_ARMV8_A64_BL
@@ -262,8 +263,13 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc)
         || uOpc == OP_ARMV8_A64_BLRABZ)
         return true;
 
+    /* Treat instructions like svc/hvc as calls. */
+    if (fOpType & DISOPTYPE_INTERRUPT)
+        return true;
+
     return false;
 #else
+    RT_NOREF(fOpType);
     return uOpc == OP_CALL;
 #endif
 }
@@ -1317,7 +1323,7 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                 {
                     uint16_t uOpc = DisState.pCurInstr->uOpcode;
 
-                    if (dbgfR3FlowDisOpcIsCall(uOpc))
+                    if (dbgfR3FlowDisOpcIsCall(uOpc, DisState.pCurInstr->fOpType))
                         pThis->cCallInsns++;
 
                     if (dbgfR3FlowDisOpcIsExit(uOpc))
@@ -1368,7 +1374,7 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                                                               pFlowBb->pFlowBranchTbl);
                         }
                     }
-                    else if (!dbgfR3FlowDisOpcIsCall(uOpc))
+                    else if (!dbgfR3FlowDisOpcIsCall(uOpc, DisState.pCurInstr->fOpType))
                     {
                         Assert(DisState.pCurInstr->fOpType & DISOPTYPE_COND_CONTROLFLOW);
                         pFlowBb->enmEndType = DBGFFLOWBBENDTYPE_COND;
@@ -1426,7 +1432,7 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                         dbgfR3FlowBbSetError(pFlowBb, rc, "Adding successor blocks failed with %Rrc", rc);
 
                     /* Quit disassembling. */
-                    if (   (   !dbgfR3FlowDisOpcIsCall(uOpc)
+                    if (   (   !dbgfR3FlowDisOpcIsCall(uOpc, DisState.pCurInstr->fOpType)
                             || (pThis->fFlags & DBGF_FLOW_CREATE_F_CALL_INSN_SEPARATE_BB))
                         || RT_FAILURE(rc))
                         break;

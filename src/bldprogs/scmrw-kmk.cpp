@@ -738,8 +738,8 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
     size_t const offContIndent = pszDst - pParser->szBuf;
 
     /*
-     * Skip spaces after the opening parenthesis. 
-     *  
+     * Skip spaces after the opening parenthesis.
+     *
      * Note! We don't support/grok any line continuation stuff here.
      */
     while (offSrc < cchLine && RT_C_IS_BLANK(pchLine[offSrc]))
@@ -747,9 +747,9 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
 
     /*
      * Work up to the ',' separator.  It shall likewise not be preceeded by any spaces.
-     * Need to take $(func 1,2,3) calls into account here, so we trac () and {} while 
-     * skipping ahead. 
-     *  
+     * Need to take $(func 1,2,3) calls into account here, so we trac () and {} while
+     * skipping ahead.
+     *
      * Note! We don't support/grok any line continuation stuff here.
      */
     if (pchLine[offSrc] != ',')

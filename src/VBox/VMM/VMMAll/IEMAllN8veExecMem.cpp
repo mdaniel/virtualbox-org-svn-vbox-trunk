@@ -1363,9 +1363,9 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
 
 #  elif defined(RT_ARCH_ARM64)
     /*
-     * The ARM64 unwind codes. 
-     *  
-     * See https://learn.microsoft.com/en-us/cpp/build/arm64-exception-handling?view=msvc-170 
+     * The ARM64 unwind codes.
+     *
+     * See https://learn.microsoft.com/en-us/cpp/build/arm64-exception-handling?view=msvc-170
      */
     static const uint8_t s_abOpcodes[] =
     {

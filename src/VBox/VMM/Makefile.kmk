@@ -727,7 +727,7 @@ ifdef VBOX_WITH_IEM_RECOMPILER
   endif
 
   # Set up the dependencies.
-  $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.o:   $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
+  $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.o: $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
   $(VBoxVMM_0_OUTDIR)/VMMAll/IEMAllN8veHlpA-arm64.obj: $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMAssemblyOffsets.h
  endif
 

@@ -606,6 +606,25 @@ DECLINLINE(int) nemR3DarwinHvSts2Rc(hv_return_t hrc)
 }
 
 
+/** Puts a name to a hypervisor framework status code. */
+static const char *nemR3DarwinHvStatusName(hv_return_t hrc)
+{
+    switch (hrc)
+    {
+        RT_CASE_RET_STR(HV_SUCCESS);
+        RT_CASE_RET_STR(HV_ERROR);
+        RT_CASE_RET_STR(HV_BUSY);
+        RT_CASE_RET_STR(HV_BAD_ARGUMENT);
+        RT_CASE_RET_STR(HV_ILLEGAL_GUEST_STATE);
+        RT_CASE_RET_STR(HV_NO_RESOURCES);
+        RT_CASE_RET_STR(HV_NO_DEVICE);
+        RT_CASE_RET_STR(HV_DENIED);
+        RT_CASE_RET_STR(HV_UNSUPPORTED);
+    }
+    return "";
+}
+
+
 /**
  * Returns a human readable string of the given exception class.
  *
@@ -1063,23 +1082,14 @@ static int nemR3DarwinLoadHv(PRTERRINFO pErrInfo)
         {
             int rc2 = RTLdrGetSymbol(hMod, g_aImports[i].pszName, (void **)g_aImports[i].ppfn);
             if (RT_SUCCESS(rc2))
-            {
-                LogRel(("NEM:  info: Found optional import Hypervisor!%s.\n",
-                        g_aImports[i].pszName));
-            }
+                LogRel(("NEM:  info: Found optional import Hypervisor!%s.\n", g_aImports[i].pszName));
             else
             {
                 *g_aImports[i].ppfn = NULL;
-
-                LogRel(("NEM:  info: Failed to import Hypervisor!%s: %Rrc\n",
-                        g_aImports[i].pszName, rc2));
+                LogRel(("NEM:  info: Optional import Hypervisor!%s not found: %Rrc\n", g_aImports[i].pszName, rc2));
             }
         }
-        if (RT_SUCCESS(rc))
-        {
-            Assert(!RTErrInfoIsSet(pErrInfo));
-        }
-
+        Assert(RT_SUCCESS(rc) && !RTErrInfoIsSet(pErrInfo));
         RTLdrClose(hMod);
     }
     else
@@ -1242,15 +1252,19 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
     /* Resolve optional imports */
     int rc = nemR3DarwinLoadHv(pErrInfo);
     if (RT_FAILURE(rc))
+    {
+        if ((fForced || !fFallback) && RTErrInfoIsSet(pErrInfo))
+            return VMSetError(pVM, rc, RT_SRC_POS, "%s", pErrInfo->pszMsg);
         return rc;
+    }
 
     /*
      * Need to enable nested virt here if supported and reset the CFGM value to false
      * if not supported. This ASSUMES that NEM is initialized before CPUM.
      */
     PCFGMNODE pCfgCpum = CFGMR3GetChild(CFGMR3GetRoot(pVM), "CPUM/");
-    hv_vm_config_t hVmCfg = NULL;
 
+    hv_vm_config_t hVmCfg = NULL;
     if (   hv_vm_config_create
         && hv_vm_config_get_el2_supported)
     {
@@ -1273,12 +1287,9 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
                 hrc = hv_vm_config_set_el2_enabled(hVmCfg, fNestedHWVirt);
                 if (hrc != HV_SUCCESS)
                     return VMSetError(pVM, VERR_CPUM_INVALID_HWVIRT_CONFIG, RT_SRC_POS,
-                                      "Cannot enable nested virtualization (hrc=%#x)!\n", hrc);
-                else
-                {
-                    pVM->nem.s.fEl2Enabled = true;
-                    LogRel(("NEM: Enabled nested virtualization (EL2) support\n"));
-                }
+                                      "Cannot enable nested virtualization: hrc=%#x %s!\n", hrc, nemR3DarwinHvStatusName(hrc));
+                pVM->nem.s.fEl2Enabled = true;
+                LogRel(("NEM: Enabled nested virtualization (EL2) support\n"));
             }
         }
         else
@@ -1310,10 +1321,10 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
         VM_SET_MAIN_EXECUTION_ENGINE(pVM, VM_EXEC_ENGINE_NATIVE_API);
         Log(("NEM: Marked active!\n"));
         PGMR3EnableNemMode(pVM);
+        return VINF_SUCCESS;
     }
-    else
-        rc = RTErrInfoSetF(pErrInfo, VERR_NEM_INIT_FAILED,
-                           "hv_vm_create() failed: %#x", hrc);
+
+    rc = RTErrInfoSetF(pErrInfo, VERR_NEM_INIT_FAILED, "hv_vm_create() failed: %#x %s", hrc, nemR3DarwinHvStatusName(hrc));
 
     /*
      * We only fail if in forced mode, otherwise just log the complaint and return.

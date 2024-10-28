@@ -665,10 +665,11 @@ static bool scmKmkTailComment(KMKPARSER *pParser, const char *pchLine, size_t cc
  */
 static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTOKEN enmToken, size_t cchToken, bool fElse)
 {
-    const char * const pchLine   = pParser->pchLine;
-    size_t  const      cchLine   = pParser->cchLine;
+    const char        *pchLine   = pParser->pchLine;
+    size_t             cchLine   = pParser->cchLine;
     uint32_t const     cchIndent = pParser->iActualDepth
                                  - (fElse && pParser->iActualDepth > 0 && !pParser->aDepth[pParser->iDepth - 1].fIgnoreNesting);
+    const char * const pchToken = &pchLine[offToken];
 
     /*
      * Push it onto the stack.  All these nestings are relevant.
@@ -687,15 +688,22 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
     /*
      * We do not allow line continuation for these.
      */
+    uint32_t cLines         = 1;
+    size_t   cchMaxLeadWord = 0;
+    size_t   cchTotalLine   = cchLine;
     if (scmKmkIsLineWithContinuation(pchLine, cchLine))
-        return scmKmkGiveUp(pParser, "Line continuation not allowed with '%.*s' directive.", cchToken, &pchLine[offToken]);
+    {
+        if (enmToken != kKmkToken_if1of  && enmToken != kKmkToken_ifn1of)
+            return scmKmkGiveUp(pParser, "Line continuation not allowed with '%.*s' directive.", cchToken, pchToken);
+        cchTotalLine = scmKmkLineContinuationPeek(pParser, &cLines, &cchMaxLeadWord);
+    }
 
     /*
      * We stage the modified line in the buffer, so check that the line isn't
      * too long (it seriously should be).
      */
-    if (cchLine + cchIndent + 32 > sizeof(pParser->szBuf))
-        return scmKmkGiveUp(pParser, "Line too long for a '%.*s' directive: %u chars", cchToken, &pchLine[offToken], cchLine);
+    if (cchTotalLine + cchIndent + 32 > sizeof(pParser->szBuf))
+        return scmKmkGiveUp(pParser, "Line too long for a '%.*s' directive: %u chars", cchToken, pchToken, cchTotalLine);
     char *pszDst = pParser->szBuf;
 
     /*
@@ -707,7 +715,7 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
     if (fElse)
         pszDst = (char *)mempcpy(pszDst, RT_STR_TUPLE("else "));
 
-    memcpy(pszDst, &pchLine[offToken], cchToken);
+    memcpy(pszDst, pchToken, cchToken);
     pszDst += cchToken;
 
     size_t offSrc = offToken + cchToken;
@@ -722,29 +730,34 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
         while (offSrc < cchLine && RT_C_IS_BLANK(pchLine[offSrc]))
             offSrc++;
         if (pchLine[offSrc] != '(')
-            return scmKmkGiveUp(pParser, "Expected '(' to follow '%.*s'", cchToken, &pchLine[offToken]);
+            return scmKmkGiveUp(pParser, "Expected '(' to follow '%.*s'", cchToken, pchToken);
         offSrc++;
     }
     *pszDst++ = ' ';
     *pszDst++ = '(';
+    size_t const offContIndent = pszDst - pParser->szBuf;
 
     /*
-     * Skip spaces after the opening parenthesis.
+     * Skip spaces after the opening parenthesis. 
+     *  
+     * Note! We don't support/grok any line continuation stuff here.
      */
     while (offSrc < cchLine && RT_C_IS_BLANK(pchLine[offSrc]))
         offSrc++;
 
     /*
      * Work up to the ',' separator.  It shall likewise not be preceeded by any spaces.
-     * Need to take $(func 1,2,3) calls into account here, so we trac () and {} while
-     * skipping ahead.
+     * Need to take $(func 1,2,3) calls into account here, so we trac () and {} while 
+     * skipping ahead. 
+     *  
+     * Note! We don't support/grok any line continuation stuff here.
      */
     if (pchLine[offSrc] != ',')
     {
         size_t const offSrcStart = offSrc;
         offSrc = scmKmkSkipExpString(pchLine, cchLine, offSrc, ',');
         if (pchLine[offSrc] != ',')
-            return scmKmkGiveUp(pParser, "Expected ',' somewhere after '%.*s('", cchToken, &pchLine[offToken]);
+            return scmKmkGiveUp(pParser, "Expected ',' somewhere after '%.*s('", cchToken, pchToken);
 
         size_t cchCopy = offSrc - offSrcStart;
         while (cchCopy > 0 && RT_C_IS_BLANK(pchLine[offSrcStart + cchCopy - 1]))
@@ -754,7 +767,7 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
     }
     /* 'if1of(, stuff)' does not make sense in committed code: */
     else if (enmToken == kKmkToken_if1of || enmToken == kKmkToken_ifn1of)
-        return scmKmkGiveUp(pParser, "Left set cannot be empty for '%.*s'", cchToken, &pchLine[offToken]);
+        return scmKmkGiveUp(pParser, "Left set cannot be empty for '%.*s'", cchToken, pchToken);
     offSrc++;
     *pszDst++ = ',';
 
@@ -763,31 +776,49 @@ static bool scmKmkHandleIfParentheses(KMKPARSER *pParser, size_t offToken, KMKTO
      * ifneq shall not have any blanks.  This is to help tell them apart.
      */
     if (enmToken == kKmkToken_if1of || enmToken == kKmkToken_ifn1of)
-    {
         *pszDst++ = ' ';
-        if (pchLine[offSrc] == ' ')
-            offSrc++;
-    }
     while (offSrc < cchLine && RT_C_IS_BLANK(pchLine[offSrc]))
         offSrc++;
 
     if (pchLine[offSrc] != ')')
     {
-        size_t const offSrcStart = offSrc;
-        offSrc = scmKmkSkipExpString(pchLine, cchLine, offSrc, ')');
-        if (pchLine[offSrc] != ')')
-            return scmKmkGiveUp(pParser, "No closing parenthesis for '%.*s'?", cchToken, &pchLine[offToken]);
+        do
+        {
+            if (pchLine[offSrc] == '\\' && offSrc + 1 == cchLine)
+            {
+                *pszDst++ = ' ';
+                *pszDst++ = '\\';
+                *pszDst   = '\0';
+                ScmStreamPutLine(pParser->pOut, pParser->szBuf, pszDst - pParser->szBuf, pParser->enmEol);
+                pszDst = pParser->szBuf;
 
-        size_t cchCopy = offSrc - offSrcStart;
-        while (cchCopy > 0 && RT_C_IS_BLANK(pchLine[offSrcStart + cchCopy - 1]))
-            cchCopy--;
+                memset(pszDst, ' ', offContIndent);
+                pszDst += offContIndent;
 
-        pszDst = (char *)mempcpy(pszDst, &pchLine[offSrcStart], cchCopy);
+                pParser->pchLine = pchLine = ScmStreamGetLine(pParser->pIn, &pParser->cchLine, &pParser->enmEol);
+                cchLine = pParser->cchLine;
+                offSrc = 0;
+                while (offSrc < cchLine && RT_C_IS_BLANK(pchLine[offSrc]))
+                    offSrc++;
+                cLines -= 1;
+            }
+
+            size_t const offSrcStart = offSrc;
+            offSrc = scmKmkSkipExpString(pchLine, cLines <= 1 ? cchLine : cchLine - 1, offSrc, ')');
+            if (pchLine[offSrc] != ')' && cLines <= 1)
+                return scmKmkGiveUp(pParser, "No closing parenthesis for '%.*s'?", cchToken, pchToken);
+
+            size_t cchCopy = offSrc - offSrcStart;
+            while (cchCopy > 0 && RT_C_IS_BLANK(pchLine[offSrcStart + cchCopy - 1]))
+                cchCopy--;
+
+            pszDst = (char *)mempcpy(pszDst, &pchLine[offSrcStart], cchCopy);
+        } while (offSrc + 1 == cchLine && pchLine[offSrc] == '\\');
     }
     /* 'if1of(stuff, )' does not make sense in committed code: */
     else if (   (enmToken == kKmkToken_if1of || enmToken == kKmkToken_ifn1of)
              && !scmKmkHasCommentMarker(pchLine, cchLine, offSrc, RT_STR_TUPLE("scm:ignore-empty-if1of-set")))
-        return scmKmkGiveUp(pParser, "Right set cannot be empty for '%.*s'", cchToken, &pchLine[offToken]);
+        return scmKmkGiveUp(pParser, "Right set cannot be empty for '%.*s'", cchToken, pchToken);
     offSrc++;
     *pszDst++ = ')';
 
@@ -841,7 +872,7 @@ static bool scmKmkHandleIfSpace(KMKPARSER *pParser, size_t offToken, KMKTOKEN en
     }
 
     /*
-     * We do not allow line continuation for these.
+     * We do not allow line continuation for ifdef and ifndef, only if.
      */
     uint32_t cLines         = 1;
     size_t   cchMaxLeadWord = 0;

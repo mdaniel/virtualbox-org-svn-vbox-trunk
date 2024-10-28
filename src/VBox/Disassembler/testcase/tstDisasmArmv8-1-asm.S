@@ -1079,6 +1079,51 @@ _TestProcA64:
         ldrsw x0, [sp, w2, UXTW #2]
         ldrsw x0, [sp, w2, SXTW #2]
 
+
+        ; FEAT_PAuth memory loads
+
+        ldraa x0, [x1]
+        ldraa x0, [x1, #-1024]
+        ldraa x0, [x1, #-4096]
+        ldraa x0, [x1, #4088]
+
+        ldraa xzr, [sp]
+        ldraa xzr, [sp, #-1024]
+        ldraa xzr, [sp, #-4096]
+        ldraa xzr, [sp, #4088]
+
+        ldraa x0, [x1, #0]!
+        ldraa x0, [x1, #-1024]!
+        ldraa x0, [x1, #-4096]!
+        ldraa x0, [x1, #4088]!
+
+        ldraa xzr, [sp, #0]!
+        ldraa xzr, [sp, #-1024]!
+        ldraa xzr, [sp, #-4096]!
+        ldraa xzr, [sp, #4088]!
+
+
+        ldrab x0, [x1]
+        ldrab x0, [x1, #-1024]
+        ldrab x0, [x1, #-4096]
+        ldrab x0, [x1, #4088]
+
+        ldrab xzr, [sp]
+        ldrab xzr, [sp, #-1024]
+        ldrab xzr, [sp, #-4096]
+        ldrab xzr, [sp, #4088]
+
+        ldrab x0, [x1, #0]!
+        ldrab x0, [x1, #-1024]!
+        ldrab x0, [x1, #-4096]!
+        ldrab x0, [x1, #4088]!
+
+        ldrab xzr, [sp, #0]!
+        ldrab xzr, [sp, #-1024]!
+        ldrab xzr, [sp, #-4096]!
+        ldrab xzr, [sp, #4088]!
+
+
         ; Memory stores
         strb w0, [x28]
         strb w0, [x28, #1]

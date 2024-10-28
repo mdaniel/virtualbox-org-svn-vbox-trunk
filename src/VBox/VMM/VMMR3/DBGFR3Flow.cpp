@@ -212,6 +212,95 @@ static void dbgfR3FlowBranchTblDestroy(PDBGFFLOWBRANCHTBLINT pFlowBranchTbl);
 
 
 /**
+ * Returns whether the given opcode and disassembler state denote an unconditional jump instruction.
+ *
+ * @returns Flag whether the given instruction is an unconditional jump.
+ * @param   uOpc        The opcode value from the disassembler.
+ * @param   pDis        The disassembler state.
+ */
+DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsUncondJmp(uint16_t uOpc, PDBGFDISSTATE pDis)
+{
+#ifdef VBOX_VMM_TARGET_ARMV8
+    if (   uOpc == OP_ARMV8_A64_BR
+        || uOpc == OP_ARMV8_A64_BRAAZ
+        || uOpc == OP_ARMV8_A64_BRABZ
+        || uOpc == OP_ARMV8_A64_BRAA
+        || uOpc == OP_ARMV8_A64_BRAB)
+        return true;
+
+    /* B and BC are special because only the al condition is unconditional. */
+    if (   uOpc == OP_ARMV8_A64_B
+        || uOpc == OP_ARMV8_A64_BC)
+    {
+        return    pDis->armv8.enmCond == kDisArmv8InstrCond_Al
+               || pDis->armv8.enmCond == kDisArmv8InstrCond_Al1;
+    }
+
+    return false;
+#else
+    RT_NOREF(pDis);
+
+    return uOpc == OP_JMP;
+#endif
+}
+
+
+/**
+ * Returns whether the given opcode denotes a call/branch and link instruction.
+ *
+ * @returns Flag whether the given instruction is a call.
+ * @param   uOpc        The opcode value from the disassembler.
+ */
+DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc)
+{
+#ifdef VBOX_VMM_TARGET_ARMV8
+    if (   uOpc == OP_ARMV8_A64_BL
+        || uOpc == OP_ARMV8_A64_BLR
+        || uOpc == OP_ARMV8_A64_BLRAA
+        || uOpc == OP_ARMV8_A64_BLRAB
+        || uOpc == OP_ARMV8_A64_BLRAAZ
+        || uOpc == OP_ARMV8_A64_BLRABZ)
+        return true;
+
+    return false;
+#else
+    return uOpc == OP_CALL;
+#endif
+}
+
+
+/**
+ * Returns whether the given opcode denotes a function/exception return.
+ *
+ * @returns Flag whether the given instruction is a return.
+ * @param   uOpc        The opcode value from the disassembler.
+ */
+DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsExit(uint16_t uOpc)
+{
+#ifdef VBOX_VMM_TARGET_ARMV8
+    if (   uOpc == OP_ARMV8_A64_RET
+        || uOpc == OP_ARMV8_A64_RETAA
+        || uOpc == OP_ARMV8_A64_RETAB
+        || uOpc == OP_ARMV8_A64_ERET
+        || uOpc == OP_ARMV8_A64_ERETAA
+        || uOpc == OP_ARMV8_A64_ERETAB)
+        return true;
+
+    return false;
+#else
+    if (   uOpc == OP_RETN
+        || uOpc == OP_RETF
+        || uOpc == OP_IRET
+        || uOpc == OP_SYSEXIT
+        || uOpc == OP_SYSRET)
+        return true;
+
+    return false;
+#endif
+}
+
+
+/**
  * Checks whether both addresses are equal.
  *
  * @returns true if both addresses point to the same location, false otherwise.
@@ -1228,15 +1317,16 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                 {
                     uint16_t uOpc = DisState.pCurInstr->uOpcode;
 
-                    if (uOpc == OP_CALL)
+                    if (dbgfR3FlowDisOpcIsCall(uOpc))
                         pThis->cCallInsns++;
 
-                    if (   uOpc == OP_RETN || uOpc == OP_RETF || uOpc == OP_IRET
-                        || uOpc == OP_SYSEXIT || uOpc == OP_SYSRET)
+                    if (dbgfR3FlowDisOpcIsExit(uOpc))
                         pFlowBb->enmEndType = DBGFFLOWBBENDTYPE_EXIT;
-                    else if (uOpc == OP_JMP)
+                    else if (dbgfR3FlowDisOpcIsUncondJmp(uOpc, &DisState))
                     {
+#ifndef VBOX_VMM_TARGET_ARMV8 /* This is not true for B/BC on ARMv8 which can be both... */
                         Assert(DisState.pCurInstr->fOpType & DISOPTYPE_UNCOND_CONTROLFLOW);
+#endif
 
                         if (dbgfR3FlowBranchTargetIsIndirect(&DisState.Param1))
                         {
@@ -1278,10 +1368,20 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                                                               pFlowBb->pFlowBranchTbl);
                         }
                     }
-                    else if (uOpc != OP_CALL)
+                    else if (!dbgfR3FlowDisOpcIsCall(uOpc))
                     {
                         Assert(DisState.pCurInstr->fOpType & DISOPTYPE_COND_CONTROLFLOW);
                         pFlowBb->enmEndType = DBGFFLOWBBENDTYPE_COND;
+
+#ifdef VBOX_VMM_TARGET_ARMV8
+                        PDISOPPARAM pParam =   uOpc == OP_ARMV8_A64_B || uOpc == OP_ARMV8_A64_BC
+                                             ? &DisState.Param1
+                                             : uOpc == OP_ARMV8_A64_CBZ || uOpc == OP_ARMV8_A64_CBNZ
+                                             ? &DisState.Param2  /* cbz/cbnz. */
+                                             : &DisState.Param3; /* tbz/tbnz. */
+#else
+                        PDISOPPARAM pParam = &DisState.Param1;
+#endif
 
                         /*
                          * Create two new basic blocks, one with the jump target address
@@ -1292,7 +1392,7 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                                                       pFlowBb->pFlowBranchTbl);
                         if (RT_SUCCESS(rc))
                         {
-                            rc = dbgfR3FlowQueryDirectBranchTarget(pUVM, idCpu, &DisState.Param1, &pInstr->AddrInstr, pInstr->cbInstr,
+                            rc = dbgfR3FlowQueryDirectBranchTarget(pUVM, idCpu, pParam, &pInstr->AddrInstr, pInstr->cbInstr,
                                                                    RT_BOOL(DisState.pCurInstr->fOpType & DISOPTYPE_RELATIVE_CONTROLFLOW),
                                                                    &pFlowBb->AddrTarget);
                             if (RT_SUCCESS(rc))
@@ -1326,7 +1426,7 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                         dbgfR3FlowBbSetError(pFlowBb, rc, "Adding successor blocks failed with %Rrc", rc);
 
                     /* Quit disassembling. */
-                    if (   (   uOpc != OP_CALL
+                    if (   (   !dbgfR3FlowDisOpcIsCall(uOpc)
                             || (pThis->fFlags & DBGF_FLOW_CREATE_F_CALL_INSN_SEPARATE_BB))
                         || RT_FAILURE(rc))
                         break;

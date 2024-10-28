@@ -650,6 +650,11 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
         pDisState->Param2    = State.Dis.aParams[1];
         pDisState->Param3    = State.Dis.aParams[2];
         pDisState->Param4    = State.Dis.aParams[3];
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        memcpy(&pDisState->armv8, &State.Dis.armv8, sizeof(State.Dis.armv8));
+#else
+        memcpy(&pDisState->x86, &State.Dis.x86, sizeof(State.Dis.x86));
+#endif
     }
 
     dbgfR3DisasInstrDone(&State);

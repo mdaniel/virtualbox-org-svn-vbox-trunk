@@ -340,6 +340,29 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegImmPostIndexGpr, 0xffe00c00 /*fFix
                                        RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30) | RT_BIT_32(31), 22);
 
 
+/* SIMD STR/LDR */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRegImmPostIndexSimd)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize,        30,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOffUnscaled, 12,  9, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,      0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStRegImmPostIndexSimd128)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize128,      0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOffUnscaled, 12,  9, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,      0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRegImmPostIndexSimd)
+    DIS_ARMV8_OP(           0x3c000400, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x3c400400, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x3c800400, "str",             OP_ARMV8_A64_STR,       DISOPTYPE_HARMLESS, LdStRegImmPostIndexSimd128), /** @todo size == 0. */
+    DIS_ARMV8_OP_ALT_DECODE(0x3cc00400, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, LdStRegImmPostIndexSimd128), /** @todo size == 0. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegImmPostIndexSimd, 0x3fe00c00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(22) | RT_BIT_32(23), 22);
+
+
 /*
  * C4.1.94.26 - Loads and Stores - Load/Store register (immediate post-indexed) variants
  *
@@ -352,7 +375,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegImmPostIndexGpr, 0xffe00c00 /*fFix
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegImmPostIndex)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegImmPostIndexGpr),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegImmPostIndexSimd),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegImmPostIndex, RT_BIT_32(26), 26);
 
 

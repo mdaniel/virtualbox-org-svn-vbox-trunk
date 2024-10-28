@@ -1414,6 +1414,60 @@ _TestProcA64:
         ccmn x0, x1, #0x3, al
         ccmn w0, w1, #0xf, al
 
+        ccmp x0, #31, #0x3, eq
+        ccmp w0, #30, #0xf, eq
+        ccmp x0, #29, #0x3, ne
+        ccmp w0, #28, #0xf, ne
+        ccmp x0, #27, #0x3, cs
+        ccmp w0, #26, #0xf, cc
+        ccmp x0, #25, #0x3, mi
+        ccmp w0, #24, #0xf, mi
+        ccmp x0, #23, #0x3, pl
+        ccmp w0, #22, #0xf, vs
+        ccmp x0, #21, #0x3, vc
+        ccmp w0, #20, #0xf, vc
+        ccmp x0, #19, #0x3, hi
+        ccmp w0, #18, #0xf, hi
+        ccmp x0, #17, #0x3, ls
+        ccmp w0, #16, #0xf, ls
+        ccmp x0, #15, #0x3, ge
+        ccmp w0, #14, #0xf, ge
+        ccmp x0, #13, #0x3, lt
+        ccmp w0, #12, #0xf, lt
+        ccmp x0, #11, #0x3, gt
+        ccmp w0, #10, #0xf, gt
+        ccmp x0, #9,  #0x3, le
+        ccmp w0, #8,  #0xf, le
+        ccmp x0, #7,  #0x3, al
+        ccmp w0, #0,  #0xf, al
+
+        ccmn x0, #31, #0x3, eq
+        ccmn w0, #30, #0xf, eq
+        ccmn x0, #29, #0x3, ne
+        ccmn w0, #28, #0xf, ne
+        ccmn x0, #27, #0x3, cs
+        ccmn w0, #26, #0xf, cc
+        ccmn x0, #25, #0x3, mi
+        ccmn w0, #24, #0xf, mi
+        ccmn x0, #23, #0x3, pl
+        ccmn w0, #22, #0xf, vs
+        ccmn x0, #21, #0x3, vc
+        ccmn w0, #20, #0xf, vc
+        ccmn x0, #19, #0x3, hi
+        ccmn w0, #18, #0xf, hi
+        ccmn x0, #17, #0x3, ls
+        ccmn w0, #16, #0xf, ls
+        ccmn x0, #15, #0x3, ge
+        ccmn w0, #8,  #0xf, ge
+        ccmn x0, #7,  #0x3, lt
+        ccmn w0, #6,  #0xf, lt
+        ccmn x0, #5,  #0x3, gt
+        ccmn w0, #4,  #0xf, gt
+        ccmn x0, #3,  #0x3, le
+        ccmn w0, #2,  #0xf, le
+        ccmn x0, #1,  #0x3, al
+        ccmn w0, #0,  #0xf, al
+
         msr spsel,   #1
         msr spsel,   #0
         msr daifset, #0

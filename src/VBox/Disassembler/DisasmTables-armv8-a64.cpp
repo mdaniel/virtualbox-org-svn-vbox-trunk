@@ -605,6 +605,20 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(CondCmpReg, 0x7fe00c10 /*fFixedInsn*/,
                                        kDisArmV8OpcDecodeNop, RT_BIT_32(30), 30);
 
 
+/* CCMN/CCMP */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(CondCmpImm)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            31,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          5,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,           16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,            0,  4, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseCond,          12,  4, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(CondCmpImm)
+    DIS_ARMV8_OP(0x3a400800, "ccmn",            OP_ARMV8_A64_CCMN,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0x7a400800, "ccmp",            OP_ARMV8_A64_CCMP,      DISOPTYPE_HARMLESS)
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(CondCmpImm, 0x7fe00c10 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, RT_BIT_32(30), 30);
+
+
 /**
  * C4.1.95 - Data Processing - Register
  *
@@ -613,7 +627,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(CondCmpReg, 0x7fe00c10 /*fFixedInsn*/,
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(CondCmp)
     DIS_ARMV8_DECODE_MAP_ENTRY(CondCmpReg),          /* Conditional compare register */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,              /** @todo Conditional compare immediate */
+    DIS_ARMV8_DECODE_MAP_ENTRY(CondCmpImm),          /* Conditional compare immediate */
 DIS_ARMV8_DECODE_MAP_DEFINE_END(CondCmp, RT_BIT_32(11), 11);
 
 

@@ -64,6 +64,16 @@ _TestProcA64:
 
         ;chkfeat x16 - Not supported by buildbox toolchain
 
+        ; Barrier instructions
+
+        isb #0
+        isb #8
+        isb #15
+
+        sb
+
+        ;tcommit - Requires FEAT_TME
+
         ; Control flow instructions
         svc #0xfefe
         hvc #0xdead
@@ -1521,6 +1531,14 @@ _TestProcA64:
         ; msr svcrza,  #0 Not supported by the toolchain
         ; msr svcrsma, #1 Not supported by the toolchain
         ; msr svcrsma, #0 Not supported by the toolchain
+
+        ; Add/subtract immediate with tags
+
+        ;addg x0, x1, #0, #0       - Requires FEAT_MTE
+        ;addg sp, sp, #1008, #0x0f - Requires FEAT_MTE
+
+        ;subg x0, x1, #0, #0       - Requires FEAT_MTE
+        ;subg sp, sp, #1008, #0x0f - Requires FEAT_MTE
 
         ; Floating Point instructions.
         fmadd  s0, s1, s3, s31

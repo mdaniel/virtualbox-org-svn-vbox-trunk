@@ -176,6 +176,19 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Extract, 0x7fa00000 /*fFixedInsn*/,
                                        kDisArmV8OpcDecodeNop, 0, 0);
 
 
+/* ADD/ADDS/SUB/SUBS - shifted immediate variant */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AddSubImmTags)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,   0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,   5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmX16, 16,  6, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,    10,  4, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AddSubImmTags)
+    DIS_ARMV8_OP(0x91800000, "addg",            OP_ARMV8_A64_ADDG,      DISOPTYPE_HARMLESS), /* FEAT_MTE */
+    DIS_ARMV8_OP(0xd1800000, "subg" ,           OP_ARMV8_A64_SUBG,      DISOPTYPE_HARMLESS), /* FEAT_MTE */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AddSubImmTags, 0xffc0c000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, RT_BIT_32(30), 30);
+
+
 /*
  * C4.1.65 of the ARMv8 architecture reference manual has the following table for the
  * data processing (immediate) instruction classes:
@@ -194,7 +207,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DataProcessingImm)
     DIS_ARMV8_DECODE_MAP_ENTRY(Adr),
     DIS_ARMV8_DECODE_MAP_ENTRY(Adr),
     DIS_ARMV8_DECODE_MAP_ENTRY(AddSubImm),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                 /** @todo Add/subtract immediate with tags. */
+    DIS_ARMV8_DECODE_MAP_ENTRY(AddSubImmTags),
     DIS_ARMV8_DECODE_MAP_ENTRY(LogicalImm),
     DIS_ARMV8_DECODE_MAP_ENTRY(MoveWide),
     DIS_ARMV8_DECODE_MAP_ENTRY(Bitfield),
@@ -296,22 +309,47 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(DecBarriers)
     INVALID_OPCODE,
     DIS_ARMV8_OP(0xd503304f, "clrex",           OP_ARMV8_A64_CLREX,     DISOPTYPE_HARMLESS),
     INVALID_OPCODE,
-    DIS_ARMV8_OP(0xD503309f, "dsb",             OP_ARMV8_A64_DSB,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(0xd503309f, "dsb",             OP_ARMV8_A64_DSB,       DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(0xd50330bf, "dmb",             OP_ARMV8_A64_DMB,       DISOPTYPE_HARMLESS),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(DecBarriers, 0xfffff0ff /*fFixedInsn*/,
                                        kDisArmV8OpcDecodeNop, RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7), 5);
 
 
+/* ISB */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Isb)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImm,            8,  4, 0 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Isb)
+    DIS_ARMV8_OP(0xd50330df, "isb",             OP_ARMV8_A64_ISB,      DISOPTYPE_HARMLESS),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Isb, 0xfffff0ff /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, 0, 0);
+
+
+/* SB */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(Sb)
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Sb)
+    DIS_ARMV8_OP(0xd50330ff, "sb",              OP_ARMV8_A64_SB,       DISOPTYPE_HARMLESS), /* FEAT_SB */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(Sb, 0xffffffff /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, 0, 0);
+
+
+/* TCOMMIT */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(TCommit)
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(TCommit)
+    DIS_ARMV8_OP(0xd503307f, "tcommit",         OP_ARMV8_A64_TCOMMIT,  DISOPTYPE_HARMLESS), /* FEAT_TME */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(TCommit, 0xffffffff /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop, 0, 0);
+
+
 /* Barrier instructions, we divide these instructions further based on the op2 field. */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(DecodeBarriers)
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo DSB - Encoding */
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo DSB - Encoding (FEAT_XS) */
     DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* CLREX */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo TCOMMIT */
+    DIS_ARMV8_DECODE_MAP_ENTRY(TCommit),
     DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* DSB - Encoding */
     DIS_ARMV8_DECODE_MAP_ENTRY(DecBarriers),                /* DMB */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,                     /** @todo ISB */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY                      /** @todo SB */
+    DIS_ARMV8_DECODE_MAP_ENTRY(Isb),
+    DIS_ARMV8_DECODE_MAP_ENTRY(Sb),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(DecodeBarriers, RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7), 5);
 
 

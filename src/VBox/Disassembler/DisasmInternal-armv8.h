@@ -86,6 +86,7 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseSimdRegScalar,
     kDisParmParseImmHImmB,
     kDisParmParseSf,
+    kDisParmParseImmX16,
     kDisParmParseMax
 } DISPARMPARSEIDX;
 /** @}  */

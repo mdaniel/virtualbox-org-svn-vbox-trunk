@@ -14893,8 +14893,15 @@ static uint8_t bs3CpuInstr3_WorkerTestType7(uint8_t bMode, BS3CPUINSTR3_TEST7_T 
     uint32_t                    cbBuf   = g_cbBuf;
     PBS3EXTCTX                  pExtCtxOut;
     PBS3EXTCTX                  pExtCtx = bs3CpuInstr3AllocExtCtxs(&pExtCtxOut);
+    BS3SETREGCTX                pSetRegCtx;
+
     if (!pExtCtx)
         return 0;
+
+    pSetRegCtx.pExtCtx = pExtCtx;
+    pSetRegCtx.pCtx = &Ctx;
+    pSetRegCtx.fZeroYMMHi = false;
+    pSetRegCtx.bMode = bMode;
 
     /* Ensure the structures are allocated before we sample the stack pointer. */
     Bs3MemSet(&Ctx, 0, sizeof(Ctx));
@@ -14969,18 +14976,18 @@ static uint8_t bs3CpuInstr3_WorkerTestType7(uint8_t bMode, BS3CPUINSTR3_TEST7_T 
                              * Set up the context and some expectations.
                              */
                             /* initial value of destination register */
-                            Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmDst, (void *)&paValues[iVal].uDstInit, SET_YmmHi);
+                            Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmDst, &paValues[iVal].uDstInit);
 
                             /* offsets register */
-                            Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmOff, (void *)&paValues[iVal].uOffsets, SET_YmmHi);
+                            Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmOff, &paValues[iVal].uOffsets);
 
                             /* initial value of mask register */
-                            Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmMsk, (void *)&paValues[iVal].uMask, SET_YmmHi);
+                            Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmMsk, &paValues[iVal].uMask);
 
                             /* Memory pointer. */
                             puMemOp = fPf ? (PRTUINT256U)&pbBuf[X86_PAGE_SIZE * 2 + 256] : (PRTUINT256U)&pbBuf[X86_PAGE_SIZE];
                             puMemOp = (PRTUINT256U)(((uint8_t BS3_FAR *)puMemOp) - paTests[iTest].cMemOpOffset);
-                            Bs3ExtCtxSetReg(pExtCtx, BS3_FSxREG(paTests[iTest].iGpMem), (void *)puMemOp, (void *)&Ctx);
+                            Bs3ExtCtxSetReg(&pSetRegCtx, BS3_FSxREG(paTests[iTest].iGpMem), (void *)puMemOp);
 
                             /*
                              * Execute.
@@ -15000,12 +15007,12 @@ static uint8_t bs3CpuInstr3_WorkerTestType7(uint8_t bMode, BS3CPUINSTR3_TEST7_T 
                             if (bXcptExpect == X86_XCPT_DB)
                             {
                                 RTUINT256U zip = RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000);
-                                Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmDst, (void *)&paValues[iVal].uDstOut, SET_YmmHi);
-                                Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmMsk, (void *)&zip, SET_YmmHi);
+                                Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmDst, &paValues[iVal].uDstOut);
+                                Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmMsk, &zip);
                             }
 
                             if (bXcptExpect == X86_XCPT_PF)
-                                Bs3ExtCtxSetReg(pExtCtx, paTests[iTest].iMmMsk, (void *)&paValues[iVal].uMaskPf, SET_YmmHi);
+                                Bs3ExtCtxSetReg(&pSetRegCtx, paTests[iTest].iMmMsk, &paValues[iVal].uMaskPf);
 
 #if defined(DEBUG_aeichner) /** @todo Necessary kludge on a i7-1068NG7. */
                             if (   pExtCtx->enmMethod == BS3EXTCTXMETHOD_XSAVE

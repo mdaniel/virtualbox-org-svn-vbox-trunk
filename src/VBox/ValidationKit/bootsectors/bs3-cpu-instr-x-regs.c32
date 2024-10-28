@@ -69,12 +69,13 @@
 
 /** These values are used in uint8_t fields; the TODO values are *intended* to break compilation. */
 
-#define          BS3_REGISTER_FAMILY_AVX512_TODO       0x1000
-#define          BS3_REGISTER_FAMILY_APX_TODO          0x2000
-#define          BS3_REGISTER_FAMILY_OTHER_TODO        0x3000
+#define          BS3_REGISTER_FAMILY_AVX512_TODO 0x1000
+#define          BS3_REGISTER_FAMILY_APX_TODO    0x2000
+#define          BS3_REGISTER_FAMILY_OTHER_TODO  0x3000
 
 #define          BS3_REGISTER_FAMILY_MASK        0xE0
 #define          BS3_REGISTER_REGISTER_MASK      0x1F
+#define          BS3_REGISTER_MASK               (BS3_REGISTER_FAMILY_MASK | BS3_REGISTER_REGISTER_MASK)
 
 #define          BS3_REGISTER_FAMILY_8BIT_L      0x00
 #define          BS3_REGISTER_FAMILY_8BIT_L_LOW (0x00 | BS3_REGISTER_FAMILY_OTHER_TODO)
@@ -380,7 +381,7 @@
 #define          BS3_REGISTER_FLAG_MEMREF        0x100
 #define          BS3_FSxREG(reg)                 (((reg) == FSxBX || (reg) == FSxDI) ? reg : ((reg) & BS3_REGISTER_REGISTER_MASK) | BS3_REGISTER_FLAG_MEMREF)
 
-#define BS3_REGISTER_NAME_MAXSIZE sizeof("(avail)")
+#define BS3_REGISTER_NAME_MAXSIZE sizeof("FSx(avail)")
 
 /**
  * Get the name of a register from its identity value used in instruction test value tables.
@@ -390,7 +391,7 @@
  * @param    cchBuf  The size of the buffer.
  * @param    uReg    The register identity value.
  */
-static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, uint8_t uReg)
+static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, uint16_t uReg)
 {
     const uint8_t uRegNum = uReg & BS3_REGISTER_REGISTER_MASK;
     const uint8_t uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
@@ -403,6 +404,14 @@ static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, u
                                                      "AH",  "CH",  "DH",  "BH",
                                                                        "NOREG", "(avail)", "FSxDI", "FSxBX" };
     BS3_ASSERT(cchBuf >= BS3_REGISTER_NAME_MAXSIZE);
+
+    if (uReg & BS3_REGISTER_FLAG_MEMREF)
+    {
+        char pszRegName[BS3_REGISTER_NAME_MAXSIZE];
+
+        bs3CpuInstrXGetRegisterName(pszRegName, BS3_REGISTER_NAME_MAXSIZE, uReg & BS3_REGISTER_MASK);
+        return Bs3StrPrintf(pszBuf, cchBuf, "FSx%s", pszRegName);
+    }
 
     switch (uRegSet) {
         case BS3_REGISTER_FAMILY_8BIT_L:
@@ -439,34 +448,50 @@ static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, u
 
 /**
  * Set a register within a testing context.  Intended to support a broad
- * range of register types; this prototype so far only supports MMX, XMM,
- * YMM, and hypothetically-but-not-yet-linked, general purpose registers
- * other than their 8-bit sub-aliases.
+ * range of register types; currently supports MMX, XMM, YMM, and general
+ * purpose registers (except 8-bit sub-registers); and setting up FS:xGPR
+ * for memory reference operations.
  *
- * @returns  Nothing much of any interest (so far).
- * @param    pExtCtx     The testing context to modify.
+ * Other regs known to this subsystem are either so far unused by
+ * VirtualBox (ZMM, k[0-7], GPRs >15); or not used by tests which call
+ * this (8-bit sub-registers, segment registers, xIP, xFL).
+ *
+ * @param    pSetRegCtx  Arguments to this function (see below).
  * @param    uReg        The register identity value to modify within that context.
- * @param    pValue      Pointer to the data to store there.
- * @param    pExtra      For BS3_REGISTER_FAMILY_XMM: flag whether to zero YMM-hi.
- *                       For GPR references: pointer to general purpose register context.
+ * @param    pu256Val    Pointer to the data to store there.
+ * @returns  bool        Whether the store succeeded (currently ignored by callers).
  */
-#define CLR_YmmHi (void *)true
-#define SET_YmmHi (void *)false
 
-static bool Bs3ExtCtxSetReg(PBS3EXTCTX pExtCtx, uint16_t uReg, void * pValue, void * pExtra)
+typedef struct BS3SETREGCTX
 {
-    uint8_t    uRegNum = uReg & BS3_REGISTER_REGISTER_MASK;
-    uint8_t    uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
-    char       pszRegName[BS3_REGISTER_NAME_MAXSIZE];
-    PBS3REGCTX pCtx = (PBS3REGCTX)pExtra;  /* for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
-    bool       fZeroYMMHi = (bool)pExtra;  /* for BS3_REGISTER_FAMILY_XMM    */
+    /** Pointer to test context. */
+    PBS3EXTCTX   pExtCtx;
+    /** Pointer to register context; for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
+    PBS3REGCTX   pCtx;
+    /** Whether to zero YMM-high bits when setting XMM; for BS3_REGISTER_FAMILY_XMM */
+    bool         fZeroYMMHi;
+    /** Current execution mode; for BS3_REGISTER_FAMILY_64BIT */
+    uint8_t      bMode;
+} BS3SETREGCTX;
+typedef BS3SETREGCTX BS3_FAR *PBS3SETREGCTX;
+
+static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUINT256U pu256Val)
+{
+    uint8_t     uRegNum = uReg & BS3_REGISTER_REGISTER_MASK;
+    uint8_t     uRegSet = uReg & BS3_REGISTER_FAMILY_MASK;
+    char        pszRegName[BS3_REGISTER_NAME_MAXSIZE];
 
     if (uReg & BS3_REGISTER_FLAG_MEMREF || uReg == FSxBX || uReg == FSxDI)
     {
+        if (uRegSet <= BS3_REGISTER_FAMILY_64BIT)
+            uRegNum &= BS3_REGISTER_REGISTER_MASK;
+        else if (uReg == FSxBX)
+            uRegNum = BX;
+        else if (uReg == FSxDI)
+            uRegNum = DI;
+        else
+            uRegNum = 255; /* Fall through to error handling below to complain about 'FSxZMM31' or whatever */
         uRegSet = BS3_REGISTER_FAMILY_MEMREF;
-        if (uReg == FSxBX) uRegNum = BX;
-        if (uReg == FSxDI) uRegNum = DI;
-        uRegNum &= BS3_REGISTER_REGISTER_MASK;
     }
 
     if (uRegNum < 16)
@@ -474,24 +499,24 @@ static bool Bs3ExtCtxSetReg(PBS3EXTCTX pExtCtx, uint16_t uReg, void * pValue, vo
         switch (uRegSet)
         {
             case BS3_REGISTER_FAMILY_16BIT:
-                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint16_t *)pValue), 2);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au16[0], 2);
             case BS3_REGISTER_FAMILY_32BIT:
-                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint32_t *)pValue), 4);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au32[0], 4);
             case BS3_REGISTER_FAMILY_64BIT:
-                return Bs3RegCtxSetGpr(pCtx, uRegNum, *((uint64_t *)pValue), 8);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au64[0], BS3_MODE_IS_64BIT_CODE(pSetRegCtx->bMode) ? 8 : 4);
             case BS3_REGISTER_FAMILY_XMM:
-                if (fZeroYMMHi)
-                    return Bs3ExtCtxSetXmm(pExtCtx, uRegNum, pValue);
+                if (pSetRegCtx->fZeroYMMHi)
+                    return Bs3ExtCtxSetXmm(pSetRegCtx->pExtCtx, uRegNum, &pu256Val->au128[0]);
                 else
-                    return Bs3ExtCtxSetYmm(pExtCtx, uRegNum, pValue, 16);
+                    return Bs3ExtCtxSetYmm(pSetRegCtx->pExtCtx, uRegNum, pu256Val, 16);
             case BS3_REGISTER_FAMILY_YMM:
-                return Bs3ExtCtxSetYmm(pExtCtx, uRegNum, pValue, 32);
+                return Bs3ExtCtxSetYmm(pSetRegCtx->pExtCtx, uRegNum, pu256Val, 32);
             case BS3_REGISTER_FAMILY_MEMREF:
-                Bs3RegCtxSetGrpSegFromCurPtr(pCtx, (&pCtx->rax) + uRegNum, &pCtx->fs, pValue);
+                Bs3RegCtxSetGrpSegFromCurPtr(pSetRegCtx->pCtx, (&pSetRegCtx->pCtx->rax) + uRegNum, &pSetRegCtx->pCtx->fs, (void *)pu256Val);
                 return true;
             case BS3_REGISTER_FAMILY_OTHER:
                 if (BS3_REGISTER_IS_MMX(uReg))
-                    return Bs3ExtCtxSetMm(pExtCtx, uRegNum, *((uint64_t *)pValue), BS3EXTCTXTOPMM_SET);
+                    return Bs3ExtCtxSetMm(pSetRegCtx->pExtCtx, uRegNum, pu256Val->au64[0], BS3EXTCTXTOPMM_SET);
                 break;
             case BS3_REGISTER_FAMILY_8BIT_L:
             case BS3_REGISTER_FAMILY_ZMM:
@@ -502,8 +527,48 @@ static bool Bs3ExtCtxSetReg(PBS3EXTCTX pExtCtx, uint16_t uReg, void * pValue, vo
     }
     if (uReg == NOREG)
         return true;
-    /* FSxDI, FSxBX presumed handled by the callers, though that may change */
 
     bs3CpuInstrXGetRegisterName(pszRegName, BS3_REGISTER_NAME_MAXSIZE, uReg);
     return Bs3TestFailedF("Bs3ExtCtxSetReg() todo: handle register '%s' (%02X)", pszRegName, uReg);
+}
+
+static bool g_fSetRegVerbose = false;
+
+static bool Bs3ExtCtxSetReg(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUINT256U pu256Val)
+{
+    bool fRet = Bs3ExtCtxSetReg_int(pSetRegCtx, uReg, pu256Val);
+
+    if (g_fSetRegVerbose)
+    {
+        char pszRegName[BS3_REGISTER_NAME_MAXSIZE];
+        char pszValBuf[80] = "(not decoded)";
+
+        switch (uReg & BS3_REGISTER_FAMILY_MASK)
+        {
+            case BS3_REGISTER_FAMILY_16BIT:
+                Bs3StrPrintf(pszValBuf, 80, "%#06RX16", pu256Val->au16[0]);
+                break;
+            case BS3_REGISTER_FAMILY_32BIT:
+                Bs3StrPrintf(pszValBuf, 80, "%#10RX32", pu256Val->au32[0]);
+                break;
+            case BS3_REGISTER_FAMILY_64BIT:
+                Bs3StrPrintf(pszValBuf, 80, "%#18RX64", pu256Val->au64[0]);
+                break;
+            case BS3_REGISTER_FAMILY_XMM:
+                Bs3StrPrintf(pszValBuf, 80, "%#18RX64:%#18RX64", pu256Val->au64[1], pu256Val->au64[0]);
+                break;
+            case BS3_REGISTER_FAMILY_YMM:
+                Bs3StrPrintf(pszValBuf, 80, "%#18RX64:%#18RX64:%#18RX64:%#18RX64", pu256Val->au64[3], pu256Val->au64[2], pu256Val->au64[1], pu256Val->au64[0]);
+                break;
+            case BS3_REGISTER_FAMILY_OTHER:
+                if (BS3_REGISTER_IS_MMX(uReg))
+                    Bs3StrPrintf(pszValBuf, 80, "%#18RX64", pu256Val->au64[0]);
+                break;
+            default:
+                break;
+        }
+        bs3CpuInstrXGetRegisterName(pszRegName, BS3_REGISTER_NAME_MAXSIZE, uReg);
+        Bs3TestPrintf("Bs3ExtCtxSetReg '%s' to '%s'; %s\n", pszRegName, pszValBuf, fRet ? "worked" : "failed");
+    }
+    return fRet;
 }

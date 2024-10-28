@@ -388,7 +388,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_worker(RTTHREAD hThreadSelf, void 
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnProbe}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnProbe}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_probe(void)
 {
@@ -401,7 +401,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_probe(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnInit}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnInit}
  */
 RTDECL(int) vbcl_wayland_hlp_gtk_init(void)
 {
@@ -413,7 +413,7 @@ RTDECL(int) vbcl_wayland_hlp_gtk_init(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnTerm}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnTerm}
  */
 RTDECL(int) vbcl_wayland_hlp_gtk_term(void)
 {
@@ -441,7 +441,7 @@ RTDECL(int) vbcl_wayland_hlp_gtk_term(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnSetClipboardCtx}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnSetClipboardCtx}
  */
 static DECLCALLBACK(void) vbcl_wayland_hlp_gtk_set_clipboard_ctx(PVBGLR3SHCLCMDCTX pCtx)
 {
@@ -483,7 +483,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup_join_cb(
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnPopup}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnPopup}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup(void)
 {
@@ -560,7 +560,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report_join_cb(
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnHGClipReport}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnHGClipReport}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report(SHCLFORMATS fFormats)
 {
@@ -638,7 +638,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read_join_cb(
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnGHClipRead}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnGHClipRead}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read(SHCLFORMAT uFmt)
 {
@@ -687,15 +687,53 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read(SHCLFORMAT uFmt)
     return rc;
 }
 
-/* Helper callbacks. */
-const VBCLWAYLANDHELPER g_WaylandHelperGtk =
+
+/***********************************************************************
+ * DnD.
+ **********************************************************************/
+
+/**
+ * @interface_method_impl{VBCLWAYLANDHELPER_DND,pfnInit}
+ */
+RTDECL(int) vbcl_wayland_hlp_gtk_dnd_init(void)
 {
-    "wayland-gtk",                              /* .pszName */
-    vbcl_wayland_hlp_gtk_probe,                 /* .pfnProbe */
+    VBCL_LOG_CALLBACK;
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * @interface_method_impl{VBCLWAYLANDHELPER_DND,pfnTerm}
+ */
+RTDECL(int) vbcl_wayland_hlp_gtk_dnd_term(void)
+{
+    VBCL_LOG_CALLBACK;
+
+    return VINF_SUCCESS;
+}
+
+
+static const VBCLWAYLANDHELPER_CLIPBOARD g_WaylandHelperGtkClip =
+{
     vbcl_wayland_hlp_gtk_init,                  /* .pfnInit */
     vbcl_wayland_hlp_gtk_term,                  /* .pfnTerm */
     vbcl_wayland_hlp_gtk_set_clipboard_ctx,     /* .pfnSetClipboardCtx */
     vbcl_wayland_hlp_gtk_popup,                 /* .pfnPopup */
     vbcl_wayland_hlp_gtk_hg_clip_report,        /* .pfnHGClipReport */
     vbcl_wayland_hlp_gtk_gh_clip_read,          /* .pfnGHClipRead */
+};
+
+static const VBCLWAYLANDHELPER_DND g_WaylandHelperGtkDnD =
+{
+    vbcl_wayland_hlp_gtk_dnd_init,              /* .pfnInit */
+    vbcl_wayland_hlp_gtk_dnd_term,              /* .pfnTerm */
+};
+
+/* Helper callbacks. */
+const VBCLWAYLANDHELPER g_WaylandHelperGtk =
+{
+    "wayland-gtk",                              /* .pszName */
+    vbcl_wayland_hlp_gtk_probe,                 /* .pfnProbe */
+    g_WaylandHelperGtkClip,                     /* .clip */
+    g_WaylandHelperGtkDnD,                      /* .dnd */
 };

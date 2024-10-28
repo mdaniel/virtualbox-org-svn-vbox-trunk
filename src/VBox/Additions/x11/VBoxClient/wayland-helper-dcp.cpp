@@ -1243,7 +1243,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_event_loop(RTTHREAD hThreadSelf, v
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnProbe}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnProbe}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_probe(void)
 {
@@ -1267,7 +1267,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_probe(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnInit}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnInit}
  */
 RTDECL(int) vbcl_wayland_hlp_dcp_init(void)
 {
@@ -1278,7 +1278,7 @@ RTDECL(int) vbcl_wayland_hlp_dcp_init(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnTerm}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnTerm}
  */
 RTDECL(int) vbcl_wayland_hlp_dcp_term(void)
 {
@@ -1300,7 +1300,7 @@ RTDECL(int) vbcl_wayland_hlp_dcp_term(void)
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnSetClipboardCtx}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnSetClipboardCtx}
  */
 static DECLCALLBACK(void) vbcl_wayland_hlp_dcp_set_clipboard_ctx(PVBGLR3SHCLCMDCTX pCtx)
 {
@@ -1308,7 +1308,7 @@ static DECLCALLBACK(void) vbcl_wayland_hlp_dcp_set_clipboard_ctx(PVBGLR3SHCLCMDC
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnPopup}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnPopup}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_popup(void)
 {
@@ -1528,7 +1528,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_hg_clip_report_join_cb(
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnHGClipReport}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnHGClipReport}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_hg_clip_report(SHCLFORMATS fFormats)
 {
@@ -1610,7 +1610,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_gh_clip_read_join_cb(
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER,pfnGHClipRead}
+ * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnGHClipRead}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_gh_clip_read(SHCLFORMAT uFmt)
 {
@@ -1624,15 +1624,27 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_gh_clip_read(SHCLFORMAT uFmt)
     return rc;
 }
 
-/* Helper callbacks. */
-const VBCLWAYLANDHELPER g_WaylandHelperDcp =
+static const VBCLWAYLANDHELPER_CLIPBOARD g_WaylandHelperDcpClip =
 {
-    "wayland-dcp",                              /* .pszName */
-    vbcl_wayland_hlp_dcp_probe,                 /* .pfnProbe */
     vbcl_wayland_hlp_dcp_init,                  /* .pfnInit */
     vbcl_wayland_hlp_dcp_term,                  /* .pfnTerm */
     vbcl_wayland_hlp_dcp_set_clipboard_ctx,     /* .pfnSetClipboardCtx */
     vbcl_wayland_hlp_dcp_popup,                 /* .pfnPopup */
     vbcl_wayland_hlp_dcp_hg_clip_report,        /* .pfnHGClipReport */
     vbcl_wayland_hlp_dcp_gh_clip_read,          /* .pfnGHClipRead */
+};
+
+static const VBCLWAYLANDHELPER_DND g_WaylandHelperDcpDnD =
+{
+    NULL,                                       /* .pfnInit */
+    NULL,                                       /* .pfnTerm */
+};
+
+/* Helper callbacks. */
+const VBCLWAYLANDHELPER g_WaylandHelperDcp =
+{
+    "wayland-dcp",                              /* .pszName */
+    vbcl_wayland_hlp_dcp_probe,                 /* .pfnProbe */
+    g_WaylandHelperDcpClip,                     /* .clip */
+    g_WaylandHelperDcpDnD,                      /* .dnd */
 };

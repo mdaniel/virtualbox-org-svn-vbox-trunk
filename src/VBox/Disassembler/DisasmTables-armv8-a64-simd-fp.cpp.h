@@ -471,6 +471,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(DataProcSimdFpBit28_1_30_0, 24);
  * Note: The U,opcode bitfields are concatenated to form an index.
  */
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(DataProcSimdScalarShiftByImm)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize64,   0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
     DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,   5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseImmHImmB,       16,  7, 2 /*idxParam*/),

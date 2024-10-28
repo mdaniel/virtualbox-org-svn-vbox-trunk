@@ -366,7 +366,6 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
-        case kDisOpParamArmV8RegType_Simd_Scalar_32Bit:
         case kDisOpParamArmV8RegType_FpReg_Single:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
@@ -383,7 +382,6 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
-        case kDisOpParamArmV8RegType_Simd_Scalar_16Bit:
         case kDisOpParamArmV8RegType_FpReg_Half:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
@@ -396,6 +394,20 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
         {
             Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar8Bit));
             const char *psz = g_aszArmV8RegSimdScalar8Bit[pReg->idReg];
+            *pcchReg = 2 + !!psz[2];
+            return psz;
+        }
+        case kDisOpParamArmV8RegType_Simd_Scalar_16Bit:
+        {
+            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
+            const char *psz = g_aszArmV8RegFpHalf[pReg->idReg];
+            *pcchReg = 2 + !!psz[2];
+            return psz;
+        }
+        case kDisOpParamArmV8RegType_Simd_Scalar_32Bit:
+        {
+            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpSingle));
+            const char *psz = g_aszArmV8RegFpSingle[pReg->idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
@@ -834,7 +846,11 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                                  || (pParam->fUse & (DISUSE_POST_INDEXED | DISUSE_PRE_INDEXED)))
                         {
                             PUT_SZ(", #");
-                            PUT_NUM_S16(pParam->armv8.u.offBase);
+                            if (   pParam->armv8.u.offBase >= INT16_MIN
+                                && pParam->armv8.u.offBase <= INT16_MAX)
+                                PUT_NUM_S16(pParam->armv8.u.offBase);
+                            else
+                                PUT_NUM_S32(pParam->armv8.u.offBase);
                         }
 
                         if (pParam->armv8.enmExtend != kDisArmv8OpParmExtendNone)

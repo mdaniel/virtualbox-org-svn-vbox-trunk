@@ -111,7 +111,7 @@ typedef struct
     union
     {
         /** Offset from the base register. */
-        int16_t                     offBase;
+        int32_t                     offBase;
         /** Amount of bits to extend. */
         uint8_t                     cExtend;
     } u;

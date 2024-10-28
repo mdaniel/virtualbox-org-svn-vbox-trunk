@@ -691,6 +691,10 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcGmi)
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,          5,  5, 1 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         16,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(Reg2SrcPacga)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,         16,  5, 2 /*idxParam*/),
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg2Src64Bit)
     DIS_ARMV8_OP_ALT_DECODE(0x9ac00000, "subp",            OP_ARMV8_A64_SUBP,      DISOPTYPE_HARMLESS, Reg2SrcSubp),
     INVALID_OPCODE,
@@ -704,7 +708,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(Reg2Src64Bit)
     DIS_ARMV8_OP(           0x9ac02400, "lsrv",            OP_ARMV8_A64_LSRV,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(           0x9ac02800, "asrv",            OP_ARMV8_A64_ASRV,      DISOPTYPE_HARMLESS),
     DIS_ARMV8_OP(           0x9ac02c00, "rorv",            OP_ARMV8_A64_RORV,      DISOPTYPE_HARMLESS),
-    INVALID_OPCODE,                                                                             /** @todo PACGA (FEAT_PAuth). */
+    DIS_ARMV8_OP_ALT_DECODE(0x9ac03000, "pacga",           OP_ARMV8_A64_PACGA,     DISOPTYPE_HARMLESS, Reg2SrcPacga),
     INVALID_OPCODE,
     INVALID_OPCODE,
     INVALID_OPCODE,

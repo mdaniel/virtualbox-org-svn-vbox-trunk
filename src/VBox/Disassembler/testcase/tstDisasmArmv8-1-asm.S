@@ -1773,6 +1773,10 @@ _TestProcA64:
         ;irg   sp, sp, x3  - Requires FEAT_MTE
         ;irg   sp, sp, xzr - Requires FEAT_MTE
 
+        pacga  xzr, x0, x1
+        pacga  x28, x0, sp
+
+
         udiv w0, w1, wzr
         udiv x0, x1, xzr
 

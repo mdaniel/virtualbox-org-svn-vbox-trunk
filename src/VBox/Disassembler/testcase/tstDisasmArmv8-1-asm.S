@@ -1507,6 +1507,47 @@ _TestProcA64:
         ldr  q31, [sp, w2, SXTW #4]
 
 
+        ldur b0,  [x0]
+        ldur b0,  [x0, #-256]
+        ldur b31, [x0, #255]
+
+        ldur b0,  [sp]
+        ldur b0,  [sp, #-256]
+        ldur b31, [sp, #255]
+
+        ldur h0,  [x0]
+        ldur h0,  [x0, #-256]
+        ldur h31, [x0, #255]
+
+        ldur h0,  [sp]
+        ldur h0,  [sp, #-256]
+        ldur h31, [sp, #255]
+
+        ldur s0,  [x0]
+        ldur s0,  [x0, #-256]
+        ldur s31, [x0, #255]
+
+        ldur s0,  [sp]
+        ldur s0,  [sp, #-256]
+        ldur s31, [sp, #255]
+
+        ldur d0,  [x0]
+        ldur d0,  [x0, #-256]
+        ldur d31, [x0, #255]
+
+        ldur d0,  [sp]
+        ldur d0,  [sp, #-256]
+        ldur d31, [sp, #255]
+
+        ldur q0,  [x0]
+        ldur q0,  [x0, #-256]
+        ldur q31, [x0, #255]
+
+        ldur q0,  [sp]
+        ldur q0,  [sp, #-256]
+        ldur q31, [sp, #255]
+
+
         ; SIMD memory stores
         str b0, [x0]
         str b0, [x0, #4095]
@@ -1642,6 +1683,47 @@ _TestProcA64:
         str  q31, [sp, w2, SXTW #0]
         str  q31, [sp, w2, UXTW #4]
         str  q31, [sp, w2, SXTW #4]
+
+
+        stur b0,  [x0]
+        stur b0,  [x0, #-256]
+        stur b31, [x0, #255]
+
+        stur b0,  [sp]
+        stur b0,  [sp, #-256]
+        stur b31, [sp, #255]
+
+        stur h0,  [x0]
+        stur h0,  [x0, #-256]
+        stur h31, [x0, #255]
+
+        stur h0,  [sp]
+        stur h0,  [sp, #-256]
+        stur h31, [sp, #255]
+
+        stur s0,  [x0]
+        stur s0,  [x0, #-256]
+        stur s31, [x0, #255]
+
+        stur s0,  [sp]
+        stur s0,  [sp, #-256]
+        stur s31, [sp, #255]
+
+        stur d0,  [x0]
+        stur d0,  [x0, #-256]
+        stur d31, [x0, #255]
+
+        stur d0,  [sp]
+        stur d0,  [sp, #-256]
+        stur d31, [sp, #255]
+
+        stur q0,  [x0]
+        stur q0,  [x0, #-256]
+        stur q31, [x0, #255]
+
+        stur q0,  [sp]
+        stur q0,  [sp, #-256]
+        stur q31, [sp, #255]
 
 
         ; Add/subtract with carry

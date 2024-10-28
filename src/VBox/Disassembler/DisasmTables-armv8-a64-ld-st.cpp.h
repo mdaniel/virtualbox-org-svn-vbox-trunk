@@ -221,6 +221,27 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegUnscaledImmGpr, 0xffe00c00 /*fFixe
                                        RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30) | RT_BIT_32(31), 22);
 
 
+/* SIMD STUR/LDUR */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRegUnscaledImmSimd)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize,        30,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOffUnscaled, 12,  9, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStRegUnscaledImmSimd128)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize128,      0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,           5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmMemOffUnscaled, 12,  9, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRegUnscaledImmSimd)
+    DIS_ARMV8_OP(           0x3c000000, "stur",            OP_ARMV8_A64_STUR,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x3c400000, "ldur",            OP_ARMV8_A64_LDUR,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x3c800000, "stur",            OP_ARMV8_A64_STUR,      DISOPTYPE_HARMLESS, LdStRegUnscaledImmSimd128), /** @todo size == 0. */
+    DIS_ARMV8_OP_ALT_DECODE(0x3cc00000, "ldur",            OP_ARMV8_A64_LDUR,      DISOPTYPE_HARMLESS, LdStRegUnscaledImmSimd128), /** @todo size == 0. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegUnscaledImmSimd, 0x3fe00c00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(22) | RT_BIT_32(23), 22);
+
+
 /*
  * C4.1.94 - Loads and Stores - Load/Store register (register offset) variants
  *
@@ -233,7 +254,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegUnscaledImmGpr, 0xffe00c00 /*fFixe
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegUnscaledImm)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegUnscaledImmGpr),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegUnscaledImmSimd),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegUnscaledImm, RT_BIT_32(26), 26);
 
 

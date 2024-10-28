@@ -54,9 +54,11 @@
 
 /** Path to Gtk helper tool which raises popup window and gets
  * access to Wayland clipboard. */
-#define VBOXWL_PATH                     "/usr/bin/vboxwl"
+#ifndef VBOXWL_PATH
+# define VBOXWL_PATH                    "/usr/bin/vboxwl"
+#endif
 /** Limit maximum log verbosity level for popup tool. */
-#define VBOXWL_VERBOSITY_MAX    (5)
+#define VBOXWL_VERBOSITY_MAX            (5)
 
 /** Arguments to vboxwl tool. */
 #define VBOXWL_ARG_CLIP_HG_COPY         "--clip-hg-copy"

@@ -121,6 +121,12 @@ function Main()
    strHost        = EnvGetDefValid("KBUILD_HOST",        "win", arrTargetAndHosts)
    strHostArch    = EnvGetDefValid("KBUILD_HOST_ARCH",   strRealArch, arrArchitectures)
 
+   dim strAltHostArch
+   strAltHostArch = ""
+   if strHostArch = "arm64" then
+      strAltHostArch = "amd64"
+   end if
+
    '
    ' Parse arguments.
    '
@@ -266,6 +272,7 @@ function Main()
       ' Add the kbuild wrapper directory to the end of the path, these take
       ' precedence over the dated gnuwin32 stuff.
       EnvAppendPathItem "Path", DosSlashes(strPathkBuild & "\bin\win." & strHostArch & "\wrappers"), ";"
+      if strAltHostArch <> "" then EnvAppendPathItem "Path", DosSlashes(strPathkBuild & "\bin\win." & strAltHostArch & "\wrappers"), ";"
 
       ' Add some gnuwin32 tools to the end of the path.
       EnvAppendPathItem "Path", DosSlashes(strPathDevTools & "\win.x86\gnuwin32\r1\bin"), ";"
@@ -335,11 +342,13 @@ function Main()
    EnvPrependPathItem "Path", DosSlashes(strOutDir & "\bin"), ";"
 
    ' Add kbuild binary directory to the front the the path.
+   if strAltHostArch <> "" then EnvPrependPathItem "Path", DosSlashes(strPathkBuild & "\bin\win." & strAltHostArch), ";"
    EnvPrependPathItem "Path", DosSlashes(strPathkBuild & "\bin\win." & strHostArch), ";"
 
    ' Finally, add the relevant tools/**/bin directories to the front of the path.
    EnvPrependPathItem "Path", DosSlashes(strPathDevTools & "\bin"), ";"
    if strHostArch = "amd64" then EnvPrependPathItem "Path", DosSlashes(strPathDevTools & "\win.x86\bin"), ";"
+   if strAltHostArch <> ""  then EnvPrependPathItem "Path", DosSlashes(strPathDevTools & "\win." & strAltHostArch & "\bin"), ";"
    EnvPrependPathItem "Path", DosSlashes(strPathDevTools & "\win." & strHostArch) & "\bin", ";"
 
    '

@@ -525,6 +525,29 @@ static int rtR3InitBody(uint32_t fFlags, int cArgs, char ***ppapszArgs, const ch
     }
 #endif /* IPRT_USE_SIG_CHILD_DUMMY */
 
+#ifndef RT_OS_WINDOWS
+    /*
+     * Ignore SIGPIPE if it is configured as SIG_DFL.
+     */
+    if (!(fFlags & RTR3INIT_FLAGS_UNOBTRUSIVE))
+    {
+        struct sigaction SigActOld;
+        rc = sigaction(SIGPIPE, 0, &SigActOld);
+        AssertMsg(rc == 0, ("%d/%d\n", rc, errno));
+        if (   rc == 0
+            && !(SigActOld.sa_flags & SA_SIGINFO)
+            && SigActOld.sa_handler == SIG_DFL)
+        {
+            struct sigaction SigAct;
+            memset(&SigAct, 0, sizeof(SigAct));
+            SigAct.sa_handler = SIG_IGN;
+            rc = sigaction(SIGPIPE, &SigAct, &SigActOld);
+            AssertMsg(rc == 0, ("%d/%d\n", rc, errno));
+            Assert(SigActOld.sa_handler == SIG_DFL || rc != 0);
+        }
+    }
+#endif
+
 #ifdef IPRT_WITH_ALIGNMENT_CHECKS
     /*
      * Enable alignment checks.

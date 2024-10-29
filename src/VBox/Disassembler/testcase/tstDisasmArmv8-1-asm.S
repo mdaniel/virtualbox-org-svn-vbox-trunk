@@ -3758,6 +3758,66 @@ _TestProcA64:
         casal xzr, xzr, [sp]
 
         ;
+        ; Load/store exclusive register
+        ;
+
+        stxrb  w0,   w1, [x2]
+        stxrb  w0,  wzr, [sp]
+        stxrb  wzr,  w0, [sp]
+
+        stlxrb  w0,   w1, [x2]
+        stlxrb  w0,  wzr, [sp]
+        stlxrb  wzr,  w0, [sp]
+
+        ldxrb  w0,  [x2]
+        ldxrb  wzr, [sp]
+
+        ldaxrb  w0,  [x2]
+        ldaxrb  wzr, [sp]
+
+        stxrh  w0,   w1, [x2]
+        stxrh  w0,  wzr, [sp]
+        stxrh  wzr,  w0, [sp]
+
+        stlxrh  w0,   w1, [x2]
+        stlxrh  w0,  wzr, [sp]
+        stlxrh  wzr,  w0, [sp]
+
+        ldxrh  w0,  [x2]
+        ldxrh  wzr, [sp]
+
+        ldaxrh  w0,  [x2]
+        ldaxrh  wzr, [sp]
+
+        stxr  w0,   w1, [x2]
+        stxr  w0,  wzr, [sp]
+        stxr  wzr,  w0, [sp]
+
+        stlxr  w0,   w1, [x2]
+        stlxr  w0,  wzr, [sp]
+        stlxr  wzr,  w0, [sp]
+
+        ldxr  w0,  [x2]
+        ldxr  wzr, [sp]
+
+        ldaxr  w0,  [x2]
+        ldaxr  wzr, [sp]
+
+        stxr  w0,   x1, [x2]
+        stxr  w0,  xzr, [sp]
+        stxr  wzr,  x0, [sp]
+
+        stlxr  w0,   x1, [x2]
+        stlxr  w0,  xzr, [sp]
+        stlxr  wzr,  x0, [sp]
+
+        ldxr  x0,  [x2]
+        ldxr  xzr, [sp]
+
+        ldaxr  x0,  [x2]
+        ldaxr  xzr, [sp]
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

@@ -1169,13 +1169,63 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOrdered_Cas)
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStOrdered_Cas, 21);
 
 
+/* C4.1.94.14 - Loads and Stores - Compare and swap */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStExclusiveReg)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStExclusiveRegLd32)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStExclusiveRegLd64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStExclusiveRegSt64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStExclusiveReg)
+    DIS_ARMV8_OP(           0x08000000, "stxrb",           OP_ARMV8_A64_STXRB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x08008000, "stlxrb",          OP_ARMV8_A64_STLXRB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x08400000, "ldxrb",           OP_ARMV8_A64_LDXRB,     DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP_ALT_DECODE(0x08408000, "ldaxrb",          OP_ARMV8_A64_LDAXRB,    DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP(           0x48000000, "stxrh",           OP_ARMV8_A64_STXRH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48008000, "stlxrh",          OP_ARMV8_A64_STLXRH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x48400000, "ldxrh",           OP_ARMV8_A64_LDXRH,     DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP_ALT_DECODE(0x48408000, "ldaxrh",          OP_ARMV8_A64_LDAXRH,    DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP(           0x88000000, "stxr",            OP_ARMV8_A64_STXR,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88008000, "stlxr",           OP_ARMV8_A64_STLXR,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x88400000, "ldxr",            OP_ARMV8_A64_LDXR,      DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP_ALT_DECODE(0x88408000, "ldaxr",           OP_ARMV8_A64_LDAXR,     DISOPTYPE_HARMLESS, LdStExclusiveRegLd32),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8000000, "stxr",            OP_ARMV8_A64_STXR,      DISOPTYPE_HARMLESS, LdStExclusiveRegSt64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8008000, "stlxr",           OP_ARMV8_A64_STLXR,     DISOPTYPE_HARMLESS, LdStExclusiveRegSt64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8400000, "ldxr",            OP_ARMV8_A64_LDXR,      DISOPTYPE_HARMLESS, LdStExclusiveRegLd64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8408000, "ldaxr",           OP_ARMV8_A64_LDAXR,     DISOPTYPE_HARMLESS, LdStExclusiveRegLd64),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStExclusiveReg, 0xffe08000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* o0 */     RT_BIT_32(15)
+                            /* L  */   | RT_BIT_32(22)
+                            /* size */ | RT_BIT_32(30) | RT_BIT_32(31), 15);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between Load/Store exclusive register and pair instruction classes based on op2<11> (bit 21).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStExclusive)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusiveReg),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusivePair), */
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStExclusive, 21);
+
+
 /**
  * C4.1.94 - Loads and Stores
  *
  * Differentiate between Advanced SIMD load/stores and the rest based on op2<13> (bit 23).
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0_Bit26_1)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo  Load/store exclusive register */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusive),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStOrdered_Cas),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit26_1, 23);
 

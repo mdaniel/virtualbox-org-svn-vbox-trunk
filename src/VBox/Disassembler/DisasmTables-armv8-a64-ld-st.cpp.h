@@ -1115,7 +1115,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit24_1, 21);
 
 
 /**
- * C4.1.94 - Loads and Stores
+ * C4.1.94 - Loads and Stores - Compare and swap
  *
  * Differentiate between Load register (literal) and the other classes based on op2<14> (bit 24).
  */
@@ -1123,6 +1123,72 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdRegLiteral),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0_Bit24_1),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0, 24);
+
+
+/* C4.1.94.14 - Loads and Stores - Compare and swap */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStCas)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStCas64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStCas)
+    DIS_ARMV8_OP(           0x08a07c00, "casb",            OP_ARMV8_A64_CASB,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x08a0fc00, "caslb",           OP_ARMV8_A64_CASLB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x08e07c00, "casab",           OP_ARMV8_A64_CASAB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x08e0fc00, "casalb",          OP_ARMV8_A64_CASALB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48a07c00, "cash",            OP_ARMV8_A64_CASH,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48a0fc00, "caslh",           OP_ARMV8_A64_CASLH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48e07c00, "casah",           OP_ARMV8_A64_CASAH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48e0fc00, "casalh",          OP_ARMV8_A64_CASALH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88a07c00, "cas",             OP_ARMV8_A64_CAS,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88a0fc00, "casl",            OP_ARMV8_A64_CASL,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88e07c00, "casa",            OP_ARMV8_A64_CASA,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88e0fc00, "casal",           OP_ARMV8_A64_CASAL,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8a07c00, "cas",             OP_ARMV8_A64_CAS,       DISOPTYPE_HARMLESS, LdStCas64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8a0fc00, "casl",            OP_ARMV8_A64_CASL,      DISOPTYPE_HARMLESS, LdStCas64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8e07c00, "casa",            OP_ARMV8_A64_CASA,      DISOPTYPE_HARMLESS, LdStCas64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8e0fc00, "casal",           OP_ARMV8_A64_CASAL,     DISOPTYPE_HARMLESS, LdStCas64),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStCas, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* o0 */     RT_BIT_32(15)
+                            /* L  */   | RT_BIT_32(22)
+                            /* size */ | RT_BIT_32(30) | RT_BIT_32(31), 15);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between Load/Store ordered and Compare and swap instruction classes based on op2<11> (bit 21).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOrdered_Cas)
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo DIS_ARMV8_DECODE_MAP_ENTRY(LdStOrdered), */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStCas),
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStOrdered_Cas, 21);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between Advanced SIMD load/stores and the rest based on op2<13> (bit 23).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0_Bit26_1)
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo  Load/store exclusive register */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStOrdered_Cas),
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit26_1, 23);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between Advanced SIMD load/stores and the rest based on op1 (bit 26).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_0_Bit29_0)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0_Bit26_1),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo  Advanced SIMD load/store multiple structures (post-indexed) / Advanced SIMD load/store single structure / Advanced SIMD load/store single structure (post-indexed) */
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_0_Bit29_0, 26);
 
 
 /*
@@ -1141,7 +1207,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0, 24);
  *           1  1 Load/store register / Atomic memory operations
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOp0Lo)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_0_Bit29_0),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPair),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStReg),

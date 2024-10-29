@@ -76,11 +76,9 @@ endif
 # Note! We're using our own stripped down tools_def.txt: vbox-tools_def.txt.
 #
 ifeq ($(KBUILD_HOST),win)
- ifdef VBOX_WITH_NEW_VCC # ACtually using VS2019, but no config for it, so VS2017 will have to do for now.
-  VBOX_EFI_TOOL_CHAIN := VS2017
- else
-  VBOX_EFI_TOOL_CHAIN := VS2010
- endif
+ # Actually using VS2019, but no config for it, so VS2017 will have to do for now.
+ ## @todo EFI has a VS2019 template now. We should migrate to it before we start using 2022... ;-)
+ VBOX_EFI_TOOL_CHAIN := VS2017
 else
  VBOX_EFI_TOOL_CHAIN = GCC48
 endif

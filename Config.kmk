@@ -383,7 +383,9 @@ ifeq ($(KBUILD_HOST),darwin)
  endif
 endif
 # Select new VC++ on Windows.
-#VBOX_WITH_NEW_VCC = 1
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH) $(KBUILD_HOST).$(KBUILD_HOST_ARCH), win.arm64)
+ VBOX_WITH_NEW_VCC = 1
+endif
 # Use this to disable control flow.
 #VBOX_WITHOUT_CONTROL_FLOW_GUARD = 1
 # Don't use the compiler CRT for statically linked modules, use IPRT with some
@@ -1909,7 +1911,7 @@ endif
 # Decide which Visual C++ compiler version we're using by default.
 #
 ifndef VBOX_VCC_TOOL_STEM
- ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),win.arm64)
+ ifdef VBOX_WITH_NEW_VCC
   VBOX_VCC_TOOL_STEM := VCC143
  else
   VBOX_VCC_TOOL_STEM := VCC142

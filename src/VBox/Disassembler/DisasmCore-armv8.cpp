@@ -197,13 +197,10 @@ DECLINLINE(uint32_t) disArmV8ExtractBitVecFromInsn(uint32_t u32Insn, uint8_t idx
 
 DECLINLINE(int32_t) disArmV8ExtractBitVecFromInsnSignExtend(uint32_t u32Insn, uint8_t idxBitStart, uint8_t cBits)
 {
-    uint32_t fMask = RT_BIT_32(idxBitStart + cBits) - 1;
-    uint32_t fSign = ~(UINT32_MAX & (RT_BIT_32(cBits - 1) - 1));
-    uint32_t fValue = (u32Insn & fMask) >> idxBitStart;
-    if (fValue & fSign)
-        return (int32_t)(fValue | fSign);
-
-    return (int32_t)fValue;
+    uint32_t const fMask = RT_BIT_32(cBits) - 1;
+    uint32_t const fSignBit = RT_BIT_32(cBits - 1);
+    uint32_t const u32 = (u32Insn >> idxBitStart) & fMask;
+    return (int32_t)((u32 ^ fSignBit) - fSignBit);
 }
 
 

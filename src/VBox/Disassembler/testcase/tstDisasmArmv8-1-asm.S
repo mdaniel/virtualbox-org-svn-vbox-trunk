@@ -3572,6 +3572,34 @@ _TestProcA64:
         swpal xzr, xzr, [sp]
 
         ;
+        ; LDR literal variants
+        ;
+
+        ldr w0, #0
+        ldr wzr, #0xffffc
+        ldr wzr, #-0xffffc
+
+        ldr x0, #0
+        ldr xzr, #0xffffc
+        ldr xzr, #-0xffffc
+
+        ldrsw x0, #0
+        ldrsw xzr, #0xffffc
+        ldrsw xzr, #-0xffffc
+
+        ldr s0, #0
+        ldr s31, #0xffffc
+        ldr s31, #-0xffffc
+
+        ldr d0, #0
+        ldr d31, #0xffffc
+        ldr d31, #-0xffffc
+
+        ldr q0, #0
+        ldr q31, #0xffffc
+        ldr q31, #-0xffffc
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

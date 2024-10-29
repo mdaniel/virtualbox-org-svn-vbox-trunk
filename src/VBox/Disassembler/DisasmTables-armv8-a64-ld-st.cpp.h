@@ -996,6 +996,69 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegPair)
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegPair, RT_BIT_32(23) | RT_BIT_32(24), 23);
 
 
+/* LDR/LDRSW/PRFM - literal variant. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdRegLiteralGpr)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmRel,          5, 19, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdRegLiteralGpr)
+ DIS_ARMV8_OP_EX(0x18000000, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_32BIT),
+ DIS_ARMV8_OP_EX(0x58000000, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+ DIS_ARMV8_OP_EX(0x98000000, "ldrsw",           OP_ARMV8_A64_LDRSW,     DISOPTYPE_HARMLESS, DISARMV8INSNCLASS_F_FORCED_64BIT),
+    INVALID_OPCODE, /** @todo PRFM */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdRegLiteralGpr, 0xff000000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(30) | RT_BIT_32(31), 30);
+
+
+/* SIMD LDR - literal variant. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdRegLiteralSimd)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize32,       0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmRel,              5, 19, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdRegLiteralSimd64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize64,       0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmRel,              5, 19, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdRegLiteralSimd128)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegSize128,      0,  0, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSimdRegScalar,       0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseImmRel,              5, 19, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdRegLiteralSimd)
+    DIS_ARMV8_OP(           0x1c000000, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x5c000000, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, LdRegLiteralSimd64),
+    DIS_ARMV8_OP_ALT_DECODE(0x9c000000, "ldr",             OP_ARMV8_A64_LDR,       DISOPTYPE_HARMLESS, LdRegLiteralSimd128),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdRegLiteralSimd, 0xff000000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeNop,
+                                       RT_BIT_32(30) | RT_BIT_32(31), 30);
+
+
+/*
+ * C4.1.94.19 - Loads and Stores - Load register (literal) variants
+ *
+ * Differentiate further based on the VR field.
+ *
+ *     Bit  26
+ *     +-------------------------------------------
+ *           0 GPR variants.
+ *           1 SIMD/FP variants
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdRegLiteral)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdRegLiteralGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdRegLiteralSimd),
+DIS_ARMV8_DECODE_MAP_DEFINE_END(LdRegLiteral, RT_BIT_32(26), 26);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between Load register (literal) and the other classes based on op2<14> (bit 24).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdRegLiteral),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo RCW compare and swap / 128-bit atomic memory instructions / GCS load/store / Load/store memory tags / LDIAPP/STILP / LDAPR/STLR / Memory Copy and Set */
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0, 24);
+
+
 /*
  * C4.1.94 - Loads and Stores
  *
@@ -1013,7 +1076,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRegPair, RT_BIT_32(23) | RT_BIT_32(24), 23);
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOp0Lo)
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,             /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPair),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStReg),
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStOp0Lo, RT_BIT_32(28) | RT_BIT_32(29), 28);

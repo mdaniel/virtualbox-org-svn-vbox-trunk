@@ -1115,7 +1115,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit24_1, 21);
 
 
 /**
- * C4.1.94 - Loads and Stores - Compare and swap
+ * C4.1.94 - Loads and Stores
  *
  * Differentiate between Load register (literal) and the other classes based on op2<14> (bit 24).
  */

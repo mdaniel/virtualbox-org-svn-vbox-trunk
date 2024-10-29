@@ -183,6 +183,333 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegPac, 0xffa00400 /*fFixedInsn*/,
                                        RT_BIT_32(23), 23);
 
 
+/* Atomic memory operations - Byte size variants */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AtomicMemoryByte)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryByteThe)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryByteLrcpc)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AtomicMemoryByte)
+    DIS_ARMV8_OP(           0x38200000, "ldaddb",          OP_ARMV8_A64_LDADDB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38201000, "ldclrb",          OP_ARMV8_A64_LDCLRB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38202000, "ldeorb",          OP_ARMV8_A64_LDEORB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38203000, "ldsetb",          OP_ARMV8_A64_LDSETB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38204000, "ldsmaxb",         OP_ARMV8_A64_LDSMAXB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38205000, "ldsminb",         OP_ARMV8_A64_LDSMINB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38206000, "ldumaxb",         OP_ARMV8_A64_LDUMAXB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38207000, "lduminb",         OP_ARMV8_A64_LDUMINB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38208000, "swpb",            OP_ARMV8_A64_SWPB,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x38209000, "rcwclr",          OP_ARMV8_A64_RCWCLR,    DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x3820a000, "rcwswp",          OP_ARMV8_A64_RCWSWP,    DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x3820b000, "rcwset",          OP_ARMV8_A64_RCWSET,    DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x38600000, "ldaddlb",         OP_ARMV8_A64_LDADDLB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38601000, "ldclrlb",         OP_ARMV8_A64_LDCLRLB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38602000, "ldeorlb",         OP_ARMV8_A64_LDEORLB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38603000, "ldsetlb",         OP_ARMV8_A64_LDSETLB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38604000, "ldsmaxlb",        OP_ARMV8_A64_LDSMAXLB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38605000, "ldsminlb",        OP_ARMV8_A64_LDSMINLB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38606000, "ldumaxlb",        OP_ARMV8_A64_LDUMAXLB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38607000, "lduminlb",        OP_ARMV8_A64_LDUMINLB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38608000, "swplb",           OP_ARMV8_A64_SWPLB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x38609000, "rcwclrl",         OP_ARMV8_A64_RCWCLRL,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x3860a000, "rcwswpl",         OP_ARMV8_A64_RCWSWPL,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x3860b000, "rcwsetl",         OP_ARMV8_A64_RCWSETL,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x38a00000, "ldaddab",         OP_ARMV8_A64_LDADDAB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a01000, "ldclrab",         OP_ARMV8_A64_LDCLRAB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a02000, "ldeorab",         OP_ARMV8_A64_LDEORAB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a03000, "ldsetab",         OP_ARMV8_A64_LDSETAB,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a04000, "ldsmaxab",        OP_ARMV8_A64_LDSMAXAB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a05000, "ldsminab",        OP_ARMV8_A64_LDSMINAB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a06000, "ldumaxab",        OP_ARMV8_A64_LDUMAXAB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a07000, "lduminab",        OP_ARMV8_A64_LDUMINAB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38a08000, "swpab",           OP_ARMV8_A64_SWPAB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x38a09000, "rcwclra",         OP_ARMV8_A64_RCWCLRA,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x38a0a000, "rcwswpa",         OP_ARMV8_A64_RCWSWPA,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x38a0b000, "rcwseta",         OP_ARMV8_A64_RCWSETA,   DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x38a0c000, "ldaprb",          OP_ARMV8_A64_LDAPRB,    DISOPTYPE_HARMLESS, AtomicMemoryByteLrcpc), /* FEAT_LRCPC */ /** @todo Rs == 11111 */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x38e00000, "ldaddalb",        OP_ARMV8_A64_LDADDALB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e01000, "ldclralb",        OP_ARMV8_A64_LDCLRALB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e02000, "ldeoralb",        OP_ARMV8_A64_LDEORALB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e03000, "ldsetalb",        OP_ARMV8_A64_LDSETALB,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e04000, "ldsmaxalb",       OP_ARMV8_A64_LDSMAXALB, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e05000, "ldsminalb",       OP_ARMV8_A64_LDSMINALB, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e06000, "ldumaxalb",       OP_ARMV8_A64_LDUMAXALB, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e07000, "lduminalb",       OP_ARMV8_A64_LDUMINALB, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x38e08000, "swpalb",          OP_ARMV8_A64_SWPALB,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x38e09000, "rcwclral",        OP_ARMV8_A64_RCWCLRAL,  DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x38e0a000, "rcwswpal",        OP_ARMV8_A64_RCWSWPAL,  DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x38e0b000, "rcwsetal",        OP_ARMV8_A64_RCWSETAL,  DISOPTYPE_HARMLESS, AtomicMemoryByteThe), /* FEAT_THE */
+    /* Rest of the encodings is invalid. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AtomicMemoryByte, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* opc */    RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14)
+                            /* o3  */  | RT_BIT_32(15)
+                            /* R   */  | RT_BIT_32(22)
+                            /* A   */  | RT_BIT_32(23), 12);
+
+
+/* Atomic memory operations - Halfword size variants */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AtomicMemoryHalfword)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryHalfwordThe)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryHalfwordLrcpc)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AtomicMemoryHalfword)
+    DIS_ARMV8_OP(           0x78200000, "ldaddh",          OP_ARMV8_A64_LDADDH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78201000, "ldclrh",          OP_ARMV8_A64_LDCLRH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78202000, "ldeorh",          OP_ARMV8_A64_LDEORH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78203000, "ldseth",          OP_ARMV8_A64_LDSETH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78204000, "ldsmaxh",         OP_ARMV8_A64_LDSMAXH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78205000, "ldsminh",         OP_ARMV8_A64_LDSMINH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78206000, "ldumaxh",         OP_ARMV8_A64_LDUMAXH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78207000, "lduminh",         OP_ARMV8_A64_LDUMINH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78208000, "swph",            OP_ARMV8_A64_SWPH,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x78209000, "rcwsclr",         OP_ARMV8_A64_RCWSCLR,   DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x7820a000, "rcwsswp",         OP_ARMV8_A64_RCWSSWP,   DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x7820b000, "rcwsset",         OP_ARMV8_A64_RCWSSET,   DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x78600000, "ldaddlh",         OP_ARMV8_A64_LDADDLH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78601000, "ldclrlh",         OP_ARMV8_A64_LDCLRLH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78602000, "ldeorlh",         OP_ARMV8_A64_LDEORLH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78603000, "ldsetlh",         OP_ARMV8_A64_LDSETLH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78604000, "ldsmaxlh",        OP_ARMV8_A64_LDSMAXLH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78605000, "ldsminlh",        OP_ARMV8_A64_LDSMINLH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78606000, "ldumaxlh",        OP_ARMV8_A64_LDUMAXLH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78607000, "lduminlh",        OP_ARMV8_A64_LDUMINLH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78608000, "swplh",           OP_ARMV8_A64_SWPLH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x78609000, "rcwsclrl",        OP_ARMV8_A64_RCWSCLRL,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x7860a000, "rcwsswpl",        OP_ARMV8_A64_RCWSSWPL,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x7860b000, "rcwssetl",        OP_ARMV8_A64_RCWSSETL,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x78a00000, "ldaddah",         OP_ARMV8_A64_LDADDAH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a01000, "ldclrah",         OP_ARMV8_A64_LDCLRAH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a02000, "ldeorah",         OP_ARMV8_A64_LDEORAH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a03000, "ldsetah",         OP_ARMV8_A64_LDSETAH,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a04000, "ldsmaxah",        OP_ARMV8_A64_LDSMAXAH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a05000, "ldsminah",        OP_ARMV8_A64_LDSMINAH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a06000, "ldumaxah",        OP_ARMV8_A64_LDUMAXAH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a07000, "lduminah",        OP_ARMV8_A64_LDUMINAH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78a08000, "swpah",           OP_ARMV8_A64_SWPAH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x78a09000, "rcwsclra",        OP_ARMV8_A64_RCWSCLRA,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x78a0a000, "rcwsswpa",        OP_ARMV8_A64_RCWSSWPA,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x78a0b000, "rcwsseta",        OP_ARMV8_A64_RCWSSETA,  DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x78a0c000, "ldaprh",          OP_ARMV8_A64_LDAPRH,    DISOPTYPE_HARMLESS, AtomicMemoryHalfwordLrcpc), /* FEAT_LRCPC */ /** @todo Rs == 11111 */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x78e00000, "ldaddalh",        OP_ARMV8_A64_LDADDALH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e01000, "ldclralh",        OP_ARMV8_A64_LDCLRALH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e02000, "ldeoralh",        OP_ARMV8_A64_LDEORALH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e03000, "ldsetalh",        OP_ARMV8_A64_LDSETALH,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e04000, "ldsmaxalh",       OP_ARMV8_A64_LDSMAXALH, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e05000, "ldsminalh",       OP_ARMV8_A64_LDSMINALH, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e06000, "ldumaxalh",       OP_ARMV8_A64_LDUMAXALH, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e07000, "lduminalh",       OP_ARMV8_A64_LDUMINALH, DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x78e08000, "swpalh",          OP_ARMV8_A64_SWPALH,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x78e09000, "rcwsclral",       OP_ARMV8_A64_RCWSCLRAL, DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x78e0a000, "rcwsswpal",       OP_ARMV8_A64_RCWSSWPAL, DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    DIS_ARMV8_OP_ALT_DECODE(0x78e0b000, "rcwssetal",       OP_ARMV8_A64_RCWSSETAL, DISOPTYPE_HARMLESS, AtomicMemoryHalfwordThe), /* FEAT_THE */
+    /* Rest of the encodings is invalid. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AtomicMemoryHalfword, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* opc */    RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14)
+                            /* o3  */  | RT_BIT_32(15)
+                            /* R   */  | RT_BIT_32(22)
+                            /* A   */  | RT_BIT_32(23), 12);
+
+
+/* Atomic memory operations - Word size variants */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AtomicMemoryWord)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryWordLrcpc)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AtomicMemoryWord)
+    DIS_ARMV8_OP(           0xb8200000, "ldadd",           OP_ARMV8_A64_LDADD,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8201000, "ldclr",           OP_ARMV8_A64_LDCLR,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8202000, "ldeor",           OP_ARMV8_A64_LDEOR,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8203000, "ldset",           OP_ARMV8_A64_LDSET,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8204000, "ldsmax",          OP_ARMV8_A64_LDSMAX,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8205000, "ldsmin",          OP_ARMV8_A64_LDSMIN,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8206000, "ldumax",          OP_ARMV8_A64_LDUMAX,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8207000, "ldumin",          OP_ARMV8_A64_LDUMIN,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8208000, "swp",             OP_ARMV8_A64_SWP,       DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xb8600000, "ldaddl",          OP_ARMV8_A64_LDADDL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8601000, "ldclrl",          OP_ARMV8_A64_LDCLRL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8602000, "ldeorl",          OP_ARMV8_A64_LDEORL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8603000, "ldsetl",          OP_ARMV8_A64_LDSETL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8604000, "ldsmaxl",         OP_ARMV8_A64_LDSMAXL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8605000, "ldsminl",         OP_ARMV8_A64_LDSMINL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8606000, "ldumaxl",         OP_ARMV8_A64_LDUMAXL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8607000, "lduminl",         OP_ARMV8_A64_LDUMINL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8608000, "swpl",            OP_ARMV8_A64_SWPL,      DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xb8a00000, "ldadda",          OP_ARMV8_A64_LDADDA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a01000, "ldclra",          OP_ARMV8_A64_LDCLRA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a02000, "ldeora",          OP_ARMV8_A64_LDEORA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a03000, "ldseta",          OP_ARMV8_A64_LDSETA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a04000, "ldsmaxa",         OP_ARMV8_A64_LDSMAXA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a05000, "ldsmina",         OP_ARMV8_A64_LDSMINA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a06000, "ldumaxa",         OP_ARMV8_A64_LDUMAXA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a07000, "ldumina",         OP_ARMV8_A64_LDUMINA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8a08000, "swpa",            OP_ARMV8_A64_SWPA,      DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0xb8a0c000, "ldapr",           OP_ARMV8_A64_LDAPR,     DISOPTYPE_HARMLESS, AtomicMemoryWordLrcpc), /* FEAT_LRCPC */ /** @todo Rs == 11111 */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xb8e00000, "ldaddal",         OP_ARMV8_A64_LDADDAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e01000, "ldclral",         OP_ARMV8_A64_LDCLRAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e02000, "ldeoral",         OP_ARMV8_A64_LDEORAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e03000, "ldsetal",         OP_ARMV8_A64_LDSETAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e04000, "ldsmaxal",        OP_ARMV8_A64_LDSMAXAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e05000, "ldsminal",        OP_ARMV8_A64_LDSMINAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e06000, "ldumaxal",        OP_ARMV8_A64_LDUMAXAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e07000, "lduminal",        OP_ARMV8_A64_LDUMINAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xb8e08000, "swpal",           OP_ARMV8_A64_SWPAL,     DISOPTYPE_HARMLESS),
+    /* Rest of the encodings is invalid. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AtomicMemoryWord, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* opc */    RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14)
+                            /* o3  */  | RT_BIT_32(15)
+                            /* R   */  | RT_BIT_32(22)
+                            /* A   */  | RT_BIT_32(23), 12);
+
+
+/* Atomic memory operations - Word size variants */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(AtomicMemoryDWord)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(AtomicMemoryDWordLrcpc)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(AtomicMemoryDWord)
+    DIS_ARMV8_OP(           0xf8200000, "ldadd",           OP_ARMV8_A64_LDADD,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8201000, "ldclr",           OP_ARMV8_A64_LDCLR,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8202000, "ldeor",           OP_ARMV8_A64_LDEOR,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8203000, "ldset",           OP_ARMV8_A64_LDSET,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8204000, "ldsmax",          OP_ARMV8_A64_LDSMAX,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8205000, "ldsmin",          OP_ARMV8_A64_LDSMIN,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8206000, "ldumax",          OP_ARMV8_A64_LDUMAX,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8207000, "ldumin",          OP_ARMV8_A64_LDUMIN,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8208000, "swp",             OP_ARMV8_A64_SWP,       DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xf8600000, "ldaddl",          OP_ARMV8_A64_LDADDL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8601000, "ldclrl",          OP_ARMV8_A64_LDCLRL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8602000, "ldeorl",          OP_ARMV8_A64_LDEORL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8603000, "ldsetl",          OP_ARMV8_A64_LDSETL,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8604000, "ldsmaxl",         OP_ARMV8_A64_LDSMAXL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8605000, "ldsminl",         OP_ARMV8_A64_LDSMINL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8606000, "ldumaxl",         OP_ARMV8_A64_LDUMAXL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8607000, "lduminl",         OP_ARMV8_A64_LDUMINL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8608000, "swpl",            OP_ARMV8_A64_SWPL,      DISOPTYPE_HARMLESS),
+    INVALID_OPCODE, /** @todo ST64B   - FEAT_LS64 */
+    INVALID_OPCODE, /** @todo ST64BV0 - FEAT_LS64_ACCDATA */
+    INVALID_OPCODE, /** @todo ST64BV  - FEAT_LS64_V */
+    INVALID_OPCODE,
+    INVALID_OPCODE, /** @todo LD64B   - FEAT_LS64 */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xf8a00000, "ldadda",          OP_ARMV8_A64_LDADDA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a01000, "ldclra",          OP_ARMV8_A64_LDCLRA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a02000, "ldeora",          OP_ARMV8_A64_LDEORA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a03000, "ldseta",          OP_ARMV8_A64_LDSETA,    DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a04000, "ldsmaxa",         OP_ARMV8_A64_LDSMAXA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a05000, "ldsmina",         OP_ARMV8_A64_LDSMINA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a06000, "ldumaxa",         OP_ARMV8_A64_LDUMAXA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a07000, "ldumina",         OP_ARMV8_A64_LDUMINA,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8a08000, "swpa",            OP_ARMV8_A64_SWPA,      DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0xf8a0c000, "ldapr",           OP_ARMV8_A64_LDAPR,     DISOPTYPE_HARMLESS, AtomicMemoryDWordLrcpc), /* FEAT_LRCPC */ /** @todo Rs == 11111 */
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0xf8e00000, "ldaddal",         OP_ARMV8_A64_LDADDAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e01000, "ldclral",         OP_ARMV8_A64_LDCLRAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e02000, "ldeoral",         OP_ARMV8_A64_LDEORAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e03000, "ldsetal",         OP_ARMV8_A64_LDSETAL,   DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e04000, "ldsmaxal",        OP_ARMV8_A64_LDSMAXAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e05000, "ldsminal",        OP_ARMV8_A64_LDSMINAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e06000, "ldumaxal",        OP_ARMV8_A64_LDUMAXAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e07000, "lduminal",        OP_ARMV8_A64_LDUMINAL,  DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0xf8e08000, "swpal",           OP_ARMV8_A64_SWPAL,     DISOPTYPE_HARMLESS),
+    /* Rest of the encodings is invalid. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(AtomicMemoryDWord, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* opc */    RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14)
+                            /* o3  */  | RT_BIT_32(15)
+                            /* R   */  | RT_BIT_32(22)
+                            /* A   */  | RT_BIT_32(23), 12);
+
+
+/*
+ * C4.1.94.29 - Loads and Stores - Atomic memory oeprations
+ *
+ * Differentiate further based on the size field.
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(AtomicMemory)
+    DIS_ARMV8_DECODE_MAP_ENTRY(AtomicMemoryByte),
+    DIS_ARMV8_DECODE_MAP_ENTRY(AtomicMemoryHalfword),
+    DIS_ARMV8_DECODE_MAP_ENTRY(AtomicMemoryWord),
+    DIS_ARMV8_DECODE_MAP_ENTRY(AtomicMemoryDWord),
+DIS_ARMV8_DECODE_MAP_DEFINE_END(AtomicMemory, RT_BIT_32(30) | RT_BIT_32(31), 30);
+
+
 /*
  * C4.1.94 - Loads and Stores - Load/Store register variants
  *
@@ -196,7 +523,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRegPac, 0xffa00400 /*fFixedInsn*/,
  *           1  1 Load/store register (pac)
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRegOp2_11_1)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo */
+    DIS_ARMV8_DECODE_MAP_ENTRY(AtomicMemory),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPac),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegOff),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStRegPac),

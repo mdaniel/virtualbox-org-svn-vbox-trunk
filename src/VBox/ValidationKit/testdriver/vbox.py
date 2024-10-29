@@ -603,7 +603,7 @@ class EventHandlerBase(object):
         return None;
 
     @staticmethod
-    def registerDerivedEventHandler(oVBoxMgr, fpApiVer, oSubClass, dArgsCopy, # pylint: disable=too-many-arguments
+    def registerDerivedEventHandlerf(oVBoxMgr, fpApiVer, oSubClass, dArgsCopy, # pylint: disable=too-many-arguments
                                     oSrcParent, sSrcParentNm, sICallbackNm,
                                     fMustSucceed = True, sLogSuffix = '', aenmEvents = None):
         """
@@ -643,8 +643,8 @@ class EventHandlerBase(object):
                     dArgsCopy['oListener'] = oListener;
                     oRet = oSubClass(dArgsCopy);
             except Exception as oXcpt:
-                reporter.errorXcpt('%s::eventSource.createListener(%s, %s) failed: %s%s'
-                                   % (sSrcParentNm, oSubClass, dArgsCopy, oXcpt, sLogSuffix));
+                reporter.errorXcpt('%s::eventSource.createListener(%s, %s) failed: %s; fPassive=%s%s'
+                                   % (sSrcParentNm, oSubClass, dArgsCopy, oXcpt, fPassive, sLogSuffix));
             else:
                 try:
                     oEventSrc.registerListener(oListener, aenmEvents, not fPassive);

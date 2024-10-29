@@ -3600,6 +3600,112 @@ _TestProcA64:
         ldr q31, #-0xffffc
 
         ;
+        ; Load/Store memory tags
+        ;
+
+        ;.cpu generic+mte
+
+        ;stg x0, [x0]
+        ;stg x0, [x0, #-4096]
+        ;stg x0, [x0, #4080]
+        ;stg sp, [sp]
+        ;stg sp, [sp, #-4096]
+        ;stg sp, [sp, #4080]
+
+        ;stg x0, [x0], #0
+        ;stg x0, [x0], #-4096
+        ;stg x0, [x0], #4080
+        ;stg sp, [sp], #0
+        ;stg sp, [sp], #-4096
+        ;stg sp, [sp], #4080
+
+        ;stg x0, [x0, #0]!
+        ;stg x0, [x0, #-4096]!
+        ;stg x0, [x0, #4080]!
+        ;stg sp, [sp, #0]!
+        ;stg sp, [sp, #-4096]!
+        ;stg sp, [sp, #4080]!
+
+        ;stzgm x1, [x0]
+        ;stzgm xzr, [sp]
+
+        ;ldg x0, [x0]
+        ;ldg x0, [x0, #-4096]
+        ;ldg x0, [x0, #4080]
+        ;ldg xzr, [sp]
+        ;ldg xzr, [sp, #-4096]
+        ;ldg xzr, [sp, #4080]
+
+        ;stzg x0, [x0]
+        ;stzg x0, [x0, #-4096]
+        ;stzg x0, [x0, #4080]
+        ;stzg sp, [sp]
+        ;stzg sp, [sp, #-4096]
+        ;stzg sp, [sp, #4080]
+
+        ;stzg x0, [x0], #0
+        ;stzg x0, [x0], #-4096
+        ;stzg x0, [x0], #4080
+        ;stzg sp, [sp], #0
+        ;stzg sp, [sp], #-4096
+        ;stzg sp, [sp], #4080
+
+        ;stzg x0, [x0, #0]!
+        ;stzg x0, [x0, #-4096]!
+        ;stzg x0, [x0, #4080]!
+        ;stzg sp, [sp, #0]!
+        ;stzg sp, [sp, #-4096]!
+        ;stzg sp, [sp, #4080]!
+
+        ;stgm x1, [x0]
+        ;stgm xzr, [sp]
+
+        ;st2g x0, [x0]
+        ;st2g x0, [x0, #-4096]
+        ;st2g x0, [x0, #4080]
+        ;st2g sp, [sp]
+        ;st2g sp, [sp, #-4096]
+        ;st2g sp, [sp, #4080]
+
+        ;st2g x0, [x0], #0
+        ;st2g x0, [x0], #-4096
+        ;st2g x0, [x0], #4080
+        ;st2g sp, [sp], #0
+        ;st2g sp, [sp], #-4096
+        ;st2g sp, [sp], #4080
+
+        ;st2g x0, [x0, #0]!
+        ;st2g x0, [x0, #-4096]!
+        ;st2g x0, [x0, #4080]!
+        ;st2g sp, [sp, #0]!
+        ;st2g sp, [sp, #-4096]!
+        ;st2g sp, [sp, #4080]!
+
+        ;ldgm x1, [x0]
+        ;ldgm xzr, [sp]
+
+        ;stz2g x0, [x0]
+        ;stz2g x0, [x0, #-4096]
+        ;stz2g x0, [x0, #4080]
+        ;stz2g sp, [sp]
+        ;stz2g sp, [sp, #-4096]
+        ;stz2g sp, [sp, #4080]
+
+        ;stz2g x0, [x0], #0
+        ;stz2g x0, [x0], #-4096
+        ;stz2g x0, [x0], #4080
+        ;stz2g sp, [sp], #0
+        ;stz2g sp, [sp], #-4096
+        ;stz2g sp, [sp], #4080
+
+        ;stz2g x0, [x0, #0]!
+        ;stz2g x0, [x0, #-4096]!
+        ;stz2g x0, [x0, #4080]!
+        ;stz2g sp, [sp, #0]!
+        ;stz2g sp, [sp, #-4096]!
+        ;stz2g sp, [sp, #4080]!
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

@@ -89,6 +89,8 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 {
     /* Begin of stuff which will get ignored in the semantic matching. */
     { RT_STR_TUPLE(".private_extern"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
+    { RT_STR_TUPLE(".cpu"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
+    { RT_STR_TUPLE("generic+mte"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
     { RT_STR_TUPLE("_testproca64"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
     { RT_STR_TUPLE("_testproca64_endproc"),     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
     { RT_STR_TUPLE(":"),                        RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },

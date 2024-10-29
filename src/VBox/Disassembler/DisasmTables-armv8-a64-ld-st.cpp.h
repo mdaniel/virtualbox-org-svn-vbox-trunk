@@ -1048,6 +1048,72 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdRegLiteral)
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdRegLiteral, RT_BIT_32(26), 26);
 
 
+/* STG/STZGM/LDG/STZG/ST2G/STGM/STZ2G/LDGM. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStMemTags)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmTags,       12,  9, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStMemTagsLdg) /** @todo imm9 == 0 */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmTags,       12,  9, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStMemTagsStzgm) /** @todo imm9 == 0 */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStMemTagsPostIndex)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmTags,       12,  9, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,  0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStMemTagsPreIndex)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprSp,           0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSImmTags,       12,  9, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPreIndexed,   0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStMemTags)
+    DIS_ARMV8_OP_ALT_DECODE(0xd9200000, "stzgm",           OP_ARMV8_A64_STZGM,     DISOPTYPE_HARMLESS, LdStMemTagsStzgm),     /* FEAT_MTE2 */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9200400, "stg",             OP_ARMV8_A64_STG,       DISOPTYPE_HARMLESS, LdStMemTagsPostIndex), /* FEAT_MTE */
+    DIS_ARMV8_OP(           0xd9200800, "stg",             OP_ARMV8_A64_STG,       DISOPTYPE_HARMLESS),                       /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9200c00, "stg",             OP_ARMV8_A64_STG,       DISOPTYPE_HARMLESS, LdStMemTagsPreIndex),  /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9600000, "ldg",             OP_ARMV8_A64_LDG,       DISOPTYPE_HARMLESS, LdStMemTagsLdg),       /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9600400, "stzg",            OP_ARMV8_A64_STZG,      DISOPTYPE_HARMLESS, LdStMemTagsPostIndex), /* FEAT_MTE */
+    DIS_ARMV8_OP(           0xd9600800, "stzg",            OP_ARMV8_A64_STZG,      DISOPTYPE_HARMLESS),                       /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9600c00, "stzg",            OP_ARMV8_A64_STZG,      DISOPTYPE_HARMLESS, LdStMemTagsPreIndex),  /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9a00000, "stgm",            OP_ARMV8_A64_STGM,      DISOPTYPE_HARMLESS, LdStMemTagsStzgm),     /* FEAT_MTE2 */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9a00400, "st2g",            OP_ARMV8_A64_ST2G,      DISOPTYPE_HARMLESS, LdStMemTagsPostIndex), /* FEAT_MTE */
+    DIS_ARMV8_OP(           0xd9a00800, "st2g",            OP_ARMV8_A64_ST2G,      DISOPTYPE_HARMLESS),                       /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9a00c00, "st2g",            OP_ARMV8_A64_ST2G,      DISOPTYPE_HARMLESS, LdStMemTagsPreIndex),  /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9e00000, "ldgm",            OP_ARMV8_A64_LDGM,      DISOPTYPE_HARMLESS, LdStMemTagsStzgm),     /* FEAT_MTE2 */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9e00400, "stz2g",           OP_ARMV8_A64_STZ2G,     DISOPTYPE_HARMLESS, LdStMemTagsPostIndex), /* FEAT_MTE */
+    DIS_ARMV8_OP(           0xd9e00800, "stz2g",           OP_ARMV8_A64_STZ2G,     DISOPTYPE_HARMLESS),                       /* FEAT_MTE */
+    DIS_ARMV8_OP_ALT_DECODE(0xd9e00c00, "stz2g",           OP_ARMV8_A64_STZ2G,     DISOPTYPE_HARMLESS, LdStMemTagsPreIndex),  /* FEAT_MTE */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStMemTags, 0xffe00c00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(22) | RT_BIT_32(23), 10);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between further based on op0<3> (bit 31).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0_Bit24_1_Bit21_1)
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo RCW compare and swap (pair) / 128-bit atomic memory operations */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStMemTags),
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit24_1_Bit21_1, 31);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between further based on op2<11> (bit 21).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0_Bit24_1)
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo GCS load/store / LDIAPP/STILP / LDAPR/STLR / Memory Copy and Set */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0_Bit24_1_Bit21_1),
+DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit24_1, 21);
+
+
 /**
  * C4.1.94 - Loads and Stores
  *
@@ -1055,7 +1121,7 @@ DIS_ARMV8_DECODE_MAP_DEFINE_END(LdRegLiteral, RT_BIT_32(26), 26);
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdRegLiteral),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo RCW compare and swap / 128-bit atomic memory instructions / GCS load/store / Load/store memory tags / LDIAPP/STILP / LDAPR/STLR / Memory Copy and Set */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStBit28_1_Bit29_0_Bit24_1),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0, 24);
 
 

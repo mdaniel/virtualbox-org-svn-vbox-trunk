@@ -113,6 +113,7 @@ static FNDISPARSEARMV8 disArmV8ParseSimdRegScalar;
 static FNDISPARSEARMV8 disArmV8ParseImmHImmB;
 static FNDISPARSEARMV8 disArmV8ParseSf;
 static FNDISPARSEARMV8 disArmV8ParseImmX16;
+static FNDISPARSEARMV8 disArmV8ParseSImmTags;
 static FNDISPARSEARMV8 disArmV8ParseLdrPacImm;
 static FNDISPARSEARMV8 disArmV8ParseLdrPacW;
 /** @}  */
@@ -174,6 +175,7 @@ static PFNDISPARSEARMV8 const g_apfnDisasm[kDisParmParseMax] =
     disArmV8ParseImmHImmB,
     disArmV8ParseSf,
     disArmV8ParseImmX16,
+    disArmV8ParseSImmTags,
     disArmV8ParseLdrPacImm,
     disArmV8ParseLdrPacW
 };
@@ -1034,6 +1036,19 @@ static int disArmV8ParseImmX16(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     else
         AssertReleaseFailed();
 
+    return VINF_SUCCESS;
+}
+
+
+static int disArmV8ParseSImmTags(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, pOp, pInsnClass, pf64Bit);
+
+    AssertReturn(pInsnParm->cBits <= 9, VERR_INTERNAL_ERROR_2);
+    Assert(pParam->armv8.enmType != kDisArmv8OpParmNone);
+
+    pParam->armv8.cb = sizeof(int16_t);
+    pParam->armv8.u.offBase = disArmV8ExtractBitVecFromInsnSignExtend(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits) << 4;
     return VINF_SUCCESS;
 }
 

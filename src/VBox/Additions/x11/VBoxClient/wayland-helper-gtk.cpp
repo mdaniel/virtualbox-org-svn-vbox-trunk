@@ -403,7 +403,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_probe(void)
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnInit}
  */
-RTDECL(int) vbcl_wayland_hlp_gtk_init(void)
+RTDECL(int) vbcl_wayland_hlp_gtk_clip_init(void)
 {
     VBCL_LOG_CALLBACK;
 
@@ -415,7 +415,7 @@ RTDECL(int) vbcl_wayland_hlp_gtk_init(void)
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnTerm}
  */
-RTDECL(int) vbcl_wayland_hlp_gtk_term(void)
+RTDECL(int) vbcl_wayland_hlp_gtk_clip_term(void)
 {
     int rc;
     int rcThread = 0;
@@ -443,7 +443,7 @@ RTDECL(int) vbcl_wayland_hlp_gtk_term(void)
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnSetClipboardCtx}
  */
-static DECLCALLBACK(void) vbcl_wayland_hlp_gtk_set_clipboard_ctx(PVBGLR3SHCLCMDCTX pCtx)
+static DECLCALLBACK(void) vbcl_wayland_hlp_gtk_clip_set_ctx(PVBGLR3SHCLCMDCTX pCtx)
 {
     g_GtkCtx.pClipboardCtx = pCtx;
 }
@@ -460,7 +460,7 @@ static DECLCALLBACK(void) vbcl_wayland_hlp_gtk_set_clipboard_ctx(PVBGLR3SHCLCMDC
  *                              a consistency check.
  * @param   pvUser              User data (unused).
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup_join_cb(
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_popup_join_cb(
     vbcl_wl_session_type_t enmSessionType, void *pvUser)
 {
     int rc = (enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_ANNOUNCE_TO_HOST)
@@ -485,7 +485,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup_join_cb(
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnPopup}
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup(void)
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_popup(void)
 {
     int rc;
 
@@ -498,7 +498,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup(void)
     if (RT_SUCCESS(rc))
     {
         rc = vbcl_wayland_session_join(&g_GtkCtx.Session.Base,
-                                       &vbcl_wayland_hlp_gtk_popup_join_cb,
+                                       &vbcl_wayland_hlp_gtk_clip_popup_join_cb,
                                        NULL);
     }
 
@@ -522,7 +522,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_popup(void)
  *                              a consistency check.
  * @param   pvUser              User data (host clipboard formats).
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report_join_cb(
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_hg_report_join_cb(
     vbcl_wl_session_type_t enmSessionType, void *pvUser)
 {
     SHCLFORMATS *pfFmts = (SHCLFORMATS *)pvUser;
@@ -562,7 +562,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report_join_cb(
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnHGClipReport}
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report(SHCLFORMATS fFormats)
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_hg_report(SHCLFORMATS fFormats)
 {
     int rc = VERR_NO_DATA;
 
@@ -577,7 +577,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report(SHCLFORMATS fFormat
         if (RT_SUCCESS(rc))
         {
             rc = vbcl_wayland_session_join(&g_GtkCtx.Session.Base,
-                                           &vbcl_wayland_hlp_gtk_hg_clip_report_join_cb,
+                                           &vbcl_wayland_hlp_gtk_clip_hg_report_join_cb,
                                            &fFormats);
         }
     }
@@ -601,7 +601,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_hg_clip_report(SHCLFORMATS fFormat
  *                              a consistency check.
  * @param   pvUser              User data (requested format).
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read_join_cb(
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_gh_read_join_cb(
     vbcl_wl_session_type_t enmSessionType, void *pvUser)
 {
     SHCLFORMAT *puFmt = (SHCLFORMAT *)pvUser;
@@ -640,7 +640,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read_join_cb(
 /**
  * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnGHClipRead}
  */
-static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read(SHCLFORMAT uFmt)
+static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_gh_read(SHCLFORMAT uFmt)
 {
     int rc = VINF_SUCCESS;
 
@@ -677,12 +677,12 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_gh_clip_read(SHCLFORMAT uFmt)
         if (RT_SUCCESS(rc))
         {
             rc = vbcl_wayland_session_join(&g_GtkCtx.Session.Base,
-                                           &vbcl_wayland_hlp_gtk_gh_clip_read_join_cb,
+                                           &vbcl_wayland_hlp_gtk_clip_gh_read_join_cb,
                                            &uFmt);
         }
     }
 
-    VBClLogVerbose(2, "vbcl_wayland_hlp_gtk_gh_clip_read ended rc=%Rrc\n", rc);
+    VBClLogVerbose(2, "vbcl_wayland_hlp_gtk_clip_gh_read ended rc=%Rrc\n", rc);
 
     return rc;
 }
@@ -715,12 +715,12 @@ RTDECL(int) vbcl_wayland_hlp_gtk_dnd_term(void)
 
 static const VBCLWAYLANDHELPER_CLIPBOARD g_WaylandHelperGtkClip =
 {
-    vbcl_wayland_hlp_gtk_init,                  /* .pfnInit */
-    vbcl_wayland_hlp_gtk_term,                  /* .pfnTerm */
-    vbcl_wayland_hlp_gtk_set_clipboard_ctx,     /* .pfnSetClipboardCtx */
-    vbcl_wayland_hlp_gtk_popup,                 /* .pfnPopup */
-    vbcl_wayland_hlp_gtk_hg_clip_report,        /* .pfnHGClipReport */
-    vbcl_wayland_hlp_gtk_gh_clip_read,          /* .pfnGHClipRead */
+    vbcl_wayland_hlp_gtk_clip_init,             /* .pfnInit */
+    vbcl_wayland_hlp_gtk_clip_term,             /* .pfnTerm */
+    vbcl_wayland_hlp_gtk_clip_set_ctx,          /* .pfnSetClipboardCtx */
+    vbcl_wayland_hlp_gtk_clip_popup,            /* .pfnPopup */
+    vbcl_wayland_hlp_gtk_clip_hg_report,        /* .pfnHGClipReport */
+    vbcl_wayland_hlp_gtk_clip_gh_read,          /* .pfnGHClipRead */
 };
 
 static const VBCLWAYLANDHELPER_DND g_WaylandHelperGtkDnD =

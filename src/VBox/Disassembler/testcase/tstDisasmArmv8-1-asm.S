@@ -28,8 +28,6 @@
 .private_extern _TestProcA64
 _TestProcA64:
 
-        casb  w0,  w1, [x0]
-
         ; Miscellaneous instructions without a parameter
         nop
         yield

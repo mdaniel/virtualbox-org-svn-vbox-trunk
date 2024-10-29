@@ -642,8 +642,9 @@ class EventHandlerBase(object):
                     oListener = oEventSrc.createListener();
                     dArgsCopy['oListener'] = oListener;
                     oRet = oSubClass(dArgsCopy);
-            except:
-                reporter.errorXcpt('%s::eventSource.createListener(%s) failed%s' % (sSrcParentNm, oListener, sLogSuffix));
+            except Exception as oXcpt:
+                reporter.errorXcpt('%s::eventSource.createListener(%s, %s) failed: %s%s'
+                                   % (sSrcParentNm, oSubClass, dArgsCopy, oXcpt, sLogSuffix));
             else:
                 try:
                     oEventSrc.registerListener(oListener, aenmEvents, not fPassive);

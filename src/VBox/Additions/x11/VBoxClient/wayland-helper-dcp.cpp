@@ -1243,7 +1243,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_event_loop(RTTHREAD hThreadSelf, v
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnProbe}
+ * @interface_method_impl{VBCLWAYLANDHELPER,pfnProbe}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_probe(void)
 {

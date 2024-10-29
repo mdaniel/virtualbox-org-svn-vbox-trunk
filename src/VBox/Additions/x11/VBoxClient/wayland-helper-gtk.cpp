@@ -388,7 +388,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_worker(RTTHREAD hThreadSelf, void 
 }
 
 /**
- * @interface_method_impl{VBCLWAYLANDHELPER_CLIPBOARD,pfnProbe}
+ * @interface_method_impl{VBCLWAYLANDHELPER,pfnProbe}
  */
 static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_probe(void)
 {

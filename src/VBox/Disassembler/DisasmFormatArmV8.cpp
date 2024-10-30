@@ -79,6 +79,11 @@ static const char g_aszArmV8RegSimdScalar128Bit[32][4] =
     "q0\0",  "q1\0",  "q2\0",  "q3\0",  "q4\0",  "q5\0",  "q6\0",  "q7\0",  "q8\0",  "q9\0",  "q10",  "q11",  "q12",  "q13",  "q14",  "q15",
     "q16",   "q17",   "q18",   "q19",   "q20",   "q21",   "q22",   "q23",   "q24",   "q25",   "q26",  "q27",  "q28",  "q29",  "q30",  "q31"
 };
+static const char g_aszArmV8RegSimdVector[32][4] =
+{
+    "v0\0",  "v1\0",  "v2\0",  "v3\0",  "v4\0",  "v5\0",  "v6\0",  "v7\0",  "v8\0",  "v9\0",  "v10",  "v11",  "v12",  "v13",  "v14",  "v15",
+    "v16",   "v17",   "v18",   "v19",   "v20",   "v21",   "v22",   "v23",   "v24",   "v25",   "v26",  "v27",  "v28",  "v29",  "v30",  "v31"
+};
 static const char g_aszArmV8Cond[16][3] =
 {
     "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge", "lt", "gt", "le", "al", "al"
@@ -98,6 +103,18 @@ static const char *g_apszArmV8PState[] =
     /* kDisArmv8InstrPState_SVCRZA   */ "svcrza",
     /* kDisArmv8InstrPState_SVCRSMZA */ "svcrsmza",
     /* kDisArmv8InstrPState_TCO      */ "tco"
+};
+static const char g_aszArmV8VecRegType[9][4] =
+{
+    /* kDisOpParamArmV8VecRegType_None */ "\0\0\0",
+    /* kDisOpParamArmV8VecRegType_8B   */ "8B\0",
+    /* kDisOpParamArmV8VecRegType_16B  */ "16B",
+    /* kDisOpParamArmV8VecRegType_4H   */ "4H\0",
+    /* kDisOpParamArmV8VecRegType_8H   */ "8H\0",
+    /* kDisOpParamArmV8VecRegType_2S   */ "2S\0",
+    /* kDisOpParamArmV8VecRegType_4S   */ "4S\0",
+    /* kDisOpParamArmV8VecRegType_1D   */ "1D\0",
+    /* kDisOpParamArmV8VecRegType_2D   */ "2D\0"
 };
 
 
@@ -343,86 +360,87 @@ static const struct
  *
  * @returns Pointer to the register name.
  * @param   pDis        The disassembler state.
- * @param   pParam      The parameter.
+ * @param   enmRegType  The register type.
+ * @param   idReg       The register ID.
  * @param   pcchReg     Where to store the length of the name.
  */
-DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8REG pReg, size_t *pcchReg)
+DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, uint8_t enmRegType, uint8_t idReg, size_t *pcchReg)
 {
     RT_NOREF_PV(pDis);
 
-    switch (pReg->enmRegType)
+    switch (enmRegType)
     {
         case kDisOpParamArmV8RegType_Gpr_32Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegGen32));
-            const char *psz = g_aszArmV8RegGen32[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegGen32));
+            const char *psz = g_aszArmV8RegGen32[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Gpr_64Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegGen64));
-            const char *psz = g_aszArmV8RegGen64[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegGen64));
+            const char *psz = g_aszArmV8RegGen64[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_FpReg_Single:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpSingle));
-            const char *psz = g_aszArmV8RegFpSingle[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpSingle));
+            const char *psz = g_aszArmV8RegFpSingle[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_FpReg_Double:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpDouble));
-            const char *psz = g_aszArmV8RegFpDouble[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpDouble));
+            const char *psz = g_aszArmV8RegFpDouble[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_FpReg_Half:
         {
             Assert(pDis->armv8.enmFpType != kDisArmv8InstrFpType_Invalid);
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
-            const char *psz = g_aszArmV8RegFpHalf[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
+            const char *psz = g_aszArmV8RegFpHalf[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Simd_Scalar_8Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar8Bit));
-            const char *psz = g_aszArmV8RegSimdScalar8Bit[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar8Bit));
+            const char *psz = g_aszArmV8RegSimdScalar8Bit[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Simd_Scalar_16Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
-            const char *psz = g_aszArmV8RegFpHalf[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpHalf));
+            const char *psz = g_aszArmV8RegFpHalf[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Simd_Scalar_32Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpSingle));
-            const char *psz = g_aszArmV8RegFpSingle[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpSingle));
+            const char *psz = g_aszArmV8RegFpSingle[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Simd_Scalar_64Bit:
         {
             /* Using the floating point double register names here. */
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegFpDouble));
-            const char *psz = g_aszArmV8RegFpDouble[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegFpDouble));
+            const char *psz = g_aszArmV8RegFpDouble[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
         case kDisOpParamArmV8RegType_Simd_Scalar_128Bit:
         {
-            Assert(pReg->idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar128Bit));
-            const char *psz = g_aszArmV8RegSimdScalar128Bit[pReg->idReg];
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegSimdScalar128Bit));
+            const char *psz = g_aszArmV8RegSimdScalar128Bit[idReg];
             *pcchReg = 2 + !!psz[2];
             return psz;
         }
@@ -431,11 +449,37 @@ DECLINLINE(const char *) disasmFormatArmV8Reg(PCDISSTATE pDis, PCDISOPPARAMARMV8
             *pcchReg = 2;
             return "sp";
         }
+        case kDisOpParamArmV8RegType_Simd_Vector:
+        case kDisOpParamArmV8RegType_Simd_Vector_Group:
+        {
+            Assert(idReg < RT_ELEMENTS(g_aszArmV8RegSimdVector));
+            const char *psz = g_aszArmV8RegSimdVector[idReg];
+            *pcchReg = 2 + !!psz[2];
+            return psz;
+        }
         default:
             AssertFailed();
             *pcchReg = 0;
             return NULL;
     }
+}
+
+
+/**
+ * Gets the vector register type for the given parameter.
+ *
+ * @returns Pointer to the register type.
+ * @param   enmVecType  THe vector type.
+ * @param   pcchType    Where to store the length of the type.
+ */
+DECLINLINE(const char *) disasmFormatArmV8VecRegType(uint8_t enmVecType, size_t *pcchType)
+{
+    Assert(   enmVecType != kDisOpParamArmV8VecRegType_None
+           && enmVecType < RT_ELEMENTS(g_aszArmV8VecRegType));
+
+    const char *psz = g_aszArmV8VecRegType[enmVecType];
+    *pcchType = 2 + !!psz[2];
+    return psz;
 }
 
 
@@ -798,9 +842,46 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                 {
                     Assert(!(pParam->fUse & (DISUSE_DISPLACEMENT8 | DISUSE_DISPLACEMENT16 | DISUSE_DISPLACEMENT32 | DISUSE_DISPLACEMENT64 | DISUSE_RIPDISPLACEMENT32)));
 
-                    size_t cchReg;
-                    const char *pszReg = disasmFormatArmV8Reg(pDis, &pParam->armv8.Op.Reg, &cchReg);
-                    PUT_STR(pszReg, cchReg);
+                    if (pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector_Group)
+                    {
+                        PUT_C('{');
+
+                        Assert(   pParam->armv8.Op.Reg.cRegs > 0
+                               && pParam->armv8.Op.Reg.cRegs <= 4);
+                        Assert(pParam->armv8.Op.Reg.enmVecType != kDisOpParamArmV8VecRegType_None);
+
+                        for (uint8_t idReg = pParam->armv8.Op.Reg.idReg; idReg < (pParam->armv8.Op.Reg.idReg + pParam->armv8.Op.Reg.cRegs); idReg++)
+                        {
+                            if (idReg > pParam->armv8.Op.Reg.idReg)
+                                PUT_C(',');
+                            PUT_C(' '); /** @todo Make the indenting configurable. */
+
+                            size_t cchTmp;
+                            const char *pszTmp = disasmFormatArmV8Reg(pDis, kDisOpParamArmV8RegType_Simd_Vector_Group,
+                                                                      idReg % RT_ELEMENTS(g_aszArmV8RegSimdVector), &cchTmp);
+                            PUT_STR(pszTmp, cchTmp);
+                            PUT_C('.');
+                            pszTmp = disasmFormatArmV8VecRegType(pParam->armv8.Op.Reg.enmVecType, &cchTmp);
+                            PUT_STR(pszTmp, cchTmp);
+                        }
+
+                        PUT_C('}');
+                    }
+                    else
+                    {
+                        size_t cchTmp;
+                        const char *pszTmp = disasmFormatArmV8Reg(pDis, pParam->armv8.Op.Reg.enmRegType,
+                                                                  pParam->armv8.Op.Reg.idReg, &cchTmp);
+                        PUT_STR(pszTmp, cchTmp);
+
+                        if (   pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector
+                            && pParam->armv8.Op.Reg.enmVecType != kDisOpParamArmV8VecRegType_None)
+                        {
+                            PUT_C('.');
+                            pszTmp = disasmFormatArmV8VecRegType(pParam->armv8.Op.Reg.enmVecType, &cchTmp);
+                            PUT_STR(pszTmp, cchTmp);
+                        }
+                    }
                     break;
                 }
                 case kDisArmv8OpParmSysReg:
@@ -824,7 +905,8 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                     PUT_C('[');
 
                     size_t cchReg;
-                    const char *pszReg = disasmFormatArmV8Reg(pDis, &pParam->armv8.Op.Reg, &cchReg);
+                    const char *pszReg = disasmFormatArmV8Reg(pDis, pParam->armv8.Op.Reg.enmRegType,
+                                                              pParam->armv8.Op.Reg.idReg, &cchReg);
                     PUT_STR(pszReg, cchReg);
 
                     if (pParam->fUse & DISUSE_POST_INDEXED)
@@ -839,7 +921,8 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                         {
                             PUT_SZ(", ");
 
-                            pszReg = disasmFormatArmV8Reg(pDis, &pParam->armv8.GprIndex, &cchReg);
+                            pszReg = disasmFormatArmV8Reg(pDis, pParam->armv8.GprIndex.enmRegType,
+                                                          pParam->armv8.GprIndex.idReg, &cchReg);
                             PUT_STR(pszReg, cchReg);
                         }
                         else if (   pParam->armv8.u.offBase

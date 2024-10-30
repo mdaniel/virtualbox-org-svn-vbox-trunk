@@ -60,6 +60,7 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseGprZr64,
     kDisParmParseGprSp,
     kDisParmParseGprOff,
+    kDisParmParseVecReg,
     kDisParmParseAddrGprSp,
     kDisParmParseRegFixed31,
     kDisParmParseImmsImmrN,
@@ -94,6 +95,9 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseSImmTags,
     kDisParmParseLdrPacImm,
     kDisParmParseLdrPacW,
+    kDisParmParseVecRegElemSize,
+    kDisParmParseVecQ,
+    kDisParmParseVecGrp,
     kDisParmParseMax
 } DISPARMPARSEIDX;
 /** @}  */

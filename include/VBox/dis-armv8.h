@@ -49,6 +49,9 @@ RT_C_DECLS_BEGIN
 /** @addtogroup grp_dis   VBox Disassembler
  * @{ */
 
+/**
+ * The register type.
+ */
 typedef enum DISOPPARAMARMV8REGTYPE
 {
     kDisOpParamArmV8RegType_Gpr_32Bit = 0,
@@ -62,8 +65,27 @@ typedef enum DISOPPARAMARMV8REGTYPE
     kDisOpParamArmV8RegType_Simd_Scalar_64Bit,
     kDisOpParamArmV8RegType_Simd_Scalar_128Bit,
     kDisOpParamArmV8RegType_Simd_Vector,
+    kDisOpParamArmV8RegType_Simd_Vector_Group,
     kDisOpParamArmV8RegType_Sp
 } DISOPPARAMARMV8REGTYPE;
+
+
+/**
+ * The vector register type.
+ */
+typedef enum DISOPPARAMARMV8VECREGTYPE
+{
+    kDisOpParamArmV8VecRegType_None = 0,
+    kDisOpParamArmV8VecRegType_8B,
+    kDisOpParamArmV8VecRegType_16B,
+    kDisOpParamArmV8VecRegType_4H,
+    kDisOpParamArmV8VecRegType_8H,
+    kDisOpParamArmV8VecRegType_2S,
+    kDisOpParamArmV8VecRegType_4S,
+    kDisOpParamArmV8VecRegType_1D,
+    kDisOpParamArmV8VecRegType_2D
+} DISOPPARAMARMV8VECREGTYPE;
+
 
 /**
  * Register definition
@@ -74,8 +96,12 @@ typedef struct
     uint8_t  enmRegType;
     /** The register ID (not applicable for kDisOpParamArmV8RegType_Sp). */
     uint8_t  idReg;
+    /** Number of registers being accessed by this parameter (only applicable for kDisOpParamArmV8RegType_Simd_Vector_Group). */
+    uint8_t  cRegs;
+    /** Vector register type (DISOPPARAMARMV8VECREGTYPE). */
+    uint8_t  enmVecType;
 } DISOPPARAMARMV8REG;
-AssertCompileSize(DISOPPARAMARMV8REG, sizeof(uint16_t));
+AssertCompileSize(DISOPPARAMARMV8REG, sizeof(uint32_t));
 /** Pointer to a disassembler GPR. */
 typedef DISOPPARAMARMV8REG *PDISOPPARAMARMV8REG;
 /** Pointer to a const disasssembler GPR. */
@@ -129,11 +155,13 @@ typedef const DIS_OP_PARAM_ARMV8_T *PCDIS_OP_PARAM_ARMV8_T;
 typedef struct
 {
     /** Condition flag for the instruction - kArmv8InstrCond_Al if not conditional instruction. */
-    DISARMV8INSTRCOND   enmCond;
+    DISARMV8INSTRCOND           enmCond;
     /** Floating point type for floating point instructions. */
-    DISARMV8INSTRFPTYPE enmFpType;
+    DISARMV8INSTRFPTYPE         enmFpType;
+    /** Vector register type for advanced SIMD instructions. */
+    DISOPPARAMARMV8VECREGTYPE   enmVecRegType;
     /** Operand size (for loads/stores primarily). */
-    uint8_t             cbOperand;
+    uint8_t                     cbOperand;
 } DIS_STATE_ARMV8_T;
 AssertCompile(sizeof(DIS_STATE_ARMV8_T) <= 32);
 

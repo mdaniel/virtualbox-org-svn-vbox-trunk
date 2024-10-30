@@ -3894,6 +3894,262 @@ _TestProcA64:
         ldar xzr, [sp]
 
         ;
+        ; Advanced SIMD load/store multiple structures
+        ;
+        st4 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0]
+        st4 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp]
+        st4 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0]
+        st4 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp]
+
+        st4 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0]
+        st4 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp]
+        st4 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0]
+        st4 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp]
+
+        st4 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0]
+        st4 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp]
+        st4 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0]
+        st4 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp]
+
+        st4 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0]
+        st4 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp]
+
+        st1 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0]
+        st1 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp]
+        st1 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0]
+        st1 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp]
+
+        st1 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0]
+        st1 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp]
+        st1 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0]
+        st1 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp]
+
+        st1 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0]
+        st1 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp]
+        st1 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0]
+        st1 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp]
+
+        st1 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0]
+        st1 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp]
+
+        st3 { v0.8B,  v1.8B, v2.8B }, [x0]
+        st3 { v31.8B, v0.8B, v1.8B }, [sp]
+        st3 { v0.16B,  v1.16B, v2.16B }, [x0]
+        st3 { v31.16B, v0.16B, v1.16B }, [sp]
+
+        st3 { v0.4H,  v1.4H, v2.4H }, [x0]
+        st3 { v31.4H, v0.4H, v1.4H }, [sp]
+        st3 { v0.8H,  v1.8H, v2.8H }, [x0]
+        st3 { v31.8H, v0.8H, v1.8H }, [sp]
+
+        st3 { v0.2S,  v1.2S, v2.2S }, [x0]
+        st3 { v31.2S, v0.2S, v1.2S }, [sp]
+        st3 { v0.4S,  v1.4S, v2.4S }, [x0]
+        st3 { v31.4S, v0.4S, v1.4S }, [sp]
+
+        st3 { v0.2D,  v1.2D, v2.2D }, [x0]
+        st3 { v31.2D, v0.2D, v1.2D }, [sp]
+
+        st1 { v0.8B,  v1.8B, v2.8B }, [x0]
+        st1 { v31.8B, v0.8B, v1.8B }, [sp]
+        st1 { v0.16B,  v1.16B, v2.16B }, [x0]
+        st1 { v31.16B, v0.16B, v1.16B }, [sp]
+
+        st1 { v0.4H,  v1.4H, v2.4H }, [x0]
+        st1 { v31.4H, v0.4H, v1.4H }, [sp]
+        st1 { v0.8H,  v1.8H, v2.8H }, [x0]
+        st1 { v31.8H, v0.8H, v1.8H }, [sp]
+
+        st1 { v0.2S,  v1.2S, v2.2S }, [x0]
+        st1 { v31.2S, v0.2S, v1.2S }, [sp]
+        st1 { v0.4S,  v1.4S, v2.4S }, [x0]
+        st1 { v31.4S, v0.4S, v1.4S }, [sp]
+
+        st1 { v0.2D,  v1.2D, v2.2D }, [x0]
+        st1 { v31.2D, v0.2D, v1.2D }, [sp]
+
+        st1 { v0.8B }, [x0]
+        st1 { v31.8B }, [sp]
+        st1 { v0.16B }, [x0]
+        st1 { v31.16B }, [sp]
+
+        st1 { v0.4H }, [x0]
+        st1 { v31.4H }, [sp]
+        st1 { v0.8H }, [x0]
+        st1 { v31.8H }, [sp]
+
+        st1 { v0.2S }, [x0]
+        st1 { v31.2S }, [sp]
+        st1 { v0.4S }, [x0]
+        st1 { v31.4S }, [sp]
+
+        st1 { v0.2D }, [x0]
+        st1 { v31.2D }, [sp]
+
+        st2 { v0.8B,  v1.8B }, [x0]
+        st2 { v31.8B, v0.8B }, [sp]
+        st2 { v0.16B,  v1.16B }, [x0]
+        st2 { v31.16B, v0.16B }, [sp]
+
+        st2 { v0.4H,  v1.4H }, [x0]
+        st2 { v31.4H, v0.4H }, [sp]
+        st2 { v0.8H,  v1.8H }, [x0]
+        st2 { v31.8H, v0.8H }, [sp]
+
+        st2 { v0.2S,  v1.2S }, [x0]
+        st2 { v31.2S, v0.2S }, [sp]
+        st2 { v0.4S,  v1.4S }, [x0]
+        st2 { v31.4S, v0.4S }, [sp]
+
+        st2 { v0.2D,  v1.2D }, [x0]
+        st2 { v31.2D, v0.2D }, [sp]
+
+        st1 { v0.8B,  v1.8B }, [x0]
+        st1 { v31.8B, v0.8B }, [sp]
+        st1 { v0.16B,  v1.16B }, [x0]
+        st1 { v31.16B, v0.16B }, [sp]
+
+        st1 { v0.4H,  v1.4H }, [x0]
+        st1 { v31.4H, v0.4H }, [sp]
+        st1 { v0.8H,  v1.8H }, [x0]
+        st1 { v31.8H, v0.8H }, [sp]
+
+        st1 { v0.2S,  v1.2S }, [x0]
+        st1 { v31.2S, v0.2S }, [sp]
+        st1 { v0.4S,  v1.4S }, [x0]
+        st1 { v31.4S, v0.4S }, [sp]
+
+        st1 { v0.2D,  v1.2D }, [x0]
+        st1 { v31.2D, v0.2D }, [sp]
+
+
+        ld4 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0]
+        ld4 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp]
+        ld4 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0]
+        ld4 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp]
+
+        ld4 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0]
+        ld4 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp]
+        ld4 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0]
+        ld4 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp]
+
+        ld4 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0]
+        ld4 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp]
+        ld4 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0]
+        ld4 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp]
+
+        ld4 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0]
+        ld4 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp]
+
+        ld1 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0]
+        ld1 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp]
+        ld1 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0]
+        ld1 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp]
+
+        ld1 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0]
+        ld1 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp]
+        ld1 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0]
+        ld1 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp]
+
+        ld1 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0]
+        ld1 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp]
+        ld1 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0]
+        ld1 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp]
+
+        ld1 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0]
+        ld1 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp]
+
+        ld3 { v0.8B,  v1.8B, v2.8B }, [x0]
+        ld3 { v31.8B, v0.8B, v1.8B }, [sp]
+        ld3 { v0.16B,  v1.16B, v2.16B }, [x0]
+        ld3 { v31.16B, v0.16B, v1.16B }, [sp]
+
+        ld3 { v0.4H,  v1.4H, v2.4H }, [x0]
+        ld3 { v31.4H, v0.4H, v1.4H }, [sp]
+        ld3 { v0.8H,  v1.8H, v2.8H }, [x0]
+        ld3 { v31.8H, v0.8H, v1.8H }, [sp]
+
+        ld3 { v0.2S,  v1.2S, v2.2S }, [x0]
+        ld3 { v31.2S, v0.2S, v1.2S }, [sp]
+        ld3 { v0.4S,  v1.4S, v2.4S }, [x0]
+        ld3 { v31.4S, v0.4S, v1.4S }, [sp]
+
+        ld3 { v0.2D,  v1.2D, v2.2D }, [x0]
+        ld3 { v31.2D, v0.2D, v1.2D }, [sp]
+
+        ld1 { v0.8B,  v1.8B, v2.8B }, [x0]
+        ld1 { v31.8B, v0.8B, v1.8B }, [sp]
+        ld1 { v0.16B,  v1.16B, v2.16B }, [x0]
+        ld1 { v31.16B, v0.16B, v1.16B }, [sp]
+
+        ld1 { v0.4H,  v1.4H, v2.4H }, [x0]
+        ld1 { v31.4H, v0.4H, v1.4H }, [sp]
+        ld1 { v0.8H,  v1.8H, v2.8H }, [x0]
+        ld1 { v31.8H, v0.8H, v1.8H }, [sp]
+
+        ld1 { v0.2S,  v1.2S, v2.2S }, [x0]
+        ld1 { v31.2S, v0.2S, v1.2S }, [sp]
+        ld1 { v0.4S,  v1.4S, v2.4S }, [x0]
+        ld1 { v31.4S, v0.4S, v1.4S }, [sp]
+
+        ld1 { v0.2D,  v1.2D, v2.2D }, [x0]
+        ld1 { v31.2D, v0.2D, v1.2D }, [sp]
+
+        ld1 { v0.8B }, [x0]
+        ld1 { v31.8B }, [sp]
+        ld1 { v0.16B }, [x0]
+        ld1 { v31.16B }, [sp]
+
+        ld1 { v0.4H }, [x0]
+        ld1 { v31.4H }, [sp]
+        ld1 { v0.8H }, [x0]
+        ld1 { v31.8H }, [sp]
+
+        ld1 { v0.2S }, [x0]
+        ld1 { v31.2S }, [sp]
+        ld1 { v0.4S }, [x0]
+        ld1 { v31.4S }, [sp]
+
+        ld1 { v0.2D }, [x0]
+        ld1 { v31.2D }, [sp]
+
+        ld2 { v0.8B,  v1.8B }, [x0]
+        ld2 { v31.8B, v0.8B }, [sp]
+        ld2 { v0.16B,  v1.16B }, [x0]
+        ld2 { v31.16B, v0.16B }, [sp]
+
+        ld2 { v0.4H,  v1.4H }, [x0]
+        ld2 { v31.4H, v0.4H }, [sp]
+        ld2 { v0.8H,  v1.8H }, [x0]
+        ld2 { v31.8H, v0.8H }, [sp]
+
+        ld2 { v0.2S,  v1.2S }, [x0]
+        ld2 { v31.2S, v0.2S }, [sp]
+        ld2 { v0.4S,  v1.4S }, [x0]
+        ld2 { v31.4S, v0.4S }, [sp]
+
+        ld2 { v0.2D,  v1.2D }, [x0]
+        ld2 { v31.2D, v0.2D }, [sp]
+
+        ld1 { v0.8B,  v1.8B }, [x0]
+        ld1 { v31.8B, v0.8B }, [sp]
+        ld1 { v0.16B,  v1.16B }, [x0]
+        ld1 { v31.16B, v0.16B }, [sp]
+
+        ld1 { v0.4H,  v1.4H }, [x0]
+        ld1 { v31.4H, v0.4H }, [sp]
+        ld1 { v0.8H,  v1.8H }, [x0]
+        ld1 { v31.8H, v0.8H }, [sp]
+
+        ld1 { v0.2S,  v1.2S }, [x0]
+        ld1 { v31.2S, v0.2S }, [sp]
+        ld1 { v0.4S,  v1.4S }, [x0]
+        ld1 { v31.4S, v0.4S }, [sp]
+
+        ld1 { v0.2D,  v1.2D }, [x0]
+        ld1 { v31.2D, v0.2D }, [sp]
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

@@ -721,6 +721,7 @@ static void scmSvnTryResolveFunctions(void)
 # ifdef RT_OS_WINDOWS
             { "SlikSvn-lib", "-1.dll" },    /* SlikSVN */
             { "lib", "-1.dll" },            /* Win32Svn,CollabNet,++ */
+            { "lib", "_tsvn.dll" },         /* TortoiseSVN */
 # elif defined(RT_OS_DARWIN)
             { "../lib/lib", "-1.dylib" },
 # else
@@ -777,6 +778,24 @@ static void scmSvnTryResolveFunctions(void)
                         RTPathChangeToDosSlashes(pszEndPath, false);
 # endif
                         rc = RTLdrLoadEx(szPath, &ahMods[iLib], RTLDRLOAD_FLAGS_NT_SEARCH_DLL_LOAD_DIR , NULL);
+# ifdef RT_OS_WINDOWS /* TortoiseSVN hack: */
+                        if (RT_FAILURE(rc) && RTStrStartsWith(s_apszLibraries[iLib], "svn_"))
+                        {
+                            *pszEndPath = '\0';
+                            rc = RTPathAppend(szPath, sizeof(szPath), s_aVariations[iVar].pszPrefix);
+                            if (RT_SUCCESS(rc))
+                                rc = RTStrCat(szPath, sizeof(szPath), "svn");
+                            if (RT_SUCCESS(rc))
+                                rc = RTStrCat(szPath, sizeof(szPath), s_aVariations[iVar].pszSuffix);
+                            if (RT_SUCCESS(rc))
+                                rc = RTStrCat(szPath, sizeof(szPath), s_apszSuffixes[iSuff]);
+                            if (RT_SUCCESS(rc))
+                            {
+                                RTPathChangeToDosSlashes(pszEndPath, false);
+                                rc = RTLdrLoadEx(szPath, &ahMods[iLib], RTLDRLOAD_FLAGS_NT_SEARCH_DLL_LOAD_DIR , NULL);
+                            }
+                        }
+#endif
                         if (RT_SUCCESS(rc))
                         {
                             RTMEM_WILL_LEAK(ahMods[iLib]);

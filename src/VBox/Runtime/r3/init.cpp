@@ -47,10 +47,10 @@
 # include <unistd.h>
 # ifndef RT_OS_OS2
 #  include <pthread.h>
-#  include <signal.h>
 #  include <errno.h>
 #  define IPRT_USE_SIG_CHILD_DUMMY
 # endif
+# include <signal.h>
 #endif
 #ifdef RT_OS_OS2
 # include <InnoTekLIBC/fork.h>

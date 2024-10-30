@@ -1125,6 +1125,37 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0)
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0, 24);
 
 
+/* C4.1.94.13 - Loads and Stores - Load/Store ordered */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStOrdered)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStOrdered64)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStOrdered)
+    DIS_ARMV8_OP(           0x089f7c00, "stllrb",          OP_ARMV8_A64_STLLRB,    DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x089ffc00, "stlrb",           OP_ARMV8_A64_STLRB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x08df7c00, "ldlarb",          OP_ARMV8_A64_LDLARB,    DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x08dffc00, "ldarb",           OP_ARMV8_A64_LDARB,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x489f7c00, "stllrh",          OP_ARMV8_A64_STLLRH,    DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x489ffc00, "stlrh",           OP_ARMV8_A64_STLRH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x48df7c00, "ldlarh",          OP_ARMV8_A64_LDLARH,    DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x48dffc00, "ldarh",           OP_ARMV8_A64_LDARH,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x889f7c00, "stllr",           OP_ARMV8_A64_STLLR,     DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x889ffc00, "stlr",            OP_ARMV8_A64_STLR,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88df7c00, "ldlar",           OP_ARMV8_A64_LDLAR,     DISOPTYPE_HARMLESS),                /* FEAT_LOR */
+    DIS_ARMV8_OP(           0x88dffc00, "ldar",            OP_ARMV8_A64_LDAR,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0xc89f7c00, "stllr",           OP_ARMV8_A64_STLLR,     DISOPTYPE_HARMLESS, LdStOrdered64), /* FEAT_LOR */
+    DIS_ARMV8_OP_ALT_DECODE(0xc89ffc00, "stlr",            OP_ARMV8_A64_STLR,      DISOPTYPE_HARMLESS, LdStOrdered64),
+    DIS_ARMV8_OP_ALT_DECODE(0xc8df7c00, "ldlar",           OP_ARMV8_A64_LDLAR,     DISOPTYPE_HARMLESS, LdStOrdered64), /* FEAT_LOR */
+    DIS_ARMV8_OP_ALT_DECODE(0xc8dffc00, "ldar",            OP_ARMV8_A64_LDAR,      DISOPTYPE_HARMLESS, LdStOrdered64),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStOrdered, 0xfffffc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* o0 */     RT_BIT_32(15)
+                            /* L  */   | RT_BIT_32(22)
+                            /* size */ | RT_BIT_32(30) | RT_BIT_32(31), 15);
+
+
 /* C4.1.94.14 - Loads and Stores - Compare and swap */
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStCas)
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
@@ -1164,7 +1195,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStCas, 0xffe0fc00 /*fFixedInsn*/,
  * Differentiate between Load/Store ordered and Compare and swap instruction classes based on op2<11> (bit 21).
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOrdered_Cas)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo DIS_ARMV8_DECODE_MAP_ENTRY(LdStOrdered), */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStOrdered),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStCas),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStOrdered_Cas, 21);
 

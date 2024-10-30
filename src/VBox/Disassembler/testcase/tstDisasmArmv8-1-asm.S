@@ -3842,6 +3842,58 @@ _TestProcA64:
         ldaxp xzr, xzr, [sp]
 
         ;
+        ; Load/store ordered
+        ;
+
+        stllrb w0,  [x1]
+        stllrb wzr, [sp]
+
+        stlrb w0,  [x1]
+        stlrb wzr, [sp]
+
+        ldlarb w0,  [x1]
+        ldlarb wzr, [sp]
+
+        ldarb w0,  [x1]
+        ldarb wzr, [sp]
+
+        stllrh w0,  [x1]
+        stllrh wzr, [sp]
+
+        stlrh w0,  [x1]
+        stlrh wzr, [sp]
+
+        ldlarh w0,  [x1]
+        ldlarh wzr, [sp]
+
+        ldarh w0,  [x1]
+        ldarh wzr, [sp]
+
+        stllr w0,  [x1]
+        stllr wzr, [sp]
+
+        stlr w0,  [x1]
+        stlr wzr, [sp]
+
+        ldlar w0,  [x1]
+        ldlar wzr, [sp]
+
+        ldar w0,  [x1]
+        ldar wzr, [sp]
+
+        stllr x0,  [x1]
+        stllr xzr, [sp]
+
+        stlr x0,  [x1]
+        stlr xzr, [sp]
+
+        ldlar x0,  [x1]
+        ldlar xzr, [sp]
+
+        ldar x0,  [x1]
+        ldar xzr, [sp]
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

@@ -548,8 +548,8 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_hg_report_join_cb(
             rc = VBClClipboardReadHostClipboard(g_GtkCtx.pClipboardCtx, uFmt, &pvData, &cbData);
             if (RT_SUCCESS(rc))
             {
-                g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.set((uint64_t)pvData);
-                g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.set((uint64_t)cbData);
+                g_GtkCtx.Session.oDataIpc->m_pvDataBuf.set((uint64_t)pvData);
+                g_GtkCtx.Session.oDataIpc->m_cbDataBuf.set((uint64_t)cbData);
             }
         }
         else
@@ -622,10 +622,10 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_gh_read_join_cb(
         g_GtkCtx.Session.oDataIpc->m_uFmt.set(*puFmt);
 
         /* Wait for data in requested format. */
-        pvData = (void *)g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.wait();
-        cbData = g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.wait();
-        if (   cbData != g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.defaults()
-            && pvData != (void *)g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.defaults())
+        pvData = (void *)g_GtkCtx.Session.oDataIpc->m_pvDataBuf.wait();
+        cbData = g_GtkCtx.Session.oDataIpc->m_cbDataBuf.wait();
+        if (   cbData != g_GtkCtx.Session.oDataIpc->m_cbDataBuf.defaults()
+            && pvData != (void *)g_GtkCtx.Session.oDataIpc->m_pvDataBuf.defaults())
         {
             /* Send clipboard data to the host. */
             rc = VbglR3ClipboardWriteDataEx(g_GtkCtx.pClipboardCtx, *puFmt, pvData, cbData);

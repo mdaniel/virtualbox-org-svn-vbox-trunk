@@ -132,8 +132,8 @@ static void vboxwl_gtk_clipboard_read(GtkClipboard* pClipboard,
             rc = VBoxMimeConvNativeToVBox(pcszMimeType, pData, cbData, &pvBufOut, &cbBufOut);
             if (RT_SUCCESS(rc))
             {
-                g_oDataIpc->m_pvClipboardBuf.set((uint64_t)pvBufOut);
-                g_oDataIpc->m_cbClipboardBuf.set((uint64_t)cbBufOut);
+                g_oDataIpc->m_pvDataBuf.set((uint64_t)pvBufOut);
+                g_oDataIpc->m_cbDataBuf.set((uint64_t)cbBufOut);
                 g_tsGtkQuit = RTTimeMilliTS();
             }
             else
@@ -276,11 +276,11 @@ static void vboxwl_gtk_clipboard_write(GtkClipboard *pClipboard,
     g_oDataIpc->m_uFmt.set(uFmt);
 
     /* Wait for the host to send clipboard data in requested format. */
-    uint32_t cbBuf = g_oDataIpc->m_cbClipboardBuf.wait();
-    void *pvBuf = (void *)g_oDataIpc->m_pvClipboardBuf.wait();
+    uint32_t cbBuf = g_oDataIpc->m_cbDataBuf.wait();
+    void *pvBuf = (void *)g_oDataIpc->m_pvDataBuf.wait();
 
-    if (   cbBuf != g_oDataIpc->m_cbClipboardBuf.defaults()
-        && pvBuf != (void *)g_oDataIpc->m_pvClipboardBuf.defaults())
+    if (   cbBuf != g_oDataIpc->m_cbDataBuf.defaults()
+        && pvBuf != (void *)g_oDataIpc->m_pvDataBuf.defaults())
     {
         void *pBufOut;
         size_t cbOut;

@@ -366,10 +366,10 @@ int vbcl::ipc::data::DataIpc::send_data(uint32_t uSessionId, RTLOCALIPCSESSION h
     void *pvData;
     uint32_t cbData;
 
-    cbData = m_cbClipboardBuf.wait();
-    pvData = (void *)m_pvClipboardBuf.wait();
-    if (   cbData != m_cbClipboardBuf.defaults()
-        && pvData != (void *)m_pvClipboardBuf.defaults())
+    cbData = m_cbDataBuf.wait();
+    pvData = (void *)m_pvDataBuf.wait();
+    if (   cbData != m_cbDataBuf.defaults()
+        && pvData != (void *)m_pvDataBuf.defaults())
     {
         pPacket = (vbcl::ipc::data::data_packet_t *)RTMemAllocZ(sizeof(vbcl::ipc::data::data_packet_t) + cbData);
         if (RT_VALID_PTR(pPacket))
@@ -414,9 +414,9 @@ int vbcl::ipc::data::DataIpc::recv_data(uint32_t uSessionId, RTLOCALIPCSESSION h
             if (RT_VALID_PTR(pvData))
             {
                 memcpy(pvData, (uint8_t *)pPacket + sizeof(vbcl::ipc::data::data_packet_t), pPacket->cbData);
-                m_pvClipboardBuf.set((uint64_t)pvData);
+                m_pvDataBuf.set((uint64_t)pvData);
                 cbData = pPacket->cbData;
-                m_cbClipboardBuf.set(cbData);
+                m_cbDataBuf.set(cbData);
             }
             else
                 rc = VERR_NO_MEMORY;

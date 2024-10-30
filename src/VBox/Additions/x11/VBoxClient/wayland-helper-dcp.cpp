@@ -117,10 +117,10 @@ typedef struct
         vbcl::Waitable<volatile SHCLFORMAT>     uFmt;
 
         /** Clipboard buffer which contains requested data. */
-        vbcl::Waitable<volatile uint64_t>       pvClipboardBuf;
+        vbcl::Waitable<volatile uint64_t>       pvDataBuf;
 
         /** Size of clipboard buffer. */
-        vbcl::Waitable<volatile uint32_t>       cbClipboardBuf;
+        vbcl::Waitable<volatile uint32_t>       cbDataBuf;
     } clip;
 } vbox_wl_dcp_session_t;
 
@@ -472,7 +472,7 @@ static void vbcl_wayland_hlp_dcp_session_release(vbox_wl_dcp_session_t *pSession
         }
     }
 
-    pvData = (void *)pSession->clip.pvClipboardBuf.reset();
+    pvData = (void *)pSession->clip.pvDataBuf.reset();
     if (RT_VALID_PTR(pvData))
         RTMemFree(pvData);
 }
@@ -488,8 +488,8 @@ static void vbcl_wayland_hlp_dcp_session_init(vbox_wl_dcp_session_t *pSession)
 
     pSession->clip.fFmts.init(VBOX_SHCL_FMT_NONE, VBCL_WAYLAND_VALUE_WAIT_TIMEOUT_MS);
     pSession->clip.uFmt.init(VBOX_SHCL_FMT_NONE, VBCL_WAYLAND_VALUE_WAIT_TIMEOUT_MS);
-    pSession->clip.pvClipboardBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
-    pSession->clip.cbClipboardBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
+    pSession->clip.pvDataBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
+    pSession->clip.cbDataBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
 }
 
 /**
@@ -771,8 +771,8 @@ static int vbcl_wayland_hlp_dcp_receive_offer(
             rc = VBoxMimeConvNativeToVBox(pszMimeType, pvBuf, cbBuf, &pvBufOut, &cbBufOut);
             if (RT_SUCCESS(rc))
             {
-                pCtx->Session.clip.pvClipboardBuf.set((uint64_t)pvBufOut);
-                pCtx->Session.clip.cbClipboardBuf.set((uint64_t)cbBufOut);
+                pCtx->Session.clip.pvDataBuf.set((uint64_t)pvBufOut);
+                pCtx->Session.clip.cbDataBuf.set((uint64_t)cbBufOut);
             }
 
             RTMemFree(pvBuf);
@@ -1355,10 +1355,10 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_clip_hg_report_join3_cb(
             g_DcpCtx.Session.clip.uFmt.set(VBoxMimeConvGetIdByMime(pPriv->sMimeType));
 
             /* Wait for data in requested format. */
-            pvBuf = (void *)g_DcpCtx.Session.clip.pvClipboardBuf.wait();
-            cbBuf = g_DcpCtx.Session.clip.cbClipboardBuf.wait();
-            if (   cbBuf != g_DcpCtx.Session.clip.cbClipboardBuf.defaults()
-                && pvBuf != (void *)g_DcpCtx.Session.clip.pvClipboardBuf.defaults())
+            pvBuf = (void *)g_DcpCtx.Session.clip.pvDataBuf.wait();
+            cbBuf = g_DcpCtx.Session.clip.cbDataBuf.wait();
+            if (   cbBuf != g_DcpCtx.Session.clip.cbDataBuf.defaults()
+                && pvBuf != (void *)g_DcpCtx.Session.clip.pvDataBuf.defaults())
             {
                 void *pvBufOut;
                 size_t cbOut;
@@ -1515,8 +1515,8 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_clip_hg_report_join_cb(
             if (RT_SUCCESS(rc))
             {
                 /* Set clipboard data to the session. */
-                g_DcpCtx.Session.clip.pvClipboardBuf.set((uint64_t)pvData);
-                g_DcpCtx.Session.clip.cbClipboardBuf.set((uint64_t)cbData);
+                g_DcpCtx.Session.clip.pvDataBuf.set((uint64_t)pvData);
+                g_DcpCtx.Session.clip.cbDataBuf.set((uint64_t)cbData);
             }
         }
         else
@@ -1594,10 +1594,10 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_dcp_clip_gh_read_join_cb(
         g_DcpCtx.Session.clip.uFmt.set(*puFmt);
 
         /* Wait for data in requested format. */
-        pvData = (void *)g_DcpCtx.Session.clip.pvClipboardBuf.wait();
-        cbData = g_DcpCtx.Session.clip.cbClipboardBuf.wait();
-        if (   cbData != g_DcpCtx.Session.clip.cbClipboardBuf.defaults()
-            && pvData != (void *)g_DcpCtx.Session.clip.pvClipboardBuf.defaults())
+        pvData = (void *)g_DcpCtx.Session.clip.pvDataBuf.wait();
+        cbData = g_DcpCtx.Session.clip.cbDataBuf.wait();
+        if (   cbData != g_DcpCtx.Session.clip.cbDataBuf.defaults()
+            && pvData != (void *)g_DcpCtx.Session.clip.pvDataBuf.defaults())
         {
             /* Send clipboard data to the host. */
             rc = VbglR3ClipboardWriteDataEx(g_DcpCtx.pClipboardCtx, *puFmt, pvData, cbData);

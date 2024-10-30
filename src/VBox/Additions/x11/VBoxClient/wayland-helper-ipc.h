@@ -241,8 +241,8 @@ namespace vbcl
                     {
                         m_fFmts.init(VBOX_SHCL_FMT_NONE, VBCL_WAYLAND_VALUE_WAIT_TIMEOUT_MS);
                         m_uFmt.init(VBOX_SHCL_FMT_NONE, VBCL_WAYLAND_VALUE_WAIT_TIMEOUT_MS);
-                        m_pvClipboardBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
-                        m_cbClipboardBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
+                        m_pvDataBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
+                        m_cbDataBuf.init(0, VBCL_WAYLAND_DATA_WAIT_TIMEOUT_MS);
                         m_fServer = fServer;
                         m_uSessionId = uSessionId;
                     }
@@ -252,13 +252,13 @@ namespace vbcl
                      */
                     void reset()
                     {
-                        void *pvData = (void *)m_pvClipboardBuf.reset();
+                        void *pvData = (void *)m_pvDataBuf.reset();
                         if (RT_VALID_PTR(pvData))
                             RTMemFree(pvData);
 
                         m_fFmts.reset();
                         m_uFmt.reset();
-                        m_cbClipboardBuf.reset();
+                        m_cbDataBuf.reset();
                     }
 
                     /**
@@ -286,8 +286,8 @@ namespace vbcl
                     /** IPC session internal data. */
                     Waitable<volatile SHCLFORMATS> m_fFmts;
                     Waitable<volatile SHCLFORMAT> m_uFmt;
-                    Waitable<volatile uint64_t> m_pvClipboardBuf;
-                    Waitable<volatile uint32_t> m_cbClipboardBuf;
+                    Waitable<volatile uint64_t> m_pvDataBuf;
+                    Waitable<volatile uint32_t> m_cbDataBuf;
 
                 protected:
 

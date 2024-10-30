@@ -314,3 +314,20 @@ RTDECL(bool) vbcl_wayland_session_is_started(vbcl_wl_session_t *pSession)
 
     return RT_BOOL(ASMAtomicReadU8((volatile uint8_t *)&pSession->enmState) == VBCL_WL_SESSION_STATE_STARTED);
 }
+
+RTDECL(int) vbcl_wayland_thread_start(PRTTHREAD pThread, PFNRTTHREAD pfnThread, const char *pszName, void *pvUser)
+{
+    int rc;
+
+    rc = RTThreadCreate(pThread, pfnThread, pvUser, 0, RTTHREADTYPE_IO, RTTHREADFLAGS_WAITABLE, pszName);
+    if (RT_SUCCESS(rc))
+        rc = RTThreadUserWait(*pThread, RT_MS_30SEC /* msTimeout */);
+
+    if (RT_SUCCESS(rc))
+        VBClLogVerbose(1, "started %s thread\n", pszName);
+    else
+        LogRel(("unable to start %s thread, rc=%Rrc\n", pszName, rc));
+
+    return rc;
+}
+

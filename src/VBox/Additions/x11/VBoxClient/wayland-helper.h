@@ -398,6 +398,17 @@ RTDECL(int) vbcl_wayland_session_end(vbcl_wl_session_t *pSession,
  */
 RTDECL(bool) vbcl_wayland_session_is_started(vbcl_wl_session_t *pSession);
 
+/**
+ * Create thread and wait until it started.
+ *
+ * @returns IPRT status code.
+ * @param   pThread     Pointer to thread data.
+ * @param   pfnThread   Pointer to thread main loop function.
+ * @param   pszName     Thread name.
+ * @param   pvUser      User data.
+ */
+RTDECL(int) vbcl_wayland_thread_start(PRTTHREAD pThread, PFNRTTHREAD pfnThread, const char *pszName, void *pvUser);
+
 /** Wayland helper which uses GTK library. */
 extern const VBCLWAYLANDHELPER g_WaylandHelperGtk;
 /** Wayland helper which uses Data Control Protocol. */

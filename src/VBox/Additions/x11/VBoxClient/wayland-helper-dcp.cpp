@@ -1274,7 +1274,7 @@ RTDECL(int) vbcl_wayland_hlp_dcp_clip_init(void)
     vbcl_wayland_hlp_dcp_reset_ctx(&g_DcpCtx, false /* fShutdown */);
     vbcl_wayland_session_init(&g_DcpCtx.Session.Base);
 
-    return VBClClipboardThreadStart(&g_DcpCtx.Thread, vbcl_wayland_hlp_dcp_event_loop, "wl-dcp", &g_DcpCtx);
+    return vbcl_wayland_thread_start(&g_DcpCtx.Thread, vbcl_wayland_hlp_dcp_event_loop, "wl-dcp", &g_DcpCtx);
 }
 
 /**

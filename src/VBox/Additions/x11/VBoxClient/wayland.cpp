@@ -308,7 +308,7 @@ static DECLCALLBACK(int) vbclWaylandWorker(bool volatile *pfShutdown)
     /* Start event loop for clipboard events processing from host. */
     if (RT_VALID_PTR(g_pWaylandHelperClipboard))
     {
-        rc = VBClClipboardThreadStart(&g_ClipboardThread, vbclWaylandClipboardWorker, "wl-clip", NULL);
+        rc = vbcl_wayland_thread_start(&g_ClipboardThread, vbclWaylandClipboardWorker, "wl-clip", NULL);
         VBClLogVerbose(1, "clipboard thread started, rc=%Rrc\n", rc);
     }
 
@@ -316,14 +316,14 @@ static DECLCALLBACK(int) vbclWaylandWorker(bool volatile *pfShutdown)
     if (   RT_SUCCESS(rc)
         && RT_VALID_PTR(g_pWaylandHelperDnd))
     {
-        rc = VBClClipboardThreadStart(&g_DndThread, vbclWaylandDndWorker, "wl-dnd", NULL);
+        rc = vbcl_wayland_thread_start(&g_DndThread, vbclWaylandDndWorker, "wl-dnd", NULL);
         VBClLogVerbose(1, "DnD thread started, rc=%Rrc\n", rc);
     }
 
     /* Start polling host input focus events. */
     if (RT_SUCCESS(rc))
     {
-        rc = VBClClipboardThreadStart(&g_HostInputFocusThread, vbclWaylandHostInputFocusWorker, "wl-focus", NULL);
+        rc = vbcl_wayland_thread_start(&g_HostInputFocusThread, vbclWaylandHostInputFocusWorker, "wl-focus", NULL);
         VBClLogVerbose(1, "host input focus polling thread started, rc=%Rrc\n", rc);
     }
 

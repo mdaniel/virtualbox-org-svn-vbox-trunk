@@ -83,17 +83,6 @@ struct SHCLCONTEXT
 extern SHCLCONTEXT g_Ctx;
 
 /**
- * Create thread and wait until it started.
- *
- * @returns IPRT status code.
- * @param   pThread     Pointer to thread data.
- * @param   pfnThread   Pointer to thread main loop function.
- * @param   pszName     Thread name.
- * @param   pvUser      User data.
- */
-RTDECL(int) VBClClipboardThreadStart(PRTTHREAD pThread, PFNRTTHREAD pfnThread, const char *pszName, void *pvUser);
-
-/**
  * Read and process one event from the host clipboard service.
  *
  * @returns VBox status code.

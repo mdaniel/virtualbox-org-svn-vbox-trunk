@@ -409,7 +409,7 @@ RTDECL(int) vbcl_wayland_hlp_gtk_clip_init(void)
 
     RT_ZERO(g_GtkCtx);
 
-    return VBClClipboardThreadStart(&g_GtkCtx.Thread, vbcl_wayland_hlp_gtk_worker, "wl-gtk-ipc", &g_GtkCtx);
+    return vbcl_wayland_thread_start(&g_GtkCtx.Thread, vbcl_wayland_hlp_gtk_worker, "wl-gtk-ipc", &g_GtkCtx);
 }
 
 /**

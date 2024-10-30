@@ -41,22 +41,6 @@
 #include "VBoxClient.h"
 #include "clipboard.h"
 
-RTDECL(int) VBClClipboardThreadStart(PRTTHREAD pThread, PFNRTTHREAD pfnThread, const char *pszName, void *pvUser)
-{
-    int rc;
-
-    rc = RTThreadCreate(pThread, pfnThread, pvUser, 0, RTTHREADTYPE_IO, RTTHREADFLAGS_WAITABLE, pszName);
-    if (RT_SUCCESS(rc))
-        rc = RTThreadUserWait(*pThread, RT_MS_30SEC /* msTimeout */);
-
-    if (RT_SUCCESS(rc))
-        VBClLogVerbose(1, "started %s thread\n", pszName);
-    else
-        LogRel(("unable to start %s thread, rc=%Rrc\n", pszName, rc));
-
-    return rc;
-}
-
 RTDECL(int) VBClClipboardReadHostEvent(PSHCLCONTEXT pCtx, const PFNHOSTCLIPREPORTFMTS pfnHGClipReport,
                                        const PFNHOSTCLIPREAD pfnGHClipRead)
 {

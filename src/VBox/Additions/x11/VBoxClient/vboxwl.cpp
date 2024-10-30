@@ -572,7 +572,7 @@ static int vboxwl_run_command(void)
 
     RTLOCALIPCSESSION hIpcSession;
 
-    rc = VBClClipboardThreadStart(&g_AppThread, vboxwl_gtk_worker, "gtk-app", NULL);
+    rc = vbcl_wayland_thread_start(&g_AppThread, vboxwl_gtk_worker, "gtk-app", NULL);
     if (RT_SUCCESS(rc))
     {
         rc = vboxwl_connect_ipc(&hIpcSession);

@@ -1132,7 +1132,7 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     "    adrp    x9, PAGE(NAME(g_pfn%s))\n"
                     "    ldr     x9, [x9, PAGEOFF(NAME(g_pfn%s))]\n"
                     "    br      x9\n",
-                    pExp->szName, pExp->szName, pExp->szName, pExp->szName);
+                    pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm);
         else
             fprintf(pOutput,
                     ".p2align 3\n"
@@ -1144,7 +1144,7 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     "    b.eq    ___LazyLoad___%s\n"
                     "    mov     x0, x9\n"
                     "    ret\n",
-                    pExp->szName, pExp->szName, pExp->szName, pExp->szName, pExp->pszExportedNm);
+                    pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm);
     fprintf(pOutput,
             "ENDCODE\n"
             "\n"
@@ -1169,8 +1169,8 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     "NAME(g_pfn%s):\n"
                     "    .quad ___LazyLoad___%s\n"
                     "\n",
-                    pExp->szName, pExp->szName,
-                    pExp->szName, pExp->szName,
+                    pExp->pszExportedNm, pExp->pszExportedNm,
+                    pExp->pszExportedNm, pExp->pszExportedNm,
                     pExp->pszExportedNm);
         else
             fprintf(pOutput,
@@ -1178,7 +1178,7 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     "NAME(g_LazyPtr_%s):\n"
                     "    .quad 0\n"
                     "\n",
-                    pExp->szName, pExp->szName);
+                    pExp->pszExportedNm, pExp->pszExportedNm);
     fprintf(pOutput,
             "    .quad 0 /* Terminator entry for traversal. */\n"
             "ENDDATA\n"
@@ -1251,9 +1251,9 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm,
                     !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm);
         if (!pExp->fData)
-            fprintf(pOutput, "    b       NAME(%s)\n", pExp->szName);
+            fprintf(pOutput, "    b       NAME(%s)\n", pExp->pszExportedNm);
         else
-            fprintf(pOutput, "    b       NAME(LazyGetPtr_%s)\n", pExp->szName);
+            fprintf(pOutput, "    b       NAME(LazyGetPtr_%s)\n", pExp->pszExportedNm);
         fprintf(pOutput, "\n");
     }
     fprintf(pOutput,

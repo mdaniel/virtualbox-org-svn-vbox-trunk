@@ -157,7 +157,7 @@ namespace vbcl
          */
         int packet_write(RTLOCALIPCSESSION hSession, vbcl::ipc::packet_t *pPacket);
 
-        namespace clipboard
+        namespace data
         {
             /** Payload for IPC commands CLIP_FORMATS and CLIP_FORMAT. */
             typedef struct
@@ -218,14 +218,14 @@ namespace vbcl
                 { CMD_MAX,      false }
             };
 
-            class ClipboardIpc
+            class DataIpc
             {
                 public:
 
 #ifdef RT_NEED_NEW_AND_DELETE
                     RTMEM_IMPLEMENT_NEW_AND_DELETE();
 #endif
-                    ClipboardIpc()
+                    DataIpc()
                     {}
 
                     /**

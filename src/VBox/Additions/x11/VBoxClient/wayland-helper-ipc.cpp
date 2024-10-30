@@ -116,13 +116,13 @@ bool vbcl::ipc::packet_verify(vbcl::ipc::packet_t *pPacket, size_t cbPacket)
             {
                 case vbcl::ipc::CLIP_FORMATS:
                 case vbcl::ipc::CLIP_FORMAT:
-                    cbPayload = sizeof(vbcl::ipc::clipboard::formats_packet_t);
+                    cbPayload = sizeof(vbcl::ipc::data::formats_packet_t);
                     break;
 
                 case vbcl::ipc::CLIP_DATA:
                 {
-                    vbcl::ipc::clipboard::data_packet_t *pDataEx = (vbcl::ipc::clipboard::data_packet_t *)pPacket;
-                    cbPayload = sizeof(vbcl::ipc::clipboard::data_packet_t) + pDataEx->cbData;
+                    vbcl::ipc::data::data_packet_t *pDataEx = (vbcl::ipc::data::data_packet_t *)pPacket;
+                    cbPayload = sizeof(vbcl::ipc::data::data_packet_t) + pDataEx->cbData;
                     break;
                 }
 
@@ -244,9 +244,9 @@ int vbcl::ipc::packet_write(RTLOCALIPCSESSION hSession, vbcl::ipc::packet_t *pPa
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::send_formats(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::send_formats(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
-    vbcl::ipc::clipboard::formats_packet_t Packet;
+    vbcl::ipc::data::formats_packet_t Packet;
     SHCLFORMATS fFormats;
     int rc = VINF_SUCCESS;
 
@@ -272,10 +272,10 @@ int vbcl::ipc::clipboard::ClipboardIpc::send_formats(uint32_t uSessionId, RTLOCA
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::recv_formats(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::recv_formats(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
     int rc;
-    vbcl::ipc::clipboard::formats_packet_t *pPacket;
+    vbcl::ipc::data::formats_packet_t *pPacket;
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     SHCLFORMATS fFormats = VBOX_SHCL_FMT_NONE;
 
@@ -301,9 +301,9 @@ int vbcl::ipc::clipboard::ClipboardIpc::recv_formats(uint32_t uSessionId, RTLOCA
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::send_format(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::send_format(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
-    vbcl::ipc::clipboard::formats_packet_t Packet;
+    vbcl::ipc::data::formats_packet_t Packet;
     SHCLFORMAT uFormat;
     int rc = VINF_SUCCESS;
 
@@ -329,10 +329,10 @@ int vbcl::ipc::clipboard::ClipboardIpc::send_format(uint32_t uSessionId, RTLOCAL
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::recv_format(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::recv_format(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
     int rc;
-    vbcl::ipc::clipboard::formats_packet_t *pPacket;
+    vbcl::ipc::data::formats_packet_t *pPacket;
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     SHCLFORMATS uFormat = VBOX_SHCL_FMT_NONE;
 
@@ -358,9 +358,9 @@ int vbcl::ipc::clipboard::ClipboardIpc::recv_format(uint32_t uSessionId, RTLOCAL
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::send_data(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::send_data(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
-    vbcl::ipc::clipboard::data_packet_t *pPacket;
+    vbcl::ipc::data::data_packet_t *pPacket;
     int rc = VINF_SUCCESS;
 
     void *pvData;
@@ -371,16 +371,16 @@ int vbcl::ipc::clipboard::ClipboardIpc::send_data(uint32_t uSessionId, RTLOCALIP
     if (   cbData != m_cbClipboardBuf.defaults()
         && pvData != (void *)m_pvClipboardBuf.defaults())
     {
-        pPacket = (vbcl::ipc::clipboard::data_packet_t *)RTMemAllocZ(sizeof(vbcl::ipc::clipboard::data_packet_t) + cbData);
+        pPacket = (vbcl::ipc::data::data_packet_t *)RTMemAllocZ(sizeof(vbcl::ipc::data::data_packet_t) + cbData);
         if (RT_VALID_PTR(pPacket))
         {
             pPacket->Hdr.u64Crc = 0;
             pPacket->Hdr.uSessionId = uSessionId;
             pPacket->Hdr.idCmd = CLIP_DATA;
-            pPacket->Hdr.cbData = sizeof(vbcl::ipc::clipboard::data_packet_t) + cbData;
+            pPacket->Hdr.cbData = sizeof(vbcl::ipc::data::data_packet_t) + cbData;
             pPacket->cbData = cbData;
 
-            memcpy((uint8_t *)pPacket + sizeof(vbcl::ipc::clipboard::data_packet_t), pvData, cbData);
+            memcpy((uint8_t *)pPacket + sizeof(vbcl::ipc::data::data_packet_t), pvData, cbData);
             rc = vbcl::ipc::packet_write(hIpcSession, &pPacket->Hdr);
             RTMemFree(pPacket);
         }
@@ -396,10 +396,10 @@ int vbcl::ipc::clipboard::ClipboardIpc::send_data(uint32_t uSessionId, RTLOCALIP
     return rc;
 }
 
-int vbcl::ipc::clipboard::ClipboardIpc::recv_data(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
+int vbcl::ipc::data::DataIpc::recv_data(uint32_t uSessionId, RTLOCALIPCSESSION hIpcSession)
 {
     int rc;
-    vbcl::ipc::clipboard::data_packet_t *pPacket;
+    vbcl::ipc::data::data_packet_t *pPacket;
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     uint32_t cbData = 0;
 
@@ -413,7 +413,7 @@ int vbcl::ipc::clipboard::ClipboardIpc::recv_data(uint32_t uSessionId, RTLOCALIP
             idCmd = pPacket->Hdr.idCmd;
             if (RT_VALID_PTR(pvData))
             {
-                memcpy(pvData, (uint8_t *)pPacket + sizeof(vbcl::ipc::clipboard::data_packet_t), pPacket->cbData);
+                memcpy(pvData, (uint8_t *)pPacket + sizeof(vbcl::ipc::data::data_packet_t), pPacket->cbData);
                 m_pvClipboardBuf.set((uint64_t)pvData);
                 cbData = pPacket->cbData;
                 m_cbClipboardBuf.set(cbData);

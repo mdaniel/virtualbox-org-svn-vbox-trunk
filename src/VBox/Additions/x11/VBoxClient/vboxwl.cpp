@@ -90,7 +90,7 @@ static RTTHREAD g_AppThread;
 static GtkWidget *g_pWindow;
 
 /** Clipboard IPC flow object. */
-vbcl::ipc::clipboard::ClipboardIpc *g_oClipboardIpc;
+vbcl::ipc::data::DataIpc *g_oDataIpc;
 
 
 /************************************************************************************************
@@ -132,8 +132,8 @@ static void vboxwl_gtk_clipboard_read(GtkClipboard* pClipboard,
             rc = VBoxMimeConvNativeToVBox(pcszMimeType, pData, cbData, &pvBufOut, &cbBufOut);
             if (RT_SUCCESS(rc))
             {
-                g_oClipboardIpc->m_pvClipboardBuf.set((uint64_t)pvBufOut);
-                g_oClipboardIpc->m_cbClipboardBuf.set((uint64_t)cbBufOut);
+                g_oDataIpc->m_pvClipboardBuf.set((uint64_t)pvBufOut);
+                g_oDataIpc->m_cbClipboardBuf.set((uint64_t)cbBufOut);
                 g_tsGtkQuit = RTTimeMilliTS();
             }
             else
@@ -224,11 +224,11 @@ static DECLCALLBACK(void) vboxwl_gtk_clipboard_get(GtkClipboard *pClipboard, Gdk
         SHCLFORMAT uFmt;
 
         /* Set formats to be sent to the host. */
-        g_oClipboardIpc->m_fFmts.set(fFormats);
+        g_oDataIpc->m_fFmts.set(fFormats);
 
         /* Wait for host to send clipboard format it wants to copy from guest. */
-        uFmt = g_oClipboardIpc->m_uFmt.wait();
-        if (uFmt != g_oClipboardIpc->m_uFmt.defaults())
+        uFmt = g_oDataIpc->m_uFmt.wait();
+        if (uFmt != g_oDataIpc->m_uFmt.defaults())
         {
             /* Find target which matches to host format among reported by guest. */
             GdkAtom gtkFmt = vboxwl_gtk_match_target(pTargets, cTargets, uFmt);
@@ -273,14 +273,14 @@ static void vboxwl_gtk_clipboard_write(GtkClipboard *pClipboard,
     VBCL_LOG_CALLBACK;
 
     /* Set clipboard format which guest wants to send it to the host. */
-    g_oClipboardIpc->m_uFmt.set(uFmt);
+    g_oDataIpc->m_uFmt.set(uFmt);
 
     /* Wait for the host to send clipboard data in requested format. */
-    uint32_t cbBuf = g_oClipboardIpc->m_cbClipboardBuf.wait();
-    void *pvBuf = (void *)g_oClipboardIpc->m_pvClipboardBuf.wait();
+    uint32_t cbBuf = g_oDataIpc->m_cbClipboardBuf.wait();
+    void *pvBuf = (void *)g_oDataIpc->m_pvClipboardBuf.wait();
 
-    if (   cbBuf != g_oClipboardIpc->m_cbClipboardBuf.defaults()
-        && pvBuf != (void *)g_oClipboardIpc->m_pvClipboardBuf.defaults())
+    if (   cbBuf != g_oDataIpc->m_cbClipboardBuf.defaults()
+        && pvBuf != (void *)g_oDataIpc->m_pvClipboardBuf.defaults())
     {
         void *pBufOut;
         size_t cbOut;
@@ -361,8 +361,8 @@ static DECLCALLBACK(gboolean) vboxwl_gtk_clipboard_set(GtkWidget* pSelf, GdkEven
     VBCL_LOG_CALLBACK;
 
     /* Wait for host to report available clipboard formats from its buffer. */
-    fFmts = g_oClipboardIpc->m_fFmts.wait();
-    if (fFmts != g_oClipboardIpc->m_fFmts.defaults())
+    fFmts = g_oDataIpc->m_fFmts.wait();
+    if (fFmts != g_oDataIpc->m_fFmts.defaults())
     {
         GtkTargetList *aTargetList = gtk_target_list_new(0, 0);
         GtkTargetEntry *aTargets;
@@ -523,11 +523,11 @@ static int vboxwl_ipc_flow(RTLOCALIPCSESSION hIpcSession)
     int rc = VERR_INVALID_PARAMETER;
 
     if      (g_enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_COPY_TO_GUEST)
-        rc = g_oClipboardIpc->flow(vbcl::ipc::clipboard::HGCopyFlow, hIpcSession);
+        rc = g_oDataIpc->flow(vbcl::ipc::data::HGCopyFlow, hIpcSession);
     else if (g_enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_ANNOUNCE_TO_HOST)
-        rc = g_oClipboardIpc->flow(vbcl::ipc::clipboard::GHAnnounceAndCopyFlow, hIpcSession);
+        rc = g_oDataIpc->flow(vbcl::ipc::data::GHAnnounceAndCopyFlow, hIpcSession);
     else if (g_enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_COPY_TO_HOST)
-        rc = g_oClipboardIpc->flow(vbcl::ipc::clipboard::GHCopyFlow, hIpcSession);
+        rc = g_oDataIpc->flow(vbcl::ipc::data::GHCopyFlow, hIpcSession);
 
     return rc;
 }
@@ -578,10 +578,10 @@ static int vboxwl_run_command(void)
         rc = vboxwl_connect_ipc(&hIpcSession);
         if (RT_SUCCESS(rc))
         {
-            g_oClipboardIpc = new vbcl::ipc::clipboard::ClipboardIpc();
-            if (RT_VALID_PTR(g_oClipboardIpc))
+            g_oDataIpc = new vbcl::ipc::data::DataIpc();
+            if (RT_VALID_PTR(g_oDataIpc))
             {
-                g_oClipboardIpc->init(vbcl::ipc::FLOW_DIRECTION_CLIENT, g_uSessionId);
+                g_oDataIpc->init(vbcl::ipc::FLOW_DIRECTION_CLIENT, g_uSessionId);
 
                 rc = vboxwl_ipc_flow(hIpcSession);
                 VBClLogVerbose(2, "session %u: ended with rc=%Rrc\n", g_uSessionId, rc);
@@ -595,8 +595,8 @@ static int vboxwl_run_command(void)
                 VBClLogInfo("session %u: gtk app exited: rc=%Rrc, rcThread=%Rrc\n",
                             g_uSessionId, rc, rcThread);
 
-                g_oClipboardIpc->reset();
-                delete g_oClipboardIpc;
+                g_oDataIpc->reset();
+                delete g_oDataIpc;
             }
             else
                 VBClLogError("session %u: unable to create ipc clipboard object\n", g_uSessionId);

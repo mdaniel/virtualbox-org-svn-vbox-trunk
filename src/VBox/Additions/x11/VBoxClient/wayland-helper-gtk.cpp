@@ -56,7 +56,7 @@ typedef struct
      *  both VBoxClient and vboxwl tool. */
     uint32_t                                uSessionId;
     /** IPC connection flow control between VBoxClient and vboxwl tool. */
-    vbcl::ipc::clipboard::ClipboardIpc      *oClipboardIpc;
+    vbcl::ipc::data::DataIpc                *oDataIpc;
     /** IPC connection handle. */
     RTLOCALIPCSESSION                       hIpcSession;
     /** Popup window process handle. */
@@ -177,10 +177,10 @@ static int vbcl_wayland_hlp_gtk_session_prepare(vbox_wl_gtk_ipc_session_t *pSess
     /* Initialize session. */
     pSession->uSessionId = RTRandU32Ex(1, 0xFFFFFFFF);
 
-    pSession->oClipboardIpc = new vbcl::ipc::clipboard::ClipboardIpc();
-    if (RT_VALID_PTR(pSession->oClipboardIpc))
+    pSession->oDataIpc = new vbcl::ipc::data::DataIpc();
+    if (RT_VALID_PTR(pSession->oDataIpc))
     {
-        pSession->oClipboardIpc->init(vbcl::ipc::FLOW_DIRECTION_SERVER,
+        pSession->oDataIpc->init(vbcl::ipc::FLOW_DIRECTION_SERVER,
                                       pSession->uSessionId);
     }
     else
@@ -249,8 +249,8 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_session_end_cb(
     {
         pSession->uSessionId = 0;
 
-        pSession->oClipboardIpc->reset();
-        delete pSession->oClipboardIpc;
+        pSession->oDataIpc->reset();
+        delete pSession->oDataIpc;
     }
 
     return rc;
@@ -282,11 +282,11 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_worker_join_cb(
 
     /* Select corresponding IPC flow depending on session type. */
     if      (enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_COPY_TO_GUEST)
-        pFlow = vbcl::ipc::clipboard::HGCopyFlow;
+        pFlow = vbcl::ipc::data::HGCopyFlow;
     else if (enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_ANNOUNCE_TO_HOST)
-        pFlow = vbcl::ipc::clipboard::GHAnnounceAndCopyFlow;
+        pFlow = vbcl::ipc::data::GHAnnounceAndCopyFlow;
     else if (enmSessionType == VBCL_WL_CLIPBOARD_SESSION_TYPE_COPY_TO_HOST)
-        pFlow = vbcl::ipc::clipboard::GHCopyFlow;
+        pFlow = vbcl::ipc::data::GHCopyFlow;
     else
     {
         pFlow = NULL;
@@ -295,7 +295,7 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_worker_join_cb(
 
     /* Proceed with selected flow. */
     if (RT_VALID_PTR(pFlow))
-        rc = g_GtkCtx.Session.oClipboardIpc->flow(pFlow, *phIpcSession);
+        rc = g_GtkCtx.Session.oDataIpc->flow(pFlow, *phIpcSession);
 
     return rc;
 }
@@ -472,8 +472,8 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_popup_join_cb(
 
     if (RT_SUCCESS(rc))
     {
-        SHCLFORMATS fFmts = g_GtkCtx.Session.oClipboardIpc->m_fFmts.wait();
-        if (fFmts !=  g_GtkCtx.Session.oClipboardIpc->m_fFmts.defaults())
+        SHCLFORMATS fFmts = g_GtkCtx.Session.oDataIpc->m_fFmts.wait();
+        if (fFmts !=  g_GtkCtx.Session.oDataIpc->m_fFmts.defaults())
             rc = VbglR3ClipboardReportFormats(g_GtkCtx.pClipboardCtx->idClient, fFmts);
         else
             rc = VERR_TIMEOUT;
@@ -537,10 +537,10 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_hg_report_join_cb(
 
     if (RT_SUCCESS(rc))
     {
-        g_GtkCtx.Session.oClipboardIpc->m_fFmts.set(*pfFmts);
+        g_GtkCtx.Session.oDataIpc->m_fFmts.set(*pfFmts);
 
-        uFmt = g_GtkCtx.Session.oClipboardIpc->m_uFmt.wait();
-        if (uFmt != g_GtkCtx.Session.oClipboardIpc->m_uFmt.defaults())
+        uFmt = g_GtkCtx.Session.oDataIpc->m_uFmt.wait();
+        if (uFmt != g_GtkCtx.Session.oDataIpc->m_uFmt.defaults())
         {
             void *pvData;
             uint32_t cbData;
@@ -548,8 +548,8 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_hg_report_join_cb(
             rc = VBClClipboardReadHostClipboard(g_GtkCtx.pClipboardCtx, uFmt, &pvData, &cbData);
             if (RT_SUCCESS(rc))
             {
-                g_GtkCtx.Session.oClipboardIpc->m_pvClipboardBuf.set((uint64_t)pvData);
-                g_GtkCtx.Session.oClipboardIpc->m_cbClipboardBuf.set((uint64_t)cbData);
+                g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.set((uint64_t)pvData);
+                g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.set((uint64_t)cbData);
             }
         }
         else
@@ -619,13 +619,13 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_clip_gh_read_join_cb(
         uint32_t cbData;
 
         /* Store requested clipboard format to the session. */
-        g_GtkCtx.Session.oClipboardIpc->m_uFmt.set(*puFmt);
+        g_GtkCtx.Session.oDataIpc->m_uFmt.set(*puFmt);
 
         /* Wait for data in requested format. */
-        pvData = (void *)g_GtkCtx.Session.oClipboardIpc->m_pvClipboardBuf.wait();
-        cbData = g_GtkCtx.Session.oClipboardIpc->m_cbClipboardBuf.wait();
-        if (   cbData != g_GtkCtx.Session.oClipboardIpc->m_cbClipboardBuf.defaults()
-            && pvData != (void *)g_GtkCtx.Session.oClipboardIpc->m_pvClipboardBuf.defaults())
+        pvData = (void *)g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.wait();
+        cbData = g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.wait();
+        if (   cbData != g_GtkCtx.Session.oDataIpc->m_cbClipboardBuf.defaults()
+            && pvData != (void *)g_GtkCtx.Session.oDataIpc->m_pvClipboardBuf.defaults())
         {
             /* Send clipboard data to the host. */
             rc = VbglR3ClipboardWriteDataEx(g_GtkCtx.pClipboardCtx, *puFmt, pvData, cbData);

@@ -1775,7 +1775,7 @@ $(VBOX_VIRTUALBOX_OUT_DIR)/VirtualBoxBrand.qrc: \
 #      linux.amd64 without: time: real 1m03.719s   user 26m26.766s  sys 2m03.526s
 #      linux.amd64 with:    time: real 0m42.650s   user 14m46.332s  sys 1m28.463s
 #
-ifdef VBOX_WITH_PRECOMPILED_HEADERS
+if defined(VBOX_WITH_PRECOMPILED_HEADERS) && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
  if1of ($(KBUILD_TARGET), win)
   VirtualBox_USES      += vccprecomp
   VirtualBox_PCH_HDR   := $(PATH_SUB_CURRENT)/src/precomp_vcc.h

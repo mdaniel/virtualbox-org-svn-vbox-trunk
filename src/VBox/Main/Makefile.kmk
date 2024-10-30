@@ -339,15 +339,15 @@ ifndef VBOX_ONLY_SDK
  #
  LIBRARIES += VBoxAPIWrap
  VBoxAPIWrap_TEMPLATE        = VBoxMainLib
- ifeq ($(KBUILD_TARGET),win)
-  ifndef VBOX_WITHOUT_PRECOMPILED_HEADERS
+ if defined(VBOX_WITH_PRECOMPILED_HEADERS) && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
+  ifeq ($(KBUILD_TARGET),win)
    VBoxAPIWrap_USES           = vccprecomp
    VBoxAPIWrap_PCH_HDR       := $(PATH_SUB_CURRENT)/src-all/win/VBoxAPIWrap-precomp_vcc.h
-  endif
- else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin" && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
-  if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
-   VBoxAPIWrap_USES        = gccprecomp
-   VBoxAPIWrap_PCH_HDR    := $(PATH_SUB_CURRENT)/src-all/xpcom/VBoxAPIWrap-precomp_gcc.h
+  else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin"
+   if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
+    VBoxAPIWrap_USES        = gccprecomp
+    VBoxAPIWrap_PCH_HDR    := $(PATH_SUB_CURRENT)/src-all/xpcom/VBoxAPIWrap-precomp_gcc.h
+   endif
   endif
  endif
  VBoxAPIWrap_SOURCES         = \
@@ -516,13 +516,15 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  #
  PROGRAMS += VBoxSVC
  VBoxSVC_TEMPLATE = VBoxMainExe
- if defined(VBOX_WITH_PRECOMPILED_HEADERS) && "$(KBUILD_TARGET)" == "win"
-  VBoxSVC_USES   += vccprecomp
-  VBoxSVC_PCH_HDR := $(PATH_SUB_CURRENT)/src-server/win/precomp_vcc.h
- else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin" && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
-  if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
-   VBoxSVC_USES += gccprecomp
-   VBoxSVC_PCH_HDR := $(PATH_SUB_CURRENT)/src-server/xpcom/precomp_gcc.h
+ if defined(VBOX_WITH_PRECOMPILED_HEADERS) && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
+  if "$(KBUILD_TARGET)" == "win"
+   VBoxSVC_USES   += vccprecomp
+   VBoxSVC_PCH_HDR := $(PATH_SUB_CURRENT)/src-server/win/precomp_vcc.h
+  else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin"
+   if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
+    VBoxSVC_USES += gccprecomp
+    VBoxSVC_PCH_HDR := $(PATH_SUB_CURRENT)/src-server/xpcom/precomp_gcc.h
+   endif
   endif
  endif
  VBoxSVC_DEFS = \
@@ -1007,13 +1009,15 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  #
  DLLS += VBoxC
  VBoxC_TEMPLATE = VBoxMainComp
- if defined(VBOX_WITH_PRECOMPILED_HEADERS) && "$(KBUILD_TARGET)" == "win"
-  VBoxC_USES    = vccprecomp
-  VBoxC_PCH_HDR := $(PATH_SUB_CURRENT)/src-client/win/precomp_vcc.h
- else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin" && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
-  if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
-   VBoxC_USES += gccprecomp
-   VBoxC_PCH_HDR := $(PATH_SUB_CURRENT)/src-client/xpcom/precomp_gcc.h
+ if defined(VBOX_WITH_PRECOMPILED_HEADERS) && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
+  if "$(KBUILD_TARGET)" == "win"
+   VBoxC_USES    = vccprecomp
+   VBoxC_PCH_HDR := $(PATH_SUB_CURRENT)/src-client/win/precomp_vcc.h
+  else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin"
+   if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
+    VBoxC_USES += gccprecomp
+    VBoxC_PCH_HDR := $(PATH_SUB_CURRENT)/src-client/xpcom/precomp_gcc.h
+   endif
   endif
  endif
  VBoxC_DEFS = \

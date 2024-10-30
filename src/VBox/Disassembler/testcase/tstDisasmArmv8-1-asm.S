@@ -3818,6 +3818,30 @@ _TestProcA64:
         ldaxr  xzr, [sp]
 
         ;
+        ; Load/store exclusive pair
+        ;
+
+        stxp w0,  w1,  w2, [x3]
+        stxp w0, wzr, wzr, [sp]
+        stxp w0,  x1,  x2, [x3]
+        stxp w0, xzr, xzr, [sp]
+
+        stlxp w0,  w1,  w2, [x3]
+        stlxp w0, wzr, wzr, [sp]
+        stlxp w0,  x1,  x2, [x3]
+        stlxp w0, xzr, xzr, [sp]
+
+        ldxp  w1,  w2, [x0]
+        ldxp wzr, wzr, [sp]
+        ldxp  x1,  x2, [x0]
+        ldxp xzr, xzr, [sp]
+
+        ldaxp  w1,  w2, [x0]
+        ldaxp wzr, wzr, [sp]
+        ldaxp  x1,  x2, [x0]
+        ldaxp xzr, xzr, [sp]
+
+        ;
         ; Keep last so the testcase can catch errors in
         ; the disassembly of the last instruction.
         ;

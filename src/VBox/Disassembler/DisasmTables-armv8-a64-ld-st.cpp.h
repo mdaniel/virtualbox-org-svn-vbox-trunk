@@ -1169,7 +1169,30 @@ DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStOrdered_Cas)
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStOrdered_Cas, 21);
 
 
-/* C4.1.94.14 - Loads and Stores - Compare and swap */
+/* C4.1.94.11 - Loads and Stores - Load exclusive pair */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStExclusivePair)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            30,  1, DIS_ARMV8_INSN_PARAM_UNSET), /* Not exactly an SF bit but serves the same purpose. */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         10,  5, 2 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 3 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStExclusiveRegLd)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSf,            30,  1, DIS_ARMV8_INSN_PARAM_UNSET), /* Not exactly an SF bit but serves the same purpose. */
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr,         10,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,      5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStExclusivePair)
+    DIS_ARMV8_OP(           0x88200000, "stxp",            OP_ARMV8_A64_STXP,      DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP(           0x88208000, "stlxp",           OP_ARMV8_A64_STLXP,     DISOPTYPE_HARMLESS),
+    DIS_ARMV8_OP_ALT_DECODE(0x88600000, "ldxp",            OP_ARMV8_A64_LDXP,      DISOPTYPE_HARMLESS, LdStExclusiveRegLd),
+    DIS_ARMV8_OP_ALT_DECODE(0x88608000, "ldaxp",           OP_ARMV8_A64_LDAXP,     DISOPTYPE_HARMLESS, LdStExclusiveRegLd),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStExclusivePair, 0xbfe08000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                            /* o0 */     RT_BIT_32(15)
+                            /* L  */   | RT_BIT_32(22), 15);
+
+
+/* C4.1.94.14 - Loads and Stores - Load exclusive register */
 DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStExclusiveReg)
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,       16,  5, 0 /*idxParam*/),
     DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr32,        0,  5, 1 /*idxParam*/),
@@ -1215,7 +1238,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStExclusiveReg, 0xffe08000 /*fFixedInsn
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStExclusive)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusiveReg),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusivePair), */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStExclusivePair),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStExclusive, 21);
 
 

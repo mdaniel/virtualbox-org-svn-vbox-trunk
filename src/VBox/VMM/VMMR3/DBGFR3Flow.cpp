@@ -779,7 +779,12 @@ static int dbgfR3FlowQueryDirectBranchTarget(PUVM pUVM, VMCPUID idCpu, PDISOPPAR
 
     /* Relative jumps are always from the beginning of the next instruction. */
     *pAddrJmpTarget = *pAddrInstr;
+#ifdef VBOX_VMM_TARGET_ARMV8
+    /* On ARM relative jumps are always from the beginning of the curent instruction (b #0 will jump to itself for instance). */
+    RT_NOREF(cbInstr);
+#else
     DBGFR3AddrAdd(pAddrJmpTarget, cbInstr);
+#endif
 
     if (fRelJmp)
     {

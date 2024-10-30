@@ -80,12 +80,12 @@ namespace vbcl
             CMD_UNKNOWN = 0,
             /** Send or receive list of clipboard formats which
              *  host or guest announces. */
-            CLIP_FORMATS,
+            VBOX_FORMATS,
             /** Send or receive a clipboard format which host
              *  or guest requests. */
-            CLIP_FORMAT,
+            VBOX_FORMAT,
             /** Send or receive clipboard data in given format. */
-            CLIP_DATA,
+            VBOX_DATA,
             /** Termination of commands list. */
             CMD_MAX
         } command_t;
@@ -159,7 +159,7 @@ namespace vbcl
 
         namespace data
         {
-            /** Payload for IPC commands CLIP_FORMATS and CLIP_FORMAT. */
+            /** Payload for IPC commands VBOX_FORMATS and VBOX_FORMAT. */
             typedef struct
             {
                 /** IPC command header. */
@@ -168,7 +168,7 @@ namespace vbcl
                 SHCLFORMATS fFormats;
             } formats_packet_t;
 
-            /** Payload for IPC command CLIP_DATA. */
+            /** Payload for IPC command VBOX_DATA. */
             typedef struct
             {
                 /* IPC command header. */
@@ -194,17 +194,17 @@ namespace vbcl
             /** IPC flow description: Copy clipboard from host to guest. */
             const flow_t HGCopyFlow[4] =
             {
-                { CLIP_FORMATS, FLOW_DIRECTION_CLIENT },
-                { CLIP_FORMAT,  FLOW_DIRECTION_SERVER },
-                { CLIP_DATA,    FLOW_DIRECTION_CLIENT },
+                { VBOX_FORMATS, FLOW_DIRECTION_CLIENT },
+                { VBOX_FORMAT,  FLOW_DIRECTION_SERVER },
+                { VBOX_DATA,    FLOW_DIRECTION_CLIENT },
                 { CMD_MAX,      false }
             };
 
             /** IPC flow description: Copy clipboard from guest to host. */
             const flow_t GHCopyFlow[3] =
             {
-                { CLIP_FORMAT,  FLOW_DIRECTION_CLIENT },
-                { CLIP_DATA,    FLOW_DIRECTION_SERVER },
+                { VBOX_FORMAT,  FLOW_DIRECTION_CLIENT },
+                { VBOX_DATA,    FLOW_DIRECTION_SERVER },
                 { CMD_MAX,      false }
             };
 
@@ -212,9 +212,9 @@ namespace vbcl
              *  and copy it to the host in format selected by host. */
             const flow_t GHAnnounceAndCopyFlow[4] =
             {
-                { CLIP_FORMATS, FLOW_DIRECTION_SERVER },
-                { CLIP_FORMAT,  FLOW_DIRECTION_CLIENT },
-                { CLIP_DATA,    FLOW_DIRECTION_SERVER },
+                { VBOX_FORMATS, FLOW_DIRECTION_SERVER },
+                { VBOX_FORMAT,  FLOW_DIRECTION_CLIENT },
+                { VBOX_DATA,    FLOW_DIRECTION_SERVER },
                 { CMD_MAX,      false }
             };
 
@@ -368,7 +368,7 @@ namespace vbcl
 
                         switch(enmCmd)
                         {
-                            case CLIP_FORMATS:
+                            case VBOX_FORMATS:
                             {
                                 if (fShouldSend)
                                     rc = send_formats(m_uSessionId, hIpcSession);
@@ -377,7 +377,7 @@ namespace vbcl
                                 break;
                             }
 
-                            case CLIP_FORMAT:
+                            case VBOX_FORMAT:
                             {
                                 if (fShouldSend)
                                     rc = send_format(m_uSessionId, hIpcSession);
@@ -386,7 +386,7 @@ namespace vbcl
                                 break;
                             }
 
-                            case CLIP_DATA:
+                            case VBOX_DATA:
                             {
                                 if (fShouldSend)
                                     rc = send_data(m_uSessionId, hIpcSession);

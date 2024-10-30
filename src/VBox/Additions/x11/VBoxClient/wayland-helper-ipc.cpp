@@ -114,12 +114,12 @@ bool vbcl::ipc::packet_verify(vbcl::ipc::packet_t *pPacket, size_t cbPacket)
 
             switch (pPacket->idCmd)
             {
-                case vbcl::ipc::CLIP_FORMATS:
-                case vbcl::ipc::CLIP_FORMAT:
+                case vbcl::ipc::VBOX_FORMATS:
+                case vbcl::ipc::VBOX_FORMAT:
                     cbPayload = sizeof(vbcl::ipc::data::formats_packet_t);
                     break;
 
-                case vbcl::ipc::CLIP_DATA:
+                case vbcl::ipc::VBOX_DATA:
                 {
                     vbcl::ipc::data::data_packet_t *pDataEx = (vbcl::ipc::data::data_packet_t *)pPacket;
                     cbPayload = sizeof(vbcl::ipc::data::data_packet_t) + pDataEx->cbData;
@@ -254,7 +254,7 @@ int vbcl::ipc::data::DataIpc::send_formats(uint32_t uSessionId, RTLOCALIPCSESSIO
 
     Packet.Hdr.u64Crc = 0;
     Packet.Hdr.uSessionId = uSessionId;
-    Packet.Hdr.idCmd = CLIP_FORMATS;
+    Packet.Hdr.idCmd = VBOX_FORMATS;
     Packet.Hdr.cbData = sizeof(Packet);
 
     fFormats = m_fFmts.wait();
@@ -282,7 +282,7 @@ int vbcl::ipc::data::DataIpc::recv_formats(uint32_t uSessionId, RTLOCALIPCSESSIO
     rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
-        if (   pPacket->Hdr.idCmd == CLIP_FORMATS
+        if (   pPacket->Hdr.idCmd == VBOX_FORMATS
             && vbcl::ipc::packet_verify(&pPacket->Hdr, pPacket->Hdr.cbData))
         {
             fFormats = pPacket->fFormats;
@@ -311,7 +311,7 @@ int vbcl::ipc::data::DataIpc::send_format(uint32_t uSessionId, RTLOCALIPCSESSION
 
     Packet.Hdr.u64Crc = 0;
     Packet.Hdr.uSessionId = uSessionId;
-    Packet.Hdr.idCmd = CLIP_FORMAT;
+    Packet.Hdr.idCmd = VBOX_FORMAT;
     Packet.Hdr.cbData = sizeof(Packet);
 
     uFormat = m_uFmt.wait();
@@ -339,7 +339,7 @@ int vbcl::ipc::data::DataIpc::recv_format(uint32_t uSessionId, RTLOCALIPCSESSION
     rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
-        if (   pPacket->Hdr.idCmd == CLIP_FORMAT
+        if (   pPacket->Hdr.idCmd == VBOX_FORMAT
             && vbcl::ipc::packet_verify(&pPacket->Hdr, pPacket->Hdr.cbData))
         {
             uFormat = pPacket->fFormats;
@@ -376,7 +376,7 @@ int vbcl::ipc::data::DataIpc::send_data(uint32_t uSessionId, RTLOCALIPCSESSION h
         {
             pPacket->Hdr.u64Crc = 0;
             pPacket->Hdr.uSessionId = uSessionId;
-            pPacket->Hdr.idCmd = CLIP_DATA;
+            pPacket->Hdr.idCmd = VBOX_DATA;
             pPacket->Hdr.cbData = sizeof(vbcl::ipc::data::data_packet_t) + cbData;
             pPacket->cbData = cbData;
 
@@ -406,7 +406,7 @@ int vbcl::ipc::data::DataIpc::recv_data(uint32_t uSessionId, RTLOCALIPCSESSION h
     rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
-        if (   pPacket->Hdr.idCmd == CLIP_DATA
+        if (   pPacket->Hdr.idCmd == VBOX_DATA
             && vbcl::ipc::packet_verify(&pPacket->Hdr, pPacket->Hdr.cbData))
         {
             void *pvData = RTMemAllocZ(pPacket->cbData);

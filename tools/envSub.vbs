@@ -301,13 +301,13 @@ function Main()
          if bldExitLoop then exit for
       next
 
-      ' Add VCC to the end of the path.
+      ' Add VCC and Llvm to the end of the path.
       dim str2, strDir2, arrVccOldBinDirs
       arrVccOldBinDirs = Array("\bin\" & strHostArch & "_" & strTargetArch, "\bin\" & strTargetArch, "\bin")
       bldExitLoop = false
-      for each str1 in Array("amd64", "x86")
-         for each strDir in GetSubdirsStartingWithRVerSorted(strPathDevTools & "\win." & str1 & "\vcc", "v")
-            strDir = strPathDevTools & "\win." & str1 & "\vcc\" & strDir
+      for each str1 in Array("", ".amd64", ".x86")
+         for each strDir in GetSubdirsStartingWithRVerSorted(strPathDevTools & "\win" & str1 & "\vcc", "v")
+            strDir = strPathDevTools & "\win" & str1 & "\vcc\" & strDir
             if DirExists(strDir & "\Tools\MSVC") then
                for each strDir2 in GetSubdirsStartingWithRVerSorted(strDir & "\Tools\MSVC", "1")
                   strDir2 = strDir & "\Tools\MSVC\" & strDir2 & "\bin\Host" & XlateArchitectureToWin(strHostArch) _
@@ -321,6 +321,16 @@ function Main()
                      exit for
                   end if
                next
+               if bldExitLoop and DirExists(strDir & "\Tools\Llvm\") then
+                  if strHostArch = "x86" then
+                     strDir2 = strDir & "\Tools\Llvm\bin"
+                  else
+                     strDir2 = strDir & "\Tools\Llvm\" & XlateArchitectureToWin(strHostArch) & "\bin"
+                  end if
+                  if DirExists(strDir2) then
+                     EnvAppendPathItem "Path", DosSlashes(strDir2), ";"
+                  end if
+               end if
             elseif DirExists(strDir & "\bin") then
                for each str2 in arrVccOldBinDirs
                   if FileExists(strDir & str2 & "\cl.exe") then

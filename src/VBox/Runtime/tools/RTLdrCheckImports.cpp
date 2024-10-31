@@ -681,7 +681,7 @@ int main(int argc, char **argv)
                          "  -p, --path <dir>\n"
                          "    Search the specified directory for imported modules or their export lists.\n"
                          "  -e, --export <image>\n"
-                         "    Write export list for the file to stdout.  (Redirect to a .export file.)\n"
+                         "    Write export list for the file to stdout.  (Redirect to a .exports file.)\n"
                          "  -O, --list-ordinals\n"
                          "    Whether to list ordinals as well as names in the export list.\n"
                          "  -q, --quiet\n"

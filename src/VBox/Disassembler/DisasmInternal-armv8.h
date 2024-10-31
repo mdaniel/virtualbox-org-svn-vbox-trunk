@@ -63,6 +63,7 @@ typedef enum DISPARMPARSEIDX
     kDisParmParseVecReg,
     kDisParmParseAddrGprSp,
     kDisParmParseRegFixed31,
+    kDisParmParseGprCount,
     kDisParmParseImmsImmrN,
     kDisParmParseHw,
     kDisParmParseCond,

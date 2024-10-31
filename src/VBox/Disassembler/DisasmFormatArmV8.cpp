@@ -869,17 +869,42 @@ DISDECL(size_t) DISFormatArmV8Ex(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, u
                     }
                     else
                     {
-                        size_t cchTmp;
-                        const char *pszTmp = disasmFormatArmV8Reg(pDis, pParam->armv8.Op.Reg.enmRegType,
-                                                                  pParam->armv8.Op.Reg.idReg, &cchTmp);
-                        PUT_STR(pszTmp, cchTmp);
-
-                        if (   pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector
-                            && pParam->armv8.Op.Reg.enmVecType != kDisOpParamArmV8VecRegType_None)
+                        if (pParam->armv8.Op.Reg.cRegs > 1)
                         {
-                            PUT_C('.');
-                            pszTmp = disasmFormatArmV8VecRegType(pParam->armv8.Op.Reg.enmVecType, &cchTmp);
+                            for (uint8_t idReg = pParam->armv8.Op.Reg.idReg; idReg < (pParam->armv8.Op.Reg.idReg + pParam->armv8.Op.Reg.cRegs); idReg++)
+                            {
+                                if (idReg > pParam->armv8.Op.Reg.idReg)
+                                    PUT_C(',');
+                                PUT_C(' '); /** @todo Make the indenting configurable. */
+
+                                size_t cchTmp;
+                                const char *pszTmp = disasmFormatArmV8Reg(pDis, pParam->armv8.Op.Reg.enmRegType,
+                                                                          idReg, &cchTmp);
+                                PUT_STR(pszTmp, cchTmp);
+
+                                if (   pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector
+                                    && pParam->armv8.Op.Reg.enmVecType != kDisOpParamArmV8VecRegType_None)
+                                {
+                                    PUT_C('.');
+                                    pszTmp = disasmFormatArmV8VecRegType(pParam->armv8.Op.Reg.enmVecType, &cchTmp);
+                                    PUT_STR(pszTmp, cchTmp);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            size_t cchTmp;
+                            const char *pszTmp = disasmFormatArmV8Reg(pDis, pParam->armv8.Op.Reg.enmRegType,
+                                                                      pParam->armv8.Op.Reg.idReg, &cchTmp);
                             PUT_STR(pszTmp, cchTmp);
+
+                            if (   pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector
+                                && pParam->armv8.Op.Reg.enmVecType != kDisOpParamArmV8VecRegType_None)
+                            {
+                                PUT_C('.');
+                                pszTmp = disasmFormatArmV8VecRegType(pParam->armv8.Op.Reg.enmVecType, &cchTmp);
+                                PUT_STR(pszTmp, cchTmp);
+                            }
                         }
                     }
                     break;

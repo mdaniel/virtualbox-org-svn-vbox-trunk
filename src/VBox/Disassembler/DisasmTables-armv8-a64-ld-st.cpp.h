@@ -1092,13 +1092,66 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStMemTags, 0xffe00c00 /*fFixedInsn*/,
                                        RT_BIT_32(10) | RT_BIT_32(11) | RT_BIT_32(22) | RT_BIT_32(23), 10);
 
 
+/* C4.1.94.6 - RCW compare and swap. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRcwCmpSwp)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,         0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRcwCmpSwp)
+    DIS_ARMV8_OP(0x19200800, "rcwcas",          OP_ARMV8_A64_RCWCAS,    DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x19600800, "rcwcasl",         OP_ARMV8_A64_RCWCASL,   DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x19a00800, "rcwcasa",         OP_ARMV8_A64_RCWCASA,   DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x19e00800, "rcwcasal",        OP_ARMV8_A64_RCWCASAL,  DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x59200800, "rcwscas",         OP_ARMV8_A64_RCWSCAS,   DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x59600800, "rcwscasl",        OP_ARMV8_A64_RCWSCASL,  DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x59a00800, "rcwscasa",        OP_ARMV8_A64_RCWSCASA,  DISOPTYPE_HARMLESS), /* FEAT_THE */
+    DIS_ARMV8_OP(0x59e00800, "rcwscasal",       OP_ARMV8_A64_RCWSCASAL, DISOPTYPE_HARMLESS), /* FEAT_THE */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRcwCmpSwp, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30), 22);
+
+
+/* C4.1.94.6 - RCW compare and swap pair. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStRcwCmpSwpPair)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,        16,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprCount,        0,  2, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprZr64,         0,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprCount,        0,  2, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 2 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStRcwCmpSwpPair)
+    DIS_ARMV8_OP(0x19200c00, "rcwcasp",         OP_ARMV8_A64_RCWCASP,    DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x19600c00, "rcwcaspl",        OP_ARMV8_A64_RCWCASPL,   DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x19a00c00, "rcwcaspa",        OP_ARMV8_A64_RCWCASPA,   DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x19e00c00, "rcwcaspal",       OP_ARMV8_A64_RCWCASPAL,  DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x59200c00, "rcwscasp",        OP_ARMV8_A64_RCWSCASP,   DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x59600c00, "rcwscaspl",       OP_ARMV8_A64_RCWSCASPL,  DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x59a00c00, "rcwscaspa",       OP_ARMV8_A64_RCWSCASPA,  DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+    DIS_ARMV8_OP(0x59e00c00, "rcwscaspal",      OP_ARMV8_A64_RCWSCASPAL, DISOPTYPE_HARMLESS), /* FEAT_D128 && FEAT_THE */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStRcwCmpSwpPair, 0xffe0fc00 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                                       RT_BIT_32(22) | RT_BIT_32(23) | RT_BIT_32(30), 22);
+
+
+/**
+ * C4.1.94 - Loads and Stores
+ *
+ * Differentiate between the RCW compare and swap (pair) and 128-bit atomic instructions.
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStRcwCmpSwp128BitAtomic)
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo 128-bit atomic instructions */
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRcwCmpSwp),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRcwCmpSwpPair),
+DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStRcwCmpSwp128BitAtomic, RT_BIT_32(10) | RT_BIT_32(11), 10);
+
+
 /**
  * C4.1.94 - Loads and Stores
  *
  * Differentiate between further based on op0<3> (bit 31).
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStBit28_1_Bit29_0_Bit24_1_Bit21_1)
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY,         /** @todo RCW compare and swap (pair) / 128-bit atomic memory operations */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStRcwCmpSwp128BitAtomic),
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStMemTags),
 DIS_ARMV8_DECODE_MAP_DEFINE_END_SINGLE_BIT(LdStBit28_1_Bit29_0_Bit24_1_Bit21_1, 31);
 

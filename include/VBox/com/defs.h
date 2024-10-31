@@ -562,14 +562,27 @@ namespace com
 
 // use this macro to implement scriptable interfaces
 #ifdef RT_OS_WINDOWS
-#define VBOX_SCRIPTABLE_IMPL(iface)                                          \
-    public ATL::IDispatchImpl<iface, &IID_##iface, &LIBID_VirtualBox,        \
+/* 2024-10-31 bird: Avoid using IID_xxxx here, because our IID_IEventSource is
+   non-unique and defined differently by the the Windows SDK's Uuid.lib.  This
+   manifested as 0x8002802b/TYPE_E_ELEMENTNOTFOUND trouble in vbox.py when
+   setting up event listening for a newly started test VM.  The cause was a
+   linking library reordering, causing the IID_IEventSource symbol to be picked
+   from Uuid.lib rather than VBoxCOM.lib.
+
+   To work around this particular issue and avoid any future issues, we will
+   switch to using the compiler builtin __uuidof() to get the interface ID. The
+   compiler will create readonly variables with names using the UUID value
+   itself, on the format _GUID_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx.  This will
+   effectively eliminate any duplicate interface-name clashes with the system,
+   provided nobody uses the IID_xxxx constants. */
+# define VBOX_SCRIPTABLE_IMPL(iface) \
+    public ATL::IDispatchImpl<iface, /*&IID_##iface*/ &__uuidof(iface), &LIBID_VirtualBox, \
                               kTypeLibraryMajorVersion, kTypeLibraryMinorVersion>
 
-#define VBOX_SCRIPTABLE_DISPATCH_IMPL(iface)                                 \
+# define VBOX_SCRIPTABLE_DISPATCH_IMPL(iface)                                \
     STDMETHOD(QueryInterface)(REFIID riid, void **ppObj)                     \
     {                                                                        \
-        if (riid == IID_##iface)                                             \
+        if (riid == /*IID_##iface*/ __uuidof(iface))                         \
         {                                                                    \
             *ppObj = (iface *)this;                                          \
             AddRef();                                                        \
@@ -591,9 +604,9 @@ namespace com
         return E_NOINTERFACE;                                                \
     }
 #else
-#define VBOX_SCRIPTABLE_IMPL(iface)                     \
+# define VBOX_SCRIPTABLE_IMPL(iface) \
     public iface
-#define VBOX_SCRIPTABLE_DISPATCH_IMPL(iface)
+# define VBOX_SCRIPTABLE_DISPATCH_IMPL(iface)
 #endif
 
 #endif /* !VBOX_COM_NO_ATL */

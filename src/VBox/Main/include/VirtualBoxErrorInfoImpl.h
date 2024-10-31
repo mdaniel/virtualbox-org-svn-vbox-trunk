@@ -88,7 +88,9 @@ public:
     STDMETHOD(GetHelpContext)(DWORD *pdwHelpContext);
 
     // IDispatch forwarding - 3am hack.
-    typedef IDispatchImpl<IVirtualBoxErrorInfo, &IID_IVirtualBoxErrorInfo, &LIBID_VirtualBox, kTypeLibraryMajorVersion, kTypeLibraryMinorVersion> idi;
+    // 2024-10-31 bird: Match com/defs.h __uuidof() workaround for IID_IEventSource conflict with Uuid.lib.
+    typedef IDispatchImpl<IVirtualBoxErrorInfo, /*&IID_IVirtualBoxErrorInfo*/ &__uuidof(IVirtualBoxErrorInfo),
+                          &LIBID_VirtualBox, kTypeLibraryMajorVersion, kTypeLibraryMinorVersion> idi;
 
     STDMETHOD(GetTypeInfoCount)(UINT *pcInfo)
     {

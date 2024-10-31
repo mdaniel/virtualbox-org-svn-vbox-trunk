@@ -60,6 +60,9 @@
 /** Limit maximum log verbosity level for popup tool. */
 #define VBOXWL_VERBOSITY_MAX            (5)
 
+/** IPC server socket name prefixes. */
+#define VBOXWL_SRV_NAME_PREFIX_CLIP     "clip"
+
 /** Arguments to vboxwl tool. */
 #define VBOXWL_ARG_CLIP_HG_COPY         "--clip-hg-copy"
 #define VBOXWL_ARG_CLIP_GH_ANNOUNCE     "--clip-gh-announce"
@@ -414,13 +417,14 @@ namespace vbcl
  *
  * This function should be used by both IPC server and client code
  * in order to connect one to another. Output string will be in
- * format: GtkHlpIpcServer-&lt;active tty&gt;-&lt;user name&gt;.
+ * format: GtkHlpIpcServer-&lt;prefix&gt;--&lt;active tty&gt;-&lt;user name&gt;.
  *
  * @returns     IPRT status code.
- * @param       szBuf   Where to store generated name string.
- * @param       cbBuf   Size of buffer.
+ * @param       szNamePrefix    Name prefix.
+ * @param       szBuf           Where to store generated name string.
+ * @param       cbBuf           Size of buffer.
  */
-RTDECL(int) vbcl_wayland_hlp_gtk_ipc_srv_name(char *szBuf, size_t cbBuf);
+RTDECL(int) vbcl_wayland_hlp_gtk_ipc_srv_name(const char *szNamePrefix, char *szBuf, size_t cbBuf);
 
 #endif /* !GA_INCLUDED_SRC_x11_VBoxClient_wayland_helper_ipc_h */
 

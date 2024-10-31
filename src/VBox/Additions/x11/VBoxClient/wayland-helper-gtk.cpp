@@ -82,6 +82,9 @@ typedef struct
 
     /** Local IPC server object. */
     RTLOCALIPCSERVER                        hIpcServer;
+
+    /** IPC server socket name prefix. */
+    const char                              *pcszIpcSockPrefix;
 } vbox_wl_gtk_ctx_t;
 
 /** Private data for a callback when host reports clipboard formats. */
@@ -336,11 +339,14 @@ static DECLCALLBACK(int) vbcl_wayland_hlp_gtk_worker(RTTHREAD hThreadSelf, void 
     vbox_wl_gtk_ctx_t *pCtx = (vbox_wl_gtk_ctx_t *)pvUser;
     char szIpcServerName[128];
 
+    AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
+    AssertPtrReturn(pCtx->pcszIpcSockPrefix, VERR_INVALID_POINTER);
+
     RTThreadUserSignal(hThreadSelf);
 
     VBClLogVerbose(1, "starting IPC\n");
 
-    rc = vbcl_wayland_hlp_gtk_ipc_srv_name(szIpcServerName, sizeof(szIpcServerName));
+    rc = vbcl_wayland_hlp_gtk_ipc_srv_name(pCtx->pcszIpcSockPrefix, szIpcServerName, sizeof(szIpcServerName));
 
     if (RT_SUCCESS(rc))
         rc = RTLocalIpcServerCreate(&pCtx->hIpcServer, szIpcServerName, 0);
@@ -428,6 +434,9 @@ RTDECL(int) vbcl_wayland_hlp_gtk_clip_init(void)
     VBCL_LOG_CALLBACK;
 
     RT_ZERO(g_GtkClipCtx);
+
+    /* Set IPC server socket name prefix before server is started. */
+    g_GtkClipCtx.pcszIpcSockPrefix = VBOXWL_SRV_NAME_PREFIX_CLIP;
 
     return vbcl_wayland_thread_start(&g_GtkClipCtx.Thread, vbcl_wayland_hlp_gtk_worker, "wl-gtk-ipc", &g_GtkClipCtx);
 }

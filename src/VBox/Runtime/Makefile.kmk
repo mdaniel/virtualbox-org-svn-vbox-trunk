@@ -4513,6 +4513,7 @@ if1of (win, $(KBUILD_TARGET) $(KBUILD_HOST))
  	$(RuntimeR3NtDll-x86_0_OUTDIR)/ntdll-mini-implib.asm
  RuntimeR3NtDll-x86_CLEAN         = \
  	$(RuntimeR3NtDll-x86_0_OUTDIR)/ntdll-mini-implib.asm
+ $(call KB_FN_DO_PASS0_ON_TARGET,RuntimeR3NtDll-x86)
 
  $$(RuntimeR3NtDll-x86_0_OUTDIR)/ntdll-mini-implib.asm: $(PATH_SUB_CURRENT)/r3/win/ntdll-mini-implib.def | $$(dir $$@)
 	$(call MSG_GENERATE,,$@,$<)

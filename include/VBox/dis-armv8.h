@@ -96,7 +96,7 @@ typedef struct
     uint8_t  enmRegType;
     /** The register ID (not applicable for kDisOpParamArmV8RegType_Sp). */
     uint8_t  idReg;
-    /** Number of registers being accessed by this parameter (only applicable for kDisOpParamArmV8RegType_Simd_Vector_Group). */
+    /** Number of consecutive registers being accessed by this parameter starting at DISOPPARAMARMV8REG::idReg (mostly 1). */
     uint8_t  cRegs;
     /** Vector register type (DISOPPARAMARMV8VECREGTYPE). */
     uint8_t  enmVecType;

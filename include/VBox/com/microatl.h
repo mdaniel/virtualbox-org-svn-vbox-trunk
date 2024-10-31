@@ -1124,7 +1124,8 @@ public:
     }
 };
 
-template <class T, const IID *piid, const GUID *pLibID, WORD iMajor = 1, WORD iMinor = 0> class ATL_NO_VTABLE IDispatchImpl : public T
+template <class T, const IID *piid, const GUID *pLibID, WORD iMajor = 1, WORD iMinor = 0>
+class ATL_NO_VTABLE IDispatchImpl : public T
 {
 public:
     // IDispatch
@@ -1155,7 +1156,8 @@ protected:
     }
 };
 
-template <class T, const IID *piid, const GUID *pLibID, WORD iMajor, WORD iMinor> CComTypeInfoHolder IDispatchImpl<T, piid, pLibID, iMajor, iMinor>::tih = { piid, pLibID, iMajor, iMinor, NULL };
+template <class T, const IID *piid, const GUID *pLibID, WORD iMajor, WORD iMinor>
+CComTypeInfoHolder IDispatchImpl<T, piid, pLibID, iMajor, iMinor>::tih = { piid, pLibID, iMajor, iMinor, NULL };
 
 
 template <class Base> class CComContainedObject : public Base

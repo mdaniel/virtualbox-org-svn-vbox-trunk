@@ -121,6 +121,7 @@ static FNDISPARSEARMV8 disArmV8ParseLdrPacW;
 static FNDISPARSEARMV8 disArmV8ParseVecRegElemSize;
 static FNDISPARSEARMV8 disArmV8ParseVecRegQ;
 static FNDISPARSEARMV8 disArmV8ParseVecGrp;
+static FNDISPARSEARMV8 disArmV8ParseSimdLdStPostIndexImm;
 /** @}  */
 
 
@@ -187,7 +188,8 @@ static PFNDISPARSEARMV8 const g_apfnDisasm[kDisParmParseMax] =
     disArmV8ParseLdrPacW,
     disArmV8ParseVecRegElemSize,
     disArmV8ParseVecRegQ,
-    disArmV8ParseVecGrp
+    disArmV8ParseVecGrp,
+    disArmV8ParseSimdLdStPostIndexImm
 };
 
 
@@ -1172,6 +1174,22 @@ static int disArmV8ParseVecGrp(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     Assert(pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Simd_Vector);
     pParam->armv8.Op.Reg.enmRegType = kDisOpParamArmV8RegType_Simd_Vector_Group;
     pParam->armv8.Op.Reg.cRegs      = pInsnParm->cBits;
+    return VINF_SUCCESS;
+}
+
+
+static int  disArmV8ParseSimdLdStPostIndexImm(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, u32Insn, pOp, pInsnClass, pParam, pInsnParm, pf64Bit);
+
+    /*
+     * Special decoder for Advanced SIMD load/store multiple structures (post-indexed), immediate variant.
+     * The immediate for when Q == 0 is stored in idxBitStart, and cBits when Q == 1.
+     */
+    Assert(pInsnParm->cBits == 16 || pInsnParm->cBits == 32 || pInsnParm->cBits == 48 || pInsnParm->cBits == 64);
+    Assert(pInsnParm->idxBitStart == 8 || pInsnParm->idxBitStart == 16 || pInsnParm->idxBitStart == 24 || pInsnParm->idxBitStart == 32);
+    Assert(pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit || pParam->armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Sp);
+    pParam->armv8.u.offBase = RT_BOOL(u32Insn & RT_BIT_32(30)) ? pInsnParm->cBits : pInsnParm->idxBitStart;
     return VINF_SUCCESS;
 }
 

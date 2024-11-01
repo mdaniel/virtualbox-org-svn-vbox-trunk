@@ -3620,7 +3620,6 @@ FNIEMOP_DEF(iemOp_cvtpi2ps_Vps_Qpi)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_MAYBE_RAISE_FPU_XCPT();
 
         IEM_MC_PREPARE_FPU_USAGE();
 
@@ -3983,6 +3982,7 @@ FNIEMOP_DEF(iemOp_cvttps2pi_Ppi_Wps)
         IEM_MC_LOCAL(uint64_t,              u64Dst);
         IEM_MC_ARG_LOCAL_REF(uint64_t *,    pu64Dst, u64Dst,    0);
         IEM_MC_ARG(uint64_t,                u64Src,             1);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_PREPARE_FPU_USAGE();
         IEM_MC_FPU_TO_MMX_MODE();
@@ -4008,6 +4008,7 @@ FNIEMOP_DEF(iemOp_cvttps2pi_Ppi_Wps)
 
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_FETCH_MEM_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
@@ -4038,6 +4039,7 @@ FNIEMOP_DEF(iemOp_cvttpd2pi_Ppi_Wpd)
         IEM_MC_LOCAL(uint64_t,              u64Dst);
         IEM_MC_ARG_LOCAL_REF(uint64_t *,    pu64Dst, u64Dst,    0);
         IEM_MC_ARG(PCX86XMMREG,             pSrc,               1);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_PREPARE_FPU_USAGE();
         IEM_MC_FPU_TO_MMX_MODE();
@@ -4064,6 +4066,7 @@ FNIEMOP_DEF(iemOp_cvttpd2pi_Ppi_Wpd)
 
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_FETCH_MEM_XMM_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
@@ -4289,6 +4292,7 @@ FNIEMOP_DEF(iemOp_cvtps2pi_Ppi_Wps)
         IEM_MC_ARG_LOCAL_REF(uint64_t *,    pu64Dst, u64Dst,    0);
         IEM_MC_ARG(uint64_t,                u64Src,             1);
 
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_PREPARE_FPU_USAGE();
         IEM_MC_FPU_TO_MMX_MODE();
@@ -4314,6 +4318,7 @@ FNIEMOP_DEF(iemOp_cvtps2pi_Ppi_Wps)
 
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_FETCH_MEM_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
@@ -4345,6 +4350,7 @@ FNIEMOP_DEF(iemOp_cvtpd2pi_Qpi_Wpd)
         IEM_MC_ARG_LOCAL_REF(uint64_t *,    pu64Dst, u64Dst,    0);
         IEM_MC_ARG(PCX86XMMREG,             pSrc,               1);
 
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_PREPARE_FPU_USAGE();
         IEM_MC_FPU_TO_MMX_MODE();
@@ -4371,6 +4377,7 @@ FNIEMOP_DEF(iemOp_cvtpd2pi_Qpi_Wpd)
 
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse2);
+        IEM_MC_MAYBE_RAISE_FPU_XCPT();
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_FETCH_MEM_XMM_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 

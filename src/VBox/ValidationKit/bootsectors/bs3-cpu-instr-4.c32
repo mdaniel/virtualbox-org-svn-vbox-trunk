@@ -16742,9 +16742,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvttps2pi(uint8_t bMode)
 /*
  * CVTSI2SS.
  */
-BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtsi2ss(uint8_t bMode)
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvtsi2ss(uint8_t bMode)
 {
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues32[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues32[] =
     {
     /*
      * Zero.
@@ -16844,7 +16844,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtsi2ss(uint8_t bMode)
               /*256:out  */ -1 },
     };
 
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues64[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues64[] =
     {
     /*
      * Zero.
@@ -16861,23 +16861,21 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtsi2ss(uint8_t bMode)
     /* 1*/{ { /* src r64 */ { FP32_INT64_C(123456789), FP32_RAND_x6_V4 } },
             { /* src xmm */ { FP32_NORM_V0(0),         FP32_RAND_x7_V3 } },
             { /* =>  xmm */ { FP32_V(0,0x6b79a3,0x99), FP32_RAND_x7_V3 } },
-                              /*123456792.0*/
+                                         /*123456792.0*/
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                   FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),           FP32_RAND_x7_V3 } },
-                              /* 8526494970100580352.0 = 0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(8526495043095935640)/*0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                         FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),                                 FP32_RAND_x7_V3 } },
+                                         /*8526494970100580352.0=0x7654320000000000*/
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*-0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                    FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),            FP32_RAND_x7_V3 } },
-                              /* -8526494970100580352.0 = -0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640)/*-0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                           FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),                                   FP32_RAND_x7_V3 } },
+                                         /*-8526494970100580352.0=-0x7654320000000000*/
               /*mxcsr:in */ 0,
               /*128:out  */ X86_MXCSR_PE,
               /*256:out  */ -1 },
@@ -16890,70 +16888,63 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtsi2ss(uint8_t bMode)
           { { /* src r64 */ { FP32_INT64(INT64_MAX), FP32_RAND_x6_V4 } },
             { /* src xmm */ { FP32_NORM_V0(0),       FP32_RAND_x7_V3 } },
             { /* =>  xmm */ { FP32_V(0,0x0,0xbe),    FP32_RAND_x7_V3 } },
-                              /* 9223372036854775808.0; exactly INT64_MAX, so why PE (i7-10700)?? */
+                              /*9223372036854775808.0 = INT64_MAX+1*/
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_PE,
               /*256:out  */ -1 },
           { { /* src r64 */ { FP32_INT64(-INT64_MAX), FP32_RAND_x6_V4 } },
             { /* src xmm */ { FP32_NORM_V0(0),        FP32_RAND_x7_V3 } },
             { /* =>  xmm */ { FP32_V(1,0x0,0xbe),     FP32_RAND_x7_V3 } },
-                              /* -9223372036854775808.0; exactly -INT64_MAX, so why PE (i7-10700)?? */
+                              /*-9223372036854775808.0 = -INT64_MAX-1*/
               /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
               /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                   FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),           FP32_RAND_x7_V3 } },
-                              /* 8526494970100580352.0 = 0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(8526495043095935640)/*0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                         FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),                                 FP32_RAND_x7_V3 } },
+                                         /*8526494970100580352.0=0x7654320000000000*/
               /*mxcsr:in */ X86_MXCSR_FZ | X86_MXCSR_DAZ,
               /*128:out  */ X86_MXCSR_FZ | X86_MXCSR_DAZ | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                   FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),           FP32_RAND_x7_V3 } },
-                              /* 8526494970100580352.0 = 0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(8526495043095935640)/*0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                         FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),                                 FP32_RAND_x7_V3 } },
+                                         /*8526494970100580352.0=0x7654320000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*-0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                    FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(1,0x6ca865,0xbd),            FP32_RAND_x7_V3 } },
-                              /* -8526495519856394240.0 = -0x7654328000000000 */
+          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640)/*-0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                           FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(1,0x6ca865,0xbd),                                   FP32_RAND_x7_V3 } },
+                                         /*-8526495519856394240.0=-0x7654328000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_DOWN,
               /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                   FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(0,0x6ca865,0xbd),           FP32_RAND_x7_V3 } },
-                              /* 8526495519856394240.0 = 0x7654328000000000 */
+          { { /* src r64 */ { FP32_INT64_C(8526495043095935640)/*0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                         FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(0,0x6ca865,0xbd),                                 FP32_RAND_x7_V3 } },
+                                         /*8526495519856394240.0=0x7654328000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*-0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                    FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),            FP32_RAND_x7_V3 } },
-                              /* -8526494970100580352.0 = -0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640)/*-0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                           FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),                                   FP32_RAND_x7_V3 } },
+                                         /*-8526494970100580352.0=-0x7654320000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_UP,
               /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                   FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),           FP32_RAND_x7_V3 } },
-                              /* 8526494970100580352.0 = 0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(8526495043095935640)/*0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                         FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(0,0x6ca864,0xbd),                                 FP32_RAND_x7_V3 } },
+                                         /*8526494970100580352.0=0x7654320000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_ZERO,
               /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
               /*256:out  */ -1 },
-          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640), FP32_RAND_x6_V4 } },
-                                          /*-0x76543210FEDCBA98*/
-            { /* src xmm */ { FP32_NORM_V0(0),                    FP32_RAND_x7_V3 } },
-            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),            FP32_RAND_x7_V3 } },
-                              /* -8526494970100580352.0 = -0x7654320000000000 */
+          { { /* src r64 */ { FP32_INT64_C(-8526495043095935640)/*-0x76543210FEDCBA98*/, FP32_RAND_x6_V4 } },
+            { /* src xmm */ { FP32_NORM_V0(0),                                           FP32_RAND_x7_V3 } },
+            { /* =>  xmm */ { FP32_V(1,0x6ca864,0xbd),                                   FP32_RAND_x7_V3 } },
+                                         /*-8526494970100580352.0=-0x7654320000000000*/
               /*mxcsr:in */ X86_MXCSR_RC_ZERO,
               /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
               /*256:out  */ -1 },
@@ -17038,9 +17029,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtsi2ss(uint8_t bMode)
 /*
  * CVTSS2SI.
  */
-BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtss2si(uint8_t bMode)
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvtss2si(uint8_t bMode)
 {
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues32[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues32[] =
     {
     /*
      * Zero.
@@ -17217,7 +17208,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtss2si(uint8_t bMode)
               /*128:out  */ X86_MXCSR_IE,
               /*256:out  */ -1 },
     };
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues64[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues64[] =
     {
     /*
      * Zero.
@@ -17479,9 +17470,9 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvtss2si(uint8_t bMode)
 /*
  * CVTTSS2SI.
  */
-BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvttss2si(uint8_t bMode)
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvttss2si(uint8_t bMode)
 {
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues32[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues32[] =
     {
     /*
      * Zero.
@@ -17658,7 +17649,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvttss2si(uint8_t bMode)
               /*128:out  */ X86_MXCSR_IE,
               /*256:out  */ -1 },
     };
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValues64[] =
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T const s_aValues64[] =
     {
     /*
      * Zero.
@@ -18297,6 +18288,1173 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_cvttpd2pi(uint8_t bMode)
 }
 
 
+/*
+ * CVTSI2SD.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvtsi2sd(uint8_t bMode)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues32[] =
+    {
+    /* 0*/{ { /* src r32 */ { FP64_INT32_C(0,     12345)          } },
+            { /* src xmm */ { FP64_RAND_V0(0),    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_0(0),          FP64_RAND_x3_V2 } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 1*/{ { /* src r32 */ { FP64_INT32_C(123456789,          12345)          } },
+            { /* src xmm */ { FP64_RAND_V1(0),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(-123456789,         12345)          } },
+            { /* src xmm */ { FP64_RAND_V2(0),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*-123456789.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(-47,                12345)          } },
+            { /* src xmm */ { FP64_RAND_V3(0),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0x7800000000000,0x404), FP64_RAND_x3_V2 } },
+                              /*-47.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32(INT32_MAX,            12345)          } },
+            { /* src xmm */ { FP64_RAND_V3(1),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xfffffffc00000,0x41d), FP64_RAND_x3_V2 } },
+                              /*2147483647.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32(-INT32_MAX,           12345)          } },
+            { /* src xmm */ { FP64_RAND_V2(1),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xfffffffc00000,0x41d), FP64_RAND_x3_V2 } },
+                              /*-2147483647.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(123456789,          12345)          } },
+            { /* src xmm */ { FP64_RAND_V1(1),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(123456789,          12345)          } },
+            { /* src xmm */ { FP64_RAND_V0(1),                 FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(-123456789,         12345)          } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*-123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(123456789,          12345)          } },
+            { /* src xmm */ { FP64_QNAN(1),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(-123456789,         12345)          } },
+            { /* src xmm */ { FP64_SNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*-123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(123456789,          12345)          } },
+            { /* src xmm */ { FP64_SNAN(1),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ -1 },
+          { { /* src r32 */ { FP64_INT32_C(-123456789,         12345)          } },
+            { /* src xmm */ { FP64_INF(0),                     FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*-123456789.0*/
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ -1 },
+    };
+
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues64[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /* src r64 */ { FP64_INT_C(0)                    } },
+            { /* src xmm */ { FP64_NORM_V2(1), FP64_RAND_x3_V3 } },
+            { /* =>  xmm */ { FP64_0(0),       FP64_RAND_x3_V3 } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 1*/{ { /* src r64 */ { FP64_INT_C(123456789)                            } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd6f3454000000,0x419), FP64_RAND_x3_V2 } },
+                              /*123456789.0*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(8526495043095935640)/*0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                         FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd950c843fb72f,0x43d),      FP64_RAND_x3_V2 } },
+                                       /*8526495043095936000.0=0x76543210FEDCBC00*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(-8526495043095935640)/*-0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                           FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd950c843fb72f,0x43d),        FP64_RAND_x3_V2 } },
+                                       /*-8526495043095936000.0=-0x76543210FEDCBC00*/
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(-2)                     } },
+            { /* src xmm */ { FP64_QNAN(0),      FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0,0x400), FP64_RAND_x3_V2 } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT(INT64_MAX)                  } },
+            { /* src xmm */ { FP64_QNAN(0),        FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0x0,0x43e), FP64_RAND_x3_V2 } },
+                              /*9223372036854775808.0 = INT64_MAX+1*/
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT(-INT64_MAX)                 } },
+            { /* src xmm */ { FP64_QNAN(0),        FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0x0,0x43e), FP64_RAND_x3_V2 } },
+                              /*-9223372036854775808.0 = -INT64_MAX-1*/
+              /*mxcsr:in */ X86_MXCSR_XCPT_MASK,
+              /*128:out  */ X86_MXCSR_XCPT_MASK | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+
+          { { /* src r64 */ { FP64_INT_C(8526495043095935640)/*0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd950c843fb72f,0x43d),      FP64_RAND_x3_V2 } },
+                                       /*8526495043095936000.0=0x76543210FEDCBC00*/
+              /*mxcsr:in */ X86_MXCSR_FZ | X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_FZ | X86_MXCSR_DAZ | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(8526495043095935640)/*0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd950c843fb72e,0x43d),      FP64_RAND_x3_V2 } },
+                                       /*8526495043095934976.0=0x76543210FEDCB800*/
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(-8526495043095935640)/*-0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd950c843fb72f,0x43d),        FP64_RAND_x3_V2 } },
+                                       /*-8526495043095936000.0=-0x76543210FEDCBC00*/
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(8526495043095935640)/*0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd950c843fb72f,0x43d),      FP64_RAND_x3_V2 } },
+                                       /*8526495043095936000.0=0x76543210FEDCBC00*/
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(-8526495043095935640)/*-0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd950c843fb72e,0x43d),        FP64_RAND_x3_V2 } },
+                                       /*-8526495043095934976.0=-0x76543210FEDCB800*/
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(8526495043095935640)/*0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(0,0xd950c843fb72e,0x43d),      FP64_RAND_x3_V2 } },
+                                       /*8526495043095934976.0=0x76543210FEDCB800*/
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* src r64 */ { FP64_INT_C(-8526495043095935640)/*-0x76543210FEDCBA98*/ } },
+            { /* src xmm */ { FP64_QNAN(0),                    FP64_RAND_x3_V2 } },
+            { /* =>  xmm */ { FP64_V(1,0xd950c843fb72e,0x43d),        FP64_RAND_x3_V2 } },
+                                       /*-8526495043095934976.0=-0x76543210FEDCB800*/
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+    };
+    /*
+     * Infinity, Overflow, Underflow, Denormal, Invalid not possible.
+     */
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
+    {
+        { bs3CpuInstr4_cvtsi2sd_XMM1_EAX_icebp_c16,           255,         RM_REG, T_SSE,     XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsi2sd_XMM1_FSxBX_D_icebp_c16,       255,         RM_MEM, T_SSE,     XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_EAX_icebp_c16,     255,         RM_REG, T_AVX_128, XMM1, XMM2,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_D_icebp_c16, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_RAX_icebp_c16,     BS3_XCPT_UD, RM_REG, T_AVX_128, XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_Q_icebp_c16, BS3_XCPT_UD, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_EAX_icebp_c16,     255,         RM_REG, T_AVX_128, XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_D_icebp_c16, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_RAX_icebp_c16,     BS3_XCPT_UD, RM_REG, T_AVX_128, XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_Q_icebp_c16, BS3_XCPT_UD, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests32[] =
+    {
+        { bs3CpuInstr4_cvtsi2sd_XMM1_EAX_icebp_c32,           255,         RM_REG, T_SSE,     XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsi2sd_XMM1_FSxBX_D_icebp_c32,       255,         RM_MEM, T_SSE,     XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_EAX_icebp_c32,     255,         RM_REG, T_AVX_128, XMM1, XMM2,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_D_icebp_c32, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_RAX_icebp_c32,     BS3_XCPT_UD, RM_REG, T_AVX_128, XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_Q_icebp_c32, BS3_XCPT_UD, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_EAX_icebp_c32,     255,         RM_REG, T_AVX_128, XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_D_icebp_c32, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_RAX_icebp_c32,     BS3_XCPT_UD, RM_REG, T_AVX_128, XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_Q_icebp_c32, BS3_XCPT_UD, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests64[] =
+    {
+        { bs3CpuInstr4_cvtsi2sd_XMM1_EAX_icebp_c64,           255,         RM_REG, T_SSE,     XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsi2sd_XMM1_FSxBX_D_icebp_c64,       255,         RM_MEM, T_SSE,     XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsi2sd_XMM8_R8D_icebp_c64,           255,         RM_REG, T_SSE,     XMM8, XMM8,  R8D,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsi2sd_XMM8_FSxBX_D_icebp_c64,       255,         RM_MEM, T_SSE,     XMM8, XMM8,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_cvtsi2sd_XMM1_RAX_icebp_c64,           255,         RM_REG, T_SSE,     XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_cvtsi2sd_XMM1_FSxBX_Q_icebp_c64,       255,         RM_MEM, T_SSE,     XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+        { bs3CpuInstr4_cvtsi2sd_XMM8_R8_icebp_c64,            255,         RM_REG, T_SSE,     XMM8, XMM8,  R8,    PASS_s_aValues64 },
+        { bs3CpuInstr4_cvtsi2sd_XMM8_FSxBX_Q_icebp_c64,       255,         RM_MEM, T_SSE,     XMM8, XMM8,  FSxBX, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_EAX_icebp_c64,     255,         RM_REG, T_AVX_128, XMM1, XMM2,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_D_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM9_R8D_icebp_c64,     255,         RM_REG, T_AVX_128, XMM8, XMM9,  R8D,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM9_FSxBX_D_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM8, XMM9,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_RAX_icebp_c64,     255,         RM_REG, T_AVX_128, XMM1, XMM2,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM2_FSxBX_Q_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM9_R8_icebp_c64,      255,         RM_REG, T_AVX_128, XMM8, XMM9,  R8,    PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM9_FSxBX_Q_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM8, XMM9,  FSxBX, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_EAX_icebp_c64,     255,         RM_REG, T_AVX_128, XMM1, XMM1,  EAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_D_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM8_R8D_icebp_c64,     255,         RM_REG, T_AVX_128, XMM8, XMM8,  R8D,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM8_FSxBX_D_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM8, XMM8,  FSxBX, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_RAX_icebp_c64,     255,         RM_REG, T_AVX_128, XMM1, XMM1,  RAX,   PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM1_XMM1_FSxBX_Q_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM8_R8_icebp_c64,      255,         RM_REG, T_AVX_128, XMM8, XMM8,  R8,    PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsi2sd_XMM8_XMM8_FSxBX_Q_icebp_c64, X86_XCPT_AC, RM_MEM, T_AVX_128, XMM8, XMM8,  FSxBX, PASS_s_aValues64 },
+    };
+
+    static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
+}
+
+
+/*
+ * CVTSD2SI.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvtsd2si(uint8_t bMode)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues32[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_0(0),       FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_0(1),       FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Infinity.
+     */
+    /* 2*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_INF(1),         FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_INF(0),         FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 4*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240000000000,0x40f)/*123456.0*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240000000000,0x40f)/*-123456.0*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123457, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123457, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123457, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123457, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-1, 0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(1, 0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-1, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(1, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+    /*
+     * Denormals.
+     */
+    /*18*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_DENORM_MAX(0), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_DENORM_MIN(1), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_DAZ,
+              /*256:out  */ -1 },
+    /*
+     * Overflow (Underflow not possible).
+     */
+    /*20*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(1), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(0), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_MAX(0),    FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_MAX(1),    FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Invalids.
+     */
+    /*24*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_QNAN(0),        FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_SNAN(1),        FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    };
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues64[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_0(0) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_0(1) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Infinity.
+     */
+    /* 2*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_INF(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_INF(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 4*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240000000000,0x40f)/*123456.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240000000000,0x40f)/*-123456.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123457) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123457) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123457) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123457) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-1) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(1) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(1) } },
+            { /* =>  r64 */ { FP64_INT_C(-9007199254740991) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_C(9007199254740991) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xf399b00000000,0x43d)/*8999999652602314752.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(8999999652602314752) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xf399b00000000,0x43d)/*-8999999652602314752.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-8999999652602314752) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xf399b00000001,0x43d)/*8999999652602315776.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(8999999652602315776) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xf399b00000001,0x43d)/*-8999999652602315776.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-8999999652602315776) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Denormals.
+     */
+    /*24*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_DENORM_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_DENORM_MIN(1) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_DAZ,
+              /*256:out  */ -1 },
+    /*
+     * Overflow (Underflow not possible).
+     */
+    /*26*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_MAX(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Invalids.
+     */
+    /*28*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_QNAN(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_SNAN(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
+    {
+        { bs3CpuInstr4_cvtsd2si_EAX_XMM1_icebp_c16,   255,         RM_REG, T_SSE,     EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsd2si_EAX_FSxBX_icebp_c16,  255,         RM_MEM, T_SSE,     EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_EAX_XMM1_icebp_c16,  255,         RM_REG, T_AVX_128, EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsd2si_EAX_FSxBX_icebp_c16, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_RAX_XMM1_icebp_c16,  BS3_XCPT_UD, RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsd2si_RAX_FSxBX_icebp_c16, BS3_XCPT_UD, RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests32[] =
+    {
+        { bs3CpuInstr4_cvtsd2si_EAX_XMM1_icebp_c32,   255,         RM_REG, T_SSE,     EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsd2si_EAX_FSxBX_icebp_c32,  255,         RM_MEM, T_SSE,     EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_EAX_XMM1_icebp_c32,  255,         RM_REG, T_AVX_128, EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsd2si_EAX_FSxBX_icebp_c32, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_RAX_XMM1_icebp_c32,  BS3_XCPT_UD, RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsd2si_RAX_FSxBX_icebp_c32, BS3_XCPT_UD, RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests64[] =
+    {
+        { bs3CpuInstr4_cvtsd2si_EAX_XMM1_icebp_c64,   255,         RM_REG, T_SSE,     EAX, XMM1,  RAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsd2si_EAX_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     EAX, FSxBX, RAX,   PASS_s_aValues32 },
+
+        { bs3CpuInstr4_cvtsd2si_R8D_XMM8_icebp_c64,   255,         RM_REG, T_SSE,     R8D, XMM8,  R8,    PASS_s_aValues32 },
+        { bs3CpuInstr4_cvtsd2si_R8D_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     R8D, FSxBX, R8,    PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_EAX_XMM1_icebp_c64,  255,         RM_REG, T_AVX_128, EAX, XMM1,  RAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsd2si_EAX_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, RAX,   PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvtsd2si_R8D_XMM8_icebp_c64,  255,         RM_REG, T_AVX_128, R8D, XMM8,  R8,    PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvtsd2si_R8D_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, R8D, FSxBX, R8,    PASS_s_aValues32 },
+
+        { bs3CpuInstr4_cvtsd2si_RAX_XMM1_icebp_c64,   255,         RM_REG, T_SSE,     RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_cvtsd2si_RAX_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     RAX, FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_cvtsd2si_R8_XMM8_icebp_c64,    255,         RM_REG, T_SSE,     R8,  XMM8,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_cvtsd2si_R8_FSxBX_icebp_c64,   255,         RM_MEM, T_SSE,     R8,  FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsd2si_RAX_XMM1_icebp_c64,  255,         RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsd2si_RAX_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvtsd2si_R8_XMM8_icebp_c64,   255,         RM_REG, T_AVX_128, R8,  XMM8,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvtsd2si_R8_FSxBX_icebp_c64,  255,         RM_MEM, T_AVX_128, R8,  FSxBX, NOREG, PASS_s_aValues64 },
+    };
+
+    static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
+}
+
+
+/*
+ * CVTTSD2SI.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvttsd2si(uint8_t bMode)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues32[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_0(0),       FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_0(1),       FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Infinity.
+     */
+    /* 2*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_INF(1),         FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_INF(0),         FP64_RAND_x3_V1 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 4*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240000000000,0x40f)/*123456.0*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240000000000,0x40f)/*-123456.0*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(-123456, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+    /*
+     * Denormals.
+     */
+    /*18*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_DENORM_MAX(0), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_DENORM_MIN(1), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_C(0, 0) } },
+              /*mxcsr:in */ X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_DAZ,
+              /*256:out  */ -1 },
+    /*
+     * Overflow (Underflow not possible).
+     */
+    /*20*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(1), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(0), FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_MAX(0),    FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_NORM_MAX(1),    FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Invalids.
+     */
+    /*24*/{ { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_QNAN(0),        FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* clr r64 */ { FP64_INT_C(0) } },
+            { /* src xmm */ { FP64_SNAN(1),        FP64_RAND_x3_V2 } },
+            { /* =>  r32 */ { FP64_INT32_INDEFINITE(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    };
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T const s_aValues64[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_0(0) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_0(1) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Infinity.
+     */
+    /* 2*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_INF(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_INF(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Normals & Precision.
+     */
+    /* 4*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240000000000,0x40f)/*123456.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240000000000,0x40f)/*-123456.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xe240e66666666,0x40f)/*123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xe240e66666666,0x40f)/*-123456.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-123456) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO | X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_FZ,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_FZ,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xccccccccccccd,0x3fe)/*-0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xccccccccccccd,0x3fe)/*0.9*/ } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(1) } },
+            { /* =>  r64 */ { FP64_INT_C(-9007199254740991) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_SAFE_INT_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_C(9007199254740991) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xf399b00000000,0x43d)/*8999999652602314752.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(8999999652602314752) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xf399b00000000,0x43d)/*-8999999652602314752.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-8999999652602314752) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(0,0xf399b00000001,0x43d)/*8999999652602315776.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(8999999652602315776) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_V(1,0xf399b00000001,0x43d)/*-8999999652602315776.0*/ } },
+            { /* =>  r64 */ { FP64_INT_C(-8999999652602315776) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ -1 },
+    /*
+     * Denormals.
+     */
+    /*24*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_DENORM_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_PE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_DENORM_MIN(1) } },
+            { /* =>  r64 */ { FP64_INT_C(0) } },
+              /*mxcsr:in */ X86_MXCSR_DAZ,
+              /*128:out  */ X86_MXCSR_DAZ,
+              /*256:out  */ -1 },
+    /*
+     * Overflow (Underflow not possible).
+     */
+    /*26*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_MAX(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_NORM_MAX(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    /*
+     * Invalids.
+     */
+    /*28*/{ { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_QNAN(0) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+          { { /* unused  */ { FP64_ROW_UNUSED } },
+            { /* src xmm */ { FP64_SNAN(1) } },
+            { /* =>  r64 */ { FP64_INT_INDEFINITE } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ X86_MXCSR_IE,
+              /*256:out  */ -1 },
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests16[] =
+    {
+        { bs3CpuInstr4_cvttsd2si_EAX_XMM1_icebp_c16,   255,         RM_REG, T_SSE,     EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_cvttsd2si_EAX_FSxBX_icebp_c16,  255,         RM_MEM, T_SSE,     EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_EAX_XMM1_icebp_c16,  255,         RM_REG, T_AVX_128, EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvttsd2si_EAX_FSxBX_icebp_c16, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_RAX_XMM1_icebp_c16,  BS3_XCPT_UD, RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvttsd2si_RAX_FSxBX_icebp_c16, BS3_XCPT_UD, RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests32[] =
+    {
+        { bs3CpuInstr4_cvttsd2si_EAX_XMM1_icebp_c32,   255,         RM_REG, T_SSE,     EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_cvttsd2si_EAX_FSxBX_icebp_c32,  255,         RM_MEM, T_SSE,     EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_EAX_XMM1_icebp_c32,  255,         RM_REG, T_AVX_128, EAX, XMM1,  NOREG, PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvttsd2si_EAX_FSxBX_icebp_c32, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, NOREG, PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_RAX_XMM1_icebp_c32,  BS3_XCPT_UD, RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvttsd2si_RAX_FSxBX_icebp_c32, BS3_XCPT_UD, RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+    };
+    static BS3CPUINSTR4_TEST1_T const s_aTests64[] =
+    {
+        { bs3CpuInstr4_cvttsd2si_EAX_XMM1_icebp_c64,   255,         RM_REG, T_SSE,     EAX, XMM1,  RAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_cvttsd2si_EAX_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     EAX, FSxBX, RAX,   PASS_s_aValues32 },
+
+        { bs3CpuInstr4_cvttsd2si_R8D_XMM8_icebp_c64,   255,         RM_REG, T_SSE,     R8D, XMM8,  R8,    PASS_s_aValues32 },
+        { bs3CpuInstr4_cvttsd2si_R8D_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     R8D, FSxBX, R8,    PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_EAX_XMM1_icebp_c64,  255,         RM_REG, T_AVX_128, EAX, XMM1,  RAX,   PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvttsd2si_EAX_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, EAX, FSxBX, RAX,   PASS_s_aValues32 },
+
+        { bs3CpuInstr4_vcvttsd2si_R8D_XMM8_icebp_c64,  255,         RM_REG, T_AVX_128, R8D, XMM8,  R8,    PASS_s_aValues32 },
+        { bs3CpuInstr4_vcvttsd2si_R8D_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, R8D, FSxBX, R8,    PASS_s_aValues32 },
+
+        { bs3CpuInstr4_cvttsd2si_RAX_XMM1_icebp_c64,   255,         RM_REG, T_SSE,     RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_cvttsd2si_RAX_FSxBX_icebp_c64,  255,         RM_MEM, T_SSE,     RAX, FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_cvttsd2si_R8_XMM8_icebp_c64,    255,         RM_REG, T_SSE,     R8,  XMM8,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_cvttsd2si_R8_FSxBX_icebp_c64,   255,         RM_MEM, T_SSE,     R8,  FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvttsd2si_RAX_XMM1_icebp_c64,  255,         RM_REG, T_AVX_128, RAX, XMM1,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvttsd2si_RAX_FSxBX_icebp_c64, 255,         RM_MEM, T_AVX_128, RAX, FSxBX, NOREG, PASS_s_aValues64 },
+
+        { bs3CpuInstr4_vcvttsd2si_R8_XMM8_icebp_c64,   255,         RM_REG, T_AVX_128, R8,  XMM8,  NOREG, PASS_s_aValues64 },
+        { bs3CpuInstr4_vcvttsd2si_R8_FSxBX_icebp_c64,  255,         RM_MEM, T_AVX_128, R8,  FSxBX, NOREG, PASS_s_aValues64 },
+    };
+
+    static BS3CPUINSTR4_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR4_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR4_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr4_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig3, RT_ELEMENTS(g_aXcptConfig3));
+}
+
+
 /**
  * The 32-bit protected mode main function.
  *
@@ -18316,53 +19474,56 @@ BS3_DECL(void) Main_pe32()
 # define ALL_TESTS
 #endif
 #if defined(ALL_TESTS)
-        { "[v]addps",       bs3CpuInstr4_v_addps,    0 },
-        { "[v]addpd",       bs3CpuInstr4_v_addpd,    0 },
-        { "[v]addss",       bs3CpuInstr4_v_addss,    0 },
-        { "[v]addsd",       bs3CpuInstr4_v_addsd,    0 },
-        { "[v]haddps",      bs3CpuInstr4_v_haddps,   0 },
-        { "[v]haddpd",      bs3CpuInstr4_v_haddpd,   0 },
-        { "[v]subps",       bs3CpuInstr4_v_subps,    0 },
-        { "[v]subpd",       bs3CpuInstr4_v_subpd,    0 },
-        { "[v]subss",       bs3CpuInstr4_v_subss,    0 },
-        { "[v]subsd",       bs3CpuInstr4_v_subsd,    0 },
-        { "[v]hsubps",      bs3CpuInstr4_v_hsubps,   0 },
-        { "[v]hsubpd",      bs3CpuInstr4_v_hsubpd,   0 },
-        { "[v]mulps",       bs3CpuInstr4_v_mulps,    0 },
-        { "[v]mulpd",       bs3CpuInstr4_v_mulpd,    0 },
-        { "[v]mulss",       bs3CpuInstr4_v_mulss,    0 },
-        { "[v]mulsd",       bs3CpuInstr4_v_mulsd,    0 },
-        { "[v]divps",       bs3CpuInstr4_v_divps,    0 },
-        { "[v]divpd",       bs3CpuInstr4_v_divpd,    0 },
-        { "[v]divss",       bs3CpuInstr4_v_divss,    0 },
-        { "[v]divsd",       bs3CpuInstr4_v_divsd,    0 },
-        { "[v]addsubps",    bs3CpuInstr4_v_addsubps, 0 },
-        { "[v]addsubpd",    bs3CpuInstr4_v_addsubpd, 0 },
-        { "[v]maxps",       bs3CpuInstr4_v_maxps,    0 },
-        { "[v]maxpd",       bs3CpuInstr4_v_maxpd,    0 },
-        { "[v]maxss",       bs3CpuInstr4_v_maxss,    0 },
-        { "[v]maxsd",       bs3CpuInstr4_v_maxsd,    0 },
-        { "[v]minps",       bs3CpuInstr4_v_minps,    0 },
-        { "[v]minpd",       bs3CpuInstr4_v_minpd,    0 },
-        { "[v]minss",       bs3CpuInstr4_v_minss,    0 },
-        { "[v]minsd",       bs3CpuInstr4_v_minsd,    0 },
-        { "[v]rcpps",       bs3CpuInstr4_v_rcpps,    0 },
-        { "[v]rcpss",       bs3CpuInstr4_v_rcpss,    0 },
-        { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,   0 },
-        { "[v]sqrtpd",      bs3CpuInstr4_v_sqrtpd,   0 },
-        { "[v]sqrtss",      bs3CpuInstr4_v_sqrtss,   0 },
-        { "[v]sqrtsd",      bs3CpuInstr4_v_sqrtsd,   0 },
-        { "[v]rsqrtps",     bs3CpuInstr4_v_rsqrtps,  0 },
-        { "[v]rsqrtss",     bs3CpuInstr4_v_rsqrtss,  0 },
-        { "cvtpi2ps",       bs3CpuInstr4_cvtpi2ps,   0 },
-        { "cvtps2pi",       bs3CpuInstr4_cvtps2pi,   0 },
-        { "cvttps2pi",      bs3CpuInstr4_cvttps2pi,  0 },
-        { "cvtsi2ss",       bs3CpuInstr4_cvtsi2ss,   0 },
-        { "cvtss2si",       bs3CpuInstr4_cvtss2si,   0 },
-        { "cvttss2si",      bs3CpuInstr4_cvttss2si,  0 },
-        { "cvtpi2pd",       bs3CpuInstr4_cvtpi2pd,   0 },
-        { "cvtpd2pi",       bs3CpuInstr4_cvtpd2pi,   0 },
-        { "cvttpd2pi",      bs3CpuInstr4_cvttpd2pi,  0 },
+        { "[v]addps",       bs3CpuInstr4_v_addps,     0 },
+        { "[v]addpd",       bs3CpuInstr4_v_addpd,     0 },
+        { "[v]addss",       bs3CpuInstr4_v_addss,     0 },
+        { "[v]addsd",       bs3CpuInstr4_v_addsd,     0 },
+        { "[v]haddps",      bs3CpuInstr4_v_haddps,    0 },
+        { "[v]haddpd",      bs3CpuInstr4_v_haddpd,    0 },
+        { "[v]subps",       bs3CpuInstr4_v_subps,     0 },
+        { "[v]subpd",       bs3CpuInstr4_v_subpd,     0 },
+        { "[v]subss",       bs3CpuInstr4_v_subss,     0 },
+        { "[v]subsd",       bs3CpuInstr4_v_subsd,     0 },
+        { "[v]hsubps",      bs3CpuInstr4_v_hsubps,    0 },
+        { "[v]hsubpd",      bs3CpuInstr4_v_hsubpd,    0 },
+        { "[v]mulps",       bs3CpuInstr4_v_mulps,     0 },
+        { "[v]mulpd",       bs3CpuInstr4_v_mulpd,     0 },
+        { "[v]mulss",       bs3CpuInstr4_v_mulss,     0 },
+        { "[v]mulsd",       bs3CpuInstr4_v_mulsd,     0 },
+        { "[v]divps",       bs3CpuInstr4_v_divps,     0 },
+        { "[v]divpd",       bs3CpuInstr4_v_divpd,     0 },
+        { "[v]divss",       bs3CpuInstr4_v_divss,     0 },
+        { "[v]divsd",       bs3CpuInstr4_v_divsd,     0 },
+        { "[v]addsubps",    bs3CpuInstr4_v_addsubps,  0 },
+        { "[v]addsubpd",    bs3CpuInstr4_v_addsubpd,  0 },
+        { "[v]maxps",       bs3CpuInstr4_v_maxps,     0 },
+        { "[v]maxpd",       bs3CpuInstr4_v_maxpd,     0 },
+        { "[v]maxss",       bs3CpuInstr4_v_maxss,     0 },
+        { "[v]maxsd",       bs3CpuInstr4_v_maxsd,     0 },
+        { "[v]minps",       bs3CpuInstr4_v_minps,     0 },
+        { "[v]minpd",       bs3CpuInstr4_v_minpd,     0 },
+        { "[v]minss",       bs3CpuInstr4_v_minss,     0 },
+        { "[v]minsd",       bs3CpuInstr4_v_minsd,     0 },
+        { "[v]rcpps",       bs3CpuInstr4_v_rcpps,     0 },
+        { "[v]rcpss",       bs3CpuInstr4_v_rcpss,     0 },
+        { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,    0 },
+        { "[v]sqrtpd",      bs3CpuInstr4_v_sqrtpd,    0 },
+        { "[v]sqrtss",      bs3CpuInstr4_v_sqrtss,    0 },
+        { "[v]sqrtsd",      bs3CpuInstr4_v_sqrtsd,    0 },
+        { "[v]rsqrtps",     bs3CpuInstr4_v_rsqrtps,   0 },
+        { "[v]rsqrtss",     bs3CpuInstr4_v_rsqrtss,   0 },
+        { "cvtpi2ps",       bs3CpuInstr4_cvtpi2ps,    0 },
+        { "cvtps2pi",       bs3CpuInstr4_cvtps2pi,    0 },
+        { "cvttps2pi",      bs3CpuInstr4_cvttps2pi,   0 },
+        { "[v]cvtsi2ss",    bs3CpuInstr4_v_cvtsi2ss,  0 },
+        { "[v]cvtss2si",    bs3CpuInstr4_v_cvtss2si,  0 },
+        { "[v]cvttss2si",   bs3CpuInstr4_v_cvttss2si, 0 },
+        { "cvtpi2pd",       bs3CpuInstr4_cvtpi2pd,    0 },
+        { "cvtpd2pi",       bs3CpuInstr4_cvtpd2pi,    0 },
+        { "cvttpd2pi",      bs3CpuInstr4_cvttpd2pi,   0 },
+        { "[v]cvtsi2sd",    bs3CpuInstr4_v_cvtsi2sd,  0 },
+        { "[v]cvtsd2si",    bs3CpuInstr4_v_cvtsd2si,  0 },
+        { "[v]cvttsd2si",   bs3CpuInstr4_v_cvttsd2si, 0 },
 #endif
     };
     Bs3TestInit("bs3-cpu-instr-4");
@@ -18461,4 +19622,3 @@ BS3_DECL(void) Main_pe32()
 
     Bs3TestTerm();
 }
-

@@ -1027,22 +1027,22 @@ EMIT_INSTR_PLUS_ICEBP_C64   cvtsi2sd,  XMM8, FSxBX_Q
 ; AVX-128, fp64 <- int32 (single)
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, EAX
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, FSxBX_D
-EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, EAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, R8D
 EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, FSxBX_D
 ; AVX-128, fp64 <- int64 (single)
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, RAX
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM2, FSxBX_Q
-EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, R8
 EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM9, FSxBX_Q
 ; AVX-128, fp64 <- int32, same-reg (single)
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, EAX
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, FSxBX_D
-EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, EAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, R8D
 EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, FSxBX_D
 ; AVX-128, fp64 <- int64, same-reg (single)
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, RAX
 EMIT_INSTR_PLUS_ICEBP       vcvtsi2sd, XMM1, XMM1, FSxBX_Q
-EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, RAX
+EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, R8
 EMIT_INSTR_PLUS_ICEBP_C64   vcvtsi2sd, XMM8, XMM8, FSxBX_Q
 ; @todo test with VEX.W=1 in 16/32-bit modes; SDM says behaves as if W=0
 ; @todo test with VEX.L=1 (as if asking for YMM)?  SDM says 'unpredictable behavior'...

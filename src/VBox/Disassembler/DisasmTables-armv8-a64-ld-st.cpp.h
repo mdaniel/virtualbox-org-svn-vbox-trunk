@@ -1397,6 +1397,117 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStAdvSimdMultStructs, 0xbffff000 /*fFix
                         /* L      */   | RT_BIT_32(22), 12);
 
 
+/* C4.1.94.3 - Loads and Stores - Advanced SIMD load/store multiple structures (post-indexed), register variant. */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER(LdStAdvSimdMultStructsPostIndexGpr)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecRegElemSize, 10,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecQ,           30,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecReg,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecGrp,          0,  4, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,         16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,  0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStAdvSimdMultStructsPostIndexGpr3)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecRegElemSize, 10,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecQ,           30,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecReg,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecGrp,          0,  3, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,         16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,  0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStAdvSimdMultStructsPostIndexGpr2)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecRegElemSize, 10,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecQ,           30,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecReg,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecGrp,          0,  2, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,         16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,  0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_DECODER_ALTERNATIVE(LdStAdvSimdMultStructsPostIndexGpr1)
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecRegElemSize, 10,  2, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecQ,           30,  1, DIS_ARMV8_INSN_PARAM_UNSET),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecReg,          0,  5, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseVecGrp,          0,  1, 0 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseAddrGprSp,       5,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseGprOff,         16,  5, 1 /*idxParam*/),
+    DIS_ARMV8_INSN_DECODE(kDisParmParseSetPostIndexed,  0,  0, 1 /*idxParam*/),
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_BEGIN(LdStAdvSimdMultStructsPostIndexGpr)
+    DIS_ARMV8_OP(           0x0c800000, "st4",             OP_ARMV8_A64_ST4,     DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x0c802000, "st1",             OP_ARMV8_A64_ST1,     DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0c804000, "st3",             OP_ARMV8_A64_ST3,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr3),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0c806000, "st1",             OP_ARMV8_A64_ST1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr3),
+    DIS_ARMV8_OP_ALT_DECODE(0x0c807000, "st1",             OP_ARMV8_A64_ST1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr1),
+    DIS_ARMV8_OP_ALT_DECODE(0x0c808000, "st2",             OP_ARMV8_A64_ST2,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr2),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0c80a000, "st1",             OP_ARMV8_A64_ST1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr2),
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x0cc00000, "ld4",             OP_ARMV8_A64_LD4,     DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP(           0x0cc02000, "ld1",             OP_ARMV8_A64_LD1,     DISOPTYPE_HARMLESS),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0cc04000, "ld3",             OP_ARMV8_A64_LD3,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr3),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0cc06000, "ld1",             OP_ARMV8_A64_LD1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr3),
+    DIS_ARMV8_OP_ALT_DECODE(0x0cc07000, "ld1",             OP_ARMV8_A64_LD1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr1),
+    DIS_ARMV8_OP_ALT_DECODE(0x0cc08000, "ld2",             OP_ARMV8_A64_LD2,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr2),
+    INVALID_OPCODE,
+    DIS_ARMV8_OP_ALT_DECODE(0x0cc0a000, "ld1",             OP_ARMV8_A64_LD1,     DISOPTYPE_HARMLESS, LdStAdvSimdMultStructsPostIndexGpr2),
+    /* Rest is invalid */
+DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStAdvSimdMultStructsPostIndexGpr, 0xbfe0f000 /*fFixedInsn*/,
+                                       kDisArmV8OpcDecodeCollate,
+                        /* opcode */     RT_BIT_32(12) | RT_BIT_32(13) | RT_BIT_32(14) | RT_BIT_32(15)
+                        /* L      */   | RT_BIT_32(22), 12);
+
+
+/**
+ * C4.1.94.3 - Loads and Stores - Advanced SIMD load/store multiple structures (post-indexed).
+ *
+ * Differentiate between the register and immediate offset variant (based on Rm).
+ */
+DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStAdvSimdMultStructsPostIndex)
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndexGpr),
+    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /* Rm == 11111 (xzr) will be treated as immediate offset encoding. */
+DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStAdvSimdMultStructsPostIndex,
+                                RT_BIT_32(16) | RT_BIT_32(17) | RT_BIT_32(18) | RT_BIT_32(19) | RT_BIT_32(20),
+                                16);
+
+
 /**
  * C4.1.94 - Loads and Stores
  *
@@ -1404,7 +1515,7 @@ DIS_ARMV8_DECODE_INSN_CLASS_DEFINE_END(LdStAdvSimdMultStructs, 0xbffff000 /*fFix
  */
 DIS_ARMV8_DECODE_MAP_DEFINE_BEGIN(LdStAdvSimd)
     DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructs),
-    DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo Advanced SIMD load/store multiple structures (post-indexed) */
+    DIS_ARMV8_DECODE_MAP_ENTRY(LdStAdvSimdMultStructsPostIndex),
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo Advanced SIMD load/store single structure */
     DIS_ARMV8_DECODE_MAP_INVALID_ENTRY, /** @todo Advanced SIMD load/store single structure (post-indexed) */
 DIS_ARMV8_DECODE_MAP_DEFINE_END(LdStAdvSimd, RT_BIT_32(23) | RT_BIT_32(24), 23);

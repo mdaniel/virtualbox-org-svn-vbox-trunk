@@ -4149,6 +4149,265 @@ _TestProcA64:
         ld1 { v0.2D,  v1.2D }, [x0]
         ld1 { v31.2D, v0.2D }, [sp]
 
+
+        ;
+        ; Advanced SIMD load/store multiple structures, post-indexed register
+        ;
+
+        st4 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0], x1
+        st4 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp], x30
+        st4 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0], x1
+        st4 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp], x30
+
+        st4 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0], x1
+        st4 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp], x30
+        st4 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0], x1
+        st4 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp], x30
+
+        st4 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0], x1
+        st4 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp], x30
+        st4 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0], x1
+        st4 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp], x30
+
+        st4 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0], x1
+        st4 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp], x30
+
+        st1 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0], x1
+        st1 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp], x30
+        st1 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0], x1
+        st1 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp], x30
+
+        st1 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0], x1
+        st1 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp], x30
+        st1 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0], x1
+        st1 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp], x30
+
+        st1 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0], x1
+        st1 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp], x30
+        st1 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0], x1
+        st1 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp], x30
+
+        st1 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0], x1
+        st1 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp], x30
+
+        st3 { v0.8B,  v1.8B, v2.8B }, [x0], x1
+        st3 { v31.8B, v0.8B, v1.8B }, [sp], x30
+        st3 { v0.16B,  v1.16B, v2.16B }, [x0], x1
+        st3 { v31.16B, v0.16B, v1.16B }, [sp], x30
+
+        st3 { v0.4H,  v1.4H, v2.4H }, [x0], x1
+        st3 { v31.4H, v0.4H, v1.4H }, [sp], x30
+        st3 { v0.8H,  v1.8H, v2.8H }, [x0], x1
+        st3 { v31.8H, v0.8H, v1.8H }, [sp], x30
+
+        st3 { v0.2S,  v1.2S, v2.2S }, [x0], x1
+        st3 { v31.2S, v0.2S, v1.2S }, [sp], x30
+        st3 { v0.4S,  v1.4S, v2.4S }, [x0], x1
+        st3 { v31.4S, v0.4S, v1.4S }, [sp], x30
+
+        st3 { v0.2D,  v1.2D, v2.2D }, [x0], x1
+        st3 { v31.2D, v0.2D, v1.2D }, [sp], x30
+
+        st1 { v0.8B,  v1.8B, v2.8B }, [x0], x1
+        st1 { v31.8B, v0.8B, v1.8B }, [sp], x30
+        st1 { v0.16B,  v1.16B, v2.16B }, [x0], x1
+        st1 { v31.16B, v0.16B, v1.16B }, [sp], x30
+
+        st1 { v0.4H,  v1.4H, v2.4H }, [x0], x1
+        st1 { v31.4H, v0.4H, v1.4H }, [sp], x30
+        st1 { v0.8H,  v1.8H, v2.8H }, [x0], x1
+        st1 { v31.8H, v0.8H, v1.8H }, [sp], x30
+
+        st1 { v0.2S,  v1.2S, v2.2S }, [x0], x1
+        st1 { v31.2S, v0.2S, v1.2S }, [sp], x30
+        st1 { v0.4S,  v1.4S, v2.4S }, [x0], x1
+        st1 { v31.4S, v0.4S, v1.4S }, [sp], x30
+
+        st1 { v0.2D,  v1.2D, v2.2D }, [x0], x1
+        st1 { v31.2D, v0.2D, v1.2D }, [sp], x30
+
+        st1 { v0.8B }, [x0], x1
+        st1 { v31.8B }, [sp], x30
+        st1 { v0.16B }, [x0], x1
+        st1 { v31.16B }, [sp], x30
+
+        st1 { v0.4H }, [x0], x1
+        st1 { v31.4H }, [sp], x30
+        st1 { v0.8H }, [x0], x1
+        st1 { v31.8H }, [sp], x30
+
+        st1 { v0.2S }, [x0], x1
+        st1 { v31.2S }, [sp], x30
+        st1 { v0.4S }, [x0], x1
+        st1 { v31.4S }, [sp], x30
+
+        st1 { v0.2D }, [x0], x1
+        st1 { v31.2D }, [sp], x30
+
+        st2 { v0.8B,  v1.8B }, [x0], x1
+        st2 { v31.8B, v0.8B }, [sp], x30
+        st2 { v0.16B,  v1.16B }, [x0], x1
+        st2 { v31.16B, v0.16B }, [sp], x30
+
+        st2 { v0.4H,  v1.4H }, [x0], x1
+        st2 { v31.4H, v0.4H }, [sp], x30
+        st2 { v0.8H,  v1.8H }, [x0], x1
+        st2 { v31.8H, v0.8H }, [sp], x30
+
+        st2 { v0.2S,  v1.2S }, [x0], x1
+        st2 { v31.2S, v0.2S }, [sp], x30
+        st2 { v0.4S,  v1.4S }, [x0], x1
+        st2 { v31.4S, v0.4S }, [sp], x30
+
+        st2 { v0.2D,  v1.2D }, [x0], x1
+        st2 { v31.2D, v0.2D }, [sp], x30
+
+        st1 { v0.8B,  v1.8B }, [x0], x1
+        st1 { v31.8B, v0.8B }, [sp], x30
+        st1 { v0.16B,  v1.16B }, [x0], x1
+        st1 { v31.16B, v0.16B }, [sp], x30
+
+        st1 { v0.4H,  v1.4H }, [x0], x1
+        st1 { v31.4H, v0.4H }, [sp], x30
+        st1 { v0.8H,  v1.8H }, [x0], x1
+        st1 { v31.8H, v0.8H }, [sp], x30
+
+        st1 { v0.2S,  v1.2S }, [x0], x1
+        st1 { v31.2S, v0.2S }, [sp], x30
+        st1 { v0.4S,  v1.4S }, [x0], x1
+        st1 { v31.4S, v0.4S }, [sp], x30
+
+        st1 { v0.2D,  v1.2D }, [x0], x1
+        st1 { v31.2D, v0.2D }, [sp], x30
+
+
+        ld4 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0], x1
+        ld4 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp], x30
+        ld4 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0], x1
+        ld4 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp], x30
+
+        ld4 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0], x1
+        ld4 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp], x30
+        ld4 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0], x1
+        ld4 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp], x30
+
+        ld4 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0], x1
+        ld4 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp], x30
+        ld4 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0], x1
+        ld4 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp], x30
+
+        ld4 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0], x1
+        ld4 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp], x30
+
+        ld1 { v0.8B,  v1.8B, v2.8B, v3.8B }, [x0], x1
+        ld1 { v31.8B, v0.8B, v1.8B, v2.8B }, [sp], x30
+        ld1 { v0.16B,  v1.16B, v2.16B, v3.16B }, [x0], x1
+        ld1 { v31.16B, v0.16B, v1.16B, v2.16B }, [sp], x30
+
+        ld1 { v0.4H,  v1.4H, v2.4H, v3.4H }, [x0], x1
+        ld1 { v31.4H, v0.4H, v1.4H, v2.4H }, [sp], x30
+        ld1 { v0.8H,  v1.8H, v2.8H, v3.8H }, [x0], x1
+        ld1 { v31.8H, v0.8H, v1.8H, v2.8H }, [sp], x30
+
+        ld1 { v0.2S,  v1.2S, v2.2S, v3.2S }, [x0], x1
+        ld1 { v31.2S, v0.2S, v1.2S, v2.2S }, [sp], x30
+        ld1 { v0.4S,  v1.4S, v2.4S, v3.4S }, [x0], x1
+        ld1 { v31.4S, v0.4S, v1.4S, v2.4S }, [sp], x30
+
+        ld1 { v0.2D,  v1.2D, v2.2D, v3.2D }, [x0], x1
+        ld1 { v31.2D, v0.2D, v1.2D, v2.2D }, [sp], x30
+
+        ld3 { v0.8B,  v1.8B, v2.8B }, [x0], x1
+        ld3 { v31.8B, v0.8B, v1.8B }, [sp], x30
+        ld3 { v0.16B,  v1.16B, v2.16B }, [x0], x1
+        ld3 { v31.16B, v0.16B, v1.16B }, [sp], x30
+
+        ld3 { v0.4H,  v1.4H, v2.4H }, [x0], x1
+        ld3 { v31.4H, v0.4H, v1.4H }, [sp], x30
+        ld3 { v0.8H,  v1.8H, v2.8H }, [x0], x1
+        ld3 { v31.8H, v0.8H, v1.8H }, [sp], x30
+
+        ld3 { v0.2S,  v1.2S, v2.2S }, [x0], x1
+        ld3 { v31.2S, v0.2S, v1.2S }, [sp], x30
+        ld3 { v0.4S,  v1.4S, v2.4S }, [x0], x1
+        ld3 { v31.4S, v0.4S, v1.4S }, [sp], x30
+
+        ld3 { v0.2D,  v1.2D, v2.2D }, [x0], x1
+        ld3 { v31.2D, v0.2D, v1.2D }, [sp], x30
+
+        ld1 { v0.8B,  v1.8B, v2.8B }, [x0], x1
+        ld1 { v31.8B, v0.8B, v1.8B }, [sp], x30
+        ld1 { v0.16B,  v1.16B, v2.16B }, [x0], x1
+        ld1 { v31.16B, v0.16B, v1.16B }, [sp], x30
+
+        ld1 { v0.4H,  v1.4H, v2.4H }, [x0], x1
+        ld1 { v31.4H, v0.4H, v1.4H }, [sp], x30
+        ld1 { v0.8H,  v1.8H, v2.8H }, [x0], x1
+        ld1 { v31.8H, v0.8H, v1.8H }, [sp], x30
+
+        ld1 { v0.2S,  v1.2S, v2.2S }, [x0], x1
+        ld1 { v31.2S, v0.2S, v1.2S }, [sp], x30
+        ld1 { v0.4S,  v1.4S, v2.4S }, [x0], x1
+        ld1 { v31.4S, v0.4S, v1.4S }, [sp], x30
+
+        ld1 { v0.2D,  v1.2D, v2.2D }, [x0], x1
+        ld1 { v31.2D, v0.2D, v1.2D }, [sp], x30
+
+        ld1 { v0.8B }, [x0], x1
+        ld1 { v31.8B }, [sp], x30
+        ld1 { v0.16B }, [x0], x1
+        ld1 { v31.16B }, [sp], x30
+
+        ld1 { v0.4H }, [x0], x1
+        ld1 { v31.4H }, [sp], x30
+        ld1 { v0.8H }, [x0], x1
+        ld1 { v31.8H }, [sp], x30
+
+        ld1 { v0.2S }, [x0], x1
+        ld1 { v31.2S }, [sp], x30
+        ld1 { v0.4S }, [x0], x1
+        ld1 { v31.4S }, [sp], x30
+
+        ld1 { v0.2D }, [x0], x1
+        ld1 { v31.2D }, [sp], x30
+
+        ld2 { v0.8B,  v1.8B }, [x0], x1
+        ld2 { v31.8B, v0.8B }, [sp], x30
+        ld2 { v0.16B,  v1.16B }, [x0], x1
+        ld2 { v31.16B, v0.16B }, [sp], x30
+
+        ld2 { v0.4H,  v1.4H }, [x0], x1
+        ld2 { v31.4H, v0.4H }, [sp], x30
+        ld2 { v0.8H,  v1.8H }, [x0], x1
+        ld2 { v31.8H, v0.8H }, [sp], x30
+
+        ld2 { v0.2S,  v1.2S }, [x0], x1
+        ld2 { v31.2S, v0.2S }, [sp], x30
+        ld2 { v0.4S,  v1.4S }, [x0], x1
+        ld2 { v31.4S, v0.4S }, [sp], x30
+
+        ld2 { v0.2D,  v1.2D }, [x0], x1
+        ld2 { v31.2D, v0.2D }, [sp], x30
+
+        ld1 { v0.8B,  v1.8B }, [x0], x1
+        ld1 { v31.8B, v0.8B }, [sp], x30
+        ld1 { v0.16B,  v1.16B }, [x0], x1
+        ld1 { v31.16B, v0.16B }, [sp], x30
+
+        ld1 { v0.4H,  v1.4H }, [x0], x1
+        ld1 { v31.4H, v0.4H }, [sp], x30
+        ld1 { v0.8H,  v1.8H }, [x0], x1
+        ld1 { v31.8H, v0.8H }, [sp], x30
+
+        ld1 { v0.2S,  v1.2S }, [x0], x1
+        ld1 { v31.2S, v0.2S }, [sp], x30
+        ld1 { v0.4S,  v1.4S }, [x0], x1
+        ld1 { v31.4S, v0.4S }, [sp], x30
+
+        ld1 { v0.2D,  v1.2D }, [x0], x1
+        ld1 { v31.2D, v0.2D }, [sp], x30
+
+
         ;
         ; RCW compare and swap
         ;

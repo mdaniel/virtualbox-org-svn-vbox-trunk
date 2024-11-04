@@ -904,6 +904,40 @@ class VBoxInstallerTestDriver(TestDriverBase):
     ## VBox windows services we can query the status of.
     kasWindowsServices = [ 'vboxsup', 'vboxusbmon', 'vboxnetadp', 'vboxnetflt', 'vboxnetlwf' ];
 
+    ## Windows SetupAPI log files we handle.
+    kasSetupApiLogFiles = [
+        ( '%WINDIR%/setupapi.log', 'log/host-setupapi.log', 'SetupAPI (setupapi.log)', ),
+        ( '%WINDIR%/setupact.log', 'log/host-setupact.log', 'SetupAPI (setupact.log)', ),
+        ( '%WINDIR%/setuperr.log', 'log/host-setuperr.log', 'SetupAPI (setuperr.log)', ),
+    ];
+
+    def _winPurgeSetupApiLogs(self):
+        """
+        Tries deleting the Setup API host logs.
+        """
+        for sFile, _ in self.kasSetupApiLogFiles:
+            sFile = os.path.expandvars(sFile);
+            try:
+                os.remove(sFile);
+            except:
+                pass;
+
+    def _winAddSetupApiLogs(self, sDescPrefix = None):
+        """
+        Adds all defined (and existing) SetupAPI host logs to the report.
+
+        The sDescPrefix is an optional prefix for the file naming.
+        """
+        if sDescPrefix:
+            sDescPrefix = sDescPrefix + ": ";
+        else:
+            sDescPrefix = '';
+
+        for sFile, sKind, sDesc in self.kasSetupApiLogFiles:
+            sFile = os.path.expandvars(sFile);
+            if os.path.isfile(sFile):
+                reporter.addLogFile(sFile, sKind, sDescPrefix + sDesc);
+
     def _installVBoxOnWindows(self):
         """ Installs VBox on Windows."""
         sExe = self._findFile('^VirtualBox-.*-(MultiArch|Win).exe$');
@@ -951,6 +985,9 @@ class VBoxInstallerTestDriver(TestDriverBase):
             else:
                 return False;
 
+        # Try removing old setupapi logs to get a fresh start before installing our stuff.
+        self._winPurgeSetupApiLogs();
+
         # We need the help text to detect supported options below.
         reporter.log('Executing: %s' % ([sExe, '--silent', '--help'], ));
         reporter.flushall();
@@ -986,6 +1023,10 @@ class VBoxInstallerTestDriver(TestDriverBase):
         if os.path.isfile(sLogFile):
             reporter.addLogFile(sLogFile, 'log/installer', "Verbose MSI installation log file");
         self._waitForTestManagerConnectivity(30);
+
+        # Add setupapi logs if something failed, to give some more clues about driver installation.
+        if fRc is False:
+            self._winAddSetupApiLogs('Installation');
 
         return fRc;
 
@@ -1103,6 +1144,9 @@ class VBoxInstallerTestDriver(TestDriverBase):
                     break;
                 time.sleep(2); # fudge.
 
+        # Try removing old setupapi logs to get a fresh start before uninstalling our stuff.
+        self._winPurgeSetupApiLogs();
+
         # Do the uninstalling.
         fRc = True;
         sLogFile = os.path.join(self.sScratchPath, 'VBoxUninstallLog.txt');
@@ -1122,6 +1166,7 @@ class VBoxInstallerTestDriver(TestDriverBase):
         # Upload the log on failure.  Do it early if the extra cleanups below causes trouble.
         if fRc is False and os.path.isfile(sLogFile):
             reporter.addLogFile(sLogFile, 'log/uninstaller', "Verbose MSI uninstallation log file");
+            self._winAddSetupApiLogs('Uninstallation');
             sLogFile = None;
 
         # Log driver service states (should ls \Driver\VBox* and \Device\VBox*).

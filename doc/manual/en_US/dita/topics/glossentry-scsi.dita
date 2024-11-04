@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary//EN" "glossary.dtd">
-<glossentry xml:lang="en-us" id="glossentry-scsi">
-  <glossterm>SCSI</glossterm>
-  <glossdef>
-    Small Computer System Interface. An industry standard for data
-    transfer between devices, especially for storage. See <xref href="harddiskcontrollers.dita"/>.
-  </glossdef>
-</glossentry>

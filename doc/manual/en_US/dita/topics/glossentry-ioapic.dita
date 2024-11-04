@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary//EN" "glossary.dtd">
-<glossentry xml:lang="en-us" id="glossentry-ioapic">
-  <glossterm>IOAPIC</glossterm>
-  <glossdef>
-    See <xref href="glossentry-apic.dita">APIC</xref>.
-  </glossdef>
-</glossentry>

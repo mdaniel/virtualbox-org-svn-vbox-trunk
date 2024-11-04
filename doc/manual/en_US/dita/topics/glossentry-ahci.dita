@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary//EN" "glossary.dtd">
-<glossentry xml:lang="en-us" id="glossentry-ahci">
-  <glossterm>AHCI</glossterm>
-  <glossdef>
-    Advanced Host Controller Interface, the interface that
-    supports SATA devices such as hard disks. See <xref href="harddiskcontrollers.dita#harddiskcontrollers"/>.
-  </glossdef>
-</glossentry>

@@ -1513,8 +1513,8 @@ UINT __stdcall DriverInstall(MSIHANDLE hModule)
             rc = VERR_INVALID_PARAMETER;
     }
 
-    logStringF(hModule, "DriverInstall: Handling done. rc=%Rrc (ignored)", rc);
-    return ERROR_SUCCESS; /* Do not fail here. */
+    logStringF(hModule, "DriverInstall: Handling done (rc=%Rrc)", rc);
+    return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_DRIVER_INSTALL_BLOCKED /* Close enough */;
 }
 
 UINT __stdcall DriverUninstall(MSIHANDLE hModule)
@@ -1566,8 +1566,8 @@ UINT __stdcall DriverUninstall(MSIHANDLE hModule)
         RTStrFree(pszInfFile);
     }
 
-    logStringF(hModule, "DriverUninstall: Handling done. rc=%Rrc (ignored)", rc);
-    return ERROR_SUCCESS; /* Do not fail here. */
+    logStringF(hModule, "DriverUninstall: Handling done (rc=%Rrc)", rc);
+    return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_DRIVER_STORE_DELETE_FAILED /* Close enough */;
 }
 
 #if defined(VBOX_WITH_NETFLT) || defined(VBOX_WITH_NETADP)

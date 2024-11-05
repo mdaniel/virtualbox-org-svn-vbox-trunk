@@ -501,6 +501,7 @@ static DECLCALLBACK(void) supdrvGipDetectGetGipCpuCallback(RTCPUID idCpu, void *
     }
 
 #else  /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
+    fSupported |= SUPGIPGETCPU_TPIDRRO_EL0;
     idApic = supdrvGipGetApicIdSlow();
 #endif /* !defined(RT_ARCH_AMD64) && !defined(RT_ARCH_X86) */
 

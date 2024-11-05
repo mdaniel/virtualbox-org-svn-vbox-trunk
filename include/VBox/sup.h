@@ -469,6 +469,8 @@ typedef enum SUPGIPUSETSCDELTA
 #define SUPGIPGETCPU_APIC_ID_EXT_0B                  RT_BIT_32(4)
 /** Can use CPUID[0x8000001e].EAX and translate the result via aiCpuFromApicId. */
 #define SUPGIPGETCPU_APIC_ID_EXT_8000001E            RT_BIT_32(5)
+/** ARM64: Can use TPIDRRO_EL0 to get the CPU ID */
+#define SUPGIPGETCPU_TPIDRRO_EL0                     RT_BIT_32(8)
 /** @} */
 
 /** @def SUPGIP_MAX_CPU_GROUPS

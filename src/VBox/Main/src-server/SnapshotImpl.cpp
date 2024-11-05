@@ -1858,20 +1858,27 @@ void SessionMachine::i_takeSnapshotHandler(TakeSnapshotTask &task)
         i_setModified(IsModified_Storage);
         mMediumAttachments.backup();
 
+        /* We need to set fBeganTakingSnapshot=true here to handle not only the
+         * scenario of i_createImplicitDiffs() succeeding but also the failure case
+         * since differencing hard disks can still be created which then need to be
+         * cleaned up and deleted via i_finishTakingSnapshot() below. */
+        fBeganTakingSnapshot = true;
+
         alock.release();
         /* create new differencing hard disks and attach them to this machine */
         hrc = i_createImplicitDiffs(task.m_pProgress,
                                     1,            // operation weight; must be the same as in Machine::TakeSnapshot()
                                     task.m_fTakingSnapshotOnline);
+        /* If i_createImplicitDiffs() fails the 'catch' block below calls
+         * Snapshot::uninit() which requires the machine to be write locked
+         * so reacquire alock here before testing for failure. */
+        alock.acquire();
         if (FAILED(hrc))
             throw hrc;
-        alock.acquire();
 
         // MUST NOT save the settings or the media registry here, because
         // this causes trouble with rolling back settings if the user cancels
         // taking the snapshot after the diff images have been created.
-
-        fBeganTakingSnapshot = true;
 
         // STEP 3: save the VM state (if online)
         if (task.m_fTakingSnapshotOnline)
@@ -2607,9 +2614,19 @@ void SessionMachine::i_restoreSnapshotHandler(RestoreSnapshotTask &task)
         /* preserve existing error info */
         ErrorInfoKeeper eik;
 
+        /* If any MediumAttachments have been modified then Machine::i_rollback() will
+         * go through Machine::i_rollbackMedia() -> Machine::i_deleteImplicitDiffs() ->
+         * Medium::i_deleteStorage() -> Medium::i_markRegistriesModified() ->
+         * VirtualBox::i_markRegistryModified() -> VirtualBox::i_findMachine() which
+         * attempts to acquire the Machine object lock for 'VirtualBox::allMachines' but
+         * the locking order when accessing the MachinesOList type (aka ObjectsList<Machine>)
+         * requires that the machines lock list (LOCKCLASS_LISTOFMACHINES) be
+         * acquired first and then the Machine object lock (LOCKCLASS_MACHINEOBJECT).
+         */
+        AutoReadLock alockMachines(mParent->i_getMachinesListLockHandle() COMMA_LOCKVAL_SRC_POS);
+
         /* undo all changes on failure */
         i_rollback(false /* aNotify */);
-
     }
 
     mParent->i_saveModifiedRegistries();

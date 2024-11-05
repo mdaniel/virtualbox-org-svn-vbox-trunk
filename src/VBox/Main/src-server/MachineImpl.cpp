@@ -10581,8 +10581,11 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
     AutoCaller autoCaller(this);
     AssertComRCReturn(autoCaller.hrc(), autoCaller.hrc());
 
-    AutoMultiWriteLock2 alock(this->lockHandle(),
-                              &mParent->i_getMediaTreeLockHandle() COMMA_LOCKVAL_SRC_POS);
+    /* We can't use AutoMultiWriteLock2 here as some error code paths acquire
+     * the media tree lock which means we need to be able to drop the media
+     * tree lock individually in those cases. */
+    AutoWriteLock aMachineLock(this->lockHandle() COMMA_LOCKVAL_SRC_POS);
+    AutoWriteLock aTreeLock(&mParent->i_getMediaTreeLockHandle() COMMA_LOCKVAL_SRC_POS);
 
     /* must be in a protective state because we release the lock below */
     AssertReturn(   mData->mMachineState == MachineState_Snapshotting
@@ -10620,13 +10623,15 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
                     Assert(pMedium);
 
                     MediumLockList *pMediumLockList(new MediumLockList());
-                    alock.release();
+                    aTreeLock.release();
+                    aMachineLock.release();
                     hrc = pMedium->i_createMediumLockList(true /* fFailIfInaccessible */,
                                                           NULL /* pToLockWrite */,
                                                           false /* fMediumLockWriteAll */,
                                                           NULL,
                                                           *pMediumLockList);
-                    alock.acquire();
+                    aMachineLock.acquire();
+                    aTreeLock.acquire();
                     if (FAILED(hrc))
                     {
                         delete pMediumLockList;
@@ -10639,9 +10644,11 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
             }
 
             /* Now lock all media. If this fails, nothing is locked. */
-            alock.release();
+            aTreeLock.release();
+            aMachineLock.release();
             hrc = lockedMediaMap->Lock();
-            alock.acquire();
+            aMachineLock.acquire();
+            aTreeLock.acquire();
             if (FAILED(hrc))
                 throw setError(hrc, tr("Locking of attached media failed"));
         }
@@ -10710,7 +10717,15 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
                              strFullSnapshotFolder.append(RTPATH_SLASH_STR),
                              uuidRegistryParent,
                              DeviceType_HardDisk);
-            if (FAILED(hrc)) throw hrc;
+            if (FAILED(hrc))
+            {
+                /* Throwing an exception here causes the 'diff' object to go out of scope
+                 * which triggers its destructor (ComObjPtr<Medium>::~ComObjPtr) which will
+                 * ultimately call Medium::uninit() which acquires the media tree lock
+                 * (VirtualBox::i_getMediaTreeLockHandle()) so drop the media tree lock here. */
+                aTreeLock.release();
+                throw hrc;
+            }
 
             /** @todo r=bird: How is the locking and diff image cleaned up if we fail before
              *        the push_back?  Looks like we're going to release medium with the
@@ -10723,24 +10738,34 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
             AssertComRCThrowRC(hrc);
             if (aOnline)
             {
-                alock.release();
+                aTreeLock.release();
+                aMachineLock.release();
                 /* The currently attached medium will be read-only, change
                  * the lock type to read. */
                 hrc = pMediumLockList->Update(pMedium, false);
-                alock.acquire();
+                aMachineLock.acquire();
+                aTreeLock.acquire();
                 AssertComRCThrowRC(hrc);
             }
 
             /* release the locks before the potentially lengthy operation */
-            alock.release();
+            aTreeLock.release();
+            aMachineLock.release();
             hrc = pMedium->i_createDiffStorage(diff,
                                                pMedium->i_getPreferredDiffVariant(),
                                                pMediumLockList,
                                                NULL /* aProgress */,
                                                true /* aWait */,
                                                false /* aNotify */);
-            alock.acquire();
-            if (FAILED(hrc)) throw hrc;
+            aMachineLock.acquire();
+            aTreeLock.acquire();
+            if (FAILED(hrc))
+            {
+                /* As above, 'diff' will go out of scope via the 'throw' here resulting in
+                 * Medium::uninit() being called which acquires the media tree lock. */
+                aTreeLock.release();
+                throw hrc;
+            }
 
             /* actual lock list update is done in Machine::i_commitMedia */
 
@@ -10763,7 +10788,12 @@ HRESULT Machine::i_createImplicitDiffs(IProgress *aProgress,
                                    pAtt->i_getDiscard(),
                                    pAtt->i_getHotPluggable(),
                                    pAtt->i_getBandwidthGroup());
-            if (FAILED(hrc)) throw hrc;
+            if (FAILED(hrc)) {
+                /* As above, 'diff' will go out of scope via the 'throw' here resulting in
+                 * Medium::uninit() being called which acquires the media tree lock. */
+                aTreeLock.release();
+                throw hrc;
+            }
 
             hrc = lockedMediaMap->ReplaceKey(pAtt, attachment);
             AssertComRCThrowRC(hrc);
@@ -12645,10 +12675,14 @@ void SessionMachine::uninit(Uninit::Reason aReason)
     }
 #endif /* VBOX_WITH_USB */
 
-    // we need to lock this object in uninit() because the lock is shared
-    // with mPeer (as well as data we modify below). mParent lock is needed
-    // by several calls to it.
-    AutoMultiWriteLock2 multilock(mParent, this COMMA_LOCKVAL_SRC_POS);
+    /* We need to lock this object in uninit() because the lock is shared
+     * with mPeer (as well as data we modify below). mParent lock is needed
+     * by several calls to it.
+     * We can't use AutoMultiWriteLock2 here as some error code paths
+     * acquire the machine lock so we need to be able to drop the machine
+     * lock individually in those cases. */
+    AutoWriteLock aVBoxLock(mParent COMMA_LOCKVAL_SRC_POS);
+    AutoWriteLock aMachineLock(this COMMA_LOCKVAL_SRC_POS);
 
 #ifdef VBOX_WITH_RESOURCE_USAGE_API
     /*
@@ -12689,7 +12723,10 @@ void SessionMachine::uninit(Uninit::Reason aReason)
     if (mData->flModifications)
     {
         Log1WarningThisFunc(("Discarding unsaved settings changes!\n"));
-        i_rollback(false /* aNotify */);
+        aMachineLock.release();
+        discardSettings();
+        mParent->i_unmarkRegistryModified(i_getId());
+        aMachineLock.acquire();
     }
 
     mData->mSession.mPID = NIL_RTPROCESS;
@@ -12717,13 +12754,15 @@ void SessionMachine::uninit(Uninit::Reason aReason)
         {
             ComPtr<IInternalSessionControl> pControl = *it;
             mData->mSession.mRemoteControls.erase(it);
-            multilock.release();
+            aMachineLock.release();
+            aVBoxLock.release();
             LogFlowThisFunc(("  Calling remoteControl->Uninitialize()...\n"));
             HRESULT hrc = pControl->Uninitialize();
             LogFlowThisFunc(("  remoteControl->Uninitialize() returned %08X\n", hrc));
             if (FAILED(hrc))
                 Log1WarningThisFunc(("Forgot to close the remote session?\n"));
-            multilock.acquire();
+            aVBoxLock.acquire();
+            aMachineLock.acquire();
         }
         mData->mSession.mRemoteControls.clear();
     }
@@ -12749,12 +12788,14 @@ void SessionMachine::uninit(Uninit::Reason aReason)
                 hrc = mNetworkAdapters[slot]->COMGETTER(NATNetwork)(name.asOutParam());
                 if (SUCCEEDED(hrc))
                 {
-                    multilock.release();
+                    aMachineLock.release();
+                    aVBoxLock.release();
                     Utf8Str strName(name);
                     LogRel(("VM '%s' stops using NAT network '%s'\n",
                             mUserData->s.strName.c_str(), strName.c_str()));
                     mParent->i_natNetworkRefDec(strName);
-                    multilock.acquire();
+                    aVBoxLock.acquire();
+                    aMachineLock.acquire();
                 }
             }
         }
@@ -12833,8 +12874,9 @@ void SessionMachine::uninit(Uninit::Reason aReason)
     /* free the essential data structure last */
     mData.free();
 
-    /* release the exclusive lock before setting the below two to NULL */
-    multilock.release();
+    /* release the exclusive locks before setting the below two to NULL */
+    aMachineLock.release();
+    aVBoxLock.release();
 
     unconst(mParent) = NULL;
     unconst(mPeer) = NULL;

@@ -4616,12 +4616,13 @@ HRESULT Medium::i_addBackReference(const Guid &aMachineId,
 {
     AssertReturn(aMachineId.isValid(), E_FAIL);
 
-    LogFlowThisFunc(("ENTER, aMachineId: {%RTuuid}, aSnapshotId: {%RTuuid}\n", aMachineId.raw(), aSnapshotId.raw()));
-
     AutoCaller autoCaller(this);
     AssertComRCReturnRC(autoCaller.hrc());
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    LogFlowThisFunc(("ENTER: medium: '%s' aMachineId: {%RTuuid}, aSnapshotId: {%RTuuid}\n",
+        i_getLocationFull().c_str(), aMachineId.raw(), aSnapshotId.raw()));
 
     switch (m->state)
     {
@@ -4743,18 +4744,37 @@ HRESULT Medium::i_removeBackReference(const Guid &aMachineId,
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
+    LogFlowThisFunc(("ENTER: medium: '%s' aMachineId: {%RTuuid}, aSnapshotId: {%RTuuid}\n",
+        i_getLocationFull().c_str(), aMachineId.raw(), aSnapshotId.raw()));
+
     BackRefList::iterator it =
         std::find_if(m->backRefs.begin(), m->backRefs.end(),
                      BackRef::EqualsTo(aMachineId));
     AssertReturn(it != m->backRefs.end(), E_FAIL);
 
+    bool fDvd = false;
+    {
+        AutoReadLock arlock(this COMMA_LOCKVAL_SRC_POS);
+        /*
+         *  Check the medium is DVD and readonly. It's for the case if DVD
+         *  will be able to be writable sometime in the future.
+         */
+        fDvd = m->type == MediumType_Readonly && m->devType == DeviceType_DVD;
+    }
+
     if (aSnapshotId.isZero())
     {
+        /* Attached removable media which are part of a snapshot can be added to a
+         * back reference more than once (as described above in i_addBackReference())
+         * so we need to balance out the reference counting for DVDs here. */
+        if (fDvd && it->iRefCnt > 1)
+            it->iRefCnt--;
         it->iRefCnt--;
         if (it->iRefCnt > 0)
             return S_OK;
 
-        /* remove the current state attachment */
+        /* Mark the medium as no longer in use by the current machine although it
+         * may still be included in one or more snapshots (it->llSnapshotIds). */
         it->fInCurState = false;
     }
     else
@@ -4772,10 +4792,23 @@ HRESULT Medium::i_removeBackReference(const Guid &aMachineId,
             return S_OK;
 
         it->llSnapshotIds.erase(jt);
+
+        /* The BackRef() constructor in i_addBackReference() creates back references
+         * for attached hard disk mediums associated with a snapshot with the reference
+         * count set to '1' and fInCurState=false before adding the snapshot to
+         * it->llSnapshotIds.  When removing that snapshot reference here we need to
+         * decrement the reference count since there won't be a separate
+         * i_removeBackReference() call with aSnapshotId.isZero() since this hard disk
+         * medium is only associated with this snapshot.  Removable media like DVDs
+         * associated with a snapshot on the other hand can be attached twice, once for
+         * the snapshot and once for the machine (aSnapshotId.isZero()=true) and their
+         * reference counting is balanced out in the machine case above. */
+        if (!fDvd && it->fInCurState == false && it->iRefCnt == 1 && it->llSnapshotIds.size() == 0)
+            it->iRefCnt--;
     }
 
     /* if the backref becomes empty, remove it */
-    if (it->fInCurState == false && it->llSnapshotIds.size() == 0)
+    if (it->fInCurState == false && it->iRefCnt == 0 && it->llSnapshotIds.size() == 0)
         m->backRefs.erase(it);
 
     return S_OK;
@@ -4867,14 +4900,14 @@ void Medium::i_dumpBackRefs()
          ++it2)
     {
         const BackRef &ref = *it2;
-        LogFlowThisFunc(("  Backref from machine {%RTuuid} (fInCurState: %d, iRefCnt: %d)\n", ref.machineId.raw(), ref.fInCurState, ref.iRefCnt));
+        LogFlowThisFunc(("  Backref from machine={%RTuuid} (fInCurState=%d, iRefCnt=%d)\n", ref.machineId.raw(), ref.fInCurState, ref.iRefCnt));
 
         for (std::list<SnapshotRef>::const_iterator jt2 = it2->llSnapshotIds.begin();
              jt2 != it2->llSnapshotIds.end();
              ++jt2)
         {
             const Guid &id = jt2->snapshotId;
-            LogFlowThisFunc(("  Backref from snapshot {%RTuuid} (iRefCnt = %d)\n", id.raw(), jt2->iRefCnt));
+            LogFlowThisFunc(("  Backref from snapshot={%RTuuid} (iRefCnt=%d)\n", id.raw(), jt2->iRefCnt));
         }
     }
 }

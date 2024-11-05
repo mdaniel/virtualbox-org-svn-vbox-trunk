@@ -51,10 +51,17 @@ goto end
 
 :dir_okay
 rem
-rem We don't use the driver files directly any more because of win10 keeping the open,
-rem so create an alternative directory for the binaries.
+rem We don't use the driver files directly any more because of win10 keeping them 
+rem open, so create an alternative directory for the binaries.  Another reason is
+rem loading drivers via network shares, in which case we just use temp.
 rem
 set MY_ALTDIR=%MY_DIR%\..\LoadedDrivers
+if not "%MY_ALTDIR:~1:1" == ":" goto alt_dir_remote
+net use "%MY_ALTDIR:~0:1" > nul 2>nul && goto alt_dir_remote
+goto alt_dir_done
+:alt_dir_remote
+set MY_ALTDIR=%TMP%\VBoxLoadedDrivers
+:alt_dir_done
 if not exist "%MY_ALTDIR%" mkdir "%MY_ALTDIR%"
 
 rem

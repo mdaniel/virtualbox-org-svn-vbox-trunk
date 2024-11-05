@@ -915,7 +915,7 @@ class VBoxInstallerTestDriver(TestDriverBase):
         """
         Tries deleting the Setup API host logs.
         """
-        for sFile, _ in self.kasSetupApiLogFiles:
+        for sFile, _, _ in self.kasSetupApiLogFiles:
             sFile = os.path.expandvars(sFile);
             try:
                 os.remove(sFile);

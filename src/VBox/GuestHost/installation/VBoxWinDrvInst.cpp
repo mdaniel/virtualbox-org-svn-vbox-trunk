@@ -1067,7 +1067,7 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
             BOOL fReboot = FALSE;
 
             if (pParms->u.UnInstall.pwszPnpId)
-                vboxWinDrvInstLogInfo(pCtx, "Using hardware ID \"%ls\"", pParms->u.UnInstall.pwszPnpId);
+                vboxWinDrvInstLogInfo(pCtx, "Using PnP ID \"%ls\"", pParms->u.UnInstall.pwszPnpId);
 
             uint64_t const uNtVer = RTSystemGetNtVersion();
 

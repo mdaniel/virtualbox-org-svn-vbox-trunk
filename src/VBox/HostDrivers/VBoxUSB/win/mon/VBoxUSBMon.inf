@@ -54,7 +54,6 @@ VBoxUSBMon.sys=1
 DefaultDestDir = 12
 
 [DefaultInstall@DOT-NT-ARCH@]
-%VBoxUSBMon_DrvDesc%=VBoxUSBMon
 CopyFiles=VBoxUSBMon_CopyFiles
 
 [DefaultInstall@DOT-NT-ARCH@.Services]
@@ -95,4 +94,3 @@ SERVICE_STARTTYPE_AUTO = 1
 SERVICE_STARTTYPE_DEMAND = 3
 SERVICE_ERRORCTL_IGNORE = 0
 SERVICE_ERRORCTL_NORMAL = 1
-

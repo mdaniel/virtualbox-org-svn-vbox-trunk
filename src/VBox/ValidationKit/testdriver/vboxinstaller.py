@@ -909,16 +909,16 @@ class VBoxInstallerTestDriver(TestDriverBase):
     ## Windows SetupAPI log files we handle.
     kasSetupApiLogFiles = [
         # Windows XP and later.
-        ( '%WINDIR%/setupapi.log',             'log/setupapi-log',     'SetupAPI (setupapi.log)', ),
-        ( '%WINDIR%/setupact.log',             'log/setupapi-act',     'SetupAPI (setupact.log)', ),
-        ( '%WINDIR%/setuperr.log',             'log/setupapi-err',     'SetupAPI (setuperr.log)', ),
+        ( '%WINDIR%/setupapi.log',             'misc/other', 'SetupAPI (setupapi.log)', ),
+        ( '%WINDIR%/setupact.log',             'misc/other', 'SetupAPI (setupact.log)', ),
+        ( '%WINDIR%/setuperr.log',             'misc/other', 'SetupAPI (setuperr.log)', ),
         # Windows 7 and later.
-        ( '%WINDIR%/INF/setupapi.app.log',     'log/setupapi-app',     'SetupAPI (setupapi.app.log)', ),
-        ( '%WINDIR%/INF/setupapi.dev.log',     'log/setupapi-dev',     'SetupAPI (setupapi.dev.log)', ),
+        ( '%WINDIR%/INF/setupapi.app.log',     'misc/other', 'SetupAPI (setupapi.app.log)', ),
+        ( '%WINDIR%/INF/setupapi.dev.log',     'misc/other', 'SetupAPI (setupapi.dev.log)', ),
         # Windows 10 and later.
-        ( '%WINDIR%/INF/setupapi.upgrade.log', 'log/setupapi-upgrade', 'SetupAPI (setupapi.upgrade.log)', ),
-        ( '%WINDIR%/INF/setupact.log',         'log/setupapi-act',     'SetupAPI (setupact.log)', ),
-        ( '%WINDIR%/INF/setuperr.log',         'log/setupapi-err',     'SetupAPI (setuperr.log)', ),
+        ( '%WINDIR%/INF/setupapi.upgrade.log', 'misc/other', 'SetupAPI (setupapi.upgrade.log)', ),
+        ( '%WINDIR%/INF/setupact.log',         'misc/other', 'SetupAPI (setupact.log)', ),
+        ( '%WINDIR%/INF/setuperr.log',         'misc/other', 'SetupAPI (setuperr.log)', ),
     ];
 
     def _winPurgeSetupApiLogs(self):

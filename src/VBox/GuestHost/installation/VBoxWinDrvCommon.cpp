@@ -138,9 +138,12 @@ int VBoxWinDrvInfQueryKeyValue(PINFCONTEXT pCtx, DWORD iValue, PRTUTF16 *ppwszVa
  * Queries for the model name in an INF file.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if no model has been found.
  * @param   hInf                INF handle to use.
  * @param   ppwszValue          Where to return the model name on success.
  * @param   pcwcValue           Where to return the number of characters for \a ppwszValue. Optional an can be NULL.
+ *
+ * @note    Only for non-"primitive" drivers.
  */
 int VBoxWinDrvInfQueryModelsSectionName(HINF hInf, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
 {
@@ -151,14 +154,11 @@ int VBoxWinDrvInfQueryModelsSectionName(HINF hInf, PRTUTF16 *ppwszValue, PDWORD 
     /* Sorted by most likely-ness. */
     static PRTUTF16 s_apwszSections[] =
     {
-        /* The more specific (using decorations), the better. Try these first. */
-        L"Manufacturer"     VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
-        L"DefaultInstall"   VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
-        L"DefaultUninstall" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
-        /* Try undecorated sections last. */
+        /* Most likely (and doesn't have a decoration). */
         L"Manufacturer",
-        L"DefaultInstall",
-        L"DefaultUninstall"
+        L"Manufacturer" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
+        /* Note: Don't search for "DefaultInstall" or "DefaultUninstall" sections here, as
+         *       those only are used for "primitive" drivers. */
     };
 
     int rc = VINF_SUCCESS;
@@ -418,9 +418,12 @@ int VBoxWinDrvInfClose(HINF hInf)
  * Queries the first (device) model from an INF file.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if no model has been found.
  * @param   hInf                INF handle to use.
  * @param   ppwszModel          Where to return the model on success.
  *                              Needs to be free'd by RTUtf16Free().
+ *
+ * @note    Only for non-"primitive" drivers.
  */
 int VBoxWinDrvInfQueryFirstModel(HINF hInf, PRTUTF16 *ppwszModel)
 {
@@ -433,13 +436,19 @@ int VBoxWinDrvInfQueryFirstModel(HINF hInf, PRTUTF16 *ppwszModel)
  * Queries the first PnP ID from an INF file.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if no PnP ID has been found.
  * @param   hInf                INF handle to use.
  * @param   pwszModel           Model to query PnP ID for.
  * @param   ppwszPnPId          Where to return the PnP ID on success.
  *                              Needs to be free'd by RTUtf16Free().
+ *
+ * @note    Only for non-"primitive" drivers.
  */
 int VBoxWinDrvInfQueryFirstPnPId(HINF hInf, PRTUTF16 pwszModel, PRTUTF16 *ppwszPnPId)
 {
+    if (!pwszModel) /* No model given? Bail out early. */
+        return VERR_NOT_FOUND;
+
     *ppwszPnPId = NULL;
 
     PRTUTF16   pwszPnPId = NULL;

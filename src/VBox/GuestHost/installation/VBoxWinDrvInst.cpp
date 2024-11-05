@@ -646,6 +646,8 @@ static void vboxWinDrvInstParmsDestroy(PVBOXWINDRVINSTPARMS pParms)
         case VBOXWINDRVINSTMODE_INSTALL:
         case VBOXWINDRVINSTMODE_UNINSTALL:
         {
+            RTUtf16Free(pParms->u.UnInstall.pwszModel);
+            pParms->u.UnInstall.pwszModel = NULL;
             RTUtf16Free(pParms->u.UnInstall.pwszPnpId);
             pParms->u.UnInstall.pwszPnpId = NULL;
             break;
@@ -757,12 +759,14 @@ RT_C_DECLS_END
  * @param   pCtx                Windows driver installer context.
  * @param   pwszInfPathAbs      Absolute path of INF file to use for [un]installation.
  * @param   pwszSection         Section to invoke for [un]installation.
+ *                              If NULL, the "DefaultInstall" / "DefaultUninstall" section will be tried.
  * @param   pfnCallback         Callback to invoke for each found section.
  */
 static int vboxWinDrvTryInfSection(PVBOXWINDRVINSTINTERNAL pCtx, PCRTUTF16 pwszInfPathAbs, PCRTUTF16 pwszSection,
                                    PFNVBOXWINDRVINST_TRYINFSECTION_CALLBACK pfnCallback)
 {
-    vboxWinDrvInstLogVerbose(pCtx, 1, "Trying section \"%ls\"", pwszSection);
+    if (pwszSection)
+        vboxWinDrvInstLogVerbose(pCtx, 1, "Trying section \"%ls\"", pwszSection);
 
     /* Sorted by most likely-ness. */
     PCRTUTF16 apwszTryInstallSections[] =
@@ -811,11 +815,14 @@ static int vboxWinDrvTryInfSection(PVBOXWINDRVINSTINTERNAL pCtx, PCRTUTF16 pwszI
             if (rc != VERR_NOT_FOUND)
                 vboxWinDrvInstLogError(pCtx, "Trying INF section failed with %Rrc", rc);
         }
+
+        if (RT_SUCCESS(rc)) /* Bail out if callback above succeeded. */
+            break;
     }
 
     if (rc == VERR_NOT_FOUND)
     {
-        vboxWinDrvInstLogWarn(pCtx, "No matching section to try found -- buggy driver?");
+        vboxWinDrvInstLogWarn(pCtx, "No matching sections to try found -- buggy driver?");
         rc = VINF_SUCCESS;
     }
 
@@ -1057,7 +1064,9 @@ DECLCALLBACK(int) vboxWinDrvInstallTryInfSectionCallback(PCRTUTF16 pwszInfPathAb
  */
 static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms)
 {
-    int rc = VINF_SUCCESS;
+    int rc = vboxWinDrvParmsDetermine(pCtx, pParms, false /* fForce */);
+    if (RT_FAILURE(rc))
+        return rc;
 
     switch (pParms->enmMode)
     {
@@ -1075,7 +1084,7 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
              * Pre-install driver.
              */
             DWORD dwInstallFlags = 0;
-            if (uNtVer >= RTSYSTEM_MAKE_NT_VERSION(6, 0, 0)) /* for Vista / 2008 Server and up. */
+            if (uNtVer >= RTSYSTEM_MAKE_NT_VERSION(66, 0, 0)) /* for Vista / 2008 Server and up. */
             {
                 if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_FORCE)
                     dwInstallFlags |= DIIRFLAG_FORCE_INF;
@@ -1083,41 +1092,39 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                 vboxWinDrvInstLogVerbose(pCtx, 1, "Using g_pfnDiInstallDriverW(), dwInstallFlags=%#x", dwInstallFlags);
 
                 fRc = g_pfnDiInstallDriverW(NULL /* hWndParent */, pParms->pwszInfFile, dwInstallFlags, &fReboot);
+                if (!fRc)
+                {
+                    DWORD const dwErr = GetLastError();
+
+                    /*
+                     * Work around an error code wich only appears on old(er) Windows Server editions (e.g. 2012 R2 or 2016)
+                     * where SetupAPI tells "unable to mark devices that match new inf", which ultimately results in
+                     * ERROR_LINE_NOT_FOUND. This probably is because of primitive drivers which don't have a PnP ID set in
+                     * the INF file.
+                     *
+                     * pnputil.exe also gives the same error in the SetupAPI log when handling the very same INF file.
+                     *
+                     * So skip this error and pretend everything is fine. */
+                    if (dwErr == ERROR_LINE_NOT_FOUND)
+                        fRc = true;
+
+                    if (!fRc)
+                        rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
+                }
+
                 if (fRc)
                 {
-                    rc = vboxWinDrvParmsDetermine(pCtx, pParms, true /* fForce */);
-                    if (RT_SUCCESS(rc))
-                        /* rc ignored, keep going */ vboxWinDrvTryInfSection(pCtx,
-                                                                             pParms->pwszInfFile, pParms->u.UnInstall.pwszModel,
-                                                                             vboxWinDrvInstallTryInfSectionCallback);
+                    rc = vboxWinDrvTryInfSection(pCtx,
+                                                 pParms->pwszInfFile, pParms->u.UnInstall.pwszModel,
+                                                 vboxWinDrvInstallTryInfSectionCallback);
                 }
-                else
-                    rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
             }
             else /* For Windows 2000 and below. */
             {
-                /* If no PnP ID (Hardware ID) is explicitly given, try guessing the PnP ID from the given INF file. */
-                size_t cchPnpId = RTUtf16Len(pParms->u.UnInstall.pwszPnpId);
-                if (   !cchPnpId
-                    || cchPnpId > MAX_DEVICE_ID_LEN)
-                {
-                    vboxWinDrvInstLogInfo(pCtx, "PnP ID not specified explicitly or invalid, determining from given INF file");
-                    rc = vboxWinDrvParmsDetermine(pCtx, pParms, true /* fForce */);
-                    if (RT_SUCCESS(rc))
-                        cchPnpId = RTUtf16Len(pParms->u.UnInstall.pwszPnpId);
-                }
+                bool fPreInstall     = false; /* Whether to pre-install the driver. */
+                bool fInstallSection = false; /* Whether to install the section of the specified driver model. */
 
-                if (RT_FAILURE(rc))
-                    break;
-
-                /* Still not having any PnP ID? */
-                if (cchPnpId == 0)
-                {
-                    vboxWinDrvInstLogError(pCtx, "No (valid) PnP ID found; can't continue");
-                    rc = VERR_NOT_FOUND;
-                    break;
-                }
-                else
+                if (pParms->u.UnInstall.pwszPnpId)
                 {
                     if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT)
                     {
@@ -1146,45 +1153,14 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                             {
                                 vboxWinDrvInstLogInfo(pCtx, "Device (\"%ls\") not found (yet), pre-installing driver ...",
                                                       pParms->u.UnInstall.pwszPnpId);
-
-                                RTUTF16 wszInfFileAbs[RTPATH_MAX] = { 0 };
-                                LPWSTR  pwszInfFile = NULL;
-                                if (   GetFullPathNameW(pParms->pwszInfFile, RT_ELEMENTS(wszInfFileAbs), wszInfFileAbs, &pwszInfFile)
-                                    && pwszInfFile)
-                                {
-                                    RTUTF16 wszSrcPathAbs[RTPATH_MAX] = { 0 };
-                                    rc = RTUtf16CopyEx(wszSrcPathAbs, RT_ELEMENTS(wszSrcPathAbs), wszInfFileAbs,
-                                                       RTUtf16Len(wszInfFileAbs) - RTUtf16Len(pwszInfFile));
-                                    if (RT_SUCCESS(rc))
-                                    {
-                                        RTUTF16 wszDstPathAbs[RTPATH_MAX] = { 0 };
-                                        fRc = g_pfnSetupCopyOEMInfW(wszInfFileAbs, wszSrcPathAbs, SPOST_PATH, 0,
-                                                                    wszDstPathAbs, RT_ELEMENTS(wszDstPathAbs), NULL, NULL);
-
-                                        vboxWinDrvInstLogVerbose(pCtx, 1, "   INF file: %ls", wszInfFileAbs);
-                                        vboxWinDrvInstLogVerbose(pCtx, 1, "Source path: %ls", wszSrcPathAbs);
-                                        vboxWinDrvInstLogVerbose(pCtx, 1, "  Dest path: %ls", wszDstPathAbs);
-
-                                        if (fRc)
-                                            vboxWinDrvInstLogInfo(pCtx, "Copying OEM INF successful");
-                                        else
-                                            rc = vboxWinDrvInstLogLastError(pCtx, "Installation(SetupCopyOEMInfW) failed");
-                                    }
-                                }
-                                else
-                                    rc = vboxWinDrvInstLogLastError(pCtx, "GetFullPathNameW() failed");
+                                fPreInstall = true;
                                 break;
                             }
 
                             case ERROR_NO_DRIVER_SELECTED:
                             {
-                                rc = vboxWinDrvParmsDetermine(pCtx, pParms, true /* fForce */);
-                                if (RT_SUCCESS(rc))
-                                {
-                                    if (pParms->u.UnInstall.pwszModel)
-                                        rc = vboxWinDrvInstallInfSectionEx(pCtx, pCtx->Parms.pwszInfFile,
-                                                                           pParms->u.UnInstall.pwszModel);
-                                }
+                                vboxWinDrvInstLogWarn(pCtx, "Not able to select a driver from the given INF, using given model");
+                                fInstallSection = true;
                                 break;
                             }
 
@@ -1193,6 +1169,48 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                                 break;
                         }
                     }
+                }
+                else
+                {
+                    fPreInstall     = true;
+                    fInstallSection = true;
+                }
+
+                if (fPreInstall)
+                {
+                    RTUTF16 wszInfFileAbs[RTPATH_MAX] = { 0 };
+                    LPWSTR  pwszInfFile = NULL;
+                    if (   GetFullPathNameW(pParms->pwszInfFile, RT_ELEMENTS(wszInfFileAbs), wszInfFileAbs, &pwszInfFile)
+                        && pwszInfFile)
+                    {
+                        RTUTF16 wszSrcPathAbs[RTPATH_MAX] = { 0 };
+                        rc = RTUtf16CopyEx(wszSrcPathAbs, RT_ELEMENTS(wszSrcPathAbs), wszInfFileAbs,
+                                           RTUtf16Len(wszInfFileAbs) - RTUtf16Len(pwszInfFile));
+                        if (RT_SUCCESS(rc))
+                        {
+                            RTUTF16 wszDstPathAbs[RTPATH_MAX] = { 0 };
+                            fRc = g_pfnSetupCopyOEMInfW(wszInfFileAbs, wszSrcPathAbs, SPOST_PATH, 0,
+                                                        wszDstPathAbs, RT_ELEMENTS(wszDstPathAbs), NULL, NULL);
+
+                            vboxWinDrvInstLogVerbose(pCtx, 1, "   INF file: %ls", wszInfFileAbs);
+                            vboxWinDrvInstLogVerbose(pCtx, 1, "Source path: %ls", wszSrcPathAbs);
+                            vboxWinDrvInstLogVerbose(pCtx, 1, "  Dest path: %ls", wszDstPathAbs);
+
+                            if (fRc)
+                                vboxWinDrvInstLogInfo(pCtx, "Copying OEM INF successful");
+                            else
+                                rc = vboxWinDrvInstLogLastError(pCtx, "Installation(SetupCopyOEMInfW) failed");
+                        }
+                    }
+                    else
+                        rc = vboxWinDrvInstLogLastError(pCtx, "GetFullPathNameW() failed");
+                }
+
+                if (fInstallSection)
+                {
+                    rc = vboxWinDrvTryInfSection(pCtx,
+                                                 pParms->pwszInfFile, pParms->u.UnInstall.pwszModel,
+                                                 vboxWinDrvInstallTryInfSectionCallback);
                 }
             }
 
@@ -1217,6 +1235,29 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
 }
 
 /**
+ * Returns whether the given (in)installation parameters are valid or not.
+ *
+ * @returns \c true if valid, \c false if not.
+ * @param   pCtx                Windows driver installer context.
+ * @param   pParms              Windows driver (un)installation parameters to validate.
+ */
+static bool vboxWinDrvParmsAreValid(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms)
+{
+    if (pParms->u.UnInstall.pwszPnpId)
+    {
+        size_t const cchPnpId = RTUtf16Len(pParms->u.UnInstall.pwszPnpId);
+        if (   !cchPnpId
+            || cchPnpId > MAX_DEVICE_ID_LEN)
+        {
+            vboxWinDrvInstLogVerbose(pCtx, 1, "PnP ID not specified explicitly or invalid");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Determines (un)installation parameters from a given set of parameters, logged.
  *
  * @returns VBox status code.
@@ -1224,6 +1265,8 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
  * @param   pCtx                Windows driver installer context.
  * @param   pParms              Windows driver installation parameters to determine for.
  * @param   fForce              Whether to overwrite already set parameters or not.
+ *
+ * @note    Only can deal with the first model / PnP ID found for now.
  */
 static int vboxWinDrvParmsDetermine(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms, bool fForce)
 {
@@ -1239,14 +1282,34 @@ static int vboxWinDrvParmsDetermine(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
             /* Note: Model must come first for getting the PnP ID. */
             if (!pParms->u.UnInstall.pwszModel || fForce)
             {
-                vboxWinDrvInstLogVerbose(pCtx, 1, "Determining first model ...");
-                VBoxWinDrvInfQueryFirstModel(hInf, &pParms->u.UnInstall.pwszModel);
+                vboxWinDrvInstLogVerbose(pCtx, 1, "Determining model ...");
+                if (fForce)
+                {
+                    RTUtf16Free(pParms->u.UnInstall.pwszModel);
+                    pParms->u.UnInstall.pwszModel = NULL;
+                }
+                rc = VBoxWinDrvInfQueryFirstModel(hInf, &pParms->u.UnInstall.pwszModel);
+                if (rc == VERR_NOT_FOUND)
+                {
+                    vboxWinDrvInstLogVerbose(pCtx, 1, "No model found, probably a primitive driver");
+                    rc = VINF_SUCCESS; /* Reset rc, non-fatal. */
+                }
             }
             if (!pParms->u.UnInstall.pwszPnpId  || fForce)
             {
-                vboxWinDrvInstLogVerbose(pCtx, 1, "Determining first PnP ID ...");
-                VBoxWinDrvInfQueryFirstPnPId(hInf,
-                                             pParms->u.UnInstall.pwszModel, &pParms->u.UnInstall.pwszPnpId);
+                if (pParms->u.UnInstall.pwszModel)
+                {
+                    vboxWinDrvInstLogVerbose(pCtx, 1, "Determining PnP ID ...");
+                    if (fForce)
+                    {
+                        RTUtf16Free(pParms->u.UnInstall.pwszPnpId);
+                        pParms->u.UnInstall.pwszPnpId = NULL;
+                    }
+                    /* ignore rc */ VBoxWinDrvInfQueryFirstPnPId(hInf,
+                                                                 pParms->u.UnInstall.pwszModel, &pParms->u.UnInstall.pwszPnpId);
+                }
+                else
+                    vboxWinDrvInstLogVerbose(pCtx, 1, "No first model found/set, skipping determining PnP ID");
             }
             VBoxWinDrvInfClose(hInf);
         }
@@ -1257,6 +1320,7 @@ static int vboxWinDrvParmsDetermine(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
     else if (   pParms->u.UnInstall.pwszModel
              || pParms->u.UnInstall.pwszPnpId)
     {
+        /* Nothing to do for us here. */
         rc = VINF_SUCCESS;
     }
     else
@@ -1438,10 +1502,6 @@ static int vboxWinDrvUninstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVI
             if (RT_SUCCESS(rc))
             {
                 rc = vboxWinDrvUninstallFromDriverStore(pCtx, pParms, pList);
-                if (RT_SUCCESS(rc))
-                {
-
-                }
 
                 VBoxWinDrvStoreListFree(pList);
                 pList = NULL;
@@ -1493,6 +1553,12 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
         g_pfnSetupSetNonInteractiveMode(TRUE /* fEnable */);
     }
 
+    if (!vboxWinDrvParmsAreValid(pCtx, pParms))
+    {
+        vboxWinDrvInstLogError(pCtx, "%s parameters are invalid, can't continue", fInstall ? "Installation" : "Uninstallation");
+        return VERR_INVALID_PARAMETER;
+    }
+
     int rc;
     if (fInstall)
         rc = vboxWinDrvInstallPerform(pCtx, pParms);
@@ -1509,8 +1575,14 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
             rc = VINF_REBOOT_NEEDED;
         }
     }
-    else
-        vboxWinDrvInstLogError(pCtx, "Unable to %sinstall driver, rc=%Rrc", fInstall ? "" : "un", rc);
+
+    /* Note: Call vboxWinDrvInstLogEx() to not increase the error/warn count here. */
+    if (pCtx->cErrors)
+        vboxWinDrvInstLogEx(pCtx, VBOXWINDRIVERLOGTYPE_ERROR, "%sstalling driver(s) failed with %u errors, %u warnings (rc=%Rrc)",
+                            fInstall ? "In" : "Unin", pCtx->cErrors, pCtx->cWarnings, rc);
+    else if (pCtx->cWarnings)
+        vboxWinDrvInstLogEx(pCtx, VBOXWINDRIVERLOGTYPE_WARN, "%sstalling driver(s) succeeded with %u warnings",
+                            fInstall ? "In" : "Unin", pCtx->cWarnings);
 
     return rc;
 }
@@ -1664,15 +1736,17 @@ void VBoxWinDrvInstSetLogCallback(VBOXWINDRVINST hDrvInst, PFNVBOXWINDRIVERLOGMS
 }
 
 /**
- * Installs a driver.
+ * Installs a driver, extended version.
  *
  * @returns VBox status code.
  * @param   hDrvInst            Windows driver installer handle to use.
  * @param   pszInfFile          INF file to use.
+ * @param   pszModel            Model name to use. Optional and can be NULL.
  * @param   pszPnpId            PnP ID to use. NT-style wildcards supported. Optional and can be NULL.
  * @param   fFlags              Installation flags (of type VBOX_WIN_DRIVERINSTALL_F_XXX) to use.
  */
-int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszPnpId, uint32_t fFlags)
+int VBoxWinDrvInstInstallEx(VBOXWINDRVINST hDrvInst,
+                            const char *pszInfFile, const char *pszModel, const char *pszPnpId, uint32_t fFlags)
 {
     PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
     VBOXWINDRVINST_VALID_RETURN(pCtx);
@@ -1690,7 +1764,9 @@ int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const
     if (RT_FAILURE(rc))
         vboxWinDrvInstLogError(pCtx, "Failed to build path for INF file \"%s\", rc=%Rrc", pszInfFile, rc);
 
-    if (RT_SUCCESS(rc) && pszPnpId) /* PnP ID is optional. */
+    if (RT_SUCCESS(rc) && pszModel) /* Model is optional. */
+        rc = RTStrToUtf16(pszModel, &pCtx->Parms.u.UnInstall.pwszModel);
+    if (RT_SUCCESS(rc) && pszPnpId) /* Ditto. */
         rc = RTStrToUtf16(pszPnpId, &pCtx->Parms.u.UnInstall.pwszPnpId);
 
     if (RT_SUCCESS(rc))
@@ -1707,6 +1783,22 @@ int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const
         vboxWinDrvInstLogError(pCtx, "Driver installation failed with %Rrc", rc);
 
     return rc;
+}
+
+/**
+ * Installs a driver.
+ *
+ * @returns VBox status code.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   pszInfFile          INF file to use.
+ * @param   fFlags              Installation flags (of type VBOX_WIN_DRIVERINSTALL_F_XXX) to use.
+ *
+ * @note    This function tries determining the model / PnP ID from the given INF file.
+ *          To control the behavior exactly, use VBoxWinDrvInstInstallEx().
+ */
+int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, uint32_t fFlags)
+{
+    return VBoxWinDrvInstInstallEx(hDrvInst, pszInfFile, NULL /* pszModel */, NULL /* pszPnpId */, fFlags);
 }
 
 /**

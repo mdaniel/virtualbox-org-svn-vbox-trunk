@@ -616,8 +616,8 @@ static int handleDriverInstall(unsigned cArgs, wchar_t **papwszArgs)
             rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 4 /* Verbosity */, &vboxWinDrvInstLogCallback, hLog /* pvUser */);
             if (RT_SUCCESS(rc))
             {
-                rc = VBoxWinDrvInstInstall(hWinDrvInst, pszInfFile, pszPnpId,
-                                           VBOX_WIN_DRIVERINSTALL_F_SILENT | VBOX_WIN_DRIVERINSTALL_F_FORCE);
+                rc = VBoxWinDrvInstInstallEx(hWinDrvInst, pszInfFile, NULL /* pszModel */, pszPnpId,
+                                             VBOX_WIN_DRIVERINSTALL_F_SILENT | VBOX_WIN_DRIVERINSTALL_F_FORCE);
 
                 VBoxWinDrvInstDestroy(hWinDrvInst);
             }

@@ -51,7 +51,7 @@ goto end
 
 :dir_okay
 rem
-rem We don't use the driver files directly any more because of win10 keeping them 
+rem We don't use the driver files directly any more because of win10 keeping them
 rem open, so create an alternative directory for the binaries.  Another reason is
 rem loading drivers via network shares, in which case we just use temp.
 rem

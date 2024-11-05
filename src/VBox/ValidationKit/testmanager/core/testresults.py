@@ -436,6 +436,7 @@ class TestResultFileData(ModelDataBase):
     ksKind_LogInstaller             = 'log/installer';
     ksKind_LogUninstaller           = 'log/uninstaller';
     ksKind_LogGuestKernel           = 'log/guest/kernel';
+    ksKind_LogWinSetupApi           = 'log/win/setupapi';
     ksKind_ProcessReportVm          = 'process/report/vm';
     ksKind_CrashReportVm            = 'crash/report/vm';
     ksKind_CrashDumpVm              = 'crash/dump/vm';
@@ -462,6 +463,7 @@ class TestResultFileData(ModelDataBase):
         ksKind_LogInstaller,
         ksKind_LogUninstaller,
         ksKind_LogGuestKernel,
+        ksKind_LogWinSetupApi,
         ksKind_ProcessReportVm,
         ksKind_CrashReportVm,
         ksKind_CrashDumpVm,

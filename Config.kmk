@@ -1129,6 +1129,8 @@ endif
 if1of ($(KBUILD_TARGET), darwin linux os2 win)
  if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
   VBOX_WITH_OPEN_WATCOM := 1
+ else if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+  VBOX_WITH_OPEN_WATCOM := 1
  endif
 endif
 ## @}

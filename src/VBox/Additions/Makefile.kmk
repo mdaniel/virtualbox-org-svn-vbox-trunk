@@ -324,7 +324,18 @@ ifdef VBOX_WITH_ADDITIONS_ISO.win.x86
  	NT3x/VBoxAddInstallNt3x.exe=$(VBOX_PATH_ADDITIONS.win.x86)/VBoxAddInstallNt3x.exe
 endif # win.x86
 
-if defined(VBOX_WITH_ADDITIONS_ISO.win.amd64) || defined(VBOX_WITH_ADDITIONS_ISO.win.x86)
+ifdef VBOX_WITH_ADDITIONS_ISO.win.arm64
+ VBOX_PATH_ADDITIONS.win.arm64 = $(PATH_OUT_BASE)/win.arm64/$(KBUILD_TYPE)/bin/additions
+ VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.arm64)
+ GUESTADDITIONS_FILESPEC.win.arm64 = \
+ 	VBoxWindowsAdditions-arm64.exe=$(VBOX_PATH_ADDITIONS.win.arm64)/VBoxWindowsAdditions-arm64.exe
+ if !defined(VBOX_WITH_ADDITIONS_ISO.win.x86) && !defined(VBOX_WITH_ADDITIONS_ISO.win.arm64)
+  GUESTADDITIONS_FILESPEC.win.arm64 += \
+  	cert/VBoxCertUtil.exe=$(VBOX_PATH_ADDITIONS.win.arm64)/VBoxCertUtil.exe
+ endif
+endif # win.arm64
+
+if defined(VBOX_WITH_ADDITIONS_ISO.win.amd64) || defined(VBOX_WITH_ADDITIONS_ISO.win.x86) || defined(VBOX_WITH_ADDITIONS_ISO.win.arm64)
  # Note! This probably only work reliably when packing is also done on a windows host!
  # When in "test" signing mode, skip adding the certificates below.
  if !defined(VBOX_SIGNING_MODE) || "$(VBOX_SIGNING_MODE)" == "test"
@@ -371,6 +382,7 @@ GUESTADDITIONS_FILESPEC_ALL = \
 	$(GUESTADDITIONS_FILESPEC.win) \
 	$(GUESTADDITIONS_FILESPEC.win.x86) \
 	$(GUESTADDITIONS_FILESPEC.win.amd64) \
+	$(GUESTADDITIONS_FILESPEC.win.arm64) \
 	$(GUESTADDITIONS_FILESPEC.solaris.x86) \
 	$(GUESTADDITIONS_FILESPEC.solaris.amd64) \
 	$(GUESTADDITIONS_FILESPEC.os2.x86) \

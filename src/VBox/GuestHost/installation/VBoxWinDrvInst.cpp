@@ -1084,7 +1084,7 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
              * Pre-install driver.
              */
             DWORD dwInstallFlags = 0;
-            if (uNtVer >= RTSYSTEM_MAKE_NT_VERSION(66, 0, 0)) /* for Vista / 2008 Server and up. */
+            if (uNtVer >= RTSYSTEM_MAKE_NT_VERSION(6, 0, 0)) /* for Vista / 2008 Server and up. */
             {
                 if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_FORCE)
                     dwInstallFlags |= DIIRFLAG_FORCE_INF;
@@ -1153,13 +1153,15 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                             {
                                 vboxWinDrvInstLogInfo(pCtx, "Device (\"%ls\") not found (yet), pre-installing driver ...",
                                                       pParms->u.UnInstall.pwszPnpId);
-                                fPreInstall = true;
+                                fPreInstall     = true;
+                                fInstallSection = true;
                                 break;
                             }
 
                             case ERROR_NO_DRIVER_SELECTED:
                             {
                                 vboxWinDrvInstLogWarn(pCtx, "Not able to select a driver from the given INF, using given model");
+                                fPreInstall     = true;
                                 fInstallSection = true;
                                 break;
                             }
@@ -1207,11 +1209,9 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                 }
 
                 if (fInstallSection)
-                {
                     rc = vboxWinDrvTryInfSection(pCtx,
                                                  pParms->pwszInfFile, pParms->u.UnInstall.pwszModel,
                                                  vboxWinDrvInstallTryInfSectionCallback);
-                }
             }
 
             if (RT_FAILURE(rc))
@@ -1436,7 +1436,9 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
 
         vboxWinDrvInstLogInfo(pCtx, "Uninstalling OEM INF \"%ls\" ...", wszInfPathAbs);
 
-        /* rc ignored, keep going */ vboxWinDrvTryInfSection(pCtx, wszInfPathAbs, pCur->wszModel,
+        /* Only calltry calling the "DefaultUninstall" section here, as there aren't any other section(s)
+         * to handle for uninstalling a driver via INF files. */
+        /* rc ignored, keep going */ vboxWinDrvTryInfSection(pCtx, wszInfPathAbs, NULL /* DefaultUninstall */,
                                                              vboxWinDrvUninstallTryInfSectionCallback);
 
         /*

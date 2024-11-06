@@ -251,43 +251,6 @@ Function ExtractFiles
 FunctionEnd
 !endif ; UNINSTALLER_ONLY
 
-;;
-; Checks that the installer target architecture matches the host,
-; i.e. that we're not trying to install 32-bit binaries on a 64-bit
-; host from WOW64 mode.
-;
-!macro CheckArchitecture un
-Function ${un}CheckArchitecture
-
-  Push $0   ;; @todo r=bird: Why ??
-
-  System::Call "kernel32::GetCurrentProcess() i .s"
-  System::Call "kernel32::IsWow64Process(i s, *i .r0)"
-  ; R0 now contains 1 if we're a 64-bit process, or 0 if not
-
-!if $%KBUILD_TARGET_ARCH% == "amd64"
-  IntCmp $0 0 wrong_platform
-!else ; 32-bit
-  IntCmp $0 1 wrong_platform
-!endif
-
-  Push 0
-  Goto exit
-
-wrong_platform:
-
-  Push 1
-  Goto exit
-
-exit:
-
-FunctionEnd
-!macroend
-!ifndef UNINSTALLER_ONLY
-  !insertmacro CheckArchitecture ""
-  !insertmacro CheckArchitecture "un."
-!endif
-
 ;
 ; Macro for retrieving the Windows version this installer is running on.
 ;

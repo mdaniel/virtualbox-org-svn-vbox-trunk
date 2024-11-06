@@ -43,7 +43,7 @@ VBoxShell_SOURCES = \
 if defined(VBOX_WITH_PYLINT) && !defined(VBOX_WITHOUT_AUTO_PYLINT)
  OTHERS      += $(PATH_TARGET)/pylintVBoxShell.run
  OTHER_CLEAN += $(PATH_TARGET)/pylintVBoxShell.run
- $(PATH_TARGET)/pylintVBoxShell.run: vboxshell.py
+ $(PATH_TARGET)/pylintVBoxShell.run: $(PATH_SUB_CURRENT)/vboxshell.py
 	$(QUIET)$(APPEND) -t "$@"
 endif
 

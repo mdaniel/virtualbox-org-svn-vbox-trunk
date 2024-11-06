@@ -1072,6 +1072,8 @@ Function .onInit
   ${If} $0 <> 0 ; Wrong architecture? Tell the world
   !if $%KBUILD_TARGET_ARCH% == "amd64"
     MessageBox MB_ICONSTOP $(VBOX_NOTICE_ARCH_AMD64) /SD IDOK
+  !else if $%KBUILD_TARGET_ARCH% == "arm64"
+    MessageBox MB_ICONSTOP $(VBOX_NOTICE_ARCH_ARM64) /SD IDOK
   !else
     MessageBox MB_ICONSTOP $(VBOX_NOTICE_ARCH_X86) /SD IDOK
   !endif

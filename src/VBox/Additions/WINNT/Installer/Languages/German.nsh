@@ -29,8 +29,10 @@ LangString VBOX_TEST ${LANG_GERMAN}                                 "Das ist ein
 
 LangString VBOX_NOADMIN ${LANG_GERMAN}                              "Sie benötigen Administrations-Rechte zum (De-)Installieren der $(^Name)!$\r$\nDas Setup wird nun beendet."
 
-LangString VBOX_NOTICE_ARCH_X86 ${LANG_GERMAN}                      "Diese Applikation läuft nur auf 32-bit Windows-Systemen. Bitte installieren Sie die 64-bit Version der $(^Name)!"
-LangString VBOX_NOTICE_ARCH_AMD64 ${LANG_GERMAN}                    "Diese Applikation läuft nur auf 64-bit Windows-Systemen. Bitte installieren Sie die 32-bit Version der $(^Name)!"
+;; @todo win.arm64: Check spelling meaning of the next three messages.
+LangString VBOX_NOTICE_ARCH_X86 ${LANG_GERMAN}                      "Diese Applikation läuft nur auf 32-bit Windows-Systemen. Bitte installieren Sie den passende Version der $(^Name) für Ihren Gast!"
+LangString VBOX_NOTICE_ARCH_AMD64 ${LANG_GERMAN}                    "Diese Applikation läuft nur auf 64-bit Windows-Systemen. Bitte installieren Sie den passende Version der $(^Name) für Ihren Gast!"
+LangString VBOX_NOTICE_ARCH_ARM64 ${LANG_GERMAN}                    "Diese Applikation läuft nur auf Windows-ARM64-Systemen. Bitte installieren Sie den passende Version der $(^Name) für Ihren Gast!"
 LangString VBOX_NT4_NO_SP6 ${LANG_GERMAN}                           "Es ist kein Service Pack 6 für NT 4.0 installiert.$\r$\nEs wird empfohlen das Service-Pack vor dieser Installation zu installieren. Trotzdem jetzt ohne Service-Pack installieren?"
 
 LangString VBOX_PLATFORM_UNSUPPORTED ${LANG_GERMAN}                 "Diese Plattform wird noch nicht durch diese Guest Additions unterstützt!"

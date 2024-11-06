@@ -50,6 +50,8 @@ GLOBALNAME vcc100_kernel32_fakes_asm
  %include "vcc-fakes-kernel32-141.h"
 %elifdef VCC_FAKES_TARGET_VCC142
  %include "vcc-fakes-kernel32-141.h"
+%elifdef VCC_FAKES_TARGET_VCC143
+ %include "vcc-fakes-kernel32-141.h"
 %else
  %error "PORT ME!"
 %endif

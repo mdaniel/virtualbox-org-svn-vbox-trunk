@@ -90,6 +90,8 @@ static volatile bool g_fInitialized = false;
 # include "vcc-fakes-kernel32-141.h"
 #elif defined(VCC_FAKES_TARGET_VCC142)
 # include "vcc-fakes-kernel32-141.h"
+#elif defined(VCC_FAKES_TARGET_VCC143)
+# include "vcc-fakes-kernel32-141.h"
 #else
 # error "Port me!"
 #endif
@@ -481,7 +483,7 @@ DECL_KERNEL32(BOOL) Fake_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER offDistanc
 
         case FILE_END:
         {
-            FILE_STANDARD_INFO StdInfo = {{0}};
+            FILE_STANDARD_INFO StdInfo = { {{0}}, {{0}}, 0, 0, 0 };
             rcNt = NtQueryInformationFile(hFile, &Ios, &StdInfo, sizeof(StdInfo), FileStandardInformation);
             if (NT_SUCCESS(rcNt))
             {
@@ -513,7 +515,7 @@ DECL_KERNEL32(BOOL) Fake_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER offDistanc
 DECL_KERNEL32(BOOL) Fake_GetFileSizeEx(HANDLE hFile, PLARGE_INTEGER pcbFile)
 {
     IO_STATUS_BLOCK    Ios     = RTNT_IO_STATUS_BLOCK_INITIALIZER;
-    FILE_STANDARD_INFO StdInfo = {{0}};
+    FILE_STANDARD_INFO StdInfo = { {{0}}, {{0}}, 0, 0, 0 };
     NTSTATUS rcNt = NtQueryInformationFile(hFile, &Ios, &StdInfo, sizeof(StdInfo), FileStandardInformation);
     if (NT_SUCCESS(rcNt))
     {
@@ -873,6 +875,8 @@ DECLASM(void) FakeResolve_kernel32(void)
 #elif defined(VCC_FAKES_TARGET_VCC141)
 # include "vcc-fakes-kernel32-141.h"
 #elif defined(VCC_FAKES_TARGET_VCC142)
+# include "vcc-fakes-kernel32-141.h"
+#elif defined(VCC_FAKES_TARGET_VCC143)
 # include "vcc-fakes-kernel32-141.h"
 #else
 # error "Port me!"

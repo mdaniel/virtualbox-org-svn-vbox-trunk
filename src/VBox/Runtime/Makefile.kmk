@@ -47,6 +47,7 @@ else ifdef VBOX_ONLY_ADDITIONS
  LIBRARIES += RuntimeGuestR3 RuntimeGuestR3Shared
  LIBRARIES.win += RuntimeR3NoCrt
  LIBRARIES.win.amd64 += RuntimeGuestR3-x86 RuntimeGuestR3Shared-x86
+ LIBRARIES.win.arm64 += RuntimeGuestR3Shared-x86
  ifdef VBOX_WITH_ADDITION_DRIVERS
   LIBRARIES += RuntimeGuestR0
   #LIBRARIES.os2 += RuntimeGuestR0OS2Warp3
@@ -134,6 +135,7 @@ else # !VBOX_ONLY_ADDITIONS && !VBOX_ONLY_VALIDATIONKIT && !VBOX_ONLY_DOCS
  ifdef VBOX_WITH_ADDITIONS
   LIBRARIES += RuntimeGuestR3 RuntimeGuestR3Shared
   LIBRARIES.win.amd64 += RuntimeGuestR3-x86 RuntimeGuestR3Shared-x86
+  LIBRARIES.win.arm64 += RuntimeGuestR3Shared-x86
   ifdef VBOX_WITH_ADDITION_DRIVERS
    LIBRARIES += RuntimeGuestR0
   endif

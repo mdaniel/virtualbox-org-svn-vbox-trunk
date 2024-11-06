@@ -90,7 +90,7 @@ goto argument_loop
 
 :opt_a
 if ".%~2" == "."            goto syntax_error_missing_value
-if not "%2" == "x86" if not "%2" == "amd64" goto syntax_error_unknown_arch
+if not "%2" == "x86" if not "%2" == "amd64" if not "%2" == "arm64" goto syntax_error_unknown_arch
 set _MY_OPT_ARCH=%~2
 goto argument_loop_next_with_value
 
@@ -114,7 +114,7 @@ echo This script creates a .cab file containing all drivers needing blessing fro
 echo Microsoft to run on recent Windows 10 installations.
 echo .
 echo Usage: PackDriversForSubmission.cmd [-b bindir] [-p pdbdir] [--no-main] [-n/--no-pdb] [-e expack]
-echo           [-x/--no-extpack] [-g/--ga/--additions] [-o output.cab] [-p output.ddf] [-a x86/amd64]
+echo           [-x/--no-extpack] [-g/--ga/--additions] [-o output.cab] [-p output.ddf] [-a x86/amd64/arm64]
 echo .
 echo Warning! This script should normally be invoked from the repack directory w/o any parameters.
 goto end_failed
@@ -311,7 +311,7 @@ echo %_MY_OPT_GADIR%\VBoxSVGA.dll>>                                             
 echo %_MY_OPT_GADIR%\VBoxGL.dll>>                                                       "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_GADIR%\VBoxMRXNP.dll>>                                                    "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_GADIR%\VBoxSF.sys>>                                                       "%_MY_OPT_DDF_FILE%"
-if ".%_MY_OPT_ARCH%" == ".x86" goto skip_amd64_files
+if not ".%_MY_OPT_ARCH%" == ".amd64" goto skip_amd64_files
 echo %_MY_OPT_GADIR%\VBoxDX-x86.dll>>                                                   "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_GADIR%\VBoxDispD3D-x86.dll>>                                              "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_GADIR%\VBoxNine-x86.dll>>                                                 "%_MY_OPT_DDF_FILE%"

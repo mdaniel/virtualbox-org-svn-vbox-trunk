@@ -57,6 +57,7 @@ Function Common_CopyFiles
 
   FILE "$%PATH_OUT%\bin\additions\VBoxDrvInst.exe"
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   FILE "$%PATH_OUT%\bin\additions\VBoxVideo.inf"
 !if $%KBUILD_TARGET_ARCH% == "x86"
   ${If} $g_strEarlyNTDrvInfix != ""
@@ -67,12 +68,17 @@ Function Common_CopyFiles
   ${EndIf}
 !endif
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxVideo.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxVideo.cat"
   ${Else}
     FILE "/oname=VBoxVideo.cat" "$%PATH_OUT%\bin\additions\VBoxVideo-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64" 
 
 FunctionEnd
 
@@ -94,6 +100,7 @@ Function ExtractFiles
   FILE "/oname=${LICENSE_FILE_RTF}" "$%VBOX_BRAND_LICENSE_RTF%"
 !endif
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   ; Video driver
   SetOutPath "$0\VBoxVideo"
   FILE "$%PATH_OUT%\bin\additions\VBoxVideo.sys"
@@ -107,24 +114,33 @@ Function ExtractFiles
   ${EndIf}
 !endif
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxVideo.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxVideo.cat"
   ${Else}
     FILE "/oname=VBoxVideo.cat" "$%PATH_OUT%\bin\additions\VBoxVideo-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
   FILE "$%PATH_OUT%\bin\additions\VBoxDisp.dll"
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64" 
 
 !if $%VBOX_WITH_WDDM% == "1"
   ; WDDM Video driver
   SetOutPath "$0\VBoxWddm"
 
   !ifdef VBOX_SIGN_ADDITIONS
+    !if $%KBUILD_TARGET_ARCH% == "arm64"
+      FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
+    !else
     ${If} $g_strWinVersion == "10"
       FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
     ${Else}
       FILE "/oname=VBoxWddm.cat" "$%PATH_OUT%\bin\additions\VBoxWddm-PreW10.cat"
     ${EndIf}
+    !endif
   !endif
   FILE "$%PATH_OUT%\bin\additions\VBoxWddm.sys"
   FILE "$%PATH_OUT%\bin\additions\VBoxWddm.inf"
@@ -157,11 +173,15 @@ Function ExtractFiles
   FILE "$%PATH_OUT%\bin\additions\VBoxMouse.sys"
   FILE "$%PATH_OUT%\bin\additions\VBoxMouse.inf"
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
   ${Else}
     FILE "/oname=VBoxMouse.cat" "$%PATH_OUT%\bin\additions\VBoxMouse-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
 
 !if $%KBUILD_TARGET_ARCH% == "x86"
@@ -182,11 +202,15 @@ Function ExtractFiles
   ${EndIf}
 !endif
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
   ${Else}
     FILE "/oname=VBoxGuest.cat" "$%PATH_OUT%\bin\additions\VBoxGuest-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
   FILE "$%PATH_OUT%\bin\additions\VBoxTray.exe"
   FILE "$%PATH_OUT%\bin\additions\VBoxHook.dll"

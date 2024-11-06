@@ -166,12 +166,15 @@ VBOX_WINDOWS_ADDITIONS_ATTESTATION_SIGNED_FILES := \
 	$(PATH_STAGE_BIN)/additions/VBoxMouse.inf \
 	$(PATH_STAGE_BIN)/additions/VBoxMouse.sys \
 	\
-	$(PATH_STAGE_BIN)/additions/VBoxVideo.inf \
-	$(PATH_STAGE_BIN)/additions/VBoxVideo.sys \
-	$(PATH_STAGE_BIN)/additions/VBoxDisp.dll \
-	\
 	$(PATH_STAGE_BIN)/additions/VBoxSF.sys \
 	$(PATH_STAGE_BIN)/additions/VBoxMRXNP.dll
+
+ifneq ($(KBUILD_TARGET_ARCH),arm64) ## @todo win.arm64: Make VBoxVideo build.
+ VBOX_WINDOWS_ADDITIONS_ATTESTATION_SIGNED_FILES += \
+ 	$(PATH_STAGE_BIN)/additions/VBoxVideo.inf \
+ 	$(PATH_STAGE_BIN)/additions/VBoxVideo.sys \
+ 	$(PATH_STAGE_BIN)/additions/VBoxDisp.dll
+endif
 
 ifeq ($(KBUILD_TARGET_ARCH),amd64) # 32-bit network provider DLLs for 32-bit apps running on a 64-bit system
  VBOX_WINDOWS_ADDITIONS_ATTESTATION_SIGNED_FILES += \
@@ -187,11 +190,14 @@ endif
 if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
  VBOX_WINDOWS_ADDITIONS_OTHER_FILES += \
  	$(PATH_STAGE_BIN)/additions/VBoxVideo.cat \
- 	$(PATH_STAGE_BIN)/additions/VBoxVideo-PreW10.cat \
  	$(PATH_STAGE_BIN)/additions/VBoxGuest.cat \
- 	$(PATH_STAGE_BIN)/additions/VBoxGuest-PreW10.cat \
- 	$(PATH_STAGE_BIN)/additions/VBoxMouse.cat \
- 	$(PATH_STAGE_BIN)/additions/VBoxMouse-PreW10.cat
+ 	$(PATH_STAGE_BIN)/additions/VBoxMouse.cat
+ if1of ($(KBUILD_TARGET_ARCH), x86 amd64)
+  VBOX_WINDOWS_ADDITIONS_OTHER_FILES += \
+  	$(PATH_STAGE_BIN)/additions/VBoxVideo-PreW10.cat \
+  	$(PATH_STAGE_BIN)/additions/VBoxGuest-PreW10.cat \
+  	$(PATH_STAGE_BIN)/additions/VBoxMouse-PreW10.cat
+ endif
  ifeq ($(KBUILD_TARGET_ARCH),x86)
   VBOX_WINDOWS_ADDITIONS_OTHER_FILES += \
   	$(PATH_STAGE_BIN)/additions/VBoxGuestEarlyNT.cat \

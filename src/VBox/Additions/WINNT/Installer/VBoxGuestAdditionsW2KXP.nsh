@@ -358,19 +358,25 @@ Function W2K_CopyFiles
   Push $0
   SetOutPath "$INSTDIR"
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   ; Video driver
   FILE "$%PATH_OUT%\bin\additions\VBoxVideo.sys"
   FILE "$%PATH_OUT%\bin\additions\VBoxDisp.dll"
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 
   ; Mouse driver
   FILE "$%PATH_OUT%\bin\additions\VBoxMouse.sys"
   FILE "$%PATH_OUT%\bin\additions\VBoxMouse.inf"
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
   ${Else}
     FILE "/oname=VBoxMouse.cat" "$%PATH_OUT%\bin\additions\VBoxMouse-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
 
   ; Guest driver
@@ -385,11 +391,15 @@ Function W2K_CopyFiles
   ${EndIf}
 !endif
 !ifdef VBOX_SIGN_ADDITIONS
+  !if $%KBUILD_TARGET_ARCH% == "arm64"
+    FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
+  !else
   ${If} $g_strWinVersion == "10"
     FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
   ${Else}
     FILE "/oname=VBoxGuest.cat" "$%PATH_OUT%\bin\additions\VBoxGuest-PreW10.cat"
   ${EndIf}
+  !endif
 !endif
 
   ; Guest driver files
@@ -433,11 +443,15 @@ Function W2K_CopyFiles
     SetOutPath "$INSTDIR"
 
     !ifdef VBOX_SIGN_ADDITIONS
+      !if $%KBUILD_TARGET_ARCH% == "arm64"
+        FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
+      !else
       ${If} $g_strWinVersion == "10"
         FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
       ${Else}
         FILE "/oname=VBoxWddm.cat" "$%PATH_OUT%\bin\additions\VBoxWddm-PreW10.cat"
       ${EndIf}
+      !endif
     !endif
     FILE "$%PATH_OUT%\bin\additions\VBoxWddm.sys"
     FILE "$%PATH_OUT%\bin\additions\VBoxWddm.inf"
@@ -515,6 +529,7 @@ Function W2K_InstallFiles
     ${LogVerbose} "Guest driver installation skipped!"
   ${EndIf}
 
+!if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   ${If} $g_bNoVideoDrv == "false"
     ${If} $g_bWithWDDM == "true"
       ${LogVerbose} "Installing WDDM video driver..."
@@ -526,6 +541,7 @@ Function W2K_InstallFiles
   ${Else}
     ${LogVerbose} "Video driver installation skipped!"
   ${EndIf}
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 
   ;
   ; Mouse driver.

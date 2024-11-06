@@ -32,24 +32,42 @@ include $(KBUILD_PATH)/subheader.kmk
 include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
 
 #
-# NSIS plugins always have to be compiled in 32-bit!
+# Stripped down template for arm64.
+#
+TEMPLATE_VBoxGuestInstallerHelperTemplateWithFewerLibs                = hack
+TEMPLATE_VBoxGuestInstallerHelperTemplateWithFewerLibs_EXTENDS       := VBoxGuestR3Dll
+TEMPLATE_VBoxGuestInstallerHelperTemplateWithFewerLibs_LATE_LIBS.x86  = \
+	$(filter-out %/VBoxGuestR3LibShared-x86.lib,$(TEMPLATE_VBoxGuestR3Dll_LATE_LIBS.x86))
+
+#
+# NSIS plugins have to match the NSIS architecture, so 32-bit x86 in our case.
 #
 # Note! Installation is required for repacking Guest Additions
 #
 DLLS += VBoxGuestInstallHelper
-VBoxGuestInstallHelper_TEMPLATE        := VBoxGuestR3Dll
-if1of ($(KBUILD_TARGET_ARCH), amd64)
- VBoxGuestInstallHelper_BLD_TRG_ARCH    := x86
-endif
+VBoxGuestInstallHelper_TEMPLATE        := VBoxGuestInstallerHelperTemplateWithFewerLibs
+VBoxGuestInstallHelper_BLD_TRG_ARCH    := x86
 VBoxGuestInstallHelper_INST            := repackadd/resources/VBoxGuestInstallHelper/
 ifdef VBOX_SIGN_ADDITIONS # (See the parent makefile.)
  VBoxGuestInstallHelper_INSTTYPE       := stage
  VBoxGuestInstallHelper_DEBUG_INSTTYPE := both
 endif
-VBoxGuestInstallHelper_DEFS            := _WIN32_WINNT=0x0400 WIN32_LEAN_AND_MEAN=1 UNICODE _UNICODE
+VBoxGuestInstallHelper_DEFS            := WIN32_LEAN_AND_MEAN=1 UNICODE _UNICODE
+if1of ($(KBUILD_TARGET_ARCH), x86)
+ VBoxGuestInstallHelper_DEFS           := _WIN32_WINNT=0x0400
+ VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := nt4
+else if1of ($(KBUILD_TARGET_ARCH), amd64)
+ VBoxGuestInstallHelper_DEFS           := _WIN32_WINNT=0x0501
+VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86  := xp
+else
+ VBoxGuestInstallHelper_DEFS           := _WIN32_WINNT=0x0a00
+ VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := w8
+endif
 VBoxGuestInstallHelper_SOURCES         := \
 	VBoxGuestInstallHelper.cpp \
-	VBoxGuestInstallHelper.rc
-VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := nt4
+	VBoxGuestInstallHelper.rc \
+	$(PATH_ROOT)/src/VBox/Runtime/generic/RTLogWriteUser-generic.cpp
+VBoxGuestInstallHelper_INCS            := \
+	$(PATH_ROOT)/src/VBox/Runtime/include
 
 include $(FILE_KBUILD_SUB_FOOTER)

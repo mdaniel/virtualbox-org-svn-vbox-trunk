@@ -78,7 +78,7 @@ Function Common_CopyFiles
   ${EndIf}
   !endif
 !endif
-!endif ; $%KBUILD_TARGET_ARCH% != "arm64" 
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 
 FunctionEnd
 
@@ -125,7 +125,7 @@ Function ExtractFiles
   !endif
 !endif
   FILE "$%PATH_OUT%\bin\additions\VBoxDisp.dll"
-!endif ; $%KBUILD_TARGET_ARCH% != "arm64" 
+!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
 
 !if $%VBOX_WITH_WDDM% == "1"
   ; WDDM Video driver

@@ -58,7 +58,7 @@ if1of ($(KBUILD_TARGET_ARCH), x86)
  VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := nt4
 else if1of ($(KBUILD_TARGET_ARCH), amd64)
  VBoxGuestInstallHelper_DEFS           := _WIN32_WINNT=0x0501
-VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86  := xp
+ VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := xp
 else
  VBoxGuestInstallHelper_DEFS           := _WIN32_WINNT=0x0a00
  VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := w8

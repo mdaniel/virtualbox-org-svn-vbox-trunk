@@ -4380,15 +4380,19 @@ static int rtldrPEValidateOptionalHeader(const IMAGE_OPTIONAL_HEADER64 *pOptHdr,
     {
         Log(("rtldrPEOpen: %s: SizeOfStackReserve %#x < SizeOfStackCommit %#x!!!\n",
              pszLogName, pOptHdr->SizeOfStackReserve, pOptHdr->SizeOfStackCommit));
-        return RTERRINFO_LOG_SET_F(pErrInfo, VERR_BAD_EXE_FORMAT, "SizeOfStackReserve %#x < SizeOfStackCommit %#x",
-                                   pOptHdr->SizeOfStackReserve, pOptHdr->SizeOfStackCommit);
+        if (   !(fFlags & (RTLDR_O_FOR_DEBUG | RTLDR_O_FOR_VALIDATION))
+            && !(pFileHdr->Characteristics & IMAGE_FILE_DLL))
+            return RTERRINFO_LOG_SET_F(pErrInfo, VERR_BAD_EXE_FORMAT, "SizeOfStackReserve %#x < SizeOfStackCommit %#x",
+                                       pOptHdr->SizeOfStackReserve, pOptHdr->SizeOfStackCommit);
     }
     if (pOptHdr->SizeOfHeapReserve < pOptHdr->SizeOfHeapCommit)
     {
-        Log(("rtldrPEOpen: %s: SizeOfStackReserve %#x < SizeOfStackCommit %#x!!!\n",
-             pszLogName, pOptHdr->SizeOfStackReserve, pOptHdr->SizeOfStackCommit));
-        return RTERRINFO_LOG_SET_F(pErrInfo, VERR_BAD_EXE_FORMAT, "SizeOfStackReserve %#x < SizeOfStackCommit %#x\n",
-                                   pOptHdr->SizeOfStackReserve, pOptHdr->SizeOfStackCommit);
+        Log(("rtldrPEOpen: %s: SizeOfHeapReserve %#x < SizeOfHeapCommit %#x!!!\n",
+             pszLogName, pOptHdr->SizeOfHeapReserve, pOptHdr->SizeOfHeapCommit));
+        if (   !(fFlags & (RTLDR_O_FOR_DEBUG | RTLDR_O_FOR_VALIDATION))
+            && !(pFileHdr->Characteristics & IMAGE_FILE_DLL))
+            return RTERRINFO_LOG_SET_F(pErrInfo, VERR_BAD_EXE_FORMAT, "SizeOfHeapReserve %#x < SizeOfHeapCommit %#x\n",
+                                       pOptHdr->SizeOfHeapReserve, pOptHdr->SizeOfHeapCommit);
     }
 
     /* DataDirectory */
@@ -5151,7 +5155,7 @@ DECLHIDDEN(int) rtldrPEOpen(PRTLDRREADER pReader, uint32_t fFlags, RTLDRARCH enm
                     pModPe->Core.pOps = &s_rtldrPE32Ops.Core;
                 pModPe->Core.pReader  = pReader;
                 pModPe->Core.enmFormat= RTLDRFMT_PE;
-                pModPe->Core.enmType  = FileHdr.Characteristics & IMAGE_FILE_DLL
+                pModPe->Core.enmType  = !(FileHdr.Characteristics & IMAGE_FILE_DLL)
                                       ? FileHdr.Characteristics & IMAGE_FILE_RELOCS_STRIPPED
                                         ? RTLDRTYPE_EXECUTABLE_FIXED
                                         : RTLDRTYPE_EXECUTABLE_RELOCATABLE

@@ -75,13 +75,10 @@ endif
 #
 # Utility to play sine wave to Default Audio Device.
 #
-if 0 # Disabled for now; does not work without WinMM.dll import validator files.
- PROGRAMS.win += ntPlayToneWaveX
- ntPlayToneWaveX_TEMPLATE = VBoxValidationKitR3
- ntPlayToneWaveX_SOURCES  = ntPlayToneWaveX.cpp
- ntPlayToneWaveX_LIBS    += \
- 	WinMM.Lib
-endif
+PROGRAMS.win += ntPlayToneWaveX
+ntPlayToneWaveX_TEMPLATE := VBoxValidationKitR3
+ntPlayToneWaveX_SOURCES  := ntPlayToneWaveX.cpp
+ntPlayToneWaveX_LIBS     := WinMM.lib
 
 
 #

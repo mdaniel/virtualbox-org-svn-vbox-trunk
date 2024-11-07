@@ -38,7 +38,6 @@
 #include <iprt/buildconfig.h>
 #include <iprt/cdefs.h>
 #include <iprt/dir.h>
-#include <iprt/err.h>
 #include <iprt/ldr.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
@@ -51,6 +50,7 @@
 #include <package-generated.h>
 #include "product-generated.h"
 
+#include <VBox/err.h> /* For VERR_PLATFORM_ARCH_NOT_SUPPORTED.*/
 #include <VBox/version.h>
 
 #include <VBox/GuestHost/VBoxWinDrvDefs.h>
@@ -496,6 +496,27 @@ DECLINLINE(const char *) vboxWinDrvSetupApiErrToStr(const DWORD dwErr)
 }
 
 /**
+ * Returns a winerr.h error as a string.
+ *
+ * Needded to get at least a minimally meaningful error string back.
+ *
+ * @returns Error as a string, or NULL if not found.
+ * @param   dwErr               Error code to return as a string.
+ */
+DECLINLINE(const char *) vboxWinDrvWinErrToStr(const DWORD dwErr)
+{
+    switch (dwErr)
+    {
+
+        RT_CASE_RET_STR(ERROR_BADKEY                            );
+        default:
+            break;
+    }
+
+    return NULL;
+}
+
+/**
  * Logs the last Windows error given via GetLastError().
  *
  * @returns Last Windows error translated into VBox status code.
@@ -523,6 +544,8 @@ DECLINLINE(int) vboxWinDrvInstLogLastError(PVBOXWINDRVINSTINTERNAL pCtx, const c
 
     /* Try resolving Setup API errors first (we don't handle those in IPRT). */
     const char *pszErr = vboxWinDrvSetupApiErrToStr(dwErr);
+    if (!pszErr) /* Also ask for special winerr.h codes we don't handle in IPRT. */
+        pszErr = vboxWinDrvWinErrToStr(dwErr);
     if (!pszErr)
         rc = RTErrConvertFromWin32(dwErr);
 

@@ -286,21 +286,21 @@ ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.x86
  	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntSetFreq.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntTimeSources.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntDisplay.exe \
-  	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntPlayToneWaveX.exe
+ 	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntPlayToneWaveX.exe
 endif
 ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.amd64
  VBOX_VALIDATIONKIT_FILESPEC += \
  	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntSetFreq.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntTimeSources.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntDisplay.exe \
-  	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntPlayToneWaveX.exe
+ 	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntPlayToneWaveX.exe
 endif
 ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.arm64
  VBOX_VALIDATIONKIT_FILESPEC += \
  	$(VBOX_PATH_VALIDATIONKIT.win.arm64)/ntSetFreq.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.arm64)/ntTimeSources.exe \
  	$(VBOX_PATH_VALIDATIONKIT.win.arm64)/ntDisplay.exe \
-  	$(VBOX_PATH_VALIDATIONKIT.win.arm64)/ntPlayToneWaveX.exe
+ 	$(VBOX_PATH_VALIDATIONKIT.win.arm64)/ntPlayToneWaveX.exe
 endif
 ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.x86
  VBOX_VALIDATIONKIT_FILESPEC += $(abspath $(VBOX_PATH_VALIDATIONKIT.win.x86)/../vboxtxs.cmd)

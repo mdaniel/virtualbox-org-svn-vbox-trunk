@@ -2211,6 +2211,7 @@ validationkit-packing:
 		VBOX_WITH_VALIDATIONKIT_PACKING.solaris.x86=1 \
 		VBOX_WITH_VALIDATIONKIT_PACKING.win.amd64=1 \
 		VBOX_WITH_VALIDATIONKIT_PACKING.win.x86=1 \
+		VBOX_WITH_VALIDATIONKIT_PACKING.win.arm64=1 \
 		-C src/VBox/ValidationKit \
 		$(PATH_OUT)/VBoxValidationKit.zip \
 		$(PATH_OUT)/VBoxTestBoxScript.zip
@@ -2218,6 +2219,7 @@ validationkit-packing:
 .PHONY: \
 		validationkit-build-win.x86 \
 		validationkit-build-win.amd64 \
+		validationkit-build-win.arm64 \
 		validationkit-build-solaris.amd64 \
 		validationkit-build-solaris.x86 \
 		validationkit-build-os2.x86 \

@@ -1697,34 +1697,23 @@ extpacks-fetch:
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=amd64 KBUILD_TARGET=solaris VBOX_ONLY_EXTPACKS=1
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=amd64 KBUILD_TARGET=win     VBOX_ONLY_EXTPACKS=1
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=arm64 KBUILD_TARGET=darwin  VBOX_ONLY_EXTPACKS=1
-if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
-	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=darwin  VBOX_ONLY_EXTPACKS=1
- #	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=freebsd VBOX_ONLY_EXTPACKS=1
-	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=linux   VBOX_ONLY_EXTPACKS=1
- #	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=os2     VBOX_ONLY_EXTPACKS=1
-	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=win     VBOX_ONLY_EXTPACKS=1
-endif
+	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=arm64 KBUILD_TARGET=win     VBOX_ONLY_EXTPACKS=1
 
 
 extpacks-build: \
 		extpacks-build-win.amd64 \
-		extpacks-build-win.x86 \
+		extpacks-build-win.arm64 \
 		extpacks-build-solaris.amd64 \
-		extpacks-build-os2.x86 \
-		extpacks-build-linux \
+		extpacks-build-linux.amd64 \
 		extpacks-build-darwin.amd64 \
 		extpacks-build-darwin.arm64 \
-		extpacks-build-freebsd.amd64 \
-		extpacks-build-freebsd.x86
+		extpacks-build-freebsd.amd64
 
 VBOX_EXTPACKS_BUILD.amd64 = VBOX_ONLY_EXTPACKS=1 VBOX_WITH_MAIN_NLS= VBOX_WITH_PUEL_NLS_NO_QM=1 \
 	KBUILD_TYPE=$(KBUILD_TYPE) KBUILD_TARGET_ARCH=amd64 VBOX_SVN_REV=$(VBOX_SVN_REV)
 
 VBOX_EXTPACKS_BUILD.arm64 = VBOX_ONLY_EXTPACKS=1 VBOX_WITH_MAIN_NLS= VBOX_WITH_PUEL_NLS_NO_QM=1 \
 	KBUILD_TYPE=$(KBUILD_TYPE) KBUILD_TARGET_ARCH=arm64 VBOX_SVN_REV=$(VBOX_SVN_REV)
-
-VBOX_EXTPACKS_BUILD.x86   = VBOX_ONLY_EXTPACKS=1 VBOX_WITH_MAIN_NLS= VBOX_WITH_PUEL_NLS_NO_QM=1 \
-	KBUILD_TYPE=$(KBUILD_TYPE) KBUILD_TARGET_ARCH=x86 VBOX_SVN_REV=$(VBOX_SVN_REV)
 
 ifdef VBOX_WITH_PUEL_NLS
  VBOX_EXTPACKS_HOST_EXTRA = VBOX_WITH_PUEL_NLS_NO_QM=
@@ -1739,7 +1728,7 @@ VBOX_EXTPACKS_BUILD_SUBDIRNAME := $(lastword $(subst /, ,$(PATH_ROOT)))
 # When building in parallel on a Windows host, make sure we finish the host
 # bit before kicking off any UNIX guest or we'll run into file sharing issues.
 ifeq ($(KBUILD_TARGET),win)
- VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST = extpacks-build-win.x86 extpacks-build-win.amd64
+ VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST = extpacks-build-win.amd64 extpacks-build-win.arm64
 else
  VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST =
 endif
@@ -1753,17 +1742,13 @@ else
 	$(call VBOX_BLD_VM_MSG_END__,Windows/amd64 extension packs)
 endif
 
-extpacks-build-win.x86:
-if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
- ifeq ($(KBUILD_TARGET),win)
-	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.x86) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
- else
-	$(call VBOX_BLD_VM_MSG_BEGIN,Windows/x86 extension packs)
-	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_X86_IP) 'cd e:/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_EXTPACKS_BUILD.x86) all '
-	$(call VBOX_BLD_VM_MSG_END__,Windows/x86 extension packs)
- endif
+extpacks-build-win.arm64:
+ifeq ($(KBUILD_TARGET),win)
+	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.amd64) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
 else
-	@$(ECHO) "nothing to do for unsupported host $@"
+	$(call VBOX_BLD_VM_MSG_BEGIN,Windows/amd64 extension packs)
+	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_AMD64_IP) 'cd e:/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_EXTPACKS_BUILD.amd64) all '
+	$(call VBOX_BLD_VM_MSG_END__,Windows/amd64 extension packs)
 endif
 
 ifeq ($(KBUILD_TARGET),solaris)
@@ -1789,27 +1774,11 @@ else
  extpacks-build-solaris.amd64: extpacks-build-solaris.rsync-out-of-vm
 endif
 
-extpacks-build-os2.x86:
-#ifeq ($(KBUILD_TARGET),os2)
-#	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.x86) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
-#else
-#	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_OS2_IP) ' cd /mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh --no-wine kmk $(VBOX_EXTPACKS_BUILD.x86) '
-#endif
-
 ifeq ($(KBUILD_TARGET),linux)
  extpacks-build-linux.amd64: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
 	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.amd64) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
 
- extpacks-build-linux.x86: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
- if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
-	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.x86) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
- else
-	@$(ECHO) "nothing to do for unsupported host $@"
- endif
-
- extpacks-build-linux: extpacks-build-linux.x86 extpacks-build-linux.amd64
 else
- # Serialize 32-bit and 64-bit ASSUMING the same VM builds both.
  extpacks-build-linux.rsync-into-vm: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
 	$(TIME) -- $(call VBOX_RSYNC_IN_FN,linux,*) \
 		'--exclude=src/VBox/Additions/**' \
@@ -1826,22 +1795,13 @@ else
 	$(call VBOX_BLD_VM_MSG_BEGIN,Linux/amd64 extension packs)
 	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_LNX_IP)         'dchroot -c ol-7.5-amd64 "cd /mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && PATH=/opt/rh/devtoolset-9/root/bin:$$PATH tools/env.sh --no-wine kmk $(VBOX_EXTPACKS_BUILD.amd64) all " '
 	$(call VBOX_BLD_VM_MSG_END__,Linux/amd64 extension packs)
- if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
-	$(call VBOX_BLD_VM_MSG_BEGIN,Linux/x86 extension packs)
-	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_LNX_IP) 'linux32 dchroot -c debian-4.0-i386  "cd /mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh --no-wine kmk $(VBOX_EXTPACKS_BUILD.x86)   all " '
-	$(call VBOX_BLD_VM_MSG_END__,Linux/x86 extension packs)
- endif
 
  extpacks-build-linux.rsync-out-of-vm: extpacks-build-linux.build-it
- if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
-	$(TIME) -- $(VBOX_RSYNC) -a --delete $(VBOX_BLD_VM_LNX_IP):/mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME)/out/linux.x86 out/
- endif
-	$(TIME) -- $(VBOX_RSYNC) -a --delete $(VBOX_BLD_VM_LNX_IP):/mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME)/out/linux.amd64 out/
+       $(TIME) -- $(VBOX_RSYNC) -a --delete $(VBOX_BLD_VM_LNX_IP):/mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME)/out/linux.amd64 out/
 
- #.NOTPARALLEL: extpacks-build-linux.rsync-into-vm
  .PHONY: extpacks-build-linux.rsync-out-of-vm extpacks-build-linux.rsync-into-vm extpacks-build-linux.build-it
 
- extpacks-build-linux: extpacks-build-linux.rsync-out-of-vm
+ extpacks-build-linux.amd64: extpacks-build-linux.rsync-out-of-vm
 endif
 
 extpacks-build-freebsd.amd64: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
@@ -1851,15 +1811,6 @@ extpacks-build-freebsd.amd64: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
 #	$(call VBOX_BLD_VM_MSG_BEGIN,FreeBSD/amd64 extension packs)
 #	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_FBSD_AMD64_IP) 'cd /mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh --no-wine kmk $(VBOX_EXTPACKS_BUILD.amd64) all '
 #	$(call VBOX_BLD_VM_MSG_END__,FreeBSD/amd64 extension packs)
-#endif
-
-extpacks-build-freebsd.x86: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
-#ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),freebsd.x86)
-#	+ $(TIME) -- $(KMK) $(VBOX_EXTPACKS_BUILD.x86) all $(VBOX_EXTPACKS_HOST_EXTRA) $(VBOX_EXTPACKS_HOST_BUILD_TWEAK)
-#else
-#	$(call VBOX_BLD_VM_MSG_BEGIN,FreeBSD/x86 extension packs)
-#	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_FBSD_X86_IP) 'cd /mnt/tinderbox/$(VBOX_EXTPACKS_BUILD_SUBDIRNAME) && tools/env.sh --no-wine kmk $(VBOX_EXTPACKS_BUILD.x86) all '
-#	$(call VBOX_BLD_VM_MSG_END__,FreeBSD/x86 extension packs)
 #endif
 
 extpacks-build-darwin.amd64: $(VBOX_EXTPACKS_BUILD_WIN_HOST_FIRST)
@@ -1885,26 +1836,19 @@ else
 endif
 
 extpacks-packing:
-if1of (x86, $(VBOX_SUPPORTED_HOST_ARCHS))
-	+ $(KMK) VBOX_WITH_EXTPACK_OS_ARCHS="darwin.amd64 linux.amd64 linux.x86 solaris.amd64 win.amd64 win.x86" \
-		VBOX_ONLY_EXTPACKS=1 packing
-else
 	+ $(KMK) VBOX_WITH_EXTPACK_OS_ARCHS="darwin.amd64 darwin.arm64 linux.amd64 solaris.amd64 win.amd64" \
 		VBOX_ONLY_EXTPACKS=1 packing
-endif
 # +++ freebsd.amd64 ^^^
 
 .PHONY: \
-		extpacks-build-win.x86 \
 		extpacks-build-win.amd64 \
+		extpacks-build-win.arm64 \
 		extpacks-build-solaris.amd64 \
-		extpacks-build-os2.x86 \
 		extpacks-build-linux \
 		extpacks-build-linux.amd64 \
-		extpacks-build-linux.x86 \
 		extpacks-build-freebsd.amd64 \
-		extpacks-build-freebsd.x86 \
 		extpacks-build-darwin.amd64 \
+		extpacks-build-darwin.arm64 \
 		extpacks-packing
 
 

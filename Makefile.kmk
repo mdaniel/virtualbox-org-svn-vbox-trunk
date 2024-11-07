@@ -1929,6 +1929,7 @@ validationkit-fetch:
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=solaris VBOX_ONLY_VALIDATIONKIT=1
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=amd64 KBUILD_TARGET=win     VBOX_ONLY_VALIDATIONKIT=1
 	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=x86   KBUILD_TARGET=win     VBOX_ONLY_VALIDATIONKIT=1
+	+ $(KMK) -C tools fetch KBUILD_TARGET_ARCH=arm64 KBUILD_TARGET=win     VBOX_ONLY_VALIDATIONKIT=1
 
 
 validationkit-build: \
@@ -1937,6 +1938,7 @@ validationkit-build: \
 		validationkit-build-solaris.x86 \
 		validationkit-build-win.x86 \
 		validationkit-build-win.amd64 \
+		validationkit-build-win.arm64 \
 		validationkit-build-os2.x86 \
 		validationkit-build-linux \
 		validationkit-build-linux.arm64 \
@@ -1972,7 +1974,7 @@ VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME := $(lastword $(subst /, ,$(PATH_ROOT)))
 # When building in parallel on a Windows host, make sure we finish the host
 # bit before kicking off any UNIX guest or we'll run into file sharing issues.
 ifeq ($(KBUILD_TARGET),win)
- VBOX_VALIDATIONKIT_BUILD_WIN_HOST_FIRST = validationkit-build-win.x86 validationkit-build-win.amd64
+ VBOX_VALIDATIONKIT_BUILD_WIN_HOST_FIRST = validationkit-build-win.x86 validationkit-build-win.amd64 validationkit-build-win.arm64
 else
  VBOX_VALIDATIONKIT_BUILD_WIN_HOST_FIRST =
 endif
@@ -1982,7 +1984,7 @@ ifeq ($(KBUILD_TARGET),win)
 	+ $(TIME) -- $(KMK) $(VBOX_VALIDATIONKIT_BUILD.amd64) all $(VBOX_VALIDATIONKIT_HOST_BUILD_TWEAK)
 else
 	$(call VBOX_BLD_VM_MSG_BEGIN,Windows/amd64 Validation Kit)
-	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_X86_IP) 'cd e:/$(VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_VALIDATIONKIT_BUILD.amd64) all '
+	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_AMD64_IP) 'cd e:/$(VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_VALIDATIONKIT_BUILD.amd64) all '
 	$(call VBOX_BLD_VM_MSG_END__,Windows/amd64 Validation Kit)
 endif
 
@@ -1991,8 +1993,17 @@ ifeq ($(KBUILD_TARGET),win)
 	+ $(TIME) -- $(KMK) $(VBOX_VALIDATIONKIT_BUILD.x86) all $(VBOX_VALIDATIONKIT_HOST_BUILD_TWEAK)
 else
 	$(call VBOX_BLD_VM_MSG_BEGIN,Windows/x86 Validation Kit)
-	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_AMD64_IP) 'cd e:/$(VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_VALIDATIONKIT_BUILD.x86) all '
+	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_X86_IP) 'cd e:/$(VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_VALIDATIONKIT_BUILD.x86) all '
 	$(call VBOX_BLD_VM_MSG_END__,Windows/x86 Validation Kit)
+endif
+
+validationkit-build-win.arm64:
+ifeq ($(KBUILD_TARGET),win)
+	+ $(TIME) -- $(KMK) $(VBOX_VALIDATIONKIT_BUILD.arm64) all $(VBOX_VALIDATIONKIT_HOST_BUILD_TWEAK)
+else
+	$(call VBOX_BLD_VM_MSG_BEGIN,Windows/arm64 Validation Kit)
+	$(TIME) -- $(VBOX_SSH) vbox@$(VBOX_BLD_VM_WIN_ARM64_IP) 'cd e:/$(VBOX_VALIDATIONKIT_BUILD_SUBDIRNAME) && tools/env.sh kmk $(VBOX_VALIDATIONKIT_BUILD.arm64) all '
+	$(call VBOX_BLD_VM_MSG_END__,Windows/arm64 Validation Kit)
 endif
 
 ifeq ($(KBUILD_TARGET),solaris)

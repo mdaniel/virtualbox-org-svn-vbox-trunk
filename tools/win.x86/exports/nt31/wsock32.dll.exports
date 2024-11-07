@@ -1,0 +1,65 @@
+;
+; Generated from: wsock32.dll
+;      Size file: 0x145a4 (83364)
+;         Format: PE
+;  Size of image: 0x18000 (98304)
+;   Architecture: X86
+;      Timestamp: 0x2c45a354 - 1993-07-15T18:35:00
+;
+accept
+bind
+closesocket
+connect
+getpeername
+getsockname
+getsockopt
+htonl
+htons
+inet_addr
+inet_ntoa
+ioctlsocket
+listen
+ntohl
+ntohs
+recv
+recvfrom
+select
+send
+sendto
+setsockopt
+shutdown
+socket
+gethostbyaddr
+gethostbyname
+getprotobyname
+getprotobynumber
+getservbyname
+getservbyport
+gethostname
+WSAAsyncSelect
+WSAAsyncGetHostByAddr
+WSAAsyncGetHostByName
+WSAAsyncGetProtoByNumber
+WSAAsyncGetProtoByName
+WSAAsyncGetServByPort
+WSAAsyncGetServByName
+WSACancelAsyncRequest
+WSASetBlockingHook
+WSAUnhookBlockingHook
+WSAGetLastError
+WSASetLastError
+WSACancelBlockingCall
+WSAIsBlocking
+WSAStartup
+WSACleanup
+__WSAFDIsSet
+WEP
+WSApSetPostRoutine
+inet_network
+getnetbyname
+rcmd
+rexec
+rresvport
+sethostname
+dn_expand
+WSARecvEx

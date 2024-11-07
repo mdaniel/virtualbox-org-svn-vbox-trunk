@@ -462,21 +462,42 @@ static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, u
 typedef struct BS3SETREGCTX
 {
     /** Pointer to test context. */
-    PBS3EXTCTX   pExtCtx;
+    PBS3EXTCTX     pExtCtx;
     /** Pointer to register context; for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
-    PBS3REGCTX   pCtx;
+    PBS3REGCTX     pCtx;
     /** Whether to zero YMM-high bits when setting XMM; for BS3_REGISTER_FAMILY_XMM */
-    bool         fZeroYMMHi;
+    bool           fZeroYMMHi;
+    /** Tag word control: BS3EXTCTXTOPMM_{ZERO,SET,AS_IS}; for BS3_REGISTER_FAMILY_MMX */
+    BS3EXTCTXTOPMM enmTop;
     /** Current execution mode; for BS3_REGISTER_FAMILY_64BIT */
-    uint8_t      bMode;
+    uint8_t        bMode;
 } BS3SETREGCTX;
 typedef BS3SETREGCTX BS3_FAR *PBS3SETREGCTX;
+
+/**
+ * Initialize a SetReg context to reasonable values.
+ *
+ * @param  pSetRegCtx  The context to initialize.
+ * @param  pExtCtx     Pointer to test context.
+ * @param  pCtx        Pointer to register context.
+ * @param  bMode       Current execution mode.
+ */
+static void bs3CpuInstrXGetRegisterInit(PBS3SETREGCTX pSetRegCtx, PBS3EXTCTX pExtCtx, PBS3REGCTX pCtx, uint8_t bMode)
+{
+    pSetRegCtx->pExtCtx = pExtCtx;
+    pSetRegCtx->pCtx = pCtx;
+    pSetRegCtx->bMode = bMode;
+    pSetRegCtx->fZeroYMMHi = false;
+    pSetRegCtx->enmTop = BS3EXTCTXTOPMM_ZERO;
+}
 
 /**
  * Get the size of a register from its identity value used in instruction test value tables.
  * This returns the size of sub-registers, e.g. AL = 1.
  *
- * @returns  Size of register in bytes.  Returns 0 for currently unsupported registers.
+ * @param    pSetRegCtx  Arguments to this function (see below).
+ * @param    uReg        The register identity value to report on.
+ * @returns  size_t      Size of register in bytes; 0 for currently unsupported registers.
  */
 static size_t bs3CpuInstrXGetRegisterSize(PBS3SETREGCTX pSetRegCtx, uint16_t uReg)
 {
@@ -505,7 +526,9 @@ static size_t bs3CpuInstrXGetRegisterSize(PBS3SETREGCTX pSetRegCtx, uint16_t uRe
  * Get the full size of a register from its identity value used in instruction test value tables.
  * This returns the full size of the register containing a sub-register, e.g. AL = 4 or 8.
  *
- * @returns  Size of register in bytes.  Returns 0 for currently unsupported registers.
+ * @param    pSetRegCtx  Arguments to this function (see below).
+ * @param    uReg        The register identity value to report on.
+ * @returns  size_t      Size of register in bytes; 0 for currently unsupported registers.
  */
 static size_t bs3CpuInstrXGetRegisterFullSize(PBS3SETREGCTX pSetRegCtx, uint16_t uReg)
 {
@@ -569,7 +592,7 @@ static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUIN
                 return true;
             case BS3_REGISTER_FAMILY_OTHER:
                 if (BS3_REGISTER_IS_MMX(uReg))
-                    return Bs3ExtCtxSetMm(pSetRegCtx->pExtCtx, uRegNum, pu256Val->au64[0], BS3EXTCTXTOPMM_SET);
+                    return Bs3ExtCtxSetMm(pSetRegCtx->pExtCtx, uRegNum, pu256Val->au64[0], pSetRegCtx->enmTop);
                 break;
             case BS3_REGISTER_FAMILY_ZMM:
             default:

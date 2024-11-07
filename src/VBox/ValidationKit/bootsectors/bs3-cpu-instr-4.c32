@@ -341,7 +341,7 @@ AssertCompile(FP32_FRAC_INV_V7 <= FP32_FRAC_SNAN_MAX && FP32_FRAC_INV_V7 >= FP32
 /** The max fraction value for a single-precision floating-point quiet NAN. */
 #define FP64_FRAC_QNAN_MAX                  0xfffffffffffff
 /** The min fraction value for a single-precision floating-point quiet NAN. */
-#define FP64_FRAC_QNAN_MIN                  0x8000000000000
+#define FP64_FRAC_QNAN_MIN                  0x8000000000000LLU
 
 #define FP64_NORM_MAX(a_Sign)               RTFLOAT64U_INIT_C(a_Sign, FP64_FRAC_NORM_MAX, FP64_EXP_NORM_MAX)
 #define FP64_NORM_MIN(a_Sign)               RTFLOAT64U_INIT_C(a_Sign, FP64_FRAC_NORM_MIN, FP64_EXP_NORM_MIN)
@@ -2710,7 +2710,7 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
     uint32_t         uExpectedMxCsr;
     bool             fFpXcptExpected;
     uint8_t          cbBytesExecuted;
-    BS3SETREGCTX     pSetRegCtx;
+    BS3SETREGCTX     SetRegCtx;
 
     uint32_t uSpecifiedMask, uExpectedMask, uImpliedMask, uCombinedMask, uMaskedMask, uUnmaskedMask, uThisMask;
     uint32_t uExpectedMxCsr_orig, uExpectedExceptions, uExpectedUnmaskedExceptions, uInitialExceptions, uRandTmp;
@@ -2886,10 +2886,9 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
                 Bs3MemSet(&MemOpExpect, 0xcc, sizeof(MemOpExpect));
         }
 
-        pSetRegCtx.pExtCtx = pExtCtx;
-        pSetRegCtx.pCtx = pCtx;
-        pSetRegCtx.fZeroYMMHi = fSseInstr;
-        pSetRegCtx.bMode = bMode;
+        bs3CpuInstrXGetRegisterInit(&SetRegCtx, pExtCtx, pCtx, bMode);
+        SetRegCtx.fZeroYMMHi = fSseInstr;
+        SetRegCtx.enmTop = BS3EXTCTXTOPMM_ZERO;
 
         /* Source #1 (/ destination for SSE). */
         if (pTest->iRegSrc1 >= FSxDI)
@@ -2900,7 +2899,7 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
             else
                 MemOpExpect.ymm = pValues->uSrc1.ymm;
         }
-        else Bs3ExtCtxSetReg(&pSetRegCtx, pTest->iRegSrc1, (void*)&pValues->uSrc1);
+        else Bs3ExtCtxSetReg(&SetRegCtx, pTest->iRegSrc1, (void*)&pValues->uSrc1);
 
         /* Source #2. */
         if (pTest->iRegSrc2 >= FSxDI)
@@ -2909,7 +2908,7 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
             Bs3MemCpy(puMemOpAlias, &pValues->uSrc2, cbMemOp);
             MemOpExpect.ymm = pValues->uSrc2.ymm;
         }
-        else Bs3ExtCtxSetReg(&pSetRegCtx, pTest->iRegSrc2, (void*)&pValues->uSrc2);
+        else Bs3ExtCtxSetReg(&SetRegCtx, pTest->iRegSrc2, (void*)&pValues->uSrc2);
 
         /* Memory pointer. */
         if (fMemOp)
@@ -2938,8 +2937,10 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
          * as the source, but for AVX++ it won't because the destination is different and would contain 0s.
          */
         cErrors = Bs3TestSubErrorCount();
+
+        SetRegCtx.enmTop = BS3EXTCTXTOPMM_SET;
         if (fNonFpOK && !fFpXcptExpected && pTest->iRegDst < FSxDI)
-            Bs3ExtCtxSetReg(&pSetRegCtx, pTest->iRegDst, (void*)&pValues->uDstOut);
+            Bs3ExtCtxSetReg(&SetRegCtx, pTest->iRegDst, (void*)&pValues->uDstOut);
 #if     defined(DEBUG_aeichner) /** @todo Necessary kludge on a i7-1068NG7. */
         if (   pExtCtx->enmMethod == BS3EXTCTXMETHOD_XSAVE
             && pExtCtx->Ctx.x.Hdr.bmXState == 0x7

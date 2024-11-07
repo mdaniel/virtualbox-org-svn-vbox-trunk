@@ -36,7 +36,6 @@
 
 #include <iprt/assert.h>
 #include <iprt/dir.h>
-#include <iprt/errcore.h>
 #include <iprt/ldr.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
@@ -46,9 +45,7 @@
 #include <iprt/system.h>
 #include <iprt/utf16.h>
 
-#ifdef DEBUG
-# include <iprt/stream.h>
-#endif
+#include <VBox/err.h> /* For VERR_PLATFORM_ARCH_NOT_SUPPORTED.*/
 
 #include "VBoxWinDrvCommon.h"
 
@@ -135,18 +132,22 @@ int VBoxWinDrvInfQueryKeyValue(PINFCONTEXT pCtx, DWORD iValue, PRTUTF16 *ppwszVa
 }
 
 /**
- * Queries for the model name in an INF file.
+ * Queries a model name from an INF file.
  *
  * @returns VBox status code.
  * @retval  VERR_NOT_FOUND if no model has been found.
  * @param   hInf                INF handle to use.
+ * @param   uIndex              Index of model to query.
+ *                              Currently only the first model (index 0) is supported.
  * @param   ppwszValue          Where to return the model name on success.
  * @param   pcwcValue           Where to return the number of characters for \a ppwszValue. Optional an can be NULL.
  *
  * @note    Only for non-"primitive" drivers.
  */
-int VBoxWinDrvInfQueryModelsSectionName(HINF hInf, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
+int VBoxWinDrvInfQueryModel(HINF hInf, unsigned uIndex, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
 {
+    AssertReturn(uIndex == 0, VERR_INVALID_PARAMETER);
+
     *ppwszValue = NULL;
     if (pcwcValue)
         *pcwcValue = 0;
@@ -175,70 +176,58 @@ int VBoxWinDrvInfQueryModelsSectionName(HINF hInf, PRTUTF16 *ppwszValue, PDWORD 
     if (RT_FAILURE(rc))
         return rc;
 
-    LPWSTR pwszModels;
-    DWORD  cwcModels;
-    rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, 1, &pwszModels, &cwcModels);
+    PRTUTF16 pwszModel;
+    DWORD    cwcModels;
+    rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, 1, &pwszModel, &cwcModels);
     if (RT_FAILURE(rc))
         return rc;
 
-    LPWSTR pwszPlatform = NULL;
-    DWORD  cwcPlatform  = 0;
-    bool   fArch        = false;
-    bool   fNt          = false;
+    PRTUTF16 pwszResult = NULL;
+    DWORD    cwcResult  = 0;
 
-    LPWSTR pwszPlatformCur;
-    DWORD  cwcPlatformCur;
-    for (DWORD i = 2; (rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, i, &pwszPlatformCur, &cwcPlatformCur)) == VINF_SUCCESS; ++i)
+    PRTUTF16 pwszPlatform = NULL;
+    DWORD    cwcPlatform;
+    rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, 2, &pwszPlatform, &cwcPlatform);
+    if (RT_SUCCESS(rc)) /* Platform is optional. */
     {
-        if (RTUtf16ICmpAscii(pwszPlatformCur, "NT" VBOXWINDRVINF_NATIVE_ARCH_STR) == 0)
-            fArch = true;
-        else
+        /* Note! The platform can be more specific, e.g. "NTAMD64.6.0". */
+        if (RTUtf16FindAscii(pwszPlatform, VBOXWINDRVINF_NT_NATIVE_ARCH_STR) == 0)
         {
-            if (   fNt
-                || RTUtf16ICmpAscii(pwszPlatformCur, "NT") != 0)
+            RTUTF16 wszSection[VBOXWINDRVINF_MAX_INF_SECTION_NAME];
+            rc = RTUtf16Copy(wszSection, sizeof(wszSection), pwszModel);
+            if (RT_SUCCESS(rc))
             {
-                RTMemFree(pwszPlatformCur);
-                pwszPlatformCur = NULL;
-                continue;
+                rc = RTUtf16Cat(wszSection, sizeof(wszSection), VBOXWINDRVINF_DECORATION_SEP_UTF16_STR);
+                if (RT_SUCCESS(rc))
+                {
+                    rc = RTUtf16Cat(wszSection, sizeof(wszSection), pwszPlatform);
+                    if (RT_SUCCESS(rc))
+                    {
+                        pwszResult = RTUtf16Dup(wszSection);
+                        if (pwszResult)
+                        {
+                            cwcResult = (DWORD)RTUtf16Len(wszSection);
+                        }
+                        else
+                            rc = VERR_NO_MEMORY;
+                    }
+                }
             }
-            fNt = true;
-        }
-
-        cwcPlatform = cwcPlatformCur;
-        if (pwszPlatform)
-            RTMemFree(pwszPlatform);
-        pwszPlatform = pwszPlatformCur;
-        pwszPlatformCur = NULL;
-    }
-
-    rc = VINF_SUCCESS;
-
-    LPWSTR pwszResult = NULL;
-    DWORD  cwcResult = 0;
-    if (pwszPlatform)
-    {
-        pwszResult = (LPWSTR)RTMemAlloc((cwcModels + cwcPlatform) * sizeof(pwszResult[0]));
-        if (pwszResult)
-        {
-            memcpy(pwszResult, pwszModels, (cwcModels - 1) * sizeof(pwszResult[0]));
-            pwszResult[cwcModels - 1] = L'.';
-            memcpy(&pwszResult[cwcModels], pwszPlatform, cwcPlatform * sizeof(pwszResult[0]));
-            cwcResult = cwcModels + cwcPlatform;
         }
         else
-            rc = VERR_NO_MEMORY;
+            rc = VERR_PLATFORM_ARCH_NOT_SUPPORTED;
     }
-    else
+    else /* Model w/o platform. */
     {
-        pwszResult = pwszModels;
+        pwszResult = pwszModel;
         cwcResult  = cwcModels;
-        pwszModels = NULL;
+        pwszModel  = NULL;
+
+        rc = VINF_SUCCESS;
     }
 
-    if (pwszModels)
-        RTMemFree(pwszModels);
-    if (pwszPlatform)
-        RTMemFree(pwszPlatform);
+    RTMemFree(pwszModel);
+    RTMemFree(pwszPlatform);
 
     if (RT_SUCCESS(rc))
     {
@@ -248,6 +237,21 @@ int VBoxWinDrvInfQueryModelsSectionName(HINF hInf, PRTUTF16 *ppwszValue, PDWORD 
     }
 
     return rc;
+}
+
+int VBoxWinDrvInfQueryInstallSectionEx(HINF hInf, PCRTUTF16 pwszModel, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
+{
+    INFCONTEXT InfCtx;
+    int rc = VBoxWinDrvInfQueryContext(hInf, pwszModel, NULL, &InfCtx);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    return VBoxWinDrvInfQueryKeyValue(&InfCtx, 1, ppwszValue, pcwcValue);
+}
+
+int VBoxWinDrvInfQueryInstallSection(HINF hInf, PCRTUTF16 pwszModel, PRTUTF16 *ppwszValue)
+{
+    return VBoxWinDrvInfQueryInstallSectionEx(hInf, pwszModel, ppwszValue, NULL);
 }
 
 /**
@@ -429,7 +433,7 @@ int VBoxWinDrvInfQueryFirstModel(HINF hInf, PRTUTF16 *ppwszModel)
 {
     *ppwszModel = NULL;
 
-    return VBoxWinDrvInfQueryModelsSectionName(hInf, ppwszModel, NULL);
+    return VBoxWinDrvInfQueryModel(hInf, 0 /* Index */, ppwszModel, NULL);
 }
 
 /**

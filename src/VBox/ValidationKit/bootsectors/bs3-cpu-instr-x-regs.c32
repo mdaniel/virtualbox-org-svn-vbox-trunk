@@ -34,15 +34,25 @@
  * SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
  */
 
-/** Simple unadorned x86 family register names to be used in instruction test value tables. */
-
 /**
  *  Includes preliminary / placeholder support (in terms of knowing their
  *  names and having space set aside) for AVX-512 registers ([XY]MM16..31,
  *  ZMM, and k0..7), which VirtualBox does not yet support; and Intel APX
  *  (R16..31) extended x86 general purpose registers -- which VirtualBox
  *  does not yet support and Intel are not yet shipping.
+ *
+ *  8-bit 'hi' register support not yet implemented (no clients).
+ *
+ *  GPR register sizes returned by the size functions and set by the set
+ *  function are 8 bytes in long mode, 4 bytes in other modes.
+ *
+ *  Setting an 8, 16, or 32-bit GPR zeros out the higher bits.
+ *
+ *  Setting a 128-bit XMM register zeros out the higher bits only if the
+ *  fZeroYMMHi flag is set.
  */
+
+/** Simple unadorned x86 family register names to be used in instruction test value tables. */
 
 /**                     x0     x1     x2     x3     x4     x5     x6     x7     x8     x9     xA     xB     xC     xD     xE     xF
  *                   /======  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  =====  ======\
@@ -78,23 +88,22 @@
 #define          BS3_REGISTER_MASK               (BS3_REGISTER_FAMILY_MASK | BS3_REGISTER_REGISTER_MASK)
 
 #define          BS3_REGISTER_FAMILY_8BIT_L      0x00
-#define          BS3_REGISTER_FAMILY_8BIT_L_LOW (0x00 | BS3_REGISTER_FAMILY_OTHER_TODO)
-#define AL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 0)
-#define CL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 1)
-#define DL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 2)
-#define BL      (BS3_REGISTER_FAMILY_8BIT_L_LOW | 3)
-#define SPL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 4)
-#define BPL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 5)
-#define SIL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 6)
-#define DIL     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 7)
-#define R8B     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 8)
-#define R9B     (BS3_REGISTER_FAMILY_8BIT_L_LOW | 9)
-#define R10B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 10)
-#define R11B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 11)
-#define R12B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 12)
-#define R13B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 13)
-#define R14B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 14)
-#define R15B    (BS3_REGISTER_FAMILY_8BIT_L_LOW | 15)
+#define AL      (BS3_REGISTER_FAMILY_8BIT_L     | 0)
+#define CL      (BS3_REGISTER_FAMILY_8BIT_L     | 1)
+#define DL      (BS3_REGISTER_FAMILY_8BIT_L     | 2)
+#define BL      (BS3_REGISTER_FAMILY_8BIT_L     | 3)
+#define SPL     (BS3_REGISTER_FAMILY_8BIT_L     | 4)
+#define BPL     (BS3_REGISTER_FAMILY_8BIT_L     | 5)
+#define SIL     (BS3_REGISTER_FAMILY_8BIT_L     | 6)
+#define DIL     (BS3_REGISTER_FAMILY_8BIT_L     | 7)
+#define R8B     (BS3_REGISTER_FAMILY_8BIT_L     | 8)
+#define R9B     (BS3_REGISTER_FAMILY_8BIT_L     | 9)
+#define R10B    (BS3_REGISTER_FAMILY_8BIT_L     | 10)
+#define R11B    (BS3_REGISTER_FAMILY_8BIT_L     | 11)
+#define R12B    (BS3_REGISTER_FAMILY_8BIT_L     | 12)
+#define R13B    (BS3_REGISTER_FAMILY_8BIT_L     | 13)
+#define R14B    (BS3_REGISTER_FAMILY_8BIT_L     | 14)
+#define R15B    (BS3_REGISTER_FAMILY_8BIT_L     | 15)
 #define          BS3_REGISTER_FAMILY_8BIT_L_APX (0x10 | BS3_REGISTER_FAMILY_APX_TODO)
 #define R16B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 16)
 #define R17B    (BS3_REGISTER_FAMILY_8BIT_L_APX | 17)
@@ -217,6 +226,8 @@
 #define R29     (BS3_REGISTER_FAMILY_64BIT_APX  | 29)
 #define R30     (BS3_REGISTER_FAMILY_64BIT_APX  | 30)
 #define R31     (BS3_REGISTER_FAMILY_64BIT_APX  | 31)
+
+#define          BS3_REGISTER_IS_GPR(reg)        (((reg) & BS3_REGISTER_FAMILY_MASK) <= BS3_REGISTER_FAMILY_64BIT)
 
 #define          BS3_REGISTER_FAMILY_XMM         0x80
 #define XMM0    (BS3_REGISTER_FAMILY_XMM        | 0)
@@ -448,6 +459,61 @@ static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, u
     return Bs3StrPrintf(pszBuf, cchBuf, "(?%02X?)", uReg);
 }
 
+typedef struct BS3SETREGCTX
+{
+    /** Pointer to test context. */
+    PBS3EXTCTX   pExtCtx;
+    /** Pointer to register context; for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
+    PBS3REGCTX   pCtx;
+    /** Whether to zero YMM-high bits when setting XMM; for BS3_REGISTER_FAMILY_XMM */
+    bool         fZeroYMMHi;
+    /** Current execution mode; for BS3_REGISTER_FAMILY_64BIT */
+    uint8_t      bMode;
+} BS3SETREGCTX;
+typedef BS3SETREGCTX BS3_FAR *PBS3SETREGCTX;
+
+/**
+ * Get the size of a register from its identity value used in instruction test value tables.
+ * This returns the size of sub-registers, e.g. AL = 1.
+ *
+ * @returns  Size of register in bytes.  Returns 0 for currently unsupported registers.
+ */
+static size_t bs3CpuInstrXGetRegisterSize(PBS3SETREGCTX pSetRegCtx, uint16_t uReg)
+{
+    switch (uReg & BS3_REGISTER_FAMILY_MASK)
+    {
+        case BS3_REGISTER_FAMILY_8BIT_L:
+            return 1;
+        case BS3_REGISTER_FAMILY_16BIT:
+            return 2;
+        case BS3_REGISTER_FAMILY_32BIT:
+            return 4;
+        case BS3_REGISTER_FAMILY_64BIT:
+            return 8;
+        case BS3_REGISTER_FAMILY_XMM:
+            return 16;
+        case BS3_REGISTER_FAMILY_YMM:
+            return 32;
+        case BS3_REGISTER_FAMILY_OTHER:
+            if (BS3_REGISTER_IS_MMX(uReg))
+                return 8;
+    }
+    return 0;
+}
+
+/**
+ * Get the full size of a register from its identity value used in instruction test value tables.
+ * This returns the full size of the register containing a sub-register, e.g. AL = 4 or 8.
+ *
+ * @returns  Size of register in bytes.  Returns 0 for currently unsupported registers.
+ */
+static size_t bs3CpuInstrXGetRegisterFullSize(PBS3SETREGCTX pSetRegCtx, uint16_t uReg)
+{
+    if (BS3_REGISTER_IS_GPR(uReg))
+        return BS3_MODE_IS_64BIT_CODE(pSetRegCtx->bMode) ? 8 : 4;
+    return bs3CpuInstrXGetRegisterSize(pSetRegCtx, uReg);
+}
+
 /**
  * Set a register within a testing context.  Intended to support a broad
  * range of register types; currently supports MMX, XMM, YMM, and general
@@ -463,19 +529,6 @@ static size_t bs3CpuInstrXGetRegisterName(char BS3_FAR *pszBuf, size_t cchBuf, u
  * @param    pu256Val    Pointer to the data to store there.
  * @returns  bool        Whether the store succeeded (currently ignored by callers).
  */
-
-typedef struct BS3SETREGCTX
-{
-    /** Pointer to test context. */
-    PBS3EXTCTX   pExtCtx;
-    /** Pointer to register context; for BS3_REGISTER_FAMILY_MEMREF, all GPR families */
-    PBS3REGCTX   pCtx;
-    /** Whether to zero YMM-high bits when setting XMM; for BS3_REGISTER_FAMILY_XMM */
-    bool         fZeroYMMHi;
-    /** Current execution mode; for BS3_REGISTER_FAMILY_64BIT */
-    uint8_t      bMode;
-} BS3SETREGCTX;
-typedef BS3SETREGCTX BS3_FAR *PBS3SETREGCTX;
 
 static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUINT256U pu256Val)
 {
@@ -496,12 +549,14 @@ static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUIN
     {
         switch (uRegSet)
         {
+            case BS3_REGISTER_FAMILY_8BIT_L:
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au8[0], bs3CpuInstrXGetRegisterFullSize(pSetRegCtx, uReg));
             case BS3_REGISTER_FAMILY_16BIT:
-                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au16[0], 2);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au16[0], bs3CpuInstrXGetRegisterFullSize(pSetRegCtx, uReg));
             case BS3_REGISTER_FAMILY_32BIT:
-                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au32[0], 4);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au32[0], bs3CpuInstrXGetRegisterFullSize(pSetRegCtx, uReg));
             case BS3_REGISTER_FAMILY_64BIT:
-                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au64[0], BS3_MODE_IS_64BIT_CODE(pSetRegCtx->bMode) ? 8 : 4);
+                return Bs3RegCtxSetGpr(pSetRegCtx->pCtx, uRegNum, pu256Val->au64[0], bs3CpuInstrXGetRegisterFullSize(pSetRegCtx, uReg));
             case BS3_REGISTER_FAMILY_XMM:
                 if (pSetRegCtx->fZeroYMMHi)
                     return Bs3ExtCtxSetXmm(pSetRegCtx->pExtCtx, uRegNum, &pu256Val->au128[0]);
@@ -516,7 +571,6 @@ static bool Bs3ExtCtxSetReg_int(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUIN
                 if (BS3_REGISTER_IS_MMX(uReg))
                     return Bs3ExtCtxSetMm(pSetRegCtx->pExtCtx, uRegNum, pu256Val->au64[0], BS3EXTCTXTOPMM_SET);
                 break;
-            case BS3_REGISTER_FAMILY_8BIT_L:
             case BS3_REGISTER_FAMILY_ZMM:
             default:
                 break;
@@ -543,6 +597,9 @@ static bool Bs3ExtCtxSetReg(PBS3SETREGCTX pSetRegCtx, uint16_t uReg, PCRTUINT256
 
         switch (uReg & BS3_REGISTER_FAMILY_MASK)
         {
+            case BS3_REGISTER_FAMILY_8BIT_L:
+                Bs3StrPrintf(pszValBuf, 80, "%#04RX8", pu256Val->au8[0]);
+                break;
             case BS3_REGISTER_FAMILY_16BIT:
                 Bs3StrPrintf(pszValBuf, 80, "%#06RX16", pu256Val->au16[0]);
                 break;

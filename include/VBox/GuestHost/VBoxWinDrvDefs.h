@@ -52,8 +52,17 @@
 # error "Port me!"
 #endif
 
+/** Defines a string which emits the decoration separator. */
+#define VBOXWINDRVINF_DECORATION_SEP_STR "."
+
+/** Defines a string which emits the decoration separator (UTF-16 version). */
+#define VBOXWINDRVINF_DECORATION_SEP_UTF16_STR L"."
+
+/** Defines a string which emits the bulld target's native architeture, e.g. "NTAMD64". */
+#define VBOXWINDRVINF_NT_NATIVE_ARCH_STR "NT" VBOXWINDRVINF_NATIVE_ARCH_STR
+
 /** Defines a string which emits the bulld target's native architeture, e.g. ".NTAMD64". */
-#define VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR ".NT" VBOXWINDRVINF_NATIVE_ARCH_STR
+#define VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR VBOXWINDRVINF_DECORATION_SEP_STR VBOXWINDRVINF_NT_NATIVE_ARCH_STR
 
 /** Maximum catalog file (.cat) length (in characters). */
 #define VBOXWINDRVINF_MAX_CATALOG_FILE     255
@@ -61,6 +70,8 @@
 #define VBOXWINDRVINF_MAX_DRIVER_VER       255
 /** Maximum provider name length (in characters). */
 #define VBOXWINDRVINF_MAX_PROVIDER_FILE    255
+/** Maximum INF section name length (in characters). */
+#define VBOXWINDRVINF_MAX_INF_SECTION_NAME 255
 
 /**
  * Structure for keeping INF Version section information.

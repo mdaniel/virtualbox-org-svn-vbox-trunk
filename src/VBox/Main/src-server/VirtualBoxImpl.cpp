@@ -108,6 +108,8 @@
 #include "ThreadTask.h"
 #include "VBoxEvents.h"
 
+#include "ObjectsTracker.h"
+
 #include <QMTranslator.h>
 
 #ifdef RT_OS_WINDOWS
@@ -129,6 +131,8 @@
 // Global variables
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+extern TrackedObjectsCollector gTrackedObjectsCollector;
 
 // static
 com::Utf8Str VirtualBox::sVersion;
@@ -265,7 +269,6 @@ public:
 typedef std::map<RTPROCESS, WatchedClientProcess *> WatchedClientProcessMap;
 #endif
 
-
 typedef ObjectsList<Medium> MediaOList;
 typedef ObjectsList<GuestOSType> GuestOSTypesOList;
 typedef ObjectsList<SharedFolder> SharedFoldersOList;
@@ -330,6 +333,7 @@ struct VirtualBox::Data
         , hLdrModCrypto(NIL_RTLDRMOD)
         , cRefsCrypto(0)
         , pCryptoIf(NULL)
+        , objectTrackerTask(NULL)
     {
 #if defined(RT_OS_WINDOWS) && defined(VBOXSVC_WITH_CLIENT_WATCHER)
         RTCritSectRwInit(&WatcherCritSect);
@@ -467,6 +471,9 @@ struct VirtualBox::Data
     /** Critical section protecting the module handle. */
     RTCRITSECT                          CritSectModCrypto;
     /** @} */
+
+    /** The tracked object collector (better if it'll be a singleton) */
+    ObjectTracker *objectTrackerTask;
 };
 
 
@@ -560,6 +567,38 @@ HRESULT VirtualBox::init()
         spMtxNatNetworkNameToRefCountLock = new RWLockHandle(LOCKCLASS_VIRTUALBOXOBJECT, "spMtxNatNetworkNameToRefCountLock");
 
     LogFlowThisFunc(("Version: %s, Package: %s, API Version: %s\n", sVersion.c_str(), sPackageType.c_str(), sAPIVersion.c_str()));
+
+    /* Try to start Object tracker thread as earlier as possible */
+    {
+        int vrc = 0;
+        if(gTrackedObjectsCollector.init())
+        {
+            LogRel(("Starting the Object tracker thread\n"));
+            try
+            {
+                m->objectTrackerTask = new ObjectTracker();
+                if (!m->objectTrackerTask->init()) // some init procedure
+                    vrc = E_FAIL;
+                else
+                    vrc = m->objectTrackerTask->createThread();
+            }
+            catch (...)
+            {
+                LogRel(("Exception during starting the Object tracker thread\n"));
+                if (m->objectTrackerTask)
+                {
+                    delete m->objectTrackerTask;
+                    m->objectTrackerTask = NULL;
+                }
+                vrc = E_FAIL;
+            }
+        }
+
+        if(RT_SUCCESS(vrc))
+            LogRel(("Successfully started the Object tracker thread\n"));
+        else
+            LogRel(("Failed to start the Object tracker thread (%Rrc)\n", vrc));
+    }
 
     /* Important: DO NOT USE any kind of "early return" (except the single
      * one above, checking the init span success) in this method. It is vital
@@ -1074,13 +1113,11 @@ void VirtualBox::uninit()
     }
     else
         m->allMachines.uninitAll();
+
     m->allFloppyImages.uninitAll();
     m->allDVDImages.uninitAll();
     m->allHardDisks.uninitAll();
     m->allDHCPServers.uninitAll();
-
-    m->mapProgressOperations.clear();
-
     m->allGuestOSTypes.uninitAll();
 
     /* Note that we release singleton children after we've all other children.
@@ -1129,6 +1166,19 @@ void VirtualBox::uninit()
     }
 
     RTCritSectDelete(&m->CritSectModCrypto);
+
+    m->mapProgressOperations.clear();
+    /*
+     * Call gTrackedObjectsCollector uninitialization before ExtPackManager uninitialization!!!
+     * Otherwise, this results in an error when releasing resources (in ComPtr::cleanup).
+     */
+    if (m->objectTrackerTask)
+    {
+        LogRel(("BACKEND: Terminating the object tracker...\n"));
+        m->objectTrackerTask->finish();//set the termination flag in the thread
+        delete m->objectTrackerTask;//waiting the thread termination is going in the m_objectTrackerTask destructor
+        gTrackedObjectsCollector.uninit();
+    }
 
 #ifdef VBOX_WITH_EXTPACK
     if (m->ptrExtPackManager)
@@ -6388,7 +6438,6 @@ HRESULT VirtualBox::i_unregisterNATNetwork(NATNetwork *aNATNetwork,
 #endif
 }
 
-
 HRESULT VirtualBox::findProgressById(const com::Guid &aId,
                                      ComPtr<IProgress> &aProgressObject)
 {
@@ -6409,6 +6458,58 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
                     tr("The progress object with the given GUID could not be found"));
 }
 
+HRESULT VirtualBox::getTrackedObject (const com::Utf8Str& aTrObjId,
+                                      ComPtr<IUnknown> &aPIface)
+{
+    TrackedObjectData trObjData;
+    HRESULT hrc = gTrackedObjectsCollector.getObj(aTrObjId, trObjData);
+    if (SUCCEEDED(hrc))
+        trObjData.getInterface().queryInterfaceTo(aPIface.asOutParam());
+
+    return hrc;
+}
+
+
+std::map <com::Utf8Str, com::Utf8Str> lMapInterfaceNameToIID = {
+    {"IProgress", Guid(IID_IProgress).toString()},
+    {"ISession", Guid(IID_ISession).toString()},
+    {"IMedium", Guid(IID_IMedium).toString()},
+    {"IMachine", Guid(IID_IMachine).toString()}
+};
+
+/**
+ * Get the tracked object Ids list by the interface name.
+ *
+ * @param aName  Interface name (like "IProgress", "ISession", "IMedium" etc)
+ * @param aObjIdsList  The list of Ids of the found objects
+ *
+ * @return The list of the found objects Ids
+ */
+HRESULT VirtualBox::getTrackedObjectIds (const com::Utf8Str& aName,
+                                         std::vector<com::Utf8Str> &aObjIdsList)
+{
+    HRESULT hrc = S_OK;
+
+    try
+    {
+        /* Check the supported tracked classes to avoid "out of range" exception */
+        if (lMapInterfaceNameToIID.count(aName))
+        {
+            hrc = gTrackedObjectsCollector.getObjIdsByClassIID(lMapInterfaceNameToIID.at(aName), aObjIdsList);
+            if (FAILED(hrc))
+                hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("No objects were found for the passed interface name '%s'."),
+                               aName.c_str());
+        }
+        else
+            hrc = setError(E_INVALIDARG, tr("The objects of the passed interface '%s' are not tracked at moment."), aName.c_str());
+    }
+    catch (...)
+    {
+            hrc = setError(E_FAIL, tr("The unknown exception in the VirtualBox::getTrackedObjectIds()."));
+    }
+
+    return hrc;
+}
 
 /**
  * Retains a reference to the default cryptographic interface.

@@ -68,7 +68,6 @@ class NATNetwork;
 class CloudNetwork;
 #endif /* VBOX_WITH_CLOUD_NET */
 
-
 typedef std::list<ComObjPtr<SessionMachine> > SessionMachinesList;
 
 #ifdef RT_OS_WINDOWS
@@ -80,7 +79,6 @@ namespace settings
     class MainConfigFile;
     struct MediaRegistry;
 }
-
 
 #if defined(VBOX_WITH_SDS) && !defined(VBOX_WITH_XPCOM)
 class VirtualBoxClassFactory; /* See ../src-server/win/svcmain.cpp  */
@@ -445,6 +443,10 @@ private:
                                  BOOL *aResult);
     HRESULT findProgressById(const com::Guid &aId,
                              ComPtr<IProgress> &aProgressObject);
+    HRESULT getTrackedObject(const com::Utf8Str& aTrObjId,
+                             ComPtr<IUnknown> &aPIface);
+    HRESULT getTrackedObjectIds (const com::Utf8Str& aName,
+                                 std::vector<com::Utf8Str> &aObjIdsList);
 
     static HRESULT i_setErrorStaticBoth(HRESULT aResultCode, int vrc, const char *aText, ...)
     {

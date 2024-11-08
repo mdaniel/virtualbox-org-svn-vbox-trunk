@@ -4380,6 +4380,53 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_movhlps(uint8_t bMode)
 
 
 /*
+ * [V]MOVLHPS - Move high qword in source (2) to low qword in destination, leaving
+ *              the high qword in the destination as it was.  The VEX variant
+ *              takes the high qword from the first source operand.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_movlhps(uint8_t bMode)
+{
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues[] =
+    {
+        {   /*src2*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /* => */ RTUINT256_INIT_C(0, 0, 0, 0) },
+        {   /*src2*/ RTUINT256_INIT_C(0xf1f2f3f4f5f6f7f8, 0xe1e2e3e4e5e6e7e8, 0xd1d2d3d4d5d6d7d8, 0xc1c2c3c4c5c6c7c8),
+            /*src1*/ RTUINT256_INIT_C(0xb1b2b3b4b5b6b7b8, 0xa1a2a3a4a5a6a7a8, 0x9192939495969798, 0x8182838485868788),
+            /* => */ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0xc1c2c3c4c5c6c7c8, 0x8182838485868788) },
+        {   /*src2*/ RTUINT256_INIT_C(0x5555666677778888, 0x1111222233334444, 0x1111222233334444, 0x81828384c5c6c7c8),
+            /*src1*/ RTUINT256_INIT_C(0xddddeeeeffff0000, 0x9999aaaabbbbcccc, 0x9999aaaabbbbcccc, 0xddddeeeeffff0000),
+            /* => */ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x81828384c5c6c7c8, 0xddddeeeeffff0000) },
+        {   /*src2*/ RTUINT256_INIT_C(0x4d09f02a6cdc73d5, 0x3ef417c8666b3fe6, 0xb4212fa8564c9ba2, 0x9c5ce073930996bb),
+            /*src1*/ RTUINT256_INIT_C(0x1eddddac09633294, 0xf95c8eec40725633, 0x8800e95bbf9962c3, 0x43d3cda0238499fd),
+            /* => */ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x9c5ce073930996bb, 0x43d3cda0238499fd) },
+    };
+
+    static BS3CPUINSTR3_TEST1_T const s_aTests16[] =
+    {
+        {  bs3CpuInstr3_movlhps_XMM1_XMM2_icebp_c16,          255, RM_REG, T_SSE,     XMM1,  XMM1,  XMM2,  PASS_ELEMENTS(s_aValues) },
+        {  bs3CpuInstr3_vmovlhps_XMM1_XMM2_XMM3_icebp_c16,    255, RM_REG, T_AVX_128, XMM1,  XMM2,  XMM3,  PASS_ELEMENTS(s_aValues) },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests32[] =
+    {
+        {  bs3CpuInstr3_movlhps_XMM1_XMM2_icebp_c32,          255, RM_REG, T_SSE,     XMM1,  XMM1,  XMM2,  PASS_ELEMENTS(s_aValues) },
+        {  bs3CpuInstr3_vmovlhps_XMM1_XMM2_XMM3_icebp_c32,    255, RM_REG, T_AVX_128, XMM1,  XMM2,  XMM3,  PASS_ELEMENTS(s_aValues) },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests64[] =
+    {
+        {  bs3CpuInstr3_movlhps_XMM1_XMM2_icebp_c64,          255, RM_REG, T_SSE,     XMM1,  XMM1,  XMM2,  PASS_ELEMENTS(s_aValues) },
+        {  bs3CpuInstr3_movlhps_XMM8_XMM12_icebp_c64,         255, RM_REG, T_SSE,     XMM8,  XMM8,  XMM12, PASS_ELEMENTS(s_aValues) },
+        {  bs3CpuInstr3_vmovlhps_XMM1_XMM2_XMM3_icebp_c64,    255, RM_REG, T_AVX_128, XMM1,  XMM2,  XMM3,  PASS_ELEMENTS(s_aValues) },
+        {  bs3CpuInstr3_vmovlhps_XMM10_XMM14_XMM12_icebp_c64, 255, RM_REG, T_AVX_128, XMM10, XMM14, XMM12, PASS_ELEMENTS(s_aValues) },
+    };
+    static BS3CPUINSTR3_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR3_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR3_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr3_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig5, RT_ELEMENTS(g_aXcptConfig5));
+}
+
+
+/*
  * [V]PAVGB  - Average unsigned packed byte integers with rounding.
  * [V]PAVGW  - Average unsigned packed word integers with rounding.
  */
@@ -9346,6 +9393,79 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermilps(uint8_t bMode)
 
 
 /*
+ * VPERMPS - Permute Single Precision Floating-Point Values
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermps(uint8_t bMode)
+{
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues[] =
+    {
+        {   /*src2*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000),
+            /* => */ RTUINT256_INIT_C(0x3141592631415926, 0x3141592631415926, 0x3141592631415926, 0x3141592631415926) }, /* lo => all 8 slots */
+        {   /*src2*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000600000007),
+            /* => */ RTUINT256_INIT_C(0x31415926faf0f00f, 0x5358979331415926, 0x3141592612345678, 0xeeddccbbf0e1d2c3) }, /* backwards except middle 2 = lo */
+        {   /*src2*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /*src1*/ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc),
+            /* => */ RTUINT256_INIT_C(0x3141592653589793, 0x5358979312345678, 0x80806502faf0f00f, 0xeeddccbb80806502) }, /* assorted */
+    };
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValuesSR[] =
+    {
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000),
+            /* => */ RTUINT256_INIT_C(0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000600000007),
+            /* => */ RTUINT256_INIT_C(0x0000000700000006, 0x0000000500000007, 0x0000000700000002, 0x0000000100000000) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc),
+            /* => */ RTUINT256_INIT_C(0xf0129abcdef01789, 0xdef017891236789a, 0xbcdef045345678de, 0x9abcdef2bcdef045) },
+    };
+
+    static BS3CPUINSTR3_TEST1_T const s_aTests16[] =
+    {
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM3_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM3,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_FSxBX_icebp_c16, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM2, FSxBX, PASS_ELEMENTS(s_aValues)   },
+
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM2_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM2_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, YMM2,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM1_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM1,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM1_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_FSxBX_icebp_c16, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM1, FSxBX, PASS_ELEMENTS(s_aValues)   },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests32[] =
+    {
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM3_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM3,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_FSxBX_icebp_c32, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM2, FSxBX, PASS_ELEMENTS(s_aValues)   },
+
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM2_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM2_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, YMM2,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM1_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM1,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM1_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_FSxBX_icebp_c32, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM1, FSxBX, PASS_ELEMENTS(s_aValues)   },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests64[] =
+    {
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM3_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM3,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_FSxBX_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM2, FSxBX, PASS_ELEMENTS(s_aValues)   },
+
+        {  bs3CpuInstr3_vpermps_YMM8_YMM9_YMM10_icebp_c64, 255,         RM_REG, T_AVX2_256, YMM8, YMM9, YMM10, PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM8_YMM9_FSxBX_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, YMM9, FSxBX, PASS_ELEMENTS(s_aValues)   },
+
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM2_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM2_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, YMM2,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM2_YMM1_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM1,  PASS_ELEMENTS(s_aValues)   },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_YMM1_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM1, NOREG, PASS_ELEMENTS(s_aValuesSR) },
+        {  bs3CpuInstr3_vpermps_YMM1_YMM1_FSxBX_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM1, FSxBX, PASS_ELEMENTS(s_aValues)   },
+    };
+    static BS3CPUINSTR3_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR3_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR3_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr3_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
+}
+
+
+/*
  * VPERMILPD - Permute In-Lane of Pairs of Double Precision Floating-Point Values
  *           - ('Double Precision Floating-Point Values' AKA 'uninterpreted strings of 64-bits')
  */
@@ -9459,6 +9579,101 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermilpd(uint8_t bMode)
     unsigned const                         iTest       = BS3CPUINSTR3_TEST_MODES_INDEX(bMode);
     return bs3CpuInstr3_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
                                         g_aXcptConfig6, RT_ELEMENTS(g_aXcptConfig6));
+}
+
+
+/*
+ * VPERMPD - Permute Double Precision Floating-Point Values
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermpd(uint8_t bMode)
+{
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues00[] =
+    {
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /* => */ RTUINT256_INIT_C(0xfaf0f00f31415926, 0xfaf0f00f31415926, 0xfaf0f00f31415926, 0xfaf0f00f31415926) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000600000007),
+            /* => */ RTUINT256_INIT_C(0x0000000600000007, 0x0000000600000007, 0x0000000600000007, 0x0000000600000007) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc),
+            /* => */ RTUINT256_INIT_C(0x345678def0129abc, 0x345678def0129abc, 0x345678def0129abc, 0x345678def0129abc) },
+    };
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues91[] =
+    {
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /* => */ RTUINT256_INIT_C(0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926, 0x6809400453589793) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000600000007),
+            /* => */ RTUINT256_INIT_C(0x0000000200000000, 0x0000000000000005, 0x0000000600000007, 0x0000000000000005) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc),
+            /* => */ RTUINT256_INIT_C(0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc, 0x23456abcdef01789) },
+    };
+    static BS3CPUINSTR3_TEST1_VALUES_T const s_aValuesE7[] =
+    {
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xfaf0f00f31415926),
+            /* => */ RTUINT256_INIT_C(0xf0e1d2c3eeddccbb, 0x1234567880806502, 0x6809400453589793, 0xf0e1d2c3eeddccbb) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000600000007),
+            /* => */ RTUINT256_INIT_C(0x0000000000000001, 0x0000000200000000, 0x0000000000000005, 0x0000000000000001) },
+        {   /*igno*/ RTUINT256_INIT_C(0, 0, 0, 0),
+            /*src1*/ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x345678def0129abc),
+            /* => */ RTUINT256_INIT_C(0x013456789abcdef2, 0x1236789abcdef045, 0x23456abcdef01789, 0x013456789abcdef2) },
+    };
+
+    static BS3CPUINSTR3_TEST1_T const s_aTests16[] =
+    {
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_000h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_000h_icebp_c16, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_091h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_091h_icebp_c16, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_0E7h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_0E7h_icebp_c16, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValuesE7) },
+
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_000h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_091h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_0E7h_icebp_c16,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests32[] =
+    {
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_000h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_000h_icebp_c32, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_091h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_091h_icebp_c32, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_0E7h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_0E7h_icebp_c32, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValuesE7) },
+
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_000h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_091h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_0E7h_icebp_c32,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+    };
+    static BS3CPUINSTR3_TEST1_T const s_aTests64[] =
+    {
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_000h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_000h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_091h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_091h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM2_0E7h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+        {  bs3CpuInstr3_vpermpd_YMM1_FSxBX_0E7h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ELEMENTS(s_aValuesE7) },
+
+        {  bs3CpuInstr3_vpermpd_YMM8_YMM9_000h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM8_FSxBX_000h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM8_YMM9_091h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM8_FSxBX_091h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM8_YMM9_0E7h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+        {  bs3CpuInstr3_vpermpd_YMM8_FSxBX_0E7h_icebp_c64, X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ELEMENTS(s_aValuesE7) },
+
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_000h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues00) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_091h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValues91) },
+        {  bs3CpuInstr3_vpermpd_YMM1_YMM1_0E7h_icebp_c64,  255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ELEMENTS(s_aValuesE7) },
+    };
+    static BS3CPUINSTR3_TEST1_MODE_T const s_aTests[3] = BS3CPUINSTR3_TEST1_MODES_INIT(s_aTests16, s_aTests32, s_aTests64);
+    unsigned const                         iTest       = BS3CPUINSTR3_TEST_MODES_INDEX(bMode);
+    return bs3CpuInstr3_WorkerTestType1(bMode, s_aTests[iTest].paTests, s_aTests[iTest].cTests,
+                                        g_aXcptConfig4, RT_ELEMENTS(g_aXcptConfig4));
 }
 
 
@@ -15924,6 +16139,7 @@ BS3_DECL(void) Main_pe32()
         { "[v]movss",                                       bs3CpuInstr3_v_movss, 0 },
         { "[v]movsd",                                       bs3CpuInstr3_v_movsd, 0 },
         { "[v]movhlps",                                     bs3CpuInstr3_v_movhlps, 0 },
+        { "[v]movlhps",                                     bs3CpuInstr3_v_movlhps, 0 },
         { "[v]movlps/[v]movlpd",                            bs3CpuInstr3_v_movlps_movlpd, 0 },
         { "[v]movhps/[v]movhpd",                            bs3CpuInstr3_v_movhps_movhpd, 0 },
         { "[v]movsldup",                                    bs3CpuInstr3_v_movsldup, 0 },
@@ -16045,6 +16261,8 @@ BS3_DECL(void) Main_pe32()
 #if defined(ALL_TESTS)
         { "vpermilps",                                      bs3CpuInstr3_vpermilps, 0 },
         { "vpermilpd",                                      bs3CpuInstr3_vpermilpd, 0 },
+        { "vpermps",                                        bs3CpuInstr3_vpermps, 0 },
+        { "vpermpd",                                        bs3CpuInstr3_vpermpd, 0 },
 #endif
 #if defined(ALL_TESTS)
         { "[v]pmaddwd",                                     bs3CpuInstr3_v_pmaddwd, 0 },

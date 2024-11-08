@@ -34,6 +34,7 @@
 #include "VirtualBoxClientWrap.h"
 #include "EventImpl.h"
 #include "VirtualBoxTranslator.h"
+#include "ObjectsTracker.h"
 
 #ifdef RT_OS_WINDOWS
 # include "win/resource.h"
@@ -99,6 +100,7 @@ private:
             , m_pVBoxTranslator(NULL)
             , m_pTrComponent(NULL)
 #endif
+            , m_objectTrackerTask(NULL)
         {}
 
         ~Data()
@@ -123,6 +125,8 @@ private:
         VirtualBoxTranslator *m_pVBoxTranslator;
         PTRCOMPONENT          m_pTrComponent;
 #endif
+
+        ObjectTracker *m_objectTrackerTask;
     };
 
     Data mData;

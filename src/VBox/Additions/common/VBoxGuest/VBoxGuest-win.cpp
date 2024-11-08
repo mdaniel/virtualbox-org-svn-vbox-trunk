@@ -780,7 +780,11 @@ static NTSTATUS vgdrvNtScanPCIResourceList(PVBOXGUESTDEVEXTWIN pDevExt, PCM_RESO
                     LogFunc(("Found memory range for VMMDev! Base = %#RX64, Length = %08x\n",
                              pPartialData->u.Memory.Start.QuadPart, pPartialData->u.Memory.Length));
                 }
-                else if ((pPartialData->Flags & CM_RESOURCE_MEMORY_WRITEABILITY_MASK) == CM_RESOURCE_MEMORY_READ_WRITE)
+                else if (   (pPartialData->Flags & CM_RESOURCE_MEMORY_WRITEABILITY_MASK) == CM_RESOURCE_MEMORY_READ_WRITE
+                         /* Make sure that we only treat this as MMIO interface if we have the exact MMIO size.
+                          * We have a different (bigger) memory area (for VMM) which we don't want to be
+                          * detected as MMIO region. This otherwise will break running on x86 guests. */
+                         && (VMMDEV_MMIO_SIZE == pPartialData->u.Memory.Length))
                 {
                     /* Treat as MMIO request interface. */
                     /* Save physical MMIO base + length for VMMDev. */

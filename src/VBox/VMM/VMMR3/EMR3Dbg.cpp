@@ -41,6 +41,8 @@
 #include <iprt/ctype.h>
 
 
+#ifdef VBOX_WITH_DEBUGGER
+
 /**
  * Common worker for the  '.alliem' and '.iemrecompiled' commands.
  */
@@ -103,6 +105,8 @@ static DBGCCMD const g_aCmds[] =
         "Enables or disables recompiled ALL-in-IEM execution, if no arguments are given it displays the current status."
     },
 };
+
+#endif /* VBOX_WITH_DEBUGGER */
 
 
 /**

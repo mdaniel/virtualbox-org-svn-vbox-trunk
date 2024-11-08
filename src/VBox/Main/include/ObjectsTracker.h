@@ -86,6 +86,8 @@ public:
                       uint64_t aIdleTime,
                       IUnknown* aPtr);
 
+    TrackedObjectData(const TrackedObjectData & that);
+
     ~TrackedObjectData();
     TrackedObjectData& operator =(const TrackedObjectData &that);
 

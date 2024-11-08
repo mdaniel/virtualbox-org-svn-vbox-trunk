@@ -578,7 +578,7 @@ HRESULT VirtualBox::init()
             {
                 m->objectTrackerTask = new ObjectTracker();
                 if (!m->objectTrackerTask->init()) // some init procedure
-                    vrc = E_FAIL;
+                    vrc = VERR_INVALID_STATE;
                 else
                     vrc = m->objectTrackerTask->createThread();
             }
@@ -590,7 +590,7 @@ HRESULT VirtualBox::init()
                     delete m->objectTrackerTask;
                     m->objectTrackerTask = NULL;
                 }
-                vrc = E_FAIL;
+                vrc = VERR_INVALID_STATE;
             }
         }
 

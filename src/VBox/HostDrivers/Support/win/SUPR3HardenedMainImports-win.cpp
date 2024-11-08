@@ -47,6 +47,9 @@
 #include <iprt/param.h>
 #include <iprt/string.h>
 #include <iprt/utf16.h>
+#ifdef RT_ARCH_ARM64
+# include <iprt/armv8.h>
+#endif
 
 #include "SUPLibInternal.h"
 #include "SUPHardenedVerify-win.h"
@@ -103,8 +106,10 @@ typedef struct SUPHNTIMPSYSCALL
     uint32_t               *puApiNo;
     /** Assembly system call routine, type 1.  */
     PFNRT                   pfnType1;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /** Assembly system call routine, type 2.  */
     PFNRT                   pfnType2;
+#endif
 #ifdef RT_ARCH_X86
     /** The parameter size in bytes for a standard call. */
     uint32_t                cbParams;
@@ -176,11 +181,18 @@ typedef SUPHNTIMPDLL *PSUPHNTIMPDLL;
 #define SUPHARNT_IMPORT_STDCALL_EARLY(a_Name, a_cbParamsX86) \
     extern PFNRT    RT_CONCAT(g_pfn, a_Name);
 #define SUPHARNT_IMPORT_STDCALL_EARLY_OPTIONAL(a_Name, a_cbParamsX86)  SUPHARNT_IMPORT_STDCALL_EARLY(a_Name, a_cbParamsX86)
-#define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
     SUPHARNT_IMPORT_STDCALL_EARLY(a_Name, a_cbParamsX86) \
     extern uint32_t RT_CONCAT(g_uApiNo, a_Name); \
     extern FNRT     RT_CONCAT(a_Name, _SyscallType1); \
     extern FNRT     RT_CONCAT(a_Name, _SyscallType2);
+#else
+# define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
+    SUPHARNT_IMPORT_STDCALL_EARLY(a_Name, a_cbParamsX86) \
+    extern uint32_t RT_CONCAT(g_uApiNo, a_Name); \
+    extern FNRT     RT_CONCAT(a_Name, _Syscall);
+#endif
 #define SUPHARNT_IMPORT_STDCALL(a_Name, a_cbParamsX86) \
     extern PFNRT    RT_CONCAT(g_pfn, a_Name); \
     extern FNRT     RT_CONCAT(a_Name, _Early);
@@ -234,11 +246,21 @@ static const SUPHNTIMPFUNC g_aSupNtImpKernel32Functions[] =
     { NULL, NULL },
 # define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
     { &RT_CONCAT(g_uApiNo, a_Name), &RT_CONCAT(a_Name, _SyscallType1), &RT_CONCAT(a_Name, _SyscallType2) },
+
+#elif defined(RT_ARCH_ARM64)
+# define SUPHARNT_IMPORT_STDCALL(a_Name, a_cbParamsX86) \
+    { NULL, NULL },
+# define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
+    { &RT_CONCAT(g_uApiNo, a_Name), &RT_CONCAT(a_Name, _Syscall) },
+
 #elif defined(RT_ARCH_X86)
 # define SUPHARNT_IMPORT_STDCALL(a_Name, a_cbParamsX86) \
     { NULL, NULL, NULL, 0 },
 # define SUPHARNT_IMPORT_SYSCALL(a_Name, a_cbParamsX86) \
     { &RT_CONCAT(g_uApiNo, a_Name), &RT_CONCAT(a_Name,_SyscallType1), &RT_CONCAT(a_Name, _SyscallType2), a_cbParamsX86 },
+
+#else
+# error "port me"
 #endif
 #define SUPHARNT_IMPORT_STDCALL_OPTIONAL(a_Name, a_cbParamsX86)       SUPHARNT_IMPORT_STDCALL(a_Name, a_cbParamsX86)
 #define SUPHARNT_IMPORT_STDCALL_EARLY(a_Name, a_cbParamsX86)          SUPHARNT_IMPORT_STDCALL(a_Name, a_cbParamsX86)
@@ -465,7 +487,7 @@ static void supR3HardenedDirectSyscall(PSUPHNTIMPDLL pDll, PCSUPHNTIMPFUNC pImpo
         return;
     }
     uintptr_t offSymbol = (uintptr_t)uValue - (uintptr_t)pDll->pbImageBase;
-    uint8_t const *pbFunction = &pbBits[offSymbol];
+    uint8_t const * const  pbFunction   = &pbBits[offSymbol];
 
     /*
      * Parse the code and extract the API call number.
@@ -531,7 +553,8 @@ static void supR3HardenedDirectSyscall(PSUPHNTIMPDLL pDll, PCSUPHNTIMPFUNC pImpo
             return;
         }
     }
-#else
+
+#elif defined(RT_ARCH_X86)
     /* Pattern #1: XP thru Windows 7
             kd> u ntdll!NtCreateSection
             ntdll!NtCreateSection:
@@ -594,6 +617,25 @@ static void supR3HardenedDirectSyscall(PSUPHNTIMPDLL pDll, PCSUPHNTIMPFUNC pImpo
             return;
         }
     }
+
+#elif defined(RT_ARCH_ARM64)
+    /* Only pattern (W10-1709):
+        0000000180022950 <ZwCreateSection>:
+        180022950: d4000941     svc     #0x4a
+        180022954: d65f03c0     ret
+        180022958: 00000000     udf     #0x0
+        18002295c: 00000000     udf     #0x0 */
+    uint32_t const * const pu32Function = (uint32_t const *)pbFunction;
+    if (   pu32Function[1] == ARMV8_A64_INSTR_RET
+        && (pu32Function[0] & ~(UINT32_C(0xffff) << 5)) == UINT32_C(0xd0000001))
+    {
+        *pSyscall->puApiNo = (pu32Function[0] >> 5) & UINT32_C(0xffff);
+        *pImport->ppfnImport = pSyscall->pfnType1;
+        return;
+    }
+
+#else
+# error "port me"
 #endif
 
     /*

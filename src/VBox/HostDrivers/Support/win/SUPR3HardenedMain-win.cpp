@@ -62,6 +62,9 @@
 #include <iprt/thread.h>
 #include <iprt/utf16.h>
 #include <iprt/zero.h>
+#ifdef RT_ARCH_ARM64
+# include <iprt/armv8.h>
+#endif
 
 #include "SUPLibInternal.h"
 #include "win/SUPHardenedVerify-win.h"
@@ -266,6 +269,32 @@ typedef struct SUPR3HARDNTCHILD
 typedef SUPR3HARDNTCHILD *PSUPR3HARDNTCHILD;
 
 
+/**
+ * The size (in bytes) of a function replacement patch.
+ */
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING)
+# define SUPR3HARDENED_NT_PATCH_SIZE     16
+#elif defined(RT_ARCH_ARM64)
+# define SUPR3HARDENED_NT_PATCH_SIZE     32
+#else
+# error "port me"
+#endif
+
+/**
+ * A ntdll code patch.
+ */
+typedef union SUPR3HARDNTPATCH
+{
+    union
+    {
+        uint8_t  ab[SUPR3HARDENED_NT_PATCH_SIZE];
+        uint32_t au32[SUPR3HARDENED_NT_PATCH_SIZE / 4];
+        uint64_t au64[SUPR3HARDENED_NT_PATCH_SIZE / 8];
+    };
+    uint32_t     cb;
+} SUPR3HARDNTPATCH;
+
+
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
@@ -306,14 +335,14 @@ static NTSTATUS     (NTAPI *g_pfnNtCreateSectionReal)(PHANDLE, ACCESS_MASK, POBJ
 /** Pointer to the NtCreateSection function in NtDll (for patching purposes). */
 static uint8_t             *g_pbNtCreateSection;
 /** The patched NtCreateSection bytes (for restoring). */
-static uint8_t              g_abNtCreateSectionPatch[16];
+static SUPR3HARDNTPATCH     g_NtCreateSectionPatch;
 /** Pointer to the bit of assembly code that will perform the original
  *  LdrLoadDll operation. */
 static NTSTATUS     (NTAPI *g_pfnLdrLoadDllReal)(PWSTR, PULONG, PUNICODE_STRING, PHANDLE);
 /** Pointer to the LdrLoadDll function in NtDll (for patching purposes). */
 static uint8_t             *g_pbLdrLoadDll;
 /** The patched LdrLoadDll bytes (for restoring). */
-static uint8_t              g_abLdrLoadDllPatch[16];
+static SUPR3HARDNTPATCH     g_LdrLoadDllPatch;
 
 #ifndef VBOX_WITHOUT_HARDENDED_XCPT_LOGGING
 /** Pointer to the bit of assembly code that will perform the original
@@ -322,7 +351,7 @@ static VOID        (NTAPI *g_pfnKiUserExceptionDispatcherReal)(void);
 /** Pointer to the KiUserExceptionDispatcher function in NtDll (for patching purposes). */
 static uint8_t             *g_pbKiUserExceptionDispatcher;
 /** The patched KiUserExceptionDispatcher bytes (for restoring). */
-static uint8_t              g_abKiUserExceptionDispatcherPatch[16];
+static SUPR3HARDNTPATCH     g_KiUserExceptionDispatcherPatch;
 #endif
 
 /** Pointer to the bit of assembly code that will perform the original
@@ -331,7 +360,7 @@ static VOID        (NTAPI *g_pfnKiUserApcDispatcherReal)(void);
 /** Pointer to the KiUserApcDispatcher function in NtDll (for patching purposes). */
 static uint8_t             *g_pbKiUserApcDispatcher;
 /** The patched KiUserApcDispatcher bytes (for restoring). */
-static uint8_t              g_abKiUserApcDispatcherPatch[16];
+static SUPR3HARDNTPATCH     g_KiUserApcDispatcherPatch;
 
 /** Pointer to the LdrInitializeThunk function in NtDll for
  *  supR3HardenedMonitor_KiUserApcDispatcher_C() to use for APC vetting. */
@@ -366,7 +395,7 @@ extern "C" uint8_t          g_abSupHardReadWriteExecPage[PAGE_SIZE];
 static bool                 g_fSupInitThunkSelfPatched;
 /** The backup of our own LdrInitializeThunk code, for enabling and disabling
  * thread creation in this process. */
-static uint8_t              g_abLdrInitThunkSelfBackup[16];
+static SUPR3HARDNTPATCH     g_LdrInitThunkSelfBackup;
 
 /** Mask of adversaries that we've detected (SUPHARDNT_ADVERSARY_XXX). */
 static uint32_t             g_fSupAdversaries = 0;
@@ -2590,16 +2619,21 @@ DECLASM(uintptr_t) supR3HardenedMonitor_KiUserApcDispatcher_C(void *pvApcArgs)
 #ifdef RT_ARCH_AMD64
     PCONTEXT   pCtx        = (PCONTEXT)pvApcArgs;
     uintptr_t *ppfnRoutine = (uintptr_t *)&pCtx->P4Home;
-#else
-    struct X86APCCTX
+#elif defined(RT_ARCH_X86) || defined(RT_ARCH_ARM64)
+    struct GENAPCCTX
     {
         uintptr_t   pfnRoutine;
         uintptr_t   pvCtx;
         uintptr_t   pvUser1;
         uintptr_t   pvUser2;
         CONTEXT     Ctx;
-    } *pCtx = (struct X86APCCTX *)pvApcArgs;
+    } *pCtx = (struct GENAPCCTX *)pvApcArgs;
     uintptr_t *ppfnRoutine = &pCtx->pfnRoutine;
+# ifdef RT_ARCH_ARM64
+    __debugbreak(); /** @todo debug & check this */
+# endif
+#else
+# error "port me"
 #endif
     uintptr_t  pfnRoutine = *ppfnRoutine;
 
@@ -2659,6 +2693,30 @@ static void supR3HardNtDprintCtx(PCONTEXT pCtx, const char *pszLeadIn)
                  pCtx->Eip, pCtx->Esp, pCtx->Ebp, pCtx->EFlags,
                  pCtx->SegCs, pCtx->SegDs, pCtx->SegEs, pCtx->SegFs, pCtx->SegGs,
                  pCtx->Dr0, pCtx->Dr1, pCtx->Dr2, pCtx->Dr3, pCtx->Dr6, pCtx->Dr7));
+#elif defined(RT_ARCH_ARM64)
+    SUP_DPRINTF(("%s\n"
+                 "  x0 =%016RX64 x1 =%016RX64 x2 =%016RX64 x3 =%016RX64\n"
+                 "  x4 =%016RX64 x5 =%016RX64 x6 =%016RX64 x7 =%016RX64\n"
+                 "  x8 =%016RX64 x9 =%016RX64 x10=%016RX64 x11=%016RX64\n"
+                 "  x12=%016RX64 x13=%016RX64 x14=%016RX64 x15=%016RX64\n"
+                 "  x16=%016RX64 x17=%016RX64 x18=%016RX64 x19=%016RX64\n"
+                 "  x20=%016RX64 x21=%016RX64 x22=%016RX64 x23=%016RX64\n"
+                 "  x24=%016RX64 x25=%016RX64 x26=%016RX64 x27=%016RX64\n"
+                 "  x28=%016RX64 fp =%016RX64 lr =%016RX64\n"
+                 "  pc =%016RX64 sp =%016RX64 cpsr=%08RX32\n"
+                 "  fpcr=%08RX32 fpsr=%08RX32 ContextFlags=%#x\n"
+                 ,
+                 pszLeadIn,
+                 pCtx->X0, pCtx->X1, pCtx->X2, pCtx->X3,
+                 pCtx->X4, pCtx->X5, pCtx->X6, pCtx->X7,
+                 pCtx->X8, pCtx->X9, pCtx->X10, pCtx->X11,
+                 pCtx->X12, pCtx->X13, pCtx->X14, pCtx->X15,
+                 pCtx->X16, pCtx->X17, pCtx->X18, pCtx->X19,
+                 pCtx->X20, pCtx->X21, pCtx->X22, pCtx->X23,
+                 pCtx->X24, pCtx->X25, pCtx->X26, pCtx->X27,
+                 pCtx->X28, pCtx->Fp, pCtx->Lr,
+                 pCtx->Pc, pCtx->Sp, pCtx->Cpsr, pCtx->ContextFlags,
+                 pCtx->Fpcr, pCtx->Fpsr));
 #else
 # error "Unsupported arch."
 #endif
@@ -2874,17 +2932,16 @@ static void supR3HardenedWinReInstallHooks(bool fFirstCall) RT_NOTHROW_DEF
 {
     struct
     {
-        size_t          cbPatch;
-        uint8_t const  *pabPatch;
-        uint8_t       **ppbApi;
-        const char     *pszName;
+        SUPR3HARDNTPATCH *pPatch;
+        uint8_t         **ppbApi;
+        const char       *pszName;
     } const s_aPatches[] =
     {
-        { sizeof(g_abNtCreateSectionPatch),           g_abNtCreateSectionPatch,           &g_pbNtCreateSection,           "NtCreateSection"     },
-        { sizeof(g_abLdrLoadDllPatch),                g_abLdrLoadDllPatch,                &g_pbLdrLoadDll,                "LdrLoadDll"          },
-        { sizeof(g_abKiUserApcDispatcherPatch),       g_abKiUserApcDispatcherPatch,       &g_pbKiUserApcDispatcher,       "KiUserApcDispatcher" },
+        { &g_NtCreateSectionPatch,           &g_pbNtCreateSection,           "NtCreateSection"     },
+        { &g_LdrLoadDllPatch,                &g_pbLdrLoadDll,                "LdrLoadDll"          },
+        { &g_KiUserApcDispatcherPatch,       &g_pbKiUserApcDispatcher,       "KiUserApcDispatcher" },
 #ifndef VBOX_WITHOUT_HARDENDED_XCPT_LOGGING
-        { sizeof(g_abKiUserExceptionDispatcherPatch), g_abKiUserExceptionDispatcherPatch, &g_pbKiUserExceptionDispatcher, "KiUserExceptionDispatcher" },
+        { &g_KiUserExceptionDispatcherPatch, &g_pbKiUserExceptionDispatcher, "KiUserExceptionDispatcher" },
 #endif
     };
 
@@ -2892,8 +2949,9 @@ static void supR3HardenedWinReInstallHooks(bool fFirstCall) RT_NOTHROW_DEF
 
     for (uint32_t i = 0; i < RT_ELEMENTS(s_aPatches); i++)
     {
-        uint8_t *pbApi = *s_aPatches[i].ppbApi;
-        if (memcmp(pbApi, s_aPatches[i].pabPatch, s_aPatches[i].cbPatch) != 0)
+        SUPR3HARDNTPATCH * const pPatch = s_aPatches[i].pPatch;
+        uint8_t * const          pbApi  = *s_aPatches[i].ppbApi;
+        if (memcmp(pbApi, pPatch->ab, pPatch->cb) != 0)
         {
             /*
              * Log the incident if it's not the initial call.
@@ -2903,12 +2961,12 @@ static void supR3HardenedWinReInstallHooks(bool fFirstCall) RT_NOTHROW_DEF
             {
                 s_cTimes++;
                 SUP_DPRINTF(("supR3HardenedWinReInstallHooks: Reinstalling %s (%p: %.*Rhxs).\n",
-                             s_aPatches[i].pszName, pbApi, s_aPatches[i].cbPatch, pbApi));
+                             s_aPatches[i].pszName, pbApi, pPatch->cb, pbApi));
             }
 
-            Assert(s_aPatches[i].cbPatch >= 4);
+            Assert(pPatch->cb >= 4);
 
-            SUPR3HARDENED_ASSERT_NT_SUCCESS(supR3HardenedWinProtectMemory(pbApi, s_aPatches[i].cbPatch, PAGE_EXECUTE_READWRITE));
+            SUPR3HARDENED_ASSERT_NT_SUCCESS(supR3HardenedWinProtectMemory(pbApi, pPatch->cb, PAGE_EXECUTE_READWRITE));
 
             /*
              * If we're alone, just memcpy the patch in.
@@ -2917,7 +2975,7 @@ static void supR3HardenedWinReInstallHooks(bool fFirstCall) RT_NOTHROW_DEF
             if (fAmIAlone == ~(ULONG)0)
                 fAmIAlone = supR3HardenedWinAmIAlone();
             if (fAmIAlone)
-                memcpy(pbApi, s_aPatches[i].pabPatch, s_aPatches[i].cbPatch);
+                memcpy(pbApi, pPatch->ab, pPatch->cb);
             else
             {
                 /*
@@ -2926,22 +2984,26 @@ static void supR3HardenedWinReInstallHooks(bool fFirstCall) RT_NOTHROW_DEF
                  * out of the code before we replace it.
                  */
                 RTUINT32U uJmpDollarMinus;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
                 uJmpDollarMinus.au8[0] = 0xeb;
                 uJmpDollarMinus.au8[1] = 0xfe;
                 uJmpDollarMinus.au8[2] = pbApi[2];
                 uJmpDollarMinus.au8[3] = pbApi[3];
-                ASMAtomicXchgU32((uint32_t volatile *)pbApi, uJmpDollarMinus.u);
+#else
+                uJmpDollarMinus.u = Armv8A64MkInstrB(0);
+#endif
+                ASMAtomicWriteU32((uint32_t volatile *)pbApi, uJmpDollarMinus.u);
 
                 NtYieldExecution();
                 NtYieldExecution();
 
                 /* Copy in the tail bytes of the patch, then xchg the jmp $-2. */
-                if (s_aPatches[i].cbPatch > 4)
-                    memcpy(&pbApi[4], &s_aPatches[i].pabPatch[4], s_aPatches[i].cbPatch - 4);
-                ASMAtomicXchgU32((uint32_t volatile *)pbApi, *(uint32_t *)s_aPatches[i].pabPatch);
+                if (pPatch->cb > 4)
+                    memcpy(&pbApi[4], &pPatch->ab[4], pPatch->cb - 4);
+                ASMAtomicWriteU32((uint32_t volatile *)pbApi, pPatch->au32[0]);
             }
 
-            SUPR3HARDENED_ASSERT_NT_SUCCESS(supR3HardenedWinProtectMemory(pbApi, s_aPatches[i].cbPatch, PAGE_EXECUTE_READ));
+            SUPR3HARDENED_ASSERT_NT_SUCCESS(supR3HardenedWinProtectMemory(pbApi, pPatch->cb, PAGE_EXECUTE_READ));
         }
     }
 }
@@ -3017,7 +3079,7 @@ static void supR3HardenedWinInstallHooks(void)
      */
     uint8_t * const pbNtCreateSection = (uint8_t *)(uintptr_t)pfnNtCreateSection;
     g_pbNtCreateSection = pbNtCreateSection;
-    memcpy(g_abNtCreateSectionPatch, pbNtCreateSection, sizeof(g_abNtCreateSectionPatch));
+    memcpy(g_NtCreateSectionPatch.ab, pbNtCreateSection, sizeof(g_NtCreateSectionPatch.ab));
 
     g_pfnNtCreateSectionReal = NtCreateSection; /* our direct syscall */
 
@@ -3036,13 +3098,14 @@ static void supR3HardenedWinInstallHooks(void)
        The variant is the value loaded into eax: W2K3=??, Vista=47h?, W7=47h, W80=48h, W81=49h */
 
     /* Assemble the patch. */
-    g_abNtCreateSectionPatch[0]  = 0x48; /* mov rax, qword */
-    g_abNtCreateSectionPatch[1]  = 0xb8;
-    *(uint64_t *)&g_abNtCreateSectionPatch[2] = (uint64_t)supR3HardenedMonitor_NtCreateSection;
-    g_abNtCreateSectionPatch[10] = 0xff; /* jmp rax */
-    g_abNtCreateSectionPatch[11] = 0xe0;
+    g_NtCreateSectionPatch.ab[0]  = 0x48; /* mov rax, qword */
+    g_NtCreateSectionPatch.ab[1]  = 0xb8;
+    *(uint64_t *)&g_NtCreateSectionPatch.ab[2] = (uint64_t)supR3HardenedMonitor_NtCreateSection;
+    g_NtCreateSectionPatch.ab[10] = 0xff; /* jmp rax */
+    g_NtCreateSectionPatch.ab[11] = 0xe0;
+    g_NtCreateSectionPatch.cb = 12;
 
-#else
+#elif defined(RT_ARCH_X86)
     /*
      * Patch 32-bit hosts.
      */
@@ -3068,10 +3131,42 @@ static void supR3HardenedWinInstallHooks(void)
        The variable bit is the value loaded into eax: W81=154h */
 
     /* Assemble the patch. */
-    g_abNtCreateSectionPatch[0] = 0xe9;  /* jmp rel32 */
-    *(uint32_t *)&g_abNtCreateSectionPatch[1] = (uintptr_t)supR3HardenedMonitor_NtCreateSection
-                                              - (uintptr_t)&pbNtCreateSection[1+4];
+    g_NtCreateSectionPatch.ab[0] = 0xe9;  /* jmp rel32 */
+    *(uint32_t *)&g_NtCreateSectionPatch.ab[1] = (uintptr_t)supR3HardenedMonitor_NtCreateSection
+                                               - (uintptr_t)&pbNtCreateSection[1+4];
+    g_NtCreateSectionPatch.cb = 5;
 
+#elif defined(RT_ARCH_ARM64)
+    /*
+     * Patch 64-bit ARM hosts. 
+     * We can make this work, provided the target address doesn't use bits 63:48.
+     */
+    /* Pattern #1:
+       NtCreateSection:
+        180022950: d4000941     svc     #0x4a
+        180022954: d65f03c0     ret
+        180022958: 00000000     udf     #0x00
+        18002295c: 00000000     udf     #0x00 */
+    uintptr_t uAddr = (uintptr_t)supR3HardenedMonitor_NtCreateSection;
+    if (uAddr >= RT_BIT_64(48))
+        supR3HardenedFatalMsg("supR3HardenedWinInstallHooks", kSupInitOp_Misc, VERR_GENERAL_FAILURE,
+                              "Address of supR3HardenedMonitor_NtCreateSection (%p) is too high for patching!", uAddr);
+    uint32_t const * const pu32NtCreateSection = (uint32_t const *)pbNtCreateSection;
+
+    if (   (pu32NtCreateSection[0] & ~(UINT32_C(0xffff) << 5)) == UINT32_C(0xd0000001)
+        || pu32NtCreateSection[1] != ARMV8_A64_INSTR_RET
+        || pu32NtCreateSection[2] != 0
+        || pu32NtCreateSection[3] != 0)
+        supR3HardenedFatalMsg("supR3HardenedWinInstallHooks", kSupInitOp_Misc, VERR_GENERAL_FAILURE,
+                              "Unexpected code found at ntdll!NtCreateSection: %.16Rhxs", pu32NtCreateSection);
+    g_NtCreateSectionPatch.au32[0] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X16, uAddr & 0xffff);
+    g_NtCreateSectionPatch.au32[1] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X16, (uAddr >> 16) & 0xffff, 1);
+    g_NtCreateSectionPatch.au32[2] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X16, (uAddr >> 32) & 0xffff, 2);
+    g_NtCreateSectionPatch.au32[3] = Armv8A64MkInstrBr(ARMV8_A64_REG_X16);
+    g_NtCreateSectionPatch.cb = 16;
+
+#else
+# error "port me"
 #endif
 
     /*
@@ -3085,10 +3180,12 @@ static void supR3HardenedWinInstallHooks(void)
      */
     uint8_t * const pbLdrLoadDll = (uint8_t *)(uintptr_t)pfnLdrLoadDll;
     g_pbLdrLoadDll = pbLdrLoadDll;
-    memcpy(g_abLdrLoadDllPatch, pbLdrLoadDll, sizeof(g_abLdrLoadDllPatch));
+    memcpy(g_LdrLoadDllPatch.ab, pbLdrLoadDll, sizeof(g_LdrLoadDllPatch.ab));
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     DISSTATE Dis;
     uint32_t cbInstr;
+#endif
     uint32_t offJmpBack = 0;
 
 #ifdef RT_ARCH_AMD64
@@ -3122,13 +3219,14 @@ static void supR3HardenedWinInstallHooks(void)
 
     /* Assemble the LdrLoadDll patch. */
     Assert(offJmpBack >= 12);
-    g_abLdrLoadDllPatch[0]  = 0x48; /* mov rax, qword */
-    g_abLdrLoadDllPatch[1]  = 0xb8;
-    *(uint64_t *)&g_abLdrLoadDllPatch[2] = (uint64_t)supR3HardenedMonitor_LdrLoadDll;
-    g_abLdrLoadDllPatch[10] = 0xff; /* jmp rax */
-    g_abLdrLoadDllPatch[11] = 0xe0;
+    g_LdrLoadDllPatch.ab[0]  = 0x48; /* mov rax, qword */
+    g_LdrLoadDllPatch.ab[1]  = 0xb8;
+    *(uint64_t *)&g_LdrLoadDllPatch.ab[2] = (uint64_t)supR3HardenedMonitor_LdrLoadDll;
+    g_LdrLoadDllPatch.ab[10] = 0xff; /* jmp rax */
+    g_LdrLoadDllPatch.ab[11] = 0xe0;
+    g_LdrLoadDllPatch.cb = 12;
 
-#else
+#elif defined(RT_ARCH_X86)
     /*
      * Patch 32-bit hosts.
      */
@@ -3155,10 +3253,58 @@ static void supR3HardenedWinInstallHooks(void)
     offExecPage = RT_ALIGN_32(offExecPage + 4, 16);
 
     /* Assemble the LdrLoadDll patch. */
-    memcpy(g_abLdrLoadDllPatch, pbLdrLoadDll, sizeof(g_abLdrLoadDllPatch));
     Assert(offJmpBack >= 5);
-    g_abLdrLoadDllPatch[0] = 0xe9;
-    *(uint32_t *)&g_abLdrLoadDllPatch[1] = (uintptr_t)supR3HardenedMonitor_LdrLoadDll - (uintptr_t)&pbLdrLoadDll[1+4];
+    g_LdrLoadDllPatch.ab[0] = 0xe9;
+    *(uint32_t *)&g_LdrLoadDllPatch.ab[1] = (uintptr_t)supR3HardenedMonitor_LdrLoadDll - (uintptr_t)&pbLdrLoadDll[1+4];
+    g_LdrLoadDllPatch.cb = 5;
+
+#elif defined(RT_ARCH_ARM64)
+    /*
+     * Patch 64-bit ARM hosts. 
+     *  
+     * Note! Blindly ASSUMES that the code is at least 20 bytes long, that x17 
+     *       isn't being used, and that there are no branch instructions.
+     *       So, far we've only seen the typical long STP sequence.
+     */
+    /** @todo disassemble to make sure x17 isn't used and there is no branching!  */
+    offJmpBack = 20;
+
+    /* Assemble the code for resuming the call.*/
+    *(PFNRT *)&g_pfnLdrLoadDllReal = (PFNRT)(uintptr_t)&g_abSupHardReadWriteExecPage[offExecPage];
+
+    memcpy(&g_abSupHardReadWriteExecPage[offExecPage], pbLdrLoadDll, offJmpBack);
+    offExecPage += offJmpBack;
+
+    uAddr = (uintptr_t)&pbLdrLoadDll[offJmpBack];
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X17, uAddr & 0xffff);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 1);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 32) & 0xffff, 2);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 48) & 0xffff, 3);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    offExecPage = RT_ALIGN_32(offExecPage + 4, 16);
+
+    /* Assemble the LdrLoadDll patch. */
+# if 0
+    uAddr = (uintptr_t)supR3HardenedMonitor_LdrLoadDll;
+    g_LdrLoadDllPatch.au32[0] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X17, uAddr & 0xffff);
+    g_LdrLoadDllPatch.au32[1] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 1);
+    g_LdrLoadDllPatch.au32[2] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 2);
+    g_LdrLoadDllPatch.au32[3] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 3);
+    g_LdrLoadDllPatch.au32[4] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    g_LdrLoadDllPatch.cb = 20;
+# else
+    g_LdrLoadDllPatch.au32[0] = Armv8A64MkInstrLdrLitteral(kArmv8A64InstrLdrLitteral_Dword, ARMV8_A64_REG_X17, 8);
+    g_LdrLoadDllPatch.au32[1] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    g_LdrLoadDllPatch.au64[1] = (uintptr_t)supR3HardenedMonitor_LdrLoadDll;
+    g_LdrLoadDllPatch.cb = 16;
+# endif
+
+#else
+# error "port me"
 #endif
 
     /*
@@ -3175,7 +3321,7 @@ static void supR3HardenedWinInstallHooks(void)
      */
     uint8_t * const pbKiUserApcDispatcher = (uint8_t *)(uintptr_t)pfnKiUserApcDispatcher;
     g_pbKiUserApcDispatcher = pbKiUserApcDispatcher;
-    memcpy(g_abKiUserApcDispatcherPatch, pbKiUserApcDispatcher, sizeof(g_abKiUserApcDispatcherPatch));
+    memcpy(g_KiUserApcDispatcherPatch.ab, pbKiUserApcDispatcher, sizeof(g_KiUserApcDispatcherPatch.ab));
 
 #ifdef RT_ARCH_AMD64
     /*
@@ -3209,13 +3355,14 @@ static void supR3HardenedWinInstallHooks(void)
 
     /* Assemble the KiUserApcDispatcher patch. */
     Assert(offJmpBack >= 12);
-    g_abKiUserApcDispatcherPatch[0]  = 0x48; /* mov rax, qword */
-    g_abKiUserApcDispatcherPatch[1]  = 0xb8;
-    *(uint64_t *)&g_abKiUserApcDispatcherPatch[2] = (uint64_t)supR3HardenedMonitor_KiUserApcDispatcher;
-    g_abKiUserApcDispatcherPatch[10] = 0xff; /* jmp rax */
-    g_abKiUserApcDispatcherPatch[11] = 0xe0;
+    g_KiUserApcDispatcherPatch.ab[0]  = 0x48; /* mov rax, qword */
+    g_KiUserApcDispatcherPatch.ab[1]  = 0xb8;
+    *(uint64_t *)&g_KiUserApcDispatcherPatch.ab[2] = (uint64_t)supR3HardenedMonitor_KiUserApcDispatcher;
+    g_KiUserApcDispatcherPatch.ab[10] = 0xff; /* jmp rax */
+    g_KiUserApcDispatcherPatch.ab[11] = 0xe0;
+    g_KiUserApcDispatcherPatch.cb = 12;
 
-#else
+#elif defined(RT_ARCH_X86)
     /*
      * Patch 32-bit hosts.
      */
@@ -3243,11 +3390,83 @@ static void supR3HardenedWinInstallHooks(void)
     offExecPage = RT_ALIGN_32(offExecPage + 4, 16);
 
     /* Assemble the KiUserApcDispatcher patch. */
-    memcpy(g_abKiUserApcDispatcherPatch, pbKiUserApcDispatcher, sizeof(g_abKiUserApcDispatcherPatch));
     Assert(offJmpBack >= 5);
-    g_abKiUserApcDispatcherPatch[0] = 0xe9;
-    *(uint32_t *)&g_abKiUserApcDispatcherPatch[1] = (uintptr_t)supR3HardenedMonitor_KiUserApcDispatcher - (uintptr_t)&pbKiUserApcDispatcher[1+4];
+    g_KiUserApcDispatcherPatch.ab[0] = 0xe9;
+    *(uint32_t *)&g_KiUserApcDispatcherPatch.ab[1] = (uintptr_t)supR3HardenedMonitor_KiUserApcDispatcher - (uintptr_t)&pbKiUserApcDispatcher[1+4];
+    g_KiUserApcDispatcherPatch.cb = 5;
+
+#elif defined(RT_ARCH_ARM64)
+    /*
+     * Patch 64-bit ARM hosts.
+     *
+     * Note! Blindly ASSUMES that the code is at least 16 bytes long, that x17
+     *       isn't being used, and that there are no branch instructions.
+     *       In the code we've been looking at, the 4th instruction is a CBZ,
+     *       which means we can only use 16 bytes here to do the patching.
+     * 
+     * w10-1709:
+     *      1800243a0: f94003ef     ldr     x15, [sp]                   ; The APC routine address.
+     *      1800243a4: 9342fde2     asr     x2, x15, #2
+     *      1800243a8: cb0203e2     neg     x2, x2
+     *      1800243ac: d360fc40     lsr     x0, x2, #32
+     *      1800243b0: 340001a0     cbz     w0, 0x1800243e4 <KiUserApcDispatcher+0x44>  ; jump if WOW stuff.
+     *      1800243b4: f94007e0     ldr     x0, [sp, #0x8]              ; APC arg #0
+     *      1800243b8: f9400be1     ldr     x1, [sp, #0x10]             ; APC arg #1
+     *      1800243bc: f9400fe2     ldr     x2, [sp, #0x18]             ; APC arg #2
+     *      1800243c0: 97ffffe4     bl      0x180024350 <RtlFirstEntrySList+0x10>
+     *      1800243c4: 910083e0     add     x0, sp, #0x20               ; x0=PCONTEXT
+     *      1800243c8: d2800021     mov     x1, #0x1                // =1
+     *      1800243cc: 97fff945     bl      0x1800228e0 <ZwContinue>
+     */
+    /** @todo disassemble to make sure x17 isn't used and there is no branching!  */
+    offJmpBack = 16;
+    uint32_t const * const pu32KiUserApcDispatcher = (uint32_t const *)pbKiUserApcDispatcher;
+    if (   pu32KiUserApcDispatcher[0] != UINT32_C(0xf94003ef)
+        || pu32KiUserApcDispatcher[1] != UINT32_C(0x9342fde2)
+        || pu32KiUserApcDispatcher[2] != UINT32_C(0xcb0203e2)
+        || pu32KiUserApcDispatcher[3] != UINT32_C(0xd360fc40))
+        supR3HardenedWinHookFailed("KiUserApcDispatcher", pbKiUserApcDispatcher);
+
+    /* Assemble the code for resuming the call.*/
+    *(PFNRT *)&g_pfnKiUserApcDispatcherReal = (PFNRT)(uintptr_t)&g_abSupHardReadWriteExecPage[offExecPage];
+
+    memcpy(&g_abSupHardReadWriteExecPage[offExecPage], pbKiUserApcDispatcher, offJmpBack);
+    offExecPage += offJmpBack;
+
+    uAddr = (uintptr_t)&pbKiUserApcDispatcher[offJmpBack];
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X17, uAddr & 0xffff);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 1);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 32) & 0xffff, 2);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 48) & 0xffff, 3);
+    offExecPage += 4;
+    *(uint32_t *)&g_abSupHardReadWriteExecPage[offExecPage] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    offExecPage = RT_ALIGN_32(offExecPage + 4, 16);
+
+    /* Assemble the KiUserApcDispatcher patch. */
+# if 0
+    uAddr = (uintptr_t)supR3HardenedMonitor_LdrLoadDll;
+    if (uAddr >= RT_BIT_64(48))
+        supR3HardenedFatalMsg("supR3HardenedWinInstallHooks", kSupInitOp_Misc, VERR_GENERAL_FAILURE,
+                              "Address of supR3HardenedMonitor_LdrLoadDll (%p) is too high for patching!", uAddr);
+    g_KiUserApcDispatcherPatch.au32[0] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X17, uAddr & 0xffff);
+    g_KiUserApcDispatcherPatch.au32[1] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 1);
+    g_KiUserApcDispatcherPatch.au32[2] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 2);
+    //g_KiUserApcDispatcherPatch.au32[3] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X17, (uAddr >> 16) & 0xffff, 3);
+    g_KiUserApcDispatcherPatch.au32[3] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    g_KiUserApcDispatcherPatch.cb = 16;
+# else
+    g_KiUserApcDispatcherPatch.au32[0] = Armv8A64MkInstrLdrLitteral(kArmv8A64InstrLdrLitteral_Dword, ARMV8_A64_REG_X17, 8);
+    g_KiUserApcDispatcherPatch.au32[1] = Armv8A64MkInstrBr(ARMV8_A64_REG_X17);
+    g_KiUserApcDispatcherPatch.au64[1] = (uintptr_t)supR3HardenedMonitor_LdrLoadDll;
+# endif
+
+#else
+# error "port me"
 #endif
+
 
 #ifndef VBOX_WITHOUT_HARDENDED_XCPT_LOGGING
     /*
@@ -3260,7 +3479,7 @@ static void supR3HardenedWinInstallHooks(void)
      */
     uint8_t * const pbKiUserExceptionDispatcher = (uint8_t *)(uintptr_t)pfnKiUserExceptionDispatcher;
     g_pbKiUserExceptionDispatcher = pbKiUserExceptionDispatcher;
-    memcpy(g_abKiUserExceptionDispatcherPatch, pbKiUserExceptionDispatcher, sizeof(g_abKiUserExceptionDispatcherPatch));
+    memcpy(g_KiUserExceptionDispatcherPatch.ab, pbKiUserExceptionDispatcher, sizeof(g_KiUserExceptionDispatcherPatch.ab));
 
 # ifdef RT_ARCH_AMD64
     /*
@@ -3285,16 +3504,18 @@ static void supR3HardenedWinInstallHooks(void)
         && pbKiUserExceptionDispatcher[11] == 0x74)
     {
         /* Assemble the KiUserExceptionDispatcher patch. */
-        g_abKiUserExceptionDispatcherPatch[1]  = 0x48; /* MOV RAX, supR3HardenedMonitor_KiUserExceptionDispatcher */
-        g_abKiUserExceptionDispatcherPatch[2]  = 0xb8;
-        *(uint64_t *)&g_abKiUserExceptionDispatcherPatch[3] = (uint64_t)supR3HardenedMonitor_KiUserExceptionDispatcher;
-        g_abKiUserExceptionDispatcherPatch[11] = 0x90; /* NOP (was JZ) */
-        g_abKiUserExceptionDispatcherPatch[12] = 0x90; /* NOP (was DISP8 of JZ) */
+        g_KiUserExceptionDispatcherPatch.ab[1]  = 0x48; /* MOV RAX, supR3HardenedMonitor_KiUserExceptionDispatcher */
+        g_KiUserExceptionDispatcherPatch.ab[2]  = 0xb8;
+        *(uint64_t *)&g_KiUserExceptionDispatcherPatch.ab[3] = (uint64_t)supR3HardenedMonitor_KiUserExceptionDispatcher;
+        g_KiUserExceptionDispatcherPatch.ab[11] = 0x90; /* NOP (was JZ) */
+        g_KiUserExceptionDispatcherPatch.ab[12] = 0x90; /* NOP (was DISP8 of JZ) */
+        g_KiUserExceptionDispatcherPatch.cb = 13;
     }
     else
         SUP_DPRINTF(("supR3HardenedWinInstallHooks: failed to patch KiUserExceptionDispatcher (%.20Rhxs)\n",
                      pbKiUserExceptionDispatcher));
-# else
+
+# elif defined(RT_ARCH_X86)
     /*
      * Patch 32-bit hosts.
      */
@@ -3327,11 +3548,65 @@ static void supR3HardenedWinInstallHooks(void)
         offExecPage = RT_ALIGN_32(offExecPage + 4, 16);
 
         /* Assemble the KiUserExceptionDispatcher patch. */
-        memcpy(g_abKiUserExceptionDispatcherPatch, pbKiUserExceptionDispatcher, sizeof(g_abKiUserExceptionDispatcherPatch));
         Assert(offJmpBack >= 5);
-        g_abKiUserExceptionDispatcherPatch[0] = 0xe9;
-        *(uint32_t *)&g_abKiUserExceptionDispatcherPatch[1] = (uintptr_t)supR3HardenedMonitor_KiUserExceptionDispatcher - (uintptr_t)&pbKiUserExceptionDispatcher[1+4];
+        g_KiUserExceptionDispatcherPatch.ab[0] = 0xe9;
+        *(uint32_t *)&g_KiUserExceptionDispatcherPatch.ab[1] = (uintptr_t)supR3HardenedMonitor_KiUserExceptionDispatcher - (uintptr_t)&pbKiUserExceptionDispatcher[1+4];
+        g_KiUserExceptionDispatcherPatch.cb = 5;
     }
+
+# elif defined(RT_ARCH_ARM64)
+    /*
+     * Patch 64-bit ARM.
+     *
+     * This is a bit more interesting as the w10-1709 code looks like this:
+     *     0000000180024490 <KiUserExceptionDispatcher>:
+     *     180024490: 5800028f     ldr     x15, 0x1800244e0 <KiUserExceptionDispatcher+0x50>
+     *     180024494: f94001ef     ldr     x15, [x15]
+     *     180024498: b400008f     cbz     x15, 0x1800244a8 <KiUserExceptionDispatcher+0x18>
+     *     18002449c: 910e43e0     add     x0, sp, #0x390
+     *     1800244a0: 910003e1     mov     x1, sp
+     *     1800244a4: d63f01e0     blr     x15
+     *     1800244a8: 910e43e0     add     x0, sp, #0x390
+     *     1800244ac: 910003e1     mov     x1, sp
+     *     1800244b0: 94011b76     bl      0x18006b288 <RtlQueryEnvironmentVariable+0x21d8>
+     *     1800244b4: b40000a0     cbz     x0, 0x1800244c8 <KiUserExceptionDispatcher+0x38>
+     * 
+     * What is loaded and checked at the beginning is a function poitner caller
+     * Wow64PrepareForException, which we can presume is NULL for a native
+     * arm64 process.
+     * 
+     * The easiest thing to do would be to hijack the pointer. Unfortunately
+     * that differs too much from the others architectures, as the patching
+     * will be done at 0x1800244e0 rather 0000000180024490.  Instead, we can
+     * just replace the first three functions and load our own address directly
+     * into x15. We will still differ from the others in that we get other
+     * parameters and don't have any g_pfnKiUserExceptionDispatcherReal but can
+     * just return from the hook.
+     */
+    uint32_t const * const pu32KiUserExceptionDispatcher = (uint32_t const *)pbKiUserExceptionDispatcher;
+    if (   (pu32KiUserExceptionDispatcher[0] & UINT32_C(0xff00001f)) == (UINT32_C(0x58000000) | ARMV8_A64_REG_X15)
+        && pu32KiUserExceptionDispatcher[1]                          == UINT32_C(0xf94001ef)
+        && (pu32KiUserExceptionDispatcher[2] & UINT32_C(0xff00001f)) == (UINT32_C(0xb4000000) | ARMV8_A64_REG_X15)
+        && (pu32KiUserExceptionDispatcher[3] & UINT32_C(0xffc003ff)) == (UINT32_C(0x91000000) | ARMV8_A64_REG_X0 | (ARMV8_A64_REG_SP << 5))
+        && pu32KiUserExceptionDispatcher[4]                          == UINT32_C(0x910003e1)
+        && pu32KiUserExceptionDispatcher[5]                          == UINT32_C(0xd63f01e0) )
+    {
+        *(uintptr_t *)&g_pfnKiUserExceptionDispatcherReal = (uintptr_t)&pu32KiUserExceptionDispatcher[6]; /* after BLR */
+        uAddr = (uintptr_t)supR3HardenedMonitor_KiUserExceptionDispatcher;
+        if (uAddr >= RT_BIT_64(48))
+            supR3HardenedFatalMsg("supR3HardenedWinInstallHooks", kSupInitOp_Misc, VERR_GENERAL_FAILURE,
+                                  "Address of supR3HardenedMonitor_KiUserExceptionDispatcher (%p) is too high for patching!", uAddr);
+        g_KiUserExceptionDispatcherPatch.au32[0] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X15, uAddr & 0xffff);
+        g_KiUserExceptionDispatcherPatch.au32[1] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X15, (uAddr >> 16) & 0xffff, 1);
+        g_KiUserExceptionDispatcherPatch.au32[2] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X15, (uAddr >> 16) & 0xffff, 2);
+        g_KiUserExceptionDispatcherPatch.cb = 12;
+    }
+    else
+        SUP_DPRINTF(("supR3HardenedWinInstallHooks: failed to patch KiUserExceptionDispatcher (%.20Rhxs)\n",
+                     pbKiUserExceptionDispatcher));
+
+# else
+#  error "port me"
 # endif
 #endif /* !VBOX_WITHOUT_HARDENDED_XCPT_LOGGING */
 
@@ -3373,24 +3648,23 @@ static void supR3HardenedWinInstallHooks(void)
  * @param   pvNtTerminateThread The address of the NtTerminateThread function in
  *                              the NTDLL instance we're patching.  (Must be +/-
  *                              2GB from the thunk code.)
- * @param   pabBackup           Where to back up the original instruction bytes
+ * @param   pBackup             Where to back up the original instruction bytes
  *                              at pvLdrInitThunk.
- * @param   cbBackup            The size of the backup area. Must be 16 bytes.
  * @param   pErrInfo            Where to return extended error information.
  *                              Optional.
  */
 static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, void *pvNtTerminateThread,
-                                              uint8_t *pabBackup, size_t cbBackup, PRTERRINFO pErrInfo)
+                                              SUPR3HARDNTPATCH *pBackup, PRTERRINFO pErrInfo)
 {
     SUP_DPRINTF(("supR3HardNtDisableThreadCreation: pvLdrInitThunk=%p pvNtTerminateThread=%p\n", pvLdrInitThunk, pvNtTerminateThread));
-    SUPR3HARDENED_ASSERT(cbBackup == 16);
+    SUPR3HARDENED_ASSERT(pBackup->cb == 16);
     SUPR3HARDENED_ASSERT(RT_ABS((intptr_t)pvLdrInitThunk - (intptr_t)pvNtTerminateThread) < 16*_1M);
 
     /*
      * Back up the thunk code.
      */
     SIZE_T  cbIgnored;
-    NTSTATUS rcNt = NtReadVirtualMemory(hProcess, pvLdrInitThunk, pabBackup, cbBackup, &cbIgnored);
+    NTSTATUS rcNt = NtReadVirtualMemory(hProcess, pvLdrInitThunk, pBackup->ab, sizeof(pBackup->ab), &cbIgnored);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
                              "supR3HardNtDisableThreadCreation: NtReadVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
@@ -3398,47 +3672,62 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
     /*
      * Cook up replacement code that calls NtTerminateThread.
      */
-    uint8_t abReplacement[16];
-    memcpy(abReplacement, pabBackup, sizeof(abReplacement));
+    SUPR3HARDNTPATCH Replacement;
+    memcpy(Replacement.ab, pBackup->ab, sizeof(Replacement.ab));
 
 #ifdef RT_ARCH_AMD64
-    abReplacement[0] = 0x31;    /* xor ecx, ecx */
-    abReplacement[1] = 0xc9;
-    abReplacement[2] = 0x31;    /* xor edx, edx */
-    abReplacement[3] = 0xd2;
-    abReplacement[4] = 0xe8;    /* call near NtTerminateThread */
-    *(int32_t *)&abReplacement[5] = (int32_t)((uintptr_t)pvNtTerminateThread - ((uintptr_t)pvLdrInitThunk + 9));
-    abReplacement[9] = 0xcc;    /* int3 */
+    Replacement.ab[0] = 0x31;    /* xor ecx, ecx */
+    Replacement.ab[1] = 0xc9;
+    Replacement.ab[2] = 0x31;    /* xor edx, edx */
+    Replacement.ab[3] = 0xd2;
+    Replacement.ab[4] = 0xe8;    /* call near NtTerminateThread */
+    *(int32_t *)&Replacement.ab[5] = (int32_t)((uintptr_t)pvNtTerminateThread - ((uintptr_t)pvLdrInitThunk + 9));
+    Replacement.ab[9] = 0xcc;    /* int3 */
+    Replacement.cb = 10;
+
 #elif defined(RT_ARCH_X86)
-    abReplacement[0] = 0x6a;    /* push 0 */
-    abReplacement[1] = 0x00;
-    abReplacement[2] = 0x6a;    /* push 0 */
-    abReplacement[3] = 0x00;
-    abReplacement[4] = 0xe8;    /* call near NtTerminateThread */
-    *(int32_t *)&abReplacement[5] = (int32_t)((uintptr_t)pvNtTerminateThread - ((uintptr_t)pvLdrInitThunk + 9));
-    abReplacement[9] = 0xcc;    /* int3 */
+    Replacement.ab[0] = 0x6a;    /* push 0 */
+    Replacement.ab[1] = 0x00;
+    Replacement.ab[2] = 0x6a;    /* push 0 */
+    Replacement.ab[3] = 0x00;
+    Replacement.ab[4] = 0xe8;    /* call near NtTerminateThread */
+    *(int32_t *)&Replacement.ab[5] = (int32_t)((uintptr_t)pvNtTerminateThread - ((uintptr_t)pvLdrInitThunk + 9));
+    Replacement.ab[9] = 0xcc;    /* int3 */
+    Replacement.cb = 10;
+
+#elif defined(RT_ARCH_ARM64)
+    Replacement.au32[0] = Armv8A64MkInstrEor(ARMV8_A64_REG_X0, ARMV8_A64_REG_X0, ARMV8_A64_REG_X0);
+    Replacement.au32[1] = Armv8A64MkInstrEor(ARMV8_A64_REG_X1, ARMV8_A64_REG_X1, ARMV8_A64_REG_X1);
+    intptr_t const offDisp = (intptr_t)pvNtTerminateThread - ((intptr_t)pvLdrInitThunk + 8);
+    if (offDisp >= (int32_t)RT_BIT_32(25) || offDisp < -(int32_t)RT_BIT_32(25))
+        return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
+                             "supR3HardNtDisableThreadCreation: relative distance too large for BL: %p", offDisp);
+    Replacement.au32[2] = Armv8A64MkInstrBl((int32_t)offDisp);
+    Replacement.cb = 12;
+
 #else
 # error "Unsupported arch."
 #endif
+    pBackup->cb = Replacement.cb;
 
     /*
      * Install the replacment code.
      */
     PVOID  pvProt   = pvLdrInitThunk;
-    SIZE_T cbProt   = cbBackup;
+    SIZE_T cbProt   = Replacement.cb;
     ULONG  fOldProt = 0;
     rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, PAGE_EXECUTE_READWRITE, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
                              "supR3HardNtDisableThreadCreationEx: NtProtectVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
-    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, abReplacement, sizeof(abReplacement), &cbIgnored);
+    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, Replacement.ab, Replacement.cb, &cbIgnored);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
                              "supR3HardNtDisableThreadCreationEx: NtWriteVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
     pvProt   = pvLdrInitThunk;
-    cbProt   = cbBackup;
+    cbProt   = pBackup->cb;
     rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, fOldProt, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
@@ -3455,20 +3744,19 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
  * @param   hProcess            The process to do this to.
  * @param   pvLdrInitThunk      The address of the LdrInitializeThunk code to
  *                              override.
- * @param   pabBackup           Where to back up the original instruction bytes
+ * @param   pBackup             Where to back up the original instruction bytes
  *                              at pvLdrInitThunk.
- * @param   cbBackup            The size of the backup area. Must be 16 bytes.
  * @param   pErrInfo            Where to return extended error information.
  *                              Optional.
  */
-static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, uint8_t const *pabBackup, size_t cbBackup,
+static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, SUPR3HARDNTPATCH const *pBackup,
                                              PRTERRINFO pErrInfo)
 {
     SUP_DPRINTF(("supR3HardNtEnableThreadCreationEx:\n"));
-    SUPR3HARDENED_ASSERT(cbBackup == 16);
+    SUPR3HARDENED_ASSERT(pBackup->cb > 4);
 
     PVOID  pvProt   = pvLdrInitThunk;
-    SIZE_T cbProt   = cbBackup;
+    SIZE_T cbProt   = pBackup->cb;
     ULONG  fOldProt = 0;
     NTSTATUS rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, PAGE_EXECUTE_READWRITE, &fOldProt);
     if (!NT_SUCCESS(rcNt))
@@ -3476,14 +3764,14 @@ static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThu
                              "supR3HardNtEnableThreadCreationEx: NtProtectVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
     SIZE_T cbIgnored;
-    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, pabBackup, cbBackup, &cbIgnored);
+    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, pBackup->ab, pBackup->cb, &cbIgnored);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
                              "supR3HardNtEnableThreadCreationEx: NtWriteVirtualMemory/LdrInitializeThunk[restore] failed: %#x",
                              rcNt);
 
     pvProt   = pvLdrInitThunk;
-    cbProt   = cbBackup;
+    cbProt   = pBackup->cb;
     rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, fOldProt, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
@@ -3512,7 +3800,7 @@ static void supR3HardenedWinDisableThreadCreation(void)
     int rc = supR3HardNtDisableThreadCreationEx(NtCurrentProcess(),
                                                 (void *)(uintptr_t)&LdrInitializeThunk,
                                                 (void *)(uintptr_t)s_pfnNtTerminateThread,
-                                                g_abLdrInitThunkSelfBackup, sizeof(g_abLdrInitThunkSelfBackup),
+                                                &g_LdrInitThunkSelfBackup,
                                                 NULL /* pErrInfo*/);
     g_fSupInitThunkSelfPatched = RT_SUCCESS(rc);
 }
@@ -3527,7 +3815,7 @@ DECLHIDDEN(void) supR3HardenedWinEnableThreadCreation(void)
     {
         int rc = supR3HardNtEnableThreadCreationEx(NtCurrentProcess(),
                                                    (void *)(uintptr_t)&LdrInitializeThunk,
-                                                   g_abLdrInitThunkSelfBackup, sizeof(g_abLdrInitThunkSelfBackup),
+                                                   &g_LdrInitThunkSelfBackup,
                                                    RTErrInfoInitStatic(&g_ErrInfoStatic));
         if (RT_FAILURE(rc))
             supR3HardenedError(rc, true /*fFatal*/, "%s", g_ErrInfoStatic.szMsg);
@@ -4349,16 +4637,44 @@ static void supR3HardNtChildSetUpChildInit(PSUPR3HARDNTCHILD pThis)
      * Note! The amount of code we replace here must be less or equal to what
      *       the process verification code ignores.
      */
-    uint8_t abNew[16];
-    memcpy(abNew, pbChildNtDllBits + ((uintptr_t)uLdrInitThunk - pThis->uNtDllAddr), sizeof(abNew));
+    SUPR3HARDNTPATCH New;
+    memcpy(New.ab, pbChildNtDllBits + ((uintptr_t)uLdrInitThunk - pThis->uNtDllAddr), sizeof(New.ab));
 #ifdef RT_ARCH_AMD64
-    abNew[0] = 0xff;
-    abNew[1] = 0x25;
-    *(uint32_t *)&abNew[2] = 0;
-    *(uint64_t *)&abNew[6] = uEarlyProcInitEP;
+    New.ab[0] = 0xff;                /* jmp [addr wrt RIP] */
+    New.ab[1] = 0x25;
+    *(uint32_t *)&New.ab[2] = 0;
+    /* addr: */
+    *(uint64_t *)&New.ab[6] = uEarlyProcInitEP;
+    New.cb = 6+8;
+
 #elif defined(RT_ARCH_X86)
-    abNew[0] = 0xe9;
-    *(uint32_t *)&abNew[1] = uEarlyProcInitEP - ((uint32_t)uLdrInitThunk + 5);
+    New.ab[0] = 0xe9;                /* jmp rel32 */
+    *(uint32_t *)&New.ab[1] = uEarlyProcInitEP - ((uint32_t)uLdrInitThunk + 5);
+    New.cb = 5;
+
+#elif defined(RT_ARCH_ARM64)
+    /* LdrInitializeThunk:
+           180088970: f81f0ff3     str     x19, [sp, #-0x10]!
+           180088974: a9bf7bfd     stp     x29, x30, [sp, #-0x10]!
+           180088978: 910003fd     mov     x29, sp
+           18008897c: aa0003f3     mov     x19, x0
+           180088980: 94000006     bl      0x180088998 <LdrInitializeThunk+0x28>
+           180088984: 52800021     mov     w1, #0x1                // =1
+           180088988: aa1303e0     mov     x0, x19
+           18008898c: 97fe67d5     bl      0x1800228e0 <ZwContinue> */
+# if 0
+    New.au32[0] = Armv8A64MkInstrMovZ(ARMV8_A64_REG_X16, uEarlyProcInitEP & 0xffff);
+    New.au32[1] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X16, (uEarlyProcInitEP >> 16) & 0xffff, 1);
+    New.au32[2] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X16, (uEarlyProcInitEP >> 24) & 0xffff, 2);
+    New.au32[3] = Armv8A64MkInstrMovK(ARMV8_A64_REG_X16, (uEarlyProcInitEP >> 32) & 0xffff, 3);
+    New.au32[4] = Armv8A64MkInstrBr(ARMV8_A64_REG_X16);
+    New.cb = 20;
+# else
+    New.au32[0] = Armv8A64MkInstrLdrLitteral(kArmv8A64InstrLdrLitteral_Dword, ARMV8_A64_REG_X16, 8);
+    New.au32[1] = Armv8A64MkInstrBr(ARMV8_A64_REG_X16);
+    New.au64[1] = uEarlyProcInitEP;
+    New.cb = 16;
+# endif
 #else
 # error "Unsupported arch."
 #endif
@@ -4367,20 +4683,20 @@ static void supR3HardNtChildSetUpChildInit(PSUPR3HARDNTCHILD pThis)
      * Install the LdrInitializeThunk replacement code in the child process.
      */
     PVOID   pvProt = pvLdrInitThunk;
-    SIZE_T  cbProt = sizeof(abNew);
+    SIZE_T  cbProt = New.cb;
     ULONG   fOldProt;
     rcNt = NtProtectVirtualMemory(pThis->hProcess, &pvProt, &cbProt, PAGE_EXECUTE_READWRITE, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         supR3HardenedWinKillChild(pThis, "supR3HardenedWinSetupChildInit", rcNt,
                                   "NtProtectVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
-    rcNt = NtWriteVirtualMemory(pThis->hProcess, pvLdrInitThunk, abNew, sizeof(abNew), &cbIgnored);
+    rcNt = NtWriteVirtualMemory(pThis->hProcess, pvLdrInitThunk, New.ab, New.cb, &cbIgnored);
     if (!NT_SUCCESS(rcNt))
         supR3HardenedWinKillChild(pThis, "supR3HardenedWinSetupChildInit", rcNt,
                                   "NtWriteVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
     pvProt = pvLdrInitThunk;
-    cbProt = sizeof(abNew);
+    cbProt = New.cb;
     rcNt = NtProtectVirtualMemory(pThis->hProcess, &pvProt, &cbProt, fOldProt, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         supR3HardenedWinKillChild(pThis, "supR3HardenedWinSetupChildInit", rcNt,
@@ -4399,6 +4715,8 @@ static void supR3HardNtChildSetUpChildInit(PSUPR3HARDNTCHILD pThis)
         DWORD64 *pPC = &Ctx.Rip;
 #elif defined(RT_ARCH_X86)
         DWORD   *pPC = &Ctx.Eip;
+#elif defined(RT_ARCH_ARM64)
+        DWORD64 *pPC = &Ctx.Pc;
 #else
 # error "Unsupported arch."
 #endif
@@ -4478,6 +4796,7 @@ static void supR3HardNtChildSetUpChildInit(PSUPR3HARDNTCHILD pThis)
         if ((Ctx.Rsp & 15) != 8)
             SUP_DPRINTF(("Warning! Misaligned RSP: %016RX64\n", Ctx.Rsp));
 #endif
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         if (Ctx.SegCs != ASMGetCS())
             SUP_DPRINTF(("Warning! Bogus CS: %04x, expected %04x\n", Ctx.SegCs, ASMGetCS()));
         if (Ctx.SegSs != ASMGetSS())
@@ -4498,6 +4817,7 @@ static void supR3HardNtChildSetUpChildInit(PSUPR3HARDNTCHILD pThis)
             Ctx.Dr7 = 0;
             fUpdateContext = true;
         }
+#endif
 
         if (fUpdateContext)
         {
@@ -4528,7 +4848,7 @@ static void supR3HardNtChildScrewUpPebForInitialImageEvents(PSUPR3HARDNTCHILD pT
 
     /* Make ImageBaseAddress useless. */
     Peb.ImageBaseAddress = (PVOID)((uintptr_t)Peb.ImageBaseAddress ^ UINT32_C(0x5f139000));
-#ifdef RT_ARCH_AMD64
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64)
     Peb.ImageBaseAddress = (PVOID)((uintptr_t)Peb.ImageBaseAddress | UINT64_C(0x0313000000000000));
 #endif
 

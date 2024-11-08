@@ -146,7 +146,7 @@ SUPSYSROOTDIRBUF            g_System32NtPath;
 /** The full \\SystemRoot\\WinSxS path. */
 SUPSYSROOTDIRBUF            g_WinSxSNtPath;
 #if defined(IN_RING3) && !defined(VBOX_PERMIT_EVEN_MORE)
-/** The full 'Program Files' path. */
+/** The full 'Program Files' ('Program Files (arm)' on arm64) path. */
 SUPSYSROOTDIRBUF            g_ProgramFilesNtPath;
 # ifdef RT_ARCH_AMD64
 /** The full 'Program Files (x86)' path. */
@@ -1129,11 +1129,17 @@ static PRTTIMESPEC supHardNtTimeNow(PRTTIMESPEC pNow)
      * Just read system time.
      */
     KUSER_SHARED_DATA volatile *pUserSharedData = (KUSER_SHARED_DATA volatile *)MM_SHARED_USER_DATA_VA;
-# ifdef RT_ARCH_AMD64
-    uint64_t uRet = *(uint64_t volatile *)&pUserSharedData->SystemTime; /* This is what KeQuerySystemTime does (missaligned). */
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64)
+    /* This is what KeQuerySystemTime (macro) does. SystemTime is misaligned,
+       not not badly enough to cause trouble on arm. */
+#  ifdef RT_ARCH_ARM64
+    uint64_t const uRet = __iso_volatile_load64((int64_t volatile *)&pUserSharedData->SystemTime);
+#  else
+    uint64_t const uRet = *(uint64_t volatile *)&pUserSharedData->SystemTime;
+#  endif
     return RTTimeSpecSetNtTime(pNow, uRet);
-# else
 
+# elif defined(RT_ARCH_X86)
     LARGE_INTEGER NtTime;
     do
     {
@@ -1141,7 +1147,11 @@ static PRTTIMESPEC supHardNtTimeNow(PRTTIMESPEC pNow)
         NtTime.LowPart  = pUserSharedData->SystemTime.LowPart;
     } while (pUserSharedData->SystemTime.High2Time != NtTime.HighPart);
     return RTTimeSpecSetNtTime(pNow, NtTime.QuadPart);
+
+# else
+#  error "port me"
 # endif
+
 #else  /* IN_RING0 */
     return RTTimeNow(pNow);
 #endif /* IN_RING0 */
@@ -1771,8 +1781,15 @@ static void supHardenedWinInitImageVerifierWinPaths(void)
         const char         *pszLogName;
     } s_aPaths[] =
     {
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         { &g_ProgramFilesNtPath,    L"ProgramFilesDir",         "ProgDir" },
         { &g_CommonFilesNtPath,     L"CommonFilesDir",          "ComDir" },
+# elif defined(RT_ARCH_ARM64)
+        { &g_ProgramFilesNtPath,    L"ProgramFilesDir (arm)",   "ProgDir" },
+        { &g_CommonFilesNtPath,     L"CommonFilesDir (arm)",    "ComDir" },
+# else
+#  error "port me"
+# endif
 # ifdef RT_ARCH_AMD64
         { &g_ProgramFilesX86NtPath, L"ProgramFilesDir (x86)",   "ProgDir32" },
         { &g_CommonFilesX86NtPath,  L"CommonFilesDir (x86)",    "ComDir32" },

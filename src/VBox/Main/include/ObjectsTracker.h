@@ -150,10 +150,10 @@ private:
 };
 
 /** The string representation for object IDs in the internal map.
- * @todo r=bird: Why are you using std::string here? We use 
- *       should use com::Utf8Str where possible. In this case, though, it's a
- *       com::Guid which would have much more efficient storage compared
- *       to both the string variants... */
+ * @todo r=bird: Why are you using std::string here? We use should use
+ *       com::Utf8Str where possible. In this case, though, it's a com::Guid
+ *       which would have much more efficient storage compared to both the
+ *       string variants... */
 #if 0 /* The solaris VM seems to have trouble with this or something related to it. */
 typedef std::string ObjIdString_T;
 #else

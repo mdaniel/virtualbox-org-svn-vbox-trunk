@@ -2754,7 +2754,7 @@
     wsmap="managed"
     rest="managed"
     wrap-gen-hook="yes"
-    reservedMethods="8" reservedAttributes="12"
+    reservedMethods="6" reservedAttributes="12"
     >
     <desc>
       The IVirtualBox interface represents the main interface exposed by the
@@ -3985,6 +3985,32 @@
       </param>
       <param name="progressObject" type="IProgress" dir="return">
         <desc>Found progress object.</desc>
+      </param>
+    </method>
+
+    <method name="getTrackedObject">
+      <rest request="get" path="/server/methods/"/>
+      <desc>
+        Queries the IUnknown interface to an object from the tracked object list
+      </desc>
+      <param name="trObjId" type="wstring" dir="in">
+        <desc>The object Id.</desc>
+      </param>
+      <param name="pIface" type="$unknown" dir="return">
+        <desc>The found interface.</desc>
+      </param>
+    </method>
+
+    <method name="getTrackedObjectIds">
+      <rest request="get" path="/server/methods/"/>
+      <desc>
+        Returns the tracked object Ids list associated with the passed interface name
+      </desc>
+      <param name="name" type="wstring" dir="in">
+        <desc>The interface name.</desc>
+      </param>
+      <param name="objIdsList" type="wstring" safearray="yes" dir="return">
+        <desc>Array of the tracked object Ids associated with the specified interface.</desc>
       </param>
     </method>
 

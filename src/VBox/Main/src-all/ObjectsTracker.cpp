@@ -35,7 +35,7 @@
 #include <iprt/time.h>
 #include <iprt/asm.h>
 
-typedef std::map<ObjIdString_T, TrackedObjectData>::const_iterator cIterTrObjDataType;
+typedef std::map<ObjIdString_T, TrackedObjectData>::const_iterator ConstIterTrObjDataType;
 typedef std::map<ObjIdString_T, TrackedObjectData>::iterator iterTrObjDataType;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -121,13 +121,14 @@ TrackedObjectData &TrackedObjectData::operator=(const TrackedObjectData & that)
 
 com::Utf8Str TrackedObjectData::updateLastAccessTime()
 {
-    RTTimeNow(unconst(&m_lastAccessTime));
+    RTTimeNow(&m_lastAccessTime);
 
-    char szTime[42];
+    char szTime[RTTIME_STR_LEN];
     RTTimeSpecToString(&m_lastAccessTime, szTime, sizeof(szTime));
     return com::Utf8Str(szTime);
 }
 
+/** @todo r=bird: why on earth does this return a string? */
 com::Utf8Str TrackedObjectData::initIdleTime()
 {
     if (!m_fIdleTimeStart)
@@ -136,14 +137,14 @@ com::Utf8Str TrackedObjectData::initIdleTime()
         m_fIdleTimeStart = true;
     }
 
-    char szTime[42];
+    char szTime[RTTIME_STR_LEN];
     RTTimeSpecToString(&m_idleTimeStart, szTime, sizeof(szTime));
     return com::Utf8Str(szTime);
 }
 
 com::Utf8Str TrackedObjectData::creationTimeStr() const
 {
-    char szCreationTime[42];
+    char szCreationTime[RTTIME_STR_LEN];
     RTTimeSpecToString(&m_creationTime, szCreationTime, sizeof(szCreationTime));
 
     return com::Utf8Str(szCreationTime);
@@ -289,9 +290,9 @@ HRESULT TrackedObjectsCollector::setObj (const com::Utf8Str &aObjId,
         /* decrease the counter */
         --m_Added;
     }
-    else
+    else if (LogIs2Enabled())
     {
-        char szCreationTime[42];
+        char szCreationTime[RTTIME_STR_LEN];
         RTTIMESPEC time;
         RTTimeSpecToString(RTTimeNow(&time), szCreationTime, sizeof(szCreationTime));
         Log2(("ADDED TrackedObjectData: creation time %s, object Id %s, class IID %s\n",
@@ -363,13 +364,13 @@ HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
     return hrc;
 }
 
-const TrackedObjectData& TrackedObjectsCollector::i_getObj (const com::Utf8Str& aObjId) const
+const TrackedObjectData &TrackedObjectsCollector::i_getObj(const com::Utf8Str &aObjId) const
 {
     /* No check for existence of aObjId */
-    return m_trackedObjectsData.at(aObjId.c_str());
+    return m_trackedObjectsData.at(aObjId);
 }
 
-HRESULT TrackedObjectsCollector::initObjIdleTime (const com::Utf8Str& aObjId)
+HRESULT TrackedObjectsCollector::initObjIdleTime(const com::Utf8Str &aObjId)
 {
     LogFlowFuncEnter();
 
@@ -418,7 +419,7 @@ HRESULT TrackedObjectsCollector::removeObj (const com::Utf8Str& aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    cIterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
+    ConstIterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
     if (pIter != m_trackedObjectsData.end())
     {
         Log2(("RELEASED TrackedObjectData: creation time %s, object Id %s, class IID %s\n",
@@ -461,12 +462,15 @@ HRESULT TrackedObjectsCollector::getAllObjIds (std::vector<com::Utf8Str>& aObjId
     return hrc;
 }
 
-int TrackedObjectsCollector::i_getAllObjIds (std::vector<com::Utf8Str>& aObjIdMap) const
+int TrackedObjectsCollector::i_getAllObjIds(std::vector<com::Utf8Str> &aObjIdMap) const
 {
-    for (const com::Utf8Str& item : m_trackedObjectIds)
+    //for (const com::Utf8Str &item : m_trackedObjectIds) - the gcc in the solaris VM doesn't grok this.
+    for (std::set<com::Utf8Str>::const_iterator Iter = m_trackedObjectIds.cbegin();
+         Iter != m_trackedObjectIds.cend();
+         ++Iter)
     {
-        if (!m_trackedInvalidObjectIds.count(item))
-            aObjIdMap.push_back(item);
+        if (!m_trackedInvalidObjectIds.count(*Iter))
+            aObjIdMap.push_back(*Iter);
     }
 
     return aObjIdMap.size() > 0 ? VINF_SUCCESS : VERR_NOT_FOUND;

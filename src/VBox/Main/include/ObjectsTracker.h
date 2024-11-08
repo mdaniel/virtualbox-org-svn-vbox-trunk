@@ -154,7 +154,7 @@ private:
  *       should use com::Utf8Str where possible. In this case, though, it's a
  *       com::Guid which would have much more efficient storage compared
  *       to both the string variants... */
-#if 1
+#if 0 /* The solaris VM seems to have trouble with this or something related to it. */
 typedef std::string ObjIdString_T;
 #else
 typedef com::Utf8Str ObjIdString_T;

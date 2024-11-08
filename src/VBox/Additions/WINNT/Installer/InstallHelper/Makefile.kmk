@@ -55,11 +55,11 @@ VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introdu
 
 
 #
-# Stripped down template for arm64.
+# Stripped down DLL template for arm64.
 #
-TEMPLATE_VBoxGuestInstallHelperTemplateWithFewerLibs                = hack
-TEMPLATE_VBoxGuestInstallHelperTemplateWithFewerLibs_EXTENDS       := VBoxGuestR3Dll
-TEMPLATE_VBoxGuestInstallHelperTemplateWithFewerLibs_LATE_LIBS.x86  = \
+TEMPLATE_VBoxGuestInstallHelperDllTemplateWithFewerLibs                = hack
+TEMPLATE_VBoxGuestInstallHelperDllTemplateWithFewerLibs_EXTENDS       := VBoxGuestR3Dll
+TEMPLATE_VBoxGuestInstallHelperDllTemplateWithFewerLibs_LATE_LIBS.x86  = \
 	$(filter-out %/VBoxGuestR3LibShared-x86.lib,$(TEMPLATE_VBoxGuestR3Dll_LATE_LIBS.x86))
 
 #
@@ -68,7 +68,7 @@ TEMPLATE_VBoxGuestInstallHelperTemplateWithFewerLibs_LATE_LIBS.x86  = \
 # Note! Installation is required for repacking Guest Additions
 #
 DLLS += VBoxGuestInstallHelperDll
-VBoxGuestInstallHelperDll_TEMPLATE        := VBoxGuestInstallHelperTemplateWithFewerLibs
+VBoxGuestInstallHelperDll_TEMPLATE        := VBoxGuestInstallHelperDllTemplateWithFewerLibs
 VBoxGuestInstallHelperDll_NAME            := VBoxGuestInstallHelper
 VBoxGuestInstallHelperDll_BLD_TRG_ARCH    := x86
 VBoxGuestInstallHelperDll_INST            := repackadd/resources/VBoxGuestInstallHelperDll/

@@ -715,7 +715,7 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                     RTTIMESPEC now;
                     int64_t currTime = RTTimeSpecGetMilli(RTTimeNow(&now));
                     int64_t creationTime = RTTimeSpecGetMilli(&temp.m_creationTime);
-                    int64_t lifeTime = temp.m_lifeTime*1000; //convert to milliseconds
+                    int64_t lifeTime = (int64_t)temp.m_lifeTime*1000; //convert to milliseconds
 
                     int64_t remainingLifeTime = ((creationTime + lifeTime) - currTime)/1000;
 
@@ -744,7 +744,7 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                             }
                             else
                             {
-                                int64_t idleTime = temp.m_idleTime*1000; //convert to milliseconds
+                                int64_t idleTime = (int64_t)temp.m_idleTime*1000; //convert to milliseconds
                                 int64_t idleTimeStart = RTTimeSpecGetMilli(&temp.m_idleTimeStart);
                                 bool fObsolete = (currTime - idleTimeStart) > idleTime ? true : false;
                                 if (fObsolete)
@@ -774,7 +774,7 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                                 /* Updating the object data */
                                 gTrackedObjectsCollector.setObj(temp.objectIdStr(),
                                                                 temp.classIIDStr(),
-                                                                lifeTime,
+                                                                (uint64_t)lifeTime,
                                                                 temp.m_idleTime,
                                                                 temp.m_pIface);
                             }

@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBoxDrvInst - Resource file containing version info and icon.
+ * VBoxGuestInstallHelper - Resource file containing version info and icon.
  */
 
 /*
@@ -44,8 +44,8 @@ BEGIN
       BLOCK "040904b0"
       BEGIN
          VALUE "FileDescription",  "VirtualBox Driver Installer\0"
-         VALUE "InternalName",     "VBoxDrvInst\0"
-         VALUE "OriginalFilename", "VBoxDrvInst.exe\0"
+         VALUE "InternalName",     "VBoxGuestInstallHelper\0"
+         VALUE "OriginalFilename", "VBoxGuestInstallHelper.exe\0"
          VALUE "CompanyName",      VBOX_RC_COMPANY_NAME
          VALUE "FileVersion",      VBOX_RC_FILE_VERSION_STR
          VALUE "LegalCopyright",   VBOX_RC_LEGAL_COPYRIGHT

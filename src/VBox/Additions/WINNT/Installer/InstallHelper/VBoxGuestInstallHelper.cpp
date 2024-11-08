@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBoxDrvInst - Driver and service installation helper for Windows guests.
+ * VBoxGuestInstallHelper - Driver and service installation helper for Windows guests.
  */
 
 /*
@@ -58,6 +58,7 @@
 #include <iprt/stream.h>
 #include <iprt/string.h>
 #include <iprt/system.h>
+#include <iprt/thread.h> /* For RTThreadSleep(). */
 #include <iprt/utf16.h>
 
 #include <VBox/GuestHost/VBoxWinDrvInst.h>
@@ -593,9 +594,27 @@ static int driverLogClose(HANDLE hLog)
     return VINF_SUCCESS;
 }
 
+/**
+ * Shows a deprecation notice for a command.
+ *
+ * @param   pszCmd              Command which is deprecated.
+ */
+static void showCmdDeprecationNotice(const char *pszCmd)
+{
+    PrintStr("!!! Deprecation Notice !!!\n");
+    PrintSSS("\tThe command \"", pszCmd, "\" is deprecated, is not supported anymore\n");
+    PrintStr("\tand will be removed in a future version.\n");
+    PrintStr("!!! Deprecation Notice !!!\n\n");
+    PrintStr("Please use VBoxGuestInstallHelper.exe instead.\n\n");
+
+    RTThreadSleep(RT_MS_10SEC); /* Make it painful to use. */
+}
+
 /** Handles 'driver install'. */
 static int handleDriverInstall(unsigned cArgs, wchar_t **papwszArgs)
 {
+    showCmdDeprecationNotice("install");
+
     char *pszInfFile = NULL;
     int rc = RTUtf16ToUtf8(papwszArgs[0], &pszInfFile);
     if (RT_SUCCESS(rc))
@@ -636,6 +655,8 @@ static int handleDriverInstall(unsigned cArgs, wchar_t **papwszArgs)
 /** Handles 'driver uninstall'. */
 static int handleDriverUninstall(unsigned cArgs, wchar_t **papwszArgs)
 {
+    showCmdDeprecationNotice("uninstall");
+
     char *pszInfFile = NULL;
     int rc = RTUtf16ToUtf8(papwszArgs[0], &pszInfFile);
     if (RT_SUCCESS(rc))
@@ -682,6 +703,8 @@ static int handleDriverUninstall(unsigned cArgs, wchar_t **papwszArgs)
 /** Handles 'driver executeinf'. */
 static int handleDriverExecuteInf(unsigned cArgs, wchar_t **papwszArgs)
 {
+    showCmdDeprecationNotice("executeinf");
+
     char *pszInfFile = NULL;
     int rc = RTUtf16ToUtf8(papwszArgs[0], &pszInfFile);
     if (RT_SUCCESS(rc))
@@ -2218,37 +2241,37 @@ static int handleHelp(unsigned cArgs, wchar_t **papwszArgs)
     PrintStr("VirtualBox Guest Additions Installation Helper for Windows\r\n"
              "Version: " RT_XSTR(VBOX_VERSION_MAJOR) "." RT_XSTR(VBOX_VERSION_MINOR) "." RT_XSTR(VBOX_VERSION_BUILD) "r" RT_XSTR(VBOX_SVN_REV) "\r\n"
              "\r\n"
-             "Syntax: VBoxDrvInst <command> <subcommand>\r\n"
+             "Syntax: VBoxGuestInstallHelper <command> <subcommand>\r\n"
              "\r\n"
              "Drivers:\r\n"
-             "    VBoxDrvInst driver install <inf-file> [pnp-id] [log-file]\r\n"
-             "    VBoxDrvInst driver uninstall <inf-file> <model> [pnp-id] [log-file]\r\n"
-             "    VBoxDrvInst driver executeinf <inf-file> [section]\r\n"
-             "    VBoxDrvInst driver nt4-install-video [install-dir]\r\n"
+             "    VBoxGuestInstallHelper driver install <inf-file> [pnp-id] [log-file]\r\n"
+             "    VBoxGuestInstallHelper driver uninstall <inf-file> <model> [pnp-id] [log-file]\r\n"
+             "    VBoxGuestInstallHelper driver executeinf <inf-file> [section]\r\n"
+             "    VBoxGuestInstallHelper driver nt4-install-video [install-dir]\r\n"
              "\r\n"
              "Service:\r\n"
-             "    VBoxDrvInst service create <name> <display-name> <service-type>\r\n"
+             "    VBoxGuestInstallHelper service create <name> <display-name> <service-type>\r\n"
              "        <start-type> <binary-path> [load-order] [deps] [user] [password]\r\n"
-             "    VBoxDrvInst service delete <name>\r\n"
+             "    VBoxGuestInstallHelper service delete <name>\r\n"
              "\r\n"
              "Network Provider:\r\n"
-             "    VBoxDrvInst netprovider add <name> <position>\r\n"
-             "    VBoxDrvInst netprovider remove <name>\r\n"
+             "    VBoxGuestInstallHelper netprovider add <name> <position>\r\n"
+             "    VBoxGuestInstallHelper netprovider remove <name>\r\n"
              "\r\n"
              "Registry:\r\n"
-             "    VBoxDrvInst registry write <root> <sub-key> <value-name> <type> <value>\r\n"
+             "    VBoxGuestInstallHelper registry write <root> <sub-key> <value-name> <type> <value>\r\n"
              "        [binary-conversion] [max-size]\r\n"
-             "    VBoxDrvInst registry delete <root> <sub-key> <value-name>\r\n"
+             "    VBoxGuestInstallHelper registry delete <root> <sub-key> <value-name>\r\n"
              /** @todo Add roots for these two. */
-             "    VBoxDrvInst registry addmultisz <sub-key> <value-name> <to-add> <position>\r\n"
-             "    VBoxDrvInst registry delmultisz <sub-key> <value-name> <to-remove>\r\n"
-             "    VBoxDrvInst registry addlistitem <root> <sub-key> <value-name> <to-add>\r\n"
+             "    VBoxGuestInstallHelper registry addmultisz <sub-key> <value-name> <to-add> <position>\r\n"
+             "    VBoxGuestInstallHelper registry delmultisz <sub-key> <value-name> <to-remove>\r\n"
+             "    VBoxGuestInstallHelper registry addlistitem <root> <sub-key> <value-name> <to-add>\r\n"
              "        [position [dup|no-dup]]\r\n"
-             "    VBoxDrvInst registry dellistitem <root> <sub-key> <value-name> <to-remove>\r\n"
+             "    VBoxGuestInstallHelper registry dellistitem <root> <sub-key> <value-name> <to-remove>\r\n"
              "\r\n"
              "Standard options:\r\n"
-             "    VBoxDrvInst [help|--help|/help|-h|/h|-?|/h] [...]\r\n"
-             "    VBoxDrvInst [version|--version|-V]\r\n"
+             "    VBoxGuestInstallHelper [help|--help|/help|-h|/h|-?|/h] [...]\r\n"
+             "    VBoxGuestInstallHelper [version|--version|-V]\r\n"
              );
     RT_NOREF(cArgs, papwszArgs);
     return EXIT_OK;
@@ -2269,9 +2292,9 @@ int wmain(int argc, wchar_t **argv)
         int       (*pfnHandler)(unsigned cArgs, wchar_t **papwszArgs);
     } s_aActions[] =
     {
-        { "driver",         "install",              1,  3, handleDriverInstall },
-        { "driver",         "uninstall",            2,  4, handleDriverUninstall },
-        { "driver",         "executeinf",           1,  3, handleDriverExecuteInf },
+        { "driver",         "install",              1,  3, handleDriverInstall },    /* Deprecated */
+        { "driver",         "uninstall",            2,  4, handleDriverUninstall },  /* Deprecated */
+        { "driver",         "executeinf",           1,  3, handleDriverExecuteInf }, /* Deprecated */
         { "driver",         "nt4-install-video",    0,  1, handleDriverNt4InstallVideo },
         { "service",        "create",               5,  9, handleServiceCreate },
         { "service",        "delete",               1,  1, handleServiceDelete },

@@ -51,28 +51,6 @@ endif
 
 
 #
-# VBoxDrvInst - Helps with driver installation.
-#
-PROGRAMS += VBoxDrvInst
-VBoxDrvInst_TEMPLATE = VBoxGuestR3Exe
-VBoxDrvInst_DEFS    = _WIN32_WINNT=0x0400 _UNICODE UNICODE
-VBoxDrvInst_DEFS   += VBOX_SVN_REV=$(VBOX_SVN_REV)
-ifdef VBOX_WITH_WDDM
- VBoxDrvInst_DEFS  += VBOX_WITH_WDDM
-endif
-VBoxDrvInst_DEPS    = $(VBOX_SVN_REV_KMK)
-VBoxDrvInst_SDKS    = ReorderCompilerIncs $(VBOX_WINPSDK_GST) $(VBOX_WINDDK_GST)
-VBoxDrvInst_INCS    = ../include
-VBoxDrvInst_SOURCES = \
-	VBoxDrvInst.cpp \
-	VBoxDrvInst.rc \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvCommon.cpp \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvInst.cpp \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvStore.cpp
-VBoxDrvInst_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4
-
-
-#
 # RegCleanup - A NT4 post-install registry cleanup helper preventing the
 #              display config dialog from popping up on subsequent reboots.
 #
@@ -139,13 +117,13 @@ if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
   endif
 
   if !$(intersects win, $(VBOX_WITH_CORP_CODE_SIGNING)) && $(intersects win_planb,$(VBOX_WITH_CORP_CODE_SIGNING))
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,vbox-sha256-r3.cer,$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,vbox-sha256-r3.cer,$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
    	extract-exe-signer-cert, 1)
    VBOX_GA_CERT_ROOT_SHA2_R3 := vbox-sha256-r3-root.cer
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3),$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3),$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
   	extract-signer-root --self-signed-roots-from-system, 1)
    VBOX_GA_CERT_ROOT_SHA2_R3_TS := vbox-sha256-r3-timestamp-root.cer
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3_TS),$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3_TS),$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
    	extract-timestamp-root --self-signed-roots-from-system, 1)
   endif
  endif
@@ -323,7 +301,7 @@ $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(if $(VBOX_SIGNING_MODE),$(PATH_TARGET)/uninst.exe) \
 		$(if $(VBOX_WIN_ATTESTATION_SIGNING),$(PATH_OUT)/repackadd/$(VBOX_SIGNED_DRIVERS_ZIP_NAME)) \
 		$(VBOX_VERSION_STAMP) \
-		$$(VBoxDrvInst_1_STAGE_TARGET) \
+		$$(VBoxGuestInstallHelper_1_STAGE_TARGET) \
 		| $(VBOX_SIGN_IMAGE_ORDERDEPS)
 	$(call MSG_L1,Creating $@, from $<)
 ifdef VBOX_WIN_ATTESTATION_SIGNING # Unpack the attestation signed drivers - this is an ugly as 'ing heck hack!
@@ -373,7 +351,7 @@ ifdef VBOX_SIGNING_MODE
  		$(VBOX_WINDOWS_ADDITIONS_ICON_FILE) \
  		$(VBOX_NSIS_ICON_FILE) \
  		$(VBOX_VERSION_STAMP) \
- 		$$(VBoxDrvInst_1_STAGE_TARGET) \
+ 		$$(VBoxGuestInstallHelper_1_STAGE_TARGET) \
  		| $$(dir $$@)
 	$(call MSG_L1,Creating $@, from $<)
 	$(QUIET)$(REDIRECT) -C $(VBOX_PATH_WIN_ADD_INS_SRC) \

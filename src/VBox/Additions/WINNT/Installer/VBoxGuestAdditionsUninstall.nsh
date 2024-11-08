@@ -33,7 +33,7 @@ Function ${un}UninstallCommon
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_NAME}.url"
 
   ; Remove common files
-  Delete /REBOOTOK "$INSTDIR\VBoxDrvInst.exe"
+  Delete /REBOOTOK "$INSTDIR\VBoxGuestInstallHelper.exe"
 
   Delete /REBOOTOK "$INSTDIR\VBoxVideo.inf"
 !ifdef VBOX_SIGN_ADDITIONS

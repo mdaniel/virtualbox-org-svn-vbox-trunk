@@ -31,6 +31,29 @@ include $(KBUILD_PATH)/subheader.kmk
 # Include Sub-Makefiles.
 include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
 
+
+#
+# VBoxGuestInstallHelper - Helps with various installation tasks.
+#
+PROGRAMS += VBoxGuestInstallHelper
+VBoxGuestInstallHelper_TEMPLATE = VBoxGuestR3Exe
+VBoxGuestInstallHelper_DEFS    = _WIN32_WINNT=0x0400 _UNICODE UNICODE
+VBoxGuestInstallHelper_DEFS   += VBOX_SVN_REV=$(VBOX_SVN_REV)
+ifdef VBOX_WITH_WDDM
+ VBoxGuestInstallHelper_DEFS  += VBOX_WITH_WDDM
+endif
+VBoxGuestInstallHelper_DEPS    = $(VBOX_SVN_REV_KMK)
+VBoxGuestInstallHelper_SDKS    = ReorderCompilerIncs $(VBOX_WINPSDK_GST) $(VBOX_WINDDK_GST)
+VBoxGuestInstallHelper_INCS    = ../../include
+VBoxGuestInstallHelper_SOURCES = \
+	VBoxGuestInstallHelper.cpp \
+	VBoxGuestInstallHelper.rc \
+	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvCommon.cpp \
+	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvInst.cpp \
+	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvStore.cpp
+VBoxGuestInstallHelper_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4
+
+
 #
 # Stripped down template for arm64.
 #

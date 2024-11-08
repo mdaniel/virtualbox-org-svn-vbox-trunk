@@ -55,7 +55,7 @@ Function Common_CopyFiles
   FILE "/oname=${LICENSE_FILE_RTF}" "$%VBOX_BRAND_LICENSE_RTF%"
 !endif
 
-  FILE "$%PATH_OUT%\bin\additions\VBoxDrvInst.exe"
+  FILE "$%PATH_OUT%\bin\additions\VBoxGuestInstallHelper.exe"
 
 !if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   FILE "$%PATH_OUT%\bin\additions\VBoxVideo.inf"
@@ -236,7 +236,7 @@ Function ExtractFiles
 
   ; Misc tools
   SetOutPath "$0\Tools"
-  FILE "$%PATH_OUT%\bin\additions\VBoxDrvInst.exe"
+  FILE "$%PATH_OUT%\bin\additions\VBoxGuestInstallHelper.exe"
 !ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
   FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
 !endif

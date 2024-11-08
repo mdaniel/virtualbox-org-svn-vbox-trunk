@@ -1264,7 +1264,15 @@ int main(int cArgs, char **papszArgs)
         VbglR3Term();
     }
     else
-        VBoxTrayShowError("VbglR3Init failed: %Rrc\n", rc);
+    {
+        if (rc == VERR_OPEN_FAILED)
+            VBoxTrayShowError("Error opening a connection to the VBoxGuest.sys driver.\n\n"
+                              "This might be due to not having the Windows Guest Additions installed\n"
+                              "or that something went wrong when installing those.\n\n"
+                              "Re-installing the Guest Additions might resolve the issue.\n");
+        else
+            VBoxTrayShowError("VbglR3Init failed: %Rrc\n", rc);
+    }
 
     vboxTrayDestroy();
 

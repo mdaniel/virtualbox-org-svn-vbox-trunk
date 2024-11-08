@@ -29,6 +29,7 @@
 #include <iprt/semaphore.h>
 #include <iprt/asm.h>
 #include <iprt/cpp/exception.h>
+#include <iprt/cpp/utils.h>
 
 #include <typeinfo>
 
@@ -46,6 +47,7 @@
 #include "VirtualBoxTranslator.h"
 #include "Global.h"
 #include "LoggingNew.h"
+#include "ObjectsTracker.h"
 
 #include "VBox/com/ErrorInfo.h"
 #include "VBox/com/MultiResult.h"
@@ -78,6 +80,10 @@ VirtualBoxBase::VirtualBoxBase() :
             delete lock;
     }
     Assert(g_pClassFactoryStatsLock);
+
+    RTUUID uuid;
+    RTUuidCreate(&uuid);
+    unconst(mObjectId) = uuid;
 }
 
 VirtualBoxBase::~VirtualBoxBase()
@@ -169,6 +175,38 @@ void APIDumpComponentFactoryStats()
     }
     else
         Assert(g_pClassFactoryStatsLock);
+}
+
+TrackedObjectsCollector gTrackedObjectsCollector;
+
+HRESULT VirtualBoxBase::getObjectId(com::Guid &aId)
+{
+    aId = mObjectId;
+    return S_OK;
+}
+
+HRESULT VirtualBoxBase::setTracked(uint64_t aLifeTime, uint64_t afterLifeTime)
+{
+    Utf8Str strObjId = mObjectId.toString();
+    Utf8Str strClassIID = Guid(getClassIID()).toString();
+    HRESULT hrc = gTrackedObjectsCollector.setObj(strObjId,
+                                                  strClassIID,
+                                                  aLifeTime,
+                                                  afterLifeTime,
+                                                  /*ptrVirtualBoxBase,*/
+                                                  this);
+    Log2(("VirtualBoxBase::setTracked: inserted the Id %s for component %s with IID %s.\n",
+         strObjId.c_str(), getComponentName(), strClassIID.c_str()));
+
+    return hrc;
+}
+
+HRESULT VirtualBoxBase::invalidateTracked()
+{
+    Utf8Str strObjId = mObjectId.toString();
+    HRESULT hrc = gTrackedObjectsCollector.invalidateObj(strObjId);
+
+    return hrc;
 }
 
 /**

@@ -3138,7 +3138,7 @@ static void supR3HardenedWinInstallHooks(void)
 
 #elif defined(RT_ARCH_ARM64)
     /*
-     * Patch 64-bit ARM hosts. 
+     * Patch 64-bit ARM hosts.
      * We can make this work, provided the target address doesn't use bits 63:48.
      */
     /* Pattern #1:
@@ -3260,9 +3260,9 @@ static void supR3HardenedWinInstallHooks(void)
 
 #elif defined(RT_ARCH_ARM64)
     /*
-     * Patch 64-bit ARM hosts. 
-     *  
-     * Note! Blindly ASSUMES that the code is at least 20 bytes long, that x17 
+     * Patch 64-bit ARM hosts.
+     *
+     * Note! Blindly ASSUMES that the code is at least 20 bytes long, that x17
      *       isn't being used, and that there are no branch instructions.
      *       So, far we've only seen the typical long STP sequence.
      */
@@ -3403,7 +3403,7 @@ static void supR3HardenedWinInstallHooks(void)
      *       isn't being used, and that there are no branch instructions.
      *       In the code we've been looking at, the 4th instruction is a CBZ,
      *       which means we can only use 16 bytes here to do the patching.
-     * 
+     *
      * w10-1709:
      *      1800243a0: f94003ef     ldr     x15, [sp]                   ; The APC routine address.
      *      1800243a4: 9342fde2     asr     x2, x15, #2
@@ -3570,11 +3570,11 @@ static void supR3HardenedWinInstallHooks(void)
      *     1800244ac: 910003e1     mov     x1, sp
      *     1800244b0: 94011b76     bl      0x18006b288 <RtlQueryEnvironmentVariable+0x21d8>
      *     1800244b4: b40000a0     cbz     x0, 0x1800244c8 <KiUserExceptionDispatcher+0x38>
-     * 
+     *
      * What is loaded and checked at the beginning is a function poitner caller
      * Wow64PrepareForException, which we can presume is NULL for a native
      * arm64 process.
-     * 
+     *
      * The easiest thing to do would be to hijack the pointer. Unfortunately
      * that differs too much from the others architectures, as the patching
      * will be done at 0x1800244e0 rather 0000000180024490.  Instead, we can

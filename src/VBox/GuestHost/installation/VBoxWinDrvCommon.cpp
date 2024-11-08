@@ -61,19 +61,95 @@
 
 
 /*********************************************************************************************************************************
-*   Structures and Typedefs                                                                                                      *
+*   Prototypes                                                                                                                   *
 *********************************************************************************************************************************/
+static int vboxWinDrvInfQueryContext(HINF hInf, LPCWSTR pwszSection, LPCWSTR pwszKey, PINFCONTEXT pCtx);
 
 
-/*********************************************************************************************************************************
-*   Global Variables                                                                                                             *
-*********************************************************************************************************************************/
+/**
+ * Returns the type of an INF file.
+ *
+ * @returns Type of the INF file.
+ * @param   hInf                INF handle to use.
+ * @param   ppwszSection        Where to return main section of the driver.
+ *                              Optional and can be NULL.
+ */
+VBOXWINDRVINFTYPE VBoxWinDrvInfGetTypeEx(HINF hInf, PRTUTF16 *ppwszSection)
+{
+    /*
+     * Regular driver?
+     */
 
+    /* Sorted by most likely-ness. */
+    static PRTUTF16 s_apwszSections[] =
+    {
+        /* Most likely (and doesn't have a decoration). */
+        L"Manufacturer",
+        L"Manufacturer" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
+    };
 
-/*********************************************************************************************************************************
-*   Implementation                                                                                                               *
-*********************************************************************************************************************************/
+    int rc;
 
+    INFCONTEXT InfCtx;
+    size_t     i;
+    for (i = 0; i < RT_ELEMENTS(s_apwszSections); i++)
+    {
+        PRTUTF16 const pwszSection = s_apwszSections[i];
+        rc = vboxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
+        if (RT_SUCCESS(rc))
+            break;
+    }
+
+    if (RT_SUCCESS(rc))
+    {
+        if (ppwszSection)
+            *ppwszSection = RTUtf16Dup(s_apwszSections[i]);
+
+        return VBOXWINDRVINFTYPE_NORMAL;
+    }
+
+    /*
+     * Primitive driver?
+     */
+
+    /* Sorted by most likely-ness. */
+    static PRTUTF16 s_apwszPrimitiveSections[] =
+    {
+        /* Most likely (and doesn't have a decoration). */
+        L"DefaultInstall",
+        L"DefaultInstall" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
+        /** @todo Handle more specific decorations like "NTAMD64.6.3..10622". */
+    };
+
+    for (i = 0; i < RT_ELEMENTS(s_apwszPrimitiveSections); i++)
+    {
+        PRTUTF16 const pwszSection = s_apwszPrimitiveSections[i];
+        rc = vboxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
+        if (RT_SUCCESS(rc))
+            break;
+    }
+
+    if (RT_SUCCESS(rc))
+    {
+        if (ppwszSection)
+            *ppwszSection = RTUtf16Dup(s_apwszPrimitiveSections[i]);
+
+        return VBOXWINDRVINFTYPE_PRIMITIVE;
+    }
+
+    return VBOXWINDRVINFTYPE_INVALID;
+}
+
+/**
+ * Returns the type of an INF file.
+ *
+ * @returns Type of the INF file.
+ * @param   hInf                INF handle to use.
+ */
+VBOXWINDRVINFTYPE VBoxWinDrvInfGetType(HINF hInf)
+{
+    return VBoxWinDrvInfGetTypeEx(hInf, NULL);
+}
 
 /**
  * Queries an INF context from an INF handle.
@@ -84,7 +160,7 @@
  * @param   pwszKey             Key to query context for.
  * @param   pCtx                Where to return the INF context on success.
  */
-int VBoxWinDrvInfQueryContext(HINF hInf, LPCWSTR pwszSection, LPCWSTR pwszKey, PINFCONTEXT pCtx)
+static int vboxWinDrvInfQueryContext(HINF hInf, LPCWSTR pwszSection, LPCWSTR pwszKey, PINFCONTEXT pCtx)
 {
     if (!SetupFindFirstLineW(hInf, pwszSection, pwszKey, pCtx))
         return VERR_NOT_FOUND;
@@ -112,7 +188,7 @@ int VBoxWinDrvInfQueryKeyValue(PINFCONTEXT pCtx, DWORD iValue, PRTUTF16 *ppwszVa
     {
         DWORD const dwErr = GetLastError();
         if (dwErr != ERROR_INSUFFICIENT_BUFFER)
-            return RTErrConvertFromWin32(dwErr);
+            return VBoxWinDrvInstErrorFromWin32(dwErr);
     }
 
     LPWSTR pwszValue = (LPWSTR)RTMemAlloc(cwcValue * sizeof(pwszValue[0]));
@@ -121,7 +197,7 @@ int VBoxWinDrvInfQueryKeyValue(PINFCONTEXT pCtx, DWORD iValue, PRTUTF16 *ppwszVa
     if (!SetupGetStringFieldW(pCtx, iValue, pwszValue, cwcValue, &cwcValue))
     {
         RTMemFree(pwszValue);
-        return RTErrConvertFromWin32(GetLastError());
+        return VBoxWinDrvInstErrorFromWin32(GetLastError());
     }
 
     *ppwszValue = pwszValue;
@@ -132,47 +208,30 @@ int VBoxWinDrvInfQueryKeyValue(PINFCONTEXT pCtx, DWORD iValue, PRTUTF16 *ppwszVa
 }
 
 /**
- * Queries a model name from an INF file.
+ * Queries a model name from an INF section.
  *
  * @returns VBox status code.
  * @retval  VERR_NOT_FOUND if no model has been found.
  * @param   hInf                INF handle to use.
+ * @param   pwszSection         Section to query model for.
  * @param   uIndex              Index of model to query.
  *                              Currently only the first model (index 0) is supported.
  * @param   ppwszValue          Where to return the model name on success.
  * @param   pcwcValue           Where to return the number of characters for \a ppwszValue. Optional an can be NULL.
- *
- * @note    Only for non-"primitive" drivers.
  */
-int VBoxWinDrvInfQueryModel(HINF hInf, unsigned uIndex, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
+int VBoxWinDrvInfQueryModelEx(HINF hInf, PCRTUTF16 pwszSection, unsigned uIndex, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
 {
+    AssertPtrReturn(pwszSection, VERR_INVALID_POINTER);
     AssertReturn(uIndex == 0, VERR_INVALID_PARAMETER);
 
     *ppwszValue = NULL;
     if (pcwcValue)
         *pcwcValue = 0;
 
-    /* Sorted by most likely-ness. */
-    static PRTUTF16 s_apwszSections[] =
-    {
-        /* Most likely (and doesn't have a decoration). */
-        L"Manufacturer",
-        L"Manufacturer" VBOXWINDRVINF_DOT_NT_NATIVE_ARCH_STR,
-        /* Note: Don't search for "DefaultInstall" or "DefaultUninstall" sections here, as
-         *       those only are used for "primitive" drivers. */
-    };
-
     int rc = VINF_SUCCESS;
 
     INFCONTEXT InfCtx;
-    for (int i = 0; i < RT_ELEMENTS(s_apwszSections); i++)
-    {
-        PRTUTF16 const pwszSection = s_apwszSections[i];
-        rc = VBoxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
-        if (RT_SUCCESS(rc))
-            break;
-    }
-
+    rc = vboxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -190,6 +249,9 @@ int VBoxWinDrvInfQueryModel(HINF hInf, unsigned uIndex, PRTUTF16 *ppwszValue, PD
     rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, 2, &pwszPlatform, &cwcPlatform);
     if (RT_SUCCESS(rc)) /* Platform is optional. */
     {
+        /* Convert to uppercase first so that RTUtf16FindAscii() below works. */
+        RTUtf16ToUpper(pwszPlatform);
+
         /* Note! The platform can be more specific, e.g. "NTAMD64.6.0". */
         if (RTUtf16FindAscii(pwszPlatform, VBOXWINDRVINF_NT_NATIVE_ARCH_STR) == 0)
         {
@@ -242,7 +304,7 @@ int VBoxWinDrvInfQueryModel(HINF hInf, unsigned uIndex, PRTUTF16 *ppwszValue, PD
 int VBoxWinDrvInfQueryInstallSectionEx(HINF hInf, PCRTUTF16 pwszModel, PRTUTF16 *ppwszValue, PDWORD pcwcValue)
 {
     INFCONTEXT InfCtx;
-    int rc = VBoxWinDrvInfQueryContext(hInf, pwszModel, NULL, &InfCtx);
+    int rc = vboxWinDrvInfQueryContext(hInf, pwszModel, NULL, &InfCtx);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -316,13 +378,13 @@ int VBoxWinDrvInfQuerySectionVerEx(HINF hInf, UINT uIndex, PVBOXWINDRVINFSEC_VER
                     rc = VERR_NO_MEMORY;
             }
             else
-                rc = RTErrConvertFromWin32(GetLastError());
+                rc = VBoxWinDrvInstErrorFromWin32(GetLastError());
         }
         else /* Legacy INF files are not supported. */
             rc = VERR_NOT_SUPPORTED;
     }
     else
-        rc = RTErrConvertFromWin32(GetLastError());
+        rc = VBoxWinDrvInstErrorFromWin32(GetLastError());
 
     RTMemFree(pInfo);
     return rc;
@@ -352,7 +414,7 @@ int VBoxWinDrvInfOpenEx(PCRTUTF16 pwszInfFile, PRTUTF16 pwszClassName, HINF *phI
 {
     HINF hInf = SetupOpenInfFileW(pwszInfFile, pwszClassName, INF_STYLE_WIN4, NULL /*__in PUINT ErrorLine */);
     if (hInf == INVALID_HANDLE_VALUE)
-        return RTErrConvertFromWin32(GetLastError());
+        return VBoxWinDrvInstErrorFromWin32(GetLastError());
 
     *phInf = hInf;
 
@@ -379,7 +441,7 @@ int VBoxWinDrvInfOpen(PCRTUTF16 pwszInfFile, HINF *phInf)
         rc = VBoxWinDrvInfOpenEx(pwszInfFile, pwszClassName, phInf);
     }
     else
-        rc = RTErrConvertFromWin32(GetLastError());
+        rc = VBoxWinDrvInstErrorFromWin32(GetLastError());
 
     return rc;
 }
@@ -424,16 +486,15 @@ int VBoxWinDrvInfClose(HINF hInf)
  * @returns VBox status code.
  * @retval  VERR_NOT_FOUND if no model has been found.
  * @param   hInf                INF handle to use.
+ * @param   pwszSection         Section to query model for.
  * @param   ppwszModel          Where to return the model on success.
  *                              Needs to be free'd by RTUtf16Free().
- *
- * @note    Only for non-"primitive" drivers.
  */
-int VBoxWinDrvInfQueryFirstModel(HINF hInf, PRTUTF16 *ppwszModel)
+int VBoxWinDrvInfQueryFirstModel(HINF hInf, PCRTUTF16 pwszSection, PRTUTF16 *ppwszModel)
 {
     *ppwszModel = NULL;
 
-    return VBoxWinDrvInfQueryModel(hInf, 0 /* Index */, ppwszModel, NULL);
+    return VBoxWinDrvInfQueryModelEx(hInf, pwszSection, 0 /* Index */, ppwszModel, NULL);
 }
 
 /**
@@ -445,8 +506,6 @@ int VBoxWinDrvInfQueryFirstModel(HINF hInf, PRTUTF16 *ppwszModel)
  * @param   pwszModel           Model to query PnP ID for.
  * @param   ppwszPnPId          Where to return the PnP ID on success.
  *                              Needs to be free'd by RTUtf16Free().
- *
- * @note    Only for non-"primitive" drivers.
  */
 int VBoxWinDrvInfQueryFirstPnPId(HINF hInf, PRTUTF16 pwszModel, PRTUTF16 *ppwszPnPId)
 {
@@ -457,7 +516,7 @@ int VBoxWinDrvInfQueryFirstPnPId(HINF hInf, PRTUTF16 pwszModel, PRTUTF16 *ppwszP
 
     PRTUTF16   pwszPnPId = NULL;
     INFCONTEXT InfCtx;
-    int rc = VBoxWinDrvInfQueryContext(hInf, pwszModel, NULL, &InfCtx);
+    int rc = vboxWinDrvInfQueryContext(hInf, pwszModel, NULL, &InfCtx);
     if (RT_SUCCESS(rc))
     {
         rc = VBoxWinDrvInfQueryKeyValue(&InfCtx, 2, &pwszPnPId, NULL);
@@ -465,6 +524,160 @@ int VBoxWinDrvInfQueryFirstPnPId(HINF hInf, PRTUTF16 pwszModel, PRTUTF16 *ppwszP
             *ppwszPnPId = pwszPnPId;
     }
 
+    return rc;
+}
+
+
+/**
+ * Returns a Setup API error as a string.
+ *
+ * Needded to get at least a minimally meaningful error string back from Setup API.
+ *
+ * @returns Setup API error as a string, or NULL if not found.
+ * @param   dwErr               Error code to return as a string.
+ */
+const char *VBoxWinDrvSetupApiErrToStr(const DWORD dwErr)
+{
+    switch (dwErr)
+    {
+        RT_CASE_RET_STR(ERROR_EXPECTED_SECTION_NAME             );
+        RT_CASE_RET_STR(ERROR_BAD_SECTION_NAME_LINE             );
+        RT_CASE_RET_STR(ERROR_SECTION_NAME_TOO_LONG             );
+        RT_CASE_RET_STR(ERROR_GENERAL_SYNTAX                    );
+        RT_CASE_RET_STR(ERROR_WRONG_INF_STYLE                   );
+        RT_CASE_RET_STR(ERROR_SECTION_NOT_FOUND                 );
+        RT_CASE_RET_STR(ERROR_LINE_NOT_FOUND                    );
+        RT_CASE_RET_STR(ERROR_NO_BACKUP                         );
+        RT_CASE_RET_STR(ERROR_NO_ASSOCIATED_CLASS               );
+        RT_CASE_RET_STR(ERROR_CLASS_MISMATCH                    );
+        RT_CASE_RET_STR(ERROR_DUPLICATE_FOUND                   );
+        RT_CASE_RET_STR(ERROR_NO_DRIVER_SELECTED                );
+        RT_CASE_RET_STR(ERROR_KEY_DOES_NOT_EXIST                );
+        RT_CASE_RET_STR(ERROR_INVALID_DEVINST_NAME              );
+        RT_CASE_RET_STR(ERROR_INVALID_CLASS                     );
+        RT_CASE_RET_STR(ERROR_DEVINST_ALREADY_EXISTS            );
+        RT_CASE_RET_STR(ERROR_DEVINFO_NOT_REGISTERED            );
+        RT_CASE_RET_STR(ERROR_INVALID_REG_PROPERTY              );
+        RT_CASE_RET_STR(ERROR_NO_INF                            );
+        RT_CASE_RET_STR(ERROR_NO_SUCH_DEVINST                   );
+        RT_CASE_RET_STR(ERROR_CANT_LOAD_CLASS_ICON              );
+        RT_CASE_RET_STR(ERROR_INVALID_CLASS_INSTALLER           );
+        RT_CASE_RET_STR(ERROR_DI_DO_DEFAULT                     );
+        RT_CASE_RET_STR(ERROR_DI_NOFILECOPY                     );
+        RT_CASE_RET_STR(ERROR_INVALID_HWPROFILE                 );
+        RT_CASE_RET_STR(ERROR_NO_DEVICE_SELECTED                );
+        RT_CASE_RET_STR(ERROR_DEVINFO_LIST_LOCKED               );
+        RT_CASE_RET_STR(ERROR_DEVINFO_DATA_LOCKED               );
+        RT_CASE_RET_STR(ERROR_DI_BAD_PATH                       );
+        RT_CASE_RET_STR(ERROR_NO_CLASSINSTALL_PARAMS            );
+        RT_CASE_RET_STR(ERROR_FILEQUEUE_LOCKED                  );
+        RT_CASE_RET_STR(ERROR_BAD_SERVICE_INSTALLSECT           );
+        RT_CASE_RET_STR(ERROR_NO_CLASS_DRIVER_LIST              );
+        RT_CASE_RET_STR(ERROR_NO_ASSOCIATED_SERVICE             );
+        RT_CASE_RET_STR(ERROR_NO_DEFAULT_DEVICE_INTERFACE       );
+        RT_CASE_RET_STR(ERROR_DEVICE_INTERFACE_ACTIVE           );
+        RT_CASE_RET_STR(ERROR_DEVICE_INTERFACE_REMOVED          );
+        RT_CASE_RET_STR(ERROR_BAD_INTERFACE_INSTALLSECT         );
+        RT_CASE_RET_STR(ERROR_NO_SUCH_INTERFACE_CLASS           );
+        RT_CASE_RET_STR(ERROR_INVALID_REFERENCE_STRING          );
+        RT_CASE_RET_STR(ERROR_INVALID_MACHINENAME               );
+        RT_CASE_RET_STR(ERROR_REMOTE_COMM_FAILURE               );
+        RT_CASE_RET_STR(ERROR_MACHINE_UNAVAILABLE               );
+        RT_CASE_RET_STR(ERROR_NO_CONFIGMGR_SERVICES             );
+        RT_CASE_RET_STR(ERROR_INVALID_PROPPAGE_PROVIDER         );
+        RT_CASE_RET_STR(ERROR_NO_SUCH_DEVICE_INTERFACE          );
+        RT_CASE_RET_STR(ERROR_DI_POSTPROCESSING_REQUIRED        );
+        RT_CASE_RET_STR(ERROR_INVALID_COINSTALLER               );
+        RT_CASE_RET_STR(ERROR_NO_COMPAT_DRIVERS                 );
+        RT_CASE_RET_STR(ERROR_NO_DEVICE_ICON                    );
+        RT_CASE_RET_STR(ERROR_INVALID_INF_LOGCONFIG             );
+        RT_CASE_RET_STR(ERROR_DI_DONT_INSTALL                   );
+        RT_CASE_RET_STR(ERROR_INVALID_FILTER_DRIVER             );
+        RT_CASE_RET_STR(ERROR_NON_WINDOWS_NT_DRIVER             );
+        RT_CASE_RET_STR(ERROR_NON_WINDOWS_DRIVER                );
+        RT_CASE_RET_STR(ERROR_NO_CATALOG_FOR_OEM_INF            );
+        RT_CASE_RET_STR(ERROR_DEVINSTALL_QUEUE_NONNATIVE        );
+        RT_CASE_RET_STR(ERROR_NOT_DISABLEABLE                   );
+        RT_CASE_RET_STR(ERROR_CANT_REMOVE_DEVINST               );
+        RT_CASE_RET_STR(ERROR_INVALID_TARGET                    );
+        RT_CASE_RET_STR(ERROR_DRIVER_NONNATIVE                  );
+        RT_CASE_RET_STR(ERROR_IN_WOW64                          );
+        RT_CASE_RET_STR(ERROR_SET_SYSTEM_RESTORE_POINT          );
+        RT_CASE_RET_STR(ERROR_SCE_DISABLED                      );
+        RT_CASE_RET_STR(ERROR_UNKNOWN_EXCEPTION                 );
+        RT_CASE_RET_STR(ERROR_PNP_REGISTRY_ERROR                );
+        RT_CASE_RET_STR(ERROR_REMOTE_REQUEST_UNSUPPORTED        );
+        RT_CASE_RET_STR(ERROR_NOT_AN_INSTALLED_OEM_INF          );
+        RT_CASE_RET_STR(ERROR_INF_IN_USE_BY_DEVICES             );
+        RT_CASE_RET_STR(ERROR_DI_FUNCTION_OBSOLETE              );
+        RT_CASE_RET_STR(ERROR_NO_AUTHENTICODE_CATALOG           );
+        RT_CASE_RET_STR(ERROR_AUTHENTICODE_DISALLOWED           );
+        RT_CASE_RET_STR(ERROR_AUTHENTICODE_TRUSTED_PUBLISHER    );
+        RT_CASE_RET_STR(ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED);
+        RT_CASE_RET_STR(ERROR_AUTHENTICODE_PUBLISHER_NOT_TRUSTED);
+        RT_CASE_RET_STR(ERROR_SIGNATURE_OSATTRIBUTE_MISMATCH    );
+        RT_CASE_RET_STR(ERROR_ONLY_VALIDATE_VIA_AUTHENTICODE    );
+        RT_CASE_RET_STR(ERROR_DEVICE_INSTALLER_NOT_READY        );
+        RT_CASE_RET_STR(ERROR_DRIVER_STORE_ADD_FAILED           );
+        RT_CASE_RET_STR(ERROR_DEVICE_INSTALL_BLOCKED            );
+        RT_CASE_RET_STR(ERROR_DRIVER_INSTALL_BLOCKED            );
+        RT_CASE_RET_STR(ERROR_WRONG_INF_TYPE                    );
+        RT_CASE_RET_STR(ERROR_FILE_HASH_NOT_IN_CATALOG          );
+        RT_CASE_RET_STR(ERROR_DRIVER_STORE_DELETE_FAILED        );
+        RT_CASE_RET_STR(ERROR_NOT_INSTALLED                     );
+        default:
+            break;
+    }
+
+    return NULL;
+}
+
+/**
+ * Returns a winerr.h error as a string.
+ *
+ * Needded to get at least a minimally meaningful error string back.
+ *
+ * @returns Error as a string, or NULL if not found.
+ * @param   dwErr               Error code to return as a string.
+ */
+const char *VBoxWinDrvWinErrToStr(const DWORD dwErr)
+{
+    switch (dwErr)
+    {
+        RT_CASE_RET_STR(ERROR_BADKEY                            );
+        RT_CASE_RET_STR(ERROR_SERVICE_MARKED_FOR_DELETE         );
+        default:
+            break;
+    }
+
+    return NULL;
+}
+
+/**
+ * Translates a native Windows error code to a VBox one.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_UNRESOLVED_ERROR if no translation was possible.
+ * @param   uNativeCode         Native Windows error code to translate.
+ */
+int VBoxWinDrvInstErrorFromWin32(unsigned uNativeCode)
+{
+#ifdef DEBUG_andy
+    bool const fAssertMayPanic = RTAssertMayPanic();
+    RTAssertSetMayPanic(false);
+#endif
+
+    const char *pszErr = VBoxWinDrvSetupApiErrToStr(uNativeCode);
+    if (!pszErr)
+        VBoxWinDrvWinErrToStr(uNativeCode);
+
+    int const rc = RTErrConvertFromWin32(uNativeCode);
+    if (rc == VERR_UNRESOLVED_ERROR)
+        AssertMsgFailed(("Unhandled error %u (%#x): %s\n", uNativeCode, uNativeCode, pszErr ? pszErr : "<Unknown>"));
+
+#ifdef DEBUG_andy
+    RTAssertSetMayPanic(fAssertMayPanic);
+#endif
     return rc;
 }
 

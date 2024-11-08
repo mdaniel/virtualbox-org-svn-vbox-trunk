@@ -32,7 +32,7 @@
 #endif
 
 #include <set>
-#include <unordered_map>
+#include <map>
 #include <vector>
 #include <string>
 
@@ -149,9 +149,20 @@ private:
     friend DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pvUser);
 };
 
+/** The string representation for object IDs in the internal map.
+ * @todo r=bird: Why are you using std::string here? We use 
+ *       should use com::Utf8Str where possible. In this case, though, it's a
+ *       com::Guid which would have much more efficient storage compared
+ *       to both the string variants... */
+#if 1
+typedef std::string ObjIdString_T;
+#else
+typedef com::Utf8Str ObjIdString_T;
+#endif
+
 /////////////////////////////////////////////////////////////////////////////
 // TrackedObjectsCollector
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////// 
 class TrackedObjectsCollector
 {
     /** Critical section protecting the data in TrackedObjectsCollector */
@@ -159,7 +170,7 @@ class TrackedObjectsCollector
 
     std::set<com::Utf8Str> m_trackedObjectIds;//Full list of valid + invalid objects
     std::set<com::Utf8Str> m_trackedInvalidObjectIds;//List of invalid objects only
-    std::unordered_map<std::string, TrackedObjectData> m_trackedObjectsData;//Mapping Object Id -> Object Data
+    std::map<ObjIdString_T, TrackedObjectData> m_trackedObjectsData;//Mapping Object Id -> Object Data
 
     uint64_t m_Added;//Counter of the added objects
     uint64_t m_Released;//Counter of the released objects

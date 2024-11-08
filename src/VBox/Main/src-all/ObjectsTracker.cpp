@@ -33,10 +33,10 @@
 #include <iprt/log.h>
 #include <iprt/stream.h>
 #include <iprt/time.h>
-# include <iprt/asm.h>
+#include <iprt/asm.h>
 
-typedef std::unordered_map<std::string, TrackedObjectData>::const_iterator cIterTrObjDataType;
-typedef std::unordered_map<std::string, TrackedObjectData>::iterator iterTrObjDataType;
+typedef std::map<ObjIdString_T, TrackedObjectData>::const_iterator cIterTrObjDataType;
+typedef std::map<ObjIdString_T, TrackedObjectData>::iterator iterTrObjDataType;
 
 /////////////////////////////////////////////////////////////////////////////
 // TrackedObjectData
@@ -328,7 +328,7 @@ HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    std::string sTemp(aObjId.c_str());
+    ObjIdString_T sTemp(aObjId.c_str());
     HRESULT hrc = E_FAIL;
 
     iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
@@ -382,7 +382,7 @@ HRESULT TrackedObjectsCollector::initObjIdleTime (const com::Utf8Str& aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    std::string sTemp(aObjId.c_str());
+    ObjIdString_T sTemp(aObjId.c_str());
 
     iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
     if (pIter != m_trackedObjectsData.end())
@@ -411,7 +411,7 @@ HRESULT TrackedObjectsCollector::removeObj (const com::Utf8Str& aObjId)
     if (RT_FAILURE(vrc))
         return VBOX_E_INVALID_OBJECT_STATE;
 
-    std::string sTemp(aObjId.c_str());
+    ObjIdString_T sTemp(aObjId.c_str());
 
     vrc = VERR_NOT_FOUND;
 
@@ -497,7 +497,7 @@ HRESULT TrackedObjectsCollector::getObjIdsByClassIID (const Guid& iid,
 int TrackedObjectsCollector::i_getObjIdsByClassIID (const Guid& iid,
                                                         std::vector<com::Utf8Str>& aObjIdMap) const
 {
-    for (const std::pair<const std::string, TrackedObjectData>& item : m_trackedObjectsData)
+    for (const std::pair<const ObjIdString_T, TrackedObjectData> &item : m_trackedObjectsData)
     {
         /* IID found and the object is valid */
         if (item.second.classIID() == iid && !m_trackedInvalidObjectIds.count(item.first.c_str()))
@@ -654,7 +654,7 @@ HRESULT TrackedObjectsCollector::invalidateObj(const com::Utf8Str &aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    std::string sTemp(aObjId.c_str());
+    ObjIdString_T sTemp(aObjId.c_str());
     vrc = VERR_NOT_FOUND;
 
     iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
@@ -696,14 +696,13 @@ bool ObjectTracker::finish()
 {
     LogFlowFuncEnter();
     ASMAtomicWriteBool(&fFinish, true);
-    return fFinish;
+    return true;
 }
 
 bool ObjectTracker::isFinished()
 {
     LogFlowFuncEnter();
-    ASMAtomicReadBool(&fFinish);
-    return fFinish;
+    return ASMAtomicReadBool(&fFinish);
 }
 
 /*static*/

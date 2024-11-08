@@ -78,7 +78,7 @@ VIAddVersionKey "InternalName"      "${PRODUCT_OUTPUT}"
 ; If we have our guest install helper DLL, add the plugin path so that NSIS can
 ; find it when compiling the installer
 !if $%VBOX_WITH_GUEST_INSTALL_HELPER% == "1"
-  !addplugindir "$%PATH_TARGET%\VBoxGuestInstallHelper"
+  !addplugindir "$%PATH_TARGET%\VBoxGuestInstallHelperDll"
 !endif
 
 !include "LogicLib.nsh"

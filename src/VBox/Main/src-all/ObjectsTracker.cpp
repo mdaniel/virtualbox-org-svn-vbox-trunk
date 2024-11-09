@@ -34,9 +34,10 @@
 #include <iprt/stream.h>
 #include <iprt/time.h>
 #include <iprt/asm.h>
+#include <stdexcept>
 
-typedef std::map<ObjIdString_T, TrackedObjectData>::const_iterator ConstIterTrObjDataType;
-typedef std::map<ObjIdString_T, TrackedObjectData>::iterator iterTrObjDataType;
+typedef std::map<com::Utf8Str, TrackedObjectData>::iterator IterTrObjData_T;
+typedef std::map<com::Utf8Str, TrackedObjectData>::const_iterator ConstIterTrObjData_T;
 
 /////////////////////////////////////////////////////////////////////////////
 // TrackedObjectData
@@ -316,9 +317,9 @@ HRESULT TrackedObjectsCollector::setObj (const com::Utf8Str &aObjId,
     return hrc;
 }
 
-HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
-                                         TrackedObjectData& aObjData,
-                                         bool fUpdate)
+HRESULT TrackedObjectsCollector::getObj(const com::Utf8Str &aObjId,
+                                        TrackedObjectData &aObjData,
+                                        bool fUpdate)
 {
     LogFlowFuncEnter();
 
@@ -329,10 +330,9 @@ HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    ObjIdString_T sTemp(aObjId.c_str());
     HRESULT hrc = E_FAIL;
 
-    iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
+    IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId);
     if (pIter != m_trackedObjectsData.end() && fUpdate == true)
     {
         /* Update some fields in the found object if needed. in instance, the last access time */
@@ -341,8 +341,9 @@ HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
         vrc = VINF_SUCCESS;
     }
 
-    if (RT_SUCCESS(vrc))
+    if (RT_SUCCESS(vrc)) /** @todo r=bird: This won't ever fail. Did you mixup vrc and hrc above? */
     {
+        /** @todo r=bird: Why do three lookups? */
         if ( i_getObj(aObjId).getInterface().isNotNull() )
         {
             /* Excessive check because user may get only the valid objects Ids. But for 200% assurance it's here */
@@ -367,7 +368,14 @@ HRESULT TrackedObjectsCollector::getObj (const com::Utf8Str& aObjId,
 const TrackedObjectData &TrackedObjectsCollector::i_getObj(const com::Utf8Str &aObjId) const
 {
     /* No check for existence of aObjId */
+#if 0 /* the solaris VM's stl_map.h code doesn't have any at() function. */
     return m_trackedObjectsData.at(aObjId);
+#else
+    ConstIterTrObjData_T const Iter = m_trackedObjectsData.find(aObjId);
+    if (Iter == m_trackedObjectsData.cend())
+        throw std::out_of_range(aObjId.c_str());
+    return (*Iter).second;
+#endif
 }
 
 HRESULT TrackedObjectsCollector::initObjIdleTime(const com::Utf8Str &aObjId)
@@ -383,9 +391,7 @@ HRESULT TrackedObjectsCollector::initObjIdleTime(const com::Utf8Str &aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    ObjIdString_T sTemp(aObjId.c_str());
-
-    iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
+    IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId);
     if (pIter != m_trackedObjectsData.end())
     {
         /* Init idle time only once, next time returns the initialization time */
@@ -403,7 +409,7 @@ HRESULT TrackedObjectsCollector::initObjIdleTime(const com::Utf8Str &aObjId)
     return hrc;
 }
 
-HRESULT TrackedObjectsCollector::removeObj (const com::Utf8Str& aObjId)
+HRESULT TrackedObjectsCollector::removeObj(const com::Utf8Str &aObjId)
 {
     Log2(("%s: object Id %s\n", __FUNCTION__, aObjId.c_str()));
 
@@ -412,20 +418,18 @@ HRESULT TrackedObjectsCollector::removeObj (const com::Utf8Str& aObjId)
     if (RT_FAILURE(vrc))
         return VBOX_E_INVALID_OBJECT_STATE;
 
-    ObjIdString_T sTemp(aObjId.c_str());
-
     vrc = VERR_NOT_FOUND;
 
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    ConstIterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
-    if (pIter != m_trackedObjectsData.end())
+    IterTrObjData_T Iter = m_trackedObjectsData.find(aObjId);
+    if (Iter != m_trackedObjectsData.end())
     {
         Log2(("RELEASED TrackedObjectData: creation time %s, object Id %s, class IID %s\n",
-               pIter->second.creationTimeStr().c_str(), pIter->second.objectIdStr().c_str(), pIter->second.classIIDStr().c_str()));
+               Iter->second.creationTimeStr().c_str(), Iter->second.objectIdStr().c_str(), Iter->second.classIIDStr().c_str()));
 
-        m_trackedObjectsData.erase(pIter);
+        m_trackedObjectsData.erase(Iter);
         m_trackedObjectIds.erase(aObjId);
         m_trackedInvalidObjectIds.erase(aObjId);
 
@@ -498,20 +502,22 @@ HRESULT TrackedObjectsCollector::getObjIdsByClassIID (const Guid& iid,
     return hrc;
 }
 
-int TrackedObjectsCollector::i_getObjIdsByClassIID (const Guid& iid,
-                                                        std::vector<com::Utf8Str>& aObjIdMap) const
+int TrackedObjectsCollector::i_getObjIdsByClassIID(const Guid &aIId, std::vector<com::Utf8Str> &aObjIdMap) const
 {
-    for (const std::pair<const ObjIdString_T, TrackedObjectData> &item : m_trackedObjectsData)
+    //for (const std::pair<const com::Utf8Str, TrackedObjectData> &item : m_trackedObjectsData)  - the gcc in the solaris VM doesn't grok this.
+    for (ConstIterTrObjData_T Iter = m_trackedObjectsData.cbegin();
+         Iter != m_trackedObjectsData.cend();
+         ++Iter)
     {
         /* IID found and the object is valid */
-        if (item.second.classIID() == iid && !m_trackedInvalidObjectIds.count(item.first.c_str()))
-            aObjIdMap.push_back(item.first.c_str());
+        if (Iter->second.classIID() == aIId && !m_trackedInvalidObjectIds.count(Iter->first))
+            aObjIdMap.push_back(Iter->first);
     }
 
     return aObjIdMap.size() > 0 ? VINF_SUCCESS : VERR_NOT_FOUND;
 }
 
-bool TrackedObjectsCollector::checkObj(const com::Utf8Str& aObjId)
+bool TrackedObjectsCollector::checkObj(const com::Utf8Str &aObjId)
 {
     Log2(("%s: Checking object with Id %s\n", __FUNCTION__, aObjId.c_str()));
 
@@ -603,7 +609,7 @@ HRESULT TrackedObjectsCollector::tryToRemoveObj(const com::Utf8Str& aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    iterTrObjDataType pIter = m_trackedObjectsData.find(aObjId.c_str());
+    IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId.c_str());
     if (pIter != m_trackedObjectsData.end())
     {
         pIter->second.getInterface()->AddRef();
@@ -650,7 +656,6 @@ HRESULT TrackedObjectsCollector::invalidateObj(const com::Utf8Str &aObjId)
 {
     LogFlowFuncEnter();
 
-    HRESULT hrc = S_OK;
     int vrc = i_checkInitialization();
     if (RT_FAILURE(vrc))
         return VBOX_E_INVALID_OBJECT_STATE;
@@ -658,19 +663,14 @@ HRESULT TrackedObjectsCollector::invalidateObj(const com::Utf8Str &aObjId)
     /* Enter critical section here */
     RTCritSectEnter(&m_CritSectData);
 
-    ObjIdString_T sTemp(aObjId.c_str());
-    vrc = VERR_NOT_FOUND;
-
-    iterTrObjDataType pIter = m_trackedObjectsData.find(sTemp);
+    HRESULT hrc = VBOX_E_OBJECT_NOT_FOUND;
+    IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId);
     if (pIter != m_trackedObjectsData.end())
     {
         pIter->second.resetState();
         m_trackedInvalidObjectIds.insert(aObjId);
-        vrc = VINF_SUCCESS;
+        hrc = S_OK;
     }
-
-    if (RT_FAILURE(vrc))
-        hrc = VBOX_E_OBJECT_NOT_FOUND;
 
     /* Leave critical section here */
     RTCritSectLeave(&m_CritSectData);
@@ -722,14 +722,17 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
     while (master != NULL && master->isFinished() != true)
     {
         std::vector<com::Utf8Str> lObjIdMap;
-
         hrc = gTrackedObjectsCollector.getAllObjIds(lObjIdMap);
-        for (const com::Utf8Str& item : lObjIdMap)
+
+        //for (const com::Utf8Str& item : lObjIdMap) - the gcc in the solaris VM doesn't grok this.
+        for (std::vector<com::Utf8Str>::const_iterator Iter = lObjIdMap.cbegin();
+             Iter != lObjIdMap.cend();
+             ++Iter)
         {
             TrackedObjectData temp;
-            if(gTrackedObjectsCollector.checkObj(item.c_str()))
+            if(gTrackedObjectsCollector.checkObj(*Iter))
             {
-                hrc = gTrackedObjectsCollector.getObj(item.c_str(), temp);
+                hrc = gTrackedObjectsCollector.getObj(*Iter, temp);
                 if (SUCCEEDED(hrc))
                 {
                     Log2(("Tracked Object with ID %s was found:\n", temp.m_objId.toString().c_str()));
@@ -761,8 +764,8 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                         {
                             if (temp.m_fIdleTimeStart == false)
                             {
-                                gTrackedObjectsCollector.initObjIdleTime(item);
-                                Log2(("Idle time for the object with Id %s has been started\n", item.c_str()));
+                                gTrackedObjectsCollector.initObjIdleTime(*Iter);
+                                Log2(("Idle time for the object with Id %s has been started\n", Iter->c_str()));
                             }
                             else
                             {
@@ -772,8 +775,8 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                                 if (fObsolete)
                                 {
                                     Log2(("Object with Id %s removed from Object Collector "
-                                            "(recount is %u, idle time exceeded %u sec)\n", item.c_str(), cRefs - 1, temp.m_idleTime));
-                                    gTrackedObjectsCollector.removeObj(item.c_str());
+                                            "(recount is %u, idle time exceeded %u sec)\n", Iter->c_str(), cRefs - 1, temp.m_idleTime));
+                                    gTrackedObjectsCollector.removeObj(*Iter);
                                 }
                             }
                         }
@@ -803,15 +806,15 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                             else
                             {
                                 Log2(("Object with Id %s removed from Object Collector "
-                                        "(lifetime exceeded %u sec)\n", item.c_str(), temp.m_lifeTime));
-                                gTrackedObjectsCollector.removeObj(item.c_str());
+                                        "(lifetime exceeded %u sec)\n", Iter->c_str(), temp.m_lifeTime));
+                                gTrackedObjectsCollector.removeObj(*Iter);
                             }
                         }
                     }
                 }
             }
             else
-                Log2(("Tracked Object with ID %s was not found\n", item.c_str()));
+                Log2(("Tracked Object with ID %s was not found\n", Iter->c_str()));
         }
 
         //sleep 1 sec

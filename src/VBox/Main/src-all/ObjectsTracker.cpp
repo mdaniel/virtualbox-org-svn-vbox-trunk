@@ -372,7 +372,7 @@ const TrackedObjectData &TrackedObjectsCollector::i_getObj(const com::Utf8Str &a
     return m_trackedObjectsData.at(aObjId);
 #else
     ConstIterTrObjData_T const Iter = m_trackedObjectsData.find(aObjId);
-    if (Iter == m_trackedObjectsData.cend())
+    if (Iter == m_trackedObjectsData.end())
         throw std::out_of_range(aObjId.c_str());
     return (*Iter).second;
 #endif
@@ -469,8 +469,8 @@ HRESULT TrackedObjectsCollector::getAllObjIds (std::vector<com::Utf8Str>& aObjId
 int TrackedObjectsCollector::i_getAllObjIds(std::vector<com::Utf8Str> &aObjIdMap) const
 {
     //for (const com::Utf8Str &item : m_trackedObjectIds) - the gcc in the solaris VM doesn't grok this.
-    for (std::set<com::Utf8Str>::const_iterator Iter = m_trackedObjectIds.cbegin();
-         Iter != m_trackedObjectIds.cend();
+    for (std::set<com::Utf8Str>::const_iterator Iter = m_trackedObjectIds.begin();
+         Iter != m_trackedObjectIds.end();
          ++Iter)
     {
         if (!m_trackedInvalidObjectIds.count(*Iter))
@@ -505,8 +505,8 @@ HRESULT TrackedObjectsCollector::getObjIdsByClassIID (const Guid& iid,
 int TrackedObjectsCollector::i_getObjIdsByClassIID(const Guid &aIId, std::vector<com::Utf8Str> &aObjIdMap) const
 {
     //for (const std::pair<const com::Utf8Str, TrackedObjectData> &item : m_trackedObjectsData)  - the gcc in the solaris VM doesn't grok this.
-    for (ConstIterTrObjData_T Iter = m_trackedObjectsData.cbegin();
-         Iter != m_trackedObjectsData.cend();
+    for (ConstIterTrObjData_T Iter = m_trackedObjectsData.begin();
+         Iter != m_trackedObjectsData.end();
          ++Iter)
     {
         /* IID found and the object is valid */
@@ -725,9 +725,7 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
         hrc = gTrackedObjectsCollector.getAllObjIds(lObjIdMap);
 
         //for (const com::Utf8Str& item : lObjIdMap) - the gcc in the solaris VM doesn't grok this.
-        for (std::vector<com::Utf8Str>::const_iterator Iter = lObjIdMap.cbegin();
-             Iter != lObjIdMap.cend();
-             ++Iter)
+        for (std::vector<com::Utf8Str>::const_iterator Iter = lObjIdMap.begin(); Iter != lObjIdMap.end(); ++Iter)
         {
             TrackedObjectData temp;
             if(gTrackedObjectsCollector.checkObj(*Iter))

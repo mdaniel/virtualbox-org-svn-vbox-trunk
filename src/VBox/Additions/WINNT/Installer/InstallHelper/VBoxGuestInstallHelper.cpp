@@ -759,9 +759,16 @@ static int InstallNt4VideoDriverInner(WCHAR const * const pwszDriverDir, HDEVINF
      *          - SP_BACKUP_QUEUE_PARAMS_W
      *          - SP_INF_SIGNER_INFO_W,
      *       but we only make use of SP_DRVINFO_DATA_W.
+     * 
+     *       The newer SP_DRVINFO_DATA_W version was introduced with Windows
+     *       2000, so this only affects x86.
      */
     SetLastError(NO_ERROR);
+#if defined(RT_ARCH_X86)
     SP_DRVINFO_DATA_V1_W drvInfoData = { sizeof(drvInfoData) };
+#else
+    SP_DRVINFO_DATA_W drvInfoData = { sizeof(drvInfoData) };
+#endif
     if (!SetupDiEnumDriverInfoW(hDevInfo, NULL, SPDIT_CLASSDRIVER, 0, &drvInfoData))
         return ErrorMsgLastErr("SetupDiEnumDriverInfoW");
 

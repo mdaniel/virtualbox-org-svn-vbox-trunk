@@ -37,14 +37,19 @@ include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
 #
 PROGRAMS += VBoxGuestInstallHelper
 VBoxGuestInstallHelper_TEMPLATE = VBoxGuestR3Exe
-VBoxGuestInstallHelper_DEFS    = _WIN32_WINNT=0x0400 _UNICODE UNICODE
-VBoxGuestInstallHelper_DEFS   += VBOX_SVN_REV=$(VBOX_SVN_REV)
+VBoxGuestInstallHelper_DEFS     = _UNICODE UNICODE
+VBoxGuestInstallHelper_DEFS    += VBOX_SVN_REV=$(VBOX_SVN_REV)
 ifdef VBOX_WITH_WDDM
- VBoxGuestInstallHelper_DEFS  += VBOX_WITH_WDDM
+ VBoxGuestInstallHelper_DEFS   += VBOX_WITH_WDDM
 endif
-VBoxGuestInstallHelper_DEPS    = $(VBOX_SVN_REV_KMK)
-VBoxGuestInstallHelper_SDKS    = ReorderCompilerIncs $(VBOX_WINPSDK_GST) $(VBOX_WINDDK_GST)
-VBoxGuestInstallHelper_INCS    = ../../include
+if1of ($(KBUILD_TARGET_ARCH), x86)
+ VBoxGuestInstallHelper_DEFS   += _WIN32_WINNT=0x0400
+else if1of ($(KBUILD_TARGET_ARCH), amd64)
+ VBoxGuestInstallHelper_DEFS   += _WIN32_WINNT=0x0501
+endif
+VBoxGuestInstallHelper_DEPS     = $(VBOX_SVN_REV_KMK)
+VBoxGuestInstallHelper_SDKS     = ReorderCompilerIncs $(VBOX_WINPSDK_GST) $(VBOX_WINDDK_GST)
+VBoxGuestInstallHelper_INCS     = ../../include
 VBoxGuestInstallHelper_SOURCES = \
 	VBoxGuestInstallHelper.cpp \
 	VBoxGuestInstallHelper.rc \
@@ -78,13 +83,13 @@ ifdef VBOX_SIGN_ADDITIONS # (See the parent makefile.)
 endif
 VBoxGuestInstallHelperDll_DEFS            := WIN32_LEAN_AND_MEAN=1 UNICODE _UNICODE
 if1of ($(KBUILD_TARGET_ARCH), x86)
- VBoxGuestInstallHelperDll_DEFS           := _WIN32_WINNT=0x0400
+ VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0400
  VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := nt4
 else if1of ($(KBUILD_TARGET_ARCH), amd64)
- VBoxGuestInstallHelperDll_DEFS           := _WIN32_WINNT=0x0501
+ VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0501
  VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := xp
 else
- VBoxGuestInstallHelperDll_DEFS           := _WIN32_WINNT=0x0a00
+ VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0a00
  VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := w8
 endif
 VBoxGuestInstallHelperDll_SOURCES         := \

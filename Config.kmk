@@ -3956,7 +3956,7 @@ endif
 ifeq ($(VBOX_XMLLINT),)
  ifeq ($(KBUILD_HOST),win)
   VBOX_XMLLINT := $(firstfile \
-  	$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS)/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)/libxslt/*/bin/xmllint.exe)))
+  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS)/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)/libxslt/*/bin/xmllint.exe)))
  endif
  ifeq ($(VBOX_XMLLINT),)
   VBOX_XMLLINT := $(which xmllint)

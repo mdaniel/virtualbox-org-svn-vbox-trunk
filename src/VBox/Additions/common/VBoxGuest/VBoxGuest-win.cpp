@@ -151,10 +151,10 @@ typedef struct VBOXGUESTDEVEXTWIN
     /** Length of VMMDev memory.   */
     ULONG                   cbVmmDevMemory;
 
-    /** Physical address and length of the optional VMMDev MMIO request interface. */
-    PHYSICAL_ADDRESS        GCPhysMmioReq;
     /** Length of the optional VMMDev MMIO request interface.   */
     ULONG                   cbMmioReq;
+    /** Physical address and length of the optional VMMDev MMIO request interface. */
+    PHYSICAL_ADDRESS        GCPhysMmioReq;
 
     /** Device state. */
     VGDRVNTDEVSTATE volatile enmDevState;

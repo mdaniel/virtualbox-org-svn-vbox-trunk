@@ -1115,7 +1115,7 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
    		$(2)/UserManual.hhp # Order-only gets confused by rm -Rf, as kmk will cache the existance of the target \
    		# file and not remake it because kmk thinks it still exists. Real dep fixes this.
 	$$(call MSG_L1,, => $$@ ($(2)/UserManual_htmlhelp.log))
-	$$(QUIET)$$(INSTALL_STAGING) -m0644 -- '$$<' '$$(@D)'
+	$$(QUIET)$$(INSTALL) -m0644 -- '$$<' '$$(@D)'
 
    # 4. Run the Qt help generator to produce the .qhc and .qch files.
    $(2)/UserManual.qch \

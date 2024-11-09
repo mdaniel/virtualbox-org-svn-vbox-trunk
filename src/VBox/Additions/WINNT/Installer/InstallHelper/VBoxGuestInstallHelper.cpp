@@ -759,7 +759,7 @@ static int InstallNt4VideoDriverInner(WCHAR const * const pwszDriverDir, HDEVINF
      *          - SP_BACKUP_QUEUE_PARAMS_W
      *          - SP_INF_SIGNER_INFO_W,
      *       but we only make use of SP_DRVINFO_DATA_W.
-     * 
+     *
      *       The newer SP_DRVINFO_DATA_W version was introduced with Windows
      *       2000, so this only affects x86.
      */

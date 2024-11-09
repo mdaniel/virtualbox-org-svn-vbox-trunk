@@ -2536,12 +2536,11 @@ VBOX_IASLCMD   ?= $(firstword $(wildcard $(KBUILD_DEVTOOLS_HST)/bin/iasl$(HOSTSU
 # libxslt XSLT processor. (see PATH_TOOL_YASM for explanation why it's temporarily located in bin.)
 ifeq ($(VBOX_XSLTPROC),)
  ifeq ($(KBUILD_HOST),win)
-  VBOX_XSLTPROC := $(wildcard $(KBUILD_DEVTOOLS)/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)/libxslt/10142/bin/xsltproc.exe)
+  VBOX_XSLTPROC := $(firstfile \
+  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST)/libxslt/*/bin/xsltproc.exe)) \
+  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST_ALT)/libxslt/*/bin/xsltproc.exe)) )
   ifeq ($(VBOX_XSLTPROC),)
-   VBOX_XSLTPROC := $(wildcard $(KBUILD_DEVTOOLS)/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)/libxslt/10128/bin/xsltproc.exe)# for x86
-   ifeq ($(VBOX_XSLTPROC),)
-    VBOX_XSLTPROC := $(KBUILD_DEVTOOLS)/win.x86/bin/xsltproc.exe
-   endif
+   VBOX_XSLTPROC := $(firstfile $(which xsltproc$(HOSTSUFF_EXE)) xsltproc$(HOSTSUFF_EXE))
   endif
  else ifeq ($(KBUILD_HOST),os2)
   VBOX_XSLTPROC  := BEGINLIBPATH="$(KBUILD_DEVTOOLS_HST)/bin;$$BEGINLIBPATH" $(KBUILD_DEVTOOLS_HST)/bin/xsltproc.exe
@@ -3956,10 +3955,11 @@ endif
 ifeq ($(VBOX_XMLLINT),)
  ifeq ($(KBUILD_HOST),win)
   VBOX_XMLLINT := $(firstfile \
-  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS)/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)/libxslt/*/bin/xmllint.exe)))
+  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST)/libxslt/*/bin/xmllint.exe)) \
+  		$(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST_ALT)/libxslt/*/bin/xmllint.exe)) )
  endif
  ifeq ($(VBOX_XMLLINT),)
-  VBOX_XMLLINT := $(which xmllint)
+  VBOX_XMLLINT := $(firstfile $(which xmllint) xmllint$(HOSTSUFF_EXE))
  endif
  ifneq ($(VBOX_XMLLINT),)
   VBOX_HAVE_XMLLINT := 1

@@ -1836,7 +1836,7 @@ else
 endif
 
 extpacks-packing:
-	+ $(KMK) VBOX_WITH_EXTPACK_OS_ARCHS="darwin.amd64 darwin.arm64 linux.amd64 solaris.amd64 win.amd64" \
+	+ $(KMK) VBOX_WITH_EXTPACK_OS_ARCHS="darwin.amd64 darwin.arm64 linux.amd64 solaris.amd64 win.amd64 win.arm64" \
 		VBOX_ONLY_EXTPACKS=1 packing
 # +++ freebsd.amd64 ^^^
 

@@ -325,7 +325,7 @@ if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
  	common/string/strlen.asm
 else if1of ($(KBUILD_TARGET_ARCH), arm64)
  RuntimeNoCrt_SOURCES = \
-  	common/string/bzero.cpp \
+ 	common/string/bzero.cpp \
  	common/string/memchr.cpp \
  	common/string/memcmp.cpp \
  	common/string/memcpy.cpp \

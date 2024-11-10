@@ -323,6 +323,20 @@ if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
  	common/string/strncpy.asm \
  	common/string/strcmp.asm \
  	common/string/strlen.asm
+else if1of ($(KBUILD_TARGET_ARCH), arm64)
+ RuntimeNoCrt_SOURCES = \
+  	common/string/bzero.cpp \
+ 	common/string/memchr.cpp \
+ 	common/string/memcmp.cpp \
+ 	common/string/memcpy.cpp \
+ 	common/string/mempcpy.cpp \
+ 	common/string/memmove.cpp \
+ 	common/string/memset.cpp \
+ 	common/string/strchr.cpp \
+ 	common/string/strcpy.cpp \
+ 	common/string/strncpy.cpp \
+ 	common/string/strcmp.cpp \
+ 	common/string/strlen.cpp
 endif
 
 
@@ -3374,7 +3388,9 @@ RuntimeR3NoCrt_SOURCES.win := \
 RuntimeR0_TEMPLATE      = VBoxR0
 RuntimeR0_DEFS          = IN_RT_R0 RT_WITH_VBOX NOFILEID
 ifn1of ($(KBUILD_TARGET_ARCH), amd64 x86)
+ #ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
  RuntimeR0_DEFS        += RT_NO_GIP
+ #endif
 endif
 if defined(VBOX_WITH_DTRACE_R0) && !defined(VBOX_ONLY_VALIDATIONKIT)
  ifdef VBOX_WITH_AUTOMATIC_DEFS_QUOTING
@@ -3521,7 +3537,8 @@ RuntimeR0_SOURCES.amd64 += \
 RuntimeR0_SOURCES.arm32 += \
 	common/string/RTStrEnd.cpp
 RuntimeR0_SOURCES.arm64 += \
-	common/string/RTStrEnd.cpp
+	common/string/RTStrEnd.cpp \
+	common/asm/ASMMemFirstNonZero-generic.cpp
 RuntimeR0_SOURCES.sparc32 += \
 	common/string/RTStrEnd.cpp
 RuntimeR0_SOURCES.sparc64 += \

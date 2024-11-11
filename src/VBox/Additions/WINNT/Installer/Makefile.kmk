@@ -67,6 +67,24 @@ RegCleanup_VBOX_IMPORT_CHECKER.win.x86 := nt4
 
 
 #
+# The Guest Additions variant of VBoxDrvInst.
+#
+VBOX_PATH_GH_INSTALLATION_SRC := $(PATH_ROOT)/src/VBox/GuestHost/installation
+
+PROGRAMS.win += VBoxDrvInstGuest
+VBoxDrvInstGuest_TEMPLATE = VBoxGuestR3Exe
+VBoxDrvInstGuest_DEFS     = _WIN32_WINNT=0x0400 _UNICODE UNICODE VBOX_SVN_REV=$(VBOX_SVN_REV)
+VBoxDrvInstGuest_NAME    := VBoxDrvInst
+VBoxDrvInstGuest_SOURCES  = \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvCommon.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvInst.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvStore.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxDrvInst.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxDrvInst.rc
+VBoxDrvInstGuest_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4.
+
+
+#
 # Install all the certificates we use.
 #
 INSTALLS += AdditionsInstCertFiles
@@ -186,7 +204,8 @@ endif
 VBOX_WINDOWS_ADDITIONS_OTHER_FILES := \
 	$(PATH_STAGE_BIN)/additions/VBoxService.exe \
 	$(PATH_STAGE_BIN)/additions/VBoxHook.dll \
-	$(PATH_STAGE_BIN)/additions/RegCleanup.exe
+	$(PATH_STAGE_BIN)/additions/RegCleanup.exe \
+	$(PATH_STAGE_BIN)/additions/VBoxDrvInst.exe
 
 ifeq ($(KBUILD_TARGET_ARCH),x86)
  VBOX_WINDOWS_ADDITIONS_OTHER_FILES += \

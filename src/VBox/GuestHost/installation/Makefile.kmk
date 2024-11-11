@@ -28,39 +28,24 @@
 SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
-VBoxDrvInst_TEMPLATE    = VBoxR3Exe
-VBoxDrvInst_DEFS        = _WIN32_WINNT=0x0400 _UNICODE UNICODE VBOX_SVN_REV=$(VBOX_SVN_REV)
-VBoxDrvInst_SOURCES     = \
-	VBoxWinDrvCommon.cpp \
-	VBoxWinDrvInst.cpp \
-	VBoxWinDrvStore.cpp \
-	VBoxDrvInst.cpp \
-	VBoxDrvInst.rc
-
-
 ifndef VBOX_ONLY_ADDITIONS
  #
  # The host variant of VBoxDrvInst.
  #
  PROGRAMS.win += VBoxDrvInstHost
  VBoxDrvInstHost_TEMPLATE    = VBoxR3Exe
- VBoxDrvInstHost_EXTENDS    := VBoxDrvInst
- VBoxDrvInstHost_EXTENDS_BY  = appending
+ VBoxDrvInstHost_DEFS        = _WIN32_WINNT=0x0400 _UNICODE UNICODE VBOX_SVN_REV=$(VBOX_SVN_REV)
  VBoxDrvInstHost_INST       := $(INST_BIN)
  VBoxDrvInstHost_NAME       := VBoxDrvInst
+ VBoxDrvInstHost_SOURCES     = \
+	VBoxWinDrvCommon.cpp \
+	VBoxWinDrvInst.cpp \
+	VBoxWinDrvStore.cpp \
+	VBoxDrvInst.cpp \
+	VBoxDrvInst.rc
  VBoxDrvInstHost_LIBS        = \
  	$(LIB_RUNTIME)
 endif
 
-
-#
-# The Guest Additions variant of VBoxDrvInst.
-#
-PROGRAMS.win += VBoxDrvInstGuest
-VBoxDrvInstGuest_TEMPLATE       = VBoxGuestR3Exe
-VBoxDrvInstGuest_EXTENDS        = VBoxDrvInst
-VBoxDrvInstGuest_EXTENDS_BY     = appending
-VBoxDrvInstGuest_NAME          := VBoxDrvInst
-VBoxDrvInstGuest_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4.
-
 include $(FILE_KBUILD_SUB_FOOTER)
+

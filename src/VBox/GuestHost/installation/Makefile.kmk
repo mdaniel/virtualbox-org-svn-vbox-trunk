@@ -34,7 +34,8 @@ VBoxDrvInst_SOURCES     = \
 	VBoxWinDrvCommon.cpp \
 	VBoxWinDrvInst.cpp \
 	VBoxWinDrvStore.cpp \
-	VBoxDrvInst.cpp
+	VBoxDrvInst.cpp \
+	VBoxDrvInst.rc
 
 
 ifndef VBOX_ONLY_ADDITIONS

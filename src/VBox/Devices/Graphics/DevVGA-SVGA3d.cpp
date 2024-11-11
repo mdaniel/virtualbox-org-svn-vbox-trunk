@@ -1381,11 +1381,87 @@ int vmsvga3dChangeMode(PVGASTATECC pThisCC)
     return pSvgaR3State->pFuncs3D->pfnChangeMode(pThisCC);
 }
 
-int vmsvga3dSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src, uint32_t cCopyBoxes, SVGA3dCopyBox *pBox)
+int vmsvga3dSurfaceCopySysMem(PVMSVGA3DSTATE pState, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src,
+                               uint32_t cCopyBoxes, SVGA3dCopyBox *pBox)
+{
+    RT_NOREF(cCopyBoxes);
+    AssertReturn(pBox, VERR_INVALID_PARAMETER);
+
+    LogFunc(("src sid %d -> dst sid %d\n", src.sid, dest.sid));
+
+    AssertReturn(pState, VERR_INVALID_STATE);
+
+    PVMSVGA3DSURFACE pSrcSurface;
+    int rc = vmsvga3dSurfaceFromSid(pState, src.sid, &pSrcSurface);
+    AssertRCReturn(rc, rc);
+
+    PVMSVGA3DSURFACE pDstSurface;
+    rc = vmsvga3dSurfaceFromSid(pState, dest.sid, &pDstSurface);
+    AssertRCReturn(rc, rc);
+
+    PVMSVGA3DMIPMAPLEVEL pSrcMipLevel;
+    rc = vmsvga3dMipmapLevel(pSrcSurface, src.face, src.mipmap, &pSrcMipLevel);
+    ASSERT_GUEST_RETURN(RT_SUCCESS(rc), rc);
+
+    PVMSVGA3DMIPMAPLEVEL pDstMipLevel;
+    rc = vmsvga3dMipmapLevel(pDstSurface, dest.face, dest.mipmap, &pDstMipLevel);
+    ASSERT_GUEST_RETURN(RT_SUCCESS(rc), rc);
+
+    SVGA3dCopyBox clipBox = *pBox;
+    vmsvgaR3ClipCopyBox(&pSrcMipLevel->mipmapSize, &pDstMipLevel->mipmapSize, &clipBox);
+
+    AssertReturn(pSrcSurface->format == pDstSurface->format, VERR_INVALID_PARAMETER);
+    AssertReturn(pSrcSurface->cbBlock == pDstSurface->cbBlock, VERR_INVALID_PARAMETER);
+    AssertReturn(pSrcMipLevel->pSurfaceData && pDstMipLevel->pSurfaceData, VERR_INVALID_STATE);
+
+    uint32_t const cxBlocks = (clipBox.w + pSrcSurface->cxBlock - 1) / pSrcSurface->cxBlock;
+    uint32_t const cyBlocks = (clipBox.h + pSrcSurface->cyBlock - 1) / pSrcSurface->cyBlock;
+    uint32_t const cbRow = cxBlocks * pSrcSurface->cbBlock;
+
+    uint8_t const *pu8Src = (uint8_t *)pSrcMipLevel->pSurfaceData
+            + (clipBox.srcx / pSrcSurface->cxBlock) * pSrcSurface->cbBlock
+            + (clipBox.srcy / pSrcSurface->cyBlock) * pSrcMipLevel->cbSurfacePitch
+            + clipBox.srcz * pSrcMipLevel->cbSurfacePlane;
+
+    uint8_t *pu8Dst = (uint8_t *)pDstMipLevel->pSurfaceData
+            + (clipBox.x / pDstSurface->cxBlock) * pDstSurface->cbBlock
+            + (clipBox.y / pDstSurface->cyBlock) * pDstMipLevel->cbSurfacePitch
+            + clipBox.z * pDstMipLevel->cbSurfacePlane;
+
+    for (uint32_t z = 0; z < clipBox.d; ++z)
+    {
+        uint8_t const *pu8PlaneSrc = pu8Src;
+        uint8_t *pu8PlaneDst = pu8Dst;
+
+        for (uint32_t y = 0; y < cyBlocks; ++y)
+        {
+            memcpy(pu8PlaneDst, pu8PlaneSrc, cbRow);
+            pu8PlaneDst += pDstMipLevel->cbSurfacePitch;
+            pu8PlaneSrc += pSrcMipLevel->cbSurfacePitch;
+        }
+
+        pu8Src += pSrcMipLevel->cbSurfacePlane;
+        pu8Dst += pDstMipLevel->cbSurfacePlane;
+    }
+
+    return VINF_SUCCESS;
+}
+
+int vmsvga3dSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src, uint32_t cCopyBoxes, SVGA3dCopyBox *pBox, bool fVMSVGA2dGBO)
 {
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncs3D, VERR_NOT_IMPLEMENTED);
-    return pSvgaR3State->pFuncs3D->pfnSurfaceCopy(pThisCC, dest, src, cCopyBoxes, pBox);
+
+    if (!fVMSVGA2dGBO)
+    {
+        AssertReturn(pSvgaR3State->pFuncs3D, VERR_NOT_IMPLEMENTED);
+        return pSvgaR3State->pFuncs3D->pfnSurfaceCopy(pThisCC, dest, src, cCopyBoxes, pBox);
+    }
+    else
+    {
+        PVMSVGA3DSTATE pState = pThisCC->svga.p3dState;
+        AssertReturn(pState, VERR_INVALID_STATE);
+        return vmsvga3dSurfaceCopySysMem(pState, dest, src, cCopyBoxes, pBox);
+    }
 }
 
 void vmsvga3dUpdateHostScreenViewport(PVGASTATECC pThisCC, uint32_t idScreen, VMSVGAVIEWPORT const *pOldViewport)

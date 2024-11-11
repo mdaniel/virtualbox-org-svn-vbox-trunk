@@ -5015,7 +5015,7 @@ int vmsvgaR3Process3dCmd(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t idDXCont
         STAM_REL_COUNTER_INC(&pSvgaR3State->StatR3Cmd3dSurfaceCopy);
 
         uint32_t const cCopyBoxes = (cbCmd - sizeof(pCmd)) / sizeof(SVGA3dCopyBox);
-        vmsvga3dSurfaceCopy(pThisCC, pCmd->dest, pCmd->src, cCopyBoxes, (SVGA3dCopyBox *)(pCmd + 1));
+        vmsvga3dSurfaceCopy(pThisCC, pCmd->dest, pCmd->src, cCopyBoxes, (SVGA3dCopyBox *)(pCmd + 1), pThis->svga.fVMSVGA2dGBO);
         break;
     }
 

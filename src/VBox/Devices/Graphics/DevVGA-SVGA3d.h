@@ -119,7 +119,7 @@ int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFla
                           uint32_t numMipLevels, SVGA3dSize const *pMipLevel0Size, uint32_t arraySize, uint32_t bufferByteStride, bool fAllocMipLevels);
 int vmsvga3dSurfaceDestroy(PVGASTATECC pThisCC, uint32_t sid);
 int vmsvga3dSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src,
-                        uint32_t cCopyBoxes, SVGA3dCopyBox *pBox);
+                        uint32_t cCopyBoxes, SVGA3dCopyBox *pBox, bool fVMSVGA2dGBO);
 int vmsvga3dSurfaceStretchBlt(PVGASTATE pThis, PVGASTATECC pThisCC,
                               SVGA3dSurfaceImageId const *pDstSfcImg, SVGA3dBox const *pDstBox,
                               SVGA3dSurfaceImageId const *pSrcSfcImg, SVGA3dBox const *pSrcBox, SVGA3dStretchBltMode enmMode);

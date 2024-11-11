@@ -99,6 +99,7 @@ EXPORTS
     RTTimeNanoTSLFenceAsync                 ; not-arm64    
     RTTimeSystemNanoTS
     RTTimeNanoTS
+    ASMMultU64ByU32DivByU32                 ; not-arm64
     ASMAtomicXchgU8                         ; not-arm64
     ASMAtomicXchgU16                        ; not-arm64
     ASMBitFirstSet                          ; not-arm64

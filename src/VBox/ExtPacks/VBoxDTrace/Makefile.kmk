@@ -265,8 +265,13 @@ if defined(VBOX_WITH_EXTPACK_VBOXDTRACE) && defined(VBOX_WITH_EXTPACK)
  	$(VBOXDT_PATH_UTS)/common
  VBoxDTraceR0_SOURCES = \
  	VBoxDTraceR0.cpp \
- 	VBoxDTraceR0A.asm \
  	$(VBOXDT_PATH_UTS)/common/dtrace/dtrace.c
+ VBoxDTraceR0_SOURCES.amd64 = \
+ 	VBoxDTraceR0A.asm
+ VBoxDTraceR0_SOURCES.x86 = \
+ 	VBoxDTraceR0A.asm
+ VBoxDTraceR0_SOURCES.arm64 = \
+ 	VBoxDTraceR0A-arm64.S
  VBoxDTraceR0_LIBS = \
  	$(PATH_STAGE_LIB)/RuntimeR0$(VBOX_SUFF_LIB) \
  	$(VBOX_LIB_SUPR0)

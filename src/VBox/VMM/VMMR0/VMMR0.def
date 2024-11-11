@@ -103,15 +103,15 @@ EXPORTS
     ASMAtomicXchgU16                        ; not-arm64
     ASMBitFirstSet                          ; not-arm64
     ASMNopPause                             ; not-arm64
-    nocrt_memchr                            ; not-arm64
-    nocrt_memcmp                            ; not-arm64
-    nocrt_memcpy                            ; not-arm64
-    memcpy=nocrt_memcpy                     ; not-arm64
-    nocrt_memmove                           ; not-arm64
-    nocrt_memset                            ; not-arm64
-    memset=nocrt_memset                     ; not-arm64
-    nocrt_strcpy                            ; not-arm64
-    nocrt_strcmp                            ; not-arm64
-    nocrt_strchr                            ; not-arm64
-    nocrt_strlen                            ; not-arm64
+    nocrt_memchr                            
+    nocrt_memcmp                            
+    nocrt_memcpy                            
+    memcpy=nocrt_memcpy                     
+    nocrt_memmove                           
+    nocrt_memset                            
+    memset=nocrt_memset                      
+    nocrt_strcpy                            
+    nocrt_strcmp                            
+    nocrt_strchr                            
+    nocrt_strlen                            
 

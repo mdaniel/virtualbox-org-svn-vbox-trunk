@@ -113,7 +113,11 @@
  * Use asm.h to implemente some of the simple stuff in dtrace_asm.s.
  */
 # include <iprt/asm.h>
-# include <iprt/asm-amd64-x86.h>
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#  include <iprt/asm-amd64-x86.h>
+# elif defined(RT_ARCH_ARM64)
+#  include <iprt/asm-arm.h>
+# endif
 # define dtrace_casptr(a_ppvDst, a_pvOld, a_pvNew) \
 	VBoxDtCompareAndSwapPtr((void * volatile *)a_ppvDst, a_pvOld, a_pvNew)
 DECLINLINE(void *) VBoxDtCompareAndSwapPtr(void * volatile *ppvDst, void *pvOld, void *pvNew)
@@ -132,10 +136,10 @@ DECLINLINE(uint32_t) VBoxDtCompareAndSwapU32(uint32_t volatile *pu32Dst, uint32_
 	return u32Ret;
 }
 
-#define dtrace_membar_consumer()		ASMReadFence()
-#define dtrace_membar_producer()		ASMWriteFence()
-#define dtrace_interrupt_disable()		ASMIntDisableFlags()
-#define dtrace_interrupt_enable(a_EFL)	ASMSetFlags(a_EFL)
+# define dtrace_membar_consumer()		ASMReadFence()
+# define dtrace_membar_producer()		ASMWriteFence()
+# define dtrace_interrupt_disable()		ASMIntDisableFlags()
+# define dtrace_interrupt_enable(a_EFL)		ASMSetFlags(a_EFL)
 
 /*
  * NULL must be set to 0 or we'll end up with a billion warnings(=errors).

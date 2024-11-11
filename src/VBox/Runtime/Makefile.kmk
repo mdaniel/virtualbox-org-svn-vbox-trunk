@@ -3538,7 +3538,8 @@ RuntimeR0_SOURCES.arm32 += \
 	common/string/RTStrEnd.cpp
 RuntimeR0_SOURCES.arm64 += \
 	common/string/RTStrEnd.cpp \
-	common/asm/ASMMemFirstNonZero-generic.cpp
+	common/asm/ASMMemFirstNonZero-generic.cpp \
+	common/asm/ASMBitFirstClear-generic.cpp
 RuntimeR0_SOURCES.sparc32 += \
 	common/string/RTStrEnd.cpp
 RuntimeR0_SOURCES.sparc64 += \

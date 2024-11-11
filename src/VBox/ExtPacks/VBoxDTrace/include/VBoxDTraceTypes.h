@@ -132,6 +132,14 @@ typedef char                       *caddr_t;
 #  define _LITTLE_ENDIAN            1
 # endif
 
+#elif defined(RT_ARCH_ARM64)
+# ifndef _LP64
+#  define _LP64                     1
+# endif
+# if !defined(_LITTLE_ENDIAN)
+#  define _LITTLE_ENDIAN            1
+# endif
+
 #else
 # error "unsupported arch!"
 #endif

@@ -255,7 +255,7 @@ int VBoxWinDrvInfQueryModelEx(HINF hInf, PCRTUTF16 pwszSection, unsigned uIndex,
         /* Note! The platform can be more specific, e.g. "NTAMD64.6.0". */
         if (RTUtf16FindAscii(pwszPlatform, VBOXWINDRVINF_NT_NATIVE_ARCH_STR) == 0)
         {
-            RTUTF16 wszSection[VBOXWINDRVINF_MAX_INF_SECTION_NAME];
+            RTUTF16 wszSection[VBOXWINDRVINF_MAX_SECTION_NAME_LEN];
             rc = RTUtf16Copy(wszSection, sizeof(wszSection), pwszModel);
             if (RT_SUCCESS(rc))
             {

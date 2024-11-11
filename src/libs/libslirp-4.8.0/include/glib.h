@@ -192,7 +192,7 @@ DECLINLINE(char *) g_strdup(const char *pcszStr)
 
 DECLINLINE(int) g_vsnprintf(char *pszDst, size_t cbDst, const char *pszFmt, va_list va)
 {
-    ssize_t cchRet = RTStrPrintf2(pszDst, cbDst, pszFmt, va);
+    ssize_t cchRet = RTStrPrintf2V(pszDst, cbDst, pszFmt, va);
     return (int)(cchRet >= 0 ? cchRet : -cchRet);
 }
 

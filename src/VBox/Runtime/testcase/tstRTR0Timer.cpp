@@ -41,7 +41,11 @@
 #include <iprt/timer.h>
 
 #include <iprt/asm.h>
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/asm-arm.h>
+#endif
 #include <iprt/cpuset.h>
 #include <iprt/err.h>
 #include <iprt/mem.h>

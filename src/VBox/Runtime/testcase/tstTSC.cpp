@@ -38,7 +38,11 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#include <iprt/asm-amd64-x86.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM64)
+# include <iprt/asm-arm.h>
+#endif
 #include <iprt/asm.h>
 #include <iprt/getopt.h>
 #include <iprt/initterm.h>
@@ -50,14 +54,22 @@
 
 
 /*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
+/** @todo this depends on TSC frequency, which is not necessarily related
+ *        to the CPU speed on arm. */
+#define MAX_TSC_DELTA 2750  /* WARNING: This is just a guess, increase if it doesn't work for you. */
+
+
+/*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
 typedef struct TSCDATA
 {
     /** The TSC.  */
     uint64_t volatile   TSC;
-    /** The APIC ID. */
-    uint8_t volatile    u8ApicId;
+    /** The CPU ID or APIC ID. */
+    RTCPUID volatile    idCpu;
     /** Did it succeed? */
     bool volatile       fRead;
     /** Did it fail? */
@@ -94,6 +106,21 @@ static volatile bool g_fDone;
 static DECLCALLBACK(int) ThreadFunction(RTTHREAD Thread, void *pvUser);
 
 
+/** Wrapper around RTMpCpuId/ASMGetStuff. */
+static RTCPUID MyGetCpuId(void)
+{
+    RTCPUID idCpu = RTMpCpuId();
+    if (idCpu != NIL_RTCPUID)
+        return idCpu;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    return ASMGetApicId();
+#elif defined(RT_ARCH_ARM64)
+    return (RTCPUID)ASMGetThreadIdRoEL0();
+#else
+    return idCpu;
+#endif
+}
+
 /**
  * Thread function for catching the other cpus.
  *
@@ -123,33 +150,33 @@ static DECLCALLBACK(int) ThreadFunction(RTTHREAD Thread, void *pvUser)
         ASMAtomicIncU32(&g_cReady);
         while (!g_fDone)
         {
-            const uint8_t   ApicId1 = ASMGetApicId();
-            const uint64_t  TSC1    = ASMReadTSC();
-            const uint32_t  u32Go   = g_u32Go;
+            const RTCPUID   idCpu1 = MyGetCpuId();
+            const uint64_t  TSC1   = ASMReadTSC();
+            const uint32_t  u32Go  = g_u32Go;
             if (u32Go == 0)
                 continue;
 
             if (u32Go == 1)
             {
                 /* do the reading. */
-                const uint8_t   ApicId2 = ASMGetApicId();
-                const uint64_t  TSC2    = ASMReadTSC();
-                const uint8_t   ApicId3 = ASMGetApicId();
-                const uint64_t  TSC3    = ASMReadTSC();
-                const uint8_t   ApicId4 = ASMGetApicId();
+                const RTCPUID   idCpu2 = MyGetCpuId();
+                const uint64_t  TSC2   = ASMReadTSC();
+                const RTCPUID   idCpu3 = MyGetCpuId();
+                const uint64_t  TSC3   = ASMReadTSC();
+                const uint8_t   idCpu4 = MyGetCpuId();
 
-                if (    ApicId1 == ApicId2
-                    &&  ApicId1 == ApicId3
-                    &&  ApicId1 == ApicId4
-                    &&  TSC3 - TSC1 < 2250 /* WARNING: This is just a guess, increase if it doesn't work for you. */
+                if (    idCpu1 == idCpu2
+                    &&  idCpu1 == idCpu3
+                    &&  idCpu1 == idCpu4
+                    &&  TSC3 - TSC1 < MAX_TSC_DELTA
                     &&  TSC2 - TSC1 < TSC3 - TSC1
                     )
                 {
                     /* succeeded. */
-                    pTscData->TSC = TSC2;
-                    pTscData->u8ApicId = ApicId1;
+                    pTscData->TSC     = TSC2;
+                    pTscData->idCpu   = idCpu1;
                     pTscData->fFailed = false;
-                    pTscData->fRead = true;
+                    pTscData->fRead   = true;
                     ASMAtomicIncU32(&g_cRead);
                     break;
                 }
@@ -247,7 +274,7 @@ static int tstTSCCalcDrift(void)
         {
             ASMAtomicXchgSize(&s_aData[i].fFailed, false);
             ASMAtomicXchgSize(&s_aData[i].fRead, false);
-            ASMAtomicXchgU8(&s_aData[i].u8ApicId, 0xff);
+            ASMAtomicXchgU32(&s_aData[i].idCpu, NIL_RTCPUID);
 
             int rc = RTThreadUserSignal(s_aData[i].Thread);
             if (RT_FAILURE(rc))
@@ -269,29 +296,29 @@ static int tstTSCCalcDrift(void)
 
         /*
          * Flip the "go" switch and do our readings.
-         * We give the other threads the slack it takes to two extra TSC and APIC ID reads.
+         * We give the other threads the slack it takes to two extra TSC and CPU ID reads.
          */
-        const uint8_t   ApicId1 = ASMGetApicId();
-        const uint64_t  TSC1    = ASMReadTSC();
+        const RTCPUID   idCpu1 = MyGetCpuId();
+        const uint64_t  TSC1   = ASMReadTSC();
         ASMAtomicXchgU32(&g_u32Go, 1);
-        const uint8_t   ApicId2 = ASMGetApicId();
-        const uint64_t  TSC2    = ASMReadTSC();
-        const uint8_t   ApicId3 = ASMGetApicId();
-        const uint64_t  TSC3    = ASMReadTSC();
-        const uint8_t   ApicId4 = ASMGetApicId();
-        const uint64_t  TSC4    = ASMReadTSC();
+        const RTCPUID   idCpu2 = MyGetCpuId();
+        const uint64_t  TSC2   = ASMReadTSC();
+        const RTCPUID   idCpu3 = MyGetCpuId();
+        const uint64_t  TSC3   = ASMReadTSC();
+        const RTCPUID   idCpu4 = MyGetCpuId();
+        const uint64_t  TSC4   = ASMReadTSC();
         ASMAtomicXchgU32(&g_u32Go, 2);
-        const uint8_t   ApicId5 = ASMGetApicId();
-        const uint64_t  TSC5    = ASMReadTSC();
-        const uint8_t   ApicId6 = ASMGetApicId();
+        const RTCPUID   idCpu5 = MyGetCpuId();
+        const uint64_t  TSC5   = ASMReadTSC();
+        const RTCPUID   idCpu6 = MyGetCpuId();
 
         /* Compose our own result. */
-        if (    ApicId1 == ApicId2
-            &&  ApicId1 == ApicId3
-            &&  ApicId1 == ApicId4
-            &&  ApicId1 == ApicId5
-            &&  ApicId1 == ApicId6
-            &&  TSC5 - TSC1 < 2750  /* WARNING: This is just a guess, increase if it doesn't work for you. */
+        if (    idCpu1 == idCpu2
+            &&  idCpu1 == idCpu3
+            &&  idCpu1 == idCpu4
+            &&  idCpu1 == idCpu5
+            &&  idCpu1 == idCpu6
+            &&  TSC5 - TSC1 < MAX_TSC_DELTA
             &&  TSC4 - TSC1 < TSC5 - TSC1
             &&  TSC3 - TSC1 < TSC4 - TSC1
             &&  TSC2 - TSC1 < TSC3 - TSC1
@@ -299,7 +326,7 @@ static int tstTSCCalcDrift(void)
         {
             /* succeeded. */
             s_aData[0].TSC = TSC2;
-            s_aData[0].u8ApicId = ApicId1;
+            s_aData[0].idCpu = idCpu1;
             s_aData[0].fFailed = false;
             s_aData[0].fRead = true;
             ASMAtomicIncU32(&g_cRead);
@@ -339,7 +366,7 @@ static int tstTSCCalcDrift(void)
             do
             {
                 for (i = 1, fDone = true; i < cCpus; i++)
-                    if (s_aData[i - 1].u8ApicId > s_aData[i].u8ApicId)
+                    if (s_aData[i - 1].idCpu > s_aData[i].idCpu)
                     {
                         TSCDATA Tmp = s_aData[i - 1];
                         s_aData[i - 1] = s_aData[i];
@@ -350,9 +377,9 @@ static int tstTSCCalcDrift(void)
 
             RTPrintf(" #  ID  TSC            delta0 (decimal)\n"
                      "-----------------------------------------\n");
-            RTPrintf("%2d  %02x  %RX64\n", 0, s_aData[0].u8ApicId, s_aData[0].TSC);
+            RTPrintf("%2d  %02x  %RX64\n", 0, s_aData[0].idCpu, s_aData[0].TSC);
             for (i = 1; i < cCpus; i++)
-                RTPrintf("%2d  %02x  %RX64  %s%lld\n", i, s_aData[i].u8ApicId, s_aData[i].TSC,
+                RTPrintf("%2d  %02x  %RX64  %s%lld\n", i, s_aData[i].idCpu, s_aData[i].TSC,
                          s_aData[i].TSC > s_aData[0].TSC ? "+" : "", s_aData[i].TSC - s_aData[0].TSC);
             RTPrintf("(Needed %u attempt%s.)\n", cTries + 1, cTries ? "s" : "");
             break;

@@ -1967,12 +1967,18 @@ int vmsvga3dInit(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC)
 {
     PVMSVGAR3STATE pSvgaR3State = pThisCC->svga.pSvgaR3State;
 
-    /* 3D interface is required. */
-    AssertReturn(pSvgaR3State->pFuncs3D && pSvgaR3State->pFuncs3D->pfnInit, VERR_NOT_SUPPORTED);
+    if (!pThis->svga.fVMSVGA2dGBO)
+    {
+        /* 3D interface is required. */
+        AssertReturn(pSvgaR3State->pFuncs3D && pSvgaR3State->pFuncs3D->pfnInit, VERR_NOT_SUPPORTED);
+    }
 
     PVMSVGA3DSTATE p3dState = (PVMSVGA3DSTATE)RTMemAllocZ(sizeof(VMSVGA3DSTATE));
     AssertReturn(p3dState, VERR_NO_MEMORY);
     pThisCC->svga.p3dState = p3dState;
+
+    if (pThis->svga.fVMSVGA2dGBO)
+        return VINF_SUCCESS;
 
     int rc = pSvgaR3State->pFuncs3D->pfnInit(pDevIns, pThis, pThisCC);
     if (RT_SUCCESS(rc))

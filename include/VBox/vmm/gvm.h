@@ -104,26 +104,6 @@ typedef struct GVMCPU
         uint8_t             padding[256];
     } gvmm;
 
-    /** The HM per vcpu data. */
-    union
-    {
-#if defined(VMM_INCLUDED_SRC_include_HMInternal_h) && defined(IN_RING0)
-        struct HMR0PERVCPU  s;
-#endif
-        uint8_t             padding[1024];
-    } hmr0;
-
-#ifdef VBOX_WITH_NEM_R0
-    /** The NEM per vcpu data. */
-    union
-    {
-# if defined(VMM_INCLUDED_SRC_include_NEMInternal_h) && defined(IN_RING0)
-        struct NEMR0PERVCPU s;
-# endif
-        uint8_t             padding[64];
-    } nemr0;
-#endif
-
     union
     {
 #if defined(VMM_INCLUDED_SRC_include_VMMInternal_h) && defined(IN_RING0)
@@ -132,19 +112,45 @@ typedef struct GVMCPU
         uint8_t             padding[896];
     } vmmr0;
 
+#ifndef VBOX_WITH_MINIMAL_R0
+
+    /** The HM per vcpu data. */
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_HMInternal_h) && defined(IN_RING0)
+        struct HMR0PERVCPU  s;
+# endif
+        uint8_t             padding[1024];
+    } hmr0;
+
+# ifdef VBOX_WITH_NEM_R0
+    /** The NEM per vcpu data. */
+    union
+    {
+#  if defined(VMM_INCLUDED_SRC_include_NEMInternal_h) && defined(IN_RING0)
+        struct NEMR0PERVCPU s;
+#  endif
+        uint8_t             padding[64];
+    } nemr0;
+# endif
+
+    union
+    {
+# if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
         struct PGMR0PERVCPU s;
-#endif
+# endif
         uint8_t             padding[576];
     } pgmr0;
 
+#endif /* !VBOX_WITH_MINIMAL_R0 */
+
     /** Padding the structure size to page boundrary. */
-#ifdef VBOX_WITH_NEM_R0
-    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024 - 64 - 896 - 576];
+#ifdef VBOX_WITH_MINIMAL_R0
+    uint8_t                 abPadding3[16384 - 64*2 - 256 - 896];
+#elif defined(VBOX_WITH_NEM_R0)
+    uint8_t                 abPadding3[16384 - 64*2 - 256 - 896 - 1024 - 64 - 576];
 #else
-    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024      - 896 - 576];
+    uint8_t                 abPadding3[16384 - 64*2 - 256 - 896 - 1024      - 576];
 #endif
 } GVMCPU;
 #ifndef IN_TSTVMSTRUCT
@@ -156,8 +162,10 @@ typedef struct GVMCPU
 # endif
 AssertCompileMemberAlignment(GVMCPU, idCpu,  16384);
 AssertCompileMemberAlignment(GVMCPU, gvmm,   64);
-# ifdef VBOX_WITH_NEM_R0
+# ifndef VBOX_WITH_MINIMAL_R0
+#  ifdef VBOX_WITH_NEM_R0
 AssertCompileMemberAlignment(GVMCPU, nemr0,  64);
+#  endif
 # endif
 AssertCompileSizeAlignment(GVMCPU,           16384);
 # if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
@@ -215,91 +223,95 @@ typedef struct GVM
         uint8_t             padding[4352];
     } gvmm;
 
+#ifndef VBOX_WITH_MINIMAL_R0
+
     /** The GMM per vm data. */
     union
     {
-#ifdef VMM_INCLUDED_SRC_VMMR0_GMMR0Internal_h
+# ifdef VMM_INCLUDED_SRC_VMMR0_GMMR0Internal_h
         struct GMMPERVM     s;
-#endif
+# endif
         uint8_t             padding[1024];
     } gmm;
 
     /** The HM per vm data. */
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_HMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_HMInternal_h) && defined(IN_RING0)
         struct HMR0PERVM    s;
-#endif
+# endif
         uint8_t             padding[256];
     } hmr0;
 
-#ifdef VBOX_WITH_NEM_R0
+# ifdef VBOX_WITH_NEM_R0
     /** The NEM per vcpu data. */
     union
     {
-# if defined(VMM_INCLUDED_SRC_include_NEMInternal_h) && defined(IN_RING0)
+#  if defined(VMM_INCLUDED_SRC_include_NEMInternal_h) && defined(IN_RING0)
         struct NEMR0PERVM   s;
-# endif
+#  endif
         uint8_t             padding[256];
     } nemr0;
-#endif
+# endif
 
     /** The RAWPCIVM per vm data. */
     union
     {
-#ifdef VBOX_INCLUDED_rawpci_h
+# ifdef VBOX_INCLUDED_rawpci_h
         struct RAWPCIPERVM s;
-#endif
+# endif
         uint8_t             padding[64];
     } rawpci;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_PDMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_PDMInternal_h) && defined(IN_RING0)
         struct PDMR0PERVM   s;
-#endif
+# endif
         uint8_t             padding[3008];
     } pdmr0;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
         struct PGMR0PERVM   s;
-#endif
+# endif
         uint8_t             padding[90112];
     } pgmr0;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_IOMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_IOMInternal_h) && defined(IN_RING0)
         struct IOMR0PERVM   s;
-#endif
+# endif
         uint8_t             padding[512];
     } iomr0;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_APICInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_APICInternal_h) && defined(IN_RING0)
         struct APICR0PERVM  s;
-#endif
+# endif
         uint8_t             padding[64];
     } apicr0;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_DBGFInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_DBGFInternal_h) && defined(IN_RING0)
         struct DBGFR0PERVM   s;
-#endif
+# endif
         uint8_t             padding[1024];
     } dbgfr0;
 
     union
     {
-#if defined(VMM_INCLUDED_SRC_include_TMInternal_h) && defined(IN_RING0)
+# if defined(VMM_INCLUDED_SRC_include_TMInternal_h) && defined(IN_RING0)
         TMR0PERVM           s;
-#endif
+# endif
         uint8_t             padding[192];
     } tmr0;
+
+#endif /* !VBOX_WITH_MINIMAL_R0 */
 
     union
     {
@@ -310,7 +322,9 @@ typedef struct GVM
     } vmmr0;
 
     /** Padding so aCpus starts on a page boundrary.  */
-#ifdef VBOX_WITH_NEM_R0
+#ifdef VBOX_WITH_MINIMAL_R0
+    uint8_t         abPadding2[16384*1 - 64 - 4352 -                                                                704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
+#elif defined(VBOX_WITH_NEM_R0)
     uint8_t         abPadding2[16384*7 - 64 - 4352 - 1024 - 256 - 256 - 64 - 3008 - 90112 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
 #else
     uint8_t         abPadding2[16384*7 - 64 - 4352 - 1024 - 256 -       64 - 3008 - 90112 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];

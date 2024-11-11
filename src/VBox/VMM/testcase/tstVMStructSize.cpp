@@ -385,7 +385,9 @@ int main()
     CHECK_PADDING_UVMCPU(32, vm);
 
     CHECK_PADDING_GVM(4, gvmm);
+#ifndef VBOX_WITH_MINIMAL_R0
     CHECK_PADDING_GVM(4, gmm);
+#endif
     CHECK_PADDING_GVMCPU(4, gvmm);
 
     /*

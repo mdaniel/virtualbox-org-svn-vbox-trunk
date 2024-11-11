@@ -29,51 +29,51 @@ EXPORTS
     ; data
 
     ; code
-    GIMGetMmio2Regions
-    PDMQueueAlloc
-    PDMQueueInsert
-    PGMHandlerPhysicalPageTempOff
-    PGMShwMakePageWritable
-    PGMPhysSimpleWriteGCPhys
-    PGMPhysSimpleReadGCPtr
-    PGMPhysSimpleWriteGCPtr
-    PGMPhysReadGCPtr
-    PGMPhysWriteGCPtr
-    PGMPhysSimpleDirtyWriteGCPtr
-    PDMR0DeviceRegisterModule
-    PDMR0DeviceDeregisterModule
-    IOMMmioResetRegion
-    IOMMmioMapMmio2Page
-    RTLogDefaultInstance
-    RTLogDefaultInstanceEx
-    RTLogGetDefaultInstanceEx
-    RTLogRelGetDefaultInstance
-    RTLogRelGetDefaultInstanceEx
-    RTLogLogger
-    RTLogLoggerEx
-    RTLogLoggerExV
-    RTStrPrintf
-    RTTimeMilliTS
-    RTTraceBufAddMsgF
-    RTTraceBufAddPos
-    RTTraceBufAddPosMsgF
-    TMTimerFromMilli
-    TMTimerFromMicro
-    TMTimerFromNano
-    TMTimerGet
-    TMTimerGetFreq
-    TMTimerIsActive
-    TMTimerIsLockOwner
-    TMTimerLock
-    TMTimerSet
-    TMTimerSetRelative
-    TMTimerSetMillies
-    TMTimerSetMicro
-    TMTimerSetNano
-    TMTimerSetFrequencyHint
-    TMTimerStop
-    TMTimerUnlock
-    VMMGetSvnRev
+    GIMGetMmio2Regions                      ; not-arm64
+    PDMQueueAlloc                           ; not-arm64
+    PDMQueueInsert                          ; not-arm64
+    PGMHandlerPhysicalPageTempOff           ; not-arm64
+    PGMShwMakePageWritable                  ; not-arm64
+    PGMPhysSimpleWriteGCPhys                ; not-arm64
+    PGMPhysSimpleReadGCPtr                  ; not-arm64
+    PGMPhysSimpleWriteGCPtr                 ; not-arm64
+    PGMPhysReadGCPtr                        ; not-arm64
+    PGMPhysWriteGCPtr                       ; not-arm64
+    PGMPhysSimpleDirtyWriteGCPtr            ; not-arm64
+    PDMR0DeviceRegisterModule               ; not-arm64
+    PDMR0DeviceDeregisterModule             ; not-arm64
+    IOMMmioResetRegion                      ; not-arm64
+    IOMMmioMapMmio2Page                     ; not-arm64
+    RTLogDefaultInstance                    
+    RTLogDefaultInstanceEx                  
+    RTLogGetDefaultInstanceEx               
+    RTLogRelGetDefaultInstance              
+    RTLogRelGetDefaultInstanceEx            
+    RTLogLogger                             
+    RTLogLoggerEx                           
+    RTLogLoggerExV                          
+    RTStrPrintf                             
+    RTTimeMilliTS                           
+    RTTraceBufAddMsgF                       
+    RTTraceBufAddPos                        
+    RTTraceBufAddPosMsgF                    
+    TMTimerFromMilli                        ; not-arm64
+    TMTimerFromMicro                        ; not-arm64
+    TMTimerFromNano                         ; not-arm64
+    TMTimerGet                              ; not-arm64
+    TMTimerGetFreq                          ; not-arm64
+    TMTimerIsActive                         ; not-arm64
+    TMTimerIsLockOwner                      ; not-arm64
+    TMTimerLock                             ; not-arm64
+    TMTimerSet                              ; not-arm64
+    TMTimerSetRelative                      ; not-arm64
+    TMTimerSetMillies                       ; not-arm64
+    TMTimerSetMicro                         ; not-arm64
+    TMTimerSetNano                          ; not-arm64
+    TMTimerSetFrequencyHint                 ; not-arm64
+    TMTimerStop                             ; not-arm64
+    TMTimerUnlock                           ; not-arm64
+    VMMGetSvnRev                            ; not-arm64
 
     ; Internal Networking
     IntNetR0Open
@@ -89,30 +89,29 @@ EXPORTS
     RTAssertMsg1Weak
     RTAssertMsg2Weak
     RTAssertShouldPanic
-    RTCrc32
-    RTOnceSlow
-    RTTimeNanoTSLegacySyncInvarNoDelta
-    RTTimeNanoTSLegacySyncInvarWithDelta
-    RTTimeNanoTSLegacyAsync
-    RTTimeNanoTSLFenceSyncInvarNoDelta
-    RTTimeNanoTSLFenceSyncInvarWithDelta
-    RTTimeNanoTSLFenceAsync
+    RTCrc32                                 ; not-arm64
+    RTOnceSlow                              
+    RTTimeNanoTSLegacySyncInvarNoDelta      ; not-arm64
+    RTTimeNanoTSLegacySyncInvarWithDelta    ; not-arm64
+    RTTimeNanoTSLegacyAsync                 ; not-arm64
+    RTTimeNanoTSLFenceSyncInvarNoDelta      ; not-arm64
+    RTTimeNanoTSLFenceSyncInvarWithDelta    ; not-arm64
+    RTTimeNanoTSLFenceAsync                 ; not-arm64    
     RTTimeSystemNanoTS
     RTTimeNanoTS
-    ASMMultU64ByU32DivByU32             ; not-os2
-    ASMAtomicXchgU8                     ; not-x86
-    ASMAtomicXchgU16                    ; not-x86
-    ASMBitFirstSet                      ; not-x86
-    ASMNopPause                         ; not-x86
-    nocrt_memchr
-    nocrt_memcmp
-    nocrt_memcpy
-    memcpy=nocrt_memcpy                 ; not-os2
-    nocrt_memmove
-    nocrt_memset
-    memset=nocrt_memset                 ; not-os2
-    nocrt_strcpy
-    nocrt_strcmp
-    nocrt_strchr
-    nocrt_strlen
+    ASMAtomicXchgU8                         ; not-arm64
+    ASMAtomicXchgU16                        ; not-arm64
+    ASMBitFirstSet                          ; not-arm64
+    ASMNopPause                             ; not-arm64
+    nocrt_memchr                            ; not-arm64
+    nocrt_memcmp                            ; not-arm64
+    nocrt_memcpy                            ; not-arm64
+    memcpy=nocrt_memcpy                     ; not-arm64
+    nocrt_memmove                           ; not-arm64
+    nocrt_memset                            ; not-arm64
+    memset=nocrt_memset                     ; not-arm64
+    nocrt_strcpy                            ; not-arm64
+    nocrt_strcmp                            ; not-arm64
+    nocrt_strchr                            ; not-arm64
+    nocrt_strlen                            ; not-arm64
 

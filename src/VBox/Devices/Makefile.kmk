@@ -63,10 +63,12 @@ if !defined(VBOX_ONLY_EXTPACKS)
   DLLS       += VBoxDDU VBoxDD VBoxDD2
   ifdef VBOX_WITH_R0_MODULES
    LIBRARIES += ServicesR0
-   ifdef VBOX_WITH_VBOXR0_AS_DLL
-    DLLS     += VBoxDDR0
-   else
-    SYSMODS  += VBoxDDR0
+   ifndef VBOX_WITH_MINIMAL_R0
+    ifdef VBOX_WITH_VBOXR0_AS_DLL
+     DLLS     += VBoxDDR0
+    else
+     SYSMODS  += VBoxDDR0
+    endif
    endif
   endif
   ifdef VBOX_WITH_RAW_MODE
@@ -1463,7 +1465,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  VBoxDDR0_LIBS          += \
  	$(VBOX_LIB_SUPR0)
 
- ifdef VBOX_WITH_R0_MODULES
+ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
   $(call VBOX_SET_VER_INFO_R0,VBoxDDR0,VirtualBox VMM Devices and Drivers$(COMMA) ring-0) # (last!)
  endif
 
@@ -1600,7 +1602,7 @@ if defined(VBOX_WITH_EXTPACK) && defined(VBOX_WITH_EXTPACK_PUEL) && defined(VBOX
   $(if-expr defined(VBOX_WITH_VBOXR0_AS_DLL),DLLS,SYSMODS) += VBoxPciRawR0
   VBoxPciRawR0_TEMPLATE     = VBoxR0ExtPackPuel
   VBoxPciRawR0_SOURCES      = Bus/DevPciRaw.cpp
-  ifdef VBOX_WITH_R0_MODULES
+  if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
    $(call VBOX_SET_VER_INFO_R0,VBoxPciRawR0,PUEL Extension Pack - PCI Passthrough Driver$(COMMA) ring-0)
   endif
 
@@ -1617,7 +1619,7 @@ if defined(VBOX_WITH_EXTPACK) && defined(VBOX_WITH_EXTPACK_PUEL) && defined(VBOX
   	Storage/DevNVMe.cpp
   $(call VBOX_SET_VER_INFO_DLL,VBoxNvmeR3,PUEL Extension Pack - NVMe Device)
 
-  ifdef VBOX_WITH_R0_MODULES
+  if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
    ifdef VBOX_WITH_VBOXR0_AS_DLL
     DLLS    += VBoxNvmeR0
    else
@@ -1638,7 +1640,7 @@ if defined(VBOX_WITH_EXTPACK) && defined(VBOX_WITH_EXTPACK_PUEL) && defined(VBOX
     	$(VBoxNvmeR0_0_OUTDIR)/VBoxNvmeR0.r0=>VBoxNvmeR0.r0 \
     	$(VBoxNvmeR0_0_OUTDIR)/VBoxNvmeR0.debug=>VBoxNvmeR0.debug
    endif
-  endif # VBOX_WITH_R0_MODULES
+  endif # VBOX_WITH_R0_MODULES && !VBOX_WITH_MINIMAL_R0
 
   ifdef VBOX_WITH_RAW_MODE
    SYSMODS += VBoxNvmeRC

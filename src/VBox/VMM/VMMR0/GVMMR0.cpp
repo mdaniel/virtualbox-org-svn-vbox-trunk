@@ -77,7 +77,9 @@
 #include <VBox/err.h>
 
 #include <iprt/asm.h>
-#include <iprt/asm-amd64-x86.h>
+#ifdef RT_ARCH_AMD64
+# include <iprt/asm-amd64-x86.h>
+#endif
 #include <iprt/critsect.h>
 #include <iprt/mem.h>
 #include <iprt/semaphore.h>
@@ -101,7 +103,8 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
-#if defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || defined(RT_OS_WINDOWS) || defined(DOXYGEN_RUNNING)
+#if    (defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || defined(RT_OS_WINDOWS) || defined(DOXYGEN_RUNNING)) \
+    && !defined(VBOX_WITH_MINIMAL_R0)
 /** Define this to enable the periodic preemption timer. */
 # define GVMM_SCHED_WITH_PPT
 #endif
@@ -913,14 +916,20 @@ GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *pp
                         RT_BZERO(pGVM, cPages << HOST_PAGE_SHIFT);
                         gvmmR0InitPerVMData(pGVM, iHandle, cCpus, pSession);
                         pGVM->gvmm.s.VMMemObj  = hVMMemObj;
+#ifndef VBOX_WITH_MINIMAL_R0
                         rc = GMMR0InitPerVMData(pGVM);
                         int rc2 = PGMR0InitPerVMData(pGVM, hVMMemObj);
+#else
+                        int rc2 = VINF_SUCCESS;
+#endif
                         int rc3 = VMMR0InitPerVMData(pGVM);
+#ifndef VBOX_WITH_MINIMAL_R0
                         CPUMR0InitPerVMData(pGVM);
                         DBGFR0InitPerVMData(pGVM);
                         PDMR0InitPerVMData(pGVM);
                         IOMR0InitPerVMData(pGVM);
                         TMR0InitPerVMData(pGVM);
+#endif
                         if (RT_SUCCESS(rc) && RT_SUCCESS(rc2) && RT_SUCCESS(rc3))
                         {
                             /*
@@ -1029,7 +1038,9 @@ GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *pp
                                             GVMMR0_USED_EXCLUSIVE_UNLOCK(pGVMM);
                                             gvmmR0CreateDestroyUnlock(pGVMM);
 
+#ifndef VBOX_WITH_MINIMAL_R0
                                             CPUMR0RegisterVCpuThread(&pGVM->aCpus[0]);
+#endif
 
                                             *ppGVM = pGVM;
                                             Log(("GVMMR0CreateVM: pVMR3=%p pGVM=%p hGVM=%d\n", pVMR3, pGVM, iHandle));
@@ -1352,15 +1363,17 @@ static void gvmmR0CleanupVM(PGVM pGVM)
             AssertMsgFailed(("gvmmR0CleanupVM: VMMemObj=%p pGVM=%p\n", pGVM->gvmm.s.VMMemObj, pGVM));
     }
 
+#ifndef VBOX_WITH_MINIMAL_R0
     GMMR0CleanupVM(pGVM);
-#ifdef VBOX_WITH_NEM_R0
+# ifdef VBOX_WITH_NEM_R0
     NEMR0CleanupVM(pGVM);
-#endif
+# endif
     PDMR0CleanupVM(pGVM);
     IOMR0CleanupVM(pGVM);
     DBGFR0CleanupVM(pGVM);
     PGMR0CleanupVM(pGVM);
     TMR0CleanupVM(pGVM);
+#endif
     VMMR0CleanupVM(pGVM);
 }
 
@@ -1599,7 +1612,9 @@ GVMMR0DECL(int) GVMMR0RegisterVCpu(PGVM pGVM, VMCPUID idCpu)
                     rc = VMMR0ThreadCtxHookCreateForEmt(pGVCpu);
                     if (RT_SUCCESS(rc))
                     {
+#ifndef VBOX_WITH_MINIMAL_R0
                         CPUMR0RegisterVCpuThread(pGVCpu);
+#endif
 
 #ifdef GVMM_SCHED_WITH_HR_WAKE_UP_TIMER
                         /*

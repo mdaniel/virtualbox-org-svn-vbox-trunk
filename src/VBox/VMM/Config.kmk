@@ -41,6 +41,12 @@ VBOX_PATH_SRC_VMM := $(PATH_ROOT)/src/VBox/VMM
 ## DEFS variable that is picked up by all three VMM targets (R0, R3, RC).
 # Can be prepended to by setting it in LocalConfig.kmk
 VMM_COMMON_DEFS := USING_VMM_COMMON_DEFS
+ifdef VBOX_WITH_R0_MODULES
+ VMM_COMMON_DEFS += VBOX_WITH_R0_MODULES
+ ifdef VBOX_WITH_MINIMAL_R0
+  VMM_COMMON_DEFS += VBOX_WITH_MINIMAL_R0
+ endif
+endif
 ifdef VBOX_WITH_HWVIRT
  VMM_COMMON_DEFS += VBOX_WITH_HWVIRT
 endif

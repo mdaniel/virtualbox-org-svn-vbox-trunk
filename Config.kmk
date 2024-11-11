@@ -492,13 +492,21 @@ endif
 
 ## @name VMM related settings.
 ## @{
-# Enable the VT-x & AMD-V execution manager (HM).
+# Enables the VT-x & AMD-V execution manager (HM).
 if "$(KBUILD_TARGET)" == "amd64" && !defined(VBOX_WITHOUT_HWVIRT)
  VBOX_WITH_HWVIRT := 1
 endif
-# Enable .r0 modules.
-if "$(KBUILD_TARGET_ARCH)" == "amd64"
+# Enables .r0 modules.
+if "$(KBUILD_TARGET_ARCH)" == "amd64" || "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.arm64"
  VBOX_WITH_R0_MODULES := 1
+endif
+# Configures VBox with minimal ring-0 footprint - default on non-amd64 hosts.
+ifdef VBOX_WITH_R0_MODULES
+ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+  VBOX_WITH_MINIMAL_R0 := 1
+ endif
+else
+ undefine VBOX_WITH_MINIMAL_R0
 endif
 # Enable safe STR (store task register) emulation for raw-mode.
 VBOX_WITH_SAFE_STR = 1

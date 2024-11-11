@@ -807,21 +807,10 @@ if1of ($(VBOX_LDR_FMT), pe lx)
  $(call KB_FN_AUTO_CMD_DEPS,$(VMMR0Imp_0_OUTDIR)/VMMR0.def)
  $(VMMR0Imp_0_OUTDIR)/VMMR0.def: $(VMMR0Imp_DEFPATH)/VMMR0/VMMR0.def | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
- ifeq ($(VBOX_LDR_FMT),lx)
-	$(SED) \
-		-e '/not-os2/d' \
-		-e '/not-amd64/d' \
-		-e 's/^[ \t][ \t]*\([a-zA-Z]\)/    _\1/' \
-		-e 's/[ \t]DATA[ \t]*/ /'  \
-		--output $@ $(VMMR0Imp_DEFPATH)/VMMR0/VMMR0.def
-	$(APPEND) "$@" ""
-	$(APPEND) "$@" "    ___ehInit"
- else
 	$(SED) \
 		-e '/not-win/d' \
 		-e '/not-$(KBUILD_TARGET_ARCH)/d' \
 		--output $@ $(VMMR0Imp_DEFPATH)/VMMR0/VMMR0.def
- endif
 endif # R0: pe + lx
 
 
@@ -874,7 +863,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
  endif
  VMMR0_ASFLAGS.x86   := -Werror
 
- VMMR0_SDKS      = VBoxSoftFloatR0
+ VMMR0_SDKS.amd64 = VBoxSoftFloatR0
 
  VMMR0_INCS      = \
  	include \
@@ -882,104 +871,112 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
 
  VMMR0_SOURCES   = \
  	VBoxVMM.d \
- 	VMMR0/CPUMR0.cpp \
- 	VMMR0/CPUMR0A.asm \
- 	VMMR0/DBGFR0.cpp \
- 	VMMR0/DBGFR0Bp.cpp \
- 	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMR0/DBGFR0Tracer.cpp,) \
- 	VMMR0/GIMR0.cpp \
- 	VMMR0/GIMR0Hv.cpp \
- 	VMMR0/GMMR0.cpp \
  	VMMR0/GVMMR0.cpp \
- 	VMMR0/EMR0.cpp \
- 	VMMR0/HMR0.cpp \
- 	VMMR0/HMR0A.asm \
- 	VMMR0/HMR0UtilA.asm \
- 	VMMR0/HMVMXR0.cpp \
- 	VMMR0/HMSVMR0.cpp \
- 	VMMR0/IEMR0.cpp \
- 	VMMR0/IOMR0.cpp \
- 	VMMR0/IOMR0IoPort.cpp \
- 	VMMR0/IOMR0Mmio.cpp \
- 	VMMR0/PDMR0Device.cpp \
- 	VMMR0/PDMR0DevHlp.cpp \
- 	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMR0/PDMR0DevHlpTracing.cpp,) \
- 	VMMR0/PDMR0Driver.cpp \
- 	VMMR0/PDMR0Queue.cpp \
- 	VMMR0/PGMR0.cpp \
- 	VMMR0/PGMR0Pool.cpp \
- 	VMMR0/PGMR0SharedPage.cpp \
- 	VMMR0/TMR0.cpp \
  	VMMR0/VMMR0.cpp \
- 	VMMRZ/CPUMRZ.cpp \
- 	VMMRZ/CPUMRZA.asm \
- 	VMMRZ/VMMRZ.cpp \
- 	VMMAll/APICAll.cpp \
- 	VMMAll/CPUMAllCpuId.cpp \
- 	VMMAll/CPUMAllRegs.cpp \
- 	VMMAll/CPUMAllMsrs.cpp \
- 	VMMAll/DBGFAll.cpp \
- 	VMMAll/DBGFAllBp.cpp \
- 	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMAll/DBGFAllTracer.cpp,) \
- 	VMMAll/EMAll.cpp \
- 	VMMAll/GCMAll.cpp \
- 	VMMAll/GIMAll.cpp \
- 	VMMAll/GIMAllHv.cpp \
- 	VMMAll/GIMAllKvm.cpp \
- 	VMMAll/HMAll.cpp \
- 	VMMAll/HMSVMAll.cpp \
- 	VMMAll/HMVMXAll.cpp \
- 	VMMAll/IEMAll.cpp \
- 	VMMAll/IEMAllIntprTables1.cpp \
- 	VMMAll/IEMAllIntprTables2.cpp \
- 	VMMAll/IEMAllIntprTables3.cpp \
- 	VMMAll/IEMAllIntprTables4.cpp \
- 	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/IEMAllAImpl.asm,) \
- 	VMMAll/IEMAllAImplC.cpp \
- 	VMMAll/IEMAllCImpl.cpp \
- 	VMMAll/IEMAllCImplSvmInstr.cpp \
- 	VMMAll/IEMAllCImplVmxInstr.cpp \
- 	VMMAll/IEMAllDbg.cpp \
- 	VMMAll/IOMAll.cpp \
- 	VMMAll/IOMAllMmioNew.cpp \
- 	VMMAll/MMAll.cpp \
- 	VMMAll/NEMAll.cpp \
- 	VMMAll/PDMAll.cpp \
- 	VMMAll/PDMAllCritSect.cpp \
- 	VMMAll/PDMAllCritSectRw.cpp \
- 	VMMAll/PDMAllCritSectBoth.cpp \
- 	$(if-expr defined(VBOX_WITH_IOMMU_AMD) || defined(VBOX_WITH_IOMMU_INTEL), VMMAll/PDMAllIommu.cpp,) \
- 	VMMAll/PDMAllQueue.cpp \
- 	VMMAll/PDMAllTask.cpp \
- 	VMMAll/PGMAll.cpp \
- 	VMMAll/PGMAllHandler.cpp \
- 	VMMAll/PGMAllPhys.cpp \
- 	VMMAll/PGMAllPool.cpp \
- 	VMMAll/SELMAll.cpp \
- 	VMMAll/TMAll.cpp \
- 	VMMAll/TMAllCpu.cpp \
- 	VMMAll/TMAllReal.cpp \
- 	VMMAll/TMAllVirtual.cpp \
- 	VMMAll/TRPMAll.cpp \
- 	VMMAll/VMAll.cpp \
  	VMMAll/VMMAll.cpp \
- 	VMMAll/VMMAllA.asm
- if1of ($(VBOX_LDR_FMT), pe lx)
-  VMMR0_SOURCES += $(VMMR0Imp_0_OUTDIR)/VMMR0.def
- endif
- ifdef VBOX_WITH_TRIPLE_FAULT_HACK
-  VMMR0_SOURCES += \
-  	VMMR0/VMMR0TripleFaultHack.cpp \
-  	VMMR0/VMMR0TripleFaultHackA.asm
- endif
- ifdef VBOX_WITH_NETSHAPER
-  VMMR0_SOURCES += \
-  	VMMAll/PDMAllNetShaper.cpp
- endif
+ 	VMMRZ/VMMRZ.cpp
+
  VMMR0_SOURCES.amd64 = \
  	VMMR0/VMMR0JmpA-amd64.asm
  VMMR0_SOURCES.x86 = \
  	VMMR0/VMMR0JmpA-x86.asm
+
+ VMMR0_SOURCES.win = \
+ 	$(VMMR0Imp_0_OUTDIR)/VMMR0.def
+
+ ifndef VBOX_WITH_MINIMAL_R0
+  VMMR0_SOURCES += \
+  	VMMR0/CPUMR0.cpp \
+  	VMMR0/DBGFR0.cpp \
+  	VMMR0/DBGFR0Bp.cpp \
+  	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMR0/DBGFR0Tracer.cpp,) \
+  	VMMR0/GIMR0.cpp \
+  	VMMR0/GIMR0Hv.cpp \
+  	VMMR0/GMMR0.cpp \
+  	VMMR0/EMR0.cpp \
+  	VMMR0/HMR0.cpp \
+  	VMMR0/HMVMXR0.cpp \
+  	VMMR0/HMSVMR0.cpp \
+  	VMMR0/IEMR0.cpp \
+  	VMMR0/IOMR0.cpp \
+  	VMMR0/IOMR0IoPort.cpp \
+  	VMMR0/IOMR0Mmio.cpp \
+  	VMMR0/PDMR0Device.cpp \
+  	VMMR0/PDMR0DevHlp.cpp \
+  	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMR0/PDMR0DevHlpTracing.cpp,) \
+  	VMMR0/PDMR0Driver.cpp \
+  	VMMR0/PDMR0Queue.cpp \
+  	VMMR0/PGMR0.cpp \
+  	VMMR0/PGMR0Pool.cpp \
+  	VMMR0/PGMR0SharedPage.cpp \
+  	VMMR0/TMR0.cpp \
+  	VMMRZ/CPUMRZ.cpp \
+  	VMMAll/APICAll.cpp \
+  	VMMAll/CPUMAllCpuId.cpp \
+  	VMMAll/CPUMAllRegs.cpp \
+  	VMMAll/CPUMAllMsrs.cpp \
+  	VMMAll/DBGFAll.cpp \
+  	VMMAll/DBGFAllBp.cpp \
+  	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMAll/DBGFAllTracer.cpp,) \
+  	VMMAll/EMAll.cpp \
+  	VMMAll/GCMAll.cpp \
+  	VMMAll/GIMAll.cpp \
+  	VMMAll/GIMAllHv.cpp \
+  	VMMAll/GIMAllKvm.cpp \
+  	VMMAll/HMAll.cpp \
+  	VMMAll/HMSVMAll.cpp \
+  	VMMAll/HMVMXAll.cpp \
+  	VMMAll/IEMAll.cpp \
+  	VMMAll/IEMAllIntprTables1.cpp \
+  	VMMAll/IEMAllIntprTables2.cpp \
+  	VMMAll/IEMAllIntprTables3.cpp \
+  	VMMAll/IEMAllIntprTables4.cpp \
+  	VMMAll/IEMAllAImplC.cpp \
+  	VMMAll/IEMAllCImpl.cpp \
+  	VMMAll/IEMAllCImplSvmInstr.cpp \
+  	VMMAll/IEMAllCImplVmxInstr.cpp \
+  	VMMAll/IEMAllDbg.cpp \
+  	VMMAll/IOMAll.cpp \
+  	VMMAll/IOMAllMmioNew.cpp \
+  	VMMAll/MMAll.cpp \
+  	VMMAll/NEMAll.cpp \
+  	VMMAll/PDMAll.cpp \
+  	VMMAll/PDMAllCritSect.cpp \
+  	VMMAll/PDMAllCritSectRw.cpp \
+  	VMMAll/PDMAllCritSectBoth.cpp \
+  	$(if-expr defined(VBOX_WITH_IOMMU_AMD) || defined(VBOX_WITH_IOMMU_INTEL), VMMAll/PDMAllIommu.cpp,) \
+  	VMMAll/PDMAllQueue.cpp \
+  	VMMAll/PDMAllTask.cpp \
+  	VMMAll/PGMAll.cpp \
+  	VMMAll/PGMAllHandler.cpp \
+  	VMMAll/PGMAllPhys.cpp \
+  	VMMAll/PGMAllPool.cpp \
+  	VMMAll/SELMAll.cpp \
+  	VMMAll/TMAll.cpp \
+  	VMMAll/TMAllCpu.cpp \
+  	VMMAll/TMAllReal.cpp \
+  	VMMAll/TMAllVirtual.cpp \
+  	VMMAll/TRPMAll.cpp \
+  	VMMAll/VMAll.cpp
+
+  VMMR0_SOURCES.amd64 += \
+  	VMMR0/CPUMR0A.asm \
+  	VMMRZ/CPUMRZA.asm \
+  	VMMR0/HMR0A.asm \
+  	VMMR0/HMR0UtilA.asm \
+  	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/IEMAllAImpl.asm,) \
+  	VMMAll/VMMAllA.asm
+
+  ifdef VBOX_WITH_TRIPLE_FAULT_HACK
+   VMMR0_SOURCES.amd64 += \
+   	VMMR0/VMMR0TripleFaultHack.cpp \
+   	VMMR0/VMMR0TripleFaultHackA.asm
+  endif
+  ifdef VBOX_WITH_NETSHAPER
+   VMMR0_SOURCES += \
+   	VMMAll/PDMAllNetShaper.cpp
+  endif
+ endif # !VBOX_WITH_MINIMAL_R0
 
  VMMR0_LIBS = \
  	$(PATH_STAGE_LIB)/ServicesR0$(VBOX_SUFF_LIB) \

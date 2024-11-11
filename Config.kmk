@@ -1146,9 +1146,18 @@ endif
 
 ## @name Hardening
 ## @{
+
 # Enables hardening.
-# Most developers will want to disable this in their LocalConfig.kmk.
-VBOX_WITH_HARDENING = 1
+# Most developers will want to disable this in their LocalConfig.kmk (VBOX_WITHOUT_HARDENING := 1).
+ifndef VBOX_WITH_DRIVERLESS_FORCED # No need for hardening when not using the driver.
+ VBOX_WITH_HARDENING := 1
+endif
+# Enables minimal driver hardening (windows only).
+if !defined(VBOX_WITH_HARDENING) && !defined(VBOX_WITH_DRIVERLESS_FORCED)
+ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+  VBOX_WITH_MINIMAL_HARDENING := 1
+ endif
+endif
 # Where the application files are (going to be) installed.
 #VBOX_PATH_APP_PRIVATE       = /usr/lib/virtualbox
 ifdef VBOX_WITH_HARDENING
@@ -1364,11 +1373,6 @@ ifeq ($(KBUILD_TARGET),darwin)
   # Ditto for the java<->XPCOM bridge.
   VBOX_WITH_JXPCOM :=
  endif
-
- ifdef VBOX_WITH_DRIVERLESS_FORCED
-  # No need for hardening when not using the driver.
-  VBOX_WITH_HARDENING :=
- endif
 endif
 
 ifeq ($(KBUILD_TARGET),freebsd)
@@ -1391,7 +1395,7 @@ ifeq ($(KBUILD_TARGET),haiku)
  VBOX_WITH_INIP =
  VBOX_WITH_INTERNAL_NETWORKING =
  VBOX_WITH_PDM_ASYNC_COMPLETION =
- VBOX_WITH_HARDENING =
+ VBOX_WITHOUT_HARDENING = 1
 endif
 
 
@@ -1406,7 +1410,7 @@ ifeq ($(KBUILD_TARGET),os2)
  VBOX_WITH_EHCI =
  VBOX_WITH_DOCS =
  VBOX_WITH_PDM_ASYNC_COMPLETION =
- VBOX_WITH_HARDENING =
+ VBOX_WITHOUT_HARDENING = 1
 endif
 
 ifeq ($(KBUILD_TARGET),win)
@@ -1418,7 +1422,7 @@ ifn1of ($(KBUILD_TARGET_ARCH), x86 amd64 arm64)
  VBOX_WITH_DEBUGGER =
  VBOX_WITH_DOCS =
  VBOX_WITH_EHCI =
- VBOX_WITH_HARDENING =
+ VBOX_WITHOUT_HARDENING = 1
  VBOX_WITH_HEADLESS =
  VBOX_WITH_HGCM =
  VBOX_WITH_HGSMI =

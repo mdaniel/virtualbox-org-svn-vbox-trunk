@@ -715,6 +715,12 @@ if   !defined(VBOX_ONLY_DOCS) \
   VBoxDrv_SDKS.win        = ReorderCompilerIncs $(VBOX_WINDDK) $(VBOX_WINPSDK_INCS)
 
   VBoxDrv_DEFS           := IN_RT_R0 IN_SUP_R0 SUPDRV_WITH_RELEASE_LOGGER VBOX_SVN_REV=$(VBOX_SVN_REV)
+  ifdef VBOX_WITH_MINIMAL_R0
+   VBoxDrv_DEFS          += VBOX_WITH_MINIMAL_R0
+  endif
+  ifdef VBOX_WITH_MINIMAL_HARDENING
+   VBoxDrv_DEFS          += VBOX_WITH_MINIMAL_HARDENING
+  endif
   ifdef VBOX_WITH_DTRACE_R0DRV
    VBoxDrv_DEFS          += VBOX_WITH_DTRACE VBOX_WITH_DTRACE_R0DRV
   endif
@@ -797,11 +803,14 @@ if   !defined(VBOX_ONLY_DOCS) \
   	win/SUPDrvA-win.asm
   VBoxDrv_SOURCES.win.amd64 = \
   	win/SUPDrvA-win.asm
-  ifdef VBOX_WITH_HARDENING
+  if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
    VBoxDrv_SOURCES.win   += \
    	win/SUPHardenedVerifyImage-win.cpp \
-   	win/SUPHardenedVerifyProcess-win.cpp \
    	$(VBOX_SUP_WIN_CERTS_FILE)
+   ifdef VBOX_WITH_HARDENING
+    VBoxDrv_SOURCES.win  += \
+    	win/SUPHardenedVerifyProcess-win.cpp
+   endif
    ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
     VBoxDrv_DEFS.win     += VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
    endif

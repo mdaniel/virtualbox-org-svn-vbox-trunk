@@ -109,9 +109,11 @@ static DECLCALLBACK(int) ThreadFunction(RTTHREAD Thread, void *pvUser);
 /** Wrapper around RTMpCpuId/ASMGetStuff. */
 static RTCPUID MyGetCpuId(void)
 {
+#if (!defined(RT_OS_LINUX) && !defined(RT_OS_DARWIN)) || defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
     RTCPUID idCpu = RTMpCpuId();
     if (idCpu != NIL_RTCPUID)
         return idCpu;
+#endif
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     return ASMGetApicId();
 #elif defined(RT_ARCH_ARM64)

@@ -1,0 +1,64 @@
+# $Id$
+## @file
+# Makefile for common Windows installation code.
+#
+
+#
+# Copyright (C) 2024 Oracle and/or its affiliates.
+#
+# This file is part of VirtualBox base platform packages, as
+# available from https://www.virtualbox.org.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, in version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses>.
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+
+SUB_DEPTH = ../../../..
+include $(KBUILD_PATH)/subheader.kmk
+
+VBoxDrvInst_TEMPLATE    = VBoxR3Exe
+VBoxDrvInst_DEFS        = _WIN32_WINNT=0x0501 _UNICODE UNICODE VBOX_SVN_REV=$(VBOX_SVN_REV)
+VBoxDrvInst_SOURCES     = \
+	VBoxWinDrvCommon.cpp \
+	VBoxWinDrvInst.cpp \
+	VBoxWinDrvStore.cpp \
+	VBoxDrvInst.cpp
+
+
+ifndef VBOX_ONLY_ADDITIONS
+ #
+ # The host variant of VBoxDrvInst.
+ #
+ PROGRAMS.win += VBoxDrvInstHost
+ VBoxDrvInstHost_TEMPLATE    = VBoxR3Exe
+ VBoxDrvInstHost_EXTENDS    := VBoxDrvInst
+ VBoxDrvInstHost_EXTENDS_BY  = appending
+ VBoxDrvInstHost_INST       := $(INST_BIN)
+ VBoxDrvInstHost_NAME       := VBoxDrvInst
+ VBoxDrvInstHost_LIBS        = \
+	$(LIB_RUNTIME)
+endif
+
+
+#
+# The Guest Additions variant of VBoxDrvInst.
+#
+PROGRAMS.win += VBoxDrvInstGuest
+VBoxDrvInstGuest_TEMPLATE       = VBoxGuestR3Exe
+VBoxDrvInstGuest_EXTENDS        = VBoxDrvInst
+VBoxDrvInstGuest_EXTENDS_BY     = appending
+VBoxDrvInstGuest_NAME          := VBoxDrvInst
+
+include $(FILE_KBUILD_SUB_FOOTER)

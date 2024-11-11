@@ -38,11 +38,11 @@ ifndef VBOX_ONLY_ADDITIONS
  VBoxDrvInstHost_INST       := $(INST_BIN)
  VBoxDrvInstHost_NAME       := VBoxDrvInst
  VBoxDrvInstHost_SOURCES     = \
-	VBoxWinDrvCommon.cpp \
-	VBoxWinDrvInst.cpp \
-	VBoxWinDrvStore.cpp \
-	VBoxDrvInst.cpp \
-	VBoxDrvInst.rc
+ 	VBoxWinDrvCommon.cpp \
+ 	VBoxWinDrvInst.cpp \
+ 	VBoxWinDrvStore.cpp \
+ 	VBoxDrvInst.cpp \
+ 	VBoxDrvInst.rc
  VBoxDrvInstHost_LIBS        = \
  	$(LIB_RUNTIME)
 endif

@@ -1194,10 +1194,10 @@ NTSTATUS _stdcall VBoxDrvNtCreate(PDEVICE_OBJECT pDevObj, PIRP pIrp)
                                                      &pSession);
                             if (RT_SUCCESS(rc))
                             {
-#ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
+# ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
                                 rc = supdrvNtUserIdMakeForSession(pSession);
                                 if (RT_SUCCESS(rc))
-#endif
+# endif
                                     rc = supdrvSessionHashTabInsert(pDevExt, pSession, (PSUPDRVSESSION *)&pFileObj->FsContext, NULL);
                                 supdrvSessionRelease(pSession);
                                 if (RT_SUCCESS(rc))
@@ -1243,10 +1243,10 @@ NTSTATUS _stdcall VBoxDrvNtCreate(PDEVICE_OBJECT pDevObj, PIRP pIrp)
                 rc = supdrvCreateSession(pDevExt, true /*fUser*/, false /*fUnrestricted*/, &pSession);
                 if (RT_SUCCESS(rc))
                 {
-#ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
+# ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
                     rc = supdrvNtUserIdMakeForSession(pSession);
                     if (RT_SUCCESS(rc))
-#endif
+# endif
                         rc = supdrvSessionHashTabInsert(pDevExt, pSession, (PSUPDRVSESSION *)&pFileObj->FsContext, NULL);
                     supdrvSessionRelease(pSession);
                     if (RT_SUCCESS(rc))
@@ -2205,16 +2205,16 @@ bool VBOXCALL  supdrvOSAreTscDeltasInSync(void)
 
 
 # ifdef VBOX_WITH_MINIMAL_HARDENING
-/** 
- * Performs pre-opening of .r0 image checks. 
- *  
- * When minimal hardening is enabled, we require the images loaded to be signed 
- * by the build certificate, thus liminiting what we load to things we have 
+/**
+ * Performs pre-opening of .r0 image checks.
+ *
+ * When minimal hardening is enabled, we require the images loaded to be signed
+ * by the build certificate, thus liminiting what we load to things we have
  * built ourselves.
  */
 static int supdrvOSLdrCheckBeforeOpen(PUNICODE_STRING pUniStrPath, HANDLE *phImage)
 {
-    /* 
+    /*
      * Open the image file, denying write accesses.
      */
     *phImage = RTNT_INVALID_HANDLE_VALUE;

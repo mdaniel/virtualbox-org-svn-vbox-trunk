@@ -44,19 +44,19 @@ EXPORTS
     PDMR0DeviceDeregisterModule             ; not-arm64
     IOMMmioResetRegion                      ; not-arm64
     IOMMmioMapMmio2Page                     ; not-arm64
-    RTLogDefaultInstance                    
-    RTLogDefaultInstanceEx                  
-    RTLogGetDefaultInstanceEx               
-    RTLogRelGetDefaultInstance              
-    RTLogRelGetDefaultInstanceEx            
-    RTLogLogger                             
-    RTLogLoggerEx                           
-    RTLogLoggerExV                          
-    RTStrPrintf                             
-    RTTimeMilliTS                           
-    RTTraceBufAddMsgF                       
-    RTTraceBufAddPos                        
-    RTTraceBufAddPosMsgF                    
+    RTLogDefaultInstance
+    RTLogDefaultInstanceEx
+    RTLogGetDefaultInstanceEx
+    RTLogRelGetDefaultInstance
+    RTLogRelGetDefaultInstanceEx
+    RTLogLogger
+    RTLogLoggerEx
+    RTLogLoggerExV
+    RTStrPrintf
+    RTTimeMilliTS
+    RTTraceBufAddMsgF
+    RTTraceBufAddPos
+    RTTraceBufAddPosMsgF
     TMTimerFromMilli                        ; not-arm64
     TMTimerFromMicro                        ; not-arm64
     TMTimerFromNano                         ; not-arm64
@@ -90,13 +90,13 @@ EXPORTS
     RTAssertMsg2Weak
     RTAssertShouldPanic
     RTCrc32                                 ; not-arm64
-    RTOnceSlow                              
+    RTOnceSlow
     RTTimeNanoTSLegacySyncInvarNoDelta      ; not-arm64
     RTTimeNanoTSLegacySyncInvarWithDelta    ; not-arm64
     RTTimeNanoTSLegacyAsync                 ; not-arm64
     RTTimeNanoTSLFenceSyncInvarNoDelta      ; not-arm64
     RTTimeNanoTSLFenceSyncInvarWithDelta    ; not-arm64
-    RTTimeNanoTSLFenceAsync                 ; not-arm64    
+    RTTimeNanoTSLFenceAsync                 ; not-arm64
     RTTimeSystemNanoTS
     RTTimeNanoTS
     ASMMultU64ByU32DivByU32                 ; not-arm64
@@ -104,15 +104,15 @@ EXPORTS
     ASMAtomicXchgU16                        ; not-arm64
     ASMBitFirstSet                          ; not-arm64
     ASMNopPause                             ; not-arm64
-    nocrt_memchr                            
-    nocrt_memcmp                            
-    nocrt_memcpy                            
-    memcpy=nocrt_memcpy                     
-    nocrt_memmove                           
-    nocrt_memset                            
-    memset=nocrt_memset                      
-    nocrt_strcpy                            
-    nocrt_strcmp                            
-    nocrt_strchr                            
-    nocrt_strlen                            
+    nocrt_memchr
+    nocrt_memcmp
+    nocrt_memcpy
+    memcpy=nocrt_memcpy
+    nocrt_memmove
+    nocrt_memset
+    memset=nocrt_memset
+    nocrt_strcpy
+    nocrt_strcmp
+    nocrt_strchr
+    nocrt_strlen
 

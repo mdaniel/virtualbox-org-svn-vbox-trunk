@@ -41,6 +41,7 @@
 #include <iprt/process.h> /* For RTProcShortName(). */
 #include <iprt/stream.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 #include <iprt/test.h>
 #include <iprt/utf16.h>
 #include <iprt/win/windows.h>
@@ -76,7 +77,12 @@ static RTEXITCODE vboxDrvInstShowUsage(PRTSTREAM pStrm, VBOXDRVINSTCMD const *pO
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /** Verbosity level. */
-static unsigned g_uVerbosity = 0;
+static unsigned  g_uVerbosity = 0;
+static PRTLOGGER g_pLoggerRelease = NULL;
+static char      g_szLogFile[RTPATH_MAX];
+static uint32_t  g_cHistory = 10;                   /* Enable log rotation, 10 files. */
+static uint32_t  g_uHistoryFileTime = RT_SEC_1DAY;  /* Max 1 day per file. */
+static uint64_t  g_uHistoryFileSize = 100 * _1M;    /* Max 100MB per file. */
 
 
 /*********************************************************************************************************************************
@@ -109,15 +115,6 @@ typedef struct VBOXDRVINSTCMD
 } VBOXDRVINSTCMD;
 /** Pointer to a const VBOXDRVINSTCMD entry. */
 typedef VBOXDRVINSTCMD const *PCVBOXDRVINSTCMD;
-
-/**
- * Long option values for the 'list' command.
- */
-enum
-{
-    VBOXDRVINST_LIST_OPT_MODEL = 900,
-    VBOXDRVINST_LIST_OPT_PNPID
-};
 
 /**
  * Command definition for the 'list' command.
@@ -225,6 +222,7 @@ static const VBOXDRVINSTCMD * const g_apCommands[] =
  */
 static const RTGETOPTDEF g_aCmdCommonOptions[] =
 {
+    { "--logfile",     'l', RTGETOPT_REQ_STRING },
     { "--help",        'h', RTGETOPT_REQ_NOTHING },
     { "--verbose",     'v', RTGETOPT_REQ_NOTHING },
     { "--version",     'V', RTGETOPT_REQ_NOTHING }
@@ -250,7 +248,6 @@ DECLINLINE(void) vboxDrvInstLogExV(const char *pszFormat, va_list args)
     AssertPtrReturnVoid(psz);
 
     LogRel(("%s", psz));
-    RTPrintf("%s", psz);
 
     RTStrFree(psz);
 }
@@ -314,8 +311,6 @@ static DECLCALLBACK(const char *) vboxDrvInstCmdListHelp(PCRTGETOPTDEF pOpt)
 {
     switch (pOpt->iShort)
     {
-        case VBOXDRVINST_LIST_OPT_MODEL: return "Specifies the driver model";
-        case VBOXDRVINST_LIST_OPT_PNPID: return "Specifies the PnP (device) ID";
         default:
             break;
     }
@@ -363,27 +358,27 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdListMain(PRTGETOPTSTATE pGetState)
         rc = VBoxWinDrvStoreQueryAll(pStore, &pList);
     if (RT_SUCCESS(rc))
     {
-        RTPrintf("Location: %s\n\n", VBoxWinDrvStoreBackendGetLocation(pStore));
+        vboxDrvInstLog("Location: %s\n\n", VBoxWinDrvStoreBackendGetLocation(pStore));
 
-        RTPrintf("%-40s | %-40s\n", "OEM INF File", "Version");
-        RTPrintf("%-40s | %-40s\n", "    Model (First)", "PnP ID (First)");
-        RTPrintf("--------------------------------------------------------------------------------\n");
+        vboxDrvInstLog("%-40s | %-40s\n", "OEM INF File", "Version");
+        vboxDrvInstLog("%-40s | %-40s\n", "    Model (First)", "PnP ID (First)");
+        vboxDrvInstLog("--------------------------------------------------------------------------------\n");
 
         size_t cEntries = 0;
         PVBOXWINDRVSTOREENTRY pCur;
         RTListForEach(&pList->List, pCur, VBOXWINDRVSTOREENTRY, Node)
         {
-            RTPrintf("%-40ls | %-40ls\n",
-                    pCur->wszInfFile, pCur->Ver.wszDriverVer);
-            RTPrintf("    %-36ls | %-40ls\n",
-                    pCur->wszModel, pCur->wszPnpId);
+            vboxDrvInstLog("%-40ls | %-40ls\n",
+                           pCur->wszInfFile, pCur->Ver.wszDriverVer);
+            vboxDrvInstLog("    %-36ls | %-40ls\n",
+                           pCur->wszModel, pCur->wszPnpId);
             cEntries++;
         }
 
         if (pszPattern)
-            RTPrintf("\nFound %zu entries (filtered).\n", cEntries);
+            vboxDrvInstLog("\nFound %zu entries (filtered).\n", cEntries);
         else
-            RTPrintf("\nFound %zu entries.\n", cEntries);
+            vboxDrvInstLog("\nFound %zu entries.\n", cEntries);
     }
 
     VBoxWinDrvStoreListFree(pList);
@@ -391,8 +386,8 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdListMain(PRTGETOPTSTATE pGetState)
     VBoxWinDrvStoreDestroy(pStore);
     pStore = NULL;
 
-    RTPrintf("\nUse DOS-style wildcards to adjust results.\n");
-    RTPrintf("Use \"--help\" to print syntax help.\n");
+    vboxDrvInstLog("\nUse DOS-style wildcards to adjust results.\n");
+    vboxDrvInstLog("Use \"--help\" to print syntax help.\n");
 
     return RTEXITCODE_SUCCESS;
 }
@@ -641,12 +636,14 @@ static RTEXITCODE vboxDrvInstShowUsage(PRTSTREAM pStrm, PCVBOXDRVINSTCMD pOnlyCm
     RTStrmPrintf(pStrm,
                  "\n"
                  "Global Options:\n"
+                 "  -h, -?, --help\n"
+                 "    Displays help\n"
+                 "  -l | --logfile <file>\n"
+                 "    Enables logging to a file\n"
                  "  -v, --verbose\n"
                  "    Increase verbosity\n"
                  "  -V, --version\n"
                  "    Displays version\n"
-                 "  -h, -?, --help\n"
-                 "    Displays help\n"
                  );
 
     for (uintptr_t iCmd = 0; iCmd < RT_ELEMENTS(g_apCommands); iCmd++)
@@ -718,6 +715,139 @@ static void vboxDrvInstShowLogo(PRTSTREAM pStream)
                  "Copyright (C) " VBOX_C_YEAR " " VBOX_VENDOR "\n\n", RTBldCfgRevisionStr(), RTBldCfgTargetArch());
 }
 
+/**
+ * @callback_method_impl{FNRTLOGPHASE, Release logger callback}
+ */
+static DECLCALLBACK(void) vboxDrvInstLogHeaderFooter(PRTLOGGER pLoggerRelease, RTLOGPHASE enmPhase, PFNRTLOGPHASEMSG pfnLog)
+{
+    /* Some introductory information. */
+    static RTTIMESPEC s_TimeSpec;
+    char szTmp[256];
+    if (enmPhase == RTLOGPHASE_BEGIN)
+        RTTimeNow(&s_TimeSpec);
+    RTTimeSpecToString(&s_TimeSpec, szTmp, sizeof(szTmp));
+
+    switch (enmPhase)
+    {
+        case RTLOGPHASE_BEGIN:
+        {
+            pfnLog(pLoggerRelease,
+                   "VBoxDrvInst %s r%s (verbosity: %u) (%s %s) release log (%s)\n"
+                   "Log opened %s\n",
+                   RTBldCfgVersion(), RTBldCfgRevisionStr(), g_uVerbosity,
+                   __DATE__, __TIME__, RTBldCfgTargetArch(), szTmp);
+
+            int vrc = RTSystemQueryOSInfo(RTSYSOSINFO_PRODUCT, szTmp, sizeof(szTmp));
+            if (RT_SUCCESS(vrc) || vrc == VERR_BUFFER_OVERFLOW)
+                pfnLog(pLoggerRelease, "OS Product: %s\n", szTmp);
+            vrc = RTSystemQueryOSInfo(RTSYSOSINFO_RELEASE, szTmp, sizeof(szTmp));
+            if (RT_SUCCESS(vrc) || vrc == VERR_BUFFER_OVERFLOW)
+                pfnLog(pLoggerRelease, "OS Release: %s\n", szTmp);
+            vrc = RTSystemQueryOSInfo(RTSYSOSINFO_VERSION, szTmp, sizeof(szTmp));
+            if (RT_SUCCESS(vrc) || vrc == VERR_BUFFER_OVERFLOW)
+                pfnLog(pLoggerRelease, "OS Version: %s\n", szTmp);
+            vrc = RTSystemQueryOSInfo(RTSYSOSINFO_SERVICE_PACK, szTmp, sizeof(szTmp));
+            if (RT_SUCCESS(vrc) || vrc == VERR_BUFFER_OVERFLOW)
+                pfnLog(pLoggerRelease, "OS Service Pack: %s\n", szTmp);
+
+            /* the package type is interesting for Linux distributions */
+            char szExecName[RTPATH_MAX];
+            char *pszExecName = RTProcGetExecutablePath(szExecName, sizeof(szExecName));
+            pfnLog(pLoggerRelease,
+                   "Executable: %s\n"
+                   "Process ID: %u\n"
+                   "Package type: %s"
+#ifdef VBOX_OSE
+                   " (OSE)"
+#endif
+                   "\n",
+                   pszExecName ? pszExecName : "unknown",
+                   RTProcSelf(),
+                   VBOX_PACKAGE_STRING);
+            break;
+        }
+
+        case RTLOGPHASE_PREROTATE:
+            pfnLog(pLoggerRelease, "Log rotated - Log started %s\n", szTmp);
+            break;
+
+        case RTLOGPHASE_POSTROTATE:
+            pfnLog(pLoggerRelease, "Log continuation - Log started %s\n", szTmp);
+            break;
+
+        case RTLOGPHASE_END:
+            pfnLog(pLoggerRelease, "End of log file - Log started %s\n", szTmp);
+            break;
+
+        default:
+            /* nothing */
+            break;
+    }
+}
+
+
+/**
+ * Creates the default release logger outputting to the specified file.
+ *
+ * @return  IPRT status code.
+ * @param   pszLogFile      Filename for log output.
+ */
+static int vboxDrvInstLogCreate(const char *pszLogFile)
+{
+    /* Create release logger (stdout + file). */
+    static const char * const s_apszGroups[] = VBOX_LOGGROUP_NAMES;
+    RTUINT fFlags = RTLOGFLAGS_USECRLF | RTLOGFLAGS_APPEND;
+    int rc = RTLogCreateEx(&g_pLoggerRelease, "VBOXDRVINST_RELEASE_LOG", fFlags, "all",
+                           RT_ELEMENTS(s_apszGroups), s_apszGroups, UINT32_MAX /*cMaxEntriesPerGroup*/,
+                           0 /*cBufDescs*/, NULL /*paBufDescs*/, RTLOGDEST_STDOUT | RTLOGDEST_USER,
+                           vboxDrvInstLogHeaderFooter, g_cHistory, g_uHistoryFileSize, g_uHistoryFileTime,
+                           NULL /*pOutputIf*/, NULL /*pvOutputIfUser*/,
+                           NULL /*pErrInfo*/, "%s", pszLogFile ? pszLogFile : "");
+    if (RT_SUCCESS(rc))
+    {
+        /* register this logger as the release logger */
+        RTLogRelSetDefaultInstance(g_pLoggerRelease);
+
+        /* Explicitly flush the log in case of VBOXDRVINST_RELEASE_LOG=buffered. */
+        RTLogFlush(g_pLoggerRelease);
+    }
+
+    return rc;
+}
+
+/**
+ * Destroys the currently active logging instance.
+ */
+static void vboxDrvInstLogDestroy(void)
+{
+    RTLogDestroy(RTLogRelSetDefaultInstance(NULL));
+}
+
+/**
+ * Performs initialization tasks before a specific command is being run.
+ *
+ * @returns VBox status code.
+ */
+static int vboxDrvInstInit(void)
+{
+    int rc = vboxDrvInstLogCreate(g_szLogFile[0] ? g_szLogFile : NULL);
+    if (RT_FAILURE(rc))
+    {
+        RTMsgError("Failed to create release log '%s', rc=%Rrc\n", g_szLogFile[0] ? g_szLogFile : "<None>", rc);
+        return rc;
+    }
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * Performs destruction tasks after a specific command has been run.
+ */
+static void vboxDrvInstDestroy(void)
+{
+    vboxDrvInstLogDestroy();
+}
+
 int main(int argc, char **argv)
 {
     /*
@@ -747,6 +877,12 @@ int main(int argc, char **argv)
             case 'h':
                 return vboxDrvInstShowUsage(g_pStdOut, NULL);
 
+            case 'l':
+                rc = RTStrCopy(g_szLogFile, sizeof(g_szLogFile), ValueUnion.psz);
+                if (RT_FAILURE(rc))
+                    return RTMsgErrorExitFailure("Error setting logfile, rc=%Rrc\n", rc);
+                break;
+
             case 'v':
                 g_uVerbosity++;
                 break;
@@ -764,8 +900,14 @@ int main(int argc, char **argv)
                     PCVBOXDRVINSTCMD const pCmd = g_apCommands[iCmd];
                     if (strcmp(ValueUnion.psz, pCmd->pszCommand) == 0)
                     {
+                        rc = vboxDrvInstInit();
+                        if (RT_FAILURE(rc))
+                            return  RTEXITCODE_FAILURE;
+
                         /* Count the combined option definitions:  */
                         size_t cCombinedOptions  = pCmd->cOptions + RT_ELEMENTS(g_aCmdCommonOptions);
+
+                        RTEXITCODE rcExit;
 
                         /* Combine the option definitions: */
                         PRTGETOPTDEF paCombinedOptions = (PRTGETOPTDEF)RTMemAlloc(cCombinedOptions * sizeof(RTGETOPTDEF));
@@ -781,16 +923,18 @@ int main(int argc, char **argv)
                             /* Re-initialize the option getter state and pass it to the command handler. */
                             rc = RTGetOptInit(&GetState, argc, argv, paCombinedOptions, cCombinedOptions,
                                               GetState.iNext /*idxFirst*/, RTGETOPTINIT_FLAGS_OPTS_FIRST);
+
                             if (RT_SUCCESS(rc))
-                            {
-                                RTEXITCODE rcExit = pCmd->pfnHandler(&GetState);
-                                RTMemFree(paCombinedOptions);
-                                return rcExit;
-                            }
+                                rcExit = pCmd->pfnHandler(&GetState);
+                             else
+                                rcExit = RTMsgErrorExitFailure("RTGetOptInit failed for '%s': %Rrc", ValueUnion.psz, rc);
                             RTMemFree(paCombinedOptions);
-                            return RTMsgErrorExitFailure("RTGetOptInit failed for '%s': %Rrc", ValueUnion.psz, rc);
                         }
-                        return RTMsgErrorExitFailure("Out of memory!");
+                        else
+                            rcExit = RTMsgErrorExitFailure("Out of memory!");
+
+                        vboxDrvInstDestroy();
+                        return rcExit;
                     }
                 }
                 RTMsgError("Unknown command '%s'!\n", ValueUnion.psz);
@@ -804,6 +948,11 @@ int main(int argc, char **argv)
     }
 
     /* List all Windows driver store entries if no command is given. */
-    return vboxDrvInstCmdListMain(&GetState);
+    rc = vboxDrvInstInit();
+    if (RT_FAILURE(rc))
+        return  RTEXITCODE_FAILURE;
+    RTEXITCODE rcExit = vboxDrvInstCmdListMain(&GetState);
+    vboxDrvInstDestroy();
+    return rcExit;
 }
 

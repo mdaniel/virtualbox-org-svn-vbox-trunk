@@ -122,8 +122,8 @@ Function NT4_CopyFiles
   ${LogVerbose} "Copying files for NT4 ..."
 
   SetOutPath "$INSTDIR"
-  FILE "$%PATH_OUT%\bin\additions\RegCleanup.exe"
-  AccessControl::SetOnFile "$INSTDIR\RegCleanup.exe" "(BU)" "GenericRead"
+  FILE "$%PATH_OUT%\bin\additions\GuestInstallHelper.exe"
+  AccessControl::SetOnFile "$INSTDIR\GuestInstallHelper.exe" "(BU)" "GenericRead"
 !ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
   FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
 !endif
@@ -207,7 +207,7 @@ Function NT4_Main
   Call NT4_CopyFiles
 
   ; This removes the flag "new display driver installed on the next bootup
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce" "VBoxGuestInst" '"$INSTDIR\RegCleanup.exe"'
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce" "VBoxGuestInst" '"$INSTDIR\VBoxGuestInstallHelper.exe" nt4 installcleanup'
 
   Call NT4_SaveMouseDriverInfo
   Call NT4_InstallFiles

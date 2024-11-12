@@ -243,11 +243,6 @@ Function ExtractFiles
   FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
 !endif
 
-!if $%KBUILD_TARGET_ARCH% == "x86"
-  SetOutPath "$0\Tools\NT4"
-  FILE "$%PATH_OUT%\bin\additions\RegCleanup.exe"
-!endif
-
   Pop $0
 
 FunctionEnd

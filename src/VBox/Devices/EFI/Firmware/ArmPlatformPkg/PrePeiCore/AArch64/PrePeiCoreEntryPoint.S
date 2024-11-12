@@ -7,6 +7,12 @@
 
 #include <AsmMacroIoLibV8.h>
 
+#ifdef VBOX
+# define IN_RING0
+# include <VBox/platforms/vbox-armv8.h>
+#endif
+
+
 ASM_FUNC(_ModuleEntryPoint)
   // Do early platform specific actions
   bl    ASM_PFX(ArmPlatformPeiBootAction)
@@ -66,7 +72,7 @@ ASM_PFX(MainEntryPoint):
   //
   // Determine the start of the VBox descriptor region.
   //
-  mov x1, #0x08000000
+  mov x1, #VBOXPLATFORMARMV8_PHYS_ADDR
 
   //
   // Get at the ram base and use the beginning as our temporary stack.

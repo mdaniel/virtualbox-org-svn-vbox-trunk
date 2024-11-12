@@ -109,6 +109,7 @@ private:
     RTGCPHYS m_cbMmioIntcReDist;
 
     RTGCPHYS m_GCPhysPciMmioEcam;
+    uint8_t  m_bPciBusMax;
 
     bool m_fTpm20;
     bool m_fCrb;

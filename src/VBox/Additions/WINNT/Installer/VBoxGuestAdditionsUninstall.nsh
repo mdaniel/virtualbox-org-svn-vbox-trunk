@@ -33,6 +33,7 @@ Function ${un}UninstallCommon
   Delete /REBOOTOK "$INSTDIR\${PRODUCT_NAME}.url"
 
   ; Remove common files
+  Delete /REBOOTOK "$INSTDIR\VBoxDrvInst.exe"
   Delete /REBOOTOK "$INSTDIR\VBoxGuestInstallHelper.exe"
 
   Delete /REBOOTOK "$INSTDIR\VBoxVideo.inf"
@@ -82,7 +83,11 @@ Function ${un}Uninstall
 !ifdef _DEBUG
   ${LogVerbose} "Detected OS version: Windows $g_strWinVersion"
   ${LogVerbose} "System Directory: $g_strSystemDir"
+  ${LogVerbose} "Temp Directory: $TEMP"
 !endif
+
+  ; Create temp directory where we can store uninstallation logs.
+  CreateDirectory "$TEMP\${PRODUCT_NAME}"
 
   ; Which OS are we using?
 !if $%KBUILD_TARGET_ARCH% == "x86"       ; 32-bit

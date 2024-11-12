@@ -3934,6 +3934,9 @@ RuntimeR0Drv_SOURCES.win.x86   := $(RuntimeWin32ASM_SOURCES) \
 	r0drv/nt/alloca-x86-r0drv-nt.asm \
 	r0drv/nt/toxic-chkstk-r0drv-nt.asm
 
+RuntimeR0Drv_SOURCES.win.arm64 := \
+	common/asm/ASMMemFirstNonZero-generic.cpp \
+	common/misc/zero.cpp
 
 RuntimeR0Drv_SOURCES.darwin = \
 	common/ldr/ldr.cpp \

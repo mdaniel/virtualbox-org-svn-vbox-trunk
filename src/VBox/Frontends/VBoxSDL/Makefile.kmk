@@ -50,7 +50,7 @@ if !defined(VBOX_WITH_HARDENING) || "$(KBUILD_TARGET)" != "darwin" # No hardened
  else
   PROGRAMS += VBoxSDL
  endif
- VBoxSDL_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientExe)
+ VBoxSDL_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientSignedExe)
  VBoxSDL_SDKS      = LIBSDL2
  VBoxSDL_SOURCES   = \
  	VBoxSDL.cpp \

@@ -232,7 +232,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
  tstGlobalConfigHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplateTestcase.cpp
  tstGlobalConfig_TEMPLATE = VBoxR3HardenedTstDll
 else
- tstGlobalConfig_TEMPLATE = VBoxR3TstExe
+ tstGlobalConfig_TEMPLATE = VBoxR3SignedTstExe
 endif
 tstGlobalConfig_SOURCES  = tstGlobalConfig.cpp
 tstGlobalConfig_LIBS     = $(LIB_RUNTIME)
@@ -739,7 +739,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
  tstCFGMHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplateTestcase.cpp
  tstCFGM_TEMPLATE        = VBoxR3HardenedTstDll
 else
- tstCFGM_TEMPLATE        = VBoxR3TstExe
+ tstCFGM_TEMPLATE        = VBoxR3SignedTstExe
 endif
 tstCFGM_DEFS             = $(VMM_COMMON_DEFS)
 tstCFGM_SOURCES          = tstCFGM.cpp
@@ -778,7 +778,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
  tstVMREQHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
  tstVMREQ_TEMPLATE        = VBoxR3Dll
 else
- tstVMREQ_TEMPLATE        = VBoxR3Exe
+ tstVMREQ_TEMPLATE        = VBoxR3SignedExe
 endif
 tstVMREQ_DEFS             = $(VMM_COMMON_DEFS)
 tstVMREQ_SOURCES          = tstVMREQ.cpp
@@ -798,7 +798,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
  tstAnimateHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
  tstAnimate_TEMPLATE        = VBoxR3Dll
 else
- tstAnimate_TEMPLATE        = VBoxR3Exe
+ tstAnimate_TEMPLATE        = VBoxR3SignedExe
 endif
 tstAnimate_DEFS             = $(VMM_COMMON_DEFS)
 tstAnimate_SOURCES          = tstAnimate.cpp
@@ -829,7 +829,7 @@ ifdef VBOX_WITH_RAW_MODE
   tstVMMHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
   tstVMM_TEMPLATE       = VBoxR3Dll
  else
-  tstVMM_TEMPLATE       = VBoxR3Exe
+  tstVMM_TEMPLATE       = VBoxR3SignedExe
  endif
  tstVMM_SOURCES         = tstVMM.cpp
  tstVMM_LIBS            = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
@@ -837,14 +837,14 @@ ifdef VBOX_WITH_RAW_MODE
  #
  # HM VMM testcase.
  #
- tstVMM-HM_TEMPLATE    = VBoxR3Exe
+ tstVMM-HM_TEMPLATE    = VBoxR3SignedExe
  tstVMM-HM_SOURCES     = tstVMM-HM.cpp
  tstVMM-HM_LIBS        = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
  #
  # VMM host process fork test case (memory ++).
  #
- tstVMMFork_TEMPLATE   = VBoxR3Exe
+ tstVMMFork_TEMPLATE   = VBoxR3SignedExe
  tstVMMFork_SOURCES    = tstVMMFork.cpp
  tstVMMFork_LIBS       = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
@@ -862,7 +862,7 @@ ifdef VBOX_WITH_RAW_MODE
   tstMicroHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
   tstMicro_TEMPLATE       = VBoxR3Dll
  else
-  tstMicro_TEMPLATE       = VBoxR3Exe
+  tstMicro_TEMPLATE       = VBoxR3SignedExe
  endif
  tstMicro_SOURCES         = tstMicro.cpp
  tstMicro_LIBS            = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
@@ -937,7 +937,7 @@ ifdef VBOX_WITH_PDM_ASYNC_COMPLETION
   tstPDMAsyncCompletionHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
   tstPDMAsyncCompletion_TEMPLATE       = VBoxR3Dll
  else
-  tstPDMAsyncCompletion_TEMPLATE       = VBoxR3Exe
+  tstPDMAsyncCompletion_TEMPLATE       = VBoxR3SignedExe
  endif
  tstPDMAsyncCompletion_DEFS            = $(VMM_COMMON_DEFS)
  tstPDMAsyncCompletion_INCS            = $(VBOX_PATH_VMM_SRC)/include
@@ -958,7 +958,7 @@ ifdef VBOX_WITH_PDM_ASYNC_COMPLETION
   tstPDMAsyncCompletionStressHardened_SOURCES = ../../HostDrivers/Support/SUPR3HardenedMainTemplate.cpp
   tstPDMAsyncCompletionStress_TEMPLATE = VBoxR3Dll
  else
-  tstPDMAsyncCompletionStress_TEMPLATE = VBoxR3Exe
+  tstPDMAsyncCompletionStress_TEMPLATE = VBoxR3SignedExe
  endif
  tstPDMAsyncCompletionStress_DEFS      = $(VMM_COMMON_DEFS)
  tstPDMAsyncCompletionStress_INCS      = $(VBOX_PATH_VMM_SRC)/include

@@ -346,9 +346,11 @@ static VOID     _stdcall   VBoxPowerDispatchCallback(PVOID pCallbackContext, PVO
 static NTSTATUS _stdcall   VBoxDrvNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp);
 static NTSTATUS _stdcall   VBoxDrvNtNotSupportedStub(PDEVICE_OBJECT pDevObj, PIRP pIrp);
 static NTSTATUS            VBoxDrvNtErr2NtStatus(int rc);
-#ifdef VBOX_WITH_HARDENING
+#if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
 static NTSTATUS             supdrvNtProtectInit(void);
 static void                 supdrvNtProtectTerm(void);
+#endif
+#ifdef VBOX_WITH_HARDENING
 static int                  supdrvNtProtectCreate(PSUPDRVNTPROTECT *ppNtProtect, HANDLE hPid,
                                                   SUPDRVNTPROTECTKIND enmProcessKind, bool fLink);
 static void                 supdrvNtProtectRelease(PSUPDRVNTPROTECT pNtProtect);
@@ -707,7 +709,7 @@ NTSTATUS _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
     {
         Log(("VBoxDrv::DriverEntry\n"));
 
-#ifdef VBOX_WITH_HARDENING
+#if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
         /*
          * Initialize process protection.
          */
@@ -804,11 +806,11 @@ NTSTATUS _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
                 rcNt = VBoxDrvNtErr2NtStatus(vrc);
             }
 #endif
-#ifdef VBOX_WITH_HARDENING
+#if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
             supdrvNtProtectTerm();
 #endif
         }
-#ifdef VBOX_WITH_HARDENING
+#if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
         else
             DbgPrint("VBoxSup::DriverEntry: supdrvNtProtectInit failed with rcNt=%#x!\n", rcNt);
 #endif
@@ -1259,23 +1261,39 @@ NTSTATUS _stdcall VBoxDrvNtCreate(PDEVICE_OBJECT pDevObj, PIRP pIrp)
             }
 
 #else  /* !VBOX_WITH_HARDENING */
+# ifdef VBOX_WITH_MINIMAL_HARDENING
             /*
-             * Call common code to create a session.
+             * Check that the process is allowed to access the device, i.e. the
+             * process image is signed with the build certificate.
              */
-            pFileObj->FsContext = NULL;
-            PSUPDRVSESSION pSession;
-            rc = supdrvCreateSession(pDevExt, true /*fUser*/, pDevObj == g_pDevObjSys /*fUnrestricted*/, &pSession);
-            if (RT_SUCCESS(rc))
-            {
-# ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
-                rc = supdrvNtUserIdMakeForSession(pSession);
-                if (RT_SUCCESS(rc))
-# endif
-                    rc = supdrvSessionHashTabInsert(pDevExt, pSession, (PSUPDRVSESSION *)&pFileObj->FsContext, NULL);
-                supdrvSessionRelease(pSession);
-                if (RT_SUCCESS(rc))
-                    return supdrvNtCompleteRequestEx(STATUS_SUCCESS, FILE_OPENED, pIrp);
+            PRTERRINFOSTATIC pErrInfo = (PRTERRINFOSTATIC)RTMemAllocZ(sizeof(*pErrInfo));
+            rc = supHardenedWinVerifyProcess(NtCurrentProcess(), NtCurrentThread(), SUPHARDNTVPKIND_VERIFY_ONLY, 0 /*fFlags*/,
+                                             NULL, pErrInfo ? RTErrInfoInitStatic(pErrInfo) : NULL);
+            if (RT_FAILURE(rc))
+                SUPR0Printf("VBoxDrv: Checking process failed: %Rrc%#RTeim\n", rc, &pErrInfo->Core);
+            RTMemFree(pErrInfo);
 
+            if (RT_SUCCESS(rc))
+# endif
+            {
+                /*
+                 * Call common code to create a session.
+                 */
+                pFileObj->FsContext = NULL;
+                PSUPDRVSESSION pSession;
+                rc = supdrvCreateSession(pDevExt, true /*fUser*/, pDevObj == g_pDevObjSys /*fUnrestricted*/, &pSession);
+                if (RT_SUCCESS(rc))
+                {
+# ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
+                    rc = supdrvNtUserIdMakeForSession(pSession);
+                    if (RT_SUCCESS(rc))
+# endif
+                        rc = supdrvSessionHashTabInsert(pDevExt, pSession, (PSUPDRVSESSION *)&pFileObj->FsContext, NULL);
+                    supdrvSessionRelease(pSession);
+                    if (RT_SUCCESS(rc))
+                        return supdrvNtCompleteRequestEx(STATUS_SUCCESS, FILE_OPENED, pIrp);
+
+                }
             }
 #endif /* !VBOX_WITH_HARDENING */
 
@@ -5453,7 +5471,6 @@ static int supdrvNtProtectVerifyProcess(PSUPDRVNTPROTECT pNtProtect)
 
 
 # ifndef VBOX_WITHOUT_DEBUGGER_CHECKS
-
 /**
  * Checks if the current process is being debugged.
  * @return @c true if debugged, @c false if not.
@@ -5462,15 +5479,17 @@ static bool supdrvNtIsDebuggerAttached(void)
 {
     return PsIsProcessBeingDebugged(PsGetCurrentProcess()) != FALSE;
 }
-
 # endif /* !VBOX_WITHOUT_DEBUGGER_CHECKS */
 
+#endif /* VBOX_WITH_HARDENING */
+#if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
 
 /**
  * Terminates the hardening bits.
  */
 static void supdrvNtProtectTerm(void)
 {
+# ifdef VBOX_WITH_HARDENING
     /*
      * Stop intercepting process and thread handle creation calls.
      */
@@ -5507,11 +5526,13 @@ static void supdrvNtProtectTerm(void)
         RTListNodeRemove(&pCur->ListEntry);
         RTMemFree(pCur);
     }
+# endif /* VBOX_WITH_HARDENING */
 
     supHardenedWinTermImageVerifier();
 }
 
-# ifdef RT_ARCH_X86
+# ifdef VBOX_WITH_HARDENING
+#  ifdef RT_ARCH_X86
 DECLASM(void) supdrvNtQueryVirtualMemory_0xAF(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0xB0(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0xB1(void);
@@ -5528,14 +5549,15 @@ DECLASM(void) supdrvNtQueryVirtualMemory_0xBB(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0xBC(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0xBD(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0xBE(void);
-# elif defined(RT_ARCH_AMD64)
+#  elif defined(RT_ARCH_AMD64)
 DECLASM(void) supdrvNtQueryVirtualMemory_0x1F(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0x20(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0x21(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0x22(void);
 DECLASM(void) supdrvNtQueryVirtualMemory_0x23(void);
 extern "C" NTSYSAPI NTSTATUS NTAPI ZwRequestWaitReplyPort(HANDLE, PVOID, PVOID);
-# endif
+#  endif
+# endif /* VBOX_WITH_HARDENING */
 
 
 /**
@@ -5549,6 +5571,7 @@ static NTSTATUS supdrvNtProtectInit(void)
      * Initialize the globals.
      */
 
+# ifdef VBOX_WITH_HARDENING
     /* Resolve methods we want but isn't available everywhere. */
     UNICODE_STRING RoutineName;
 
@@ -5581,7 +5604,7 @@ static NTSTATUS supdrvNtProtectInit(void)
            few alternative in the assembly helper file that uses the code in
            ZwReadFile with a different eax value.  We figure the syscall number
            by inspecting ZwQueryVolumeInformationFile as it's the next number. */
-# ifdef RT_ARCH_X86
+#  ifdef RT_ARCH_X86
         uint8_t const *pbCode = (uint8_t const *)(uintptr_t)ZwQueryVolumeInformationFile;
         if (*pbCode == 0xb8) /* mov eax, dword */
             switch (*(uint32_t const *)&pbCode[1])
@@ -5603,7 +5626,7 @@ static NTSTATUS supdrvNtProtectInit(void)
                 case 0xbe: g_pfnNtQueryVirtualMemory = (PFNNTQUERYVIRTUALMEMORY)supdrvNtQueryVirtualMemory_0xBD; break; /* just in case */
                 case 0xbf: g_pfnNtQueryVirtualMemory = (PFNNTQUERYVIRTUALMEMORY)supdrvNtQueryVirtualMemory_0xBE; break; /* just in case */
             }
-# elif defined(RT_ARCH_AMD64)
+#  elif defined(RT_ARCH_AMD64)
         uint8_t const *pbCode = (uint8_t const *)(uintptr_t)ZwRequestWaitReplyPort;
         if (   pbCode[ 0] == 0x48   /* mov rax, rsp */
             && pbCode[ 1] == 0x8b
@@ -5645,7 +5668,7 @@ static NTSTATUS supdrvNtProtectInit(void)
                 }
             }
         }
-# endif
+#  endif
     }
     if (!g_pfnNtQueryVirtualMemory)
     {
@@ -5653,7 +5676,16 @@ static NTSTATUS supdrvNtProtectInit(void)
         return STATUS_PROCEDURE_NOT_FOUND;
     }
 
-# ifdef VBOX_STRICT
+# else  /* !VBOX_WITH_HARDENING */
+    /* Always present on arm64 and more recent systems. */
+    g_pfnNtQueryVirtualMemory = (PFNNTQUERYVIRTUALMEMORY)ZwQueryVirtualMemory;
+# endif /* !VBOX_WITH_HARDENING */
+
+    NTSTATUS rcNt;
+    int      rc;
+
+# ifdef VBOX_WITH_HARDENING
+#  ifdef VBOX_STRICT
     if (   g_uNtVerCombined >= SUP_NT_VER_W70
         && (   g_pfnObGetObjectType == NULL
             || g_pfnZwAlpcCreatePort == NULL) )
@@ -5661,28 +5693,28 @@ static NTSTATUS supdrvNtProtectInit(void)
         LogRel(("vboxdrv: g_pfnObGetObjectType=%p g_pfnZwAlpcCreatePort=%p.\n", g_pfnObGetObjectType, g_pfnZwAlpcCreatePort));
         return STATUS_PROCEDURE_NOT_FOUND;
     }
-# endif
+#  endif
 
     /* LPC object type. */
     g_pAlpcPortObjectType1 = *LpcPortObjectType;
 
     /* The spinlock protecting our structures. */
-    int rc = RTSpinlockCreate(&g_hNtProtectLock, RTSPINLOCK_FLAGS_INTERRUPT_UNSAFE, "NtProtectLock");
+    rc = RTSpinlockCreate(&g_hNtProtectLock, RTSPINLOCK_FLAGS_INTERRUPT_UNSAFE, "NtProtectLock");
     if (RT_FAILURE(rc))
         return VBoxDrvNtErr2NtStatus(rc);
     g_NtProtectTree = NULL;
-
-    NTSTATUS rcNt;
 
     /* The mutex protecting the error information. */
     RTListInit(&g_ErrorInfoHead);
     rc = RTSemMutexCreate(&g_hErrorInfoLock);
     if (RT_SUCCESS(rc))
     {
+# endif /* VBOX_WITH_HARDENING */
         /* Image stuff + certificates. */
         rc = supHardenedWinInitImageVerifier(NULL);
         if (RT_SUCCESS(rc))
         {
+# ifdef VBOX_WITH_HARDENING
             /*
              * Intercept process creation and termination.
              */
@@ -5744,10 +5776,12 @@ static NTSTATUS supdrvNtProtectInit(void)
                         rcNt = g_pfnObRegisterCallbacks(&s_ObCallbackReg, &g_pvObCallbacksCookie);
                         if (NT_SUCCESS(rcNt))
                         {
+# endif /* VBOX_WITH_HARDENING */
                             /*
                              * Happy ending.
                              */
                             return STATUS_SUCCESS;
+# ifdef VBOX_WITH_HARDENING
                         }
                     }
                     DbgPrint("VBoxSup: ObRegisterCallbacks failed with rcNt=%#x\n", rcNt); /* temp for @bugref{10657} */
@@ -5800,10 +5834,12 @@ static NTSTATUS supdrvNtProtectInit(void)
                         g_pfnPsSetCreateProcessNotifyRoutineEx ? "Ex" : "", rcNt));
             }
             supHardenedWinTermImageVerifier();
+# endif /* VBOX_WITH_HARDENING */
         }
         else
             rcNt = VBoxDrvNtErr2NtStatus(rc);
 
+# ifdef VBOX_WITH_HARDENING
         RTSemMutexDestroy(g_hErrorInfoLock);
         g_hErrorInfoLock = NIL_RTSEMMUTEX;
     }
@@ -5812,8 +5848,9 @@ static NTSTATUS supdrvNtProtectInit(void)
 
     RTSpinlockDestroy(g_hNtProtectLock);
     g_NtProtectTree = NIL_RTSPINLOCK;
+# endif
     return rcNt;
 }
 
-#endif /* VBOX_WITH_HARDENING */
+#endif /* VBOX_WITH_HARDENING || VBOX_WITH_MINIMAL_HARDENING */
 

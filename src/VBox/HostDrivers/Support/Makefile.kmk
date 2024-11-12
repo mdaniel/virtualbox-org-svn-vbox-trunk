@@ -806,11 +806,8 @@ if   !defined(VBOX_ONLY_DOCS) \
   if defined(VBOX_WITH_HARDENING) || defined(VBOX_WITH_MINIMAL_HARDENING)
    VBoxDrv_SOURCES.win   += \
    	win/SUPHardenedVerifyImage-win.cpp \
+   	win/SUPHardenedVerifyProcess-win.cpp \
    	$(VBOX_SUP_WIN_CERTS_FILE)
-   ifdef VBOX_WITH_HARDENING
-    VBoxDrv_SOURCES.win  += \
-    	win/SUPHardenedVerifyProcess-win.cpp
-   endif
    ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
     VBoxDrv_DEFS.win     += VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
    endif

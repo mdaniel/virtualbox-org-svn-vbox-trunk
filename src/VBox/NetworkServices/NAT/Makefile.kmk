@@ -65,7 +65,7 @@ ifdef VBOX_WITH_LWIP_NAT # entire file
  else
   PROGRAMS += VBoxNetNAT
  endif
- VBoxNetNAT_TEMPLATE := $(if-expr defined(VBOX_WITH_HARDENING),VBoxMainDll,VBoxMainClientExe)
+ VBoxNetNAT_TEMPLATE := $(if-expr defined(VBOX_WITH_HARDENING),VBoxMainDll,VBoxMainClientSignedExe)
  VBoxNetNAT_NAME    := VBoxNetNAT
  VBoxNetNAT_DEFS     = \
  	IPv6 \

@@ -51,7 +51,7 @@ ifdef VBOX_WITH_HARDENING
 else
  PROGRAMS += VBoxHeadless
 endif
-VBoxHeadless_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientExe)
+VBoxHeadless_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientSignedExe)
 VBoxHeadless_DEFS     += $(if $(VBOX_WITH_RECORDING),VBOX_WITH_RECORDING,)
 VBoxHeadless_INCS      = \
 	$(VBOX_GRAPHICS_INCS) \

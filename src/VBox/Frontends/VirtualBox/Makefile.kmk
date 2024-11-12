@@ -166,7 +166,7 @@ endif
 #
 # VirtualBox Virtual Machine Application
 #
-VirtualBoxVM_TEMPLATE       := $(if $(VBOX_WITH_HARDENING),VBoxQtGuiDll,VBoxQtGuiExe)
+VirtualBoxVM_TEMPLATE       := $(if $(VBOX_WITH_HARDENING),VBoxQtGuiDll,VBoxQtGuiSignedExe)
 VirtualBoxVM_NAME           = VirtualBoxVM
 ifndef VBOX_WITH_HARDENING
  VirtualBoxVM_INST.darwin   = $(INST_VIRTUALBOX)Contents/Resources/VirtualBoxVM.app/Contents/MacOS/

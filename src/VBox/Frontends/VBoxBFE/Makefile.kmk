@@ -49,7 +49,7 @@ ifdef VBOX_WITH_HARDENING
 else
  PROGRAMS += VBoxBFE
 endif
-VBoxBFE_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientExe)
+VBoxBFE_TEMPLATE := $(if $(VBOX_WITH_HARDENING),VBoxMainClientDll,VBoxMainClientSignedExe)
 VBoxBFE_SDKS      = LIBSDL2
 VBoxBFE_INCS      = \
 	$(VBoxBFE_0_OUTDIR) \

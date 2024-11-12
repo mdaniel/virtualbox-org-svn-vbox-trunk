@@ -1529,7 +1529,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
    tstIntNet-1_TEMPLATE   = VBoxR3HardenedTstDll
   else
    PROGRAMS += tstIntNet-1
-   tstIntNet-1_TEMPLATE   = VBoxR3TstExe
+   tstIntNet-1_TEMPLATE   = VBoxR3SignedTstExe
   endif
   tstIntNet-1_SOURCES     = \
   	Network/testcase/tstIntNet-1.cpp \

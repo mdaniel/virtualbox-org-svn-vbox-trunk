@@ -1147,15 +1147,14 @@ endif
 ## @name Hardening
 ## @{
 
-# Enables hardening.
-# Most developers will want to disable this in their LocalConfig.kmk (VBOX_WITHOUT_HARDENING := 1).
 ifndef VBOX_WITH_DRIVERLESS_FORCED # No need for hardening when not using the driver.
- VBOX_WITH_HARDENING := 1
-endif
-# Enables minimal driver hardening (windows only).
-if !defined(VBOX_WITH_HARDENING) && !defined(VBOX_WITH_DRIVERLESS_FORCED)
  if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+  # Enables minimal driver hardening (windows only).
   VBOX_WITH_MINIMAL_HARDENING := 1
+ else
+  # Enables hardening.
+  # Most developers will want to disable this in their LocalConfig.kmk (VBOX_WITHOUT_HARDENING := 1).
+  VBOX_WITH_HARDENING := 1
  endif
 endif
 # Where the application files are (going to be) installed.
@@ -6586,6 +6585,17 @@ else # the gcc guys
  endif
 endif
 
+
+#
+# Variant of VBoxR3Exe that is always signed on windows.
+# This is used for executables that are normally hardened.
+#
+TEMPLATE_VBoxR3SignedExe                = VBox Ring 3 Exe, signed on windows for VBoxSup.sys use.
+TEMPLATE_VBoxR3SignedExe_EXTENDS       = VBoxR3Exe
+if "$(KBUILD_TARGET)" == "win" && "$(VBOX_SIGNING_MODE)" == "test"
+ TEMPLATE_VBoxR3SignedExe_POST_CMDS    = $(VBOX_UTF8_MANIFEST_CMDS)$(NLTAB)$(call VBOX_SIGN_IMAGE_FN,$(out),,2)
+endif
+
 #
 # Template for building R3 shared objects / DLLs - base template, don't use directly.
 # This is mostly identical to the VBoxR3Exe template. (Avoid PIC if possible!)
@@ -7053,7 +7063,6 @@ TEMPLATE_VBoxR3HardenedLib_LIBS      = $(NO_SUCH_VARIABLE)
 TEMPLATE_VBoxR3HardenedLib_USES.win  = $(NO_SUCH_VARIABLE)
 TEMPLATE_VBoxR3HardenedLib_POST_CMDS = $(NO_SUCH_VARIABLE)
 
-
 #
 # Template for building hardened Ring-3 testcase executables.
 #
@@ -7181,6 +7190,16 @@ TEMPLATE_VBoxR3TstExe-x86              := 32-bit VBox Ring 3 Testcase Exe
 TEMPLATE_VBoxR3TstExe-x86_EXTENDS      := VBoxR3TstExe
 TEMPLATE_VBoxR3TstExe-x86_BLD_TRG_ARCH := x86
 TEMPLATE_VBoxR3TstExe-x86_LATE_LIBS     = $(LIB_RUNTIME_X86) $(TEMPLATE_VBoxR3Exe_LATE_LIBS)
+
+#
+# Variant of VBoxR3TstExe that always gets signed on windows.
+# This is used for executables that are normally hardened.
+#
+TEMPLATE_VBoxR3SignedTstExe             = VBox Ring 3 Test Exe, signed on windows for VBoxSup.sys use.
+TEMPLATE_VBoxR3SignedTstExe_EXTENDS    = VBoxR3TstExe
+if "$(KBUILD_TARGET)" == "win" && "$(VBOX_SIGNING_MODE)" == "test"
+ TEMPLATE_VBoxR3SignedTstExe_POST_CMDS = $(VBOX_UTF8_MANIFEST_CMDS)$(NLTAB)$(call VBOX_SIGN_IMAGE_FN,$(out),,2)
+endif
 
 #
 # Ring-3 testcase DLL.
@@ -7698,6 +7717,15 @@ else
  	NDEBUG TRIMMED
  TEMPLATE_VBoxMainClientExe_CXXFLAGS.linux = $(TEMPLATE_VBoxMainExe_CXXFLAGS.linux) -pthread
  TEMPLATE_VBoxMainClientExe_PCHFLAGS.linux = $(TEMPLATE_VBoxMainExe_PCHFLAGS.linux) -pthread
+endif
+
+#
+# Variant of VBoxMainClientExe for VM processes that needs to be signed on windows when using minimal hardening.
+#
+TEMPLATE_VBoxMainClientSignedExe           = VBox Main Client VM (executable), signed on Windows for using VBoxSup.sys.
+TEMPLATE_VBoxMainClientSignedExe_EXTENDS   = VBoxMainClientExe
+if "$(KBUILD_TARGET)" == "win" && "$(VBOX_SIGNING_MODE)" == "test"
+ TEMPLATE_VBoxMainClientSignedExe_POST_CMDS = $(VBOX_UTF8_MANIFEST_CMDS)$(NLTAB)$(call VBOX_SIGN_IMAGE_FN,$(out),,2)
 endif
 
 #
@@ -8266,6 +8294,16 @@ ifdef VBOX_WITH_QTGUI
   		$(foreach prefix, @executable_path/../Frameworks/ $(VBOX_PATH_QT)/Frameworks/ $(PATH_SDK_QT6)/, \
   			-change "$(prefix)$(qtmod).framework/Versions/A/$(qtmod)" \
   			"$(if $(VBOX_WITH_HARDENING),/Applications/VirtualBox.app/Contents/Frameworks,@rpath)/$(qtmod).framework/Versions/A/$(qtmod)" ) ) "$(out)"
+ endif
+
+ #
+ # Variant of VBoxQtGuiExe for building VM processes that needs to be signed in
+ # the minimal hardening configuration on windows.
+ #
+ TEMPLATE_VBoxQtGuiSignedExe             = VBox Qt GUI VM Executable, signed on windows for using VBoxSup.sys.
+ TEMPLATE_VBoxQtGuiSignedExe_EXTENDS    = VBoxQtGuiExe
+ if "$(KBUILD_TARGET)" == "win" && "$(VBOX_SIGNING_MODE)" == "test"
+  TEMPLATE_VBoxQtGuiSignedExe_POST_CMDS = $(VBOX_UTF8_MANIFEST_CMDS)$(NLTAB)$(call VBOX_SIGN_IMAGE_FN,$(out),,2)
  endif
 
  #

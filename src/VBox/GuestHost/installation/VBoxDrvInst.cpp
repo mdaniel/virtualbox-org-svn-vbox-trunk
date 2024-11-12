@@ -120,17 +120,6 @@ enum
 };
 
 /**
- * Command line parameters for the 'list' command.
- */
-static const RTGETOPTDEF g_aCmdListOptions[] =
-{
-    { "--model",  VBOXDRVINST_LIST_OPT_MODEL, RTGETOPT_REQ_STRING  },
-    { "--pnp",    VBOXDRVINST_LIST_OPT_PNPID, RTGETOPT_REQ_STRING  },
-    { "--pnpid" , VBOXDRVINST_LIST_OPT_PNPID, RTGETOPT_REQ_STRING  },
-    { "--pnp-id", VBOXDRVINST_LIST_OPT_PNPID, RTGETOPT_REQ_STRING  }
-};
-
-/**
  * Command definition for the 'list' command.
  */
 const VBOXDRVINSTCMD g_CmdList =

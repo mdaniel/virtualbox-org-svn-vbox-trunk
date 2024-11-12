@@ -188,7 +188,6 @@ endif
 VBOX_WINDOWS_ADDITIONS_OTHER_FILES := \
 	$(PATH_STAGE_BIN)/additions/VBoxService.exe \
 	$(PATH_STAGE_BIN)/additions/VBoxHook.dll \
-	$(PATH_STAGE_BIN)/additions/RegCleanup.exe \
 	$(PATH_STAGE_BIN)/additions/VBoxDrvInst.exe
 
 ifeq ($(KBUILD_TARGET_ARCH),x86)

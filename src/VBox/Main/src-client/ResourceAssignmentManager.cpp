@@ -333,6 +333,7 @@ void ResourceAssignmentManager::State::dumpToReleaseLog(void)
                 m_paRegions[iRegion].GCPhysStart,
                 m_paRegions[iRegion].GCPhysEnd,
                 m_paRegions[iRegion].GCPhysEnd - m_paRegions[iRegion].GCPhysStart + 1,
+                resourceManagerRegionType2Str(m_paRegions[iRegion].enmType),
                 m_paRegions[iRegion].szName));
     }
 }

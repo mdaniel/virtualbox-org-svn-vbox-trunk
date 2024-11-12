@@ -237,17 +237,20 @@ static const RTGETOPTDEF g_aCmdCommonOptions[] =
  * Logs message, va_list version.
  *
  * @returns VBox status code.
- * @param
+ * @param   pszPrefix           Logging prefix to use. Can be NULL.
  * @param   pszFormat           Format string to log.
  * @param   args                va_list to use.
  */
-DECLINLINE(void) vboxDrvInstLogExV(const char *pszFormat, va_list args)
+DECLINLINE(void) vboxDrvInstLogExV(const char *pszPrefix, const char *pszFormat, va_list args)
 {
     char *psz = NULL;
     RTStrAPrintfV(&psz, pszFormat, args);
     AssertPtrReturnVoid(psz);
 
-    LogRel(("%s", psz));
+    if (pszPrefix)
+        LogRel(("%s: %s", pszPrefix, psz));
+    else
+        LogRel(("%s", psz));
 
     RTStrFree(psz);
 }
@@ -262,7 +265,7 @@ DECLINLINE(void) vboxDrvInstLogError(const char *pszFormat, ...)
 {
     va_list args;
     va_start(args, pszFormat);
-    vboxDrvInstLogExV(pszFormat, args);
+    vboxDrvInstLogExV("*** Error", pszFormat, args);
     va_end(args);
 }
 
@@ -276,7 +279,7 @@ DECLINLINE(void) vboxDrvInstLog(const char *pszFormat, ...)
 {
     va_list args;
     va_start(args, pszFormat);
-    vboxDrvInstLogExV(pszFormat, args);
+    vboxDrvInstLogExV(NULL, pszFormat, args);
     va_end(args);
 }
 
@@ -293,7 +296,7 @@ static DECLCALLBACK(void) vboxDrvInstLogCallback(VBOXWINDRIVERLOGTYPE enmType, c
     switch (enmType)
     {
         case VBOXWINDRIVERLOGTYPE_ERROR:
-            vboxDrvInstLogError("*** Error: %s\n", pszMsg);
+            vboxDrvInstLogError("%s\n", pszMsg);
             break;
 
         case VBOXWINDRIVERLOGTYPE_REBOOT_NEEDED:
@@ -837,6 +840,16 @@ static int vboxDrvInstInit(void)
         return rc;
     }
 
+    /* Refuse to run on too old Windows versions (<= NT4). */
+    uint64_t const uNtVer = RTSystemGetNtVersion();
+    if (RTSYSTEM_NT_VERSION_GET_MAJOR(uNtVer) <= 4)
+    {
+        vboxDrvInstLogError("Windows version (%d.%d.%d) too old and not supported\n", RTSYSTEM_NT_VERSION_GET_MAJOR(uNtVer),
+                                                                                      RTSYSTEM_NT_VERSION_GET_MINOR(uNtVer),
+                                                                                      RTSYSTEM_NT_VERSION_GET_BUILD(uNtVer));
+        return VERR_NOT_SUPPORTED;
+    }
+
     return VINF_SUCCESS;
 }
 
@@ -902,7 +915,7 @@ int main(int argc, char **argv)
                     {
                         rc = vboxDrvInstInit();
                         if (RT_FAILURE(rc))
-                            return  RTEXITCODE_FAILURE;
+                            return RTEXITCODE_FAILURE;
 
                         /* Count the combined option definitions:  */
                         size_t cCombinedOptions  = pCmd->cOptions + RT_ELEMENTS(g_aCmdCommonOptions);
@@ -950,7 +963,7 @@ int main(int argc, char **argv)
     /* List all Windows driver store entries if no command is given. */
     rc = vboxDrvInstInit();
     if (RT_FAILURE(rc))
-        return  RTEXITCODE_FAILURE;
+        return RTEXITCODE_FAILURE;
     RTEXITCODE rcExit = vboxDrvInstCmdListMain(&GetState);
     vboxDrvInstDestroy();
     return rcExit;

@@ -41,6 +41,14 @@
 
 
 /*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
+
+/** Locality CRB request register. */
+#define TPM_CRB_LOCALITY_REG_CTRL_REQ                        0x40
+
+
+/*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
 /**
@@ -88,7 +96,11 @@ static int systemTableAcpiMmioDevResource(RTACPITBL hDsdt, RTACPIRES hAcpiRes, u
                                 | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED;
 
     RTAcpiResourceReset(hAcpiRes);
-    int vrc = RTAcpiResourceAddQWordMemoryRange(hAcpiRes, kAcpiResMemRangeCacheability_NonCacheable, kAcpiResMemType_Memory, true /*fRw*/,
+    int vrc;
+    if (u64AddrBase + cbMmio <= _4G)
+        vrc = RTAcpiResourceAdd32BitFixedMemoryRange(hAcpiRes, u64AddrBase, cbMmio, true /*fRw*/);
+    else
+        vrc = RTAcpiResourceAddQWordMemoryRange(hAcpiRes, kAcpiResMemRangeCacheability_NonCacheable, kAcpiResMemType_Memory, true /*fRw*/,
                                                 fAddrSpace, u64AddrBase, u64AddrBase + cbMmio - 1, 0 /*u64OffTrans*/, 0 /*u64Granularity*/,
                                                 cbMmio);
     if (RT_SUCCESS(vrc))
@@ -234,14 +246,14 @@ int SystemTableBuilderAcpi::finishTables(RTGCPHYS GCPhysTblsStart, RTVFSIOSTREAM
     /* Build XSDP */
     ACPIRSDP Xsdp; RT_ZERO(Xsdp);
 
-    /* ACPI 1.0 part (RSDT) */
+    /* ACPI 1.0 part (RSDP) */
     memcpy(Xsdp.abSignature, "RSD PTR ", 8);
     memcpy(Xsdp.abOemId,     "ORCLVB", 6);
     Xsdp.bRevision    = 3;
     Xsdp.u32AddrRsdt  = 0;
     Xsdp.bChkSum      = RTAcpiChecksumGenerate(&Xsdp, RT_OFFSETOF(ACPIRSDP, cbRsdp));
 
-    /* ACPI 2.0 part (XSDT) */
+    /* ACPI 2.0 part (XSDP) */
     Xsdp.cbRsdp       = RT_H2LE_U32(sizeof(ACPIRSDP));
     Xsdp.u64AddrXsdt  = RT_H2LE_U64(GCPhysXsdt);
     Xsdp.bExtChkSum   = RTAcpiChecksumGenerate(&Xsdp, sizeof(ACPIRSDP));
@@ -347,6 +359,7 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
     AssertPtrReturn(pSysTblDev, VERR_NOT_FOUND);
 
     m_GCPhysPciMmioEcam = GCPhysMmioEcam; /* Need that for MCFG later. */
+    m_bPciBusMax        = 15; /** @todo Make parameter. */
 
     RTAcpiTblDeviceStartF(m_hAcpiDsdt, "%s%RX32", pSysTblDev->pszAcpiName, 0);
 
@@ -369,8 +382,8 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
                                 | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED;
 
     RTAcpiResourceReset(m_hAcpiRes);
-    int vrc = RTAcpiResourceAddWordBusNumber(m_hAcpiRes, fAddrSpace, 0 /*u16BusMin*/, 0xff /*u16BusMax*/,
-                                             0 /*u16OffTrans*/, 0 /*u16Granularity*/, 256 /*u16Length*/);
+    int vrc = RTAcpiResourceAddWordBusNumber(m_hAcpiRes, fAddrSpace, 0 /*u16BusMin*/, m_bPciBusMax /*u16BusMax*/,
+                                             0 /*u16OffTrans*/, 0 /*u16Granularity*/, m_bPciBusMax + 1 /*u16Length*/);
     AssertRCReturn(vrc, vrc);
 
     vrc = RTAcpiResourceAddQWordIoRange(m_hAcpiRes, kAcpiResIoRangeType_Translation_Dense, kAcpiResIoRange_Whole,
@@ -530,7 +543,7 @@ int SystemTableBuilderAcpi::buildMcfg(RTVFSIOSTREAM hVfsIos, size_t *pcbMcfg)
     pAlloc->u64PhysAddrBase = m_GCPhysPciMmioEcam;
     pAlloc->u16PciSegGrpNr  = 0;
     pAlloc->bPciBusFirst    = 0;
-    pAlloc->bPciBusLast     = 0xff;
+    pAlloc->bPciBusLast     = m_bPciBusMax;
 
     /* Finalize the MADT. */
     pMcfg->Hdr.u32Signature       = ACPI_TABLE_HDR_SIGNATURE_RSVD_MCFG;
@@ -641,7 +654,7 @@ int SystemTableBuilderAcpi::buildTpm20(RTVFSIOSTREAM hVfsIos, size_t *pcbTpm20)
     RT_ZERO(Tpm2);
 
     Tpm2.u32StartMethod       = m_fCrb ? ACPITBL_TPM20_START_METHOD_CRB : ACPITBL_TPM20_START_METHOD_TIS12;
-    Tpm2.u64BaseAddrCrbOrFifo = m_GCPhysTpm20Mmio;
+    Tpm2.u64BaseAddrCrbOrFifo = m_fCrb ? m_GCPhysTpm20Mmio + TPM_CRB_LOCALITY_REG_CTRL_REQ : m_GCPhysTpm20Mmio;
     Tpm2.u16PlatCls           = ACPITBL_TPM20_PLAT_CLS_CLIENT;
 
     Tpm2.Hdr.u32Signature = ACPI_TABLE_HDR_SIGNATURE_RSVD_TPM2;
@@ -677,6 +690,9 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_STR");
     RTAcpiTblStringAppend(m_hAcpiDsdt, "TPM 2.0 Device");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_CRS");
     int vrc = systemTableAcpiMmioDevResource(m_hAcpiDsdt, m_hAcpiRes, GCPhysMmioStart, cbMmio, u32Irq + GIC_INTID_RANGE_SPI_START);

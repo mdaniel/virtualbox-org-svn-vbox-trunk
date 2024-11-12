@@ -1583,7 +1583,7 @@ supR3HardenedScreenImage(HANDLE hFile, bool fImage, bool fIgnoreArch, PULONG pfA
     /*
      * Require trusted installer + some kind of signature on everything, except
      * for the VBox bits where we have extra requirements depending on the signing
-     * certificate used. 
+     * certificate used.
      *     1. ExtPacks      - VBox built with:
      *        - regular code signing cert: regular code signing, owner TrustedInstaller/Administrators/LocalSystem.
      *        - kernel code signing cert:  kernel code signing and integrity checks.

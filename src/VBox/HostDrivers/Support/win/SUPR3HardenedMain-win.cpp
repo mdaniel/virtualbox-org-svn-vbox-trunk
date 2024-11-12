@@ -317,7 +317,9 @@ RTUTF16                     g_wszSupLibHardenedExePath[1024];
 /** The NT path of the executable. */
 SUPSYSROOTDIRBUF            g_SupLibHardenedExeNtPath;
 /** The NT path of the application binary directory. */
-SUPSYSROOTDIRBUF            g_SupLibHardenedAppBinNtPath;
+static SUPSYSROOTDIRBUF     g_SupLibHardenedAppBinNtPath;
+/** The NT path of the extension packs directory. */
+static SUPSYSROOTDIRBUF     g_SupLibHardenedExtPacksNtPath;
 /** The offset into g_SupLibHardenedExeNtPath of the executable name (WCHAR,
  * not byte). This also gives the length of the exectuable directory path,
  * including a trailing slash. */
@@ -1508,13 +1510,16 @@ supR3HardenedScreenImage(HANDLE hFile, bool fImage, bool fIgnoreArch, PULONG pfA
      * Check the path.  We don't allow DLLs to be loaded from just anywhere:
      *      1. System32      - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
      *      2. WinSxS        - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
-     *      3. VirtualBox    - build with:
+     *      3. ExtPacks      - VBox built with:
+     *         - regular code signing cert: regular code signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *         - kernel code signing cert:  kernel code signing and integrity checks.
+     *      4. VirtualBox    - VBox built with:
      *         - regular code signing cert: build cert code signing, owner TrustedInstaller/Administrators/LocalSystem.
      *         - kernel code signing cert:  kernel code signing and integrity checks.
-     *      4. AppPatchDir   - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
-     *      5. Program Files - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
-     *      6. Common Files  - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
-     *      7. x86 variations of 4 & 5 - ditto.
+     *      5. AppPatchDir   - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *      6. Program Files - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *      7. Common Files  - normal code or cat signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *      8. x86 variations of 5 & 6 - ditto.
      *
      * Note! VBOX_WITHOUT_KERNEL_CODE_SIGNING_CERT means the /IntegrityCheck does
      *       work as it doesn't seems like MS has come up with a generally accessible
@@ -1526,10 +1531,14 @@ supR3HardenedScreenImage(HANDLE hFile, bool fImage, bool fIgnoreArch, PULONG pfA
         fFlags |= SUPHNTVI_F_ALLOW_CAT_FILE_VERIFICATION | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
     else if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_WinSxSNtPath.UniStr, true /*fCheckSlash*/))
         fFlags |= SUPHNTVI_F_ALLOW_CAT_FILE_VERIFICATION | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
+    else if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_SupLibHardenedExtPacksNtPath.UniStr, true /*fCheckSlash*/))
+# ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
+        fFlags |= SUPHNTVI_F_REQUIRE_CODE_SIGNING | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
+# else
+        fFlags |= SUPHNTVI_F_REQUIRE_KERNEL_CODE_SIGNING | SUPHNTVI_F_REQUIRE_SIGNATURE_ENFORCEMENT;
+# endif
     else if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_SupLibHardenedAppBinNtPath.UniStr, true /*fCheckSlash*/))
 # ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
-        /** @todo r=bird: See SUPHNTVI_F_REQUIRE_BUILD_CERT comment below (in the
-         *        code that's actually used). */
         fFlags |= SUPHNTVI_F_REQUIRE_BUILD_CERT | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
 # else
         fFlags |= SUPHNTVI_F_REQUIRE_KERNEL_CODE_SIGNING | SUPHNTVI_F_REQUIRE_SIGNATURE_ENFORCEMENT;
@@ -1574,20 +1583,24 @@ supR3HardenedScreenImage(HANDLE hFile, bool fImage, bool fIgnoreArch, PULONG pfA
     /*
      * Require trusted installer + some kind of signature on everything, except
      * for the VBox bits where we have extra requirements depending on the signing
-     * certificate used:
-     *         - regular code signing cert: build cert code signing, owner TrustedInstaller/Administrators/LocalSystem.
-     *         - kernel code signing cert:  kernel code signing and integrity checks.
+     * certificate used. 
+     *     1. ExtPacks      - VBox built with:
+     *        - regular code signing cert: regular code signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *        - kernel code signing cert:  kernel code signing and integrity checks.
+     *     2. VirtualBox    - VBox built with:
+     *        - regular code signing cert: build cert code signing, owner TrustedInstaller/Administrators/LocalSystem.
+     *        - kernel code signing cert:  kernel code signing and integrity checks.
+     *     3. Everything else: allow .cat-file verification, , owner TrustedInstaller/Administrators/LocalSystem.
      */
     uint32_t fFlags = 0;
-    if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_SupLibHardenedAppBinNtPath.UniStr, true /*fCheckSlash*/))
+    if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_SupLibHardenedExtPacksNtPath.UniStr, true /*fCheckSlash*/))
 # ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
-        /** @todo r=bird: Since extension packs are installed under
-         * g_SupLibHardenedAppBinNtPath and I'm pretty sure that everything loaded into
-         * a VBox VM process goes thru this validation step at DLL load time, this means
-         * only we can now sign extension packs.
-         *
-         * I suspect we have to relax the signing restrictions on the ExtensionPacks
-         * subdirectory to keep 3rd party extensions working.  */
+        fFlags |= SUPHNTVI_F_REQUIRE_CODE_SIGNING | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
+# else
+        fFlags |= SUPHNTVI_F_REQUIRE_KERNEL_CODE_SIGNING | SUPHNTVI_F_REQUIRE_SIGNATURE_ENFORCEMENT;
+# endif
+    else if (supHardViUniStrPathStartsWithUniStr(&uBuf.UniStr, &g_SupLibHardenedAppBinNtPath.UniStr, true /*fCheckSlash*/))
+# ifdef VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT
         fFlags |= SUPHNTVI_F_REQUIRE_BUILD_CERT | SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER;
 # else
         fFlags |= SUPHNTVI_F_REQUIRE_KERNEL_CODE_SIGNING | SUPHNTVI_F_REQUIRE_SIGNATURE_ENFORCEMENT;
@@ -5992,7 +6005,7 @@ DECLHIDDEN(void) supR3HardenedWinModifyDllSearchPath(uint32_t fFlags, const char
 
 
 /**
- * Initializes the application binary directory path.
+ * Initializes the application binary directory path and the extpacks path.
  *
  * This is called once or twice.
  *
@@ -6035,6 +6048,18 @@ DECLHIDDEN(void) supR3HardenedWinInitAppBin(uint32_t fFlags)
     g_SupLibHardenedAppBinNtPath.UniStr.Length        = cwc * sizeof(WCHAR);
     g_SupLibHardenedAppBinNtPath.UniStr.MaximumLength = sizeof(g_SupLibHardenedAppBinNtPath.awcBuffer);
     SUP_DPRINTF(("supR3HardenedWinInitAppBin(%#x): '%ls'\n", fFlags, g_SupLibHardenedAppBinNtPath.UniStr.Buffer));
+
+    /* Extension packs: */
+    static wchar_t const s_wszExtPacks[] = L"\\ExtensionPacks";
+    if (g_SupLibHardenedAppBinNtPath.UniStr.Buffer[cwc - 1] == '\\' || g_SupLibHardenedAppBinNtPath.UniStr.Buffer[cwc - 1] == '/')
+        cwc--;
+    if (cwc + RT_ELEMENTS(s_wszExtPacks) > RT_ELEMENTS(g_SupLibHardenedExtPacksNtPath.awcBuffer))
+        supR3HardenedFatal("supR3HardenedWinInitAppBin: Location is too deep! (cwc=%#x)\n", cwc);
+    g_SupLibHardenedExtPacksNtPath.UniStr.Buffer = g_SupLibHardenedExtPacksNtPath.awcBuffer;
+    memcpy(g_SupLibHardenedExtPacksNtPath.UniStr.Buffer, g_SupLibHardenedAppBinNtPath.UniStr.Buffer, cwc * sizeof(WCHAR));
+    memcpy(&g_SupLibHardenedExtPacksNtPath.UniStr.Buffer[cwc], s_wszExtPacks, RT_ELEMENTS(s_wszExtPacks) * sizeof(WCHAR));
+    g_SupLibHardenedExtPacksNtPath.UniStr.Length = (cwc + RT_ELEMENTS(s_wszExtPacks) - 1) * sizeof(WCHAR);
+    g_SupLibHardenedExtPacksNtPath.UniStr.MaximumLength = sizeof(g_SupLibHardenedExtPacksNtPath.awcBuffer);
 }
 
 

@@ -5177,6 +5177,80 @@ int Console::i_configGraphicsController(PCFGMNODE pDevices,
     return VINF_SUCCESS;
 }
 
+
+#if defined(VBOX_WITH_TPM)
+int Console::i_configTpm(ComPtr<ITrustedPlatformModule> pTpm, TpmType_T enmTpmType, PCFGMNODE pDevices,
+                         RTGCPHYS GCPhysTpmMmio, uint32_t uIrq, RTGCPHYS GCPhysTpmPpi, bool fCrb)
+{
+    Assert(enmTpmType != TpmType_None);
+
+    // InsertConfig* throws
+    try
+    {
+        HRESULT hrc;
+        Bstr    bstr;
+        PCFGMNODE pDev = NULL;          /* /Devices/Dev/ */
+        PCFGMNODE pInst = NULL;         /* /Devices/Dev/0/ */
+        PCFGMNODE pCfg = NULL;          /* /Devices/Dev/.../Config/ */
+        PCFGMNODE pLunL0 = NULL;        /* /Devices/Dev/0/LUN#0/ */
+        PCFGMNODE pLunL1 = NULL;        /* /Devices/Dev/0/LUN#0/AttachedDriver */
+
+        InsertConfigNode(pDevices, "tpm", &pDev);
+        InsertConfigNode(pDev,     "0", &pInst);
+        InsertConfigInteger(pInst, "Trusted", 1); /* boolean */
+        InsertConfigNode(pInst,    "Config", &pCfg);
+        InsertConfigInteger(pCfg,  "MmioBase", GCPhysTpmMmio);
+        InsertConfigInteger(pCfg,  "Irq",      uIrq);
+        InsertConfigInteger(pCfg,  "Crb",      fCrb ? 1 : 0); /* boolean */
+
+        InsertConfigNode(pInst,    "LUN#0", &pLunL0);
+
+        switch (enmTpmType)
+        {
+            case TpmType_v1_2:
+            case TpmType_v2_0:
+                InsertConfigString(pLunL0, "Driver",               "TpmEmuTpms");
+                InsertConfigNode(pLunL0,   "Config", &pCfg);
+                InsertConfigInteger(pCfg, "TpmVersion", enmTpmType == TpmType_v1_2 ? 1 : 2);
+                InsertConfigNode(pLunL0, "AttachedDriver", &pLunL1);
+                InsertConfigString(pLunL1, "Driver", "NvramStore");
+                break;
+            case TpmType_Host:
+#if defined(RT_OS_LINUX) || defined(RT_OS_WINDOWS)
+                InsertConfigString(pLunL0, "Driver",               "TpmHost");
+                InsertConfigNode(pLunL0,   "Config", &pCfg);
+#endif
+                break;
+            case TpmType_Swtpm:
+                hrc = pTpm->COMGETTER(Location)(bstr.asOutParam());                   H();
+                InsertConfigString(pLunL0, "Driver",               "TpmEmu");
+                InsertConfigNode(pLunL0,   "Config", &pCfg);
+                InsertConfigString(pCfg,   "Location", bstr);
+                break;
+            default:
+                AssertFailedBreak();
+        }
+
+        if (GCPhysTpmPpi != RTGCPHYS_MAX)
+        {
+            /* Add the device for the physical presence interface. */
+            InsertConfigNode(   pDevices, "tpm-ppi",  &pDev);
+            InsertConfigNode(   pDev,     "0",        &pInst);
+            InsertConfigInteger(pInst,    "Trusted",  1); /* boolean */
+            InsertConfigNode(   pInst,    "Config",   &pCfg);
+            InsertConfigInteger(pCfg,     "MmioBase", GCPhysTpmPpi);
+        }
+    }
+    catch (ConfigError &x)
+    {
+        // InsertConfig threw something:
+        return x.m_vrc;
+    }
+
+    return VINF_SUCCESS;
+}
+#endif /* VBOX_WITH_TPM */
+
 #undef H
 #undef VRC
 

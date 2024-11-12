@@ -181,8 +181,10 @@ VMMR3_INT_DECL(int) NEMR3Init(PVM pVM, bool fFallback, bool fForced)
         {
             if (pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NATIVE_API)
             {
-#ifdef RT_OS_WINDOWS /* The WHv* API is extremely slow at handling VM exits. The AppleHv and
-                        KVM APIs are much faster, thus the different mode name. :-) */
+#ifndef VBOX_VMM_TARGET_ARMV8 /* NEM is the only option on ARM for now, so calling it turtle and snail mode
+                               * is a bit unfair as long as we don't have a native hypervisor to compare against :). */
+# ifdef RT_OS_WINDOWS /* The WHv* API is extremely slow at handling VM exits. The AppleHv and
+                         KVM APIs are much faster, thus the different mode name. :-) */
                 LogRel(("NEM:\n"
                         "NEM: NEMR3Init: Snail execution mode is active!\n"
                         "NEM: Note! VirtualBox is not able to run at its full potential in this execution mode.\n"
@@ -190,11 +192,12 @@ VMMR3_INT_DECL(int) NEMR3Init(PVM pVM, bool fFallback, bool fForced)
                         "NEM:       making use of Hyper-V.  That is a moving target, so google how and carefully\n"
                         "NEM:       consider the consequences of disabling these features.\n"
                         "NEM:\n"));
-#else
+# else
                 LogRel(("NEM:\n"
                         "NEM: NEMR3Init: Turtle execution mode is active!\n"
                         "NEM: Note! VirtualBox is not able to run at its full potential in this execution mode.\n"
                         "NEM:\n"));
+# endif
 #endif
             }
             else

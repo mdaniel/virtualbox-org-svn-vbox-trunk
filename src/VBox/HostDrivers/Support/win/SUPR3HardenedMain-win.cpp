@@ -3670,7 +3670,7 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
                                               SUPR3HARDNTPATCH *pBackup, PRTERRINFO pErrInfo)
 {
     SUP_DPRINTF(("supR3HardNtDisableThreadCreation: pvLdrInitThunk=%p pvNtTerminateThread=%p\n", pvLdrInitThunk, pvNtTerminateThread));
-    SUPR3HARDENED_ASSERT(pBackup->cb == 16);
+    SUPR3HARDENED_ASSERT(pBackup->cb >= 5);
     SUPR3HARDENED_ASSERT(RT_ABS((intptr_t)pvLdrInitThunk - (intptr_t)pvNtTerminateThread) < 16*_1M);
 
     /*

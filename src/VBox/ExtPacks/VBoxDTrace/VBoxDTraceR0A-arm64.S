@@ -26,4 +26,3 @@ BEGINPROC dtrace_probe6
         b       NAME(dtrace_probe)
 ENDPROC   dtrace_probe6
 
-

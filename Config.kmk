@@ -1502,7 +1502,7 @@ endif
 
 
 #
-# Allow to overwrite the branding information from an external file
+# Allow overriding the branding information from an external file
 #
 ifdef VBOX_BRANDING_CFG
  include $(VBOX_BRANDING_CFG)
@@ -1634,6 +1634,11 @@ ifdef VBOX_WITHOUT_HARDENING
    VBOX_WITH_ORIGIN = 1
   endif
  endif
+endif
+
+# Disable minimal hardening if no signing is configured.
+if defined(VBOX_WITH_MINIMAL_HARDENING) && !defined(VBOX_SIGNING_MODE)
+ VBOX_WITH_MINIMAL_HARDENING :=
 endif
 
 #

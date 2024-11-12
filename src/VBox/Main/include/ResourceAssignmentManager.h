@@ -33,33 +33,44 @@
 
 #include "VBox/types.h"
 #include "VirtualBoxBase.h"
-#include <vector>
 
 class ResourceAssignmentManager
 {
 private:
     struct State;
-    State *pState;
+    State *m_pState;
+    RTGCPHYS m_GCPhysMmioHint;
 
     ResourceAssignmentManager();
 
 public:
     static ResourceAssignmentManager *createInstance(PCVMMR3VTABLE pVMM, ChipsetType_T chipsetType, IommuType_T iommuType,
-                                                     RTGCPHYS GCPhysMmioTop, RTGCPHYS GCPhysRamStart,
-                                                     RTGCPHYS GCPhysMmio32Start, RTGCPHYS cbMmio32,
-                                                     uint32_t cInterrupts);
+                                                     uint32_t cInterrupts, RTGCPHYS GCPhysMmioHint);
 
     ~ResourceAssignmentManager();
 
+    /*
+     * The allocation order for memory regions should be:
+     *     1. All regions which require a fixed address (including RAM regions).
+     *     2. The 32-bit MMIO regions.
+     *     3. All the other MMIO regions.
+     */
+    HRESULT assignFixedRomRegion(const char *pszName, RTGCPHYS GCPhysStart, RTGCPHYS cbRegion);
+    HRESULT assignFixedRamRegion(const char *pszName, RTGCPHYS GCPhysStart, RTGCPHYS cbRegion);
+    HRESULT assignFixedMmioRegion(const char *pszName, RTGCPHYS GCPhysStart, RTGCPHYS cbRegion);
+
+    HRESULT assignMmioRegionAligned(const char *pszName, RTGCPHYS cbRegion, RTGCPHYS cbAlignment, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion,
+                                    bool fOnly32Bit);
     HRESULT assignMmioRegion(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
     HRESULT assignMmio32Region(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
-    HRESULT assignMmioRegionAligned(const char *pszName, RTGCPHYS cbRegion, RTGCPHYS cbAlignment, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
-    HRESULT assignFixedAddress(const char *pszName, RTGCPHYS GCPhysStart, RTGCPHYS cbRegion);
-    HRESULT assignRamRegion(const char *pszName, RTGCPHYS cbRam, PRTGCPHYS pGCPhysStart);
+
     HRESULT assignInterrupts(const char *pszName, uint32_t cInterrupts, uint32_t *piInterruptFirst);
     HRESULT assignSingleInterrupt(const char *pszName, uint32_t *piInterrupt);
+
     HRESULT queryMmioRegion(PRTGCPHYS pGCPhysMmioStart, PRTGCPHYS pcbMmio);
     HRESULT queryMmio32Region(PRTGCPHYS pGCPhysMmioStart, PRTGCPHYS pcbMmio);
+
+    void dumpMemoryRegionsToReleaseLog(void);
 };
 
 #endif /* !MAIN_INCLUDED_ResourceAssignmentManager_h */

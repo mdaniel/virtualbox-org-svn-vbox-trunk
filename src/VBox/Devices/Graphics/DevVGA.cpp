@@ -6556,7 +6556,7 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     AssertLogRelRCReturn(rc, rc);
     Log(("VMSVGA: VMSVGA3dMSAA = %d\n", pThis->svga.fVMSVGA3dMSAA));
 
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "VMSVGA2dGBO", &pThis->svga.fVMSVGA2dGBO, false);
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "VMSVGA2dGBO", &pThis->svga.fVMSVGA2dGBO, true);
     AssertLogRelRCReturn(rc, rc);
     if (pThis->svga.f3DEnabled || pThis->fVMSVGAPciId == 0) /* The fVMSVGA2dGBO is for 2D mode of vmwgfx.ko only*/
         pThis->svga.fVMSVGA2dGBO = false;

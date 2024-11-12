@@ -73,6 +73,7 @@
 #   pragma intrinsic(_InterlockedDecrement64)
 #  endif
 # elif defined(RT_ARCH_ARM64)
+#   pragma intrinsic(_byteswap_uint64)
 #   pragma intrinsic(__break)
 #   pragma intrinsic(__dmb)
 #   pragma intrinsic(__dsb)

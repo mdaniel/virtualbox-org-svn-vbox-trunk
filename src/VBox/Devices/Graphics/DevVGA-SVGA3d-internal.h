@@ -1075,6 +1075,8 @@ typedef struct VMSVGA3DSTATE
     PVMSVGA3DCONTEXT       *papContexts;
     /** Surfaces indexed by ID.  Grown as needed. */
     PVMSVGA3DSURFACE       *papSurfaces;
+
+    bool fVMSVGA2dGBO;
 #ifdef VMSVGA3D_DX
     /** DX contexts indexed by ID.  Grown as needed. */
     PVMSVGA3DDXCONTEXT     *papDXContexts;

@@ -1361,7 +1361,7 @@ static void vmsvga3dCmdDestroyGBMob(PVGASTATECC pThisCC, SVGA3dCmdDestroyGBMob c
 
 
 /* SVGA_3D_CMD_DEFINE_GB_SURFACE 1097 */
-static void vmsvga3dCmdDefineGBSurface(PVGASTATECC pThisCC, SVGA3dCmdDefineGBSurface const *pCmd, bool fVMSVGA2dGBO)
+static void vmsvga3dCmdDefineGBSurface(PVGASTATECC pThisCC, SVGA3dCmdDefineGBSurface const *pCmd)
 {
     //DEBUG_BREAKPOINT_TEST();
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
@@ -1392,7 +1392,7 @@ static void vmsvga3dCmdDefineGBSurface(PVGASTATECC pThisCC, SVGA3dCmdDefineGBSur
         SVGA3dMSQualityLevel const qualityLevel = pCmd->multisampleCount > 1 ? SVGA3D_MS_QUALITY_FULL : SVGA3D_MS_QUALITY_NONE;
         vmsvga3dSurfaceDefine(pThisCC, pCmd->sid, pCmd->surfaceFlags, pCmd->format,
                               pCmd->multisampleCount, multisamplePattern, qualityLevel, pCmd->autogenFilter,
-                              pCmd->numMipLevels, &pCmd->size, /* arraySize = */ 0, /* bufferByteStride = */ 0, /* fAllocMipLevels = */ fVMSVGA2dGBO);
+                              pCmd->numMipLevels, &pCmd->size, /* arraySize = */ 0, /* bufferByteStride = */ 0, /* fAllocMipLevels = */ false);
     }
 }
 
@@ -5015,7 +5015,7 @@ int vmsvgaR3Process3dCmd(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t idDXCont
         STAM_REL_COUNTER_INC(&pSvgaR3State->StatR3Cmd3dSurfaceCopy);
 
         uint32_t const cCopyBoxes = (cbCmd - sizeof(pCmd)) / sizeof(SVGA3dCopyBox);
-        vmsvga3dSurfaceCopy(pThisCC, pCmd->dest, pCmd->src, cCopyBoxes, (SVGA3dCopyBox *)(pCmd + 1), pThis->svga.fVMSVGA2dGBO);
+        vmsvga3dSurfaceCopy(pThisCC, pCmd->dest, pCmd->src, cCopyBoxes, (SVGA3dCopyBox *)(pCmd + 1));
         break;
     }
 
@@ -5454,7 +5454,7 @@ int vmsvgaR3Process3dCmd(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t idDXCont
     {
         SVGA3dCmdDefineGBSurface *pCmd = (SVGA3dCmdDefineGBSurface *)pvCmd;
         VMSVGAFIFO_CHECK_3D_CMD_MIN_SIZE_BREAK(sizeof(*pCmd));
-        vmsvga3dCmdDefineGBSurface(pThisCC, pCmd, pThis->svga.fVMSVGA2dGBO);
+        vmsvga3dCmdDefineGBSurface(pThisCC, pCmd);
         break;
     }
 

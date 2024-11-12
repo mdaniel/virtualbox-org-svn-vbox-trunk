@@ -383,7 +383,7 @@ int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFla
 
     Assert(!VMSVGA3DSURFACE_HAS_HW_SURFACE(pSurface));
 
-    if (fAllocMipLevels)
+    if (fAllocMipLevels || pState->fVMSVGA2dGBO)
     {
         rc = vmsvga3dSurfaceAllocMipLevels(pSurface);
         AssertRCReturn(rc, rc);
@@ -1447,20 +1447,20 @@ int vmsvga3dSurfaceCopySysMem(PVMSVGA3DSTATE pState, SVGA3dSurfaceImageId dest, 
     return VINF_SUCCESS;
 }
 
-int vmsvga3dSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src, uint32_t cCopyBoxes, SVGA3dCopyBox *pBox, bool fVMSVGA2dGBO)
+int vmsvga3dSurfaceCopy(PVGASTATECC pThisCC, SVGA3dSurfaceImageId dest, SVGA3dSurfaceImageId src, uint32_t cCopyBoxes, SVGA3dCopyBox *pBox)
 {
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    PVMSVGA3DSTATE const p3dState     = pThisCC->svga.p3dState;
+    AssertReturn(pSvgaR3State && p3dState, VERR_INVALID_STATE);
 
-    if (!fVMSVGA2dGBO)
+    if (!p3dState->fVMSVGA2dGBO)
     {
         AssertReturn(pSvgaR3State->pFuncs3D, VERR_NOT_IMPLEMENTED);
         return pSvgaR3State->pFuncs3D->pfnSurfaceCopy(pThisCC, dest, src, cCopyBoxes, pBox);
     }
     else
     {
-        PVMSVGA3DSTATE pState = pThisCC->svga.p3dState;
-        AssertReturn(pState, VERR_INVALID_STATE);
-        return vmsvga3dSurfaceCopySysMem(pState, dest, src, cCopyBoxes, pBox);
+        return vmsvga3dSurfaceCopySysMem(p3dState, dest, src, cCopyBoxes, pBox);
     }
 }
 
@@ -1977,6 +1977,7 @@ int vmsvga3dInit(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC)
     AssertReturn(p3dState, VERR_NO_MEMORY);
     pThisCC->svga.p3dState = p3dState;
 
+    p3dState->fVMSVGA2dGBO = pThis->svga.fVMSVGA2dGBO;
     if (pThis->svga.fVMSVGA2dGBO)
         return VINF_SUCCESS;
 

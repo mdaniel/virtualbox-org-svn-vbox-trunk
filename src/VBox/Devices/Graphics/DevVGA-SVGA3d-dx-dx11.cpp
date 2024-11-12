@@ -4060,7 +4060,7 @@ static DECLCALLBACK(int) vmsvga3dScreenTargetBind(PVGASTATECC pThisCC, VMSVGASCR
         rc = vmsvga3dSurfaceFromSid(pState, sid, &pSurface);
         AssertRCReturn(rc, rc);
 
-        if (!VMSVGA3DSURFACE_HAS_HW_SURFACE(pSurface))
+        if (!VMSVGA3DSURFACE_HAS_HW_SURFACE(pSurface) && !pState->fVMSVGA2dGBO)
         {
             /* Create the actual texture. */
             rc = vmsvga3dBackSurfaceCreateTexture(pThisCC, pSurface);

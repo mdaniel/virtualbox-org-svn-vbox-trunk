@@ -62,6 +62,8 @@
 #include "NEMInternal.h"
 #include <VBox/vmm/vmcc.h>
 
+#include <iprt/formats/arm-psci.h>
+
 #include <iprt/ldr.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
@@ -72,6 +74,80 @@
 HRESULT WINAPI WHvQueryGpaRangeDirtyBitmap(WHV_PARTITION_HANDLE, WHV_GUEST_PHYSICAL_ADDRESS, UINT64, UINT64 *, UINT32);
 # define WHvMapGpaRangeFlagTrackDirtyPages      ((WHV_MAP_GPA_RANGE_FLAGS)0x00000008)
 #endif
+
+
+/*
+ * The following definitions appeared in build 27744 allow configuring the base address of the GICv3 controller,
+ * (there is no official SDK for this yet).
+ */
+/** @todo Better way of defining these which doesn't require casting later on when calling APIs. */
+#define WHV_PARTITION_PROPERTY_CODE_ARM64_IC_PARAMETERS UINT32_C(0x00001012)
+/** No GIC present. */
+#define WHV_ARM64_IC_EMULATION_MODE_NONE  0
+/** Hyper-V emulates a GICv3. */
+#define WHV_ARM64_IC_EMULATION_MODE_GICV3 1
+
+/**
+ * Configures the interrupt controller emulated by Hyper-V.
+ */
+typedef struct MY_WHV_ARM64_IC_PARAMETERS
+{
+    uint32_t u32EmulationMode;
+    uint32_t u32Rsvd;
+    union
+    {
+        struct
+        {
+            RTGCPHYS        GCPhysGicdBase;
+            RTGCPHYS        GCPhysGitsTranslaterBase;
+            uint32_t        u32Rsvd;
+            uint32_t        cLpiIntIdBits;
+            uint32_t        u32PpiCntvOverflw;
+            uint32_t        u32PpiPmu;
+            uint32_t        au32Rsvd[6];
+        } GicV3;
+    } u;
+} MY_WHV_ARM64_IC_PARAMETERS;
+AssertCompileSize(MY_WHV_ARM64_IC_PARAMETERS, 64);
+
+
+/**
+ * The hypercall exit context.
+ */
+typedef struct MY_WHV_HYPERCALL_CONTEXT
+{
+    WHV_INTERCEPT_MESSAGE_HEADER Header;
+    uint16_t                     Immediate;
+    uint16_t                     u16Rsvd;
+    uint32_t                     u32Rsvd;
+    uint64_t                     X[18];
+} MY_WHV_HYPERCALL_CONTEXT;
+typedef MY_WHV_HYPERCALL_CONTEXT *PMY_WHV_HYPERCALL_CONTEXT;
+AssertCompileSize(MY_WHV_HYPERCALL_CONTEXT, 24 + 19 * sizeof(uint64_t));
+
+
+/**
+ * The exit reason context for arm64, the size is different
+ * from the default SDK we build against.
+ */
+typedef struct MY_WHV_RUN_VP_EXIT_CONTEXT
+{
+    WHV_RUN_VP_EXIT_REASON  ExitReason;
+    uint32_t                u32Rsvd;
+    uint64_t                u64Rsvd;
+    union
+    {
+        WHV_MEMORY_ACCESS_CONTEXT           MemoryAccess;
+        WHV_RUN_VP_CANCELED_CONTEXT         CancelReason;
+        MY_WHV_HYPERCALL_CONTEXT            Hypercall;
+        WHV_UNRECOVERABLE_EXCEPTION_CONTEXT UnrecoverableException;
+        uint64_t au64Rsvd2[32];
+    };
+} MY_WHV_RUN_VP_EXIT_CONTEXT;
+typedef MY_WHV_RUN_VP_EXIT_CONTEXT *PMY_WHV_RUN_VP_EXIT_CONTEXT;
+AssertCompileSize(MY_WHV_RUN_VP_EXIT_CONTEXT, 272);
+
+#define My_WHvArm64RegisterGicrBaseGpa ((WHV_REGISTER_NAME)UINT32_C(0x00063000))
 
 
 /*********************************************************************************************************************************
@@ -100,6 +176,7 @@ static decltype(WHvRunVirtualProcessor) *           g_pfnWHvRunVirtualProcessor;
 static decltype(WHvCancelRunVirtualProcessor) *     g_pfnWHvCancelRunVirtualProcessor;
 static decltype(WHvGetVirtualProcessorRegisters) *  g_pfnWHvGetVirtualProcessorRegisters;
 static decltype(WHvSetVirtualProcessorRegisters) *  g_pfnWHvSetVirtualProcessorRegisters;
+//static decltype(WHvGetVirtualProcessorState) *      g_pfnWHvGetVirtualProcessorState;
 decltype(WHvRequestInterrupt) *                     g_pfnWHvRequestInterrupt;
 /** @} */
 
@@ -136,6 +213,7 @@ static const struct
     NEM_WIN_IMPORT(0, false, WHvCancelRunVirtualProcessor),
     NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorRegisters),
     NEM_WIN_IMPORT(0, false, WHvSetVirtualProcessorRegisters),
+//    NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorState),
     NEM_WIN_IMPORT(0, false, WHvRequestInterrupt),
 #undef NEM_WIN_IMPORT
 };
@@ -162,6 +240,7 @@ static const struct
 # define WHvCancelRunVirtualProcessor               g_pfnWHvCancelRunVirtualProcessor
 # define WHvGetVirtualProcessorRegisters            g_pfnWHvGetVirtualProcessorRegisters
 # define WHvSetVirtualProcessorRegisters            g_pfnWHvSetVirtualProcessorRegisters
+//# define WHvGetVirtualProcessorState                g_pfnWHvGetVirtualProcessorState
 # define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
 
 # define VidMessageSlotHandleAndGetNext             g_pfnVidMessageSlotHandleAndGetNext
@@ -524,6 +603,65 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
 
 
 /**
+ * Initializes the GIC controller emulation provided by Hyper-V.
+ *
+ * @returns VBox status code.
+ * @param   pVM             The cross context VM structure.
+ *
+ * @note Needs to be done early when setting up the partition so this has to live here and not in GICNem-win.cpp
+ */
+static int nemR3WinGicCreate(PVM pVM)
+{
+    PCFGMNODE pGicCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "Devices/gic-nem/0/Config");
+    AssertPtrReturn(pGicCfg, VERR_NEM_IPE_5);
+
+    /*
+     * Query the MMIO ranges.
+     */
+    RTGCPHYS GCPhysMmioBaseDist = 0;
+    int rc = CFGMR3QueryU64(pGicCfg, "DistributorMmioBase", &GCPhysMmioBaseDist);
+    if (RT_FAILURE(rc))
+        return VMSetError(pVM, rc, RT_SRC_POS,
+                          "Configuration error: Failed to get the \"DistributorMmioBase\" value\n");
+
+    RTGCPHYS GCPhysMmioBaseReDist = 0;
+    rc = CFGMR3QueryU64(pGicCfg, "RedistributorMmioBase", &GCPhysMmioBaseReDist);
+    if (RT_FAILURE(rc))
+        return VMSetError(pVM, rc, RT_SRC_POS,
+                          "Configuration error: Failed to get the \"RedistributorMmioBase\" value\n");
+
+    RTGCPHYS GCPhysMmioBaseIts = 0;
+    rc = CFGMR3QueryU64(pGicCfg, "ItsMmioBase", &GCPhysMmioBaseIts);
+    if (RT_FAILURE(rc))
+        return VMSetError(pVM, rc, RT_SRC_POS,
+                          "Configuration error: Failed to get the \"ItsMmioBase\" value\n");
+
+    /*
+     * One can only set the GIC distributor base. The re-distributor regions for the individual
+     * vCPUs are configured when the vCPUs are created, so we need to save the base of the MMIO region.
+     */
+    pVM->nem.s.GCPhysMmioBaseReDist = GCPhysMmioBaseReDist;
+
+    WHV_PARTITION_HANDLE hPartition = pVM->nem.s.hPartition;
+
+    MY_WHV_ARM64_IC_PARAMETERS Property; RT_ZERO(Property);
+    Property.u32EmulationMode                 = WHV_ARM64_IC_EMULATION_MODE_GICV3;
+    Property.u.GicV3.GCPhysGicdBase           = GCPhysMmioBaseDist;
+    Property.u.GicV3.GCPhysGitsTranslaterBase = GCPhysMmioBaseIts;
+    Property.u.GicV3.cLpiIntIdBits            = 1; /** @todo LPIs are currently not supported with our device emulations. */
+    Property.u.GicV3.u32PpiCntvOverflw        = pVM->nem.s.u32GicPpiVTimer + 16; /* Calculate the absolute timer INTID. */
+    Property.u.GicV3.u32PpiPmu                = 23; /** @todo Configure dynamically (from SBSA, needs a PMU/NEM emulation just like with the GIC probably). */
+    HRESULT hrc = WHvSetPartitionProperty(hPartition, (WHV_PARTITION_PROPERTY_CODE)WHV_PARTITION_PROPERTY_CODE_ARM64_IC_PARAMETERS, &Property, sizeof(Property));
+    if (FAILED(hrc))
+        return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
+                          "Failed to set WHvPartitionPropertyCodeArm64IcParameters: %Rhrc (Last=%#x/%u)",
+                          hrc, RTNtLastStatusValue(), RTNtLastErrorValue());
+
+    return rc;
+}
+
+
+/**
  * Creates and sets up a Hyper-V (exo) partition.
  *
  * @returns VBox status code.
@@ -642,6 +780,11 @@ static int nemR3NativeInitSetupVm(PVM pVM)
                           "Failed to set WHvPartitionPropertyCodeProcessorFeatures to %'#RX64: %Rhrc (Last=%#x/%u)",
                           pVM->nem.s.uCpuFeatures.u64, hrc, RTNtLastStatusValue(), RTNtLastErrorValue());
 
+    /* Configure the GIC. */
+    int rc = nemR3WinGicCreate(pVM);
+    if (RT_FAILURE(rc))
+        return rc;
+
     /*
      * Set up the partition.
      *
@@ -680,7 +823,7 @@ static int nemR3NativeInitSetupVm(PVM pVM)
             /* Need to query the ID registers and populate CPUM. */
             CPUMIDREGS IdRegs; RT_ZERO(IdRegs);
 
-#if 1
+#if 0
             WHV_REGISTER_NAME  aenmNames[12];
             WHV_REGISTER_VALUE aValues[12];
             RT_ZERO(aValues);
@@ -730,11 +873,23 @@ static int nemR3NativeInitSetupVm(PVM pVM)
             }
 #endif
 
-            int rc = CPUMR3PopulateFeaturesByIdRegisters(pVM, &IdRegs);
+            rc = CPUMR3PopulateFeaturesByIdRegisters(pVM, &IdRegs);
             if (RT_FAILURE(rc))
                 return rc;
         }
+
+        /* Configure the GIC re-distributor region for the GIC. */
+        WHV_REGISTER_NAME  enmName = My_WHvArm64RegisterGicrBaseGpa;
+        WHV_REGISTER_VALUE Value;
+        Value.Reg64 = pVM->nem.s.GCPhysMmioBaseReDist + idCpu * _128K;
+
+        hrc = WHvSetVirtualProcessorRegisters(hPartition, idCpu, &enmName, 1, &Value);
+        AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                              ("WHvSetVirtualProcessorRegisters(%p, %u, WHvArm64RegisterGicrBaseGpa,) -> %Rhrc (Last=%#x/%u)\n",
+                               hPartition, idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                              , VERR_NEM_SET_REGISTERS_FAILED);
     }
+
     pVM->nem.s.fCreatedEmts = true;
 
     LogRel(("NEM: Successfully set up partition\n"));
@@ -1810,7 +1965,7 @@ DECLINLINE(uint64_t) nemR3WinGetGReg(PVMCPU pVCpu, uint8_t uReg)
  * @sa      nemHCWinHandleMessageMemory
  */
 NEM_TMPL_STATIC VBOXSTRICTRC
-nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT const *pExit)
+nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT const *pExit)
 {
     uint64_t const uHostTsc = ASMReadTSC();
     Assert(pExit->MemoryAccess.Header.InterceptAccessType != 3);
@@ -1923,6 +2078,96 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT cons
 
 
 /**
+ * Deals with memory access exits (WHvRunVpExitReasonMemoryAccess).
+ *
+ * @returns Strict VBox status code.
+ * @param   pVM             The cross context VM structure.
+ * @param   pVCpu           The cross context per CPU structure.
+ * @param   pExit           The VM exit information to handle.
+ * @sa      nemHCWinHandleMessageMemory
+ */
+NEM_TMPL_STATIC VBOXSTRICTRC
+nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT const *pExit)
+{
+    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
+
+    /** @todo Raise exception to EL1 if PSCI not configured. */
+    /** @todo Need a generic mechanism here to pass this to, GIM maybe?. */
+    uint32_t uFunId = pExit->Hypercall.Immediate;
+    bool fHvc64 = RT_BOOL(uFunId & ARM_SMCCC_FUNC_ID_64BIT); RT_NOREF(fHvc64);
+    uint32_t uEntity = ARM_SMCCC_FUNC_ID_ENTITY_GET(uFunId);
+    uint32_t uFunNum = ARM_SMCCC_FUNC_ID_NUM_GET(uFunId);
+    if (uEntity == ARM_SMCCC_FUNC_ID_ENTITY_STD_SEC_SERVICE)
+    {
+        switch (uFunNum)
+        {
+            case ARM_PSCI_FUNC_ID_PSCI_VERSION:
+                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
+                break;
+            case ARM_PSCI_FUNC_ID_SYSTEM_OFF:
+                rcStrict = VMR3PowerOff(pVM->pUVM);
+                break;
+            case ARM_PSCI_FUNC_ID_SYSTEM_RESET:
+            case ARM_PSCI_FUNC_ID_SYSTEM_RESET2:
+            {
+                bool fHaltOnReset;
+                int rc = CFGMR3QueryBool(CFGMR3GetChild(CFGMR3GetRoot(pVM), "PDM"), "HaltOnReset", &fHaltOnReset);
+                if (RT_SUCCESS(rc) && fHaltOnReset)
+                {
+                    Log(("nemHCLnxHandleExitHypercall: Halt On Reset!\n"));
+                    rcStrict = VINF_EM_HALT;
+                }
+                else
+                {
+                    /** @todo pVM->pdm.s.fResetFlags = fFlags; */
+                    VM_FF_SET(pVM, VM_FF_RESET);
+                    rcStrict = VINF_EM_RESET;
+                }
+                break;
+            }
+            case ARM_PSCI_FUNC_ID_CPU_ON:
+            {
+                uint64_t u64TgtCpu      = pExit->Hypercall.X[1];
+                RTGCPHYS GCPhysExecAddr = pExit->Hypercall.X[2];
+                uint64_t u64CtxId       = pExit->Hypercall.X[3];
+                VMMR3CpuOn(pVM, u64TgtCpu & 0xff, GCPhysExecAddr, u64CtxId);
+                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
+                break;
+            }
+            case ARM_PSCI_FUNC_ID_PSCI_FEATURES:
+            {
+                uint32_t u32FunNum = (uint32_t)pExit->Hypercall.X[1];
+                switch (u32FunNum)
+                {
+                    case ARM_PSCI_FUNC_ID_PSCI_VERSION:
+                    case ARM_PSCI_FUNC_ID_SYSTEM_OFF:
+                    case ARM_PSCI_FUNC_ID_SYSTEM_RESET:
+                    case ARM_PSCI_FUNC_ID_SYSTEM_RESET2:
+                    case ARM_PSCI_FUNC_ID_CPU_ON:
+                        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                                        false /*f64BitReg*/, false /*fSignExtend*/,
+                                        (uint64_t)ARM_PSCI_STS_SUCCESS);
+                        break;
+                    default:
+                        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                                        false /*f64BitReg*/, false /*fSignExtend*/,
+                                        (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+                }
+                break;
+            }
+            default:
+                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+        }
+    }
+    else
+        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+
+
+    return rcStrict;
+}
+
+
+/**
  * Deals with MSR access exits (WHvRunVpExitReasonUnrecoverableException).
  *
  * @returns Strict VBox status code.
@@ -1931,7 +2176,7 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT cons
  * @param   pExit           The VM exit information to handle.
  * @sa      nemHCWinHandleMessageUnrecoverableException
  */
-NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExitUnrecoverableException(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT const *pExit)
+NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExitUnrecoverableException(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT const *pExit)
 {
 #if 0
     /*
@@ -1965,7 +2210,7 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExitUnrecoverableException(PVMCC pVM,
  * @param   pExit           The VM exit information to handle.
  * @sa      nemHCWinHandleMessage
  */
-NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, WHV_RUN_VP_EXIT_CONTEXT const *pExit)
+NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT const *pExit)
 {
     int rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, CPUMCTX_EXTRN_ALL);
     AssertRCReturn(rc, rc);
@@ -1984,6 +2229,9 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, WHV_R
         case WHvRunVpExitReasonCanceled:
             Log4(("CanceledExit/%u\n", pVCpu->idCpu));
             return VINF_SUCCESS;
+
+        case WHvRunVpExitReasonHypercall:
+            return nemR3WinHandleExitHypercall(pVM, pVCpu, pExit);
 
         case WHvRunVpExitReasonUnrecoverableException:
             STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatExitUnrecoverable);
@@ -2121,7 +2369,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
                              aRegs[2].Reg64, aRegs[3].Segment.Selector, aRegs[4].Reg64, aRegs[5].Reg64));
                 }
 #endif
-                WHV_RUN_VP_EXIT_CONTEXT ExitReason = {0};
+                MY_WHV_RUN_VP_EXIT_CONTEXT ExitReason = {0};
                 TMNotifyStartOfExecution(pVM, pVCpu);
 
                 HRESULT hrc = WHvRunVirtualProcessor(pVM->nem.s.hPartition, pVCpu->idCpu, &ExitReason, sizeof(ExitReason));
@@ -2215,6 +2463,33 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
         STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatImportOnReturnSkipped);
         pVCpu->cpum.GstCtx.fExtrn = 0;
     }
+
+#if 0
+    UINT32 cbWritten;
+    WHV_ARM64_LOCAL_INTERRUPT_CONTROLLER_STATE IntrState;
+    HRESULT hrc = WHvGetVirtualProcessorState(pVM->nem.s.hPartition, pVCpu->idCpu, WHvVirtualProcessorStateTypeInterruptControllerState2,
+                                              &IntrState, sizeof(IntrState), &cbWritten);
+    AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                          ("WHvGetVirtualProcessorState(%p, %u,WHvVirtualProcessorStateTypeInterruptControllerState2,) -> %Rhrc (Last=%#x/%u)\n",
+                           pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                          , VERR_NEM_GET_REGISTERS_FAILED);
+    LogFlowFunc(("IntrState: cbWritten=%u\n"));
+    for (uint32_t i = 0; i < RT_ELEMENTS(IntrState.BankedInterruptState); i++)
+    {
+        WHV_ARM64_INTERRUPT_STATE *pState = &IntrState.BankedInterruptState[i];
+        LogFlowFunc(("IntrState: Intr %u:\n"
+                     "    Enabled=%RTbool\n"
+                     "    EdgeTriggered=%RTbool\n"
+                     "    Asserted=%RTbool\n"
+                     "    SetPending=%RTbool\n"
+                     "    Active=%RTbool\n"
+                     "    Direct=%RTbool\n"
+                     "    GicrIpriorityrConfigured=%u\n"
+                     "    GicrIpriorityrActive=%u\n",
+                     i, pState->Enabled, pState->EdgeTriggered, pState->Asserted, pState->SetPending, pState->Active, pState->Direct,
+                     pState->GicrIpriorityrConfigured, pState->GicrIpriorityrActive));
+    }
+#endif
 
 #if 0
     LogFlow(("NEM/%u: %04x:%08RX64 efl=%#08RX64 => %Rrc\n", pVCpu->idCpu, pVCpu->cpum.GstCtx.cs.Sel,

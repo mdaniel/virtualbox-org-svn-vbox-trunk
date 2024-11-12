@@ -75,6 +75,40 @@ typedef GICHVDEV *PGICHVDEV;
 typedef GICHVDEV const *PCGICHVDEV;
 
 
+/*
+ * The following definitions appeared in build 27744 allow interacting with the GICv3 controller,
+ * (there is no official SDK for this yet).
+ */
+/** @todo Better way of defining these which doesn't require casting later on when calling APIs. */
+#define MY_WHV_ARM64_IINTERRUPT_TYPE_FIXED UINT32_C(0)
+
+typedef union MY_WHV_INTERRUPT_CONTROL2
+{
+    UINT64 AsUINT64;
+    struct
+    {
+        uint32_t InterruptType;
+        UINT32 Reserved1:2;
+        UINT32 Asserted:1;
+        UINT32 Retarget:1;
+        UINT32 Reserved2:28;
+    };
+} MY_WHV_INTERRUPT_CONTROL2;
+
+
+typedef struct MY_WHV_INTERRUPT_CONTROL
+{
+    UINT64                  TargetPartition;
+    MY_WHV_INTERRUPT_CONTROL2  InterruptControl;
+    UINT64                  DestinationAddress;
+    UINT32                  RequestedVector;
+    UINT8                   TargetVtl;
+    UINT8                   ReservedZ0;
+    UINT16                  ReservedZ1;
+} MY_WHV_INTERRUPT_CONTROL;
+AssertCompileSize(MY_WHV_INTERRUPT_CONTROL, 32);
+
+
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
@@ -85,20 +119,6 @@ extern decltype(WHvRequestInterrupt) *  g_pfnWHvRequestInterrupt;
  */
 #ifndef IN_SLICKEDIT
 # define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
-#endif
-
-#if 0
-/**
- * System register ranges for the GICv3.
- */
-static CPUMSYSREGRANGE const g_aSysRegRanges_GICv3[] =
-{
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,   ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,     "ICC_PMR_EL1"),
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR0_EL1,  ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1,   "ICC_IAR0_EL1 - ICC_AP0R3_EL1"),
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1, ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1,  "ICC_AP1R0_EL1 - ICC_NMIAR1_EL1"),
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_DIR_EL1,   ARMV8_AARCH64_SYSREG_ICC_SGI0R_EL1,   "ICC_DIR_EL1 - ICC_SGI0R_EL1"),
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR1_EL1,  ARMV8_AARCH64_SYSREG_ICC_IGRPEN1_EL1, "ICC_IAR1_EL1 - ICC_IGRPEN1_EL1"),
-};
 #endif
 
 
@@ -119,22 +139,23 @@ DECLINLINE(int) gicR3HvSetIrq(PPDMDEVINS pDevIns, VMCPUID idCpu, bool fPpi, uint
 
     PGICHVDEV pThis = PDMDEVINS_2_DATA(pDevIns, PGICHVDEV);
 
-    WHV_INTERRUPT_CONTROL IntrCtrl;
+    MY_WHV_INTERRUPT_CONTROL IntrCtrl;
     IntrCtrl.TargetPartition                         = 0;
-    IntrCtrl.InterruptControl.InterruptType          = WHvArm64InterruptTypeFixed;
-    IntrCtrl.InterruptControl.LevelTriggered         = 1;
-    IntrCtrl.InterruptControl.LogicalDestinationMode = 0;
+    IntrCtrl.InterruptControl.InterruptType          = MY_WHV_ARM64_IINTERRUPT_TYPE_FIXED;
+    IntrCtrl.InterruptControl.Reserved1              = 0;
     IntrCtrl.InterruptControl.Asserted               = fAsserted ? 1 : 0;
-    IntrCtrl.InterruptControl.Reserved               = 0;
+    IntrCtrl.InterruptControl.Retarget               = 0;
+    IntrCtrl.InterruptControl.Reserved2              = 0;
     IntrCtrl.DestinationAddress                      = fPpi ? RT_BIT(idCpu) : 0; /* SGI1R_EL1 */
     IntrCtrl.RequestedVector                         = fPpi ? uIntId : uIntId;
     IntrCtrl.TargetVtl                               = 0;
     IntrCtrl.ReservedZ0                              = 0;
     IntrCtrl.ReservedZ1                              = 0;
-    HRESULT hrc = WHvRequestInterrupt(pThis->hPartition, &IntrCtrl, sizeof(IntrCtrl));
+    HRESULT hrc = WHvRequestInterrupt(pThis->hPartition, (const WHV_INTERRUPT_CONTROL *)&IntrCtrl, sizeof(IntrCtrl));
     if (SUCCEEDED(hrc))
         return VINF_SUCCESS;
 
+    AssertFailed();
     LogFlowFunc(("WHvRequestInterrupt() failed with %Rhrc (Last=%#x/%u)\n", hrc, RTNtLastStatusValue(), RTNtLastErrorValue()));
     return VERR_NEM_IPE_9; /** @todo */
 }
@@ -226,7 +247,7 @@ DECLCALLBACK(int) gicR3HvConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE 
     /*
      * Validate GIC settings.
      */
-    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase", "");
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase", "");
 
     /*
      * Disable automatic PDM locking for this device.
@@ -254,13 +275,6 @@ DECLCALLBACK(int) gicR3HvConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE 
     if (RT_FAILURE(rc))
         return PDMDEV_SET_ERROR(pDevIns, rc,
                                 N_("Configuration error: Failed to get the \"RedistributorMmioBase\" value"));
-
-    /** @todo Configure the MMIO bases when MS released a new SDK with support for it (currently hard coded in the FDT in the
-     *        Main constructor):
-     *     GICD: 0xffff0000
-     *     GICR: 0xeffee000 (0x20000 per VP)
-     *     GITS: 0xeff68000
-     */
 
     gicR3HvReset(pDevIns);
     return VINF_SUCCESS;

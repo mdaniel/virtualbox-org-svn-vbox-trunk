@@ -315,6 +315,10 @@ typedef struct NEM
         uint64_t                cPagesInUse;
     } R0Stats;
 
+# if defined(VBOX_VMM_TARGET_ARMV8)
+    RTGCPHYS                    GCPhysMmioBaseReDist;
+# endif
+
 #elif defined(RT_OS_DARWIN)
     /** Set if we've created the EMTs. */
     bool                        fCreatedEmts : 1;

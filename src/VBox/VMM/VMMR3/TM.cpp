@@ -819,6 +819,11 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
     for (VMCPUID i = 0; i < pVM->cCpus; i++)
     {
         PVMCPU pVCpu = pVM->apCpusR3[i];
+
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        pVCpu->cNsVTimerActivate   = UINT64_MAX;
+#endif
+
         STAMR3RegisterF(pVM, &pVCpu->tm.s.offTSCRawSrc,          STAMTYPE_U64, STAMVISIBILITY_ALWAYS, STAMUNIT_TICKS, "TSC offset relative the raw source",           "/TM/TSC/offCPU%u", i);
 #ifndef VBOX_WITHOUT_NS_ACCOUNTING
 # if defined(VBOX_WITH_STATISTICS) || defined(VBOX_WITH_NS_ACCOUNTING_STATS)

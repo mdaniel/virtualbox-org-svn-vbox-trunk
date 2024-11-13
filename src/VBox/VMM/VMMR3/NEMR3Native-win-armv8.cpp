@@ -2493,10 +2493,6 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
     VBOXSTRICTRC    rcStrict            = VINF_SUCCESS;
     for (unsigned iLoop = 0;; iLoop++)
     {
-        /* Ensure that Hyper-V has the whole state. */
-        int rc2 = nemHCWinCopyStateToHyperV(pVM, pVCpu);
-        AssertRCReturn(rc2, rc2);
-
         /*
          * Poll timers and run for a bit.
          *
@@ -2513,6 +2509,10 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
         {
             if (VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM_WAIT, VMCPUSTATE_STARTED_EXEC_NEM))
             {
+                /* Ensure that Hyper-V has the whole state. */
+                int rc2 = nemHCWinCopyStateToHyperV(pVM, pVCpu);
+                AssertRCReturn(rc2, rc2);
+
 #ifdef LOG_ENABLED
                 if (LogIsFlowEnabled())
                 {

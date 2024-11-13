@@ -56,7 +56,7 @@ if   defined(VBOX_WITH_HARDENING) \
  LIBRARIES += SUPR3HardenedStatic
 endif
 ifndef VBOX_ONLY_BUILD
- ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+ ifdef VBOX_WITH_HARDENING
   DLLS.win += VBoxSupLib
  endif
 endif

@@ -523,6 +523,9 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_WITH_NETFLT=$(if $(VBOX_WITH_NETFLT),yes,no)' \
 	-E 'VBOX_WITH_PYTHON=$(if $(VBOX_WITH_PYTHON),yes,no)' \
 	-E 'VBOX_WITH_QTGUI=$(if $(VBOX_WITH_QTGUI),yes,no)' \
+	-E 'VBOX_WITH_ORACLE_QT=$(if $(VBOX_WITH_ORACLE_QT),yes,no)' \
+	-E 'VBOX_WITH_R0_MODULES=$(if $(VBOX_WITH_R0_MODULES),yes,no)' \
+	-E 'VBOX_WITH_MINIMAL_R0=$(if $(VBOX_WITH_MINIMAL_R0),yes,no)' \
 	-E 'VBOX_WITH_RAW_MODE=$(if $(VBOX_WITH_RAW_MODE),yes,no)' \
 	-E 'VBOX_WITH_SERIALNUMBER_INSTALL=$(if $(VBOX_WITH_SERIALNUMBER_INSTALL),yes,no)' \
 	-E 'VBOX_WITH_VIDEOHWACCEL=$(if $(VBOX_WITH_VIDEOHWACCEL),yes,no)' \
@@ -718,6 +721,7 @@ define def_vbox_build_wixlib
  		| $$$$(dir $$$$@) $(if-expr "$(lang)" != "en_US",, \
  			$(VBOX_WIN_INST_REPACK_DIR)/ $(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_$(lang)/ )
 	$(QUIET)$(RM) -f -- "$$@"  "$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib" "$(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).wixlib"
+## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?
 	$(REDIRECT) \
 		-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \
 		-E 'PATH_TARGET=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR))' \
@@ -773,6 +777,9 @@ define def_vbox_build_wixlib
 		-E 'VBOX_WITH_NETFLT=$(if $(VBOX_WITH_NETFLT),yes,no)' \
 		-E 'VBOX_WITH_PYTHON=$(if $(VBOX_WITH_PYTHON),yes,no)' \
 		-E 'VBOX_WITH_QTGUI=$(if $(VBOX_WITH_QTGUI),yes,no)' \
+		-E 'VBOX_WITH_ORACLE_QT=$(if $(VBOX_WITH_ORACLE_QT),yes,no)' \
+		-E 'VBOX_WITH_R0_MODULES=$(if $(VBOX_WITH_R0_MODULES),yes,no)' \
+		-E 'VBOX_WITH_MINIMAL_R0=$(if $(VBOX_WITH_MINIMAL_R0),yes,no)' \
 		-E 'VBOX_WITH_RAW_MODE=$(if $(VBOX_WITH_RAW_MODE),yes,no)' \
 		-E 'VBOX_WITH_SERIALNUMBER_INSTALL=$(if $(VBOX_WITH_SERIALNUMBER_INSTALL),yes,no)' \
 		-E 'VBOX_WITH_VIDEOHWACCEL=$(if $(VBOX_WITH_VIDEOHWACCEL),yes,no)' \
@@ -835,6 +842,7 @@ define def_vbox_build_msm_wixlib
  		$(VBOX_VERSION_STAMP) \
  		| $$$$(dir $$$$@) $(VBOX_WIN_INST_REPACK_DIR)/
 	$(QUIET)$(RM) -f -- "$$@" "$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang).wix" "$(VBOX_WIN_INST_REPACK_DIR)/VBoxMerge$(module)_$(lang).wix"
+## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?  This stuff is surely out of sync.
 	$(REDIRECT) \
 		-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \
 		-E 'PATH_TARGET=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR))' \

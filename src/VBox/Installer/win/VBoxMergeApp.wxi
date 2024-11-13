@@ -48,10 +48,12 @@
     <!-- Device driver directory -->
     <Directory Id="dir_VBoxAppDrivers" Name="drivers">
         <Directory Id="dir_VBoxAppVBoxSup" Name="vboxsup">
-<?if $(env.VBOX_SIGNING_MODE) != none ?>
+<?if $(env.VBOX_SIGNING_MODE) != "none" ?>
+ <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
             <Component Id="cp_VBoxSupCat_PreW10" Guid="673195c2-f315-42e7-ff00-5acbd91ea0bd" Bitness="$(var.Property_Bitness)" Condition="(NOT VBOX_IS_WINDOWS_10)">
                 <File Id="file_VBoxSup_PreW10.cat" Name="VBoxSup.cat" Source="$(env.PATH_OUT)\bin\VBoxSup-PreW10.cat" />
             </Component>
+ <?endif?>
             <Component Id="cp_VBoxSupCat_W10" Guid="589be90d-0286-4684-503d-a1681f9587bc" Bitness="$(var.Property_Bitness)" Condition="(VBOX_IS_WINDOWS_10)">
                 <File Id="file_VBoxSup.cat" Name="VBoxSup.cat" Source="$(env.PATH_OUT)\bin\VBoxSup.cat" />
             </Component>
@@ -126,14 +128,15 @@
         <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
     </Component>
 
+    <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
     <Component Id="cp_ProxyStubLegacy" Guid="97F12055-5B6D-481C-E8CD-F41D8C733280" Bitness="$(var.Property_Bitness)" Condition="(VersionNT &lt; 601)">
         <!-- Only install this proxy stub DLL pre-Windows 7 (AMD64: legacy NDR stuff; Both: No ObjectStublessClientXX). -->
-
         <File Id="file_VBoxProxyStubLegacy" Name="VBoxProxyStubLegacy.dll" KeyPath="yes" Source="$(env.PATH_OUT)\bin\VBoxProxyStubLegacy.dll">
             <Class Id="$(env.VBOX_MIDL_PROXY_CLSID)" Context="InprocServer32" Description="PSFactoryBuffer" ThreadingModel="both" />
         </File>
         <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
     </Component>
+    <?endif?>
 
 <?endif?>
 
@@ -242,7 +245,9 @@
         <File Id="file_VBoxDD2.dll" Name="VBoxDD2.dll" Source="$(env.PATH_OUT)\bin\VBoxDD2.dll" />
         <File Id="file_VBoxDDU.dll" Name="VBoxDDU.dll" Source="$(env.PATH_OUT)\bin\VBoxDDU.dll" />
         <File Id="file_VBoxRT.dll" Name="VBoxRT.dll" Source="$(env.PATH_OUT)\bin\VBoxRT.dll" />
+<?if $(env.VBOX_WITH_HARDENING) = "yes" ?>
         <File Id="file_VBoxSupLib.dll" Name="VBoxSupLib.dll" Source="$(env.PATH_OUT)\bin\VBoxSupLib.dll" />
+<?endif?>
         <File Id="file_VBoxVMM.dll" Name="VBoxVMM.dll" Source="$(env.PATH_OUT)\bin\VBoxVMM.dll" />
 <?if $(env.VBOX_WITH_LIBSSH) = "yes" ?>
         <File Id="file_VBoxLibSsh.dll" Name="VBoxLibSsh.dll" Source="$(env.PATH_OUT)\bin\VBoxLibSsh.dll" />
@@ -275,9 +280,12 @@
         <File Id="file_VMMRC.rc" Name="VMMRC.rc" Source="$(env.PATH_OUT)\bin\VMMRC.rc" />
         <File Id="file_VBoxDDRC.rc" Name="VBoxDDRC.rc" Source="$(env.PATH_OUT)\bin\VBoxDDRC.rc" />
 <?endif?>
-
+<?if $(env.VBOX_WITH_R0_MODULES) = "yes" ?>
         <File Id="file_VMMR0.r0" Name="VMMR0.r0" Source="$(env.PATH_OUT)\bin\VMMR0.r0" />
+    <?if $(env.VBOX_WITH_MINIMAL_R0) = "no" ?>
         <File Id="file_VBoxDDR0.r0" Name="VBoxDDR0.r0" Source="$(env.PATH_OUT)\bin\VBoxDDR0.r0" />
+    <?endif?>
+<?endif?>
 
 <?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
         <!-- Qt frontend -->
@@ -287,17 +295,20 @@
         </File>
         <File Id="file_UICommon.dll" Name="UICommon.dll" Source="$(env.PATH_OUT)\bin\UICommon.dll">
         </File>
-        <?if $(env.VBOX_WITH_HARDENING) = "yes" ?>
-            <File Id="file_VirtualBoxVM.dll" Name="VirtualBoxVM.dll" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.dll">
-            </File>
-        <?endif?>
+    <?if $(env.VBOX_WITH_HARDENING) = "yes" ?>
+        <File Id="file_VirtualBoxVM.dll" Name="VirtualBoxVM.dll" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.dll">
+        </File>
+    <?endif?>
+    <?if $(env.VBOX_WITH_ORACLE_QT) = "yes" ?>
         <File Id="file_Qt6Core$(var.VBOX_QT_INFIX).dll" Name="Qt6Core$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Core$(var.VBOX_QT_INFIX).dll" />
         <File Id="file_Qt6Gui$(var.VBOX_QT_INFIX).dll" Name="Qt6Gui$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Gui$(var.VBOX_QT_INFIX).dll" />
         <File Id="file_Qt6Widgets$(var.VBOX_QT_INFIX).dll" Name="Qt6Widgets$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Widgets$(var.VBOX_QT_INFIX).dll" />
         <File Id="file_Qt6PrintSupport$(var.VBOX_QT_INFIX).dll" Name="Qt6PrintSupport$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6PrintSupport$(var.VBOX_QT_INFIX).dll" />
         <File Id="file_Qt6StateMachine$(var.VBOX_QT_INFIX).dll" Name="Qt6StateMachine$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6StateMachine$(var.VBOX_QT_INFIX).dll" />
         <File Id="file_Qt6Help$(var.VBOX_QT_INFIX).dll" Name="Qt6Help$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Help$(var.VBOX_QT_INFIX).dll" />
+        <!-- @todo r=bird: why file_vSql* and not file_Qt6Sql* like the 6 files above? -->
         <File Id="file_vSql$(var.VBOX_QT_INFIX).dll" Name="Qt6Sql$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Sql$(var.VBOX_QT_INFIX).dll" />
+    <?endif?>
         <File Id="file_VirtualBox.VisualElementsManifest.xml" Name="VirtualBox.VisualElementsManifest.xml" Source="$(env.PATH_OUT)\bin\VirtualBox.VisualElementsManifest.xml" />
         <File Id="file_VirtualBox_70px.png" Name="VirtualBox_70px.png" Source="$(env.PATH_OUT)\bin\VirtualBox_70px.png" />
         <File Id="file_VirtualBox_150px.png" Name="VirtualBox_150px.png" Source="$(env.PATH_OUT)\bin\VirtualBox_150px.png" />
@@ -316,6 +327,10 @@
 <?if $(env.VBOX_WITH_EFIFW_PACKING) = "yes" ?>
         <File Id="file_VBoxEFI32.fd" Name="VBoxEFI32.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI32.fd" />
         <File Id="file_VBoxEFI64.fd" Name="VBoxEFI64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI64.fd" />
+    <?if $(env.KBUILD_TARGET_ARCH) = "arm64" ?>
+        <File Id="file_VBoxEFIAArch32.fd" Name="VBoxEFIAArch32.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFIAArch32.fd" />
+        <File Id="file_VBoxEFIAArch64.fd" Name="VBoxEFIAArch64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFIAArch64.fd" />
+    <?endif?>
 <?endif?>
         <!-- VBox guest additions -->
 <?if $(env.VBOX_WITH_ADDITIONS_PACKING) = "yes" ?>
@@ -330,7 +345,7 @@
 
     </Component> <!-- MainBinaries -->
 
-<?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
+<?if $(env.VBOX_WITH_QTGUI) = "yes" And $(env.VBOX_WITH_ORACLE_QT) = "yes" ?>
     <!-- Qt platforms plugins -->
     <Directory Id="dir_VBoxAppPlatforms" Name="platforms">
         <Component Id="cp_QtPlatforms" Guid="842367ec-6094-4ddc-93d8-6ca70fc1ca24" Bitness="$(var.Property_Bitness)">

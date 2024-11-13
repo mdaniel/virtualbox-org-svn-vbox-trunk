@@ -2358,8 +2358,7 @@ nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEX
 
     /** @todo What to do if immediate is != 0? */
 
-    if (   rcStrict == VINF_SUCCESS
-        && fAdvancePc)
+    if (rcStrict == VINF_SUCCESS)
         pVCpu->cpum.GstCtx.Pc.u64 += sizeof(uint32_t);
 
     return rcStrict;

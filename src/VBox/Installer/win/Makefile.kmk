@@ -723,7 +723,7 @@ define def_vbox_build_wixlib
  		| $$$$(dir $$$$@) $(if-expr "$(lang)" != "en_US",, \
  			$(VBOX_WIN_INST_REPACK_DIR)/ $(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_$(lang)/ )
 	$(QUIET)$(RM) -f -- "$$@"  "$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib" "$(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).wixlib"
-## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?
+ ## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?
 	$(REDIRECT) \
 		-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \
 		-E 'PATH_TARGET=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR))' \
@@ -844,7 +844,7 @@ define def_vbox_build_msm_wixlib
  		$(VBOX_VERSION_STAMP) \
  		| $$$$(dir $$$$@) $(VBOX_WIN_INST_REPACK_DIR)/
 	$(QUIET)$(RM) -f -- "$$@" "$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang).wix" "$(VBOX_WIN_INST_REPACK_DIR)/VBoxMerge$(module)_$(lang).wix"
-## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?  This stuff is surely out of sync.
+ ## @todo r=bird: Wtf do we duplicate most/all of VBOX_WIN_INST_ENV here?  This stuff is surely out of sync.
 	$(REDIRECT) \
 		-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \
 		-E 'PATH_TARGET=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR))' \
@@ -1043,6 +1043,7 @@ endif
 # from the MS Installer SDK.
 #
 # Only contains the minimal set of stuff to get a language-specific .msi built.
+# We also don't need waste time to compress anything here.
 #
 define def_vbox_create_mst
  $(VBOX_WIN_INST_OUT_DIR)/$(lang)/$(lang).mst \
@@ -1058,6 +1059,8 @@ define def_vbox_create_mst
  		| $$$$(dir $$$$@) $(VBOX_WIN_INST_REPACK_DIR)/
 	$(call MSG_L1,Creating language diff for $(lang))
 	kmk_time $$(REDIRECT_EXT) -E WIX_TEMP='$$(subst /,\,$$(@D))' $(VBOX_WIN_INST_ENV) \
+		-E 'VBOX_CAB_COMPRESSION_LEVEL=none' \
+		-E 'VBOX_CAB_COMPRESSION_LEVEL_COMMON=none' \
 		-- $(VBOX_TOOLS_WIN_WIX_BIN) build \
 		-intermediatefolder $$(@D)/wix-temp/ \
 		-loc $(VBOX_WIN_INST_OUT_DIR)/NLS/Language_$(lang).wxl \

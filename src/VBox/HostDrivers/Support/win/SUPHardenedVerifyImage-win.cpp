@@ -1747,7 +1747,8 @@ static int supHardNtViCertStoreAddArray(RTCRSTORE hStore, PCSUPTAENTRY paCerts, 
 {
     for (uint32_t i = 0; i < cCerts; i++)
     {
-        int rc = RTCrStoreCertAddEncoded(hStore, RTCRCERTCTX_F_ENC_TAF_DER, paCerts[i].pch, paCerts[i].cb, pErrInfo);
+        int rc = RTCrStoreCertAddEncoded(hStore, !paCerts[i].fIsCert ? RTCRCERTCTX_F_ENC_TAF_DER : RTCRCERTCTX_F_ENC_X509_DER,
+                                         paCerts[i].pch, paCerts[i].cb, pErrInfo);
         if (RT_FAILURE(rc))
             return rc;
     }
@@ -2017,7 +2018,7 @@ DECLHIDDEN(int) supHardenedWinInitImageVerifier(PRTERRINFO pErrInfo)
          * Initialize it, leaving the cleanup to the termination call.
          */
         rc = supHardNtViCertInit(&g_BuildX509Cert, g_abSUPBuildCert, g_cbSUPBuildCert, pErrInfo, "BuildCertificate");
-        SUPTAENTRY const aBuildCerts[1] = { { g_abSUPBuildCert, g_cbSUPBuildCert }, };
+        SUPTAENTRY const aBuildCerts[1] = { { g_abSUPBuildCert, g_cbSUPBuildCert, true }, };
         if (RT_SUCCESS(rc))
             rc = supHardNtViCertStoreInit(&g_hSpecialTrustStore,
                                           aBuildCerts, RT_ELEMENTS(aBuildCerts),

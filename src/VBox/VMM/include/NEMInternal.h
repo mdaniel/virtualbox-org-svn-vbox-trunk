@@ -316,7 +316,12 @@ typedef struct NEM
     } R0Stats;
 
 # if defined(VBOX_VMM_TARGET_ARMV8)
+    /** Re-distributor memory region for all vCPUs. */
     RTGCPHYS                    GCPhysMmioBaseReDist;
+    /** Number of breakpoints supported (for syncing registers). */
+    uint32_t                    cBreakpoints;
+    /** Number of watchpoints supported (for syncing registers). */
+    uint32_t                    cWatchpoints;
 # endif
 
 #elif defined(RT_OS_DARWIN)

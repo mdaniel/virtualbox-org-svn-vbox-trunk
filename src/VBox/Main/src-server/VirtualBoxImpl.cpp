@@ -6445,6 +6445,44 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
         return setError(E_INVALIDARG,
                         tr("The provided progress object GUID is invalid"));
 
+#ifdef VBOX_WITH_OBJ_TRACKER
+    std::vector<com::Utf8Str> lObjIdMap;
+    gTrackedObjectsCollector.getObjIdsByClassIID(IID_IProgress, lObjIdMap);
+
+    for (const com::Utf8Str& item : lObjIdMap)
+    {
+        if(gTrackedObjectsCollector.checkObj(item.c_str()))
+        {
+            TrackedObjectData temp;
+            gTrackedObjectsCollector.getObj(item.c_str(), temp);
+            Log2(("Tracked Progress Object with objectId %s was found\n", temp.objectIdStr().c_str()));
+
+            ComPtr<IProgress> pProgress;
+            temp.getInterface()->QueryInterface(IID_IProgress, (void **)pProgress.asOutParam());
+            if (pProgress.isNotNull())
+            {
+                Bstr reqId(aId.toString().c_str());
+                Bstr foundId;
+                hrc = pProgress->COMGETTER(Id)(foundId.asOutParam());
+                if (reqId == foundId)
+                {
+                    BOOL aCompleted;
+                    pProgress->COMGETTER(Completed)(&aCompleted);
+
+                    BOOL aCanceled;
+                    pProgress->COMGETTER(Canceled)(&aCanceled);
+                    LogRel(("Requested progress was found:\n  id %s\n  completed %s\n  canceled %s\n",
+                            aId.toString().c_str(),
+                            aCompleted ? "True" : "False",
+                            aCanceled ? "True" : "False"));
+
+                    aProgressObject = pProgress;
+                    return S_OK;
+                }
+            }
+        }
+    }
+#else
     /* protect mProgressOperations */
     AutoReadLock safeLock(m->mtxProgressOperations COMMA_LOCKVAL_SRC_POS);
 
@@ -6454,6 +6492,8 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
         aProgressObject = it->second;
         return S_OK;
     }
+#endif
+
     return setError(E_INVALIDARG,
                     tr("The progress object with the given GUID could not be found"));
 }

@@ -338,10 +338,10 @@ HRESULT TrackedObjectsCollector::getObj(const com::Utf8Str &aObjId,
         /* Update some fields in the found object if needed. in instance, the last access time */
         com::Utf8Str lat = pIter->second.updateLastAccessTime(); /* Update the access time */
         Log2(("The updated last access time is %s\n", lat.c_str()));
-        vrc = VINF_SUCCESS;
+        hrc = S_OK;
     }
 
-    if (RT_SUCCESS(vrc)) /** @todo r=bird: This won't ever fail. Did you mixup vrc and hrc above? */
+    if (SUCCEEDED(hrc))
     {
         /** @todo r=bird: Why do three lookups? */
         if ( i_getObj(aObjId).getInterface().isNotNull() )

@@ -77,9 +77,20 @@ void *RT_NOCRT(memset)(void *pvDst, int ch, size_t cb)
         *u.pu32++ = u32;
 
     /* Remaining byte moves. */
-    c = cb & 3;
-    while (c-- > 0)
-        *u.pu8++ = (uint8_t)u32;
+    switch (cb & 3)
+    {
+        case 0:
+            break;
+        case 3:
+            *u.pu8++ = (uint8_t)u32;
+            RT_FALL_THRU();
+        case 2:
+            *u.pu8++ = (uint8_t)u32;
+            RT_FALL_THRU();
+        case 1:
+            *u.pu8++ = (uint8_t)u32;
+            break;
+    }
 
     return pvDst;
 }

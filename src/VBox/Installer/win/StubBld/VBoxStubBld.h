@@ -62,7 +62,9 @@ typedef enum VBOXSTUBPKGARCH
     /** Extract on x86 hosts. */
     VBOXSTUBPKGARCH_X86,
     /** Extract on AMD64 hosts. */
-    VBOXSTUBPKGARCH_AMD64
+    VBOXSTUBPKGARCH_AMD64,
+    /** Extract on ARM64 hosts. */
+    VBOXSTUBPKGARCH_ARM64
 } VBOXSTUBPKGARCH;
 
 /**

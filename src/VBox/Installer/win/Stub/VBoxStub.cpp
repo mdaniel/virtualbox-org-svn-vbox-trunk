@@ -60,7 +60,6 @@
 # include <stdlib.h>
 #endif
 
-#include "VBoxStub.h"
 #include "../StubBld/VBoxStubBld.h"
 #include "resource.h"
 
@@ -73,6 +72,8 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
+#define VBOX_STUB_TITLE "VirtualBox Installer"
+
 #define MY_UNICODE_SUB(str) L ##str
 #define MY_UNICODE(str)     MY_UNICODE_SUB(str)
 
@@ -109,6 +110,9 @@ typedef struct STUBCLEANUPREC
 } STUBCLEANUPREC;
 /** Pointer to a cleanup record. */
 typedef STUBCLEANUPREC *PSTUBCLEANUPREC;
+
+typedef BOOL (WINAPI *PFNISWOW64PROCESS)(HANDLE, PBOOL);
+typedef BOOL (WINAPI *PFNISWOW64PROCESS2)(HANDLE, USHORT *, USHORT *);
 
 
 /*********************************************************************************************************************************
@@ -471,21 +475,56 @@ static int Extract(VBOXSTUBPKG const *pPackage, const char *pszTempFile, RTFILE 
 /**
  * Detects whether we're running on a 32- or 64-bit platform and returns the result.
  *
- * @returns TRUE if we're running on a 64-bit OS, FALSE if not.
+ * @returns Returns the native package architecture.
  */
-static BOOL IsWow64(void)
+static VBOXSTUBPKGARCH GetNativePackageArch(void)
 {
-    BOOL fIsWow64 = TRUE;
-    fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandle(TEXT("kernel32")), "IsWow64Process");
-    if (NULL != fnIsWow64Process)
+    HMODULE const      hModKernel32 = GetModuleHandleW(L"kernel32.dll");
+    PFNISWOW64PROCESS2 pfnIsWow64Process2 = (PFNISWOW64PROCESS2)GetProcAddress(hModKernel32, "IsWow64Process2");
+    if (pfnIsWow64Process2)
     {
-        if (!fnIsWow64Process(GetCurrentProcess(), &fIsWow64))
+        USHORT usWowMachine  = IMAGE_FILE_MACHINE_UNKNOWN;
+        USHORT usHostMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+        if (pfnIsWow64Process2(GetCurrentProcess(), &usWowMachine, &usHostMachine))
         {
-            /* Error in retrieving process type - assume that we're running on 32bit. */
-            return FALSE;
+            if (usHostMachine == IMAGE_FILE_MACHINE_AMD64)
+                return VBOXSTUBPKGARCH_AMD64;
+            if (usHostMachine == IMAGE_FILE_MACHINE_ARM64)
+                return VBOXSTUBPKGARCH_ARM64;
+            if (usHostMachine == IMAGE_FILE_MACHINE_I386)
+                return VBOXSTUBPKGARCH_X86;
+            LogError("IsWow64Process2 return unknown host machine value: %#x (wow machine %#x)", usHostMachine, usWowMachine);
         }
+        else
+            LogError("IsWow64Process2 failed: %u", GetLastError());
     }
-    return fIsWow64;
+    else
+    {
+        PFNISWOW64PROCESS pfnIsWow64Process = (PFNISWOW64PROCESS)GetProcAddress(hModKernel32, "IsWow64Process");
+        if (pfnIsWow64Process)
+        {
+            BOOL fIsWow64 = TRUE;
+            if (pfnIsWow64Process(GetCurrentProcess(), &fIsWow64))
+            {
+                if (fIsWow64)
+                    return VBOXSTUBPKGARCH_AMD64;
+            }
+            else
+                LogError("IsWow64Process failed: %u\n", GetLastError());
+        }
+        else
+            LogError("Neither IsWow64Process nor IsWow64Process2 was found!");
+    }
+
+#ifdef RT_ARCH_X86
+    return VBOXSTUBPKGARCH_X86;
+#elif defined(RT_ARCH_AMD64)
+    return VBOXSTUBPKGARCH_AMD64;
+#elif defined(RT_ARCH_ARM64)
+    return VBOXSTUBPKGARCH_ARM64;
+#else
+# error "port me"
+#endif
 }
 
 
@@ -500,7 +539,7 @@ static bool PackageIsNeeded(VBOXSTUBPKG const *pPackage)
 {
     if (pPackage->enmArch == VBOXSTUBPKGARCH_ALL)
         return true;
-    VBOXSTUBPKGARCH enmArch = IsWow64() ? VBOXSTUBPKGARCH_AMD64 : VBOXSTUBPKGARCH_X86;
+    VBOXSTUBPKGARCH enmArch = GetNativePackageArch();
     return pPackage->enmArch == enmArch;
 }
 
@@ -1426,7 +1465,7 @@ int main(int argc, char **argv)
      */
     if (   !fExtractOnly
         && !g_fSilent
-        && !IsWow64())
+        && GetNativePackageArch() == VBOXSTUBPKGARCH_X86)
         rcExit = ShowError("32-bit Windows hosts are not supported by this VirtualBox release.");
     else
     {

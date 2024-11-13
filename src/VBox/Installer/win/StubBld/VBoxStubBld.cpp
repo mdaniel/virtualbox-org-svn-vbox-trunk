@@ -180,7 +180,8 @@ int main(int argc, char* argv[])
             && strcmp(pszArg, "-stub")
             && strcmp(pszArg, "-target-all")
             && strcmp(pszArg, "-target-x86")
-            && strcmp(pszArg, "-target-amd64"))
+            && strcmp(pszArg, "-target-amd64")
+            && strcmp(pszArg, "-target-arm64"))
         {
             fprintf(stderr, "syntax error: Invalid parameter: %s\n", argv[i]);
             return RTEXITCODE_SYNTAX;
@@ -211,6 +212,8 @@ int main(int argc, char* argv[])
                 aBuildPkgs[StubHdr.cPackages].enmArch = VBOXSTUBPKGARCH_ALL;
             else if (strcmp(pszArg, "-target-amd64") == 0)
                 aBuildPkgs[StubHdr.cPackages].enmArch = VBOXSTUBPKGARCH_AMD64;
+            else if (strcmp(pszArg, "-target-arm64") == 0)
+                aBuildPkgs[StubHdr.cPackages].enmArch = VBOXSTUBPKGARCH_ARM64;
             else if (strcmp(pszArg, "-target-x86") == 0)
                 aBuildPkgs[StubHdr.cPackages].enmArch = VBOXSTUBPKGARCH_X86;
             else

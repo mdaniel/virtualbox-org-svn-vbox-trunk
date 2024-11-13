@@ -298,6 +298,7 @@ Machine::~Machine()
 HRESULT Machine::FinalConstruct()
 {
     LogFlowThisFunc(("\n"));
+    setTracked(0, 60);//infinite, 1 minute
     return BaseFinalConstruct();
 }
 

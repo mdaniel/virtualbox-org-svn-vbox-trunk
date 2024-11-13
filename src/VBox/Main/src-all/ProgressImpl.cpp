@@ -89,6 +89,8 @@ HRESULT Progress::FinalConstruct()
     mCompletedSem = NIL_RTSEMEVENTMULTI;
     mWaitersCount = 0;
 
+    setTracked(18000, 7200);//5 hour, 2 hours
+
     return Progress::BaseFinalConstruct();
 }
 

@@ -985,6 +985,8 @@ HRESULT Medium::FinalConstruct()
     vrc = VDIfTcpNetInstDefaultCreate(&m->hTcpNetInst, &m->vdImageIfaces);
     AssertRCReturn(vrc, E_FAIL);
 
+    setTracked(0, 60);//infinite, 1 minute
+
     return BaseFinalConstruct();
 }
 
@@ -1681,6 +1683,15 @@ void Medium::uninit()
 
         if (pMedium != this)
             pMedium->Release();
+
+        /*
+         * Special case. Invalidate the tracked object.
+         * Works ONLY in conjunction with setTracked() in init() or FinalConstruct()!
+         * The Medium object may stay in memory after the call uninit(). See i_close(), in instance.
+         * The object state is "Not ready" in this case. From user perspective the object doesn't exist anymore.
+         * In this case we still track the object but mark the object as "invalid".
+         */
+        invalidateTracked();
 
         autoUninitSpan.setSucceeded();
     }

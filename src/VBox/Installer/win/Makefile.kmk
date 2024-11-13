@@ -561,7 +561,7 @@ define def_vbox_build_msi
  		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib \
  		$(VBOX_WIN_INST_OUT_DIR)/NLS/Language_$(lang).wxl \
  		$(VBOX_WIN_INST_OUT_DIR)/NLS/License_$(lang).wxl \
-		$(PATH_STAGE_BIN)/VBoxDrvInst.exe \
+ 		$(PATH_STAGE_BIN)/VBoxDrvInst.exe \
  		$(PATH_STAGE_BIN)/VBoxInstallHelper.dll \
  		$(VBOX_SVN_REV_KMK) \
  		$(VBOX_WIN_INST_MAKEFILE_DEP) \
@@ -625,7 +625,7 @@ define def_vbox_build_msm
  		$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang).wixlib \
  		$(VBOX_WIN_INST_OUT_DIR)/NLS/Language_$(lang).wxl \
  		$(VBOX_WIN_INST_OUT_DIR)/NLS/License_$(lang).wxl \
-		$(PATH_STAGE_BIN)/VBoxDrvInst.exe \
+ 		$(PATH_STAGE_BIN)/VBoxDrvInst.exe \
  		$(PATH_STAGE_BIN)/VBoxInstallHelper.dll \
  		$(VBOX_SVN_REV_KMK) \
  		$(VBOX_WIN_INST_MAKEFILE_DEP) \

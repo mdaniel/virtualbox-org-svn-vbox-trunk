@@ -204,11 +204,11 @@ PACKAGE_NAME_LANG           := $(PACKAGE_BASE)-r$(VBOX_SVN_REV)
 PACKAGE_NAME_FINAL          := $(PATH_STAGE_BIN)/$(PACKAGE_NAME_LANG).msi
 
 ifdef VBOX_WITH_COMBINED_PACKAGE
- PATH_MULTIARCH_TEMP                := $(PATH_OUT_BASE)/win.x86/$(KBUILD_TYPE)/obj/Installer
+ PATH_MULTIARCH_TEMP                := $(PATH_OUT_BASE)/win.amd64/$(KBUILD_TYPE)/obj/Installer
  PATH_MULTIARCH_GUEST_ADDITIONS_ISO := $(PATH_OUT_BASE)/win.amd64/$(KBUILD_TYPE)/bin/additions
  PACKAGE_NAME_MULTIARCH             := $(PACKAGE_NAME_LANG)-MultiArch
- PACKAGE_NAME_MULTIARCH.x86         := $(PACKAGE_NAME_MULTIARCH)_x86.msi
  PACKAGE_NAME_MULTIARCH.amd64       := $(PACKAGE_NAME_MULTIARCH)_amd64.msi
+ PACKAGE_NAME_MULTIARCH.arm64       := $(PACKAGE_NAME_MULTIARCH)_arm64.msi
  PACKAGE_NAME_FINAL                 := $(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.$(KBUILD_TARGET_ARCH))
  PACKAGE_NAME_MULTIARCH_FINAL       := $(PACKAGE_NAME_MULTIARCH).exe
  # Always take the common.cab from the amd64 build, as it
@@ -218,7 +218,7 @@ ifdef VBOX_WITH_COMBINED_PACKAGE
 
  BLDDIRS += $(PATH_MULTIARCH_TEMP)
  PACKING += $(PACKAGE_NAME_FINAL)
- ifeq ($(KBUILD_TARGET_ARCH),x86)
+ ifeq ($(KBUILD_TARGET_ARCH),amd64)
   PACKING += $(PATH_STAGE_BIN)/$(PACKAGE_NAME_MULTIARCH_FINAL)
  endif
 else
@@ -267,10 +267,10 @@ OTHER_CLEAN += \
 	$(PATH_STAGE_BIN)/$(PACKAGE_NAME_MULTIARCH_FINAL)
 
 ifdef VBOX_WITH_COMBINED_PACKAGE
- ifeq ($(KBUILD_TARGET_ARCH),x86)
+ ifeq ($(KBUILD_TARGET_ARCH),amd64)
   OTHER_CLEAN += \
   	$(VBOX_WIN_INST_REPACK_DIR)/3-multiarch-$(PACKAGE_NAME_MULTIARCH_FINAL).cmd \
-  	$(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.x86)
+  	$(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.amd64)
  endif
  ifndef VBOX_WITH_MSM_INSTALL
   OTHER_CLEAN += \
@@ -1132,17 +1132,17 @@ $(PACKAGE_NAME_FINAL): $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_NAME_LANG).msi | $$(di
 	$(INSTALL_STAGING) -- $< $@
 
 
-if defined(VBOX_WITH_COMBINED_PACKAGE) && "$(KBUILD_TARGET_ARCH)" == "x86"
+if defined(VBOX_WITH_COMBINED_PACKAGE) && "$(KBUILD_TARGET_ARCH)" == "amd64"
  #
  # Make the multi-architecture installer by calling our stub builder
- # with both platform installers (x86 and amd64) + common cab. The common
+ # with both platform installers (amd64 and arm64) + common cab. The common
  # cab only is needed when we don't use merge modules. We only
- # need to do this once; so do it on x86 only.
+ # need to do this once; so do it on amd64 only.
  #
  $(PATH_STAGE_BIN)/$(PACKAGE_NAME_MULTIARCH_FINAL) \
  + $(VBOX_WIN_INST_REPACK_DIR)/3-multiarch-$(PACKAGE_NAME_MULTIARCH_FINAL).cmd: \
- 		$(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.x86) \
  		$(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.amd64) \
+ 		$(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.arm64) \
  		$(PATH_STAGE_BIN)/VBoxStub.exe \
  		$$(VBoxStubBld_1_TARGET)
 	$(call MSG_L1,Building Windows combined package)
@@ -1152,8 +1152,8 @@ if defined(VBOX_WITH_COMBINED_PACKAGE) && "$(KBUILD_TARGET_ARCH)" == "x86"
 	$(if-expr defined(VBOX_WITH_MSM_INSTALL),,$(call VBOX_SIGN_CAB_FN,$(PACKAGE_NAME_MULTIARCH_COMMONCAB)))
 	$(REDIRECT) -C $(@D) -- \
 		$(VBoxStubBld_1_TARGET) -out $@ \
-			-target-x86 $(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.x86) \
 			-target-amd64 $(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.amd64) \
+			-target-arm64 $(PATH_MULTIARCH_TEMP)/$(PACKAGE_NAME_MULTIARCH.arm64) \
 			$(if-expr defined(VBOX_WITH_MSM_INSTALL),,-target-all $(PACKAGE_NAME_MULTIARCH_COMMONCAB)) \
 			-stub $(PATH_STAGE_BIN)/VBoxStub.exe
 	$(VBOX_VCC_EDITBIN) /IntegrityCheck:NO $@
@@ -1167,10 +1167,10 @@ if defined(VBOX_WITH_COMBINED_PACKAGE) && "$(KBUILD_TARGET_ARCH)" == "x86"
 		,'call sign-dual.cmd ../../../win.amd64/$(KBUILD_TYPE)/repack/$(notdir $(PACKAGE_NAME_MULTIARCH_COMMONCAB)) || exit /b1') \
 		'..\bin\VBoxStubBld.exe ^' \
 		'  -out $(@F) ^' \
-		'  -target-x86 $(PACKAGE_NAME_MULTIARCH.x86) ^' \
-		'  -target-amd64 ../../../win.amd64/$(KBUILD_TYPE)/repack/$(PACKAGE_NAME_MULTIARCH.amd64) ^' \
+		'  -target-amd64 $(PACKAGE_NAME_MULTIARCH.amd64) ^' \
+		'  -target-arm64 ../../../win.arm64/$(KBUILD_TYPE)/repack/$(PACKAGE_NAME_MULTIARCH.arm64) ^' \
 		$(if-expr defined(VBOX_WITH_MSM_INSTALL),\
-		,'  -target-all ../../../win.amd64/$(KBUILD_TYPE)/repack/$(notdir $(PACKAGE_NAME_MULTIARCH_COMMONCAB)) ^' ) \
+		,'  -target-all $(notdir $(PACKAGE_NAME_MULTIARCH_COMMONCAB)) ^' ) \
 		'  -stub ../bin/VBoxStub.exe || exit /b1' \
 		'$(VBOX_VCC_EDITBIN) /IntegrityCheck:NO $(@F) || exit /b1' \
 		'call sign-dual.cmd $(@F) || exit /b1' \
@@ -1255,12 +1255,12 @@ RePackScripts_SOURCES = \
 	$(if-expr defined(VBOX_SIGN_EV_FILE_FN),$(RePackScripts_0_OUTDIR)/sign-ev.cmd,) \
 	$(RePackScripts_0_OUTDIR)/VMMR0.inf \
 	$(RePackScripts_0_OUTDIR)/VBoxExtPackPuel.inf
-if !defined(VBOX_WITH_COMBINED_PACKAGE) || "$(KBUILD_TARGET_ARCH)" == "x86"
+if !defined(VBOX_WITH_COMBINED_PACKAGE) || "$(KBUILD_TARGET_ARCH)" == "amd64"
  RePackScripts_SOURCES += \
  	$(RePackScripts_0_OUTDIR)/RepackExtPack.cmd
 endif
 ifdef VBOX_WITH_COMBINED_PACKAGE
- if "$(KBUILD_TARGET_ARCH)" == "x86"
+ if "$(KBUILD_TARGET_ARCH)" == "amd64"
   RePackScripts_SOURCES += \
   	$(RePackScripts_0_OUTDIR)/Combined-1-Prepare.cmd \
   	$(RePackScripts_0_OUTDIR)/Combined-3-Repack.cmd \

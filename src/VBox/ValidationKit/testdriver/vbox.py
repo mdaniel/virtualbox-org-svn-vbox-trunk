@@ -2502,13 +2502,17 @@ class TestDriver(base.TestDriver):                                              
 
         reporter.log("  Serial ports:");
         for iSlot in range(0, 8):
-            try:    oPort = oVM.getSerialPort(iSlot)
+            try:    oPort = oVM.getSerialPort(iSlot);
             except: break;
             if oPort is not None and oPort.enabled:
                 enmHostMode = oPort.hostMode;
-                reporter.log("    slot #%d: hostMode: %s (%s)  I/O port: %s  IRQ: %s  server: %s  path: %s" %
+                if self.fpApiVer >= 7.1:
+                    sIOAddressOrBase = oPort.IOAddress;
+                else:
+                    sIOAddressOrBase = oPort.IOBase;
+                reporter.log("    slot #%d: hostMode: %s (%s)  I/O address: %s  IRQ: %s  server: %s  path: %s" %
                              (iSlot,  self.oVBoxMgr.getEnumValueName('PortMode', enmHostMode),                                    # pylint: disable=not-callable
-                              enmHostMode, oPort.IOBase, oPort.IRQ, oPort.server, oPort.path,) );
+                              enmHostMode, sIOAddressOrBase, oPort.IRQ, oPort.server, oPort.path,) );
                 self.processPendingEvents();
 
         return True;

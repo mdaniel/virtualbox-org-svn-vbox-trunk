@@ -1859,11 +1859,9 @@ static void nemR3WinLogState(PVMCC pVM, PVMCPUCC pVCpu)
                         "vbar_el1=%016VR{vbar_el1}\n"
                         );
         char szInstr[256]; RT_ZERO(szInstr);
-#if 0
         DBGFR3DisasInstrEx(pVM->pUVM, pVCpu->idCpu, 0, 0,
                            DBGF_DISAS_FLAGS_CURRENT_GUEST | DBGF_DISAS_FLAGS_DEFAULT_MODE,
                            szInstr, sizeof(szInstr), NULL);
-#endif
         Log3(("%s%s\n", szRegs, szInstr));
     }
 }
@@ -2358,6 +2356,11 @@ nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEX
     else
         nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
 
+    /** @todo What to do if immediate is != 0? */
+
+    if (   rcStrict == VINF_SUCCESS
+        && fAdvancePc)
+        pVCpu->cpum.GstCtx.Pc.u64 += sizeof(uint32_t);
 
     return rcStrict;
 }
@@ -2469,38 +2472,6 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
         nemR3WinLogState(pVM, pVCpu);
 #endif
 
-    if (RT_UNLIKELY(!pVCpu->nem.s.fIdRegsSynced))
-    {
-        /*
-         * Sync the guest ID registers which are per VM once (they are readonly and stay constant during VM lifetime).
-         * Need to do it here and not during the init because loading a saved state might change the ID registers from what
-         * done in the call to CPUMR3PopulateFeaturesByIdRegisters().
-         */
-        PCCPUMIDREGS pIdRegsGst = NULL;
-        int rc = CPUMR3QueryGuestIdRegs(pVM, &pIdRegsGst);
-        AssertRCReturn(rc, rc);
-
-        WHV_REGISTER_NAME  aenmNames[12];
-        WHV_REGISTER_VALUE aValues[12];
-
-        uint32_t iReg = 0;
-#define ADD_REG64(a_enmName, a_uValue) do { \
-            aenmNames[iReg]      = (a_enmName); \
-            aValues[iReg].Reg128.High64 = 0; \
-            aValues[iReg].Reg64  = (a_uValue); \
-            iReg++; \
-        } while (0)
-
-
-        ADD_REG64(WHvArm64RegisterIdAa64Mmfr0El1, pIdRegsGst->u64RegIdAa64Mmfr0El1);
-#undef ADD_REG64
-
-        //HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, aenmNames, iReg, aValues);
-        //AssertReturn(SUCCEEDED(hrc), VERR_NEM_IPE_9);
-
-        pVCpu->nem.s.fIdRegsSynced = true;
-    }
-
     /*
      * Try switch to NEM runloop state.
      */
@@ -2520,32 +2491,9 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
      * everything every time.  This will be optimized later.
      */
     const bool      fSingleStepping     = DBGFIsStepping(pVCpu);
-//    const uint32_t  fCheckVmFFs         = !fSingleStepping ? VM_FF_HP_R0_PRE_HM_MASK
-//                                                           : VM_FF_HP_R0_PRE_HM_STEP_MASK;
-//    const uint32_t  fCheckCpuFFs        = !fSingleStepping ? VMCPU_FF_HP_R0_PRE_HM_MASK : VMCPU_FF_HP_R0_PRE_HM_STEP_MASK;
     VBOXSTRICTRC    rcStrict            = VINF_SUCCESS;
     for (unsigned iLoop = 0;; iLoop++)
     {
-        /*
-         * Pending interrupts or such?  Need to check and deal with this prior
-         * to the state syncing.
-         */
-#if 0
-        if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_FIQ | VMCPU_FF_UPDATE_IRQ))
-        {
-            /* Try inject interrupt. */
-            rcStrict = nemHCWinHandleInterruptFF(pVM, pVCpu, &pVCpu->nem.s.fDesiredInterruptWindows);
-            if (rcStrict == VINF_SUCCESS)
-            { /* likely */ }
-            else
-            {
-                LogFlow(("NEM/%u: breaking: nemHCWinHandleInterruptFF -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
-                STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
-                break;
-            }
-        }
-#endif
-
         /* Ensure that Hyper-V has the whole state. */
         int rc2 = nemHCWinCopyStateToHyperV(pVM, pVCpu);
         AssertRCReturn(rc2, rc2);
@@ -2566,18 +2514,16 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
         {
             if (VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM_WAIT, VMCPUSTATE_STARTED_EXEC_NEM))
             {
-#if 0 //def LOG_ENABLED
+#ifdef LOG_ENABLED
                 if (LogIsFlowEnabled())
                 {
-                    static const WHV_REGISTER_NAME s_aNames[6] = { WHvX64RegisterCs, WHvX64RegisterRip, WHvX64RegisterRflags,
-                                                                   WHvX64RegisterSs, WHvX64RegisterRsp, WHvX64RegisterCr0 };
-                    WHV_REGISTER_VALUE aRegs[RT_ELEMENTS(s_aNames)] = { {{0, 0} } };
+                    static const WHV_REGISTER_NAME s_aNames[2] = { WHvArm64RegisterPc, WHvArm64RegisterPstate };
+                    WHV_REGISTER_VALUE aRegs[RT_ELEMENTS(s_aNames)] = { { { {0, 0} } } };
                     WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, s_aNames, RT_ELEMENTS(s_aNames), aRegs);
-                    LogFlow(("NEM/%u: Entry @ %04x:%08RX64 IF=%d EFL=%#RX64 SS:RSP=%04x:%08RX64 cr0=%RX64\n",
-                             pVCpu->idCpu, aRegs[0].Segment.Selector, aRegs[1].Reg64, RT_BOOL(aRegs[2].Reg64 & X86_EFL_IF),
-                             aRegs[2].Reg64, aRegs[3].Segment.Selector, aRegs[4].Reg64, aRegs[5].Reg64));
+                    LogFlow(("NEM/%u: Entry @ %08RX64 pstate=%#RX64\n", pVCpu->idCpu, aRegs[0].Reg64, aRegs[1].Reg64));
                 }
 #endif
+
                 MY_WHV_RUN_VP_EXIT_CONTEXT ExitReason = {0};
                 TMNotifyStartOfExecution(pVM, pVCpu);
 
@@ -2586,7 +2532,14 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
                 VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM, VMCPUSTATE_STARTED_EXEC_NEM_WAIT);
                 TMNotifyEndOfExecution(pVM, pVCpu, ASMReadTSC());
 #ifdef LOG_ENABLED
-                LogFlow(("NEM/%u: Exit  @ @todo Reason=%#x\n", pVCpu->idCpu, ExitReason.ExitReason));
+                if (LogIsFlowEnabled())
+                {
+                    static const WHV_REGISTER_NAME s_aNames[2] = { WHvArm64RegisterPc, WHvArm64RegisterPstate };
+                    WHV_REGISTER_VALUE aRegs[RT_ELEMENTS(s_aNames)] = { { { {0, 0} } } };
+                    WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, s_aNames, RT_ELEMENTS(s_aNames), aRegs);
+                    LogFlow(("NEM/%u: Exit @ %08RX64 pstate=%#RX64 Reason=%#x\n",
+                             pVCpu->idCpu, aRegs[0].Reg64, aRegs[1].Reg64, ExitReason.ExitReason));
+                }
 #endif
                 if (SUCCEEDED(hrc))
                 {
@@ -2598,7 +2551,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
                     { /* hopefully likely */ }
                     else
                     {
-                        LogFlow(("NEM/%u: breaking: nemHCWinHandleMessage -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
+                        LogFlow(("NEM/%u: breaking: nemR3WinHandleExit -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
                         STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
                         break;
                     }
@@ -2700,10 +2653,8 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
     }
 #endif
 
-#if 0
-    LogFlow(("NEM/%u: %04x:%08RX64 efl=%#08RX64 => %Rrc\n", pVCpu->idCpu, pVCpu->cpum.GstCtx.cs.Sel,
-             pVCpu->cpum.GstCtx.rip, pVCpu->cpum.GstCtx.rflags.u, VBOXSTRICTRC_VAL(rcStrict) ));
-#endif
+    LogFlow(("NEM/%u: %08RX64 pstate=%#08RX64 => %Rrc\n", pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64,
+             pVCpu->cpum.GstCtx.fPState, VBOXSTRICTRC_VAL(rcStrict) ));
     return rcStrict;
 }
 

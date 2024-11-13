@@ -490,11 +490,7 @@ typedef struct NEMCPU
 
 
 #elif defined(RT_OS_WINDOWS)
-# ifdef VBOX_VMM_TARGET_ARMV8
-    /** Flag whether the ID registers were synced to the guest context
-     * (for first guest exec call on the EMT after loading the saved state). */
-    bool                        fIdRegsSynced;
-# else
+# ifndef VBOX_VMM_TARGET_ARMV8
     /** The current state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
     uint8_t                     fCurrentInterruptWindows;
     /** The desired state of the interrupt windows (NEM_WIN_INTW_F_XXX). */

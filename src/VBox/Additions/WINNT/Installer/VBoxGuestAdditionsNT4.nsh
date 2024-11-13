@@ -122,8 +122,8 @@ Function NT4_CopyFiles
   ${LogVerbose} "Copying files for NT4 ..."
 
   SetOutPath "$INSTDIR"
-  FILE "$%PATH_OUT%\bin\additions\GuestInstallHelper.exe"
-  AccessControl::SetOnFile "$INSTDIR\GuestInstallHelper.exe" "(BU)" "GenericRead"
+  FILE "$%PATH_OUT%\bin\additions\VBoxGuestInstallHelper.exe"
+  AccessControl::SetOnFile "$INSTDIR\VBoxGuestInstallHelper.exe" "(BU)" "GenericRead"
 !ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
   FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
 !endif

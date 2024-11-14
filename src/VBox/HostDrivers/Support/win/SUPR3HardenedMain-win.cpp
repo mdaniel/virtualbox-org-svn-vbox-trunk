@@ -283,7 +283,7 @@ typedef SUPR3HARDNTCHILD *PSUPR3HARDNTCHILD;
 /**
  * A ntdll code patch.
  */
-typedef union SUPR3HARDNTPATCH
+typedef struct SUPR3HARDNTPATCH
 {
     union
     {
@@ -3661,31 +3661,36 @@ static void supR3HardenedWinInstallHooks(void)
  * @param   pvNtTerminateThread The address of the NtTerminateThread function in
  *                              the NTDLL instance we're patching.  (Must be +/-
  *                              2GB from the thunk code.)
- * @param   pBackup             Where to back up the original instruction bytes
- *                              at pvLdrInitThunk.
  * @param   pErrInfo            Where to return extended error information.
  *                              Optional.
  */
 static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, void *pvNtTerminateThread,
-                                              SUPR3HARDNTPATCH *pBackup, PRTERRINFO pErrInfo)
+                                              PRTERRINFO pErrInfo)
 {
-    SUP_DPRINTF(("supR3HardNtDisableThreadCreation: pvLdrInitThunk=%p pvNtTerminateThread=%p\n", pvLdrInitThunk, pvNtTerminateThread));
+    SUP_DPRINTF(("supR3HardNtDisableThreadCreation: pvLdrInitThunk=%p pvNtTerminateThread=%p g_LdrInitThunkSelfBackup.cb=%d\n",
+                 pvLdrInitThunk, pvNtTerminateThread, g_LdrInitThunkSelfBackup.cb));
     SUPR3HARDENED_ASSERT(RT_ABS((intptr_t)pvLdrInitThunk - (intptr_t)pvNtTerminateThread) < 16*_1M);
 
     /*
      * Back up the thunk code.
      */
     SIZE_T  cbIgnored;
-    NTSTATUS rcNt = NtReadVirtualMemory(hProcess, pvLdrInitThunk, pBackup->ab, sizeof(pBackup->ab), &cbIgnored);
-    if (!NT_SUCCESS(rcNt))
-        return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
-                             "supR3HardNtDisableThreadCreation: NtReadVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
+    NTSTATUS rcNt;
+    if (g_LdrInitThunkSelfBackup.cb == 0)
+    {
+        rcNt = NtReadVirtualMemory(hProcess, pvLdrInitThunk, g_LdrInitThunkSelfBackup.ab,
+                                   sizeof(g_LdrInitThunkSelfBackup.ab), &cbIgnored);
+        if (!NT_SUCCESS(rcNt))
+            return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
+                                 "supR3HardNtDisableThreadCreation: NtReadVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
+        SUP_DPRINTF(("supR3HardNtDisableThreadCreationEx: Backup=%.*Rhxs\n", sizeof(g_LdrInitThunkSelfBackup.ab), g_LdrInitThunkSelfBackup.ab));
+    }
 
     /*
      * Cook up replacement code that calls NtTerminateThread.
      */
     SUPR3HARDNTPATCH Replacement;
-    memcpy(Replacement.ab, pBackup->ab, sizeof(Replacement.ab));
+    memcpy(Replacement.ab, g_LdrInitThunkSelfBackup.ab, sizeof(Replacement.ab));
 
 #ifdef RT_ARCH_AMD64
     Replacement.ab[0] = 0x31;    /* xor ecx, ecx */
@@ -3720,7 +3725,7 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
 #else
 # error "Unsupported arch."
 #endif
-    pBackup->cb = Replacement.cb;
+    g_LdrInitThunkSelfBackup.cb = Replacement.cb;
 
     /*
      * Install the replacment code.
@@ -3739,7 +3744,7 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
                              "supR3HardNtDisableThreadCreationEx: NtWriteVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
     pvProt   = pvLdrInitThunk;
-    cbProt   = pBackup->cb;
+    cbProt   = Replacement.cb;
     rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, fOldProt, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
@@ -3756,19 +3761,16 @@ static int supR3HardNtDisableThreadCreationEx(HANDLE hProcess, void *pvLdrInitTh
  * @param   hProcess            The process to do this to.
  * @param   pvLdrInitThunk      The address of the LdrInitializeThunk code to
  *                              override.
- * @param   pBackup             Where to back up the original instruction bytes
- *                              at pvLdrInitThunk.
  * @param   pErrInfo            Where to return extended error information.
  *                              Optional.
  */
-static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, SUPR3HARDNTPATCH const *pBackup,
-                                             PRTERRINFO pErrInfo)
+static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThunk, PRTERRINFO pErrInfo)
 {
     SUP_DPRINTF(("supR3HardNtEnableThreadCreationEx:\n"));
-    SUPR3HARDENED_ASSERT(pBackup->cb > 4);
+    SUPR3HARDENED_ASSERT(g_LdrInitThunkSelfBackup.cb > 4);
 
     PVOID  pvProt   = pvLdrInitThunk;
-    SIZE_T cbProt   = pBackup->cb;
+    SIZE_T cbProt   = g_LdrInitThunkSelfBackup.cb;
     ULONG  fOldProt = 0;
     NTSTATUS rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, PAGE_EXECUTE_READWRITE, &fOldProt);
     if (!NT_SUCCESS(rcNt))
@@ -3776,14 +3778,14 @@ static int supR3HardNtEnableThreadCreationEx(HANDLE hProcess, void *pvLdrInitThu
                              "supR3HardNtEnableThreadCreationEx: NtProtectVirtualMemory/LdrInitializeThunk failed: %#x", rcNt);
 
     SIZE_T cbIgnored;
-    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, pBackup->ab, pBackup->cb, &cbIgnored);
+    rcNt = NtWriteVirtualMemory(hProcess, pvLdrInitThunk, g_LdrInitThunkSelfBackup.ab, g_LdrInitThunkSelfBackup.cb, &cbIgnored);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
                              "supR3HardNtEnableThreadCreationEx: NtWriteVirtualMemory/LdrInitializeThunk[restore] failed: %#x",
                              rcNt);
 
     pvProt   = pvLdrInitThunk;
-    cbProt   = pBackup->cb;
+    cbProt   = g_LdrInitThunkSelfBackup.cb;
     rcNt = NtProtectVirtualMemory(hProcess, &pvProt, &cbProt, fOldProt, &fOldProt);
     if (!NT_SUCCESS(rcNt))
         return RTErrInfoSetF(pErrInfo, VERR_GENERAL_FAILURE,
@@ -3812,7 +3814,6 @@ static void supR3HardenedWinDisableThreadCreation(void)
     int rc = supR3HardNtDisableThreadCreationEx(NtCurrentProcess(),
                                                 (void *)(uintptr_t)&LdrInitializeThunk,
                                                 (void *)(uintptr_t)s_pfnNtTerminateThread,
-                                                &g_LdrInitThunkSelfBackup,
                                                 NULL /* pErrInfo*/);
     g_fSupInitThunkSelfPatched = RT_SUCCESS(rc);
 }
@@ -3827,7 +3828,6 @@ DECLHIDDEN(void) supR3HardenedWinEnableThreadCreation(void)
     {
         int rc = supR3HardNtEnableThreadCreationEx(NtCurrentProcess(),
                                                    (void *)(uintptr_t)&LdrInitializeThunk,
-                                                   &g_LdrInitThunkSelfBackup,
                                                    RTErrInfoInitStatic(&g_ErrInfoStatic));
         if (RT_FAILURE(rc))
             supR3HardenedError(rc, true /*fFatal*/, "%s", g_ErrInfoStatic.szMsg);

@@ -729,26 +729,24 @@ endif
 #
 # A few manual dependencies to make sure everything is rebuilt when they should.
 #
-## @todo r=bird: These dependences are buggered. They generally cause constant remakes.  We need dependency lists and attach these to the appropriate (wixlib) targets.
-##$(PATH_SUB_CURRENT)/VirtualBox.wxs: \
-##		$(PATH_SUB_CURRENT)/CommonProperties.wxi \
-##		$(PATH_SUB_CURRENT)/Defines.wxi \
-##		$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi
-##
-##$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi $(PATH_SUB_CURRENT)/VirtualBox.wxs: \
-##		$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
-##		$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi
+VBOX_VIRTUALBOX_WXS_DEPENDENCIES := \
+	$(PATH_SUB_CURRENT)/CommonProperties.wxi \
+	$(PATH_SUB_CURRENT)/Defines.wxi \
+	$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
+      	$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi
 
 #
 # Building a WIX library object (.wixlib).
 # We've separated the final building from the WIX library building for repacking reasons.
 #
+## @todo Proper dependencies: unzip -p VirtualBox_$(lang).wixlib | sed -e "s/\([,{]\)/\1\n/g" bar.json | sed -n -e "s/,$//" -e "s/]}$//" -e "s/}}$//" -e 's/"file"://p' -e 's/"path"://p' | sort |uniq
 define def_vbox_build_wixlib
  includedep $(VBOX_WIN_INST_OUT_DIR)/$(lang)/VirtualBox_$(lang).wixlib.dep
  $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib \
@@ -756,6 +754,7 @@ define def_vbox_build_wixlib
  	+ $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).wixlib $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).files ): \
  		$(PATH_SUB_CURRENT)/VirtualBox.wxs \
  		$(PATH_SUB_CURRENT)/UserInterface.wxi \
+ 		$(VBOX_VIRTUALBOX_WXS_DEPENDENCIES) \
  		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
  			$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
  				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm) \

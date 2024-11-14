@@ -151,14 +151,12 @@
              -rw-rw-rw-  1 bird 0  92 470 301 2016-09-25 03:47 common.cab
              -rw-rw-rw-  1 bird 0 135 874 578 2016-09-25 03:47 VirtualBox-5.1.51-r110887_en_US.msi
 
-        We set the level in the VBOX_CAB_COMPRESSION_LEVEL and VBOX_CAB_COMPRESSION_LEVEL_COMMON
-        environment variables so we don't waste time compressing and decompressing the intermediate
-        language MSIs and the common.cab that we're not going to use (x86).
+        We use the -defaultcompressionlevel command line option to control this.
     -->
-    <Media Id="1" Cabinet="product.cab" EmbedCab="yes" CompressionLevel="$(env.VBOX_CAB_COMPRESSION_LEVEL)" />
+    <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
 <?if $(env.VBOX_WITH_MSM_INSTALL) = "no" ?>
     <?if $(env.VBOX_WITH_COMBINED_PACKAGE) = "yes" ?>
-        <Media Id="2" Cabinet="common.cab" EmbedCab="no" CompressionLevel="$(env.VBOX_CAB_COMPRESSION_LEVEL_COMMON)" />
+        <Media Id="2" Cabinet="common.cab" EmbedCab="no" />
     <?endif?>
 <?endif?>
     <Binary Id="VBoxInstallHelper" SourceFile="$(env.PATH_OUT)\bin\VBoxInstallHelper.dll" />

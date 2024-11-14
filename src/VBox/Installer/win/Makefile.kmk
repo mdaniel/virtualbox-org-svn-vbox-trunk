@@ -476,7 +476,7 @@ endif
 	$(APPEND) $@ '</Include>'
 
 # Note! Keep the list sorted for easier lookup.
-VBOX_WIN_INST_ENV := \
+VBOX_WIN_INST_ENV_FIXED := \
 	-E 'KBUILD_TARGET_ARCH=$(KBUILD_TARGET_ARCH)' \
 	-E 'KBUILD_TYPE=$(KBUILD_TYPE)' \
 	-E 'PATH_MULTIARCH_GUEST_ADDITIONS_ISO=$(subst /,\,$(PATH_MULTIARCH_GUEST_ADDITIONS_ISO))' \
@@ -488,8 +488,6 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_BRAND_WIN_INST_DLGJPG=$(subst /,\,$(VBOX_BRAND_WIN_INST_DLGJPG))' \
 	-E 'VBOX_BUILD_NR_FOR_INST=$(VBOX_VERSION_BUILD)' \
 	-E 'VBOX_C_YEAR=$(VBOX_C_YEAR)' \
-	-E 'VBOX_CAB_COMPRESSION_LEVEL_COMMON=$(if-expr $(lang) == "en_US" && $(KBUILD_TARGET_ARCH) == "amd64",$(VBOX_CAB_COMPRESSION_LEVEL),none)' \
-	-E 'VBOX_CAB_COMPRESSION_LEVEL=$(if-expr $(lang) == "en_US",$(VBOX_CAB_COMPRESSION_LEVEL),none)' \
 	$(foreach lang,$(VBOX_INSTALLER_LANGUAGES), \
 		-E 'VBOX_BRAND_$(lang)_LICENSE_RTF=$(subst /,\,$(VBOX_BRAND_$(subst en_US_,,$(lang)_)LICENSE_RTF))') \
 	-E 'VBOX_INSTALLER_QUICK=$(VBOX_INSTALLER_QUICK)' \
@@ -552,6 +550,11 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_WITH_VRDP=$(if-expr defined(VBOX_WITH_VRDP) && !defined(VBOX_WITH_EXTPACK_PUEL),yes,no)' \
 	-E 'VBOX_WITH_WEBSERVICES=$(if $(VBOX_WITH_WEBSERVICES),yes,no)'
 
+# The bits that depends on $(lang) + the expand once stuff above.
+VBOX_WIN_INST_ENV = $(VBOX_WIN_INST_ENV_FIXED) \
+	-E 'VBOX_CAB_COMPRESSION_LEVEL_COMMON=$(if-expr $(lang) == "en_US" && $(KBUILD_TARGET_ARCH) == "amd64",$(VBOX_CAB_COMPRESSION_LEVEL),none)' \
+	-E 'VBOX_CAB_COMPRESSION_LEVEL=$(if-expr $(lang) == "en_US",$(VBOX_CAB_COMPRESSION_LEVEL),none)'
+
 #
 # Building the main installer (en_US).
 #
@@ -579,7 +582,7 @@ define def_vbox_build_msi
 		$$@ \
 		$$(basename $$@).wixpdb \
 		$$(VBOX_WIN_INST_REPACK_DIR)/2-link-$$(PACKAGE_NAME_LANG).cmd ))
-	kmk_time $$(REDIRECT_EXT) -E WIX_TEMP='$$(subst /,\,$$(@D))' $(VBOX_WIN_INST_ENV) \
+	kmk_time $$(REDIRECT_EXT) $(VBOX_WIN_INST_ENV) -E WIX_TEMP='$$(subst /,\,$$(@D))' \
 		-- $(VBOX_TOOLS_WIN_WIX_BIN) build \
 		-intermediatefolder $$(@D)/wix-temp/ \
 		-loc $(VBOX_WIN_INST_OUT_DIR)/NLS/Language_$(lang).wxl \
@@ -638,7 +641,7 @@ define def_vbox_build_msm
  		| $$$$(dir $$$$@)
 	$$(call MSG_L1,Building merge module $$@)
 	$(QUIET)$(RM) -f $$(wildcard $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_BASE)-r*_$(lang).msi)
-	kmk_time $$(REDIRECT_EXT) -E WIX_TEMP='$$(subst /,\,$$(@D))' $(VBOX_WIN_INST_ENV) \
+	kmk_time $$(REDIRECT_EXT) $(VBOX_WIN_INST_ENV) -E WIX_TEMP='$$(subst /,\,$$(@D))' \
 		-- $(VBOX_TOOLS_WIN_WIX_BIN) build \
 		-intermediatefolder $$(@D)/wix-temp/ \
 		-loc $(VBOX_WIN_INST_OUT_DIR)/NLS/Language_$(lang).wxl \
@@ -724,7 +727,7 @@ define def_vbox_build_wixlib
  			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi,) \
  			$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
  			$(if $(VBOX_WITH_QTGUI),$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi) \
- 			$(VBOX_MSI_DEPENDENCIES)) \
+ 			$(VBOX_MSI_DEPENDENCIES),) \
  		$(VBOX_VERSION_STAMP) \
  		| $$$$(dir $$$$@) $(if-expr "$(lang)" != "en_US",, \
  			$(VBOX_WIN_INST_REPACK_DIR)/ $(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_$(lang)/ )
@@ -748,7 +751,7 @@ define def_vbox_build_wixlib
  $(eval OTHER_CLEAN += $(VBOX_REPACK_FILES_VirtualBox_$(lang)))
 endef
 
-$(foreach lang,$(VBOX_INSTALLER_LANGUAGES), \
+$(foreach lang,$(VBOX_INSTALLER_LANGUAGES),\
 	$(eval $(def_vbox_build_wixlib)))
 
 #
@@ -776,7 +779,7 @@ define def_vbox_build_msm_wixlib
  		$(VBOX_VERSION_STAMP) \
  		| $$$$(dir $$$$@) $(VBOX_WIN_INST_REPACK_DIR)/
 	$(QUIET)$(RM) -f -- "$$@" "$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang).wix" "$(VBOX_WIN_INST_REPACK_DIR)/VBoxMerge$(module)_$(lang).wix"
- 	$(REDIRECT) \
+	$(REDIRECT) \
 		$(VBOX_WIN_INST_ENV) \
 		-- \
 		$(VBOX_TOOLS_WIN_WIX_BIN) build $(filter-out $(VBOX_VERSION_STAMP),$$<) \
@@ -933,6 +936,7 @@ define def_vbox_create_mst
 		-lib $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib \
 		-ext $(VBOX_TOOLS_WIN_WIXEXT_DIR)/WixToolset.Util.wixext.dll \
 		-pdbtype none \
+		-defaultcompressionlevel none \
 		-out $$(@D)/$(PACKAGE_NAME_LANG)_$(lang).msi
 	$(REDIRECT) -C $$(@D) -- $$(VBOX_PATH_MSITRAN) -g $$< $(PACKAGE_NAME_LANG)_$(lang).msi $(lang).mst
 	$(CP) -f -- "$(VBOX_WIN_INST_OUT_DIR)/$(lang)/$(lang).mst" "$(VBOX_WIN_INST_REPACK_DIR)/$(lang).mst"

@@ -53,7 +53,7 @@ signals:
 public:
 
     /** Constructs wizard page. */
-    UINativeWizardPage();
+    UINativeWizardPage(const QString strHelpKeyword = QString());
 
     /** Redirects the translation call to actual handler. */
     void retranslate() { sltRetranslateUI(); }

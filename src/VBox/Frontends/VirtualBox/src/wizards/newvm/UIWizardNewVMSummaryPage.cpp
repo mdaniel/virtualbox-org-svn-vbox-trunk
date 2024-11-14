@@ -418,8 +418,9 @@ void UIWizardNewVMSummaryModel::populateData(UIWizardNewVM *pWizard)
 *   UIWizardNewVMSummaryPage implementation.                                                                                     *
 *********************************************************************************************************************************/
 
-UIWizardNewVMSummaryPage::UIWizardNewVMSummaryPage()
-    : m_pLabel(0)
+UIWizardNewVMSummaryPage::UIWizardNewVMSummaryPage(const QString strHelpKeyword /* = QString() */)
+    : UINativeWizardPage(strHelpKeyword)
+    , m_pLabel(0)
     , m_pTree(0)
 {
     prepare();

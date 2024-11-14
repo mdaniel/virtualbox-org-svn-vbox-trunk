@@ -317,6 +317,11 @@ void UINativeWizard::sltCurrentIndexChanged(int iIndex /* = -1 */)
     if (iIndex > m_iLastIndex)
         pPage->initializePage();
 
+    /* If there is a help keyword assigned to this page, use it as help keyword of this wizard. */
+    QString strPageHelpKeyword = uiCommon().helpKeyword(pPage);
+    if (!strPageHelpKeyword.isEmpty())
+        uiCommon().setHelpKeyword(this, strPageHelpKeyword);
+
     /* Disable/enable Next button: */
     QPushButton *pButtonNext = wizardButton(WizardButtonType_Next);
     AssertMsgReturnVoid(pButtonNext, ("No Next wizard button found!\n"));

@@ -47,7 +47,7 @@ class UIWizardNewVMHardwarePage : public UINativeWizardPage
 
 public:
 
-    UIWizardNewVMHardwarePage();
+    UIWizardNewVMHardwarePage(const QString strHelpKeyword = QString());
 
 private slots:
 

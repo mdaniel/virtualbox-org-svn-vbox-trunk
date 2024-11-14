@@ -39,8 +39,9 @@
 #include "UIWizardNewVMHardwarePage.h"
 
 
-UIWizardNewVMHardwarePage::UIWizardNewVMHardwarePage()
-    : m_pLabel(0)
+UIWizardNewVMHardwarePage::UIWizardNewVMHardwarePage(const QString strHelpKeyword /* = QString() */)
+    : UINativeWizardPage(strHelpKeyword)
+    , m_pLabel(0)
     , m_pHardwareWidgetContainer(0)
 {
     prepare();

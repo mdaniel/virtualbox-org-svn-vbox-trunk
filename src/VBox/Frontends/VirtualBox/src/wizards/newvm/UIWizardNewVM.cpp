@@ -106,14 +106,14 @@ void UIWizardNewVM::populatePages()
     {
         case WizardMode_Basic:
         {
-            UIWizardNewVMNameOSTypePage *pNamePage = new UIWizardNewVMNameOSTypePage;
+            UIWizardNewVMNameOSTypePage *pNamePage = new UIWizardNewVMNameOSTypePage("create-vm-wizard-name-os" /* help keyword*/);
             addPage(pNamePage);
             if (!m_strInitialISOFilePath.isEmpty())
                 pNamePage->setISOFilePath(m_strInitialISOFilePath);
-            m_iUnattendedInstallPageIndex = addPage(new UIWizardNewVMUnattendedPage);
+            m_iUnattendedInstallPageIndex = addPage(new UIWizardNewVMUnattendedPage("create-vm-wizard-unattended-install"));
             setUnattendedPageVisible(false);
-            addPage(new UIWizardNewVMHardwarePage);
-            addPage(new UIWizardNewVMDiskPage(m_pActionPool));
+            addPage(new UIWizardNewVMHardwarePage("create-vm-wizard-hardware" /* help keyword*/));
+            addPage(new UIWizardNewVMDiskPage(m_pActionPool, "create-vm-wizard-virtual-hard-disk" /* help keyword*/));
             addPage(new UIWizardNewVMSummaryPage);
             break;
         }

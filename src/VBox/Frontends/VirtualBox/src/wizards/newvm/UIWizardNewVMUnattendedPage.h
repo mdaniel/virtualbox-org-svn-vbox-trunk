@@ -56,7 +56,7 @@ class UIWizardNewVMUnattendedPage : public UINativeWizardPage
 
 public:
 
-    UIWizardNewVMUnattendedPage();
+    UIWizardNewVMUnattendedPage(const QString strHelpKeyword = QString());
 
 private slots:
 

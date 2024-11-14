@@ -45,7 +45,7 @@ class UIWizardNewVMSummaryPage : public UINativeWizardPage
 
 public:
 
-    UIWizardNewVMSummaryPage();
+    UIWizardNewVMSummaryPage(const QString strHelpKeyword = QString());
 
 private slots:
 

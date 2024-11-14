@@ -66,7 +66,7 @@ class UIWizardNewVMDiskPage : public UINativeWizardPage
 
 public:
 
-    UIWizardNewVMDiskPage(UIActionPool *pActionPool);
+    UIWizardNewVMDiskPage(UIActionPool *pActionPool, const QString strHelpKeyword = QString());
 
 protected:
 

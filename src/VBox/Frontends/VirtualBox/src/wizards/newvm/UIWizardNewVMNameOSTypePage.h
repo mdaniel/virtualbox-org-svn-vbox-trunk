@@ -67,7 +67,7 @@ class UIWizardNewVMNameOSTypePage : public UINativeWizardPage
 public:
 
     /** Constructor. */
-    UIWizardNewVMNameOSTypePage();
+    UIWizardNewVMNameOSTypePage(const QString strHelpKeyword = QString());
     void setISOFilePath(const QString &strISOFilePath);
 
 protected:

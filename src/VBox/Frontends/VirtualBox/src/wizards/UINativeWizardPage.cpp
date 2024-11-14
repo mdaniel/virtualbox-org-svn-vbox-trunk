@@ -26,14 +26,17 @@
  */
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UINativeWizard.h"
 #include "UINativeWizardPage.h"
 #include "UITranslationEventListener.h"
 
-UINativeWizardPage::UINativeWizardPage()
+UINativeWizardPage::UINativeWizardPage(const QString strHelpKeyword /* = QString() */)
 {
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UINativeWizardPage::sltRetranslateUI);
+    if (!strHelpKeyword.isEmpty())
+        uiCommon().setHelpKeyword(this, strHelpKeyword);
 }
 
 void UINativeWizardPage::setTitle(const QString &strTitle)

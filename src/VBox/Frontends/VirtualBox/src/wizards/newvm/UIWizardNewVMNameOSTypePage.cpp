@@ -466,8 +466,9 @@ bool UIWizardNewVMNameOSTypeCommon::checkISOFile(UINameAndSystemEditor *pNameAnd
     return true;
 }
 
-UIWizardNewVMNameOSTypePage::UIWizardNewVMNameOSTypePage()
-    : m_pNameAndSystemLayout(0)
+UIWizardNewVMNameOSTypePage::UIWizardNewVMNameOSTypePage(const QString strHelpKeyword /* = QString() */)
+    : UINativeWizardPage(strHelpKeyword)
+    , m_pNameAndSystemLayout(0)
     , m_pNameAndSystemEditor(0)
     , m_pSkipUnattendedCheckBox(0)
     , m_pNameOSTypeLabel(0)

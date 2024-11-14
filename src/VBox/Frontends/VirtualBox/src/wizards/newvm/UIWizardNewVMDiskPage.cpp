@@ -66,8 +66,9 @@ QUuid UIWizardNewVMDiskCommon::getWithFileOpenDialog(const QString &strOSTypeID,
     return uMediumId;
 }
 
-UIWizardNewVMDiskPage::UIWizardNewVMDiskPage(UIActionPool *pActionPool)
-    : m_pDiskSourceButtonGroup(0)
+UIWizardNewVMDiskPage::UIWizardNewVMDiskPage(UIActionPool *pActionPool, const QString strHelpKeyword /* = QString() */)
+    : UINativeWizardPage(strHelpKeyword)
+    , m_pDiskSourceButtonGroup(0)
     , m_pDiskEmpty(0)
     , m_pDiskNew(0)
     , m_pDiskExisting(0)

@@ -45,8 +45,9 @@ bool UIWizardNewVMUnattendedCommon::checkGAISOFile(const QString &strPath)
     return true;
 }
 
-UIWizardNewVMUnattendedPage::UIWizardNewVMUnattendedPage()
-    : m_pLabel(0)
+UIWizardNewVMUnattendedPage::UIWizardNewVMUnattendedPage(const QString strHelpKeyword /* = QString() */)
+    : UINativeWizardPage(strHelpKeyword)
+    , m_pLabel(0)
     , m_pAdditionalOptionsContainer(0)
     , m_pGAInstallationISOContainer(0)
     , m_pUserNamePasswordGroupBox(0)

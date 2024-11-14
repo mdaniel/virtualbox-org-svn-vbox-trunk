@@ -550,6 +550,47 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_WITH_VRDP=$(if-expr defined(VBOX_WITH_VRDP) && !defined(VBOX_WITH_EXTPACK_PUEL),yes,no)' \
 	-E 'VBOX_WITH_WEBSERVICES=$(if $(VBOX_WITH_WEBSERVICES),yes,no)'
 
+ifndef VBOX_WIN_ATTESTATION_SIGNING
+ VBOX_WIN_INST_ENV += \
+	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(PATH_OUT))\bin'
+
+else  # VBOX_WIN_ATTESTATION_SIGNING
+ VBOX_WIN_INST_ENV += \
+	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(VBOX_WIN_INST_REPACK_DIR))\hostdrivers'
+
+ $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab \
+ + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.ddf \
+ + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.inf \
+ + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.rpt: \
+		$(VBOX_WIN_INST_REPACK_DIR)/PackDriversForSubmission.cmd ## @todo more deps
+	$(call MSG_L1,Packing drivers for submission to attesttion signing (=> $@))
+	$(RM) -f -- "$@" "$@.ddf" "$@.inf" "$@.rpt"
+	$(REDIRECT) -E 'KBUILD_BIN_PATH=$(KBUILD_BIN_PATH)' \
+		-C "$(@D)" \
+		-- $(EXEC_X86_WIN32) cmd.exe /c \
+		'PackDriversForSubmission.cmd -b $(PATH_STAGE_BIN) -a $(KBUILD_TARGET_ARCH) -x -n --no-extpack -o $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab'
+
+ $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip: \
+		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab
+	$(call MSG_L1,Submitting drivers ($<) for attestation signing (=> $@))
+	$(TIME_EXT) $(REDIRECT_EXT) -C "$(@D)" \
+		-- $(VBOX_RETRY) $(VBOX_WIN_ATTESTATION_SIGNING_EXE) \
+		"VirtualBox Base drivers $(KBUILD_TARGET_ARCH) $(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD)r$(VBOX_SVN_REV)" \
+		"$(KBUILD_TARGET_ARCH)" \
+		"r$(VBOX_SVN_REV)" \
+		"$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab"
+
+ $(VBOX_WIN_INST_REPACK_DIR)/hostdrivers/UnpackedSignedDrivers.ts: \
+		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip
+	$(call MSG_L1,Unpacking attestation signed drivers ($<))
+	$(RM) -Rf -- "$(@D)"
+	$(MKDIR) -p -- "$(@D)"
+	unzip -j "$<" -d "$(@D)"
+ ## @todo verify the signatures like UnpackBlessedDrivers.cmd does?
+	$(TOUCH) "$@"
+
+endif # VBOX_WIN_ATTESTATION_SIGNING
+
 #
 # Building the main installer (en_US).
 #
@@ -567,6 +608,7 @@ define def_vbox_build_msi
  		$(VBOX_WIN_INST_OUT_DIR)/NLS/License_$(lang).wxl \
  		$(PATH_STAGE_BIN)/VBoxDrvInst.exe \
  		$(PATH_STAGE_BIN)/VBoxInstallHelper.dll \
+ 		$(if-expr defined(VBOX_WIN_ATTESTATION_SIGNING),$(VBOX_WIN_INST_REPACK_DIR)/hostdrivers/UnpackedSignedDrivers.ts,) \
  		$(VBOX_SVN_REV_KMK) \
  		$(VBOX_WIN_INST_MAKEFILE_DEP) \
  		$(if-expr defined(VBOX_WITH_MSI_HACK),$(MsiHack_0_OUTDIR)/MsiHack.dll,) \
@@ -687,20 +729,21 @@ endif
 #
 # A few manual dependencies to make sure everything is rebuilt when they should.
 #
-$(PATH_SUB_CURRENT)/VirtualBox.wxs: \
-		$(PATH_SUB_CURRENT)/CommonProperties.wxi \
-		$(PATH_SUB_CURRENT)/Defines.wxi \
-		$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi
-
-$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi $(PATH_SUB_CURRENT)/VirtualBox.wxs: \
-		$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
-		$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi
+## @todo r=bird: These dependences are buggered. They generally cause constant remakes.  We need dependency lists and attach these to the appropriate (wixlib) targets.
+##$(PATH_SUB_CURRENT)/VirtualBox.wxs: \
+##		$(PATH_SUB_CURRENT)/CommonProperties.wxi \
+##		$(PATH_SUB_CURRENT)/Defines.wxi \
+##		$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi
+##
+##$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi $(PATH_SUB_CURRENT)/VirtualBox.wxs: \
+##		$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
+##		$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi
 
 #
 # Building a WIX library object (.wixlib).
@@ -833,6 +876,7 @@ $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib_x86.wxi: \
 include $(PATH_ROOT)/src/VBox/Frontends/VirtualBox/nls/ApprovedLanguages.kmk
 $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi)
 $(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi: $(PATH_ROOT)/src/VBox/Frontends/VirtualBox/nls/ApprovedLanguages.kmk | $$(dir $$@)
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(APPEND) -t $@ '<?xml version="1.0" ?>'
 	$(APPEND) $@ '<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">'
 	$(APPEND) -n $@ $(foreach lang,$(VBOX_APPROVED_GUI_LANGUAGES), \
@@ -845,6 +889,7 @@ $(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi: $(PATH_ROOT)/src/VBox/Frontends/Virtual
 #
 $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi)
 $(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi: $(PATH_SUB_CURRENT)/VBoxKey.wxi $(VBOX_VERSION_STAMP) | $$(dir $$@)
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(SED)	-e 's/%VER%/$(VBOX_VERSION_STRING_RAW)/' \
 		-e 's/%VER_EXT%/$(VBOX_VERSION_STRING)/' \
 		--output $@ $<
@@ -857,6 +902,7 @@ ifndef TOOL_$(VBOX_VCC_TOOL)
 endif
 $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls.wxi)
 $(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls.wxi: | $$(dir $$@)
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(APPEND) -t -n $@ \
 		'<?xml version="1.0" ?>' \
 		'<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">' \
@@ -876,6 +922,7 @@ ifndef TOOL_$(VBOX_VCC_TOOL_STEM)X86
 endif
 $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi)
 $(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi: | $$(dir $$@)
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(APPEND) -t -n $@ \
 		'<?xml version="1.0" ?>' \
 		'<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">' \
@@ -891,6 +938,7 @@ $(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi: | $$(dir $$@)
 #
 $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi)
 $(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi: | $$(dir $$@)
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(APPEND) -t -n $@ \
 		'<?xml version="1.0" ?>' \
 		'<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">'
@@ -1082,35 +1130,6 @@ else
 		'call sign-dual.cmd $(@F) || exit /b1' \
 		) ) \
 		'@echo Created multiarch EXE: $(@F)'
- ifdef VBOX_WIN_ATTESTATION_SIGNING
-	echo "Repacking HERE"
-	cd $(VBOX_WIN_INST_REPACK_DIR)
-	$(RM) -f -- \
-		"$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab" \
-		"$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.ddf" \
-		"$(VBOX_WIN_INST_REPACK_DIR)/PackDriversForSubmission_internal.cmd"
-	cd $(VBOX_WIN_INST_REPACK_DIR) && ls -la
-	$(APPEND) -nt "$(VBOX_WIN_INST_REPACK_DIR)/PackDriversForSubmission_internal.cmd" \
-		"SET KBUILD_BIN_PATH=$(KBUILD_BIN_PATH)" \
-		"call PackDriversForSubmission.cmd -b $(PATH_STAGE_BIN) -a $(KBUILD_TARGET_ARCH) \
-		-x -n --no-extpack -o $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab"
-
-	$(TIME_EXT) $(REDIRECT_EXT) -C "$(VBOX_WIN_INST_REPACK_DIR)" -- $(EXEC_X86_WIN32) cmd.exe /c PackDriversForSubmission_internal.cmd
-	$(TIME_EXT) $(REDIRECT_EXT) -C "$(VBOX_WIN_INST_REPACK_DIR)" -- $(VBOX_RETRY) $(VBOX_WIN_ATTESTATION_SIGNING_EXE) "VirtualBox Base drivers $(KBUILD_TARGET_ARCH) $(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD)r$(VBOX_SVN_REV)" "$(KBUILD_TARGET_ARCH)" "r$(VBOX_SVN_REV)" "$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab"
-
-	$(RM) -f -- "$(VBOX_WIN_INST_REPACK_DIR)/Single-3-Repack_internal.cmd"
-	$(APPEND) -nt "$(VBOX_WIN_INST_REPACK_DIR)/Single-3-Repack_internal.cmd" \
-		"SET KBUILD_BIN_PATH=$(KBUILD_BIN_PATH)" \
-		"SET KBUILD_DEVTOOLS=$(KBUILD_DEVTOOLS)" \
-		"call Single-3-Repack.cmd --no-extpack --signed "$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip"
-	$(TIME_EXT) $(REDIRECT_EXT) -C "$(VBOX_WIN_INST_REPACK_DIR)" -- $(EXEC_X86_WIN32) cmd.exe /c Single-3-Repack_internal.cmd
-
-	$(RM) -f -- \
-		"$(PATH_STAGE_BIN)/$(PACKAGE_NAME_MULTIARCH_FINAL)" \
-		"$(PATH_STAGE_BIN)/$(PACKAGE_NAME_LANG).msi"
-	$(CP) -- "$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_MULTIARCH_FINAL)" "$(PATH_STAGE_BIN)/"
-	$(CP) -- "$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG).msi"        "$(PATH_STAGE_BIN)/"
- endif
 endif
 
 #

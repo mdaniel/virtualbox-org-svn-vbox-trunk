@@ -55,13 +55,13 @@
             </Component>
  <?endif?>
             <Component Id="cp_VBoxSupCat_W10" Guid="589be90d-0286-4684-503d-a1681f9587bc" Bitness="$(var.Property_Bitness)" Condition="(VBOX_IS_WINDOWS_10)">
-                <File Id="file_VBoxSup.cat" Name="VBoxSup.cat" Source="$(env.PATH_OUT)\bin\VBoxSup.cat" />
+                <File Id="file_VBoxSup.cat" Name="VBoxSup.cat" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxSup.cat" />
             </Component>
 <?endif?>
             <Component Id="cp_VBoxSup" Guid="D3E2F2BB-569F-46A2-836C-BDF30FF1EDF8" Bitness="$(var.Property_Bitness)">
                 <!-- Note: Driver gets installed via custom action via VBoxInstallHelper. -->
-                <File Id="file_VBoxSup.sys" Name="VBoxSup.sys" KeyPath="yes" Source="$(env.PATH_OUT)\bin\VBoxSup.sys" />
-                <File Id="file_VBoxSup.inf" Name="VBoxSup.inf" Source="$(env.PATH_OUT)\bin\VBoxSup.inf" />
+                <File Id="file_VBoxSup.sys" Name="VBoxSup.sys" KeyPath="yes" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxSup.sys" />
+                <File Id="file_VBoxSup.inf" Name="VBoxSup.inf" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxSup.inf" />
             </Component>
         </Directory>
     </Directory> <!-- Directory "drivers" -->
@@ -282,9 +282,9 @@
         <File Id="file_VBoxDDRC.rc" Name="VBoxDDRC.rc" Source="$(env.PATH_OUT)\bin\VBoxDDRC.rc" />
 <?endif?>
 <?if $(env.VBOX_WITH_R0_MODULES) = "yes" ?>
-        <File Id="file_VMMR0.r0" Name="VMMR0.r0" Source="$(env.PATH_OUT)\bin\VMMR0.r0" />
+        <File Id="file_VMMR0.r0" Name="VMMR0.r0" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VMMR0.r0" />
     <?if $(env.VBOX_WITH_MINIMAL_R0) = "no" ?>
-        <File Id="file_VBoxDDR0.r0" Name="VBoxDDR0.r0" Source="$(env.PATH_OUT)\bin\VBoxDDR0.r0" />
+        <File Id="file_VBoxDDR0.r0" Name="VBoxDDR0.r0" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxDDR0.r0" />
     <?endif?>
 <?endif?>
 

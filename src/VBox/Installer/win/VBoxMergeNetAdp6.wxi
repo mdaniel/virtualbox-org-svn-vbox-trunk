@@ -34,13 +34,13 @@
     <?endif?>
     <Component Id="cp_NetAdp6DriverCat_W10" Guid="37431619-c0ac-4f6a-029e-6a8ac4cd58ad" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (VBOX_IS_WINDOWS_10)">
         <!-- Note: ShortName is required to avoid naming collisions the the MSI file table. -->
-        <File Id="file_VBoxNetAdp6_W10.cat" ShortName="NetAdp62.cat" Name="VBoxNetAdp6.cat" Source="$(env.PATH_OUT)\bin\VBoxNetAdp6.cat" />
+        <File Id="file_VBoxNetAdp6_W10.cat" ShortName="NetAdp62.cat" Name="VBoxNetAdp6.cat" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetAdp6.cat" />
     </Component>
 <?endif?>
 
     <Component Id="cp_NetAdp6Driver" Guid="945d9537-e60d-4bbf-9422-239739e31092" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;)">
-        <File Id="file_VBoxNetAdp6.sys" Name="VBoxNetAdp6.sys" KeyPath="yes" Source="$(env.PATH_OUT)\bin\VBoxNetAdp6.sys" Checksum="yes" />
-        <File Id="file_VBoxNetAdp6.inf" Name="VBoxNetAdp6.inf" Source="$(env.PATH_OUT)\bin\VBoxNetAdp6.inf" />
+        <File Id="file_VBoxNetAdp6.sys" Name="VBoxNetAdp6.sys" KeyPath="yes" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetAdp6.sys" Checksum="yes" />
+        <File Id="file_VBoxNetAdp6.inf" Name="VBoxNetAdp6.inf" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetAdp6.inf" />
     </Component>
 
 </Include>

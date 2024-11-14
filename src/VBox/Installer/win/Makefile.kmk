@@ -718,7 +718,8 @@ define def_vbox_build_wixlib
  		$(PATH_SUB_CURRENT)/UserInterface.wxi \
  		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
  			$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
- 				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm), \
+ 				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm) \
+			, \
  			$(VBOX_WIN_INST_OUT_DIR)/Shortcuts_StartMenu.wxi \
  			$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
  			$(if $(VBOX_WITH_32_ON_64_MAIN_API),$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib_x86.wxi,) \
@@ -727,7 +728,7 @@ define def_vbox_build_wixlib
  			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi,) \
  			$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
  			$(if $(VBOX_WITH_QTGUI),$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi) \
- 			$(VBOX_MSI_DEPENDENCIES),) \
+ 			$(VBOX_MSI_DEPENDENCIES)) \
  		$(VBOX_VERSION_STAMP) \
  		| $$$$(dir $$$$@) $(if-expr "$(lang)" != "en_US",, \
  			$(VBOX_WIN_INST_REPACK_DIR)/ $(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_$(lang)/ )

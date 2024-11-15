@@ -53,10 +53,16 @@
     <?endif?>
 <?endif?>
 
-    <Package UpgradeCode="C4BAD770-BFE8-4D2C-A592-693028A7215B" Name="$(env.VBOX_PRODUCT) $(env.VBOX_VERSION_STRING)" Language="!(loc.LANG)" Version="$(var.Property_Version)" Manufacturer="$(env.VBOX_VENDOR)" InstallerVersion="200"><SummaryInformation Keywords="Installer" Description="$(env.VBOX_PRODUCT) $(var.Property_VersionExt) installation package" Manufacturer="$(env.VBOX_VENDOR)" />
+    <Package UpgradeCode="C4BAD770-BFE8-4D2C-A592-693028A7215B" Name="$(env.VBOX_PRODUCT) $(env.VBOX_VERSION_STRING)"
+        Language="!(loc.LANG)" Version="$(var.Property_Version)" Manufacturer="$(env.VBOX_VENDOR)"
+        InstallerVersion="$(var.VBoxProperty_MsiInstallerVersion)">
+
+        <SummaryInformation Keywords="Installer"
+            Description="$(env.VBOX_PRODUCT) $(var.Property_VersionExt) installation package" Manufacturer="$(env.VBOX_VENDOR)" />
 
     <?include CommonProperties.wxi ?>
 
+    <!-- @todo indentation is wrong here and it goes on to about line 525. -->
     <!-- Global properties -->
     <Property Id="ARPPRODUCTICON" Value="IconVirtualBox" />
     <Property Id="ARPURLINFOABOUT" Value="http://www.virtualbox.org" />
@@ -79,15 +85,9 @@
 
     <?include PublicProperties.wxi ?>
 
-    <!-- Make sure installation will not start on anything other but the NT family -->
-<?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
+    <!-- Make doubly sure we're on 64-bit windows NT.
+         Note! This is normally checked by  -->
     <Launch Condition="VersionNT64" Message="!(loc.Only64Bit)" />
-<?else?>
-    <Launch Condition="NOT VersionNT64" Message="!(loc.Only32Bit)" />
-
-    <Launch Condition="NOT VersionNT=500 AND NOT Version9X AND NOT VersionNT64" Message="!(loc.WrongOS)" />
-
-<?endif?>
 
     <Launch Condition="Privileged" Message="!(loc.NeedAdmin)" />
 

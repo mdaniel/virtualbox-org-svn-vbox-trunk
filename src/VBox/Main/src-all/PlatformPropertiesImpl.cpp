@@ -173,8 +173,22 @@ HRESULT PlatformProperties::getSerialPortCount(ULONG *count)
 
 HRESULT PlatformProperties::getParallelPortCount(ULONG *count)
 {
-    /* no need to lock, this is const */
-    *count = SchemaDefs::ParallelPortCount;
+    switch (mPlatformArchitecture)
+    {
+        case PlatformArchitecture_x86:
+        {
+            /* no need to lock, this is const */
+            *count = SchemaDefs::ParallelPortCount;
+            break;
+        }
+
+        case PlatformArchitecture_ARM:
+        default:
+        {
+            *count = 0; /* Not supported. */
+            break;
+        }
+    }
 
     return S_OK;
 }

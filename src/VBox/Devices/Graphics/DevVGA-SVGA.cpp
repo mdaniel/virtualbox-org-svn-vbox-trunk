@@ -7082,7 +7082,7 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
 
     if (!pThis->svga.fVMSVGA2dGBO)
     {
-        for (unsigned i = 0; i <= RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
+        for (unsigned i = 0; i < RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
         {
             uint32_t val = 0;
             int rc = vmsvga3dQueryCaps(pThisCC, (SVGA3dDevCapIndex)i, &val);

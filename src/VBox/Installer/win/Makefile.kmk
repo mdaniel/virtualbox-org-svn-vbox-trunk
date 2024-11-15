@@ -718,6 +718,7 @@ endif
 # Add dependencies that makes sure necessary bits gets built.
 # For combined packages we always use the .ISO from the amd64 build.
 #
+## @todo these are applied to the wrong step at the moment...
 ifdef VBOX_WITH_COMBINED_PACKAGE
  VBOX_MSI_DEPENDENCIES := \
  	$(if $(VBOX_WITH_ADDITIONS_PACKING),$(PATH_MULTIARCH_GUEST_ADDITIONS_ISO)/VBoxGuestAdditions.iso)
@@ -726,38 +727,34 @@ else
  	$(if $(VBOX_WITH_ADDITIONS_PACKING),$(VBOX_PATH_ADDITIONS_ISO)/VBoxGuestAdditions.iso)
 endif
 
-#
-# A few manual dependencies to make sure everything is rebuilt when they should.
-#
-VBOX_VIRTUALBOX_WXS_DEPENDENCIES := \
-	$(PATH_SUB_CURRENT)/CommonProperties.wxi \
-	$(PATH_SUB_CURRENT)/Defines.wxi \
-	$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
-      	$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi
 
 #
 # Building a WIX library object (.wixlib).
 # We've separated the final building from the WIX library building for repacking reasons.
 #
-## @todo Proper dependencies: unzip -p VirtualBox_$(lang).wixlib | sed -e "s/\([,{]\)/\1\n/g" bar.json | sed -n -e "s/,$//" -e "s/]}$//" -e "s/}}$//" -e 's/"file"://p' -e 's/"path"://p' | sort |uniq
-define def_vbox_build_wixlib
- includedep $(VBOX_WIN_INST_OUT_DIR)/$(lang)/VirtualBox_$(lang).wixlib.dep
- $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib \
- $(if-expr "$(lang)" != "en_US",, \
- 	+ $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).wixlib $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).files ): \
+## @todo Proper dependencies: unzip -p VirtualBox_en_US.wixlib | sed -e "s/\([,{]\)/\1\n/g" bar.json | sed -n -e "s/,$//" -e "s/]}$//" -e "s/}}$//" -e 's/"file"://p' -e 's/"path"://p' | sort |uniq
+$(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib)
+$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib \
++ $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.wixlib \
++ $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.files: \
  		$(PATH_SUB_CURRENT)/VirtualBox.wxs \
  		$(PATH_SUB_CURRENT)/UserInterface.wxi \
- 		$(VBOX_VIRTUALBOX_WXS_DEPENDENCIES) \
+		$(PATH_SUB_CURRENT)/CommonProperties.wxi \
+		$(PATH_SUB_CURRENT)/Defines.wxi \
+		$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi \
+		$(PATH_SUB_CURRENT)/VBoxMergeAppCA.wxi \
+		$(PATH_SUB_CURRENT)/VBoxMergeAppSeq.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/Files_Doc.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/DirComponentsAndFiles_DTrace.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/Files_License.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/Files_Main.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
+		$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
  		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
  			$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
- 				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm) \
+ 				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_en_US_$(KBUILD_TARGET_ARCH).msm) \
 			, \
  			$(VBOX_WIN_INST_OUT_DIR)/Shortcuts_StartMenu.wxi \
  			$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
@@ -769,34 +766,27 @@ define def_vbox_build_wixlib
  			$(if $(VBOX_WITH_QTGUI),$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi) \
  			$(VBOX_MSI_DEPENDENCIES)) \
  		$(VBOX_VERSION_STAMP) \
- 		| $$$$(dir $$$$@) $(if-expr "$(lang)" != "en_US",, \
- 			$(VBOX_WIN_INST_REPACK_DIR)/ $(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_$(lang)/ )
-	$(QUIET)$(RM) -f -- "$$@"  "$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib" "$(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_$(lang).wixlib"
+ 		| $$(dir $$@) \
+		$(VBOX_WIN_INST_REPACK_DIR)/ \
+		$(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_en_US/
+	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
+	$(QUIET)$(RM) -f -- "$@"  "$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib" "$(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.wixlib"
 	$(REDIRECT) \
 		$(VBOX_WIN_INST_ENV) \
 		-- \
-		$(VBOX_TOOLS_WIN_WIX_BIN) build $(filter-out $(VBOX_VERSION_STAMP),$$<) \
-			-defaultcompressionlevel $(if-expr "$(lang)" == "en_US",high,none) \
-			-intermediatefolder $$(@D)/wix-temp/ \
+		$(VBOX_TOOLS_WIN_WIX_BIN) build $(filter-out $(VBOX_VERSION_STAMP),$<) \
+			-defaultcompressionlevel high \
+			-intermediatefolder $(@D)/wix-temp/ \
 			$(VBOX_TOOLS_WIN_WIX_EXT) \
 			-outputtype library \
-			-out $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib
- ifeq ($(lang),en_US)
-  # Copy over the .wixlib into the repack directory, so that it can be used later when
-  # doing the repacking via the shell scripts.
-	$(CP) $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_$(lang).wixlib $(VBOX_WIN_INST_REPACK_DIR)/
- endif
-	$(RM) -Rf -- $$(@D)/wix-temp/
+			-out $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib
+# Copy over the .wixlib into the repack directory, so that it can be used later when
+# doing the repacking via the shell scripts.
+	$(CP) $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib $(VBOX_WIN_INST_REPACK_DIR)/
+	$(RM) -Rf -- $(@D)/wix-temp/
 
- $(eval OTHER_CLEAN += $(VBOX_REPACK_FILES_VirtualBox_$(lang)))
-endef
+## @todo r=bird: what is this supposed to be doing these days? OTHER_CLEAN += $(VBOX_REPACK_FILES_VirtualBox_en_US)
 
-## @todo We generate rules for all the languages here, but only the en_US one is actually used.
-## This used to mess up the compression optimizations, since the compression level used to be
-## part of the Media tag in the VirtualBox_en_US.wixlib file. Omitting it and using the command
-## line option -defaultcompressionlevel for controlling it works around this.
-$(foreach lang,$(VBOX_INSTALLER_LANGUAGES),\
-	$(eval $(def_vbox_build_wixlib)))
 
 #
 # MSM (merge module) building as a WIX library (.wixlib).
@@ -1001,7 +991,7 @@ $(foreach lang,$(filter-out en_US, $(VBOX_INSTALLER_LANGUAGES)), \
 
 # Create WISUMINFO argument.
 VBOX_INS_PROD_ARCH.amd64 = x64
-VBOX_INS_PROD_ARCH.arm64 = arm64
+VBOX_INS_PROD_ARCH.arm64 = Arm64
 VBOX_INS_PROD_ARCH.x86   = Intel
 VBOX_INS_PROD_ARCH := $(VBOX_INS_PROD_ARCH.$(KBUILD_TARGET_ARCH))
 ifeq ($(VBOX_INS_PROD_ARCH),)

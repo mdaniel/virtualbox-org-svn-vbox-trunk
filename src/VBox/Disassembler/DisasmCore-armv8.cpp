@@ -91,6 +91,7 @@ static FNDISPARSEARMV8 disArmV8ParseImmsImmrN;
 static FNDISPARSEARMV8 disArmV8ParseHw;
 static FNDISPARSEARMV8 disArmV8ParseCond;
 static FNDISPARSEARMV8 disArmV8ParsePState;
+static FNDISPARSEARMV8 disArmV8ParseCRnCRm;
 static FNDISPARSEARMV8 disArmV8ParseSysReg;
 static FNDISPARSEARMV8 disArmV8ParseSh12;
 static FNDISPARSEARMV8 disArmV8ParseImmTbz;
@@ -158,7 +159,7 @@ static PFNDISPARSEARMV8 const g_apfnDisasm[kDisParmParseMax] =
     disArmV8ParseHw,
     disArmV8ParseCond,
     disArmV8ParsePState,
-    NULL,
+    disArmV8ParseCRnCRm,
     disArmV8ParseSysReg,
     disArmV8ParseSh12,
     disArmV8ParseImmTbz,
@@ -586,6 +587,17 @@ static int disArmV8ParsePState(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     }
 
     return VINF_SUCCESS;
+}
+
+
+static int disArmV8ParseCRnCRm(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCODE pOp, PCDISARMV8INSNCLASS pInsnClass, PDISOPPARAM pParam, PCDISARMV8INSNPARAM pInsnParm, bool *pf64Bit)
+{
+    RT_NOREF(pDis, u32Insn, pOp, pInsnClass, pParam, pInsnParm, pf64Bit);
+
+    Assert(pInsnParm->cBits == 8);
+
+    /** @todo Needs implementation. */
+    return VERR_DIS_INVALID_OPCODE;
 }
 
 
@@ -1345,6 +1357,8 @@ static int disArmV8A64ParseInstruction(PDISSTATE pDis, uint32_t u32Insn, PCDISAR
     while (   (pDecode->idxParse != kDisParmParseNop)
            && RT_SUCCESS(rc))
     {
+        Assert(pDecode->idxParse < kDisParmParseMax);
+        Assert(g_apfnDisasm[pDecode->idxParse]);
         rc = g_apfnDisasm[pDecode->idxParse](pDis, u32Insn, pOp, pInsnClass,
                                                pDecode->idxParam != DIS_ARMV8_INSN_PARAM_UNSET
                                              ? &pDis->aParams[pDecode->idxParam]

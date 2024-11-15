@@ -48,6 +48,10 @@
 # include <signal.h>
 # include <unistd.h>
 # include <sys/poll.h>
+# include <strings.h> /* For strcasecmp */
+# ifndef stricmp
+#  define stricmp strcasecmp
+# endif
 #endif
 #ifdef IPRT_INCLUDED_cdefs_h
 # error "not supposed to involve any IPRT or VBox headers here."

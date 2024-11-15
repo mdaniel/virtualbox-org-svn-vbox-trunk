@@ -845,12 +845,15 @@ static void startVM(const char *argv0, IVirtualBox *virtualBox, ISession *sessio
 /**
  * List the registered VMs.
  *
- * @param   argv0       executable name
+ * @param   argc        number of arguments
+ * @param   argv        argument vector
  * @param   virtualBox  ptr to IVirtualBox object
  * @param   session     ptr to ISession object
  */
-static void listVMs(const char *argv0, IVirtualBox *virtualBox, ISession *session)
+static void listVMs(int argc, char **argv, IVirtualBox *virtualBox, ISession *session)
 {
+    const char *argv0 = argv[0];
+
     HRESULT hrc;
     SAFEARRAY *machinesSA = g_pVBoxFuncs->pfnSafeArrayOutParamAlloc();
     IMachine **machines = NULL;
@@ -969,24 +972,33 @@ static void listVMs(const char *argv0, IVirtualBox *virtualBox, ISession *sessio
 
     /*
      * Let the user chose a machine to start.
+     *
+     * Note! Testcases need to run without interaction required by default,
+     *       so only do this if manually specifying the 'start' command.
      */
-    printf("Type Machine# to start (0 - %u) or 'quit' to do nothing: ",
-           (unsigned)(machineCnt - 1));
-    fflush(stdout);
-
-    if (scanf("%u", &start_id) == 1 && start_id < machineCnt)
+    if (    argc >= 2
+        && !stricmp(argv[1], "start"))
     {
-        IMachine *machine = machines[start_id];
+        printf("Type Machine# to start (0 - %u) or 'quit' to do nothing: ",
+               (unsigned)(machineCnt - 1));
+        fflush(stdout);
 
-        if (machine)
+        if (scanf("%u", &start_id) == 1 && start_id < machineCnt)
         {
-            BSTR uuidUtf16 = NULL;
+            IMachine *machine = machines[start_id];
 
-            IMachine_get_Id(machine, &uuidUtf16);
-            startVM(argv0, virtualBox, session, uuidUtf16);
-            g_pVBoxFuncs->pfnComUnallocString(uuidUtf16);
+            if (machine)
+            {
+                BSTR uuidUtf16 = NULL;
+
+                IMachine_get_Id(machine, &uuidUtf16);
+                startVM(argv0, virtualBox, session, uuidUtf16);
+                g_pVBoxFuncs->pfnComUnallocString(uuidUtf16);
+            }
         }
     }
+    else
+        printf("Note: Use 'start' to start a VM when running interactively.\n\n");
 
     /*
      * Don't forget to release the objects in the array.
@@ -1102,7 +1114,7 @@ int main(int argc, char **argv)
     else
         PrintErrorInfo(argv[0], "GetHomeFolder() failed", hrc);
 
-    listVMs(argv[0], vbox, session);
+    listVMs(argc, argv, vbox, session);
     ISession_UnlockMachine(session);
 
     printf("----------------------------------------------------\n");

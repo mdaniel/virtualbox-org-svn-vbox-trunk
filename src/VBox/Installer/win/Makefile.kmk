@@ -966,6 +966,9 @@ endif
 # Only contains the minimal set of stuff to get a language-specific .msi built.
 # We also don't need waste time to compress anything here.
 #
+# See also https://github.com/wixtoolset/issues/issues/7544 which requests a
+# simpler way of doing this.
+#
 define def_vbox_create_mst
  $(VBOX_WIN_INST_OUT_DIR)/$(lang)/$(lang).mst \
  + $(VBOX_WIN_INST_REPACK_DIR)/$(lang).mst: \
@@ -978,6 +981,7 @@ define def_vbox_create_mst
  		$(if-expr defined(VBOX_WITH_MSI_HACK),$(MsiHack_0_OUTDIR)/MsiHack.dll,) \
  		$(if-expr defined(VBOX_WITH_MSI_HACK),$(MsiHack_0_OUTDIR)/MsiHackExtension.dll,) \
  		| $$$$(dir $$$$@) $(VBOX_WIN_INST_REPACK_DIR)/
+	$(RM) -f -- "$$@"
 	$(call MSG_L1,Creating language diff for $(lang))
 	kmk_time $$(REDIRECT_EXT) -E WIX_TEMP='$$(subst /,\,$$(@D))' $(VBOX_WIN_INST_ENV) \
 		-- $(VBOX_TOOLS_WIN_WIX_BIN) build \
@@ -990,11 +994,12 @@ define def_vbox_create_mst
 		-ext $(VBOX_TOOLS_WIN_WIXEXT_DIR)/WixToolset.Util.wixext.dll \
 		-pdbtype none \
 		-out $$(@D)/$(PACKAGE_NAME_LANG)_$(lang).msi
-	$(REDIRECT) -C $$(@D) -- $$(VBOX_PATH_MSITRAN) -g $$< $(PACKAGE_NAME_LANG)_$(lang).msi $(lang).mst
+	$(VBOX_TOOLS_WIN_WIX_BIN) msi transform -t language -intermediateFolder "$$(@D)/wix-temp/" \
+		"$$<" "$$(@D)/$(PACKAGE_NAME_LANG)_$(lang).msi" -out "$$@"
 	$(CP) -f -- "$(VBOX_WIN_INST_OUT_DIR)/$(lang)/$(lang).mst" "$(VBOX_WIN_INST_REPACK_DIR)/$(lang).mst"
-	$(RM) -Rf -- $$(@D)/$(PACKAGE_NAME_LANG)_$(lang).msi \
-		$$(@D)/wix-temp/ \
-		$$(@D)/common.cab
+	$(RM) -Rf -- "$$(@D)/$(PACKAGE_NAME_LANG)_$(lang).msi" \
+		"$$(@D)/wix-temp/" \
+		"$$(@D)/common.cab"
 
 endef
 
@@ -1020,17 +1025,19 @@ $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_NAME_LANG).msi \
 	$(QUIET)$(RM) -f -- \
 		$(wildcard $(@D)/$(PACKAGE_BASE)-r*.msi $(VBOX_WIN_INST_REPACK_DIR)/2-multilingual-$(PACKAGE_BASE)-r*.cmd )
 	$(CP) -f -- "$<" "$@"
-
+# Add non-english languages.
 	$(foreach lang,$(filter-out en_US,$(VBOX_INSTALLER_LANGUAGES)), \
-		$(NLTAB)$(REDIRECT) -C $(@D)/$(lang) -- $(VBOX_PATH_MSIDB) -d $@ -r $(lang).mst \
-		$(NLTAB)$(REDIRECT) -C $(@D)/$(lang) -- cscript.exe /nologo $(VBOX_PATH_WISUBSTG) $@ $(lang).mst $(VBOX_BRAND_$(lang)_LANG_ID) )
-
+		$(NLTAB)$(REDIRECT) -C "$(@D)/$(lang)" -- $(VBOX_PATH_MSIDB) -d "$@" -r "$(lang).mst" \
+		$(NLTAB)$(REDIRECT) -C "$(@D)/$(lang)" -- cscript.exe /nologo $(VBOX_PATH_WISUBSTG) $@ $(lang).mst $(VBOX_BRAND_$(lang)_LANG_ID) )
+# Display MSI details.
 	$(REDIRECT) -C $(@D) -- cscript.exe /nologo $(VBOX_PATH_WISUBSTG) $(@F)
 	$(REDIRECT) -C $(@D) -- cscript.exe /nologo $(VBOX_PATH_WISUMINFO) $@
+# Update the list of language IDs (starts with platform/arch).
 	$(REDIRECT) -C $(@D) -- cscript.exe /nologo $(VBOX_PATH_WISUMINFO) $@ $(VBOX_INS_PROD_LANG)
+# Display updated MSI details.
 	$(REDIRECT) -C $(@D) -- cscript.exe /nologo $(VBOX_PATH_WISUMINFO) $@
+# Finally, sign it.
 	$(call VBOX_SIGN_MSI_FN,$@,$(VBOX_PRODUCT) $(VBOX_VERSION_STRING)r$(VBOX_SVN_REV) ($(KBUILD_TARGET_ARCH)),,,disable-dual-signing)
-
 # Create repack script for this step.
 	$(APPEND) -nt "$(VBOX_WIN_INST_REPACK_DIR)/2-multilingual-$(PACKAGE_NAME_LANG).cmd" \
 		'if ".%KBUILD_DEVTOOLS%" == "." (echo KBUILD_DEVTOOLS is not set & exit /b1)' \
@@ -1046,6 +1053,7 @@ $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_NAME_LANG).msi \
 		) ) \
 		$(if-expr defined(VBOX_WITH_COMBINED_PACKAGE),'copy /y "$(@F)" "$(notdir $(PACKAGE_NAME_FINAL))" || exit /b1',) \
 		'@echo Created multilanguage MSI: $(notdir $(PACKAGE_NAME_FINAL))'
+# Validation.  Currently there is a list of grievances, we ignore it. (TODO: Fix errors.)
 	$(call MSG_L1,Start validation of "$@" - errors will be ignored)
 	-$(REDIRECT) -- $(VBOX_TOOLS_WIN_WIX_BIN) msi validate "$@"
 	$(call MSG_L1,Finished validating "$@" - any errors was ignored)

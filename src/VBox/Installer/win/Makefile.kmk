@@ -528,8 +528,8 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_WITH_MINIMAL_R0=$(if $(VBOX_WITH_MINIMAL_R0),yes,no)' \
 	-E 'VBOX_WITH_MSM_INSTALL=$(if-expr defined(VBOX_WITH_MSM_INSTALL),yes,no)' \
 	$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
-		$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
-			-E 'VBOX_WIN_INST_MERGE_$(toupper $(module))=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm')),) \
+	$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
+		-E 'VBOX_WIN_INST_MERGE_$(toupper $(module))=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm')),) \
 	-E 'VBOX_WITH_NETADP=$(if $(VBOX_WITH_NETADP),yes,no)' \
 	-E 'VBOX_WITH_NETFLT=$(if $(VBOX_WITH_NETFLT),yes,no)' \
 	-E 'VBOX_WITH_ORACLE_QT=$(if $(VBOX_WITH_ORACLE_QT),yes,no)' \
@@ -552,17 +552,17 @@ VBOX_WIN_INST_ENV := \
 
 ifndef VBOX_WIN_ATTESTATION_SIGNING
  VBOX_WIN_INST_ENV += \
-	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(PATH_OUT))\bin'
+ 	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(PATH_OUT))\bin'
 
 else  # VBOX_WIN_ATTESTATION_SIGNING
  VBOX_WIN_INST_ENV += \
-	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(VBOX_WIN_INST_REPACK_DIR))\hostdrivers'
+ 	-E 'VBOX_PATH_ATTESTATION_SIGNED=$(subst /,\,$(VBOX_WIN_INST_REPACK_DIR))\hostdrivers'
 
  $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab \
  + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.ddf \
  + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.inf \
  + $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.rpt: \
-		$(VBOX_WIN_INST_REPACK_DIR)/PackDriversForSubmission.cmd ## @todo more deps
+ 		$(VBOX_WIN_INST_REPACK_DIR)/PackDriversForSubmission.cmd ## @todo more deps
 	$(call MSG_L1,Packing drivers for submission to attesttion signing (=> $@))
 	$(RM) -f -- "$@" "$@.ddf" "$@.inf" "$@.rpt"
 	$(REDIRECT) -E 'KBUILD_BIN_PATH=$(KBUILD_BIN_PATH)' \
@@ -571,7 +571,7 @@ else  # VBOX_WIN_ATTESTATION_SIGNING
 		'PackDriversForSubmission.cmd -b $(PATH_STAGE_BIN) -a $(KBUILD_TARGET_ARCH) -x -n --no-extpack -o $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab'
 
  $(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip: \
-		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab
+ 		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab
 	$(call MSG_L1,Submitting drivers ($<) for attestation signing (=> $@))
 	$(TIME_EXT) $(REDIRECT_EXT) -C "$(@D)" \
 		-- $(VBOX_RETRY) $(VBOX_WIN_ATTESTATION_SIGNING_EXE) \
@@ -581,7 +581,7 @@ else  # VBOX_WIN_ATTESTATION_SIGNING
 		"$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab"
 
  $(VBOX_WIN_INST_REPACK_DIR)/hostdrivers/UnpackedSignedDrivers.ts: \
-		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip
+ 		$(VBOX_WIN_INST_REPACK_DIR)/$(PACKAGE_NAME_LANG)-$(KBUILD_TARGET_ARCH).cab.Signed.zip
 	$(call MSG_L1,Unpacking attestation signed drivers ($<))
 	$(RM) -Rf -- "$(@D)"
 	$(MKDIR) -p -- "$(@D)"
@@ -737,8 +737,8 @@ $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib)
 $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib \
 + $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.wixlib \
 + $(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.files: \
- 		$(PATH_SUB_CURRENT)/VirtualBox.wxs \
- 		$(PATH_SUB_CURRENT)/UserInterface.wxi \
+		$(PATH_SUB_CURRENT)/VirtualBox.wxs \
+		$(PATH_SUB_CURRENT)/UserInterface.wxi \
 		$(PATH_SUB_CURRENT)/CommonProperties.wxi \
 		$(PATH_SUB_CURRENT)/Defines.wxi \
 		$(PATH_SUB_CURRENT)/VBoxMergeApp.wxi \
@@ -752,21 +752,21 @@ $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib \
 		$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi \
 		$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
 		$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
- 		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
- 			$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
- 				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_en_US_$(KBUILD_TARGET_ARCH).msm) \
+		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
+			$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
+				$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_en_US_$(KBUILD_TARGET_ARCH).msm) \
 			, \
- 			$(VBOX_WIN_INST_OUT_DIR)/Shortcuts_StartMenu.wxi \
- 			$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
- 			$(if $(VBOX_WITH_32_ON_64_MAIN_API),$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib_x86.wxi,) \
- 			$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
- 			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls.wxi,) \
- 			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi,) \
- 			$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
- 			$(if $(VBOX_WITH_QTGUI),$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi) \
- 			$(VBOX_MSI_DEPENDENCIES)) \
- 		$(VBOX_VERSION_STAMP) \
- 		| $$(dir $$@) \
+			$(VBOX_WIN_INST_OUT_DIR)/Shortcuts_StartMenu.wxi \
+			$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib.wxi \
+			$(if $(VBOX_WITH_32_ON_64_MAIN_API),$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_TypeLib_x86.wxi,) \
+			$(VBOX_WIN_INST_OUT_DIR)/VBoxKey.wxi \
+			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls.wxi,) \
+			$(if $(VBOX_WITH_CRT_PACKING),$(VBOX_WIN_INST_OUT_DIR)/VBoxCrtDlls32.wxi,) \
+			$(VBOX_WIN_INST_OUT_DIR)/VBoxUnattendedTemplateComponent.wxi \
+			$(if $(VBOX_WITH_QTGUI),$(VBOX_WIN_INST_OUT_DIR)/VBoxGuiNLS.wxi) \
+			$(VBOX_MSI_DEPENDENCIES)) \
+		$(VBOX_VERSION_STAMP) \
+		| $$(dir $$@) \
 		$(VBOX_WIN_INST_REPACK_DIR)/ \
 		$(VBOX_WIN_INST_REPACK_DIR)/files-VirtualBox_en_US/
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)

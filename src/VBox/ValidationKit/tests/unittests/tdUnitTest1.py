@@ -212,7 +212,8 @@ class tdUnitTest1(vbox.TestDriver):
         'tstXptLink': '',                               # parameters required
         'tstXPCOMCGlue': '',                            # user interaction required
         'testcase/tstXPCOMCGlue': '',                   # user interaction required
-        'testcase/tstCAPIGlue': '',                     # user interaction required
+        'testcase/tstCAPIGlue': '',                     # user interaction required (for <= 7.1)
+        'testcase/tstCAPIGlue-x86': '',                 # user interaction required (for <= 7.1)
         'testcase/tstTestCallTemplates': '',            # some strange xpcom18a4 test, segfaults
         'tstTestCallTemplates': '',                     # some strange xpcom18a4 test, segfaults
         'testcase/tstRTFilesystem': '',                 # parameters required

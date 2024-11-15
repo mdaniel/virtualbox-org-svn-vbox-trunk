@@ -58,7 +58,7 @@ AddService=,2   ; Dummy service using the NULL driver.
 
 [VBoxVMM_CopyFiles]
 VMMR0.r0,,,2
-VBoxDDR0.r0,,,2
+;amd64 VBoxDDR0.r0,,,2
 
 [Strings]
 ORACLE = "Oracle Corporation"

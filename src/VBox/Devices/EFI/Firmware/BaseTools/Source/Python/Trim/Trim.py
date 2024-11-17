@@ -57,7 +57,8 @@ gAslCIncludePattern = re.compile(r'^(\s*)#include\s*[<"]\s*([-\\/\w.]+)\s*([>"])
 ## Patterns used to convert EDK conventions to EDK2 ECP conventions
 
 ## Regular expression for finding header file inclusions
-gIncludePattern = re.compile(r"^[ \t]*[%]?[ \t]*include(?:[ \t]*(?:\\(?:\r\n|\r|\n))*[ \t]*)*(?:\(?[\"<]?[ \t]*)([-\w.\\/() \t]+)(?:[ \t]*[\">]?\)?)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
+gIncludePattern = re.compile(r"^[ \t]*[%]?[ \t]*include(?:[ \t]*(?:\\(?:\r\n|\r|\n))*[ \t]*)*(?:\(?[\"<]?[ \t]*)([-\w.\\/() \t]+)(?:[ \t]*[\">]?\)?)(?!.*edk2-ignore-hack)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
+## VBox 2024-11-17 bird: Added the negative 'edk2-ignore-hack' matching to help the tool ignore the asmdefs-first.mac include in iprt/asmdefs.mac.  ^^^^^^^^^^^^^^^^^^^^^^
 
 
 ## file cache to avoid circular include in ASL file

@@ -54,6 +54,7 @@
   PcdLib
   UefiRuntimeServicesTableLib
   PrintLib
+  IntrinsicLib # vbox 2022-11-17 bird: HORRIBLE HACK for unresolved memcpy w/ VS2022 in Image.obj. /kernel doens't fix it for AMD64.
 
 [Protocols]
   gEfiDevicePathProtocolGuid                                            ## SOMETIMES_CONSUMES

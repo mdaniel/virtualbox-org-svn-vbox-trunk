@@ -351,12 +351,14 @@ $(if $(VBOX_WITH_VIRT_ARMV8),$(VBoxEfiFirmware_0_OUTDIR)/aarch64/Conf/tools_def.
 		-e 's,@VBOX_PATH_PREFIX_GCC_AARCH64@,$(PATH_TOOL_VBoxXGccArm64Elf)/$(TOOL_VBoxXGccArm64Elf_PREFIX),' \
 		-e 's,@VBOX_PATH_PREFIX_GCC_ARM@,$(PATH_TOOL_VBoxXGccArmNoneEabi)/$(TOOL_VBoxXGccArmNoneEabi_PREFIX),' \
                \
-		-e 's,@PATH_VS2010@,$(PATH_TOOL_$(VBOX_VCC_TOOL)),' \
-		-e 's,@PATH_VS2010_AMD64_BIN@,$(PATH_TOOL_$(VBOX_VCC_TOOL))/bin/$(subst x86,x86_amd64,$(KBUILD_HOST_ARCH)),' \
-               \
 		-e 's,@PATH_VS2017_BIN_HOST@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)AMD64_BIN),' \
 		-e 's,@PATH_VS2017_AMD64_BIN@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)AMD64_BIN),' \
 		-e 's,@PATH_VS2017_X86_BIN@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)X86_BIN),' \
+		\
+		-e 's,@VS_HOST@,$(WINCMN_MAP_ARCH.$(KBUILD_HOST_ARCH)),' \
+		-e 's,@PATH_VS2019_BIN@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)_BASE_BIN),' \
+		\
+		-e 's,@VBOX_PATH_ROOT@,$(PATH_ROOT),' \
                \
 		-e 's,@PATH_SDK_WINSDK10_BIN@,$(PATH_SDK_WINSDK10_BIN),' \
                \

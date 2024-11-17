@@ -29,7 +29,9 @@
 
   Ia32/MathLShiftS64.c      | MSFT
   Ia32/MathRShiftU64.c      | MSFT
-  Ia32/MathFtol.c           | MSFT
+  # 2024-11-16 bird: Replaced MathFtol.c with ftol2-vcc.asm for VS2022:
+  Ia32/ftol2-vcc.nasm       | MSFT
+  # Ia32/MathFtol.c           | MSFT
   Ia32/MathLlmul.asm        | MSFT
   Ia32/MathLlshr.asm        | MSFT
   Ia32/MathUlldiv.asm       | MSFT

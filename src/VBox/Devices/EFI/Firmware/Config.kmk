@@ -76,9 +76,8 @@ endif
 # Note! We're using our own stripped down tools_def.txt: vbox-tools_def.txt.
 #
 ifeq ($(KBUILD_HOST),win)
- # Actually using VS2019, but no config for it, so VS2017 will have to do for now.
- ## @todo EFI has a VS2019 template now. We should migrate to it before we start using 2022... ;-)
- VBOX_EFI_TOOL_CHAIN := VS2017
+ # The VS2019 template is the same as the VS2022 in upstream, so we stick with this till we upgrade.
+ VBOX_EFI_TOOL_CHAIN := VS2019
 else
  VBOX_EFI_TOOL_CHAIN = GCC48
 endif
@@ -129,6 +128,11 @@ if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
  TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd4774 # Pccts\h\AParser.cpp(653): warning C4774: 'sprintf' : format string expected in argument 2 is not a string literal
  TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd4703 # VfrCompile\VfrFormPkg.cpp(1344) : warning C4703: potentially uninitialized local pointer variable 'pNodeBeforeAdjust' used
  TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd5033 # DLexer.h(68): warning C5033: 'register' is no longer a supported storage class (in c++17 or later mode)
+endif
+if "$(VBOX_VCC_TOOL_STEM)" >= "VCC143"
+ TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd5264 # AParser.cpp(57): warning C5264: 'zzINF_DEF_TOKEN_BUFFER_SIZE': 'const' variable is not used
+ TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd5262 # VfrUtilityLib.cpp(687): warning C5262: implicit fall-through occurs here; are you missing a break statement? Use [[fallthrough]] when a break statement is intentionally omitted between cases
+ TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd5267 # AToken.h(60): warning C5267: definition of implicit copy constructor for 'ANTLRAbstractToken' is deprecated because it has a user-provided destructor
 endif
 
 TEMPLATE_VBoxEfiBldProg_CFLAGS.linux  = $(TEMPLATE_VBoxBldProg_CFLAGS.linux)

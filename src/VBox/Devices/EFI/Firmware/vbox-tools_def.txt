@@ -1,9 +1,11 @@
 #
-#  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2006 - 2022, Intel Corporation. All rights reserved.<BR>
 #  Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-#  Portions copyright (c) 2011 - 2014, ARM Ltd. All rights reserved.<BR>
+#  Portions copyright (c) 2011 - 2019, ARM Ltd. All rights reserved.<BR>
 #  Copyright (c) 2015, Hewlett-Packard Development Company, L.P.<BR>
-#  (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
+#  (C) Copyright 2020, Hewlett Packard Enterprise Development LP<BR>
+#  Copyright (c) 2022, Loongson Technology Corporation Limited. All rights reserved.<BR>
+#  Copyright (c) Microsoft Corporation
 #
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
@@ -11,11 +13,6 @@
 IDENTIFIER = Default TOOL_CHAIN_CONF
 
 # common path macros
-DEFINE VS2010_BIN      = @PATH_VS2010@/bin
-DEFINE VS2010_DLL      = @PATH_VS2010@/bin
-DEFINE VS2010_BINX64   = @PATH_VS2010_AMD64_BIN@
-DEFINE VS2010_BIN64    = DEF(VS2010_BIN)\x86_ia64
-
 DEFINE VS2017_DLL      = @PATH_VS2017_BIN_HOST@
 DEFINE VS2017_BIN_HOST = @PATH_VS2017_BIN_HOST@
 DEFINE VS2017_BIN_IA32 = @PATH_VS2017_X86_BIN@
@@ -23,20 +20,28 @@ DEFINE VS2017_BIN_X64  = @PATH_VS2017_AMD64_BIN@
 DEFINE VS2017_BIN_ARM     = c:\no\such\directory
 DEFINE VS2017_BIN_AARCH64 = c:\no\such\directory
 
-DEFINE WINSDK7_BIN       = c:\no\such\directory
+DEFINE VS_HOST            = @VS_HOST@
+
+DEFINE VS2019_BIN         = @PATH_VS2019_BIN@
+DEFINE VS2019_BIN_HOST    = DEF(VS2019_BIN)\HostDEF(VS_HOST)\DEF(VS_HOST)
+DEFINE VS2019_BIN_IA32    = DEF(VS2019_BIN)\HostDEF(VS_HOST)\x86
+DEFINE VS2019_BIN_X64     = DEF(VS2019_BIN)\HostDEF(VS_HOST)\x64
+DEFINE VS2019_BIN_ARM     = DEF(VS2019_BIN)\HostDEF(VS_HOST)\arm
+DEFINE VS2019_BIN_AARCH64 = DEF(VS2019_BIN)\HostDEF(VS_HOST)\arm64
+
+#
+# Resource compiler
+#
+DEFINE RC_PATH           = @PATH_SDK_WINSDK10_BIN@\rc.exe
 DEFINE WINSDK10_BIN      = @PATH_SDK_WINSDK10_BIN@
+
+#DEFINE WINSDK7_BIN       = c:\no\such\directory
+
 
 # These defines are needed for certain Microsoft Visual Studio tools that
 # are used by other toolchains.  An example is that ICC on Windows normally
 # uses Microsoft's nmake.exe.
-
-# Some MS_VS_BIN options: DEF(VS2008_BIN), DEF(VS2008x86_BIN)
-DEFINE MS_VS_BIN   = DEF(VS2010_BIN)
-# Some MS_VS_DLL options: DEF(VS2008_DLL), DEF(VS2008x86_DLL)
-DEFINE MS_VS_DLL   = DEF(VS2010_DLL)
-
 DEFINE WINDDK_BIN16     = ENV(WINDDK3790_PREFIX)bin16
-DEFINE WINDDK_BINX64    = ENV(WINDDK3790_PREFIX)win64\x86\amd64
 
 DEFINE EBC_BIN          = C:\Program Files\Intel\EBC\Bin
 DEFINE EBC_BINx86       = C:\Program Files (x86)\Intel\EBC\Bin
@@ -56,6 +61,9 @@ DEFINE IASL_OUTFLAGS           = -p
 DEFINE DEFAULT_WIN_ASL_BIN      = DEF(WIN_IASL_BIN)
 DEFINE DEFAULT_WIN_ASL_FLAGS    = DEF(IASL_FLAGS)
 DEFINE DEFAULT_WIN_ASL_OUTFLAGS = DEF(IASL_OUTFLAGS)
+
+# MSFT Build Flag for included header file list generation
+DEFINE MSFT_DEPS_FLAGS         = /showIncludes /MP1
 
 DEFINE MSFT_ASLPP_FLAGS        = /nologo /E /C /FIAutoGen.h
 DEFINE MSFT_ASLCC_FLAGS        = /nologo /c /FIAutoGen.h /TC /Dmain=ReferenceAcpiTable
@@ -90,15 +98,22 @@ DEFINE DTC_BIN                 = ENV(DTC_PREFIX)dtc
 #
 # Supported Tool Chains
 # =====================
-#   VS2010      -win32-  Requires:
-#                             Microsoft Visual Studio 2010 Premium Edition
-#                             Microsoft Windows Server 2003 Driver Development Kit (Microsoft WINDDK) version 3790.1830
+#   VS2017      -win32-  Requires:
+#                             Microsoft Visual Studio 2017 version 15.2 (15.4 for ARM64) or later
 #                        Optional:
-#                             Required to build EBC drivers:
-#                               Intel(r) Compiler for Efi Byte Code (Intel(r) EBC Compiler)
 #                             Required to build platforms or ACPI tables:
 #                               Intel(r) ACPI Compiler (iasl.exe) from
 #                               https://acpica.org/downloads
+#                        Note:
+#                             Building of XIP firmware images for ARM/ARM64 is not currently supported (only applications).
+#                             /FILEALIGN:4096 and other changes are needed for ARM firmware builds.
+#   VS2019      -win32-  Requires:
+#                             Microsoft Visual Studio 2019 version 16.2 or later
+#                        Optional:
+#                             Required to build platforms or ACPI tables:
+#                               Intel(r) ACPI Compiler (iasl.exe) from
+#                               https://acpica.org/downloads
+#
 #   GCC48       -Linux,Windows-  Requires:
 #                             GCC 4.8 targeting x86_64-linux-gnu, aarch64-linux-gnu, or arm-linux-gnueabi
 #                        Optional:
@@ -113,125 +128,18 @@ DEFINE DTC_BIN                 = ENV(DTC_PREFIX)dtc
 #   MSFT           - Microsoft
 #   GCC            - GNU GCC
 ####################################################################################
-
-
-
 ####################################################################################
 #
-# Microsoft Visual Studio 2010
+# Other Supported Tools
+# =====================
+#   NASM -- http://www.nasm.us/
+#   - NASM 2.15.05 or later for use with the GCC toolchain family
+#   - NASM 2.15.05 or later for use with all other toolchain families
 #
-#   VS2010  - Microsoft Visual Studio 2010 Premium Edition with Intel ASL
-#   ASL     - Intel ACPI Source Language Compiler
 ####################################################################################
-#   VS2010           - Microsoft Visual Studio 2010 Premium Edition
-*_VS2010_*_*_FAMILY               = MSFT
 
-*_VS2010_*_MAKE_PATH              = DEF(VS2010_BIN)/nmake.exe
-*_VS2010_*_MAKE_FLAGS             = /nologo
-*_VS2010_*_RC_PATH                = rc.exe
 
-*_VS2010_*_SLINK_FLAGS            = /NOLOGO /LTCG
-*_VS2010_*_APP_FLAGS              = /nologo /E /TC
-*_VS2010_*_PP_FLAGS               = /nologo /E /TC /FIAutoGen.h
-*_VS2010_*_VFRPP_FLAGS            = /nologo /E /TC /DVFRCOMPILE /FI$(MODULE_NAME)StrDefs.h
 
-*_VS2010_*_ASM16_PATH             = DEF(VS2010_BIN)\ml.exe
-
-##################
-# ASL definitions
-##################
-*_VS2010_*_ASL_PATH               = DEF(DEFAULT_WIN_ASL_BIN)
-*_VS2010_*_ASL_FLAGS              = DEF(DEFAULT_WIN_ASL_FLAGS)
-*_VS2010_*_ASL_OUTFLAGS           = DEF(DEFAULT_WIN_ASL_OUTFLAGS)
-*_VS2010_*_ASLCC_FLAGS            = DEF(MSFT_ASLCC_FLAGS)
-*_VS2010_*_ASLPP_FLAGS            = DEF(MSFT_ASLPP_FLAGS)
-*_VS2010_*_ASLDLINK_FLAGS         = DEF(MSFT_ASLDLINK_FLAGS)
-
-##################
-# IA32 definitions
-##################
-*_VS2010_IA32_*_DLL               = DEF(VS2010_DLL)
-
-*_VS2010_IA32_MAKE_PATH           = DEF(VS2010_BIN)\nmake.exe
-*_VS2010_IA32_CC_PATH             = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_VFRPP_PATH          = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_SLINK_PATH          = DEF(VS2010_BIN)\lib.exe
-*_VS2010_IA32_DLINK_PATH          = DEF(VS2010_BIN)\link.exe
-*_VS2010_IA32_APP_PATH            = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_PP_PATH             = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_ASM_PATH            = DEF(VS2010_BIN)\ml.exe
-*_VS2010_IA32_ASLCC_PATH          = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_ASLPP_PATH          = DEF(VS2010_BIN)\cl.exe
-*_VS2010_IA32_ASLDLINK_PATH       = DEF(VS2010_BIN)\link.exe
-
-      *_VS2010_IA32_MAKE_FLAGS    = /nologo
-  DEBUG_VS2010_IA32_CC_FLAGS      = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Z7 /MP
-RELEASE_VS2010_IA32_CC_FLAGS      = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /MP
-NOOPT_VS2010_IA32_CC_FLAGS        = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Zi /Gm /Od /MP
-
-  DEBUG_VS2010_IA32_ASM_FLAGS     = /nologo /c /WX /W3 /Cx /coff /Zd /Zi
-RELEASE_VS2010_IA32_ASM_FLAGS     = /nologo /c /WX /W3 /Cx /coff /Zd
-NOOPT_VS2010_IA32_ASM_FLAGS       = /nologo /c /WX /W3 /Cx /coff /Zd /Zi
-
-  DEBUG_VS2010_IA32_NASM_FLAGS    = -Ox -f win32 -g
-RELEASE_VS2010_IA32_NASM_FLAGS    = -Ox -f win32
-NOOPT_VS2010_IA32_NASM_FLAGS      = -O0 -f win32 -g
-
-  DEBUG_VS2010_IA32_DLINK_FLAGS   = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
-RELEASE_VS2010_IA32_DLINK_FLAGS   = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data /DEBUG
-NOOPT_VS2010_IA32_DLINK_FLAGS     = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
-
-##################
-# X64 definitions
-##################
-*_VS2010_X64_*_DLL         = DEF(VS2010_DLL)
-
-*_VS2010_X64_CC_PATH       = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_PP_PATH       = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_APP_PATH      = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_VFRPP_PATH    = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_ASM_PATH      = DEF(VS2010_BINX64)\ml64.exe
-*_VS2010_X64_SLINK_PATH    = DEF(VS2010_BINX64)\lib.exe
-*_VS2010_X64_DLINK_PATH    = DEF(VS2010_BINX64)\link.exe
-*_VS2010_X64_ASLCC_PATH    = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_ASLPP_PATH    = DEF(VS2010_BINX64)\cl.exe
-*_VS2010_X64_ASLDLINK_PATH = DEF(VS2010_BINX64)\link.exe
-
-  DEBUG_VS2010_X64_CC_FLAGS     = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2s /GL /Gy /FIAutoGen.h /EHs-c- /GR- /GF /Z7 /MP
-RELEASE_VS2010_X64_CC_FLAGS     = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2s /GL /Gy /FIAutoGen.h /EHs-c- /GR- /GF /MP
-NOOPT_VS2010_X64_CC_FLAGS       = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /Gy /FIAutoGen.h /EHs-c- /GR- /GF /Z7 /Od /MP
-
-  DEBUG_VS2010_X64_ASM_FLAGS    = /nologo /c /WX /W3 /Cx /Zd /Zi
-RELEASE_VS2010_X64_ASM_FLAGS    = /nologo /c /WX /W3 /Cx /Zd
-NOOPT_VS2010_X64_ASM_FLAGS    = /nologo /c /WX /W3 /Cx /Zd /Zi
-
-  DEBUG_VS2010_X64_NASM_FLAGS   = -Ox -f win64 -g
-RELEASE_VS2010_X64_NASM_FLAGS   = -Ox -f win64
-NOOPT_VS2010_X64_NASM_FLAGS     = -O0 -f win64 -g
-
-  DEBUG_VS2010_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
-RELEASE_VS2010_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data /DEBUG
-NOOPT_VS2010_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
-
-##################
-# EBC definitions
-##################
-*_VS2010_EBC_*_FAMILY            = INTEL
-*_VS2010_EBC_*_DLL               = DEF(VS2010_DLL)
-
-*_VS2010_EBC_MAKE_PATH           = DEF(VS2010_BIN)\nmake.exe
-*_VS2010_EBC_PP_PATH             = DEF(EBC_BIN)\iec.exe
-*_VS2010_EBC_VFRPP_PATH          = DEF(EBC_BIN)\iec.exe
-*_VS2010_EBC_CC_PATH             = DEF(EBC_BIN)\iec.exe
-*_VS2010_EBC_SLINK_PATH          = DEF(VS2010_BIN)\link.exe
-*_VS2010_EBC_DLINK_PATH          = DEF(VS2010_BIN)\link.exe
-
-*_VS2010_EBC_MAKE_FLAGS          = /nologo
-*_VS2010_EBC_PP_FLAGS            = /nologo /E /TC /FIAutoGen.h
-*_VS2010_EBC_CC_FLAGS            = /nologo /c /WX /W3 /FIAutoGen.h /D$(MODULE_ENTRY_POINT)=$(ARCH_ENTRY_POINT)
-*_VS2010_EBC_VFRPP_FLAGS         = /nologo /E /TC /DVFRCOMPILE /FI$(MODULE_NAME)StrDefs.h
-*_VS2010_EBC_SLINK_FLAGS         = /lib /NOLOGO /MACHINE:EBC
-*_VS2010_EBC_DLINK_FLAGS         = "C:\Program Files\Intel\EBC\Lib\EbcLib.lib" /NOLOGO /NODEFAULTLIB /MACHINE:EBC /OPT:REF /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /MAP /ALIGN:32 /DRIVER
 
 
 ####################################################################################
@@ -243,17 +151,16 @@ NOOPT_VS2010_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT
 *_VS2017_*_*_DLL           = DEF(VS2017_BIN_HOST)
 
 *_VS2017_*_MAKE_PATH       = DEF(VS2017_BIN_HOST)\nmake.exe
-*_VS2017_*_MAKE_FLAG       = /nologo
-*_VS2017_*_RC_PATH         = DEF(WINSDK10_BIN)\rc.exe
-
 *_VS2017_*_MAKE_FLAGS      = /nologo
+*_VS2017_*_RC_PATH         = DEF(RC_PATH)
+
 *_VS2017_*_SLINK_FLAGS     = /NOLOGO /LTCG
 *_VS2017_*_APP_FLAGS       = /nologo /E /TC
 *_VS2017_*_PP_FLAGS        = /nologo /E /TC /FIAutoGen.h
 *_VS2017_*_VFRPP_FLAGS     = /nologo /E /TC /DVFRCOMPILE /FI$(MODULE_NAME)StrDefs.h
 *_VS2017_*_DLINK2_FLAGS    = /WHOLEARCHIVE
 *_VS2017_*_ASM16_PATH      = DEF(VS2017_BIN_IA32)\ml.exe
-
+*_VS2017_*_DEPS_FLAGS      = DEF(MSFT_DEPS_FLAGS)
 ##################
 # ASL definitions
 ##################
@@ -397,6 +304,149 @@ NOOPT_VS2017_AARCH64_DLINK_FLAGS   = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF
 *_VS2017_EBC_SLINK_FLAGS         = /lib /NOLOGO /MACHINE:EBC
 *_VS2017_EBC_DLINK_FLAGS         = "C:\Program Files (x86)\Intel\EBC\Lib\EbcLib.lib" /NOLOGO /NODEFAULTLIB /MACHINE:EBC /OPT:REF /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /MAP /ALIGN:32 /DRIVER
 
+
+####################################################################################
+#   VS2019       - Microsoft Visual Studio 2019 with Intel ASL
+#   ASL          - Intel ACPI Source Language Compiler (iasl.exe)
+####################################################################################
+#   VS2019           - Microsoft Visual Studio 2019 professional Edition with Intel ASL
+*_VS2019_*_*_FAMILY        = MSFT
+*_VS2019_*_*_DLL           = DEF(VS2019_BIN_HOST)
+
+*_VS2019_*_MAKE_PATH       = DEF(VS2019_BIN_HOST)\nmake.exe
+*_VS2019_*_MAKE_FLAGS      = /nologo
+*_VS2019_*_RC_PATH         = DEF(RC_PATH)
+
+*_VS2019_*_SLINK_FLAGS     = /NOLOGO /LTCG
+*_VS2019_*_APP_FLAGS       = /nologo /E /TC
+*_VS2019_*_PP_FLAGS        = /nologo /E /TC /FIAutoGen.h
+*_VS2019_*_VFRPP_FLAGS     = /nologo /E /TC /DVFRCOMPILE /FI$(MODULE_NAME)StrDefs.h
+*_VS2019_*_DLINK2_FLAGS    = /WHOLEARCHIVE
+*_VS2019_*_ASM16_PATH      = DEF(VS2019_BIN_IA32)\ml.exe
+*_VS2019_*_DEPS_FLAGS      = DEF(MSFT_DEPS_FLAGS)
+##################
+# ASL definitions
+##################
+*_VS2019_*_ASL_PATH        = DEF(WIN_IASL_BIN)
+*_VS2019_*_ASL_FLAGS       = DEF(DEFAULT_WIN_ASL_FLAGS)
+*_VS2019_*_ASL_OUTFLAGS    = DEF(DEFAULT_WIN_ASL_OUTFLAGS)
+*_VS2019_*_ASLCC_FLAGS     = DEF(MSFT_ASLCC_FLAGS)
+*_VS2019_*_ASLPP_FLAGS     = DEF(MSFT_ASLPP_FLAGS)
+*_VS2019_*_ASLDLINK_FLAGS  = DEF(MSFT_ASLDLINK_FLAGS)
+
+##################
+# IA32 definitions
+##################
+*_VS2019_IA32_CC_PATH      = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_VFRPP_PATH   = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_ASLCC_PATH   = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_ASLPP_PATH   = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_SLINK_PATH   = DEF(VS2019_BIN_IA32)\lib.exe
+*_VS2019_IA32_DLINK_PATH   = DEF(VS2019_BIN_IA32)\link.exe
+*_VS2019_IA32_ASLDLINK_PATH= DEF(VS2019_BIN_IA32)\link.exe
+*_VS2019_IA32_APP_PATH     = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_PP_PATH      = DEF(VS2019_BIN_IA32)\cl.exe
+*_VS2019_IA32_ASM_PATH     = DEF(VS2019_BIN_IA32)\ml.exe
+
+  DEBUG_VS2019_IA32_CC_FLAGS    = /nologo /arch:IA32 /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Z7 /Gw /MP
+RELEASE_VS2019_IA32_CC_FLAGS    = /nologo /arch:IA32 /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gw /MP
+NOOPT_VS2019_IA32_CC_FLAGS      = /nologo /arch:IA32 /c /WX /GS- /W4 /Gs32768 /D UNICODE /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Z7 /Od /MP
+
+  DEBUG_VS2019_IA32_ASM_FLAGS   = /nologo /c /WX /W3 /Cx /coff /Zd /Zi
+RELEASE_VS2019_IA32_ASM_FLAGS   = /nologo /c /WX /W3 /Cx /coff /Zd /Zi
+NOOPT_VS2019_IA32_ASM_FLAGS     = /nologo /c /WX /W3 /Cx /coff /Zd /Zi
+
+# 2024-11-16 bird: Added our include directory for CryptoPkg\Library\IntrinsicLib\Ia32\ftol2-vcc.nasm using iprt/asmdefs.mac.
+  DEBUG_VS2019_IA32_NASM_FLAGS  = -Ox -f win32 -g -I@VBOX_PATH_ROOT@/include
+RELEASE_VS2019_IA32_NASM_FLAGS  = -Ox -f win32 -g -I@VBOX_PATH_ROOT@/include
+NOOPT_VS2019_IA32_NASM_FLAGS    = -O0 -f win32 -g -I@VBOX_PATH_ROOT@/include
+
+  DEBUG_VS2019_IA32_DLINK_FLAGS = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+RELEASE_VS2019_IA32_DLINK_FLAGS = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data /DEBUG
+NOOPT_VS2019_IA32_DLINK_FLAGS   = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:X86 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+
+##################
+# X64 definitions
+##################
+*_VS2019_X64_CC_PATH       = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_PP_PATH       = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_APP_PATH      = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_VFRPP_PATH    = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_ASLCC_PATH    = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_ASLPP_PATH    = DEF(VS2019_BIN_X64)\cl.exe
+*_VS2019_X64_ASM_PATH      = DEF(VS2019_BIN_X64)\ml64.exe
+*_VS2019_X64_SLINK_PATH    = DEF(VS2019_BIN_X64)\lib.exe
+*_VS2019_X64_DLINK_PATH    = DEF(VS2019_BIN_X64)\link.exe
+*_VS2019_X64_ASLDLINK_PATH = DEF(VS2019_BIN_X64)\link.exe
+
+  DEBUG_VS2019_X64_CC_FLAGS     = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2s /GL /Gy /FIAutoGen.h /EHs-c- /GR- /GF /Z7 /Gw /MP /volatileMetadata-
+RELEASE_VS2019_X64_CC_FLAGS     = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2s /GL /Gy /FIAutoGen.h /EHs-c- /GR- /GF /Gw /MP /volatileMetadata-
+NOOPT_VS2019_X64_CC_FLAGS       = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /Gy /FIAutoGen.h /EHs-c- /GR- /GF /Z7 /Od /MP /volatileMetadata-
+
+  DEBUG_VS2019_X64_ASM_FLAGS    = /nologo /c /WX /W3 /Cx /Zd /Zi
+RELEASE_VS2019_X64_ASM_FLAGS    = /nologo /c /WX /W3 /Cx /Zd /Zi
+NOOPT_VS2019_X64_ASM_FLAGS      = /nologo /c /WX /W3 /Cx /Zd /Zi
+
+# 2024-11-16 bird: Added our include directory.
+  DEBUG_VS2019_X64_NASM_FLAGS   = -Ox -f win64 -g -I@VBOX_PATH_ROOT@/include
+RELEASE_VS2019_X64_NASM_FLAGS   = -Ox -f win64 -g -I@VBOX_PATH_ROOT@/include
+NOOPT_VS2019_X64_NASM_FLAGS     = -O0 -f win64 -g -I@VBOX_PATH_ROOT@/include
+
+  DEBUG_VS2019_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4281 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+RELEASE_VS2019_X64_DLINK_FLAGS  = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4281 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data /DEBUG
+NOOPT_VS2019_X64_DLINK_FLAGS    = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4281 /OPT:REF /OPT:ICF=10 /MAP /ALIGN:32 /SECTION:.xdata,D /SECTION:.pdata,D /Machine:X64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+
+#################
+# ARM definitions
+#################
+*_VS2019_ARM_CC_PATH              = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_VFRPP_PATH           = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_SLINK_PATH           = DEF(VS2019_BIN_ARM)\lib.exe
+*_VS2019_ARM_DLINK_PATH           = DEF(VS2019_BIN_ARM)\link.exe
+*_VS2019_ARM_APP_PATH             = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_PP_PATH              = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_ASM_PATH             = DEF(VS2019_BIN_ARM)\armasm.exe
+*_VS2019_ARM_ASLCC_PATH           = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_ASLPP_PATH           = DEF(VS2019_BIN_ARM)\cl.exe
+*_VS2019_ARM_ASLDLINK_PATH        = DEF(VS2019_BIN_ARM)\link.exe
+
+  DEBUG_VS2019_ARM_CC_FLAGS       = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Zi /Gw /Oi- /MP
+RELEASE_VS2019_ARM_CC_FLAGS       = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gw /Oi- /MP
+NOOPT_VS2019_ARM_CC_FLAGS         = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Zi /Od /Oi- /MP
+
+  DEBUG_VS2019_ARM_ASM_FLAGS      = /nologo /g
+RELEASE_VS2019_ARM_ASM_FLAGS      = /nologo
+NOOPT_VS2019_ARM_ASM_FLAGS        = /nologo
+
+  DEBUG_VS2019_ARM_DLINK_FLAGS    = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+RELEASE_VS2019_ARM_DLINK_FLAGS    = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /MERGE:.rdata=.data /DEBUG
+NOOPT_VS2019_ARM_DLINK_FLAGS      = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /BASE:0 /DRIVER /DEBUG
+
+#####################
+# AARCH64 definitions
+#####################
+*_VS2019_AARCH64_CC_PATH           = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_VFRPP_PATH        = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_SLINK_PATH        = DEF(VS2019_BIN_AARCH64)\lib.exe
+*_VS2019_AARCH64_DLINK_PATH        = DEF(VS2019_BIN_AARCH64)\link.exe
+*_VS2019_AARCH64_APP_PATH          = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_PP_PATH           = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_ASM_PATH          = DEF(VS2019_BIN_AARCH64)\armasm64.exe
+*_VS2019_AARCH64_ASLCC_PATH        = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_ASLPP_PATH        = DEF(VS2019_BIN_AARCH64)\cl.exe
+*_VS2019_AARCH64_ASLDLINK_PATH     = DEF(VS2019_BIN_AARCH64)\link.exe
+
+  DEBUG_VS2019_AARCH64_CC_FLAGS    = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Zi /Gw /Oi- /MP
+RELEASE_VS2019_AARCH64_CC_FLAGS    = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /O1b2 /GL /FIAutoGen.h /EHs-c- /GR- /GF /Gw /Oi- /MP
+NOOPT_VS2019_AARCH64_CC_FLAGS      = /nologo /c /WX /GS- /W4 /Gs32768 /D UNICODE /FIAutoGen.h /EHs-c- /GR- /GF /Gy /Zi /Od /Oi- /MP
+
+  DEBUG_VS2019_AARCH64_ASM_FLAGS   = /nologo /g
+RELEASE_VS2019_AARCH64_ASM_FLAGS   = /nologo
+NOOPT_VS2019_AARCH64_ASM_FLAGS     = /nologo
+
+  DEBUG_VS2019_AARCH64_DLINK_FLAGS = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /DRIVER /DEBUG
+RELEASE_VS2019_AARCH64_DLINK_FLAGS = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:4254 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /DRIVER /MERGE:.rdata=.data /DEBUG
+NOOPT_VS2019_AARCH64_DLINK_FLAGS   = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /OPT:REF /OPT:ICF=10 /MAP /SECTION:.xdata,D /SECTION:.pdata,D /MACHINE:ARM64 /LTCG /DLL /ENTRY:$(IMAGE_ENTRY_POINT) /SUBSYSTEM:EFI_BOOT_SERVICE_DRIVER /SAFESEH:NO /DRIVER /DEBUG
 
 ####################################################################################
 # GCC Common

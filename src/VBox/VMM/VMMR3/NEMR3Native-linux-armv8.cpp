@@ -554,7 +554,7 @@ DECLINLINE(void) nemR3LnxSetGReg(PVMCPU pVCpu, uint8_t uReg, bool f64BitReg, boo
     if (f64BitReg)
         pVCpu->cpum.GstCtx.aGRegs[uReg].x = fSignExtend ? (int64_t)u64Val : u64Val;
     else
-        pVCpu->cpum.GstCtx.aGRegs[uReg].w = fSignExtend ? (int32_t)u64Val : u64Val; /** @todo Does this clear the upper half on real hardware? */
+        pVCpu->cpum.GstCtx.aGRegs[uReg].x = (uint64_t)(fSignExtend ? (int32_t)u64Val : (uint32_t)u64Val);
 
     /* Mark the register as not extern anymore. */
     switch (uReg)

@@ -1565,7 +1565,7 @@ DECLINLINE(void) nemR3DarwinSetGReg(PVMCPU pVCpu, uint8_t uReg, bool f64BitReg, 
     if (f64BitReg)
         pVCpu->cpum.GstCtx.aGRegs[uReg].x = fSignExtend ? (int64_t)u64Val : u64Val;
     else
-        pVCpu->cpum.GstCtx.aGRegs[uReg].w = fSignExtend ? (int32_t)u64Val : u64Val; /** @todo Does this clear the upper half on real hardware? */
+        pVCpu->cpum.GstCtx.aGRegs[uReg].x = (uint64_t)(fSignExtend ? (int32_t)u64Val : (uint32_t)u64Val);
 
     /* Mark the register as not extern anymore. */
     switch (uReg)
@@ -1745,6 +1745,34 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionDataAbort(PVM pVM, PVMCPU pVCp
                         nemR3DarwinSetGReg(pVCpu, Dis.aParams[0].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, bVal);
                         /* Update the indexed register. */
                         pVCpu->cpum.GstCtx.aGRegs[Dis.aParams[1].armv8.Op.Reg.idReg].x += Dis.aParams[1].armv8.u.offBase;
+                    }
+                }
+                /*
+                 * Seeing the following with the Windows 11/ARM TPM driver:
+                 *     %fffff800e5342888 48 25 45 29             ldp w8, w9, [x10, #+0x0028]
+                 */
+                else if (   Dis.pCurInstr->uOpcode == OP_ARMV8_A64_LDP
+                         && Dis.aParams[0].armv8.enmType == kDisArmv8OpParmReg
+                         && Dis.aParams[0].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_32Bit
+                         && Dis.aParams[1].armv8.enmType == kDisArmv8OpParmReg
+                         && Dis.aParams[1].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_32Bit
+                         && Dis.aParams[2].armv8.enmType == kDisArmv8OpParmAddrInGpr
+                         && Dis.aParams[2].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit)
+                {
+                    /** @todo This is tricky to handle if the first register read returns something else than VINF_SUCCESS... */
+                    /* The fault address is already the final address. */
+                    uint32_t u32Val1 = 0;
+                    uint32_t u32Val2 = 0;
+                    rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u32Val1, sizeof(u32Val1), PGMACCESSORIGIN_HM);
+                    if (rcStrict == VINF_SUCCESS)
+                        rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt + sizeof(uint32_t), &u32Val2, sizeof(u32Val2), PGMACCESSORIGIN_HM);
+                    Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs %.*Rhxs rcStrict=%Rrc\n",
+                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, 2 * sizeof(uint32_t), sizeof(u32Val1),
+                          &u32Val1, sizeof(u32Val2), &u32Val2, VBOXSTRICTRC_VAL(rcStrict) ));
+                    if (rcStrict == VINF_SUCCESS)
+                    {
+                        nemR3DarwinSetGReg(pVCpu, Dis.aParams[0].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, u32Val1);
+                        nemR3DarwinSetGReg(pVCpu, Dis.aParams[1].armv8.Op.Reg.idReg, false /*f64BitReg*/, false /*fSignExtend*/, u32Val2);
                     }
                 }
                 else

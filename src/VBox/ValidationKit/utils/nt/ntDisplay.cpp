@@ -195,26 +195,11 @@ LRESULT CALLBACK WindowProcGDIFullScreen(HWND hWnd, UINT message, WPARAM wParam,
 
         if (RT_LIKELY(hdc))
         {
-            int k, idScreen = -1;
+            RECT r;
 
-            for(k = 0; k < g_cHWnd; k++)
-            {
-                if (hWnd == g_aHWnd[k])
-                {
-                    idScreen = k;
-                    RTPrintf("WM_PAINT for DISPLAY%d hWnd 0x%x\n", idScreen, hWnd);
-                    break;
-                }
-            }
-
-            if (idScreen >= 0)
-            {
-                RECT r;
-
-                SelectObject(hdc, g_ahBrush[idScreen % 3]);
-                r = ps.rcPaint;
-                PatBlt(hdc, r.left, r.top, r.right - r.left, r.bottom - r.top, PATCOPY);
-            }
+            SelectObject(hdc, g_ahBrush[0]);
+            r = ps.rcPaint;
+            PatBlt(hdc, r.left, r.top, r.right - r.left, r.bottom - r.top, PATCOPY);
 
             EndPaint(hWnd, &ps);
         }
@@ -234,8 +219,11 @@ LRESULT CALLBACK WindowProcGDIFullScreen(HWND hWnd, UINT message, WPARAM wParam,
 void CreateWindowForEachDisplay()
 {
     DISPLAY_DEVICE dev;
-    HWND hWndPrimaryNew = g_hWndPrimary;
+    HWND hWndPrimaryNew = NULL;
     int k;
+
+    RT_ZERO(g_aHWnd);
+    g_cHWnd = 0;
 
     dev.cb = sizeof(dev);
     for(k = 0; k < DISPLAYS_NUM_MAX && EnumDisplayDevices(NULL, k, &dev, 0); k++, g_cHWnd++)
@@ -326,11 +314,11 @@ bool ShowFullScreenWindows()
                 for(int k = 0; k < g_cHWnd; k++)
                 {
                     if (RT_LIKELY(g_aHWnd[k]))
+                    {
                         DestroyWindow(g_aHWnd[k]);
+                        g_aHWnd[k] = NULL;
+                    }
                 }
-
-                RT_ZERO(g_aHWnd);
-                g_cHWnd = 0;
 
                 CreateWindowForEachDisplay();
                 continue;

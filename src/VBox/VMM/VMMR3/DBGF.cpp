@@ -1585,6 +1585,41 @@ VMMR3DECL(int) DBGFR3Resume(PUVM pUVM, VMCPUID idCpu)
  */
 static DBGFSTEPINSTRTYPE dbgfStepGetCurInstrType(PVM pVM, PVMCPU pVCpu)
 {
+#ifdef VBOX_VMM_TARGET_ARMV8
+    /*
+     * Read the instruction, this ASSUMES running in A64 mode.
+     */
+    size_t   cbRead  = 0;
+    uint32_t u32Insn = 0;
+    int rc = PGMR3DbgReadGCPtr(pVM, &u32Insn, CPUMGetGuestFlatPC(pVCpu), u32Insn, 0 /*fFlags*/, &cbRead);
+    if (RT_SUCCESS(rc))
+    {
+        /*
+         * Do minimal parsing.  No real need to involve the disassembler here.
+         */
+        if (   (u32Insn & 0xfffffc1f) == 0xd65f0000 /* RET */
+            || (u32Insn & 0xfffffc1f) == 0xd65f081f /* RETAA */
+            || (u32Insn & 0xfffffc1f) == 0xd65f0c1f /* RETAB */
+            || (u32Insn & 0xffffffff) == 0xd69f03e0 /* ERET */
+            || (u32Insn & 0xffffffff) == 0xd69f0bff /* ERETAA */
+            || (u32Insn & 0xffffffff) == 0xd69f0fff /* ERETAB */)
+            return DBGFSTEPINSTRTYPE_RET;
+        else if (   (u32Insn & 0xfffffc1f) == 0xd63f0000 /* BLR */
+                 || (u32Insn & 0xfffffc1f) == 0xd63f081f /* BLRAAZ */
+                 || (u32Insn & 0xfffffc1f) == 0xd63f0c1f /* BLRABZ */
+                 || (u32Insn & 0xfffffc00) == 0xd73f0800 /* BLRAA */
+                 || (u32Insn & 0xfffffc00) == 0xd73f0c00 /* BLRAB */
+                 || (u32Insn & 0xfc000000) == 0x14000000 /* BL */
+                 || (u32Insn & 0xffe0001f) == 0xd4000001 /* SVC */
+                 || (u32Insn & 0xffe0001f) == 0xd4000002 /* HVC */
+                 || (u32Insn & 0xffe0001f) == 0xd4000003 /* SMC */
+                 || (u32Insn & 0xffe0001f) == 0xd4200000 /* BRK */
+                 || (u32Insn & 0xffe0001f) == 0xd4400000 /* HLT */)
+            return DBGFSTEPINSTRTYPE_CALL;
+        else
+            return DBGFSTEPINSTRTYPE_OTHER;
+    }
+#else
     /*
      * Read the instruction.
      */
@@ -1658,6 +1693,7 @@ static DBGFSTEPINSTRTYPE dbgfStepGetCurInstrType(PVM pVM, PVMCPU pVCpu)
             }
         }
     }
+#endif
 
     return DBGFSTEPINSTRTYPE_INVALID;
 }

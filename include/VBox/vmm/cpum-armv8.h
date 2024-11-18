@@ -66,6 +66,8 @@ typedef enum CPUMSYSREGRDFN
     kCpumSysRegRdFn_Alias,
     /** Write only register, all read attempts cause an exception. */
     kCpumSysRegRdFn_WriteOnly,
+    /** Read the value from the given offset from the beginning of CPUMGSTCTX. */
+    kCpumSysRegRdFn_ReadCpumOff,
 
     /** Read from a GICv3 PE ICC system register. */
     kCpumSysRegRdFn_GicV3Icc,
@@ -94,6 +96,8 @@ typedef enum CPUMSYSREGWRFN
      * CPUMSYSREGRANGE::uValue.  Must be used in pair with
      * kCpumSysRegRdFn_Alias. */
     kCpumSysRegWrFn_Alias,
+    /** Write the value to the given offset from the beginning of CPUMGSTCTX. */
+    kCpumSysRegWrFn_WriteCpumOff,
 
     /** Write to a GICv3 PE ICC system register. */
     kCpumSysRegWrFn_GicV3Icc,

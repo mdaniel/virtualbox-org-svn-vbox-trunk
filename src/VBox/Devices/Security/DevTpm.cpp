@@ -426,7 +426,9 @@
 /** Locality response buffer size register. */
 #define TPM_CRB_LOCALITY_REG_CTRL_RSP_SZ                     0x64
 /** Locality response buffer address register. */
-#define TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR                   0x68
+#define TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_LOW               0x68
+/** Locality response buffer address register. */
+#define TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_HIGH              0x6c
 /** Locality data buffer. */
 #define TPM_CRB_LOCALITY_REG_DATA_BUFFER                     0x80
 /** @} */
@@ -1015,58 +1017,48 @@ static VBOXSTRICTRC tpmMmioFifoWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPML
  * @param   pLoc                The locality state being read from.
  * @param   bLoc                The locality index.
  * @param   uReg                The register offset being accessed.
- * @param   pu64                Where to store the read data.
- * @param   cb                  Size of the read in bytes.
+ * @param   pu32                Where to store the read data.
  */
 static VBOXSTRICTRC tpmMmioCrbRead(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOCALITY pLoc,
-                                   uint8_t bLoc, uint32_t uReg, uint64_t *pu64, size_t cb)
+                                   uint8_t bLoc, uint32_t uReg, uint32_t *pu32)
 {
     RT_NOREF(pDevIns);
 
-    /* Special path for the data buffer. */
-    if (   uReg >= TPM_CRB_LOCALITY_REG_DATA_BUFFER
-        && uReg < TPM_CRB_LOCALITY_REG_DATA_BUFFER + pThis->cbCmdResp
-        && bLoc == pThis->bLoc
-        && pThis->enmState == DEVTPMSTATE_CMD_COMPLETION)
-    {
-        memcpy(pu64, &pThis->abCmdResp[uReg - TPM_CRB_LOCALITY_REG_DATA_BUFFER], cb);
-        return VINF_SUCCESS;
-    }
-
     VBOXSTRICTRC rc = VINF_SUCCESS;
-    uint64_t u64 = UINT64_MAX;
+    uint32_t u32 = UINT32_MAX;
     switch (uReg)
     {
         case TPM_CRB_LOCALITY_REG_STATE:
-            u64 =   TPM_CRB_LOCALITY_REG_STATE_VALID
+            u32 =   TPM_CRB_LOCALITY_REG_STATE_VALID
                   | (  pThis->bLoc != TPM_NO_LOCALITY_SELECTED
                      ? TPM_CRB_LOCALITY_REG_STATE_ACTIVE_LOC_SET(pThis->bLoc) | TPM_CRB_LOCALITY_REG_STATE_LOC_ASSIGNED
                      : TPM_CRB_LOCALITY_REG_STATE_ACTIVE_LOC_SET(0));
             if (pThis->fEstablishmentSet)
-                u64 |= TPM_CRB_LOCALITY_REG_ESTABLISHMENT;
+                u32 |= TPM_CRB_LOCALITY_REG_ESTABLISHMENT;
             break;
         case TPM_CRB_LOCALITY_REG_STS:
-            u64 =   pThis->bLoc == bLoc
+            u32 =   pThis->bLoc == bLoc
                   ? TPM_CRB_LOCALITY_REG_STS_GRANTED
                   : 0;
-            u64 |=   pThis->bmLocSeizedAcc & RT_BIT_32(bLoc)
+            u32 |=   pThis->bmLocSeizedAcc & RT_BIT_32(bLoc)
                    ? TPM_CRB_LOCALITY_REG_STS_SEIZED
                    : 0;
             break;
         case TPM_CRB_LOCALITY_REG_INTF_ID:
-            u64 =   TPM_CRB_LOCALITY_REG_INTF_ID_IF_TYPE_SET(TPM_CRB_LOCALITY_REG_INTF_ID_IF_TYPE_CRB)
+            u32 =   TPM_CRB_LOCALITY_REG_INTF_ID_IF_TYPE_SET(TPM_CRB_LOCALITY_REG_INTF_ID_IF_TYPE_CRB)
                   | TPM_CRB_LOCALITY_REG_INTF_ID_IF_VERS_SET(TPM_CRB_LOCALITY_REG_INTF_ID_IF_VERS_CRB)
                   | TPM_CRB_LOCALITY_REG_INTF_ID_CAP_DATA_XFER_SZ_SET(TPM_CRB_LOCALITY_REG_INTF_ID_CAP_DATA_XFER_SZ_64B)
                   | TPM_CRB_LOCALITY_REG_INTF_ID_CAP_CRB
                   | TPM_CRB_LOCALITY_REG_INTF_ID_IF_SEL_GET(TPM_CRB_LOCALITY_REG_INTF_ID_IF_SEL_CRB)
                   | TPM_CRB_LOCALITY_REG_INTF_ID_IF_SEL_LOCK
-                  | TPM_CRB_LOCALITY_REG_INTF_ID_RID_SET(pThis->bRevId)
-                  | TPM_CRB_LOCALITY_REG_INTF_ID_VID_SET(pThis->uVenId)
-                  | TPM_CRB_LOCALITY_REG_INTF_ID_DID_SET(pThis->uDevId);
+                  | TPM_CRB_LOCALITY_REG_INTF_ID_RID_SET(pThis->bRevId);
 
             if (pThis->fLocChangeSup) /* Only advertise the locality capability if the driver below supports it. */
-                u64 |= TPM_CRB_LOCALITY_REG_INTF_ID_CAP_LOCALITY;
+                u32 |= TPM_CRB_LOCALITY_REG_INTF_ID_CAP_LOCALITY;
 
+            break;
+        case TPM_CRB_LOCALITY_REG_INTF_ID + 4:
+            u32 = (uint32_t)pThis->uVenId | ((uint32_t)pThis->uDevId) << 16;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_REQ:
             if (bLoc != pThis->bLoc)
@@ -1076,68 +1068,71 @@ static VBOXSTRICTRC tpmMmioCrbRead(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOC
              * as we don't need time to transition to this state
              * when written by the guest.
              */
-            u64 = 0;
+            u32 = 0;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_STS:
             if (bLoc != pThis->bLoc)
                 break;
             if (pThis->enmState == DEVTPMSTATE_FATAL_ERROR)
-                u64 = TPM_CRB_LOCALITY_REG_CTRL_STS_TPM_FATAL_ERR;
+                u32 = TPM_CRB_LOCALITY_REG_CTRL_STS_TPM_FATAL_ERR;
             else if (pThis->enmState == DEVTPMSTATE_IDLE)
-                u64 = TPM_CRB_LOCALITY_REG_CTRL_STS_TPM_IDLE;
+                u32 = TPM_CRB_LOCALITY_REG_CTRL_STS_TPM_IDLE;
             else
-                u64 = 0;
+                u32 = 0;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_CANCEL:
             if (bLoc != pThis->bLoc)
                 break;
             if (pThis->enmState == DEVTPMSTATE_CMD_CANCEL)
-                u64 = 0x1;
+                u32 = 0x1;
             else
-                u64 = 0;
+                u32 = 0;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_START:
             if (bLoc != pThis->bLoc)
                 break;
             if (pThis->enmState == DEVTPMSTATE_CMD_EXEC)
-                u64 = 0x1;
+                u32 = 0x1;
             else
-                u64 = 0;
+                u32 = 0;
             break;
         case TPM_CRB_LOCALITY_REG_INT_ENABLE:
-            u64 = pLoc->uRegIntEn;
+            u32 = pLoc->uRegIntEn;
             break;
         case TPM_CRB_LOCALITY_REG_INT_STS:
-            u64 = pLoc->uRegIntSts;
+            u32 = pLoc->uRegIntSts;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_CMD_LADDR:
-            u64 = pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER;
+            u32 = pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_CMD_HADDR:
-            u64 = (pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER) >> 32;
+            u32 = (pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER) >> 32;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_CMD_SZ:
         case TPM_CRB_LOCALITY_REG_CTRL_RSP_SZ:
-            u64 = pThis->cbCmdResp;
+            u32 = pThis->cbCmdResp;
             break;
-        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR:
-            u64 = pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER;
+        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_LOW:
+            u32 = pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER;
+            break;
+        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_HIGH:
+            u32 = (pThis->GCPhysMmio + (bLoc * TPM_LOCALITY_MMIO_SIZE) + TPM_CRB_LOCALITY_REG_DATA_BUFFER) >> 32;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL: /* Writeonly */
-            u64 = 0;
+            u32 = 0;
             break;
         case TPM_CRB_LOCALITY_REG_CTRL_EXT:
         default:
             break; /* Return ~0 */
     }
 
-    *pu64 = u64;
+    *pu32 = u32;
     return rc;
 }
 
 
 /**
- * Read to a CRB interface register.
+ * Write to a CRB interface register.
  *
  * @returns VBox strict status code.
  * @param   pDevIns             Pointer to the PDM device instance data.
@@ -1145,37 +1140,22 @@ static VBOXSTRICTRC tpmMmioCrbRead(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOC
  * @param   pLoc                The locality state being written to.
  * @param   bLoc                The locality index.
  * @param   uReg                The register offset being accessed.
- * @param   u64                 The value to write.
- * @param   cb                  Size of the write in bytes.
+ * @param   u32                 The value to write.
  */
 static VBOXSTRICTRC tpmMmioCrbWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOCALITY pLoc,
-                                    uint8_t bLoc, uint32_t uReg, uint64_t u64, size_t cb)
+                                    uint8_t bLoc, uint32_t uReg, uint32_t u32)
 {
 #ifdef IN_RING3
     PDEVTPMR3 pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PDEVTPMR3);
 #endif
 
     VBOXSTRICTRC rc = VINF_SUCCESS;
-    uint32_t u32 = (uint32_t)u64;
-
-    /* Special path for the data buffer. */
-    if (   uReg >= TPM_CRB_LOCALITY_REG_DATA_BUFFER
-        && uReg < TPM_CRB_LOCALITY_REG_DATA_BUFFER + pThis->cbCmdResp
-        && bLoc == pThis->bLoc
-        && (   pThis->enmState == DEVTPMSTATE_READY
-            || pThis->enmState == DEVTPMSTATE_CMD_RECEPTION))
-    {
-        pThis->enmState = DEVTPMSTATE_CMD_RECEPTION;
-        memcpy(&pThis->abCmdResp[uReg - TPM_CRB_LOCALITY_REG_DATA_BUFFER], &u64, cb);
-        return VINF_SUCCESS;
-    }
-
     switch (uReg)
     {
         case TPM_CRB_LOCALITY_REG_CTRL:
         {
             /* See chapter 6.5.3.2.2.1. */
-            if (   (u64 & TPM_CRB_LOCALITY_REG_CTRL_RST_ESTABLISHMENT)
+            if (   (u32 & TPM_CRB_LOCALITY_REG_CTRL_RST_ESTABLISHMENT)
                 && pThis->bLoc >= 3
                 && (   pThis->enmState == DEVTPMSTATE_IDLE
                     || pThis->enmState == DEVTPMSTATE_CMD_COMPLETION))
@@ -1202,7 +1182,7 @@ static VBOXSTRICTRC tpmMmioCrbWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
              * request, relinquish and seize access in the same write.
              */
             /* Seize access only if this locality has a higher priority than the currently selected one. */
-            if (   (u64 & TPM_CRB_LOCALITY_REG_CTRL_SEIZE)
+            if (   (u32 & TPM_CRB_LOCALITY_REG_CTRL_SEIZE)
                 && pThis->bLoc != TPM_NO_LOCALITY_SELECTED
                 && bLoc > pThis->bLoc)
             {
@@ -1231,7 +1211,7 @@ static VBOXSTRICTRC tpmMmioCrbWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
                 pThis->bLoc = bLoc;
             }
 
-            if (   (u64 & TPM_CRB_LOCALITY_REG_CTRL_REQ_ACCESS)
+            if (   (u32 & TPM_CRB_LOCALITY_REG_CTRL_REQ_ACCESS)
                 && !(pThis->bmLocReqAcc & RT_BIT_32(bLoc)))
             {
                 pThis->bmLocReqAcc |= RT_BIT_32(bLoc);
@@ -1242,7 +1222,7 @@ static VBOXSTRICTRC tpmMmioCrbWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
                 }
             }
 
-            if (   (u64 & TPM_CRB_LOCALITY_REG_CTRL_RELINQUISH)
+            if (   (u32 & TPM_CRB_LOCALITY_REG_CTRL_RELINQUISH)
                 && (pThis->bmLocReqAcc & RT_BIT_32(bLoc)))
             {
                 pThis->bmLocReqAcc &= ~RT_BIT_32(bLoc);
@@ -1326,7 +1306,8 @@ static VBOXSTRICTRC tpmMmioCrbWrite(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
         case TPM_CRB_LOCALITY_REG_CTRL_CMD_HADDR:
         case TPM_CRB_LOCALITY_REG_CTRL_CMD_SZ:
         case TPM_CRB_LOCALITY_REG_CTRL_RSP_SZ:
-        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR:
+        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_LOW:
+        case TPM_CRB_LOCALITY_REG_CTRL_RSP_ADDR_HIGH:
         default: /* Ignore. */
             break;
     }
@@ -1346,32 +1327,77 @@ static DECLCALLBACK(VBOXSTRICTRC) tpmMmioRead(PPDMDEVINS pDevIns, void *pvUser, 
     RT_NOREF(pvUser);
 
     AssertReturn(cb <= sizeof(uint64_t), VERR_INTERNAL_ERROR);
-
-    RTGCPHYS offAligned = off & ~UINT64_C(0x3);
-    uint8_t cBitsShift  = (off & 0x3) * 8;
+    Assert(!(off & (cb - 1)));
 
     VBOXSTRICTRC rc = VINF_SUCCESS;
-    uint32_t uReg = tpmGetRegisterFromOffset(offAligned);
-    uint8_t bLoc = tpmGetLocalityFromOffset(offAligned);
-    PDEVTPMLOCALITY pLoc = &pThis->aLoc[bLoc];
 
-    uint64_t u64;
     if (pThis->fCrb)
-        rc = tpmMmioCrbRead(pDevIns, pThis, pLoc, bLoc, uReg, &u64, cb);
-    else
-        rc = tpmMmioFifoRead(pDevIns, pThis, pLoc, bLoc, uReg, &u64, cb);
-
-    LogFlowFunc((": %RGp %#x %#llx\n", off, cb, u64));
-
-    if (rc == VINF_SUCCESS)
     {
-        switch (cb)
+        uint32_t uReg = tpmGetRegisterFromOffset(off);
+        uint8_t bLoc = tpmGetLocalityFromOffset(off);
+        PDEVTPMLOCALITY pLoc = &pThis->aLoc[bLoc];
+
+        /* Special path for the data buffer. */
+        if (   uReg >= TPM_CRB_LOCALITY_REG_DATA_BUFFER
+            && uReg < TPM_CRB_LOCALITY_REG_DATA_BUFFER + pThis->cbCmdResp
+            && bLoc == pThis->bLoc
+            && pThis->enmState == DEVTPMSTATE_CMD_COMPLETION)
         {
-            case 1: *(uint8_t *)pv = (uint8_t)(u64 >> cBitsShift); break;
-            case 2: *(uint16_t *)pv = (uint16_t)(u64 >> cBitsShift); break;
-            case 4: *(uint32_t *)pv = (uint32_t)(u64 >> cBitsShift); break;
-            case 8: *(uint64_t *)pv = u64; break;
-            default: AssertFailedBreakStmt(rc = VERR_INTERNAL_ERROR);
+            memcpy(pv, &pThis->abCmdResp[uReg - TPM_CRB_LOCALITY_REG_DATA_BUFFER], cb);
+            return VINF_SUCCESS;
+        }
+
+        /* The register space is divided into 32-bit parts. */
+        Assert(cb <= sizeof(uint64_t));
+        uint32_t uRegAligned = uReg & ~UINT32_C(0x3);
+        uint32_t cBitsShift = uReg & UINT32_C(0x3);
+        uint32_t u32;
+        rc = tpmMmioCrbRead(pDevIns, pThis, pLoc, bLoc, uRegAligned, &u32);
+        if (rc == VINF_SUCCESS)
+        {
+            switch (cb)
+            {
+                case 1: *(uint8_t *)pv = (uint8_t)(u32 >> cBitsShift); break;
+                case 2: *(uint16_t *)pv = (uint16_t)(u32 >> cBitsShift); break;
+                case 4:
+                case 8: *(uint32_t *)pv = u32; break;
+                default: AssertFailedBreakStmt(rc = VERR_INTERNAL_ERROR);
+            }
+
+            LogFlowFunc((": %RGp %#x %.*Rhxs (uRegAligned=%#x cBitsShift=%#x u32=%#RX32)\n", off, cb, cb, pv, uRegAligned, cBitsShift, u32));
+
+            if (cb == sizeof(uint64_t))
+            {
+                rc = tpmMmioCrbRead(pDevIns, pThis, pLoc, bLoc, uRegAligned + 4, &((uint32_t *)pv)[1]);
+                LogFlowFunc((": %RGp %#x %.*Rhxs (uRegAligned=%#x u32=%#RX32)\n",
+                             off, cb, cb, pv, uRegAligned + 4, *((const uint32_t *)pv + 1)));
+            }
+        }
+    }
+    else
+    {
+        uint64_t u64;
+
+        RTGCPHYS offAligned = off & ~UINT64_C(0x3);
+        uint8_t cBitsShift  = (off & 0x3) * 8;
+
+        uint32_t uReg = tpmGetRegisterFromOffset(offAligned);
+        uint8_t bLoc = tpmGetLocalityFromOffset(offAligned);
+        PDEVTPMLOCALITY pLoc = &pThis->aLoc[bLoc];
+
+        rc = tpmMmioFifoRead(pDevIns, pThis, pLoc, bLoc, uReg, &u64, cb);
+        LogFlowFunc((": %RGp %#x %#llx\n", off, cb, u64));
+
+        if (rc == VINF_SUCCESS)
+        {
+            switch (cb)
+            {
+                case 1: *(uint8_t *)pv = (uint8_t)(u64 >> cBitsShift); break;
+                case 2: *(uint16_t *)pv = (uint16_t)(u64 >> cBitsShift); break;
+                case 4: *(uint32_t *)pv = (uint32_t)(u64 >> cBitsShift); break;
+                case 8: *(uint64_t *)pv = u64; break;
+                default: AssertFailedBreakStmt(rc = VERR_INTERNAL_ERROR);
+            }
         }
     }
 
@@ -1389,27 +1415,84 @@ static DECLCALLBACK(VBOXSTRICTRC) tpmMmioWrite(PPDMDEVINS pDevIns, void *pvUser,
 
     Assert(!(off & (cb - 1)));
 
-    uint64_t u64;
-    switch (cb)
-    {
-        case 1: u64 = *(const uint8_t *)pv; break;
-        case 2: u64 = *(const uint16_t *)pv; break;
-        case 4: u64 = *(const uint32_t *)pv; break;
-        case 8: u64 = *(const uint64_t *)pv; break;
-        default: AssertFailedReturn(VERR_INTERNAL_ERROR);
-    }
-
-    LogFlowFunc((": %RGp %#llx\n", off, u64));
-
     VBOXSTRICTRC rc = VINF_SUCCESS;
     uint32_t uReg = tpmGetRegisterFromOffset(off);
     uint8_t bLoc = tpmGetLocalityFromOffset(off);
     PDEVTPMLOCALITY pLoc = &pThis->aLoc[bLoc];
 
     if (pThis->fCrb)
-        rc = tpmMmioCrbWrite(pDevIns, pThis, pLoc, bLoc, uReg, u64, cb);
+    {
+        /* Special path for the data buffer. */
+        if (   uReg >= TPM_CRB_LOCALITY_REG_DATA_BUFFER
+            && uReg < TPM_CRB_LOCALITY_REG_DATA_BUFFER + pThis->cbCmdResp
+            && bLoc == pThis->bLoc
+            && (   pThis->enmState == DEVTPMSTATE_READY
+                || pThis->enmState == DEVTPMSTATE_CMD_RECEPTION))
+        {
+            pThis->enmState = DEVTPMSTATE_CMD_RECEPTION;
+            memcpy(&pThis->abCmdResp[uReg - TPM_CRB_LOCALITY_REG_DATA_BUFFER], pv, cb);
+            return VINF_SUCCESS;
+        }
+
+        /* The register space is divided into 32-bit parts. */
+        Assert(cb <= sizeof(uint64_t));
+        uint32_t uRegAligned = uReg & ~UINT32_C(0x3);
+        uint32_t cBitsShift = uReg & UINT32_C(0x3);
+        uint32_t u32;
+
+        LogFlowFunc((": %RGp %#x %.*Rhxs (uRegAligned=%#x cBitsShift=%#x)\n", off, cb, cb, pv, uRegAligned, cBitsShift));
+
+        switch (cb)
+        {
+            case 1:
+            {
+                /* Read current content and merge with the written data. */
+                uint32_t u32Read;
+                rc = tpmMmioCrbRead(pDevIns, pThis, pLoc, bLoc, uRegAligned, &u32Read);
+                if (rc != VINF_SUCCESS)
+                    return rc;
+                u32 = u32Read & ~((uint32_t)UINT8_MAX << cBitsShift);
+                u32 |= ((uint32_t)*(const uint8_t *)pv) << cBitsShift;
+                break;
+            }
+            case 2:
+            {
+                /* Read current content and merge with the written data. */
+                uint32_t u32Read;
+                rc = tpmMmioCrbRead(pDevIns, pThis, pLoc, bLoc, uRegAligned, &u32Read);
+                if (rc != VINF_SUCCESS)
+                    return rc;
+                u32 = u32Read & ~((uint32_t)UINT16_MAX << cBitsShift);
+                u32 |= ((uint32_t)*(const uint16_t *)pv) << cBitsShift;
+                break;
+            }
+            case 4:
+            case 8:
+                u32 = *(const uint32_t *)pv;
+                break;
+            default: AssertFailedReturn(VERR_INTERNAL_ERROR);
+        }
+
+        rc = tpmMmioCrbWrite(pDevIns, pThis, pLoc, bLoc, uRegAligned, u32);
+        if (   rc == VINF_SUCCESS
+            && cb == sizeof(uint64_t))
+            rc = tpmMmioCrbWrite(pDevIns, pThis, pLoc, bLoc, uRegAligned + 4, *((uint32_t *)pv + 1));
+    }
     else
+    {
+        uint64_t u64;
+        switch (cb)
+        {
+            case 1: u64 = *(const uint8_t *)pv; break;
+            case 2: u64 = *(const uint16_t *)pv; break;
+            case 4: u64 = *(const uint32_t *)pv; break;
+            case 8: u64 = *(const uint64_t *)pv; break;
+            default: AssertFailedReturn(VERR_INTERNAL_ERROR);
+        }
+
+        LogFlowFunc((": %RGp %#llx\n", off, u64));
         rc = tpmMmioFifoWrite(pDevIns, pThis, pLoc, bLoc, uReg, u64, cb);
+    }
 
     return rc;
 }
@@ -1732,7 +1815,7 @@ static DECLCALLBACK(int) tpmR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
         return PDMDEV_SET_ERROR(pDevIns, rc,
                                 N_("Configuration error: Failed to get the \"MmioBase\" value"));
 
-    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "VendorId", &pThis->uDevId, TPM_VID_DEFAULT);
+    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "VendorId", &pThis->uVenId, TPM_VID_DEFAULT);
     if (RT_FAILURE(rc))
         return PDMDEV_SET_ERROR(pDevIns, rc, N_("Configuration error: Failed to get the \"VendorId\" value"));
 

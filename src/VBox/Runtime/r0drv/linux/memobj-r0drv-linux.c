@@ -655,7 +655,11 @@ static int rtR0MemObjLinuxVMap(PRTR0MEMOBJLNX pMemLnx, bool fExecutable)
 # if defined(RT_ARCH_ARM64)
         /* ARM64 architecture has no _PAGE_NX, _PAGE_PRESENT and _PAGE_RW flags.
          * Closest alternatives would be PTE_PXN, PTE_UXN, PROT_DEFAULT and PTE_WRITE. */
+#  if RTLNX_VER_MIN(6,5,0)
         pgprot_val(fPg) = _PAGE_KERNEL; /* (PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL). */
+#  else /* < 6.5.0 */
+        pgprot_val(fPg) = PROT_NORMAL; /* (PROT_DEFAULT | PTE_PXN | PTE_UXN | PTE_WRITE | PTE_ATTRINDX(MT_NORMAL). */
+#  endif /* 6.5.0 */
 # else /* !RT_ARCH_ARM64 */
         pgprot_val(fPg) = _PAGE_PRESENT | _PAGE_RW;
 #  ifdef _PAGE_NX

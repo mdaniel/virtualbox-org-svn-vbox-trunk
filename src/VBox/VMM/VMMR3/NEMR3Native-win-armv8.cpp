@@ -2274,11 +2274,11 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT c
                     /* The fault address is already the final address. */
                     uint32_t u32Val1 = 0;
                     uint32_t u32Val2 = 0;
-                    rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt, &u32Val1, sizeof(u32Val1), PGMACCESSORIGIN_HM);
+                    rcStrict = PGMPhysRead(pVM, GCPhys, &u32Val1, sizeof(u32Val1), PGMACCESSORIGIN_HM);
                     if (rcStrict == VINF_SUCCESS)
-                        rcStrict = PGMPhysRead(pVM, GCPhysDataAbrt + sizeof(uint32_t), &u32Val2, sizeof(u32Val2), PGMACCESSORIGIN_HM);
+                        rcStrict = PGMPhysRead(pVM, GCPhys + sizeof(uint32_t), &u32Val2, sizeof(u32Val2), PGMACCESSORIGIN_HM);
                     Log4(("MmioExit/%u: %08RX64: READ %#RGp LB %u -> %.*Rhxs %.*Rhxs rcStrict=%Rrc\n",
-                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhysDataAbrt, 2 * sizeof(uint32_t), sizeof(u32Val1),
+                          pVCpu->idCpu, pVCpu->cpum.GstCtx.Pc.u64, GCPhys, 2 * sizeof(uint32_t), sizeof(u32Val1),
                           &u32Val1, sizeof(u32Val2), &u32Val2, VBOXSTRICTRC_VAL(rcStrict) ));
                     if (rcStrict == VINF_SUCCESS)
                     {

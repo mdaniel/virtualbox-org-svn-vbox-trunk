@@ -94,7 +94,7 @@
     RINT(a_uMsr, a_uMsr, kCpumSysRegRdFn_FixedValue, kCpumSysRegWrFn_IgnoreWrite, 0, a_uValue, UINT64_MAX, 0, a_szName)
 /** Read/Write value from/to CPUMCTX. */
 #define MVRW(a_uMsr, a_szName, a_offCpum) \
-    RINT(a_uMsr, a_uMsr, kCpumSysRegRdFn_ReadCpumOff, kCpumSysRegWrFn_WriteCpumOff, a_offCpum, 0, UINT64_MAX, 0, a_szName)
+    RINT(a_uMsr, a_uMsr, kCpumSysRegRdFn_ReadCpumOff, kCpumSysRegWrFn_WriteCpumOff, (uint32_t)a_offCpum, 0, UINT64_MAX, 0, a_szName)
 
 
 /*********************************************************************************************************************************

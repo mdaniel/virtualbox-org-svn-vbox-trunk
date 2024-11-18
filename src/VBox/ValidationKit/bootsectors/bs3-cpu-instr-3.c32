@@ -1668,8 +1668,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pcmpeqb_pcmpeqw_pcmpeqd_pcmpeqq(uint8_t bMo
         {  bs3CpuInstr3_vpcmpeqd_YMM2_YMM1_YMM0_icebp_c32,   255,         RM_REG, T_AVX_256, YMM2,  YMM1, YMM0,  PASS_ELEMENTS(s_aValuesD) },
         {  bs3CpuInstr3_vpcmpeqd_YMM2_YMM1_FSxBX_icebp_c32,  X86_XCPT_DB, RM_MEM, T_AVX_256, YMM2,  YMM1, FSxBX, PASS_ELEMENTS(s_aValuesD) },
 
-        {  bs3CpuInstr3_pcmpeqq_XMM1_XMM2_icebp_c32,         255,         RM_REG, T_SSE4_2,  XMM1,  XMM1, XMM2,  PASS_ELEMENTS(s_aValuesQ) },
-        {  bs3CpuInstr3_pcmpeqq_XMM1_FSxBX_icebp_c32,        255,         RM_MEM, T_SSE4_2,  XMM1,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
+        {  bs3CpuInstr3_pcmpeqq_XMM1_XMM2_icebp_c32,         255,         RM_REG, T_SSE4_1,  XMM1,  XMM1, XMM2,  PASS_ELEMENTS(s_aValuesQ) },
+        {  bs3CpuInstr3_pcmpeqq_XMM1_FSxBX_icebp_c32,        255,         RM_MEM, T_SSE4_1,  XMM1,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_XMM2_XMM1_XMM0_icebp_c32,   255,         RM_REG, T_AVX_128, XMM2,  XMM1, XMM0,  PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_XMM2_XMM1_FSxBX_icebp_c32,  X86_XCPT_DB, RM_MEM, T_AVX_128, XMM2,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_YMM2_YMM1_YMM0_icebp_c32,   255,         RM_REG, T_AVX_256, YMM2,  YMM1, YMM0,  PASS_ELEMENTS(s_aValuesQ) },
@@ -1705,8 +1705,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pcmpeqb_pcmpeqw_pcmpeqd_pcmpeqq(uint8_t bMo
         {  bs3CpuInstr3_vpcmpeqd_YMM2_YMM1_FSxBX_icebp_c64,  X86_XCPT_DB, RM_MEM, T_AVX_256, YMM2,  YMM1, FSxBX, PASS_ELEMENTS(s_aValuesD) },
         {  bs3CpuInstr3_vpcmpeqd_YMM10_YMM8_YMM15_icebp_c64, 255,         RM_REG, T_AVX_256, YMM10, YMM8, YMM15, PASS_ELEMENTS(s_aValuesD) },
 
-        {  bs3CpuInstr3_pcmpeqq_XMM1_XMM2_icebp_c64,         255,         RM_REG, T_SSE4_2,  XMM1,  XMM1, XMM2,  PASS_ELEMENTS(s_aValuesQ) },
-        {  bs3CpuInstr3_pcmpeqq_XMM1_FSxBX_icebp_c64,        255,         RM_MEM, T_SSE4_2,  XMM1,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
+        {  bs3CpuInstr3_pcmpeqq_XMM1_XMM2_icebp_c64,         255,         RM_REG, T_SSE4_1,  XMM1,  XMM1, XMM2,  PASS_ELEMENTS(s_aValuesQ) },
+        {  bs3CpuInstr3_pcmpeqq_XMM1_FSxBX_icebp_c64,        255,         RM_MEM, T_SSE4_1,  XMM1,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_XMM2_XMM1_XMM0_icebp_c64,   255,         RM_REG, T_AVX_128, XMM2,  XMM1, XMM0,  PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_XMM2_XMM1_FSxBX_icebp_c64,  X86_XCPT_DB, RM_MEM, T_AVX_128, XMM2,  XMM1, FSxBX, PASS_ELEMENTS(s_aValuesQ) },
         {  bs3CpuInstr3_vpcmpeqq_YMM2_YMM1_YMM0_icebp_c64,   255,         RM_REG, T_AVX_256, YMM2,  YMM1, YMM0,  PASS_ELEMENTS(s_aValuesQ) },
@@ -7261,7 +7261,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_insertps(uint8_t bMode)
         {  bs3CpuInstr3_insertps_XMM1_XMM2_000h_icebp_c32,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBth00) },
         {  bs3CpuInstr3_insertps_XMM1_XMM2_0D5h_icebp_c32,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesRegD5) },
         {  bs3CpuInstr3_insertps_XMM1_XMM2_028h_icebp_c32,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBth28) },
-        {  bs3CpuInstr3_insertps_XMM1_XMM2_0FFh_icebp_c32,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM2, XMM2,  PASS_ELEMENTS(s_aValuesBthFF) },
+        {  bs3CpuInstr3_insertps_XMM1_XMM2_0FFh_icebp_c32,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBthFF) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_000h_icebp_c32,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesBth00) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_0D5h_icebp_c32,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesMemD5) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_028h_icebp_c32,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesBth28) },
@@ -7281,7 +7281,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_insertps(uint8_t bMode)
         {  bs3CpuInstr3_insertps_XMM1_XMM2_000h_icebp_c64,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBth00) },
         {  bs3CpuInstr3_insertps_XMM1_XMM2_0D5h_icebp_c64,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesRegD5) },
         {  bs3CpuInstr3_insertps_XMM1_XMM2_028h_icebp_c64,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBth28) },
-        {  bs3CpuInstr3_insertps_XMM1_XMM2_0FFh_icebp_c64,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM2, XMM2,  PASS_ELEMENTS(s_aValuesBthFF) },
+        {  bs3CpuInstr3_insertps_XMM1_XMM2_0FFh_icebp_c64,        255,         RM_REG,   T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_ELEMENTS(s_aValuesBthFF) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_000h_icebp_c64,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesBth00) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_0D5h_icebp_c64,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesMemD5) },
         {  bs3CpuInstr3_insertps_XMM1_FSxBX_028h_icebp_c64,       255,         RM_MEM32, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_ELEMENTS(s_aValuesBth28) },
@@ -14726,7 +14726,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_v_pinsrb_pinsrw_pinsrd_pinsrq(uint8_t bMode)
         {  bs3CpuInstr3_vpinsrb_XMM1_XMM2_FSxBX_000h_icebp_c16, X86_XCPT_AC, RM_MEM8,  T_AVX_128, 1, XMM1, XMM2, FSxBX, PASS_ELEMENTS(s_aValues00_b)    },
 
         {  bs3CpuInstr3_pinsrw_MM1_EDX_000h_icebp_c16,          255,         RM_REG,   T_MMX_SSE, 2, MM1,  MM1,  EDX,   PASS_ELEMENTS(s_aValues00_w)    },
-        {  bs3CpuInstr3_pinsrw_MM1_FSxBX_000h_icebp_c16,        X86_XCPT_AC, RM_MEM32, T_MMX_SSE, 2, MM1,  MM1,  FSxBX, PASS_ELEMENTS(s_aValues00_w)    },
+        {  bs3CpuInstr3_pinsrw_MM1_FSxBX_000h_icebp_c16,        255,         RM_MEM32, T_MMX_SSE, 2, MM1,  MM1,  FSxBX, PASS_ELEMENTS(s_aValues00_w)    },
         {  bs3CpuInstr3_pinsrw_MM1_EDX_0FFh_icebp_c16,          255,         RM_REG,   T_MMX_SSE, 2, MM1,  MM1,  EDX,   PASS_ELEMENTS(s_aValuesFF_w_64) },
         {  bs3CpuInstr3_pinsrw_MM1_FSxBX_0FFh_icebp_c16,        255,         RM_MEM32, T_MMX_SSE, 2, MM1,  MM1,  FSxBX, PASS_ELEMENTS(s_aValuesFF_w_64) },
 

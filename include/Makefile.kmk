@@ -150,6 +150,7 @@ VBOX_HDRS_OMIT := \
 	VBox/vmm/cpum-armv8.h \
 	VBox/vmm/iem-x86-amd64.h \
 	VBox/vmm/iem-armv8.h \
+	iprt/asmdefs-arm.h \
 	iprt/runtime-loader.h \
 	iprt/mangling.h \
 	$(subst $(PATH_SUB_CURRENT)/,,$(wildcard $(PATH_SUB_CURRENT)/iprt/asm*watcom*.h)) \
@@ -160,6 +161,11 @@ VBOX_HDRS_OMIT := \
 	$(foreach os,$(filter-out $(KBUILD_TARGET),$(KBUILD_OSES)),iprt/$(os)/% VBox/$(os)/%) \
 	$(foreach arch,$(KBUILD_ARCHES),iprt/nocrt/$(arch)/%)
 
+# x86 / AMD64 only headers.
+ifn1of ($(KBUILD_TARGET_ARCH), x86 amd64)
+ VBOX_HDRS_OMIT += \
+ 	iprt/asm-amd64-x86.h
+endif
 # AMD64 only headers.
 ifneq ($(KBUILD_TARGET_ARCH),amd64)
  VBOX_HDRS_OMIT += \

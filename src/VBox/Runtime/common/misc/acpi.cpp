@@ -44,6 +44,7 @@
 #include <iprt/file.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
+#include <iprt/uuid.h>
 
 #include <iprt/formats/acpi-aml.h>
 #include <iprt/formats/acpi-resources.h>
@@ -804,6 +805,126 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
     rtAcpiTblAppendByte(pThis, bOp);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblIfStart(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblPkgStart(pThis, ACPI_AML_BYTE_CODE_OP_IF);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblIfFinalize(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_IF);
+}
+
+
+RTDECL(int) RTAcpiTblElseStart(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    /* Makes only sense inside an IfOp package. */
+    AssertReturn(pThis->paPkgStack[pThis->idxPkgStackElem].bOp == ACPI_AML_BYTE_CODE_OP_IF, VERR_INVALID_STATE);
+
+    rtAcpiTblPkgStartExt(pThis, ACPI_AML_BYTE_CODE_OP_ELSE);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblElseFinalize(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_ELSE);
+}
+
+
+RTDECL(int) RTAcpiTblBinaryOpAppend(RTACPITBL hAcpiTbl, RTACPIBINARYOP enmBinaryOp)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    uint8_t bOp;
+    switch (enmBinaryOp)
+    {
+        case kAcpiBinaryOp_LAnd:            bOp = ACPI_AML_BYTE_CODE_OP_LAND;     break;
+        case kAcpiBinaryOp_LEqual:          bOp = ACPI_AML_BYTE_CODE_OP_LEQUAL;   break;
+        case kAcpiBinaryOp_LGreater:        bOp = ACPI_AML_BYTE_CODE_OP_LGREATER; break;
+        case kAcpiBinaryOp_LLess:           bOp = ACPI_AML_BYTE_CODE_OP_LLESS;    break;
+        case kAcpiBinaryOp_LGreaterEqual:
+        case kAcpiBinaryOp_LLessEqual:    
+        case kAcpiBinaryOp_LNotEqual:
+            bOp = ACPI_AML_BYTE_CODE_OP_LNOT;
+            break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+    rtAcpiTblAppendByte(pThis, bOp);
+    switch (enmBinaryOp)
+    {
+        case kAcpiBinaryOp_LGreaterEqual:   bOp = ACPI_AML_BYTE_CODE_OP_LLESS;    break;
+        case kAcpiBinaryOp_LLessEqual:      bOp = ACPI_AML_BYTE_CODE_OP_LGREATER; break;
+        case kAcpiBinaryOp_LNotEqual:       bOp = ACPI_AML_BYTE_CODE_OP_LEQUAL;   break;
+        default:
+            bOp = 0x00;
+    }
+    if (bOp != 0x00)
+        rtAcpiTblAppendByte(pThis, bOp);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblArgOpAppend(RTACPITBL hAcpiTbl, uint8_t idArg)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(idArg <= 6, VERR_INVALID_PARAMETER);
+
+    rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_OP_ARG_0 + idArg);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblLocalOpAppend(RTACPITBL hAcpiTbl, uint8_t idLocal)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(idLocal <= 7, VERR_INVALID_PARAMETER);
+
+    rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_OP_LOCAL_0 + idLocal);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblUuidAppend(RTACPITBL hAcpiTbl, PCRTUUID pUuid)
+{
+    /* UUIDs are stored as a buffer object. */
+    /** @todo Needs conversion on big endian machines. */
+    return RTAcpiTblBufferAppend(hAcpiTbl, &pUuid->au8[0], sizeof(*pUuid));
+}
+
+
+RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    RTUUID Uuid;
+    pThis->rcErr = RTUuidFromStr(&Uuid, pszUuid);
+    if (RT_SUCCESS(pThis->rcErr))
+        return RTAcpiTblUuidAppend(pThis, &Uuid);
+
     return pThis->rcErr;
 }
 

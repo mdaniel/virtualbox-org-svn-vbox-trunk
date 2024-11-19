@@ -334,6 +334,116 @@ typedef enum RTACPISTMT
 RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt);
 
 
+/**
+ * Starts a new If statement operation.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblIfStart(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Finalizes the current If statement operation.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblIfFinalize(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Starts a new Else operation (only valid if currently inside an If oepration).
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblElseStart(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Finalizes the current Else statement operation.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblElseFinalize(RTACPITBL hAcpiTbl);
+
+
+/**
+ * List of binary operations.
+ */
+typedef enum RTACPIBINARYOP
+{
+    /** Invalid binary operation. */
+    kAcpiBinaryOp_Invalid = 0,
+    /** LAnd(Operand, Operand). */
+    kAcpiBinaryOp_LAnd,
+    /** LEqual(Operand, Operand). */
+    kAcpiBinaryOp_LEqual,
+    /** LGreater(Operand, Operand). */
+    kAcpiBinaryOp_LGreater,
+    /** LGreaterEqual(Operand, Operand). */
+    kAcpiBinaryOp_LGreaterEqual,
+    /** LLess(Operand, Operand). */
+    kAcpiBinaryOp_LLess,
+    /** LLessEqual(Operand, Operand). */
+    kAcpiBinaryOp_LLessEqual,
+    /** LNotEqual(Operand, Operand). */
+    kAcpiBinaryOp_LNotEqual
+} RTACPIBINARYOP;
+
+
+/**
+ * Appends the given binary operand.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   enmBinaryOp         The binary operation to append.
+ */
+RTDECL(int) RTAcpiTblBinaryOpAppend(RTACPITBL hAcpiTbl, RTACPIBINARYOP enmBinaryOp);
+
+
+/**
+ * Appends the given Arg<idArg> operand.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   idArg               The argument ID to append [0..6].
+ */
+RTDECL(int) RTAcpiTblArgOpAppend(RTACPITBL hAcpiTbl, uint8_t idArg);
+
+
+/**
+ * Appends the given Local<idLocal> operand.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   idLocal             The local ID to append [0..7].
+ */
+RTDECL(int) RTAcpiTblLocalOpAppend(RTACPITBL hAcpiTbl, uint8_t idLocal);
+
+
+/**
+ * Appends the given UUID as a buffer object.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pUuid               The UUID to append.
+ */
+RTDECL(int) RTAcpiTblUuidAppend(RTACPITBL hAcpiTbl, PCRTUUID pUuid);
+
+
+/**
+ * Appends the given UUID string as a UUID buffer object.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszUuid             The UUID string to append as a buffer.
+ */
+RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid);
+
+
 /** @name ACPI resource builder related API.
  * @{ */
 

@@ -50,7 +50,7 @@ endif
 VBOX_PATH_EFI_FIRMWARE = $(PATH_ROOT)/src/VBox/Devices/EFI/Firmware
 VBOX_PATH_STAGE_EFI_BLDPROGS = $(PATH_STAGE)/EfiBldProgs
 VBOX_EFI_BUILD_TARGET  = $(if-expr $(intersects release profile, $(KBUILD_TYPE)),RELEASE,DEBUG)
-VBOX_EFI_OUTPUT_SUBDIR = $(VBOX_EFI_BUILD_TARGET)_$(VBOX_EFI_TOOL_CHAIN)
+VBOX_EFI_OUTPUT_SUBDIR = $(VBOX_EFI_BUILD_TARGET)_$(VBOX_EFI_TOOL_CHAIN.$1)
 
 # VBox Yasm command
 ## @todo r=andy Is this still needed? Or can we just use TOOL_YASM_AS?
@@ -77,9 +77,15 @@ endif
 #
 ifeq ($(KBUILD_HOST),win)
  # The VS2019 template is the same as the VS2022 in upstream, so we stick with this till we upgrade.
- VBOX_EFI_TOOL_CHAIN := VS2019
+ VBOX_EFI_TOOL_CHAIN.x86   := VS2019
+ VBOX_EFI_TOOL_CHAIN.amd64 := VS2019
+ VBOX_EFI_TOOL_CHAIN.arm32 := CLANGDWARF
+ VBOX_EFI_TOOL_CHAIN.arm64 := CLANGDWARF
 else
- VBOX_EFI_TOOL_CHAIN = GCC48
+ VBOX_EFI_TOOL_CHAIN.x86   := GCC48
+ VBOX_EFI_TOOL_CHAIN.amd64 := GCC48
+ VBOX_EFI_TOOL_CHAIN.arm32 := GCC48
+ VBOX_EFI_TOOL_CHAIN.arm64 := GCC48
 endif
 
 

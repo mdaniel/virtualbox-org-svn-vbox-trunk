@@ -43,11 +43,13 @@ RT_C_DECLS_BEGIN
 /** @name Base HGSMI Buffer APIs
  * @{ */
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /** Acknowlege an IRQ. */
 DECLINLINE(void) VBoxHGSMIClearIrq(PHGSMIHOSTCOMMANDCONTEXT pCtx)
 {
     VBVO_PORT_WRITE_U32(pCtx->port, HGSMIOFFSET_VOID);
 }
+#endif
 
 DECLHIDDEN(void RT_UNTRUSTED_VOLATILE_HOST *) VBoxHGSMIBufferAlloc(PHGSMIGUESTCOMMANDCONTEXT pCtx, HGSMISIZE cbData,
                                                                    uint8_t u8Ch, uint16_t u16Op);

@@ -35,7 +35,7 @@
 
 ; Special hack for bs3kit.
 %ifdef RT_ASMDEFS_INC_FIRST_FILE
- %include "asmdefs-first.mac"
+ %include "asmdefs-first.mac" ; edk2-ignore-hack
 %endif
 
 %ifndef ___iprt_asmdefs_mac

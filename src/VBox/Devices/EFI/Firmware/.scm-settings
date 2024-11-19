@@ -42,6 +42,8 @@
 /VBox*: --no-external-copyright --set-svn-keywords --convert-tabs --strip-trailing-blanks --strip-trailing-lines \
         --force-final-eol --fix-todos --license-ose-dual
 
+/*/VBox*: --no-external-copyright --set-svn-keywords --convert-tabs --strip-trailing-blanks --strip-trailing-lines \
+        --force-final-eol --fix-todos --license-ose-dual
 
 # Build related files using '#' for comments.
 /*.dec:        --treat-as Makefile

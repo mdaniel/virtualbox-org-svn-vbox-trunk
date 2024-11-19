@@ -193,10 +193,25 @@ TEMPLATE_VBoxEfiBldLib_BLD_TRG_CPU  := $(KBUILD_HOST_CPU)
 #
 # The debug info suffix.
 #
-if1of ($(KBUILD_TARGET), win)
- VBOX_EFI_DBG_SUFF := .pdb
+if1of ($(VBOX_EFI_TOOL_CHAIN.x86), VS2017 VS2019 VS2022 CLANGPDB)
+ VBOX_EFI_DBG_SUFF.x86   := .pdb
 else
- VBOX_EFI_DBG_SUFF := .debug
+ VBOX_EFI_DBG_SUFF.x86   := .debug
+endif
+if1of ($(VBOX_EFI_TOOL_CHAIN.amd64), VS2017 VS2019 VS2022 CLANGPDB)
+ VBOX_EFI_DBG_SUFF.amd64 := .pdb
+else
+ VBOX_EFI_DBG_SUFF.amd64 := .debug
+endif
+if1of ($(VBOX_EFI_TOOL_CHAIN.arm32), VS2017 VS2019 VS2022 CLANGPDB)
+ VBOX_EFI_DBG_SUFF.arm32 := .pdb
+else
+ VBOX_EFI_DBG_SUFF.arm32 := .debug
+endif
+if1of ($(VBOX_EFI_TOOL_CHAIN.arm64), VS2017 VS2019 VS2022 CLANGPDB)
+ VBOX_EFI_DBG_SUFF.arm64 := .pdb
+else
+ VBOX_EFI_DBG_SUFF.arm64 := .debug
 endif
 
 include $(VBOX_PATH_EFI_FIRMWARE)/EfiModules.kmk

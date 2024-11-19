@@ -221,8 +221,8 @@ $(PATH_STAGE)/VBoxEfiFirmware.zip:
 		VBoxEFI32.fd \
 		VBoxEFI64.fd
 	$(REDIRECT) -C "$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
-		$(foreach mod,$(VBOX_EFI_MODULES_FLAT_X86),amd64/$(mod)$(VBOX_EFI_DBG_SUFF)) \
-		$(foreach mod,$(VBOX_EFI_MODULES_FLAT_X86),x86/$(mod)$(VBOX_EFI_DBG_SUFF))
+		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),amd64/$(mod)$(VBOX_EFI_DBG_SUFF.amd64)) \
+		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86),x86/$(mod)$(VBOX_EFI_DBG_SUFF.x86))
 
 ifdef VBOX_WITH_VIRT_ARMV8
  VBoxEfiFirmware-armv8.zip: $(PATH_STAGE)/VBoxEfiFirmware-armv8.zip
@@ -231,8 +231,8 @@ ifdef VBOX_WITH_VIRT_ARMV8
  		VBoxEFIAArch32.fd \
  		VBoxEFIAArch64.fd
 	$(REDIRECT) -C "$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
- 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT_ARM),aarch64/$(mod)$(VBOX_EFI_DBG_SUFF)) \
- 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT_ARM),aarch32/$(mod)$(VBOX_EFI_DBG_SUFF))
+ 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),aarch64/$(mod)$(VBOX_EFI_DBG_SUFF.arm64)) \
+ 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),aarch32/$(mod)$(VBOX_EFI_DBG_SUFF.arm32))
 endif
 
 #

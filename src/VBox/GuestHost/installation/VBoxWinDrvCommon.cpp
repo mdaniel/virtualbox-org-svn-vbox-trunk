@@ -660,26 +660,28 @@ const char *VBoxWinDrvWinErrToStr(const DWORD dwErr)
  *
  * @returns VBox status code.
  * @retval  VERR_UNRESOLVED_ERROR if no translation was possible.
+ * @retval  VERR_INSTALLATION_FAILED if a Setup API or a specific Windows error code occurred not handled
+ *          within IPRT's error resolving function.
  * @param   uNativeCode         Native Windows error code to translate.
  */
 int VBoxWinDrvInstErrorFromWin32(unsigned uNativeCode)
 {
-#ifdef DEBUG_andy
-    bool const fAssertMayPanic = RTAssertMayPanic();
-    RTAssertSetMayPanic(false);
-#endif
-
     const char *pszErr = VBoxWinDrvSetupApiErrToStr(uNativeCode);
     if (!pszErr)
-        VBoxWinDrvWinErrToStr(uNativeCode);
+        pszErr = VBoxWinDrvWinErrToStr(uNativeCode);
 
-    int const rc = RTErrConvertFromWin32(uNativeCode);
-    if (rc == VERR_UNRESOLVED_ERROR)
-        AssertMsgFailed(("Unhandled error %u (%#x): %s\n", uNativeCode, uNativeCode, pszErr ? pszErr : "<Unknown>"));
+    /* All we can do here is to return VERR_INSTALLATION_FAILED if the above calls returned something,
+     * as we don't have IPRT equivalents for all those (Windows- / SetupAPI-)specific error codes.
+     *
+     * For anything else not (yet) handled we want to get a debug assertion, however. */
+    int rc = VERR_INSTALLATION_FAILED;
+    if (!pszErr)
+    {
+        rc = RTErrConvertFromWin32(uNativeCode);
+        if (rc == VERR_UNRESOLVED_ERROR)
+            AssertMsgFailed(("Unhandled error %u (%#x): %s\n", uNativeCode, uNativeCode, pszErr ? pszErr : "<Unknown>"));
+    }
 
-#ifdef DEBUG_andy
-    RTAssertSetMayPanic(fAssertMayPanic);
-#endif
     return rc;
 }
 

@@ -19947,6 +19947,8 @@ static RTFLOAT32U iemAImpl_round_worker_r32(uint32_t *pfMxcsr, PCRTFLOAT32U pr32
     iemFpSoftF32ToIprt(&r32Dst, f32Src);
     if (fExact && (SoftState.exceptionFlags & X86_MXCSR_PE))
         *pfMxcsr |= X86_MXCSR_PE;
+    if (SoftState.exceptionFlags & X86_MXCSR_IE)
+        *pfMxcsr |= X86_MXCSR_IE;
     return r32Dst;
 }
 
@@ -19963,6 +19965,8 @@ static RTFLOAT64U iemAImpl_round_worker_r64(uint32_t *pfMxcsr, PCRTFLOAT64U pr64
     iemFpSoftF64ToIprt(&r64Dst, f64Src);
     if (fExact && (SoftState.exceptionFlags & X86_MXCSR_PE))
         *pfMxcsr |= X86_MXCSR_PE;
+    if (SoftState.exceptionFlags & X86_MXCSR_IE)
+        *pfMxcsr |= X86_MXCSR_IE;
     return r64Dst;
 }
 

@@ -703,8 +703,73 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x0f);
     RTAcpiTblMethodFinalize(m_hAcpiDsdt);
 
-    /* Build the PPI interface. */
+    /* Build the PPI interface (this is as a verbatim translation from src/VBox/Devices/PC/vbox-tpm.dsl as possible). */
+    RTAcpiTblMethodStart(m_hAcpiDsdt, "TPFS", 1, RTACPI_METHOD_F_SERIALIZED, 0 /*uSyncLvl*/);
+
+        RTAcpiTblIfStart(m_hAcpiDsdt);
+            /* LGreaterEqual(Arg0, 0x100). */
+            RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LGreaterEqual);
+            RTAcpiTblArgOpAppend(m_hAcpiDsdt, 0);
+            RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x100);
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+            RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+        RTAcpiTblOpRegionAppendEx(m_hAcpiDsdt, "TPP1", kAcpiOperationRegionSpace_SystemMemory);
+        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Add); /* Region offset */
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, m_GCPhysTpm20Mmio + 0x5000);
+        RTAcpiTblArgOpAppend(m_hAcpiDsdt, 0); /* Arg0 */
+        RTAcpiTblNullNameAppend(m_hAcpiDsdt); /* Target -> NullName */
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1); /* Region size */
+
+        /* Define the field accessor. */
+        const RTACPIFIELDENTRY aPpiTpp1Fields[] =
+        {
+            { "TPPF",  8 },
+        };
+        RTAcpiTblFieldAppend(m_hAcpiDsdt, "TPP1", kAcpiFieldAcc_Any, false /*fLock*/, kAcpiFieldUpdate_Preserve,
+                             &aPpiTpp1Fields[0], RT_ELEMENTS(aPpiTpp1Fields));
+        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+        RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPPF");
+
+    RTAcpiTblMethodFinalize(m_hAcpiDsdt);
+
+
+    /* Device specific method. */
     RTAcpiTblMethodStart(m_hAcpiDsdt, "_DSM", 4, RTACPI_METHOD_F_SERIALIZED, 0 /*uSyncLvl*/);
+
+    /* Define the MMIO region for the PPI interface. */
+    RTAcpiTblOpRegionAppend(m_hAcpiDsdt, "TPMP", kAcpiOperationRegionSpace_SystemMemory,
+                            m_GCPhysTpm20Mmio + 0x5100, 0x5a /*cbRegion*/);
+
+    /* Define the field accessors for the PPI interface. */
+    const RTACPIFIELDENTRY aPpiFields[] =
+    {
+        { "PPIN",  8 },
+        { "PPIP", 32 },
+        { "PPRP", 32 },
+        { "PPRQ", 32 },
+        { "PPRM", 32 },
+        { "LPPR", 32 }
+    };
+    RTAcpiTblFieldAppend(m_hAcpiDsdt, "TPMP", kAcpiFieldAcc_Any, false /*fLock*/, kAcpiFieldUpdate_Preserve,
+                         &aPpiFields[0], RT_ELEMENTS(aPpiFields));
+
+    /* Define some packages we need later on. */
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "TPB2");
+        RTAcpiTblPackageStart(m_hAcpiDsdt, 2 /*cElements*/);
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "TPB3");
+        RTAcpiTblPackageStart(m_hAcpiDsdt, 3 /*cElements*/);
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
 
     /*
      * Check that the UUID in Arg0 contains the Physical Presence Interface Specification UUID.
@@ -752,7 +817,46 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
             RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
             RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
 
-            /** @todo */
+            /* Store(DerefOf(Index(Arg3, Zero)), Local0) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_DerefOf);
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                    RTAcpiTblArgOpAppend(m_hAcpiDsdt, 3);   /* Arg3 */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0); /* Zero */
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+
+            /* Store (TPFS (Local0), Local1) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPFS");
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+
+            /* If (LEqual (And (Local1, 0x07), Zero)) */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_And);
+                        RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+                        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x7);
+                        RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* Store (Local0, PPRQ) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRQ");
+            /* Store (Zero, PPRM) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRM");
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
 
         RTAcpiTblIfFinalize(m_hAcpiDsdt);
 
@@ -765,7 +869,56 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
             RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
             RTAcpiTblIntegerAppend(m_hAcpiDsdt, 3);
 
-            /** @todo */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                /* LEqual(Arg1, One). */
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+
+                /* Store (PPRQ, Index(TPB2, One) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRQ");
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                        RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB2");
+                        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+                        RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB2");
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                /* LEqual(Arg1, 0x02). */
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
+
+                /* Store (PPRQ, Index(TPB3, One) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRQ");
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                        RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
+                        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+                        RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+
+                /* Store (PPRM, Index(TPB3, 0x2) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRM");
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                        RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
+                        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
+                        RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB2");
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
 
         RTAcpiTblIfFinalize(m_hAcpiDsdt);
 
@@ -792,7 +945,24 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
             RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
             RTAcpiTblIntegerAppend(m_hAcpiDsdt, 5);
 
-            /** @todo */
+            /* Store (LPPR, Index(TPB3, One) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "LPPR");
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+
+            /* Store (PPRP, Index(TPB3, 0x2) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRP");
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPB3");
 
         RTAcpiTblIfFinalize(m_hAcpiDsdt);
 
@@ -819,7 +989,102 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
             RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
             RTAcpiTblIntegerAppend(m_hAcpiDsdt, 7);
 
-            /** @todo */
+            /* Store(DerefOf(Index(Arg3, Zero)), Local0) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_DerefOf);
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                    RTAcpiTblArgOpAppend(m_hAcpiDsdt, 3);   /* Arg3 */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0); /* Zero */
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+
+            /* Store (TPFS (Local0), Local1) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPFS");
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+
+            /* Store(And(Local1, 0x07), Local1) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_And);
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x7);
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+
+            /* LEqual(Local1, Zero) */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* LEqual(Local1, 2) */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 3);
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* LEqual(Arg1, One) */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+
+                /* Store(Local0, PPRQ) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRQ");
+
+                /* Store(Zero, PPRM) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRM");
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* LEqual(Arg1, 2) */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 1);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 2);
+
+                /* Store(DerefOf(Index(Arg3, One)), Local2) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_DerefOf);
+                        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                        RTAcpiTblArgOpAppend(m_hAcpiDsdt, 3);   /* Arg3 */
+                        RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1); /* ONe */
+                        RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 2); /* Local2 */
+
+                /* Store(Local0, PPRQ) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRQ");
+
+                /* Store(Local2, PPRM) */
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 2);
+                    RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PPRM");
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
 
         RTAcpiTblIfFinalize(m_hAcpiDsdt);
 
@@ -832,7 +1097,26 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
             RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
             RTAcpiTblIntegerAppend(m_hAcpiDsdt, 8);
 
-            /** @todo */
+            /* Store(DerefOf(Index(Arg3, Zero)), Local0) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_DerefOf);
+                    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Index);
+                    RTAcpiTblArgOpAppend(m_hAcpiDsdt, 3);   /* Arg3 */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0); /* Zero */
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+
+            /* Store (TPFS (Local0), Local1) */
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Store);
+                RTAcpiTblNameStringAppend(m_hAcpiDsdt, "TPFS");
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 0); /* Local0 */
+                RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_And);
+                    RTAcpiTblLocalOpAppend(m_hAcpiDsdt, 1); /* Local1 */
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x7);
+                    RTAcpiTblNullNameAppend(m_hAcpiDsdt);   /* Target -> NullName */
 
         RTAcpiTblIfFinalize(m_hAcpiDsdt);
 

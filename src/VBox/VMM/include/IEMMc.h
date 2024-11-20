@@ -925,12 +925,12 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
          pVCpu->cpum.GstCtx.XState.u.YmmHi.aYmmHi[iYRegDstTmp].au64[1] = 0; \
          IEM_MC_INT_CLEAR_ZMM_256_UP(iYRegDstTmp); \
     } while (0)
-#define IEM_MC_MERGE_YREG_U64LO_U64LO_ZX_VLMAX(a_iYRegDst, a_iYRegSrc64, a_iYRegSrcHx) /* for vmovhlps */ \
+#define IEM_MC_MERGE_YREG_U64LO_U64LO_ZX_VLMAX(a_iYRegDst, a_iYRegSrc64, a_iYRegSrcHx) /* for vmovlhps */ \
     do { uintptr_t const iYRegDstTmp    = (a_iYRegDst); \
          uintptr_t const iYRegSrc64Tmp  = (a_iYRegSrc64); \
          uintptr_t const iYRegSrcHxTmp  = (a_iYRegSrcHx); \
-         pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegDstTmp].au64[0]       = pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegSrc64Tmp].au64[0]; \
-         pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegDstTmp].au64[1]       = pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegSrcHxTmp].au64[0]; \
+         pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegDstTmp].au64[0]       = pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegSrcHxTmp].au64[0]; \
+         pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegDstTmp].au64[1]       = pVCpu->cpum.GstCtx.XState.x87.aXMM[iYRegSrc64Tmp].au64[0]; \
          pVCpu->cpum.GstCtx.XState.u.YmmHi.aYmmHi[iYRegDstTmp].au64[0] = 0; \
          pVCpu->cpum.GstCtx.XState.u.YmmHi.aYmmHi[iYRegDstTmp].au64[1] = 0; \
          IEM_MC_INT_CLEAR_ZMM_256_UP(iYRegDstTmp); \

@@ -2464,6 +2464,7 @@ typedef struct BS3CPUINSTR4_TEST1_VALUES_T
     uint32_t            u256ExpectedMxCsr;      /**< Expected MXCSR for a 256-bit instructions. */
     uint8_t             afPadding[2];           /**< Alignment padding. */
 } BS3CPUINSTR4_TEST1_VALUES_T;
+typedef BS3CPUINSTR4_TEST1_VALUES_T BS3_FAR *PBS3CPUINSTR4_TEST1_VALUES_T;
 
 /*
  * Test type #1.
@@ -2609,7 +2610,7 @@ typedef struct BS3CPUINSTR4_TEST1_T
     uint8_t             iRegSrc1;            /**< Identity of first source register. */
     uint8_t             iRegSrc2;            /**< Identity of second source register. */
     uint8_t             cValues;             /**< Number of test values in @c paValues. */
-    BS3CPUINSTR4_TEST1_VALUES_T const BS3_FAR *paValues; /**< Test values. */
+    PBS3CPUINSTR4_TEST1_VALUES_T const paValues; /**< Test values. */
 } BS3CPUINSTR4_TEST1_T;
 
 #define BS3_XCPT_ALWAYS 0x80
@@ -2629,6 +2630,7 @@ typedef struct BS3CPUINSTR4_TEST1_CTX_T
     BS3CPUINSTR4_CONFIG_T const BS3_FAR *pConfig;      /**< The test execution environment configuration. */
     BS3CPUINSTR4_TEST1_T const BS3_FAR  *pTest;        /**< The instruction being tested. */
     unsigned                             iVal;         /**< Which iteration of the test value is this. */
+    PBS3CPUINSTR4_TEST1_VALUES_T         pValues;      /**< The test values for this iteration. */
     const char BS3_FAR                  *pszMode;      /**< The testing mode (e.g. real, protected, paged and permutations). */
     PBS3TRAPFRAME                        pTrapFrame;   /**< The exception (trap) frame. */
     PBS3REGCTX                           pCtx;         /**< The general-purpose register context. */
@@ -2687,7 +2689,7 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
                                                    PCBS3CPUINSTRX_CONFIG_SAVED_T pSavedCfg)
 {
     BS3CPUINSTR4_TEST1_T const BS3_FAR        *pTest   = pTestCtx->pTest;
-    BS3CPUINSTR4_TEST1_VALUES_T const BS3_FAR *pValues = &pTestCtx->pTest->paValues[pTestCtx->iVal];
+    PBS3CPUINSTR4_TEST1_VALUES_T const pValues = pTestCtx->pValues;
     PBS3TRAPFRAME    pTrapFrame          = pTestCtx->pTrapFrame;
     PBS3REGCTX       pCtx                = pTestCtx->pCtx;
     PBS3EXTCTX       pExtCtx             = pTestCtx->pExtCtx;
@@ -3037,10 +3039,22 @@ static void bs3CpuInstr4_WorkerTestType1_Inner(uint8_t bMode, PBS3CPUINSTR4_TEST
 
 
 /**
- * Test type #1 worker.
+ * A values provider function decodes test values from an instruction-specific
+ * format into the generic BS3CPUINSTR4_TEST1_VALUES_T structure.
  */
-static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests,
-                                            unsigned cConfigs, PCBS3CPUINSTR4_CONFIG_T paConfigs)
+typedef DECLCALLBACKTYPE(PBS3CPUINSTR4_TEST1_VALUES_T, BS3CPUINSTR4_TEST1_VALUES_PROVIDER,(void *paValues, const unsigned cValues, const unsigned iVal));
+typedef BS3CPUINSTR4_TEST1_VALUES_PROVIDER *PBS3CPUINSTR4_TEST1_VALUES_PROVIDER;
+
+static DECLCALLBACK(PBS3CPUINSTR4_TEST1_VALUES_T) bs3CpuInstr4_WorkerTestType1_Provider_Default(void *paValues, const unsigned cValues, const unsigned iVal)
+{
+    return &((PBS3CPUINSTR4_TEST1_VALUES_T)paValues)[iVal];
+}
+
+/**
+ * Test type #1 worker with optional test-unique test value provider.
+ */
+static uint8_t bs3CpuInstr4_WorkerTestType1_P(uint8_t bMode, unsigned cTests, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests,
+                                              unsigned cConfigs, PCBS3CPUINSTR4_CONFIG_T paConfigs, PBS3CPUINSTR4_TEST1_VALUES_PROVIDER pfnProvider)
 {
     BS3REGCTX                   Ctx;
     BS3TRAPFRAME                TrapFrame;
@@ -3172,6 +3186,7 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3C
                              */
                             TestCtx.pConfig      = &paConfigs[iCfg];
                             TestCtx.pTest        = pTest;
+                            TestCtx.pValues      = pfnProvider((void *)pTest->paValues, cValues, iVal);
                             TestCtx.iVal         = iVal;
                             TestCtx.pszMode      = pszMode;
                             TestCtx.pTrapFrame   = &TrapFrame;
@@ -3212,6 +3227,15 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3C
     bs3CpuInstrXBufCleanup(pbBuf, cbBuf, bMode);
     bs3CpuInstrXFreeExtCtxs(pExtCtx, pExtCtxOut);
     return 0;
+}
+
+/**
+ * Test type #1 worker using generic test values table.
+ */
+static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3CPUINSTR4_TEST1_T const BS3_FAR *paTests,
+                                            unsigned cConfigs, PCBS3CPUINSTR4_CONFIG_T paConfigs)
+{
+    return bs3CpuInstr4_WorkerTestType1_P(bMode, cTests, paTests, cConfigs, paConfigs, bs3CpuInstr4_WorkerTestType1_Provider_Default);
 }
 
 
@@ -16467,80 +16491,449 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_dppd(uint8_t bMode)
 }
 
 
+/* Constants for testing rounding: 0.1, 0.5, slightly below and above 0.5, 0.9;
+ * a moderately large value well within the range where the FP format can still
+ * represent every integer exactly + .1, .5, .9; and an integer which is beyond
+ * the safe integer range.
+ */
+
+#define FP32_0_1(a_Sign)      FP32_V(a_Sign,0x4ccccd,0x7b)          /* 0.1 */
+#define FP32_0_5_DN(a_Sign)   FP32_V(a_Sign,0x7fffff,0x7d)          /* 0.5[DN] */
+#define FP32_0_5(a_Sign)      FP32_V(a_Sign,0,0x7e)                 /* 0.5 */
+#define FP32_0_5_UP(a_Sign)   FP32_V(a_Sign,1,0x7e)                 /* 0.5[UP] */
+#define FP32_0_9(a_Sign)      FP32_V(a_Sign,0x666666,0x7e)          /* 0.9 */
+#define FP32_12_67_0(a_Sign)  FP32_V(a_Sign,0x16b438,0x93)          /* 1234567.0 */
+#define FP32_12_67_1(a_Sign)  FP32_V(a_Sign,0x16b439,0x93)          /* 1234567.1 */
+#define FP32_12_67_5(a_Sign)  FP32_V(a_Sign,0x16b43c,0x93)          /* 1234567.5 */
+#define FP32_12_67_9(a_Sign)  FP32_V(a_Sign,0x16b43f,0x93)          /* 1234567.9 */
+#define FP32_12_68_0(a_Sign)  FP32_V(a_Sign,0x16b440,0x93)          /* 1234568.0 */
+#define FP32_BIG_INT(a_Sign)  FP32_V(a_Sign,2,0x97)                 /* 16777220.0*/
+
+#define FP64_0_1(a_Sign)      FP64_V(a_Sign,0x999999999999a,0x3fb)  /* 0.1 */
+#define FP64_0_5_DN(a_Sign)   FP64_V(a_Sign,0xfffffffffffff,0x3fd)  /* 0.5[DN] */
+#define FP64_0_5(a_Sign)      FP64_V(a_Sign,0,0x3fe)                /* 0.5 */
+#define FP64_0_5_UP(a_Sign)   FP64_V(a_Sign,1,0x3fe)                /* 0.5[UP] */
+#define FP64_0_9(a_Sign)      FP64_V(a_Sign,0xccccccccccccd,0x3fe)  /* 0.9 */
+#define FP64_12_89_0(a_Sign)  FP64_V(a_Sign,0xd6f3454000000,0x419)  /* 123456789.0 */
+#define FP64_12_89_1(a_Sign)  FP64_V(a_Sign,0xd6f3454666666,0x419)  /* 123456789.1 */
+#define FP64_12_89_5(a_Sign)  FP64_V(a_Sign,0xd6f3456000000,0x419)  /* 123456789.5 */
+#define FP64_12_89_9(a_Sign)  FP64_V(a_Sign,0xd6f345799999a,0x419)  /* 123456789.9 */
+#define FP64_12_90_0(a_Sign)  FP64_V(a_Sign,0xd6f3458000000,0x419)  /* 123456790.0 */
+#define FP64_BIG_INT(a_Sign)  FP64_V(a_Sign,2,0x434)                /* 9007199254740996.0 */
+
 /*
  * [V]ROUNDPS.
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundps(uint8_t bMode)
 {
-    /** quiet PE + round toward nearest even */
+    /** quiet PE + round toward nearest (even) */
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNE[] =
     {
+    /*
+     * Zero.
+     */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
-    };
-    /** quiet PE + rounding controlled by MXCSR */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesMX[] =
-    {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+    /*
+     * Infinity.
+     */
+    /* 1*/{ { /*src1     */ { FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
-            { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+            { /* =>      */ { FP32_INF(0), FP32_INF(1), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(0), FP32_INF(1), FP32_INF(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 2*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward negative infinity */
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNI[] =
     {
+    /*
+     * Zero.
+     */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_0(0),      FP32_2(1), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_67_0(0), FP32_12_67_0(0), FP32_1(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward positive infinity */
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesPI[] =
     {
+    /*
+     * Zero.
+     */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
-    };
-    /** raise PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesPE[] =
-    {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
-            { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+            { /* =>      */ { FP32_1(0),   FP32_1(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),   FP32_1(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),   FP32_1(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),   FP32_1(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),      FP32_1(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_68_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward zero */
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesZR[] =
     {
+    /*
+     * Zero.
+     */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_0(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_67_0(0), FP32_12_67_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
     };
-    /** quiet PE + rounding controlled by MXCSR (invalid encoding) */
+    /** quiet PE + rounding controlled by MXCSR */
+    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesMX[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),   FP32_1(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_0(0),      FP32_2(1), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_1(0),      FP32_1(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_0(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_0(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_67_0(0), FP32_12_67_0(0), FP32_1(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_68_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_67_0(0), FP32_12_67_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_12_67_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+    };
+    /** raise PE + round toward nearest (even) */
+    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesPE[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ 0 },
+    /*
+     * Normals & Precision.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP32_0_5_DN(0), FP32_0_5(0), FP32_0_5_UP(0), FP32_2(1), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_2(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),      FP32_0(0),   FP32_1(0),      FP32_2(1), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP32_12_67_1(0), FP32_12_67_5(0), FP32_12_67_9(0), FP32_1(1), FP32_12_67_1(1), FP32_12_67_5(1), FP32_12_67_9(1), FP32_1(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_12_68_0(0), FP32_1(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_12_68_0(1), FP32_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_2(0), FP32_BIG_INT(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_2(1), FP32_BIG_INT(0) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_12_67_0(0), FP32_12_68_0(0), FP32_2(0), FP32_BIG_INT(1), FP32_12_67_0(1), FP32_12_68_0(1), FP32_2(1), FP32_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+    };
+    /** quiet PE + rounding controlled by MXCSR (reserved encoding) */
     static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNV[] =
     {
+    /*
+     * Zero.
+     */
     /* 0*/{ { /*src1     */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
             { /*unused   */ { FP32_ROW_UNUSED } },
             { /* =>      */ { FP32_0(0), FP32_0(1), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0), FP32_0(1), FP32_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_1(0),   FP32_BIG_INT(0), FP32_0(1),   FP32_0(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP32_0_1(0), FP32_0_5(0), FP32_0_9(0), FP32_BIG_INT(0), FP32_0_1(1), FP32_0_5(1), FP32_0_9(1), FP32_BIG_INT(1) } },
+            { /*unused   */ { FP32_ROW_UNUSED } },
+            { /* =>      */ { FP32_0(0),   FP32_0(0),   FP32_0(0),   FP32_BIG_INT(0), FP32_1(1),   FP32_1(1),   FP32_1(1),   FP32_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
     };
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
@@ -16603,75 +16996,702 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundps(uint8_t bMode)
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundpd(uint8_t bMode)
 {
-    /** quiet PE + round toward nearest even */
+    /** quiet PE + round toward nearest (even) */
     static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNE[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
-    };
-    /** quiet PE + rounding controlled by MXCSR */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesMX[] =
-    {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Infinity.
+     */
+    /* 1*/{ { /*src1     */ { FP64_INF(0), FP64_INF(1), FP64_INF(1), FP64_INF(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_INF(0), FP64_INF(1), FP64_INF(1), FP64_INF(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 2*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward negative infinity */
     static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNI[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_0(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_89_0(0), FP64_12_89_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_90_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward positive infinity */
     static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesPI[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
-    };
-    /** raise PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesPE[] =
-    {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+            { /* =>      */ { FP64_1(0),   FP64_1(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),   FP64_1(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),   FP64_1(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),   FP64_1(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),      FP64_1(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_90_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_89_0(1), FP64_12_89_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
     };
     /** quiet PE + round toward zero */
     static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesZR[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_0(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_89_0(0), FP64_12_89_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_89_0(1), FP64_12_89_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
     };
-    /** quiet PE + rounding controlled by MXCSR (invalid encoding) */
+    /** quiet PE + rounding controlled by MXCSR */
+    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesMX[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),   FP64_1(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_0(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(0),      FP64_1(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_0(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_0(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_89_0(0), FP64_12_89_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_90_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_90_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_89_0(1), FP64_12_89_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,
+              /*128:out  */ X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_89_0(0), FP64_12_89_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_89_0(1), FP64_12_89_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,
+              /*128:out  */ X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_RC_ZERO },
+    };
+    /** raise PE + round toward nearest (even) */
+    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesPE[] =
+    {
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
+              /*mxcsr:in */ 0,
+              /*128:out  */ 0,
+              /*256:out  */ 0 },
+    /*
+     * Normals & Precision.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_5_DN(0), FP64_0_5(0), FP64_0_5_UP(0), FP64_2(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),      FP64_0(0),   FP64_1(0),      FP64_2(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_2(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_2(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_UP,                /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_UP },
+          { { /*src1     */ { FP64_12_89_1(0), FP64_12_89_5(0), FP64_12_89_9(0), FP64_1(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_12_90_0(0), FP64_1(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_1(1), FP64_12_89_5(1), FP64_12_89_9(1), FP64_1(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_12_90_0(1), FP64_1(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_ZERO,              /* MXCSR overridden by instruction */
+              /*128:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO,
+              /*256:out  */ X86_MXCSR_PE | X86_MXCSR_RC_ZERO },
+          { { /*src1     */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_2(0), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(0), FP64_12_90_0(0), FP64_2(0), FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_2(1), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_12_89_0(1), FP64_12_90_0(1), FP64_2(1), FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,           /* rounding mode affirmed by instruction */
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+    };
+    /** quiet PE + rounding controlled by MXCSR (reserved encoding) */
     static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNV[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1) } },
+    /*
+     * Zero.
+     */
+    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
             { /*unused   */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_0(1) } },
+            { /* =>      */ { FP64_0(0), FP64_0(1), FP64_0(1), FP64_0(0) } },
               /*mxcsr:in */ 0,
               /*128:out  */ 0,
               /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 1*/{ { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_1(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(1),   FP64_0(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_NEAREST,
+              /*128:out  */ X86_MXCSR_RC_NEAREST,
+              /*256:out  */ X86_MXCSR_RC_NEAREST },
+          { { /*src1     */ { FP64_0_1(0), FP64_0_5(0), FP64_0_9(0), FP64_BIG_INT(0) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_0(0),   FP64_0(0),   FP64_0(0),   FP64_BIG_INT(0) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
+          { { /*src1     */ { FP64_0_1(1), FP64_0_5(1), FP64_0_9(1), FP64_BIG_INT(1) } },
+            { /*unused   */ { FP64_ROW_UNUSED } },
+            { /* =>      */ { FP64_1(1),   FP64_1(1),   FP64_1(1),   FP64_BIG_INT(1) } },
+              /*mxcsr:in */ X86_MXCSR_RC_DOWN,
+              /*128:out  */ X86_MXCSR_RC_DOWN,
+              /*256:out  */ X86_MXCSR_RC_DOWN },
     };
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
@@ -16729,277 +17749,719 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundpd(uint8_t bMode)
 }
 
 
+typedef struct BS3CPUINSTR4_ROUNDSS_VALUES_T
+{
+    RTFLOAT32U          uSrc;
+    RTFLOAT32U          uDst;
+    uint16_t            uMxCsr;                 /**< MXCSR to set prior to executing the instruction. */
+    uint16_t            u128ExpectedMxCsr;      /**< Expected MXCSR for a 128-bit instruction. */
+} BS3CPUINSTR4_ROUNDSS_VALUES_T;
+
+static DECLCALLBACK(PBS3CPUINSTR4_TEST1_VALUES_T) bs3CpuInstr4_WorkerTestType1_Provider_roundss(void *paValues, const unsigned cValues, const unsigned iVal)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_PS_T sValues;
+    BS3CPUINSTR4_ROUNDSS_VALUES_T *psValuesIn = &((BS3CPUINSTR4_ROUNDSS_VALUES_T *)paValues)[iVal];
+    unsigned iCnt;
+
+    sValues.uSrc1.ar32[0] = psValuesIn->uSrc;
+    sValues.uSrc2.ar32[0] = psValuesIn->uSrc;
+    sValues.uDstOut.ar32[0] = psValuesIn->uDst;
+    for (iCnt = 1; iCnt < RT_ELEMENTS(sValues.uSrc1.ymm.au32); iCnt++)
+    {
+        sValues.uSrc1.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uSrc2.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uDstOut.ymm.au32[iCnt] = sValues.uSrc1.ymm.au32[iCnt];
+    }
+    sValues.uMxCsr = psValuesIn->uMxCsr;
+    sValues.u128ExpectedMxCsr = psValuesIn->u128ExpectedMxCsr;
+    return (PBS3CPUINSTR4_TEST1_VALUES_T)&sValues;
+}
+
 /*
  * [V]ROUNDSS.
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundss(uint8_t bMode)
 {
-    /** quiet PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNE[] =
+    /** quiet PE + round toward nearest (even) + main testing + plenty of testing instruction-overrides-MXCSR */
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesNE[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-          { { /*src1     */ { FP32_0(1), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(1), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-    };
-    /** quiet PE + rounding controlled by MXCSR */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesMX[] =
-    {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+              /*src*/           /* => */         /*mxcsr:in*/          /*128:out*/
+    /*
+     * Zero.
+     */
+    /* 0*/{   FP32_0(0),        FP32_0(0),       0,                    0                    },
+          {   FP32_0(1),        FP32_0(1),       0,                    0                    },
+    /*
+     * Infinity.
+     */
+    /* 2*/{   FP32_INF(0),      FP32_INF(0),     0,                    0                    },
+          {   FP32_INF(1),      FP32_INF(1),     0,                    0                    },
+    /*
+     * Normals.
+     */
+    /* 4*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
     /** quiet PE + round toward negative infinity */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNI[] =
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesNI[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_1(1),     FP32_1(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_1(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(0), FP32_12_67_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP,     }, /* MXCSR overridden by instruction */
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
     /** quiet PE + round toward positive infinity */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesPI[] =
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesPI[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-    };
-    /** raise PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesPE[] =
-    {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(0),     FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(0), FP32_12_68_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(1), FP32_12_67_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(1), FP32_12_67_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
     };
     /** quiet PE + round toward zero */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesZR[] =
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesZR[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_9(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(1), FP32_12_67_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_12_67_9(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(1), FP32_12_67_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
-    /** quiet PE + rounding controlled by MXCSR (invalid encoding) */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesNV[] =
+    /** quiet PE + rounding controlled by MXCSR */
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesMX[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_2(1), FP32_RAND_x7_V3 } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V3 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_1(0),     FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_1(1),     FP32_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5(0),     FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5(1),     FP32_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5_DN(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5_UP(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_0_9(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_9(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_1(0), FP32_12_68_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_12_67_1(1), FP32_12_68_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(0), FP32_12_67_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_5(1), FP32_12_67_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_12_67_9(0), FP32_12_67_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
     };
-    /** quiet PE + round toward nearest even + same-register */
-    static BS3CPUINSTR4_TEST1_VALUES_PS_T const s_aValuesSR[] =
+    /** raise PE + round toward nearest (even) */
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesPE[] =
     {
-    /* 0*/{ { /*src1     */ { FP32_0(0), FP32_RAND_x7_V2 } },
-            { /*src2     */ { FP32_ROW_UNUSED } },
-            { /* =>      */ { FP32_0(0), FP32_RAND_x7_V2 } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_1(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_DN(0),  FP32_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_0_9(0),     FP32_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_0_9(1),     FP32_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_1(0),       FP32_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN                   }, /* MXCSR overridden by instruction */
+          {    FP32_1(1),       FP32_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_12_67_1(0), FP32_12_67_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_1(1), FP32_12_67_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_12_67_5(0), FP32_12_68_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_12_67_5(1), FP32_12_68_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(0), FP32_12_68_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP32_12_67_9(1), FP32_12_68_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP                     }, /* MXCSR overridden by instruction */
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP32_2(1),       FP32_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO                   }, /* MXCSR overridden by instruction */
+          {    FP32_BIG_INT(0), FP32_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP32_BIG_INT(1), FP32_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP                     }, /* MXCSR overridden by instruction */
+    };
+    /** quiet PE + rounding controlled by MXCSR (reserved encoding) */
+    static BS3CPUINSTR4_ROUNDSS_VALUES_T const s_aValuesNV[] =
+    {
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP32_0_1(0),     FP32_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5(0),     FP32_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5(0),     FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5(1),     FP32_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP32_0_5(1),     FP32_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP32_0_5_DN(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_0_5_UP(0),  FP32_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP32_12_67_5(0), FP32_12_67_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP32_2(0),       FP32_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
     };
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
     {
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_000h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesPE) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_009h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNI) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00ah),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesPI) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00bh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesZR) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00ch),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00dh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00eh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00fh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_0ffh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNV) },
-        { BS3_INSTR4_ALL(roundss_XMM1_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM1, XMM1,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(roundss_XMM8_XMM9_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8,  XMM9,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(roundss_XMM8_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM8, XMM8,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_000h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesPE) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_009h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNI) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00ah),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesPI) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00bh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesZR) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00ch),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00dh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00eh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_00fh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM2_0ffh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNV) },
+        { BS3_INSTR4_ALL(roundss_XMM1_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundss_XMM8_XMM9_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8, XMM9,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundss_XMM8_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM8, XMM8, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
 
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM1,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesPE) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_009h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNI) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesPI) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00bh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesZR) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00dh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00fh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_0ffh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNV) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundss_XMM8_XMM8_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM8,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundss_XMM8_XMM9_XMM10_008h), 255, RM_REG, T_AVX_128, XMM8, XMM9,  XMM10, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundss_XMM8_XMM9_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM9,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM1, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM1,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesPE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_009h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNI) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesPI) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00bh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesZR) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00dh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_00fh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM3_0ffh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNV) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundss_XMM8_XMM8_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM8, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundss_XMM8_XMM9_XMM10_008h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundss_XMM8_XMM9_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
 
-        { BS3_INSTR4_ALL(roundss_XMM1_XMM1_008h),        255, RM_REG, T_SSE4_1,  XMM1, NOREG, XMM1,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_C64(roundss_XMM8_XMM8_008h),        255, RM_REG, T_SSE4_1,  XMM8, NOREG, XMM8,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, NOREG, XMM1,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, NOREG, XMM2,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_C64(vroundss_XMM8_XMM8_XMM8_008h),  255, RM_REG, T_AVX_128, XMM8, NOREG, XMM8,  PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(roundss_XMM1_XMM1_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundss_XMM8_XMM8_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM1_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundss_XMM1_XMM2_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundss_XMM8_XMM8_XMM8_008h),  255, RM_REG, T_AVX_128, XMM8, XMM8, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
     };
 
-    return bs3CpuInstr4_WorkerTestType1(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3));
+    return bs3CpuInstr4_WorkerTestType1_P(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3), bs3CpuInstr4_WorkerTestType1_Provider_roundss);
 }
 
+
+typedef struct BS3CPUINSTR4_ROUNDSD_VALUES_T
+{
+    RTFLOAT64U          uSrc;
+    RTFLOAT64U          uDst;
+    uint16_t            uMxCsr;                 /**< MXCSR to set prior to executing the instruction. */
+    uint16_t            u128ExpectedMxCsr;      /**< Expected MXCSR for a 128-bit instruction. */
+} BS3CPUINSTR4_ROUNDSD_VALUES_T;
+
+static DECLCALLBACK(PBS3CPUINSTR4_TEST1_VALUES_T) bs3CpuInstr4_WorkerTestType1_Provider_roundsd(void *paValues, const unsigned cValues, const unsigned iVal)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_PD_T sValues;
+    BS3CPUINSTR4_ROUNDSD_VALUES_T *psValuesIn = &((BS3CPUINSTR4_ROUNDSD_VALUES_T *)paValues)[iVal];
+    unsigned iCnt;
+
+    sValues.uSrc1.ar64[0] = psValuesIn->uSrc;
+    sValues.uSrc2.ar64[0] = psValuesIn->uSrc;
+    sValues.uDstOut.ar64[0] = psValuesIn->uDst;
+    for (iCnt = 2; iCnt < RT_ELEMENTS(sValues.uSrc1.ymm.au32); iCnt++)
+    {
+        sValues.uSrc1.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uSrc2.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uDstOut.ymm.au32[iCnt] = sValues.uSrc1.ymm.au32[iCnt];
+    }
+    sValues.uMxCsr = psValuesIn->uMxCsr;
+    sValues.u128ExpectedMxCsr = psValuesIn->u128ExpectedMxCsr;
+    return (PBS3CPUINSTR4_TEST1_VALUES_T)&sValues;
+}
 
 /*
  * [V]ROUNDSD.
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_roundsd(uint8_t bMode)
 {
-    /** quiet PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNE[] =
+    /** quiet PE + round toward nearest (even) + main testing + plenty of testing instruction-overrides-MXCSR */
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesNE[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-          { { /*src1     */ { FP64_0(1), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(1), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-    };
-    /** quiet PE + rounding controlled by MXCSR */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesMX[] =
-    {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+              /*src*/           /* => */         /*mxcsr:in*/          /*128:out*/
+    /*
+     * Zero.
+     */
+    /* 0*/{   FP64_0(0),        FP64_0(0),       0,                    0                    },
+          {   FP64_0(1),        FP64_0(1),       0,                    0                    },
+    /*
+     * Infinity.
+     */
+    /* 2*/{   FP64_INF(0),      FP64_INF(0),     0,                    0                    },
+          {   FP64_INF(1),      FP64_INF(1),     0,                    0                    },
+    /*
+     * Normals.
+     */
+    /* 4*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
     /** quiet PE + round toward negative infinity */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNI[] =
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesNI[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_1(1),     FP64_1(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_1(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(0), FP64_12_89_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP,     }, /* MXCSR overridden by instruction */
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
     /** quiet PE + round toward positive infinity */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesPI[] =
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesPI[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
-    };
-    /** raise PE + round toward nearest even */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesPE[] =
-    {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(0),     FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(0), FP64_12_90_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(1), FP64_12_89_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(1), FP64_12_89_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
     };
     /** quiet PE + round toward zero */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesZR[] =
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesZR[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_9(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(1), FP64_12_89_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_12_89_9(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(1), FP64_12_89_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    }, /* MXCSR overridden by instruction */
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      }, /* MXCSR overridden by instruction */
     };
-    /** quiet PE + rounding controlled by MXCSR (invalid encoding) */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesNV[] =
+    /** quiet PE + rounding controlled by MXCSR */
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesMX[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V1(0) } },
-            { /*src2     */ { FP64_2(1), FP64_RAND_V2(0) } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_1(0),     FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_1(1),     FP64_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5(0),     FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5(1),     FP64_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5_DN(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5_UP(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_0_9(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_9(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_1(0), FP64_12_90_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_12_89_1(1), FP64_12_90_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(0), FP64_12_89_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_5(1), FP64_12_89_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_12_89_9(0), FP64_12_89_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
     };
-    /** quiet PE + round toward nearest even + same-register */
-    static BS3CPUINSTR4_TEST1_VALUES_PD_T const s_aValuesSR[] =
+    /** raise PE + round toward nearest (even) */
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesPE[] =
     {
-    /* 0*/{ { /*src1     */ { FP64_0(0), FP64_RAND_V2(0) } },
-            { /*src2     */ { FP64_ROW_UNUSED } },
-            { /* =>      */ { FP64_0(0), FP64_RAND_V2(0) } },
-              /*mxcsr:in */ 0,
-              /*128:out  */ 0,
-              /*256:out  */ 0 },
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_1(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_DN(0),  FP64_0(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_0_9(0),     FP64_1(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_0_9(1),     FP64_1(1),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_1(0),       FP64_1(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN                   }, /* MXCSR overridden by instruction */
+          {    FP64_1(1),       FP64_1(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_12_89_1(0), FP64_12_89_0(0), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP | X86_MXCSR_PE      }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_1(1), FP64_12_89_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_12_89_5(0), FP64_12_90_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_12_89_5(1), FP64_12_90_0(1), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(0), FP64_12_90_0(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN | X86_MXCSR_PE    }, /* MXCSR overridden by instruction */
+          {    FP64_12_89_9(1), FP64_12_90_0(1), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST | X86_MXCSR_PE },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP                     }, /* MXCSR overridden by instruction */
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP64_2(1),       FP64_2(1),       X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO                   }, /* MXCSR overridden by instruction */
+          {    FP64_BIG_INT(0), FP64_BIG_INT(0), X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST                },
+          {    FP64_BIG_INT(1), FP64_BIG_INT(1), X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP                     }, /* MXCSR overridden by instruction */
+    };
+    /** quiet PE + rounding controlled by MXCSR (reserved encoding) */
+    static BS3CPUINSTR4_ROUNDSD_VALUES_T const s_aValuesNV[] =
+    {
+    /*
+     * Normals.
+     */
+    /* 0*/{    FP64_0_1(0),     FP64_0(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5(0),     FP64_0(0),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5(0),     FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5(1),     FP64_1(1),       X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {    FP64_0_5(1),     FP64_0(1),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {    FP64_0_5_DN(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_0_5_UP(0),  FP64_1(0),       X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {    FP64_12_89_5(0), FP64_12_89_0(0), X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {    FP64_2(0),       FP64_2(0),       X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
     };
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
     {
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_000h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesPE) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_009h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNI) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00ah),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesPI) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00bh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesZR) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00ch),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00dh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00eh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00fh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_0ffh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNV) },
-        { BS3_INSTR4_ALL(roundsd_XMM1_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM1, XMM1,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(roundsd_XMM8_XMM9_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8,  XMM9,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(roundsd_XMM8_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM8, XMM8,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_000h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesPE) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_009h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNI) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00ah),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesPI) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00bh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesZR) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00ch),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00dh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00eh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_00fh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM2_0ffh),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNV) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM1, XMM1, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundsd_XMM8_XMM9_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8, XMM9,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundsd_XMM8_FSxBX_008h),       255, RM_MEM, T_SSE4_1,  XMM8, XMM8, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
 
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1,  XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM1,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM1,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesPE) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_009h),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNI) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesPI) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00bh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesZR) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00dh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00fh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_0ffh),  255, RM_REG, T_AVX_128, XMM1, XMM2,  XMM3,  PASS_TEST_ARRAY(s_aValuesNV) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM2,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundsd_XMM8_XMM8_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM8,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundsd_XMM8_XMM9_XMM10_008h), 255, RM_REG, T_AVX_128, XMM8, XMM9,  XMM10, PASS_TEST_ARRAY(s_aValuesNE) },
-        { BS3_INSTR4_C64(vroundsd_XMM8_XMM9_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM9,  FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM2,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM1, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM1,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesPE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_009h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNI) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesPI) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00bh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesZR) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00dh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_00fh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesMX) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM3_0ffh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  PASS_TEST_ARRAY(s_aValuesNV) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundsd_XMM8_XMM8_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM8, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundsd_XMM8_XMM9_XMM10_008h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundsd_XMM8_XMM9_FSxBX_008h), 255, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, PASS_TEST_ARRAY(s_aValuesNE) },
 
-        { BS3_INSTR4_ALL(roundsd_XMM1_XMM1_008h),        255, RM_REG, T_SSE4_1,  XMM1, NOREG, XMM1,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_C64(roundsd_XMM8_XMM8_008h),        255, RM_REG, T_SSE4_1,  XMM8, NOREG, XMM8,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, NOREG, XMM1,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, NOREG, XMM2,  PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_C64(vroundsd_XMM8_XMM8_XMM8_008h),  255, RM_REG, T_AVX_128, XMM8, NOREG, XMM8,  PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(roundsd_XMM1_XMM1_008h),        255, RM_REG, T_SSE4_1,  XMM1, XMM1, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(roundsd_XMM8_XMM8_008h),        255, RM_REG, T_SSE4_1,  XMM8, XMM8, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM1_XMM1_008h),  255, RM_REG, T_AVX_128, XMM1, XMM1, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_ALL(vroundsd_XMM1_XMM2_XMM2_008h),  255, RM_REG, T_AVX_128, XMM1, XMM2, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
+        { BS3_INSTR4_C64(vroundsd_XMM8_XMM8_XMM8_008h),  255, RM_REG, T_AVX_128, XMM8, XMM8, NOREG, PASS_TEST_ARRAY(s_aValuesNE) },
     };
 
-    return bs3CpuInstr4_WorkerTestType1(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3));
+    return bs3CpuInstr4_WorkerTestType1_P(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3), bs3CpuInstr4_WorkerTestType1_Provider_roundsd);
 }
 
 

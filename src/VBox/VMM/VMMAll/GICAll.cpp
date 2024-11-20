@@ -623,7 +623,10 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
                  * timer.
                  */
                 if ((uValue & 0xff) == 0)
+                {
+                    uValue >>= 8;
                     continue;
+                }
 #endif
                 pThis->abIntPriority[i] = (uint8_t)(uValue & 0xff);
                 uValue >>= 8;

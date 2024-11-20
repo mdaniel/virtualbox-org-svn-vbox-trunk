@@ -263,6 +263,25 @@ RTDECL(int) RTAcpiTblNameAppend(RTACPITBL hAcpiTbl, const char *pszName);
 
 
 /**
+ * Appends a new NullName object.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblNullNameAppend(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Appends a new NameString object.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszName             The name to append.
+ */
+RTDECL(int) RTAcpiTblNameStringAppend(RTACPITBL hAcpiTbl, const char *pszName);
+
+
+/**
  * Appends a new String object.
  *
  * @returns IPRT status code.
@@ -320,7 +339,27 @@ typedef enum RTACPISTMT
     /** Break statement. */
     kAcpiStmt_Break,
     /** Continue statement. */
-    kAcpiStmt_Continue
+    kAcpiStmt_Continue,
+    /** Add(Operand, Operand, Target) statement. */
+    kAcpiStmt_Add,
+    /** Subtract(Operand, Operand, Target) statement. */
+    kAcpiStmt_Subtract,
+    /** And(Operand, Operand, Target) statement. */
+    kAcpiStmt_And,
+    /** Nand(Operand, Operand, Target) statement. */
+    kAcpiStmt_Nand,
+    /** Or(Operand, Operand, Target) statement. */
+    kAcpiStmt_Or,
+    /** Xor(Operand, Operand, Target) statement. */
+    kAcpiStmt_Xor,
+    /** Not(Operand, Target) statement. */
+    kAcpiStmt_Not,
+    /** Store(TermArg, Supername) statement. */
+    kAcpiStmt_Store,
+    /** Index(BuffPkgStrObj, IndexValue, Target) statement. */
+    kAcpiStmt_Index,
+    /** DerefOf(ObjReference) statement. */
+    kAcpiStmt_DerefOf
 } RTACPISTMT;
 
 
@@ -476,6 +515,20 @@ typedef enum RTACPIOPREGIONSPACE
     /** 32bit hack. */
     kAcpiOperationRegionSpace_32bit_Hack = 0x7fffffff
 } RTACPIOPREGIONSPACE;
+
+
+/**
+ * Appends a new OperationRegion() to the given ACPI table - extended version.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszName             The name of the operation region.
+ * @param   enmSpace            The operation region space type.
+ *
+ * @note This doesn't encode the region offset and size arguments but leaves it up to the caller
+ *       to be able to encode complex stuff.
+ */
+RTDECL(int) RTAcpiTblOpRegionAppendEx(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace);
 
 
 /**

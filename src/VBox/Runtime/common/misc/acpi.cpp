@@ -749,6 +749,26 @@ RTDECL(int) RTAcpiTblNameAppend(RTACPITBL hAcpiTbl, const char *pszName)
 }
 
 
+RTDECL(int) RTAcpiTblNullNameAppend(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblAppendByte(pThis, 0x00);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblNameStringAppend(RTACPITBL hAcpiTbl, const char *pszName)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblAppendNameString(pThis, pszName);
+    return pThis->rcErr;
+}
+
+
 RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
@@ -848,6 +868,16 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Nop:        bOp = ACPI_AML_BYTE_CODE_OP_NOOP;        break;
         case kAcpiStmt_Break:      bOp = ACPI_AML_BYTE_CODE_OP_BREAK;       break;
         case kAcpiStmt_Continue:   bOp = ACPI_AML_BYTE_CODE_OP_CONTINUE;    break;
+        case kAcpiStmt_Add:        bOp = ACPI_AML_BYTE_CODE_OP_ADD;         break;
+        case kAcpiStmt_Subtract:   bOp = ACPI_AML_BYTE_CODE_OP_SUBTRACT;    break;
+        case kAcpiStmt_And:        bOp = ACPI_AML_BYTE_CODE_OP_AND;         break;
+        case kAcpiStmt_Nand:       bOp = ACPI_AML_BYTE_CODE_OP_NAND;        break;
+        case kAcpiStmt_Or:         bOp = ACPI_AML_BYTE_CODE_OP_OR;          break;
+        case kAcpiStmt_Xor:        bOp = ACPI_AML_BYTE_CODE_OP_XOR;         break;
+        case kAcpiStmt_Not:        bOp = ACPI_AML_BYTE_CODE_OP_NOT;         break;
+        case kAcpiStmt_Store:      bOp = ACPI_AML_BYTE_CODE_OP_STORE;       break;
+        case kAcpiStmt_Index:      bOp = ACPI_AML_BYTE_CODE_OP_INDEX;       break;
+        case kAcpiStmt_DerefOf:    bOp = ACPI_AML_BYTE_CODE_OP_DEREF_OF;    break;
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
@@ -976,8 +1006,7 @@ RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid)
 }
 
 
-RTDECL(int) RTAcpiTblOpRegionAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace,
-                                    uint64_t offRegion, uint64_t cbRegion)
+RTDECL(int) RTAcpiTblOpRegionAppendEx(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
@@ -1005,6 +1034,20 @@ RTDECL(int) RTAcpiTblOpRegionAppend(RTACPITBL hAcpiTbl, const char *pszName, RTA
             AssertFailedReturn(pThis->rcErr);
     }
     rtAcpiTblAppendByte(pThis, bRegionSpace);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblOpRegionAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace,
+                                    uint64_t offRegion, uint64_t cbRegion)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    int rc = RTAcpiTblOpRegionAppendEx(pThis, pszName, enmSpace);
+    if (RT_FAILURE(rc))
+        return rc;
+
     RTAcpiTblIntegerAppend(pThis, offRegion);
     RTAcpiTblIntegerAppend(pThis, cbRegion);
     return pThis->rcErr;

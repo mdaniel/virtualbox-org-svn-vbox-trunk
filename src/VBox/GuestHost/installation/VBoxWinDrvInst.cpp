@@ -58,6 +58,7 @@
 #include <VBox/GuestHost/VBoxWinDrvStore.h>
 
 #include "VBoxWinDrvCommon.h"
+#include "VBoxWinDrvInstInternal.h"
 
 
 /*********************************************************************************************************************************
@@ -138,57 +139,6 @@ DECL_HIDDEN_DATA(PFNSETUPCLOSEINFFILE)                   g_pfnSetupCloseInfFile 
 DECL_HIDDEN_DATA(PFNSETUPDIGETINFCLASSW)                 g_pfnSetupDiGetINFClassW                 = NULL; /* For W2K+. */
 DECL_HIDDEN_DATA(PFNSETUPUNINSTALLOEMINFW)               g_pfnSetupUninstallOEMInfW               = NULL; /* For XP+.  */
 DECL_HIDDEN_DATA(PFNSETUPSETNONINTERACTIVEMODE)          g_pfnSetupSetNonInteractiveMode          = NULL; /* For W2K+. */
-
-
-/**
- * Enumeration specifying the driver (un)installation mode.
- */
-typedef enum VBOXWINDRVINSTMODE
-{
-    /** Invalid mode; do not use. */
-    VBOXWINDRVINSTMODE_INVALID = 0,
-    /** Install a driver. */
-    VBOXWINDRVINSTMODE_INSTALL,
-    /** Install by executing an INF section. */
-    VBOXWINDRVINSTMODE_INSTALL_INFSECTION,
-    /** Uninstall a driver. */
-    VBOXWINDRVINSTMODE_UNINSTALL,
-    /** Uninstall by executing an INF section. */
-    VBOXWINDRVINSTMODE_UNINSTALL_INFSECTION
-} VBOXWINDRVINSTMODE;
-
-/**
- * Structure for keeping driver (un)installation parameters.
- */
-typedef struct VBOXWINDRVINSTPARMS
-{
-    /** Installation mode. */
-    VBOXWINDRVINSTMODE enmMode;
-    /** Installation flags of type VBOX_WIN_DRIVERINSTALL_F_XXX. */
-    uint32_t           fFlags;
-    /** INF file to use for (un)installation. */
-    PRTUTF16           pwszInfFile;
-    /** Union keeping specific parameters, depending on \a enmMode. */
-    union
-    {
-        struct
-        {
-            /** Model including decoration (e.g. "VBoxUSB.NTAMD64"); optional and might be NULL. */
-            PRTUTF16   pwszModel;
-            /** Hardware (Pnp) ID; optional and might be NULL. */
-            PRTUTF16   pwszPnpId;
-            /** Name of section to install. */
-            PRTUTF16   pwszSection;
-        } UnInstall;
-        struct
-        {
-            /** Section within in the INF file to execute. */
-            PRTUTF16   pwszSection;
-        } ExecuteInf;
-    } u;
-} VBOXWINDRVINSTPARMS;
-/** Pointer to driver installation parameters. */
-typedef VBOXWINDRVINSTPARMS *PVBOXWINDRVINSTPARMS;
 
 /**
  * Structure for keeping the internal Windows driver context.
@@ -1812,7 +1762,8 @@ int VBoxWinDrvInstInstallEx(VBOXWINDRVINST hDrvInst,
         rc = vboxWinDrvInstMain(pCtx, &pCtx->Parms);
     }
 
-    vboxWinDrvInstParmsDestroy(&pCtx->Parms);
+    if (!(fFlags & VBOX_WIN_DRIVERINSTALL_F_NO_DESTROY))
+        vboxWinDrvInstParmsDestroy(&pCtx->Parms);
 
     if (RT_FAILURE(rc))
         vboxWinDrvInstLogError(pCtx, "Driver installation failed with %Rrc", rc);
@@ -1881,7 +1832,8 @@ int VBoxWinDrvInstUninstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, con
     if (RT_SUCCESS(rc))
         rc = vboxWinDrvInstMain(pCtx, &pCtx->Parms);
 
-    vboxWinDrvInstParmsDestroy(&pCtx->Parms);
+    if (!(fFlags & VBOX_WIN_DRIVERINSTALL_F_NO_DESTROY))
+        vboxWinDrvInstParmsDestroy(&pCtx->Parms);
 
     if (RT_FAILURE(rc))
         vboxWinDrvInstLogError(pCtx, "Driver uninstallation failed with %Rrc", rc);
@@ -1918,7 +1870,8 @@ int VBoxWinDrvInstExecuteInfWorker(VBOXWINDRVINST hDrvInst,
 
     rc = vboxWinDrvInstMain(pCtx, &pCtx->Parms);
 
-    vboxWinDrvInstParmsDestroy(&pCtx->Parms);
+    if (!(fFlags & VBOX_WIN_DRIVERINSTALL_F_NO_DESTROY))
+        vboxWinDrvInstParmsDestroy(&pCtx->Parms);
 
     return rc;
 }
@@ -1950,4 +1903,30 @@ int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszIn
 {
     return VBoxWinDrvInstExecuteInfWorker(hDrvInst, false /* fInstall */, pszInfFile, pszSection, fFlags);
 }
+
+#ifdef TESTCASE
+/**
+ * Returns the internal parameters of an (un)installation.
+ *
+ * @returns Internal parameters of an (un)installation.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ */
+PVBOXWINDRVINSTPARMS VBoxWinDrvInstTestGetParms(VBOXWINDRVINST hDrvInst)
+{
+    PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
+    VBOXWINDRVINST_VALID_RETURN_RC((hDrvInst), NULL);
+
+    return &pCtx->Parms;
+}
+
+/**
+ * Detroys internal parameters of an (un)installation.
+ *
+ * @param   pParms              Internal parameters of an (un)installation to destroy.
+ */
+void VBoxWinDrvInstTestParmsDestroy(PVBOXWINDRVINSTPARMS pParms)
+{
+    vboxWinDrvInstParmsDestroy(pParms);
+}
+#endif /* TESTCASE */
 

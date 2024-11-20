@@ -81,7 +81,7 @@ VBOXWINDRVINFTYPE VBoxWinDrvInfGetTypeEx(HINF hInf, PRTUTF16 *ppwszSection)
      */
 
     /* Sorted by most likely-ness. */
-    static PRTUTF16 s_apwszSections[] =
+    static PRTUTF16 s_apwsManufacturerSections[] =
     {
         /* Most likely (and doesn't have a decoration). */
         L"Manufacturer",
@@ -92,20 +92,16 @@ VBOXWINDRVINFTYPE VBoxWinDrvInfGetTypeEx(HINF hInf, PRTUTF16 *ppwszSection)
 
     INFCONTEXT InfCtx;
     size_t     i;
-    for (i = 0; i < RT_ELEMENTS(s_apwszSections); i++)
+
+    PCRTUTF16 pwszManufacturerSection = NULL;
+    for (i = 0; i < RT_ELEMENTS(s_apwsManufacturerSections); i++)
     {
-        PRTUTF16 const pwszSection = s_apwszSections[i];
-        rc = vboxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
+        rc = vboxWinDrvInfQueryContext(hInf, s_apwsManufacturerSections[i], NULL, &InfCtx);
         if (RT_SUCCESS(rc))
+        {
+            pwszManufacturerSection = s_apwsManufacturerSections[i];
             break;
-    }
-
-    if (RT_SUCCESS(rc))
-    {
-        if (ppwszSection)
-            *ppwszSection = RTUtf16Dup(s_apwszSections[i]);
-
-        return VBOXWINDRVINFTYPE_NORMAL;
+        }
     }
 
     /*
@@ -121,18 +117,35 @@ VBOXWINDRVINFTYPE VBoxWinDrvInfGetTypeEx(HINF hInf, PRTUTF16 *ppwszSection)
         /** @todo Handle more specific decorations like "NTAMD64.6.3..10622". */
     };
 
+    PCRTUTF16 pwszPrimitiveSection = NULL;
     for (i = 0; i < RT_ELEMENTS(s_apwszPrimitiveSections); i++)
     {
-        PRTUTF16 const pwszSection = s_apwszPrimitiveSections[i];
-        rc = vboxWinDrvInfQueryContext(hInf, pwszSection, NULL, &InfCtx);
+        rc = vboxWinDrvInfQueryContext(hInf, s_apwszPrimitiveSections[i], NULL, &InfCtx);
         if (RT_SUCCESS(rc))
+        {
+            pwszPrimitiveSection = s_apwszPrimitiveSections[i];
             break;
+        }
     }
 
-    if (RT_SUCCESS(rc))
+    /* If both sections are present, consider this INF file as being invalid.
+     * Only one or the other has to be present. */
+    if (   pwszManufacturerSection
+        && pwszPrimitiveSection)
+    {
+        return VBOXWINDRVINFTYPE_INVALID;
+    }
+    else if (pwszManufacturerSection)
     {
         if (ppwszSection)
-            *ppwszSection = RTUtf16Dup(s_apwszPrimitiveSections[i]);
+            *ppwszSection = RTUtf16Dup(pwszManufacturerSection);
+
+        return VBOXWINDRVINFTYPE_NORMAL;
+    }
+    else if (pwszPrimitiveSection)
+    {
+        if (ppwszSection)
+            *ppwszSection = RTUtf16Dup(pwszPrimitiveSection);
 
         return VBOXWINDRVINFTYPE_PRIMITIVE;
     }

@@ -863,7 +863,7 @@ RTDECL(int) RTAcpiTblBinaryOpAppend(RTACPITBL hAcpiTbl, RTACPIBINARYOP enmBinary
         case kAcpiBinaryOp_LGreater:        bOp = ACPI_AML_BYTE_CODE_OP_LGREATER; break;
         case kAcpiBinaryOp_LLess:           bOp = ACPI_AML_BYTE_CODE_OP_LLESS;    break;
         case kAcpiBinaryOp_LGreaterEqual:
-        case kAcpiBinaryOp_LLessEqual:    
+        case kAcpiBinaryOp_LLessEqual:
         case kAcpiBinaryOp_LNotEqual:
             bOp = ACPI_AML_BYTE_CODE_OP_LNOT;
             break;

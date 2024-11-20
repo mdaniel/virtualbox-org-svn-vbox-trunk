@@ -496,6 +496,8 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdInstallMain(PRTGETOPTSTATE pGetSta
         }
         else
             rcExit = RTEXITCODE_FAILURE;
+
+        VBoxWinDrvInstDestroy(hWinDrvInst);
     }
 
     RTStrFree(pszInfFile);
@@ -601,6 +603,8 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
         }
         else
             rcExit = RTEXITCODE_FAILURE;
+
+        VBoxWinDrvInstDestroy(hWinDrvInst);
     }
 
     RTStrFree(pszInfFile);

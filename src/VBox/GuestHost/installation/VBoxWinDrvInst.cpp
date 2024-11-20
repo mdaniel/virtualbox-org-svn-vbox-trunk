@@ -1010,7 +1010,10 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
 
                 vboxWinDrvInstLogVerbose(pCtx, 1, "Using g_pfnDiInstallDriverW(), dwInstallFlags=%#x", dwInstallFlags);
 
-                fRc = g_pfnDiInstallDriverW(NULL /* hWndParent */, pParms->pwszInfFile, dwInstallFlags, &fReboot);
+                if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+                    fRc = g_pfnDiInstallDriverW(NULL /* hWndParent */, pParms->pwszInfFile, dwInstallFlags, &fReboot);
+                else
+                    fRc = TRUE;
                 if (!fRc)
                 {
                     DWORD const dwErr = GetLastError();
@@ -1055,9 +1058,13 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                     vboxWinDrvInstLogVerbose(pCtx, 4, "Using g_pfnUpdateDriverForPlugAndPlayDevicesW(), pwszPnpId=%ls, pwszInfFile=%ls, dwInstallFlags=%#x",
                                              pParms->u.UnInstall.pwszPnpId, pParms->pwszInfFile, dwInstallFlags);
 
-                    fRc = g_pfnUpdateDriverForPlugAndPlayDevicesW(NULL /* hWndParent */,
-                                                                  pParms->u.UnInstall.pwszPnpId,
-                                                                  pParms->pwszInfFile, dwInstallFlags, &fReboot);
+                    if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+                        fRc = g_pfnUpdateDriverForPlugAndPlayDevicesW(NULL /* hWndParent */,
+                                                                      pParms->u.UnInstall.pwszPnpId,
+                                                                      pParms->pwszInfFile, dwInstallFlags, &fReboot);
+                    else
+                        fRc = TRUE;
+
                     if (!fRc)
                     {
                         DWORD const dwErr = GetLastError();
@@ -1100,8 +1107,11 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                     if (RT_SUCCESS(rc))
                     {
                         RTUTF16 wszDstPathAbs[RTPATH_MAX] = { 0 };
-                        fRc = g_pfnSetupCopyOEMInfW(wszInfFileAbs, wszSrcPathAbs, SPOST_PATH, 0,
-                                                    wszDstPathAbs, RT_ELEMENTS(wszDstPathAbs), NULL, NULL);
+                        if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+                            fRc = g_pfnSetupCopyOEMInfW(wszInfFileAbs, wszSrcPathAbs, SPOST_PATH, 0,
+                                                        wszDstPathAbs, RT_ELEMENTS(wszDstPathAbs), NULL, NULL);
+                        else
+                            fRc = TRUE;
 
                         vboxWinDrvInstLogVerbose(pCtx, 1, "   INF file: %ls", wszInfFileAbs);
                         vboxWinDrvInstLogVerbose(pCtx, 1, "Source path: %ls", wszSrcPathAbs);
@@ -1444,7 +1454,10 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
         {
             vboxWinDrvInstLogVerbose(pCtx, 1, "Using DiUninstallDriverW()");
             BOOL fReboot = FALSE;
-            fRc = g_pfnDiUninstallDriverW(NULL /* hWndParent */, pCur->wszInfFile, 0 /* Flags */, &fReboot);
+            if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+                fRc = g_pfnDiUninstallDriverW(NULL /* hWndParent */, pCur->wszInfFile, 0 /* Flags */, &fReboot);
+            else
+                fRc = TRUE;
             if (fRc)
                 pCtx->fReboot = RT_BOOL(fReboot);
             else
@@ -1465,7 +1478,10 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
             if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_FORCE)
                 dwUninstallFlags |= SUOI_FORCEDELETE;
 
-            fRc = g_pfnSetupUninstallOEMInfW(pCur->wszInfFile, dwUninstallFlags, NULL /* pReserved */);
+            if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+                fRc = g_pfnSetupUninstallOEMInfW(pCur->wszInfFile, dwUninstallFlags, NULL /* pReserved */);
+            else
+                fRc = FALSE;
         }
 
         int rc2 = VINF_SUCCESS;
@@ -1550,6 +1566,9 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
     bool const fInstall = pParms->enmMode == VBOXWINDRVINSTMODE_INSTALL
                        || pParms->enmMode == VBOXWINDRVINSTMODE_INSTALL_INFSECTION;
 
+    if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN)
+        vboxWinDrvInstLogWarn(pCtx, "Dry-run mode active -- no installation performed!");
+
     const char * const pszLogAction = fInstall ? "Installing" : "Uninstalling";
     if (pParms->pwszInfFile)
         vboxWinDrvInstLogInfo(pCtx, "%s driver \"%ls\" ... ", pszLogAction, pParms->pwszInfFile);
@@ -1562,7 +1581,8 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
         && g_pfnSetupSetNonInteractiveMode)
     {
         vboxWinDrvInstLogInfo(pCtx, "Setting non-interactive mode ...");
-        g_pfnSetupSetNonInteractiveMode(TRUE /* fEnable */);
+        if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+            g_pfnSetupSetNonInteractiveMode(TRUE /* fEnable */);
     }
 
     if (!vboxWinDrvParmsAreValid(pCtx, pParms))
@@ -1771,10 +1791,13 @@ int VBoxWinDrvInstInstallEx(VBOXWINDRVINST hDrvInst,
     char szInfPathAbs[RTPATH_MAX];
     int rc = RTPathReal(pszInfFile, szInfPathAbs, sizeof(szInfPathAbs));
     if (RT_SUCCESS(rc))
+    {
         rc = RTStrToUtf16(szInfPathAbs, &pCtx->Parms.pwszInfFile);
-
-    if (RT_FAILURE(rc))
-        vboxWinDrvInstLogError(pCtx, "Failed to build path for INF file \"%s\", rc=%Rrc", pszInfFile, rc);
+        if (RT_FAILURE(rc))
+            vboxWinDrvInstLogError(pCtx, "Failed to build path for INF file \"%s\", rc=%Rrc", pszInfFile, rc);
+    }
+    else
+        vboxWinDrvInstLogError(pCtx, "Determining real path for INF file \"%s\" failed, rc=%Rrc", pszInfFile, rc);
 
     if (RT_SUCCESS(rc) && pszModel) /* Model is optional. */
         rc = RTStrToUtf16(pszModel, &pCtx->Parms.u.UnInstall.pwszModel);

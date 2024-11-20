@@ -84,8 +84,10 @@ typedef FNVBOXWINDRIVERLOGMSG *PFNVBOXWINDRIVERLOGMSG;
 #define VBOX_WIN_DRIVERINSTALL_F_SILENT     RT_BIT(0)
 /** Force driver installation, even if a newer driver version already is installed (overwrite). */
 #define VBOX_WIN_DRIVERINSTALL_F_FORCE      RT_BIT(1)
+/** Run in dry mode (no real (un)installation performed). */
+#define VBOX_WIN_DRIVERINSTALL_F_DRYRUN     RT_BIT(2)
 /** Validation mask. */
-#define VBOX_WIN_DRIVERINSTALL_F_VALID_MASK 0x3
+#define VBOX_WIN_DRIVERINSTALL_F_VALID_MASK 0x7
 
 int VBoxWinDrvInstCreate(PVBOXWINDRVINST hDrvInst);
 int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVBOXWINDRIVERLOGMSG pfnLog, void *pvUser);

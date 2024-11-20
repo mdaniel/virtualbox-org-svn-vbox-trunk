@@ -508,7 +508,9 @@ class GenFdsGlobalVariable:
 
             SaveFileOnChange(CommandFile, ' '.join(Cmd), False)
             if IsMakefile:
-                if sys.platform == "win32":
+                if True:                                                # vbox: badly abstracted.
+                    Cmd = ['kmk_test', '-e', Input[0], '--'] + Cmd      # vbox: badly abstracted.
+                elif sys.platform == "win32":
                     Cmd = ['if', 'exist', Input[0]] + Cmd
                 else:
                     Cmd = ['-test', '-e', Input[0], "&&"] + Cmd

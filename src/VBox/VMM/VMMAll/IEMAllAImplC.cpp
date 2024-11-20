@@ -19945,6 +19945,8 @@ static RTFLOAT32U iemAImpl_round_worker_r32(uint32_t *pfMxcsr, PCRTFLOAT32U pr32
     f32Src = f32_roundToInt(iemFpSoftF32FromIprt(&r32Src), SoftState.roundingMode, fExact, &SoftState);
 
     iemFpSoftF32ToIprt(&r32Dst, f32Src);
+    if (fExact && (SoftState.exceptionFlags & X86_MXCSR_PE))
+        *pfMxcsr |= X86_MXCSR_PE;
     return r32Dst;
 }
 
@@ -19959,6 +19961,8 @@ static RTFLOAT64U iemAImpl_round_worker_r64(uint32_t *pfMxcsr, PCRTFLOAT64U pr64
     f64Src = f64_roundToInt(iemFpSoftF64FromIprt(&r64Src), SoftState.roundingMode, fExact, &SoftState);
 
     iemFpSoftF64ToIprt(&r64Dst, f64Src);
+    if (fExact && (SoftState.exceptionFlags & X86_MXCSR_PE))
+        *pfMxcsr |= X86_MXCSR_PE;
     return r64Dst;
 }
 

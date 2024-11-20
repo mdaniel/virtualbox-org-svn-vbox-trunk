@@ -430,6 +430,53 @@ DECLINLINE(void) rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszN
 }
 
 
+/**
+ * Encodes a PkgLength item for the given number.
+ *
+ * @returns IPRT status code.
+ * @param pThis                 The ACPI table instance.
+ * @param u64Length             The length to encode.
+ */
+DECLINLINE(int) rtAcpiTblEncodePkgLength(PRTACPITBLINT pThis, uint64_t u64Length)
+{
+    AssertReturn(u64Length < RT_BIT_32(28), VERR_BUFFER_OVERFLOW);
+
+    if (u64Length <= 63)
+    {
+        /* PkgLength only consists of the package lead byte. */
+        rtAcpiTblAppendByte(pThis, (u64Length & 0x3f));
+    }
+    else if (u64Length < RT_BIT_32(12))
+    {
+        uint8_t abData[2];
+        abData[0] = (1 << 6) | (u64Length & 0xf);
+        abData[1] = (u64Length >> 4) & 0xff;
+        rtAcpiTblAppendData(pThis, &abData[0], sizeof(abData));
+    }
+    else if (u64Length < RT_BIT_32(20))
+    {
+        uint8_t abData[3];
+        abData[0] = (1 << 6) | (u64Length & 0xf);
+        abData[1] = (u64Length >> 4)  & 0xff;
+        abData[2] = (u64Length >> 12) & 0xff;
+        rtAcpiTblAppendData(pThis, &abData[0], sizeof(abData));
+    }
+    else if (u64Length < RT_BIT_32(28))
+    {
+        uint8_t abData[4];
+        abData[0] = (1 << 6) | (u64Length & 0xf);
+        abData[1] = (u64Length >> 4)  & 0xff;
+        abData[2] = (u64Length >> 12) & 0xff;
+        abData[3] = (u64Length >> 20) & 0xff;
+        rtAcpiTblAppendData(pThis, &abData[0], sizeof(abData));
+    }
+    else
+        AssertReleaseFailed();
+
+    return VINF_SUCCESS;
+}
+
+
 RTDECL(uint8_t) RTAcpiChecksumGenerate(const void *pvData, size_t cbData)
 {
     uint8_t const *pbSrc = (uint8_t const *)pvData;
@@ -925,6 +972,88 @@ RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid)
     if (RT_SUCCESS(pThis->rcErr))
         return RTAcpiTblUuidAppend(pThis, &Uuid);
 
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblOpRegionAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace,
+                                    uint64_t offRegion, uint64_t cbRegion)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    uint8_t abOp[2] = { ACPI_AML_BYTE_CODE_PREFIX_EXT_OP, ACPI_AML_BYTE_CODE_EXT_OP_OP_REGION };
+    rtAcpiTblAppendData(pThis, &abOp[0], sizeof(abOp));
+    rtAcpiTblAppendNameString(pThis, pszName);
+
+    uint8_t bRegionSpace = 0xff;
+    switch (enmSpace)
+    {
+        case kAcpiOperationRegionSpace_SystemMemory:        bRegionSpace = 0x00; break;
+        case kAcpiOperationRegionSpace_SystemIo:            bRegionSpace = 0x01; break;
+        case kAcpiOperationRegionSpace_PciConfig:           bRegionSpace = 0x02; break;
+        case kAcpiOperationRegionSpace_EmbeddedControl:     bRegionSpace = 0x03; break;
+        case kAcpiOperationRegionSpace_SmBus:               bRegionSpace = 0x04; break;
+        case kAcpiOperationRegionSpace_SystemCmos:          bRegionSpace = 0x05; break;
+        case kAcpiOperationRegionSpace_PciBarTarget:        bRegionSpace = 0x06; break;
+        case kAcpiOperationRegionSpace_Ipmi:                bRegionSpace = 0x07; break;
+        case kAcpiOperationRegionSpace_Gpio:                bRegionSpace = 0x08; break;
+        case kAcpiOperationRegionSpace_GenericSerialBus:    bRegionSpace = 0x09; break;
+        case kAcpiOperationRegionSpace_Pcc:                 bRegionSpace = 0x0a; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+    rtAcpiTblAppendByte(pThis, bRegionSpace);
+    RTAcpiTblIntegerAppend(pThis, offRegion);
+    RTAcpiTblIntegerAppend(pThis, cbRegion);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTACPIFIELDACC enmAcc,
+                                 bool fLock, RTACPIFIELDUPDATE enmUpdate, PCRTACPIFIELDENTRY paFields,
+                                 uint32_t cFields)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblPkgStartExt(pThis, ACPI_AML_BYTE_CODE_EXT_OP_FIELD);
+    rtAcpiTblAppendNameString(pThis, pszNameRef);
+
+    uint8_t fFlags = 0;
+    switch (enmAcc)
+    {
+        case kAcpiFieldAcc_Any:    fFlags = 0; break;
+        case kAcpiFieldAcc_Byte:   fFlags = 1; break;
+        case kAcpiFieldAcc_Word:   fFlags = 2; break;
+        case kAcpiFieldAcc_DWord:  fFlags = 3; break;
+        case kAcpiFieldAcc_QWord:  fFlags = 4; break;
+        case kAcpiFieldAcc_Buffer: fFlags = 5; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+    if (fLock)
+        fFlags |= RT_BIT(4);
+    switch (enmUpdate)
+    {
+        case kAcpiFieldUpdate_Preserve:      fFlags |= 0 << 5; break;
+        case kAcpiFieldUpdate_WriteAsOnes:   fFlags |= 1 << 5; break;
+        case kAcpiFieldUpdate_WriteAsZeroes: fFlags |= 2 << 5; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+    rtAcpiTblAppendByte(pThis, fFlags);
+
+    for (uint32_t i = 0; i < cFields; i++)
+    {
+        rtAcpiTblAppendNameString(pThis, paFields[i].pszName);
+        rtAcpiTblEncodePkgLength(pThis, paFields[i].cBits);
+    }
+
+    rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_FIELD);
     return pThis->rcErr;
 }
 

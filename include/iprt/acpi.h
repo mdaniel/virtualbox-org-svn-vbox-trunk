@@ -444,6 +444,126 @@ RTDECL(int) RTAcpiTblUuidAppend(RTACPITBL hAcpiTbl, PCRTUUID pUuid);
 RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid);
 
 
+/**
+ * Known operation region space types.
+ */
+typedef enum RTACPIOPREGIONSPACE
+{
+    /** Invalid region space type. */
+    kAcpiOperationRegionSpace_Invalid = 0,
+    /** Region is in system memory space. */
+    kAcpiOperationRegionSpace_SystemMemory,
+    /** Region is in system I/O space. */
+    kAcpiOperationRegionSpace_SystemIo,
+    /** Region is in PCI config space. */
+    kAcpiOperationRegionSpace_PciConfig,
+    /** Region is in embedded control space. */
+    kAcpiOperationRegionSpace_EmbeddedControl,
+    /** Region is in SMBUS space. */
+    kAcpiOperationRegionSpace_SmBus,
+    /** Region is in system CMOS space. */
+    kAcpiOperationRegionSpace_SystemCmos,
+    /** Region is a PCI bar target. */
+    kAcpiOperationRegionSpace_PciBarTarget,
+    /** Region is in IPMI space. */
+    kAcpiOperationRegionSpace_Ipmi,
+    /** Region is in GPIO space. */
+    kAcpiOperationRegionSpace_Gpio,
+    /** Region is in generic serial bus space. */
+    kAcpiOperationRegionSpace_GenericSerialBus,
+    /** Region is in platform communications channel (PCC) space. */
+    kAcpiOperationRegionSpace_Pcc,
+    /** 32bit hack. */
+    kAcpiOperationRegionSpace_32bit_Hack = 0x7fffffff
+} RTACPIOPREGIONSPACE;
+
+
+/**
+ * Appends a new OperationRegion() to the given ACPI table.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszName             The name of the operation region.
+ * @param   enmSpace            The operation region space type.
+ * @param   offRegion           Offset of the region.
+ * @param   cbRegion            Size of the region in bytes.
+ */
+RTDECL(int) RTAcpiTblOpRegionAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOPREGIONSPACE enmSpace,
+                                    uint64_t offRegion, uint64_t cbRegion);
+
+
+/**
+ * Field access type.
+ */
+typedef enum RTACPIFIELDACC
+{
+    /** Invalid access type. */
+    kAcpiFieldAcc_Invalid = 0,
+    /** Any access width is okay. */
+    kAcpiFieldAcc_Any,
+    /** Byte (8-bit) access. */
+    kAcpiFieldAcc_Byte,
+    /** Word (16-bit) access. */
+    kAcpiFieldAcc_Word,
+    /** Double word (32-bit) access. */
+    kAcpiFieldAcc_DWord,
+    /** Quad word (64-bit) access. */
+    kAcpiFieldAcc_QWord,
+    /** Buffer like access. */
+    kAcpiFieldAcc_Buffer
+} RTACPIFIELDACC;
+
+
+/**
+ * Field update rule.
+ */
+typedef enum RTACPIFIELDUPDATE
+{
+    /** Invalid upadte rule. */
+    kAcpiFieldUpdate_Invalid = 0,
+    /** Preserve content not being accessed. */
+    kAcpiFieldUpdate_Preserve,
+    /** Write as ones. */
+    kAcpiFieldUpdate_WriteAsOnes,
+    /** Write as zeroes. */
+    kAcpiFieldUpdate_WriteAsZeroes
+} RTACPIFIELDUPDATE;
+
+
+/**
+ * Field entry.
+ */
+typedef struct RTACPIFIELDENTRY
+{
+    /** The field name. */
+    const char              *pszName;
+    /** Number of bits of the field. */
+    uint64_t                cBits;
+} RTACPIFIELDENTRY;
+/** Pointer to a field entry. */
+typedef RTACPIFIELDENTRY *PRTACPIFIELDENTRY;
+/** Pointer to a const field entry. */
+typedef const RTACPIFIELDENTRY *PCRTACPIFIELDENTRY;
+
+
+/**
+ * Appends a new field descriptor to the given ACPI table.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszNameRef          The region/buffer the field describes.
+ * @param   enmAcc              The access type,
+ * @param   fLock               Flag whether access must happen under a lock.
+ * @param   enmUpdate           The update rule.
+ * @param   paFields            Pointer to the field descriptors.
+ * @param   cFields             Number of entries in the array.
+ */
+RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTACPIFIELDACC enmAcc,
+                                 bool fLock, RTACPIFIELDUPDATE enmUpdate, PCRTACPIFIELDENTRY paFields,
+                                 uint32_t cFields);
+
+
+
 /** @name ACPI resource builder related API.
  * @{ */
 

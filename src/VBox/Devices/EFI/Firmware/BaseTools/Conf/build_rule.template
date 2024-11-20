@@ -344,6 +344,17 @@
         $(OUTPUT_DIR)(+)$(MODULE_NAME).efi
         $(OUTPUT_DIR)(+)$(MODULE_NAME).map
 
+# vbox: Fixing no-rule-to-make ..\DEBUG\mod.efi
+# Note! Listing .efi more than once causes trouble in ModuleAutoGen.py::_ApplyBuildRule for 
+#       VBoxVgaDxe, so that required hacking as well to make this fix work.
+    <OutputFile.GCC>
+        $(DEBUG_DIR)(+)$(MODULE_NAME).efi
+        $(DEBUG_DIR)(+)$(MODULE_NAME).debug
+        $(DEBUG_DIR)(+)$(MODULE_NAME).efi-tmp
+        $(DEBUG_DIR)(+)$(MODULE_NAME).map
+        $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
+        $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
+
     <Command.MSFT, Command.INTEL, Command.CLANGPDB>
         "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
         $(CP) ${dst} $(DEBUG_DIR)
@@ -351,19 +362,29 @@
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
         -$(CP) $(DEBUG_DIR)(+)*.pdb $(OUTPUT_DIR)
     <Command.GCC>
+# vbox 2024-11-18 bird: This crap modifies the source file, causing EnglishDxe to spin forever
+#        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).debug
+#        "$(OBJCOPY)" $(OBJCOPY_STRIPFLAG) ${src}
+#
+#        #
+#        #The below 2 lines are only needed for UNIXGCC tool chain, which generates PE image directly
+#        #
+#        -"$(OBJCOPY)" $(OBJCOPY_ADDDEBUGFLAG) ${src}
+#        -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
+#
+#        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
+#        $(CP) ${dst} $(DEBUG_DIR)
+#        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
+#        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
+# Rewritten:
         $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).debug
-        "$(OBJCOPY)" $(OBJCOPY_STRIPFLAG) ${src}
-
-        #
-        #The below 2 lines are only needed for UNIXGCC tool chain, which generates PE image directly
-        #
-        -"$(OBJCOPY)" $(OBJCOPY_ADDDEBUGFLAG) ${src}
-        -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
-
-        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
+        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).efi-tmp
+        "$(OBJCOPY)" $(OBJCOPY_STRIPFLAG) $(DEBUG_DIR)(+)$(MODULE_NAME).efi-tmp
+        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).efi-tmp $(GENFW_FLAGS)
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
-        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
+        $(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
+        -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).map $(OUTPUT_DIR)
 
     <Command.XCODE>
         # tool to convert Mach-O to PE/COFF

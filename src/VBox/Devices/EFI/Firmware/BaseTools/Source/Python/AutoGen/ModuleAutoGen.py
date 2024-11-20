@@ -906,10 +906,18 @@ class ModuleAutoGen(AutoGen):
 
             # to avoid cyclic rule
             if FileType in RuleChain:
-                EdkLogger.error("build", ERROR_STATEMENT, "Cyclic dependency detected while generating rule for %s" % str(Source))
+                EdkLogger.error("build", ERROR_STATEMENT, "Cyclic dependency detected while generating rule for %s (FileType=%s RuleChain=%s)" % (str(Source), FileType, RuleChain))
 
             RuleChain.add(FileType)
-            SourceList.extend(Target.Outputs)
+            # vbox: HACK ALERT! Only add the first .efi output file, otherwise the cyclic error triggers.   # vbox
+            #                   See modification to [Dynamic-Library-File] in build_rule.template.          # vbox
+            if len(Target.Outputs) > 1 and Target.Outputs[0].Ext == '.efi':                                 # vbox
+                SourceList.append(Target.Outputs[0]);                                                       # vbox
+                for oOutput in Target.Outputs[1:]:                                                          # vbox
+                    if oOutput.Ext != '.efi':                                                               # vbox
+                        SourceList.append(oOutput);                                                         # vbox
+            else:                                                                                           # vbox
+                SourceList.extend(Target.Outputs)
 
         # For each final target name, retrieve the corresponding TargetDescBlock instance.
         for FTargetName in FinalTargetName:

@@ -886,8 +886,10 @@ class Build():
                 err = UNKNOWN_ERROR
             return rt, err
         except FatalError as e:
+            EdkLogger.info("StartAutoGen: e=%s\n%s" % (e, traceback.format_exc()));     # vbox
             return False, e.args[0]
-        except:
+        except Exception as e2:
+            EdkLogger.info("StartAutoGen: e2=%s\n%s" % (e2, traceback.format_exc()));   # vbox
             return False, UNKNOWN_ERROR
 
     ## Add TOOLCHAIN and FAMILY declared in DSC [BuildOptions] to ToolsDefTxtDatabase.

@@ -278,6 +278,22 @@ class BuildFile(object):
                 if sCmd.startswith('if exist ') and self._FileType == KMK_FILETYPE:
                     raise Exception('sCmd=%s' % (sCmd,));
 
+                # DOS-slashes are problematic since kmk uses kmk_ash, so escape them.
+                if self._Platform == KBUILD_PLATFORM and os.sep == '\\':
+                    sCmd = sCmd.replace('\\','\\\\');
+                    off  = sCmd.find('$');
+                    while off >= 0:
+                        if sCmd[off + 1] == '(':
+                            offEnd = sCmd.find(')', off)
+                            assert offEnd > off + 1;
+                            assert sCmd.find('(', off + 2, offEnd) < 0, '%s:%s in %s' % (off, offEnd, sCmd);
+                            assert sCmd.find('$', off + 2, offEnd) < 0, '%s:%s in %s' % (off, offEnd, sCmd);
+                            offEnd += 1;
+                        else:
+                            offEnd = off + 2;
+                        sCmd = sCmd[:off] + '$(subst \\,\\\\,' + sCmd[off : offEnd] + ')' + sCmd[offEnd:];
+                        off = sCmd.find('$', offEnd + len('$(subst \\,\\\\,)'));
+
                 if self._FileType == KMK_FILETYPE and sCmd.count('>') == 1 and '&' not in sCmd:
                     sCmd, sOutput = sCmd.split('>');
                     sCmd = 'kmk_builtin_redirect -wto %s -- %s' % (sOutput.strip(), sCmd.strip());
@@ -1095,7 +1111,7 @@ cleanlib:
                     if Type in [TAB_OBJECT_FILE, TAB_STATIC_LIBRARY]:
                         Deps.append("$(%s)" % T.ListFileMacro)
 
-                if self._AutoGenObject.BuildRuleFamily == TAB_COMPILER_MSFT and Type == TAB_C_CODE_FILE:
+                if self._AutoGenObject.BuildRuleFamily == TAB_COMPILER_MSFT and Type == TAB_C_CODE_FILE and self._Platform != KBUILD_PLATFORM:
                     T, CmdTarget, CmdTargetDict, CmdCppDict = self.ParserCCodeFile(T, Type, CmdSumDict, CmdTargetDict,
                                                                                    CmdCppDict, DependencyDict, RespFile,
                                                                                    ToolsDef, resp_file_number)

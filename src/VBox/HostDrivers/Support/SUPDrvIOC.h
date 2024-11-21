@@ -277,8 +277,8 @@ typedef struct SUPCOOKIE
  * @{
  */
 #define SUP_IOCTL_QUERY_FUNCS(cFuncs)                   SUP_CTL_CODE_BIG(2)
-#define SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)              (RT_UOFFSETOF_DYN(SUPQUERYFUNCS, u.Out.aFunctions) + \
-                                                        RT_SIZEOFMEMB(SUPQUERYFUNCS, u.Out.aFunctions) * (cFuncs))
+#define SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)              (RT_UOFFSETOF_DYN(SUPQUERYFUNCS, u.Out.aFunctions) \
+                                                        + (uintptr_t)(RT_SIZEOFMEMB(SUPQUERYFUNCS, u.Out.aFunctions) * (cFuncs)))
 #define SUP_IOCTL_QUERY_FUNCS_SIZE_IN                   sizeof(SUPREQHDR)
 #define SUP_IOCTL_QUERY_FUNCS_SIZE_OUT(cFuncs)          SUP_IOCTL_QUERY_FUNCS_SIZE(cFuncs)
 
@@ -361,8 +361,8 @@ typedef struct SUPLDROPEN
  * @{
  */
 #define SUP_IOCTL_LDR_LOAD                              SUP_CTL_CODE_BIG(4)
-#define SUP_IOCTL_LDR_LOAD_SIZE_IN(cbImage)             (RT_UOFFSETOF_DYN(SUPLDRLOAD, u.In.abImage) + \
-                                                        RT_SIZEOFMEMB(SUPLDRLOAD, u.In.abImage) * (cbImage))
+#define SUP_IOCTL_LDR_LOAD_SIZE_IN(cbImage)             (RT_UOFFSETOF_DYN(SUPLDRLOAD, u.In.abImage) \
+                                                        + (uintptr_t)(RT_SIZEOFMEMB(SUPLDRLOAD, u.In.abImage) * (cbImage)))
 #define SUP_IOCTL_LDR_LOAD_SIZE_OUT                     (RT_UOFFSETOF(SUPLDRLOAD, u.Out.szError) + RT_SIZEOFMEMB(SUPLDRLOAD, u.Out.szError))
 #define SUP_IOCTL_LDR_LOAD_SIZE(cbImage)                RT_MAX(SUP_IOCTL_LDR_LOAD_SIZE_IN(cbImage), SUP_IOCTL_LDR_LOAD_SIZE_OUT)
 
@@ -637,8 +637,8 @@ typedef struct SUPCALLVMMR0
  * @{
  */
 #define SUP_IOCTL_LOW_ALLOC                             SUP_CTL_CODE_BIG(8)
-#define SUP_IOCTL_LOW_ALLOC_SIZE(cPages)                ((uint32_t)(RT_UOFFSETOF_DYN(SUPLOWALLOC, u.Out.aPages) + \
-                                                        RT_SIZEOFMEMB(SUPLOWALLOC, u.Out.aPages) * (cPages)))
+#define SUP_IOCTL_LOW_ALLOC_SIZE(cPages)                ((uint32_t)(RT_UOFFSETOF_DYN(SUPLOWALLOC, u.Out.aPages) \
+                                                        + RT_SIZEOFMEMB(SUPLOWALLOC, u.Out.aPages) * (cPages)))
 #define SUP_IOCTL_LOW_ALLOC_SIZE_IN                     (sizeof(SUPREQHDR) + RT_SIZEOFMEMB(SUPLOWALLOC, u.In))
 #define SUP_IOCTL_LOW_ALLOC_SIZE_OUT(cPages)            SUP_IOCTL_LOW_ALLOC_SIZE(cPages)
 typedef struct SUPLOWALLOC
@@ -700,8 +700,8 @@ typedef struct SUPLOWFREE
  * @{
  */
 #define SUP_IOCTL_PAGE_ALLOC_EX                         SUP_CTL_CODE_BIG(10)
-#define SUP_IOCTL_PAGE_ALLOC_EX_SIZE(cPages)            (RT_UOFFSETOF_DYN(SUPPAGEALLOCEX, u.Out.aPages) + \
-                                                        RT_SIZEOFMEMB(SUPPAGEALLOCEX, u.Out.aPages) * (cPages))
+#define SUP_IOCTL_PAGE_ALLOC_EX_SIZE(cPages)            (RT_UOFFSETOF_DYN(SUPPAGEALLOCEX, u.Out.aPages) \
+                                                        + (uintptr_t)(RT_SIZEOFMEMB(SUPPAGEALLOCEX, u.Out.aPages) * (cPages)))
 #define SUP_IOCTL_PAGE_ALLOC_EX_SIZE_IN                 (sizeof(SUPREQHDR) + RT_SIZEOFMEMB(SUPPAGEALLOCEX, u.In))
 #define SUP_IOCTL_PAGE_ALLOC_EX_SIZE_OUT(cPages)        SUP_IOCTL_PAGE_ALLOC_EX_SIZE(cPages)
 typedef struct SUPPAGEALLOCEX

@@ -42,14 +42,17 @@
 
 #include <iprt/utf16.h>
 
-#if defined(RT_ARCH_AMD64)
-# define VBOXWINDRVINF_NATIVE_ARCH_STR     "AMD64"
-#elif defined(RT_ARCH_X86)
-# define VBOXWINDRVINF_NATIVE_ARCH_STR     "X86"
-#elif defined(RT_ARCH_ARM64)
-# define VBOXWINDRVINF_NATIVE_ARCH_STR     "ARM64"
-#else
-# error "Port me!"
+/* If not defined explicitly, use the given / current target architecture. */
+#ifndef VBOXWINDRVINF_NATIVE_ARCH_STR /* For cross testing and testcases. */
+# if defined(RT_ARCH_AMD64)
+#  define VBOXWINDRVINF_NATIVE_ARCH_STR     "AMD64"
+# elif defined(RT_ARCH_X86)
+#  define VBOXWINDRVINF_NATIVE_ARCH_STR     "X86"
+# elif defined(RT_ARCH_ARM64)
+#  define VBOXWINDRVINF_NATIVE_ARCH_STR     "ARM64"
+# else
+#  error "Port me!"
+# endif
 #endif
 
 /** Defines a string which emits the decoration separator. */

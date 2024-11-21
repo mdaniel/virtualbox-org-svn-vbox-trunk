@@ -1,0 +1,63 @@
+# $Id$
+## @file
+# Sub-Makefile for the VBox driver installation testcases.
+#
+
+#
+# Copyright (C) 2024 Oracle and/or its affiliates.
+#
+# This file is part of VirtualBox base platform packages, as
+# available from https://www.virtualbox.org.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, in version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses>.
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+
+SUB_DEPTH = ../../../../..
+include $(KBUILD_PATH)/subheader.kmk
+
+if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBOX_ONLY_SDK)
+ PROGRAMS += tstVBoxWinDrvInstInf
+ TESTING  += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
+
+ tstVBoxWinDrvInstInf_TEMPLATE = VBoxR3TstExe
+ # Only test AMD64 on all platform for now, as the INF test files have the architecture hardcoded.
+ tstVBoxWinDrvInstInf_DEFS     = TESTCASE VBOXWINDRVINF_NATIVE_ARCH_STR="AMD64"
+ tstVBoxWinDrvInstInf_SOURCES  = \
+ 	tstVBoxWinDrvInstInf.cpp \
+ 	../VBoxWinDrvCommon.cpp \
+ 	../VBoxWinDrvStore.cpp \
+ 	../VBoxWinDrvInst.cpp
+ tstVBoxWinDrvInstInf_DEPS += $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
+ tstVBoxWinDrvInstInf_INCS += ../
+ tstVBoxWinDrvInstInf_CLEAN = \
+ 	$(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run \
+ 	$(INST_TESTCASE)inf/
+
+ # Install required INF files into testcase/ directory.
+ INSTALLS += tstVBoxWinDrvInstInfFiles
+ tstVBoxWinDrvInstInfFiles_INST     = $(INST_TESTCASE)inf/
+ tstVBoxWinDrvInstInfFiles_SOURCES := $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
+
+ $$(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run: \
+ 	   $$(tstVBoxWinDrvInstInf_1_STAGE_TARGET) $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
+	export VBOX_LOG_DEST=nofile; $(tstVBoxWinDrvInstInf_1_STAGE_TARGET)
+	$(QUIET)$(APPEND) -t "$@" "done"
+
+ OTHERS += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
+
+endif
+
+include $(FILE_KBUILD_SUB_FOOTER)

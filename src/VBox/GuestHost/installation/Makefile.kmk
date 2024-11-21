@@ -28,6 +28,10 @@
 SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
+ifdef VBOX_WITH_TESTCASES
+ include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
+endif
+
 ifndef VBOX_ONLY_ADDITIONS
  #
  # The host variant of VBoxDrvInst.
@@ -48,4 +52,3 @@ ifndef VBOX_ONLY_ADDITIONS
 endif
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

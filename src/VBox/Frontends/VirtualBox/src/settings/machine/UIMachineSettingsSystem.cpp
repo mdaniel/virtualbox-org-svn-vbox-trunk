@@ -642,8 +642,6 @@ void UIMachineSettingsSystem::handleFilterChange()
     {
         if (m_pEditorChipset)
             m_pEditorChipset->hide();
-        if (m_pEditorTpm)
-            m_pEditorTpm->hide();
         if (m_pEditorProcessorFeatures)
             m_pEditorProcessorFeatures->hide();
     }

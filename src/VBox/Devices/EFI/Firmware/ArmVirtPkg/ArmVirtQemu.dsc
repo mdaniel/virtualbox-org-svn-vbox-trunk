@@ -21,9 +21,9 @@
   OUTPUT_DIRECTORY               = Build/ArmVirtQemu-$(ARCH)
 !else
 !if $(ARCH) == AARCH64
-  OUTPUT_DIRECTORY               = $(VBOX_OUTPUT_BASE_DIR)/aarch64
+  OUTPUT_DIRECTORY               = $(VBOX_OUTPUT_BASE_DIR)/arm64
 !else
-  OUTPUT_DIRECTORY               = $(VBOX_OUTPUT_BASE_DIR)/aarch32
+  OUTPUT_DIRECTORY               = $(VBOX_OUTPUT_BASE_DIR)/arm32
 !endif
 !endif
   SUPPORTED_ARCHITECTURES        = AARCH64|ARM

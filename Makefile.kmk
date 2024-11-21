@@ -447,8 +447,8 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
    	$(buildserver-efifw_0_OUTDIR)/VBoxEFI64.fd \
    	$(buildserver-efifw_0_OUTDIR)/VBoxEfiFirmware.zip \
    	$(buildserver-efifw_0_OUTDIR)/VBoxEfiFirmware.zip.tmp \
-   	$(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,$$(buildserver-efifw_0_OUTDIR)/x86/$(mod).pdb) \
-   	$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$$(buildserver-efifw_0_OUTDIR)/amd64/$(mod).pdb)
+   	$(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,$(buildserver-efifw_0_OUTDIR)/x86/$(mod).pdb) \
+   	$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$(buildserver-efifw_0_OUTDIR)/amd64/$(mod).pdb)
 
    INSTALLS += buildserver-efifw-dbg-amd64
    buildserver-efifw-dbg-amd64_INST = $(INST_VBOXDBG_SYMS)amd64/
@@ -465,8 +465,8 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
    $$(buildserver-efifw_0_OUTDIR)/unpacked.ts \
    +| $$(buildserver-efifw_0_OUTDIR)/VBoxEFI32.fd \
    $$(buildserver-efifw_0_OUTDIR)/VBoxEFI64.fd \
-   $(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,$$(buildserver-efifw_0_OUTDIR)/x86/$(mod).pdb)) \
-   $(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$$(buildserver-efifw_0_OUTDIR)/amd64/$(mod).pdb)): \
+   $(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,$$(buildserver-efifw_0_OUTDIR)/x86/$(mod).pdb) \
+   $(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$$(buildserver-efifw_0_OUTDIR)/amd64/$(mod).pdb): \
    		$$(buildserver-efifw_0_OUTDIR)/VBoxEfiFirmware.zip
 	$(call MSG_L1,Unpacking EFI firmware)
 	$(QUIET)$(TOOL_ZIP_UNPACK) $(TOOL_ZIP_UNPACKFLAGS) -o $< -d $(buildserver-efifw_0_OUTDIR)

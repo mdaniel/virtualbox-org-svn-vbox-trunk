@@ -284,33 +284,35 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	$(PATH_TOOL_$(VBOX_VCC_TOOL)_LIB)/comsupp.lib \
   	$(PATH_SDK_$(VBOX_WINPSDK)_LIB)/WbemUuid.Lib
 
-  #
-  # NetFltInstall
-  #
-  PROGRAMS.win += NetFltInstall
-  NetFltInstall_TEMPLATE = VBoxNetFltR3
-  NetFltInstall_SOURCES = win/tools/VBoxNetFltInstall.cpp
+  if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
+   #
+   # NetFltInstall
+   #
+   PROGRAMS.win += NetFltInstall
+   NetFltInstall_TEMPLATE = VBoxNetFltR3
+   NetFltInstall_SOURCES = win/tools/VBoxNetFltInstall.cpp
 
-  #
-  # NetFltUninstall
-  #
-  PROGRAMS.win += NetFltUninstall
-  NetFltUninstall_TEMPLATE = VBoxNetFltR3
-  NetFltUninstall_SOURCES = win/tools/VBoxNetFltUninstall.cpp
+   #
+   # NetFltUninstall
+   #
+   PROGRAMS.win += NetFltUninstall
+   NetFltUninstall_TEMPLATE = VBoxNetFltR3
+   NetFltUninstall_SOURCES = win/tools/VBoxNetFltUninstall.cpp
 
-  #
-  # NetAdpInstall
-  #
-  PROGRAMS.win += NetAdpInstall
-  NetAdpInstall_TEMPLATE = VBoxNetFltR3
-  NetAdpInstall_SOURCES = win/tools/VBoxNetAdpInstall.cpp
+   #
+   # NetAdpInstall
+   #
+   PROGRAMS.win += NetAdpInstall
+   NetAdpInstall_TEMPLATE = VBoxNetFltR3
+   NetAdpInstall_SOURCES = win/tools/VBoxNetAdpInstall.cpp
 
-  #
-  # NetAdpUninstall
-  #
-  PROGRAMS.win += NetAdpUninstall
-  NetAdpUninstall_TEMPLATE = VBoxNetFltR3
-  NetAdpUninstall_SOURCES = win/tools/VBoxNetAdpUninstall.cpp
+   #
+   # NetAdpUninstall
+   #
+   PROGRAMS.win += NetAdpUninstall
+   NetAdpUninstall_TEMPLATE = VBoxNetFltR3
+   NetAdpUninstall_SOURCES = win/tools/VBoxNetAdpUninstall.cpp
+  endif
 
   #
   # NetAdp6Install

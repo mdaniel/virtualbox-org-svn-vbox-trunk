@@ -126,7 +126,11 @@ typedef struct SUPHNTVPIMAGE
     /** The number of mapping regions. */
     uint32_t        cRegions;
     /** Mapping regions. */
+#ifdef VBOX_WITH_MINIMAL_HARDENING /* 2024-11-21: Qt6Gui.dll has 19 regions, .data is split up quite a bit. */
+    SUPHNTVPREGION  aRegions[40];
+#else
     SUPHNTVPREGION  aRegions[16];
+#endif
 
     /** The image characteristics from the FileHeader. */
     uint16_t        fImageCharecteristics;

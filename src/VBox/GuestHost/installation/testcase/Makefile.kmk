@@ -29,8 +29,8 @@ SUB_DEPTH = ../../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
 if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBOX_ONLY_SDK)
- PROGRAMS += tstVBoxWinDrvInstInf
- TESTING  += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
+ PROGRAMS.win += tstVBoxWinDrvInstInf
+ TESTING.win  += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
 
  tstVBoxWinDrvInstInf_TEMPLATE = VBoxR3TstExe
  # Only test AMD64 on all platform for now, as the INF test files have the architecture hardcoded.
@@ -47,7 +47,7 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
  	$(INST_TESTCASE)inf/
 
  # Install required INF files into testcase/ directory.
- INSTALLS += tstVBoxWinDrvInstInfFiles
+ INSTALLS.win += tstVBoxWinDrvInstInfFiles
  tstVBoxWinDrvInstInfFiles_INST     = $(INST_TESTCASE)inf/
  tstVBoxWinDrvInstInfFiles_SOURCES := $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
 
@@ -56,7 +56,7 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
 	export VBOX_LOG_DEST=nofile; $(tstVBoxWinDrvInstInf_1_STAGE_TARGET)
 	$(QUIET)$(APPEND) -t "$@" "done"
 
- OTHERS += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
+ OTHERS.win += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
 
 endif
 

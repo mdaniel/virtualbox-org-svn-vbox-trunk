@@ -436,8 +436,8 @@ static int vbglR0HGCMInternalPreprocessCall(PCVBGLIOCHGCMCALL pCallInfo, uint32_
                     if (VBGLR0_CAN_USE_PHYS_PAGE_LIST(/*a_fLocked =*/ false))
                     {
                         size_t const cPages = RTR0MemObjSize(hObj) >> PAGE_SHIFT;
-                        *pcbExtra += RT_UOFFSETOF_DYN(HGCMPageListInfo, aPages) +
-                                     RT_SIZEOFMEMB(HGCMPageListInfo, aPages) * cPages;
+                        *pcbExtra += RT_UOFFSETOF_DYN(HGCMPageListInfo, aPages)
+                                     + RT_SIZEOFMEMB(HGCMPageListInfo, aPages) * cPages;
                     }
                 }
                 else
@@ -646,8 +646,8 @@ static void vbglR0HGCMInternalInitCall(VMMDevHGCMCall *pHGCMCall, PCVBGLIOCHGCMC
                             Assert(paPages[iPage] != NIL_RTHCPHYS);
                         }
 
-                        offExtra += RT_UOFFSETOF_DYN(HGCMPageListInfo, aPages) +
-                                    RT_SIZEOFMEMB(HGCMPageListInfo, aPages) * cPages;
+                        offExtra += (uint32_t)(RT_UOFFSETOF_DYN(HGCMPageListInfo, aPages)
+                                    + RT_SIZEOFMEMB(HGCMPageListInfo, aPages) * cPages);
                     }
                     else
                     {

@@ -524,7 +524,7 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
 	$(call MSG_L1,Unpacking EFI ARMv8 firmware)
 	$(QUIET)$(TOOL_ZIP_UNPACK) $(TOOL_ZIP_UNPACKFLAGS) -o $< -d $(buildserver-efifw-armv8_0_OUTDIR)
 	$(foreach file, \
-		$(foreach arch, arm32 arm64, $(foreach mod, $(VBOX_EFI_MODULES_FLAT.$(arch)), $$(buildserver-efifw_0_OUTDIR)/$(arch)/$(mod).debug)) \
+		$(foreach arch, arm32 arm64, $(foreach mod, $(VBOX_EFI_MODULES_FLAT.$(arch)), $(buildserver-efifw_0_OUTDIR)/$(arch)/$(mod).debug)) \
 		,$(NLTAB) $(QUIET)$(TEST) '!' -f $(file) -- $(TOUCH_EXT) $(file) )
 	$(TOUCH) -c -- \
 		$(buildserver-efifw-armv8_0_OUTDIR)/VBoxEFIAArch32.fd \

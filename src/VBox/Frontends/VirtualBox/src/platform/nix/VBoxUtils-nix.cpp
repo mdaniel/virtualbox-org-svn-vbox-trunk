@@ -64,7 +64,7 @@ VBGHDISPLAYSERVERTYPE NativeWindowSubsystem::displayServerType()
     QNativeInterface::QX11Application *pX11App = qApp->nativeInterface<QNativeInterface::QX11Application>();
     if (pX11App)
         return VBGHDISPLAYSERVERTYPE_X11;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0) && defined(RT_OS_LINUX)
     QNativeInterface::QWaylandApplication *pWaylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
     if (pWaylandApp)
         return VBGHDISPLAYSERVERTYPE_PURE_WAYLAND;
@@ -95,7 +95,7 @@ bool NativeWindowSubsystem::X11IsCompositingManagerRunning()
 
 bool NativeWindowSubsystem::WaylandIsCompositingManagerRunning()
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0) && defined(RT_OS_LINUX)
     QNativeInterface::QWaylandApplication *pWaylandApp = qApp->nativeInterface<QNativeInterface::QWaylandApplication>();
     if (pWaylandApp)
     {

@@ -518,8 +518,8 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
     $$(buildserver-efifw-armv8_0_OUTDIR)/unpacked.ts \
     +| $$(buildserver-efifw-armv8_0_OUTDIR)/VBoxEFIAArch32.fd \
     $$(buildserver-efifw-armv8_0_OUTDIR)/VBoxEFIAArch64.fd \
-    $(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),$$(buildserver-efifw_0_OUTDIR)/arm32/$(mod).debug)) \
-    $(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),$$(buildserver-efifw_0_OUTDIR)/arm64/$(mod).debug)): \
+    $(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),$$(buildserver-efifw_0_OUTDIR)/arm32/$(mod).debug) \
+    $(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),$$(buildserver-efifw_0_OUTDIR)/arm64/$(mod).debug): \
     		$$(buildserver-efifw-armv8_0_OUTDIR)/VBoxEfiFirmware-armv8.zip
 	$(call MSG_L1,Unpacking EFI ARMv8 firmware)
 	$(QUIET)$(TOOL_ZIP_UNPACK) $(TOOL_ZIP_UNPACKFLAGS) -o $< -d $(buildserver-efifw-armv8_0_OUTDIR)

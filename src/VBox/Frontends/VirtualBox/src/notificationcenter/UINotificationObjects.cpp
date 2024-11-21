@@ -696,6 +696,15 @@ void UINotificationMessage::cannotAcquireStorageControllerParameter(const CStora
 }
 
 /* static */
+void UINotificationMessage::cannotChangeStorageControllerParameter(const CStorageController &comStorageController)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Storage controller failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to change storage controller parameter.") +
+        UIErrorString::formatErrorInfo(comStorageController));
+}
+
+/* static */
 void UINotificationMessage::cannotAcquireMediumAttachmentParameter(const CMediumAttachment &comMediumAttachment)
 {
     createMessage(

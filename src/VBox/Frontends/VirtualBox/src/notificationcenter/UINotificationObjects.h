@@ -306,6 +306,9 @@ public:
         /** Notifies about inability to acquire IStorageController parameter.
           * @param  comStorageController  Brings the object parameter get acquired from. */
         static void cannotAcquireStorageControllerParameter(const CStorageController &comStorageController);
+        /** Notifies about inability to change IStorageController parameter.
+          * @param  comStorageController  Brings the object parameter being changed for. */
+        static void cannotChangeStorageControllerParameter(const CStorageController &comStorageController);
         /** Notifies about inability to acquire IMediumAttachment parameter.
           * @param  comMediumAttachment  Brings the object parameter get acquired from. */
         static void cannotAcquireMediumAttachmentParameter(const CMediumAttachment &comMediumAttachment);

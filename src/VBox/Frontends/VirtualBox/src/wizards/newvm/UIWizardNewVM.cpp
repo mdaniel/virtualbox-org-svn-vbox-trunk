@@ -283,19 +283,29 @@ bool UIWizardNewVM::attachDefaultDevices()
         if (!m_virtualDisk.isNull())
         {
             KStorageBus enmHDDBus = gpGlobalSession->guestOSTypeManager().getRecommendedHDStorageBus(m_guestOSTypeId);
-            CStorageController comHDDController = m_machine.GetStorageControllerByInstance(enmHDDBus, 0);
+            CStorageController comHDDController = machine.GetStorageControllerByInstance(enmHDDBus, 0);
             if (!comHDDController.isNull())
             {
-                machine.AttachDevice(comHDDController.GetName(), 0, 0, KDeviceType_HardDisk, m_virtualDisk);
+                LONG uPortNumber = portNumberForDevice(comHDDController);
+                machine.AttachDevice(comHDDController.GetName(), uPortNumber, 0, KDeviceType_HardDisk, m_virtualDisk);
                 if (!machine.isOk())
                     UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_HardDisk, m_strMediumPath,
-                                                              StorageSlot(enmHDDBus, 0, 0), notificationCenter());
+                                                              StorageSlot(enmHDDBus, uPortNumber, 0), notificationCenter());
             }
+        }
+        /* Save machine settings here because  portNumberForDevice needs to inquiry port attachments of the controller: */
+        if (machine.isOk())
+        {
+            machine.SaveSettings();
+            if (machine.isOk())
+                success = true;
+            else
+                UINotificationMessage::cannotSaveMachineSettings(machine, notificationCenter());
         }
 
         /* Attach optical drive: */
         KStorageBus enmDVDBus = gpGlobalSession->guestOSTypeManager().getRecommendedDVDStorageBus(m_guestOSTypeId);
-        CStorageController comDVDController = m_machine.GetStorageControllerByInstance(enmDVDBus, 0);
+        CStorageController comDVDController = machine.GetStorageControllerByInstance(enmDVDBus, 0);
         if (!comDVDController.isNull())
         {
             CMedium opticalDisk;
@@ -308,16 +318,26 @@ bool UIWizardNewVM::attachDefaultDevices()
                 if (!vbox.isOk())
                     UINotificationMessage::cannotOpenMedium(vbox, strISOFilePath, notificationCenter());
             }
-            machine.AttachDevice(comDVDController.GetName(), 1, 0, KDeviceType_DVD, opticalDisk);
+            LONG uPortNumber = portNumberForDevice(comDVDController);
+            machine.AttachDevice(comDVDController.GetName(), uPortNumber, 0, KDeviceType_DVD, opticalDisk);
             if (!machine.isOk())
                 UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_DVD, QString(),
                                                           StorageSlot(enmDVDBus, 1, 0), notificationCenter());
+        }
+        /* Save machine settings here because  portNumberForDevice needs to inquiry port attachments of the controller: */
+        if (machine.isOk())
+        {
+            machine.SaveSettings();
+            if (machine.isOk())
+                success = true;
+            else
+                UINotificationMessage::cannotSaveMachineSettings(machine, notificationCenter());
         }
 
         /* Attach an empty floppy drive if recommended */
         if (gpGlobalSession->guestOSTypeManager().getRecommendedFloppy(m_guestOSTypeId))
         {
-            CStorageController comFloppyController = m_machine.GetStorageControllerByInstance(KStorageBus_Floppy, 0);
+            CStorageController comFloppyController = machine.GetStorageControllerByInstance(KStorageBus_Floppy, 0);
             if (!comFloppyController.isNull())
             {
                 machine.AttachDevice(comFloppyController.GetName(), 0, 0, KDeviceType_Floppy, CMedium());
@@ -828,4 +848,40 @@ bool UIWizardNewVM::checkUnattendedInstallError(const CUnattended &comUnattended
         return false;
     }
     return true;
+}
+
+LONG UIWizardNewVM::portNumberForDevice(CStorageController &comController)
+{
+    QVector<CMediumAttachment> attachments = m_machine.GetMediumAttachmentsOfController(comController.GetName());
+    QVector<LONG> attachmentPorts(attachments.size(), -1);
+    for (int i = 0; i < attachmentPorts.size(); ++i)
+        attachmentPorts[i] = attachments[i].GetPort();
+    LONG portCount = comController.GetPortCount();
+    /* Check if any of the ports in range [0, portCount) is unused. If so return it: */
+    for (int i = 0; i < portCount; ++i)
+    {
+        if (!attachmentPorts.contains(i))
+            return i;
+    }
+
+
+    if (!comController.isOk())
+    {
+        UINotificationMessage::cannotAcquireStorageControllerParameter(comController);
+        return -1;
+    }
+    /* Check if we can increase the port count: */
+    if (portCount + 1 >= (LONG)comController.GetMaxPortCount())
+    {
+        UINotificationMessage::cannotChangeStorageControllerParameter(comController);
+        return -1;
+    }
+    comController.SetPortCount(portCount + 1);
+    if (!comController.isOk())
+    {
+        UINotificationMessage::cannotChangeStorageControllerParameter(comController);
+        return -1;
+    }
+    /* Use the last port: */
+    return comController.GetPortCount() - 1;
 }

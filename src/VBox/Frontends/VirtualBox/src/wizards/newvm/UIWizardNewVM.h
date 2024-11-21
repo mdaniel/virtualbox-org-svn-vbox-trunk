@@ -42,6 +42,7 @@
 
 /* Forward declarations: */
 class UIActionPool;
+class CStorageController;
 
 enum SelectedDiskSource
 {
@@ -187,6 +188,7 @@ private:
     void setUnattendedPageVisible(bool fVisible);
     void deleteVirtualDisk();
     bool checkUnattendedInstallError(const CUnattended &comUnattended) const;
+    LONG portNumberForDevice(CStorageController &comController);
     /** @name Variables
      * @{ */
        CMedium m_virtualDisk;

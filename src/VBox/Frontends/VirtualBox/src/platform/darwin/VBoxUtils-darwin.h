@@ -39,7 +39,9 @@
 
 /* Other VBox includes: */
 #include <VBox/VBoxCocoa.h>
+#define UInt UInt_not_needed // libkern/OSTypes.h defines it without any code needing it, causing trouble with Qt's use of this type for different purpose!!
 #include <ApplicationServices/ApplicationServices.h>
+#undef UInt
 #undef PVM // Stupid, stupid apple headers (sys/param.h)!!
 
 /* External includes: */

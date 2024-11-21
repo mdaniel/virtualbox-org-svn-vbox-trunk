@@ -2026,7 +2026,7 @@ ifdef VBOX_GCC_TOOL
  VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.macho.arm64 := -DASM_FORMAT_MACHO
  VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.x86      := -DASM_FORMAT_PE
  VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.amd64    := -DASM_FORMAT_PE
- VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.arm64    := -DASM_FORMAT_PE
+ VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.pe.arm64    := -DASM_FORMAT_PE -g0 # ELF debug info causes driver blocking; -gcodeview doesn't work.
  $(foreach os,$(VBOX_TARGET_OSES),$(foreach arch,$(VBOX_TARGET_ARCHES) \
  ,$(eval VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(os).$(arch) = $$(VBOX_$(VBOX_GCC_TOOL)_ASFLAGS.$(VBOX_LDR_FMT.$(os).$(arch)).$(arch)))))
 endif

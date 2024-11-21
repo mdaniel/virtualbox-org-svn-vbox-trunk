@@ -40,23 +40,12 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
  	../VBoxWinDrvCommon.cpp \
  	../VBoxWinDrvStore.cpp \
  	../VBoxWinDrvInst.cpp
- tstVBoxWinDrvInstInf_DEPS += $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
  tstVBoxWinDrvInstInf_INCS += ../
- tstVBoxWinDrvInstInf_CLEAN = \
- 	$(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run \
- 	$(INST_TESTCASE)inf/
 
  # Install required INF files into testcase/ directory.
  INSTALLS.win += tstVBoxWinDrvInstInfFiles
  tstVBoxWinDrvInstInfFiles_INST     = $(INST_TESTCASE)inf/
  tstVBoxWinDrvInstInfFiles_SOURCES := $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
-
- $$(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run: \
- 	   $$(tstVBoxWinDrvInstInf_1_STAGE_TARGET) $(wildcard $(PATH_SUB_CURRENT)/inf/*.inf)
-	export VBOX_LOG_DEST=nofile; $(tstVBoxWinDrvInstInf_1_STAGE_TARGET)
-	$(QUIET)$(APPEND) -t "$@" "done"
-
- OTHERS.win += $(tstVBoxWinDrvInstInf_0_OUTDIR)/tstVBoxWinDrvInstInf.run
 
 endif
 

@@ -321,6 +321,8 @@ void UINativeWizard::sltCurrentIndexChanged(int iIndex /* = -1 */)
     QString strPageHelpKeyword = uiCommon().helpKeyword(pPage);
     if (!strPageHelpKeyword.isEmpty())
         uiCommon().setHelpKeyword(this, strPageHelpKeyword);
+    else
+        uiCommon().setHelpKeyword(this, m_strHelpKeyword);
 
     /* Disable/enable Next button: */
     QPushButton *pButtonNext = wizardButton(WizardButtonType_Next);

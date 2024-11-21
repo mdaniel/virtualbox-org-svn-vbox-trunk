@@ -42,6 +42,8 @@ LangString VBOX_SUN_ABORTED ${LANG_ENGLISH}                         "The Virtual
 LangString VBOX_INNOTEK_FOUND ${LANG_ENGLISH}                       "An old version of the innotek VirtualBox Guest Additions is installed in this virtual machine. This must be uninstalled before the current Guest Additions can be installed.$\r$\n$\r$\nDo you wish to uninstall the old Guest Additions now?"
 LangString VBOX_INNOTEK_ABORTED ${LANG_ENGLISH}                     "The VirtualBox Guest Additions cannot be installed until the old version has been removed.  Please remove it and try again."
 
+LangString VBOX_INST_WELCOME_TITLE ${LANG_ENGLISH}                  "Welcome to the ${PRODUCT_NAME} Setup"
+
 LangString VBOX_UNINSTALL_START ${LANG_ENGLISH}                     "Press OK to start the uninstallation process. This may take some time to complete."
 LangString VBOX_UNINSTALL_REBOOT ${LANG_ENGLISH}                    "It is strongly recommended that you restart this virtual machine before installing the new version of the VirtualBox Guest Additions.$\r$\nPlease start the installation process again after restarting the machine.$\r$\n$\r$\nRestart now?"
 

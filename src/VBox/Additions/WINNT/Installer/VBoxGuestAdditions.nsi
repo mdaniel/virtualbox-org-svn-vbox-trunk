@@ -114,8 +114,9 @@ VIAddVersionKey "InternalName"      "${PRODUCT_OUTPUT}"
   ; MUI Settings
   !define MUI_WELCOMEFINISHPAGE_BITMAP "$%VBOX_BRAND_WIN_ADD_INST_DLGBMP%"
   !define MUI_ABORTWARNING
-  !define MUI_WELCOMEPAGE_TITLE_3LINES "Welcome to the ${PRODUCT_NAME} Additions Setup"
-
+  !define MUI_WELCOMEPAGE_TITLE_3LINES ; Add a bit of vertical space for the following text
+  !define MUI_WELCOMEPAGE_TITLE "$(VBOX_INST_WELCOME_TITLE)"
+ 
   ; API defines
   !define SM_CLEANBOOT 67
 
@@ -157,9 +158,9 @@ VIAddVersionKey "InternalName"      "${PRODUCT_OUTPUT}"
 
   ; Set branding text which appears on the horizontal line at the bottom
 !ifdef _DEBUG
-  BrandingText "VirtualBox Windows Additions $%VBOX_VERSION_STRING% (r$%VBOX_SVN_REV%) - Debug Build"
+  BrandingText "VirtualBox Windows Additions $%VBOX_VERSION_STRING% (r$%VBOX_SVN_REV% $%KBUILD_TARGET_ARCH%) - Debug Build"
 !else
-  BrandingText "VirtualBox Windows Additions $%VBOX_VERSION_STRING% r$%VBOX_SVN_REV%"
+  BrandingText "VirtualBox Windows Additions $%VBOX_VERSION_STRING% r$%VBOX_SVN_REV% ($%KBUILD_TARGET_ARCH%)"
 !endif
 
 !ifdef VBOX_WITH_LICENSE_DISPLAY

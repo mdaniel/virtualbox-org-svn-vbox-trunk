@@ -43,6 +43,8 @@ LangString VBOX_SUN_ABORTED ${LANG_GERMAN}                          "Die Install
 LangString VBOX_INNOTEK_FOUND ${LANG_GERMAN}                        "Eine veraltete Version der innotek Guest Additions ist auf diesem System bereits installiert. Diese muss erst deinstalliert werden bevor aktuelle Guest Additions installiert werden können.$\r$\n$\r$\nJetzt die alten Guest Additions deinstallieren?"
 LangString VBOX_INNOTEK_ABORTED ${LANG_GERMAN}                      "Die Installation der Guest Additions kann nicht fortgesetzt werden.$\r$\nBitte deinstallieren Sie erst die alten innotek Guest Additions!"
 
+LangString VBOX_INST_WELCOME_TITLE ${LANG_GERMAN}                   "Willkommen zum ${PRODUCT_NAME} Setup"
+
 LangString VBOX_UNINSTALL_START ${LANG_GERMAN}                      "Auf OK klicken um mit der Deinstallation zu beginnen.$\r$\nBitte warten Sie dann während die Deinstallation im Hintergrund ausgeführt wird ..."
 LangString VBOX_UNINSTALL_REBOOT ${LANG_GERMAN}                     "Es wird dringend empfohlen das System neu zu starten bevor die neuen Guest Additions installiert werden.$\r$\nBitte starten Sie die Installation nach dem Neustart erneut.$\r$\n$\r$\nJetzt neu starten?"
 

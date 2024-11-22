@@ -97,10 +97,8 @@ VMM_INT_DECL(int) PDMApicGetTpr(PCVMCPUCC pVCpu, uint8_t *pu8Tpr, bool *pfPendin
  * @retval  VERR_PDM_NO_APIC_INSTANCE
  * @retval  VERR_INVALID_POINTER
  *
- * @param   pVCpu                   The cross context virtual CPU structure.
- * @param   u8Tpr                   The TPR value to set.
- * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during
- *                                  this write.
+ * @param   pVCpu   The cross context virtual CPU structure.
+ * @param   u8Tpr   The TPR value to set.
  */
 VMM_INT_DECL(int) PDMApicSetTpr(PVMCPUCC pVCpu, uint8_t u8Tpr)
 {
@@ -241,10 +239,10 @@ VMM_INT_DECL(int) PDMApicSetBaseMsr(PVMCPUCC pVCpu, uint64_t u64BaseMsr)
  * @param   pu8Vector   Where to store the vector.
  * @param   puSrcTag    Where to store the interrupt source tag (debugging).
  */
-VMM_INT_DECL(int) PDMApicGetInterrupt(PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *pu32TagSrc)
+VMM_INT_DECL(int) PDMApicGetInterrupt(PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puSrcTag)
 {
     AssertReturn(PDMCPU_TO_APICBACKEND(pVCpu)->pfnGetInterrupt, VERR_INVALID_POINTER);
-    return PDMCPU_TO_APICBACKEND(pVCpu)->pfnGetInterrupt(pVCpu, pu8Vector, pu32TagSrc);
+    return PDMCPU_TO_APICBACKEND(pVCpu)->pfnGetInterrupt(pVCpu, pu8Vector, puSrcTag);
 }
 
 

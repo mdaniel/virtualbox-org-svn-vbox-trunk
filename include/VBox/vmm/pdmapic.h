@@ -214,8 +214,8 @@ typedef struct PDMAPICBACKENDR3
      *
      * @param   pVCpu                   The cross context virtual CPU structure.
      * @param   u8Tpr                   The TPR value to set.
-     * @param   fForceX2ApicBehavior    Pretend the APIC is in x2APIC mode during
-     *                                  this write.
+     * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during this
+     *                                  write.
      */
     DECLR3CALLBACKMEMBER(int, pfnSetTpr, (PVMCPUCC pVCpu, uint8_t u8Tpr, bool fForceX2ApicBehaviour));
 
@@ -276,7 +276,7 @@ typedef struct PDMAPICBACKENDR3
      * @param   pu8Vector   Where to store the vector.
      * @param   puSrcTag    Where to store the interrupt source tag (debugging).
      */
-    DECLR3CALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *pu32TagSrc));
+    DECLR3CALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puSrcTag));
 
     /**
      * Posts an interrupt to a target APIC.
@@ -320,7 +320,7 @@ typedef struct PDMAPICBACKENDR3
      * @param   uSrcTag         The interrupt source tag (debugging).
      */
     DECLR3CALLBACKMEMBER(int, pfnBusDeliver, (PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
-                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uTagSrc));
+                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uSrcTag));
 
     /**
      * Sets the End-Of-Interrupt (EOI) register.
@@ -462,8 +462,8 @@ typedef struct PDMAPICBACKENDR0
      *
      * @param   pVCpu                   The cross context virtual CPU structure.
      * @param   u8Tpr                   The TPR value to set.
-     * @param   fForceX2ApicBehavior    Pretend the APIC is in x2APIC mode during
-     *                                  this write.
+     * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during this
+     *                                  write.
      */
     DECLR0CALLBACKMEMBER(int, pfnSetTpr, (PVMCPUCC pVCpu, uint8_t u8Tpr, bool fForceX2ApicBehaviour));
 
@@ -524,7 +524,7 @@ typedef struct PDMAPICBACKENDR0
      * @param   pu8Vector   Where to store the vector.
      * @param   puSrcTag    Where to store the interrupt source tag (debugging).
      */
-    DECLR0CALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *pu32TagSrc));
+    DECLR0CALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puTagSrc));
 
     /**
      * Posts an interrupt to a target APIC.
@@ -568,7 +568,7 @@ typedef struct PDMAPICBACKENDR0
      * @param   uSrcTag         The interrupt source tag (debugging).
      */
     DECLR0CALLBACKMEMBER(int, pfnBusDeliver, (PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
-                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uTagSrc));
+                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uSrcTag));
 
     /**
      * Sets the End-Of-Interrupt (EOI) register.
@@ -711,8 +711,8 @@ typedef struct PDMAPICBACKENDRC
      *
      * @param   pVCpu                   The cross context virtual CPU structure.
      * @param   u8Tpr                   The TPR value to set.
-     * @param   fForceX2ApicBehavior    Pretend the APIC is in x2APIC mode during
-     *                                  this write.
+     * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during this
+     *                                  write.
      */
     DECLRGCALLBACKMEMBER(int, pfnSetTpr, (PVMCPUCC pVCpu, uint8_t u8Tpr, bool fForceX2ApicBehaviour));
 
@@ -773,7 +773,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pu8Vector   Where to store the vector.
      * @param   puSrcTag    Where to store the interrupt source tag (debugging).
      */
-    DECLRGCALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *pu32TagSrc));
+    DECLRGCALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puTagSrc));
 
     /**
      * Posts an interrupt to a target APIC.
@@ -817,7 +817,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   uSrcTag         The interrupt source tag (debugging).
      */
     DECLRGCALLBACKMEMBER(int, pfnBusDeliver, (PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
-                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uTagSrc));
+                                              uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uSrcTag));
 
     /**
      * Sets the End-Of-Interrupt (EOI) register.
@@ -888,7 +888,7 @@ VMM_INT_DECL(VBOXSTRICTRC)  PDMApicSetLocalInterrupt(PVMCPUCC pVCpu, uint8_t u8P
 VMM_INT_DECL(uint64_t)      PDMApicGetBaseMsrNoCheck(PCVMCPUCC pVCpu);
 VMM_INT_DECL(VBOXSTRICTRC)  PDMApicGetBaseMsr(PVMCPUCC pVCpu, uint64_t *pu64Value);
 VMM_INT_DECL(int)           PDMApicSetBaseMsr(PVMCPUCC pVCpu, uint64_t u64BaseMsr);
-VMM_INT_DECL(int)           PDMApicGetInterrupt(PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *pu32TagSrc);
+VMM_INT_DECL(int)           PDMApicGetInterrupt(PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puSrcTag);
 VMM_INT_DECL(int)           PDMApicBusDeliver(PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
                                               uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uTagSrc);
 #ifdef IN_RING0

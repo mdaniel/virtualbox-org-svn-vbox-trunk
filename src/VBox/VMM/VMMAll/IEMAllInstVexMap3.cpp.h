@@ -542,7 +542,7 @@ FNIEMOP_DEF(iemOp_vpermpd_Vqq_Wqq_Ib)
          */
         uint8_t bImm; IEM_OPCODE_GET_NEXT_U8(&bImm);
         IEM_MC_BEGIN(IEM_MC_F_NOT_286_OR_OLDER, 0);
-        IEMOP_HLP_DONE_VEX_DECODING_L0_AND_NO_VVVV_EX(fAvx2);
+        IEMOP_HLP_DONE_VEX_DECODING_L1_AND_NO_VVVV_EX(fAvx2);
         IEM_MC_LOCAL(RTUINT256U,            uDst);
         IEM_MC_LOCAL(RTUINT256U,            uSrc);
         IEM_MC_ARG_LOCAL_REF(PRTUINT256U,   puDst, uDst,         0);
@@ -566,7 +566,7 @@ FNIEMOP_DEF(iemOp_vpermpd_Vqq_Wqq_Ib)
         IEM_MC_LOCAL(RTGCPTR,               GCPtrEffSrc);
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         uint8_t bImm; IEM_OPCODE_GET_NEXT_U8(&bImm);
-        IEMOP_HLP_DONE_VEX_DECODING_L0_AND_NO_VVVV_EX(fAvx2);
+        IEMOP_HLP_DONE_VEX_DECODING_L1_AND_NO_VVVV_EX(fAvx2);
         IEM_MC_MAYBE_RAISE_AVX_RELATED_XCPT();
         IEM_MC_PREPARE_AVX_USAGE();
 

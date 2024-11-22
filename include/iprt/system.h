@@ -194,6 +194,19 @@ RTDECL(size_t) RTSystemPageAlignSize(size_t cb);
 
 
 /**
+ * Get the architecture the OS is actually running on.
+ *
+ * This bypasses WoW64, Rosetta(2), and similar application compatibility
+ * emulators.
+ *
+ * @returns RT_ARCH_VAL_XXX
+ *
+ * @sa      RTArchValToString
+ */
+RTDECL(uint32_t) RTSystemGetNativeArch(void);
+
+
+/**
  * The DMI strings.
  */
 typedef enum RTSYSDMISTR

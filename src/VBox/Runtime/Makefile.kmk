@@ -584,6 +584,7 @@ RuntimeBaseR3_SOURCES      := \
 	common/log/tracelogwriter.cpp \
 	common/log/RTLogCreateEx.cpp \
 	common/math/bignum.cpp \
+	common/misc/RTArchValToString.cpp \
 	common/misc/RTAssertMsg1Weak.cpp \
 	common/misc/RTAssertMsg2.cpp \
 	common/misc/RTAssertMsg2Add.cpp \
@@ -1087,6 +1088,7 @@ RuntimeBaseR3_SOURCES.win = \
 	r3/win/RTHandleGetStandard-win.cpp \
 	r3/win/RTLocaleQueryNormalizedBaseLocaleName-win.cpp \
 	r3/win/RTLocaleQueryUserCountryCode-win.cpp \
+	r3/win/RTSystemGetNativeArch-win.cpp \
 	r3/win/RTSystemQueryOSInfo-win.cpp \
 	r3/win/RTSystemShutdown-win.cpp \
 	r3/win/RTSystemQueryDmiString-win.cpp \
@@ -1171,6 +1173,7 @@ RuntimeBaseR3_SOURCES.linux = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/allocex-r3-posix.cpp \
 	r3/linux/RTThreadGetNativeState-linux.cpp \
@@ -1318,6 +1321,7 @@ RuntimeBaseR3_SOURCES.os2   = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/RTTimeZoneGetCurrent-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/os2/RTTimeSet-os2.cpp \
@@ -1408,6 +1412,7 @@ RuntimeBaseR3_SOURCES.darwin = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/RTFileQueryFsSizes-posix.cpp \
 	r3/posix/RTFsMountpointsEnum-posix.cpp \
@@ -1511,6 +1516,7 @@ RuntimeBaseR3_SOURCES.freebsd = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/RTFileQueryFsSizes-posix.cpp \
 	r3/posix/RTFsMountpointsEnum-posix.cpp \
@@ -1595,6 +1601,7 @@ RuntimeBaseR3_SOURCES.netbsd = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/RTFileQueryFsSizes-posix.cpp \
 	r3/posix/RTFsMountpointsEnum-posix.cpp \
@@ -1671,6 +1678,7 @@ RuntimeBaseR3_SOURCES.solaris = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/RTFileQueryFsSizes-posix.cpp \
 	r3/posix/RTFsMountpointsEnum-posix.cpp \
@@ -1783,6 +1791,7 @@ RuntimeBaseR3_SOURCES.haiku = \
 	r3/generic/RTLocaleQueryLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryNormalizedBaseLocaleName-r3-generic.cpp \
 	r3/generic/RTLocaleQueryUserCountryCode-r3-generic.cpp \
+	r3/generic/RTSystemGetNativeArch-r3-generic.cpp \
 	r3/generic/RTTimeZoneGetCurrent-generic.cpp \
 	r3/generic/dirrel-r3-generic.cpp \
 	r3/posix/RTFileQueryFsSizes-posix.cpp \

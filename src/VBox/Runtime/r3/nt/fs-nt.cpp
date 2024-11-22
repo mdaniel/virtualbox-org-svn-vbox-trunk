@@ -184,7 +184,9 @@ RTR3DECL(int) RTFsQueryProperties(const char *pszFsPath, PRTFSPROPERTIES pProper
                  *        fCaseSensitive to false. */
 
                 /* figure the remote stuff */
-                pProperties->fRemote          = RT_BOOL(FsDevInfo.Characteristics & FILE_REMOTE_DEVICE);
+                pProperties->fRemote          = (FsDevInfo.Characteristics & FILE_REMOTE_DEVICE)
+                                             || FsDevInfo.DeviceType == FILE_DEVICE_NETWORK
+                                             || FsDevInfo.DeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM;
             }
             else
                 rc = RTErrConvertFromNtStatus(rcNt);

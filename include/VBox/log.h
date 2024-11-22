@@ -742,6 +742,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_PATM,
     /** PDM group. */
     LOG_GROUP_PDM,
+    /** PDM APIC group. */
+    LOG_GROUP_PDM_APIC,
     /** PDM Async completion group. */
     LOG_GROUP_PDM_ASYNC_COMPLETION,
     /** PDM Block cache group. */
@@ -1214,6 +1216,7 @@ typedef enum VBOXLOGGROUP
     "NET_SHAPER", \
     "PATM", \
     "PDM", \
+    "PDM_APIC", \
     "PDM_ASYNC_COMPLETION", \
     "PDM_BLK_CACHE", \
     "PDM_CRITSECT", \

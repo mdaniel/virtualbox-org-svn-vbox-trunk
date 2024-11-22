@@ -68,7 +68,7 @@
 #include <VBox/vmm/em.h>
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/nem.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/tm.h>
 #include <VBox/vmm/stam.h>
 #include <VBox/vmm/iom.h>

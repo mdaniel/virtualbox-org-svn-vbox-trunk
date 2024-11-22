@@ -32,7 +32,7 @@
 #define LOG_GROUP LOG_GROUP_CPUM
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/em.h>

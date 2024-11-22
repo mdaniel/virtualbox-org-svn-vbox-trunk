@@ -32,7 +32,7 @@
 #define LOG_GROUP   LOG_GROUP_IEM_SVM
 #define VMCPU_INCL_CPUM_GST_CTX
 #include <VBox/vmm/iem.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/em.h>

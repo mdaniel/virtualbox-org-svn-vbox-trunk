@@ -47,6 +47,7 @@
 #include <VBox/vmm/pdmblkcache.h>
 #include <VBox/vmm/pdmcommon.h>
 #include <VBox/vmm/pdmtask.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/sup.h>
 #include <VBox/msi.h>
 #include <iprt/assert.h>
@@ -794,19 +795,62 @@ typedef struct PDMPIC
 
 
 /**
- * PDM registered APIC device.
+ * PDM IC (Interrupt Controller), shared ring-3.
  */
-typedef struct PDMAPIC
+typedef struct PDMICR3
 {
-    /** Pointer to the APIC device instance - R3 Ptr. */
+    /** Pointer to the interrupt controller instance - R3 Ptr. */
     PPDMDEVINSR3                       pDevInsR3;
-    /** Pointer to the APIC device instance - R0 Ptr. */
-    PPDMDEVINSR0                       pDevInsR0;
-    /** Pointer to the APIC device instance - RC Ptr. */
-    PPDMDEVINSRC                       pDevInsRC;
-    uint8_t                            Alignment[4];
-} PDMAPIC;
+#ifndef VBOX_VMM_TARGET_ARMV8
+    /** The type of APIC backend. */
+    PDMAPICBACKENDTYPE                 enmKind;
+    uint32_t                           uPadding;
+    /** The APIC backend. */
+    PDMAPICBACKENDR3                   ApicBackend;
+#else
+    /** @todo The GIC backend. Currently the padding helps keep alignment common
+     *        between x86 and arm. */
+    uint8_t                            auPadding[4+4+232];
+#endif
+} PDMICR3;
+AssertCompileSizeAlignment(PDMICR3, 8);
 
+/**
+ * PDM IC (Interrupt Controller), ring-0.
+ */
+typedef struct PDMICR0
+{
+    /** Pointer to the interrupt controller instance - R0 Ptr. */
+    PPDMDEVINSR0                       pDevInsR0;
+#ifndef VBOX_VMM_TARGET_ARMV8
+    /** The APIC backend. */
+    PDMAPICBACKENDR0                   ApicBackend;
+#else
+    /** @todo The GIC backend. Currently the padding helps keep alignment common
+     *        between x86 and arm. */
+    uint8_t                            auPadding[232];
+#endif
+} PDMICR0;
+AssertCompileSizeAlignment(PDMICR0, 8);
+
+/**
+ * PDM IC (Interrupt Controller), raw-mode context.
+ */
+typedef struct PDMICRC
+{
+    /** Pointer to the interrupt controller instance - R0 Ptr. */
+    PPDMDEVINSRC                       pDevInsR0;
+    RTRCPTR                            avPadding;
+#ifndef VBOX_VMM_TARGET_ARMV8
+    /** The APIC backend. */
+    PDMAPICBACKENDRC                   ApicBackend;
+#else
+    /** @todo The GIC backend. Currently the padding helps keep alignment common
+     *        between x86 and arm. */
+    uint8_t                            auPadding[232];
+#endif
+} PDMICRC;
+AssertCompileSizeAlignment(PDMICRC, 8);
 
 /**
  * PDM registered I/O APIC device.
@@ -1484,8 +1528,8 @@ typedef struct PDM
     PDMIOMMUR3                      aIommus[PDM_IOMMUS_MAX];
     /** The register PIC device. */
     PDMPIC                          Pic;
-    /** The registered APIC device. */
-    PDMAPIC                         Apic;
+    /** The registered IC device. */
+    PDMICR3                         Ic;
     /** The registered I/O APIC device. */
     PDMIOAPIC                       IoApic;
     /** The registered HPET device. */
@@ -1589,7 +1633,7 @@ typedef struct PDM
     /** Indicates whether the unchoke timer has been armed already or not. */
     bool volatile                   fNsUnchokeTimerArmed;
     /** Align aNsGroups on a cacheline.   */
-    bool                            afPadding2[19+16];
+    bool                            afPadding2[19+16+25];
     /** Number of network shaper groups.
      * @note Marked volatile to prevent re-reading after validation. */
     uint32_t volatile               cNsGroups;
@@ -1652,6 +1696,8 @@ typedef struct PDMR0PERVM
     uint32_t                        u32Padding2;
     /** Array of ring-0 queues. */
     PDMQUEUER0                      aQueues[16];
+    /** The interrupt-controller, ring-0 data. */
+    PDMICR0                         Ic;
 } PDMR0PERVM;
 
 
@@ -1744,6 +1790,23 @@ extern const PDMPCIRAWHLPR3 g_pdmR3DevPciRawHlp;
 # define PDMDRV_ASSERT_DRVINS(pDrvIns)   do { } while (0)
 #endif
 
+#ifndef VBOX_VMM_TARGET_ARMV8
+/** @def PDM_TO_APICBACKEND
+ * Gets the APIC backend given the VM cross-context structure.
+ */
+/** @def PDMCPU_TO_APICBACKEND
+ * Gets the APIC backend given VMCPU cross-context structure.
+ */
+# ifdef IN_RING3
+#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdm.s.Ic.ApicBackend))
+#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.ApicBackend))
+#else
+#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdmr0.s.Ic.ApicBackend))
+#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdmr0.s.Ic.ApicBackend))
+#endif
+#else
+/** @todo GIC backend. */
+#endif
 
 /*******************************************************************************
 *   Internal Functions                                                         *

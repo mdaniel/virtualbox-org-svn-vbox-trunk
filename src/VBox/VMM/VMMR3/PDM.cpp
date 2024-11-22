@@ -604,8 +604,8 @@ VMMR3_INT_DECL(void) PDMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
     /*
      * The registered APIC.
      */
-    if (pVM->pdm.s.Apic.pDevInsRC)
-        pVM->pdm.s.Apic.pDevInsRC           += offDelta;
+    if (pVM->pdm.s.Ic.pDevInsRC)
+        pVM->pdm.s.Ic.pDevInsRC             += offDelta;
 
     /*
      * The registered I/O APIC.

@@ -208,6 +208,7 @@ VBoxVMM_SOURCES  = \
 	VMMAll/MMAll.cpp \
 	VMMAll/NEMAll.cpp \
 	VMMAll/PDMAll.cpp \
+	VMMAll/PDMAllApic.cpp \
 	VMMAll/PDMAllCritSect.cpp \
 	VMMAll/PDMAllCritSectRw.cpp \
 	VMMAll/PDMAllCritSectBoth.cpp \
@@ -941,6 +942,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/MMAll.cpp \
   	VMMAll/NEMAll.cpp \
   	VMMAll/PDMAll.cpp \
+  	VMMAll/PDMAllApic.cpp \
   	VMMAll/PDMAllCritSect.cpp \
   	VMMAll/PDMAllCritSectRw.cpp \
   	VMMAll/PDMAllCritSectBoth.cpp \

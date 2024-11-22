@@ -50,7 +50,7 @@
 #ifdef VBOX_WITH_PCI_PASSTHROUGH
 # include <VBox/vmm/pdmpci.h>
 #endif
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 
 #include <VBox/vmm/gvmm.h>
 #include <VBox/vmm/gmm.h>
@@ -813,7 +813,7 @@ static int vmmR0DoHalt(PGVM pGVM, PGVMCPU pGVCpu)
              * Interrupts pending already?
              */
             if (VMCPU_FF_TEST_AND_CLEAR(pGVCpu, VMCPU_FF_UPDATE_APIC))
-                APICUpdatePendingInterrupts(pGVCpu);
+                PDMApicUpdatePendingInterrupts(pGVCpu);
 
             /*
              * Flags that wake up from the halted state.
@@ -835,7 +835,7 @@ static int vmmR0DoHalt(PGVM pGVM, PGVMCPU pGVCpu)
                 && !VMCPU_FF_IS_ANY_SET(pGVCpu, fCpuFFs))
             {
                 if (VMCPU_FF_TEST_AND_CLEAR(pGVCpu, VMCPU_FF_UPDATE_APIC))
-                    APICUpdatePendingInterrupts(pGVCpu);
+                    PDMApicUpdatePendingInterrupts(pGVCpu);
 
                 if (VMCPU_FF_IS_ANY_SET(pGVCpu, fIntMask))
                     return vmmR0DoHaltInterrupt(pGVCpu, uMWait, enmInterruptibility);
@@ -860,7 +860,7 @@ static int vmmR0DoHalt(PGVM pGVM, PGVMCPU pGVCpu)
                         {
                             ASMNopPause();
                             if (VMCPU_FF_TEST_AND_CLEAR(pGVCpu, VMCPU_FF_UPDATE_APIC))
-                                APICUpdatePendingInterrupts(pGVCpu);
+                                PDMApicUpdatePendingInterrupts(pGVCpu);
                             ASMNopPause();
                             if (VM_FF_IS_ANY_SET(pGVM, fVmFFs))
                             {
@@ -896,7 +896,7 @@ static int vmmR0DoHalt(PGVM pGVM, PGVMCPU pGVCpu)
                             && !VMCPU_FF_IS_ANY_SET(pGVCpu, fCpuFFs))
                         {
                             if (VMCPU_FF_TEST_AND_CLEAR(pGVCpu, VMCPU_FF_UPDATE_APIC))
-                                APICUpdatePendingInterrupts(pGVCpu);
+                                PDMApicUpdatePendingInterrupts(pGVCpu);
 
                             if (VMCPU_FF_IS_ANY_SET(pGVCpu, fIntMask))
                             {
@@ -932,7 +932,7 @@ static int vmmR0DoHalt(PGVM pGVM, PGVMCPU pGVCpu)
                                     && !VMCPU_FF_IS_ANY_SET(pGVCpu, fCpuFFs))
                                 {
                                     if (VMCPU_FF_TEST_AND_CLEAR(pGVCpu, VMCPU_FF_UPDATE_APIC))
-                                        APICUpdatePendingInterrupts(pGVCpu);
+                                        PDMApicUpdatePendingInterrupts(pGVCpu);
                                     if (VMCPU_FF_IS_ANY_SET(pGVCpu, fIntMask))
                                     {
                                         STAM_REL_COUNTER_INC(&pGVCpu->vmm.s.StatR0HaltExecFromBlock);

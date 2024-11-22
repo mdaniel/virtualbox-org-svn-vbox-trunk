@@ -77,7 +77,7 @@
 #include <VBox/settings.h> /* For MachineConfigFile::getHostDefaultAudioDriver(). */
 #include <VBox/vmm/pdmapi.h> /* For PDMR3DriverAttach/PDMR3DriverDetach. */
 #include <VBox/vmm/pdmusb.h> /* For PDMR3UsbCreateEmulatedDevice. */
-#include <VBox/vmm/pdmdev.h> /* For PDMAPICMODE enum. */
+#include <VBox/vmm/pdmapic.h> /* For PDMAPICMODE enum. */
 #include <VBox/vmm/pdmstorageifs.h>
 #include <VBox/version.h>
 

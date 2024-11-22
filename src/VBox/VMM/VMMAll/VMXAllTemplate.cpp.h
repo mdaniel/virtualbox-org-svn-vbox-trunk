@@ -1699,7 +1699,7 @@ static void vmxHCExportGuestApicTpr(PVMCPUCC pVCpu, PCVMXTRANSIENT pVmxTransient
         if (!pVmxTransient->fIsNestedGuest)
         {
             if (   PDMHasApic(pVCpu->CTX_SUFF(pVM))
-                && APICIsEnabled(pVCpu))
+                && PDMApicIsEnabled(pVCpu))
             {
                 /*
                  * Setup TPR shadowing.
@@ -1709,7 +1709,7 @@ static void vmxHCExportGuestApicTpr(PVMCPUCC pVCpu, PCVMXTRANSIENT pVmxTransient
                     bool    fPendingIntr  = false;
                     uint8_t u8Tpr         = 0;
                     uint8_t u8PendingIntr = 0;
-                    int rc = APICGetTpr(pVCpu, &u8Tpr, &fPendingIntr, &u8PendingIntr);
+                    int rc = PDMApicGetTpr(pVCpu, &u8Tpr, &fPendingIntr, &u8PendingIntr);
                     AssertRC(rc);
 
                     /*
@@ -4350,7 +4350,7 @@ static VBOXSTRICTRC vmxHCCheckForceFlags(PVMCPUCC pVCpu, bool fIsNestedGuest, bo
      * Update pending interrupts into the APIC's IRR.
      */
     if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
-        APICUpdatePendingInterrupts(pVCpu);
+        PDMApicUpdatePendingInterrupts(pVCpu);
 
     /*
      * Anything pending?  Should be more likely than not if we're doing a good job.
@@ -4970,7 +4970,7 @@ static VBOXSTRICTRC vmxHCEvaluatePendingEvent(PVMCPUCC pVCpu, PVMXVMCSINFO pVmcs
                         vmxHCApicSetTprThreshold(pVCpu, pVmcsInfo, u8Interrupt >> 4);
                     /*
                      * If the CPU doesn't have TPR shadowing, we will always get a VM-exit on TPR changes and
-                     * APICSetTpr() will end up setting the VMCPU_FF_INTERRUPT_APIC if required, so there is no
+                     * PDMApicSetTpr() will end up setting the VMCPU_FF_INTERRUPT_APIC if required, so there is no
                      * need to re-set this force-flag here.
                      */
                 }

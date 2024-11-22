@@ -329,7 +329,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
             ADD_REG64(WHvX64RegisterTscAux, pCtxMsrs->msr.TscAux);
         if (fWhat & CPUMCTX_EXTRN_OTHER_MSRS)
         {
-            ADD_REG64(WHvX64RegisterApicBase, APICGetBaseMsrNoCheck(pVCpu));
+            ADD_REG64(WHvX64RegisterApicBase, PDMApicGetBaseMsrNoCheck(pVCpu));
             ADD_REG64(WHvX64RegisterPat, pVCpu->cpum.GstCtx.msrPAT);
 #if 0 /** @todo check if WHvX64RegisterMsrMtrrCap works here... */
             ADD_REG64(WHvX64RegisterMsrMtrrCap, CPUMGetGuestIa32MtrrCap(pVCpu));
@@ -814,7 +814,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
     if (fWhat & CPUMCTX_EXTRN_APIC_TPR)
     {
         Assert(aenmNames[iReg] == WHvX64RegisterCr8);
-        APICSetTpr(pVCpu, (uint8_t)aValues[iReg].Reg64 << 4);
+        PDMApicSetTpr(pVCpu, (uint8_t)aValues[iReg].Reg64 << 4);
         iReg++;
     }
 
@@ -949,12 +949,12 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         if (fWhat & CPUMCTX_EXTRN_OTHER_MSRS)
         {
             Assert(aenmNames[iReg] == WHvX64RegisterApicBase);
-            const uint64_t uOldBase = APICGetBaseMsrNoCheck(pVCpu);
+            const uint64_t uOldBase = PDMApicGetBaseMsrNoCheck(pVCpu);
             if (aValues[iReg].Reg64 != uOldBase)
             {
                 Log7(("NEM/%u: MSR APICBase changed %RX64 -> %RX64 (%RX64)\n",
                       pVCpu->idCpu, uOldBase, aValues[iReg].Reg64, aValues[iReg].Reg64 ^ uOldBase));
-                int rc2 = APICSetBaseMsr(pVCpu, aValues[iReg].Reg64);
+                int rc2 = PDMApicSetBaseMsr(pVCpu, aValues[iReg].Reg64);
                 AssertLogRelMsg(rc2 == VINF_SUCCESS, ("%Rrc %RX64\n", rc2, aValues[iReg].Reg64));
             }
             iReg++;
@@ -1459,7 +1459,7 @@ DECLINLINE(void) nemR3WinCopyStateFromX64Header(PVMCPUCC pVCpu, WHV_VP_EXIT_CONT
     pVCpu->nem.s.fLastInterruptShadow = CPUMUpdateInterruptShadowEx(&pVCpu->cpum.GstCtx,
                                                                     pExitCtx->ExecutionState.InterruptShadow,
                                                                     pExitCtx->Rip);
-    APICSetTpr(pVCpu, pExitCtx->Cr8 << 4);
+    PDMApicSetTpr(pVCpu, pExitCtx->Cr8 << 4);
 
     pVCpu->cpum.GstCtx.fExtrn &= ~(CPUMCTX_EXTRN_RIP | CPUMCTX_EXTRN_RFLAGS | CPUMCTX_EXTRN_CS | CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_APIC_TPR);
 }
@@ -2391,7 +2391,7 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemHCWinHandleInterruptFF(PVMCC pVM, PVMCPUCC pVCpu
      */
     if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
     {
-        APICUpdatePendingInterrupts(pVCpu);
+        PDMApicUpdatePendingInterrupts(pVCpu);
         if (!VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC
                                       | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI))
             return VINF_SUCCESS;
@@ -2478,7 +2478,7 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemHCWinHandleInterruptFF(PVMCC pVM, PVMCPUCC pVCpu
             bool    fPendingIntr = false;
             uint8_t bTpr = 0;
             uint8_t bPendingIntr = 0;
-            int rc = APICGetTpr(pVCpu, &bTpr, &fPendingIntr, &bPendingIntr);
+            int rc = PDMApicGetTpr(pVCpu, &bTpr, &fPendingIntr, &bPendingIntr);
             AssertRC(rc);
             *pfInterruptWindows |= ((bPendingIntr >> 4) << NEM_WIN_INTW_F_PRIO_SHIFT) | NEM_WIN_INTW_F_REGULAR;
             Log8(("Interrupt window pending on %u: %#x (bTpr=%#x fPendingIntr=%d bPendingIntr=%#x)\n",

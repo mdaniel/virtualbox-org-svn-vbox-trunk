@@ -92,7 +92,7 @@ struc GVM
         alignb 64
         .rawpci             resb 64
         alignb 64
-        .pdmr0              resb 3008
+        .pdmr0              resb 3264
         alignb 64
         .pgmr0              resb 90112
         alignb 64

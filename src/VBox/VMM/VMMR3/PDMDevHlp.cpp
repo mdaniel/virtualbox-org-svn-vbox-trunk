@@ -4192,7 +4192,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_ApicRegister(PPDMDEVINS pDevIns)
      * Only one APIC device. On SMP we have single logical device covering all LAPICs,
      * as they need to communicate and share state easily.
      */
-    AssertMsgReturnStmt(pVM->pdm.s.Apic.pDevInsR3 == NULL,
+    AssertMsgReturnStmt(pVM->pdm.s.Ic.pDevInsR3 == NULL,
                         ("%s/%u: Only one APIC device is supported!\n", pDevIns->pReg->szName, pDevIns->iInstance),
                         RTCritSectRwLeaveExcl(&pVM->pdm.s.CoreListCritSectRw),
                         VERR_ALREADY_EXISTS);
@@ -4200,10 +4200,10 @@ static DECLCALLBACK(int) pdmR3DevHlp_ApicRegister(PPDMDEVINS pDevIns)
     /*
      * Set the ring-3 and raw-mode bits, leave the ring-0 to ring-0 setup.
      */
-    pVM->pdm.s.Apic.pDevInsR3 = pDevIns;
+    pVM->pdm.s.Ic.pDevInsR3 = pDevIns;
 #ifdef VBOX_WITH_RAW_MODE_KEEP
-    pVM->pdm.s.Apic.pDevInsRC = PDMDEVINS_2_RCPTR(pDevIns);
-    Assert(pVM->pdm.s.Apic.pDevInsRC || !VM_IS_RAW_MODE_ENABLED(pVM));
+    pVM->pdm.s.Ic.pDevInsRC = PDMDEVINS_2_RCPTR(pDevIns);
+    Assert(pVM->pdm.s.Ic.pDevInsRC || !VM_IS_RAW_MODE_ENABLED(pVM));
 #endif
 
     RTCritSectRwLeaveExcl(&pVM->pdm.s.CoreListCritSectRw);
@@ -4244,7 +4244,7 @@ static DECLCALLBACK(int) pdmR3DevHlp_IoApicRegister(PPDMDEVINS pDevIns, PPDMIOAP
      * The I/O APIC requires the APIC to be present (hacks++).
      * If the I/O APIC does GC stuff so must the APIC.
      */
-    AssertMsgReturnStmt(pVM->pdm.s.Apic.pDevInsR3 != NULL,
+    AssertMsgReturnStmt(pVM->pdm.s.Ic.pDevInsR3 != NULL,
                         ("Configuration error / Init order error! No APIC!\n"),
                         RTCritSectRwLeaveExcl(&pVM->pdm.s.CoreListCritSectRw),
                         VERR_WRONG_ORDER);

@@ -56,7 +56,7 @@
 #include <VBox/vmm/iom.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/pgm.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/tm.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/ssm.h>
@@ -1658,7 +1658,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
          * Pick up asynchronously posted interrupts into the APIC.
          */
         if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
-            APICUpdatePendingInterrupts(pVCpu);
+            PDMApicUpdatePendingInterrupts(pVCpu);
 
         /*
          * The instruction following an emulated STI should *always* be executed!
@@ -2623,7 +2623,7 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                         if (rc == VINF_SUCCESS)
                         {
                             if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
-                                APICUpdatePendingInterrupts(pVCpu);
+                                PDMApicUpdatePendingInterrupts(pVCpu);
 
                             if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC
                                                          | VMCPU_FF_INTERRUPT_NESTED_GUEST

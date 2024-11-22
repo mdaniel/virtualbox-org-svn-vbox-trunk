@@ -37,7 +37,7 @@
 # include <VBox/vmm/gic.h>
 # include <VBox/vmm/pmu.h>
 #else
-# include <VBox/vmm/apic.h>
+# include <VBox/vmm/pdmapic.h>
 #endif
 #include <VBox/vmm/cfgm.h>
 #include <VBox/vmm/dbgf.h>

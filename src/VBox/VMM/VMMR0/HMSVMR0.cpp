@@ -42,7 +42,7 @@
 #include <VBox/vmm/em.h>
 #include <VBox/vmm/gcm.h>
 #include <VBox/vmm/gim.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include "HMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include <VBox/err.h>
@@ -2105,11 +2105,11 @@ static int hmR0SvmExportGuestApicTpr(PVMCPUCC pVCpu, PSVMVMCB pVmcb)
     {
         PVMCC pVM = pVCpu->CTX_SUFF(pVM);
         if (   PDMHasApic(pVM)
-            && APICIsEnabled(pVCpu))
+            && PDMApicIsEnabled(pVCpu))
         {
             bool    fPendingIntr;
             uint8_t u8Tpr;
-            int rc = APICGetTpr(pVCpu, &u8Tpr, &fPendingIntr, NULL /* pu8PendingIrq */);
+            int rc = PDMApicGetTpr(pVCpu, &u8Tpr, &fPendingIntr, NULL /* pu8PendingIrq */);
             AssertRCReturn(rc, rc);
 
             /* Assume that we need to trap all TPR accesses and thus need not check on
@@ -3947,7 +3947,7 @@ static VBOXSTRICTRC hmR0SvmCheckForceFlags(PVMCPUCC pVCpu)
 
     /* Update pending interrupts into the APIC's IRR. */
     if (VMCPU_FF_TEST_AND_CLEAR(pVCpu, VMCPU_FF_UPDATE_APIC))
-        APICUpdatePendingInterrupts(pVCpu);
+        PDMApicUpdatePendingInterrupts(pVCpu);
 
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     if (   VM_FF_IS_ANY_SET(pVM, !pVCpu->hm.s.fSingleInstruction
@@ -4398,14 +4398,14 @@ static void hmR0SvmPostRunGuest(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient, VBO
         if (   pVM->hm.s.fTprPatchingActive
             && (pVmcb->guest.u64LSTAR & 0xff) != pSvmTransient->u8GuestTpr)
         {
-            int rc = APICSetTpr(pVCpu, pVmcb->guest.u64LSTAR & 0xff);
+            int rc = PDMApicSetTpr(pVCpu, pVmcb->guest.u64LSTAR & 0xff);
             AssertRC(rc);
             ASMAtomicUoOrU64(&pVCpu->hm.s.fCtxChanged, HM_CHANGED_GUEST_APIC_TPR);
         }
         /* Sync TPR when we aren't intercepting CR8 writes. */
         else if (pSvmTransient->u8GuestTpr != pVmcbCtrl->IntCtrl.n.u8VTPR)
         {
-            int rc = APICSetTpr(pVCpu, pVmcbCtrl->IntCtrl.n.u8VTPR << 4);
+            int rc = PDMApicSetTpr(pVCpu, pVmcbCtrl->IntCtrl.n.u8VTPR << 4);
             AssertRC(rc);
             ASMAtomicUoOrU64(&pVCpu->hm.s.fCtxChanged, HM_CHANGED_GUEST_APIC_TPR);
         }
@@ -7416,7 +7416,7 @@ static VBOXSTRICTRC hmR0SvmExitWriteMsr(PVMCPUCC pVCpu, PSVMVMCB pVmcb, PSVMTRAN
         /* Our patch code uses LSTAR for TPR caching for 32-bit guests. */
         if ((pCtx->eax & 0xff) != pSvmTransient->u8GuestTpr)
         {
-            int rc = APICSetTpr(pVCpu, pCtx->eax & 0xff);
+            int rc = PDMApicSetTpr(pVCpu, pCtx->eax & 0xff);
             AssertRCReturn(rc, rc);
             ASMAtomicUoOrU64(&pVCpu->hm.s.fCtxChanged, HM_CHANGED_GUEST_APIC_TPR);
         }
@@ -7914,7 +7914,7 @@ HMSVM_EXIT_DECL hmR0SvmExitNestedPF(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
         && !CPUMGetGuestCPL(pVCpu)
         && pVM->hm.s.cPatches < RT_ELEMENTS(pVM->hm.s.aPatches))
     {
-        RTGCPHYS GCPhysApicBase = APICGetBaseMsrNoCheck(pVCpu);
+        RTGCPHYS GCPhysApicBase = PDMApicGetBaseMsrNoCheck(pVCpu);
         GCPhysApicBase &= ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
 
         if (GCPhysFaultAddr == GCPhysApicBase + XAPIC_OFF_TPR)
@@ -8268,7 +8268,7 @@ HMSVM_EXIT_DECL hmR0SvmExitXcptPF(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
         && pVM->hm.s.cPatches < RT_ELEMENTS(pVM->hm.s.aPatches))
     {
         RTGCPHYS GCPhysApicBase;
-        GCPhysApicBase  = APICGetBaseMsrNoCheck(pVCpu);
+        GCPhysApicBase  = PDMApicGetBaseMsrNoCheck(pVCpu);
         GCPhysApicBase &= ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
 
         /* Check if the page at the fault-address is the APIC base. */

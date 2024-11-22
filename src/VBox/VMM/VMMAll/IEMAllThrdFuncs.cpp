@@ -36,7 +36,7 @@
 #define IEM_WITH_OPAQUE_DECODER_STATE
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/iom.h>

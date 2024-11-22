@@ -45,7 +45,7 @@
 #include <VBox/vmm/em.h>
 #include <VBox/vmm/gcm.h>
 #include <VBox/vmm/gim.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include "HMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include <VBox/vmm/hmvmxinline.h>
@@ -921,7 +921,7 @@ static int hmR0VmxAllocVmcsInfo(PVMCPUCC pVCpu, PVMXVMCSINFO pVmcsInfo, bool fIs
         {
             if (PDMHasApic(pVM))
             {
-                rc = APICGetApicPageForCpu(pVCpu, &pVmcsInfo->HCPhysVirtApic, (PRTR0PTR)&pVmcsInfo->pbVirtApic, NULL /*pR3Ptr*/);
+                rc = PDMR0ApicGetApicPageForCpu(pVCpu, &pVmcsInfo->HCPhysVirtApic, (PRTR0PTR)&pVmcsInfo->pbVirtApic, NULL /*pR3Ptr*/);
                 if (RT_FAILURE(rc))
                     return rc;
                 Assert(pVmcsInfo->pbVirtApic);
@@ -5885,7 +5885,7 @@ static VBOXSTRICTRC hmR0VmxPreRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransie
         && PDMHasApic(pVM))
     {
         /* Get the APIC base MSR from the virtual APIC device. */
-        uint64_t const uApicBaseMsr = APICGetBaseMsrNoCheck(pVCpu);
+        uint64_t const uApicBaseMsr = PDMApicGetBaseMsrNoCheck(pVCpu);
 
         /* Map the APIC access page. */
         int rc = hmR0VmxMapHCApicAccessPage(pVCpu, uApicBaseMsr & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK);
@@ -6391,7 +6391,7 @@ static void hmR0VmxPostRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransient, int
                 Assert(pVmcsInfo->pbVirtApic);
                 if (pVmxTransient->u8GuestTpr != pVmcsInfo->pbVirtApic[XAPIC_OFF_TPR])
                 {
-                    rc = APICSetTpr(pVCpu, pVmcsInfo->pbVirtApic[XAPIC_OFF_TPR]);
+                    rc = PDMApicSetTpr(pVCpu, pVmcsInfo->pbVirtApic[XAPIC_OFF_TPR]);
                     AssertRC(rc);
                     ASMAtomicUoOrU64(&pVCpu->hm.s.fCtxChanged, HM_CHANGED_GUEST_APIC_TPR);
                 }

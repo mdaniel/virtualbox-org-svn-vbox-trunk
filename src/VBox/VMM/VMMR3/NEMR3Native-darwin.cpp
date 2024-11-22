@@ -39,7 +39,7 @@
 #include <VBox/vmm/nem.h>
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/em.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/hm.h>
 #include <VBox/vmm/hm_vmx.h>
@@ -1858,7 +1858,7 @@ static int nemR3DarwinExportGuestState(PVMCC pVM, PVMCPUCC pVCpu, PVMXTRANSIENT 
         Assert(pVCpu->nem.s.fCtxChanged & HM_CHANGED_GUEST_APIC_TPR);
         vmxHCExportGuestApicTpr(pVCpu, pVmxTransient);
 
-        rc = APICGetTpr(pVCpu, &pVmxTransient->u8GuestTpr, NULL /*pfPending*/, NULL /*pu8PendingIntr*/);
+        rc = PDMApicGetTpr(pVCpu, &pVmxTransient->u8GuestTpr, NULL /*pfPending*/, NULL /*pu8PendingIntr*/);
         AssertRC(rc);
 
         WRITE_GREG(HV_X86_TPR, pVmxTransient->u8GuestTpr);

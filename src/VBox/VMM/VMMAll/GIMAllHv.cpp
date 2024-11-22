@@ -38,7 +38,7 @@
 #include <VBox/vmm/pdmdev.h>
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/vmm/pgm.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/em.h>
 #include "GIMHvInternal.h"
 #include "GIMInternal.h"
@@ -604,11 +604,11 @@ VMM_INT_DECL(VBOXSTRICTRC) gimHvReadMsr(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMS
             return VINF_SUCCESS;
 
         case MSR_GIM_HV_TPR:
-            *puValue = APICHvGetTpr(pVCpu);
+            *puValue = PDMApicHvGetTpr(pVCpu);
             return VINF_SUCCESS;
 
         case MSR_GIM_HV_ICR:
-            *puValue = APICHvGetIcr(pVCpu);
+            *puValue = PDMApicHvGetIcr(pVCpu);
             return VINF_SUCCESS;
 
         case MSR_GIM_HV_GUEST_OS_ID:
@@ -629,7 +629,7 @@ VMM_INT_DECL(VBOXSTRICTRC) gimHvReadMsr(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMS
 
         case MSR_GIM_HV_APIC_FREQ:
         {
-            int rc = APICGetTimerFreq(pVM, puValue);
+            int rc = PDMApicGetTimerFreq(pVM, puValue);
             if (RT_FAILURE(rc))
                 return VERR_CPUM_RAISE_GP_0;
             return VINF_SUCCESS;
@@ -771,13 +771,13 @@ VMM_INT_DECL(VBOXSTRICTRC) gimHvWriteMsr(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMM
     switch (idMsr)
     {
         case MSR_GIM_HV_TPR:
-            return APICHvSetTpr(pVCpu, uRawValue);
+            return PDMApicHvSetTpr(pVCpu, uRawValue);
 
         case MSR_GIM_HV_EOI:
-            return APICHvSetEoi(pVCpu, uRawValue);
+            return PDMApicHvSetEoi(pVCpu, uRawValue);
 
         case MSR_GIM_HV_ICR:
-            return APICHvSetIcr(pVCpu, uRawValue);
+            return PDMApicHvSetIcr(pVCpu, uRawValue);
 
         case MSR_GIM_HV_GUEST_OS_ID:
         {

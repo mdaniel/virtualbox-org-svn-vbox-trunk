@@ -35,7 +35,7 @@
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/hm.h>
 #ifndef VBOX_VMM_TARGET_ARMV8
-# include <VBox/vmm/apic.h>
+# include <VBox/vmm/pdmapic.h>
 #endif
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/vmm.h>
@@ -71,7 +71,7 @@ static DECLCALLBACK(void) pdmR3PicHlp_SetInterruptFF(PPDMDEVINS pDevIns)
     RT_NOREF(pVM);
 #else
     PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
-    APICLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
 #endif
 }
 
@@ -90,7 +90,7 @@ static DECLCALLBACK(void) pdmR3PicHlp_ClearInterruptFF(PPDMDEVINS pDevIns)
     RT_NOREF(pVM);
 #else
     PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
-    APICLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
 #endif
 }
 
@@ -145,7 +145,7 @@ static DECLCALLBACK(int) pdmR3IoApicHlp_ApicBusDeliver(PPDMDEVINS pDevIns, uint8
     return VERR_NOT_IMPLEMENTED;
 #else
     PVM pVM = pDevIns->Internal.s.pVMR3;
-    return APICBusDeliver(pVM, u8Dest, u8DestMode, u8DeliveryMode, uVector, u8Polarity, u8TriggerMode, uTagSrc);
+    return PDMApicBusDeliver(pVM, u8Dest, u8DestMode, u8DeliveryMode, uVector, u8Polarity, u8TriggerMode, uTagSrc);
 #endif
 }
 

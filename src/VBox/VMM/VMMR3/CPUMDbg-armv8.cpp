@@ -32,7 +32,7 @@
 #define LOG_GROUP LOG_GROUP_DBGF
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include "CPUMInternal-armv8.h"
 #include <VBox/vmm/vm.h>
 #include <VBox/param.h>

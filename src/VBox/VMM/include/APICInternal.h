@@ -33,13 +33,19 @@
 
 #include <VBox/apic.h>
 #include <VBox/sup.h>
-#include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/pdmapic.h>
+#include <VBox/vmm/stam.h>
 
 /** @defgroup grp_apic_int       Internal
  * @ingroup grp_apic
  * @internal
  * @{
  */
+
+#ifdef VBOX_INCLUDED_vmm_pdmapic_h
+/** The VirtualBox APIC backend table. */
+extern const PDMAPICBACKEND g_ApicBackend;
+#endif
 
 /** The APIC hardware version we are emulating. */
 #define XAPIC_HARDWARE_VERSION               XAPIC_HARDWARE_VERSION_P4
@@ -1155,11 +1161,13 @@ APICMODE                      apicGetMode(uint64_t uApicBaseMsr);
 
 DECLCALLBACK(VBOXSTRICTRC)    apicReadMmio(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
 DECLCALLBACK(VBOXSTRICTRC)    apicWriteMmio(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
-
-bool                          apicPostInterrupt(PVMCPUCC pVCpu, uint8_t uVector, XAPICTRIGGERMODE enmTriggerMode, uint32_t uSrcTag);
+DECLCALLBACK(bool)            apicPostInterrupt(PVMCPUCC pVCpu, uint8_t uVector, XAPICTRIGGERMODE enmTriggerMode, bool fAutoEoi,
+                                                uint32_t uSrcTag);
+#ifdef IN_RING3
+DECLCALLBACK(int)             apicR3HvSetCompatMode(PVM pVM, bool fHyperVCompatMode);
+#endif
 void                          apicStartTimer(PVMCPUCC pVCpu, uint32_t uInitialCount);
 void                          apicClearInterruptFF(PVMCPUCC pVCpu, PDMAPICIRQ enmType);
-void                          apicInitIpi(PVMCPUCC pVCpu);
 void                          apicResetCpu(PVMCPUCC pVCpu, bool fResetApicBaseMsr);
 
 DECLCALLBACK(int)             apicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg);

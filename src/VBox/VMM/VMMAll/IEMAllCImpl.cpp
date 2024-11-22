@@ -34,7 +34,7 @@
 #define IEM_WITH_OPAQUE_DECODER_STATE
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/iom.h>
@@ -5698,7 +5698,7 @@ IEM_CIMPL_DEF_2(iemCImpl_mov_Rd_Cd, uint8_t, iGReg, uint8_t, iCrReg)
             }
 #endif
             uint8_t uTpr;
-            int rc = APICGetTpr(pVCpu, &uTpr, NULL, NULL);
+            int rc = PDMApicGetTpr(pVCpu, &uTpr, NULL, NULL);
             if (RT_SUCCESS(rc))
                 crX = uTpr >> 4;
             else
@@ -6297,7 +6297,7 @@ IEM_CIMPL_DEF_4(iemCImpl_load_CrX, uint8_t, iCrReg, uint64_t, uNewCrX, IEMACCESS
             }
 #endif
             uint8_t const u8Tpr = (uint8_t)uNewCrX << 4;
-            APICSetTpr(pVCpu, u8Tpr);
+            PDMApicSetTpr(pVCpu, u8Tpr);
             rcStrict = VINF_SUCCESS;
             break;
         }

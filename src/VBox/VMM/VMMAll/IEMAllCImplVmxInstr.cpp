@@ -32,7 +32,6 @@
 #define LOG_GROUP   LOG_GROUP_IEM_VMX
 #define VMCPU_INCL_CPUM_GST_CTX
 #include <VBox/vmm/iem.h>
-#include <VBox/vmm/apic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/em.h>
@@ -48,6 +47,7 @@
 #include <VBox/log.h>
 #include <VBox/err.h>
 #include <VBox/param.h>
+#include <VBox/apic.h>
 #include <VBox/disopcode-x86-amd64.h>
 #include <iprt/asm-math.h>
 #include <iprt/assert.h>

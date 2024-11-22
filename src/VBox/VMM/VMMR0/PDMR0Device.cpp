@@ -33,7 +33,7 @@
 #define PDMPCIDEV_INCLUDE_PRIVATE  /* Hack to get pdmpcidevint.h included at the right point. */
 #include "PDMInternal.h"
 #include <VBox/vmm/pdm.h>
-#include <VBox/vmm/apic.h>
+#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/gvm.h>

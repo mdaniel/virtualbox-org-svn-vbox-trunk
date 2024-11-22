@@ -751,6 +751,10 @@ typedef PCPDMDEVREGRC                           PCPDMDEVREG;
 # error "Not IN_RING3, IN_RING0 or IN_RC"
 #endif
 
+/**
+ * The PDM APIC device registration structure.
+ */
+extern const PDMDEVREG g_DeviceAPIC;
 
 /**
  * Device registrations for ring-0 modules.
@@ -1814,47 +1818,6 @@ typedef R3PTRTYPE(const PDMFWHLPR3 *) PCPDMFWHLPR3;
 
 
 /**
- * APIC mode argument for apicR3SetCpuIdFeatureLevel.
- *
- * Also used in saved-states, CFGM don't change existing values.
- */
-typedef enum PDMAPICMODE
-{
-    /** Invalid 0 entry. */
-    PDMAPICMODE_INVALID = 0,
-    /** No APIC. */
-    PDMAPICMODE_NONE,
-    /** Standard APIC (X86_CPUID_FEATURE_EDX_APIC). */
-    PDMAPICMODE_APIC,
-    /** Intel X2APIC (X86_CPUID_FEATURE_ECX_X2APIC). */
-    PDMAPICMODE_X2APIC,
-    /** The usual 32-bit paranoia. */
-    PDMAPICMODE_32BIT_HACK = 0x7fffffff
-} PDMAPICMODE;
-
-/**
- * APIC irq argument for pfnSetInterruptFF and pfnClearInterruptFF.
- */
-typedef enum PDMAPICIRQ
-{
-    /** Invalid 0 entry. */
-    PDMAPICIRQ_INVALID = 0,
-    /** Normal hardware interrupt. */
-    PDMAPICIRQ_HARDWARE,
-    /** NMI. */
-    PDMAPICIRQ_NMI,
-    /** SMI. */
-    PDMAPICIRQ_SMI,
-    /** ExtINT (HW interrupt via PIC). */
-    PDMAPICIRQ_EXTINT,
-    /** Interrupt arrived, needs to be updated to the IRR. */
-    PDMAPICIRQ_UPDATE_PENDING,
-    /** The usual 32-bit paranoia. */
-    PDMAPICIRQ_32BIT_HACK = 0x7fffffff
-} PDMAPICIRQ;
-
-
-/**
  * I/O APIC registration structure (all contexts).
  */
 typedef struct PDMIOAPICREG
@@ -1933,7 +1896,7 @@ typedef struct PDMIOAPICHLP
      * @param   u8TriggerMode   See APIC implementation.
      * @param   uTagSrc         The IRQ tag and source (for tracing).
      *
-     * @sa      APICBusDeliver()
+     * @sa      PDMApicBusDeliver()
      */
     DECLCALLBACKMEMBER(int, pfnApicBusDeliver,(PPDMDEVINS pDevIns, uint8_t u8Dest, uint8_t u8DestMode, uint8_t u8DeliveryMode,
                                                uint8_t uVector, uint8_t u8Polarity, uint8_t u8TriggerMode, uint32_t uTagSrc));

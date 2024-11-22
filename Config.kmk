@@ -572,7 +572,7 @@ if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.arm64 linux.arm64 win.arm6
  VBOX_WITH_VIRT_ARMV8 = 1
 endif
 # Makes x86 emulation on ARM hosts available in the GUI.
-if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), )
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), empty-set)
  VBOX_WITH_X86_ON_ARM_ENABLED = 1
 endif
 
@@ -6404,7 +6404,7 @@ ifeq ($(KBUILD_TARGET),win)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142"
   TEMPLATE_VBoxR3Exe_LDFLAGS.asan       = -InferAsanLibs:No
  endif
- 
+
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
   TEMPLATE_VBoxR3Exe_LATE_LIBS.x86     = \
   	$(PATH_TOOL_$(TEMPLATE_VBoxR3Exe_TOOL.win.x86)_LIB)/vcruntime$(VBOX_VCC_CRT_TYPE).lib \
@@ -7458,7 +7458,7 @@ ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxMainExe_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142"
   TEMPLATE_VBoxMainExe_LDFLAGS.asan      = -InferAsanLibs:No
- endif 
+ endif
  TEMPLATE_VBoxMainExe_LATE_LIBS          = \
  	$(LIB_RUNTIME)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
@@ -8183,7 +8183,7 @@ ifdef VBOX_WITH_QTGUI
   TEMPLATE_VBoxQtGuiExe_LDFLAGS.win.arm64 = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
   if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142"
    TEMPLATE_VBoxQtGuiExe_LDFLAGS.asan = -InferAsanLibs:No
-  endif 
+  endif
 
   TEMPLATE_VBoxQtGuiExe_SDKS += $(VBOX_WINPSDK)
   if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
@@ -8403,7 +8403,7 @@ ifdef VBOX_WITH_NLS
  TEMPLATE_VBoxNLS_QT_TRANSLATIONS_INST = $(INST_BIN)nls/
  TEMPLATE_VBoxNLS_LDFLAGS.win = $(TEMPLATE_VBoxR3Static_LDFLAGS.win) -Entry:main
  TEMPLATE_VBoxNLS_SOURCES = \
-      $(PATH_ROOT)/src/VBox/Main/nls/dummy.c
+ 	$(PATH_ROOT)/src/VBox/Main/nls/dummy.c
  TEMPLATE_VBoxNLS_SDKS.$(KBUILD_TARGET_ARCH) = $(filter-out VBoxOpenSslStatic,$(TEMPLATE_VBoxR3Static_SDKS.$(KBUILD_TARGET_ARCH)))
  ifdef VBOX_WITH_NOCRT_STATIC
   TEMPLATE_VBoxNLS_LATE_LIBS.$(KBUILD_TARGET_ARCH) = $(filter-out \
@@ -8413,7 +8413,7 @@ ifdef VBOX_WITH_NLS
   TEMPLATE_VBoxNLS_LATE_LIBS.$(KBUILD_TARGET_ARCH) = $(filter-out \
   		$(VBOX_LIB_RUNTIME_STATIC) \
   		$(PATH_STAGE_LIB)/VBox-libxml2-static$(VBOX_SUFF_LIB), \
- 		$(TEMPLATE_VBoxR3Static_LATE_LIBS.$(KBUILD_TARGET_ARCH)))
+  		$(TEMPLATE_VBoxR3Static_LATE_LIBS.$(KBUILD_TARGET_ARCH)))
  endif
 endif # !VBOX_WITH_NLS
 

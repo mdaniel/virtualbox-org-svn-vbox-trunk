@@ -364,7 +364,7 @@
     <!-- Qt styles plugins -->
     <Directory Id="dir_VBoxAppStyles" Name="styles">
         <Component Id="cp_QtStyles" Guid="150837df-f3ae-416f-9ea3-94f1f41b9f41" Bitness="$(var.Property_Bitness)">
-            <File Id="file_qwindowsvistastyle$(var.VBOX_QT_INFIX).dll" Name="qwindowsvistastyle$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\styles\qwindowsvistastyle$(var.VBOX_QT_INFIX).dll" />
+            <File Id="file_qmodernwindowsstyle$(var.VBOX_QT_INFIX).dll" Name="qmodernwindowsstyle$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\styles\qmodernwindowsstyle$(var.VBOX_QT_INFIX).dll" />
         </Component>
     </Directory>
 <?endif?>

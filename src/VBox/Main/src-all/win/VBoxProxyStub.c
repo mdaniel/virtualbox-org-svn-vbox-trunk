@@ -51,6 +51,10 @@
 #include <iprt/uuid.h>
 #include <iprt/utf16.h>
 
+#ifndef FILE_REMOTE_DEVICE
+# define FILE_REMOTE_DEVICE UINT32_C(0x10)
+#endif
+
 
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
@@ -2336,6 +2340,34 @@ static void vbpsUpdateWindowsService(VBPSREGSTATE *pState, const WCHAR *pwszVBox
     uint32_t const      uErrorControl        = SERVICE_ERROR_NORMAL;
     WCHAR const * const pwszServiceStartName = L"LocalSystem";
     static WCHAR const  wszzDependencies[]   = L"RPCSS\0";
+    HANDLE              hVBoxDir;
+
+    /*
+     * Output warning if the service module isn't on a local drive.
+     */
+    hVBoxDir = CreateFileW(pwszVBoxDir, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           NULL, OPEN_EXISTING, FILE_ATTRIBUTE_DIRECTORY | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (hVBoxDir != INVALID_HANDLE_VALUE)
+    {
+        IO_STATUS_BLOCK             Ios       = RTNT_IO_STATUS_BLOCK_INITIALIZER;
+        FILE_FS_DEVICE_INFORMATION  FsDevInfo = { 0, 0 };
+        NTSTATUS rcNt = NtQueryVolumeInformationFile(hVBoxDir, &Ios, &FsDevInfo, sizeof(FsDevInfo), FileFsDeviceInformation);
+        if (NT_SUCCESS(rcNt))
+        {
+            if (   (FsDevInfo.Characteristics & FILE_REMOTE_DEVICE)
+                || FsDevInfo.DeviceType == FILE_DEVICE_NETWORK
+                || FsDevInfo.DeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM)
+                RTAssertMsg2("!WARNING! Service '%ls' will not work off a network drive ('%ls').\n"
+                             "          LocalConfig.kmk workaround for developers: override VBOX_WITH_SDS :=\n",
+                             pwszServiceName, pwszVBoxDir);
+        }
+        else
+            LogRel(("update service '%ls': NtQueryVolumeInformationFile/FileFsDeviceInformation on '%ls': %x\n",
+                    pwszServiceName, pwszVBoxDir, rcNt));
+        CloseHandle(hVBoxDir);
+    }
+    else
+        LogRel(("update service '%ls': failed to open '%ls': %u\n", pwszServiceName, pwszVBoxDir, GetLastError()));
 
     /*
      * Make double quoted executable file path. ASSUMES pwszVBoxDir ends with a slash!

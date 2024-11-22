@@ -1033,7 +1033,7 @@ DECLHIDDEN(int) supR3HardenedVerifyAll(bool fFatal, const char *pszProgName, con
      */
     int rc2 = supR3HardenedVerifyProgram(pszProgName, pszExePath, fFatal, fLeaveOpen, fMainFlags);
     if (RT_FAILURE(rc2) && RT_SUCCESS(rc))
-        rc2 = rc;
+        rc = rc2;
 
     return rc;
 }

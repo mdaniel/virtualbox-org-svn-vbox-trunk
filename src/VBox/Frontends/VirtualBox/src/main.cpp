@@ -48,8 +48,10 @@
 #endif
 
 /* Other VBox includes: */
+#include <iprt/arch.h>
 #include <iprt/buildconfig.h>
 #include <iprt/stream.h>
+#include <iprt/system.h>
 #include <VBox/err.h>
 #include <VBox/version.h>
 #include <VBox/sup.h>
@@ -552,6 +554,19 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char ** /*envp*/)
             break;
         }
 #endif /* VBOX_WS_NIX */
+
+        /* Make sure we're not running inside an emulator (these days,
+         * running amd64 code in an emulator on arm64). */
+        uint32_t const uNativeArch = RTSystemGetNativeArch();
+        if (uNativeArch != RT_ARCH_VAL && uNativeArch != 0)
+        {
+            QString strMsg = QApplication::tr("This VirtualBox application was built for a different CPU architecture (<b>%1</b>) than the host (<b>%2</b>). Please reinstall.")
+                                              .arg(RTArchValToString(RT_ARCH_VAL))
+                                              .arg(RTArchValToString(uNativeArch));
+            QMessageBox::critical(0, QApplication::tr("Mismatching CPU Architecture"),
+                                  strMsg, QMessageBox::Abort, QMessageBox::NoButton);
+            break;
+        }
 
         /* Create modal-window manager: */
         UIModalWindowManager::create();

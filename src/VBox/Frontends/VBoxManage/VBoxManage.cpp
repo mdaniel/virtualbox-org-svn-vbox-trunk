@@ -46,6 +46,7 @@
 
 #include <VBox/version.h>
 
+#include <iprt/arch.h>
 #include <iprt/asm.h>
 #include <iprt/buildconfig.h>
 #include <iprt/ctype.h>
@@ -56,6 +57,7 @@
 #include <iprt/path.h>
 #include <iprt/stream.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 
 #include <signal.h>
 
@@ -785,6 +787,18 @@ int main(int argc, char *argv[])
     RTEXITCODE rcExit;
     if (!(pCmd->fFlags & VBMG_CMD_F_NO_COM))
     {
+        /*
+         * Before we try to initialize COM, make sure we're not running inside
+         * an emulator (these days, running amd64 code in an emulator on arm64).
+         */
+        uint32_t const uNativeArch = RTSystemGetNativeArch();
+        if (uNativeArch != RT_ARCH_VAL && uNativeArch != 0)
+        {
+            RTMsgError("Binary (%s) doesn't match the host CPU (%s)!",
+                       RTArchValToString(RT_ARCH_VAL), RTArchValToString(uNativeArch));
+            return RTEXITCODE_FAILURE;
+        }
+
         /*
          * Initialize COM.
          */

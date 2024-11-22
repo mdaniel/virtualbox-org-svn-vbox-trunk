@@ -42,6 +42,7 @@ using namespace com;
 
 #include <VBox/log.h>
 #include <VBox/version.h>
+#include <iprt/arch.h>
 #include <iprt/buildconfig.h>
 #include <iprt/ctype.h>
 #include <iprt/initterm.h>
@@ -54,6 +55,7 @@ using namespace com;
 #include <iprt/env.h>
 #include <iprt/errcore.h>
 #include <iprt/thread.h>
+#include <iprt/system.h>
 #include <VBoxVideo.h>
 
 #ifdef VBOX_WITH_RECORDING
@@ -1149,6 +1151,16 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
     {
         show_usage();
         return 1;
+    }
+
+    /* Before we try to initialize COM, make sure we're not running inside
+       an emulator (these days, running amd64 code in an emulator on arm64). */
+    uint32_t const uNativeArch = RTSystemGetNativeArch();
+    if (uNativeArch != RT_ARCH_VAL && uNativeArch != 0)
+    {
+        RTMsgError("Binary (%s) doesn't match the host CPU (%s)!",
+                   RTArchValToString(RT_ARCH_VAL), RTArchValToString(uNativeArch));
+        return RTEXITCODE_FAILURE;
     }
 
     HRESULT hrc;

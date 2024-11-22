@@ -127,7 +127,7 @@ struct ResourceAssignmentManager::State
     void setRegion(PRESOURCEREGION pRegion, const char *pszName, RESOURCEREGIONTYPE enmType,
                    RTGCPHYS GCPhysStart, RTGCPHYS GCPhysEnd);
     HRESULT addAddrRange(const char *pszName, RESOURCEREGIONTYPE enmType, RTGCPHYS GCPhysStart, RTGCPHYS GCPhysEnd);
-    HRESULT findNextFreeAddrRange(RTGCPHYS cbRegion, RTGCPHYS cbAlignment, RTGCPHYS GCPhysMax, RTGCPHYS GCPhysHint,
+    HRESULT findNextFreeAddrRange(RTGCPHYS cbRegion, RTGCPHYS cbAlignment, RTGCPHYS GCPhysMin, RTGCPHYS GCPhysMax, RTGCPHYS GCPhysHint,
                                   PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
 
     void dumpToReleaseLog(void);
@@ -255,7 +255,7 @@ HRESULT ResourceAssignmentManager::State::addAddrRange(const char *pszName, RESO
 }
 
 
-HRESULT ResourceAssignmentManager::State::findNextFreeAddrRange(RTGCPHYS cbRegion, RTGCPHYS cbAlignment, RTGCPHYS GCPhysMax,
+HRESULT ResourceAssignmentManager::State::findNextFreeAddrRange(RTGCPHYS cbRegion, RTGCPHYS cbAlignment, RTGCPHYS GCPhysMin, RTGCPHYS GCPhysMax,
                                                                 RTGCPHYS GCPhysHint, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion)
 {
     AssertReturn(GCPhysMax >= cbRegion, E_FAIL);
@@ -274,6 +274,7 @@ HRESULT ResourceAssignmentManager::State::findNextFreeAddrRange(RTGCPHYS cbRegio
             RTGCPHYS GCPhysStartAligned = RT_ALIGN_T(pRegion->GCPhysEnd - cbRegion + 1, cbAlignment, RTGCPHYS);
             if (   pRegion->enmType == kResourceRegionType_Free
                 && GCPhysHint >= pRegion->GCPhysEnd
+                && GCPhysMin <= pRegion->GCPhysStart
                 && GCPhysMax >= pRegion->GCPhysEnd
                 && GCPhysStartAligned >= pRegion->GCPhysStart
                 && pRegion->GCPhysEnd - GCPhysStartAligned + 1 >= cbRegion)
@@ -286,6 +287,10 @@ HRESULT ResourceAssignmentManager::State::findNextFreeAddrRange(RTGCPHYS cbRegio
             iRegion--;
         }
     }
+
+    while (   iRegion < m_cRegions
+           && GCPhysMin > m_paRegions[iRegion].GCPhysStart)
+        iRegion++;
 
     /* Find a free region which satisfies or requirements. */
     while (   iRegion < m_cRegions
@@ -394,7 +399,7 @@ HRESULT ResourceAssignmentManager::assignMmioRegionAligned(const char *pszName, 
 {
     RTGCPHYS GCPhysRegionStart;
     RTGCPHYS cbRegionFinal;
-    HRESULT hrc = m_pState->findNextFreeAddrRange(cbRegion, cbAlignment, fOnly32Bit ? _4G : RTGCPHYS_MAX,
+    HRESULT hrc = m_pState->findNextFreeAddrRange(cbRegion, cbAlignment, 0 /*GCPhysMin*/, fOnly32Bit ? _4G : RTGCPHYS_MAX,
                                                   m_GCPhysMmioHint, &GCPhysRegionStart, &cbRegionFinal);
     if (SUCCEEDED(hrc))
     {
@@ -416,6 +421,23 @@ HRESULT ResourceAssignmentManager::assignMmioRegion(const char *pszName, RTGCPHY
 HRESULT ResourceAssignmentManager::assignMmio32Region(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion)
 {
     return assignMmioRegionAligned(pszName, cbRegion, _4K, pGCPhysStart, pcbRegion, true /*fOnly32Bit*/);
+}
+
+
+HRESULT ResourceAssignmentManager::assignMmio64Region(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion)
+{
+    RTGCPHYS GCPhysRegionStart;
+    RTGCPHYS cbRegionFinal;
+    HRESULT hrc = m_pState->findNextFreeAddrRange(cbRegion, _4K, _4G /*GCPhysMin*/, RTGCPHYS_MAX,
+                                                  m_GCPhysMmioHint, &GCPhysRegionStart, &cbRegionFinal);
+    if (SUCCEEDED(hrc))
+    {
+        *pGCPhysStart = GCPhysRegionStart;
+        *pcbRegion    = cbRegionFinal;
+        return assignFixedMmioRegion(pszName, GCPhysRegionStart, cbRegion);
+    }
+
+    return hrc;
 }
 
 

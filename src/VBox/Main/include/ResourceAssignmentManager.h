@@ -63,6 +63,7 @@ public:
                                     bool fOnly32Bit);
     HRESULT assignMmioRegion(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
     HRESULT assignMmio32Region(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
+    HRESULT assignMmio64Region(const char *pszName, RTGCPHYS cbRegion, PRTGCPHYS pGCPhysStart, PRTGCPHYS pcbRegion);
 
     HRESULT assignInterrupts(const char *pszName, uint32_t cInterrupts, uint32_t *piInterruptFirst);
     HRESULT assignSingleInterrupt(const char *pszName, uint32_t *piInterrupt);

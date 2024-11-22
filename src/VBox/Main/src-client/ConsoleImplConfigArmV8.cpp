@@ -784,7 +784,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
 
         hrc = pResMgr->assignMmioRegionAligned("pci-pio",    _64K, _64K, &GCPhysMmioStart,   &cbMmio, false /*fOnly32Bit*/); H();
         hrc = pResMgr->assignMmioRegion(       "pci-ecam",   16 * _1M,   &GCPhysPciMmioEcam, &cbPciMmioEcam);              H();
-        hrc = pResMgr->assignMmioRegion(       "pci-mmio",   _2G,        &GCPhysPciMmio,     &cbPciMmio);                  H();
+        hrc = pResMgr->assignMmio64Region(     "pci-mmio",   _2G,        &GCPhysPciMmio,     &cbPciMmio);                  H();
         hrc = pResMgr->assignMmio32Region(     "pci-mmio32", _256M,      &GCPhysPciMmio32,   &cbPciMmio32);                H();
 
         InsertConfigNode(pDevices, "pci-generic-ecam",  &pDev);

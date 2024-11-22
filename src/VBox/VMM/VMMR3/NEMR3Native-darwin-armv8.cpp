@@ -2390,7 +2390,7 @@ static VBOXSTRICTRC nemR3DarwinRunGuestDebug(PVM pVM, PVMCPU pVCpu)
     }
 
     /* Restore debug exceptions trapping. */
-    hrc != hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, false);
+    hrc |= hv_vcpu_set_trap_debug_exceptions(pVCpu->nem.s.hVCpu, false);
     if (hrc != HV_SUCCESS)
         return VMSetError(pVM, VERR_NEM_SET_REGISTERS_FAILED, RT_SRC_POS,
                           "Clearing trapping of debug exceptions on vCPU %u failed: %#x (%Rrc)", pVCpu->idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));

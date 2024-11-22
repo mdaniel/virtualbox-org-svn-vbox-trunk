@@ -354,6 +354,7 @@ typedef struct PDMAPICBACKENDR3
     DECLR3CALLBACKMEMBER(int, pfnReserved6, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved7, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved8, (void));
+    DECLR3CALLBACKMEMBER(int, pfnReserved9, (void));
     /** @} */
 } PDMAPICBACKENDR3;
 /** Pointer to ring-3 APIC backend. */
@@ -602,6 +603,7 @@ typedef struct PDMAPICBACKENDR0
     DECLR0CALLBACKMEMBER(int, pfnReserved6, (void));
     DECLR0CALLBACKMEMBER(int, pfnReserved7, (void));
     DECLR0CALLBACKMEMBER(int, pfnReserved8, (void));
+    DECLR0CALLBACKMEMBER(int, pfnReserved9, (void));
     /** @} */
 } PDMAPICBACKENDR0;
 /** Pointer to ring-0 APIC backend. */
@@ -840,6 +842,7 @@ typedef struct PDMAPICBACKENDRC
     DECLRGCALLBACKMEMBER(int, pfnReserved7, (void));
     DECLRGCALLBACKMEMBER(int, pfnReserved8, (void));
     DECLRGCALLBACKMEMBER(int, pfnReserved9, (void));
+    DECLRGCALLBACKMEMBER(int, pfnReserved10, (void));
     /** @} */
 } PDMAPICBACKENDRC;
 /** Pointer to raw-mode context APIC backend. */

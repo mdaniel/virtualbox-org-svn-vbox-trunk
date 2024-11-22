@@ -810,7 +810,7 @@ typedef struct PDMICR3
 #else
     /** @todo The GIC backend. Currently the padding helps keep alignment common
      *        between x86 and arm. */
-    uint8_t                            auPadding[4+4+232];
+    uint8_t                            auPadding[4+4+240];
 #endif
 } PDMICR3;
 AssertCompileSizeAlignment(PDMICR3, 8);
@@ -828,7 +828,7 @@ typedef struct PDMICR0
 #else
     /** @todo The GIC backend. Currently the padding helps keep alignment common
      *        between x86 and arm. */
-    uint8_t                            auPadding[232];
+    uint8_t                            auPadding[240];
 #endif
 } PDMICR0;
 AssertCompileSizeAlignment(PDMICR0, 8);
@@ -1633,7 +1633,7 @@ typedef struct PDM
     /** Indicates whether the unchoke timer has been armed already or not. */
     bool volatile                   fNsUnchokeTimerArmed;
     /** Align aNsGroups on a cacheline.   */
-    bool                            afPadding2[19+16+25];
+    bool                            afPadding2[19+16+17];
     /** Number of network shaper groups.
      * @note Marked volatile to prevent re-reading after validation. */
     uint32_t volatile               cNsGroups;

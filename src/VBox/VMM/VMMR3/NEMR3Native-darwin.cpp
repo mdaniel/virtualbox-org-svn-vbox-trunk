@@ -3707,7 +3707,7 @@ static hv_return_t nemR3DarwinRunGuest(PVM pVM, PVMCPU pVCpu, PVMXTRANSIENT pVmx
 
         if (pVmxTransient->u8GuestTpr != (uint8_t)u64Tpr)
         {
-            int rc = APICSetTpr(pVCpu, (uint8_t)u64Tpr);
+            int rc = PDMApicSetTpr(pVCpu, (uint8_t)u64Tpr);
             AssertRC(rc);
             ASMAtomicUoOrU64(&pVCpu->nem.s.fCtxChanged, HM_CHANGED_GUEST_APIC_TPR);
         }

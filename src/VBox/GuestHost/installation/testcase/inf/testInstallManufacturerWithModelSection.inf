@@ -1,0 +1,18 @@
+[Version]
+Signature="$WINDOWS NT$"
+Provider=%ORACLE%
+ClassGuid={4D36E97D-E325-11CE-BFC1-08002BE10318}
+Class=System
+DriverPackageType=PlugAndPlay
+
+; Note: Decoration casing is intentional for testing! Don't change!
+
+[Manufacturer]
+%ORACLE%=VBoxTest,NtAmd64
+
+[VBoxTest.ntamd64]
+%VBoxTest_DeviceDesc%=VBoxTest,PCI\VEN_80ee&DEV_cafe
+
+[Strings]
+ORACLE = "Oracle Corporation"
+VBoxTest_DeviceDesc = "VBox Test Driver"

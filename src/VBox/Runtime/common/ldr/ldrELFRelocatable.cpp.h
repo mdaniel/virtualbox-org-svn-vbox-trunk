@@ -1983,6 +1983,9 @@ static int RTLDRELF_NAME(ValidateElfHeader)(const Elf_Ehdr *pEhdr, uint64_t cbRa
         case EM_X86_64:
             *penmArch = RTLDRARCH_AMD64;
             break;
+        case EM_AARCH64:
+            *penmArch = RTLDRARCH_ARM64;
+            break;
 #endif
         default:
             return RTERRINFO_LOG_SET_F(pErrInfo, VERR_LDRELF_MACHINE,

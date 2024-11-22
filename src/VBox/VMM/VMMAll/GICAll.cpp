@@ -388,7 +388,11 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
 
     if (offReg >= GIC_DIST_REG_IROUTERn_OFF_START && offReg <= GIC_DIST_REG_IROUTERn_OFF_LAST)
     {
-        *puValue = pThis->au32IntRouting[(offReg - GIC_DIST_REG_IROUTERn_OFF_START) / 4];
+        uint32_t idxEntry = (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / 4;
+        if (RT_LIKELY(idxEntry < RT_ELEMENTS(pThis->au32IntRouting)))
+            *puValue = pThis->au32IntRouting[idxEntry];
+        else
+            *puValue = 0;
         return VINF_SUCCESS;
     }
 

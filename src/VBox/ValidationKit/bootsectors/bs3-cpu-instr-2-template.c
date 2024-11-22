@@ -1763,11 +1763,11 @@ static uint8_t bs3CpuInstr2_BitScan(uint8_t bMode, BS3CPUINSTR2_TEST_BITSCAN_T c
                     if (TrapFrame.bXcpt != X86_XCPT_UD)
                         Bs3TestFailedF("Expected bXcpt = %#x, got %#x", X86_XCPT_UD, TrapFrame.bXcpt);
                     if (TrapFrame.Ctx.rip.u != uExpectRip)
-                        Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                     if (TrapFrame.Ctx.rax.u != uExpectRax)
-                        Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                     if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                        Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                     if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
                         Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                     if (   (TrapFrame.Ctx.rflags.u16 & paTests[i].fEflCheck)
@@ -1779,15 +1779,15 @@ static uint8_t bs3CpuInstr2_BitScan(uint8_t bMode, BS3CPUINSTR2_TEST_BITSCAN_T c
                     if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                         Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                     if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                        Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                     if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                        Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                     if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                        Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                     if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                        Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                     if (uMemSrc != uMemSrcExpect)
-                        Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
                 }
             }
         }
@@ -2268,29 +2268,29 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_rorx)(uint8_t bMode)
                 if (TrapFrame.bXcpt != bExpectXcpt)
                     Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                 if (TrapFrame.Ctx.rip.u != uExpectRip)
-                    Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                 if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                     Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                 if (TrapFrame.Ctx.rbx.u != uExpectRbx)
                     Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", uExpectRbx, TrapFrame.Ctx.rbx.u);
 
                 if ((TrapFrame.Ctx.rflags.u16 & X86_EFL_STATUS_BITS) != (Ctx.rflags.u16 & X86_EFL_STATUS_BITS))
-                    Bs3TestFailedF("Expected EFLAGS = %#06RX64, got %#06RX64",
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "EFLAGS",
                                    Ctx.rflags.u16 & X86_EFL_STATUS_BITS, TrapFrame.Ctx.rflags.u16 & X86_EFL_STATUS_BITS);
                 if (TrapFrame.Ctx.rax.u != Ctx.rax.u)
-                    Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", Ctx.rax.u, TrapFrame.Ctx.rax.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", Ctx.rax.u, TrapFrame.Ctx.rax.u);
                 if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                    Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                 if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                    Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                 if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                    Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                 if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                    Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                 if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                    Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                 if (uMemSrc != uMemSrcExpect)
-                    Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
             }
         }
         Ctx.rflags.u16 &= ~X86_EFL_STATUS_BITS;
@@ -2409,11 +2409,11 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_andn)(uint8_t bMode)
                 if (TrapFrame.bXcpt != bExpectXcpt)
                     Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                 if (TrapFrame.Ctx.rip.u != uExpectRip)
-                    Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                 if (TrapFrame.Ctx.rax.u != uExpectRax)
-                    Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                 if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                    Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                 if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
                     Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                 if (   (TrapFrame.Ctx.rflags.u16 & ANDN_CHECK_EFLAGS)
@@ -2429,15 +2429,15 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_andn)(uint8_t bMode)
                 if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                     Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                 if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                    Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                 if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                    Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                 if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                    Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                 if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                    Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                 if (uMemSrc2 != uMemSrc2Expect)
-                    Bs3TestFailedF("Expected uMemSrc2 = %#06RX64, got %#06RX64", (uint64_t)uMemSrc2Expect, (uint64_t)uMemSrc2);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc2", (uint64_t)uMemSrc2Expect, (uint64_t)uMemSrc2);
             }
         }
         Ctx.rflags.u16 &= ~X86_EFL_STATUS_BITS;
@@ -2546,13 +2546,13 @@ static uint8_t bs3CpuInstr2_Common_Gy_Ey_By(uint8_t bMode, BS3CPUINSTR2_TEST_Gy_
                     if (TrapFrame.bXcpt != bExpectXcpt)
                         Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                     if (TrapFrame.Ctx.rip.u != uExpectRip)
-                        Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                     if (TrapFrame.Ctx.rax.u != uExpectRax)
-                        Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                     if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                        Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                     if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
-                        Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBX", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                     if (   (TrapFrame.Ctx.rflags.u16 & fEflCheck)
                         != ((fOkay ? paTests[i].paSubTests[k].fEflOut : Ctx.rflags.u16) & fEflCheck))
                         Bs3TestFailedF("Expected EFLAGS = %#06RX32, got %#06RX32 (output)",
@@ -2565,17 +2565,17 @@ static uint8_t bs3CpuInstr2_Common_Gy_Ey_By(uint8_t bMode, BS3CPUINSTR2_TEST_Gy_
                                        TrapFrame.Ctx.rflags.u16 & ~(fEflCheck | fEflIgnore) & X86_EFL_STATUS_BITS);
 
                     if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
-                        Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDX", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                     if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                        Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                     if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                        Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                     if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                        Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                     if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                        Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                     if (uMemSrc1 != uMemSrc1Expect)
-                        Bs3TestFailedF("Expected uMemSrc1 = %#06RX64, got %#06RX64", (uint64_t)uMemSrc1Expect, (uint64_t)uMemSrc1);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc1", (uint64_t)uMemSrc1Expect, (uint64_t)uMemSrc1);
                 }
             }
         }
@@ -2947,9 +2947,9 @@ static uint8_t bs3CpuInstr2_Common_By_Ey(uint8_t bMode, BS3CPUINSTR2_TEST_By_Ey_
                     if (TrapFrame.bXcpt != bExpectXcpt)
                         Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                     if (TrapFrame.Ctx.rip.u != uExpectRip)
-                        Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                     if (TrapFrame.Ctx.rax.u != uExpectRax)
-                        Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                     if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
                         Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                     if (   (TrapFrame.Ctx.rflags.u16 & fEflCheck)
@@ -2964,19 +2964,19 @@ static uint8_t bs3CpuInstr2_Common_By_Ey(uint8_t bMode, BS3CPUINSTR2_TEST_By_Ey_
                                        TrapFrame.Ctx.rflags.u16 & ~(fEflCheck | fEflIgnore) & X86_EFL_STATUS_BITS);
 
                     if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                        Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                     if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
-                        Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDX", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                     if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                        Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                     if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                        Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                     if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                        Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                     if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                        Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                     if (uMemSrc != uMemSrcExpect)
-                        Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
                 }
             }
         }
@@ -3217,11 +3217,11 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_mulx)(uint8_t bMode)
                 if (TrapFrame.bXcpt != bExpectXcpt)
                     Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                 if (TrapFrame.Ctx.rip.u != uExpectRip)
-                    Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                 if (TrapFrame.Ctx.rax.u != uExpectRax)
-                    Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                 if (TrapFrame.Ctx.rcx.u != uExpectRcx)
-                    Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", uExpectRcx, TrapFrame.Ctx.rcx.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", uExpectRcx, TrapFrame.Ctx.rcx.u);
                 if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
                     Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                 if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
@@ -3231,15 +3231,15 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_mulx)(uint8_t bMode)
                     Bs3TestFailedF("Expected EFLAGS = %#06RX32, got %#06RX32 (immutable)",
                                    Ctx.rflags.u16 & X86_EFL_STATUS_BITS, TrapFrame.Ctx.rflags.u16 & X86_EFL_STATUS_BITS);
                 if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                    Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                 if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                    Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                 if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                    Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                 if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                    Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                 if (uMemSrc1 != uMemSrc1Expect)
-                    Bs3TestFailedF("Expected uMemSrc1 = %#06RX64, got %#06RX64", (uint64_t)uMemSrc1Expect, (uint64_t)uMemSrc1);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc1", (uint64_t)uMemSrc1Expect, (uint64_t)uMemSrc1);
             }
         }
         Ctx.rflags.u16 &= ~X86_EFL_STATUS_BITS;
@@ -3375,9 +3375,9 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_popcnt)(uint8_t bMode)
                 if (TrapFrame.bXcpt != bExpectXcpt)
                     Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                 if (TrapFrame.Ctx.rip.u != uExpectRip)
-                    Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                 if (TrapFrame.Ctx.rax.u != uExpectRax)
-                    Bs3TestFailedF("Expected RAX = %#06RX64, got %#06RX64", uExpectRax, TrapFrame.Ctx.rax.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RAX", uExpectRax, TrapFrame.Ctx.rax.u);
                 if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
                     Bs3TestFailedF("Expected RBX = %#06RX64, got %#06RX64 (dst)", Ctx.rbx.u, TrapFrame.Ctx.rbx.u);
                 if ((TrapFrame.Ctx.rflags.u16 & X86_EFL_STATUS_BITS) != (fOkay ? s_aTests[i].fEFlags : Ctx.rflags.u16))
@@ -3385,19 +3385,19 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_popcnt)(uint8_t bMode)
                                    fOkay ? s_aTests[i].fEFlags : Ctx.rflags.u16, TrapFrame.Ctx.rflags.u16 & X86_EFL_STATUS_BITS);
 
                 if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                    Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                 if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                     Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                 if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                    Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                 if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                    Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                 if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                    Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                 if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                    Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                 if (uMemSrc != uMemSrcExpect)
-                    Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                    Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
             }
         }
         Ctx.rflags.u16 &= ~X86_EFL_STATUS_BITS;
@@ -3583,7 +3583,7 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_crc32)(uint8_t bMode)
                     if (TrapFrame.bXcpt != bExpectXcpt)
                         Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                     if (TrapFrame.Ctx.rip.u != uExpectRip)
-                        Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                     if (TrapFrame.Ctx.rax.u != uExpectRax)
                         Bs3TestFailedF("Expected RAX = %#010RX64, got %#010RX64", uExpectRax, TrapFrame.Ctx.rax.u);
                     if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
@@ -3592,19 +3592,19 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_crc32)(uint8_t bMode)
                     if (TrapFrame.Ctx.rflags.u16 != Ctx.rflags.u16)
                         Bs3TestFailedF("Expected EFLAGS = %#06RX32, got %#06RX32", Ctx.rflags.u16, TrapFrame.Ctx.rflags.u16);
                     if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                        Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                     if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                         Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                     if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                        Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                     if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                        Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                     if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                        Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                     if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                        Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                     if (uMemSrc != uMemSrcExpect)
-                        Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
                 }
             }
         }
@@ -3834,7 +3834,7 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_adcx_adox)(uint8_t bMode)
                     if (TrapFrame.bXcpt != bExpectXcpt)
                         Bs3TestFailedF("Expected bXcpt = %#x, got %#x", bExpectXcpt, TrapFrame.bXcpt);
                     if (TrapFrame.Ctx.rip.u != uExpectRip)
-                        Bs3TestFailedF("Expected RIP = %#06RX64, got %#06RX64", uExpectRip, TrapFrame.Ctx.rip.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RIP", uExpectRip, TrapFrame.Ctx.rip.u);
                     if (TrapFrame.Ctx.rax.u != uExpectRax)
                         Bs3TestFailedF("Expected RAX = %#010RX64, got %#010RX64", uExpectRax, TrapFrame.Ctx.rax.u);
                     if (TrapFrame.Ctx.rbx.u != Ctx.rbx.u)
@@ -3843,19 +3843,19 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_adcx_adox)(uint8_t bMode)
                     if (TrapFrame.Ctx.rflags.u16 != Ctx.rflags.u16)
                         Bs3TestFailedF("Expected EFLAGS = %#06RX16, got %#06RX16", Ctx.rflags.u16, TrapFrame.Ctx.rflags.u16);
                     if (TrapFrame.Ctx.rcx.u != Ctx.rcx.u)
-                        Bs3TestFailedF("Expected RCX = %#06RX64, got %#06RX64", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RCX", Ctx.rcx.u, TrapFrame.Ctx.rcx.u);
                     if (TrapFrame.Ctx.rdx.u != Ctx.rdx.u)
                         Bs3TestFailedF("Expected RDX = %#06RX64, got %#06RX64 (src)", Ctx.rdx.u, TrapFrame.Ctx.rdx.u);
                     if (TrapFrame.Ctx.rsp.u != Ctx.rsp.u)
-                        Bs3TestFailedF("Expected RSP = %#06RX64, got %#06RX64", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSP", Ctx.rsp.u, TrapFrame.Ctx.rsp.u);
                     if (TrapFrame.Ctx.rbp.u != Ctx.rbp.u)
-                        Bs3TestFailedF("Expected RBP = %#06RX64, got %#06RX64", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RBP", Ctx.rbp.u, TrapFrame.Ctx.rbp.u);
                     if (TrapFrame.Ctx.rsi.u != Ctx.rsi.u)
-                        Bs3TestFailedF("Expected RSI = %#06RX64, got %#06RX64", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RSI", Ctx.rsi.u, TrapFrame.Ctx.rsi.u);
                     if (TrapFrame.Ctx.rdi.u != Ctx.rdi.u)
-                        Bs3TestFailedF("Expected RDI = %#06RX64, got %#06RX64", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "RDI", Ctx.rdi.u, TrapFrame.Ctx.rdi.u);
                     if (uMemSrc != uMemSrcExpect)
-                        Bs3TestFailedF("Expected uMemSrc = %#06RX64, got %#06RX64", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMemSrc", (uint64_t)uMemSrcExpect, (uint64_t)uMemSrc);
                 }
             }
         }
@@ -4002,7 +4002,7 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(bs3CpuInstr2_movbe)(uint8_t bMode)
                     if (TrapFrame.bXcpt != bExpectXcpt)
                         Bs3TestFailedF("Expected bXcpt=#%x, got %#x (%#x)", bExpectXcpt, TrapFrame.bXcpt, TrapFrame.uErrCd);
                     if (uMem != uMemExpect)
-                        Bs3TestFailedF("Expected uMem = %#06RX64, got %#06RX64", (uint64_t)uMemExpect, (uint64_t)uMem);
+                        Bs3TestFailedF("Expected %s = %#06RX64, got %#06RX64", "uMem", (uint64_t)uMemExpect, (uint64_t)uMem);
                     Bs3TestFailedF("^^^ iCfg=%u iWorker=%d iValue=%d\n",
                                    j, i, iValue);
                 }

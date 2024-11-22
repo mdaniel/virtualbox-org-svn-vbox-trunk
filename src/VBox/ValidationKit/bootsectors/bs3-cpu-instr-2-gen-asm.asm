@@ -43,12 +43,50 @@
 
 BEGINCODE
 
-%ifdef ASM_CALL64_MSC
- %define EFLAGS_PARAM_REG   r8d
-%else
- %define EFLAGS_PARAM_REG   edx
+preface_0:
+%ifdef ASM_CALL64_GCC
+        mov     r9, rcx
+        mov     r8, rdx
+        mov     rdx, rsi
+        mov     rcx, rdi
 %endif
+        ret
 
+preface_1:
+%ifdef ASM_CALL64_GCC
+        mov     r9, rcx
+        mov     r8, rdx
+        mov     rdx, rsi
+        mov     rcx, rdi
+%endif
+        lahf
+        and     ah, 0xfe
+        shl     r8d, 8
+        or      eax, r8d
+        sahf
+        ret
+
+preface_2:
+%ifdef ASM_CALL64_GCC
+        mov     r9, rcx
+        mov     r8, rdx
+        mov     rdx, rsi
+        mov     rcx, rdi
+%endif
+        pushf
+        and     dword [rsp], ~X86_EFL_STATUS_BITS
+        or      dword [rsp], r8d
+        popf
+        ret
+
+;;
+; @param 1 which preface to use:
+;        0 = no flags meddling
+;        1 = takes carry flag in
+;        2 = takes entire flags register in
+%macro DO_PREFACE 1
+        call    preface_ %+ %1
+%endmacro
 
 ;;
 ; @param 1 instruction
@@ -58,19 +96,7 @@ BEGINCODE
 
  %if %3 != 0
 BEGINPROC   GenU8_ %+ %1
-  %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
-  %endif
-  %if %2 != 0
-        lahf
-        and     ah, 0xfe
-        shl     r8d, 8
-        or      eax, r8d
-        sahf
-  %endif
+        DO_PREFACE %2
         %1      cl, dl
         mov     [r9], cl
         pushf
@@ -80,19 +106,7 @@ ENDPROC     GenU8_ %+ %1
  %endif
 
 BEGINPROC   GenU16_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
- %if %2 != 0
-        lahf
-        and     ah, 0xfe
-        shl     r8d, 8
-        or      eax, r8d
-        sahf
- %endif
+        DO_PREFACE %2
         %1      cx, dx
         mov     [r9], cx
         pushf
@@ -101,19 +115,7 @@ BEGINPROC   GenU16_ %+ %1
 ENDPROC     GenU16_ %+ %1
 
 BEGINPROC   GenU32_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
- %if %2 != 0
-        lahf
-        and     ah, 0xfe
-        shl     r8d, 8
-        or      eax, r8d
-        sahf
- %endif
+        DO_PREFACE %2
         %1      ecx, edx
         mov     [r9], ecx
         pushf
@@ -122,19 +124,7 @@ BEGINPROC   GenU32_ %+ %1
 ENDPROC     GenU32_ %+ %1
 
 BEGINPROC   GenU64_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
- %if %2 != 0
-        lahf
-        and     ah, 0xfe
-        shl     r8d, 8
-        or      eax, r8d
-        sahf
- %endif
+        DO_PREFACE %2
         %1      rcx, rdx
         mov     [r9], rcx
         pushf
@@ -167,16 +157,7 @@ DO_BINARY bts,  0, 0
 %macro DO_SHIFT 2
 
 BEGINPROC   GenU8_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
+        DO_PREFACE 2
         xchg    rcx, rdx
         %1      dl, cl
         mov     [r9], dl
@@ -186,16 +167,7 @@ BEGINPROC   GenU8_ %+ %1
 ENDPROC     GenU8_ %+ %1
 
 BEGINPROC   GenU16_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
+        DO_PREFACE 2
         xchg    cx, dx
         %1      dx, cl
         mov     [r9], dx
@@ -205,16 +177,7 @@ BEGINPROC   GenU16_ %+ %1
 ENDPROC     GenU16_ %+ %1
 
 BEGINPROC   GenU32_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
+        DO_PREFACE 2
         xchg    rcx, rdx
         %1      edx, cl
         mov     [r9], edx
@@ -224,16 +187,7 @@ BEGINPROC   GenU32_ %+ %1
 ENDPROC     GenU32_ %+ %1
 
 BEGINPROC   GenU64_ %+ %1
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
+        DO_PREFACE 2
         xchg    rcx, rdx
         %1      rdx, cl
         mov     [r9], rdx
@@ -244,17 +198,7 @@ ENDPROC     GenU64_ %+ %1
 
 
 BEGINPROC   GenU8_ %+ %1 %+ _Ib
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
-
+        DO_PREFACE 2
         movzx   r11d, dl
         mov     al, cl
         mov     rdx, r9
@@ -282,17 +226,7 @@ BEGINPROC   GenU8_ %+ %1 %+ _Ib
 ENDPROC     GenU8_ %+ %1 %+ _Ib
 
 BEGINPROC   GenU16_ %+ %1 %+ _Ib
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
-
+        DO_PREFACE 2
         movzx   r11d, dl
         mov     ax, cx
         mov     rdx, r9
@@ -321,17 +255,7 @@ BEGINPROC   GenU16_ %+ %1 %+ _Ib
 ENDPROC     GenU16_ %+ %1 %+ _Ib
 
 BEGINPROC   GenU32_ %+ %1 %+ _Ib
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
-
+        DO_PREFACE 2
         movzx   r11d, dl
         mov     eax, ecx
         mov     rdx, r9
@@ -359,17 +283,7 @@ BEGINPROC   GenU32_ %+ %1 %+ _Ib
 ENDPROC     GenU32_ %+ %1 %+ _Ib
 
 BEGINPROC   GenU64_ %+ %1 %+ _Ib
- %ifdef ASM_CALL64_GCC
-        mov     r9, rcx
-        mov     r8, rdx
-        mov     rdx, rsi
-        mov     rcx, rdi
- %endif
-        pushf
-        and     dword [rsp], ~X86_EFL_STATUS_BITS
-        or      dword [rsp], r8d
-        popf
-
+        DO_PREFACE 2
         movzx   r11d, dl
         mov     rax, rcx
         mov     rdx, r9

@@ -51,7 +51,7 @@ BS3_CMN_DEF(bool, Bs3TestCheckRegCtxEx,(PCBS3REGCTX pActualCtx, PCBS3REGCTX pExp
 #define CHECK_MEMBER(a_szName, a_szFmt, a_Actual, a_Expected) \
     do { \
         if ((a_Actual) == (a_Expected)) { /* likely */ } \
-        else Bs3TestFailedF("%u - %s: " a_szName "=" a_szFmt " expected " a_szFmt, idTestStep, pszMode, (a_Actual), (a_Expected)); \
+        else Bs3TestFailedF("%u - %s: %s=" a_szFmt " expected " a_szFmt, idTestStep, pszMode, a_szName, (a_Actual), (a_Expected)); \
     } while (0)
 
     CHECK_MEMBER("rax",     "%08RX64",  pActualCtx->rax.u,    pExpectedCtx->rax.u);

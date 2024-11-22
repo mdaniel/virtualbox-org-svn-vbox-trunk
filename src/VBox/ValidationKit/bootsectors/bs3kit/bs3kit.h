@@ -1583,12 +1583,29 @@ DECLINLINE(void BS3_FAR *) Bs3XptrFlatToCurrent(RTCCUINTXREG uFlatPtr)
 /** @def BS3_ASSERT
  * Assert that an expression is true.
  *
- * Calls Bs3Panic if false and it's a strict build.  Does nothing in
- * non-strict builds.  */
-#ifdef BS3_STRICT
-# define BS3_ASSERT(a_Expr) do { if (!!(a_Expr)) { /* likely */ } else { Bs3Panic(); } } while (0) /**< @todo later */
-#else
+ * @param   a_Expr      The expression to assert.
+ *
+ * If the expression is false, prints a message and calls Bs3Panic.
+ *
+ * This can be controlled with two defines:
+ *
+ * - BS3_ASSERT_IGNORE disables it entirely.
+ *
+ * - BS3_ASSERT_FILE prints filenames rather than function names.  This
+ *   is disabled by default, as it consumes noticeably more image space.
+ *   Function name + line number are generally enough to find an issue.
+ *
+ * The expression string also consumes space.  If necessary, reduce that
+ * by using a simpler ASSERT() inside more a complicated `if'.
+ */
+BS3_CMN_PROTO_STUB(DECL_NO_RETURN(void), Bs3Assert,(const char BS3_FAR *pszExpr, const char BS3_FAR *pszFileOrFunc, const unsigned uLine));
+#define BS3_ASSERT_IGNORE
+#if defined(BS3_ASSERT_IGNORE)
 # define BS3_ASSERT(a_Expr) do { } while (0)
+#elif defined(BS3_ASSERT_FILE)
+# define BS3_ASSERT(a_Expr) do { if (!!(a_Expr)) { /* likely */ } else { Bs3Assert(#a_Expr, __FILE__, __LINE__); } } while (0)
+#else
+# define BS3_ASSERT(a_Expr) do { if (!!(a_Expr)) { /* likely */ } else { Bs3Assert(#a_Expr, __func__, __LINE__); } } while (0)
 #endif
 
 /**

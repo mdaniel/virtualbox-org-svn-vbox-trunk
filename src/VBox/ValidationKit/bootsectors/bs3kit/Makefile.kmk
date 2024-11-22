@@ -72,6 +72,7 @@ bs3-bootsector-63MB_SOURCES  = bs3-bootsector.asm
 VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-A20Disable.asm \
 	bs3-cmn-A20Enable.asm \
+	bs3-cmn-Assert.c \
 	bs3-cmn-GetCpuVendor.c \
 	bs3-cmn-GetModeName.c \
 	bs3-cmn-GetModeNameShortLower.c \

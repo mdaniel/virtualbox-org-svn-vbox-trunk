@@ -40,6 +40,7 @@
 #undef Bs3A20Enable
 #undef Bs3A20EnableViaKbd
 #undef Bs3A20EnableViaPortA
+#undef Bs3Assert
 #undef Bs3ExtCtxAlloc
 #undef Bs3ExtCtxCopy
 #undef Bs3ExtCtxFree

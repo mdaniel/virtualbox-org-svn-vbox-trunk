@@ -110,11 +110,14 @@ ArmVirtGetMemoryMap (
   idxMemDesc++;
 
   // Memory mapped peripherals
-  VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformMmioStartGetPhysAddr();
-  VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
-  VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformMmioSizeGet();
-  VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
-  idxMemDesc++;
+  if (VBoxArmPlatformMmioSizeGet() != 0)
+  {
+    VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformMmioStartGetPhysAddr();
+    VirtualMemoryTable[idxMemDesc].VirtualBase  = VirtualMemoryTable[idxMemDesc].PhysicalBase;
+    VirtualMemoryTable[idxMemDesc].Length       = VBoxArmPlatformMmioSizeGet();
+    VirtualMemoryTable[idxMemDesc].Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_DEVICE;
+    idxMemDesc++;
+  }
 
   // Map the FV region as normal executable memory
   VirtualMemoryTable[idxMemDesc].PhysicalBase = VBoxArmPlatformUefiRomStartGetPhysAddr();

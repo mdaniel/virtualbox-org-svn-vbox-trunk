@@ -286,11 +286,14 @@ bool UIWizardNewVM::attachDefaultDevices()
             CStorageController comHDDController = machine.GetStorageControllerByInstance(enmHDDBus, 0);
             if (!comHDDController.isNull())
             {
-                LONG uPortNumber = portNumberForDevice(comHDDController);
-                machine.AttachDevice(comHDDController.GetName(), uPortNumber, 0, KDeviceType_HardDisk, m_virtualDisk);
-                if (!machine.isOk())
-                    UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_HardDisk, m_strMediumPath,
-                                                              StorageSlot(enmHDDBus, uPortNumber, 0), notificationCenter());
+                LONG iPortNumber = portNumberForDevice(comHDDController);
+                if (iPortNumber != -1)
+                {
+                    machine.AttachDevice(comHDDController.GetName(), iPortNumber, 0, KDeviceType_HardDisk, m_virtualDisk);
+                    if (!machine.isOk())
+                        UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_HardDisk, m_strMediumPath,
+                                                                  StorageSlot(enmHDDBus, iPortNumber, 0), notificationCenter());
+                }
             }
         }
         /* Save machine settings here because  portNumberForDevice needs to inquiry port attachments of the controller: */
@@ -318,11 +321,14 @@ bool UIWizardNewVM::attachDefaultDevices()
                 if (!vbox.isOk())
                     UINotificationMessage::cannotOpenMedium(vbox, strISOFilePath, notificationCenter());
             }
-            LONG uPortNumber = portNumberForDevice(comDVDController);
-            machine.AttachDevice(comDVDController.GetName(), uPortNumber, 0, KDeviceType_DVD, opticalDisk);
-            if (!machine.isOk())
-                UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_DVD, QString(),
-                                                          StorageSlot(enmDVDBus, 1, 0), notificationCenter());
+            LONG iPortNumber = portNumberForDevice(comDVDController);
+            if (iPortNumber != -1)
+            {
+                machine.AttachDevice(comDVDController.GetName(), iPortNumber, 0, KDeviceType_DVD, opticalDisk);
+                if (!machine.isOk())
+                    UINotificationMessage::cannotAttachDevice(machine, UIMediumDeviceType_DVD, QString(),
+                                                              StorageSlot(enmDVDBus, 1, 0), notificationCenter());
+            }
         }
         /* Save machine settings here because  portNumberForDevice needs to inquiry port attachments of the controller: */
         if (machine.isOk())
@@ -863,7 +869,6 @@ LONG UIWizardNewVM::portNumberForDevice(CStorageController &comController)
         if (!attachmentPorts.contains(i))
             return i;
     }
-
 
     if (!comController.isOk())
     {

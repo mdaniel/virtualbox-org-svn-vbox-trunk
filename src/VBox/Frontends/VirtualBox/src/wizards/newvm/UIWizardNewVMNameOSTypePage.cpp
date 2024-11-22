@@ -522,6 +522,8 @@ bool UIWizardNewVMNameOSTypePage::isComplete() const
     markWidgets();
     if (m_pNameAndSystemEditor->name().isEmpty())
         return false;
+    if (QDir(m_pNameAndSystemEditor->fullPath()).exists())
+        return false;
     return UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor);
 }
 
@@ -765,7 +767,10 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
 {
     if (m_pNameAndSystemEditor)
     {
-        m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty());
+        m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
+                                               tr("Guest machine name cannot be empty"), tr("Guest machine name is valid"));
+        m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
+                                               tr("Guest machine path is not unique"), tr("Guest machine name is valid"));
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));

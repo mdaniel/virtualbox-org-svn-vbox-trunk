@@ -564,7 +564,7 @@ HRESULT Console::initWithMachine(IMachine *aMachine, IInternalMachineControl *aC
         switch (platformArch)
         {
             case PlatformArchitecture_x86:
-#ifdef VBOX_WITH_VIRT_ARMV8
+#if !defined(RT_ARCH_AMD64) && !defined(VBOX_WITH_X86_ON_ARM_ENABLED)
                 {
                     ComPtr<IVirtualBox> pVirtualBox;
                     hrc = mMachine->COMGETTER(Parent)(pVirtualBox.asOutParam());

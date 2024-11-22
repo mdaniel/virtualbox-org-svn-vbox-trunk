@@ -571,6 +571,11 @@ VBOX_WITH_DBGF_FLOW_TRACING = 1
 if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), darwin.arm64 linux.arm64 win.arm64)
  VBOX_WITH_VIRT_ARMV8 = 1
 endif
+# Makes x86 emulation on ARM hosts available in the GUI.
+if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), )
+ VBOX_WITH_X86_ON_ARM_ENABLED = 1
+endif
+
 if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), linux.amd64)
  ifdef VBOX_WITH_R0_MODULES
   # Enable IBT branch protection for the R0 modules.

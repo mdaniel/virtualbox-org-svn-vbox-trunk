@@ -1038,7 +1038,7 @@ HRESULT SystemProperties::getSupportedPlatformArchitectures(std::vector<Platform
     };
     RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedPlatformArchitectures, s_aPlatformArchitectures);
 
-#ifdef VBOX_WITH_VIRT_ARMV8
+#if !defined(RT_ARCH_AMD64) && !defined(VBOX_WITH_X86_ON_ARM_ENABLED)
     Bstr bstrEnableX86OnArm;
     HRESULT hrc = mParent->GetExtraData(Bstr("VBoxInternal2/EnableX86OnArm").raw(), bstrEnableX86OnArm.asOutParam());
     if (FAILED(hrc) || !bstrEnableX86OnArm.equals("1"))

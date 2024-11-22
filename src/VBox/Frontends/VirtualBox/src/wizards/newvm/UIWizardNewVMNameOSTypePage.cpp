@@ -89,12 +89,16 @@ static const osTypePattern gs_OSTypePattern[] =
     { QRegularExpression( "(Wi.*8.*64)|(W8.*64)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows8") },
     { QRegularExpression( "(Wi.*8.*32)|(W8.*32)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows8") },
     { QRegularExpression( "(Wi.*10.*64)|(W10.*64)",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows10") },
+    { QRegularExpression( "(Wi.*10.*64)|(W10.*64)",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_A64("Windows10") },
     { QRegularExpression( "(Wi.*10.*32)|(W10.*32)",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows10") },
     { QRegularExpression( "(Wi.*11)|(W11)",                  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows11") },
+    { QRegularExpression( "(Wi.*11)|(W11)",                  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_A64("Windows11") },
     { QRegularExpression(  "Wi.*3.*1",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows31") },
     /* Set Windows 10 as default for "Windows". */
     { QRegularExpression(  "Wi.*64",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows10") },
     { QRegularExpression(  "Wi.*32",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows10") },
+    /* Set Windows 11 as default for "Windows" on ARM. */
+    { QRegularExpression(  "Wi.*",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_A64("Windows11") },
     /* ReactOS wants to be considered as Windows 2003 */
     { QRegularExpression(  "Reac.*",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows2003") },
 

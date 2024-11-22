@@ -46,6 +46,7 @@ DECLARE_TRANSLATION_CONTEXT(GlobalCtx);
 
 #define VBOX_GUEST_ADDITIONS_NAME_NONE     ""
 #define VBOX_GUEST_ADDITIONS_NAME_WIN      "VBoxWindowsAdditions.exe"
+#define VBOX_GUEST_ADDITIONS_NAME_WIN_A64  "VBoxWindowsAdditions-arm64.exe"
 #define VBOX_GUEST_ADDITIONS_NAME_SOLARIS  "VBoxSolarisAdditions.pkg"
 #define VBOX_GUEST_ADDITIONS_NAME_DARWIN   "VBoxDarwinAdditions.pkg"
 #define VBOX_GUEST_ADDITIONS_NAME_LNX_X86  "VBoxLinuxAdditions.run"
@@ -199,6 +200,10 @@ const Global::OSType Global::sOSTypes[] =
       1, 2048, 128, 50 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,
       StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_PIIX3, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
 
+    { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_A64("Windows10"),       "Windows 10 on ARM (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN_A64, VBOX_OSTYPE_ARM64(Win11), VBOXOSHINT_64BIT | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_RTCUTC | VBOXOSHINT_USBHID,
+      2, 4096, 128, 50 * _1G64, GraphicsControllerType_QemuRamFB, NetworkAdapterType_I82540EM, 0, StorageControllerType_VirtioSCSI, StorageBus_VirtioSCSI,
+      StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_ARMv8Virtual, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
+
     { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_X64("Windows2016"),     "Windows Server 2016 (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN,
       VBOXOSTYPE_Win2k16_x64,     VBOXOSHINT_64BIT | VBOXOSHINT_X86_HWVIRTEX | VBOXOSHINT_X86_IOAPIC | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_WDDM_GRAPHICS,
       1, 2048, 128, 50 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,
@@ -213,6 +218,10 @@ const Global::OSType Global::sOSTypes[] =
       VBOXOSTYPE_Win11_x64,       VBOXOSHINT_64BIT | VBOXOSHINT_X86_HWVIRTEX | VBOXOSHINT_X86_IOAPIC | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_WDDM_GRAPHICS,
       2, 4096, 128, 80 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,
       StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_PIIX3, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
+
+    { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_A64("Windows11"),       "Windows 11 on ARM (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN_A64, VBOX_OSTYPE_ARM64(Win11), VBOXOSHINT_64BIT | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_RTCUTC | VBOXOSHINT_USBHID,
+      2, 4096, 128, 80 * _1G64, GraphicsControllerType_QemuRamFB, NetworkAdapterType_I82540EM, 0, StorageControllerType_VirtioSCSI, StorageBus_VirtioSCSI,
+      StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_ARMv8Virtual, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
 
     { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_X64("Windows2022"),     "Windows Server 2022 (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN,
       VBOXOSTYPE_Win2k22_x64,     VBOXOSHINT_64BIT | VBOXOSHINT_X86_HWVIRTEX | VBOXOSHINT_X86_IOAPIC | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_WDDM_GRAPHICS,

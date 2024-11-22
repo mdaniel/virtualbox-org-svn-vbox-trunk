@@ -623,7 +623,7 @@ typedef struct PDMAPICBACKENDRC
      * @returns true if enabled, false otherwise.
      * @param   pVCpu           The cross context virtual CPU structure.
      */
-    DECLRGCALLBACKMEMBER(bool, pfnIsEnabled, (PCVMCPUCC pVCpu));
+    DECLRCCALLBACKMEMBER(bool, pfnIsEnabled, (PCVMCPUCC pVCpu));
 
     /**
      * Initializes per-VCPU APIC to the state following an INIT reset
@@ -631,7 +631,7 @@ typedef struct PDMAPICBACKENDRC
      *
      * @param   pVCpu       The cross context virtual CPU structure.
      */
-    DECLRGCALLBACKMEMBER(void, pfnInitIpi, (PVMCPUCC pVCpu));
+    DECLRCCALLBACKMEMBER(void, pfnInitIpi, (PVMCPUCC pVCpu));
 
     /**
      * Gets the APIC base MSR (no checks are performed wrt APIC hardware or its
@@ -640,7 +640,7 @@ typedef struct PDMAPICBACKENDRC
      * @returns The base MSR value.
      * @param   pVCpu       The cross context virtual CPU structure.
      */
-    DECLRGCALLBACKMEMBER(uint64_t, pfnGetBaseMsrNoCheck, (PCVMCPUCC pVCpu));
+    DECLRCCALLBACKMEMBER(uint64_t, pfnGetBaseMsrNoCheck, (PCVMCPUCC pVCpu));
 
     /**
      * Gets the APIC base MSR.
@@ -649,7 +649,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pVCpu       The cross context virtual CPU structure.
      * @param   pu64Value   Where to store the MSR value.
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnGetBaseMsr, (PVMCPUCC pVCpu, uint64_t *pu64Value));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnGetBaseMsr, (PVMCPUCC pVCpu, uint64_t *pu64Value));
 
     /**
      * Sets the APIC base MSR.
@@ -658,7 +658,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pVCpu       The cross context virtual CPU structure.
      * @param   u64BaseMsr  The value to set.
      */
-    DECLRGCALLBACKMEMBER(int, pfnSetBaseMsr, (PVMCPUCC pVCpu, uint64_t u64BaseMsr));
+    DECLRCCALLBACKMEMBER(int, pfnSetBaseMsr, (PVMCPUCC pVCpu, uint64_t u64BaseMsr));
 
     /**
      * Reads a 32-bit register at a specified offset.
@@ -667,7 +667,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pVCpu           The cross context virtual CPU structure.
      * @param   offReg          The offset of the register being read.
      */
-    DECLRGCALLBACKMEMBER(uint32_t, pfnReadRaw32, (PCVMCPUCC pVCpu, uint16_t offReg));
+    DECLRCCALLBACKMEMBER(uint32_t, pfnReadRaw32, (PCVMCPUCC pVCpu, uint16_t offReg));
 
     /**
      * Reads an APIC MSR.
@@ -677,7 +677,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   u32Reg          The MSR being read.
      * @param   pu64Value       Where to store the read value.
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnReadMsr, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnReadMsr, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value));
 
     /**
      * Writes an APIC MSR.
@@ -687,7 +687,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   u32Reg          The MSR being written.
      * @param   u64Value        The value to write.
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnWriteMsr, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnWriteMsr, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value));
 
     /**
      * Gets the APIC TPR (Task Priority Register).
@@ -700,7 +700,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pu8PendingIntr  Where to store the highest-priority pending interrupt
      *                          (optional, can be NULL).
      */
-    DECLRGCALLBACKMEMBER(int, pfnGetTpr, (PCVMCPUCC pVCpu, uint8_t *pu8Tpr, bool *pfPending, uint8_t *pu8PendingIntr));
+    DECLRCCALLBACKMEMBER(int, pfnGetTpr, (PCVMCPUCC pVCpu, uint8_t *pu8Tpr, bool *pfPending, uint8_t *pu8PendingIntr));
 
     /**
      * Sets the TPR (Task Priority Register).
@@ -714,7 +714,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during this
      *                                  write.
      */
-    DECLRGCALLBACKMEMBER(int, pfnSetTpr, (PVMCPUCC pVCpu, uint8_t u8Tpr, bool fForceX2ApicBehaviour));
+    DECLRCCALLBACKMEMBER(int, pfnSetTpr, (PVMCPUCC pVCpu, uint8_t u8Tpr, bool fForceX2ApicBehaviour));
 
     /**
      * Gets the Interrupt Command Register (ICR), without performing any interface
@@ -723,7 +723,7 @@ typedef struct PDMAPICBACKENDRC
      * @returns The ICR value.
      * @param   pVCpu           The cross context virtual CPU structure.
      */
-    DECLRGCALLBACKMEMBER(uint64_t, pfnGetIcrNoCheck, (PVMCPUCC pVCpu));
+    DECLRCCALLBACKMEMBER(uint64_t, pfnGetIcrNoCheck, (PVMCPUCC pVCpu));
 
     /**
      * Sets the Interrupt Command Register (ICR).
@@ -739,7 +739,7 @@ typedef struct PDMAPICBACKENDRC
      *          happens when invalid bits are set. For the time being, it will
      *          \#GP like a regular x2APIC access.
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnSetIcr, (PVMCPUCC pVCpu, uint64_t uIcr, int rcRZ));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnSetIcr, (PVMCPUCC pVCpu, uint64_t uIcr, int rcRZ));
 
     /**
      * Gets the APIC timer frequency.
@@ -748,7 +748,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pVM             The cross context VM structure.
      * @param   pu64Value       Where to store the timer frequency.
      */
-    DECLRGCALLBACKMEMBER(int, pfnGetTimerFreq, (PVMCC pVM, uint64_t *pu64Value));
+    DECLRCCALLBACKMEMBER(int, pfnGetTimerFreq, (PVMCC pVM, uint64_t *pu64Value));
 
     /**
      * Assert/de-assert the local APIC's LINT0/LINT1 interrupt pins.
@@ -762,7 +762,7 @@ typedef struct PDMAPICBACKENDRC
      *
      * @note    All callers totally ignores the status code!
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnSetLocalInterrupt, (PVMCPUCC pVCpu, uint8_t u8Pin, uint8_t u8Level, int rcRZ));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnSetLocalInterrupt, (PVMCPUCC pVCpu, uint8_t u8Pin, uint8_t u8Level, int rcRZ));
 
     /**
      * Gets the next highest-priority interrupt from the APIC, marking it as an
@@ -773,7 +773,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   pu8Vector   Where to store the vector.
      * @param   puSrcTag    Where to store the interrupt source tag (debugging).
      */
-    DECLRGCALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puTagSrc));
+    DECLRCCALLBACKMEMBER(int, pfnGetInterrupt, (PVMCPUCC pVCpu, uint8_t *pu8Vector, uint32_t *puTagSrc));
 
     /**
      * Posts an interrupt to a target APIC.
@@ -793,7 +793,7 @@ typedef struct PDMAPICBACKENDRC
      *
      * @thread  Any.
      */
-    DECLRGCALLBACKMEMBER(bool, pfnPostInterrupt, (PVMCPUCC pVCpu, uint8_t uVector, XAPICTRIGGERMODE enmTriggerMode, bool fAutoEoi,
+    DECLRCCALLBACKMEMBER(bool, pfnPostInterrupt, (PVMCPUCC pVCpu, uint8_t uVector, XAPICTRIGGERMODE enmTriggerMode, bool fAutoEoi,
                                                   uint32_t uSrcTag));
 
     /**
@@ -801,7 +801,7 @@ typedef struct PDMAPICBACKENDRC
      *
      * @param   pVCpu   The cross context virtual CPU structure.
      */
-    DECLRGCALLBACKMEMBER(void, pfnUpdatePendingInterrupts, (PVMCPUCC pVCpu));
+    DECLRCCALLBACKMEMBER(void, pfnUpdatePendingInterrupts, (PVMCPUCC pVCpu));
 
     /**
      * Delivers an interrupt message via the system bus.
@@ -816,7 +816,7 @@ typedef struct PDMAPICBACKENDRC
      * @param   uTriggerMode    The trigger mode.
      * @param   uSrcTag         The interrupt source tag (debugging).
      */
-    DECLRGCALLBACKMEMBER(int, pfnBusDeliver, (PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
+    DECLRCCALLBACKMEMBER(int, pfnBusDeliver, (PVMCC pVM, uint8_t uDest, uint8_t uDestMode, uint8_t uDeliveryMode, uint8_t uVector,
                                               uint8_t uPolarity, uint8_t uTriggerMode, uint32_t uSrcTag));
 
     /**
@@ -828,21 +828,21 @@ typedef struct PDMAPICBACKENDRC
      * @param   fForceX2ApicBehaviour   Pretend the APIC is in x2APIC mode during
      *                                  this write.
      */
-    DECLRGCALLBACKMEMBER(VBOXSTRICTRC, pfnSetEoi, (PVMCPUCC pVCpu, uint32_t uEoi, bool fForceX2ApicBehaviour));
+    DECLRCCALLBACKMEMBER(VBOXSTRICTRC, pfnSetEoi, (PVMCPUCC pVCpu, uint32_t uEoi, bool fForceX2ApicBehaviour));
 
     /** @name Reserved for future (MBZ).
      * @{ */
-    DECLRGCALLBACKMEMBER(int, pfnReserved0, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved1, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved2, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved3, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved4, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved5, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved6, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved7, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved8, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved9, (void));
-    DECLRGCALLBACKMEMBER(int, pfnReserved10, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved0, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved1, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved2, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved3, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved4, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved5, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved6, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved7, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved8, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved9, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved10, (void));
     /** @} */
 } PDMAPICBACKENDRC;
 /** Pointer to raw-mode context APIC backend. */
@@ -851,7 +851,6 @@ typedef RCPTRTYPE(struct PDMAPICBACKENDRC *) PPDMAPICBACKENDRC;
 typedef RCPTRTYPE(const struct PDMAPICBACKENDRC *) PCPDMAPICBACKENDRC;
 AssertCompileSizeAlignment(PDMAPICBACKENDRC, 8);
 AssertCompile(sizeof(PDMAPICBACKENDR3) == sizeof(PDMAPICBACKENDR0));
-AssertCompile(sizeof(PDMAPICBACKENDR3) == sizeof(PDMAPICBACKENDRC));
 
 /** @typedef PDMAPICBACKENDR3
  * A current context PDM APIC backend. */

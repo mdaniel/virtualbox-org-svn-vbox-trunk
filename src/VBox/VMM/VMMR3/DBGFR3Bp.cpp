@@ -2006,13 +2006,12 @@ static VBOXSTRICTRC dbgfR3BpHit(PVM pVM, PVMCPU pVCpu, DBGFBP hBp, PDBGFBPINT pB
             {
                 uint8_t abInstr[DBGF_BP_INSN_MAX];
                 RTGCPTR const GCPtrInstr = CPUMGetGuestFlatPC(pVCpu);
-                int rc = PGMPhysSimpleReadGCPtr(pVCpu, &abInstr[0], GCPtrInstr, sizeof(abInstr));
-                AssertRC(rc);
-                if (RT_SUCCESS(rc))
+                rcStrict = PGMPhysSimpleReadGCPtr(pVCpu, &abInstr[0], GCPtrInstr, sizeof(abInstr));
+                if (rcStrict == VINF_SUCCESS)
                 {
 #ifdef VBOX_VMM_TARGET_ARMV8
                     AssertFailed();
-                    rc = VERR_NOT_IMPLEMENTED;
+                    rcStrict = VERR_NOT_IMPLEMENTED;
 #else
                     /* Replace the int3 with the original instruction byte. */
                     abInstr[0] = pBp->Pub.u.Sw.Arch.x86.bOrg;
@@ -2024,12 +2023,12 @@ static VBOXSTRICTRC dbgfR3BpHit(PVM pVM, PVMCPU pVCpu, DBGFBP hBp, PDBGFBPINT pB
                         VBOXSTRICTRC rcStrict2 = pBpOwner->pfnBpHitR3(pVM, pVCpu->idCpu, pBp->pvUserR3, hBp, &pBp->Pub,
                                                                       DBGF_BP_F_HIT_EXEC_AFTER);
                         if (rcStrict2 == VINF_SUCCESS)
-                            return VBOXSTRICTRC_VAL(rcStrict);
+                            return rcStrict;
                         if (rcStrict2 != VINF_DBGF_BP_HALT)
                             return VERR_DBGF_BP_OWNER_CALLBACK_WRONG_STATUS;
                     }
                     else
-                        return VBOXSTRICTRC_VAL(rcStrict);
+                        return rcStrict;
                 }
             }
             break;

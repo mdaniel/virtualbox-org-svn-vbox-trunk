@@ -2344,6 +2344,9 @@ static void vbpsUpdateWindowsService(VBPSREGSTATE *pState, const WCHAR *pwszVBox
 
     /*
      * Output warning if the service module isn't on a local drive.
+     *
+     * This will not work because the LocalSystem account cannot access it (it
+     * is a different user and is unlikely to share the network mappings with you).
      */
     hVBoxDir = CreateFileW(pwszVBoxDir, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                            NULL, OPEN_EXISTING, FILE_ATTRIBUTE_DIRECTORY | FILE_FLAG_BACKUP_SEMANTICS, NULL);

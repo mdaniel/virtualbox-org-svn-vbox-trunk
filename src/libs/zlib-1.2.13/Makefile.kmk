@@ -70,7 +70,7 @@ endif
 
 # Builds a Windows DLL in a separate tree so that it can be found by the scons build system.
 # Required for building NSIS (Windows Guest Additions installer) from source.
-if defined(VBOX_WITH_ADDITIONS) || !defined(VBOX_WITHOUT_ADDITIONS)
+if defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
  DLLS.win += nsis-zlib-dll
  nsis-zlib-dll_EXTENDS     := VBox-zlib
  nsis-zlib-dll_NAME        := zlib1
@@ -88,10 +88,9 @@ if defined(VBOX_WITH_ADDITIONS) || !defined(VBOX_WITHOUT_ADDITIONS)
  nsis-zlib-install_MODE     := a+r,u+w
  nsis-zlib-install_SOURCES   = \
  	$(nsis-zlib-dll_1_TARGET) \
- 	$(basename $(nsis-zlib-dll_1_TARGET)).lib=>lib/zlib.lib \
- 	$(basename $(nsis-zlib-dll_1_TARGET)).lib=>lib/zlib1.lib \
- 	zconf.h=>include/zconf.h \
- 	zlib.h=>include/zlib.h
+ 	$(basename $(nsis-zlib-dll_1_TARGET)).lib=>zdll.lib \
+ 	zconf.h \
+ 	zlib.h
 endif
 
 include $(FILE_KBUILD_SUB_FOOTER)

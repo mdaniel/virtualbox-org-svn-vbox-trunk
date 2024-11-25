@@ -68,7 +68,6 @@ TrackedObjectData::TrackedObjectData(const com::Guid &aObjId,
     RTTimeNow(unconst(&m_creationTime));
     m_lastAccessTime = m_creationTime;
     m_State = TrackedObjectData::Valid;
-    Log2(("%s constructor \n", __FUNCTION__));
 }
 
 TrackedObjectData::TrackedObjectData(const TrackedObjectData & that)
@@ -177,7 +176,6 @@ extern TrackedObjectsCollector gTrackedObjectsCollector;
 
 TrackedObjectsCollector::TrackedObjectsCollector(): m_fInitialized(false)
 {
-    Log2(("%s constructor \n", __FUNCTION__));
 }
 
 TrackedObjectsCollector::~TrackedObjectsCollector()

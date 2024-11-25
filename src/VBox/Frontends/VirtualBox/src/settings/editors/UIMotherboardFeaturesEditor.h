@@ -89,6 +89,11 @@ public:
     /** Defines minimum layout @a iIndent. */
     void setMinimumLayoutIndent(int iIndent);
 
+protected:
+
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
+
 private slots:
 
     /** Handles translation event. */
@@ -106,6 +111,8 @@ private:
 
     /** Prepares all. */
     void prepare();
+    /** Rebuilds layout. */
+    void rebuildLayout();
 
     /** @name Values
      * @{ */

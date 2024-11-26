@@ -6420,6 +6420,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermilps(uint8_t bMode)
 
 
 /*
+ * VPERMD - Permute Doubleword Values
  * VPERMPS - Permute Single Precision Floating-Point Values
  */
 BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermps(uint8_t bMode)
@@ -6544,9 +6545,10 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermilpd(uint8_t bMode)
 
 
 /*
+ * VPERMQ - Permute Quadword Values
  * VPERMPD - Permute Double Precision Floating-Point Values
  */
-BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermpd(uint8_t bMode)
+BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermq_vpermpd(uint8_t bMode)
 {
     static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues00[] =
     {
@@ -6587,6 +6589,24 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermpd(uint8_t bMode)
 
     static BS3CPUINSTR3_TEST1_T const s_aTests[] =
     {
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM2_000h),   255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ARRAY(s_aValues00) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_FSxBX_000h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ARRAY(s_aValues00) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM2_091h),   255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ARRAY(s_aValues91) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_FSxBX_091h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ARRAY(s_aValues91) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM2_0E7h),   255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ARRAY(s_aValuesE7) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_FSxBX_0E7h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ARRAY(s_aValuesE7) },
+
+        {  BS3_INSTR3_C64(vpermq_YMM8_YMM9_000h),   255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ARRAY(s_aValues00) },
+        {  BS3_INSTR3_C64(vpermq_YMM8_FSxBX_000h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ARRAY(s_aValues00) },
+        {  BS3_INSTR3_C64(vpermq_YMM8_YMM9_091h),   255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ARRAY(s_aValues91) },
+        {  BS3_INSTR3_C64(vpermq_YMM8_FSxBX_091h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ARRAY(s_aValues91) },
+        {  BS3_INSTR3_C64(vpermq_YMM8_YMM9_0E7h),   255,         RM_REG, T_AVX2_256, YMM8, YMM9,  NOREG, PASS_ARRAY(s_aValuesE7) },
+        {  BS3_INSTR3_C64(vpermq_YMM8_FSxBX_0E7h),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, FSxBX, NOREG, PASS_ARRAY(s_aValuesE7) },
+
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM1_000h),   255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ARRAY(s_aValues00) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM1_091h),   255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ARRAY(s_aValues91) },
+        {  BS3_INSTR3_ALL(vpermq_YMM1_YMM1_0E7h),   255,         RM_REG, T_AVX2_256, YMM1, YMM1,  NOREG, PASS_ARRAY(s_aValuesE7) },
+
         {  BS3_INSTR3_ALL(vpermpd_YMM1_YMM2_000h),  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ARRAY(s_aValues00) },
         {  BS3_INSTR3_ALL(vpermpd_YMM1_FSxBX_000h), X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, FSxBX, NOREG, PASS_ARRAY(s_aValues00) },
         {  BS3_INSTR3_ALL(vpermpd_YMM1_YMM2_091h),  255,         RM_REG, T_AVX2_256, YMM1, YMM2,  NOREG, PASS_ARRAY(s_aValues91) },
@@ -11564,7 +11584,7 @@ BS3_DECL(void) Main_pe32()
         { "vpermilps",                                      bs3CpuInstr3_vpermilps, 0 },
         { "vpermilpd",                                      bs3CpuInstr3_vpermilpd, 0 },
         { "vpermps",                                        bs3CpuInstr3_vpermps, 0 },
-        { "vpermpd",                                        bs3CpuInstr3_vpermpd, 0 },
+        { "vpermq/vpermpd",                                 bs3CpuInstr3_vpermq_vpermpd, 0 },
 #endif
 #if defined(ALL_TESTS)
         { "[v]pmaddwd",                                     bs3CpuInstr3_v_pmaddwd, 0 },

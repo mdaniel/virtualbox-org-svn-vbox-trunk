@@ -816,20 +816,10 @@ QString UICommon::hostOperatingSystem() const
 
 bool UICommon::isWindowsInDarkMode() const
 {
-    /* Load saved color theme: */
-    UIColorThemeType enmColorTheme = gEDataManager->colorTheme();
-
-    /* Check whether we have dark system theme requested: */
-    if (enmColorTheme == UIColorThemeType_Auto)
-    {
-        QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                           QSettings::NativeFormat);
-        if (settings.value("AppsUseLightTheme") == 0)
-            enmColorTheme = UIColorThemeType_Dark;
-    }
-
-    /* Return result: */
-    return enmColorTheme == UIColorThemeType_Dark;
+    /* Check if Windows registry has no Light flag, that means system will use Dark mode: */
+    QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                       QSettings::NativeFormat);
+    return settings.value("AppsUseLightTheme") == 0;
 }
 
 #else /* Linux, BSD, Solaris */
@@ -919,39 +909,7 @@ void UICommon::loadColorTheme()
         qApp->setPalette(pal);
     }
 
-#elif defined(VBOX_WS_WIN)
-
-    /* For the Dark mode! */
-    if (isInDarkMode())
-    {
-        qApp->setStyle(QStyleFactory::create("Fusion"));
-        QPalette darkPalette;
-        QColor windowColor1 = QColor(59, 60, 61);
-        QColor windowColor2 = QColor(63, 64, 65);
-        QColor baseColor1 = QColor(46, 47, 48);
-        QColor baseColor2 = QColor(56, 57, 58);
-        QColor disabledColor = QColor(113, 114, 115);
-        darkPalette.setColor(QPalette::Window, windowColor1);
-        darkPalette.setColor(QPalette::WindowText, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::WindowText, disabledColor);
-        darkPalette.setColor(QPalette::Base, baseColor1);
-        darkPalette.setColor(QPalette::AlternateBase, baseColor2);
-        darkPalette.setColor(QPalette::PlaceholderText, disabledColor);
-        darkPalette.setColor(QPalette::Text, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::Text, disabledColor);
-        darkPalette.setColor(QPalette::Button, windowColor2);
-        darkPalette.setColor(QPalette::ButtonText, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, disabledColor);
-        darkPalette.setColor(QPalette::BrightText, Qt::red);
-        darkPalette.setColor(QPalette::Link, QColor(179, 214, 242));
-        darkPalette.setColor(QPalette::Highlight, QColor(29, 84, 92));
-        darkPalette.setColor(QPalette::HighlightedText, Qt::white);
-        darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, disabledColor);
-        qApp->setPalette(darkPalette);
-        qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2b2b2b; border: 1px solid #737373; }");
-    }
-
-#else /* Linux, BSD, Solaris */
+#elif defined(VBOX_WS_NIX) /* Linux, BSD, Solaris */
 
     /* For the Dark mode! */
     if (isInDarkMode())

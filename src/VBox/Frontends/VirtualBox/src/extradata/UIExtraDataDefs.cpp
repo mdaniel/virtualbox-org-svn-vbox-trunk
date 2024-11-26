@@ -31,7 +31,6 @@
 
 /* General: */
 const char *UIExtraDataDefs::GUI_RestrictedDialogs = "GUI/RestrictedDialogs";
-const char *UIExtraDataDefs::GUI_ColorTheme = "GUI/ColorTheme";
 
 
 /* Messaging: */

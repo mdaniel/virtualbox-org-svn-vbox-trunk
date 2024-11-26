@@ -2333,16 +2333,6 @@ void UIExtraDataManager::setRestrictedDialogTypes(UIExtraDataMetaDefs::DialogTyp
     setExtraDataStringList(GUI_RestrictedDialogs, result, uID);
 }
 
-UIColorThemeType UIExtraDataManager::colorTheme()
-{
-    return gpConverter->fromInternalString<UIColorThemeType>(extraDataString(GUI_ColorTheme));
-}
-
-void UIExtraDataManager::setColorTheme(const UIColorThemeType &enmType)
-{
-    setExtraDataString(GUI_ColorTheme, gpConverter->toInternalString(enmType));
-}
-
 QStringList UIExtraDataManager::suppressedMessages(const QUuid &uID /* = GlobalID */)
 {
     return extraDataStringList(GUI_SuppressMessages, uID);

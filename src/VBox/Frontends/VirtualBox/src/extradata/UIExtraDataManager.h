@@ -189,11 +189,6 @@ public:
         UIExtraDataMetaDefs::DialogType restrictedDialogTypes(const QUuid &uID);
         /** Defines a list of restricted dialogs. */
         void setRestrictedDialogTypes(UIExtraDataMetaDefs::DialogType enmTypes, const QUuid &uID);
-
-        /** Returns color theme type. */
-        UIColorThemeType colorTheme();
-        /** Defines color theme @a enmType. */
-        void setColorTheme(const UIColorThemeType &enmType);
     /** @} */
 
     /** @name Messaging

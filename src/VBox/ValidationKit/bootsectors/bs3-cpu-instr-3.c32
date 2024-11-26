@@ -6423,7 +6423,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermilps(uint8_t bMode)
  * VPERMD - Permute Doubleword Values
  * VPERMPS - Permute Single Precision Floating-Point Values
  */
-BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermps(uint8_t bMode)
+BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermd_vpermps(uint8_t bMode)
 {
     static BS3CPUINSTR3_TEST1_VALUES_T const s_aValues[] =
     {
@@ -6452,6 +6452,18 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr3_vpermps(uint8_t bMode)
 
     static BS3CPUINSTR3_TEST1_T const s_aTests[] =
     {
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM2_YMM3),   255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM3,  PASS_ARRAY(s_aValues)   },
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM2_FSxBX),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM2, FSxBX, PASS_ARRAY(s_aValues)   },
+
+        {  BS3_INSTR3_C64(vpermd_YMM8_YMM9_YMM10),  255,         RM_REG, T_AVX2_256, YMM8, YMM9, YMM10, PASS_ARRAY(s_aValues)   },
+        {  BS3_INSTR3_C64(vpermd_YMM8_YMM9_FSxBX),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM8, YMM9, FSxBX, PASS_ARRAY(s_aValues)   },
+
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM2_YMM2),   255,         RM_REG, T_AVX2_256, YMM1, YMM2, NOREG, PASS_ARRAY(s_aValuesSR) },
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM1_YMM2),   255,         RM_REG, T_AVX2_256, YMM1, YMM1, YMM2,  PASS_ARRAY(s_aValues)   },
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM2_YMM1),   255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM1,  PASS_ARRAY(s_aValues)   },
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM1_YMM1),   255,         RM_REG, T_AVX2_256, YMM1, YMM1, NOREG, PASS_ARRAY(s_aValuesSR) },
+        {  BS3_INSTR3_ALL(vpermd_YMM1_YMM1_FSxBX),  X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM1, FSxBX, PASS_ARRAY(s_aValues)   },
+
         {  BS3_INSTR3_ALL(vpermps_YMM1_YMM2_YMM3),  255,         RM_REG, T_AVX2_256, YMM1, YMM2, YMM3,  PASS_ARRAY(s_aValues)   },
         {  BS3_INSTR3_ALL(vpermps_YMM1_YMM2_FSxBX), X86_XCPT_DB, RM_MEM, T_AVX2_256, YMM1, YMM2, FSxBX, PASS_ARRAY(s_aValues)   },
 
@@ -11583,7 +11595,7 @@ BS3_DECL(void) Main_pe32()
 #if defined(ALL_TESTS)
         { "vpermilps",                                      bs3CpuInstr3_vpermilps, 0 },
         { "vpermilpd",                                      bs3CpuInstr3_vpermilpd, 0 },
-        { "vpermps",                                        bs3CpuInstr3_vpermps, 0 },
+        { "vpermd/vpermps",                                 bs3CpuInstr3_vpermd_vpermps, 0 },
         { "vpermq/vpermpd",                                 bs3CpuInstr3_vpermq_vpermpd, 0 },
 #endif
 #if defined(ALL_TESTS)

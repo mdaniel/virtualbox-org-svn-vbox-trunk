@@ -116,14 +116,10 @@ INSTALLS += VBoxEfiFirmware
 VBoxEfiFirmware_INST = $(INST_BIN)
 VBoxEfiFirmware_MODE = 0644
 VBoxEfiFirmware_SOURCES = \
-	$(VBoxEfiFirmware_0_OUTDIR)/x86/$(call VBOX_EFI_OUTPUT_SUBDIR,x86)/FV/OVMF.fd=>VBoxEFI32.fd \
 	$(VBoxEfiFirmware_0_OUTDIR)/x86/$(call VBOX_EFI_OUTPUT_SUBDIR,x86)/FV/OVMF.fd=>VBoxEFI-x86.fd \
-	$(VBoxEfiFirmware_0_OUTDIR)/amd64/$(call VBOX_EFI_OUTPUT_SUBDIR,amd64)/FV/OVMF.fd=>VBoxEFI64.fd \
 	$(VBoxEfiFirmware_0_OUTDIR)/amd64/$(call VBOX_EFI_OUTPUT_SUBDIR,amd64)/FV/OVMF.fd=>VBoxEFI-amd64.fd \
 	$(VBoxEfiFirmware_0_OUTDIR)/arm32/$(call VBOX_EFI_OUTPUT_SUBDIR,arm32)/FV/QEMU_EFI.fd=>VBoxEFI-arm32.fd \
-	$(VBoxEfiFirmware_0_OUTDIR)/arm32/$(call VBOX_EFI_OUTPUT_SUBDIR,arm32)/FV/QEMU_EFI.fd=>VBoxEFIAArch32.fd \
-	$(VBoxEfiFirmware_0_OUTDIR)/arm64/$(call VBOX_EFI_OUTPUT_SUBDIR,arm64)/FV/QEMU_EFI.fd=>VBoxEFI-arm64.fd \
-	$(VBoxEfiFirmware_0_OUTDIR)/arm64/$(call VBOX_EFI_OUTPUT_SUBDIR,arm64)/FV/QEMU_EFI.fd=>VBoxEFIAArch64.fd
+	$(VBoxEfiFirmware_0_OUTDIR)/arm64/$(call VBOX_EFI_OUTPUT_SUBDIR,arm64)/FV/QEMU_EFI.fd=>VBoxEFI-arm64.fd
 VBoxEfiFirmware_BLDDIRS = \
 	$(VBoxEfiFirmware_0_OUTDIR)/x86/ \
 	$(VBoxEfiFirmware_0_OUTDIR)/x86/Conf/ \
@@ -216,44 +212,25 @@ ifndef TOOL_ZIP_PACK
 endif
 VBoxEfiFirmware.zip: $(PATH_STAGE)/VBoxEfiFirmware.zip
 $(PATH_STAGE)/VBoxEfiFirmware.zip: # $(MAKEFILE) make this problematic \
-		$(PATH_STAGE_BIN)/VBoxEFI32.fd \
-		$(PATH_STAGE_BIN)/VBoxEFI64.fd \
-		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/amd64/$(mod)$(VBOX_EFI_DBG_SUFF.amd64)) \
+		$(PATH_STAGE_BIN)/VBoxEFI-x86.fd \
+		$(PATH_STAGE_BIN)/VBoxEFI-amd64.fd \
+		$(PATH_STAGE_BIN)/VBoxEFI-arm32.fd \
+		$(PATH_STAGE_BIN)/VBoxEFI-arm64.fd \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/x86/$(mod)$(VBOX_EFI_DBG_SUFF.x86)) \
-		$(if-expr "$(KBUILD_HOST)" != "linux", \
-			$(PATH_STAGE_BIN)/VBoxEFI-arm32.fd \
-			$(PATH_STAGE_BIN)/VBoxEFI-arm64.fd, \
-			$(PATH_STAGE_BIN)/VBoxEFIAArch32.fd \
-			$(PATH_STAGE_BIN)/VBoxEFIAArch64.fd) \
+		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/amd64/$(mod)$(VBOX_EFI_DBG_SUFF.amd64)) \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/arm32/$(mod)$(VBOX_EFI_DBG_SUFF.arm32)) \
-		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/arm64/$(mod)$(VBOX_EFI_DBG_SUFF.arm64)),)
+		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)/arm64/$(mod)$(VBOX_EFI_DBG_SUFF.arm64))
 	$(REDIRECT) -C "$(PATH_STAGE_BIN)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
 		VBoxEFI-x86.fd \
 		VBoxEFI-amd64.fd \
 		VBoxEFI-arm32.fd \
-		VBoxEFI-arm64.fd \
-		VBoxEFI32.fd \
-		VBoxEFI64.fd \
-		$(if-expr "$(KBUILD_HOST)" == "linux",\
-			VBoxEFIAArch32.fd \
-			VBoxEFIAArch64.fd,)
+		VBoxEFI-arm64.fd
 	$(REDIRECT) -C "$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.x86)  ,x86/$(mod)$(VBOX_EFI_DBG_SUFF.x86)) \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.amd64),amd64/$(mod)$(VBOX_EFI_DBG_SUFF.amd64)) \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),arm32/$(mod)$(VBOX_EFI_DBG_SUFF.arm32)) \
 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),arm64/$(mod)$(VBOX_EFI_DBG_SUFF.arm64))
 
-
-if defined(VBOX_WITH_VIRT_ARMV8) && "$(KBUILD_HOST)" == "linux"
- VBoxEfiFirmware-armv8.zip: $(PATH_STAGE)/VBoxEfiFirmware-armv8.zip
- $(PATH_STAGE)/VBoxEfiFirmware-armv8.zip:
-	$(REDIRECT) -C "$(PATH_STAGE_BIN)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
- 		VBoxEFIAArch32.fd \
- 		VBoxEFIAArch64.fd
-	$(REDIRECT) -C "$(PATH_STAGE)/$(INST_VBOXDBG_SYMS)" -- $(TOOL_ZIP_PACK) $(TOOL_ZIP_PACKFLAGS) -9X $@ \
- 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm64),arm64/$(mod)$(VBOX_EFI_DBG_SUFF.arm64)) \
- 		$(foreach mod,$(VBOX_EFI_MODULES_FLAT.arm32),arm32/$(mod)$(VBOX_EFI_DBG_SUFF.arm32))
-endif
 
 #
 # Include the footer early so that we can use VBoxEfiFirmware_0_OUTDIR below.
@@ -410,7 +387,7 @@ $(VBoxEfiFirmware_0_OUTDIR)/arm64/Conf/build_rule.txt: \
 
 
 #
-# VBoxEFI32
+# VBoxEFI-x86
 #
 $(VBoxEfiFirmware_0_OUTDIR)/x86/Conf/target.txt: $(MAKEFILE) | $$(dir $$@) $(VBOX_EFI_BLDPROGS)
 	$(APPEND) -tn "$@" \
@@ -442,7 +419,7 @@ $(VBoxEfiFirmware_0_OUTDIR)/x86/$(call VBOX_EFI_OUTPUT_SUBDIR,x86)/FV/OVMF.fd \
 		--platform OvmfPkg/OvmfPkgIa32.dsc
 
 #
-# VBoxEFI64
+# VBoxEFI-amd64
 #
 $(VBoxEfiFirmware_0_OUTDIR)/amd64/Conf/target.txt: $(MAKEFILE) | $$(dir $$@) $(VBOX_EFI_BLDPROGS)
 	$(APPEND) -tn "$@" \
@@ -474,7 +451,7 @@ $(VBoxEfiFirmware_0_OUTDIR)/amd64/$(call VBOX_EFI_OUTPUT_SUBDIR,amd64)/FV/OVMF.f
 		--platform OvmfPkg/OvmfPkgX64.dsc
 
 #
-# VBoxEFIAArch32
+# VBoxEFI-arm32
 #
 $(VBoxEfiFirmware_0_OUTDIR)/arm32/Conf/target.txt: $(MAKEFILE) | $$(dir $$@) $(VBOX_EFI_BLDPROGS)
 	$(APPEND) -tn "$@" \
@@ -505,7 +482,7 @@ $(VBoxEfiFirmware_0_OUTDIR)/arm32/$(call VBOX_EFI_OUTPUT_SUBDIR,arm32)/FV/QEMU_E
 		--platform ArmVirtPkg/ArmVirtQemu.dsc
 
 #
-# VBoxEFIAArch64
+# VBoxEFI-arm64
 #
 $(VBoxEfiFirmware_0_OUTDIR)/arm64/Conf/target.txt: $(MAKEFILE) | $$(dir $$@) $(VBOX_EFI_BLDPROGS)
 	$(APPEND) -tn "$@" \
@@ -539,8 +516,8 @@ $(VBoxEfiFirmware_0_OUTDIR)/arm64/$(call VBOX_EFI_OUTPUT_SUBDIR,arm64)/FV/QEMU_E
 #
 # Some aliases.
 #
-build-efi-x86: $$(filter   %VBoxEFI32.fd      %VBoxEFI-x86.fd  ,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
-build-efi-amd64: $$(filter %VBoxEFI64.fd      %VBoxEFI-amd64.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
-build-efi-arm32: $$(filter %VBoxEFIAArch32.fd %VBoxEFI-arm32.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
-build-efi-arm64: $$(filter %VBoxEFIAArch64.fd %VBoxEFI-arm64.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
+build-efi-x86: $$(filter   %VBoxEFI-x86.fd  ,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
+build-efi-amd64: $$(filter %VBoxEFI-amd64.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
+build-efi-arm32: $$(filter %VBoxEFI-arm32.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
+build-efi-arm64: $$(filter %VBoxEFI-arm64.fd,$$(VBoxEfiFirmware_2_STAGE_TARGETS))
 

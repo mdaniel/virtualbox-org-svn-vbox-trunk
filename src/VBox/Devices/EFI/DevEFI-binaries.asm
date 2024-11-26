@@ -35,27 +35,27 @@
 
 
 BEGINCONST
-EXPORTEDNAME g_abEfiFirmware32
-        incbin "VBoxEFI32.fd"
+EXPORTEDNAME g_abEfiFirmwareX86
+        incbin "VBoxEFI-x86.fd"
 end_32_firmware:
-EXPORTEDNAME g_cbEfiFirmware32
-        dd  end_32_firmware - NAME(g_abEfiFirmware32)
+EXPORTEDNAME g_cbEfiFirmwareX86
+        dd  end_32_firmware - NAME(g_abEfiFirmwareX86)
 
 ALIGNDATA(64)
-EXPORTEDNAME g_abEfiFirmware64
-        incbin "VBoxEFI64.fd"
+EXPORTEDNAME g_abEfiFirmwareAmd64
+        incbin "VBoxEFI-amd64.fd"
 end_64_firmware:
-EXPORTEDNAME g_cbEfiFirmware64
-        dd  end_64_firmware - NAME(g_abEfiFirmware64)
+EXPORTEDNAME g_cbEfiFirmwareAmd64
+        dd  end_64_firmware - NAME(g_abEfiFirmwareAmd64)
 
 %ifdef ASM_FORMAT_ELF
-size g_abEfiFirmware32 end_32_firmware - NAME(g_abEfiFirmware32)
-type g_abEfiFirmware32 object
-size g_cbEfiFirmware32 4
-type g_cbEfiFirmware32 object
+size g_abEfiFirmwareX86 end_32_firmware - NAME(g_abEfiFirmwareX86)
+type g_abEfiFirmwareX86 object
+size g_cbEfiFirmwareX86 4
+type g_cbEfiFirmwareX86 object
 
-size g_abEfiFirmware64 end_64_firmware - NAME(g_abEfiFirmware64)
-type g_abEfiFirmware64 object
-size g_cbEfiFirmware64 4
-type g_cbEfiFirmware64 object
+size g_abEfiFirmwareAmd64 end_64_firmware - NAME(g_abEfiFirmwareAmd64)
+type g_abEfiFirmwareAmd64 object
+size g_cbEfiFirmwareAmd64 4
+type g_cbEfiFirmwareAmd64 object
 %endif

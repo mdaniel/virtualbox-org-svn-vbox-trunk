@@ -502,8 +502,8 @@ endif
 # EFI firmware
 ifdef VBOX_WITH_EFIFW_PACKING
  SOLARIS_COMMON += \
- 	VBoxEFI32.fd \
- 	VBoxEFI64.fd
+ 	VBoxEFI-x86.fd \
+ 	VBoxEFI-amd64.fd
 endif
 
 # Unattended installation template scripts.
@@ -619,7 +619,7 @@ $(VBOX_PATH_SI_SCRATCH)/dist-copy.ts: \
 		$(VBOX_PATH_SI_SCRATCH_PKG)/opt/VirtualBox/$(VBOX_SI_ARCH)/libSDL-1.2.so.0,)
 
 	$(if-expr defined(VBOX_WITH_EFIFW_PACKING) \
-	,$(LN_SYMLINK) ../VBoxEFI32.fd ../VBoxEFI64.fd $(VBOX_PATH_SI_SCRATCH_PKG)/opt/VirtualBox/$(VBOX_SI_ARCH)/,)
+	,$(LN_SYMLINK) ../VBoxEFI-x86.fd ../VBoxEFI-amd64.fd $(VBOX_PATH_SI_SCRATCH_PKG)/opt/VirtualBox/$(VBOX_SI_ARCH)/,)
 
 # Links to /usr/bin.
 	$(foreach link,$(SOLARIS_USRBIN_LINKS) \

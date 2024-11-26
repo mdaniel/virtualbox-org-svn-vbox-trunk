@@ -1560,8 +1560,8 @@ int Console::i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Auto
             Assert(eFwType == FirmwareType_EFI64 || eFwType == FirmwareType_EFI32 || eFwType == FirmwareType_EFIDUAL);
 #ifdef VBOX_WITH_EFI_IN_DD2
             const char *pszEfiRomFile = eFwType == FirmwareType_EFIDUAL ? "VBoxEFIDual.fd"
-                                      : eFwType == FirmwareType_EFI32   ? "VBoxEFI32.fd"
-                                      :                                   "VBoxEFI64.fd";
+                                      : eFwType == FirmwareType_EFI32   ? "VBoxEFI-x86.fd"
+                                      :                                   "VBoxEFI-amd64.fd";
 #else
             Utf8Str efiRomFile;
             vrc = findEfiRom(virtualBox, PlatformArchitecture_x86, eFwType, &efiRomFile);

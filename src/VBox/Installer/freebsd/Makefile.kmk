@@ -133,8 +133,8 @@ VBOX_FBSD_NO_STRIP = \
 # EFI firmware
 ifdef VBOX_WITH_EFIFW_PACKING
  VBOX_FBSD_NO_STRIP += \
- 	VBoxEFI32.fd \
- 	VBoxEFI64.fd
+ 	VBoxEFI-x86.fd \
+ 	VBoxEFI-amd64.fd
 endif
 
 # Symlinks residing in bin/

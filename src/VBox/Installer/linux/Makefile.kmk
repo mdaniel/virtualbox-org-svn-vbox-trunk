@@ -357,8 +357,8 @@ endif
 # EFI firmware
 ifdef VBOX_WITH_EFIFW_PACKING
  VBOX_LNX_NO_STRIP += \
- 	VBoxEFI32.fd \
- 	VBoxEFI64.fd
+ 	VBoxEFI-x86.fd \
+ 	VBoxEFI-amd64.fd
 endif
 
 # DTrace library and scripts.

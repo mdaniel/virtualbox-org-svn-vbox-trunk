@@ -479,8 +479,8 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         FirmwareType_T eFwType =  FirmwareType_EFI64;
 #ifdef VBOX_WITH_EFI_IN_DD2
         const char *pszEfiRomFile = eFwType == FirmwareType_EFIDUAL ? "<INVALID>"
-                                  : eFwType == FirmwareType_EFI32   ? "VBoxEFIAArch32.fd"
-                                  :                                   "VBoxEFIAArch64.fd";
+                                  : eFwType == FirmwareType_EFI32   ? "VBoxEFI-amr32.fd"
+                                  :                                   "VBoxEFI-amr64.fd";
         const char *pszKey = "ResourceId";
 #else
         Utf8Str efiRomFile;

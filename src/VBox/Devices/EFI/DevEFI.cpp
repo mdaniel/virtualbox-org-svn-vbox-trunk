@@ -282,9 +282,9 @@ static const RTUUID g_UuidNvDataFv = { { 0x8d, 0x2b, 0xf1, 0xff, 0x96, 0x76, 0x8
 
 # ifdef VBOX_WITH_EFI_IN_DD2
 /** Special file name value for indicating the 32-bit built-in EFI firmware. */
-static const char g_szEfiBuiltin32[] = "VBoxEFI32.fd";
+static const char g_szEfiBuiltinX86[]   = "VBoxEFI-x86.fd";
 /** Special file name value for indicating the 64-bit built-in EFI firmware. */
-static const char g_szEfiBuiltin64[] = "VBoxEFI64.fd";
+static const char g_szEfiBuiltinAmd64[] = "VBoxEFI-amd64.fd";
 # endif
 #endif /* IN_RING3 */
 
@@ -1269,17 +1269,19 @@ static int efiLoadRom(PPDMDEVINS pDevIns, PDEVEFI pThis, PDEVEFIR3 pThisCC, PCFG
      */
     int     rc;
 #ifdef VBOX_WITH_EFI_IN_DD2
-    if (RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltin32) == 0)
+    if (   RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinX86) == 0
+        || RTStrCmp(pThisCC->pszEfiRomFile, "VBoxEFI32.fd") == 0 /* legacy */)
     {
         pThisCC->pu8EfiRomFree = NULL;
-        pThisCC->pu8EfiRom = g_abEfiFirmware32;
-        pThisCC->cbEfiRom  = g_cbEfiFirmware32;
+        pThisCC->pu8EfiRom = g_abEfiFirmwareX86;
+        pThisCC->cbEfiRom  = g_cbEfiFirmwareX86;
     }
-    else if (RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltin64) == 0)
+    else if (   RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinAmd64) == 0
+             || RTStrCmp(pThisCC->pszEfiRomFile, "VBoxEFI64.fd") == 0 /* legacy */)
     {
         pThisCC->pu8EfiRomFree = NULL;
-        pThisCC->pu8EfiRom = g_abEfiFirmware64;
-        pThisCC->cbEfiRom  = g_cbEfiFirmware64;
+        pThisCC->pu8EfiRom = g_abEfiFirmwareAmd64;
+        pThisCC->cbEfiRom  = g_cbEfiFirmwareAmd64;
     }
     else
 #endif
@@ -1624,7 +1626,7 @@ static DECLCALLBACK(int)  efiConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMN
      * Get the system EFI ROM file name.
      */
 #ifdef VBOX_WITH_EFI_IN_DD2
-    rc = pHlp->pfnCFGMQueryStringAllocDef(pCfg, "EfiRom", &pThisCC->pszEfiRomFile, g_szEfiBuiltin32);
+    rc = pHlp->pfnCFGMQueryStringAllocDef(pCfg, "EfiRom", &pThisCC->pszEfiRomFile, g_szEfiBuiltinX86);
     if (RT_FAILURE(rc))
 #else
     rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "EfiRom", &pThisCC->pszEfiRomFile);
@@ -1634,7 +1636,7 @@ static DECLCALLBACK(int)  efiConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMN
         AssertReturn(pThisCC->pszEfiRomFile, VERR_NO_MEMORY);
         rc = RTPathAppPrivateArchTop(pThisCC->pszEfiRomFile, RTPATH_MAX);
         AssertRCReturn(rc, rc);
-        rc = RTPathAppend(pThisCC->pszEfiRomFile, RTPATH_MAX, "VBoxEFI32.fd");
+        rc = RTPathAppend(pThisCC->pszEfiRomFile, RTPATH_MAX, "VBoxEFI-x86.fd");
         AssertRCReturn(rc, rc);
     }
     else if (RT_FAILURE(rc))

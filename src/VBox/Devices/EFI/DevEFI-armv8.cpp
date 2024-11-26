@@ -162,12 +162,11 @@ typedef PDEVEFIRC PDEVEFICC;
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 #ifdef IN_RING3
-
 # ifdef VBOX_WITH_EFI_IN_DD2
 /** Special file name value for indicating the 32-bit built-in EFI firmware. */
-static const char g_szEfiBuiltinAArch32[] = "VBoxEFIAArch32.fd";
+static const char g_szEfiBuiltinArm32[] = "VBoxEFI-arm32.fd";
 /** Special file name value for indicating the 64-bit built-in EFI firmware. */
-static const char g_szEfiBuiltinAArch64[] = "VBoxEFIAArch64.fd";
+static const char g_szEfiBuiltinArm64[] = "VBoxEFI-arm64.fd";
 # endif
 #endif /* IN_RING3 */
 
@@ -277,17 +276,19 @@ static int efiR3LoadRom(PPDMDEVINS pDevIns, PDEVEFIR3 pThisCC, PCFGMNODE pCfg)
      */
     int     rc;
 #ifdef VBOX_WITH_EFI_IN_DD2
-    if (RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinAArch32) == 0)
+    if (   RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinArm32) == 0
+        || RTStrCmp(pThisCC->pszEfiRomFile, "VBoxEFIAArch32.fd") == 0 /*legacy*/)
     {
         pThisCC->pu8EfiRomFree = NULL;
-        pThisCC->pu8EfiRom = g_abEfiFirmwareAArch32;
-        pThisCC->cbEfiRom  = g_cbEfiFirmwareAArch32;
+        pThisCC->pu8EfiRom = g_abEfiFirmwareArm32;
+        pThisCC->cbEfiRom  = g_cbEfiFirmwareArm32;
     }
-    else if (RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinAArch64) == 0)
+    else if (   RTStrCmp(pThisCC->pszEfiRomFile, g_szEfiBuiltinArm64) == 0
+             || RTStrCmp(pThisCC->pszEfiRomFile, "VBoxEFIAArch64.fd") == 0 /*legacy*/)
     {
         pThisCC->pu8EfiRomFree = NULL;
-        pThisCC->pu8EfiRom = g_abEfiFirmwareAArch64;
-        pThisCC->cbEfiRom  = g_cbEfiFirmwareAArch64;
+        pThisCC->pu8EfiRom = g_abEfiFirmwareArm64;
+        pThisCC->cbEfiRom  = g_cbEfiFirmwareArm64;
     }
     else
 #endif
@@ -365,7 +366,7 @@ static DECLCALLBACK(int)  efiR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
      * Get the system EFI ROM file name.
      */
 #ifdef VBOX_WITH_EFI_IN_DD2
-    rc = pHlp->pfnCFGMQueryStringAllocDef(pCfg, "EfiRom", &pThisCC->pszEfiRomFile, g_szEfiBuiltinAArch32);
+    rc = pHlp->pfnCFGMQueryStringAllocDef(pCfg, "EfiRom", &pThisCC->pszEfiRomFile, g_szEfiBuiltinArm64);
     if (RT_FAILURE(rc))
 #else
     rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "EfiRom", &pThisCC->pszEfiRomFile);
@@ -375,7 +376,7 @@ static DECLCALLBACK(int)  efiR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
         AssertReturn(pThisCC->pszEfiRomFile, VERR_NO_MEMORY);
         rc = RTPathAppPrivateArchTop(pThisCC->pszEfiRomFile, RTPATH_MAX);
         AssertRCReturn(rc, rc);
-        rc = RTPathAppend(pThisCC->pszEfiRomFile, RTPATH_MAX, "VBoxEFIAArch32.fd");
+        rc = RTPathAppend(pThisCC->pszEfiRomFile, RTPATH_MAX, "VBoxEFI-arm64.fd");
         AssertRCReturn(rc, rc);
     }
     else if (RT_FAILURE(rc))

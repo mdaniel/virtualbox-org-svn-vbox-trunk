@@ -130,9 +130,9 @@ typedef DEVPLATFORM *PDEVPLATFORM;
 *********************************************************************************************************************************/
 # ifdef VBOX_WITH_EFI_IN_DD2
 /** Special file name value for indicating the 32-bit built-in EFI firmware. */
-static const char g_szEfiBuiltinAArch32[] = "VBoxEFIAArch32.fd";
+static const char g_szEfiBuiltinArm32[] = "VBoxEFI-arm32.fd";
 /** Special file name value for indicating the 64-bit built-in EFI firmware. */
-static const char g_szEfiBuiltinAArch64[] = "VBoxEFIAArch64.fd";
+static const char g_szEfiBuiltinArm64[] = "VBoxEFI-arm64.fd";
 # endif
 
 
@@ -155,17 +155,19 @@ static int platformR3ResourceResolveContent(PPDMDEVINS pDevIns, PDEVPLATFORM pTh
     if (pRes->fResourceId)
     {
 #ifdef VBOX_WITH_EFI_IN_DD2
-        if (RTStrCmp(pRes->pszResourceIdOrFilename, g_szEfiBuiltinAArch32) == 0)
+        if (   RTStrCmp(pRes->pszResourceIdOrFilename, g_szEfiBuiltinArm32) == 0
+            || RTStrCmp(pRes->pszResourceIdOrFilename, "VBoxEFIAArch32.fd") == 0 /* legacy */)
         {
             *ppvFree = NULL;
-            *ppv     = g_abEfiFirmwareAArch32;
-            *pcb     = g_cbEfiFirmwareAArch32;
+            *ppv     = g_abEfiFirmwareArm32;
+            *pcb     = g_cbEfiFirmwareArm32;
         }
-        else if (RTStrCmp(pRes->pszResourceIdOrFilename, g_szEfiBuiltinAArch64) == 0)
+        else if (   RTStrCmp(pRes->pszResourceIdOrFilename, g_szEfiBuiltinArm64) == 0
+                 || RTStrCmp(pRes->pszResourceIdOrFilename, "VBoxEFIAArch64.fd") == 0 /* legacy */)
         {
             *ppvFree = NULL;
-            *ppv     = g_abEfiFirmwareAArch64;
-            *pcb     = g_cbEfiFirmwareAArch64;
+            *ppv     = g_abEfiFirmwareArm64;
+            *pcb     = g_cbEfiFirmwareArm64;
         }
         else
 #endif
@@ -173,13 +175,15 @@ static int platformR3ResourceResolveContent(PPDMDEVINS pDevIns, PDEVPLATFORM pTh
             AssertPtrReturn(pThis->Lun0.pDrvVfs, VERR_INVALID_STATE);
 
             uint64_t cbResource = 0;
-            int rc = pThis->Lun0.pDrvVfs->pfnQuerySize(pThis->Lun0.pDrvVfs, pThis->pszResourceNamespace, pRes->pszResourceIdOrFilename, &cbResource);
+            int rc = pThis->Lun0.pDrvVfs->pfnQuerySize(pThis->Lun0.pDrvVfs, pThis->pszResourceNamespace,
+                                                       pRes->pszResourceIdOrFilename, &cbResource);
             if (RT_SUCCESS(rc))
             {
                 void *pv = PDMDevHlpMMHeapAlloc(pDevIns, cbResource);
                 if (pv)
                 {
-                    rc = pThis->Lun0.pDrvVfs->pfnReadAll(pThis->Lun0.pDrvVfs, pThis->pszResourceNamespace, pRes->pszResourceIdOrFilename, pv, cbResource);
+                    rc = pThis->Lun0.pDrvVfs->pfnReadAll(pThis->Lun0.pDrvVfs, pThis->pszResourceNamespace,
+                                                         pRes->pszResourceIdOrFilename, pv, cbResource);
                     if (RT_FAILURE(rc))
                     {
                         PDMDevHlpMMHeapFree(pDevIns, pv);

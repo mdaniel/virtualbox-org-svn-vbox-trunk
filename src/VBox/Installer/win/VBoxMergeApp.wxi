@@ -326,11 +326,11 @@
 
         <!-- EFI firmware -->
 <?if $(env.VBOX_WITH_EFIFW_PACKING) = "yes" ?>
-        <File Id="file_VBoxEFI32.fd" Name="VBoxEFI32.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI32.fd" />
-        <File Id="file_VBoxEFI64.fd" Name="VBoxEFI64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI64.fd" />
+        <File Id="file_VBoxEFI-x86.fd"   Name="VBoxEFI-x86.fd"   DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI-x86.fd" />
+        <File Id="file_VBoxEFI-amd64.fd" Name="VBoxEFI-amd64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI-amd64.fd" />
     <?if $(env.KBUILD_TARGET_ARCH) = "arm64" ?>
-        <File Id="file_VBoxEFIAArch32.fd" Name="VBoxEFIAArch32.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFIAArch32.fd" />
-        <File Id="file_VBoxEFIAArch64.fd" Name="VBoxEFIAArch64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFIAArch64.fd" />
+        <File Id="file_VBoxEFI-arm32.fd" Name="VBoxEFI-arm32.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI-arm32.fd" />
+        <File Id="file_VBoxEFI-arm64.fd" Name="VBoxEFI-arm64.fd" DiskId="$(var.Property_DiskIdCommon)" Source="$(env.PATH_OUT)\bin\VBoxEFI-arm64.fd" />
     <?endif?>
 <?endif?>
         <!-- VBox guest additions -->

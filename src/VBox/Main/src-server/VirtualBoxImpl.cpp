@@ -1957,28 +1957,28 @@ HRESULT VirtualBox::checkFirmwarePresent(PlatformArchitecture_T aPlatformArchite
 {
     NOREF(aVersion);
 
-    static const VBOXFWDESC s_FwDescX86[] =
+    static const VBOXFWDESC s_aFwDescX86[] =
     {
-        {   FirmwareType_BIOS,    true,  NULL,             NULL },
+        {   FirmwareType_BIOS,    true,  NULL,               NULL },
 #ifdef VBOX_WITH_EFI_IN_DD2
-        {   FirmwareType_EFI32,   true,  "VBoxEFI32.fd",   NULL },
-        {   FirmwareType_EFI64,   true,  "VBoxEFI64.fd",   NULL },
-        {   FirmwareType_EFIDUAL, true,  "VBoxEFIDual.fd", NULL },
-#else
-        {   FirmwareType_EFI32,   false, "VBoxEFI32.fd",   "http://virtualbox.org/firmware/VBoxEFI32.fd" },
-        {   FirmwareType_EFI64,   false, "VBoxEFI64.fd",   "http://virtualbox.org/firmware/VBoxEFI64.fd" },
-        {   FirmwareType_EFIDUAL, false, "VBoxEFIDual.fd", "http://virtualbox.org/firmware/VBoxEFIDual.fd" },
+        {   FirmwareType_EFI32,   true,  "VBoxEFI-x86.fd",   NULL },
+        {   FirmwareType_EFI64,   true,  "VBoxEFI-amd64.fd", NULL },
+        {   FirmwareType_EFIDUAL, true,  "VBoxEFIDual.fd",   NULL },
+#else                                                         /* Note! These links does not work! */
+        {   FirmwareType_EFI32,   false, "VBoxEFI-x86.fd",   "http://virtualbox.org/firmware/VBoxEFI-x86.fd" },
+        {   FirmwareType_EFI64,   false, "VBoxEFI-amd64.fd", "http://virtualbox.org/firmware/VBoxEFI-amd64.fd" },
+        {   FirmwareType_EFIDUAL, false, "VBoxEFIDual.fd",   "http://virtualbox.org/firmware/VBoxEFIDual.fd" },
 #endif
     };
 
-    static const VBOXFWDESC s_FwDescArm[] =
+    static const VBOXFWDESC s_aFwDescArm[] =
     {
 #ifdef VBOX_WITH_EFI_IN_DD2
-        {   FirmwareType_EFI32,   true,  "VBoxEFIAArch32.fd",   NULL },
-        {   FirmwareType_EFI64,   true,  "VBoxEFIAArch64.fd",   NULL },
-#else
-        {   FirmwareType_EFI32,   false, "VBoxEFIAArch32.fd",   "http://virtualbox.org/firmware/VBoxEFIAArch32.fd" },
-        {   FirmwareType_EFI64,   false, "VBoxEFIAArch64.fd",   "http://virtualbox.org/firmware/VBoxEFIAArch64.fd" },
+        {   FirmwareType_EFI32,   true,  "VBoxEFI-arm32.fd", NULL },
+        {   FirmwareType_EFI64,   true,  "VBoxEFI-arm64.fd", NULL },
+ #else                                                        /* Note! These links does not work! */
+        {   FirmwareType_EFI32,   false, "VBoxEFI-arm32.fd", "http://virtualbox.org/firmware/VBoxEFI-arm32.fd" },
+        {   FirmwareType_EFI64,   false, "VBoxEFI-arm64.fd", "http://virtualbox.org/firmware/VBoxEFI-arm64.fd" },
 #endif
     };
 
@@ -1986,13 +1986,13 @@ HRESULT VirtualBox::checkFirmwarePresent(PlatformArchitecture_T aPlatformArchite
     uint32_t cFwDesc = 0;
     if (aPlatformArchitecture == PlatformArchitecture_x86)
     {
-        pFwDesc = &s_FwDescX86[0];
-        cFwDesc = RT_ELEMENTS(s_FwDescX86);
+        pFwDesc = &s_aFwDescX86[0];
+        cFwDesc = RT_ELEMENTS(s_aFwDescX86);
     }
     else if (aPlatformArchitecture == PlatformArchitecture_ARM)
     {
-        pFwDesc = &s_FwDescArm[0];
-        cFwDesc = RT_ELEMENTS(s_FwDescArm);
+        pFwDesc = &s_aFwDescArm[0];
+        cFwDesc = RT_ELEMENTS(s_aFwDescArm);
     }
     else
         return E_INVALIDARG;

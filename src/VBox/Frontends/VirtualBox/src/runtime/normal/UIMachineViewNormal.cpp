@@ -186,6 +186,15 @@ void UIMachineViewNormal::resendSizeHint()
 
 void UIMachineViewNormal::adjustGuestScreenSize()
 {
+    /* Step 0: Is machine running or paused? */
+    if (!uimachine()->isRunning() && !uimachine()->isPaused())
+    {
+        LogRel(("GUI: UIMachineViewNormal::adjustGuestScreenSize: "
+                "Guest-screen #%d display is not initialized, adjustment is not possible.\n",
+                screenId()));
+        return;
+    }
+
     LogRel(("GUI: UIMachineViewNormal::adjustGuestScreenSize: Adjust guest-screen size if necessary\n"));
 
     /* Acquire requested guest-screen size-hint or at least actual frame-buffer size: */

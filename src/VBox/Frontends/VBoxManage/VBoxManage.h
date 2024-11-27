@@ -316,4 +316,7 @@ RTEXITCODE handleUpdateCheck(HandlerArg *a);
 /* VBoxManageModifyNvram.cpp */
 RTEXITCODE handleModifyNvram(HandlerArg *a);
 
+/* VBoxManageObjectTracker.cpp */
+RTEXITCODE handleTrackedObjects(HandlerArg *a);
+
 #endif /* !VBOX_INCLUDED_SRC_VBoxManage_VBoxManage_h */

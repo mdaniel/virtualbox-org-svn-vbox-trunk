@@ -271,6 +271,7 @@ static const VBMGCMD g_aCommands[] =
     { "updatecheck",        HELP_CMD_UPDATECHECK,       handleUpdateCheck,          0 },
 #endif
     { "modifynvram",        HELP_CMD_MODIFYNVRAM,       handleModifyNvram,          0 },
+    { "objtracker",         HELP_CMD_OBJTRACKER,        handleTrackedObjects,       0 },
 };
 
 /**

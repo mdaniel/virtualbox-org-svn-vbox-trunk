@@ -1327,12 +1327,13 @@ static DECLCALLBACK(VBOXSTRICTRC) tpmMmioRead(PPDMDEVINS pDevIns, void *pvUser, 
     RT_NOREF(pvUser);
 
     AssertReturn(cb <= sizeof(uint64_t), VERR_INTERNAL_ERROR);
-    Assert(!(off & (cb - 1)));
 
     VBOXSTRICTRC rc = VINF_SUCCESS;
 
     if (pThis->fCrb)
     {
+        Assert(!(off & (cb - 1)));
+
         uint32_t uReg = tpmGetRegisterFromOffset(off);
         uint8_t bLoc = tpmGetLocalityFromOffset(off);
         PDEVTPMLOCALITY pLoc = &pThis->aLoc[bLoc];

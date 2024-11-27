@@ -96,8 +96,6 @@
 #  include <xcb/xcb.h>
 #endif
 
-#include <xkbcommon/xkbcommon.h>
-
 #ifdef DEBUG_andy
 /* Macro for debugging drag and drop actions which usually would
  * go to Main's logging group. */

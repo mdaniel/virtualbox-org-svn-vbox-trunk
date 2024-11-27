@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    manpage, user manual, usage: VBoxManage objtracker
+-->
+<!--
+    Copyright (C) 2018-2024 Oracle and/or its affiliates.
+
+    This file is part of VirtualBox base platform packages, as
+    available from https://www.virtualbox.org.
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation, in version 3 of the
+    License.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, see <https://www.gnu.org/licenses>.
+
+    SPDX-License-Identifier: GPL-3.0-only
+-->
+<!--<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN"    -->
+<!--  "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd"[       -->
+<!--<!ENTITY % all.entities SYSTEM "all-entities.ent">                -->
+<!--%all.entities;                                                    -->
+<!--]>                                                                -->
+<refentry id="vboxmanage-objtracker" lang="en">
+  <refentryinfo>
+    <pubdate>$Date$</pubdate>
+    <title>VBoxManage objtracker</title>
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>VBoxManage-objtracker</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>VBoxManage-objtracker</refname>
+    <refpurpose>Информация об отслеживаемых объектах</refpurpose>
+    <refclass>Oracle VirtualBox</refclass>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis id="synopsis-vboxmanage-objtracker-ifaces"> <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
+      <command>VBoxManage objtracker</command>
+        <arg choice="plain">ifaces</arg>
+    </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-objtracker-objlist">
+      <command>VBoxManage objtracker</command>
+      <arg choice="plain">objlist</arg>
+      <arg choice="req">--ifacename=<replaceable>Имя интерфейса VirtualBox</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-objtracker-objinfo">
+      <command>VBoxManage objtracker</command>
+      <arg choice="plain">objinfo</arg>
+      <arg choice="req">--ifacename=<replaceable>Имя интерфейса VirtualBox</replaceable></arg>
+      <arg choice="req">--id=<replaceable>Уникальный id объекта</replaceable></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1 id="vboxmanage-objtracker-description">
+    <title>Описание</title>
+
+    <refsect2 id="vboxmanage-objtracker-ifaces">
+      <title>objtracker ifaces</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        Показывает имена интерфейсов VirtualBox которые поддерживают отслеживание своих объектов
+      </para>
+    </refsect2>
+
+    <refsect2 id="vboxmanage-objtracker-objlist">
+      <title>objtracker objlist</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        Выводит список уникальных идентификаторов отслеживаемых объектов существующих в данный момент для запрашиваемого интерфейса
+      </para>
+      <variablelist>
+        <varlistentry>
+          <term><option>--ifacename=<replaceable>Имя интерфейса VirtualBox</replaceable></option></term>
+          <listitem><para>Имя интерфейса VirtualBox. Например, IProgress, ISession, IMachine.</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
+
+    <refsect2 id="vboxmanage-objtracker-objinfo">
+      <title>objtracker objinfo</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        Выводит информацию об отслеживаемом объекте
+      </para>
+      <variablelist>
+        <varlistentry>
+          <term><option>--ifacename=<replaceable>Имя интерфейса VirtualBox</replaceable></option></term>
+          <listitem><para>Имя интерфейса VirtualBox. Например, IProgress, ISession, IMachine.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--id=<replaceable>unique object id</replaceable></option></term>
+          <listitem><para>Уникальный идентификатор отслеживаемого объекта</para></listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
+  </refsect1>
+
+</refentry>
+

@@ -927,7 +927,7 @@ static bool vusbDevStdReqGetDescriptor(PVUSBDEV pDev, int EndPt, PVUSBSETUP pSet
 
             case VUSB_DT_STRING:
             {
-                if (pSetup->wIndex == 0)
+                if ((pSetup->wValue & 0xff) == 0)
                 {
                     ReadCachedLangIdDesc(pDev->pDescCache->paLanguages, pDev->pDescCache->cLanguages, pbBuf, pcbBuf);
                     LogFlow(("vusbDevStdReqGetDescriptor: %s: %u bytes of language ID (string) descriptors\n", pDev->pUsbIns->pszName, *pcbBuf));

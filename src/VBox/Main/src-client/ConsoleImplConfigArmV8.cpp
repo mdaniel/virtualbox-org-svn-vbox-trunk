@@ -718,11 +718,40 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 2, GCPhysMmioStart, cbMmio);        VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
+        /** @todo The device isn't exposed currently as ACPI powerbutton shutdown is not implemented
+         *        in the ACPI tables right now and it causes a guru with Win 11 guests because it uses
+         *        SIMD instructions for MMIO accesses which we don't emulate yet.
+         *        (see matching TODO in NEMR3Native-darwin-armv8.cpp):
+         *
+         * Recent W11:
+         * x0=ffffb804ea3217d8 x1=ffffe28437802000 x2=0000000000000424 x3=fffff802e5716030
+         * x4=ffffe28437802424 x5=ffffb804ea321bfc x6=000000000080009c x7=000000000080009c
+         * x8=ffff87849fefc788 x9=ffff87849fefc788 x10=000000000000001c x11=ffffb804ea32909c
+         * x12=000000000000001c x13=000000000000009c x14=ffffb804ea3290a8 x15=ffffd580b2b1f7d8
+         * x16=0000f6999080cdbe x17=0000f6999080cdbe x18=ffffd08158fbf000 x19=ffffb804ea3217d0
+         * x20=0000000000000001 x21=0000000000000004 x22=ffffb804ea321660 x23=000047fb15cdefd8
+         * x24=0000000000000000 x25=ffffb804ea2f1080 x26=0000000000000000 x27=0000000000000380
+         * x28=0000000000000000 x29=ffff87849fefc7e0 x30=fffff802e57120b0
+         * pc=fffff802e5713c20 pstate=00000000a0001344
+         * sp_el0=ffff87849fefc7e0 sp_el1=ffff87849e462400 elr_el1=fffff802e98889c8
+         * pl061gpio!start_seg1_.text+0x2c20:
+         * %fffff802e5713c20 23 00 c0 3d             ldr q3, [x1]
+         * VBoxDbg> format %%(%@x1)
+         * Guest physical address: %%ffddd000
+         * VBoxDbg> info mmio
+         * MMIO registrations: 12 (186 allocated)
+         *  ## Ctx    Size Mapping   PCI    Description
+         *   0 R3     00000000000c0000  0000000004000000-00000000040bffff        Flash Memory
+         * [snip]
+         *  11 R3     0000000000001000  00000000ffddd000-00000000ffdddfff        PL061
+         */
+#if 0
         if (pSysTblsBldAcpi)
         {
             vrc = pSysTblsBldAcpi->addMmioDevice("arm-pl061-gpio", 0, GCPhysMmioStart, cbMmio, iIrq);
             VRC();
         }
+#endif
 
         InsertConfigNode(pInst,    "LUN#0",           &pLunL0);
         InsertConfigString(pLunL0, "Driver",          "GpioButton");

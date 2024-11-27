@@ -782,16 +782,13 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                         if (cRefs <= 2)
                         {
                             /*
-                             * Special case for the objects with lifeTime == 0.
-                             * It's intended for such objects like Mediums or Machines or others.
-                             * The objects which live from the beginning but may be deleted by user manually.
-                             * for this object the idle time starts when user deletes it.
+                             * Special case for objects with the original lifeTime equal to 0 (0 means endless).
+                             * For these objects the idle time starts when user deletes it.
                              */
                             if (lifeTime == 0)
                             {
-                                lifeTime = currTime - creationTime;//in milliseconds
-                                /* if lifeTime < 1000 msec (1 sec) set minimal lifeTime to 60 sec (1 min)*/
-                                lifeTime = lifeTime < 1000 ? 60 : lifeTime/1000;
+                                /* set lifeTime to 60 sec (1 min) */
+                                lifeTime = 60;
                                 /* Updating the object data */
                                 gTrackedObjectsCollector.setObj(temp.objectIdStr(),
                                                                 temp.classIIDStr(),

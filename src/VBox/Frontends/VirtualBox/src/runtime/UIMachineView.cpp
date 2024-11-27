@@ -96,6 +96,8 @@
 #  include <xcb/xcb.h>
 #endif
 
+#include <xkbcommon/xkbcommon.h>
+
 #ifdef DEBUG_andy
 /* Macro for debugging drag and drop actions which usually would
  * go to Main's logging group. */
@@ -2020,13 +2022,17 @@ void UIMachineView::focusOutEvent(QFocusEvent *pEvent)
 #ifdef VBOX_WS_NIX
 void UIMachineView::keyPressEvent(QKeyEvent *pEvent)
 {
-    machineLogic()->keyboardHandler()->handleKeyEvent(pEvent->nativeScanCode(), false /* is release*/);
+    /* It looks like that QKeyEvent::nativeScanCode returns evdev codes with an offset of 8: */
+    quint32 uEvDevCode = pEvent->nativeScanCode() - 8;
+    machineLogic()->keyboardHandler()->handleKeyEvent(uEvDevCode, false /* is release*/);
     QAbstractScrollArea::keyPressEvent(pEvent);
 }
 
 void UIMachineView::keyReleaseEvent(QKeyEvent *pEvent)
 {
-    machineLogic()->keyboardHandler()->handleKeyEvent(pEvent->nativeScanCode(), true /* is release*/);
+    /* It looks like that QKeyEvent::nativeScanCode returns evdev codes with an offset of 8: */
+    quint32 uEvDevCode = pEvent->nativeScanCode() - 8;
+    machineLogic()->keyboardHandler()->handleKeyEvent(uEvDevCode, true /* is release*/);
     QAbstractScrollArea::keyReleaseEvent(pEvent);
 }
 #endif

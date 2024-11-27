@@ -121,7 +121,7 @@ public:
     void setHostKeyComboPressedFlag(bool bPressed);
 
 #ifdef VBOX_WS_NIX
-    void handleKeyEvent(quint32 nativeScanCode, bool fRelease);
+    void handleKeyEvent(quint32 uEvDevCode, bool fRelease);
 #endif
 
 protected slots:

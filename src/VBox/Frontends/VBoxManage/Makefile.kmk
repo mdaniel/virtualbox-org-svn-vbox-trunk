@@ -100,7 +100,7 @@ ifndef VBOX_ONLY_DOCS
  	VBoxManageMisc.cpp \
  	VBoxManageModifyVM.cpp \
  	VBoxManageModifyNvram.cpp \
-	VBoxManageObjectTracker.cpp \
+ 	VBoxManageObjectTracker.cpp \
  	VBoxManageSnapshot.cpp \
  	VBoxManageStorageController.cpp \
  	$(if $(VBOX_WITH_UPDATE_AGENT),VBoxManageUpdateCheck.cpp) \

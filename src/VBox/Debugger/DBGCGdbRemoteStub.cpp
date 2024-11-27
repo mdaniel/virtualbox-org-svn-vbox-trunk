@@ -1026,7 +1026,7 @@ static int dbgcGdbStubCtxPktProcessQueryXferParseAnnexOffLen(const uint8_t *pbAr
 /**
  * amd64 GDB register set.
  */
-static const GDBREGDESC g_aGdbRegs64[] =
+static const GDBREGDESC g_aGdbRegsAmd64[] =
 {
     DBGREG_DESC_INIT_INT64(     "rax",    DBGFREG_RAX),
     DBGREG_DESC_INIT_INT64(     "rbx",    DBGFREG_RBX),
@@ -1076,7 +1076,7 @@ static const GDBREGDESC g_aGdbRegs64[] =
 /**
  * i386 GDB register set.
  */
-static const GDBREGDESC g_aGdbRegs32[] =
+static const GDBREGDESC g_aGdbRegsX86[] =
 {
     DBGREG_DESC_INIT_INT32(     "eax",    DBGFREG_EAX),
     DBGREG_DESC_INIT_INT32(     "ebx",    DBGFREG_EBX),
@@ -1114,6 +1114,51 @@ static const GDBREGDESC g_aGdbRegs32[] =
     DBGREG_DESC_INIT_X87_CTRL(  "foseg",  DBGFREG_FPUDS)
 };
 
+
+/**
+ * arm64 GDB register set.
+ */
+static const GDBREGDESC g_aGdbRegsArm64[] =
+{
+    DBGREG_DESC_INIT_INT64(     "x0",     DBGFREG_ARMV8_GREG_X0),
+    DBGREG_DESC_INIT_INT64(     "x1",     DBGFREG_ARMV8_GREG_X1),
+    DBGREG_DESC_INIT_INT64(     "x2",     DBGFREG_ARMV8_GREG_X2),
+    DBGREG_DESC_INIT_INT64(     "x3",     DBGFREG_ARMV8_GREG_X3),
+    DBGREG_DESC_INIT_INT64(     "x4",     DBGFREG_ARMV8_GREG_X4),
+    DBGREG_DESC_INIT_INT64(     "x5",     DBGFREG_ARMV8_GREG_X5),
+    DBGREG_DESC_INIT_INT64(     "x6",     DBGFREG_ARMV8_GREG_X6),
+    DBGREG_DESC_INIT_INT64(     "x7",     DBGFREG_ARMV8_GREG_X7),
+    DBGREG_DESC_INIT_INT64(     "x8",     DBGFREG_ARMV8_GREG_X8),
+    DBGREG_DESC_INIT_INT64(     "x9",     DBGFREG_ARMV8_GREG_X9),
+    DBGREG_DESC_INIT_INT64(     "x10",    DBGFREG_ARMV8_GREG_X10),
+    DBGREG_DESC_INIT_INT64(     "x11",    DBGFREG_ARMV8_GREG_X11),
+    DBGREG_DESC_INIT_INT64(     "x12",    DBGFREG_ARMV8_GREG_X12),
+    DBGREG_DESC_INIT_INT64(     "x13",    DBGFREG_ARMV8_GREG_X13),
+    DBGREG_DESC_INIT_INT64(     "x14",    DBGFREG_ARMV8_GREG_X14),
+    DBGREG_DESC_INIT_INT64(     "x15",    DBGFREG_ARMV8_GREG_X15),
+    DBGREG_DESC_INIT_INT64(     "x16",    DBGFREG_ARMV8_GREG_X16),
+    DBGREG_DESC_INIT_INT64(     "x17",    DBGFREG_ARMV8_GREG_X17),
+    DBGREG_DESC_INIT_INT64(     "x18",    DBGFREG_ARMV8_GREG_X18),
+    DBGREG_DESC_INIT_INT64(     "x19",    DBGFREG_ARMV8_GREG_X19),
+    DBGREG_DESC_INIT_INT64(     "x20",    DBGFREG_ARMV8_GREG_X20),
+    DBGREG_DESC_INIT_INT64(     "x21",    DBGFREG_ARMV8_GREG_X21),
+    DBGREG_DESC_INIT_INT64(     "x22",    DBGFREG_ARMV8_GREG_X22),
+    DBGREG_DESC_INIT_INT64(     "x23",    DBGFREG_ARMV8_GREG_X23),
+    DBGREG_DESC_INIT_INT64(     "x24",    DBGFREG_ARMV8_GREG_X24),
+    DBGREG_DESC_INIT_INT64(     "x25",    DBGFREG_ARMV8_GREG_X25),
+    DBGREG_DESC_INIT_INT64(     "x26",    DBGFREG_ARMV8_GREG_X26),
+    DBGREG_DESC_INIT_INT64(     "x27",    DBGFREG_ARMV8_GREG_X27),
+    DBGREG_DESC_INIT_INT64(     "x28",    DBGFREG_ARMV8_GREG_X28),
+    DBGREG_DESC_INIT_INT64(     "x29",    DBGFREG_ARMV8_GREG_X29),
+    DBGREG_DESC_INIT_CODE_PTR64("x30",    DBGFREG_ARMV8_GREG_LR),
+
+    DBGREG_DESC_INIT_DATA_PTR64("sp",     DBGFREG_ARMV8_SP_EL1), /** @todo EL0 */
+    DBGREG_DESC_INIT_CODE_PTR64("pc",     DBGFREG_ARMV8_PC),
+
+    DBGREG_DESC_INIT_INT32(     "cpsr",   DBGFREG_ARMV8_PSTATE),
+};
+
+
 #undef DBGREG_DESC_INIT_CODE_PTR64
 #undef DBGREG_DESC_INIT_DATA_PTR64
 #undef DBGREG_DESC_INIT_CODE_PTR32
@@ -1132,18 +1177,24 @@ static const GDBREGDESC g_aGdbRegs32[] =
  */
 static int dbgcGdbStubCtxTgtXmlDescCreate(PGDBSTUBCTX pThis)
 {
-    static const char s_szXmlTgtHdr64[] =
+    static const char s_szXmlTgtHdrAmd64[] =
         "<?xml version=\"1.0\"?>\n"
         "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
         "<target version=\"1.0\">\n"
         "    <architecture>i386:x86-64</architecture>\n"
         "    <feature name=\"org.gnu.gdb.i386.core\">\n";
-    static const char s_szXmlTgtHdr32[] =
+    static const char s_szXmlTgtHdrX86[] =
         "<?xml version=\"1.0\"?>\n"
         "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
         "<target version=\"1.0\">\n"
         "    <architecture>i386</architecture>\n"
         "    <feature name=\"org.gnu.gdb.i386.core\">\n";
+    static const char s_szXmlTgtHdrArm64[] =
+        "<?xml version=\"1.0\"?>\n"
+        "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
+        "<target version=\"1.0\">\n"
+        "    <architecture>aarch64</architecture>\n"
+        "    <feature name=\"org.gnu.gdb.aarch64.core\">\n";
     static const char s_szXmlTgtFooter[] =
         "    </feature>\n"
         "</target>\n";
@@ -1157,7 +1208,17 @@ static int dbgcGdbStubCtxTgtXmlDescCreate(PGDBSTUBCTX pThis)
         char *pachXmlCur    = pThis->pachTgtXmlDesc;
         pThis->cbTgtXmlDesc = cbLeft;
 
-        rc = RTStrCatP(&pachXmlCur, &cbLeft, pThis->paRegs == &g_aGdbRegs64[0] ? &s_szXmlTgtHdr64[0] : &s_szXmlTgtHdr32[0]);
+        const char *pszHdr = NULL;
+        if (pThis->paRegs == &g_aGdbRegsAmd64[0])
+            pszHdr = &s_szXmlTgtHdrAmd64[0];
+        else if (pThis->paRegs == &g_aGdbRegsX86[0])
+            pszHdr = &s_szXmlTgtHdrX86[0];
+        else if (pThis->paRegs == &g_aGdbRegsArm64[0])
+            pszHdr = &s_szXmlTgtHdrArm64[0];
+        else
+            return VERR_INVALID_STATE;
+
+        rc = RTStrCatP(&pachXmlCur, &cbLeft, pszHdr);
         if (RT_SUCCESS(rc))
         {
             /* Register */
@@ -1758,11 +1819,11 @@ static int dbgcGdbStubCtxPktProcess(PGDBSTUBCTX pThis)
             {
                 uint32_t idxRegMax = 0;
                 size_t cbRegs = 0;
-                for (;;)
+                for (uint32_t i = 0; i < pThis->cRegs; i++)
                 {
                     const GDBREGDESC *pReg = &pThis->paRegs[idxRegMax++];
                     cbRegs += pReg->cBits / 8;
-                    if (pReg->enmReg == DBGFREG_SS) /* Up to this seems to belong to the general register set. */
+                    if (pReg->enmReg == DBGFREG_SS) /* Up to this seems to belong to the general register set on x86/amd64. */
                         break;
                 }
 
@@ -2566,12 +2627,16 @@ static int dbgcGdbStubRun(PGDBSTUBCTX pThis)
     switch (enmMode)
     {
         case CPUMMODE_PROTECTED:
-            pThis->paRegs = &g_aGdbRegs32[0];
-            pThis->cRegs  = RT_ELEMENTS(g_aGdbRegs32);
+            pThis->paRegs = &g_aGdbRegsX86[0];
+            pThis->cRegs  = RT_ELEMENTS(g_aGdbRegsX86);
             break;
         case CPUMMODE_LONG:
-            pThis->paRegs = &g_aGdbRegs64[0];
-            pThis->cRegs  = RT_ELEMENTS(g_aGdbRegs64);
+            pThis->paRegs = &g_aGdbRegsAmd64[0];
+            pThis->cRegs  = RT_ELEMENTS(g_aGdbRegsAmd64);
+            break;
+        case CPUMMODE_ARMV8_AARCH64:
+            pThis->paRegs = &g_aGdbRegsArm64[0];
+            pThis->cRegs  = RT_ELEMENTS(g_aGdbRegsArm64);
             break;
         case CPUMMODE_REAL:
         default:

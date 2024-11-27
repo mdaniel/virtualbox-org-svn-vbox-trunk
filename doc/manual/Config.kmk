@@ -104,7 +104,8 @@ ifndef VBOX_DOC_MANUAL_CONFIG_KMK_INCLUDED
  	man_VBoxManage-metrics.xml \
  	man_VBoxManage-natnetwork.xml \
  	man_VBoxManage-hostonlyif.xml \
- 	man_VBoxManage-usbdevsource.xml
+ 	man_VBoxManage-usbdevsource.xml \
+ 	man_VBoxManage-objtracker.xml
 
  ## List of user manual XML files common for all languages.
  VBOX_MANUAL_XML_FILES_COMMON = \

@@ -931,6 +931,11 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         bool fAudioEnabled = false;
         vrc = i_configAudioCtrl(virtualBox, pMachine, pBusMgr, pDevices,
                                 false /*fOsXGuest*/, &fAudioEnabled);                            VRC();
+
+        /*
+         * Configure DBGF (Debug(ger) Facility) and DBGC (Debugger Console).
+         */
+        vrc = i_configGuestDbg(virtualBox, pMachine, pRoot);                                     VRC();
     }
     catch (ConfigError &x)
     {

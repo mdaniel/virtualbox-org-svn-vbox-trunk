@@ -978,7 +978,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != 0);
     pVM->pgm.s.HCPhysInvMmioPg = pVM->pgm.s.HCPhysMmioPg;
     Log(("HCPhysInvMmioPg=%RHp abMmioPg=%p\n", pVM->pgm.s.HCPhysMmioPg, pVM->pgm.s.abMmioPg));
-#endif VBOX_WITH_ONLY_PGM_NEM_MODE
+#endif /* VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 
     /*
@@ -2748,4 +2748,3 @@ VMMR3DECL(int) PGMR3CheckIntegrity(PVM pVM)
 
     return Args.cErrors == 0 ? VINF_SUCCESS : VERR_INTERNAL_ERROR;
 }
-

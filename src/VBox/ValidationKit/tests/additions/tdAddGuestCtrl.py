@@ -1729,10 +1729,8 @@ class SubTstDrvAddGuestCtrl(base.SubTestDriverBase):
         # Whether to enable verbose logging for VBoxService.
         fEnableVerboseLogging = False;
 
-        # On Windows and Linux guests we always can enable verbose logging.
-        # NT4 and W2K doesn't have reg.exe nor (at least NT4) sc.exe.
-        if (oTestVm.isWindows() and oTestVm.sKind not in ('WindowsNT4', 'Windows2000',)) \
-        or oTestVm.isLinux():
+        # On Windows and Linux guests we always can (try to) enable verbose logging.
+        if (oTestVm.isWindows() or oTestVm.isLinux()):
             fEnableVerboseLogging = True;
 
         # Old TxS versions had a bug which caused an infinite loop when executing stuff containing "$xxx",
@@ -1741,9 +1739,29 @@ class SubTstDrvAddGuestCtrl(base.SubTestDriverBase):
             reporter.log('Too old TxS service running')
             fEnableVerboseLogging = False;
 
+        self.oDebug.sGstVBoxServiceLogPath = oTestVm.pathJoin(self.oTstDrv.getGuestTempDir(oTestVm), "VBoxService");
+        sPathLogFile = oTestVm.pathJoin(self.oDebug.sGstVBoxServiceLogPath, 'VBoxService.log');
+
+        if oTestVm.isWindows():
+            sImagePath = '%s -vvvv --logfile %s' % (self.sPathVBoxServiceExeGst, sPathLogFile);
+            # For newer revisions we use VBoxGuestInstallHelper.exe. Should work on all Windows versions.
+            if self.oTstDrv.fpApiVer >= 7.0 and self.oTstDrv.uRevision >= 166162:
+                # Right now we ASSUME that the installation directory always is the following:
+                sRegEditorExePath     = 'C:\\Program Files\\Oracle\\VirtualBox Guest Additions\\VBoxGuestInstallHelper.exe';
+                asRegEditorArgs       = [ sRegEditorExePath, 'registry', 'write', 'HKLM', 'SYSTEM\\CurrentControlSet\\Services\\VBoxService',
+                                          'ImagePath', 'REG_SZ', '"' + sImagePath + '"' ];
+            # reg.exe is not able to write keys on older Windows versions (NT4, 2k).
+            elif oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
+                sRegEditorExePath     = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'reg.exe');
+                asRegEditorArgs       = [ sRegEditorExePath, 'add', 'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxService',
+                                          '/v', 'ImagePath', '/t', 'REG_SZ', '/d', sImagePath, '/f' ];
+            else:
+                reporter.log('VBoxService logging is not available on this Windows guest');
+                fEnableVerboseLogging = False;
+
         # Some older Linux test VMs (like tst-rhel5) don't have a pre-configured 'vbox' user.
         # So make sure that this user exists and has the appropriate password set. Ignore any errors.
-        if oTestVm.isLinux():
+        elif oTestVm.isLinux():
             sCmdUserAdd = oTestVm.pathJoin(self.oTstDrv.getGuestSystemAdminDir(oTestVm, sPathPrefix = '/usr'), 'useradd');
             asArgs = [ sCmdUserAdd, '-m', 'vbox' ];
             self.oTstDrv.txsRunTest(oTxsSession, sCmdUserAdd, 5 * 60 * 1000, sCmdUserAdd, asArgs,
@@ -1759,23 +1777,17 @@ class SubTstDrvAddGuestCtrl(base.SubTestDriverBase):
         #
         reporter.log('Enabling verbose VBoxService logging: %s' % (fEnableVerboseLogging));
         if fEnableVerboseLogging:
-            self.oDebug.sGstVBoxServiceLogPath = oTestVm.pathJoin(self.oTstDrv.getGuestTempDir(oTestVm), "VBoxService");
             if oTxsSession.syncMkDirPath(self.oDebug.sGstVBoxServiceLogPath, 0o777) is not True:
                 return reporter.error('Failed to create directory "%s"!' % (self.oDebug.sGstVBoxServiceLogPath,));
-            sPathLogFile = oTestVm.pathJoin(self.oDebug.sGstVBoxServiceLogPath, 'VBoxService.log');
-
             reporter.log('VBoxService logs will be stored in "%s"' % (self.oDebug.sGstVBoxServiceLogPath,));
 
             fRestartVBoxService = False;
-            if oTestVm.isWindows() and oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
-                sPathRegExe         = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'reg.exe');
-                sImagePath          = '%s -vvvv --logfile %s' % (self.sPathVBoxServiceExeGst, sPathLogFile);
+
+            if oTestVm.isWindows():
+                asArgs = [ sRegEditorExePath ] + asRegEditorArgs;
                 fRestartVBoxService = self.oTstDrv.txsRunTest(oTxsSession, 'Enabling VBoxService verbose logging (via registry)',
-                                         30 * 1000,
-                                         sPathRegExe,
-                                        (sPathRegExe, 'add',
-                                        'HKLM\\SYSTEM\\CurrentControlSet\\Services\\VBoxService',
-                                        '/v', 'ImagePath', '/t', 'REG_SZ', '/d', sImagePath, '/f'));
+                                                              30 * 1000,
+                                                              sRegEditorExePath, asRegEditorArgs);
             elif oTestVm.isLinux():
                 # Need to use some stupid trickery here to locate the sed binary,
                 # as this might differ on various Linux hosts, sigh. We also could use 'which' or some sort on the guest.

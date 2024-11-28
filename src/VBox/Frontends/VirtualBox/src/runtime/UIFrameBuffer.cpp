@@ -61,6 +61,7 @@
 #include <math.h>
 #ifdef VBOX_WS_NIX
 # include <X11/Xlib.h>
+# include "VBoxUtils-nix.h"
 # undef Bool // Qt5 vs Xlib gift..
 #endif /* VBOX_WS_NIX */
 
@@ -451,13 +452,18 @@ void UIFrameBufferPrivate::setView(UIMachineView *pMachineView)
     m_pMachineView = pMachineView;
     /* Reassign index: */
     m_uScreenId = m_pMachineView ? m_pMachineView->screenId() : 0;
-    /* Recache window ID: */
-    m_iWinId = (m_pMachineView && m_pMachineView->viewport()) ? (LONG64)m_pMachineView->viewport()->winId() : 0;
 
 #ifdef VBOX_WS_NIX
     if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_X11)
         /* Resync Qt and X11 Server (see xTracker #7547). */
         XSync(NativeWindowSubsystem::X11GetDisplay(), false);
+    if (NativeWindowSubsystem::displayServerType() == VBGHDISPLAYSERVERTYPE_PURE_WAYLAND)
+        m_iWinId = (m_pMachineView && m_pMachineView->machineWindow()) ? (LONG64)m_pMachineView->machineWindow()->winId() : 0;
+    else
+        m_iWinId = (m_pMachineView && m_pMachineView->viewport()) ? (LONG64)m_pMachineView->viewport()->winId() : 0;
+#else
+    /* Recache window ID: */
+    m_iWinId = (m_pMachineView && m_pMachineView->viewport()) ? (LONG64)m_pMachineView->viewport()->winId() : 0;
 #endif
 
     /* Reconnect new handlers: */

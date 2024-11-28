@@ -736,11 +736,13 @@ static const DBGCCMD    g_aCmds[] =
 VMMR3_INT_DECL(void) PGMR3EnableNemMode(PVM pVM)
 {
     AssertFatal(!PDMCritSectIsInitialized(&pVM->pgm.s.CritSectX));
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (!pVM->pgm.s.fNemMode)
     {
         LogRel(("PGM: Enabling NEM mode\n"));
         pVM->pgm.s.fNemMode = true;
     }
+# endif
 }
 
 
@@ -752,7 +754,8 @@ VMMR3_INT_DECL(void) PGMR3EnableNemMode(PVM pVM)
  */
 VMMR3_INT_DECL(bool)    PGMR3IsNemModeEnabled(PVM pVM)
 {
-    return pVM->pgm.s.fNemMode;
+    RT_NOREF(pVM);
+    return PGM_IS_IN_NEM_MODE(pVM);
 }
 
 #endif /* VBOX_WITH_PGM_NEM_MODE */
@@ -783,11 +786,13 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     if (fDriverless)
     {
 #ifdef VBOX_WITH_PGM_NEM_MODE
-        if (!pVM->pgm.s.fNemMode)
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+        if (!PGM_IS_IN_NEM_MODE(pVM))
         {
             LogRel(("PGM: Enabling NEM mode (driverless)\n"));
             pVM->pgm.s.fNemMode = true;
         }
+# endif
 #else
         return VMR3SetError(pVM->pUVM, VERR_SUP_DRIVERLESS, RT_SRC_POS,
                             "Driverless requires that VBox is built with VBOX_WITH_PGM_NEM_MODE defined");
@@ -953,23 +958,28 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
      * Setup the zero page (HCPHysZeroPg is set by ring-0).
      */
     RT_ZERO(pVM->pgm.s.abZeroPg); /* paranoia */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysZeroPg = _4G - GUEST_PAGE_SIZE * 2 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != 0);
     Log(("HCPhysZeroPg=%RHp abZeroPg=%p\n", pVM->pgm.s.HCPhysZeroPg, pVM->pgm.s.abZeroPg));
+#endif
 
     /*
      * Setup the invalid MMIO page (HCPhysMmioPg is set by ring-0).
      * (The invalid bits in HCPhysInvMmioPg are set later on init complete.)
      */
     ASMMemFill32(pVM->pgm.s.abMmioPg, sizeof(pVM->pgm.s.abMmioPg), 0xfeedface);
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysMmioPg = _4G - GUEST_PAGE_SIZE * 3 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != 0);
     pVM->pgm.s.HCPhysInvMmioPg = pVM->pgm.s.HCPhysMmioPg;
     Log(("HCPhysInvMmioPg=%RHp abMmioPg=%p\n", pVM->pgm.s.HCPhysMmioPg, pVM->pgm.s.abMmioPg));
+#endif VBOX_WITH_ONLY_PGM_NEM_MODE
+
 
     /*
      * Initialize physical access handlers.
@@ -985,6 +995,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertLogRelRCReturn(rc, rc);
     AssertLogRelMsgStmt(cAccessHandlers >= 32, ("cAccessHandlers=%#x, min 32\n", cAccessHandlers), cAccessHandlers = 32);
     AssertLogRelMsgStmt(cAccessHandlers <= _64K, ("cAccessHandlers=%#x, max 65536\n", cAccessHandlers), cAccessHandlers = _64K);
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!fDriverless)
     {
         rc = VMMR3CallR0(pVM, VMMR0_DO_PGM_PHYS_HANDLER_INIT, cAccessHandlers, NULL);
@@ -994,6 +1005,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         AssertPtr(pVM->pgm.s.PhysHandlerAllocator.m_pbmAlloc);
     }
     else
+#endif
     {
         uint32_t       cbTreeAndBitmap = 0;
         uint32_t const cbTotalAligned  = pgmHandlerPhysicalCalcTableSizes(&cAccessHandlers, &cbTreeAndBitmap);
@@ -1771,8 +1783,10 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
      * Allocate memory if we're supposed to do that.
      */
     int rc = VINF_SUCCESS;
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (pVM->pgm.s.fRamPreAlloc)
         rc = pgmR3PhysRamPreAllocate(pVM);
+#endif
 
     //pgmLogState(pVM);
     LogRel(("PGM: PGMR3InitFinalize: 4 MB PSE mask %RGp -> %Rrc\n", pVM->pgm.s.GCPhys4MBPSEMask, rc));
@@ -2337,7 +2351,9 @@ int pgmR3ExitShadowModeBeforePoolFlush(PVMCPU pVCpu)
         AssertMsgRCReturn(rc, ("Exit failed for shadow mode %d: %Rrc\n", pVCpu->pgm.s.enmShadowMode, rc), rc);
     }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 == NULL);
+#endif
     return rc;
 }
 
@@ -2357,7 +2373,9 @@ int pgmR3ReEnterShadowModeAfterPoolFlush(PVM pVM, PVMCPU pVCpu)
     AssertRCReturn(rc, rc);
     AssertRCSuccessReturn(rc, VERR_IPE_UNEXPECTED_INFO_STATUS);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 != NULL || pVCpu->pgm.s.enmShadowMode == PGMMODE_NONE);
+#endif
     AssertMsg(   pVCpu->pgm.s.enmShadowMode >= PGMMODE_NESTED_32BIT
               || CPUMGetHyperCR3(pVCpu) == PGMGetHyperCR3(pVCpu),
               ("%RHp != %RHp %s\n", (RTHCPHYS)CPUMGetHyperCR3(pVCpu), PGMGetHyperCR3(pVCpu), PGMGetModeName(pVCpu->pgm.s.enmShadowMode)));

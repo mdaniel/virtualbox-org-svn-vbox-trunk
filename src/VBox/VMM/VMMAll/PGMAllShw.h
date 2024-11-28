@@ -229,7 +229,7 @@ RT_C_DECLS_END
  */
 PGM_SHW_DECL(int, Enter)(PVMCPUCC pVCpu)
 {
-#if PGM_TYPE_IS_NESTED_OR_EPT(PGM_SHW_TYPE)
+#if PGM_TYPE_IS_NESTED_OR_EPT(PGM_SHW_TYPE) && !defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
 
 # ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
     RTGCPHYS    GCPhysCR3;
@@ -283,7 +283,7 @@ PGM_SHW_DECL(int, Enter)(PVMCPUCC pVCpu)
  */
 PGM_SHW_DECL(int, Exit)(PVMCPUCC pVCpu)
 {
-#if PGM_TYPE_IS_NESTED_OR_EPT(PGM_SHW_TYPE)
+#if PGM_TYPE_IS_NESTED_OR_EPT(PGM_SHW_TYPE) && !defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     if (pVCpu->pgm.s.CTX_SUFF(pShwPageCR3))
     {
@@ -394,7 +394,7 @@ PGM_SHW_DECL(int, NestedGetPage)(PVMCPUCC pVCpu, PEPTPD pEptPd, PPGMPTWALK pWalk
  */
 PGM_SHW_DECL(int, GetPage)(PVMCPUCC pVCpu, RTGCUINTPTR GCPtr, uint64_t *pfFlags, PRTHCPHYS pHCPhys)
 {
-#if PGM_SHW_TYPE == PGM_TYPE_NONE
+#if PGM_SHW_TYPE == PGM_TYPE_NONE || defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
     RT_NOREF(pVCpu, GCPtr);
     AssertFailed();
     *pfFlags = 0;
@@ -606,7 +606,7 @@ PGM_SHW_DECL(int, GetPage)(PVMCPUCC pVCpu, RTGCUINTPTR GCPtr, uint64_t *pfFlags,
  */
 PGM_SHW_DECL(int, ModifyPage)(PVMCPUCC pVCpu, RTGCUINTPTR GCPtr, size_t cb, uint64_t fFlags, uint64_t fMask, uint32_t fOpFlags)
 {
-#if PGM_SHW_TYPE == PGM_TYPE_NONE
+#if PGM_SHW_TYPE == PGM_TYPE_NONE || defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
     RT_NOREF(pVCpu, GCPtr, cb, fFlags, fMask, fOpFlags);
     AssertFailed();
     return VERR_PGM_SHW_NONE_IPE;

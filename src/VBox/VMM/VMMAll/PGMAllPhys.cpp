@@ -2728,7 +2728,9 @@ static int pgmPhysPageMapCommon(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, PPPG
     }
 
 #ifdef VBOX_WITH_PGM_NEM_MODE
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (pVM->pgm.s.fNemMode)
+# endif
     {
 # ifdef IN_RING3
         /*
@@ -2747,6 +2749,7 @@ static int pgmPhysPageMapCommon(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, PPPG
 # endif
     }
 #endif /* VBOX_WITH_PGM_NEM_MODE */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
     const uint32_t idChunk = PGM_PAGE_GET_CHUNKID(pPage);
     if (idChunk == NIL_GMM_CHUNKID)
@@ -2825,6 +2828,7 @@ static int pgmPhysPageMapCommon(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, PPPG
     *ppMap = pMap;
     return VINF_SUCCESS;
 # endif /* !IN_RING0 */
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 }
 
 
@@ -2977,29 +2981,31 @@ int pgmPhysPageLoadIntoTlbWithPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys)
         int rc = pgmPhysPageMapCommon(pVM, pPage, GCPhys, &pMap, &pv);
         if (RT_FAILURE(rc))
             return rc;
-# ifndef IN_RING0
+#ifndef IN_RING0
         pTlbe->pMap = pMap;
-# endif
+#endif
         pTlbe->pv = pv;
         Assert(!((uintptr_t)pTlbe->pv & GUEST_PAGE_OFFSET_MASK));
     }
     else
     {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         AssertMsg(PGM_PAGE_GET_HCPHYS(pPage) == pVM->pgm.s.HCPhysZeroPg, ("%RGp/%R[pgmpage]\n", GCPhys, pPage));
-# ifndef IN_RING0
+#endif
+#ifndef IN_RING0
         pTlbe->pMap = NULL;
-# endif
+#endif
         pTlbe->pv = pVM->pgm.s.abZeroPg;
     }
-# ifdef PGM_WITH_PHYS_TLB
+#ifdef PGM_WITH_PHYS_TLB
     if (    PGM_PAGE_GET_TYPE(pPage) < PGMPAGETYPE_ROM_SHADOW
         ||  PGM_PAGE_GET_TYPE(pPage) > PGMPAGETYPE_ROM)
         pTlbe->GCPhys = GCPhys & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
     else
         pTlbe->GCPhys = NIL_RTGCPHYS; /* ROM: Problematic because of the two pages. :-/ */
-# else
+#else
     pTlbe->GCPhys = NIL_RTGCPHYS;
-# endif
+#endif
     pTlbe->pPage = pPage;
     return VINF_SUCCESS;
 }
@@ -3742,11 +3748,13 @@ int pgmPhysGCPhys2CCPtrLockless(PVMCPUCC pVCpu, RTGCPHYS GCPhys, void **ppv)
 #endif
         {
 #ifdef IN_RING3
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             PPGMPAGEMAPTLBE pTlbe;
             rc = pgmPhysPageQueryLocklessTlbeWithPage(pVCpu, (PPGMPAGE)pPage, GCPhys, &pTlbe);
             AssertLogRelRCReturn(rc, rc);
             pb = (uint8_t *)pTlbe->pv;
             RT_NOREF(pVM);
+# endif
 #else /** @todo a safe lockless page TLB in ring-0 needs the to ensure it gets the right invalidations. later. */
             PGM_LOCK(pVM);
             PPGMPAGEMAPTLBE pTlbe;
@@ -5134,11 +5142,13 @@ pgmPhyIemGCphys2PtrNoLockReturnReadOnly(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uTlb
 #endif
     {
 #ifdef IN_RING3
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         PPGMPAGEMAPTLBE pTlbe;
         int rc = pgmPhysPageQueryLocklessTlbeWithPage(pVCpu, pPage, GCPhys, &pTlbe);
         AssertLogRelRCReturn(rc, rc);
         *ppb = (uint8_t *)pTlbe->pv;
         RT_NOREF(pVM);
+# endif
 #else /** @todo a safe lockless page TLB in ring-0 needs the to ensure it gets the right invalidations. later. */
         PGM_LOCK(pVM);
         PPGMPAGEMAPTLBE pTlbe;
@@ -5150,7 +5160,7 @@ pgmPhyIemGCphys2PtrNoLockReturnReadOnly(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uTlb
 #endif
     }
     Log6(("PGMPhysIemGCPhys2PtrNoLock: GCPhys=%RGp *ppb=%p *pfTlb=%#RX64 PageCopy=%R[pgmpage] RO\n", GCPhys, *ppb, *pfTlb, pPageCopy));
-    RT_NOREF(pRam);
+    RT_NOREF(pRam, pVM, pVCpu);
     return VINF_SUCCESS;
 }
 
@@ -5171,11 +5181,13 @@ pgmPhyIemGCphys2PtrNoLockReturnReadWrite(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uTl
 #endif
     {
 #ifdef IN_RING3
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         PPGMPAGEMAPTLBE pTlbe;
         int rc = pgmPhysPageQueryLocklessTlbeWithPage(pVCpu, pPage, GCPhys, &pTlbe);
         AssertLogRelRCReturn(rc, rc);
         *ppb = (uint8_t *)pTlbe->pv;
         RT_NOREF(pVM);
+# endif
 #else /** @todo a safe lockless page TLB in ring-0 needs the to ensure it gets the right invalidations. later. */
         PGM_LOCK(pVM);
         PPGMPAGEMAPTLBE pTlbe;
@@ -5187,7 +5199,7 @@ pgmPhyIemGCphys2PtrNoLockReturnReadWrite(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uTl
 #endif
     }
     Log6(("PGMPhysIemGCPhys2PtrNoLock: GCPhys=%RGp *ppb=%p *pfTlb=%#RX64 PageCopy=%R[pgmpage] RW\n", GCPhys, *ppb, *pfTlb, pPageCopy));
-    RT_NOREF(pRam);
+    RT_NOREF(pRam, pVM, pVCpu);
     return VINF_SUCCESS;
 }
 

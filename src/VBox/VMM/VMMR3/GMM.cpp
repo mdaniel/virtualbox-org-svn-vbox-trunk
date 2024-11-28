@@ -49,6 +49,7 @@
 GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages,
                                         GMMOCPOLICY enmPolicy, GMMPRIORITY enmPriority)
 {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         GMMINITIALRESERVATIONREQ Req;
@@ -61,6 +62,9 @@ GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t c
         Req.enmPriority = enmPriority;
         return VMMR3CallR0(pVM, VMMR0_DO_GMM_INITIAL_RESERVATION, 0, &Req.Hdr);
     }
+#else
+    RT_NOREF(pVM, cBasePages, cShadowPages, cFixedPages, enmPolicy, enmPriority);
+#endif
     return VINF_SUCCESS;
 }
 
@@ -70,6 +74,7 @@ GMMR3DECL(int)  GMMR3InitialReservation(PVM pVM, uint64_t cBasePages, uint32_t c
  */
 GMMR3DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cShadowPages, uint32_t cFixedPages)
 {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         GMMUPDATERESERVATIONREQ Req;
@@ -80,6 +85,9 @@ GMMR3DECL(int)  GMMR3UpdateReservation(PVM pVM, uint64_t cBasePages, uint32_t cS
         Req.cFixedPages = cFixedPages;
         return VMMR3CallR0(pVM, VMMR0_DO_GMM_UPDATE_RESERVATION, 0, &Req.Hdr);
     }
+#else
+    RT_NOREF(pVM, cBasePages, cShadowPages, cFixedPages);
+#endif
     return VINF_SUCCESS;
 }
 
@@ -268,6 +276,7 @@ GMMR3DECL(void) GMMR3FreeAllocatedPages(PVM pVM, GMMALLOCATEPAGESREQ const *pAll
     RTMemTmpFree(pReq);
 }
 
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
 
 /**
  * @see GMMR0BalloonedPages
@@ -431,7 +440,7 @@ GMMR3DECL(int)  GMMR3CheckSharedModules(PVM pVM)
 }
 
 
-#if defined(VBOX_STRICT) && HC_ARCH_BITS == 64
+# if defined(VBOX_STRICT) && HC_ARCH_BITS == 64
 /**
  * @see GMMR0FindDuplicatePage
  */
@@ -449,5 +458,7 @@ GMMR3DECL(bool) GMMR3IsDuplicatePage(PVM pVM, uint32_t idPage)
         return Req.fDuplicate;
     return false;
 }
-#endif /* VBOX_STRICT && HC_ARCH_BITS == 64 */
+# endif /* VBOX_STRICT && HC_ARCH_BITS == 64 */
+
+#endif /* defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0) */
 

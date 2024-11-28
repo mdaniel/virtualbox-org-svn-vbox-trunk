@@ -755,22 +755,22 @@ PGMMODEDATABTH const g_aPgmBothModeData[PGM_BOTH_MODE_DATA_ARRAY_SIZE] =
 #if   !defined(IN_RING3) && !defined(VBOX_STRICT)
 # define PGMMODEDATABTH_NULL_ENTRY()    { UINT32_MAX, UINT32_MAX, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 # define PGMMODEDATABTH_ENTRY(uShwT, uGstT, Nm) \
-    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(VerifyAccessSyncPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(Trap0eHandler), Nm(NestedTrap0eHandler) }
+    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(Trap0eHandler), Nm(NestedTrap0eHandler) }
 
 #elif !defined(IN_RING3) && defined(VBOX_STRICT)
 # define PGMMODEDATABTH_NULL_ENTRY()    { UINT32_MAX, UINT32_MAX, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 # define PGMMODEDATABTH_ENTRY(uShwT, uGstT, Nm) \
-    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(VerifyAccessSyncPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(Trap0eHandler), Nm(NestedTrap0eHandler), Nm(AssertCR3) }
+    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(Trap0eHandler), Nm(NestedTrap0eHandler), Nm(AssertCR3) }
 
 #elif defined(IN_RING3) && !defined(VBOX_STRICT)
 # define PGMMODEDATABTH_NULL_ENTRY()    { UINT32_MAX, UINT32_MAX, NULL, NULL, NULL, NULL, NULL, NULL }
 # define PGMMODEDATABTH_ENTRY(uShwT, uGstT, Nm) \
-    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(VerifyAccessSyncPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), }
+    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), }
 
 #elif defined(IN_RING3) && defined(VBOX_STRICT)
 # define PGMMODEDATABTH_NULL_ENTRY()    { UINT32_MAX, UINT32_MAX, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 # define PGMMODEDATABTH_ENTRY(uShwT, uGstT, Nm) \
-    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(VerifyAccessSyncPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(AssertCR3) }
+    { uShwT, uGstT, Nm(InvalidatePage), Nm(SyncCR3), Nm(PrefetchPage), Nm(MapCR3), Nm(UnmapCR3), Nm(Enter), Nm(AssertCR3) }
 
 #else
 # error "Misconfig."
@@ -1281,6 +1281,7 @@ VMMDECL(int) PGMShwMakePageNotPresent(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fO
     return pdmShwModifyPage(pVCpu, GCPtr, 0, 0, fOpFlags);
 }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * Changing the page flags for a single page in the shadow page tables so as to
@@ -1740,7 +1741,7 @@ static int pgmShwGetEPTPDPtr(PVMCPUCC pVCpu, RTGCPTR64 GCPtr, PEPTPDPT *ppPdpt, 
 }
 
 
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
 /**
  * Syncs the SHADOW nested-guest page directory pointer for the specified address.
  * Allocates backing pages in case the PDPT or PML4 entry is missing.
@@ -1847,10 +1848,10 @@ static int pgmShwGetNestedEPTPDPtr(PVMCPUCC pVCpu, RTGCPTR64 GCPhysNested, PEPTP
 
     return VINF_SUCCESS;
 }
-#endif /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
+# endif /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
 
 
-#ifdef IN_RING0
+# ifdef IN_RING0
 /**
  * Synchronizes a range of nested page table entries.
  *
@@ -1905,8 +1906,9 @@ int pgmShwSyncNestedPageLocked(PVMCPUCC pVCpu, RTGCPHYS GCPhys, uint32_t cPages,
     }
     return rc;
 }
-#endif /* IN_RING0 */
+# endif /* IN_RING0 */
 
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 /**
  * Gets effective Guest OS page information.
@@ -2510,9 +2512,14 @@ int pgmGstLazyMapEptPml4(PVMCPUCC pVCpu, PEPTPML4 *ppEptPml4)
  */
 VMMDECL(RTHCPHYS) PGMGetHyperCR3(PVMCPU pVCpu)
 {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PPGMPOOLPAGE pPoolPage = pVCpu->pgm.s.CTX_SUFF(pShwPageCR3);
     AssertPtrReturn(pPoolPage, NIL_RTHCPHYS);
     return pPoolPage->Core.Key;
+#else
+    RT_NOREF(pVCpu);
+    return NIL_RTHCPHYS;
+#endif
 }
 
 
@@ -3460,7 +3467,6 @@ VMM_INT_DECL(int) PGMHCChangeMode(PVMCC pVM, PVMCPUCC pVCpu, PGMMODE enmGuestMod
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnInvalidatePage, VERR_PGM_MODE_IPE);
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnSyncCR3, VERR_PGM_MODE_IPE);
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnPrefetchPage, VERR_PGM_MODE_IPE);
-    AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnVerifyAccessSyncPage, VERR_PGM_MODE_IPE);
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnMapCR3, VERR_PGM_MODE_IPE);
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnUnmapCR3, VERR_PGM_MODE_IPE);
     AssertPtrReturn(g_aPgmBothModeData[idxNewBth].pfnEnter, VERR_PGM_MODE_IPE);

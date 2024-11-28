@@ -199,6 +199,9 @@ AssertCompile(PGM_MAX_PAGES_PER_ROM_RANGE <= PGM_MAX_PAGES_PER_RAM_RANGE);
 
 /** @} */
 
+#if defined(VBOX_WITH_PAGE_SHARING) && defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
+# error "Misconfig! VBOX_WITH_ONLY_PGM_NEM_MODE implies no VBOX_WITH_PAGE_SHARING. Fix VBox/param.h."
+#endif
 
 /** @name PDPT and PML4 flags.
  * These are placed in the three bits available for system programs in
@@ -773,7 +776,8 @@ typedef PPGMPAGE *PPPGMPAGE;
  * @param   a_uType     The page type (PGMPAGETYPE).
  * @param   a_uState    The page state (PGM_PAGE_STATE_XXX).
  */
-#define PGM_PAGE_INIT(a_pPage, a_HCPhys, a_idPage, a_uType, a_uState) \
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# define PGM_PAGE_INIT(a_pPage, a_HCPhys, a_idPage, a_uType, a_uState) \
     do { \
         RTHCPHYS SetHCPhysTmp = (a_HCPhys); \
         AssertFatalMsg(!(SetHCPhysTmp & ~UINT64_C(0x0000fffffffff000)), ("%RHp\n", SetHCPhysTmp)); \
@@ -783,6 +787,16 @@ typedef PPGMPAGE *PPPGMPAGE;
         (a_pPage)->s.uStateY         = (a_uState); \
         (a_pPage)->s.uTypeY          = (a_uType); \
     } while (0)
+#else
+# define PGM_PAGE_INIT(a_pPage, a_HCPhys, a_idPage, a_uType, a_uState) \
+    do { \
+        (a_pPage)->au64[0]           = 0; \
+        (a_pPage)->au64[1]           = 0; \
+        (a_pPage)->s.idPage          = (a_idPage); \
+        (a_pPage)->s.uStateY         = (a_uState); \
+        (a_pPage)->s.uTypeY          = (a_uType); \
+    } while (0)
+#endif
 
 /**
  * Initializes the page structure of a ZERO page.
@@ -864,7 +878,11 @@ typedef PPGMPAGE *PPPGMPAGE;
 # define PGM_PAGE_GET_HCPHYS_NA(a_pPage)        ( (a_pPage)->s.HCPhysFN << 12 )
 # define PGM_PAGE_GET_HCPHYS                    PGM_PAGE_GET_HCPHYS_NA
 #else
-# define PGM_PAGE_GET_HCPHYS_NA(a_pPage)        ( (a_pPage)->au64[0] & UINT64_C(0x0000fffffffff000) )
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  define PGM_PAGE_GET_HCPHYS_NA(a_pPage)       ( (a_pPage)->au64[0] & UINT64_C(0x0000fffffffff000) )
+# else
+#  define PGM_PAGE_GET_HCPHYS_NA(a_pPage)       ( 0 )
+# endif
 # if defined(__GNUC__) && defined(VBOX_STRICT)
 #  define PGM_PAGE_GET_HCPHYS(a_pPage)      __extension__ ({ PGM_PAGE_ASSERT_LOCK(pVM); PGM_PAGE_GET_HCPHYS_NA(a_pPage); })
 # else
@@ -879,13 +897,21 @@ typedef PPGMPAGE *PPPGMPAGE;
  * @param   a_pPage      Pointer to the physical guest page tracking structure.
  * @param   a_HCPhys     The new host physical address.
  */
-#define PGM_PAGE_SET_HCPHYS(a_pVM, a_pPage, a_HCPhys) \
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# define PGM_PAGE_SET_HCPHYS(a_pVM, a_pPage, a_HCPhys) \
     do { \
         RTHCPHYS const SetHCPhysTmp = (a_HCPhys); \
         AssertFatal(!(SetHCPhysTmp & ~UINT64_C(0x0000fffffffff000))); \
         (a_pPage)->s.HCPhysFN = SetHCPhysTmp >> 12; \
         PGM_PAGE_ASSERT_LOCK(a_pVM); \
     } while (0)
+#else
+# define PGM_PAGE_SET_HCPHYS(a_pVM, a_pPage, a_HCPhys) \
+    do { \
+        (a_pPage)->s.HCPhysFN = 0; \
+        PGM_PAGE_ASSERT_LOCK(a_pVM); \
+    } while (0)
+#endif
 
 /**
  * Get the Page ID.
@@ -2864,7 +2890,6 @@ typedef struct PGMMODEDATABTH
     DECLCALLBACKMEMBER(int, pfnInvalidatePage,(PVMCPUCC pVCpu, RTGCPTR GCPtrPage));
     DECLCALLBACKMEMBER(int, pfnSyncCR3,(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal));
     DECLCALLBACKMEMBER(int, pfnPrefetchPage,(PVMCPUCC pVCpu, RTGCPTR GCPtrPage));
-    DECLCALLBACKMEMBER(int, pfnVerifyAccessSyncPage,(PVMCPUCC pVCpu, RTGCPTR GCPtrPage, unsigned fFlags, unsigned uError));
     DECLCALLBACKMEMBER(int, pfnMapCR3,(PVMCPUCC pVCpu, RTGCPHYS GCPhysCR3));
     DECLCALLBACKMEMBER(int, pfnUnmapCR3,(PVMCPUCC pVCpu));
     DECLCALLBACKMEMBER(int, pfnEnter,(PVMCPUCC pVCpu, RTGCPHYS GCPhysCR3));
@@ -3023,6 +3048,7 @@ typedef struct PGM
     uint8_t                         abAlignment1[2];
     /** @}  */
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** @name   The zero page (abPagePg).
      * @{ */
     /** The host physical address of the zero page. */
@@ -3039,13 +3065,19 @@ typedef struct PGM
      * @remarks Check fLessThan52PhysicalAddressBits before use. */
     RTHCPHYS                        HCPhysInvMmioPg;
     /** @} */
+#endif
 
     /** @cfgm{/RamPreAlloc, boolean, false}
      * Indicates whether the base RAM should all be allocated before starting
      * the VM (default), or if it should be allocated when first written to.
+     * This has no effect in NEM-mode.
      */
     bool                            fRamPreAlloc;
-#ifdef VBOX_WITH_PGM_NEM_MODE
+#ifndef VBOX_WITH_PGM_NEM_MODE
+# define PGM_IS_IN_NEM_MODE(a_pVM)  (false)
+#elif defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
+# define PGM_IS_IN_NEM_MODE(a_pVM)  (true)
+#else
     /** Set if we're operating in NEM memory mode.
      *
      * NEM mode implies that memory is allocated in big chunks for each RAM range
@@ -3055,8 +3087,6 @@ typedef struct PGM
      * pointless as well.  */
     bool                            fNemMode;
 # define PGM_IS_IN_NEM_MODE(a_pVM)  ((a_pVM)->pgm.s.fNemMode)
-#else
-# define PGM_IS_IN_NEM_MODE(a_pVM)  (false)
 #endif
     /** Indicates whether write monitoring is currently in use.
      * This is used to prevent conflicts between live saving and page sharing
@@ -3090,7 +3120,7 @@ typedef struct PGM
     /** Large page enabled flag. */
     bool                            fUseLargePages;
     /** Alignment padding. */
-#ifndef VBOX_WITH_PGM_NEM_MODE
+#if !defined(VBOX_WITH_PGM_NEM_MODE) || defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
     bool                            afAlignment2[2];
 #else
     bool                            afAlignment2[1];
@@ -3138,7 +3168,10 @@ typedef struct PGM
     /** Caching the last physical handler we looked. */
     uint32_t                        idxLastPhysHandler;
 
-    uint32_t                        au64Padding3[9];
+    uint32_t                        au32Padding3[9];
+#ifdef VBOX_WITH_ONLY_PGM_NEM_MODE
+    uint64_t                        au64Padding4[3];
+#endif
 
     /** PGM critical section.
      * This protects the physical, ram ranges, and the page flag updating (some of
@@ -3309,7 +3342,9 @@ AssertCompileMemberAlignment(PGM, PhysTlbR3, 8);
 AssertCompileMemberAlignment(PGM, PhysTlbR3, 16);
 AssertCompileMemberAlignment(PGM, PhysTlbR3, 32);
 AssertCompileMemberAlignment(PGM, PhysTlbR0, 32);
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 AssertCompileMemberAlignment(PGM, HCPhysZeroPg, 8);
+# endif
 AssertCompileMemberAlignment(PGM, aHandyPages, 8);
 #endif /* !IN_TSTVMSTRUCTGC */
 /** Pointer to the PGM instance data. */
@@ -3677,10 +3712,12 @@ typedef struct PGMCPU
     uint64_t                        fGstEptShadowedPml4eMask;
     /** @} */
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** Pointer to the page of the current active CR3 - R3 Ptr. */
     R3PTRTYPE(PPGMPOOLPAGE)         pShwPageCR3R3;
     /** Pointer to the page of the current active CR3 - R0 Ptr. */
     R0PTRTYPE(PPGMPOOLPAGE)         pShwPageCR3R0;
+#endif
 
     /** For saving stack space, the disassembler state is allocated here instead of
      * on the stack. */
@@ -3945,7 +3982,9 @@ DECLHIDDEN(void)            pgmPhysSetNemStateForPages(PPGMPAGE paPages, RTGCPHY
 #endif
 
 #ifdef IN_RING3
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 int             pgmR3PhysRamPreAllocate(PVM pVM);
+# endif
 int             pgmR3PhysRamReset(PVM pVM);
 int             pgmR3PhysRomReset(PVM pVM);
 int             pgmR3PhysRamZeroAll(PVM pVM);

@@ -71,11 +71,6 @@
 
 
 /*********************************************************************************************************************************
-*   Structures and Typedefs                                                                                                      *
-*********************************************************************************************************************************/
-
-
-/*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 #ifdef VBOX_STRICT
@@ -100,7 +95,9 @@ static FNVMATSTATE        pgmR3ResetNoMorePhysWritesFlag;
 VMMR3_INT_DECL(void) PGMR3EnableNemMode(PVM pVM)
 {
     AssertFatal(!PDMCritSectIsInitialized(&pVM->pgm.s.CritSectX));
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pVM->pgm.s.fNemMode = true;
+#endif
 }
 
 
@@ -112,7 +109,8 @@ VMMR3_INT_DECL(void) PGMR3EnableNemMode(PVM pVM)
  */
 VMMR3_INT_DECL(bool)    PGMR3IsNemModeEnabled(PVM pVM)
 {
-    return pVM->pgm.s.fNemMode;
+    RT_NOREF(pVM);
+    return PGM_IS_IN_NEM_MODE(pVM);
 }
 
 
@@ -125,8 +123,6 @@ VMMR3_INT_DECL(bool)    PGMR3IsNemModeEnabled(PVM pVM)
 VMMR3DECL(int) PGMR3Init(PVM pVM)
 {
     LogFlow(("PGMR3Init:\n"));
-    PCFGMNODE pCfgPGM = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/PGM");
-    int rc;
 
     /*
      * Assert alignment and sizes.
@@ -135,18 +131,17 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertCompile(sizeof(pVM->apCpusR3[0]->pgm.s) <= sizeof(pVM->apCpusR3[0]->pgm.padding));
     AssertCompileMemberAlignment(PGM, CritSectX, sizeof(uintptr_t));
 
-    /*
-     * If we're in driveless mode we have to use the simplified memory mode.
-     */
     bool const fDriverless = SUPR3IsDriverless();
-    AssertReturn(fDriverless, VERR_NOT_SUPPORTED);
-    if (!pVM->pgm.s.fNemMode)
-        pVM->pgm.s.fNemMode = true;
 
     /*
      * Init the structure.
      */
     /*pVM->pgm.s.fRestoreRomPagesAtReset = false;*/
+
+    /* We always use the simplified memory mode on arm. */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+    pVM->pgm.s.fNemMode = true;
+#endif
 
     for (unsigned i = 0; i < RT_ELEMENTS(pVM->pgm.s.aHandyPages); i++)
     {
@@ -167,7 +162,9 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertReleaseReturn(pVM->pgm.s.cPhysHandlerTypes == 0, VERR_WRONG_ORDER);
     for (size_t i = 0; i < RT_ELEMENTS(pVM->pgm.s.aPhysHandlerTypes); i++)
     {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         if (fDriverless)
+#endif
             pVM->pgm.s.aPhysHandlerTypes[i].hType  = i | (RTRandU64() & ~(uint64_t)PGMPHYSHANDLERTYPE_IDX_MASK);
         pVM->pgm.s.aPhysHandlerTypes[i].enmKind    = PGMPHYSHANDLERKIND_INVALID;
         pVM->pgm.s.aPhysHandlerTypes[i].pfnHandler = pgmR3HandlerPhysicalHandlerInvalid;
@@ -182,7 +179,12 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     }
 #endif
 
-    rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "RamPreAlloc", &pVM->pgm.s.fRamPreAlloc,
+    /*
+     * Read the configuration.
+     */
+    PCFGMNODE const pCfgPGM = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/PGM");
+
+    int rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "RamPreAlloc", &pVM->pgm.s.fRamPreAlloc,
 #ifdef VBOX_WITH_PREALLOC_RAM_BY_DEFAULT
                             true
 #else
@@ -251,21 +253,25 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
      * Setup the zero page (HCPHysZeroPg is set by ring-0).
      */
     RT_ZERO(pVM->pgm.s.abZeroPg); /* paranoia */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysZeroPg = _4G - GUEST_PAGE_SIZE * 2 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != 0);
+#endif
 
     /*
      * Setup the invalid MMIO page (HCPhysMmioPg is set by ring-0).
      * (The invalid bits in HCPhysInvMmioPg are set later on init complete.)
      */
     ASMMemFill32(pVM->pgm.s.abMmioPg, sizeof(pVM->pgm.s.abMmioPg), 0xfeedface);
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysMmioPg = _4G - GUEST_PAGE_SIZE * 3 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != 0);
     pVM->pgm.s.HCPhysInvMmioPg = pVM->pgm.s.HCPhysMmioPg;
+#endif
 
     /*
      * Initialize physical access handlers.
@@ -281,6 +287,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertLogRelRCReturn(rc, rc);
     AssertLogRelMsgStmt(cAccessHandlers >= 32, ("cAccessHandlers=%#x, min 32\n", cAccessHandlers), cAccessHandlers = 32);
     AssertLogRelMsgStmt(cAccessHandlers <= _64K, ("cAccessHandlers=%#x, max 65536\n", cAccessHandlers), cAccessHandlers = _64K);
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!fDriverless)
     {
         rc = VMMR3CallR0(pVM, VMMR0_DO_PGM_PHYS_HANDLER_INIT, cAccessHandlers, NULL);
@@ -290,6 +297,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         AssertPtr(pVM->pgm.s.PhysHandlerAllocator.m_pbmAlloc);
     }
     else
+#endif
     {
         uint32_t       cbTreeAndBitmap = 0;
         uint32_t const cbTotalAligned  = pgmHandlerPhysicalCalcTableSizes(&cAccessHandlers, &cbTreeAndBitmap);
@@ -330,22 +338,22 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
 
 
 /**
- * Ring-3 init finalizing.
+ * Ring-3 init finalizing (not required here).
  *
  * @returns VBox status code.
  * @param   pVM         The cross context VM structure.
  */
 VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
 {
-    /*
-     * Allocate memory if we're supposed to do that.
-     */
+    RT_NOREF(pVM);
     int rc = VINF_SUCCESS;
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (pVM->pgm.s.fRamPreAlloc)
         rc = pgmR3PhysRamPreAllocate(pVM);
+#endif
 
     //pgmLogState(pVM);
-    LogRel(("PGM: PGMR3InitFinalize: 4 MB PSE mask %RGp -> %Rrc\n", pVM->pgm.s.GCPhys4MBPSEMask, rc));
+    LogRel(("PGM: PGMR3InitFinalize done: %Rrc\n", rc));
     return rc;
 }
 
@@ -510,7 +518,12 @@ VMMR3DECL(int) PGMR3CheckIntegrity(PVM pVM)
 
 VMMDECL(bool) PGMHasDirtyPages(PVM pVM)
 {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     return pVM->pgm.s.CTX_SUFF(pPool)->cDirtyPages != 0;
+#else
+    RT_NOREF(pVM);
+    return false;
+#endif
 }
 
 
@@ -729,9 +742,9 @@ VMMDECL(PGMMODE) PGMGetGuestMode(PVMCPU pVCpu)
         return PGMMODE_NONE;
 
     CPUMMODE enmCpuMode = CPUMGetGuestMode(pVCpu);
-    return   enmCpuMode == CPUMMODE_ARMV8_AARCH64
-           ? PGMMODE_VMSA_V8_64
-           : PGMMODE_VMSA_V8_32;
+    return enmCpuMode == CPUMMODE_ARMV8_AARCH64
+         ? PGMMODE_VMSA_V8_64
+         : PGMMODE_VMSA_V8_32;
 }
 
 
@@ -999,3 +1012,4 @@ int pgmGstPtWalkNext(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALK
     VMCPU_ASSERT_EMT(pVCpu);
     return pgmGstPtWalk(pVCpu, GCPtr, pWalk, pGstWalk); /** @todo Always do full walk for now. */
 }
+

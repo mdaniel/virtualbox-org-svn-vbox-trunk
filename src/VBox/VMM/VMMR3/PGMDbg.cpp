@@ -1288,6 +1288,7 @@ static uint64_t pgmR3DumpHierarchyCalcRange(PPGMR3DUMPHIERARCHYSTATE pState, uin
     return iBase << cShift;
 }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * Maps/finds the shadow page.
@@ -2213,6 +2214,8 @@ static int pgmR3DumpHierarchyShwDoIt(PPGMR3DUMPHIERARCHYSTATE pState, uint64_t c
     return rc;
 }
 
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
+
 
 /**
  * dbgfR3PagingDumpEx worker.
@@ -2236,12 +2239,17 @@ VMMR3_INT_DECL(int) PGMR3DumpHierarchyShw(PVM pVM, uint64_t cr3, uint32_t fFlags
     AssertReturn(!(fFlags & (DBGFPGDMP_FLAGS_CURRENT_MODE | DBGFPGDMP_FLAGS_CURRENT_CR3)), VERR_INVALID_PARAMETER);
     AssertReturn(fFlags & DBGFPGDMP_FLAGS_SHADOW, VERR_INVALID_PARAMETER);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGMR3DUMPHIERARCHYSTATE State;
     pgmR3DumpHierarchyInitState(&State, pVM, fFlags, u64FirstAddr, u64LastAddr, pHlp);
     PGM_LOCK_VOID(pVM);
     int rc = pgmR3DumpHierarchyShwDoIt(&State, cr3, cMaxDepth);
     PGM_UNLOCK(pVM);
     return rc;
+#else
+    RT_NOREF(pVM, cr3, fFlags, u64FirstAddr, u64LastAddr, cMaxDepth, pHlp);
+    return VINF_SUCCESS;
+#endif
 }
 
 

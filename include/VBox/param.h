@@ -75,10 +75,11 @@
 #endif
 
 /** @def VBOX_WITH_PAGE_SHARING
- * Enables the page sharing code.
- * @remarks This must match GMMR0Init; currently we only support page fusion on
- *          all 64-bit hosts except Mac OS X */
+ * Enables the page sharing code on the host side (do not use in guest code).
+ * @remarks Currently we only support page fusion on mainline AMD64 hosts,
+ *          except Mac OS X (no ring-0). */
 #if (   HC_ARCH_BITS == 64          /* ASM-NOINC */ \
+     && defined(RT_ARCH_AMD64)      /* ASM-NOINC */ \
      && (defined(RT_OS_FREEBSD) || defined(RT_OS_LINUX) || defined(RT_OS_SOLARIS) || defined(RT_OS_WINDOWS)) ) /* ASM-NOINC */ \
  || defined(DOXYGEN_RUNNING)        /* ASM-NOINC */
 # define VBOX_WITH_PAGE_SHARING     /* ASM-NOINC */

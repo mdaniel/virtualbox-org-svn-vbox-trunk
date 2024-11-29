@@ -811,12 +811,12 @@ static int supHardNtViCheckIfNotSignedOk(RTLDRMOD hLdrMod, PCRTUTF16 pwszName, u
     uint32_t cwcOther = g_System32NtPath.UniStr.Length / sizeof(WCHAR);
     if (supHardViUtf16PathStartsWithEx(pwszName, cwcName, g_System32NtPath.UniStr.Buffer, cwcOther, true /*fCheckSlash*/))
     {
-        pwsz = pwszName + cwcOther + 1;
-
         /* Must be owned by trusted installer. (This test is superfuous, thus no relaxation here.) */
         if (   !(fFlags & SUPHNTVI_F_TRUSTED_INSTALLER_OR_SIMILAR_OWNER)
             && !supHardNtViCheckIsOwnedByTrustedInstallerOrSimilar(hFile, pwszName))
             return rc;
+
+        pwsz = pwszName + cwcOther + 1;
 
         /* Core DLLs. */
         if (supHardViUtf16PathIsEqual(pwsz, "ntdll.dll"))

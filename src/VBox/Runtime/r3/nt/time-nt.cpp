@@ -54,9 +54,9 @@
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /** Whether we've tried to resolve g_pfnRtlGetSystemTimePrecise or not. */
-static bool                         g_fInitialized = false;
+static bool                             g_fInitialized = false;
 /** Pointer to RtlGetSystemTimePrecise, added in 6.2 (windows 8).   */
-static PFNRTLGETSYSTEMTIMEPRECISE   g_pfnRtlGetSystemTimePrecise = NULL;
+static PFNRTLGETSYSTEMTIMEPRECISE       g_pfnRtlGetSystemTimePrecise = NULL;
 
 
 /**
@@ -69,6 +69,7 @@ static void rtTimeNtInitialize(void)
      */
     if (ASMAtomicCmpXchgBool(&g_fInitialized, true, false))
     {
+/** @todo there is a RtlGetInterruptTimePrecise export since W10   */
         void *pvFunc = RTLdrGetSystemSymbol("ntdll.dll", "RtlGetSystemTimePrecise");
         if (pvFunc)
             ASMAtomicWritePtr((void * volatile *)&g_pfnRtlGetSystemTimePrecise, pvFunc);
@@ -89,7 +90,8 @@ static uint64_t rtTimeGetSystemNanoTS(void)
      * If there is precise time, get the precise system time and calculate the
      * interrupt time from it.  (Microsoft doesn't expose interrupt time to user
      * application, which is very unfortunate as there are a lot place where
-     * monotonic time is applicable but developer is "forced" to use wall clock.)
+     * monotonic time is applicable but developers are "forced" to use the wall
+     * clock.)
      */
     if (g_pfnRtlGetSystemTimePrecise)
     {

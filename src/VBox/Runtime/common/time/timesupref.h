@@ -138,6 +138,9 @@ RTDECL(uint64_t) rtTimeNanoTSInternalRef(PRTTIMENANOTSDATA pData, PRTITMENANOTSE
             uint16_t const  cbLim    = ASMGetIdtrLimit();
             uint16_t const  iCpuSet  = (cbLim - 256 * (ARCH_BITS == 64 ? 16 : 8)) & (RTCPUSET_MAX_CPUS - 1);
             uint16_t const  iGipCpu  = pGip->aiCpuFromCpuSetIdx[iCpuSet];
+# elif TMPL_GET_CPU_METHOD == SUPGIPGETCPU_TPIDRRO_EL0
+            uint32_t const  iCpuSet  = ASMGetThreadIdRoEL0() & (RTCPUSET_MAX_CPUS - 1);
+            uint16_t const  iGipCpu  = pGip->aiCpuFromCpuSetIdx[iCpuSet];
 # else
 #  error "What?"
 # endif

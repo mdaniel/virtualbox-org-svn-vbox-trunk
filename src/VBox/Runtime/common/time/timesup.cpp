@@ -47,7 +47,13 @@
 #include <iprt/log.h>
 #if !defined(IN_GUEST) && !defined(RT_NO_GIP)
 # include <iprt/asm.h>
-# include <iprt/asm-amd64-x86.h>
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#  include <iprt/asm-amd64-x86.h>
+# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+#  include <iprt/asm-arm.h>
+# else
+#  error "port me"
+# endif
 # include <iprt/x86.h>
 # include <VBox/sup.h>
 #endif
@@ -55,10 +61,30 @@
 
 
 /*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
+#ifdef IN_RING3
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#  define APPLICABLE_GET_CPU_FLAGS       (  SUPGIPGETCPU_APIC_ID \
+                                          | SUPGIPGETCPU_RDTSCP_MASK_MAX_SET_CPUS \
+                                          | SUPGIPGETCPU_IDTR_LIMIT_MASK_MAX_SET_CPUS \
+                                          | SUPGIPGETCPU_RDTSCP_GROUP_IN_CH_NUMBER_IN_CL \
+                                          | SUPGIPGETCPU_APIC_ID_EXT_0B \
+                                          | SUPGIPGETCPU_APIC_ID_EXT_8000001E)
+# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+#  define APPLICABLE_GET_CPU_FLAGS       (SUPGIPGETCPU_TPIDRRO_EL0)
+# else
+#  error "port me"
+# endif
+#endif /* IN_RING3 */
+
+
+/*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 #if !defined(IN_GUEST) && !defined(RT_NO_GIP)
-static DECLCALLBACK(void)     rtTimeNanoTSInternalBitch(PRTTIMENANOTSDATA pData, uint64_t u64NanoTS, uint64_t u64DeltaPrev, uint64_t u64PrevNanoTS);
+static DECLCALLBACK(void)     rtTimeNanoTSInternalComplain(PRTTIMENANOTSDATA pData, uint64_t u64NanoTS, uint64_t u64DeltaPrev,
+                                                           uint64_t u64PrevNanoTS);
 static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalFallback(PRTTIMENANOTSDATA pData, PRTITMENANOTSEXTRA pExtra);
 static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalRediscover(PRTTIMENANOTSDATA pData, PRTITMENANOTSEXTRA pExtra);
 static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalBadCpuIndex(PRTTIMENANOTSDATA pData, PRTITMENANOTSEXTRA pExtra,
@@ -77,7 +103,7 @@ static uint64_t         g_TimeNanoTSPrev = 0;
 static RTTIMENANOTSDATA g_TimeNanoTSData =
 {
     /* .pu64Prev       = */ &g_TimeNanoTSPrev,
-    /* .pfnBad         = */ rtTimeNanoTSInternalBitch,
+    /* .pfnBad         = */ rtTimeNanoTSInternalComplain,
     /* .pfnRediscover  = */ rtTimeNanoTSInternalRediscover,
     /* .pfnBadCpuIndex = */ rtTimeNanoTSInternalBadCpuIndex,
     /* .c1nsSteps      = */ 0,
@@ -94,19 +120,23 @@ static const PFNTIMENANOTSINTERNAL g_apfnWorkers[] =
 #  define RTTIMENANO_WORKER_DETECT                                      0
     rtTimeNanoTSInternalRediscover,
 
-#  define RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_NO_DELTA                  1
+#  if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+#   define RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_NO_DELTA                 1
     RTTimeNanoTSLegacySyncInvarNoDelta,
-#  define RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_WITH_DELTA                2
+#   define RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_WITH_DELTA               2
     RTTimeNanoTSLegacySyncInvarWithDelta,
-#  define RTTIMENANO_WORKER_LEGACY_ASYNC                                3
+#   define RTTIMENANO_WORKER_LEGACY_ASYNC                               3
     RTTimeNanoTSLegacyAsync,
 
-#  define RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_NO_DELTA                  4
+#   define RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_NO_DELTA                 4
     RTTimeNanoTSLFenceSyncInvarNoDelta,
-#  define RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_WITH_DELTA                5
+#   define RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_WITH_DELTA               5
     RTTimeNanoTSLFenceSyncInvarWithDelta,
-#  define RTTIMENANO_WORKER_LFENCE_ASYNC                                6
+#   define RTTIMENANO_WORKER_LFENCE_ASYNC                               6
     RTTimeNanoTSLFenceAsync,
+#  else
+#   error "port me"
+#  endif
 
 #  define RTTIMENANO_WORKER_FALLBACK                                    7
     rtTimeNanoTSInternalFallback,
@@ -115,17 +145,17 @@ static const PFNTIMENANOTSINTERNAL g_apfnWorkers[] =
  * @remarks This cannot be a pointer because that'll break down in RC due to
  *          code relocation. */
 static uint32_t                 g_iWorker   = RTTIMENANO_WORKER_DETECT;
-# else
+# else  /* !IN_RC */
 /** Pointer to the worker */
 static PFNTIMENANOTSINTERNAL    g_pfnWorker = rtTimeNanoTSInternalRediscover;
-# endif /* IN_RC */
+# endif /* !IN_RC */
 
 
 /**
  * @interface_method_impl{RTTIMENANOTSDATA,pfnBad}
  */
-static DECLCALLBACK(void) rtTimeNanoTSInternalBitch(PRTTIMENANOTSDATA pData, uint64_t u64NanoTS, uint64_t u64DeltaPrev,
-                                                    uint64_t u64PrevNanoTS)
+static DECLCALLBACK(void) rtTimeNanoTSInternalComplain(PRTTIMENANOTSDATA pData, uint64_t u64NanoTS, uint64_t u64DeltaPrev,
+                                                       uint64_t u64PrevNanoTS)
 {
     pData->cBadPrev++;
     if ((int64_t)u64DeltaPrev < 0)
@@ -160,14 +190,21 @@ static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalBadCpuIndex(PRTTIMENANOTSDATA 
  */
 static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalFallback(PRTTIMENANOTSDATA pData, PRTITMENANOTSEXTRA pExtra)
 {
+    RT_NOREF(pData);
     PSUPGLOBALINFOPAGE pGip = g_pSUPGlobalInfoPage;
+    uint32_t           uMode;
     if (    pGip
         &&  pGip->u32Magic == SUPGLOBALINFOPAGE_MAGIC
-        &&  (   pGip->u32Mode == SUPGIPMODE_INVARIANT_TSC
-             || pGip->u32Mode == SUPGIPMODE_SYNC_TSC
-             || pGip->u32Mode == SUPGIPMODE_ASYNC_TSC))
+        &&  (   (uMode = pGip->u32Mode) == SUPGIPMODE_INVARIANT_TSC
+             || uMode                   == SUPGIPMODE_SYNC_TSC
+             || uMode                   == SUPGIPMODE_ASYNC_TSC)
+# ifdef IN_RING3
+        &&  (   (pGip->fGetGipCpu & APPLICABLE_GET_CPU_FLAGS) != 0
+             || (   pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_PRACTICALLY_ZERO
+                 && uMode != SUPGIPMODE_ASYNC_TSC))
+# endif
+       )
         return rtTimeNanoTSInternalRediscover(pData, pExtra);
-    NOREF(pData);
 # ifndef IN_RC
     if (pExtra)
         pExtra->uTSCValue = ASMReadTSC();
@@ -191,28 +228,30 @@ static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalRediscover(PRTTIMENANOTSDATA p
 # else
     PFNTIMENANOTSINTERNAL   pfnWorker;
 # endif
+    uint32_t                uMode;
     if (    pGip
         &&  pGip->u32Magic == SUPGLOBALINFOPAGE_MAGIC
-        &&  (   pGip->u32Mode == SUPGIPMODE_INVARIANT_TSC
-             || pGip->u32Mode == SUPGIPMODE_SYNC_TSC
-             || pGip->u32Mode == SUPGIPMODE_ASYNC_TSC))
+        &&  (   (uMode = pGip->u32Mode) == SUPGIPMODE_INVARIANT_TSC
+             || uMode                   == SUPGIPMODE_SYNC_TSC
+             || uMode                   == SUPGIPMODE_ASYNC_TSC))
     {
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         if (ASMCpuId_EDX(1) & X86_CPUID_FEATURE_EDX_SSE2)
         {
-# ifdef IN_RC
-            iWorker   = pGip->u32Mode == SUPGIPMODE_ASYNC_TSC
+#  ifdef IN_RC
+            iWorker   = uMode == SUPGIPMODE_ASYNC_TSC
                       ? RTTIMENANO_WORKER_LFENCE_ASYNC
                       : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
                       ? RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_NO_DELTA
                       : RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_WITH_DELTA;
-# elif defined(IN_RING0)
-            pfnWorker = pGip->u32Mode == SUPGIPMODE_ASYNC_TSC
+#  elif defined(IN_RING0)
+            pfnWorker = uMode == SUPGIPMODE_ASYNC_TSC
                       ? RTTimeNanoTSLFenceAsync
                       : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
                       ? RTTimeNanoTSLFenceSyncInvarNoDelta
                       : RTTimeNanoTSLFenceSyncInvarWithDelta;
-# else
-            if (pGip->u32Mode == SUPGIPMODE_ASYNC_TSC)
+#  else
+            if (uMode == SUPGIPMODE_ASYNC_TSC)
             {
                 if (     pGip->fGetGipCpu & SUPGIPGETCPU_IDTR_LIMIT_MASK_MAX_SET_CPUS)
                     pfnWorker = RTTimeNanoTSLFenceAsyncUseIdtrLim;
@@ -246,23 +285,23 @@ static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalRediscover(PRTTIMENANOTSDATA p
                 else
                     pfnWorker = rtTimeNanoTSInternalFallback;
             }
-# endif
+#  endif
         }
         else
         {
-# ifdef IN_RC
-            iWorker = pGip->u32Mode == SUPGIPMODE_ASYNC_TSC
+#  ifdef IN_RC
+            iWorker = uMode == SUPGIPMODE_ASYNC_TSC
                     ? RTTIMENANO_WORKER_LEGACY_ASYNC
                     : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
                     ? RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_NO_DELTA : RTTIMENANO_WORKER_LEGACY_SYNC_INVAR_WITH_DELTA;
-# elif defined(IN_RING0)
-            pfnWorker = pGip->u32Mode == SUPGIPMODE_ASYNC_TSC
+#  elif defined(IN_RING0)
+            pfnWorker = uMode == SUPGIPMODE_ASYNC_TSC
                       ? RTTimeNanoTSLegacyAsync
                       : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
                       ? RTTimeNanoTSLegacySyncInvarNoDelta
                       : RTTimeNanoTSLegacySyncInvarWithDelta;
-# else
-            if (pGip->u32Mode == SUPGIPMODE_ASYNC_TSC)
+#  else
+            if (uMode == SUPGIPMODE_ASYNC_TSC)
                 pfnWorker = pGip->fGetGipCpu & SUPGIPGETCPU_RDTSCP_MASK_MAX_SET_CPUS
                           ? RTTimeNanoTSLegacyAsyncUseRdtscp
                           : pGip->fGetGipCpu & SUPGIPGETCPU_RDTSCP_GROUP_IN_CH_NUMBER_IN_CL
@@ -298,8 +337,42 @@ static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalRediscover(PRTTIMENANOTSDATA p
                            ? RTTimeNanoTSLegacySyncInvarNoDelta
                            : RTTimeNanoTSLegacySyncInvarWithDeltaUseApicId
                          : rtTimeNanoTSInternalFallback;
-# endif
+#  endif
         }
+# else  /* !AMD64 && !X86 */
+#  ifdef IN_RC
+#   error "port me"
+        iWorker   = uMode == SUPGIPMODE_ASYNC_TSC
+                  ? RTTIMENANO_WORKER_LFENCE_ASYNC
+                  : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
+                  ? RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_NO_DELTA
+                  : RTTIMENANO_WORKER_LFENCE_SYNC_INVAR_WITH_DELTA;
+#  elif defined(IN_RING0)
+        pfnWorker = uMode == SUPGIPMODE_ASYNC_TSC
+                  ? RTTimeNanoTSAsync
+                  : pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO
+                  ? RTTimeNanoTSSyncInvarNoDelta
+                  : RTTimeNanoTSSyncInvarWithDelta;
+#  else
+        if (uMode == SUPGIPMODE_ASYNC_TSC)
+        {
+            if (pGip->fGetGipCpu & SUPGIPGETCPU_TPIDRRO_EL0)
+                pfnWorker = RTTimeNanoTSAsyncUseTpIdRRo;
+            else
+                pfnWorker = rtTimeNanoTSInternalFallback;
+        }
+        else
+        {
+            if (pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_PRACTICALLY_ZERO)
+                pfnWorker = RTTimeNanoTSSyncInvarNoDelta;
+            else if (pGip->fGetGipCpu & SUPGIPGETCPU_TPIDRRO_EL0)
+                pfnWorker = RTTimeNanoTSSyncInvarWithDeltaUseTpIdRRo;
+            else
+                pfnWorker = rtTimeNanoTSInternalFallback;
+        }
+#  endif
+
+# endif /* !AMD64 && !X86 */
     }
     else
 # ifdef IN_RC
@@ -317,15 +390,17 @@ static DECLCALLBACK(uint64_t) rtTimeNanoTSInternalRediscover(PRTTIMENANOTSDATA p
 # endif
 }
 
+
 # if defined(IN_RING3) || defined(IN_RING0)
 RTDECL(const char *) RTTimeNanoTSWorkerName(void)
 {
     static const struct { PFNTIMENANOTSINTERNAL pfnWorker; const char *pszName; } s_aWorkersAndNames[] =
     {
 #  define ENTRY(a_fn) { a_fn, #a_fn }
+#  if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
         ENTRY(RTTimeNanoTSLegacySyncInvarNoDelta),
         ENTRY(RTTimeNanoTSLFenceSyncInvarNoDelta),
-#  ifdef IN_RING3
+#   ifdef IN_RING3
         ENTRY(RTTimeNanoTSLegacyAsyncUseApicId),
         ENTRY(RTTimeNanoTSLegacyAsyncUseApicIdExt0B),
         ENTRY(RTTimeNanoTSLegacyAsyncUseApicIdExt8000001E),
@@ -348,12 +423,24 @@ RTDECL(const char *) RTTimeNanoTSWorkerName(void)
         ENTRY(RTTimeNanoTSLFenceSyncInvarWithDeltaUseApicIdExt8000001E),
         ENTRY(RTTimeNanoTSLFenceSyncInvarWithDeltaUseRdtscp),
         ENTRY(RTTimeNanoTSLFenceSyncInvarWithDeltaUseIdtrLim),
-#  else
+#   else
         ENTRY(RTTimeNanoTSLegacyAsync),
         ENTRY(RTTimeNanoTSLegacySyncInvarWithDelta),
         ENTRY(RTTimeNanoTSLFenceAsync),
         ENTRY(RTTimeNanoTSLFenceSyncInvarWithDelta),
-#  endif
+#   endif
+#  else  /* !AMD64 && !X86 */
+        ENTRY(RTTimeNanoTSSyncInvarNoDelta),
+#   ifdef IN_RING3
+#    ifdef RT_ARCH_ARM64
+        ENTRY(RTTimeNanoTSSyncInvarWithDeltaUseTpIdRRo),
+        ENTRY(RTTimeNanoTSAsyncUseTpIdRRo),
+#    endif
+#   else
+        ENTRY(RTTimeNanoTSAsync),
+        ENTRY(RTTimeNanoTSSyncInvarWithDelta),
+#   endif
+#  endif /* !AMD64 && !X86 */
         ENTRY(rtTimeNanoTSInternalFallback),
 #  undef ENTRY
     };

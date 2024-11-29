@@ -118,9 +118,9 @@ DECLCALLBACK(DECLEXPORT(uint64_t)) tmVirtualNanoTSRediscover(PRTTIMENANOTSDATA p
 #endif
         switch (pGip->u32Mode)
         {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-            case SUPGIPMODE_SYNC_TSC:
             case SUPGIPMODE_INVARIANT_TSC:
+            case SUPGIPMODE_SYNC_TSC:
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # ifdef IN_RING0
                 if (pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO)
                     pfnWorker = fLFence ? RTTimeNanoTSLFenceSyncInvarNoDelta    : RTTimeNanoTSLegacySyncInvarNoDelta;
@@ -148,9 +148,25 @@ DECLCALLBACK(DECLEXPORT(uint64_t)) tmVirtualNanoTSRediscover(PRTTIMENANOTSDATA p
                               ? fLFence ? RTTimeNanoTSLFenceSyncInvarNoDelta            : RTTimeNanoTSLegacySyncInvarNoDelta
                               : fLFence ? RTTimeNanoTSLFenceSyncInvarWithDeltaUseApicId : RTTimeNanoTSLegacySyncInvarWithDeltaUseApicId;
 # endif
+#else  /* !AMD64 && !X86 */
+                if (pGip->enmUseTscDelta <= SUPGIPUSETSCDELTA_ROUGHLY_ZERO)
+                    pfnWorker = RTTimeNanoTSSyncInvarNoDelta;
+                else
+                {
+# ifdef IN_RING0
+                    pfnWorker = RTTimeNanoTSSyncInvarWithDelta;
+# elif defined(RT_ARCH_ARM64)
+                    AssertFatal(pGip->fGetGipCpu & SUPGIPGETCPU_TPIDRRO_EL0);
+                    pfnWorker = RTTimeNanoTSSyncInvarWithDeltaUseTpIdRRo;
+# else
+#  error "port me"
+# endif
+                }
+#endif /* !AMD64 && !X86 */
                 break;
 
             case SUPGIPMODE_ASYNC_TSC:
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # ifdef IN_RING0
                 pfnWorker = fLFence ? RTTimeNanoTSLFenceAsync : RTTimeNanoTSLegacyAsync;
 # else
@@ -167,8 +183,18 @@ DECLCALLBACK(DECLEXPORT(uint64_t)) tmVirtualNanoTSRediscover(PRTTIMENANOTSDATA p
                 else
                     pfnWorker = fLFence ? RTTimeNanoTSLFenceAsyncUseApicId      : RTTimeNanoTSLegacyAsyncUseApicId;
 # endif
+#else  /* !AMD64 && !X86 */
+# ifdef IN_RING0
+                pfnWorker = RTTimeNanoTSASync;
+# elif defined(RT_ARCH_ARM64)
+                AssertFatal(pGip->fGetGipCpu & SUPGIPGETCPU_TPIDRRO_EL0);
+                pfnWorker = RTTimeNanoTSSyncInvarWithDeltaUseTpIdRRo;
+# else
+#  error "port me"
+# endif
+#endif /* !AMD64 && !X86 */
                 break;
-#endif
+
             default:
                 AssertFatalMsgFailed(("pVM=%p pGip=%p u32Mode=%#x\n", pVM, pGip, pGip->u32Mode));
         }

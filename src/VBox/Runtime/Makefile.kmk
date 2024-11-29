@@ -2932,7 +2932,9 @@ VBoxRT_DEFS                   := $(filter-out RT_NO_GIP, $(RuntimeBaseR3_DEFS)) 
 	IPRT_WITH_GHIDRA_DBG_MOD \
 	$(if-expr !defined(VBOX_WITH_ALT_HASH_CODE),IPRT_WITHOUT_SHA512T224 IPRT_WITHOUT_SHA512T256,)
 ifn1of ($(KBUILD_TARGET_ARCH), amd64 x86)
- VBoxRT_DEFS                  += RT_NO_GIP
+ ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.arm64)
+  VBoxRT_DEFS                 += RT_NO_GIP
+ endif
 endif
 ifdef VBOX_WITH_LIBCURL
  VBoxRT_DEFS                  += IPRT_WITH_HTTP

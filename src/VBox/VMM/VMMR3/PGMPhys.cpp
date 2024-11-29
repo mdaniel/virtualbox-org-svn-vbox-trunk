@@ -1905,18 +1905,6 @@ static int pgmR3PhysInitAndLinkRamRange(PVM pVM, PPGMRAMRANGE pNew, RTGCPHYS GCP
 #ifdef VBOX_WITH_PGM_NEM_MODE
     if (PGM_IS_IN_NEM_MODE(pVM))
     {
-        RTGCPHYS iPage = cPages;
-        while (iPage-- > 0)
-            PGM_PAGE_INIT_ZERO(&pNew->aPages[iPage], pVM, PGMPAGETYPE_RAM);
-
-        /* Update the page count stats. */
-        pVM->pgm.s.cZeroPages += cPages;
-        pVM->pgm.s.cAllPages  += cPages;
-    }
-    else
-#endif
-    {
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         int rc = SUPR3PageAlloc(RT_ALIGN_Z(pNew->cb, HOST_PAGE_SIZE) >> HOST_PAGE_SHIFT,
                                 pVM->pgm.s.fUseLargePages ? SUP_PAGE_ALLOC_F_LARGE_PAGES : 0, (void **)&pNew->pbR3);
         if (RT_FAILURE(rc))
@@ -1930,6 +1918,18 @@ static int pgmR3PhysInitAndLinkRamRange(PVM pVM, PPGMRAMRANGE pNew, RTGCPHYS GCP
         /* Update the page count stats. */
         pVM->pgm.s.cPrivatePages += cPages;
         pVM->pgm.s.cAllPages     += cPages;
+    }
+    else
+#endif
+    {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+        RTGCPHYS iPage = cPages;
+        while (iPage-- > 0)
+            PGM_PAGE_INIT_ZERO(&pNew->aPages[iPage], pVM, PGMPAGETYPE_RAM);
+
+        /* Update the page count stats. */
+        pVM->pgm.s.cZeroPages += cPages;
+        pVM->pgm.s.cAllPages  += cPages;
 #endif
     }
 

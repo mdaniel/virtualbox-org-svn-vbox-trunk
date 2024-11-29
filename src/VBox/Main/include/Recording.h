@@ -223,7 +223,7 @@ protected:
     RTSEMEVENT                   m_WaitEvent;
     /** Current operation of progress. Set to 0 if not started yet, >= 1 if started. */
     ULONG                        m_ulCurOp;
-    /** Number of progress operations. Always >= 1. */
+    /** Number of progress operations. Always >= 1 (if initialized). */
     ULONG                        m_cOps;
     /** The progress object assigned to this context.
      *  Might be NULL if not being used. */

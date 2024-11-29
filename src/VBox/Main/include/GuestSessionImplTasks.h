@@ -57,7 +57,9 @@ struct GuestSessionFsSourceSpec
     GuestSessionFsSourceSpec()
         : enmType(FsObjType_Unknown)
         , enmPathStyle(PathStyle_Unknown)
-        , fDryRun(false) { RT_ZERO(Type); }
+        , fDryRun(false)
+        , fDirCopyFlags(DirectoryCopyFlag_None)
+        , fFileCopyFlags(FileCopyFlag_None) { RT_ZERO(Type); }
 
     /** The (absolute) path to the source to use. */
     Utf8Str     strSource;

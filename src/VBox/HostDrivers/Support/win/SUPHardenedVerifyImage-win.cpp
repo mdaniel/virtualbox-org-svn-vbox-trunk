@@ -2282,7 +2282,7 @@ DECLHIDDEN(HMODULE) supR3HardenedWinLoadSystem32Dll(const char *pszName, bool fM
  */
 static void supR3HardenedWinRetrieveTrustedRootCAs(void)
 {
-    uint32_t cAdded = 0;
+    uint32_t cAdded = 0; RT_NOREF(cAdded); /* Shut up Parfait. */
 
     /*
      * Load crypt32.dll and resolve the APIs we need.

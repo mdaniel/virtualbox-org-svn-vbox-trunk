@@ -168,6 +168,7 @@ static bool isStorageControllerType(VirtualSystemDescriptionType_T avsdType)
     switch (avsdType)
     {
         case VirtualSystemDescriptionType_HardDiskControllerIDE:
+        case VirtualSystemDescriptionType_HardDiskControllerNVMe:
         case VirtualSystemDescriptionType_HardDiskControllerSATA:
         case VirtualSystemDescriptionType_HardDiskControllerSCSI:
         case VirtualSystemDescriptionType_HardDiskControllerSAS:
@@ -1027,6 +1028,9 @@ RTEXITCODE handleImportAppliance(HandlerArg *arg)
                                             break;
                                         case VirtualSystemDescriptionType_HardDiskControllerVirtioSCSI:
                                             enmStorageBus = StorageBus_VirtioSCSI;
+                                            break;
+                                        case VirtualSystemDescriptionType_HardDiskControllerNVMe:
+                                            enmStorageBus = StorageBus_PCIe;
                                             break;
                                         default:  // Not reached since vsdControllerType validated above but silence gcc.
                                             break;

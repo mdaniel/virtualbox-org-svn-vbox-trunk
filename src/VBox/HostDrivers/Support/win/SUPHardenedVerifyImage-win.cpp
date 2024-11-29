@@ -3004,7 +3004,7 @@ DECLHIDDEN(int) supHardenedWinVerifyImageTrust(HANDLE hFile, PCRTUTF16 pwszName,
             else
                 fNoRecursion = ASMAtomicCmpXchgU32(&g_idActiveThread, idCurrentThread, UINT32_MAX);
 
-            if (fNoRecursion && !fOwnsLoaderLock)
+            if (fNoRecursion)
             {
                 /* We can call WinVerifyTrust. */
                 if (pfWinVerifyTrust)

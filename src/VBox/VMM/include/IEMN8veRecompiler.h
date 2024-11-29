@@ -38,6 +38,7 @@
  */
 
 #include <iprt/assertcompile.h> /* for RT_IN_ASSEMBLER mode */
+#include <VBox/cdefs.h>         /* for VBOXSTRICTRC_STRICT_ENABLED */
 
 /** @def IEMNATIVE_WITH_TB_DEBUG_INFO
  * Enables generating internal debug info for better TB disassembly dumping. */
@@ -158,11 +159,23 @@ AssertCompile(IEMNATIVE_FRAME_VAR_SLOTS == 32);
 #  define IEMNATIVE_FP_OFF_IN_SHADOW_ARG2   (32)
 /** Frame pointer (RBP) relative offset of the fourth incoming shadow argument. */
 #  define IEMNATIVE_FP_OFF_IN_SHADOW_ARG3   (40)
+/** The offset to VBOXSTRICTRC on the stack. */
+#  define IEMNATIVE_FP_OFF_VBOXSTRICRC      IEMNATIVE_FP_OFF_IN_SHADOW_ARG0
 # endif
 
 #elif RT_ARCH_ARM64
-/** No alignment padding needed for arm64. */
-# define IEMNATIVE_FRAME_ALIGN_SIZE         0
+/** No alignment padding needed for arm64.
+ * @note HACK ALERT! We abuse this for keeping VBOXSTRICTRC on windows, since
+ *       it isn't allowed to be returned by register. */
+# define IEMNATIVE_FRAME_ALIGN_SIZE        0
+# ifdef VBOXSTRICTRC_STRICT_ENABLED
+#  ifdef RT_OS_WINDOWS
+#   undef  IEMNATIVE_FRAME_ALIGN_SIZE
+#   define IEMNATIVE_FRAME_ALIGN_SIZE       16
+/** The offset to VBOXSTRICTRC on the stack. */
+#   define IEMNATIVE_FP_OFF_VBOXSTRICRC     (IEMNATIVE_FP_OFF_LAST_PUSH - IEMNATIVE_FRAME_ALIGN_SIZE)
+#  endif
+# endif
 /** No stack argument slots, got 8 registers for arguments will suffice. */
 # define IEMNATIVE_FRAME_STACK_ARG_COUNT    0
 /** There are no argument spill area. */
@@ -2790,7 +2803,7 @@ DECL_FORCE_INLINE(uint64_t) iemNativeCImplFlagsToGuestShadowFlushMask(uint32_t f
 
 /** Number of hidden arguments for CIMPL calls.
  * @note We're sufferning from the usual VBOXSTRICTRC fun on Windows. */
-#if defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_OS_WINDOWS) && defined(RT_ARCH_AMD64)
+#if defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_OS_WINDOWS) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64))
 # define IEM_CIMPL_HIDDEN_ARGS 3
 #else
 # define IEM_CIMPL_HIDDEN_ARGS 2

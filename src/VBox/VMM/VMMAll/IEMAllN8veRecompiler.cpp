@@ -6712,17 +6712,25 @@ iemNativeEmitCImplCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxI
     /*
      * Load the parameters.
      */
-#if defined(RT_OS_WINDOWS) && defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_ARCH_AMD64)
+#if defined(RT_OS_WINDOWS) && defined(VBOXSTRICTRC_STRICT_ENABLED) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64))
     /* Special code the hidden VBOXSTRICTRC pointer. */
     off = iemNativeEmitLoadGprFromGpr(  pReNative, off, IEMNATIVE_CALL_ARG1_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
     off = iemNativeEmitLoadGprImm64(    pReNative, off, IEMNATIVE_CALL_ARG2_GREG, cbInstr); /** @todo 8-bit reg load opt for amd64 */
     if (cAddParams > 0)
         off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG3_GREG, uParam0);
     if (cAddParams > 1)
+# if IEMNATIVE_CALL_ARG_GREG_COUNT >= 5
+        off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG4_GREG, uParam1);
+# else
         off = iemNativeEmitStoreImm64ByBp(pReNative, off, IEMNATIVE_FP_OFF_STACK_ARG0, uParam1);
+# endif
     if (cAddParams > 2)
+# if IEMNATIVE_CALL_ARG_GREG_COUNT >= 6
+        off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG5_GREG, uParam2);
+# else
         off = iemNativeEmitStoreImm64ByBp(pReNative, off, IEMNATIVE_FP_OFF_STACK_ARG1, uParam2);
-    off = iemNativeEmitLeaGprByBp(pReNative, off, X86_GREG_xCX, IEMNATIVE_FP_OFF_IN_SHADOW_ARG0); /* rcStrict */
+# endif
+    off = iemNativeEmitLeaGprByBp(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict */
 
 #else
     AssertCompile(IEMNATIVE_CALL_ARG_GREG_COUNT >= 4);
@@ -6745,8 +6753,8 @@ iemNativeEmitCImplCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxI
      */
     off = iemNativeEmitCallImm(pReNative, off, pfnCImpl);
 
-#if defined(RT_ARCH_AMD64) && defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_OS_WINDOWS)
-    off = iemNativeEmitLoadGprByBpU32(pReNative, off, X86_GREG_xAX, IEMNATIVE_FP_OFF_IN_SHADOW_ARG0); /* rcStrict (see above) */
+#if defined(RT_OS_WINDOWS) && defined(VBOXSTRICTRC_STRICT_ENABLED) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_ARM64))
+    off = iemNativeEmitLoadGprByBpU32(pReNative, off, X86_GREG_xAX, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict (see above) */
 #endif
 
 #ifdef IEMNATIVE_WITH_DELAYED_PC_UPDATING_DEBUG
@@ -6806,7 +6814,7 @@ iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, PCIEMTHRD
         off = iemNativeEmitLoadGprImm64(pReNative, off, X86_GREG_x10, pCallEntry->auParams[2]);
         off = iemNativeEmitStoreGprByBp(pReNative, off, IEMNATIVE_FP_OFF_STACK_ARG0, X86_GREG_x10);
     }
-    off = iemNativeEmitLeaGprByBp(pReNative, off, X86_GREG_xCX, IEMNATIVE_FP_OFF_IN_SHADOW_ARG0); /* rcStrict */
+    off = iemNativeEmitLeaGprByBp(pReNative, off, X86_GREG_xCX, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict */
 #  endif /* VBOXSTRICTRC_STRICT_ENABLED */
 # else
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, X86_GREG_xDI, IEMNATIVE_REG_FIXED_PVMCPU);
@@ -6821,13 +6829,14 @@ iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, PCIEMTHRD
     off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)g_apfnIemThreadedFunctions[pCallEntry->enmFunction]);
 
 # if defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_OS_WINDOWS)
-    off = iemNativeEmitLoadGprByBpU32(pReNative, off, X86_GREG_xAX, IEMNATIVE_FP_OFF_IN_SHADOW_ARG0); /* rcStrict (see above) */
+    off = iemNativeEmitLoadGprByBpU32(pReNative, off, X86_GREG_xAX, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict (see above) */
 # endif
 
 #elif RT_ARCH_ARM64
     /*
      * ARM64:
      */
+# if !defined(RT_OS_WINDOWS) || !defined(VBOXSTRICTRC_STRICT_ENABLED)
     off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
     if (cParams > 0)
         off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, pCallEntry->auParams[0]);
@@ -6835,8 +6844,22 @@ iemNativeEmitThreadedCall(PIEMRECOMPILERSTATE pReNative, uint32_t off, PCIEMTHRD
         off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG2_GREG, pCallEntry->auParams[1]);
     if (cParams > 2)
         off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG3_GREG, pCallEntry->auParams[2]);
+# else
+    off = iemNativeEmitLoadGprFromGpr(pReNative, off, IEMNATIVE_CALL_ARG1_GREG, IEMNATIVE_REG_FIXED_PVMCPU);
+    if (cParams > 0)
+        off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG2_GREG, pCallEntry->auParams[0]);
+    if (cParams > 1)
+        off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG3_GREG, pCallEntry->auParams[1]);
+    if (cParams > 2)
+        off = iemNativeEmitLoadGprImm64(pReNative, off, IEMNATIVE_CALL_ARG4_GREG, pCallEntry->auParams[2]);
+    off = iemNativeEmitLeaGprByBp(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict */
+# endif
 
     off = iemNativeEmitCallImm(pReNative, off, (uintptr_t)g_apfnIemThreadedFunctions[pCallEntry->enmFunction]);
+
+# if defined(VBOXSTRICTRC_STRICT_ENABLED) && defined(RT_OS_WINDOWS)
+    off = iemNativeEmitLoadGprByBpU32(pReNative, off, IEMNATIVE_CALL_ARG0_GREG, IEMNATIVE_FP_OFF_VBOXSTRICRC); /* rcStrict (see above) */
+# endif
 
 #else
 # error "port me"
@@ -7041,11 +7064,11 @@ static uint32_t iemNativeEmitCoreEpilog(PIEMRECOMPILERSTATE pReNative, uint32_t 
 #elif RT_ARCH_ARM64
     uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 10);
 
-    /* ldp x19, x20, [sp #IEMNATIVE_FRAME_VAR_SIZE]! ; Unallocate the variable space and restore x19+x20. */
-    AssertCompile(IEMNATIVE_FRAME_VAR_SIZE < 64*8);
+    /* ldp x19, x20, [sp #(IEMNATIVE_FRAME_VAR_SIZE+IEMNATIVE_FRAME_ALIGN_SIZE)]! ; Unallocate the variable space and restore x19+x20. */
+    AssertCompile(IEMNATIVE_FRAME_VAR_SIZE + IEMNATIVE_FRAME_ALIGN_SIZE < 64*8);
     pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(true /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_PreIndex,
                                                  ARMV8_A64_REG_X19, ARMV8_A64_REG_X20, ARMV8_A64_REG_SP,
-                                                 IEMNATIVE_FRAME_VAR_SIZE / 8);
+                                                 (IEMNATIVE_FRAME_VAR_SIZE + IEMNATIVE_FRAME_ALIGN_SIZE) / 8);
     /* Restore x21 thru x28 + BP and LR (ret address) (SP remains unchanged in the kSigned variant). */
     pu32CodeBuf[off++] = Armv8A64MkInstrStLdPair(true /*fLoad*/, 2 /*64-bit*/, kArm64InstrStLdPairType_Signed,
                                                  ARMV8_A64_REG_X21, ARMV8_A64_REG_X22, ARMV8_A64_REG_SP, 2);

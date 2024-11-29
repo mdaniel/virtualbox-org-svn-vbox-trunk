@@ -82,6 +82,19 @@
 # undef VBOX_STRICT_GUEST
 #endif
 
+/** @def VBOXSTRICTRC_STRICT_ENABLED
+ * Indicates that VBOXSTRICTRC is in strict mode.
+ */
+#if defined(__cplusplus) \
+ && ARCH_BITS == 64    /* cdecl requires classes and structs as hidden params. */ \
+ && !defined(_MSC_VER) /* trouble similar to 32-bit gcc. */ \
+ &&  (   defined(RT_STRICT) \
+      || defined(VBOX_STRICT) \
+      || defined(DEBUG) \
+      || defined(DOXYGEN_RUNNING) )
+# define VBOXSTRICTRC_STRICT_ENABLED 1
+#endif
+
 
 /*
  * Shut up DOXYGEN warnings and guide it properly thru the code.
@@ -91,6 +104,7 @@
 #define VBOX_STRICT
 #define VBOX_STRICT_GUEST
 #define VBOX_NO_STRICT_GUEST
+#define VBOXSTRICTRC_STRICT_ENABLED
 #define IN_DBG
 #define IN_DIS
 #define IN_INTNET_R0

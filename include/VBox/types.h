@@ -267,19 +267,6 @@ typedef enum VMSTATE
     VMSTATE_MAKE_32BIT_HACK = 0x7fffffff
 } VMSTATE;
 
-/** @def VBOXSTRICTRC_STRICT_ENABLED
- * Indicates that VBOXSTRICTRC is in strict mode.
- */
-#if defined(__cplusplus) \
- && ARCH_BITS == 64    /* cdecl requires classes and structs as hidden params. */ \
- && !defined(_MSC_VER) /* trouble similar to 32-bit gcc. */ \
- &&  (   defined(RT_STRICT) \
-      || defined(VBOX_STRICT) \
-      || defined(DEBUG) \
-      || defined(DOXYGEN_RUNNING) )
-# define VBOXSTRICTRC_STRICT_ENABLED 1
-#endif
-
 /** We need RTERR_STRICT_RC.  */
 #if defined(VBOXSTRICTRC_STRICT_ENABLED) && !defined(RTERR_STRICT_RC)
 # define RTERR_STRICT_RC 1

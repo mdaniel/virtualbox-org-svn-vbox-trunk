@@ -820,6 +820,7 @@ GuestDnD* GuestDnD::s_pInstance = NULL;
 
 GuestDnD::GuestDnD(const ComObjPtr<Guest> &pGuest)
     : m_pGuest(pGuest)
+    , m_pState(NULL)
     , m_cTransfersPending(0)
 {
     LogFlowFuncEnter();

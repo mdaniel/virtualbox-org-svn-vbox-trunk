@@ -1347,7 +1347,6 @@ struct Hardware
 
     com::Utf8Str        strVersion;             // hardware version, optional
     com::Guid           uuid;                   // hardware uuid, optional (null).
-    bool                fSyntheticCpu;
     uint32_t            cCPUs;
     bool                fCpuHotPlug;            // requires settings version 1.10 (VirtualBox 3.2)
     CpuList             llCpus;                 // requires settings version 1.10 (VirtualBox 3.2)

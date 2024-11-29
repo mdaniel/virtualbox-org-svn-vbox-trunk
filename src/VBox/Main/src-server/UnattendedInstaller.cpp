@@ -80,12 +80,10 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
     else
     {
         if (   enmDetectedOSType >= VBOXOSTYPE_Debian
-            && (   enmDetectedOSType <= VBOXOSTYPE_Debian_latest_x64
-                || enmDetectedOSType <= VBOXOSTYPE_Debian_latest_arm64))
+            && enmDetectedOSType <= VBOXOSTYPE_Debian_latest_arm64)
             pUinstaller = new UnattendedDebianInstaller(pParent);
         else if (   enmDetectedOSType >= VBOXOSTYPE_Ubuntu
-                 && (   enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_x64
-                     || enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_arm64))
+                 && enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_arm64)
         {
             /*
              * Here we have to decide, based on the Ubuntu version, which exact installer flavor we have to use:
@@ -122,8 +120,7 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
         else if (enmDetectedOSType >= VBOXOSTYPE_FedoraCore && enmDetectedOSType <= VBOXOSTYPE_FedoraCore_x64)
             pUinstaller = new UnattendedFedoraInstaller(pParent);
         else if (   enmDetectedOSType >= VBOXOSTYPE_Oracle
-                 && (   enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_x64
-                     || enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_arm64))
+                 && enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_arm64)
         {
             if (RTStrVersionCompare(strDetectedOSVersion.c_str(), "9") >= 0)
                 pUinstaller = new UnattendedOracleLinux9Installer(pParent);
@@ -137,8 +134,7 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
                 pUinstaller = new UnattendedOracleLinux6Installer(pParent);
         }
         else if (   enmDetectedOSType >= VBOXOSTYPE_FreeBSD
-                 && (   enmDetectedOSType <= VBOXOSTYPE_FreeBSD_x64
-                     || enmDetectedOSType <= VBOXOSTYPE_FreeBSD_arm64))
+                 && enmDetectedOSType <= VBOXOSTYPE_FreeBSD_arm64)
             pUinstaller = new UnattendedFreeBsdInstaller(pParent);
 #if 0 /* doesn't work, so convert later. */
         else if (enmDetectedOSType == VBOXOSTYPE_OpenSUSE || enmDetectedOSType == VBOXOSTYPE_OpenSUSE_x64)

@@ -1848,6 +1848,20 @@ class TestDriver(base.TestDriver):                                              
                 reporter.errorXcpt('Getting the Guest Additions version failed');
         return None;
 
+    def getGuestAdditionsRevision(self, oSession, fIgnoreErrors = False):
+        """
+        Returns the installed Guest Additions (SVN) revision.
+
+        Returns revision as a string (e.g. "123456"), or None if not found / on error.
+        """
+        assert oSession is not None;
+        try:
+            return oSession.o.console.guest.getAdditionsRevision;
+        except:
+            if not fIgnoreErrors:
+                reporter.errorXcpt('Getting the Guest Additions revision failed');
+        return None;
+
     #
     # Override everything from the base class so the testdrivers don't have to
     # check whether we have overridden a method or not.

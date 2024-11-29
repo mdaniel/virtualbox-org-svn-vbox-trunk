@@ -502,6 +502,7 @@ DECLCALLBACK(int) ShClWinDataObject::readThread(PSHCLTRANSFER pTransfer, void *p
         for (uint32_t i = 0; i < cRoots; i++)
         {
             PCSHCLLISTENTRY pRootEntry = ShClTransferRootsEntryGet(pTransfer, i);
+            AssertPtrBreakStmt(pRootEntry, rc = VERR_INVALID_POINTER);
 
             AssertBreakStmt(pRootEntry->cbInfo == sizeof(SHCLFSOBJINFO), rc = VERR_INVALID_PARAMETER);
             PSHCLFSOBJINFO const pFsObjInfo = (PSHCLFSOBJINFO)pRootEntry->pvInfo;

@@ -309,7 +309,7 @@ void MsiNotify(PPDMDEVINS pDevIns, PCPDMPCIHLP pPciHlp, PPDMPCIDEV pDev, int iVe
     if (puPending)
     {
         uint32_t *puMask = msiGetMaskBits(pDev);
-        AssertPtr(puMask);
+        AssertPtrReturnVoid(puMask);
         uMask = *puMask;
         LogFlow(("MsiNotify: %d pending=%x mask=%x\n", iVector, *puPending, uMask));
     }

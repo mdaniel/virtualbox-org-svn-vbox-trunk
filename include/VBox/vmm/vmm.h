@@ -561,7 +561,6 @@ VMMR3DECL(const char *) VMMR3GetRZAssertMsg2(PVM pVM);
 VMMR3_INT_DECL(int)     VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu);
 VMMR3DECL(int)          VMMR3CallR0(PVM pVM, uint32_t uOperation, uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr);
 VMMR3_INT_DECL(int)     VMMR3CallR0Emt(PVM pVM, PVMCPU pVCpu, VMMR0OPERATION enmOperation, uint64_t u64Arg, PSUPVMMR0REQHDR pReqHdr);
-VMMR3_INT_DECL(VBOXSTRICTRC) VMMR3CallR0EmtFast(PVM pVM, PVMCPU pVCpu, VMMR0OPERATION enmOperation);
 VMMR3DECL(void)         VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr);
 VMMR3_INT_DECL(void)    VMMR3YieldSuspend(PVM pVM);
 VMMR3_INT_DECL(void)    VMMR3YieldStop(PVM pVM);

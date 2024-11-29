@@ -711,7 +711,8 @@ iemNativeEmitTlbLookup(PIEMRECOMPILERSTATE pReNative, uint32_t off, IEMNATIVEEMI
             if RT_CONSTEXPR_IF(a_cbMem == 2)
             {
                 /* tbnz regflatptr, #0, tlbmiss */
-                pCodeBuf[off++] = Armv8A64MkInstrTbnz((int32_t)offMisalignedAccess - (int32_t)off, idxRegFlatPtr, 0);
+                pCodeBuf[off] = Armv8A64MkInstrTbnz((int32_t)offMisalignedAccess - (int32_t)off, idxRegFlatPtr, 0);
+                off++;
             }
             else
 #endif

@@ -1745,7 +1745,8 @@ class SubTstDrvAddGuestCtrl(base.SubTestDriverBase):
         if oTestVm.isWindows():
             sImagePath = '%s -vvvv --logfile %s' % (self.sPathVBoxServiceExeGst, sPathLogFile);
             # For newer revisions we use VBoxGuestInstallHelper.exe. Should work on all Windows versions.
-            if self.oTstDrv.fpApiVer >= 7.0 and self.oTstDrv.uRevision >= 166162:
+            if  self.oTstDrv.fpApiVer >= 7.0 \
+            and self.oTstDrv.isVersionEqualOrBigger(self.oTstDrv.getGuestAdditionsRevision(oSession), "166162"):
                 # Right now we ASSUME that the installation directory always is the following:
                 sRegEditorExePath     = 'C:\\Program Files\\Oracle\\VirtualBox Guest Additions\\VBoxGuestInstallHelper.exe';
                 asRegEditorArgs       = [ sRegEditorExePath, 'registry', 'write', 'HKLM',

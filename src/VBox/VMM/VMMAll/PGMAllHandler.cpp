@@ -1637,6 +1637,7 @@ VMMDECL(int)  PGMHandlerPhysicalPageTempOff(PVMCC pVM, RTGCPHYS GCPhys, RTGCPHYS
 }
 
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 /**
  * Resolves an MMIO2 page.
  *
@@ -1655,35 +1656,35 @@ static PPGMPAGE pgmPhysResolveMmio2PageLocked(PVMCC pVM, PPDMDEVINS pDevIns, PGM
     uint32_t const cMmio2Ranges = RT_MIN(pVM->pgm.s.cMmio2Ranges, RT_ELEMENTS(pVM->pgm.s.aMmio2Ranges));
     AssertReturn(hMmio2 <= cMmio2Ranges, NULL);
     AssertCompile(RT_ELEMENTS(pVM->pgm.s.apMmio2RamRanges)    == RT_ELEMENTS(pVM->pgm.s.aMmio2Ranges));
-#ifdef IN_RING0
+# ifdef IN_RING0
     AssertCompile(RT_ELEMENTS(pVM->pgmr0.s.apMmio2RamRanges)  == RT_ELEMENTS(pVM->pgm.s.aMmio2Ranges));
     AssertCompile(RT_ELEMENTS(pVM->pgmr0.s.acMmio2RangePages) == RT_ELEMENTS(pVM->pgm.s.aMmio2Ranges));
-#endif
+# endif
     uint32_t const idxFirst = hMmio2 - 1U;
 
     /* Must check the first one for PGMREGMMIO2RANGE_F_FIRST_CHUNK. */
     AssertReturn(pVM->pgm.s.aMmio2Ranges[idxFirst].fFlags & PGMREGMMIO2RANGE_F_FIRST_CHUNK, NULL);
-#ifdef IN_RING0
+# ifdef IN_RING0
     AssertReturn(pVM->pgmr0.s.ahMmio2MapObjs[idxFirst] != NIL_RTR0MEMOBJ, NULL); /* Only the first chunk has a backing object. */
-#endif
+# endif
 
     /* Loop thru the sub-ranges till we find the one covering offMmio2. */
     for (uint32_t idx = idxFirst; idx < cMmio2Ranges; idx++)
     {
-#ifdef IN_RING3
+# ifdef IN_RING3
         AssertReturn(pVM->pgm.s.aMmio2Ranges[idx].pDevInsR3 == pDevIns, NULL);
-#else
+# else
         AssertReturn(pVM->pgm.s.aMmio2Ranges[idx].pDevInsR3 == pDevIns->pDevInsForR3, NULL);
-#endif
+# endif
 
         /* Does it match the offset? */
         PPGMRAMRANGE const pRamRange = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apMmio2RamRanges[idx];
         AssertReturn(pRamRange, NULL);
-#ifdef IN_RING3
+# ifdef IN_RING3
         RTGCPHYS const     cbRange   = RT_MIN(pRamRange->cb, pVM->pgm.s.aMmio2Ranges[idx].cbReal);
-#else
+# else
         RTGCPHYS const     cbRange   = RT_MIN(pRamRange->cb, (RTGCPHYS)pVM->pgmr0.s.acMmio2RangePages[idx] << GUEST_PAGE_SHIFT);
-#endif
+# endif
         if (offMmio2Page < cbRange)
             return &pRamRange->aPages[offMmio2Page >> GUEST_PAGE_SHIFT];
 
@@ -1694,6 +1695,7 @@ static PPGMPAGE pgmPhysResolveMmio2PageLocked(PVMCC pVM, PPDMDEVINS pDevIns, PGM
     AssertFailed();
     return NULL;
 }
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 
 /**

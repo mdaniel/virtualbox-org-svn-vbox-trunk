@@ -222,6 +222,7 @@ static int iomR3IoPortGrowStatisticsTable(PVM pVM, uint32_t cNewEntries)
     AssertReturn(cNewEntries <= _64K, VERR_IOM_TOO_MANY_IOPORT_REGISTRATIONS);
 
     int rc;
+# if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         rc = VMMR3CallR0Emt(pVM, pVM->apCpusR3[0], VMMR0_DO_IOM_GROW_IO_PORT_STATS, cNewEntries, NULL);
@@ -229,6 +230,7 @@ static int iomR3IoPortGrowStatisticsTable(PVM pVM, uint32_t cNewEntries)
         AssertReturn(cNewEntries <= pVM->iom.s.cIoPortStatsAllocation, VERR_IOM_IOPORT_IPE_2);
     }
     else
+# endif
     {
         /*
          * Validate input and state.
@@ -282,6 +284,7 @@ static int iomR3IoPortGrowTable(PVM pVM, uint32_t cNewEntries)
     AssertReturn(cNewEntries <= _4K, VERR_IOM_TOO_MANY_IOPORT_REGISTRATIONS);
 
     int rc;
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         rc = VMMR3CallR0Emt(pVM, pVM->apCpusR3[0], VMMR0_DO_IOM_GROW_IO_PORTS, cNewEntries, NULL);
@@ -289,6 +292,7 @@ static int iomR3IoPortGrowTable(PVM pVM, uint32_t cNewEntries)
         AssertReturn(cNewEntries <= pVM->iom.s.cIoPortAlloc, VERR_IOM_IOPORT_IPE_2);
     }
     else
+#endif
     {
         /*
          * Validate input and state.

@@ -1617,6 +1617,7 @@ static int tmR3TimerQueueGrow(PVM pVM, PTMTIMERQUEUE pQueue, uint32_t cNewTimers
      * Do the growing.
      */
     int rc;
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         rc = VMMR3CallR0Emt(pVM, VMMGetCpu(pVM), VMMR0_DO_TM_GROW_TIMER_QUEUE,
@@ -1625,6 +1626,7 @@ static int tmR3TimerQueueGrow(PVM pVM, PTMTIMERQUEUE pQueue, uint32_t cNewTimers
         AssertReturn(pQueue->cTimersAlloc >= cNewTimers, VERR_TM_IPE_3);
     }
     else
+#endif
     {
         AssertReturn(cNewTimers <= _32K && cOldEntries <= _32K, VERR_TM_TOO_MANY_TIMERS);
         ASMCompilerBarrier();

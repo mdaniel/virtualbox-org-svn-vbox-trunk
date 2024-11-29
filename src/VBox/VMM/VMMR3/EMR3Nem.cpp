@@ -328,6 +328,7 @@ static int emR3NemForcedActions(PVM pVM, PVMCPU pVCpu)
         VMCPU_FF_CLEAR_MASK(pVCpu, VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
     }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*
      * Allocate handy pages (just in case the above actions have consumed some pages).
      */
@@ -337,6 +338,7 @@ static int emR3NemForcedActions(PVM pVM, PVMCPU pVCpu)
         if (RT_FAILURE(rc))
             return rc;
     }
+#endif
 
     /*
      * Check whether we're out of memory now.

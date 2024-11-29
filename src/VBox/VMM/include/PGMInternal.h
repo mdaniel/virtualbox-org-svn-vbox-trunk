@@ -3179,6 +3179,7 @@ typedef struct PGM
      */
     PDMCRITSECT                     CritSectX;
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /**
      * Data associated with managing the ring-3 mappings of the allocation chunks.
      */
@@ -3188,9 +3189,9 @@ typedef struct PGM
         PGMCHUNKR3MAPTLB            Tlb;
         /** The chunk tree, ordered by chunk id. */
         R3PTRTYPE(PAVLU32NODECORE)  pTree;
-#if HC_ARCH_BITS == 32
+# if HC_ARCH_BITS == 32
         uint32_t                    u32Alignment0;
-#endif
+# endif
         /** The number of mapped chunks. */
         uint32_t                    c;
         /** @cfgm{/PGM/MaxRing3Chunks, uint32_t, host dependent}
@@ -3202,6 +3203,7 @@ typedef struct PGM
         /** Alignment padding. */
         uint32_t                    au32Alignment1[3];
     } ChunkR3Map;
+#endif
 
     /** The page mapping TLB for ring-3. */
     PGMPAGER3MAPTLB                 PhysTlbR3;
@@ -3307,8 +3309,10 @@ typedef struct PGM
     uint32_t                        cWriteLockedPages;      /**< The number of write locked pages. */
     uint32_t                        cReadLockedPages;       /**< The number of read locked pages. */
     uint32_t                        cBalloonedPages;        /**< The number of ballooned pages. */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     uint32_t                        cMappedChunks;          /**< Number of times we mapped a chunk. */
     uint32_t                        cUnmappedChunks;        /**< Number of times we unmapped a chunk. */
+#endif
     uint32_t                        cLargePages;            /**< The number of large pages. */
     uint32_t                        cLargePagesDisabled;    /**< The number of disabled large pages. */
 /*    uint32_t                        aAlignment4[1]; */
@@ -3337,12 +3341,12 @@ AssertCompileMemberAlignment(PGM, CritSectX, 8);
 AssertCompileMemberAlignment(PGM, CritSectX, 16);
 AssertCompileMemberAlignment(PGM, CritSectX, 32);
 AssertCompileMemberAlignment(PGM, CritSectX, 64);
-AssertCompileMemberAlignment(PGM, ChunkR3Map, 16);
 AssertCompileMemberAlignment(PGM, PhysTlbR3, 8);
 AssertCompileMemberAlignment(PGM, PhysTlbR3, 16);
 AssertCompileMemberAlignment(PGM, PhysTlbR3, 32);
 AssertCompileMemberAlignment(PGM, PhysTlbR0, 32);
 # ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+AssertCompileMemberAlignment(PGM, ChunkR3Map, 16);
 AssertCompileMemberAlignment(PGM, HCPhysZeroPg, 8);
 # endif
 AssertCompileMemberAlignment(PGM, aHandyPages, 8);
@@ -3940,7 +3944,9 @@ int             pgmPhysPageMakeWritable(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPh
 int             pgmPhysPageMakeWritableAndMap(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, void **ppv);
 int             pgmPhysPageMap(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, void **ppv);
 int             pgmPhysPageMapReadOnly(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, void const **ppv);
+#if 0 /* unused */
 int             pgmPhysPageMapByPageID(PVMCC pVM, uint32_t idPage, RTHCPHYS HCPhys, void **ppv);
+#endif
 int             pgmPhysGCPhys2R3Ptr(PVMCC pVM, RTGCPHYS GCPhys, PRTR3PTR pR3Ptr);
 int             pgmPhysGCPhys2CCPtrLockless(PVMCPUCC pVCpu, RTGCPHYS GCPhys, void **ppv);
 int             pgmPhysCr3ToHCPtr(PVM pVM, RTGCPHYS GCPhys, PRTR3PTR pR3Ptr);

@@ -823,7 +823,9 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertReleaseReturn(pVM->pgm.s.cPhysHandlerTypes == 0, VERR_WRONG_ORDER);
     for (size_t i = 0; i < RT_ELEMENTS(pVM->pgm.s.aPhysHandlerTypes); i++)
     {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         if (fDriverless)
+#endif
             pVM->pgm.s.aPhysHandlerTypes[i].hType  = i | (RTRandU64() & ~(uint64_t)PGMPHYSHANDLERTYPE_IDX_MASK);
         pVM->pgm.s.aPhysHandlerTypes[i].enmKind    = PGMPHYSHANDLERKIND_INVALID;
         pVM->pgm.s.aPhysHandlerTypes[i].pfnHandler = pgmR3HandlerPhysicalHandlerInvalid;
@@ -880,18 +882,20 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                            );
     AssertLogRelRCReturn(rc, rc);
 
-#if HC_ARCH_BITS == 32
-# ifdef RT_OS_DARWIN
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# if HC_ARCH_BITS == 32
+#  ifdef RT_OS_DARWIN
     rc = CFGMR3QueryU32Def(pCfgPGM, "MaxRing3Chunks", &pVM->pgm.s.ChunkR3Map.cMax, _1G / GMM_CHUNK_SIZE * 3);
-# else
+#  else
     rc = CFGMR3QueryU32Def(pCfgPGM, "MaxRing3Chunks", &pVM->pgm.s.ChunkR3Map.cMax, _1G / GMM_CHUNK_SIZE);
-# endif
-#else
+#  endif
+# else
     rc = CFGMR3QueryU32Def(pCfgPGM, "MaxRing3Chunks", &pVM->pgm.s.ChunkR3Map.cMax, UINT32_MAX);
-#endif
+# endif
     AssertLogRelRCReturn(rc, rc);
     for (uint32_t i = 0; i < RT_ELEMENTS(pVM->pgm.s.ChunkR3Map.Tlb.aEntries); i++)
         pVM->pgm.s.ChunkR3Map.Tlb.aEntries[i].idChunk = NIL_GMM_CHUNKID;
+#endif
 
     /*
      * Get the configured RAM size - to estimate saved state size.
@@ -945,7 +949,9 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     rc = PDMR3CritSectInit(pVM, &pVM->pgm.s.CritSectX, RT_SRC_POS, "PGM");
     AssertRCReturn(rc, rc);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pgmR3PhysChunkInvalidateTLB(pVM, false /*fInRendezvous*/); /* includes pgmPhysInvalidatePageMapTLB call */
+#endif
 
     /*
      * For the time being we sport a full set of handy pages in addition to the base
@@ -978,7 +984,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != 0);
     pVM->pgm.s.HCPhysInvMmioPg = pVM->pgm.s.HCPhysMmioPg;
     Log(("HCPhysInvMmioPg=%RHp abMmioPg=%p\n", pVM->pgm.s.HCPhysMmioPg, pVM->pgm.s.abMmioPg));
-#endif /* VBOX_WITH_ONLY_PGM_NEM_MODE */
+#endif
 
 
     /*
@@ -1247,10 +1253,12 @@ static int pgmR3InitStats(PVM pVM)
     STAM_REL_REG(pVM, &pPGM->cHandyPages,                        STAMTYPE_U32,     "/PGM/Page/cHandyPages",              STAMUNIT_COUNT,     "The number of handy pages (not included in cAllPages).");
     STAM_REL_REG(pVM, &pPGM->cLargePages,                        STAMTYPE_U32,     "/PGM/Page/cLargePages",              STAMUNIT_COUNT,     "The number of large pages allocated (includes disabled).");
     STAM_REL_REG(pVM, &pPGM->cLargePagesDisabled,                STAMTYPE_U32,     "/PGM/Page/cLargePagesDisabled",      STAMUNIT_COUNT,     "The number of disabled large pages.");
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     STAM_REL_REG(pVM, &pPGM->ChunkR3Map.c,                       STAMTYPE_U32,     "/PGM/ChunkR3Map/c",                  STAMUNIT_COUNT,     "Number of mapped chunks.");
     STAM_REL_REG(pVM, &pPGM->ChunkR3Map.cMax,                    STAMTYPE_U32,     "/PGM/ChunkR3Map/cMax",               STAMUNIT_COUNT,     "Maximum number of mapped chunks.");
     STAM_REL_REG(pVM, &pPGM->cMappedChunks,                      STAMTYPE_U32,     "/PGM/ChunkR3Map/Mapped",             STAMUNIT_COUNT,     "Number of times we mapped a chunk.");
     STAM_REL_REG(pVM, &pPGM->cUnmappedChunks,                    STAMTYPE_U32,     "/PGM/ChunkR3Map/Unmapped",           STAMUNIT_COUNT,     "Number of times we unmapped a chunk.");
+#endif
 
     STAM_REL_REG(pVM, &pPGM->StatLargePageReused,                STAMTYPE_COUNTER, "/PGM/LargePage/Reused",              STAMUNIT_OCCURENCES, "The number of times we've reused a large page.");
     STAM_REL_REG(pVM, &pPGM->StatLargePageRefused,               STAMTYPE_COUNTER, "/PGM/LargePage/Refused",             STAMUNIT_OCCURENCES, "The number of times we couldn't use a large page.");
@@ -2748,3 +2756,4 @@ VMMR3DECL(int) PGMR3CheckIntegrity(PVM pVM)
 
     return Args.cErrors == 0 ? VINF_SUCCESS : VERR_INTERNAL_ERROR;
 }
+

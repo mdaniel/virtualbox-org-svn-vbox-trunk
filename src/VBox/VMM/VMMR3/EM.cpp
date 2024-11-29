@@ -880,9 +880,11 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                 if (   pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_RAW
                     || pVCpu->em.s.enmState == EMSTATE_DEBUG_HYPER)
                     AssertLogRelMsgFailedStmt(("Bad EM state."), rc = VERR_EM_INTERNAL_ERROR);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_WITH_HWVIRT
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_HM)
                     rc = EMR3HmSingleInstruction(pVM, pVCpu, 0 /*fFlags*/);
+#endif
+#if !defined(VBOX_VMM_TARGET_ARMV8)
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_NEM)
                     rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
                 else
@@ -1221,31 +1223,31 @@ EMSTATE emR3Reschedule(PVM pVM, PVMCPU pVCpu)
         return EMSTATE_WAIT_SIPI;
 
     /*
-     * Execute everything in IEM?
+     * Can we use the default engine.  IEM is the fallback.
      */
-    if (   pVM->em.s.fIemExecutesAll
-        || VM_IS_EXEC_ENGINE_IEM(pVM))
-#ifdef VBOX_WITH_IEM_RECOMPILER
-        return pVM->em.s.fIemRecompiled ? EMSTATE_RECOMPILER : EMSTATE_IEM;
-#else
-        return EMSTATE_IEM;
-#endif
-
-#if !defined(VBOX_VMM_TARGET_ARMV8)
-    if (VM_IS_HM_ENABLED(pVM))
+    if (!pVM->em.s.fIemExecutesAll)
     {
-        if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
-            return EMSTATE_HM;
-    }
-    else
+        switch (pVM->bMainExecutionEngine)
+        {
+#ifdef VBOX_WITH_HWVIRT
+            case VM_EXEC_ENGINE_HW_VIRT:
+                if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
+                    return EMSTATE_HM;
+                break;
 #endif
-    if (NEMR3CanExecuteGuest(pVM, pVCpu))
-        return EMSTATE_NEM;
-
-    /*
-     * Note! Raw mode and hw accelerated mode are incompatible. The latter
-     *       turns off monitoring features essential for raw mode!
-     */
+#ifdef VBOX_WITH_NATIVE_NEM
+            case VM_EXEC_ENGINE_NATIVE_API:
+                if (NEMR3CanExecuteGuest(pVM, pVCpu))
+                    return EMSTATE_NEM;
+                break;
+#endif
+            case VM_EXEC_ENGINE_IEM:
+                break;
+            default:
+                AssertMsgFailed(("bMainExecutionEngine=%d\n", pVM->bMainExecutionEngine));
+                break;
+        }
+    }
 #ifdef VBOX_WITH_IEM_RECOMPILER
     return pVM->em.s.fIemRecompiled ? EMSTATE_RECOMPILER : EMSTATE_IEM;
 #else
@@ -1515,6 +1517,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
             UPDATE_RC();
         }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         /*
          * Out of memory? Putting this after CSAM as it may in theory cause us to run out of memory.
          */
@@ -1525,6 +1528,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
             if (rc == VINF_EM_NO_MEMORY)
                 return rc;
         }
+#endif
 
         /* check that we got them all  */
         AssertCompile(VM_FF_NORMAL_PRIORITY_POST_MASK == (VM_FF_CHECK_VM_STATE | VM_FF_DBGF | VM_FF_RESET | VM_FF_PGM_NO_MEMORY | VM_FF_EMT_RENDEZVOUS));
@@ -1967,6 +1971,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
         }
 #endif /* VBOX_VMM_TARGET_ARMV8 */
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         /*
          * Allocate handy pages.
          */
@@ -1975,6 +1980,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
             rc2 = PGMR3PhysAllocateHandyPages(pVM);
             UPDATE_RC();
         }
+#endif
 
         /*
          * Debugger Facility request.
@@ -2044,7 +2050,11 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
          */
         if (VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY))
         {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             rc2 = PGMR3PhysAllocateHandyPages(pVM);
+#else
+            rc2 = VINF_EM_NO_MEMORY;
+#endif
             UPDATE_RC();
             if (rc == VINF_EM_NO_MEMORY)
                 return rc;
@@ -2505,10 +2515,10 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                  * Execute hardware accelerated raw.
                  */
                 case EMSTATE_HM:
-#if defined(VBOX_VMM_TARGET_ARMV8)
-                    AssertReleaseFailed(); /* Should never get here. */
-#else
+#ifdef VBOX_WITH_HWVIRT
                     rc = emR3HmExecute(pVM, pVCpu, &fFFDone);
+#else
+                    AssertReleaseFailedStmt(rc = VERR_EM_INTERNAL_ERROR); /* Should never get here. */
 #endif
                     break;
 

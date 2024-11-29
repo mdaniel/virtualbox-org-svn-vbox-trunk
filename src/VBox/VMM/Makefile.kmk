@@ -136,7 +136,7 @@ VBoxVMM_SOURCES  = \
 	VMMR3/DBGFR3Type.cpp \
 	VMMR3/EM.cpp \
 	VMMR3/EMR3Dbg.cpp \
-	VMMR3/EMHM.cpp \
+	$(if-expr defined(VBOX_WITH_HWVIRT),VMMR3/EMHM.cpp,) \
 	VMMR3/EMR3Nem.cpp \
 	VMMR3/GCM.cpp \
 	VMMR3/GIM.cpp \

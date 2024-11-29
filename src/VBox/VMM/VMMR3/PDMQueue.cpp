@@ -93,7 +93,9 @@ static int pdmR3QueueCreateLocked(PVM pVM, size_t cbItem, uint32_t cItems, uint3
                      fRZEnabled ? PDMQUEUE_MAX_TOTAL_SIZE_R0 : PDMQUEUE_MAX_TOTAL_SIZE_R3),
                     VERR_OUT_OF_RANGE);
     AssertReturn(!fRZEnabled || enmType == PDMQUEUETYPE_INTERNAL || enmType == PDMQUEUETYPE_DEV, VERR_INVALID_PARAMETER);
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (SUPR3IsDriverless())
+#endif
         fRZEnabled = false;
 
     /* Unqiue name that fits within the szName field: */
@@ -112,6 +114,7 @@ static int pdmR3QueueCreateLocked(PVM pVM, size_t cbItem, uint32_t cItems, uint3
      */
     PPDMQUEUE      pQueue;
     PDMQUEUEHANDLE hQueue;
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (fRZEnabled)
     {
         /* Call ring-0 to allocate and create the queue: */
@@ -142,6 +145,7 @@ static int pdmR3QueueCreateLocked(PVM pVM, size_t cbItem, uint32_t cItems, uint3
         AssertReturn(pQueue->u.Gen.pfnCallback == (RTR3PTR)uCallback, VERR_INTERNAL_ERROR_4);
     }
     else
+#endif
     {
         /* Do it here using the paged heap: */
         uint32_t const cbBitmap = RT_ALIGN_32(RT_ALIGN_32(cItems, 64) / 8, 64); /* keep bitmap in it's own cacheline  */

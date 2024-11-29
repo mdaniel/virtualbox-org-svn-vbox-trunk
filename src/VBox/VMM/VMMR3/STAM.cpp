@@ -165,7 +165,9 @@ static int                  stamR3EnumOne(PSTAMDESC pDesc, void *pvArg);
 static bool                 stamR3MultiMatch(const char * const *papszExpressions, unsigned cExpressions, unsigned *piExpression, const char *pszName);
 static char **              stamR3SplitPattern(const char *pszPat, unsigned *pcExpressions, char **ppszCopy);
 static int                  stamR3EnumU(PUVM pUVM, const char *pszPat, bool fUpdateRing0, int (pfnCallback)(PSTAMDESC pDesc, void *pvArg), void *pvArg);
+#ifdef VBOX_WITH_R0_MODULES
 static void                 stamR3Ring0StatsRegisterU(PUVM pUVM);
+#endif
 
 #ifdef VBOX_WITH_DEBUGGER
 static FNDBGCCMD            stamR3CmdStats;
@@ -195,6 +197,7 @@ static const DBGCCMD    g_aCmds[] =
 #endif
 
 
+#ifdef VBOX_WITH_R0_MODULES
 /**
  * The GVMM mapping records - sans the host cpus.
  */
@@ -234,6 +237,7 @@ static const STAMR0SAMPLE g_aGVMMStats[] =
 };
 
 
+# ifndef VBOX_WITH_MINIMAL_R0
 /**
  * The GMM mapping records.
  */
@@ -271,6 +275,8 @@ static const STAMR0SAMPLE g_aGMMStats[] =
     { RT_UOFFSETOF(GMMSTATS, VMStats.fSharedPagingEnabled),     STAMTYPE_BOOL,  STAMUNIT_NONE,  "/GMM/VM/fSharedPagingEnabled",     "Whether shared paging is enabled or not." },
     { RT_UOFFSETOF(GMMSTATS, VMStats.fMayAllocate),             STAMTYPE_BOOL,  STAMUNIT_NONE,  "/GMM/VM/fMayAllocate",             "Whether the VM is allowed to allocate memory or not." },
 };
+# endif /* !VBOX_WITH_MINIMAL_R0 */
+#endif /* VBOX_WITH_R0_MODULES */
 
 
 /**
@@ -319,11 +325,13 @@ VMMR3DECL(int) STAMR3InitUVM(PUVM pUVM)
 
     pUVM->stam.s.pRoot = pRoot;
 
+#ifdef VBOX_WITH_R0_MODULES
     /*
      * Register the ring-0 statistics (GVMM/GMM).
      */
     if (!SUPR3IsDriverless())
         stamR3Ring0StatsRegisterU(pUVM);
+#endif
 
 #ifdef VBOX_WITH_DEBUGGER
     /*
@@ -2534,15 +2542,22 @@ VMMR3DECL(int)  STAMR3Reset(PUVM pUVM, const char *pszPat)
 
     int rc = VINF_SUCCESS;
 
-    /* ring-0 */
+#ifdef VBOX_WITH_R0_MODULES
+    /*
+     * Check if the reset patterns cover anything related to ring-0.
+     */
     GVMMRESETSTATISTICSSREQ GVMMReq;
-    GMMRESETSTATISTICSSREQ  GMMReq;
     bool fGVMMMatched = (!pszPat || !*pszPat) && !SUPR3IsDriverless();
+# ifndef VBOX_WITH_MINIMAL_R0
+    GMMRESETSTATISTICSSREQ  GMMReq;
     bool fGMMMatched  = fGVMMMatched;
+# endif
     if (fGVMMMatched)
     {
         memset(&GVMMReq.Stats, 0xff, sizeof(GVMMReq.Stats));
+# ifndef VBOX_WITH_MINIMAL_R0
         memset(&GMMReq.Stats,  0xff, sizeof(GMMReq.Stats));
+# endif
     }
     else
     {
@@ -2565,6 +2580,7 @@ VMMR3DECL(int)  STAMR3Reset(PUVM pUVM, const char *pszPat)
             /** @todo match cpu leaves some rainy day. */
         }
 
+# ifndef VBOX_WITH_MINIMAL_R0
         /* GMM */
         RT_ZERO(GMMReq.Stats);
         for (unsigned i = 0; i < RT_ELEMENTS(g_aGMMStats); i++)
@@ -2573,13 +2589,21 @@ VMMR3DECL(int)  STAMR3Reset(PUVM pUVM, const char *pszPat)
                  *((uint8_t *)&GMMReq.Stats + g_aGMMStats[i].offVar) = 0xff;
                  fGMMMatched = true;
             }
+# endif
 
         RTMemTmpFree(papszExpressions);
         RTStrFree(pszCopy);
     }
+#endif /* !VBOX_WITH_R0_MODULES */
 
+
+    /*
+     * Grab the lock and do the resetting.
+     */
     STAM_LOCK_WR(pUVM);
 
+#ifdef VBOX_WITH_R0_MODULES
+    /* Reset ring-0 stats first. */
     if (fGVMMMatched)
     {
         PVM pVM = pUVM->pVM;
@@ -2589,6 +2613,7 @@ VMMR3DECL(int)  STAMR3Reset(PUVM pUVM, const char *pszPat)
         rc = SUPR3CallVMMR0Ex(VMCC_GET_VMR0_FOR_CALL(pVM), NIL_VMCPUID, VMMR0_DO_GVMM_RESET_STATISTICS, 0, &GVMMReq.Hdr);
     }
 
+# ifndef VBOX_WITH_MINIMAL_R0
     if (fGMMMatched)
     {
         PVM pVM = pUVM->pVM;
@@ -2597,6 +2622,8 @@ VMMR3DECL(int)  STAMR3Reset(PUVM pUVM, const char *pszPat)
         GMMReq.pSession     = pVM->pSession;
         rc = SUPR3CallVMMR0Ex(VMCC_GET_VMR0_FOR_CALL(pVM), NIL_VMCPUID, VMMR0_DO_GMM_RESET_STATISTICS, 0, &GMMReq.Hdr);
     }
+# endif
+#endif
 
     /* and the reset */
     stamR3EnumU(pUVM, pszPat, false /* fUpdateRing0 */, stamR3ResetOne, pUVM->pVM);
@@ -3394,6 +3421,7 @@ static void stamR3RefreshGroup(PUVM pUVM, uint8_t iRefreshGroup, uint64_t *pbmRe
     {
         switch (iRefreshGroup)
         {
+#ifdef VBOX_WITH_R0_MODULES
             /*
              * GVMM
              */
@@ -3456,6 +3484,7 @@ static void stamR3RefreshGroup(PUVM pUVM, uint8_t iRefreshGroup, uint64_t *pbmRe
                 break;
             }
 
+# ifndef VBOX_WITH_MINIMAL_R0
             /*
              * GMM
              */
@@ -3477,6 +3506,8 @@ static void stamR3RefreshGroup(PUVM pUVM, uint8_t iRefreshGroup, uint64_t *pbmRe
             case STAM_REFRESH_GRP_NEM:
                 SUPR3CallVMMR0(VMCC_GET_VMR0_FOR_CALL(pVM), NIL_VMCPUID, VMMR0_DO_NEM_UPDATE_STATISTICS, NULL);
                 break;
+# endif
+#endif /* VBOX_WITH_R0_MODULES */
 
             default:
                 AssertMsgFailed(("iRefreshGroup=%d\n", iRefreshGroup));
@@ -3744,6 +3775,7 @@ static int stamR3EnumU(PUVM pUVM, const char *pszPat, bool fUpdateRing0,
 }
 
 
+#ifdef VBOX_WITH_R0_MODULES
 /**
  * Registers the ring-0 statistics.
  *
@@ -3788,12 +3820,15 @@ static void stamR3Ring0StatsRegisterU(PUVM pUVM)
     }
     pUVM->stam.s.cRegisteredHostCpus = 0;
 
+# ifndef VBOX_WITH_MINIMAL_R0
     /* GMM */
     for (unsigned i = 0; i < RT_ELEMENTS(g_aGMMStats); i++)
         stamR3RegisterU(pUVM, (uint8_t *)&pUVM->stam.s.GMMStats + g_aGMMStats[i].offVar, NULL, NULL,
                         g_aGMMStats[i].enmType, STAMVISIBILITY_ALWAYS, g_aGMMStats[i].pszName,
                         g_aGMMStats[i].enmUnit, g_aGMMStats[i].pszDesc, STAM_REFRESH_GRP_GMM);
+# endif
 }
+#endif /* VBOX_WITH_R0_MODULES */
 
 
 /**

@@ -288,16 +288,17 @@ VMMR3_INT_DECL(int) VMMR3Init(PVM pVM)
     if (RT_FAILURE(rc))
         return rc;
 
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     /*
      * Register the Ring-0 VM handle with the session for fast ioctl calls.
      */
-    bool const fDriverless = SUPR3IsDriverless();
-    if (!fDriverless)
+    if (!SUPR3IsDriverless())
     {
         rc = SUPR3SetVMForFastIOCtl(VMCC_GET_VMR0_FOR_CALL(pVM));
         if (RT_FAILURE(rc))
             return rc;
     }
+#endif
 
 #ifdef VBOX_WITH_NMI
     /*
@@ -311,7 +312,7 @@ VMMR3_INT_DECL(int) VMMR3Init(PVM pVM)
         /*
          * Start the log flusher thread.
          */
-        if (!fDriverless)
+        if (!SUPR3IsDriverless())
             rc = RTThreadCreate(&pVM->vmm.s.hLogFlusherThread, vmmR3LogFlusher, pVM, 0 /*cbStack*/,
                                 RTTHREADTYPE_IO, RTTHREADFLAGS_WAITABLE, "R0LogWrk");
         if (RT_SUCCESS(rc))
@@ -349,6 +350,7 @@ static void vmmR3InitRegisterStats(PVM pVM)
     /*
      * Statistics.
      */
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     STAM_REG(pVM, &pVM->vmm.s.StatRunGC,                    STAMTYPE_COUNTER, "/VMM/RunGC",                     STAMUNIT_OCCURENCES, "Number of context switches.");
     STAM_REG(pVM, &pVM->vmm.s.StatRZRetNormal,              STAMTYPE_COUNTER, "/VMM/RZRet/Normal",              STAMUNIT_OCCURENCES, "Number of VINF_SUCCESS returns.");
     STAM_REG(pVM, &pVM->vmm.s.StatRZRetInterrupt,           STAMTYPE_COUNTER, "/VMM/RZRet/Interrupt",           STAMUNIT_OCCURENCES, "Number of VINF_EM_RAW_INTERRUPT returns.");
@@ -401,6 +403,7 @@ static void vmmR3InitRegisterStats(PVM pVM)
     STAM_REG(pVM, &pVM->vmm.s.StatRZRetPGMFlushPending,     STAMTYPE_COUNTER, "/VMM/RZRet/PGMFlushPending",     STAMUNIT_OCCURENCES, "Number of VINF_PGM_POOL_FLUSH_PENDING returns.");
     STAM_REG(pVM, &pVM->vmm.s.StatRZRetPendingRequest,      STAMTYPE_COUNTER, "/VMM/RZRet/PendingRequest",      STAMUNIT_OCCURENCES, "Number of VINF_EM_PENDING_REQUEST returns.");
     STAM_REG(pVM, &pVM->vmm.s.StatRZRetPatchTPR,            STAMTYPE_COUNTER, "/VMM/RZRet/PatchTPR",            STAMUNIT_OCCURENCES, "Number of VINF_EM_HM_PATCH_TPR_INSTR returns.");
+#endif
 
     STAMR3Register(pVM, &pVM->vmm.s.StatLogFlusherFlushes,  STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, "/VMM/LogFlush/00-Flushes",  STAMUNIT_OCCURENCES, "Total number of buffer flushes");
     STAMR3Register(pVM, &pVM->vmm.s.StatLogFlusherNoWakeUp, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, "/VMM/LogFlush/00-NoWakups", STAMUNIT_OCCURENCES, "Times the flusher thread didn't need waking up.");
@@ -1209,6 +1212,7 @@ static DECLCALLBACK(void) vmmR3YieldEMT(PVM pVM, TMTIMERHANDLE hTimer, void *pvU
 }
 #endif
 
+#ifdef VBOX_WITH_HWVIRT
 
 /**
  * Executes guest code (Intel VT-x and AMD-V).
@@ -1218,29 +1222,29 @@ static DECLCALLBACK(void) vmmR3YieldEMT(PVM pVM, TMTIMERHANDLE hTimer, void *pvU
  */
 VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
 {
-#if defined(VBOX_VMM_TARGET_ARMV8)
+# if defined(VBOX_VMM_TARGET_ARMV8)
     /* We should actually never get here as the only execution engine is NEM. */
     RT_NOREF(pVM, pVCpu);
     AssertReleaseFailed();
     return VERR_NOT_SUPPORTED;
-#else
+# else
     Log2(("VMMR3HmRunGC: (cs:rip=%04x:%RX64)\n", CPUMGetGuestCS(pVCpu), CPUMGetGuestRIP(pVCpu)));
 
     int rc;
     do
     {
-# ifdef NO_SUPCALLR0VMM
+#  ifdef NO_SUPCALLR0VMM
         rc = VERR_GENERAL_FAILURE;
-# else
+#  else
         rc = SUPR3CallVMMR0Fast(VMCC_GET_VMR0_FOR_CALL(pVM), VMMR0_DO_HM_RUN, pVCpu->idCpu);
         if (RT_LIKELY(rc == VINF_SUCCESS))
             rc = pVCpu->vmm.s.iLastGZRc;
-# endif
+#  endif
     } while (rc == VINF_EM_RAW_INTERRUPT_HYPER);
 
-# if 0 /** @todo triggers too often */
+#  if 0 /** @todo triggers too often */
     Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_TO_R3));
-# endif
+#  endif
 
     /*
      * Flush the logs
@@ -1255,43 +1259,9 @@ VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
         return rc;
     }
     return vmmR3HandleRing0Assert(pVM, pVCpu);
-#endif
+# endif
 }
-
-
-/**
- * Perform one of the fast I/O control VMMR0 operation.
- *
- * @returns VBox strict status code.
- * @param   pVM             The cross context VM structure.
- * @param   pVCpu           The cross context virtual CPU structure.
- * @param   enmOperation    The operation to perform.
- */
-VMMR3_INT_DECL(VBOXSTRICTRC) VMMR3CallR0EmtFast(PVM pVM, PVMCPU pVCpu, VMMR0OPERATION enmOperation)
-{
-    VBOXSTRICTRC rcStrict;
-    do
-    {
-#ifdef NO_SUPCALLR0VMM
-        rcStrict = VERR_GENERAL_FAILURE;
-#else
-        rcStrict = SUPR3CallVMMR0Fast(VMCC_GET_VMR0_FOR_CALL(pVM), enmOperation, pVCpu->idCpu);
-        if (RT_LIKELY(rcStrict == VINF_SUCCESS))
-            rcStrict = pVCpu->vmm.s.iLastGZRc;
-#endif
-    } while (rcStrict == VINF_EM_RAW_INTERRUPT_HYPER);
-
-    /*
-     * Flush the logs
-     */
-#ifdef LOG_ENABLED
-    VMM_FLUSH_R0_LOG(pVM, pVCpu, &pVCpu->vmm.s.u.s.Logger, NULL);
-#endif
-    VMM_FLUSH_R0_LOG(pVM, pVCpu, &pVCpu->vmm.s.u.s.RelLogger, RTLogRelGetDefaultInstance());
-    if (rcStrict != VERR_VMM_RING0_ASSERTION)
-        return rcStrict;
-    return vmmR3HandleRing0Assert(pVM, pVCpu);
-}
+#endif /* VBOX_WITH_HWVIRT */
 
 
 #if defined(VBOX_VMM_TARGET_ARMV8)

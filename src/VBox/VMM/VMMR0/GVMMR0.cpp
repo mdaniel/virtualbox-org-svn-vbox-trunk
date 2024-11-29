@@ -2513,7 +2513,7 @@ GVMMR0DECL(int) GVMMR0SchedHalt(PGVM pGVM, PGVMCPU pGVCpu, uint64_t u64ExpireGip
     /* GIP hack: We might are frequently sleeping for short intervals where the
        difference between GIP and system time matters on systems with high resolution
        system time. So, convert the input from GIP to System time in that case. */
-    Assert(ASMGetFlags() & X86_EFL_IF);
+    Assert(ASMIntAreEnabled());
     const uint64_t u64NowSys = RTTimeSystemNanoTS();
     const uint64_t u64NowGip = RTTimeNanoTS();
 
@@ -2698,7 +2698,7 @@ GVMMR0DECL(int) GVMMR0SchedWakeUpEx(PGVM pGVM, VMCPUID idCpu, bool fTakeUsedLock
                 /*
                  * While we're here, do a round of scheduling.
                  */
-                Assert(ASMGetFlags() & X86_EFL_IF);
+                Assert(ASMIntAreEnabled());
                 const uint64_t u64Now = RTTimeNanoTS(); /* (GIP time) */
                 pGVM->gvmm.s.StatsSched.cWakeUpWakeUps += gvmmR0SchedDoWakeUps(pGVMM, u64Now);
             }
@@ -2966,7 +2966,7 @@ GVMMR0DECL(int) GVMMR0SchedPoll(PGVM pGVM, VMCPUID idCpu, bool fYield)
             rc = GVMMR0_USED_SHARED_LOCK(pGVMM); AssertRC(rc);
             pGVM->gvmm.s.StatsSched.cPollCalls++;
 
-            Assert(ASMGetFlags() & X86_EFL_IF);
+            Assert(ASMIntAreEnabled());
             const uint64_t u64Now = RTTimeNanoTS(); /* (GIP time) */
 
             pGVM->gvmm.s.StatsSched.cPollWakeUps += gvmmR0SchedDoWakeUps(pGVMM, u64Now);

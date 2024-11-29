@@ -927,10 +927,12 @@ static int dbgfR3TracerCreate(PVM pVM, bool fR0Enabled, const char *pszTraceFile
                               uint32_t cbRingBuf, PDBGFTRACERINSR3 *ppDbgfTracerR3)
 {
     PDBGFTRACERINSR3 pThis = NULL;
+    RT_NOREF(fR0Enabled);
 
     /*
      * Allocate the tracer instance.
      */
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if ((fR0Enabled /*|| fRCEnabled*/) && !SUPR3IsDriverless())
     {
         AssertLogRel(fR0Enabled /* not possible to just enabled raw-mode atm. */);
@@ -949,6 +951,7 @@ static int dbgfR3TracerCreate(PVM pVM, bool fR0Enabled, const char *pszTraceFile
         pThis = Req.pTracerInsR3;
     }
     else
+#endif
     {
         /* The code in this else branch works by the same rules as the DBGFR0Tracer.cpp
            code, except there is only the ring-3 components of the tracer instance.

@@ -134,6 +134,7 @@ static int iomR3MmioGrowStatisticsTable(PVM pVM, uint32_t cNewEntries)
     AssertReturn(cNewEntries <= _64K, VERR_IOM_TOO_MANY_MMIO_REGISTRATIONS);
 
     int rc;
+# if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         rc = VMMR3CallR0Emt(pVM, pVM->apCpusR3[0], VMMR0_DO_IOM_GROW_MMIO_STATS, cNewEntries, NULL);
@@ -141,6 +142,7 @@ static int iomR3MmioGrowStatisticsTable(PVM pVM, uint32_t cNewEntries)
         AssertReturn(cNewEntries <= pVM->iom.s.cMmioStatsAllocation, VERR_IOM_MMIO_IPE_2);
     }
     else
+# endif
     {
         /*
          * Validate input and state.
@@ -194,6 +196,7 @@ static int iomR3MmioGrowTable(PVM pVM, uint32_t cNewEntries)
     AssertReturn(cNewEntries <= _4K, VERR_IOM_TOO_MANY_MMIO_REGISTRATIONS);
 
     int rc;
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     if (!SUPR3IsDriverless())
     {
         rc = VMMR3CallR0Emt(pVM, pVM->apCpusR3[0], VMMR0_DO_IOM_GROW_MMIO_REGS, cNewEntries, NULL);
@@ -201,6 +204,7 @@ static int iomR3MmioGrowTable(PVM pVM, uint32_t cNewEntries)
         AssertReturn(cNewEntries <= pVM->iom.s.cMmioAlloc, VERR_IOM_MMIO_IPE_2);
     }
     else
+#endif
     {
         /*
          * Validate input and state.

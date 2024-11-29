@@ -4845,7 +4845,7 @@ static int pgmR3PhysRomRegisterLocked(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPh
                 Assert(pvRam == NULL); Assert(pReq == NULL);
                 for (uint32_t iPage = 0; iPage < cGuestPages; iPage++, pRamPage++, pRomPage++)
                 {
-                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000));
+                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000) || PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
                     Assert(PGM_PAGE_GET_PAGEID(pRamPage) == NIL_GMM_PAGEID);
                     Assert(PGM_PAGE_GET_STATE(pRamPage) == PGM_PAGE_STATE_ALLOCATED);
                     PGM_PAGE_SET_TYPE(pVM, pRamPage, PGMPAGETYPE_ROM);
@@ -5031,7 +5031,7 @@ static int pgmR3PhysRomRegisterLocked(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPh
                 Assert(pvRam == NULL); Assert(pReq == NULL);
                 for (uint32_t iPage = 0; iPage < cGuestPages; iPage++, pRamPage++, pRomPage++)
                 {
-                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000));
+                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000) || PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
                     Assert(PGM_PAGE_GET_PAGEID(pRamPage) == NIL_GMM_PAGEID);
                     Assert(PGM_PAGE_GET_STATE(pRamPage) == PGM_PAGE_STATE_ALLOCATED);
                     PGM_PAGE_SET_TYPE(pVM, pRamPage, PGMPAGETYPE_RAM);
@@ -5829,6 +5829,7 @@ VMMR3DECL(int) PGMR3QueryMemoryStats(PUVM pUVM, uint64_t *pcbTotalMem, uint64_t 
 /*********************************************************************************************************************************
 *   Chunk Mappings and Page Allocation                                                                                           *
 *********************************************************************************************************************************/
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * Tree enumeration callback for dealing with age rollover.
@@ -5892,19 +5893,19 @@ static DECLCALLBACK(int) pgmR3PhysChunkUnmapCandidateCallback(PAVLU32NODECORE pN
         pChunk = NULL;
         return 0;
     }
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
     for (unsigned i = 0; i < RT_ELEMENTS(pVM->pgm.s.ChunkR3Map.Tlb.aEntries); i++)
     {
         Assert(pVM->pgm.s.ChunkR3Map.Tlb.aEntries[i].pChunk != pChunk);
         Assert(pVM->pgm.s.ChunkR3Map.Tlb.aEntries[i].idChunk != pChunk->Core.Key);
     }
-#endif
+# endif
 
-#if 0 /* This is too much work with the PGMCPU::PhysTlb as well.  We flush them all instead. */
+# if 0 /* This is too much work with the PGMCPU::PhysTlb as well.  We flush them all instead. */
     for (unsigned i = 0; i < RT_ELEMENTS(pVM->pgm.s.PhysTlbR3.aEntries); i++)
         if (pVM->pgm.s.PhysTlbR3.aEntries[i].pMap == pChunk)
             return 0;
-#endif
+# endif
 
     pArg->pChunk = pChunk;
     return 0;
@@ -6227,7 +6228,7 @@ VMMR3DECL(int) PGMR3PhysAllocateHandyPages(PVM pVM)
     {
         AssertMsg(rc == VINF_SUCCESS, ("%Rrc\n", rc));
         Assert(pVM->pgm.s.cHandyPages > 0);
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
         uint32_t i;
         for (i = iClear; i < pVM->pgm.s.cHandyPages; i++)
             if (   pVM->pgm.s.aHandyPages[i].idPage == NIL_GMM_PAGEID
@@ -6246,7 +6247,7 @@ VMMR3DECL(int) PGMR3PhysAllocateHandyPages(PVM pVM)
                                 j == i ? " <---" : "");
             RTAssertPanic();
         }
-#endif
+# endif
     }
     else
     {
@@ -6312,6 +6313,8 @@ VMMR3DECL(int) PGMR3PhysAllocateHandyPages(PVM pVM)
     PGM_UNLOCK(pVM);
     return rc;
 }
+
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 
 /*********************************************************************************************************************************

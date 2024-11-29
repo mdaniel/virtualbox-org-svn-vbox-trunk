@@ -2064,6 +2064,7 @@ void pgmPhysInvalidatePageMapTLBEntry(PVMCC pVM, RTGCPHYS GCPhys)
     VMCC_FOR_EACH_VMCPU_END(pVM);
 }
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * Makes sure that there is at least one handy page ready for use.
@@ -2086,28 +2087,28 @@ static int pgmPhysEnsureHandyPage(PVMCC pVM)
     /*
      * Do we need to do anything special?
      */
-#ifdef IN_RING3
+# ifdef IN_RING3
     if (pVM->pgm.s.cHandyPages <= RT_MAX(PGM_HANDY_PAGES_SET_FF, PGM_HANDY_PAGES_R3_ALLOC))
-#else
+# else
     if (pVM->pgm.s.cHandyPages <= RT_MAX(PGM_HANDY_PAGES_SET_FF, PGM_HANDY_PAGES_RZ_TO_R3))
-#endif
+# endif
     {
         /*
          * Allocate pages only if we're out of them, or in ring-3, almost out.
          */
-#ifdef IN_RING3
+# ifdef IN_RING3
         if (pVM->pgm.s.cHandyPages <= PGM_HANDY_PAGES_R3_ALLOC)
-#else
+# else
         if (pVM->pgm.s.cHandyPages <= PGM_HANDY_PAGES_RZ_ALLOC)
-#endif
+# endif
         {
             Log(("PGM: cHandyPages=%u out of %u -> allocate more; VM_FF_PGM_NO_MEMORY=%RTbool\n",
                  pVM->pgm.s.cHandyPages, RT_ELEMENTS(pVM->pgm.s.aHandyPages), VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY) ));
-#ifdef IN_RING3
+# ifdef IN_RING3
             int rc = PGMR3PhysAllocateHandyPages(pVM);
-#else
+# else
             int rc = pgmR0PhysAllocateHandyPages(pVM, VMMGetCpuId(pVM), false /*fRing3*/);
-#endif
+# endif
             if (RT_UNLIKELY(rc != VINF_SUCCESS))
             {
                 if (RT_FAILURE(rc))
@@ -2120,9 +2121,9 @@ static int pgmPhysEnsureHandyPage(PVMCC pVM)
                 }
                 Assert(VM_FF_IS_SET(pVM, VM_FF_PGM_NEED_HANDY_PAGES));
                 Assert(VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY));
-#ifndef IN_RING3
+# ifndef IN_RING3
                 VMCPU_FF_SET(VMMGetCpu(pVM), VMCPU_FF_TO_R3); /* paranoia */
-#endif
+# endif
             }
             AssertMsgReturn(    pVM->pgm.s.cHandyPages > 0
                             &&  pVM->pgm.s.cHandyPages <= RT_ELEMENTS(pVM->pgm.s.aHandyPages),
@@ -2133,13 +2134,13 @@ static int pgmPhysEnsureHandyPage(PVMCC pVM)
         {
             if (pVM->pgm.s.cHandyPages <= PGM_HANDY_PAGES_SET_FF)
                 VM_FF_SET(pVM, VM_FF_PGM_NEED_HANDY_PAGES);
-#ifndef IN_RING3
+# ifndef IN_RING3
             if (pVM->pgm.s.cHandyPages <= PGM_HANDY_PAGES_RZ_TO_R3)
             {
                 Log(("PGM: VM_FF_TO_R3 - cHandyPages=%u out of %u\n", pVM->pgm.s.cHandyPages, RT_ELEMENTS(pVM->pgm.s.aHandyPages)));
                 VMCPU_FF_SET(VMMGetCpu(pVM), VMCPU_FF_TO_R3);
             }
-#endif
+# endif
         }
     }
 
@@ -2330,7 +2331,7 @@ int pgmPhysAllocPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys)
     return rc;
 }
 
-#ifdef PGM_WITH_LARGE_PAGES
+# ifdef PGM_WITH_LARGE_PAGES
 
 /**
  * Replace a 2 MB range of zero pages with new pages that we can write to.
@@ -2407,13 +2408,13 @@ int pgmPhysAllocLargePage(PVMCC pVM, RTGCPHYS GCPhys)
             /*
              * Do the allocation.
              */
-# ifdef IN_RING3
+#  ifdef IN_RING3
             rc = VMMR3CallR0(pVM, VMMR0_DO_PGM_ALLOCATE_LARGE_PAGE, GCPhysBase, NULL);
-# elif defined(IN_RING0)
+#  elif defined(IN_RING0)
             rc = pgmR0PhysAllocateLargePage(pVM, VMMGetCpuId(pVM), GCPhysBase);
-# else
-#  error "Port me"
-# endif
+#  else
+#   error "Port me"
+#  endif
             if (RT_SUCCESS(rc))
             {
                 Assert(PGM_PAGE_GET_STATE(pFirstPage) == PGM_PAGE_STATE_ALLOCATED);
@@ -2495,7 +2496,9 @@ int pgmPhysRecheckLargePage(PVMCC pVM, RTGCPHYS GCPhys, PPGMPAGE pLargePage)
     return VERR_PGM_INVALID_LARGE_PAGE_RANGE;
 }
 
-#endif /* PGM_WITH_LARGE_PAGES */
+# endif /* PGM_WITH_LARGE_PAGES */
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
+
 
 
 /**
@@ -2584,7 +2587,12 @@ int pgmPhysPageMakeWritable(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys)
                 return VERR_PGM_PHYS_PAGE_RESERVED;
             RT_FALL_THRU();
         case PGM_PAGE_STATE_SHARED:
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             return pgmPhysAllocPage(pVM, pPage, GCPhys);
+#else
+            AssertFailed(); /** @todo not sure if we make use of ZERO pages or not in NEM-mode, but I can't see how pgmPhysAllocPage would work. */
+            return VERR_PGM_NOT_SUPPORTED_FOR_NEM_MODE;
+#endif
 
         /* Not allowed to write to ballooned pages. */
         case PGM_PAGE_STATE_BALLOONED:
@@ -2592,7 +2600,7 @@ int pgmPhysPageMakeWritable(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys)
     }
 }
 
-
+#if 0 /* unused */
 /**
  * Internal usage: Map the page specified by its GMM ID.
  *
@@ -2664,7 +2672,7 @@ int pgmPhysPageMapByPageID(PVMCC pVM, uint32_t idPage, RTHCPHYS HCPhys, void **p
     return VINF_SUCCESS;
 #endif
 }
-
+#endif /* unused */
 
 /**
  * Maps a page into the current virtual address space so it can be accessed.
@@ -3077,7 +3085,7 @@ int pgmPhysGCPhys2CCPtrInternalDepr(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, 
             return rc;
         AssertMsg(rc == VINF_SUCCESS || rc == VINF_PGM_SYNC_CR3 /* not returned */, ("%Rrc\n", rc));
     }
-    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0);
+    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0 || PGM_IS_IN_NEM_MODE(pVM));
 
     /*
      * Get the mapping address.
@@ -3212,7 +3220,7 @@ int pgmPhysGCPhys2CCPtrInternal(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys, void
             return rc;
         AssertMsg(rc == VINF_SUCCESS || rc == VINF_PGM_SYNC_CR3 /* not returned */, ("%Rrc\n", rc));
     }
-    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0);
+    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0 || PGM_IS_IN_NEM_MODE(pVM));
 
     /*
      * Do the job.
@@ -3249,7 +3257,7 @@ int pgmPhysGCPhys2CCPtrInternalReadOnly(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPh
 {
     AssertReturn(pPage, VERR_PGM_PHYS_NULL_PAGE_PARAM);
     PGM_LOCK_ASSERT_OWNER(pVM);
-    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0);
+    Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0 || PGM_IS_IN_NEM_MODE(pVM));
 
     /*
      * Do the job.
@@ -3735,7 +3743,7 @@ int pgmPhysGCPhys2CCPtrLockless(PVMCPUCC pVCpu, RTGCPHYS GCPhys, void **ppv)
                 return rc;
             AssertMsg(rc == VINF_SUCCESS || rc == VINF_PGM_SYNC_CR3 /* not returned */, ("%Rrc\n", rc));
         }
-        Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0);
+        Assert(PGM_PAGE_GET_HCPHYS(pPage) != 0 || PGM_IS_IN_NEM_MODE(pVM));
 
         /*
          * Get the mapping address.

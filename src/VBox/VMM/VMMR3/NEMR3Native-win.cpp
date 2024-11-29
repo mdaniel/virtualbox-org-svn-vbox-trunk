@@ -1380,6 +1380,7 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
                         STAMR3RegisterF(pVM, &pNemCpu->StatQueryCpuTick,        STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES, "Number of TSC queries",                  "/NEM/CPU%u/QueryCpuTick", idCpu);
                     }
 
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
                     if (!SUPR3IsDriverless())
                     {
                         PUVM pUVM = pVM->pUVM;
@@ -1390,6 +1391,7 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
                                               STAMUNIT_PAGES, STAM_REFRESH_GRP_NEM, "Pages in use by hypervisor",
                                               "/NEM/R0Stats/cPagesInUse");
                     }
+#endif /* VBOX_WITH_R0_MODULES && !VBOX_WITH_MINIMAL_R0 */
 
                 }
             }

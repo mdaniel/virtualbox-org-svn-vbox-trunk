@@ -288,13 +288,14 @@ int pdmR3DevInit(PVM pVM)
             return rc;
         }
 
-        /* RZEnabled, R0Enabled, RCEnabled*/
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0) /** @todo not entirely correct for new-RC; */
+        /* R0Enabled, RCEnabled*/
         bool fR0Enabled = false;
         bool fRCEnabled = false;
         if (   (pReg->fFlags & (PDM_DEVREG_FLAGS_R0 | PDM_DEVREG_FLAGS_RC))
-#ifdef VBOX_WITH_PGM_NEM_MODE
+# ifdef VBOX_WITH_PGM_NEM_MODE
             && !PGMR3IsNemModeEnabled(pVM) /* No ring-0 in simplified memory mode. */
-#endif
+# endif
             && !SUPR3IsDriverless())
         {
             if (pReg->fFlags & PDM_DEVREG_FLAGS_R0)
@@ -322,6 +323,7 @@ int pdmR3DevInit(PVM pVM)
                 fRCEnabled = false;
             }
         }
+#endif /* VBOX_WITH_R0_MODULES && !VBOX_WITH_MINIMAL_R0 */
 
 #ifdef VBOX_WITH_DBGF_TRACING
         DBGFTRACEREVTSRC hDbgfTraceEvtSrc = NIL_DBGFTRACEREVTSRC;
@@ -367,6 +369,7 @@ int pdmR3DevInit(PVM pVM)
                            VERR_PDM_TOO_MANY_DEVICE_INSTANCES);
         PPDMDEVINS   pDevIns;
         PPDMCRITSECT pCritSect;
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         if (fR0Enabled || fRCEnabled)
         {
             AssertLogRel(fR0Enabled /* not possible to just enabled raw-mode atm. */);
@@ -395,11 +398,11 @@ int pdmR3DevInit(PVM pVM)
             Req.afReserved[0]     = false;
             Req.afReserved[1]     = false;
             Req.afReserved[2]     = false;
-#ifdef VBOX_WITH_DBGF_TRACING
+# ifdef VBOX_WITH_DBGF_TRACING
             Req.hDbgfTracerEvtSrc = hDbgfTraceEvtSrc;
-#else
+# else
             Req.hDbgfTracerEvtSrc = NIL_DBGFTRACEREVTSRC;
-#endif
+# endif
             rc = RTStrCopy(Req.szDevName, sizeof(Req.szDevName), pReg->szName);
             AssertLogRelRCReturn(rc, rc);
             rc = RTStrCopy(Req.szModName, sizeof(Req.szModName), pReg->pszR0Mod);
@@ -416,6 +419,7 @@ int pdmR3DevInit(PVM pVM)
             AssertLogRelReturn(pVM->pdm.s.apDevRing0Instances[pDevIns->Internal.s.idxR0Device] == pDevIns, VERR_PDM_DEV_IPE_1);
         }
         else
+#endif /* VBOX_WITH_R0_MODULES && !VBOX_WITH_MINIMAL_R0 */
         {
             /* The code in this else branch works by the same rules as the PDMR0Device.cpp
                code, except there is only the ring-3 components of the device instance.
@@ -568,6 +572,7 @@ int pdmR3DevInit(PVM pVM)
             return rc == VERR_VERSION_MISMATCH ? VERR_PDM_DEVICE_VERSION_MISMATCH : rc;
         }
 
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         /*
          * Call the ring-0 constructor if applicable.
          */
@@ -593,6 +598,7 @@ int pdmR3DevInit(PVM pVM)
                 return rc == VERR_VERSION_MISMATCH ? VERR_PDM_DEVICE_VERSION_MISMATCH : rc;
             }
         }
+#endif /* VBOX_WITH_R0_MODULES && !VBOX_WITH_MINIMAL_R0 */
 
     } /* for device instances */
 

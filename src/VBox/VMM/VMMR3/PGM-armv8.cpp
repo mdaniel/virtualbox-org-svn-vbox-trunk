@@ -184,6 +184,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
      */
     PCFGMNODE const pCfgPGM = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/PGM");
 
+    /** @todo RamPreAlloc doesn't work for NEM-mode.   */
     int rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "RamPreAlloc", &pVM->pgm.s.fRamPreAlloc,
 #ifdef VBOX_WITH_PREALLOC_RAM_BY_DEFAULT
                             true
@@ -193,10 +194,12 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                            );
     AssertLogRelRCReturn(rc, rc);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     rc = CFGMR3QueryU32Def(pCfgPGM, "MaxRing3Chunks", &pVM->pgm.s.ChunkR3Map.cMax, UINT32_MAX);
     AssertLogRelRCReturn(rc, rc);
     for (uint32_t i = 0; i < RT_ELEMENTS(pVM->pgm.s.ChunkR3Map.Tlb.aEntries); i++)
         pVM->pgm.s.ChunkR3Map.Tlb.aEntries[i].idChunk = NIL_GMM_CHUNKID;
+#endif
 
     /*
      * Get the configured RAM size - to estimate saved state size.
@@ -240,7 +243,9 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     rc = PDMR3CritSectInit(pVM, &pVM->pgm.s.CritSectX, RT_SRC_POS, "PGM");
     AssertRCReturn(rc, rc);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pgmR3PhysChunkInvalidateTLB(pVM, false /*fInRendezvous*/); /* includes pgmPhysInvalidatePageMapTLB call */
+#endif
 
     /*
      * For the time being we sport a full set of handy pages in addition to the base

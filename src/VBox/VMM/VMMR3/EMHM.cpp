@@ -59,6 +59,10 @@
 
 #include "EMInline.h"
 
+#ifndef VBOX_WITH_HWVIRT
+# error "VBOX_WITH_HWVIRT misconfig!"
+#endif
+
 
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *

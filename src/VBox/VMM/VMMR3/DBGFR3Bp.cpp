@@ -318,6 +318,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpInitEmtWorker(PVM pVM, PVMCPU pVCpu, v
     if (   pVCpu->idCpu == 0
         && !pUVM->dbgf.s.paBpLocL1R3)
     {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         if (!SUPR3IsDriverless())
         {
             DBGFBPINITREQ Req;
@@ -329,6 +330,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpInitEmtWorker(PVM pVM, PVMCPU pVCpu, v
             pUVM->dbgf.s.paBpLocL1R3 = Req.paBpLocL1R3;
         }
         else
+#endif
         {
             /* Driverless: Do dbgfR0BpInitWorker here, ring-3 style. */
             uint32_t const cbL1Loc = RT_ALIGN_32(UINT16_MAX * sizeof(uint32_t), HOST_PAGE_SIZE);
@@ -381,6 +383,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpPortIoInitEmtWorker(PVM pVM, PVMCPU pV
     if (   pVCpu->idCpu == 0
         && !pUVM->dbgf.s.paBpLocPortIoR3)
     {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
         if (!SUPR3IsDriverless())
         {
             DBGFBPINITREQ Req;
@@ -392,6 +395,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpPortIoInitEmtWorker(PVM pVM, PVMCPU pV
             pUVM->dbgf.s.paBpLocPortIoR3 = Req.paBpLocL1R3;
         }
         else
+#endif
         {
             /* Driverless: Do dbgfR0BpPortIoInitWorker here, ring-3 style. */
             uint32_t const cbPortIoLoc = RT_ALIGN_32(UINT16_MAX * sizeof(uint32_t), HOST_PAGE_SIZE);
@@ -454,6 +458,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpOwnerInitEmtWorker(PVM pVM, PVMCPU pVC
         pUVM->dbgf.s.pbmBpOwnersAllocR3 = RTMemAllocZ(DBGF_BP_OWNER_COUNT_MAX / 8);
         if (pUVM->dbgf.s.pbmBpOwnersAllocR3)
         {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
             if (!SUPR3IsDriverless())
             {
                 DBGFBPOWNERINITREQ Req;
@@ -469,6 +474,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpOwnerInitEmtWorker(PVM pVM, PVMCPU pVC
                 AssertLogRelMsgRC(rc, ("VMMR0_DO_DBGF_BP_OWNER_INIT failed: %Rrc\n", rc));
             }
             else
+#endif
             {
                 /* Driverless: Do dbgfR0BpOwnerInitWorker here, ring-3 style. */
                 uint32_t const cbBpOwnerR3 = RT_ALIGN_32(DBGF_BP_OWNER_COUNT_MAX * sizeof(DBGFBPOWNERINT), HOST_PAGE_SIZE);
@@ -623,6 +629,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpChunkAllocEmtWorker(PVM pVM, PVMCPU pV
         void *pbmAlloc = RTMemAllocZ(DBGF_BP_COUNT_PER_CHUNK / 8);
         if (RT_LIKELY(pbmAlloc))
         {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
             if (!SUPR3IsDriverless())
             {
                 DBGFBPCHUNKALLOCREQ Req;
@@ -637,6 +644,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpChunkAllocEmtWorker(PVM pVM, PVMCPU pV
                     AssertLogRelMsgRC(rc, ("VMMR0_DO_DBGF_BP_CHUNK_ALLOC failed: %Rrc\n", rc));
             }
             else
+#endif
             {
                 /* Driverless: Do dbgfR0BpChunkAllocWorker here, ring-3 style. */
                 uint32_t const cbShared = RT_ALIGN_32(DBGF_BP_COUNT_PER_CHUNK * sizeof(DBGFBPINT), HOST_PAGE_SIZE);
@@ -844,6 +852,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpL2TblChunkAllocEmtWorker(PVM pVM, PVMC
         void *pbmAlloc = RTMemAllocZ(DBGF_BP_L2_TBL_ENTRIES_PER_CHUNK / 8);
         if (RT_LIKELY(pbmAlloc))
         {
+#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
             if (!SUPR3IsDriverless())
             {
                 DBGFBPL2TBLCHUNKALLOCREQ Req;
@@ -858,6 +867,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpL2TblChunkAllocEmtWorker(PVM pVM, PVMC
                     AssertLogRelMsgRC(rc, ("VMMR0_DO_DBGF_BP_L2_TBL_CHUNK_ALLOC failed: %Rrc\n", rc));
             }
             else
+#endif
             {
                 /* Driverless: Do dbgfR0BpL2TblChunkAllocWorker here, ring-3 style. */
                 uint32_t const cbTotal = RT_ALIGN_32(DBGF_BP_L2_TBL_ENTRIES_PER_CHUNK * sizeof(DBGFBPL2ENTRY), HOST_PAGE_SIZE);

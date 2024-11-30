@@ -228,9 +228,9 @@ DECL_INLINE_THROW(uint32_t) iemNativeEmitLoadGprWithGstRegExT(PIEMNATIVEINSTR pC
 
     /* 32-bit registers:   */
     else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_EFlags)
-        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
+        return iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.eflags));
     else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_MxCsr)
-        return iemNativeEmitLoadGprFromVCpuU64Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.MXCSR));
+        return iemNativeEmitLoadGprFromVCpuU32Ex(pCodeBuf, off, idxHstReg, RT_UOFFSETOF(VMCPU, cpum.GstCtx.XState.x87.MXCSR));
 
     /* 16-bit registers */
     else if RT_CONSTEXPR_IF(a_enmGstReg == kIemNativeGstReg_FpuFcw)

@@ -48,6 +48,7 @@
 #define IEM_WITH_OPAQUE_DECODER_STATE
 #define VMCPU_INCL_CPUM_GST_CTX
 #define VMM_INCLUDED_SRC_include_IEMMc_h /* block IEMMc.h inclusion. */
+#define VBOX_DIS_WITH_ARMV8
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
@@ -9628,6 +9629,17 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                     DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
                                      DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
                                      iemNativeDisasmGetSymbolCb, &SymCtx);
+                    if (   Dis.aParams[1].armv8.enmType == kDisArmv8OpParmAddrInGpr
+                        && !(Dis.aParams[1].fUse & (DISUSE_INDEX | DISUSE_PRE_INDEXED | DISUSE_POST_INDEXED))
+                        /** @todo DISUSE_REG_GEN64 is not set: && (Dis.aParams[1].fUse & DISUSE_REG_GEN64) */
+                        && Dis.aParams[1].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit)
+                    {
+                        if (Dis.aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PVMCPU)
+                            pszAnnotation = iemNativeDbgVCpuOffsetToName(Dis.aParams[1].armv8.u.offBase);
+                        else if (Dis.aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PCPUMCTX)
+                            pszAnnotation = iemNativeDbgVCpuOffsetToName(  Dis.aParams[1].armv8.u.offBase
+                                                                         + RT_UOFFSETOF(VMCPU, cpum.GstCtx));
+                    }
 #  else
 #   error "Port me"
 #  endif

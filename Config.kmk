@@ -493,7 +493,7 @@ endif
 ## @name VMM related settings.
 ## @{
 # Enables the VT-x & AMD-V execution manager (HM).
-if "$(KBUILD_TARGET)" == "amd64" && !defined(VBOX_WITHOUT_HWVIRT)
+if "$(KBUILD_TARGET_ARCH)" == "amd64" && !defined(VBOX_WITHOUT_HWVIRT)
  VBOX_WITH_HWVIRT := 1
 endif
 # Enables .r0 modules.

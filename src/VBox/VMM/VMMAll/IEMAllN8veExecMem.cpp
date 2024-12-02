@@ -1372,7 +1372,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
         /* Prolog: None. */
         0xe5,                                   /* end_c */
         /* Epilog / unwind info: */
-        IEMNATIVE_FRAME_VAR_SIZE / 16,          /* alloc_s */
+        (IEMNATIVE_FRAME_VAR_SIZE + IEMNATIVE_FRAME_ALIGN_SIZE) / 16, /* alloc_s */
         0xc8, 0x00,                             /* save_regp x19, x20, [sp + #0] */
         0xc8, 0x82,                             /* save_regp x21, x22, [sp + #2*8] */
         0xc9, 0x04,                             /* save_regp x23, x24, [sp + #4*8] */
@@ -1384,7 +1384,8 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
         0xc5                                    /* nop */
     };
     AssertCompile(!(sizeof(s_abOpcodes) & 3));
-    AssertCompile(!(IEMNATIVE_FRAME_VAR_SIZE & 15) && IEMNATIVE_FRAME_VAR_SIZE < 512);
+    AssertCompile(!((IEMNATIVE_FRAME_VAR_SIZE + IEMNATIVE_FRAME_ALIGN_SIZE) & 15));
+    AssertCompile((IEMNATIVE_FRAME_VAR_SIZE + IEMNATIVE_FRAME_ALIGN_SIZE) < 512);
 
 #  else
 #   error "Port me!"

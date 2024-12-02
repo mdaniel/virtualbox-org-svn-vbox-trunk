@@ -155,7 +155,7 @@
 typedef struct slirpTimer
 {
     struct slirpTimer *next;
-    uint32_t uTimeExpire;
+    int64_t uTimeExpire;
     SlirpTimerCb pHandler;
     void *opaque;
 } SlirpTimer;
@@ -1094,7 +1094,7 @@ static void drvNAT_UpdateTimeout(uint32_t *uTimeout, void *opaque)
     PDRVNAT pThis = (PDRVNAT)opaque;
     Assert(pThis);
 
-    uint32_t currTime = drvNAT_ClockGetNsCb(pThis) / (1000 * 1000);
+    int64_t currTime = drvNAT_ClockGetNsCb(pThis) / (1000 * 1000);
     SlirpTimer *pCurrent = pThis->pNATState->pTimerHead;
     while (pCurrent != NULL)
     {

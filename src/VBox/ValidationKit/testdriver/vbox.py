@@ -1856,7 +1856,7 @@ class TestDriver(base.TestDriver):                                              
         """
         assert oSession is not None;
         try:
-            return oSession.o.console.guest.getAdditionsRevision;
+            return oSession.o.console.guest.additionsRevision;
         except:
             if not fIgnoreErrors:
                 reporter.errorXcpt('Getting the Guest Additions revision failed');

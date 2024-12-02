@@ -9231,6 +9231,90 @@ static DECLCALLBACK(int) iemNativeDisasmGetSymbolCb(PCDISSTATE pDis, uint32_t u3
     return VERR_SYMBOL_NOT_FOUND;
 }
 
+
+/**
+ * Appends annotations to the disassembled instructions.
+ */
+static void
+iemNativeDisasmAppendAnnotation(char *pszDisBuf, size_t cbDisBuf, PCDISSTATE pDis)
+{
+    const char *pszAnnotation = NULL;
+# if defined(RT_ARCH_AMD64)
+    if (pDis->pCurInstr->uOpcode == OP_NOP && pDis->cbInstr == 7) /* iemNativeEmitMarker */
+    {
+        static const char * const s_apszMarkers[] =
+        {
+            /*[0]=*/ "unknown0",        "CheckCsLim",           "ConsiderLimChecking",  "CheckOpcodes",
+            /*[4]=*/ "PcAfterBranch",   "LoadTlbForNewPage",    "LoadTlbAfterBranch"
+        };
+
+        uint32_t const uInfo = *(uint32_t const *)&pDis->Instr.ab[3];
+        if (RT_HIWORD(uInfo) < kIemThreadedFunc_End)
+            RTStrPrintf(pszDisBuf, cbDisBuf, "nop ; marker: call #%u to %s (%u args) - %s\n",
+                        uInfo & 0x7fff, g_apszIemThreadedFunctions[RT_HIWORD(uInfo)],
+                        g_acIemThreadedFunctionUsedArgs[RT_HIWORD(uInfo)],
+                        uInfo & 0x8000 ? "recompiled" : "todo");
+        else if ((uInfo & ~RT_BIT_32(31)) < RT_ELEMENTS(s_apszMarkers))
+            RTStrPrintf(pszDisBuf, cbDisBuf, "nop ; marker: %s\n", s_apszMarkers[uInfo & ~RT_BIT_32(31)]);
+        else
+            RTStrPrintf(pszDisBuf, cbDisBuf, "nop ; unknown marker: %#x (%d)\n", uInfo, uInfo);
+        return;
+    }
+
+    PCDISOPPARAM pMemOp;
+    if (DISUSE_IS_EFFECTIVE_ADDR(pDis->aParams[0].fUse))
+        pMemOp = &pDis->aParams[0];
+    else if (DISUSE_IS_EFFECTIVE_ADDR(pDis->aParams[1].fUse))
+        pMemOp = &pDis->aParams[1];
+    else if (DISUSE_IS_EFFECTIVE_ADDR(pDis->aParams[2].fUse))
+        pMemOp = &pDis->aParams[2];
+    else
+        return;
+    if (   pMemOp->x86.Base.idxGenReg == IEMNATIVE_REG_FIXED_PVMCPU
+        && (pMemOp->fUse & (DISUSE_BASE | DISUSE_REG_GEN64)) == (DISUSE_BASE | DISUSE_REG_GEN64))
+        pszAnnotation = iemNativeDbgVCpuOffsetToName(pMemOp->fUse & DISUSE_DISPLACEMENT32
+                                                     ? pMemOp->x86.uDisp.u32 : pMemOp->x86.uDisp.u8);
+    else
+        return;
+
+# elif defined(RT_ARCH_ARM64)
+    /* The memory operand is always number two on arm. */
+    if (   pDis->aParams[1].armv8.enmType == kDisArmv8OpParmAddrInGpr
+        && !(pDis->aParams[1].fUse & (DISUSE_INDEX | DISUSE_PRE_INDEXED | DISUSE_POST_INDEXED))
+        /* @todo DISUSE_REG_GEN64 is not set: && (pDis->aParams[1].fUse & DISUSE_REG_GEN64) */
+        && pDis->aParams[1].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit)
+    {
+        if (pDis->aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PVMCPU)
+            pszAnnotation = iemNativeDbgVCpuOffsetToName(pDis->aParams[1].armv8.u.offBase);
+        else if (pDis->aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PCPUMCTX)
+            pszAnnotation = iemNativeDbgVCpuOffsetToName(pDis->aParams[1].armv8.u.offBase + RT_UOFFSETOF(VMCPU, cpum.GstCtx));
+    }
+    else
+        return;
+
+# else
+#  error "Port me"
+# endif
+    if (pszAnnotation)
+    {
+        static unsigned const s_offAnnotation = 55;
+        size_t const          cchAnnotation   = strlen(pszAnnotation);
+        size_t                cchDis          = strlen(pszDisBuf);
+        if (RT_MAX(cchDis, s_offAnnotation) + sizeof(" ; ") + cchAnnotation <= cbDisBuf)
+        {
+            if (cchDis < s_offAnnotation)
+            {
+                memset(&pszDisBuf[cchDis], ' ', s_offAnnotation - cchDis);
+                cchDis = s_offAnnotation;
+            }
+            pszDisBuf[cchDis++] = ' ';
+            pszDisBuf[cchDis++] = ';';
+            pszDisBuf[cchDis++] = ' ';
+            memcpy(&pszDisBuf[cchDis], pszAnnotation, cchAnnotation + 1);
+        }
+    }
+}
+
 #else  /* VBOX_WITH_IEM_USING_CAPSTONE_DISASSEMBLER */
 
 /**
@@ -9284,14 +9368,6 @@ iemNativeDisasmAnnotateCapstone(PIEMNATIVDISASMSYMCTX pSymCtx, cs_insn const *pI
 DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP pHlp) RT_NOEXCEPT
 {
     AssertReturnVoid((pTb->fFlags & IEMTB_F_TYPE_MASK) == IEMTB_F_TYPE_NATIVE);
-#if defined(RT_ARCH_AMD64)
-    static const char * const a_apszMarkers[] =
-    {
-        /*[0]=*/ "unknown0",        "CheckCsLim",           "ConsiderLimChecking",  "CheckOpcodes",
-        /*[4]=*/ "PcAfterBranch",   "LoadTlbForNewPage",    "LoadTlbAfterBranch"
-    };
-#endif
-
     char                    szDisBuf[512];
     DISSTATE                Dis;
     PCIEMNATIVEINSTR const  paNative      = pTb->Native.paInstructions;
@@ -9587,82 +9663,20 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
             int const              rc         = DISInstr(pNativeCur, enmHstCpuMode, &Dis, &cbInstr);
             if (RT_SUCCESS(rc))
             {
-#  if defined(RT_ARCH_AMD64)
-                if (Dis.pCurInstr->uOpcode == OP_NOP && cbInstr == 7) /* iemNativeEmitMarker */
-                {
-                    uint32_t const uInfo = *(uint32_t const *)&Dis.Instr.ab[3];
-                    if (RT_HIWORD(uInfo) < kIemThreadedFunc_End)
-                        pHlp->pfnPrintf(pHlp, "    %p: nop ; marker: call #%u to %s (%u args) - %s\n",
-                                        pNativeCur, uInfo & 0x7fff, g_apszIemThreadedFunctions[RT_HIWORD(uInfo)],
-                                        g_acIemThreadedFunctionUsedArgs[RT_HIWORD(uInfo)],
-                                        uInfo & 0x8000 ? "recompiled" : "todo");
-                    else if ((uInfo & ~RT_BIT_32(31)) < RT_ELEMENTS(a_apszMarkers))
-                        pHlp->pfnPrintf(pHlp, "    %p: nop ; marker: %s\n", pNativeCur, a_apszMarkers[uInfo & ~RT_BIT_32(31)]);
-                    else
-                        pHlp->pfnPrintf(pHlp, "    %p: nop ; unknown marker: %#x (%d)\n", pNativeCur, uInfo, uInfo);
-                }
-                else
-#  endif
-                {
-                    const char *pszAnnotation = NULL;
 #  ifdef RT_ARCH_AMD64
-                    DISFormatYasmEx(&Dis, szDisBuf, sizeof(szDisBuf),
-                                    DIS_FMT_FLAGS_BYTES_WIDTH_MAKE(10) | DIS_FMT_FLAGS_BYTES_LEFT
-                                    | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
-                                    iemNativeDisasmGetSymbolCb, &SymCtx);
-                    PCDISOPPARAM pMemOp;
-                    if (DISUSE_IS_EFFECTIVE_ADDR(Dis.aParams[0].fUse))
-                        pMemOp = &Dis.aParams[0];
-                    else if (DISUSE_IS_EFFECTIVE_ADDR(Dis.aParams[1].fUse))
-                        pMemOp = &Dis.aParams[1];
-                    else if (DISUSE_IS_EFFECTIVE_ADDR(Dis.aParams[2].fUse))
-                        pMemOp = &Dis.aParams[2];
-                    else
-                        pMemOp = NULL;
-                    if (   pMemOp
-                        && pMemOp->x86.Base.idxGenReg == IEMNATIVE_REG_FIXED_PVMCPU
-                        && (pMemOp->fUse & (DISUSE_BASE | DISUSE_REG_GEN64)) == (DISUSE_BASE | DISUSE_REG_GEN64))
-                        pszAnnotation = iemNativeDbgVCpuOffsetToName(pMemOp->fUse & DISUSE_DISPLACEMENT32
-                                                                     ? pMemOp->x86.uDisp.u32 : pMemOp->x86.uDisp.u8);
-
+                DISFormatYasmEx(&Dis, szDisBuf, sizeof(szDisBuf),
+                                DIS_FMT_FLAGS_BYTES_WIDTH_MAKE(10) | DIS_FMT_FLAGS_BYTES_LEFT
+                                | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
+                                iemNativeDisasmGetSymbolCb, &SymCtx);
 #  elif defined(RT_ARCH_ARM64)
-                    DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
-                                     DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
-                                     iemNativeDisasmGetSymbolCb, &SymCtx);
-                    if (   Dis.aParams[1].armv8.enmType == kDisArmv8OpParmAddrInGpr
-                        && !(Dis.aParams[1].fUse & (DISUSE_INDEX | DISUSE_PRE_INDEXED | DISUSE_POST_INDEXED))
-                        /** @todo DISUSE_REG_GEN64 is not set: && (Dis.aParams[1].fUse & DISUSE_REG_GEN64) */
-                        && Dis.aParams[1].armv8.Op.Reg.enmRegType == kDisOpParamArmV8RegType_Gpr_64Bit)
-                    {
-                        if (Dis.aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PVMCPU)
-                            pszAnnotation = iemNativeDbgVCpuOffsetToName(Dis.aParams[1].armv8.u.offBase);
-                        else if (Dis.aParams[1].armv8.Op.Reg.idReg == IEMNATIVE_REG_FIXED_PCPUMCTX)
-                            pszAnnotation = iemNativeDbgVCpuOffsetToName(  Dis.aParams[1].armv8.u.offBase
-                                                                         + RT_UOFFSETOF(VMCPU, cpum.GstCtx));
-                    }
+                DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
+                                 DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
+                                 iemNativeDisasmGetSymbolCb, &SymCtx);
 #  else
 #   error "Port me"
 #  endif
-                    if (pszAnnotation)
-                    {
-                        static unsigned const s_offAnnotation = 55;
-                        size_t const          cchAnnotation   = strlen(pszAnnotation);
-                        size_t                cchDis          = strlen(szDisBuf);
-                        if (RT_MAX(cchDis, s_offAnnotation) + sizeof(" ; ") + cchAnnotation <= sizeof(szDisBuf))
-                        {
-                            if (cchDis < s_offAnnotation)
-                            {
-                                memset(&szDisBuf[cchDis], ' ', s_offAnnotation - cchDis);
-                                cchDis = s_offAnnotation;
-                            }
-                            szDisBuf[cchDis++] = ' ';
-                            szDisBuf[cchDis++] = ';';
-                            szDisBuf[cchDis++] = ' ';
-                            memcpy(&szDisBuf[cchDis], pszAnnotation, cchAnnotation + 1);
-                        }
-                    }
-                    pHlp->pfnPrintf(pHlp, "    %p: %s\n", pNativeCur, szDisBuf);
-                }
+                iemNativeDisasmAppendAnnotation(szDisBuf, sizeof(szDisBuf), &Dis);
+                pHlp->pfnPrintf(pHlp, "    %p: %s\n", pNativeCur, szDisBuf);
             }
             else
             {
@@ -9777,37 +9791,20 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
             int const              rc         = DISInstr(pNativeCur, enmHstCpuMode, &Dis, &cbInstr);
             if (RT_SUCCESS(rc))
             {
-# if defined(RT_ARCH_AMD64)
-                if (Dis.pCurInstr->uOpcode == OP_NOP && cbInstr == 7) /* iemNativeEmitMarker */
-                {
-                    uint32_t const uInfo = *(uint32_t const *)&Dis.Instr.ab[3];
-                    if (RT_HIWORD(uInfo) < kIemThreadedFunc_End)
-                        pHlp->pfnPrintf(pHlp, "\n    %p: nop ; marker: call #%u to %s (%u args) - %s\n",
-                                        pNativeCur, uInfo & 0x7fff, g_apszIemThreadedFunctions[RT_HIWORD(uInfo)],
-                                        g_acIemThreadedFunctionUsedArgs[RT_HIWORD(uInfo)],
-                                        uInfo & 0x8000 ? "recompiled" : "todo");
-                    else if ((uInfo & ~RT_BIT_32(31)) < RT_ELEMENTS(a_apszMarkers))
-                        pHlp->pfnPrintf(pHlp, "    %p: nop ; marker: %s\n", pNativeCur, a_apszMarkers[uInfo & ~RT_BIT_32(31)]);
-                    else
-                        pHlp->pfnPrintf(pHlp, "    %p: nop ; unknown marker: %#x (%d)\n", pNativeCur, uInfo, uInfo);
-                }
-                else
-# endif
-                {
 # ifdef RT_ARCH_AMD64
-                    DISFormatYasmEx(&Dis, szDisBuf, sizeof(szDisBuf),
-                                    DIS_FMT_FLAGS_BYTES_WIDTH_MAKE(10) | DIS_FMT_FLAGS_BYTES_LEFT
-                                    | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
-                                    iemNativeDisasmGetSymbolCb, &SymCtx);
+                DISFormatYasmEx(&Dis, szDisBuf, sizeof(szDisBuf),
+                                DIS_FMT_FLAGS_BYTES_WIDTH_MAKE(10) | DIS_FMT_FLAGS_BYTES_LEFT
+                                | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
+                                iemNativeDisasmGetSymbolCb, &SymCtx);
 # elif defined(RT_ARCH_ARM64)
-                    DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
-                                     DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
-                                     iemNativeDisasmGetSymbolCb, &SymCtx);
+                DISFormatArmV8Ex(&Dis, szDisBuf, sizeof(szDisBuf),
+                                 DIS_FMT_FLAGS_BYTES_LEFT | DIS_FMT_FLAGS_RELATIVE_BRANCH | DIS_FMT_FLAGS_C_HEX,
+                                 iemNativeDisasmGetSymbolCb, &SymCtx);
 # else
 #  error "Port me"
 # endif
-                    pHlp->pfnPrintf(pHlp, "    %p: %s\n", pNativeCur, szDisBuf);
-                }
+                iemNativeDisasmAppendAnnotation(szDisBuf, sizeof(szDisBuf), &Dis);
+                pHlp->pfnPrintf(pHlp, "    %p: %s\n", pNativeCur, szDisBuf);
             }
             else
             {

@@ -63,7 +63,7 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
-#ifdef IN_RING3
+#if defined(IN_RING3) && !defined(IN_GUEST) && !defined(RT_NO_GIP)
 # if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 #  define APPLICABLE_GET_CPU_FLAGS       (  SUPGIPGETCPU_APIC_ID \
                                           | SUPGIPGETCPU_RDTSCP_MASK_MAX_SET_CPUS \
@@ -76,7 +76,7 @@
 # else
 #  error "port me"
 # endif
-#endif /* IN_RING3 */
+#endif /* IN_RING3 && !IN_GUEST && !RT_NO_GIP */
 
 
 /*********************************************************************************************************************************

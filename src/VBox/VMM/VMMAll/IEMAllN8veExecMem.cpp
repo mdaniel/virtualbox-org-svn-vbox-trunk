@@ -1314,7 +1314,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
 {
     RT_NOREF(pVCpu);
 
-#  ifdef RT_AMD64
+#  ifdef RT_ARCH_AMD64
     /*
      * The AMD64 unwind opcodes.
      *
@@ -1410,7 +1410,7 @@ iemExecMemAllocatorInitAndRegisterUnwindInfoForChunk(PVMCPUCC pVCpu, PIEMEXECMEM
     /*
      * Initialize the structures.
      */
-#  ifdef RT_AMD64
+#  ifdef RT_ARCH_AMD64
     PIMAGE_UNWIND_INFO const pInfo = (PIMAGE_UNWIND_INFO)&paFunctions[cFunctionEntries];
 
     paFunctions[0].BeginAddress         = 0;

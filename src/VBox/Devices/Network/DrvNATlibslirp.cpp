@@ -39,6 +39,7 @@
 # include "winutils.h"
 # define inet_aton(x, y) inet_pton(2, x, y)
 # define AF_INET6 23
+# define poll WSAPoll
 #endif
 
 #include <libslirp.h>
@@ -740,7 +741,7 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         /*
          * To prevent concurrent execution of sending/receiving threads
          */
-#ifndef RT_OS_WINDOWS
+
         uint32_t uTimeout = DRVNAT_DEFAULT_TIMEOUT;
         pThis->pNATState->nsock = 1;
 
@@ -748,9 +749,17 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         drvNAT_UpdateTimeout(&uTimeout, pThis);
 
         int cChangedFDs = poll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
+#ifdef RT_OS_WINDOWS
+        /* Note: This must be called IMMEDIATELY after poll/WSAPoll. */
+        int error = WSAGetLastError();
+#endif
 
         if (cChangedFDs < 0)
         {
+#ifdef RT_OS_WINDOWS
+            LogRel(("NAT: RTWinPoll returned error=%Rrc (cChangedFDs=%d)\n", error, cChangedFDs));
+            Log4(("NAT: NSOCK = %d\n", pThis->pNATState->nsock));
+#else
             if (errno == EINTR)
             {
                 Log2(("NAT: signal was caught while sleep on poll\n"));
@@ -762,44 +771,17 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
                 LogRel(("NAT: Poll returns (%s) suppressed %d\n", strerror(errno), cPollNegRet));
                 cPollNegRet = 0;
             }
+#endif
         }
 
-
+        Log4(("%s: poll\n", __FUNCTION__));
         slirp_pollfds_poll(pThis->pNATState->pSlirp, cChangedFDs < 0, drvNAT_GetREventsCb /* SlirpGetREventsCb */, pThis /* opaque */);
-        if (pThis->pNATState->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))
-        {
-            /* drain the pipe
-             *
-             * Note! drvNATSend decoupled so we don't know how many times
-             * device's thread sends before we've entered multiplex,
-             * so to avoid false alarm drain pipe here to the very end
-             */
-            char ch[1024];
-            size_t cbRead;
-            uint64_t cbWakeupNotifs = ASMAtomicReadU64(&pThis->cbWakeupNotifs);
-            RTPipeRead(pThis->hPipeRead, &ch[0], RT_MIN(cbWakeupNotifs, 1024), &cbRead);
-            ASMAtomicSubU64(&pThis->cbWakeupNotifs, cbRead);
-        }
 
-        /* process _all_ outstanding requests but don't wait */
-        RTReqQueueProcess(pThis->hSlirpReqQueue, 0);
-        drvNAT_CheckTimeout(pThis);
-
-#else /* RT_OS_WINDOWS */
-        uint32_t msTimeout = DRVNAT_DEFAULT_TIMEOUT;
-        pThis->pNATState->nsock = 1;
-        slirp_pollfds_fill(pThis->pNATState->pSlirp, &msTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
-        drvNAT_UpdateTimeout(&msTimeout, pThis);
-
-        int cChangedFDs = WSAPoll(pThis->pNATState->polls, pThis->pNATState->nsock, msTimeout /* timeout */);
-        int error = WSAGetLastError();
-        if (cChangedFDs == SOCKET_ERROR)
-        {
-            LogRel(("NAT: RTWinPoll returned error=%Rrc (cChangedFDs=%d)\n", error, cChangedFDs));
-            Log4(("NAT: NSOCK = %d\n", pThis->pNATState->nsock));
-        }
-
+#ifdef RT_OS_WINDOWS
         if (pThis->pNATState->polls[0].revents & (POLLIN))
+#else
+        if (pThis->pNATState->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))
+#endif
         {
             /* drain the pipe
              *
@@ -810,25 +792,18 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
             char ch[1024];
             size_t cbRead;
             uint64_t cbWakeupNotifs = ASMAtomicReadU64(&pThis->cbWakeupNotifs);
+#ifdef RT_OS_WINDOWS
             cbRead = recv(pThis->pWakeupSockPair[1], &ch[0], RT_MIN(cbWakeupNotifs, 1024), NULL);
+#else
+            RTPipeRead(pThis->hPipeRead, &ch[0], RT_MIN(cbWakeupNotifs, 1024), &cbRead);
+#endif
             ASMAtomicSubU64(&pThis->cbWakeupNotifs, cbRead);
         }
 
-        if (cChangedFDs == 0)
-        {
-            /* only check for slow/fast timers */
-            slirp_pollfds_poll(pThis->pNATState->pSlirp, false /*select error*/, drvNAT_GetREventsCb /* SlirpGetREventsCb */, pThis /* opaque */);
-            RTReqQueueProcess(pThis->hSlirpReqQueue, 0);
-            continue;
-        }
-        /* poll the sockets in any case */
-        Log2(("%s: poll\n", __FUNCTION__));
-        slirp_pollfds_poll(pThis->pNATState->pSlirp, cChangedFDs < 0 /*select error*/, drvNAT_GetREventsCb /* SlirpGetREventsCb */, pThis /* opaque */);
 
         /* process _all_ outstanding requests but don't wait */
         RTReqQueueProcess(pThis->hSlirpReqQueue, 0);
         drvNAT_CheckTimeout(pThis);
-#endif /* RT_OS_WINDOWS */
     }
 
     return VINF_SUCCESS;

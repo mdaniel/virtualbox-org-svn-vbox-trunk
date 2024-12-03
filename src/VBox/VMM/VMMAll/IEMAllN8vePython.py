@@ -221,6 +221,7 @@ g_dMcStmtThreaded = {
     'IEM_MC_FETCH_MEM_FLAT_XMM_NO_AC':                                   (None, True,  True,  g_fNativeSimd),
     'IEM_MC_FETCH_MEM_FLAT_U128_AND_XREG_U128':                          (None, True,  True,  False, ),
     'IEM_MC_FETCH_MEM_FLAT_XMM_ALIGN_SSE_AND_XREG_XMM':                  (None, True,  True,  False, ),
+    'IEM_MC_FETCH_MEM_FLAT_XMM_NO_AC_AND_XREG_XMM':                      (None, True,  True,  False, ),
     'IEM_MC_FETCH_MEM_FLAT_XMM_U32_AND_XREG_XMM':                        (None, True,  True,  False, ),
     'IEM_MC_FETCH_MEM_FLAT_XMM_U64_AND_XREG_XMM':                        (None, True,  True,  False, ),
     'IEM_MC_FETCH_MEM_FLAT_U128_AND_XREG_U128_AND_RAX_RDX_U64':          (None, True,  True,  False, ),

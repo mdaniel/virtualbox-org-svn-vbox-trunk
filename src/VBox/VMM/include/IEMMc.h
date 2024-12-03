@@ -1131,6 +1131,12 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
         (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
     } while (0)
 
+# define IEM_MC_FETCH_MEM_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) do { \
+        IEM_MC_RETURN_ON_FAILURE(iemMemFetchDataU128NoAc(pVCpu, &(a_Dst).uSrc2.uXmm, (a_iSeg2), (a_GCPtrMem2))); \
+        (a_Dst).uSrc1.uXmm.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[0]; \
+        (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
+    } while (0)
+
 # define IEM_MC_FETCH_MEM_XMM_U32_AND_XREG_XMM(a_Dst, a_iXReg1, a_iDWord2, a_iSeg2, a_GCPtrMem2) do { \
         (a_Dst).uSrc2.uXmm.au64[0] = 0; \
         (a_Dst).uSrc2.uXmm.au64[1] = 0; \
@@ -1206,8 +1212,21 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
         (a_Dst).uSrc1.uXmm.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[0]; \
         (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
     } while (0)
+
+# define IEM_MC_FETCH_MEM_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) do { \
+        iemMemFetchDataU128NoAcJmp(pVCpu, &(a_Dst).uSrc2.uXmm, (a_iSeg2), (a_GCPtrMem2)); \
+        (a_Dst).uSrc1.uXmm.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[0]; \
+        (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
+    } while (0)
+
 # define IEM_MC_FETCH_MEM_FLAT_XMM_ALIGN_SSE_AND_XREG_XMM(a_Dst, a_iXReg1, a_GCPtrMem2) do { \
         iemMemFlatFetchDataU128AlignedSseJmp(pVCpu, &(a_Dst).uSrc2.uXmm, (a_GCPtrMem2)); \
+        (a_Dst).uSrc1.uXmm.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[0]; \
+        (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
+    } while (0)
+
+# define IEM_MC_FETCH_MEM_FLAT_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_GCPtrMem2) do { \
+        iemMemFlatFetchDataU128NoAcJmp(pVCpu, &(a_Dst).uSrc2.uXmm, (a_GCPtrMem2)); \
         (a_Dst).uSrc1.uXmm.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[0]; \
         (a_Dst).uSrc1.uXmm.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[(a_iXReg1)].au64[1]; \
     } while (0)
@@ -1288,9 +1307,9 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 # define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX(a_YmmDst, a_iSeg, a_GCPtrMem) \
     IEM_MC_RETURN_ON_FAILURE(iemMemFetchDataU256AlignedAvx(pVCpu, &(a_YmmDst).ymm, (a_iSeg), (a_GCPtrMem)))
 
-# define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) do { \
+# define IEM_MC_FETCH_MEM_YMM_NO_AC_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) do { \
         uintptr_t const a_iYRegSrc1Tmp = (a_iYRegSrc1); \
-        IEM_MC_RETURN_ON_FAILURE(iemMemFetchDataU256AlignedAvx(pVCpu, &(a_uYmmDst).uSrc2.ymm, (a_iSeg2), (a_GCPtrMem2))); \
+        IEM_MC_RETURN_ON_FAILURE(iemMemFetchDataU256NoAc(pVCpu, &(a_uYmmDst).uSrc2.ymm, (a_iSeg2), (a_GCPtrMem2))); \
         (a_uYmmDst).uSrc1.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[a_iYRegSrc1Tmp].au64[0]; \
         (a_uYmmDst).uSrc1.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[a_iYRegSrc1Tmp].au64[1]; \
         (a_uYmmDst).uSrc1.au64[2] = pVCpu->cpum.GstCtx.XState.u.YmmHi.aYmmHi[a_iYRegSrc1Tmp].au64[0]; \
@@ -1312,9 +1331,9 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 # define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX(a_YmmDst, a_iSeg, a_GCPtrMem) \
     iemMemFetchDataU256AlignedAvxJmp(pVCpu, &(a_YmmDst).ymm, (a_iSeg), (a_GCPtrMem))
 
-# define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) do { \
+# define IEM_MC_FETCH_MEM_YMM_NO_AC_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) do { \
         uintptr_t const a_iYRegSrc1Tmp = (a_iYRegSrc1); \
-        iemMemFetchDataU256AlignedAvxJmp(pVCpu, &(a_uYmmDst).uSrc2.ymm, (a_iSeg2), (a_GCPtrMem2)); \
+        iemMemFetchDataU256NoAcJmp(pVCpu, &(a_uYmmDst).uSrc2.ymm, (a_iSeg2), (a_GCPtrMem2)); \
         (a_uYmmDst).uSrc1.au64[0] = pVCpu->cpum.GstCtx.XState.x87.aXMM[a_iYRegSrc1Tmp].au64[0]; \
         (a_uYmmDst).uSrc1.au64[1] = pVCpu->cpum.GstCtx.XState.x87.aXMM[a_iYRegSrc1Tmp].au64[1]; \
         (a_uYmmDst).uSrc1.au64[2] = pVCpu->cpum.GstCtx.XState.u.YmmHi.aYmmHi[a_iYRegSrc1Tmp].au64[0]; \

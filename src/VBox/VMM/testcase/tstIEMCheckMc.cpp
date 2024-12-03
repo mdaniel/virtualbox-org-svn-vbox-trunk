@@ -942,6 +942,8 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPU pVCpu, uint8_t bRm);
     do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMPCMPISTRXSRC, a_Dst); (void)fMcBegin; } while (0)
 # define IEM_MC_FETCH_MEM_XMM_ALIGN_SSE_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
     do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMMEDIAF2XMMSRC, a_Dst); (void)fMcBegin; } while (0)
+# define IEM_MC_FETCH_MEM_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
+    do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMMEDIAF2XMMSRC, a_Dst); (void)fMcBegin; } while (0)
 # define IEM_MC_FETCH_MEM_XMM_U32_AND_XREG_XMM(a_Dst, a_iXReg1, a_iDWord2, a_iSeg2, a_GCPtrMem2) \
     do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMMEDIAF2XMMSRC, a_Dst); AssertCompile((a_iDWord2) < RT_ELEMENTS((a_Dst).uSrc2.uXmm.au32)); (void)fMcBegin; } while (0)
 # define IEM_MC_FETCH_MEM_XMM_U64_AND_XREG_XMM(a_Dst, a_iXReg1, a_iQWord2, a_iSeg2, a_GCPtrMem2) \
@@ -950,7 +952,7 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPU pVCpu, uint8_t bRm);
     do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMPCMPESTRXSRC, a_Dst); (void)fMcBegin; } while (0)
 # define IEM_MC_FETCH_MEM_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
     do { CHK_XREG_IDX(a_iXReg1); (void)fSseRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_Dst); CHK_TYPE(IEMPCMPESTRXSRC, a_Dst); (void)fMcBegin; } while (0)
-# define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) \
+# define IEM_MC_FETCH_MEM_YMM_NO_AC_AND_YREG_YMM(a_uYmmDst, a_iYRegSrc1, a_iSeg2, a_GCPtrMem2) \
     do { CHK_XREG_IDX(a_iYRegSrc1); (void)fAvxRead; CHK_SEG_IDX(a_iSeg2); CHK_GCPTR(a_GCPtrMem2); CHK_VAR(a_GCPtrMem2); CHK_VAR(a_uYmmDst); CHK_TYPE(IEMMEDIAF2YMMSRC, a_uYmmDst); (void)fMcBegin; } while (0)
 
 #define IEM_MC_STORE_MEM_U8(a_iSeg, a_GCPtrMem, a_u8Value)              do { CHK_SEG_IDX(a_iSeg); CHK_GCPTR(a_GCPtrMem); CHK_VAR(a_GCPtrMem); CHK_TYPE(uint8_t,  a_u8Value);  CHK_VAR(a_u8Value);  CHK_SEG_IDX(a_iSeg); (void)fMcBegin; } while (0)

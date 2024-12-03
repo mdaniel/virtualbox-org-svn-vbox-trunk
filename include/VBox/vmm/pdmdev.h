@@ -2394,7 +2394,7 @@ typedef const PDMRTCHLP *PCPDMRTCHLP;
 /** @} */
 
 /** Current PDMDEVHLPR3 version number. */
-#define PDM_DEVHLPR3_VERSION                    PDM_VERSION_MAKE_PP(0xffe7, 66, 0)
+#define PDM_DEVHLPR3_VERSION                PDM_VERSION_MAKE_PP(0xffe7, 67, 0)
 
 /**
  * PDM Device API.
@@ -3613,6 +3613,17 @@ typedef struct PDMDEVHLPR3
                                                  const char *pszName, va_list args) RT_IPRT_FORMAT_ATTR(7, 0));
 
     /**
+     * Deregister zero or more samples given their name prefix.
+     *
+     * @returns VBox status code.
+     * @param   pDevIns     The device instance.
+     * @param   pszPrefix   The name prefix of the samples to remove.  If this does
+     *                      not start with a '/', the default prefix will be
+     *                      prepended, otherwise it will be used as-is.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnSTAMDeregisterByPrefix,(PPDMDEVINS pDevIns, const char *pszPrefix));
+
+    /**
      * Registers a PCI device with the default PCI bus.
      *
      * If a PDM device has more than one PCI device, they must be registered in the
@@ -4617,16 +4628,7 @@ typedef struct PDMDEVHLPR3
 
     /** Space reserved for future members.
      * @{ */
-    /**
-     * Deregister zero or more samples given their name prefix.
-     *
-     * @returns VBox status code.
-     * @param   pDevIns     The device instance.
-     * @param   pszPrefix   The name prefix of the samples to remove.  If this does
-     *                      not start with a '/', the default prefix will be
-     *                      prepended, otherwise it will be used as-is.
-     */
-    DECLR3CALLBACKMEMBER(int, pfnSTAMDeregisterByPrefix,(PPDMDEVINS pDevIns, const char *pszPrefix));
+    DECLR3CALLBACKMEMBER(void, pfnReserved1,(void));
     DECLR3CALLBACKMEMBER(void, pfnReserved2,(void));
     DECLR3CALLBACKMEMBER(void, pfnReserved3,(void));
     DECLR3CALLBACKMEMBER(void, pfnReserved4,(void));
@@ -4678,6 +4680,15 @@ typedef struct PDMDEVHLPR3
      * @param   pDevIns             The device instance.
      */
     DECLR3CALLBACKMEMBER(VMCPUID, pfnGetCurrentCpuId,(PPDMDEVINS pDevIns));
+
+    /**
+     * Pokes all the EMTs.
+     *
+     * This is only really for VMMDevTesting.
+     *
+     * @param   pDevIns             The device instance.
+     */
+    DECLR3CALLBACKMEMBER(void, pfnPokeAllEmts,(PPDMDEVINS pDevIns));
 
     /**
      * Registers the VMM device heap or notifies about mapping/unmapping.

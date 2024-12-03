@@ -1,3 +1,4 @@
+
 /* $Id$ */
 /** @file
  * PDM - Pluggable Device and Driver Manager, Device Helpers.
@@ -3971,6 +3972,17 @@ static DECLCALLBACK(VMCPUID) pdmR3DevHlp_GetCurrentCpuId(PPDMDEVINS pDevIns)
 }
 
 
+/** @interface_method_impl{PDMDEVHLPR3,pfnPokeAllEmts} */
+static DECLCALLBACK(void) pdmR3DevHlp_PokeAllEmts(PPDMDEVINS pDevIns)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    PVM pVM = pDevIns->Internal.s.pVMR3;
+    VM_ASSERT_EMT(pVM);
+    LogFlow(("pdmR3DevHlp_PokeAllEmts: caller='%s'/%d\n", pDevIns->pReg->szName, pDevIns->iInstance));
+    VMCC_FOR_EACH_VMCPU_STMT(pVM, RTThreadPoke(pVCpu->hThread));
+}
+
+
 /** @interface_method_impl{PDMDEVHLPR3,pfnPCIBusRegister} */
 static DECLCALLBACK(int) pdmR3DevHlp_PCIBusRegister(PPDMDEVINS pDevIns, PPDMPCIBUSREGR3 pPciBusReg,
                                                     PCPDMPCIHLPR3 *ppPciHlp, uint32_t *piBus)
@@ -5175,6 +5187,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTrusted =
     pdmR3DevHlp_DBGFRegPrintfV,
     pdmR3DevHlp_STAMRegister,
     pdmR3DevHlp_STAMRegisterV,
+    pdmR3DevHlp_STAMDeregisterByPrefix,
     pdmR3DevHlp_PCIRegister,
     pdmR3DevHlp_PCIRegisterMsi,
     pdmR3DevHlp_PCIIORegionRegister,
@@ -5288,7 +5301,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTrusted =
     pdmR3DevHlp_CpuGetGuestMicroarch,
     pdmR3DevHlp_CpuGetGuestAddrWidths,
     pdmR3DevHlp_CpuGetGuestScalableBusFrequency,
-    pdmR3DevHlp_STAMDeregisterByPrefix,
+    0,
     0,
     0,
     0,
@@ -5302,6 +5315,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTrusted =
     pdmR3DevHlp_GetVM,
     pdmR3DevHlp_GetVMCPU,
     pdmR3DevHlp_GetCurrentCpuId,
+    pdmR3DevHlp_PokeAllEmts,
     pdmR3DevHlp_RegisterVMMDevHeap,
     pdmR3DevHlp_FirmwareRegister,
     pdmR3DevHlp_VMReset,
@@ -5574,6 +5588,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTracing =
     pdmR3DevHlp_DBGFRegPrintfV,
     pdmR3DevHlp_STAMRegister,
     pdmR3DevHlp_STAMRegisterV,
+    pdmR3DevHlp_STAMDeregisterByPrefix,
     pdmR3DevHlp_PCIRegister,
     pdmR3DevHlp_PCIRegisterMsi,
     pdmR3DevHlp_PCIIORegionRegister,
@@ -5687,7 +5702,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTracing =
     pdmR3DevHlp_CpuGetGuestMicroarch,
     pdmR3DevHlp_CpuGetGuestAddrWidths,
     pdmR3DevHlp_CpuGetGuestScalableBusFrequency,
-    pdmR3DevHlp_STAMDeregisterByPrefix,
+    0,
     0,
     0,
     0,
@@ -5701,6 +5716,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpTracing =
     pdmR3DevHlp_GetVM,
     pdmR3DevHlp_GetVMCPU,
     pdmR3DevHlp_GetCurrentCpuId,
+    pdmR3DevHlp_PokeAllEmts,
     pdmR3DevHlp_RegisterVMMDevHeap,
     pdmR3DevHlp_FirmwareRegister,
     pdmR3DevHlp_VMReset,
@@ -5772,6 +5788,14 @@ static DECLCALLBACK(VMCPUID) pdmR3DevHlp_Untrusted_GetCurrentCpuId(PPDMDEVINS pD
     PDMDEV_ASSERT_DEVINS(pDevIns);
     AssertReleaseMsgFailed(("Untrusted device called trusted helper! '%s'/%d\n", pDevIns->pReg->szName, pDevIns->iInstance));
     return NIL_VMCPUID;
+}
+
+
+/** @interface_method_impl{PDMDEVHLPR3,pfnPokeAllEmts} */
+static DECLCALLBACK(void) pdmR3DevHlp_Untrusted_PokeAllEmts(PPDMDEVINS pDevIns)
+{
+    PDMDEV_ASSERT_DEVINS(pDevIns);
+    AssertReleaseMsgFailed(("Untrusted device called trusted helper! '%s'/%d\n", pDevIns->pReg->szName, pDevIns->iInstance));
 }
 
 
@@ -6293,6 +6317,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpUnTrusted =
     pdmR3DevHlp_DBGFRegPrintfV,
     pdmR3DevHlp_STAMRegister,
     pdmR3DevHlp_STAMRegisterV,
+    pdmR3DevHlp_STAMDeregisterByPrefix,
     pdmR3DevHlp_PCIRegister,
     pdmR3DevHlp_PCIRegisterMsi,
     pdmR3DevHlp_PCIIORegionRegister,
@@ -6406,7 +6431,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpUnTrusted =
     pdmR3DevHlp_CpuGetGuestMicroarch,
     pdmR3DevHlp_CpuGetGuestAddrWidths,
     pdmR3DevHlp_CpuGetGuestScalableBusFrequency,
-    pdmR3DevHlp_STAMDeregisterByPrefix,
+    0,
     0,
     0,
     0,
@@ -6420,6 +6445,7 @@ const PDMDEVHLPR3 g_pdmR3DevHlpUnTrusted =
     pdmR3DevHlp_Untrusted_GetVM,
     pdmR3DevHlp_Untrusted_GetVMCPU,
     pdmR3DevHlp_Untrusted_GetCurrentCpuId,
+    pdmR3DevHlp_Untrusted_PokeAllEmts,
     pdmR3DevHlp_Untrusted_RegisterVMMDevHeap,
     pdmR3DevHlp_Untrusted_FirmwareRegister,
     pdmR3DevHlp_Untrusted_VMReset,

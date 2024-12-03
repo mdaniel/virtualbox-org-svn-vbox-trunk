@@ -43,10 +43,6 @@
 #include <iprt/time.h>
 #include <iprt/test.h>
 
-#ifdef IN_RING3
-# define USING_VMM_COMMON_DEFS /* HACK ALERT! We ONLY want the EMT thread handles, so the common defs doesn't matter. */
-# include <VBox/vmm/vmcc.h>
-#endif
 #include <VBox/AssertGuest.h>
 
 #include "VMMDevState.h"
@@ -958,8 +954,6 @@ vmmdevTestingIoRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t
 static DECLCALLBACK(int)  vmmdevR3TestingLockingThread(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
 {
     PVMMDEV pThis = PDMDEVINS_2_DATA(pDevIns, PVMMDEV);
-    PVM     pVM   = PDMDevHlpGetVM(pDevIns);
-    AssertPtr(pVM);
 
     while (RT_LIKELY(pThread->enmState == PDMTHREADSTATE_RUNNING))
     {
@@ -987,7 +981,7 @@ static DECLCALLBACK(int)  vmmdevR3TestingLockingThread(PPDMDEVINS pDevIns, PPDMT
             {
                 PDMDevHlpSUPSemEventWaitNsRelIntr(pDevIns, pThis->hTestingLockEvt, pThis->TestingLockControl.s.cUsHold);
                 if (pThis->TestingLockControl.s.fPokeBeforeRelease)
-                    VMCC_FOR_EACH_VMCPU_STMT(pVM, RTThreadPoke(pVCpu->hThread));
+                    pDevIns->pHlpR3->pfnPokeAllEmts(pDevIns);
             }
 
             /*

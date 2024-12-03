@@ -37,7 +37,9 @@
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/pdmdev.h>
 #include <VBox/vmm/ssm.h>
-#include <VBox/vmm/vm.h>
+#ifndef VBOX_DEVICE_STRUCT_TESTCASE
+# include <VBox/vmm/vm.h>
+#endif
 
 
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE

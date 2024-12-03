@@ -3145,7 +3145,7 @@
  * A trick to make GNU C++ quietly accept flexible arrays in C++ code when
  * pedantic warnings are enabled.  Put this on the line before the flexible
  * array. */
-#if (RT_GNUC_PREREQ(7, 0) && defined(__cplusplus)) || defined(DOXGYEN_RUNNING)
+#if (RT_GNUC_PREREQ(7, 0) && defined(__cplusplus)) || defined(DOXYGEN_RUNNING)
 # define RT_FLEXIBLE_ARRAY_EXTENSION            RT_GCC_EXTENSION
 #else
 # define RT_FLEXIBLE_ARRAY_EXTENSION

@@ -69,6 +69,7 @@ PropertySheet
 PropertySheetA
 PropertySheetW
 _TrackMouseEvent
+#17 ; InitCommonControls
 #71
 #72
 #73

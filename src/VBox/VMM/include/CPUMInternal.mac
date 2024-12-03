@@ -80,9 +80,6 @@ struc CPUM
     ;...
     .fHostUseFlags              resd    1
 
-    ; CR4 masks
-    .CR4.AndMask                resd    1
-    .CR4.OrMask                 resd    1
     .u8PortableCpuIdLevel       resb    1
     .fPendingRestore            resb    1
     .fMtrrRead                  resb    1

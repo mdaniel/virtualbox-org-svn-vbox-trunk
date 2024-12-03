@@ -2308,12 +2308,6 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
 #endif
 
     /*
-     * Setup the CR4 AND and OR masks used in the raw-mode switcher.
-     */
-    pVM->cpum.s.CR4.AndMask = X86_CR4_OSXMMEEXCPT | X86_CR4_PVI | X86_CR4_VME;
-    pVM->cpum.s.CR4.OrMask  = X86_CR4_OSFXSR;
-
-    /*
      * Figure out which XSAVE/XRSTOR features are available on the host.
      */
     uint64_t fXcr0Host = 0;
@@ -5050,7 +5044,6 @@ static DECLCALLBACK(void) cpumR3InfoHyper(PVM pVM, PCDBGFINFOHLP pHlp, const cha
                     ".dr4=%016RX64 .dr5=%016RX64 .dr6=%016RX64 .dr7=%016RX64\n",
                     pVCpu->cpum.s.Hyper.dr[0], pVCpu->cpum.s.Hyper.dr[1], pVCpu->cpum.s.Hyper.dr[2], pVCpu->cpum.s.Hyper.dr[3],
                     pVCpu->cpum.s.Hyper.dr[4], pVCpu->cpum.s.Hyper.dr[5], pVCpu->cpum.s.Hyper.dr[6], pVCpu->cpum.s.Hyper.dr[7]);
-    pHlp->pfnPrintf(pHlp, "CR4OrMask=%#x CR4AndMask=%#x\n", pVM->cpum.s.CR4.OrMask, pVM->cpum.s.CR4.AndMask);
 }
 
 
@@ -5302,30 +5295,6 @@ VMMR3DECL(int) CPUMR3DisasmInstrCPU(PVM pVM, PVMCPU pVCpu, PCPUMCTX pCtx, RTGCPT
         PGMPhysReleasePageMappingLock(pVM, &State.PageMapLock);
 
     return rc;
-}
-
-
-
-/**
- * API for controlling a few of the CPU features found in CR4.
- *
- * Currently only X86_CR4_TSD is accepted as input.
- *
- * @returns VBox status code.
- *
- * @param   pVM     The cross context VM structure.
- * @param   fOr     The CR4 OR mask.
- * @param   fAnd    The CR4 AND mask.
- */
-VMMR3DECL(int) CPUMR3SetCR4Feature(PVM pVM, RTHCUINTREG fOr, RTHCUINTREG fAnd)
-{
-    AssertMsgReturn(!(fOr & ~(X86_CR4_TSD)), ("%#x\n", fOr), VERR_INVALID_PARAMETER);
-    AssertMsgReturn((fAnd & ~(X86_CR4_TSD)) == ~(X86_CR4_TSD), ("%#x\n", fAnd), VERR_INVALID_PARAMETER);
-
-    pVM->cpum.s.CR4.OrMask &= fAnd;
-    pVM->cpum.s.CR4.OrMask |= fOr;
-
-    return VINF_SUCCESS;
 }
 
 

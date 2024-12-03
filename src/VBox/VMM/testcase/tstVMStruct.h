@@ -37,7 +37,6 @@
 
     GEN_CHECK_SIZE(CPUM);    // has .mac
     GEN_CHECK_OFF(CPUM, fHostUseFlags);
-    GEN_CHECK_OFF(CPUM, CR4);
 #ifndef VBOX_FOR_DTRACE_LIB
     GEN_CHECK_OFF(CPUM, u8PortableCpuIdLevel);
     GEN_CHECK_OFF(CPUM, fPendingRestore);

@@ -354,14 +354,6 @@ typedef struct CPUM
      */
     uint32_t                fHostUseFlags;
 
-    /** CR4 mask
-     * @todo obsolete? */
-    struct
-    {
-        uint32_t            AndMask; /**< @todo Move these to the per-CPU structure and fix the switchers. Saves a register! */
-        uint32_t            OrMask;
-    } CR4;
-
     /** The (more) portable CPUID level. */
     uint8_t                 u8PortableCpuIdLevel;
     /** Indicates that a state restore is pending.
@@ -391,7 +383,7 @@ typedef struct CPUM
     uint64_t                fReservedRFlagsCookie;
 
     /** Align to 64-byte boundary. */
-    uint8_t                 abPadding2[16];
+    uint8_t                 abPadding2[16+8];
 
     /** Host CPU feature information.
      * Externaly visible via the VM structure, aligned on 64-byte boundrary. */

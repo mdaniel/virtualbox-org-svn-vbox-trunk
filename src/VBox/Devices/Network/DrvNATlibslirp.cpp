@@ -39,7 +39,6 @@
 # include "winutils.h"
 # define inet_aton(x, y) inet_pton(2, x, y)
 # define AF_INET6 23
-# define poll WSAPoll
 #endif
 
 #include <libslirp.h>
@@ -748,12 +747,13 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         slirp_pollfds_fill(pThis->pNATState->pSlirp, &uTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
         drvNAT_UpdateTimeout(&uTimeout, pThis);
 
-        int cChangedFDs = poll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
 #ifdef RT_OS_WINDOWS
-        /* Note: This must be called IMMEDIATELY after poll/WSAPoll. */
+        int cChangedFDs = WSAPoll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
+        /* Note: This must be called IMMEDIATELY after WSAPoll. */
         int error = WSAGetLastError();
+#else
+        int cChangedFDs = poll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
 #endif
-
         if (cChangedFDs < 0)
         {
 #ifdef RT_OS_WINDOWS
@@ -777,11 +777,7 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         Log4(("%s: poll\n", __FUNCTION__));
         slirp_pollfds_poll(pThis->pNATState->pSlirp, cChangedFDs < 0, drvNAT_GetREventsCb /* SlirpGetREventsCb */, pThis /* opaque */);
 
-#ifdef RT_OS_WINDOWS
-        if (pThis->pNATState->polls[0].revents & (POLLIN))
-#else
-        if (pThis->pNATState->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))
-#endif
+        if (pThis->pNATState->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))   /* POLLPRI won't be seen with WSAPoll. */
         {
             /* drain the pipe
              *
@@ -799,7 +795,6 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
 #endif
             ASMAtomicSubU64(&pThis->cbWakeupNotifs, cbRead);
         }
-
 
         /* process _all_ outstanding requests but don't wait */
         RTReqQueueProcess(pThis->hSlirpReqQueue, 0);

@@ -226,7 +226,7 @@ else
  SyntaxVBoxIncludeR3_TEMPLATE = VBoxR3Exe
  SyntaxVBoxIncludeR3_SDKS.win = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
 endif
-SyntaxVBoxIncludeR3_DEFS += USING_VMM_COMMON_DEFS
+SyntaxVBoxIncludeR3_DEFS += VBOX_VMM_TARGET_AGNOSTIC USING_VMM_COMMON_DEFS
 SyntaxVBoxIncludeR3_CDEFS = IPRT_WITHOUT_NAMED_UNIONS_AND_STRUCTS
 SyntaxVBoxIncludeR3_SOURCES := \
 	$(addprefix $(PATH_OBJ)/include/c/,  $(addsuffix .c,  $(basename $(VBOX_HDRS_ALL_R3_C)))) \
@@ -235,7 +235,7 @@ SyntaxVBoxIncludeR3_CLEAN = $(SyntaxVBoxIncludeR3_SOURCES)
 #$(error $(subst $(SP),$(NLTAB),$(strip $(sort $(SyntaxVBoxIncludeR3_SOURCES)))))
 
 SyntaxVBoxIncludeR0_TEMPLATE = VBoxR0
-SyntaxVBoxIncludeR0_DEFS = VBOX_WITH_HGCM USING_VMM_COMMON_DEFS
+SyntaxVBoxIncludeR0_DEFS = VBOX_WITH_HGCM VBOX_VMM_TARGET_AGNOSTIC USING_VMM_COMMON_DEFS
 SyntaxVBoxIncludeR0_CDEFS = IPRT_WITHOUT_NAMED_UNIONS_AND_STRUCTS
 SyntaxVBoxIncludeR0_SOURCES := \
 	$(addprefix $(PATH_OBJ)/include/c/,  $(addsuffix .c,  $(basename $(VBOX_HDRS_ALL_R0_C)))) \
@@ -246,7 +246,7 @@ if1of ($(KBUILD_TARGET), darwin os2 solaris win)
  LIBRARIES += SyntaxVBoxIncludeR0Drv
  SyntaxVBoxIncludeR0Drv_TEMPLATE = VBoxR0DrvLib
  SyntaxVBoxIncludeR0Drv_SDKS.win = ReorderCompilerIncs $(VBOX_WINDDK) $(VBOX_WINPSDK_INCS)
- SyntaxVBoxIncludeR0Drv_DEFS = VBOX_WITH_HGCM USING_VMM_COMMON_DEFS
+ SyntaxVBoxIncludeR0Drv_DEFS = VBOX_WITH_HGCM VBOX_VMM_TARGET_AGNOSTIC USING_VMM_COMMON_DEFS
  SyntaxVBoxIncludeR0Drv_CDEFS = IPRT_WITHOUT_NAMED_UNIONS_AND_STRUCTS
  SyntaxVBoxIncludeR0Drv_SOURCES := \
  	$(addprefix $(PATH_OBJ)/include/c/,  $(addsuffix .c,  $(basename $(VBOX_HDRS_ALL_R0DRV_C)))) \
@@ -257,7 +257,7 @@ endif
 ifdef VBOX_WITH_RAW_MODE
  LIBRARIES += SyntaxVBoxIncludeRC
  SyntaxVBoxIncludeRC_TEMPLATE = VBoxRc
- SyntaxVBoxIncludeRC_DEFS = VBOX_WITH_HGCM USING_VMM_COMMON_DEFS
+ SyntaxVBoxIncludeRC_DEFS = VBOX_WITH_HGCM VBOX_VMM_TARGET_AGNOSTIC USING_VMM_COMMON_DEFS
  SyntaxVBoxIncludeRC_CDEFS = IPRT_WITHOUT_NAMED_UNIONS_AND_STRUCTS
  SyntaxVBoxIncludeRC_SOURCES := \
  	$(addprefix $(PATH_OBJ)/include/c/,  $(addsuffix .c,  $(basename $(VBOX_HDRS_ALL_RC_C)))) \

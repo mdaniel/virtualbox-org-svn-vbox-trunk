@@ -4818,8 +4818,17 @@ HRESULT Medium::i_removeBackReference(const Guid &aMachineId,
             it->iRefCnt--;
     }
 
-    /* if the backref becomes empty, remove it */
-    if (it->fInCurState == false && it->iRefCnt == 0 && it->llSnapshotIds.size() == 0)
+    /* The common case is that the backref will become "empty" with the reference
+     * count dropping to zero (iRefCnt=0), fInCurState=false, and no more snapshot
+     * references (llSnapshotIds.size()=0) and thus the back reference is removed
+     * at that point.  However there is an exception and that is when a restored
+     * snapshot is running and in that case there will be no i_removeBackReference()
+     * call for any attached removable device referencing just the machine
+     * (aSnapshotId.isZero()) so in such cases iRefCnt will be '1' and won't ever
+     * drop to zero so remove such back references here as well. */
+    if (   it->fInCurState == false
+        && it->llSnapshotIds.size() == 0
+        && (it->iRefCnt == 0 || (fDvd && it->iRefCnt == 1)))
         m->backRefs.erase(it);
 
     return S_OK;

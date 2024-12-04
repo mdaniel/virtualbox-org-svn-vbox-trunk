@@ -77,6 +77,9 @@ if defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
  nsis-zlib-dll_TEMPLATE    := VBoxR3DllNonPedantic
  nsis-zlib-dll_INSTTYPE    := none
  nsis-zlib-dll_DEFS        := ZLIB_DLL $(VBox-zlib_DEFS)
+ nsis-zlib-dll_CFLAGS.win.x86   = $(VBox-zlib_CFLAGS.win.x86) /arch:IA32
+ nsis-zlib-dll_CXXFLAGS.win.x86 = $(VBox-zlib_CXXFLAGS.win.x86) /arch:IA32
+ nsis-zlib-dll_PCHFLAGS.win.x86 = $(VBox-zlib_PCHFLAGS.win.x86) /arch:IA32
  nsis-zlib-dll_SOURCES.win := \
  	win32/zlib1.rc \
  	win32/zlib.def
@@ -94,4 +97,3 @@ if defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
 endif
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

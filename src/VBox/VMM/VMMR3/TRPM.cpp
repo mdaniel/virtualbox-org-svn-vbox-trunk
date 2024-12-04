@@ -386,11 +386,7 @@ static DECLCALLBACK(int) trpmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion,
  */
 VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool *pfInjected)
 {
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    RT_NOREF(pVM, pVCpu, enmEvent, pfInjected);
-    AssertReleaseFailed();
-    return VERR_NOT_IMPLEMENTED;
-#else
+#ifdef VBOX_VMM_TARGET_X86
     PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
     Assert(!CPUMIsInInterruptShadow(pCtx));
     Assert(pfInjected);
@@ -452,7 +448,12 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool
 # else
     return VINF_EM_RESCHEDULE;
 # endif
-#endif
+
+#else  /* !VBOX_VMM_TARGET_X86 */
+    RT_NOREF(pVM, pVCpu, enmEvent, pfInjected);
+    AssertReleaseFailed();
+    return VERR_NOT_IMPLEMENTED;
+#endif /* !VBOX_VMM_TARGET_X86 */
 }
 
 

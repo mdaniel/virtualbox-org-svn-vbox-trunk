@@ -115,7 +115,8 @@ VMMR3_INT_DECL(int) EMR3Init(PVM pVM)
     PCFGMNODE pCfgEM = CFGMR3GetChild(pCfgRoot, "EM");
 
     int rc = CFGMR3QueryBoolDef(pCfgEM, "IemExecutesAll", &pVM->em.s.fIemExecutesAll,
-#if defined(RT_ARCH_ARM64) && defined(RT_OS_DARWIN) && !defined(VBOX_VMM_TARGET_ARMV8)
+#if (defined(VBOX_VMM_TARGET_X86)   && !defined(RT_ARCH_X86) && !defined(RT_ARCH_AMD64)) \
+ || (defined(VBOX_VMM_TARGET_ARMV8) && !defined(RT_ARCH_ARM64)) /** @todo not main exec engine = iem/recomp would be better... */
                                 true
 #else
                                 false
@@ -705,7 +706,7 @@ static const char *emR3GetStateName(EMSTATE enmState)
 }
 #endif /* LOG_ENABLED || VBOX_STRICT */
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
 
 /**
  * Handle pending ring-3 I/O port write.
@@ -851,7 +852,7 @@ VBOXSTRICTRC emR3ExecuteSplitLockInstruction(PVM pVM, PVMCPU pVCpu)
     return VMMR3EmtRendezvous(pVM, VMMEMTRENDEZVOUS_FLAGS_TYPE_ALL_AT_ONCE, emR3ExecuteSplitLockInstructionRendezvous, pVCpu);
 }
 
-#endif /* VBOX_VMM_TARGET_ARMV8 */
+#endif /* VBOX_VMM_TARGET_X86 */
 
 /**
  * Debug loop.
@@ -884,16 +885,21 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_HM)
                     rc = EMR3HmSingleInstruction(pVM, pVCpu, 0 /*fFlags*/);
 #endif
-#if !defined(VBOX_VMM_TARGET_ARMV8)
                 else if (pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_NEM)
                     rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
                 else
                 {
+#if defined(VBOX_VMM_TARGET_X86) /** @todo IEM/arm64 */
                     rc = IEMExecOne(pVCpu); /** @todo add dedicated interface... */
                     if (rc == VINF_SUCCESS || rc == VINF_EM_RESCHEDULE)
                         rc = VINF_EM_DBG_STEPPED;
+#else
+                    AssertFailed();
+                    rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
+#endif
                 }
 
+#ifdef VBOX_VMM_TARGET_X86
                 if (rc != VINF_EM_EMULATE_SPLIT_LOCK)
                 { /* likely */ }
                 else
@@ -902,10 +908,6 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                     if (rc == VINF_SUCCESS || rc == VINF_EM_RESCHEDULE)
                         rc = VINF_EM_DBG_STEPPED;
                 }
-#else
-                AssertMsg(pVCpu->em.s.enmState == EMSTATE_DEBUG_GUEST_NEM,
-                          ("%u\n", pVCpu->em.s.enmState));
-                rc = VBOXSTRICTRC_TODO(emR3NemSingleInstruction(pVM, pVCpu, 0 /*fFlags*/));
 #endif
                 break;
 
@@ -1071,8 +1073,10 @@ static VBOXSTRICTRC emR3RecompilerExecute(PVM pVM, PVMCPU pVCpu, bool fWasHalted
     STAM_REL_PROFILE_START(&pVCpu->em.s.StatREMTotal, a);
 #ifdef VBOX_VMM_TARGET_ARMV8
     LogFlow(("emR3RecompilerExecute/%u: (pc=%RGv)\n", pVCpu->idCpu, (RTGCPTR)pVCpu->cpum.GstCtx.Pc.u64));
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
     LogFlow(("emR3RecompilerExecute/%u: (cs:eip=%04x:%RGv)\n", pVCpu->idCpu, pVCpu->cpum.GstCtx.cs.Sel, (RTGCPTR)pVCpu->cpum.GstCtx.rip));
+#else
+# error "port me"
 #endif
 
     /*
@@ -1084,14 +1088,16 @@ static VBOXSTRICTRC emR3RecompilerExecute(PVM pVM, PVMCPU pVCpu, bool fWasHalted
     {
 #ifdef LOG_ENABLED
 # if defined(VBOX_VMM_TARGET_ARMV8)
-        Log3(("EM: pc=%08x\n", CPUMGetGuestFlatPC(pVCpu)));
-# else
+        Log3(("EM: pc=%08RX64\n", CPUMGetGuestFlatPC(pVCpu)));
+# elif defined(VBOX_VMM_TARGET_X86)
         if (!pVCpu->cpum.GstCtx.eflags.Bits.u1VM)
             Log(("EMR%d: %04X:%08RX64 RSP=%08RX64 IF=%d CR0=%x eflags=%x\n", CPUMGetGuestCPL(pVCpu), pVCpu->cpum.GstCtx.cs.Sel,
                  pVCpu->cpum.GstCtx.rip, pVCpu->cpum.GstCtx.rsp, pVCpu->cpum.GstCtx.eflags.Bits.u1IF,
                  (uint32_t)pVCpu->cpum.GstCtx.cr0, pVCpu->cpum.GstCtx.eflags.u));
         else
             Log(("EMV86: %04X:%08X IF=%d\n", pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.eip, pVCpu->cpum.GstCtx.eflags.Bits.u1IF));
+# else
+#  error "port me"
 # endif
 #endif
 
@@ -1173,7 +1179,7 @@ static VBOXSTRICTRC emR3RecompilerExecute(PVM pVM, PVMCPU pVCpu, bool fWasHalted
         /*
          * Check if we can switch back to the main execution engine now.
          */
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_WITH_HWVIRT
         if (VM_IS_HM_ENABLED(pVM))
         {
             if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
@@ -1273,7 +1279,7 @@ VBOXSTRICTRC emR3HighPriorityPostForcedActions(PVM pVM, PVMCPU pVCpu, VBOXSTRICT
     if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_PDM_CRITSECT))
         PDMCritSectBothFF(pVM, pVCpu);
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
     /* Update CR3 (Nested Paging case for HM). */
     if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_HM_UPDATE_CR3))
     {
@@ -1311,8 +1317,8 @@ VBOXSTRICTRC emR3HighPriorityPostForcedActions(PVM pVM, PVMCPU pVCpu, VBOXSTRICT
     return rc;
 }
 
+#ifdef VBOX_VMM_TARGET_X86
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
 /**
  * Helper for emR3ForcedActions() for VMX external interrupt VM-exit.
  *
@@ -1322,7 +1328,7 @@ VBOXSTRICTRC emR3HighPriorityPostForcedActions(PVM pVM, PVMCPU pVCpu, VBOXSTRICT
  */
 static int emR3VmxNstGstIntrIntercept(PVMCPU pVCpu)
 {
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX
     /* Handle the "external interrupt" VM-exit intercept. */
     if (    CPUMIsGuestVmxPinCtlsSet(&pVCpu->cpum.GstCtx, VMX_PIN_CTLS_EXT_INT_EXIT)
         && !CPUMIsGuestVmxExitCtlsSet(&pVCpu->cpum.GstCtx, VMX_EXIT_CTLS_ACK_EXT_INT))
@@ -1333,9 +1339,9 @@ static int emR3VmxNstGstIntrIntercept(PVMCPU pVCpu)
                   && rcStrict != VINF_VMX_INTERCEPT_NOT_ACTIVE, ("%Rrc\n", VBOXSTRICTRC_VAL(rcStrict)));
         return VBOXSTRICTRC_VAL(rcStrict);
     }
-#else
+# else
     RT_NOREF(pVCpu);
-#endif
+# endif
     return VINF_NO_CHANGE;
 }
 
@@ -1349,7 +1355,7 @@ static int emR3VmxNstGstIntrIntercept(PVMCPU pVCpu)
  */
 static int emR3SvmNstGstIntrIntercept(PVMCPU pVCpu)
 {
-#ifdef VBOX_WITH_NESTED_HWVIRT_SVM
+# ifdef VBOX_WITH_NESTED_HWVIRT_SVM
     /* Handle the physical interrupt intercept (can be masked by the nested hypervisor). */
     if (CPUMIsGuestSvmCtrlInterceptSet(pVCpu, &pVCpu->cpum.GstCtx, SVM_CTRL_INTERCEPT_INTR))
     {
@@ -1365,9 +1371,9 @@ static int emR3SvmNstGstIntrIntercept(PVMCPU pVCpu)
         AssertMsgFailed(("INTR #VMEXIT failed! rc=%Rrc\n", VBOXSTRICTRC_VAL(rcStrict)));
         return VINF_EM_TRIPLE_FAULT;
     }
-#else
+# else
     NOREF(pVCpu);
-#endif
+# endif
     return VINF_NO_CHANGE;
 }
 
@@ -1381,7 +1387,7 @@ static int emR3SvmNstGstIntrIntercept(PVMCPU pVCpu)
  */
 static int emR3SvmNstGstVirtIntrIntercept(PVMCPU pVCpu)
 {
-#ifdef VBOX_WITH_NESTED_HWVIRT_SVM
+# ifdef VBOX_WITH_NESTED_HWVIRT_SVM
     if (CPUMIsGuestSvmCtrlInterceptSet(pVCpu, &pVCpu->cpum.GstCtx, SVM_CTRL_INTERCEPT_VINTR))
     {
         CPUM_ASSERT_NOT_EXTRN(pVCpu, IEM_CPUMCTX_EXTRN_SVM_VMEXIT_MASK);
@@ -1394,13 +1400,13 @@ static int emR3SvmNstGstVirtIntrIntercept(PVMCPU pVCpu)
         AssertMsgFailed(("VINTR #VMEXIT failed! rc=%Rrc\n", VBOXSTRICTRC_VAL(rcStrict)));
         return VINF_EM_TRIPLE_FAULT;
     }
-#else
+# else
     NOREF(pVCpu);
-#endif
+# endif
     return VINF_NO_CHANGE;
 }
-#endif
 
+#endif /* VBOX_VMM_TARGET_X86 */
 
 /**
  * Executes all pending forced actions.
@@ -1657,7 +1663,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
             && !VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY))
             TMR3TimerQueuesDo(pVM);
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         /*
          * Pick up asynchronously posted interrupts into the APIC.
          */
@@ -1802,7 +1808,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
              */
             Assert(!VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_PREEMPT_TIMER));
         }
-# endif
+# endif /* VBOX_WITH_NESTED_HWVIRT_VMX */
 
         /*
          * Guest event injection.
@@ -1958,9 +1964,8 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
             } /* CPUMGetGuestGif */
         }
 
-#else /* VBOX_VMM_TARGET_ARMV8 */
+#else  /* VBOX_VMM_TARGET_ARMV8 */
         bool fWakeupPending = false;
-
         if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_VTIMER_ACTIVATED))
         {
             VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_VTIMER_ACTIVATED);
@@ -2080,10 +2085,12 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
 
         /* check that we got them all  */
         AssertCompile(VM_FF_HIGH_PRIORITY_PRE_MASK == (VM_FF_TM_VIRTUAL_SYNC | VM_FF_DBGF | VM_FF_CHECK_VM_STATE | VM_FF_DEBUG_SUSPEND | VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY | VM_FF_EMT_RENDEZVOUS));
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
         AssertCompile(VMCPU_FF_HIGH_PRIORITY_PRE_MASK == (VMCPU_FF_TIMER | VMCPU_FF_INTERRUPT_IRQ | VMCPU_FF_INTERRUPT_FIQ | VMCPU_FF_DBGF));
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
         AssertCompile(VMCPU_FF_HIGH_PRIORITY_PRE_MASK == (VMCPU_FF_TIMER | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC | VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL | VMCPU_FF_DBGF | VMCPU_FF_INTERRUPT_NESTED_GUEST | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_PREEMPT_TIMER | VMCPU_FF_VMX_INT_WINDOW | VMCPU_FF_VMX_NMI_WINDOW));
+#else
+# error "port me"
 #endif
     }
 
@@ -2208,7 +2215,7 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
             else if (fFFDone)
                 fFFDone = false;
 
-#if defined(VBOX_STRICT) && !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_STRICT) && defined(VBOX_VMM_TARGET_X86)
             CPUMAssertGuestRFlagsCookie(pVM, pVCpu);
 #endif
 
@@ -2232,7 +2239,7 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                     Assert(!pVM->em.s.fIemExecutesAll || pVCpu->em.s.enmState != EMSTATE_IEM);
                     if (!pVM->em.s.fIemExecutesAll)
                     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_WITH_HWVIRT
                         if (VM_IS_HM_ENABLED(pVM))
                         {
                             if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
@@ -2596,7 +2603,7 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                     }
                     else if (rc == VINF_SUCCESS)
                         rc = VINF_EM_RESCHEDULE; /* Need to check whether we can run in HM or NEM again. */
-#ifndef VBOX_VMM_TARGET_ARMV8
+#ifdef VBOX_VMM_TARGET_X86
                     if (rc != VINF_EM_EMULATE_SPLIT_LOCK)
                     { /* likely */ }
                     else
@@ -2623,7 +2630,7 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                        should already be the right state to receive it. */
                     if (TRPMHasTrap(pVCpu))
                         rc = VINF_EM_RESCHEDULE;
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                     /* MWAIT has a special extension where it's woken up when
                        an interrupt is pending even when IF=0. */
                     else if (   (pVCpu->em.s.MWait.fWait & (EMMWAIT_FLAG_ACTIVE | EMMWAIT_FLAG_BREAKIRQIF0))
@@ -2648,20 +2655,24 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
 #endif
                     else
                     {
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
                         const uint32_t fWaitHalted = 0; /* WFI/WFE always return when an interrupt happens. */
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
                         const uint32_t fWaitHalted = (CPUMGetGuestEFlags(pVCpu) & X86_EFL_IF) ? 0 : VMWAITHALTED_F_IGNORE_IRQS;
 #endif
                         rc = VMR3WaitHalted(pVM, pVCpu, fWaitHalted);
+
                         /* We're only interested in NMI/SMIs here which have their own FFs, so we don't need to
                            check VMCPU_FF_UPDATE_APIC here. */
                         if (   rc == VINF_SUCCESS
-#if defined(VBOX_VMM_TARGET_ARMV8)
-                            && VMCPU_FF_IS_ANY_SET(pVCpu,   VMCPU_FF_INTERRUPT_NMI | VMCPU_FF_INTERRUPT_SMI | VMCPU_FF_VTIMER_ACTIVATED
-                                                          | VMCPU_FF_INTERRUPT_FIQ | VMCPU_FF_INTERRUPT_IRQ)
-#else
+#ifdef VBOX_VMM_TARGET_ARMV8
+                            && VMCPU_FF_IS_ANY_SET(pVCpu,   VMCPU_FF_INTERRUPT_NMI | VMCPU_FF_INTERRUPT_SMI
+                                                          | VMCPU_FF_INTERRUPT_FIQ | VMCPU_FF_INTERRUPT_IRQ
+                                                          | VMCPU_FF_VTIMER_ACTIVATED)
+#elif defined(VBOX_VMM_TARGET_X86)
                             && VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_NMI | VMCPU_FF_INTERRUPT_SMI | VMCPU_FF_UNHALT)
+#else
+# error "port me"
 #endif
                             )
                         {

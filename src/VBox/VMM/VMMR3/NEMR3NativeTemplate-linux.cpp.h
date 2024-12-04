@@ -65,10 +65,10 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
 #define CAP_ENTRY_ML(a_Number)           { "KVM_CAP_" #a_Number, a_Number, UINT32_C(0x00ffffff), 0, 1, 0 }
 
         CAP_ENTRY__L(KVM_CAP_IRQCHIP),                       /* 0 */
-#ifdef VBOX_VMM_TARGET_ARMV8
-        CAP_ENTRY__L(KVM_CAP_HLT),
-#else
+#ifdef VBOX_VMM_TARGET_X86
         CAP_ENTRY_ML(KVM_CAP_HLT),
+#else
+        CAP_ENTRY__L(KVM_CAP_HLT),
 #endif
         CAP_ENTRY__L(KVM_CAP_MMU_SHADOW_CACHE_CONTROL),
         CAP_ENTRY_ML(KVM_CAP_USER_MEMORY),
@@ -119,10 +119,10 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
 #ifdef __KVM_HAVE_XEN_HVM
         CAP_ENTRY__L(KVM_CAP_XEN_HVM),
 #endif
-#ifdef VBOX_VMM_TARGET_ARMV8
-        CAP_ENTRY__L(KVM_CAP_ADJUST_CLOCK),
-#else
+#ifdef VBOX_VMM_TARGET_X86
         CAP_ENTRY_ML(KVM_CAP_ADJUST_CLOCK),
+#else
+        CAP_ENTRY__L(KVM_CAP_ADJUST_CLOCK),
 #endif
         CAP_ENTRY__L(KVM_CAP_INTERNAL_ERROR_DATA),           /* 40 */
 #ifdef __KVM_HAVE_VCPU_EVENTS
@@ -141,10 +141,10 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
 #ifdef __KVM_HAVE_DEBUGREGS
         CAP_ENTRY__L(KVM_CAP_DEBUGREGS),                     /* 50 */
 #endif
-#ifdef VBOX_VMM_TARGET_ARMV8
-        CAP_ENTRY__L(KVM_CAP_X86_ROBUST_SINGLESTEP),
-#else
+#ifdef VBOX_VMM_TARGET_X86
         CAP_ENTRY__S(KVM_CAP_X86_ROBUST_SINGLESTEP, fRobustSingleStep),
+#else
+        CAP_ENTRY__L(KVM_CAP_X86_ROBUST_SINGLESTEP),
 #endif
         CAP_ENTRY__L(KVM_CAP_PPC_OSI),
         CAP_ENTRY__L(KVM_CAP_PPC_UNSET_IRQ),
@@ -304,12 +304,12 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
         CAP_ENTRY__L(KVM_CAP_SMALLER_MAXPHYADDR),
         CAP_ENTRY__L(KVM_CAP_S390_DIAG318),
         CAP_ENTRY__L(KVM_CAP_STEAL_TIME),
-#ifdef VBOX_VMM_TARGET_ARMV8
-        CAP_ENTRY__L(KVM_CAP_X86_USER_SPACE_MSR),            /* (since 5.10) */
-        CAP_ENTRY__L(KVM_CAP_X86_MSR_FILTER),
-#else
+#ifdef VBOX_VMM_TARGET_X86
         CAP_ENTRY_ML(KVM_CAP_X86_USER_SPACE_MSR),            /* (since 5.10) */
         CAP_ENTRY_ML(KVM_CAP_X86_MSR_FILTER),
+#else
+        CAP_ENTRY__L(KVM_CAP_X86_USER_SPACE_MSR),            /* (since 5.10) */
+        CAP_ENTRY__L(KVM_CAP_X86_MSR_FILTER),
 #endif
         CAP_ENTRY__L(KVM_CAP_ENFORCE_PV_FEATURE_CPUID),      /* 190 */
         CAP_ENTRY__L(KVM_CAP_SYS_HYPERV_CPUID),

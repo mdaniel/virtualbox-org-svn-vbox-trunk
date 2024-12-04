@@ -170,7 +170,7 @@ Hypervisor Memory Area (HMA) Layout: Base 00000000a0000000, 0x00800000 bytes
 #include <iprt/alloc.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
 # include <iprt/file.h>
 #endif
 
@@ -270,8 +270,8 @@ VMMR3DECL(int) MMR3Init(PVM pVM)
     return rc;
 }
 
+#ifdef VBOX_VMM_TARGET_ARMV8
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
 /**
  * Initializes the given RAM range with data from the given file.
  *
@@ -286,12 +286,12 @@ static int mmR3RamRegionInitFromFile(PVM pVM, RTGCPHYS GCPhysStart, const char *
     int rc = RTFileOpen(&hFile, pszFilename, RTFILE_O_READ | RTFILE_O_OPEN | RTFILE_O_DENY_WRITE);
     if (RT_SUCCESS(rc))
     {
-        uint8_t abRead[GUEST_PAGE_SIZE];
         RTGCPHYS GCPhys = GCPhysStart;
 
         for (;;)
         {
-            size_t cbThisRead = 0;
+            uint8_t abRead[GUEST_PAGE_SIZE];
+            size_t  cbThisRead = 0;
             rc = RTFileRead(hFile, &abRead[0], sizeof(abRead), &cbThisRead);
             if (RT_FAILURE(rc))
                 break;
@@ -390,52 +390,34 @@ static int mmR3InitRamArmV8(PVM pVM, PCFGMNODE pMMCfg)
         pVM->mm.s.cbRamBase += u64MemSize;
         if (u64GCPhysStart >= _4G)
             pVM->mm.s.cbRamAbove4GB += u64MemSize;
-        else if (u64GCPhysStart + u64MemSize > _4G)
-        {
-            uint64_t cbRamAbove4GB = (u64GCPhysStart + u64MemSize) - _4G;
-            pVM->mm.s.cbRamAbove4GB += cbRamAbove4GB;
-            pVM->mm.s.cbRamBelow4GB += (u64MemSize - cbRamAbove4GB);
-        }
-        else
+        else if (u64GCPhysStart + u64MemSize <= _4G)
             pVM->mm.s.cbRamBelow4GB += (uint32_t)u64MemSize;
+        else
+        {
+            uint64_t const cbRamAbove4GB = u64GCPhysStart + u64MemSize - _4G;
+            pVM->mm.s.cbRamAbove4GB += cbRamAbove4GB;
+            pVM->mm.s.cbRamBelow4GB += u64MemSize - cbRamAbove4GB;
+        }
     }
 
     return rc;
 }
-#endif
 
+#elif defined(VBOX_VMM_TARGET_X86)
 
 /**
- * Initializes the MM parts which depends on PGM being initialized.
- *
- * @returns VBox status code.
- * @param   pVM         The cross context VM structure.
- * @remark  No cleanup necessary since MMR3Term() will be called on failure.
+ * RAM setup function for X86.
  */
-VMMR3DECL(int) MMR3InitPaging(PVM pVM)
+static int mmR3InitRamX86(PVM pVM, PCFGMNODE pMMCfg)
 {
-    LogFlow(("MMR3InitPaging:\n"));
+    RT_NOREF(pMMCfg);
 
-    /*
-     * Query the CFGM values.
-     */
-    int rc;
-    PCFGMNODE pMMCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "MM");
-    if (!pMMCfg)
-    {
-        rc = CFGMR3InsertNode(CFGMR3GetRoot(pVM), "MM", &pMMCfg);
-        AssertRCReturn(rc, rc);
-    }
-
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    rc = mmR3InitRamArmV8(pVM, pMMCfg);
-#else
     /** @cfgm{/RamSize, uint64_t, 0, 16TB, 0}
      * Specifies the size of the base RAM that is to be set up during
      * VM initialization.
      */
-    uint64_t cbRam;
-    rc = CFGMR3QueryU64(CFGMR3GetRoot(pVM), "RamSize", &cbRam);
+    uint64_t cbRam = 0;
+    int rc = CFGMR3QueryU64(CFGMR3GetRoot(pVM), "RamSize", &cbRam);
     if (rc == VERR_CFGM_VALUE_NOT_FOUND)
         cbRam = 0;
     else
@@ -449,7 +431,7 @@ VMMR3DECL(int) MMR3InitPaging(PVM pVM)
      * Specifies the size of the memory hole. The memory hole is used
      * to avoid mapping RAM to the range normally used for PCI memory regions.
      * Must be aligned on a 4MB boundary. */
-    uint32_t cbRamHole;
+    uint32_t cbRamHole = 0;
     rc = CFGMR3QueryU32Def(CFGMR3GetRoot(pVM), "RamHoleSize", &cbRamHole, MM_RAM_HOLE_SIZE_DEFAULT);
     AssertLogRelMsgRCReturn(rc, ("Configuration error: Failed to query integer \"RamHoleSize\", rc=%Rrc.\n", rc), rc);
     AssertLogRelMsgReturn(cbRamHole <= 4032U * _1M,
@@ -560,16 +542,48 @@ VMMR3DECL(int) MMR3InitPaging(PVM pVM)
                 rc = PGMR3PhysRegisterRam(pVM, _4G, cbRam - offRamHole, "Above 4GB Base RAM");
         }
     }
-#endif /* !VBOX_VMM_TARGET_ARMV8 */
+
+    AssertMsg(pVM->mm.s.cBasePages == cBasePages || RT_FAILURE(rc), ("%RX64 != %RX64\n", pVM->mm.s.cBasePages, cBasePages));
+    return rc;
+}
+
+#endif /* VBOX_VMM_TARGET_X86 */
+
+/**
+ * Initializes the MM parts which depends on PGM being initialized.
+ *
+ * @returns VBox status code.
+ * @param   pVM         The cross context VM structure.
+ * @remark  No cleanup necessary since MMR3Term() will be called on failure.
+ */
+VMMR3DECL(int) MMR3InitPaging(PVM pVM)
+{
+    LogFlow(("MMR3InitPaging:\n"));
+
+    /*
+     * Query the CFGM values.
+     */
+    int rc;
+    PCFGMNODE pMMCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "MM");
+    if (!pMMCfg)
+    {
+        rc = CFGMR3InsertNode(CFGMR3GetRoot(pVM), "MM", &pMMCfg);
+        AssertRCReturn(rc, rc);
+    }
+
+#ifdef VBOX_VMM_TARGET_ARMV8
+    rc = mmR3InitRamArmV8(pVM, pMMCfg);
+#elif defined(VBOX_VMM_TARGET_X86)
+    rc = mmR3InitRamX86(pVM, pMMCfg);
+#else
+# error "port me"
+#endif
 
     /*
      * Enabled mmR3UpdateReservation here since we don't want the
      * PGMR3PhysRegisterRam calls above mess things up.
      */
     pVM->mm.s.fDoneMMR3InitPaging = true;
-#if !defined(VBOX_VMM_TARGET_ARMV8)
-    AssertMsg(pVM->mm.s.cBasePages == cBasePages || RT_FAILURE(rc), ("%RX64 != %RX64\n", pVM->mm.s.cBasePages, cBasePages));
-#endif
 
     LogFlow(("MMR3InitPaging: returns %Rrc\n", rc));
     return rc;

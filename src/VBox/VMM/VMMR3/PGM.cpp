@@ -1999,7 +1999,7 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         if (!pVCpu->pgm.s.fA20Enabled)
         {
             pVCpu->pgm.s.fA20Enabled = true;

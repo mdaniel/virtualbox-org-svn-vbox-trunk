@@ -55,6 +55,13 @@
 # pragma D depends_on library vbox-types.d
 # pragma D depends_on library CPUMInternal.d
 # define VMM_INCLUDED_SRC_include_CPUMInternal_h
+# define VBOX_VMM_TARGET_AGNOSTIC
+#endif
+
+#if !defined(VBOX_VMM_TARGET_AGNOSTIC) \
+ && !defined(VBOX_VMM_TARGET_X86) \
+ && !defined(VBOX_VMM_TARGET_ARMV8)
+# error "VMM target not defined"
 #endif
 
 
@@ -129,7 +136,7 @@ typedef struct VMCPU
     /** The CPU state. */
     VMCPUSTATE volatile     enmState;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
     uint32_t                u32Alignment0;
     /** The number of nano seconds when the vTimer of the associated vCPU is supposed to activate
      *  required to get out of a halt (due to wfi/wfe).
@@ -287,25 +294,31 @@ typedef struct VMCPU
         uint8_t             padding[512];       /* multiple of 64 */
     } gim;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    /** GIC part. */
-    union VMCPUUNIONGIC
+    /* Interrupt controller, target specific. */
+    RT_GCC_EXTENSION
+    union
     {
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        /** GIC part. */
+        union
+        {
 # ifdef VMM_INCLUDED_SRC_include_GICInternal_h
-        struct GICCPU       s;
+            struct GICCPU       s;
 # endif
-        uint8_t             padding[3840];      /* multiple of 64 */
-    } gic;
-#else
-    /** APIC part. */
-    union VMCPUUNIONAPIC
-    {
-# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
-        struct APICCPU      s;
-# endif
-        uint8_t             padding[3840];      /* multiple of 64 */
-    } apic;
+            uint8_t             padding[3840];      /* multiple of 64 */
+        } gic;
 #endif
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        /** APIC part. */
+        union
+        {
+# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
+            struct APICCPU      s;
+# endif
+            uint8_t             padding[3840];      /* multiple of 64 */
+        } apic;
+#endif
+    };
 
     /*
      * Some less frequently used global members that doesn't need to take up
@@ -482,14 +495,15 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 #define VM_FF_DEBUG_SUSPEND_BIT             31
 
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** This action forces the VM to inject an IRQ into the guest. */
 # define VMCPU_FF_INTERRUPT_IRQ             RT_BIT_64(VMCPU_FF_INTERRUPT_IRQ_BIT)
 # define VMCPU_FF_INTERRUPT_IRQ_BIT         0
 /** This action forces the VM to inject an FIQ into the guest. */
 # define VMCPU_FF_INTERRUPT_FIQ             RT_BIT_64(VMCPU_FF_INTERRUPT_FIQ_BIT)
 # define VMCPU_FF_INTERRUPT_FIQ_BIT         1
-#else
+#endif
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** This action forces the VM to check any pending interrupts on the APIC. */
 # define VMCPU_FF_INTERRUPT_APIC            RT_BIT_64(VMCPU_FF_INTERRUPT_APIC_BIT)
 # define VMCPU_FF_INTERRUPT_APIC_BIT        0
@@ -540,10 +554,11 @@ AssertCompileSizeAlignment(VMCPU, 16384);
  *  (when using nested paging). */
 #define VMCPU_FF_HM_UPDATE_CR3              RT_BIT_64(VMCPU_FF_HM_UPDATE_CR3_BIT)
 #define VMCPU_FF_HM_UPDATE_CR3_BIT          12
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 # define VMCPU_FF_VTIMER_ACTIVATED          RT_BIT_64(VMCPU_FF_VTIMER_ACTIVATED_BIT)
 # define VMCPU_FF_VTIMER_ACTIVATED_BIT      13
-#else
+#endif
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /* Bit 13 used to be VMCPU_FF_HM_UPDATE_PAE_PDPES. */
 #endif
 /** This action forces the VM to resync the page tables before going
@@ -617,33 +632,38 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 /** Externally forced VM actions. Used to quit the idle/wait loop. */
 #define VM_FF_EXTERNAL_HALTED_MASK              (  VM_FF_CHECK_VM_STATE | VM_FF_DBGF    | VM_FF_REQUEST \
                                                  | VM_FF_PDM_QUEUES     | VM_FF_PDM_DMA | VM_FF_EMT_RENDEZVOUS )
+
+#ifndef VBOX_VMM_TARGET_AGNOSTIC
 /** Externally forced VMCPU actions. Used to quit the idle/wait loop. */
-#if defined(VBOX_VMM_TARGET_ARMV8)
-# define VMCPU_FF_EXTERNAL_HALTED_MASK          (  VMCPU_FF_INTERRUPT_IRQ | VMCPU_FF_INTERRUPT_FIQ \
+# if defined(VBOX_VMM_TARGET_ARMV8)
+#  define VMCPU_FF_EXTERNAL_HALTED_MASK         (  VMCPU_FF_INTERRUPT_IRQ | VMCPU_FF_INTERRUPT_FIQ \
                                                  | VMCPU_FF_REQUEST       | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI \
                                                  | VMCPU_FF_UNHALT        | VMCPU_FF_TIMER          | VMCPU_FF_DBGF \
                                                  | VMCPU_FF_VTIMER_ACTIVATED)
-#else
-# define VMCPU_FF_EXTERNAL_HALTED_MASK          (  VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC \
+# else
+#  define VMCPU_FF_EXTERNAL_HALTED_MASK         (  VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC \
                                                  | VMCPU_FF_REQUEST     | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI \
                                                  | VMCPU_FF_UNHALT      | VMCPU_FF_TIMER          | VMCPU_FF_DBGF \
                                                  | VMCPU_FF_INTERRUPT_NESTED_GUEST)
+# endif
 #endif
 
 /** High priority VM pre-execution actions. */
 #define VM_FF_HIGH_PRIORITY_PRE_MASK            (  VM_FF_CHECK_VM_STATE | VM_FF_DBGF                 | VM_FF_TM_VIRTUAL_SYNC \
                                                  | VM_FF_DEBUG_SUSPEND  | VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY \
                                                  | VM_FF_EMT_RENDEZVOUS )
+#ifndef VBOX_VMM_TARGET_AGNOSTIC
 /** High priority VMCPU pre-execution actions. */
-#if defined(VBOX_VMM_TARGET_ARMV8)
-# define VMCPU_FF_HIGH_PRIORITY_PRE_MASK        (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_IRQ     | VMCPU_FF_INTERRUPT_FIQ \
+# if defined(VBOX_VMM_TARGET_ARMV8)
+#  define VMCPU_FF_HIGH_PRIORITY_PRE_MASK       (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_IRQ     | VMCPU_FF_INTERRUPT_FIQ \
                                                  | VMCPU_FF_DBGF )
-#else
-# define VMCPU_FF_HIGH_PRIORITY_PRE_MASK        (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_APIC     | VMCPU_FF_INTERRUPT_PIC \
+# else
+#  define VMCPU_FF_HIGH_PRIORITY_PRE_MASK       (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_APIC     | VMCPU_FF_INTERRUPT_PIC \
                                                  | VMCPU_FF_UPDATE_APIC  | VMCPU_FF_DBGF \
                                                  | VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL \
                                                  | VMCPU_FF_INTERRUPT_NESTED_GUEST | VMCPU_FF_VMX_MTF  | VMCPU_FF_VMX_APIC_WRITE \
                                                  | VMCPU_FF_VMX_PREEMPT_TIMER | VMCPU_FF_VMX_NMI_WINDOW | VMCPU_FF_VMX_INT_WINDOW )
+# endif
 #endif
 
 /** High priority VM pre raw-mode execution mask. */
@@ -684,7 +704,7 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 # define VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK (VMCPU_FF_TO_R3 | VMCPU_FF_IEM | VMCPU_FF_IOM | VMCPU_FF_DBGF | VMCPU_FF_VMX_MTF)
 #endif
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** VMCPU flags that cause the REP[|NE|E] STRINS loops to yield, interrupts
  *  enabled. */
 # define VMCPU_FF_YIELD_REPSTR_MASK              (  VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK \
@@ -1503,23 +1523,29 @@ typedef struct VM
         uint8_t     padding[448];       /* multiple of 64 */
     } gim;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+    /** Interrupt controller, target specific. */
+    RT_GCC_EXTENSION
     union
     {
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        union
+        {
 # ifdef VMM_INCLUDED_SRC_include_GICInternal_h
-        struct GIC  s;
+            struct GIC  s;
 # endif
-        uint8_t     padding[128];       /* multiple of 8 */
-    } gic;
-#else
-    union
-    {
-# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
-        struct APIC s;
-# endif
-        uint8_t     padding[128];       /* multiple of 8 */
-    } apic;
+            uint8_t     padding[128];   /* multiple of 8 */
+        } gic;
 #endif
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        union
+        {
+# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
+            struct APIC s;
+# endif
+            uint8_t     padding[128];   /* multiple of 8 */
+        } apic;
+#endif
+    };
 
     /* ---- begin small stuff ---- */
 

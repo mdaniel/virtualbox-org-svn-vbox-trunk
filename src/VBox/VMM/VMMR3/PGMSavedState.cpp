@@ -3330,7 +3330,7 @@ static DECLCALLBACK(int) pgmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, 
                 rc = PGMHCChangeMode(pVM, pVCpu, pVCpu->pgm.s.enmGuestMode, false /* fForce */);
                 AssertLogRelRCReturn(rc, rc);
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                 /* Update the PSE, NX flags and validity masks. */
                 pVCpu->pgm.s.fGst32BitPageSizeExtension = CPUMIsGuestPageSizeExtEnabled(pVCpu);
                 PGMNotifyNxeChanged(pVCpu, CPUMIsGuestNXEnabled(pVCpu));

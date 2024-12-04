@@ -38,10 +38,10 @@
 #include <VBox/vmm/stam.h>
 #include <VBox/vmm/vmapi.h>
 #ifdef RT_OS_WINDOWS
-#include <iprt/nt/hyperv.h>
-#include <iprt/critsect.h>
+# include <iprt/nt/hyperv.h>
+# include <iprt/critsect.h>
 #elif defined(RT_OS_DARWIN)
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
 #  include <Hypervisor/Hypervisor.h>
 # else
 #  include "VMXInternal.h"
@@ -111,7 +111,7 @@ typedef struct NEMWINIOCTL
 
 
 #ifdef RT_OS_DARWIN
-# if !defined(VBOX_VMM_TARGET_ARMV8)
+# ifndef VBOX_VMM_TARGET_ARMV8
 /** vCPU ID declaration to avoid dragging in HV headers here. */
 typedef unsigned hv_vcpuid_t;
 /** The HV VM memory space ID (ASID). */
@@ -127,20 +127,19 @@ typedef unsigned hv_vm_space_t;
 # define NEM_DARWIN_PAGE_STATE_RWX         3
 /** @} */
 
-# if defined(VBOX_VMM_TARGET_ARMV8)
 /** The CPUMCTX_EXTRN_XXX mask for IEM. */
-#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM      (  IEM_CPUMCTX_EXTRN_MUST_MASK )
+# ifdef VBOX_VMM_TARGET_ARMV8
+#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM     (  IEM_CPUMCTX_EXTRN_MUST_MASK )
 # else
-/** The CPUMCTX_EXTRN_XXX mask for IEM. */
-#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM      (  IEM_CPUMCTX_EXTRN_MUST_MASK | CPUMCTX_EXTRN_INHIBIT_INT \
-                                                      | CPUMCTX_EXTRN_INHIBIT_NMI )
-#endif
+#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM     (  IEM_CPUMCTX_EXTRN_MUST_MASK \
+                                                     | CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI )
+# endif
 
 /** The CPUMCTX_EXTRN_XXX mask for IEM when raising exceptions. */
 # define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM_XCPT (IEM_CPUMCTX_EXTRN_XCPT_MASK | NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM)
 
 
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
 /**
  * MMIO2 tracking region.
  */
@@ -220,7 +219,7 @@ typedef struct NEM
      *  us to use the debug execution loop. */
     bool                        fUseDebugLoop;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
     /** The PPI interrupt number of the vTimer. */
     uint32_t                    u32GicPpiVTimer;
 #endif
@@ -251,12 +250,12 @@ typedef struct NEM
 #elif defined(RT_OS_WINDOWS)
     /** Set if we've created the EMTs. */
     bool                        fCreatedEmts : 1;
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
     bool                        fHypercallExit : 1;
     bool                        fGpaAccessFaultExit : 1;
     /** Cache line flush size as a power of two. */
     uint8_t                     cPhysicalAddressWidth;
-# else
+# elif defined(VBOX_VMM_TARGET_X86)
     /** WHvRunVpExitReasonX64Cpuid is supported. */
     bool                        fExtendedMsrExit : 1;
     /** WHvRunVpExitReasonX64MsrAccess is supported. */
@@ -315,7 +314,7 @@ typedef struct NEM
         uint64_t                cPagesInUse;
     } R0Stats;
 
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
     /** Re-distributor memory region for all vCPUs. */
     RTGCPHYS                    GCPhysMmioBaseReDist;
     /** Number of breakpoints supported (for syncing registers). */
@@ -331,7 +330,7 @@ typedef struct NEM
     bool                        fCreatedVm   : 1;
     /** Set if EL2 is enabled. */
     bool                        fEl2Enabled  : 1;
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
     /** @name vTimer related state.
      * @{ */
     /** The counter frequency in Hz as obtained from CNTFRQ_EL0. */
@@ -343,7 +342,7 @@ typedef struct NEM
     /** The vCPU config. */
     hv_vcpu_config_t            hVCpuCfg;
     /** @} */
-# else
+# elif defined(VBOX_VMM_TARGET_X86)
     /** Set if hv_vm_space_create() was called successfully. */
     bool                        fCreatedAsid : 1;
     /** Set if Last Branch Record (LBR) is enabled. */
@@ -380,13 +379,13 @@ typedef struct NEM
     uint32_t                    idLbrInfoMsrFirst;
     /** The last valid host LBR info stack range. */
     uint32_t                    idLbrInfoMsrLast;
-# endif
+# endif /* VBOX_VMM_TARGET_X86 */
 
     STAMCOUNTER                 StatMapPage;
     STAMCOUNTER                 StatUnmapPage;
     STAMCOUNTER                 StatMapPageFailed;
     STAMCOUNTER                 StatUnmapPageFailed;
-#endif /* RT_OS_WINDOWS */
+#endif /* RT_OS_DARWIN */
 } NEM;
 /** Pointer to NEM VM instance data. */
 typedef NEM *PNEM;
@@ -431,17 +430,17 @@ typedef struct NEMCPU
     int32_t                     fdVCpu;
     /** Pointer to the KVM_RUN data exchange region. */
     R3PTRTYPE(struct kvm_run *) pRun;
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
     /** The IRQ device levels from device_irq_level. */
     uint64_t                    fIrqDeviceLvls;
     /** Status of the IRQ line when last seen. */
     bool                        fIrqLastSeen;
     /** Status of the FIQ line when last seen. */
     bool                        fFiqLastSeen;
-# else
+# elif defined(VBOX_VMM_TARGET_X86)
     /** The MSR_IA32_APICBASE value known to KVM. */
     uint64_t                    uKvmApicBase;
-#endif
+# endif
 
     /** @name Statistics
      * @{ */
@@ -490,7 +489,7 @@ typedef struct NEMCPU
 
 
 #elif defined(RT_OS_WINDOWS)
-# ifndef VBOX_VMM_TARGET_ARMV8
+# ifdef VBOX_VMM_TARGET_X86
     /** The current state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
     uint8_t                     fCurrentInterruptWindows;
     /** The desired state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
@@ -542,7 +541,7 @@ typedef struct NEMCPU
     /** @} */
 
 #elif defined(RT_OS_DARWIN)
-# if defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_ARMV8
     /** The vCPU handle associated with the EMT executing this vCPU. */
     hv_vcpu_t                   hVCpu;
     /** Pointer to the exit information structure. */
@@ -556,7 +555,8 @@ typedef struct NEMCPU
     /** Flag whether the ID registers were synced to the guest context
      * (for first guest exec call on the EMT after loading the saved state). */
     bool                        fIdRegsSynced;
-# else
+
+# elif defined(VBOX_VMM_TARGET_X86)
     /** The vCPU handle associated with the EMT executing this vCPU. */
     hv_vcpuid_t                 hVCpuId;
 
@@ -627,7 +627,7 @@ typedef struct NEMCPU
     X86PDPE                     aPdpes[4];
     /** Pointer to the VMX statistics. */
     PVMXSTATISTICS              pVmxStats;
-# endif
+# endif /* VBOX_VMM_TARGET_X86 */
 
     /** @name Statistics
      * @{ */
@@ -640,10 +640,10 @@ typedef struct NEMCPU
     STAMCOUNTER                 StatImportOnReturn;
     STAMCOUNTER                 StatImportOnReturnSkipped;
     STAMCOUNTER                 StatQueryCpuTick;
-#ifdef VBOX_WITH_STATISTICS
+# ifdef VBOX_WITH_STATISTICS
     STAMPROFILEADV              StatProfGstStateImport;
     STAMPROFILEADV              StatProfGstStateExport;
-#endif
+# endif
     /** @} */
 
     /** @} */

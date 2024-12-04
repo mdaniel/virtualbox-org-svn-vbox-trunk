@@ -73,7 +73,7 @@
 #include <iprt/semaphore.h>
 #include <iprt/string.h>
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
 /* Include all GIM providers. */
 # include "GIMMinimalInternal.h"
 # include "GIMHvInternal.h"
@@ -162,7 +162,7 @@ VMMR3_INT_DECL(int) GIMR3Init(PVM pVM)
         /** @todo r=bird: Because u32Version is saved, it should be translated to the
          *        'most up-to-date implementation' version number when 0. Otherwise,
          *        we'll have abiguities when loading the state of older VMs. */
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         if (!RTStrCmp(szProvider, "Minimal"))
         {
             pVM->gim.s.enmProviderId = GIMPROVIDERID_MINIMAL;
@@ -209,7 +209,7 @@ VMMR3_INT_DECL(int) GIMR3InitCompleted(PVM pVM)
 {
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_MINIMAL:
             return gimR3MinimalInitCompleted(pVM);
 
@@ -260,7 +260,7 @@ static DECLCALLBACK(int) gimR3Save(PVM pVM, PSSMHANDLE pSSM)
      */
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             rc = gimR3HvSave(pVM, pSSM);
             AssertRCReturn(rc, rc);
@@ -325,7 +325,7 @@ static DECLCALLBACK(int) gimR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, 
      */
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             rc = gimR3HvLoad(pVM, pSSM);
             AssertRCReturn(rc, rc);
@@ -349,13 +349,11 @@ static DECLCALLBACK(int) gimR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, 
  */
 static DECLCALLBACK(int) gimR3LoadDone(PVM pVM, PSSMHANDLE pSSM)
 {
-#if defined(VBOX_VMM_TARGET_ARMV8)
     RT_NOREF(pSSM);
-#endif
 
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             return gimR3HvLoadDone(pVM, pSSM);
 #endif
@@ -378,7 +376,7 @@ VMMR3_INT_DECL(int) GIMR3Term(PVM pVM)
 {
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             return gimR3HvTerm(pVM);
 
@@ -386,9 +384,8 @@ VMMR3_INT_DECL(int) GIMR3Term(PVM pVM)
             return gimR3KvmTerm(pVM);
 #endif
         default:
-            break;
+            return VINF_SUCCESS;
     }
-    return VINF_SUCCESS;
 }
 
 
@@ -402,13 +399,11 @@ VMMR3_INT_DECL(int) GIMR3Term(PVM pVM)
  */
 VMMR3_INT_DECL(void) GIMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
 {
-#if defined(VBOX_VMM_TARGET_ARMV8)
     RT_NOREF(offDelta);
-#endif
 
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             gimR3HvRelocate(pVM, offDelta);
             break;
@@ -431,12 +426,14 @@ VMMR3_INT_DECL(void) GIMR3Reset(PVM pVM)
 {
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
-            return gimR3HvReset(pVM);
+            gimR3HvReset(pVM);
+            break;
 
         case GIMPROVIDERID_KVM:
-            return gimR3KvmReset(pVM);
+            gimR3KvmReset(pVM);
+            break;
 #endif
         default:
             break;
@@ -473,14 +470,13 @@ VMMR3DECL(int) GIMR3GetDebugSetup(PVM pVM, PGIMDEBUGSETUP pDbgSetup)
 
     switch (pVM->gim.s.enmProviderId)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86)
         case GIMPROVIDERID_HYPERV:
             return gimR3HvGetDebugSetup(pVM, pDbgSetup);
 #endif
         default:
-            break;
+            return VERR_GIM_NO_DEBUG_CONNECTION;
     }
-    return VERR_GIM_NO_DEBUG_CONNECTION;
 }
 
 

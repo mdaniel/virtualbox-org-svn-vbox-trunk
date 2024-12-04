@@ -358,7 +358,7 @@ VMMR3DECL(int) DBGFR3MemWrite(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS pAddress, 
 }
 
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
 /**
  * Worker for DBGFR3SelQueryInfo that calls into SELM.
  */
@@ -408,7 +408,7 @@ static DECLCALLBACK(int) dbgfR3SelQueryInfo(PUVM pUVM, VMCPUID idCpu, RTSEL Sel,
     }
     return rc;
 }
-#endif
+#endif /* VBOX_VMM_TARGET_X86 */
 
 
 /**
@@ -446,14 +446,14 @@ VMMR3DECL(int) DBGFR3SelQueryInfo(PUVM pUVM, VMCPUID idCpu, RTSEL Sel, uint32_t 
     /* Clear the return data here on this thread. */
     memset(pSelInfo, 0, sizeof(*pSelInfo));
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    RT_NOREF(Sel);
-    return VERR_NOT_SUPPORTED;
-#else
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Dispatch the request to a worker running on the target CPU.
      */
     return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3SelQueryInfo, 5, pUVM, idCpu, Sel, fFlags, pSelInfo);
+#else
+    RT_NOREF(Sel);
+    return VERR_NOT_SUPPORTED;
 #endif
 }
 
@@ -495,6 +495,7 @@ VMMDECL(int) DBGFR3SelInfoValidateCS(PCDBGFSELINFO pSelInfo, RTSEL SelCPL)
 }
 
 
+#ifdef VBOX_WITH_HWVIRT
 /**
  * Converts a PGM paging mode to a set of DBGFPGDMP_XXX flags.
  *
@@ -505,7 +506,7 @@ static uint32_t dbgfR3PagingDumpModeToFlags(PGMMODE enmMode)
 {
     switch (enmMode)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+# ifdef VBOX_VMM_TARGET_X86
         case PGMMODE_32_BIT:
             return DBGFPGDMP_FLAGS_PSE;
         case PGMMODE_PAE:
@@ -524,18 +525,19 @@ static uint32_t dbgfR3PagingDumpModeToFlags(PGMMODE enmMode)
             return DBGFPGDMP_FLAGS_NP | DBGFPGDMP_FLAGS_PSE | DBGFPGDMP_FLAGS_PAE | DBGFPGDMP_FLAGS_LME | DBGFPGDMP_FLAGS_NXE;
         case PGMMODE_EPT:
             return DBGFPGDMP_FLAGS_EPT;
+
+# elif defined(VBOX_VMM_TARGET_ARM64)
+       /** @todo arm64: dumping page tables. */
+# else
+#  error "port me"
+# endif
         case PGMMODE_NONE:
             return 0;
         default:
             AssertFailedReturn(UINT32_MAX);
-#else
-        case PGMMODE_NONE:
-            return 0;
-        default:
-            AssertFailedReturn(UINT32_MAX);
-#endif
     }
 }
+#endif /* VBOX_WITH_HWVIRT */
 
 
 /**
@@ -585,19 +587,19 @@ static DECLCALLBACK(int) dbgfR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t f
                 pHlp->pfnPrintf(pHlp, "Shadow paging mode is 'none' (NEM)\n");
                 return VINF_SUCCESS;
             }
-
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_WITH_HWVIRT)
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_CR3)
                 cr3 = PGMGetHyperCR3(pVCpu);
-#endif
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_MODE)
                 fFlags |= dbgfR3PagingDumpModeToFlags(PGMGetShadowMode(pVCpu));
+#else
+            pHlp->pfnPrintf(pHlp, "Expected shadowing mode PGMMODE_NONE, found %d!\n", PGMGetShadowMode(pVCpu));
+            return VINF_SUCCESS;
+#endif
         }
         else
         {
-#if defined(VBOX_VMM_TARGET_ARMV8)
-            AssertReleaseFailed();
-#else
+#ifdef VBOX_VMM_TARGET_X86
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_CR3)
                 cr3 = CPUMGetGuestCR3(pVCpu);
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_MODE)
@@ -607,6 +609,12 @@ static DECLCALLBACK(int) dbgfR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t f
                 AssertCompile(DBGFPGDMP_FLAGS_LME == MSR_K6_EFER_LME);  AssertCompile(DBGFPGDMP_FLAGS_NXE == MSR_K6_EFER_NXE);
                 fFlags |= CPUMGetGuestEFER(pVCpu) & (MSR_K6_EFER_LME | MSR_K6_EFER_NXE);
             }
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+            /** @todo arm64: port me   */
+            AssertReleaseFailed();
+            return VERR_NOT_IMPLEMENTED;
+#else
+# error "port me"
 #endif
         }
     }
@@ -644,6 +652,8 @@ static DECLCALLBACK(int) dbgfR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t f
 VMMDECL(int) DBGFR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t fFlags, uint64_t cr3, uint64_t u64FirstAddr,
                                 uint64_t u64LastAddr, uint32_t cMaxDepth, PCDBGFINFOHLP pHlp)
 {
+/** @todo adjust this for ARMv8. Probably need two root parameters (instead of
+ * cr3) as well as a bunch new flags. */
     /*
      * Input validation.
      */

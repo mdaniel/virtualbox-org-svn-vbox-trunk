@@ -105,7 +105,7 @@ int main(int argc, char **argv)
             rc = SUPR3CallVMMR0Ex(NIL_RTR0PTR, NIL_VMCPUID, VMMR0_DO_GVMM_CREATE_VM, 0, &CreateVMReq.Hdr);
             if (RT_SUCCESS(rc))
             {
-                PVM pVM = CreateVMReq.pVMR3;
+                PVM const pVM = CreateVMReq.pVMR3;
                 AssertRelease(RT_VALID_PTR(pVM));
                 AssertRelease(pVM->pVMR0ForCall == CreateVMReq.pVMR0);
                 AssertRelease(pVM->pSession == pSession);

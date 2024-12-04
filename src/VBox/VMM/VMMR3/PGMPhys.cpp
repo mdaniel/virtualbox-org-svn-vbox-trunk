@@ -6321,7 +6321,7 @@ VMMR3DECL(int) PGMR3PhysAllocateHandyPages(PVM pVM)
 *   Other Stuff                                                                                                                  *
 *********************************************************************************************************************************/
 
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
 /**
  * Sets the Address Gate 20 state.
  *
@@ -6334,7 +6334,7 @@ VMMDECL(void) PGMR3PhysSetA20(PVMCPU pVCpu, bool fEnable)
     LogFlow(("PGMR3PhysSetA20 %d (was %d)\n", fEnable, pVCpu->pgm.s.fA20Enabled));
     if (pVCpu->pgm.s.fA20Enabled != fEnable)
     {
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX
         PCCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
         if (   CPUMIsGuestInVmxRootMode(pCtx)
             && !fEnable)
@@ -6342,23 +6342,23 @@ VMMDECL(void) PGMR3PhysSetA20(PVMCPU pVCpu, bool fEnable)
             Log(("Cannot enter A20M mode while in VMX root mode\n"));
             return;
         }
-#endif
+# endif
         pVCpu->pgm.s.fA20Enabled = fEnable;
         pVCpu->pgm.s.GCPhysA20Mask = ~((RTGCPHYS)!fEnable << 20);
         if (VM_IS_NEM_ENABLED(pVCpu->CTX_SUFF(pVM)))
             NEMR3NotifySetA20(pVCpu, fEnable);
-#ifdef PGM_WITH_A20
+# ifdef PGM_WITH_A20
         VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
         pgmR3RefreshShadowModeAfterA20Change(pVCpu);
         HMFlushTlb(pVCpu);
-#endif
-#if 0 /* PGMGetPage will apply the A20 mask to the GCPhys it returns, so we must invalid both sides of the TLB. */
+# endif
+# if 0 /* PGMGetPage will apply the A20 mask to the GCPhys it returns, so we must invalid both sides of the TLB. */
         IEMTlbInvalidateAllPhysical(pVCpu);
-#else
+# else
         IEMTlbInvalidateAllGlobal(pVCpu);
-#endif
+# endif
         STAM_REL_COUNTER_INC(&pVCpu->pgm.s.cA20Changes);
     }
 }
-#endif
+#endif /* VBOX_VMM_TARGET_X86 */
 

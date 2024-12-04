@@ -67,7 +67,7 @@ typedef struct
     PVMCPU          pVCpu;
     /** The address space for resolving symbol. */
     RTDBGAS         hDbgAs;
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
     /** Pointer to the first byte in the segment. */
     RTGCUINTPTR     GCPtrSegBase;
     /** Pointer to the byte after the end of the segment. (might have wrapped!) */
@@ -114,15 +114,14 @@ static FNDISREADBYTES dbgfR3DisasInstrRead;
 static int dbgfR3DisasInstrFirst(PVM pVM, PVMCPU pVCpu, PDBGFSELINFO pSelInfo, PGMMODE enmMode,
                                  RTGCPTR GCPtr, uint32_t fFlags, PDBGFDISASSTATE pState)
 {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifndef VBOX_VMM_TARGET_X86
+    RT_NOREF_PV(pSelInfo);
+    pState->f64Bits         = CPUMIsGuestIn64BitCode(pVCpu);
+#else
     pState->GCPtrSegBase    = pSelInfo->GCPtrBase;
     pState->GCPtrSegEnd     = pSelInfo->cbLimit + 1 + (RTGCUINTPTR)pSelInfo->GCPtrBase;
     pState->cbSegLimit      = pSelInfo->cbLimit;
     pState->f64Bits         = enmMode >= PGMMODE_AMD64 && pSelInfo->u.Raw.Gen.u1Long;
-#else
-    RT_NOREF(pSelInfo);
-
-    pState->f64Bits         = CPUMGetGuestCodeBits(pVCpu) == 64;
 #endif
     pState->enmMode         = enmMode;
     pState->GCPtrPage       = 0;
@@ -141,7 +140,7 @@ static int dbgfR3DisasInstrFirst(PVM pVM, PVMCPU pVCpu, PDBGFSELINFO pSelInfo, P
         case DBGF_DISAS_FLAGS_DEFAULT_MODE:
             enmCpuMode = CPUMGetGuestDisMode(pVCpu);
             break;
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         case DBGF_DISAS_FLAGS_16BIT_MODE:
         case DBGF_DISAS_FLAGS_16BIT_REAL_MODE:
             enmCpuMode = DISCPUMODE_16BIT;
@@ -152,7 +151,7 @@ static int dbgfR3DisasInstrFirst(PVM pVM, PVMCPU pVCpu, PDBGFSELINFO pSelInfo, P
         case DBGF_DISAS_FLAGS_64BIT_MODE:
             enmCpuMode = DISCPUMODE_64BIT;
             break;
-#else
+#elif defined(VBOX_VMM_TARGET_ARMV8)
         case DBGF_DISAS_FLAGS_16BIT_MODE: /** @todo r=aeichner This is a bit abusive... */
         case DBGF_DISAS_FLAGS_16BIT_REAL_MODE:
             enmCpuMode = DISCPUMODE_ARMV8_T32;
@@ -163,6 +162,8 @@ static int dbgfR3DisasInstrFirst(PVM pVM, PVMCPU pVCpu, PDBGFSELINFO pSelInfo, P
         case DBGF_DISAS_FLAGS_64BIT_MODE:
             enmCpuMode = DISCPUMODE_ARMV8_A64;
             break;
+#else
+# error "port me"
 #endif
     }
 
@@ -236,7 +237,7 @@ static DECLCALLBACK(int) dbgfR3DisasInstrRead(PDISSTATE pDis, uint8_t offInstr, 
     PDBGFDISASSTATE pState = (PDBGFDISASSTATE)pDis;
     for (;;)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         RTGCUINTPTR GCPtr = pDis->uInstrAddr + offInstr + pState->GCPtrSegBase;
 #else
         RTGCUINTPTR GCPtr = pDis->uInstrAddr + offInstr;
@@ -268,17 +269,19 @@ static DECLCALLBACK(int) dbgfR3DisasInstrRead(PDISSTATE pDis, uint8_t offInstr, 
             }
         }
 
-        uint32_t cb = GUEST_PAGE_SIZE - (GCPtr & GUEST_PAGE_OFFSET_MASK);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         /*
          * Check the segment limit.
          */
         if (!pState->f64Bits && pDis->uInstrAddr + offInstr > pState->cbSegLimit)
             return VERR_OUT_OF_SELECTOR_BOUNDS;
+#endif
 
         /*
          * Calc how much we can read, maxing out the read.
          */
+        uint32_t cb = GUEST_PAGE_SIZE - (GCPtr & GUEST_PAGE_OFFSET_MASK);
+#ifdef VBOX_VMM_TARGET_X86
         if (!pState->f64Bits)
         {
             RTGCUINTPTR cbSeg = pState->GCPtrSegEnd - GCPtr;
@@ -312,14 +315,15 @@ static DECLCALLBACK(int) dbgfR3DisasGetSymbol(PCDISSTATE pDis, uint32_t u32Sel, 
                                               char *pszBuf, size_t cchBuf, RTINTPTR *poff, void *pvUser)
 {
     PDBGFDISASSTATE pState   = (PDBGFDISASSTATE)pDis;
-    PCDBGFSELINFO   pSelInfo = (PCDBGFSELINFO)pvUser;
 
     /*
      * Address conversion
      */
     DBGFADDRESS     Addr;
     int             rc;
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
+    PCDBGFSELINFO   pSelInfo = (PCDBGFSELINFO)pvUser;
+
     /* Start with CS. */
     if (   DIS_FMT_SEL_IS_REG(u32Sel)
         ?  DIS_FMT_SEL_GET_REG(u32Sel) == DISSELREG_CS
@@ -348,9 +352,9 @@ static DECLCALLBACK(int) dbgfR3DisasGetSymbol(PCDISSTATE pDis, uint32_t u32Sel, 
         /** @todo implement a generic solution here. */
         rc = VERR_SYMBOL_NOT_FOUND;
     }
-#else
-    RT_NOREF(pSelInfo, u32Sel);
 
+#else
+    RT_NOREF(pvUser, u32Sel);
     DBGFR3AddrFromFlat(pState->pVM->pUVM, &Addr, uAddress);
     rc = VINF_SUCCESS;
 #endif
@@ -409,13 +413,7 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
     RTGCPTR GCPtr = *pGCPtr;
     int     rc;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    DBGFSELINFO     SelInfo; RT_ZERO(SelInfo);
-    const PGMMODE   enmMode = PGMGetGuestMode(pVCpu);
-    const bool      fRealModeAddress = false;
-    if (fFlags & DBGF_DISAS_FLAGS_CURRENT_GUEST)
-        GCPtr = CPUMGetGuestFlatPC(pVCpu);
-#else
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Get the Sel and GCPtr if fFlags requests that.
      */
@@ -541,13 +539,23 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
             return rc;
         }
     }
-#endif
+
+#else  /* !VBOX_VMM_TARGET_X86 */
+    const PGMMODE   enmMode = PGMGetGuestMode(pVCpu);
+    const bool      fRealModeAddress = false;
+    if (fFlags & DBGF_DISAS_FLAGS_CURRENT_GUEST)
+        GCPtr = CPUMGetGuestFlatPC(pVCpu);
+#endif /* !VBOX_VMM_TARGET_X86 */
 
     /*
      * Disassemble it.
      */
     DBGFDISASSTATE State;
+#ifdef VBOX_VMM_TARGET_X86
     rc = dbgfR3DisasInstrFirst(pVM, pVCpu, &SelInfo, enmMode, GCPtr, fFlags, &State);
+#else
+    rc = dbgfR3DisasInstrFirst(pVM, pVCpu, NULL, enmMode, GCPtr, fFlags, &State);
+#endif
     if (RT_FAILURE(rc))
     {
         if (State.Dis.cbCachedInstr)
@@ -561,16 +569,18 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
      * Format it.
      */
     char szBuf[512];
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
     DISFormatArmV8Ex(&State.Dis, szBuf, sizeof(szBuf),
                      DIS_FMT_FLAGS_RELATIVE_BRANCH,
                      fFlags & DBGF_DISAS_FLAGS_NO_SYMBOLS ? NULL : dbgfR3DisasGetSymbol,
                      NULL);
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
     DISFormatYasmEx(&State.Dis, szBuf, sizeof(szBuf),
                     DIS_FMT_FLAGS_RELATIVE_BRANCH,
                     fFlags & DBGF_DISAS_FLAGS_NO_SYMBOLS ? NULL : dbgfR3DisasGetSymbol,
                     &SelInfo);
+#else
+# error "port me"
 #endif
 
     /*
@@ -650,10 +660,12 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
         pDisState->Param2    = State.Dis.aParams[1];
         pDisState->Param3    = State.Dis.aParams[2];
         pDisState->Param4    = State.Dis.aParams[3];
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
         memcpy(&pDisState->armv8, &State.Dis.armv8, sizeof(State.Dis.armv8));
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
         memcpy(&pDisState->x86, &State.Dis.x86, sizeof(State.Dis.x86));
+#else
+# error "port me"
 #endif
     }
 

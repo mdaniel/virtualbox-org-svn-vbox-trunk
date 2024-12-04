@@ -297,23 +297,26 @@ static int dbgfR3RegRegisterCommon(PUVM pUVM, PCDBGFREGDESC paRegisters, DBGFREG
     AssertMsgReturn(iInstance <= 9999, ("%d\n", iInstance), VERR_INVALID_NAME);
 
     /* The descriptors. */
-    uint32_t cLookupRecs = 0;
-    uint32_t iDesc;
+#ifdef VBOX_VMM_TARGET_X86
+    DBGFREG const  enmCpuFirst = DBGFREG_X86_FIRST;
+    DBGFREG const  enmCpuLast  = DBGFREG_X86_LAST;
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    DBGFREG const  enmCpuFirst = DBGFREG_ARMV8_FIRST;
+    DBGFREG const  enmCpuLast  = DBGFREG_ARMV8_LAST;
+#else
+# error "port me"
+#endif
+    unsigned const cCpuDescs   = (unsigned)enmCpuLast - (unsigned)enmCpuFirst + 1;
+    uint32_t       cLookupRecs = 0;
+    uint32_t       iDesc;
     for (iDesc = 0; paRegisters[iDesc].pszName != NULL; iDesc++)
     {
         AssertMsgReturn(dbgfR3RegIsNameValid(paRegisters[iDesc].pszName, 0), ("%s (#%u)\n", paRegisters[iDesc].pszName, iDesc), VERR_INVALID_NAME);
 
-        if (enmType == DBGFREGSETTYPE_CPU)
-#if defined(VBOX_VMM_TARGET_ARMV8)
-            /** @todo This needs a general solution to avoid architecture dependent stuff here. */
-            AssertMsgReturn(iDesc < (unsigned)DBGFREG_END,
-                            ("%d iDesc=%d\n", paRegisters[iDesc].enmReg, iDesc),
+        if (enmType == DBGFREGSETTYPE_CPU) /* The CPU descriptors must be in enum order. */
+            AssertMsgReturn(iDesc < cCpuDescs && (unsigned)paRegisters[iDesc].enmReg == iDesc + (unsigned)enmCpuFirst,
+                            ("%d iDesc=%u+%d=%u\n", paRegisters[iDesc].enmReg, iDesc, enmCpuFirst, iDesc + (unsigned)enmCpuFirst),
                             VERR_INVALID_PARAMETER);
-#else
-            AssertMsgReturn(iDesc < (unsigned)DBGFREG_END && (unsigned)paRegisters[iDesc].enmReg == iDesc,
-                            ("%d iDesc=%d\n", paRegisters[iDesc].enmReg, iDesc),
-                            VERR_INVALID_PARAMETER);
-#endif
         else
             AssertReturn(paRegisters[iDesc].enmReg == DBGFREG_END, VERR_INVALID_PARAMETER);
         AssertReturn(   paRegisters[iDesc].enmType > DBGFREGVALTYPE_INVALID
@@ -905,15 +908,17 @@ static DECLCALLBACK(int) dbgfR3RegCpuQueryWorkerOnCpu(PUVM pUVM, VMCPUID idCpu, 
         /*
          * Look up the register and get the register value.
          */
-#ifndef VBOX_VMM_TARGET_ARMV8
-        if (RT_LIKELY(pSet->cDescs > (size_t)enmReg))
-        {
-            PCDBGFREGDESC pDesc = &pSet->paDescs[enmReg];
+#ifdef VBOX_VMM_TARGET_X86
+        DBGFREG const  enmCpuFirst = DBGFREG_X86_FIRST;
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        DBGFREG const  enmCpuFirst = DBGFREG_ARMV8_FIRST;
 #else
-        if (RT_LIKELY(pSet->cDescs > (size_t)(enmReg - DBGFREG_ARMV8_FIRST)))
-        {
-            PCDBGFREGDESC pDesc = &pSet->paDescs[enmReg - DBGFREG_ARMV8_FIRST];
+# error "port me"
 #endif
+        uint32_t const idxDesc = (uint32_t)enmReg - (uint32_t)enmCpuFirst;
+        if (RT_LIKELY(idxDesc < pSet->cDescs))
+        {
+            PCDBGFREGDESC const pDesc = &pSet->paDescs[idxDesc];
 
             pValue->au64[0] = pValue->au64[1] = 0;
             rc = pDesc->pfnGet(pSet->uUserArg.pv, pDesc, pValue);

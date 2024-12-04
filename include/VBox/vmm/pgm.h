@@ -1327,7 +1327,9 @@ VMMR3_INT_DECL(int) PGMR3PhysMmio2ControlDirtyPageTracking(PVM pVM, PPDMDEVINS p
 VMMR3DECL(int)      PGMR3PhysRomRegister(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPhys, RTGCPHYS cb,
                                          const void *pvBinary, uint32_t cbBinary, uint8_t fFlags, const char *pszDesc);
 VMMR3DECL(int)      PGMR3PhysRomProtect(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, PGMROMPROT enmProt);
+# if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 VMMDECL(void)       PGMR3PhysSetA20(PVMCPU pVCpu, bool fEnable);
+# endif
 
 VMMR3_INT_DECL(int) PGMR3HandlerPhysicalTypeRegister(PVM pVM, PGMPHYSHANDLERKIND enmKind, uint32_t fFlags,
                                                      PFNPGMPHYSHANDLER pfnHandlerR3, const char *pszDesc,

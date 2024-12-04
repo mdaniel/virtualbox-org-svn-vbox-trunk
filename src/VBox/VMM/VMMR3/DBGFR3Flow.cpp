@@ -231,16 +231,17 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsUncondJmp(uint16_t uOpc, PDBGFDISSTATE
     /* B and BC are special because only the al condition is unconditional. */
     if (   uOpc == OP_ARMV8_A64_B
         || uOpc == OP_ARMV8_A64_BC)
-    {
-        return    pDis->armv8.enmCond == kDisArmv8InstrCond_Al
-               || pDis->armv8.enmCond == kDisArmv8InstrCond_Al1;
-    }
+        return pDis->armv8.enmCond == kDisArmv8InstrCond_Al
+            || pDis->armv8.enmCond == kDisArmv8InstrCond_Al1;
 
     return false;
-#else
-    RT_NOREF(pDis);
 
+#elif defined(VBOX_VMM_TARGET_X86)
+    RT_NOREF_PV(pDis);
     return uOpc == OP_JMP;
+
+#else
+# error "port me"
 #endif
 }
 
@@ -268,9 +269,13 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc, uint32_t fOpType)
         return true;
 
     return false;
-#else
-    RT_NOREF(fOpType);
+
+#elif defined(VBOX_VMM_TARGET_X86)
+    RT_NOREF_PV(fOpType);
     return uOpc == OP_CALL;
+
+#else
+# error "port me"
 #endif
 }
 
@@ -284,24 +289,22 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsCall(uint16_t uOpc, uint32_t fOpType)
 DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsExit(uint16_t uOpc)
 {
 #ifdef VBOX_VMM_TARGET_ARMV8
-    if (   uOpc == OP_ARMV8_A64_RET
+    return uOpc == OP_ARMV8_A64_RET
         || uOpc == OP_ARMV8_A64_RETAA
         || uOpc == OP_ARMV8_A64_RETAB
         || uOpc == OP_ARMV8_A64_ERET
         || uOpc == OP_ARMV8_A64_ERETAA
-        || uOpc == OP_ARMV8_A64_ERETAB)
-        return true;
+        || uOpc == OP_ARMV8_A64_ERETAB;
 
-    return false;
-#else
-    if (   uOpc == OP_RETN
+#elif defined(VBOX_VMM_TARGET_X86)
+    return uOpc == OP_RETN
         || uOpc == OP_RETF
         || uOpc == OP_IRET
         || uOpc == OP_SYSEXIT
-        || uOpc == OP_SYSRET)
-        return true;
+        || uOpc == OP_SYSRET;
 
-    return false;
+#else
+# error "port me"
 #endif
 }
 
@@ -315,8 +318,8 @@ DECL_FORCE_INLINE(bool) dbgfR3FlowDisOpcIsExit(uint16_t uOpc)
  */
 static bool dbgfR3FlowAddrEqual(PDBGFADDRESS pAddr1, PDBGFADDRESS pAddr2)
 {
-    return    pAddr1->Sel == pAddr2->Sel
-           && pAddr1->off == pAddr2->off;
+    return pAddr1->Sel == pAddr2->Sel
+        && pAddr1->off == pAddr2->off;
 }
 
 
@@ -329,8 +332,8 @@ static bool dbgfR3FlowAddrEqual(PDBGFADDRESS pAddr1, PDBGFADDRESS pAddr2)
  */
 static bool dbgfR3FlowAddrLower(PDBGFADDRESS pAddr1, PDBGFADDRESS pAddr2)
 {
-    return    pAddr1->Sel == pAddr2->Sel
-           && pAddr1->off < pAddr2->off;
+    return pAddr1->Sel == pAddr2->Sel
+        && pAddr1->off < pAddr2->off;
 }
 
 
@@ -343,9 +346,9 @@ static bool dbgfR3FlowAddrLower(PDBGFADDRESS pAddr1, PDBGFADDRESS pAddr2)
  */
 static bool dbgfR3FlowAddrIntersect(PDBGFFLOWBBINT pFlowBb, PDBGFADDRESS pAddr)
 {
-    return    (pFlowBb->AddrStart.Sel == pAddr->Sel)
-           && (pFlowBb->AddrStart.off <= pAddr->off)
-           && (pFlowBb->AddrEnd.off >= pAddr->off);
+    return pFlowBb->AddrStart.Sel == pAddr->Sel
+        && pFlowBb->AddrStart.off <= pAddr->off
+        && pFlowBb->AddrEnd.off   >= pAddr->off;
 }
 
 
@@ -362,12 +365,9 @@ static RTGCUINTPTR dbgfR3FlowAddrGetDistance(PDBGFADDRESS pAddr1, PDBGFADDRESS p
     {
         if (pAddr1->off >= pAddr2->off)
             return pAddr1->off - pAddr2->off;
-        else
-            return pAddr2->off - pAddr1->off;
+        return pAddr2->off - pAddr1->off;
     }
-    else
-        AssertFailed();
-
+    AssertFailed();
     return 0;
 }
 
@@ -773,17 +773,17 @@ DECLINLINE(bool) dbgfR3FlowBranchTargetIsIndirect(PDISOPPARAM pDisParam)
 static int dbgfR3FlowQueryDirectBranchTarget(PUVM pUVM, VMCPUID idCpu, PDISOPPARAM pDisParam, PDBGFADDRESS pAddrInstr,
                                              uint32_t cbInstr, bool fRelJmp, PDBGFADDRESS pAddrJmpTarget)
 {
-    int rc = VINF_SUCCESS;
-
     Assert(!dbgfR3FlowBranchTargetIsIndirect(pDisParam));
 
-    /* Relative jumps are always from the beginning of the next instruction. */
     *pAddrJmpTarget = *pAddrInstr;
-#ifdef VBOX_VMM_TARGET_ARMV8
-    /* On ARM relative jumps are always from the beginning of the curent instruction (b #0 will jump to itself for instance). */
+#ifdef VBOX_VMM_TARGET_X86
+    /* Relative to the next instruction. */
+    DBGFR3AddrAdd(pAddrJmpTarget, cbInstr);
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    /* Relative to the start of the instruction. */
     RT_NOREF(cbInstr);
 #else
-    DBGFR3AddrAdd(pAddrJmpTarget, cbInstr);
+# error "port me"
 #endif
 
     if (fRelJmp)
@@ -798,7 +798,7 @@ static int dbgfR3FlowQueryDirectBranchTarget(PUVM pUVM, VMCPUID idCpu, PDISOPPAR
         else if (pDisParam->fUse & DISUSE_IMMEDIATE64_REL)
             iRel = (int64_t)pDisParam->uValue;
         else
-            AssertFailedStmt(rc = VERR_NOT_SUPPORTED);
+            AssertFailedReturn(VERR_NOT_SUPPORTED);
 
         if (iRel < 0)
             DBGFR3AddrSub(pAddrJmpTarget, -iRel);
@@ -815,10 +815,10 @@ static int dbgfR3FlowQueryDirectBranchTarget(PUVM pUVM, VMCPUID idCpu, PDISOPPAR
                 DBGFR3AddrFromSelOff(pUVM, idCpu, pAddrJmpTarget, pAddrInstr->Sel, pDisParam->uValue);
         }
         else
-            AssertFailedStmt(rc = VERR_INVALID_STATE);
+            AssertFailedReturn(VERR_INVALID_STATE);
     }
 
-    return rc;
+    return VINF_SUCCESS;
 }
 
 
@@ -1385,11 +1385,11 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
                         pFlowBb->enmEndType = DBGFFLOWBBENDTYPE_COND;
 
 #ifdef VBOX_VMM_TARGET_ARMV8
-                        PDISOPPARAM pParam =   uOpc == OP_ARMV8_A64_B || uOpc == OP_ARMV8_A64_BC
-                                             ? &DisState.Param1
-                                             : uOpc == OP_ARMV8_A64_CBZ || uOpc == OP_ARMV8_A64_CBNZ
-                                             ? &DisState.Param2  /* cbz/cbnz. */
-                                             : &DisState.Param3; /* tbz/tbnz. */
+                        PDISOPPARAM pParam = uOpc == OP_ARMV8_A64_B || uOpc == OP_ARMV8_A64_BC
+                                           ? &DisState.Param1
+                                           : uOpc == OP_ARMV8_A64_CBZ || uOpc == OP_ARMV8_A64_CBNZ
+                                           ? &DisState.Param2  /* cbz/cbnz. */
+                                           : &DisState.Param3; /* tbz/tbnz. */
 #else
                         PDISOPPARAM pParam = &DisState.Param1;
 #endif
@@ -1465,19 +1465,17 @@ static int dbgfR3FlowBbProcess(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, PDB
  */
 static int dbgfR3FlowPopulate(PUVM pUVM, VMCPUID idCpu, PDBGFFLOWINT pThis, uint32_t cbDisasmMax, uint32_t fFlags)
 {
-    int rc = VINF_SUCCESS;
     PDBGFFLOWBBINT pFlowBb = dbgfR3FlowGetUnpopulatedBb(pThis);
-
     while (pFlowBb != NULL)
     {
-        rc = dbgfR3FlowBbProcess(pUVM, idCpu, pThis, pFlowBb, cbDisasmMax, fFlags);
-        if (RT_FAILURE(rc))
-            break;
-
-        pFlowBb = dbgfR3FlowGetUnpopulatedBb(pThis);
+        int rc = dbgfR3FlowBbProcess(pUVM, idCpu, pThis, pFlowBb, cbDisasmMax, fFlags);
+        if (RT_SUCCESS(rc))
+            pFlowBb = dbgfR3FlowGetUnpopulatedBb(pThis);
+        else
+            return rc;
     }
 
-    return rc;
+    return VINF_SUCCESS;
 }
 
 /**
@@ -1505,7 +1503,7 @@ VMMR3DECL(int) DBGFR3FlowCreate(PUVM pUVM, VMCPUID idCpu, PDBGFADDRESS pAddressS
     AssertReturn((fFlagsDisasm & DBGF_DISAS_FLAGS_MODE_MASK) <= DBGF_DISAS_FLAGS_64BIT_MODE, VERR_INVALID_PARAMETER);
 
     /* Create the control flow graph container. */
-    int rc = VINF_SUCCESS;
+    int rc;
     PDBGFFLOWINT pThis = (PDBGFFLOWINT)RTMemAllocZ(sizeof(DBGFFLOWINT));
     if (RT_LIKELY(pThis))
     {

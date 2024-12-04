@@ -129,9 +129,9 @@
 #include <VBox/vmm/em.h>
 #include <VBox/sup.h>
 #include <VBox/vmm/dbgf.h>
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
 # include <VBox/vmm/gic.h>
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
 # include <VBox/vmm/pdmapic.h>
 #endif
 #include <VBox/vmm/ssm.h>
@@ -145,7 +145,7 @@
 #include <VBox/vmm/hm.h>
 #include <iprt/assert.h>
 #include <iprt/alloc.h>
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
 # include <iprt/armv8.h>
 #endif
 #include <iprt/asm.h>
@@ -579,7 +579,7 @@ VMMR3_INT_DECL(int) VMMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 
         case VMINITCOMPLETED_HM:
         {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
             /*
              * Disable the periodic preemption timers if we can use the
              * VMX-preemption timer instead.
@@ -1213,7 +1213,9 @@ static DECLCALLBACK(void) vmmR3YieldEMT(PVM pVM, TMTIMERHANDLE hTimer, void *pvU
 #endif
 
 #ifdef VBOX_WITH_HWVIRT
-
+# ifndef VBOX_VMM_TARGET_X86
+#  error "config error"
+# endif
 /**
  * Executes guest code (Intel VT-x and AMD-V).
  *
@@ -1222,29 +1224,23 @@ static DECLCALLBACK(void) vmmR3YieldEMT(PVM pVM, TMTIMERHANDLE hTimer, void *pvU
  */
 VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
 {
-# if defined(VBOX_VMM_TARGET_ARMV8)
-    /* We should actually never get here as the only execution engine is NEM. */
-    RT_NOREF(pVM, pVCpu);
-    AssertReleaseFailed();
-    return VERR_NOT_SUPPORTED;
-# else
     Log2(("VMMR3HmRunGC: (cs:rip=%04x:%RX64)\n", CPUMGetGuestCS(pVCpu), CPUMGetGuestRIP(pVCpu)));
 
     int rc;
     do
     {
-#  ifdef NO_SUPCALLR0VMM
+# ifdef NO_SUPCALLR0VMM
         rc = VERR_GENERAL_FAILURE;
-#  else
+# else
         rc = SUPR3CallVMMR0Fast(VMCC_GET_VMR0_FOR_CALL(pVM), VMMR0_DO_HM_RUN, pVCpu->idCpu);
         if (RT_LIKELY(rc == VINF_SUCCESS))
             rc = pVCpu->vmm.s.iLastGZRc;
-#  endif
+# endif
     } while (rc == VINF_EM_RAW_INTERRUPT_HYPER);
 
-#  if 0 /** @todo triggers too often */
+# if 0 /** @todo triggers too often */
     Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_TO_R3));
-#  endif
+# endif
 
     /*
      * Flush the logs
@@ -1259,12 +1255,11 @@ VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
         return rc;
     }
     return vmmR3HandleRing0Assert(pVM, pVCpu);
-# endif
 }
 #endif /* VBOX_WITH_HWVIRT */
 
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
 
 /**
  * VCPU worker for VMMR3CpuOn.
@@ -1317,7 +1312,7 @@ VMMR3_INT_DECL(void)    VMMR3CpuOn(PVM pVM, VMCPUID idCpu, RTGCPHYS GCPhysExecAd
     AssertRC(rc);
 }
 
-#else /* !VBOX_VMM_TARGET_ARMV8 */
+#elif defined(VBOX_VMM_TARGET_X86)
 
 /**
  * VCPU worker for VMMR3SendStartupIpi.
@@ -1403,9 +1398,7 @@ static DECLCALLBACK(int) vmmR3SendInitIpi(PVM pVM, VMCPUID idCpu)
 
     PGMR3ResetCpu(pVM, pVCpu);
     PDMR3ResetCpu(pVCpu);   /* Only clears pending interrupts force flags */
-# if !defined(VBOX_VMM_TARGET_ARMV8)
     PDMR3ApicInitIpi(pVCpu);
-# endif
     TRPMR3ResetCpu(pVCpu);
     CPUMR3ResetCpu(pVM, pVCpu);
     EMR3ResetCpu(pVCpu);
@@ -1448,7 +1441,7 @@ VMMR3_INT_DECL(void) VMMR3SendInitIpi(PVM pVM, VMCPUID idCpu)
     AssertRC(rc);
 }
 
-#endif /* !VBOX_VMM_TARGET_ARMV8 */
+#endif /* VBOX_VMM_TARGET_X86 */
 
 /**
  * Registers the guest memory range that can be used for patching.
@@ -2581,12 +2574,14 @@ static DECLCALLBACK(void) vmmR3InfoFF(PVM pVM, PCDBGFINFOHLP pHlp, const char *p
         /* show the flag mnemonics */
         c = 0;
         f = fLocalForcedActions;
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_IRQ);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_FIQ);
-#else
+#elif defined(VBOX_VMM_TARGET_X86)
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_APIC);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_PIC);
+#else
+# error "port me"
 #endif
         PRINT_FLAG(VMCPU_FF_,TIMER);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_NMI);

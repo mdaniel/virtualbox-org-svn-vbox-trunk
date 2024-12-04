@@ -82,7 +82,7 @@ SUPLoggerCtl_SOURCES  = SUPLoggerCtl.cpp
 SUPLoggerCtl_LIBS     = $(LIB_RUNTIME)
 
 tstInt_TEMPLATE       = VBoxR3SignedExe
-tstInt_DEFS           = $(VMM_COMMON_DEFS)
+tstInt_DEFS           = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstInt_SOURCES        = tstInt.cpp
 tstInt_LIBS           = $(LIB_RUNTIME)
 

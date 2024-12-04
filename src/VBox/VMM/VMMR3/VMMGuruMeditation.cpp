@@ -373,9 +373,6 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
         case VERR_VMM_HYPER_CR3_MISMATCH:
         case VERR_VMM_LONG_JMP_ERROR:
         {
-#if defined(VBOX_VMM_TARGET_ARMV8)
-            AssertReleaseFailed();
-#else
             /*
              * Active trap? This is only of partial interest when in hardware
              * assisted virtualization mode, thus the different messages.
@@ -389,9 +386,10 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
             int rc2 = TRPMQueryTrapAll(pVCpu, &u8TrapNo, &enmType, &uErrorCode, &uCR2, &cbInstr, &fIcebp);
             if (RT_SUCCESS(rc2))
                 pHlp->pfnPrintf(pHlp,
-                                "!! ACTIVE TRAP=%02x ERRCD=%RX32 CR2=%RGv PC=%RGr Type=%d cbInstr=%02x fIcebp=%RTbool (Guest!)\n",
-                                u8TrapNo, uErrorCode, uCR2, CPUMGetGuestRIP(pVCpu), enmType, cbInstr, fIcebp);
+                                "!! ACTIVE TRAP=%02x ERRCD=%RX32 CR2=%RGv FlatPC=%RGr Type=%d cbInstr=%02x fIcebp=%RTbool (Guest!)\n",
+                                u8TrapNo, uErrorCode, uCR2, CPUMGetGuestFlatPC(pVCpu), enmType, cbInstr, fIcebp);
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
             /*
              * Dump the relevant hypervisor registers and stack.
              */
@@ -421,15 +419,15 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                 /* Dump the resume register frame on the stack. */
                 PRTHCUINTPTR const pBP = (PRTHCUINTPTR)&pVCpu->vmm.s.abAssertStack[  pVCpu->vmm.s.AssertJmpBuf.UnwindBp
                                                                                    - pVCpu->vmm.s.AssertJmpBuf.UnwindSp];
-#if HC_ARCH_BITS == 32
+# if HC_ARCH_BITS == 32
                 pHlp->pfnPrintf(pHlp,
                                 "eax=volatile ebx=%08x ecx=volatile edx=volatile esi=%08x edi=%08x\n"
                                 "eip=%08x esp=%08x ebp=%08x efl=%08x\n"
                                 ,
                                 pBP[-3], pBP[-2], pBP[-1],
                                 pBP[1], pVCpu->vmm.s.AssertJmpBuf.SavedEbp - 8, pBP[0], pBP[-4]);
-#else
-# ifdef RT_OS_WINDOWS
+# else
+#  ifdef RT_OS_WINDOWS
                 pHlp->pfnPrintf(pHlp,
                                 "rax=volatile         rbx=%016RX64 rcx=volatile         rdx=volatile\n"
                                 "rsi=%016RX64 rdi=%016RX64  r8=volatile          r9=volatile        \n"
@@ -442,7 +440,7 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                                 pBP[-4], pBP[-3],
                                 pBP[-2], pBP[-1],
                                 pBP[1], pVCpu->vmm.s.AssertJmpBuf.UnwindRetSp, pBP[0], pBP[-8]);
-# else
+#  else
                 pHlp->pfnPrintf(pHlp,
                                 "rax=volatile         rbx=%016RX64 rcx=volatile         rdx=volatile\n"
                                 "rsi=volatile         rdi=volatile          r8=volatile          r9=volatile        \n"
@@ -454,8 +452,8 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                                 pBP[-4], pBP[-3],
                                 pBP[-2], pBP[-1],
                                 pBP[1], pVCpu->vmm.s.AssertJmpBuf.UnwindRetSp, pBP[0], pBP[-6]);
+#  endif
 # endif
-#endif
 
                 /* Callstack. */
                 DBGFADDRESS AddrPc, AddrBp, AddrSp;
@@ -471,16 +469,16 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                                     "!!\n"
                                     "!! Call Stack:\n"
                                     "!!\n");
-#if HC_ARCH_BITS == 32
+# if HC_ARCH_BITS == 32
                     pHlp->pfnPrintf(pHlp, "EBP      Ret EBP  Ret CS:EIP    Arg0     Arg1     Arg2     Arg3     CS:EIP        Symbol [line]\n");
-#else
+# else
                     pHlp->pfnPrintf(pHlp, "RBP              Ret RBP          Ret RIP          RIP              Symbol [line]\n");
-#endif
+# endif
                     for (PCDBGFSTACKFRAME pFrame = pFirstFrame;
                          pFrame;
                          pFrame = DBGFR3StackWalkNext(pFrame))
                     {
-#if HC_ARCH_BITS == 32
+# if HC_ARCH_BITS == 32
                         pHlp->pfnPrintf(pHlp,
                                         "%RHv %RHv %04RX32:%RHv %RHv %RHv %RHv %RHv",
                                         (RTHCUINTPTR)pFrame->AddrFrame.off,
@@ -492,14 +490,14 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                                         pFrame->Args.au32[2],
                                         pFrame->Args.au32[3]);
                         pHlp->pfnPrintf(pHlp, " %RTsel:%08RHv", pFrame->AddrPC.Sel, pFrame->AddrPC.off);
-#else
+# else
                         pHlp->pfnPrintf(pHlp,
                                         "%RHv %RHv %RHv %RHv",
                                         (RTHCUINTPTR)pFrame->AddrFrame.off,
                                         (RTHCUINTPTR)pFrame->AddrReturnFrame.off,
                                         (RTHCUINTPTR)pFrame->AddrReturnPC.off,
                                         (RTHCUINTPTR)pFrame->AddrPC.off);
-#endif
+# endif
                         if (pFrame->pSymPC)
                         {
                             RTGCINTPTR offDisp = pFrame->AddrPC.FlatPtr - pFrame->pSymPC->Value;
@@ -587,7 +585,7 @@ VMMR3DECL(void) VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr)
                 pHlp->pfnPrintf(pHlp,
                                 "!! Skipping ring-0 registers and stack, rcErr=%Rrc\n", rcErr);
             }
-#endif /* !VBOX_VMM_TARGET_ARMV8 */
+#endif /* RT_ARCH_AMD64 || RT_ARCH_X86 */
             break;
         }
 

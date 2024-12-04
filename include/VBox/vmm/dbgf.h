@@ -1811,8 +1811,9 @@ VMMR3DECL(int) DBGFR3SelQueryInfo(PUVM pUVM, VMCPUID idCpu, RTSEL Sel, uint32_t 
  */
 typedef enum DBGFREG
 {
+    DBGFREG_X86_FIRST = 0,
     /* General purpose registers: */
-    DBGFREG_AL  = 0,
+    DBGFREG_AL  = DBGFREG_X86_FIRST,
     DBGFREG_AX  = DBGFREG_AL,
     DBGFREG_EAX = DBGFREG_AL,
     DBGFREG_RAX = DBGFREG_AL,
@@ -2054,8 +2055,10 @@ typedef enum DBGFREG
     DBGFREG_GDTR,
     DBGFREG_IDTR,
 
-    /** The end of the x86 registers. */
-    DBGFREG_X86_END = DBGFREG_IDTR,
+    /** The last of the x86 registers. */
+    DBGFREG_X86_LAST = DBGFREG_IDTR,
+    /* Misnomer. */
+    DBGFREG_X86_END = DBGFREG_X86_LAST,
 
     /** @name ARMv8 register identifiers.
      * @{ */

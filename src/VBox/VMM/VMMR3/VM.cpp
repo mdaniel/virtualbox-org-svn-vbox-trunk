@@ -874,10 +874,10 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
                         rc = VMMR3Init(pVM);
                         if (RT_SUCCESS(rc))
                         {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                             rc = SELMR3Init(pVM);
-#endif
                             if (RT_SUCCESS(rc))
+#endif
                             {
                                 rc = TRPMR3Init(pVM);
                                 if (RT_SUCCESS(rc))
@@ -905,10 +905,10 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
                                                             rc = GIMR3Init(pVM);
                                                             if (RT_SUCCESS(rc))
                                                             {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                                                                 rc = GCMR3Init(pVM);
-#endif
                                                                 if (RT_SUCCESS(rc))
+#endif
                                                                 {
                                                                     rc = PDMR3Init(pVM);
                                                                     if (RT_SUCCESS(rc))
@@ -932,7 +932,7 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
                                                                         int rc2 = PDMR3Term(pVM);
                                                                         AssertRC(rc2);
                                                                     }
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                                                                     int rc2 = GCMR3Term(pVM);
                                                                     AssertRC(rc2);
 #endif
@@ -957,7 +957,7 @@ static int vmR3InitRing3(PVM pVM, PUVM pUVM)
                                     int rc2 = TRPMR3Term(pVM);
                                     AssertRC(rc2);
                                 }
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
                                 int rc2 = SELMR3Term(pVM);
                                 AssertRC(rc2);
 #endif
@@ -1080,11 +1080,11 @@ VMMR3_INT_DECL(void) VMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
     PGMR3Relocate(pVM, 0);              /* Repeat after PDM relocation. */
     CPUMR3Relocate(pVM);
     HMR3Relocate(pVM);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
     SELMR3Relocate(pVM);
 #endif
     VMMR3Relocate(pVM, offDelta);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
     SELMR3Relocate(pVM);                /* !hack! fix stack! */
 #endif
     TRPMR3Relocate(pVM, offDelta);
@@ -2236,7 +2236,7 @@ DECLCALLBACK(int) vmR3Destroy(PVM pVM)
         AssertRC(rc);
         rc = TRPMR3Term(pVM);
         AssertRC(rc);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         rc = SELMR3Term(pVM);
         AssertRC(rc);
 #endif
@@ -2620,7 +2620,7 @@ static DECLCALLBACK(VBOXSTRICTRC) vmR3HardReset(PVM pVM, PVMCPU pVCpu, void *pvU
         GIMR3Reset(pVM);                /* This must come *before* PDM and TM. */
         PDMR3Reset(pVM);
         PGMR3Reset(pVM);
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_X86
         SELMR3Reset(pVM);
 #endif
         TRPMR3Reset(pVM);
@@ -4240,13 +4240,16 @@ VMMR3_INT_DECL(bool) VMR3IsLongModeAllowed(PVM pVM)
 {
     switch (pVM->bMainExecutionEngine)
     {
-#if !defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_WITH_HWVIRT
         case VM_EXEC_ENGINE_HW_VIRT:
             return HMIsLongModeAllowed(pVM);
 #endif
 
         case VM_EXEC_ENGINE_NATIVE_API:
             return NEMHCIsLongModeAllowed(pVM);
+
+        case VM_EXEC_ENGINE_IEM:
+            return true;
 
         case VM_EXEC_ENGINE_NOT_SET:
             AssertFailed();

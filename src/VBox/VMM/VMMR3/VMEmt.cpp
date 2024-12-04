@@ -567,9 +567,9 @@ static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMas
         pUVCpu->vm.s.Halt.Method12.u64StartSpinTS = 0;
     }
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    uint64_t cNsVTimerActivate = TMCpuGetVTimerActivationNano(pVCpu);
-    const bool fVTimerActive = cNsVTimerActivate != UINT64_MAX;
+#ifdef VBOX_VMM_TARGET_ARMV8
+    uint64_t   cNsVTimerActivate = TMCpuGetVTimerActivationNano(pVCpu);
+    const bool fVTimerActive     = cNsVTimerActivate != UINT64_MAX;
 #endif
 
     /*
@@ -589,18 +589,18 @@ static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMas
         STAM_REL_PROFILE_ADD_PERIOD(&pUVCpu->vm.s.StatHaltTimers, cNsElapsedTimers);
         if (    VM_FF_IS_ANY_SET(pVM, VM_FF_EXTERNAL_HALTED_MASK)
             ||  VMCPU_FF_IS_ANY_SET(pVCpu, fMask)
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
             ||  cNsElapsedTimers >= cNsVTimerActivate
 #endif
             )
         {
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
             cNsVTimerActivate = 0;
 #endif
             break;
         }
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
         cNsVTimerActivate -= cNsElapsedTimers;
 #endif
 
@@ -613,7 +613,7 @@ static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMas
             ||  VMCPU_FF_IS_ANY_SET(pVCpu, fMask))
             break;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
         u64NanoTS = RT_MIN(cNsVTimerActivate, u64NanoTS);
 #endif
 
@@ -678,7 +678,7 @@ static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMas
                 &&  Elapsed > 100000 /* 0.1 ms */)
                 fBlockOnce = false;
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
             cNsVTimerActivate -= RT_MIN(cNsVTimerActivate, Elapsed);
             /* Did the vTimer expire? */
             if (!cNsVTimerActivate)
@@ -688,7 +688,7 @@ static DECLCALLBACK(int) vmR3HaltMethod1Halt(PUVMCPU pUVCpu, const uint64_t fMas
     }
     //if (fSpinning) RTLogRelPrintf("spun for %RU64 ns %u loops; lag=%RU64 pct=%d\n", RTTimeNanoTS() - u64Now, cLoops, TMVirtualSyncGetLag(pVM), u32CatchUpPct);
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
     if (fVTimerActive)
     {
         if (!cNsVTimerActivate)
@@ -1156,12 +1156,12 @@ VMMR3_INT_DECL(int) VMR3WaitHalted(PVM pVM, PVMCPU pVCpu, uint32_t fFlags)
     /*
      * Check Relevant FFs.
      */
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    const uint64_t fMaskInterrupts = ((fFlags & VMWAITHALTED_F_IGNORE_IRQS) ? VMCPU_FF_INTERRUPT_IRQ : 0)
+#ifdef VBOX_VMM_TARGET_ARMV8
+    const uint64_t fMaskIrqs = ((fFlags & VMWAITHALTED_F_IGNORE_IRQS) ? VMCPU_FF_INTERRUPT_IRQ : 0)
                                    | ((fFlags & VMWAITHALTED_F_IGNORE_FIQS) ? VMCPU_FF_INTERRUPT_FIQ : 0);
-    const uint64_t fMask = VMCPU_FF_EXTERNAL_HALTED_MASK & ~fMaskInterrupts;
+    const uint64_t fMask     = VMCPU_FF_EXTERNAL_HALTED_MASK & ~fMaskIrqs;
 #else
-    const uint64_t fMask = !(fFlags & VMWAITHALTED_F_IGNORE_IRQS)
+    const uint64_t fMask     = !(fFlags & VMWAITHALTED_F_IGNORE_IRQS)
         ? VMCPU_FF_EXTERNAL_HALTED_MASK
         : VMCPU_FF_EXTERNAL_HALTED_MASK & ~(VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC);
 #endif

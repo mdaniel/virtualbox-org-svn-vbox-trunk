@@ -660,7 +660,8 @@ VMM_INT_DECL(bool) TMCpuTickIsTicking(PVMCPUCC pVCpu)
 }
 
 
-#if defined(VBOX_VMM_TARGET_ARMV8)
+#ifdef VBOX_VMM_TARGET_ARMV8
+
 /**
  * Sets the number of nanoseconds from now when the vTiemr is supposed to expire next.
  *
@@ -687,4 +688,5 @@ VMM_INT_DECL(uint64_t) TMCpuGetVTimerActivationNano(PVMCPUCC pVCpu)
 {
     return pVCpu->cNsVTimerActivate;
 }
-#endif
+
+#endif /* VBOX_VMM_TARGET_ARMV8 */

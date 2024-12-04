@@ -155,7 +155,7 @@ VBOX_PATH_VMM_SRC = $(PATH_ROOT)/src/VBox/VMM
 #
 ifdef VBOX_WITH_RAW_MODE
  tstVMStructRC_TEMPLATE = VBoxRcExe
- tstVMStructRC_DEFS     = VBOX_IN_VMM IN_VMM_RC IN_DIS IN_RT_RC VBOX_WITH_RAW_MODE $(VMM_COMMON_DEFS)
+ tstVMStructRC_DEFS     = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_RC IN_DIS IN_RT_RC VBOX_WITH_RAW_MODE $(VMM_COMMON_DEFS)
  ifdef VBOX_WITH_R0_LOGGING
   tstVMStructRC_DEFS   += VBOX_WITH_R0_LOGGING
  endif
@@ -169,7 +169,7 @@ tstVMStructSize_TEMPLATE = VBoxR3AutoTest
 ifneq ($(KBUILD_TARGET),win)
  tstVMStructSize_CXXFLAGS += $(VBOX_GCC_Wno-invalid-offsetof)
 endif
-tstVMStructSize_DEFS    = VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS)
+tstVMStructSize_DEFS    = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS)
 ifdef VBOX_WITH_RAW_MODE
  tstVMStructSize_DEFS  += VBOX_WITH_RAW_MODE
 endif
@@ -191,7 +191,7 @@ tstAsmStructs_TEMPLATE  = VBoxR3AutoTest
 ifneq ($(KBUILD_TARGET),win)
  tstAsmStructSize_CXXFLAGS += $(VBOX_GCC_Wno-invalid-offsetof)
 endif
-tstAsmStructs_DEFS      = VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS)
+tstAsmStructs_DEFS      = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS)
 ifdef VBOX_WITH_RAW_MODE
  tstAsmStructs_DEFS    += VBOX_WITH_RAW_MODE
 endif
@@ -206,7 +206,7 @@ tstAsmStructs.cpp_DEPS  = $(VBOX_VMM_TESTCASE_OUT_DIR)/tstAsmStructsHC.h
 
 ifdef VBOX_WITH_RAW_MODE
  tstAsmStructsRC_TEMPLATE = VBoxRcExe
- tstAsmStructsRC_DEFS   = VBOX_IN_VMM IN_VMM_RC IN_DIS IN_RT_RC VBOX_WITH_RAW_MODE $(VMM_COMMON_DEFS)
+ tstAsmStructsRC_DEFS   = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_RC IN_DIS IN_RT_RC VBOX_WITH_RAW_MODE $(VMM_COMMON_DEFS)
  ifdef VBOX_WITH_R0_LOGGING
   tstAsmStructsRC_DEFS += VBOX_WITH_R0_LOGGING
  endif
@@ -654,7 +654,7 @@ TSTIEMAIMPL_TEST_DATA_DEPS := \
 	tstIEMAImplDataSsePcmpxstrx-pcmpestrm_u128.bin.gz
 
 tstIEMAImpl_TEMPLATE  = VBoxR3TstExe
-tstIEMAImpl_DEFS      = $(VMM_COMMON_DEFS) IEM_WITHOUT_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS
+tstIEMAImpl_DEFS      = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITHOUT_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS
 tstIEMAImpl_SDKS      = VBoxSoftFloatR3Shared
 tstIEMAImpl_INCS      = ../include .
 tstIEMAImpl_SOURCES   = \
@@ -676,7 +676,7 @@ $(call KB_FN_DO_PASS0_ON_TARGET,tstIEMAImpl)
 # This variant mainly for generating data.
 tstIEMAImplAsm_TEMPLATE      := VBoxR3TstExe
 tstIEMAImplAsm_SDKS          := VBoxSoftFloatR3Shared
-tstIEMAImplAsm_DEFS           = $(VMM_COMMON_DEFS) IEM_WITH_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS TSTIEMAIMPL_WITH_GENERATOR
+tstIEMAImplAsm_DEFS           = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITH_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS TSTIEMAIMPL_WITH_GENERATOR
 tstIEMAImplAsm_ASFLAGS.amd64 := -Werror
 tstIEMAImplAsm_ASFLAGS.x86   := -Werror
 tstIEMAImplAsm_INCS          := ../include .
@@ -700,7 +700,7 @@ tstIEMAImplDataSseBinary.S_DEPS   = \
 #
 tstIEMCheckMc_TEMPLATE  = VBoxR3TstExe
 tstIEMCheckMc_SOURCES   = tstIEMCheckMc.cpp
-tstIEMCheckMc_DEFS      = $(VMM_COMMON_DEFS) IEM_WITHOUT_INSTRUCTION_STATS
+tstIEMCheckMc_DEFS      = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITHOUT_INSTRUCTION_STATS
 tstIEMCheckMc_LIBS      = $(LIB_RUNTIME)
 ifeq ($(KBUILD_TARGET),win)
  tstIEMCheckMc_CXXFLAGS = $(VBOX_C_CXX_FLAGS_NO_UNUSED_PARAMETERS) -wd4189 # local variable is initialized but not used.
@@ -712,7 +712,7 @@ endif
 # Testcase for profiling the native recompiler.
 #
 tstIEMN8veProfiling_TEMPLATE := VBoxR3Exe
-tstIEMN8veProfiling_DEFS      = $(VMM_COMMON_DEFS)
+tstIEMN8veProfiling_DEFS      = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstIEMN8veProfiling_SOURCES  := tstIEMN8veProfiling.cpp
 tstIEMN8veProfiling_LIBS      = $(LIB_VMM) $(LIB_RUNTIME)
 
@@ -721,7 +721,7 @@ tstIEMN8veProfiling_LIBS      = $(LIB_VMM) $(LIB_RUNTIME)
 #
 tstSSM_TEMPLATE         = VBoxR3TstExe
 tstSSM_INCS             = $(VBOX_PATH_VMM_SRC)/include
-tstSSM_DEFS             = $(VMM_COMMON_DEFS)
+tstSSM_DEFS             = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstSSM_SOURCES          = tstSSM.cpp
 tstSSM_LIBS             = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
@@ -741,7 +741,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
 else
  tstCFGM_TEMPLATE        = VBoxR3SignedTstExe
 endif
-tstCFGM_DEFS             = $(VMM_COMMON_DEFS)
+tstCFGM_DEFS             = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstCFGM_SOURCES          = tstCFGM.cpp
 tstCFGM_LIBS             = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
@@ -780,7 +780,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
 else
  tstVMREQ_TEMPLATE        = VBoxR3SignedExe
 endif
-tstVMREQ_DEFS             = $(VMM_COMMON_DEFS)
+tstVMREQ_DEFS             = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstVMREQ_SOURCES          = tstVMREQ.cpp
 tstVMREQ_LIBS             = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
@@ -800,7 +800,7 @@ if defined(VBOX_WITH_HARDENING) && "$(KBUILD_TARGET)" == "win"
 else
  tstAnimate_TEMPLATE        = VBoxR3SignedExe
 endif
-tstAnimate_DEFS             = $(VMM_COMMON_DEFS)
+tstAnimate_DEFS             = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS)
 tstAnimate_SOURCES          = tstAnimate.cpp
 tstAnimate_LIBS             = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
 
@@ -917,7 +917,7 @@ endif
 # PDM Queue tests.
 #
 tstPDMQueue_TEMPLATE := VBoxR3Exe
-tstPDMQueue_DEFS     = $(VMM_COMMON_DEFS)
+tstPDMQueue_DEFS      = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
 tstPDMQueue_SOURCES  := tstPDMQueue.cpp
 tstPDMQueue_LIBS     := $(LIB_VMM) $(LIB_RUNTIME)
 
@@ -939,7 +939,7 @@ ifdef VBOX_WITH_PDM_ASYNC_COMPLETION
  else
   tstPDMAsyncCompletion_TEMPLATE       = VBoxR3SignedExe
  endif
- tstPDMAsyncCompletion_DEFS            = $(VMM_COMMON_DEFS)
+ tstPDMAsyncCompletion_DEFS            = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
  tstPDMAsyncCompletion_INCS            = $(VBOX_PATH_VMM_SRC)/include
  tstPDMAsyncCompletion_SOURCES         = tstPDMAsyncCompletion.cpp
  tstPDMAsyncCompletion_LIBS            = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
@@ -960,7 +960,7 @@ ifdef VBOX_WITH_PDM_ASYNC_COMPLETION
  else
   tstPDMAsyncCompletionStress_TEMPLATE = VBoxR3SignedExe
  endif
- tstPDMAsyncCompletionStress_DEFS      = $(VMM_COMMON_DEFS)
+ tstPDMAsyncCompletionStress_DEFS      = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
  tstPDMAsyncCompletionStress_INCS      = $(VBOX_PATH_VMM_SRC)/include
  tstPDMAsyncCompletionStress_SOURCES   = tstPDMAsyncCompletionStress.cpp
  tstPDMAsyncCompletionStress_LIBS      = $(LIB_VMM) $(LIB_REM) $(LIB_RUNTIME)
@@ -969,7 +969,7 @@ endif
 ifndef VBOX_ONLY_EXTPACKS
  PROGRAMS += tstSSM-2
  tstSSM-2_TEMPLATE      = VBoxR3TstExe
- tstSSM-2_DEFS          = IN_VMM_STATIC
+ tstSSM-2_DEFS          = VBOX_VMM_TARGET_AGNOSTIC IN_VMM_STATIC
  tstSSM-2_SOURCES       = tstSSM-2.cpp
  tstSSM-2_LIBS          = $(PATH_STAGE_LIB)/SSMStandalone$(VBOX_SUFF_LIB)
 endif
@@ -982,7 +982,7 @@ if   !defined(VBOX_ONLY_EXTPACKS) \
       || defined(VBOX_WITH_DTRACE_R0) \
   || defined(VBOX_WITH_DTRACE_RC))
  tstVMStructDTrace_TEMPLATE = VBoxR3AutoTest
- tstVMStructDTrace_DEFS    = VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS) IEM_WITHOUT_INSTRUCTION_STATS
+ tstVMStructDTrace_DEFS    = VBOX_VMM_TARGET_AGNOSTIC VBOX_IN_VMM IN_VMM_R3 IN_DIS $(VMM_COMMON_DEFS) IEM_WITHOUT_INSTRUCTION_STATS
  ifdef VBOX_WITH_RAW_MODE
   tstVMStructDTrace_DEFS  += VBOX_WITH_RAW_MODE
  endif
@@ -1024,7 +1024,7 @@ MY_ASA_ASM_STUFF = \
 		IN_RING3 $(ARCH_BITS_DEFS) \
 		$(DEFS.$(KBUILD_TARGET_ARCH)) \
 		$(DEFS.$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)) \
-		$(VMM_COMMON_DEFS) \
+		VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) \
 		) \
 	-f $(if $(eq $(KBUILD_TARGET),darwin),macho,$(if $(eq $(KBUILD_TARGET),win),coff,elf)) \
 	$(foreach inc,$(INCS) $(VBOX_PATH_VMM_SRC)/testcase $(VBOX_PATH_VMM_SRC)/include $(VBOX_VMM_TESTCASE_OUT_DIR) \

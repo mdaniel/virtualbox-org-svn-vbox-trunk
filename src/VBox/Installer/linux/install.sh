@@ -380,27 +380,29 @@ if [ "$ACTION" = "install" ]; then
         ln -sf VBoxAudioTest /usr/bin/vboxaudiotest > /dev/null 2>&1
     fi
 
-    # Icons
-    cur=`pwd`
-    cd $INSTALLATION_DIR/icons
-    for i in *; do
-        cd $i
-        if [ -d /usr/share/icons/hicolor/$i ]; then
-            for j in *; do
-                if expr "$j" : "virtualbox\..*" > /dev/null; then
-                    dst=apps
-                else
-                    dst=mimetypes
-                fi
-                if [ -d /usr/share/icons/hicolor/$i/$dst ]; then
-                    ln -s $INSTALLATION_DIR/icons/$i/$j /usr/share/icons/hicolor/$i/$dst/$j
-                    echo /usr/share/icons/hicolor/$i/$dst/$j >> $CONFIG_DIR/$CONFIG_FILES
-                fi
-            done
-        fi
-        cd -
-    done
-    cd $cur
+    # Icons (if FE/Qt is included)
+    if [ -d $INSTALLATION_DIR/icons ]; then
+        cur=`pwd`
+        cd $INSTALLATION_DIR/icons
+        for i in *; do
+            cd $i
+            if [ -d /usr/share/icons/hicolor/$i ]; then
+                for j in *; do
+                    if expr "$j" : "virtualbox\..*" > /dev/null; then
+                        dst=apps
+                    else
+                        dst=mimetypes
+                    fi
+                    if [ -d /usr/share/icons/hicolor/$i/$dst ]; then
+                        ln -s $INSTALLATION_DIR/icons/$i/$j /usr/share/icons/hicolor/$i/$dst/$j
+                        echo /usr/share/icons/hicolor/$i/$dst/$j >> $CONFIG_DIR/$CONFIG_FILES
+                    fi
+                done
+            fi
+            cd -
+        done
+        cd $cur
+    fi
 
     # Update the MIME database
     update-mime-database /usr/share/mime 2>/dev/null

@@ -8052,7 +8052,8 @@ if defined(VBOX_WITH_QTGUI) || defined(VBOX_WITH_NLS)
    ifeq ($(KBUILD_TARGET),linux)
     VBOX_QT_PLUGINS += \
     	plugins/platforms/libqwayland-generic$(VBOX_QT_POSTFIX).so \
-    	plugins/wayland-shell-integration/libxdg-shell$(VBOX_QT_POSTFIX).so
+    	plugins/wayland-shell-integration/libxdg-shell$(VBOX_QT_POSTFIX).so \
+    	plugins/wayland-decoration-client/libbradient$(VBOX_QT_POSTFIX).so
    endif
   else ifeq ($(KBUILD_TARGET),win)
    VBOX_QT_MOD += Qt6Core Qt6Gui Qt6Widgets Qt6PrintSupport Qt6StateMachine Qt6Help Qt6Network Qt6Sql

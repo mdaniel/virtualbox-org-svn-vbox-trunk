@@ -44,8 +44,8 @@
   Push $1
 
   ; Check that the options are valid.
-  ${IfNot}    ${options} != "exitcode=0"
-  ${AndIfNot} ${options} != "ignore-exitcode"
+  ${If}    ${options} != "non-zero-exitcode=log"
+  ${AndIf} ${options} != "non-zero-exitcode=abort"
     Abort "Internal error in _cmdExecute: options=${options} cmdline=${cmdline}"
   ${EndIf}
 
@@ -57,7 +57,7 @@
     nsExec::ExecToStack "${cmdline}"
     Pop $0 ; Return value (exit code)
     Pop $1 ; Stdout/stderr output (up to ${NSIS_MAX_STRLEN})
-    ${LogVerbose} "$1"
+    ${LogVerbose} "exit code=$0: $1"
   ${Else}
     nsExec::ExecToLog "${cmdline}"
     Pop $0 ; Return value (exit code)
@@ -68,8 +68,9 @@
   ;
   ; Check if it failed and take action according to the 2nd argument.
   ;
-  ${If} $0 <> 0
-    ${If} ${options} == "exitcode=0"
+  ${If}   $0 <> 0
+  ${OrIf} $0 == "error" ; Issued by the nsExec plugin if the DLL call failed (messy handling within nsExec, sigh).
+    ${If} ${options} == "non-zero-exitcode=abort"
       ${LogVerbose} "Error excuting $\"${cmdline}$\" (exit code: $0) -- aborting installation"
       Abort "Error excuting $\"${cmdline}$\" (exit code: $0) -- aborting installation"
     ${Else}

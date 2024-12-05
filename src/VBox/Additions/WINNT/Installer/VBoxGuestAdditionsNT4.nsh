@@ -221,9 +221,7 @@ FunctionEnd
 !macro NT4_UninstallInstDir un
 Function ${un}NT4_UninstallInstDir
 
-  ; Delete remaining files
-  Delete /REBOOTOK "$INSTDIR\VBoxGuestDrvInst.exe"
-  Delete /REBOOTOK "$INSTDIR\RegCleanup.exe"
+  ; Nothing to do here.
 
 FunctionEnd
 !macroend

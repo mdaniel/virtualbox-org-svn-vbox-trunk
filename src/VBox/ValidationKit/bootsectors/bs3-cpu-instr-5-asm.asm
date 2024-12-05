@@ -1,6 +1,6 @@
 ; $Id$
 ;; @file
-; BS3Kit - bs3-cpu-instr-4 & bs3-cpu-instr-5 - SSE, AVX FPU instructions.
+; BS3Kit - bs3-cpu-instr-5 - SSE, AVX FPU instructions (continued).
 ;
 
 ;
@@ -35,14 +35,4 @@
 ;
 
 
-;*********************************************************************************************************************************
-;*  Header Files                                                                                                                 *
-;*********************************************************************************************************************************
-%include "bs3kit.mac"
-
-;
-; Instantiate code templates.
-;
-BS3_INSTANTIATE_COMMON_TEMPLATE          "bs3-cpu-instr-4-template.mac"
-BS3_INSTANTIATE_TEMPLATE_WITH_WEIRD_ONES "bs3-cpu-instr-4-template.mac"
-
+%include "bs3-cpu-instr-4-asm.asm"

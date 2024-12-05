@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * BS3Kit - bs3-cpu-instr-4 - SSE, AVX FPU instructions, C code template.
+ * BS3Kit - bs3-cpu-instr-4 & bs3-cpu-instr-5 - SSE, AVX FPU instructions, C code template.
  */
 
 /*
@@ -39,7 +39,16 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #include <bs3kit.h>
-#include "bs3-cpu-instr-4-asm-auto.h"
+#if !defined(BS3_CPU_INSTR_4) && !defined(BS3_CPU_INSTR_5)
+  /** @todo both won't actually fit in a single floppy boot image, but future code changes could improve that */
+# error "Must define either or both of 'BS3_CPU_INSTR_4' or 'BS3_CPU_INSTR_5'"
+#endif
+#if defined(BS3_CPU_INSTR_4)
+# include "bs3-cpu-instr-4-asm-auto.h"
+#endif
+#if defined(BS3_CPU_INSTR_5)
+# include "bs3-cpu-instr-5-asm-auto.h"
+#endif
 #include "bs3-cpu-instr-x-regs.c32"
 
 #include <iprt/asm.h>
@@ -687,6 +696,7 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig3[] =
     { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #14 */
 };
 
+#if defined(BS3_CPU_INSTR_5)
 /** Exceptions type 4 (>=16 Byte Memory Reference, not explicitly aligned, No Floating-point Exceptions) test configurations. */
 /** Intel 64 & IA-32 Architecture SDM Vol 2A Table 2-21, "Type 4 Class Exception Conditions." */
 /** Identical to g_aXcptConfig2 except no '!MMEXCPT' test for instructions which cannot raise SIMD exceptions */
@@ -814,6 +824,7 @@ static const BS3CPUINSTR4_CONFIG_T g_aXcptConfig23_6[] =
     { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        0,      1,      X86_XCPT_DB, X86_XCPT_GP, "AMDmm-AC" }, /* #9 */
     { 0, 0,  0,  1,      1,       1,         1,   1,   0,       0,        1,      1,      X86_XCPT_AC, X86_XCPT_GP, "AMDmm+AC" }, /* #10 */
 };
+#endif /* BS3_CPU_INSTR_5 */
 
 /**
  * Table D-1: Packed single-precision floating-point invalid values.
@@ -3259,6 +3270,7 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3C
  */
 
 
+#if defined(BS3_CPU_INSTR_4)
 /*
  * [V]ADDPS.
  */
@@ -12526,8 +12538,10 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_minsd(uint8_t bMode)
 
     return bs3CpuInstr4_WorkerTestType1(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3));
 }
+#endif /* BS3_CPU_INSTR_4 */
 
 
+#if defined(BS3_CPU_INSTR_5)
 /*
  * [V]RCPPS.
  */
@@ -24422,6 +24436,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cvtss2sd(uint8_t bMode)
 
     return bs3CpuInstr4_WorkerTestType1(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3));
 }
+#endif /* BS3_CPU_INSTR_5 */
 
 
 /**
@@ -24443,6 +24458,7 @@ BS3_DECL(void) Main_pe32()
 # define ALL_TESTS
 #endif
 #if defined(ALL_TESTS)
+# if defined(BS3_CPU_INSTR_4)
         { "[v]addps",       bs3CpuInstr4_v_addps,     0 },
         { "[v]addpd",       bs3CpuInstr4_v_addpd,     0 },
         { "[v]addss",       bs3CpuInstr4_v_addss,     0 },
@@ -24473,6 +24489,8 @@ BS3_DECL(void) Main_pe32()
         { "[v]minpd",       bs3CpuInstr4_v_minpd,     0 },
         { "[v]minss",       bs3CpuInstr4_v_minss,     0 },
         { "[v]minsd",       bs3CpuInstr4_v_minsd,     0 },
+# endif /* BS3_CPU_INSTR_4 */
+# if defined(BS3_CPU_INSTR_5)
         { "[v]rcpps",       bs3CpuInstr4_v_rcpps,     0 },
         { "[v]rcpss",       bs3CpuInstr4_v_rcpss,     0 },
         { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,    0 },
@@ -24515,9 +24533,16 @@ BS3_DECL(void) Main_pe32()
         { "[v]cvtps2pd",    bs3CpuInstr4_v_cvtps2pd,  0 },
         { "[v]cvtsd2ss",    bs3CpuInstr4_v_cvtsd2ss,  0 },
         { "[v]cvtss2sd",    bs3CpuInstr4_v_cvtss2sd,  0 },
+# endif /* BS3_CPU_INSTR_5 */
 #endif
     };
+#if defined(BS3_CPU_INSTR_4) && defined(BS3_CPU_INSTR_5)
+    Bs3TestInit("bs3-cpu-instr-4+5");
+#elif defined(BS3_CPU_INSTR_4)
     Bs3TestInit("bs3-cpu-instr-4");
+#elif defined(BS3_CPU_INSTR_5)
+    Bs3TestInit("bs3-cpu-instr-5");
+#endif
 
     /*
      * Initialize globals.

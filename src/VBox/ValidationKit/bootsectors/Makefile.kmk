@@ -452,6 +452,7 @@ ifdef VBOX_WITH_BS3KIT
  MISCBINS += bs3-cpu-instr-4
  bs3-cpu-instr-4_TEMPLATE = VBoxBS3KitImg
  bs3-cpu-instr-4_INCS = . $(bs3-cpu-instr-4_0_OUTDIR)
+ bs3-cpu-instr-4_DEFS = BS3_CPU_INSTR_4
  bs3-cpu-instr-4_SOURCES = \
  	bs3kit/bs3-first-init-all-pe32.asm \
  	bs3-cpu-instr-4.c32 \
@@ -465,6 +466,27 @@ ifdef VBOX_WITH_BS3KIT
 
  bs3-cpu-instr-4-template.o:: \
  		$$(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm.o16
+
+ #
+ # CPU instructions #5 - SSE, AVX, ++ FPU instructions (continued).
+ #
+ MISCBINS += bs3-cpu-instr-5
+ bs3-cpu-instr-5_TEMPLATE = VBoxBS3KitImg
+ bs3-cpu-instr-5_INCS = . $(bs3-cpu-instr-5_0_OUTDIR)
+ bs3-cpu-instr-5_DEFS = BS3_CPU_INSTR_5
+ bs3-cpu-instr-5_SOURCES = \
+ 	bs3kit/bs3-first-init-all-pe32.asm \
+ 	bs3-cpu-instr-5.c32 \
+ 	bs3-cpu-instr-5-asm.asm
+ bs3-cpu-instr-5.c32_DEPS = $(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm-auto.h
+ bs3-cpu-instr-5_CLEANS = $(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm-auto.h
+
+ $$(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm-auto.h: \
+ 		$$(VBoxBs3Obj2Hdr_1_TARGET) $$(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm.o16
+	$(VBoxBs3Obj2Hdr_1_TARGET) --output "$@" "$(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm.o16"
+
+ bs3-cpu-instr-5-template.o:: \
+ 		$$(bs3-cpu-instr-5_0_OUTDIR)/bs3-cpu-instr-5-asm.o16
 
  #
  # CPU generated instruction tests #1

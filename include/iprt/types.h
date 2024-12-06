@@ -201,6 +201,21 @@ RT_C_DECLS_END
 
 # else
 #  include <stddef.h>
+#  if defined(RT_OS_SOLARIS) && defined(VBOX_WITH_PARFAIT) && defined(_KERNEL) && defined(__INT_FAST16_MAX__)
+    /* HACK ALERT: Workaround for duplicate [u]int_fast16_t conflicting due to 'incorrect'
+                   __INT_FAST16_TYPE__ and __UINT_FAST16_TYPE__ definitions in pairfait.
+                   The types are usually 'int' and 'unsigned int', which the system headers
+                   assume, thus we get a conflict when the pairfait compiler redefines to
+                   a narrow variant.  Workaround, try ignore the system types and use the
+                   compiler ones... */
+#   if (__INT_FAST16_MAX__) == 32767
+#    define int_fast16_t  hacked_int_fast16_t
+#    define uint_fast16_t hacked_uint_fast16_t
+#    include <sys/int_types.h>
+#    undef  int_fast16_t
+#    undef  uint_fast16_t
+#   endif
+#  endif
 #  include <sys/types.h>
 # endif
 

@@ -807,7 +807,7 @@ typedef enum VBOXLOGGROUP
     /** USB driver group. */
     LOG_GROUP_USB_DRV,
     /** USB Ethernet device group. */
-    LOG_GROUP_USB_ETH,
+    LOG_GROUP_USB_NET,
     /** USBFilter group. */
     LOG_GROUP_USB_FILTER,
     /** USB keyboard device group. */

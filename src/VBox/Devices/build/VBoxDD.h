@@ -204,7 +204,7 @@ extern const PDMUSBREG g_UsbMsd;
 extern const PDMUSBREG g_UsbHid;
 extern const PDMUSBREG g_UsbHidKbd;
 extern const PDMUSBREG g_UsbHidMou;
-extern const PDMUSBREG g_UsbEth;
+extern const PDMUSBREG g_UsbNet;
 #endif
 #ifdef VBOX_WITH_USB_VIDEO_IMPL
 extern const PDMUSBREG g_DevWebcam;

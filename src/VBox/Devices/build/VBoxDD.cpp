@@ -533,7 +533,7 @@ extern "C" DECLEXPORT(int) VBoxUsbRegister(PCPDMUSBREGCB pCallbacks, uint32_t u3
     rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbHidMou);
     if (RT_FAILURE(rc))
         return rc;
-    rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbEth);
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbNet);
     if (RT_FAILURE(rc))
         return rc;
 #endif

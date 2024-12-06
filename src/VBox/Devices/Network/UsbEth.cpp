@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * UsbMSD - USB Mass Storage Device Emulation.
+ * UsbNet - USB NCM Ethernet Device Emulation.
  */
 
 /*
@@ -29,7 +29,7 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#define LOG_GROUP   LOG_GROUP_USB_ETH
+#define LOG_GROUP   LOG_GROUP_USB_NET
 #include <VBox/vmm/pdmusb.h>
 #include <VBox/vmm/pdmnetifs.h>
 #include <VBox/vmm/pdmnetinline.h>
@@ -50,15 +50,15 @@
 *********************************************************************************************************************************/
 /** @name USB Ethernet string IDs
  * @{ */
-#define USBETH_STR_ID_MANUFACTURER  1
-#define USBETH_STR_ID_PRODUCT       2
-#define USBETH_STR_ID_MAC_ADDRESS   3
+#define USBNET_STR_ID_MANUFACTURER  1
+#define USBNET_STR_ID_PRODUCT       2
+#define USBNET_STR_ID_MAC_ADDRESS   3
 /** @} */
 
-/** @name USB MSD vendor and product IDs
+/** @name USB Ethernet vendor and product IDs
  * @{ */
 #define VBOX_USB_VENDOR             0x80EE
-#define USBETH_PID                  0x0040
+#define USBNET_PID                  0x0040
 /** @} */
 
 
@@ -314,34 +314,34 @@ typedef const USBNCMNDP32 *PCUSBNCMNDP32;
 /**
  * Endpoint status data.
  */
-typedef struct USBETHEP
+typedef struct USBNETEP
 {
     bool                fHalted;
-} USBETHEP;
+} USBNETEP;
 /** Pointer to the endpoint status. */
-typedef USBETHEP *PUSBETHEP;
+typedef USBNETEP *PUSBNETEP;
 
 
 /**
  * A URB queue.
  */
-typedef struct USBETHURBQUEUE
+typedef struct USBNETURBQUEUE
 {
     /** The head pointer. */
     PVUSBURB            pHead;
     /** Where to insert the next entry. */
     PVUSBURB           *ppTail;
-} USBETHURBQUEUE;
+} USBNETURBQUEUE;
 /** Pointer to a URB queue. */
-typedef USBETHURBQUEUE *PUSBETHURBQUEUE;
+typedef USBNETURBQUEUE *PUSBNETURBQUEUE;
 /** Pointer to a const URB queue. */
-typedef USBETHURBQUEUE const *PCUSBETHURBQUEUE;
+typedef USBNETURBQUEUE const *PCUSBNETURBQUEUE;
 
 
 /**
  * The USB Ethernet instance data.
  */
-typedef struct USBETH
+typedef struct USBNET
 {
     /** Pointer back to the PDM USB Device instance structure. */
     PPDMUSBINS                          pUsbIns;
@@ -358,7 +358,7 @@ typedef struct USBETH
 
     /** Endpoint 0 is the default control pipe, 1 is the host->dev bulk pipe and 2
      * is the dev->host one, and 3 is the interrupt dev -> host one. */
-    USBETHEP                            aEps[4];
+    USBNETEP                            aEps[4];
 
     /** The "hardware" MAC address. */
     RTMAC                               MacConfigured;
@@ -384,15 +384,15 @@ typedef struct USBETH
      * The URBs waiting here are pending the completion of the current request and
      * data or status to become available.
      */
-    USBETHURBQUEUE                      ToHostQueue;
+    USBNETURBQUEUE                      ToHostQueue;
     /** Pending to-host interrupt queue.
      * The URBs waiting here are pending the completion of the current request and
      * data or status to become available.
      */
-    USBETHURBQUEUE                      ToHostIntrQueue;
+    USBNETURBQUEUE                      ToHostIntrQueue;
     /** Done queue
      * The URBs stashed here are waiting to be reaped. */
-    USBETHURBQUEUE                      DoneQueue;
+    USBNETURBQUEUE                      DoneQueue;
     /** Signalled when adding an URB to the done queue and fHaveDoneQueueWaiter
      *  is set. */
     RTSEMEVENT                          hEvtDoneQueue;
@@ -406,7 +406,7 @@ typedef struct USBETH
 
     /** Whether to signal the reset semaphore when the current request completes. */
     bool                                fSignalResetSem;
-    /** Semaphore usbMsdUsbReset waits on when a request is executing at reset
+    /** Semaphore usbNetUsbReset waits on when a request is executing at reset
      *  time.  Only signalled when fSignalResetSem is set. */
     RTSEMEVENTMULTI                     hEvtReset;
     /** The reset URB.
@@ -431,15 +431,15 @@ typedef struct USBETH
         R3PTRTYPE(PPDMIBASE)                pIBase;
     } Lun0;
 
-} USBETH;
+} USBNET;
 /** Pointer to the USB Ethernet instance data. */
-typedef USBETH *PUSBETH;
+typedef USBNET *PUSBNET;
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-static const USBNCMFUNCDESC g_UsbEthFuncDesc =
+static const USBNCMFUNCDESC g_UsbNetFuncDesc =
 {
     {
         { 5, USB_CDC_DESCRIPTOR_TYPE_INTERFACE, USB_CDC_DESCRIPTOR_SUB_TYPE_HEADER },
@@ -452,7 +452,7 @@ static const USBNCMFUNCDESC g_UsbEthFuncDesc =
     },
     {
         { 13, USB_CDC_DESCRIPTOR_TYPE_INTERFACE, USB_CDC_DESCRIPTOR_SUB_TYPE_ETHERNET_NETWORKING },
-        USBETH_STR_ID_MAC_ADDRESS,
+        USBNET_STR_ID_MAC_ADDRESS,
         0,
         1514,
         0,
@@ -466,7 +466,7 @@ static const USBNCMFUNCDESC g_UsbEthFuncDesc =
 };
 
 
-static const VUSBDESCIAD g_UsbEthInterfaceIad =
+static const VUSBDESCIAD g_UsbNetInterfaceIad =
 {
     sizeof(VUSBDESCIAD), // bLength;
     VUSB_DT_INTERFACE_ASSOCIATION, // bDescriptorType;
@@ -479,7 +479,7 @@ static const VUSBDESCIAD g_UsbEthInterfaceIad =
 };
 
 
-static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1FS[3] =
+static const VUSBDESCENDPOINTEX g_aUsbNetEndpointDescsAlt1FS[3] =
 {
     {
         {
@@ -526,7 +526,7 @@ static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1FS[3] =
     },
 };
 
-static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1HS[3] =
+static const VUSBDESCENDPOINTEX g_aUsbNetEndpointDescsAlt1HS[3] =
 {
     {
         {
@@ -573,7 +573,7 @@ static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1HS[3] =
     },
 };
 
-static const VUSBDESCSSEPCOMPANION g_aUsbEthEpCompanionSS =
+static const VUSBDESCSSEPCOMPANION g_aUsbNetEpCompanionSS =
 {
     /* .bLength = */            sizeof(VUSBDESCSSEPCOMPANION),
     /* .bDescriptorType = */    VUSB_DT_SS_ENDPOINT_COMPANION,
@@ -582,7 +582,7 @@ static const VUSBDESCSSEPCOMPANION g_aUsbEthEpCompanionSS =
     /* .wBytesPerInterval = */  0   /* not a periodic endpoint */
 };
 
-static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1SS[3] =
+static const VUSBDESCENDPOINTEX g_aUsbNetEndpointDescsAlt1SS[3] =
 {
     {
         {
@@ -596,8 +596,8 @@ static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1SS[3] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        /* .pvSsepc = */    &g_aUsbEthEpCompanionSS,
-        /* .cbSsepc = */    sizeof(g_aUsbEthEpCompanionSS)
+        /* .pvSsepc = */    &g_aUsbNetEpCompanionSS,
+        /* .cbSsepc = */    sizeof(g_aUsbNetEpCompanionSS)
     },
     {
         {
@@ -611,8 +611,8 @@ static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1SS[3] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        /* .pvSsepc = */    &g_aUsbEthEpCompanionSS,
-        /* .cbSsepc = */    sizeof(g_aUsbEthEpCompanionSS)
+        /* .pvSsepc = */    &g_aUsbNetEpCompanionSS,
+        /* .cbSsepc = */    sizeof(g_aUsbNetEpCompanionSS)
     },
     {
         {
@@ -626,13 +626,13 @@ static const VUSBDESCENDPOINTEX g_aUsbEthEndpointDescsAlt1SS[3] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        /* .pvSsepc = */    &g_aUsbEthEpCompanionSS,
-        /* .cbSsepc = */    sizeof(g_aUsbEthEpCompanionSS)
+        /* .pvSsepc = */    &g_aUsbNetEpCompanionSS,
+        /* .cbSsepc = */    sizeof(g_aUsbNetEpCompanionSS)
     },
 };
 
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescFS_0[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescFS_0[] =
 {
     {
         {
@@ -647,15 +647,15 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescFS_0[] =
             /* .iInterface = */             0
         },
         /* .pvMore = */      NULL,
-        /* .pvClass = */     &g_UsbEthFuncDesc,
-        /* .cbClass = */     sizeof(g_UsbEthFuncDesc),
-        /* .paEndpoints = */  &g_aUsbEthEndpointDescsAlt1FS[2],
-        /* .pIAD = */        &g_UsbEthInterfaceIad,
-        /* .cbIAD = */       sizeof(g_UsbEthInterfaceIad)
+        /* .pvClass = */     &g_UsbNetFuncDesc,
+        /* .cbClass = */     sizeof(g_UsbNetFuncDesc),
+        /* .paEndpoints = */  &g_aUsbNetEndpointDescsAlt1FS[2],
+        /* .pIAD = */        &g_UsbNetInterfaceIad,
+        /* .cbIAD = */       sizeof(g_UsbNetInterfaceIad)
     }
 };
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescFS_1[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescFS_1[] =
 {
     {
         {
@@ -691,14 +691,14 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescFS_1[] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        &g_aUsbEthEndpointDescsAlt1FS[0],
-        /* .pIAD = */        NULL, //&g_UsbEthInterfaceIad,
-        /* .cbIAD = */       0, //sizeof(g_UsbEthInterfaceIad)
+        &g_aUsbNetEndpointDescsAlt1FS[0],
+        /* .pIAD = */        NULL, //&g_UsbNetInterfaceIad,
+        /* .cbIAD = */       0, //sizeof(g_UsbNetInterfaceIad)
     }
 };
 
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescHS_0[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescHS_0[] =
 {
     {
         {
@@ -713,15 +713,15 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescHS_0[] =
             /* .iInterface = */             0
         },
         /* .pvMore = */      NULL,
-        /* .pvClass = */     &g_UsbEthFuncDesc,
-        /* .cbClass = */     sizeof(g_UsbEthFuncDesc),
-        /* .paEndpoints = */  &g_aUsbEthEndpointDescsAlt1HS[2],
-        /* .pIAD = */        &g_UsbEthInterfaceIad,
-        /* .cbIAD = */       sizeof(g_UsbEthInterfaceIad)
+        /* .pvClass = */     &g_UsbNetFuncDesc,
+        /* .cbClass = */     sizeof(g_UsbNetFuncDesc),
+        /* .paEndpoints = */  &g_aUsbNetEndpointDescsAlt1HS[2],
+        /* .pIAD = */        &g_UsbNetInterfaceIad,
+        /* .cbIAD = */       sizeof(g_UsbNetInterfaceIad)
     }
 };
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescHS_1[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescHS_1[] =
 {
     {
         {
@@ -757,14 +757,14 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescHS_1[] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        &g_aUsbEthEndpointDescsAlt1HS[0],
-        /* .pIAD = */        NULL, //&g_UsbEthInterfaceIad,
-        /* .cbIAD = */       0, //sizeof(g_UsbEthInterfaceIad)
+        &g_aUsbNetEndpointDescsAlt1HS[0],
+        /* .pIAD = */        NULL, //&g_UsbNetInterfaceIad,
+        /* .cbIAD = */       0, //sizeof(g_UsbNetInterfaceIad)
     }
 };
 
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescSS_0[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescSS_0[] =
 {
     {
         {
@@ -779,15 +779,15 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescSS_0[] =
             /* .iInterface = */             0
         },
         /* .pvMore = */      NULL,
-        /* .pvClass = */     &g_UsbEthFuncDesc,
-        /* .cbClass = */     sizeof(g_UsbEthFuncDesc),
-        /* .paEndpoints = */  &g_aUsbEthEndpointDescsAlt1SS[2],
-        /* .pIAD = */        &g_UsbEthInterfaceIad,
-        /* .cbIAD = */       sizeof(g_UsbEthInterfaceIad)
+        /* .pvClass = */     &g_UsbNetFuncDesc,
+        /* .cbClass = */     sizeof(g_UsbNetFuncDesc),
+        /* .paEndpoints = */  &g_aUsbNetEndpointDescsAlt1SS[2],
+        /* .pIAD = */        &g_UsbNetInterfaceIad,
+        /* .cbIAD = */       sizeof(g_UsbNetInterfaceIad)
     }
 };
 
-static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescSS_1[] =
+static const VUSBDESCINTERFACEEX g_aUsbNetInterfaceDescSS_1[] =
 {
     {
         {
@@ -823,37 +823,37 @@ static const VUSBDESCINTERFACEEX g_aUsbEthInterfaceDescSS_1[] =
         /* .pvMore = */     NULL,
         /* .pvClass = */    NULL,
         /* .cbClass = */    0,
-        &g_aUsbEthEndpointDescsAlt1SS[0],
-        /* .pIAD = */        NULL, //&g_UsbEthInterfaceIad,
-        /* .cbIAD = */       0, //sizeof(g_UsbEthInterfaceIad)
+        &g_aUsbNetEndpointDescsAlt1SS[0],
+        /* .pIAD = */        NULL, //&g_UsbNetInterfaceIad,
+        /* .cbIAD = */       0, //sizeof(g_UsbNetInterfaceIad)
     }
 };
 
-static const VUSBINTERFACE g_aUsbEthInterfacesFS[] =
+static const VUSBINTERFACE g_aUsbNetInterfacesFS[] =
 {
-    { g_aUsbEthInterfaceDescFS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescFS_0) },
-    { g_aUsbEthInterfaceDescFS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescFS_1) },
+    { g_aUsbNetInterfaceDescFS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescFS_0) },
+    { g_aUsbNetInterfaceDescFS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescFS_1) },
 };
 
-static const VUSBINTERFACE g_aUsbEthInterfacesHS[] =
+static const VUSBINTERFACE g_aUsbNetInterfacesHS[] =
 {
-    { g_aUsbEthInterfaceDescHS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescHS_0) },
-    { g_aUsbEthInterfaceDescHS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescHS_1) },
+    { g_aUsbNetInterfaceDescHS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescHS_0) },
+    { g_aUsbNetInterfaceDescHS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescHS_1) },
 };
 
-static const VUSBINTERFACE g_aUsbEthInterfacesSS[] =
+static const VUSBINTERFACE g_aUsbNetInterfacesSS[] =
 {
-    { g_aUsbEthInterfaceDescSS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescSS_0) },
-    { g_aUsbEthInterfaceDescSS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbEthInterfaceDescSS_1) },
+    { g_aUsbNetInterfaceDescSS_0, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescSS_0) },
+    { g_aUsbNetInterfaceDescSS_1, /* .cSettings = */ RT_ELEMENTS(g_aUsbNetInterfaceDescSS_1) },
 };
 
-static const VUSBDESCCONFIGEX g_UsbEthConfigDescFS =
+static const VUSBDESCCONFIGEX g_UsbNetConfigDescFS =
 {
     {
         /* .bLength = */            sizeof(VUSBDESCCONFIG),
         /* .bDescriptorType = */    VUSB_DT_CONFIG,
         /* .wTotalLength = */       0 /* recalculated on read */,
-        /* .bNumInterfaces = */     RT_ELEMENTS(g_aUsbEthInterfacesFS),
+        /* .bNumInterfaces = */     RT_ELEMENTS(g_aUsbNetInterfacesFS),
         /* .bConfigurationValue =*/ 1,
         /* .iConfiguration = */     0,
         /* .bmAttributes = */       RT_BIT(7),
@@ -862,17 +862,17 @@ static const VUSBDESCCONFIGEX g_UsbEthConfigDescFS =
     NULL,                           /* pvMore */
     NULL,                           /* pvClass */
     0,                              /* cbClass */
-    &g_aUsbEthInterfacesFS[0],
+    &g_aUsbNetInterfacesFS[0],
     NULL                            /* pvOriginal */
 };
 
-static const VUSBDESCCONFIGEX g_UsbEthConfigDescHS =
+static const VUSBDESCCONFIGEX g_UsbNetConfigDescHS =
 {
     {
         /* .bLength = */            sizeof(VUSBDESCCONFIG),
         /* .bDescriptorType = */    VUSB_DT_CONFIG,
         /* .wTotalLength = */       0 /* recalculated on read */,
-        /* .bNumInterfaces = */     RT_ELEMENTS(g_aUsbEthInterfacesHS),
+        /* .bNumInterfaces = */     RT_ELEMENTS(g_aUsbNetInterfacesHS),
         /* .bConfigurationValue =*/ 1,
         /* .iConfiguration = */     0,
         /* .bmAttributes = */       RT_BIT(7),
@@ -881,11 +881,11 @@ static const VUSBDESCCONFIGEX g_UsbEthConfigDescHS =
     NULL,                           /* pvMore */
     NULL,                           /* pvClass */
     0,                              /* cbClass */
-    &g_aUsbEthInterfacesHS[0],
+    &g_aUsbNetInterfacesHS[0],
     NULL                            /* pvOriginal */
 };
 
-static const VUSBDESCCONFIGEX g_UsbEthConfigDescSS =
+static const VUSBDESCCONFIGEX g_UsbNetConfigDescSS =
 {
     {
         /* .bLength = */            sizeof(VUSBDESCCONFIG),
@@ -900,13 +900,13 @@ static const VUSBDESCCONFIGEX g_UsbEthConfigDescSS =
     NULL,                           /* pvMore */
     NULL,                           /* pvClass */
     0,                              /* cbClass */
-    &g_aUsbEthInterfacesSS[0],
+    &g_aUsbNetInterfacesSS[0],
     NULL                            /* pvOriginal */
 };
 
-static const VUSBDESCDEVICE g_UsbEthDeviceDesc20 =
+static const VUSBDESCDEVICE g_UsbNetDeviceDesc20 =
 {
-    /* .bLength = */                sizeof(g_UsbEthDeviceDesc20),
+    /* .bLength = */                sizeof(g_UsbNetDeviceDesc20),
     /* .bDescriptorType = */        VUSB_DT_DEVICE,
     /* .bcdUsb = */                 0x200, /* USB 2.0 */
     /* .bDeviceClass = */           2 /* Class specified in the interface desc. */,
@@ -914,17 +914,17 @@ static const VUSBDESCDEVICE g_UsbEthDeviceDesc20 =
     /* .bDeviceProtocol = */        0 /* Protocol specified in the interface desc. */,
     /* .bMaxPacketSize0 = */        64,
     /* .idVendor = */               VBOX_USB_VENDOR,
-    /* .idProduct = */              USBETH_PID,
+    /* .idProduct = */              USBNET_PID,
     /* .bcdDevice = */              0x0100, /* 1.0 */
-    /* .iManufacturer = */          USBETH_STR_ID_MANUFACTURER,
-    /* .iProduct = */               USBETH_STR_ID_PRODUCT,
+    /* .iManufacturer = */          USBNET_STR_ID_MANUFACTURER,
+    /* .iProduct = */               USBNET_STR_ID_PRODUCT,
     /* .iSerialNumber = */          0,
     /* .bNumConfigurations = */     1
 };
 
-static const VUSBDESCDEVICE g_UsbEthDeviceDesc30 =
+static const VUSBDESCDEVICE g_UsbNetDeviceDesc30 =
 {
-    /* .bLength = */                sizeof(g_UsbEthDeviceDesc30),
+    /* .bLength = */                sizeof(g_UsbNetDeviceDesc30),
     /* .bDescriptorType = */        VUSB_DT_DEVICE,
     /* .bcdUsb = */                 0x300, /* USB 2.0 */
     /* .bDeviceClass = */           0 /* Class specified in the interface desc. */,
@@ -932,17 +932,17 @@ static const VUSBDESCDEVICE g_UsbEthDeviceDesc30 =
     /* .bDeviceProtocol = */        0 /* Protocol specified in the interface desc. */,
     /* .bMaxPacketSize0 = */        9 /* 512, the only option for USB3. */,
     /* .idVendor = */               VBOX_USB_VENDOR,
-    /* .idProduct = */              USBETH_PID,
+    /* .idProduct = */              USBNET_PID,
     /* .bcdDevice = */              0x0110, /* 1.10 */
-    /* .iManufacturer = */          USBETH_STR_ID_MANUFACTURER,
-    /* .iProduct = */               USBETH_STR_ID_PRODUCT,
+    /* .iManufacturer = */          USBNET_STR_ID_MANUFACTURER,
+    /* .iProduct = */               USBNET_STR_ID_PRODUCT,
     /* .iSerialNumber = */          0,
     /* .bNumConfigurations = */     1
 };
 
-static const VUSBDEVICEQUALIFIER g_UsbEthDeviceQualifier =
+static const VUSBDEVICEQUALIFIER g_UsbNetDeviceQualifier =
 {
-    /* .bLength = */                sizeof(g_UsbEthDeviceQualifier),
+    /* .bLength = */                sizeof(g_UsbNetDeviceQualifier),
     /* .bDescriptorType = */        VUSB_DT_DEVICE_QUALIFIER,
     /* .bcdUsb = */                 0x200, /* USB 2.0 */
     /* .bDeviceClass = */           0 /* Class specified in the interface desc. */,
@@ -956,12 +956,12 @@ static const VUSBDEVICEQUALIFIER g_UsbEthDeviceQualifier =
 static const struct {
     VUSBDESCBOS         bos;
     VUSBDESCSSDEVCAP    sscap;
-} g_UsbEthBOS =
+} g_UsbNetBOS =
 {
     {
-        /* .bLength = */                sizeof(g_UsbEthBOS.bos),
+        /* .bLength = */                sizeof(g_UsbNetBOS.bos),
         /* .bDescriptorType = */        VUSB_DT_BOS,
-        /* .wTotalLength = */           sizeof(g_UsbEthBOS),
+        /* .wTotalLength = */           sizeof(g_UsbNetBOS),
         /* .bNumDeviceCaps = */         1
     },
     {
@@ -980,7 +980,7 @@ static const struct {
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
-static int  usbEthHandleBulkDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb);
+static int  usbNetHandleBulkDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb);
 
 
 /**
@@ -988,7 +988,7 @@ static int  usbEthHandleBulkDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUr
  *
  * @param   pQueue              The URB queue.
  */
-static void usbEthQueueInit(PUSBETHURBQUEUE pQueue)
+static void usbNetQueueInit(PUSBNETURBQUEUE pQueue)
 {
     pQueue->pHead = NULL;
     pQueue->ppTail = &pQueue->pHead;
@@ -1002,7 +1002,7 @@ static void usbEthQueueInit(PUSBETHURBQUEUE pQueue)
  * @param   pQueue              The URB queue.
  * @param   pUrb                The URB to insert.
  */
-DECLINLINE(void) usbEthQueueAddTail(PUSBETHURBQUEUE pQueue, PVUSBURB pUrb)
+DECLINLINE(void) usbNetQueueAddTail(PUSBNETURBQUEUE pQueue, PVUSBURB pUrb)
 {
     pUrb->Dev.pNext = NULL;
     *pQueue->ppTail = pUrb;
@@ -1016,7 +1016,7 @@ DECLINLINE(void) usbEthQueueAddTail(PUSBETHURBQUEUE pQueue, PVUSBURB pUrb)
  * @returns The head entry.
  * @param   pQueue              The URB queue.
  */
-DECLINLINE(PVUSBURB) usbEthQueueRemoveHead(PUSBETHURBQUEUE pQueue)
+DECLINLINE(PVUSBURB) usbNetQueueRemoveHead(PUSBNETURBQUEUE pQueue)
 {
     PVUSBURB pUrb = pQueue->pHead;
     if (pUrb)
@@ -1039,7 +1039,7 @@ DECLINLINE(PVUSBURB) usbEthQueueRemoveHead(PUSBETHURBQUEUE pQueue)
  * @param   pQueue              The URB queue.
  * @param   pUrb                The URB to remove.
  */
-DECLINLINE(bool) usbEthQueueRemove(PUSBETHURBQUEUE pQueue, PVUSBURB pUrb)
+DECLINLINE(bool) usbNetQueueRemove(PUSBNETURBQUEUE pQueue, PVUSBURB pUrb)
 {
     PVUSBURB pCur = pQueue->pHead;
     if (pCur == pUrb)
@@ -1070,7 +1070,7 @@ DECLINLINE(bool) usbEthQueueRemove(PUSBETHURBQUEUE pQueue, PVUSBURB pUrb)
  * @returns true if it is, false if it isn't.
  * @param   pQueue              The URB queue.
  */
-DECLINLINE(bool) usbEthQueueIsEmpty(PCUSBETHURBQUEUE pQueue)
+DECLINLINE(bool) usbNetQueueIsEmpty(PCUSBNETURBQUEUE pQueue)
 {
     return pQueue->pHead == NULL;
 }
@@ -1079,12 +1079,12 @@ DECLINLINE(bool) usbEthQueueIsEmpty(PCUSBETHURBQUEUE pQueue)
 /**
  * Links an URB into the done queue.
  *
- * @param   pThis               The ETH instance.
+ * @param   pThis               The USBNET instance.
  * @param   pUrb                The URB.
  */
-static void usbEthLinkDone(PUSBETH pThis, PVUSBURB pUrb)
+static void usbNetLinkDone(PUSBNET pThis, PVUSBURB pUrb)
 {
-    usbEthQueueAddTail(&pThis->DoneQueue, pUrb);
+    usbNetQueueAddTail(&pThis->DoneQueue, pUrb);
 
     if (pThis->fHaveDoneQueueWaiter)
     {
@@ -1097,10 +1097,10 @@ static void usbEthLinkDone(PUSBETH pThis, PVUSBURB pUrb)
 /**
  * Completes the URB with a stalled state, halting the pipe.
  */
-static int usbEthCompleteStall(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb, const char *pszWhy)
+static int usbNetCompleteStall(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb, const char *pszWhy)
 {
     RT_NOREF(pszWhy);
-    Log(("usbEthCompleteStall/#%u: pUrb=%p:%s: %s\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pszWhy));
+    Log(("usbNetCompleteStall/#%u: pUrb=%p:%s: %s\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pszWhy));
 
     pUrb->enmStatus = VUSBSTATUS_STALL;
 
@@ -1114,7 +1114,7 @@ static int usbEthCompleteStall(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb, cons
         pThis->aEps[3].fHalted = true;
     }
 
-    usbEthLinkDone(pThis, pUrb);
+    usbNetLinkDone(pThis, pUrb);
     return VINF_SUCCESS;
 }
 
@@ -1122,14 +1122,14 @@ static int usbEthCompleteStall(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb, cons
 /**
  * Completes the URB with a OK state.
  */
-static int usbEthCompleteOk(PUSBETH pThis, PVUSBURB pUrb, size_t cbData)
+static int usbNetCompleteOk(PUSBNET pThis, PVUSBURB pUrb, size_t cbData)
 {
-    Log(("usbEthCompleteOk/#%u: pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
+    Log(("usbNetCompleteOk/#%u: pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     pUrb->cbData    = (uint32_t)cbData;
 
-    usbEthLinkDone(pThis, pUrb);
+    usbNetLinkDone(pThis, pUrb);
     return VINF_SUCCESS;
 }
 
@@ -1138,9 +1138,9 @@ static int usbEthCompleteOk(PUSBETH pThis, PVUSBURB pUrb, size_t cbData)
  * Completes the URB after device successfully processed it. Optionally copies data
  * into the URB. May still generate an error if the URB is not big enough.
  */
-static void usbEthCompleteNotificationOk(PUSBETH pThis, PVUSBURB pUrb, const void *pSrc, size_t cbSrc)
+static void usbNetCompleteNotificationOk(PUSBNET pThis, PVUSBURB pUrb, const void *pSrc, size_t cbSrc)
 {
-    Log(("usbEthCompleteNotificationOk/#%u: pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
+    Log(("usbNetCompleteNotificationOk/#%u: pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     if (pSrc)   /* Can be NULL if not copying anything. */
@@ -1169,22 +1169,22 @@ static void usbEthCompleteNotificationOk(PUSBETH pThis, PVUSBURB pUrb, const voi
     else
         Assert(cbSrc == 0); /* Make up your mind, caller! */
 
-    usbEthLinkDone(pThis, pUrb);
+    usbNetLinkDone(pThis, pUrb);
 }
 
 
 /**
- * Reset worker for usbMsdUsbReset, usbMsdUsbSetConfiguration and
- * usbMsdUrbHandleDefaultPipe.
+ * Reset worker for usbNetUsbReset, usbNetUsbSetConfiguration and
+ * usbNetUrbHandleDefaultPipe.
  *
  * @returns VBox status code.
  * @param   pThis               The MSD instance.
- * @param   pUrb                Set when usbMsdUrbHandleDefaultPipe is the
+ * @param   pUrb                Set when usbNetUrbHandleDefaultPipe is the
  *                              caller.
- * @param   fSetConfig          Set when usbMsdUsbSetConfiguration is the
+ * @param   fSetConfig          Set when usbNetUsbSetConfiguration is the
  *                              caller.
  */
-static int usbEthResetWorker(PUSBETH pThis, PVUSBURB pUrb, bool fSetConfig)
+static int usbNetResetWorker(PUSBNET pThis, PVUSBURB pUrb, bool fSetConfig)
 {
     for (unsigned i = 0; i < RT_ELEMENTS(pThis->aEps); i++)
         pThis->aEps[i].fHalted = false;
@@ -1198,16 +1198,16 @@ static int usbEthResetWorker(PUSBETH pThis, PVUSBURB pUrb, bool fSetConfig)
      * Ditch all pending URBs.
      */
     PVUSBURB pCurUrb;
-    while ((pCurUrb = usbEthQueueRemoveHead(&pThis->ToHostQueue)) != NULL)
+    while ((pCurUrb = usbNetQueueRemoveHead(&pThis->ToHostQueue)) != NULL)
     {
         pCurUrb->enmStatus = VUSBSTATUS_CRC;
-        usbEthLinkDone(pThis, pCurUrb);
+        usbNetLinkDone(pThis, pCurUrb);
     }
 
-    while ((pCurUrb = usbEthQueueRemoveHead(&pThis->ToHostIntrQueue)) != NULL)
+    while ((pCurUrb = usbNetQueueRemoveHead(&pThis->ToHostIntrQueue)) != NULL)
     {
         pCurUrb->enmStatus = VUSBSTATUS_CRC;
-        usbEthLinkDone(pThis, pCurUrb);
+        usbNetLinkDone(pThis, pCurUrb);
     }
 
     pCurUrb = pThis->pResetUrb;
@@ -1215,11 +1215,11 @@ static int usbEthResetWorker(PUSBETH pThis, PVUSBURB pUrb, bool fSetConfig)
     {
         pThis->pResetUrb = NULL;
         pCurUrb->enmStatus  = VUSBSTATUS_CRC;
-        usbEthLinkDone(pThis, pCurUrb);
+        usbNetLinkDone(pThis, pCurUrb);
     }
 
     if (pUrb)
-        return usbEthCompleteOk(pThis, pUrb, 0);
+        return usbNetCompleteOk(pThis, pUrb, 0);
     return VINF_SUCCESS;
 }
 
@@ -1227,9 +1227,9 @@ static int usbEthResetWorker(PUSBETH pThis, PVUSBURB pUrb, bool fSetConfig)
 /**
  * @interface_method_impl{PDMIBASE,pfnQueryInterface}
  */
-static DECLCALLBACK(void *) usbEthLun0QueryInterface(PPDMIBASE pInterface, const char *pszIID)
+static DECLCALLBACK(void *) usbNetLun0QueryInterface(PPDMIBASE pInterface, const char *pszIID)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.IBase);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.IBase);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMIBASE, &pThis->Lun0.IBase);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKCONFIG, &pThis->Lun0.INetworkConfig);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMINETWORKDOWN, &pThis->Lun0.INetworkDown);
@@ -1237,12 +1237,12 @@ static DECLCALLBACK(void *) usbEthLun0QueryInterface(PPDMIBASE pInterface, const
 }
 
 
-static DECLCALLBACK(int) usbEthNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pInterface, RTMSINTERVAL cMillies)
+static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pInterface, RTMSINTERVAL cMillies)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.INetworkDown);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
 
     RTCritSectEnter(&pThis->CritSect);
-    if (!usbEthQueueIsEmpty(&pThis->ToHostQueue))
+    if (!usbNetQueueIsEmpty(&pThis->ToHostQueue))
     {
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
@@ -1264,33 +1264,33 @@ static DECLCALLBACK(int) usbEthNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pIn
  * @param   pvBuf       Pointer to frame data.
  * @param   cb          Frame size.
  */
-static DECLCALLBACK(int) usbEthNetworkDown_Receive(PPDMINETWORKDOWN pInterface, const void *pvBuf, size_t cb)
+static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, const void *pvBuf, size_t cb)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.INetworkDown);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
 
     RTCritSectEnter(&pThis->CritSect);
 
-    if (usbEthQueueIsEmpty(&pThis->ToHostQueue))
+    if (usbNetQueueIsEmpty(&pThis->ToHostQueue))
     {
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
     }
 
-    PVUSBURB pUrb = usbEthQueueRemoveHead(&pThis->ToHostQueue);
-    PUSBETHEP pEp = &pThis->aEps[2];
+    PVUSBURB pUrb = usbNetQueueRemoveHead(&pThis->ToHostQueue);
+    PUSBNETEP pEp = &pThis->aEps[2];
 
     if (RT_UNLIKELY(pEp->fHalted))
     {
-        usbEthCompleteStall(pThis, NULL, pUrb, "Halted pipe");
+        usbNetCompleteStall(pThis, NULL, pUrb, "Halted pipe");
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
     }
 
     if (pUrb->cbData < sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb)
     {
-        Log(("UsbEth: Receive URB too small (%#x vs %#x)\n", pUrb->cbData, sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb));
+        Log(("UsbNet: Receive URB too small (%#x vs %#x)\n", pUrb->cbData, sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb));
         pUrb->enmStatus = VUSBSTATUS_DATA_OVERRUN;
-        usbEthLinkDone(pThis, pUrb);
+        usbNetLinkDone(pThis, pUrb);
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
     }
@@ -1318,7 +1318,7 @@ static DECLCALLBACK(int) usbEthNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
     memcpy(pNdp16 + 1, pvBuf, cb);
 
     pUrb->cbData = (uint32_t)(sizeof(*pNth16) + sizeof(*pNdp16) + cb);
-    usbEthLinkDone(pThis, pUrb);
+    usbNetLinkDone(pThis, pUrb);
     RTCritSectLeave(&pThis->CritSect);
 
     LogFlow(("%s: return %Rrc\n", __FUNCTION__, VINF_SUCCESS));
@@ -1328,20 +1328,20 @@ static DECLCALLBACK(int) usbEthNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 /**
  * @interface_method_impl{PDMINETWORKDOWN,pfnXmitPending}
  */
-static DECLCALLBACK(void) usbEthNetworkDown_XmitPending(PPDMINETWORKDOWN pInterface)
+static DECLCALLBACK(void) usbNetNetworkDown_XmitPending(PPDMINETWORKDOWN pInterface)
 {
     RT_NOREF(pInterface);
 }
 
 
-/* -=-=-=-=-=- USBETH::INetworkConfig -=-=-=-=-=- */
+/* -=-=-=-=-=- USBNET::INetworkConfig -=-=-=-=-=- */
 
 /**
  * @interface_method_impl{PDMINETWORKCONFIG,pfnGetMac}
  */
-static DECLCALLBACK(int) usbEthGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
+static DECLCALLBACK(int) usbNetGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.INetworkConfig);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
     LogFlowFunc(("#%d\n", pThis->pUsbIns->iInstance));
     memcpy(pMac, &pThis->MacConfigured, sizeof(*pMac));
@@ -1352,9 +1352,9 @@ static DECLCALLBACK(int) usbEthGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac
 /**
  * @interface_method_impl{PDMINETWORKCONFIG,pfnGetLinkState}
  */
-static DECLCALLBACK(PDMNETWORKLINKSTATE) usbEthGetLinkState(PPDMINETWORKCONFIG pInterface)
+static DECLCALLBACK(PDMNETWORKLINKSTATE) usbNetGetLinkState(PPDMINETWORKCONFIG pInterface)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.INetworkConfig);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
     if (pThis->fLinkUp && !pThis->fLinkTempDown)
         return PDMNETWORKLINKSTATE_UP;
@@ -1370,9 +1370,9 @@ static DECLCALLBACK(PDMNETWORKLINKSTATE) usbEthGetLinkState(PPDMINETWORKCONFIG p
 /**
  * @interface_method_impl{PDMINETWORKCONFIG,pfnSetLinkState}
  */
-static DECLCALLBACK(int) usbEthSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNETWORKLINKSTATE enmState)
+static DECLCALLBACK(int) usbNetSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNETWORKLINKSTATE enmState)
 {
-    PUSBETH pThis = RT_FROM_MEMBER(pInterface, USBETH, Lun0.INetworkConfig);
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
     //bool            fLinkUp;
 
@@ -1427,14 +1427,14 @@ static DECLCALLBACK(int) usbEthSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNE
 /**
  * @interface_method_impl{PDMUSBREG,pfnUrbReap}
  */
-static DECLCALLBACK(PVUSBURB) usbEthUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMillies)
+static DECLCALLBACK(PVUSBURB) usbNetUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMillies)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUrbReap/#%u: cMillies=%u\n", pUsbIns->iInstance, cMillies));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUrbReap/#%u: cMillies=%u\n", pUsbIns->iInstance, cMillies));
 
     RTCritSectEnter(&pThis->CritSect);
 
-    PVUSBURB pUrb = usbEthQueueRemoveHead(&pThis->DoneQueue);
+    PVUSBURB pUrb = usbNetQueueRemoveHead(&pThis->DoneQueue);
     if (!pUrb && cMillies)
     {
         /* Wait */
@@ -1446,13 +1446,13 @@ static DECLCALLBACK(PVUSBURB) usbEthUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMi
         RTCritSectEnter(&pThis->CritSect);
         pThis->fHaveDoneQueueWaiter = false;
 
-        pUrb = usbEthQueueRemoveHead(&pThis->DoneQueue);
+        pUrb = usbNetQueueRemoveHead(&pThis->DoneQueue);
     }
 
     RTCritSectLeave(&pThis->CritSect);
 
     if (pUrb)
-        Log(("usbEthUrbReap/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
+        Log(("usbNetUrbReap/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     return pUrb;
 }
 
@@ -1460,10 +1460,10 @@ static DECLCALLBACK(PVUSBURB) usbEthUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMi
 /**
  * @interface_method_impl{PDMUSBREG,pfnWakeup}
  */
-static DECLCALLBACK(int) usbEthWakeup(PPDMUSBINS pUsbIns)
+static DECLCALLBACK(int) usbNetWakeup(PPDMUSBINS pUsbIns)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbMsdUrbReap/#%u:\n", pUsbIns->iInstance));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUrbReap/#%u:\n", pUsbIns->iInstance));
 
     return RTSemEventSignal(pThis->hEvtDoneQueue);
 }
@@ -1472,20 +1472,20 @@ static DECLCALLBACK(int) usbEthWakeup(PPDMUSBINS pUsbIns)
 /**
  * @interface_method_impl{PDMUSBREG,pfnUrbCancel}
  */
-static DECLCALLBACK(int) usbEthUrbCancel(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
+static DECLCALLBACK(int) usbNetUrbCancel(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbMsdUrbCancel/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUrbCancel/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     RTCritSectEnter(&pThis->CritSect);
 
     /*
      * Remove the URB from the to-host queue and move it onto the done queue.
      */
-    if (usbEthQueueRemove(&pThis->ToHostQueue, pUrb))
-        usbEthLinkDone(pThis, pUrb);
+    if (usbNetQueueRemove(&pThis->ToHostQueue, pUrb))
+        usbNetLinkDone(pThis, pUrb);
 
-    if (usbEthQueueRemove(&pThis->ToHostIntrQueue, pUrb))
-        usbEthLinkDone(pThis, pUrb);
+    if (usbNetQueueRemove(&pThis->ToHostIntrQueue, pUrb))
+        usbNetLinkDone(pThis, pUrb);
 
     RTCritSectLeave(&pThis->CritSect);
     return VINF_SUCCESS;
@@ -1495,13 +1495,13 @@ static DECLCALLBACK(int) usbEthUrbCancel(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 /**
  * Handle requests sent to the outbound (to device) bulk pipe.
  */
-static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
+static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
 {
     /*
      * Stall the request if the pipe is halted.
      */
     if (RT_UNLIKELY(pEp->fHalted))
-        return usbEthCompleteStall(pThis, NULL, pUrb, "Halted pipe");
+        return usbNetCompleteStall(pThis, NULL, pUrb, "Halted pipe");
 
     /*
      * Process the transfer.
@@ -1509,33 +1509,33 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
     PCUSBNCMNTH16 pNth16 = (PCUSBNCMNTH16)&pUrb->abData[0];
     if (pUrb->cbData < sizeof(*pNth16))
     {
-        Log(("UsbEth: Bad NTH16: cbData=%#x < min=%#x\n", pUrb->cbData, sizeof(*pNth16) ));
-        return usbEthCompleteStall(pThis, NULL, pUrb, "BAD NTH16");
+        Log(("UsbNet: Bad NTH16: cbData=%#x < min=%#x\n", pUrb->cbData, sizeof(*pNth16) ));
+        return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NTH16");
     }
     if (pNth16->dwSignature != USBNCMNTH16_SIGNATURE)
     {
-        Log(("UsbEth: NTH16: Invalid dwSignature value: %#x\n", pNth16->dwSignature));
-        return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
+        Log(("UsbNet: NTH16: Invalid dwSignature value: %#x\n", pNth16->dwSignature));
+        return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
-    Log(("UsbEth: NTH16: wHeaderLength=%#x wSequence=%#x wBlockLength=%#x wNdpIndex=%#x cbData=%#x fShortNotOk=%RTbool\n",
+    Log(("UsbNet: NTH16: wHeaderLength=%#x wSequence=%#x wBlockLength=%#x wNdpIndex=%#x cbData=%#x fShortNotOk=%RTbool\n",
          pNth16->wHeaderLength, pNth16->wSequence, pNth16->wBlockLength, pNth16->wNdpIndex, pUrb->cbData, pUrb->fShortNotOk));
     if (pNth16->wHeaderLength != sizeof(*pNth16))
     {
-        Log(("UsbEth: NTH16: Bad wHeaderLength value: %#x\n", pNth16->wHeaderLength));
-        return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
+        Log(("UsbNet: NTH16: Bad wHeaderLength value: %#x\n", pNth16->wHeaderLength));
+        return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
 
     }
     if (pNth16->wBlockLength > pUrb->cbData)
     {
-        Log(("UsbEth: NTH16: Bad wBlockLength value: %#x\n", pNth16->wBlockLength));
-        return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
+        Log(("UsbNet: NTH16: Bad wBlockLength value: %#x\n", pNth16->wBlockLength));
+        return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
 
     if (pNth16->wNdpIndex < sizeof(*pNth16))
     {
-        Log(("UsbEth: NTH16: wNdpIndex is too small: %#x (%u), at least required %#x\n",
+        Log(("UsbNet: NTH16: wNdpIndex is too small: %#x (%u), at least required %#x\n",
              pNth16->wNdpIndex, pNth16->wNdpIndex, sizeof(*pNth16) ));
-        return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
+        return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
 
     /* Walk the NDPs and process the datagrams. */
@@ -1544,32 +1544,32 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
     {
         if (offNdp16Next >= pUrb->cbData)
         {
-            Log(("UsbEth: Bad NDP16: offNdp16Next=%#x >= cbData=%#x\n", offNdp16Next, pUrb->cbData));
-            return usbEthCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
+            Log(("UsbNet: Bad NDP16: offNdp16Next=%#x >= cbData=%#x\n", offNdp16Next, pUrb->cbData));
+            return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
         }
 
         size_t cbNdpMax = pUrb->cbData - offNdp16Next;
         PCUSBNCMNDP16 pNdp16 = (PCUSBNCMNDP16)&pUrb->abData[pNth16->wNdpIndex];
         if (cbNdpMax < sizeof(*pNdp16))
         {
-            Log(("UsbEth: Bad NDP16: cbNdpMax=%#x < min=%#x\n", cbNdpMax, sizeof(*pNdp16) ));
-            return usbEthCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
+            Log(("UsbNet: Bad NDP16: cbNdpMax=%#x < min=%#x\n", cbNdpMax, sizeof(*pNdp16) ));
+            return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
         }
 
         if (   pNdp16->dwSignature != USBNCMNDP16_SIGNATURE_NCM0
             && pNdp16->dwSignature != USBNCMNDP16_SIGNATURE_NCM1)
         {
-            Log(("UsbEth: NDP16: Invalid dwSignature value: %#x\n", pNdp16->dwSignature));
-            return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
+            Log(("UsbNet: NDP16: Invalid dwSignature value: %#x\n", pNdp16->dwSignature));
+            return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
 
         if (   pNdp16->wLength < sizeof(*pNdp16)
             || (pNdp16->wLength & 0x3)
             || pNdp16->wLength > cbNdpMax)
         {
-            Log(("UsbEth: NDP16: Invalid size value: %#x, req. (min %#x max %#x)\n",
+            Log(("UsbNet: NDP16: Invalid size value: %#x, req. (min %#x max %#x)\n",
                  pNdp16->wLength, sizeof(*pNdp16), cbNdpMax));
-            return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
+            return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
 
         if (pNdp16->dwSignature == USBNCMNDP16_SIGNATURE_NCM0)
@@ -1579,7 +1579,7 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
 
             int rc = pThis->Lun0.pINetwork->pfnBeginXmit(pThis->Lun0.pINetwork, true /* fOnWorkerThread */);
             if (RT_FAILURE(rc))
-                return usbEthCompleteStall(pThis, NULL, pUrb, "BeginXmit failed");
+                return usbNetCompleteStall(pThis, NULL, pUrb, "BeginXmit failed");
 
             for (uint32_t i = 0; i < cEntries; i++)
             {
@@ -1591,15 +1591,15 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
                 if (   pDGram->wDatagramIndex < sizeof(*pNth16)
                     || pDGram->wDatagramIndex >= pUrb->cbData)
                 {
-                    Log(("UsbEth: DGRAM16: Invalid wDatagramIndex value: %#x\n", pDGram->wDatagramIndex));
-                    return usbEthCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
+                    Log(("UsbNet: DGRAM16: Invalid wDatagramIndex value: %#x\n", pDGram->wDatagramIndex));
+                    return usbNetCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
                 }
 
                 if (pUrb->cbData - pDGram->wDatagramIndex < pDGram->wDatagramLength)
                 {
-                    Log(("UsbEth: DGRAM16: Invalid wDatagramLength value: %#x (max %#x)\n",
+                    Log(("UsbNet: DGRAM16: Invalid wDatagramLength value: %#x (max %#x)\n",
                          pDGram->wDatagramLength, pUrb->cbData - pDGram->wDatagramIndex));
-                    return usbEthCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
+                    return usbNetCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
                 }
 
                 PPDMSCATTERGATHER pSgBuf;
@@ -1611,10 +1611,10 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
                     pSgBuf->cbUsed = pDGram->wDatagramLength;
                     rc = pThis->Lun0.pINetwork->pfnSendBuf(pThis->Lun0.pINetwork, pSgBuf, true /* fOnWorkerThread */);
                     if (RT_FAILURE(rc))
-                        return usbEthCompleteStall(pThis, NULL, pUrb, "SendBuf failed");
+                        return usbNetCompleteStall(pThis, NULL, pUrb, "SendBuf failed");
                 }
                 else
-                    return usbEthCompleteStall(pThis, NULL, pUrb, "AllocBuf failed");
+                    return usbNetCompleteStall(pThis, NULL, pUrb, "AllocBuf failed");
 
                 pDGram++;
             }
@@ -1623,34 +1623,34 @@ static int usbEthHandleBulkHostToDev(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
         }
         else
         {
-            Log(("UsbEth: NDP16: Not implemented\n"));
-            return usbEthCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
+            Log(("UsbNet: NDP16: Not implemented\n"));
+            return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
 
         offNdp16Next = pNdp16->wNextNdpIndex;
     }
 
-    return usbEthCompleteOk(pThis, pUrb, pUrb->cbData);
+    return usbNetCompleteOk(pThis, pUrb, pUrb->cbData);
 }
 
 
 /**
  * Handle requests sent to the inbound (to host) bulk pipe.
  */
-static int usbEthHandleBulkDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
+static int usbNetHandleBulkDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
 {
     /*
      * Stall the request if the pipe is halted OR if there is no
      * pending request yet.
      */
     if (RT_UNLIKELY(pEp->fHalted))
-        return usbEthCompleteStall(pThis, NULL, pUrb, pEp->fHalted ? "Halted pipe" : "No request");
+        return usbNetCompleteStall(pThis, NULL, pUrb, pEp->fHalted ? "Halted pipe" : "No request");
 
-    usbEthQueueAddTail(&pThis->ToHostQueue, pUrb);
+    usbNetQueueAddTail(&pThis->ToHostQueue, pUrb);
     if (pThis->fHaveToHostQueueWaiter)
         RTSemEventSignal(pThis->hEvtToHostQueue);
 
-    LogFlow(("usbEthHandleBulkDevToHost: Added %p:%s to the to-host queue\n", pUrb, pUrb->pszDesc));
+    LogFlow(("usbNetHandleBulkDevToHost: Added %p:%s to the to-host queue\n", pUrb, pUrb->pszDesc));
     return VINF_SUCCESS;
 }
 
@@ -1658,11 +1658,11 @@ static int usbEthHandleBulkDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
 /**
  * Handle requests sent to the inbound (to host) interrupt pipe.
  */
-static int usbEthHandleIntrDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
+static int usbNetHandleIntrDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
 {
     /* Stall the request if the pipe is halted. */
     if (RT_UNLIKELY(pEp->fHalted))
-        return usbEthCompleteStall(pThis, NULL, pUrb, pEp->fHalted ? "Halted pipe" : "No request");
+        return usbNetCompleteStall(pThis, NULL, pUrb, pEp->fHalted ? "Halted pipe" : "No request");
 
     if (!pThis->fInitialLinkStatusSent)
     {
@@ -1672,7 +1672,7 @@ static int usbEthHandleIntrDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
         LinkNotification.wValue            = pThis->fLinkUp ? 1 : 0;
         LinkNotification.wIndex            = 0;
         LinkNotification.wLength           = 0;
-        usbEthCompleteNotificationOk(pThis, pUrb, &LinkNotification, sizeof(LinkNotification));
+        usbNetCompleteNotificationOk(pThis, pUrb, &LinkNotification, sizeof(LinkNotification));
         pThis->fInitialLinkStatusSent = true;
     }
     else if (!pThis->fInitialSpeedChangeSent)
@@ -1685,13 +1685,13 @@ static int usbEthHandleIntrDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
         SpeedChange.Hdr.wLength           = 8;
         SpeedChange.DLBitRate             = UINT32_MAX;
         SpeedChange.ULBitRate             = UINT32_MAX;
-        usbEthCompleteNotificationOk(pThis, pUrb, &SpeedChange, sizeof(SpeedChange));
+        usbNetCompleteNotificationOk(pThis, pUrb, &SpeedChange, sizeof(SpeedChange));
         pThis->fInitialSpeedChangeSent = true;
     }
     else
-        usbEthQueueAddTail(&pThis->ToHostIntrQueue, pUrb);
+        usbNetQueueAddTail(&pThis->ToHostIntrQueue, pUrb);
 
-    LogFlow(("usbEthHandleIntrDevToHost: Added %p:%s to the to-host interrupt queue\n", pUrb, pUrb->pszDesc));
+    LogFlow(("usbNetHandleIntrDevToHost: Added %p:%s to the to-host interrupt queue\n", pUrb, pUrb->pszDesc));
     return VINF_SUCCESS;
 }
 
@@ -1699,7 +1699,7 @@ static int usbEthHandleIntrDevToHost(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb
 /**
  * Handles request send to the default control pipe.
  */
-static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
+static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
 {
     PVUSBSETUP pSetup = (PVUSBSETUP)&pUrb->abData[0];
     AssertReturn(pUrb->cbData >= sizeof(*pSetup), VERR_VUSB_FAILED_TO_QUEUE_URB);
@@ -1712,8 +1712,8 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
             {
                 if (pSetup->bmRequestType != (VUSB_TO_DEVICE | VUSB_REQ_STANDARD | VUSB_DIR_TO_HOST))
                 {
-                    Log(("UsbEth: Bad GET_DESCRIPTOR req: bmRequestType=%#x\n", pSetup->bmRequestType));
-                    return usbEthCompleteStall(pThis, pEp, pUrb, "Bad GET_DESCRIPTOR");
+                    Log(("UsbNet: Bad GET_DESCRIPTOR req: bmRequestType=%#x\n", pSetup->bmRequestType));
+                    return usbNetCompleteStall(pThis, pEp, pUrb, "Bad GET_DESCRIPTOR");
                 }
 
                 switch (pSetup->wValue >> 8)
@@ -1721,24 +1721,24 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
                     uint32_t    cbCopy;
 
                     case VUSB_DT_STRING:
-                        Log(("UsbEth: GET_DESCRIPTOR DT_STRING wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        Log(("UsbNet: GET_DESCRIPTOR DT_STRING wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
                         break;
                     case VUSB_DT_DEVICE_QUALIFIER:
-                        Log(("UsbEth: GET_DESCRIPTOR DT_DEVICE_QUALIFIER wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        Log(("UsbNet: GET_DESCRIPTOR DT_DEVICE_QUALIFIER wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
                         /* Returned data is written after the setup message. */
                         cbCopy = pUrb->cbData - sizeof(*pSetup);
-                        cbCopy = RT_MIN(cbCopy, sizeof(g_UsbEthDeviceQualifier));
-                        memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbEthDeviceQualifier, cbCopy);
-                        return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                        cbCopy = RT_MIN(cbCopy, sizeof(g_UsbNetDeviceQualifier));
+                        memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbNetDeviceQualifier, cbCopy);
+                        return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                     case VUSB_DT_BOS:
-                        Log(("UsbEth: GET_DESCRIPTOR DT_BOS wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        Log(("UsbNet: GET_DESCRIPTOR DT_BOS wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
                         /* Returned data is written after the setup message. */
                         cbCopy = pUrb->cbData - sizeof(*pSetup);
-                        cbCopy = RT_MIN(cbCopy, sizeof(g_UsbEthBOS));
-                        memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbEthBOS, cbCopy);
-                        return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                        cbCopy = RT_MIN(cbCopy, sizeof(g_UsbNetBOS));
+                        memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbNetBOS, cbCopy);
+                        return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                     default:
-                        Log(("UsbEth: GET_DESCRIPTOR, huh? wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        Log(("UsbNet: GET_DESCRIPTOR, huh? wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
                         break;
                 }
                 break;
@@ -1751,7 +1751,7 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
 
                 if (pSetup->wLength != 2)
                 {
-                    LogRelFlow(("UsbEth: Bad GET_STATUS req: wLength=%#x\n",
+                    LogRelFlow(("UsbNet: Bad GET_STATUS req: wLength=%#x\n",
                                 pSetup->wLength));
                     break;
                 }
@@ -1761,12 +1761,12 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
                     case VUSB_TO_DEVICE | VUSB_REQ_STANDARD | VUSB_DIR_TO_HOST:
                     {
                         Assert(pSetup->wIndex == 0);
-                        LogRelFlow(("UsbEth: GET_STATUS (device)\n"));
+                        LogRelFlow(("UsbNet: GET_STATUS (device)\n"));
                         wRet = 0;   /* Not self-powered, no remote wakeup. */
                         cbCopy = pUrb->cbData - sizeof(*pSetup);
                         cbCopy = RT_MIN(cbCopy, sizeof(wRet));
                         memcpy(&pUrb->abData[sizeof(*pSetup)], &wRet, cbCopy);
-                        return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                        return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                     }
 
                     case VUSB_TO_INTERFACE | VUSB_REQ_STANDARD | VUSB_DIR_TO_HOST:
@@ -1776,9 +1776,9 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
                             cbCopy = pUrb->cbData - sizeof(*pSetup);
                             cbCopy = RT_MIN(cbCopy, sizeof(wRet));
                             memcpy(&pUrb->abData[sizeof(*pSetup)], &wRet, cbCopy);
-                            return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                            return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                         }
-                        LogRelFlow(("UsbEth: GET_STATUS (interface) invalid, wIndex=%#x\n", pSetup->wIndex));
+                        LogRelFlow(("UsbNet: GET_STATUS (interface) invalid, wIndex=%#x\n", pSetup->wIndex));
                         break;
                     }
 
@@ -1790,16 +1790,16 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
                             cbCopy = pUrb->cbData - sizeof(*pSetup);
                             cbCopy = RT_MIN(cbCopy, sizeof(wRet));
                             memcpy(&pUrb->abData[sizeof(*pSetup)], &wRet, cbCopy);
-                            return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                            return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                         }
-                        LogRelFlow(("UsbEth: GET_STATUS (endpoint) invalid, wIndex=%#x\n", pSetup->wIndex));
+                        LogRelFlow(("UsbNet: GET_STATUS (endpoint) invalid, wIndex=%#x\n", pSetup->wIndex));
                         break;
                     }
 
                     default:
-                        LogRelFlow(("UsbEth: Bad GET_STATUS req: bmRequestType=%#x\n",
+                        LogRelFlow(("UsbNet: Bad GET_STATUS req: bmRequestType=%#x\n",
                                     pSetup->bmRequestType));
-                        return usbEthCompleteStall(pThis, pEp, pUrb, "Bad GET_STATUS");
+                        return usbNetCompleteStall(pThis, pEp, pUrb, "Bad GET_STATUS");
                 }
                 break;
             }
@@ -1812,10 +1812,10 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
         }
 
         /** @todo implement this. */
-        Log(("UsbEth: Implement standard request: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
+        Log(("UsbNet: Implement standard request: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
              pSetup->bmRequestType, pSetup->bRequest, pSetup->wValue, pSetup->wIndex, pSetup->wLength));
 
-        usbEthCompleteStall(pThis, pEp, pUrb, "TODO: standard request stuff");
+        usbNetCompleteStall(pThis, pEp, pUrb, "TODO: standard request stuff");
     }
     else if ((pSetup->bmRequestType & VUSB_REQ_MASK) == VUSB_REQ_CLASS)
     {
@@ -1825,8 +1825,8 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
             {
                 if (pSetup->bmRequestType != (VUSB_TO_INTERFACE | VUSB_REQ_CLASS | VUSB_DIR_TO_HOST))
                 {
-                    Log(("UsbEth: Bad GET_NTB_PARAMETERS req: bmRequestType=%#x\n", pSetup->bmRequestType));
-                    return usbEthCompleteStall(pThis, pEp, pUrb, "Bad GET_NTB_PARAMETERS");
+                    Log(("UsbNet: Bad GET_NTB_PARAMETERS req: bmRequestType=%#x\n", pSetup->bmRequestType));
+                    return usbNetCompleteStall(pThis, pEp, pUrb, "Bad GET_NTB_PARAMETERS");
                 }
 
                 USBNCMNTBPARAMS NtbParams;
@@ -1847,20 +1847,20 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
                 uint32_t cbCopy = pUrb->cbData - sizeof(*pSetup);
                 cbCopy = RT_MIN(cbCopy, sizeof(NtbParams));
                 memcpy(&pUrb->abData[sizeof(*pSetup)], &NtbParams, cbCopy);
-                return usbEthCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
+                return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
             }
 
             case VUSB_REQ_CLEAR_FEATURE:
                 break;
         }
 
-        usbEthCompleteStall(pThis, pEp, pUrb, "CLASS_REQ");
+        usbNetCompleteStall(pThis, pEp, pUrb, "CLASS_REQ");
     }
     else
     {
-        Log(("UsbEth: Unknown control msg: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
+        Log(("UsbNet: Unknown control msg: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
              pSetup->bmRequestType, pSetup->bRequest, pSetup->wValue, pSetup->wIndex, pSetup->wLength));
-        return usbEthCompleteStall(pThis, pEp, pUrb, "Unknown control msg");
+        return usbNetCompleteStall(pThis, pEp, pUrb, "Unknown control msg");
     }
 
     return VINF_SUCCESS;
@@ -1870,10 +1870,10 @@ static int usbEthHandleDefaultPipe(PUSBETH pThis, PUSBETHEP pEp, PVUSBURB pUrb)
 /**
  * @interface_method_impl{PDMUSBREG,pfnUrbQueue}
  */
-static DECLCALLBACK(int) usbEthQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
+static DECLCALLBACK(int) usbNetQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthQueue/#%u: pUrb=%p:%s EndPt=%#x\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->EndPt));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetQueue/#%u: pUrb=%p:%s EndPt=%#x\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->EndPt));
     RTCritSectEnter(&pThis->CritSect);
 
     /*
@@ -1883,22 +1883,22 @@ static DECLCALLBACK(int) usbEthQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
     switch (pUrb->EndPt)
     {
         case 0:
-            rc = usbEthHandleDefaultPipe(pThis, &pThis->aEps[0], pUrb);
+            rc = usbNetHandleDefaultPipe(pThis, &pThis->aEps[0], pUrb);
             break;
 
         case 0x81:
             AssertFailed();
             RT_FALL_THRU();
         case 0x01:
-            rc = usbEthHandleBulkDevToHost(pThis, &pThis->aEps[1], pUrb);
+            rc = usbNetHandleBulkDevToHost(pThis, &pThis->aEps[1], pUrb);
             break;
 
         case 0x02:
-            rc = usbEthHandleBulkHostToDev(pThis, &pThis->aEps[2], pUrb);
+            rc = usbNetHandleBulkHostToDev(pThis, &pThis->aEps[2], pUrb);
             break;
 
         case 0x03:
-            rc = usbEthHandleIntrDevToHost(pThis, &pThis->aEps[3], pUrb);
+            rc = usbNetHandleIntrDevToHost(pThis, &pThis->aEps[3], pUrb);
             break;
 
         default:
@@ -1915,10 +1915,10 @@ static DECLCALLBACK(int) usbEthQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 /**
  * @interface_method_impl{PDMUSBREG,pfnUsbClearHaltedEndpoint}
  */
-static DECLCALLBACK(int) usbEthUsbClearHaltedEndpoint(PPDMUSBINS pUsbIns, unsigned uEndpoint)
+static DECLCALLBACK(int) usbNetUsbClearHaltedEndpoint(PPDMUSBINS pUsbIns, unsigned uEndpoint)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUsbClearHaltedEndpoint/#%u: uEndpoint=%#x\n", pUsbIns->iInstance, uEndpoint));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUsbClearHaltedEndpoint/#%u: uEndpoint=%#x\n", pUsbIns->iInstance, uEndpoint));
 
     if ((uEndpoint & ~0x80) < RT_ELEMENTS(pThis->aEps))
     {
@@ -1934,18 +1934,18 @@ static DECLCALLBACK(int) usbEthUsbClearHaltedEndpoint(PPDMUSBINS pUsbIns, unsign
 /**
  * @interface_method_impl{PDMUSBREG,pfnUsbSetInterface}
  */
-static DECLCALLBACK(int) usbEthUsbSetInterface(PPDMUSBINS pUsbIns, uint8_t bInterfaceNumber, uint8_t bAlternateSetting)
+static DECLCALLBACK(int) usbNetUsbSetInterface(PPDMUSBINS pUsbIns, uint8_t bInterfaceNumber, uint8_t bAlternateSetting)
 {
     RT_NOREF(bInterfaceNumber);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUsbSetInterface/#%u: bInterfaceNumber=%u bAlternateSetting=%u\n", pUsbIns->iInstance, bInterfaceNumber, bAlternateSetting));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUsbSetInterface/#%u: bInterfaceNumber=%u bAlternateSetting=%u\n", pUsbIns->iInstance, bInterfaceNumber, bAlternateSetting));
     Assert(bAlternateSetting == 0 || bAlternateSetting == 1);
     if (pThis->bAlternateSetting != bAlternateSetting)
     {
         if (bAlternateSetting == 0)
         {
             /* This is some kind of reset. */
-            usbEthResetWorker(pThis, NULL, true /*fSetConfig*/);
+            usbNetResetWorker(pThis, NULL, true /*fSetConfig*/);
         }
         else
         {
@@ -1963,12 +1963,12 @@ static DECLCALLBACK(int) usbEthUsbSetInterface(PPDMUSBINS pUsbIns, uint8_t bInte
 /**
  * @interface_method_impl{PDMUSBREG,pfnUsbSetConfiguration}
  */
-static DECLCALLBACK(int) usbEthUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t bConfigurationValue,
+static DECLCALLBACK(int) usbNetUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t bConfigurationValue,
                                                    const void *pvOldCfgDesc, const void *pvOldIfState, const void *pvNewCfgDesc)
 {
     RT_NOREF(pvOldCfgDesc, pvOldIfState,  pvNewCfgDesc);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUsbSetConfiguration/#%u: bConfigurationValue=%u\n", pUsbIns->iInstance, bConfigurationValue));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUsbSetConfiguration/#%u: bConfigurationValue=%u\n", pUsbIns->iInstance, bConfigurationValue));
     Assert(bConfigurationValue == 1);
     RTCritSectEnter(&pThis->CritSect);
 
@@ -1976,7 +1976,7 @@ static DECLCALLBACK(int) usbEthUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t b
      * If the same config is applied more than once, it's a kind of reset.
      */
     if (pThis->bConfigurationValue == bConfigurationValue)
-        usbEthResetWorker(pThis, NULL, true /*fSetConfig*/); /** @todo figure out the exact difference */
+        usbNetResetWorker(pThis, NULL, true /*fSetConfig*/); /** @todo figure out the exact difference */
     pThis->bConfigurationValue = bConfigurationValue;
 
     RTCritSectLeave(&pThis->CritSect);
@@ -1987,10 +1987,10 @@ static DECLCALLBACK(int) usbEthUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t b
 /**
  * @interface_method_impl{PDMUSBREG,pfnUsbGetDescriptorCache}
  */
-static DECLCALLBACK(PCPDMUSBDESCCACHE) usbEthUsbGetDescriptorCache(PPDMUSBINS pUsbIns)
+static DECLCALLBACK(PCPDMUSBDESCCACHE) usbNetUsbGetDescriptorCache(PPDMUSBINS pUsbIns)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUsbGetDescriptorCache/#%u:\n", pUsbIns->iInstance));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUsbGetDescriptorCache/#%u:\n", pUsbIns->iInstance));
     return &pThis->UsbDescCache;
 }
 
@@ -1998,14 +1998,14 @@ static DECLCALLBACK(PCPDMUSBDESCCACHE) usbEthUsbGetDescriptorCache(PPDMUSBINS pU
 /**
  * @interface_method_impl{PDMUSBREG,pfnUsbReset}
  */
-static DECLCALLBACK(int) usbEthUsbReset(PPDMUSBINS pUsbIns, bool fResetOnLinux)
+static DECLCALLBACK(int) usbNetUsbReset(PPDMUSBINS pUsbIns, bool fResetOnLinux)
 {
     RT_NOREF(fResetOnLinux);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthUsbReset/#%u:\n", pUsbIns->iInstance));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetUsbReset/#%u:\n", pUsbIns->iInstance));
     RTCritSectEnter(&pThis->CritSect);
 
-    int rc = usbEthResetWorker(pThis, NULL, false /*fSetConfig*/);
+    int rc = usbNetResetWorker(pThis, NULL, false /*fSetConfig*/);
 
     RTCritSectLeave(&pThis->CritSect);
     return rc;
@@ -2015,16 +2015,16 @@ static DECLCALLBACK(int) usbEthUsbReset(PPDMUSBINS pUsbIns, bool fResetOnLinux)
 /**
  * @interface_method_impl{PDMUSBREG,pfnDriverAttach}
  */
-static DECLCALLBACK(int) usbEthDriverAttach(PPDMUSBINS pUsbIns, unsigned iLUN, uint32_t fFlags)
+static DECLCALLBACK(int) usbNetDriverAttach(PPDMUSBINS pUsbIns, unsigned iLUN, uint32_t fFlags)
 {
     RT_NOREF(fFlags);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
-    LogFlow(("usbEthDriverAttach/#%u:\n", pUsbIns->iInstance));
+    LogFlow(("usbNetDriverAttach/#%u:\n", pUsbIns->iInstance));
 
-    AssertMsg(iLUN == 0, ("UsbEth: No other LUN than 0 is supported\n"));
+    AssertMsg(iLUN == 0, ("UsbNet: No other LUN than 0 is supported\n"));
     AssertMsg(fFlags & PDM_TACH_FLAGS_NOT_HOT_PLUG,
-              ("UsbEth: Device does not support hotplugging\n"));
+              ("UsbNet: Device does not support hotplugging\n"));
 
     /* the usual paranoia */
     AssertRelease(!pThis->Lun0.pIBase);
@@ -2056,16 +2056,16 @@ static DECLCALLBACK(int) usbEthDriverAttach(PPDMUSBINS pUsbIns, unsigned iLUN, u
 /**
  * @interface_method_impl{PDMUSBREG,pfnDriverDetach}
  */
-static DECLCALLBACK(void) usbEthDriverDetach(PPDMUSBINS pUsbIns, unsigned iLUN, uint32_t fFlags)
+static DECLCALLBACK(void) usbNetDriverDetach(PPDMUSBINS pUsbIns, unsigned iLUN, uint32_t fFlags)
 {
     RT_NOREF(iLUN, fFlags);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
-    LogFlow(("usbEthDriverDetach/#%u:\n", pUsbIns->iInstance));
+    LogFlow(("usbNetDriverDetach/#%u:\n", pUsbIns->iInstance));
 
-    AssertMsg(iLUN == 0, ("UsbEth: No other LUN than 0 is supported\n"));
+    AssertMsg(iLUN == 0, ("UsbNet: No other LUN than 0 is supported\n"));
     AssertMsg(fFlags & PDM_TACH_FLAGS_NOT_HOT_PLUG,
-              ("UsbEth: Device does not support hotplugging\n"));
+              ("UsbNet: Device does not support hotplugging\n"));
 
     /*
      * Zero some important members.
@@ -2078,11 +2078,11 @@ static DECLCALLBACK(void) usbEthDriverDetach(PPDMUSBINS pUsbIns, unsigned iLUN, 
 /**
  * @interface_method_impl{PDMUSBREG,pfnVMReset}
  */
-static DECLCALLBACK(void) usbEthVMReset(PPDMUSBINS pUsbIns)
+static DECLCALLBACK(void) usbNetVMReset(PPDMUSBINS pUsbIns)
 {
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
-    int rc = usbEthResetWorker(pThis, NULL, false /*fSetConfig*/);
+    int rc = usbNetResetWorker(pThis, NULL, false /*fSetConfig*/);
     AssertRC(rc);
 }
 
@@ -2090,11 +2090,11 @@ static DECLCALLBACK(void) usbEthVMReset(PPDMUSBINS pUsbIns)
 /**
  * @interface_method_impl{PDMUSBREG,pfnDestruct}
  */
-static DECLCALLBACK(void) usbEthDestruct(PPDMUSBINS pUsbIns)
+static DECLCALLBACK(void) usbNetDestruct(PPDMUSBINS pUsbIns)
 {
     PDMUSB_CHECK_VERSIONS_RETURN_VOID(pUsbIns);
-    PUSBETH pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
-    LogFlow(("usbEthDestruct/#%u:\n", pUsbIns->iInstance));
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+    LogFlow(("usbNetDestruct/#%u:\n", pUsbIns->iInstance));
 
     if (RTCritSectIsInitialized(&pThis->CritSect))
     {
@@ -2126,14 +2126,14 @@ static DECLCALLBACK(void) usbEthDestruct(PPDMUSBINS pUsbIns)
 /**
  * @interface_method_impl{PDMUSBREG,pfnConstruct}
  */
-static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFGMNODE pCfg, PCFGMNODE pCfgGlobal)
+static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFGMNODE pCfg, PCFGMNODE pCfgGlobal)
 {
     RT_NOREF(pCfgGlobal);
     PDMUSB_CHECK_VERSIONS_RETURN(pUsbIns);
-    PUSBETH     pThis = PDMINS_2_DATA(pUsbIns, PUSBETH);
+    PUSBNET     pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
     PCPDMUSBHLP pHlp  = pUsbIns->pHlpR3;
 
-    Log(("usbMsdConstruct/#%u:\n", iInstance));
+    Log(("usbNetConstruct/#%u:\n", iInstance));
 
     /*
      * Perform the basic structure initialization first so the destructor
@@ -2144,19 +2144,19 @@ static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
     pThis->hEvtToHostQueue                              = NIL_RTSEMEVENT;
     pThis->hEvtReset                                    = NIL_RTSEMEVENTMULTI;
     /* IBase */
-    pThis->Lun0.IBase.pfnQueryInterface                 = usbEthLun0QueryInterface;
+    pThis->Lun0.IBase.pfnQueryInterface                 = usbNetLun0QueryInterface;
     /* INetworkPort */
-    pThis->Lun0.INetworkDown.pfnWaitReceiveAvail        = usbEthNetworkDown_WaitReceiveAvail;
-    pThis->Lun0.INetworkDown.pfnReceive                 = usbEthNetworkDown_Receive;
-    pThis->Lun0.INetworkDown.pfnXmitPending             = usbEthNetworkDown_XmitPending;
+    pThis->Lun0.INetworkDown.pfnWaitReceiveAvail        = usbNetNetworkDown_WaitReceiveAvail;
+    pThis->Lun0.INetworkDown.pfnReceive                 = usbNetNetworkDown_Receive;
+    pThis->Lun0.INetworkDown.pfnXmitPending             = usbNetNetworkDown_XmitPending;
     /* INetworkConfig */
-    pThis->Lun0.INetworkConfig.pfnGetMac                = usbEthGetMac;
-    pThis->Lun0.INetworkConfig.pfnGetLinkState          = usbEthGetLinkState;
-    pThis->Lun0.INetworkConfig.pfnSetLinkState          = usbEthSetLinkState;
+    pThis->Lun0.INetworkConfig.pfnGetMac                = usbNetGetMac;
+    pThis->Lun0.INetworkConfig.pfnGetLinkState          = usbNetGetLinkState;
+    pThis->Lun0.INetworkConfig.pfnSetLinkState          = usbNetSetLinkState;
 
-    usbEthQueueInit(&pThis->ToHostQueue);
-    usbEthQueueInit(&pThis->ToHostIntrQueue);
-    usbEthQueueInit(&pThis->DoneQueue);
+    usbNetQueueInit(&pThis->ToHostQueue);
+    usbNetQueueInit(&pThis->ToHostIntrQueue);
+    usbNetQueueInit(&pThis->DoneQueue);
 
     int rc = RTCritSectInit(&pThis->CritSect);
     AssertRCReturn(rc, rc);
@@ -2177,7 +2177,7 @@ static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
                                      "MAC|"
                                      "CableConnected|"
                                      "LinkUpDelay|"
-                                     , "Config", "UsbEth", iInstance);
+                                     , "Config", "UsbNet", iInstance);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -2198,26 +2198,26 @@ static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
      */
     rc = PDMUsbHlpDriverAttach(pUsbIns, 0 /*iLun*/, &pThis->Lun0.IBase, &pThis->Lun0.pIBase, "Network Port");
     if (RT_FAILURE(rc))
-        return PDMUsbHlpVMSetError(pUsbIns, rc, RT_SRC_POS, N_("USBETH failed to attach network driver"));
+        return PDMUsbHlpVMSetError(pUsbIns, rc, RT_SRC_POS, N_("USBNET failed to attach network driver"));
     pThis->Lun0.pINetwork = PDMIBASE_QUERY_INTERFACE(pThis->Lun0.pIBase, PDMINETWORKUP);
     if (!pThis->Lun0.pINetwork)
         return PDMUsbHlpVMSetError(pUsbIns, VERR_PDM_MISSING_INTERFACE_BELOW, RT_SRC_POS,
-                                   N_("USBETH failed to query the PDMINETWORKUP from the driver below it"));
+                                   N_("USBNET failed to query the PDMINETWORKUP from the driver below it"));
 
     /*
      * Build the USB descriptors.
      */
-    pThis->aUsbStringsEnUs[0].idx = USBETH_STR_ID_MANUFACTURER;
+    pThis->aUsbStringsEnUs[0].idx = USBNET_STR_ID_MANUFACTURER;
     pThis->aUsbStringsEnUs[0].psz = "VirtualBox";
 
-    pThis->aUsbStringsEnUs[1].idx = USBETH_STR_ID_PRODUCT;
+    pThis->aUsbStringsEnUs[1].idx = USBNET_STR_ID_PRODUCT;
     pThis->aUsbStringsEnUs[1].psz = "USB Ethernet";
 
     /* Build the MAC address. */
     ssize_t cch = RTStrPrintf2(&pThis->aszMac[0], sizeof(pThis->aszMac), "%#.6Rhxs", &pThis->MacConfigured);
     AssertReturn(cch + 1 == sizeof(pThis->aszMac), VERR_INTERNAL_ERROR_4);
 
-    pThis->aUsbStringsEnUs[2].idx = USBETH_STR_ID_MAC_ADDRESS;
+    pThis->aUsbStringsEnUs[2].idx = USBNET_STR_ID_MAC_ADDRESS;
     pThis->aUsbStringsEnUs[2].psz = &pThis->aszMac[0];
 
     pThis->UsbLang.idLang    = 0x0409; /* en_US. */
@@ -2234,21 +2234,21 @@ static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
         case VUSB_SPEED_SUPER:
         case VUSB_SPEED_SUPERPLUS:
         {
-            pThis->UsbDescCache.pDevice   = &g_UsbEthDeviceDesc30;
-            pThis->UsbDescCache.paConfigs = &g_UsbEthConfigDescSS;
+            pThis->UsbDescCache.pDevice   = &g_UsbNetDeviceDesc30;
+            pThis->UsbDescCache.paConfigs = &g_UsbNetConfigDescSS;
             break;
         }
         case VUSB_SPEED_HIGH:
         {
-            pThis->UsbDescCache.pDevice   = &g_UsbEthDeviceDesc20;
-            pThis->UsbDescCache.paConfigs = &g_UsbEthConfigDescHS;
+            pThis->UsbDescCache.pDevice   = &g_UsbNetDeviceDesc20;
+            pThis->UsbDescCache.paConfigs = &g_UsbNetConfigDescHS;
             break;
         }
         case VUSB_SPEED_FULL:
         case VUSB_SPEED_LOW:
         {
-            pThis->UsbDescCache.pDevice   = &g_UsbEthDeviceDesc20;
-            pThis->UsbDescCache.paConfigs = &g_UsbEthConfigDescFS;
+            pThis->UsbDescCache.pDevice   = &g_UsbNetDeviceDesc20;
+            pThis->UsbDescCache.paConfigs = &g_UsbNetConfigDescFS;
             break;
         }
         default:
@@ -2262,12 +2262,12 @@ static DECLCALLBACK(int) usbEthConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
 /**
  * The USB Communications Device Class, Network Control Model (CDC NCM) registration record.
  */
-const PDMUSBREG g_UsbEth =
+const PDMUSBREG g_UsbNet =
 {
     /* u32Version */
     PDM_USBREG_VERSION,
     /* szName */
-    "UsbEth",
+    "UsbNet",
     /* pszDescription */
     "USB Communications Device Class, one LUN.",
     /* fFlags */
@@ -2275,17 +2275,17 @@ const PDMUSBREG g_UsbEth =
     /* cMaxInstances */
     ~0U,
     /* cbInstance */
-    sizeof(USBETH),
+    sizeof(USBNET),
     /* pfnConstruct */
-    usbEthConstruct,
+    usbNetConstruct,
     /* pfnDestruct */
-    usbEthDestruct,
+    usbNetDestruct,
     /* pfnVMInitComplete */
     NULL,
     /* pfnVMPowerOn */
     NULL,
     /* pfnVMReset */
-    usbEthVMReset,
+    usbNetVMReset,
     /* pfnVMSuspend */
     NULL,
     /* pfnVMResume */
@@ -2297,31 +2297,31 @@ const PDMUSBREG g_UsbEth =
     /* pfnHotUnplugged */
     NULL,
     /* pfnDriverAttach */
-    usbEthDriverAttach,
+    usbNetDriverAttach,
     /* pfnDriverDetach */
-    usbEthDriverDetach,
+    usbNetDriverDetach,
     /* pfnQueryInterface */
     NULL,
     /* pfnUsbReset */
-    usbEthUsbReset,
-    /* pfnUsbGetCachedDescriptors */
-    usbEthUsbGetDescriptorCache,
+    usbNetUsbReset,
+    /* pfnUsbGetDescriptorCache */
+    usbNetUsbGetDescriptorCache,
     /* pfnUsbSetConfiguration */
-    usbEthUsbSetConfiguration,
+    usbNetUsbSetConfiguration,
     /* pfnUsbSetInterface */
-    usbEthUsbSetInterface,
+    usbNetUsbSetInterface,
     /* pfnUsbClearHaltedEndpoint */
-    usbEthUsbClearHaltedEndpoint,
+    usbNetUsbClearHaltedEndpoint,
     /* pfnUrbNew */
-    NULL/*usbEthUrbNew*/,
+    NULL/*usbNetUrbNew*/,
     /* pfnQueue */
-    usbEthQueue,
+    usbNetQueue,
     /* pfnUrbCancel */
-    usbEthUrbCancel,
+    usbNetUrbCancel,
     /* pfnUrbReap */
-    usbEthUrbReap,
+    usbNetUrbReap,
     /* pfnWakeup */
-    usbEthWakeup,
+    usbNetWakeup,
     /* u32TheEnd */
     PDM_USBREG_VERSION
 };

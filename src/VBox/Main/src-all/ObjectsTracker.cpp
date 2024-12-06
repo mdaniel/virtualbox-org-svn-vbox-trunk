@@ -46,7 +46,7 @@ TrackedObjectData::TrackedObjectData():
     m_componentName("noname"),
     m_lifeTime(0),
     m_idleTime(1),
-    m_State(TrackedObjectData::Invalid),
+    m_state(TrackedObjectState_None),
     m_pIface(NULL)
     {
 }
@@ -67,7 +67,7 @@ TrackedObjectData::TrackedObjectData(const com::Guid &aObjId,
 {
     RTTimeNow(unconst(&m_creationTime));
     m_lastAccessTime = m_creationTime;
-    m_State = TrackedObjectData::Valid;
+    m_state = TrackedObjectState_Alive;
 }
 
 TrackedObjectData::TrackedObjectData(const TrackedObjectData & that)
@@ -82,10 +82,11 @@ TrackedObjectData::TrackedObjectData(const TrackedObjectData & that)
         m_idleTime = that.m_idleTime;
         m_pIface = that.m_pIface;
         m_creationTime = that.m_creationTime;
+        m_deletionTime = that.m_deletionTime;
         m_lastAccessTime = that.m_lastAccessTime;
         m_idleTimeStart = that.m_idleTimeStart;
         m_fIdleTimeStart = that.m_fIdleTimeStart;
-        m_State = that.m_State;
+        m_state = that.m_state;
     }
 }
 
@@ -110,10 +111,11 @@ TrackedObjectData &TrackedObjectData::operator=(const TrackedObjectData & that)
         m_idleTime = that.m_idleTime;
         m_pIface = that.m_pIface;
         m_creationTime = that.m_creationTime;
+        m_deletionTime = that.m_deletionTime;
         m_lastAccessTime = that.m_lastAccessTime;
         m_idleTimeStart = that.m_idleTimeStart;
         m_fIdleTimeStart = that.m_fIdleTimeStart;
-        m_State = that.m_State;
+        m_state = that.m_state;
     }
 
     return *this;
@@ -133,6 +135,8 @@ com::Utf8Str TrackedObjectData::initIdleTime()
 {
     if (!m_fIdleTimeStart)
     {
+        RTTimeNow(unconst(&m_deletionTime));
+        updateState(TrackedObjectState_Deleted);//Alive -> Deleted
         RTTimeNow(unconst(&m_idleTimeStart));
         m_fIdleTimeStart = true;
     }
@@ -148,6 +152,13 @@ com::Utf8Str TrackedObjectData::creationTimeStr() const
     RTTimeSpecToString(&m_creationTime, szCreationTime, sizeof(szCreationTime));
 
     return com::Utf8Str(szCreationTime);
+}
+
+TrackedObjectState_T TrackedObjectData::deletionTime(PRTTIMESPEC aTime) const
+{
+    if (m_state != TrackedObjectState_Alive)
+        *aTime = m_deletionTime;
+    return m_state;
 }
 
 /* No locking here, be aware */
@@ -166,6 +177,11 @@ unsigned long TrackedObjectData::i_checkRefCount(const Guid& aIID)
                ));
     }
     return cRefs;
+}
+
+TrackedObjectState_T TrackedObjectData::updateState(TrackedObjectState_T aNewState)
+{
+    return m_state < aNewState ? m_state = aNewState : m_state;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -344,8 +360,7 @@ HRESULT TrackedObjectsCollector::getObj(const com::Utf8Str &aObjId,
         /** @todo r=bird: Why do three lookups? */
         if ( i_getObj(aObjId).getInterface().isNotNull() )
         {
-            /* Excessive check because user may get only the valid objects Ids. But for 200% assurance it's here */
-            if (i_getObj(aObjId).state() == TrackedObjectData::Valid)
+            if (i_getObj(aObjId).state() != TrackedObjectState_Invalid)
             {
                 aObjData = i_getObj(aObjId);
                 hrc = S_OK;
@@ -665,7 +680,7 @@ HRESULT TrackedObjectsCollector::invalidateObj(const com::Utf8Str &aObjId)
     IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId);
     if (pIter != m_trackedObjectsData.end())
     {
-        pIter->second.resetState();
+        pIter->second.updateState(TrackedObjectState_Invalid);//Deleted -> Invalid
         m_trackedInvalidObjectIds.insert(aObjId);
         hrc = S_OK;
     }

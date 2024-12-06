@@ -75,8 +75,6 @@ public:
 class TrackedObjectData
 {
 public:
-    enum State { Invalid, Valid };
-
     TrackedObjectData();
 
     explicit
@@ -116,19 +114,41 @@ public:
         return m_classIID.toString();
     }
 
-    inline State state() const
+    inline TrackedObjectState_T state() const
     {
-        return m_State;
+        return m_state;
     }
 
-    inline State resetState()
+    inline TrackedObjectState_T resetState()
     {
-        return m_State = Invalid;
+        return m_state = TrackedObjectState_Invalid;
+    }
+
+    inline RTTIMESPEC creationTime() const
+    {
+        return m_creationTime;
+    }
+
+    inline RTTIMESPEC deletionTime() const
+    {
+        return m_deletionTime;
+    }
+
+    inline uint64_t lifeTime() const
+    {
+        return m_lifeTime;
+    }
+
+    inline uint64_t idleTime() const
+    {
+        return m_idleTime;
     }
 
     com::Utf8Str updateLastAccessTime();
     com::Utf8Str initIdleTime();
     com::Utf8Str creationTimeStr() const;
+    TrackedObjectState_T deletionTime(PRTTIMESPEC aTime) const;
+    TrackedObjectState_T updateState(TrackedObjectState_T aNewState);
 
 private:
     com::Guid m_objId;
@@ -136,11 +156,12 @@ private:
     com::Utf8Str m_componentName;
     RTTIMESPEC m_creationTime;//creation time
     RTTIMESPEC m_idleTimeStart;//idle time beginning (ref counter is 1)
+    RTTIMESPEC m_deletionTime;//deletion time (m_creationTime + m_lifeTime + m_idleTime)
     RTTIMESPEC m_lastAccessTime;//last access time
     uint64_t m_lifeTime;//lifetime after creation in seconds, 0 - live till the VBoxSVC lives
     uint64_t m_idleTime;//lifetime after out of usage in seconds, 0 - keep forever
     bool m_fIdleTimeStart;//when ref counter of m_pIface is 1 or m_lifeTime exceeded
-    State m_State;//state may have only 2 variants Valid or Invalid. State has only one transition from Valid to Invalid
+    TrackedObjectState_T m_state;
     ComPtr<IUnknown> m_pIface;//keeps a reference to a tracked object
 
 private:

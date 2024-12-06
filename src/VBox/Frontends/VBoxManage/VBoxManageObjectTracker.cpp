@@ -29,11 +29,10 @@
 
 #include <map>
 #include <vector>
+#include <iprt/time.h>
 
 using namespace com;
 using namespace std;
-
-//std::vector <com::Utf8Str> supportedIfaceList= {"IProgress", "ISession", "IMedium", "IMachine"};
 
 enum supIfaces_T
 {
@@ -51,6 +50,50 @@ std::map <com::Utf8Str, supIfaces_T> mapInterfaceNameToEnum = {
     {"IMachine", kMachine}
 };
 
+static void makeTimeStr(char *s, int cb, int64_t millies)
+{
+    RTTIME t;
+    RTTIMESPEC ts;
+
+    RTTimeSpecSetMilli(&ts, millies);
+
+    RTTimeExplode(&t, &ts);
+
+    RTStrPrintf(s, cb, "%04d/%02d/%02d %02d:%02d:%02d UTC",
+                        t.i32Year, t.u8Month, t.u8MonthDay,
+                        t.u8Hour, t.u8Minute, t.u8Second);
+}
+
+static Utf8Str trackedObjectStateToStr(TrackedObjectState_T aState)
+{
+    Utf8Str strState("None");
+    switch (aState)
+    {
+        case TrackedObjectState_Alive:
+            strState = "Alive";
+            break;
+        case TrackedObjectState_Deleted:
+            strState = "Deleted";
+            break;
+        case TrackedObjectState_Invalid:
+            strState = "Invalid";
+            break;
+        case TrackedObjectState_None:
+        default:
+            strState = "None";
+            break;
+    }
+
+    return strState;
+}
+
+struct TrackedObjInfo_T
+{
+    ComPtr<IUnknown> pIUnknown;
+    TrackedObjectState_T enmState;
+    LONG64 creationTime;
+    LONG64 deletionTime;
+};
 
 void printProgressObjectInfo(const ComPtr<IProgress>& pObj)
 {
@@ -220,66 +263,114 @@ void printMachineObjectInfo(const ComPtr<IMachine>& pObj)
     }
 }
 
-void printTrackedObjectInfo(supIfaces_T aIface, const map < Bstr, ComPtr<IUnknown> >& aObjMap)
+void printTrackedObjectInfo(supIfaces_T aIface, const map < Bstr, TrackedObjInfo_T >& aObjMap)
 {
     switch (aIface)
     {
         case kProgress:
-            for (const pair< const Bstr, ComPtr<IUnknown> >& item : aObjMap)
+            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
             {
                 ComPtr<IProgress> pObj;
-                item.second->QueryInterface(IID_IProgress, (void **)pObj.asOutParam());
+                item.second.pIUnknown->QueryInterface(IID_IProgress, (void **)pObj.asOutParam());
 
-                if (pObj.isNotNull())
+                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
+
+                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
+                RTPrintf(("  State                   %s\n"), strState.c_str());
+
+                char szTimeValue[128];
+                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
+                RTPrintf(("  Creation time           %s\n"), szTimeValue);
+
+                if (item.second.deletionTime != 0)
                 {
-                    RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-                    printProgressObjectInfo(pObj);
+                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
+                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
                 }
+
+                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
+                    printProgressObjectInfo(pObj);
             }
 
             break;
 
         case kSession:
-            for (const pair< const Bstr, ComPtr<IUnknown> >& item : aObjMap)
+            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
             {
                 ComPtr<ISession> pObj;
-                item.second->QueryInterface(IID_ISession, (void **)pObj.asOutParam());
+                item.second.pIUnknown->QueryInterface(IID_ISession, (void **)pObj.asOutParam());
 
-                if (pObj.isNotNull())
+                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
+
+                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
+                RTPrintf(("  State                   %s\n"), strState.c_str());
+
+                char szTimeValue[128];
+                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
+                RTPrintf(("  Creation time           %s\n"), szTimeValue);
+
+                if (item.second.deletionTime != 0)
                 {
-                    RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-                    printSessionObjectInfo(pObj);
+                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
+                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
                 }
+
+                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
+                    printSessionObjectInfo(pObj);
             }
 
             break;
 
         case kMedium:
-            for (const pair< const Bstr, ComPtr<IUnknown> >& item : aObjMap)
+            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
             {
                 ComPtr<IMedium> pObj;
-                item.second->QueryInterface(IID_IMedium, (void **)pObj.asOutParam());
+                item.second.pIUnknown->QueryInterface(IID_IMedium, (void **)pObj.asOutParam());
 
-                if (pObj.isNotNull())
+                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
+
+                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
+                RTPrintf(("  State                   %s\n"), strState.c_str());
+
+                char szTimeValue[128];
+                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
+                RTPrintf(("  Creation time           %s\n"), szTimeValue);
+
+                if (item.second.deletionTime != 0)
                 {
-                    RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-                    printMediumObjectInfo(pObj);
+                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
+                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
                 }
+
+                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
+                    printMediumObjectInfo(pObj);
             }
 
             break;
 
         case kMachine:
-            for (const pair< const Bstr, ComPtr<IUnknown> >& item : aObjMap)
+            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
             {
                 ComPtr<IMachine> pObj;
-                item.second->QueryInterface(IID_IMachine, (void **)pObj.asOutParam());
+                item.second.pIUnknown->QueryInterface(IID_IMachine, (void **)pObj.asOutParam());
 
-                if (pObj.isNotNull())
+                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
+
+                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
+                RTPrintf(("  State                   %s\n"), strState.c_str());
+
+                char szTimeValue[128];
+                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
+                RTPrintf(("  Creation time           %s\n"), szTimeValue);
+
+                if (item.second.deletionTime != 0)
                 {
-                    RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-                    printMachineObjectInfo(pObj);
+                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
+                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
                 }
+
+                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
+                    printMachineObjectInfo(pObj);
             }
 
             break;
@@ -363,7 +454,8 @@ static RTEXITCODE handleObjInfo(HandlerArg *a, int iFirst)
         hrc = pVirtualBox->GetTrackedObjectIds(Bstr(cIt->first).raw(), ComSafeArrayAsOutParam(ObjIDsList));
         if (SUCCEEDED(hrc))
         {
-            map < Bstr, ComPtr<IUnknown> > lObjMap;
+            map < Bstr, TrackedObjInfo_T > lObjInfoMap;
+
             if (strObjUuid.isNotEmpty())
             {
                 for (size_t i = 0; i < ObjIDsList.size(); ++i)
@@ -371,9 +463,13 @@ static RTEXITCODE handleObjInfo(HandlerArg *a, int iFirst)
                     Bstr bstrObjId = ObjIDsList[i];
                     if (bstrObjId.equals(strObjUuid.c_str()))
                     {
-                        ComPtr<IUnknown> pIUnknown;
-                        hrc = pVirtualBox->GetTrackedObject(bstrObjId.raw(), pIUnknown.asOutParam());
-                        lObjMap[bstrObjId] = pIUnknown;
+                        TrackedObjInfo_T objInfo;
+                        hrc = pVirtualBox->GetTrackedObject(bstrObjId.raw(),
+                                                            objInfo.pIUnknown.asOutParam(),
+                                                            &objInfo.enmState,
+                                                            &objInfo.creationTime,
+                                                            &objInfo.deletionTime);
+                        lObjInfoMap[bstrObjId] = objInfo;
                         break;
                     }
                 }
@@ -383,17 +479,26 @@ static RTEXITCODE handleObjInfo(HandlerArg *a, int iFirst)
                 for (size_t i = 0; i < ObjIDsList.size(); ++i)
                 {
                     Bstr bstrObjId = ObjIDsList[i];
-                    ComPtr<IUnknown> pIUnknown;
-                    hrc = pVirtualBox->GetTrackedObject(bstrObjId.raw(), pIUnknown.asOutParam());
-                    lObjMap[bstrObjId] = pIUnknown;
+                    TrackedObjInfo_T objInfo;
+                    hrc = pVirtualBox->GetTrackedObject(bstrObjId.raw(),
+                                                        objInfo.pIUnknown.asOutParam(),
+                                                        &objInfo.enmState,
+                                                        &objInfo.creationTime,
+                                                        &objInfo.deletionTime);
+                    if (SUCCEEDED(hrc))
+                        lObjInfoMap[bstrObjId] = objInfo;
+                    else
+                        RTPrintf(("VirtualBox::getTrackedObject() returned the error 0x%LX\n"), hrc);
                 }
             }
 
-            if (!lObjMap.empty())
-                printTrackedObjectInfo(foundIface, lObjMap);
+            if (!lObjInfoMap.empty())
+                printTrackedObjectInfo(foundIface, lObjInfoMap);
             else
-                RTPrintf(("Object with Id %s wasn't found or has \"invalid\" state\n"), strObjUuid.c_str());
+                RTPrintf(("Object with Id %s wasn't found\n"), strObjUuid.c_str());
         }
+        else
+            RTPrintf(("VirtualBox::getTrackedObjectIds() returned the error 0x%LX\n"), hrc);
     }
     else
         RTPrintf(("Interface %s isn't supported at present\n"), strIfaceName.c_str());

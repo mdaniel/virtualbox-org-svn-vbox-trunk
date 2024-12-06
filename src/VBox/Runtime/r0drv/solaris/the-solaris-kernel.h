@@ -40,6 +40,19 @@
 # pragma once
 #endif
 
+#if defined(VBOX_WITH_PARFAIT) && defined(__INT_FAST16_MAX__)
+/* HACK ALERT: Workaround for duplicate [u]int_fast16_t conflicting due to 'incorrect'
+               __INT_FAST16_TYPE__ and __UINT_FAST16_TYPE__ definitions in pairfait.
+               The types are usually 'int' and 'unsigned int', which the system headers
+               assume, thus we get a conflict when the pairfait compiler redefines to
+               a narrow variant.  Workaround, try ignore the system types and use the
+               compiler ones...  See also iprt/types.h. */
+# if (__INT_FAST16_MAX__) == 32767
+#  define int_fast16_t  hacked_int_fast16_t
+#  define uint_fast16_t hacked_uint_fast16_t
+#  include <sys/int_types.h>
+# endif
+#endif
 #include <sys/kmem.h>
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -74,6 +87,10 @@
 #include <sys/t_lock.h>
 
 #undef u /* /usr/include/sys/user.h:249:1 is where this is defined to (curproc->p_user). very cool. */
+#if defined(VBOX_WITH_PARFAIT) && defined(__INT_FAST16_MAX__) && defined(int_fast16_t) && defined(uint_fast16_t) /* see above */
+# undef  int_fast16_t
+# undef  uint_fast16_t
+#endif
 
 #include <iprt/cdefs.h>
 #include <iprt/types.h>

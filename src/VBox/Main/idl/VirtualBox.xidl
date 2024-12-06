@@ -1873,6 +1873,19 @@
     <const name="CephOSDDmcLUKS"        value="854"><desc>Ceph dm-crypt Linux unitified key setup (LUKS) object storage deamon (OSD) partition.</desc></const>
   </enum>
 
+  <enum
+    name="TrackedObjectState"
+    uuid="a5ee031d-aba8-4a7f-887a-9a1f12e7cc6c"
+    >
+    <desc>
+      Tracked Object State.
+    </desc>
+
+    <const name="None"              value="0"/>
+    <const name="Alive"             value="1"/>
+    <const name="Deleted"           value="2"/>
+    <const name="Invalid"           value="3"/>
+  </enum>
 
   <!--
   // IVirtualBoxErrorInfo
@@ -3991,13 +4004,22 @@
     <method name="getTrackedObject">
       <rest request="get" path="/server/methods/"/>
       <desc>
-        Queries the IUnknown interface to an object from the tracked object list
+        Queries the IUnknown interface to an object from the tracked object list.
       </desc>
       <param name="trObjId" type="wstring" dir="in">
         <desc>The object Id.</desc>
       </param>
-      <param name="pIface" type="$unknown" dir="return">
+      <param name="pIface" type="$unknown" dir="out">
         <desc>The found interface.</desc>
+      </param>
+      <param name="state" type="TrackedObjectState" dir="out">
+        <desc>The object state.</desc>
+      </param>
+      <param name="creationTime" type="long long" dir="out">
+        <desc>Creation time.</desc>
+      </param>
+      <param name="deletionTime" type="long long" dir="out">
+        <desc>Deletion time.</desc>
       </param>
     </method>
 
@@ -4013,7 +4035,6 @@
         <desc>Array of the tracked object Ids associated with the specified interface.</desc>
       </param>
     </method>
-
   </interface>
 
   <!--

@@ -443,8 +443,11 @@ private:
                                  BOOL *aResult);
     HRESULT findProgressById(const com::Guid &aId,
                              ComPtr<IProgress> &aProgressObject);
-    HRESULT getTrackedObject(const com::Utf8Str& aTrObjId,
-                             ComPtr<IUnknown> &aPIface);
+    HRESULT getTrackedObject(const com::Utf8Str &aTrObjId,
+                             ComPtr<IUnknown> &aPIface,
+                             TrackedObjectState_T *aState,
+                             LONG64 *aCreationTime,
+                             LONG64 *aDeletionTime);
     HRESULT getTrackedObjectIds (const com::Utf8Str& aName,
                                  std::vector<com::Utf8Str> &aObjIdsList);
 

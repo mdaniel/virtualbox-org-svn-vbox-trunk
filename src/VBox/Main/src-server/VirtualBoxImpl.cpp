@@ -6499,12 +6499,25 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
 }
 
 HRESULT VirtualBox::getTrackedObject (const com::Utf8Str& aTrObjId,
-                                      ComPtr<IUnknown> &aPIface)
+                                      ComPtr<IUnknown> &aPIface,
+                                      TrackedObjectState_T *aState,
+                                      LONG64 *aCreationTime,
+                                      LONG64 *aDeletionTime)
 {
     TrackedObjectData trObjData;
     HRESULT hrc = gTrackedObjectsCollector.getObj(aTrObjId, trObjData);
     if (SUCCEEDED(hrc))
+    {
         trObjData.getInterface().queryInterfaceTo(aPIface.asOutParam());
+        RTTIMESPEC time = trObjData.creationTime();
+        *aCreationTime = RTTimeSpecGetMilli(&time);
+        *aState = trObjData.state();
+        if (*aState != TrackedObjectState_Alive)
+        {
+            time = trObjData.deletionTime();
+            *aDeletionTime = RTTimeSpecGetMilli(&time);
+        }
+    }
 
     return hrc;
 }

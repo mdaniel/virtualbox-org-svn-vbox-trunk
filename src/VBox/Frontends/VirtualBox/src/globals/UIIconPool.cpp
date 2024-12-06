@@ -441,8 +441,11 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("RedHat6"),               ":/os_redhat.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("RedHat6"),               ":/os_redhat.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("RedHat7"),               ":/os_redhat.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("RedHat7"),               ":/os_redhat.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("RedHat8"),               ":/os_redhat.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("RedHat8"),               ":/os_redhat.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("RedHat9"),               ":/os_redhat.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("RedHat9"),               ":/os_redhat.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Turbolinux"),            ":/os_turbolinux.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Turbolinux"),            ":/os_turbolinux.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Ubuntu"),                ":/os_ubuntu.png");
@@ -487,8 +490,12 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Ubuntu22"),              ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Ubuntu23"),              ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Ubuntu23"),              ":/os_ubuntu.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Ubuntu231"),             ":/os_ubuntu.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Ubuntu231"),             ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Ubuntu24_LTS"),          ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Ubuntu24_LTS"),          ":/os_ubuntu.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Ubuntu24"),              ":/os_ubuntu.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Ubuntu24"),              ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Lubuntu"),               ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Lubuntu"),               ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Xubuntu"),               ":/os_ubuntu.png");
@@ -497,6 +504,7 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Xandros"),               ":/os_xandros.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Oracle"),                ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle"),                ":/os_oracle.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Oracle"),                ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Oracle3"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle3"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Oracle4"),               ":/os_oracle.png");
@@ -506,12 +514,11 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Oracle6"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle6"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle7"),               ":/os_oracle.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Oracle7"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle8"),               ":/os_oracle.png");
+    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Oracle8"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle9"),               ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Oracle9"),               ":/os_oracle.png");
-    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Oracle"),                ":/os_oracle.png");
-    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Oracle"),                ":/os_oracle.png");
-    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Oracle"),                ":/os_oracle.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Linux"),                 ":/os_linux.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Linux"),                 ":/os_linux.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("FreeBSD"),               ":/os_freebsd.png");

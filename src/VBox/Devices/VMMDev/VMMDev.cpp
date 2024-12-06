@@ -205,24 +205,12 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_Win8:                             pszOs = "Windows 8";      break;
         case VBOXOSTYPE_Win2k12_x64 & ~VBOXOSTYPE_x64:    pszOs = "Windows 2k12";   break;
         case VBOXOSTYPE_Win81:                            pszOs = "Windows 8.1";    break;
-        case VBOXOSTYPE_Win10:
-            if (   (pGuestInfo->osType & VBOXOSTYPE_ArchitectureMask) == VBOXOSTYPE_arm32
-                || (pGuestInfo->osType & VBOXOSTYPE_ArchitectureMask) == VBOXOSTYPE_arm64)
-                pszOs = "Windows 10 on ARM";
-            else
-                pszOs = "Windows 10";
-            break;
+        case VBOXOSTYPE_Win10:                            pszOs = "Windows 10";     break;
         case VBOXOSTYPE_Win2k16_x64 & ~VBOXOSTYPE_x64:    pszOs = "Windows 2k16";   break;
         case VBOXOSTYPE_Win2k19_x64 & ~VBOXOSTYPE_x64:    pszOs = "Windows 2k19";   break;
         case VBOXOSTYPE_Win2k22_x64 & ~VBOXOSTYPE_x64:    pszOs = "Windows 2k22";   break;
         case VBOXOSTYPE_Win2k25_x64 & ~VBOXOSTYPE_x64:    pszOs = "Windows 2k25";   break;
-        case VBOXOSTYPE_Win11_x64 & ~VBOXOSTYPE_x64:
-            if (   (pGuestInfo->osType & VBOXOSTYPE_ArchitectureMask) == VBOXOSTYPE_arm32
-                || (pGuestInfo->osType & VBOXOSTYPE_ArchitectureMask) == VBOXOSTYPE_arm64)
-                pszOs = "Windows 11 on ARM";
-            else
-                pszOs = "Windows 11";
-            break;
+        case VBOXOSTYPE_Win11_x64 & ~VBOXOSTYPE_x64:      pszOs = "Windows 11";     break;
         case VBOXOSTYPE_OS2:                              pszOs = "OS/2";           break;
         case VBOXOSTYPE_OS2Warp3:                         pszOs = "OS/2 Warp 3";    break;
         case VBOXOSTYPE_OS2Warp4:                         pszOs = "OS/2 Warp 4";    break;
@@ -287,6 +275,9 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_Ubuntu22_LTS_x64 & ~VBOXOSTYPE_x64: pszOs = "Ubuntu 22.04 LTS"; break;
         case VBOXOSTYPE_Ubuntu22_x64 & ~VBOXOSTYPE_x64:   pszOs = "Ubuntu 22.10";   break;
         case VBOXOSTYPE_Ubuntu23_x64 & ~VBOXOSTYPE_x64:   pszOs = "Ubuntu 23.04";   break;
+        case VBOXOSTYPE_Ubuntu231_x64 & ~VBOXOSTYPE_x64:  pszOs = "Ubuntu 23.10";   break;
+        case VBOXOSTYPE_Ubuntu24_LTS_x64 & ~VBOXOSTYPE_x64: pszOs = "Ubuntu 24.04";   break;
+        case VBOXOSTYPE_Ubuntu24_x64 & ~VBOXOSTYPE_x64:  pszOs = "Ubuntu 24.10";   break;
         case VBOXOSTYPE_Lubuntu:                          pszOs = "Lubuntu";        break;
         case VBOXOSTYPE_Xubuntu:                          pszOs = "Xubuntu";        break;
         case VBOXOSTYPE_Xandros:                          pszOs = "Xandros";        break;

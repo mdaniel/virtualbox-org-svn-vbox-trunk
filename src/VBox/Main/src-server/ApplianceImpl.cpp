@@ -90,6 +90,8 @@ static struct
 } const g_aOsTypes[] =
 {
     { ovf::CIMOSType_CIMOS_Unknown,                              VBOXOSTYPE_Unknown },
+    { ovf::CIMOSType_CIMOS_Unknown,                              VBOXOSTYPE_Unknown_x64 },
+    { ovf::CIMOSType_CIMOS_Unknown,                              VBOXOSTYPE_Unknown_arm64 },
     { ovf::CIMOSType_CIMOS_OS2,                                  VBOXOSTYPE_OS2 },
     { ovf::CIMOSType_CIMOS_OS2,                                  VBOXOSTYPE_OS2Warp3 },
     { ovf::CIMOSType_CIMOS_OS2,                                  VBOXOSTYPE_OS2Warp4 },
@@ -128,6 +130,7 @@ static struct
     { ovf::CIMOSType_CIMOS_MicrosoftWindowsServer2008,           VBOXOSTYPE_Win2k8 },
     { ovf::CIMOSType_CIMOS_MicrosoftWindowsServer2008_64,        VBOXOSTYPE_Win2k8_x64 },
     { ovf::CIMOSType_CIMOS_FreeBSD_64,                           VBOXOSTYPE_FreeBSD_x64 },
+    { ovf::CIMOSType_CIMOS_FreeBSD_64,                           VBOXOSTYPE_FreeBSD_arm64 },
     { ovf::CIMOSType_CIMOS_MACOS,                                VBOXOSTYPE_MacOS },
     { ovf::CIMOSType_CIMOS_MACOS,                                VBOXOSTYPE_MacOS_x64 }, // there is no CIM 64-bit type for this
     { ovf::CIMOSType_CIMOS_MACOS,                                VBOXOSTYPE_MacOS106 },
@@ -151,17 +154,22 @@ static struct
     { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat5_x64 },
     { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux,                VBOXOSTYPE_RedHat6 },
     { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat6_x64 },
-    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat7_x64 }, // 64-bit only
-    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat8_x64 }, // 64-bit only
-    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat9_x64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat7_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat7_arm64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat8_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat8_arm64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat9_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_RedHatEnterpriseLinux_64,             VBOXOSTYPE_RedHat9_arm64 }, // 64-bit only
     { ovf::CIMOSType_CIMOS_SUSE,                                 VBOXOSTYPE_OpenSUSE },
     { ovf::CIMOSType_CIMOS_SLES,                                 VBOXOSTYPE_SUSE_LE },
     { ovf::CIMOSType_CIMOS_NovellLinuxDesktop,                   VBOXOSTYPE_OpenSUSE },
     { ovf::CIMOSType_CIMOS_SUSE_64,                              VBOXOSTYPE_OpenSUSE_x64 },
     { ovf::CIMOSType_CIMOS_SLES_64,                              VBOXOSTYPE_SUSE_LE_x64 },
     { ovf::CIMOSType_CIMOS_SUSE_64,                              VBOXOSTYPE_OpenSUSE_Leap_x64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_SUSE_64,                              VBOXOSTYPE_OpenSUSE_Leap_arm64 }, // 64-bit only
     { ovf::CIMOSType_CIMOS_SUSE,                                 VBOXOSTYPE_OpenSUSE_Tumbleweed },
     { ovf::CIMOSType_CIMOS_SUSE_64,                              VBOXOSTYPE_OpenSUSE_Tumbleweed_x64 },
+    { ovf::CIMOSType_CIMOS_SUSE_64,                              VBOXOSTYPE_OpenSUSE_Tumbleweed_arm64 },
     { ovf::CIMOSType_CIMOS_LINUX,                                VBOXOSTYPE_Linux },
     { ovf::CIMOSType_CIMOS_LINUX,                                VBOXOSTYPE_Linux22 },
     { ovf::CIMOSType_CIMOS_SunJavaDesktopSystem,                 VBOXOSTYPE_Linux },
@@ -177,6 +185,7 @@ static struct
     { ovf::CIMOSType_CIMOS_Mandriva_64,                          VBOXOSTYPE_Mageia_x64 },
     { ovf::CIMOSType_CIMOS_Ubuntu,                               VBOXOSTYPE_Ubuntu },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu_arm64 },
     { ovf::CIMOSType_CIMOS_Ubuntu,                               VBOXOSTYPE_Ubuntu10_LTS },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu10_LTS_x64 },
     { ovf::CIMOSType_CIMOS_Ubuntu,                               VBOXOSTYPE_Ubuntu10 },
@@ -212,13 +221,22 @@ static struct
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu21_x64 },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu22_LTS_x64 },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu22_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu22_arm64 },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu23_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu23_arm64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu231_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu231_arm64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu24_LTS_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu24_LTS_arm64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu24_x64 },
+    { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Ubuntu24_arm64 },
     { ovf::CIMOSType_CIMOS_Ubuntu,                               VBOXOSTYPE_Lubuntu },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Lubuntu_x64 },
     { ovf::CIMOSType_CIMOS_Ubuntu,                               VBOXOSTYPE_Xubuntu },
     { ovf::CIMOSType_CIMOS_Ubuntu_64,                            VBOXOSTYPE_Xubuntu_x64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian_x64 },
+    { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian_arm64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian31 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian4 },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian4_x64 },
@@ -232,12 +250,16 @@ static struct
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian8_x64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian9 },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian9_x64 },
+    { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian9_arm64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian10 },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian10_x64 },
+    { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian10_arm64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian11 },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian11_x64 },
+    { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian11_arm64 },
     { ovf::CIMOSType_CIMOS_Debian,                               VBOXOSTYPE_Debian12 },
     { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian12_x64 },
+    { ovf::CIMOSType_CIMOS_Debian_64,                            VBOXOSTYPE_Debian12_arm64 },
     { ovf::CIMOSType_CIMOS_Linux_2_4_x,                          VBOXOSTYPE_Linux24 },
     { ovf::CIMOSType_CIMOS_Linux_2_4_x_64,                       VBOXOSTYPE_Linux24_x64 },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x,                          VBOXOSTYPE_Linux26 },
@@ -247,8 +269,10 @@ static struct
     // types that we have support for but CIM doesn't
     { ovf::CIMOSType_CIMOS_Linux_2_6_x,                          VBOXOSTYPE_ArchLinux },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x_64,                       VBOXOSTYPE_ArchLinux_x64 },
+    { ovf::CIMOSType_CIMOS_Linux_2_6_x_64,                       VBOXOSTYPE_ArchLinux_arm64 },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x,                          VBOXOSTYPE_FedoraCore },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x_64,                       VBOXOSTYPE_FedoraCore_x64 },
+    { ovf::CIMOSType_CIMOS_Linux_2_6_x_64,                       VBOXOSTYPE_FedoraCore_arm64 },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x,                          VBOXOSTYPE_Gentoo },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x_64,                       VBOXOSTYPE_Gentoo_x64 },
     { ovf::CIMOSType_CIMOS_Linux_2_6_x,                          VBOXOSTYPE_Xandros },
@@ -266,15 +290,19 @@ static struct
     { ovf::CIMOSType_CIMOS_CentOS_64,                            VBOXOSTYPE_RedHat_x64 },
     { ovf::CIMOSType_CIMOS_OracleLinux,                          VBOXOSTYPE_Oracle },
     { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle_x64 },
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle_arm64 },
     { ovf::CIMOSType_CIMOS_OracleLinux,                          VBOXOSTYPE_Oracle4 },
     { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle4_x64 },
     { ovf::CIMOSType_CIMOS_OracleLinux,                          VBOXOSTYPE_Oracle5 },
     { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle5_x64 },
     { ovf::CIMOSType_CIMOS_OracleLinux,                          VBOXOSTYPE_Oracle6 },
     { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle6_x64 },
-    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle7_x64 }, // 64-bit only
-    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle8_x64 }, // 64-bit only
-    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle9_x64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle7_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle7_arm64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle8_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle8_arm64 }, // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle9_x64 },   // 64-bit only
+    { ovf::CIMOSType_CIMOS_OracleLinux_64,                       VBOXOSTYPE_Oracle9_arm64 }, // 64-bit only
     { ovf::CIMOSType_CIMOS_eComStation,                          VBOXOSTYPE_ECS },
 
     { ovf::CIMOSType_CIMOS_WindowsServer2011,                    VBOXOSTYPE_Win2k8_x64 },       // no 1:1 match on the VBox side

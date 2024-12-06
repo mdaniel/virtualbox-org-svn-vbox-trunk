@@ -200,7 +200,7 @@ const Global::OSType Global::sOSTypes[] =
       1, 2048, 128, 50 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,
       StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_PIIX3, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
 
-    { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_A64("Windows10"),       "Windows 10 on ARM (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN_A64, VBOX_OSTYPE_ARM64(Win11), VBOXOSHINT_64BIT | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_RTCUTC | VBOXOSHINT_USBHID,
+    { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_A64("Windows10"),       "Windows 10 on ARM (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN_A64, VBOX_OSTYPE_ARM64(Win10), VBOXOSHINT_64BIT | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_RTCUTC | VBOXOSHINT_USBHID,
       2, 4096, 128, 50 * _1G64, GraphicsControllerType_QemuRamFB, NetworkAdapterType_I82540EM, 0, StorageControllerType_VirtioSCSI, StorageBus_VirtioSCSI,
       StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_ARMv8Virtual, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
 
@@ -405,7 +405,9 @@ const Global::OSType Global::sOSTypes[] =
     VBOX_LINUX_SUBTYPE_B_X86("Oracle Linux", Oracle6,            "Oracle Linux 6.x (32-bit)",       2048, 16, 10),
     VBOX_LINUX_SUBTYPE_B_X64("Oracle Linux", Oracle6,            "Oracle Linux 6.x (64-bit)",       2048, 16, 10),
     VBOX_LINUX_SUBTYPE_B_X64("Oracle Linux", Oracle7,            "Oracle Linux 7.x (64-bit)",       2048, 16, 20),  // 64-bit only
+    VBOX_LINUX_SUBTYPE_B_A64("Oracle Linux", Oracle7,            "Oracle Linux 7.x (ARM 64-bit)",   2048, 16, 20),  // 64-bit only
     VBOX_LINUX_SUBTYPE_B_X64("Oracle Linux", Oracle8,            "Oracle Linux 8.x (64-bit)",       2048, 16, 20),  // 64-bit only
+    VBOX_LINUX_SUBTYPE_B_A64("Oracle Linux", Oracle8,            "Oracle Linux 8.x (ARM 64-bit)",   2048, 16, 20),  // 64-bit only
     VBOX_LINUX_SUBTYPE_B_X64("Oracle Linux", Oracle9,            "Oracle Linux 9.x (64-bit)",       2048, 16, 20),  // 64-bit only
     VBOX_LINUX_SUBTYPE_B_A64("Oracle Linux", Oracle9,            "Oracle Linux 9.x (ARM 64-bit)",   2048, 16, 20),  // 64-bit only
 
@@ -420,8 +422,11 @@ const Global::OSType Global::sOSTypes[] =
     VBOX_LINUX_SUBTYPE_B_X86("Red Hat",     RedHat6,             "Red Hat 6.x (32-bit)",            1024, 16, 10),
     VBOX_LINUX_SUBTYPE_B_X64("Red Hat",     RedHat6,             "Red Hat 6.x (64-bit)",            1024, 16, 10),
     VBOX_LINUX_SUBTYPE_B_X64("Red Hat",     RedHat7,             "Red Hat 7.x (64-bit)",            2048, 16, 20),  // 64-bit only
+    VBOX_LINUX_SUBTYPE_B_A64("Red Hat",     RedHat7,             "Red Hat 7.x (ARM 64-bit)",        2048, 16, 20),  // 64-bit only
     VBOX_LINUX_SUBTYPE_B_X64("Red Hat",     RedHat8,             "Red Hat 8.x (64-bit)",            2048, 16, 20),  // 64-bit only
+    VBOX_LINUX_SUBTYPE_B_A64("Red Hat",     RedHat8,             "Red Hat 8.x (ARM 64-bit)",        2048, 16, 20),  // 64-bit only
     VBOX_LINUX_SUBTYPE_B_X64("Red Hat",     RedHat9,             "Red Hat 9.x (64-bit)",            2048, 16, 20),  // 64-bit only
+    VBOX_LINUX_SUBTYPE_B_X64("Red Hat",     RedHat9,             "Red Hat 9.x (ARM 64-bit)",        2048, 16, 20),  // 64-bit only
 
     VBOX_LINUX_SUBTYPE_A_X86("openSUSE",    OpenSUSE,            "openSUSE (32-bit)",               1024, 16, 8),
     VBOX_LINUX_SUBTYPE_A_X64("openSUSE",    OpenSUSE,            "openSUSE (64-bit)",               1024, 16, 8),
@@ -477,8 +482,12 @@ const Global::OSType Global::sOSTypes[] =
     VBOX_LINUX_SUBTYPE_A_A64("Ubuntu", Ubuntu22,     "Ubuntu 22.10 (Kinetic Kudu) (ARM 64-bit)", 2048, 16, 25),
     VBOX_LINUX_SUBTYPE_A_X64("Ubuntu", Ubuntu23,     "Ubuntu 23.04 (Lunar Lobster) (64-bit)", 2048, 16, 25), // 64-bit only
     VBOX_LINUX_SUBTYPE_A_A64("Ubuntu", Ubuntu23,     "Ubuntu 23.04 (Lunar Lobster) (ARM 64-bit)", 2048, 16, 25),
+    VBOX_LINUX_SUBTYPE_A_X64("Ubuntu", Ubuntu231,    "Ubuntu 23.10 (Mantic Minotaur) (64-bit)", 2048, 16, 25), // 64-bit only
+    VBOX_LINUX_SUBTYPE_A_A64("Ubuntu", Ubuntu231,    "Ubuntu 23.10 (Mantic Minotaur) (ARM 64-bit)", 2048, 16, 25), // 64-bit only
     VBOX_LINUX_SUBTYPE_A_X64("Ubuntu", Ubuntu24_LTS, "Ubuntu 24.04 LTS (Noble Numbat) (64-bit)", 2048, 16, 25), // 64-bit only
     VBOX_LINUX_SUBTYPE_A_A64("Ubuntu", Ubuntu24_LTS, "Ubuntu 24.04 LTS (Noble Numbat) (ARM 64-bit)", 2048, 16, 25),
+    VBOX_LINUX_SUBTYPE_A_X64("Ubuntu", Ubuntu24,     "Ubuntu 24.10 (Oracular Oriole) (64-bit)", 2048, 16, 25), // 64-bit only
+    VBOX_LINUX_SUBTYPE_A_A64("Ubuntu", Ubuntu24,     "Ubuntu 24.10 (Oracular Oriole) (ARM 64-bit)", 2048, 16, 25),
     VBOX_LINUX_SUBTYPE_A_X86("Ubuntu", Lubuntu,      "Lubuntu (32-bit)",  1024, 16, 10),
     VBOX_LINUX_SUBTYPE_A_X64("Ubuntu", Lubuntu,      "Lubuntu (64-bit)",  1024, 16, 10),
     VBOX_LINUX_SUBTYPE_A_X86("Ubuntu", Xubuntu,      "Xubuntu (32-bit)",  1024, 16, 10),

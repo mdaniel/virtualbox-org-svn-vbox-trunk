@@ -19242,8 +19242,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpps(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
     {
-        { BS3_INSTR4_ALL(cmpps_XMM1_XMM1_000h),        255, RM_REG, T_SSE,     XMM1, XMM1, XMM1,  0x00, PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(cmpps_XMM1_XMM1_006h),        255, RM_REG, T_SSE,     XMM1, XMM1, XMM1,  0x06, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpps_XMM1_XMM1_000h),        255, RM_REG, T_SSE,     XMM1, XMM1, NOREG, 0x00, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpps_XMM1_XMM1_006h),        255, RM_REG, T_SSE,     XMM1, XMM1, NOREG, 0x06, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(cmpps_XMM1_XMM2_000h),        255, RM_REG, T_SSE,     XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmpps_XMM1_XMM2_001h),        255, RM_REG, T_SSE,     XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmpps_XMM1_XMM2_002h),        255, RM_REG, T_SSE,     XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19260,18 +19260,18 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpps(uint8_t bMode)
         { BS3_INSTR4_ALL(cmpps_XMM1_FSxBX_001h),       255, RM_MEM, T_SSE,     XMM1, XMM1, FSxBX, 0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmpps_XMM1_FSxBX_004h),       255, RM_MEM, T_SSE,     XMM1, XMM1, FSxBX, 0x04, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmpps_XMM1_FSxBX_007h),       255, RM_MEM, T_SSE,     XMM1, XMM1, FSxBX, 0x07, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(cmpps_XMM8_XMM8_005h),        255, RM_REG, T_SSE,     XMM8, XMM8, XMM8,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(cmpps_XMM8_XMM8_005h),        255, RM_REG, T_SSE,     XMM8, XMM8, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(cmpps_XMM8_XMM9_002h),        255, RM_REG, T_SSE,     XMM8, XMM8, XMM9,  0x02, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(cmpps_XMM8_FSxBX_003h),       255, RM_MEM, T_SSE,     XMM8, XMM8, FSxBX, 0x03, PASS_TEST_ARRAY(s_aValues)   },
 
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM1_FSxBX_00bh), 255, RM_MEM, T_AVX_128, XMM1, XMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmpps_XMM1_XMM1_XMM1_005h),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM1,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpps_XMM1_XMM1_XMM1_005h),  255, RM_REG, T_AVX_128, XMM1, XMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM1_XMM2_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_FSxBX_010h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_FSxBX_011h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_FSxBX_013h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM1_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM1,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM2_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM2,  0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM2_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM3_001h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM3_002h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19308,20 +19308,20 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpps(uint8_t bMode)
         { BS3_INSTR4_ALL(vcmpps_XMM1_XMM2_XMM3_044h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM8_FSxBX_01fh), 255, RM_MEM, T_AVX_128, XMM8, XMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_FSxBX_01dh), 255, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM9_01ah),  255, RM_REG, T_AVX_128, XMM8, XMM9, XMM9,  0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM9_01ah),  255, RM_REG, T_AVX_128, XMM8, XMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM10_016h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM10_017h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM10_019h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_XMM8_XMM9_XMM10_0ddh), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x1d, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
 
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM1_FSxBX_00bh), 255, RM_MEM, T_AVX_256, YMM1, YMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmpps_YMM1_YMM1_YMM1_005h),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM1,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpps_YMM1_YMM1_YMM1_005h),  255, RM_REG, T_AVX_256, YMM1, YMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM1_YMM2_00ah),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_FSxBX_010h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_FSxBX_011h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_FSxBX_013h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM1_00ch),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM2,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM2_00eh),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM2,  0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM2_00eh),  255, RM_REG, T_AVX_256, YMM1, YMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM3_000h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM3_001h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM3_002h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19358,7 +19358,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpps(uint8_t bMode)
         { BS3_INSTR4_ALL(vcmpps_YMM1_YMM2_YMM3_044h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
         { BS3_INSTR4_C64(vcmpps_YMM8_YMM8_FSxBX_01fh), 255, RM_MEM, T_AVX_256, YMM8, YMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_FSxBX_01dh), 255, RM_MEM, T_AVX_256, YMM8, YMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_YMM9_01ah),  255, RM_REG, T_AVX_256, YMM8, YMM9, YMM9,  0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_YMM9_01ah),  255, RM_REG, T_AVX_256, YMM8, YMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_YMM10_016h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_YMM10_017h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmpps_YMM8_YMM9_YMM10_019h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
@@ -19603,8 +19603,8 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmppd(uint8_t bMode)
 
     static BS3CPUINSTR4_TEST1_T const s_aTests[] =
     {
-        { BS3_INSTR4_ALL(cmppd_XMM1_XMM1_000h),        255, RM_REG, T_SSE2,    XMM1, XMM1, XMM1,  0x00, PASS_TEST_ARRAY(s_aValuesSR) },
-        { BS3_INSTR4_ALL(cmppd_XMM1_XMM1_006h),        255, RM_REG, T_SSE2,    XMM1, XMM1, XMM1,  0x06, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmppd_XMM1_XMM1_000h),        255, RM_REG, T_SSE2,    XMM1, XMM1, NOREG, 0x00, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmppd_XMM1_XMM1_006h),        255, RM_REG, T_SSE2,    XMM1, XMM1, NOREG, 0x06, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(cmppd_XMM1_XMM2_000h),        255, RM_REG, T_SSE2,    XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmppd_XMM1_XMM2_001h),        255, RM_REG, T_SSE2,    XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmppd_XMM1_XMM2_002h),        255, RM_REG, T_SSE2,    XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19621,18 +19621,18 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmppd(uint8_t bMode)
         { BS3_INSTR4_ALL(cmppd_XMM1_FSxBX_001h),       255, RM_MEM, T_SSE2,    XMM1, XMM1, FSxBX, 0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmppd_XMM1_FSxBX_004h),       255, RM_MEM, T_SSE2,    XMM1, XMM1, FSxBX, 0x04, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(cmppd_XMM1_FSxBX_007h),       255, RM_MEM, T_SSE2,    XMM1, XMM1, FSxBX, 0x07, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(cmppd_XMM8_XMM8_005h),        255, RM_REG, T_SSE2,    XMM8, XMM8, XMM8,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(cmppd_XMM8_XMM8_005h),        255, RM_REG, T_SSE2,    XMM8, XMM8, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(cmppd_XMM8_XMM9_002h),        255, RM_REG, T_SSE2,    XMM8, XMM8, XMM9,  0x02, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(cmppd_XMM8_FSxBX_003h),       255, RM_MEM, T_SSE2,    XMM8, XMM8, FSxBX, 0x03, PASS_TEST_ARRAY(s_aValues)   },
 
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM1_FSxBX_00bh), 255, RM_MEM, T_AVX_128, XMM1, XMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmppd_XMM1_XMM1_XMM1_005h),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM1,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmppd_XMM1_XMM1_XMM1_005h),  255, RM_REG, T_AVX_128, XMM1, XMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM1_XMM2_00ah),  255, RM_REG, T_AVX_128, XMM1, XMM1, XMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_FSxBX_010h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_FSxBX_011h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_FSxBX_013h), 255, RM_MEM, T_AVX_128, XMM1, XMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM1_00ch),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM1,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM2_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM2,  0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM2_00eh),  255, RM_REG, T_AVX_128, XMM1, XMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM3_000h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM3_001h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM3_002h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19669,20 +19669,20 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmppd(uint8_t bMode)
         { BS3_INSTR4_ALL(vcmppd_XMM1_XMM2_XMM3_044h),  255, RM_REG, T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM8_FSxBX_01fh), 255, RM_MEM, T_AVX_128, XMM8, XMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_FSxBX_01dh), 255, RM_MEM, T_AVX_128, XMM8, XMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM9_01ah),  255, RM_REG, T_AVX_128, XMM8, XMM9, XMM9,  0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM9_01ah),  255, RM_REG, T_AVX_128, XMM8, XMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM10_016h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM10_017h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM10_019h), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_XMM8_XMM9_XMM10_0ddh), 255, RM_REG, T_AVX_128, XMM8, XMM9, XMM10, 0x1d, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
 
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM1_FSxBX_00bh), 255, RM_MEM, T_AVX_256, YMM1, YMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmppd_YMM1_YMM1_YMM1_005h),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM1,  0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmppd_YMM1_YMM1_YMM1_005h),  255, RM_REG, T_AVX_256, YMM1, YMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM1_YMM2_00ah),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_FSxBX_010h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_FSxBX_011h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_FSxBX_013h), 255, RM_MEM, T_AVX_256, YMM1, YMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM1_00ch),  255, RM_REG, T_AVX_256, YMM1, YMM1, YMM2,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM2_00eh),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM2,  0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM2_00eh),  255, RM_REG, T_AVX_256, YMM1, YMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM3_000h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM3_001h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM3_002h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
@@ -19719,7 +19719,7 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmppd(uint8_t bMode)
         { BS3_INSTR4_ALL(vcmppd_YMM1_YMM2_YMM3_044h),  255, RM_REG, T_AVX_256, YMM1, YMM2, YMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
         { BS3_INSTR4_C64(vcmppd_YMM8_YMM8_FSxBX_01fh), 255, RM_MEM, T_AVX_256, YMM8, YMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_FSxBX_01dh), 255, RM_MEM, T_AVX_256, YMM8, YMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
-        { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_YMM9_01ah),  255, RM_REG, T_AVX_256, YMM8, YMM9, YMM9,  0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_YMM9_01ah),  255, RM_REG, T_AVX_256, YMM8, YMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
         { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_YMM10_016h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_YMM10_017h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
         { BS3_INSTR4_C64(vcmppd_YMM8_YMM9_YMM10_019h), 255, RM_REG, T_AVX_256, YMM8, YMM9, YMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
@@ -19727,6 +19727,387 @@ BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmppd(uint8_t bMode)
     };
 
     return bs3CpuInstr4_WorkerTestType1_P(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig2), bs3CpuInstr4_WorkerTestType1_Provider_cmppd);
+}
+
+
+typedef struct BS3CPUINSTR4_CMPSS_VALUES_T
+{
+    RTFLOAT32U          uSrc2;
+    RTFLOAT32U          uSrc1;
+    uint8_t             uDst;                   /**< Result value, encoded as a CMP_XX_T comparison predicate */
+    uint16_t            uMxCsr;                 /**< MXCSR to set prior to executing the instruction. */
+    uint16_t            u128ExpectedMxCsr;      /**< Expected MXCSR for a 128-bit instruction. */
+} BS3CPUINSTR4_CMPSS_VALUES_T;
+
+static DECLCALLBACK(PBS3CPUINSTR4_TEST1_VALUES_T) bs3CpuInstr4_WorkerTestType1_Provider_cmpss(void *paValues, const unsigned cValues, const unsigned iVal, uint8_t uExtra)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_SS_T sValues;
+    BS3CPUINSTR4_CMPSS_VALUES_T *psValuesIn = &((BS3CPUINSTR4_CMPSS_VALUES_T *)paValues)[iVal];
+    unsigned iCnt;
+    uint8_t uPredicate;
+    uint8_t uCmpResult;
+    bool fSignaling;
+
+    BS3_ASSERT(uExtra < 32);
+    uPredicate = g_aCmpPredicate[uExtra] & CMP_ORDERING_MASK;
+    fSignaling = (g_aCmpPredicate[uExtra] & CMP_IE_T) == CMP_IE_T;
+
+    sValues.uSrc1.ymm.au32[0] = psValuesIn->uSrc1.u;
+    sValues.uSrc2.ymm.au32[0] = psValuesIn->uSrc2.u;
+    sValues.u128ExpectedMxCsr = psValuesIn->u128ExpectedMxCsr;
+    uCmpResult = psValuesIn->uDst;
+    if (uCmpResult == CMP_IE_T || (uCmpResult == CMP_UN_T && fSignaling))
+        sValues.u128ExpectedMxCsr |= X86_MXCSR_IE;
+    if (uCmpResult == CMP_IE_T) uCmpResult = CMP_UN_T;
+    sValues.uDstOut.ymm.au32[0] = (uCmpResult & uPredicate) ? 0xFFFFFFFF : 0;
+
+    for (iCnt = 1; iCnt < RT_ELEMENTS(sValues.uSrc1.ymm.au32) / 2; iCnt++)
+    {
+        sValues.uSrc1.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uSrc2.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uDstOut.ymm.au32[iCnt] = sValues.uSrc1.ymm.au32[iCnt];
+    }
+    sValues.uMxCsr = psValuesIn->uMxCsr;
+    sValues.afEflOut = 0;
+    return (PBS3CPUINSTR4_TEST1_VALUES_T)&sValues;
+}
+
+/*
+ * [V]CMPSS.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpss(uint8_t bMode)
+{
+    static BS3CPUINSTR4_CMPSS_VALUES_T const s_aValues[] =
+    {
+              /*src2*/            /*src1*/             /* => */  /*mxcsr:in*/          /*128:out*/
+        /* Zero. */
+    /* 0*/{   FP32_0(0),          FP32_0(0),           CMP_EQ_T, 0,                    0                    },
+          {   FP32_0(0),          FP32_0(1),           CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP32_0(1),          FP32_0(0),           CMP_EQ_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP32_0(1),          FP32_0(1),           CMP_EQ_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+        /* Infinity. */
+    /* 4*/{   FP32_INF(0),        FP32_INF(0),         CMP_EQ_T, 0,                    0                    },
+          {   FP32_INF(0),        FP32_INF(1),         CMP_GT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP32_INF(1),        FP32_INF(1),         CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_INF(1),        FP32_INF(0),         CMP_LT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP32_INF(0),        FP32_0(0),           CMP_GT_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP32_INF(1),        FP32_0(1),           CMP_LT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+        /* Normals. */
+    /*10*/{   FP32_2(0),          FP32_2(0),           CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP32_2(0),          FP32_2(1),           CMP_GT_T, X86_MXCSR_FZ,         X86_MXCSR_FZ         },
+          {   FP32_2(1),          FP32_2(0),           CMP_LT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP32_0(0),          FP32_2(1),           CMP_GT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP32_NORM_V0(0),    FP32_NORM_V0(0),     CMP_EQ_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP32_NORM_V1(0),    FP32_NORM_V2(0),     CMP_GT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP32_NORM_V2(1),    FP32_NORM_V1(1),     CMP_GT_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP32_RAND_V1(0),    FP32_RAND_V2(0),     CMP_LT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP32_RAND_V2(1),    FP32_RAND_V1(1),     CMP_LT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP32_0_5(0),        FP32_0_5(0),         CMP_EQ_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP32_0_5(0),        FP32_0_5_DN(0),      CMP_GT_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_0_5(0),        FP32_0_5_UP(0),      CMP_LT_T, X86_MXCSR_FZ,         X86_MXCSR_FZ         },
+          {   FP32_0_5(1),        FP32_0_5(1),         CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP32_0_5(1),        FP32_0_5_DN(1),      CMP_LT_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_0_5(1),        FP32_0_5_UP(1),      CMP_GT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+        /* Denormals. */
+    /*25*/{   FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),  CMP_EQ_T, 0,                    X86_MXCSR_DE         },
+          {   FP32_DENORM_MAX(1), FP32_DENORM_MAX(0),  CMP_LT_T, 0,                    X86_MXCSR_DE         },
+          {   FP32_DENORM_MIN(0), FP32_DENORM_MIN(1),  CMP_GT_T, 0,                    X86_MXCSR_DE         },
+          {   FP32_DENORM_MAX(0), FP32_0(0),           CMP_GT_T, 0,                    X86_MXCSR_DE         },
+          {   FP32_0(1),          FP32_DENORM_MIN(0),  CMP_LT_T, 0,                    X86_MXCSR_DE         },
+          {   FP32_DENORM_MAX(1), FP32_DENORM_MAX(0),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_DENORM_MIN(0), FP32_DENORM_MAX(1),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_0(0),          FP32_DENORM_MAX(0),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+        /* Invalids. */
+    /*33*/{   FP32_QNAN(0),       FP32_0(1),           CMP_UN_T, 0,                    0                    },
+          {   FP32_INF(1),        FP32_QNAN(1),        CMP_UN_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP32_SNAN_V1(0),    FP32_NORM_V2(0),     CMP_IE_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP32_RAND_V3(1),    FP32_SNAN_V3(1),     CMP_IE_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP32_DENORM_MAX(0), FP32_QNAN_V1(1),     CMP_UN_T, 0,                    0                    },
+          {   FP32_SNAN_V2(0),    FP32_DENORM_MIN(1),  CMP_IE_T, 0,                    0                    },
+        /* Precision, Overflow, Underflow not possible. */
+    };
+    static BS3CPUINSTR4_CMPSS_VALUES_T const s_aValuesSR[] =
+    {
+        /* Zero. */
+    /* 0*/{   FP32_0(0),          FP32_0(0),           CMP_EQ_T, 0,                    0                    },
+        /* Infinity. */
+    /* 1*/{   FP32_INF(0),        FP32_INF(0),         CMP_EQ_T, 0,                    0                    },
+        /* Normals. */
+    /* 2*/{   FP32_2(0),          FP32_2(0),           CMP_EQ_T, 0,                    0                    },
+        /* Denormals. */
+    /* 4*/{   FP32_DENORM_MAX(0), FP32_DENORM_MAX(0),  CMP_EQ_T, 0,                    X86_MXCSR_DE         },
+        /* Invalids. */
+    /* 5*/{   FP32_QNAN(0),       FP32_QNAN(0),        CMP_UN_T, 0,                    0                    },
+          {   FP32_SNAN(0),       FP32_SNAN(0),        CMP_IE_T, 0,                    0                    },
+        /* Precision, Overflow, Underflow not possible. */
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests[] =
+    {
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM1_000h),        255, RM_REG,   T_SSE,     XMM1, XMM1, NOREG, 0x00, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM1_006h),        255, RM_REG,   T_SSE,     XMM1, XMM1, NOREG, 0x06, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_000h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_001h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_002h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_003h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x03, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_004h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_005h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x05, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_006h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x06, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_007h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_008h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_011h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_022h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_043h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x03, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpss_XMM1_XMM2_084h),        255, RM_REG,   T_SSE,     XMM1, XMM1, XMM2,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpss_XMM1_FSxBX_001h),       255, RM_MEM32, T_SSE,     XMM1, XMM1, FSxBX, 0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_FSxBX_004h),       255, RM_MEM32, T_SSE,     XMM1, XMM1, FSxBX, 0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpss_XMM1_FSxBX_007h),       255, RM_MEM32, T_SSE,     XMM1, XMM1, FSxBX, 0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(cmpss_XMM8_XMM8_005h),        255, RM_REG,   T_SSE,     XMM8, XMM8, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(cmpss_XMM8_XMM9_002h),        255, RM_REG,   T_SSE,     XMM8, XMM8, XMM9,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(cmpss_XMM8_FSxBX_003h),       255, RM_MEM32, T_SSE,     XMM8, XMM8, FSxBX, 0x03, PASS_TEST_ARRAY(s_aValues)   },
+
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM1_FSxBX_00bh), 255, RM_MEM32, T_AVX_128, XMM1, XMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM1_XMM1_005h),  255, RM_REG,   T_AVX_128, XMM1, XMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM1_XMM2_00ah),  255, RM_REG,   T_AVX_128, XMM1, XMM1, XMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_FSxBX_010h), 255, RM_MEM32, T_AVX_128, XMM1, XMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_FSxBX_011h), 255, RM_MEM32, T_AVX_128, XMM1, XMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_FSxBX_013h), 255, RM_MEM32, T_AVX_128, XMM1, XMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM1_00ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM1,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM2_00eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_000h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_001h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_002h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_003h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x03, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_004h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_005h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x05, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_006h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x06, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_007h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_008h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x08, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_009h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x09, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00ah),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00bh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00dh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0e, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_00fh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_010h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x10, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_011h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x11, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_012h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x12, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_013h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x13, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_014h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x14, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_015h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x15, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_016h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x16, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_017h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x17, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_018h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x18, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_019h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x19, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01ah),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01bh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01dh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1e, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_01fh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_022h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(vcmpss_XMM1_XMM2_XMM3_044h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM8_FSxBX_01fh), 255, RM_MEM32, T_AVX_128, XMM8, XMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_FSxBX_01dh), 255, RM_MEM32, T_AVX_128, XMM8, XMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_XMM9_01ah),  255, RM_REG,   T_AVX_128, XMM8, XMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_XMM10_016h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_XMM10_017h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_XMM10_019h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpss_XMM8_XMM9_XMM10_0ddh), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x1d, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+    };
+
+    return bs3CpuInstr4_WorkerTestType1_P(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3), bs3CpuInstr4_WorkerTestType1_Provider_cmpss);
+}
+
+
+typedef struct BS3CPUINSTR4_CMPSD_VALUES_T
+{
+    RTFLOAT64U          uSrc2;
+    RTFLOAT64U          uSrc1;
+    uint8_t             uDst;                   /**< Result value, encoded as a CMP_XX_T comparison predicate */
+    uint16_t            uMxCsr;                 /**< MXCSR to set prior to executing the instruction. */
+    uint16_t            u128ExpectedMxCsr;      /**< Expected MXCSR for a 128-bit instruction. */
+} BS3CPUINSTR4_CMPSD_VALUES_T;
+
+static DECLCALLBACK(PBS3CPUINSTR4_TEST1_VALUES_T) bs3CpuInstr4_WorkerTestType1_Provider_cmpsd(void *paValues, const unsigned cValues, const unsigned iVal, uint8_t uExtra)
+{
+    static BS3CPUINSTR4_TEST1_VALUES_SD_T sValues;
+    BS3CPUINSTR4_CMPSD_VALUES_T *psValuesIn = &((BS3CPUINSTR4_CMPSD_VALUES_T *)paValues)[iVal];
+    unsigned iCnt;
+    uint8_t uPredicate;
+    uint8_t uCmpResult;
+    bool fSignaling;
+
+    BS3_ASSERT(uExtra < 32);
+    uPredicate = g_aCmpPredicate[uExtra] & CMP_ORDERING_MASK;
+    fSignaling = (g_aCmpPredicate[uExtra] & CMP_IE_T) == CMP_IE_T;
+
+    sValues.uSrc1.ymm.au64[0] = psValuesIn->uSrc1.u;
+    sValues.uSrc2.ymm.au64[0] = psValuesIn->uSrc2.u;
+    sValues.u128ExpectedMxCsr = psValuesIn->u128ExpectedMxCsr;
+    uCmpResult = psValuesIn->uDst;
+    if (uCmpResult == CMP_IE_T || (uCmpResult == CMP_UN_T && fSignaling))
+        sValues.u128ExpectedMxCsr |= X86_MXCSR_IE;
+    if (uCmpResult == CMP_IE_T) uCmpResult = CMP_UN_T;
+    sValues.uDstOut.ymm.au64[0] = (uCmpResult & uPredicate) ? 0xFFFFFFFFFFFFFFFFull : 0;
+    for (iCnt = 2; iCnt < RT_ELEMENTS(sValues.uSrc1.ymm.au32) / 2; iCnt++)
+    {
+        sValues.uSrc1.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uSrc2.ymm.au32[iCnt] = bs3CpuInstrX_SimpleRand();
+        sValues.uDstOut.ymm.au32[iCnt] = sValues.uSrc1.ymm.au32[iCnt];
+    }
+    sValues.uMxCsr = psValuesIn->uMxCsr;
+    sValues.afEflOut = 0;
+    return (PBS3CPUINSTR4_TEST1_VALUES_T)&sValues;
+}
+
+/*
+ * [V]CMPSD.
+ */
+BS3_DECL_FAR(uint8_t) bs3CpuInstr4_v_cmpsd(uint8_t bMode)
+{
+    static BS3CPUINSTR4_CMPSD_VALUES_T const s_aValues[] =
+    {
+              /*src2*/            /*src1*/             /* => */  /*mxcsr:in*/          /*128:out*/
+        /* Zero. */
+    /* 0*/{   FP64_0(0),          FP64_0(0),           CMP_EQ_T, 0,                    0                    },
+          {   FP64_0(0),          FP64_0(1),           CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP64_0(1),          FP64_0(0),           CMP_EQ_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP64_0(1),          FP64_0(1),           CMP_EQ_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+        /* Infinity. */
+    /* 4*/{   FP64_INF(0),        FP64_INF(0),         CMP_EQ_T, 0,                    0                    },
+          {   FP64_INF(0),        FP64_INF(1),         CMP_GT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP64_INF(1),        FP64_INF(1),         CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_INF(1),        FP64_INF(0),         CMP_LT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP64_INF(0),        FP64_0(0),           CMP_GT_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP64_INF(1),        FP64_0(1),           CMP_LT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+        /* Normals. */
+    /*10*/{   FP64_2(0),          FP64_2(0),           CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP64_2(0),          FP64_2(1),           CMP_GT_T, X86_MXCSR_FZ,         X86_MXCSR_FZ         },
+          {   FP64_2(1),          FP64_2(0),           CMP_LT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP64_0(0),          FP64_2(1),           CMP_GT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP64_NORM_V0(0),    FP64_NORM_V0(0),     CMP_EQ_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP64_NORM_V1(0),    FP64_NORM_V2(0),     CMP_LT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP64_NORM_V2(1),    FP64_NORM_V1(1),     CMP_LT_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP64_RAND_V1(0),    FP64_RAND_V2(0),     CMP_GT_T, X86_MXCSR_RC_UP,      X86_MXCSR_RC_UP      },
+          {   FP64_RAND_V2(1),    FP64_RAND_V1(1),     CMP_GT_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP64_0_5(0),        FP64_0_5(0),         CMP_EQ_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP64_0_5(0),        FP64_0_5_DN(0),      CMP_GT_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_0_5(0),        FP64_0_5_UP(0),      CMP_LT_T, X86_MXCSR_FZ,         X86_MXCSR_FZ         },
+          {   FP64_0_5(1),        FP64_0_5(1),         CMP_EQ_T, X86_MXCSR_RC_NEAREST, X86_MXCSR_RC_NEAREST },
+          {   FP64_0_5(1),        FP64_0_5_DN(1),      CMP_LT_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_0_5(1),        FP64_0_5_UP(1),      CMP_GT_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+        /* Denormals. */
+    /*25*/{   FP64_DENORM_MAX(0), FP64_DENORM_MAX(0),  CMP_EQ_T, 0,                    X86_MXCSR_DE         },
+          {   FP64_DENORM_MAX(1), FP64_DENORM_MAX(0),  CMP_LT_T, 0,                    X86_MXCSR_DE         },
+          {   FP64_DENORM_MIN(0), FP64_DENORM_MIN(1),  CMP_GT_T, 0,                    X86_MXCSR_DE         },
+          {   FP64_DENORM_MAX(0), FP64_0(0),           CMP_GT_T, 0,                    X86_MXCSR_DE         },
+          {   FP64_0(1),          FP64_DENORM_MIN(0),  CMP_LT_T, 0,                    X86_MXCSR_DE         },
+          {   FP64_DENORM_MAX(1), FP64_DENORM_MAX(0),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_DENORM_MIN(0), FP64_DENORM_MAX(1),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_0(0),          FP64_DENORM_MAX(0),  CMP_EQ_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+        /* Invalids. */
+    /*33*/{   FP64_QNAN(0),       FP64_0(1),           CMP_UN_T, 0,                    0                    },
+          {   FP64_INF(1),        FP64_QNAN(1),        CMP_UN_T, X86_MXCSR_RC_ZERO,    X86_MXCSR_RC_ZERO    },
+          {   FP64_SNAN_V1(0),    FP64_NORM_V2(0),     CMP_IE_T, X86_MXCSR_DAZ,        X86_MXCSR_DAZ        },
+          {   FP64_RAND_V3(1),    FP64_SNAN_V3(1),     CMP_IE_T, X86_MXCSR_RC_DOWN,    X86_MXCSR_RC_DOWN    },
+          {   FP64_DENORM_MAX(0), FP64_QNAN_V1(1),     CMP_UN_T, 0,                    0                    },
+          {   FP64_SNAN_V2(0),    FP64_DENORM_MIN(1),  CMP_IE_T, 0,                    0                    },
+        /* Precision, Overflow, Underflow not possible. */
+    };
+    static BS3CPUINSTR4_CMPSD_VALUES_T const s_aValuesSR[] =
+    {
+        /* Zero. */
+    /* 0*/{   FP64_0(0),          FP64_0(0),           CMP_EQ_T, 0,                    0                    },
+        /* Infinity. */
+    /* 1*/{   FP64_INF(0),        FP64_INF(0),         CMP_EQ_T, 0,                    0                    },
+        /* Normals. */
+    /* 2*/{   FP64_2(0),          FP64_2(0),           CMP_EQ_T, 0,                    0                    },
+        /* Denormals. */
+    /* 4*/{   FP64_DENORM_MAX(0), FP64_DENORM_MAX(0),  CMP_EQ_T, 0,                    X86_MXCSR_DE         },
+        /* Invalids. */
+    /* 5*/{   FP64_QNAN(0),       FP64_QNAN(0),        CMP_UN_T, 0,                    0                    },
+          {   FP64_SNAN(0),       FP64_SNAN(0),        CMP_IE_T, 0,                    0                    },
+        /* Precision, Overflow, Underflow not possible. */
+    };
+
+    static BS3CPUINSTR4_TEST1_T const s_aTests[] =
+    {
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM1_000h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, NOREG, 0x00, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM1_006h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, NOREG, 0x06, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_000h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_001h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_002h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_003h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x03, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_004h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_005h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x05, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_006h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x06, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_007h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_008h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x00, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_011h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x01, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_022h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x02, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_043h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x03, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpsd_XMM1_XMM2_084h),        255, RM_REG,   T_SSE2,    XMM1, XMM1, XMM2,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(cmpsd_XMM1_FSxBX_001h),       255, RM_MEM64, T_SSE2,    XMM1, XMM1, FSxBX, 0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_FSxBX_004h),       255, RM_MEM64, T_SSE2,    XMM1, XMM1, FSxBX, 0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(cmpsd_XMM1_FSxBX_007h),       255, RM_MEM64, T_SSE2,    XMM1, XMM1, FSxBX, 0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(cmpsd_XMM8_XMM8_005h),        255, RM_REG,   T_SSE2,    XMM8, XMM8, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(cmpsd_XMM8_XMM9_002h),        255, RM_REG,   T_SSE2,    XMM8, XMM8, XMM9,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(cmpsd_XMM8_FSxBX_003h),       255, RM_MEM64, T_SSE2,    XMM8, XMM8, FSxBX, 0x03, PASS_TEST_ARRAY(s_aValues)   },
+
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM1_FSxBX_00bh), 255, RM_MEM64, T_AVX_128, XMM1, XMM1, FSxBX, 0x0b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM1_XMM1_005h),  255, RM_REG,   T_AVX_128, XMM1, XMM1, NOREG, 0x05, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM1_XMM2_00ah),  255, RM_REG,   T_AVX_128, XMM1, XMM1, XMM2,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_FSxBX_010h), 255, RM_MEM64, T_AVX_128, XMM1, XMM2, FSxBX, 0x10, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_FSxBX_011h), 255, RM_MEM64, T_AVX_128, XMM1, XMM2, FSxBX, 0x11, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_FSxBX_013h), 255, RM_MEM64, T_AVX_128, XMM1, XMM2, FSxBX, 0x13, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM1_00ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM1,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM2_00eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, NOREG, 0x0e, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_000h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x00, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_001h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x01, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_002h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_003h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x03, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_004h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_005h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x05, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_006h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x06, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_007h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x07, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_008h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x08, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_009h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x09, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00ah),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00bh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00dh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0e, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_00fh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x0f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_010h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x10, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_011h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x11, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_012h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x12, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_013h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x13, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_014h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x14, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_015h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x15, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_016h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x16, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_017h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x17, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_018h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x18, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_019h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x19, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01ah),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1a, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01bh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1b, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01ch),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1c, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01dh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01eh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1e, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_01fh),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x1f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_022h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x02, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_ALL(vcmpsd_XMM1_XMM2_XMM3_044h),  255, RM_REG,   T_AVX_128, XMM1, XMM2, XMM3,  0x04, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM8_FSxBX_01fh), 255, RM_MEM64, T_AVX_128, XMM8, XMM8, FSxBX, 0x1f, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_FSxBX_01dh), 255, RM_MEM64, T_AVX_128, XMM8, XMM9, FSxBX, 0x1d, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_XMM9_01ah),  255, RM_REG,   T_AVX_128, XMM8, XMM9, NOREG, 0x1a, PASS_TEST_ARRAY(s_aValuesSR) },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_XMM10_016h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x16, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_XMM10_017h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x17, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_XMM10_019h), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x19, PASS_TEST_ARRAY(s_aValues)   },
+        { BS3_INSTR4_C64(vcmpsd_XMM8_XMM9_XMM10_0ddh), 255, RM_REG,   T_AVX_128, XMM8, XMM9, XMM10, 0x1d, PASS_TEST_ARRAY(s_aValues)   }, /* reserved */
+    };
+
+    return bs3CpuInstr4_WorkerTestType1_P(bMode, PASS_ARRAY(s_aTests), PASS_ARRAY(g_aXcptConfig3), bs3CpuInstr4_WorkerTestType1_Provider_cmpsd);
 }
 
 
@@ -24507,6 +24888,8 @@ BS3_DECL(void) Main_pe32()
         { "[v]roundsd",     bs3CpuInstr4_v_roundsd,   0 },
         { "[v]cmpps",       bs3CpuInstr4_v_cmpps,     0 },
         { "[v]cmppd",       bs3CpuInstr4_v_cmppd,     0 },
+        { "[v]cmpss",       bs3CpuInstr4_v_cmpss,     0 },
+        { "[v]cmpsd",       bs3CpuInstr4_v_cmpsd,     0 },
         { "[v]comiss",      bs3CpuInstr4_v_comiss,    0 },
         { "[v]ucomiss",     bs3CpuInstr4_v_ucomiss,   0 },
         { "[v]comisd",      bs3CpuInstr4_v_comisd,    0 },

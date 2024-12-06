@@ -38,6 +38,9 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
+#ifdef VBOX_WITH_PARFAIT
+# include <iprt/stdint.h> /* HACK ALERT! Contains workaround for int_fast16_t & uint_fast16_t clash. */
+#endif
 #include <sys/conf.h>
 #include <sys/modctl.h>
 #include <sys/mutex.h>

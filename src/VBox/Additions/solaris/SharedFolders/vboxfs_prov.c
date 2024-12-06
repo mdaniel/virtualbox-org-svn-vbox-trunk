@@ -39,6 +39,9 @@
  * Provider interfaces for shared folder file system.
  */
 
+#ifdef VBOX_WITH_PARFAIT
+# include <iprt/stdint.h> /* HACK ALERT! Contains workaround for int_fast16_t & uint_fast16_t clash. */
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mntent.h>

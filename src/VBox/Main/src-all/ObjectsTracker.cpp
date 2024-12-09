@@ -379,9 +379,10 @@ HRESULT TrackedObjectsCollector::updateObj (const TrackedObjectData& aObjData)
      */
     if (!opRes.second)
     {
+        Utf8Str strState = trackedObjectStateToStr(aObjData.state());
         Log2(("UPDATING TrackedObjectData:\n state %s\n object Id %s\n class IID %s\n life time %i\n idle time %i"
                 "\n life time expired - %s\n idle time started - %s\n",
-                trackedObjectStateToStr(aObjData.state()).c_str(),
+                strState.c_str(),
                 aObjData.objectIdStr().c_str(),
                 aObjData.classIIDStr().c_str(),
                 aObjData.lifeTime(),

@@ -985,7 +985,7 @@ HRESULT Medium::FinalConstruct()
     vrc = VDIfTcpNetInstDefaultCreate(&m->hTcpNetInst, &m->vdImageIfaces);
     AssertRCReturn(vrc, E_FAIL);
 
-    setTracked(0, 60);//infinite, 1 minute
+    setTracked(0, 7200);//infinite, 2 hours
 
     return BaseFinalConstruct();
 }

@@ -820,7 +820,11 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                     int64_t creationTime = RTTimeSpecGetMilli(&temp.m_creationTime);
                     int64_t lifeTime = (int64_t)temp.m_lifeTime*1000; //convert to milliseconds
 
-                    int64_t remainingLifeTime = ((creationTime + lifeTime) - currTime)/1000;
+                    int64_t remainingLifeTime = lifeTime == 0 ? 0 : ((creationTime + lifeTime) - currTime)/1000;
+
+                    bool fLifeTimeExpired = temp.m_fLifeTimeExpired;
+                    if (!fLifeTimeExpired)
+                        fLifeTimeExpired = (remainingLifeTime == 0 && lifeTime != 0) ? true : false;
 
                     /* lock? */
                     temp.m_pIface->AddRef();
@@ -834,23 +838,21 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                           remainingLifeTime
                           ));
 
-                    bool fLifeTimeEnd = (currTime - creationTime) > lifeTime ? true : false;
-
-                    if (!fLifeTimeEnd)
+                    if (fLifeTimeExpired)
                     {
-                        if (cRefs <= 2 || remainingLifeTime <= 0)
                         {
                             if (temp.m_fIdleTimeStart == false)
                             {
                                 gTrackedObjectsCollector.initObjIdleTime(*Iter);
                                 Log2(("Idle time for the object with Id %s has been started\n", Iter->c_str()));
+                                Log2(("  class IID %s, refcount %lu\n", temp.m_classIID.toString().c_str(), cRefs - 1));
                             }
                             else
                             {
                                 int64_t idleTime = (int64_t)temp.m_idleTime*1000; //convert to milliseconds
                                 int64_t idleTimeStart = RTTimeSpecGetMilli(&temp.m_idleTimeStart);
-                                bool fObsolete = (currTime - idleTimeStart) > idleTime ? true : false;
-                                if (fObsolete)
+                                bool fIdleTimeExpired = (currTime - idleTimeStart) > idleTime ? true : false;
+                                if (fIdleTimeExpired)
                                 {
                                     Log2(("Object with Id %s removed from Object Collector "
                                             "(recount is %u, idle time exceeded %u sec)\n", Iter->c_str(), cRefs - 1, temp.m_idleTime));
@@ -869,20 +871,10 @@ DECLCALLBACK(int) ObjectTracker::objectTrackerTask(RTTHREAD ThreadSelf, void *pv
                              */
                             if (lifeTime == 0)
                             {
-                                /* set lifeTime to 60 sec (1 min) */
-                                lifeTime = 60;
+                                temp.m_fLifeTimeExpired = true;
+
                                 /* Updating the object data */
-                                gTrackedObjectsCollector.setObj(temp.objectIdStr(),
-                                                                temp.classIIDStr(),
-                                                                (uint64_t)lifeTime,
-                                                                temp.m_idleTime,
-                                                                temp.m_pIface);
-                            }
-                            else
-                            {
-                                Log2(("Object with Id %s removed from Object Collector "
-                                        "(lifetime exceeded %u sec)\n", Iter->c_str(), temp.m_lifeTime));
-                                gTrackedObjectsCollector.removeObj(*Iter);
+                                gTrackedObjectsCollector.updateObj(temp);
                             }
                         }
                     }

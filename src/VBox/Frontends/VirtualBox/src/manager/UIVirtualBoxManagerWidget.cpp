@@ -829,8 +829,6 @@ void UIVirtualBoxManagerWidget::prepareConnections()
             this, &UIVirtualBoxManagerWidget::sltHandleToolBarResize);
 
     /* Chooser-pane connections: */
-    connect(this, &UIVirtualBoxManagerWidget::sigToolBarHeightChange,
-            m_pPaneChooser, &UIChooser::setGlobalItemHeightHint);
     connect(m_pPaneChooser, &UIChooser::sigSelectionChanged,
             this, &UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange);
     connect(m_pPaneChooser, &UIChooser::sigSelectionInvalidated,
@@ -1086,8 +1084,6 @@ void UIVirtualBoxManagerWidget::cleanupConnections()
                this, &UIVirtualBoxManagerWidget::sltHandleToolBarResize);
 
     /* Chooser-pane connections: */
-    disconnect(this, &UIVirtualBoxManagerWidget::sigToolBarHeightChange,
-               m_pPaneChooser, &UIChooser::setGlobalItemHeightHint);
     disconnect(m_pPaneChooser, &UIChooser::sigSelectionChanged,
                this, &UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange);
     disconnect(m_pPaneChooser, &UIChooser::sigSelectionInvalidated,

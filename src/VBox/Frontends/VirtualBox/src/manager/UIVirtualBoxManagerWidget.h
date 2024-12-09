@@ -37,7 +37,6 @@
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
-#include "UISlidingAnimation.h"
 
 /* Forward declarations: */
 class QStackedWidget;
@@ -46,6 +45,7 @@ class QISplitter;
 class QIToolBar;
 class UIActionPool;
 class UIChooser;
+class UISlidingAnimation;
 class UITabBar;
 class UIToolPaneGlobal;
 class UIToolPaneMachine;
@@ -308,9 +308,8 @@ private slots:
         /** Handles signal about Chooser-pane selection invalidated. */
         void sltHandleChooserPaneSelectionInvalidated() { recacheCurrentMachineItemInformation(true /* fDontRaiseErrorPane */); }
 
-        /** Handles sliding animation complete signal.
-          * @param  enmDirection  Brings which direction was animation finished for. */
-        void sltHandleSlidingAnimationComplete(SlidingDirection enmDirection);
+        /** Handles @a fForward sliding animation complete signal. */
+        void sltHandleSlidingAnimationComplete(bool fForward);
 
         /** Handles state change for cloud profile with certain @a strProviderShortName and @a strProfileName. */
         void sltHandleCloudProfileStateChange(const QString &strProviderShortName,

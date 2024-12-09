@@ -59,7 +59,7 @@ void UISlidingAnimation::setWidgets(QWidget *pWidget1, QWidget *pWidget2)
     m_pWidget2 = pWidget2;
 }
 
-void UISlidingAnimation::animate(SlidingDirection enmDirection)
+void UISlidingAnimation::animate(bool fForward)
 {
     /* Mark animation started: */
     m_fIsInProgress = true;
@@ -99,20 +99,15 @@ void UISlidingAnimation::animate(SlidingDirection enmDirection)
     m_pLabel2->setPixmap(pixmap2);
 
     /* Update initial widget geometry: */
-    switch (enmDirection)
+    if (fForward)
     {
-        case SlidingDirection_Forward:
-        {
-            setWidgetGeometry(m_startWidgetGeometry);
-            emit sigForward();
-            break;
-        }
-        case SlidingDirection_Reverse:
-        {
-            setWidgetGeometry(m_finalWidgetGeometry);
-            emit sigReverse();
-            break;
-        }
+        setWidgetGeometry(m_startWidgetGeometry);
+        emit sigForward();
+    }
+    else
+    {
+        setWidgetGeometry(m_finalWidgetGeometry);
+        emit sigReverse();
     }
 }
 
@@ -124,7 +119,7 @@ void UISlidingAnimation::sltHandleStateEnteredStart()
         /* Mark animation finished: */
         m_fIsInProgress = false;
         /* And notify listeners: */
-        emit sigAnimationComplete(SlidingDirection_Reverse);
+        emit sigAnimationComplete(false /* forward? */);
     }
 }
 
@@ -136,7 +131,7 @@ void UISlidingAnimation::sltHandleStateEnteredFinal()
         /* Mark animation finished: */
         m_fIsInProgress = false;
         /* And notify listeners: */
-        emit sigAnimationComplete(SlidingDirection_Forward);
+        emit sigAnimationComplete(true /* forward? */);
     }
 }
 

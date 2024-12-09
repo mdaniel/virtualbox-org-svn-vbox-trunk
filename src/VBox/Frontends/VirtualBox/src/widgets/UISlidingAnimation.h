@@ -41,14 +41,6 @@ class QWidget;
 class UIAnimation;
 
 
-/** Sliding direction. */
-enum SlidingDirection
-{
-    SlidingDirection_Forward,
-    SlidingDirection_Reverse
-};
-
-
 /** QWidget extension which renders a sliding animation
   * while transiting from one widget to another. */
 class UISlidingAnimation : public QWidget
@@ -65,8 +57,8 @@ signals:
     /** Commands to move animation in reverse direction. */
     void sigReverse();
 
-    /** Notifies listeners about animation in specified @a enmDirection is complete. */
-    void sigAnimationComplete(SlidingDirection enmDirection);
+    /** Notifies listeners about @a fForward animation is complete. */
+    void sigAnimationComplete(bool fForward);
 
 public:
 
@@ -78,8 +70,8 @@ public:
     /** Defines @a pWidget1 and @a pWidget2. */
     void setWidgets(QWidget *pWidget1, QWidget *pWidget2);
 
-    /** Animates cached pWidget1 and pWidget2 in passed @a enmDirection. */
-    void animate(SlidingDirection enmDirection);
+    /** Animates cached pWidget1 and pWidget2 in @a fForward direction. */
+    void animate(bool fForward);
 
 private slots:
 

@@ -46,6 +46,7 @@
 #include "UILoggingDefs.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
+#include "UISlidingAnimation.h"
 #include "UITabBar.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
@@ -447,7 +448,7 @@ void UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange()
         /* Just start animation and return, do nothing else.. */
         m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal); // rendering w/a
         m_pStackedWidget->setCurrentWidget(m_pSlidingAnimation);
-        m_pSlidingAnimation->animate(SlidingDirection_Reverse);
+        m_pSlidingAnimation->animate(false /* forward? */);
         return;
     }
 
@@ -460,7 +461,7 @@ void UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange()
         /* Just start animation and return, do nothing else.. */
         m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine); // rendering w/a
         m_pStackedWidget->setCurrentWidget(m_pSlidingAnimation);
-        m_pSlidingAnimation->animate(SlidingDirection_Forward);
+        m_pSlidingAnimation->animate(true /* forward? */);
         return;
     }
 
@@ -499,31 +500,26 @@ void UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange()
     m_fSelectedMachineItemAccessible = fCurrentItemIsOk;
 }
 
-void UIVirtualBoxManagerWidget::sltHandleSlidingAnimationComplete(SlidingDirection enmDirection)
+void UIVirtualBoxManagerWidget::sltHandleSlidingAnimationComplete(bool fForward)
 {
     /* First switch the panes: */
-    switch (enmDirection)
+    if (fForward)
     {
-        case SlidingDirection_Forward:
-        {
-            /* Switch stacked widget to machine tool pane: */
-            m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine);
-            m_pPaneToolsGlobal->setActive(false);
-            m_pPaneToolsMachine->setActive(true);
-            /* Handle current tool type change: */
-            handleCurrentToolTypeChange(m_pMenuToolsMachine->toolsType());
-            break;
-        }
-        case SlidingDirection_Reverse:
-        {
-            /* Switch stacked widget to global tool pane: */
-            m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal);
-            m_pPaneToolsMachine->setActive(false);
-            m_pPaneToolsGlobal->setActive(true);
-            /* Handle current tool type change: */
-            handleCurrentToolTypeChange(m_pMenuToolsGlobal->toolsType());
-            break;
-        }
+        /* Switch stacked widget to machine tool pane: */
+        m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine);
+        m_pPaneToolsGlobal->setActive(false);
+        m_pPaneToolsMachine->setActive(true);
+        /* Handle current tool type change: */
+        handleCurrentToolTypeChange(m_pMenuToolsMachine->toolsType());
+    }
+    else
+    {
+        /* Switch stacked widget to global tool pane: */
+        m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal);
+        m_pPaneToolsMachine->setActive(false);
+        m_pPaneToolsGlobal->setActive(true);
+        /* Handle current tool type change: */
+        handleCurrentToolTypeChange(m_pMenuToolsGlobal->toolsType());
     }
     /* Then handle current item change (again!): */
     sltHandleChooserPaneIndexChange();

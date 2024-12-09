@@ -39,6 +39,29 @@
 typedef std::map<com::Utf8Str, TrackedObjectData>::iterator IterTrObjData_T;
 typedef std::map<com::Utf8Str, TrackedObjectData>::const_iterator ConstIterTrObjData_T;
 
+static Utf8Str trackedObjectStateToStr(TrackedObjectState_T aState)
+{
+    Utf8Str strState("None");
+    switch (aState)
+    {
+        case TrackedObjectState_Alive:
+            strState = "Alive";
+            break;
+        case TrackedObjectState_Deleted:
+            strState = "Deleted";
+            break;
+        case TrackedObjectState_Invalid:
+            strState = "Invalid";
+            break;
+        case TrackedObjectState_None:
+        default:
+            strState = "None";
+            break;
+    }
+
+    return strState;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // TrackedObjectData
 /////////////////////////////////////////////////////////////////////////////
@@ -356,9 +379,9 @@ HRESULT TrackedObjectsCollector::updateObj (const TrackedObjectData& aObjData)
      */
     if (!opRes.second)
     {
-        Log2(("UPDATING TrackedObjectData:\n state %i\n object Id %s\n class IID %s\n life time %i\n idle time %i"
+        Log2(("UPDATING TrackedObjectData:\n state %s\n object Id %s\n class IID %s\n life time %i\n idle time %i"
                 "\n life time expired - %s\n idle time started - %s\n",
-                aObjData.state(),
+                trackedObjectStateToStr(aObjData.state()).c_str(),
                 aObjData.objectIdStr().c_str(),
                 aObjData.classIIDStr().c_str(),
                 aObjData.lifeTime(),

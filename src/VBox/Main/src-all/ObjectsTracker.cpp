@@ -556,10 +556,7 @@ int TrackedObjectsCollector::i_getAllObjIds(std::vector<com::Utf8Str> &aObjIdMap
     for (std::set<com::Utf8Str>::const_iterator Iter = m_trackedObjectIds.begin();
          Iter != m_trackedObjectIds.end();
          ++Iter)
-    {
-        if (!m_trackedInvalidObjectIds.count(*Iter))
             aObjIdMap.push_back(*Iter);
-    }
 
     return aObjIdMap.size() > 0 ? VINF_SUCCESS : VERR_NOT_FOUND;
 }

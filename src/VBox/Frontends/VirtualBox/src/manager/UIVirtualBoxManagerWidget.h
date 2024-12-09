@@ -36,9 +36,8 @@
 #include <QWidget>
 
 /* GUI includes: */
+#include "UIExtraDataDefs.h"
 #include "UISlidingAnimation.h"
-#include "UIToolPaneGlobal.h"
-#include "UIToolPaneMachine.h"
 
 /* Forward declarations: */
 class QStackedWidget;
@@ -48,6 +47,8 @@ class QIToolBar;
 class UIActionPool;
 class UIChooser;
 class UITabBar;
+class UIToolPaneGlobal;
+class UIToolPaneMachine;
 class UITools;
 class UIVirtualBoxManager;
 class UIVirtualMachineItem;

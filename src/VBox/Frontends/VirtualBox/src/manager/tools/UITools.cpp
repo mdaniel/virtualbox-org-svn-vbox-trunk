@@ -34,6 +34,9 @@
 #include "UIToolsView.h"
 #include "UIVirtualBoxManagerWidget.h"
 
+/* Other VBox includes: */
+#include "iprt/assert.h"
+
 
 UITools::UITools(UIToolClass enmClass, UIVirtualBoxManagerWidget *pParent /* = 0 */)
     : QWidget(pParent, Qt::Popup)

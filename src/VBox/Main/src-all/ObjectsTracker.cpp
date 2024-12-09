@@ -427,30 +427,21 @@ HRESULT TrackedObjectsCollector::getObj(const com::Utf8Str &aObjId,
     HRESULT hrc = E_FAIL;
 
     IterTrObjData_T pIter = m_trackedObjectsData.find(aObjId);
-    if (pIter != m_trackedObjectsData.end() && fUpdate == true)
+    if (pIter != m_trackedObjectsData.end())
     {
-        /* Update some fields in the found object if needed. in instance, the last access time */
-        com::Utf8Str lat = pIter->second.updateLastAccessTime(); /* Update the access time */
-        Log2(("The updated last access time is %s\n", lat.c_str()));
+        if (fUpdate == true)
+        {
+            /* Update some fields in the found object if needed. in instance, the last access time */
+            com::Utf8Str lat = pIter->second.updateLastAccessTime(); /* Update the access time */
+            Log2(("The updated last access time is %s\n", lat.c_str()));
+        }
         hrc = S_OK;
     }
+    else
+        hrc = VBOX_E_OBJECT_NOT_FOUND;
 
     if (SUCCEEDED(hrc))
-    {
-        /** @todo r=bird: Why do three lookups? */
-        if ( i_getObj(aObjId).getInterface().isNotNull() )
-        {
-            if (i_getObj(aObjId).state() != TrackedObjectState_Invalid)
-            {
-                aObjData = i_getObj(aObjId);
-                hrc = S_OK;
-            }
-            else
-                hrc = VBOX_E_INVALID_OBJECT_STATE;
-        }
-        else
-            hrc = VBOX_E_OBJECT_NOT_FOUND;
-    }
+        aObjData = i_getObj(aObjId);
 
     /* Leave critical section here */
     RTCritSectLeave(&m_CritSectData);

@@ -50,6 +50,11 @@ std::map <com::Utf8Str, supIfaces_T> mapInterfaceNameToEnum = {
     {"IMachine", kMachine}
 };
 
+static void printProgressObjectInfo(const ComPtr<IProgress>& pObj);
+static void printSessionObjectInfo(const ComPtr<ISession>& pObj);
+static void printMediumObjectInfo(const ComPtr<IMedium>& pObj);
+static void printMachineObjectInfo(const ComPtr<IMachine>& pObj);
+
 static void makeTimeStr(char *s, int cb, int64_t millies)
 {
     RTTIME t;
@@ -95,7 +100,102 @@ struct TrackedObjInfo_T
     LONG64 deletionTime;
 };
 
-void printProgressObjectInfo(const ComPtr<IProgress>& pObj)
+struct TrackedObjInfoShow
+{
+    supIfaces_T m_iface;
+    Utf8Str m_id;
+    TrackedObjInfo_T m_objInfo;
+
+    TrackedObjInfoShow(Utf8Str aId, const TrackedObjInfo_T& aObjInfo, supIfaces_T aIface):
+        m_iface(aIface),
+        m_id(aId)
+    {
+        m_objInfo = aObjInfo;
+    }
+
+    TrackedObjInfoShow(supIfaces_T aIface): m_iface(aIface) {}
+
+    void setObjId(const Utf8Str& aId)
+    {
+        m_id = aId;
+    }
+
+    void setObjInfo(const TrackedObjInfo_T& aObjInfo)
+    {
+        m_objInfo = aObjInfo;
+    }
+
+    void show() const
+    {
+        RTPrintf(("\nTracked object id: %s\n"), m_id.c_str());
+
+        Utf8Str strState = trackedObjectStateToStr(m_objInfo.enmState);
+        RTPrintf(("  State                   %s\n"), strState.c_str());
+
+        char szTimeValue[128];
+        makeTimeStr(szTimeValue, sizeof(szTimeValue), m_objInfo.creationTime);
+        RTPrintf(("  Creation time           %s\n"), szTimeValue);
+
+        if (m_objInfo.deletionTime != 0)
+        {
+            makeTimeStr(szTimeValue, sizeof(szTimeValue), m_objInfo.deletionTime);
+            RTPrintf(("  Deletion time           %s\n"), szTimeValue);
+        }
+
+        switch (m_iface)
+        {
+            case kProgress:
+            {
+                if (m_objInfo.enmState != TrackedObjectState_Invalid)
+                {
+                    ComPtr<IProgress> pObj;
+                    m_objInfo.pIUnknown->QueryInterface(IID_IProgress, (void **)pObj.asOutParam());
+                    if (pObj.isNotNull())
+                        printProgressObjectInfo(pObj);
+                }
+                break;
+            }
+            case kSession:
+            {
+                if (m_objInfo.enmState != TrackedObjectState_Invalid)
+                {
+                    ComPtr<ISession> pObj;
+                    m_objInfo.pIUnknown->QueryInterface(IID_ISession, (void **)pObj.asOutParam());
+                    if (pObj.isNotNull())
+                        printSessionObjectInfo(pObj);
+                }
+                break;
+            }
+            case kMedium:
+            {
+                if (m_objInfo.enmState != TrackedObjectState_Invalid)
+                {
+                    ComPtr<IMedium> pObj;
+                    m_objInfo.pIUnknown->QueryInterface(IID_IMedium, (void **)pObj.asOutParam());
+                    if (pObj.isNotNull())
+                        printMediumObjectInfo(pObj);
+                }
+                break;
+            }
+            case kMachine:
+            {
+                if (m_objInfo.enmState != TrackedObjectState_Invalid)
+                {
+                    ComPtr<IMachine> pObj;
+                    m_objInfo.pIUnknown->QueryInterface(IID_IMachine, (void **)pObj.asOutParam());
+                    if(pObj.isNotNull())
+                        printMachineObjectInfo(pObj);
+                }
+                break;
+            }
+            /* Impossible situation but to support the default case */
+            default:
+                RTPrintf("Interface isn't supported by object tracker at moment");
+        }
+    }
+};
+
+static void printProgressObjectInfo(const ComPtr<IProgress>& pObj)
 {
     if (pObj.isNotNull())
     {
@@ -116,7 +216,7 @@ void printProgressObjectInfo(const ComPtr<IProgress>& pObj)
     }
 }
 
-void printSessionObjectInfo(const ComPtr<ISession>& pObj)
+static void printSessionObjectInfo(const ComPtr<ISession>& pObj)
 {
     if (pObj.isNotNull())
     {
@@ -135,7 +235,7 @@ void printSessionObjectInfo(const ComPtr<ISession>& pObj)
     }
 }
 
-void printMediumObjectInfo(const ComPtr<IMedium>& pObj)
+static void printMediumObjectInfo(const ComPtr<IMedium>& pObj)
 {
     if (pObj.isNotNull())
     {
@@ -205,7 +305,7 @@ void printMediumObjectInfo(const ComPtr<IMedium>& pObj)
     }
 }
 
-void printMachineObjectInfo(const ComPtr<IMachine>& pObj)
+static void printMachineObjectInfo(const ComPtr<IMachine>& pObj)
 {
     if (pObj.isNotNull())
     {
@@ -240,9 +340,6 @@ void printMachineObjectInfo(const ComPtr<IMachine>& pObj)
         pObj->COMGETTER(SettingsFilePath)(bStrAttr.asOutParam());
         RTPrintf(("  SettingsFilePath        %s\n"), Utf8Str(bStrAttr).c_str());
 
-        pObj->COMGETTER(SettingsAuxFilePath)(bStrAttr.asOutParam());
-        RTPrintf(("  SettingsAuxFilePath     %s\n"), Utf8Str(bStrAttr).c_str());
-
         pObj->COMGETTER(StateFilePath)(bStrAttr.asOutParam());
         RTPrintf(("  StateFilePath           %s\n"), Utf8Str(bStrAttr).c_str());
 
@@ -265,120 +362,14 @@ void printMachineObjectInfo(const ComPtr<IMachine>& pObj)
 
 void printTrackedObjectInfo(supIfaces_T aIface, const map < Bstr, TrackedObjInfo_T >& aObjMap)
 {
-    switch (aIface)
+    TrackedObjInfoShow trackedObjInfoShow(aIface);
+    for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
     {
-        case kProgress:
-            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
-            {
-                ComPtr<IProgress> pObj;
-                item.second.pIUnknown->QueryInterface(IID_IProgress, (void **)pObj.asOutParam());
-
-                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-
-                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
-                RTPrintf(("  State                   %s\n"), strState.c_str());
-
-                char szTimeValue[128];
-                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
-                RTPrintf(("  Creation time           %s\n"), szTimeValue);
-
-                if (item.second.deletionTime != 0)
-                {
-                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
-                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
-                }
-
-                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
-                    printProgressObjectInfo(pObj);
-            }
-
-            break;
-
-        case kSession:
-            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
-            {
-                ComPtr<ISession> pObj;
-                item.second.pIUnknown->QueryInterface(IID_ISession, (void **)pObj.asOutParam());
-
-                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-
-                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
-                RTPrintf(("  State                   %s\n"), strState.c_str());
-
-                char szTimeValue[128];
-                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
-                RTPrintf(("  Creation time           %s\n"), szTimeValue);
-
-                if (item.second.deletionTime != 0)
-                {
-                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
-                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
-                }
-
-                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
-                    printSessionObjectInfo(pObj);
-            }
-
-            break;
-
-        case kMedium:
-            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
-            {
-                ComPtr<IMedium> pObj;
-                item.second.pIUnknown->QueryInterface(IID_IMedium, (void **)pObj.asOutParam());
-
-                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-
-                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
-                RTPrintf(("  State                   %s\n"), strState.c_str());
-
-                char szTimeValue[128];
-                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
-                RTPrintf(("  Creation time           %s\n"), szTimeValue);
-
-                if (item.second.deletionTime != 0)
-                {
-                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
-                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
-                }
-
-                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
-                    printMediumObjectInfo(pObj);
-            }
-
-            break;
-
-        case kMachine:
-            for (const pair< const Bstr, TrackedObjInfo_T >& item : aObjMap)
-            {
-                ComPtr<IMachine> pObj;
-                item.second.pIUnknown->QueryInterface(IID_IMachine, (void **)pObj.asOutParam());
-
-                RTPrintf(("\nTracked object id: %s\n"), Utf8Str(item.first).c_str());
-
-                Utf8Str strState = trackedObjectStateToStr(item.second.enmState);
-                RTPrintf(("  State                   %s\n"), strState.c_str());
-
-                char szTimeValue[128];
-                makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.creationTime);
-                RTPrintf(("  Creation time           %s\n"), szTimeValue);
-
-                if (item.second.deletionTime != 0)
-                {
-                    makeTimeStr(szTimeValue, sizeof(szTimeValue), item.second.deletionTime);
-                    RTPrintf(("  Deletion time           %s\n"), szTimeValue);
-                }
-
-                if (item.second.enmState != TrackedObjectState_Invalid && pObj.isNotNull())
-                    printMachineObjectInfo(pObj);
-            }
-
-            break;
-
-        default:
-            RTPrintf("Interface isn't supported by object tracker at moment");
-            break;
+        trackedObjInfoShow.setObjId(Utf8Str(item.first));
+        trackedObjInfoShow.setObjInfo(item.second);
+        trackedObjInfoShow.show();
     }
+
 }
 
 static RTEXITCODE handleObjInfo(HandlerArg *a, int iFirst)

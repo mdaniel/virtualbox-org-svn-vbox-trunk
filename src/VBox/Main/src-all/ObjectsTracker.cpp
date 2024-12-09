@@ -590,8 +590,7 @@ int TrackedObjectsCollector::i_getObjIdsByClassIID(const Guid &aIId, std::vector
          Iter != m_trackedObjectsData.end();
          ++Iter)
     {
-        /* IID found and the object is valid */
-        if (Iter->second.classIID() == aIId && !m_trackedInvalidObjectIds.count(Iter->first))
+        if (Iter->second.classIID() == aIId)
             aObjIdMap.push_back(Iter->first);
     }
 

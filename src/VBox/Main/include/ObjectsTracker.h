@@ -144,6 +144,16 @@ public:
         return m_idleTime;
     }
 
+    inline bool isIdleTimeStarted() const
+    {
+        return m_fIdleTimeStart;
+    }
+
+    inline bool isLifeTimeExpired() const
+    {
+        return m_fLifeTimeExpired;
+    }
+
     com::Utf8Str updateLastAccessTime();
     com::Utf8Str initIdleTime();
     com::Utf8Str creationTimeStr() const;
@@ -155,12 +165,13 @@ private:
     com::Guid m_classIID;
     com::Utf8Str m_componentName;
     RTTIMESPEC m_creationTime;//creation time
-    RTTIMESPEC m_idleTimeStart;//idle time beginning (ref counter is 1)
     RTTIMESPEC m_deletionTime;//deletion time (m_creationTime + m_lifeTime + m_idleTime)
+    RTTIMESPEC m_idleTimeStart;//idle time beginning (ref counter is 1)
     RTTIMESPEC m_lastAccessTime;//last access time
     uint64_t m_lifeTime;//lifetime after creation in seconds, 0 - live till the VBoxSVC lives
     uint64_t m_idleTime;//lifetime after out of usage in seconds, 0 - keep forever
     bool m_fIdleTimeStart;//when ref counter of m_pIface is 1 or m_lifeTime exceeded
+    bool m_fLifeTimeExpired;//set to True only one time during the whole object life
     TrackedObjectState_T m_state;
     ComPtr<IUnknown> m_pIface;//keeps a reference to a tracked object
 
@@ -199,6 +210,8 @@ public:
                     uint64_t lifeTime,
                     uint64_t afterLifeTime,
                     IUnknown* ptrIface);
+
+    HRESULT updateObj (const TrackedObjectData& aObjData);
 
     HRESULT getObj (const com::Utf8Str &aObjId,
                     TrackedObjectData &aObjData,

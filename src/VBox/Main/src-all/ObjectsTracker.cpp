@@ -63,6 +63,7 @@ TrackedObjectData::TrackedObjectData(const com::Guid &aObjId,
     m_lifeTime(aLifeTime),
     m_idleTime(aIdleTime),
     m_fIdleTimeStart(false),
+    m_fLifeTimeExpired(false),
     m_pIface(aPtr)
 {
     RTTimeNow(unconst(&m_creationTime));
@@ -86,6 +87,7 @@ TrackedObjectData::TrackedObjectData(const TrackedObjectData & that)
         m_lastAccessTime = that.m_lastAccessTime;
         m_idleTimeStart = that.m_idleTimeStart;
         m_fIdleTimeStart = that.m_fIdleTimeStart;
+        m_fLifeTimeExpired = that.m_fLifeTimeExpired;
         m_state = that.m_state;
     }
 }
@@ -115,6 +117,7 @@ TrackedObjectData &TrackedObjectData::operator=(const TrackedObjectData & that)
         m_lastAccessTime = that.m_lastAccessTime;
         m_idleTimeStart = that.m_idleTimeStart;
         m_fIdleTimeStart = that.m_fIdleTimeStart;
+        m_fLifeTimeExpired = that.m_fLifeTimeExpired;
         m_state = that.m_state;
     }
 
@@ -139,6 +142,7 @@ com::Utf8Str TrackedObjectData::initIdleTime()
         updateState(TrackedObjectState_Deleted);//Alive -> Deleted
         RTTimeNow(unconst(&m_idleTimeStart));
         m_fIdleTimeStart = true;
+        m_fLifeTimeExpired = true;
     }
 
     char szTime[RTTIME_STR_LEN];
@@ -324,6 +328,59 @@ HRESULT TrackedObjectsCollector::setObj (const com::Utf8Str &aObjId,
 
     /* increase the counter */
     ++m_Added;
+
+    /* Leave critical section here */
+    RTCritSectLeave(&m_CritSectData);
+
+    return hrc;
+}
+
+
+HRESULT TrackedObjectsCollector::updateObj (const TrackedObjectData& aObjData)
+{
+    LogFlowFuncEnter();
+
+    HRESULT hrc = S_OK;
+    int vrc = i_checkInitialization();
+    if (RT_FAILURE(vrc))
+        return VBOX_E_INVALID_OBJECT_STATE;
+
+    /* Enter critical section here */
+    RTCritSectEnter(&m_CritSectData);
+
+    std::pair < std::set<com::Utf8Str>::iterator, bool > opRes = m_trackedObjectIds.insert(aObjData.objectIdStr());
+
+    /*
+     * The case for updating the tracked object data.
+     * The Id is presented in the m_trackedObjectIds. The original object is removed from m_trackedObjectsData.
+     */
+    if (!opRes.second)
+    {
+        Log2(("UPDATING TrackedObjectData:\n state %i\n object Id %s\n class IID %s\n life time %i\n idle time %i"
+                "\n life time expired - %s\n idle time started - %s\n",
+                aObjData.state(),
+                aObjData.objectIdStr().c_str(),
+                aObjData.classIIDStr().c_str(),
+                aObjData.lifeTime(),
+                aObjData.idleTime(),
+                (aObjData.isLifeTimeExpired() == true ? "True" : "False"),
+                (aObjData.isIdleTimeStarted() == true ? "True" : "False")));
+
+        m_trackedObjectsData.erase(aObjData.objectIdStr().c_str());
+        /* decrease the counter */
+        --m_Added;
+
+        /* Data is stored in the m_trackedObjectsData under the passed Id. */
+        m_trackedObjectsData.insert(std::make_pair(aObjData.objectIdStr(), aObjData));
+
+        /* increase the counter */
+        ++m_Added;
+    }
+    else
+    {
+        Log2(("UPDATING failed because the object Id %s hasn't existed.\n", aObjData.objectIdStr().c_str()));
+        m_trackedObjectIds.erase(aObjData.objectIdStr());
+    }
 
     /* Leave critical section here */
     RTCritSectLeave(&m_CritSectData);

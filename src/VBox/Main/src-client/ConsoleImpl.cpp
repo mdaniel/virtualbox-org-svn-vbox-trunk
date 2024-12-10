@@ -4359,7 +4359,6 @@ HRESULT Console::i_onNetworkAdapterChange(INetworkAdapter *aNetworkAdapter, BOOL
                         vrc = ptrVM.vtable()->pfnPDMR3UsbQueryLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
                     else
                         vrc = ptrVM.vtable()->pfnPDMR3QueryDeviceLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
-                    if (RT_FAILURE(vrc))
                     if (RT_SUCCESS(vrc))
                     {
                         Assert(pBase);

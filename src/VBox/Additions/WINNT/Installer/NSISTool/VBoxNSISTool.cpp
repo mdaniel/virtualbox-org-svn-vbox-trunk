@@ -78,15 +78,15 @@ typedef struct VBOXNSISFILE
     RTFILE      hFile;
     /** File size (in bytes).
      *  Set to 0 if not set (yet). */
-    size_t      cbFile;
+    uint64_t    cbFile;
     /** Header structure, taken from NSIS. */
     firstheader FirstHdr;
     /** Absolute file offset (in bytes) of \a FirstHdr.
      *  Set to UINT64_MAX if not set (yet). */
-    size_t      offHdr;
+    uint64_t    offHdr;
     /** Absolute file offset (in bytes) of CRC32 to read/write.
      *  Set to UINT64_MAX if not set (yet). */
-    size_t      offCRC32;
+    uint64_t    offCRC32;
     /** Currente CRC32 checksum being used.
      *  Set to 0 if not initialized. */
     uint32_t    uCRC32;

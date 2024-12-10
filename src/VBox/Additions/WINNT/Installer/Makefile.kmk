@@ -33,6 +33,7 @@ include $(KBUILD_PATH)/subheader.kmk
 #
 include $(PATH_SUB_CURRENT)/Loader/Makefile.kmk
 include $(PATH_SUB_CURRENT)/InstallHelper/Makefile.kmk
+include $(PATH_SUB_CURRENT)/NSISTool/Makefile.kmk
 
 
 #
@@ -505,4 +506,3 @@ VBoxAddInstallNt3x.cpp_DEPS = $(VBOX_SVN_REV_HEADER)
 
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

@@ -251,7 +251,7 @@ VBOX_WINDOWS_ADDITIONS_OTHER_FILES += $(addprefix $(PATH_STAGE_BIN)/additions/, 
 
 # Tool is needed in order to repair the NSIS installer .exe's internal CRC32 checksum
 # after touching it via $(VBOX_PE_SET_VERSION).
-VBOX_NSIS_TOOL := $(PATH_STAGE_BIN)/VBoxNSISTool$(HOSTSUFF_EXE)
+VBOX_NSIS_TOOL := $(PATH_OBJ)/VBoxNSISTool/VBoxNSISTool$(HOSTSUFF_EXE)
 
 VB_WIN_ADD_NSIS_ENV := \
 	-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \

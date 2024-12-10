@@ -1248,7 +1248,7 @@ typedef enum VBOXLOGGROUP
     "TRPM", \
     "USB_CARDREADER", \
     "USB_DRV", \
-    "USB_ETH", \
+    "USB_NET", \
     "USB_FILTER", \
     "USB_KBD", \
     "USB_MOUSE", \

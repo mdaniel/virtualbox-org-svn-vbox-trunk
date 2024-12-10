@@ -888,6 +888,7 @@ void UIVirtualBoxManager::sltHandleChooserPaneIndexChange()
     updateMenuGroup(actionPool()->action(UIActionIndexMN_M_Group)->menu());
     updateMenuMachine(actionPool()->action(UIActionIndexMN_M_Machine)->menu());
 
+    /* Update actions stuff: */
     updateActionsVisibility();
     updateActionsAppearance();
 
@@ -919,16 +920,6 @@ void UIVirtualBoxManager::sltHandleChooserPaneIndexChange()
         /* Update machine stuff: */
         m_pCloudSettings->setCloudMachine(pItemCloud->machine());
     }
-}
-
-void UIVirtualBoxManager::sltHandleGroupSavingProgressChange()
-{
-    updateActionsAppearance();
-}
-
-void UIVirtualBoxManager::sltHandleCloudUpdateProgressChange()
-{
-    updateActionsAppearance();
 }
 
 void UIVirtualBoxManager::sltHandleGlobalToolTypeChange()
@@ -966,11 +957,6 @@ void UIVirtualBoxManager::sltCopyMedium(const QUuid &uMediumId)
     sltOpenWizard(WizardType_CloneVD);
 }
 
-void UIVirtualBoxManager::sltCurrentSnapshotItemChange()
-{
-    updateActionsAppearance();
-}
-
 void UIVirtualBoxManager::sltDetachToolPane(UIToolType enmToolType)
 {
     AssertReturnVoid(enmToolType != UIToolType_Invalid);
@@ -984,16 +970,6 @@ void UIVirtualBoxManager::sltDetachToolPane(UIToolType enmToolType)
 
     /* Detach Log Viewer: */
     sltOpenManagerWindow(enmToolType);
-}
-
-void UIVirtualBoxManager::sltHandleCloudMachineStateChange(const QUuid & /* uId */)
-{
-    updateActionsAppearance();
-}
-
-void UIVirtualBoxManager::sltHandleStateChange(const QUuid &)
-{
-    updateActionsAppearance();
 }
 
 void UIVirtualBoxManager::sltHandleMenuPrepare(int iIndex, QMenu *pMenu)
@@ -2363,12 +2339,6 @@ void UIVirtualBoxManager::sltPerformShowHelpBrowser()
         UIHelpBrowserDialog::findManualFileAndShow(strHelpKeyword);
 }
 
-void UIVirtualBoxManager::sltExtensionPackInstalledUninstalled(const QString &strName)
-{
-    Q_UNUSED(strName);
-    updateActionsAppearance();
-}
-
 void UIVirtualBoxManager::prepare()
 {
 #ifdef VBOX_WS_NIX
@@ -2522,14 +2492,8 @@ void UIVirtualBoxManager::prepareConnections()
     /* Widget connections: */
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigChooserPaneIndexChange,
             this, &UIVirtualBoxManager::sltHandleChooserPaneIndexChange);
-    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigGroupSavingStateChanged,
-            this, &UIVirtualBoxManager::sltHandleGroupSavingProgressChange);
-    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCloudUpdateStateChanged,
-            this, &UIVirtualBoxManager::sltHandleCloudUpdateProgressChange);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigStartOrShowRequest,
             this, &UIVirtualBoxManager::sltPerformStartOrShowMachine);
-    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCloudMachineStateChange,
-            this, &UIVirtualBoxManager::sltHandleCloudMachineStateChange);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigToolTypeChangeGlobal,
             this, &UIVirtualBoxManager::sltHandleGlobalToolTypeChange);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigToolTypeChangeMachine,
@@ -2540,26 +2504,33 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltCopyMedium);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigMachineSettingsLinkClicked,
             this, &UIVirtualBoxManager::sltOpenSettingsDialog);
-    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCurrentSnapshotItemChange,
-            this, &UIVirtualBoxManager::sltCurrentSnapshotItemChange);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigDetachToolPane,
             this, &UIVirtualBoxManager::sltDetachToolPane);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigGroupSavingStateChanged,
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCloudUpdateStateChanged,
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCloudMachineStateChange,
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCurrentSnapshotItemChange,
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
 
     connect(menuBar(), &QMenuBar::customContextMenuRequested,
             m_pWidget, &UIVirtualBoxManagerWidget::sltHandleToolBarContextMenuRequest);
 
     /* Global VBox event handlers: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackInstalled,
-            this, &UIVirtualBoxManager::sltExtensionPackInstalledUninstalled);
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackUninstalled,
-            this, &UIVirtualBoxManager::sltExtensionPackInstalledUninstalled);
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-            this, &UIVirtualBoxManager::sltHandleStateChange);
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigSessionStateChange,
-            this, &UIVirtualBoxManager::sltHandleStateChange);
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
 
     /* General action-pool connections: */
-    connect(actionPool(), &UIActionPool::sigNotifyAboutMenuPrepare, this, &UIVirtualBoxManager::sltHandleMenuPrepare);
+    connect(actionPool(), &UIActionPool::sigNotifyAboutMenuPrepare,
+            this, &UIVirtualBoxManager::sltHandleMenuPrepare);
 
     /* 'File' menu connections: */
     connect(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance), &UIAction::triggered,

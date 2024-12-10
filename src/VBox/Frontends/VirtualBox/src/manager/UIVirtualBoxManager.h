@@ -144,10 +144,6 @@ private slots:
 
         /** Handles signal about Chooser-pane index change.  */
         void sltHandleChooserPaneIndexChange();
-        /** Handles signal about group saving progress change. */
-        void sltHandleGroupSavingProgressChange();
-        /** Handles signal about cloud update progress change. */
-        void sltHandleCloudUpdateProgressChange();
 
         /** Handles signal about Global Tool type change.  */
         void sltHandleGlobalToolTypeChange();
@@ -159,23 +155,11 @@ private slots:
         /** Handles copy medium request. */
         void sltCopyMedium(const QUuid &uMediumId);
 
-        /** Handles current snapshot item change. */
-        void sltCurrentSnapshotItemChange();
-
         /** Handles request to detach Log Viewer pane. */
         void sltDetachToolPane(UIToolType enmToolType);
 
-        /** Handles state change for cloud machine with certain @a uId. */
-        void sltHandleCloudMachineStateChange(const QUuid &uId);
-
         /** Handles translation event. */
         void sltRetranslateUI();
-    /** @} */
-
-    /** @name CVirtualBox event handling stuff.
-      * @{ */
-        /** Handles CVirtualBox event about state change for machine with @a uID. */
-        void sltHandleStateChange(const QUuid &uID);
     /** @} */
 
     /** @name Action-pool stuff.
@@ -342,9 +326,6 @@ private slots:
 
         /** Handles call to show help viewer. */
         void sltPerformShowHelpBrowser();
-
-        /** Handles signals that are emitted when an ext. pack un/installed. */
-        void sltExtensionPackInstalledUninstalled(const QString &strName);
     /** @} */
 
 private:

@@ -198,12 +198,6 @@ bool UIVirtualBoxManagerWidget::isCloudProfileUpdateInProgress() const
     return m_pPaneChooser->isCloudProfileUpdateInProgress();
 }
 
-void UIVirtualBoxManagerWidget::switchToGlobalItem()
-{
-    AssertPtrReturnVoid(m_pPaneChooser);
-    m_pPaneChooser->setCurrentGlobal();
-}
-
 void UIVirtualBoxManagerWidget::openGroupNameEditor()
 {
     m_pPaneChooser->openGroupNameEditor();
@@ -249,8 +243,17 @@ void UIVirtualBoxManagerWidget::setMachineSearchWidgetVisibility(bool fVisible)
     m_pPaneChooser->setMachineSearchWidgetVisibility(fVisible);
 }
 
-void UIVirtualBoxManagerWidget::setToolsTypeGlobal(UIToolType enmType)
+void UIVirtualBoxManagerWidget::setToolsTypeGlobal(UIToolType enmType, bool fMakeSureItsVisible /* = false */)
 {
+    /* Make sure global item is selected if requested: */
+    if (fMakeSureItsVisible)
+    {
+        AssertPtrReturnVoid(m_pPaneChooser);
+        m_pPaneChooser->setCurrentGlobal();
+    }
+
+    /* Change the tool to requested type: */
+    AssertPtrReturnVoid(m_pMenuToolsGlobal);
     m_pMenuToolsGlobal->setToolsType(enmType);
 }
 
@@ -261,6 +264,8 @@ UIToolType UIVirtualBoxManagerWidget::toolsTypeGlobal() const
 
 void UIVirtualBoxManagerWidget::setToolsTypeMachine(UIToolType enmType)
 {
+    /* Change the tool to requested type: */
+    AssertPtrReturnVoid(m_pMenuToolsMachine);
     m_pMenuToolsMachine->setToolsType(enmType);
 }
 

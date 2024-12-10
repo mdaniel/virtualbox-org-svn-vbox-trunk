@@ -1179,11 +1179,8 @@ void UIVirtualBoxManager::sltPerformSwitchToGlobalTool(QAction *pAction)
     const UIToolType enmType = pAction->property("UIToolType").value<UIToolType>();
     AssertReturnVoid(enmType != UIToolType_Invalid);
 
-    /* Make sure global item is selected: */
-    m_pWidget->switchToGlobalItem();
-
     /* Open the tool finally: */
-    m_pWidget->setToolsTypeGlobal(enmType);
+    m_pWidget->setToolsTypeGlobal(enmType, true /* make sure it's visible */);
 }
 
 void UIVirtualBoxManager::sltPerformExit()
@@ -1299,11 +1296,10 @@ void UIVirtualBoxManager::sltOpenNewMachineWizard()
     /* Get first selected item: */
     UIVirtualMachineItem *pItem = currentItem();
 
-    /* For global item or local machine: */
-    if (   !pItem
-        || pItem->itemType() == UIVirtualMachineItemType_Local)
+    /* If there is no items at all or first selected item is a local machine: */
+    if (!pItem || pItem->itemType() == UIVirtualMachineItemType_Local)
         openNewMachineWizard();
-    /* For cloud machine: */
+    /* Otherwise we guess it's cloud related item selected: */
     else
         sltOpenWizard(WizardType_NewCloudVM);
 }
@@ -1313,11 +1309,10 @@ void UIVirtualBoxManager::sltOpenAddMachineDialog()
     /* Get first selected item: */
     UIVirtualMachineItem *pItem = currentItem();
 
-    /* For global item or local machine: */
-    if (   !pItem
-        || pItem->itemType() == UIVirtualMachineItemType_Local)
+    /* If there is no items at all or first selected item is a local machine: */
+    if (!pItem || pItem->itemType() == UIVirtualMachineItemType_Local)
         openAddMachineDialog();
-    /* For cloud machine: */
+    /* Otherwise we guess it's cloud related item selected: */
     else
         sltOpenWizard(WizardType_AddCloudVM);
 }

@@ -190,8 +190,6 @@ public:
         /** Returns whether at least one cloud profile currently being updated. */
         bool isCloudProfileUpdateInProgress() const;
 
-        /** Switches to global item. */
-        void switchToGlobalItem();
         /** Opens group name editor. */
         void openGroupNameEditor();
         /** Disbands group. */
@@ -214,8 +212,8 @@ public:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Defines Global tools @a enmType. */
-        void setToolsTypeGlobal(UIToolType enmType);
+        /** Defines Global tools @a enmType and @a fMakeSureItsVisible if requested. */
+        void setToolsTypeGlobal(UIToolType enmType, bool fMakeSureItsVisible = false);
         /** Returns Global tools type. */
         UIToolType toolsTypeGlobal() const;
 

@@ -25,15 +25,6 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
-;
-; !!! HACK ALERT !!!
-; We disable the installer's CRC check because we have to use VBoxPeSetVersion in order
-; to make the installer run on NT4 guests with our self-built NSIS binaries.
-; Needs to be fixed properly.
-; !!! HACK ALERT !!!
-;
-CRCCheck off
-
 !if $%KBUILD_TYPE% == "debug"
   !define _DEBUG     ; Turn this on to get extra output
 !endif

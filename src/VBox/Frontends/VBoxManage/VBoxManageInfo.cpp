@@ -1951,6 +1951,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
                     case NetworkAdapterType_WD8013:     pszNICType = "WD8013";      break;
                     case NetworkAdapterType_ELNK2:      pszNICType = "3C503";       break;
                     case NetworkAdapterType_ELNK1:      pszNICType = "3C501";       break;
+                    case NetworkAdapterType_UsbNet:     pszNICType = "usbnet";      break;
                     default:
                         AssertFailed();
                         if (details == VMINFO_MACHINEREADABLE)

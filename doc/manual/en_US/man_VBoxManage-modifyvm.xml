@@ -310,6 +310,7 @@ time on documenting it. -->
           <arg choice="plain">82543GC</arg>
           <arg choice="plain">82545EM</arg>
           <arg choice="plain">virtio</arg>
+          <arg choice="plain">usbnet</arg>
         </group></arg>
       <arg>--cable-connected<replaceable>N</replaceable>=<group choice="plain">
           <arg choice="plain">on</arg>
@@ -1466,7 +1467,7 @@ it unless this changes. -->
             </itemizedlist></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--nic-type<replaceable>N</replaceable>=Am79C970A | Am79C973 | 82540EM | 82543GC | 82545EM | virtio</option></term>
+          <term><option>--nic-type<replaceable>N</replaceable>=Am79C970A | Am79C973 | 82540EM | 82543GC | 82545EM | virtio | usbnet</option></term>
           <listitem><para>
               Identifies the type of networking hardware that
               &product-name; presents to the guest VM for the specified
@@ -1497,6 +1498,10 @@ it unless this changes. -->
               <listitem><para>
                   <literal>virtio</literal> represents a paravirtualized
                   network adapter.
+                </para></listitem>
+              <listitem><para>
+                  <literal>usbnet</literal> represents an Ethernet over
+                  USB network adapter.
                 </para></listitem>
             </itemizedlist></listitem>
         </varlistentry>

@@ -918,7 +918,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
          */
         std::list<BootNic> llBootNics;
         vrc = i_configNetworkCtrls(pMachine, pPlatformProperties, chipsetType, pBusMgr,
-                                   pVMM, pUVM, pDevices, llBootNics);                            VRC();
+                                   pVMM, pUVM, pDevices, pUsbDevices, llBootNics);               VRC();
 
         /*
          * The VMM device.

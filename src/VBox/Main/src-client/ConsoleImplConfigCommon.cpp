@@ -4645,7 +4645,7 @@ int Console::i_configStorageCtrls(ComPtr<IMachine> pMachine, BusAssignmentManage
 
 int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformProperties> pPlatformProperties,
                                   ChipsetType_T enmChipset, BusAssignmentManager *pBusMgr, PCVMMR3VTABLE pVMM, PUVM pUVM,
-                                  PCFGMNODE pDevices, std::list<BootNic> &llBootNics)
+                                  PCFGMNODE pDevices, PCFGMNODE pUsbDevices, std::list<BootNic> &llBootNics)
 {
 /* Comment out the following line to remove VMWare compatibility hack. */
 #define VMWARE_NET_IN_SLOT_11
@@ -4675,6 +4675,7 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
     InsertConfigNode(pDevices, "dp8390", &pDevDP8390);
     PCFGMNODE pDev3C501 = NULL;          /* EtherLink-type devices */
     InsertConfigNode(pDevices, "3c501",  &pDev3C501);
+    PCFGMNODE pUsbNet = NULL;            /* USB NCM Ethernet devices */
 
     for (ULONG uInstance = 0; uInstance < maxNetworkAdapters; ++uInstance)
     {
@@ -4722,6 +4723,12 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
             case NetworkAdapterType_ELNK1:
                 pDev = pDev3C501;
                 break;
+            case NetworkAdapterType_UsbNet:
+                if (!pUsbNet)
+                    InsertConfigNode(pUsbDevices, "UsbNet",  &pUsbNet);
+                pDev = pUsbNet;
+                pszAdapterName = "UsbNet";
+                break;
             default:
                 AssertMsgFailed(("Invalid network adapter type '%d' for slot '%d'", adapterType, uInstance));
                 return pVMM->pfnVMR3SetError(pUVM, VERR_INVALID_PARAMETER, RT_SRC_POS,
@@ -4729,6 +4736,9 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
         }
 
         InsertConfigNode(pDev, Utf8StrFmt("%u", uInstance).c_str(), &pInst);
+        /* USB Ethernet is not attached to PCI bus, skip irrelevant bits. */
+        if (adapterType != NetworkAdapterType_UsbNet)
+        {
         InsertConfigInteger(pInst, "Trusted",              1); /* boolean */
 
         int iPCIDeviceNo;
@@ -4833,11 +4843,15 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
                 break;
             case NetworkAdapterType_ELNK1:
                 break;
+            case NetworkAdapterType_UsbNet:    /* fall through */
             case NetworkAdapterType_Null:      AssertFailedBreak(); /* (compiler warnings) */
 #ifdef VBOX_WITH_XPCOM_CPP_ENUM_HACK
             case NetworkAdapterType_32BitHack: AssertFailedBreak(); /* (compiler warnings) */
 #endif
         }
+        }
+        else
+            InsertConfigNode(pInst, "Config", &pCfg);
 
         /*
          * Get the MAC address and convert it to binary representation
@@ -4883,12 +4897,16 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
         hrc = networkAdapter->COMGETTER(CableConnected)(&fCableConnected);              H();
         InsertConfigInteger(pCfg, "CableConnected", fCableConnected ? 1 : 0);
 
+        /* No line speed for USB Ethernet. */
+        if (adapterType != NetworkAdapterType_UsbNet)
+        {
         /*
          * Line speed to report from custom drivers
          */
         ULONG ulLineSpeed;
         hrc = networkAdapter->COMGETTER(LineSpeed)(&ulLineSpeed);                       H();
         InsertConfigInteger(pCfg, "LineSpeed", ulLineSpeed);
+        }
 
         /*
          * Attach the status driver.

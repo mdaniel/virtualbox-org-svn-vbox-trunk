@@ -1739,6 +1739,10 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                 {
                     CHECK_ERROR(nic, COMSETTER(AdapterType)(NetworkAdapterType_ELNK1));
                 }
+                else if (!RTStrICmp(ValueUnion.psz, "usbnet"))
+                {
+                    CHECK_ERROR(nic, COMSETTER(AdapterType)(NetworkAdapterType_UsbNet));
+                }
                 else
                 {
                     errorArgument(ModifyVM::tr("Invalid NIC type '%s' specified for NIC %u"),

@@ -876,7 +876,7 @@ private:
                              PCFGMNODE pDevices, PCFGMNODE pUsbDevices, PCFGMNODE pBiosCfg, bool *pfFdcEnabled);
     int i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformProperties> pPlatformProperties,
                              ChipsetType_T enmChipset, BusAssignmentManager *pBusMgr, PCVMMR3VTABLE pVMM, PUVM pUVM,
-                             PCFGMNODE pDevices, std::list<BootNic> &llBootNics);
+                             PCFGMNODE pDevices, PCFGMNODE pUsbDevices, std::list<BootNic> &llBootNics);
 #if defined(VBOX_WITH_TPM)
     int i_configTpm(ComPtr<ITrustedPlatformModule> pTpm, TpmType_T enmTpmType, PCFGMNODE pDevices,
                     RTGCPHYS GCPhysTpmMmio, uint32_t uIrq, RTGCPHYS GCPhysTpmPpi, bool fCrb = false);

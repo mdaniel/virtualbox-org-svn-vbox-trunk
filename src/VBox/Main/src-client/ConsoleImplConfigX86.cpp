@@ -1693,7 +1693,7 @@ int Console::i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Auto
          */
         std::list<BootNic> llBootNics;
         vrc = i_configNetworkCtrls(pMachine, platformProperties, chipsetType, pBusMgr,
-                                   pVMM, pUVM, pDevices, llBootNics);                        VRC();
+                                   pVMM, pUVM, pDevices, pUsbDevices, llBootNics);           VRC();
 
         /*
          * Build network boot information and transfer it to the BIOS.

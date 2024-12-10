@@ -267,6 +267,7 @@ HRESULT NetworkAdapter::setAdapterType(NetworkAdapterType_T aAdapterType)
         case NetworkAdapterType_WD8013:
         case NetworkAdapterType_ELNK2:
         case NetworkAdapterType_ELNK1:
+        case NetworkAdapterType_UsbNet:
             break;
         default:
             return setError(E_FAIL,

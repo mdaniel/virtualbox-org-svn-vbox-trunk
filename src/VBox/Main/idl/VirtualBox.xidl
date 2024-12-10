@@ -22447,6 +22447,9 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
     <const name="ELNK1"                 value="13">
         <desc>3Com EtherLink network card (3C501/3C500).</desc>
     </const>
+    <const name="UsbNet"                value="14">
+        <desc>Ethernet over USB device (usbnet).</desc>
+    </const>
   </enum>
 
   <enum

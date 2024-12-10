@@ -4690,6 +4690,8 @@ void MachineConfigFile::readNetworkAdapters(const xml::ElementNode &elmNetwork,
                 nic.type = NetworkAdapterType_ELNK2;
             else if (strTemp == "3C501")
                 nic.type = NetworkAdapterType_ELNK1;
+            else if (strTemp == "usbnet")
+                nic.type = NetworkAdapterType_UsbNet;
             else
                 throw ConfigFileError(this, pelmAdapter, N_("Invalid value '%s' in Adapter/@type attribute"), strTemp.c_str());
         }
@@ -8105,6 +8107,7 @@ void MachineConfigFile::buildHardwareXML(xml::ElementNode &elmParent,
                         case NetworkAdapterType_WD8013:     pcszType = "WD8013"; break;
                         case NetworkAdapterType_ELNK2:      pcszType = "3C503"; break;
                         case NetworkAdapterType_ELNK1:      pcszType = "3C501"; break;
+                        case NetworkAdapterType_UsbNet:     pcszType = "usbnet"; break;
                         default: /*case NetworkAdapterType_Am79C970A:*/  pcszType = "Am79C970A"; break;
                     }
                     pelmAdapter->setAttribute("type", pcszType);

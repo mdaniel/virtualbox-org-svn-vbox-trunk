@@ -780,6 +780,7 @@ HRESULT PlatformProperties::getSupportedNetworkAdapterTypes(std::vector<NetworkA
 #ifdef VBOX_WITH_VIRTIO
               , NetworkAdapterType_Virtio
 #endif
+              , NetworkAdapterType_UsbNet
             };
             aSupportedNetworkAdapterTypes.assign(aNetworkAdapterTypes + 1 /* Don't include _Null */,
                                                  aNetworkAdapterTypes + RT_ELEMENTS(aNetworkAdapterTypes));
@@ -799,6 +800,7 @@ HRESULT PlatformProperties::getSupportedNetworkAdapterTypes(std::vector<NetworkA
 #ifdef VBOX_WITH_VIRTIO
               , NetworkAdapterType_Virtio
 #endif
+              , NetworkAdapterType_UsbNet
             };
             aSupportedNetworkAdapterTypes.assign(aNetworkAdapterTypes + 1 /* Don't include _Null */,
                                                  aNetworkAdapterTypes + RT_ELEMENTS(aNetworkAdapterTypes));

@@ -4739,116 +4739,116 @@ int Console::i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformPro
         /* USB Ethernet is not attached to PCI bus, skip irrelevant bits. */
         if (adapterType != NetworkAdapterType_UsbNet)
         {
-        InsertConfigInteger(pInst, "Trusted",              1); /* boolean */
+            InsertConfigInteger(pInst, "Trusted",              1); /* boolean */
 
-        int iPCIDeviceNo;
-        if (enmChipset == ChipsetType_ICH9 || enmChipset == ChipsetType_PIIX3)
-        {
-            /* the first network card gets the PCI ID 3, the next 3 gets 8..10,
-             * next 4 get 16..19. */
-            switch (uInstance)
+            int iPCIDeviceNo;
+            if (enmChipset == ChipsetType_ICH9 || enmChipset == ChipsetType_PIIX3)
             {
-                case 0:
-                    iPCIDeviceNo = 3;
-                    break;
-                case 1: case 2: case 3:
-                    iPCIDeviceNo = uInstance - 1 + 8;
-                    break;
-                case 4: case 5: case 6: case 7:
-                    iPCIDeviceNo = uInstance - 4 + 16;
-                    break;
-                default:
-                    /* auto assignment */
-                    iPCIDeviceNo = -1;
-                    break;
-            }
+                /* the first network card gets the PCI ID 3, the next 3 gets 8..10,
+                * next 4 get 16..19. */
+                switch (uInstance)
+                {
+                    case 0:
+                        iPCIDeviceNo = 3;
+                        break;
+                    case 1: case 2: case 3:
+                        iPCIDeviceNo = uInstance - 1 + 8;
+                        break;
+                    case 4: case 5: case 6: case 7:
+                        iPCIDeviceNo = uInstance - 4 + 16;
+                        break;
+                    default:
+                        /* auto assignment */
+                        iPCIDeviceNo = -1;
+                        break;
+                }
 #ifdef VMWARE_NET_IN_SLOT_11
-            /*
-             * Dirty hack for PCI slot compatibility with VMWare,
-             * it assigns slot 0x11 to the first network controller.
-             */
-            if (iPCIDeviceNo == 3 && adapterType == NetworkAdapterType_I82545EM)
-            {
-                iPCIDeviceNo = 0x11;
-                fSwapSlots3and11 = true;
+                /*
+                * Dirty hack for PCI slot compatibility with VMWare,
+                * it assigns slot 0x11 to the first network controller.
+                */
+                if (iPCIDeviceNo == 3 && adapterType == NetworkAdapterType_I82545EM)
+                {
+                    iPCIDeviceNo = 0x11;
+                    fSwapSlots3and11 = true;
+                }
+                else if (iPCIDeviceNo == 0x11 && fSwapSlots3and11)
+                    iPCIDeviceNo = 3;
+#endif
             }
-            else if (iPCIDeviceNo == 0x11 && fSwapSlots3and11)
-                iPCIDeviceNo = 3;
-#endif
-        }
-        else /* Platforms other than x86 just use the auto assignment, no slot swap hack there. */
-            iPCIDeviceNo = -1;
+            else /* Platforms other than x86 just use the auto assignment, no slot swap hack there. */
+                iPCIDeviceNo = -1;
 
-        PCIBusAddress PCIAddr = PCIBusAddress(0, iPCIDeviceNo, 0);
-        hrc = pBusMgr->assignPCIDevice(pszAdapterName, pInst, PCIAddr);                 H();
+            PCIBusAddress PCIAddr = PCIBusAddress(0, iPCIDeviceNo, 0);
+            hrc = pBusMgr->assignPCIDevice(pszAdapterName, pInst, PCIAddr);                 H();
 
-        InsertConfigNode(pInst, "Config", &pCfg);
+            InsertConfigNode(pInst, "Config", &pCfg);
 #ifdef VBOX_WITH_2X_4GB_ADDR_SPACE   /* not safe here yet. */ /** @todo Make PCNet ring-0 safe on 32-bit mac kernels! */
-        if (pDev == pDevPCNet)
-            InsertConfigInteger(pCfg, "R0Enabled",    false);
+            if (pDev == pDevPCNet)
+                InsertConfigInteger(pCfg, "R0Enabled",    false);
 #endif
-        /*
-         * Collect information needed for network booting and add it to the list.
-         */
-        BootNic     nic;
+            /*
+            * Collect information needed for network booting and add it to the list.
+            */
+            BootNic     nic;
 
-        nic.mInstance    = uInstance;
-        /* Could be updated by reference, if auto assigned */
-        nic.mPCIAddress  = PCIAddr;
+            nic.mInstance    = uInstance;
+            /* Could be updated by reference, if auto assigned */
+            nic.mPCIAddress  = PCIAddr;
 
-        hrc = networkAdapter->COMGETTER(BootPriority)(&nic.mBootPrio);                  H();
+            hrc = networkAdapter->COMGETTER(BootPriority)(&nic.mBootPrio);                  H();
 
-        llBootNics.push_back(nic);
+            llBootNics.push_back(nic);
 
-        /*
-         * The virtual hardware type. PCNet supports three types, E1000 three,
-         * but VirtIO only one.
-         */
-        switch (adapterType)
-        {
-            case NetworkAdapterType_Am79C970A:
-                InsertConfigString(pCfg, "ChipType", "Am79C970A");
-                break;
-            case NetworkAdapterType_Am79C973:
-                InsertConfigString(pCfg, "ChipType", "Am79C973");
-                break;
-            case NetworkAdapterType_Am79C960:
-                InsertConfigString(pCfg, "ChipType", "Am79C960");
-                break;
-            case NetworkAdapterType_I82540EM:
-                InsertConfigInteger(pCfg, "AdapterType", 0);
-                break;
-            case NetworkAdapterType_I82543GC:
-                InsertConfigInteger(pCfg, "AdapterType", 1);
-                break;
-            case NetworkAdapterType_I82545EM:
-                InsertConfigInteger(pCfg, "AdapterType", 2);
-                break;
-            case NetworkAdapterType_Virtio:
-                break;
-            case NetworkAdapterType_NE1000:
-                InsertConfigString(pCfg, "DeviceType", "NE1000");
-                break;
-            case NetworkAdapterType_NE2000:
-                InsertConfigString(pCfg, "DeviceType", "NE2000");
-                break;
-            case NetworkAdapterType_WD8003:
-                InsertConfigString(pCfg, "DeviceType", "WD8003");
-                break;
-            case NetworkAdapterType_WD8013:
-                InsertConfigString(pCfg, "DeviceType", "WD8013");
-                break;
-            case NetworkAdapterType_ELNK2:
-                InsertConfigString(pCfg, "DeviceType", "3C503");
-                break;
-            case NetworkAdapterType_ELNK1:
-                break;
-            case NetworkAdapterType_UsbNet:    /* fall through */
-            case NetworkAdapterType_Null:      AssertFailedBreak(); /* (compiler warnings) */
+            /*
+            * The virtual hardware type. PCNet supports three types, E1000 three,
+            * but VirtIO only one.
+            */
+            switch (adapterType)
+            {
+                case NetworkAdapterType_Am79C970A:
+                    InsertConfigString(pCfg, "ChipType", "Am79C970A");
+                    break;
+                case NetworkAdapterType_Am79C973:
+                    InsertConfigString(pCfg, "ChipType", "Am79C973");
+                    break;
+                case NetworkAdapterType_Am79C960:
+                    InsertConfigString(pCfg, "ChipType", "Am79C960");
+                    break;
+                case NetworkAdapterType_I82540EM:
+                    InsertConfigInteger(pCfg, "AdapterType", 0);
+                    break;
+                case NetworkAdapterType_I82543GC:
+                    InsertConfigInteger(pCfg, "AdapterType", 1);
+                    break;
+                case NetworkAdapterType_I82545EM:
+                    InsertConfigInteger(pCfg, "AdapterType", 2);
+                    break;
+                case NetworkAdapterType_Virtio:
+                    break;
+                case NetworkAdapterType_NE1000:
+                    InsertConfigString(pCfg, "DeviceType", "NE1000");
+                    break;
+                case NetworkAdapterType_NE2000:
+                    InsertConfigString(pCfg, "DeviceType", "NE2000");
+                    break;
+                case NetworkAdapterType_WD8003:
+                    InsertConfigString(pCfg, "DeviceType", "WD8003");
+                    break;
+                case NetworkAdapterType_WD8013:
+                    InsertConfigString(pCfg, "DeviceType", "WD8013");
+                    break;
+                case NetworkAdapterType_ELNK2:
+                    InsertConfigString(pCfg, "DeviceType", "3C503");
+                    break;
+                case NetworkAdapterType_ELNK1:
+                    break;
+                case NetworkAdapterType_UsbNet:    /* fall through */
+                case NetworkAdapterType_Null:      AssertFailedBreak(); /* (compiler warnings) */
 #ifdef VBOX_WITH_XPCOM_CPP_ENUM_HACK
-            case NetworkAdapterType_32BitHack: AssertFailedBreak(); /* (compiler warnings) */
+                case NetworkAdapterType_32BitHack: AssertFailedBreak(); /* (compiler warnings) */
 #endif
-        }
+            }
         }
         else
             InsertConfigNode(pInst, "Config", &pCfg);

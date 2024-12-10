@@ -1698,7 +1698,7 @@ inline static const char *networkAdapterTypeToName(NetworkAdapterType_T adapterT
         case NetworkAdapterType_ELNK1:
             return "3c501";
         case NetworkAdapterType_UsbNet:
-            return "usbnet";
+            return "UsbNet";
         default:
             AssertFailed();
             return "unknown";
@@ -4356,7 +4356,7 @@ HRESULT Console::i_onNetworkAdapterChange(INetworkAdapter *aNetworkAdapter, BOOL
                     PPDMIBASE pBase = NULL;
                     int vrc = VINF_SUCCESS;
                     if (adapterType == NetworkAdapterType_UsbNet)
-                        vrc = ptrVM.vtable()->pfnPDMR3UsbQueryLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
+                        vrc = ptrVM.vtable()->pfnPDMR3UsbQueryDeviceLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
                     else
                         vrc = ptrVM.vtable()->pfnPDMR3QueryDeviceLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
                     if (RT_SUCCESS(vrc))
@@ -4467,7 +4467,11 @@ HRESULT Console::i_onNATRedirectRuleChanged(ULONG ulInstance, BOOL aNatRuleRemov
 
             const char *pszAdapterName = networkAdapterTypeToName(adapterType);
             PPDMIBASE pBase;
-            int vrc = ptrVM.vtable()->pfnPDMR3QueryLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
+            int vrc;
+            if (adapterType == NetworkAdapterType_UsbNet)
+                vrc = ptrVM.vtable()->pfnPDMR3UsbQueryLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
+            else
+                vrc = ptrVM.vtable()->pfnPDMR3QueryLun(ptrVM.rawUVM(), pszAdapterName, ulInstance, 0, &pBase);
             if (RT_FAILURE(vrc))
             {
                 /* This may happen if the NAT network adapter is currently not attached.

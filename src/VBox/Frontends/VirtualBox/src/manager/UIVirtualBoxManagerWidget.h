@@ -154,6 +154,9 @@ public:
         /** Returns a list of current-items. */
         QList<UIVirtualMachineItem*> currentItems() const;
 
+        /** Returns whether passed @a pItem accessible, by default it's the current one. */
+        bool isItemAccessible(UIVirtualMachineItem *pItem = 0) const;
+
         /** Returns whether group item is selected. */
         bool isGroupItemSelected() const;
         /** Returns whether global item is selected. */
@@ -175,6 +178,9 @@ public:
         bool isSingleCloudProfileGroupSelected() const;
         /** Returns whether all items of one group are selected. */
         bool isAllItemsOfOneGroupSelected() const;
+
+        /** Returns current selection type. */
+        SelectionType selectionType() const;
 
         /** Returns full name of currently selected group. */
         QString fullGroupName() const;

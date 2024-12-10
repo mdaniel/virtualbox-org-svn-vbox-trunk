@@ -111,6 +111,13 @@ QList<UIVirtualMachineItem*> UIVirtualBoxManagerWidget::currentItems() const
     return m_pPaneChooser->currentItems();
 }
 
+bool UIVirtualBoxManagerWidget::isItemAccessible(UIVirtualMachineItem *pItem /* = 0 */) const
+{
+    if (!pItem)
+        pItem = currentItem();
+    return pItem && pItem->accessible();
+}
+
 bool UIVirtualBoxManagerWidget::isGroupItemSelected() const
 {
     return m_pPaneChooser->isGroupItemSelected();
@@ -159,6 +166,21 @@ bool UIVirtualBoxManagerWidget::isSingleCloudProfileGroupSelected() const
 bool UIVirtualBoxManagerWidget::isAllItemsOfOneGroupSelected() const
 {
     return m_pPaneChooser->isAllItemsOfOneGroupSelected();
+}
+
+UIVirtualBoxManagerWidget::SelectionType UIVirtualBoxManagerWidget::selectionType() const
+{
+    return   isSingleLocalGroupSelected()
+           ? SelectionType_SingleLocalGroupItem
+           : isSingleCloudProviderGroupSelected() || isSingleCloudProfileGroupSelected()
+           ? SelectionType_SingleCloudGroupItem
+           : isGlobalItemSelected()
+           ? SelectionType_FirstIsGlobalItem
+           : isLocalMachineItemSelected()
+           ? SelectionType_FirstIsLocalMachineItem
+           : isCloudMachineItemSelected()
+           ? SelectionType_FirstIsCloudMachineItem
+           : SelectionType_Invalid;
 }
 
 QString UIVirtualBoxManagerWidget::fullGroupName() const
@@ -475,28 +497,18 @@ void UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange()
     /* Recache current machine item information: */
     recacheCurrentMachineItemInformation();
 
-    /* Calculate selection type: */
-    const SelectionType enmSelectedItemType = isSingleLocalGroupSelected()
-                                            ? SelectionType_SingleLocalGroupItem
-                                            : isSingleCloudProviderGroupSelected() || isSingleCloudProfileGroupSelected()
-                                            ? SelectionType_SingleCloudGroupItem
-                                            : isGlobalItemSelected()
-                                            ? SelectionType_FirstIsGlobalItem
-                                            : isLocalMachineItemSelected()
-                                            ? SelectionType_FirstIsLocalMachineItem
-                                            : isCloudMachineItemSelected()
-                                            ? SelectionType_FirstIsCloudMachineItem
-                                            : SelectionType_Invalid;
+    /* Calculate new selection type: */
+    const SelectionType enmSelectedItemType = selectionType();
+    /* Calculate new item accessibility status: */
+    const bool fCurrentItemIsOk = isItemAccessible();
 
-    /* Update toolbar if selection type or item accessibility got changed: */
-    const bool fCurrentItemIsOk = pItem && pItem->accessible();
+    /* Update toolbar if selection type or item accessibility status got changed: */
     if (   m_enmSelectionType != enmSelectedItemType
         || m_fSelectedMachineItemAccessible != fCurrentItemIsOk)
         updateToolbar();
 
-    /* Remember the last selection type: */
+    /* Remember selection type and item accessibility status: */
     m_enmSelectionType = enmSelectedItemType;
-    /* Remember whether the last selected item was accessible: */
     m_fSelectedMachineItemAccessible = fCurrentItemIsOk;
 }
 
@@ -543,7 +555,7 @@ void UIVirtualBoxManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uI
     {
         /* Acquire current item: */
         UIVirtualMachineItem *pItem = currentItem();
-        const bool fCurrentItemIsOk = pItem && pItem->accessible();
+        const bool fCurrentItemIsOk = isItemAccessible(pItem);
 
         /* If current item is Ok: */
         if (fCurrentItemIsOk)
@@ -1138,7 +1150,7 @@ void UIVirtualBoxManagerWidget::recacheCurrentMachineItemInformation(bool fDontR
 
     /* Get current item: */
     UIVirtualMachineItem *pItem = currentItem();
-    const bool fCurrentItemIsOk = pItem && pItem->accessible();
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
 
     /* If current item is Ok: */
     if (fCurrentItemIsOk)
@@ -1184,7 +1196,7 @@ void UIVirtualBoxManagerWidget::updateToolsMenuGlobal()
 void UIVirtualBoxManagerWidget::updateToolsMenuMachine(UIVirtualMachineItem *pItem)
 {
     /* Get current item state: */
-    const bool fCurrentItemIsOk = pItem && pItem->accessible();
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
 
     /* Update machine tools restrictions: */
     QSet<UIToolType> restrictedTypes;

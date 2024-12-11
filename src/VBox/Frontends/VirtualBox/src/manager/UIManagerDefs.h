@@ -32,6 +32,10 @@
 #endif
 
 
+/** Force the GUI to use advanced widgets. */
+//#define VBOX_GUI_WITH_ADVANCED_WIDGETS
+
+
 /** Virtual machine item types. */
 enum UIVirtualMachineItemType
 {

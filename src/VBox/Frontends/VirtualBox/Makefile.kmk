@@ -90,6 +90,12 @@ IMAGES         :=
 
 
 #
+# Build GUI with advanced widgets.
+#
+#VBOX_GUI_WITH_ADVANCED_WIDGETS := 1
+
+
+#
 # Perform initial new version check on startup.
 # If this setting is disabled the user can still check using the menu.
 #

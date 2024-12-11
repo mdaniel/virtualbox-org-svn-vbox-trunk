@@ -31,22 +31,18 @@
 #ifndef VBOX_WS_MAC
 # include <QStyle>
 #endif
-#include <QUuid>
 
 /* GUI includes */
-#include "UIActionPoolManager.h"
 #include "UICommon.h"
 #include "UIDetails.h"
 #include "UIErrorPane.h"
 #include "UIFileManager.h"
 #include "UIGlobalSession.h"
-#include "UIIconPool.h"
 #include "UISnapshotPane.h"
 #include "UIToolPaneMachine.h"
 #include "UIVirtualMachineItem.h"
 #include "UIVMActivityToolWidget.h"
 #include "UIVMLogViewerWidget.h"
-
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
@@ -64,13 +60,11 @@ UIToolPaneMachine::UIToolPaneMachine(UIActionPool *pActionPool, QWidget *pParent
     , m_pPaneFileManager(0)
     , m_fActive(false)
 {
-    /* Prepare: */
     prepare();
 }
 
 UIToolPaneMachine::~UIToolPaneMachine()
 {
-    /* Cleanup: */
     cleanup();
 }
 
@@ -95,7 +89,6 @@ UIToolType UIToolPaneMachine::currentTool() const
 
 bool UIToolPaneMachine::isToolOpened(UIToolType enmType) const
 {
-    /* Search through the stacked widgets: */
     for (int iIndex = 0; iIndex < m_pLayout->count(); ++iIndex)
         if (m_pLayout->widget(iIndex)->property("ToolType").value<UIToolType>() == enmType)
             return true;
@@ -126,15 +119,14 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
             {
                 /* Create Error pane: */
                 m_pPaneError = new UIErrorPane;
-                if (m_pPaneError)
+                AssertPtrReturnVoid(m_pPaneError);
                 {
+                    /* Configure pane: */
+                    m_pPaneError->setProperty("ToolType", QVariant::fromValue(UIToolType_Error));
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneError->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
-
-                    /* Configure pane: */
-                    m_pPaneError->setProperty("ToolType", QVariant::fromValue(UIToolType_Error));
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneError);
@@ -167,16 +159,15 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
                 m_pPaneSnapshots = new UISnapshotPane(m_pActionPool, false /* show toolbar? */);
                 AssertPtrReturnVoid(m_pPaneSnapshots);
                 {
-#ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneSnapshots->setContentsMargins(iMargin, 0, iMargin, 0);
-#endif
-
                     /* Configure pane: */
                     m_pPaneSnapshots->setProperty("ToolType", QVariant::fromValue(UIToolType_Snapshots));
                     connect(m_pPaneSnapshots, &UISnapshotPane::sigCurrentItemChange,
                             this, &UIToolPaneMachine::sigCurrentSnapshotItemChange);
                     m_pPaneSnapshots->setMachineItems(m_items);
+#ifndef VBOX_WS_MAC
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneSnapshots->setContentsMargins(iMargin, 0, iMargin, 0);
+#endif
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneSnapshots);
@@ -186,20 +177,19 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
             }
             case UIToolType_Logs:
             {
-                /* Create the Logviewer pane: */
+                /* Create Logviewer pane: */
                 m_pPaneLogViewer = new UIVMLogViewerWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneLogViewer);
                 {
-#ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneLogViewer->setContentsMargins(iMargin, 0, iMargin, 0);
-#endif
-
                     /* Configure pane: */
                     m_pPaneLogViewer->setProperty("ToolType", QVariant::fromValue(UIToolType_Logs));
                     connect(m_pPaneLogViewer, &UIVMLogViewerWidget::sigDetach,
                             this, &UIToolPaneMachine::sltDetachToolPane);
                     m_pPaneLogViewer->setSelectedVMListItems(m_items);
+#ifndef VBOX_WS_MAC
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneLogViewer->setContentsMargins(iMargin, 0, iMargin, 0);
+#endif
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneLogViewer);
@@ -209,27 +199,30 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
             }
             case UIToolType_VMActivity:
             {
+                /* Create Activity pane: */
                 m_pPaneVMActivityMonitor = new UIVMActivityToolWidget(EmbedTo_Stack, m_pActionPool,
                                                                       false /* Show toolbar */, 0 /* Parent */);
                 AssertPtrReturnVoid(m_pPaneVMActivityMonitor);
+                {
+                    /* Configure pane: */
+                    m_pPaneVMActivityMonitor->setProperty("ToolType", QVariant::fromValue(UIToolType_VMActivity));
+                    m_pPaneVMActivityMonitor->setSelectedVMListItems(m_items);
+                    connect(m_pPaneVMActivityMonitor, &UIVMActivityToolWidget::sigSwitchToActivityOverviewPane,
+                            this, &UIToolPaneMachine::sigSwitchToActivityOverviewPane);
 #ifndef VBOX_WS_MAC
-                const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                m_pPaneVMActivityMonitor->setContentsMargins(iMargin, 0, iMargin, 0);
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneVMActivityMonitor->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
 
-                /* Configure pane: */
-                m_pPaneVMActivityMonitor->setProperty("ToolType", QVariant::fromValue(UIToolType_VMActivity));
-                m_pPaneVMActivityMonitor->setSelectedVMListItems(m_items);
-                /* Add into layout: */
-                m_pLayout->addWidget(m_pPaneVMActivityMonitor);
-                m_pLayout->setCurrentWidget(m_pPaneVMActivityMonitor);
-
-                connect(m_pPaneVMActivityMonitor, &UIVMActivityToolWidget::sigSwitchToActivityOverviewPane,
-                        this, &UIToolPaneMachine::sigSwitchToActivityOverviewPane);
+                    /* Add into layout: */
+                    m_pLayout->addWidget(m_pPaneVMActivityMonitor);
+                    m_pLayout->setCurrentWidget(m_pPaneVMActivityMonitor);
+                }
                 break;
             }
             case UIToolType_FileManager:
             {
+                /* Create File Manager pane: */
                 if (!m_items.isEmpty())
                     m_pPaneFileManager = new UIFileManager(EmbedTo_Stack, m_pActionPool,
                                                            gpGlobalSession->virtualBox().FindMachine(m_items[0]->id().toString()),
@@ -238,16 +231,19 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
                     m_pPaneFileManager = new UIFileManager(EmbedTo_Stack, m_pActionPool, CMachine(),
                                                            0, false /* fShowToolbar */);
                 AssertPtrReturnVoid(m_pPaneFileManager);
+                {
+                    /* Configure pane: */
+                    m_pPaneFileManager->setProperty("ToolType", QVariant::fromValue(UIToolType_FileManager));
+                    m_pPaneFileManager->setSelectedVMListItems(m_items);
 #ifndef VBOX_WS_MAC
-                const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                m_pPaneFileManager->setContentsMargins(iMargin, 0, iMargin, 0);
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneFileManager->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
-                /* Configure pane: */
-                m_pPaneFileManager->setProperty("ToolType", QVariant::fromValue(UIToolType_FileManager));
-                m_pPaneFileManager->setSelectedVMListItems(m_items);
-                /* Add into layout: */
-                m_pLayout->addWidget(m_pPaneFileManager);
-                m_pLayout->setCurrentWidget(m_pPaneFileManager);
+
+                    /* Add into layout: */
+                    m_pLayout->addWidget(m_pPaneFileManager);
+                    m_pLayout->setCurrentWidget(m_pPaneFileManager);
+                }
                 break;
             }
             default:
@@ -278,6 +274,7 @@ void UIToolPaneMachine::closeTool(UIToolType enmType)
             case UIToolType_Snapshots:   m_pPaneSnapshots = 0; break;
             case UIToolType_Logs:        m_pPaneLogViewer = 0; break;
             case UIToolType_VMActivity:  m_pPaneVMActivityMonitor = 0; break;
+            case UIToolType_FileManager: m_pPaneFileManager = 0; break;
             default: break;
         }
         /* Delete corresponding widget: */
@@ -288,6 +285,35 @@ void UIToolPaneMachine::closeTool(UIToolType enmType)
 
     /* Handle token change: */
     handleTokenChange();
+}
+
+QString UIToolPaneMachine::currentHelpKeyword() const
+{
+    QWidget *pCurrentToolWidget = 0;
+    switch (currentTool())
+    {
+        case UIToolType_Error:
+            pCurrentToolWidget = m_pPaneError;
+            break;
+        case UIToolType_Details:
+            pCurrentToolWidget = m_pPaneDetails;
+            break;
+        case UIToolType_Snapshots:
+            pCurrentToolWidget = m_pPaneSnapshots;
+            break;
+        case UIToolType_Logs:
+            pCurrentToolWidget = m_pPaneLogViewer;
+            break;
+        case UIToolType_VMActivity:
+            pCurrentToolWidget = m_pPaneVMActivityMonitor;
+            break;
+        case UIToolType_FileManager:
+            pCurrentToolWidget = m_pPaneFileManager;
+            break;
+        default:
+            break;
+    }
+    return uiCommon().helpKeyword(pCurrentToolWidget);
 }
 
 void UIToolPaneMachine::setErrorDetails(const QString &strDetails)
@@ -345,33 +371,14 @@ QUuid UIToolPaneMachine::currentSnapshotId()
     return m_pPaneSnapshots ? m_pPaneSnapshots->currentSnapshotId() : QUuid();
 }
 
-QString UIToolPaneMachine::currentHelpKeyword() const
+void UIToolPaneMachine::sltDetachToolPane()
 {
-    QWidget *pCurrentToolWidget = 0;
-    switch (currentTool())
-    {
-        case UIToolType_Error:
-            pCurrentToolWidget = m_pPaneError;
-            break;
-        case UIToolType_Details:
-            pCurrentToolWidget = m_pPaneDetails;
-            break;
-        case UIToolType_Snapshots:
-            pCurrentToolWidget = m_pPaneSnapshots;
-            break;
-        case UIToolType_Logs:
-            pCurrentToolWidget = m_pPaneLogViewer;
-            break;
-        case UIToolType_VMActivity:
-            pCurrentToolWidget = m_pPaneVMActivityMonitor;
-            break;
-        case UIToolType_FileManager:
-            pCurrentToolWidget = m_pPaneFileManager;
-            break;
-        default:
-            break;
-    }
-    return uiCommon().helpKeyword(pCurrentToolWidget);
+    AssertPtrReturnVoid(sender());
+    UIToolType enmToolType = UIToolType_Invalid;
+    if (sender() == m_pPaneLogViewer)
+        enmToolType = UIToolType_Logs;
+    if (enmToolType != UIToolType_Invalid)
+        emit sigDetachToolPane(enmToolType);
 }
 
 void UIToolPaneMachine::prepare()
@@ -397,15 +404,4 @@ void UIToolPaneMachine::cleanup()
 void UIToolPaneMachine::handleTokenChange()
 {
     // printf("UIToolPaneMachine::handleTokenChange: Active = %d, current tool = %d\n", m_fActive, currentTool());
-}
-
-void UIToolPaneMachine::sltDetachToolPane()
-{
-    AssertPtrReturnVoid(sender());
-    UIToolType enmToolType = UIToolType_Invalid;
-    if (sender() == m_pPaneLogViewer)
-        enmToolType = UIToolType_Logs;
-
-    if (enmToolType != UIToolType_Invalid)
-        emit sigDetachToolPane(enmToolType);
 }

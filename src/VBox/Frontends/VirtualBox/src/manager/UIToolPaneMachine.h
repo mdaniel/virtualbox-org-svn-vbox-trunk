@@ -38,13 +38,8 @@
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
 
-/* COM includes: */
-#include "CMachine.h"
-
 /* Forward declarations: */
-class QHBoxLayout;
 class QStackedLayout;
-class QVBoxLayout;
 class UIActionPool;
 class UIDetails;
 class UIErrorPane;
@@ -54,7 +49,7 @@ class UIVirtualMachineItem;
 class UIVMLogViewerWidget;
 class UIFileManager;
 
-/** QWidget subclass representing container for tool panes. */
+/** QWidget subclass representing container for Machine tool panes. */
 class UIToolPaneMachine : public QWidget
 {
     Q_OBJECT;
@@ -98,6 +93,9 @@ public:
     /** Closes tool of passed @a enmType, deletes one if exists. */
     void closeTool(UIToolType enmType);
 
+    /** Returns the help keyword of the current tool's widget. */
+    QString currentHelpKeyword() const;
+
     /** Defines error @a strDetails and switches to Error pane. */
     void setErrorDetails(const QString &strDetails);
 
@@ -109,9 +107,6 @@ public:
 
     /** Returns currently selected snapshot ID if any. */
     QUuid currentSnapshotId();
-
-    /** Returns the help keyword of the current tool's widget. */
-    QString currentHelpKeyword() const;
 
 private slots:
 
@@ -134,19 +129,19 @@ private:
     UIActionPool *m_pActionPool;
 
     /** Holds the stacked-layout instance. */
-    QStackedLayout      *m_pLayout;
+    QStackedLayout         *m_pLayout;
     /** Holds the Error pane instance. */
-    UIErrorPane         *m_pPaneError;
+    UIErrorPane            *m_pPaneError;
     /** Holds the Details pane instance. */
-    UIDetails           *m_pPaneDetails;
+    UIDetails              *m_pPaneDetails;
     /** Holds the Snapshots pane instance. */
-    UISnapshotPane      *m_pPaneSnapshots;
+    UISnapshotPane         *m_pPaneSnapshots;
     /** Holds the Logviewer pane instance. */
-    UIVMLogViewerWidget *m_pPaneLogViewer;
+    UIVMLogViewerWidget    *m_pPaneLogViewer;
     /** Holds the Performance Monitor pane instance. */
     UIVMActivityToolWidget *m_pPaneVMActivityMonitor;
     /** Holds the File Manager pane instance. */
-    UIFileManager *m_pPaneFileManager;
+    UIFileManager          *m_pPaneFileManager;
 
     /** Holds whether this pane is active. */
     bool  m_fActive;

@@ -398,7 +398,7 @@ void UIVirtualBoxManagerWidget::sltHandleCommitData()
     cleanupConnections();
 }
 
-void UIVirtualBoxManagerWidget::sltHandleStateChange(const QUuid &uId)
+void UIVirtualBoxManagerWidget::sltHandleMachineStateChange(const QUuid &uId)
 {
     // WORKAROUND:
     // In certain intermediate states VM info can be NULL which
@@ -502,9 +502,8 @@ void UIVirtualBoxManagerWidget::sltHandleChooserPaneIndexChange()
     /* Recache current machine item information: */
     recacheCurrentMachineItemInformation();
 
-    /* Calculate new selection type: */
+    /* Calculate new selection type and item accessibility status: */
     const SelectionType enmSelectedItemType = selectionType();
-    /* Calculate new item accessibility status: */
     const bool fCurrentItemIsOk = isItemAccessible();
 
     /* Update toolbar if selection type or item accessibility status got changed: */
@@ -556,45 +555,45 @@ void UIVirtualBoxManagerWidget::sltHandleCloudProfileStateChange(const QString &
 void UIVirtualBoxManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
 {
     /* Not for global items: */
-    if (!isGlobalItemSelected())
+    if (isGlobalItemSelected())
+        return;
+
+    /* Acquire current item: */
+    UIVirtualMachineItem *pItem = currentItem();
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
+
+    /* If current item is Ok: */
+    if (fCurrentItemIsOk)
     {
-        /* Acquire current item: */
-        UIVirtualMachineItem *pItem = currentItem();
-        const bool fCurrentItemIsOk = isItemAccessible(pItem);
+        /* If Error-pane is chosen currently => switch to tool currently chosen in Tools-menu: */
+        if (m_pPaneToolsMachine->currentTool() == UIToolType_Error)
+            switchMachineToolTo(m_pMenuToolsMachine->toolsType());
 
-        /* If current item is Ok: */
-        if (fCurrentItemIsOk)
+        /* If we still have same item selected: */
+        if (pItem && pItem->id() == uId)
         {
-            /* If Error-pane is chosen currently => switch to tool currently chosen in Tools-menu: */
-            if (m_pPaneToolsMachine->currentTool() == UIToolType_Error)
-                switchMachineToolTo(m_pMenuToolsMachine->toolsType());
-
-            /* If we still have same item selected: */
-            if (pItem && pItem->id() == uId)
-            {
-                /* Propagate current items to update the Details-pane: */
-                m_pPaneToolsMachine->setItems(currentItems());
-            }
+            /* Propagate current items to update the Details-pane: */
+            m_pPaneToolsMachine->setItems(currentItems());
         }
-        else
-        {
-            /* Make sure Error pane raised: */
-            if (m_pPaneToolsMachine->currentTool() != UIToolType_Error)
-                m_pPaneToolsMachine->openTool(UIToolType_Error);
-
-            /* If we still have same item selected: */
-            if (pItem && pItem->id() == uId)
-            {
-                /* Propagate current items to update the Details-pane (in any case): */
-                m_pPaneToolsMachine->setItems(currentItems());
-                /* Propagate last access error to update the Error-pane (if machine selected but inaccessible): */
-                m_pPaneToolsMachine->setErrorDetails(pItem->accessError());
-            }
-        }
-
-        /* Pass the signal further: */
-        emit sigCloudMachineStateChange(uId);
     }
+    else
+    {
+        /* Make sure Error pane raised: */
+        if (m_pPaneToolsMachine->currentTool() != UIToolType_Error)
+            m_pPaneToolsMachine->openTool(UIToolType_Error);
+
+        /* If we still have same item selected: */
+        if (pItem && pItem->id() == uId)
+        {
+            /* Propagate current items to update the Details-pane (in any case): */
+            m_pPaneToolsMachine->setItems(currentItems());
+            /* Propagate last access error to update the Error-pane (if machine selected but inaccessible): */
+            m_pPaneToolsMachine->setErrorDetails(pItem->accessError());
+        }
+    }
+
+    /* Pass the signal further: */
+    emit sigCloudMachineStateChange(uId);
 }
 
 void UIVirtualBoxManagerWidget::sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
@@ -827,7 +826,7 @@ void UIVirtualBoxManagerWidget::prepareConnections()
 
     /* Global VBox event handlers: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-            this, &UIVirtualBoxManagerWidget::sltHandleStateChange);
+            this, &UIVirtualBoxManagerWidget::sltHandleMachineStateChange);
 
     /* Global VBox extra-data event handlers: */
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,

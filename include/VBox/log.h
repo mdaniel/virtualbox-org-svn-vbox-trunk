@@ -806,8 +806,6 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_USB_CARDREADER,
     /** USB driver group. */
     LOG_GROUP_USB_DRV,
-    /** USB Ethernet device group. */
-    LOG_GROUP_USB_NET,
     /** USBFilter group. */
     LOG_GROUP_USB_FILTER,
     /** USB keyboard device group. */
@@ -816,6 +814,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_USB_MOUSE,
     /** MSD USB device group. */
     LOG_GROUP_USB_MSD,
+    /** USB Ethernet device group. */
+    LOG_GROUP_USB_NET,
     /** USB remote support. */
     LOG_GROUP_USB_REMOTE,
     /** USB webcam. */
@@ -1248,11 +1248,11 @@ typedef enum VBOXLOGGROUP
     "TRPM", \
     "USB_CARDREADER", \
     "USB_DRV", \
-    "USB_NET", \
     "USB_FILTER", \
     "USB_KBD", \
     "USB_MOUSE", \
     "USB_MSD", \
+    "USB_NET", \
     "USB_REMOTE", \
     "USB_WEBCAM", \
     "VBGL", \

@@ -79,7 +79,6 @@ UIVirtualBoxManagerAdvancedWidget::UIVirtualBoxManagerAdvancedWidget(UIVirtualBo
     , m_pStackedWidget(0)
     , m_pPaneToolsGlobal(0)
     , m_pPaneToolsMachine(0)
-    , m_pSlidingAnimation(0)
     , m_pMenuToolsGlobal(0)
     , m_pMenuToolsMachine(0)
     , m_enmSelectionType(SelectionType_Invalid)
@@ -472,11 +471,11 @@ void UIVirtualBoxManagerAdvancedWidget::sltHandleChooserPaneIndexChange()
     if (   isGlobalItemSelected()
         && m_pStackedWidget->currentWidget() != m_pPaneToolsGlobal)
     {
-        /* Just start animation and return, do nothing else.. */
-        m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal); // rendering w/a
-        m_pStackedWidget->setCurrentWidget(m_pSlidingAnimation);
-        m_pSlidingAnimation->animate(false /* forward? */);
-        return;
+        m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal);
+        m_pPaneToolsMachine->setActive(false);
+        m_pPaneToolsGlobal->setActive(true);
+        /* Handle current tool type change: */
+        handleCurrentToolTypeChange(m_pMenuToolsGlobal->toolsType());
     }
 
     else
@@ -485,11 +484,11 @@ void UIVirtualBoxManagerAdvancedWidget::sltHandleChooserPaneIndexChange()
     if (   (isMachineItemSelected() || isGroupItemSelected())
         && m_pStackedWidget->currentWidget() != m_pPaneToolsMachine)
     {
-        /* Just start animation and return, do nothing else.. */
-        m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine); // rendering w/a
-        m_pStackedWidget->setCurrentWidget(m_pSlidingAnimation);
-        m_pSlidingAnimation->animate(true /* forward? */);
-        return;
+        m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine);
+        m_pPaneToolsGlobal->setActive(false);
+        m_pPaneToolsMachine->setActive(true);
+        /* Handle current tool type change: */
+        handleCurrentToolTypeChange(m_pMenuToolsMachine->toolsType());
     }
 
     /* Update tools restrictions for currently selected item: */
@@ -514,31 +513,6 @@ void UIVirtualBoxManagerAdvancedWidget::sltHandleChooserPaneIndexChange()
     /* Remember selection type and item accessibility status: */
     m_enmSelectionType = enmSelectedItemType;
     m_fSelectedMachineItemAccessible = fCurrentItemIsOk;
-}
-
-void UIVirtualBoxManagerAdvancedWidget::sltHandleSlidingAnimationComplete(bool fForward)
-{
-    /* First switch the panes: */
-    if (fForward)
-    {
-        /* Switch stacked widget to machine tool pane: */
-        m_pStackedWidget->setCurrentWidget(m_pPaneToolsMachine);
-        m_pPaneToolsGlobal->setActive(false);
-        m_pPaneToolsMachine->setActive(true);
-        /* Handle current tool type change: */
-        handleCurrentToolTypeChange(m_pMenuToolsMachine->toolsType());
-    }
-    else
-    {
-        /* Switch stacked widget to global tool pane: */
-        m_pStackedWidget->setCurrentWidget(m_pPaneToolsGlobal);
-        m_pPaneToolsMachine->setActive(false);
-        m_pPaneToolsGlobal->setActive(true);
-        /* Handle current tool type change: */
-        handleCurrentToolTypeChange(m_pMenuToolsGlobal->toolsType());
-    }
-    /* Then handle current item change (again!): */
-    sltHandleChooserPaneIndexChange();
 }
 
 void UIVirtualBoxManagerAdvancedWidget::sltHandleCloudProfileStateChange(const QString &strProviderShortName,
@@ -762,21 +736,6 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
 
                             /* Add into stack: */
                             m_pStackedWidget->addWidget(m_pPaneToolsMachine);
-                        }
-
-                        /* Create sliding-widget: */
-                        // Reverse initial animation direction if group or machine selected!
-                        const bool fReverse = !m_pPaneChooser->isGlobalItemSelected();
-                        m_pSlidingAnimation = new UISlidingAnimation(Qt::Vertical, fReverse);
-                        if (m_pSlidingAnimation)
-                        {
-                            /* Add first/second widgets into sliding animation: */
-                            m_pSlidingAnimation->setWidgets(m_pPaneToolsGlobal, m_pPaneToolsMachine);
-                            connect(m_pSlidingAnimation, &UISlidingAnimation::sigAnimationComplete,
-                                    this, &UIVirtualBoxManagerAdvancedWidget::sltHandleSlidingAnimationComplete);
-
-                            /* Add into stack: */
-                            m_pStackedWidget->addWidget(m_pSlidingAnimation);
                         }
 
                         /* Choose which pane should be active initially: */

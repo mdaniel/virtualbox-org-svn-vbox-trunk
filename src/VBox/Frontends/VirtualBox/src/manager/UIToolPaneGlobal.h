@@ -122,7 +122,7 @@ private:
     /** Holds the Cloud Profile Manager instance. */
     UICloudProfileManagerWidget  *m_pPaneCloud;
     /** Holds the VM Activity Overview instance. */
-    UIVMActivityOverviewWidget   *m_pPaneVMActivityOverview;
+    UIVMActivityOverviewWidget   *m_pPaneActivities;
 
     /** Holds whether this pane is active. */
     bool  m_fActive;

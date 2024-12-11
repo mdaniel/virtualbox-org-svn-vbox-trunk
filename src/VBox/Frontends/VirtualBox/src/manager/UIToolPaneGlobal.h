@@ -38,10 +38,8 @@
 #include "UIExtraDataDefs.h"
 
 /* Forward declarations: */
-class QHBoxLayout;
 class QStackedLayout;
 class QUuid;
-class QVBoxLayout;
 class UIActionPool;
 class UICloudProfileManagerWidget;
 class UIExtensionPackManagerWidget;
@@ -50,7 +48,6 @@ class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
 class UIVirtualMachineItemCloud;
 class UIWelcomePane;
-class CMachine;
 
 
 /** QWidget subclass representing container for tool panes. */

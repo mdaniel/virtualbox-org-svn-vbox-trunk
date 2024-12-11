@@ -28,13 +28,12 @@
 /* Qt includes: */
 #include <QApplication>
 #include <QStackedLayout>
+#include <QUuid>
 #ifndef VBOX_WS_MAC
 # include <QStyle>
 #endif
-#include <QUuid>
 
 /* GUI includes */
-#include "UIActionPoolManager.h"
 #include "UICommon.h"
 #include "UICloudProfileManager.h"
 #include "UIExtensionPackManager.h"
@@ -60,13 +59,11 @@ UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /
     , m_pPaneActivities(0)
     , m_fActive(false)
 {
-    /* Prepare: */
     prepare();
 }
 
 UIToolPaneGlobal::~UIToolPaneGlobal()
 {
-    /* Cleanup: */
     cleanup();
 }
 
@@ -91,7 +88,6 @@ UIToolType UIToolPaneGlobal::currentTool() const
 
 bool UIToolPaneGlobal::isToolOpened(UIToolType enmType) const
 {
-    /* Search through the stacked widgets: */
     for (int iIndex = 0; iIndex < m_pLayout->count(); ++iIndex)
         if (m_pLayout->widget(iIndex)->property("ToolType").value<UIToolType>() == enmType)
             return true;
@@ -122,7 +118,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
             {
                 /* Create Desktop pane: */
                 m_pPaneWelcome = new UIWelcomePane;
-                if (m_pPaneWelcome)
+                AssertPtrReturnVoid(m_pPaneWelcome);
                 {
                     /* Configure pane: */
                     m_pPaneWelcome->setProperty("ToolType", QVariant::fromValue(UIToolType_Welcome));
@@ -139,13 +135,12 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 m_pPaneExtensions = new UIExtensionPackManagerWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneExtensions);
                 {
+                    /* Configure pane: */
+                    m_pPaneExtensions->setProperty("ToolType", QVariant::fromValue(UIToolType_Extensions));
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneExtensions->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
-
-                    /* Configure pane: */
-                    m_pPaneExtensions->setProperty("ToolType", QVariant::fromValue(UIToolType_Extensions));
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneExtensions);
@@ -159,17 +154,16 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 m_pPaneMedia = new UIMediumManagerWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneMedia);
                 {
-#ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneMedia->setContentsMargins(iMargin, 0, iMargin, 0);
-#endif
-
                     /* Configure pane: */
                     m_pPaneMedia->setProperty("ToolType", QVariant::fromValue(UIToolType_Media));
                     connect(m_pPaneMedia, &UIMediumManagerWidget::sigCreateMedium,
                             this, &UIToolPaneGlobal::sigCreateMedium);
                     connect(m_pPaneMedia, &UIMediumManagerWidget::sigCopyMedium,
                             this, &UIToolPaneGlobal::sigCopyMedium);
+#ifndef VBOX_WS_MAC
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneMedia->setContentsMargins(iMargin, 0, iMargin, 0);
+#endif
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneMedia);
@@ -183,13 +177,12 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 m_pPaneNetwork = new UINetworkManagerWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneNetwork);
                 {
+                    /* Configure pane: */
+                    m_pPaneNetwork->setProperty("ToolType", QVariant::fromValue(UIToolType_Network));
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneNetwork->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
-
-                    /* Configure pane: */
-                    m_pPaneNetwork->setProperty("ToolType", QVariant::fromValue(UIToolType_Network));
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneNetwork);
@@ -203,13 +196,12 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 m_pPaneCloud = new UICloudProfileManagerWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneCloud);
                 {
+                    /* Configure pane: */
+                    m_pPaneCloud->setProperty("ToolType", QVariant::fromValue(UIToolType_Cloud));
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneCloud->setContentsMargins(iMargin, 0, iMargin, 0);
 #endif
-
-                    /* Configure pane: */
-                    m_pPaneCloud->setProperty("ToolType", QVariant::fromValue(UIToolType_Cloud));
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneCloud);
@@ -223,22 +215,20 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 m_pPaneActivities = new UIVMActivityOverviewWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
                 AssertPtrReturnVoid(m_pPaneActivities);
                 {
-#ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneActivities->setContentsMargins(iMargin, 0, iMargin, 0);
-#endif
-
                     /* Configure pane: */
                     m_pPaneActivities->setProperty("ToolType", QVariant::fromValue(UIToolType_Activities));
                     connect(m_pPaneActivities, &UIVMActivityOverviewWidget::sigSwitchToMachineActivityPane,
                             this, &UIToolPaneGlobal::sigSwitchToMachineActivityPane);
                     m_pPaneActivities->setCloudMachineItems(m_cloudItems);
+#ifndef VBOX_WS_MAC
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneActivities->setContentsMargins(iMargin, 0, iMargin, 0);
+#endif
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneActivities);
                     m_pLayout->setCurrentWidget(m_pPaneActivities);
                 }
-
                 break;
             }
             default:

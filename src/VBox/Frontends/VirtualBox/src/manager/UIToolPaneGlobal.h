@@ -49,8 +49,7 @@ class UIVMActivityOverviewWidget;
 class UIVirtualMachineItemCloud;
 class UIWelcomePane;
 
-
-/** QWidget subclass representing container for tool panes. */
+/** QWidget subclass representing container for Global tool panes. */
 class UIToolPaneGlobal : public QWidget
 {
     Q_OBJECT;
@@ -85,6 +84,7 @@ public:
     void openTool(UIToolType enmType);
     /** Closes tool of passed @a enmType, deletes one if exists. */
     void closeTool(UIToolType enmType);
+
     /** Returns the help keyword of the current tool's widget. */
     QString currentHelpKeyword() const;
 

@@ -548,7 +548,7 @@ void UIVirtualBoxManagerWidget::sltHandleCloudProfileStateChange(const QString &
 
     /* If Global Activity Overview tool is currently chosen: */
     if (   m_pStackedWidget->currentWidget() == m_pPaneToolsGlobal
-        && m_pPaneToolsGlobal->currentTool() == UIToolType_VMActivityOverview)
+        && m_pPaneToolsGlobal->currentTool() == UIToolType_Activities)
         m_pPaneToolsGlobal->setCloudMachineItems(m_pPaneChooser->cloudMachineItems());
 }
 
@@ -633,7 +633,7 @@ void UIVirtualBoxManagerWidget::sltSwitchToActivityOverviewPane()
 {
     AssertPtrReturnVoid(m_pPaneChooser);
     AssertPtrReturnVoid(m_pMenuToolsGlobal);
-    m_pMenuToolsGlobal->setToolsType(UIToolType_VMActivityOverview);
+    m_pMenuToolsGlobal->setToolsType(UIToolType_Activities);
     m_pPaneChooser->setCurrentGlobal();
 }
 
@@ -970,7 +970,7 @@ void UIVirtualBoxManagerWidget::updateToolbar()
                 m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Cloud_S_Help));
                 break;
             }
-            case UIToolType_VMActivityOverview:
+            case UIToolType_Activities:
             {
                 m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_VMActivityOverview_M_Columns));
                 m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_VMActivityOverview_S_SwitchToMachineActivity));
@@ -1236,7 +1236,7 @@ void UIVirtualBoxManagerWidget::handleCurrentToolTypeChange(UIToolType enmType)
          * if Activity Overview tool currently chosen (even if VMs are not selected): */
         if (UIToolStuff::isTypeOfClass(enmType, UIToolClass_Global))
         {
-            bool fActivityOverviewActive = enmType == UIToolType_VMActivityOverview;
+            bool fActivityOverviewActive = enmType == UIToolType_Activities;
             m_pPaneChooser->setKeepCloudNodesUpdated(fActivityOverviewActive);
             if (fActivityOverviewActive)
                 m_pPaneToolsGlobal->setCloudMachineItems(m_pPaneChooser->cloudMachineItems());

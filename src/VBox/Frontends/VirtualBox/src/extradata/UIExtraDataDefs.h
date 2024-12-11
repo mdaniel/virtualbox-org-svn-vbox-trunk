@@ -953,7 +953,7 @@ enum UIToolType
     UIToolType_Network,
     UIToolType_Cloud,
     UIToolType_CloudConsole,
-    UIToolType_VMActivityOverview,
+    UIToolType_Activities,
     /* Machine types: */
     UIToolType_Error,
     UIToolType_Details,

@@ -1646,18 +1646,18 @@ template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UITo
     QString strResult;
     switch (enmToolType)
     {
-        case UIToolType_Welcome:            strResult = "Welcome"; break;
-        case UIToolType_Extensions:         strResult = "Extensions"; break;
-        case UIToolType_Media:              strResult = "Media"; break;
-        case UIToolType_Network:            strResult = "Network"; break;
-        case UIToolType_Cloud:              strResult = "Cloud"; break;
-        case UIToolType_CloudConsole:       strResult = "CloudConsole"; break;
-        case UIToolType_VMActivityOverview: strResult = "Activities"; break;
-        case UIToolType_Details:            strResult = "Details"; break;
-        case UIToolType_Snapshots:          strResult = "Snapshots"; break;
-        case UIToolType_Logs:               strResult = "Logs"; break;
-        case UIToolType_VMActivity:         strResult = "Activity"; break;
-        case UIToolType_FileManager:        strResult = "FileManager"; break;
+        case UIToolType_Welcome:      strResult = "Welcome"; break;
+        case UIToolType_Extensions:   strResult = "Extensions"; break;
+        case UIToolType_Media:        strResult = "Media"; break;
+        case UIToolType_Network:      strResult = "Network"; break;
+        case UIToolType_Cloud:        strResult = "Cloud"; break;
+        case UIToolType_CloudConsole: strResult = "CloudConsole"; break;
+        case UIToolType_Activities:   strResult = "Activities"; break;
+        case UIToolType_Details:      strResult = "Details"; break;
+        case UIToolType_Snapshots:    strResult = "Snapshots"; break;
+        case UIToolType_Logs:         strResult = "Logs"; break;
+        case UIToolType_VMActivity:   strResult = "Activity"; break;
+        case UIToolType_FileManager:  strResult = "FileManager"; break;
         default:
         {
             AssertMsgFailed(("No text for tool type=%d", enmToolType));
@@ -1683,7 +1683,7 @@ template<> SHARED_LIBRARY_STUFF UIToolType UIConverter::fromInternalString<UIToo
     if (strToolType.compare("CloudConsole", Qt::CaseInsensitive) == 0)
         return UIToolType_CloudConsole;
     if (strToolType.compare("Activities", Qt::CaseInsensitive) == 0)
-        return UIToolType_VMActivityOverview;
+        return UIToolType_Activities;
     if (strToolType.compare("Details", Qt::CaseInsensitive) == 0)
         return UIToolType_Details;
     if (strToolType.compare("Snapshots", Qt::CaseInsensitive) == 0)

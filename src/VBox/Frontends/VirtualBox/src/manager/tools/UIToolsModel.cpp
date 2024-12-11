@@ -232,7 +232,7 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     actions[UIToolType_Media] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager);
     actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
     actions[UIToolType_Cloud] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager);
-    actions[UIToolType_VMActivityOverview] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview);
+    actions[UIToolType_Activities] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview);
     if (actions.contains(enmType))
         actions.value(enmType)->setChecked(true);
 }
@@ -420,17 +420,17 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-            case UIToolType_Welcome:            pItem->reconfigure(tr("Welcome")); break;
-            case UIToolType_Extensions:         pItem->reconfigure(tr("Extensions")); break;
-            case UIToolType_Media:              pItem->reconfigure(tr("Media")); break;
-            case UIToolType_Network:            pItem->reconfigure(tr("Network")); break;
-            case UIToolType_Cloud:              pItem->reconfigure(tr("Cloud")); break;
-            case UIToolType_VMActivityOverview: pItem->reconfigure(tr("Activities")); break;
-            case UIToolType_Details:            pItem->reconfigure(tr("Details")); break;
-            case UIToolType_Snapshots:          pItem->reconfigure(tr("Snapshots")); break;
-            case UIToolType_Logs:               pItem->reconfigure(tr("Logs")); break;
-            case UIToolType_VMActivity:         pItem->reconfigure(tr("Activity")); break;
-            case UIToolType_FileManager:        pItem->reconfigure(tr("File Manager")); break;
+            case UIToolType_Welcome:     pItem->reconfigure(tr("Welcome")); break;
+            case UIToolType_Extensions:  pItem->reconfigure(tr("Extensions")); break;
+            case UIToolType_Media:       pItem->reconfigure(tr("Media")); break;
+            case UIToolType_Network:     pItem->reconfigure(tr("Network")); break;
+            case UIToolType_Cloud:       pItem->reconfigure(tr("Cloud")); break;
+            case UIToolType_Activities:  pItem->reconfigure(tr("Activities")); break;
+            case UIToolType_Details:     pItem->reconfigure(tr("Details")); break;
+            case UIToolType_Snapshots:   pItem->reconfigure(tr("Snapshots")); break;
+            case UIToolType_Logs:        pItem->reconfigure(tr("Logs")); break;
+            case UIToolType_VMActivity:  pItem->reconfigure(tr("Activity")); break;
+            case UIToolType_FileManager: pItem->reconfigure(tr("File Manager")); break;
             default: break;
         }
     }
@@ -495,7 +495,7 @@ void UIToolsModel::prepareItems()
                                                            ":/cloud_profile_manager_disabled_24px.png"));
 
             /* Activities: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_VMActivityOverview, QString(),
+            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Activities, QString(),
                                        UIIconPool::iconSet(":/resources_monitor_24px.png",
                                                            ":/resources_monitor_disabled_24px.png"));
 

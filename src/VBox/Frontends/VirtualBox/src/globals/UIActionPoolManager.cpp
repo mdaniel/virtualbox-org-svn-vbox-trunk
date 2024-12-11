@@ -371,7 +371,7 @@ public:
     UIActionToggleManagerToolsGlobalShowVMActivityOverview(UIActionPool *pParent)
         : UIActionToggle(pParent)
     {
-        setProperty("UIToolType", QVariant::fromValue(UIToolType_VMActivityOverview));
+        setProperty("UIToolType", QVariant::fromValue(UIToolType_Activities));
         /// @todo use icons with check-boxes
         setIcon(UIIconPool::iconSetFull(":/resources_monitor_24px.png", ":/resources_monitor_16px.png",
                                         ":/resources_monitor_disabled_24px.png", ":/resources_monitor_disabled_16px.png"));

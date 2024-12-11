@@ -217,7 +217,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 }
                 break;
             }
-            case UIToolType_VMActivityOverview:
+            case UIToolType_Activities:
             {
                 /* Create VM Activity Overview: */
                 m_pPaneVMActivityOverview = new UIVMActivityOverviewWidget(EmbedTo_Stack, m_pActionPool, false /* show toolbar */);
@@ -229,7 +229,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
 #endif
 
                     /* Configure pane: */
-                    m_pPaneVMActivityOverview->setProperty("ToolType", QVariant::fromValue(UIToolType_VMActivityOverview));
+                    m_pPaneVMActivityOverview->setProperty("ToolType", QVariant::fromValue(UIToolType_Activities));
                     connect(m_pPaneVMActivityOverview, &UIVMActivityOverviewWidget::sigSwitchToMachineActivityPane,
                             this, &UIToolPaneGlobal::sigSwitchToMachineActivityPane);
                     m_pPaneVMActivityOverview->setCloudMachineItems(m_cloudItems);
@@ -264,12 +264,12 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         /* Forget corresponding widget: */
         switch (enmType)
         {
-            case UIToolType_Welcome:            m_pPaneWelcome = 0; break;
-            case UIToolType_Extensions:         m_pPaneExtensions = 0; break;
-            case UIToolType_Media:              m_pPaneMedia = 0; break;
-            case UIToolType_Network:            m_pPaneNetwork = 0; break;
-            case UIToolType_Cloud:              m_pPaneCloud = 0; break;
-            case UIToolType_VMActivityOverview: m_pPaneVMActivityOverview = 0; break;
+            case UIToolType_Welcome:    m_pPaneWelcome = 0; break;
+            case UIToolType_Extensions: m_pPaneExtensions = 0; break;
+            case UIToolType_Media:      m_pPaneMedia = 0; break;
+            case UIToolType_Network:    m_pPaneNetwork = 0; break;
+            case UIToolType_Cloud:      m_pPaneCloud = 0; break;
+            case UIToolType_Activities: m_pPaneVMActivityOverview = 0; break;
             default: break;
         }
         /* Delete corresponding widget: */
@@ -303,7 +303,7 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
         case UIToolType_Cloud:
             pCurrentToolWidget = m_pPaneCloud;
             break;
-        case UIToolType_VMActivityOverview:
+        case UIToolType_Activities:
             pCurrentToolWidget = m_pPaneVMActivityOverview;
             break;
         default:
@@ -318,7 +318,7 @@ void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemClou
     m_cloudItems = cloudItems;
 
     /* Update activity overview pane if open: */
-    if (isToolOpened(UIToolType_VMActivityOverview))
+    if (isToolOpened(UIToolType_Activities))
     {
         AssertPtrReturnVoid(m_pPaneVMActivityOverview);
         m_pPaneVMActivityOverview->setCloudMachineItems(m_cloudItems);
@@ -349,5 +349,5 @@ void UIToolPaneGlobal::handleTokenChange()
 {
     /* Determine whether resource monitor is currently active tool: */
     if (m_pPaneVMActivityOverview)
-        m_pPaneVMActivityOverview->setIsCurrentTool(m_fActive && currentTool() == UIToolType_VMActivityOverview);
+        m_pPaneVMActivityOverview->setIsCurrentTool(m_fActive && currentTool() == UIToolType_Activities);
 }

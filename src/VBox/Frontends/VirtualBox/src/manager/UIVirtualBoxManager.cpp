@@ -3445,8 +3445,8 @@ void UIVirtualBoxManager::updateActionsVisibility()
     /* Determine whether Cloud menu should be visible: */
     const bool fCloudMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Cloud;
     actionPool()->action(UIActionIndexMN_M_Cloud)->setVisible(fCloudMenuShown);
-    /* Determine whether Resources menu should be visible: */
-    const bool fResourcesMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_VMActivityOverview;
+    /* Determine whether Activities menu should be visible: */
+    const bool fResourcesMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Activities;
     actionPool()->action(UIActionIndexMN_M_VMActivityOverview)->setVisible(fResourcesMenuShown);
 
     /* Determine whether Snapshots menu should be visible: */

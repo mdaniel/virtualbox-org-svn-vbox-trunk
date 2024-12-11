@@ -42,7 +42,7 @@
 #include "UICloudMachineSettingsDialog.h"
 #include "UIDefs.h"
 #include "UIExtraDataDefs.h"
-#include "UIAdvancedSettingsDialog.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QMenu;

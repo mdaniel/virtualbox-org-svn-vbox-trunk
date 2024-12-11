@@ -79,7 +79,11 @@
 #include "UIQObjectStuff.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
-#include "UIVirtualBoxManagerWidget.h"
+#ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
+# include "UIVirtualBoxManagerWidget.h"
+#else
+# include "UIVirtualBoxManagerAdvancedWidget.h"
+#endif
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
 #include "UIVirtualBoxEventHandler.h"

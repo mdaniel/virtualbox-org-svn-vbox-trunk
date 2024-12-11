@@ -34,6 +34,9 @@
 
 /** Force the GUI to use advanced widgets. */
 //#define VBOX_GUI_WITH_ADVANCED_WIDGETS
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+# define UIVirtualBoxManagerWidget UIVirtualBoxManagerAdvancedWidget
+#endif
 
 
 /** Virtual machine item types. */

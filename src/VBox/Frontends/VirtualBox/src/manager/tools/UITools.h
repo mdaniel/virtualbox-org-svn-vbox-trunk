@@ -36,6 +36,7 @@
 
 /* GUI icludes: */
 #include "UIExtraDataDefs.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QVBoxLayout;

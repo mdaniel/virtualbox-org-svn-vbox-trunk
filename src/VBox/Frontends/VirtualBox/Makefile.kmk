@@ -603,7 +603,6 @@ VirtualBox_QT_MOCHDRS = \
 	src/manager/UIToolPaneGlobal.h \
 	src/manager/UIToolPaneMachine.h \
 	src/manager/UIVirtualBoxManager.h \
-	src/manager/UIVirtualBoxManagerWidget.h \
 	src/manager/UIVirtualMachineItem.h \
 	src/manager/UIVirtualMachineItemCloud.h \
 	src/manager/UIVirtualMachineItemLocal.h \
@@ -700,6 +699,14 @@ VirtualBox_QT_MOCHDRS = \
 	src/wizards/importappliance/UIWizardImportAppPageExpert.h \
 	src/wizards/importappliance/UIWizardImportAppPageSettings.h \
 	src/wizards/importappliance/UIWizardImportAppPageSource.h
+
+ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
+VirtualBox_QT_MOCHDRS += \
+	src/manager/UIVirtualBoxManagerWidget.h
+else
+VirtualBox_QT_MOCHDRS += \
+	src/manager/UIVirtualBoxManagerAdvancedWidget.h
+endif
 
 
 #
@@ -1129,7 +1136,6 @@ VirtualBox_SOURCES = \
 	src/manager/UIToolPaneGlobal.cpp \
 	src/manager/UIToolPaneMachine.cpp \
 	src/manager/UIVirtualBoxManager.cpp \
-	src/manager/UIVirtualBoxManagerWidget.cpp \
 	src/manager/UIVirtualMachineItem.cpp \
 	src/manager/UIVirtualMachineItemCloud.cpp \
 	src/manager/UIVirtualMachineItemLocal.cpp \
@@ -1227,6 +1233,14 @@ VirtualBox_SOURCES = \
 	src/wizards/importappliance/UIWizardImportAppPageExpert.cpp \
 	src/wizards/importappliance/UIWizardImportAppPageSettings.cpp \
 	src/wizards/importappliance/UIWizardImportAppPageSource.cpp
+
+ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
+VirtualBox_SOURCES += \
+	src/manager/UIVirtualBoxManagerWidget.cpp
+else
+VirtualBox_SOURCES += \
+	src/manager/UIVirtualBoxManagerAdvancedWidget.cpp
+endif
 
 VirtualBox_SOURCES.darwin += \
 	src/platform/darwin/UIDesktopServices_darwin.cpp \

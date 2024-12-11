@@ -36,6 +36,7 @@
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class UIActionPool;

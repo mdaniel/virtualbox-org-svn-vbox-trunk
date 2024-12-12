@@ -345,7 +345,7 @@
 
 <?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
         <Feature Id="VBoxNetwork" Title="VirtualBox Networking" Level="1" Description="!(loc.VB_Network)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
-            <Feature Id="VBoxNetworkFlt" Title="VirtualBox Bridged Networking" Level="1" Description="!(loc.VB_NetFltDriver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
+            <Feature Id="VBoxNetworkFlt" Title="VirtualBox Bridged Networking" Level="1" Description="!(loc.VB_NetLwfDriver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
     <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
                 <MergeRef Id="msm_VBoxNetworkLwf" />
     <?else?>
@@ -358,7 +358,7 @@
                 <ComponentRef Id="cp_NetLwfDriver" />
         <?endif?>
             </Feature>
-            <Feature Id="VBoxNetworkAdp" Title="VirtualBox Host-Only Networking" Level="1" Description="!(loc.VB_NetAdpDriver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
+            <Feature Id="VBoxNetworkAdp" Title="VirtualBox Host-Only Networking" Level="1" Description="!(loc.VB_NetAdp6Driver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
         <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
                 <MergeRef Id="msm_VBoxNetworkAdp6" />
         <?else?>

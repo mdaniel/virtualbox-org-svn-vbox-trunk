@@ -5411,7 +5411,7 @@ BEGINPROC_FASTCALL iemAImpl_ %+ %1 %+ _u128, 12
         movdqu   [A1], xmm0
 
         SSE_AVX_ST_MXCSR R0_32, A0_32
-        IEMIMPL_SSE_PROLOGUE
+        IEMIMPL_SSE_EPILOGUE
         EPILOGUE_4_ARGS
 ENDPROC iemAImpl_ %+ %1 %+ _u128
 
@@ -5427,7 +5427,7 @@ BEGINPROC_FASTCALL iemAImpl_v %+ %1 %+ _u128, 12
         vmovdqu  [A1], xmm0
 
         SSE_AVX_ST_MXCSR R0_32, A0_32
-        IEMIMPL_AVX_PROLOGUE
+        IEMIMPL_AVX_EPILOGUE
         EPILOGUE_4_ARGS
 ENDPROC iemAImpl_v %+ %1 %+ _u128
 
@@ -5442,38 +5442,36 @@ BEGINPROC_FASTCALL iemAImpl_v %+ %1 %+ _u256, 12
         vmovdqu  [A1], ymm0
 
         SSE_AVX_ST_MXCSR R0_32, A0_32
-        IEMIMPL_AVX_PROLOGUE
+        IEMIMPL_AVX_EPILOGUE
         EPILOGUE_4_ARGS
 ENDPROC iemAImpl_v %+ %1 %+ _u256
  %elif %2 == 2
 BEGINPROC_FASTCALL iemAImpl_v %+ %1 %+ _u128, 12
-        PROLOGUE_4_ARGS
+        PROLOGUE_3_ARGS
         IEMIMPL_AVX_PROLOGUE
         SSE_AVX_LD_MXCSR A0_32
 
-        vmovdqu  xmm0, [A2]
-        vmovdqu  xmm1, [A3]
+        vmovdqu  xmm1, [A2]
         v %+ %1  xmm0, xmm1
         vmovdqu  [A1], xmm0
 
         SSE_AVX_ST_MXCSR R0_32, A0_32
-        IEMIMPL_AVX_PROLOGUE
-        EPILOGUE_4_ARGS
+        IEMIMPL_AVX_EPILOGUE
+        EPILOGUE_3_ARGS
 ENDPROC iemAImpl_v %+ %1 %+ _u128
 
 BEGINPROC_FASTCALL iemAImpl_v %+ %1 %+ _u256, 12
-        PROLOGUE_4_ARGS
+        PROLOGUE_3_ARGS
         IEMIMPL_AVX_PROLOGUE
         SSE_AVX_LD_MXCSR A0_32
 
-        vmovdqu  ymm0, [A2]
-        vmovdqu  ymm1, [A3]
+        vmovdqu  ymm1, [A2]
         v %+ %1  ymm0, ymm1
         vmovdqu  [A1], ymm0
 
         SSE_AVX_ST_MXCSR R0_32, A0_32
-        IEMIMPL_AVX_PROLOGUE
-        EPILOGUE_4_ARGS
+        IEMIMPL_AVX_EPILOGUE
+        EPILOGUE_3_ARGS
 ENDPROC iemAImpl_v %+ %1 %+ _u256
  %endif
 %endmacro

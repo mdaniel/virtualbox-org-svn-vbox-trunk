@@ -38,7 +38,7 @@ SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
 
-if1of ($(KBUILD_TARGET), darwin) # this ifeq must go, see @todo around elif
+if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
  #
  # The mixed case driver.
  #

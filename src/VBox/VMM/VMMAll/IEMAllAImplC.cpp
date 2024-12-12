@@ -17176,24 +17176,25 @@ IEM_DECL_IMPL_DEF(uint32_t, iemAImpl_vsqrtsd_u128_r64_fallback,(uint32_t uMxCsrI
 static uint32_t iemAImpl_rsqrt_worker(PRTFLOAT32U pr32Res, uint32_t fMxcsr, PCRTFLOAT32U pr32Val)
 {
     if (iemSseUnaryValIsNaNR32(pr32Res, pr32Val, &fMxcsr))
-        return fMxcsr;
+        return 0;
 
     RTFLOAT32U r32Src;
     iemSsePrepareValueR32(&r32Src, fMxcsr | X86_MXCSR_DAZ, pr32Val);
     if (RTFLOAT32U_IS_ZERO(&r32Src))
     {
         *pr32Res = g_ar32Infinity[r32Src.s.fSign];
-        return fMxcsr;
+        return 0;
     }
     else if (r32Src.s.fSign)
     {
         *pr32Res = g_ar32QNaN[1];
-        return fMxcsr | X86_MXCSR_IE;
+        return 0;
     }
 
     softfloat_state_t SoftState = IEM_SOFTFLOAT_STATE_INITIALIZER_FROM_MXCSR(fMxcsr);
     float32_t r32Result = f32_rsqrt(iemFpSoftF32FromIprt(&r32Src), &SoftState);
-    return iemSseSoftStateAndR32ToMxcsrAndIprtResult(&SoftState, r32Result, pr32Res, fMxcsr);
+    (void)iemSseSoftStateAndR32ToMxcsrAndIprtResult(&SoftState, r32Result, pr32Res, fMxcsr);
+    return 0;
 }
 
 
@@ -17261,19 +17262,20 @@ IEM_DECL_IMPL_DEF(uint32_t, iemAImpl_vrsqrtss_u128_r32_fallback,(uint32_t uMxCsr
 static uint32_t iemAImpl_rcp_worker(PRTFLOAT32U pr32Res, uint32_t fMxcsr, PCRTFLOAT32U pr32Val)
 {
     if (iemSseUnaryValIsNaNR32(pr32Res, pr32Val, &fMxcsr))
-        return fMxcsr;
+        return 0;
 
     RTFLOAT32U r32Src;
     iemSsePrepareValueR32(&r32Src, fMxcsr | X86_MXCSR_DAZ, pr32Val);
     if (RTFLOAT32U_IS_ZERO(&r32Src))
     {
         *pr32Res = g_ar32Infinity[r32Src.s.fSign];
-        return fMxcsr;
+        return 0;
     }
 
     softfloat_state_t SoftState = IEM_SOFTFLOAT_STATE_INITIALIZER_FROM_MXCSR(fMxcsr);
     float32_t r32Result = f32_div(iemFpSoftF32FromIprt(&g_ar32One[0]), iemFpSoftF32FromIprt(&r32Src), &SoftState);
-    return iemSseSoftStateAndR32ToMxcsrAndIprtResult(&SoftState, r32Result, pr32Res, fMxcsr);
+    (void)iemSseSoftStateAndR32ToMxcsrAndIprtResult(&SoftState, r32Result, pr32Res, fMxcsr);
+    return 0;
 }
 
 

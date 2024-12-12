@@ -58,8 +58,6 @@
     <String Id="VB_App" Value="Εφαρμογή [ProductName]." />
     <String Id="VB_USBDriver" Value="Οδηγός συσκευών USB [ProductName] για υποστήριξη συσκευών USB." />
     <String Id="VB_Network" Value="Οδηγός συσκευών δικτύου [ProductName] για υποστήριξη δικτύου." />
-    <String Id="VB_NetFltDriver" Value="Οδηγός [ProductName] για γεφυρωμένη δικτύωση." />
-    <String Id="VB_NetAdpDriver" Value="Οδηγός [ProductName] εικονικής κάρτας δικτύου για μόνο-με-οικοδεσπότη δίκτυα." />
     <String Id="VB_NetLwfDriver" Value="Οδηγός [ProductName] για NDIS6 γεφυρωμένα δίκτυα." />
     <String Id="VB_NetAdp6Driver" Value="Οδηγός [ProductName] εικονικής κάρτας δικτύου για NDIS6 μόνο-με-οικοδεσπότη δίκτυα." />
     <String Id="VB_Python" Value="Υποστήριξη Python για το VirtualBox." />
@@ -148,9 +146,7 @@
     <!---->
 
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Επιλέξτε ποιο τύπο οδηγών δικτύου θα χρησιμοποιήσετε:" />
-    <String Id="SelectionNetworkTypeDlg_DescriptionNDIS5" Value="Οδηγός δικτύου NDIS5.&#xA;Αυτή είναι η προεπιλογή για παλαιότερες εκδόσεις των Windows (προ-Vista)." />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="Οδηγός δικτύου NDIS6.&#xA;Αυτό είναι η προεπιλογή για νεότερες εκδόσεις των Windows (Vista και νεώτερα)." />
-    <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS5" Value="Χρησιμοποιήστε τον οδηγό δικτύου NDIS5." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Χρησιμοποιήστε τον οδηγό δικτύου NDIS6." />
 
     <!---->

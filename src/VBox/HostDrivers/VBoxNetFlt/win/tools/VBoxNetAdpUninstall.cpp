@@ -50,11 +50,7 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
-#ifdef NDIS60
-# define VBOX_NETADP_HWID L"sun_VBoxNetAdp6"
-#else
-# define VBOX_NETADP_HWID L"sun_VBoxNetAdp"
-#endif
+#define VBOX_NETADP_HWID L"sun_VBoxNetAdp6"
 
 
 static DECLCALLBACK(void) winNetCfgLogger(const char *pszString)

@@ -287,54 +287,6 @@
             </Control>
         </Dialog>
 
-        <!-- Dialog for selection network adapters type (NDIS5 or NDIS6) -->
-        <RadioButtonGroup Property="NETWORKTYPE">
-          <RadioButton Text="!(loc.SelectionNetworkTypeDlg_RadioButtonNDIS5)" Value="NDIS5" X="5" Y="0" Width="120" Height="20" />
-          <RadioButton Text="!(loc.SelectionNetworkTypeDlg_RadioButtonNDIS6)" Value="NDIS6" X="5" Y="20" Width="120" Height="20" />
-        </RadioButtonGroup>
-
-        <Dialog Id="VBoxSelectionNetworkTypeDlg" Width="370" Height="270" Title="[ProductName] !(loc.Setup)" NoMinimize="yes">
-            <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="[BannerBitmap]" />
-            <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
-            <Control Id="Title" Type="Text" X="15" Y="6" Width="220" Height="40" Transparent="yes" NoPrefix="yes">
-                <Text Value="[DlgTitleFont]!(loc.CustomizeDlg_CustomSetup)" />
-            </Control>
-            <Control Id="Description" Type="Text" X="25" Y="23" Width="220" Height="20" Transparent="yes" NoPrefix="yes">
-                <Text Value="!(loc.CustomizeDlg_SelFeatures)" />
-            </Control>
-
-            <Control Id="CommonDescription" Type="Text" X="25" Y="55" Width="325" Height="20" Transparent="yes" NoPrefix="yes">
-              <Text Value="!(loc.SelectionNetworkTypeDlg_CommonDescription)" />
-            </Control>
-
-            <!-- The radio button group used for choosing NDIS5 or NDIS6 network drivers -->
-            <Control Id="Buttons" Type="RadioButtonGroup" X="25" Y="100" Width="130" Height="60" Property="NETWORKTYPE" />
-
-            <!-- Description text -->
-            <Control Id="DescriptionNDIS5" Type="Text" X="200" Y="105" Width="150" Height="60" Transparent="yes" NoPrefix="yes" HideCondition="NETWORKTYPE = &quot;NDIS6&quot;" ShowCondition="NETWORKTYPE = &quot;NDIS5&quot;">
-              <Text Value="!(loc.SelectionNetworkTypeDlg_DescriptionNDIS5)" />
-
-
-            </Control>
-            <Control Id="DescriptionNDIS6" Type="Text" X="200" Y="105" Width="150" Height="60" Transparent="yes" NoPrefix="yes" HideCondition="NETWORKTYPE = &quot;NDIS5&quot;" ShowCondition="NETWORKTYPE = &quot;NDIS6&quot;">
-              <Text Value="!(loc.SelectionNetworkTypeDlg_DescriptionNDIS6)" />
-
-
-            </Control>
-
-            <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Cancel="yes" Text="!(loc.ButtonText_Next)" />
-            <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Back)" />
-            <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Cancel)">
-                <Publish Event="SpawnDialog" Value="VBoxCancelDlg" />
-            </Control>
-
-            <!-- Build number text drawn left bottom -->
-            <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
-            <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
-            </Control>
-        </Dialog>
-
         <Dialog Id="VBoxCustomize2Dlg" Width="370" Height="270" Title="[ProductName] !(loc.Setup)" NoMinimize="yes">
             <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="[BannerBitmap]" />
             <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />

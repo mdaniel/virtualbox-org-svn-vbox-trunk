@@ -38,59 +38,28 @@ SUB_DEPTH = ../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
 
-if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
+if1of ($(KBUILD_TARGET), darwin) # this ifeq must go, see @todo around elif
  #
- # VBoxNetFlt.sys - The mixed case driver.
- #
- # Note! Legacy driver not built for win.arm64, we only use and ship VBoxNetLwf there.
- ## @todo Just drop VBoxNetFlt on win.*, min req is at least windows 7, which support ndis 6.20.
+ # The mixed case driver.
  #
  ifdef VBOX_WITH_VBOXDRV
-  SYSMODS.darwin    += VBoxNetFlt
-  SYSMODS.win.x86   += VBoxNetFlt
-  SYSMODS.win.amd64 += VBoxNetFlt
+  SYSMODS.darwin += VBoxNetFlt
  endif
 
  # The driver.
  VBoxNetFlt_TEMPLATE = VBoxR0Drv
  VBoxNetFlt_INST = $(INST_VBOXNETFLT)$(if $(eq $(KBUILD_TARGET),darwin),Contents/MacOS/)
  VBoxNetFlt_DEBUG_INST.darwin = $(patsubst %/,%,$(INST_VBOXNETFLT))
- if defined(VBOX_SIGNING_MODE) && "$(KBUILD_TARGET)" == "win"
-  VBoxNetFlt_INSTTYPE = none
-  VBoxNetFlt_DEBUG_INSTTYPE = both
- endif
- VBoxNetFlt_DEFS      = IN_RT_R0 IN_SUP_STATIC
- VBoxNetFlt_DEFS.win  = VBOXNETFLT_STATIC_CONFIG
- VBoxNetFlt_DEFS.win += VBOXNETFLT_NO_PACKET_QUEUE
- VBoxNetFlt_DEFS.win += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
- VBoxNetFlt_DEFS.win += NDIS50_MINIPORT=1 NDIS50=1
- ifdef VBOX_LOOPBACK_USEFLAGS
-  VBoxNetFlt_DEFS.win += VBOX_LOOPBACK_USEFLAGS
- endif
- VBoxNetFlt_INCS = .
- VBoxNetFlt_SOURCES.darwin = \
+ VBoxNetFlt_DEFS    = IN_RT_R0 IN_SUP_STATIC
+ VBoxNetFlt_INCS    = .
+ VBoxNetFlt_SOURCES = \
  	darwin/VBoxNetFlt-darwin.cpp
- VBoxNetFlt_SDKS.win = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
- VBoxNetFlt_SOURCES.win = \
- 	win/drv/VBoxNetFltP-win.cpp \
- 	win/drv/VBoxNetFltM-win.cpp \
- 	win/drv/VBoxNetFltRt-win.cpp \
- 	win/drv/VBoxNetFlt-win.rc
  VBoxNetFlt_SOURCES = VBoxNetFlt.c
  #VBoxNetFlt_LDFLAGS.darwin = -v -Wl,-whyload -Wl,-v -Wl,-whatsloaded
- VBoxNetFlt_LDFLAGS.win.x86 = -Entry:DriverEntry@8
- VBoxNetFlt_LDFLAGS.win.amd64 = -Entry:DriverEntry
- VBoxNetFlt_LIBS.win = \
- 	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/ntoskrnl.lib \
- 	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/hal.lib \
- 	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/ndis.lib \
- 	$(PATH_SDK_$(VBOX_WINDDK_WLH)_LIB)/tdi.lib \
- 	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
  VBoxNetFlt_LIBS = \
  	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
 
  darwin/VBoxNetFlt-darwin.cpp_DEFS = VBOX_SVN_REV=$(VBOX_SVN_REV)
-
 
  # Darwin extras.
  if "$(KBUILD_TARGET)" == "darwin" && defined(VBOX_WITH_VBOXDRV)
@@ -121,52 +90,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   Scripts-darwin_EXEC_SOURCES = \
   	darwin/loadnetflt.sh
  endif # darwin && host-drivers
-
-
- ifeq ($(KBUILD_TARGET),win)
-  # Windows: VBoxNetFlt INF & CAT files.
-  ifdef VBOX_WITH_VBOXDRV
-   INSTALLS.win.x86   += VBoxNetFlt-inf
-   INSTALLS.win.amd64 += VBoxNetFlt-inf
-  endif
-  VBoxNetFlt-inf_TEMPLATE = VBoxR0DrvInfCat
-  VBoxNetFlt-inf_SOURCES = \
-  	$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.inf \
-  	$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltM.inf
-  VBoxNetFlt-inf_CLEAN = $(VBoxNetFlt-inf_SOURCES)
-  VBoxNetFlt-inf_BLDDIRS = $(PATH_TARGET)/VBoxNetFltCat.dir
-
-  $(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.inf: $(PATH_SUB_CURRENT)/win/drv/VBoxNetFlt.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
-	$(call MSG_GENERATE,VBoxNetFlt-inf,$@,$<)
-	$(call VBOX_EDIT_INF_FN,$<,$@)
-
-  $(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltM.inf: $(PATH_SUB_CURRENT)/win/drv/VBoxNetFltM.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
-	$(call MSG_GENERATE,VBoxNetFlt-inf,$@,$<)
-	$(call VBOX_EDIT_INF_FN,$<,$@)
-
-  ifdef VBOX_SIGNING_MODE
-   VBoxNetFlt-inf_SOURCES += \
-   	$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.sys \
-   	$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltNobj.dll \
-   	$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.cat
-
-   $(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.sys: $$(VBoxNetFlt_1_TARGET) | $$(dir $$@)
-	$(INSTALL) -m 644 $< $(@D)
-
-   $(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltNobj.dll: $$(VBoxNetFltNobj_1_TARGET) | $$(dir $$@)
-	$(INSTALL) -m 644 $< $(@D)
-
-   $(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.cat: \
-   		$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.sys \
-   		$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltNobj.dll \
-   		$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFlt.inf \
-   		$(PATH_TARGET)/VBoxNetFltCat.dir/VBoxNetFltM.inf
-	$(call MSG_TOOL,Inf2Cat,VBoxNetFlt-inf,$@,$<)
-	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
-
-  endif # signing
- endif
-
 
  ifeq ($(KBUILD_TARGET),win)
   #
@@ -270,11 +193,10 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   WinNetConfigExe_TEMPLATE = VBoxR3Exe
   WinNetConfigExe_EXTENDS = WinNetConfigSharedStatic
 
-
   #
   # Template for NetFltInstall and friends.
   #
-  TEMPLATE_VBoxNetFltR3 = Template for NetFltInstall, NetFltUninstall, NetAdpInstall, NetAdpUninstall, ++
+  TEMPLATE_VBoxNetFltR3 = Template for NetAdp6Install and NetAdp6Uninstall
   TEMPLATE_VBoxNetFltR3_EXTENDS   = VBoxR3Exe
   TEMPLATE_VBoxNetFltR3_SDKS      = $(TEMPLATE_VBoxR3Exe_SDKS) ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK) VBoxNtDll VBoxWinNewDevLib
   TEMPLATE_VBoxNetFltR3_LATE_LIBS = $(TEMPLATE_VBoxR3Exe_LATE_LIBS) \
@@ -283,36 +205,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   	$(LIB_RUNTIME) \
   	$(PATH_TOOL_$(VBOX_VCC_TOOL)_LIB)/comsupp.lib \
   	$(PATH_SDK_$(VBOX_WINPSDK)_LIB)/WbemUuid.Lib
-
-  if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
-   #
-   # NetFltInstall
-   #
-   PROGRAMS.win += NetFltInstall
-   NetFltInstall_TEMPLATE = VBoxNetFltR3
-   NetFltInstall_SOURCES = win/tools/VBoxNetFltInstall.cpp
-
-   #
-   # NetFltUninstall
-   #
-   PROGRAMS.win += NetFltUninstall
-   NetFltUninstall_TEMPLATE = VBoxNetFltR3
-   NetFltUninstall_SOURCES = win/tools/VBoxNetFltUninstall.cpp
-
-   #
-   # NetAdpInstall
-   #
-   PROGRAMS.win += NetAdpInstall
-   NetAdpInstall_TEMPLATE = VBoxNetFltR3
-   NetAdpInstall_SOURCES = win/tools/VBoxNetAdpInstall.cpp
-
-   #
-   # NetAdpUninstall
-   #
-   PROGRAMS.win += NetAdpUninstall
-   NetAdpUninstall_TEMPLATE = VBoxNetFltR3
-   NetAdpUninstall_SOURCES = win/tools/VBoxNetAdpUninstall.cpp
-  endif
 
   #
   # NetAdp6Install
@@ -344,119 +236,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   NetLwfUninstall_TEMPLATE = VBoxNetFltR3
   NetLwfUninstall_SOURCES = win/tools/VBoxNetLwfUninstall.cpp
 
-  #
-  # VBoxNetFltNobj
-  #
-  DLLS.win += VBoxNetFltNobj
-  VBoxNetFltNobj_TEMPLATE  = VBoxR3StaticDll
-  if defined(VBOX_SIGNING_MODE)
-   VBoxNetFltNobj_INSTTYPE = none
-   VBoxNetFltNobj_DEBUG_INSTTYPE = both
-  endif
-  VBoxNetFltNobj_SDKS      = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
-  VBoxNetFltNobj_DEFS      = WIN32 _ATL_STATIC_REGISTRY
-  VBoxNetFltNobj_INCS      = \
-  	$(VBoxNetFltNobj_0_OUTDIR)
-  VBoxNetFltNobj_SOURCES   = \
-  	win/nobj/VBoxNetFltNobj.cpp \
-  	win/nobj/VBoxNetFltNobj.def \
-  	win/nobj/VBoxNetFltNobj.rc
-  #VBoxNetFltNobj_INTERMEDIATES =
-  VBoxNetFltNobj_DEPS      = \
-  	$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_i.c \
-  	$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_p.c \
-  	$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT.h \
-  	$(VBoxNetFltNobj_0_OUTDIR)/dlldata.c \
-  	$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT.tlb
-  VBoxNetFltNobj_CLEAN     = $(VBoxNetFltNobj_DEPS)
-
-  $$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_i.c \
-  + $$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_p.c \
-  + $$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT.h \
-  + $$(VBoxNetFltNobj_0_OUTDIR)/dlldata.c \
-  + $$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT.tlb: \
-  		$(PATH_SUB_CURRENT)/win/nobj/VBoxNetFltNobjT.idl \
-  		| $$(dir $$@)
-	$(VBOX_MIDL_REDIRECT) $(VBOX_WIN_MIDL) /nologo \
-		/out $(call VBOX_FN_MAKE_WIN_PATH,$(VBoxNetFltNobj_0_OUTDIR)) \
-		/cpp_cmd $(VBOX_MIDL_CPP_CMD) \
-		$(qforeachfile unq, incdir, $(SDK_$(VBOX_WINDDK)_INCS) $(SDK_$(VBOX_WINPSDK)_INCS),/I $(quote-sh $(incdir))) \
-		$(call VBOX_FN_MAKE_WIN_PATH,$<)
-	$(call def_VBoxMidlOutputDisableMscWarnings,$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT.h)
-	$(call def_VBoxMidlOutputDisableMscWarnings,$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_i.c)
-	$(call def_VBoxMidlOutputDisableMscWarnings,$(VBoxNetFltNobj_0_OUTDIR)/VBoxNetFltNobjT_p.c)
-
-
-  #
-  # VBoxNetAdp.sys - The VirtualBox Adapter miniport driver.
-  #
-  # Note! Legacy driver not built for win.arm64, we only use and ship VBoxNetAdp6 there.
-  ## @todo Just drop VBoxNetAdp on win.*, min req is at least windows 7, which support ndis 6.20. We don't need this, do we?
-  #
-  ifdef VBOX_WITH_VBOXDRV
-   ifneq ($(KBUILD_TARGET_ARCH),arm64)
-    SYSMODS.win  += VBoxNetAdp
-    INSTALLS.win += VBoxNetAdp-inf
-   endif
-  endif
-
-  # The driver.
-  VBoxNetAdp_TEMPLATE = VBoxR0Drv
-  #VBoxNetAdp_INST = $(INST_VBOXNETADP)
-  if defined(VBOX_SIGNING_MODE)
-   VBoxNetAdp_INSTTYPE.win = none
-   VBoxNetAdp_DEBUG_INSTTYPE.win = both
-  endif
-  VBoxNetAdp_DEFS = IN_RT_R0 IN_SUP_STATIC
-  VBoxNetAdp_DEFS += VBOXNETFLT_STATIC_CONFIG VBOXNETADP
-  VBoxNetAdp_DEFS += NDIS_MINIPORT_DRIVER NDIS_WDM=1 BINARY_COMPATIBLE=0
-  VBoxNetAdp_DEFS += VBOXNETFLT_NO_PACKET_QUEUE
-  VBoxNetAdp_DEFS.x86   = NDIS50_MINIPORT=1 NDIS50=1
-  VBoxNetAdp_DEFS.amd64 = NDIS50_MINIPORT=1 NDIS50=1
-  VBoxNetAdp_INCS := $(PATH_SUB_CURRENT)
-  VBoxNetAdp_SDKS = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
-  VBoxNetAdp_SOURCES = \
-  	VBoxNetFlt.c \
-  	win/drv/VBoxNetFltM-win.cpp \
-  	win/drv/VBoxNetFltRt-win.cpp \
-  	win/drv/VBoxNetFlt-win.rc
-  VBoxNetAdp_LDFLAGS.win.x86   = -Entry:DriverEntry@8
-  VBoxNetAdp_LDFLAGS.win.amd64 = -Entry:DriverEntry
-  VBoxNetAdp_LIBS.win = \
-  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/ntoskrnl.lib \
-  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/hal.lib \
-  	$(PATH_SDK_$(VBOX_WINDDK)_LIB)/ndis.lib \
-  	$(PATH_STAGE_LIB)/RuntimeR0Drv$(VBOX_SUFF_LIB)
-  VBoxNetAdp_LIBS = \
-  	$(PATH_STAGE_LIB)/SUPR0IdcClient$(VBOX_SUFF_LIB)
-
-  # VBoxNetAdp .INF & .CAT files.
-  VBoxNetAdp-inf_TEMPLATE = VBoxR0DrvInfCat
-  VBoxNetAdp-inf_SOURCES  = $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
-  VBoxNetAdp-inf_CLEAN    = $(VBoxNetAdp-inf_SOURCES)
-  VBoxNetAdp-inf_BLDDIRS  = $(PATH_TARGET)/VBoxNetAdpCat.dir
-
-  $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf: $(PATH_SUB_CURRENT)/win/drv/VBoxNetAdp.inf $(MAKEFILE_CURRENT) | $$(dir $$@)
-	$(call MSG_GENERATE,VBoxNetAdp-inf,$@,$<)
-	$(call VBOX_EDIT_INF_FN,$<,$@)
-
-  ifdef VBOX_SIGNING_MODE
-   VBoxNetAdp-inf_SOURCES += \
-   	$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.sys \
-   	$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.cat
-
-   $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.sys: $$(VBoxNetAdp_1_TARGET) | $$(dir $$@)
-	$(INSTALL) -m 644 $< $(@D)
-
-   $(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.cat: \
-   		$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.sys \
-   		$(PATH_TARGET)/VBoxNetAdpCat.dir/VBoxNetAdp.inf
-	$(call MSG_TOOL,Inf2Cat,VBoxNetFlt-inf,$@,$<)
-	$(call VBOX_MAKE_CAT_FN, $(@D),$@)
-  endif # VBOX_SIGNING_MODE
-
  endif # $(KBUILD_TARGET) == win
-
 else if1of ($(KBUILD_TARGET), solaris freebsd) ## @todo merge this with the mixed case stuff.
  #
  # vboxnetflt(.ko/.o/) - The lower case driver.

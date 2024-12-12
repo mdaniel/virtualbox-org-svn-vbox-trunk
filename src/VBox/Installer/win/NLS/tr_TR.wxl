@@ -58,8 +58,6 @@
     <String Id="VB_App" Value="[ProductName] uygulaması." />
     <String Id="VB_USBDriver" Value="USB aygıtı desteği için [ProductName] USB aygıtı sürücüleri." />
     <String Id="VB_Network" Value="Ağ oluşturma desteği için [ProductName] ağ aygıtı sürücüleri." />
-    <String Id="VB_NetFltDriver" Value="Köprü Ağı Oluşturma için [ProductName] sürücüsü." />
-    <String Id="VB_NetAdpDriver" Value="Yalnızca-Anamakine Ağı Oluşturma için [ProductName] sanal ağ bağdaştırıcısı sürücüsü." />
     <String Id="VB_NetLwfDriver" Value="NDIS6 Köprü Ağı Oluşturma için [ProductName] sürücüsü." />
     <String Id="VB_NetAdp6Driver" Value="NDIS6 Yalnızca-Anamakine Ağı Oluşturma için [ProductName] sanal ağ bağdaştırıcısı sürücüsü." />
     <String Id="VB_Python" Value="VirtualBox için Python desteği." />
@@ -148,9 +146,7 @@
     <!---->
 
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Lütfen hangi tür ağ sürücülerini kullanacağınızı seçin:" />
-    <String Id="SelectionNetworkTypeDlg_DescriptionNDIS5" Value="NDIS5 ağ sürücüleri.&#xA;Bu, Windows'un (Vista öncesi) daha eski sürümleri için varsayılandır." />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="NDIS6 ağ sürücüleri.&#xA;Bu, Windows'un (Vista ve daha yenisi) daha yeni sürümleri için varsayılandır." />
-    <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS5" Value="NDIS5 ağ sürücülerini kullan." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="NDIS6 ağ sürücülerini kullan." />
 
     <!---->

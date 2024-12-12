@@ -41,7 +41,6 @@
         <Configuration Name="passedNetworkType" Format="Text" DefaultValue="Not passed" />
         <Substitution Table="CustomAction" Row="setNetworkTypeADP6" Column="Target" Value="[=passedNetworkType]" />
         <CustomAction Id="setNetworkTypeADP6" Property="NETWORKTYPE" Value="[localMSMNetworkType]" Execute="immediate" />
-        <CustomAction Id="correctNetworkTypeADP6" Property="NETWORKTYPE" Value="NDIS5" Execute="immediate" />
 <?endif?>
 
         <!-- Here comes the file/directory list -->
@@ -54,7 +53,7 @@
         <InstallExecuteSequence>
 <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
             <Custom Action="setNetworkTypeADP6" After="CostInitialize" />
-            <Custom Action="correctNetworkTypeADP6" After="setNetworkTypeADP6" Condition="(VersionNT &lt; 600)" />
+            <Custom Action="correctNetworkTypeADP6" After="setNetworkTypeADP6" />
 <?endif?>
             <?include VBoxMergeNetAdp6Seq.wxi ?>
         </InstallExecuteSequence>

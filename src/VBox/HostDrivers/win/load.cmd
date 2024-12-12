@@ -67,7 +67,7 @@ if not exist "%MY_ALTDIR%" mkdir "%MY_ALTDIR%"
 rem
 rem Display device states.
 rem
-for %%i in (VBoxNetAdp VBoxNetAdp6 VBoxNetFlt VBoxNetLwf VBoxUSBMon VBoxUSB VBoxSup) do (
+for %%i in (VBoxNetAdp6 VBoxNetLwf VBoxUSBMon VBoxUSB VBoxSup) do (
     set type=
     for /f "usebackq tokens=*" %%f in (`sc query %%i`) do (set xxx=%%f&&if "!xxx:~0,5!" =="STATE" set type=!xxx!)
     for /f "usebackq tokens=2 delims=:" %%f in ('!type!') do set type=%%f
@@ -82,8 +82,8 @@ echo **
 echo ** Copying installers and uninstallers into %MY_ALTDIR%...
 echo **
 set MY_FAILED=no
-for %%i in (NetAdpUninstall.exe NetAdp6Uninstall.exe USBUninstall.exe NetFltUninstall.exe NetLwfUninstall.exe SUPUninstall.exe ^
-            NetAdpInstall.exe   NetAdp6Install.exe   USBInstall.exe   NetFltInstall.exe   NetLwfInstall.exe   SUPInstall.exe ^
+for %%i in (NetAdp6Uninstall.exe USBUninstall.exe NetFltUninstall.exe NetLwfUninstall.exe SUPUninstall.exe ^
+            NetAdp6Install.exe   USBInstall.exe   NetFltInstall.exe   NetLwfInstall.exe   SUPInstall.exe ^
             VBoxRT.dll) do if exist "%MY_DIR%\%%i" (copy "%MY_DIR%\%%i" "%MY_ALTDIR%\%%i" || set MY_FAILED=yes)
 if "%MY_FAILED%" == "yes" goto end
 
@@ -93,7 +93,7 @@ rem
 echo **
 echo ** Unloading drivers...
 echo **
-for %%i in (NetAdpUninstall.exe NetAdp6Uninstall.exe USBUninstall.exe NetFltUninstall.exe NetLwfUninstall.exe SUPUninstall.exe) do (
+for %%i in (NetAdp6Uninstall.exe USBUninstall.exe NetLwfUninstall.exe SUPUninstall.exe) do (
     if exist "%MY_ALTDIR%\%%i" (echo ** Running %%i...&& "%MY_ALTDIR%\%%i")
 )
 

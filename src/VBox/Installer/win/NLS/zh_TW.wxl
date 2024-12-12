@@ -58,8 +58,6 @@
     <String Id="VB_App" Value="[ProductName] 應用程式。" />
     <String Id="VB_USBDriver" Value="[ProductName] USB 裝置驅動程式針對 USB 裝置支援。" />
     <String Id="VB_Network" Value="[ProductName] 網路裝置驅動程式針對網路支援。" />
-    <String Id="VB_NetFltDriver" Value="[ProductName] 驅動程式針對橋接網路。" />
-    <String Id="VB_NetAdpDriver" Value="[ProductName] 虛擬網路介面卡針對「僅限主機」網路。" />
     <String Id="VB_NetLwfDriver" Value="[ProductName] 驅動程式針對 NDIS6 橋接網路。" />
     <String Id="VB_NetAdp6Driver" Value="[ProductName] 虛擬網路介面卡針對 NDIS6 「僅限主機」網路。" />
     <String Id="VB_Python" Value="VirtualBox 的 Python 支援。" />
@@ -148,9 +146,7 @@
     <!---->
 
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="請選擇您將使用的網路驅動程式類型:" />
-    <String Id="SelectionNetworkTypeDlg_DescriptionNDIS5" Value="NDIS5 網路驅動程式。&#xA;這是舊版 Windows 的預設值 (Vista 前)。" />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="NDIS6 網路驅動程式。&#xA;這是新版 Windows 的預設值 (Vista 和以上)。" />
-    <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS5" Value="使用  NDIS5 網路驅動程式。" />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="使用  NDIS6 網路驅動程式。" />
 
     <!---->

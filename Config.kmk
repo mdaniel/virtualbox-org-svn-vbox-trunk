@@ -3735,8 +3735,7 @@ endif
 #      -wd4571: Informational: catch(...) semantics changed since Visual C++ 7.1; structured exceptions (SEH) are no longer caught
 #      -wd4611: interaction between '_setjmp' and C++ object destruction is non-portable
 #      -wd4324: '_TDI_PNP_CONTEXT_XP' : structure was padded due to __declspec(align())
-#      -wd4505: VBoxNetFltNobj.h(45) : warning C4505: 'VBoxNetFltNobj::Release' : unreferenced local function has been removed
-#               Probably related to http://stackoverflow.com/questions/3051992/compiler-warning-at-c-template-base-class
+#      -wd4505: tstSupSemInterruptibleSRE': unreferenced function with internal linkage has been removed
 #      -wd4263: 'int VRDPChannelClipboard::SendPacket(const void *,uint32_t)' : member function does not override any base class virtual member function
 #               Probably useful, but impractical, just like the next one.
 #      -wd4264: 'int VRDPOutputCtx::SendPacket(void)' : no override available for virtual member function from base 'VRDPOutputCtx'; function is hidden

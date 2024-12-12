@@ -36,13 +36,7 @@
     <?if $(env.VBOX_WITH_USB) = "yes" ?>
         <?define Property_VBoxMergeUSB = "$(env.VBOX_WIN_INST_MERGE_USB)" ?>
     <?endif?>
-    <?if $(env.VBOX_WITH_NETFLT) = "yes" And $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-        <?define Property_VBoxMergeNetworkFlt = "$(env.VBOX_WIN_INST_MERGE_NETFLT)" ?>
-    <?endif?>
     <?if $(env.VBOX_WITH_NETADP) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-            <?define Property_VBoxMergeNetworkAdp  = "$(env.VBOX_WIN_INST_MERGE_NETADP)" ?>
-        <?endif?>
         <?define Property_VBoxMergeNetworkAdp6 = "$(env.VBOX_WIN_INST_MERGE_NETADP6)" ?>
     <?endif?>
     <?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
@@ -69,11 +63,6 @@
     <Property Id="ARPURLUPDATEINFO" Value="http://www.virtualbox.org" />
 
     <Property Id="NETWORKTYPE" Value="NDIS6" Secure="yes" />
-
-<?if $(env.VBOX_WITH_MSM_INSTALL) = "no" ?>
-    <!-- Force NDIS5 on pre-Vista -->
-    <SetProperty Id="NETWORKTYPE" After="LaunchConditions" Value="NDIS5" Condition="(VersionNT &lt; 600)" />
-<?endif?>
 
     <!-- Whether or not registering of known desktop shortcut for the Quick Launch Bar should be created -->
     <Property Id="VBOX_REGISTERFILEEXTENSIONS" Value="1" Secure="yes" />
@@ -236,16 +225,8 @@
     <?if $(env.VBOX_WITH_32_ON_64_MAIN_API) = "yes" ?>
         <?include VBoxMergeCOM32On64CA.wxi ?>
     <?endif?>
-    <?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-            <?include VBoxMergeNetFltCA.wxi ?>
-        <?endif?>
-        <?include VBoxMergeNetLwfCA.wxi ?>
-    <?endif?>
     <?if $(env.VBOX_WITH_NETADP) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-            <?include VBoxMergeNetAdpCA.wxi ?>
-        <?endif?>
+        <?include VBoxMergeNetLwfCA.wxi ?>
         <?include VBoxMergeNetAdp6CA.wxi ?>
     <?endif?>
     <?include VBoxMergeUSBCA.wxi ?>
@@ -366,33 +347,21 @@
         <Feature Id="VBoxNetwork" Title="VirtualBox Networking" Level="1" Description="!(loc.VB_Network)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
             <Feature Id="VBoxNetworkFlt" Title="VirtualBox Bridged Networking" Level="1" Description="!(loc.VB_NetFltDriver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
     <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-                <MergeRef Id="msm_VBoxNetworkFlt" />
-        <?endif?>
                 <MergeRef Id="msm_VBoxNetworkLwf" />
     <?else?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-                <ComponentRef Id="cp_NetFltDriver" />
-        <?endif?>
         <?if $(env.VBOX_SIGNING_MODE) != none ?>
             <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
                 <ComponentRef Id="cp_NetLwfDriverCat_PreW10" />
             <?endif?>
                 <ComponentRef Id="cp_NetLwfDriverCat_W10" />
-        <?endif?>
+            <?endif?>
                 <ComponentRef Id="cp_NetLwfDriver" />
-    <?endif?>
+        <?endif?>
             </Feature>
             <Feature Id="VBoxNetworkAdp" Title="VirtualBox Host-Only Networking" Level="1" Description="!(loc.VB_NetAdpDriver)" ConfigurableDirectory="INSTALLDIR" TypicalDefault="install" Display="expand" AllowAdvertise="no">
-    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-                <MergeRef Id="msm_VBoxNetworkAdp" />
-        <?endif?>
+        <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
                 <MergeRef Id="msm_VBoxNetworkAdp6" />
-    <?else?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-                <ComponentRef Id="cp_NetAdpDriver" />
-        <?endif?>
+        <?else?>
         <?if $(env.VBOX_SIGNING_MODE) != none ?>
             <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
                 <ComponentRef Id="cp_NetAdp6DriverCat_PreW10" />
@@ -482,16 +451,8 @@
     <?if $(env.VBOX_WITH_32_ON_64_MAIN_API) = "yes" ?>
         <?include VBoxMergeCOM32On64Seq.wxi ?>
     <?endif?>
-    <?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = amd64 ?> <!-- @todo bird: Remove this and use Adp6, we don't support XP any more. -->
-            <?include VBoxMergeNetFltSeq.wxi ?>
-        <?endif?>
-        <?include VBoxMergeNetLwfSeq.wxi ?>
-    <?endif?>
     <?if $(env.VBOX_WITH_NETADP) = "yes" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = amd64 ?> <!-- @todo bird: Remove this and use Adp6, we don't support XP any more. -->
-            <?include VBoxMergeNetAdpSeq.wxi ?>
-        <?endif?>
+        <?include VBoxMergeNetLwfSeq.wxi ?>
         <?include VBoxMergeNetAdp6Seq.wxi ?>
     <?endif?>
     <?include VBoxMergeUSBSeq.wxi ?>
@@ -557,34 +518,7 @@
                     </Directory>
 <?endif?>
                     <Directory Id="dir_Network" Name="network">
-<?if $(env.VBOX_WITH_NETFLT) = "yes" And $(env.KBUILD_TARGET_ARCH) = "amd64" ?> <!-- @todo bird: Remove this and use Adp6, we don't support XP any more. -->
-                        <Directory Id="dir_NetFlt" Name="netflt">
-    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
-                            <Merge Id="msm_VBoxNetworkFlt" Language="0" SourceFile="$(var.Property_VBoxMergeNetworkFlt)" DiskId="1">
-                            <ConfigurationData Name="passedNetworkType" Value="[NETWORKTYPE]" />
-                            </Merge>
-    <?else?>
-                            <Directory Id="msm_VBoxNetworkFltFolder" FileSource=".">
-                                <?include VBoxMergeNetFlt.wxi ?>
-                            </Directory>
-    <?endif?>
-                        </Directory>
-<?endif?>
-<?if $(env.VBOX_WITH_NETADP) = "yes" and $(env.KBUILD_TARGET_ARCH) = "amd64" ?> <!-- @todo bird: Remove this and use Adp6, we don't support XP any more. -->
-                        <Directory Id="dir_NetAdp" Name="netadp">
-    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
-                            <Merge Id="msm_VBoxNetworkAdp" Language="!(loc.LANG)" SourceFile="$(var.Property_VBoxMergeNetworkAdp)" DiskId="1">
-                            <ConfigurationData Name="passedNetworkType" Value="[NETWORKTYPE]" />
-                            </Merge>
-    <?else?>
-                            <Directory Id="msm_VBoxNetworkAdpFolder" FileSource=".">
-                                <?include VBoxMergeNetAdp.wxi ?>
-                            </Directory>
-    <?endif?>
-                        </Directory>
-<?endif?>
-
-<?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
+<?if $(env.VBOX_WITH_NETADP) = "yes" ?>
                         <Directory Id="dir_NetLwf" Name="netlwf">
     <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
                             <Merge Id="msm_VBoxNetworkLwf" Language="!(loc.LANG)" SourceFile="$(var.Property_VBoxMergeNetworkLwf)" DiskId="1">
@@ -597,7 +531,6 @@
     <?endif?>
                         </Directory>
 <?endif?>
-
 <?if $(env.VBOX_WITH_NETADP) = "yes" ?>
                         <Directory Id="dir_NetAdp6" Name="netadp6">
     <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>

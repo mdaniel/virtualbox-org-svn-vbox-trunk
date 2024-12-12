@@ -53,8 +53,6 @@
     <String Id="VB_App" Value="Applicazione [ProductName]." />
     <String Id="VB_USBDriver" Value="Driver di [ProductName] per il supporto di dispositivi USB." />
     <String Id="VB_Network" Value="Driver di [ProductName] per il supporto di rete." />
-    <String Id="VB_NetFltDriver" Value="Driver di [ProductName] per la rete con bridge." />
-    <String Id="VB_NetAdpDriver" Value="Driver di [ProductName] per la scheda di rete virtuale per la rete solo host." />
     <String Id="VB_NetLwfDriver" Value="Driver di [ProductName] per la rete con bridge NDIS6." />
     <String Id="VB_NetAdp6Driver" Value="Driver di [ProductName] per la scheda di rete virtuale per la rete solo host NDIS6." />
     <String Id="VB_Python" Value="Supporto Python per VirtualBox." />
@@ -117,9 +115,7 @@
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Registrati associazioni di file" />
     <!---->
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Scegli quale tipo di driver di rete utilizzerai:" />
-    <String Id="SelectionNetworkTypeDlg_DescriptionNDIS5" Value="Driver di rete NDIS5.&#xA;Questo è il tipo predefinito per le vecchie versioni di Windows (pre-Vista)." />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="Driver di rete NDIS6.&#xA;Questo è il tipo predefinito per le nuove versioni di Windows (Vista e successivi)." />
-    <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS5" Value="Usa driver di rete NDIS5." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Usa driver di rete NDIS6." />
     <!---->
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Avviso:" />

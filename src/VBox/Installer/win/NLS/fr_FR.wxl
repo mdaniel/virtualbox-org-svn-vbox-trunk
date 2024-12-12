@@ -58,8 +58,6 @@
     <String Id="VB_App" Value="Application [ProductName]." />
     <String Id="VB_USBDriver" Value="Pilotes USB [ProductName] pour le support de périphériques USB." />
     <String Id="VB_Network" Value="Pilotes [ProductName] pour le support réseau." />
-    <String Id="VB_NetFltDriver" Value="Pilote [ProductName] pour l'accès réseau par pont." />
-    <String Id="VB_NetAdpDriver" Value="Pilote de carte réseau virtuelle [ProductName] pour l'accès réseau privé hôte." />
     <String Id="VB_NetLwfDriver" Value="[ProductName] driver for NDIS6 Bridged Networking." />
     <String Id="VB_NetAdp6Driver" Value="[ProductName] virtual network adapter driver for NDIS6 Host-Only Networking." />
     <String Id="VB_Python" Value="Python support for VirtualBox." />
@@ -143,9 +141,7 @@
     <!---->
 
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Veuillez choisir le type de pilotes réseau à utiliser :" />
-    <String Id="SelectionNetworkTypeDlg_DescriptionNDIS5" Value="NDIS5 network drivers.&#xA;This is default for older versions of Windows (pre-Vista)." />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="NDIS6 network drivers.&#xA;This is default for newer versions of Windows (Vista and newer)." />
-    <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS5" Value="Utiliser pilotes réseau NDIS5." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Utiliser pilotes réseau NDIS6." />
 
     <!---->

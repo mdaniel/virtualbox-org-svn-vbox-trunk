@@ -82,8 +82,8 @@ echo **
 echo ** Copying installers and uninstallers into %MY_ALTDIR%...
 echo **
 set MY_FAILED=no
-for %%i in (NetAdpUninstall.exe NetAdp6Uninstall.exe USBUninstall.exe NetFltUninstall.exe NetLwfUninstall.exe SUPUninstall.exe ^
-            NetAdpInstall.exe   NetAdp6Install.exe   USBInstall.exe   NetFltInstall.exe   NetLwfInstall.exe   SUPInstall.exe ^
+for %%i in (NetAdp6Uninstall.exe USBUninstall.exe NetLwfUninstall.exe SUPUninstall.exe ^
+            NetAdp6Install.exe   USBInstall.exe   NetLwfInstall.exe   SUPInstall.exe ^
             VBoxRT.dll) do if exist "%MY_DIR%\%%i" (copy "%MY_DIR%\%%i" "%MY_ALTDIR%\%%i" || set MY_FAILED=yes)
 if "%MY_FAILED%" == "yes" goto end
 
@@ -93,7 +93,7 @@ rem
 echo **
 echo ** Unloading drivers...
 echo **
-for %%i in (NetAdpUninstall.exe NetAdp6Uninstall.exe USBUninstall.exe NetFltUninstall.exe NetLwfUninstall.exe SUPUninstall.exe) do (
+for %%i in (NetAdp6Uninstall.exe USBUninstall.exe NetLwfUninstall.exe SUPUninstall.exe) do (
     if exist "%MY_ALTDIR%\%%i" (echo  * Running %%i...&& "%MY_ALTDIR%\%%i")
 )
 
@@ -106,10 +106,7 @@ echo **
 set MY_FAILED=no
 for %%i in (^
     VBoxSup.sys     VBoxSup.inf      VBoxSup.cat     VBoxSup-PreW10.cat ^
-    VBoxNetAdp.sys  VBoxNetAdp.inf   VBoxNetAdp.cat ^
     VBoxNetAdp6.sys VBoxNetAdp6.inf  VBoxNetAdp6.cat VBoxNetAdp6-PreW10.cat ^
-    VBoxNetFlt.sys  VBoxNetFlt.inf   VBoxNetFlt.cat                         VBoxNetFltNobj.dll ^
-    VBoxNetFltM.inf  ^
     VBoxNetLwf.sys  VBoxNetLwf.inf   VBoxNetLwf.cat  VBoxNetLwf-PreW10.cat  ^
     VBoxUSB.sys     VBoxUSB.inf      VBoxUSB.cat     VBoxUSB-PreW10.cat     ^
     VBoxUSBMon.sys  VBoxUSBMon.inf   VBoxUSBMon.cat  VBoxUSBMon-PreW10.cat  ) ^
@@ -136,7 +133,7 @@ echo **
 if "%MY_VER%" GEQ "06" (
     set MY_INSTALLERS=SUPInstall.exe USBInstall.exe NetLwfInstall.exe NetAdp6Install.exe
 ) else (
-    set MY_INSTALLERS=SUPInstall.exe USBInstall.exe NetFltInstall.exe
+    set MY_INSTALLERS=SUPInstall.exe USBInstall.exe
     rem NetAdpInstall.exe; - busted
 )
 for %%i in (%MY_INSTALLERS%) do (echo  * Running %%i...&& "%MY_ALTDIR%\%%i" || (echo loadall.cmd: %%i failed&& goto end))

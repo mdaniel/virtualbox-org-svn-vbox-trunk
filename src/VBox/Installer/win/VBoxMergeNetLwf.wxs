@@ -41,7 +41,6 @@
         <Configuration Name="passedNetworkType" Format="Text" DefaultValue="Not passed" />
         <Substitution Table="CustomAction" Row="setNetworkTypeLWF" Column="Target" Value="[=passedNetworkType]" />
         <CustomAction Id="setNetworkTypeLWF" Property="NETWORKTYPE" Value="[localMSMNetworkType]" Execute="immediate" />
-        <CustomAction Id="correctNetworkTypeLWF" Property="NETWORKTYPE" Value="NDIS5" Execute="immediate" />
 <?endif?>
 
         <!-- Here comes the file/directory list -->
@@ -54,7 +53,6 @@
         <InstallExecuteSequence>
 <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
             <Custom Action="setNetworkTypeLWF" After="CostInitialize" />
-            <Custom Action="correctNetworkTypeLWF" After="setNetworkTypeLWF" Condition="(VersionNT &lt; 600)" />
 <?endif?>
             <?include VBoxMergeNetLwfSeq.wxi ?>
         </InstallExecuteSequence>

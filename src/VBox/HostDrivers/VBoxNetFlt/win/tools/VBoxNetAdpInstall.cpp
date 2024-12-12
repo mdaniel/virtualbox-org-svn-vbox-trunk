@@ -54,11 +54,7 @@
 #define VBOX_NETADP_APP_NAME L"NetAdpInstall"
 
 #define VBOX_NETADP_HWID L"sun_VBoxNetAdp"
-#ifdef NDIS60
-# define VBOX_NETADP_INF L"VBoxNetAdp6.inf"
-#else
-# define VBOX_NETADP_INF L"VBoxNetAdp.inf"
-#endif
+#define VBOX_NETADP_INF  L"VBoxNetAdp6.inf"
 
 
 static DECLCALLBACK(void) winNetCfgLogger(const char *pszString)

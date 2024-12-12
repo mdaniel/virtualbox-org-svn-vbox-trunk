@@ -932,11 +932,6 @@ HRESULT Host::getNetworkInterfaces(std::vector<ComPtr<IHostNetworkInterface> > &
 #    else
         /* for the filter-based approach we get all miniports our filter (oracle_VBoxNetLwf)is bound to */
         hrc = pNc->FindComponent(L"oracle_VBoxNetLwf", &pTcpIpNcc);
-        if (hrc != S_OK)
-        {
-            /* fall back to NDIS5 miniport lookup (sun_VBoxNetFlt) */
-            hrc = pNc->FindComponent(L"sun_VBoxNetFlt", &pTcpIpNcc);
-        }
 #     ifndef VBOX_WITH_HARDENING
         if (hrc != S_OK)
         {

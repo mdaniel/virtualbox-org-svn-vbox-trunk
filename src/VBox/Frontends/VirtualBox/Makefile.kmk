@@ -705,6 +705,7 @@ ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
  	src/manager/UIVirtualBoxManagerWidget.h
 else
  VirtualBox_QT_MOCHDRS += \
+ 	src/manager/UIMachineManagerWidget.h \
  	src/manager/UIVirtualBoxManagerAdvancedWidget.h
 endif
 
@@ -1239,6 +1240,7 @@ ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
  	src/manager/UIVirtualBoxManagerWidget.cpp
 else
  VirtualBox_SOURCES += \
+ 	src/manager/UIMachineManagerWidget.cpp \
  	src/manager/UIVirtualBoxManagerAdvancedWidget.cpp
 endif
 

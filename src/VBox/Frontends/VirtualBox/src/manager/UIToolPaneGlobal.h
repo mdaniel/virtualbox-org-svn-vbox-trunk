@@ -71,6 +71,9 @@ public:
     /** Destructs tools pane. */
     virtual ~UIToolPaneGlobal() RT_OVERRIDE;
 
+    /** Returns the action-pool reference. */
+    UIActionPool *actionPool() const { return m_pActionPool; }
+
     /** Defines whether this pane is @a fActive. */
     void setActive(bool fActive);
     /** Returns whether this pane is active. */

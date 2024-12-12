@@ -762,9 +762,9 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
         }
 
         /* Create Global Tools-menu: */
-        m_pMenuToolsGlobal = new UITools(UIToolClass_Global, this);
+        m_pMenuToolsGlobal = new UITools(this, UIToolClass_Global, actionPool());
         /* Create Machine Tools-menu: */
-        m_pMenuToolsMachine = new UITools(UIToolClass_Machine, this);
+        m_pMenuToolsMachine = new UITools(this, UIToolClass_Machine, actionPool());
     }
 
     /* Create notification-center: */

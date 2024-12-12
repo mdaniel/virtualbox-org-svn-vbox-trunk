@@ -36,7 +36,6 @@
 
 /* GUI icludes: */
 #include "UIExtraDataDefs.h"
-#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QVBoxLayout;
@@ -44,7 +43,6 @@ class UIActionPool;
 class UIToolsItem;
 class UIToolsModel;
 class UIToolsView;
-class UIVirtualBoxManagerWidget;
 
 /** QWidget extension used as VM Tools-pane. */
 class UITools : public QWidget
@@ -68,14 +66,12 @@ signals:
 public:
 
     /** Constructs Tools-pane passing @a pParent to the base-class.
-      * @param  Brings the tools class, it will be fixed one. */
-    UITools(UIToolClass enmClass, UIVirtualBoxManagerWidget *pParent = 0);
+      * @param  enmClass     Brings the tools class, it will be fixed one.
+      * @param  pActionPool  Brings the action-pool reference. */
+    UITools(QWidget *pParent, UIToolClass enmClass, UIActionPool *pActionPool);
 
     /** @name General stuff.
       * @{ */
-        /** Returns the manager-widget reference. */
-        UIVirtualBoxManagerWidget *managerWidget() const { return m_pManagerWidget; }
-
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const;
 
@@ -129,14 +125,14 @@ private:
         /** Holds the tools class. */
         const UIToolClass  m_enmClass;
 
-        /** Holds the manager-widget reference. */
-        UIVirtualBoxManagerWidget *m_pManagerWidget;
+        /** Holds the action-pool reference. */
+        UIActionPool *m_pActionPool;
 
-        /** Holds the main layout instane. */
+        /** Holds the main layout instance. */
         QVBoxLayout  *m_pMainLayout;
-        /** Holds the Tools-model instane. */
+        /** Holds the Tools-model instance. */
         UIToolsModel *m_pToolsModel;
-        /** Holds the Tools-view instane. */
+        /** Holds the Tools-view instance. */
         UIToolsView  *m_pToolsView;
     /** @} */
 };

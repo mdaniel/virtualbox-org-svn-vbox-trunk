@@ -32,17 +32,11 @@
 #include "UIChooser.h"
 #include "UIChooserModel.h"
 #include "UIChooserView.h"
-#ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
-# include "UIVirtualBoxManagerWidget.h"
-#else
-# include "UIVirtualBoxManagerAdvancedWidget.h"
-#endif
 #include "UIVirtualMachineItem.h"
 
 
-UIChooser::UIChooser(UIVirtualBoxManagerWidget *pParent, UIActionPool *pActionPool)
+UIChooser::UIChooser(QWidget *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
-    , m_pParent(pParent)
     , m_pActionPool(pActionPool)
     , m_pChooserModel(0)
     , m_pChooserView(0)
@@ -283,10 +277,6 @@ void UIChooser::prepareConnections()
     AssertPtrReturnVoid(model());
     AssertPtrReturnVoid(view());
 
-    /* Parent connections: */
-    connect(m_pParent, &UIVirtualBoxManagerWidget::sigToolBarHeightChange,
-            this, &UIChooser::setGlobalItemHeightHint);
-
     /* Abstract Chooser-model connections: */
     connect(model(), &UIChooserModel::sigGroupSavingStateChanged,
             this, &UIChooser::sigGroupSavingStateChanged);
@@ -368,10 +358,6 @@ void UIChooser::cleanupConnections()
                model(), &UIChooserModel::sltHandleViewResized);
     disconnect(view(), &UIChooserView::sigSearchWidgetVisibilityChanged,
                this, &UIChooser::sigMachineSearchWidgetVisibilityChanged);
-
-    /* Parent connections: */
-    disconnect(m_pParent, &UIVirtualBoxManagerWidget::sigToolBarHeightChange,
-               this, &UIChooser::setGlobalItemHeightHint);
 }
 
 void UIChooser::cleanup()

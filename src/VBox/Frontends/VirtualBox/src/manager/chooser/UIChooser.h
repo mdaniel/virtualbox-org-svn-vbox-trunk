@@ -36,14 +36,12 @@
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
-#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class UIActionPool;
 class UIChooserModel;
 class UIChooserView;
 class UIVirtualMachineItem;
-class UIVirtualBoxManagerWidget;
 class UIVirtualMachineItemCloud;
 
 /** QWidget extension used as VM Chooser-pane. */
@@ -105,7 +103,7 @@ public:
 
     /** Constructs Chooser-pane passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.  */
-    UIChooser(UIVirtualBoxManagerWidget *pParent, UIActionPool *pActionPool);
+    UIChooser(QWidget *pParent, UIActionPool *pActionPool);
     /** Destructs Chooser-pane. */
     virtual ~UIChooser() RT_OVERRIDE;
 
@@ -238,9 +236,6 @@ private:
 
     /** @name General stuff.
       * @{ */
-        /** Holds the parent reference. */
-        UIVirtualBoxManagerWidget *m_pParent;
-
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
 

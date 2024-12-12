@@ -32,20 +32,15 @@
 #include "UITools.h"
 #include "UIToolsModel.h"
 #include "UIToolsView.h"
-#ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
-# include "UIVirtualBoxManagerWidget.h"
-#else
-# include "UIVirtualBoxManagerAdvancedWidget.h"
-#endif
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
 
-UITools::UITools(UIToolClass enmClass, UIVirtualBoxManagerWidget *pParent /* = 0 */)
+UITools::UITools(QWidget *pParent, UIToolClass enmClass, UIActionPool *pActionPool)
     : QWidget(pParent, Qt::Popup)
     , m_enmClass(enmClass)
-    , m_pManagerWidget(pParent)
+    , m_pActionPool(pActionPool)
     , m_pMainLayout(0)
     , m_pToolsModel(0)
     , m_pToolsView(0)
@@ -55,7 +50,7 @@ UITools::UITools(UIToolClass enmClass, UIVirtualBoxManagerWidget *pParent /* = 0
 
 UIActionPool *UITools::actionPool() const
 {
-    return managerWidget()->actionPool();
+    return m_pActionPool;
 }
 
 void UITools::setToolsType(UIToolType enmType)

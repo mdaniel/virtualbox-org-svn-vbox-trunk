@@ -39,6 +39,7 @@
 #include "UIGlobalSession.h"
 #include "UILoggingDefs.h"
 #include "UINotificationCenter.h"
+#include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
 #include "UITranslationEventListener.h"
@@ -47,8 +48,9 @@
 #include "UIVirtualMachineItemLocal.h"
 
 
-UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneMachine *pParent)
-    : m_pActionPool(pParent->actionPool())
+UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool)
+    : QWidget(pParent)
+    , m_pActionPool(pActionPool)
     , m_pSplitter(0)
     , m_pPaneChooser(0)
     , m_pPaneTools(0)

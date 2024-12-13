@@ -333,9 +333,9 @@ const PDMDEVREG g_DeviceGICNem =
 };
 
 /**
- * The Hypervisor.Framework GIC backend.
+ * The Hyper-V GIC backend.
  */
-const PDMGICBACKEND g_GicHvfBackend =
+const PDMGICBACKEND g_GicHvBackend =
 {
     /* .pfnReadSysReg = */  NULL,
     /* .pfnWriteSysReg = */ NULL,

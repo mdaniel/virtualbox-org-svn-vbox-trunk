@@ -40,6 +40,7 @@
 #endif
 
 #include <VBox/types.h>
+#include <iprt/assertcompile.h>
 struct PDMDEVREGCB;
 
 /** @defgroup grp_pdm_gic    The local GIC PDM API
@@ -117,10 +118,6 @@ typedef struct PDMGICBACKENDR3
 
     /** @name Reserved for future (MBZ).
      * @{ */
-    DECLR3CALLBACKMEMBER(int, pfnReserved0, (void));
-    DECLR3CALLBACKMEMBER(int, pfnReserved1, (void));
-    DECLR3CALLBACKMEMBER(int, pfnReserved2, (void));
-    DECLR3CALLBACKMEMBER(int, pfnReserved3, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved4, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved5, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved6, (void));
@@ -143,6 +140,10 @@ typedef struct PDMGICBACKENDR3
     DECLR3CALLBACKMEMBER(int, pfnReserved23, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved24, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved25, (void));
+    DECLR3CALLBACKMEMBER(int, pfnReserved26, (void));
+    DECLR3CALLBACKMEMBER(int, pfnReserved27, (void));
+    DECLR3CALLBACKMEMBER(int, pfnReserved28, (void));
+    DECLR3CALLBACKMEMBER(int, pfnReserved29, (void));
     /** @} */
 } PDMGICBACKENDR3;
 /** Pointer to ring-3 GIC backend. */

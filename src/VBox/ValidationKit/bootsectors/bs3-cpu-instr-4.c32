@@ -3255,7 +3255,6 @@ static uint8_t bs3CpuInstr4_WorkerTestType1(uint8_t bMode, unsigned cTests, BS3C
 # define TODO_X86_MXCSR_PE_IEM       /* mul/div instructions: IEM fails to set X86_MXCSR_PE like HW does */
 # define TODO_X86_MXCSR_PE_IEM_SSE   /* sub/mul instructions: IEM fails to set X86_MXCSR_PE like HW does */
 # define TODO_X86_MXCSR_UE_IEM       /* various instructions: IEM fails to set X86_MXCSR_UE like HW does */
-# define TODO_IEM_ASM_COREDUMP       /* certain instructions dump core when x86-on-x86 IEM built *WITHOUT* IEM_WITHOUT_ASSEMBLY=1 */
 # define TODO_MXCSR_ORDER            /* (test harness issue, not IEM) */
 # undef  BS3_MXCSR_PE_FUZZY          /* most or all mentions of BS3_MXCSR_PE_FUZZY represent cases where */
 # define BS3_MXCSR_PE_FUZZY 0        /*    IEM behavior disagrees with hardware; they need investigation */
@@ -24865,19 +24864,13 @@ BS3_DECL(void) Main_pe32()
         { "[v]minsd",       bs3CpuInstr4_v_minsd,     0 },
 # endif /* BS3_CPU_INSTR_4 */
 # if defined(BS3_CPU_INSTR_5)
-#  ifdef TODO_IEM_ASM_COREDUMP
-        { "[v]rcpps",       bs3CpuInstr4_v_rcpps,     0 },  // COREDUMP in asm-iem
-#  endif /* TODO_IEM_ASM_COREDUMP */
+        { "[v]rcpps",       bs3CpuInstr4_v_rcpps,     0 },
         { "[v]rcpss",       bs3CpuInstr4_v_rcpss,     0 },
-#  ifdef TODO_IEM_ASM_COREDUMP
-        { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,    0 },  // COREDUMP in asm-iem
-        { "[v]sqrtpd",      bs3CpuInstr4_v_sqrtpd,    0 },  // COREDUMP in asm-iem
-#  endif /* TODO_IEM_ASM_COREDUMP */
+        { "[v]sqrtps",      bs3CpuInstr4_v_sqrtps,    0 },
+        { "[v]sqrtpd",      bs3CpuInstr4_v_sqrtpd,    0 },
         { "[v]sqrtss",      bs3CpuInstr4_v_sqrtss,    0 },
         { "[v]sqrtsd",      bs3CpuInstr4_v_sqrtsd,    0 },
-#  ifdef TODO_IEM_ASM_COREDUMP
-        { "[v]rsqrtps",     bs3CpuInstr4_v_rsqrtps,   0 },  // COREDUMP in asm-iem
-#  endif /* TODO_IEM_ASM_COREDUMP */
+        { "[v]rsqrtps",     bs3CpuInstr4_v_rsqrtps,   0 },
         { "[v]rsqrtss",     bs3CpuInstr4_v_rsqrtss,   0 },
         { "[v]dpps",        bs3CpuInstr4_v_dpps,      0 },
         { "[v]dppd",        bs3CpuInstr4_v_dppd,      0 },
@@ -24905,11 +24898,9 @@ BS3_DECL(void) Main_pe32()
         { "[v]cvtsi2sd",    bs3CpuInstr4_v_cvtsi2sd,  0 },
         { "[v]cvtsd2si",    bs3CpuInstr4_v_cvtsd2si,  0 },
         { "[v]cvttsd2si",   bs3CpuInstr4_v_cvttsd2si, 0 },
-#  ifdef TODO_IEM_ASM_COREDUMP
-        { "[v]cvtdq2ps",    bs3CpuInstr4_v_cvtdq2ps,  0 },  // COREDUMP in asm-iem
-        { "[v]cvtps2dq",    bs3CpuInstr4_v_cvtps2dq,  0 },  // COREDUMP in asm-iem
-        { "[v]cvttps2dq",   bs3CpuInstr4_v_cvttps2dq, 0 },  // COREDUMP in asm-iem
-#  endif /* TODO_IEM_ASM_COREDUMP */
+        { "[v]cvtdq2ps",    bs3CpuInstr4_v_cvtdq2ps,  0 },
+        { "[v]cvtps2dq",    bs3CpuInstr4_v_cvtps2dq,  0 },
+        { "[v]cvttps2dq",   bs3CpuInstr4_v_cvttps2dq, 0 },
         { "[v]cvtdq2pd",    bs3CpuInstr4_v_cvtdq2pd,  0 },
         { "[v]cvtpd2dq",    bs3CpuInstr4_v_cvtpd2dq,  0 },
         { "[v]cvttpd2dq",   bs3CpuInstr4_v_cvttpd2dq, 0 },

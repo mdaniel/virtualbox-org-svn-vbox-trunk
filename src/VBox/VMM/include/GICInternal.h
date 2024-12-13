@@ -49,8 +49,10 @@ extern const PDMGICBACKEND g_GicBackend;
 # ifdef RT_OS_DARWIN
 /** The Hypervisor.Framework GIC backend. */
 extern const PDMGICBACKEND g_GicHvfBackend;
+# elif defined(RT_OS_WINDOWS)
+/** The Hyper-V GIC backend. */
+extern const PDMGICBACKEND g_GicHvBackend;
 # endif
-#endif
 
 #define VMCPU_TO_GICCPU(a_pVCpu)             (&(a_pVCpu)->gic.s)
 #define VM_TO_GIC(a_pVM)                     (&(a_pVM)->gic.s)

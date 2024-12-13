@@ -299,7 +299,9 @@ endif
 # Microsoft Windows.
 ifdef VBOX_WITH_ADDITIONS_ISO.win.amd64
  VBOX_PATH_ADDITIONS.win.amd64 = $(PATH_OUT_BASE)/win.amd64/$(KBUILD_TYPE)/bin/additions
- VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.amd64)
+ ifeq ($(KBUILD_TARGET_ARCH),amd64)
+  VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.amd64)
+ endif
  GUESTADDITIONS_FILESPEC.win.amd64 = \
  	VBoxWindowsAdditions-amd64.exe=$(VBOX_PATH_ADDITIONS.win.amd64)/VBoxWindowsAdditions-amd64.exe
  ifndef VBOX_WITH_ADDITIONS_ISO.win.x86
@@ -310,7 +312,9 @@ endif
 
 ifdef VBOX_WITH_ADDITIONS_ISO.win.x86
  VBOX_PATH_ADDITIONS.win.x86 = $(PATH_OUT_BASE)/win.x86/$(KBUILD_TYPE)/bin/additions
- VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.x86)
+ ifeq ($(KBUILD_TARGET_ARCH),x86)
+  VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.x86)
+ endif
  GUESTADDITIONS_FILESPEC.win.x86 = \
  	VBoxWindowsAdditions-x86.exe=$(VBOX_PATH_ADDITIONS.win.x86)/VBoxWindowsAdditions-x86.exe \
  	VBoxWindowsAdditions.exe=$(VBOX_PATH_ADDITIONS.win.x86)/VBoxWindowsAdditions.exe \
@@ -326,7 +330,9 @@ endif # win.x86
 
 ifdef VBOX_WITH_ADDITIONS_ISO.win.arm64
  VBOX_PATH_ADDITIONS.win.arm64 = $(PATH_OUT_BASE)/win.arm64/$(KBUILD_TYPE)/bin/additions
- VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.arm64)
+ ifeq ($(KBUILD_TARGET_ARCH),arm64)
+  VBOX_PATH_ADDITIONS.win = $(VBOX_PATH_ADDITIONS.win.arm64)
+ endif
  GUESTADDITIONS_FILESPEC.win.arm64 = \
  	VBoxWindowsAdditions-arm64.exe=$(VBOX_PATH_ADDITIONS.win.arm64)/VBoxWindowsAdditions-arm64.exe
  if !defined(VBOX_WITH_ADDITIONS_ISO.win.x86) && !defined(VBOX_WITH_ADDITIONS_ISO.win.arm64)

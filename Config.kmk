@@ -6402,6 +6402,11 @@ ifeq ($(KBUILD_TARGET),win)
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142"
   TEMPLATE_VBoxR3Exe_LDFLAGS.asan       = -InferAsanLibs:No
  endif
+ # HACK ALERT! The changing of .text to .x86code is to prevent some stupid AV software from falsely classfying bs3-timing-1.exe,
+ # tstRTNoCrt-5.exe and others as problematic and tripping up the code signing process. The .rdata -> .rodata is probably not
+ # needed (but could help since changing the amount of string data generated from */err.h also helps avoiding false positives).
+ TEMPLATE_VBoxR3Exe_LDFLAGS.win.x86   += -Merge:.text=.x86code -Merge:.rdata=.rodata
+ TEMPLATE_VBoxR3Exe_LDFLAGS.win.amd64 += -Merge:.text=.x86code -Merge:.rdata=.rodata
 
  if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
   TEMPLATE_VBoxR3Exe_LATE_LIBS.x86     = \
@@ -6452,7 +6457,7 @@ ifeq ($(KBUILD_TARGET),win)
  if defined(VBOX_WITH_MORE_NT4_COMPAT_BINARIES) && "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.x86"
   TEMPLATE_VBoxR3Exe_POST_CMDS.win.x86 = $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_PE_SET_VERSION) $(out)$$(NLTAB)$(TEMPLATE_VBoxR3Exe_POST_CMDS))
   TEMPLATE_VBoxR3Exe_LNK_DEPS.win.x86  = $(if $(eq $(tool_do),LINK_LIBRARY),,$(VBOX_PE_SET_VERSION))
-  TEMPLATE_VBoxR3Exe_LDFLAGS.win.x86   = \
+  TEMPLATE_VBoxR3Exe_LDFLAGS.win.x86  += \
   	-Include:_vcc100_kernel32_fakes_cpp \
   	-Include:_vcc100_kernel32_fakes_asm
   TEMPLATE_VBoxR3Exe_LATE_LIBS.win.x86 = \

@@ -51,18 +51,10 @@ VBOX_PATH_VALIDATIONKIT_SRC := $(PATH_ROOT)/src/VBox/ValidationKit
 # Base template for Validation Kit R3 programs that drops the -static flag since we only want to use the
 # static version of our own libraries and not the system libs.
 #
-# HACK ALERT! The changing of .text to .x86code is to prevent some stupid AV
-#             software from falsly classifying bs3-timing-1.exe as problmatic
-#             and tripping up the signing process.  The .rdata -> .rodata is
-#             probably not needed (but could help since changing the amount
-#             of string data generated from */err.h makes a difference).
-#
 TEMPLATE_VBoxValidationKitR3Base = VBox Validation Kit ring-3 program base, both guest and host.
 TEMPLATE_VBoxValidationKitR3Base_EXTENDS          = VBoxR3Static
 ifeq ($(KBUILD_TARGET),win)
  TEMPLATE_VBoxValidationKitR3Base_LDFLAGS         = $(filter-out -IntegrityCheck, $(TEMPLATE_VBoxR3Static_LDFLAGS))
- TEMPLATE_VBoxValidationKitR3Base_LDFLAGS.x86     = $(TEMPLATE_VBoxR3Static_LDFLAGS.x86)   -Merge:.rdata=.rodata -Merge:.text=.x86code
- TEMPLATE_VBoxValidationKitR3Base_LDFLAGS.amd64   = $(TEMPLATE_VBoxR3Static_LDFLAGS.amd64) -Merge:.rdata=.rodata -Merge:.text=.x86code
 else ifn1of ($(KBUILD_TARGET), darwin solaris win)
  TEMPLATE_VBoxValidationKitR3Base_CFLAGS          = $(filter-out -static, $(TEMPLATE_VBoxR3Static_CFLAGS))
  TEMPLATE_VBoxValidationKitR3Base_CXXFLAGS        = $(filter-out -static, $(TEMPLATE_VBoxR3Static_CXXFLAGS))

@@ -1435,6 +1435,34 @@ DECLINLINE(void *) PDMUsbHlpQueryGenericUserObject(PPDMUSBINS pUsbIns, PCRTUUID 
     return pUsbIns->pHlpR3->pfnQueryGenericUserObject(pUsbIns, pUuid);
 }
 
+/**
+ * Same as pfnSTAMRegister except that the name is specified in a
+ * RTStrPrintf like fashion.
+ *
+ * @param   pDevIns             Device instance of the DMA.
+ * @param   pvSample            Pointer to the sample.
+ * @param   enmType             Sample type. This indicates what pvSample is
+ *                              pointing at.
+ * @param   enmVisibility       Visibility type specifying whether unused
+ *                              statistics should be visible or not.
+ * @param   enmUnit             Sample unit.
+ * @param   pszDesc             Sample description.
+ * @param   pszName             Sample name format string, unix path style.  If
+ *                              this does not start with a '/', the default
+ *                              prefix will be prepended, otherwise it will be
+ *                              used as-is.
+ * @param   ...                 Arguments to the format string.
+ */
+DECLINLINE(void) RT_IPRT_FORMAT_ATTR(7, 8) PDMUsbHlpSTAMRegisterF(PPDMUSBINS pUsbIns, void *pvSample, STAMTYPE enmType,
+                                                                  STAMVISIBILITY enmVisibility, STAMUNIT enmUnit,
+                                                                  const char *pszDesc, const char *pszName, ...)
+{
+    va_list va;
+    va_start(va, pszName);
+    pUsbIns->pHlpR3->pfnSTAMRegisterV(pUsbIns, pvSample, enmType, enmVisibility, enmUnit, pszDesc, pszName, va);
+    va_end(va);
+}
+
 #endif /* IN_RING3 */
 
 

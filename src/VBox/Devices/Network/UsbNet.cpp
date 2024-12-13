@@ -415,6 +415,9 @@ typedef struct USBNET
      * This is waiting for SCSI request completion before finishing the reset. */
     PVUSBURB                            pResetUrb;
 
+    STAMCOUNTER                         StatReceiveBytes;
+    STAMCOUNTER                         StatTransmitBytes;
+
     /**
      * LUN\#0 data.
      */
@@ -1321,6 +1324,7 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 
     pUrb->cbData = (uint32_t)(sizeof(*pNth16) + sizeof(*pNdp16) + cb);
     usbNetLinkDone(pThis, pUrb);
+    STAM_REL_COUNTER_ADD(&pThis->StatReceiveBytes, cb);
     RTCritSectLeave(&pThis->CritSect);
 
     LogFlow(("%s: return %Rrc\n", __FUNCTION__, VINF_SUCCESS));
@@ -1609,6 +1613,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
                     rc = pThis->Lun0.pINetwork->pfnSendBuf(pThis->Lun0.pINetwork, pSgBuf, true /* fOnWorkerThread */);
                     if (RT_FAILURE(rc))
                         return usbNetCompleteStall(pThis, NULL, pUrb, "SendBuf failed");
+                    STAM_REL_COUNTER_ADD(&pThis->StatTransmitBytes, pDGram->wDatagramLength);
                 }
                 else
                     return usbNetCompleteStall(pThis, NULL, pUrb, "AllocBuf failed");
@@ -2200,7 +2205,7 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
     rc = pHlp->pfnCFGMValidateConfig(pCfg, "/",
                                      "MAC|"
                                      "CableConnected|"
-                                     "LinkUpDelay|"
+                                     "LinkUpDelay"
                                      , "Config", "UsbNet", iInstance);
     if (RT_FAILURE(rc))
         return rc;
@@ -2285,6 +2290,17 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
+
+    /*
+     * Register statistics.
+     * The /Public/ bits are official and used by session info in the GUI.
+     */
+    PDMUsbHlpSTAMRegisterF(pUsbIns, &pThis->StatReceiveBytes,  STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,
+                           "Amount of data received",    "/Public/NetAdapter/%u/BytesReceived", iInstance);
+    PDMUsbHlpSTAMRegisterF(pUsbIns, &pThis->StatTransmitBytes, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,
+                           "Amount of data transmitted", "/Public/NetAdapter/%u/BytesTransmitted", iInstance);
+    PDMUsbHlpSTAMRegisterF(pUsbIns, &pUsbIns->iInstance,       STAMTYPE_U32,     STAMVISIBILITY_ALWAYS, STAMUNIT_NONE,
+                           "Device instance number",     "/Public/NetAdapter/%u/%s", iInstance, pUsbIns->pReg->szName);
 
     return VINF_SUCCESS;
 }

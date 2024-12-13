@@ -376,6 +376,8 @@ typedef struct USBNET
     bool                                fLinkUp;
     /** If set the link is temporarily down because of a saved state load. */
     bool                                fLinkTempDown;
+    /** Link Up(/Restore) Timer. */
+    TMTIMERHANDLE                       hTimerLinkUp;
 
     bool                                fInitialLinkStatusSent;
     bool                                fInitialSpeedChangeSent;
@@ -1367,6 +1369,28 @@ static DECLCALLBACK(PDMNETWORKLINKSTATE) usbNetGetLinkState(PPDMINETWORKCONFIG p
 }
 
 
+DECLHIDDEN(void) usbNetLinkStateNotify(PUSBNET pThis, PDMNETWORKLINKSTATE enmLinkState);
+
+/**
+ * @callback_method_impl{FNTMTIMERUSB}
+ *
+ * By the time the host resumes after sleep the network environment may have changed considerably.
+ * We handle this by temporarily lowering the link state. This callback brings the link back up.
+ */
+static DECLCALLBACK(void) usbNetTimerLinkUp(PPDMUSBINS pUsbIns, TMTIMERHANDLE hTimer, void *pvUser)
+{
+    PUSBNET pThis = (PUSBNET)pvUser;
+    RT_NOREF(pUsbIns, hTimer);
+
+    LogFlowFunc(("#%d\n", pUsbIns->iInstance));
+
+    /* @todo: Do we really care for potential races with link state? */
+    pThis->fLinkTempDown = false;
+    if (!pThis->fLinkUp)
+        usbNetLinkStateNotify(pThis, PDMNETWORKLINKSTATE_UP);
+}
+
+
 /**
  * @interface_method_impl{PDMINETWORKCONFIG,pfnSetLinkState}
  */
@@ -1374,51 +1398,24 @@ static DECLCALLBACK(int) usbNetSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNE
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
-    //bool            fLinkUp;
+    bool fLinkUp = enmState == PDMNETWORKLINKSTATE_UP;
 
-    LogFlowFunc(("#%d\n", pThis->pUsbIns->iInstance));
+    LogFlowFunc(("#%d enmState=%d\n", pThis->pUsbIns->iInstance, enmState));
     AssertMsgReturn(enmState > PDMNETWORKLINKSTATE_INVALID && enmState <= PDMNETWORKLINKSTATE_DOWN_RESUME,
                     ("Invalid link state: enmState=%d\n", enmState), VERR_INVALID_PARAMETER);
-    RT_NOREF(pThis);
 
-#if 0
     if (enmState == PDMNETWORKLINKSTATE_DOWN_RESUME)
     {
-        dp8390TempLinkDown(pDevIns, pThis);
-        /*
-         * Note that we do not notify the driver about the link state change because
-         * the change is only temporary and can be disregarded from the driver's
-         * point of view (see @bugref{7057}).
-         */
-        return VINF_SUCCESS;
+        pThis->fLinkTempDown = true;
+        /* Do not bother to notify anyone if the link has been down */
+        PDMUsbHlpTimerSetMillies(pThis->pUsbIns, pThis->hTimerLinkUp, 500);    /* 0.5 sec */
     }
     /* has the state changed? */
-    fLinkUp = enmState == PDMNETWORKLINKSTATE_UP;
     if (pThis->fLinkUp != fLinkUp)
     {
         pThis->fLinkUp = fLinkUp;
-        if (fLinkUp)
-        {
-            /* Connect with a configured delay. */
-            pThis->fLinkTempDown = true;
-            pThis->cLinkDownReported = 0;
-            pThis->cLinkRestorePostponed = 0;
-            pThis->Led.Asserted.s.fError = pThis->Led.Actual.s.fError = 1;
-            int rc = PDMDevHlpTimerSetMillies(pDevIns, pThis->hTimerRestore, pThis->cMsLinkUpDelay);
-            AssertRC(rc);
-        }
-        else
-        {
-            /* Disconnect. */
-            pThis->cLinkDownReported = 0;
-            pThis->cLinkRestorePostponed = 0;
-            pThis->Led.Asserted.s.fError = pThis->Led.Actual.s.fError = 1;
-        }
-        Assert(!PDMDevHlpCritSectIsOwner(pDevIns, &pThis->CritSect));
-        if (pThisCC->pDrv)
-            pThisCC->pDrv->pfnNotifyLinkChanged(pThisCC->pDrv, enmState);
+        usbNetLinkStateNotify(pThis, enmState);
     }
-#endif
     return VINF_SUCCESS;
 }
 
@@ -1664,18 +1661,8 @@ static int usbNetHandleIntrDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     if (RT_UNLIKELY(pEp->fHalted))
         return usbNetCompleteStall(pThis, NULL, pUrb, pEp->fHalted ? "Halted pipe" : "No request");
 
-    if (!pThis->fInitialLinkStatusSent)
-    {
-        USBCDCNOTIFICICATION LinkNotification;
-        LinkNotification.bmRequestType     = 0xa1;
-        LinkNotification.bNotificationCode = USB_CDC_NOTIFICATION_CODE_NETWORK_CONNECTION;
-        LinkNotification.wValue            = pThis->fLinkUp ? 1 : 0;
-        LinkNotification.wIndex            = 0;
-        LinkNotification.wLength           = 0;
-        usbNetCompleteNotificationOk(pThis, pUrb, &LinkNotification, sizeof(LinkNotification));
-        pThis->fInitialLinkStatusSent = true;
-    }
-    else if (!pThis->fInitialSpeedChangeSent)
+    /* CONNECTION_SPEED_CHANGE is sent first, followed by NETWORK_CONNECTION. See [NCM10] (section 7.1) */
+    if (!pThis->fInitialSpeedChangeSent)
     {
         USBCDCNOTIFICICATIONSPEEDCHG SpeedChange;
         SpeedChange.Hdr.bmRequestType     = 0xa1;
@@ -1688,11 +1675,46 @@ static int usbNetHandleIntrDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
         usbNetCompleteNotificationOk(pThis, pUrb, &SpeedChange, sizeof(SpeedChange));
         pThis->fInitialSpeedChangeSent = true;
     }
+    else if (!pThis->fInitialLinkStatusSent)
+    {
+        USBCDCNOTIFICICATION LinkNotification;
+        LinkNotification.bmRequestType     = 0xa1;
+        LinkNotification.bNotificationCode = USB_CDC_NOTIFICATION_CODE_NETWORK_CONNECTION;
+        LinkNotification.wValue            = pThis->fLinkUp ? 1 : 0;
+        LinkNotification.wIndex            = 0;
+        LinkNotification.wLength           = 0;
+        usbNetCompleteNotificationOk(pThis, pUrb, &LinkNotification, sizeof(LinkNotification));
+        pThis->fInitialLinkStatusSent = true;
+    }
     else
         usbNetQueueAddTail(&pThis->ToHostIntrQueue, pUrb);
 
     LogFlow(("usbNetHandleIntrDevToHost: Added %p:%s to the to-host interrupt queue\n", pUrb, pUrb->pszDesc));
     return VINF_SUCCESS;
+}
+
+
+/**
+ * Notifies both the guest and the network/driver of link state changes.
+ *
+ * @param   pThis               The UsbNet instance.
+ * @param   enmLinkState        The new link state.
+ */
+DECLHIDDEN(void) usbNetLinkStateNotify(PUSBNET pThis, PDMNETWORKLINKSTATE enmLinkState)
+{
+    LogFlowFunc(("#%d enmLinkState=%d\n", pThis->pUsbIns->iInstance, enmLinkState));
+    RTCritSectEnter(&pThis->CritSect);
+    /* Trigger notifications */
+    pThis->fInitialLinkStatusSent  = false;
+    pThis->fInitialSpeedChangeSent = false;
+    PVUSBURB pUrb = usbNetQueueRemoveHead(&pThis->ToHostIntrQueue);
+    /* If there is a request pending, use it. Otherwise the host should poll us soon. */
+    if (pUrb)
+        usbNetHandleIntrDevToHost(pThis, &pThis->aEps[3], pUrb);
+    RTCritSectLeave(&pThis->CritSect);
+    /* Always notify our network when notifying the guest. */
+    if (pThis->Lun0.pINetwork)
+        pThis->Lun0.pINetwork->pfnNotifyLinkChanged(pThis->Lun0.pINetwork, enmLinkState);
 }
 
 
@@ -2096,6 +2118,8 @@ static DECLCALLBACK(void) usbNetDestruct(PPDMUSBINS pUsbIns)
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
     LogFlow(("usbNetDestruct/#%u:\n", pUsbIns->iInstance));
 
+    PDMUsbHlpTimerDestroy(pUsbIns, pThis->hTimerLinkUp);
+
     if (RTCritSectIsInitialized(&pThis->CritSect))
     {
         RTCritSectEnter(&pThis->CritSect);
@@ -2203,6 +2227,13 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
     if (!pThis->Lun0.pINetwork)
         return PDMUsbHlpVMSetError(pUsbIns, VERR_PDM_MISSING_INTERFACE_BELOW, RT_SRC_POS,
                                    N_("USBNET failed to query the PDMINETWORKUP from the driver below it"));
+
+    /*
+     * Create the timer for delaying of bringing the link up.
+     */
+    rc = PDMUsbHlpTimerCreate(pUsbIns, TMCLOCK_VIRTUAL, usbNetTimerLinkUp, pThis,
+                              TMTIMER_FLAGS_DEFAULT_CRIT_SECT,
+                              "Link Up", &pThis->hTimerLinkUp);
 
     /*
      * Build the USB descriptors.

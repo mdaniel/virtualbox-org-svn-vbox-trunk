@@ -1384,7 +1384,7 @@ static DECLCALLBACK(void) usbNetTimerLinkUp(PPDMUSBINS pUsbIns, TMTIMERHANDLE hT
 
     LogFlowFunc(("#%d\n", pUsbIns->iInstance));
 
-    /* @todo: Do we really care for potential races with link state? */
+    /** @todo Do we really care for potential races with link state? */
     pThis->fLinkTempDown = false;
     if (!pThis->fLinkUp)
         usbNetLinkStateNotify(pThis, PDMNETWORKLINKSTATE_UP);

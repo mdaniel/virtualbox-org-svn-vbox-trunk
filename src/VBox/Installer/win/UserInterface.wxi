@@ -1173,7 +1173,6 @@
 
         <Publish Dialog="VBoxVerifyReadyDlg" Control="Back" Event="NewDialog" Value="VBoxCustomize2Dlg" Condition="VBOX_SHOW_CUSTOMIZE2_DLG" />
         <Publish Dialog="VBoxVerifyReadyDlg" Control="Back" Event="NewDialog" Value="VBoxCustomizeDlg" Condition="NOT VBOX_SHOW_CUSTOMIZE2_DLG" />
-        <Publish Dialog="VBoxVerifyReadyDlg" Control="Next" Event="NewDialog" Value="VBoxVerifyReadyDlg" />
 
         <!-- This defines the order in which the GUI panels will be shown to the user. -->
         <InstallUISequence>

@@ -53,6 +53,7 @@ extern const PDMGICBACKEND g_GicHvfBackend;
 /** The Hyper-V GIC backend. */
 extern const PDMGICBACKEND g_GicHvBackend;
 # endif
+#endif
 
 #define VMCPU_TO_GICCPU(a_pVCpu)             (&(a_pVCpu)->gic.s)
 #define VM_TO_GIC(a_pVM)                     (&(a_pVM)->gic.s)

@@ -1250,7 +1250,7 @@ VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, 
  * @returns VBox status code.
  * @param   pVCpu       The cross context virtual CPU structure.
  * @param   u32Reg      The ICC register.
- * @param   u64Value    Where to store value.
+ * @param   pu64Value   Where to store value.
  */
 VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value)
 {

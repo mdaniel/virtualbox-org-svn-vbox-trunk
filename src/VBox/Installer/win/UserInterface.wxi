@@ -590,10 +590,12 @@
             </Control>
             <!-- Currently we don't want to let the users ignore a running VirtualBox installation, as this
                  will result in an unstable mix of the old and new installation until a reboot is performed. See #9139.
-            <Control Id="Ignore" Type="PushButton" X="235" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Ignore)">
+
+                 WIX v4 will report an error (ICE20) when simply commenting out the following button, as this button
+                 needs to be defined for that standard dialog. So we simply disable the button instead. -->
+            <Control Id="Ignore" Type="PushButton" X="235" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Ignore)" Disabled="Yes">
                 <Publish Event="EndDialog" Value="Ignore">1</Publish>
             </Control>
-            -->
             <Control Id="Exit" Type="PushButton" X="235" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Exit)">
                 <Publish Event="EndDialog" Value="Exit" />
             </Control>

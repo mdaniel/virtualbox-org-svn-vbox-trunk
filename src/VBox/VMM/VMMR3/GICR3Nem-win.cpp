@@ -37,7 +37,7 @@
 #include <VBox/log.h>
 #include "GICInternal.h"
 #include "NEMInternal.h" /* Need access to the partition handle. */
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/hm.h>
 #include <VBox/vmm/mm.h>
@@ -69,9 +69,9 @@ typedef struct GICHVDEV
     /** The partition handle grabbed from NEM. */
     WHV_PARTITION_HANDLE hPartition;
 } GICHVDEV;
-/** Pointer to a GIC KVM device. */
+/** Pointer to a GIC Hyper-V device. */
 typedef GICHVDEV *PGICHVDEV;
-/** Pointer to a const GIC KVM device. */
+/** Pointer to a const GIC Hyper-V device. */
 typedef GICHVDEV const *PCGICHVDEV;
 
 
@@ -123,10 +123,10 @@ extern decltype(WHvRequestInterrupt) *  g_pfnWHvRequestInterrupt;
 
 
 /**
- * Common worker for GICR3KvmSpiSet() and GICR3KvmPpiSet().
+ * Common worker for gicR3HvSetSpi() and gicR3HvSetPpi().
  *
  * @returns VBox status code.
- * @param   pDevIns     The PDM KVM GIC device instance.
+ * @param   pDevIns     The PDM Hyper-V GIC device instance.
  * @param   idCpu       The CPU ID for which the interrupt is updated (only valid for PPIs).
  * @param   fPpi        Flag whether this is a PPI or SPI.
  * @param   uIntId      The interrupt ID to update.
@@ -162,14 +162,14 @@ DECLINLINE(int) gicR3HvSetIrq(PPDMDEVINS pDevIns, VMCPUID idCpu, bool fPpi, uint
 
 
 /**
- * Sets the given SPI inside the in-kernel KVM GIC.
+ * Sets the given SPI inside the in-kernel Hyper-V GIC.
  *
  * @returns VBox status code.
  * @param   pVM         The VM instance.
  * @param   uIntId      The SPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+static DECLCALLBACK(int) gicR3HvSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
 {
     PGIC pGic = VM_TO_GIC(pVM);
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
@@ -181,14 +181,14 @@ VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
 
 
 /**
- * Sets the given PPI inside the in-kernel KVM GIC.
+ * Sets the given PPI inside the in-kernel Hyper-V GIC.
  *
  * @returns VBox status code.
  * @param   pVCpu       The vCPU for whih the PPI state is updated.
  * @param   uIntId      The PPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemPpiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+static DECLCALLBACK(int) gicR3HvSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
 {
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
 
@@ -258,7 +258,10 @@ DECLCALLBACK(int) gicR3HvConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE 
     /*
      * Register the GIC with PDM.
      */
-    rc = PDMDevHlpApicRegister(pDevIns);
+    rc = PDMDevHlpIcRegister(pDevIns);
+    AssertLogRelRCReturn(rc, rc);
+
+    rc = PDMGicRegisterBackend(pVM, PDMGICBACKENDTYPE_HYPERV, &g_GicHvBackend);
     AssertLogRelRCReturn(rc, rc);
 
     /*
@@ -328,6 +331,17 @@ const PDMDEVREG g_DeviceGICNem =
 # error "Not in IN_RING3!"
 #endif
     /* .u32VersionEnd = */          PDM_DEVREG_VERSION
+};
+
+/**
+ * The Hypervisor.Framework GIC backend.
+ */
+const PDMGICBACKEND g_GicHvfBackend =
+{
+    /* .pfnReadSysReg = */  NULL,
+    /* .pfnWriteSysReg = */ NULL,
+    /* .pfnSetSpi = */      gicR3HvSetSpi,
+    /* .pfnSetPpi = */      gicR3HvSetPpi,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

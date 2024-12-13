@@ -36,7 +36,7 @@
 #include <VBox/vmm/vmcc.h>
 #include <VBox/err.h>
 #ifdef VBOX_VMM_TARGET_ARMV8
-# include <VBox/vmm/gic.h>
+# include <VBox/vmm/pdmgic.h>
 #else
 # include <VBox/vmm/pdmapic.h>
 #endif
@@ -149,7 +149,7 @@ VMMDECL(int) PDMIsaSetIrq(PVMCC pVM, uint8_t u8Irq, uint8_t u8Level, uint32_t uT
 
 #ifdef VBOX_VMM_TARGET_ARMV8
     int rc = VINF_SUCCESS;
-    GICSpiSet(pVM, u8Irq, u8Level == PDM_IRQ_LEVEL_HIGH ? true : false);
+    PDMGicSetSpi(pVM, u8Irq, u8Level == PDM_IRQ_LEVEL_HIGH ? true : false);
 #else
     int rc = VERR_PDM_NO_PIC_INSTANCE;
 /** @todo r=bird: This code is incorrect, as it ASSUMES the PIC and I/O APIC
@@ -206,7 +206,7 @@ VMM_INT_DECL(int) PDMIoApicSetIrq(PVM pVM, PCIBDF uBusDevFn, uint8_t u8Irq, uint
 
 #ifdef VBOX_VMM_TARGET_ARMV8
     RT_NOREF(uBusDevFn, uTagSrc);
-    GICSpiSet(pVM, u8Irq, u8Level == PDM_IRQ_LEVEL_HIGH ? true : false);
+    PDMGicSetSpi(pVM, u8Irq, u8Level == PDM_IRQ_LEVEL_HIGH ? true : false);
     return VINF_SUCCESS;
 #else
     if (pVM->pdm.s.IoApic.CTX_SUFF(pDevIns))

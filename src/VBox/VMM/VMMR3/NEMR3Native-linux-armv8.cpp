@@ -34,7 +34,7 @@
 #include <VBox/vmm/nem.h>
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/em.h>
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/trpm.h>
 #include "NEMInternal.h"
@@ -1191,13 +1191,13 @@ static VBOXSTRICTRC nemHCLnxHandleExit(PVMCC pVM, PVMCPUCC pVCpu, struct kvm_run
         if (fChanged & KVM_ARM_DEV_EL1_VTIMER)
         {
             TMCpuSetVTimerNextActivation(pVCpu, UINT64_MAX);
-            GICPpiSet(pVCpu, pVM->nem.s.u32GicPpiVTimer, RT_BOOL(pRun->s.regs.device_irq_level & KVM_ARM_DEV_EL1_VTIMER));
+            PDMGicSetPpi(pVCpu, pVM->nem.s.u32GicPpiVTimer, RT_BOOL(pRun->s.regs.device_irq_level & KVM_ARM_DEV_EL1_VTIMER));
         }
 
         if (fChanged & KVM_ARM_DEV_EL1_PTIMER)
         {
             //TMCpuSetVTimerNextActivation(pVCpu, UINT64_MAX);
-            GICPpiSet(pVCpu, pVM->nem.s.u32GicPpiVTimer, RT_BOOL(pRun->s.regs.device_irq_level & KVM_ARM_DEV_EL1_PTIMER));
+            PDMGicSetPpi(pVCpu, pVM->nem.s.u32GicPpiVTimer, RT_BOOL(pRun->s.regs.device_irq_level & KVM_ARM_DEV_EL1_PTIMER));
         }
 
         pVCpu->nem.s.fIrqDeviceLvls = pRun->s.regs.device_irq_level;

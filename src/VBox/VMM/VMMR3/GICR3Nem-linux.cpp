@@ -33,7 +33,7 @@
 #include <VBox/log.h>
 #include "GICInternal.h"
 #include "NEMInternal.h" /* Need access to the VM file descriptor. */
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/hm.h>
 #include <VBox/vmm/mm.h>
@@ -100,7 +100,7 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GICv3[] =
 
 
 /**
- * Common worker for GICR3KvmSpiSet() and GICR3KvmPpiSet().
+ * Common worker for gicR3KvmSpiSet() and gicR3KvmPpiSet().
  *
  * @returns VBox status code.
  * @param   pDevIns     The PDM KVM GIC device instance.
@@ -137,7 +137,7 @@ static int gicR3KvmSetIrq(PPDMDEVINS pDevIns, VMCPUID idCpu, uint32_t u32IrqType
  * @param   uIntId      The SPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+static DECLCALLBACK(int) gicR3KvmSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
 {
     PGIC pGic = VM_TO_GIC(pVM);
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
@@ -156,11 +156,11 @@ VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
  * @param   uIntId      The PPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemPpiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+static DECLCALLBACK(int) gicR3KvmSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
 {
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
 
-    return gicR3KvmSetIrq(pDevIns, pVCpu->idCpu, KVM_ARM_IRQ_TYPE_SPI,
+    return gicR3KvmSetIrq(pDevIns, pVCpu->idCpu, KVM_ARM_IRQ_TYPE_PPI,
                           uIntId + GIC_INTID_RANGE_PPI_START, fAsserted);
 }
 
@@ -293,7 +293,10 @@ DECLCALLBACK(int) gicR3KvmConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
     /*
      * Register the GIC with PDM.
      */
-    rc = PDMDevHlpApicRegister(pDevIns);
+    rc = PDMDevHlpIcRegister(pDevIns);
+    AssertLogRelRCReturn(rc, rc);
+
+    rc = PDMGicRegisterBackend(pVM, PDMGICBACKENDTYPE_KVM, &g_GicKvmBackend);
     AssertLogRelRCReturn(rc, rc);
 
     /*
@@ -402,6 +405,17 @@ const PDMDEVREG g_DeviceGICNem =
 # error "Not in IN_RING3!"
 #endif
     /* .u32VersionEnd = */          PDM_DEVREG_VERSION
+};
+
+/**
+ * The KVM GIC backend.
+ */
+const PDMGICBACKEND g_GicKvmBackend =
+{
+    /* .pfnReadSysReg = */  NULL,
+    /* .pfnWriteSysReg = */ NULL,
+    /* .pfnSetSpi = */      gicR3KvmSetSpi,
+    /* .pfnSetPpi = */      gicR3KvmSetPpi,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

@@ -130,7 +130,7 @@
 #include <VBox/sup.h>
 #include <VBox/vmm/dbgf.h>
 #ifdef VBOX_VMM_TARGET_ARMV8
-# include <VBox/vmm/gic.h>
+# include <VBox/vmm/pdmgic.h>
 #elif defined(VBOX_VMM_TARGET_X86)
 # include <VBox/vmm/pdmapic.h>
 #endif

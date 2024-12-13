@@ -32,7 +32,7 @@
 #define LOG_GROUP LOG_GROUP_CPUM
 #include <VBox/vmm/cpum.h>
 #include "CPUMInternal-armv8.h"
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/pmu.h>
 #include <VBox/vmm/vmcc.h>
 #include <VBox/err.h>
@@ -171,7 +171,7 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_WriteCpumOff(PVMCPUCC pVCpu, uint
 static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_GicV3Icc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t *puValue)
 {
     RT_NOREF_PV(pRange);
-    return GICReadSysReg(pVCpu, idSysReg, puValue);
+    return PDMGicReadSysReg(pVCpu, idSysReg, puValue);
 }
 
 
@@ -179,7 +179,7 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_GicV3Icc(PVMCPUCC pVCpu, uint32_t
 static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_GicV3Icc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
-    return GICWriteSysReg(pVCpu, idSysReg, uValue);
+    return PDMGicWriteSysReg(pVCpu, idSysReg, uValue);
 }
 
 

@@ -32,7 +32,7 @@
 #define LOG_GROUP LOG_GROUP_DEV_PMU
 #include <VBox/log.h>
 #include "PMUInternal.h"
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/hm.h>
 #include <VBox/vmm/mm.h>

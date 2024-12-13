@@ -31,7 +31,7 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_DEV_APIC
 #include "GICInternal.h"
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/pdmdev.h>
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/vmm/vmcc.h>
@@ -909,14 +909,83 @@ DECLINLINE(VBOXSTRICTRC) gicReDistSgiPpiRegisterWrite(PPDMDEVINS pDevIns, PVMCPU
 
 
 /**
- * Reads a GIC system register.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu           The cross context virtual CPU structure.
- * @param   u32Reg          The system register being read.
- * @param   pu64Value       Where to store the read value.
+ * @interface_method_impl{PDMGICBACKEND,pfnSetSpi}
  */
-VMM_INT_DECL(VBOXSTRICTRC) GICReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value)
+static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+{
+    LogFlowFunc(("pVM=%p uIntId=%u fAsserted=%RTbool\n",
+                 pVM, uIntId, fAsserted));
+
+    AssertReturn(uIntId < GIC_SPI_MAX, VERR_INVALID_PARAMETER);
+
+    PGIC       pGic    = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
+    PGICDEV    pThis   = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+
+    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+
+    /* Update the interrupts pending state. */
+    if (fAsserted)
+        ASMAtomicOrU32(&pThis->bmIntPending, RT_BIT_32(uIntId));
+    else
+        ASMAtomicAndU32(&pThis->bmIntPending, ~RT_BIT_32(uIntId));
+
+    int rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pThis));
+    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    return rc;
+}
+
+
+/**
+ * @interface_method_impl{PDMGICBACKEND,pfnSetPpi}
+ */
+static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+{
+    LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u fAsserted=%RTbool\n",
+                 pVCpu, pVCpu->idCpu, uIntId, fAsserted));
+
+    PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
+    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+
+    AssertReturn(uIntId <= (GIC_INTID_RANGE_PPI_LAST - GIC_INTID_RANGE_PPI_START), VERR_INVALID_PARAMETER);
+    int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_PPI_START, fAsserted);
+    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+
+    return rc;
+}
+
+
+/**
+ * Sets the specified software generated interrupt starting.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu               The cross context virtual CPU structure.
+ * @param   uIntId              The PPI ID (minus GIC_INTID_RANGE_SGI_START) to assert/de-assert.
+ * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
+ */
+static int gicSetSgi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+{
+    LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u fAsserted=%RTbool\n",
+                 pVCpu, pVCpu->idCpu, uIntId, fAsserted));
+
+    PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
+    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+
+    AssertReturn(uIntId <= (GIC_INTID_RANGE_SGI_LAST - GIC_INTID_RANGE_SGI_START), VERR_INVALID_PARAMETER);
+    int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_SGI_START, fAsserted);
+    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+
+    return rc;
+}
+
+
+/**
+ * @interface_method_impl{PDMGICBACKEND,pfnReadSysReg}
+ */
+static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value)
 {
     /*
      * Validate.
@@ -1107,14 +1176,9 @@ VMM_INT_DECL(VBOXSTRICTRC) GICReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64
 
 
 /**
- * Writes an GIC system register.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu           The cross context virtual CPU structure.
- * @param   u32Reg          The system register being written (IPRT system  register identifier).
- * @param   u64Value        The value to write.
+ * @interface_method_impl{PDMGICBACKEND,pfnWriteSysReg}
  */
-VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value)
+static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value)
 {
     /*
      * Validate.
@@ -1193,7 +1257,7 @@ VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
                     {
                         PVMCPUCC pVCpuDst = VMMGetCpuById(pVCpu->CTX_SUFF(pVM), i);
                         if (pVCpuDst)
-                            GICSgiSet(pVCpuDst, uIntId, true /*fAsserted*/);
+                            gicSetSgi(pVCpuDst, uIntId, true /*fAsserted*/);
                         else
                             AssertFailed();
                     }
@@ -1212,7 +1276,7 @@ VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
                     {
                         PVMCPUCC pVCpuDst = VMMGetCpuById(pVCpu->CTX_SUFF(pVM), idCpu);
                         if (pVCpuDst)
-                            GICSgiSet(pVCpuDst, uIntId, true /*fAsserted*/);
+                            gicSetSgi(pVCpuDst, uIntId, true /*fAsserted*/);
                         else
                             AssertFailed();
                     }
@@ -1278,122 +1342,6 @@ VMM_INT_DECL(VBOXSTRICTRC) GICWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint6
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
     return VINF_SUCCESS;
-}
-
-
-/**
- * Sets the specified shared peripheral interrupt starting.
- *
- * @returns VBox status code.
- * @param   pVM                 The cross context virtual machine structure.
- * @param   uIntId              The SPI ID (minus GIC_INTID_RANGE_SPI_START) to assert/de-assert.
- * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
- */
-VMM_INT_DECL(int) GICSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
-{
-    LogFlowFunc(("pVM=%p uIntId=%u fAsserted=%RTbool\n",
-                 pVM, uIntId, fAsserted));
-
-    AssertReturn(uIntId < GIC_SPI_MAX, VERR_INVALID_PARAMETER);
-
-    PGIC pGic = VM_TO_GIC(pVM);
-
-    /** @todo r=aeichner There must be another way to do this better, maybe create some callback interface
-     *                   the GIC can register. */
-#ifdef IN_RING3
-    if (pGic->fNemGic)
-        return GICR3NemSpiSet(pVM, uIntId, fAsserted);
-#else
-# error "Impossible to call the NEM in-kernel GIC from this context!"
-#endif
-
-    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
-    PGICDEV    pThis   = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
-
-    /* Update the interrupts pending state. */
-    if (fAsserted)
-        ASMAtomicOrU32(&pThis->bmIntPending, RT_BIT_32(uIntId));
-    else
-        ASMAtomicAndU32(&pThis->bmIntPending, ~RT_BIT_32(uIntId));
-
-    int rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pThis));
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
-    return rc;
-}
-
-
-/**
- * Sets the specified private peripheral interrupt starting.
- *
- * @returns VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure.
- * @param   uIntId              The PPI ID (minus GIC_INTID_RANGE_PPI_START) to assert/de-assert.
- * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
- */
-VMM_INT_DECL(int) GICPpiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
-{
-    LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u fAsserted=%RTbool\n",
-                 pVCpu, pVCpu->idCpu, uIntId, fAsserted));
-
-    PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
-
-    /** @todo r=aeichner There must be another way to do this better, maybe create some callback interface
-     *                   the GIC can register. */
-#ifdef IN_RING3
-    PGIC pGic = VM_TO_GIC(pVCpu->pVMR3);
-    if (pGic->fNemGic)
-        return GICR3NemPpiSet(pVCpu, uIntId, fAsserted);
-#else
-# error "Impossible to call the NEM in-kernel GIC from this context!"
-#endif
-
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
-
-    AssertReturn(uIntId <= (GIC_INTID_RANGE_PPI_LAST - GIC_INTID_RANGE_PPI_START), VERR_INVALID_PARAMETER);
-    int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_PPI_START, fAsserted);
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
-
-    return rc;
-}
-
-
-/**
- * Sets the specified software generated interrupt starting.
- *
- * @returns VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure.
- * @param   uIntId              The PPI ID (minus GIC_INTID_RANGE_SGI_START) to assert/de-assert.
- * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
- */
-VMM_INT_DECL(int) GICSgiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
-{
-    LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u fAsserted=%RTbool\n",
-                 pVCpu, pVCpu->idCpu, uIntId, fAsserted));
-
-    PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
-
-    /** @todo r=aeichner There must be another way to do this better, maybe create some callback interface
-     *                   the GIC can register. */
-#ifdef IN_RING3
-    PGIC pGic = VM_TO_GIC(pVCpu->pVMR3);
-    /* These should be handled in the kernel and never be set from here. */
-    AssertReturn(!pGic->fNemGic, VERR_NEM_IPE_6);
-#else
-# error "Impossible to call the in-kernel GIC from this context!"
-#endif
-
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
-
-    AssertReturn(uIntId <= (GIC_INTID_RANGE_SGI_LAST - GIC_INTID_RANGE_SGI_START), VERR_INVALID_PARAMETER);
-    int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_SGI_START, fAsserted);
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
-
-    return rc;
 }
 
 
@@ -1617,5 +1565,16 @@ const PDMDEVREG g_DeviceGIC =
 # error "Not in IN_RING3, IN_RING0 or IN_RC!"
 #endif
     /* .u32VersionEnd = */          PDM_DEVREG_VERSION
+};
+
+/**
+ * The VirtualBox GIC backend.
+ */
+const PDMGICBACKEND g_GicBackend =
+{
+    /* .pfnReadSysReg = */  gicReadSysReg,
+    /* .pfnWriteSysReg = */ gicWriteSysReg,
+    /* .pfnSetSpi = */      gicSetSpi,
+    /* .pfnSetPpi = */      gicSetPpi,
 };
 

@@ -32,8 +32,8 @@
 #define LOG_GROUP LOG_GROUP_DEV_APIC
 #include <VBox/log.h>
 #include "GICInternal.h"
-#include "NEMInternal.h" /* Need access to the VM file descriptor. */
-#include <VBox/vmm/gic.h>
+#include "NEMInternal.h" /* Need access to the VM file descriptor and for GIC API currently implemented in NEM. */
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/hm.h>
 #include <VBox/vmm/mm.h>
@@ -45,41 +45,30 @@
 
 
 /*********************************************************************************************************************************
-*   Defined Constants And Macros                                                                                                 *
-*********************************************************************************************************************************/
-
-
-/*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
 
 /**
- * GICKvm PDM instance data (per-VM).
+ * GIC Hypervisor.Framework PDM instance data (per-VM).
  */
-typedef struct GICKVMDEV
+typedef struct GICHVFDEV
 {
     /** Pointer to the PDM device instance. */
     PPDMDEVINSR3        pDevIns;
-} GICKVMDEV;
+} GICHVFDEV;
 /** Pointer to a GIC KVM device. */
-typedef GICKVMDEV *PGICKVMDEV;
+typedef GICHVFDEV *PGICHVFDEV;
 /** Pointer to a const GIC KVM device. */
-typedef GICKVMDEV const *PCGICKVMDEV;
-
-
-/*********************************************************************************************************************************
-*   Global Variables                                                                                                             *
-*********************************************************************************************************************************/
-
+typedef GICHVFDEV const *PCGICHVFDEV;
 
 
 /**
  * @interface_method_impl{PDMDEVREG,pfnConstruct}
  */
-DECLCALLBACK(int) gicR3NemConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg)
+DECLCALLBACK(int) gicR3HvfConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg)
 {
     PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
-    PGICKVMDEV      pThis    = PDMDEVINS_2_DATA(pDevIns, PGICKVMDEV);
+    PGICHVFDEV      pThis    = PDMDEVINS_2_DATA(pDevIns, PGICHVFDEV);
     PVM             pVM      = PDMDevHlpGetVM(pDevIns);
     PGIC            pGic     = VM_TO_GIC(pVM);
     Assert(iInstance == 0); NOREF(iInstance);
@@ -90,7 +79,6 @@ DECLCALLBACK(int) gicR3NemConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
      * Init the data.
      */
     pGic->pDevInsR3 = pDevIns;
-    pGic->fNemGic   = true;
     pThis->pDevIns  = pDevIns;
 
     /*
@@ -102,7 +90,10 @@ DECLCALLBACK(int) gicR3NemConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
     /*
      * Register the GIC with PDM.
      */
-    rc = PDMDevHlpApicRegister(pDevIns);
+    rc = PDMDevHlpIcRegister(pDevIns);
+    AssertLogRelRCReturn(rc, rc);
+
+    rc = PDMGicRegisterBackend(pVM, PDMGICBACKENDTYPE_HVF, &g_GicHvfBackend);
     AssertLogRelRCReturn(rc, rc);
 
     return VINF_SUCCESS;
@@ -130,7 +121,7 @@ const PDMDEVREG g_DeviceGICNem =
 #if defined(IN_RING3)
     /* .szRCMod = */                "VMMRC.rc",
     /* .szR0Mod = */                "VMMR0.r0",
-    /* .pfnConstruct = */           gicR3NemConstruct,
+    /* .pfnConstruct = */           gicR3HvfConstruct,
     /* .pfnDestruct = */            NULL,
     /* .pfnRelocate = */            NULL,
     /* .pfnMemSetup = */            NULL,
@@ -156,6 +147,18 @@ const PDMDEVREG g_DeviceGICNem =
 # error "Not in IN_RING3!"
 #endif
     /* .u32VersionEnd = */          PDM_DEVREG_VERSION
+};
+
+
+/**
+ * The Hypervisor.Framework GIC backend.
+ */
+const PDMGICBACKEND g_GicHvfBackend =
+{
+    /* .pfnReadSysReg = */  NEMR3GicReadSysReg,
+    /* .pfnWriteSysReg = */ NEMR3GicWriteSysReg,
+    /* .pfnSetSpi = */      NEMR3GicSetSpi,
+    /* .pfnSetPpi = */      NEMR3GicSetPpi,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

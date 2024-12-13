@@ -38,7 +38,7 @@
 #include <VBox/vmm/nem.h>
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/em.h>
-#include <VBox/vmm/gic.h>
+#include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/dbgftrace.h>
 #include <VBox/vmm/gcm.h>
@@ -90,7 +90,17 @@ typedef enum hv_gic_distributor_reg_t : uint16_t
 
 typedef enum hv_gic_icc_reg_t : uint16_t
 {
-    HV_GIC_ICC_REG_AP0R0_EL1
+    HV_GIC_ICC_REG_PMR_EL1,
+    HV_GIC_ICC_REG_BPR0_EL1,
+    HV_GIC_ICC_REG_AP0R0_EL1,
+    HV_GIC_ICC_REG_AP1R0_EL1,
+    HV_GIC_ICC_REG_RPR_EL1,
+    HV_GIC_ICC_REG_BPR1_EL1,
+    HV_GIC_ICC_REG_CTLR_EL1,
+    HV_GIC_ICC_REG_SRE_EL1,
+    HV_GIC_ICC_REG_IGRPEN0_EL1,
+    HV_GIC_ICC_REG_IGRPEN1_EL1,
+    HV_GIC_ICC_REG_INVALID,
     /** @todo */
 } hv_gic_icc_reg_t;
 
@@ -626,6 +636,49 @@ static const char *nemR3DarwinHvStatusName(hv_return_t hrc)
 
 
 /**
+ * Converts an ICC system register into Darwin's Hypervisor.Framework equivalent.
+ *
+ * @returns HvF's ICC system register.
+ * @param   u32Reg      The ARMv8 ICC system register.
+ */
+static hv_gic_icc_reg_t nemR3DarwinIccRegFromSysReg(uint32_t u32Reg)
+{
+    switch (u32Reg)
+    {
+        case ARMV8_AARCH64_SYSREG_ICC_PMR_EL1:      return HV_GIC_ICC_REG_PMR_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_IAR0_EL1:     return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_EOIR0_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_HPPIR0_EL1:   return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_BPR0_EL1:     return HV_GIC_ICC_REG_BPR0_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:    return HV_GIC_ICC_REG_AP0R0_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_AP0R1_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_AP0R2_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1:    return HV_GIC_ICC_REG_AP1R0_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_AP1R1_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_AP1R2_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_AP1R3_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1:   return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_DIR_EL1:      return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_RPR_EL1:      return HV_GIC_ICC_REG_RPR_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_SGI1R_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_ASGI1R_EL1:   return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_SGI0R_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_IAR1_EL1:     return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_EOIR1_EL1:    return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_HPPIR1_EL1:   return HV_GIC_ICC_REG_INVALID;
+        case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:     return HV_GIC_ICC_REG_BPR1_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_CTLR_EL1:     return HV_GIC_ICC_REG_CTLR_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_SRE_EL1:      return HV_GIC_ICC_REG_SRE_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_IGRPEN0_EL1:  return HV_GIC_ICC_REG_IGRPEN0_EL1;
+        case ARMV8_AARCH64_SYSREG_ICC_IGRPEN1_EL1:  return HV_GIC_ICC_REG_IGRPEN1_EL1;
+    }
+    AssertReleaseFailed();
+    return HV_GIC_ICC_REG_INVALID;
+}
+
+
+/**
  * Returns a human readable string of the given exception class.
  *
  * @returns Pointer to the string matching the given EC.
@@ -1140,14 +1193,14 @@ static void nemR3DarwinDumpGicInfo(void)
 
 
 /**
- * Sets the given SPI inside the in-kernel KVM GIC.
+ * Sets the given SPI inside the in-kernel HvF GIC.
  *
  * @returns VBox status code.
  * @param   pVM         The VM instance.
  * @param   uIntId      The SPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+VMM_INT_DECL(int) NEMR3GicSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
 {
     RT_NOREF(pVM);
     Assert(hv_gic_set_spi);
@@ -1158,20 +1211,52 @@ VMMR3_INT_DECL(int) GICR3NemSpiSet(PVMCC pVM, uint32_t uIntId, bool fAsserted)
 
 
 /**
- * Sets the given PPI inside the in-kernel KVM GIC.
+ * Sets the given PPI inside the in-kernel HvF GIC.
  *
  * @returns VBox status code.
- * @param   pVCpu       The vCPU for whih the PPI state is updated.
+ * @param   pVCpu       The vCPU for which the PPI state is to be updated.
  * @param   uIntId      The PPI ID to update.
  * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
  */
-VMMR3_INT_DECL(int) GICR3NemPpiSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+VMM_INT_DECL(int) NEMR3GicSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
 {
     RT_NOREF(pVCpu, uIntId, fAsserted);
 
     /* Should never be called as the PPIs are handled entirely in Hypervisor.framework/AppleHV. */
     AssertFailed();
     return VERR_NEM_IPE_9;
+}
+
+
+/**
+ * Writes a system ICC register inside the in-kernel HvF GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   u32Reg      The ICC register.
+ * @param   u64Value    The value being set.
+ */
+VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value)
+{
+    hv_gic_icc_reg_t const enmIccReg = nemR3DarwinIccRegFromSysReg(u32Reg);
+    hv_return_t const hrc = hv_gic_set_icc_reg(pVCpu->nem.s.hVCpu, enmIccReg, u64Value);
+    return nemR3DarwinHvSts2Rc(hrc);
+}
+
+
+/**
+ * Reads a system ICC register inside the in-kernel HvF GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   u32Reg      The ICC register.
+ * @param   u64Value    Where to store value.
+ */
+VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value)
+{
+    hv_gic_icc_reg_t const enmIccReg = nemR3DarwinIccRegFromSysReg(u32Reg);
+    hv_return_t const hrc = hv_gic_get_icc_reg(pVCpu->nem.s.hVCpu, enmIccReg, pu64Value);
+    return nemR3DarwinHvSts2Rc(hrc);
 }
 
 
@@ -2120,7 +2205,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExit(PVM pVM, PVMCPU pVCpu)
             LogFlowFunc(("vTimer got activated\n"));
             TMCpuSetVTimerNextActivation(pVCpu, UINT64_MAX);
             pVCpu->nem.s.fVTimerActivated = true;
-            return GICPpiSet(pVCpu, pVM->nem.s.u32GicPpiVTimer, true /*fAsserted*/);
+            return PDMGicSetPpi(pVCpu, pVM->nem.s.u32GicPpiVTimer, true /*fAsserted*/);
         }
         default:
             AssertReleaseFailed();
@@ -2205,7 +2290,7 @@ static VBOXSTRICTRC nemR3DarwinPreRunGuest(PVM pVM, PVMCPU pVCpu, bool fSingleSt
             != (ARMV8_CNTV_CTL_EL0_AARCH64_ENABLE | ARMV8_CNTV_CTL_EL0_AARCH64_ISTATUS))
         {
             /* Clear the interrupt. */
-            GICPpiSet(pVCpu, pVM->nem.s.u32GicPpiVTimer, false /*fAsserted*/);
+            PDMGicSetPpi(pVCpu, pVM->nem.s.u32GicPpiVTimer, false /*fAsserted*/);
 
             pVCpu->nem.s.fVTimerActivated = false;
             hrc = hv_vcpu_set_vtimer_mask(pVCpu->nem.s.hVCpu, false /*vtimer_is_masked*/);

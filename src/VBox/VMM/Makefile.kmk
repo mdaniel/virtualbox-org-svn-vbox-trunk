@@ -496,6 +496,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMAll/PDMAllCritSect.cpp \
  	VMMAll/PDMAllCritSectRw.cpp \
  	VMMAll/PDMAllCritSectBoth.cpp \
+ 	VMMAll/PDMAllGic.cpp \
  	VMMAll/PDMAllQueue.cpp \
  	VMMAll/PDMAllTask.cpp \
  	VMMAll/PGMAllHandler.cpp \

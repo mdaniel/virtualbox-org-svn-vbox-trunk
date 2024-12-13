@@ -463,11 +463,11 @@ VMM_INT_DECL(int) PDMApicRegisterBackend(PVMCC pVM, PDMAPICBACKENDTYPE enmBacken
     /*
      * Register the backend.
      */
-    pVM->pdm.s.Ic.enmKind = enmBackendType;
+    pVM->pdm.s.Ic.u.x86.enmKind = enmBackendType;
 #ifdef IN_RING3
-    pVM->pdm.s.Ic.ApicBackend = *pBackend;
+    pVM->pdm.s.Ic.u.x86.ApicBackend = *pBackend;
 #else
-    pVM->pdmr0.s.Ic.ApicBackend = *pBackend;
+    pVM->pdmr0.s.Ic.u.x86.ApicBackend = *pBackend;
 #endif
 
 #ifdef IN_RING3

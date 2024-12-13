@@ -843,6 +843,8 @@ typedef struct PDMAPICBACKENDRC
     DECLRCCALLBACKMEMBER(int, pfnReserved8, (void));
     DECLRCCALLBACKMEMBER(int, pfnReserved9, (void));
     DECLRCCALLBACKMEMBER(int, pfnReserved10, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved11, (void));
+    DECLRCCALLBACKMEMBER(int, pfnReserved12, (void));
     /** @} */
 } PDMAPICBACKENDRC;
 /** Pointer to raw-mode context APIC backend. */

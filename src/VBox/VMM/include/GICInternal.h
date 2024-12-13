@@ -33,6 +33,8 @@
 
 #include <VBox/gic.h>
 #include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/pdmgic.h>
+#include <VBox/vmm/stam.h>
 
 
 /** @defgroup grp_gic_int       Internal
@@ -40,6 +42,15 @@
  * @internal
  * @{
  */
+
+#ifdef VBOX_INCLUDED_vmm_pdmgic_h
+/** The VirtualBox GIC backend. */
+extern const PDMGICBACKEND g_GicBackend;
+# ifdef RT_OS_DARWIN
+/** The Hypervisor.Framework GIC backend. */
+extern const PDMGICBACKEND g_GicHvfBackend;
+# endif
+#endif
 
 #define VMCPU_TO_GICCPU(a_pVCpu)             (&(a_pVCpu)->gic.s)
 #define VM_TO_GIC(a_pVM)                     (&(a_pVM)->gic.s)
@@ -102,8 +113,6 @@ typedef struct GIC
 {
     /** The ring-3 device instance. */
     PPDMDEVINSR3                pDevInsR3;
-    /** Flag whether the in-kernel (KVM/Hyper-V) GIC of the NEM backend is used. */
-    bool                        fNemGic;
 } GIC;
 /** Pointer to GIC VM instance data. */
 typedef GIC *PGIC;

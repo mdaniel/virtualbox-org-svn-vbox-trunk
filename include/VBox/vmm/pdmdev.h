@@ -751,10 +751,15 @@ typedef PCPDMDEVREGRC                           PCPDMDEVREG;
 # error "Not IN_RING3, IN_RING0 or IN_RC"
 #endif
 
-/**
- * The PDM APIC device registration structure.
- */
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+/** The PDM APIC device registration structure. */
 extern const PDMDEVREG g_DeviceAPIC;
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+/** The PDM GIC device registration structure. */
+extern const PDMDEVREG g_DeviceGIC;
+/** The PDM GIC NEM device registration structure. */
+extern const PDMDEVREG g_DeviceGICNem;
+#endif
 
 /**
  * Device registrations for ring-0 modules.
@@ -4263,12 +4268,12 @@ typedef struct PDMDEVHLPR3
     DECLR3CALLBACKMEMBER(int, pfnPICRegister,(PPDMDEVINS pDevIns, PPDMPICREG pPicReg, PCPDMPICHLP *ppPicHlp));
 
     /**
-     * Register the APIC device.
+     * Register the Interrupt Controller device.
      *
      * @returns VBox status code.
      * @param   pDevIns             The device instance.
      */
-    DECLR3CALLBACKMEMBER(int, pfnApicRegister,(PPDMDEVINS pDevIns));
+    DECLR3CALLBACKMEMBER(int, pfnIcRegister,(PPDMDEVINS pDevIns));
 
     /**
      * Register the I/O APIC device.
@@ -5429,12 +5434,12 @@ typedef struct PDMDEVHLPRC
      * Sets up the APIC for the raw-mode context.
      *
      * This must be called after ring-3 has registered the APIC using
-     * PDMDevHlpApicRegister().
+     * PDMDevHlpIcRegister().
      *
      * @returns VBox status code.
      * @param   pDevIns     The device instance.
      */
-    DECLRCCALLBACKMEMBER(int, pfnApicSetUpContext,(PPDMDEVINS pDevIns));
+    DECLRCCALLBACKMEMBER(int, pfnIcSetUpContext,(PPDMDEVINS pDevIns));
 
     /**
      * Sets up the IOAPIC for the ring-0 context.
@@ -5925,12 +5930,12 @@ typedef struct PDMDEVHLPR0
      * Sets up the APIC for the ring-0 context.
      *
      * This must be called after ring-3 has registered the APIC using
-     * PDMDevHlpApicRegister().
+     * PDMDevHlpIcRegister().
      *
      * @returns VBox status code.
      * @param   pDevIns     The device instance.
      */
-    DECLR0CALLBACKMEMBER(int, pfnApicSetUpContext,(PPDMDEVINS pDevIns));
+    DECLR0CALLBACKMEMBER(int, pfnIcSetUpContext,(PPDMDEVINS pDevIns));
 
     /**
      * Sets up the IOAPIC for the ring-0 context.
@@ -9179,11 +9184,11 @@ DECLINLINE(int) PDMDevHlpPICRegister(PPDMDEVINS pDevIns, PPDMPICREG pPicReg, PCP
 }
 
 /**
- * @copydoc PDMDEVHLPR3::pfnApicRegister
+ * @copydoc PDMDEVHLPR3::pfnIcRegister
  */
-DECLINLINE(int) PDMDevHlpApicRegister(PPDMDEVINS pDevIns)
+DECLINLINE(int) PDMDevHlpIcRegister(PPDMDEVINS pDevIns)
 {
-    return pDevIns->pHlpR3->pfnApicRegister(pDevIns);
+    return pDevIns->pHlpR3->pfnIcRegister(pDevIns);
 }
 
 /**
@@ -9343,11 +9348,11 @@ DECLINLINE(int) PDMDevHlpPICSetUpContext(PPDMDEVINS pDevIns, PPDMPICREG pPicReg,
 }
 
 /**
- * @copydoc PDMDEVHLPR0::pfnApicSetUpContext
+ * @copydoc PDMDEVHLPR0::pfnIcSetUpContext
  */
-DECLINLINE(int) PDMDevHlpApicSetUpContext(PPDMDEVINS pDevIns)
+DECLINLINE(int) PDMDevHlpIcSetUpContext(PPDMDEVINS pDevIns)
 {
-    return pDevIns->CTX_SUFF(pHlp)->pfnApicSetUpContext(pDevIns);
+    return pDevIns->CTX_SUFF(pHlp)->pfnIcSetUpContext(pDevIns);
 }
 
 /**

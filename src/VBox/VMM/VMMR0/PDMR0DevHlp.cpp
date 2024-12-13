@@ -1212,11 +1212,11 @@ static DECLCALLBACK(int) pdmR0DevHlp_PICSetUpContext(PPDMDEVINS pDevIns, PPDMPIC
 }
 
 
-/** @interface_method_impl{PDMDEVHLPR0,pfnApicSetUpContext} */
-static DECLCALLBACK(int) pdmR0DevHlp_ApicSetUpContext(PPDMDEVINS pDevIns)
+/** @interface_method_impl{PDMDEVHLPR0,pfnIcSetUpContext} */
+static DECLCALLBACK(int) pdmR0DevHlp_IcSetUpContext(PPDMDEVINS pDevIns)
 {
     PDMDEV_ASSERT_DEVINS(pDevIns);
-    LogFlow(("pdmR0DevHlp_ApicSetUpContext: caller='%s'/%d:\n", pDevIns->pReg->szName, pDevIns->iInstance));
+    LogFlow(("pdmR0DevHlp_IcSetUpContext: caller='%s'/%d:\n", pDevIns->pReg->szName, pDevIns->iInstance));
     PGVM pGVM = pDevIns->Internal.s.pGVM;
 
     /*
@@ -1240,7 +1240,7 @@ static DECLCALLBACK(int) pdmR0DevHlp_ApicSetUpContext(PPDMDEVINS pDevIns)
     Log(("PDM: Registered APIC device '%s'/%d pDevIns=%p\n", pDevIns->pReg->szName, pDevIns->iInstance, pDevIns));
 
     /* set the helper pointer and return. */
-    LogFlow(("pdmR0DevHlp_ApicSetUpContext: caller='%s'/%d: returns %Rrc\n", pDevIns->pReg->szName, pDevIns->iInstance, VINF_SUCCESS));
+    LogFlow(("pdmR0DevHlp_IcSetUpContext: caller='%s'/%d: returns %Rrc\n", pDevIns->pReg->szName, pDevIns->iInstance, VINF_SUCCESS));
     return VINF_SUCCESS;
 }
 
@@ -1502,7 +1502,7 @@ extern DECLEXPORT(const PDMDEVHLPR0) g_pdmR0DevHlp =
     pdmR0DevHlp_PCIBusSetUpContext,
     pdmR0DevHlp_IommuSetUpContext,
     pdmR0DevHlp_PICSetUpContext,
-    pdmR0DevHlp_ApicSetUpContext,
+    pdmR0DevHlp_IcSetUpContext,
     pdmR0DevHlp_IoApicSetUpContext,
     pdmR0DevHlp_HpetSetUpContext,
     pdmR0DevHlp_PGMHandlerPhysicalTypeSetUpContext,
@@ -1615,7 +1615,7 @@ extern DECLEXPORT(const PDMDEVHLPR0) g_pdmR0DevHlpTracing =
     pdmR0DevHlp_PCIBusSetUpContext,
     pdmR0DevHlp_IommuSetUpContext,
     pdmR0DevHlp_PICSetUpContext,
-    pdmR0DevHlp_ApicSetUpContext,
+    pdmR0DevHlp_IcSetUpContext,
     pdmR0DevHlp_IoApicSetUpContext,
     pdmR0DevHlp_HpetSetUpContext,
     pdmR0DevHlp_PGMHandlerPhysicalTypeSetUpContext,

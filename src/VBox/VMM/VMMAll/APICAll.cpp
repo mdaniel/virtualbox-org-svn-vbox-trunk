@@ -3371,7 +3371,7 @@ static DECLCALLBACK(int) apicRZConstruct(PPDMDEVINS pDevIns)
     int rc = PDMDevHlpSetDeviceCritSect(pDevIns, PDMDevHlpCritSectGetNop(pDevIns));
     AssertRCReturn(rc, rc);
 
-    rc = PDMDevHlpApicSetUpContext(pDevIns);
+    rc = PDMDevHlpIcSetUpContext(pDevIns);
     AssertRCReturn(rc, rc);
 
     rc = PDMApicRegisterBackend(pVM, PDMAPICBACKENDTYPE_VBOX, &g_ApicBackend);

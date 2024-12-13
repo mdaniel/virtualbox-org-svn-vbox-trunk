@@ -756,6 +756,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_PDM_DEVICE,
     /** PDM Driver group. */
     LOG_GROUP_PDM_DRIVER,
+    /** PDM GIC group. */
+    LOG_GROUP_PDM_GIC,
     /** PDM Loader group. */
     LOG_GROUP_PDM_LDR,
     /** PDM Queue group. */
@@ -1223,6 +1225,7 @@ typedef enum VBOXLOGGROUP
     "PDM_CRITSECTRW", \
     "PDM_DEVICE", \
     "PDM_DRIVER", \
+    "PDM_GIC", \
     "PDM_LDR", \
     "PDM_QUEUE", \
     "PDM_TASK", \

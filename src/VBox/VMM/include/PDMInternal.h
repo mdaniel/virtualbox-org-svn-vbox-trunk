@@ -47,7 +47,11 @@
 #include <VBox/vmm/pdmblkcache.h>
 #include <VBox/vmm/pdmcommon.h>
 #include <VBox/vmm/pdmtask.h>
-#include <VBox/vmm/pdmapic.h>
+#ifdef VBOX_VMM_TARGET_ARMV8
+# include <VBox/vmm/pdmgic.h>
+#else
+# include <VBox/vmm/pdmapic.h>
+#endif
 #include <VBox/sup.h>
 #include <VBox/msi.h>
 #include <iprt/assert.h>
@@ -801,17 +805,30 @@ typedef struct PDMICR3
 {
     /** Pointer to the interrupt controller instance - R3 Ptr. */
     PPDMDEVINSR3                       pDevInsR3;
-#ifndef VBOX_VMM_TARGET_ARMV8
-    /** The type of APIC backend. */
-    PDMAPICBACKENDTYPE                 enmKind;
-    uint32_t                           uPadding;
-    /** The APIC backend. */
-    PDMAPICBACKENDR3                   ApicBackend;
-#else
-    /** @todo The GIC backend. Currently the padding helps keep alignment common
-     *        between x86 and arm. */
-    uint8_t                            auPadding[4+4+240];
+    union
+    {
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        struct
+        {
+            /** The type of APIC backend. */
+            PDMAPICBACKENDTYPE         enmKind;
+            uint32_t                   uPadding;
+            /** The APIC backend. */
+            PDMAPICBACKENDR3           ApicBackend;
+        } x86;
 #endif
+#ifdef VBOX_VMM_TARGET_ARMV8
+        struct
+        {
+            /** The type of GIC backend. */
+            PDMGICBACKENDTYPE          enmKind;
+            uint32_t                   uPadding;
+            /** The APIC backend. */
+            PDMGICBACKENDR3            GicBackend;
+        } armv8;
+#endif
+        uint8_t                        abPadding[256-8];
+    } u;
 } PDMICR3;
 AssertCompileSizeAlignment(PDMICR3, 8);
 
@@ -822,14 +839,19 @@ typedef struct PDMICR0
 {
     /** Pointer to the interrupt controller instance - R0 Ptr. */
     PPDMDEVINSR0                       pDevInsR0;
-#ifndef VBOX_VMM_TARGET_ARMV8
-    /** The APIC backend. */
-    PDMAPICBACKENDR0                   ApicBackend;
-#else
-    /** @todo The GIC backend. Currently the padding helps keep alignment common
-     *        between x86 and arm. */
-    uint8_t                            auPadding[240];
+    union
+    {
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        struct
+        {
+            /** The APIC backend. */
+            PDMAPICBACKENDR0           ApicBackend;
+        } x86;
 #endif
+        /** Padding to keep alignment common between x86 and arm (there's no ring-0
+         *  armv8 code. */
+        uint8_t                        abPadding[256-8];
+    } u;
 } PDMICR0;
 AssertCompileSizeAlignment(PDMICR0, 8);
 
@@ -838,17 +860,22 @@ AssertCompileSizeAlignment(PDMICR0, 8);
  */
 typedef struct PDMICRC
 {
-    /** Pointer to the interrupt controller instance - R0 Ptr. */
+    /** Pointer to the interrupt controller instance - RC Ptr. */
     PPDMDEVINSRC                       pDevInsR0;
     RTRCPTR                            avPadding;
-#ifndef VBOX_VMM_TARGET_ARMV8
-    /** The APIC backend. */
-    PDMAPICBACKENDRC                   ApicBackend;
-#else
-    /** @todo The GIC backend. Currently the padding helps keep alignment common
-     *        between x86 and arm. */
-    uint8_t                            auPadding[232];
+    union
+    {
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+        struct
+        {
+            /** The APIC backend. */
+            PDMAPICBACKENDRC           ApicBackend;
+        } x86;
 #endif
+        /** Padding to keep alignment common between x86 and arm (there's no ring-context
+         *  armv8 code. */
+        uint8_t                        abPadding[256-4-4];
+    } u;
 } PDMICRC;
 AssertCompileSizeAlignment(PDMICRC, 8);
 
@@ -1798,14 +1825,19 @@ extern const PDMPCIRAWHLPR3 g_pdmR3DevPciRawHlp;
  * Gets the APIC backend given VMCPU cross-context structure.
  */
 # ifdef IN_RING3
-#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdm.s.Ic.ApicBackend))
-#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.ApicBackend))
+#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdm.s.Ic.u.x86.ApicBackend))
+#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.u.x86.ApicBackend))
 #else
-#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdmr0.s.Ic.ApicBackend))
-#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdmr0.s.Ic.ApicBackend))
+#  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdmr0.s.Ic.u.x86.ApicBackend))
+#  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdmr0.s.Ic.u.x86.ApicBackend))
 #endif
 #else
-/** @todo GIC backend. */
+# ifdef IN_RING3
+#  define PDM_TO_GICBACKEND(a_pVM)           (&((a_pVM)->pdm.s.Ic.u.armv8.GicBackend))
+#  define PDMCPU_TO_GICBACKEND(a_pVCpu)      (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.u.armv8.GicBackend))
+#else
+# error "Implement me"
+#endif
 #endif
 
 /*******************************************************************************

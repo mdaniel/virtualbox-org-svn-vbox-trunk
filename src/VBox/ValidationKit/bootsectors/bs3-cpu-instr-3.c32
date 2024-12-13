@@ -347,7 +347,7 @@ static bool bs3CpuInstr3ConfigReconfigure(PBS3CPUINSTR3_CONFIG_SAVED_T pSavedCfg
         pCtx->cr4.u32 |= X86_CR4_OSFXSR;
     else
         pCtx->cr4.u32 &= ~X86_CR4_OSFXSR;
-    /** @todo X86_CR4_OSXMMEEXCPT? */
+
     if (pConfig->fCr4OsXSave)
         pCtx->cr4.u32 |= X86_CR4_OSXSAVE;
     else

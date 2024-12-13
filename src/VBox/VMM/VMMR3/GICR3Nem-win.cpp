@@ -240,7 +240,6 @@ DECLCALLBACK(int) gicR3HvConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE 
      * Init the data.
      */
     pGic->pDevInsR3   = pDevIns;
-    pGic->fNemGic     = true;
     pThis->pDevIns    = pDevIns;
     pThis->hPartition = pVM->nem.s.hPartition;
 

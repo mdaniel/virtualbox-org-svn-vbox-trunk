@@ -72,6 +72,11 @@ void UIMachineManagerWidget::setActive(bool fActive)
     m_pPaneTools->setActive(fActive);
 }
 
+UIChooser *UIMachineManagerWidget::chooser() const
+{
+    return m_pPaneChooser;
+}
+
 UIVirtualMachineItem *UIMachineManagerWidget::currentItem() const
 {
     return m_pPaneChooser->currentItem();
@@ -205,6 +210,11 @@ void UIMachineManagerWidget::sortGroup()
 void UIMachineManagerWidget::setMachineSearchWidgetVisibility(bool fVisible)
 {
     m_pPaneChooser->setMachineSearchWidgetVisibility(fVisible);
+}
+
+UIToolPaneMachine *UIMachineManagerWidget::toolPane() const
+{
+    return m_pPaneTools;
 }
 
 UIToolType UIMachineManagerWidget::menuToolType() const

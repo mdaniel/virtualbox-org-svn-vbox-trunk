@@ -241,6 +241,14 @@ void UIMachineManagerWidget::closeTool(UIToolType enmType)
     m_pPaneTools->closeTool(enmType);
 }
 
+void UIMachineManagerWidget::switchToVMActivityPane(const QUuid &uMachineId)
+{
+    AssertPtrReturnVoid(m_pPaneChooser);
+    AssertPtrReturnVoid(m_pMenuTools);
+    m_pPaneChooser->setCurrentMachine(uMachineId);
+    m_pMenuTools->setToolsType(UIToolType_VMActivity);
+}
+
 bool UIMachineManagerWidget::isCurrentStateItemSelected() const
 {
     return m_pPaneTools->isCurrentStateItemSelected();
@@ -424,14 +432,6 @@ void UIMachineManagerWidget::sltHandleToolMenuRequested(const QPoint &position, 
     pMenu->resize(ourGeo.size());
 }
 
-void UIMachineManagerWidget::sltSwitchToVMActivityPane(const QUuid &uMachineId)
-{
-    AssertPtrReturnVoid(m_pPaneChooser);
-    AssertPtrReturnVoid(m_pMenuTools);
-    m_pPaneChooser->setCurrentMachine(uMachineId);
-    m_pMenuTools->setToolsType(UIToolType_VMActivity);
-}
-
 void UIMachineManagerWidget::prepare()
 {
     /* Prepare everything: */
@@ -488,13 +488,8 @@ void UIMachineManagerWidget::prepareWidgets()
                     m_pPaneTools = new UIToolPaneMachine(actionPool());
                     if (m_pPaneTools)
                     {
+                        /// @todo make sure it's used properly
                         m_pPaneTools->setActive(true);
-                        connect(m_pPaneTools, &UIToolPaneMachine::sigDetachToolPane,
-                                this, &UIMachineManagerWidget::sigDetachToolPane);
-                        connect(m_pPaneTools, &UIToolPaneMachine::sigCurrentSnapshotItemChange,
-                                this, &UIMachineManagerWidget::sigCurrentSnapshotItemChange);
-                        connect(m_pPaneTools, &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
-                                this, &UIMachineManagerWidget::sigSwitchToActivityOverviewPane);
 
                         /* Add into layout: */
                         pLayoutRight->addWidget(m_pPaneTools, 1);
@@ -545,30 +540,20 @@ void UIMachineManagerWidget::prepareConnections()
             this, &UIMachineManagerWidget::sltHandleChooserPaneIndexChange);
     connect(m_pPaneChooser, &UIChooser::sigSelectionInvalidated,
             this, &UIMachineManagerWidget::sltHandleChooserPaneSelectionInvalidated);
+    connect(m_pPaneChooser, &UIChooser::sigToolMenuRequested,
+            this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
+    connect(m_pPaneChooser, &UIChooser::sigCloudMachineStateChange,
+            this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
     connect(m_pPaneChooser, &UIChooser::sigToggleStarted,
             m_pPaneTools, &UIToolPaneMachine::sigToggleStarted);
     connect(m_pPaneChooser, &UIChooser::sigToggleFinished,
             m_pPaneTools, &UIToolPaneMachine::sigToggleFinished);
-    connect(m_pPaneChooser, &UIChooser::sigGroupSavingStateChanged,
-            this, &UIMachineManagerWidget::sigGroupSavingStateChanged);
-    connect(m_pPaneChooser, &UIChooser::sigCloudUpdateStateChanged,
-            this, &UIMachineManagerWidget::sigCloudUpdateStateChanged);
-    connect(m_pPaneChooser, &UIChooser::sigToolMenuRequested,
-            this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
-    connect(m_pPaneChooser, &UIChooser::sigCloudProfileStateChange,
-            this, &UIMachineManagerWidget::sigCloudProfileStateChange);
-    connect(m_pPaneChooser, &UIChooser::sigCloudMachineStateChange,
-            this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
-    connect(m_pPaneChooser, &UIChooser::sigStartOrShowRequest,
-            this, &UIMachineManagerWidget::sigStartOrShowRequest);
-    connect(m_pPaneChooser, &UIChooser::sigMachineSearchWidgetVisibilityChanged,
-            this, &UIMachineManagerWidget::sigMachineSearchWidgetVisibilityChanged);
 
-    /* Details-pane connections: */
+    /* Tools-pane connections: */
     connect(m_pPaneTools, &UIToolPaneMachine::sigLinkClicked,
             this, &UIMachineManagerWidget::sigMachineSettingsLinkClicked);
 
-    /* Tools-pane connections: */
+    /* Tools-menu connections: */
     connect(m_pMenuTools, &UITools::sigSelectionChanged,
             this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
 }
@@ -600,30 +585,20 @@ void UIMachineManagerWidget::cleanupConnections()
                this, &UIMachineManagerWidget::sltHandleChooserPaneIndexChange);
     disconnect(m_pPaneChooser, &UIChooser::sigSelectionInvalidated,
                this, &UIMachineManagerWidget::sltHandleChooserPaneSelectionInvalidated);
+    disconnect(m_pPaneChooser, &UIChooser::sigToolMenuRequested,
+               this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
+    disconnect(m_pPaneChooser, &UIChooser::sigCloudMachineStateChange,
+               this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
     disconnect(m_pPaneChooser, &UIChooser::sigToggleStarted,
                m_pPaneTools, &UIToolPaneMachine::sigToggleStarted);
     disconnect(m_pPaneChooser, &UIChooser::sigToggleFinished,
                m_pPaneTools, &UIToolPaneMachine::sigToggleFinished);
-    disconnect(m_pPaneChooser, &UIChooser::sigGroupSavingStateChanged,
-               this, &UIMachineManagerWidget::sigGroupSavingStateChanged);
-    disconnect(m_pPaneChooser, &UIChooser::sigCloudUpdateStateChanged,
-               this, &UIMachineManagerWidget::sigCloudUpdateStateChanged);
-    disconnect(m_pPaneChooser, &UIChooser::sigToolMenuRequested,
-               this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
-    disconnect(m_pPaneChooser, &UIChooser::sigCloudProfileStateChange,
-               this, &UIMachineManagerWidget::sigCloudProfileStateChange);
-    disconnect(m_pPaneChooser, &UIChooser::sigCloudMachineStateChange,
-               this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
-    disconnect(m_pPaneChooser, &UIChooser::sigStartOrShowRequest,
-               this, &UIMachineManagerWidget::sigStartOrShowRequest);
-    disconnect(m_pPaneChooser, &UIChooser::sigMachineSearchWidgetVisibilityChanged,
-               this, &UIMachineManagerWidget::sigMachineSearchWidgetVisibilityChanged);
 
-    /* Details-pane connections: */
+    /* Tools-pane connections: */
     disconnect(m_pPaneTools, &UIToolPaneMachine::sigLinkClicked,
                this, &UIMachineManagerWidget::sigMachineSettingsLinkClicked);
 
-    /* Tools-pane connections: */
+    /* Tools-menu connections: */
     disconnect(m_pMenuTools, &UITools::sigSelectionChanged,
                this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
 }

@@ -71,23 +71,9 @@ signals:
         void sigChooserPaneIndexChange();
         /** Notifies about Chooser-pane selection change. */
         void sigChooserPaneSelectionChange();
-        /** Notifies about Chooser-pane group saving change. */
-        void sigGroupSavingStateChanged();
-        /** Notifies about Chooser-pane cloud update change. */
-        void sigCloudUpdateStateChanged();
 
-        /** Notifies listeners about cloud profile state change.
-          * @param  strProviderShortName  Brings the cloud provider short name.
-          * @param  strProfileName        Brings the cloud profile name. */
-        void sigCloudProfileStateChange(const QString &strProviderShortName,
-                                        const QString &strProfileName);
         /** Notifies about state change for cloud machine with certain @a uId. */
         void sigCloudMachineStateChange(const QUuid &uId);
-
-        /** Notify listeners about start or show request. */
-        void sigStartOrShowRequest();
-        /** Notifies listeners about machine search widget visibility changed to @a fVisible. */
-        void sigMachineSearchWidgetVisibilityChanged(bool fVisible);
     /** @} */
 
     /** @name Tools pane stuff.
@@ -96,28 +82,10 @@ signals:
         void sigToolTypeChange();
     /** @} */
 
-    /** @name Tools / Generic pane stuff.
-      * @{ */
-        /** Notifies listeners about request to detach pane with tool type @p enmToolType. */
-        void sigDetachToolPane(UIToolType enmToolType);
-    /** @} */
-
     /** @name Tools / Details pane stuff.
       * @{ */
         /** Notifies aboud Details-pane link clicked. */
         void sigMachineSettingsLinkClicked(const QString &strCategory, const QString &strControl, const QUuid &uId);
-    /** @} */
-
-    /** @name Tools / Snapshots pane stuff.
-      * @{ */
-        /** Notifies listeners about current Snapshots pane item change. */
-        void sigCurrentSnapshotItemChange();
-    /** @} */
-
-    /** @name Tools / VM Activity pane stuff.
-      * @{ */
-        /** Notifies listeners about request to switch to Activity Overview pane. */
-        void sigSwitchToActivityOverviewPane();
     /** @} */
 
 public:
@@ -213,6 +181,9 @@ public:
         void switchToolTo(UIToolType enmType);
         /** Closes pane tool of passed @a enmType. */
         void closeTool(UIToolType enmType);
+
+        /** Switches to VM Activity pane of machine with @a uMachineId. */
+        void switchToVMActivityPane(const QUuid &uMachineId);
     /** @} */
 
     /** @name Tools / Snapshot pane stuff.
@@ -281,9 +252,6 @@ private slots:
         /** Handles signal about Tools-menu index change.
           * @param  enmType  Brings current tool type. */
         void sltHandleToolsMenuIndexChange(UIToolType enmType) { switchToolTo(enmType); }
-
-        /** Handles signal requesting switch to VM Activity pane of machine with @a uMachineId. */
-        void sltSwitchToVMActivityPane(const QUuid &uMachineId);
     /** @} */
 
 private:

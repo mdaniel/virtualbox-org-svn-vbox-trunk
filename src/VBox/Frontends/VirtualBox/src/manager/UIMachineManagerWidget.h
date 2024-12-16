@@ -254,7 +254,7 @@ private slots:
 
         /** Handles signal about Tools-menu index change.
           * @param  enmType  Brings current tool type. */
-        void sltHandleToolsMenuIndexChange(UIToolType enmType) { switchToolTo(enmType); }
+        void sltHandleToolsMenuIndexChange(UIToolType enmType);
 
         /** Switches to VM Activity pane of machine with @a uMachineId. */
         void sltSwitchToVMActivityPane(const QUuid &uMachineId);

@@ -220,27 +220,47 @@ UIToolPaneMachine *UIMachineManagerWidget::toolPane() const
 
 UIToolType UIMachineManagerWidget::menuToolType() const
 {
-    return m_pMenuTools ? m_pMenuTools->toolsType() : UIToolType_Invalid;
+    AssertPtrReturn(m_pMenuTools, UIToolType_Invalid);
+    return m_pMenuTools->toolsType();
 }
 
 void UIMachineManagerWidget::setMenuToolType(UIToolType enmType)
 {
+    /* Sanity check: */
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+    /* Make sure new tool type is of Machine class: */
+    AssertReturnVoid(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Machine));
+
+    AssertPtrReturnVoid(m_pMenuTools);
     m_pMenuTools->setToolsType(enmType);
 }
 
 UIToolType UIMachineManagerWidget::toolType() const
 {
-    return m_pPaneTools ? m_pPaneTools->currentTool() : UIToolType_Invalid;
+    AssertPtrReturn(m_pPaneTools, UIToolType_Invalid);
+    return m_pPaneTools->currentTool();
 }
 
 bool UIMachineManagerWidget::isToolOpened(UIToolType enmType) const
 {
-    return m_pPaneTools ? m_pPaneTools->isToolOpened(enmType) : false;
+    /* Sanity check: */
+    AssertReturn(enmType != UIToolType_Invalid, false);
+    /* Make sure new tool type is of Machine class: */
+    AssertReturn(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Machine), false);
+
+    AssertPtrReturn(m_pPaneTools, false);
+    return m_pPaneTools->isToolOpened(enmType);
 }
 
 void UIMachineManagerWidget::switchToolTo(UIToolType enmType)
 {
+    /* Sanity check: */
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+    /* Make sure new tool type is of Machine class: */
+    AssertReturnVoid(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Machine));
+
     /* Open corresponding tool: */
+    AssertPtrReturnVoid(m_pPaneTools);
     m_pPaneTools->openTool(enmType);
 
     /* Let the parent know: */
@@ -249,25 +269,31 @@ void UIMachineManagerWidget::switchToolTo(UIToolType enmType)
 
 void UIMachineManagerWidget::closeTool(UIToolType enmType)
 {
+    /* Sanity check: */
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+    /* Make sure new tool type is of Machine class: */
+    AssertReturnVoid(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Machine));
+
+    AssertPtrReturnVoid(m_pPaneTools);
     m_pPaneTools->closeTool(enmType);
 }
 
 bool UIMachineManagerWidget::isCurrentStateItemSelected() const
 {
+    AssertPtrReturn(m_pPaneTools, false);
     return m_pPaneTools->isCurrentStateItemSelected();
 }
 
 QUuid UIMachineManagerWidget::currentSnapshotId()
 {
+    AssertPtrReturn(m_pPaneTools, QUuid());
     return m_pPaneTools->currentSnapshotId();
 }
 
 QString UIMachineManagerWidget::currentHelpKeyword() const
 {
-    QString strHelpKeyword;
-    if (isMachineItemSelected())
-        strHelpKeyword = m_pPaneTools->currentHelpKeyword();
-    return strHelpKeyword;
+    AssertPtrReturn(m_pPaneTools, QString());
+    return m_pPaneTools->currentHelpKeyword();
 }
 
 void UIMachineManagerWidget::sltRetranslateUI()
@@ -435,6 +461,11 @@ void UIMachineManagerWidget::sltHandleToolMenuRequested(const QPoint &position, 
     pMenu->resize(ourGeo.size());
 }
 
+void UIMachineManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
+{
+    switchToolTo(enmType);
+}
+
 void UIMachineManagerWidget::sltSwitchToVMActivityPane(const QUuid &uMachineId)
 {
     AssertPtrReturnVoid(m_pPaneChooser);
@@ -589,7 +620,7 @@ void UIMachineManagerWidget::loadSettings()
         m_pSplitter->setSizes(sizes);
     }
 
-    /* Open tools last chosen in Tools-menu: */
+    /* Open tool last chosen in Tools-menu: */
     switchToolTo(m_pMenuTools->toolsType());
 }
 

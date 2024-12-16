@@ -36,6 +36,7 @@
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
+#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QStackedLayout;
@@ -48,6 +49,9 @@ class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
 class UIVirtualMachineItemCloud;
 class UIWelcomePane;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+class UIMachineManagerWidget;
+#endif
 
 /** QWidget subclass representing container for Global tool panes. */
 class UIToolPaneGlobal : public QWidget
@@ -123,6 +127,10 @@ private:
     UICloudProfileManagerWidget  *m_pPaneCloud;
     /** Holds the VM Activity Overview instance. */
     UIVMActivityOverviewWidget   *m_pPaneActivities;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    /** Holds the Machine Manager instance. */
+    UIMachineManagerWidget       *m_pPaneMachines;
+#endif
 
     /** Holds whether this pane is active. */
     bool  m_fActive;

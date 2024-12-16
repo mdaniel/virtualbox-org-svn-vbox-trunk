@@ -50,6 +50,7 @@
 
 UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
+    , m_pParent(pParent)
     , m_pActionPool(pActionPool)
     , m_pSplitter(0)
     , m_pPaneChooser(0)

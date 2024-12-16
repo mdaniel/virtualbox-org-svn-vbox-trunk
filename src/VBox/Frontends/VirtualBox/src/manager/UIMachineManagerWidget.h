@@ -291,8 +291,10 @@ private:
         void updateToolsMenu(UIVirtualMachineItem *pItem);
     /** @} */
 
+    /** Holds the parent reference. */
+    UIToolPaneGlobal *m_pParent;
     /** Holds the action-pool reference. */
-    UIActionPool *m_pActionPool;
+    UIActionPool     *m_pActionPool;
 
     /** Holds the central splitter instance. */
     QISplitter        *m_pSplitter;

@@ -251,14 +251,6 @@ void UIMachineManagerWidget::closeTool(UIToolType enmType)
     m_pPaneTools->closeTool(enmType);
 }
 
-void UIMachineManagerWidget::switchToVMActivityPane(const QUuid &uMachineId)
-{
-    AssertPtrReturnVoid(m_pPaneChooser);
-    AssertPtrReturnVoid(m_pMenuTools);
-    m_pPaneChooser->setCurrentMachine(uMachineId);
-    m_pMenuTools->setToolsType(UIToolType_VMActivity);
-}
-
 bool UIMachineManagerWidget::isCurrentStateItemSelected() const
 {
     return m_pPaneTools->isCurrentStateItemSelected();
@@ -442,6 +434,14 @@ void UIMachineManagerWidget::sltHandleToolMenuRequested(const QPoint &position, 
     pMenu->resize(ourGeo.size());
 }
 
+void UIMachineManagerWidget::sltSwitchToVMActivityPane(const QUuid &uMachineId)
+{
+    AssertPtrReturnVoid(m_pPaneChooser);
+    AssertPtrReturnVoid(m_pMenuTools);
+    m_pPaneChooser->setCurrentMachine(uMachineId);
+    m_pMenuTools->setToolsType(UIToolType_VMActivity);
+}
+
 void UIMachineManagerWidget::prepare()
 {
     /* Prepare everything: */
@@ -540,6 +540,10 @@ void UIMachineManagerWidget::prepareConnections()
             this, &UIMachineManagerWidget::sltHandleMachineStateChange);
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
             this, &UIMachineManagerWidget::sltHandleSettingsExpertModeChange);
+
+    /* Parent connections: */
+    connect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
+            this, &UIMachineManagerWidget::sltSwitchToVMActivityPane);
 
     /* Splitter connections: */
     connect(m_pSplitter, &QISplitter::splitterMoved,

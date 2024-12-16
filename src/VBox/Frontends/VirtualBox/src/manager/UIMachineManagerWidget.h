@@ -187,9 +187,6 @@ public:
         void switchToolTo(UIToolType enmType);
         /** Closes pane tool of passed @a enmType. */
         void closeTool(UIToolType enmType);
-
-        /** Switches to VM Activity pane of machine with @a uMachineId. */
-        void switchToVMActivityPane(const QUuid &uMachineId);
     /** @} */
 
     /** @name Tools / Snapshot pane stuff.
@@ -258,6 +255,9 @@ private slots:
         /** Handles signal about Tools-menu index change.
           * @param  enmType  Brings current tool type. */
         void sltHandleToolsMenuIndexChange(UIToolType enmType) { switchToolTo(enmType); }
+
+        /** Switches to VM Activity pane of machine with @a uMachineId. */
+        void sltSwitchToVMActivityPane(const QUuid &uMachineId);
     /** @} */
 
 private:

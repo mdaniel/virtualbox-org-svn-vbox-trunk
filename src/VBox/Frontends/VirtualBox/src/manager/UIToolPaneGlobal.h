@@ -98,6 +98,11 @@ public:
     /** Defines the @a cloudItems. */
     void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    /** Holds the Machine Manager instance. */
+    UIMachineManagerWidget *machineManager() const;
+#endif
+    
 private:
 
     /** Prepares all. */

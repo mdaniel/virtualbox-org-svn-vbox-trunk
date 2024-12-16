@@ -350,6 +350,13 @@ void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemClou
     }
 }
 
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+UIMachineManagerWidget *UIToolPaneGlobal::machineManager() const
+{
+    return m_pPaneMachines;
+}
+#endif
+
 void UIToolPaneGlobal::prepare()
 {
     /* Create stacked-layout: */

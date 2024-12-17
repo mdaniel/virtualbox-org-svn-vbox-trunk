@@ -142,8 +142,6 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
-        /** Cleanups widgets. */
-        void cleanupWidgets();
         /** Cleanups all. */
         void cleanup();
     /** @} */
@@ -161,8 +159,8 @@ private:
         /** Returns Machine Manager's Tool-pane instance. */
         UIToolPaneMachine *toolPaneMachine() const;
 
-        /** Updates Global tools menu. */
-        void updateToolsMenuGlobal();
+        /** Updates tools menu. */
+        void updateToolsMenu();
     /** @} */
 
     /** Holds the action-pool instance. */

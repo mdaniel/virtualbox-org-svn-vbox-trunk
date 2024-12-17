@@ -28,7 +28,6 @@
 /* Qt includes: */
 #include <QHBoxLayout>
 #include <QTimer>
-#include <QVBoxLayout>
 
 /* GUI includes: */
 #include "QISplitter.h"
@@ -37,14 +36,12 @@
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalSession.h"
-#include "UILoggingDefs.h"
-#include "UINotificationCenter.h"
+#include "UIMachineManagerWidget.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
-#include "UIMachineManagerWidget.h"
 #include "UIVirtualMachineItemLocal.h"
 
 
@@ -361,8 +358,6 @@ void UIMachineManagerWidget::sltHandleSplitterMove()
 void UIMachineManagerWidget::sltHandleSplitterSettingsSave()
 {
     const QList<int> splitterSizes = m_pSplitter->sizes();
-    LogRel2(("GUI: UIMachineManagerWidget: Saving splitter as: Size=%d,%d\n",
-             splitterSizes.at(0), splitterSizes.at(1)));
     gEDataManager->setSelectorWindowSplitterHints(splitterSizes);
 }
 
@@ -494,13 +489,13 @@ void UIMachineManagerWidget::prepare()
 
 void UIMachineManagerWidget::prepareWidgets()
 {
-    /* Create main-layout: */
-    QHBoxLayout *pLayoutMain = new QHBoxLayout(this);
-    if (pLayoutMain)
+    /* Create layout: */
+    QHBoxLayout *pLayout = new QHBoxLayout(this);
+    if (pLayout)
     {
         /* Configure layout: */
-        pLayoutMain->setSpacing(0);
-        pLayoutMain->setContentsMargins(0, 0, 0, 0);
+        pLayout->setSpacing(0);
+        pLayout->setContentsMargins(0, 0, 0, 0);
 
         /* Create splitter: */
         m_pSplitter = new QISplitter;
@@ -514,32 +509,15 @@ void UIMachineManagerWidget::prepareWidgets()
                 m_pSplitter->addWidget(m_pPaneChooser);
             }
 
-            /* Create right widget: */
-            QWidget *pWidgetRight = new QWidget;
-            if (pWidgetRight)
+            /* Create Tools-pane: */
+            m_pPaneTools = new UIToolPaneMachine(actionPool());
+            if (m_pPaneTools)
             {
-                /* Create right-layout: */
-                QVBoxLayout *pLayoutRight = new QVBoxLayout(pWidgetRight);
-                if(pLayoutRight)
-                {
-                    /* Configure layout: */
-                    pLayoutRight->setSpacing(0);
-                    pLayoutRight->setContentsMargins(0, 0, 0, 0);
-
-                    /* Create Tools-pane: */
-                    m_pPaneTools = new UIToolPaneMachine(actionPool());
-                    if (m_pPaneTools)
-                    {
-                        /// @todo make sure it's used properly
-                        m_pPaneTools->setActive(true);
-
-                        /* Add into layout: */
-                        pLayoutRight->addWidget(m_pPaneTools, 1);
-                    }
-                }
+                /// @todo make sure it's used properly
+                m_pPaneTools->setActive(true);
 
                 /* Add into splitter: */
-                m_pSplitter->addWidget(pWidgetRight);
+                m_pSplitter->addWidget(m_pPaneTools);
             }
 
             /* Set the initial distribution. The right site is bigger. */
@@ -547,15 +525,12 @@ void UIMachineManagerWidget::prepareWidgets()
             m_pSplitter->setStretchFactor(1, 3);
 
             /* Add into layout: */
-            pLayoutMain->addWidget(m_pSplitter);
+            pLayout->addWidget(m_pSplitter);
         }
 
         /* Create Tools-menu: */
         m_pMenuTools = new UITools(this, UIToolClass_Machine, actionPool());
     }
-
-    /* Create notification-center: */
-    UINotificationCenter::create(this);
 
     /* Bring the VM list to the focus: */
     m_pPaneChooser->setFocus();
@@ -615,8 +590,6 @@ void UIMachineManagerWidget::loadSettings()
             sizes[0] = (int)(width() * .9 * (1.0 / 3));
             sizes[1] = (int)(width() * .9 * (2.0 / 3));
         }
-        LogRel2(("GUI: UIMachineManagerWidget: Restoring splitter to: Size=%d,%d\n",
-                 sizes.at(0), sizes.at(1)));
         m_pSplitter->setSizes(sizes);
     }
 
@@ -649,18 +622,10 @@ void UIMachineManagerWidget::cleanupConnections()
                this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
 }
 
-void UIMachineManagerWidget::cleanupWidgets()
-{
-    UINotificationCenter::destroy();
-}
-
 void UIMachineManagerWidget::cleanup()
 {
     /* Ask sub-dialogs to commit data: */
     sltHandleCommitData();
-
-    /* Cleanup everything: */
-    cleanupWidgets();
 }
 
 void UIMachineManagerWidget::recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane /* = false */)

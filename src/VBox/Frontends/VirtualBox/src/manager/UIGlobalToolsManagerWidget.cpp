@@ -26,35 +26,21 @@
  */
 
 /* Qt includes: */
-// #include <QApplication>
 #include <QHBoxLayout>
-// #include <QStyle>
-// #include <QToolButton>
-// #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UIActionPoolManager.h"
 #include "UIChooser.h"
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
-// #include "UILoggingDefs.h"
+#include "UIGlobalToolsManagerWidget.h"
 #include "UIMachineManagerWidget.h"
-// #include "UIMessageCenter.h"
-#include "UINotificationCenter.h"
-// #include "UISlidingAnimation.h"
-// #include "UITabBar.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
-// #include "UITranslationEventListener.h"
-// #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualBoxManagerAdvancedWidget.h"
-#include "UIGlobalToolsManagerWidget.h"
-// #include "UIVirtualMachineItemCloud.h"
-// #include "UIVirtualMachineItemLocal.h"
-#ifndef VBOX_WS_MAC
-// # include "UIMenuBar.h"
-#endif
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 UIGlobalToolsManagerWidget::UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvancedWidget *pParent,
@@ -175,7 +161,7 @@ void UIGlobalToolsManagerWidget::sltHandleCommitData()
 void UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange()
 {
     /* Update tools restrictions: */
-    updateToolsMenuGlobal();
+    updateToolsMenu();
 }
 
 void UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange(const QString &, const QString &)
@@ -237,9 +223,6 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
             pLayout->addWidget(toolPane());
         }
     }
-
-    /* Create notification-center: */
-    UINotificationCenter::create(this);
 }
 
 void UIGlobalToolsManagerWidget::prepareConnections()
@@ -290,18 +273,10 @@ void UIGlobalToolsManagerWidget::cleanupConnections()
                this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
 }
 
-void UIGlobalToolsManagerWidget::cleanupWidgets()
-{
-    UINotificationCenter::destroy();
-}
-
 void UIGlobalToolsManagerWidget::cleanup()
 {
     /* Ask sub-dialogs to commit data: */
     sltHandleCommitData();
-
-    /* Cleanup everything: */
-    cleanupWidgets();
 }
 
 UITools *UIGlobalToolsManagerWidget::toolMenu() const
@@ -329,7 +304,7 @@ UIToolPaneMachine *UIGlobalToolsManagerWidget::toolPaneMachine() const
     return machineManager()->toolPane();
 }
 
-void UIGlobalToolsManagerWidget::updateToolsMenuGlobal()
+void UIGlobalToolsManagerWidget::updateToolsMenu()
 {
     /* Update global tools restrictions: */
     QSet<UIToolType> restrictedTypes;

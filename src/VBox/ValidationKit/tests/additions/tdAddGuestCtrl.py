@@ -1751,7 +1751,7 @@ class SubTstDrvAddGuestCtrl(base.SubTestDriverBase):
                 sRegEditorExePath     = 'C:\\Program Files\\Oracle\\VirtualBox Guest Additions\\VBoxGuestInstallHelper.exe';
                 asRegEditorArgs       = [ sRegEditorExePath, 'registry', 'write', 'HKLM',
                                          'SYSTEM\\CurrentControlSet\\Services\\VBoxService', 'ImagePath', 'REG_SZ',
-                                         '"' + sImagePath + '"' ];
+                                         sImagePath ];
             # reg.exe is not able to write keys on older Windows versions (NT4, 2k).
             elif oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
                 sRegEditorExePath     = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'reg.exe');

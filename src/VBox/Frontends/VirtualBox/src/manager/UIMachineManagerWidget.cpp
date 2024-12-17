@@ -200,18 +200,6 @@ void UIMachineManagerWidget::closeTool(UIToolType enmType)
     toolPane()->closeTool(enmType);
 }
 
-bool UIMachineManagerWidget::isCurrentStateItemSelected() const
-{
-    AssertPtrReturn(toolPane(), false);
-    return toolPane()->isCurrentStateItemSelected();
-}
-
-QUuid UIMachineManagerWidget::currentSnapshotId()
-{
-    AssertPtrReturn(toolPane(), QUuid());
-    return toolPane()->currentSnapshotId();
-}
-
 QString UIMachineManagerWidget::currentHelpKeyword() const
 {
     AssertPtrReturn(toolPane(), QString());
@@ -327,7 +315,7 @@ void UIMachineManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
     /* If current item is Ok: */
     if (fCurrentItemIsOk)
     {
-        /* If Error-pane is chosen currently => switch to tool currently chosen in Tools-menu: */
+        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
         if (toolPane()->currentTool() == UIToolType_Error)
             switchToolTo(toolMenu()->toolsType());
 
@@ -386,7 +374,7 @@ void UIMachineManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
     switchToolTo(enmType);
 }
 
-void UIMachineManagerWidget::sltSwitchToVMActivityPane(const QUuid &uMachineId)
+void UIMachineManagerWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
 {
     AssertPtrReturnVoid(chooser());
     AssertPtrReturnVoid(toolMenu());
@@ -426,7 +414,7 @@ void UIMachineManagerWidget::prepareWidgets()
         m_pSplitter = new QISplitter;
         if (m_pSplitter)
         {
-            /* Create Chooser-pane: */
+            /* Create chooser-pane: */
             m_pPaneChooser = new UIChooser(this, actionPool());
             if (chooser())
             {
@@ -434,7 +422,7 @@ void UIMachineManagerWidget::prepareWidgets()
                 m_pSplitter->addWidget(chooser());
             }
 
-            /* Create Tools-pane: */
+            /* Create tool-pane: */
             m_pPaneTools = new UIToolPaneMachine(actionPool());
             if (toolPane())
             {
@@ -453,7 +441,7 @@ void UIMachineManagerWidget::prepareWidgets()
             pLayout->addWidget(m_pSplitter);
         }
 
-        /* Create Tools-menu: */
+        /* Create tools-menu: */
         m_pMenuTools = new UITools(this, UIToolClass_Machine, actionPool());
     }
 
@@ -475,7 +463,7 @@ void UIMachineManagerWidget::prepareConnections()
 
     /* Parent connections: */
     connect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
-            this, &UIMachineManagerWidget::sltSwitchToVMActivityPane);
+            this, &UIMachineManagerWidget::sltSwitchToVMActivityTool);
 
     /* Splitter connections: */
     connect(m_pSplitter, &QISplitter::splitterMoved,
@@ -518,7 +506,7 @@ void UIMachineManagerWidget::loadSettings()
         m_pSplitter->setSizes(sizes);
     }
 
-    /* Open tool last chosen in Tools-menu: */
+    /* Open tool last chosen in tools-menu: */
     switchToolTo(toolMenu()->toolsType());
 }
 
@@ -571,7 +559,7 @@ void UIMachineManagerWidget::recacheCurrentMachineItemInformation(bool fDontRais
     /* If current item is Ok: */
     if (fCurrentItemIsOk)
     {
-        /* If Error-pane is chosen currently => switch to tool currently chosen in Tools-menu: */
+        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
         if (toolPane()->currentTool() == UIToolType_Error)
             switchToolTo(toolMenu()->toolsType());
 
@@ -609,7 +597,6 @@ void UIMachineManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
         toolMenu()->setToolsType(UIToolType_Details);
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(restrictions);
-    /* Update machine menu items availability: */
     toolMenu()->setItemsEnabled(fCurrentItemIsOk);
 
     /* Take restrictions into account, closing all restricted tools: */

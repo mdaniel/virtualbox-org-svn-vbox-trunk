@@ -46,7 +46,7 @@ class UIToolPaneMachine;
 class UITools;
 class UIVirtualBoxManagerAdvancedWidget;
 
-/** QWidget extension used as VirtualBox Manager Widget instance. */
+/** QWidget extension used as Global Tools Manager Widget instance. */
 class UIGlobalToolsManagerWidget : public QWidget
 {
     Q_OBJECT;
@@ -61,20 +61,23 @@ signals:
 
 public:
 
-    /** Constructs VirtualBox Manager widget passing @a pParent to the base-class.
+    /** Constructs Global Tools Manager widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.  */
     UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool);
-    /** Destructs VirtualBox Manager widget. */
+    /** Destructs Global Tools Manager widget. */
     virtual ~UIGlobalToolsManagerWidget() RT_OVERRIDE;
 
     /** @name Common stuff.
       * @{ */
-        /** Returns the action-pool instance. */
+        /** Returns the action-pool reference. */
         UIActionPool *actionPool() const { return m_pActionPool; }
     /** @} */
 
     /** @name Tools pane stuff.
       * @{ */
+        /** Returns tool-pane instance. */
+        UIToolPaneGlobal *toolPane() const;
+
         /** Returns menu tool type. */
         UIToolType menuToolType() const;
         /** Defines menu tool @a enmType. */
@@ -84,9 +87,9 @@ public:
         UIToolType toolType() const;
         /** Returns whether pane has tool of passed @a enmType. */
         bool isToolOpened(UIToolType enmType) const;
-        /** Switches tool to passed @a enmType. */
+        /** Switches pane to passed tool @a enmType. */
         void switchToolTo(UIToolType enmType);
-        /** Closes tool of passed @a enmType. */
+        /** Closes pane tool of passed @a enmType. */
         void closeTool(UIToolType enmType);
     /** @} */
 
@@ -104,7 +107,7 @@ private slots:
         void sltHandleCommitData();
     /** @} */
 
-    /** @name CVirtualBox extra-data event handling stuff.
+    /** @name COM event handling stuff.
       * @{ */
         /** Handles signal about settings expert mode change. */
         void sltHandleSettingsExpertModeChange();
@@ -150,9 +153,7 @@ private:
       * @{ */
         /** Returns tool-menu instance. */
         UITools *toolMenu() const;
-        /** Returns tool-pane instance. */
-        UIToolPaneGlobal *toolPane() const;
-        /** Returns Machine Manager reference. */
+       /** Returns Machine Manager reference. */
         UIMachineManagerWidget *machineManager() const;
         /** Returns Machine Manager's Chooser-pane reference. */
         UIChooser *chooser() const;

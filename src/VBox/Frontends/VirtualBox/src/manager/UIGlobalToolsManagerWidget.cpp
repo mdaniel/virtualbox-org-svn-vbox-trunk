@@ -58,6 +58,11 @@ UIGlobalToolsManagerWidget::~UIGlobalToolsManagerWidget()
     cleanup();
 }
 
+UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
+{
+    return m_pPane;
+}
+
 UIToolType UIGlobalToolsManagerWidget::menuToolType() const
 {
     AssertPtrReturn(toolMenu(), UIToolType_Invalid);
@@ -104,13 +109,13 @@ void UIGlobalToolsManagerWidget::switchToolTo(UIToolType enmType)
     toolPane()->openTool(enmType);
 
     /* Special handling for Machines Global tool,
-     * notify machine tool-pane it's active: */
+     * notify Machine tool-pane it's active: */
     if (enmType == UIToolType_Machines)
     {
         toolPane()->setActive(false);
         toolPaneMachine()->setActive(true);
     }
-    /* Otherwise, notify global tool-pane it's active: */
+    /* Otherwise, notify Global tool-pane it's active: */
     else
     {
         toolPaneMachine()->setActive(false);
@@ -204,7 +209,7 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
         /* Configure layout: */
         pLayout->setContentsMargins(0, 0, 0, 0);
 
-        /* Create tools-menu: */
+        /* Create tool-menu: */
         m_pMenu = new UITools(this, UIToolClass_Global, actionPool());
         if (toolMenu())
         {
@@ -212,7 +217,7 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
             pLayout->addWidget(toolMenu());
         }
 
-        /* Create tools-pane: */
+        /* Create tool-pane: */
         m_pPane = new UIToolPaneGlobal(actionPool());
         if (toolPane())
         {
@@ -282,11 +287,6 @@ void UIGlobalToolsManagerWidget::cleanup()
 UITools *UIGlobalToolsManagerWidget::toolMenu() const
 {
     return m_pMenu;
-}
-
-UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
-{
-    return m_pPane;
 }
 
 UIMachineManagerWidget *UIGlobalToolsManagerWidget::machineManager() const

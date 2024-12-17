@@ -90,10 +90,10 @@ signals:
 
 public:
 
-    /** Constructs Virtual Machine Manager widget passing @a pParent to the base-class.
+    /** Constructs Machine Manager widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference. */
     UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool);
-    /** Destructs Virtual Machine Manager widget. */
+    /** Destructs Machine Manager widget. */
     virtual ~UIMachineManagerWidget() RT_OVERRIDE;
 
     /** @name Common stuff.
@@ -137,7 +137,7 @@ public:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Returns Tool-pane instance. */
+        /** Returns tool-pane instance. */
         UIToolPaneMachine *toolPane() const;
 
         /** Returns menu tool type. */
@@ -153,15 +153,6 @@ public:
         void switchToolTo(UIToolType enmType);
         /** Closes pane tool of passed @a enmType. */
         void closeTool(UIToolType enmType);
-    /** @} */
-
-    /** @name Tools / Snapshot pane stuff.
-      * @{ */
-        /** Returns whether current-state item of Snapshot pane is selected. */
-        bool isCurrentStateItemSelected() const;
-
-        /** Returns currently selected snapshot ID if any. */
-        QUuid currentSnapshotId();
     /** @} */
 
     /** @name Help browser stuff.
@@ -222,8 +213,8 @@ private slots:
           * @param  enmType  Brings current tool type. */
         void sltHandleToolsMenuIndexChange(UIToolType enmType);
 
-        /** Switches to VM Activity pane of machine with @a uMachineId. */
-        void sltSwitchToVMActivityPane(const QUuid &uMachineId);
+        /** Handles signal requesting switch to VM Activity tool. */
+        void sltSwitchToVMActivityTool(const QUuid &uMachineId);
     /** @} */
 
 private:

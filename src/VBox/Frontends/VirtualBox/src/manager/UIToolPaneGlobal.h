@@ -102,7 +102,7 @@ public:
     /** Holds the Machine Manager instance. */
     UIMachineManagerWidget *machineManager() const;
 #endif
-    
+
 private:
 
     /** Prepares all. */

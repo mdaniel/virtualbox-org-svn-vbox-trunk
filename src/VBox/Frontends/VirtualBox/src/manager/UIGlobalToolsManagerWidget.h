@@ -166,9 +166,9 @@ private:
     /** Holds the action-pool instance. */
     UIActionPool *m_pActionPool;
 
-    /** Holds the Global Tools-menu instance. */
+    /** Holds the Tools-menu instance. */
     UITools          *m_pMenu;
-    /** Holds the Global Tools-pane instance. */
+    /** Holds the Tools-pane instance. */
     UIToolPaneGlobal *m_pPane;
 };
 

@@ -100,9 +100,6 @@ public:
       * @{ */
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const { return m_pActionPool; }
-
-        /** Makes manager active. */
-        void setActive(bool fActive);
     /** @} */
 
     /** @name Chooser pane stuff.
@@ -127,46 +124,15 @@ public:
         /** Returns whether cloud machine item is selected. */
         bool isCloudMachineItemSelected() const;
 
-        /** Returns whether single group is selected. */
-        bool isSingleGroupSelected() const;
         /** Returns whether single local group is selected. */
         bool isSingleLocalGroupSelected() const;
         /** Returns whether single cloud provider group is selected. */
         bool isSingleCloudProviderGroupSelected() const;
         /** Returns whether single cloud profile group is selected. */
         bool isSingleCloudProfileGroupSelected() const;
-        /** Returns whether all items of one group are selected. */
-        bool isAllItemsOfOneGroupSelected() const;
 
         /** Returns current selection type. */
         SelectionType selectionType() const;
-
-        /** Returns full name of currently selected group. */
-        QString fullGroupName() const;
-
-        /** Returns whether group saving is in progress. */
-        bool isGroupSavingInProgress() const;
-        /** Returns whether at least one cloud profile currently being updated. */
-        bool isCloudProfileUpdateInProgress() const;
-
-        /** Opens group name editor. */
-        void openGroupNameEditor();
-        /** Disbands group. */
-        void disbandGroup();
-        /** Removes machine. */
-        void removeMachine();
-        /** Moves machine to a group with certain @a strName. */
-        void moveMachineToGroup(const QString &strName = QString());
-        /** Returns possible groups for machine with passed @a uId to move to. */
-        QStringList possibleGroupsForMachineToMove(const QUuid &uId);
-        /** Returns possible groups for group with passed @a strFullName to move to. */
-        QStringList possibleGroupsForGroupToMove(const QString &strFullName);
-        /** Refreshes machine. */
-        void refreshMachine();
-        /** Sorts group. */
-        void sortGroup();
-        /** Toggle machine search widget to be @a fVisible. */
-        void setMachineSearchWidgetVisibility(bool fVisible);
     /** @} */
 
     /** @name Tools pane stuff.
@@ -281,6 +247,9 @@ private:
 
     /** @name Tools stuff.
       * @{ */
+        /** Returns tool-menu instance. */
+        UITools *toolMenu() const;
+
         /** Recaches current machine item information.
           * @param  fDontRaiseErrorPane  Brings whether we should not raise error-pane. */
         void recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane = false);

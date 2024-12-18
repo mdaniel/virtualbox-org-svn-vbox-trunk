@@ -44,6 +44,7 @@ UITools::UITools(QWidget *pParent,
     : QWidget(pParent, theFlags)
     , m_enmClass(enmClass)
     , m_pActionPool(pActionPool)
+    , m_fPopup(theFlags == Qt::Popup)
     , m_pMainLayout(0)
     , m_pToolsModel(0)
     , m_pToolsView(0)

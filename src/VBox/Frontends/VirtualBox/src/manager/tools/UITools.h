@@ -79,6 +79,9 @@ public:
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const;
 
+        /** Returns whether tools represented as popup. */
+        bool isPopup() const { return m_fPopup; }
+
         /** Return the Tools-model instance. */
         UIToolsModel *model() const { return m_pToolsModel; }
         /** Return the Tools-view instance. */
@@ -139,6 +142,9 @@ private:
 
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
+
+        /** Holds whether tools represented as popup. */
+        const bool  m_fPopup;
 
         /** Holds the main layout instance. */
         QVBoxLayout  *m_pMainLayout;

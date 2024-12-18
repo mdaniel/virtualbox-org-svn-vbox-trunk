@@ -341,9 +341,9 @@ int UIToolsItem::minimumWidthHint() const
     /* Two margins: */
     iProposedWidth += 2 * iMargin;
     /* And Tools-item content to take into account: */
-    int iToolsItemWidth = m_pixmapSize.width() +
-                          iSpacing +
-                          m_minimumNameSize.width();
+    int iToolsItemWidth = m_pixmapSize.width();
+    if (model()->tools()->isPopup())
+        iToolsItemWidth += iSpacing + m_minimumNameSize.width();
     iProposedWidth += iToolsItemWidth;
 
     /* Return result: */
@@ -916,16 +916,17 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
         int iNameX = iMargin + m_pixmapSize.width() + iSpacing;
         int iNameY = (iFullHeight - m_minimumNameSize.height()) / 2;
         /* Paint name: */
-        paintText(/* Painter: */
-                  pPainter,
-                  /* Point to paint in: */
-                  QPoint(iNameX, iNameY),
-                  /* Font to paint text: */
-                  m_nameFont,
-                  /* Paint device: */
-                  model()->paintDevice(),
-                  /* Text to paint: */
-                  m_strVisibleName);
+        if (model()->tools()->isPopup())
+            paintText(/* Painter: */
+                      pPainter,
+                      /* Point to paint in: */
+                      QPoint(iNameX, iNameY),
+                      /* Font to paint text: */
+                      m_nameFont,
+                      /* Paint device: */
+                      model()->paintDevice(),
+                      /* Text to paint: */
+                      m_strVisibleName);
     }
 }
 

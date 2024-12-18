@@ -182,6 +182,10 @@ void UIToolsView::prepare()
     /* Install Tools-view accessibility interface factory: */
     QAccessible::installFactory(UIAccessibilityInterfaceForUIToolsView::pFactory);
 
+    /* No minimum size-hint for widget mode: */
+    if (!tools()->isPopup())
+        setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
     /* Prepare palette: */
     preparePalette();
 

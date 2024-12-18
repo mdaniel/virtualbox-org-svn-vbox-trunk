@@ -406,7 +406,7 @@ public:
     {
         setProperty("UIToolType", QVariant::fromValue(UIToolType_Machines));
         /// @todo use icons with check-boxes
-        setIcon(UIIconPool::iconSetFull(":/machine_24px.png", ":/machine_16px.png""));
+        setIcon(UIIconPool::iconSetFull(":/machine_24px.png", ":/machine_16px.png"));
     }
 
 protected:

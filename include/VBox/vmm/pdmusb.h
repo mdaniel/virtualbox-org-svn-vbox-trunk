@@ -1439,7 +1439,7 @@ DECLINLINE(void *) PDMUsbHlpQueryGenericUserObject(PPDMUSBINS pUsbIns, PCRTUUID 
  * Same as pfnSTAMRegister except that the name is specified in a
  * RTStrPrintf like fashion.
  *
- * @param   pDevIns             Device instance of the DMA.
+ * @param   pUsbIns             The USB device instance.
  * @param   pvSample            Pointer to the sample.
  * @param   enmType             Sample type. This indicates what pvSample is
  *                              pointing at.

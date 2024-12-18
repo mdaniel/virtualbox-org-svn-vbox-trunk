@@ -133,7 +133,9 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
                     }
                 }
             }
-            else if (rcNt == STATUS_INVALID_PARAMETER || rcNt == STATUS_NOT_IMPLEMENTED)
+            else if (   rcNt == STATUS_INVALID_PARAMETER || rcNt == STATUS_NOT_IMPLEMENTED
+                     /** Needed for NT4. See @bugref{10826}. */
+                     || rcNt == STATUS_INVALID_INFO_CLASS)
                 rcNt = STATUS_SUCCESS;
             else
             {
@@ -207,7 +209,7 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
 
             if (!NT_SUCCESS(rcNt) && RT_SUCCESS_NP(rc))
                 rc = RTErrConvertFromNtStatus(rcNt);
-        }
+            }
         else if (RT_SUCCESS_NP(rc))
             rc = RTErrConvertFromNtStatus(rcNt);
         RTNtPathFree(&NtName, &hRootDir);

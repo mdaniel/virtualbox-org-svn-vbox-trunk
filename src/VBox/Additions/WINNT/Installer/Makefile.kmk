@@ -292,6 +292,11 @@ VB_WIN_ADD_NSIS_ENV := \
 	$(foreach base, VBOX_GA_CERT_ROOT_SHA1 VBOX_GA_CERT_ROOT_SHA2 VBOX_GA_CERT_ROOT_SHA2_R3 \
 		,-E '$(base)=$(firstword $($(base)) none)' -E '$(base)_TS=$(firstword $($(base)_TS) none)')
 
+# Notes on SetCompressor: solid + lzma w/ 16MB dict reduced the amd64 installer
+#   from 16280616 to 7679592 bytes, or by ~53%.  For x86 we use a smaller
+#   dictionary (the default) since ancient windows VMs doesn't require a lot of
+#   memory and the VMs might have a lot of RAM configured.  Size reduction is
+#   from 9530296 to 5056096 bytes / by ~47%. (4 MB dict: 5948856 bytes / 38%)
 $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(PATH_SUB_CURRENT)/VBoxGuestAdditions.nsi \
 		$(PATH_SUB_CURRENT)/VBoxGuestAdditionsCommon.nsh \
@@ -325,7 +330,9 @@ ifdef VBOX_WIN_ATTESTATION_SIGNING # Unpack the attestation signed drivers - thi
 endif
 	$(REDIRECT) -C $(VBOX_PATH_WIN_ADD_INS_SRC) \
 		$(VB_WIN_ADD_NSIS_ENV) \
-		-- $(EXEC_X86_WIN32) $(VBOX_PATH_NSIS)/makensis.exe /NOCD /V2 \
+		-- $(EXEC_X86_WIN32) $(VBOX_PATH_NSIS)/makensis.exe /NOCD /V3 \
+			"/XSetCompressor /SOLID lzma" "/XSetCompressorDictSize $(if-expr $(KBUILD_TARGET_ARCH) == x86,4,16)" \
+			$(if-expr defined(VBOX_WITH_NATIVE_NSIS_INSTALLER),"/XTarget $(KBUILD_TARGET_ARCH)-unicode",) \
 			$(if $(VBOX_SIGNING_MODE),'/DEXTERNAL_UNINSTALLER=1') \
                        $(if-expr defined(VBOX_SIGN_ADDITIONS) && defined(VBOX_SIGNING_MODE), \
                        	'/DVBOX_SIGN_ADDITIONS=1' \
@@ -373,6 +380,7 @@ ifdef VBOX_SIGNING_MODE
 	$(QUIET)$(REDIRECT) -C $(VBOX_PATH_WIN_ADD_INS_SRC) \
 		$(VB_WIN_ADD_NSIS_ENV) \
 		-- $(EXEC_X86_WIN32) $(VBOX_PATH_NSIS)/makensis.exe /NOCD /V2 \
+			$(if-expr defined(VBOX_WITH_NATIVE_NSIS_INSTALLER),"/XTarget $(KBUILD_TARGET_ARCH)-unicode",) \
 			$(if $(VBOX_SIGN_ADDITIONS),'/DVBOX_SIGN_ADDITIONS=1') \
 			$(if $(VBOX_WITH_VBOX_LEGACY_TS_CA),'/DVBOX_WITH_VBOX_LEGACY_TS_CA=1') \
 			$(if $(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_INSTALLER_ADD_LANGUAGES=1') \

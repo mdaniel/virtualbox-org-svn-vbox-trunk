@@ -75,7 +75,9 @@ TEMPLATE_VBoxGuestInstallHelperDllTemplateWithFewerLibs_LATE_LIBS.x86  = \
 DLLS += VBoxGuestInstallHelperDll
 VBoxGuestInstallHelperDll_TEMPLATE        := VBoxGuestInstallHelperDllTemplateWithFewerLibs
 VBoxGuestInstallHelperDll_NAME            := VBoxGuestInstallHelper
-VBoxGuestInstallHelperDll_BLD_TRG_ARCH    := x86
+ifndef VBOX_WITH_NATIVE_NSIS_INSTALLER
+ VBoxGuestInstallHelperDll_BLD_TRG_ARCH   := x86
+endif
 VBoxGuestInstallHelperDll_INST            := repackadd/resources/VBoxGuestInstallHelperDll/
 ifdef VBOX_SIGN_ADDITIONS # (See the parent makefile.)
  VBoxGuestInstallHelperDll_INSTTYPE       := stage
@@ -84,13 +86,15 @@ endif
 VBoxGuestInstallHelperDll_DEFS            := WIN32_LEAN_AND_MEAN=1 UNICODE _UNICODE
 if1of ($(KBUILD_TARGET_ARCH), x86)
  VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0400
- VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := nt4
+ VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86   := nt4
 else if1of ($(KBUILD_TARGET_ARCH), amd64)
  VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0501
- VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := xp
+ VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86   := xp
+ VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.amd64 := xp64
 else
  VBoxGuestInstallHelperDll_DEFS           += _WIN32_WINNT=0x0a00
- VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86 := w8
+ VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.x86   := w8
+ VBoxGuestInstallHelperDll_VBOX_IMPORT_CHECKER.win.arm64 := w10-1709
 endif
 VBoxGuestInstallHelperDll_SOURCES         := \
 	VBoxGuestInstallHelperDll.cpp \

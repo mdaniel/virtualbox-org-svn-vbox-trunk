@@ -69,9 +69,6 @@
 
     <SetProperty Id="VBOX_REGISTERFILEEXTENSIONS" After="AppSearch" Sequence="both" Value="{}" Condition="VBOX_REGISTERFILEEXTENSIONS=&quot;0&quot;" />
 
-    <!-- Force overwriting all files and re-create shortcuts to guarantee a working environment -->
-    <Property Id="REINSTALLMODE" Value="amus" />
-
     <?include PublicProperties.wxi ?>
 
     <!-- Make doubly sure we're on 64-bit windows NT.

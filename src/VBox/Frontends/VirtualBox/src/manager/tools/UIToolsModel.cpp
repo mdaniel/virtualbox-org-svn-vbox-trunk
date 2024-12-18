@@ -233,6 +233,9 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
     actions[UIToolType_Cloud] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager);
     actions[UIToolType_Activities] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview);
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    actions[UIToolType_Machines] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_MachineManager);
+#endif
     if (actions.contains(enmType))
         actions.value(enmType)->setChecked(true);
 }
@@ -426,6 +429,9 @@ void UIToolsModel::sltRetranslateUI()
             case UIToolType_Network:     pItem->reconfigure(tr("Network")); break;
             case UIToolType_Cloud:       pItem->reconfigure(tr("Cloud")); break;
             case UIToolType_Activities:  pItem->reconfigure(tr("Activities")); break;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            case UIToolType_Machines:    pItem->reconfigure(tr("Machines")); break;
+#endif
             case UIToolType_Details:     pItem->reconfigure(tr("Details")); break;
             case UIToolType_Snapshots:   pItem->reconfigure(tr("Snapshots")); break;
             case UIToolType_Logs:        pItem->reconfigure(tr("Logs")); break;
@@ -498,6 +504,13 @@ void UIToolsModel::prepareItems()
             m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Activities, QString(),
                                        UIIconPool::iconSet(":/resources_monitor_24px.png",
                                                            ":/resources_monitor_disabled_24px.png"));
+
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            /* Machines: */
+            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Machines, QString(),
+                                       UIIconPool::iconSet(":/machine_details_manager_24px.png",
+                                                           ":/machine_details_manager_disabled_24px.png"));
+#endif
 
             break;
         }

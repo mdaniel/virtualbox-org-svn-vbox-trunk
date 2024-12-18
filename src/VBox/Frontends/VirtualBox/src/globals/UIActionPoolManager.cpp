@@ -393,6 +393,38 @@ protected:
     }
 };
 
+/** Simple action extension, used as 'Machine Manager' action class. */
+class UIActionToggleManagerToolsGlobalShowMachineManager : public UIActionToggle
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionToggleManagerToolsGlobalShowMachineManager(UIActionPool *pParent)
+        : UIActionToggle(pParent)
+    {
+        setProperty("UIToolType", QVariant::fromValue(UIToolType_Machines));
+        /// @todo use icons with check-boxes
+        setIcon(UIIconPool::iconSetFull(":/machine_24px.png", ":/machine_16px.png""));
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("ToolsGlobalMachineManager");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "&Machine Manager"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open the Machine Manager"));
+    }
+};
+
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
 /** Simple action extension, used as 'Show Extra-data Manager' action class. */
 class UIActionSimpleManagerFileShowExtraDataManager : public UIActionSimple
@@ -3500,6 +3532,7 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_File_M_Tools_T_NetworkManager] = new UIActionToggleManagerToolsGlobalShowNetworkManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager] = new UIActionToggleManagerToolsGlobalShowCloudProfileManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview] = new UIActionToggleManagerToolsGlobalShowVMActivityOverview(this);
+    m_pool[UIActionIndexMN_M_File_M_Tools_T_MachineManager] = new UIActionToggleManagerToolsGlobalShowMachineManager(this);
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
     m_pool[UIActionIndexMN_M_File_S_ShowExtraDataManager] = new UIActionSimpleManagerFileShowExtraDataManager(this);
 #endif
@@ -3659,6 +3692,7 @@ void UIActionPoolManager::preparePool()
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_NetworkManager));
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager));
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview));
+    m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_MachineManager));
 
     /* 'Group' action groups: */
     m_groupPool[UIActionIndexMN_M_Group_M_Tools] = new QActionGroup(m_pool.value(UIActionIndexMN_M_Group_M_Tools));
@@ -4029,6 +4063,7 @@ void UIActionPoolManager::updateMenuFileTools()
     }
     pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager));
     pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview));
+    //pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_MachineManager));
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexMN_M_File_M_Tools);

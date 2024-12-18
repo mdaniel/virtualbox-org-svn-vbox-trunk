@@ -55,6 +55,7 @@ enum UIActionIndexMN
     UIActionIndexMN_M_File_M_Tools_T_NetworkManager,
     UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager,
     UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview,
+    UIActionIndexMN_M_File_M_Tools_T_MachineManager,
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
     UIActionIndexMN_M_File_S_ShowExtraDataManager,
 #endif

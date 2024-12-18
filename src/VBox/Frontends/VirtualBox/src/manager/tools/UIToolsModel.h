@@ -38,6 +38,7 @@
 #include <QTransform>
 
 /* GUI includes: */
+#include "UIManagerDefs.h"
 #include "UIToolsItem.h"
 
 /* COM includes: */

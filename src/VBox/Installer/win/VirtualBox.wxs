@@ -260,9 +260,6 @@
     <!-- Make sure to reference the permissions component, which takes care of setting
          the required ACLs for our files / folders. -->
         <ComponentRef Id="cp_Permissions" />
-    <?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
-        <ComponentRef Id="cp_RegisterExtensions" />
-    <?endif?>
     <?if $(env.VBOX_WITH_DOCS_PACKING) = "yes" ?>
         <ComponentRef Id="cp_Docs" />
     <?endif?>

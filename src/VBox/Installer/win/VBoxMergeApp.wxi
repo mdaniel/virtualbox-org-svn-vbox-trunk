@@ -144,49 +144,6 @@
     <?include $(env.PATH_TARGET)\DirComponentsAndFiles_DTrace.wxi ?>
 <?endif?>
 
-    <!---->
-
-<?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
-    <Component Id="cp_RegisterExtensions" Guid="FEB8943E-5D60-4E2D-846F-458207019D40" Bitness="$(var.Property_Bitness)" KeyPath="yes"
-               Condition="(VBOX_REGISTERFILEEXTENSIONS=&quot;1&quot;)">
-        <!-- Register file extensions. Note: Extension IDs *must not* be changed! These specify the actual
-             file extension to handle. Also, here would be the place to add more fancy DDE stuff later.
-             Important: The IDs in "IconIndex" *must* be matching "Resources\resource.h" -->
-        <ProgId Id="progId_VirtualBox.Shell.vbox" Description="VirtualBox Machine Definition" Icon="file_VBoxRes.dll" IconIndex="-201">
-            <Extension Id="vbox" ContentType="application/x-virtualbox-vbox">
-                <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
-            </Extension>
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.vbox-extpack" Description="VirtualBox Extension Pack" Icon="file_VBoxRes.dll" IconIndex="-202">
-            <Extension Id="vbox-extpack" ContentType="application/x-virtualbox-vbox-extpack">
-                <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
-            </Extension>
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.ovf" Description="Open Virtualization Format" Icon="file_VBoxRes.dll" IconIndex="-301">
-            <Extension Id="ovf" ContentType="application/x-virtualbox-ovf">
-                <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
-            </Extension>
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.ova" Description="Open Virtualization Format Archive" Icon="file_VBoxRes.dll" IconIndex="-302">
-            <Extension Id="ova" ContentType="application/x-virtualbox-ova">
-                <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
-            </Extension>
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.vdi" Description="Virtual Disk Image" Icon="file_VBoxRes.dll" IconIndex="-303">
-            <Extension Id="vdi" ContentType="application/x-virtualbox-vdi" />
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.vmdk" Description="Virtual Machine Disk Format" Icon="file_VBoxRes.dll" IconIndex="-304">
-            <Extension Id="vmdk" ContentType="application/x-virtualbox-vmdk" />
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.vhd" Description="Virtual Hard Disk" Icon="file_VBoxRes.dll" IconIndex="-305">
-            <Extension Id="vhd" ContentType="application/x-virtualbox-vhd" />
-        </ProgId>
-        <ProgId Id="progId_VirtualBox.Shell.hdd" Description="Virtual Hard Disk" Icon="file_VBoxRes.dll" IconIndex="-306">
-            <Extension Id="hdd" ContentType="application/x-virtualbox-hdd" />
-        </ProgId>
-    </Component> <!-- cp_RegisterExtensions -->
-<?endif?>
-
     <!-- All Binaries, DLLs (except COM) and drivers are in one component because they belong together. Additional
          binaries e.g. test tools, utilities etc. should be in another component so they"re clearly separated -->
     <Component Id="cp_MainBinaries" Guid="5C8FE57A-F744-4DE0-AA3F-A563F486AD98" Bitness="$(var.Property_Bitness)">
@@ -290,15 +247,11 @@
 
 <?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
         <!-- Qt frontend -->
-        <File Id="file_VirtualBox.exe" Name="VirtualBox.exe" Source="$(env.PATH_OUT)\bin\VirtualBox.exe">
-        </File>
-        <File Id="file_VirtualBoxVM.exe" Name="VirtualBoxVM.exe" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.exe">
-        </File>
-        <File Id="file_UICommon.dll" Name="UICommon.dll" Source="$(env.PATH_OUT)\bin\UICommon.dll">
-        </File>
+        <File Id="file_VirtualBox.exe" Name="VirtualBox.exe" Source="$(env.PATH_OUT)\bin\VirtualBox.exe" />
+        <File Id="file_VirtualBoxVM.exe" Name="VirtualBoxVM.exe" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.exe" />
+        <File Id="file_UICommon.dll" Name="UICommon.dll" Source="$(env.PATH_OUT)\bin\UICommon.dll" />
     <?if $(env.VBOX_WITH_HARDENING) = "yes" ?>
-        <File Id="file_VirtualBoxVM.dll" Name="VirtualBoxVM.dll" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.dll">
-        </File>
+        <File Id="file_VirtualBoxVM.dll" Name="VirtualBoxVM.dll" Source="$(env.PATH_OUT)\bin\VirtualBoxVM.dll" />
     <?endif?>
     <?if $(env.VBOX_WITH_ORACLE_QT) = "yes" ?>
         <File Id="file_Qt6Core$(var.VBOX_QT_INFIX).dll" Name="Qt6Core$(var.VBOX_QT_INFIX).dll" Source="$(env.PATH_OUT)\bin\Qt6Core$(var.VBOX_QT_INFIX).dll" />
@@ -313,11 +266,50 @@
         <File Id="file_VirtualBox.VisualElementsManifest.xml" Name="VirtualBox.VisualElementsManifest.xml" Source="$(env.PATH_OUT)\bin\VirtualBox.VisualElementsManifest.xml" />
         <File Id="file_VirtualBox_70px.png" Name="VirtualBox_70px.png" Source="$(env.PATH_OUT)\bin\VirtualBox_70px.png" />
         <File Id="file_VirtualBox_150px.png" Name="VirtualBox_150px.png" Source="$(env.PATH_OUT)\bin\VirtualBox_150px.png" />
-<?endif?>
-<?if $(env.VBOX_WITH_DEBUGGER_GUI) = "yes" ?>
+    <!-- Register file extensions. Note: Extension IDs *must not* be changed! These specify the actual
+         file extension to handle. Also, here would be the place to add more fancy DDE stuff later.
+         Important: The IDs in "IconIndex" *must* be matching "Resources\resource.h"
+
+         Note! Registering the file extensions must be done in the same component where the binaries of FE/Qt live.
+               Otherwise the MSI validation will fail.  -->
+    <ProgId Id="progId_VirtualBox.Shell.vbox" Description="VirtualBox Machine Definition" Icon="file_VBoxRes.dll" IconIndex="-201">
+        <Extension Id="vbox" ContentType="application/x-virtualbox-vbox">
+            <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
+        </Extension>
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.vbox-extpack" Description="VirtualBox Extension Pack" Icon="file_VBoxRes.dll" IconIndex="-202">
+        <Extension Id="vbox-extpack" ContentType="application/x-virtualbox-vbox-extpack">
+            <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
+        </Extension>
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.ovf" Description="Open Virtualization Format" Icon="file_VBoxRes.dll" IconIndex="-301">
+        <Extension Id="ovf" ContentType="application/x-virtualbox-ovf">
+            <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
+        </Extension>
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.ova" Description="Open Virtualization Format Archive" Icon="file_VBoxRes.dll" IconIndex="-302">
+        <Extension Id="ova" ContentType="application/x-virtualbox-ova">
+            <Verb Id="open" Command="Open" TargetFile="file_VirtualBox.exe" Argument="&quot;%1&quot;" />
+        </Extension>
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.vdi" Description="Virtual Disk Image" Icon="file_VBoxRes.dll" IconIndex="-303">
+        <Extension Id="vdi" ContentType="application/x-virtualbox-vdi" />
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.vmdk" Description="Virtual Machine Disk Format" Icon="file_VBoxRes.dll" IconIndex="-304">
+        <Extension Id="vmdk" ContentType="application/x-virtualbox-vmdk" />
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.vhd" Description="Virtual Hard Disk" Icon="file_VBoxRes.dll" IconIndex="-305">
+        <Extension Id="vhd" ContentType="application/x-virtualbox-vhd" />
+    </ProgId>
+    <ProgId Id="progId_VirtualBox.Shell.hdd" Description="Virtual Hard Disk" Icon="file_VBoxRes.dll" IconIndex="-306">
+        <Extension Id="hdd" ContentType="application/x-virtualbox-hdd" />
+    </ProgId>
+    <!-- Debugger UI. -->
+    <?if $(env.VBOX_WITH_DEBUGGER_GUI) = "yes" ?>
         <File Id="file_VBoxDbg.dll" Name="VBoxDbg.dll" Source="$(env.PATH_OUT)\bin\VBoxDbg.dll" />
         <File Id="file_DbgPlugInDiggers.dll" Name="DbgPlugInDiggers.dll" Source="$(env.PATH_OUT)\bin\DbgPlugInDiggers.dll" />
-<?endif?>
+    <?endif?>
+<?endif?> <!-- $(env.VBOX_WITH_QTGUI) = "yes" -->
 
 <?if $(env.VBOX_WITH_CRT_PACKING) = "yes" ?>
         <!-- Include CRT Dlls (specific to the compiler). -->

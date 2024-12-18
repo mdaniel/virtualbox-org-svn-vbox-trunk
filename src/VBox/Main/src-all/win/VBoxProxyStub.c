@@ -90,19 +90,14 @@
 /**
  * Selects the proxy stub DLL based on 32-on-64-bit and host OS version.
  *
- * The legacy DLL covers 64-bit pre Windows 7 versions of Windows. W2K3-amd64
- * has trouble parsing the result when MIDL /target NT51 or higher. Vista and
- * windows server 2008 seems to have trouble with newer IDL compilers.
+ * Note! We used to have a separate version of the 64-bit DLL for pre-win7.
  */
 #if ARCH_BITS == 64 || defined(VBOX_IN_32_ON_64_MAIN_API)
 # define VBPS_PROXY_STUB_FILE(a_fIs32On64) ( (a_fIs32On64) ? "x86\\VBoxProxyStub-x86.dll" : VBPS_PROXY_STUB_FILE_SUB() )
 #else
 # define VBPS_PROXY_STUB_FILE(a_fIs32On64) VBPS_PROXY_STUB_FILE_SUB()
 #endif
-#define VBPS_PROXY_STUB_FILE_SUB() \
-    ( RT_MAKE_U64(((PKUSER_SHARED_DATA)MM_SHARED_USER_DATA_VA)->NtMinorVersion, \
-                  ((PKUSER_SHARED_DATA)MM_SHARED_USER_DATA_VA)->NtMajorVersion) >= RT_MAKE_U64(1/*Lo*/,6/*Hi*/) \
-      ? "VBoxProxyStub.dll" : "VBoxProxyStubLegacy.dll" )
+#define VBPS_PROXY_STUB_FILE_SUB()         "VBoxProxyStub.dll"
 
 /** For use with AssertLogRel except a_Expr1 from assertions but not LogRel. */
 #ifdef RT_STRICT

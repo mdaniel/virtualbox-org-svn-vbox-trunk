@@ -112,21 +112,6 @@ if not "%ProgramW6432%x" == "x" set fIs64BitWindows=1
 if exist "%windir\syswow64\kernel32.dll" set fIs64BitWindows=1
 
 REM
-REM Figure out the Windows version as the proxy stub requires 6.0 or later (at least for 64-bit).
-REM
-set WinVer=Version 4.0.1381
-set WinVerMajor=4
-set WinVerMinor=0
-set WinVerBuild=1381
-for /f "tokens=2 delims=[]" %%a in ('ver') do set WinVer=%%a
-for /f "tokens=2,3,4 delims=. " %%a in ("%WinVer%") do (
-    set WinVerMajor=%%a
-    set WinVerMinor=%%b
-    set WinVerBuild=%%c
-)
-REM echo WinVerMajor=%WinVerMajor% WinVerMinor=%WinVerMinor% WinVerBuild=%WinVerBuild%  WinVer=%WinVer%
-
-REM
 REM Parse arguments.
 REM
 set fNoProxy=0
@@ -181,22 +166,12 @@ goto end
 
 REM Unregister all first, then register them. The order matters here.
 :register_amd64
-if "%WinVerMajor%" == "5" goto register_amd64_legacy
-if not "%WinVerMajor%" == "6" goto register_amd64_not_legacy
-if not "%WinVerMinor%" == "0" goto register_amd64_not_legacy
-:register_amd64_legacy
-set s64BitProxyStub=VBoxProxyStubLegacy.dll
-goto register_amd64_begin
-:register_amd64_not_legacy
-set s64BitProxyStub=VBoxProxyStub.dll
-:register_amd64_begin
-echo s64BitProxyStub=%s64BitProxyStub%
 @echo on
 "%_VBOX_DIR%VBoxSVC.exe" /UnregServer
 "%_VBOX_DIR%VBoxSDS.exe" /UnregService
 %windir%\system32\regsvr32 /s /u "%_VBOX_DIR%VBoxC.dll"
 %windir%\syswow64\regsvr32 /s /u "%_VBOX_DIR%x86\VBoxClient-x86.dll"
-%windir%\system32\regsvr32 /s /u "%_VBOX_DIR%%s64BitProxyStub%"
+%windir%\system32\regsvr32 /s /u "%_VBOX_DIR%VBoxProxyStub.dll"
 %windir%\syswow64\regsvr32 /s /u "%_VBOX_DIR%x86\VBoxProxyStub-x86.dll"
 if %fUninstallOnly% == 1 goto end
 "%_VBOX_DIR%VBoxSVC.exe" /RegServer
@@ -204,7 +179,7 @@ if %fUninstallOnly% == 1 goto end
 %windir%\system32\regsvr32 /s    "%_VBOX_DIR%VBoxC.dll"
 %windir%\syswow64\regsvr32 /s    "%_VBOX_DIR%x86\VBoxClient-x86.dll"
 if %fNoProxy% == 1 goto end
-if exist "%_VBOX_DIR%%s64BitProxyStub%"         %windir%\system32\regsvr32 /s "%_VBOX_DIR%%s64BitProxyStub%"
+if exist "%_VBOX_DIR%VBoxProxyStub.dll"         %windir%\system32\regsvr32 /s "%_VBOX_DIR%VBoxProxyStub.dll"
 if exist "%_VBOX_DIR%x86\VBoxProxyStub-x86.dll" %windir%\syswow64\regsvr32 /s "%_VBOX_DIR%x86\VBoxProxyStub-x86.dll"
 @echo off
 

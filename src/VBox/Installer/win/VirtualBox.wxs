@@ -275,9 +275,6 @@
     <?endif?>
     <?if $(env.VBOX_WITH_MIDL_PROXY_STUB) = "yes" ?>
         <ComponentRef Id="cp_ProxyStub" />
-        <?if $(env.VBOX_WITH_32_ON_64_MAIN_API) = "yes" ?>
-            <ComponentRef Id="cp_ProxyStubLegacy" />
-        <?endif?>
     <?endif?>
     <?if $(env.VBOX_WITH_DTRACE) = "yes" ?>
         <ComponentRef Id="cp_dir_DTrace_lib_arch" />

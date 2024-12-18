@@ -465,11 +465,7 @@ HRESULT Initialize(uint32_t fInitFlags /*=VBOX_COM_INIT_F_DEFAULT*/)
             int vrc = RTPathAppPrivateArch(szPath, sizeof(szPath));
             if (RT_SUCCESS(vrc))
 #  ifndef VBOX_IN_32_ON_64_MAIN_API
-                vrc = RTPathAppend(szPath, sizeof(szPath),
-                                      RT_MAKE_U64(((PKUSER_SHARED_DATA)MM_SHARED_USER_DATA_VA)->NtMinorVersion,
-                                                  ((PKUSER_SHARED_DATA)MM_SHARED_USER_DATA_VA)->NtMajorVersion)
-                                   >= RT_MAKE_U64(1/*Lo*/,6/*Hi*/)
-                                   ? "VBoxProxyStub.dll" : "VBoxProxyStubLegacy.dll");
+                vrc = RTPathAppend(szPath, sizeof(szPath), "VBoxProxyStub.dll");
 #  else
                 vrc = RTPathAppend(szPath, sizeof(szPath), "x86\\VBoxProxyStub-x86.dll");
 #  endif

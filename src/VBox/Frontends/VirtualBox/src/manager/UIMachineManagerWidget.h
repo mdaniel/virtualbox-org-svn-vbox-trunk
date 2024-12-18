@@ -82,12 +82,6 @@ signals:
         void sigToolTypeChange();
     /** @} */
 
-    /** @name Tools / Details pane stuff.
-      * @{ */
-        /** Notifies aboud Details-pane link clicked. */
-        void sigMachineSettingsLinkClicked(const QString &strCategory, const QString &strControl, const QUuid &uId);
-    /** @} */
-
 public:
 
     /** Constructs Machine Manager widget passing @a pParent to the base-class.

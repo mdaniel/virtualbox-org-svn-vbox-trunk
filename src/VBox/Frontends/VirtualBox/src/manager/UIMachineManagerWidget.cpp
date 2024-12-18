@@ -475,10 +475,6 @@ void UIMachineManagerWidget::prepareConnections()
     connect(chooser(), &UIChooser::sigToggleFinished,
             toolPane(), &UIToolPaneMachine::sigToggleFinished);
 
-    /* Tools-pane connections: */
-    connect(toolPane(), &UIToolPaneMachine::sigLinkClicked,
-            this, &UIMachineManagerWidget::sigMachineSettingsLinkClicked);
-
     /* Tools-menu connections: */
     connect(toolMenu(), &UITools::sigSelectionChanged,
             this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
@@ -531,10 +527,6 @@ void UIMachineManagerWidget::cleanupConnections()
                toolPane(), &UIToolPaneMachine::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,
                toolPane(), &UIToolPaneMachine::sigToggleFinished);
-
-    /* Tools-pane connections: */
-    disconnect(toolPane(), &UIToolPaneMachine::sigLinkClicked,
-               this, &UIMachineManagerWidget::sigMachineSettingsLinkClicked);
 
     /* Tools-menu connections: */
     disconnect(toolMenu(), &UITools::sigSelectionChanged,

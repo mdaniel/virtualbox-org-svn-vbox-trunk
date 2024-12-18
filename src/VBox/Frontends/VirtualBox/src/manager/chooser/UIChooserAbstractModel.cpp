@@ -404,11 +404,13 @@ void UIChooserAbstractModel::init()
         /* Link root to this model: */
         invisibleRoot()->setModel(this);
 
+#ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
         /* Create global node: */
         new UIChooserNodeGlobal(invisibleRoot() /* parent */,
                                 0 /* position */,
                                 shouldGlobalNodeBeFavorite(invisibleRoot()),
                                 QString() /* tip */);
+#endif
 
         /* Reload local tree: */
         reloadLocalTree();

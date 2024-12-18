@@ -512,6 +512,20 @@ void UIMachineManagerWidget::loadSettings()
 
 void UIMachineManagerWidget::cleanupConnections()
 {
+    /* Global COM event handlers: */
+    disconnect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
+               this, &UIMachineManagerWidget::sltHandleMachineStateChange);
+    disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
+               this, &UIMachineManagerWidget::sltHandleSettingsExpertModeChange);
+
+    /* Parent connections: */
+    disconnect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
+               this, &UIMachineManagerWidget::sltSwitchToVMActivityTool);
+
+    /* Splitter connections: */
+    disconnect(m_pSplitter, &QISplitter::splitterMoved,
+               this, &UIMachineManagerWidget::sltHandleSplitterMove);
+
     /* Chooser-pane connections: */
     disconnect(chooser(), &UIChooser::sigSelectionChanged,
                this, &UIMachineManagerWidget::sltHandleChooserPaneIndexChange);

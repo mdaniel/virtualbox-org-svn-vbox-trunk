@@ -75,7 +75,7 @@ NOMODS   ?= $(ose)
 NOQT     ?= $(HEADLESS)
 NOSDL    ?= $(HEADLESS)
 NOWEBSVC ?=
-EFI      ?= $(if $(wildcard $(vboxroot)/prebuild/VBoxEFI32.fd $(vboxroot)/prebuild/VBoxEFI64.fd),1,)
+EFI      ?= $(if $(wildcard $(vboxroot)/prebuild/VBoxEFI-x86.fd $(vboxroot)/prebuild/VBoxEFI-amd64.fd),1,)
 NODOCS   ?= $(if $(wildcard $(addprefix $(vboxroot)/prebuild/,UserManual*.pdf UserManual*.qch UserManual*.qhc)),1,)
 STAGEDISO ?= $(if $(wildcard $(vboxroot)/prebuild/VBoxGuestAdditions.iso),$(vboxroot)/prebuild,)
 NOWINE   := $(if $(STAGEDISO),1,$(ose))
@@ -146,8 +146,8 @@ $(bldbase)/build-stamp $(verfile): $(bldbase)/configure-stamp
 	# Files from prebuild go to (builddir)/bin to be used during the
 	# packing stage, overriding what the build did/would produce.
 	$(if $(NODOCS),cp $(addprefix $(vboxroot)/prebuild/,UserManual*.pdf UserManual*.qch UserManual*.qhc) $(builddir)/bin,)
-	$(if $(EFI),cp $(vboxroot)/prebuild/VBoxEFI32.fd $(builddir)/bin,)
-	$(if $(EFI),cp $(vboxroot)/prebuild/VBoxEFI64.fd $(builddir)/bin,)
+	$(if $(EFI),cp $(vboxroot)/prebuild/VBoxEFI-x86.fd $(builddir)/bin,)
+	$(if $(EFI),cp $(vboxroot)/prebuild/VBoxEFI-amd64.fd $(builddir)/bin,)
 	mkdir -p $(builddir)/bin/additions
 	$(if $(STAGEDISO),cp $(STAGEDISO)/VBoxGuestAdditions.iso $(builddir)/bin/additions,)
 	. $(bldbase)/env.sh && kmk -C $(vboxroot) $(bld_flags) \
@@ -281,6 +281,7 @@ binary: build $(if $(NOMODS),,$(bldbase)/modules-stamp)
 	        $(prefix)/usr/lib/$(package)/plugins/platformthemes/*.so; \
 	        $(prefix)/usr/lib/$(package)/plugins/sqldrivers/*.so; \
 	        $(prefix)/usr/lib/$(package)/plugins/styles/*.so; \
+	        $(prefix)/usr/lib/$(package)/plugins/wayland-shell-integration/*.so; \
 	    echo "[Paths]" > $(prefix)/usr/lib/$(package)/qt.conf; \
 	    echo "Plugins = /usr/lib/$(package)/plugins" >> $(prefix)/usr/lib/$(package)/qt.conf; \
 	fi

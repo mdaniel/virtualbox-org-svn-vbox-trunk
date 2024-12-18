@@ -39,15 +39,13 @@
 #include "UIExtraDataDefs.h"
 
 /* Forward declarations: */
-class QStackedWidget;
-class QTimer;
-class QISplitter;
 class QIToolBar;
 class UIActionPool;
 class UIChooser;
+class UIGlobalToolsManagerWidget;
+class UIMachineManagerWidget;
 class UIToolPaneGlobal;
 class UIToolPaneMachine;
-class UITools;
 class UIVirtualBoxManager;
 class UIVirtualMachineItem;
 
@@ -56,24 +54,7 @@ class UIVirtualBoxManagerAdvancedWidget : public QWidget
 {
     Q_OBJECT;
 
-    /** Possible selection types. */
-    enum SelectionType
-    {
-        SelectionType_Invalid,
-        SelectionType_SingleLocalGroupItem,
-        SelectionType_SingleCloudGroupItem,
-        SelectionType_FirstIsGlobalItem,
-        SelectionType_FirstIsLocalMachineItem,
-        SelectionType_FirstIsCloudMachineItem
-    };
-
 signals:
-
-    /** @name Tool-bar stuff.
-      * @{ */
-        /* Notifies listeners about tool-bar height change. */
-        void sigToolBarHeightChange(int iHeight);
-    /** @} */
 
     /** @name Chooser pane stuff.
       * @{ */
@@ -153,9 +134,6 @@ public:
         /** Returns a list of current-items. */
         QList<UIVirtualMachineItem*> currentItems() const;
 
-        /** Returns whether passed @a pItem accessible, by default it's the current one. */
-        bool isItemAccessible(UIVirtualMachineItem *pItem = 0) const;
-
         /** Returns whether group item is selected. */
         bool isGroupItemSelected() const;
         /** Returns whether global item is selected. */
@@ -177,9 +155,6 @@ public:
         bool isSingleCloudProfileGroupSelected() const;
         /** Returns whether all items of one group are selected. */
         bool isAllItemsOfOneGroupSelected() const;
-
-        /** Returns current selection type. */
-        SelectionType selectionType() const;
 
         /** Returns full name of currently selected group. */
         QString fullGroupName() const;
@@ -229,10 +204,6 @@ public:
         bool isGlobalToolOpened(UIToolType enmType) const;
         /** Returns whether Machine tool of passed @a enmType is opened. */
         bool isMachineToolOpened(UIToolType enmType) const;
-        /** Switches Global tool to passed @a enmType. */
-        void switchGlobalToolTo(UIToolType enmType);
-        /** Switches Machine tool to passed @a enmType. */
-        void switchMachineToolTo(UIToolType enmType);
         /** Closes Global tool of passed @a enmType. */
         void closeGlobalTool(UIToolType enmType);
         /** Closes Machine tool of passed @a enmType. */
@@ -264,75 +235,16 @@ public slots:
 
 private slots:
 
-    /** @name Event handling stuff.
-      * @{ */
-        /** Handles translation event. */
-        void sltRetranslateUI();
-    /** @} */
-
     /** @name General stuff.
       * @{ */
         /** Handles request to commit data. */
         void sltHandleCommitData();
     /** @} */
 
-    /** @name CVirtualBox event handling stuff.
-      * @{ */
-        /** Handles CVirtualBox event about state change for machine with @a uId. */
-        void sltHandleMachineStateChange(const QUuid &uId);
-    /** @} */
-
-    /** @name CVirtualBox extra-data event handling stuff.
-      * @{ */
-        /** Handles signal about settings expert mode change. */
-        void sltHandleSettingsExpertModeChange();
-    /** @} */
-
-    /** @name Splitter stuff.
-      * @{ */
-        /** Handles signal about splitter move. */
-        void sltHandleSplitterMove();
-        /** Handles request to save splitter settings. */
-        void sltSaveSplitterSettings();
-    /** @} */
-
     /** @name Tool-bar stuff.
       * @{ */
-        /** Handles signal about tool-bar resize to @a newSize. */
-        void sltHandleToolBarResize(const QSize &newSize);
-    /** @} */
-
-    /** @name Chooser pane stuff.
-      * @{ */
-        /** Handles signal about Chooser-pane index change. */
-        void sltHandleChooserPaneIndexChange();
-
-        /** Handles signal about Chooser-pane selection invalidated. */
-        void sltHandleChooserPaneSelectionInvalidated() { recacheCurrentMachineItemInformation(true /* fDontRaiseErrorPane */); }
-
-        /** Handles state change for cloud profile with certain @a strProviderShortName and @a strProfileName. */
-        void sltHandleCloudProfileStateChange(const QString &strProviderShortName,
-                                              const QString &strProfileName);
-        /** Handles state change for cloud machine with certain @a uId. */
-        void sltHandleCloudMachineStateChange(const QUuid &uId);
-    /** @} */
-
-    /** @name Tools pane stuff.
-      * @{ */
-        /** Handles tool popup-menu request. */
-        void sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
-
-        /** Handles signal about global Tools-menu index change.
-          * @param  enmType  Brings current tool type. */
-        void sltHandleGlobalToolsMenuIndexChange(UIToolType enmType) { switchGlobalToolTo(enmType); }
-        /** Handles signal about machine Tools-menu index change.
-          * @param  enmType  Brings current tool type. */
-        void sltHandleMachineToolsMenuIndexChange(UIToolType enmType) { switchMachineToolTo(enmType); }
-
-        /** Handles signal requesting switch to Activity pane of machine with @a uMachineId. */
-        void sltSwitchToMachineActivityPane(const QUuid &uMachineId);
-        /** Handles signal requesting switch to Resources pane. */
-        void sltSwitchToActivityOverviewPane();
+        /** Updates tool-bar. */
+        void sltUpdateToolbar();
     /** @} */
 
 private:
@@ -353,56 +265,33 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
-        /** Cleanups widgets. */
-        void cleanupWidgets();
         /** Cleanups all. */
         void cleanup();
     /** @} */
 
     /** @name Tools stuff.
       * @{ */
-        /** Recaches current machine item information.
-          * @param  fDontRaiseErrorPane  Brings whether we should not raise error-pane. */
-        void recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane = false);
+        /** Returns Global Tool Manager instance. */
+        UIGlobalToolsManagerWidget *globalToolManager() const;
+        /** Returns Global Tool Pane reference. */
+        UIToolPaneGlobal *globalToolPane() const;
 
-        /** Updates Global tools menu. */
-        void updateToolsMenuGlobal();
-        /** Updates Machine tools menu for @a pItem specified. */
-        void updateToolsMenuMachine(UIVirtualMachineItem *pItem);
-
-        /** Handles current tool @a enmType change. */
-        void handleCurrentToolTypeChange(UIToolType enmType);
+        /** Returns Machine Tool Manager reference. */
+        UIMachineManagerWidget *machineToolManager() const;
+        /** Returns Machine Tool Pane reference. */
+        UIToolPaneMachine *machineToolPane() const;
+        /** Returns Machine Chooser Pane reference. */
+        UIChooser *chooser() const;
     /** @} */
 
-    /** Holds the action-pool instance. */
+    /** Holds the action-pool reference. */
     UIActionPool *m_pActionPool;
-
-    /** Holds the central splitter instance. */
-    QISplitter *m_pSplitter;
 
     /** Holds the main toolbar instance. */
     QIToolBar *m_pToolBar;
 
-    /** Holds the Chooser-pane instance. */
-    UIChooser          *m_pPaneChooser;
-    /** Holds the stacked-widget. */
-    QStackedWidget     *m_pStackedWidget;
-    /** Holds the Global Tools-pane instance. */
-    UIToolPaneGlobal   *m_pPaneToolsGlobal;
-    /** Holds the Machine Tools-pane instance. */
-    UIToolPaneMachine  *m_pPaneToolsMachine;
-    /** Holds the Global Tools-menu instance. */
-    UITools            *m_pMenuToolsGlobal;
-    /** Holds the Machine Tools-menu instance. */
-    UITools            *m_pMenuToolsMachine;
-
-    /** Holds the last selection type. */
-    SelectionType  m_enmSelectionType;
-    /** Holds whether the last selected item was accessible. */
-    bool           m_fSelectedMachineItemAccessible;
-
-    /** Holds the splitter settings save timer. */
-    QTimer *m_pSplitterSettingsSaveTimer;
+    /** Holds the Global Tool Manager instance. */
+    UIGlobalToolsManagerWidget *m_pGlobalToolManager;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_UIVirtualBoxManagerAdvancedWidget_h */

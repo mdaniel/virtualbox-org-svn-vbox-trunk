@@ -95,7 +95,7 @@ UIToolsItem *UITools::currentItem() const
 void UITools::sltClose()
 {
     /* Close the widget in popup mode only: */
-    if (windowFlags() == Qt::Popup)
+    if (isPopup())
         close();
 }
 

@@ -1055,7 +1055,7 @@ $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_NAME_LANG).msi \
 		'@echo Created multilanguage MSI: $(notdir $(PACKAGE_NAME_FINAL))'
 # Validation.  Currently there is a list of grievances, we ignore it. (TODO: Fix errors.)
 	$(call MSG_L1,Start validation of "$@" - errors will be ignored)
-	$(REDIRECT) -- $(VBOX_TOOLS_WIN_WIX_BIN) msi validate "$@"
+	-$(REDIRECT) -- $(VBOX_TOOLS_WIN_WIX_BIN) msi validate "$@"
 	$(call MSG_L1,Finished validating "$@" - any errors was ignored)
 
 

@@ -53,11 +53,6 @@ UIGlobalToolsManagerWidget::UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvanc
     prepare();
 }
 
-UIGlobalToolsManagerWidget::~UIGlobalToolsManagerWidget()
-{
-    cleanup();
-}
-
 UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
 {
     return m_pPane;
@@ -168,9 +163,6 @@ QString UIGlobalToolsManagerWidget::currentHelpKeyword() const
 
 void UIGlobalToolsManagerWidget::sltHandleCommitData()
 {
-    // WORKAROUND:
-    // This will be fixed proper way during session management cleanup for Qt6.
-    // But for now we will just cleanup connections which is Ok anyway.
     cleanupConnections();
 }
 
@@ -287,12 +279,6 @@ void UIGlobalToolsManagerWidget::cleanupConnections()
     /* Tools-pane connections: */
     disconnect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
                this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
-}
-
-void UIGlobalToolsManagerWidget::cleanup()
-{
-    /* Ask sub-dialogs to commit data: */
-    sltHandleCommitData();
 }
 
 UITools *UIGlobalToolsManagerWidget::toolMenu() const

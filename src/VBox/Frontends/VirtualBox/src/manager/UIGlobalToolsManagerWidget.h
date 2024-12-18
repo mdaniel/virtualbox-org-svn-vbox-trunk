@@ -64,8 +64,6 @@ public:
     /** Constructs Global Tools Manager widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.  */
     UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool);
-    /** Destructs Global Tools Manager widget. */
-    virtual ~UIGlobalToolsManagerWidget() RT_OVERRIDE;
 
     /** @name Common stuff.
       * @{ */
@@ -147,8 +145,6 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
-        /** Cleanups all. */
-        void cleanup();
     /** @} */
 
     /** @name Tools stuff.

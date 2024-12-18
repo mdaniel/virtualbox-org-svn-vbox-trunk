@@ -93,8 +93,6 @@ public:
     /** Constructs Machine Manager widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference. */
     UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool);
-    /** Destructs Machine Manager widget. */
-    virtual ~UIMachineManagerWidget() RT_OVERRIDE;
 
     /** @name Common stuff.
       * @{ */
@@ -232,8 +230,6 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
-        /** Cleanups all. */
-        void cleanup();
     /** @} */
 
     /** @name Tools stuff.

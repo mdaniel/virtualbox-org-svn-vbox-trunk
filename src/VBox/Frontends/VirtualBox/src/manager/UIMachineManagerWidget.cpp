@@ -60,11 +60,6 @@ UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActi
     prepare();
 }
 
-UIMachineManagerWidget::~UIMachineManagerWidget()
-{
-    cleanup();
-}
-
 UIChooser *UIMachineManagerWidget::chooser() const
 {
     return m_pPaneChooser;
@@ -214,9 +209,6 @@ void UIMachineManagerWidget::sltRetranslateUI()
 
 void UIMachineManagerWidget::sltHandleCommitData()
 {
-    // WORKAROUND:
-    // This will be fixed proper way during session management cleanup for Qt6.
-    // But for now we will just cleanup connections which is Ok anyway.
     cleanupConnections();
 }
 
@@ -547,12 +539,6 @@ void UIMachineManagerWidget::cleanupConnections()
     /* Tools-menu connections: */
     disconnect(toolMenu(), &UITools::sigSelectionChanged,
                this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
-}
-
-void UIMachineManagerWidget::cleanup()
-{
-    /* Ask sub-dialogs to commit data: */
-    sltHandleCommitData();
 }
 
 UITools *UIMachineManagerWidget::toolMenu() const

@@ -77,6 +77,8 @@ public:
       * @{ */
         /** Returns tool-pane instance. */
         UIToolPaneGlobal *toolPane() const;
+        /** Returns Machine Manager reference. */
+        UIMachineManagerWidget *machineManager() const;
 
         /** Returns menu tool type. */
         UIToolType menuToolType() const;
@@ -153,8 +155,6 @@ private:
       * @{ */
         /** Returns tool-menu instance. */
         UITools *toolMenu() const;
-       /** Returns Machine Manager reference. */
-        UIMachineManagerWidget *machineManager() const;
         /** Returns Machine Manager's Chooser-pane reference. */
         UIChooser *chooser() const;
         /** Returns Machine Manager's Tool-pane instance. */

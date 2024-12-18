@@ -364,6 +364,10 @@ void UIToolPaneGlobal::prepare()
 
     /* Create desktop pane: */
     openTool(UIToolType_Welcome);
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    /* Create machines pane: */
+    openTool(UIToolType_Machines);
+#endif
 }
 
 void UIToolPaneGlobal::cleanup()

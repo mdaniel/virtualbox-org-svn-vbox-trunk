@@ -91,10 +91,8 @@
         <File Id="VBoxC" Name="VBoxC.dll" Source="$(env.PATH_OUT)\bin\VBoxC.dll" KeyPath="yes">
         </File>
 
-<?if $(env.VBOX_WITH_MIDL_PROXY_STUB) != "yes" ?>
         <!-- Include the auto-generated TypeLib block -->
         <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
-<?endif?>
     </Component>
 
 <?if $(env.VBOX_WITH_SDS) = "yes" ?>
@@ -122,7 +120,6 @@
         <File Id="file_VBoxProxyStub" Name="VBoxProxyStub.dll" KeyPath="yes" Source="$(env.PATH_OUT)\bin\VBoxProxyStub.dll">
             <Class Id="$(env.VBOX_MIDL_PROXY_CLSID)" Context="InprocServer32" Description="PSFactoryBuffer" ThreadingModel="both" />
         </File>
-        <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
     </Component>
 <?endif?>
 

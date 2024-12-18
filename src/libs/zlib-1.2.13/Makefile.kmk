@@ -75,16 +75,15 @@ endif
 if defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
  DLLS.win += nsis-zlib-dll
  nsis-zlib-dll_EXTENDS      := VBox-zlib
- nsis-zlib-dll_BLD_TRG_ARCH := x86
  nsis-zlib-dll_NAME         := zlib1
  nsis-zlib-dll_TEMPLATE     := VBoxR3DllNonPedantic
  nsis-zlib-dll_INSTTYPE     := none
  nsis-zlib-dll_DEFS         := ZLIB_DLL $(VBox-zlib_DEFS)
  # Note! We need to build the NSIS variant of zlib without any modern x86 CPU instructions (SSE, ++) being used,
  #       to avoid breaking things on ancient Windows (guest) OSes.
- nsis-zlib-dll_CFLAGS.win   = /arch:IA32
- nsis-zlib-dll_CXXFLAGS.win = /arch:IA32
- nsis-zlib-dll_PCHFLAGS.win = /arch:IA32
+ nsis-zlib-dll_CFLAGS.win.x86   = /arch:IA32
+ nsis-zlib-dll_CXXFLAGS.win.x86 = /arch:IA32
+ nsis-zlib-dll_PCHFLAGS.win.x86 = /arch:IA32
  nsis-zlib-dll_SOURCES.win := \
  	win32/zlib1.rc \
  	win32/zlib.def

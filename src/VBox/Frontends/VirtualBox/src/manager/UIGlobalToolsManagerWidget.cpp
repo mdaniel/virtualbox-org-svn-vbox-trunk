@@ -221,7 +221,7 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
         pLayout->setContentsMargins(0, 0, 0, 0);
 
         /* Create tool-menu: */
-        m_pMenu = new UITools(this, UIToolClass_Global, actionPool());
+        m_pMenu = new UITools(this, UIToolClass_Global, actionPool(), Qt::Widget);
         if (toolMenu())
         {
             /* Add into layout: */

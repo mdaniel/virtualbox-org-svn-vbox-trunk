@@ -37,8 +37,11 @@
 #include "iprt/assert.h"
 
 
-UITools::UITools(QWidget *pParent, UIToolClass enmClass, UIActionPool *pActionPool)
-    : QWidget(pParent, Qt::Popup)
+UITools::UITools(QWidget *pParent,
+                 UIToolClass enmClass,
+                 UIActionPool *pActionPool,
+                 Qt::WindowFlags theFlags /* = Qt::Popup */)
+    : QWidget(pParent, theFlags)
     , m_enmClass(enmClass)
     , m_pActionPool(pActionPool)
     , m_pMainLayout(0)
@@ -86,6 +89,13 @@ QList<UIToolType> UITools::restrictedToolTypes() const
 UIToolsItem *UITools::currentItem() const
 {
     return m_pToolsModel->currentItem();
+}
+
+void UITools::sltClose()
+{
+    /* Close the widget in popup mode only: */
+    if (windowFlags() == Qt::Popup)
+        close();
 }
 
 void UITools::prepare()
@@ -145,7 +155,7 @@ void UITools::prepareConnections()
 {
     /* Model connections: */
     connect(m_pToolsModel, &UIToolsModel::sigClose,
-            this, &UITools::close);
+            this, &UITools::sltClose);
     connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
             this, &UITools::sigSelectionChanged);
     connect(m_pToolsModel, &UIToolsModel::sigExpandingStarted,

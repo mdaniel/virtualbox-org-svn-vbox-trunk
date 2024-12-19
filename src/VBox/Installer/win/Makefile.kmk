@@ -1054,9 +1054,9 @@ $(VBOX_WIN_INST_OUT_DIR)/$(PACKAGE_NAME_LANG).msi \
 		$(if-expr defined(VBOX_WITH_COMBINED_PACKAGE),'copy /y "$(@F)" "$(notdir $(PACKAGE_NAME_FINAL))" || exit /b1',) \
 		'@echo Created multilanguage MSI: $(notdir $(PACKAGE_NAME_FINAL))'
 # Validation.  Currently there is a list of grievances, we ignore it. (TODO: Fix errors.)
-	$(call MSG_L1,Start validation of "$@" - errors will be ignored)
-	-$(REDIRECT) -- $(VBOX_TOOLS_WIN_WIX_BIN) msi validate "$@"
-	$(call MSG_L1,Finished validating "$@" - any errors was ignored)
+	$(call MSG_L1,Start validation of "$@")
+	$(REDIRECT) -- $(VBOX_TOOLS_WIN_WIX_BIN) msi validate "$@"
+	$(call MSG_L1,Finished validating "$@")
 
 
 # Copy multilingual installer to bin, deleting any older .msi files to avoid wasting space.

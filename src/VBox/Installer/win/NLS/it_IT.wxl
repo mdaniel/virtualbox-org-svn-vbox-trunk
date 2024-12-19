@@ -112,7 +112,6 @@
     <String Id="Customize2Dlg_Desc" Value="Scegli dalle opzioni seguenti:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Crea voci del menu di avvio" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Crea una scorciatoia sul desktop" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="Crea una scorciatoia nella barra di avvio veloce" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Registrati associazioni di file" />
     <!---->
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Scegli quale tipo di driver di rete utilizzerai:" />

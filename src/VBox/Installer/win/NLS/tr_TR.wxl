@@ -141,7 +141,6 @@
     <String Id="Customize2Dlg_Desc" Value="Lütfen aşağıdaki seçeneklerden seçin:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Başlangıç menüsü girişlerini oluştur" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Masaüstünde kısayol oluştur" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="Hızlı Başlat Çubuğunda kısayol oluştur" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Dosya ilişkilendirmelerini kaydettir" />
 
     <!---->

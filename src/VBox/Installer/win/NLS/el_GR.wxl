@@ -141,7 +141,6 @@
     <String Id="Customize2Dlg_Desc" Value="Διαλέξτε από τις παρακάτω επιλογές:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Δημιουργία καταχωρήσεων στο μενού έναρξης" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Δημιουργία συντόμευσης στην επιφάνεια εργασίας" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="Δημιουργία συντόμευσης στη γραμμή γρήγορης εκκίνησης" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Καταχώριση συσχετίσεων αρχείων" />
 
     <!---->

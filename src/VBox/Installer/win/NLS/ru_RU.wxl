@@ -141,7 +141,6 @@
     <String Id="Customize2Dlg_Desc" Value="Please choose from the options below:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Create start menu entries" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Create a shortcut on the desktop" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="Create a shortcut in the Quick Launch Bar" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Register file associations" />
 
     <!---->

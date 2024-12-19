@@ -36,10 +36,6 @@
   <Property Id="VBOX_INSTALLSTARTMENUENTRIES" Value="1" Secure="yes" />
   <SetProperty Id="VBOX_INSTALLSTARTMENUENTRIES" After="AppSearch" Sequence="both" Value="{}" Condition="VBOX_INSTALLSTARTMENUENTRIES=&quot;0&quot;" />
 
-  <!-- Whether or not a desktop shortcut for the Quick Launch Bar should be created -->
-  <Property Id="VBOX_INSTALLQUICKLAUNCHSHORTCUT" Value="1" Secure="yes" />
-  <SetProperty Id="VBOX_INSTALLQUICKLAUNCHSHORTCUT" After="AppSearch" Sequence="both" Value="{}" Condition="VBOX_INSTALLQUICKLAUNCHSHORTCUT=&quot;0&quot;" />
-
   <!-- Whether or not VirtualBox should be started automatically right after successful installation -->
   <Property Id="VBOX_START" Value="1" Secure="yes" />
   <SetProperty Id="VBOX_START" After="AppSearch" Sequence="both" Value="{}" Condition="VBOX_START=&quot;0&quot;" />

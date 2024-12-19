@@ -141,7 +141,6 @@
 <String Id="Customize2Dlg_Desc" Value="请选择以下选项：" />
 <String Id="Customize2Dlg_CreateStartMenuEntries" Value="添加系统菜单条目" />
 <String Id="Customize2Dlg_CreateDesktopShortcut" Value="在桌面创建快捷方式" />
-<String Id="Customize2Dlg_CreateQuickLaunch" Value="在快速启动栏创建快捷方式" />
 <String Id="Customize2Dlg_RegisterFileExtensions" Value="注册文件关联" />
 
 <!---->

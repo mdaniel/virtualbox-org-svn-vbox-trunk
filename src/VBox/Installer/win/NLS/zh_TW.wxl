@@ -141,7 +141,6 @@
     <String Id="Customize2Dlg_Desc" Value="請選擇以下選項:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="建立 [開始] 功能表項目" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="在桌面建立捷徑" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="在快速啟動列建立捷徑" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="註冊檔案關聯" />
 
     <!---->

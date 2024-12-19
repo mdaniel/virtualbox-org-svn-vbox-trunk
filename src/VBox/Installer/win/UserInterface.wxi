@@ -312,10 +312,7 @@
             <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="25" Y="115" Width="200" Height="17" Property="VBOX_INSTALLDESKTOPSHORTCUT" CheckBoxValue="1" Default="no">
                 <Text Value="!(loc.Customize2Dlg_CreateDesktopShortcut)" />
             </Control>
-            <Control Id="QuicklaunchShortcutCheckBox" Type="CheckBox" X="25" Y="135" Width="200" Height="17" Property="VBOX_INSTALLQUICKLAUNCHSHORTCUT" CheckBoxValue="1" Default="no">
-                <Text Value="!(loc.Customize2Dlg_CreateQuickLaunch)" />
-            </Control>
-            <Control Id="RegisterFileExtensionsCheckBox" Type="CheckBox" X="25" Y="155" Width="200" Height="17" Property="VBOX_REGISTERFILEEXTENSIONS" CheckBoxValue="1" Default="no">
+            <Control Id="RegisterFileExtensionsCheckBox" Type="CheckBox" X="25" Y="135" Width="200" Height="17" Property="VBOX_REGISTERFILEEXTENSIONS" CheckBoxValue="1" Default="no">
                 <Text Value="!(loc.Customize2Dlg_RegisterFileExtensions)" />
             </Control>
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Next)" />

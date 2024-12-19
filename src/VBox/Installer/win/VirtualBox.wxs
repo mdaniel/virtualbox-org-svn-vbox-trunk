@@ -64,7 +64,7 @@
 
     <Property Id="NETWORKTYPE" Value="NDIS6" Secure="yes" />
 
-    <!-- Whether or not registering of known desktop shortcut for the Quick Launch Bar should be created -->
+    <!-- Whether or not registering of file extensions handled by FE/Qt should be performed -->
     <Property Id="VBOX_REGISTERFILEEXTENSIONS" Value="1" Secure="yes" />
 
     <SetProperty Id="VBOX_REGISTERFILEEXTENSIONS" After="AppSearch" Sequence="both" Value="{}" Condition="VBOX_REGISTERFILEEXTENSIONS=&quot;0&quot;" />
@@ -248,7 +248,6 @@
         <!-- Components which are handled only by this installer itself -->
         <ComponentRef Id="cp_StartMenuVBox" />
         <ComponentRef Id="cp_DesktopShortcut" />
-        <ComponentRef Id="cp_QuickLaunchVBox" />
 <?endif?>
         <!-- Components for removing empty folders after cleaning traces -->
         <ComponentRef Id="cp_INSTALLDIR" />
@@ -459,26 +458,6 @@
 
     </InstallExecuteSequence>
 
-<?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
-    <!-- Set up special directory IDs for referencing to the start menu
-            or the Quick Launch bar.
-            See: http://msdn.microsoft.com/en-us/library/aa368276.aspx
-                http://wix.mindcapers.com/wiki/Shortcuts_in_WiX -->
-    <StandardDirectory Id="ProgramMenuFolder">
-        <Directory Id="dir_StartMenuVBox" Name="$(env.VBOX_PRODUCT)" />
-    </StandardDirectory>
-
-    <StandardDirectory Id="DesktopFolder" />
-
-    <StandardDirectory Id="AppDataFolder">
-        <Directory Id="dir_AppDataMicrosoft" Name="Microsoft">
-            <Directory Id="dir_AppDataMSIE" Name="Internet Explorer">
-                <Directory Id="dir_QuicklaunchFolder" Name="Quick Launch" />
-            </Directory>
-        </Directory>
-    </StandardDirectory>
-<?endif?>
-
         <Directory Id="$(var.Property_ProgramFiles)" Name="PFiles">
             <Directory Id="VENDOR" Name="$(env.VBOX_VENDOR_SHORT)">
                 <Directory Id="INSTALLDIR" Name="VirtualBox">
@@ -562,32 +541,34 @@
                     </Component>
                 </Directory>
 
-<?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
-                <!-- Start menu entries. -->
-                <Component Id="cp_StartMenuVBox" Guid="C2DC321A-CE63-40EE-8A98-724DF8BD12FB" Condition="VBOX_INSTALLSTARTMENUENTRIES" Bitness="$(var.Property_Bitness)">
+            </Directory> <!-- INSTALLDIR -->
+        </Directory> <!-- $(env.VBOX_VENDOR_SHORT) -->
+    </Directory> <!-- Program Files -->
 
+<?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
+    <!-- Start menu entries -->
+    <Directory Id="ProgramMenuFolder">
+        <Directory Id="StartMenuFolder">
+            <Directory Id="dir_StartMenuVBox" Name="$(env.VBOX_PRODUCT)">
+                <Component Id="cp_StartMenuVBox" Guid="C2DC321A-CE63-40EE-8A98-724DF8BD12FB" Condition="VBOX_INSTALLSTARTMENUENTRIES" Bitness="$(var.Property_Bitness)">
                     <Shortcut Id="sc_StartMenuVBox" Directory="dir_StartMenuVBox" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
                     <RegistryValue Root="HKCU" Key="$(var.Property_RegKeyInstall)" Type="string" Value="installed" KeyPath="yes" />
                     <?include $(env.PATH_TARGET)\Shortcuts_StartMenu.wxi ?>
+                    <RemoveFolder Id="rmf_ShortcutStartMenu" On="uninstall" />
                 </Component>
-
-                <!-- Desktop shortcut. -->
-                <Component Id="cp_DesktopShortcut" Guid="668F8A1A-F5CE-48B3-BB1A-3042EE27B279" Condition="VBOX_INSTALLDESKTOPSHORTCUT" Bitness="$(var.Property_Bitness)">
-
-                    <Shortcut Id="sc_DesktopVBox" Directory="DesktopFolder" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
-                    <RegistryValue Root="HKCU" Key="$(var.Property_RegKeyInstall)" Type="string" Value="installed" KeyPath="yes" />
-                </Component>
-
-                <!-- QuickLaunch shortcut. -->
-                <Component Id="cp_QuickLaunchVBox" Guid="CC19E026-938A-41CB-8E77-3F33296244B6" Condition="VBOX_INSTALLQUICKLAUNCHSHORTCUT" Bitness="$(var.Property_Bitness)">
-                    <CreateFolder />
-
-                    <Shortcut Id="sc_QuickLaunchVBox" Directory="dir_QuicklaunchFolder" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
-                    <RegistryValue Root="HKCU" Key="$(var.Property_RegKeyInstall)" Type="string" Value="installed" KeyPath="yes" />
-                </Component>
-<?endif?>
-                </Directory>
             </Directory>
         </Directory>
-    </Package>
+    </Directory>
+
+    <!-- Desktop shortcut -->
+    <Directory Id="DesktopFolder" Name="Desktop">
+        <Component Id="cp_DesktopShortcut" Guid="668F8A1A-F5CE-48B3-BB1A-3042EE27B279" Condition="VBOX_INSTALLDESKTOPSHORTCUT" Bitness="$(var.Property_Bitness)">
+            <Shortcut Id="sc_DesktopVBox" Directory="DesktopFolder" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
+            <RegistryValue Root="HKCU" Key="$(var.Property_RegKeyInstall)" Type="string" Value="installed" KeyPath="yes" />
+            <RemoveFolder Id="rmf_ShortcutDesktop" On="uninstall" />
+        </Component>
+    </Directory>
+<?endif?> <!-- $(env.VBOX_WITH_QTGUI) = "yes" -->
+
+</Package>
 </Wix>

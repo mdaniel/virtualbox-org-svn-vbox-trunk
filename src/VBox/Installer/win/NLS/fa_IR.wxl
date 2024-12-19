@@ -112,7 +112,6 @@
     <String Id="Customize2Dlg_Desc" Value="لطفاً از گزینه های زیر انتخاب کنید:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Create start menu entries" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="ایجاد یک میانبر روی دسکتاپ" />
-    <String Id="Customize2Dlg_CreateQuickLaunch" Value="ایجاد یک میانبر در اِجرای سریع" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="ثبت نام انجمن فایل" />
     <!---->
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Please choose which type of network drivers you will use:" />

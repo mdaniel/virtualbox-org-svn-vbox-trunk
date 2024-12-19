@@ -93,18 +93,14 @@
 
         <!-- Include the auto-generated TypeLib block -->
         <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
-    </Component>
 
 <?if $(env.VBOX_WITH_SDS) = "yes" ?>
-    <Component Id="cp_VBoxSDS" Guid="{3DC151E0-CA53-4213-8711-D983FDA28132}">
-        <File Id="VBoxSDS" Name="VBoxSDS.exe" Vital="yes" KeyPath="yes" Source="$(env.PATH_OUT)\bin\VBoxSDS.exe">
-        </File>
-        <!--
-            The Name of windows service is referenced in different places.
-            Don't forget to change it in other places too If you change it here :
-                VirtualBox.idl (module name),
-                VBoxSDS.cpp and VBoxProxyStub.cpp
-            -->
+        <File Id="VBoxSDS" Name="VBoxSDS.exe" Vital="yes" Source="$(env.PATH_OUT)\bin\VBoxSDS.exe" />
+
+        <!-- The name of the Windows service is referenced in different places.
+             Don't forget to change it in other places too If you change it here :
+               - VirtualBox.idl (module name),
+               - VBoxSDS.cpp and VBoxProxyStub.cpp -->
         <ServiceInstall Id="VBoxSDSInstall" Account="LocalSystem" Type="ownProcess"
                         Name="VBoxSDS" DisplayName="VirtualBox system service"
                         Description="Used as a COM server for VirtualBox API."
@@ -112,8 +108,8 @@
             <ServiceDependency Id="RPCSS" />
         </ServiceInstall>
         <ServiceControl Id="VBoxSDSControl" Name="VBoxSDS" Stop="both" Remove="uninstall" />
-    </Component>
 <?endif?>
+    </Component>
 
 <?if $(env.VBOX_WITH_MIDL_PROXY_STUB) = "yes" ?>
     <Component Id="cp_ProxyStub" Guid="CDD09BA4-8D87-4383-DCA6-1CCCF9D11091" Bitness="$(var.Property_Bitness)">

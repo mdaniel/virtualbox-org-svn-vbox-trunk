@@ -359,6 +359,9 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
     {
         /* Configure layout: */
         pLayout->setContentsMargins(0, 0, 0, 0);
+#ifdef VBOX_WS_MAC
+        pLayout->setSpacing(0);
+#endif
 
         /* Create Global Tool Manager: */
         m_pGlobalToolManager = new UIGlobalToolsManagerWidget(this, actionPool());

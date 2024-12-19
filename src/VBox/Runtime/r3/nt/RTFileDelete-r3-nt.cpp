@@ -75,7 +75,7 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
         HANDLE              hPath   = RTNT_INVALID_HANDLE_VALUE;
         IO_STATUS_BLOCK     Ios     = RTNT_IO_STATUS_BLOCK_INITIALIZER;
         OBJECT_ATTRIBUTES   ObjAttr;
-        InitializeObjectAttributes(&ObjAttr, &NtName, 0 /*fAttrib*/, hRootDir, NULL);
+        InitializeObjectAttributes(&ObjAttr, &NtName, OBJ_CASE_INSENSITIVE /*fAttrib*/, hRootDir, NULL);
 
         ULONG fOpenOptions = FILE_NON_DIRECTORY_FILE | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT
                            | FILE_SYNCHRONOUS_IO_NONALERT;
@@ -148,7 +148,7 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
          * STATUS_INVALID_PARAMETER as it could be an old one that doesn't
          * grok the reparse point stuff.
          */
-        else if (   rcNt == STATUS_INVALID_PARAMETER)
+        else if (rcNt == STATUS_INVALID_PARAMETER)
         {
             fOpenOptions &= ~FILE_OPEN_REPARSE_POINT;
             hPath = RTNT_INVALID_HANDLE_VALUE;
@@ -165,33 +165,6 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
                                 NULL /*EaBuffer*/,
                                 0 /*EaLength*/);
         }
-        /*
-         * When getting STATUS_OBJECT_PATH_NOT_FOUND we re-initialize the object attributes
-         * with OBJ_CASE_INSENSITIVE and try again. This is necessary for older object managers (i.e. on NT4)
-         * when trying to delete files with a path *and* leading spaces in the file name,
-         * i.e. "c:\temp\ file_with_a_leading_space".
-         *
-         * See @bugref{10826}.
-         */
-        else if (   rcNt == STATUS_OBJECT_PATH_NOT_FOUND)
-        {
-            InitializeObjectAttributes(&ObjAttr, &NtName, OBJ_CASE_INSENSITIVE /*fAttrib*/, hRootDir, NULL);
-
-            hPath = RTNT_INVALID_HANDLE_VALUE;
-            RTNT_IO_STATUS_BLOCK_REINIT(&Ios);
-            rcNt = NtCreateFile(&hPath,
-                             DELETE | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-                             &ObjAttr,
-                             &Ios,
-                             NULL /*AllocationSize*/,
-                             FILE_ATTRIBUTE_NORMAL,
-                             FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-                             FILE_OPEN,
-                             fOpenOptions,
-                             NULL /*EaBuffer*/,
-                             0 /*EaLength*/);
-        }
-
         /* else:
            DeleteFileW will retry opening the file w/o FILE_READ_ATTRIBUTES here when
            the status code is STATUS_ACCESS_DENIED. We OTOH will not do that as we will

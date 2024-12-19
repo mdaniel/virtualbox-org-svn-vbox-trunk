@@ -488,7 +488,7 @@
       <note>
         <para>
           ОС Windows навязывает определенные ограничения на графические
-          приложения. Смотрите <xref linkend="KnownIssues" />.
+          приложения. Смотрите <xref linkend="known-issues" />.
         </para>
       </note>
       <variablelist>
@@ -633,7 +633,7 @@
       <note>
         <para>
           ОС Windows навязывает определенные ограничения на графические
-          приложения. Смотрите <xref linkend="KnownIssues" />.
+          приложения. Смотрите <xref linkend="known-issues" />.
         </para>
       </note>
     </refsect2>

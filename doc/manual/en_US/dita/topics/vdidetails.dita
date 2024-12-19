@@ -8,10 +8,7 @@
                <p>Disk image files reside on the host system and are seen by the guest systems as hard disks of a
       certain geometry. When a guest OS reads from or writes to a hard disk, <ph
         conkeyref="vbox-conkeyref-phrases/product-name"/> redirects the request to the image file. </p>
-               <p>Like a physical disk, a virtual disk has a size, or capacity, which must be specified when the image
-      file is created. As opposed to a physical disk however, <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
-      enables you to expand an image file after creation, even if it has data already. See <xref
-        href="vboxmanage-modifymedium.dita"/>. </p>
+               <p>Like a physical disk, a virtual disk has a size, or capacity, which must be specified when the image file is created. As opposed to a physical disk however, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to expand an image file after creation, even if it has data already. See <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>.</p>
                <p>
       <ph conkeyref="vbox-conkeyref-phrases/product-name"/> supports the following types of disk image files:
     </p>

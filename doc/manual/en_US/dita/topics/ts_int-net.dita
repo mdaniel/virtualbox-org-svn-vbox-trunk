@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-int-net">
+    <title>Internal Network Not Working</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>Internal networking on macOS hosts doesn't work between VMs run by different users.</p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>We're working on a resolution.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

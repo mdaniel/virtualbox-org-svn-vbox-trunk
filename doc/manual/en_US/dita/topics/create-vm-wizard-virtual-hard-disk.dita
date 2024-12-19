@@ -4,18 +4,9 @@
   <title>Specify a Virtual Hard Disk</title>
   
   <body>
-    <p>There are many ways in which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can
-      provide hard disk space to a VM, see <xref href="storage.dita#storage"/>. </p>
-    <p>The most common way is to use a virtual hard disk. This is a large image file on your
-      physical hard disk, whose contents <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
-      presents to your VM as if it were a complete hard disk. You can copy this file to another
-      host, and use it with another <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VM. </p>
-    <p>To prevent your physical hard disk on the host OS from filling up, <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> limits the size of the image file. But the
-      image file must be large enough to hold the contents of the guest OS and the applications you
-      want to install. For a Windows or Linux guest, you will probably need several gigabytes for
-      any serious use. The size limit of the image file can be changed later, see <xref
-        href="vboxmanage-modifymedium.dita"/>. </p>
+    <p>There are many ways in which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can provide hard disk space to a VM, see <xref href="storage.dita#storage"/>. </p>
+    <p>The most common way is to use a virtual hard disk. This is a large image file on your physical hard disk, whose contents <ph conkeyref="vbox-conkeyref-phrases/product-name"/> presents to your VM as if it were a complete hard disk. You can copy this file to another host, and use it with another <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VM. </p>
+    <p>To prevent your physical hard disk on the host OS from filling up, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> limits the size of the image file. But the image file must be large enough to hold the contents of the guest OS and the applications you want to install. For a Windows or Linux guest, you will probably need several gigabytes for any serious use. The size limit of the image file can be changed later, see <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>.</p>
     <p>
       <note id="note_vc4_gjs_pbc">
         <p>If you choose <b outputclass="bold">Do Not Add a Virtual Hard Disk</b> at this stage you
@@ -26,38 +17,22 @@
     <section id="section_wql_21r_pbc">
       <title>Create a Virtual Hard Disk</title>
     </section>
-    <p>Follow these steps to create a virtual hard disk to use with this VM. To prevent your
-      physical hard disk on the host OS from filling up, <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> limits the size of the image file. But the
-      image file must be large enough to hold the contents of the guest OS and the applications you
-      want to install. For a Windows or Linux guest, you will probably need several gigabytes for
-      any serious use. The limit of the image file size can be changed later, see <xref
-        href="vboxmanage-modifymedium.dita"/>. <ol id="ol_z2h_q5q_pbc">
+    <p>Follow these steps to create a virtual hard disk to use with this VM. To prevent your physical hard disk on the host OS from filling up, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> limits the size of the image file. But the image file must be large enough to hold the contents of the guest OS and the applications you want to install. For a Windows or Linux guest, you will probably need several gigabytes for any serious use. The limit of the image file size can be changed later, see <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>. <ol id="ol_z2h_q5q_pbc">
         <li>
-          <p>Select <b outputclass="bold">Create a Virtual Hard Disk Now</b>. This creates a new
-            empty virtual hard disk image, located in the VM's machine folder. </p>
+          <p>Select <b outputclass="bold">Create a Virtual Hard Disk Now</b>. This creates a new empty virtual hard disk image, located in the VM's machine folder. </p>
         </li>
         <li>
           <p>Enter the following settings: </p>
           <ul id="ul_i3n_y1r_pbc">
             <li>
-              <p><b outputclass="bold">Disk Size</b>. Use the slider to select a maximum size for
-                the hard disk in the new VM. </p>
+              <p><b outputclass="bold">Disk Size</b>. Use the slider to select a maximum size for the hard disk in the new VM. </p>
             </li>
-            <li><p><b outputclass="bold">Pre-Allocate Full Size.</b> This setting determines the type of image file used
-                for the disk image. Select this setting to use a <i>fixed-size file</i> for the disk image. Otherwise,
-                  <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will use a <i>dynamically allocated file</i> for
-                the disk image. </p><p>The different types of image file behave as follows: </p><ul id="ul_j3n_y1r_pbc">
+            <li><p><b outputclass="bold">Pre-Allocate Full Size.</b> This setting determines the type of image file used for the disk image. Select this setting to use a <i>fixed-size file</i> for the disk image. Otherwise, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will use a <i>dynamically allocated file</i> for the disk image. </p><p>The different types of image file behave as follows: </p><ul id="ul_j3n_y1r_pbc">
                 <li>
-                  <p><b outputclass="bold">Dynamically allocated file.</b> This type of image file only grows in size
-                    when the guest actually stores data on its virtual hard disk. Therefore, this file is small
-                    initially. As the drive is filled with data, the file grows to the specified size. </p>
+                  <p><b outputclass="bold">Dynamically allocated file.</b> This type of image file only grows in size when the guest actually stores data on its virtual hard disk. Therefore, this file is small initially. As the drive is filled with data, the file grows to the specified size. </p>
                 </li>
                 <li>
-                  <p><b outputclass="bold">Fixed-size file.</b> This type of image file immediately occupies the file
-                    specified, even if only a fraction of that virtual hard disk space is actually in use. While
-                    occupying much more space, a fixed-size file incurs less overhead and is therefore slightly faster
-                    than a dynamically allocated file. </p>
+                  <p><b outputclass="bold">Fixed-size file.</b> This type of image file immediately occupies the file specified, even if only a fraction of that virtual hard disk space is actually in use. While occupying much more space, a fixed-size file incurs less overhead and is therefore slightly faster than a dynamically allocated file. </p>
                 </li>
               </ul>For more details about the differences, see <xref href="vdidetails.dita#vdidetails"/>. </li>
           </ul>

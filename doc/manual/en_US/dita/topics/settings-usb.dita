@@ -17,10 +17,9 @@
         <p>As soon as the guest system starts using a USB device, it will be disconnected from the
           host without a proper shutdown. This may cause data loss.</p>
       </note>
-      </p>
+    </p>
                   <note>
-      <p>Oracle Solaris hosts have a few known limitations regarding USB support. See <xref
-          href="KnownIssues.dita">Known Limitations</xref>. </p>
+      <p>USB support on Oracle Solaris hosts requires Oracle Solaris 11 FCS or later. Webcams and other isochronous devices are known to have poor performance.</p>
     </note>
                   <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> also enables your guests
       to connect to remote USB devices by use of the VirtualBox Remote Desktop Extension (VRDE). See

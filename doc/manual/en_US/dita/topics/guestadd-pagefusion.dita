@@ -85,10 +85,7 @@
         To enable Page Fusion for a VM, use the following command:
       </p>
     <pre xml:space="preserve">VBoxManage modifyvm "VM name" --page-fusion on</pre>
-    <p> You can observe Page Fusion operation using some metrics. <codeph>RAM/VMM/Shared</codeph>
-      shows the total amount of fused pages, whereas the per-VM metric
-        <codeph>Guest/RAM/Usage/Shared</codeph> will return the amount of fused memory for a given
-      VM. See <xref href="vboxmanage-metrics.dita"/> for information on how to query metrics. </p>
+    <p> You can observe Page Fusion operation using some metrics. <codeph>RAM/VMM/Shared</codeph> shows the total amount of fused pages, whereas the per-VM metric <codeph>Guest/RAM/Usage/Shared</codeph> will return the amount of fused memory for a given VM. See <xref href="../cli_topics/vboxmanage-metrics.dita"/> for information on how to query metrics.</p>
     <note>
       <p>
           Enabling Page Fusion might indirectly increase the chances for

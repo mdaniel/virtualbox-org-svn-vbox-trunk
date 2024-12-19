@@ -4,10 +4,7 @@
   <title>RDP Authentication</title>
   
   <body>
-    <p>For each virtual machine that is remotely accessible using RDP, you can individually determine if and how client
-      connections are authenticated. For this, use the <userinput>VBoxManage modifyvm</userinput> command with the
-        <codeph>--vrde-auth-type</codeph> option. See <xref href="vboxmanage-modifyvm.dita">VBoxManage modifyvm</xref>.
-      The following methods of authentication are available: </p>
+    <p>For each virtual machine that is remotely accessible using RDP, you can individually determine if and how client connections are authenticated. For this, use the <userinput>VBoxManage modifyvm</userinput> command with the <codeph>--vrde-auth-type</codeph> option. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>. The following methods of authentication are available: </p>
     <ul>
       <li>
         <p>The <b outputclass="bold">null</b> method means that there is no authentication at all. Any client can

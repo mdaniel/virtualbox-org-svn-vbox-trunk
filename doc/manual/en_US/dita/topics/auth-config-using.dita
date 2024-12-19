@@ -10,13 +10,7 @@
       </p>
     <ul>
       <li>
-        <p> When using remote iSCSI storage and the storage server requires authentication, an
-          initiator secret can optionally be supplied with the <userinput>VBoxManage
-            storageattach</userinput> command. As long as no settings password is provided, by using
-          the command line option <codeph>--settingspwfile</codeph>, then this secret is stored
-            <i>unencrypted</i> in the machine configuration and is therefore potentially readable on
-          the host. See <xref href="storage-iscsi.dita">iSCSI Servers</xref> and <xref
-            href="vboxmanage-storageattach.dita">VBoxManage storageattach</xref>. </p>
+        <p> When using remote iSCSI storage and the storage server requires authentication, an initiator secret can optionally be supplied with the <userinput>VBoxManage storageattach</userinput> command. As long as no settings password is provided, by using the command line option <codeph>--settingspwfile</codeph>, then this secret is stored <i>unencrypted</i> in the machine configuration and is therefore potentially readable on the host. See <xref href="storage-iscsi.dita">iSCSI Servers</xref> and <xref href="../cli_topics/vboxmanage-storageattach.dita"/>.</p>
       </li>
       <li>
         <p>

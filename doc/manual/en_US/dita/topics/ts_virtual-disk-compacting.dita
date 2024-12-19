@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-virtual-disk-compacting">
+    <title>Can't Compact VMDK Virtual Disk Images</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p><b outputclass="bold"/> The <userinput>VBoxManage modifymedium --compact</userinput> command is currently only implemented for VDI and VHD files. You can't use this command for VMDK files.</p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>At the moment the only way to optimize the size of a virtual disk image in VMDK is to clone the image and then use the cloned image in the VM configuration.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

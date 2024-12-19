@@ -1244,7 +1244,7 @@
       </para>
       <para>
         See also the <option>--vrde-port</option> option description in
-        <xref linkend="vboxmanage-modifyvm-vrde" />.
+        <xref linkend="vboxmanage-modifyvm" />.
       </para>
     </refsect2>
     <refsect2 id="vboxmanage-controlvm-vrdeproperty">
@@ -1264,7 +1264,7 @@
             is the standard RDP port, <literal>3389</literal>.
           </para><para>
             See also the <option>--vrde-port</option> option description
-            in <xref linkend="vboxmanage-modifyvm-vrde" />.
+            in <xref linkend="vboxmanage-modifyvm" />.
           </para></listitem>
         <listitem><para>
             <literal>TCP/Address</literal> specifies the IP address of
@@ -1273,7 +1273,7 @@
             specified host network interface.
           </para><para>
             See also the <option>--vrde-address</option> option
-            description in <xref linkend="vboxmanage-modifyvm-vrde" />.
+            description in <xref linkend="vboxmanage-modifyvm" />.
           </para></listitem>
         <listitem><para>
             <literal>VideoChannel/Enabled</literal> specifies whether to

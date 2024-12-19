@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-macos-limitations">
+    <title>macOS Host Limitations</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>On macOS hosts, the following features are not yet implemented:</p>
+                    <ul>
+                        <li>
+                            <p> Numlock emulation </p>
+                        </li>
+                        <li>
+                            <p> CPU frequency metric </p>
+                        </li>
+                        <li>
+                            <p> Memory ballooning </p>
+                        </li>
+                    </ul>
+                    <p>macOS/Arm 64 (Apple silicon) hosts have the following limitations:</p>
+                    <p>
+                        <ul id="ul_ddr_kzn_hcc">
+                            <li>
+                                <p>x86-based guest operating systems will not run.</p>
+                            </li>
+                            <li>
+                                <p>Arm(AArch64) guests only. Arm 32 is not supported at present.</p>
+                            </li>
+                            <li>
+                                <p>Arm hosts have limitations with sound, storage, graphics, guest additions and unattended installation.</p>
+                            </li>
+                        </ul>
+                    </p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>We're working on a resolution.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

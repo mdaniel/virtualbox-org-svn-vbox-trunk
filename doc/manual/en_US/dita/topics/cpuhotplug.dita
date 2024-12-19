@@ -28,8 +28,7 @@ $ VBoxManage modifyvm <varname>VM-name</varname> --unplug-cpu 3</pre>
         plugcpu</userinput> and <userinput>VBoxManage controlvm unplugcpu</userinput> commands instead, as follows: </p>
     <pre xml:space="preserve">$ VBoxManage controlvm <varname>VM-name</varname> plugcpu 3
 $ VBoxManage controlvm <varname>VM-name</varname> unplugcpu 3</pre>
-    <p>See <xref href="vboxmanage-modifyvm.dita">VBoxManage modifyvm</xref> and <xref href="vboxmanage-controlvm.dita"
-        >VBoxManage controlvm</xref> for details. </p>
+    <p>See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/> and <xref href="../cli_topics/vboxmanage-controlvm.dita"/> for details.</p>
     <p>With Linux guests, the following applies: </p>
     <p>To prevent ejection while the CPU is still used it has to be ejected from within the guest before. The Linux
       Guest Additions contain a service which receives hot-remove events and ejects the CPU. Also, after a CPU is added

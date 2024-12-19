@@ -49,8 +49,7 @@
                      <p>Playing encrypted DVDs </p>
                   </li>
                </ul>
-               <p>To enable host drive passthrough you can use the <codeph>--passthrough</codeph> option of the
-        <userinput>VBoxManage storageattach</userinput> command. See <xref href="vboxmanage-storageattach.dita"/>. </p>
+               <p>To enable host drive passthrough you can use the <codeph>--passthrough</codeph> option of the <userinput>VBoxManage storageattach</userinput> command. See <xref href="../cli_topics/vboxmanage-storageattach.dita"/>. </p>
                <p>Even if passthrough is enabled, unsafe commands, such as updating the drive firmware, will be blocked.
       Video CD formats are never supported, not even in passthrough mode, and cannot be played from a virtual machine. </p>
                <p>On Oracle Solaris hosts, passthrough requires running <ph

@@ -14,10 +14,23 @@
       OSes with applications, that need no configuration or installation except for importing into <ph
         conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
     <note>
-      <p>The OVF standard is complex, and support in <ph conkeyref="vbox-conkeyref-phrases/product-name"/> is an ongoing
-        process. In particular, no guarantee is made that <ph conkeyref="vbox-conkeyref-phrases/product-name"/> supports
-        all appliances created by other virtualization software. For a list of known limitations, see <xref
-          href="KnownIssues.dita">Known Limitations</xref>. </p>
+      <p>The OVF standard is complex, and support in <ph conkeyref="vbox-conkeyref-phrases/product-name"/> is an ongoing process. No guarantee is made that <ph conkeyref="vbox-conkeyref-phrases/product-name"/> supports all appliances created by other virtualization software. In particular, the following limitations exist:</p>
+      <p>
+        <ul>
+          <li>
+            <p>OVF localization, with multiple languages in a single OVF file, is not yet supported.</p>
+          </li>
+          <li>
+            <p>Some OVF sections like StartupSection, DeploymentOptionSection, and InstallSection are ignored.</p>
+          </li>
+          <li>
+            <p>OVF environment documents, including their property sections are not yet supported.</p>
+          </li>
+          <li>
+            <p>Remote files using HTTP or other mechanisms are not yet supported.</p>
+          </li>
+        </ul>
+      </p>
     </note>
     <p>Appliances in OVF format can appear in the following variants: </p>
     <ul>

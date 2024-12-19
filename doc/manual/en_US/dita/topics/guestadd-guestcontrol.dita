@@ -23,10 +23,7 @@
       copying files from host to the guest as well as remotely creating
       guest directories is available.
     </p>
-    <p>
-      To use these features, use the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> command line. See
-      <xref href="vboxmanage-guestcontrol.dita"/>.
-    </p>
+    <p> To use these features, use the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> command line. See <xref href="../cli_topics/vboxmanage-guestcontrol.dita"/>. </p>
   </body>
   
 </topic>

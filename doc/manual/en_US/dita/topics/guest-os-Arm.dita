@@ -1,22 +1,68 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="guest-os-arm">
-  <title>Arm Guest Operating Systems</title>
+  <title>Guest OSs That Run on Arm64 Hosts</title>
   <body>
-    <p>Oracle Premier Support covers the running of the following guest OSs in a VM with an Arm64 platform architecture.</p>
-    <p>
-      <ul id="ul_bcg_bpf_3cc">
-        <li>Oracle Linux 9 <ul>
-            <li>Red Hat Enterprise Linux 9</li>
-            <li>CentOS Stream 9</li>
-          </ul></li>
-        <li>Oracle Linux 8<ul>
-            <li>Red Hat Enterprise Linux 8</li>
-          </ul></li>
-        <li>Oracle Linux 7<ul>
-            <li>Red Hat Enterprise Linux 7</li>
-          </ul></li>
-      </ul>
-    </p>
+    <p>The following table shows the Guest OSs that run on hosts with an aarch64 processor and the tier of Oracle support offered for each. See also <xref href="guest-os-x86-64.dita"/>.</p>
+    <table frame="all" rowsep="1" colsep="1">
+      <title>Arm64 Hosts Will Run VMs with These OSs</title>
+      <desc>Guest OSs that run on Arm64 hosts and their levels of support available from Oracle.</desc>
+      <tgroup cols="2">
+        <colspec colname="c3" colnum="1" colwidth="1*" align="left"/>
+        <colspec colname="c4" colnum="2" colwidth="1*" align="left"/>
+        <thead>
+          <row>
+            <entry>Guest Operating System (all 64-bit Arm)</entry>
+            <entry>Oracle Support Available</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>Windows 11 (64-bit). Released versions only.</entry>
+            <entry morerows="2">Premier</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 9, Red Hat Enterprise Linux 9, CentOS Stream 9</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 8, Red Hat Enterprise Linux 8</entry>
+          </row>
+          <row>
+            <entry>CentOS Stream 8</entry>
+            <entry morerows="10">Limited</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 7, Red Hat Enterprise Linux 7, CentOS Linux 7</entry>
+          </row>
+          <row>
+            <entry>Debian 12</entry>
+          </row>
+          <row>
+            <entry>Debian 11</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 24.10 LTS (Oracular Oriole)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 24.04 LTS (Noble Numbat)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 22.04 LTS (Jammy Jellyfish)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 20.04 LTS (Focal Fossa)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 18.04 LTS (Bionic Beaver)</entry>
+          </row>
+          <row>
+            <entry>SUSE Linux Enterprise Server 15</entry>
+          </row>
+          <row>
+            <entry>SUSE Linux Enterprise Server 12</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
   </body>
 </topic>

@@ -10,10 +10,7 @@
       especially the following terms: </p>
                <ul>
                   <li>
-                     <p><b outputclass="bold">Host operating system (host OS).</b> This is the OS of the physical
-          computer on which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> was installed. There are versions of
-            <ph conkeyref="vbox-conkeyref-phrases/product-name"/> for Windows, macOS, Linux, and Oracle Solaris hosts.
-          See <xref href="hostossupport.dita#hostossupport"/>. </p>
+                     <p><b outputclass="bold">Host operating system (host OS).</b> This is the OS of the physical computer on which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> was installed. There are versions of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> for Windows, macOS, Linux, and Oracle Solaris hosts. See <xref href="installation-packages.dita"/>.</p>
                      <p>Most of the time, this user guide discusses all <ph
             conkeyref="vbox-conkeyref-phrases/product-name"/> versions together. There may be platform-specific
           differences which we will point out where appropriate. </p>

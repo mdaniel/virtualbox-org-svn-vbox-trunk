@@ -30,9 +30,7 @@
             hard drive (each of these as defined by the other VM
             settings), the network, or none of these.
           </p>
-        <p>If you select <b outputclass="bold">Network</b>, the VM will attempt to boot from a network using the PXE
-          mechanism. This needs to be configured in detail on the command line. See <xref
-            href="vboxmanage-modifyvm.dita"/>. </p>
+        <p>If you select <b outputclass="bold">Network</b>, the VM will attempt to boot from a network using the PXE mechanism. This needs to be configured in detail on the command line. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>
       </li>
       <li>
         <p><b outputclass="bold">Chipset (Can't be changed on VMs with an Arm architecture):</b> You can select which chipset will be presented to the virtual machine. PIIX3 is the default chipset for most guests. For some guest OSes such as Mac OS X, the PIIX3 chipset is not well supported. As a result, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> supports an emulation of the ICH9 chipset, which supports PCI express, three PCI buses, PCI-to-PCI bridges and Message Signaled Interrupts (MSI). This enables modern OSes to address more PCI devices and no longer requires IRQ sharing. Using the ICH9 chipset it is also possible to configure up to 36 network cards, compared to a maximum of eight network adapters with PIIX3. Note that ICH9 support is experimental and not recommended for guest OSes which do not require it. </p>
@@ -93,10 +91,7 @@
     </ul>
     <p>In addition, you can turn off the <b outputclass="bold">Advanced Configuration and Power Interface (ACPI)</b>
       which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> presents to the guest OS by default. </p>
-    <p>ACPI is the current industry standard to allow OSes to recognize hardware, configure motherboards and other
-      devices and manage power. As most computers contain this feature and Windows and Linux support ACPI, it is also
-      enabled by default in <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. ACPI can only be turned off using the
-      command line. See <xref href="vboxmanage-modifyvm.dita"/>. </p>
+    <p>ACPI is the current industry standard to allow OSes to recognize hardware, configure motherboards and other devices and manage power. As most computers contain this feature and Windows and Linux support ACPI, it is also enabled by default in <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. ACPI can only be turned off using the command line. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>
     <note>
       <p>All Windows OSes install different kernels, depending on whether ACPI is available. This means that ACPI
           <i>must not be turned off</i> after installation of a Windows guest OS. However, turning it on after

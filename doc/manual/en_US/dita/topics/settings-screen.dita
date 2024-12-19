@@ -27,7 +27,7 @@
             conkeyref="vbox-conkeyref-phrases/product-name"/> will report an error. </p>
         <p>You can configure the relationship between guest and host monitors using the <b outputclass="bold">View</b>
           menu by pressing Host key + Home when you are in full screen or seamless mode. </p>
-        <p>See also <xref href="KnownIssues.dita">Known Limitations</xref>. </p>
+        <p>See also <xref href="known-issues.dita"/>.</p>
       </li>
       <li>
         <p><b outputclass="bold">Scale Factor:</b> Enables
@@ -77,11 +77,8 @@
         </ul>
       </li>
       <li>
-        <p><b outputclass="bold">Enable 3D Acceleration:</b> If
-            a virtual machine has Guest Additions installed, you can
-            select here whether the guest should support accelerated 3D
-            graphics. See <xref href="guestadd-3d.dita#guestadd-3d"/>.
-          </p>
+        <p><b outputclass="bold">Enable 3D Acceleration:</b> If a virtual machine has Guest Additions installed, you can enable accelerated 3D graphics on the VM. See <xref href="guestadd-3d.dita#guestadd-3d"/>. </p>
+        <p>With 3D acceleration enabled, the VM also uses video decoding acceleration if the host also supports video decoding acceleration. The host must be x86_64 running Windows or Linux, and the VM must be x86_64 running Windows 10 or Windows 11. The VM can use video decoding of all media formats that are supported by the host, and CPU load is reduced during playback of these media formats.</p>
       </li>
     </ul>
   </body>

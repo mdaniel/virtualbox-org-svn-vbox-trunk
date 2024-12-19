@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-saved-states">
+    <title>7.1 Saved States and Snapshots Not Usable in 7.2</title>
+    <body>
+            <dl>
+                <dlentry>
+                    <dt>Details</dt>
+                    <dd>
+                        <p>Saved states and online snapshots created on Arm VMs in Oracle VirtualBox 7.1 are not usable in later releases.</p>
+                    </dd>
+                </dlentry>
+                <dlentry>
+                    <dt>Workaround</dt>
+                    <dd>Take a snapshot while the VM is powered off. It will then not have a saved state and therefore won't have compatibility issues.</dd>
+                </dlentry>
+            </dl>
+        <p/>
+    </body>
+</topic>

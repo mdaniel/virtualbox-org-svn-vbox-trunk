@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-guest-smp-limitations">
+    <title>Guest SMP (Multiprocessor) Limitations</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>
+                        <ul>
+                            <li>
+                                <p><b outputclass="bold">Poor performance</b> with 32-bit guests on AMD CPUs. This affects Windows and Oracle Solaris guests, and possibly also some Linux kernel revisions. Partially solved for 32-bit Windows NT, 2000, XP, and 2003 guests.</p>
+                            </li>
+                            <li>
+                                <p><b outputclass="bold">Poor performance</b> with 32-bit guests on certain Intel CPU models that do not include virtual APIC hardware optimization support. This affects Windows and Oracle Solaris guests, and possibly also some Linux kernel revisions. Partially solved for 32-bit Windows NT, 2000, XP, and 2003 guests.</p>
+                            </li>
+                        </ul>
+                    </p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>We're working on a resolution.</p>
+                    <p>Ensure you have Guest Additions installed.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

@@ -27,6 +27,7 @@
     <p>For security reasons drag and drop can be configured at runtime on a per-VM basis either using the <b
         outputclass="bold">Drag and Drop</b> menu item in the <b outputclass="bold">Devices</b> menu of the virtual
       machine, or the <userinput>VBoxManage</userinput> command. </p>
+    <p>On Windows hosts, dragging content between UAC-elevated (User Account Control) programs and non UAC-elevated programs isn't allowed. For example, if you start <ph conkeyref="vbox-conkeyref-phrases/product-name"/> with Administrator privileges then dragging to or from Windows Explorer, which runs with regular user privileges by default, is not possible.</p>
     <p>The following drag and drop modes are available: </p>
     <ul>
       <li>

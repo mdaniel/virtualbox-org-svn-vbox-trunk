@@ -32,7 +32,7 @@
                      <p>From the command line, you can create shared folders using <userinput>VBoxManage</userinput>, as
           follows: </p>
                      <pre xml:space="preserve">VBoxManage sharedfolder add "VM name" --name "sharename" --hostpath "C:\test"</pre>
-                     <p> See <xref href="vboxmanage-sharedfolder.dita"/>. </p>
+                     <p> See <xref href="../cli_topics/vboxmanage-sharedfolder.dita"/>.</p>
                   </li>
                </ul>
                <p>There are two types of shares: </p>

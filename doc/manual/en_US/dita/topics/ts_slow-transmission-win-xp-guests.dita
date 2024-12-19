@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-slow-transmission-win-xp-guests">
+    <title>Windows XP Guests Have Slower Transmission Rates</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>Neither virtio nor Intel PRO/1000 drivers for Windows XP guests support segmentation offloading. Therefore Windows XP guests have slower transmission rates comparing to other guest types. Refer to Microsoft Knowledge base article 842264 for additional information. </p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>No workaround exists.</dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

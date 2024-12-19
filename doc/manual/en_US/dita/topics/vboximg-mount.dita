@@ -3,7 +3,7 @@
   PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="vboximg-mount">
             <title>vboximg-mount: A Utility for FUSE Mounting a Virtual Disk Image</title>
-            
+
             <body>
                <p>
                   <userinput>vboximg-mount</userinput> is a command line utility for Mac
@@ -60,7 +60,7 @@
       Use the <codeph>--help</codeph> option to view information about
       the <userinput>vboximg-mount</userinput> command usage. The complete
       command reference is described in
-      <xref href="man_vboximg-mount.dita"/>.
+      <xref href="../cli_topics/man_vboximg-mount.dita"/>.
     </p>
                <p>
       When <userinput>vboximg-mount</userinput> mounts an <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
@@ -72,6 +72,6 @@
       systems.
     </p>
             </body>
-            
-            
+
+
          </topic>

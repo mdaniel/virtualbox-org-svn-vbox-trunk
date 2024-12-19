@@ -512,7 +512,7 @@
           Microsoft Windows imposes certain limitations when running
           graphical user interface applications launched using
           <command>VBoxManage guestcontrol run</command>. See
-          <xref linkend="KnownIssues" />.
+          <xref linkend="known-issues" />.
         </para>
       </note>
       <variablelist>
@@ -682,7 +682,7 @@
           Microsoft Windows imposes certain limitations when running
           graphical user interface applications launched using
           <command>VBoxManage guestcontrol start</command>. See
-          <xref linkend="KnownIssues" />.
+          <xref linkend="known-issues" />.
         </para>
       </note>
     </refsect2>

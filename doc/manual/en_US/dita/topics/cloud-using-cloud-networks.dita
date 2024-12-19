@@ -20,10 +20,7 @@
             <p>Run the following <userinput>VBoxManage cloud</userinput> command: </p>
             <pre xml:space="preserve">VBoxManage cloud --provider="OCI" --profile="vbox-oci" network setup</pre>
             <p>where <codeph>vbox-oci</codeph> is the name of your cloud profile. </p>
-            <p>Other options are available for the <userinput>VBoxManage cloud network setup</userinput> command, to
-              enable you to configure details for the VCN. For example, you can configure the operating system used for
-              the cloud gateway instance and the IP address range used by the tunneling network. See <xref
-                href="vboxmanage-cloud.dita"/>. </p>
+            <p>Other options are available for the <userinput>VBoxManage cloud network setup</userinput> command, to enable you to configure details for the VCN. For example, you can configure the operating system used for the cloud gateway instance and the IP address range used by the tunneling network. See <xref href="../cli_topics/vboxmanage-cloud.dita"/>. </p>
             <p>For best results, use an Oracle Linux 7 instance for the cloud gateway. This is the default option. </p>
           </li>
         </ol>

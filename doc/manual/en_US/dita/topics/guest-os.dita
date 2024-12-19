@@ -6,6 +6,7 @@
   <body>
     <p>You can run most operating systems (OSs) successfully on a virtual machine (VM) in <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
     <p>The virtual hardware determines the choice of guest OSs available, as does the host machine. Ensure you take all aspects of VM configuration into consideration when creating a VM. </p>
-    <p>Oracle Premier Support provides help, including guest additions where required, to run a subset of OSs in a appropriately configured VMs.</p>
+    <p>Oracle provides guest additions and premier support for selected OSs.</p>
+    <p>Other guest OSs can be used with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, but only qualify for limited support. Therefore, resolution of customer issues for such guest OSs cannot be assured.</p>
   </body>
 </topic>

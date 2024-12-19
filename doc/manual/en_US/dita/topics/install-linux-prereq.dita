@@ -4,8 +4,7 @@
   <title>Prerequisites</title>
   
   <body>
-    <p>For the various versions of Linux that are supported as host operating systems, see <xref
-        href="hostossupport.dita#hostossupport"/>. </p>
+    <p>For the various versions of Linux that are supported as host operating systems, see <xref href="installation-packages.dita"/>.</p>
     <p>You may need to install the following package on your Linux system before starting the installation. Some systems will do this for you automatically when you install <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
     <ul>
       <li>

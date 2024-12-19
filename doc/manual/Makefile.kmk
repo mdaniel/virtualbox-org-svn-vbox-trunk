@@ -178,6 +178,7 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
  BLDDIRS += \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics \
+	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/cli_topics \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/images \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/licensing \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/licensing/vbox-base \
@@ -673,11 +674,11 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
  # @param 3    Alternative fallback filename (for isomakercmd-man.xml).
  # @note This produces more files than listed in the output, but we currently let kmk be ignorant of that.
  define def_vbox_refentry_file_to_dita
-  VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES_$1 += $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/$(2).ditamap
-  $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/$(2).ditamap \
-  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/$(2).ditamap.kmk \
-  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita \
-  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).xml: \
+  VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES_$1 += $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/$(2).ditamap
+  $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/$(2).ditamap \
+  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/$(2).ditamap.kmk \
+  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita \
+  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).xml: \
   		$$(VBOX_PATH_MANUAL_SRC)/docbook-refentry-to-manual-dita-pre.xsl \
   		$$(VBOX_PATH_MANUAL_SRC)/docbook-refentry-to-manual-dita.xsl \
   		$$(VBOX_PATH_MANUAL_SRC)/dita-refentry-flat-to-single-topic.sh \
@@ -692,36 +693,37 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
   		| $$$$(dir $$$$@)
 	$$(call MSG_TOOL,xsltproc docbook-refentry-to-manual-dita[-pre].xsl,,$$(firstword $$(filter %.xml,$$^)),$$@)
 	$$(QUIET)$$(RM) -f -- "$$@" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).xml" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita"
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).xml" \
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita"
 	$$(QUIET)$$(call VBOX_XSLTPROC_WITH_CAT) \
-		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).xml" \
+		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).xml" \
  		$$(VBOX_PATH_MANUAL_SRC)/docbook-refentry-to-manual-dita-pre.xsl \
 		$$(qfirstfile , $$(qwildcard , $$(VBOX_PATH_MANUAL_SRC)/$(1)/$(2).xml) $(3) $$(VBOX_PATH_MANUAL_SRC)/en_US/$(2).xml)
 	$$(QUIET)$$(call VBOX_XSLTPROC_WITH_CAT) \
 		--stringparam "g_fReplaceHyphens" "true" \
-		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita" \
+		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita" \
 		$$(VBOX_PATH_MANUAL_SRC)/docbook-refentry-to-manual-dita.xsl \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).xml"
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).xml"
 	$$(QUIET)$$(VBOX_BLD_PYTHON) $$(VBOX_PATH_MANUAL_SRC)/add_file_to_id_only_references.py \
 		--mapping-file "$$(VBOX_USER_MANUAL_ID_MAPPING_FILE_$1)" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita"
+		--refentry_file_list "$$(VBOX_MANUAL_XML_REFENTRY_FILES) man_vboximg-mount man_VBoxHeadless" \
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita"
 	$$(QUIET)$$(ASH) \
   		"$$(VBOX_PATH_MANUAL_SRC)/dita-refentry-flat-to-single-topic.sh" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita" \
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita" \
   		"$$(VBOX_PATH_MANUAL_SRC)/dita-refentry-flat-topic-ids.xsl" \
   		"$$(VBOX_PATH_MANUAL_SRC)/dita-refentry-flat-to-single-topic.xsl" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/$(2).ditamap.kmk" \
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/$(2).ditamap.kmk" \
 		"VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES2_$(1)" \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics" \
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics" \
 		-- $$(subst $$(REDIRECT),$$(REDIRECT_EXT),$$(call VBOX_XSLTPROC_WITH_CAT)) $(VBOX_XSLTPROC_WORKAROUND) \
 		--path "$$(VBOX_DITA_TECHNICAL_CONTENT_DTD_PATH)"
 	$$(QUIET)$$(call VBOX_XSLTPROC_WITH_CAT) $(VBOX_XSLTPROC_WORKAROUND) \
 		--path "$$(VBOX_DITA_TECHNICAL_CONTENT_DTD_PATH)" \
 		--stringparam g_sMode map \
-		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/$(2).ditamap" \
+		--output "$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/$(2).ditamap" \
 		$$(VBOX_PATH_MANUAL_SRC)/dita-refentry-flat-to-single-topic.xsl \
-		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/flat-$(2).dita"
+		"$$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/flat-$(2).dita"
 
  endef # def_vbox_refentry_file_to_dita
 
@@ -776,7 +778,7 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
  $(VBOX_PATH_MANUAL_OUTBASE)/en_US/RefEntryDITA.zip: \
  		$(VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES_en_US) \
  		$(VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES2_en_US) \
- 		$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/vboxmanage-cmd-overview.dita
+ 		$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/cli_topics/vboxmanage-cmd-overview.dita
 	$(call MSG_L1,Packing documentation $@)
 	$(QUIET)$(RM) -f $@
 	$(QUIET)$(REDIRECT) -C $(VBOX_PATH_MANUAL_OUTBASE)/en_US/ -- $(VBOX_ZIP) \
@@ -792,9 +794,9 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
 
  # @param 1    Language
  define def_vbox_generate_vboxmanage_overview
-  VBOX_USER_MANUAL_DITA_STAGED_FILES_$1 += $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/vboxmanage-cmd-overview.dita
-  $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/vboxmanage-cmd-overview.dita \
-  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/topics/vboxmanage-cmd-overview.dita.files.xml: \
+  VBOX_USER_MANUAL_DITA_STAGED_FILES_$1 += $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/vboxmanage-cmd-overview.dita
+  $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/vboxmanage-cmd-overview.dita \
+  + $$(VBOX_PATH_MANUAL_OUTBASE)/$(1)/dita/cli_topics/vboxmanage-cmd-overview.dita.files.xml: \
   		$$(VBOX_PATH_MANUAL_SRC)/$(1)/vboxmanage-cmd-overview.xsl \
   		$$(VBOX_PATH_MANUAL_SRC)/vboxmanage-cmd-overview.xsl \
   		$$(VBOX_USER_MANUAL_CONVERTED_REFENTRY_DITA_FILES_$(1)) \
@@ -803,7 +805,7 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
 	$$(QUIET)$$(RM) -f -- "$$@" "$$@.files.xml"
 	$$(APPEND) -tn "$$@.files.xml" '<?xml version="1.0"?>' '<files>'
 	$$(SED) -n \
-		-e 's/^.*topicref .*topics\/man_VBoxManage-\([^.]*\)\.ditamap.*$$(DOLLAR)/<file>vboxmanage-\1-synopsis.dita<\/file>/p' \
+		-e 's/^.*topicref .*topics\man_VBoxManage-\([^.]*\)\.ditamap.*$$(DOLLAR)/<file>vboxmanage-\1-synopsis.dita<\/file>/p' \
 		--append "$$@.files.xml" \
 		$(VBOX_PATH_MANUAL_SRC)/$(1)/dita/UserManual.ditamap
 	$$(APPEND) -n "$$@.files.xml" '</files>'

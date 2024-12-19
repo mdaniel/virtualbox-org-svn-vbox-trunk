@@ -8,10 +8,7 @@
       separately how it should be affected by write operations from a virtual machine and snapshot operations. This
       applies to all of the aforementioned image formats (VDI, VMDK, VHD, or HDD) and irrespective of whether an image
       is fixed-size or dynamically allocated. </p>
-    <p>By default, images are in <i>normal</i> mode. To mark an existing image with one of the nonstandard modes listed
-      below, use <userinput>VBoxManage modifymedium</userinput>. See <xref href="vboxmanage-modifymedium.dita"/>.
-      Alternatively, use <userinput>VBoxManage storageattach</userinput> to attach the image to a VM and specify the
-        <codeph>--mtype</codeph> argument. See <xref href="vboxmanage-storageattach.dita"/>. </p>
+    <p>By default, images are in <i>normal</i> mode. To mark an existing image with one of the nonstandard modes listed below, use <userinput>VBoxManage modifymedium</userinput>. See <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>. Alternatively, use <userinput>VBoxManage storageattach</userinput> to attach the image to a VM and specify the <codeph>--mtype</codeph> argument. See <xref href="../cli_topics/vboxmanage-storageattach.dita"/>.</p>
     <p>The available virtual disk image modes are as follows: </p>
     <ul>
       <li>
@@ -85,9 +82,7 @@
             conkeyref="vbox-conkeyref-phrases/product-name"/>, not when you reboot by requesting a reboot from within
           the machine. This is also why immutable images behave as described above when snapshots are also present,
           which use differencing images as well. </p>
-        <p>If the automatic discarding of the differencing image on VM startup does not fit your needs, you can turn it
-          off using the <codeph>autoreset</codeph> parameter of <userinput>VBoxManage modifymedium</userinput>. See
-            <xref href="vboxmanage-modifymedium.dita"/>. </p>
+        <p>If the automatic discarding of the differencing image on VM startup does not fit your needs, you can turn it off using the <codeph>autoreset</codeph> parameter of <userinput>VBoxManage modifymedium</userinput>. See <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>.</p>
       </li>
       <li>
         <p><b outputclass="bold">Multiattach mode images</b> can

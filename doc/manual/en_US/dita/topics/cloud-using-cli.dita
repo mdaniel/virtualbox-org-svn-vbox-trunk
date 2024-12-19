@@ -7,17 +7,15 @@
     <p>This section includes some examples of how <userinput>VBoxManage</userinput> commands can be used to integrate
       with <ph conkeyref="vbox-conkeyref-phrases/oci"/> and perform common cloud operations. </p>
     <p><b outputclass="bold">Creating a Cloud Profile</b>
-      </p>
-    <p>To create a cloud profile called <codeph>vbox-oci</codeph>: </p>
+    </p>
+    <p>To create a cloud profile called <codeph>vbox-oci</codeph> for <ph conkeyref="vbox-conkeyref-phrases/oci"/> as the cloud provider: </p>
     <pre xml:space="preserve">VBoxManage cloudprofile --provider "OCI" --profile="vbox-oci" add \
 --clouduser="ocid1.user.oc1..."  --keyfile="/home/username/.oci/oci_api_key.pem" \
 --tenancy="ocid1.tenancy.oc1..."  --compartment="ocid1.compartment.oc1..."  --region="us-ashburn-1"
 </pre>
-    <p>The new cloud profile is added to the <filepath>oci_config</filepath> file in your <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> global configuration directory. For example, this is
-        <filepath>$HOME/.VirtualBox/oci_config</filepath> on a Windows host. </p>
+    <p>The new cloud profile is added to the <filepath>oci_config</filepath> file in your <ph conkeyref="vbox-conkeyref-phrases/product-name"/> global configuration directory. For example, this is <filepath>$HOME/.VirtualBox/oci_config</filepath> on a Windows host.</p>
     <p><b outputclass="bold">Listing Cloud Instances</b>
-      </p>
+    </p>
     <p>To list the instances in your <ph conkeyref="vbox-conkeyref-phrases/oci"/> compartment: </p>
     <pre xml:space="preserve">VBoxManage cloud --provider="OCI" --profile="vbox-oci" list instances
 </pre>
@@ -54,7 +52,7 @@
     <p>To show CPU usage metrics for a cloud instance: </p>
     <pre xml:space="preserve">VBoxManage cloud --provider="OCI" --profile="vbox-oci" instance metricdata \
 --id="ocid1.instance.oc1..." --metric-name="CpuUtilization"</pre>  
-    <p>For more details about the available commands for cloud operations, see <xref href="vboxmanage-cloud.dita"/>. </p>
+    <p>For more details about the available commands for cloud operations, see <xref href="../cli_topics/vboxmanage-cloud.dita"/>.</p>
   </body>
   
 </topic>

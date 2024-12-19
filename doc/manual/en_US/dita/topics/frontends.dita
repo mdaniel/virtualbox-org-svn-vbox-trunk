@@ -28,12 +28,12 @@
           (VRDE) is installed and enabled for the VM. As opposed to the other graphical interfaces,
           the headless front end requires no graphics support. This is useful, for example, if you
           want to host your virtual machines on a headless Linux server that has no X Window system
-          installed. See <xref href="vboxheadless.dita">VBoxHeadless, the Remote Desktop
+          installed. See <xref href="headless-mode.dita">VBoxHeadless, the Remote Desktop
             Server</xref>. </p>
       </li>
       <li>
         <p><b>Separate mode.</b> A front end that is based on <userinput>VBoxHeadless</userinput>, 
-          but does not require VRDE or an RDP viewer. See <xref href="vboxheadless-separate-mode.dita">Separate Mode</xref>.</p>
+          but does not require VRDE or an RDP viewer. See <xref href="separate-mode.dita">Separate Mode</xref>.</p>
       </li>
     </ul>
     <p>If the above front ends still do not satisfy your particular needs, it is possible to create yet another front

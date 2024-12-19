@@ -5,11 +5,7 @@
   
   <body>
     <p>
-        <ph conkeyref="vbox-conkeyref-phrases/product-name"/> also ships with a set of drivers that improve
-        running OS/2 in a virtual machine. Due to restrictions of OS/2
-        itself, this variant of the Guest Additions has a limited
-        feature set. See <xref href="KnownIssues.dita">Known Limitations</xref> for details.
-      </p>
+      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> also ships with a set of drivers that improve running OS/2 in a virtual machine. Due to restrictions of OS/2 itself, this variant of the Guest Additions has a limited feature set. Specifically, seamless windows and automatic guest resizing are not implemented in Guest Additions for OS/2 because of inherent limitations of the OS/2 graphics system.</p>
     <p>
         The OS/2 Guest Additions are provided on the same ISO CD-ROM as
         those for the other platforms. Mount the ISO in OS/2 as

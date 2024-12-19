@@ -76,8 +76,7 @@
           create, edit, and manage cloud profiles for your cloud service accounts. </p>
       </li>
       <li>
-        <p>Automatically, by using the <userinput>VBoxManage cloudprofile</userinput> command. See <xref
-            href="vboxmanage-cloudprofile.dita"/>. </p>
+        <p>Automatically, by using the <userinput>VBoxManage cloudprofile</userinput> command. See <xref href="../cli_topics/vboxmanage-cloudprofile.dita"/>. </p>
       </li>
       <li>
         <p>Manually, by creating an <filepath>oci_config</filepath> file in your <ph

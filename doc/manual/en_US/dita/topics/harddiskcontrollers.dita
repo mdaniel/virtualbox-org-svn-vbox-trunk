@@ -69,8 +69,7 @@
           page of the machine's <b outputclass="bold">Settings</b> window, click <b outputclass="bold">Add
             Controller</b> under the Storage Tree box and then select <b outputclass="bold">Add SATA Controller</b>. The
           new controller appears as a separate PCI device in the virtual machine, and you can add virtual disks to it. </p>
-        <p>To change the IDE compatibility mode settings for the SATA controller, see <xref
-            href="vboxmanage-storagectl.dita"/>. </p>
+        <p>To change the IDE compatibility mode settings for the SATA controller, see <xref href="../cli_topics/vboxmanage-storagectl.dita"/>. </p>
       </li>
       <li>
         <p><b outputclass="bold">SCSI</b> is another established

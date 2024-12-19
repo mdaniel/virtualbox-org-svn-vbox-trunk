@@ -13,13 +13,7 @@
     <note>
       <p>For the basic Direct3D acceleration to work in a Windows guest, you have to install the WDDM video driver
         available for Windows Vista or later. </p>
-      <p>
-            For Windows 8 and later, only the WDDM Direct3D video driver
-            is available. For basic Direct3D acceleration to work in
-            Windows XP guests, you have to install the Guest Additions
-            in Safe Mode. See <xref href="KnownIssues.dita">Known Limitations</xref> for
-            details.
-          </p>
+      <p> For Windows 8 and later, only the WDDM Direct3D video driver is available. For basic Direct3D acceleration to work in Windows XP guests, you have to install the Guest Additions in Safe Mode.</p>
     </note>
     <p>If you prefer to mount the Guest Additions manually, you can perform the following steps: </p>
     <ol>

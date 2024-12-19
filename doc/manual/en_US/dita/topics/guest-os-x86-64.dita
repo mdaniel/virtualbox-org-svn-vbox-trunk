@@ -1,27 +1,122 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="guest-os-x86">
-  <title>x86 and x86-64 Guest Operating Systems</title>
+  <title>Guest OSs That Run on x86_64 Hosts</title>
   <body>
-    <p>Oracle Premier Support covers the running of the following guest OSs in a VM with an x86 or x86-64 platform architecture, as appropriate.</p>
-    <p>
-      <ul id="ul_bcg_bpf_3cc">
-        <li>Windows 11 (64-bit). Released versions only.</li>
-        <li>Windows 10 (32-bit and 64-bit). Released versions only.</li>
-        <li>Windows Server 2025 (64-bit)</li>
-        <li>Windows Server 2022 (64-bit)</li>
-        <li>Oracle Solaris 11 (32-bit and 64-bit) </li>
-        <li>Oracle Linux 9 (64-bit)<ul>
-            <li>Red Hat Enterprise Linux 9 (64-bit)</li>
-            <li>CentOS Stream 9 (64-bit)</li>
-          </ul></li>
-        <li>Oracle Linux 8 (64-bit)<ul>
-            <li>Red Hat Enterprise Linux 8 (64-bit)</li>
-          </ul></li>
-        <li>Oracle Linux 7 (64-bit)<ul>
-            <li>Red Hat Enterprise Linux 7 (64-bit)</li>
-          </ul></li>
-      </ul>
-    </p>
+    <p>The following table shows the Guest OSs that run on hosts with an x86_64 processor and the tier of Oracle support offered for each. See also <xref href="guest-os-Arm.dita"/>.</p>
+    <table frame="all" rowsep="1" colsep="1">
+      <title>Windows (x86_64), Linux (x86_64), macOS (x86_64), Solaris (x86_64) Hosts Will Run VMs with These OSs</title>
+      <desc>Guest OSs that run on x86 hosts and their levels of support available from Oracle.</desc>
+      <tgroup cols="2">
+        <colspec colname="c3" colnum="1" colwidth="1*" align="left"/>
+        <colspec colname="c4" colnum="2" colwidth="1*" align="left"/>
+        <thead>
+          <row>
+            <entry>Guest Operating System (all x86)</entry>
+            <entry>Oracle Support Available</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>Windows 11 (64-bit). Released versions only.</entry>
+            <entry morerows="6">Premier</entry>
+          </row>
+          <row>
+            <entry>Windows 10 (32-bit and 64-bit). Released versions only.</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2025 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2022 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Solaris 11 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 9 (64-bit), Red Hat Enterprise Linux 9 (64-bit), CentOS Stream 9 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 8 (64-bit), Red Hat Enterprise Linux 8 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows 8.1 and 8 (32-bit and 64-bit)</entry>
+            <entry morerows="24">Limited</entry>
+          </row>
+          <row>
+            <entry>Windows 7 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Vista SP2 and later (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows XP (32-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Vista (32-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2019 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2016 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2012 and 2012 R2 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2008 and 2008 R2 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Windows Server 2003 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Solaris 10 8/11 Update 10 and later (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>CentOS Stream 8 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 7 (64-bit), Red Hat Enterprise Linux 7 (64-bit), CentOS Linux 7 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 6 (32-bit and 64-bit), Red Hat Enterprise Linux 6 (32-bit and 64-bit), CentOS 6 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Oracle Linux 5 (32-bit and 64-bit), Red Hat Enterprise Linux 5 (32-bit and 64-bit), CentOS 5 (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 24.10 LTS (Oracular Oriole) (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 24.04 LTS (Noble Numbat) (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 22.04 LTS (Jammy Jellyfish) (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 20.04 LTS (Focal Fossa) (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 18.04 LTS (Bionic Beaver) (64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 16.04 LTS (Xenial Xerus) (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>Ubuntu 14.04.5 LTS (Trusty Tahr) (32-bit and 64-bit)</entry>
+          </row>
+          <row>
+            <entry>SUSE Linux Enterprise Server 15 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>SUSE Linux Enterprise Server 12 (64-bit)</entry>
+          </row>
+          <row>
+            <entry>OS/2 Warp 4.5</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
   </body>
 </topic>

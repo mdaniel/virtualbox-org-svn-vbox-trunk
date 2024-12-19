@@ -22,8 +22,7 @@
         <p>The extension pack is uninstalled from the host and removed from the Extension Pack Manager. </p>
       </li>
     </ol>
-    <p>Alternatively, you can use the <userinput>VBoxManage</userinput> command line to install and manage an <ph
-        conkeyref="vbox-conkeyref-phrases/vbox-ext"/>. See <xref href="vboxmanage-extpack.dita"/>. </p>
+    <p>Alternatively, you can use the <userinput>VBoxManage</userinput> command line to install and manage an <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>. See <xref href="../cli_topics/vboxmanage-extpack.dita"/>.</p>
   </body>
   
 </topic>

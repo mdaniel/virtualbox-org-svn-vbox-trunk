@@ -82,7 +82,6 @@
         <p>Monitor the export process by using the <ph conkeyref="vbox-conkeyref-phrases/oci-console"/>. </p>
       </li>
     </ol>
-    <p>You can also use the <userinput>VBoxManage export</userinput> command to export a VM to <ph
-        conkeyref="vbox-conkeyref-phrases/oci"/>. See <xref href="vboxmanage-export.dita"/>. </p>
+    <p>You can also use the <userinput>VBoxManage export</userinput> command to export a VM to <ph conkeyref="vbox-conkeyref-phrases/oci"/>. See <xref href="../cli_topics/vboxmanage-export.dita"/>.</p>
   </body>
 </topic>

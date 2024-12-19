@@ -16,7 +16,6 @@
             outputclass="bold">Host key + C </b>again. </p>
         <p>The aspect ratio of the guest screen is preserved when resizing the window. To ignore the aspect ratio, press
             <b outputclass="bold">Shift</b> during the resize operation. </p>
-        <p>See <xref href="KnownIssues.dita">Known Limitations</xref> for additional remarks. </p>
       </li>
       <li>
         <p>If you have the Guest Additions installed and they support automatic <b outputclass="bold">resizing</b>, the

@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="installation-packages">
+  <title>Choosing an Installation Package</title>
+  <body>
+    <p>Download the appropriate <ph conkeyref="vbox-conkeyref-phrases/product-name"/> platform installation package for the host processor and operating system (OS). These are the packages available, and the platforms you can install and run them on. See also <xref href="host-guest-matrix.dita"/>.</p>
+    <ul>
+      <li>
+        <p>
+          <b outputclass="bold">Windows hosts</b>:</p>
+        <ul>
+          <li>
+            <p>Windows 11 with Arm processors</p>
+          </li>
+          <li>
+            <p>Windows 11 with x86-64 processors</p>
+          </li>
+          <li>
+            <p>Windows 10 with x86-64 processors</p>
+          </li>
+          <li>
+            <p>Windows Server 2025 with x86-64 processors</p>
+          </li>
+          <li>
+            <p>Windows Server 2022 with x86-64 processors</p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>
+          <b outputclass="bold"><?oxy_comment_start author="Mhari Duncan" timestamp="20241213T115547+0000" comment="Put limitations here, after list?"?>macOS / Intel hosts<?oxy_comment_end?></b>:</p>
+        <ul>
+          <li>
+            <p>14 (Sonoma) with Intel x86-64 processors</p>
+          </li>
+          <li>
+            <p>13 (Ventura) with Intel x86-64 processors</p>
+          </li>
+          <li>
+            <p>12 (Monterey) with Intel x86-64 processors</p>
+          </li>
+          <li>
+            <p>11 (Big Sur) with Intel x86-64 processors</p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p>
+          <b outputclass="bold">macOS / Apple Silicon hosts</b>:</p>
+        <ul>
+          <li>
+            <p>14 (Sonoma) with Apple Silicon Arm processors</p>
+          </li>
+          <li>
+            <p>13 (Ventura) with Apple Silicon Arm processors</p>
+          </li>
+          <li>
+            <p>12 (Monterey) with Apple Silicon Arm processors</p>
+          </li>
+          <li>
+            <p>11 (Big Sur) with Apple Silicon Arm processors</p>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <p><b outputclass="bold">Linux Distributions</b>:</p>
+        <ul>
+          <li><b>​Oracle Linux 9 / Red Hat Enterprise Linux 9</b> with x86-64 processors</li>
+          <li><b>​Oracle Linux 8 / Red Hat Enterprise Linux 8​</b> with x86-64 processors</li>
+          <li><b>Ubuntu 24.10</b>​ with x86-64 processors</li>
+          <li><b>Ubuntu 24.04</b>​ with x86-64 processors</li>
+          <li><b>Ubuntu 22.04</b> with x86-64 processors</li>
+          <li><b>​Ubuntu 20.04​</b> with x86-64 processors</li>
+          <li><b>Debian 12</b> - Debian GNU/Linux 12 (Bookworm)​ with x86-64 processors</li>
+          <li><b>Debian 11</b> - Debian GNU/Linux 11 (Bullseye) with x86-64 processors</li>
+          <li><b>​openSUSE 15.3 / 15.4 / 15.5 / 15.6</b> with x86-64 processors</li>
+          <li><b>Fedora 40 / 41</b> with x86-64 processors</li>
+          <li><b>​All distributions</b> with x86-64 processors - Built on EL6 and therefore not requiring recent system libraries. Not covered by Oracle Premier Support.</li>
+        </ul>
+      </li>
+      <li>
+        <p><b outputclass="bold">Solaris hosts</b><?oxy_comment_start author="Mhari Duncan" timestamp="20241213T115909+0000" comment="Removed
+The following versions are supported with the restrictions listed in Known Limitations: 
+
+Need to state restrictions somewhere"?> and<?oxy_comment_end?>
+          <b outputclass="bold">Solaris 11 IPS hosts</b></p>
+        <ul>
+          <li>
+            <p> Oracle Solaris 11.4 </p>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </body>
+</topic>

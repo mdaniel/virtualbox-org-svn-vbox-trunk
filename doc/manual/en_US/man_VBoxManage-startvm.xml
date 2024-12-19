@@ -186,8 +186,7 @@
   <refsect1 id="vboxmanage-startvm-see-also">
     <title>See Also</title>
     <para>
-<!--<xref linkend="vboxmanage-vboxheadless" />-->
-      <xref linkend="vboxheadless" />,
+      <xref linkend="headless-mode" />,
       <xref linkend="vboxmanage-setproperty" />,
       <xref linkend="vboxmanage-modifyvm" />.
     </para>

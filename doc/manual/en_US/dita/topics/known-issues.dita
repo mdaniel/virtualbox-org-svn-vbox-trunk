@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="known-issues">
+    <title>Known Issues</title>
+    <body>
+        <p>The following section describes known problems with this release of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. Unless marked otherwise, these issues are planned to be fixed in later releases.</p>
+    </body>
+</topic>

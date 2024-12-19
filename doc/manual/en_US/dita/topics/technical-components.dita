@@ -80,7 +80,7 @@
         <p><userinput>VBoxHeadless</userinput>: A VM front end which does not
           directly provide any video output and keyboard or mouse input,
           but enables redirection through the VirtualBox Remote Desktop
-          Extension. See <xref href="vboxheadless.dita"/>.
+          Extension. See <xref href="headless-mode.dita"/>.
         </p>
       </li>
       <li>

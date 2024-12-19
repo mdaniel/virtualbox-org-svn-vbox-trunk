@@ -45,8 +45,7 @@
     <li><p>Click <b outputclass="bold">Finish</b> to start the clone operation. </p></li></ol>
     <p>The duration of the clone operation depends on the size and number of attached disk images. In addition, the
       clone operation saves all the differencing disk images of a snapshot. </p>
-    <p>You can also use the <userinput>VBoxManage clonevm</userinput> command to clone a VM. See <xref
-        href="vboxmanage-clonevm.dita"/>. </p>
+    <p>You can also use the <userinput>VBoxManage clonevm</userinput> command to clone a VM. See <xref href="../cli_topics/vboxmanage-clonevm.dita"/>.</p>
   </body>
   
 </topic>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-hyperv">
+    <title>Poor performance when using <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and <b outputclass="bold">Hyper-V</b> on the same host</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd><ph conkeyref="vbox-conkeyref-phrases/product-name"/> and <b outputclass="bold">Hyper-V</b> can conflict with each other when run on the same host.<p>Always disable Hyper-V when running VirtualBox.</p></dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>Turn off the Windows features  Hyper-V Platform, Virtual Machine Platform and Windows Hypervisor Platform, and then reboot the host.</p>
+                    <p>On newer Windows versions, the device security features Core Isolation and Memory Integrity use Hyper-V, even if you have turned it off.</p>
+                    <p>Use the Microsoft Device Guard and Credential Guard hardware readiness tools to turn off more features that use Hyper-V. For example, to disable AutoReboot, use the following command: </p>
+                    <pre xml:space="preserve">.\DG_Readiness_Tool_vX.X.ps1 -Disable -AutoReboot</pre>
+                    <note>
+                        <p>Disabling Device Guard and Credential Guard features impacts on the overall security of the host. Take this into account before deciding to disable them.</p>
+                    </note>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

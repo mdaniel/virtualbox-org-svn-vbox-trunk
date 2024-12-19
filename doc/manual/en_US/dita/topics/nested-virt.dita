@@ -18,8 +18,7 @@
           the check box. </p>
       </li>
       <li>
-        <p>Use the <codeph>--nested-hw-virt</codeph> option of the <userinput>VBoxManage modifyvm</userinput> command to
-          enable or disable nested virtualization. See <xref href="vboxmanage-modifyvm.dita">VBoxManage modifyvm</xref>. </p>
+        <p>Use the <codeph>--nested-hw-virt</codeph> option of the <userinput>VBoxManage modifyvm</userinput> command to enable or disable nested virtualization. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>
       </li>
     </ul>
   </body>

@@ -17,9 +17,7 @@
       can be configured using the <userinput>VBoxManage modifyvm</userinput> command. Both receiving and transmitting
       data is supported. How this virtual serial port is then connected to the host is configurable, and the details
       depend on your host OS. </p>
-    <p>You can use either the Settings tabs or the <userinput>VBoxManage</userinput> command to set up virtual serial
-      ports. For the latter, see <xref href="vboxmanage-modifyvm.dita"/> for information on the <codeph>--uart</codeph>,
-        <codeph>--uart-mode</codeph> and <codeph>--uart-type</codeph> options. </p>
+    <p>You can use either the Settings tabs or the <userinput>VBoxManage</userinput> command to set up virtual serial ports. For the latter, see <xref href="../cli_topics/vboxmanage-modifyvm.dita"/> for information on the <codeph>--uart</codeph>, <codeph>--uart-mode</codeph> and <codeph>--uart-type</codeph> options.</p>
     <p>You can configure up to four virtual serial ports per virtual machine. For each device, you must set the
       following: </p>
     <ol>

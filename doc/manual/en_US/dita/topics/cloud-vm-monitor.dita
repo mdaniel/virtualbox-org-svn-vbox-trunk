@@ -22,7 +22,7 @@
         <ul><li><p><cmdname>VBoxManage cloud instance metriclist</cmdname> shows the available metrics for an
               instance.</p></li>
         <li><p><cmdname>VBoxManage cloud instance metricdata</cmdname> shows metrics data for an instance.</p></li></ul>
-        <p>See also <xref href="vboxmanage-cloud.dita"/>.</p>
+        <p>See also <xref href="../cli_topics/vboxmanage-cloud.dita"/>.</p>
       </li></ul>
     <note><p>To monitor a cloud VM, the Compute Instance Monitoring plugin must be enabled and running on the
       <ph conkeyref="vbox-conkeyref-phrases/oci"/> instance. See the <ph conkeyref="vbox-conkeyref-phrases/oci"/> 

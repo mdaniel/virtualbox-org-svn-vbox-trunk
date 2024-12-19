@@ -11,7 +11,7 @@
     <ul>
       <li>
         <p><b outputclass="bold">Portability. </b>
-          <ph conkeyref="vbox-conkeyref-phrases/product-name"/> runs on a large number of 64-bit host operating systems. See <xref href="hostossupport.dita#hostossupport"/>. </p>
+          <ph conkeyref="vbox-conkeyref-phrases/product-name"/> runs on a large number of 64-bit host operating systems. See <xref href="installation-packages.dita"/>.</p>
         <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is a so-called <i>hosted</i> hypervisor, sometimes
           referred to as a <i>type 2</i> hypervisor. Whereas a <i>bare-metal</i> or <i>type 1</i> hypervisor runs
           directly on the hardware, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> requires an existing OS to be
@@ -144,6 +144,7 @@
         </ul>
       </li>
     </ul>
+    <p>Note that any feature that is marked as <i>experimental</i> is not supported. Feedback and suggestions about such features are welcome. </p>
   </body>
   
 </topic>

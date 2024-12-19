@@ -66,24 +66,14 @@
         running virtual machine that has Guest Additions installed:
       </p>
     <pre xml:space="preserve">VBoxManage controlvm "VM name" guestmemoryballoon n</pre>
-    <p>
-        where <varname>VM name</varname> is the name or UUID of
-        the virtual machine in question and <varname>n</varname>
-        is the amount of memory to allocate from the guest in megabytes.
-        See <xref href="vboxmanage-controlvm.dita"/>.
-      </p>
+    <p> where <varname>VM name</varname> is the name or UUID of the virtual machine in question and <varname>n</varname> is the amount of memory to allocate from the guest in megabytes. See <xref href="../cli_topics/vboxmanage-controlvm.dita"/>.</p>
     <p>
         You can also set a default balloon that will automatically be
         requested from the VM every time after it has started up with
         the following command:
       </p>
     <pre xml:space="preserve">VBoxManage modifyvm "VM name" --guest-memory-balloon n</pre>
-    <p>
-        By default, no balloon memory is allocated. This is a VM
-        setting, like other <userinput>modifyvm</userinput> settings, and
-        therefore can only be set while the machine is shut down. See
-        <xref href="vboxmanage-modifyvm.dita"/>.
-      </p>
+    <p> By default, no balloon memory is allocated. This is a VM setting, like other <userinput>modifyvm</userinput> settings, and therefore can only be set while the machine is shut down. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>. </p>
   </body>
   
 </topic>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-solaris-limitations">
+    <title>Oracle Solaris Host Limitations</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt><?oxy_comment_start author="Mhari Duncan" timestamp="20241218T110209+0000" comment="Move this info into context. This is how it works."?>Details<?oxy_comment_end?></dt>
+                <dd>
+                    <ul>
+                        <li>
+                            <p>Host Webcam passthrough is restricted to 640x480 frames at 20 frames per second due to limitations in the Oracle Solaris V4L2 API. This may be addressed in a future Oracle Solaris release.</p>
+                        </li>
+                        <li>
+                            <p>No ACPI information, such as battery status or power source, is reported to the guest.</p>
+                        </li>
+                        <li>
+                            <p>No support for using wireless adapters with bridged networking.</p>
+                        </li>
+                        <li>
+                            <p>Crossbow-based bridged networking on Oracle Solaris 11 hosts does not work directly with aggregate links. However, you can use <userinput>dladm</userinput> to manually create a VNIC over the aggregate link and use that with a VM. This limitation does not exist in Oracle Solaris 11 update 1 (11.1) and later.</p>
+                        </li>
+                    </ul>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>No workaround exists.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

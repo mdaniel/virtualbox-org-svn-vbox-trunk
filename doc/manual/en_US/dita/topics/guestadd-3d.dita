@@ -56,17 +56,7 @@
             The Guest Additions must be installed.
           </p>
         <note>
-          <p>
-              For the basic Direct3D acceleration to work in a Windows
-              Guest, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> needs to replace Windows system
-              files in the virtual machine. As a result, the Guest
-              Additions installation program offers Direct3D
-              acceleration as an option that must be explicitly enabled.
-              Also, you must install the Guest Additions in Safe Mode.
-              This does <i>not</i> apply to the WDDM
-              Direct3D video driver available for Windows Vista and
-              later. See <xref href="KnownIssues.dita">Known Limitations</xref> for details.
-            </p>
+          <p> For the basic Direct3D acceleration to work in a Windows Guest, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> needs to replace Windows system files in the virtual machine. As a result, the Guest Additions installation program offers Direct3D acceleration as an option that must be explicitly enabled. Also, you must install the Guest Additions in Safe Mode. This does <i>not</i> apply to the WDDM Direct3D video driver available for Windows Vista and later.</p>
         </note>
       </li>
       <li>

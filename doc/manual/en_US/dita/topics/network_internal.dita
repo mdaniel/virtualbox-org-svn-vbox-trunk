@@ -39,10 +39,7 @@
             <codeph>intnet</codeph> by default. </p>
       </li>
     </ul>
-    <p>Unless you configure the virtual network cards in the guest operating systems that are
-      participating in the internal network to use static IP addresses, you may want to use the DHCP
-      server that is built into <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to manage IP addresses for the internal
-      network. See <xref href="vboxmanage-dhcpserver.dita"/>. </p>
+    <p>Unless you configure the virtual network cards in the guest operating systems that are participating in the internal network to use static IP addresses, you may want to use the DHCP server that is built into <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to manage IP addresses for the internal network. See <xref href="../cli_topics/vboxmanage-dhcpserver.dita"/>.</p>
     <p>As a security measure, by default, the Linux implementation of
       internal networking only allows VMs running under the same user ID
       to establish an internal network. However, it is possible to

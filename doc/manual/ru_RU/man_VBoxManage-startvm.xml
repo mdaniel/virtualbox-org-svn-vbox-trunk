@@ -166,7 +166,7 @@
     <title>Смотрите также</title>
     <para>
 <!--<xref linkend="vboxmanage-vboxheadless" />-->
-      <xref linkend="vboxheadless" />,
+      <!-- <xref linkend="vboxheadless" />, -->
       <xref linkend="vboxmanage-setproperty" />,
       <xref linkend="vboxmanage-modifyvm" />.
     </para>

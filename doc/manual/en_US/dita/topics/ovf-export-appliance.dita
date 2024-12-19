@@ -60,8 +60,7 @@
           several minutes. </p>
       </li>
     </ol>
-    <p>You can use the <userinput>VBoxManage export</userinput> command to export an appliance. See <xref
-        href="vboxmanage-export.dita"/>. </p>
+    <p>You can use the <userinput>VBoxManage export</userinput> command to export an appliance. See <xref href="../cli_topics/vboxmanage-export.dita"/>.</p>
   </body>
   
 </topic>

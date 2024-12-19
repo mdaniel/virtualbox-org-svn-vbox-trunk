@@ -54,8 +54,7 @@
           might take several minutes. </p>
       </li>
     </ol>
-    <p>You can use the <userinput>VBoxManage import</userinput> command to import an appliance. See <xref
-        href="vboxmanage-import.dita"/>. </p>
+    <p>You can use the <userinput>VBoxManage import</userinput> command to import an appliance. See <xref href="../cli_topics/vboxmanage-import.dita"/>.</p>
   </body>
   
 </topic>

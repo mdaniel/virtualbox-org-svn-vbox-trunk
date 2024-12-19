@@ -6,7 +6,7 @@
         <p>
             <table frame="all" rowsep="1" colsep="1">
                 <title>Host and Guest (VM) Platform Combinations Available in VirtualBox</title>
-                <desc>Matrix of available host platforms and the Virtual machines they run.</desc>
+                <desc>Summary matrix of available host platforms and the Virtual machines they run.</desc>
                 <tgroup cols="4">
                     <colspec colname="c1" colnum="1" colwidth="1*" align="left"/>
                     <colspec colname="c2" colnum="2" colwidth="1*" align="left"/>
@@ -24,7 +24,7 @@
                         <row>
                             <entry>x86-64 (for example Intel or AMD)</entry>
                             <entry>
-                                <p>Windows </p>
+                                <p>Windows</p>
                                 <p>Windows Server</p>
                                 <p>macOS (requires Intel hardware)</p>
                                 <p>Linux (various distributions)</p>
@@ -40,9 +40,15 @@
                         </row>
                         <row>
                             <entry>Arm64</entry>
-                            <entry>macOS (requires Apple silicon hardware)</entry>
+                            <entry>
+                                <p>Windows 11</p>
+                                <p>macOS (requires Apple silicon hardware)</p>
+                            </entry>
                             <entry>Arm64</entry>
-                            <entry>Linux (various distributions)</entry>
+                            <entry>
+                                <p>Linux (various distributions)</p>
+                                <p>Windows 11</p>
+                            </entry>
                         </row>
                     </tbody>
                 </tgroup>

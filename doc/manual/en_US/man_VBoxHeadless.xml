@@ -79,7 +79,7 @@
     </para>
     <para>
       For information about using this command, see
-      <xref linkend="vboxheadless" />.
+      <xref linkend="headless-mode" />.
     </para>
     <refsect2 id="man_vboxmanage-vboxheadless-command-options">
       <title>Command Options</title>

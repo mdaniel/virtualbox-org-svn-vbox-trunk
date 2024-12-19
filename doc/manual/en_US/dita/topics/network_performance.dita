@@ -43,9 +43,7 @@
           party tool such as Wireshark. To do this, a promiscuous mode policy needs to be used on the VM's network
           adaptor. Use of this mode is only possible on the following network types: NAT Network, Bridged Adapter,
           Internal Network, and Host-Only Adapter. </p>
-                     <p>To setup a promiscuous mode policy, either select from the drop down list located in the <b
-            outputclass="bold">Network Settings</b> dialog for the network adaptor or use the command line tool
-            <userinput>VBoxManage</userinput>. See <xref href="vboxmanage-modifyvm.dita"/>. </p>
+                     <p>To setup a promiscuous mode policy, either select from the drop down list located in the <b outputclass="bold">Network Settings</b> dialog for the network adaptor or use the command line tool <userinput>VBoxManage</userinput>. See <xref href="../cli_topics/vboxmanage-modifyvm.dita"/>.</p>
                      <p>Promiscuous mode policies are as follows: </p>
                      <ul>
                         <li>

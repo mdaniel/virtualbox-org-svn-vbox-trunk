@@ -3,7 +3,7 @@
   PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="vboxmanage-intro">
             <title>Introduction</title>
-
+            
             <body>
                <p><userinput>VBoxManage</userinput> is the CLI to <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. With it, you can control <ph conkeyref="vbox-conkeyref-phrases/product-name"/> from the command line of the host operating system. <userinput>VBoxManage</userinput> supports all the features that the graphical user interface gives you access to, plus the features of the virtualization engine that can't be accessed from the GUI. </p>
                <p>You need to use the command line to do the following: </p>
@@ -18,7 +18,7 @@
                      <p> Control some more advanced and experimental configuration settings for a VM. </p>
                   </li>
                </ul>
-               <p>For more information, refer to the VBoxManage command <xref href="../topics/vboxmanage-common-description.dita"/> and <xref href="../topics/vboxmanage-common-examples.dita"/>.</p>
+               <p>For more information, refer to the VBoxManage command <xref href="../cli_topics/vboxmanage-common-description.dita"/> and <xref href="../cli_topics/vboxmanage-common-examples.dita"/>.</p>
             </body>
-
+            
          </topic>

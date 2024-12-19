@@ -2479,18 +2479,19 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMailslotQueryInformation,
     FileMailslotSetInformation,
     FileCompressionInformation,
-    FileObjectIdInformation,
+    /* NT351 and NT4 have different stuff assigned from here on. */
+    FileObjectIdInformation,        /**< NT4 and earlier has FileCopyOnWriteInformation here - only for setting, not querying. */
     FileCompletionInformation,
     FileMoveClusterInformation,
-    FileQuotaInformation,
-    FileReparsePointInformation,
+    FileQuotaInformation,           /**< NT35 has FileStorageInformation here (query+set) and NT4 FileOleClassIdInformation (set only). Last for NT35. */
+    FileReparsePointInformation,    /**< NT4 has FileOleStateBitsInformation here (set only). */
     FileNetworkOpenInformation,
-    FileAttributeTagInformation,
-    FileTrackingInformation,
-    FileIdBothDirectoryInformation,
-    FileIdFullDirectoryInformation,
-    FileValidDataLengthInformation,
-    FileShortNameInformation,
+    FileAttributeTagInformation,    /**< NT4 has FileObjectIdInformation here (set only). */
+    FileTrackingInformation,        /**< NT4 has FileOleAllInformation here (query only). Last for W2K. */
+    FileIdBothDirectoryInformation, /**< NT4 has FileOleDirectoryInformation here (dir query only). */
+    FileIdFullDirectoryInformation, /**< NT4 has FileContentIndexInformation here (set only). */
+    FileValidDataLengthInformation, /**< NT4 has FileInheritContentIndexInformation here (set only). */
+    FileShortNameInformation,       /**< NT4 has FileOleInformation here (query + set). Last for NT4. */
     FileIoCompletionNotificationInformation,
     FileIoStatusBlockRangeInformation,
     FileIoPriorityHintInformation,

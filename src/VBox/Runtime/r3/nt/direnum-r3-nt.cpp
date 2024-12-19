@@ -181,7 +181,9 @@ int rtDirNativeOpen(PRTDIRINTERNAL pDir, uintptr_t hRelativeDir, void *pvNativeR
                     g_fReparsePoints = 1;
 
                 /*
-                 * We now need to check if we opened a symbolic directory link.
+                 * We now need to check if we opened a symbolic directory link (W2K+;
+                 * on NT4 this is FileObjectIdInformation but it can't be queried and
+                 * should thus fail with STATUS_INVALID_INFO_CLASS).
                  * (These can be enumerated, but contains only '.' and '..'.)
                  */
                 FILE_ATTRIBUTE_TAG_INFORMATION  TagInfo = { 0, 0 };

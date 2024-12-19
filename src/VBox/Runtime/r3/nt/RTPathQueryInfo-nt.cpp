@@ -482,7 +482,10 @@ DECLHIDDEN(int) rtPathNtQueryInfoWorker(HANDLE hRootDir, UNICODE_STRING *pNtName
         }
         if (NT_SUCCESS(rcNt))
         {
-            /* Query tag information first in order to try re-open non-symlink reparse points. */
+            /* Query tag information first in order to try re-open non-symlink reparse points.
+               Note! On NT4 the value later used for FileAttributeTagInformation was
+                     called FileObjectIdInformation, but fortunately that could only
+                     be set and will fail with STATUS_INVALID_INFO_CLASS when queried. */
             FILE_ATTRIBUTE_TAG_INFORMATION TagInfo;
             rcNt = NtQueryInformationFile(hFile, &Ios, &TagInfo, sizeof(TagInfo), FileAttributeTagInformation);
             if (!NT_SUCCESS(rcNt))

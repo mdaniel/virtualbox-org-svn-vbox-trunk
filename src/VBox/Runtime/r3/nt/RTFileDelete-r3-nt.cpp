@@ -110,6 +110,10 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
              * more or less the same across the platforms.  (Code is #if 0'ed below.)
              *
              * See @bugref{10632}.
+             *
+             * Note! On NT4 the value later used for FileAttributeTagInformation was
+             *       called FileObjectIdInformation, but fortunately that could only
+             *       be set and will fail with STATUS_INVALID_INFO_CLASS when queried.
              */
             FILE_ATTRIBUTE_TAG_INFORMATION TagInfo = {0, 0};
             RTNT_IO_STATUS_BLOCK_REINIT(&Ios);
@@ -133,9 +137,9 @@ RTDECL(int) RTFileDelete(const char *pszFilename)
                     }
                 }
             }
-            else if (   rcNt == STATUS_INVALID_PARAMETER || rcNt == STATUS_NOT_IMPLEMENTED
-                     /** Needed for NT4. See @bugref{10826}. */
-                     || rcNt == STATUS_INVALID_INFO_CLASS)
+            else if (   rcNt == STATUS_INVALID_PARAMETER
+                     || rcNt == STATUS_NOT_IMPLEMENTED
+                     || rcNt == STATUS_INVALID_INFO_CLASS /* NT4 and earlier */)
                 rcNt = STATUS_SUCCESS;
             else
             {

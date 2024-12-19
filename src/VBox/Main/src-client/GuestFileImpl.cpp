@@ -453,6 +453,7 @@ Utf8Str GuestFile::i_guestErrorToString(int rcGuest, const char *pcszWhat)
         CASE_MSG(VERR_ACCESS_DENIED     , tr("Access to guest file \"%s\" denied"), pcszWhat);
         CASE_MSG(VERR_ALREADY_EXISTS    , tr("Guest file \"%s\" already exists"), pcszWhat);
         CASE_MSG(VERR_FILE_NOT_FOUND    , tr("Guest file \"%s\" not found"), pcszWhat);
+        CASE_MSG(VERR_PATH_NOT_FOUND    , tr("Path to guest file \"%s\" not found"), pcszWhat);
         CASE_MSG(VERR_NET_HOST_NOT_FOUND, tr("Host name \"%s\", not found"), pcszWhat);
         CASE_MSG(VERR_SHARING_VIOLATION , tr("Sharing violation for guest file \"%s\""), pcszWhat);
         default:

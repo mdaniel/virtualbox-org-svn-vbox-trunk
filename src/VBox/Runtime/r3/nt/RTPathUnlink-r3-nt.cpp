@@ -71,7 +71,7 @@ RTR3DECL(int) RTPathUnlink(const char *pszPath, uint32_t fUnlink)
         HANDLE              hPath   = RTNT_INVALID_HANDLE_VALUE;
         IO_STATUS_BLOCK     Ios     = RTNT_IO_STATUS_BLOCK_INITIALIZER;
         OBJECT_ATTRIBUTES   ObjAttr;
-        InitializeObjectAttributes(&ObjAttr, &NtName, 0 /*fAttrib*/, hRootDir, NULL);
+        InitializeObjectAttributes(&ObjAttr, &NtName, OBJ_CASE_INSENSITIVE, hRootDir, NULL);
 
         ULONG fOpenOptions = FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT | FILE_SYNCHRONOUS_IO_NONALERT;
         NTSTATUS rcNt = NtCreateFile(&hPath,

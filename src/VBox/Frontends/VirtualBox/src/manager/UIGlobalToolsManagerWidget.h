@@ -38,6 +38,8 @@
 #include "UIExtraDataDefs.h"
 
 /* Forward declarations: */
+class QGridLayout;
+class QIToolBar;
 class UIActionPool;
 class UIChooser;
 class UIMachineManagerWidget;
@@ -69,6 +71,12 @@ public:
       * @{ */
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const { return m_pActionPool; }
+    /** @} */
+
+    /** @name Tool-bar stuff.
+      * @{ */
+        /** Adds tool-bar into grid layout. */
+        void addToolBar(QIToolBar *pToolBar);
     /** @} */
 
     /** @name Tools pane stuff.
@@ -162,6 +170,9 @@ private:
 
     /** Holds the action-pool instance. */
     UIActionPool *m_pActionPool;
+
+    /** Holds the grid-layout instance. */
+    QGridLayout *m_pLayout;
 
     /** Holds the Tools-menu instance. */
     UITools          *m_pMenu;

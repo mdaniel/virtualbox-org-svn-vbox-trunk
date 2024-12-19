@@ -26,9 +26,10 @@
  */
 
 /* Qt includes: */
-#include <QHBoxLayout>
+#include <QGridLayout>
 
 /* GUI includes: */
+#include "QIToolBar.h"
 #include "UIChooser.h"
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
@@ -47,10 +48,17 @@ UIGlobalToolsManagerWidget::UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvanc
                                                        UIActionPool *pActionPool)
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
+    , m_pLayout(0)
     , m_pMenu(0)
     , m_pPane(0)
 {
     prepare();
+}
+
+void UIGlobalToolsManagerWidget::addToolBar(QIToolBar *pToolBar)
+{
+    AssertPtrReturnVoid(m_pLayout);
+    m_pLayout->addWidget(pToolBar, 0, 1);
 }
 
 UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
@@ -206,18 +214,18 @@ void UIGlobalToolsManagerWidget::prepare()
 void UIGlobalToolsManagerWidget::prepareWidgets()
 {
     /* Create layout: */
-    QHBoxLayout *pLayout = new QHBoxLayout(this);
-    if (pLayout)
+    m_pLayout = new QGridLayout(this);
+    if (m_pLayout)
     {
         /* Configure layout: */
-        pLayout->setContentsMargins(0, 0, 0, 0);
+        m_pLayout->setContentsMargins(0, 0, 0, 0);
 
         /* Create tool-menu: */
         m_pMenu = new UITools(this, UIToolClass_Global, actionPool(), Qt::Widget);
         if (toolMenu())
         {
             /* Add into layout: */
-            pLayout->addWidget(toolMenu());
+            m_pLayout->addWidget(toolMenu(), 0, 0, 2, 1);
         }
 
         /* Create tool-pane: */
@@ -228,7 +236,7 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
             toolPane()->setActive(true);
 
             /* Add into layout: */
-            pLayout->addWidget(toolPane());
+            m_pLayout->addWidget(toolPane(), 1, 1);
         }
     }
 }

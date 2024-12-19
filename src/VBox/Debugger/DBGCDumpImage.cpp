@@ -55,6 +55,7 @@
 # include <iprt/stream.h>
 # include <iprt/vfs.h>
 #endif
+#include <iprt/formats/bmp.h>
 #include <iprt/formats/mz.h>
 #include <iprt/formats/pecoff.h>
 #include <iprt/formats/elf32.h>
@@ -90,6 +91,30 @@ typedef struct
 } DBGCDUMPFLAGENTRY;
 #define FLENT(a_Define) { a_Define, #a_Define }
 
+
+/** @todo move to some formats header   */
+typedef struct WIN_ICON_DIR_T
+{
+    /** Must be zero. */
+    uint16_t    uZero;
+    /** 1 or 2.   */
+    uint16_t    idType;
+    /** Number of icons. */
+    uint16_t    cEntries;
+} WIN_ICON_DIR_T;
+
+/** @todo move to some formats header   */
+typedef struct WIN_ICON_ENTRY_T
+{
+    uint8_t     cx;
+    uint8_t     cy;
+    uint8_t     cColors;
+    uint8_t     bReserved;
+    uint16_t    cPlanes;
+    uint16_t    cBits;
+    uint32_t    cbData;
+    uint32_t    offData;
+} WIN_ICON_ENTRY_T;
 
 
 /*********************************************************************************************************************************
@@ -193,6 +218,8 @@ public:
 public:
     /** What to dump (DUMPIMAGE_SELECT_XXX). */
     uint64_t            m_fSelection;
+    enum { kType_ExeImage = 0, kType_Icon }
+                        m_enmType;
 
 private:
     DumpImageCmd();
@@ -211,6 +238,7 @@ public:
         , m_hVfsFile(NIL_RTVFSFILE)
 #endif
         , m_fSelection(DUMPIMAGE_SELECT_DEFAULT)
+        , m_enmType(kType_ExeImage)
     {
     }
 
@@ -427,6 +455,26 @@ public:
             m_fSelection &= ~fSel;
         return rc;
 
+    }
+
+    int optType(const char *pszImageType) RT_NOEXCEPT
+    {
+        if (   strcmp(pszImageType, "icon") == 0
+            || strcmp(pszImageType, "ico") == 0
+            || strcmp(pszImageType, "cursor") == 0
+            || strcmp(pszImageType, "cur") == 0)
+            m_enmType = kType_Icon;
+        else if (   strcmp(pszImageType, "exe") == 0
+                 || strcmp(pszImageType, "dll") == 0
+                 || strcmp(pszImageType, "sys") == 0
+                 || strcmp(pszImageType, "image") == 0)
+            m_enmType = kType_ExeImage;
+        else
+        {
+            mySyntax("Unknown image type '%s'", pszImageType);
+            return VERR_INVALID_PARAMETER;
+        }
+        return VINF_SUCCESS;
     }
 
     /** @} */
@@ -1945,6 +1993,89 @@ static int dbgcDumpImageMachO(DumpImageCmd *pCmd, mach_header_64_t const *pHdr)
 }
 
 
+static int dbgcDumpImageIcon(DumpImageCmd *pCmd, WIN_ICON_DIR_T const *pIconDir)
+{
+    RT_NOREF_PV(pCmd);
+
+    /*
+     * The directory.
+     */
+    pCmd->myPrintf("%s: %s with %#x entries\n",
+                   pCmd->m_pszName, pIconDir->idType == 1 ? "Icon" : pIconDir->idType == 2 ? "Cursor" : "!unknown!",
+                   pIconDir->cEntries);
+
+    /* Read the directory. */
+    uint32_t const    cbEntries = pIconDir->cEntries * sizeof(WIN_ICON_ENTRY_T);
+    WIN_ICON_ENTRY_T *paEntries = (WIN_ICON_ENTRY_T *)RTMemTmpAllocZ(cbEntries);
+    if (!paEntries)
+        return VERR_NO_TMP_MEMORY;
+    int rc = pCmd->readAt(sizeof(*pIconDir), paEntries, cbEntries, NULL);
+    if (RT_SUCCESS(rc))
+    {
+        /* Go thru the entries. */
+        for (uint32_t i = 0; i < pIconDir->cEntries; i++)
+        {
+            pCmd->myPrintf("%s: #%#x: %#08RX32 LB %#08RX32 - %ux%u, %u bbp, %u planes, %u colors\n", pCmd->m_pszName, i,
+                           paEntries[i].offData, paEntries[i].cbData,
+                           paEntries[i].cx ? paEntries[i].cx : 256,
+                           paEntries[i].cy ? paEntries[i].cy : 256,
+                           paEntries[i].cBits, paEntries[i].cPlanes, paEntries[i].cPlanes);
+            union
+            {
+                uint8_t         ab[_1K];
+                BMPWIN3XINFOHDR v3;
+                BMPWINV4INFOHDR v4;
+                BMPWINV5INFOHDR v5;
+            } Data = {{0}};
+            uint32_t const cbData = RT_MIN(sizeof(Data), paEntries[i].cbData);
+            int rc2 = pCmd->readAt(paEntries[i].offData, &Data, cbData, NULL);
+            if (RT_SUCCESS(rc2))
+            {
+                if (   Data.v3.cbSize == sizeof(Data.v3)
+                    || Data.v3.cbSize == sizeof(Data.v4)
+                    || Data.v3.cbSize == sizeof(Data.v5))
+                {
+                    pCmd->myPrintf("BMP%s - %dx%d, %u bbp, %u planes, %u colors used, %u important, %dx%d ppm, compression %u\n",
+                                   Data.v3.cbSize == sizeof(Data.v3) ? "v3"
+                                   : Data.v3.cbSize == sizeof(Data.v4) ? "v4" : "v5",
+                                   Data.v4.cx,
+                                   Data.v4.cy,
+                                   Data.v4.cBits,
+                                   Data.v4.cPlanes,
+                                   Data.v4.cColorsUsed,
+                                   Data.v4.cColorsImportant,
+                                   Data.v4.cXPelsPerMeter,
+                                   Data.v4.cYPelsPerMeter,
+                                   Data.v4.enmCompression);
+                }
+                else if (   Data.ab[0] == 0x89
+                         || Data.ab[1] == 'P'
+                         || Data.ab[2] == 'N'
+                         || Data.ab[3] == 'G'
+                         || Data.ab[4] == '\r'
+                         || Data.ab[5] == '\n')
+                {
+                    pCmd->myPrintf("PNG!\n");
+                }
+                else
+                    pCmd->myPrintf("Unknown!\n");
+
+
+                pCmd->myPrintf("%#.*Rhxd\n", RT_MIN(cbData, 128), &Data);
+            }
+            else
+            {
+                pCmd->myPrintf("%s: #%#x: Error reading data: %Rrc\n",
+                               pCmd->m_pszName, i, paEntries[i].offData, paEntries[i].cbData, rc2);
+                rc = rc2;
+            }
+        }
+    }
+    RTMemTmpFree(paEntries);
+    return rc;
+}
+
+
 /**
  * Common worker for the dumpimage command and the VBoxDumpImage tool.
  */
@@ -1957,6 +2088,7 @@ int DumpImageCmd::dumpImage(const char *pszImageBaseAddr) RT_NOEXCEPT
     union
     {
         uint8_t             ab[0x10];
+        uint16_t            au16[8];
         IMAGE_DOS_HEADER    DosHdr;
         struct
         {
@@ -1964,6 +2096,7 @@ int DumpImageCmd::dumpImage(const char *pszImageBaseAddr) RT_NOEXCEPT
             IMAGE_FILE_HEADER   FileHdr;
         } Nt;
         mach_header_64_t    MachO64;
+        WIN_ICON_DIR_T       IconDir;
     } uBuf;
     int rc = readAt(0, &uBuf.DosHdr, sizeof(uBuf.DosHdr), NULL);
     if (RT_SUCCESS(rc))
@@ -2002,7 +2135,17 @@ int DumpImageCmd::dumpImage(const char *pszImageBaseAddr) RT_NOEXCEPT
                  || uBuf.MachO64.magic == IMAGE_MACHO32_SIGNATURE)
             rc = dbgcDumpImageMachO(this, &uBuf.MachO64);
         /*
-         * Dunno.
+         * Use the type.
+         */
+        else if (   m_enmType == kType_Icon
+                 && uBuf.IconDir.uZero == 0
+                 && (   uBuf.IconDir.idType == 1 /*icon*/
+                     || uBuf.IconDir.idType == 2 /*cursor*/)
+                 && uBuf.IconDir.cEntries > 0
+                 && uBuf.IconDir.cEntries < 4096 /* thin-air-sanity */)
+            rc = dbgcDumpImageIcon(this, &uBuf.IconDir);
+        /*
+         * Unknown.
          */
         else
             return myError(rc, "Unknown magic: %.8Rhxs", uBuf.ab);
@@ -2061,6 +2204,7 @@ int main(int argc, char **argv)
         { "--only",       'O', RTGETOPT_REQ_STRING },
         { "--skip",       's', RTGETOPT_REQ_STRING },
         { "--skip",       'S', RTGETOPT_REQ_STRING },
+        { "--type",       't', RTGETOPT_REQ_STRING },
     };
 
     RTGETOPTSTATE GetState;
@@ -2096,6 +2240,12 @@ int main(int argc, char **argv)
             case 's':
             case 'S':
                 rc = Cmd.optSelectionSkip(ValueUnion.psz);
+                if (RT_FAILURE(rc))
+                    return RTEXITCODE_SYNTAX;
+                break;
+
+            case 't':
+                rc = Cmd.optType(ValueUnion.psz);
                 if (RT_FAILURE(rc))
                     return RTEXITCODE_SYNTAX;
                 break;

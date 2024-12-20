@@ -661,6 +661,11 @@ const char *VBoxWinDrvWinErrToStr(const DWORD dwErr)
     {
         RT_CASE_RET_STR(ERROR_BADKEY                            );
         RT_CASE_RET_STR(ERROR_SERVICE_MARKED_FOR_DELETE         );
+        RT_CASE_RET_STR(CERT_E_EXPIRED                          );
+        RT_CASE_RET_STR(CERT_E_UNTRUSTEDTESTROOT                );
+        RT_CASE_RET_STR(CERT_E_CHAINING                         );
+        RT_CASE_RET_STR(CERT_E_REVOKED                          );
+        RT_CASE_RET_STR(CERT_E_WRONG_USAGE                      );
         default:
             break;
     }

@@ -148,14 +148,14 @@ enum
  */
 static const RTGETOPTDEF g_aCmdInstallOptions[] =
 {
-    { "--inf-file",      VBOXDRVINST_INSTALL_OPT_INF_FILE,       RTGETOPT_REQ_STRING  },
-    { "--inf-section",   VBOXDRVINST_INSTALL_OPT_INF_SECTION,    RTGETOPT_REQ_STRING  },
-    { "--model",         VBOXDRVINST_INSTALL_OPT_MODEL,          RTGETOPT_REQ_STRING  },
-    { "--pnp",           VBOXDRVINST_INSTALL_OPT_PNPID,          RTGETOPT_REQ_STRING  },
-    { "--pnpid" ,        VBOXDRVINST_INSTALL_OPT_PNPID,          RTGETOPT_REQ_STRING  },
-    { "--pnp-id",        VBOXDRVINST_INSTALL_OPT_PNPID,          RTGETOPT_REQ_STRING  },
-    { "--not-force",     VBOXDRVINST_INSTALL_OPT_NOT_FORCE,      RTGETOPT_REQ_NOTHING },
-    { "--not-silent",    VBOXDRVINST_INSTALL_OPT_NOT_SILENT,     RTGETOPT_REQ_NOTHING },
+    { "--inf-file",      VBOXDRVINST_INSTALL_OPT_INF_FILE,      RTGETOPT_REQ_STRING  },
+    { "--inf-section",   VBOXDRVINST_INSTALL_OPT_INF_SECTION,   RTGETOPT_REQ_STRING  },
+    { "--model",         VBOXDRVINST_INSTALL_OPT_MODEL,         RTGETOPT_REQ_STRING  },
+    { "--pnp",           VBOXDRVINST_INSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
+    { "--pnpid" ,        VBOXDRVINST_INSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
+    { "--pnp-id",        VBOXDRVINST_INSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
+    { "--not-force",     VBOXDRVINST_INSTALL_OPT_NOT_FORCE,     RTGETOPT_REQ_NOTHING },
+    { "--not-silent",    VBOXDRVINST_INSTALL_OPT_NOT_SILENT,    RTGETOPT_REQ_NOTHING },
     { "--ignore-reboot", VBOXDRVINST_INSTALL_OPT_IGNORE_REBOOT, RTGETOPT_REQ_NOTHING }
 };
 
@@ -181,6 +181,7 @@ enum
     VBOXDRVINST_UNINSTALL_OPT_INF_SECTION,
     VBOXDRVINST_UNINSTALL_OPT_MODEL,
     VBOXDRVINST_UNINSTALL_OPT_PNPID,
+    VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT,
     VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT
 };
 
@@ -195,6 +196,7 @@ static const RTGETOPTDEF g_aCmdUninstallOptions[] =
     { "--pnp",           VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
     { "--pnpid" ,        VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
     { "--pnp-id",        VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
+    { "--not-silent",    VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT,    RTGETOPT_REQ_NOTHING },
     { "--ignore-reboot", VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT, RTGETOPT_REQ_NOTHING }
 };
 
@@ -576,23 +578,23 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
             case 'h':
                 return vboxDrvInstShowUsage(g_pStdOut, &g_CmdUninstall);
 
-           case VBOXDRVINST_INSTALL_OPT_INF_FILE:
+            case VBOXDRVINST_UNINSTALL_OPT_INF_FILE:
                 DUP_ARG_TO_STR(pszInfFile);
                 break;
 
-            case VBOXDRVINST_INSTALL_OPT_INF_SECTION:
+            case VBOXDRVINST_UNINSTALL_OPT_INF_SECTION:
                 DUP_ARG_TO_STR(pszInfSection);
                 break;
 
-            case VBOXDRVINST_INSTALL_OPT_MODEL:
+            case VBOXDRVINST_UNINSTALL_OPT_MODEL:
                 DUP_ARG_TO_STR(pszModel);
                 break;
 
-            case VBOXDRVINST_INSTALL_OPT_PNPID:
+            case VBOXDRVINST_UNINSTALL_OPT_PNPID:
                 DUP_ARG_TO_STR(pszPnpId);
                 break;
 
-            case VBOXDRVINST_INSTALL_OPT_NOT_SILENT:
+            case VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT:
                 fInstall &= ~VBOX_WIN_DRIVERINSTALL_F_SILENT;
                 break;
 

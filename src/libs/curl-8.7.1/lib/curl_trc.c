@@ -71,8 +71,6 @@ void Curl_debug(struct Curl_easy *data, curl_infotype type,
       case CURLINFO_TEXT:
       case CURLINFO_HEADER_OUT:
       case CURLINFO_HEADER_IN:
-      case CURLINFO_DATA_IN:      /* XXX: uwe */
-      case CURLINFO_DATA_OUT:     /* XXX: uwe */
         fwrite(s_infotype[type], 2, 1, data->set.err);
         fwrite(ptr, size, 1, data->set.err);
         break;

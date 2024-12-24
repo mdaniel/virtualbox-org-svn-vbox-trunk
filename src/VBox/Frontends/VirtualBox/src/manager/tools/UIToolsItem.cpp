@@ -443,8 +443,9 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
 
     /* Paint background: */
     paintBackground(pPainter, rectangle);
-    /* Paint frame: */
-    paintFrame(pPainter, rectangle);
+    /* Paint frame for popup only: */
+    if (model()->tools()->isPopup())
+        paintFrame(pPainter, rectangle);
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
 }
@@ -742,8 +743,9 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     /* Prepare variables: */
     const QPalette pal = QApplication::palette();
 
-    /* Selection background: */
-    if (model()->currentItem() == this)
+    /* Selection background for popup: */
+    if (   model()->currentItem() == this
+        && model()->tools()->isPopup())
     {
         /* Prepare color: */
         const QColor backgroundColor = isEnabled()
@@ -780,6 +782,23 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             bgAnimatedGrad.setColorAt(1,   animationColor2);
             pPainter->fillRect(rectangle, bgAnimatedGrad);
         }
+    }
+    /* Selection background for widget: */
+    else if (   model()->currentItem() == this
+             && !model()->tools()->isPopup())
+
+    {
+            /* Prepare color: */
+            const QColor highlightColor = isEnabled()
+                                        ? pal.color(QPalette::Active, QPalette::Highlight)
+                                        : pal.color(QPalette::Disabled, QPalette::Highlight);
+            QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
+                            QSize(4, rectangle.height() - 8));
+            /* Draw gradient token: */
+            QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+            hlGrad.setColorAt(0, highlightColor.darker(m_iHighlightLightnessStart));
+            hlGrad.setColorAt(1, highlightColor.darker(m_iHighlightLightnessFinal));
+            pPainter->fillRect(tokenRect, hlGrad);
     }
     /* Hovering background: */
     else if (isHovered())
@@ -820,8 +839,8 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             pPainter->fillRect(rectangle, bgAnimatedGrad);
         }
     }
-    /* Default background: */
-    else
+    /* Default background for popup only: */
+    else if (model()->tools()->isPopup())
     {
         /* Prepare color: */
         const QColor backgroundColor = isEnabled()

@@ -56,7 +56,7 @@ def modifyDitaFile(dIdToFile, sContent):
                 print(current_file_name)
                 print(current_file_is_refentry)
                 print(dIdToFile[sId])
-                print(f"ppppppp{sId}")
+                print("ppppppp{%s}" % (sId,))
                 print(refentry_files)
                 print("========xxxxxxx=======")
 

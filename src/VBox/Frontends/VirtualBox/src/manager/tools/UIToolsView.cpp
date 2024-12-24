@@ -31,6 +31,7 @@
 #include <QScrollBar>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UITools.h"
 #include "UIToolsItem.h"
 #include "UIToolsModel.h"
@@ -210,7 +211,12 @@ void UIToolsView::preparePalette()
 {
     /* Setup palette: */
     QPalette pal = qApp->palette();
-    pal.setColor(QPalette::Active, QPalette::Base, pal.color(QPalette::Active, QPalette::Window));
+    QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+    if (!tools()->isPopup())
+        backgroundColor = uiCommon().isInDarkMode()
+                        ? backgroundColor.lighter(120)
+                        : backgroundColor.darker(120);
+    pal.setColor(QPalette::Active, QPalette::Base, backgroundColor);
     setPalette(pal);
 }
 

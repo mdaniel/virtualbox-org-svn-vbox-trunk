@@ -1271,3 +1271,5 @@ class VirtualBoxManager(object):
         if sRet is None:
             sRet = self.xcptToString(oXcpt)
         return sRet
+
+

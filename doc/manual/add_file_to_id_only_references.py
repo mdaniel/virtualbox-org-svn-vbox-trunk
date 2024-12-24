@@ -50,16 +50,6 @@ def modifyDitaFile(dIdToFile, sContent):
                  sModified += sContent[offPrev : oMatch.start(1)] + '"../topics/' + dIdToFile[sId] + '#' + sId + '"';
             else:
                 sModified += sContent[offPrev : oMatch.start(1)] + '"' + dIdToFile[sId] + '#' + sId + '"';
-            if sId == "vboxmanage-modifyvm-vrde":
-                print("========*******=======")
-                print(reference_is_refentry)
-                print(current_file_name)
-                print(current_file_is_refentry)
-                print(dIdToFile[sId])
-                print("ppppppp %s" % (sId,))
-                print(refentry_files)
-                print("========xxxxxxx=======")
-
             offPrev = oMatch.end(1);
     if offPrev < len(sContent):
         sModified += sContent[offPrev:];

@@ -178,7 +178,7 @@ if defined(VBOX_WITH_DOCS) && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DO
  BLDDIRS += \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics \
-	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/cli_topics \
+ 	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/cli_topics \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/images \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/licensing \
  	$(VBOX_PATH_MANUAL_OUTBASE)/en_US/dita/topics/licensing/vbox-base \

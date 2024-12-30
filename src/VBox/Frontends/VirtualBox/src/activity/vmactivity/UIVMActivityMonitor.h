@@ -281,7 +281,7 @@ private:
     void prepareMetrics();
     bool guestAdditionsAvailable(const char *pszMinimumVersion);
     void enableDisableGuestAdditionDependedWidgets(bool fEnable);
-    void updateCPUChart(quint64 iLoadPercentage, ULONG iOtherPercentage);
+    void updateCPUChart(ULONG iLoadPercentage, ULONG iOtherPercentage);
     void updateRAMGraphsAndMetric(quint64 iTotalRAM, quint64 iFreeRAM);
     void updateNetworkChart(quint64 uReceiveTotal, quint64 uTransmitTotal);
     void updateDiskIOChart(quint64 uDiskIOTotalWritten, quint64 uDiskIOTotalRead);

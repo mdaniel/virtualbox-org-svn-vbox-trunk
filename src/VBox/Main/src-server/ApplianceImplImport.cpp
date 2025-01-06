@@ -591,11 +591,14 @@ HRESULT Appliance::interpret()
             {
                 const ovf::HardDiskController &hdc = hdcIt->second;
 
+                /** @todo r=andy The following count checks look messy/wrong compared to what we define
+                 *               elsewhere (e.g. PlatformProperties).  Needs to be checked (and fixed). */
+
                 switch (hdc.system)
                 {
                     case ovf::HardDiskController::IDE:
                         /* Check for the constraints */
-                        if (cIDEused < 4)
+                        if (cIDEused < 4) /** @todo r=andy Is this really true? */
                         {
                             /// @todo figure out the IDE types
                             /* Use PIIX4 as default */
@@ -611,7 +614,7 @@ HRESULT Appliance::interpret()
                         }
                         else
                             /* Warn only once */
-                            if (cIDEused == 2)
+                            if (cIDEused == 4) /** @todo r=andy See todo above. */
                                 i_addWarning(tr("Virtual appliance \"%s\" was configured with more than two "
                                                 "IDE controllers however VirtualBox supports a maximum of two "
                                                 "IDE controllers."),

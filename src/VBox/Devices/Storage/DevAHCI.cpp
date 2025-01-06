@@ -1415,7 +1415,7 @@ static VBOXSTRICTRC PortCmd_w(PPDMDEVINS pDevIns, PAHCI pThis, PAHCIPORT pAhciPo
 #endif
         }
     }
-    else if (!(u32Value & AHCI_PORT_CMD_FRE))
+    else
     {
         ahciLog(("%s: FIS receive disabled\n", __FUNCTION__));
         u32Value &= ~AHCI_PORT_CMD_FR;

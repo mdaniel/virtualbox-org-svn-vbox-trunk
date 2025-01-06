@@ -1076,7 +1076,7 @@ static int disArmV8ParseImmX16(PDISSTATE pDis, uint32_t u32Insn, PCDISARMV8OPCOD
     Assert(pParam->armv8.enmType == kDisArmv8OpParmNone);
 
     pParam->armv8.enmType = kDisArmv8OpParmImm;
-    pParam->uValue = disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits) * 16;
+    pParam->uValue = (uint64_t)disArmV8ExtractBitVecFromInsn(u32Insn, pInsnParm->idxBitStart, pInsnParm->cBits) * 16;
     if (pParam->uValue <= UINT8_MAX)
     {
         pParam->armv8.cb = sizeof(uint8_t);

@@ -130,7 +130,7 @@ int ShClSvcTransferGHRootListReadHdrAsync(PSHCLCLIENT pClient, PSHCLTRANSFER pTr
                 ShClEventRelease(pEvent);
                 pEvent = NULL;
             }
-            else if (ppEvent)
+            else
                 *ppEvent = pEvent;
         }
         else

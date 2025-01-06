@@ -4179,7 +4179,7 @@ bool UIExtraDataManager::hidLedsSyncState(const QUuid &uID)
     return !isFeatureRestricted(GUI_HidLedsSync, uID);
 }
 
-double UIExtraDataManager::scaleFactor(const QUuid &uID, const int uScreenIndex)
+double UIExtraDataManager::scaleFactor(const QUuid &uID, int iScreenIndex)
 {
     /* Get corresponding extra-data for this machine: */
     QStringList data = extraDataStringList(GUI_ScaleFactor, uID);
@@ -4188,16 +4188,16 @@ double UIExtraDataManager::scaleFactor(const QUuid &uID, const int uScreenIndex)
     if (data.size() == 0)
         return 1.0;
 
-    int index = uScreenIndex;
-    /* use the 0th. scale factor in case we dont have a scale factor for @p uScreenIndex: */
-    if (data.size() <= uScreenIndex)
-        index = 0;
+    int iIndex = iScreenIndex;
+    /* use the 0th. scale factor in case we dont have a scale factor for @p iScreenIndex: */
+    if (data.size() <= iScreenIndex)
+        iIndex = 0;
 
     bool fOk = false;
-    double scaleFactor = data[index].toDouble(&fOk);
+    const double dScaleFactor = data.at(iIndex).toDouble(&fOk);
     if (!fOk)
         return 1.0;
-    return scaleFactor;
+    return dScaleFactor;
 }
 
 QList<double> UIExtraDataManager::scaleFactors(const QUuid &uID)
@@ -4225,19 +4225,18 @@ QList<double> UIExtraDataManager::scaleFactors(const QUuid &uID)
     return scaleFactorList;
 }
 
-void UIExtraDataManager::setScaleFactor(double dScaleFactor, const QUuid &uID, const int uScreenIndex)
+void UIExtraDataManager::setScaleFactor(double dScaleFactor, const QUuid &uID, int iScreenIndex)
 {
     QStringList data = extraDataStringList(GUI_ScaleFactor, uID);
 
     /* Just make sure that we have corresponding data item: */
-    if (data.size() <= uScreenIndex)
+    if (data.size() <= iScreenIndex)
     {
-        int listSize = data.size();
-        for (int i = listSize; i <= uScreenIndex; ++i)
+        for (int i = data.size(); i <= iScreenIndex; ++i)
             data.append(QString::number(1.0));
     }
 
-    data[uScreenIndex] = QString::number(dScaleFactor);
+    data[iScreenIndex] = QString::number(dScaleFactor);
     setExtraDataStringList(GUI_ScaleFactor, data, uID);
 }
 

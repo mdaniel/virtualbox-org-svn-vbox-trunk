@@ -2935,7 +2935,7 @@ static uint32_t wdIoRead(PDPNICSTATE pThis, uint32_t addr)
                 val = pThis->CTRL1;
                 break;
             case WDR_ATDET:
-                val = pThis->uDevType == DEV_WD8013 ? 1 : 0;
+                val = 1 /* Always 1 for DEV_WD8013. */;
                 break;
             case WDR_IOBASE:
                 val = pThis->aPROM[WDR_IOBASE]; //val = pThis->IOPortBase >> 5;

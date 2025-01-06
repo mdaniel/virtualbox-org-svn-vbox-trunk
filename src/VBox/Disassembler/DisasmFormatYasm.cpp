@@ -1310,8 +1310,7 @@ DISDECL(size_t) DISFormatYasmEx(PCDISSTATE pDis, char *pszBuf, size_t cchBuf, ui
         PUT_STR(g_szSpaces, cchPadding);
 
         /* comment? */
-        if (fFlags & (DIS_FMT_FLAGS_BYTES_RIGHT | DIS_FMT_FLAGS_ADDR_RIGHT))
-            PUT_SZ(";");
+        PUT_SZ(";");
 
         /*
          * The address?

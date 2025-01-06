@@ -1531,7 +1531,6 @@ static int iscsiLogin(PISCSIIMAGE pImage)
                                     /* Authentication offered, but none required.  Skip to operational parameters. */
                                     csg = 1;
                                     nsg = 1;
-                                    transit = true;
                                     substate = 0;
                                     break;
                                 }
@@ -1591,7 +1590,6 @@ static int iscsiLogin(PISCSIIMAGE pImage)
                                 if (RT_FAILURE(rc))
                                     break;
                                 substate++;
-                                transit = true;
                                 break;
                             }
                             case 0x0002:    /* security negotiation, step 2: check authentication success. */

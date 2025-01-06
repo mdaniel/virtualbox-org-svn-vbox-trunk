@@ -272,8 +272,9 @@ static DECLCALLBACK(int) drvHostDvdIoReqSendScsiCmd(PPDMIMEDIAEX pInterface, PDM
                     LogRelMax(10, ("HostDVD#%u: CD-ROM passthrough split error\n", pThis->Core.pDrvIns->iInstance));
                     *pu8ScsiSts = drvHostDvdCmdErrorSimple(pThis, SCSI_SENSE_ILLEGAL_REQUEST, SCSI_ASC_ILLEGAL_OPCODE);
                     rc = drvHostBaseBufferRelease(&pThis->Core, pReq, cbBuf, enmXferDir == PDMMEDIATXDIR_TO_DEVICE, pvBuf);
+                    AssertRC(rc);
                     RTCritSectLeave(&pThis->Core.CritSect);
-                    return VINF_SUCCESS;
+                    return rc;
             }
             memcpy(aATAPICmd, pbCdb, RT_MIN(cbCdb, ATAPI_PACKET_SIZE));
             uint32_t cReqSectors = 0;

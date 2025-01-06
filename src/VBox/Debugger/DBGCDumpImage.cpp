@@ -1308,7 +1308,7 @@ public:
         if (ExpDir.MajorVersion || ExpDir.MinorVersion)
             myPrintf("          Version: %u.%u\n", ExpDir.MajorVersion, ExpDir.MinorVersion);
 
-        uint32_t const cExports = ExpDir.NumberOfNames;
+        uint32_t const cExports = ExpDir.NumberOfFunctions;
         if (cExports > _16K)
         {
             myPrintf("  Exports: Too many addresses! (%#x)\n", cExports);

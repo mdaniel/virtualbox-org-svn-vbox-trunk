@@ -543,7 +543,8 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
                                    N_("Configuration error: querying \"BufferSize\" resulted in %Rrc"), rc);
 
     /* Limit to the buffer size of the device above. */
-    pThis->cbBuffer = RT_MIN(pThis->cbBuffer, pThis->pTpmPort->pfnGetMaxBufferSize(pThis->pTpmPort));
+    uint32_t const cbTpmBufferMax = pThis->pTpmPort->pfnGetMaxBufferSize(pThis->pTpmPort);
+    pThis->cbBuffer = RT_MIN(pThis->cbBuffer, cbTpmBufferMax);
 
     uint32_t cbBufferMin = 0;
     uint32_t cbBuffer = TPMLIB_SetBufferSize(pThis->cbBuffer, &cbBufferMin, NULL /*max_size*/);

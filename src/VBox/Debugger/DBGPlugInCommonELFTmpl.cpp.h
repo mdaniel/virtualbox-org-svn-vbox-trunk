@@ -134,8 +134,6 @@ int DBGDiggerCommonParseElfMod(PUVM pUVM, PCVMMR3VTABLE pVMM, const char *pszMod
         return VERR_BAD_EXE_FORMAT;
     if (pEhdr->e_shentsize != sizeof(Elf_Shdr))
         return VERR_BAD_EXE_FORMAT;
-    if (pEhdr->e_shentsize != sizeof(Elf_Shdr))
-        return VERR_BAD_EXE_FORMAT;
     if (!ASMMemIsZero(&pEhdr->e_ident[EI_PAD], EI_NIDENT - EI_PAD)) //??
         return VERR_BAD_EXE_FORMAT;
 

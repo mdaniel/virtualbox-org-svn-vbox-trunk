@@ -107,13 +107,13 @@ public:
     /** Returns frame-buffer data address. */
     uchar *address() { return m_image.bits(); }
     /** Returns frame-buffer width. */
-    ulong width() const { return m_iWidth; }
+    int width() const { return m_iWidth; }
     /** Returns frame-buffer height. */
-    ulong height() const { return m_iHeight; }
+    int height() const { return m_iHeight; }
     /** Returns frame-buffer bits-per-pixel value. */
-    ulong bitsPerPixel() const { return m_image.depth(); }
+    int bitsPerPixel() const { return m_image.depth(); }
     /** Returns frame-buffer bytes-per-line value. */
-    ulong bytesPerLine() const { return m_image.bytesPerLine(); }
+    qsizetype bytesPerLine() const { return m_image.bytesPerLine(); }
     /** Returns default frame-buffer pixel-format. */
     ulong pixelFormat() const { return KBitmapFormat_BGR; }
 
@@ -523,7 +523,7 @@ STDMETHODIMP UIFrameBufferPrivate::COMGETTER(BitsPerPixel)(ULONG *puBitsPerPixel
 {
     if (!puBitsPerPixel)
         return E_POINTER;
-    *puBitsPerPixel = bitsPerPixel();
+    *puBitsPerPixel = (ULONG)bitsPerPixel();
     return S_OK;
 }
 
@@ -531,7 +531,7 @@ STDMETHODIMP UIFrameBufferPrivate::COMGETTER(BytesPerLine)(ULONG *puBytesPerLine
 {
     if (!puBytesPerLine)
         return E_POINTER;
-    *puBytesPerLine = bytesPerLine();
+    *puBytesPerLine = (ULONG)bytesPerLine();
     return S_OK;
 }
 
@@ -961,7 +961,7 @@ void UIFrameBufferPrivate::handleNotifyChange(int iWidth, int iHeight)
 
 void UIFrameBufferPrivate::handlePaintEvent(QPaintEvent *pEvent)
 {
-    LogRel3(("GUI: UIFrameBufferPrivate::handlePaintEvent: Origin=%lux%lu, Size=%dx%d\n",
+    LogRel3(("GUI: UIFrameBufferPrivate::handlePaintEvent: Origin=%dx%d, Size=%dx%d\n",
              pEvent->rect().x(), pEvent->rect().y(),
              pEvent->rect().width(), pEvent->rect().height()));
 
@@ -1552,22 +1552,22 @@ uchar *UIFrameBuffer::address()
     return m_pFrameBuffer->address();
 }
 
-ulong UIFrameBuffer::width() const
+int UIFrameBuffer::width() const
 {
     return m_pFrameBuffer->width();
 }
 
-ulong UIFrameBuffer::height() const
+int UIFrameBuffer::height() const
 {
     return m_pFrameBuffer->height();
 }
 
-ulong UIFrameBuffer::bitsPerPixel() const
+int UIFrameBuffer::bitsPerPixel() const
 {
     return m_pFrameBuffer->bitsPerPixel();
 }
 
-ulong UIFrameBuffer::bytesPerLine() const
+qsizetype UIFrameBuffer::bytesPerLine() const
 {
     return m_pFrameBuffer->bytesPerLine();
 }

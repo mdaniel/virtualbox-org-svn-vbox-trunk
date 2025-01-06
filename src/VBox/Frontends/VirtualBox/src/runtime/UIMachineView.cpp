@@ -985,8 +985,8 @@ void UIMachineView::sltHandleActionTriggerViewScreenToggle(int iScreen, bool fEn
          * Do not send a hint if nothing has changed to prevent the guest being notified about its own changes. */
         if (   !isFullscreenOrSeamless()
             && uimachine()->isGuestSupportsGraphics()
-            && (   frameBuffer()->width() != uWidth
-                || frameBuffer()->height() != uHeight
+            && (   (ulong)frameBuffer()->width() != uWidth
+                || (ulong)frameBuffer()->height() != uHeight
                 || uimachine()->isScreenVisible(screenId()) != uimachine()->isScreenVisibleHostDesires(screenId())))
             setStoredGuestScreenSizeHint(QSize(uWidth, uHeight));
 

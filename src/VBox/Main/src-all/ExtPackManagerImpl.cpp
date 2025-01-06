@@ -943,7 +943,7 @@ HRESULT ExtPack::i_callUninstallHookAndClose(IVirtualBox *a_pVirtualBox, bool a_
     if (   m != NULL
         && m->hMainMod != NIL_RTLDRMOD)
     {
-        if (m->pReg->pfnUninstall && !a_fForcedRemoval)
+        if (m->pReg->pfnUninstall)
         {
             int vrc = m->pReg->pfnUninstall(m->pReg, a_pVirtualBox);
             if (RT_FAILURE(vrc))

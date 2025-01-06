@@ -2240,7 +2240,6 @@ static DECLCALLBACK(int) rtFsIsoFile_PollOne(void *pvThis, uint32_t fEvents, RTM
         do
             rc = RTThreadSleep(cMillies);
         while (   rc == VERR_INTERRUPTED
-               && !fIntr
                && RTTimeMilliTS() - uMsStart < cMillies);
         if (rc == VERR_INTERRUPTED)
             rc = VERR_TIMEOUT;

@@ -3032,10 +3032,8 @@ void ConsoleVRDPServer::Stop(void)
             }
         }
 
-        if (mpEntryPoints && hServer)
-        {
+        if (mpEntryPoints)
             mpEntryPoints->VRDEDestroy(hServer);
-        }
     }
 
 #ifndef VBOX_WITH_VRDEAUTH_IN_VBOXSVC

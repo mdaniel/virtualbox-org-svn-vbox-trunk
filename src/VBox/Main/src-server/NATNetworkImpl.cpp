@@ -1081,21 +1081,13 @@ int NATNetwork::i_findFirstAvailableOffset(ADDRESSLOOKUPTYPE addrType, uint32_t 
     uint32_t off;
     for (off = 1; off < ~netmask.u; ++off)
     {
-        bool skip = false;
         for (settings::NATLoopbackOffsetList::iterator it = m->s.llHostLoopbackOffsetList.begin();
              it != m->s.llHostLoopbackOffsetList.end();
              ++it)
         {
             if ((*it).u32Offset == off)
-            {
-                skip = true;
-                break;
-            }
-
+                continue;
         }
-
-        if (skip)
-            continue;
 
         if (off == m->offGateway)
         {
@@ -1104,16 +1096,14 @@ int NATNetwork::i_findFirstAvailableOffset(ADDRESSLOOKUPTYPE addrType, uint32_t 
             else
                 continue;
         }
-
-        if (off == m->offDhcp)
+        else if (off == m->offDhcp)
         {
             if (addrType == ADDR_DHCP)
                 break;
             else
                 continue;
         }
-
-        if (!skip)
+        else
             break;
     }
 

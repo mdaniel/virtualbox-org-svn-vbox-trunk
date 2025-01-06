@@ -1605,6 +1605,7 @@ VMMR3_INT_DECL(int) gimR3HvDebugRead(PVM pVM, void *pvBuf, uint32_t cbBuf, uint3
     NOREF(cMsTimeout);      /** @todo implement timeout. */
     AssertCompile(sizeof(size_t) >= sizeof(uint32_t));
     AssertReturn(cbBuf >= cbRead, VERR_INVALID_PARAMETER);
+    Assert(cbRead > 0);
 
     int rc;
     if (!fUdpPkt)
@@ -1622,7 +1623,6 @@ VMMR3_INT_DECL(int) gimR3HvDebugRead(PVM pVM, void *pvBuf, uint32_t cbBuf, uint3
          * Guest requires UDP encapsulated frames.
          */
         PGIMHV pHv = &pVM->gim.s.u.Hv;
-        rc = VERR_GIM_IPE_1;
         switch (pHv->enmDbgReply)
         {
             case GIMHVDEBUGREPLY_UDP:
@@ -1769,7 +1769,6 @@ VMMR3_INT_DECL(int) gimR3HvDebugRead(PVM pVM, void *pvBuf, uint32_t cbBuf, uint3
                 rc = VERR_INTERNAL_ERROR_2;
             }
         }
-        Assert(rc != VERR_GIM_IPE_1);
 
 #ifdef DEBUG_ramshankar
         if (   rc == VINF_SUCCESS
@@ -2049,7 +2048,7 @@ VMMR3_INT_DECL(int) gimR3HvHypercallPostDebugData(PVM pVM, int *prcHv)
         rcHv = GIM_HV_STATUS_SUCCESS;
         pOut->cbPending = 0;
     }
-    else if (cbWrite > 0)
+    else
     {
         uint32_t cbWritten = 0;
         int rc2 = gimR3HvDebugWrite(pVM, pbData, cbWrite, &cbWritten, pHv->fIsVendorMsHv /*fUdpPkt*/);
@@ -2128,7 +2127,7 @@ VMMR3_INT_DECL(int) gimR3HvHypercallRetrieveDebugData(PVM pVM, int *prcHv)
         rcHv = GIM_HV_STATUS_SUCCESS; /** @todo implement this. */
     else if (!cbRead)
         rcHv = GIM_HV_STATUS_SUCCESS;
-    else if (cbRead > 0)
+    else
     {
         int rc2 = gimR3HvDebugRead(pVM, pvData, GIM_HV_PAGE_SIZE, cbRead, pcbReallyRead, cMsTimeout,
                                    pHv->fIsVendorMsHv /*fUdpPkt*/);

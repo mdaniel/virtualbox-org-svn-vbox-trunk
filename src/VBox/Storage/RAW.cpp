@@ -188,7 +188,9 @@ static int rawFreeImage(PRAWIMAGE pImage, bool fDelete)
                 rawFlushImage(pImage);
             }
 
-            rc = vdIfIoIntFileClose(pImage->pIfIo, pImage->pStorage);
+            int rc2 = vdIfIoIntFileClose(pImage->pIfIo, pImage->pStorage);
+            if (RT_FAILURE(rc2) && RT_SUCCESS(rc))
+                rc = rc2;
             pImage->pStorage = NULL;
         }
 
@@ -364,8 +366,8 @@ static int rawProbeIsIso9660OrUdf(PVDINTERFACEIOINT pIfIo, PVDIOSTORAGE pStorage
     uint64_t        offUdfBootVolDesc       = UINT64_MAX;
 
     uint32_t        cPrimaryVolDescs        = 0;
-    uint32_t        cSupplementaryVolDescs  = 0;
-    uint32_t        cBootRecordVolDescs     = 0;
+    /*uint32_t        cSupplementaryVolDescs  = 0;*/
+    /*uint32_t        cBootRecordVolDescs     = 0;*/
     uint32_t        offVolDesc              = 16 * cbSector;
     enum
     {
@@ -422,7 +424,7 @@ static int rawProbeIsIso9660OrUdf(PVDINTERFACEIOINT pIfIo, PVDIOSTORAGE pStorage
             }
             else if (Buf.VolDescHdr.bDescType == ISO9660VOLDESC_TYPE_SUPPLEMENTARY)
             {
-                cSupplementaryVolDescs++;
+                /*cSupplementaryVolDescs++;*/
                 if (Buf.VolDescHdr.bDescVersion != ISO9660SUPVOLDESC_VERSION)
                     return RTERRINFO_LOG_SET_F(pErrInfo, VERR_VFS_UNSUPPORTED_FORMAT,
                                                "Unsupported supplemental volume descriptor version: %#x", Buf.VolDescHdr.bDescVersion);
@@ -431,7 +433,7 @@ static int rawProbeIsIso9660OrUdf(PVDINTERFACEIOINT pIfIo, PVDIOSTORAGE pStorage
             }
             else if (Buf.VolDescHdr.bDescType == ISO9660VOLDESC_TYPE_BOOT_RECORD)
             {
-                cBootRecordVolDescs++;
+                /*cBootRecordVolDescs++;*/
             }
             else if (Buf.VolDescHdr.bDescType == ISO9660VOLDESC_TYPE_TERMINATOR)
             {

@@ -229,18 +229,13 @@ void vbsfMappingLoadingDone(void)
         }
 }
 
-
 MAPPING *vbsfMappingGetByRoot(SHFLROOT root)
 {
     if (root < RT_ELEMENTS(g_aIndexFromRoot))
     {
         SHFLROOT iMapping = g_aIndexFromRoot[root];
-
-        if (   iMapping != SHFL_ROOT_NIL
-            && iMapping < RT_ELEMENTS(g_FolderMapping))
-        {
+        if (iMapping != SHFL_ROOT_NIL)
             return &g_FolderMapping[iMapping];
-        }
     }
 
     return NULL;

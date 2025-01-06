@@ -1902,7 +1902,7 @@ static int iscsiCommand(PISCSIIMAGE pImage, PSCSIREQ pRequest)
     /* If not in normal state, then the transport connection was dropped. Try
      * to reestablish by logging in, the target might be responsive again. */
     if (pImage->state == ISCSISTATE_FREE)
-        rc = iscsiAttach(pImage);
+        iscsiAttach(pImage);
 
     /* If still not in normal state, then the underlying transport connection
      * cannot be established. Get out before bad things happen (and make

@@ -3649,8 +3649,8 @@ static int rtFsIsoDir_FindEntryUdf(PRTFSISODIRSHRD pThis, const char *pszEntry, 
         }
         else if (*pbName == 8)
         {
-            if (   cb8Bit == pFid->cbName
-                && cb8Bit != UINT16_MAX)
+            if (   pFid->cbName != UINT16_MAX
+                && cb8Bit       == pFid->cbName)
             {
                 if (fSimple)
                 {

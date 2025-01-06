@@ -1188,25 +1188,25 @@ void UIMachineView::sltMousePointerShapeChange()
     QPixmap pixmapShape = uimachine()->cursorShapePixmap();
     QPixmap pixmapMask = uimachine()->cursorMaskPixmap();
     const QPoint hotspot = uimachine()->cursorHotspot();
-    uint uXHot = hotspot.x();
-    uint uYHot = hotspot.y();
+    int iXHot = hotspot.x();
+    int iYHot = hotspot.y();
 
     /* If there is no mask: */
     if (pixmapMask.isNull())
     {
         /* Scale the shape pixmap and
          * compose the cursor on the basis of shape only: */
-        updateMousePointerPixmapScaling(pixmapShape, uXHot, uYHot);
-        m_cursor = QCursor(pixmapShape, uXHot, uYHot);
+        updateMousePointerPixmapScaling(pixmapShape, iXHot, iYHot);
+        m_cursor = QCursor(pixmapShape, iXHot, iYHot);
     }
     /* Otherwise: */
     else
     {
         /* Scale the shape and the mask pixmaps and
          * compose the cursor on the basis of shape and mask both: */
-        updateMousePointerPixmapScaling(pixmapShape, uXHot, uYHot);
-        /// @todo updateMousePointerPixmapScaling(pixmapMask, uXHot, uYHot);
-        m_cursor = QCursor(QBitmap::fromPixmap(pixmapShape), QBitmap::fromPixmap(pixmapMask), uXHot, uYHot);
+        updateMousePointerPixmapScaling(pixmapShape, iXHot, iYHot);
+        /// @todo updateMousePointerPixmapScaling(pixmapMask, iXHot, iYHot);
+        m_cursor = QCursor(QBitmap::fromPixmap(pixmapShape), QBitmap::fromPixmap(pixmapMask), iXHot, iYHot);
     }
 
     /* Let the listeners know: */
@@ -2195,7 +2195,7 @@ QSize UIMachineView::scaledBackward(QSize size) const
     return size;
 }
 
-void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot, uint &uYHot)
+void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, int &iXHot, int &iYHot)
 {
 #if defined(VBOX_WS_MAC)
 
@@ -2207,8 +2207,8 @@ void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot
         /* Scale the pixmap up: */
         pixmap = pixmap.scaled(pixmap.width() * dScaleFactor, pixmap.height() * dScaleFactor,
                                Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        uXHot *= dScaleFactor;
-        uYHot *= dScaleFactor;
+        iXHot *= dScaleFactor;
+        iYHot *= dScaleFactor;
     }
 
     /* Take into account device-pixel-ratio if necessary: */
@@ -2220,8 +2220,8 @@ void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot
     {
         /* Scale the pixmap down: */
         pixmap.setDevicePixelRatio(dDevicePixelRatio);
-        uXHot /= dDevicePixelRatio;
-        uYHot /= dDevicePixelRatio;
+        iXHot /= dDevicePixelRatio;
+        iYHot /= dDevicePixelRatio;
     }
 
 #elif defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
@@ -2252,8 +2252,8 @@ void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot
         /* Scale the pixmap up: */
         pixmap = pixmap.scaled(pixmap.width() * dScaleMultiplier, pixmap.height() * dScaleMultiplier,
                                Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        uXHot *= dScaleMultiplier;
-        uYHot *= dScaleMultiplier;
+        iXHot *= dScaleMultiplier;
+        iYHot *= dScaleMultiplier;
     }
 
 # ifdef VBOX_WS_WIN
@@ -2262,16 +2262,16 @@ void UIMachineView::updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot
     {
         /* Scale the pixmap down: */
         pixmap.setDevicePixelRatio(dDevicePixelRatio);
-        uXHot /= dDevicePixelRatio;
-        uYHot /= dDevicePixelRatio;
+        iXHot /= dDevicePixelRatio;
+        iYHot /= dDevicePixelRatio;
     }
 # endif
 
 #else
 
     Q_UNUSED(pixmap);
-    Q_UNUSED(uXHot);
-    Q_UNUSED(uYHot);
+    Q_UNUSED(iXHot);
+    Q_UNUSED(iYHot);
 
 #endif
 }

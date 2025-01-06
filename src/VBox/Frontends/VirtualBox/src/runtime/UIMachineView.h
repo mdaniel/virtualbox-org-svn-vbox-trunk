@@ -382,8 +382,8 @@ protected:
     /** Scales passed size backward. */
     QSize scaledBackward(QSize size) const;
 
-    /** Updates mouse pointer @a pixmap, @a uXHot and @a uYHot according to scaling attributes. */
-    void updateMousePointerPixmapScaling(QPixmap &pixmap, uint &uXHot, uint &uYHot);
+    /** Updates mouse pointer @a pixmap, @a iXHot and @a iYHot according to scaling attributes. */
+    void updateMousePointerPixmapScaling(QPixmap &pixmap, int &iXHot, int &iYHot);
 
     /* Protected members: */
     UIMachineWindow *m_pMachineWindow;

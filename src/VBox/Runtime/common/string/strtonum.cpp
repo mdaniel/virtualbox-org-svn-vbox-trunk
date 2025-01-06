@@ -452,8 +452,7 @@ RTDECL(int) RTStrToInt64Ex(const char *pszValue, char **ppszNext, unsigned uBase
         uBase = 10;
         if (psz[0] == '0')
         {
-            if (   psz[0] == '0'
-                && cchMax > 1
+           if (    cchMax > 1
                 && (psz[1] == 'x' || psz[1] == 'X')
                 && g_auchDigits[(unsigned char)psz[2]] < 16)
             {

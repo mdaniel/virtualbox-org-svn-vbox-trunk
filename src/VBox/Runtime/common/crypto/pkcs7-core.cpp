@@ -198,7 +198,7 @@ RTDECL(PCRTASN1TIME) RTCrPkcs7SignerInfo_GetMsTimestamp(PCRTCRPKCS7SIGNERINFO pT
                     }
                 }
 
-                pContentInfo++;
+                ppContentInfo++;
             }
         }
         ppAttr++;

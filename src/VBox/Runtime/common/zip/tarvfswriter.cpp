@@ -706,7 +706,8 @@ static DECLCALLBACK(int) rtZipTarWriterPush_QueryInfo(void *pvThis, PRTFSOBJINFO
     /* Basic info (w/ additional unix attribs). */
     *pObjInfo = pPush->ObjInfo;
     pObjInfo->cbObject = pPush->cbCurrent;
-    pObjInfo->cbAllocated = RT_ALIGN_64(pPush->cbCurrent, rtZipTarFssWrite_GetBlockSize(pPush->pParent));
+    size_t const cbBlock = rtZipTarFssWrite_GetBlockSize(pPush->pParent);
+    pObjInfo->cbAllocated = RT_ALIGN_64(pPush->cbCurrent, cbBlock);
 
     /* Additional info. */
     switch (enmAddAttr)

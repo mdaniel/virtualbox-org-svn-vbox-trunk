@@ -2009,7 +2009,9 @@ static int rtFsExtDir_Lookup(PRTFSEXTVOL pThis, PRTFSEXTINODE pInode, const char
 {
     uint64_t offEntry = 0;
     int rc = VERR_FILE_NOT_FOUND;
+#ifdef LOG_ENABLED
     uint32_t idxDirEntry = 0;
+#endif
     size_t cchEntry = strlen(pszEntry);
 
     if (cchEntry > 255)
@@ -2024,6 +2026,7 @@ static int rtFsExtDir_Lookup(PRTFSEXTVOL pThis, PRTFSEXTINODE pInode, const char
         {
 #ifdef LOG_ENABLED
             rtFsExtDirEntry_Log(pThis, idxDirEntry, &DirEntry);
+            idxDirEntry++;
 #endif
 
             uint16_t cbName =   pThis->fFeaturesIncompat & EXT_SB_FEAT_INCOMPAT_DIR_FILETYPE
@@ -2038,7 +2041,6 @@ static int rtFsExtDir_Lookup(PRTFSEXTVOL pThis, PRTFSEXTINODE pInode, const char
             }
 
             offEntry += RT_LE2H_U16(DirEntry.Core.cbRecord);
-            idxDirEntry++;
         }
         else
         {

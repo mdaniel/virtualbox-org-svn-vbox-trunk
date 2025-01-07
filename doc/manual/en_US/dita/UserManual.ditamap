@@ -334,7 +334,7 @@
    <chapter href="topics/vboxmanage.dita" chunk="to-content">
       <topicref href="topics/vboxmanage-intro.dita"/>
       <!-- Commands Overview -->
-      <!-- <topicref href="cli_topics/vboxmanage-cmd-overview.dita"/> -->
+      <topicref href="cli_topics/vboxmanage-cmd-overview.dita"/>
       <!-- The remainder of the topics in this chapter are generated from docbook XML files.-->
       <topicref format="ditamap" href="cli_topics/man_VBoxManage-common.ditamap"/>
       <!-- Note! We sort these alphabetical unless someone can define a

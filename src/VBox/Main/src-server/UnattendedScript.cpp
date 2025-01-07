@@ -753,7 +753,10 @@ int UnattendedScriptTemplate::queryVariable(const char *pchName, size_t cchName,
     else if (IS_MATCH("HOSTNAME_WITHOUT_DOMAIN"))
         pszValue = rstrTmp.assign(mpUnattended->i_getHostname(), 0, mpUnattended->i_getHostname().find(".")).c_str();
     else if (IS_MATCH("HOSTNAME_WITHOUT_DOMAIN_MAX_15"))
-        pszValue = rstrTmp.assign(mpUnattended->i_getHostname(), 0, RT_MIN(mpUnattended->i_getHostname().find("."), 15)).c_str();
+    {
+        size_t const idxDot = mpUnattended->i_getHostname().find(".");
+        pszValue = rstrTmp.assign(mpUnattended->i_getHostname(), 0, RT_MIN(idxDot, 15)).c_str();
+    }
     else if (IS_MATCH("HOSTNAME_DOMAIN"))
         pszValue = rstrTmp.assign(mpUnattended->i_getHostname(), mpUnattended->i_getHostname().find(".") + 1).c_str();
     else if (IS_MATCH("PROXY"))

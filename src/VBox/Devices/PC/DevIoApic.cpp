@@ -881,7 +881,10 @@ static DECLCALLBACK(void) ioapicSetEoi(PPDMDEVINS pDevIns, uint8_t u8Vector)
     LogFlow(("IOAPIC: ioapicSetEoi: u8Vector=%#x (%u)\n", u8Vector, u8Vector));
     STAM_COUNTER_INC(&pThis->CTX_SUFF_Z(StatSetEoi));
 
+#if defined(RT_STRICT) && !defined(VBOX_WITH_IOMMU_AMD)
     bool fRemoteIrrCleared = false;
+#endif
+
     int rc = IOAPIC_LOCK(pDevIns, pThis, pThisCC, VINF_SUCCESS);
     PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, NULL, rc);
 
@@ -903,7 +906,11 @@ static DECLCALLBACK(void) ioapicSetEoi(PPDMDEVINS pDevIns, uint8_t u8Vector)
             Assert(IOAPIC_RTE_GET_REMOTE_IRR(u64Rte));
 #endif
             pThis->au64RedirTable[idxRte] &= ~IOAPIC_RTE_REMOTE_IRR;
+
+#if defined(RT_STRICT) && !defined(VBOX_WITH_IOMMU_AMD)
             fRemoteIrrCleared = true;
+#endif
+
             STAM_PROFILE_ADV_STOP(&pThis->aStatLevelAct[idxRte], a);
             STAM_COUNTER_INC(&pThis->StatEoiReceived);
             Log2(("IOAPIC: ioapicSetEoi: Cleared remote IRR, idxRte=%u vector=%#x (%u)\n", idxRte, u8Vector, u8Vector));

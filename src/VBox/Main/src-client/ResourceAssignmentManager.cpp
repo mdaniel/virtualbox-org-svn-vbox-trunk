@@ -345,7 +345,8 @@ void ResourceAssignmentManager::State::dumpToReleaseLog(void)
 
 
 ResourceAssignmentManager::ResourceAssignmentManager()
-    : m_pState(NULL)
+    : m_pState(NULL),
+      m_GCPhysMmioHint(RTGCPHYS_MAX)
 {
     m_pState = new State();
     Assert(m_pState);

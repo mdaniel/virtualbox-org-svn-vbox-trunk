@@ -43,7 +43,8 @@ struct UIDataSettingsGlobalDisplay
 {
     /** Constructs data. */
     UIDataSettingsGlobalDisplay()
-        : m_fActivateHoveredMachineWindow(false)
+        : m_iFontScalingFactor(0)
+        , m_fActivateHoveredMachineWindow(false)
         , m_fDisableHostScreenSaver(false)
     {}
 

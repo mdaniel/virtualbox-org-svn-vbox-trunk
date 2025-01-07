@@ -101,7 +101,8 @@ static char *rtUriPercentEncodeN(const char *pszString, size_t cchMax)
 
     int rc = VINF_SUCCESS;
 
-    size_t cbLen = RT_MIN(strlen(pszString), cchMax);
+    size_t const cchStr = strlen(pszString);
+    size_t cbLen = RT_MIN(cchStr, cchMax);
     /* The new string can be max 3 times in size of the original string. */
     char *pszNew = RTStrAlloc(cbLen * 3 + 1);
     if (!pszNew)

@@ -616,6 +616,7 @@ HRESULT Console::initWithMachine(IMachine *aMachine, IInternalMachineControl *aC
 
         ULONG cCpus = 1;
         hrc = mMachine->COMGETTER(CPUCount)(&cCpus);
+        AssertComRCReturnRC(hrc);
         mGuest->i_setCpuCount(cCpus);
 
         unconst(mKeyboard).createObject();

@@ -208,7 +208,9 @@ static int patchAmlCpuHotPlug(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
             uint8_t *pabAmlDevName = &pabAmlPkgLength[cLengthBytesFollow+1];
             uint8_t *pabAmlCpu     = &pabAmlDevName[4];
             bool fCpuConfigured = false;
+#ifdef RT_STRICT
             bool fCpuFound      = false;
+#endif
 
             if ((pabAmlDevName[0] != 'S') || (pabAmlDevName[1] != 'C') || (pabAmlDevName[2] != 'K'))
             {
@@ -235,7 +237,9 @@ static int patchAmlCpuHotPlug(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
                         /* false alarm, not named starting CP */
                         continue;
 
+#ifdef RT_STRICT
                     fCpuFound = true;
+#endif
 
                     /* Processor ID */
                     uint8_t const idAmlCpu = pabAmlCpu[idxAmlCpu + 8];

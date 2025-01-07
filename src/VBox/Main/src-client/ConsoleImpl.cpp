@@ -8727,7 +8727,7 @@ HRESULT Console::i_powerUp(IProgress **aProgress, bool aPaused)
         /* Setup task object and thread to carry out the operation
          * asynchronously */
         try { task = new VMPowerUpTask(this, pPowerupProgress); }
-        catch (std::bad_alloc &) { throw hrc = E_OUTOFMEMORY; }
+        catch (std::bad_alloc &) { throw E_OUTOFMEMORY; }
         if (!task->isOk())
             throw task->hrc();
 
@@ -8736,7 +8736,7 @@ HRESULT Console::i_powerUp(IProgress **aProgress, bool aPaused)
         task->mStartPaused = aPaused;
         if (mMachineState == MachineState_Saved || mMachineState == MachineState_AbortedSaved)
             try { task->mSavedStateFile = strSavedStateFile; }
-            catch (std::bad_alloc &) { throw hrc = E_OUTOFMEMORY; }
+            catch (std::bad_alloc &) { throw E_OUTOFMEMORY; }
         task->mTeleporterEnabled = fTeleporterEnabled;
 
         /* Reset differencing hard disks for which autoReset is true,

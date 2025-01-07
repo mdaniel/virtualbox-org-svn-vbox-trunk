@@ -1377,6 +1377,9 @@ static int qemuFwCfgInitrdArchiveDirSub(RTVFSFSSTREAM hVfsFss,
                 break;
             }
         }
+
+        if (RT_FAILURE(rc))
+            break;
     }
 
     if (rc == VERR_NO_MORE_FILES)

@@ -1063,7 +1063,7 @@ static VBOXSTRICTRC vbe_ioport_write_data(PPDMDEVINS pDevIns, PVGASTATE pThis, P
                 !(pThis->vbe_regs[VBE_DISPI_INDEX_ENABLE] & VBE_DISPI_ENABLED)) {
                 int h, shift_control;
                 /* Check the values before we screw up with a resolution which is too big or small. */
-                size_t cb = pThis->vbe_regs[VBE_DISPI_INDEX_XRES];
+                size_t cb;
                 if (pThis->vbe_regs[VBE_DISPI_INDEX_BPP] == 4)
                     cb = pThis->vbe_regs[VBE_DISPI_INDEX_XRES] >> 1;
                 else
@@ -2343,7 +2343,7 @@ static int vmsvgaR3DrawGraphic(PVGASTATE pThis, PVGASTATER3 pThisCC, bool fFullU
             v = VGA_DRAW_LINE32;
             break;
         default:
-        case 0:
+        /*case 0: - Superfluous, checked already in the if above */
             AssertFailed();
             return VERR_NOT_IMPLEMENTED;
     }
@@ -5647,8 +5647,7 @@ static DECLCALLBACK(int) vgaR3PciIORegionVRamMapUnmap(PPDMDEVINS pDevIns, PPDMPC
          * Make sure the dirty page tracking state is up to date before mapping it.
          */
 # ifdef VBOX_WITH_VMSVGA
-        rc = PDMDevHlpMmio2ControlDirtyPageTracking(pDevIns, pThis->hMmio2VRam,
-                                                    !pThis->svga.fEnabled ||(pThis->svga.fEnabled && pThis->svga.fVRAMTracking));
+        rc = PDMDevHlpMmio2ControlDirtyPageTracking(pDevIns, pThis->hMmio2VRam, !pThis->svga.fEnabled || pThis->svga.fVRAMTracking);
 # else
         rc = PDMDevHlpMmio2ControlDirtyPageTracking(pDevIns, pThis->hMmio2VRam, true /*fEnabled*/);
 # endif
@@ -5980,6 +5979,8 @@ static DECLCALLBACK(int) vgaR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         {
             uint32_t u32;
             rc = pHlp->pfnSSMGetU32(pSSM, &u32);
+            AssertRCReturn(rc, rc);
+
             if (u32)
             {
 # ifdef VBOX_WITH_VDMA
@@ -6854,8 +6855,7 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
                 }
                 rc = VINF_SUCCESS;
             }
-            else
-                rc = VERR_NO_MEMORY;
+            /* else: Out of memory condition is ignored, see below. */
         }
         else
             pThisCC->pbVgaBios = NULL;

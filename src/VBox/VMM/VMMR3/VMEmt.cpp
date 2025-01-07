@@ -100,7 +100,9 @@ int vmR3EmulationThreadWithId(RTTHREAD hThreadSelf, PUVMCPU pUVCpu, VMCPUID idCp
      */
     rc = VINF_SUCCESS;
     Log(("vmR3EmulationThread: Emulation thread starting the days work... Thread=%#x pUVM=%p\n", hThreadSelf, pUVM));
+#ifdef LOG_ENABLED
     VMSTATE enmBefore = VMSTATE_CREATED; /* (only used for logging atm.) */
+#endif
     ASMAtomicIncU32(&pUVM->vm.s.cActiveEmts);
     for (;;)
     {
@@ -164,7 +166,9 @@ int vmR3EmulationThreadWithId(RTTHREAD hThreadSelf, PUVMCPU pUVCpu, VMCPUID idCp
              * We check for state changes in addition to status codes when
              * servicing requests. (Look after the ifs.)
              */
+#ifdef LOG_ENABLED
             enmBefore = pVM->enmVMState;
+#endif
             if (pUVM->vm.s.fTerminateEMT)
             {
                 rc = VINF_EM_TERMINATE;

@@ -66,7 +66,7 @@ namespace pm
     class CircularBuffer
     {
     public:
-        CircularBuffer() : mData(0), mLength(0), mEnd(0), mWrapped(false) {};
+        CircularBuffer() : mData(0), mLength(0), mEnd(0), mSequenceNumber(0), mWrapped(false) {};
         ~CircularBuffer() { if (mData) RTMemFree(mData); };
         void init(ULONG length);
         ULONG length();
@@ -208,7 +208,7 @@ namespace pm
     {
     public:
         CollectorGuestRequest()
-            : mCGuest(0) {};
+            : mCGuest(0),mDebugName(NULL) {};
         virtual ~CollectorGuestRequest() {};
         void setGuest(CollectorGuest *aGuest) { mCGuest = aGuest; };
         CollectorGuest *getGuest() { return mCGuest; };

@@ -241,7 +241,7 @@ void CGRQAbort::debugPrint(void *aObject, const char *aFunction, const char *aTe
 }
 
 CollectorGuest::CollectorGuest(Machine *machine, RTPROCESS process) :
-    mUnregistered(false), mEnabled(false), mValid(false), mMachine(machine), mProcess(process),
+    mManager(NULL), mUnregistered(false), mEnabled(false), mValid(false), mMachine(machine), mProcess(process),
     mCpuUser(0), mCpuKernel(0), mCpuIdle(0),
     mMemTotal(0), mMemFree(0), mMemBalloon(0), mMemShared(0), mMemCache(0), mPageTotal(0),
     mAllocVMM(0), mFreeVMM(0), mBalloonedVMM(0), mSharedVMM(0), mVmNetRx(0), mVmNetTx(0)

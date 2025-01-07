@@ -2091,7 +2091,7 @@ static int rtEfiVarStoreFvHdr_Validate(PRTEFIVARSTORE pThis, PCEFI_FIRMWARE_VOLU
         u16Chksum += RT_LE2H_U16(*pu16++);
 
     /* Read in the block map and verify it as well. */
-    uint64_t cbFvVol = 0;
+    /*uint64_t cbFvVol = 0; */
     uint64_t cbFvHdr = sizeof(*pFvHdr);
     uint64_t offBlockMap = sizeof(*pFvHdr);
     for (;;)
@@ -2109,7 +2109,7 @@ static int rtEfiVarStoreFvHdr_Validate(PRTEFIVARSTORE pThis, PCEFI_FIRMWARE_VOLU
             && !RT_LE2H_U32(BlockMap.cbBlock))
             break;
 
-        cbFvVol += RT_LE2H_U32(BlockMap.cBlocks) * RT_LE2H_U32(BlockMap.cbBlock);
+        /*cbFvVol += RT_LE2H_U32(BlockMap.cBlocks) * RT_LE2H_U32(BlockMap.cbBlock);*/
 
         pu16 = (const uint16_t *)&BlockMap;
         while (pu16 < (const uint16_t *)&BlockMap + (sizeof(BlockMap) / sizeof(uint16_t)))

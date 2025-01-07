@@ -7354,7 +7354,8 @@ iemNativeEmitTestBitInGprAndJmpToFixedIfCcEx(PIEMNATIVEINSTR pCodeBuf, uint32_t 
     /* Just use the TBNZ instruction here. */
     if (poffFixup)
         *poffFixup = off;
-    pCodeBuf[off++] = Armv8A64MkInstrTbzTbnz(fJmpIfSet, off - offTarget, iGprSrc, iBitNo);
+    pCodeBuf[off] = Armv8A64MkInstrTbzTbnz(fJmpIfSet, off - offTarget, iGprSrc, iBitNo);
+    off++;
 
 #else
 # error "Port me!"

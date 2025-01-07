@@ -4074,7 +4074,6 @@ int Console::i_configVmmDev(ComPtr<IMachine> pMachine, BusAssignmentManager *pBu
 int Console::i_configUsb(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMgr, PCFGMNODE pRoot, PCFGMNODE pDevices,
                          KeyboardHIDType_T enmKbdHid, PointingHIDType_T enmPointingHid, PCFGMNODE *ppUsbDevices)
 {
-    int vrc = VINF_SUCCESS;
     PCFGMNODE pDev = NULL;          /* /Devices/Dev/ */
     PCFGMNODE pInst = NULL;         /* /Devices/Dev/0/ */
     PCFGMNODE pCfg = NULL;          /* /Devices/Dev/.../Config/ */
@@ -4091,7 +4090,7 @@ int Console::i_configUsb(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMg
         for (size_t i = 0; i < usbCtrls.size(); ++i)
         {
             USBControllerType_T enmCtrlType;
-            vrc = usbCtrls[i]->COMGETTER(Type)(&enmCtrlType);                                  H();
+            hrc = usbCtrls[i]->COMGETTER(Type)(&enmCtrlType);                                  H();
             if (enmCtrlType == USBControllerType_OHCI)
             {
                 fOhciPresent = true;
@@ -4120,7 +4119,7 @@ int Console::i_configUsb(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMg
         for (size_t i = 0; i < usbCtrls.size(); ++i)
         {
             USBControllerType_T enmCtrlType;
-            vrc = usbCtrls[i]->COMGETTER(Type)(&enmCtrlType);                                  H();
+            hrc = usbCtrls[i]->COMGETTER(Type)(&enmCtrlType);                                H();
 
             if (enmCtrlType == USBControllerType_OHCI)
             {

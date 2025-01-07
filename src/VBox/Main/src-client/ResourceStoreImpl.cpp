@@ -84,7 +84,8 @@ struct BackupableResourceStoreData
 struct ResourceStore::Data
 {
     Data()
-        : pParent(NULL)
+        : pParent(NULL),
+          cRefs(0)
     { }
 
     /** The Console owning this resource store. */

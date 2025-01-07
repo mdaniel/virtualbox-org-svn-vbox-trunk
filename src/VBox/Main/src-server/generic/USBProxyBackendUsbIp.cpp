@@ -207,8 +207,11 @@ struct USBProxyBackendUsbIp::Data
           cbResidualRecv(0),
           pbRecvBuf(NULL),
           cDevicesLeft(0),
+          cInterfacesLeft(0),
           pHead(NULL),
-          ppNext(&pHead)
+          ppNext(&pHead),
+          cDevicesCur(0),
+          tsConnectSuccessLast(0)
     { }
 
     /** Socket handle to the server. */

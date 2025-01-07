@@ -3660,6 +3660,9 @@ void UIActionPoolRuntime::sltPrepareMenuViewScreen()
         updateMenuViewRescale(pMenu);
         fSeparator = true;
     }
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 }
 
 void UIActionPoolRuntime::sltHandleActionTriggerViewScreenToggle()
@@ -3756,6 +3759,9 @@ void UIActionPoolRuntime::updateMenuMachine()
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Machine_S_Shutdown)) || fSeparator;
     /* 'PowerOff' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Machine_S_PowerOff)) || fSeparator;
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexRT_M_Machine);
@@ -3916,6 +3922,9 @@ void UIActionPoolRuntime::updateMenuViewRecording()
 
     /* 'Start Recording' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_View_M_Recording_T_Start)) || fSeparator;
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexRT_M_View_M_Recording);
@@ -4203,6 +4212,9 @@ void UIActionPoolRuntime::updateMenuInput()
     /* 'Mouse Integration' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Input_M_Mouse_T_Integration)) || fSeparator;
 
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
+
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexRT_M_Input);
 }
@@ -4245,6 +4257,9 @@ void UIActionPoolRuntime::updateMenuInputKeyboard()
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Input_M_Keyboard_S_TypeAltPrintScreen)) || fSeparator;
     /* 'Type Host Key Combo' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Input_M_Keyboard_T_TypeHostKeyCombo)) || fSeparator;
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexRT_M_Input_M_Keyboard);
@@ -4320,6 +4335,9 @@ void UIActionPoolRuntime::updateMenuDevices()
     /* Insert Guest Additions Disk action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Devices_S_InsertGuestAdditionsDisk)) || fSeparator;
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Devices_S_UpgradeGuestAdditions)) || fSeparator;
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndexRT_M_Devices);

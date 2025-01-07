@@ -980,7 +980,7 @@ void UIMachineView::sltHandleActionTriggerViewScreenToggle(int iScreen, bool fEn
             uHeight = 600;
 
         /* Update current window size limitations: */
-        setMaximumGuestSize(QSize(uWidth, uHeight));
+        setMaximumGuestSize(QSize((int)uWidth, (int)uHeight));
 
         /* Record the hint to extra data, needed for guests using VMSVGA:
          * This should be done before the actual hint is sent in case the guest overrides it.
@@ -990,7 +990,7 @@ void UIMachineView::sltHandleActionTriggerViewScreenToggle(int iScreen, bool fEn
             && (   (ulong)frameBuffer()->width() != uWidth
                 || (ulong)frameBuffer()->height() != uHeight
                 || uimachine()->isScreenVisible(screenId()) != uimachine()->isScreenVisibleHostDesires(screenId())))
-            setStoredGuestScreenSizeHint(QSize(uWidth, uHeight));
+            setStoredGuestScreenSizeHint(QSize((int)uWidth, (int)uHeight));
 
         /* Send enabling size-hint to the guest: */
         LogRel(("GUI: UIMachineView::sltHandleActionTriggerViewScreenToggle: Enabling guest-screen %d\n", (int)screenId()));
@@ -1045,7 +1045,7 @@ void UIMachineView::sltHandleActionTriggerViewScreenResize(int iScreen, const QS
                                   true /* enabled? */,
                                   false /* change origin? */,
                                   0 /* origin x */, 0 /* origin y */,
-                                  size.width(), size.height(),
+                                  (ulong)size.width(), (ulong)size.height(),
                                   0 /* bits per pixel */,
                                   true /* notify? */);
 }
@@ -1699,7 +1699,8 @@ void UIMachineView::takePausePixmapSnapshot()
         effectiveSize *= dDevicePixelRatioActual;
 
     /* Create a screen-shot on the basis of the screen-data we have in saved-state: */
-    QImage screenShot = QImage::fromData(screenData.data(), screenData.size(), "PNG").scaled(effectiveSize);
+    /// @todo rework it to make sure image size isn't limited with int type size.
+    QImage screenShot = QImage::fromData(screenData.data(), (int)screenData.size(), "PNG").scaled(effectiveSize);
 
     /* Dim screen-shot if it is Ok: */
     if (!screenShot.isNull())

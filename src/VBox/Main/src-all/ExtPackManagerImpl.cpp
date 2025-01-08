@@ -176,8 +176,11 @@ typedef std::list< ComObjPtr<ExtPack> > ExtPackList;
  */
 struct ExtPackManager::Data
 {
-    Data()
-        : enmContext(VBOXEXTPACKCTX_INVALID)
+    Data() :
+#ifndef VBOX_COM_INPROC
+          pVirtualBox(NULL),
+#endif
+          enmContext(VBOXEXTPACKCTX_INVALID)
         , cUpdate(0)
     {}
 

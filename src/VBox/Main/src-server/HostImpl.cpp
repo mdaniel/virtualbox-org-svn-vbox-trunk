@@ -203,10 +203,21 @@ struct Host::Data
     Data()
         :
           pParent(NULL),
+#ifdef VBOX_WITH_USB
+          pUSBProxyService(NULL),
+#endif
           fDVDDrivesListBuilt(false),
           fFloppyDrivesListBuilt(false),
-          fPersistentConfigUpToDate(false)
-    {};
+          fVTSupported(false),
+          fLongModeSupported(false),
+          fPAESupported(false),
+          fNestedPagingSupported(false),
+          fUnrestrictedGuestSupported(false),
+          fNestedHWVirtSupported(false),
+          fVirtVmsaveVmload(false),
+          fRecheckVTSupported(false),
+          pHostPowerService(NULL),
+          fPersistentConfigUpToDate(false) {};
 
     VirtualBox              *pParent;
 

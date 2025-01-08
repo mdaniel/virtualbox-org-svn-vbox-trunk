@@ -117,9 +117,12 @@ private:
 
     struct Data
     {
-        Data() : IPAddress(0), networkMask(0), dhcpEnabled(FALSE),
+        Data() : IPAddress(0), networkMask(0),
+            IPV6NetworkMaskPrefixLength(0),
+            realIPAddress(0), realNetworkMask(0), realIPV6PrefixLength(0),
+            dhcpEnabled(FALSE),
             mediumType(HostNetworkInterfaceMediumType_Unknown),
-            status(HostNetworkInterfaceStatus_Down), wireless(FALSE){}
+            status(HostNetworkInterfaceStatus_Down), speedMbits(0), wireless(FALSE) {}
 
         ULONG IPAddress;
         ULONG networkMask;

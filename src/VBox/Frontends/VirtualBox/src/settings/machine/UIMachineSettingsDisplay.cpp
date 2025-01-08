@@ -1145,7 +1145,7 @@ bool UIMachineSettingsDisplay::saveScreenData()
         else
         {
             /* Save video RAM size: */
-            if (fSuccess && isMachineOffline() && newDisplayData.m_iCurrentVRAM != oldDisplayData.m_iCurrentVRAM)
+            if (/*fSuccess &&*/ isMachineOffline() && newDisplayData.m_iCurrentVRAM != oldDisplayData.m_iCurrentVRAM)
             {
                 comGraphics.SetVRAMSize(newDisplayData.m_iCurrentVRAM);
                 fSuccess = comGraphics.isOk();
@@ -1215,7 +1215,7 @@ bool UIMachineSettingsDisplay::saveRemoteDisplayData()
         else
         {
             /* Save whether remote display server is enabled: */
-            if (fSuccess && newDisplayData.m_fRemoteDisplayServerEnabled != oldDisplayData.m_fRemoteDisplayServerEnabled)
+            if (/*fSuccess &&*/ newDisplayData.m_fRemoteDisplayServerEnabled != oldDisplayData.m_fRemoteDisplayServerEnabled)
             {
                 comServer.SetEnabled(newDisplayData.m_fRemoteDisplayServerEnabled);
                 fSuccess = comServer.isOk();
@@ -1321,7 +1321,7 @@ bool UIMachineSettingsDisplay::saveRecordingData()
                 // We should save all the options *before* 'Recording' activation.
                 // And finally we should *enable* Recording if necessary.
                 /* Save recording file path: */
-                if (fSuccess && newDisplayData.m_strRecordingFilePath != oldDisplayData.m_strRecordingFilePath)
+                if (/*fSuccess &&*/ newDisplayData.m_strRecordingFilePath != oldDisplayData.m_strRecordingFilePath)
                 {
                     comRecordingScreenSettings.SetFilename(newDisplayData.m_strRecordingFilePath);
                     fSuccess = comRecordingScreenSettings.isOk();
@@ -1396,7 +1396,7 @@ bool UIMachineSettingsDisplay::saveRecordingData()
             CRecordingScreenSettings comRecordingScreenSettings = comRecordingScreenSettingsVector.at(iScreenIndex);
 
             /* Save recording file path: */
-            if (fSuccess && newDisplayData.m_strRecordingFilePath != oldDisplayData.m_strRecordingFilePath)
+            if (/*fSuccess &&*/ newDisplayData.m_strRecordingFilePath != oldDisplayData.m_strRecordingFilePath)
             {
                 comRecordingScreenSettings.SetFilename(newDisplayData.m_strRecordingFilePath);
                 fSuccess = comRecordingScreenSettings.isOk();

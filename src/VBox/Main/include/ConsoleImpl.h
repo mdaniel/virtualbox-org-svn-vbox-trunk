@@ -970,7 +970,6 @@ private:
 
     static DECLCALLBACK(int)    i_pdmIfSecKeyHlp_KeyMissingNotify(PPDMISECKEYHLP pInterface);
 
-    int mcAudioRefs;
     volatile uint32_t mcVRDPClients;
     uint32_t mu32SingleRDPClientId; /* The id of a connected client in the single connection mode. */
     volatile  bool mcGuestCredentialsProvided;

@@ -542,7 +542,6 @@ HRESULT Console::initWithMachine(IMachine *aMachine, IInternalMachineControl *aC
     hrc = mEventSource->init();
     AssertComRCReturnRC(hrc);
 
-    mcAudioRefs = 0;
     mcVRDPClients = 0;
     mu32SingleRDPClientId = 0;
     mcGuestCredentialsProvided = false;

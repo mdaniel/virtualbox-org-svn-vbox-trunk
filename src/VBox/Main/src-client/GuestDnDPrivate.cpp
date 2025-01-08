@@ -1293,6 +1293,7 @@ std::vector<DnDAction_T> GuestDnD::toMainActions(VBOXDNDACTIONLIST dndActionList
 GuestDnDBase::GuestDnDBase(VirtualBoxBase *pBase)
     : m_pBase(pBase)
     , m_fIsPending(false)
+    , m_pState(NULL)
 {
     /* Initialize public attributes. */
     m_lstFmtSupported = GuestDnDInst()->defaultFormats();

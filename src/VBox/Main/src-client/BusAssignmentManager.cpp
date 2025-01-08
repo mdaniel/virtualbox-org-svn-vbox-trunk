@@ -496,7 +496,11 @@ struct BusAssignmentManager::State
     PCVMMR3VTABLE    mpVMM;
 
     State()
-        : cRefCnt(1), mChipsetType(ChipsetType_Null), mpszBridgeName("unknownbridge"), mpVMM(NULL)
+        : cRefCnt(1)
+        , mChipsetType(ChipsetType_Null)
+        , mpszBridgeName("unknownbridge")
+        , mIommuType(IommuType_None)
+        , mpVMM(NULL)
     {}
     ~State()
     {}

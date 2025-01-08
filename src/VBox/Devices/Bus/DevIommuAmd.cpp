@@ -4594,7 +4594,8 @@ static int iommuAmdIntrRemap(PPDMDEVINS pDevIns, uint16_t idDevice, PCDTE_T pDte
     int rc = iommuAmdIrteRead(pDevIns, idDevice, pDte, pMsiIn->Addr.u64, uMsiInData, enmOp, &Irte);
     if (RT_SUCCESS(rc))
     {
-        if (Irte.n.u1RemapEnable)
+        bool const fRemapEnable = RT_BOOL(Irte.n.u1RemapEnable);
+        if (fRemapEnable)
         {
             if (!Irte.n.u1GuestMode)
             {
@@ -4609,7 +4610,7 @@ static int iommuAmdIntrRemap(PPDMDEVINS pDevIns, uint16_t idDevice, PCDTE_T pDte
 
                 LogFunc(("Interrupt type (%#x) invalid -> IOPF\n", Irte.n.u3IntrType));
                 EVT_IO_PAGE_FAULT_T EvtIoPageFault;
-                iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, Irte.n.u1RemapEnable,
+                iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, fRemapEnable,
                                              true /* fRsvdNotZero */, false /* fPermDenied */, enmOp, &EvtIoPageFault);
                 iommuAmdIoPageFaultEventRaiseWithDte(pDevIns, pDte, &Irte, enmOp, &EvtIoPageFault,
                                                      kIoPageFaultType_IrteRsvdIntType);
@@ -4618,7 +4619,7 @@ static int iommuAmdIntrRemap(PPDMDEVINS pDevIns, uint16_t idDevice, PCDTE_T pDte
 
             LogFunc(("Guest mode not supported -> IOPF\n"));
             EVT_IO_PAGE_FAULT_T EvtIoPageFault;
-            iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, Irte.n.u1RemapEnable,
+            iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, fRemapEnable,
                                          true /* fRsvdNotZero */, false /* fPermDenied */, enmOp, &EvtIoPageFault);
             iommuAmdIoPageFaultEventRaiseWithDte(pDevIns, pDte, &Irte, enmOp, &EvtIoPageFault, kIoPageFaultType_IrteRsvdNotZero);
             return VERR_IOMMU_ADDR_TRANSLATION_FAILED;
@@ -4626,7 +4627,7 @@ static int iommuAmdIntrRemap(PPDMDEVINS pDevIns, uint16_t idDevice, PCDTE_T pDte
 
         LogFunc(("Remapping disabled -> IOPF\n"));
         EVT_IO_PAGE_FAULT_T EvtIoPageFault;
-        iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, Irte.n.u1RemapEnable,
+        iommuAmdIoPageFaultEventInit(idDevice, pDte->n.u16DomainId, pMsiIn->Addr.u64, fRemapEnable,
                                      false /* fRsvdNotZero */, false /* fPermDenied */, enmOp, &EvtIoPageFault);
         iommuAmdIoPageFaultEventRaiseWithDte(pDevIns, pDte, &Irte, enmOp, &EvtIoPageFault, kIoPageFaultType_IrteRemapEn);
         return VERR_IOMMU_ADDR_TRANSLATION_FAILED;

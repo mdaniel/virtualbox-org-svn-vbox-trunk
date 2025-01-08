@@ -3248,6 +3248,9 @@ public:
         m_strTaskName = "SVCHelper";
         threadVoidData = NULL;
         initialized = false;
+        privileged = false;
+        func = NULL;
+        user = NULL;
     }
 
     virtual ~StartSVCHelperClientData()

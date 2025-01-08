@@ -573,9 +573,8 @@ QModelIndex UISelectorModel::index(int iRow, int iColumn, const QModelIndex &par
     if (!hasIndex(iRow, iColumn, parentIndex))
         return QModelIndex();
 
-    UISelectorTreeViewItem *pItem = !parentIndex.isValid()
-                                  ? m_pRootItem
-                                  : indexToItem(parentIndex)->childItem(iRow);
+    UISelectorTreeViewItem *pParentItem = indexToItem(parentIndex);
+    UISelectorTreeViewItem *pItem = pParentItem ? pParentItem->childItem(iRow) : m_pRootItem;
 
     return pItem ? createIndex(iRow, iColumn, pItem) : QModelIndex();
 }

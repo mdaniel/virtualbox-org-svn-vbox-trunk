@@ -242,7 +242,8 @@ public:
     /** @name Constructors and destructors.
      * @{ */
     DHCPGroupCondition()
-        : m_enmType(DHCPGroupConditionType_MAC)
+        : m_fInclusive(false)
+        , m_enmType(DHCPGroupConditionType_MAC)
         , m_pParent(NULL)
     {}
     HRESULT FinalConstruct()

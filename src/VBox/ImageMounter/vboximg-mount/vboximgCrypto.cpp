@@ -57,7 +57,8 @@ SecretKey::SecretKey(const uint8_t *pbKey, size_t cbKey, bool fKeyBufNonPageable
         /* Scramble content to make retrieving the key more difficult. */
         rc = RTMemSaferScramble(this->m_pbKey, cbKey);
     }
-    else
+
+    if (RT_FAILURE(rc))
         throw rc;
 }
 

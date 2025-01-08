@@ -380,7 +380,7 @@ int vboximgListVMs(IVirtualBox *pVirtualBox)
                     }
                     else
                     {
-                        if (g_vboximgOpts.fWide & !g_vboximgOpts.fVerbose)
+                        if (g_vboximgOpts.fWide)
                         {
                             RTPrintf("-----------------------------------------------------------------  "
                                  "------------------------------------\n");

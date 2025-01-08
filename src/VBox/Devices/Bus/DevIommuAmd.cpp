@@ -1914,8 +1914,11 @@ static VBOXSTRICTRC iommuAmdDevTabSegBar_r(PPDMDEVINS pDevIns, PIOMMU pThis, uin
 {
     RT_NOREF(pDevIns);
 
+    /* Paranoia; the MMIO register offset should have been been validated by the caller. */
+    Assert(offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST <= IOMMU_MMIO_OFF_DEV_TAB_SEG_LAST - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST);
+
     /* Figure out which segment is being written. */
-    uint8_t const offSegment = (offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST) >> 3;
+    uint8_t const offSegment = (uint8_t)(offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST) >> 3;
     uint8_t const idxSegment = offSegment + 1;
     Assert(idxSegment < RT_ELEMENTS(pThis->aDevTabBaseAddrs));
 
@@ -2316,8 +2319,11 @@ static VBOXSTRICTRC iommuAmdDevTabSegBar_w(PPDMDEVINS pDevIns, PIOMMU pThis, uin
 {
     RT_NOREF(pDevIns);
 
+    /* Paranoia; the MMIO register offset should have been been validated by the caller. */
+    Assert(offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST <= IOMMU_MMIO_OFF_DEV_TAB_SEG_LAST - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST);
+
     /* Figure out which segment is being written. */
-    uint8_t const offSegment = (offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST) >> 3;
+    uint8_t const offSegment = (uint8_t)(offReg - IOMMU_MMIO_OFF_DEV_TAB_SEG_FIRST) >> 3;
     uint8_t const idxSegment = offSegment + 1;
     Assert(idxSegment < RT_ELEMENTS(pThis->aDevTabBaseAddrs));
 

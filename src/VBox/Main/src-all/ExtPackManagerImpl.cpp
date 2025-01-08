@@ -177,7 +177,8 @@ typedef std::list< ComObjPtr<ExtPack> > ExtPackList;
 struct ExtPackManager::Data
 {
     Data()
-        : cUpdate(0)
+        : enmContext(VBOXEXTPACKCTX_INVALID)
+        , cUpdate(0)
     {}
 
     /** The directory where the extension packs are installed. */

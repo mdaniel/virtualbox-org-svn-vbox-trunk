@@ -4005,9 +4005,10 @@ static void atapiR3ParseCmdPassthrough(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, 
 
 static void atapiR3ParseCmd(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTATE s, PATADEVSTATER3 pDevR3)
 {
-    const uint8_t *pbPacket;
+#ifdef LOG_ENABLED
+    const uint8_t *pbPacket = s->abATAPICmd;
+#endif
 
-    pbPacket = s->abATAPICmd;
 # ifdef DEBUG
     Log(("%s: LUN#%d DMA=%d CMD=%#04x \"%s\"\n", __FUNCTION__, s->iLUN, s->fDMA, pbPacket[0], SCSICmdText(pbPacket[0])));
 # else /* !DEBUG */

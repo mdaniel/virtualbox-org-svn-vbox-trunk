@@ -93,6 +93,7 @@ typedef struct DRVMAINVMMDEV
 //
 VMMDev::VMMDev(Console *console)
     : mpDrv(NULL)
+    , fSharedFolderActive(false)
     , mParent(console)
 {
     int vrc = RTSemEventCreate(&mCredentialsEvent);

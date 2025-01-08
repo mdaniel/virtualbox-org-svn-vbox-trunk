@@ -256,7 +256,10 @@ const Utf8Str &WIMImage::formatName(Utf8Str &r_strName) const
 
 Unattended::Unattended()
     : mhThreadReconfigureVM(NIL_RTNATIVETHREAD), mfRtcUseUtc(false), mfGuestOs64Bit(false)
-    , mpInstaller(NULL), mpTimeZoneInfo(NULL), mfIsDefaultAuxiliaryBasePath(true), mfDoneDetectIsoOS(false)
+    , menmFirmwareType(FirmwareType_BIOS), mpInstaller(NULL)
+    , mfInstallGuestAdditions(false), mfInstallTestExecService(false), mfInstallUserPayload(false)
+    , mpTimeZoneInfo(NULL), mfIsDefaultAuxiliaryBasePath(true), midxImage(0), mfDoneDetectIsoOS(false)
+    , mEnmOsType(VBOXOSTYPE_Unknown)
     , mfAvoidUpdatesOverNetwork(false), mfDoneSupportedGuestOSList(false)
 { }
 

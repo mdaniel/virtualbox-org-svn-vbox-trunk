@@ -1043,6 +1043,7 @@ int FsList::AddEntryFromHost(const Utf8Str &strFile, PCRTFSOBJINFO pcObjInfo)
 
 FsList::FsList(const GuestSessionTask &Task)
     : mTask(Task)
+    , mcbTotalSize(0)
 {
 }
 

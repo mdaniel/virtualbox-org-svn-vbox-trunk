@@ -65,7 +65,8 @@ private:
     /** Data. */
     struct Data
     {
-        Data() : cbSector(0), cbDisk(0)
+        Data()
+            : partitioningType(PartitioningType_MBR), cbSector(0), cbDisk(0)
         {
         }
 

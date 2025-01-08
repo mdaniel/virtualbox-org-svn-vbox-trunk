@@ -117,10 +117,10 @@ VBox-DxVkNativeUtil_INCS           = \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
 	$(VBOX_PATH_DXVK)/include/spirv/include
 ifneq ($(KBUILD_TARGET),win)
-VBox-DxVkNativeUtil_INCS          += \
-	$(VBOX_PATH_DXVK)/include/native/ \
-	$(VBOX_PATH_DXVK)/include/native/windows \
-	$(VBOX_PATH_DXVK)/include/native/directx
+ VBox-DxVkNativeUtil_INCS         += \
+ 	$(VBOX_PATH_DXVK)/include/native/ \
+ 	$(VBOX_PATH_DXVK)/include/native/windows \
+ 	$(VBOX_PATH_DXVK)/include/native/directx
 endif
 VBox-DxVkNativeUtil_SOURCES        = \
 	src/util/util_env.cpp \
@@ -210,10 +210,10 @@ VBox-DxVkNativeDxVk_INCS           = \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
 	$(VBOX_PATH_DXVK)/include/spirv/include
 ifneq ($(KBUILD_TARGET),win)
-VBox-DxVkNativeDxVk_INCS          += \
-	$(VBOX_PATH_DXVK)/include/native/ \
-	$(VBOX_PATH_DXVK)/include/native/windows \
-	$(VBOX_PATH_DXVK)/include/native/directx
+ VBox-DxVkNativeDxVk_INCS         += \
+ 	$(VBOX_PATH_DXVK)/include/native/ \
+ 	$(VBOX_PATH_DXVK)/include/native/windows \
+ 	$(VBOX_PATH_DXVK)/include/native/directx
 endif
 VBox-DxVkNativeDxVk_SOURCES        = \
 	src/dxvk/dxvk_adapter.cpp \
@@ -347,10 +347,10 @@ VBox-DxVkNativeD3D11_INCS            = \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
 	$(VBOX_PATH_DXVK)/include/spirv/include
 ifneq ($(KBUILD_TARGET),win)
-VBox-DxVkNativeD3D11_INCS           += \
-	$(VBOX_PATH_DXVK)/include/native/ \
-	$(VBOX_PATH_DXVK)/include/native/windows \
-	$(VBOX_PATH_DXVK)/include/native/directx
+ VBox-DxVkNativeD3D11_INCS          += \
+ 	$(VBOX_PATH_DXVK)/include/native/ \
+ 	$(VBOX_PATH_DXVK)/include/native/windows \
+ 	$(VBOX_PATH_DXVK)/include/native/directx
 endif
 VBox-DxVkNativeD3D11_SOURCES        = \
 	src/dxgi/dxgi_format.cpp \
@@ -426,10 +426,10 @@ VBoxDxVk_INCS     = \
 	$(VBOX_PATH_DXVK)/include/ \
 	$(VBOX_PATH_DXVK)/src/util/
 ifneq ($(KBUILD_TARGET),win)
-VBoxDxVk_INCS    += \
-	$(VBOX_PATH_DXVK)/include/native/ \
-	$(VBOX_PATH_DXVK)/include/native/windows \
-	$(VBOX_PATH_DXVK)/include/native/directx
+ VBoxDxVk_INCS   += \
+ 	$(VBOX_PATH_DXVK)/include/native/ \
+ 	$(VBOX_PATH_DXVK)/include/native/windows \
+ 	$(VBOX_PATH_DXVK)/include/native/directx
 endif
 VBoxDxVk_CXXFLAGS.linux += \
 	-std=c++17

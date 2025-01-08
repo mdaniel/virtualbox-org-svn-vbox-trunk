@@ -184,8 +184,10 @@ const char* USBDeviceFilter::i_describeUSBFilterIdx(USBFILTERIDX aIdx)
 ////////////////////////////////////////////////////////////////////////////////
 
 USBDeviceFilter::USBDeviceFilter()
-    : mParent(NULL),
-      mPeer(NULL)
+    : mParent(NULL)
+    , mPeer(NULL)
+    , m_fModified(false)
+    , mInList(false)
 {
 }
 

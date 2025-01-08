@@ -147,7 +147,7 @@ private:
 
     Backupable<BackupableUSBDeviceFilterData> bd;
 
-    bool m_fModified;
+    bool m_fModified; /** @todo r=andy Rename to mfModified to match the rest. */
 
     /** Used externally to indicate this filter is in the list
         (not touched by the class itself except that in init()/uninit()) */

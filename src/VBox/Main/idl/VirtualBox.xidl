@@ -11822,6 +11822,7 @@
     <desc>
       Network interface type.
     </desc>
+    <const name="Invalid"           value="0"/>
     <const name="Bridged"           value="1"/>
     <const name="HostOnly"          value="2"/>
   </enum>

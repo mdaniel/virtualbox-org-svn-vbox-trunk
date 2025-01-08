@@ -47,7 +47,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 HostNetworkInterface::HostNetworkInterface()
-    : mVirtualBox(NULL)
+    : mIfType(HostNetworkInterfaceType_Invalid)
+    , mVirtualBox(NULL)
 {
 }
 

@@ -51,6 +51,7 @@ PlatformProperties::PlatformProperties()
     : mParent(NULL)
     , mPlatformArchitecture(PlatformArchitecture_None)
     , mfIsHost(false)
+    , m(NULL)
 {
 }
 

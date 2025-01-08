@@ -595,7 +595,8 @@ struct HardDiskController
                                                 // false for the next (e.g. IDE secondary ctler)
 
     HardDiskController()
-        : lAddress(0),
+        : system(IDE),
+          lAddress(0),
           fPrimary(true)
     { }
 };

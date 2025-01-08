@@ -67,11 +67,17 @@ ShClWinDataObject::ShClWinDataObject(void)
     , m_rcStatus(VERR_IPE_UNINITIALIZED_STATUS)
     , m_lRefCount(0)
     , m_cFormats(0)
+    , m_pFormatEtc(NULL)
+    , m_pStgMedium/(NULL)
     , m_pTransfer(NULL)
     , m_pStream(NULL)
     , m_uObjIdx(0)
     , m_EventListComplete(NIL_RTSEMEVENT)
     , m_EventStatusChanged(NIL_RTSEMEVENT)
+    , m_cfFileDescriptorA(0)
+    , m_cfFileDescriptorW(0)
+    , m_cfFileContents(0)
+    , m_cfPerformedDropEffect(0)
 {
 #ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
     g_cDbgDataObj++;

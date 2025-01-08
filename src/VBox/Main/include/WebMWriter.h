@@ -357,6 +357,7 @@ public:
             , offStart(0)
             , fOpen(false)
             , tcAbsStartMs(0)
+            , tcAbsLastWrittenMs(0)
             , cBlocks(0) { }
 
         /** This cluster's ID. */

@@ -57,7 +57,9 @@
 
 ShClWinEnumFormatEtc::ShClWinEnumFormatEtc(void)
     : m_lRefCount(1),
-      m_nIndex(0)
+      m_nIndex(0),
+      m_nNumFormats(0),
+      m_pFormatEtc(NULL)
 {
 #ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
     g_cDbgEnumFmtObj++;

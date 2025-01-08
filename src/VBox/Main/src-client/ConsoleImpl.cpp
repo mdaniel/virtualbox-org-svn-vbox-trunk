@@ -405,7 +405,10 @@ VBOX_LISTENER_DECLARE(VmEventListenerImpl)
 /////////////////////////////////////////////////////////////////////////////
 
 Console::Console()
-    : mSavedStateDataLoaded(false)
+    : mcVRDPClients(0)
+    , mu32SingleRDPClientId(0)
+    , mfGuestCredentialsProvided(false)
+    , mSavedStateDataLoaded(false)
     , mConsoleVRDPServer(NULL)
     , mfVRDEChangeInProcess(false)
     , mfVRDEChangePending(false)
@@ -435,6 +438,8 @@ Console::Console()
     , muLedTypeGen(0)
     , mcLedSets(0)
     , m_pKeyStore(NULL)
+    , m_cDisksEncrypted(0)
+    , m_cDisksPwProvided(0)
     , mpIfSecKey(NULL)
     , mpIfSecKeyHlp(NULL)
     , mVMStateChangeCallbackDisabled(false)
@@ -443,6 +448,16 @@ Console::Console()
     , mhLdrModCrypto(NIL_RTLDRMOD)
     , mcRefsCrypto(0)
     , mpCryptoIf(NULL)
+#ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+    , m_fEncryptedLog(false)
+    , m_hVfsFileLog(NIL_RTVFSFILE)
+#endif
+#ifdef VBOX_WITH_SHARED_CLIPBOARD
+    , m_hHgcmSvcExtShCl(NULL)
+#endif
+#ifdef VBOX_WITH_DRAG_AND_DROP
+    , m_hHgcmSvcExtDragAndDrop(NULL)
+#endif
 {
     RT_ZERO(maLedSets);
     RT_ZERO(maLedTypes);
@@ -544,7 +559,7 @@ HRESULT Console::initWithMachine(IMachine *aMachine, IInternalMachineControl *aC
 
     mcVRDPClients = 0;
     mu32SingleRDPClientId = 0;
-    mcGuestCredentialsProvided = false;
+    mfGuestCredentialsProvided = false;
 
     ComPtr<IPlatform> pPlatform;
     hrc = mMachine->COMGETTER(Platform)(pPlatform.asOutParam());
@@ -1455,7 +1470,7 @@ int Console::i_VRDPClientLogon(uint32_t u32ClientId, const char *pszUser, const 
         if (SUCCEEDED(hrc) && noLoggedInUsersValue != "false")
         {
             /* And only if there are no connected clients. */
-            if (ASMAtomicCmpXchgBool(&mcGuestCredentialsProvided, true, false))
+            if (ASMAtomicCmpXchgBool(&mfGuestCredentialsProvided, true, false))
             {
                 fProvideGuestCredentials = TRUE;
             }
@@ -1608,7 +1623,7 @@ void Console::i_VRDPClientDisconnect(uint32_t u32ClientId,
 #endif /* VBOX_WITH_GUEST_PROPS */
 
     if (u32Clients == 0)
-        mcGuestCredentialsProvided = false;
+        mfGuestCredentialsProvided = false;
 
     LogFlowFuncLeave();
     return;

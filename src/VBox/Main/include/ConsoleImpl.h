@@ -972,7 +972,7 @@ private:
 
     volatile uint32_t mcVRDPClients;
     uint32_t mu32SingleRDPClientId; /* The id of a connected client in the single connection mode. */
-    volatile  bool mcGuestCredentialsProvided;
+    volatile  bool mfGuestCredentialsProvided;
 
     static const char *sSSMConsoleUnit;
 

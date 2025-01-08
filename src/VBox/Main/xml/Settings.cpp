@@ -175,7 +175,8 @@ using namespace settings;
 struct ConfigFileBase::Data
 {
     Data()
-        : pDoc(NULL),
+        : fFileExists(false),
+          pDoc(NULL),
           pelmRoot(NULL),
           sv(SettingsVersion_Null),
           svRead(SettingsVersion_Null)

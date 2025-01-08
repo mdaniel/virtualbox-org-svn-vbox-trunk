@@ -126,6 +126,8 @@ HRESULT Keyboard::init(Console *aParent)
     HRESULT hrc = mEventSource->init();
     AssertComRCReturnRC(hrc);
 
+    menmLeds = PDMKEYBLEDS_NONE;
+
     /* Confirm a successful initialization */
     autoInitSpan.setSucceeded();
 

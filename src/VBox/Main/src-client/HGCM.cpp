@@ -549,11 +549,22 @@ class HGCMMsgHeader: public HGCMMsgCore
 class HGCMMsgCall: public HGCMMsgHeader
 {
     public:
-        HGCMMsgCall() : pcCounter(NULL)
+        HGCMMsgCall()
+            : pcCounter(NULL)
+            , u32ClientId(0)
+            , u32Function(0)
+            , cParms(0)
+            , paParms(NULL)
+            , tsArrival(0)
         { }
 
         HGCMMsgCall(HGCMThread *pThread)
             : pcCounter(NULL)
+            , u32ClientId(0)
+            , u32Function(0)
+            , cParms(0)
+            , paParms(NULL)
+            , tsArrival(0)
         {
             InitializeCore(SVC_MSG_GUESTCALL, pThread);
             Initialize();

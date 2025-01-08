@@ -74,6 +74,7 @@ struct VFSExplorer::Data
 
 VFSExplorer::VFSExplorer()
     : mVirtualBox(NULL)
+    , m(NULL)
 {
 }
 

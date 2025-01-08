@@ -190,7 +190,8 @@ private:
 
     struct Data
     {
-        Data() : hal(0) {};
+        Data()
+            : sampler(NIL_RTTIMERLR), hal(NULL), gm(NULL) {};
 
         BaseMetricList             baseMetrics;
         MetricList                 metrics;

@@ -2,7 +2,11 @@
 
 #include <windows.h>
 
+#if defined(VBOX) && defined(_WIN32)
+#include "native/wsi/native_wsi.h"
+#else
 #include "wsi/native_wsi.h"
+#endif
 #include "wsi_platform_headless.h"
 
 #include "../../util/log/log.h"

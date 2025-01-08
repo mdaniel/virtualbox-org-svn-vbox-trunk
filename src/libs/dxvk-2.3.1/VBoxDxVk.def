@@ -1,0 +1,3 @@
+LIBRARY VBoxDxVk.DLL
+EXPORTS  
+    D3D11CreateDevice @22

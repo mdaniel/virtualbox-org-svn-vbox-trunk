@@ -1,7 +1,11 @@
 #include "../wsi_window.h"
 
 #include <windows.h>
+#if defined(VBOX) && defined(_WIN32)
+#include "native/wsi/native_wsi.h"
+#else
 #include "wsi/native_wsi.h"
+#endif
 #include "wsi_platform_headless.h"
 
 #include "../../util/util_string.h"

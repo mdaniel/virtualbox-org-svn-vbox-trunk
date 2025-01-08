@@ -1,6 +1,10 @@
 #pragma once
 
+#if defined(VBOX) && defined(_WIN32)
+#include <iprt/win/d3d9.h>
+#else
 #include <d3d9.h>
+#endif
 
 namespace dxvk {
   using NTSTATUS = LONG;

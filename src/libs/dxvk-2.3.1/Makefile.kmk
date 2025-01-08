@@ -38,6 +38,29 @@ DLLS      += VBoxDxVk
 # Globals.
 #
 VBOX_PATH_DXVK := $(PATH_SUB_CURRENT)
+ifeq ($(KBUILD_TARGET),win)
+ VBOX_DXVK_PLATFORM = DXVK_PLATFORM_WINDOWS
+ VBOX_DXVK_CXXFLAGS_WIN = -GR # DXVK uses RTTI
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4101 # 'e': unreferenced local variable
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4146 # unary minus operator applied to unsigned type, result still unsigned
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4265 # 'dxvk::DxgiMonitorInfo': class has virtual functions, but its non-trivial destructor is not virtual; instances of this class may not be destructed correctly
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4355 # 'this': used in base member initializer list
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4456 # declaration of 'deviceId' hides previous local declaration
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4457 # declaration of 'extent' hides function parameter
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4458 # declaration of 'Srgb' hides class member
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4701 # potentially uninitialized local variable 'vec0' used
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4800 # Implicit conversion from 'VkBool32' to bool. Possible information loss
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4805 # '&=': unsafe mix of type 'bool' and type 'BOOL' in operation
+ VBOX_DXVK_CXXFLAGS_WIN += -wd4946 # reinterpret_cast used between related classes: 'dxvk::D3D9DeviceEx' and 'IDirect3DDevice9Ex'
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc. Undefined behavior may occur if this function throws an exception.
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5041 # 'DefaultFrameLatency': out-of-line definition for constexpr static data member is not needed and is deprecated in C++17
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5204 # class has virtual functions, but its trivial destructor is not virtual
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5219 # implicit conversion from 'int' to 'float', possible loss of data
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5264 # 'MaxPendingSubmits': 'const' variable is not used
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5267 # definition of implicit copy constructor for 'dxvk::DxvkSparseBindSubmission' is deprecated because it has a user-provided destructor
+else
+ VBOX_DXVK_PLATFORM = DXVK_PLATFORM_LINUX
+endif
 
 # The HLSL to Spir-V shader compiler
 VBOX_GLSLANGVALIDATOR_PATH ?= $(lastword $(sort $(wildcard $(KBUILD_DEVTOOLS_TRG)/glslang/v11*)))
@@ -79,21 +102,26 @@ VBox-DxVkNativeUtil_DEFS           = \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
 VBox-DxVkNativeUtil_DEFS          += \
-	DXVK_PLATFORM_LINUX \
+	$(VBOX_DXVK_PLATFORM) \
 	DXVK_WSI_HEADLESS
 VBox-DxVkNativeUtil_CXXFLAGS.linux += \
 	-std=c++17 -Wno-deprecated-declarations # The latter is for std::iterator in util_bit.h.
 VBox-DxVkNativeUtil_CXXFLAGS.darwin += \
 	-std=c++17
+VBox-DxVkNativeUtil_CXXFLAGS.win += \
+	$(VBOX_DXVK_CXXFLAGS_WIN)
 VBox-DxVkNativeUtil_INCS           = \
 	$(VBOX_PATH_DXVK) \
 	$(VBOX_PATH_DXVK)/include/ \
 	$(VBOX_PATH_DXVK)/src/util/ \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
-	$(VBOX_PATH_DXVK)/include/spirv/include \
+	$(VBOX_PATH_DXVK)/include/spirv/include
+ifneq ($(KBUILD_TARGET),win)
+VBox-DxVkNativeUtil_INCS          += \
 	$(VBOX_PATH_DXVK)/include/native/ \
 	$(VBOX_PATH_DXVK)/include/native/windows \
 	$(VBOX_PATH_DXVK)/include/native/directx
+endif
 VBox-DxVkNativeUtil_SOURCES        = \
 	src/util/util_env.cpp \
 	src/util/util_string.cpp \
@@ -167,21 +195,26 @@ VBox-DxVkNativeDxVk_DEFS           = \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
 VBox-DxVkNativeDxVk_DEFS           += \
-	DXVK_PLATFORM_LINUX \
+	$(VBOX_DXVK_PLATFORM) \
 	DXVK_WSI_HEADLESS
 VBox-DxVkNativeDxVk_CXXFLAGS.linux += \
 	-std=c++17 -Wno-deprecated-declarations # The latter is for std::iterator in util_bit.h.
 VBox-DxVkNativeDxVk_CXXFLAGS.darwin += \
 	-std=c++17
+VBox-DxVkNativeDxVk_CXXFLAGS.win += \
+	$(VBOX_DXVK_CXXFLAGS_WIN)
 VBox-DxVkNativeDxVk_INCS           = \
 	$(VBOX_PATH_DXVK) \
 	$(VBOX_PATH_DXVK)/include/ \
 	$(VBOX_PATH_DXVK)/src/util/ \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
-	$(VBOX_PATH_DXVK)/include/spirv/include \
+	$(VBOX_PATH_DXVK)/include/spirv/include
+ifneq ($(KBUILD_TARGET),win)
+VBox-DxVkNativeDxVk_INCS          += \
 	$(VBOX_PATH_DXVK)/include/native/ \
 	$(VBOX_PATH_DXVK)/include/native/windows \
 	$(VBOX_PATH_DXVK)/include/native/directx
+endif
 VBox-DxVkNativeDxVk_SOURCES        = \
 	src/dxvk/dxvk_adapter.cpp \
 	src/dxvk/dxvk_barrier.cpp \
@@ -299,21 +332,26 @@ VBox-DxVkNativeD3D11_DEFS            = \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
 VBox-DxVkNativeD3D11_DEFS           += \
-	DXVK_PLATFORM_LINUX \
+	$(VBOX_DXVK_PLATFORM) \
 	DXVK_WSI_HEADLESS
 VBox-DxVkNativeD3D11_CXXFLAGS.linux += \
 	-std=c++17 -Wno-deprecated-declarations # The latter is for std::iterator in util_bit.h.
 VBox-DxVkNativeD3D11_CXXFLAGS.darwin += \
 	-std=c++17
+VBox-DxVkNativeD3D11_CXXFLAGS.win += \
+	$(VBOX_DXVK_CXXFLAGS_WIN)
 VBox-DxVkNativeD3D11_INCS            = \
 	$(VBOX_PATH_DXVK) \
 	$(VBOX_PATH_DXVK)/include/ \
 	$(VBOX_PATH_DXVK)/src/util/ \
 	$(VBOX_PATH_DXVK)/include/vulkan/include \
-	$(VBOX_PATH_DXVK)/include/spirv/include \
+	$(VBOX_PATH_DXVK)/include/spirv/include
+ifneq ($(KBUILD_TARGET),win)
+VBox-DxVkNativeD3D11_INCS           += \
 	$(VBOX_PATH_DXVK)/include/native/ \
 	$(VBOX_PATH_DXVK)/include/native/windows \
 	$(VBOX_PATH_DXVK)/include/native/directx
+endif
 VBox-DxVkNativeD3D11_SOURCES        = \
 	src/dxgi/dxgi_format.cpp \
 	src/dxgi/dxgi_monitor.cpp \
@@ -386,14 +424,21 @@ VBoxDxVk_DEFS     = \
 VBoxDxVk_INCS     = \
 	$(VBOX_PATH_DXVK) \
 	$(VBOX_PATH_DXVK)/include/ \
-	$(VBOX_PATH_DXVK)/src/util/ \
+	$(VBOX_PATH_DXVK)/src/util/
+ifneq ($(KBUILD_TARGET),win)
+VBoxDxVk_INCS    += \
 	$(VBOX_PATH_DXVK)/include/native/ \
 	$(VBOX_PATH_DXVK)/include/native/windows \
 	$(VBOX_PATH_DXVK)/include/native/directx
+endif
 VBoxDxVk_CXXFLAGS.linux += \
 	-std=c++17
+VBoxDxVk_CXXFLAGS.win += \
+	$(VBOX_DXVK_CXXFLAGS_WIN)
 VBoxDxVk_SOURCES     = \
 	VBoxDxVkDeps.cpp
+VBoxDxVk_SOURCES.win = \
+	VBoxDxVk.def
 VBoxDxVk_LIBS     = \
 	$(PATH_STAGE_LIB)/VBox-DxVkNativeD3D11$(VBOX_SUFF_LIB) \
 	$(PATH_STAGE_LIB)/VBox-DxVkNativeDxVk$(VBOX_SUFF_LIB) \

@@ -177,7 +177,12 @@ private:
          *  returned from the guest side. */
         int                      mLastError;
 
-        Data(void) : mpSessionBaseEnv(NULL)
+        Data(void)
+            : mpSessionBaseEnv(NULL)
+            , mExitCode(0)
+            , mPID(0)
+            , mStatus(ProcessStatus_Undefined)
+            , mLastError(0)
         { }
         ~Data(void)
         {

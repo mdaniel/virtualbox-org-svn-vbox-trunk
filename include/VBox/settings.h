@@ -880,6 +880,7 @@ struct NAT
     bool                    fAliasProxyOnly;
     bool                    fAliasUseSamePorts;
     bool                    fLocalhostReachable;
+    bool                    fForwardBroadcast;
     NATRulesMap             mapRules;
 };
 

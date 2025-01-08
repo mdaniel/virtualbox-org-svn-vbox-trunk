@@ -2323,6 +2323,11 @@ int Console::i_configNetwork(const char *pszDevice,
                 hrc = natEngine->COMGETTER(LocalhostReachable)(&fLocalhostReachable);       H();
                 InsertConfigInteger(pCfg, "LocalhostReachable", fLocalhostReachable);
 
+                /* forward broadcast packets */
+                BOOL fForwardBroadcast;
+                hrc = natEngine->COMGETTER(ForwardBroadcast)(&fForwardBroadcast);                   H();
+                InsertConfigInteger(pCfg, "ForwardBroadcast", fForwardBroadcast);
+
                 /* port-forwarding */
                 SafeArray<BSTR> pfs;
                 hrc = natEngine->COMGETTER(Redirects)(ComSafeArrayAsOutParam(pfs));         H();

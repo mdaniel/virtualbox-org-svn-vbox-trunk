@@ -74,6 +74,8 @@ private:
     HRESULT getHostIP(com::Utf8Str &aBindIP);
     HRESULT setLocalhostReachable(BOOL fLocalhostReachable);
     HRESULT getLocalhostReachable(BOOL *pfLocalhostReachable);
+    HRESULT setForwardBroadcast(BOOL fForwardBroadcast);
+    HRESULT getForwardBroadcast(BOOL *pfForwardBroadcast);
     /* TFTP properties */
     HRESULT setTFTPPrefix(const com::Utf8Str &aTFTPPrefix);
     HRESULT getTFTPPrefix(com::Utf8Str &aTFTPPrefix);

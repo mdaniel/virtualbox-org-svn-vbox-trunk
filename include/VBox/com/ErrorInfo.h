@@ -379,6 +379,7 @@ protected:
         : mIsBasicAvailable(false),
           mIsFullAvailable(false),
           mResultCode(S_OK),
+          mResultDetail(0),
           m_pNext(NULL)
     { }
 

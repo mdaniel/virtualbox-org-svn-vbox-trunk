@@ -502,6 +502,9 @@ struct Appliance::ImportStack
           fForceHWVirt(false),
           fForceIOAPIC(false),
           ulMemorySizeMB(0),
+#ifdef VBOX_WITH_USB
+          fUSBEnabled(false),
+#endif
           fSessionOpen(false),
           hVfsFssOva(aVfsFssOva),
           hVfsIosOvaLookAhead(NIL_RTVFSIOSTREAM),

@@ -2080,11 +2080,11 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
             }
             else
             {
-                PESCMD      pCmd;
-
                 /* Second pass - process received data. */
                 Log(("Execute SCSI cmd: received %u bytes\n", pThis->aCommandBuffer[0]));
-                pCmd = (PESCMD)pThis->aCommandBuffer;
+#ifdef LOG_ENABLED
+                PESCMD pCmd = (PESCMD)pThis->aCommandBuffer;
+#endif
                 Log(("Addr %08X, cbData %08X, cbCDB=%u\n", pCmd->u32PhysAddrData, pCmd->cbData, pCmd->cbCDB));
 
                 if (!ASMAtomicXchgBool(&pThis->fBiosReqPending, true))

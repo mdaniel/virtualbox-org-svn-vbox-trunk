@@ -189,6 +189,7 @@ struct Medium::Data
           fClosing(false),
           uOpenFlagsDef(VD_OPEN_FLAGS_IGNORE_FLUSH),
           numCreateDiffTasks(0),
+          hTcpNetInst(NULL),
           vdDiskIfaces(NULL),
           vdImageIfaces(NULL),
           fMoveThisMedium(false)
@@ -3461,6 +3462,9 @@ HRESULT Medium::moveTo(AutoCaller &autoCaller, const com::Utf8Str &aLocation, Co
         /* Check VMs which have this medium attached to*/
         std::vector<com::Guid> aMachineIds;
         hrc = getMachineIds(aMachineIds);
+        if (FAILED(hrc))
+            throw setError(hrc, tr("Failed to get machine list '%s' is attached to"), i_getLocationFull().c_str());
+
         std::vector<com::Guid>::const_iterator currMachineID = aMachineIds.begin();
         std::vector<com::Guid>::const_iterator lastMachineID = aMachineIds.end();
 
@@ -10055,10 +10059,6 @@ HRESULT Medium::i_taskMoveHandler(Medium::MoveTask &task)
     /* pTarget is equal "this" in our case */
     const ComObjPtr<Medium> &pTarget = task.mMedium;
 
-    uint64_t size = 0; NOREF(size);
-    uint64_t logicalSize = 0; NOREF(logicalSize);
-    MediumVariant_T variant = MediumVariant_Standard; NOREF(variant);
-
     /*
      * it's exactly moving, not cloning
      */
@@ -10155,12 +10155,6 @@ HRESULT Medium::i_taskMoveHandler(Medium::MoveTask &task)
                     throw setErrorBoth(VBOX_E_FILE_ERROR, vrc,
                                        tr("Could not move medium '%s'%s"),
                                        targetLocation.c_str(), i_vdError(vrc).c_str());
-                size = VDGetFileSize(hdd, VD_LAST_IMAGE);
-                logicalSize = VDGetSize(hdd, VD_LAST_IMAGE);
-                unsigned uImageFlags;
-                vrc = VDGetImageFlags(hdd, 0, &uImageFlags);
-                if (RT_SUCCESS(vrc))
-                    variant = (MediumVariant_T)uImageFlags;
 
                 /*
                  * set current location, because VDCopy\VDCopyEx doesn't do it.

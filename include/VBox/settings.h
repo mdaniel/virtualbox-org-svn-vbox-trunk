@@ -1200,12 +1200,6 @@ struct StorageController
     bool                    fUseHostIOCache;
     bool                    fBootable;
 
-    // only for when controllerType == StorageControllerType_IntelAhci:
-    int32_t                 lIDE0MasterEmulationPort,
-                            lIDE0SlaveEmulationPort,
-                            lIDE1MasterEmulationPort,
-                            lIDE1SlaveEmulationPort;
-
     AttachedDevicesList     llAttachedDevices;
 };
 

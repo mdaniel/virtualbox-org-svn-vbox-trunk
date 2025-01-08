@@ -64,7 +64,7 @@ struct USBFilterData
  * Initialize data members.
  */
 USBProxyService::USBProxyService(Host *aHost)
-    : mHost(aHost), mDevices(), mBackends()
+    : mHost(aHost), mDevices(), mBackends(), mLastError(VINF_SUCCESS)
 {
     LogFlowThisFunc(("aHost=%p\n", aHost));
 }

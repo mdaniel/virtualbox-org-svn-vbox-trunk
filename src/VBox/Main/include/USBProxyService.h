@@ -140,6 +140,7 @@ private:
     typedef std::list<ComObjPtr<USBProxyBackend> > USBProxyBackendList;
     /** List of active USB backends. */
     USBProxyBackendList mBackends;
+    /** Last error (IPRT style). Set to VINF_SUCCESS if no last error yet. */
     int                 mLastError;
 };
 

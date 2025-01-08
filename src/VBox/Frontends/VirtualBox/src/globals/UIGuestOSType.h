@@ -43,6 +43,8 @@
 namespace UIGuestOSTypeHelpers
 {
 #ifdef VBOX_WITH_3D_ACCELERATION
+    /** Returns whether guest OS type with passed @a strGuestOSTypeId is XPDM compatible. */
+    SHARED_LIBRARY_STUFF bool isXpdmCompatibleOsType(const QString &strGuestOSTypeId);
     /** Returns whether guest OS type with passed @a strGuestOSTypeId is WDDM compatible. */
     SHARED_LIBRARY_STUFF bool isWddmCompatibleOsType(const QString &strGuestOSTypeId);
 #endif

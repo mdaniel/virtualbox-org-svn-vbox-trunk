@@ -401,6 +401,7 @@ protected:
 
 UISelectorTreeViewItem::UISelectorTreeViewItem(QITreeView *pParent)
     : QITreeViewItem(pParent)
+    , m_iID(0)
     , m_fHidden(false)
 {
 }
@@ -744,7 +745,7 @@ QModelIndex UISelectorModel::findItem(int iID)
         return QModelIndex();
 
     const int iItemPosition = m_pRootItem->posOfChild(pItem);
-    return pItem ? createIndex(iItemPosition, 0, pItem) : QModelIndex();
+    return createIndex(iItemPosition, 0, pItem);
 }
 
 QModelIndex UISelectorModel::findItem(const QString &strLink)
@@ -754,7 +755,7 @@ QModelIndex UISelectorModel::findItem(const QString &strLink)
         return QModelIndex();
 
     const int iItemPosition = m_pRootItem->posOfChild(pItem);
-    return pItem ? createIndex(iItemPosition, 0, pItem) : QModelIndex();
+    return createIndex(iItemPosition, 0, pItem);
 }
 
 Qt::ItemFlags UISelectorModel::flags(const QModelIndex &specifiedIndex) const

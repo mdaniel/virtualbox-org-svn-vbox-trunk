@@ -390,6 +390,7 @@ public:
         , fResourceRequired(false)
         , fAutomaticAllocation(false)
         , fAutomaticDeallocation(false)
+        , lAddress(0)
         , ullVirtualQuantity(0)
         , ullReservation(0)
         , ullLimit(0)

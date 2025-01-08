@@ -558,6 +558,7 @@ struct RecordingBlock
     RecordingBlock()
         : cRefs(0)
         , uFlags(RECORDINGCODEC_ENC_F_NONE)
+        , msTimestamp(0)
         , pvData(NULL)
         , cbData(0) { }
 

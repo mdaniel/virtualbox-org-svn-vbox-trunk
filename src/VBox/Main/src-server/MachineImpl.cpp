@@ -212,6 +212,7 @@ Machine::Data::Data()
 
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
     mpKeyStore                 = NULL;
+    fEncrypted                 = false;
 #endif
 }
 
@@ -244,6 +245,7 @@ Machine::HWData::HWData()
     mPageFusionEnabled = false;
     mCpuExecutionCap = 100; /* Maximum CPU execution cap by default. */
     mCpuIdPortabilityLevel = 0;
+    mExecEngine = VMExecutionEngine_NotSet;
     mCpuProfile = "host";
 
     /* default boot order: floppy - DVD - HDD */
@@ -15498,7 +15500,8 @@ public:
           mstrCipher(aCipher),
           mstrNewPasswordId(aNewPasswordId),
           mForce(aForce),
-          mllMedia(llMedia)
+          mllMedia(llMedia),
+          m_pCryptoIf(NULL)
     {}
 
     ~ChangeEncryptionTask()

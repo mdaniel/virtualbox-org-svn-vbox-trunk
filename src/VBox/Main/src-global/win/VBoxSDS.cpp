@@ -151,6 +151,8 @@ public:
         m_Status.dwCheckPoint              = 0;
         m_Status.dwWaitHint                = 3000;
 
+        m_dwThreadID                       = -1;
+
         s_pInstance = this;
     }
 
@@ -285,7 +287,8 @@ protected:
     virtual void onStop() throw()
     {
         setServiceStatus(SERVICE_STOP_PENDING);
-        ::PostThreadMessage(m_dwThreadID, WM_QUIT, 0, 0);
+        if (m_dwThreadID != -1)
+            ::PostThreadMessage(m_dwThreadID, WM_QUIT, 0, 0);
         LogFunc(("Windows Service stopped\n"));
     }
 

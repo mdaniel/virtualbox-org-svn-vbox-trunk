@@ -282,7 +282,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
                                            0x01, 0x0a, 0x104);                              VRC();
         vrc = RTFdtNodePropertyAddEmpty(   hFdt, "always-on");                              VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible",       "arm,armv8-timer");    VRC();
-        vrc = RTFdtNodeFinalize(hFdt);
+        vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
         vrc = RTFdtNodeAdd(hFdt, "apb-clk");                                                VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "phandle", idPHandleAbpPClk);              VRC();
@@ -290,7 +290,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddU32(     hFdt, "clock-frequency",    ASMReadCntFrqEl0()); VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "#clock-cells",       0);                  VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible",         "fixed-clock");      VRC();
-        vrc = RTFdtNodeFinalize(hFdt);
+        vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
         if (pSysTblsBldAcpi)
         {
@@ -772,7 +772,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddCellsU32(hFdt, "gpios", 3, idPHandleGpio, 4, 0);          VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "linux,code", 0xcd);                       VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "label",      "GPIO Key Suspend");         VRC();
-        vrc = RTFdtNodeFinalize(hFdt);
+        vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 
@@ -854,7 +854,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
             iIrqPinSwizzle++;
         }
 
-        vrc = RTFdtNodePropertyAddCellsU32AsArray(hFdt, "interrupt-map", RT_ELEMENTS(aIrqCells), &aIrqCells[0]);
+        vrc = RTFdtNodePropertyAddCellsU32AsArray(hFdt, "interrupt-map", RT_ELEMENTS(aIrqCells), &aIrqCells[0]); VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "#interrupt-cells", 1);                        VRC();
         vrc = RTFdtNodePropertyAddCellsU32(hFdt, "ranges", 21,
                                            0x1000000, 0, 0,
@@ -960,6 +960,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         pAlock->release();
         vrc = mptrExtPackManager->i_callAllVmConfigureVmmHooks(this, pVM, pVMM);
         pAlock->acquire();
+        AssertRCReturnStmt(vrc, RTFdtDestroy(hFdt), vrc);
     }
 #endif
 
@@ -1067,6 +1068,8 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
     /* Add the VBox platform descriptor to the resource store. */
     vrc = RTVfsIoStrmWrite(hVfsIosDesc, &ArmV8Platform, sizeof(ArmV8Platform), true /*fBlocking*/, NULL /*pcbWritten*/);
     RTVfsIoStrmRelease(hVfsIosDesc);
+    AssertRCReturnStmt(vrc, RTVfsFileRelease(hVfsFileDesc), vrc);
+
     vrc = mptrResourceStore->i_addItem("resources", "VBoxArmV8Desc", hVfsFileDesc);
     RTVfsFileRelease(hVfsFileDesc);
     AssertRCReturn(vrc, vrc);

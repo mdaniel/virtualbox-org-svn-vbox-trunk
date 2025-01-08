@@ -447,7 +447,8 @@ struct MediumCryptoFilterSettings
           pbDek(NULL),
           cbDek(0),
           pszCipher(NULL),
-          pszCipherReturned(NULL)
+          pszCipherReturned(NULL),
+          vdFilterIfaces(NULL)
     { }
 
     bool              fCreateKeyStore;

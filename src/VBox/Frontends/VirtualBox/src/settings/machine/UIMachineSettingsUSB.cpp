@@ -376,22 +376,19 @@ bool UIMachineSettingsUSB::saveData()
     /* Prepare result: */
     bool fSuccess = true;
     /* Save USB settings from cache: */
-    if (fSuccess && isMachineInValidMode() && m_pCache->wasChanged())
+    if (/*fSuccess &&*/ isMachineInValidMode() && m_pCache->wasChanged())
     {
         /* Get new USB data from cache: */
         const UIDataSettingsMachineUSB &newUsbData = m_pCache->data();
 
         /* Save USB data: */
-        if (fSuccess && isMachineOffline())
+        if (/*fSuccess &&*/ isMachineOffline())
         {
             /* Remove USB controllers: */
             if (!newUsbData.m_fUSBEnabled)
                 fSuccess = removeUSBControllers();
-
-            else
-
             /* Create/update USB controllers: */
-            if (newUsbData.m_fUSBEnabled)
+            else
                 fSuccess = createUSBControllers(newUsbData.m_enmUSBControllerType);
         }
 
@@ -415,12 +412,12 @@ bool UIMachineSettingsUSB::saveData()
                     const UISettingsCacheMachineUSBFilter &filterCache = m_pCache->child(iFilterIndex);
 
                     /* Remove filter marked for 'remove' or 'update': */
-                    if (fSuccess && (filterCache.wasRemoved() || filterCache.wasUpdated()))
-                    {
+                    if (/*fSuccess &&*/ (filterCache.wasRemoved() || filterCache.wasUpdated()))
                         fSuccess = removeUSBFilter(comFiltersObject, iOperationPosition);
-                        if (fSuccess && filterCache.wasRemoved())
-                            --iOperationPosition;
-                    }
+
+                    /* Decrease operation position for removed filter: */
+                    if (fSuccess && filterCache.wasRemoved())
+                        --iOperationPosition;
 
                     /* Create filter marked for 'create' or 'update': */
                     if (fSuccess && (filterCache.wasCreated() || filterCache.wasUpdated()))
@@ -459,7 +456,7 @@ bool UIMachineSettingsUSB::removeUSBControllers(const QSet<KUSBControllerType> &
 
             /* Get controller type for further activities: */
             KUSBControllerType enmType = KUSBControllerType_Null;
-            if (fSuccess)
+            // if (fSuccess)
             {
                 enmType = comController.GetType();
                 fSuccess = comController.isOk();
@@ -482,7 +479,7 @@ bool UIMachineSettingsUSB::removeUSBControllers(const QSet<KUSBControllerType> &
                     continue;
 
                 /* Remove controller: */
-                if (fSuccess)
+                // if (fSuccess)
                 {
                     m_machine.RemoveUSBController(comController.GetName());
                     fSuccess = m_machine.isOk();
@@ -564,7 +561,7 @@ bool UIMachineSettingsUSB::createUSBControllers(KUSBControllerType enmType)
                     /* Add required controllers: */
                     if (fSuccess)
                     {
-                        if (fSuccess && !cOhciCtls)
+                        if (/*fSuccess &&*/ !cOhciCtls)
                         {
                             m_machine.AddUSBController("OHCI", KUSBControllerType_OHCI);
                             fSuccess = m_machine.isOk();
@@ -648,7 +645,7 @@ bool UIMachineSettingsUSB::createUSBFilter(CUSBDeviceFilters &comFiltersObject, 
         else
         {
             /* Save whether filter is active: */
-            if (fSuccess)
+            // if (fSuccess)
             {
                 comFilter.SetActive(filterData.m_guiData.m_fActive);
                 fSuccess = comFilter.isOk();

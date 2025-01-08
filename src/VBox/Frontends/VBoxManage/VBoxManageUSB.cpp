@@ -121,7 +121,8 @@ class Nullable
 {
 public:
 
-    Nullable() : mIsNull(true) {}
+    Nullable()
+        : mIsNull(true), mValue(0) {}
     Nullable(const T &aValue, bool aIsNull = false)
         : mIsNull(aIsNull), mValue(aValue) {}
 

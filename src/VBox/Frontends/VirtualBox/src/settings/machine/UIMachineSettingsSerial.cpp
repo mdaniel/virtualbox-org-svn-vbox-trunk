@@ -626,7 +626,7 @@ bool UIMachineSettingsSerial::savePortData(int iSlot)
             // If the requested host mode is changed to disconnected we should do it first.
             // That allows to automatically fulfill the requirements for some of the settings below.
             /* Save port host mode: */
-            if (   fSuccess && isMachineOffline()
+            if (   /*fSuccess &&*/ isMachineOffline()
                 && newPortData.m_hostMode != oldPortData.m_hostMode
                 && newPortData.m_hostMode == KPortMode_Disconnected)
             {

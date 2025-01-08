@@ -275,7 +275,7 @@ bool UIMachineSettingsAudio::saveData()
         else
         {
             /* Save whether audio is enabled: */
-            if (fSuccess && isMachineOffline() && newAudioData.m_fAudioEnabled != oldAudioData.m_fAudioEnabled)
+            if (/*fSuccess &&*/ isMachineOffline() && newAudioData.m_fAudioEnabled != oldAudioData.m_fAudioEnabled)
             {
                 comAdapter.SetEnabled(newAudioData.m_fAudioEnabled);
                 fSuccess = comAdapter.isOk();

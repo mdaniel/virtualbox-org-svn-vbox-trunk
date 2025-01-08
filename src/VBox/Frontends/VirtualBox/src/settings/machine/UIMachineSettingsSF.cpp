@@ -336,7 +336,7 @@ bool UIMachineSettingsSF::getSharedFolder(const QString &strFolderName, const CS
 
         /* Get current folder name for further activities: */
         QString strCurrentFolderName;
-        if (fSuccess)
+        // if (fSuccess)
         {
             strCurrentFolderName = comCurrentFolder.GetName();
             fSuccess = comCurrentFolder.isOk();
@@ -372,7 +372,7 @@ bool UIMachineSettingsSF::saveData()
             const UISettingsCacheSharedFolder &folderCache = m_pCache->child(iFolderIndex);
 
             /* Remove folder marked for 'remove' or 'update': */
-            if (fSuccess && (folderCache.wasRemoved() || folderCache.wasUpdated()))
+            if (/*fSuccess &&*/ (folderCache.wasRemoved() || folderCache.wasUpdated()))
                 fSuccess = removeSharedFolder(folderCache);
 
             /* Create folder marked for 'create' or 'update': */

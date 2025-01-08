@@ -997,7 +997,7 @@ bool UIMachineSettingsNetwork::saveAdapterData(int iSlot)
         else
         {
             /* Save whether the adapter is enabled: */
-            if (fSuccess && isMachineOffline() && newAdapterData.m_fAdapterEnabled != oldAdapterData.m_fAdapterEnabled)
+            if (/*fSuccess &&*/ isMachineOffline() && newAdapterData.m_fAdapterEnabled != oldAdapterData.m_fAdapterEnabled)
             {
                 comAdapter.SetEnabled(newAdapterData.m_fAdapterEnabled);
                 fSuccess = comAdapter.isOk();

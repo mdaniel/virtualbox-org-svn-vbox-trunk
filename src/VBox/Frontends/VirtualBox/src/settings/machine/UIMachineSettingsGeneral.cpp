@@ -936,7 +936,7 @@ bool UIMachineSettingsGeneral::saveEncryptionData()
 
                 /* Get attachment type for further activities: */
                 KDeviceType enmType = KDeviceType_Null;
-                if (fSuccess)
+                // if (fSuccess)
                 {
                     enmType = comAttachment.GetType();
                     fSuccess = comAttachment.isOk();

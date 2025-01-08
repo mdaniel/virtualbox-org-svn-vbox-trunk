@@ -1120,7 +1120,7 @@ static DECLCALLBACK(int) pitR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetS32(pSSM, &u32Dummy);
 # endif
     if (uVersion > PIT_SAVED_STATE_VERSION_VBOX_31)
-        rc = pHlp->pfnSSMGetBool(pSSM, &pThis->fDisabledByHpet);
+        pHlp->pfnSSMGetBool(pSSM, &pThis->fDisabledByHpet);
 
     return VINF_SUCCESS;
 }

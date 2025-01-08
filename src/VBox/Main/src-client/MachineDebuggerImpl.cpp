@@ -54,6 +54,10 @@
 
 MachineDebugger::MachineDebugger()
     : mParent(NULL)
+    , mSingleStepQueued(-1)
+    , mLogEnabledQueued(-1)
+    , mVirtualTimeRateQueued(UINT32_MAX)
+    , mFlushMode(false)
 {
 }
 

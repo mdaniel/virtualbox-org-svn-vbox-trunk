@@ -44,12 +44,13 @@
 
 
 WebMWriter::WebMWriter(void)
+    : m_enmAudioCodec(RecordingAudioCodec_None)
+    , m_enmVideoCodec(RecordingVideoCodec_None)
+    , m_fInTracksSection(false)
 {
     /* Size (in bytes) of time code to write. We use 2 bytes (16 bit) by default. */
     m_cbTimecode   = 2;
     m_uTimecodeMax = UINT16_MAX;
-
-    m_fInTracksSection = false;
 }
 
 WebMWriter::~WebMWriter(void)

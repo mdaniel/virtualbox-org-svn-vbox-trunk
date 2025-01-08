@@ -520,6 +520,7 @@ void VirtualSystemDescription::FinalRelease()
 
 Appliance::Appliance()
     : mVirtualBox(NULL)
+    , m(NULL)
 {
 }
 

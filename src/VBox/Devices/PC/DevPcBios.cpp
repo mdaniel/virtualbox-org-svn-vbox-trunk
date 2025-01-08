@@ -637,7 +637,9 @@ static int biosGuessDiskLCHS(PPDMIMEDIA pMedia, PPDMMEDIAGEOMETRY pLCHSGeometry)
             /* Assumption: partition terminates on a cylinder boundary. */
             cLCHSHeads = iEndHead + 1;
             cLCHSSectors = iEndSector;
-            cLCHSCylinders = RT_MIN(1024, pMedia->pfnGetSize(pMedia) / (512 * cLCHSHeads * cLCHSSectors));
+
+            uint64_t const cbMedia = pMedia->pfnGetSize(pMedia);
+            cLCHSCylinders = RT_MIN(1024, cbMedia / (512 * cLCHSHeads * cLCHSSectors));
             if (cLCHSCylinders >= 1)
             {
                 pLCHSGeometry->cCylinders = cLCHSCylinders;
@@ -1081,35 +1083,34 @@ static DECLCALLBACK(int) pcbiosInitComplete(PPDMDEVINS pDevIns)
             int rc2 = setLogicalDiskGeometry(pBase, apHDs[i], &LCHSGeometry);
             AssertRC(rc2);
 
-            if (i < 4)
+            Assert(i < 4);
+            /* Award BIOS extended drive types for first to fourth disk.
+             * Used by the BIOS for setting the logical geometry. */
+            int offType, offInfo;
+            switch (i)
             {
-                /* Award BIOS extended drive types for first to fourth disk.
-                 * Used by the BIOS for setting the logical geometry. */
-                int offType, offInfo;
-                switch (i)
-                {
-                    case 0:
-                        offType = 0x19;
-                        offInfo = 0x1e;
-                        break;
-                    case 1:
-                        offType = 0x1a;
-                        offInfo = 0x26;
-                        break;
-                    case 2:
-                        offType = 0x00;
-                        offInfo = 0x67;
-                        break;
-                    case 3:
-                    default:
-                        offType = 0x00;
-                        offInfo = 0x70;
-                        break;
-                }
-                pcbiosCmosInitHardDisk(pDevIns, offType, offInfo, &LCHSGeometry);
-                if (i < 2)
-                    pcbiosCmosTryPCATHardDisk(pDevIns, i, &LCHSGeometry);
+                case 0:
+                    offType = 0x19;
+                    offInfo = 0x1e;
+                    break;
+                case 1:
+                    offType = 0x1a;
+                    offInfo = 0x26;
+                    break;
+                case 2:
+                    offType = 0x00;
+                    offInfo = 0x67;
+                    break;
+                case 3:
+                default:
+                    offType = 0x00;
+                    offInfo = 0x70;
+                    break;
             }
+            pcbiosCmosInitHardDisk(pDevIns, offType, offInfo, &LCHSGeometry);
+            if (i < 2)
+                pcbiosCmosTryPCATHardDisk(pDevIns, i, &LCHSGeometry);
+
             LogRel(("PcBios: ATA LUN#%d LCHS=%u/%u/%u\n", i, LCHSGeometry.cCylinders, LCHSGeometry.cHeads, LCHSGeometry.cSectors));
         }
     }
@@ -1139,30 +1140,29 @@ static DECLCALLBACK(int) pcbiosInitComplete(PPDMDEVINS pDevIns)
                 rc = setLogicalDiskGeometry(pBase, apHDs[i], &LCHSGeometry);
                 AssertRC(rc);
 
-                if (i < 4)
+                Assert(i < 4);
+                /* Award BIOS extended drive types for first to fourth disk.
+                 * Used by the BIOS for setting the logical geometry. */
+                int offInfo;
+                switch (i)
                 {
-                    /* Award BIOS extended drive types for first to fourth disk.
-                     * Used by the BIOS for setting the logical geometry. */
-                    int offInfo;
-                    switch (i)
-                    {
-                        case 0:
-                            offInfo = 0x40;
-                            break;
-                        case 1:
-                            offInfo = 0x48;
-                            break;
-                        case 2:
-                            offInfo = 0x50;
-                            break;
-                        case 3:
-                        default:
-                            offInfo = 0x58;
-                            break;
-                    }
-                    pcbiosCmosInitHardDisk(pDevIns, 0x00, offInfo,
-                                           &LCHSGeometry);
+                    case 0:
+                        offInfo = 0x40;
+                        break;
+                    case 1:
+                        offInfo = 0x48;
+                        break;
+                    case 2:
+                        offInfo = 0x50;
+                        break;
+                    case 3:
+                    default:
+                        offInfo = 0x58;
+                        break;
                 }
+                pcbiosCmosInitHardDisk(pDevIns, 0x00, offInfo,
+                                       &LCHSGeometry);
+
                 LogRel(("PcBios: SATA LUN#%d LCHS=%u/%u/%u\n", i, LCHSGeometry.cCylinders, LCHSGeometry.cHeads, LCHSGeometry.cSectors));
             }
         }
@@ -1192,8 +1192,10 @@ static DECLCALLBACK(int) pcbiosInitComplete(PPDMDEVINS pDevIns)
                 PDMMEDIAGEOMETRY LCHSGeometry;
                 rc = getLogicalDiskGeometry(apHDs[i], &LCHSGeometry);
 
-                if (i < 4 && RT_SUCCESS(rc))
+                if (RT_SUCCESS(rc))
                 {
+                    Assert(i < 4);
+
                     /* Extended drive information (for SCSI disks).
                      * Used by the BIOS for setting the logical geometry, but
                      * only if the image provided valid data.
@@ -1576,6 +1578,7 @@ static DECLCALLBACK(int)  pcbiosConstruct(PPDMDEVINS pDevIns, int iInstance, PCF
                                 NULL, NULL, NULL,
                                 NULL, pcbiosSaveExec, NULL,
                                 pcbiosLoadPrep, pcbiosLoadExec, pcbiosLoadDone);
+    AssertRCReturn(rc, rc);
 
     /* Clear the net boot device list. All bits set invokes old behavior,
      * as if no second CMOS bank was present.

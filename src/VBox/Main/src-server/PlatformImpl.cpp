@@ -58,6 +58,7 @@ struct Platform::Data
  */
 Platform::Platform()
     : mParent(NULL)
+    , m(NULL)
 {
 }
 

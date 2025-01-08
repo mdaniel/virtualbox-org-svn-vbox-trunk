@@ -208,7 +208,7 @@ namespace pm
     {
     public:
         CollectorGuestRequest()
-            : mCGuest(0),mDebugName(NULL) {};
+            : mCGuest(NULL), mDebugName(NULL) {};
         virtual ~CollectorGuestRequest() {};
         void setGuest(CollectorGuest *aGuest) { mCGuest = aGuest; };
         CollectorGuest *getGuest() { return mCGuest; };

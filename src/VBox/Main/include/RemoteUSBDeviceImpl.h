@@ -101,7 +101,7 @@ private:
     struct Data
     {
         Data() : vendorId(0), productId(0), revision(0), port(0), version(1),
-                 speed(USBConnectionSpeed_Null), dirty(FALSE),
+                 speed(USBConnectionSpeed_Null), state(USBDeviceState_NotSupported), dirty(FALSE),
                  devId(0), clientId(0) {}
 
         const Guid id;

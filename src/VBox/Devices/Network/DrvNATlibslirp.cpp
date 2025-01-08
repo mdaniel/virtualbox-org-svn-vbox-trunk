@@ -1561,7 +1561,7 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     LogRel(("These CFGM parameters are currently not supported when using NAT:\n"
         "DNSProxy\n"
         "UseHostResolver\n"
-        "AliasMode\n",
+        "AliasMode\n"
         "SockRcv\n"
         "SockSnd\n"
         "TcpRcv\n"

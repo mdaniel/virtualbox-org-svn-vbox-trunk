@@ -43,6 +43,8 @@ DrvHostAudioDSoundMMNotifClient::DrvHostAudioDSoundMMNotifClient(PPDMIHOSTAUDIOP
     : m_fDefaultIn(fDefaultIn)
     , m_fDefaultOut(fDefaultOut)
     , m_fRegisteredClient(false)
+    , m_pEnum(NULL)
+    , m_pEndpoint(NULL)
     , m_cRef(1)
     , m_pIAudioNotifyFromHost(pInterface)
 {

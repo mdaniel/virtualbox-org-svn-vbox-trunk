@@ -1323,9 +1323,7 @@ static int rtCoreDumperSuspendThreads(PRTSOLCORE pSolCore)
     uint16_t cTries = 0;
     uint64_t aThreads[4];
     RT_ZERO(aThreads);
-    int rc = VERR_GENERAL_FAILURE;
-    void *pv = NULL;
-    size_t cb = 0;
+    int rc;
     for (cTries = 0; cTries < RT_ELEMENTS(aThreads); cTries++)
     {
         rc = rtCoreDumperForEachThread(pSolCore, &aThreads[cTries], suspendThread);

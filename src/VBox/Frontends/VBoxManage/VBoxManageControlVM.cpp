@@ -692,15 +692,12 @@ RTEXITCODE handleControlVM(HandlerArg *a)
                 aShutdownFlags.push_back(GuestShutdownFlag_Force);
 
             CHECK_ERROR(pGuest, Shutdown(ComSafeArrayAsInParam(aShutdownFlags)));
-            if (FAILED(hrc))
+            if (hrc == VBOX_E_NOT_SUPPORTED)
             {
-                if (hrc == VBOX_E_NOT_SUPPORTED)
-                {
-                    if (fReboot)
-                        RTMsgError(ControlVM::tr("Current installed Guest Additions don't support rebooting the guest."));
-                    else
-                        RTMsgError(ControlVM::tr("Current installed Guest Additions don't support shutting down the guest."));
-                }
+                if (fReboot)
+                    RTMsgError(ControlVM::tr("Current installed Guest Additions don't support rebooting the guest."));
+                else
+                    RTMsgError(ControlVM::tr("Current installed Guest Additions don't support shutting down the guest."));
             }
         }
 #endif

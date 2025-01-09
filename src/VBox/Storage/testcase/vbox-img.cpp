@@ -144,7 +144,7 @@ static DECLCALLBACK(void) handleVDError(void *pvUser, int rc, RT_SRC_POS_DECL, c
 
 static DECLCALLBACK(int) handleVDMessage(void *pvUser, const char *pszFormat, va_list va)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     RTPrintfV(pszFormat, va);
     return VINF_SUCCESS;
 }
@@ -160,7 +160,7 @@ static int errorSyntax(const char *pszFormat, ...)
     RTStrmPrintf(g_pStdErr, "\nSyntax error: %N\n", pszFormat, &args);
     va_end(args);
     printUsage(g_pStdErr);
-    return 1;
+    return RTEXITCODE_SYNTAX;
 }
 
 static int errorRuntime(const char *pszFormat, ...)
@@ -170,7 +170,7 @@ static int errorRuntime(const char *pszFormat, ...)
     va_start(args, pszFormat);
     RTMsgErrorV(pszFormat, args);
     va_end(args);
-    return 1;
+    return RTEXITCODE_FAILURE;
 }
 
 static int parseDiskVariant(const char *psz, unsigned *puImageFlags)
@@ -533,7 +533,7 @@ static DECLCALLBACK(int) convInOpen(void *pvUser, const char *pszLocation, uint3
 
 static DECLCALLBACK(int) convInClose(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
 
@@ -544,24 +544,24 @@ static DECLCALLBACK(int) convInClose(void *pvUser, void *pStorage)
 
 static DECLCALLBACK(int) convInDelete(void *pvUser, const char *pcszFilename)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInMove(void *pvUser, const char *pcszSrc, const char *pcszDst, unsigned fMove)
 {
-    NOREF(pvUser);
-    NOREF(pcszSrc);
-    NOREF(pcszDst);
-    NOREF(fMove);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszSrc);
+    RT_NOREF(pcszDst);
+    RT_NOREF(fMove);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInGetFreeSpace(void *pvUser, const char *pcszFilename, int64_t *pcbFreeSpace)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pcbFreeSpace, VERR_INVALID_POINTER);
     *pcbFreeSpace = 0;
     return VINF_SUCCESS;
@@ -569,32 +569,32 @@ static DECLCALLBACK(int) convInGetFreeSpace(void *pvUser, const char *pcszFilena
 
 static DECLCALLBACK(int) convInGetModificationTime(void *pvUser, const char *pcszFilename, PRTTIMESPEC pModificationTime)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pModificationTime, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInGetSize(void *pvUser, void *pStorage, uint64_t *pcbSize)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     AssertPtrReturn(pcbSize, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInSetSize(void *pvUser, void *pStorage, uint64_t cbSize)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
-    NOREF(cbSize);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
+    RT_NOREF(cbSize);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInRead(void *pvUser, void *pStorage, uint64_t uOffset,
                                     void *pvBuffer, size_t cbBuffer, size_t *pcbRead)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
@@ -681,19 +681,19 @@ static DECLCALLBACK(int) convInRead(void *pvUser, void *pStorage, uint64_t uOffs
 static DECLCALLBACK(int) convInWrite(void *pvUser, void *pStorage, uint64_t uOffset, const void *pvBuffer, size_t cbBuffer,
                                      size_t *pcbWritten)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
-    NOREF(uOffset);
-    NOREF(cbBuffer);
-    NOREF(pcbWritten);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
+    RT_NOREF(uOffset);
+    RT_NOREF(cbBuffer);
+    RT_NOREF(pcbWritten);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convInFlush(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     return VINF_SUCCESS;
 }
 
@@ -728,7 +728,7 @@ static DECLCALLBACK(int) convStdOutOpen(void *pvUser, const char *pszLocation, u
 
 static DECLCALLBACK(int) convStdOutClose(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
     int rc = VINF_SUCCESS;
@@ -759,24 +759,24 @@ static DECLCALLBACK(int) convStdOutClose(void *pvUser, void *pStorage)
 
 static DECLCALLBACK(int) convStdOutDelete(void *pvUser, const char *pcszFilename)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convStdOutMove(void *pvUser, const char *pcszSrc, const char *pcszDst, unsigned fMove)
 {
-    NOREF(pvUser);
-    NOREF(pcszSrc);
-    NOREF(pcszDst);
-    NOREF(fMove);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszSrc);
+    RT_NOREF(pcszDst);
+    RT_NOREF(fMove);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convStdOutGetFreeSpace(void *pvUser, const char *pcszFilename, int64_t *pcbFreeSpace)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pcbFreeSpace, VERR_INVALID_POINTER);
     *pcbFreeSpace = INT64_MAX;
     return VINF_SUCCESS;
@@ -784,16 +784,16 @@ static DECLCALLBACK(int) convStdOutGetFreeSpace(void *pvUser, const char *pcszFi
 
 static DECLCALLBACK(int) convStdOutGetModificationTime(void *pvUser, const char *pcszFilename, PRTTIMESPEC pModificationTime)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pModificationTime, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convStdOutGetSize(void *pvUser, void *pStorage, uint64_t *pcbSize)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     AssertPtrReturn(pcbSize, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
@@ -808,11 +808,11 @@ static DECLCALLBACK(int) convStdOutSetSize(void *pvUser, void *pStorage, uint64_
 static DECLCALLBACK(int) convStdOutRead(void *pvUser, void *pStorage, uint64_t uOffset, void *pvBuffer, size_t cbBuffer,
                                         size_t *pcbRead)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
-    NOREF(uOffset);
-    NOREF(cbBuffer);
-    NOREF(pcbRead);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
+    RT_NOREF(uOffset);
+    RT_NOREF(cbBuffer);
+    RT_NOREF(pcbRead);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
@@ -820,7 +820,7 @@ static DECLCALLBACK(int) convStdOutRead(void *pvUser, void *pStorage, uint64_t u
 static DECLCALLBACK(int) convStdOutWrite(void *pvUser, void *pStorage, uint64_t uOffset, const void *pvBuffer, size_t cbBuffer,
                                          size_t *pcbWritten)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
@@ -866,8 +866,8 @@ static DECLCALLBACK(int) convStdOutWrite(void *pvUser, void *pStorage, uint64_t 
 
 static DECLCALLBACK(int) convStdOutFlush(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     return VINF_SUCCESS;
 }
 
@@ -902,7 +902,7 @@ static DECLCALLBACK(int) convFileOutOpen(void *pvUser, const char *pszLocation, 
 
 static DECLCALLBACK(int) convFileOutClose(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
     int rc = VINF_SUCCESS;
@@ -919,24 +919,24 @@ static DECLCALLBACK(int) convFileOutClose(void *pvUser, void *pStorage)
 
 static DECLCALLBACK(int) convFileOutDelete(void *pvUser, const char *pcszFilename)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convFileOutMove(void *pvUser, const char *pcszSrc, const char *pcszDst, unsigned fMove)
 {
-    NOREF(pvUser);
-    NOREF(pcszSrc);
-    NOREF(pcszDst);
-    NOREF(fMove);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszSrc);
+    RT_NOREF(pcszDst);
+    RT_NOREF(fMove);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convFileOutGetFreeSpace(void *pvUser, const char *pcszFilename, int64_t *pcbFreeSpace)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pcbFreeSpace, VERR_INVALID_POINTER);
     *pcbFreeSpace = INT64_MAX;
     return VINF_SUCCESS;
@@ -944,23 +944,23 @@ static DECLCALLBACK(int) convFileOutGetFreeSpace(void *pvUser, const char *pcszF
 
 static DECLCALLBACK(int) convFileOutGetModificationTime(void *pvUser, const char *pcszFilename, PRTTIMESPEC pModificationTime)
 {
-    NOREF(pvUser);
-    NOREF(pcszFilename);
+    RT_NOREF(pvUser);
+    RT_NOREF(pcszFilename);
     AssertPtrReturn(pModificationTime, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convFileOutGetSize(void *pvUser, void *pStorage, uint64_t *pcbSize)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     AssertPtrReturn(pcbSize, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
 
 static DECLCALLBACK(int) convFileOutSetSize(void *pvUser, void *pStorage, uint64_t cbSize)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
 
@@ -973,11 +973,11 @@ static DECLCALLBACK(int) convFileOutSetSize(void *pvUser, void *pStorage, uint64
 static DECLCALLBACK(int) convFileOutRead(void *pvUser, void *pStorage, uint64_t uOffset, void *pvBuffer, size_t cbBuffer,
                                          size_t *pcbRead)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
-    NOREF(uOffset);
-    NOREF(cbBuffer);
-    NOREF(pcbRead);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
+    RT_NOREF(uOffset);
+    RT_NOREF(cbBuffer);
+    RT_NOREF(pcbRead);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     AssertFailedReturn(VERR_NOT_SUPPORTED);
 }
@@ -985,7 +985,7 @@ static DECLCALLBACK(int) convFileOutRead(void *pvUser, void *pStorage, uint64_t 
 static DECLCALLBACK(int) convFileOutWrite(void *pvUser, void *pStorage, uint64_t uOffset, const void *pvBuffer, size_t cbBuffer,
                                           size_t *pcbWritten)
 {
-    NOREF(pvUser);
+    RT_NOREF(pvUser);
     AssertPtrReturn(pStorage, VERR_INVALID_POINTER);
     AssertPtrReturn(pvBuffer, VERR_INVALID_POINTER);
     PFILEIOSTATE pFS = (PFILEIOSTATE)pStorage;
@@ -1034,8 +1034,8 @@ static DECLCALLBACK(int) convFileOutWrite(void *pvUser, void *pStorage, uint64_t
 
 static DECLCALLBACK(int) convFileOutFlush(void *pvUser, void *pStorage)
 {
-    NOREF(pvUser);
-    NOREF(pStorage);
+    RT_NOREF(pvUser);
+    RT_NOREF(pStorage);
     return VINF_SUCCESS;
 }
 
@@ -2058,8 +2058,6 @@ static int handleClearResize(HandlerArg *a)
 
 int main(int argc, char *argv[])
 {
-    int exitcode = 0;
-
     int rc = RTR3InitExe(argc, &argv, RTR3INIT_FLAGS_STANDALONE_APP);
     if (RT_FAILURE(rc))
         return RTMsgInitFailure(rc);
@@ -2121,12 +2119,17 @@ int main(int argc, char *argv[])
 
     rc = VDInterfaceAdd(&vdInterfaceError.Core, "VBoxManage_IError", VDINTERFACETYPE_ERROR,
                         NULL, sizeof(VDINTERFACEERROR), &pVDIfs);
+    if (RT_FAILURE(rc))
+    {
+        errorSyntax("VDInterfaceAdd() failed! rc=%Rrc\n", rc);
+        return RTEXITCODE_FAILURE;
+    }
 
     rc = VDInit();
     if (RT_FAILURE(rc))
     {
         errorSyntax("Initializing backends failed! rc=%Rrc\n", rc);
-        return 1;
+        return RTEXITCODE_FAILURE;
     }
 
     /*
@@ -2153,6 +2156,8 @@ int main(int argc, char *argv[])
         { NULL,           NULL               }
     };
 
+    int rcExit = VINF_SUCCESS;
+
     HandlerArg handlerArg = { 0, NULL };
     int commandIndex;
     for (commandIndex = 0; s_commandHandlers[commandIndex].command != NULL; commandIndex++)
@@ -2162,24 +2167,24 @@ int main(int argc, char *argv[])
             handlerArg.argc = argc - iCmdArg;
             handlerArg.argv = &argv[iCmdArg];
 
-            exitcode = s_commandHandlers[commandIndex].handler(&handlerArg);
+            rcExit = s_commandHandlers[commandIndex].handler(&handlerArg);
             break;
         }
     }
     if (!s_commandHandlers[commandIndex].command)
     {
         errorSyntax("Invalid command '%s'", argv[iCmd]);
-        return 1;
+        return RTEXITCODE_SYNTAX;
     }
 
     rc = VDShutdown();
     if (RT_FAILURE(rc))
     {
         errorSyntax("Unloading backends failed! rc=%Rrc\n", rc);
-        return 1;
+        return RTEXITCODE_FAILURE;
     }
 
-    return exitcode;
+    return rcExit;
 }
 
 /* dummy stub for RuntimeR3 */

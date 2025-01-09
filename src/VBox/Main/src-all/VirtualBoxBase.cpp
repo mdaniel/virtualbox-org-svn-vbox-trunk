@@ -47,7 +47,9 @@
 #include "VirtualBoxTranslator.h"
 #include "Global.h"
 #include "LoggingNew.h"
-#include "ObjectsTracker.h"
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
+# include "ObjectsTracker.h"
+#endif
 
 #include "VBox/com/ErrorInfo.h"
 #include "VBox/com/MultiResult.h"
@@ -177,7 +179,9 @@ void APIDumpComponentFactoryStats()
         Assert(g_pClassFactoryStatsLock);
 }
 
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
 TrackedObjectsCollector gTrackedObjectsCollector;
+#endif
 
 HRESULT VirtualBoxBase::getObjectId(com::Guid &aId)
 {
@@ -187,6 +191,7 @@ HRESULT VirtualBoxBase::getObjectId(com::Guid &aId)
 
 HRESULT VirtualBoxBase::setTracked(uint64_t aLifeTime, uint64_t afterLifeTime)
 {
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     Utf8Str strObjId = mObjectId.toString();
     Utf8Str strClassIID = Guid(getClassIID()).toString();
     HRESULT hrc = gTrackedObjectsCollector.setObj(strObjId,
@@ -199,14 +204,22 @@ HRESULT VirtualBoxBase::setTracked(uint64_t aLifeTime, uint64_t afterLifeTime)
          strObjId.c_str(), getComponentName(), strClassIID.c_str()));
 
     return hrc;
+#else
+    RT_NOREF(aLifeTime, afterLifeTime);
+    return S_OK;
+#endif
 }
 
 HRESULT VirtualBoxBase::invalidateTracked()
 {
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     Utf8Str strObjId = mObjectId.toString();
     HRESULT hrc = gTrackedObjectsCollector.invalidateObj(strObjId);
 
     return hrc;
+#else
+    return S_OK;
+#endif
 }
 
 /**

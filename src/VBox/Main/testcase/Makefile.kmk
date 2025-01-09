@@ -364,7 +364,6 @@ tstUnattendedScript_INCS     = \
 tstUnattendedScript_SOURCES  = \
 	tstUnattendedScript.cpp \
 	../src-server/UnattendedScript.cpp \
-	../src-all/ObjectsTracker.cpp \
 	../src-all/TextScript.cpp \
 	../src-all/VirtualBoxBase.cpp \
 	../src-all/VirtualBoxErrorInfoImpl.cpp \

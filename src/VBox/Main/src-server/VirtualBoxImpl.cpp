@@ -107,8 +107,9 @@
 #include "CloudProviderManagerImpl.h"
 #include "ThreadTask.h"
 #include "VBoxEvents.h"
-
-#include "ObjectsTracker.h"
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
+# include "ObjectsTracker.h"
+#endif
 
 #include <QMTranslator.h>
 
@@ -132,7 +133,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
 extern TrackedObjectsCollector gTrackedObjectsCollector;
+#endif
 
 // static
 com::Utf8Str VirtualBox::sVersion;
@@ -333,7 +336,9 @@ struct VirtualBox::Data
         , hLdrModCrypto(NIL_RTLDRMOD)
         , cRefsCrypto(0)
         , pCryptoIf(NULL)
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
         , objectTrackerTask(NULL)
+#endif
     {
 #if defined(RT_OS_WINDOWS) && defined(VBOXSVC_WITH_CLIENT_WATCHER)
         RTCritSectRwInit(&WatcherCritSect);
@@ -472,8 +477,10 @@ struct VirtualBox::Data
     RTCRITSECT                          CritSectModCrypto;
     /** @} */
 
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     /** The tracked object collector (better if it'll be a singleton) */
-    ObjectTracker *objectTrackerTask;
+    ObjectTracker                      *objectTrackerTask;
+#endif
 };
 
 
@@ -568,18 +575,17 @@ HRESULT VirtualBox::init()
 
     LogFlowThisFunc(("Version: %s, Package: %s, API Version: %s\n", sVersion.c_str(), sPackageType.c_str(), sAPIVersion.c_str()));
 
-    /* Try to start Object tracker thread as earlier as possible */
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
+    /* Try to start Object tracker thread as earlier as possible (same code in VirtualBoxClientImpl.cpp). */
     {
-        int vrc = 0;
-        if(gTrackedObjectsCollector.init())
+        int vrc = VERR_GENERAL_FAILURE;
+        if (gTrackedObjectsCollector.init())
         {
             LogRel(("Starting the Object tracker thread\n"));
             try
             {
                 m->objectTrackerTask = new ObjectTracker();
-                if (!m->objectTrackerTask->init()) // some init procedure
-                    vrc = VERR_INVALID_STATE;
-                else
+                if (m->objectTrackerTask->init()) // some init procedure - bird: some comment!
                     vrc = m->objectTrackerTask->createThread();
             }
             catch (...)
@@ -593,12 +599,12 @@ HRESULT VirtualBox::init()
                 vrc = VERR_INVALID_STATE;
             }
         }
-
-        if(RT_SUCCESS(vrc))
+        if (RT_SUCCESS(vrc))
             LogRel(("Successfully started the Object tracker thread\n"));
         else
             LogRel(("Failed to start the Object tracker thread (%Rrc)\n", vrc));
     }
+#endif
 
     /* Important: DO NOT USE any kind of "early return" (except the single
      * one above, checking the init span success) in this method. It is vital
@@ -1168,6 +1174,8 @@ void VirtualBox::uninit()
     RTCritSectDelete(&m->CritSectModCrypto);
 
     m->mapProgressOperations.clear();
+
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     /*
      * Call gTrackedObjectsCollector uninitialization before ExtPackManager uninitialization!!!
      * Otherwise, this results in an error when releasing resources (in ComPtr::cleanup).
@@ -1179,6 +1187,7 @@ void VirtualBox::uninit()
         delete m->objectTrackerTask;//waiting the thread termination is going in the m_objectTrackerTask destructor
         gTrackedObjectsCollector.uninit();
     }
+#endif
 
 #ifdef VBOX_WITH_EXTPACK
     if (m->ptrExtPackManager)
@@ -6448,16 +6457,15 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
                                      ComPtr<IProgress> &aProgressObject)
 {
     if (!aId.isValid())
-        return setError(E_INVALIDARG,
-                        tr("The provided progress object GUID is invalid"));
+        return setError(E_INVALIDARG, tr("The provided progress object GUID is invalid"));
 
-#ifdef VBOX_WITH_OBJ_TRACKER
+#if 0 /** @todo def VBOX_WITH_MAIN_OBJECT_TRACKER - never used */
     std::vector<com::Utf8Str> lObjIdMap;
     gTrackedObjectsCollector.getObjIdsByClassIID(IID_IProgress, lObjIdMap);
 
-    for (const com::Utf8Str& item : lObjIdMap)
+    for (const com::Utf8Str &item : lObjIdMap)
     {
-        if(gTrackedObjectsCollector.checkObj(item.c_str()))
+        if (gTrackedObjectsCollector.checkObj(item.c_str()))
         {
             TrackedObjectData temp;
             gTrackedObjectsCollector.getObj(item.c_str(), temp);
@@ -6467,7 +6475,7 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
             temp.getInterface()->QueryInterface(IID_IProgress, (void **)pProgress.asOutParam());
             if (pProgress.isNotNull())
             {
-                Bstr reqId(aId.toString().c_str());
+                com::Bstr reqId(aId.toString());
                 Bstr foundId;
                 hrc = pProgress->COMGETTER(Id)(foundId.asOutParam());
                 if (reqId == foundId)
@@ -6488,7 +6496,8 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
             }
         }
     }
-#else
+
+#else /* !VBOX_WITH_MAIN_OBJECT_TRACKER */
     /* protect mProgressOperations */
     AutoReadLock safeLock(m->mtxProgressOperations COMMA_LOCKVAL_SRC_POS);
 
@@ -6498,18 +6507,19 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
         aProgressObject = it->second;
         return S_OK;
     }
-#endif
+#endif /* !VBOX_WITH_MAIN_OBJECT_TRACKER */
 
-    return setError(E_INVALIDARG,
-                    tr("The progress object with the given GUID could not be found"));
+    /** @todo r=bird: E_INVALIDARG isn't a good choice here... */
+    return setError(E_INVALIDARG, tr("The progress object with the given GUID could not be found"));
 }
 
-HRESULT VirtualBox::getTrackedObject (const com::Utf8Str& aTrObjId,
-                                      ComPtr<IUnknown> &aPIface,
-                                      TrackedObjectState_T *aState,
-                                      LONG64 *aCreationTime,
-                                      LONG64 *aDeletionTime)
+HRESULT VirtualBox::getTrackedObject(const com::Utf8Str &aTrObjId,
+                                     ComPtr<IUnknown> &aPIface,
+                                     TrackedObjectState_T *aState,
+                                     LONG64 *aCreationTime,
+                                     LONG64 *aDeletionTime)
 {
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     TrackedObjectData trObjData;
     HRESULT hrc = gTrackedObjectsCollector.getObj(aTrObjId, trObjData);
     if (SUCCEEDED(hrc))
@@ -6523,18 +6533,26 @@ HRESULT VirtualBox::getTrackedObject (const com::Utf8Str& aTrObjId,
             time = trObjData.deletionTime();
             *aDeletionTime = RTTimeSpecGetMilli(&time);
         }
+        /** @todo aDeletionTime isn't set */
     }
 
     return hrc;
+
+#else
+    RT_NOREF(aTrObjId, aPIface, aState, aCreationTime, aDeletionTime);
+    return E_NOTIMPL;
+#endif
 }
 
 
-std::map <com::Utf8Str, com::Utf8Str> lMapInterfaceNameToIID = {
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
+static std::map<com::Utf8Str, com::Utf8Str> const g_lMapInterfaceNameToIID = {
     {"IProgress", Guid(IID_IProgress).toString()},
     {"ISession", Guid(IID_ISession).toString()},
     {"IMedium", Guid(IID_IMedium).toString()},
     {"IMachine", Guid(IID_IMachine).toString()}
 };
+#endif
 
 /**
  * Get the tracked object Ids list by the interface name.
@@ -6544,17 +6562,18 @@ std::map <com::Utf8Str, com::Utf8Str> lMapInterfaceNameToIID = {
  *
  * @return The list of the found objects Ids
  */
-HRESULT VirtualBox::getTrackedObjectIds (const com::Utf8Str& aName,
-                                         std::vector<com::Utf8Str> &aObjIdsList)
+HRESULT VirtualBox::getTrackedObjectIds(const com::Utf8Str &aName,
+                                        std::vector<com::Utf8Str> &aObjIdsList)
 {
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
     HRESULT hrc = S_OK;
 
     try
     {
         /* Check the supported tracked classes to avoid "out of range" exception */
-        if (lMapInterfaceNameToIID.count(aName))
+        if (g_lMapInterfaceNameToIID.count(aName))
         {
-            hrc = gTrackedObjectsCollector.getObjIdsByClassIID(lMapInterfaceNameToIID.at(aName), aObjIdsList);
+            hrc = gTrackedObjectsCollector.getObjIdsByClassIID(g_lMapInterfaceNameToIID.at(aName), aObjIdsList);
             if (FAILED(hrc))
                 hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("No objects were found for the passed interface name '%s'."),
                                aName.c_str());
@@ -6568,6 +6587,11 @@ HRESULT VirtualBox::getTrackedObjectIds (const com::Utf8Str& aName,
     }
 
     return hrc;
+
+#else
+    RT_NOREF(aName, aObjIdsList);
+    return E_NOTIMPL;
+#endif
 }
 
 /**

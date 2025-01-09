@@ -214,6 +214,9 @@ endif
 ifdef VBOX_WITH_X86_ON_ARM_ENABLED
  VBOX_MAIN_DEFS += VBOX_WITH_X86_ON_ARM_ENABLED
 endif
+ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
+ VBOX_MAIN_DEFS += VBOX_WITH_MAIN_OBJECT_TRACKER
+endif
 # Unconditionally enable the new semaphore key generation code
 VBOX_MAIN_DEFS += VBOX_WITH_NEW_SYS_V_KEYGEN
 
@@ -624,7 +627,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-all/HashedPw.cpp \
  	src-all/Logging.cpp \
  	src-all/NvramStoreImpl.cpp \
- 	src-all/ObjectsTracker.cpp \
+ 	$(if $(VBOX_WITH_MAIN_OBJECT_TRACKER),src-all/ObjectsTracker.cpp) \
  	src-all/PCIDeviceAttachmentImpl.cpp \
  	src-all/PlatformPropertiesImpl.cpp \
  	src-all/ProgressImpl.cpp \
@@ -1157,7 +1160,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-all/HashedPw.cpp \
  	src-all/Logging.cpp \
  	src-all/NvramStoreImpl.cpp \
- 	src-all/ObjectsTracker.cpp \
+ 	$(if $(VBOX_WITH_MAIN_OBJECT_TRACKER),src-all/ObjectsTracker.cpp) \
  	src-all/PCIDeviceAttachmentImpl.cpp \
  	src-all/PlatformPropertiesImpl.cpp \
  	src-all/ProgressImpl.cpp \
@@ -1337,7 +1340,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
   	src-all/Global.cpp \
   	src-all/GlobalStatusConversion.cpp \
   	src-all/AutoCaller.cpp \
-  	src-all/ObjectsTracker.cpp \
+  	$(if $(VBOX_WITH_MAIN_OBJECT_TRACKER),src-all/ObjectsTracker.cpp) \
   	src-all/ThreadTask.cpp \
   	src-all/VirtualBoxBase.cpp \
   	src-all/VirtualBoxErrorInfoImpl.cpp \

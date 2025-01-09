@@ -1585,6 +1585,8 @@ HRESULT NetworkAdapter::i_switchFromNatNetworking(const com::Utf8Str &networkNam
     {
         Bstr bstrName;
         hrc = mParent->COMGETTER(Name)(bstrName.asOutParam());
+        if (FAILED(hrc)) /* Should not happen but as the name is only used in logging try to continue. */
+            LogRel(("Querying the VM name failed hrc -> %Rhrc\n", hrc));
         LogRel(("VM '%ls' stops using NAT network '%s'\n", bstrName.raw(), networkName.c_str()));
         int natCount = mParent->i_getVirtualBox()->i_natNetworkRefDec(Bstr(networkName).raw());
         if (natCount == -1)
@@ -1609,6 +1611,8 @@ HRESULT NetworkAdapter::i_switchToNatNetworking(const com::Utf8Str &aNatNetworkN
     {
         Bstr bstrName;
         hrc = mParent->COMGETTER(Name)(bstrName.asOutParam());
+        if (FAILED(hrc)) /* Should not happen but as the name is only used in logging try to continue. */
+            LogRel(("Querying the VM name failed hrc -> %Rhrc\n", hrc));
         LogRel(("VM '%ls' starts using NAT network '%s'\n", bstrName.raw(), aNatNetworkName.c_str()));
         int natCount = mParent->i_getVirtualBox()->i_natNetworkRefInc(Bstr(aNatNetworkName).raw());
         if (natCount == -1)

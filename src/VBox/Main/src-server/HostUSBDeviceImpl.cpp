@@ -2023,7 +2023,7 @@ bool HostUSBDevice::i_setState(HostUSBDeviceState aNewState,
          * The final state.
          */
         case kHostUSBDeviceState_PhysDetached:
-            switch (mUniState)
+            switch (aNewState)
             {
                 case kHostUSBDeviceState_Unsupported:
                 case kHostUSBDeviceState_UsedByHost:

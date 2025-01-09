@@ -209,6 +209,8 @@ DECLHIDDEN(int) autostartStopMain(PCFGAST pCfgAst)
                         case AutostopType_SaveState:
                         {
                             hrc = autostartSaveVMState(console);
+                            if (FAILED(hrc))
+                                autostartSvcLogError("Saving VM state for machine '%ls' failed with %Rhrc\n", strName.raw(), hrc);
                             break;
                         }
                         case AutostopType_PowerOff:

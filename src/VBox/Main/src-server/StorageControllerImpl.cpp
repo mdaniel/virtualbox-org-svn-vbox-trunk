@@ -328,6 +328,11 @@ HRESULT StorageController::setName(const com::Utf8Str &aName)
 
         Machine::MediumAttachmentList atts;
         hrc = m->pParent->i_getMediumAttachmentsOfController(m->bd->strName, atts);
+        if (FAILED(hrc))
+            return setError(hrc,
+                            tr("Querying attachments of storage controller named '%s' failed"),
+                            m->bd->strName.c_str());
+
         for (Machine::MediumAttachmentList::const_iterator
              it = atts.begin();
              it != atts.end();

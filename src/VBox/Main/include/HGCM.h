@@ -49,7 +49,7 @@ int HGCMHostLoad(const char *pszServiceLibrary, const char *pszServiceName,
                  PUVM pUVM, PCVMMR3VTABLE pVMM, PPDMIHGCMPORT pHgcmPort);
 
 int HGCMHostRegisterServiceExtension(HGCMSVCEXTHANDLE *pHandle, const char *pszServiceName, PFNHGCMSVCEXT pfnExtension, void *pvExtension);
-void HGCMHostUnregisterServiceExtension(HGCMSVCEXTHANDLE handle);
+int HGCMHostUnregisterServiceExtension(HGCMSVCEXTHANDLE handle);
 
 int HGCMGuestConnect(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmdPtr, const char *pszServiceName, uint32_t *pClientID);
 int HGCMGuestDisconnect(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmdPtr, uint32_t clientID);

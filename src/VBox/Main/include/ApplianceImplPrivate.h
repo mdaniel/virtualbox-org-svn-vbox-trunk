@@ -539,7 +539,7 @@ struct Appliance::ImportStack
     }
 
     HRESULT restoreOriginalUUIDOfAttachedDevice(settings::MachineConfigFile *config);
-    HRESULT saveOriginalUUIDOfAttachedDevice(settings::AttachedDevice &device, const Utf8Str &newlyUuid);
+    void saveOriginalUUIDOfAttachedDevice(settings::AttachedDevice &device, const Utf8Str &newlyUuid);
     RTVFSIOSTREAM claimOvaLookAHead(void);
 };
 

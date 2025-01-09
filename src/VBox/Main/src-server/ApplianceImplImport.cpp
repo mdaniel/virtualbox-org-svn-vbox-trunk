@@ -1604,7 +1604,10 @@ HRESULT Appliance::i_importCloudImpl(TaskCloud *pTask)
                         }
 
                         if ( hDir != NULL)
+                        {
                             vrc = RTDirClose(hDir);
+                            AssertRC(vrc);
+                        }
                     }
                     else
                         return setErrorVrc(vrc, tr("Can't open folder %s"), strMachineFolder.c_str());
@@ -2493,7 +2496,6 @@ HRESULT Appliance::i_readFSOVA(TaskOVF *pTask)
      * the OVA. The manifest is optional.)
      */
     char    *pszOvfNameBase = NULL;
-    size_t   cchOvfNameBase = 0; NOREF(cchOvfNameBase);
     unsigned cLeftToFind = 3;
     HRESULT  hrc = S_OK;
     do
@@ -2542,7 +2544,6 @@ HRESULT Appliance::i_readFSOVA(TaskOVF *pTask)
                             /* Set the base name. */
                             *pszSuffix = '\0';
                             pszOvfNameBase = pszName;
-                            cchOvfNameBase = strlen(pszName);
                             pszName = NULL;
                             cLeftToFind--;
                         }
@@ -3782,8 +3783,12 @@ HRESULT Appliance::i_importFS(TaskOVF *pTask)
             {
                 SafeIfaceArray<IMedium> aMedia;
                 hrc2 = failedMachine->Unregister(CleanupMode_DetachAllReturnHardDisksOnly, ComSafeArrayAsOutParam(aMedia));
+                if (FAILED(hrc2))
+                    LogRel(("Appliance::i_importFS: Cleaning up failed import failed with hrc2 -> %Rhrc in IMachine::Unregister()\n", hrc2));
                 ComPtr<IProgress> pProgress2;
                 hrc2 = failedMachine->DeleteConfig(ComSafeArrayAsInParam(aMedia), pProgress2.asOutParam());
+                if (FAILED(hrc2))
+                    LogRel(("Appliance::i_importFS: Cleaning up failed import failed with hrc2 -> %Rhrc in IMachine::DeleteConfig()\n", hrc2));
                 pProgress2->WaitForCompletion(-1);
             }
         }
@@ -4594,7 +4599,7 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
         {
             if (stack.strFirmwareType.contains("32"))
                 firmwareType = FirmwareType_EFI32;
-            if (stack.strFirmwareType.contains("64"))
+            else if (stack.strFirmwareType.contains("64"))
                 firmwareType = FirmwareType_EFI64;
             else
                 firmwareType = FirmwareType_EFI;
@@ -6018,7 +6023,7 @@ l_skipped:
                  * 2. replacement of original UUID by new UUID in the current VM config (settings::MachineConfigFile).
                  */
                 {
-                    hrc = stack.saveOriginalUUIDOfAttachedDevice(d, Utf8Str(hdId));
+                    stack.saveOriginalUUIDOfAttachedDevice(d, Utf8Str(hdId));
                     d.uuid = hdId;
                 }
 
@@ -6231,15 +6236,11 @@ void Appliance::i_importMachines(ImportStack &stack)
     } // for (it = pAppliance->m->llVirtualSystems.begin() ...
 }
 
-HRESULT Appliance::ImportStack::saveOriginalUUIDOfAttachedDevice(settings::AttachedDevice &device,
-                                                     const Utf8Str &newlyUuid)
+void Appliance::ImportStack::saveOriginalUUIDOfAttachedDevice(settings::AttachedDevice &device,
+                                                              const Utf8Str &newlyUuid)
 {
-    HRESULT hrc = S_OK;
-
     /* save for restoring */
     mapNewUUIDsToOriginalUUIDs.insert(std::make_pair(newlyUuid, device.uuid.toString()));
-
-    return hrc;
 }
 
 HRESULT Appliance::ImportStack::restoreOriginalUUIDOfAttachedDevice(settings::MachineConfigFile *config)

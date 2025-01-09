@@ -176,7 +176,7 @@ static int testNetwork(pm::CollectorHAL *collector)
     if (RT_FAILURE(rc))
     {
         RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-        return 1;
+        return rc;
     }
     rc = collector->getRawHostNetworkLoad(NETIFNAME, &hostRxStart, &hostTxStart);
     if (rc == VERR_NOT_IMPLEMENTED)
@@ -186,7 +186,7 @@ static int testNetwork(pm::CollectorHAL *collector)
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostNetworkLoad() -> %Rrc\n", rc);
-            return 1;
+            return rc;
         }
 
         RTThreadSleep(5000); // Sleep for five seconds
@@ -195,7 +195,7 @@ static int testNetwork(pm::CollectorHAL *collector)
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-            return 1;
+            return rc;
         }
         hostRxStop = hostRxStart;
         hostTxStop = hostTxStart;
@@ -203,7 +203,7 @@ static int testNetwork(pm::CollectorHAL *collector)
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostNetworkLoad() -> %Rrc\n", rc);
-            return 1;
+            return rc;
         }
         RTPrintf("tstCollector: host network speed = %llu bytes/sec (%llu mbit/sec)\n",
                 speed, speed/(1000000/8));
@@ -217,7 +217,7 @@ static int testNetwork(pm::CollectorHAL *collector)
                 (hostTxStop - hostTxStart) * 10000 / (speed * 5) % 100);
     }
 
-    return 0;
+    return rc;
 }
 
 #define FSNAME "/"
@@ -235,13 +235,13 @@ static int testFsUsage(pm::CollectorHAL *collector)
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getHostFilesystemUsage() -> %Rrc\n", rc);
-            return 1;
+            return rc;
         }
         RTPrintf("tstCollector: host root fs total     = %lu MB\n", total);
         RTPrintf("tstCollector: host root fs used      = %lu MB\n", used);
         RTPrintf("tstCollector: host root fs available = %lu MB\n\n", available);
     }
-    return 0;
+    return rc;
 }
 
 static int testDisk(pm::CollectorHAL *collector)
@@ -259,17 +259,17 @@ static int testDisk(pm::CollectorHAL *collector)
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getDiskListByFs(%s) -> %Rrc\n", FSNAME, rc);
-            return 1;
+            return rc;
         }
         if (disksUsage.empty())
         {
             RTPrintf("tstCollector: getDiskListByFs(%s) returned empty usage list\n", FSNAME);
-            return 0;
+            return VINF_SUCCESS;
         }
         if (disksLoad.empty())
         {
             RTPrintf("tstCollector: getDiskListByFs(%s) returned empty usage list\n", FSNAME);
-            return 0;
+            return VINF_SUCCESS;
         }
 
         pm::DiskList::iterator it;
@@ -283,7 +283,7 @@ static int testDisk(pm::CollectorHAL *collector)
             else if (RT_FAILURE(rc))
             {
                 RTPrintf("tstCollector: getHostDiskSize() -> %Rrc\n", rc);
-                return 1;
+                return rc;
             }
         }
 
@@ -296,13 +296,13 @@ static int testDisk(pm::CollectorHAL *collector)
             if (RT_FAILURE(rc))
             {
                 RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-                return 1;
+                return rc;
             }
             rc = collector->getRawHostDiskLoad(it->c_str(), &diskMsStart, &totalMsStart);
             if (RT_FAILURE(rc))
             {
                 RTPrintf("tstCollector: getRawHostDiskLoad() -> %Rrc\n", rc);
-                return 1;
+                return rc;
             }
 
             RTThreadSleep(5000); // Sleep for five seconds
@@ -311,13 +311,13 @@ static int testDisk(pm::CollectorHAL *collector)
             if (RT_FAILURE(rc))
             {
                 RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-                return 1;
+                return rc;
             }
             rc = collector->getRawHostDiskLoad(it->c_str(), &diskMsStop, &totalMsStop);
             if (RT_FAILURE(rc))
             {
                 RTPrintf("tstCollector: getRawHostDiskLoad() -> %Rrc\n", rc);
-                return 1;
+                return rc;
             }
             RTPrintf("tstCollector: host disk util    = %llu msec (%u.%u %%), total = %llu msec\n\n",
                      (diskMsStop - diskMsStart),
@@ -327,15 +327,13 @@ static int testDisk(pm::CollectorHAL *collector)
         }
     }
 
-    return 0;
+    return VINF_SUCCESS;
 }
 
 
 
 int main(int argc, char *argv[])
 {
-    bool cpuTest, ramTest, netTest, diskTest, fsTest, perfTest;
-    cpuTest = ramTest = netTest = diskTest = fsTest = perfTest = false;
     /*
      * Initialize the VBox runtime without loading
      * the support driver.
@@ -343,9 +341,14 @@ int main(int argc, char *argv[])
     int rc = RTR3InitExe(argc, &argv, 0);
     if (RT_FAILURE(rc))
     {
-        RTPrintf("tstCollector: RTR3InitExe() -> %d\n", rc);
-        return 1;
+        RTPrintf("tstCollector: RTR3InitExe() -> %Rrc\n", rc);
+        return RTEXITCODE_FAILURE;
     }
+
+    bool cpuTest, ramTest, netTest, diskTest, fsTest, perfTest;
+
+    cpuTest = ramTest = netTest = diskTest = fsTest = perfTest = false;
+
     if (argc > 1)
     {
         if (!strcmp(argv[1], "-child"))
@@ -371,7 +374,7 @@ int main(int argc, char *argv[])
             else
             {
                 RTPrintf("tstCollector: Unknown option: %s\n", argv[i]);
-                return 2;
+                return RTEXITCODE_SYNTAX;
             }
         }
     }
@@ -397,7 +400,7 @@ int main(int argc, char *argv[])
     if (!collector)
     {
         RTPrintf("tstCollector: createMetricFactory() failed\n");
-        return 1;
+        return RTEXITCODE_FAILURE;
     }
 
     pm::CollectorHints hints;
@@ -424,7 +427,7 @@ int main(int argc, char *argv[])
     if (RT_FAILURE(rc))
     {
         RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-        return 1;
+        return RTEXITCODE_FAILURE;
     }
     if (cpuTest)
     {
@@ -434,13 +437,13 @@ int main(int argc, char *argv[])
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawProcessCpuLoad(RTProcSelf(), &processUserStart, &processKernelStart, &processTotalStart);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawProcessCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
 
         RTThreadSleep(5000); // Sleep for 5 seconds
@@ -449,19 +452,19 @@ int main(int argc, char *argv[])
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawHostCpuLoad(&hostUserStop, &hostKernelStop, &hostIdleStop);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawProcessCpuLoad(RTProcSelf(), &processUserStop, &processKernelStop, &processTotalStop);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawProcessCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         hostTotal = hostUserStop - hostUserStart
             + hostKernelStop - hostKernelStart
@@ -487,19 +490,19 @@ int main(int argc, char *argv[])
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawHostCpuLoad(&hostUserStart, &hostKernelStart, &hostIdleStart);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawProcessCpuLoad(RTProcSelf(), &processUserStart, &processKernelStart, &processTotalStart);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawProcessCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         start = RTTimeMilliTS();
         while (RTTimeMilliTS() - start < 5000)
@@ -508,19 +511,19 @@ int main(int argc, char *argv[])
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: preCollect() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawHostCpuLoad(&hostUserStop, &hostKernelStop, &hostIdleStop);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawHostCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         rc = collector->getRawProcessCpuLoad(RTProcSelf(), &processUserStop, &processKernelStop, &processTotalStop);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getRawProcessCpuLoad() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
         hostTotal = hostUserStop - hostUserStart
             + hostKernelStop - hostKernelStart
@@ -552,14 +555,16 @@ int main(int argc, char *argv[])
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getHostMemoryUsage() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
+
         rc = collector->getProcessMemoryUsage(RTProcSelf(), &processUsed);
         if (RT_FAILURE(rc))
         {
             RTPrintf("tstCollector: getProcessMemoryUsage() -> %Rrc\n", rc);
-            return 1;
+            return RTEXITCODE_FAILURE;
         }
+
         RTPrintf("tstCollector: host mem total     = %lu kB\n", total);
         RTPrintf("tstCollector: host mem used      = %lu kB\n", used);
         RTPrintf("tstCollector: host mem available = %lu kB\n", available);
@@ -567,15 +572,15 @@ int main(int argc, char *argv[])
     }
 
     if (netTest)
-        rc = testNetwork(collector);
+        testNetwork(collector);
     if (fsTest)
-    rc = testFsUsage(collector);
+        testFsUsage(collector);
     if (diskTest)
-        rc = testDisk(collector);
+        testDisk(collector);
+
     if (perfTest)
     {
         RTPrintf("tstCollector: TESTING - Performance\n\n");
-
         measurePerformance(collector, argv[0], 100);
     }
 

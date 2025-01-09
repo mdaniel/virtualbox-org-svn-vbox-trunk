@@ -7252,7 +7252,10 @@ HRESULT Machine::i_launchVMProcess(IInternalSessionControl *aControl,
     strAppOverride = i_getExtraData(Utf8Str("VBoxInternal2/VirtualBoxVMAppOverride"));
 #endif
 
+#if defined(VBOX_WITH_SDS) && defined(RT_OS_WINDOWS)
     bool fUseVBoxSDS = false;
+#endif
+
     Utf8Str strCanonicalName;
     if (false)
     { }
@@ -7264,7 +7267,9 @@ HRESULT Machine::i_launchVMProcess(IInternalSessionControl *aControl,
              || !strFrontend.compare("GUI/Qt/separate", Utf8Str::CaseInsensitive))
     {
         strCanonicalName = "GUI/Qt";
+# if defined(VBOX_WITH_SDS) && defined(RT_OS_WINDOWS)
         fUseVBoxSDS = true;
+# endif
     }
 #endif
 #ifdef VBOX_WITH_VBOXSDL
@@ -7274,7 +7279,9 @@ HRESULT Machine::i_launchVMProcess(IInternalSessionControl *aControl,
              || !strFrontend.compare("GUI/SDL/separate", Utf8Str::CaseInsensitive))
     {
         strCanonicalName = "GUI/SDL";
+# if defined(VBOX_WITH_SDS) && defined(RT_OS_WINDOWS)
         fUseVBoxSDS = true;
+# endif
     }
 #endif
 #ifdef VBOX_WITH_HEADLESS
@@ -7292,9 +7299,7 @@ HRESULT Machine::i_launchVMProcess(IInternalSessionControl *aControl,
     Utf8Str const &strMachineName = mUserData->s.strName;
     RTPROCESS pid = NIL_RTPROCESS;
 
-#if !defined(VBOX_WITH_SDS) || !defined(RT_OS_WINDOWS)
-    RT_NOREF(fUseVBoxSDS);
-#else
+#if defined(VBOX_WITH_SDS) && defined(RT_OS_WINDOWS)
     DWORD idCallerSession = ~(DWORD)0;
     if (fUseVBoxSDS)
     {

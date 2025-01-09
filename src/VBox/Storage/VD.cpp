@@ -894,7 +894,7 @@ static int vdDiscardRemoveBlocks(PVDISK pDisk, PVDDISCARDSTATE pDiscard, size_t 
                 idxEnd = ASMBitNextClear(pBlock->pbmAllocated, cSectors, idxStart);
                 if (idxEnd != -1)
                 {
-                    cbThis = (idxEnd - idxStart) * 512;
+                    cbThis = (size_t)(idxEnd - idxStart) * 512;
                     fAllocated = false;
                 }
             }
@@ -903,7 +903,7 @@ static int vdDiscardRemoveBlocks(PVDISK pDisk, PVDDISCARDSTATE pDiscard, size_t 
                 /* Mark as unused and check for the first set bit. */
                 idxEnd = ASMBitNextSet(pBlock->pbmAllocated, cSectors, idxStart);
                 if (idxEnd != -1)
-                    cbThis = (idxEnd - idxStart) * 512;
+                    cbThis = (size_t)(idxEnd - idxStart) * 512;
 
 
                 VDIOCTX IoCtx;
@@ -2941,7 +2941,7 @@ static int vdDiscardRemoveBlocksAsync(PVDISK pDisk, PVDIOCTX pIoCtx, size_t cbDi
                 idxEnd = ASMBitNextClear(pBlock->pbmAllocated, cSectors, idxStart);
                 if (idxEnd != -1)
                 {
-                    cbThis = (idxEnd - idxStart) * 512;
+                    cbThis = (size_t)(idxEnd - idxStart) * 512;
                     fAllocated = false;
                 }
             }
@@ -2950,7 +2950,7 @@ static int vdDiscardRemoveBlocksAsync(PVDISK pDisk, PVDIOCTX pIoCtx, size_t cbDi
                 /* Mark as unused and check for the first set bit. */
                 idxEnd = ASMBitNextSet(pBlock->pbmAllocated, cSectors, idxStart);
                 if (idxEnd != -1)
-                    cbThis = (idxEnd - idxStart) * 512;
+                    cbThis = (size_t)(idxEnd - idxStart) * 512;
 
                 rc = pDisk->pLast->Backend->pfnDiscard(pDisk->pLast->pBackendData, pIoCtx,
                                                             offStart, cbThis, NULL, NULL, &cbThis,
@@ -4070,11 +4070,11 @@ static DECLCALLBACK(int) vdIOIntWriteUser(void *pvUser, PVDIOSTORAGE pIoStorage,
         Assert(cSegments == 1);
         rc = pVDIo->pInterfaceIo->pfnWriteSync(pVDIo->pInterfaceIo->Core.pvUser,
                                               pIoStorage->pStorage, uOffset,
-                                              Seg.pvSeg, cbWrite, NULL);
+                                              Seg.pvSeg, cbTaskWrite, NULL);
         if (RT_SUCCESS(rc))
         {
-            Assert(pIoCtx->Req.Io.cbTransferLeft >= cbWrite);
-            ASMAtomicSubU32(&pIoCtx->Req.Io.cbTransferLeft, (uint32_t)cbWrite);
+            Assert(pIoCtx->Req.Io.cbTransferLeft >= cbTaskWrite);
+            ASMAtomicSubU32(&pIoCtx->Req.Io.cbTransferLeft, (uint32_t)cbTaskWrite);
         }
     }
     else
@@ -6945,13 +6945,13 @@ VBOXDDU_DECL(int) VDMerge(PVDISK pDisk, unsigned nImageFrom,
                 /* Take the write lock. */
                 rc2 = vdThreadStartWrite(pDisk);
                 AssertRC(rc2);
-                fLockWrite = true;
+                /*fLockWrite = true; No effect */
 
                 pDisk->pImageRelay = pImageTo;
 
                 rc2 = vdThreadFinishWrite(pDisk);
                 AssertRC(rc2);
-                fLockWrite = false;
+                /*fLockWrite = false; No effect */
             }
 
             /* Merge child state into parent. This means writing all blocks
@@ -7046,13 +7046,13 @@ VBOXDDU_DECL(int) VDMerge(PVDISK pDisk, unsigned nImageFrom,
                 /* Take the write lock. */
                 rc2 = vdThreadStartWrite(pDisk);
                 AssertRC(rc2);
-                fLockWrite = true;
+                /*fLockWrite = true; No effect */
 
                 pDisk->pImageRelay = NULL;
 
                 rc2 = vdThreadFinishWrite(pDisk);
                 AssertRC(rc2);
-                fLockWrite = false;
+                /*fLockWrite = false; No effect */
             }
         }
 

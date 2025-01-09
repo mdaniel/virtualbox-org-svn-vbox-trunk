@@ -1237,6 +1237,9 @@ int FsList::AddDirFromGuest(const Utf8Str &strPath, const Utf8Str &strSubDir /* 
                 default:
                     break;
             }
+
+            if (RT_FAILURE(vrc))
+                break;
         }
 
         if (   vrc      == VERR_GSTCTL_GUEST_ERROR

@@ -187,7 +187,7 @@ void CloudClient::stopCloudGateway(const GatewayInfo& gateway)
 
 HRESULT startCloudGateway(ComPtr<IVirtualBox> virtualBox, ComPtr<ICloudNetwork> network, GatewayInfo& gateway)
 {
-    HRESULT hrc = S_OK;
+    HRESULT hrc;
 
     try
     {

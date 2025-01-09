@@ -151,8 +151,6 @@ void EmWebcam::EmWebcamDestruct(EMWEBCAMDRV *pDrv)
 
 void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbData)
 {
-    int vrc = VINF_SUCCESS;
-
     switch (u32Id)
     {
         case VRDE_VIDEOIN_NOTIFY_ID_ATTACH:
@@ -177,16 +175,12 @@ void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbD
             if (mpRemote)
             {
                 AssertFailed();
-                vrc = VERR_NOT_SUPPORTED;
                 break;
             }
 
             EMWEBCAMREMOTE *pRemote = (EMWEBCAMREMOTE *)RTMemAllocZ(sizeof(EMWEBCAMREMOTE));
             if (pRemote == NULL)
-            {
-                vrc = VERR_NO_MEMORY;
                 break;
-            }
 
             pRemote->pEmWebcam        = this;
             pRemote->deviceHandle     = p->deviceHandle;
@@ -199,7 +193,7 @@ void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbD
             mpRemote = pRemote;
 
             /* Tell the server that this webcam will be used. */
-            vrc = mParent->VideoInDeviceAttach(&mpRemote->deviceHandle, mpRemote);
+            int vrc = mParent->VideoInDeviceAttach(&mpRemote->deviceHandle, mpRemote);
             if (RT_FAILURE(vrc))
             {
                 RTMemFree(mpRemote);
@@ -209,7 +203,6 @@ void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbD
 
             /* Get the device description. */
             vrc = mParent->VideoInGetDeviceDesc(NULL, &mpRemote->deviceHandle);
-
             if (RT_FAILURE(vrc))
             {
                 mParent->VideoInDeviceDetach(&mpRemote->deviceHandle);
@@ -219,7 +212,8 @@ void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbD
             }
 
             LogFlowFunc(("sent DeviceDesc\n"));
-        } break;
+            break;
+        }
 
         case VRDE_VIDEOIN_NOTIFY_ID_DETACH:
         {
@@ -235,10 +229,11 @@ void EmWebcam::EmWebcamCbNotify(uint32_t u32Id, const void *pvData, uint32_t cbD
                     mpDrv->pIWebcamUp->pfnDetached(mpDrv->pIWebcamUp, mpRemote->u64DeviceId);
                 /* mpRemote is deallocated in EmWebcamDestruct */
             }
-        } break;
+
+            break;
+        }
 
         default:
-            vrc = VERR_INVALID_PARAMETER;
             AssertFailed();
             break;
     }

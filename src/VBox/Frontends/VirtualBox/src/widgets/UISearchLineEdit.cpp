@@ -102,19 +102,11 @@ void UISearchLineEdit::reset()
 
 void UISearchLineEdit::colorBackground(bool fWarning)
 {
-    QPalette mPalette = QApplication::palette();
-    /** Make sure we reset color. */
+    /** Make sure we reset color: */
+    QPalette pal = QApplication::palette();
     if (!fWarning || !m_fMark)
-    {
-        mPalette.setColor(QPalette::Base, m_unmarkColor);
-        setPalette(mPalette);
-        return;
-    }
-
-    if (m_fMark && fWarning)
-    {
-        mPalette.setColor(QPalette::Base, m_markColor);
-        setPalette(mPalette);
-        return;
-    }
+        pal.setColor(QPalette::Base, m_unmarkColor);
+    else
+        pal.setColor(QPalette::Base, m_markColor);
+    setPalette(pal);
 }

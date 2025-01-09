@@ -1232,13 +1232,12 @@ int NvramStore::i_saveStore(void)
                     vrc = i_setupEncryptionOrDecryption(hVfsIosDst, true /*fEncrypt*/,
                                                         &pCryptoIf, &pKey, &hVfsIosEncrypted);
 #endif
-
-                vrc = RTVfsUtilPumpIoStreams(hVfsIosSrc,
-                                               hVfsIosEncrypted != NIL_RTVFSIOSTREAM
-                                             ? hVfsIosEncrypted
-                                             : hVfsIosDst
-                                             , 0 /*cbBufHint*/);
-
+                if (RT_SUCCESS(vrc))
+                    vrc = RTVfsUtilPumpIoStreams(hVfsIosSrc,
+                                                   hVfsIosEncrypted != NIL_RTVFSIOSTREAM
+                                                 ? hVfsIosEncrypted
+                                                 : hVfsIosDst
+                                                 , 0 /*cbBufHint*/);
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
                 if (hVfsIosEncrypted != NIL_RTVFSIOSTREAM)
                     i_releaseEncryptionOrDecryptionResources(hVfsIosEncrypted, pCryptoIf, pKey);

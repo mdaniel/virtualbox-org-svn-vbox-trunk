@@ -1161,12 +1161,14 @@ DECLCALLBACK(int) VMMDev::drvConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uint3
             parm.u.pointer.size = sizeof(*pLed);
 
             vrc = HGCMHostCall("VBoxSharedFolders", SHFL_FN_SET_STATUS_LED, 1, &parm);
+            if (RT_FAILURE(vrc))
+                LogRel(("Warning: Cannot set Shared Folders status LED! vrc=%Rrc\n", vrc));
         }
         else
             AssertMsgFailed(("pfnQueryStatusLed failed with %Rrc (pLed=%x)\n", vrc, pLed));
     }
     else
-        LogRel(("Failed to load Shared Folders service %Rrc\n", vrc));
+        LogRel(("Failed to load Shared Folders service! vrc=%Rrc\n", vrc));
 
 
     /*
@@ -1185,7 +1187,7 @@ DECLCALLBACK(int) VMMDev::drvConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uint3
             LogRel(("Warning: Cannot register VBoxGuestControlSvc extension! vrc=%Rrc\n", vrc));
     }
     else
-        LogRel(("Warning!: Failed to load the Guest Control Service! %Rrc\n", vrc));
+        LogRel(("Warning!: Failed to load the Guest Control Service! vrc=%Rrc\n", vrc));
 # endif /* VBOX_WITH_GUEST_CONTROL */
 
 

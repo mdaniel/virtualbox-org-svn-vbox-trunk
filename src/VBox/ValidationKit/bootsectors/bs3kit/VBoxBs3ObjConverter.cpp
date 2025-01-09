@@ -4922,11 +4922,7 @@ static bool convertOmfWriteDebugData(POMFWRITER pThis, POMFDETAILS pOmfStuff)
             uint32_t cbSectionCovered = 0;
             uint32_t j = pSegLines->cFiles;
             while (j-- > 0)
-            {
-                uint32_t offLast = pSegLines->paFiles[j].paPairs[pSegLines->paFiles[j].cPairs - 1].offSection;
-                if (offLast > cbSectionCovered)
-                    offLast = cbSectionCovered;
-            }
+                pSegLines->paFiles[j].paPairs[pSegLines->paFiles[j].cPairs - 1].offSection;
 
             /* For simplicity and debuggability, just split the LEDATA here. */
             if (   !omfWriter_LEDataSplit(pThis)

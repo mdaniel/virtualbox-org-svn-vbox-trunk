@@ -294,6 +294,9 @@ static const struct file_operations vbox_fops = {
 	.compat_ioctl = drm_compat_ioctl,
 #endif
 	.read = drm_read,
+#if RTLNX_VER_MIN(6,12,0)
+	.fop_flags = FOP_UNSIGNED_OFFSET,
+#endif
 };
 
 #if RTLNX_VER_MIN(5,9,0) || RTLNX_RHEL_MIN(8,4) || RTLNX_SUSE_MAJ_PREREQ(15,3)

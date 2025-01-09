@@ -73,13 +73,13 @@ int main()
 
     uint64_t cbTotal;
     rc = RTSystemQueryTotalRam(&cbTotal);
-    RTTestIPrintf(RTTESTLVL_ALWAYS, "Total RAM: %'RU64 Bytes (%RU64 KB, %RU64 MB)\n",
-                  cbTotal, cbTotal / _1K, cbTotal / _1M);
+    RTTestIPrintf(RTTESTLVL_ALWAYS, "Total RAM: %'RU64 Bytes (%RU64 KB, %RU64 MB), rc=%Rrc\n",
+                  cbTotal, cbTotal / _1K, cbTotal / _1M, rc);
 
     uint64_t cbAvailable;
     rc = RTSystemQueryAvailableRam(&cbAvailable);
-    RTTestIPrintf(RTTESTLVL_ALWAYS, "Available RAM: %'RU64 Bytes (%RU64 KB, %RU64 MB)\n",
-                  cbAvailable, cbAvailable / _1K, cbAvailable / _1M);
+    RTTestIPrintf(RTTESTLVL_ALWAYS, "Available RAM: %'RU64 Bytes (%RU64 KB, %RU64 MB), rc=%Rrc\n",
+                  cbAvailable, cbAvailable / _1K, cbAvailable / _1M, rc);
 
     /*
      * Check that unsupported stuff is terminated correctly.

@@ -957,11 +957,16 @@ HRESULT  NATNetwork::start()
          * and we calculate it's addreses (mutable?).
          */
 
+        /** @todo r=aeichner This comment doen't seem to reflect reality
+         *                   When FindDHCPServerByNetworkName() returns E_INVALIDARG
+         *                   a new DHCP server is created while the comment states that
+         *                   the server should already exist... */
+        /** @todo r=aeichner Returning an error should set an error message! */
         /*
          * Configuration and running DHCP server:
          * 1. find server first createDHCPServer
-         * 2. if return status is E_INVALARG => server already exists just find and start.
-         * 3. if return status neither E_INVALRG nor S_OK => return E_FAIL
+         * 2. if return status is E_INVALIDARG => server already exists just find and start.
+         * 3. if return status neither E_INVALIDARG nor S_OK => return E_FAIL
          * 4. if return status S_OK proceed to DHCP server configuration
          * 5. call setConfiguration() and pass all required parameters
          * 6. start dhcp server.
@@ -971,13 +976,6 @@ HRESULT  NATNetwork::start()
         switch (hrc)
         {
             case E_INVALIDARG:
-                /* server haven't beeen found let create it then */
-                hrc = m->pVirtualBox->CreateDHCPServer(Bstr(m->s.strNetworkName).raw(),
-                                                       m->dhcpServer.asOutParam());
-                if (FAILED(hrc))
-                  return E_FAIL;
-                /* breakthrough */
-
             {
                 LogFunc(("gateway: %s, dhcpserver:%s, dhcplowerip:%s, dhcpupperip:%s\n",
                          m->IPv4Gateway.c_str(),
@@ -985,12 +983,25 @@ HRESULT  NATNetwork::start()
                          m->IPv4DhcpServerLowerIp.c_str(),
                          m->IPv4DhcpServerUpperIp.c_str()));
 
+                /* server haven't beeen found let create it then */
+                hrc = m->pVirtualBox->CreateDHCPServer(Bstr(m->s.strNetworkName).raw(),
+                                                       m->dhcpServer.asOutParam());
+                if (FAILED(hrc))
+                  return E_FAIL;
+
                 hrc = m->dhcpServer->COMSETTER(Enabled)(true);
+                if (FAILED(hrc))
+                  return setError(hrc, tr("Failed to enable DHCP server for network '%s'"),
+                                          m->s.strNetworkName.c_str());
 
                 hrc = m->dhcpServer->SetConfiguration(Bstr(m->IPv4DhcpServer).raw(),
                                                       Bstr(m->IPv4NetworkMask).raw(),
                                                       Bstr(m->IPv4DhcpServerLowerIp).raw(),
                                                       Bstr(m->IPv4DhcpServerUpperIp).raw());
+                if (FAILED(hrc))
+                  return setError(hrc, tr("Failed to set DHCP server configuration for network '%s'"),
+                                          m->s.strNetworkName.c_str());
+
                 break;
             }
             case S_OK:

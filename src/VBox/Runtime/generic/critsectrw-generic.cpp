@@ -614,8 +614,7 @@ static int rtCritSectRwEnterExcl(PRTCRITSECTRW pThis, PCRTLOCKVALSRCPOS pSrcPos,
 
     for (;;)
     {
-        if (   (u64State & RTCSRW_DIR_MASK) == (RTCSRW_DIR_WRITE << RTCSRW_DIR_SHIFT)
-            || (u64State & (RTCSRW_CNT_RD_MASK | RTCSRW_CNT_WR_MASK)) != 0)
+        if ((u64State & RTCSRW_DIR_MASK) == (RTCSRW_DIR_WRITE << RTCSRW_DIR_SHIFT))
         {
             /* It flows in the right direction, try follow it before it changes. */
             uint64_t c = (u64State & RTCSRW_CNT_WR_MASK) >> RTCSRW_CNT_WR_SHIFT;

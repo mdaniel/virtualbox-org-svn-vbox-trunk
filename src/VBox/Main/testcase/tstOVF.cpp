@@ -99,24 +99,24 @@ static void importOVF(const char *pcszPrefix,
 
     RTPrintf("%s: reading appliance \"%s\"...\n", pcszPrefix, szAbsOVF);
     ComPtr<IAppliance> pAppl;
-    HRESULT rc = pVirtualBox->CreateAppliance(pAppl.asOutParam());
-    if (FAILED(rc)) throw MyError(rc, "failed to create appliance\n");
+    HRESULT hrc = pVirtualBox->CreateAppliance(pAppl.asOutParam());
+    if (FAILED(hrc)) throw MyError(hrc, "failed to create appliance\n");
 
     ComPtr<IProgress> pProgress;
-    rc = pAppl->Read(Bstr(szAbsOVF).raw(), pProgress.asOutParam());
-    if (FAILED(rc)) throw MyError(rc, "Appliance::Read() failed\n");
-    rc = pProgress->WaitForCompletion(-1);
-    if (FAILED(rc)) throw MyError(rc, "Progress::WaitForCompletion() failed\n");
+    hrc = pAppl->Read(Bstr(szAbsOVF).raw(), pProgress.asOutParam());
+    if (FAILED(hrc)) throw MyError(hrc, "Appliance::Read() failed\n");
+    hrc = pProgress->WaitForCompletion(-1);
+    if (FAILED(hrc)) throw MyError(hrc, "Progress::WaitForCompletion() failed\n");
     LONG rc2;
     pProgress->COMGETTER(ResultCode)(&rc2);
     if (FAILED(rc2)) throw MyError(rc2, "Appliance::Read() failed\n", pProgress);
 
     RTPrintf("%s: interpreting appliance \"%s\"...\n", pcszPrefix, szAbsOVF);
-    rc = pAppl->Interpret();
-    if (FAILED(rc)) throw MyError(rc, "Appliance::Interpret() failed\n");
+    hrc = pAppl->Interpret();
+    if (FAILED(hrc)) throw MyError(hrc, "Appliance::Interpret() failed\n");
 
     com::SafeIfaceArray<IVirtualSystemDescription> aDescriptions;
-    rc = pAppl->COMGETTER(VirtualSystemDescriptions)(ComSafeArrayAsOutParam(aDescriptions));
+    hrc = pAppl->COMGETTER(VirtualSystemDescriptions)(ComSafeArrayAsOutParam(aDescriptions));
     for (uint32_t u = 0;
          u < aDescriptions.size();
          ++u)
@@ -128,12 +128,12 @@ static void importOVF(const char *pcszPrefix,
         com::SafeArray<BSTR> aOvfValues;
         com::SafeArray<BSTR> aVBoxValues;
         com::SafeArray<BSTR> aExtraConfigValues;
-        rc = pVSys->GetDescription(ComSafeArrayAsOutParam(aTypes),
+        hrc = pVSys->GetDescription(ComSafeArrayAsOutParam(aTypes),
                                    ComSafeArrayAsOutParam(aRefs),
                                    ComSafeArrayAsOutParam(aOvfValues),
                                    ComSafeArrayAsOutParam(aVBoxValues),
                                    ComSafeArrayAsOutParam(aExtraConfigValues));
-        if (FAILED(rc)) throw MyError(rc, "VirtualSystemDescription::GetDescription() failed\n");
+        if (FAILED(hrc)) throw MyError(hrc, "VirtualSystemDescription::GetDescription() failed\n");
 
         for (uint32_t u2 = 0;
              u2 < aTypes.size();
@@ -263,16 +263,16 @@ static void importOVF(const char *pcszPrefix,
 
     RTPrintf("%s: importing %d machine(s)...\n", pcszPrefix, aDescriptions.size());
     SafeArray<ImportOptions_T> sfaOptions;
-    rc = pAppl->ImportMachines(ComSafeArrayAsInParam(sfaOptions), pProgress.asOutParam());
-    if (FAILED(rc)) throw MyError(rc, "Appliance::ImportMachines() failed\n");
-    rc = pProgress->WaitForCompletion(-1);
-    if (FAILED(rc)) throw MyError(rc, "Progress::WaitForCompletion() failed\n");
+    hrc = pAppl->ImportMachines(ComSafeArrayAsInParam(sfaOptions), pProgress.asOutParam());
+    if (FAILED(hrc)) throw MyError(hrc, "Appliance::ImportMachines() failed\n");
+    hrc = pProgress->WaitForCompletion(-1);
+    if (FAILED(hrc)) throw MyError(hrc, "Progress::WaitForCompletion() failed\n");
     pProgress->COMGETTER(ResultCode)(&rc2);
     if (FAILED(rc2)) throw MyError(rc2, "Appliance::ImportMachines() failed\n", pProgress);
 
     com::SafeArray<BSTR> aMachineUUIDs;
-    rc = pAppl->COMGETTER(Machines)(ComSafeArrayAsOutParam(aMachineUUIDs));
-    if (FAILED(rc)) throw MyError(rc, "Appliance::GetMachines() failed\n");
+    hrc = pAppl->COMGETTER(Machines)(ComSafeArrayAsOutParam(aMachineUUIDs));
+    if (FAILED(hrc)) throw MyError(hrc, "Appliance::GetMachines() failed\n");
 
     for (size_t u = 0;
          u < aMachineUUIDs.size();
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
      * */
 
     RTEXITCODE rcExit = RTEXITCODE_SUCCESS;
-    HRESULT rc = S_OK;
+    HRESULT hrc = S_OK;
 
     std::list<Utf8Str> llFiles2Delete;
     std::list<Guid> llMachinesCreated;
@@ -345,19 +345,19 @@ int main(int argc, char *argv[])
     try
     {
         RTPrintf("Initializing COM...\n");
-        rc = com::Initialize();
-        if (FAILED(rc)) throw MyError(rc, "failed to initialize COM!\n");
+        hrc = com::Initialize();
+        if (FAILED(hrc)) throw MyError(hrc, "failed to initialize COM!\n");
 
         ComPtr<ISession> pSession;
 
         RTPrintf("Creating VirtualBox object...\n");
-        rc = pVirtualBoxClient.createInprocObject(CLSID_VirtualBoxClient);
-        if (SUCCEEDED(rc))
-            rc = pVirtualBoxClient->COMGETTER(VirtualBox)(pVirtualBox.asOutParam());
-        if (FAILED(rc)) throw MyError(rc, "failed to create the VirtualBox object!\n");
+        hrc = pVirtualBoxClient.createInprocObject(CLSID_VirtualBoxClient);
+        if (SUCCEEDED(hrc))
+            hrc = pVirtualBoxClient->COMGETTER(VirtualBox)(pVirtualBox.asOutParam());
+        if (FAILED(hrc)) throw MyError(hrc, "failed to create the VirtualBox object!\n");
 
-        rc = pSession.createInprocObject(CLSID_Session);
-        if (FAILED(rc)) throw MyError(rc, "failed to create a session object!\n");
+        hrc = pSession.createInprocObject(CLSID_Session);
+        if (FAILED(hrc)) throw MyError(hrc, "failed to create a session object!\n");
 
         // for each testcase, we will copy the dummy VMDK image to the subdirectory with the OVF testcase
         // so that the import will find the disks it expects; this is just for testing the import since
@@ -381,7 +381,6 @@ int main(int argc, char *argv[])
     }
     catch (MyError &e)
     {
-        rc = e.m_rc;
         RTPrintf("%s", e.m_str.c_str());
         rcExit = RTEXITCODE_FAILURE;
     }
@@ -396,25 +395,24 @@ int main(int argc, char *argv[])
             const Guid &uuid = *it;
             Bstr bstrUUID(uuid.toUtf16());
             ComPtr<IMachine> pMachine;
-            rc = pVirtualBox->FindMachine(bstrUUID.raw(), pMachine.asOutParam());
-            if (FAILED(rc)) throw MyError(rc, "VirtualBox::FindMachine() failed\n");
+            hrc = pVirtualBox->FindMachine(bstrUUID.raw(), pMachine.asOutParam());
+            if (FAILED(hrc)) throw MyError(hrc, "VirtualBox::FindMachine() failed\n");
 
             RTPrintf("  Deleting machine %ls...\n", bstrUUID.raw());
             SafeIfaceArray<IMedium> sfaMedia;
-            rc = pMachine->Unregister(CleanupMode_DetachAllReturnHardDisksOnly,
+            hrc = pMachine->Unregister(CleanupMode_DetachAllReturnHardDisksOnly,
                                       ComSafeArrayAsOutParam(sfaMedia));
-            if (FAILED(rc)) throw MyError(rc, "Machine::Unregister() failed\n");
+            if (FAILED(hrc)) throw MyError(hrc, "Machine::Unregister() failed\n");
 
             ComPtr<IProgress> pProgress;
-            rc = pMachine->DeleteConfig(ComSafeArrayAsInParam(sfaMedia), pProgress.asOutParam());
-            if (FAILED(rc)) throw MyError(rc, "Machine::DeleteSettings() failed\n");
-            rc = pProgress->WaitForCompletion(-1);
-            if (FAILED(rc)) throw MyError(rc, "Progress::WaitForCompletion() failed\n");
+            hrc = pMachine->DeleteConfig(ComSafeArrayAsInParam(sfaMedia), pProgress.asOutParam());
+            if (FAILED(hrc)) throw MyError(hrc, "Machine::DeleteSettings() failed\n");
+            hrc = pProgress->WaitForCompletion(-1);
+            if (FAILED(hrc)) throw MyError(hrc, "Progress::WaitForCompletion() failed\n");
         }
     }
     catch (MyError &e)
     {
-        rc = e.m_rc;
         RTPrintf("%s", e.m_str.c_str());
         rcExit = RTEXITCODE_FAILURE;
     }

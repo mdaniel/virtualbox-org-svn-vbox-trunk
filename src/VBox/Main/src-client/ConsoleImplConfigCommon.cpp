@@ -853,47 +853,53 @@ int Console::i_configDumpAPISettingsTweaks(IVirtualBox *pVirtualBox, IMachine *p
     {
         SafeArray<BSTR> aGlobalExtraDataKeys;
         HRESULT hrc = pVirtualBox->GetExtraDataKeys(ComSafeArrayAsOutParam(aGlobalExtraDataKeys));
-        AssertMsg(SUCCEEDED(hrc), ("VirtualBox::GetExtraDataKeys failed with %Rhrc\n", hrc));
-        bool hasKey = false;
-        for (size_t i = 0; i < aGlobalExtraDataKeys.size(); i++)
+        if (SUCCEEDED(hrc))
         {
-            Utf8Str strKey(aGlobalExtraDataKeys[i]);
-            if (!strKey.startsWith("VBoxInternal2/"))
-                continue;
+            bool hasKey = false;
+            for (size_t i = 0; i < aGlobalExtraDataKeys.size(); i++)
+            {
+                Utf8Str strKey(aGlobalExtraDataKeys[i]);
+                if (!strKey.startsWith("VBoxInternal2/"))
+                    continue;
 
-            Bstr bstrValue;
-            hrc = pVirtualBox->GetExtraData(Bstr(strKey).raw(),
-                                            bstrValue.asOutParam());
-            if (FAILED(hrc))
-                continue;
-            if (!hasKey)
-                LogRel(("Global extradata API settings:\n"));
-            LogRel(("  %s=\"%ls\"\n", strKey.c_str(), bstrValue.raw()));
-            hasKey = true;
+                Bstr bstrValue;
+                hrc = pVirtualBox->GetExtraData(Bstr(strKey).raw(), bstrValue.asOutParam());
+                if (FAILED(hrc))
+                    continue;
+                if (!hasKey)
+                    LogRel(("Global extradata API settings:\n"));
+                LogRel(("  %s=\"%ls\"\n", strKey.c_str(), bstrValue.raw()));
+                hasKey = true;
+            }
         }
+        else
+            AssertMsgFailed(("VirtualBox::GetExtraDataKeys failed with %Rhrc\n", hrc));
     }
 
     {
         SafeArray<BSTR> aMachineExtraDataKeys;
         HRESULT hrc = pMachine->GetExtraDataKeys(ComSafeArrayAsOutParam(aMachineExtraDataKeys));
-        AssertMsg(SUCCEEDED(hrc), ("Machine::GetExtraDataKeys failed with %Rhrc\n", hrc));
-        bool hasKey = false;
-        for (size_t i = 0; i < aMachineExtraDataKeys.size(); i++)
+        if (SUCCEEDED(hrc))
         {
-            Utf8Str strKey(aMachineExtraDataKeys[i]);
-            if (!strKey.startsWith("VBoxInternal2/"))
-                continue;
+            bool hasKey = false;
+            for (size_t i = 0; i < aMachineExtraDataKeys.size(); i++)
+            {
+                Utf8Str strKey(aMachineExtraDataKeys[i]);
+                if (!strKey.startsWith("VBoxInternal2/"))
+                    continue;
 
-            Bstr bstrValue;
-            hrc = pMachine->GetExtraData(Bstr(strKey).raw(),
-                                         bstrValue.asOutParam());
-            if (FAILED(hrc))
-                continue;
-            if (!hasKey)
-                LogRel(("Per-VM extradata API settings:\n"));
-            LogRel(("  %s=\"%ls\"\n", strKey.c_str(), bstrValue.raw()));
-            hasKey = true;
+                Bstr bstrValue;
+                hrc = pMachine->GetExtraData(Bstr(strKey).raw(), bstrValue.asOutParam());
+                if (FAILED(hrc))
+                    continue;
+                if (!hasKey)
+                    LogRel(("Per-VM extradata API settings:\n"));
+                LogRel(("  %s=\"%ls\"\n", strKey.c_str(), bstrValue.raw()));
+                hasKey = true;
+            }
         }
+        else
+            AssertMsgFailed(("Machine::GetExtraDataKeys failed with %Rhrc\n", hrc));
     }
 
     return VINF_SUCCESS;

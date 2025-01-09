@@ -2089,7 +2089,7 @@ void UIMessageCenter::sltShowOracle()
 
 void UIMessageCenter::sltShowOnlineDocumentation()
 {
-    uiCommon().openURL("https://docs.oracle.com/en/virtualization/virtualbox/7.0/user/index.html");
+    uiCommon().openURL("https://docs.oracle.com/en/virtualization/virtualbox/7.1/user/index.html");
 }
 
 void UIMessageCenter::sltShowHelpAboutDialog()

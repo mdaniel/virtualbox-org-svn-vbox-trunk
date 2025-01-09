@@ -2134,6 +2134,8 @@ static RTEXITCODE vbcppMacroExpandValueWithArguments(PVBCPP pThis, PVBCPPMACROEX
                     break;
                 }
             }
+            if (rcExit != RTEXITCODE_SUCCESS)
+                break;
             rcExit = vbcppStrBufAppendN(pStrBuf, pszSrcSeq, pszSrc - pszSrcSeq);
         }
         else if (RT_C_IS_DIGIT(ch))

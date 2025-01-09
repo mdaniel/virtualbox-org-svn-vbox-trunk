@@ -1578,7 +1578,7 @@ static bool mapParseAddress(char **ppszCursor, PRTFAR16 pAddr)
         if (RT_C_IS_XDIGIT(szWord[cchAddr]))
             return false;
         szWord[cchAddr] = '\0';
-        cchWord = cchAddr;
+        /* unused: cchWord = cchAddr; */
     }
 
     /* Convert it. */

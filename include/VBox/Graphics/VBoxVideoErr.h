@@ -73,4 +73,36 @@ extern int vbox_assert_var[1];
 
 /** @}  */
 
+/** @def RT_BCOPY_UNFORTIFIED
+ * For copying a number of bytes from/to variable length structures.
+ *
+ * This is for working around false positives ("field-spanning writes") in the
+ * linux kernel's fortified memcpy (v5.18+) when copying from/to
+ * RT_FLEXIBLE_ARRAY fields and similar tricks going beyond the strict
+ * definition of a target or source structure.
+ *
+ * @param   a_pDst          Pointer to the destination buffer.
+ * @param   a_pSrc          Pointer to the source buffer.
+ * @param   a_cbToCopy      Number of bytes to copy.
+ * @see @bugref{10209}, @ticketref{21410}
+ */
+#if defined(RT_OS_LINUX) && defined(__KERNEL__)
+/* The definition of RT_BCOPY_UNFORTIFIED macro originally comes from IPRT
+ * header file. However, due to vboxvideo (Linux/DRM module) implementation,
+ * those header files cannot be used directly. Therefore, let's duplicate this
+ * definition here. Following vbox_drv.h header file is a part of
+ * vboxvideo sources, so this code block is only intended to be used from there. */
+# include "vbox_drv.h"
+# if (RTLNX_VER_MIN(5,18,0) || RTLNX_RHEL_RANGE(9,3, 9,99)) \
+  && !defined(__NO_FORTIFY) \
+  && defined(__OPTIMIZE__) \
+  && defined(CONFIG_FORTIFY_SOURCE)
+#  define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)  __underlying_memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+# else
+#  define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)  memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+# endif
+#else  /* !RT_OS_LINUX && !__KERNEL__ */
+# define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)   memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+#endif /* !RT_OS_LINUX && !__KERNEL__ */
+
 #endif /* !VBOX_INCLUDED_Graphics_VBoxVideoErr_h */

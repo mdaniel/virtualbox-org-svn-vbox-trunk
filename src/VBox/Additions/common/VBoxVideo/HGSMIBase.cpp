@@ -232,7 +232,7 @@ DECLHIDDEN(int)  VBoxHGSMIUpdatePointerShape(PHGSMIGUESTCOMMANDCONTEXT pCtx, uin
     p->u32Height = cHeight;
     if (cbPixels)
         /* Copy the actual pointer data. */
-        memcpy (p->au8Data, pPixels, cbPixels);
+        RT_BCOPY_UNFORTIFIED(p->au8Data, pPixels, cbPixels);
     /* No need to check that the buffer is valid as we have just allocated it. */
     VBoxHGSMIBufferSubmit(pCtx, p);
     rc = p->i32Result;

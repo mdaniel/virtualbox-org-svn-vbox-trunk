@@ -44,6 +44,7 @@ endif
 ifneq ($(VBOX_BUILD),)
 
 VBOXMOD_NAME = vboxvideo
+VBOXMOD_CFLAGS = -DRT_OS_LINUX
 VBOXMOD_OBJS = \
 	hgsmi_base.o \
 	modesetting.o \

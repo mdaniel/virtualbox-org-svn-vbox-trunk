@@ -2567,7 +2567,9 @@ int GuestSession::i_onFsNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOS
     try
     {
         GuestWaitEventPayload evPayload(dataCb.uType, &dataCb, sizeof(dataCb));
-        vrc = signalWaitEventInternal(pCbCtx, dataCb.rc, &evPayload);
+        int const vrc2 = signalWaitEventInternal(pCbCtx, dataCb.rc, &evPayload);
+        if (RT_SUCCESS(vrc))
+            vrc = vrc2;
     }
     catch (int vrcEx) /* Thrown by GuestWaitEventPayload constructor. */
     {

@@ -3395,6 +3395,22 @@ int cpumR3InitCpuIdAndMsrs(PVM pVM, PCCPUMMSRS pHostMsrs)
     LogRel(("CPUM: MXCSR_MASK=%#x\n", pCpum->GuestInfo.fMxCsrMask));
 #endif
 
+    /** @cfgm{/CPUM/GuestMicrocodeRev,32-bit}
+     * CPU microcode revision number to use.  If UINT32_MAX we use the host
+     * revision of the host CPU for the host-cpu profile and the database entry if a
+     * specific one is selected (amd64 host only). */
+    rc = CFGMR3QueryU32Def(pCpumCfg, "GuestMicrocodeRevision", &pCpum->GuestInfo.uMicrocodeRevision, UINT32_MAX);
+    AssertLogRelRCReturn(rc, rc);
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    if (   pCpum->GuestInfo.uMicrocodeRevision == UINT32_MAX
+        && strcmp(Config.szCpuName, "host") == 0)
+    {
+        rc = SUPR3QueryMicrocodeRev(&pCpum->GuestInfo.uMicrocodeRevision);
+        if (RT_FAILURE(rc))
+            pCpum->GuestInfo.uMicrocodeRevision = UINT32_MAX;
+    }
+#endif
+
     /** @cfgm{/CPUM/MSRs/[Name]/[First|Last|Type|Value|...],}
      * Overrides the guest MSRs.
      */

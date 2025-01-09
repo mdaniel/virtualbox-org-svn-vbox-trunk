@@ -1594,9 +1594,10 @@ STDMETHODIMP EventSourceAggregator::UnregisterListener(IEventListener *aListener
          ++it)
     {
         ComPtr<IEventSource> es = *it;
-        hrc = es->UnregisterListener(proxy);
+        es->UnregisterListener(proxy);
     }
-    hrc = mSource->UnregisterListener(aListener);
+
+    mSource->UnregisterListener(aListener);
 
     return removeProxyListener(aListener);
 

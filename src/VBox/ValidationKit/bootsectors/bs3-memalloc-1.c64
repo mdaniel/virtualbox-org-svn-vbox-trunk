@@ -259,7 +259,7 @@ BS3_DECL(void) Main_lm64()
                 {
                     uint64_t const  nsStart       = Bs3TestNow();
                     uint64_t const  uTscStart     = ASMReadTSC();
-                    uint64_t const  cErrors       = CheckTouchedMemory();
+                    /* Unused: uint64_t const  cErrors       = CheckTouchedMemory(); */
                     uint64_t const  cTicksElapsed = ASMReadTSC() - uTscStart;
                     uint64_t const  cNsElapsed    = Bs3TestNow() - nsStart;
                     uint64_t uThruput;

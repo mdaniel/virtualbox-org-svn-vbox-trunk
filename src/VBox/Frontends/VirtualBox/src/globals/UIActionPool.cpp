@@ -3547,6 +3547,10 @@ void UIActionPool::sltRetranslateUI()
 
 bool UIActionPool::addAction(UIMenu *pMenu, UIAction *pAction, bool fReallyAdd /* = true */)
 {
+    /* Sanity check: */
+    AssertPtrReturn(pMenu, false);
+    AssertPtrReturn(pAction, false);
+
     /* Check if action is allowed: */
     const bool fIsActionAllowed = pAction->isAllowed();
 
@@ -3675,6 +3679,9 @@ void UIActionPool::updateMenuApplication()
     /* 'Close' action: */
     fSeparator = addAction(pMenu, action(UIActionIndex_M_Application_S_Close)) || fSeparator;
 
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
+
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndex_M_Application);
 }
@@ -3741,6 +3748,9 @@ void UIActionPool::updateMenuHelp()
     fSeparator = addAction(pMenu, action(UIActionIndex_Simple_About)) || fSeparator;
 #endif
 
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
+
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndex_Menu_Help);
 }
@@ -3800,6 +3810,9 @@ void UIActionPool::updateMenuLogViewerWrapper(UIMenu *pMenu)
     /* 'Refresh' action: */
     fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_S_Refresh)) || fSeparator;
     fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_S_Reload)) || fSeparator;
+
+    /* Remove if fSeparator is used: */
+    Q_UNUSED(fSeparator);
 }
 
 void UIActionPool::updateMenuVMActivityMonitor()

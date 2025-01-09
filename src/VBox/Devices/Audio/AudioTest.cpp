@@ -2808,8 +2808,9 @@ static int audioTestVerifyTestToneData(PAUDIOTESTVERIFYJOB pVerJob, PAUDIOTESTOB
     if (pVerJob->Opts.fNormalize)
     {
         rc = audioTestObjFileNormalize(pVerJob, &ObjA, &pVerJob->PCMProps);
-        if (RT_SUCCESS(rc))
-            rc = audioTestObjFileNormalize(pVerJob, &ObjB, &pVerJob->PCMProps);
+        CHECK_RC_MSG_MAYBE_RET(rc, pVerJob, "Normalizing object A failed");
+        rc = audioTestObjFileNormalize(pVerJob, &ObjB, &pVerJob->PCMProps);
+        CHECK_RC_MSG_MAYBE_RET(rc, pVerJob, "Normalizing object B failed");
     }
 
     /** @todo For now we only support comparison of data which do have identical PCM properties! */

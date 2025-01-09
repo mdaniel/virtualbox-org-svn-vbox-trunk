@@ -364,7 +364,8 @@ static int atapiTrackListUpdateFromFormattedToc(PTRACKLIST pTrackList, uint8_t i
 static int atapiTrackListUpdateFromReadTocPmaAtip(PTRACKLIST pTrackList, const uint8_t *pbCDB, const void *pvBuf, size_t cbBuf)
 {
     int rc;
-    uint16_t cbBuffer = (uint16_t)RT_MIN(scsiBE2H_U16(&pbCDB[7]), cbBuf);
+    size_t const cbBufMaxGst = scsiBE2H_U16(&pbCDB[7]);
+    uint16_t cbBuffer = (uint16_t)RT_MIN(cbBufMaxGst, cbBuf);
     bool fMSF = (pbCDB[1] & 0x2) != 0;
     uint8_t uFmt = pbCDB[2] & 0xf;
     uint8_t iTrack = pbCDB[6];
@@ -705,7 +706,6 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
                                           PDMMEDIATXDIR *penmTxDir, size_t *pcbXfer,
                                           size_t *pcbSector, uint8_t *pu8ScsiSts)
 {
-    uint32_t uLba = 0;
     uint32_t cSectors = 0;
     size_t cbSector = 0;
     size_t cbXfer = 0;
@@ -739,7 +739,6 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             fPassthrough = true;
             break;
         case SCSI_ERASE_10:
-            uLba = scsiBE2H_U32(pbCdb + 2);
             cbXfer = scsiBE2H_U16(pbCdb + 7);
             enmTxDir = PDMMEDIATXDIR_TO_DEVICE;
             fPassthrough = true;
@@ -785,7 +784,6 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             fPassthrough = true;
             break;
         case SCSI_READ_10:
-            uLba = scsiBE2H_U32(pbCdb + 2);
             cSectors = scsiBE2H_U16(pbCdb + 7);
             cbSector = 2048;
             cbXfer = cSectors * cbSector;
@@ -793,7 +791,6 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             fPassthrough = true;
             break;
         case SCSI_READ_12:
-            uLba = scsiBE2H_U32(pbCdb + 2);
             cSectors = scsiBE2H_U32(pbCdb + 6);
             cbSector = 2048;
             cbXfer = cSectors * cbSector;
@@ -941,7 +938,8 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             break;
         case SCSI_WRITE_10:
         case SCSI_WRITE_AND_VERIFY_10:
-            uLba = scsiBE2H_U32(pbCdb + 2);
+        {
+            uint32_t const uLba = scsiBE2H_U32(pbCdb + 2);
             cSectors = scsiBE2H_U16(pbCdb + 7);
             if (pTrackList)
                 cbSector = ATAPIPassthroughTrackListGetSectorSizeFromLba(pTrackList, uLba);
@@ -951,8 +949,10 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             enmTxDir = PDMMEDIATXDIR_TO_DEVICE;
             fPassthrough = true;
             break;
+        }
         case SCSI_WRITE_12:
-            uLba = scsiBE2H_U32(pbCdb + 2);
+        {
+            uint32_t const uLba = scsiBE2H_U32(pbCdb + 2);
             cSectors = scsiBE2H_U32(pbCdb + 6);
             if (pTrackList)
                 cbSector = ATAPIPassthroughTrackListGetSectorSizeFromLba(pTrackList, uLba);
@@ -962,6 +962,7 @@ DECLHIDDEN(bool) ATAPIPassthroughParseCdb(const uint8_t *pbCdb, size_t cbCdb, si
             enmTxDir = PDMMEDIATXDIR_TO_DEVICE;
             fPassthrough = true;
             break;
+        }
         case SCSI_WRITE_BUFFER:
             switch (pbCdb[1] & 0x1f)
             {

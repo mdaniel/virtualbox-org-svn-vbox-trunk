@@ -189,11 +189,14 @@ HRESULT startCloudGateway(ComPtr<IVirtualBox> virtualBox, ComPtr<ICloudNetwork> 
 {
     HRESULT hrc = S_OK;
 
-    try {
+    try
+    {
         hrc = network->COMGETTER(Provider)(gateway.mCloudProvider.asOutParam());
+        AssertComRCBreakRC(hrc);
         hrc = network->COMGETTER(Profile)(gateway.mCloudProfile.asOutParam());
+        AssertComRCBreakRC(hrc);
         CloudClient client(virtualBox, gateway.mCloudProvider, gateway.mCloudProfile);
-        client.startCloudGateway(network, gateway);
+        client.startCloudGateway(network, gateway); /* Throws CloudError on failure. */
     }
     catch (CloudError e)
     {

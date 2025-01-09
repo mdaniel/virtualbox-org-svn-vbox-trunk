@@ -2136,9 +2136,7 @@ HRESULT GuestProcess::terminate()
         /* Remove process from guest session list. Now only API clients
          * still can hold references to it. */
         AssertPtr(mSession);
-        int vrc2 = mSession->i_processUnregister(this);
-        if (RT_SUCCESS(vrc))
-            vrc = vrc2;
+        mSession->i_processUnregister(this);
     }
 
     LogFlowFuncLeaveRC(vrc);

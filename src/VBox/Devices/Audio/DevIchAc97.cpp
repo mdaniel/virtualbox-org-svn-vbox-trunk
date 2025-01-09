@@ -3182,14 +3182,15 @@ static int ichac97R3MixerSetGain(PAC97STATE pThis, PAC97STATER3 pThisCC, int ind
      * zero being 0dB gain and 15 being +22.5dB gain.
      */
     bool const  fCtlMuted     = (uVal >> AC97_BARS_VOL_MUTE_SHIFT) & 1;
+# ifdef VBOX_WITH_AC97_GAIN_SUPPORT
     uint8_t     uCtlGainLeft  = (uVal >> 8) & AC97_BARS_GAIN_MASK;
     uint8_t     uCtlGainRight = uVal & AC97_BARS_GAIN_MASK;
-
     Assert(uCtlGainLeft  <= 255 / AC97_DB_FACTOR);
     Assert(uCtlGainRight <= 255 / AC97_DB_FACTOR);
+    LogFunc(("uCtlGainLeft=%RU8, uCtlGainRight=%RU8 ", uCtlGainLeft, uCtlGainRight));
+# endif
 
     LogFunc(("index=0x%x, uVal=%RU32, enmMixerCtl=%RU32\n", index, uVal, enmMixerCtl));
-    LogFunc(("uCtlGainLeft=%RU8, uCtlGainRight=%RU8 ", uCtlGainLeft, uCtlGainRight));
 
     uint8_t lVol;
     uint8_t rVol;
@@ -3197,15 +3198,15 @@ static int ichac97R3MixerSetGain(PAC97STATE pThis, PAC97STATER3 pThisCC, int ind
     /* We do not currently support gain. Since AC'97 does not support attenuation
      * for the recording input, the best we can do is set the maximum volume.
      */
-# ifndef VBOX_WITH_AC97_GAIN_SUPPORT
+# ifdef VBOX_WITH_AC97_GAIN_SUPPORT
+    lVol = PDMAUDIO_VOLUME_MAX + uCtlGainLeft  * AC97_DB_FACTOR;
+    rVol = PDMAUDIO_VOLUME_MAX + uCtlGainRight * AC97_DB_FACTOR;
+# else
     /* NB: Currently there is no gain support, only attenuation. Since AC'97 does not
      * support attenuation for the recording inputs, the best we can do is set the
      * maximum volume.
      */
     lVol = rVol = PDMAUDIO_VOLUME_MAX;
-# else
-    lVol = PDMAUDIO_VOLUME_MAX + uCtlGainLeft  * AC97_DB_FACTOR;
-    rVol = PDMAUDIO_VOLUME_MAX + uCtlGainRight * AC97_DB_FACTOR;
 # endif
 
     Log(("-> fMuted=%RTbool, lVol=%RU8, rVol=%RU8\n", fCtlMuted, lVol, rVol));

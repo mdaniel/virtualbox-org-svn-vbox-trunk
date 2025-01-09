@@ -2637,9 +2637,11 @@ HRESULT VirtualBox::createMedium(const com::Utf8Str &aFormat,
             if (format.isEmpty())
                 return setError(E_INVALIDARG, tr("Format must be Valid Type%s"), format.c_str());
 
+#if 0 /* unused */
             // enforce read-only for DVDs even if caller specified ReadWrite
             if (aDeviceType == DeviceType_DVD)
                 aAccessMode = AccessMode_ReadOnly;
+#endif
 
              hrc = medium->init(this,
                                 format,
@@ -5209,6 +5211,7 @@ HRESULT VirtualBox::i_saveSettings()
                 // save actual machine registry entry
                 settings::MachineRegistryEntry mre;
                 hrc = pMachine->i_saveRegistryEntry(mre);
+                if (FAILED(hrc)) throw hrc;
                 m->pMainConfigFile->llMachines.push_back(mre);
             }
         }

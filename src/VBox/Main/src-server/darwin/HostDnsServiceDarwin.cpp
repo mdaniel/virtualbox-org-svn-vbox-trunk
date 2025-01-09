@@ -214,7 +214,7 @@ int HostDnsServiceDarwin::updateInfo(void)
         for (CFIndex i = 0; i < cItems; ++i)
         {
             CFStringRef serverAddressRef = (CFStringRef)CFArrayGetValueAtIndex(serverArrayRef, i);
-            if (!serverArrayRef)
+            if (!serverAddressRef)
                 continue;
 
             /** @todo r=bird: This code is messed up as CFStringGetCStringPtr is documented
@@ -238,7 +238,7 @@ int HostDnsServiceDarwin::updateInfo(void)
         for (CFIndex i = 0; i < cItems; ++i)
         {
             CFStringRef searchStringRef = (CFStringRef)CFArrayGetValueAtIndex(searchArrayRef, i);
-            if (!searchArrayRef)
+            if (!searchStringRef)
                 continue;
 
             /** @todo r=bird: This code is messed up as CFStringGetCStringPtr is documented

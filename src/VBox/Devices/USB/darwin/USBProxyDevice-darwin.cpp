@@ -1317,10 +1317,10 @@ static DECLCALLBACK(int) usbProxyDarwinOpen(PUSBPROXYDEV pProxyDev, const char *
                              * Determine the active configuration.
                              * Can cause hangs, so drop it for now.
                              */
-                            /** @todo test Palm. */
+                            /** @todo r=aeichner Revisit this. */
                             //uint8_t u8Cfg;
                             //irc = (*ppDevI)->GetConfiguration(ppDevI, &u8Cfg);
-                            if (irc != kIOReturnNoDevice)
+                            //if (irc != kIOReturnNoDevice)
                             {
                                 CFRunLoopSourceContext CtxRunLoopSource;
                                 CtxRunLoopSource.version = 0;
@@ -1350,8 +1350,8 @@ static DECLCALLBACK(int) usbProxyDarwinOpen(PUSBPROXYDEV pProxyDev, const char *
                                     vrc = VERR_NO_MEMORY;
                                 }
                             }
-                            else
-                                vrc = VERR_VUSB_DEVICE_NOT_ATTACHED;
+                            //else
+                            //    vrc = VERR_VUSB_DEVICE_NOT_ATTACHED;
                         }
                         else
                             vrc = RTErrConvertFromDarwin(irc);

@@ -1254,16 +1254,15 @@ HRESULT MachineCloneVM::run()
                     {
                         ComPtr<IMediumFormat> pSrcFormat;
                         hrc = pMedium->COMGETTER(MediumFormat)(pSrcFormat.asOutParam());
+                        if (FAILED(hrc)) throw hrc;
+
                         ULONG uSrcCaps = 0;
                         com::SafeArray <MediumFormatCapabilities_T> mediumFormatCap;
                         hrc = pSrcFormat->COMGETTER(Capabilities)(ComSafeArrayAsOutParam(mediumFormatCap));
-
                         if (FAILED(hrc)) throw hrc;
-                        else
-                        {
-                            for (ULONG j = 0; j < mediumFormatCap.size(); j++)
-                                uSrcCaps |= mediumFormatCap[j];
-                        }
+
+                        for (ULONG j = 0; j < mediumFormatCap.size(); j++)
+                            uSrcCaps |= mediumFormatCap[j];
 
                         /* Default format? */
                         Utf8Str strDefaultFormat;

@@ -882,8 +882,8 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
                     {
                         rc = EMR3SetExecutionPolicy(pUVM, EMEXECPOLICY_IEM_ALL, true); AssertReleaseRC(rc);
                         DBGFR3Info(pUVM, "cpumguest", "verbose", NULL);
-                        if (fPowerOn)
-                            rc = VMR3PowerOn(pUVM);
+
+                        rc = VMR3PowerOn(pUVM);
                         if (RT_SUCCESS(rc))
                         {
                             RTPrintf("info: VM is running\n");

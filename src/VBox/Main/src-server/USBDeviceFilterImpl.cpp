@@ -837,6 +837,7 @@ HRESULT USBDeviceFilter::i_usbFilterFieldSetter(USBFILTERIDX aIdx,
 
 HostUSBDeviceFilter::HostUSBDeviceFilter()
     : mParent(NULL)
+    , mInList(false)
 {
 }
 

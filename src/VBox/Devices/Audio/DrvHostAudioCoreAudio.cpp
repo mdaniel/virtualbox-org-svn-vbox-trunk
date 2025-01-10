@@ -2774,19 +2774,18 @@ static DECLCALLBACK(int) drvHstAudCaConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg
     pThis->IHostAudio.pfnStreamPlay                 = drvHstAudCaHA_StreamPlay;
     pThis->IHostAudio.pfnStreamCapture              = drvHstAudCaHA_StreamCapture;
 
-    int rc = RTCritSectInit(&pThis->CritSect);
-    AssertRCReturn(rc, rc);
-
     /*
      * Validate and read configuration.
      */
     PDMDRV_VALIDATE_CONFIG_RETURN(pDrvIns, "InputDeviceID|OutputDeviceID", "");
 
     char *pszTmp = NULL;
-    rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "InputDeviceID", &pszTmp);
+    int rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "InputDeviceID", &pszTmp);
     if (RT_SUCCESS(rc))
     {
         rc = drvHstAudCaSetDevice(pThis, &pThis->InputDevice, true /*fInput*/, false /*fNotify*/, pszTmp);
+        if (RT_FAILURE(rc))
+            LogRel(("CoreAudio: Failed to set input device to '%s' (%Rrc)\n", pszTmp, rc));
         PDMDrvHlpMMHeapFree(pDrvIns, pszTmp);
     }
     else if (rc != VERR_CFGM_VALUE_NOT_FOUND && rc != VERR_CFGM_NO_PARENT)
@@ -2796,6 +2795,8 @@ static DECLCALLBACK(int) drvHstAudCaConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg
     if (RT_SUCCESS(rc))
     {
         rc = drvHstAudCaSetDevice(pThis, &pThis->OutputDevice, false /*fInput*/, false /*fNotify*/, pszTmp);
+        if (RT_FAILURE(rc))
+            LogRel(("CoreAudio: Failed to set output device to '%s' (%Rrc)\n", pszTmp, rc));
         PDMDrvHlpMMHeapFree(pDrvIns, pszTmp);
     }
     else if (rc != VERR_CFGM_VALUE_NOT_FOUND && rc != VERR_CFGM_NO_PARENT)
@@ -2806,6 +2807,9 @@ static DECLCALLBACK(int) drvHstAudCaConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg
      */
     pThis->pIHostAudioPort = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMIHOSTAUDIOPORT);
     AssertReturn(pThis->pIHostAudioPort, VERR_PDM_MISSING_INTERFACE_ABOVE);
+
+    rc = RTCritSectInit(&pThis->CritSect);
+    AssertRCReturn(rc, rc);
 
 #ifdef CORE_AUDIO_WITH_WORKER_THREAD
     /*

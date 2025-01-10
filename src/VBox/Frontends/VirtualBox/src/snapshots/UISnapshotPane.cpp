@@ -1626,7 +1626,6 @@ void UISnapshotPane::updateActionStates()
         && m_operationAllowed.value(pSnapshotItem->machineID())
         && fCanTakeDeleteSnapshot
         && m_currentSnapshotItems.value(pSnapshotItem->machineID())
-        && pSnapshotItem
         && !pSnapshotItem->isCurrentStateItem()
     );
 

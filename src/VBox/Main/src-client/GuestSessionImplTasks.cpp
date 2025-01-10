@@ -717,7 +717,9 @@ int GuestSessionTask::fileCopyFromGuest(const Utf8Str &strSrc, const Utf8Str &st
  * @param  strDstFile         Full destination path and file name (guest style) to copy file to.
  * @param  fileDst            Guest file (destination) to copy to the guest. Must be in opened and ready state already.
  * @param  fFileCopyFlags     File copy flags.
- * @param  offCopy            Offset (in bytes) where to start copying the source file.
+ * @param  offCopy            Absolute offset (in bytes) where to start reading from the source file.
+ *                            Set to UINT64_MAX to read following chunk at the current VFS file read position.
+ *                            Set to 0 to rewind reading the file.
  * @param  cbSize             Size (in bytes) to copy from the source file.
  */
 int GuestSessionTask::fileCopyToGuestInner(const Utf8Str &strSrcFile, RTVFSFILE hVfsFile,
@@ -735,15 +737,15 @@ int GuestSessionTask::fileCopyToGuestInner(const Utf8Str &strSrcFile, RTVFSFILE 
 
     int vrc = VINF_SUCCESS;
 
-    if (offCopy)
+    if (offCopy != UINT64_MAX)
     {
         uint64_t offActual;
-        vrc = RTVfsFileSeek(hVfsFile, offCopy, RTFILE_SEEK_END, &offActual);
+        vrc = RTVfsFileSeek(hVfsFile, (RTFOFF)offCopy, RTFILE_SEEK_BEGIN, &offActual);
         if (RT_FAILURE(vrc))
         {
             setProgressErrorMsg(VBOX_E_IPRT_ERROR,
-                                Utf8StrFmt(tr("Seeking to offset %RU64 of host file \"%s\" failed: %Rrc"),
-                                           offCopy, strSrcFile.c_str(), vrc));
+                                Utf8StrFmt(tr("Seeking to offset %RU64 (%#x) of host file \"%s\" failed: %Rrc"),
+                                           offCopy, offCopy, strSrcFile.c_str(), vrc));
             return vrc;
         }
     }
@@ -962,7 +964,7 @@ int GuestSessionTask::fileCopyToGuest(const Utf8Str &strSrc, const Utf8Str &strD
                              szSrcReal, strDst.c_str(), srcObjInfo.cbObject));
 
             vrc = fileCopyToGuestInner(szSrcReal, hSrcFile, strDst, dstFile,
-                                       fFileCopyFlags, 0 /* Offset, unused */, srcObjInfo.cbObject);
+                                       fFileCopyFlags, UINT64_MAX /* Offset, unused */, srcObjInfo.cbObject);
 
             int vrc2 = RTVfsFileRelease(hSrcFile);
             AssertRC(vrc2);
@@ -2671,7 +2673,8 @@ int GuestSessionTaskUpdateAdditions::copyFileToGuest(GuestSession *pSession, RTV
             }
             else
             {
-                vrc = fileCopyToGuestInner(strFileSrc, hVfsFile, strFileDst, dstFile, FileCopyFlag_None, 0 /*offCopy*/, cbSrcSize);
+                vrc = fileCopyToGuestInner(strFileSrc, hVfsFile, strFileDst, dstFile, FileCopyFlag_None,
+                                           UINT64_MAX /* Offset, unused */, cbSrcSize);
 
                 int vrc2 = fileClose(dstFile);
                 if (RT_SUCCESS(vrc))

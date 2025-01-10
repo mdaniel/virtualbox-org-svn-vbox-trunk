@@ -540,7 +540,6 @@ static DECLCALLBACK(int) vdIfTcpNetSelectOneExNoPoll(VDSOCKET hVdSock, uint32_t 
 /** @interface_method_impl{VDINTERFACETCPNET,pfnPoke} */
 static DECLCALLBACK(int) vdIfTcpNetPoke(VDSOCKET hVdSock)
 {
-    int rc = VINF_SUCCESS;
     size_t cbWritten = 0;
     PVDSOCKETINT pSockInt = (PVDSOCKETINT)hVdSock;
 
@@ -548,7 +547,7 @@ static DECLCALLBACK(int) vdIfTcpNetPoke(VDSOCKET hVdSock)
 
     if (ASMAtomicReadBool(&pSockInt->fWaiting))
     {
-        rc = RTPipeWrite(pSockInt->hPipeW, "", 1, &cbWritten);
+        int rc = RTPipeWrite(pSockInt->hPipeW, "", 1, &cbWritten);
         Assert(RT_SUCCESS(rc) || cbWritten == 0);
     }
 

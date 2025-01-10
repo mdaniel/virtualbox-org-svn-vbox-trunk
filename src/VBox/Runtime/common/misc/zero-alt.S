@@ -45,7 +45,7 @@
         .file       "zero-alt.S"
         .section    ".rodata"
 # define NAME(a) a
-# ifndef RT_ARCH_ARM64 /* RTSignTool references g_abRTZero4K from VBoxRT.so */
+# ifdef IN_RT_STATIC
 #  define NEED_HIDDEN
 # endif
 #else

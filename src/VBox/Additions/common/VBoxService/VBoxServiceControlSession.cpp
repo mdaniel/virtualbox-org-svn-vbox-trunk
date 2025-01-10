@@ -1356,7 +1356,7 @@ static int vgsvcGstCtrlSessionHandleDirCreate(const PVBOXSERVICECTRLSESSION pSes
         if (!(fCreate & ~GSTCTL_CREATEDIRECTORY_F_VALID_MASK))
         {
             /* Translate flags. */
-            int fCreateRuntime = 0; /* RTDIRCREATE_FLAGS_XXX */
+            uint32_t fCreateRuntime = 0; /* RTDIRCREATE_FLAGS_XXX */
             if (fCreate & GSTCTL_CREATEDIRECTORY_F_NO_SYMLINKS)
                 fCreateRuntime |= RTDIRCREATE_FLAGS_NO_SYMLINKS;
             if (fCreate & GSTCTL_CREATEDIRECTORY_F_IGNORE_UMASK)

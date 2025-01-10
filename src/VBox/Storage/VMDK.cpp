@@ -857,6 +857,8 @@ DECLINLINE(int) vmdkFileInflateSync(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
                                           + RT_UOFFSETOF(VMDKMARKER, uType),
                                           512)
                                - RT_UOFFSETOF(VMDKMARKER, uType));
+    if (RT_FAILURE(rc))
+        return vdIfError(pImage->pIfError, rc, RT_SRC_POS, N_("VMDK: Failed to read data from compressed image '%s'"), pExtent->pszFullname);
 
     if (puLBA)
         *puLBA = RT_LE2H_U64(pMarker->uSector);

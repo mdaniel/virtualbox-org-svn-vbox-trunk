@@ -668,7 +668,7 @@ static int vgsvcGstCtrlSessionHandleFileReadAt(const PVBOXSERVICECTRLSESSION pSe
             rc = RTFileReadAt(pFile->hFile, (RTFOFF)offReadAt, *ppvScratchBuf, RT_MIN(cbToRead, *pcbScratchBuf), &cbRead);
             if (RT_SUCCESS(rc))
             {
-                offNew = offReadAt + cbRead;
+                offNew = (int64_t)(offReadAt + cbRead);
                 RTFileSeek(pFile->hFile, offNew, RTFILE_SEEK_BEGIN, NULL); /* RTFileReadAt does not always change position. */
             }
             else

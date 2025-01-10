@@ -80,7 +80,8 @@ typedef struct DRVMAINKEYBOARD
 ////////////////////////////////////////////////////////////////////////////////
 
 Keyboard::Keyboard()
-    : mParent(NULL)
+    : mParent(NULL),
+    , menmLeds(PDMKEYBLEDS_NONE)
 {
 }
 
@@ -91,7 +92,6 @@ Keyboard::~Keyboard()
 HRESULT Keyboard::FinalConstruct()
 {
     RT_ZERO(mpDrv);
-    menmLeds = PDMKEYBLEDS_NONE;
     return BaseFinalConstruct();
 }
 

@@ -6510,7 +6510,7 @@ static int vmdkStreamAllocGrain(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
 
         size_t cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
                                                     &cSegments, VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain));
-        Assert(cbSeg == VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain));
+        Assert(cbSeg == VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain)); RT_NOREF(cbSeg);
         pData = Segment.pvSeg;
     }
     rc = vmdkFileDeflateSync(pImage, pExtent, uFileOffset, pData,
@@ -6832,7 +6832,7 @@ static int vmdkAllocGrain(PVMDKIMAGE pImage, PVMDKEXTENT pExtent, PVDIOCTX pIoCt
 
         size_t cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
                                                     &cSegments, cbWrite);
-        Assert(cbSeg == cbWrite);
+        Assert(cbSeg == cbWrite); RT_NOREF(cbSeg);
 
         rc = vmdkFileDeflateSync(pImage, pExtent, uFileOffset,
                                  Segment.pvSeg, cbWrite, uSector, &cbGrain);
@@ -7713,7 +7713,7 @@ static DECLCALLBACK(int) vmdkRead(void *pBackendData, uint64_t uOffset, size_t c
             case VMDKETYPE_ZERO:
             {
                 size_t cbSet = vdIfIoIntIoCtxSet(pImage->pIfIo, pIoCtx, 0, cbToRead);
-                Assert(cbSet == cbToRead);
+                Assert(cbSet == cbToRead); RT_NOREF(cbSet);
                 break;
             }
         }

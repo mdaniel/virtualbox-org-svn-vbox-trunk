@@ -513,7 +513,9 @@ double UIDesktopWidgetWatchdog::devicePixelRatioActual(int iHostScreenIndex /* =
                 return (double)dpiPair.first / 96 /* dpi unawarness value */;
         }
     }
-#endif /* VBOX_WS_WIN */
+#else /* !VBOX_WS_WIN */
+    Q_UNUSED(iHostScreenIndex);
+#endif /* !VBOX_WS_WIN */
 
     /* Then acquire device-pixel-ratio: */
     return pScreen->devicePixelRatio();

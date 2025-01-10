@@ -5813,6 +5813,7 @@ static void intnetR0TrunkIfDestroy(PINTNETTRUNKIF pThis, PINTNETNETWORK pNetwork
  */
 static int intnetR0NetworkCreateTrunkIf(PINTNETNETWORK pNetwork, PSUPDRVSESSION pSession)
 {
+#if defined(IN_RING0) || defined(LOG_ENABLED)
     const char *pszName;
     switch (pNetwork->enmTrunkType)
     {
@@ -5821,13 +5822,13 @@ static int intnetR0NetworkCreateTrunkIf(PINTNETNETWORK pNetwork, PSUPDRVSESSION 
          */
         case kIntNetTrunkType_None:
         case kIntNetTrunkType_WhateverNone:
-#ifdef VBOX_WITH_NAT_SERVICE
+# ifdef VBOX_WITH_NAT_SERVICE
             /*
              * Well, here we don't want load anything special,
              * just communicate between processes via internal network.
              */
         case kIntNetTrunkType_SrvNat:
-#endif
+# endif
             return VINF_SUCCESS;
 
         /* Can't happen, but makes GCC happy. */
@@ -5841,18 +5842,19 @@ static int intnetR0NetworkCreateTrunkIf(PINTNETNETWORK pNetwork, PSUPDRVSESSION 
             pszName = "VBoxNetFlt";
             break;
         case kIntNetTrunkType_NetAdp:
-#if defined(RT_OS_DARWIN) && !defined(VBOXNETADP_DO_NOT_USE_NETFLT)
+# if defined(RT_OS_DARWIN) && !defined(VBOXNETADP_DO_NOT_USE_NETFLT)
             pszName = "VBoxNetFlt";
-#else /* VBOXNETADP_DO_NOT_USE_NETFLT */
+# else /* VBOXNETADP_DO_NOT_USE_NETFLT */
             pszName = "VBoxNetAdp";
-#endif /* VBOXNETADP_DO_NOT_USE_NETFLT */
+# endif /* VBOXNETADP_DO_NOT_USE_NETFLT */
             break;
-#ifndef VBOX_WITH_NAT_SERVICE
+# ifndef VBOX_WITH_NAT_SERVICE
         case kIntNetTrunkType_SrvNat:
             pszName = "VBoxSrvNat";
             break;
-#endif
+# endif
     }
+#endif /* IN_RING0 || LOG_ENABLED */
 
     /*
      * Allocate the trunk interface and associated destination tables.

@@ -3486,7 +3486,8 @@ NAT::NAT() :
     fAliasLog(false),
     fAliasProxyOnly(false),
     fAliasUseSamePorts(false),
-    fLocalhostReachable(true) /* Historically this value is true. */
+    fLocalhostReachable(true), /* Historically this value is true. */
+    fForwardBroadcast(false)
 {
 }
 

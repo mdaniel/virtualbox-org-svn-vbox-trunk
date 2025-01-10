@@ -195,7 +195,7 @@ static void testConvertFlags(void)
         {
             RTTestIFailed("Flags 0x%x were incorrectly written out as '%.*s'\n",
                           u32BadFlags, GUEST_PROP_MAX_FLAGS_LEN, pszFlagBuffer);
-            rc = VERR_PARSE_ERROR;
+            /*rc = VERR_PARSE_ERROR;*/
         }
     }
 
@@ -982,14 +982,14 @@ static void testDelPropROGuest(VBOXHGCMSVCFNTABLE *pTable)
     }
     s_aDelPropertiesROGuest[] =
     {
-        { "Red", true, true, "", true },
-        { "Amber", false, true, "", true },
-        { "Red2", true, false, "", true },
-        { "Amber2", false, false, "", true },
-        { "Red3", true, true, "READONLY", false },
-        { "Amber3", false, true, "READONLY", false },
-        { "Red4", true, true, "RDONLYHOST", false },
-        { "Amber4", false, true, "RDONLYHOST", true },
+        { "Red",    true,  true,  "",           true  },
+        { "Amber",  false, true,  "",           true  },
+        { "Red2",   true,  false, "",           true  },
+        { "Amber2", false, false, "",           true  },
+        { "Red3",   true,  true,  "READONLY",   false },
+        { "Amber3", false, true,  "READONLY",   false },
+        { "Red4",   true,  true,  "RDONLYHOST", false },
+        { "Amber4", false, true,  "RDONLYHOST", true  },
     };
 
     RTTESTI_CHECK_RC_OK_RETV(VBoxHGCMSvcLoad(pTable));
@@ -999,9 +999,14 @@ static void testDelPropROGuest(VBOXHGCMSVCFNTABLE *pTable)
         for (unsigned i = 0; i < RT_ELEMENTS(s_aDelPropertiesROGuest); ++i)
         {
             if (s_aDelPropertiesROGuest[i].shouldCreate)
+            {
                 rc = doSetProperty(pTable, s_aDelPropertiesROGuest[i].pcszName,
                                    "none", s_aDelPropertiesROGuest[i].pcszFlags,
                                    true, true);
+                if (RT_FAILURE(rc))
+                    RTTestIFailed("Creating property '%s' on the host failed with rc=%Rrc.",
+                                  s_aDelPropertiesROGuest[i].pcszName, rc);
+            }
             rc = doDelProp(pTable, s_aDelPropertiesROGuest[i].pcszName,
                            s_aDelPropertiesROGuest[i].isHost);
             if (s_aDelPropertiesROGuest[i].isAllowed && RT_FAILURE(rc))

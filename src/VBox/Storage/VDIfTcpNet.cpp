@@ -548,7 +548,7 @@ static DECLCALLBACK(int) vdIfTcpNetPoke(VDSOCKET hVdSock)
     if (ASMAtomicReadBool(&pSockInt->fWaiting))
     {
         int rc = RTPipeWrite(pSockInt->hPipeW, "", 1, &cbWritten);
-        Assert(RT_SUCCESS(rc) || cbWritten == 0);
+        Assert(RT_SUCCESS(rc) || cbWritten == 0); RT_NOREF(rc);
     }
 
     return VINF_SUCCESS;

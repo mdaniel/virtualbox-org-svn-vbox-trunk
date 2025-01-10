@@ -48,6 +48,7 @@
 #include <iprt/string.h>
 #include <iprt/zip.h>
 #include <iprt/asm.h>
+#include <iprt/zero.h>
 #ifdef RT_OS_WINDOWS
 # include <iprt/utf16.h>
 # include <iprt/uni.h>
@@ -8652,7 +8653,8 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
     * Get the blocks we need to relocate first, they are appended to the end
     * of the image.
     */
-    void *pvBuf = NULL, *pvZero = NULL;
+    void *pvBuf = NULL;
+    AssertCompile(sizeof(g_abRTZero4K) >= VMDK_GRAIN_TABLE_SIZE);
 
     do
     {
@@ -8660,17 +8662,6 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         pvBuf = RTMemAllocZ(VMDK_GRAIN_TABLE_SIZE);
         if (!pvBuf)
         {
-            rc = VERR_NO_MEMORY;
-            break;
-        }
-
-        /* Allocate buffer for overwriting with zeroes. */
-        pvZero = RTMemAllocZ(VMDK_GRAIN_TABLE_SIZE);
-        if (!pvZero)
-        {
-            RTMemFree(pvBuf);
-            pvBuf = NULL;
-
             rc = VERR_NO_MEMORY;
             break;
         }
@@ -8781,18 +8772,7 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         pvBuf = NULL;
     }
 
-    if (pvZero)
-    {
-        RTMemFree(pvZero);
-        pvZero = NULL;
-    }
-
     pExtent->cGDEntries = cNewDirEntries;
-
-    /* Allocate buffer for overwriting with zeroes. */
-    pvZero = RTMemAllocZ(VMDK_GRAIN_TABLE_SIZE);
-    if (!pvZero)
-        return VERR_NO_MEMORY;
 
     // Allocate additional grain dir
     pExtent->pGD = (uint32_t *) RTMemReallocZ(pExtent->pGD, pExtent->cGDEntries * sizeof(uint32_t), cbNewGD);
@@ -8815,7 +8795,7 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         pExtent->pGD[i] = uTmpDirVal;
 
         rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pExtent->pFile->pStorage,
-                                    VMDK_SECTOR2BYTE(uTmpDirVal), pvZero,
+                                    VMDK_SECTOR2BYTE(uTmpDirVal), &g_abRTZero4K[0],
                                     VMDK_GRAIN_TABLE_SIZE);
 
         if (RT_FAILURE(rc))
@@ -8830,7 +8810,7 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         pExtent->pRGD[i] = uRTmpDirVal;
 
         rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pExtent->pFile->pStorage,
-                                    VMDK_SECTOR2BYTE(uRTmpDirVal), pvZero,
+                                    VMDK_SECTOR2BYTE(uRTmpDirVal), &g_abRTZero4K[0],
                                     VMDK_GRAIN_TABLE_SIZE);
 
         if (RT_FAILURE(rc))
@@ -8838,9 +8818,6 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
 
         uRTmpDirVal += VMDK_GRAIN_DIR_ENTRY_SIZE;
     }
-
-    RTMemFree(pvZero);
-    pvZero = NULL;
 
     rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pExtent->pFile->pStorage,
                                 VMDK_SECTOR2BYTE(pExtent->uSectorGD), pExtent->pGD,

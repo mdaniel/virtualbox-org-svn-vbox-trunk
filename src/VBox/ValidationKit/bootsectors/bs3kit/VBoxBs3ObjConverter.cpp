@@ -4640,7 +4640,6 @@ static bool omfDetails_AddSegDefIfNeeded(POMFDETAILS pOmfStuff, uint8_t bSegAttr
         {
             if (   pSegDef->bSegAttr   != bSegAttr
                 || pSegDef->f32bitRec  != fRec32
-                || pSegDef->idxName    != idxSegName
                 || pSegDef->idxClass   != idxSegClass
                 || pSegDef->idxOverlay != idxOverlay)
                 return error(pOmfStuff->pszFile,

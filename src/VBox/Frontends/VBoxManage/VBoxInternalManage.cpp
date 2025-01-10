@@ -1592,7 +1592,6 @@ static RTEXITCODE CmdConvertToRaw(int argc, char **argv, ComPtr<IVirtualBox> aVi
     }
     else
     {
-        vrc = VERR_NO_MEMORY;
         VDCloseAll(pDisk);
         if (!fWriteToStdOut)
         {

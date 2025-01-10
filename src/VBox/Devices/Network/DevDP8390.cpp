@@ -4003,7 +4003,7 @@ static DECLCALLBACK(void) dpNicR3TimerRestore(PPDMDEVINS pDevIns, TMTIMERHANDLE 
 static DECLCALLBACK(void) dpNicR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     PDPNICSTATE     pThis = PDMDEVINS_2_DATA(pDevIns, PDPNICSTATE);
-    bool            fRecvBuffer  = false;
+    /*bool            fRecvBuffer  = false; unused*/
     bool            fSendBuffer  = false;
     unsigned        uFreePages;
     DP8390CORE      *pCore = &pThis->core;
@@ -4014,7 +4014,7 @@ static DECLCALLBACK(void) dpNicR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, co
      */
     if (pszArgs)
     {
-        fRecvBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "recvbuf");
+        /*fRecvBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "recvbuf"); unused*/
         fSendBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "sendbuf");
     }
 
@@ -4660,7 +4660,7 @@ static DECLCALLBACK(int) dpNicNet_WaitReceiveAvail(PPDMINETWORKDOWN pInterface, 
             cMillies = 666;
         LogFlowFunc(("Waiting cMillies=%u...\n", cMillies));
 
-        rc2 = RTSemEventWait(pThis->hEventOutOfRxSpace, cMillies);
+        /*rc2 = */RTSemEventWait(pThis->hEventOutOfRxSpace, cMillies);
 //LogRelFunc(("RTSemEventWait: rc=%Rrc\n", rc2));
 //        if (rc2 == VERR_TIMEOUT)
 //            break;

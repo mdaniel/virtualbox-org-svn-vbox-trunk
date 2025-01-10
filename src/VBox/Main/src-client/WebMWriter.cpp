@@ -70,11 +70,13 @@ WebMWriter::~WebMWriter(void)
 int WebMWriter::OpenEx(const char *a_pszFilename, PRTFILE a_phFile,
                        RecordingAudioCodec_T a_enmAudioCodec, RecordingVideoCodec_T a_enmVideoCodec)
 {
+    int vrc;
+
     try
     {
         LogFunc(("Creating '%s'\n", a_pszFilename));
 
-        int vrc = createEx(a_pszFilename, a_phFile);
+        vrc = createEx(a_pszFilename, a_phFile);
         if (RT_SUCCESS(vrc))
         {
             vrc = init(a_enmAudioCodec, a_enmVideoCodec);
@@ -82,11 +84,12 @@ int WebMWriter::OpenEx(const char *a_pszFilename, PRTFILE a_phFile,
                 vrc = writeHeader();
         }
     }
-    catch(int vrc)
+    catch(int vrcEx)
     {
-        return vrc;
+        vrc = vrcEx;
     }
-    return VINF_SUCCESS;
+
+    return vrc;
 }
 
 /**
@@ -101,11 +104,13 @@ int WebMWriter::OpenEx(const char *a_pszFilename, PRTFILE a_phFile,
 int WebMWriter::Open(const char *a_pszFilename, uint64_t a_fOpen,
                      RecordingAudioCodec_T a_enmAudioCodec, RecordingVideoCodec_T a_enmVideoCodec)
 {
+    int vrc;
+
     try
     {
         LogFunc(("Creating '%s'\n", a_pszFilename));
 
-        int vrc = create(a_pszFilename, a_fOpen);
+        vrc = create(a_pszFilename, a_fOpen);
         if (RT_SUCCESS(vrc))
         {
             vrc = init(a_enmAudioCodec, a_enmVideoCodec);
@@ -113,11 +118,12 @@ int WebMWriter::Open(const char *a_pszFilename, uint64_t a_fOpen,
                 vrc = writeHeader();
         }
     }
-    catch(int vrc)
+    catch(int vrcEx)
     {
-        return vrc;
+        vrc = vrcEx;
     }
-    return VINF_SUCCESS;
+
+    return vrc;
 }
 
 /**
@@ -614,9 +620,6 @@ int WebMWriter::processQueue(WebMQueue *pQueue, bool fForce)
         if (   fClusterStart
             && !mapBlocks.fClusterStarted)
         {
-            /* Last written timecode of the current cluster. */
-            uint64_t tcAbsClusterLastWrittenMs;
-
             if (Cluster.fOpen) /* Close current cluster first. */
             {
                 Log2Func(("[C%RU64] End @ %RU64ms (duration = %RU64ms)\n",
@@ -626,14 +629,9 @@ int WebMWriter::processQueue(WebMQueue *pQueue, bool fForce)
                 Assert(Cluster.offStart);
                 Assert(Cluster.cBlocks);
 
-                /* Save the last written timecode of the current cluster before closing it. */
-                tcAbsClusterLastWrittenMs = Cluster.tcAbsLastWrittenMs;
-
                 subEnd(MkvElem_Cluster);
                 Cluster.fOpen = false;
             }
-            else /* First cluster ever? Use the segment's starting timecode. */
-                tcAbsClusterLastWrittenMs = m_CurSeg.m_tcAbsStartMs;
 
             Cluster.fOpen              = true;
             Cluster.uID                = m_CurSeg.m_cClusters;

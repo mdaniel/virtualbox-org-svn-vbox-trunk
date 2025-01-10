@@ -375,7 +375,7 @@ struc CPUMCPU
     ;
     ; Hypervisor Context.
     ;
-    alignb 8
+    alignb 16 ; linux makes the whole struct 16 byte aligned, so we provided the necessary padding here to keep it simple.
     .Hyper                      resq    0
     .Hyper.dr                   resq    8
     .Hyper.cr3                  resq    1

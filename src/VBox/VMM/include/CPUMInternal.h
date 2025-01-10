@@ -527,7 +527,7 @@ typedef struct CPUMCPU
      *  (?) bits are visible or not.  (The APIC is responsible for setting this
      *  when loading state, so we won't save it.) */
     bool                    fCpuIdApicFeatureVisible;
-    uint8_t                 abPadding[7];
+    uint8_t                 abPadding[7+8];
 
     /** Old hypervisor context, only used for combined DRx values now.
      * Must be aligned on a 64-byte boundary. */

@@ -1427,7 +1427,7 @@ int GuestSessionTaskOpen::Run(void)
     LogFlowThisFuncEnter();
 
     AutoCaller autoCaller(mSession);
-    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+    if (FAILED(autoCaller.hrc())) return VERR_COM_INVALID_OBJECT_STATE;
 
     int vrc = mSession->i_startSession(NULL /*pvrcGuest*/);
     /* Nothing to do here anymore. */
@@ -1667,7 +1667,7 @@ int GuestSessionTaskCopyFrom::Run(void)
     LogFlowThisFuncEnter();
 
     AutoCaller autoCaller(mSession);
-    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+    if (FAILED(autoCaller.hrc())) return VERR_COM_INVALID_OBJECT_STATE;
 
     int vrc = VINF_SUCCESS;
 
@@ -2208,7 +2208,7 @@ int GuestSessionTaskCopyTo::Run(void)
     LogFlowThisFuncEnter();
 
     AutoCaller autoCaller(mSession);
-    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+    if (FAILED(autoCaller.hrc())) return VERR_COM_INVALID_OBJECT_STATE;
 
     int vrc = VINF_SUCCESS;
 
@@ -2961,7 +2961,7 @@ int GuestSessionTaskUpdateAdditions::Run(void)
     Assert(!pSession.isNull());
 
     AutoCaller autoCaller(pSession);
-    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+    if (FAILED(autoCaller.hrc())) return VERR_COM_INVALID_OBJECT_STATE;
 
     int vrc = setProgress(10);
     if (RT_FAILURE(vrc))

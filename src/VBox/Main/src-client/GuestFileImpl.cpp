@@ -414,7 +414,7 @@ int GuestFile::i_close(int *prcGuest)
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[4];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* Guest file ID */);
 
@@ -865,7 +865,7 @@ int GuestFile::i_open(uint32_t uTimeoutMS, int *prcGuest)
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[8];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetPv(&paParms[i++], (void*)mData.mOpenInfo.mFilename.c_str(),
                  (ULONG)mData.mOpenInfo.mFilename.length() + 1);
@@ -947,7 +947,7 @@ int GuestFile::i_readData(uint32_t uSize, uint32_t uTimeoutMS,
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[4];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* File handle */);
     HGCMSvcSetU32(&paParms[i++], uSize /* Size (in bytes) to read */);
@@ -1017,7 +1017,7 @@ int GuestFile::i_readDataAt(uint64_t uOffset, uint32_t uSize, uint32_t uTimeoutM
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[4];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* File handle */);
     HGCMSvcSetU64(&paParms[i++], uOffset /* Offset (in bytes) to start reading */);
@@ -1086,7 +1086,7 @@ int GuestFile::i_seekAt(int64_t iOffset, GUEST_FILE_SEEKTYPE eSeekType,
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[4];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* File handle */);
     HGCMSvcSetU32(&paParms[i++], eSeekType /* Seek method */);
@@ -1412,7 +1412,7 @@ int GuestFile::i_writeData(uint32_t uTimeoutMS, const void *pvData, uint32_t cbD
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[8];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* File handle */);
     HGCMSvcSetU32(&paParms[i++], cbData /* Size (in bytes) to write */);
@@ -1486,7 +1486,7 @@ int GuestFile::i_writeDataAt(uint64_t uOffset, uint32_t uTimeoutMS,
 
     /* Prepare HGCM call. */
     VBOXHGCMSVCPARM paParms[8];
-    int i = 0;
+    unsigned i = 0;
     HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
     HGCMSvcSetU32(&paParms[i++], mObjectID /* File handle */);
     HGCMSvcSetU64(&paParms[i++], uOffset /* Offset where to starting writing */);

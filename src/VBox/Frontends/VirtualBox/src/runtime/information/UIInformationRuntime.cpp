@@ -475,11 +475,11 @@ QString UIRuntimeInfoWidget::tableData() const
         QITableWidgetItem *pItem = static_cast<QITableWidgetItem*>(item(i, 1));
         if (!pItem)
             continue;
-        QString strColumn1 = pItem ? pItem->text() : QString();
+        const QString strColumn1 = pItem->text();
         pItem = static_cast<QITableWidgetItem*>(item(i, 2));
         if (!pItem)
             continue;
-        QString strColumn2 = pItem ? pItem->text() : QString();
+        const QString strColumn2 = pItem->text();
         if (strColumn2.isEmpty())
             data << strColumn1;
         else

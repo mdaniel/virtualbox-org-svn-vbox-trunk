@@ -176,6 +176,8 @@ UICommon::UICommon(UIType enmType)
     , m_fSettingsPwSet(false)
     , m_pThreadPool(0)
     , m_pThreadPoolCloud(0)
+    , m_iOriginalFontPixelSize(-1)
+    , m_iOriginalFontPointSize(-1)
 {
     /* Assign instance: */
     s_pInstance = this;
@@ -679,8 +681,9 @@ void UICommon::prepare()
     checkForWrongUSBMounted();
 #endif /* RT_OS_LINUX */
 
-    iOriginalFontPixelSize = qApp->font().pixelSize();
-    iOriginalFontPointSize = qApp->font().pointSize();
+    /* Initialize font size settings: */
+    m_iOriginalFontPixelSize = qApp->font().pixelSize();
+    m_iOriginalFontPointSize = qApp->font().pointSize();
     sltHandleFontScaleFactorChanged(gEDataManager->fontScaleFactor());
 }
 
@@ -1368,11 +1371,11 @@ void UICommon::sltHandleFontScaleFactorChanged(int iFontScaleFactor)
     };
 
     /* Do we have pixel font? */
-    if (iOriginalFontPixelSize != -1)
-        appFont.setPixelSize(roundUp(iFontScaleFactor / 100.f * iOriginalFontPixelSize));
+    if (m_iOriginalFontPixelSize != -1)
+        appFont.setPixelSize(roundUp(iFontScaleFactor / 100.f * m_iOriginalFontPixelSize));
     /* Point font otherwise: */
     else
-        appFont.setPointSize(roundUp(iFontScaleFactor / 100.f * iOriginalFontPointSize));
+        appFont.setPointSize(roundUp(iFontScaleFactor / 100.f * m_iOriginalFontPointSize));
 
     qApp->setFont(appFont);
 }

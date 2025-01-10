@@ -464,8 +464,10 @@ private:
 
     /** @name Font scaling related variables.
      * @{ */
-       int iOriginalFontPixelSize;
-       int iOriginalFontPointSize;
+        /** Holds the original font pixel size. */
+        int  m_iOriginalFontPixelSize;
+        /** Holds the original font point size. */
+        int  m_iOriginalFontPointSize;
     /** @} */
 
     /** Allows for shortcut access. */

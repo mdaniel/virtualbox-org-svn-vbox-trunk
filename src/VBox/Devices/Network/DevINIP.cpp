@@ -334,7 +334,6 @@ static DECLCALLBACK(int) devINIPNetworkDown_Input(PPDMINETWORKDOWN pInterface, c
     RT_NOREF(pInterface);
     const uint8_t *pbBuf = (const uint8_t *)pvBuf;
     size_t len = cb;
-    const struct eth_hdr *ethhdr;
     struct pbuf *p, *q;
 
     LogFlow(("%s: pInterface=%p pvBuf=%p cb=%lu\n", __FUNCTION__, pInterface, pvBuf, cb));
@@ -371,7 +370,6 @@ static DECLCALLBACK(int) devINIPNetworkDown_Input(PPDMINETWORKDOWN pInterface, c
             cb -= RT_MIN(cb, q->len);
         }
 
-        ethhdr = (const struct eth_hdr *)p->payload;
         struct netif *iface = &g_pDevINIPData->IntNetIF;
 
         /* We've setup flags NETIF_FLAG_ETHARP and NETIF_FLAG_ETHERNET

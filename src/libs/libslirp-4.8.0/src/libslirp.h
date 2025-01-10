@@ -253,8 +253,13 @@ void slirp_cleanup(Slirp *slirp);
  * that should be monitored along the sleep. The opaque pointer is passed as
  * such to add_poll, and add_poll returns an index. */
 SLIRP_EXPORT
+#ifdef VBOX
+void slirp_pollfds_fill(Slirp *slirp, int *timeout,
+                        SlirpAddPollCb add_poll, void *opaque);
+#else
 void slirp_pollfds_fill(Slirp *slirp, uint32_t *timeout,
                         SlirpAddPollCb add_poll, void *opaque);
+#endif
 
 /* This is called by the application after sleeping, to report which file
  * descriptors are available. slirp_pollfds_poll calls get_revents on each file

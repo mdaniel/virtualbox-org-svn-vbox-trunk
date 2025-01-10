@@ -259,7 +259,7 @@ typedef DRVNAT *PDRVNAT;
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho);
-static void drvNAT_UpdateTimeout(uint32_t *uTimeout, void *opaque);
+static void drvNAT_UpdateTimeout(int *uTimeout, void *opaque);
 static void drvNAT_CheckTimeout(void *opaque);
 static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque);
 static DECLCALLBACK(int64_t) drvNAT_ClockGetNsCb(void *opaque);
@@ -306,7 +306,7 @@ static DECLCALLBACK(int) drvNATRecvWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread
     rc = RTSemEventSignal(pThis->EventRecv);
 
     STAM_COUNTER_INC(&pThis->StatNATRecvWakeups);
-    return VINF_SUCCESS;
+    return rc;
 }
 
 /**
@@ -423,6 +423,7 @@ static DECLCALLBACK(void) drvNATSendWorker(PDRVNAT pThis, PPDMSCATTERGATHER pSgB
                                                                 iSeg, cSegs, (uint8_t *)pvSeg, &cbHdrs, &cbPayload);
                     memcpy((uint8_t *)pvSeg + cbHdrs, pbFrame + offPayload, cbPayload);
 
+                    Assert((size_t)cbPayload > 0 && (size_t)cbHdrs > 0);
                     slirp_input(pThis->pNATState->pSlirp, (uint8_t const *)pvSeg, cbPayload + cbHdrs);
                     RTMemFree(pvSeg);
                 }
@@ -723,8 +724,10 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
     pThis->pNATState->polls[0].fd = pThis->pWakeupSockPair[1];
 #else
     unsigned int cPollNegRet = 0;
-    drvNAT_AddPollCb(RTPipeToNative(pThis->hPipeRead), SLIRP_POLL_IN | SLIRP_POLL_HUP, pThis);
-    pThis->pNATState->polls[0].fd = RTPipeToNative(pThis->hPipeRead);
+    RTHCINTPTR i64NativeReadPipe = RTPipeToNative(pThis->hPipeRead);
+    Assert(i64NativeReadPipe < INT_MAX);
+    drvNAT_AddPollCb(i64NativeReadPipe, SLIRP_POLL_IN | SLIRP_POLL_HUP, pThis);
+    pThis->pNATState->polls[0].fd = i64NativeReadPipe;
     pThis->pNATState->polls[0].events = POLLRDNORM | POLLPRI | POLLRDBAND;
     pThis->pNATState->polls[0].revents = 0;
 #endif /* !RT_OS_WINDOWS */
@@ -746,7 +749,7 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
          * To prevent concurrent execution of sending/receiving threads
          */
 
-        uint32_t uTimeout = DRVNAT_DEFAULT_TIMEOUT;
+        int uTimeout = DRVNAT_DEFAULT_TIMEOUT;
         pThis->pNATState->nsock = 1;
 
         slirp_pollfds_fill(pThis->pNATState->pSlirp, &uTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
@@ -1086,7 +1089,7 @@ static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterfac
  *
  * @thread  ?
  */
-static void drvNAT_UpdateTimeout(uint32_t *uTimeout, void *opaque)
+static void drvNAT_UpdateTimeout(int *uTimeout, void *opaque)
 {
     PDRVNAT pThis = (PDRVNAT)opaque;
     Assert(pThis);
@@ -1149,8 +1152,8 @@ static void drvNAT_CheckTimeout(void *opaque)
  *
  * @thread  ?
  */
-static int drvNAT_PollEventSlirpToHost(int iEvents) {
-    int iRet = 0;
+static short drvNAT_PollEventSlirpToHost(int iEvents) {
+    short iRet = 0;
 #ifndef RT_OS_WINDOWS
     if (iEvents & SLIRP_POLL_IN)  iRet |= POLLIN;
     if (iEvents & SLIRP_POLL_OUT) iRet |= POLLOUT;
@@ -1393,7 +1396,7 @@ static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque)
 
     if (pThis->pNATState->nsock + 1 >= pThis->pNATState->uPollCap)
     {
-        int cbNew = pThis->pNATState->uPollCap * 2 * sizeof(struct pollfd);
+        size_t cbNew = pThis->pNATState->uPollCap * 2 * sizeof(struct pollfd);
         struct pollfd *pvNew = (struct pollfd *)RTMemRealloc(pThis->pNATState->polls, cbNew);
         if (pvNew)
         {
@@ -1404,16 +1407,17 @@ static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque)
             return -1;
     }
 
-    int idx = pThis->pNATState->nsock;
+    unsigned int uIdx = pThis->pNATState->nsock;
+    Assert(uIdx < INT_MAX);
 #ifdef RT_OS_WINDOWS
-    pThis->pNATState->polls[idx].fd = libslirp_wrap_RTHandleTableLookup(iFd);
+    pThis->pNATState->polls[uIdx].fd = libslirp_wrap_RTHandleTableLookup(iFd);
 #else
-    pThis->pNATState->polls[idx].fd = iFd;
+    pThis->pNATState->polls[uIdx].fd = iFd;
 #endif
-    pThis->pNATState->polls[idx].events = drvNAT_PollEventSlirpToHost(iEvents);
-    pThis->pNATState->polls[idx].revents = 0;
+    pThis->pNATState->polls[uIdx].events = drvNAT_PollEventSlirpToHost(iEvents);
+    pThis->pNATState->polls[uIdx].revents = 0;
     pThis->pNATState->nsock += 1;
-    return idx;
+    return uIdx;
 }
 
 /**
@@ -1590,17 +1594,10 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     GET_S32(rc, pDrvIns, pCfg, "DNSProxy", fDNSProxy);
     int MTU = 1500;
     GET_S32(rc, pDrvIns, pCfg, "SlirpMTU", MTU);
-    int i32AliasMode = 0;
-    int i32MainAliasMode = 0;
-    GET_S32(rc, pDrvIns, pCfg, "AliasMode", i32MainAliasMode);
     int iIcmpCacheLimit = 100;
     GET_S32(rc, pDrvIns, pCfg, "ICMPCacheLimit", iIcmpCacheLimit);
     bool fLocalhostReachable = false;
     GET_BOOL(rc, pDrvIns, pCfg, "LocalhostReachable", fLocalhostReachable);
-
-    i32AliasMode |= (i32MainAliasMode & 0x1 ? 0x1 : 0);
-    i32AliasMode |= (i32MainAliasMode & 0x2 ? 0x40 : 0);
-    i32AliasMode |= (i32MainAliasMode & 0x4 ? 0x4 : 0);
     int i32SoMaxConn = 10;
     GET_S32(rc, pDrvIns, pCfg, "SoMaxConnection", i32SoMaxConn);
     /*

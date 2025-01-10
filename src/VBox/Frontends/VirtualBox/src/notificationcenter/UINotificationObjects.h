@@ -902,9 +902,11 @@ public:
 
     /** Constructs medium resize notification-progress.
       * @param  comMedium  Brings the medium being resized.
-      * @param  uSize      Brings the desired size. */
+      * @param  uOldSize   Brings previous medium size.
+      * @param  uNewSize   Brings desired medium size. */
     UINotificationProgressMediumResize(const CMedium &comMedium,
-                                       qulonglong uSize);
+                                       qulonglong uOldSize,
+                                       qulonglong uNewSize);
 
 protected:
 

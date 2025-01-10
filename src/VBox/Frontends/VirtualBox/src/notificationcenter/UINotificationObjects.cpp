@@ -2040,9 +2040,11 @@ CProgress UINotificationProgressMediumMove::createProgress(COMResult &comResult)
 *********************************************************************************************************************************/
 
 UINotificationProgressMediumResize::UINotificationProgressMediumResize(const CMedium &comMedium,
-                                                                       qulonglong uSize)
+                                                                       qulonglong uOldSize,
+                                                                       qulonglong uNewSize)
     : m_comMedium(comMedium)
-    , m_uTo(uSize)
+    , m_uFrom(uOldSize)
+    , m_uTo(uNewSize)
 {
 }
 

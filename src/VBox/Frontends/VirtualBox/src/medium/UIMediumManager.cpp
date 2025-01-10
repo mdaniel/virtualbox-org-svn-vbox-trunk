@@ -312,6 +312,7 @@ void UIMediumManagerWidget::sltApplyMediumDetailsChanges()
     {
         /* Assign new medium size: */
         UINotificationProgressMediumResize *pNotification = new UINotificationProgressMediumResize(comMedium,
+                                                                                                   oldData.m_options.m_uLogicalSize,
                                                                                                    newData.m_options.m_uLogicalSize);
         connect(pNotification, &UINotificationProgressMediumResize::sigProgressFinished,
                 this, &UIMediumManagerWidget::sltHandleResizeProgressFinished);

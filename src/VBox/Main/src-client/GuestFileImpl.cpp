@@ -582,13 +582,13 @@ int GuestFile::i_onNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALL
                                         vrc = VERR_WRONG_PARAMETER_TYPE);
             BYTE const * const pbData = (BYTE const *)pSvcCbData->mpaParms[idx].u.pointer.addr;
             uint32_t const     cbRead = pSvcCbData->mpaParms[idx].u.pointer.size;
-            uint64_t           offNew = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
-            Log3ThisFunc(("cbRead=%RU32 offNew=%RU64 (%#RX64)\n", cbRead, offNew, offNew));
+            int64_t            offNew = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
+            Log3ThisFunc(("cbRead=%RU32 offNew=%RI64 (%#RX64)\n", cbRead, offNew, offNew));
 
             AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
             if (offNew < 0) /* non-seekable */
                 offNew = mData.mOffCurrent + cbRead;
-            mData.mOffCurrent = offNew;
+            mData.mOffCurrent = (uint64_t)offNew;
             alock.release();
 
             try
@@ -637,13 +637,13 @@ int GuestFile::i_onNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALL
                                         ("type=%u\n", pSvcCbData->mpaParms[idx].type),
                                         vrc = VERR_WRONG_PARAMETER_TYPE);
             uint32_t const  cbWritten = pSvcCbData->mpaParms[idx].u.uint32;
-            uint64_t        offNew    = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
-            Log3ThisFunc(("cbWritten=%RU32 offNew=%RU64 (%#RX64)\n", cbWritten, offNew, offNew));
+            int64_t         offNew    = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
+            Log3ThisFunc(("cbWritten=%RU32 offNew=%RI64 (%#RX64)\n", cbWritten, offNew, offNew));
 
             AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
             if (offNew < 0) /* non-seekable */
                 offNew = mData.mOffCurrent + cbWritten;
-            mData.mOffCurrent = offNew;
+            mData.mOffCurrent = (uint64_t)offNew;
             alock.release();
 
             HRESULT hrc2 = ::FireGuestFileWriteEvent(mEventSource, mSession, this, offNew, cbWritten);

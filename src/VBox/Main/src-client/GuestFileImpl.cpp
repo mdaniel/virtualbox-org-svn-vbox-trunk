@@ -582,8 +582,8 @@ int GuestFile::i_onNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALL
                                         vrc = VERR_WRONG_PARAMETER_TYPE);
             BYTE const * const pbData = (BYTE const *)pSvcCbData->mpaParms[idx].u.pointer.addr;
             uint32_t const     cbRead = pSvcCbData->mpaParms[idx].u.pointer.size;
-            int64_t            offNew = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
-            Log3ThisFunc(("cbRead=%RU32 offNew=%RI64 (%#RX64)\n", cbRead, offNew, offNew));
+            uint64_t           offNew = (int64_t)pSvcCbData->mpaParms[idx + 1].u.uint64;
+            Log3ThisFunc(("cbRead=%RU32 offNew=%RU64 (%#RX64)\n", cbRead, offNew, offNew));
 
             AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
             if (offNew < 0) /* non-seekable */

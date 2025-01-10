@@ -154,7 +154,8 @@ class CommandData
 {
 public:
     CommandData()
-        : m_bSessionIdGiven(false)
+        : m_uSessionId(0)
+        , m_bSessionIdGiven(false)
         , m_bSessionNameGiven(false)
         , m_bCreateParentDirectories(false){}
     QString m_strUserName;

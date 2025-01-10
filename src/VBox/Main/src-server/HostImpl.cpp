@@ -469,7 +469,8 @@ HRESULT Host::init(VirtualBox *aParent)
     std::set<Utf8Str> aConfiguredNames;
     SafeArray<BSTR> aGlobalExtraDataKeys;
     hrc = aParent->GetExtraDataKeys(ComSafeArrayAsOutParam(aGlobalExtraDataKeys));
-    AssertMsg(SUCCEEDED(hrc), ("VirtualBox::GetExtraDataKeys failed with %Rhrc\n", hrc));
+    AssertComRCReturn(hrc, hrc);
+
     for (size_t i = 0; i < aGlobalExtraDataKeys.size(); ++i)
     {
         Utf8Str strKey = aGlobalExtraDataKeys[i];
@@ -1564,9 +1565,13 @@ HRESULT Host::removeHostOnlyNetworkInterface(const com::Guid &aId,
             LogRel(("i_removePersistentConfig(%RTuuid) failed with 0x%x\n", &aId, hrc));
 #else /* !RT_OS_WINDOWS */
         hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPAddress", name.raw()).raw(), NULL);
+        ComAssertComRCRet(hrc, hrc);
         hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPNetMask", name.raw()).raw(), NULL);
+        ComAssertComRCRet(hrc, hrc);
         hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPV6Address", name.raw()).raw(), NULL);
+        ComAssertComRCRet(hrc, hrc);
         hrc = m->pParent->SetExtraData(BstrFmt("HostOnly/%ls/IPV6NetMask", name.raw()).raw(), NULL);
+        ComAssertComRCRet(hrc, hrc);
 #endif /* !RT_OS_WINDOWS */
 
         return S_OK;
@@ -2157,6 +2162,7 @@ HRESULT Host::i_loadSettings(const settings::Host &data)
     }
 
     hrc = m->pUSBProxyService->i_loadSettings(data.llUSBDeviceSources);
+    ComAssertComRCRet(hrc, hrc);
 #else
     RT_NOREF(data);
 #endif /* VBOX_WITH_USB */

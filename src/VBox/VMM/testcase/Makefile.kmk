@@ -126,7 +126,10 @@ BLDDIRS += $(VBOX_VMM_TESTCASE_OUT_DIR)
 #
 ifeq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),$(KBUILD_HOST).$(KBUILD_HOST_ARCH))
  OTHERS       += $(VBOX_VMM_TESTCASE_OUT_DIR)/tstVMStructSize.run
- OTHERS.amd64 += $(VBOX_VMM_TESTCASE_OUT_DIR)/tstAsmStructs.run
+ ## @todo kBuild bug: OTHERS.amd64 += $(VBOX_VMM_TESTCASE_OUT_DIR)/tstAsmStructs.run
+ ifeq ($(KBUILD_TARGET_ARCH),amd64)
+  OTHERS      += $(VBOX_VMM_TESTCASE_OUT_DIR)/tstAsmStructs.run
+ endif
 endif
 
 # The normal testing pass.

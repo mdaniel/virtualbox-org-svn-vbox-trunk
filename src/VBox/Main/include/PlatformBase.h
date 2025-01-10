@@ -46,6 +46,7 @@ public:
     PlatformBase()
         : mParent(NULL)
         , mMachine(NULL)
+        , m(NULL)
     {
 
     }

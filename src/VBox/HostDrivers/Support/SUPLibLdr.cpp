@@ -479,7 +479,6 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
             uint32_t const cbCommon = PAGE_SIZE - (uRvaSeg & PAGE_OFFSET_MASK);
             if (cbCommon >= cbMapped)
             {
-                fProt |= pArgs->fProt;
                 pArgs->uEndRva = uRvaSeg + cbMapped;
                 return VINF_SUCCESS; /* New segment was smaller than a page. */
             }

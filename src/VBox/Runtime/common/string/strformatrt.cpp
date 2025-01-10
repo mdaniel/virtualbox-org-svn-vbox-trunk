@@ -1579,6 +1579,8 @@ DECLHIDDEN(size_t) rtstrFormatRt(PFNRTSTROUTPUT pfnOutput, void *pvArgOutput, co
 
                     while (--cchWidth >= cchStr)
                         cchOutput += pfnOutput(pvArgOutput, "%20", 3);
+
+                    return cchOutput;
                 }
                 else
                     AssertMsgFailed(("Invalid IPRT format type '%.10s'!\n", pszFormatOrg));

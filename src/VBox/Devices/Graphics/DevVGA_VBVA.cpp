@@ -436,58 +436,55 @@ static int vbvaFlushProcess(PVGASTATECC pThisCC, VBVADATA *pVBVAData, unsigned u
             return VERR_NOT_SUPPORTED;
         }
 
-        if (cbCmd != 0)
+        if (!fUpdate)
         {
-            if (!fUpdate)
+            pThisCC->pDrv->pfnVBVAUpdateBegin(pThisCC->pDrv, uScreenId);
+            fUpdate = true;
+        }
+
+        /* Updates the rectangle and sends the command to the VRDP server. */
+        pThisCC->pDrv->pfnVBVAUpdateProcess(pThisCC->pDrv, uScreenId, pHdr, cbCmd);
+
+        int32_t xRight  = pHdr->x + pHdr->w;
+        int32_t yBottom = pHdr->y + pHdr->h;
+
+        /* These are global coords, relative to the primary screen. */
+
+        LOGVBVABUFFER(("cbCmd = %d, x=%d, y=%d, w=%d, h=%d\n", cbCmd, pHdr->x, pHdr->y, pHdr->w, pHdr->h));
+        LogRel3(("%s: update command cbCmd = %d, x=%d, y=%d, w=%d, h=%d\n",
+                 __FUNCTION__, cbCmd, pHdr->x, pHdr->y, pHdr->w, pHdr->h));
+
+        /* Collect all rects into one. */
+        if (fDirtyEmpty)
+        {
+            /* This is the first rectangle to be added. */
+            dirtyRect.xLeft   = pHdr->x;
+            dirtyRect.yTop    = pHdr->y;
+            dirtyRect.xRight  = xRight;
+            dirtyRect.yBottom = yBottom;
+            fDirtyEmpty       = false;
+        }
+        else
+        {
+            /* Adjust region coordinates. */
+            if (dirtyRect.xLeft > pHdr->x)
             {
-                pThisCC->pDrv->pfnVBVAUpdateBegin(pThisCC->pDrv, uScreenId);
-                fUpdate = true;
+                dirtyRect.xLeft = pHdr->x;
             }
 
-            /* Updates the rectangle and sends the command to the VRDP server. */
-            pThisCC->pDrv->pfnVBVAUpdateProcess(pThisCC->pDrv, uScreenId, pHdr, cbCmd);
-
-            int32_t xRight  = pHdr->x + pHdr->w;
-            int32_t yBottom = pHdr->y + pHdr->h;
-
-            /* These are global coords, relative to the primary screen. */
-
-            LOGVBVABUFFER(("cbCmd = %d, x=%d, y=%d, w=%d, h=%d\n", cbCmd, pHdr->x, pHdr->y, pHdr->w, pHdr->h));
-            LogRel3(("%s: update command cbCmd = %d, x=%d, y=%d, w=%d, h=%d\n",
-                     __FUNCTION__, cbCmd, pHdr->x, pHdr->y, pHdr->w, pHdr->h));
-
-            /* Collect all rects into one. */
-            if (fDirtyEmpty)
+            if (dirtyRect.yTop > pHdr->y)
             {
-                /* This is the first rectangle to be added. */
-                dirtyRect.xLeft   = pHdr->x;
-                dirtyRect.yTop    = pHdr->y;
-                dirtyRect.xRight  = xRight;
+                dirtyRect.yTop = pHdr->y;
+            }
+
+            if (dirtyRect.xRight < xRight)
+            {
+                dirtyRect.xRight = xRight;
+            }
+
+            if (dirtyRect.yBottom < yBottom)
+            {
                 dirtyRect.yBottom = yBottom;
-                fDirtyEmpty       = false;
-            }
-            else
-            {
-                /* Adjust region coordinates. */
-                if (dirtyRect.xLeft > pHdr->x)
-                {
-                    dirtyRect.xLeft = pHdr->x;
-                }
-
-                if (dirtyRect.yTop > pHdr->y)
-                {
-                    dirtyRect.yTop = pHdr->y;
-                }
-
-                if (dirtyRect.xRight < xRight)
-                {
-                    dirtyRect.xRight = xRight;
-                }
-
-                if (dirtyRect.yBottom < yBottom)
-                {
-                    dirtyRect.yBottom = yBottom;
-                }
             }
         }
 

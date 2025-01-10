@@ -1236,9 +1236,12 @@ UIMachineView::UIMachineView(UIMachineWindow *pMachineWindow, ulong uScreenId)
     , m_iHostScreenNumber(0)
     , m_enmMaximumGuestScreenSizePolicy(MaximumGuestScreenSizePolicy_Automatic)
     , m_u64MaximumGuestSize(0)
-#ifdef VBOX_WITH_DRAG_AND_DROP_GH
+#ifdef VBOX_WITH_DRAG_AND_DROP
+    , m_pDnDHandler(NULL)
+# ifdef VBOX_WITH_DRAG_AND_DROP_GH
     , m_fIsDraggingFromGuest(false)
-#endif
+# endif
+#endif /* VBOX_WITH_DRAG_AND_DROP */
     , m_pNativeEventFilter(0)
 {
     /* Install Machine-view accessibility interface factory: */

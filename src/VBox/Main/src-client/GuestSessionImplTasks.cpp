@@ -421,12 +421,12 @@ int GuestSessionTask::fileCopyFromGuestInner(const Utf8Str &strSrcFile, ComObjPt
     while (cbToRead)
     {
         uint32_t cbRead;
-        const uint32_t cbChunk = RT_MIN(cbToRead, sizeof(byBuf));
-        vrc = srcFile->i_readData(cbChunk, GSTCTL_DEFAULT_TIMEOUT_MS, byBuf, sizeof(byBuf), &cbRead);
+        uint64_t const cbChunk = RT_MIN(cbToRead, sizeof(byBuf));
+        vrc = srcFile->i_readData((uint32_t)cbChunk, GSTCTL_DEFAULT_TIMEOUT_MS, byBuf, sizeof(byBuf), &cbRead);
         if (RT_FAILURE(vrc))
         {
             setProgressErrorMsg(VBOX_E_IPRT_ERROR,
-                                Utf8StrFmt(tr("Reading %RU32 bytes @ %RU64 from guest \"%s\" failed: %Rrc", "", cbChunk),
+                                Utf8StrFmt(tr("Reading %RU64 bytes @ %RU64 from guest \"%s\" failed: %Rrc", "", cbChunk),
                                            cbChunk, cbWrittenTotal, strSrcFile.c_str(), vrc));
             break;
         }
@@ -453,7 +453,7 @@ int GuestSessionTask::fileCopyFromGuestInner(const Utf8Str &strSrcFile, ComObjPt
             break;
 
         AssertBreakStmt(cbSize, vrc = VERR_INTERNAL_ERROR);
-        vrc = setProgress(((double)cbWrittenTotal / (double)cbSize) * 100);
+        vrc = setProgress(ULONG(((double)cbWrittenTotal / (double)cbSize) * 100));
         if (RT_FAILURE(vrc))
             break;
     }
@@ -786,7 +786,7 @@ int GuestSessionTask::fileCopyToGuestInner(const Utf8Str &strSrcFile, RTVFSFILE 
             break;
 
         AssertBreakStmt(cbSize, vrc = VERR_INTERNAL_ERROR);
-        vrc = setProgress(((double)cbWrittenTotal / (double)cbSize) * 100);
+        vrc = setProgress(ULONG(((double)cbWrittenTotal / (double)cbSize) * 100));
         if (RT_FAILURE(vrc))
             break;
     }

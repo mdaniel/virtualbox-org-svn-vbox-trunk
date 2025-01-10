@@ -810,8 +810,6 @@ void UIFileManagerTable::sltDelete()
     if (!m_pView || !m_pModel)
         return;
 
-    if (!m_pView || !m_pModel)
-        return;
     QItemSelectionModel *selectionModel =  m_pView->selectionModel();
     if (!selectionModel)
         return;

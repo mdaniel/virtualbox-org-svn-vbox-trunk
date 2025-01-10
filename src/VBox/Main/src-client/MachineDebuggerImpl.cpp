@@ -58,6 +58,7 @@ MachineDebugger::MachineDebugger()
     , mLogEnabledQueued(-1)
     , mVirtualTimeRateQueued(UINT32_MAX)
     , mFlushMode(false)
+    , m_hSampleReport(NULL)
 {
 }
 

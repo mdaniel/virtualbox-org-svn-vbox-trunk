@@ -214,6 +214,7 @@ QTextDocument* UIVMLogPage::document()
 void UIVMLogPage::cleanup()
 {
     delete m_pBookmarkManager;
+    m_pBookmarkManager = 0;
 }
 
 void UIVMLogPage::setLogContent(const QString &strLogContent, bool fError)

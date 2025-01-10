@@ -2603,7 +2603,8 @@ int ShClTransferWaitForStatus(PSHCLTRANSFER pTransfer, RTMSINTERVAL msTimeout, S
         if (enmCurStatus == enmStatus)
             break;
 
-        msLeft -= RT_MIN(msLeft, RTTimeMilliTS() - tsStartMs);
+        uint64_t const msElapsed = RTTimeMilliTS() - tsStartMs;
+        msLeft -= RT_MIN(msLeft, msElapsed);
         if (msLeft == 0)
         {
             rc = VERR_TIMEOUT;

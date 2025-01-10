@@ -493,6 +493,9 @@ static RTEXITCODE rtZipTarCmdArchiveDirSub(PRTZIPTARCMDOPS pOpts, RTVFSFSSTREAM 
                 break;
             }
         }
+
+        if (RT_FAILURE(rc))
+            break;
     }
 
     RTVfsDirRelease(hVfsIoDir);

@@ -405,9 +405,8 @@ pxdns_create_resolver_sockaddrs(struct pxdns *pxdns, const char **nameservers)
     }
 
     if (nresolvers == 0) {
-        if (resolvers != NULL) {
-            free(resolvers);
-        }
+        Assert(resolvers);
+        free(resolvers);
         resolvers = NULL;
     }
 

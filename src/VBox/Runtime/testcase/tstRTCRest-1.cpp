@@ -1830,8 +1830,6 @@ static void verifyMap(RTCRestStringMap<MyRestInt16> const &rMap, int iLine, unsi
                                   iLine, pszKey, pObj->m_iValue, iValue);
                 fFound |= RT_BIT_64(i);
                 fFoundIt = true;
-                va_end(va);
-                return;
             }
         }
         va_end(va);

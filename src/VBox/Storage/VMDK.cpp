@@ -3197,15 +3197,14 @@ static int vmdkAddFileBackedExtent(PVMDKIMAGE pImage, uint64_t cbSize)
     }
     else
     {
-        uint64_t cSectorsPerGDE, cSectorsPerGD;
         pExtent->enmType = VMDKETYPE_HOSTED_SPARSE;
         pExtent->cSectors = VMDK_BYTE2SECTOR(RT_ALIGN_64(cbSize, _64K));
         pExtent->cSectorsPerGrain = VMDK_BYTE2SECTOR(_64K);
         pExtent->cGTEntries = 512;
-        cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
+
+        uint64_t const cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
         pExtent->cSectorsPerGDE = cSectorsPerGDE;
         pExtent->cGDEntries = (pExtent->cSectors + cSectorsPerGDE - 1) / cSectorsPerGDE;
-        cSectorsPerGD = (pExtent->cGDEntries + (512 / sizeof(uint32_t) - 1)) / (512 / sizeof(uint32_t));
     }
 
     /* Allocate and set file name for extent. */
@@ -5591,15 +5590,14 @@ static int vmdkCreateRegularImage(PVMDKIMAGE pImage, uint64_t cbSize,
 
         if (!(uImageFlags & VD_IMAGE_FLAGS_FIXED))
         {
-            uint64_t cSectorsPerGDE, cSectorsPerGD;
             pExtent->enmType = VMDKETYPE_HOSTED_SPARSE;
             pExtent->cSectors = VMDK_BYTE2SECTOR(RT_ALIGN_64(cbExtent, _64K));
             pExtent->cSectorsPerGrain = VMDK_BYTE2SECTOR(_64K);
             pExtent->cGTEntries = 512;
-            cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
+
+            uint64_t const cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
             pExtent->cSectorsPerGDE = cSectorsPerGDE;
             pExtent->cGDEntries = (pExtent->cSectors + cSectorsPerGDE - 1) / cSectorsPerGDE;
-            cSectorsPerGD = (pExtent->cGDEntries + (512 / sizeof(uint32_t) - 1)) / (512 / sizeof(uint32_t));
             if (pImage->uImageFlags & VD_VMDK_IMAGE_FLAGS_STREAM_OPTIMIZED)
             {
                 /* The spec says version is 1 for all VMDKs, but the vast
@@ -5731,15 +5729,14 @@ static int vmdkCreateStreamImage(PVMDKIMAGE pImage, uint64_t cbSize)
     pExtent->pDescData = pImage->pDescData;
     pImage->pDescData = NULL;
 
-    uint64_t cSectorsPerGDE, cSectorsPerGD;
     pExtent->enmType = VMDKETYPE_HOSTED_SPARSE;
     pExtent->cSectors = VMDK_BYTE2SECTOR(RT_ALIGN_64(cbSize, _64K));
     pExtent->cSectorsPerGrain = VMDK_BYTE2SECTOR(_64K);
     pExtent->cGTEntries = 512;
-    cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
+
+    uint64_t const cSectorsPerGDE = pExtent->cGTEntries * pExtent->cSectorsPerGrain;
     pExtent->cSectorsPerGDE = cSectorsPerGDE;
     pExtent->cGDEntries = (pExtent->cSectors + cSectorsPerGDE - 1) / cSectorsPerGDE;
-    cSectorsPerGD = (pExtent->cGDEntries + (512 / sizeof(uint32_t) - 1)) / (512 / sizeof(uint32_t));
 
     /* The spec says version is 1 for all VMDKs, but the vast
      * majority of streamOptimized VMDKs actually contain

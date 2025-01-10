@@ -2418,10 +2418,10 @@ VBGLR3DECL(int) VbglR3GuestCtrlProcGetWaitFor(PVBGLR3GUESTCTRLCMDCTX pCtx,
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   uDirHandle          Directory handle of opened directory.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t uDirHandle)
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t uDirHandle)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2429,7 +2429,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_DIR_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 1);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_DIR_NOTIFYTYPE_OPEN);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmUInt32Set(&Msg.u.open.handle, uDirHandle);
 
@@ -2442,9 +2442,9 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc)
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2452,7 +2452,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_DIR_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_DIR_NOTIFYTYPE_CLOSE);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     return VbglR3HGCMCall(&Msg.reply_hdr.hdr, RT_UOFFSET_AFTER(HGCMReplyDirNotify, reply_hdr));
 }
@@ -2463,7 +2463,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pEntry              Directory entry to send.
  * @param   cbSize              Size (in bytes) of the OFFSET(GSTCTLDIRENTRYEX, szName[pEntry->cbName + 1]).
  *                              See RTDirReadEx() for more information.
@@ -2472,7 +2472,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
  *                              Multiple groups are delimited by GSTCTL_DIRENTRY_GROUPS_DELIMITER_STR,
  *                              whereas the first group always is the primary group.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize,
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize,
                                            const char *pszUser, const char *pszGroups)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
@@ -2481,7 +2481,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_DIR_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 3);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_DIR_NOTIFYTYPE_READ);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmPtrSet      (&Msg.u.read.entry,   pEntry, cbSize);
     VbglHGCMParmPtrSetString(&Msg.u.read.user,    pszUser);
@@ -2496,15 +2496,15 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pEntry              Directory entry to send.
  * @param   cbSize              Size (in bytes) of the OFFSET(GSTCTLDIRENTRYEX, szName[pEntry->cbName + 1]).
  *                              See RTDirReadEx() for more information.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize)
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize)
 {
     char szIgnored[1] = { 0 };
-    return VbglR3GuestCtrlDirCbReadEx(pCtx, uRc, pEntry, cbSize, szIgnored /* pszUser */, szIgnored /* pszGroups */);
+    return VbglR3GuestCtrlDirCbReadEx(pCtx, rc, pEntry, cbSize, szIgnored /* pszUser */, szIgnored /* pszGroups */);
 }
 
 
@@ -2513,9 +2513,9 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc)
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2523,7 +2523,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_DIR_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_DIR_NOTIFYTYPE_REWIND);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     return VbglR3HGCMCall(&Msg.reply_hdr.hdr, RT_UOFFSET_AFTER(HGCMReplyDirNotify, u));
 }
@@ -2534,12 +2534,12 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
- * @þaram   cEntries            Number of directory entries to send.
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
+ * @param   cEntries            Number of directory entries to send.
  * @param   pvBuf               Buffer of directory entries to send.
  * @param   cbBuf               Size (in bytes) of \a pvBuf.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc,
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc,
                                          uint32_t cEntries, void *pvBuf, uint32_t cbBuf)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
@@ -2548,7 +2548,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_DIR_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 2);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_DIR_NOTIFYTYPE_LIST);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmUInt32Set(&Msg.u.list.num_entries, cEntries);
     VbglHGCMParmPtrSet(&Msg.u.list.buffer, pvBuf, cbBuf);
@@ -2567,11 +2567,11 @@ VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   uFileHandle         File handle of opened file on success.
  */
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx,
-                                          uint32_t uRc, uint32_t uFileHandle)
+                                          int rc, uint32_t uFileHandle)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2579,7 +2579,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx,
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_OPEN);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt32Set(&Msg.u.open.handle, uFileHandle);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.open));
@@ -2591,10 +2591,9 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx,
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx,
-                                           uint32_t uRc)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2602,7 +2601,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx,
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 3);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_CLOSE);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSETOF(HGCMReplyFileNotify, u));
 }
@@ -2613,9 +2612,9 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx,
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2623,7 +2622,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 3);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_ERROR);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSETOF(HGCMReplyFileNotify, u));
 }
@@ -2634,12 +2633,12 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pvData              Pointer to read file data from guest on success.
  * @param   cbData              Size (in bytes) of read file data from guest on success.
  */
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx,
-                                          uint32_t uRc,
+                                          int rc,
                                           void *pvData, uint32_t cbData)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
@@ -2648,7 +2647,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx,
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_READ);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmPtrSet(&Msg.u.read.data, pvData, cbData);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.read));
@@ -2660,12 +2659,12 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx,
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pvData              Pointer to read file data from guest on success.
  * @param   cbData              Size (in bytes) of read file data from guest on success.
  * @param   offNew              New offset (in bytes) the guest file pointer points at on success.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc,
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc,
                                                 void *pvData, uint32_t cbData, int64_t offNew)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
@@ -2674,7 +2673,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uin
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 5);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_READ_OFFSET);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmPtrSet(&Msg.u.ReadOffset.pvData, pvData, cbData);
     VbglHGCMParmUInt64Set(&Msg.u.ReadOffset.off64New, (uint64_t)offNew);
 
@@ -2687,10 +2686,10 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uin
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   cbWritten           Size (in bytes) of file data successfully written to guest file. Can be partial.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t cbWritten)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2698,7 +2697,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_WRITE);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt32Set(&Msg.u.write.written, cbWritten);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.write));
@@ -2710,11 +2709,11 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   cbWritten           Size (in bytes) of file data successfully written to guest file. Can be partial.
  * @param   offNew              New offset (in bytes) the guest file pointer points at on success.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten, int64_t offNew)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t cbWritten, int64_t offNew)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2722,7 +2721,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, ui
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 5);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_WRITE_OFFSET);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt32Set(&Msg.u.WriteOffset.cb32Written, cbWritten);
     VbglHGCMParmUInt64Set(&Msg.u.WriteOffset.off64New, (uint64_t)offNew);
 
@@ -2735,10 +2734,10 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, ui
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   offCurrent          New offset (in bytes) the guest file pointer points at on success.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t offCurrent)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2746,7 +2745,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_SEEK);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt64Set(&Msg.u.seek.offset, offCurrent);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.seek));
@@ -2758,10 +2757,10 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   offCurrent          Current offset (in bytes) the guest file pointer points at on success.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t offCurrent)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2769,7 +2768,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_TELL);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt64Set(&Msg.u.tell.offset, offCurrent);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.tell));
@@ -2781,10 +2780,10 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t 
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   cbNew               New file size (in bytes) of the guest file on success.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t cbNew)
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t cbNew)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
@@ -2792,7 +2791,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32
     VBGL_HGCM_HDR_INIT(&Msg.hdr, pCtx->uClientID, GUEST_MSG_FILE_NOTIFY, 4);
     VbglHGCMParmUInt32Set(&Msg.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.type, GUEST_FILE_NOTIFYTYPE_SET_SIZE);
-    VbglHGCMParmUInt32Set(&Msg.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.rc, (uint32_t)rc);
     VbglHGCMParmUInt64Set(&Msg.u.SetSize.cb64Size, cbNew);
 
     return VbglR3HGCMCall(&Msg.hdr, RT_UOFFSET_AFTER(HGCMReplyFileNotify, u.SetSize));
@@ -2809,14 +2808,14 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pFsObjInfo          Guest file system object information to send.
  * @param   pszUser             Associated user ID (owner, uid) as a string.
  * @param   pszGroups           Associated user groups as a string.
  *                              Multiple groups are delimited by GSTCTL_DIRENTRY_GROUPS_DELIMITER_STR,
  *                              whereas the first group always is the primary group.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pFsObjInfo,
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSOBJINFO pFsObjInfo,
                                                   const char *pszUser, const char *pszGroups)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
@@ -2828,7 +2827,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, u
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_FS_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 3);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmPtrSet      (&Msg.u.queryobjinfo.obj_info, pFsObjInfo, sizeof(GSTCTLFSOBJINFO));
     VbglHGCMParmPtrSetString(&Msg.u.queryobjinfo.user,   pszUser);
@@ -2843,13 +2842,13 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, u
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pFsObjInfo          Guest file system object information to send.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pFsObjInfo)
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSOBJINFO pFsObjInfo)
 {
     char szIgnored[1] = { 0 };
-    return VbglR3GuestCtrlFsObjCbQueryInfoEx(pCtx, uRc, pFsObjInfo, szIgnored /* pszUser */, szIgnored /* pszGroups */);
+    return VbglR3GuestCtrlFsObjCbQueryInfoEx(pCtx, rc, pFsObjInfo, szIgnored /* pszUser */, szIgnored /* pszGroups */);
 }
 
 
@@ -2858,11 +2857,11 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uin
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
- * @param   pszPath             Path of created temporary file / directory, if \a uRc marks a success.
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
+ * @param   pszPath             Path of created temporary file / directory, if \a rc marks a success.
  *                              Specify an empty path on failure -- NULL is not allowed!
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, const char *pszPath)
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, const char *pszPath)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
     AssertPtrReturn(pszPath, VERR_INVALID_POINTER);
@@ -2871,7 +2870,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, uint3
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_FS_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 1);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_FS_NOTIFYTYPE_CREATE_TEMP);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmPtrSetString(&Msg.u.createtemp.path, pszPath);
 
@@ -2883,11 +2882,11 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, uint3
  *
  * @returns VBox status code.
  * @param   pCtx                Guest control command context to use.
- * @param   uRc                 Guest rc of operation (note: IPRT-style signed int).
+ * @param   rc                  Guest rc of operation (note: IPRT-style signed int).
  * @param   pFsInfo             File system information to return.
  * @param   cbFsInfo            Size (in bytes) of \a pFsInfo.
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSINFO pFsInfo, uint32_t cbFsInfo)
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSINFO pFsInfo, uint32_t cbFsInfo)
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
     AssertPtrReturn(pFsInfo, VERR_INVALID_POINTER);
@@ -2897,7 +2896,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32
     VBGL_HGCM_HDR_INIT(&Msg.reply_hdr.hdr, pCtx->uClientID, GUEST_MSG_FS_NOTIFY, GSTCTL_HGCM_REPLY_HDR_PARMS + 1);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.context, pCtx->uContextID);
     VbglHGCMParmUInt32Set(&Msg.reply_hdr.type, GUEST_FS_NOTIFYTYPE_QUERY_INFO);
-    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, uRc);
+    VbglHGCMParmUInt32Set(&Msg.reply_hdr.rc, (uint32_t)rc);
 
     VbglHGCMParmPtrSet(&Msg.u.queryinfo.fs_info, pFsInfo, cbFsInfo);
 

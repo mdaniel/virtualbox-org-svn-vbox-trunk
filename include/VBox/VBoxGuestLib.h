@@ -1159,40 +1159,40 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileGetRemove(PVBGLR3GUESTCTRLCMDCTX pCtx, char *
 /** @name Guest Control directory callbacks.
  * @{
  */
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t uFileHandle);
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize, const char *pszUser, const char *pszGroups);
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize);
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
-VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cEntries, void *pvBuf, uint32_t cbBuf);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t uFileHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize, const char *pszUser, const char *pszGroups);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t cEntries, void *pvBuf, uint32_t cbBuf);
 /** @} */
 #  endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t uFileHandle);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, void *pvData, uint32_t cbData);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, void *pvData, uint32_t cbData, int64_t offNew);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten, int64_t offNew);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t uFileHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, void *pvData, uint32_t cbData);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, void *pvData, uint32_t cbData, int64_t offNew);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t cbWritten);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint32_t cbWritten, int64_t offNew);
 
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t cbNew);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t offCurrent);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t offCurrent);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, uint64_t cbNew);
 
 #  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
 /** @name Guest Control file system callbacks.
  * @{
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, const char *pszPath);
-VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSINFO pFsInfo, uint32_t cbFsInfo);
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, const char *pszPath);
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSINFO pFsInfo, uint32_t cbFsInfo);
 /** @} */
 
 /** @name Guest Control file system object callbacks.
  * @{
  */
-VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pObjInfo, const char *pszUser, const char *pszGroups);
-VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pObjInfo);
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSOBJINFO pObjInfo, const char *pszUser, const char *pszGroups);
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, int rc, PGSTCTLFSOBJINFO pObjInfo);
 /** @} */
 #  endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 

@@ -764,7 +764,7 @@ bool UISession::storageDevices(KDeviceType enmActualDeviceType, QList<StorageDev
                 break;
             }
 
-            /* Fill structure fields: */
+            /* Fill and append structure fields: */
             StorageDeviceInfo guiStorageDevice;
             guiStorageDevice.m_strControllerName = strControllerName; // already confirmed
             const KStorageBus enmStorageBus = comController.GetBus();
@@ -800,17 +800,9 @@ bool UISession::storageDevices(KDeviceType enmActualDeviceType, QList<StorageDev
                 UINotificationMessage::cannotAcquireMediumAttachmentParameter(comAttachment);
                 break;
             }
-            if (fSuccess)
-            {
-                const StorageSlot guiStorageSlot(enmStorageBus, iPort, iDevice);
-                guiStorageDevice.m_guiStorageSlot = guiStorageSlot;
-            }
-
-            /* Append or break if necessary: */
-            if (fSuccess)
-                guiStorageDevices << guiStorageDevice;
-            else
-                break;
+            const StorageSlot guiStorageSlot(enmStorageBus, iPort, iDevice);
+            guiStorageDevice.m_guiStorageSlot = guiStorageSlot;
+            guiStorageDevices << guiStorageDevice;
         }
     }
     return fSuccess;

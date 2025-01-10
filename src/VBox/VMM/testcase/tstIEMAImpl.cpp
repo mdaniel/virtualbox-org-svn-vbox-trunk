@@ -10269,6 +10269,8 @@ int main(int argc, char **argv)
         g_cZeroDstTests = RT_MIN(cTests / 16, 32);
         g_cZeroSrcTests = g_cZeroDstTests * 2;
 
+        uint32_t const uBuildRev = RTBldCfgRevision();
+
         RTMpGetDescription(NIL_RTCPUID, g_szCpuDesc, sizeof(g_szCpuDesc));
 
         /* For the revision, use the highest for this file and VBoxRT. */
@@ -10277,7 +10279,7 @@ int main(int argc, char **argv)
         while (*pszRev && !RT_C_IS_DIGIT(*pszRev))
             pszRev++;
         g_uSvnRev = RTStrToUInt32(pszRev);
-        g_uSvnRev = RT_MAX(g_uSvnRev, RTBldCfgRevision());
+        g_uSvnRev = RT_MAX(g_uSvnRev, uBuildRev);
 
         /* Loop thru the groups and call the generate for any that's enabled. */
         for (size_t i = 0; i < RT_ELEMENTS(s_aGroups); i++)

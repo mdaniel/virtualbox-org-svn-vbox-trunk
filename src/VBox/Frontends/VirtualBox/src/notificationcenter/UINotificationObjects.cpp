@@ -4328,6 +4328,9 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
     : m_enmType(KFormValueType_Boolean)
     , m_comValue(comValue)
     , m_fBool(fBool)
+    , m_iChoice(0)
+    , m_iInteger(0)
+    , m_iInteger64(0)
 {
 }
 
@@ -4335,7 +4338,11 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
                                                                              const QString &strString)
     : m_enmType(KFormValueType_String)
     , m_comValue(comValue)
+    , m_fBool(false)
     , m_strString(strString)
+    , m_iChoice(0)
+    , m_iInteger(0)
+    , m_iInteger64(0)
 {
 }
 
@@ -4343,7 +4350,10 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
                                                                              int iChoice)
     : m_enmType(KFormValueType_Choice)
     , m_comValue(comValue)
+    , m_fBool(false)
     , m_iChoice(iChoice)
+    , m_iInteger(0)
+    , m_iInteger64(0)
 {
 }
 
@@ -4351,7 +4361,10 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
                                                                              int iInteger)
     : m_enmType(KFormValueType_RangedInteger)
     , m_comValue(comValue)
+    , m_fBool(false)
+    , m_iChoice(0)
     , m_iInteger(iInteger)
+    , m_iInteger64(0)
 {
 }
 
@@ -4359,6 +4372,9 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
                                                                              qlonglong iInteger64)
     : m_enmType(KFormValueType_RangedInteger64)
     , m_comValue(comValue)
+    , m_fBool(false)
+    , m_iChoice(0)
+    , m_iInteger(0)
     , m_iInteger64(iInteger64)
 {
 }

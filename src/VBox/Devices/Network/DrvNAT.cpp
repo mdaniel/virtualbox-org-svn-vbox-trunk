@@ -1607,6 +1607,7 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 //#ifdef VBOX_WITH_DNSMAPPING_IN_HOSTRESOLVER
                                   "|HostResolverMappings"
 //#endif
+                                  "|ForwardBroadcast"
                                   , "PortForwarding");
 
     /*

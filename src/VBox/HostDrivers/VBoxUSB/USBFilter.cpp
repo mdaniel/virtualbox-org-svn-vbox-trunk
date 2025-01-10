@@ -704,12 +704,15 @@ static bool usbfilterMatchNumExpression(const char *pszExpr, uint16_t u16Value)
 /**
  * Performs simple pattern matching.
  *
- * @returns true on match and false on mismatch.
- * @param   pszPattern  The pattern to match against.
+ * @returns \c true on match and \c false on mismatch.
+ * @param   pszPattern  The pattern to match against. NULL is not okay.
  * @param   psz         The string to match.
  */
 static bool usbfilterMatchStringPattern(const char *pszPattern, const char *psz)
 {
+    AssertPtrReturn(pszPattern, false);
+    AssertPtrReturn(psz, false);
+
     char ch;
     while ((ch = *pszPattern++))
     {

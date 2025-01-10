@@ -650,8 +650,7 @@ static int vbglR3DnDHGRecvURIData(PVBGLR3GUESTDNDCMDCTX pCtx, PVBOXDNDSNDDATAHDR
         rc = VINF_SUCCESS;
 
     /* Delete temp buffer again. */
-    if (pvChunk)
-        RTMemFree(pvChunk);
+    RTMemFree(pvChunk);
 
     /* Cleanup on failure or if the user has canceled the operation or
      * something else went wrong. */

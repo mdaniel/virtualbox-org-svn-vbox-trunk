@@ -818,19 +818,26 @@ static int vgsvcToolboxLsHandleDirSub(char *pszDir, size_t cchDir, PRTDIRENTRYEX
                 break;
             }
         }
-    }
+
+        if (RT_FAILURE(rc))
+            break;
+    } /* for */
+
     if (rc != VERR_NO_MORE_FILES)
     {
         if (!(fOutputFlags & VBOXSERVICETOOLBOXOUTPUTFLAG_PARSEABLE))
             RTMsgError("RTDirReadEx failed: %Rrc\npszDir=%.*s", rc, cchDir, pszDir);
     }
 
-    rc = RTDirClose(hDir);
-    if (RT_FAILURE(rc))
+    int rc2 = RTDirClose(hDir);
+    if (RT_FAILURE(rc2))
     {
         if (!(fOutputFlags & VBOXSERVICETOOLBOXOUTPUTFLAG_PARSEABLE))
-            RTMsgError("RTDirClose failed: %Rrc\npszDir=%.*s", rc, cchDir, pszDir);
+            RTMsgError("RTDirClose failed: %Rrc\npszDir=%.*s", rc2, cchDir, pszDir);
     }
+
+    if (RT_SUCCESS(rc))
+        rc = rc2;
 
     return rc;
 }

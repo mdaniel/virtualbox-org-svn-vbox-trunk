@@ -80,7 +80,7 @@ typedef struct DRVMAINKEYBOARD
 ////////////////////////////////////////////////////////////////////////////////
 
 Keyboard::Keyboard()
-    : mParent(NULL),
+    : mParent(NULL)
     , menmLeds(PDMKEYBLEDS_NONE)
 {
 }

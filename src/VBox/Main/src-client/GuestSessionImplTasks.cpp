@@ -2847,8 +2847,8 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
  *
  * Newly created guest session needs to be closed by caller.
  *
- * @returns 0 on success or VERR_TIMEOUT if guest services were not
- *          started on time.
+ * @returns VBox status code.
+ * @retval  VERR_TIMEOUT if VBoxService on the guest was not started within time.
  * @param   pGuest          Guest interface to use.
  * @param   osType          Guest type.
  * @param   pNewSession     Output parameter for newly established guest type.
@@ -2856,57 +2856,63 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
 int GuestSessionTaskUpdateAdditions::waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType,
                                                          ComObjPtr<GuestSession> &pNewSession)
 {
-    int vrc                         = VERR_GSTCTL_GUEST_ERROR;
-    int vrcRet                      = VERR_TIMEOUT;
-
-    uint64_t tsStart                = RTTimeSystemMilliTS();
-    const uint64_t cMsTimeout       = 10 * RT_MS_1MIN;
-
     AssertReturn(!pGuest.isNull(), VERR_TIMEOUT);
 
-    do
+    uint64_t const tsStart    = RTTimeSystemMilliTS();
+    uint64_t const cMsTimeout = 10 * RT_MS_1MIN; /** @todo r=andy Make this dynamic. */
+
+    int vrc;
+
+    for (;;)
     {
         GuestCredentials        guestCreds;
-        GuestSessionStartupInfo startupInfo;
 
+        GuestSessionStartupInfo startupInfo;
         startupInfo.mName           = "Guest Additions connection check";
         startupInfo.mOpenTimeoutMS  = 100;
 
         vrc = pGuest->i_sessionCreate(startupInfo, guestCreds, pNewSession);
         if (RT_SUCCESS(vrc))
         {
-            Assert(!pNewSession.isNull());
-
-            int vrcGuest = VERR_GSTCTL_GUEST_ERROR; /* unused. */
-            vrc = pNewSession->i_startSession(&vrcGuest);
+            vrc = pNewSession->i_startSession(NULL /* pvrcGuest */);
             if (RT_SUCCESS(vrc))
             {
                 /* Wait for VBoxService to start. */
                 GuestSessionWaitResult_T enmWaitResult = GuestSessionWaitResult_None;
-                int vrcGuest2 = VINF_SUCCESS; /* unused. */
-                vrc = pNewSession->i_waitFor(GuestSessionWaitForFlag_Start, 100 /* timeout, ms */, enmWaitResult, &vrcGuest2);
+                vrc = pNewSession->i_waitFor(GuestSessionWaitForFlag_Start, 100 /* timeout, ms */, enmWaitResult,
+                                             NULL /*pvrcGuest */);
                 if (RT_SUCCESS(vrc))
                 {
                     /* Make sure Guest Additions were reloaded on the guest side. */
                     vrc = checkGuestAdditionsStatus(pNewSession, osType);
                     if (RT_SUCCESS(vrc))
-                        LogRel(("Guest Additions Update: Guest Additions were successfully reloaded after installation\n"));
+                        LogRel(("Guest Additions Update: Guest Additions were successfully reloaded after installation.\n"));
                     else
-                        LogRel(("Guest Additions Update: Guest Additions were failed to reload after installation, please consider rebooting the guest\n"));
-
-                    vrcRet = VINF_SUCCESS;
+                        LogRel(("Guest Additions Update: Guest Additions failed to reload after installation, please consider rebooting the guest.\n"));
                     break;
                 }
             }
 
-            vrc = pNewSession->Close();
+            int vrc2 = pNewSession->Close();
+            if (RT_SUCCESS(vrc))
+                vrc = vrc2;
         }
 
+        if ((RTTimeSystemMilliTS() - tsStart) >= cMsTimeout) /* Timeout? */
+        {
+            if (RT_SUCCESS(vrc)) /* Keep already set error. */
+                vrc = VERR_TIMEOUT;
+            break;
+        }
+        /* else retry */
+
         RTThreadSleep(100);
+    } /* for */
 
-    } while ((RTTimeSystemMilliTS() - tsStart) < cMsTimeout);
+    if (RT_FAILURE(vrc))
+        LogRel(("Guest Additions Update: Waiting for guest session failed with %Rrc\n", vrc));
 
-    return vrcRet;
+    return vrc;
 }
 
 /**

@@ -570,7 +570,7 @@ static void parseLangaguesElement(const xml::ElementNode *pElmLanguages, WIMImag
     if (cChildren == 0)
         cChildren = pElmLanguages->getChildElements(children, "language");
     if (cChildren == 0)
-        cChildren = pElmLanguages->getChildElements(children, "Language");
+        /*cChildren = */pElmLanguages->getChildElements(children, "Language");
     for (ElementNodesList::iterator iterator = children.begin(); iterator != children.end(); ++iterator)
     {
         const ElementNode * const pElmLanguage = *(iterator);
@@ -785,7 +785,7 @@ static void parseWimXMLData(const xml::ElementNode *pElmRoot, RTCList<WIMImage> 
     if (cChildren == 0)
         cChildren = pElmRoot->getChildElements(children, "image");
     if (cChildren == 0)
-        cChildren = pElmRoot->getChildElements(children, "Image");
+        /*cChildren = */pElmRoot->getChildElements(children, "Image");
 
     for (ElementNodesList::iterator iterator = children.begin(); iterator != children.end(); ++iterator)
     {
@@ -2224,6 +2224,8 @@ HRESULT Unattended::i_innerDetectIsoOSOs2(RTVFS hVfsIso, DETECTBUFFER *pBuf)
      */
     size_t const cchOs2Image = strlen(pBuf->sz);
     vrc = RTPathAppend(pBuf->sz, sizeof(pBuf->sz), "DISK_0/OS2LDR");
+    AssertRC(vrc);
+
     RTFSOBJINFO ObjInfo = {0};
     vrc = RTVfsQueryPathInfo(hVfsIso, pBuf->sz, &ObjInfo, RTFSOBJATTRADD_NOTHING, RTPATH_F_ON_LINK);
     if (vrc == VERR_FILE_NOT_FOUND)
@@ -2535,7 +2537,8 @@ HRESULT Unattended::i_innerDetectIsoOSFreeBsd(RTVFS hVfsIso, DETECTBUFFER *pBuf)
                 mEnmOsType = VBOXOSTYPE_FreeBSD;
             }
 
-            hrc = S_OK;
+            if (hrc == S_FALSE) /* Don't pretend success if an error happened. */
+                hrc = S_OK;
         }
 
         RTVfsFileRelease(hVfsFile);
@@ -3129,6 +3132,8 @@ HRESULT Unattended::i_reconfigureFloppy(com::SafeIfaceArray<IStorageController> 
                         ptrMedium.setNull();
                         rAutoLock.release();
                         hrc = rPtrSessionMachine->UnmountMedium(bstrControllerName.raw(), iPort, iDevice, TRUE /*fForce*/);
+                        if (FAILED(hrc))
+                            return hrc;
                         rAutoLock.acquire();
                     }
 
@@ -3249,6 +3254,8 @@ HRESULT Unattended::i_reconfigureIsos(com::SafeIfaceArray<IStorageController> &r
 
                     rAutoLock.release();
                     hrc = rPtrSessionMachine->UnmountMedium(bstrControllerName.raw(), iPort, iDevice, TRUE /*fForce*/);
+                    if (FAILED(hrc))
+                        return hrc;
                     rAutoLock.acquire();
                 }
             }

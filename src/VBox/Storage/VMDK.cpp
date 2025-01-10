@@ -6507,10 +6507,9 @@ static int vmdkStreamAllocGrain(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
     {
         RTSGSEG Segment;
         unsigned cSegments = 1;
-        size_t cbSeg = 0;
 
-        cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
-                                             &cSegments, VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain));
+        size_t cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
+                                                    &cSegments, VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain));
         Assert(cbSeg == VMDK_SECTOR2BYTE(pExtent->cSectorsPerGrain));
         pData = Segment.pvSeg;
     }
@@ -6828,12 +6827,11 @@ static int vmdkAllocGrain(PVMDKIMAGE pImage, PVMDKEXTENT pExtent, PVDIOCTX pIoCt
 
         /* Write compressed data block and the markers. */
         uint32_t cbGrain = 0;
-        size_t cbSeg = 0;
         RTSGSEG Segment;
         unsigned cSegments = 1;
 
-        cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
-                                             &cSegments, cbWrite);
+        size_t cbSeg = vdIfIoIntIoCtxSegArrayCreate(pImage->pIfIo, pIoCtx, &Segment,
+                                                    &cSegments, cbWrite);
         Assert(cbSeg == cbWrite);
 
         rc = vmdkFileDeflateSync(pImage, pExtent, uFileOffset,
@@ -7714,9 +7712,7 @@ static DECLCALLBACK(int) vmdkRead(void *pBackendData, uint64_t uOffset, size_t c
                 break;
             case VMDKETYPE_ZERO:
             {
-                size_t cbSet;
-
-                cbSet = vdIfIoIntIoCtxSet(pImage->pIfIo, pIoCtx, 0, cbToRead);
+                size_t cbSet = vdIfIoIntIoCtxSet(pImage->pIfIo, pIoCtx, 0, cbToRead);
                 Assert(cbSet == cbToRead);
                 break;
             }

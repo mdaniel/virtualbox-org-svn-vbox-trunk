@@ -596,12 +596,14 @@ DECLINLINE(int) usbfilterGetNum(PCUSBFILTER pFilter, USBFILTERIDX enmFieldIdx)
 /**
  * Performs simple pattern matching.
  *
- * @returns true on match and false on mismatch.
- * @param   pszExpr     The numeric expression.
+ * @returns \c true on match and \c false on mismatch.
+ * @param   pszExpr     The numeric expression. NULL is not okay.
  * @param   u16Value    The value to match.
  */
 static bool usbfilterMatchNumExpression(const char *pszExpr, uint16_t u16Value)
 {
+    AssertPtrReturn(pszExpr, false);
+
     /*
      * The string format is: "int:((<m>)|([<m>]-[<n>]))(,(<m>)|([<m>]-[<n>]))*"
      * where <m> and <n> are numbers in decimal, hex (0xNNN) or octal (0NNN).

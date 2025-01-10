@@ -399,6 +399,8 @@ static HRESULT listMedia(const ComPtr<IVirtualBox> pVirtualBox,
         ComPtr<IMedium> pMedium = aMedia[i];
 
         hrc = showMediumInfo(pVirtualBox, pMedium, pszParentUUIDStr, fOptLong);
+        if (FAILED(hrc)) /* Error message should be shown already */
+            break;
 
         RTPrintf("\n");
 

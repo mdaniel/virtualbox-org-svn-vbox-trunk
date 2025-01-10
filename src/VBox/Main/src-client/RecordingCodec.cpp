@@ -701,7 +701,9 @@ static DECLCALLBACK(int) recordingCodecVorbisEncode(PRECORDINGCODEC pCodec,
         return VERR_RECORDING_ENCODING_FAILED;
     }
 
+#ifdef LOG_ENABLED
     size_t cBlocksEncoded = 0;
+#endif
     size_t cBytesEncoded  = 0;
 
     uint8_t *puDst = (uint8_t *)pCodec->pvScratch;
@@ -734,7 +736,9 @@ static DECLCALLBACK(int) recordingCodecVorbisEncode(PRECORDINGCODEC pCodec,
         {
             cBytesEncoded += op.bytes;
             AssertBreakStmt(cBytesEncoded <= pCodec->cbScratch, vrc = VERR_BUFFER_OVERFLOW);
+#ifdef LOG_ENABLED
             cBlocksEncoded++;
+#endif
 
             vrc = pCodec->Callbacks.pfnWriteData(pCodec, op.packet, (size_t)op.bytes, pCodec->State.tsLastWrittenMs,
                                                  RECORDINGCODEC_ENC_F_BLOCK_IS_KEY /* Every Vorbis frame is a key frame */,

@@ -45,7 +45,12 @@
 struct HostDnsServiceDarwin::Data
 {
     Data()
-        : m_fStop(false) { }
+        : m_store(NULL)
+        , m_DnsWatcher(NULL)
+        , m_RunLoopRef(NULL)
+        , m_SourceStop(NULL)
+        , m_fStop(false) 
+        , m_evtStop(NIL_RTSEMEVENT) { }
 
     SCDynamicStoreRef m_store;
     CFRunLoopSourceRef m_DnsWatcher;

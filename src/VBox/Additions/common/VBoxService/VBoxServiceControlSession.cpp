@@ -3201,7 +3201,7 @@ int VGSvcGstCtrlSessionProcessAdd(PVBOXSERVICECTRLSESSION pSession, PVBOXSERVICE
             rc = rc2;
     }
 
-    return VINF_SUCCESS;
+    return rc;
 }
 
 /**

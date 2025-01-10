@@ -413,7 +413,7 @@ QString QIMessageBox::compressLongWords(QString strText)
         QString strNewText = strText;
         const QString strFound = mt.captured();
         strNewText.replace(iPosition, strFound.size(), strFound.left(50) + "..." + strFound.right(50));
-        fChangeAllowed = fChangeAllowed && strText != strNewText;
+        fChangeAllowed = strText != strNewText;
         strText = strNewText;
         mt = re.match(strText);
         iPosition = mt.capturedStart();

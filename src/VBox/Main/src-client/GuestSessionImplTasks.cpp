@@ -3450,7 +3450,7 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                     if (RT_SUCCESS(vrc))
                     {
                         LogRel(("Guest Additions Update: Automatic update succeeded\n"));
-                        hrc = setProgressSuccess();
+                        vrc = setProgressSuccess();
                     }
                 }
             }

@@ -1067,13 +1067,17 @@ void UIVisoContentBrowser::scanHostDirectory(UIFileSystemItem *directoryItem, bo
 
 void UIVisoContentBrowser::updateStartItemName()
 {
-    if (!rootItem() || !rootItem()->child(0))
+    UIFileSystemItem *pRoot = rootItem();
+    if (!pRoot)
+        return;
+    UIFileSystemItem *pChild = pRoot->child(0);
+    if (!pChild)
         return;
     const QString strName(QDir::toNativeSeparators("/"));
 
-    rootItem()->child(0)->setData(strName, UIFileSystemModelData_Name);
+    pChild->setData(strName, UIFileSystemModelData_Name);
     /* If the table root index is the start item then we have to update the location selector text here: */
-    // if (m_pProxyModel->mapToSource(m_pTableView->rootIndex()).internalPointer() == rootItem()->child(0))
+    // if (m_pProxyModel->mapToSource(m_pTableView->rootIndex()).internalPointer() == pChild)
     //     updateLocationSelectorText(strName);
     m_pProxyModel->invalidate();
 }
@@ -1137,10 +1141,14 @@ void UIVisoContentBrowser::sltTableSelectionChanged(const QItemSelection &select
 
 void UIVisoContentBrowser::sltResetAction()
 {
-    if (!rootItem() || !rootItem()->child(0))
+    UIFileSystemItem *pRoot = rootItem();
+    if (!pRoot)
+        return;
+    UIFileSystemItem *pChild = pRoot->child(0);
+    if (!pChild)
         return;
     goToStart();
-    rootItem()->child(0)->removeChildren();
+    pChild->removeChildren();
     m_entryMap.clear();
     if (m_pProxyModel)
         m_pProxyModel->invalidate();

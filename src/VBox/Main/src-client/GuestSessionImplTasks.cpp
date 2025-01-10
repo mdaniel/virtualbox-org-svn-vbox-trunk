@@ -1693,18 +1693,10 @@ int GuestSessionTaskCopyFrom::Run(void)
         }
 
         bool fCopyIntoExisting;
-        bool fFollowSymlinks;
-
         if (pList->mSourceSpec.enmType == FsObjType_Directory)
-        {
             fCopyIntoExisting = RT_BOOL(pList->mSourceSpec.fDirCopyFlags & DirectoryCopyFlag_CopyIntoExisting);
-            fFollowSymlinks   = RT_BOOL(pList->mSourceSpec.fDirCopyFlags & DirectoryCopyFlag_FollowLinks);
-        }
         else if (pList->mSourceSpec.enmType == FsObjType_File)
-        {
             fCopyIntoExisting = !RT_BOOL(pList->mSourceSpec.fFileCopyFlags & FileCopyFlag_NoReplace);
-            fFollowSymlinks   = RT_BOOL(pList->mSourceSpec.fFileCopyFlags & FileCopyFlag_FollowLinks);
-        }
         else
             AssertFailedBreakStmt(vrc = VERR_NOT_IMPLEMENTED);
 
@@ -1753,7 +1745,7 @@ int GuestSessionTaskCopyFrom::Run(void)
         if (pList->mSourceSpec.enmType == FsObjType_Directory)
         {
             LogFlowFunc(("Directory: fDirCopyFlags=%#x, fCopyIntoExisting=%RTbool, fFollowSymlinks=%RTbool -> fDstExist=%RTbool (%s)\n",
-                         pList->mSourceSpec.fDirCopyFlags, fCopyIntoExisting, fFollowSymlinks,
+                         pList->mSourceSpec.fDirCopyFlags, fCopyIntoExisting,
                          fDstExists, GuestBase::fsObjTypeToStr(GuestBase::fileModeToFsObjType(dstFsObjInfo.Attr.fMode))));
 
             if (fDstExists)
@@ -1871,7 +1863,7 @@ int GuestSessionTaskCopyFrom::Run(void)
         else if (pList->mSourceSpec.enmType == FsObjType_File)
         {
             LogFlowFunc(("File: fFileCopyFlags=%#x, fCopyIntoExisting=%RTbool, fFollowSymlinks=%RTbool -> fDstExist=%RTbool (%s)\n",
-                         pList->mSourceSpec.fFileCopyFlags, fCopyIntoExisting, fFollowSymlinks,
+                         pList->mSourceSpec.fFileCopyFlags, fCopyIntoExisting,
                          fDstExists, GuestBase::fsObjTypeToStr(GuestBase::fileModeToFsObjType(dstFsObjInfo.Attr.fMode))));
 
             if (fDstExists)
@@ -2812,7 +2804,6 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
 int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSession, eOSType osType)
 {
     int vrc = VINF_SUCCESS;
-    HRESULT hrc;
 
     if (osType == eOSType_Linux)
     {
@@ -2838,14 +2829,14 @@ int GuestSessionTaskUpdateAdditions::checkGuestAdditionsStatus(GuestSession *pSe
 
             vrc = runFileOnGuest(pSession, procInfo, true /* fSilent */);
             if (RT_FAILURE(vrc))
-                hrc = setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
-                                        Utf8StrFmt(tr("Files were installed, but user services were not reloaded automatically. "
-                                                      "Please consider rebooting the guest")));
+                setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
+                                  Utf8StrFmt(tr("Files were installed, but user services were not reloaded automatically. "
+                                                "Please consider rebooting the guest")));
         }
         else
-            hrc = setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
-                                    Utf8StrFmt(tr("Files were installed, but kernel modules were not reloaded automatically. "
-                                                  "Please consider rebooting the guest")));
+            setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,
+                              Utf8StrFmt(tr("Files were installed, but kernel modules were not reloaded automatically. "
+                                            "Please consider rebooting the guest")));
     }
 
     return vrc;

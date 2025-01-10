@@ -305,7 +305,7 @@ static DECLCALLBACK(int) dbgfR3OSDeregister(PUVM pUVM, PDBGFOSREG pReg)
     if (pOS->pReg->pfnDestruct)
         pOS->pReg->pfnDestruct(pUVM, VMMR3GetVTable(), pOS->abData);
 
-    PDBGFOSEMTWRAPPER pFree = pOS->pWrapperHead;
+    PDBGFOSEMTWRAPPER pFree;
     while ((pFree = pOS->pWrapperHead) != NULL)
     {
         pOS->pWrapperHead = pFree->pNext;

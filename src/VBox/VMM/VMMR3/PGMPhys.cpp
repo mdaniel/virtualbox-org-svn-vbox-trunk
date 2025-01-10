@@ -4208,7 +4208,7 @@ VMMR3_INT_DECL(RTGCPHYS) PGMR3PhysMmio2GetMappingAddress(PVM pVM, PPDMDEVINS pDe
         GCPhysRet = pVM->pgm.s.aMmio2Ranges[idxFirst].GCPhys;
 
     PGM_UNLOCK(pVM);
-    return NIL_RTGCPHYS;
+    return GCPhysRet;
 }
 
 

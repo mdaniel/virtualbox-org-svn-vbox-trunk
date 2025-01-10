@@ -49,7 +49,7 @@ struct HostDnsServiceDarwin::Data
         , m_DnsWatcher(NULL)
         , m_RunLoopRef(NULL)
         , m_SourceStop(NULL)
-        , m_fStop(false) 
+        , m_fStop(false)
         , m_evtStop(NIL_RTSEMEVENT) { }
 
     SCDynamicStoreRef m_store;

@@ -102,7 +102,7 @@ RTDECL(int) RTDirCreateFullPathEx(const char *pszPath, RTFMODE fMode, uint32_t f
         char *psz2 = strchr(psz, '/');
         psz = strchr(psz, RTPATH_SLASH);
         if (psz2 && (!psz || (uintptr_t)psz2 < (uintptr_t)psz))
-            psz = psz;
+            psz = psz2;
 #else
         psz = strchr(psz, RTPATH_SLASH);
 #endif

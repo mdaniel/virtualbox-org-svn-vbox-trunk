@@ -906,7 +906,6 @@ static RTEXITCODE vgsvcToolboxLs(int argc, char **argv)
                           1 /*iFirst*/, RTGETOPTINIT_FLAGS_OPTS_FIRST);
     AssertRCReturn(rc, RTEXITCODE_INIT);
 
-    bool     fVerbose     = false;
     uint32_t fFlags       = VBOXSERVICETOOLBOXLSFLAG_NONE;
     uint32_t fOutputFlags = VBOXSERVICETOOLBOXOUTPUTFLAG_NONE;
 
@@ -937,7 +936,7 @@ static RTEXITCODE vgsvcToolboxLs(int argc, char **argv)
                 break;
 
             case VBOXSERVICETOOLBOXOPT_VERBOSE:
-                fVerbose = true;
+                /* Not implemented, ignore. */
                 break;
 
             case 'V':

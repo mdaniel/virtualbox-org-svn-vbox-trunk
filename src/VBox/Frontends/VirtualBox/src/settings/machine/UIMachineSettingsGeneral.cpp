@@ -960,7 +960,7 @@ bool UIMachineSettingsGeneral::saveEncryptionData()
 
                     /* Get medium id for further activities: */
                     QUuid uMediumId;
-                    if (fSuccess)
+                    // if (fSuccess)
                     {
                         uMediumId = comMedium.GetId();
                         fSuccess = comMedium.isOk();

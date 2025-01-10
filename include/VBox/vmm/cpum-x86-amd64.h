@@ -811,11 +811,6 @@ typedef CPUMDBENTRY const *PCCPUMDBENTRY;
 
 #ifndef VBOX_FOR_DTRACE_LIB
 
-#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
-VMMDECL(int)            CPUMCpuIdCollectLeavesX86(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLeaves);
-VMMDECL(CPUMCPUVENDOR)  CPUMCpuIdDetectX86VendorEx(uint32_t uEAX, uint32_t uEBX, uint32_t uECX, uint32_t uEDX);
-#endif
-
 VMM_INT_DECL(bool)      CPUMAssertGuestRFlagsCookie(PVM pVM, PVMCPU pVCpu);
 
 
@@ -2328,7 +2323,6 @@ VMM_INT_DECL(PCPUMCTXMSRS) CPUMQueryGuestCtxMsrsPtr(PVMCPU pVCpu);
                                                  | CPUM_CHANGED_CPUID )
 /** @} */
 
-VMMDECL(bool)           CPUMSupportsXSave(PVM pVM);
 VMMDECL(bool)           CPUMIsHostUsingSysEnter(PVM pVM);
 VMMDECL(bool)           CPUMIsHostUsingSysCall(PVM pVM);
 VMMDECL(bool)           CPUMIsGuestFPUStateActive(PVMCPU pVCpu);
@@ -2387,7 +2381,6 @@ VMMR3DECL(int)              CPUMR3CpuIdGetLeaf(PVM pVM, PCPUMCPUIDLEAF pLeaf, ui
 VMMR3_INT_DECL(PCCPUMCPUIDLEAF) CPUMR3CpuIdGetPtr(PVM pVM, uint32_t *pcLeaves);
 VMMDECL(CPUMMICROARCH)      CPUMCpuIdDetermineX86MicroarchEx(CPUMCPUVENDOR enmVendor, uint8_t bFamily,
                                                              uint8_t bModel, uint8_t bStepping);
-VMMDECL(const char *)       CPUMMicroarchName(CPUMMICROARCH enmMicroarch);
 VMMR3DECL(int)              CPUMR3CpuIdDetectUnknownLeafMethod(PCPUMUNKNOWNCPUID penmUnknownMethod, PCPUMCPUID pDefUnknown);
 VMMR3DECL(const char *)     CPUMR3CpuIdUnknownLeafMethodName(CPUMUNKNOWNCPUID enmUnknownMethod);
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)

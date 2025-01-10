@@ -1359,8 +1359,6 @@ typedef struct VM
         /** Read only info exposed about the host and guest CPUs. */
         struct
         {
-            /** Padding for hidden fields. */
-            uint8_t                 abHidden0[64 + 48];
             /** Guest CPU feature information. */
             CPUMFEATURES            GuestFeatures;
         } const ro;

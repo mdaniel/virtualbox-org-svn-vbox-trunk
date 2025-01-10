@@ -353,20 +353,14 @@ typedef enum CPUMMICROARCH
  */
 typedef struct CPUMFEATURESCOMMON
 {
-    /** The CPU vendor (CPUMCPUVENDOR). */
-    uint8_t         enmCpuVendor;
-    /** The CPU family. */
-    uint8_t         uFamily;
-    /** The CPU model. */
-    uint8_t         uModel;
-    /** The CPU stepping. */
-    uint8_t         uStepping;
     /** The microarchitecture. */
 #ifndef VBOX_FOR_DTRACE_LIB
     CPUMMICROARCH   enmMicroarch;
 #else
     uint32_t        enmMicroarch;
 #endif
+    /** The CPU vendor (CPUMCPUVENDOR). */
+    uint8_t         enmCpuVendor;
     /** The maximum physical address width of the CPU. */
     uint8_t         cMaxPhysAddrWidth;
     /** The maximum linear address width of the CPU. */
@@ -380,24 +374,25 @@ typedef struct CPUMFEATURESCOMMON
  */
 typedef struct CPUMFEATURESX86
 {
-    /** The CPU vendor (CPUMCPUVENDOR). */
-    uint8_t         enmCpuVendor;
-    /** The CPU family. */
-    uint8_t         uFamily;
-    /** The CPU model. */
-    uint8_t         uModel;
-    /** The CPU stepping. */
-    uint8_t         uStepping;
     /** The microarchitecture. */
 #ifndef VBOX_FOR_DTRACE_LIB
     CPUMMICROARCH   enmMicroarch;
 #else
     uint32_t        enmMicroarch;
 #endif
+    /** The CPU vendor (CPUMCPUVENDOR). */
+    uint8_t         enmCpuVendor;
     /** The maximum physical address width of the CPU. */
     uint8_t         cMaxPhysAddrWidth;
     /** The maximum linear address width of the CPU. */
     uint8_t         cMaxLinearAddrWidth;
+
+    /** The CPU family. */
+    uint8_t         uFamily;
+    /** The CPU model. */
+    uint8_t         uModel;
+    /** The CPU stepping. */
+    uint8_t         uStepping;
     /** Max size of the extended state (or FPU state if no XSAVE). */
     uint16_t        cbMaxExtendedState;
 
@@ -843,13 +838,11 @@ typedef struct CPUMFEATURESX86
     uint32_t        fVmxPadding0 : 7;
     /** VMX: Padding / reserved for future, making it a total of 128 bits.  */
     uint32_t        fVmxPadding1;
+    uint32_t        auPadding[4];
 } CPUMFEATURESX86;
 #ifndef VBOX_FOR_DTRACE_LIB
-AssertCompileSize(CPUMFEATURESX86, 48);
+AssertCompileSize(CPUMFEATURESX86, 64);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, enmCpuVendor,          CPUMFEATURESX86, enmCpuVendor);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uFamily,               CPUMFEATURESX86, uFamily);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uModel,                CPUMFEATURESX86, uModel);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uStepping,             CPUMFEATURESX86, uStepping);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, enmMicroarch,          CPUMFEATURESX86, enmMicroarch);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, cMaxPhysAddrWidth,     CPUMFEATURESX86, cMaxPhysAddrWidth);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, cMaxLinearAddrWidth,   CPUMFEATURESX86, cMaxLinearAddrWidth);
@@ -862,25 +855,27 @@ AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, cMaxLinearAddrWidth,   CPUM
  */
 typedef struct CPUMFEATURESARMV8
 {
-    /** The CPU vendor (CPUMCPUVENDOR). */
-    uint8_t         enmCpuVendor;
-    /** The CPU family. */
-    uint8_t         uFamily;
-    /** The CPU model. */
-    uint8_t         uModel;
-    /** The CPU stepping. */
-    uint8_t         uStepping;
     /** The microarchitecture. */
 #ifndef VBOX_FOR_DTRACE_LIB
     CPUMMICROARCH   enmMicroarch;
 #else
     uint32_t        enmMicroarch;
 #endif
+    /** The CPU vendor (CPUMCPUVENDOR). */
+    uint8_t         enmCpuVendor;
     /** The maximum physical address width of the CPU. */
     uint8_t         cMaxPhysAddrWidth;
     /** The maximum linear address width of the CPU. */
     uint8_t         cMaxLinearAddrWidth;
-    uint16_t        uPadding;
+
+    /** The CPU implementer value (from MIDR_EL1). */
+    uint8_t         uImplementeter;
+    /** The CPU part number (from MIDR_EL1). */
+    uint16_t        uPartNum;
+    /** The CPU variant (from MIDR_EL1). */
+    uint8_t         uVariant;
+    /** The CPU revision (from MIDR_EL1). */
+    uint8_t         uRevision;
 
     /** @name Granule sizes supported.
      * @{ */
@@ -1394,16 +1389,13 @@ typedef struct CPUMFEATURESARMV8
     uint32_t        fTrbeMpam : 1;
     /** @} */
 
-    /** Padding to the required size to match CPUMFEATURES for x86/amd64. */
-    uint8_t         abPadding[4];
+    /** Padding to the required size to match CPUMFEATURESX86. */
+    uint32_t        auPadding[5];
 } CPUMFEATURESARMV8;
 #ifndef VBOX_FOR_DTRACE_LIB
-AssertCompileSize(CPUMFEATURESARMV8, 48);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, enmCpuVendor,          CPUMFEATURESARMV8, enmCpuVendor);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uFamily,               CPUMFEATURESARMV8, uFamily);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uModel,                CPUMFEATURESARMV8, uModel);
-AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, uStepping,             CPUMFEATURESARMV8, uStepping);
+AssertCompileSize(CPUMFEATURESARMV8, 64);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, enmMicroarch,          CPUMFEATURESARMV8, enmMicroarch);
+AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, enmCpuVendor,          CPUMFEATURESARMV8, enmCpuVendor);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, cMaxPhysAddrWidth,     CPUMFEATURESARMV8, cMaxPhysAddrWidth);
 AssertCompileMembersAtSameOffset(CPUMFEATURESCOMMON, cMaxLinearAddrWidth,   CPUMFEATURESARMV8, cMaxLinearAddrWidth);
 #endif
@@ -1435,6 +1427,9 @@ typedef union CPUHOSTFEATURES
 #endif
                     s;
 } CPUHOSTFEATURES;
+#ifndef VBOX_FOR_DTRACE_LIB
+AssertCompileSize(CPUHOSTFEATURES, 64);
+#endif
 /** Pointer to a const host CPU feature structure. */
 typedef CPUHOSTFEATURES const *PCCPUHOSTFEATURES;
 
@@ -1455,6 +1450,50 @@ typedef CPUMFEATURESARMV8 CPUMFEATURES;
 typedef CPUMFEATURES *PCPUMFEATURES;
 /** Pointer to a const CPU feature structure. */
 typedef CPUMFEATURES const *PCCPUMFEATURES;
+
+
+
+/**
+ * ARMv8 CPU ID registers.
+ */
+typedef struct CPUMARMV8IDREGS
+{
+    /** Content of the ID_AA64PFR0_EL1 register. */
+    uint64_t        u64RegIdAa64Pfr0El1;
+    /** Content of the ID_AA64PFR1_EL1 register. */
+    uint64_t        u64RegIdAa64Pfr1El1;
+    /** Content of the ID_AA64DFR0_EL1 register. */
+    uint64_t        u64RegIdAa64Dfr0El1;
+    /** Content of the ID_AA64DFR1_EL1 register. */
+    uint64_t        u64RegIdAa64Dfr1El1;
+    /** Content of the ID_AA64AFR0_EL1 register. */
+    uint64_t        u64RegIdAa64Afr0El1;
+    /** Content of the ID_AA64AFR1_EL1 register. */
+    uint64_t        u64RegIdAa64Afr1El1;
+    /** Content of the ID_AA64ISAR0_EL1 register. */
+    uint64_t        u64RegIdAa64Isar0El1;
+    /** Content of the ID_AA64ISAR1_EL1 register. */
+    uint64_t        u64RegIdAa64Isar1El1;
+    /** Content of the ID_AA64ISAR2_EL1 register. */
+    uint64_t        u64RegIdAa64Isar2El1;
+    /** Content of the ID_AA64MMFR0_EL1 register. */
+    uint64_t        u64RegIdAa64Mmfr0El1;
+    /** Content of the ID_AA64MMFR1_EL1 register. */
+    uint64_t        u64RegIdAa64Mmfr1El1;
+    /** Content of the ID_AA64MMFR2_EL1 register. */
+    uint64_t        u64RegIdAa64Mmfr2El1;
+    /** Content of the CLIDR_EL1 register. */
+    uint64_t        u64RegClidrEl1;
+    /** Content of the CTR_EL0 register. */
+    uint64_t        u64RegCtrEl0;
+    /** Content of the DCZID_EL0 register. */
+    uint64_t        u64RegDczidEl0;
+    /** @todo we need MIDR_EL1 here, possibly also MPIDR_EL1 and REVIDR_EL1. */
+} CPUMARMV8IDREGS;
+/** Pointer to CPU ID registers. */
+typedef CPUMARMV8IDREGS *PCPUMARMV8IDREGS;
+/** Pointer to a const CPU ID registers structure. */
+typedef CPUMARMV8IDREGS const *PCCPUMARMV8IDREGS;
 
 
 /*
@@ -1498,6 +1537,17 @@ VMMDECL(CPUMCPUVENDOR)  CPUMGetHostCpuVendor(PVM pVM);
 VMMDECL(CPUMARCH)       CPUMGetHostArch(PCVM pVM);
 VMMDECL(CPUMMICROARCH)  CPUMGetHostMicroarch(PCVM pVM);
 
+VMMDECL(const char *)   CPUMMicroarchName(CPUMMICROARCH enmMicroarch);
+VMMDECL(const char *)   CPUMCpuVendorName(CPUMCPUVENDOR enmVendor);
+
+VMMDECL(CPUMCPUVENDOR)  CPUMCpuIdDetectX86VendorEx(uint32_t uEAX, uint32_t uEBX, uint32_t uECX, uint32_t uEDX);
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+VMMDECL(int)            CPUMCpuIdCollectLeavesFromX86Host(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLeaves);
+#endif
+#if defined(RT_ARCH_ARM64)
+VMMDECL(int)            CPUMCpuIdCollectIdRegistersFromArmV8Host(PCPUMARMV8IDREGS pIdRegs);
+#endif
+
 #ifdef IN_RING3
 /** @defgroup grp_cpum_r3    The CPUM ring-3 API
  * @{
@@ -1511,8 +1561,6 @@ VMMR3DECL(int)          CPUMR3Term(PVM pVM);
 VMMR3DECL(void)         CPUMR3Reset(PVM pVM);
 VMMR3DECL(void)         CPUMR3ResetCpu(PVM pVM, PVMCPU pVCpu);
 VMMDECL(bool)           CPUMR3IsStateRestorePending(PVM pVM);
-VMMDECL(const char *)       CPUMMicroarchName(CPUMMICROARCH enmMicroarch);
-VMMR3DECL(const char *)     CPUMCpuVendorName(CPUMCPUVENDOR enmVendor);
 
 VMMR3DECL(uint32_t)         CPUMR3DbGetEntries(void);
 /** Pointer to CPUMR3DbGetEntries. */

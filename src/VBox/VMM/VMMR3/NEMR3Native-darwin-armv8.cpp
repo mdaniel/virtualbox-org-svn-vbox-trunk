@@ -571,18 +571,18 @@ static const struct
     uint32_t         offIdStruct;
 } s_aIdRegs[] =
 {
-    { HV_FEATURE_REG_ID_AA64DFR0_EL1,       RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Dfr0El1)  },
-    { HV_FEATURE_REG_ID_AA64DFR1_EL1,       RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Dfr1El1)  },
-    { HV_FEATURE_REG_ID_AA64ISAR0_EL1,      RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Isar0El1) },
-    { HV_FEATURE_REG_ID_AA64ISAR1_EL1,      RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Isar1El1) },
-    { HV_FEATURE_REG_ID_AA64MMFR0_EL1,      RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Mmfr0El1) },
-    { HV_FEATURE_REG_ID_AA64MMFR1_EL1,      RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Mmfr1El1) },
-    { HV_FEATURE_REG_ID_AA64MMFR2_EL1,      RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Mmfr2El1) },
-    { HV_FEATURE_REG_ID_AA64PFR0_EL1,       RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Pfr0El1)  },
-    { HV_FEATURE_REG_ID_AA64PFR1_EL1,       RT_UOFFSETOF(CPUMIDREGS, u64RegIdAa64Pfr1El1)  },
-    { HV_FEATURE_REG_CLIDR_EL1,             RT_UOFFSETOF(CPUMIDREGS, u64RegClidrEl1)       },
-    { HV_FEATURE_REG_CTR_EL0,               RT_UOFFSETOF(CPUMIDREGS, u64RegCtrEl0)         },
-    { HV_FEATURE_REG_DCZID_EL0,             RT_UOFFSETOF(CPUMIDREGS, u64RegDczidEl0)       }
+    { HV_FEATURE_REG_ID_AA64DFR0_EL1,       RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Dfr0El1)  },
+    { HV_FEATURE_REG_ID_AA64DFR1_EL1,       RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Dfr1El1)  },
+    { HV_FEATURE_REG_ID_AA64ISAR0_EL1,      RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Isar0El1) },
+    { HV_FEATURE_REG_ID_AA64ISAR1_EL1,      RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Isar1El1) },
+    { HV_FEATURE_REG_ID_AA64MMFR0_EL1,      RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Mmfr0El1) },
+    { HV_FEATURE_REG_ID_AA64MMFR1_EL1,      RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Mmfr1El1) },
+    { HV_FEATURE_REG_ID_AA64MMFR2_EL1,      RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Mmfr2El1) },
+    { HV_FEATURE_REG_ID_AA64PFR0_EL1,       RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Pfr0El1)  },
+    { HV_FEATURE_REG_ID_AA64PFR1_EL1,       RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegIdAa64Pfr1El1)  },
+    { HV_FEATURE_REG_CLIDR_EL1,             RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegClidrEl1)       },
+    { HV_FEATURE_REG_CTR_EL0,               RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegCtrEl0)         },
+    { HV_FEATURE_REG_DCZID_EL0,             RT_UOFFSETOF(CPUMARMV8IDREGS, u64RegDczidEl0)       }
 };
 
 
@@ -1449,7 +1449,7 @@ static DECLCALLBACK(int) nemR3DarwinNativeInitVCpuOnEmt(PVM pVM, PVMCPU pVCpu, V
                               "Call to hv_vcpu_config_create failed on vCPU %u", idCpu);
 
         /* Query ID registers and hand them to CPUM. */
-        CPUMIDREGS IdRegs; RT_ZERO(IdRegs);
+        CPUMARMV8IDREGS IdRegs; RT_ZERO(IdRegs);
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aIdRegs); i++)
         {
             uint64_t *pu64 = (uint64_t *)((uint8_t *)&IdRegs + s_aIdRegs[i].offIdStruct);
@@ -2539,7 +2539,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
             uint32_t         offIdStruct;
         } s_aSysIdRegs[] =
         {
-#define ID_SYS_REG_CREATE(a_IdReg, a_CpumIdReg) { #a_IdReg, HV_SYS_REG_##a_IdReg,     RT_UOFFSETOF(CPUMIDREGS, a_CpumIdReg) }
+#define ID_SYS_REG_CREATE(a_IdReg, a_CpumIdReg) { #a_IdReg, HV_SYS_REG_##a_IdReg, RT_UOFFSETOF(CPUMARMV8IDREGS, a_CpumIdReg) }
             ID_SYS_REG_CREATE(ID_AA64DFR0_EL1,  u64RegIdAa64Dfr0El1),
             ID_SYS_REG_CREATE(ID_AA64DFR1_EL1,  u64RegIdAa64Dfr1El1),
             ID_SYS_REG_CREATE(ID_AA64ISAR0_EL1, u64RegIdAa64Isar0El1),
@@ -2552,7 +2552,7 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 #undef ID_SYS_REG_CREATE
         };
 
-        PCCPUMIDREGS pIdRegsGst = NULL;
+        PCCPUMARMV8IDREGS pIdRegsGst = NULL;
         int rc = CPUMR3QueryGuestIdRegs(pVM, &pIdRegsGst);
         AssertRCReturn(rc, rc);
 

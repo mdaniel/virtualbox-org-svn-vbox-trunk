@@ -45,11 +45,15 @@
 #include <iprt/mem.h>
 #include <iprt/string.h>
 #include <iprt/x86-helpers.h>
+#if defined(RT_ARCH_ARM64) || defined(VBOX_VMM_TARGET_ARMV8)
+# include <iprt/armv8.h>
+#endif
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86)
 /**
  * The intel pentium family.
  */
@@ -504,6 +508,9 @@ VMMDECL(CPUMMICROARCH) CPUMCpuIdDetermineX86MicroarchEx(CPUMCPUVENDOR enmVendor,
     return kCpumMicroarch_Unknown;
 }
 
+#endif /* if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86) */
+
+
 
 /**
  * Translates a microarchitecture enum value to the corresponding string
@@ -684,6 +691,7 @@ VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
     return NULL;
 }
 
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86)
 
 /**
  * Gets a matching leaf in the CPUID leaf array.
@@ -749,10 +757,10 @@ PCPUMCPUIDLEAF cpumCpuIdEnsureSpace(PVM pVM, PCPUMCPUIDLEAF *ppaLeaves, uint32_t
      */
     else
     {
-#ifdef IN_VBOX_CPU_REPORT
+# ifdef IN_VBOX_CPU_REPORT
         AssertReleaseFailed();
-#else
-# ifdef IN_RING3
+# else
+#  ifdef IN_RING3
         Assert(ppaLeaves == &pVM->cpum.s.GuestInfo.paCpuIdLeavesR3);
         Assert(*ppaLeaves == pVM->cpum.s.GuestInfo.aCpuIdLeaves);
         Assert(cLeaves == pVM->cpum.s.GuestInfo.cCpuIdLeaves);
@@ -760,18 +768,18 @@ PCPUMCPUIDLEAF cpumCpuIdEnsureSpace(PVM pVM, PCPUMCPUIDLEAF *ppaLeaves, uint32_t
         if (cLeaves + 1 <= RT_ELEMENTS(pVM->cpum.s.GuestInfo.aCpuIdLeaves))
         { }
         else
-# endif
+#  endif
         {
             *ppaLeaves = NULL;
             LogRel(("CPUM: cpumR3CpuIdEnsureSpace: Out of CPUID space!\n"));
         }
-#endif
+# endif
     }
     return *ppaLeaves;
 }
 
 
-#ifdef VBOX_STRICT
+# ifdef VBOX_STRICT
 /**
  * Checks that we've updated the CPUID leaves array correctly.
  *
@@ -795,7 +803,9 @@ void cpumCpuIdAssertOrder(PCPUMCPUIDLEAF paLeaves, uint32_t cLeaves)
                       ("%#x/%#x: %#x vs %#x\n", paLeaves[i].uLeaf, paLeaves[i].uSubLeaf, paLeaves[i].fFlags, paLeaves[i - 1].fFlags));
         }
 }
-#endif
+# endif
+
+#endif /* defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86) */
 
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
 
@@ -981,7 +991,7 @@ static bool cpumIsEcxRelevantForCpuIdLeaf(uint32_t uLeaf, uint32_t *pcSubLeaves,
  * @param   pcLeaves            Where to return the size of the array on
  *                              success.
  */
-VMMDECL(int) CPUMCpuIdCollectLeavesX86(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLeaves)
+VMMDECL(int) CPUMCpuIdCollectLeavesFromX86Host(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLeaves)
 {
     *ppaLeaves = NULL;
     *pcLeaves = 0;
@@ -1149,9 +1159,10 @@ VMMDECL(int) CPUMCpuIdCollectLeavesX86(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLe
 # endif
     return VINF_SUCCESS;
 }
+
 #endif /* RT_ARCH_X86 || RT_ARCH_AMD64 */
 
-
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86)
 /**
  * Detect the CPU vendor give n the
  *
@@ -1192,6 +1203,7 @@ VMMDECL(CPUMCPUVENDOR) CPUMCpuIdDetectX86VendorEx(uint32_t uEAX, uint32_t uEBX, 
 
     return CPUMCPUVENDOR_UNKNOWN;
 }
+#endif /* defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86) */
 
 
 /**
@@ -1223,6 +1235,7 @@ VMMDECL(const char *) CPUMCpuVendorName(CPUMCPUVENDOR enmVendor)
     return "Invalid-cpu-vendor";
 }
 
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86)
 
 static PCCPUMCPUIDLEAF cpumCpuIdFindLeaf(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, uint32_t uLeaf)
 {
@@ -1259,7 +1272,7 @@ static PCCPUMCPUIDLEAF cpumCpuIdFindLeafEx(PCCPUMCPUIDLEAF paLeaves, uint32_t cL
 }
 
 
-static void cpumExplodeVmxFeatures(PCVMXMSRS pVmxMsrs, PCPUMFEATURES pFeatures)
+static void cpumExplodeVmxFeatures(PCVMXMSRS pVmxMsrs, CPUMFEATURESX86 *pFeatures)
 {
     Assert(pVmxMsrs);
     Assert(pFeatures);
@@ -1389,7 +1402,7 @@ static void cpumExplodeVmxFeatures(PCVMXMSRS pVmxMsrs, PCPUMFEATURES pFeatures)
 }
 
 
-int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCPUMMSRS pMsrs, PCPUMFEATURES pFeatures)
+int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCPUMMSRS pMsrs, CPUMFEATURESX86 *pFeatures)
 {
     Assert(pMsrs);
     RT_ZERO(*pFeatures);
@@ -1629,4 +1642,289 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
         AssertLogRelReturn(cLeaves == 0, VERR_CPUM_IPE_1);
     return VINF_SUCCESS;
 }
+
+#endif /* defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86) */
+
+#if defined(RT_ARCH_ARM64)
+/**
+ * Collects the ID registers from an ARMv8 host.
+ *
+ * This isn't trivial an all hosts when running in userland and there is no
+ * support driver handy.
+ */
+VMMDECL(int) CPUMCpuIdCollectIdRegistersFromArmV8Host(PCPUMARMV8IDREGS pIdRegs)
+{
+#  ifdef _MSC_VER
+#   define READ_SYS_REG(a_u64Dst, a_SysRegName) do { \
+            (a_u64Dst) = (uint64_t)_ReadStatusReg(RT_CONCAT(ARMV8_AARCH64_SYSREG_,a_SysRegName) & 0x7fff); \
+        } while (0)
+#  else
+#   define READ_SYS_REG(a_u64Dst, a_SysRegName) do { \
+            __asm__ __volatile__ ("mrs %0, " #a_SysRegName : "=r" (a_u64Dst)); \
+        } while (0)
+#  endif
+
+    RT_ZERO(*pIdRegs);
+
+    /*
+     * CTR_EL0 can be trapped when executed in L0 (SCTLR_EL0.UCT) and macOS
+     * & Windows does so by default.  Linux OTOH typically exposes all the
+     * feature registers to user land with some sanitizing.
+     */
+# if !defined(IN_RING3) || defined(RT_OS_LINUX)
+    READ_SYS_REG(pIdRegs->u64RegCtrEl0,         CTR_EL0);
+# endif
+    READ_SYS_REG(pIdRegs->u64RegDczidEl0,       DCZID_EL0);
+
+# if defined(IN_RING0) || defined(RT_OS_LINUX)
+#  ifdef IN_RING3
+    if (getauxval(AT_HWCAP) & HWCAP_CPUID)
+#  endif
+    {
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Pfr0El1,  ID_AA64PFR0_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Pfr1El1,  ID_AA64PFR1_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Dfr0El1,  ID_AA64DFR0_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Dfr1El1,  ID_AA64DFR1_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Dfr2El1,  ID_AA64DFR2_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Afr0El1,  ID_AA64AFR0_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Afr1El1,  ID_AA64AFR1_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Isar0El1, ID_AA64ISAR0_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Isar1El1, ID_AA64ISAR1_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Isar2El1, ID_AA64ISAR2_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Isar3El1, ID_AA64ISAR3_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr0El1, ID_AA64MMFR0_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr1El1, ID_AA64MMFR1_EL1);
+        READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr2El1, ID_AA64MMFR2_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr3El1, ID_AA64MMFR3_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr4El1, ID_AA64MMFR4_EL1);
+        READ_SYS_REG(pIdRegs->u64RegClidrEl1,       CLIDR_EL1);
+
+        /// @todo READ_SYS_REG(pIdRegs->uMainIdRegEl1,        MIDR_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->uMpIdRegEl1,          MPIDR_EL1);
+        /// @todo READ_SYS_REG(pIdRegs->uRevIdRegEl1,         REVIDR_EL1);
+        return VINF_SUCCESS;
+    }
+# endif
+# ifndef IN_RING0
+    /** @todo  On darwin we should just cache the information (CPU DB) and figure
+     *         out which Apple Mx we're running on. */
+    /** @todo  Make the info available via the support driver...   */
+    return VINF_SUCCESS;
+# endif
+}
+#endif /* defined(RT_ARCH_ARM64) */
+
+#if defined(RT_ARCH_ARM64) || defined(VBOX_VMM_TARGET_ARMV8)
+/**
+ * Explode the CPU features from the given ID registers.
+ *
+ * @returns VBox status code.
+ * @param   pIdRegs             The ID registers to explode the features from.
+ * @param   pFeatures           Where to store the features to.
+ */
+int cpumCpuIdExplodeFeaturesArmV8(PCCPUMARMV8IDREGS pIdRegs, CPUMFEATURESARMV8 *pFeatures)
+{
+    uint64_t u64IdReg = pIdRegs->u64RegIdAa64Mmfr0El1;
+
+    static uint8_t s_aPaRange[] = { 32, 36, 40, 42, 44, 48, 52 };
+    AssertLogRelMsgReturn(RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_PARANGE) < RT_ELEMENTS(s_aPaRange),
+                          ("CPUM: Invalid/Unsupported PARange value in ID_AA64MMFR0_EL1 register: %u\n",
+                          RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_PARANGE)),
+                          VERR_CPUM_IPE_1);
+
+    pFeatures->cMaxPhysAddrWidth = s_aPaRange[RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_PARANGE)];
+    pFeatures->fTGran4K          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_TGRAN4)  != ARMV8_ID_AA64MMFR0_EL1_TGRAN4_NOT_IMPL;
+    pFeatures->fTGran16K         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_TGRAN16) != ARMV8_ID_AA64MMFR0_EL1_TGRAN16_NOT_IMPL;
+    pFeatures->fTGran64K         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_TGRAN64) != ARMV8_ID_AA64MMFR0_EL1_TGRAN64_NOT_IMPL;
+
+    /* ID_AA64ISAR0_EL1 features. */
+    u64IdReg = pIdRegs->u64RegIdAa64Isar0El1;
+    pFeatures->fAes              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_AES)     >= ARMV8_ID_AA64ISAR0_EL1_AES_SUPPORTED;
+    pFeatures->fPmull            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_AES)     >= ARMV8_ID_AA64ISAR0_EL1_AES_SUPPORTED_PMULL;
+    pFeatures->fSha1             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SHA1)    >= ARMV8_ID_AA64ISAR0_EL1_SHA1_SUPPORTED;
+    pFeatures->fSha256           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SHA2)    >= ARMV8_ID_AA64ISAR0_EL1_SHA2_SUPPORTED_SHA256;
+    pFeatures->fSha512           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SHA2)    >= ARMV8_ID_AA64ISAR0_EL1_SHA2_SUPPORTED_SHA256_SHA512;
+    pFeatures->fCrc32            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_CRC32)   >= ARMV8_ID_AA64ISAR0_EL1_CRC32_SUPPORTED;
+    pFeatures->fLse              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_ATOMIC)  >= ARMV8_ID_AA64ISAR0_EL1_ATOMIC_SUPPORTED;
+    pFeatures->fTme              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_TME)     >= ARMV8_ID_AA64ISAR0_EL1_TME_SUPPORTED;
+    pFeatures->fRdm              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_RDM)     >= ARMV8_ID_AA64ISAR0_EL1_RDM_SUPPORTED;
+    pFeatures->fSha3             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SHA3)    >= ARMV8_ID_AA64ISAR0_EL1_SHA3_SUPPORTED;
+    pFeatures->fSm3              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SM3)     >= ARMV8_ID_AA64ISAR0_EL1_SM3_SUPPORTED;
+    pFeatures->fSm4              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_SM4)     >= ARMV8_ID_AA64ISAR0_EL1_SM4_SUPPORTED;
+    pFeatures->fDotProd          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_DP)      >= ARMV8_ID_AA64ISAR0_EL1_DP_SUPPORTED;
+    pFeatures->fFhm              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_FHM)     >= ARMV8_ID_AA64ISAR0_EL1_FHM_SUPPORTED;
+    pFeatures->fFlagM            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_TS)      >= ARMV8_ID_AA64ISAR0_EL1_TS_SUPPORTED;
+    pFeatures->fFlagM2           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_TS)      >= ARMV8_ID_AA64ISAR0_EL1_TS_SUPPORTED_2;
+    pFeatures->fTlbios           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_TLB)     >= ARMV8_ID_AA64ISAR0_EL1_TLB_SUPPORTED;
+    pFeatures->fTlbirange        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_TLB)     >= ARMV8_ID_AA64ISAR0_EL1_TLB_SUPPORTED_RANGE;
+    pFeatures->fRng              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR0_EL1_RNDR)    >= ARMV8_ID_AA64ISAR0_EL1_RNDR_SUPPORTED;
+
+    /* ID_AA64ISAR1_EL1 features. */
+    u64IdReg = pIdRegs->u64RegIdAa64Isar1El1;
+    pFeatures->fDpb              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_DPB)     >= ARMV8_ID_AA64ISAR1_EL1_DPB_SUPPORTED;
+    pFeatures->fDpb2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_DPB)     >= ARMV8_ID_AA64ISAR1_EL1_DPB_SUPPORTED_2;
+
+    /* PAuth using QARMA5. */
+    pFeatures->fPacQarma5        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     != ARMV8_ID_AA64ISAR1_EL1_APA_NOT_IMPL;
+    if (pFeatures->fPacQarma5)
+    {
+        pFeatures->fPAuth        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     >= ARMV8_ID_AA64ISAR1_EL1_APA_SUPPORTED_PAUTH;
+        pFeatures->fEpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     >= ARMV8_ID_AA64ISAR1_EL1_APA_SUPPORTED_EPAC;
+        pFeatures->fPAuth2       = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     >= ARMV8_ID_AA64ISAR1_EL1_APA_SUPPORTED_PAUTH2;
+        pFeatures->fFpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     >= ARMV8_ID_AA64ISAR1_EL1_APA_SUPPORTED_FPAC;
+        pFeatures->fFpacCombine  = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_APA)     >= ARMV8_ID_AA64ISAR1_EL1_APA_SUPPORTED_FPACCOMBINE;
+    }
+
+    /* PAuth using implementation defined algorithm. */
+    pFeatures->fPacImp           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     != ARMV8_ID_AA64ISAR1_EL1_API_NOT_IMPL;
+    if (pFeatures->fPacQarma5)
+    {
+        pFeatures->fPAuth        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     >= ARMV8_ID_AA64ISAR1_EL1_API_SUPPORTED_PAUTH;
+        pFeatures->fEpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     >= ARMV8_ID_AA64ISAR1_EL1_API_SUPPORTED_EPAC;
+        pFeatures->fPAuth2       = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     >= ARMV8_ID_AA64ISAR1_EL1_API_SUPPORTED_PAUTH2;
+        pFeatures->fFpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     >= ARMV8_ID_AA64ISAR1_EL1_API_SUPPORTED_FPAC;
+        pFeatures->fFpacCombine  = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_API)     >= ARMV8_ID_AA64ISAR1_EL1_API_SUPPORTED_FPACCOMBINE;
+    }
+
+    pFeatures->fJscvt            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_FJCVTZS) >= ARMV8_ID_AA64ISAR1_EL1_FJCVTZS_SUPPORTED;
+    pFeatures->fFcma             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_FCMA)    >= ARMV8_ID_AA64ISAR1_EL1_FCMA_SUPPORTED;
+    pFeatures->fLrcpc            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_LRCPC)   >= ARMV8_ID_AA64ISAR1_EL1_LRCPC_SUPPORTED;
+    pFeatures->fLrcpc2           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_LRCPC)   >= ARMV8_ID_AA64ISAR1_EL1_LRCPC_SUPPORTED_2;
+    pFeatures->fFrintts          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_FRINTTS) >= ARMV8_ID_AA64ISAR1_EL1_FRINTTS_SUPPORTED;
+    pFeatures->fSb               = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_SB)      >= ARMV8_ID_AA64ISAR1_EL1_SB_SUPPORTED;
+    pFeatures->fSpecres          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_SPECRES) >= ARMV8_ID_AA64ISAR1_EL1_SPECRES_SUPPORTED;
+    pFeatures->fBf16             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_BF16)    >= ARMV8_ID_AA64ISAR1_EL1_BF16_SUPPORTED_BF16;
+    pFeatures->fEbf16            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_BF16)    >= ARMV8_ID_AA64ISAR1_EL1_BF16_SUPPORTED_EBF16;
+    pFeatures->fDgh              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_DGH)     >= ARMV8_ID_AA64ISAR1_EL1_DGH_SUPPORTED;
+    pFeatures->fI8mm             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_I8MM)    >= ARMV8_ID_AA64ISAR1_EL1_I8MM_SUPPORTED;
+    pFeatures->fXs               = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_XS)      >= ARMV8_ID_AA64ISAR1_EL1_XS_SUPPORTED;
+    pFeatures->fLs64             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_LS64)    >= ARMV8_ID_AA64ISAR1_EL1_LS64_SUPPORTED;
+    pFeatures->fLs64V            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_LS64)    >= ARMV8_ID_AA64ISAR1_EL1_LS64_SUPPORTED_V;
+    pFeatures->fLs64Accdata      = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR1_EL1_LS64)    >= ARMV8_ID_AA64ISAR1_EL1_LS64_SUPPORTED_ACCDATA;
+
+    /* ID_AA64ISAR2_EL1 features. */
+    u64IdReg = pIdRegs->u64RegIdAa64Isar2El1;
+    pFeatures->fWfxt             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_WFXT)    >= ARMV8_ID_AA64ISAR2_EL1_WFXT_SUPPORTED;
+    pFeatures->fRpres            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_RPRES)   >= ARMV8_ID_AA64ISAR2_EL1_RPRES_SUPPORTED;
+
+    /* PAuth using QARMA3. */
+    pFeatures->fPacQarma3        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_GPA3)    >= ARMV8_ID_AA64ISAR2_EL1_GPA3_SUPPORTED;
+    pFeatures->fPacQarma3        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    != ARMV8_ID_AA64ISAR2_EL1_APA3_NOT_IMPL;
+    if (pFeatures->fPacQarma5)
+    {
+        pFeatures->fPAuth        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    >= ARMV8_ID_AA64ISAR2_EL1_APA3_SUPPORTED_PAUTH;
+        pFeatures->fEpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    >= ARMV8_ID_AA64ISAR2_EL1_APA3_SUPPORTED_EPAC;
+        pFeatures->fPAuth2       = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    >= ARMV8_ID_AA64ISAR2_EL1_APA3_SUPPORTED_PAUTH2;
+        pFeatures->fFpac         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    >= ARMV8_ID_AA64ISAR2_EL1_APA3_SUPPORTED_FPAC;
+        pFeatures->fFpacCombine  = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_APA3)    >= ARMV8_ID_AA64ISAR2_EL1_APA3_SUPPORTED_FPACCOMBINE;
+    }
+
+    pFeatures->fMops             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_MOPS)    >= ARMV8_ID_AA64ISAR2_EL1_MOPS_SUPPORTED;
+    pFeatures->fHbc              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_BC)      >= ARMV8_ID_AA64ISAR2_EL1_BC_SUPPORTED;
+    pFeatures->fConstPacField    = RT_BF_GET(u64IdReg, ARMV8_ID_AA64ISAR2_EL1_PACFRAC) >= ARMV8_ID_AA64ISAR2_EL1_PACFRAC_TRUE;
+
+    /* ID_AA64PFR0_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Pfr0El1;
+    /* The FP and AdvSIMD field must have the same value. */
+    Assert(RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_FP) == RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_ADVSIMD));
+    pFeatures->fFp               = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_FP)       != ARMV8_ID_AA64PFR0_EL1_FP_NOT_IMPL;
+    pFeatures->fFp16             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_FP)       == ARMV8_ID_AA64PFR0_EL1_FP_IMPL_SP_DP_HP;
+    pFeatures->fAdvSimd          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_ADVSIMD)  != ARMV8_ID_AA64PFR0_EL1_ADVSIMD_NOT_IMPL;
+    pFeatures->fFp16             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_ADVSIMD)  == ARMV8_ID_AA64PFR0_EL1_ADVSIMD_IMPL_SP_DP_HP;
+    pFeatures->fRas              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_RAS)      >= ARMV8_ID_AA64PFR0_EL1_RAS_SUPPORTED;
+    pFeatures->fRasV1p1          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_RAS)      >= ARMV8_ID_AA64PFR0_EL1_RAS_V1P1;
+    pFeatures->fSve              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_SVE)      >= ARMV8_ID_AA64PFR0_EL1_SVE_SUPPORTED;
+    pFeatures->fSecEl2           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_SEL2)     >= ARMV8_ID_AA64PFR0_EL1_SEL2_SUPPORTED;
+    pFeatures->fAmuV1            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_AMU)      >= ARMV8_ID_AA64PFR0_EL1_AMU_V1;
+    pFeatures->fAmuV1p1          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_AMU)      >= ARMV8_ID_AA64PFR0_EL1_AMU_V1P1;
+    pFeatures->fDit              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_DIT)      >= ARMV8_ID_AA64PFR0_EL1_DIT_SUPPORTED;
+    pFeatures->fRme              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_RME)      >= ARMV8_ID_AA64PFR0_EL1_RME_SUPPORTED;
+    pFeatures->fCsv2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_CSV2)     >= ARMV8_ID_AA64PFR0_EL1_CSV2_SUPPORTED;
+    pFeatures->fCsv2v3           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_CSV2)     >= ARMV8_ID_AA64PFR0_EL1_CSV2_3_SUPPORTED;
+
+    /* ID_AA64PFR1_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Pfr1El1;
+    pFeatures->fBti              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_BT)       >= ARMV8_ID_AA64PFR1_EL1_BT_SUPPORTED;
+    pFeatures->fSsbs             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_SSBS)     >= ARMV8_ID_AA64PFR1_EL1_SSBS_SUPPORTED;
+    pFeatures->fSsbs2            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_SSBS)     >= ARMV8_ID_AA64PFR1_EL1_SSBS_SUPPORTED_MSR_MRS;
+    pFeatures->fMte              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_MTE)      >= ARMV8_ID_AA64PFR1_EL1_MTE_INSN_ONLY;
+    pFeatures->fMte2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_MTE)      >= ARMV8_ID_AA64PFR1_EL1_MTE_FULL;
+    pFeatures->fMte3             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_MTE)      >= ARMV8_ID_AA64PFR1_EL1_MTE_FULL_ASYM_TAG_FAULT_CHK;
+    /** @todo RAS_frac, MPAM_frac, CSV2_frac. */
+    pFeatures->fSme              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_SME)      >= ARMV8_ID_AA64PFR1_EL1_SME_SUPPORTED;
+    pFeatures->fSme2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_SME)      >= ARMV8_ID_AA64PFR1_EL1_SME_SME2;
+    pFeatures->fRngTrap          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_RNDRTRAP) >= ARMV8_ID_AA64PFR1_EL1_RNDRTRAP_SUPPORTED;
+    pFeatures->fNmi              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR1_EL1_NMI)      >= ARMV8_ID_AA64PFR1_EL1_NMI_SUPPORTED;
+
+    /* ID_AA64MMFR0_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Mmfr0El1;
+    pFeatures->fExs              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_EXS)     >= ARMV8_ID_AA64MMFR0_EL1_EXS_SUPPORTED;
+    pFeatures->fFgt              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_FGT)     >= ARMV8_ID_AA64MMFR0_EL1_FGT_SUPPORTED;
+    pFeatures->fEcv              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR0_EL1_ECV)     >= ARMV8_ID_AA64MMFR0_EL1_ECV_SUPPORTED;
+
+    /* ID_AA64MMFR1_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Mmfr1El1;
+    pFeatures->fHafdbs           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_HAFDBS)  >= ARMV8_ID_AA64MMFR1_EL1_HAFDBS_SUPPORTED;
+    pFeatures->fVmid16           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_VMIDBITS) >= ARMV8_ID_AA64MMFR1_EL1_VMIDBITS_16;
+    pFeatures->fVhe              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_VHE)     >= ARMV8_ID_AA64MMFR1_EL1_VHE_SUPPORTED;
+    pFeatures->fHpds             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_HPDS)    >= ARMV8_ID_AA64MMFR1_EL1_HPDS_SUPPORTED;
+    pFeatures->fHpds2            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_HPDS)    >= ARMV8_ID_AA64MMFR1_EL1_HPDS_SUPPORTED_2;
+    pFeatures->fLor              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_LO)      >= ARMV8_ID_AA64MMFR1_EL1_LO_SUPPORTED;
+    pFeatures->fPan              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_PAN)     >= ARMV8_ID_AA64MMFR1_EL1_PAN_SUPPORTED;
+    pFeatures->fPan2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_PAN)     >= ARMV8_ID_AA64MMFR1_EL1_PAN_SUPPORTED_2;
+    pFeatures->fPan3             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_PAN)     >= ARMV8_ID_AA64MMFR1_EL1_PAN_SUPPORTED_3;
+    pFeatures->fXnx              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_XNX)     >= ARMV8_ID_AA64MMFR1_EL1_XNX_SUPPORTED;
+    pFeatures->fTwed             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_TWED)    >= ARMV8_ID_AA64MMFR1_EL1_TWED_SUPPORTED;
+    pFeatures->fEts2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_ETS)     >= ARMV8_ID_AA64MMFR1_EL1_ETS_SUPPORTED;
+    pFeatures->fHcx              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_HCX)     >= ARMV8_ID_AA64MMFR1_EL1_HCX_SUPPORTED;
+    pFeatures->fAfp              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_AFP)     >= ARMV8_ID_AA64MMFR1_EL1_AFP_SUPPORTED;
+    pFeatures->fNTlbpa           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_NTLBPA)  >= ARMV8_ID_AA64MMFR1_EL1_NTLBPA_INCLUDE_COHERENT_ONLY;
+    pFeatures->fTidcp1           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_TIDCP1)  >= ARMV8_ID_AA64MMFR1_EL1_TIDCP1_SUPPORTED;
+    pFeatures->fCmow             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR1_EL1_CMOW)    >= ARMV8_ID_AA64MMFR1_EL1_CMOW_SUPPORTED;
+
+    /* ID_AA64MMFR2_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Mmfr2El1;
+    pFeatures->fTtcnp            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_CNP)     >= ARMV8_ID_AA64MMFR2_EL1_CNP_SUPPORTED;
+    pFeatures->fUao              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_UAO)     >= ARMV8_ID_AA64MMFR2_EL1_UAO_SUPPORTED;
+    pFeatures->fLsmaoc           = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_LSM)     >= ARMV8_ID_AA64MMFR2_EL1_LSM_SUPPORTED;
+    pFeatures->fIesb             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_IESB)    >= ARMV8_ID_AA64MMFR2_EL1_IESB_SUPPORTED;
+    pFeatures->fLva              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_VARANGE) >= ARMV8_ID_AA64MMFR2_EL1_VARANGE_52BITS_64KB_GRAN;
+    pFeatures->fCcidx            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_CCIDX)   >= ARMV8_ID_AA64MMFR2_EL1_CCIDX_64BIT;
+    pFeatures->fNv               = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_NV)      >= ARMV8_ID_AA64MMFR2_EL1_NV_SUPPORTED;
+    pFeatures->fNv2              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_NV)      >= ARMV8_ID_AA64MMFR2_EL1_NV_SUPPORTED_2;
+    pFeatures->fTtst             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_ST)      >= ARMV8_ID_AA64MMFR2_EL1_ST_SUPPORTED;
+    pFeatures->fLse2             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_AT)      >= ARMV8_ID_AA64MMFR2_EL1_AT_SUPPORTED;
+    pFeatures->fIdst             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_IDS)     >= ARMV8_ID_AA64MMFR2_EL1_IDS_EC_18H;
+    pFeatures->fS2Fwb            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_FWB)     >= ARMV8_ID_AA64MMFR2_EL1_FWB_SUPPORTED;
+    pFeatures->fTtl              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_TTL)     >= ARMV8_ID_AA64MMFR2_EL1_TTL_SUPPORTED;
+    pFeatures->fEvt              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_EVT)     >= ARMV8_ID_AA64MMFR2_EL1_EVT_SUPPORTED;
+    pFeatures->fE0Pd             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64MMFR2_EL1_E0PD)    >= ARMV8_ID_AA64MMFR2_EL1_E0PD_SUPPORTED;
+
+    /* ID_AA64DFR0_EL1 */
+    u64IdReg = pIdRegs->u64RegIdAa64Dfr0El1;
+    pFeatures->fDebugV8p1        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_DEBUGVER) >= ARMV8_ID_AA64DFR0_EL1_DEBUGVER_ARMV8_VHE;
+    pFeatures->fDebugV8p2        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_DEBUGVER) >= ARMV8_ID_AA64DFR0_EL1_DEBUGVER_ARMV8p2;
+    pFeatures->fDebugV8p4        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_DEBUGVER) >= ARMV8_ID_AA64DFR0_EL1_DEBUGVER_ARMV8p4;
+    pFeatures->fDebugV8p8        = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_DEBUGVER) >= ARMV8_ID_AA64DFR0_EL1_DEBUGVER_ARMV8p8;
+    pFeatures->fPmuV3            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3;
+    pFeatures->fPmuV3p1          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3P1;
+    pFeatures->fPmuV3p4          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3P4;
+    pFeatures->fPmuV3p5          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3P5;
+    pFeatures->fPmuV3p7          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3P7;
+    pFeatures->fPmuV3p8          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER)   >= ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3P8;
+    pFeatures->fSpe              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMSVER)   >= ARMV8_ID_AA64DFR0_EL1_PMSVER_SUPPORTED;
+    pFeatures->fSpeV1p1          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMSVER)   >= ARMV8_ID_AA64DFR0_EL1_PMSVER_SUPPORTED_V1P1;
+    pFeatures->fSpeV1p2          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMSVER)   >= ARMV8_ID_AA64DFR0_EL1_PMSVER_SUPPORTED_V1P2;
+    pFeatures->fSpeV1p3          = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMSVER)   >= ARMV8_ID_AA64DFR0_EL1_PMSVER_SUPPORTED_V1P3;
+    pFeatures->fDoubleLock       = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_DOUBLELOCK)  == ARMV8_ID_AA64DFR0_EL1_DOUBLELOCK_SUPPORTED;
+    pFeatures->fTrf              = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_TRACEFILT)   >= ARMV8_ID_AA64DFR0_EL1_TRACEFILT_SUPPORTED;
+    pFeatures->fTrbe             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_TRACEBUFFER) >= ARMV8_ID_AA64DFR0_EL1_TRACEBUFFER_SUPPORTED;
+    pFeatures->fMtPmu            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_MTPMU)    == ARMV8_ID_AA64DFR0_EL1_MTPMU_SUPPORTED;
+    pFeatures->fBrbe             = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_BRBE)     >= ARMV8_ID_AA64DFR0_EL1_BRBE_SUPPORTED;
+    pFeatures->fBrbeV1p1         = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_BRBE)     >= ARMV8_ID_AA64DFR0_EL1_BRBE_SUPPORTED_V1P1;
+    pFeatures->fHpmn0            = RT_BF_GET(u64IdReg, ARMV8_ID_AA64DFR0_EL1_HPMN0)    >= ARMV8_ID_AA64DFR0_EL1_HPMN0_SUPPORTED;
+
+    return VINF_SUCCESS;
+}
+#endif /* defined(RT_ARCH_ARM64) || defined(VBOX_VMM_TARGET_ARMV8) */
 

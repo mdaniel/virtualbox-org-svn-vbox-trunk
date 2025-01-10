@@ -415,6 +415,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/CFGM.cpp \
  	VMMR3/CPUM-armv8.cpp \
  	VMMR3/CPUMDbg-armv8.cpp \
+ 	VMMAll/CPUMAllCpuId.cpp \
  	VMMR3/CPUMR3CpuId-armv8.cpp \
  	VMMR3/CPUMR3Db-armv8.cpp \
  	VMMR3/DBGF.cpp \
@@ -1073,6 +1074,7 @@ if   !defined(VBOX_ONLY_BUILD) \
 
  ##
  # Turn the header $2 into the DTrace library script $1.
+ # @todo ARM: this needs adjusting for the non-native VBoxVMM variant!
  #
  define def_vmm_lib_dtrace_preprocess
   $$(call KB_FN_AUTO_CMD_DEPS,$$(VMMLibDTrace_0_OUTDIR)/$1)
@@ -1082,6 +1084,7 @@ if   !defined(VBOX_ONLY_BUILD) \
 	$$(QUIET)$(VBOX_VBOXCPP) -d \
 		-D VBOX_FOR_DTRACE_LIB \
 		-D VBOX_FOR_DTRACE_LIB_$(toupper $(KBUILD_TARGET_ARCH)) \
+		-D $(if-expr "$(KBUILD_TARGET_ARCH)" == "amd64",VBOX_VMM_TARGET_X86,VBOX_VMM_TARGET_ARMV8) \
 		-D IN_RING0 \
 		-D RT_C_DECLS_BEGIN= \
 		-D RT_C_DECLS_END= \

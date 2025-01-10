@@ -900,7 +900,7 @@ int cpumR3DbGetCpuInfo(const char *pszName, PCPUMINFO pInfo)
         rc = CPUMR3CpuIdDetectUnknownLeafMethod(&pInfo->enmUnknownCpuIdMethod, &pInfo->DefCpuId);
         if (RT_FAILURE(rc))
             return rc;
-        rc = CPUMCpuIdCollectLeavesX86(&pInfo->paCpuIdLeavesR3, &pInfo->cCpuIdLeaves);
+        rc = CPUMCpuIdCollectLeavesFromX86Host(&pInfo->paCpuIdLeavesR3, &pInfo->cCpuIdLeaves);
         if (RT_FAILURE(rc))
             return rc;
         pInfo->fMxCsrMask = CPUMR3DeterminHostMxCsrMask();

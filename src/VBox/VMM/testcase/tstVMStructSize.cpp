@@ -282,7 +282,9 @@ int main()
     }
 #endif
     CHECK_SIZE_ALIGNMENT(CPUMCTX, 64);
+#ifdef RT_ARCH_AMD64
     CHECK_SIZE_ALIGNMENT(CPUMHOSTCTX, 64);
+#endif
     CHECK_SIZE_ALIGNMENT(CPUMCTXMSRS, 64);
 
     /* pdm */

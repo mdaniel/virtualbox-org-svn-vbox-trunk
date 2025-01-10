@@ -219,16 +219,16 @@ static DECLCALLBACK(void) cpumR3InfoGuest(PVM pVM, PCDBGFINFOHLP pHlp, const cha
 static DECLCALLBACK(void) cpumR3InfoGuestHwvirt(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
 static DECLCALLBACK(void) cpumR3InfoGuestInstr(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
 static DECLCALLBACK(void) cpumR3InfoHyper(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
+#ifdef RT_ARCH_AMD64
 static DECLCALLBACK(void) cpumR3InfoHost(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
+#endif
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
 /** Host CPU features. */
 DECL_HIDDEN_DATA(CPUHOSTFEATURES) g_CpumHostFeatures;
-#endif
 
 /** Saved state field descriptors for CPUMCTX. */
 static const SSMFIELD g_aCpumCtxFields[] =
@@ -1210,17 +1210,30 @@ DECLINLINE(void) cpumR3ResetVmxHwVirtState(PVMCPU pVCpu)
 static DECLCALLBACK(void) cpumR3InfoVmxFeatures(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     RT_NOREF(pszArgs);
-    PCCPUMFEATURES pHostFeatures  = &pVM->cpum.s.HostFeatures;
+#ifdef RT_ARCH_AMD64
+    PCCPUMFEATURES pHostFeatures  = &pVM->cpum.s.HostFeatures.s;
+#else
+    PCCPUMFEATURES pHostFeatures  = &pVM->cpum.s.GuestFeatures;
+#endif
     PCCPUMFEATURES pGuestFeatures = &pVM->cpum.s.GuestFeatures;
     if (   pHostFeatures->enmCpuVendor == CPUMCPUVENDOR_INTEL
         || pHostFeatures->enmCpuVendor == CPUMCPUVENDOR_VIA
         || pHostFeatures->enmCpuVendor == CPUMCPUVENDOR_SHANGHAI)
     {
-#define VMXFEATDUMP(a_szDesc, a_Var) \
+#ifdef RT_ARCH_AMD64
+# define VMXFEATDUMP(a_szDesc, a_Var) \
         pHlp->pfnPrintf(pHlp, "  %s = %u (%u)\n", a_szDesc, pGuestFeatures->a_Var, pHostFeatures->a_Var)
+#else
+# define VMXFEATDUMP(a_szDesc, a_Var) \
+        pHlp->pfnPrintf(pHlp, "  %s = %u\n", a_szDesc, pGuestFeatures->a_Var)
+#endif
 
         pHlp->pfnPrintf(pHlp, "Nested hardware virtualization - VMX features\n");
+#ifdef RT_ARCH_AMD64
         pHlp->pfnPrintf(pHlp, "  Mnemonic - Description                                  = guest (host)\n");
+#else
+        pHlp->pfnPrintf(pHlp, "  Mnemonic - Description                                  = guest\n");
+#endif
         VMXFEATDUMP("VMX - Virtual-Machine Extensions                       ", fVmx);
         /* Basic. */
         VMXFEATDUMP("InsOutInfo - INS/OUTS instruction info.                ", fVmxInsOutInfo);
@@ -1844,10 +1857,12 @@ void cpumR3InitVmxGuestFeaturesAndMsrs(PVM pVM, PCFGMNODE pCpumCfg, PCVMXMSRS pH
         const char *pszWhy = NULL;
         if (!VM_IS_HM_ENABLED(pVM) && !VM_IS_EXEC_ENGINE_IEM(pVM))
             pszWhy = "execution engine is neither HM nor IEM";
+#ifdef RT_ARCH_AMD64
         else if (VM_IS_HM_ENABLED(pVM) && !HMIsNestedPagingActive(pVM))
             pszWhy = "nested paging is not enabled for the VM or it is not supported by the host";
-        else if (VM_IS_HM_ENABLED(pVM) && !pVM->cpum.s.HostFeatures.fNoExecute)
+        else if (VM_IS_HM_ENABLED(pVM) && !pVM->cpum.s.HostFeatures.s.fNoExecute)
             pszWhy = "NX is not available on the host";
+#endif
         if (pszWhy)
         {
             LogRel(("CPUM: Warning! EPT not exposed to the guest because %s\n", pszWhy));
@@ -1957,8 +1972,12 @@ void cpumR3InitVmxGuestFeaturesAndMsrs(PVM pVM, PCFGMNODE pCpumCfg, PCVMXMSRS pH
      * When hardware-assisted VMX may be used, any feature we emulate must also be supported
      * by the hardware, hence we merge our emulated features with the host features below.
      */
-    PCCPUMFEATURES pBaseFeat  = cpumR3IsHwAssistNstGstExecAllowed(pVM) ? &pVM->cpum.s.HostFeatures : &EmuFeat;
-    PCPUMFEATURES  pGuestFeat = &pVM->cpum.s.GuestFeatures;
+#ifdef RT_ARCH_AMD64
+    PCCPUMFEATURES const pBaseFeat  = cpumR3IsHwAssistNstGstExecAllowed(pVM) ? &pVM->cpum.s.HostFeatures.s : &EmuFeat;
+#else
+    PCCPUMFEATURES const pBaseFeat  = &EmuFeat;
+#endif
+    PCPUMFEATURES const  pGuestFeat = &pVM->cpum.s.GuestFeatures;
     Assert(pBaseFeat->fVmx);
 #define CPUMVMX_SET_GST_FEAT(a_Feat) \
     do { \
@@ -2185,7 +2204,9 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
     AssertCompile(sizeof(pVM->cpum.s) <= sizeof(pVM->cpum.padding));
     AssertCompileSizeAlignment(CPUMCTX, 64);
     AssertCompileSizeAlignment(CPUMCTXMSRS, 64);
+#ifdef RT_ARCH_AMD64
     AssertCompileSizeAlignment(CPUMHOSTCTX, 64);
+#endif
     AssertCompileMemberAlignment(VM, cpum, 64);
     AssertCompileMemberAlignment(VMCPU, cpum.s, 64);
 #ifdef VBOX_STRICT
@@ -2211,25 +2232,38 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
     int rc = cpumR3GetHostHwvirtMsrs(&HostMsrs);
     AssertLogRelRCReturn(rc, rc);
 
-#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
     /* Use the host features detected by CPUMR0ModuleInit if available. */
-    if (pVM->cpum.s.HostFeatures.enmCpuVendor != CPUMCPUVENDOR_INVALID)
-        g_CpumHostFeatures.s = pVM->cpum.s.HostFeatures;
+    if (pVM->cpum.s.HostFeatures.Common.enmCpuVendor != CPUMCPUVENDOR_INVALID)
+        g_CpumHostFeatures.s = pVM->cpum.s.HostFeatures.s;
     else
     {
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
         PCPUMCPUIDLEAF  paLeaves;
         uint32_t        cLeaves;
-        rc = CPUMCpuIdCollectLeavesX86(&paLeaves, &cLeaves);
+        rc = CPUMCpuIdCollectLeavesFromX86Host(&paLeaves, &cLeaves);
         AssertLogRelRCReturn(rc, rc);
 
         rc = cpumCpuIdExplodeFeaturesX86(paLeaves, cLeaves, &HostMsrs, &g_CpumHostFeatures.s);
         RTMemFree(paLeaves);
         AssertLogRelRCReturn(rc, rc);
-    }
-    pVM->cpum.s.HostFeatures               = g_CpumHostFeatures.s;
-    pVM->cpum.s.GuestFeatures.enmCpuVendor = pVM->cpum.s.HostFeatures.enmCpuVendor;
 
 #elif defined(RT_ARCH_ARM64)
+        CPUMARMV8IDREGS IdRegs = {0};
+        rc = CPUMCpuIdCollectIdRegistersFromArmV8Host(&IdRegs);
+        AssertLogRelRCReturn(rc, rc);
+
+        rc = cpumCpuIdExplodeFeaturesArmV8(&IdRegs, &g_CpumHostFeatures.s);
+        AssertLogRelRCReturn(rc, rc);
+
+#else
+# error port me
+#endif
+        AssertLogRelRCReturn(rc, rc);
+        pVM->cpum.s.HostFeatures.s = g_CpumHostFeatures.s;
+    }
+    pVM->cpum.s.GuestFeatures.enmCpuVendor = pVM->cpum.s.HostFeatures.Common.enmCpuVendor; /* a bit bogus for mismatching host/guest */
+
+#if 0 /** @todo fix */
     /** @todo we shouldn't be using the x86/AMD64 CPUMFEATURES for HostFeatures,
      *        but it's too much work to fix that now.  So, instead we just set
      *        the bits we think are important for CPUMR3CpuId...  This must
@@ -2299,11 +2333,11 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
      * Check that the CPU supports the minimum features we require.
      */
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-    if (!pVM->cpum.s.HostFeatures.fFxSaveRstor)
+    if (!pVM->cpum.s.HostFeatures.s.fFxSaveRstor)
         return VMSetError(pVM, VERR_UNSUPPORTED_CPU, RT_SRC_POS, "Host CPU does not support the FXSAVE/FXRSTOR instruction.");
-    if (!pVM->cpum.s.HostFeatures.fMmx)
+    if (!pVM->cpum.s.HostFeatures.s.fMmx)
         return VMSetError(pVM, VERR_UNSUPPORTED_CPU, RT_SRC_POS, "Host CPU does not support MMX.");
-    if (!pVM->cpum.s.HostFeatures.fTsc)
+    if (!pVM->cpum.s.HostFeatures.s.fTsc)
         return VMSetError(pVM, VERR_UNSUPPORTED_CPU, RT_SRC_POS, "Host CPU does not support RDTSC.");
 #endif
 
@@ -2313,8 +2347,8 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
     uint64_t fXcr0Host = 0;
     uint64_t fXStateHostMask = 0;
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
-    if (   pVM->cpum.s.HostFeatures.fXSaveRstor
-        && pVM->cpum.s.HostFeatures.fOpSysXSaveRstor)
+    if (   pVM->cpum.s.HostFeatures.s.fXSaveRstor
+        && pVM->cpum.s.HostFeatures.s.fOpSysXSaveRstor)
     {
         fXStateHostMask  = fXcr0Host = ASMGetXcr0();
         fXStateHostMask &= XSAVE_C_X87 | XSAVE_C_SSE | XSAVE_C_YMM | XSAVE_C_OPMASK | XSAVE_C_ZMM_HI256 | XSAVE_C_ZMM_16HI;
@@ -2332,19 +2366,26 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
     /*
      * Initialize the host XSAVE/XRSTOR mask.
      */
-    uint32_t cbMaxXState = pVM->cpum.s.HostFeatures.cbMaxExtendedState;
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    uint32_t cbMaxXState = pVM->cpum.s.HostFeatures.s.cbMaxExtendedState;
     cbMaxXState = RT_ALIGN(cbMaxXState, 128);
-    AssertLogRelReturn(   pVM->cpum.s.HostFeatures.cbMaxExtendedState >= sizeof(X86FXSTATE)
-                       && pVM->cpum.s.HostFeatures.cbMaxExtendedState <= sizeof(pVM->apCpusR3[0]->cpum.s.Host.abXState)
-                       && pVM->cpum.s.HostFeatures.cbMaxExtendedState <= sizeof(pVM->apCpusR3[0]->cpum.s.Guest.abXState)
+    AssertLogRelReturn(   pVM->cpum.s.HostFeatures.s.cbMaxExtendedState >= sizeof(X86FXSTATE)
+                       && pVM->cpum.s.HostFeatures.s.cbMaxExtendedState <= sizeof(pVM->apCpusR3[0]->cpum.s.Host.abXState)
+                       && pVM->cpum.s.HostFeatures.s.cbMaxExtendedState <= sizeof(pVM->apCpusR3[0]->cpum.s.Guest.abXState)
                        , VERR_CPUM_IPE_2);
+#endif
 
     for (VMCPUID i = 0; i < pVM->cCpus; i++)
     {
         PVMCPU pVCpu = pVM->apCpusR3[i];
+        RT_NOREF(pVCpu);
 
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
         pVCpu->cpum.s.Host.fXStateMask       = fXStateHostMask;
+#endif
+#ifdef VBOX_VMM_TARGET_X86
         pVCpu->cpum.s.hNestedVmxPreemptTimer = NIL_TMTIMERHANDLE;
+#endif
     }
 
     /*
@@ -2368,8 +2409,10 @@ VMMR3DECL(int) CPUMR3Init(PVM pVM)
                                  &cpumR3InfoGuestHwvirt, DBGFINFO_FLAGS_ALL_EMTS);
     DBGFR3InfoRegisterInternalEx(pVM, "cpumhyper",        "Displays the hypervisor cpu state.",
                                  &cpumR3InfoHyper, DBGFINFO_FLAGS_ALL_EMTS);
+#ifdef RT_ARCH_AMD64
     DBGFR3InfoRegisterInternalEx(pVM, "cpumhost",         "Displays the host cpu state.",
                                  &cpumR3InfoHost, DBGFINFO_FLAGS_ALL_EMTS);
+#endif
     DBGFR3InfoRegisterInternalEx(pVM, "cpumguestinstr",   "Displays the current guest instruction.",
                                  &cpumR3InfoGuestInstr, DBGFINFO_FLAGS_ALL_EMTS);
     DBGFR3InfoRegisterInternal(  pVM, "cpuid",            "Displays the guest cpuid leaves.",
@@ -2572,7 +2615,9 @@ VMMR3DECL(void) CPUMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
     pFpuCtx->MXCSR_MASK             = pVM->cpum.s.GuestInfo.fMxCsrMask; /** @todo check if REM messes this up... */
 
     pCtx->aXcr[0]                   = XSAVE_C_X87;
-    if (pVM->cpum.s.HostFeatures.cbMaxExtendedState >= RT_UOFFSETOF(X86XSAVEAREA, Hdr))
+#ifdef RT_ARCH_AMD64 /** @todo x86-on-ARM64: recheck this! */
+    if (pVM->cpum.s.HostFeatures.s.cbMaxExtendedState >= RT_UOFFSETOF(X86XSAVEAREA, Hdr))
+#endif
     {
         /* The entire FXSAVE state needs loading when we switch to XSAVE/XRSTOR
            as we don't know what happened before.  (Bother optimize later?) */
@@ -3235,7 +3280,7 @@ static DECLCALLBACK(int) cpumR3LoadExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uVers
         }
 
         /* Load CPUID and explode guest features. */
-        rc = cpumR3LoadCpuId(pVM, pSSM, uVersion, &GuestMsrs);
+        rc = cpumR3LoadCpuIdX86(pVM, pSSM, uVersion, &GuestMsrs);
         if (fVmxGstFeat)
         {
             /*
@@ -4379,7 +4424,9 @@ static DECLCALLBACK(void) cpumR3InfoAll(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     cpumR3InfoGuestInstr(pVM, pHlp, pszArgs);
     cpumR3InfoGuestHwvirt(pVM, pHlp, pszArgs);
     cpumR3InfoHyper(pVM, pHlp, pszArgs);
+#ifdef RT_ARCH_AMD64
     cpumR3InfoHost(pVM, pHlp, pszArgs);
+#endif
 }
 
 
@@ -5047,6 +5094,7 @@ static DECLCALLBACK(void) cpumR3InfoHyper(PVM pVM, PCDBGFINFOHLP pHlp, const cha
 }
 
 
+#ifdef RT_ARCH_AMD64
 /**
  * Display the host cpu state.
  *
@@ -5109,6 +5157,8 @@ static DECLCALLBACK(void) cpumR3InfoHost(PVM pVM, PCDBGFINFOHLP pHlp, const char
         pCtx->SysEnter.cs, pCtx->SysEnter.eip, pCtx->SysEnter.esp,
         pCtx->FSbase, pCtx->GSbase, pCtx->efer);
 }
+#endif /* RT_ARCH_AMD64 */
+
 
 /**
  * Structure used when disassembling and instructions in DBGF.
@@ -5396,19 +5446,21 @@ VMMR3DECL(void) CPUMR3LogCpuIdAndMsrFeatures(PVM pVM)
     DBGFR3_INFO_LOG_SAFE(pVM, "cpuid", "verbose"); /* macro */
     LogRel(("******************** End of CPUID dump **********************\n"));
 
+#ifdef RT_ARCH_AMD64
     /*
      * Log VT-x extended features.
      *
      * SVM features are currently all covered under CPUID so there is nothing
      * to do here for SVM.
      */
-    if (pVM->cpum.s.HostFeatures.fVmx)
+    if (pVM->cpum.s.HostFeatures.s.fVmx)
     {
         LogRel(("*********************** VT-x features ***********************\n"));
         DBGFR3Info(pVM->pUVM, "cpumvmxfeat", "default", DBGFR3InfoLogRelHlp());
         LogRel(("\n"));
         LogRel(("******************* End of VT-x features ********************\n"));
     }
+#endif
 
     /*
      * Restore the log buffering state to what it was previously.

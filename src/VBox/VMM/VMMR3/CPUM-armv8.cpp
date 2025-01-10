@@ -705,7 +705,7 @@ static DECLCALLBACK(int) cpumR3LoadExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uVers
     pVM->cpum.s.fPendingRestore = false;
 
     /* Load CPUID and explode guest features. */
-    return cpumR3LoadCpuId(pVM, pSSM, uVersion);
+    return cpumR3LoadCpuIdArmV8(pVM, pSSM, uVersion);
 }
 
 
@@ -1099,7 +1099,7 @@ VMMR3DECL(void) CPUMR3LogCpuIdAndMsrFeatures(PVM pVM)
     RTLogRelSetBuffering(fOldBuffered);
 }
 
-
+#if 0 /* nobody is are using these atm, they are for AMD64/darwin only */
 /**
  * Marks the guest debug state as active.
  *
@@ -1130,3 +1130,4 @@ VMMR3_INT_DECL(void) CPUMR3NemActivateHyperDebugState(PVMCPUCC pVCpu)
     ASMAtomicAndU32(&pVCpu->cpum.s.fUseFlags, ~CPUM_USED_DEBUG_REGS_GUEST);
     ASMAtomicOrU32(&pVCpu->cpum.s.fUseFlags, CPUM_USED_DEBUG_REGS_HYPER);
 }
+#endif

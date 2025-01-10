@@ -581,6 +581,12 @@
 /** CSSELR_EL1 register - RW. */
 #define ARMV8_AARCH64_SYSREG_CSSELR_EL1             ARMV8_AARCH64_SYSREG_ID_CREATE(3, 2,  0,  0, 0)
 
+/** CTR_EL0 - Cache Type Register - RO. */
+#define ARMV8_AARCH64_SYSREG_CTR_EL0                ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 0, 0, 1)
+/** DCZID_EL0 - Data Cache Zero ID Register - RO. */
+#define ARMV8_AARCH64_SYSREG_DCZID_EL0              ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 0, 0, 7)
+
+
 /** NZCV - Status Flags - ??. */
 #define ARMV8_AARCH64_SYSREG_NZCV                   ARMV8_AARCH64_SYSREG_ID_CREATE(3, 3, 4, 2, 0)
 /** DAIF - Interrupt Mask Bits - ??. */

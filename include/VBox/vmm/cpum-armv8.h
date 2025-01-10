@@ -196,47 +196,6 @@ typedef struct CPUMDBENTRY
 typedef CPUMDBENTRY const *PCCPUMDBENTRY;
 
 
-/**
- * CPU ID registers.
- */
-typedef struct CPUMIDREGS
-{
-    /** Content of the ID_AA64PFR0_EL1 register. */
-    uint64_t        u64RegIdAa64Pfr0El1;
-    /** Content of the ID_AA64PFR1_EL1 register. */
-    uint64_t        u64RegIdAa64Pfr1El1;
-    /** Content of the ID_AA64DFR0_EL1 register. */
-    uint64_t        u64RegIdAa64Dfr0El1;
-    /** Content of the ID_AA64DFR1_EL1 register. */
-    uint64_t        u64RegIdAa64Dfr1El1;
-    /** Content of the ID_AA64AFR0_EL1 register. */
-    uint64_t        u64RegIdAa64Afr0El1;
-    /** Content of the ID_AA64AFR1_EL1 register. */
-    uint64_t        u64RegIdAa64Afr1El1;
-    /** Content of the ID_AA64ISAR0_EL1 register. */
-    uint64_t        u64RegIdAa64Isar0El1;
-    /** Content of the ID_AA64ISAR1_EL1 register. */
-    uint64_t        u64RegIdAa64Isar1El1;
-    /** Content of the ID_AA64ISAR2_EL1 register. */
-    uint64_t        u64RegIdAa64Isar2El1;
-    /** Content of the ID_AA64MMFR0_EL1 register. */
-    uint64_t        u64RegIdAa64Mmfr0El1;
-    /** Content of the ID_AA64MMFR1_EL1 register. */
-    uint64_t        u64RegIdAa64Mmfr1El1;
-    /** Content of the ID_AA64MMFR2_EL1 register. */
-    uint64_t        u64RegIdAa64Mmfr2El1;
-    /** Content of the CLIDR_EL1 register. */
-    uint64_t        u64RegClidrEl1;
-    /** Content of the CTR_EL0 register. */
-    uint64_t        u64RegCtrEl0;
-    /** Content of the DCZID_EL0 register. */
-    uint64_t        u64RegDczidEl0;
-} CPUMIDREGS;
-/** Pointer to CPU ID registers. */
-typedef CPUMIDREGS *PCPUMIDREGS;
-/** Pointer to a const CPU ID registers structure. */
-typedef CPUMIDREGS const *PCCPUMIDREGS;
-
 
 /** @name Changed flags.
  * These flags are used to keep track of which important register that
@@ -279,9 +238,9 @@ DECLINLINE(bool) CPUMIsGuestIn64BitCodeEx(PCCPUMCTX pCtx)
  */
 
 VMMR3DECL(int)          CPUMR3SysRegRangesInsert(PVM pVM, PCCPUMSYSREGRANGE pNewRange);
-VMMR3DECL(int)          CPUMR3PopulateFeaturesByIdRegisters(PVM pVM, PCCPUMIDREGS pIdRegs);
+VMMR3DECL(int)          CPUMR3PopulateFeaturesByIdRegisters(PVM pVM, PCCPUMARMV8IDREGS pIdRegs);
 
-VMMR3_INT_DECL(int)     CPUMR3QueryGuestIdRegs(PVM pVM, PCCPUMIDREGS *ppIdRegs);
+VMMR3_INT_DECL(int)     CPUMR3QueryGuestIdRegs(PVM pVM, PCCPUMARMV8IDREGS *ppIdRegs);
 
 /** @} */
 #endif /* IN_RING3 */

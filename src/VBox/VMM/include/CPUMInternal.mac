@@ -79,21 +79,22 @@ endstruc
 
 
 struc CPUM
-    ;...
-    .fHostUseFlags              resd    1
+    .GuestFeatures              resb    64
+    .HostFeatures               resb    64
 
     .u8PortableCpuIdLevel       resb    1
     .fPendingRestore            resb    1
     .fMtrrRead                  resb    1
     .fMtrrWrite                 resb    1
 
+    .fHostUseFlags              resd    1
+
     alignb 8
     .fXStateGuestMask           resq    1
     .fXStateHostMask            resq    1
+    .fReservedRFlagsCookie      resq    1
 
-    alignb 64
-    .HostFeatures               resb    48
-    .GuestFeatures              resb    48
+    alignb 8
     .GuestInfo                  resb    CPUMINFO_size
 
     ; Patch manager saved state compatability CPUID leaf arrays
@@ -109,6 +110,9 @@ struc CPUM
     .cMsrReads                  resq    1
     .cMsrReadsRaiseGp           resq    1
     .cMsrReadsUnknown           resq    1
+
+    .fHostMxCsrMask             resd    1
+     alignb 8
 endstruc
 
 struc CPUMCPU
@@ -288,16 +292,6 @@ struc CPUMCPU
     .GuestMsrs.au64             resq    64
 
     ;
-    ; Other stuff.
-    ;
-    .hNestedVmxPreemptTimer     resq    1
-
-    .fUseFlags                  resd    1
-    .fChanged                   resd    1
-    .u32RetCode                 resd    1
-    .fCpuIdApicFeatureVisible   resb    1
-
-    ;
     ; Host context state
     ;
     alignb 64
@@ -367,15 +361,25 @@ struc CPUMCPU
     alignb 8
     .Host.xcr0                  resq    1
     .Host.fXStateMask           resq    1
+    alignb 64
+
+    ;
+    ; Other stuff.
+    ;
+    .fUseFlags                  resd    1
+    .fChanged                   resd    1
+    alignb 8
+    .hNestedVmxPreemptTimer     resq    1
+    .fCpuIdApicFeatureVisible   resb    1
 
     ;
     ; Hypervisor Context.
     ;
-    alignb 64
+    alignb 8
     .Hyper                      resq    0
     .Hyper.dr                   resq    8
     .Hyper.cr3                  resq    1
-    alignb 64
+    .Hyper.au64Padding          resq    7
 
 %ifdef VBOX_WITH_CRASHDUMP_MAGIC
     .aMagic                     resb    56

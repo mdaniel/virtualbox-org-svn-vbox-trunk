@@ -146,7 +146,7 @@ VMMR0_INT_DECL(int) CPUMR0ModuleInit(void)
      */
     PCPUMCPUIDLEAF  paLeaves;
     uint32_t        cLeaves;
-    rc = CPUMCpuIdCollectLeavesX86(&paLeaves, &cLeaves);
+    rc = CPUMCpuIdCollectLeavesFromX86Host(&paLeaves, &cLeaves);
     AssertLogRelRCReturn(rc, rc);
 
     /*
@@ -216,7 +216,7 @@ VMMR0_INT_DECL(int) CPUMR0ModuleTerm(void)
 VMMR0_INT_DECL(void) CPUMR0InitPerVMData(PGVM pGVM)
 {
     /* Copy the ring-0 host feature set to the shared part so ring-3 can pick it up. */
-    pGVM->cpum.s.HostFeatures = g_CpumHostFeatures.s;
+    pGVM->cpum.s.HostFeatures.s = g_CpumHostFeatures.s;
 }
 
 
@@ -362,11 +362,11 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
          * structure and as well as the guest MSR.
          * Note! we assume this happens after the CPUMR3Init is done, so CPUID bits are settled.
          */
-        pVM->cpum.s.HostFeatures.fArchRdclNo             = 0;
-        pVM->cpum.s.HostFeatures.fArchIbrsAll            = 0;
-        pVM->cpum.s.HostFeatures.fArchRsbOverride        = 0;
-        pVM->cpum.s.HostFeatures.fArchVmmNeedNotFlushL1d = 0;
-        pVM->cpum.s.HostFeatures.fArchMdsNo              = 0;
+        pVM->cpum.s.HostFeatures.s.fArchRdclNo             = 0;
+        pVM->cpum.s.HostFeatures.s.fArchIbrsAll            = 0;
+        pVM->cpum.s.HostFeatures.s.fArchRsbOverride        = 0;
+        pVM->cpum.s.HostFeatures.s.fArchVmmNeedNotFlushL1d = 0;
+        pVM->cpum.s.HostFeatures.s.fArchMdsNo              = 0;
         uint32_t const cStdRange = ASMCpuId_EAX(0);
         if (   RTX86IsValidStdRange(cStdRange)
             && cStdRange >= 7)
@@ -379,11 +379,11 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
                 /* Host: */
                 uint64_t const fHostArchVal = ASMRdMsr(MSR_IA32_ARCH_CAPABILITIES);
                 uint64_t fArchVal = fHostArchVal;
-                pVM->cpum.s.HostFeatures.fArchRdclNo             = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RDCL_NO);
-                pVM->cpum.s.HostFeatures.fArchIbrsAll            = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_IBRS_ALL);
-                pVM->cpum.s.HostFeatures.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
-                pVM->cpum.s.HostFeatures.fArchVmmNeedNotFlushL1d = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_VMM_NEED_NOT_FLUSH_L1D);
-                pVM->cpum.s.HostFeatures.fArchMdsNo              = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_MDS_NO);
+                pVM->cpum.s.HostFeatures.s.fArchRdclNo             = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RDCL_NO);
+                pVM->cpum.s.HostFeatures.s.fArchIbrsAll            = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_IBRS_ALL);
+                pVM->cpum.s.HostFeatures.s.fArchRsbOverride        = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_RSBO);
+                pVM->cpum.s.HostFeatures.s.fArchVmmNeedNotFlushL1d = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_VMM_NEED_NOT_FLUSH_L1D);
+                pVM->cpum.s.HostFeatures.s.fArchMdsNo              = RT_BOOL(fArchVal & MSR_IA32_ARCH_CAP_F_MDS_NO);
 
                 /* guest: */
                 if (!pVM->cpum.s.GuestFeatures.fArchCap)
@@ -400,7 +400,7 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
             }
             else
             {
-                pVM->cpum.s.HostFeatures.fArchCap = 0;
+                pVM->cpum.s.HostFeatures.s.fArchCap = 0;
                 LogRel(("CPUM: IA32_ARCH_CAPABILITIES unsupported\n"));
             }
         }
@@ -470,7 +470,7 @@ VMMR0_INT_DECL(int) CPUMR0InitVM(PVMCC pVM)
  */
 VMMR0_INT_DECL(int) CPUMR0Trap07Handler(PVMCC pVM, PVMCPUCC pVCpu)
 {
-    Assert(pVM->cpum.s.HostFeatures.fFxSaveRstor);
+    Assert(pVM->cpum.s.HostFeatures.s.fFxSaveRstor);
     Assert(ASMGetCR4() & X86_CR4_OSFXSR);
 
     /* If the FPU state has already been loaded, then it's a guest trap. */
@@ -541,7 +541,7 @@ VMMR0_INT_DECL(int) CPUMR0LoadGuestFPU(PVMCC pVM, PVMCPUCC pVCpu)
     /** @todo use return value? Currently skipping that to be on the safe side
      *        wrt. extended state (linux). */
 
-    if (!pVM->cpum.s.HostFeatures.fLeakyFxSR)
+    if (!pVM->cpum.s.HostFeatures.s.fLeakyFxSR)
     {
         Assert(!(pVCpu->cpum.s.fUseFlags & CPUM_USED_MANUAL_XMM_RESTORE));
         rc = cpumR0SaveHostRestoreGuestFPUState(&pVCpu->cpum.s);
@@ -582,7 +582,7 @@ VMMR0_INT_DECL(int) CPUMR0LoadGuestFPU(PVMCC pVM, PVMCPUCC pVCpu)
 VMMR0_INT_DECL(bool) CPUMR0FpuStateMaybeSaveGuestAndRestoreHost(PVMCPUCC pVCpu)
 {
     bool fSavedGuest;
-    Assert(pVCpu->CTX_SUFF(pVM)->cpum.s.HostFeatures.fFxSaveRstor);
+    Assert(pVCpu->CTX_SUFF(pVM)->cpum.s.HostFeatures.s.fFxSaveRstor);
     Assert(ASMGetCR4() & X86_CR4_OSFXSR);
     if (pVCpu->cpum.s.fUseFlags & (CPUM_USED_FPU_GUEST | CPUM_USED_FPU_HOST))
     {
@@ -613,8 +613,8 @@ VMMR0_INT_DECL(bool) CPUMR0FpuStateMaybeSaveGuestAndRestoreHost(PVMCPUCC pVCpu)
     }
     else
         fSavedGuest = false;
-    Assert(!(  pVCpu->cpum.s.fUseFlags
-             & (CPUM_USED_FPU_GUEST | CPUM_USED_FPU_HOST | CPUM_USED_MANUAL_XMM_RESTORE)));
+    AssertMsg(!(  pVCpu->cpum.s.fUseFlags
+                & (CPUM_USED_FPU_GUEST | CPUM_USED_FPU_HOST | CPUM_USED_MANUAL_XMM_RESTORE)), ("%#x\n", pVCpu->cpum.s.fUseFlags));
     Assert(!pVCpu->cpum.s.Guest.fUsedFpuGuest);
     return fSavedGuest;
 }

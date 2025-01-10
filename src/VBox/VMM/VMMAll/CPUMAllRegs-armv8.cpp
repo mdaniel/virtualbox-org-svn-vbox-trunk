@@ -267,6 +267,7 @@ VMMDECL(void) CPUMSetChangedFlags(PVMCPU pVCpu, uint32_t fChangedAdd)
     pVCpu->cpum.s.fChanged |= fChangedAdd;
 }
 
+#if 0 /* unused atm */
 
 /**
  * Checks if the guest debug state is active.
@@ -305,6 +306,7 @@ VMMDECL(void) CPUMDeactivateGuestDebugState(PVMCPU pVCpu)
     NOREF(pVCpu);
 }
 
+#endif
 
 /**
  * Get the current exception level of the guest.
@@ -490,28 +492,3 @@ VMM_INT_DECL(int) CPUMImportGuestStateOnDemand(PVMCPUCC pVCpu, uint64_t fExtrnIm
     return VINF_SUCCESS;
 }
 
-
-/**
- * Translates a microarchitecture enum value to the corresponding string
- * constant.
- *
- * @returns Read-only string constant (omits "kCpumMicroarch_" prefix). Returns
- *          NULL if the value is invalid.
- *
- * @param   enmMicroarch    The enum value to convert.
- *
- * @todo Doesn't really belong here but for now there is no other Armv8 CPUM source file.
- */
-VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
-{
-    switch (enmMicroarch)
-    {
-#define CASE_RET_STR(enmValue)  case enmValue: return #enmValue + (sizeof("kCpumMicroarch_") - 1)
-        CASE_RET_STR(kCpumMicroarch_Apple_M1);
-#undef CASE_RET_STR
-        default:
-            break;
-    }
-
-    return NULL;
-}

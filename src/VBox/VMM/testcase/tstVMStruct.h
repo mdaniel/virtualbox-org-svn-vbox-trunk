@@ -56,7 +56,6 @@
     GEN_CHECK_OFF(CPUMCPU, GuestMsrs);
     GEN_CHECK_OFF(CPUMCPU, fUseFlags);
     GEN_CHECK_OFF(CPUMCPU, fChanged);
-    GEN_CHECK_OFF(CPUMCPU, u32RetCode);
     GEN_CHECK_OFF(CPUMCPU, fCpuIdApicFeatureVisible);
 
     GEN_CHECK_SIZE(CPUMHOSTCTX);

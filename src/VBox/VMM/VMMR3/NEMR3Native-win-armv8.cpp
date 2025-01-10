@@ -830,7 +830,7 @@ static int nemR3NativeInitSetupVm(PVM pVM)
              * Need to query the ID registers and populate CPUM,
              * these are partition wide registers and need to be queried/set with WHV_ANY_VP.
              */
-            CPUMIDREGS IdRegs; RT_ZERO(IdRegs);
+            CPUMARMV8IDREGS IdRegs; RT_ZERO(IdRegs);
 
             WHV_REGISTER_NAME  aenmNames[10];
             WHV_REGISTER_VALUE aValues[10];
@@ -869,7 +869,7 @@ static int nemR3NativeInitSetupVm(PVM pVM)
                 return rc;
 
             /* Apply any overrides to the partition. */
-            PCCPUMIDREGS pIdRegsGst = NULL;
+            PCCPUMARMV8IDREGS pIdRegsGst = NULL;
             rc = CPUMR3QueryGuestIdRegs(pVM, &pIdRegsGst);
             AssertRCReturn(rc, rc);
 

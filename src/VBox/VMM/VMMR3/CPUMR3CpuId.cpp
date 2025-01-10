@@ -1334,11 +1334,17 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
 
     /* The CPUID entries we start with here isn't necessarily the ones of the host, so we
        must consult HostFeatures when processing CPUMISAEXTCFG variables. */
-    PCCPUMFEATURES pHstFeat = &pCpum->HostFeatures;
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    PCCPUMFEATURES const pHstFeat = &pCpum->HostFeatures.s;
+#else
+    PCCPUMFEATURES const pHstFeat = &pCpum->GuestFeatures;
+#endif
 #define PASSTHRU_FEATURE(enmConfig, fHostFeature, fConst) \
     ((enmConfig) && ((enmConfig) == CPUMISAEXTCFG_ENABLED_ALWAYS || (fHostFeature)) ? (fConst) : 0)
 #define PASSTHRU_FEATURE_EX(enmConfig, fHostFeature, fAndExpr, fConst) \
     ((enmConfig) && ((enmConfig) == CPUMISAEXTCFG_ENABLED_ALWAYS || (fHostFeature)) && (fAndExpr) ? (fConst) : 0)
+#define PASSTHRU_FEATURE_NOT_IEM(enmConfig, fHostFeature, fConst) \
+    PASSTHRU_FEATURE_EX(enmConfig, fHostFeature, !VM_IS_EXEC_ENGINE_IEM(pVM), fConst)
 #define PASSTHRU_FEATURE_TODO(enmConfig, fConst) ((enmConfig) ? (fConst) : 0)
 
     /* Cpuid 1:
@@ -1405,7 +1411,7 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
                            /* ECX Bit 14 - xTPR Update Control. Processor supports changing IA32_MISC_ENABLES[bit 23]. */
                            //| X86_CPUID_FEATURE_ECX_TPRUPDATE
                            //| X86_CPUID_FEATURE_ECX_PDCM  - not implemented yet.
-                           | PASSTHRU_FEATURE(pConfig->enmPcid, pHstFeat->fPcid, X86_CPUID_FEATURE_ECX_PCID)
+                           | PASSTHRU_FEATURE_NOT_IEM(pConfig->enmPcid, pHstFeat->fPcid, X86_CPUID_FEATURE_ECX_PCID)
                            //| X86_CPUID_FEATURE_ECX_DCA   - not implemented yet.
                            | PASSTHRU_FEATURE(pConfig->enmSse41, pHstFeat->fSse41, X86_CPUID_FEATURE_ECX_SSE4_1)
                            | PASSTHRU_FEATURE(pConfig->enmSse42, pHstFeat->fSse42, X86_CPUID_FEATURE_ECX_SSE4_2)
@@ -1865,7 +1871,7 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
                                //| X86_CPUID_STEXT_FEATURE_EBX_SMEP              RT_BIT(7)
                                | X86_CPUID_STEXT_FEATURE_EBX_BMI2
                                //| X86_CPUID_STEXT_FEATURE_EBX_ERMS              RT_BIT(9)
-                               | PASSTHRU_FEATURE(pConfig->enmInvpcid, pHstFeat->fInvpcid, X86_CPUID_STEXT_FEATURE_EBX_INVPCID)
+                               | PASSTHRU_FEATURE_NOT_IEM(pConfig->enmInvpcid, pHstFeat->fInvpcid, X86_CPUID_STEXT_FEATURE_EBX_INVPCID)
                                //| X86_CPUID_STEXT_FEATURE_EBX_RTM               RT_BIT(11)
                                //| X86_CPUID_STEXT_FEATURE_EBX_PQM               RT_BIT(12)
                                | X86_CPUID_STEXT_FEATURE_EBX_DEPR_FPU_CS_DS
@@ -2790,14 +2796,15 @@ static int cpumR3CpuIdReadConfig(PVM pVM, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pC
     rc = CFGMR3QueryU32Def(pCpumCfg, "MaxCentaurLeaf", &pConfig->uMaxCentaurLeaf, UINT32_C(0xc0000004));
     AssertLogRelRCReturn(rc, rc);
 
+#ifdef RT_ARCH_AMD64 /** @todo next VT-x/AMD-V on non-AMD64 hosts */
     bool fQueryNestedHwvirt = false
 #ifdef VBOX_WITH_NESTED_HWVIRT_SVM
-                           || pVM->cpum.s.HostFeatures.enmCpuVendor == CPUMCPUVENDOR_AMD
-                           || pVM->cpum.s.HostFeatures.enmCpuVendor == CPUMCPUVENDOR_HYGON
+                           || pVM->cpum.s.HostFeatures.s.enmCpuVendor == CPUMCPUVENDOR_AMD
+                           || pVM->cpum.s.HostFeatures.s.enmCpuVendor == CPUMCPUVENDOR_HYGON
 #endif
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX
-                           || pVM->cpum.s.HostFeatures.enmCpuVendor == CPUMCPUVENDOR_INTEL
-                           || pVM->cpum.s.HostFeatures.enmCpuVendor == CPUMCPUVENDOR_VIA
+                           || pVM->cpum.s.HostFeatures.s.enmCpuVendor == CPUMCPUVENDOR_INTEL
+                           || pVM->cpum.s.HostFeatures.s.enmCpuVendor == CPUMCPUVENDOR_VIA
 #endif
                            ;
     if (fQueryNestedHwvirt)
@@ -2822,6 +2829,7 @@ static int cpumR3CpuIdReadConfig(PVM pVM, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pC
                                   "Cannot enable nested VT-x/AMD-V without nested-paging and unrestricted guest execution!\n");
         }
     }
+#endif /** @todo */
 
     /*
      * Instruction Set Architecture (ISA) Extensions.
@@ -2897,14 +2905,19 @@ static int cpumR3CpuIdReadConfig(PVM pVM, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pC
     rc = cpumR3CpuIdReadIsaExtCfgLegacy(pVM, pIsaExts, pCpumCfg, "SSE4.2", &pConfig->enmSse42, true);
     AssertLogRelRCReturn(rc, rc);
 
-    bool const fMayHaveXSave = pVM->cpum.s.HostFeatures.fXSaveRstor
-                            && pVM->cpum.s.HostFeatures.fOpSysXSaveRstor
+#ifdef RT_ARCH_AMD64
+    bool const fMayHaveXSave = pVM->cpum.s.HostFeatures.s.fXSaveRstor
+                            && pVM->cpum.s.HostFeatures.s.fOpSysXSaveRstor
                             && (  VM_IS_NEM_ENABLED(pVM)
                                 ? NEMHCGetFeatures(pVM) & NEM_FEAT_F_XSAVE_XRSTOR
                                 : VM_IS_EXEC_ENGINE_IEM(pVM)
                                 ? true
                                 : fNestedPagingAndFullGuestExec);
     uint64_t const fXStateHostMask = pVM->cpum.s.fXStateHostMask;
+#else
+    bool const     fMayHaveXSave   = true;
+    uint64_t const fXStateHostMask = XSAVE_C_YMM | XSAVE_C_SSE | XSAVE_C_X87;
+#endif
 
     /** @cfgm{/CPUM/IsaExts/XSAVE, boolean, depends}
      * Expose XSAVE/XRSTOR to the guest if available.  For the time being the
@@ -3288,7 +3301,7 @@ static int cpumR3VarMtrrMsrRangeInsert(PVM pVM, uint8_t const cVarMtrrs)
 static int cpumR3InitMtrrCap(PVM pVM, bool fMtrrVarCountIsVirt)
 {
 #ifdef RT_ARCH_AMD64
-    Assert(pVM->cpum.s.HostFeatures.fMtrr);
+    Assert(pVM->cpum.s.HostFeatures.s.fMtrr);
 #endif
 
     /* Lookup the number of variable-range MTRRs supported by the CPU profile. */
@@ -3694,7 +3707,7 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
 
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
 # define CHECK_X86_HOST_FEATURE_RET(a_fFeature, a_szFeature) \
-    if (!pVM->cpum.s.HostFeatures. a_fFeature) \
+    if (!pVM->cpum.s.HostFeatures.s. a_fFeature) \
     { \
         LogRel(("CPUM: WARNING! Can't turn on " a_szFeature " when the host doesn't support it!\n")); \
         return; \
@@ -3874,7 +3887,7 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
 
             /* Valid for both Intel and AMD. */
             pVM->cpum.s.aGuestCpuIdPatmExt[1].uEdx = pLeaf->uEdx |= X86_CPUID_EXT_FEATURE_EDX_RDTSCP;
-            pVM->cpum.s.HostFeatures.fRdTscP = 1;
+            pVM->cpum.s.GuestFeatures.fRdTscP = 1;
             LogRel(("CPUM: SetGuestCpuIdFeature: Enabled RDTSCP.\n"));
             break;
 
@@ -3899,7 +3912,7 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
                 pLeaf = cpumR3CpuIdGetExactLeaf(&pVM->cpum.s, UINT32_C(0x00000007), 0);
 #ifdef RT_ARCH_AMD64
                 if (   !pLeaf
-                    || !(pVM->cpum.s.HostFeatures.fIbpb || pVM->cpum.s.HostFeatures.fIbrs))
+                    || !(pVM->cpum.s.HostFeatures.s.fIbpb || pVM->cpum.s.HostFeatures.s.fIbrs))
                 {
                     LogRel(("CPUM: WARNING! Can't turn on Speculation Control when the host doesn't support it!\n"));
                     return;
@@ -3917,13 +3930,13 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
 
 #ifdef RT_ARCH_AMD64
                 /* We will only expose STIBP if IBRS is present to keep things simpler (simple is not an option). */
-                if (pVM->cpum.s.HostFeatures.fIbrs)
+                if (pVM->cpum.s.HostFeatures.s.fIbrs)
 #endif
                 {
                     pLeaf->uEdx |= X86_CPUID_STEXT_FEATURE_EDX_IBRS_IBPB;
                     pVM->cpum.s.GuestFeatures.fIbrs = 1;
 #ifdef RT_ARCH_AMD64
-                    if (pVM->cpum.s.HostFeatures.fStibp)
+                    if (pVM->cpum.s.HostFeatures.s.fStibp)
 #endif
                     {
                         pLeaf->uEdx |= X86_CPUID_STEXT_FEATURE_EDX_STIBP;
@@ -3964,7 +3977,7 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
                 }
 
 #ifdef RT_ARCH_AMD64
-                if (pVM->cpum.s.HostFeatures.fArchCap)
+                if (pVM->cpum.s.HostFeatures.s.fArchCap)
 #endif
                 {
                     /* Install the architectural capabilities MSR. */
@@ -3983,7 +3996,9 @@ VMMR3_INT_DECL(void) CPUMR3SetGuestCpuIdFeature(PVM pVM, CPUMCPUIDFEATURE enmFea
                     }
 
                     /* Advertise IBRS_ALL if present at this point... */
-                    if (pVM->cpum.s.HostFeatures.fArchCap & MSR_IA32_ARCH_CAP_F_IBRS_ALL)
+#ifdef RT_ARCH_AMD64
+                    if (pVM->cpum.s.HostFeatures.s.fArchCap & MSR_IA32_ARCH_CAP_F_IBRS_ALL)
+#endif
                         VMCC_FOR_EACH_VMCPU_STMT(pVM, pVCpu->cpum.s.GuestMsrs.msr.ArchCaps |= MSR_IA32_ARCH_CAP_F_IBRS_ALL);
                 }
 
@@ -4955,7 +4970,7 @@ static int cpumR3LoadCpuIdInner(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, PCP
 
 
 /**
- * Loads the CPU ID leaves saved by pass 0.
+ * Loads the CPU ID leaves saved by pass 0, x86 targets.
  *
  * @returns VBox status code.
  * @param   pVM                 The cross context VM structure.
@@ -4963,7 +4978,7 @@ static int cpumR3LoadCpuIdInner(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, PCP
  * @param   uVersion            The format version.
  * @param   pMsrs               The guest MSRs.
  */
-int cpumR3LoadCpuId(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, PCCPUMMSRS pMsrs)
+int cpumR3LoadCpuIdX86(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, PCCPUMMSRS pMsrs)
 {
     AssertMsgReturn(uVersion >= CPUM_SAVED_STATE_VERSION_VER3_2, ("%u\n", uVersion), VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION);
 

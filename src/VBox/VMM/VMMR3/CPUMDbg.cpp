@@ -1275,7 +1275,7 @@ static DBGFREGDESC const g_aCpumRegGstDescs[] =
  * @returns VBox status code.
  * @param   pVM                 The cross context VM structure.
  */
-int cpumR3DbgInit(PVM pVM)
+DECLHIDDEN(int) cpumR3DbgInit(PVM pVM)
 {
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {

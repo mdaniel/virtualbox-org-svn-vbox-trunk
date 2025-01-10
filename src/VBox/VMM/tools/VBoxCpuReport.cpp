@@ -4532,7 +4532,7 @@ static int produceCpuIdArray(const char *pszNameC, const char *pszCpuDesc)
      */
     PCPUMCPUIDLEAF  paLeaves;
     uint32_t        cLeaves;
-    int rc = CPUMCpuIdCollectLeavesX86(&paLeaves, &cLeaves);
+    int rc = CPUMCpuIdCollectLeavesFromX86Host(&paLeaves, &cLeaves);
     if (RT_FAILURE(rc))
         return RTMsgErrorRc(rc, "CPUMR3CollectCpuIdInfo failed: %Rrc\n", rc);
 

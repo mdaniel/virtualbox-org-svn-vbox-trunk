@@ -1543,6 +1543,7 @@ VMMDECL(const char *)   CPUMCpuVendorName(CPUMCPUVENDOR enmVendor);
 VMMDECL(CPUMCPUVENDOR)  CPUMCpuIdDetectX86VendorEx(uint32_t uEAX, uint32_t uEBX, uint32_t uECX, uint32_t uEDX);
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
 VMMDECL(int)            CPUMCpuIdCollectLeavesFromX86Host(PCPUMCPUIDLEAF *ppaLeaves, uint32_t *pcLeaves);
+VMM_INT_DECL(void)      CPUMCpuIdApplyX86HostArchCapabilities(PVMCC pVM, bool fHasArchCap, uint64_t fHostArchVal);
 #endif
 #if defined(RT_ARCH_ARM64)
 VMMDECL(int)            CPUMCpuIdCollectIdRegistersFromArmV8Host(PCPUMARMV8IDREGS pIdRegs);

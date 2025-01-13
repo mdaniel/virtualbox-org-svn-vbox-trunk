@@ -2777,7 +2777,7 @@ static int iscsiPDUTxPrepare(PISCSIIMAGE pImage, PISCSICMD pIScsiCmd)
      * Allocate twice as much entries as required for padding (worst case).
      * The additional segment is for the BHS.
      */
-    size_t cI2TSegs = 2*(pScsiReq->cI2TSegs + 1);
+    uint32_t cI2TSegs = 2 * (pScsiReq->cI2TSegs + 1);
     pIScsiPDU = (PISCSIPDUTX)RTMemAllocZ(RT_UOFFSETOF_DYN(ISCSIPDUTX, aISCSIReq[cI2TSegs]));
     if (!pIScsiPDU)
         return VERR_NO_MEMORY;

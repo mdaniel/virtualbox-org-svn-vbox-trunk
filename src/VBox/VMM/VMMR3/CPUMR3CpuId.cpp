@@ -2079,7 +2079,7 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
     if (pStdFeatureLeaf && (pStdFeatureLeaf->uEcx & X86_CPUID_FEATURE_ECX_XSAVE))
     {
         fGuestXcr0Mask = XSAVE_C_X87 | XSAVE_C_SSE;
-        if (pStdFeatureLeaf && (pStdFeatureLeaf->uEcx & X86_CPUID_FEATURE_ECX_AVX))
+        if (pStdFeatureLeaf->uEcx & X86_CPUID_FEATURE_ECX_AVX)
             fGuestXcr0Mask |= XSAVE_C_YMM;
         pCurLeaf = cpumR3CpuIdGetExactLeaf(pCpum, 7, 0);
         if (pCurLeaf && (pCurLeaf->uEbx & X86_CPUID_STEXT_FEATURE_EBX_AVX512F))

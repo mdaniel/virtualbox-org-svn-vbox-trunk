@@ -2754,6 +2754,7 @@ HRESULT ExtPackManager::i_runSetUidToRootHelper(Utf8Str const *a_pstrDisplayInfo
     if (RT_SUCCESS(vrc))
     {
         vrc = RTPipeClose(hStdErrPipe.u.hPipe);
+        AssertRC(vrc);
         hStdErrPipe.u.hPipe = NIL_RTPIPE;
 
         /*

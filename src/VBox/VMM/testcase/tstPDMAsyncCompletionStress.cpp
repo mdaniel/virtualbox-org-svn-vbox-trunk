@@ -535,16 +535,15 @@ static int tstPDMACStressTestFileOpen(PVM pVM, PPDMACTESTFILE pTestFile, unsigne
  */
 static void tstPDMACStressTestFileClose(PPDMACTESTFILE pTestFile)
 {
-    int rcThread;
-    int rc;
-
     RTPrintf("Terminating I/O thread, please wait...\n");
 
     /* Let the thread know that it should terminate. */
     pTestFile->fRunning = false;
 
     /* Wait for the thread to terminate. */
-    rc = PDMR3ThreadDestroy(pTestFile->hThread, &rcThread);
+    int rcThread;
+    int rc = PDMR3ThreadDestroy(pTestFile->hThread, &rcThread);
+    AssertRC(rc); RT_NOREF(rc);
 
     RTPrintf("Thread terminated with status code rc=%Rrc\n", rcThread);
 

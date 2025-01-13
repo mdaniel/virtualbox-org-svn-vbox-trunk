@@ -8627,7 +8627,6 @@ static int vmdkRelocateSectorsForSparseResize(PVMDKIMAGE pImage, PVMDKEXTENT pEx
 static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
                                 uint64_t cSectorsNew)
 {
-    int rc = VINF_SUCCESS;
     uint32_t cOldGDEntries = pExtent->cGDEntries;
 
     uint64_t cNewDirEntries = cSectorsNew / pExtent->cSectorsPerGDE;
@@ -8655,16 +8654,14 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
     void *pvBuf = NULL;
     AssertCompile(sizeof(g_abRTZero4K) >= VMDK_GRAIN_TABLE_SIZE);
 
+    /* Allocate data buffer. */
+    pvBuf = RTMemAllocZ(VMDK_GRAIN_TABLE_SIZE);
+    if (!pvBuf)
+        return VERR_NO_MEMORY;
+
+    int rc;
     do
     {
-        /* Allocate data buffer. */
-        pvBuf = RTMemAllocZ(VMDK_GRAIN_TABLE_SIZE);
-        if (!pvBuf)
-        {
-            rc = VERR_NO_MEMORY;
-            break;
-        }
-
         uint32_t uGTStart = VMDK_SECTOR2BYTE(pExtent->uSectorGD) + (cOldGDEntries * VMDK_GRAIN_DIR_ENTRY_SIZE);
 
         // points to last element in the grain table
@@ -8765,11 +8762,8 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
 
     } while (0);
 
-    if (pvBuf)
-    {
-        RTMemFree(pvBuf);
-        pvBuf = NULL;
-    }
+    RTMemFree(pvBuf);
+    pvBuf = NULL;
 
     pExtent->cGDEntries = cNewDirEntries;
 

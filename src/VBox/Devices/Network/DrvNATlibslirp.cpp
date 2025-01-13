@@ -64,6 +64,7 @@
 #include <iprt/critsect.h>
 #include <iprt/cidr.h>
 #include <iprt/file.h>
+#include <iprt/nocrt/limits.h>
 #include <iprt/mem.h>
 #include <iprt/net.h>
 #include <iprt/pipe.h>
@@ -126,10 +127,12 @@
     GET_EXTRADATA_N(pdrvins, node, name, (rc), String, string, (var), (var_size))
 #define GET_STRING_ALLOC(rc, pdrvins, node, name, var) \
     GET_EXTRADATA(pdrvins, node, name, (rc), StringAlloc, string, (var))
+#define GET_U16_STRICT(rc, pdrvins, node, name, var) \
+    GET_ED_STRICT(pdrvins, node, name, (rc), U16, int, (var))
 #define GET_S32(rc, pdrvins, node, name, var) \
     GET_EXTRADATA(pdrvins, node, name, (rc), S32, int, (var))
-#define GET_S32_STRICT(rc, pdrvins, node, name, var) \
-    GET_ED_STRICT(pdrvins, node, name, (rc), S32, int, (var))
+#define GET_U32(rc, pdrvins, node, name, var) \
+    GET_EXTRADATA(pdrvins, node, name, (rc), U32, int, (var))
 
 #define DO_GET_IP(rc, node, instance, status, x)                                \
     do {                                                                            \
@@ -259,7 +262,7 @@ typedef DRVNAT *PDRVNAT;
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho);
-static void drvNAT_UpdateTimeout(int *uTimeout, void *opaque);
+static void drvNAT_UpdateTimeout(int *i32Timeout, void *opaque);
 static void drvNAT_CheckTimeout(void *opaque);
 static DECLCALLBACK(int) drvNAT_AddPollCb(int iFd, int iEvents, void *opaque);
 static DECLCALLBACK(int64_t) drvNAT_ClockGetNsCb(void *opaque);
@@ -749,18 +752,18 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
          * To prevent concurrent execution of sending/receiving threads
          */
 
-        int uTimeout = DRVNAT_DEFAULT_TIMEOUT;
+        int i32Timeout = DRVNAT_DEFAULT_TIMEOUT;
         pThis->pNATState->nsock = 1;
 
-        slirp_pollfds_fill(pThis->pNATState->pSlirp, &uTimeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
-        drvNAT_UpdateTimeout(&uTimeout, pThis);
+        slirp_pollfds_fill(pThis->pNATState->pSlirp, &i32Timeout, drvNAT_AddPollCb /* SlirpAddPollCb */, pThis /* opaque */);
+        drvNAT_UpdateTimeout(&i32Timeout, pThis);
 
 #ifdef RT_OS_WINDOWS
-        int cChangedFDs = WSAPoll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
+        int cChangedFDs = WSAPoll(pThis->pNATState->polls, pThis->pNATState->nsock, i32Timeout /* timeout */);
         /* Note: This must be called IMMEDIATELY after WSAPoll. */
         int error = WSAGetLastError();
 #else
-        int cChangedFDs = poll(pThis->pNATState->polls, pThis->pNATState->nsock, uTimeout /* timeout */);
+        int cChangedFDs = poll(pThis->pNATState->polls, pThis->pNATState->nsock, i32Timeout /* timeout */);
 #endif
         if (cChangedFDs < 0)
         {
@@ -925,12 +928,12 @@ static int drvNATConstructRedir(unsigned iInstance, PDRVNAT pThis, PCFGMNODE pCf
                                        N_("NAT#%d: configuration query for \"Protocol\" failed"),
                                        iInstance);
         /* host port */
-        int32_t iHostPort;
-        GET_S32_STRICT(rc, pDrvIns, pNode, "HostPort", iHostPort);
+        uint16_t iHostPort;
+        GET_U16_STRICT(rc, pDrvIns, pNode, "HostPort", iHostPort);
 
         /* guest port */
-        int32_t iGuestPort;
-        GET_S32_STRICT(rc, pDrvIns, pNode, "GuestPort", iGuestPort);
+        uint16_t iGuestPort;
+        GET_U16_STRICT(rc, pDrvIns, pNode, "GuestPort", iGuestPort);
 
         /** @todo r=jack: why are we using IP INADD_ANY for port forward when FE does not do so. */
         /* host address ("BindIP" name is rather unfortunate given "HostPort" to go with it) */
@@ -1084,12 +1087,12 @@ static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterfac
 /**
  * Update the timeout field in given list of Slirp timers.
  *
- * @param uTimeout  Pointer to timeout value.
+ * @param i32Timeout  Pointer to timeout value.
  * @param opaque    Pointer to NAT State context.
  *
  * @thread  ?
  */
-static void drvNAT_UpdateTimeout(int *uTimeout, void *opaque)
+static void drvNAT_UpdateTimeout(int *i32Timeout, void *opaque)
 {
     PDRVNAT pThis = (PDRVNAT)opaque;
     Assert(pThis);
@@ -1105,8 +1108,8 @@ static void drvNAT_UpdateTimeout(int *uTimeout, void *opaque)
             if (diff < 0)
                 diff = 0;
 
-            if (diff < *uTimeout)
-                *uTimeout = diff;
+            if (diff < *i32Timeout)
+                *i32Timeout = RT_MIN(diff, INT_MAX);
         }
 
         pCurrent = pCurrent->next;
@@ -1212,7 +1215,7 @@ static int drvNAT_PollEventHostToSlirp(int iEvents) {
  *
  * @thread  ?
  */
-static DECLCALLBACK(ssize_t) drvNAT_SendPacketCb(const void *pBuf, size_t cb, void *opaque /* PDRVNAT */)
+static DECLCALLBACK(ssize_t) drvNAT_SendPacketCb(const void *pBuf, ssize_t cb, void *opaque /* PDRVNAT */)
 {
     char *pNewBuf = (char *)RTMemAlloc(cb);
     if (pNewBuf == NULL)
@@ -1592,8 +1595,8 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 
     int fDNSProxy = 0;
     GET_S32(rc, pDrvIns, pCfg, "DNSProxy", fDNSProxy);
-    int MTU = 1500;
-    GET_S32(rc, pDrvIns, pCfg, "SlirpMTU", MTU);
+    unsigned int MTU = 1500;
+    GET_U32(rc, pDrvIns, pCfg, "SlirpMTU", MTU);
     int iIcmpCacheLimit = 100;
     GET_S32(rc, pDrvIns, pCfg, "ICMPCacheLimit", iIcmpCacheLimit);
     bool fLocalhostReachable = false;

@@ -61,7 +61,11 @@ enum {
 /* Callback for application to get data from the guest */
 typedef slirp_ssize_t (*SlirpReadCb)(void *buf, size_t len, void *opaque);
 /* Callback for application to send data to the guest */
+#ifdef VBOX
+typedef slirp_ssize_t (*SlirpWriteCb)(const void *buf, ssize_t len, void *opaque);
+#else
 typedef slirp_ssize_t (*SlirpWriteCb)(const void *buf, size_t len, void *opaque);
+#endif
 /* Timer callback */
 typedef void (*SlirpTimerCb)(void *opaque);
 /* Callback for libslirp to register polling callbacks */

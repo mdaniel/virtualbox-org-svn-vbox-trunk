@@ -890,7 +890,7 @@ static bool cpumIsEcxRelevantForCpuIdLeaf(uint32_t uLeaf, uint32_t *pcSubLeaves,
     }
 
     /* Count sub-leaves. */
-    uint32_t cMinLeaves = uLeaf == 0xd ? 64 : 0;
+    uint32_t cMinLeaves = uLeaf == 0xd ? 64 : uLeaf == 7 ? 2 : 0;
     uint32_t cRepeats = 0;
     uSubLeaf = 0;
     for (;;)

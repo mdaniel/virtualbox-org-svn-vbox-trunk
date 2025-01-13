@@ -6455,7 +6455,7 @@ static VBOXSTRICTRC hmR0VmxRunGuestCodeNormal(PVMCPUCC pVCpu, uint32_t *pcLoops)
     /* Paranoia. */
     Assert(VmxTransient.pVmcsInfo == &pVCpu->hmr0.s.vmx.VmcsInfo);
 
-    VBOXSTRICTRC rcStrict = VERR_INTERNAL_ERROR_5;
+    VBOXSTRICTRC rcStrict;
     for (;;)
     {
         Assert(!HMR0SuspendPending());
@@ -6571,7 +6571,7 @@ static VBOXSTRICTRC hmR0VmxRunGuestCodeNested(PVMCPUCC pVCpu, uint32_t *pcLoops)
     /* Setup pointer so PGM/IEM can query VM-exit auxiliary info on demand in ring-0. */
     pVCpu->hmr0.s.vmx.pVmxTransient = &VmxTransient;
 
-    VBOXSTRICTRC rcStrict = VERR_INTERNAL_ERROR_5;
+    VBOXSTRICTRC rcStrict;
     for (;;)
     {
         Assert(!HMR0SuspendPending());
@@ -6704,7 +6704,7 @@ static VBOXSTRICTRC hmR0VmxRunGuestCodeDebug(PVMCPUCC pVCpu, uint32_t *pcLoops)
     /*
      * The loop.
      */
-    VBOXSTRICTRC rcStrict  = VERR_INTERNAL_ERROR_5;
+    VBOXSTRICTRC rcStrict;
     for (;;)
     {
         Assert(!HMR0SuspendPending());

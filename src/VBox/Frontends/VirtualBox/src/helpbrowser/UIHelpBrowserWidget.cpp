@@ -1755,7 +1755,7 @@ QUrl UIHelpBrowserWidget::findIndexHtml() const
     int iIndex = -1;
     for (int i = 0; i < files.size(); ++i)
     {
-        if (files[i].toString().contains("index.html", Qt::CaseInsensitive))
+        if (QString::compare(files[i].fileName(), "preface.html", Qt::CaseInsensitive) == 0)
         {
             iIndex = i;
             break;

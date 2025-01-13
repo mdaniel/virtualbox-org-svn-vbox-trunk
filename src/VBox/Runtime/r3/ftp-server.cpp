@@ -1317,11 +1317,14 @@ static DECLCALLBACK(int) rtFtpServerHandleCDUP(PRTFTPSERVERCLIENT pClient, uint8
             RTFTPSERVER_HANDLE_CALLBACK_VA(pfnOnPathGetCurrent, pszPath, cbPath);
 
             if (RT_SUCCESS(rc))
+            {
                 rc = rtFtpSetCWD(&pClient->State, pszPath);
+                if (RT_SUCCESS(rc))
+                    rc = rtFtpServerSendReplyRc(pClient, RTFTPSERVER_REPLY_OKAY);
+            }
 
             RTStrFree(pszPath);
 
-            rc = rtFtpServerSendReplyRc(pClient, RTFTPSERVER_REPLY_OKAY);
         }
         else
             rc = VERR_NO_MEMORY;
@@ -1444,14 +1447,8 @@ static const char *rtFtpServerFormatTimestamp(PCRTTIMESPEC pTimestamp, char *psz
     /* Calc the UTC offset part. */
     int32_t offUtc = Time.offUTC;
     Assert(offUtc <= 840 && offUtc >= -840);
-    char     chSign;
-    if (offUtc >= 0)
-        chSign = '+';
-    else
-    {
-        chSign = '-';
+    if (offUtc < 0)
         offUtc = -offUtc;
-    }
     uint32_t offUtcHour   = (uint32_t)offUtc / 60;
     uint32_t offUtcMinute = (uint32_t)offUtc % 60;
 
@@ -2429,7 +2426,7 @@ static int rtFtpServerClientMain(PRTFTPSERVERCLIENT pClient)
                 && cbRead)
             {
                 AssertBreakStmt(cbRead <= sizeof(szCmd), rc = VERR_BUFFER_OVERFLOW);
-                rc = rtFtpServerProcessCommands(pClient, szCmd, cbRead);
+                /* rc ignored, keep going */ rtFtpServerProcessCommands(pClient, szCmd, cbRead);
             }
         }
         else if (rc == VERR_TIMEOUT)

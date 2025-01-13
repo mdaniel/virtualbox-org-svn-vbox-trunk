@@ -265,7 +265,7 @@ static RTEXITCODE parseInputInner(FILE *pInput, const char *pszInput)
             unsigned cchStdcall = 0;
             if (cchName > 3 && *pchName == '_' && isdigit(pchName[cchName - 1]))
             {
-                if (cchName > 3 && pchName[cchName - 2] == '@')
+                if (pchName[cchName - 2] == '@')
                     cchStdcall = 2;
                 else if (cchName > 4 && pchName[cchName - 3] == '@' && isdigit(pchName[cchName - 2]))
                     cchStdcall = 3;

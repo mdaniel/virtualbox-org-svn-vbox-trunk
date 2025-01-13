@@ -3126,8 +3126,7 @@ bool RecordingScreen::areDefaultSettings(void) const
 {
     return    (   fEnabled                                    == false
                /* Screen 0 is special: There we ALWAYS enable recording by default. */
-               || (   idScreen                                == 0
-                   && fEnabled                                == true)
+               || idScreen                                    == 0
               )
            && enmDest                                         == RecordingDestination_File
            && ulMaxTimeS                                      == 0

@@ -359,6 +359,19 @@ static void vbox_crtc_reset(struct drm_crtc *crtc)
 {
 }
 
+#if RTLNX_VER_MIN(4,8,0)
+static int vbox_crtc_gamma_set(struct drm_crtc *crtc, u16 *r, u16 *g, u16 *b,
+                               uint32_t size, struct drm_modeset_acquire_ctx *ctx)
+{
+    return 0;
+}
+#elif RTLNX_VER_MIN(2,6,29) /* RTLNX_VER_MIN <= 4.8.0 */
+static void vbox_crtc_gamma_set(struct drm_crtc *crtc, u16 *r, u16 *g, u16 *b,
+                               uint32_t size, struct drm_modeset_acquire_ctx *ctx)
+{
+}
+#endif /* RTLNX_VER_MIN >= 4.8.0 */
+
 static void vbox_crtc_destroy(struct drm_crtc *crtc)
 {
     drm_crtc_cleanup(crtc);
@@ -370,7 +383,9 @@ static const struct drm_crtc_funcs vbox_crtc_funcs = {
     .cursor_set2 = vbox_cursor_set2,
     .reset = vbox_crtc_reset,
     .set_config = drm_crtc_helper_set_config,
-    /* .gamma_set = vbox_crtc_gamma_set, */
+#if RTLNX_VER_MIN(2,6,29)
+    .gamma_set = vbox_crtc_gamma_set,
+#endif
     .page_flip = vbox_crtc_page_flip,
     .destroy = vbox_crtc_destroy,
 };

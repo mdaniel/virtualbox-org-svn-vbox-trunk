@@ -2123,7 +2123,7 @@ static int nemR3DarwinLoadHv(bool fForced, PRTERRINFO pErrInfo)
  *
  * @returns VBox status code.
  */
-static int nemR3DarwinCapsInit(void)
+static int nemR3DarwinCapsInit(PVM pVM)
 {
     RT_ZERO(g_HmMsrs);
 
@@ -3142,7 +3142,7 @@ static DECLCALLBACK(int) nemR3DarwinNativeInitVCpuOnEmt(PVM pVM, PVMCPU pVCpu, V
     if (idCpu == 0)
     {
         /* First call initializs the MSR structure holding the capabilities of the host CPU. */
-        int rc = nemR3DarwinCapsInit();
+        int rc = nemR3DarwinCapsInit(pVM);
         AssertRCReturn(rc, rc);
 
         if (hv_vmx_vcpu_get_cap_write_vmcs)

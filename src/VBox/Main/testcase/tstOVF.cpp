@@ -117,6 +117,8 @@ static void importOVF(const char *pcszPrefix,
 
     com::SafeIfaceArray<IVirtualSystemDescription> aDescriptions;
     hrc = pAppl->COMGETTER(VirtualSystemDescriptions)(ComSafeArrayAsOutParam(aDescriptions));
+    if (FAILED(hrc)) throw MyError(hrc, "Appliance::GetVirtualSystemDescriptions() failed\n");
+
     for (uint32_t u = 0;
          u < aDescriptions.size();
          ++u)

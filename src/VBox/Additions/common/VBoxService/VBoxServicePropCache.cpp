@@ -83,11 +83,7 @@ static PVBOXSERVICEVEPROPCACHEENTRY vgsvcPropCacheInsertEntryInternal(PVBOXSERVI
     if (pNode)
     {
         pNode->pszName = RTStrDup(pszName);
-        if (!pNode->pszName)
-        {
-            RTMemFree(pNode);
-            return NULL;
-        }
+        AssertPtrReturnStmt(pNode->pszName, RTMemFree(pNode), NULL);
         pNode->pszValue = NULL;
         pNode->fFlags = 0;
         pNode->pszValueReset = NULL;
@@ -96,10 +92,16 @@ static PVBOXSERVICEVEPROPCACHEENTRY vgsvcPropCacheInsertEntryInternal(PVBOXSERVI
         if (RT_SUCCESS(rc))
         {
             RTListAppend(&pCache->NodeHead, &pNode->NodeSucc);
-            rc = RTCritSectLeave(&pCache->CritSect);
+            RTCritSectLeave(&pCache->CritSect);
+
+            return pNode;
         }
+
+        RTStrFree(pNode->pszName);
+        RTMemFree(pNode);
     }
-    return pNode;
+
+    return NULL;
 }
 
 
@@ -427,7 +429,7 @@ void VGSvcPropCacheDestroy(PVBOXSERVICEVEPROPCACHE pCache)
             RTListNodeRemove(&pNode->NodeSucc);
 
             if (pNode->fFlags & VGSVCPROPCACHE_FLAGS_TEMPORARY)
-                rc = vgsvcPropCacheWritePropF(pCache->uClientID, pNode->pszName, pNode->fFlags, pNode->pszValueReset);
+                vgsvcPropCacheWritePropF(pCache->uClientID, pNode->pszName, pNode->fFlags, pNode->pszValueReset);
 
             AssertPtr(pNode->pszName);
             RTStrFree(pNode->pszName);

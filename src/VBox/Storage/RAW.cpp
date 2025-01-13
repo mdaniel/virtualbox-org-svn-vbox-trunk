@@ -467,7 +467,7 @@ static int rawProbeIsIso9660OrUdf(PVDINTERFACEIOINT pIfIo, PVDIOSTORAGE pStorage
                  && MATCH_HDR(&Buf.VolDescHdr, UDF_EXT_VOL_DESC_TYPE, UDF_EXT_VOL_DESC_STD_ID_BOOT, UDF_EXT_VOL_DESC_VERSION) )
         {
             if (offUdfBootVolDesc == UINT64_MAX)
-                offUdfBootVolDesc = iVolDesc * cbSector;
+                offUdfBootVolDesc = (uint64_t)iVolDesc * cbSector;
             else
                 return RTERRINFO_LOG_SET_F(pErrInfo, VERR_VFS_BOGUS_FORMAT, "Only one BOOT2 descriptor is supported");
         }

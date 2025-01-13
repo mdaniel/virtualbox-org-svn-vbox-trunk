@@ -256,7 +256,6 @@ static int apimonMachineControl(const Bstr &strUuid, PVBOXWATCHDOG_MACHINE pMach
                                            strUuid.raw()));
 
                         /* First pause so we don't trigger a live save which needs more time/resources. */
-                        bool fPaused = false;
                         hrc = console->Pause();
                         if (FAILED(hrc))
                         {
@@ -273,10 +272,7 @@ static int apimonMachineControl(const Bstr &strUuid, PVBOXWATCHDOG_MACHINE pMach
                                                strUuid.raw(), machineState, apimonMachineStateToName(machineState, false));
                                 }
                                 else
-                                {
                                     fError = false;
-                                    fPaused = true;
-                                }
                             }
                             if (fError)
                                 break;

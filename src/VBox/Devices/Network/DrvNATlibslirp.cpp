@@ -64,7 +64,7 @@
 #include <iprt/critsect.h>
 #include <iprt/cidr.h>
 #include <iprt/file.h>
-#include <iprt/nocrt/limits.h>
+#include <limits.h>
 #include <iprt/mem.h>
 #include <iprt/net.h>
 #include <iprt/pipe.h>

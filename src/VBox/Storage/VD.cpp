@@ -6495,15 +6495,18 @@ VBOXDDU_DECL(int) VDCreateDiff(PVDISK pDisk, const char *pszBackend,
                 pImage->Backend->pfnSetParentModificationUuid(pImage->pBackendData,
                                                               &Uuid);
             if (pDisk->pLast->Backend->pfnGetTimestamp)
+            {
                 rc2 = pDisk->pLast->Backend->pfnGetTimestamp(pDisk->pLast->pBackendData,
                                                              &ts);
-            else
-                rc2 = VERR_NOT_IMPLEMENTED;
-            if (RT_SUCCESS(rc2) && pImage->Backend->pfnSetParentTimestamp)
-                pImage->Backend->pfnSetParentTimestamp(pImage->pBackendData, &ts);
+                if (RT_SUCCESS(rc2) && pImage->Backend->pfnSetParentTimestamp)
+                    pImage->Backend->pfnSetParentTimestamp(pImage->pBackendData, &ts);
+            }
 
             if (pImage->Backend->pfnSetParentFilename)
                 rc2 = pImage->Backend->pfnSetParentFilename(pImage->pBackendData, pDisk->pLast->pszFilename);
+
+            if (RT_FAILURE(rc2))
+                rc = rc2;
         }
 
         if (RT_SUCCESS(rc))

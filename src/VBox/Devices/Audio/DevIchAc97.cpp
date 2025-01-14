@@ -4598,10 +4598,6 @@ static DECLCALLBACK(int) ichac97R3Construct(PPDMDEVINS pDevIns, int iInstance, P
         AssertLogRelMsgReturn(RT_SUCCESS(rc),  ("LUN#%u: rc=%Rrc\n", iLun, rc), rc);
     }
 
-    uint32_t fMixer = AUDMIXER_FLAGS_NONE;
-    if (pThisCC->Dbg.fEnabled)
-        fMixer |= AUDMIXER_FLAGS_DEBUG;
-
     rc = AudioMixerCreate("AC'97 Mixer", 0 /* uFlags */, &pThisCC->pMixer);
     AssertRCReturn(rc, rc);
 

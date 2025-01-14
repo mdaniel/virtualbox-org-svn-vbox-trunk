@@ -555,6 +555,7 @@ HRESULT AudioAdapter::getProperty(const com::Utf8Str &aKey, com::Utf8Str &aValue
     if (cit != m->bd->properties.end())
         aValue = cit->second;
 
+    /** @todo r=andy Shouldn't we return an error here if not found? */
     return S_OK;
 }
 

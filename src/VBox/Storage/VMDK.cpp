@@ -8659,6 +8659,10 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
     if (!pvBuf)
         return VERR_NO_MEMORY;
 
+    /** @todo r=aeichner Carefully review the error handling logic, we mustn't leave the image in an inconsistent
+     *                   state if something fails, apart from hard underlying I/O errors of course.
+     *                   Memory allocation failures should not cause any corruptions.
+     */
     int rc;
     do
     {
@@ -8668,6 +8672,7 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         uint32_t uGTTail = uGTStart + (pExtent->cGDEntries * VMDK_GRAIN_TABLE_SIZE) - VMDK_GRAIN_TABLE_SIZE;
         uint32_t cbGTOff = RT_ALIGN_Z(VMDK_SECTOR2BYTE(cDirSectorDiff + cTableSectorDiff + cDirSectorDiff), 512);
 
+        /** @todo r=aeichner An error here doesn't make the whole operation fail, it just breaks out of the loop. */ 
         for (int i = pExtent->cGDEntries - 1; i >= 0; i--)
         {
             rc = vdIfIoIntFileReadSync(pImage->pIfIo, pExtent->pFile->pStorage,
@@ -8775,7 +8780,7 @@ static int vmdkResizeSparseMeta(PVMDKIMAGE pImage, PVMDKEXTENT pExtent,
         {
             pExtent->pRGD = (uint32_t *)RTMemReallocZ(pExtent->pRGD, pExtent->cGDEntries * sizeof(uint32_t), cbNewGD);
             if (RT_UNLIKELY(!pExtent->pRGD))
-                rc = VERR_NO_MEMORY;
+                return VERR_NO_MEMORY;
         }
     }
     else

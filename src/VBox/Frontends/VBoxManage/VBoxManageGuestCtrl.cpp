@@ -1660,7 +1660,6 @@ static RTEXITCODE gctlHandleCopy(PGCTLCMDCTX pCtx, int argc, char **argv, bool f
     RTGETOPTSTATE GetState;
     RTGetOptInit(&GetState, argc, argv, s_aOptions, RT_ELEMENTS(s_aOptions), 1, RTGETOPTINIT_FLAGS_OPTS_FIRST);
 
-    bool fDstMustBeDir = false;
     const char *pszDst = NULL;
     bool fFollow = false;
     bool fRecursive = false;
@@ -1692,7 +1691,6 @@ static RTEXITCODE gctlHandleCopy(PGCTLCMDCTX pCtx, int argc, char **argv, bool f
 
             case 't':
                 pszDst = ValueUnion.psz;
-                fDstMustBeDir = true;
                 break;
 
             case 'u':

@@ -1426,7 +1426,7 @@ static DECLCALLBACK(void) drvAudioStreamInitAsync(PDRVAUDIO pThis, PDRVAUDIOSTRE
          */
         pStreamEx->fStatus |= PDMAUDIOSTREAM_STS_BACKEND_READY; /* before the backend control call! */
 
-        rc = drvAudioStreamUpdateBackendOnStatus(pThis, pStreamEx, "asynchronous initialization completed");
+        drvAudioStreamUpdateBackendOnStatus(pThis, pStreamEx, "asynchronous initialization completed");
 
         /*
          * Modify the play state if output stream.

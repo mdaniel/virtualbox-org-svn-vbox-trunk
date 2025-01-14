@@ -156,9 +156,10 @@ void dbgfR3OSTermPart2(PUVM pUVM)
         if (pOS->pReg->pfnDestruct)
             pOS->pReg->pfnDestruct(pUVM, VMMR3GetVTable(), pOS->abData);
 
-        PDBGFOSEMTWRAPPER pFree = pOS->pWrapperHead;
-        while ((pFree = pOS->pWrapperHead) != NULL)
+        while (pOS->pWrapperHead != NULL)
         {
+            PDBGFOSEMTWRAPPER pFree = pOS->pWrapperHead;
+
             pOS->pWrapperHead = pFree->pNext;
             pFree->pNext = NULL;
             MMR3HeapFree(pFree);

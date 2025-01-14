@@ -216,7 +216,18 @@ static void createVM(IVirtualBox *virtualBox)
      */
     /* alternative to illustrate the use of string classes */
     rc = machine->SetName(NS_ConvertUTF8toUTF16("A new name").get());
+    if (NS_FAILED(rc))
+    {
+        printf("Error: could not set name for machine! rc=%#x\n", rc);
+        return;
+    }
+
     rc = machine->SetMemorySize(128);
+    if (NS_FAILED(rc))
+    {
+        printf("Error: could not set memory size for machine! rc=%#x\n", rc);
+        return;
+    }
 
     /*
      * Now a more advanced property -- the guest OS type. This is

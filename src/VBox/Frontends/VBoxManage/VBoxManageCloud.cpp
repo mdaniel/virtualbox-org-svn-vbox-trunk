@@ -1221,7 +1221,7 @@ static RTEXITCODE cloudInstanceMetricList(HandlerArg *a, int iFirst, PCLOUDCOMMO
 
     /* First step*/
     RTPrintf(Cloud::tr("First, reading the cloud machines list...\n"));
-    hrc = showProgress(progress);
+    showProgress(progress);
     CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Reading the cloud machines list failed")), RTEXITCODE_FAILURE);
 
     com::SafeIfaceArray<ICloudMachine> aMachines;
@@ -1275,7 +1275,7 @@ static RTEXITCODE cloudInstanceMetricList(HandlerArg *a, int iFirst, PCLOUDCOMMO
     ComPtr<IProgress> pRefreshProgress;
     CHECK_ERROR2_RET(hrc, pMachine, Refresh(pRefreshProgress.asOutParam()), RTEXITCODE_FAILURE);
 
-    hrc = showProgress(pRefreshProgress);
+    showProgress(pRefreshProgress);
     CHECK_PROGRESS_ERROR_RET(pRefreshProgress, (Cloud::tr("Refreshing information about cloud instance failed")), RTEXITCODE_FAILURE);
 
     /* Third step*/
@@ -1284,7 +1284,7 @@ static RTEXITCODE cloudInstanceMetricList(HandlerArg *a, int iFirst, PCLOUDCOMMO
     ComPtr<IStringArray> returnMetricNames;
     CHECK_ERROR2_RET(hrc, pMachine, ListMetricNames(returnMetricNames.asOutParam(), progress2.asOutParam()),  RTEXITCODE_FAILURE);
 
-    hrc = showProgress(progress2);
+    showProgress(progress2);
     CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Getting information about cloud instance metrics failed")), RTEXITCODE_FAILURE);
 
     com::SafeArray<BSTR> metricNamesArray;
@@ -1425,7 +1425,7 @@ static RTEXITCODE cloudInstanceMetricData(HandlerArg *a, int iFirst, PCLOUDCOMMO
     ComPtr<IProgress> progress;
     CHECK_ERROR2_RET(hrc, oCloudClient, ReadCloudMachineList(progress.asOutParam()), RTEXITCODE_FAILURE);
 
-    hrc = showProgress(progress);
+    showProgress(progress);
     CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Reading the cloud machines list failed")), RTEXITCODE_FAILURE);
 
     com::SafeIfaceArray<ICloudMachine> aMachines;
@@ -1479,7 +1479,7 @@ static RTEXITCODE cloudInstanceMetricData(HandlerArg *a, int iFirst, PCLOUDCOMMO
     ComPtr<IProgress> pRefreshProgress;
     CHECK_ERROR2_RET(hrc, pMachine, Refresh(pRefreshProgress.asOutParam()), RTEXITCODE_FAILURE);
 
-    hrc = showProgress(pRefreshProgress);
+    showProgress(pRefreshProgress);
     CHECK_PROGRESS_ERROR_RET(pRefreshProgress, (Cloud::tr("Refreshing information about cloud instance failed")), RTEXITCODE_FAILURE);
 
     /* Third step*/
@@ -1496,7 +1496,7 @@ static RTEXITCODE cloudInstanceMetricData(HandlerArg *a, int iFirst, PCLOUDCOMMO
                                                         returnMeasureUnits.asOutParam(),
                                                         progress2.asOutParam()),  RTEXITCODE_FAILURE);
 
-    hrc = showProgress(progress2);
+    showProgress(progress2);
     CHECK_PROGRESS_ERROR_RET(progress2, (Cloud::tr("Getting metric data failed")), RTEXITCODE_FAILURE);
 
     com::SafeArray<BSTR> dataValueArray;
@@ -2430,7 +2430,7 @@ static RTEXITCODE showCloudImageInfo(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT 
                                   pProgress.asOutParam()),
                      RTEXITCODE_FAILURE);
 
-    hrc = showProgress(pProgress);
+    showProgress(pProgress);
     CHECK_PROGRESS_ERROR_RET(pProgress, (Cloud::tr("Getting information about the cloud image failed")), RTEXITCODE_FAILURE);
 
     CHECK_ERROR2_RET(hrc,
@@ -2993,7 +2993,7 @@ static RTEXITCODE setupCloudNetworkEnv(HandlerArg *a, int iFirst, PCLOUDCOMMONOP
                                                   cloudNetworkEnv.asOutParam(), progress.asOutParam()),
                      RTEXITCODE_FAILURE);
 
-    hrc = showProgress(progress);
+    showProgress(progress);
     CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Setting up cloud network environment failed")), RTEXITCODE_FAILURE);
 
     Bstr tunnelNetworkId;

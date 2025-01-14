@@ -2830,10 +2830,9 @@ int Console::i_configNetwork(const char *pszDevice,
                                                             pszHostOnlyName).raw(),
                                                             bstrLowerIP.asOutParam());
                         if (SUCCEEDED(hrc) && !bstrLowerIP.isEmpty())
-                            hrc = virtualBox->GetExtraData(BstrFmt("HostOnly/%s/IPNetMask",
-                                                                pszHostOnlyName).raw(),
-                                                                bstrNetworkMask.asOutParam());
-
+                            virtualBox->GetExtraData(BstrFmt("HostOnly/%s/IPNetMask",
+                                                             pszHostOnlyName).raw(),
+                                                             bstrNetworkMask.asOutParam());
                     }
                     RTNETADDRIPV4 ipAddr, ipMask;
                     vrc = bstrLowerIP.isEmpty() ? VERR_MISSING : RTNetStrToIPv4Addr(Utf8Str(bstrLowerIP).c_str(), &ipAddr);
@@ -3321,7 +3320,9 @@ int Console::i_configNetwork(const char *pszDevice,
                     if (fAttachDetach)
                     {
                         vrc = pVMM->pfnPDMR3DriverAttach(mpUVM, pszDevice, uInstance, uLun, 0 /*fFlags*/, NULL /* ppBase */);
-                        //AssertRC(vrc);
+                        if (RT_FAILURE(vrc))
+                            LogRel(("Console::i_configNetwork: Error attaching device '%s' (instance %u) to LUN %u, rc=%Rrc\n",
+                                    pszDevice, uInstance, uLun, vrc));
                     }
 
                     {
@@ -3357,7 +3358,7 @@ int Console::i_configNetwork(const char *pszDevice,
                             }
 
                             if (fEnabledDhcp)
-                                hrc = dhcpServer->Start(trunkName.raw(), trunkType.raw());
+                                dhcpServer->Start(trunkName.raw(), trunkType.raw());
                         }
                         else
                             hrc = S_OK;
@@ -3694,15 +3695,20 @@ int Console::i_configAudioCtrl(ComPtr<IVirtualBox> pVBox, ComPtr<IMachine> pMach
         InsertConfigNode(pInst, "AudioConfig", &pCfgAudioAdapter);
         SafeArray<BSTR> audioProps;
         hrc = audioAdapter->COMGETTER(PropertiesList)(ComSafeArrayAsOutParam(audioProps));  H();
-
-        std::list<Utf8Str> audioPropertyNamesList;
-        for (size_t i = 0; i < audioProps.size(); ++i)
+        if (SUCCEEDED(hrc))
         {
-            Bstr bstrValue;
-            audioPropertyNamesList.push_back(Utf8Str(audioProps[i]));
-            hrc = audioAdapter->GetProperty(audioProps[i], bstrValue.asOutParam());
-            Utf8Str strKey(audioProps[i]);
-            InsertConfigString(pCfgAudioAdapter, strKey.c_str(), bstrValue);
+            std::list<Utf8Str> audioPropertyNamesList;
+            for (size_t i = 0; i < audioProps.size(); ++i)
+            {
+                Bstr bstrValue;
+                audioPropertyNamesList.push_back(Utf8Str(audioProps[i]));
+                hrc = audioAdapter->GetProperty(audioProps[i], bstrValue.asOutParam());
+                if (SUCCEEDED(hrc))
+                {
+                    Utf8Str strKey(audioProps[i]);
+                    InsertConfigString(pCfgAudioAdapter, strKey.c_str(), bstrValue);
+                }
+            }
         }
 
         /*

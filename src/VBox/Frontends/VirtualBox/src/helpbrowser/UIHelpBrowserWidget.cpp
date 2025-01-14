@@ -760,7 +760,7 @@ void UIHelpBrowserTab::setActionTextAndToolTip(QAction *pAction, const QString &
 
 void UIHelpBrowserTab::sltRetranslateUI()
 {
-    setActionTextAndToolTip(m_pHomeAction, UIHelpBrowserWidget::tr("Home"), UIHelpBrowserWidget::tr("Return to Start Page"));
+    setActionTextAndToolTip(m_pHomeAction, UIHelpBrowserWidget::tr("Home"), UIHelpBrowserWidget::tr("Go to Start Page"));
     setActionTextAndToolTip(m_pBackwardAction, UIHelpBrowserWidget::tr("Backward"), UIHelpBrowserWidget::tr("Go Back to Previous Page"));
     setActionTextAndToolTip(m_pForwardAction, UIHelpBrowserWidget::tr("Forward"), UIHelpBrowserWidget::tr("Go Forward to Next Page"));
     setActionTextAndToolTip(m_pAddBookmarkAction, UIHelpBrowserWidget::tr("Add Bookmark"), UIHelpBrowserWidget::tr("Add a New Bookmark"));

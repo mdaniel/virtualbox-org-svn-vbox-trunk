@@ -1208,9 +1208,9 @@ static void testUtf8Latin1(RTTEST hTest)
     size_t cch_szAll = 0;
     size_t cbShort = RTStrCalcLatin1Len(g_szAll);
     RTTEST_CHECK(hTest, cbShort == 0);
-    int rc = RTStrCalcLatin1LenEx(g_szAll, 383, &cch_szAll);
+    RTStrCalcLatin1LenEx(g_szAll, 383, &cch_szAll);
     RTTEST_CHECK(hTest, (cch_szAll == 255));
-    rc = RTStrCalcLatin1LenEx(g_szAll, RTSTR_MAX, &cch_szAll);
+    int rc = RTStrCalcLatin1LenEx(g_szAll, RTSTR_MAX, &cch_szAll);
     RTTEST_CHECK_RC(hTest, rc, VERR_NO_TRANSLATION);
     char *psz = NULL;
     char szShort[256] = { 0 };
@@ -1343,9 +1343,9 @@ static void testUtf16Latin1(RTTEST hTest)
     size_t cch_szAll = 0;
     size_t cbShort = RTUtf16CalcLatin1Len(g_wszAll);
     RTTEST_CHECK(hTest, cbShort == 0);
-    int rc = RTUtf16CalcLatin1LenEx(g_wszAll, 255, &cch_szAll);
+    RTUtf16CalcLatin1LenEx(g_wszAll, 255, &cch_szAll);
     RTTEST_CHECK(hTest, (cch_szAll == 255));
-    rc = RTUtf16CalcLatin1LenEx(g_wszAll, RTSTR_MAX, &cch_szAll);
+    int rc = RTUtf16CalcLatin1LenEx(g_wszAll, RTSTR_MAX, &cch_szAll);
     RTTEST_CHECK_RC(hTest, rc, VERR_NO_TRANSLATION);
     char *psz = NULL;
     RTUTF16 wszShort[256] = { 0 };

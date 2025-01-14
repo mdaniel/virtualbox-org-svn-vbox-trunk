@@ -2818,6 +2818,8 @@ HRESULT VirtualBox::getExtraDataKeys(std::vector<com::Utf8Str> &aKeys)
 HRESULT VirtualBox::getExtraData(const com::Utf8Str &aKey,
                                  com::Utf8Str &aValue)
 {
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
     settings::StringsMap::const_iterator it = m->pMainConfigFile->mapExtraDataItems.find(aKey);
     if (it != m->pMainConfigFile->mapExtraDataItems.end())
         // found:
@@ -2825,6 +2827,7 @@ HRESULT VirtualBox::getExtraData(const com::Utf8Str &aKey,
 
     /* return the result to caller (may be empty) */
 
+    /** @todo r=andy Shouldn't we return an error here if not found? */
     return S_OK;
 }
 

@@ -139,7 +139,7 @@ private:
     void saveBookmarks();
     void saveOptions();
     void cleanup();
-    QUrl findIndexHtml() const;
+    QUrl findHomeUrl() const;
     /* Returns the url of the item with @p itemIndex. */
     QUrl contentWidgetUrl(const QModelIndex &itemIndex) const;
     void openLinkSlotHandler(QObject *pSenderObject, bool fOpenInNewTab);

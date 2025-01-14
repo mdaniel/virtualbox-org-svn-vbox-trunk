@@ -1732,7 +1732,7 @@ void UIHelpBrowserWidget::saveOptions()
     }
 }
 
-QUrl UIHelpBrowserWidget::findIndexHtml() const
+QUrl UIHelpBrowserWidget::findHomeUrl() const
 {
     if (m_pHelpEngine && m_pHelpEngine->contentModel())
     {
@@ -1898,7 +1898,7 @@ void UIHelpBrowserWidget::sltFindPreviousInPage()
 
 void UIHelpBrowserWidget::sltGoHome()
 {
-    QUrl homeUrl = findIndexHtml();
+    QUrl homeUrl = findHomeUrl();
     if (homeUrl.isValid() && m_pTabManager)
         m_pTabManager->setSource(homeUrl);
 }

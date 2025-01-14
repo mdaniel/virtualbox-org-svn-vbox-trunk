@@ -1148,8 +1148,8 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
             if (details != VMINFO_MACHINEREADABLE)
             {
                 Bstr settingsFilePath;
-                hrc = machine->COMGETTER(SettingsFilePath)(settingsFilePath.asOutParam());
-                RTPrintf(Info::tr("Config file:     %ls\n"), settingsFilePath.raw());
+                CHECK_ERROR(machine, COMGETTER(SettingsFilePath)(settingsFilePath.asOutParam()));
+                RTPrintf(Info::tr("Config file:     %ls\n"), SUCCEEDED(hrc) ? settingsFilePath.raw() : L"<Error>");
 
                 Bstr strCipher;
                 Bstr strPasswordId;
@@ -1164,11 +1164,14 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
                     RTPrintf("Encryption:     disabled\n");
 
                 ComPtr<IVirtualBoxErrorInfo> accessError;
-                hrc = machine->COMGETTER(AccessError)(accessError.asOutParam());
-                RTPrintf(Info::tr("Access error details:\n"));
-                ErrorInfo ei(accessError);
-                GluePrintErrorInfo(ei);
-                RTPrintf("\n");
+                CHECK_ERROR(machine, COMGETTER(AccessError)(accessError.asOutParam()));
+                if (SUCCEEDED(hrc))
+                {
+                    RTPrintf(Info::tr("Access error details:\n"));
+                    ErrorInfo ei(accessError);
+                    GluePrintErrorInfo(ei);
+                    RTPrintf("\n");
+                }
             }
         }
         return S_OK;
@@ -2224,125 +2227,136 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         hrc = audioSettings->COMGETTER(Adapter)(audioAdapter.asOutParam());
     if (SUCCEEDED(hrc))
     {
-        const char *pszDrv   = Info::tr("Unknown");
-        const char *pszCtrl  = Info::tr("Unknown");
-        const char *pszCodec = Info::tr("Unknown");
+        const char *pszDrv   = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
+        const char *pszCtrl  = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
+        const char *pszCodec = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
         BOOL fEnabled;
         hrc = audioAdapter->COMGETTER(Enabled)(&fEnabled);
         if (SUCCEEDED(hrc) && fEnabled)
         {
             AudioDriverType_T enmDrvType;
             hrc = audioAdapter->COMGETTER(AudioDriver)(&enmDrvType);
-            switch (enmDrvType)
+            if (SUCCEEDED(hrc))
             {
-                case AudioDriverType_Default:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "default";
-                    else
-                        pszDrv = Info::tr("Default");
-                    break;
-                case AudioDriverType_Null:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "null";
-                    else
-                        pszDrv = Info::tr("Null");
-                    break;
-                case AudioDriverType_OSS:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "oss";
-                    else
-                        pszDrv = "OSS";
-                    break;
-                case AudioDriverType_ALSA:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "alsa";
-                    else
-                        pszDrv = "ALSA";
-                    break;
-                case AudioDriverType_Pulse:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "pulse";
-                    else
-                        pszDrv = "PulseAudio";
-                    break;
-                case AudioDriverType_WinMM:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "winmm";
-                    else
-                        pszDrv = "WINMM";
-                    break;
-                case AudioDriverType_DirectSound:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "dsound";
-                    else
-                        pszDrv = "DirectSound";
-                    break;
-                case AudioDriverType_WAS:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "was";
-                    else
-                        pszDrv = "Windows Audio Session (WAS)";
-                    break;
-                case AudioDriverType_CoreAudio:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "coreaudio";
-                    else
-                        pszDrv = "CoreAudio";
-                    break;
-                case AudioDriverType_SolAudio:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "solaudio";
-                    else
-                        pszDrv = "SolAudio";
-                    break;
-                default:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszDrv = "unknown";
-                    break;
+                switch (enmDrvType)
+                {
+                    case AudioDriverType_Default:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "default";
+                        else
+                            pszDrv = Info::tr("Default");
+                        break;
+                    case AudioDriverType_Null:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "null";
+                        else
+                            pszDrv = Info::tr("Null");
+                        break;
+                    case AudioDriverType_OSS:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "oss";
+                        else
+                            pszDrv = "OSS";
+                        break;
+                    case AudioDriverType_ALSA:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "alsa";
+                        else
+                            pszDrv = "ALSA";
+                        break;
+                    case AudioDriverType_Pulse:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "pulse";
+                        else
+                            pszDrv = "PulseAudio";
+                        break;
+                    case AudioDriverType_WinMM:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "winmm";
+                        else
+                            pszDrv = "WINMM";
+                        break;
+                    case AudioDriverType_DirectSound:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "dsound";
+                        else
+                            pszDrv = "DirectSound";
+                        break;
+                    case AudioDriverType_WAS:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "was";
+                        else
+                            pszDrv = "Windows Audio Session (WAS)";
+                        break;
+                    case AudioDriverType_CoreAudio:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "coreaudio";
+                        else
+                            pszDrv = "CoreAudio";
+                        break;
+                    case AudioDriverType_SolAudio:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "solaudio";
+                        else
+                            pszDrv = "SolAudio";
+                        break;
+                    default:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszDrv = "unknown";
+                        break;
+                }
             }
+
             AudioControllerType_T enmCtrlType;
             hrc = audioAdapter->COMGETTER(AudioController)(&enmCtrlType);
-            switch (enmCtrlType)
+            if (SUCCEEDED(hrc))
             {
-                case AudioControllerType_AC97:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszCtrl = "ac97";
-                    else
-                        pszCtrl = "AC97";
-                    break;
-                case AudioControllerType_SB16:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszCtrl = "sb16";
-                    else
-                        pszCtrl = "SB16";
-                    break;
-                case AudioControllerType_HDA:
-                    if (details == VMINFO_MACHINEREADABLE)
-                        pszCtrl = "hda";
-                    else
-                        pszCtrl = "HDA";
-                    break;
-                default:
-                    break;
+                switch (enmCtrlType)
+                {
+                    case AudioControllerType_AC97:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszCtrl = "ac97";
+                        else
+                            pszCtrl = "AC97";
+                        break;
+                    case AudioControllerType_SB16:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszCtrl = "sb16";
+                        else
+                            pszCtrl = "SB16";
+                        break;
+                    case AudioControllerType_HDA:
+                        if (details == VMINFO_MACHINEREADABLE)
+                            pszCtrl = "hda";
+                        else
+                            pszCtrl = "HDA";
+                        break;
+                    default:
+                        break;
+                }
             }
+
             AudioCodecType_T enmCodecType;
             hrc = audioAdapter->COMGETTER(AudioCodec)(&enmCodecType);
-            switch (enmCodecType)
+            if (SUCCEEDED(hrc))
             {
-                case AudioCodecType_SB16:
-                    pszCodec = "SB16";
-                    break;
-                case AudioCodecType_STAC9700:
-                    pszCodec = "STAC9700";
-                    break;
-                case AudioCodecType_AD1980:
-                    pszCodec = "AD1980";
-                    break;
-                case AudioCodecType_STAC9221:
-                    pszCodec = "STAC9221";
-                    break;
-                case AudioCodecType_Null: break; /* Shut up MSC. */
-                default:                  break;
+                switch (enmCodecType)
+                {
+                    case AudioCodecType_SB16:
+                        pszCodec = "SB16";
+                        break;
+                    case AudioCodecType_STAC9700:
+                        pszCodec = "STAC9700";
+                        break;
+                    case AudioCodecType_AD1980:
+                        pszCodec = "AD1980";
+                        break;
+                    case AudioCodecType_STAC9221:
+                        pszCodec = "STAC9221";
+                        break;
+                    case AudioCodecType_Null: break; /* Shut up MSC. */
+                    default:                  break;
+                }
             }
         }
         else
@@ -2365,26 +2379,28 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
 
     /* Shared clipboard */
     {
-        const char *psz;
-        ClipboardMode_T enmMode = (ClipboardMode_T)0;
+        const char *psz = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
+        ClipboardMode_T enmMode;
         hrc = machine->COMGETTER(ClipboardMode)(&enmMode);
-        switch (enmMode)
+        if (SUCCEEDED(hrc))
         {
-            case ClipboardMode_Disabled:
-                psz = "disabled";
-                break;
-            case ClipboardMode_HostToGuest:
-                psz = details == VMINFO_MACHINEREADABLE ? "hosttoguest" : Info::tr("HostToGuest");
-                break;
-            case ClipboardMode_GuestToHost:
-                psz = details == VMINFO_MACHINEREADABLE ? "guesttohost" : Info::tr("GuestToHost");
-                break;
-            case ClipboardMode_Bidirectional:
-                psz = details == VMINFO_MACHINEREADABLE ? "bidirectional" : Info::tr("Bidirectional");
-                break;
-            default:
-                psz = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
-                break;
+            switch (enmMode)
+            {
+                case ClipboardMode_Disabled:
+                    psz = "disabled";
+                    break;
+                case ClipboardMode_HostToGuest:
+                    psz = details == VMINFO_MACHINEREADABLE ? "hosttoguest" : Info::tr("HostToGuest");
+                    break;
+                case ClipboardMode_GuestToHost:
+                    psz = details == VMINFO_MACHINEREADABLE ? "guesttohost" : Info::tr("GuestToHost");
+                    break;
+                case ClipboardMode_Bidirectional:
+                    psz = details == VMINFO_MACHINEREADABLE ? "bidirectional" : Info::tr("Bidirectional");
+                    break;
+                default:
+                    break;
+            }
         }
         SHOW_UTF8_STRING("clipboard", Info::tr("Clipboard Mode:"), psz);
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
@@ -2394,26 +2410,28 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
 
     /* Drag and drop */
     {
-        const char *psz;
+        const char *psz = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
         DnDMode_T enmMode;
         hrc = machine->COMGETTER(DnDMode)(&enmMode);
-        switch (enmMode)
+        if (SUCCEEDED(hrc))
         {
-            case DnDMode_Disabled:
-                psz = "disabled";
-                break;
-            case DnDMode_HostToGuest:
-                psz = details == VMINFO_MACHINEREADABLE ? "hosttoguest" : Info::tr("HostToGuest");
-                break;
-            case DnDMode_GuestToHost:
-                psz = details == VMINFO_MACHINEREADABLE ? "guesttohost" : Info::tr("GuestToHost");
-                break;
-            case DnDMode_Bidirectional:
-                psz = details == VMINFO_MACHINEREADABLE ? "bidirectional" : Info::tr("Bidirectional");
-                break;
-            default:
-                psz = details == VMINFO_MACHINEREADABLE ? "unknown" : Info::tr("Unknown");
-                break;
+            switch (enmMode)
+            {
+                case DnDMode_Disabled:
+                    psz = "disabled";
+                    break;
+                case DnDMode_HostToGuest:
+                    psz = details == VMINFO_MACHINEREADABLE ? "hosttoguest" : Info::tr("HostToGuest");
+                    break;
+                case DnDMode_GuestToHost:
+                    psz = details == VMINFO_MACHINEREADABLE ? "guesttohost" : Info::tr("GuestToHost");
+                    break;
+                case DnDMode_Bidirectional:
+                    psz = details == VMINFO_MACHINEREADABLE ? "bidirectional" : Info::tr("Bidirectional");
+                    break;
+                default:
+                    break;
+            }
         }
         SHOW_UTF8_STRING("draganddrop", Info::tr("Drag and drop Mode:"), psz);
     }
@@ -2757,10 +2775,8 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     {
         ComPtr<IBandwidthControl> bwCtrl;
         CHECK_ERROR_RET(machine, COMGETTER(BandwidthControl)(bwCtrl.asOutParam()), hrc);
-
-        hrc = showBandwidthGroups(bwCtrl, details);
+        showBandwidthGroups(bwCtrl, details);
     }
-
 
     /*
      * Shared folders
@@ -2906,7 +2922,8 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         if (SUCCEEDED(hrc))
         {
             hrc = progress->COMGETTER(Completed)(&fStarted);
-            fStarted = !fStarted;
+            if (SUCCEEDED(hrc))
+                fStarted = !fStarted;
         }
         SHOW_BOOL_VALUE_EX("recording_started", Info::tr("Recording status:"), fStarted, Info::tr("started"), Info::tr("stopped"));
 
@@ -3289,14 +3306,16 @@ RTEXITCODE handleShowVMInfo(HandlerArg *a)
             details = VMINFO_STANDARD;
 
         /* open an existing session for the VM */
-        hrc = machine->LockMachine(a->session, LockType_Shared);
+        CHECK_ERROR(machine, LockMachine(a->session, LockType_Shared));
         if (SUCCEEDED(hrc))
+        {
             /* get the session machine */
-            hrc = a->session->COMGETTER(Machine)(machine.asOutParam());
+            CHECK_ERROR(a->session, COMGETTER(Machine)(machine.asOutParam()));
+            if (SUCCEEDED(hrc))
+                hrc = showVMInfo(a->virtualBox, machine, a->session, details);
 
-        hrc = showVMInfo(a->virtualBox, machine, a->session, details);
-
-        a->session->UnlockMachine();
+            CHECK_ERROR(a->session, UnlockMachine());
+        }
     }
 
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;

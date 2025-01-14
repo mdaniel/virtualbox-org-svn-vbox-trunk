@@ -2215,6 +2215,7 @@ static void dbgfR3RegNmQueryAllInSet(PCDBGFREGSET pSet, size_t cRegsToQuery, PDB
         paRegs[iReg].u.s.fMain = true;
         dbgfR3RegValClear(&paRegs[iReg].Val);
         int rc2 = pSet->paDescs[iReg].pfnGet(pSet->uUserArg.pv, &pSet->paDescs[iReg], &paRegs[iReg].Val);
+        AssertMsg(rc2 == VINF_SUCCESS || rc2 == VERR_CPUM_RAISE_GP_0, ("rc2=%Rrc iReg=%u %s\n", rc2, iReg, paRegs[iReg].pszName));
         AssertRCSuccess(rc2);
         if (RT_FAILURE(rc2))
             dbgfR3RegValClear(&paRegs[iReg].Val);

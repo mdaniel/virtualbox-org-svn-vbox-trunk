@@ -144,6 +144,8 @@ static int tstRTDvmVolume(RTTEST hTest, RTVFSFILE hVfsDisk, unsigned cNesting)
         if (RT_SUCCESS(rc))
         {
             rc = tstRTDvmVolume(hTest, hVfsVol, cNesting + 1);
+            RTTESTI_CHECK(rc == VINF_SUCCESS);
+
             RTVfsFileRelease(hVfsVol);
         }
         else

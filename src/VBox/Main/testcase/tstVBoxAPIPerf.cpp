@@ -147,6 +147,11 @@ static void tstApiPrf3(IVirtualBox *pVBox)
        Note! VBoxSVC is not creating and destroying Host().  */
     pHost = NULL;
     hrc = pVBox->COMGETTER(Host)(&pHost);
+    if (FAILED(hrc))
+    {
+        tstComExpr(hrc, "IVirtualBox::Host", __LINE__);
+        return;
+    }
 
     uint32_t const cCalls2  = 16384;
     cLeft    = cCalls2;

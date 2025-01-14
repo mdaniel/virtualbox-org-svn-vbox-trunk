@@ -760,6 +760,11 @@ static bool dbgfR3FlowTraceModProbeCollectData(PUVM pUVM, VMCPUID idCpu,
                 rc = pEntry->Type.Callback.pfnCallback(pUVM, idCpu, pTraceMod,
                                                        pAddrProbe, pProbe, pEntry,
                                                        pEntry->Type.Callback.pvUser);
+                if (RT_FAILURE(rc))
+                {
+                    fDbgDefer = true;
+                    break;
+                }
                 break;
             case DBGFFLOWTRACEPROBEENTRYTYPE_DEBUGGER:
                 fDbgDefer = true;

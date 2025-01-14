@@ -66,7 +66,6 @@ signals:
     void sigZoomPercentageChanged(int iPercentage);
     void sigGoBackward();
     void sigGoForward();
-    void sigGoHome();
     void sigReloadPage();
     void sigAddBookmark();
     void sigStatusBarMessage(const QString &strMessage, int iTimeOut);
@@ -121,6 +120,7 @@ private slots:
     void sltMouseOverImage(const QString &strImageName);
     void sltRetranslateUI();
     void sltCommitDataSignalReceived();
+    void sltGoHome();
 
 private:
 
@@ -141,7 +141,7 @@ private:
     void cleanup();
     QUrl findIndexHtml() const;
     /* Returns the url of the item with @p itemIndex. */
-    QUrl contentWidgetUrl(const QModelIndex &itemIndex);
+    QUrl contentWidgetUrl(const QModelIndex &itemIndex) const;
     void openLinkSlotHandler(QObject *pSenderObject, bool fOpenInNewTab);
     void updateTabsMenu(const QStringList &titleList);
 

@@ -554,7 +554,7 @@ static DECLCALLBACK(int) testSessionDataThread(RTTHREAD hSelf, void *pvUser)
             {
                 rc = testSessionDataWriteMessages(hIpcSession, cRounds);
                 if (RT_SUCCESS(rc))
-                    rc = testSessionDataReadMessages(hIpcSession, cRounds);
+                    testSessionDataReadMessages(hIpcSession, cRounds);
             }
 
             RTTESTI_CHECK_RC(RTLocalIpcSessionClose(hIpcSession), VINF_OBJECT_DESTROYED);

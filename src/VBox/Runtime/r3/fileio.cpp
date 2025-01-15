@@ -174,6 +174,7 @@ int rtFileRecalcAndValidateFlags(uint64_t *pfOpen)
             break;
         case RTFILE_O_OPEN:
             AssertMsgReturn(!(RTFILE_O_NOT_CONTENT_INDEXED & fOpen), ("%#llx\n", fOpen), VERR_INVALID_PARAMETER);
+            RT_FALL_THROUGH();
         case RTFILE_O_OPEN_CREATE:
         case RTFILE_O_CREATE:
         case RTFILE_O_CREATE_REPLACE:

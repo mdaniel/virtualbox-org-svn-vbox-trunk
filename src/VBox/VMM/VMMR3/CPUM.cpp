@@ -2987,6 +2987,7 @@ static DECLCALLBACK(int) cpumR3LoadExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uVers
                  * Start by restoring the CPUMCTX structure and the X86FXSAVE bits of the extended state.
                  */
                 rc = SSMR3GetStructEx(pSSM, pGstCtx,                  sizeof(*pGstCtx),                0, g_aCpumCtxFields, NULL);
+                AssertRCReturn(rc, rc);
                 rc = SSMR3GetStructEx(pSSM, &pGstCtx->XState.x87,     sizeof(pGstCtx->XState.x87),     0, g_aCpumX87Fields, NULL);
                 AssertRCReturn(rc, rc);
 

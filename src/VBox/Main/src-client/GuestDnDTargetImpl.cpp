@@ -742,7 +742,7 @@ HRESULT GuestDnDTarget::sendData(ULONG aScreenId, const com::Utf8Str &aFormat, c
         {
             delete pTask;
             LogRel(("DnD: Could not create SendDataTask object\n"));
-            throw hr = E_FAIL;
+            throw E_FAIL;
         }
 
         /* This function delete pTask in case of exceptions,

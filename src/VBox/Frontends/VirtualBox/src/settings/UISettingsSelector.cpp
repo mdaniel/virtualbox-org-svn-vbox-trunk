@@ -827,6 +827,19 @@ void UISelectorTreeView::prepare()
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::MinimumExpanding);
 
+#ifdef VBOX_WS_WIN
+    // WORKAROUND:
+    // The call to
+    // viewport()->setAutoFillBackground(false);
+    // above is ineffective on new modern Windows theme.
+    // We'll have to make current color transparent.
+    QPalette pal = palette();
+    QColor col = pal.color(QPalette::Base);
+    col.setAlpha(0);
+    pal.setColor(QPalette::Base, col);
+    setPalette(pal);
+#endif
+
     /* Prepare selector delegate: */
     UISelectorDelegate *pDelegate = new UISelectorDelegate(this);
     if (pDelegate)

@@ -233,7 +233,9 @@ static DECLCALLBACK(int) rtVfsStdDir_SetMode(void *pvThis, RTFMODE fMode, RTFMOD
         int rc = RTDirQueryInfo(pThis->hDir, &ObjInfo, RTFSOBJATTRADD_NOTHING);
         if (RT_FAILURE(rc))
             return rc;
+#if 0
         fMode |= ~fMask & ObjInfo.Attr.fMode;
+#endif
     }
 #if 0
     RTPathSetMode

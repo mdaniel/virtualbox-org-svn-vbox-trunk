@@ -1568,9 +1568,11 @@ STDMETHODIMP EventSourceAggregator::RegisterListener(IEventListener *aListener,
         ComPtr<IEventSource> es = *it;
         /* Register active proxy listener on real event source */
         hrc = es->RegisterListener(proxy, ComSafeArrayInArg(aInterested), TRUE);
+        AssertComRC(hrc);
     }
     /* And add real listener on our event source */
     hrc = mSource->RegisterListener(aListener, ComSafeArrayInArg(aInterested), aActive);
+    AssertComRC(hrc);
 
     return S_OK;
 }

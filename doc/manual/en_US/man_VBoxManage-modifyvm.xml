@@ -248,6 +248,7 @@
           <arg choice="plain">vboxvga</arg>
           <arg choice="plain">vmsvga</arg>
           <arg choice="plain">vboxsvga</arg>
+          <arg choice="plain">qemuramfb</arg>
         </group></arg>
       <arg>--snapshot-folder=<group choice="plain">
           <arg choice="plain">default</arg>

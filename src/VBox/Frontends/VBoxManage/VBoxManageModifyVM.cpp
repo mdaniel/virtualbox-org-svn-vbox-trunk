@@ -1124,6 +1124,9 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                          || !RTStrICmp(ValueUnion.psz, "svga"))
                     CHECK_ERROR(pGraphicsAdapter, COMSETTER(GraphicsControllerType)(GraphicsControllerType_VBoxSVGA));
 #endif
+                else if (   !RTStrICmp(ValueUnion.psz, "qemuramfb")
+                         || !RTStrICmp(ValueUnion.psz, "qemu-ramfb"))
+                    CHECK_ERROR(pGraphicsAdapter, COMSETTER(GraphicsControllerType)(GraphicsControllerType_QemuRamFB));
                 else
                 {
                     errorArgument(ModifyVM::tr("Invalid --graphicscontroller argument '%s'"), ValueUnion.psz);

@@ -305,8 +305,8 @@ static int cpumR3SysRegRangesInsert(PVM pVM, PCPUMSYSREGRANGE *ppaSysRegRanges, 
             paSysRegRanges = cpumR3SysRegRangesEnsureSpace(pVM, ppaSysRegRanges, cSysRegRanges, 2);
             if (!paSysRegRanges)
                 return VERR_NO_MEMORY;
-            if (i < cSysRegRanges)
-                memmove(&paSysRegRanges[i + 2], &paSysRegRanges[i], (cSysRegRanges - i) * sizeof(paSysRegRanges[0]));
+            Assert(i < cSysRegRanges);
+            memmove(&paSysRegRanges[i + 2], &paSysRegRanges[i], (cSysRegRanges - i) * sizeof(paSysRegRanges[0]));
             paSysRegRanges[i + 1] = *pNewRange;
             paSysRegRanges[i + 2] = paSysRegRanges[i];
             paSysRegRanges[i    ].uLast  = pNewRange->uFirst - 1;

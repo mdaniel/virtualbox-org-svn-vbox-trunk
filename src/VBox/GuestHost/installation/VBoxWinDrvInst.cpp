@@ -94,10 +94,10 @@
 #define VBOXWINDRVINST_VALID_RETURN(hDrvInst) VBOXWINDRVINST_VALID_RETURN_RC((hDrvInst), VERR_INVALID_HANDLE)
 
 /** Validates a handle and returns (void) if not valid. */
-#define VBOXWINDRVINST_VALID_RETURN_VOID(hFTPServer) \
+#define VBOXWINDRVINST_VALID_RETURN_VOID(hDrvInst) \
     do { \
-        AssertPtrReturnVoid(hFTPServer); \
-        AssertReturnVoid((hFTPServer)->u32Magic == VBOXWINDRVINST_MAGIC); \
+        AssertPtrReturnVoid(hDrvInst); \
+        AssertReturnVoid((hDrvInst)->u32Magic == VBOXWINDRVINST_MAGIC); \
     } while (0)
 
 

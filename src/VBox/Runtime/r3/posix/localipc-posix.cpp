@@ -500,7 +500,10 @@ RTDECL(int) RTLocalIpcServerListen(RTLOCALIPCSERVER hServer, PRTLOCALIPCSESSION 
                             RTMemFree(pSession);
                         }
                         else
+                        {
                             rc = VERR_NO_MEMORY;
+                            break;
+                        }
                     }
                     else if (   rc != VERR_INTERRUPTED
                              && rc != VERR_TRY_AGAIN)

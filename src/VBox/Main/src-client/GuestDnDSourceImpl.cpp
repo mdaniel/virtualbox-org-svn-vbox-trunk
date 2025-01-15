@@ -457,7 +457,7 @@ HRESULT GuestDnDSource::drop(const com::Utf8Str &aFormat, DnDAction_T aAction, C
         {
             delete pTask;
             LogRel2(("DnD: Receive data task failed to initialize\n"));
-            throw hrc = E_FAIL;
+            throw hrc;
         }
 
         /* Drop write lock before creating thread. */

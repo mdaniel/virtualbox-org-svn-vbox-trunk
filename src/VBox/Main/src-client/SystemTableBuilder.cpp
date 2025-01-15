@@ -405,6 +405,7 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
         if (RT_SUCCESS(vrc))
             vrc = RTAcpiTblResourceAppend(m_hAcpiDsdt, m_hAcpiRes);
     }
+    AssertRCReturn(vrc, vrc);
 
     /* For the ECAM base we need to define a new device with a new resource template inside the PCI device. */
     RTAcpiTblDeviceStart(m_hAcpiDsdt, "RES0");
@@ -423,6 +424,7 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
         if (RT_SUCCESS(vrc))
             vrc = RTAcpiTblResourceAppend(m_hAcpiDsdt, m_hAcpiRes);
     }
+    AssertRCReturn(vrc, vrc);
 
     /* Finish RES0 device. */
     vrc = RTAcpiTblDeviceFinalize(m_hAcpiDsdt);

@@ -510,8 +510,8 @@ int cpumR3MsrRangesInsert(PVM pVM, PCPUMMSRRANGE *ppaMsrRanges, uint32_t *pcMsrR
             paMsrRanges = cpumR3MsrRangesEnsureSpace(pVM, ppaMsrRanges, cMsrRanges, 2);
             if (!paMsrRanges)
                 return VERR_NO_MEMORY;
-            if (i < cMsrRanges)
-                memmove(&paMsrRanges[i + 2], &paMsrRanges[i], (cMsrRanges - i) * sizeof(paMsrRanges[0]));
+            Assert(i < cMsrRanges);
+            memmove(&paMsrRanges[i + 2], &paMsrRanges[i], (cMsrRanges - i) * sizeof(paMsrRanges[0]));
             paMsrRanges[i + 1] = *pNewRange;
             paMsrRanges[i + 2] = paMsrRanges[i];
             paMsrRanges[i    ].uLast  = pNewRange->uFirst - 1;

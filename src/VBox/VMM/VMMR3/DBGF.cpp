@@ -1770,7 +1770,7 @@ static bool dbgfStepAreWeThereYet(PVM pVM, PVMCPU pVCpu)
                                 if (pVM->dbgf.s.SteppingFilter.fFlags & DBGF_STEP_F_STOP_AFTER_RET)
                                     pVM->dbgf.s.SteppingFilter.cMaxSteps = pVM->dbgf.s.SteppingFilter.cSteps + 1;
                             }
-                            else if (pVM->dbgf.s.SteppingFilter.uCallDepth > 0)
+                            else /*if (pVM->dbgf.s.SteppingFilter.uCallDepth > 0)*/
                                 pVM->dbgf.s.SteppingFilter.uCallDepth--;
                             break;
                     }

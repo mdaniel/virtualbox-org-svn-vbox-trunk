@@ -67,7 +67,7 @@ RTDECL(int) RTMemAllocExTag(size_t cb, size_t cbAlignment, uint32_t fFlags, cons
     /*
      * Align the request.
      */
-    size_t cbAligned = cb;
+    size_t cbAligned;
     if (cbAlignment)
         cbAligned = RT_ALIGN_Z(cb, cbAlignment);
     else

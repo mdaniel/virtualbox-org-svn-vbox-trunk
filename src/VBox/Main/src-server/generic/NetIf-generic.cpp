@@ -294,7 +294,7 @@ int NetIfCreateHostOnlyNetworkInterface(VirtualBox *pVirtualBox,
                         }
                         RTMemFree(pInfo);
                     }
-                    if ((vrc = pclose(fp)) != 0)
+                    if (pclose(fp) != 0)
                     {
                         progress->i_notifyComplete(E_FAIL,
                                                    COM_IIDOF(IHostNetworkInterface),

@@ -4249,11 +4249,17 @@
 #else
 # define _512K          UINT32_C(0x00080000)
 #endif
-/** 1 M (Mega)                 (1 048 576). */
+/** 1 M (Mega)                 (1 048 576). (32-bit) */
 #if ARCH_BITS != 16
 # define _1M                     0x00100000
 #else
 # define _1M            UINT32_C(0x00100000)
+#endif
+/** 1 M (Mega)                 (1 048 576). (64-bit) */
+#if ARCH_BITS != 16
+# define _1M64                   0x001000000LL
+#else
+# define _1M64          UINT64_C(0x001000000)
 #endif
 /** 2 M (Mega)                 (2 097 152). */
 #if ARCH_BITS != 16

@@ -540,10 +540,10 @@ static DECLCALLBACK(const char *) vboxDrvInstCmdUninstallHelp(PCRTGETOPTDEF pOpt
 {
     switch (pOpt->iShort)
     {
-        case VBOXDRVINST_UNINSTALL_OPT_INF_FILE:      return "Specifies the INF File to install";
-        case VBOXDRVINST_UNINSTALL_OPT_INF_SECTION:   return "Specifies the INF section to install";
-        case VBOXDRVINST_UNINSTALL_OPT_MODEL:         return "Specifies the driver model to install";
-        case VBOXDRVINST_UNINSTALL_OPT_PNPID:         return "Specifies the PnP (device) ID to install";
+        case VBOXDRVINST_UNINSTALL_OPT_INF_FILE:      return "Specifies the INF File to uninstall";
+        case VBOXDRVINST_UNINSTALL_OPT_INF_SECTION:   return "Specifies the INF section to uninstall";
+        case VBOXDRVINST_UNINSTALL_OPT_MODEL:         return "Specifies the driver model to uninstall";
+        case VBOXDRVINST_UNINSTALL_OPT_PNPID:         return "Specifies the PnP (device) ID to uninstall";
         case VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT: return "Ignores reboot requirements";
         default:
             break;

@@ -577,8 +577,6 @@ void UIVirtualBoxManager::create()
     s_pInstance->prepare();
     /* Show VirtualBox Manager: */
     s_pInstance->show();
-    /* Register in the modal window manager: */
-    windowManager().setMainWindowShown(s_pInstance);
 }
 
 /* static */
@@ -725,6 +723,9 @@ void UIVirtualBoxManager::showEvent(QShowEvent *pEvent)
 
 void UIVirtualBoxManager::polishEvent(QShowEvent *)
 {
+    /* Register in the modal window manager: */
+    windowManager().setMainWindowShown(s_pInstance);
+
     /* Make sure user warned about inaccessible media: */
     QMetaObject::invokeMethod(this, "sltHandleMediumEnumerationFinish", Qt::QueuedConnection);
 }

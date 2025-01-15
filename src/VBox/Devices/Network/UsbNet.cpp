@@ -2239,6 +2239,7 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
     rc = PDMUsbHlpTimerCreate(pUsbIns, TMCLOCK_VIRTUAL, usbNetTimerLinkUp, pThis,
                               TMTIMER_FLAGS_DEFAULT_CRIT_SECT,
                               "Link Up", &pThis->hTimerLinkUp);
+    AssertRCReturn(rc, rc);
 
     /*
      * Build the USB descriptors.

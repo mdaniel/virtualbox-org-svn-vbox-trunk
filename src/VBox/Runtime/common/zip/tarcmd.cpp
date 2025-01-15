@@ -1229,6 +1229,7 @@ static RTEXITCODE rtZipTarCmdExtractHardlink(PRTZIPTARCMDOPS pOpts, RTEXITCODE r
                 {
                     rcExit = RTMsgErrorExitFailure("%s: Failed copying hardlinked file '%s': %Rrc", pszDst, szFullTarget, rc);
                     rc = RTFileClose(hDstFile);
+                    AssertRC(rc);
                     RTFileDelete(pszDst);
                 }
             }

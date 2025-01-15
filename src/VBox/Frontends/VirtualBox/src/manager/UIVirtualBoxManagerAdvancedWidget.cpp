@@ -446,6 +446,8 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
 
     /* Machine Tool Manager connections: */
     connect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+            this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+    connect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
     connect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneIndexChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
@@ -681,6 +683,8 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
                this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tool Manager connections: */
+    disconnect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+               this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
     disconnect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
     disconnect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneIndexChange,

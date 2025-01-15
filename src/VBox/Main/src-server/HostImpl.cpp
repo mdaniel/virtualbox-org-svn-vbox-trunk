@@ -3709,6 +3709,10 @@ HRESULT Host::i_updateNetIfList()
         return E_FAIL;
     }
 
+    /* Take the parent (VirtualBox) lock first to avoid lock order issues, when
+       HostNetworkInterface::i_setVirtualBox calls VirtualBox::getExtraData. */
+    AssertReturn(m->pParent, E_FAIL);
+    AutoReadLock alockParent(m->pParent COMMA_LOCKVAL_SRC_POS);
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
     AssertReturn(m->pParent, E_FAIL);

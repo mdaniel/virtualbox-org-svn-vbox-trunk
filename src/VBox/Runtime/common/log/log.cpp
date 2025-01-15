@@ -2761,7 +2761,7 @@ RTDECL(int) RTLogQueryDestinations(PRTLOGGER pLogger, char *pszBuf, size_t cchBu
         }
         if (RT_FAILURE(rc))
             return rc;
-        fNotFirst = true;
+        /*fNotFirst = true; unused right now */
     }
 
     return VINF_SUCCESS;

@@ -501,8 +501,7 @@ static PFNRTDIRFILTER rtDirFilterWinNtInit(PRTDIRINTERNAL pDir)
         {
             fHaveWildcards = true;
             /* remove extra stars. */
-            RTUNICP uc2;
-            while ((uc2 = pDir->puszFilter[iRead + 1]) == '*')
+            while (pDir->puszFilter[iRead + 1] == '*')
                 iRead++;
         }
         else if (uc == '?' || uc == '>' || uc == '<' || uc == '"')

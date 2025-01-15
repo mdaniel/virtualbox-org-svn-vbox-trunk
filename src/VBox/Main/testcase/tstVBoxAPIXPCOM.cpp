@@ -490,7 +490,7 @@ int main(int argc, char **argv)
     char szTmp[8192];
     if (!getenv("VBOX_XPCOM_HOME"))
     {
-        strcpy(szTmp, argv[0]);
+        strncpy(szTmp, argv[0], sizeof(szTmp));
         *strrchr(szTmp, '/') = '\0';
         strcat(szTmp, "/..");
         fprintf(stderr, "tstVBoxAPIXPCOM: VBOX_XPCOM_HOME is not set, using '%s' instead\n", szTmp);

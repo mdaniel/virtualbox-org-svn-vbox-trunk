@@ -64,6 +64,9 @@ static RTEXITCODE extractUnit(const char *pszFilename, const char *pszUnitname, 
                         break;
                     size_t cbWritten;
                     rc = RTFileWrite(hFile, &u8, sizeof(u8), &cbWritten);
+                    if (RT_FAILURE(rc))
+                        RTPrintf("Writing unit '%s' to '%s' failed with %Rrc\n",
+                                 pszUnitname, pszOutputFilename, rc);
                     cbUnit++;
                 }
                 RTPrintf("Unit size %zu bytes, version %d\n", cbUnit, version);

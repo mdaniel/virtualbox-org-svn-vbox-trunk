@@ -1688,7 +1688,7 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 
     slirpCfg.vdnssearch = NULL;
     slirpCfg.vdomainname = NULL;
-    slirpCfg.disable_host_loopback = fLocalhostReachable;
+    slirpCfg.disable_host_loopback = !fLocalhostReachable;
     slirpCfg.fForwardBroadcast = fForwardBroadcast;
     slirpCfg.iSoMaxConn = i32SoMaxConn;
 

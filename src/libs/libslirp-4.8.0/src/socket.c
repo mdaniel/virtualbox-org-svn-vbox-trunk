@@ -975,25 +975,21 @@ static bool sotranslate_out4(Slirp *s, struct socket *so, struct sockaddr_in *si
         return so->so_fport == htons(53) && get_dns_addr(&sin->sin_addr) >= 0;
     }
 
-    if (so->so_faddr.s_addr == s->vhost_addr.s_addr ||
 #ifdef VBOX
-        so->so_faddr.s_addr == 0xffffffff ||
-        so->so_faddr.s_addr ==
-            (s->vnetwork_addr.s_addr|~s->vnetwork_mask.s_addr)) {
-#else
-        so->so_faddr.s_addr == 0xffffffff {
+    if (   s->fForwardBroadcast
+        && (   so->so_faddr.s_addr == 0xffffffff
+            || so->so_faddr.s_addr == (s->vnetwork_addr.s_addr | ~s->vnetwork_mask.s_addr)))
+        sin->sin_addr.s_addr = 0xffffffff;
+    else
 #endif
+    if (so->so_faddr.s_addr == s->vhost_addr.s_addr ||
+        so->so_faddr.s_addr == 0xffffffff) {
 
         if (s->disable_host_loopback) {
             return false;
         }
 
-#ifdef VBOX
-        if (s->fForwardBroadcast)
-            sin->sin_addr.s_addr = 0xffffffff;
-        else
-#endif
-            sin->sin_addr = loopback_addr;
+        sin->sin_addr = loopback_addr;
     }
 
     return true;

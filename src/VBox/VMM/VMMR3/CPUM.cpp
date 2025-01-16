@@ -3583,7 +3583,7 @@ static int cpumR3MapMtrrsAdditive(PVM pVM, RTGCPHYS GCPhysRegionFirst, uint64_t 
     {
         uint64_t const cbRegion = !RT_IS_POWER_OF_TWO(cbLeft) ? cpumR3GetPrevPowerOfTwo(cbLeft) : cbLeft;
 
-        Log3(("CPUM: MTRR: Add[%u]: %' Rhcb (%RU64 bytes)\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
+        Log3(("CPUM: MTRR: Add[%u]: %Rhcb (%RU64 bytes)\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
         int const rc = cpumR3MtrrMapAddRegion(pVM, pMtrrMap, offRegion, offRegion + cbRegion - 1, X86_MTRR_MT_WB);
         if (RT_FAILURE(rc))
             return rc;
@@ -3625,7 +3625,7 @@ static int cpumR3MapMtrrsSubtractive(PVM pVM, RTGCPHYS GCPhysRegionFirst, uint64
     uint64_t const cbRegion = !RT_IS_POWER_OF_TWO(cb) ? cpumR3GetNextPowerOfTwo(cb) : cb;
     Assert(cbRegion >= cb);
 
-    Log3(("CPUM: MTRR: Sub[%u]: %' Rhcb (%RU64 bytes) [WB]\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
+    Log3(("CPUM: MTRR: Sub[%u]: %Rhcb (%RU64 bytes) [WB]\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
     int rc = cpumR3MtrrMapAddRegion(pVM, pMtrrMap, GCPhysRegionFirst, GCPhysRegionFirst + cbRegion - 1, X86_MTRR_MT_WB);
     if (RT_FAILURE(rc))
         return rc;
@@ -3636,7 +3636,7 @@ static int cpumR3MapMtrrsSubtractive(PVM pVM, RTGCPHYS GCPhysRegionFirst, uint64
     {
         uint64_t const cbSubRegion = cpumR3GetPrevPowerOfTwo(cbLeft);
 
-        Log3(("CPUM: MTRR: Sub[%u]: %' Rhcb (%RU64 bytes) [UC]\n", pMtrrMap->idxMtrr, cbSubRegion, cbSubRegion));
+        Log3(("CPUM: MTRR: Sub[%u]: %Rhcb (%RU64 bytes) [UC]\n", pMtrrMap->idxMtrr, cbSubRegion, cbSubRegion));
         rc = cpumR3MtrrMapAddRegion(pVM, pMtrrMap, offRegion - cbSubRegion, offRegion - 1, X86_MTRR_MT_UC);
         if (RT_FAILURE(rc))
             return rc;
@@ -3783,7 +3783,7 @@ static int cpumR3MapMtrrsAbove4GB(PVM pVM, uint64_t cb, PCPUMMTRRMAP pMtrrMap)
     {
         uint64_t const cbRegion = offRegion;
 
-        Log3(("CPUM: MTRR: [%u]: %' Rhcb (%RU64 bytes)\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
+        Log3(("CPUM: MTRR: [%u]: %Rhcb (%RU64 bytes)\n", pMtrrMap->idxMtrr, cbRegion, cbRegion));
         int const rc = cpumR3MtrrMapAddRegion(pVM, pMtrrMap, offRegion, offRegion + cbRegion - 1, X86_MTRR_MT_WB);
         if (RT_FAILURE(rc))
             return rc;
@@ -3830,7 +3830,7 @@ static int cpumR3MapMtrrs(PVM pVM)
     { /* likely */ }
     else
     {
-        LogRel(("CPUM: WARNING! RAM size %u bytes is not 4K aligned, using %u bytes\n", cbRam, cbRam & X86_PAGE_4K_BASE_MASK));
+        LogRel(("CPUM: WARNING! RAM size %RU64 bytes is not 4K aligned, using %RU64 bytes\n", cbRam, cbRam & X86_PAGE_4K_BASE_MASK));
         cbRam &= X86_PAGE_4K_BASE_MASK;
     }
 
@@ -3854,11 +3854,11 @@ static int cpumR3MapMtrrs(PVM pVM)
             pCtxMsrs->msr.MtrrFix4K_F0000  = 0x0505050505050505;
             pCtxMsrs->msr.MtrrFix4K_F8000  = 0x0505050505050505;
         }
-        LogRel(("CPUM: Mapped %' Rhcb (%RU64 bytes) of RAM using fixed-range MTRRs\n", _1M, _1M));
+        LogRel(("CPUM: Mapped %Rhcb (%u bytes) of RAM using fixed-range MTRRs\n", _1M, _1M));
     }
     else
     {
-        LogRel(("CPUM: WARNING! Cannot map RAM via MTRRs since the RAM size is below 1 MiB\n"));
+        LogRel(("CPUM: WARNING! Cannot map RAM via MTRRs since the RAM size is below 1M\n"));
         return VINF_SUCCESS;
     }
 
@@ -3920,7 +3920,7 @@ static int cpumR3MapMtrrs(PVM pVM)
     { /* likely */ }
     else
     {
-        LogRel(("CPUM: WARNING! Cannot fully map RAM of %' Rhcb (%RU64 bytes) as it exceeds maximum physical-address (%#RX64)\n",
+        LogRel(("CPUM: WARNING! Cannot fully map RAM of %Rhcb (%RU64 bytes) as it exceeds maximum physical-address (%#RX64)\n",
                 GCPhysEnd, GCPhysEnd, GCPhysEndMax - 1));
     }
 
@@ -3945,7 +3945,7 @@ static int cpumR3MapMtrrs(PVM pVM)
             if (RT_SUCCESS(rc))
                 Assert(MtrrMap.cbMapped == MtrrMap.cbToMap);
         }
-        LogRel(("CPUM: Mapped %' Rhcb (%RU64 bytes) of RAM using %u variable-range MTRRs\n", MtrrMap.cbMapped, MtrrMap.cbMapped,
+        LogRel(("CPUM: Mapped %Rhcb (%RU64 bytes) of RAM using %u variable-range MTRRs\n", MtrrMap.cbMapped, MtrrMap.cbMapped,
                 MtrrMap.idxMtrr));
     }
 
@@ -3958,7 +3958,7 @@ static int cpumR3MapMtrrs(PVM pVM)
         Assert(MtrrMap.idxMtrr == cMtrrsMappable);
         Assert(MtrrMap.idxMtrr == MtrrMap.cMtrrs);
         uint64_t const cbLost = cbRam - MtrrMap.cbMapped;
-        LogRel(("CPUM: WARNING! Could not map %' Rhcb (%RU64 bytes) of RAM using %u variable-range MTRRs\n", cbLost, cbLost,
+        LogRel(("CPUM: WARNING! Could not map %\Rhcb (%RU64 bytes) of RAM using %u variable-range MTRRs\n", cbLost, cbLost,
                 MtrrMap.cMtrrs));
     }
 

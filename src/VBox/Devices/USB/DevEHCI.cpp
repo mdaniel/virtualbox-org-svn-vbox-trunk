@@ -2077,7 +2077,7 @@ static bool ehciR3ItdHasUrbBeenCanceled(PEHCICC pThisCC, PVUSBURB pUrb, PEHCI_IT
     }
 
     /* Check buffer pointers */
-    for (unsigned i = 0; i < RT_ELEMENTS(pItd->Buffer.Buffer); i++)
+    for (unsigned i = 0; i < RT_ELEMENTS(pItdCopy->Buffer.Buffer); i++)
     {
         if (pItd->Buffer.Buffer[i].Pointer  != pItdCopy->Buffer.Buffer[i].Pointer)
         {

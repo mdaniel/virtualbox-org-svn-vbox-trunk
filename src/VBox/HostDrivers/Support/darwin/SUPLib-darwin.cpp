@@ -69,7 +69,6 @@
 #include <stdlib.h>
 #include <mach/mach_port.h>
 #include <IOKit/IOKitLib.h>
-#include <sys/sysctl.h> /* sysctlbyname() */
 
 
 /*********************************************************************************************************************************

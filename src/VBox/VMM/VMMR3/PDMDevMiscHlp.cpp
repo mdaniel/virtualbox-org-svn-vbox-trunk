@@ -68,7 +68,10 @@ static DECLCALLBACK(void) pdmR3PicHlp_SetInterruptFF(PPDMDEVINS pDevIns)
 
 #ifdef VBOX_VMM_TARGET_X86
     PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
-    PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    if (pVM->pdm.s.Ic.pDevInsR3)
+        PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    else
+        VMCPU_FF_SET(pVCpu, VMCPU_FF_INTERRUPT_PIC);
 #else
     AssertReleaseFailed();
     RT_NOREF(pVM);
@@ -87,7 +90,10 @@ static DECLCALLBACK(void) pdmR3PicHlp_ClearInterruptFF(PPDMDEVINS pDevIns)
 
 #ifdef VBOX_VMM_TARGET_X86
     PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
-    PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    if (pVM->pdm.s.Ic.pDevInsR3)
+        PDMApicSetLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+    else
+        VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INTERRUPT_PIC);
 #else
     AssertReleaseFailed();
     RT_NOREF(pVM);

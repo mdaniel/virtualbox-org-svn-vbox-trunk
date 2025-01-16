@@ -1793,9 +1793,9 @@ DECLINLINE(int) PDMDrvHlpSSMRegister(PPDMDRVINS pDrvIns, uint32_t uVersion, size
                                      PFNSSMDRVSAVEEXEC pfnSaveExec, PFNSSMDRVLOADEXEC pfnLoadExec)
 {
     return pDrvIns->pHlpR3->pfnSSMRegister(pDrvIns, uVersion, cbGuess,
-                                              NULL /*pfnLivePrep*/, NULL /*pfnLiveExec*/, NULL /*pfnLiveVote*/,
-                                              NULL /*pfnSavePrep*/, pfnSaveExec,          NULL /*pfnSaveDone*/,
-                                              NULL /*pfnLoadPrep*/, pfnLoadExec,          NULL /*pfnLoadDone*/);
+                                           NULL /*pfnLivePrep*/, NULL /*pfnLiveExec*/, NULL /*pfnLiveVote*/,
+                                           NULL /*pfnSavePrep*/, pfnSaveExec,          NULL /*pfnSaveDone*/,
+                                           NULL /*pfnLoadPrep*/, pfnLoadExec,          NULL /*pfnLoadDone*/);
 }
 
 /**
@@ -1807,9 +1807,9 @@ DECLINLINE(int) PDMDrvHlpSSMRegisterEx(PPDMDRVINS pDrvIns, uint32_t uVersion, si
                                        PFNSSMDRVLOADPREP pfnLoadPrep, PFNSSMDRVLOADEXEC pfnLoadExec, PFNSSMDRVLOADDONE pfnLoadDone)
 {
     return pDrvIns->pHlpR3->pfnSSMRegister(pDrvIns, uVersion, cbGuess,
-                                              pfnLivePrep, pfnLiveExec, pfnLiveVote,
-                                              pfnSavePrep, pfnSaveExec, pfnSaveDone,
-                                              pfnLoadPrep, pfnLoadExec, pfnLoadDone);
+                                           pfnLivePrep, pfnLiveExec, pfnLiveVote,
+                                           pfnSavePrep, pfnSaveExec, pfnSaveDone,
+                                           pfnLoadPrep, pfnLoadExec, pfnLoadDone);
 }
 
 /**
@@ -1822,9 +1822,9 @@ DECLINLINE(int) PDMDrvHlpSSMRegisterEx(PPDMDRVINS pDrvIns, uint32_t uVersion, si
 DECLINLINE(int) PDMDrvHlpSSMRegisterLoadDone(PPDMDRVINS pDrvIns, PFNSSMDRVLOADDONE pfnLoadDone)
 {
     return pDrvIns->pHlpR3->pfnSSMRegister(pDrvIns, 0 /*uVersion*/, 0 /*cbGuess*/,
-                                              NULL /*pfnLivePrep*/, NULL /*pfnLiveExec*/, NULL /*pfnLiveVote*/,
-                                              NULL /*pfnSavePrep*/, NULL /*pfnSaveExec*/, NULL /*pfnSaveDone*/,
-                                              NULL /*pfnLoadPrep*/, NULL /*pfnLoadExec*/, pfnLoadDone);
+                                           NULL /*pfnLivePrep*/, NULL /*pfnLiveExec*/, NULL /*pfnLiveVote*/,
+                                           NULL /*pfnSavePrep*/, NULL /*pfnSaveExec*/, NULL /*pfnSaveDone*/,
+                                           NULL /*pfnLoadPrep*/, NULL /*pfnLoadExec*/, pfnLoadDone);
 }
 
 /**

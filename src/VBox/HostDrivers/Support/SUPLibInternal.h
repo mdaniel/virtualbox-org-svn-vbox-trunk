@@ -380,6 +380,7 @@ DECLHIDDEN(int)     suplibOsIOCtlFast(PSUPLIBDATA pThis, uintptr_t uFunction, ui
 DECLHIDDEN(int)     suplibOsPageAlloc(PSUPLIBDATA pThis, size_t cPages, uint32_t fFlags, void **ppvPages);
 DECLHIDDEN(int)     suplibOsPageFree(PSUPLIBDATA pThis, void *pvPages, size_t cPages);
 DECLHIDDEN(int)     suplibOsQueryVTxSupported(const char **ppszWhy);
+DECLHIDDEN(int)     suplibOsQueryMicrocodeRev(uint32_t *puMicrocodeRev);
 DECLHIDDEN(bool)    suplibOsIsNemSupportedWhenNoVtxOrAmdV(void);
 
 

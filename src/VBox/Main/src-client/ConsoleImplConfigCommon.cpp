@@ -2330,8 +2330,8 @@ int Console::i_configNetwork(const char *pszDevice,
                 InsertConfigInteger(pCfg, "LocalhostReachable", fLocalhostReachable);
 
                 /* forward broadcast packets */
-                BOOL fForwardBroadcast;
-                hrc = natEngine->COMGETTER(ForwardBroadcast)(&fForwardBroadcast);                   H();
+                BOOL fForwardBroadcast = FALSE;
+                hrc = natEngine->COMGETTER(ForwardBroadcast)(&fForwardBroadcast);           H();
                 InsertConfigInteger(pCfg, "ForwardBroadcast", fForwardBroadcast);
 
                 /* port-forwarding */

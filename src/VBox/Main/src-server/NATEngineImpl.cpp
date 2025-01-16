@@ -198,7 +198,7 @@ void NATEngine::i_applyDefaults()
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
     mData->m->fLocalhostReachable = false; /* Applies to new VMs only, see @bugref{9896} */
-    mData->m->fForwardBroadcast = false;       /* Applies to new VMs only. see @bugref{10268} */
+    mData->m->fForwardBroadcast = false;   /* Applies to new VMs only. see @bugref{10268} */
 }
 
 bool NATEngine::i_hasDefaults()

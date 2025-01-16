@@ -267,6 +267,57 @@ DECLINLINE(void) vboxWinDrvInstLogEx(PVBOXWINDRVINSTINTERNAL pCtx,
 }
 
 /**
+ * Logs an error message, extended version.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   fIgnore             Whether to ignore the error in the error count or not.
+ * @param   pszFormat           Format string to log.
+ * @param   args                va_list for \a pszFormat.
+ */
+DECLINLINE(void) vboxWinDrvInstLogErrorExV(PVBOXWINDRVINSTINTERNAL pCtx, bool fIgnore, const char *pszFormat, va_list args)
+{
+    vboxWinDrvInstLogExV(pCtx, VBOXWINDRIVERLOGTYPE_ERROR, pszFormat, args);
+    if (!fIgnore)
+        pCtx->cErrors++;
+}
+
+/**
+ * Logs an error message but ignores (skips) the error count.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   pszFormat           Format string to log.
+ * @param   ...                 Variable arguments for \a pszFormat.
+ */
+DECLINLINE(void) vboxWinDrvInstLogErrorIgn(PVBOXWINDRVINSTINTERNAL pCtx, const char *pszFormat, ...)
+{
+    va_list args;
+    va_start(args, pszFormat);
+    vboxWinDrvInstLogErrorExV(pCtx, true /* fIgnore */, pszFormat, args);
+    va_end(args);
+}
+
+/**
+ * Logs an error message, ignores (skips) the error count and returns the given rc for convenience.
+ *
+ * @returns VBox status code, given by \a rc.
+ * @param   pCtx                Windows driver installer context.
+ * @param   rc                  rc to return.
+ * @param   pszFormat           Format string to log.
+ * @param   ...                 Variable arguments for \a pszFormat.
+ */
+DECLINLINE(int) vboxWinDrvInstLogErrorRetIgn(PVBOXWINDRVINSTINTERNAL pCtx, int rc, const char *pszFormat, ...)
+{
+    va_list args;
+    va_start(args, pszFormat);
+    vboxWinDrvInstLogErrorExV(pCtx, true /* fIgnore */, pszFormat, args);
+    va_end(args);
+
+    return rc;
+}
+
+/**
  * Logs an error message.
  *
  * @returns VBox status code.
@@ -277,10 +328,8 @@ DECLINLINE(void) vboxWinDrvInstLogError(PVBOXWINDRVINSTINTERNAL pCtx, const char
 {
     va_list args;
     va_start(args, pszFormat);
-    vboxWinDrvInstLogExV(pCtx, VBOXWINDRIVERLOGTYPE_ERROR, pszFormat, args);
+    vboxWinDrvInstLogErrorExV(pCtx, false /* fIgnore */, pszFormat, args);
     va_end(args);
-
-    pCtx->cErrors++;
 }
 
 /**
@@ -936,37 +985,8 @@ DECLCALLBACK(int) vboxWinDrvInstallTryInfSectionCallback(HINF hInf, PCRTUTF16 pw
 }
 
 #ifdef RT_ARCH_X86
-/** @todo Make use of the regular logging facilities of VBoxWinDrvInst. */
-DECLINLINE(int) vboxWinDrvInterceptedWinVerifyTrustError(const char *pszFormat, ...)
-{
-    va_list args;
-    va_start(args, pszFormat);
-    char *psz = NULL;
-    RTStrAPrintfV(&psz, pszFormat, args);
-    AssertPtrReturn(psz, -1);
-
-    RTStrmPrintf(g_pStdErr, "Error: %s\n", psz);
-
-    RTStrFree(psz);
-    va_end(args);
-
-    return -1;
-}
-
-/** @todo Make use of the regular logging facilities of VBoxWinDrvInst. */
-DECLINLINE(void) vboxWinDrvInterceptedWinVerifyTrustPrint(const char *pszFormat, ...)
-{
-    va_list args;
-    va_start(args, pszFormat);
-    char *psz = NULL;
-    RTStrAPrintfV(&psz, pszFormat, args);
-    AssertPtrReturnVoid(psz);
-
-    RTStrmPrintf(g_pStdOut, "%s\n", psz);
-
-    RTStrFree(psz);
-    va_end(args);
-}
+/** Static pointer to the internal driver installer handle, used by vboxWinDrvInterceptedWinVerifyTrust(). */
+static PVBOXWINDRVINSTINTERNAL s_vboxWinDrvInterceptedWinVerifyTrustCtx = NULL;
 
 /**
  * Interceptor WinVerifyTrust function for SetupApi.dll on Windows 2000, XP,
@@ -974,9 +994,13 @@ DECLINLINE(void) vboxWinDrvInterceptedWinVerifyTrustPrint(const char *pszFormat,
  *
  * This crudely modifies the driver verification request from a WHQL/logo driver
  * check to a simple Authenticode check.
+ *
+ * s_vboxWinDrvInterceptedWinVerifyTrustCtx must be set.
  */
 static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionId, void *pvData)
 {
+    AssertPtrReturn(s_vboxWinDrvInterceptedWinVerifyTrustCtx, TRUST_E_SYSTEM_ERROR);
+
     /*
      * Resolve the real WinVerifyTrust function.
      */
@@ -989,13 +1013,13 @@ static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionI
             hmod = LoadLibraryW(L"WINTRUST.DLL");
         if (!hmod)
         {
-            vboxWinDrvInterceptedWinVerifyTrustError("InterceptedWinVerifyTrust: Failed to load wintrust.dll");
+            vboxWinDrvInstLogErrorIgn(s_vboxWinDrvInterceptedWinVerifyTrustCtx, "InterceptedWinVerifyTrust: Failed to load wintrust.dll");
             return TRUST_E_SYSTEM_ERROR;
         }
         pfnRealWinVerifyTrust = (decltype(WinVerifyTrust) *)GetProcAddress(hmod, "WinVerifyTrust");
         if (!pfnRealWinVerifyTrust)
         {
-            vboxWinDrvInterceptedWinVerifyTrustError("InterceptedWinVerifyTrust: Failed to locate WinVerifyTrust in wintrust.dll");
+            vboxWinDrvInstLogErrorIgn(s_vboxWinDrvInterceptedWinVerifyTrustCtx, "InterceptedWinVerifyTrust: Failed to locate WinVerifyTrust in wintrust.dll");
             return TRUST_E_SYSTEM_ERROR;
         }
         s_pfnRealWinVerifyTrust = pfnRealWinVerifyTrust;
@@ -1012,15 +1036,15 @@ static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionI
         if (memcmp(pActionId, &s_GuidDriverActionVerify, sizeof(*pActionId)) == 0)
         {
             /** @todo don't apply to obvious NT components... */
-            vboxWinDrvInterceptedWinVerifyTrustPrint("DRIVER_ACTION_VERIFY: Changing it to WINTRUST_ACTION_GENERIC_VERIFY_V2");
+            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "DRIVER_ACTION_VERIFY: Changing it to WINTRUST_ACTION_GENERIC_VERIFY_V2");
             pActionId = (GUID *)&s_GuidActionGenericVerify2;
         }
         else if (memcmp(pActionId, &s_GuidActionGenericChainVerify, sizeof(*pActionId)) == 0)
-            vboxWinDrvInterceptedWinVerifyTrustPrint("WINTRUST_ACTION_GENERIC_CHAIN_VERIFY");
+            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "WINTRUST_ACTION_GENERIC_CHAIN_VERIFY");
         else if (memcmp(pActionId, &s_GuidActionGenericVerify2, sizeof(*pActionId)) == 0)
-            vboxWinDrvInterceptedWinVerifyTrustPrint("WINTRUST_ACTION_GENERIC_VERIFY_V2");
+            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "WINTRUST_ACTION_GENERIC_VERIFY_V2");
         else
-            vboxWinDrvInterceptedWinVerifyTrustPrint("WINTRUST_ACTION_UNKNOWN");
+            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "WINTRUST_ACTION_UNKNOWN");
     }
 
     /*
@@ -1029,87 +1053,87 @@ static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionI
     if (pvData)
     {
         WINTRUST_DATA *pData = (WINTRUST_DATA *)pvData;
-        vboxWinDrvInterceptedWinVerifyTrustPrint("                  cbStruct = %ld", pData->cbStruct);
+        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                  cbStruct = %ld", pData->cbStruct);
 # ifdef DEBUG
-        vboxWinDrvInterceptedWinVerifyTrustPrint("                dwUIChoice = %ld", pData->dwUIChoice);
-        vboxWinDrvInterceptedWinVerifyTrustPrint("       fdwRevocationChecks = %ld", pData->fdwRevocationChecks);
-        vboxWinDrvInterceptedWinVerifyTrustPrint("             dwStateAction = %ld", pData->dwStateAction);
-        vboxWinDrvInterceptedWinVerifyTrustPrint("             hWVTStateData = %p", (uintptr_t)pData->hWVTStateData);
+        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                dwUIChoice = %ld", pData->dwUIChoice);
+        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "       fdwRevocationChecks = %ld", pData->fdwRevocationChecks);
+        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "             dwStateAction = %ld", pData->dwStateAction);
+        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "             hWVTStateData = %p", (uintptr_t)pData->hWVTStateData);
 # endif
         if (pData->cbStruct >= 7*sizeof(uint32_t))
         {
             switch (pData->dwUnionChoice)
             {
                 case WTD_CHOICE_FILE:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("                     pFile = %p", (uintptr_t)pData->pFile);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                     pFile = %p", (uintptr_t)pData->pFile);
                     if (RT_VALID_PTR(pData->pFile))
                     {
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("           pFile->cbStruct = %ld", pData->pFile->cbStruct);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "           pFile->cbStruct = %ld", pData->pFile->cbStruct);
 # ifndef DEBUG
                         if (pData->pFile->hFile)
 # endif
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("              pFile->hFile = %p", (uintptr_t)pData->pFile->hFile);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "              pFile->hFile = %p", (uintptr_t)pData->pFile->hFile);
                         if (RT_VALID_PTR(pData->pFile->pcwszFilePath))
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("      pFile->pcwszFilePath = %ls", pData->pFile->pcwszFilePath);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "      pFile->pcwszFilePath = %ls", pData->pFile->pcwszFilePath);
 # ifdef DEBUG
                         else
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("      pFile->pcwszFilePath = %ls", (uintptr_t)pData->pFile->pcwszFilePath);
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("     pFile->pgKnownSubject = %p", (uintptr_t)pData->pFile->pgKnownSubject);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "      pFile->pcwszFilePath = %ls", (uintptr_t)pData->pFile->pcwszFilePath);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "     pFile->pgKnownSubject = %p", (uintptr_t)pData->pFile->pgKnownSubject);
 # endif
                     }
                     break;
 
                 case WTD_CHOICE_CATALOG:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("                  pCatalog = %p", (uintptr_t)pData->pCatalog);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                  pCatalog = %p", (uintptr_t)pData->pCatalog);
                     if (RT_VALID_PTR(pData->pCatalog))
                     {
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("            pCat->cbStruct = %ld", pData->pCatalog->cbStruct);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "            pCat->cbStruct = %ld", pData->pCatalog->cbStruct);
 # ifdef DEBUG
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("    pCat->dwCatalogVersion = %ld", pData->pCatalog->dwCatalogVersion);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "    pCat->dwCatalogVersion = %ld", pData->pCatalog->dwCatalogVersion);
 # endif
                         if (RT_VALID_PTR(pData->pCatalog->pcwszCatalogFilePath))
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("pCat->pcwszCatalogFilePath = %ls", pData->pCatalog->pcwszCatalogFilePath);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "pCat->pcwszCatalogFilePath = %ls", pData->pCatalog->pcwszCatalogFilePath);
 # ifdef DEBUG
                         else
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("pCat->pcwszCatalogFilePath =  %ls", (uintptr_t)pData->pCatalog->pcwszCatalogFilePath);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "pCat->pcwszCatalogFilePath =  %ls", (uintptr_t)pData->pCatalog->pcwszCatalogFilePath);
 # endif
                         if (RT_VALID_PTR(pData->pCatalog->pcwszMemberTag))
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("      pCat->pcwszMemberTag = %ls", pData->pCatalog->pcwszMemberTag);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "      pCat->pcwszMemberTag = %ls", pData->pCatalog->pcwszMemberTag);
 # ifdef DEBUG
                         else
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("      pCat->pcwszMemberTag = %ls", (uintptr_t)pData->pCatalog->pcwszMemberTag);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "      pCat->pcwszMemberTag = %ls", (uintptr_t)pData->pCatalog->pcwszMemberTag);
 # endif
                         if (RT_VALID_PTR(pData->pCatalog->pcwszMemberFilePath))
-                            vboxWinDrvInterceptedWinVerifyTrustPrint(" pCat->pcwszMemberFilePath = %ls", pData->pCatalog->pcwszMemberFilePath);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, " pCat->pcwszMemberFilePath = %ls", pData->pCatalog->pcwszMemberFilePath);
 # ifdef DEBUG
                         else
-                            vboxWinDrvInterceptedWinVerifyTrustPrint(" pCat->pcwszMemberFilePath = %ls", (uintptr_t)pData->pCatalog->pcwszMemberFilePath);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, " pCat->pcwszMemberFilePath = %ls", (uintptr_t)pData->pCatalog->pcwszMemberFilePath);
 # else
                         if (pData->pCatalog->hMemberFile)
 # endif
-                            vboxWinDrvInterceptedWinVerifyTrustPrint("         pCat->hMemberFile = %p", (uintptr_t)pData->pCatalog->hMemberFile);
+                            vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "         pCat->hMemberFile = %p", (uintptr_t)pData->pCatalog->hMemberFile);
 # ifdef DEBUG
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("pCat->pbCalculatedFileHash = %p", (uintptr_t)pData->pCatalog->pbCalculatedFileHash);
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("pCat->cbCalculatedFileHash = %ld", pData->pCatalog->cbCalculatedFileHash);
-                        vboxWinDrvInterceptedWinVerifyTrustPrint("    pCat->pcCatalogContext = %p", (uintptr_t)pData->pCatalog->pcCatalogContext);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "pCat->pbCalculatedFileHash = %p", (uintptr_t)pData->pCatalog->pbCalculatedFileHash);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "pCat->cbCalculatedFileHash = %ld", pData->pCatalog->cbCalculatedFileHash);
+                        vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "    pCat->pcCatalogContext = %p", (uintptr_t)pData->pCatalog->pcCatalogContext);
 # endif
                     }
                     break;
 
                 case WTD_CHOICE_BLOB:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("                     pBlob = %p\n", (uintptr_t)pData->pBlob);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                     pBlob = %p\n", (uintptr_t)pData->pBlob);
                     break;
 
                 case WTD_CHOICE_SIGNER:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("                     pSgnr = %p", (uintptr_t)pData->pSgnr);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                     pSgnr = %p", (uintptr_t)pData->pSgnr);
                     break;
 
                 case WTD_CHOICE_CERT:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("                     pCert = %p", (uintptr_t)pData->pCert);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "                     pCert = %p", (uintptr_t)pData->pCert);
                     break;
 
                 default:
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("             dwUnionChoice = %ld", pData->dwUnionChoice);
+                    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "             dwUnionChoice = %ld", pData->dwUnionChoice);
                     break;
             }
         }
@@ -1118,9 +1142,9 @@ static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionI
     /*
      * Make the call.
      */
-    vboxWinDrvInterceptedWinVerifyTrustPrint("Calling WinVerifyTrust ...");
+    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "Calling WinVerifyTrust ...");
     LONG iRet = pfnRealWinVerifyTrust(hwnd, pActionId, pvData);
-    vboxWinDrvInterceptedWinVerifyTrustPrint("WinVerifyTrust returns %ld", iRet);
+    vboxWinDrvInstLogVerbose(s_vboxWinDrvInterceptedWinVerifyTrustCtx, 1, "WinVerifyTrust returns %ld", iRet);
 
     return iRet;
 }
@@ -1132,23 +1156,29 @@ static LONG WINAPI vboxWinDrvInterceptedWinVerifyTrust(HWND hwnd, GUID *pActionI
  * This is a very crude hack to lower the WHQL check to just require a valid
  * Authenticode signature by intercepting the verification call.
  *
- * @return Ignored, just a convenience for saving space in error paths.
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
  */
-static int vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi(void)
+static int vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi(PVBOXWINDRVINSTINTERNAL pCtx)
 {
     /* Check the version: */
     OSVERSIONINFOW VerInfo = { sizeof(VerInfo) };
     GetVersionExW(&VerInfo);
     if (VerInfo.dwMajorVersion != 5)
-        return 1;
+    {
+        vboxWinDrvInstLogVerbose(pCtx, 1, "OS not supported to intercept WinVerifyTrust, skipping");
+        return VERR_NOT_SUPPORTED;
+    }
+
+# define PRINT_ERROR_AND_RETURN(a_Msg, ...) \
+    return vboxWinDrvInstLogErrorRetIgn(pCtx, VERR_NOT_SUPPORTED, a_Msg, __VA_ARGS__);
 
     /* The the target module: */
-    HMODULE hModSetupApi = GetModuleHandleW(L"SETUPAPI.DLL");
+    HMODULE const hModSetupApi = GetModuleHandleW(L"SETUPAPI.DLL");
     if (!hModSetupApi)
     {
         DWORD const dwLastErr = GetLastError();
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to locate SETUPAPI.DLL in the process: %ld / %#x",
-                                                        dwLastErr, dwLastErr);
+        PRINT_ERROR_AND_RETURN("Failed to locate SETUPAPI.DLL in the process: %ld / %#x", dwLastErr, dwLastErr);
     }
 
     /*
@@ -1158,22 +1188,23 @@ static int vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi(void)
     IMAGE_NT_HEADERS const *pNtHdrs = (IMAGE_NT_HEADERS const *)(  (uintptr_t)hModSetupApi
                                                                  + (  pDosHdr->e_magic == IMAGE_DOS_SIGNATURE
                                                                     ? pDosHdr->e_lfanew : 0));
+
     if (pNtHdrs->Signature != IMAGE_NT_SIGNATURE)
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #1");
     if (pNtHdrs->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC)
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #2");
     if (pNtHdrs->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT)
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #3");
 
     uint32_t const cbDir = pNtHdrs->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].Size;
     if (cbDir < sizeof(IMAGE_DELAYLOAD_DESCRIPTOR))
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #4");
     uint32_t const cbImages = pNtHdrs->OptionalHeader.SizeOfImage;
     if (cbDir >= cbImages)
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #5");
     uint32_t const offDir = pNtHdrs->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT].VirtualAddress;
     if (offDir > cbImages - cbDir)
-        return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+        PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #6");
 
     /*
      * Scan the entries looking for wintrust.dll.
@@ -1197,15 +1228,17 @@ static int vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi(void)
                 IMAGE_IMPORT_BY_NAME const * const pName = (IMAGE_IMPORT_BY_NAME const *)&pchRva2Ptr[pauNameRvas[iSym]];
                 if (RTStrCmp(pName->Name, "WinVerifyTrust") == 0)
                 {
-                    vboxWinDrvInterceptedWinVerifyTrustPrint("Intercepting WinVerifyTrust for SETUPAPI.DLL (old: %p)", paIat[iSym]);
+                    vboxWinDrvInstLogVerbose(pCtx, 1, "Intercepting WinVerifyTrust for SETUPAPI.DLL (old: %p)", paIat[iSym]);
                     paIat[iSym] = (uintptr_t)vboxWinDrvInterceptedWinVerifyTrust;
                     return 0;
                 }
             }
-            return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+            PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #9");
         }
     }
-    return vboxWinDrvInterceptedWinVerifyTrustError("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception:");
+    PRINT_ERROR_AND_RETURN("Failed to parse SETUPAPI.DLL for WinVerifyTrust interception: #10");
+
+# undef PRINT_ERROR_AND_RETURN
 }
 #endif /* RT_ARCH_X86 */
 
@@ -1230,7 +1263,8 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
             BOOL fReboot = FALSE;
 
 #ifdef RT_ARCH_X86
-            vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi();
+            s_vboxWinDrvInterceptedWinVerifyTrustCtx = pCtx; /* Hand over the driver installer context. */
+            vboxWinDrvInstallWinVerifyTrustInterceptorInSetupApi(pCtx);
 #endif
             /*
              * Pre-install driver.

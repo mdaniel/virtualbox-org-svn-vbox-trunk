@@ -1,7 +1,6 @@
-
 /* pngtest.c - a test program for libpng
  *
- * Copyright (c) 2018-2024 Cosmin Truta
+ * Copyright (c) 2018-2025 Cosmin Truta
  * Copyright (c) 1998-2002,2004,2006-2018 Glenn Randers-Pehrson
  * Copyright (c) 1996-1997 Andreas Dilger
  * Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.
@@ -45,8 +44,13 @@
 
 #include "png.h"
 
+/* This hack was introduced for historical reasons, and we are
+ * still keeping it in libpng-1.6.x for compatibility reasons.
+ */
+#define STDERR stdout
+
 /* Generate a compiler error if there is an old png.h in the search path. */
-typedef png_libpng_version_1_6_43 Your_png_h_is_not_version_1_6_43;
+typedef png_libpng_version_1_6_45 Your_png_h_is_not_version_1_6_45;
 
 /* Ensure that all version numbers in png.h are consistent with one another. */
 #if (PNG_LIBPNG_VER != PNG_LIBPNG_VER_MAJOR * 10000 + \
@@ -102,11 +106,6 @@ typedef png_libpng_version_1_6_43 Your_png_h_is_not_version_1_6_43;
 #ifndef PNG_STDIO_SUPPORTED
 typedef FILE * png_FILE_p;
 #endif
-
-/* This hack was introduced for historical reasons, and we are
- * still keeping it in libpng-1.6.x for compatibility reasons.
- */
-#define STDERR stdout
 
 #ifndef PNG_DEBUG
 #  define PNG_DEBUG 0
@@ -518,9 +517,9 @@ static int maximum_allocation = 0;
 static int total_allocation = 0;
 static int num_allocations = 0;
 
-png_voidp PNGCBAPI png_debug_malloc PNGARG((png_structp png_ptr,
-    png_alloc_size_t size));
-void PNGCBAPI png_debug_free PNGARG((png_structp png_ptr, png_voidp ptr));
+png_voidp PNGCBAPI png_debug_malloc(png_structp png_ptr,
+    png_alloc_size_t size);
+void PNGCBAPI png_debug_free(png_structp png_ptr, png_voidp ptr);
 
 png_voidp
 PNGCBAPI png_debug_malloc(png_structp png_ptr, png_alloc_size_t size)
@@ -1168,6 +1167,21 @@ test_one_file(const char *inname, const char *outname)
 #endif
 #endif /* Floating point */
 #endif /* Fixed point */
+#ifdef PNG_cICP_SUPPORTED
+   {
+      png_byte colour_primaries;
+      png_byte transfer_function;
+      png_byte matrix_coefficients;
+      png_byte video_full_range_flag;
+
+      if (png_get_cICP(read_ptr, read_info_ptr,
+                       &colour_primaries, &transfer_function,
+                       &matrix_coefficients, &video_full_range_flag) != 0)
+         png_set_cICP(write_ptr, write_info_ptr,
+                      colour_primaries, transfer_function,
+                      matrix_coefficients, video_full_range_flag);
+   }
+#endif
 #ifdef PNG_iCCP_SUPPORTED
    {
       png_charp name;

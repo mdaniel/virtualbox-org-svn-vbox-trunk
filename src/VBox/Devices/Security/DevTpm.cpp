@@ -1631,7 +1631,13 @@ static DECLCALLBACK(int) tpmR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
 
     rc = pHlp->pfnSSMGetU16(pSSM, &u16);
     AssertRCReturn(rc, rc);
-    if (u16 != pThis->uVenId)
+    /*
+     * r165971 fixes setting the proper vendor ID in the constructor.
+     * In older saved states it was always 0 which would made this check fail.
+     * So just ignore any mismatches if the loaded vendor ID is 0.
+     */
+    if (   u16 != pThis->uVenId
+        && u16 != 0)
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS,
                                        N_("Config mismatch - saved uVenId=%#RX16; configured uVenId=%#RX16"),
                                        u16, pThis->uVenId);

@@ -3675,8 +3675,16 @@ static void nemR3DarwinVmcsDump(PVMCPU pVCpu)
 static hv_return_t nemR3DarwinRunGuest(PVM pVM, PVMCPU pVCpu, PVMXTRANSIENT pVmxTransient)
 {
     TMNotifyStartOfExecution(pVM, pVCpu);
-
     Assert(!pVCpu->nem.s.fCtxChanged);
+
+    if (!(pVCpu->nem.s.fMdsClearOnVmEntry | pVCpu->nem.s.fMdsClearOnVmEntry))
+    { /* likely*/ }
+    else
+    {
+        uint16_t u16 = ASMGetDS();
+        __asm__ __volatile__("verw %0" : "=m" (u16) : "0" (u16));
+    }
+
     hv_return_t hrc;
     if (hv_vcpu_run_until) /** @todo Configur the deadline dynamically based on when the next timer triggers. */
         hrc = hv_vcpu_run_until(pVCpu->nem.s.hVCpuId, mach_absolute_time() + 2 * RT_NS_1SEC_64 * pVM->nem.s.cMachTimePerNs);

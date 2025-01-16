@@ -991,6 +991,13 @@ int Console::i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Auto
         InsertConfigNode(pRoot, "NEM", &pNEM);
         InsertConfigInteger(pNEM, "Allow64BitGuests", fIsGuest64Bit);
 
+        InsertConfigInteger(pNEM, "IBPBOnVMExit", fIBPBOnVMExit);
+        InsertConfigInteger(pNEM, "IBPBOnVMEntry", fIBPBOnVMEntry);
+        InsertConfigInteger(pNEM, "L1DFlushOnSched", fL1DFlushOnSched);
+        InsertConfigInteger(pNEM, "L1DFlushOnVMEntry", fL1DFlushOnVMEntry);
+        InsertConfigInteger(pNEM, "MDSClearOnSched", fMDSClearOnSched);
+        InsertConfigInteger(pNEM, "MDSClearOnVMEntry", fMDSClearOnVMEntry);
+
         /*
          * Paravirt. provider.
          */

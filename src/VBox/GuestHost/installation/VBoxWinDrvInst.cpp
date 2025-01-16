@@ -1689,7 +1689,10 @@ static int vboxWinDrvUninstallFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx,
 
             BOOL fReboot = FALSE;
             if (!(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
-                fRc = g_pfnDiUninstallDriverW(NULL /* hWndParent */, pCur->wszInfFile, 0 /* Flags */, &fReboot);
+            {
+                /* Takes the fully qualified path of the INF file to uninstall. */
+                fRc = g_pfnDiUninstallDriverW(NULL /* hWndParent */, wszInfPathAbs, 0 /* Flags */, &fReboot);
+            }
             else
                 fRc = TRUE;
             if (fRc)

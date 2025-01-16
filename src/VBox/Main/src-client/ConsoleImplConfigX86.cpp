@@ -610,7 +610,7 @@ int Console::i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Auto
     virtualBox->GetGuestOSType(osTypeId.raw(), pGuestOSType.asOutParam());
 
     BOOL fOsXGuest = FALSE;
-    BOOL fWinGuest = FALSE;
+    /*BOOL fWinGuest = FALSE; unused*/
     BOOL fOs2Guest = FALSE;
     BOOL fW9xGuest = FALSE;
     BOOL fDosGuest = FALSE;
@@ -619,7 +619,7 @@ int Console::i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Auto
         Bstr guestTypeFamilyId;
         hrc = pGuestOSType->COMGETTER(FamilyId)(guestTypeFamilyId.asOutParam());            H();
         fOsXGuest = guestTypeFamilyId == Bstr("MacOS");
-        fWinGuest = guestTypeFamilyId == Bstr("Windows");
+        /*fWinGuest = guestTypeFamilyId == Bstr("Windows");*/
         fOs2Guest = osTypeId.startsWith(GUEST_OS_ID_STR_PARTIAL("OS2"));
         fW9xGuest = osTypeId.startsWith(GUEST_OS_ID_STR_PARTIAL("Windows9"));    /* Does not include Windows Me. */
         fDosGuest = osTypeId.equals(GUEST_OS_ID_STR_X86("DOS")) || osTypeId.equals(GUEST_OS_ID_STR_X86("Windows31"));

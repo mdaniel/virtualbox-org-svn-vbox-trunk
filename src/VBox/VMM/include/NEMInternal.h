@@ -423,7 +423,7 @@ typedef struct NEMCPU
     bool                        fUsingHyperDR7 : 1;
     /** Whether \#DE needs to be intercepted for GIM. */
     bool                        fGCMTrapXcptDE : 1;
-#ifdef VBOX_VMM_TARGET_X86
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     /** Set if indirect branch prediction barrier on VM exit. */
     bool                        fIbpbOnVmExit : 1;
     /** Set if indirect branch prediction barrier on VM entry. */

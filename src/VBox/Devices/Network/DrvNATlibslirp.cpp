@@ -218,14 +218,15 @@ typedef struct DRVNAT
     /** Link state set when the VM is suspended. */
     PDMNETWORKLINKSTATE     enmLinkStateWant;
 
-#ifndef RT_OS_WINDOWS
+#ifdef RT_OS_WINDOWS
+    /** Wakeup socket pair for NAT thread.
+     * Entry #0 is write, entry #1 is read. */
+    SOCKET                  ahWakeupSockPair[2];
+#else
     /** The write end of the control pipe. */
     RTPIPE                  hPipeWrite;
     /** The read end of the control pipe. */
     RTPIPE                  hPipeRead;
-#else
-    /* wakeup socket pair for NAT thread */
-    SOCKET                  pWakeupSockPair[2];
 #endif
     /* count of bytes sent to notify NAT thread */
     volatile uint64_t       cbWakeupNotifs;
@@ -236,7 +237,7 @@ typedef struct DRVNAT
     /** thread delivering packets for receiving by the guest */
     PPDMTHREAD              pRecvThread;
     /** event to wakeup the guest receive thread */
-    RTSEMEVENT              EventRecv;
+    RTSEMEVENT              hEventRecv;
     /** Receive Req queue (deliver packets to the guest) */
     RTREQQUEUE              hRecvReqQueue;
 
@@ -292,7 +293,7 @@ static DECLCALLBACK(int) drvNATRecv(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
     {
         RTReqQueueProcess(pThis->hRecvReqQueue, 0);
         if (ASMAtomicReadU32(&pThis->cPkts) == 0)
-            RTSemEventWait(pThis->EventRecv, RT_INDEFINITE_WAIT);
+            RTSemEventWait(pThis->hEventRecv, RT_INDEFINITE_WAIT);
     }
     return VINF_SUCCESS;
 }
@@ -304,8 +305,7 @@ static DECLCALLBACK(int) drvNATRecvWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread
 {
     RT_NOREF(pThread);
     PDRVNAT pThis = PDMINS_2_DATA(pDrvIns, PDRVNAT);
-    int rc;
-    rc = RTSemEventSignal(pThis->EventRecv);
+    int rc = RTSemEventSignal(pThis->hEventRecv);
 
     STAM_COUNTER_INC(&pThis->StatNATRecvWakeups);
     return rc;
@@ -602,29 +602,26 @@ static DECLCALLBACK(void) drvNATNetworkUp_EndXmit(PPDMINETWORKUP pInterface)
 static void drvNATNotifyNATThread(PDRVNAT pThis, const char *pszWho)
 {
     RT_NOREF(pszWho);
-    int rc = 0;
-#ifndef RT_OS_WINDOWS
+#ifdef RT_OS_WINDOWS
+    int cbWritten = send(pThis->ahWakeupSockPair[0], "", 1, NULL);
+    if (RT_LIKELY(cbWritten != SOCKET_ERROR))
+    {
+        /* Count how many bites we send down the socket */
+        ASMAtomicIncU64(&pThis->cbWakeupNotifs);
+    }
+    else
+        Log4(("Notify NAT Thread Error %d\n", WSAGetLastError()));
+#else
     /* kick poll() */
     size_t cbIgnored;
-    rc = RTPipeWrite(pThis->hPipeWrite, "", 1, &cbIgnored);
+    int rc = RTPipeWrite(pThis->hPipeWrite, "", 1, &cbIgnored);
+    AssertRC(rc);
     if (RT_SUCCESS(rc))
     {
         /* Count how many bites we send down the socket */
         ASMAtomicIncU64(&pThis->cbWakeupNotifs);
     }
-#else
-    int cbWritten = send(pThis->pWakeupSockPair[0], "", 1, NULL);
-    if (cbWritten == SOCKET_ERROR)
-    {
-        Log4(("Notify NAT Thread Error %d\n", WSAGetLastError()));
-    }
-    else
-    {
-        /* Count how many bites we send down the socket */
-        ASMAtomicIncU64(&pThis->cbWakeupNotifs);
-    }
 #endif
-    AssertRC(rc);
 }
 
 /**
@@ -721,9 +718,11 @@ static DECLCALLBACK(void) drvNATNetworkUp_NotifyLinkChanged(PPDMINETWORKUP pInte
 static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
 {
     PDRVNAT pThis = PDMINS_2_DATA(pDrvIns, PDRVNAT);
+
+    /* The first polling entry is for the control/wakeup pipe. */
 #ifdef RT_OS_WINDOWS
-    drvNAT_AddPollCb(pThis->pWakeupSockPair[1], SLIRP_POLL_IN | SLIRP_POLL_HUP, pThis);
-    pThis->pNATState->polls[0].fd = pThis->pWakeupSockPair[1];
+    drvNAT_AddPollCb(pThis->ahWakeupSockPair[1], SLIRP_POLL_IN | SLIRP_POLL_HUP, pThis);
+    pThis->pNATState->polls[0].fd = pThis->ahWakeupSockPair[1];
 #else
     unsigned int cPollNegRet = 0;
     RTHCINTPTR i64NativeReadPipe = RTPipeToNative(pThis->hPipeRead);
@@ -785,21 +784,23 @@ static DECLCALLBACK(int) drvNATAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
         }
 
         Log4(("%s: poll\n", __FUNCTION__));
-        slirp_pollfds_poll(pThis->pNATState->pSlirp, cChangedFDs < 0, drvNAT_GetREventsCb /* SlirpGetREventsCb */, pThis /* opaque */);
+        slirp_pollfds_poll(pThis->pNATState->pSlirp, cChangedFDs < 0, drvNAT_GetREventsCb, pThis /* opaque */);
 
+        /*
+         * Drain the control pipe if necessary.
+         *
+         * Note! drvNATSend decoupled so we don't know how many times
+         *       device's thread sends before we've entered multiplex,
+         *       so to avoid false alarm drain pipe here to the very end
+         */
+        /** @todo revise the above note.   */
         if (pThis->pNATState->polls[0].revents & (POLLRDNORM|POLLPRI|POLLRDBAND))   /* POLLPRI won't be seen with WSAPoll. */
         {
-            /* drain the pipe
-             *
-             * Note! drvNATSend decoupled so we don't know how many times
-             * device's thread sends before we've entered multiplex,
-             * so to avoid false alarm drain pipe here to the very end
-             */
             char ch[1024];
             size_t cbRead;
             uint64_t cbWakeupNotifs = ASMAtomicReadU64(&pThis->cbWakeupNotifs);
 #ifdef RT_OS_WINDOWS
-            cbRead = recv(pThis->pWakeupSockPair[1], &ch[0], RT_MIN(cbWakeupNotifs, 1024), NULL);
+            cbRead = recv(pThis->ahWakeupSockPair[1], &ch[0], RT_MIN(cbWakeupNotifs, 1024), NULL);
 #else
             RTPipeRead(pThis->hPipeRead, &ch[0], RT_MIN(cbWakeupNotifs, 1024), &cbRead);
 #endif
@@ -1194,31 +1195,30 @@ static int drvNAT_PollEventHostToSlirp(int iEvents) {
 /*
  * Libslirp Callbacks
  */
+/** @todo r=bird: None of these require DECLCALLBACK as such, since the libslirp
+ * structure they're used with doesn't use DECLCALLBACKMEMBER or similar. */
 /**
  * Callback called by libslirp to send packet into guest.
  *
- * @param   pBuf    Pointer to packet buffer.
+ * @param   pvBuf   Pointer to packet buffer.
  * @param   cb      Size of packet.
- * @param   opaque  Pointer to NAT State context.
+ * @param   pvUser  Pointer to NAT State context.
  *
  * @returns Size of packet received or -1 on error.
  *
  * @thread  ?
  */
-static DECLCALLBACK(ssize_t) drvNAT_SendPacketCb(const void *pBuf, ssize_t cb, void *opaque /* PDRVNAT */)
+static DECLCALLBACK(ssize_t) drvNAT_SendPacketCb(const void *pvBuf, ssize_t cb, void *pvUser /* PDRVNAT */)
 {
-    char *pNewBuf = (char *)RTMemAlloc(cb);
-    if (pNewBuf == NULL)
-        return -1;
-
-    memcpy(pNewBuf, pBuf, cb);
-
-    PDRVNAT pThis = (PDRVNAT)opaque;
+    PDRVNAT const pThis = (PDRVNAT)pvUser;
     Assert(pThis);
 
-    LogFlow(("slirp_output BEGIN %p %d\n", pNewBuf, cb));
-    Log6(("slirp_output: pNewBuf=%p cb=%#x (pThis=%p)\n"
-          "%.*Rhxd\n", pNewBuf, cb, pThis, cb, pNewBuf));
+    void * const pvNewBuf = RTMemDup(pvBuf, cb);
+    AssertReturn(pvNewBuf, -1);
+
+    LogFlow(("slirp_output BEGIN %p %d\n", pvNewBuf, cb));
+    Log6(("slirp_output: pvNewBuf=%p cb=%#x (pThis=%p)\n"
+          "%.*Rhxd\n", pvNewBuf, cb, pThis, cb, pvNewBuf));
 
     /* don't queue new requests when the NAT thread is about to stop */
     if (pThis->pSlirpThread->enmState != PDMTHREADSTATE_RUNNING)
@@ -1226,47 +1226,44 @@ static DECLCALLBACK(ssize_t) drvNAT_SendPacketCb(const void *pBuf, ssize_t cb, v
 
     ASMAtomicIncU32(&pThis->cPkts);
     int rc = RTReqQueueCallEx(pThis->hRecvReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
-                              (PFNRT)drvNATRecvWorker, 3, pThis, pNewBuf, cb);
-    AssertRC(rc);
+                              (PFNRT)drvNATRecvWorker, 3, pThis, pvNewBuf, cb);
+    AssertRCStmt(rc, RTMemFree(pvNewBuf));
     drvNATRecvWakeup(pThis->pDrvIns, pThis->pRecvThread);
+
+    /** @todo r=bird: explain why we wake up the other thread here? */
     drvNATNotifyNATThread(pThis, "drvNAT_SendPacketCb");
+
     STAM_COUNTER_INC(&pThis->StatQueuePktSent);
     LogFlowFuncLeave();
     return cb;
 }
 
 /**
- * Callback called by libslirp on an error from a guest.
+ * Callback called by libslirp when the guest does something wrong.
  *
  * @param   pMsg    Error message string.
- * @param   opaque  Pointer to NAT State context.
+ * @param   pvUser  Pointer to NAT State context.
  *
  * @thread  ?
  */
-static DECLCALLBACK(void) drvNAT_GuestErrorCb(const char *pMsg, void *opaque)
+static DECLCALLBACK(void) drvNAT_GuestErrorCb(const char *pszMsg, void *pvUser)
 {
-    PDRVNAT pThis = (PDRVNAT)opaque;
-    Assert(pThis);
-
-    PDMDRV_SET_ERROR(pThis->pDrvIns, VERR_PDM_UNKNOWN_DRVREG_VERSION,
-                            N_("Unknown error: "));
-    LogRel((pMsg));
+    /* Note! This is _just_ libslirp complaining about odd guest behaviour.
+             It is nothing we need to create popup messages in the GUI about. */
+    LogRelMax(250, ("NAT Guest Error: %s\n", pszMsg));
+    RT_NOREF(pvUser);
 }
 
 /**
  * Callback called by libslirp to get the current timestamp in nanoseconds.
  *
- * @param   opaque  Pointer to NAT State context.
+ * @param   pvUser  Pointer to NAT State context.
  *
  * @returns 64-bit signed integer representing time in nanoseconds.
  */
-static DECLCALLBACK(int64_t) drvNAT_ClockGetNsCb(void *opaque)
+static DECLCALLBACK(int64_t) drvNAT_ClockGetNsCb(void *pvUser)
 {
-    PDRVNAT pThis = (PDRVNAT)opaque;
-    Assert(pThis);
-
-    RT_NOREF(pThis);
-
+    RT_NOREF(pvUser);
     return (int64_t)RTTimeNanoTS();
 }
 
@@ -1450,7 +1447,11 @@ static DECLCALLBACK(void) drvNATDestruct(PPDMDRVINS pDrvIns)
     SlirpState * const pNATState = pThis->pNATState;
     if (pNATState)
     {
-        slirp_cleanup(pNATState->pSlirp);
+        if (pNATState->pSlirp)
+        {
+            slirp_cleanup(pNATState->pSlirp);
+            pNATState->pSlirp = NULL;
+        }
 
 #ifdef VBOX_WITH_STATISTICS
 # define DRV_PROFILE_COUNTER(name, dsc)     DEREGISTER_COUNTER(name, pThis)
@@ -1470,8 +1471,8 @@ static DECLCALLBACK(void) drvNATDestruct(PPDMDRVINS pDrvIns)
     RTReqQueueDestroy(pThis->hRecvReqQueue);
     pThis->hRecvReqQueue = NIL_RTREQQUEUE;
 
-    RTSemEventDestroy(pThis->EventRecv);
-    pThis->EventRecv = NIL_RTSEMEVENT;
+    RTSemEventDestroy(pThis->hEventRecv);
+    pThis->hEventRecv = NIL_RTSEMEVENT;
 
     if (RTCritSectIsInitialized(&pThis->DevAccessLock))
         RTCritSectDelete(&pThis->DevAccessLock);
@@ -1482,6 +1483,8 @@ static DECLCALLBACK(void) drvNATDestruct(PPDMDRVINS pDrvIns)
 #ifndef RT_OS_WINDOWS
     RTPipeClose(pThis->hPipeRead);
     RTPipeClose(pThis->hPipeWrite);
+    pThis->hPipeRead = NIL_RTPIPE;
+    pThis->hPipeWrite = NIL_RTPIPE;
 #endif
 }
 
@@ -1500,6 +1503,13 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
      * Init the static parts.
      */
     pThis->pDrvIns                      = pDrvIns;
+    pThis->hSlirpReqQueue               = NIL_RTREQQUEUE;
+    pThis->hEventRecv                   = NIL_RTSEMEVENT;
+    pThis->hRecvReqQueue                = NIL_RTREQQUEUE;
+#ifndef RT_OS_WINDOWS
+    pThis->hPipeRead                    = NIL_RTPIPE;
+    pThis->hPipeWrite                   = NIL_RTPIPE;
+#endif
 
     SlirpState * const pNATState = (SlirpState *)RTMemAllocZ(sizeof(*pNATState));
     if (pNATState == NULL)
@@ -1510,9 +1520,6 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     pNATState->polls                    = (struct pollfd *)RTMemAllocZ(64 * sizeof(struct pollfd));
     AssertReturn(pNATState->polls, VERR_NO_MEMORY);
     pNATState->uPollCap                 = 64;
-
-    pThis->hSlirpReqQueue               = NIL_RTREQQUEUE;
-    pThis->EventRecv                    = NIL_RTSEMEVENT;
 
     /* IBase */
     pDrvIns->IBase.pfnQueryInterface    = drvNATQueryInterface;
@@ -1555,22 +1562,23 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
                                   "|ForwardBroadcast"
                                   , "PortForwarding");
 
-    LogRel(("These CFGM parameters are currently not supported when using NAT:\n"
-        "DNSProxy\n"
-        "UseHostResolver\n"
-        "AliasMode\n"
-        "SockRcv\n"
-        "SockSnd\n"
-        "TcpRcv\n"
-        "TcpSnd\n"
-        "ICMPCacheLimit\n"
-        "HostResolverMappings\n"
-    ));
+    LogRel(("NAT: These CFGM parameters are currently not supported when using NAT:\n"
+            "          DNSProxy\n"
+            "          UseHostResolver\n"
+            "          AliasMode\n"
+            "          SockRcv\n"
+            "          SockSnd\n"
+            "          TcpRcv\n"
+            "          TcpSnd\n"
+            "          ICMPCacheLimit\n"
+            "          HostResolverMappings\n"
+            ));
 
     /*
      * Get the configuration settings.
      */
     int  rc;
+    /** @todo clean up the macros used here. S32 != int. Use defaults. ++  */
 
     bool fPassDomain = true;
     GET_BOOL(rc, pDrvIns, pCfg, "PassDomain", fPassDomain);
@@ -1593,19 +1601,18 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     GET_BOOL(rc, pDrvIns, pCfg, "LocalhostReachable", fLocalhostReachable);
     int i32SoMaxConn = 10;
     GET_S32(rc, pDrvIns, pCfg, "SoMaxConnection", i32SoMaxConn);
+
     /*
      * Query the network port interface.
      */
     pThis->pIAboveNet = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMINETWORKDOWN);
     if (!pThis->pIAboveNet)
         return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
-                                N_("Configuration error: the above device/driver didn't "
-                                "export the network port interface"));
+                                N_("Configuration error: the above device/driver didn't export the network port interface"));
     pThis->pIAboveConfig = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMINETWORKCONFIG);
     if (!pThis->pIAboveConfig)
         return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
-                                N_("Configuration error: the above device/driver didn't "
-                                "export the network config interface"));
+                                N_("Configuration error: the above device/driver didn't export the network config interface"));
 
     /* Generate a network address for this network card. */
     char szNetwork[32]; /* xxx.xxx.xxx.xxx/yy */
@@ -1614,28 +1621,36 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
         return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS, N_("NAT%d: Configuration error: missing network"),
                                    pDrvIns->iInstance);
 
-    RTNETADDRIPV4 Network, Netmask, Nettemp;
+    RTNETADDRIPV4 Network, Netmask;
     rc = RTCidrStrToIPv4(szNetwork, &Network, &Netmask);
     if (RT_FAILURE(rc))
         return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
                                    N_("NAT#%d: Configuration error: network '%s' describes not a valid IPv4 network"),
                                    pDrvIns->iInstance, szNetwork);
 
-    /* Construct Libslirp Config and Initialzie Slirp */
-
+    /*
+     * Construct Libslirp Config.
+     */
     LogFlow(("Here is what is coming out of the vbox config (NAT#%d):\n"
              "  Network: %RTnaipv4\n"
              "  Netmask: %RTnaipv4\n",
              pDrvIns->iInstance, RT_H2BE_U32(Network.u), RT_H2BE_U32(Netmask.u)));
 
+    /* IPv4: */
     struct in_addr vnetwork = RTNetIPv4AddrHEToInAddr(&Network);
     struct in_addr vnetmask = RTNetIPv4AddrHEToInAddr(&Netmask);
-    Nettemp = Network; Nettemp.u |= 2;  /* Usually 10.0.2.2 */
-    struct in_addr vhost       = RTNetIPv4AddrHEToInAddr(&Nettemp);
-    Nettemp = Network; Nettemp.u |= 15; /* Usually 10.0.2.15 */
-    struct in_addr vdhcp_start = RTNetIPv4AddrHEToInAddr(&Nettemp);
-    Nettemp = Network; Nettemp.u |= 3;  /* Usually 10.0.2.3 */
-    struct in_addr vnameserver = RTNetIPv4AddrHEToInAddr(&Nettemp);
+
+    RTNETADDRIPV4 NetTemp = Network;
+    NetTemp.u |= 2;  /* Usually 10.0.2.2 */
+    struct in_addr vhost       = RTNetIPv4AddrHEToInAddr(&NetTemp);
+
+    NetTemp = Network;
+    NetTemp.u |= 15; /* Usually 10.0.2.15 */
+    struct in_addr vdhcp_start = RTNetIPv4AddrHEToInAddr(&NetTemp);
+
+    NetTemp = Network;
+    NetTemp.u |= 3;  /* Usually 10.0.2.3 */
+    struct in_addr vnameserver = RTNetIPv4AddrHEToInAddr(&NetTemp);
 
     SlirpConfig slirpCfg = { 0 };
     static SlirpCb slirpCallbacks = { 0 };
@@ -1648,13 +1663,10 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     slirpCfg.vhost = vhost;
     slirpCfg.in6_enabled = true;
 
-    /*
-     * Use the same prefix as the NAT Network default:
-     * [fd17:625c:f037:XXXX::/64] - RFC 4193 (ULA) Locally Assigned
-     * Global ID where XXXX, 16 bit Subnet ID, are two bytes from the
-     * middle of the IPv4 address, e.g. :0002: for 10.0.2.1.
-     */
-
+    /* IPv6: Use the same prefix as the NAT Network default:
+       [fd17:625c:f037:XXXX::/64] - RFC 4193 (ULA) Locally Assigned
+       Global ID where XXXX, 16 bit Subnet ID, are two bytes from the
+       middle of the IPv4 address, e.g. :0002: for 10.0.2.1. */
     inet_pton(AF_INET6, "fd17:625c:f037:0::",  &slirpCfg.vprefix_addr6);
     inet_pton(AF_INET6, "fd17:625c:f037:0::2", &slirpCfg.vhost6);
     inet_pton(AF_INET6, "fd17:625c:f037:0::3", &slirpCfg.vnameserver6);
@@ -1682,24 +1694,27 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
     slirpCfg.fForwardBroadcast = fForwardBroadcast;
     slirpCfg.iSoMaxConn = i32SoMaxConn;
 
-    slirpCallbacks.send_packet = &drvNAT_SendPacketCb;
-    slirpCallbacks.guest_error = &drvNAT_GuestErrorCb;
-    slirpCallbacks.clock_get_ns = &drvNAT_ClockGetNsCb;
-    slirpCallbacks.timer_new = &drvNAT_TimerNewCb;
-    slirpCallbacks.timer_free = &drvNAT_TimerFreeCb;
-    slirpCallbacks.timer_mod = &drvNAT_TimerModCb;
-    slirpCallbacks.register_poll_fd = &drvNAT_RegisterPoll;
-    slirpCallbacks.unregister_poll_fd = &drvNAT_UnregisterPoll;
-    slirpCallbacks.notify = &drvNAT_NotifyCb;
+    slirpCallbacks.send_packet = drvNAT_SendPacketCb;
+    slirpCallbacks.guest_error = drvNAT_GuestErrorCb;
+    slirpCallbacks.clock_get_ns = drvNAT_ClockGetNsCb;
+    slirpCallbacks.timer_new = drvNAT_TimerNewCb;
+    slirpCallbacks.timer_free = drvNAT_TimerFreeCb;
+    slirpCallbacks.timer_mod = drvNAT_TimerModCb;
+    slirpCallbacks.register_poll_fd = drvNAT_RegisterPoll;
+    slirpCallbacks.unregister_poll_fd = drvNAT_UnregisterPoll;
+    slirpCallbacks.notify = drvNAT_NotifyCb;
     slirpCallbacks.init_completed = NULL;
     slirpCallbacks.timer_new_opaque = NULL;
 
-    Slirp *pSlirp = slirp_new(/* cfg */ &slirpCfg, /* callbacks */ &slirpCallbacks, /* opaque */ pThis);
+    /*
+     * Initialize Slirp
+     */
+    Slirp * const pSlirp = slirp_new(/* cfg */ &slirpCfg, /* callbacks */ &slirpCallbacks, /* opaque */ pThis);
+    if (!pSlirp)
+        return PDMDRV_SET_ERROR(pDrvIns, VERR_INTERNAL_ERROR_4,
+                                N_("Configuration error: libslirp failed to create new instance - probably misconfiguration"));
 
-    if (pSlirp == NULL)
-        return VERR_INVALID_POINTER;
-
-    pThis->pNATState->pSlirp = pSlirp;
+    pNATState->pSlirp = pSlirp;
 
     rc = drvNATConstructRedir(pDrvIns->iInstance, pThis, pCfg, &Network);
     AssertLogRelRCReturn(rc, rc);
@@ -1717,7 +1732,7 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
                                drvNATRecvWakeup, 256 * _1K, RTTHREADTYPE_IO, "NATRX");
     AssertRCReturn(rc, rc);
 
-    rc = RTSemEventCreate(&pThis->EventRecv);
+    rc = RTSemEventCreate(&pThis->hEventRecv);
     AssertRCReturn(rc, rc);
 
     rc = RTCritSectInit(&pThis->DevAccessLock);
@@ -1736,17 +1751,15 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 # include "slirp/counters.h"
 #endif
 
-#ifndef RT_OS_WINDOWS
-    // Create the control pipe.
-    rc = RTPipeCreate(&pThis->hPipeRead, &pThis->hPipeWrite, 0 /*fFlags*/);
+#ifdef RT_OS_WINDOWS
+    /* Create the wakeup socket pair (idx=0 is write, idx=1 is read). */
+    pThis->ahWakeupSockPair[0] = INVALID_SOCKET;
+    pThis->ahWakeupSockPair[1] = INVALID_SOCKET;
+    rc = RTWinSocketPair(AF_INET, SOCK_DGRAM, 0, pThis->ahWakeupSockPair);
     AssertRCReturn(rc, rc);
 #else
-    // Create the wakeup socket pair.
-    pThis->pWakeupSockPair[0] = NULL;
-    pThis->pWakeupSockPair[1] = NULL;
-
-    /* idx=0 is write, idx=1 is read */
-    rc = RTWinSocketPair(AF_INET, SOCK_DGRAM, 0, pThis->pWakeupSockPair);
+    /* Create the control pipe. */
+    rc = RTPipeCreate(&pThis->hPipeRead, &pThis->hPipeWrite, 0 /*fFlags*/);
     AssertRCReturn(rc, rc);
 #endif
     /* initalize the notifier counter */

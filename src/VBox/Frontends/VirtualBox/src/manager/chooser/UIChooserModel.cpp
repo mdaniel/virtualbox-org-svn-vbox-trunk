@@ -1285,7 +1285,8 @@ void UIChooserModel::sltHandleCloudProfileManagerCumulativeChange()
 
 void UIChooserModel::sltMakeSureCurrentItemVisible()
 {
-    root()->toGroupItem()->makeSureItemIsVisible(currentItem());
+    if (currentItem())
+        root()->toGroupItem()->makeSureItemIsVisible(currentItem());
 }
 
 void UIChooserModel::sltCurrentItemDestroyed()

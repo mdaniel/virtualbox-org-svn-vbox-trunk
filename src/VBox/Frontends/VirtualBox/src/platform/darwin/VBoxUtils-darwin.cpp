@@ -536,11 +536,11 @@ void darwinCreateContextMenuEvent(void *pvUser, int x, int y)
 
 QString darwinResolveAlias(const QString &strFile)
 {
-    OSErr err = noErr;
     FSRef fileRef;
     QString strTarget;
     do
     {
+        OSErr err;
         Boolean fDir;
         if ((err = FSPathMakeRef((const UInt8*)strFile.toUtf8().constData(), &fileRef, &fDir)) != noErr)
             break;

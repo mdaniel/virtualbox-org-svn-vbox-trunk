@@ -1477,9 +1477,9 @@ static void vmsvga3dInfoContextWorkerOne(PCDBGFINFOHLP pHlp, PVMSVGA3DCONTEXT pC
                             FLOAT_FMT_ARGS(pContext->state.aLightData[i].data.phi));
         }
 
-    for (uint32_t i = 0; i < RT_ELEMENTS(pContext->state.aRenderTargets); i++)
+    for (size_t i = 0; i < RT_ELEMENTS(pContext->state.aRenderTargets); i++)
         if (pContext->state.aRenderTargets[i] != SVGA3D_INVALID_ID)
-            pHlp->pfnPrintf(pHlp, "aRenderTargets[%s/%u] = %#x (%d)\n",
+            pHlp->pfnPrintf(pHlp, "aRenderTargets[%s/%zu] = %#x (%d)\n",
                             i < RT_ELEMENTS(g_apszRenderTargets) ? g_apszRenderTargets[i] : "UNKNOWN", i,
                             pContext->state.aRenderTargets[i], pContext->state.aRenderTargets[i]);
 

@@ -957,7 +957,7 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                     break;
                 }
                 SafeArray<BYTE> icon((size_t)cbSize);
-                hrc = RTFileRead(iconFile, icon.raw(), (size_t)cbSize, NULL);
+                vrc = RTFileRead(iconFile, icon.raw(), (size_t)cbSize, NULL);
                 if (RT_FAILURE(vrc))
                 {
                     RTMsgError(ModifyVM::tr("Cannot read contents of file \"%s\": %Rrc"), ValueUnion.psz, vrc);

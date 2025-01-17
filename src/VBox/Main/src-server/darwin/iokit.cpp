@@ -942,8 +942,6 @@ static void darwinDetermineUSBDeviceStateWorker(PUSBDEVICE pCur, io_object_t USB
     if (krc != KERN_SUCCESS)
         return;
 
-    bool fUserClientOnly = true; RT_NOREF(fUserClientOnly); /* Shut up Clang 13 (-Wunused-but-set-variable). */
-    bool fConfigured = false;    RT_NOREF(fConfigured);
     bool fInUse = false;
     bool fSeizable = true;
     io_object_t Interface;
@@ -955,8 +953,6 @@ static void darwinDetermineUSBDeviceStateWorker(PUSBDEVICE pCur, io_object_t USB
             &&  (   !strcmp(szName, "IOUSBInterface")
                  || !strcmp(szName, "IOUSBHostInterface")))
         {
-            fConfigured = true;
-
             /*
              * Iterate the interface children looking for stuff other than
              * IOUSBUserClientInit objects.
@@ -972,8 +968,6 @@ static void darwinDetermineUSBDeviceStateWorker(PUSBDEVICE pCur, io_object_t USB
                     if (    krc == KERN_SUCCESS
                         &&  strcmp(szName, "IOUSBUserClientInit"))
                     {
-                        fUserClientOnly = false;
-
                         if (   !strcmp(szName, "IOUSBMassStorageClass")
                             || !strcmp(szName, "IOUSBMassStorageInterfaceNub"))
                         {
@@ -1479,9 +1473,8 @@ PDARWINFIXEDDRIVE DarwinGetFixedDrives(void)
         bool fIsGenericStorage = false;
         io_registry_entry_t ChildEntry = MediaService;
         io_registry_entry_t ParentEntry = IO_OBJECT_NULL;
-        kern_return_t krc = KERN_SUCCESS;
         while (   !fIsGenericStorage
-               && (krc = IORegistryEntryGetParentEntry(ChildEntry, kIOServicePlane, &ParentEntry)) == KERN_SUCCESS)
+               && IORegistryEntryGetParentEntry(ChildEntry, kIOServicePlane, &ParentEntry) == KERN_SUCCESS)
         {
             if (!IOObjectIsEqualTo(ChildEntry, MediaService))
                 IOObjectRelease(ChildEntry);
@@ -1541,7 +1534,7 @@ PDARWINFIXEDDRIVE DarwinGetFixedDrives(void)
                      * "Whole" = True and "BSDName" properties set.
                      */
                     io_name_t szEntryName = { 0 };
-                    if ((krc = IORegistryEntryGetName(MediaService, szEntryName)) == KERN_SUCCESS)
+                    if (IORegistryEntryGetName(MediaService, szEntryName) == KERN_SUCCESS)
                     {
                         /* remove " Media" from the end of the name */
                         char *pszMedia = strrchr(szEntryName, ' ');

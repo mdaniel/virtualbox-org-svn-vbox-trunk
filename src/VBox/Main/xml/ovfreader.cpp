@@ -1059,12 +1059,6 @@ void StorageItem::_checkConsistencyAndCompliance() RT_THROW(OVFLogicError)
 void EthernetPortItem::fillItem(const xml::ElementNode *item)
 {
     VirtualHardwareItem::fillItem(item);
-
-    xml::NodesLoop loopItemChildren(*item);// all child elements
-    const xml::ElementNode *pelmItemChild;
-    while ((pelmItemChild = loopItemChildren.forAllNodes()))
-    {
-    }
 }
 
 void EthernetPortItem::_checkConsistencyAndCompliance() RT_THROW(OVFLogicError)

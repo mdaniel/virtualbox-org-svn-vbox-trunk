@@ -569,33 +569,33 @@ VBGLR3DECL(int) VbglR3HGCMCall(PVBGLIOCHGCMCALL pInfo, size_t cbInfo)
     AssertMsg(pInfo->Hdr.cbOut == cbInfo, ("cbOut=%#x cbInfo=%#zx\n", pInfo->Hdr.cbOut, cbInfo));
     Assert(sizeof(*pInfo) + pInfo->cParms * sizeof(HGCMFunctionParameter) <= cbInfo);
 
-    HGCMFunctionParameter *offSrcParms = VBGL_HGCM_GET_CALL_PARMS(pInfo);
-    PVBOXHGCMSVCPARM       paDstParms  = (PVBOXHGCMSVCPARM)RTMemAlloc(pInfo->cParms * sizeof(VBOXHGCMSVCPARM));
+    HGCMFunctionParameter *pSrcParm   = VBGL_HGCM_GET_CALL_PARMS(pInfo);
+    PVBOXHGCMSVCPARM       paDstParms = (PVBOXHGCMSVCPARM)RTMemAlloc(pInfo->cParms * sizeof(VBOXHGCMSVCPARM));
 
     uint16_t i = 0;
     for (; i < pInfo->cParms; i++)
     {
-        switch (offSrcParms->type)
+        switch (pSrcParm->type)
         {
             case VMMDevHGCMParmType_32bit:
             {
                 paDstParms[i].type     = VBOX_HGCM_SVC_PARM_32BIT;
-                paDstParms[i].u.uint32 = offSrcParms->u.value32;
+                paDstParms[i].u.uint32 = pSrcParm->u.value32;
                 break;
             }
 
             case VMMDevHGCMParmType_64bit:
             {
                 paDstParms[i].type     = VBOX_HGCM_SVC_PARM_64BIT;
-                paDstParms[i].u.uint64 = offSrcParms->u.value64;
+                paDstParms[i].u.uint64 = pSrcParm->u.value64;
                 break;
             }
 
             case VMMDevHGCMParmType_LinAddr:
             {
                 paDstParms[i].type           = VBOX_HGCM_SVC_PARM_PTR;
-                paDstParms[i].u.pointer.addr = (void *)offSrcParms->u.LinAddr.uAddr;
-                paDstParms[i].u.pointer.size = offSrcParms->u.LinAddr.cb;
+                paDstParms[i].u.pointer.addr = (void *)pSrcParm->u.LinAddr.uAddr;
+                paDstParms[i].u.pointer.size = pSrcParm->u.LinAddr.cb;
                 break;
             }
 
@@ -604,7 +604,7 @@ VBGLR3DECL(int) VbglR3HGCMCall(PVBGLIOCHGCMCALL pInfo, size_t cbInfo)
                 break;
         }
 
-        offSrcParms++;
+        pSrcParm++;
     }
 
     PTSTHGCMMOCKSVC const pSvc = TstHgcmMockSvcInst();
@@ -614,24 +614,24 @@ VBGLR3DECL(int) VbglR3HGCMCall(PVBGLIOCHGCMCALL pInfo, size_t cbInfo)
                                  pInfo->u32Function, pInfo->cParms, paDstParms);
     if (RT_SUCCESS(rc2))
     {
-        offSrcParms = VBGL_HGCM_GET_CALL_PARMS(pInfo);
+        pSrcParm = VBGL_HGCM_GET_CALL_PARMS(pInfo);
 
         for (i = 0; i < pInfo->cParms; i++)
         {
-            paDstParms[i].type = offSrcParms->type;
+            paDstParms[i].type = pSrcParm->type;
             switch (paDstParms[i].type)
             {
                 case VMMDevHGCMParmType_32bit:
-                    offSrcParms->u.value32 = paDstParms[i].u.uint32;
+                    pSrcParm->u.value32 = paDstParms[i].u.uint32;
                     break;
 
                 case VMMDevHGCMParmType_64bit:
-                    offSrcParms->u.value64 = paDstParms[i].u.uint64;
+                    pSrcParm->u.value64 = paDstParms[i].u.uint64;
                     break;
 
                 case VMMDevHGCMParmType_LinAddr:
                 {
-                    offSrcParms->u.LinAddr.cb = paDstParms[i].u.pointer.size;
+                    pSrcParm->u.LinAddr.cb = paDstParms[i].u.pointer.size;
                     break;
                 }
 
@@ -640,7 +640,7 @@ VBGLR3DECL(int) VbglR3HGCMCall(PVBGLIOCHGCMCALL pInfo, size_t cbInfo)
                     break;
             }
 
-            offSrcParms++;
+            pSrcParm++;
         }
     }
 

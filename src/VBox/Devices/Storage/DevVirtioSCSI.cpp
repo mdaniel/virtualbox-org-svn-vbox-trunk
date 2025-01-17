@@ -1965,10 +1965,36 @@ static DECLCALLBACK(void) virtioScsiR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHl
     RT_NOREF(pszArgs); //bool fVerbose = pszArgs && strstr(pszArgs, "verbose") != NULL;
 
     /* Show basic information. */
-    pHlp->pfnPrintf(pHlp, "%s#%d: virtio-scsci ",
-                    pDevIns->pReg->szName,
-                    pDevIns->iInstance);
-    pHlp->pfnPrintf(pHlp, "numTargets=%lu", pThis->cTargets);
+    pHlp->pfnPrintf(pHlp, "%s#%d: %RU32 targets\n",
+                    pDevIns->pReg->szName, pDevIns->iInstance, pThis->cTargets);
+
+    pHlp->pfnPrintf(pHlp, "Config: uNumVirtqs=%RU32 uSegMax=%RU32 uMaxSectors=%RU32\n",
+                    pThis->virtioScsiConfig.uNumVirtqs, pThis->virtioScsiConfig.uSegMax, pThis->virtioScsiConfig.uMaxSectors);
+    pHlp->pfnPrintf(pHlp, "        uCmdPerLun=%RU32 uEventInfoSize=%RU32 uSenseSize=%RU32\n",
+                    pThis->virtioScsiConfig.uCmdPerLun, pThis->virtioScsiConfig.uEventInfoSize, pThis->virtioScsiConfig.uSenseSize);
+    pHlp->pfnPrintf(pHlp, "        uCdbSize=%RU32 uMaxChannel=%RU16 uMaxTarget=%RU16 uMaxLun=%RU32\n",
+                    pThis->virtioScsiConfig.uCdbSize, pThis->virtioScsiConfig.uMaxChannel, pThis->virtioScsiConfig.uMaxTarget, pThis->virtioScsiConfig.uMaxLun);
+
+
+    pHlp->pfnPrintf(pHlp, "Negotiated: %s%s%s%s\n",
+                    pThis->fHasInOutBufs ? "INOUT "   : "",
+                    pThis->fHasHotplug   ? "HOTPLUG " : "",
+                    pThis->fHasT10pi     ? "T10_PI "  : "",
+                    pThis->fHasLunChange ? "CHANGE "  : "");
+
+    pHlp->pfnPrintf(pHlp, "Async event mask: %RX32\n", pThis->fAsyncEvtsEnabled);
+
+    if (pThis->fVirtioReady)
+        pHlp->pfnPrintf(pHlp, "Device is ready\n");
+    else
+        pHlp->pfnPrintf(pHlp, "Device is not ready!\n");
+
+    if (pThis->fEventsMissed)
+        pHlp->pfnPrintf(pHlp, "Device missed events!\n");
+
+    if (pThis->fResetting)
+        pHlp->pfnPrintf(pHlp, "Device is resetting!\n");
+
 }
 
 
@@ -2683,7 +2709,7 @@ static DECLCALLBACK(int) virtioScsiR3Construct(PPDMDEVINS pDevIns, int iInstance
      * Register the debugger info callback (ignore errors).
      */
     char szTmp[128];
-    RTStrPrintf(szTmp, sizeof(szTmp), "%s%u", pDevIns->pReg->szName, pDevIns->iInstance);
+    RTStrPrintf(szTmp, sizeof(szTmp), "virtioscsi%u", pDevIns->iInstance);
     PDMDevHlpDBGFInfoRegister(pDevIns, szTmp, "virtio-scsi info", virtioScsiR3Info);
 
     return rc;

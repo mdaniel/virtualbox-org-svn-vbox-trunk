@@ -2883,6 +2883,8 @@ HRESULT Console::getGuestEnteredACPIMode(BOOL *aEntered)
                     vrc = VERR_PDM_MISSING_INTERFACE;
             }
         }
+
+        /** @todo r=andy Communicate (some of the) vrc errors to hrc (+ set error). */
     }
 
     LogFlowThisFuncLeave();

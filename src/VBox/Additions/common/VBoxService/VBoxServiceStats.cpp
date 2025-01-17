@@ -634,13 +634,11 @@ static void vgsvcVMStatsReport(void)
  */
 static DECLCALLBACK(int) vgsvcVMStatsWorker(bool volatile *pfShutdown)
 {
-    int rc = VINF_SUCCESS;
-
     /* Start monitoring of the stat event change event. */
-    rc = VbglR3CtlFilterMask(VMMDEV_EVENT_STATISTICS_INTERVAL_CHANGE_REQUEST, 0);
+    int rc = VbglR3CtlFilterMask(VMMDEV_EVENT_STATISTICS_INTERVAL_CHANGE_REQUEST, 0);
     if (RT_FAILURE(rc))
     {
-        VGSvcVerbose(3, "vgsvcVMStatsWorker: VbglR3CtlFilterMask failed with %d\n", rc);
+        VGSvcVerbose(3, "vgsvcVMStatsWorker: VbglR3CtlFilterMask failed with %Rrc\n", rc);
         return rc;
     }
 
@@ -680,24 +678,27 @@ static DECLCALLBACK(int) vgsvcVMStatsWorker(bool volatile *pfShutdown)
          */
         if (*pfShutdown)
             break;
-        int rc2 = RTSemEventMultiWait(g_VMStatEvent, cWaitMillies);
+        rc = RTSemEventMultiWait(g_VMStatEvent, cWaitMillies);
         if (*pfShutdown)
             break;
-        if (rc2 != VERR_TIMEOUT && RT_FAILURE(rc2))
+        if (rc != VERR_TIMEOUT && RT_FAILURE(rc))
         {
-            VGSvcError("vgsvcVMStatsWorker: RTSemEventMultiWait failed; rc2=%Rrc\n", rc2);
-            rc = rc2;
+            VGSvcError("vgsvcVMStatsWorker: RTSemEventMultiWait failed; rc=%Rrc\n", rc);
             break;
         }
     }
 
     /* Cancel monitoring of the stat event change event. */
-    rc = VbglR3CtlFilterMask(0, VMMDEV_EVENT_STATISTICS_INTERVAL_CHANGE_REQUEST);
-    if (RT_FAILURE(rc))
-        VGSvcVerbose(3, "vgsvcVMStatsWorker: VbglR3CtlFilterMask failed with %d\n", rc);
+    int rc2 = VbglR3CtlFilterMask(0, VMMDEV_EVENT_STATISTICS_INTERVAL_CHANGE_REQUEST);
+    if (RT_FAILURE(rc2))
+    {
+        VGSvcVerbose(3, "vgsvcVMStatsWorker: VbglR3CtlFilterMask failed with %d\n", rc2);
+        if (RT_SUCCESS(rc)) /* Keep original rc. */
+            rc = rc2;
+    }
 
-    VGSvcVerbose(3, "VBoxStatsThread: finished statistics change request thread\n");
-    return 0;
+    VGSvcVerbose(3, "VBoxStatsThread: finished statistics change request thread with %Rrc\n", rc);
+    return rc;
 }
 
 

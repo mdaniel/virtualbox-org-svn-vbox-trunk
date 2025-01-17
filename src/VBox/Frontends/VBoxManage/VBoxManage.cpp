@@ -356,7 +356,7 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
     if (fFlags & SHOW_PROGRESS_DESC)
     {
         com::Bstr bstrDescription;
-        hrc = progress->COMGETTER(Description(bstrDescription.asOutParam()));
+        hrc = progress->COMGETTER(Description)(bstrDescription.asOutParam());
         if (FAILED(hrc))
         {
             RTStrmPrintf(g_pStdErr, VBoxManage::tr("Failed to get progress description: %Rhrc\n"), hrc);
@@ -394,10 +394,10 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
 #endif
     }
 
-    hrc = progress->COMGETTER(Completed(&fCompleted));
+    hrc = progress->COMGETTER(Completed)(&fCompleted);
     while (SUCCEEDED(hrc))
     {
-        progress->COMGETTER(Percent(&ulCurrentPercent));
+        progress->COMGETTER(Percent)(&ulCurrentPercent);
 
         if (   fDetailed
             || fOps)
@@ -407,13 +407,13 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
             if (FAILED(hrc))
                 break;
             ULONG ulCurrentOperationPercent = 0;
-            hrc = progress->COMGETTER(OperationPercent(&ulCurrentOperationPercent));
+            hrc = progress->COMGETTER(OperationPercent)(&ulCurrentOperationPercent);
             if (FAILED(hrc))
                 break;
 
             if (ulLastOperation != ulOperation)
             {
-                hrc = progress->COMGETTER(OperationDescription(bstrOperationDescription.asOutParam()));
+                hrc = progress->COMGETTER(OperationDescription)(bstrOperationDescription.asOutParam());
                 if (FAILED(hrc))
                     break;
                 ulLastPercent = (ULONG)-1;        // force print
@@ -471,7 +471,7 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
         progress->WaitForCompletion(100);
 
         NativeEventQueue::getMainEventQueue()->processEventQueue(0);
-        hrc = progress->COMGETTER(Completed(&fCompleted));
+        hrc = progress->COMGETTER(Completed)(&fCompleted);
     }
 
     /* undo signal handling */

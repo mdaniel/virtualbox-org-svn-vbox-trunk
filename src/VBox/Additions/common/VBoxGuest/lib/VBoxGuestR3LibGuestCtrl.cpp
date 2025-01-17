@@ -2382,7 +2382,7 @@ VBGLR3DECL(int) VbglR3GuestCtrlProcGetWaitFor(PVBGLR3GUESTCTRLCMDCTX pCtx,
 {
     AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
 
-    AssertReturn(pCtx->uNumParms == 5, VERR_INVALID_PARAMETER);
+    AssertReturn(pCtx->uNumParms == 4, VERR_INVALID_PARAMETER);
     AssertPtrReturn(puPID, VERR_INVALID_POINTER);
 
     int rc;

@@ -122,7 +122,6 @@ RTDECL(int)     RTHandleTableAlloc(RTHANDLETABLE hHandleTable, void *pvObj, uint
             /*
              * Do the allocation(s).
              */
-            rc = VERR_TRY_AGAIN;
             void **papvLevel1 = NULL;
             if (cLevel1)
             {

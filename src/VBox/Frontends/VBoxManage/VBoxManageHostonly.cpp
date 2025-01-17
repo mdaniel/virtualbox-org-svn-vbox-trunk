@@ -410,7 +410,7 @@ static RTEXITCODE handleNetAdd(HandlerArg *a)
 {
     HOSTONLYNETOPT options;
     RTEXITCODE const rcExitcode = createUpdateHostOnlyNetworkParse(a, options);
-    AssertRCReturn(rcExitcode, rcExitcode);
+    AssertReturn(rcExitcode == RTEXITCODE_SUCCESS, rcExitcode);
 
     ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
     ComPtr<IHostOnlyNetwork> hostOnlyNetwork;
@@ -435,7 +435,7 @@ static RTEXITCODE handleNetModify(HandlerArg *a)
 {
     HOSTONLYNETOPT options;
     RTEXITCODE const rcExitcode = createUpdateHostOnlyNetworkParse(a, options);
-    AssertRCReturn(rcExitcode, rcExitcode);
+    AssertReturn(rcExitcode == RTEXITCODE_SUCCESS, rcExitcode);
 
     ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
     ComPtr<IHostOnlyNetwork> hostOnlyNetwork;

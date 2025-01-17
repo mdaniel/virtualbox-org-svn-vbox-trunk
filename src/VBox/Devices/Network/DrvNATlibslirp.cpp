@@ -975,7 +975,7 @@ static int drvNATConstructRedir(unsigned iInstance, PDRVNAT pThis, PCFGMNODE pCf
         if (drvNATNotifyApplyPortForwardCommand(pThis, false /* fRemove */, fUDP, szHostIp, iHostPort, szGuestIp, iGuestPort) < 0)
             return PDMDrvHlpVMSetError(pThis->pDrvIns, VERR_NAT_REDIR_SETUP, RT_SRC_POS,
                                        N_("NAT#%d: configuration error: failed to set up redirection of %d to %d. "
-                                          "Probably a conflict with existing services or other rules"), 
+                                          "Probably a conflict with existing services or other rules"),
                                        iInstance, iHostPort, iGuestPort);
     } /* for each redir rule */
 
@@ -1024,7 +1024,7 @@ static DECLCALLBACK(int) drvNATNotifyApplyPortForwardCommand(PDRVNAT pThis, bool
                     RT_BOOL(fRemove), RT_BOOL(fUdp), pszHostIp, u16HostPort, pszGuestIp, u16GuestPort));
         return PDMDrvHlpVMSetError(pThis->pDrvIns, VERR_NAT_REDIR_SETUP, RT_SRC_POS,
                                    N_("NAT#%d: configuration error: failed to set up redirection of %d to %d. "
-                                      "Probably a conflict with existing services or other rules"), 
+                                      "Probably a conflict with existing services or other rules"),
                                    pThis->pDrvIns->iInstance, u16HostPort, u16GuestPort);
     }
 
@@ -1050,7 +1050,7 @@ static DECLCALLBACK(int) drvNATNetworkNatConfigRedirect(PPDMINETWORKNATCONFIG pI
     {
         PRTREQ pReq;
         rc = RTReqQueueCallEx(pThis->hSlirpReqQueue, &pReq, 0 /*cMillies*/, RTREQFLAGS_VOID,
-                              (PFNRT)drvNATNotifyApplyPortForwardCommand, 7, 
+                              (PFNRT)drvNATNotifyApplyPortForwardCommand, 7,
                               pThis, fRemove, fUdp, pHostIp, u16HostPort, pGuestIp, u16GuestPort);
         if (rc == VERR_TIMEOUT)
         {

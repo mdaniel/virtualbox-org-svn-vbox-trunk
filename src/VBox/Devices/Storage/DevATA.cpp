@@ -1662,20 +1662,20 @@ static void ataR3SetSector(PATADEVSTATE s, uint64_t iLBA)
         if (s->fLBA48)
         {
             /* LBA48 */
-            s->uATARegHCylHOB = iLBA >> 40;
-            s->uATARegLCylHOB = iLBA >> 32;
-            s->uATARegSectorHOB = iLBA >> 24;
-            s->uATARegHCyl = iLBA >> 16;
-            s->uATARegLCyl = iLBA >> 8;
-            s->uATARegSector = iLBA;
+            s->uATARegHCylHOB   = RT_BYTE6(iLBA);
+            s->uATARegLCylHOB   = RT_BYTE5(iLBA);
+            s->uATARegSectorHOB = RT_BYTE4(iLBA);
+            s->uATARegHCyl      = RT_BYTE3(iLBA);
+            s->uATARegLCyl      = RT_BYTE2(iLBA);
+            s->uATARegSector    = RT_BYTE1(iLBA);
         }
         else
         {
             /* LBA */
             s->uATARegSelect = (s->uATARegSelect & 0xf0) | (iLBA >> 24);
-            s->uATARegHCyl = (iLBA >> 16);
-            s->uATARegLCyl = (iLBA >> 8);
-            s->uATARegSector = (iLBA);
+            s->uATARegHCyl   = RT_BYTE3(iLBA);
+            s->uATARegLCyl   = RT_BYTE2(iLBA);
+            s->uATARegSector = RT_BYTE1(iLBA);
         }
     }
     else

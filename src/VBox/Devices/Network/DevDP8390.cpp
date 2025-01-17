@@ -4003,7 +4003,7 @@ static DECLCALLBACK(void) dpNicR3TimerRestore(PPDMDEVINS pDevIns, TMTIMERHANDLE 
 static DECLCALLBACK(void) dpNicR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     PDPNICSTATE     pThis = PDMDEVINS_2_DATA(pDevIns, PDPNICSTATE);
-    /*bool            fRecvBuffer  = false; unused*/
+    bool            fRecvBuffer  = false;
     bool            fSendBuffer  = false;
     unsigned        uFreePages;
     DP8390CORE      *pCore = &pThis->core;
@@ -4014,7 +4014,7 @@ static DECLCALLBACK(void) dpNicR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, co
      */
     if (pszArgs)
     {
-        /*fRecvBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "recvbuf"); unused*/
+        fRecvBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "recvbuf");
         fSendBuffer  = strstr(pszArgs, "verbose") || strstr(pszArgs, "sendbuf");
     }
 
@@ -4208,13 +4208,32 @@ static DECLCALLBACK(void) dpNicR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, co
 
     }
 
-    /* Dump the beginning of the send buffer. */
+    /* Dump the beginning of the send buffer (before it is sent). */
+    uint8_t dump_buf[16];
+    unsigned dump_beg, dump_end;
     if (fSendBuffer)
     {
-        pHlp->pfnPrintf(pHlp, "Send buffer (start at %u):\n", 0);
-        unsigned dump_end = RT_MIN(0 + 64, sizeof(pThis->abLocalRAM) - 16);
-        for (unsigned ofs = 0; ofs < dump_end; ofs += 16)
-            pHlp->pfnPrintf(pHlp, "  %04X: %Rhxs\n", ofs, &pThis->abLocalRAM[ofs]);
+        dump_beg = RT_MAKE_U16(0, pThis->core.TPSR);
+        pHlp->pfnPrintf(pHlp, "Send buffer (start at %u based on TPSR):\n", dump_beg);
+        dump_end = RT_MIN(dump_beg + 64, 64 * _1K - 16);
+        for (unsigned ofs = dump_beg; ofs < dump_end; ofs += 16)
+        {
+            dpLocalRAMReadBuf(pThis, ofs, sizeof(dump_buf), dump_buf);
+            pHlp->pfnPrintf(pHlp, "  %04X: %Rhxs\n", ofs, dump_buf);
+        }
+    }
+
+    /* Dump the beginning of the receive buffer (before it is read). */
+    if (fRecvBuffer)
+    {
+        dump_beg = pThis->core.CRDA;
+        pHlp->pfnPrintf(pHlp, "Recv buffer (start at %u based on CRDA):\n", dump_beg);
+        dump_end = RT_MIN(dump_beg + 64, 64 * _1K - 16);
+        for (unsigned ofs = dump_beg; ofs < dump_end; ofs += 16)
+        {
+            dpLocalRAMReadBuf(pThis, ofs, sizeof(dump_buf), dump_buf);
+            pHlp->pfnPrintf(pHlp, "  %04X: %Rhxs\n", ofs, dump_buf);
+        }
     }
 
     PDMDevHlpCritSectLeave(pDevIns, &pThis->CritSect);

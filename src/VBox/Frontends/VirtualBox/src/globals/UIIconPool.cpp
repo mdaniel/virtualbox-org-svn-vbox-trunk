@@ -356,7 +356,6 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Windows2012"),           ":/os_win2k12.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X86("Windows10"),             ":/os_win10.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Windows10"),             ":/os_win10.png");
-    m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Windows10"),             ":/os_win10.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Windows11"),             ":/os_win11.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_A64("Windows11"),             ":/os_win11.png");
     m_guestOSTypeIconNames.insert(GUEST_OS_ID_STR_X64("Windows2016"),           ":/os_win2k16.png");

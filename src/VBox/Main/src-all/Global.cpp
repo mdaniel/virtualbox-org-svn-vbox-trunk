@@ -200,10 +200,6 @@ const Global::OSType Global::sOSTypes[] =
       1, 2048, 128, 50 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,
       StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_PIIX3, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
 
-    { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_A64("Windows10"),       "Windows 10 on ARM (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN_A64, VBOX_OSTYPE_ARM64(Win10), VBOXOSHINT_64BIT | VBOXOSHINT_EFI | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_EFI_SECUREBOOT | VBOXOSHINT_TPM2 | VBOXOSHINT_RTCUTC | VBOXOSHINT_USBHID,
-      2, 4096, 128, 50 * _1G64, GraphicsControllerType_QemuRamFB, NetworkAdapterType_UsbNet, 0, StorageControllerType_VirtioSCSI, StorageBus_VirtioSCSI,
-      StorageControllerType_IntelAhci, StorageBus_SATA, ChipsetType_ARMv8Virtual, IommuType_None, AudioControllerType_HDA, AudioCodecType_STAC9221  },
-
     { "Windows", "Microsoft Windows", "",               GUEST_OS_ID_STR_X64("Windows2016"),     "Windows Server 2016 (64-bit)", VBOX_GUEST_ADDITIONS_NAME_WIN,
       VBOXOSTYPE_Win2k16_x64,     VBOXOSHINT_64BIT | VBOXOSHINT_X86_HWVIRTEX | VBOXOSHINT_X86_IOAPIC | VBOXOSHINT_USBTABLET | VBOXOSHINT_USB3 | VBOXOSHINT_WDDM_GRAPHICS,
       1, 2048, 128, 50 * _1G64, GraphicsControllerType_VBoxSVGA, NetworkAdapterType_I82540EM, 0, StorageControllerType_IntelAhci, StorageBus_SATA,

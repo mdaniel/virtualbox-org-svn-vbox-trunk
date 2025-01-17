@@ -315,7 +315,6 @@ static struct
     { ovf::CIMOSType_CIMOS_WindowsServer2016,                    VBOXOSTYPE_Win2k16_x64 },
     { ovf::CIMOSType_CIMOS_Windows10,                            VBOXOSTYPE_Win10 },
     { ovf::CIMOSType_CIMOS_Windows10_64,                         VBOXOSTYPE_Win10_x64 },
-    { ovf::CIMOSType_CIMOS_Windows10_64,                         VBOXOSTYPE_Win10_arm64 },      // no CIM type for this yet
     { ovf::CIMOSType_CIMOS_Windows10_64,                         VBOXOSTYPE_Win11_x64 },        // no CIM type for this yet
     { ovf::CIMOSType_CIMOS_Windows10_64,                         VBOXOSTYPE_Win11_arm64 },      // no CIM type for this yet
     { ovf::CIMOSType_CIMOS_WindowsServer2016,                    VBOXOSTYPE_Win2k19_x64 },      // no CIM type for this yet

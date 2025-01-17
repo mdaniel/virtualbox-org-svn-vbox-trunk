@@ -408,10 +408,9 @@ static RTEXITCODE createUpdateHostOnlyNetworkCommon(ComPtr<IHostOnlyNetwork> hos
 
 static RTEXITCODE handleNetAdd(HandlerArg *a)
 {
-    HRESULT hrc = S_OK;
-
     HOSTONLYNETOPT options;
-    hrc = createUpdateHostOnlyNetworkParse(a, options);
+    RTEXITCODE const rcExitcode = createUpdateHostOnlyNetworkParse(a, options);
+    AssertRCReturn(rcExitcode, rcExitcode);
 
     ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
     ComPtr<IHostOnlyNetwork> hostOnlyNetwork;
@@ -425,6 +424,7 @@ static RTEXITCODE handleNetAdd(HandlerArg *a)
     if (options.bstrUpperIp.isEmpty())
         return errorArgument(HostOnly::tr("The --upper-ip parameter must be specified"));
 
+    HRESULT hrc;
     CHECK_ERROR2_RET(hrc, pVirtualBox,
                      CreateHostOnlyNetwork(options.bstrNetworkName.raw(), hostOnlyNetwork.asOutParam()),
                      RTEXITCODE_FAILURE);
@@ -433,14 +433,14 @@ static RTEXITCODE handleNetAdd(HandlerArg *a)
 
 static RTEXITCODE handleNetModify(HandlerArg *a)
 {
-    HRESULT hrc = S_OK;
-
     HOSTONLYNETOPT options;
-    hrc = createUpdateHostOnlyNetworkParse(a, options);
+    RTEXITCODE const rcExitcode = createUpdateHostOnlyNetworkParse(a, options);
+    AssertRCReturn(rcExitcode, rcExitcode);
 
     ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
     ComPtr<IHostOnlyNetwork> hostOnlyNetwork;
 
+    HRESULT hrc;
     if (options.bstrNetworkName.isNotEmpty())
     {
         CHECK_ERROR2_RET(hrc, pVirtualBox,

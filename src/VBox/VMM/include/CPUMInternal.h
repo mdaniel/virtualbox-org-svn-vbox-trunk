@@ -542,6 +542,7 @@ typedef struct CPUMCPU
 #ifndef VBOX_FOR_DTRACE_LIB
 # ifdef RT_ARCH_AMD64
 AssertCompileMemberAlignment(CPUMCPU, Host, 64);
+AssertCompileAdjacentMembers(CPUMCPU, Guest, GuestMsrs); /* HACK ALERT! HMR0A.asm makes this ASSUMPTION in the SVM RUN code! */
 # endif
 #endif
 /** Pointer to the CPUMCPU instance data residing in the shared VMCPU structure. */
@@ -562,6 +563,8 @@ void                cpumCpuIdAssertOrder(PCPUMCPUIDLEAF paLeaves, uint32_t cLeav
 #  endif
 int                 cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCPUMMSRS pMsrs,
                                                 CPUMFEATURESX86 *pFeatures);
+void                cpumCpuIdExplodeFeaturesX86SetSummaryBits(CPUMFEATURESX86 *pFeatures);
+void                cpumCpuIdExplodeArchCapabilities(CPUMFEATURESX86 *pFeatures, bool fHasArchCap, uint64_t fArchVal);
 # endif /* defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64) || defined(VBOX_VMM_TARGET_X86) */
 # if defined(RT_ARCH_ARM64) || defined(VBOX_VMM_TARGET_ARMV8)
 int                 cpumCpuIdExplodeFeaturesArmV8(PCCPUMARMV8IDREGS pIdRegs, CPUMFEATURESARMV8 *pFeatures);
@@ -590,7 +593,7 @@ DECLCALLBACK(void)  cpumR3CpuIdInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
 int                 cpumR3DbGetCpuInfo(const char *pszName, PCPUMINFO pInfo);
 #  ifdef VBOX_VMM_TARGET_X86
 int                 cpumR3MsrRangesInsert(PVM pVM, PCPUMMSRRANGE *ppaMsrRanges, uint32_t *pcMsrRanges, PCCPUMMSRRANGE pNewRange);
-int                 cpumR3MsrReconcileWithCpuId(PVM pVM);
+DECLHIDDEN(int)     cpumR3MsrReconcileWithCpuId(PVM pVM, bool fForceFlushCmd, bool fForceSpecCtrl);
 int                 cpumR3MsrApplyFudge(PVM pVM);
 int                 cpumR3MsrRegStats(PVM pVM);
 int                 cpumR3MsrStrictInitChecks(void);

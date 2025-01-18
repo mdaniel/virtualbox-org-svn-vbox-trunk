@@ -2377,7 +2377,7 @@ static uint32_t dp8390CoreRead(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int ofs)
 }
 
 
-static int dp8390CoreWriteCR(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t val)
+static int dp8390CoreWriteCR(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint8_t val)
 {
     union {
         uint8_t     nCR;
@@ -2468,7 +2468,7 @@ static int dp8390CoreWriteCR(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t val
     return VINF_SUCCESS;
 }
 
-static int dp8390CoreWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int ofs, uint32_t val)
+static int dp8390CoreWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int ofs, uint8_t val)
 {
     int     rc = VINF_SUCCESS;
     bool    fUpdateIRQ = false;
@@ -2825,12 +2825,12 @@ static int neResetPortWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis)
 }
 
 
-static int dpNeIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uint32_t val)
+static int dpNeIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int addr, uint16_t val)
 {
     int     reg = addr & 0x0f;
     int     rc = VINF_SUCCESS;
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val));
 
     /* The NE2000 has 8 bytes of data port followed by 8 bytes of reset port.
      * In contrast, the NE1000 has 4 bytes of data port followed by 4 bytes
@@ -2847,9 +2847,9 @@ static int dpNeIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uin
 }
 
 
-static uint32_t neIoRead(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr)
+static uint16_t neIoRead(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int addr)
 {
-    uint32_t    val = UINT32_MAX;
+    uint16_t    val = UINT16_MAX;
     int         reg = addr & 0x0f;
 
     /* The NE2000 has 8 bytes of data port followed by 8 bytes of reset port.
@@ -2863,12 +2863,12 @@ static uint32_t neIoRead(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr)
     else
         val = neDataPortRead(pDevIns, pThis);
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val));
     return val;
 }
 
 
-static int wdIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uint32_t val)
+static int wdIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int addr, uint8_t val)
 {
     int             reg = addr & 0xf;
     int             rc = VINF_SUCCESS;
@@ -2881,7 +2881,7 @@ static int wdIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uint3
         WD_CTRL2    nCtrl2;
     };
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#06x val=%#02x\n", pThis->iInstance, addr, val));
 
     switch (reg)
     {
@@ -2916,9 +2916,9 @@ static int wdIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uint3
 }
 
 
-static uint32_t wdIoRead(PDPNICSTATE pThis, uint32_t addr)
+static uint8_t wdIoRead(PDPNICSTATE pThis, int addr)
 {
-    uint32_t    val = UINT32_MAX;
+    uint8_t     val = UINT8_MAX;
     int         reg = addr & 0x0f;
 
     if (reg >= WDR_PROM)
@@ -2972,7 +2972,7 @@ static uint32_t wdIoRead(PDPNICSTATE pThis, uint32_t addr)
 
     }
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#04x val=%#04x\n", pThis->iInstance, addr, val));
     return val;
 }
 
@@ -3177,8 +3177,11 @@ static int elWriteGacr(PPDMDEVINS pDevIns, PDPNICSTATE pThis, PEL_GA pGa, uint8_
     return VINF_SUCCESS;
 }
 
-
-static int elGaDataWrite(PDPNICSTATE pThis, PEL_GA pGa, uint16_t val)
+/* The Register File LSB (GAR_RFLSB) port supports 16-bit I/O access, but
+ * we internally split everything up into 8-bit access anyway.
+ * That goes for both reading and writing.
+ */
+static void elGaDataWrite(PDPNICSTATE pThis, PEL_GA pGa, uint8_t val)
 {
     /* Data write; ignored if not started and in "download" mode. */
     if (pGa->gacr.start && pGa->gacr.ddir)
@@ -3201,7 +3204,6 @@ static int elGaDataWrite(PDPNICSTATE pThis, PEL_GA pGa, uint16_t val)
             pGa->cdadr.cdadr_msb = pGa->PSTR;
         }
     }
-    return VINF_SUCCESS;
 }
 
 
@@ -3233,13 +3235,13 @@ static uint8_t elGaDataRead(PDPNICSTATE pThis, PEL_GA pGa)
 }
 
 
-static int elGaIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uint32_t val)
+static int elGaIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, int addr, uint8_t val)
 {
     int         reg = addr & 0xf;
     int         rc = VINF_SUCCESS;
     PEL_GA      pGa = &pThis->ga;
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#04x val=%#02x\n", pThis->iInstance, addr, val));
 
     switch (reg)
     {
@@ -3299,9 +3301,9 @@ static int elGaIoWrite(PPDMDEVINS pDevIns, PDPNICSTATE pThis, uint32_t addr, uin
 }
 
 
-static uint32_t elGaIoRead(PDPNICSTATE pThis, uint32_t addr)
+static uint8_t elGaIoRead(PDPNICSTATE pThis, int addr)
 {
-    uint32_t    val = UINT32_MAX;
+    uint8_t     val = UINT8_MAX;
     int         reg = addr & 0x0f;
     PEL_GA      pGa = &pThis->ga;
 
@@ -3358,7 +3360,7 @@ static uint32_t elGaIoRead(PDPNICSTATE pThis, uint32_t addr)
         break;
     }
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val));
     return val;
 }
 
@@ -3371,7 +3373,7 @@ neIOPortRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t *pu32, un
 {
     PDPNICSTATE     pThis = PDMDEVINS_2_DATA(pDevIns, PDPNICSTATE);
     int             rc    = VINF_SUCCESS;
-    int             reg   = Port & 0xf;
+    RTIOPORT        reg   = Port & 0xf;
     uint8_t         u8Lo, u8Hi = 0;
     STAM_PROFILE_ADV_START(&pThis->CTX_SUFF_Z(StatIORead), a);
     Assert(PDMDevHlpCritSectIsOwner(pDevIns, &pThis->CritSect));
@@ -3380,7 +3382,7 @@ neIOPortRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t *pu32, un
     switch (cb)
     {
         case 1:
-            *pu32 = neIoRead(pDevIns, pThis, reg);
+            *pu32 = neIoRead(pDevIns, pThis, Port);
             break;
         case 2:
             /* Manually split word access if necessary if it's an NE1000. Perhaps overkill. */
@@ -3461,7 +3463,7 @@ elIOPortRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t *pu32, un
     switch (cb)
     {
         case 1:
-            *pu32 = elGaIoRead(pThis, reg);
+            *pu32 = elGaIoRead(pThis, Port);
             break;
         case 2:
             /* Manually split word access. */
@@ -3549,9 +3551,9 @@ neIOPortWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, uns
             }
             else
             {
-                rc = dpNeIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(u32));
+                rc = dpNeIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(RT_LOWORD(u32)));
                 if (RT_SUCCESS(rc) && (reg < 0xf))
-                    rc = dpNeIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(u32));
+                    rc = dpNeIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(RT_LOWORD(u32)));
             }
             break;
         default:
@@ -3586,9 +3588,9 @@ wdIOPortWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, uns
             break;
         case 2:
             /* Manually split word access. */
-            rc = wdIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(u32));
+            rc = wdIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(RT_LOWORD(u32)));
             if (RT_SUCCESS(rc) && (reg < 0xf))
-                rc = wdIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(u32));
+                rc = wdIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(RT_LOWORD(u32)));
             break;
         default:
             rc = PDMDevHlpDBGFStop(pDevIns, RT_SRC_POS,
@@ -3622,9 +3624,9 @@ elIOPortWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, uns
             break;
         case 2:
             /* Manually split word access. */
-            rc = elGaIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(u32));
+            rc = elGaIoWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(RT_LOWORD(u32)));
             if (RT_SUCCESS(rc) && (reg < 0xf))
-                rc = elGaIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(u32));
+                rc = elGaIoWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(RT_LOWORD(u32)));
             break;
         default:
             rc = PDMDevHlpDBGFStop(pDevIns, RT_SRC_POS,
@@ -3658,10 +3660,10 @@ dp8390CoreIOPortWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t 
             break;
         case 2:
             /* Manually split word access. */
-            rc = dp8390CoreWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(u32));
+            rc = dp8390CoreWrite(pDevIns, pThis, reg + 0, RT_LOBYTE(RT_LOWORD(u32)));
             if (!RT_SUCCESS(rc))
                 break;
-            rc = dp8390CoreWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(u32));
+            rc = dp8390CoreWrite(pDevIns, pThis, reg + 1, RT_HIBYTE(RT_LOWORD(u32)));
             break;
         default:
             rc = PDMDevHlpDBGFStop(pDevIns, RT_SRC_POS,
@@ -5073,9 +5075,9 @@ static DECLCALLBACK(int) dpNicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     /*
      * Default resource assignments depend on the device type.
      */
-    unsigned uDefIoPort  = 0;   /* To be overridden. */
-    unsigned uDefIrq     = 0;
-    unsigned uDefDma     = 0;   /* Default to no DMA. */
+    RTIOPORT uDefIoPort  = 0;   /* To be overridden. */
+    uint8_t  uDefIrq     = 0;
+    uint8_t  uDefDma     = 0;   /* Default to no DMA. */
     unsigned uDefMemBase = 0;   /* Default to no shared memory. */
 
     if ((pThis->uDevType == DEV_NE1000) || (pThis->uDevType == DEV_NE2000))

@@ -132,6 +132,7 @@
  {"France, (Legacy) Alternative", &main_key_fr_latin9},
  {"France, (Legacy) Alternative, eliminate dead keys", &main_key_fr_latin9_nodeadkeys},
  {"France, (Legacy) Alternative, Sun dead keys", &main_key_fr_latin9_sundeadkeys},
+ {"France, Bepo", &main_key_fr_bepo},
  {"France, Dvorak", &main_key_fr_dvorak},
  {"France, Macintosh", &main_key_fr_mac},
  {"Ghana", &main_key_gh},

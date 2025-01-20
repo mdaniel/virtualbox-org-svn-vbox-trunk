@@ -877,6 +877,15 @@ static const char main_key_fr_latin9_sundeadkeys[MAIN_LEN][2] =
 "wW","xX","cC","vV","bB","nN",",?",";.",":/","!\xa7","<>","\x0\x0","\x0\x0"
 };
 
+/* France, Bepo */
+static const char main_key_fr_bepo[MAIN_LEN][2] =
+{
+"$#","\"1","\xab""2","\xbb""3","(4",")5","@6","+7","-8","/9","*0","=\xb0","%`",
+"bB","\xe9\xc9","pP","oO","\xe8\xc8","^!","vV","dD","lL","jJ","zZ","wW",
+"aA","uU","iI","eE",",;","cC","tT","sS","rR","nN","mM","\xe7\xc7",
+"\xe0\xc0","yY","xX",".:","kK","'?","qQ","gG","hH","fF","\xea\xca","\x0\x0","\x0\x0"
+};
+
 /* France, Dvorak */
 static const char main_key_fr_dvorak[MAIN_LEN][2] =
 {

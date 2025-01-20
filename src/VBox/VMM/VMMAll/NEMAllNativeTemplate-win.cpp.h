@@ -346,6 +346,9 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kE8000,  pCtxMsrs->msr.MtrrFix4K_E8000);
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kF0000,  pCtxMsrs->msr.MtrrFix4K_F0000);
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kF8000,  pCtxMsrs->msr.MtrrFix4K_F8000);
+            if (pVM->nem.s.fSpeculationControl)
+                ADD_REG64(WHvX64RegisterSpecCtrl, pCtxMsrs->msr.SpecCtrl);
+
 #if 0 /** @todo these registers aren't available? Might explain something.. .*/
             const CPUMCPUVENDOR enmCpuVendor = CPUMGetHostCpuVendor(pVM);
             if (enmCpuVendor != CPUMCPUVENDOR_AMD)
@@ -617,6 +620,8 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kE8000;
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kF0000;
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kF8000;
+        if (pVM->nem.s.fSpeculationControl)
+            aenmNames[iReg++] = WHvX64RegisterSpecCtrl;
         /** @todo look for HvX64RegisterIa32MiscEnable and HvX64RegisterIa32FeatureControl? */
 //#ifdef LOG_ENABLED
 //        if (enmCpuVendor != CPUMCPUVENDOR_AMD)
@@ -975,6 +980,8 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
             GET_REG64_LOG7(pCtxMsrs->msr.MtrrFix4K_E8000,  WHvX64RegisterMsrMtrrFix4kE8000,  "MSR MTRR_FIX_4K_E8000");
             GET_REG64_LOG7(pCtxMsrs->msr.MtrrFix4K_F0000,  WHvX64RegisterMsrMtrrFix4kF0000,  "MSR MTRR_FIX_4K_F0000");
             GET_REG64_LOG7(pCtxMsrs->msr.MtrrFix4K_F8000,  WHvX64RegisterMsrMtrrFix4kF8000,  "MSR MTRR_FIX_4K_F8000");
+            if (pVM->nem.s.fSpeculationControl)
+                GET_REG64_LOG7(pCtxMsrs->msr.SpecCtrl,     WHvX64RegisterSpecCtrl,           "MSR IA32_SPEC_CTRL");
             /** @todo look for HvX64RegisterIa32MiscEnable and HvX64RegisterIa32FeatureControl? */
         }
     }

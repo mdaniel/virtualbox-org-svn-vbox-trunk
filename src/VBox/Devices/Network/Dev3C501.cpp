@@ -434,7 +434,7 @@ typedef struct ELNKSTATE
     /* MS to wait before we enable the link. */
     uint32_t                            cMsLinkUpDelay;
     /** The device instance number (for logging). */
-    uint32_t                            iInstance;
+    int32_t                             iInstance;
 
     STAMCOUNTER                         StatReceiveBytes;
     STAMCOUNTER                         StatTransmitBytes;
@@ -1361,7 +1361,7 @@ static int elnkCsrWrite(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint8_t data)
     return rc;
 }
 
-static int elIoWrite(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, uint32_t val)
+static int elIoWrite(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, uint8_t val)
 {
     int     reg = addr & 0xf;
     int     rc = VINF_SUCCESS;
@@ -1437,9 +1437,9 @@ static int elIoWrite(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, uint32
     return rc;
 }
 
-static uint32_t elIoRead(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, int *pRC)
+static uint8_t elIoRead(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, int *pRC)
 {
-    uint32_t val = UINT32_MAX;
+    uint8_t val = UINT8_MAX;
 
     *pRC = VINF_SUCCESS;
 
@@ -1499,7 +1499,7 @@ static uint32_t elIoRead(PPDMDEVINS pDevIns, PELNKSTATE pThis, uint32_t addr, in
 
     elnkUpdateIrq(pDevIns, pThis);
 
-    Log2Func(("#%d: addr=%#06x val=%#04x\n", pThis->iInstance, addr, val & 0xff));
+    Log2Func(("#%d: addr=%#06x val=%#02x\n", pThis->iInstance, addr, val));
     return val;
 }
 
@@ -1557,14 +1557,14 @@ elnkIOPortWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT Port, uint32_t u32, u
     switch (cb)
     {
         case 1:
-            rc = elIoWrite(pDevIns, pThis, Port, RT_LOBYTE(u32));
+            rc = elIoWrite(pDevIns, pThis, Port, RT_LO_U8(RT_LO_U16(u32)));
             break;
         case 2:
             /* Manually split word access. */
-            rc = elIoWrite(pDevIns, pThis, Port + 0, RT_LOBYTE(u32));
+            rc = elIoWrite(pDevIns, pThis, Port + 0, RT_LO_U8(RT_LO_U16(u32)));
             if (!RT_SUCCESS(rc))
                 break;
-            rc = elIoWrite(pDevIns, pThis, Port + 1, RT_HIBYTE(u32));
+            rc = elIoWrite(pDevIns, pThis, Port + 1, RT_HI_U8(RT_LO_U16(u32)));
             break;
         default:
             rc = PDMDevHlpDBGFStop(pDevIns, RT_SRC_POS,
@@ -2484,7 +2484,7 @@ static DECLCALLBACK(int) elnkR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     /*
      * We use our own critical section (historical reasons).
      */
-    rc = PDMDevHlpCritSectInit(pDevIns, &pThis->CritSect, RT_SRC_POS, "3C501#%u", iInstance);
+    rc = PDMDevHlpCritSectInit(pDevIns, &pThis->CritSect, RT_SRC_POS, "3C501#%d", iInstance);
     AssertRCReturn(rc, rc);
     rc = PDMDevHlpSetDeviceCritSect(pDevIns, &pThis->CritSect);
     AssertRCReturn(rc, rc);
@@ -2586,8 +2586,8 @@ static DECLCALLBACK(int) elnkR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     /*
      * Register statistics counters.
      */
-    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatReceiveBytes,       STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data received",                "/Public/Net/EtherLink%u/BytesReceived", iInstance);
-    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatTransmitBytes,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data transmitted",             "/Public/Net/EtherLink%u/BytesTransmitted", iInstance);
+    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatReceiveBytes,       STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data received",                "/Public/Net/EtherLink%d/BytesReceived", iInstance);
+    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatTransmitBytes,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data transmitted",             "/Public/Net/EtherLink%d/BytesTransmitted", iInstance);
 
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatReceiveBytes,       STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data received",                "/Devices/EtherLink%d/ReceiveBytes", iInstance);
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatTransmitBytes,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,          "Amount of data transmitted",             "/Devices/EtherLink%d/TransmitBytes", iInstance);
@@ -2611,7 +2611,7 @@ static DECLCALLBACK(int) elnkR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktAdrmDis,     STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped packet, disabled address match", "/Devices/EtherLink%d/DropPktAdrmDis", iInstance);
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktZeroLen,     STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped zero length packet",             "/Devices/EtherLink%d/DropPktZeroLen", iInstance);
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktVMNotRunning,STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped packet, VM not running",         "/Devices/EtherLink%d/DropPktVMNotRunning", iInstance);
-    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktNoLink,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped packet, no link", "/Devices/EtherLink%d/DropPktNoLink", iInstance);
+    PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktNoLink,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped packet, no link",                "/Devices/EtherLink%d/DropPktNoLink", iInstance);
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatDropPktStaleRcv,    STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Dropped packet, status register unread", "/Devices/EtherLink%d/DropPktStaleRcv", iInstance);
 #endif /* VBOX_WITH_STATISTICS */
     PDMDevHlpSTAMRegisterF(pDevIns, &pThis->StatPktsLostReset,      STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_OCCURENCES,     "Number of packets lost due to resets",   "/Devices/EtherLink%d/PktsLostByReset", iInstance);

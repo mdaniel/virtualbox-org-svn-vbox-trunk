@@ -99,7 +99,7 @@ void UIGraphicsControllerEditor::handleFilterChange()
 
 void UIGraphicsControllerEditor::sltHandleCurrentIndexChanged()
 {
-    if (m_pCombo)
+    if (m_pCombo && m_pCombo->count())
         emit sigValueChanged(m_pCombo->itemData(m_pCombo->currentIndex()).value<KGraphicsControllerType>());
 }
 

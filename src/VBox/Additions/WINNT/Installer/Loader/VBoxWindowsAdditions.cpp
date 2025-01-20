@@ -50,7 +50,6 @@
 # include "TimestampRootCerts.h"
 #endif
 
-
 #ifdef VBOX_SIGNING_MODE
 # if 1 /* Whether to use IPRT or Windows to verify the executable signatures. */
 /* This section is borrowed from RTSignTool.cpp */
@@ -62,6 +61,17 @@
 #  include <iprt/stream.h>
 #  include <iprt/crypto/pkcs7.h>
 #  include <iprt/crypto/store.h>
+#endif
+
+
+/*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
+typedef BOOL (WINAPI *PFNISWOW64PROCESS)(HANDLE, PBOOL);
+typedef BOOL (WINAPI *PFNISWOW64PROCESS2)(HANDLE, USHORT *, USHORT *);
+
+
+#ifdef VBOX_SIGNING_MODE
 
 class CryptoStore
 {
@@ -896,6 +906,60 @@ static BOOL IsWow64(void)
     return fIsWow64;
 }
 
+/**
+ * Detects the native host platform and returns the appropriate installer
+ * executable suffix for it.
+ *
+ * @returns Architecture stuff string.
+ */
+static const wchar_t *GetNativeArchInstallerSuffix(void)
+{
+    HMODULE const      hModKernel32 = GetModuleHandleW(L"kernel32.dll");
+    PFNISWOW64PROCESS2 pfnIsWow64Process2 = (PFNISWOW64PROCESS2)GetProcAddress(hModKernel32, "IsWow64Process2");
+    if (pfnIsWow64Process2)
+    {
+        USHORT usWowMachine  = IMAGE_FILE_MACHINE_UNKNOWN;
+        USHORT usHostMachine = IMAGE_FILE_MACHINE_UNKNOWN;
+        if (pfnIsWow64Process2(GetCurrentProcess(), &usWowMachine, &usHostMachine))
+        {
+            if (usHostMachine == IMAGE_FILE_MACHINE_AMD64)
+                return L"-amd64.exe";
+            if (usHostMachine == IMAGE_FILE_MACHINE_ARM64)
+                return L"-arm64.exe";
+            if (usHostMachine == IMAGE_FILE_MACHINE_I386)
+                return L"-x86.exe";
+            ErrorMsgSU("IsWow64Process2 return unknown host machine value: ", usHostMachine);
+        }
+        else
+            ErrorMsgLastErr("Unable to determine the process type! (#2)");
+    }
+    else
+    {
+        PFNISWOW64PROCESS pfnIsWow64Process = (PFNISWOW64PROCESS)GetProcAddress(hModKernel32, "IsWow64Process");
+        if (pfnIsWow64Process)
+        {
+            BOOL fIsWow64 = TRUE;
+            if (pfnIsWow64Process(GetCurrentProcess(), &fIsWow64))
+            {
+                if (fIsWow64)
+                    return L"-amd64.exe";
+            }
+            else
+                ErrorMsgLastErr("Unable to determine the process type!");
+        }
+    }
+
+#ifdef RT_ARCH_X86
+    return L"-x86.exe";
+#elif defined(RT_ARCH_AMD64)
+    return L"-amd64.exe";
+#elif defined(RT_ARCH_ARM64)
+    return L"-arm64.exe";
+#else
+# error "port me"
+#endif
+}
+
 static int WaitForProcess2(HANDLE hProcess)
 {
     /*
@@ -994,14 +1058,7 @@ int main()
         off--;
     }
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-    WCHAR const  *pwszSuff = IsWow64() ? L"-amd64.exe" : L"-x86.exe";
-#elif defined(RT_ARCH_ARM64)
-    WCHAR const  *pwszSuff = L"-arm64.exe";
-#else
-# error "Port me!"
-#endif
-
+    WCHAR const * const pwszSuff = GetNativeArchInstallerSuffix();
     int rc = RTUtf16Copy(&wszExePath[cwcExePath], RT_ELEMENTS(wszExePath) - cwcExePath, pwszSuff);
     if (RT_FAILURE(rc))
         return ErrorMsgRc(14, "Real installer name is too long!");

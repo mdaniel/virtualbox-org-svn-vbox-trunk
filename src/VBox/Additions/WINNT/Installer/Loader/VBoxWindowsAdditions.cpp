@@ -52,8 +52,6 @@
 
 #ifdef VBOX_SIGNING_MODE
 # if 1 /* Whether to use IPRT or Windows to verify the executable signatures. */
-/* This section is borrowed from RTSignTool.cpp */
-
 #  include <iprt/err.h>
 #  include <iprt/initterm.h>
 #  include <iprt/ldr.h>
@@ -61,6 +59,7 @@
 #  include <iprt/stream.h>
 #  include <iprt/crypto/pkcs7.h>
 #  include <iprt/crypto/store.h>
+# endif
 #endif
 
 
@@ -72,6 +71,8 @@ typedef BOOL (WINAPI *PFNISWOW64PROCESS2)(HANDLE, USHORT *, USHORT *);
 
 
 #ifdef VBOX_SIGNING_MODE
+# if 1 /* Whether to use IPRT or Windows to verify the executable signatures. */
+/* This section is borrowed from RTSignTool.cpp */
 
 class CryptoStore
 {

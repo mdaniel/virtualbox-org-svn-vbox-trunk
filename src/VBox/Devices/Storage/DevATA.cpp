@@ -1440,8 +1440,8 @@ static bool ataR3IdentifySS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTAT
         p[59] = RT_H2LE_U16(0x100 | s->cMultSectors);
     if (s->cTotalSectors <= (1 << 28) - 1)
     {
-        p[60] = RT_H2LE_U16(s->cTotalSectors);
-        p[61] = RT_H2LE_U16(s->cTotalSectors >> 16);
+        p[60] = RT_H2LE_U16(RT_LO_U16(s->cTotalSectors));
+        p[61] = RT_H2LE_U16(RT_HI_U16(s->cTotalSectors));
     }
     else
     {
@@ -1483,10 +1483,10 @@ static bool ataR3IdentifySS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTAT
     p[93] = RT_H2LE_U16((1 | 1 << 1) << ((s->iLUN & 1) == 0 ? 0 : 8) | 1 << 13 | 1 << 14);
     if (s->cTotalSectors > (1 << 28) - 1)
     {
-        p[100] = RT_H2LE_U16(s->cTotalSectors);
-        p[101] = RT_H2LE_U16(s->cTotalSectors >> 16);
-        p[102] = RT_H2LE_U16(s->cTotalSectors >> 32);
-        p[103] = RT_H2LE_U16(s->cTotalSectors >> 48);
+        p[100] = RT_H2LE_U16(RT_LO_U16(RT_LO_U32(s->cTotalSectors)));
+        p[101] = RT_H2LE_U16(RT_HI_U16(RT_LO_U32(s->cTotalSectors)));
+        p[102] = RT_H2LE_U16(RT_LO_U16(RT_HI_U32(s->cTotalSectors)));
+        p[103] = RT_H2LE_U16(RT_HI_U16(RT_HI_U32(s->cTotalSectors)));
     }
 
     if (s->cbSector != 512)
@@ -1494,8 +1494,8 @@ static bool ataR3IdentifySS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTAT
         uint32_t cSectorSizeInWords = s->cbSector / sizeof(uint16_t);
         /* Enable reporting of logical sector size. */
         p[106] |= RT_H2LE_U16(RT_BIT(12) | RT_BIT(14));
-        p[117] = RT_H2LE_U16(cSectorSizeInWords);
-        p[118] = RT_H2LE_U16(cSectorSizeInWords >> 16);
+        p[117] = RT_H2LE_U16(RT_LO_U16(cSectorSizeInWords));
+        p[118] = RT_H2LE_U16(RT_HI_U16(cSectorSizeInWords));
     }
 
     if (pDevR3->pDrvMedia->pfnDiscard) /** @todo Set bit 14 in word 69 too? (Deterministic read after TRIM). */
@@ -1672,7 +1672,7 @@ static void ataR3SetSector(PATADEVSTATE s, uint64_t iLBA)
         else
         {
             /* LBA */
-            s->uATARegSelect = (s->uATARegSelect & 0xf0) | (iLBA >> 24);
+            s->uATARegSelect = RT_BYTE4(iLBA) | (s->uATARegSelect & 0xf0);
             s->uATARegHCyl   = RT_BYTE3(iLBA);
             s->uATARegLCyl   = RT_BYTE2(iLBA);
             s->uATARegSector = RT_BYTE1(iLBA);
@@ -1872,7 +1872,7 @@ static bool ataR3ReadSectorsSS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVS
     cSectors = s->cbElementaryTransfer / cbSector;
     Assert(cSectors);
     iLBA = s->iCurLBA;
-    Log(("%s: %d sectors at LBA %d\n", __FUNCTION__, cSectors, iLBA));
+    Log(("%s: %d sectors at LBA %llu\n", __FUNCTION__, cSectors, iLBA));
     rc = ataR3ReadSectors(pDevIns, pCtl, s, pDevR3, iLBA, s->abIOBuffer, cSectors, &fRedo);
     if (RT_SUCCESS(rc))
     {
@@ -1925,7 +1925,7 @@ static bool ataR3WriteSectorsSS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEV
     cSectors = s->cbElementaryTransfer / cbSector;
     Assert(cSectors);
     iLBA = s->iCurLBA;
-    Log(("%s: %d sectors at LBA %d\n", __FUNCTION__, cSectors, iLBA));
+    Log(("%s: %d sectors at LBA %llu\n", __FUNCTION__, cSectors, iLBA));
     rc = ataR3WriteSectors(pDevIns, pCtl, s, pDevR3, iLBA, s->abIOBuffer, cSectors, &fRedo);
     if (RT_SUCCESS(rc))
     {
@@ -4679,10 +4679,10 @@ static void ataR3ParseCmd(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTATE 
  *     See ATAPI-6 clause 9.16.2 and Table 15 in clause 7.1.
  */
 
-static VBOXSTRICTRC ataIOPortWriteU8(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uint32_t addr, uint32_t val, uintptr_t iCtl)
+static VBOXSTRICTRC ataIOPortWriteU8(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uint32_t addr, uint8_t val, uintptr_t iCtl)
 {
     RT_NOREF(iCtl);
-    Log2(("%s: LUN#%d write addr=%#x val=%#04x\n", __FUNCTION__, pCtl->aIfs[pCtl->iSelectedIf & ATA_SELECTED_IF_MASK].iLUN, addr, val));
+    Log2(("%s: LUN#%d write addr=%#x val=%#02x\n", __FUNCTION__, pCtl->aIfs[pCtl->iSelectedIf & ATA_SELECTED_IF_MASK].iLUN, addr, val));
     addr &= 7;
     switch (addr)
     {
@@ -4964,7 +4964,7 @@ static VBOXSTRICTRC ataIOPortReadU8(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uin
             break;
         }
     }
-    Log2(("%s: LUN#%d addr=%#x val=%#04x\n", __FUNCTION__, s->iLUN, addr, val));
+    Log2(("%s: LUN#%d addr=%#x val=%#02x\n", __FUNCTION__, s->iLUN, addr, val));
     *pu32 = val;
     return VINF_SUCCESS;
 }
@@ -4988,7 +4988,7 @@ static uint32_t ataStatusRead(PATACONTROLLER pCtl, uint32_t uIoPortForLog)
     return val;
 }
 
-static int ataControlWrite(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uint32_t val, uint32_t uIoPortForLog)
+static int ataControlWrite(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uint8_t val, uint32_t uIoPortForLog)
 {
     RT_NOREF(uIoPortForLog);
 #ifndef IN_RING3
@@ -4996,7 +4996,7 @@ static int ataControlWrite(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, uint32_t val
         return VINF_IOM_R3_IOPORT_WRITE; /* The RESET stuff is too complicated for RC+R0. */
 #endif /* !IN_RING3 */
 
-    Log2(("%s: LUN#%d write addr=%#x val=%#04x\n", __FUNCTION__, pCtl->aIfs[pCtl->iSelectedIf & ATA_SELECTED_IF_MASK].iLUN, uIoPortForLog, val));
+    Log2(("%s: LUN#%d write addr=%#x val=%#02x\n", __FUNCTION__, pCtl->aIfs[pCtl->iSelectedIf & ATA_SELECTED_IF_MASK].iLUN, uIoPortForLog, val));
     /* RESET is common for both drives attached to a controller. */
     if (   !(pCtl->aIfs[0].uATARegDevCtl & ATA_DEVCTL_RESET)
         && (val & ATA_DEVCTL_RESET))
@@ -6739,7 +6739,7 @@ ataIOPortWrite1Other(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_
         if (cb > 1)
             Log(("ataIOPortWrite1: suspect write to port %x val=%x size=%d\n", offPort, u32, cb));
 
-        rc = ataIOPortWriteU8(pDevIns, pCtl, offPort, u32, iCtl);
+        rc = ataIOPortWriteU8(pDevIns, pCtl, offPort, RT_BYTE1(u32), iCtl);
 
         PDMDevHlpCritSectLeave(pDevIns, &pCtl->lock);
     }
@@ -6804,7 +6804,7 @@ ataIOPortWrite2(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t u32
         rc = PDMDevHlpCritSectEnter(pDevIns, &pCtl->lock, VINF_IOM_R3_IOPORT_WRITE);
         if (rc == VINF_SUCCESS)
         {
-            rc = ataControlWrite(pDevIns, pCtl, u32, offPort);
+            rc = ataControlWrite(pDevIns, pCtl, RT_BYTE1(u32), offPort);
             PDMDevHlpCritSectLeave(pDevIns, &pCtl->lock);
         }
     }

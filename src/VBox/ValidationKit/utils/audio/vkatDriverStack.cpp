@@ -190,6 +190,15 @@ static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3ValidateConfig(PCFGMNODE pNode, c
     return VINF_SUCCESS;
 }
 
+/**
+ * @copydoc PDMDRVHLPR3::pfnVMState
+ */
+static DECLCALLBACK(VMSTATE) audioTestDrvHlp_VMState(PPDMDRVINS pDrvIns)
+{
+    RT_NOREF(pDrvIns);
+    return VMSTATE_RUNNING; /* For mocking we report the VM state as running here. */
+}
+
 /** @} */
 
 /** @name Driver Helper Fakes
@@ -289,6 +298,7 @@ static const PDMDRVHLPR3 *audioTestFakeGetDrvHlp(void)
         s_DrvHlp.pfnCFGMQueryU8                 = audioTestDrvHlp_CFGMR3QueryU8;
         s_DrvHlp.pfnCFGMQueryU32                = audioTestDrvHlp_CFGMR3QueryU32;
         s_DrvHlp.pfnCFGMValidateConfig          = audioTestDrvHlp_CFGMR3ValidateConfig;
+        s_DrvHlp.pfnVMState                     = audioTestDrvHlp_VMState;
     }
     return &s_DrvHlp;
 }

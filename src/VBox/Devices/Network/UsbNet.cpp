@@ -406,6 +406,9 @@ typedef struct USBNET
     /** Someone is waiting on the to host queue. */
     volatile bool                       fHaveToHostQueueWaiter;
 
+    /** VM is currently suspended and we should ignore all external requests. */
+    volatile bool                       fSuspended;
+
     /** Whether to signal the reset semaphore when the current request completes. */
     bool                                fSignalResetSem;
     /** Semaphore usbNetUsbReset waits on when a request is executing at reset
@@ -1247,7 +1250,7 @@ static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pIn
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
 
     RTCritSectEnter(&pThis->CritSect);
-    if (!usbNetQueueIsEmpty(&pThis->ToHostQueue))
+    if (!usbNetQueueIsEmpty(&pThis->ToHostQueue) || pThis->fSuspended)
     {
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
@@ -1275,7 +1278,7 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 
     RTCritSectEnter(&pThis->CritSect);
 
-    if (usbNetQueueIsEmpty(&pThis->ToHostQueue))
+    if (usbNetQueueIsEmpty(&pThis->ToHostQueue) || pThis->fSuspended)
     {
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
@@ -2114,6 +2117,42 @@ static DECLCALLBACK(void) usbNetVMReset(PPDMUSBINS pUsbIns)
 }
 
 
+ /**
+ * @interface_method_impl{PDMUSBREG,pfnVMSuspend}
+ */
+static DECLCALLBACK(void) usbNetVMSuspend(PPDMUSBINS pUsbIns)
+{
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+#ifdef LOG_ENABLED
+    PCPDMUSBHLP pHlp  = pUsbIns->pHlpR3;
+    VMSUSPENDREASON enmReason = pHlp->pfnVMGetSuspendReason(pUsbIns);
+    LogFlowFunc(("/#%u/ enmReason=%u\n", pUsbIns->iInstance, enmReason));
+#endif
+    RTCritSectEnter(&pThis->CritSect);
+    pThis->fSuspended = true;
+    /* Unblock receive thread */
+    RTSemEventSignal(pThis->hEvtToHostQueue);
+    RTCritSectLeave(&pThis->CritSect);
+}
+
+
+/**
+ * @interface_method_impl{PDMUSBREG,pfnVMResume}
+ */
+static DECLCALLBACK(void) usbNetVMResume(PPDMUSBINS pUsbIns)
+{
+    PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
+#ifdef LOG_ENABLED
+    PCPDMUSBHLP pHlp  = pUsbIns->pHlpR3;
+    VMRESUMEREASON enmReason = pHlp->pfnVMGetResumeReason(pUsbIns);
+    LogFlowFunc(("/#%u/ enmReason=%u\n", pUsbIns->iInstance, enmReason));
+#endif
+    RTCritSectEnter(&pThis->CritSect);
+    pThis->fSuspended = false;
+    RTCritSectLeave(&pThis->CritSect);
+}
+
+
 /**
  * @interface_method_impl{PDMUSBREG,pfnDestruct}
  */
@@ -2335,9 +2374,9 @@ const PDMUSBREG g_UsbNet =
     /* pfnVMReset */
     usbNetVMReset,
     /* pfnVMSuspend */
-    NULL,
+    usbNetVMSuspend,
     /* pfnVMResume */
-    NULL,
+    usbNetVMResume,
     /* pfnVMPowerOff */
     NULL,
     /* pfnHotPlugged */

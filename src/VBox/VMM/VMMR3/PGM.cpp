@@ -658,22 +658,28 @@ typedef PGMRELOCHANDLERARGS const *PCPGMRELOCHANDLERARGS;
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
+#ifdef VBOX_VMM_TARGET_X86
 static int                pgmR3InitPaging(PVM pVM);
+#endif
 static int                pgmR3InitStats(PVM pVM);
 static DECLCALLBACK(void) pgmR3PhysInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
+#ifdef VBOX_VMM_TARGET_X86
 static DECLCALLBACK(void) pgmR3InfoMode(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
 static DECLCALLBACK(void) pgmR3InfoCr3(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs);
+#endif
 #ifdef VBOX_STRICT
 static FNVMATSTATE        pgmR3ResetNoMorePhysWritesFlag;
 #endif
 
 #ifdef VBOX_WITH_DEBUGGER
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 static FNDBGCCMD          pgmR3CmdError;
 static FNDBGCCMD          pgmR3CmdSync;
 static FNDBGCCMD          pgmR3CmdSyncAlways;
-# ifdef VBOX_STRICT
+#  ifdef VBOX_STRICT
 static FNDBGCCMD          pgmR3CmdAssertCR3;
-# endif
+#  endif
+# endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 static FNDBGCCMD          pgmR3CmdPhysToFile;
 #endif
 
@@ -682,12 +688,14 @@ static FNDBGCCMD          pgmR3CmdPhysToFile;
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 #ifdef VBOX_WITH_DEBUGGER
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 /** Argument descriptors for '.pgmerror' and '.pgmerroroff'. */
 static const DBGCVARDESC g_aPgmErrorArgs[] =
 {
     /* cTimesMin,   cTimesMax,  enmCategory,            fFlags,                         pszName,        pszDescription */
     {  0,           1,          DBGCVAR_CAT_STRING,     0,                              "where",        "Error injection location." },
 };
+# endif
 
 static const DBGCVARDESC g_aPgmPhysToFileArgs[] =
 {
@@ -696,30 +704,23 @@ static const DBGCVARDESC g_aPgmPhysToFileArgs[] =
     {  0,           1,          DBGCVAR_CAT_STRING,     0,                              "nozero",       "If present, zero pages are skipped." },
 };
 
-# ifdef DEBUG_sandervl
-static const DBGCVARDESC g_aPgmCountPhysWritesArgs[] =
-{
-    /* cTimesMin,   cTimesMax,  enmCategory,            fFlags,                         pszName,        pszDescription */
-    {  1,           1,          DBGCVAR_CAT_STRING,     0,                              "enabled",      "on/off." },
-    {  1,           1,          DBGCVAR_CAT_NUMBER_NO_RANGE, 0,                         "interval",     "Interval in ms." },
-};
-# endif
-
 /** Command descriptors. */
 static const DBGCCMD    g_aCmds[] =
 {
     /* pszCmd,  cArgsMin, cArgsMax, paArgDesc,                cArgDescs, fFlags, pfnHandler          pszSyntax,          ....pszDescription */
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     { "pgmsync",       0, 0,        NULL,                     0,         0,      pgmR3CmdSync,       "",                     "Sync the CR3 page." },
     { "pgmerror",      0, 1,        &g_aPgmErrorArgs[0],      1,         0,      pgmR3CmdError,      "",                     "Enables inject runtime of errors into parts of PGM." },
     { "pgmerroroff",   0, 1,        &g_aPgmErrorArgs[0],      1,         0,      pgmR3CmdError,      "",                     "Disables inject runtime errors into parts of PGM." },
-# ifdef VBOX_STRICT
+#  ifdef VBOX_STRICT
     { "pgmassertcr3",  0, 0,        NULL,                     0,         0,      pgmR3CmdAssertCR3,  "",                     "Check the shadow CR3 mapping." },
-#  ifdef VBOX_WITH_PAGE_SHARING
+#   ifdef VBOX_WITH_PAGE_SHARING
     { "pgmcheckduppages", 0, 0,     NULL,                     0,         0,      pgmR3CmdCheckDuplicatePages,  "",           "Check for duplicate pages in all running VMs." },
     { "pgmsharedmodules", 0, 0,     NULL,                     0,         0,      pgmR3CmdShowSharedModules,  "",             "Print shared modules info." },
+#   endif
 #  endif
-# endif
     { "pgmsyncalways", 0, 0,        NULL,                     0,         0,      pgmR3CmdSyncAlways, "",                     "Toggle permanent CR3 syncing." },
+# endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
     { "pgmphystofile", 1, 2,        &g_aPgmPhysToFileArgs[0], 2,         0,      pgmR3CmdPhysToFile, "",                     "Save the physical memory to file." },
 };
 #endif
@@ -837,6 +838,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         PVMCPU pVCpu = pVM->apCpusR3[idCpu];
         PPGMCPU pPGM = &pVCpu->pgm.s;
 
+#ifdef VBOX_VMM_TARGET_X86
         pPGM->enmShadowMode     = PGMMODE_INVALID;
         pPGM->enmGuestMode      = PGMMODE_INVALID;
         pPGM->enmGuestSlatMode  = PGMSLAT_INVALID;
@@ -854,11 +856,11 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         pPGM->pGst32BitPdR0     = NIL_RTR0PTR;
         pPGM->pGstPaePdptR0     = NIL_RTR0PTR;
         pPGM->pGstAmd64Pml4R0   = NIL_RTR0PTR;
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
         pPGM->pGstEptPml4R3     = NULL;
         pPGM->pGstEptPml4R0     = NIL_RTR0PTR;
         pPGM->uEptPtr           = 0;
-#endif
+# endif
         for (unsigned i = 0; i < RT_ELEMENTS(pVCpu->pgm.s.apGstPaePDsR3); i++)
         {
             pPGM->apGstPaePDsR3[i]             = NULL;
@@ -868,11 +870,22 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
 
         pPGM->fA20Enabled      = true;
         pPGM->GCPhysA20Mask    = ~((RTGCPHYS)!pPGM->fA20Enabled << 20);
+
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        RT_NOREF(pVCpu, pPGM);
+#else
+# error "port me"
+#endif
     }
 
+#ifdef VBOX_VMM_TARGET_X86
     pVM->pgm.s.enmHostMode      = SUPPAGINGMODE_INVALID;
     pVM->pgm.s.GCPhys4MBPSEMask = RT_BIT_64(32) - 1; /* default; checked later */
+#endif
 
+    /*
+     * RAM pre alloc
+     */
     rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "RamPreAlloc", &pVM->pgm.s.fRamPreAlloc,
 #ifdef VBOX_WITH_PREALLOC_RAM_BY_DEFAULT
                             true
@@ -882,6 +895,9 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                            );
     AssertLogRelRCReturn(rc, rc);
 
+    /*
+     * RAM Mapping
+     */
 #ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 # if HC_ARCH_BITS == 32
 #  ifdef RT_OS_DARWIN
@@ -919,12 +935,16 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     /*
      * Check for PCI pass-through and other configurables.
      */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     rc = CFGMR3QueryBoolDef(pCfgPGM, "PciPassThrough", &pVM->pgm.s.fPciPassthrough, false);
     AssertMsgRCReturn(rc, ("Configuration error: Failed to query integer \"PciPassThrough\", rc=%Rrc.\n", rc), rc);
     AssertLogRelReturn(!pVM->pgm.s.fPciPassthrough || pVM->pgm.s.fRamPreAlloc, VERR_INVALID_PARAMETER);
+#endif
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     rc = CFGMR3QueryBoolDef(CFGMR3GetRoot(pVM), "PageFusionAllowed", &pVM->pgm.s.fPageFusionAllowed, false);
     AssertLogRelRCReturn(rc, rc);
+#endif
 
     /** @cfgm{/PGM/ZeroRamPagesOnReset, boolean, true}
      * Whether to clear RAM pages on (hard) reset. */
@@ -1041,6 +1061,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                                               pgmPhysMmio2WriteHandler, "MMIO2 dirty page tracing",
                                               &pVM->pgm.s.hMmio2DirtyPhysHandlerType);
 
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Init the paging.
      */
@@ -1063,12 +1084,14 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                 break;
         }
     }
+#endif /* VBOX_VMM_TARGET_X86 */
 
     if (RT_SUCCESS(rc))
     {
         /*
          * Info & statistics
          */
+#ifdef VBOX_VMM_TARGET_X86
         DBGFR3InfoRegisterInternalEx(pVM, "mode",
                                      "Shows the current paging mode. "
                                      "Recognizes 'all', 'guest', 'shadow' and 'host' as arguments, defaulting to 'all' if nothing is given.",
@@ -1077,6 +1100,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         DBGFR3InfoRegisterInternal(pVM, "pgmcr3",
                                    "Dumps all the entries in the top level paging table. No arguments.",
                                    pgmR3InfoCr3);
+#endif
         DBGFR3InfoRegisterInternal(pVM, "phys",
                                    "Dumps all the physical address ranges. Pass 'verbose' to get more details.",
                                    pgmR3PhysInfo);
@@ -1106,15 +1130,18 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
          * Log the /proc/sys/vm/max_map_count value on linux as that is
          * frequently giving us grief when too low.
          */
-        int64_t const cGuessNeeded = MMR3PhysGetRamSize(pVM) / _2M + 16384 /*guesstimate*/;
         int64_t       cMaxMapCount = 0;
         int rc2 = RTLinuxSysFsReadIntFile(10, &cMaxMapCount, "/proc/sys/vm/max_map_count");
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE
+        LogRel(("PGM: /proc/sys/vm/max_map_count = %RI64 (rc2=%Rrc)\n", cMaxMapCount, rc2));
+# else
+        int64_t const cGuessNeeded = MMR3PhysGetRamSize(pVM) / _2M + 16384 /*guesstimate*/;
         LogRel(("PGM: /proc/sys/vm/max_map_count = %RI64 (rc2=%Rrc); cGuessNeeded=%RI64\n", cMaxMapCount, rc2, cGuessNeeded));
         if (RT_SUCCESS(rc2) && cMaxMapCount < cGuessNeeded)
             LogRel(("PGM: WARNING!!\n"
                     "PGM: WARNING!! Please increase /proc/sys/vm/max_map_count to at least %RI64 (or reduce the amount of RAM assigned to the VM)!\n"
                     "PGM: WARNING!!\n", cMaxMapCount));
-
+# endif
 #endif
 
         return VINF_SUCCESS;
@@ -1127,6 +1154,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
 }
 
 
+#ifdef VBOX_VMM_TARGET_X86
 /**
  * Init paging.
  *
@@ -1224,6 +1252,7 @@ static int pgmR3InitPaging(PVM pVM)
 
     return VINF_SUCCESS;
 }
+#endif /* VBOX_VMM_TARGET_X86 */
 
 
 /**
@@ -1318,12 +1347,15 @@ static int pgmR3InitStats(PVM pVM)
     PGMSTATS *pStats = &pPGM->Stats;
 #endif
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGM_REG_PROFILE_NS(&pPGM->StatLargePageAlloc,               "/PGM/LargePage/Alloc",               "Time spent by the host OS for large page allocation.");
     PGM_REG_COUNTER(&pPGM->StatLargePageAllocFailed,            "/PGM/LargePage/AllocFailed",         "Number of allocation failures.");
     PGM_REG_COUNTER(&pPGM->StatLargePageOverflow,               "/PGM/LargePage/Overflow",            "The number of times allocating a large page took too long.");
     PGM_REG_COUNTER(&pPGM->StatLargePageTlbFlush,               "/PGM/LargePage/TlbFlush",            "The number of times a full VCPU TLB flush was required after a large allocation.");
     PGM_REG_COUNTER(&pPGM->StatLargePageZeroEvict,              "/PGM/LargePage/ZeroEvict",           "The number of zero page mappings we had to evict when allocating a large page.");
+#endif
 #ifdef VBOX_WITH_STATISTICS
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGM_REG_PROFILE(&pStats->StatLargePageAlloc2,               "/PGM/LargePage/Alloc2",              "Time spent allocating large pages.");
     PGM_REG_PROFILE(&pStats->StatLargePageSetup,                "/PGM/LargePage/Setup",               "Time spent setting up the newly allocated large pages.");
     PGM_REG_PROFILE(&pStats->StatR3IsValidLargePage,            "/PGM/LargePage/IsValidR3",           "pgmPhysIsValidLargePage profiling - R3.");
@@ -1331,6 +1363,7 @@ static int pgmR3InitStats(PVM pVM)
 
     PGM_REG_COUNTER(&pStats->StatR3DetectedConflicts,           "/PGM/R3/DetectedConflicts",          "The number of times PGMR3CheckMappingConflicts() detected a conflict.");
     PGM_REG_PROFILE(&pStats->StatR3ResolveConflict,             "/PGM/R3/ResolveConflict",            "pgmR3SyncPTResolveConflict() profiling (includes the entire relocation).");
+# endif
     PGM_REG_COUNTER(&pStats->StatR3PhysRead,                    "/PGM/R3/Phys/Read",                  "The number of times PGMPhysRead was called.");
     PGM_REG_COUNTER_BYTES(&pStats->StatR3PhysReadBytes,         "/PGM/R3/Phys/Read/Bytes",            "The number of bytes read by PGMPhysRead.");
     PGM_REG_COUNTER(&pStats->StatR3PhysWrite,                   "/PGM/R3/Phys/Write",                 "The number of times PGMPhysWrite was called.");
@@ -1340,6 +1373,7 @@ static int pgmR3InitStats(PVM pVM)
     PGM_REG_COUNTER(&pStats->StatR3PhysSimpleWrite,             "/PGM/R3/Phys/Simple/Write",          "The number of times PGMPhysSimpleWriteGCPtr was called.");
     PGM_REG_COUNTER_BYTES(&pStats->StatR3PhysSimpleWriteBytes,  "/PGM/R3/Phys/Simple/Write/Bytes",    "The number of bytes written by PGMPhysSimpleWriteGCPtr.");
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGM_REG_COUNTER(&pStats->StatRZChunkR3MapTlbHits,           "/PGM/ChunkR3Map/TlbHitsRZ",          "TLB hits.");
     PGM_REG_COUNTER(&pStats->StatRZChunkR3MapTlbMisses,         "/PGM/ChunkR3Map/TlbMissesRZ",        "TLB misses.");
     PGM_REG_PROFILE(&pStats->StatChunkAging,                    "/PGM/ChunkR3Map/Map/Aging",          "Chunk aging profiling.");
@@ -1355,6 +1389,7 @@ static int pgmR3InitStats(PVM pVM)
     PGM_REG_COUNTER(&pStats->StatR3PageMapTlbMisses,            "/PGM/R3/Page/MapTlbMisses",          "TLB misses.");
     PGM_REG_COUNTER(&pStats->StatPageMapTlbFlushes,             "/PGM/R3/Page/MapTlbFlushes",         "TLB flushes (all contexts).");
     PGM_REG_COUNTER(&pStats->StatPageMapTlbFlushEntry,          "/PGM/R3/Page/MapTlbFlushEntry",      "TLB entry flushes (all contexts).");
+# endif
 
     PGM_REG_COUNTER(&pStats->StatRZRamRangeTlbHits,             "/PGM/RZ/RamRange/TlbHits",           "TLB hits.");
     PGM_REG_COUNTER(&pStats->StatRZRamRangeTlbMisses,           "/PGM/RZ/RamRange/TlbMisses",         "TLB misses.");
@@ -1394,8 +1429,10 @@ static int pgmR3InitStats(PVM pVM)
     PGM_REG_COUNTER_BYTES(&pStats->StatRZPhysSimpleWriteBytes,  "/PGM/RZ/Phys/Simple/Write/Bytes",    "The number of bytes written by PGMPhysSimpleWriteGCPtr.");
 
     /* GC only: */
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGM_REG_COUNTER(&pStats->StatRCInvlPgConflict,              "/PGM/RC/InvlPgConflict",             "Number of times PGMInvalidatePage() detected a mapping conflict.");
     PGM_REG_COUNTER(&pStats->StatRCInvlPgSyncMonCR3,            "/PGM/RC/InvlPgSyncMonitorCR3",       "Number of times PGMInvalidatePage() ran into PGM_SYNC_MONITOR_CR3.");
+#endif
 
     PGM_REG_COUNTER(&pStats->StatRCPhysRead,                    "/PGM/RC/Phys/Read",                  "The number of times PGMPhysRead was called.");
     PGM_REG_COUNTER_BYTES(&pStats->StatRCPhysReadBytes,         "/PGM/RC/Phys/Read/Bytes",            "The number of bytes read by PGMPhysRead.");
@@ -1406,6 +1443,7 @@ static int pgmR3InitStats(PVM pVM)
     PGM_REG_COUNTER(&pStats->StatRCPhysSimpleWrite,             "/PGM/RC/Phys/Simple/Write",          "The number of times PGMPhysSimpleWriteGCPtr was called.");
     PGM_REG_COUNTER_BYTES(&pStats->StatRCPhysSimpleWriteBytes,  "/PGM/RC/Phys/Simple/Write/Bytes",    "The number of bytes written by PGMPhysSimpleWriteGCPtr.");
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     PGM_REG_COUNTER(&pStats->StatTrackVirgin,                   "/PGM/Track/Virgin",                  "The number of first time shadowings");
     PGM_REG_COUNTER(&pStats->StatTrackAliased,                  "/PGM/Track/Aliased",                 "The number of times switching to cRef2, i.e. the page is being shadowed by two PTs.");
     PGM_REG_COUNTER(&pStats->StatTrackAliasedMany,              "/PGM/Track/AliasedMany",             "The number of times we're tracking using cRef2.");
@@ -1413,6 +1451,7 @@ static int pgmR3InitStats(PVM pVM)
     PGM_REG_COUNTER(&pStats->StatTrackOverflows,                "/PGM/Track/Overflows",               "The number of times the extent list grows too long.");
     PGM_REG_COUNTER(&pStats->StatTrackNoExtentsLeft,            "/PGM/Track/NoExtentLeft",            "The number of times the extent list was exhausted.");
     PGM_REG_PROFILE(&pStats->StatTrackDeref,                    "/PGM/Track/Deref",                   "Profiling of SyncPageWorkerTrackDeref (expensive).");
+# endif
 #endif
 
 #undef PGM_REG_COUNTER
@@ -1440,8 +1479,10 @@ static int pgmR3InitStats(PVM pVM)
     rc = STAMR3RegisterF(pVM, a, STAMTYPE_PROFILE, STAMVISIBILITY_ALWAYS, STAMUNIT_TICKS_PER_CALL, c, b, idCpu); \
     AssertRC(rc);
 
+#ifdef VBOX_VMM_TARGET_X86
         PGM_REG_COUNTER(&pPgmCpu->cGuestModeChanges, "/PGM/CPU%u/cGuestModeChanges",  "Number of guest mode changes.");
         PGM_REG_COUNTER(&pPgmCpu->cA20Changes, "/PGM/CPU%u/cA20Changes",  "Number of A20 gate changes.");
+#endif
 
         PGM_REG_COUNTER(&pPgmCpu->StatRZRamRangeTlbMisses,              "/PGM/CPU%u/RZ/RamRange/TlbMisses",         "TLB misses (lockless).");
         PGM_REG_COUNTER(&pPgmCpu->StatRZRamRangeTlbLocking,             "/PGM/CPU%u/RZ/RamRange/TlbLocking",        "Lockless TLB failed, falling back on locked lookup.");
@@ -1452,16 +1493,17 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_COUNTER(&pPgmCpu->StatR3PageMapTlbMisses,               "/PGM/CPU%u/R3/Page/MapTlbMisses",          "Lockless page map TLB failed, falling back on locked lookup.");
 
 #ifdef VBOX_WITH_STATISTICS
+# ifdef VBOX_VMM_TARGET_X86
         PGMCPUSTATS *pCpuStats = &pVM->apCpusR3[idCpu]->pgm.s.Stats;
 
-# if 0 /* rarely useful; leave for debugging. */
+#  if 0 /* rarely useful; leave for debugging. */
         for (unsigned j = 0; j < RT_ELEMENTS(pPgmCpu->StatSyncPtPD); j++)
             STAMR3RegisterF(pVM, &pCpuStats->StatSyncPtPD[i], STAMTYPE_COUNTER, STAMVISIBILITY_USED, STAMUNIT_OCCURENCES,
                             "The number of SyncPT per PD n.", "/PGM/CPU%u/PDSyncPT/%04X", i, j);
         for (unsigned j = 0; j < RT_ELEMENTS(pCpuStats->StatSyncPagePD); j++)
             STAMR3RegisterF(pVM, &pCpuStats->StatSyncPagePD[i], STAMTYPE_COUNTER, STAMVISIBILITY_USED, STAMUNIT_OCCURENCES,
                             "The number of SyncPage per PD n.", "/PGM/CPU%u/PDSyncPage/%04X", i, j);
-# endif
+#  endif
         /* R0 only: */
         PGM_REG_PROFILE(&pCpuStats->StatR0NpMiscfg,                     "/PGM/CPU%u/R0/NpMiscfg",                     "PGMR0Trap0eHandlerNPMisconfig() profiling.");
         PGM_REG_COUNTER(&pCpuStats->StatR0NpMiscfgSyncPage,             "/PGM/CPU%u/R0/NpMiscfgSyncPage",             "SyncPage calls from PGMR0Trap0eHandlerNPMisconfig().");
@@ -1505,11 +1547,11 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_COUNTER(&pCpuStats->StatRZTrap0eGuestPF,               "/PGM/CPU%u/RZ/Trap0e/GuestPF",                 "Number of real guest page faults.");
         PGM_REG_COUNTER(&pCpuStats->StatRZTrap0eWPEmulInRZ,            "/PGM/CPU%u/RZ/Trap0e/WP/InRZ",                 "Number of guest page faults due to X86_CR0_WP emulation.");
         PGM_REG_COUNTER(&pCpuStats->StatRZTrap0eWPEmulToR3,            "/PGM/CPU%u/RZ/Trap0e/WP/ToR3",                 "Number of guest page faults due to X86_CR0_WP emulation (forward to R3 for emulation).");
-#if 0 /* rarely useful; leave for debugging. */
+#  if 0 /* rarely useful; leave for debugging. */
         for (unsigned j = 0; j < RT_ELEMENTS(pCpuStats->StatRZTrap0ePD); j++)
             STAMR3RegisterF(pVM, &pCpuStats->StatRZTrap0ePD[i], STAMTYPE_COUNTER, STAMVISIBILITY_USED, STAMUNIT_OCCURENCES,
                             "The number of traps in page directory n.", "/PGM/CPU%u/RZ/Trap0e/PD/%04X", i, j);
-#endif
+#  endif
         PGM_REG_COUNTER(&pCpuStats->StatRZGuestCR3WriteHandled,        "/PGM/CPU%u/RZ/CR3WriteHandled",                "The number of times the Guest CR3 change was successfully handled.");
         PGM_REG_COUNTER(&pCpuStats->StatRZGuestCR3WriteUnhandled,      "/PGM/CPU%u/RZ/CR3WriteUnhandled",              "The number of times the Guest CR3 change was passed back to the recompiler.");
         PGM_REG_COUNTER(&pCpuStats->StatRZGuestCR3WriteConflict,       "/PGM/CPU%u/RZ/CR3WriteConflict",               "The number of times the Guest CR3 monitoring detected a conflict.");
@@ -1652,6 +1694,7 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_PROFILE(&pCpuStats->StatR3GstModifyPage,               "/PGM/CPU%u/R3/GstModifyPage",              "Profiling of the PGMGstModifyPage() body.");
         PGM_REG_COUNTER(&pCpuStats->StatR3RamRangeTlbHits,             "/PGM/CPU%u/R3/RamRange/TlbHits",           "TLB hits (lockless).");
         PGM_REG_COUNTER(&pCpuStats->StatR3PageMapTlbHits,              "/PGM/CPU%u/R3/Page/MapTlbHits",            "TLB hits (lockless).");
+# endif /* VBOX_VMM_TARGET_X86 */
 #endif /* VBOX_WITH_STATISTICS */
 
 #undef PGM_REG_PROFILE
@@ -1670,11 +1713,12 @@ static int pgmR3InitStats(PVM pVM)
  */
 VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
 {
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Determine the max physical address width (MAXPHYADDR) and apply it to
      * all the mask members and stuff.
      */
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint32_t cMaxPhysAddrWidth;
     uint32_t uMaxExtLeaf = ASMCpuId_EAX(0x80000000);
     if (   uMaxExtLeaf >= 0x80000008
@@ -1697,10 +1741,10 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
     /* Disabled the below assertion -- triggers 24 vs 39 on my Intel Skylake box for a 32-bit (Guest-type Other/Unknown) VM. */
     //AssertMsg(pVM->cpum.ro.GuestFeatures.cMaxPhysAddrWidth == cMaxPhysAddrWidth,
     //          ("CPUM %u - PGM %u\n", pVM->cpum.ro.GuestFeatures.cMaxPhysAddrWidth, cMaxPhysAddrWidth));
-#else
+# else
     uint32_t const cMaxPhysAddrWidth = pVM->cpum.ro.GuestFeatures.cMaxPhysAddrWidth;
     LogRel(("PGM: The (guest) CPU physical address width is %u bits\n", cMaxPhysAddrWidth));
-#endif
+# endif
 
     /** @todo query from CPUM. */
     pVM->pgm.s.GCPhysInvAddrMask = 0;
@@ -1711,14 +1755,14 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
      * Initialize the invalid paging entry masks, assuming NX is disabled.
      */
     uint64_t fMbzPageFrameMask = pVM->pgm.s.GCPhysInvAddrMask & UINT64_C(0x000ffffffffff000);
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
     uint64_t const fEptVpidCap = CPUMGetGuestIa32VmxEptVpidCap(pVM->apCpusR3[0]);   /* should be identical for all VCPUs */
     uint64_t const fGstEptMbzBigPdeMask   = EPT_PDE2M_MBZ_MASK
                                           | (RT_BF_GET(fEptVpidCap, VMX_BF_EPT_VPID_CAP_PDE_2M) ^ 1) << EPT_E_BIT_LEAF;
     uint64_t const fGstEptMbzBigPdpteMask = EPT_PDPTE1G_MBZ_MASK
                                           | (RT_BF_GET(fEptVpidCap, VMX_BF_EPT_VPID_CAP_PDPTE_1G) ^ 1) << EPT_E_BIT_LEAF;
     //uint64_t const GCPhysRsvdAddrMask     = pVM->pgm.s.GCPhysInvAddrMask & UINT64_C(0x000fffffffffffff); /* bits 63:52 ignored */
-#endif
+# endif
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
         PVMCPU pVCpu = pVM->apCpusR3[idCpu];
@@ -1749,7 +1793,7 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
         pVCpu->pgm.s.fGstAmd64ShadowedPdpeMask  = X86_PDPE_P  | X86_PDPE_RW  | X86_PDPE_US  | X86_PDPE_A;
         pVCpu->pgm.s.fGstAmd64ShadowedPml4eMask = X86_PML4E_P | X86_PML4E_RW | X86_PML4E_US | X86_PML4E_A;
 
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
         pVCpu->pgm.s.uEptVpidCapMsr           = fEptVpidCap;
         pVCpu->pgm.s.fGstEptMbzPteMask        = fMbzPageFrameMask | EPT_PTE_MBZ_MASK;
         pVCpu->pgm.s.fGstEptMbzPdeMask        = fMbzPageFrameMask | EPT_PDE_MBZ_MASK;
@@ -1772,7 +1816,7 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
         pVCpu->pgm.s.fGstEptShadowedPml4eMask  = EPT_PRESENT_MASK | EPT_PML4E_MBZ_MASK;
         /* If mode-based execute control for EPT is enabled, we would need to include bit 10 in the present mask. */
         pVCpu->pgm.s.fGstEptPresentMask        = EPT_PRESENT_MASK;
-#endif
+# endif
     }
 
     /*
@@ -1786,6 +1830,7 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
         pVM->pgm.s.GCPhys4MBPSEMask = RT_BIT_64(RT_MAX(36, cMaxPhysAddrWidth)) - 1;
     else
         pVM->pgm.s.GCPhys4MBPSEMask = RT_BIT_64(32) - 1;
+#endif /* VBOX_VMM_TARGET_X86 */
 
     /*
      * Allocate memory if we're supposed to do that.
@@ -1797,7 +1842,12 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
 #endif
 
     //pgmLogState(pVM);
+#ifdef VBOX_VMM_TARGET_X86
     LogRel(("PGM: PGMR3InitFinalize: 4 MB PSE mask %RGp -> %Rrc\n", pVM->pgm.s.GCPhys4MBPSEMask, rc));
+#else
+    LogRel(("PGM: PGMR3InitFinalize: -> %Rrc\n", rc));
+    RT_NOREF(pVM);
+#endif
     return rc;
 }
 
@@ -1856,6 +1906,7 @@ VMMR3_INT_DECL(int) PGMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
  */
 VMMR3DECL(void) PGMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
 {
+#ifdef VBOX_VMM_TARGET_X86
     LogFlow(("PGMR3Relocate: offDelta=%RGv\n", offDelta));
 
     /*
@@ -1886,6 +1937,10 @@ VMMR3DECL(void) PGMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
      * The page pool.
      */
     pgmR3PoolRelocate(pVM);
+
+#else
+    RT_NOREF(pVM, offDelta);
+#endif
 }
 
 
@@ -1897,6 +1952,7 @@ VMMR3DECL(void) PGMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
  */
 VMMR3DECL(void) PGMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
 {
+#ifdef VBOX_VMM_TARGET_X86
     uintptr_t const idxGst = pVCpu->pgm.s.idxGuestModeData;
     if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
         && g_aPgmGuestModeData[idxGst].pfnExit)
@@ -1926,6 +1982,10 @@ VMMR3DECL(void) PGMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
      */
     VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
     VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
+
+#else
+    RT_NOREF(pVM, pVCpu);
+#endif
 }
 
 
@@ -1944,6 +2004,7 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
 
     PGM_LOCK_VOID(pVM);
 
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Exit the guest paging mode before the pgm pool gets reset.
      * Important to clean up the amd64 case.
@@ -1961,12 +2022,14 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         pVCpu->pgm.s.GCPhysCR3 = NIL_RTGCPHYS;
         pVCpu->pgm.s.GCPhysNstGstCR3 = NIL_RTGCPHYS;
     }
+#endif
 
 #ifdef DEBUG
     DBGFR3_INFO_LOG_SAFE(pVM, "mappings", NULL);
     DBGFR3_INFO_LOG_SAFE(pVM, "handlers", "all nostat");
 #endif
 
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Switch mode back to real mode. (Before resetting the pgm pool!)
      */
@@ -1980,12 +2043,16 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cGuestModeChanges);
         STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cA20Changes);
     }
+#endif
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*
      * Reset the shadow page pool.
      */
     pgmR3PoolReset(pVM);
+#endif
 
+#ifdef VBOX_VMM_TARGET_X86
     /*
      * Re-init various other members and clear the FFs that PGM owns.
      */
@@ -1999,7 +2066,6 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
 
-#ifdef VBOX_VMM_TARGET_X86
         if (!pVCpu->pgm.s.fA20Enabled)
         {
             pVCpu->pgm.s.fA20Enabled = true;
@@ -2010,8 +2076,8 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
             HMFlushTlb(pVCpu);
 # endif
         }
-#endif
     }
+#endif /* VBOX_VMM_TARGET_X86 */
 
     //pgmLogState(pVM);
     PGM_UNLOCK(pVM);
@@ -2084,6 +2150,7 @@ VMMR3DECL(int) PGMR3Term(PVM pVM)
 }
 
 
+#ifdef VBOX_VMM_TARGET_X86
 /**
  * Show paging mode.
  *
@@ -2121,11 +2188,11 @@ static DECLCALLBACK(void) pgmR3InfoMode(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         pHlp->pfnPrintf(pHlp, "Guest paging mode (VCPU #%u):  %s (changed %RU64 times), A20 %s (changed %RU64 times)\n",
                         pVCpu->idCpu, PGMGetModeName(pVCpu->pgm.s.enmGuestMode), pVCpu->pgm.s.cGuestModeChanges.c,
                         pVCpu->pgm.s.fA20Enabled ? "enabled" : "disabled", pVCpu->pgm.s.cA20Changes.c);
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
         if (pVCpu->pgm.s.enmGuestSlatMode != PGMSLAT_INVALID)
             pHlp->pfnPrintf(pHlp, "Guest SLAT mode (VCPU #%u): %s\n", pVCpu->idCpu,
                             PGMGetSlatModeName(pVCpu->pgm.s.enmGuestSlatMode));
-#endif
+# endif
     }
     if (fShadow)
         pHlp->pfnPrintf(pHlp, "Shadow paging mode (VCPU #%u): %s\n", pVCpu->idCpu, PGMGetModeName(pVCpu->pgm.s.enmShadowMode));
@@ -2150,6 +2217,7 @@ static DECLCALLBACK(void) pgmR3InfoMode(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         pHlp->pfnPrintf(pHlp, "Host paging mode:             %s\n", psz);
     }
 }
+#endif /* VBOX_VMM_TARGET_X86 */
 
 
 /**
@@ -2277,6 +2345,7 @@ static DECLCALLBACK(void) pgmR3PhysInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     }
 }
 
+#ifdef VBOX_VMM_TARGET_X86
 
 /**
  * Dump the page directory to the log.
@@ -2359,9 +2428,9 @@ int pgmR3ExitShadowModeBeforePoolFlush(PVMCPU pVCpu)
         AssertMsgRCReturn(rc, ("Exit failed for shadow mode %d: %Rrc\n", pVCpu->pgm.s.enmShadowMode, rc), rc);
     }
 
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 == NULL);
-#endif
+# endif
     return rc;
 }
 
@@ -2381,9 +2450,9 @@ int pgmR3ReEnterShadowModeAfterPoolFlush(PVM pVM, PVMCPU pVCpu)
     AssertRCReturn(rc, rc);
     AssertRCSuccessReturn(rc, VERR_IPE_UNEXPECTED_INFO_STATUS);
 
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 != NULL || pVCpu->pgm.s.enmShadowMode == PGMMODE_NONE);
-#endif
+# endif
     AssertMsg(   pVCpu->pgm.s.enmShadowMode >= PGMMODE_NESTED_32BIT
               || CPUMGetHyperCR3(pVCpu) == PGMGetHyperCR3(pVCpu),
               ("%RHp != %RHp %s\n", (RTHCPHYS)CPUMGetHyperCR3(pVCpu), PGMGetHyperCR3(pVCpu), PGMGetModeName(pVCpu->pgm.s.enmShadowMode)));
@@ -2405,8 +2474,9 @@ void pgmR3RefreshShadowModeAfterA20Change(PVMCPU pVCpu)
     AssertReleaseRC(rc);
 }
 
-
+#endif /* VBOX_VMM_TARGET_X86 */
 #ifdef VBOX_WITH_DEBUGGER
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * @callback_method_impl{FNDBGCCMD, The '.pgmerror' and '.pgmerroroff' commands.}
@@ -2471,7 +2541,7 @@ static DECLCALLBACK(int) pgmR3CmdSync(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUVM 
     return VINF_SUCCESS;
 }
 
-#ifdef VBOX_STRICT
+#  ifdef VBOX_STRICT
 
 /**
  * EMT callback for pgmR3CmdAssertCR3.
@@ -2516,7 +2586,7 @@ static DECLCALLBACK(int) pgmR3CmdAssertCR3(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
     return DBGCCmdHlpPrintf(pCmdHlp, "PGMAssertCR3: OK\n");
 }
 
-#endif /* VBOX_STRICT */
+#  endif /* VBOX_STRICT */
 
 /**
  * @callback_method_impl{FNDBGCCMD, The '.pgmsyncalways' command.}
@@ -2550,6 +2620,7 @@ static DECLCALLBACK(int) pgmR3CmdSyncAlways(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
     return rc;
 }
 
+# endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 /**
  * @callback_method_impl{FNDBGCCMD, The '.pgmphystofile' command.}

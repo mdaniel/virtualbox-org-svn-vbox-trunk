@@ -70,6 +70,9 @@
 #include <iprt/thread.h>
 
 
+#if 0 /* now in taken from PGM.cpp where it came from */
+
+
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
@@ -520,6 +523,7 @@ VMMR3DECL(int) PGMR3CheckIntegrity(PVM pVM)
     return VINF_SUCCESS;
 }
 
+#endif
 
 VMMDECL(bool) PGMHasDirtyPages(PVM pVM)
 {

@@ -464,6 +464,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/PDMQueue.cpp \
  	VMMR3/PDMR3Task.cpp \
  	VMMR3/PDMThread.cpp \
+ 	VMMR3/PGM.cpp \
  	VMMR3/PGM-armv8.cpp \
  	VMMR3/PGMDbg.cpp \
  	VMMR3/PGMHandler.cpp \

@@ -25,6 +25,134 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/*
+ * Sometimes user wants to check or retrieve data or information about objects that may not exist at the time
+ * the user requests such objects. For example, some action was completed some time ago and all data related to
+ * this action was deleted, but the user missed this moment and later still wants to know how the action was
+ * completed. If it were possible to store such objects for some time, it would help the user.
+ *
+ * Example with Progress object
+ * 1. When Progress object is created it’s added into TrackedObjectCollector (call setTracked() in Progress::FinalConstruct()).
+ *
+ * 2. User keeps the Progress Id. VirtualBox API returns Progress Id to user everywhere where its’ needed.
+ * When user wants to know the status of action he makes a request to VirtualBox calling the function
+ * VirtualBox::getTrackedObject(). This function looks through TrackedObjectCollector and retrieves the information
+ * about a requested object and if one exists there returns a pointer to IUnknown interface.
+ * This pointer should be converted to the appropriate interface type (IProgress in this case). Next the data are
+ * extracted using the interface functions.
+ *
+ * 2.1. Approach 1.
+ * Getting information about a tracked object using VirtualBox API (VirtualBox frontend or any external client)
+ *  - Call VirtualBox::getTrackedObjectIds() with a requested interface name and get back the list of tracked objects.
+ *  - Go through the list, call VirtualBox::getTrackedObject() for each Id from the list.
+ *  - Convert IUnknown interface to the requested interface.
+ *  - Retrieve information about an object.
+ *
+ *  See the full example 1 below.
+ *
+ * 2.2. Approach 2
+ * Getting information about a tracked object on server side (VBoxSVC) is:
+ *  - Call TrackedObjectsCollector::getObjIdsByClassIID() with the interface name IID (our case is IID_IProgress)
+ *    and get back the list of tracked objects.
+ *  - Go through the list, call TrackedObjectsCollectorState::getObj() for each Id from the list.
+ *  - Convert IUnknown interface to the requested interface.
+ *  - Retrieve information about an object.
+ *
+ * See the full example 2 below.
+ *
+ * 3. Class TrackedObjectData keeps some additional data about the tracked object as creation time, last access time,
+ * life time and etc.
+ *
+ * 4. The last access time is updated for the requested object if it's needed (in the class TrackedObjectData).
+ *
+ * 5. For managing the items stored in the TrackedObjectCollector, a new thread TrackedObjectsThread is launched
+ * in VirtualBox::init() function.
+ *
+ * 6. Periodically (1 sec at present), the thread TrackedObjectsThread goes through the list of tracked objects,
+ * measures the difference between the current time and the creation time, if this value is greater than the life
+ * time the object is marked as "lifetime expired" and next the idletime is started for this object. When the idle
+ * time is expired the object is removed from the TrackedObjectsCollector.
+ *
+ * 7. There is a special case for an object with lifetime = 0. This means that the object has an infinite lifetime.
+ * How to handle this case? The idea is that the reference count of an unused object is 1, since the object is only
+ * represented inside the TrackedObjectCollector. When the count is 1, we mark the lifetime as expired and update
+ * the object with new data. After this action, the logic becomes standard (see point 6).
+ *
+ * Addon.
+ * Example 1. Getting information about a Progress tracked object on server side (VBoxSVC)
+ *
+ *  std::vector<com::Utf8Str> lObjIdMap;
+ *  gTrackedObjectsCollector.getObjIdsByClassIID(IID_IProgress, lObjIdMap);
+ *  for (const com::Utf8Str &item : lObjIdMap)
+ *  {
+ *      if (gTrackedObjectsCollector.checkObj(item.c_str()))
+ *      {
+ *          TrackedObjectData temp;
+ *          gTrackedObjectsCollector.getObj(item.c_str(), temp);
+ *          Log2(("Tracked Progress Object with objectId %s was found\n", temp.objectIdStr().c_str()));
+ *
+ *          ComPtr<IProgress> pProgress;
+ *          temp.getInterface()->QueryInterface(IID_IProgress, (void **)pProgress.asOutParam());
+ *          if (pProgress.isNotNull())
+ *          {
+ *              com::Bstr reqId(aId.toString());
+ *              Bstr foundId;
+ *              pProgress->COMGETTER(Id)(foundId.asOutParam());
+ *              if (reqId == foundId)
+ *              {
+ *                  BOOL aCompleted;
+ *                  pProgress->COMGETTER(Completed)(&aCompleted);
+ *
+ *                  BOOL aCanceled;
+ *                  pProgress->COMGETTER(Canceled)(&aCanceled);
+ *
+ *                  aProgressObject = pProgress;
+ *                  return S_OK;
+ *              }
+ *          }
+ *      }
+ *  }
+ *
+ * Example 2. Getting information about a Progress tracked object using VirtualBox API
+ *
+ *  Utf8Str strObjUuid; // passed from the client
+ *  Utf8Str strIfaceName;// passed from the client
+ *  ComPtr<IVirtualBox> pVirtualBox;// set before. Usually each client has own ComPtr<IVirtualBox>.
+ *
+ *  com::SafeArray<BSTR> ObjIDsList;
+ *  hrc = pVirtualBox->GetTrackedObjectIds(Bstr(strIfaceName).raw(), ComSafeArrayAsOutParam(ObjIDsList));
+ *  if (SUCCEEDED(hrc))
+ *  {
+ *      map < Bstr, TrackedObjInfo_T > lObjInfoMap;
+ *      for (size_t i = 0; i < ObjIDsList.size(); ++i)
+ *      {
+ *          Bstr bstrObjId = ObjIDsList[i];
+ *          if (bstrObjId.equals(strObjUuid.c_str()))
+ *          {
+ *              TrackedObjInfo_T objInfo;
+ *              hrc = pVirtualBox->GetTrackedObject(bstrObjId.raw(),
+ *                                                  objInfo.pIUnknown.asOutParam(),
+ *                                                  &objInfo.enmState,
+ *                                                  &objInfo.creationTime,
+ *                                                  &objInfo.deletionTime);
+ *
+ *              // print tracked object information as state, creation time, deletion time
+ *              // objInfo.enmState, objInfo.creationTime, objInfo.deletionTime
+ *
+ *              if (objInfo.enmState != TrackedObjectState_Invalid)
+ *              {
+ *                  // Conversion IUnknown -> IProgress
+ *                  ComPtr<IProgress> pObj;
+ *                  objInfo.pIUnknown->QueryInterface(IID_IProgress, (void **)pObj.asOutParam());
+ *                  if (pObj.isNotNull())
+ *                      //print Progress Object data as description, completion, cancellation etc.
+ *              }
+ *              break;
+ *          }
+ *      }
+ *  }
+*/
+
 #define LOG_GROUP LOG_GROUP_MAIN
 
 #include "LoggingNew.h"

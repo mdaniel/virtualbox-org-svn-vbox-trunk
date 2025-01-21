@@ -13,6 +13,10 @@
 
 #include "MemLibInternals.h"
 
+#if defined(VBOX) && defined(_MSC_VER)
+# pragma optimize("", off)
+#endif
+
 /**
   Copy Length bytes from Source to Destination.
 
@@ -146,3 +150,7 @@ InternalMemCopyMem (
 
   return DestinationBuffer;
 }
+
+#if defined(VBOX) && defined(_MSC_VER)
+# pragma optimize("", on)
+#endif

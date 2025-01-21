@@ -27,7 +27,7 @@
 
 /** @page pg_main_objtracker
  * Overview:
- * 
+ *
  * Sometimes user wants to check or retrieve data or information about objects
  * that may not exist at the time the user requests such objects. For example,
  * some action was completed some time ago and all data related to this action

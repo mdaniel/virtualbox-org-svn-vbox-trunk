@@ -180,6 +180,11 @@ class UnattendedVm(vboxtestvms.BaseTestVm):
         # Associate oVM with the installer:
         try:
             oIUnattended.machine = oVM;
+            if oTestDrv.fpApiVer >= 7.1:
+                oIUnattended.userPassword  = 'changeme';
+                oIUnattended.adminPassword = 'changeme';
+            else:
+                oIUnattended.password = 'changeme';
         except:
             return reporter.errorXcpt();
         oTestDrv.processPendingEvents();

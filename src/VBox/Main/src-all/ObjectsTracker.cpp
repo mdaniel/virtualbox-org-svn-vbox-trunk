@@ -275,17 +275,13 @@ TrackedObjectData &TrackedObjectData::operator=(const TrackedObjectData & that)
     return *this;
 }
 
-com::Utf8Str TrackedObjectData::updateLastAccessTime()
+RTTIMESPEC TrackedObjectData::updateLastAccessTime()
 {
     RTTimeNow(&m_lastAccessTime);
-
-    char szTime[RTTIME_STR_LEN];
-    RTTimeSpecToString(&m_lastAccessTime, szTime, sizeof(szTime));
-    return com::Utf8Str(szTime);
+    return m_lastAccessTime;
 }
 
-/** @todo r=bird: why on earth does this return a string? */
-com::Utf8Str TrackedObjectData::initIdleTime()
+RTTIMESPEC TrackedObjectData::initIdleTime()
 {
     if (!m_fIdleTimeStart)
     {
@@ -296,9 +292,7 @@ com::Utf8Str TrackedObjectData::initIdleTime()
         m_fLifeTimeExpired = true;
     }
 
-    char szTime[RTTIME_STR_LEN];
-    RTTimeSpecToString(&m_idleTimeStart, szTime, sizeof(szTime));
-    return com::Utf8Str(szTime);
+    return m_idleTimeStart;
 }
 
 com::Utf8Str TrackedObjectData::creationTimeStr() const
@@ -561,8 +555,10 @@ HRESULT TrackedObjectsCollector::getObj(const com::Utf8Str &aObjId,
         if (fUpdate == true)
         {
             /* Update some fields in the found object if needed. in instance, the last access time */
-            com::Utf8Str lat = pIter->second.updateLastAccessTime(); /* Update the access time */
-            Log2(("The updated last access time is %s\n", lat.c_str()));
+            RTTIMESPEC lat = pIter->second.updateLastAccessTime(); /* Update the access time */
+            char szTime[RTTIME_STR_LEN];
+            RTTimeSpecToString(&lat, szTime, sizeof(szTime));
+            Log2(("The updated last access time is %s\n", szTime));
         }
         hrc = S_OK;
     }
@@ -608,8 +604,10 @@ HRESULT TrackedObjectsCollector::initObjIdleTime(const com::Utf8Str &aObjId)
     if (pIter != m_trackedObjectsData.end())
     {
         /* Init idle time only once, next time returns the initialization time */
-        com::Utf8Str strTime = pIter->second.initIdleTime();
-        Log2(("The idle time start is %s\n", strTime.c_str()));
+        RTTIMESPEC idleTime = pIter->second.initIdleTime();
+        char szTime[RTTIME_STR_LEN];
+        RTTimeSpecToString(&idleTime, szTime, sizeof(szTime));
+        Log2(("The idle time start is %s\n", szTime));
         vrc = VINF_SUCCESS;
     }
 

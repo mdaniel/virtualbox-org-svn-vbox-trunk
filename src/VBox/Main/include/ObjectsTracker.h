@@ -154,8 +154,8 @@ public:
         return m_fLifeTimeExpired;
     }
 
-    com::Utf8Str updateLastAccessTime();
-    com::Utf8Str initIdleTime();
+    RTTIMESPEC updateLastAccessTime();
+    RTTIMESPEC initIdleTime();
     com::Utf8Str creationTimeStr() const;
     TrackedObjectState_T deletionTime(PRTTIMESPEC aTime) const;
     TrackedObjectState_T updateState(TrackedObjectState_T aNewState);

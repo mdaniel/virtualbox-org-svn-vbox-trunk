@@ -25,11 +25,15 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/*
- * Sometimes user wants to check or retrieve data or information about objects that may not exist at the time
- * the user requests such objects. For example, some action was completed some time ago and all data related to
- * this action was deleted, but the user missed this moment and later still wants to know how the action was
- * completed. If it were possible to store such objects for some time, it would help the user.
+/** @page pg_main_objtracker
+ * Overview:
+ * 
+ * Sometimes user wants to check or retrieve data or information about objects
+ * that may not exist at the time the user requests such objects. For example,
+ * some action was completed some time ago and all data related to this action
+ * was deleted, but the user missed this moment and later still wants to know
+ * how the action was completed. If it were possible to store such objects for
+ * some time, it would help the user.
  *
  * Example with Progress object
  * 1. When Progress object is created it’s added into TrackedObjectCollector (call setTracked() in Progress::FinalConstruct()).
@@ -151,7 +155,7 @@
  *          }
  *      }
  *  }
-*/
+ */
 
 #define LOG_GROUP LOG_GROUP_MAIN
 

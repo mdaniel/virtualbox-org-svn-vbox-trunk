@@ -69,7 +69,9 @@
  * @{
  */
 /** The current saved state version. */
-#define ATA_SAVED_STATE_VERSION                         21
+#define ATA_SAVED_STATE_VERSION                         22
+/** Saved state version with 32-bit iCurLBA. */
+#define ATA_SAVED_STATE_VERSION_WITHOUT_64BIT_ILBA      21
 /** Saved state version without iCurLBA for ATA commands. */
 #define ATA_SAVED_STATE_VERSION_WITHOUT_ATA_ILBA        20
 /** The saved state version used by VirtualBox 3.0.
@@ -285,8 +287,6 @@ typedef struct ATADEVSTATE
     uint32_t                            iIOBufferCur;
     /** First element beyond end of valid buffer content, shared PIO/DMA. */
     uint32_t                            iIOBufferEnd;
-    /** Align the following fields correctly. */
-    uint32_t                            Alignment0;
 
     /** ATA/ATAPI current PIO read/write transfer position. Not shared with DMA for safety reasons. */
     uint32_t                            iIOBufferPIODataStart;
@@ -294,9 +294,10 @@ typedef struct ATADEVSTATE
     uint32_t                            iIOBufferPIODataEnd;
 
     /** Current LBA position (both ATA/ATAPI). */
-    uint32_t                            iCurLBA;
+    uint64_t                            iCurLBA;
     /** ATAPI current sector size. */
     uint32_t                            cbATAPISector;
+
     /** ATAPI current command. */
     uint8_t                             abATAPICmd[ATAPI_PACKET_SIZE];
     /** ATAPI sense data. */
@@ -2037,7 +2038,7 @@ static bool atapiR3ReadSS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTATE 
     VDREGIONDATAFORM enmDataForm;
 
     Assert(s->uTxDir == PDMMEDIATXDIR_FROM_DEVICE);
-    uint32_t const iATAPILBA     = s->iCurLBA;
+    uint32_t const iATAPILBA     = (uint32_t)s->iCurLBA;    /* ATAPI is limited to 32-bit LBAs */
     uint32_t const cbTransfer    = RT_MIN(s->cbTotalTransfer, RT_MIN(s->cbIOBuffer, ATA_MAX_IO_BUFFER_SIZE));
     uint32_t const cbATAPISector = s->cbATAPISector;
     uint32_t const cSectors      = cbTransfer / cbATAPISector;
@@ -2666,7 +2667,7 @@ static bool atapiR3ReadCapacitySS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATAD
 
 
 /**
- * Sink/Source: ATAPI READ DISCK INFORMATION
+ * Sink/Source: ATAPI READ DISC INFORMATION
  */
 static bool atapiR3ReadDiscInformationSS(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, PATADEVSTATE s, PATADEVSTATER3 pDevR3)
 {
@@ -7306,7 +7307,7 @@ static DECLCALLBACK(int) ataR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
             pHlp->pfnSSMPutU32(pSSM, pThis->aCts[i].aIfs[j].iIOBufferEnd);
             pHlp->pfnSSMPutU32(pSSM, pThis->aCts[i].aIfs[j].iIOBufferPIODataStart);
             pHlp->pfnSSMPutU32(pSSM, pThis->aCts[i].aIfs[j].iIOBufferPIODataEnd);
-            pHlp->pfnSSMPutU32(pSSM, pThis->aCts[i].aIfs[j].iCurLBA);
+            pHlp->pfnSSMPutU64(pSSM, pThis->aCts[i].aIfs[j].iCurLBA);
             pHlp->pfnSSMPutU32(pSSM, pThis->aCts[i].aIfs[j].cbATAPISector);
             pHlp->pfnSSMPutMem(pSSM, &pThis->aCts[i].aIfs[j].abATAPICmd, sizeof(pThis->aCts[i].aIfs[j].abATAPICmd));
             pHlp->pfnSSMPutMem(pSSM, &pThis->aCts[i].aIfs[j].abATAPISense, sizeof(pThis->aCts[i].aIfs[j].abATAPISense));
@@ -7349,6 +7350,7 @@ static DECLCALLBACK(int) ataR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     uint32_t        u32;
 
     if (   uVersion != ATA_SAVED_STATE_VERSION
+        && uVersion != ATA_SAVED_STATE_VERSION_WITHOUT_64BIT_ILBA
         && uVersion != ATA_SAVED_STATE_VERSION_WITHOUT_ATA_ILBA
         && uVersion != ATA_SAVED_STATE_VERSION_VBOX_30
         && uVersion != ATA_SAVED_STATE_VERSION_WITHOUT_FULL_SENSE
@@ -7495,7 +7497,13 @@ static DECLCALLBACK(int) ataR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
             pHlp->pfnSSMGetU32(pSSM, &pThis->aCts[i].aIfs[j].iIOBufferEnd);
             pHlp->pfnSSMGetU32(pSSM, &pThis->aCts[i].aIfs[j].iIOBufferPIODataStart);
             pHlp->pfnSSMGetU32(pSSM, &pThis->aCts[i].aIfs[j].iIOBufferPIODataEnd);
-            pHlp->pfnSSMGetU32(pSSM, &pThis->aCts[i].aIfs[j].iCurLBA);
+            if (uVersion > ATA_SAVED_STATE_VERSION_WITHOUT_64BIT_ILBA)
+                pHlp->pfnSSMGetU64(pSSM, &pThis->aCts[i].aIfs[j].iCurLBA);
+            else
+            {
+                pHlp->pfnSSMGetU32(pSSM, &u32);
+                pThis->aCts[i].aIfs[j].iCurLBA = u32;
+            }
             pHlp->pfnSSMGetU32(pSSM, &pThis->aCts[i].aIfs[j].cbATAPISector);
             pHlp->pfnSSMGetMem(pSSM, &pThis->aCts[i].aIfs[j].abATAPICmd, sizeof(pThis->aCts[i].aIfs[j].abATAPICmd));
             if (uVersion > ATA_SAVED_STATE_VERSION_WITHOUT_FULL_SENSE)

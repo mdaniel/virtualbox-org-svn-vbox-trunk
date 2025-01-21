@@ -1108,7 +1108,7 @@ static void usbNetLinkDone(PUSBNET pThis, PVUSBURB pUrb)
 static int usbNetCompleteStall(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb, const char *pszWhy)
 {
     RT_NOREF(pszWhy);
-    Log(("usbNetCompleteStall/#%u: pUrb=%p:%s: %s\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pszWhy));
+    LogFunc(("/#%u/ pUrb=%p:%s: %s\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pszWhy));
 
     pUrb->enmStatus = VUSBSTATUS_STALL;
 
@@ -1132,7 +1132,7 @@ static int usbNetCompleteStall(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb, cons
  */
 static int usbNetCompleteOk(PUSBNET pThis, PVUSBURB pUrb, size_t cbData)
 {
-    Log(("usbNetCompleteOk/#%u: pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
+    LogFunc(("/#%u/ pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     pUrb->cbData    = (uint32_t)cbData;
@@ -1148,7 +1148,7 @@ static int usbNetCompleteOk(PUSBNET pThis, PVUSBURB pUrb, size_t cbData)
  */
 static void usbNetCompleteNotificationOk(PUSBNET pThis, PVUSBURB pUrb, const void *pSrc, size_t cbSrc)
 {
-    Log(("usbNetCompleteNotificationOk/#%u: pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
+    LogFunc(("/#%u/ pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     if (pSrc)   /* Can be NULL if not copying anything. */
@@ -1249,6 +1249,7 @@ static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pIn
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
 
+    LogFlowFunc(("/#%u/ pInterface=%p cMillies=%u\n", pThis->pUsbIns->iInstance, pInterface, cMillies));
     RTCritSectEnter(&pThis->CritSect);
     if (!usbNetQueueIsEmpty(&pThis->ToHostQueue) || pThis->fSuspended)
     {
@@ -1258,8 +1259,10 @@ static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pIn
     pThis->fHaveToHostQueueWaiter = true;
     RTCritSectLeave(&pThis->CritSect);
 
+    LogFlowFunc(("/#%u/ pInterface=%p waiting for hEvtToHostQueue\n", pThis->pUsbIns->iInstance, pInterface));
     int rc = RTSemEventWait(pThis->hEvtToHostQueue, cMillies);
     ASMAtomicXchgBool(&pThis->fHaveToHostQueueWaiter, false);
+    LogFlowFunc(("/#%u/ pInterface=%p received hEvtToHostQueue\n", pThis->pUsbIns->iInstance, pInterface));
     return rc;
 }
 
@@ -1276,11 +1279,13 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
 
+    LogFlowFunc(("/#%u/ pInterface=%p cb=%u\n", pThis->pUsbIns->iInstance, pInterface, cb));
     RTCritSectEnter(&pThis->CritSect);
 
     if (usbNetQueueIsEmpty(&pThis->ToHostQueue) || pThis->fSuspended)
     {
         RTCritSectLeave(&pThis->CritSect);
+        LogFlowFunc(("/#%u/ return %Rrc due to %s\n", pThis->pUsbIns->iInstance, VINF_SUCCESS, pThis->fSuspended ? "being suspended" : "empty host queue"));
         return VINF_SUCCESS;
     }
 
@@ -1296,7 +1301,8 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 
     if (pUrb->cbData < sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb)
     {
-        Log(("UsbNet: Receive URB too small (%#x vs %#x)\n", pUrb->cbData, sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb));
+        LogFunc(("/#%u/ Receive URB too small (%#x vs %#x)\n", pThis->pUsbIns->iInstance, pUrb->cbData,
+             sizeof(USBNCMNTH16) + sizeof(USBNCMNDP16) + cb));
         pUrb->enmStatus = VUSBSTATUS_DATA_OVERRUN;
         usbNetLinkDone(pThis, pUrb);
         RTCritSectLeave(&pThis->CritSect);
@@ -1330,7 +1336,7 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
     STAM_REL_COUNTER_ADD(&pThis->StatReceiveBytes, cb);
     RTCritSectLeave(&pThis->CritSect);
 
-    LogFlow(("%s: return %Rrc\n", __FUNCTION__, VINF_SUCCESS));
+    LogFlowFunc(("/#%u/ return %Rrc\n", pThis->pUsbIns->iInstance, VINF_SUCCESS));
     return VINF_SUCCESS;
 }
 
@@ -1340,6 +1346,10 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
 static DECLCALLBACK(void) usbNetNetworkDown_XmitPending(PPDMINETWORKDOWN pInterface)
 {
     RT_NOREF(pInterface);
+#ifdef LOG_ENABLED
+    PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
+    LogFlowFunc(("/#%u/ pInterface=%p\n", pThis->pUsbIns->iInstance, pInterface));
+#endif
 }
 
 
@@ -1352,7 +1362,7 @@ static DECLCALLBACK(int) usbNetGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
-    LogFlowFunc(("#%d\n", pThis->pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pThis->pUsbIns->iInstance));
     memcpy(pMac, &pThis->MacConfigured, sizeof(*pMac));
     return VINF_SUCCESS;
 }
@@ -1365,6 +1375,7 @@ static DECLCALLBACK(PDMNETWORKLINKSTATE) usbNetGetLinkState(PPDMINETWORKCONFIG p
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkConfig);
 
+    LogFlowFunc(("/#%u/\n", pThis->pUsbIns->iInstance));
     if (pThis->fLinkUp && !pThis->fLinkTempDown)
         return PDMNETWORKLINKSTATE_UP;
     if (!pThis->fLinkUp)
@@ -1389,7 +1400,7 @@ static DECLCALLBACK(void) usbNetTimerLinkUp(PPDMUSBINS pUsbIns, TMTIMERHANDLE hT
     PUSBNET pThis = (PUSBNET)pvUser;
     RT_NOREF(pUsbIns, hTimer);
 
-    LogFlowFunc(("#%d\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
 
     /** @todo Do we really care for potential races with link state? */
     pThis->fLinkTempDown = false;
@@ -1407,7 +1418,7 @@ static DECLCALLBACK(int) usbNetSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNE
 
     bool fLinkUp = enmState == PDMNETWORKLINKSTATE_UP;
 
-    LogFlowFunc(("#%d enmState=%d\n", pThis->pUsbIns->iInstance, enmState));
+    LogFlowFunc(("/#%u/ enmState=%d\n", pThis->pUsbIns->iInstance, enmState));
     AssertMsgReturn(enmState > PDMNETWORKLINKSTATE_INVALID && enmState <= PDMNETWORKLINKSTATE_DOWN_RESUME,
                     ("Invalid link state: enmState=%d\n", enmState), VERR_INVALID_PARAMETER);
 
@@ -1434,7 +1445,7 @@ static DECLCALLBACK(int) usbNetSetLinkState(PPDMINETWORKCONFIG pInterface, PDMNE
 static DECLCALLBACK(PVUSBURB) usbNetUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMillies)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUrbReap/#%u: cMillies=%u\n", pUsbIns->iInstance, cMillies));
+    LogFlowFunc(("/#%u/ cMillies=%u\n", pUsbIns->iInstance, cMillies));
 
     RTCritSectEnter(&pThis->CritSect);
 
@@ -1456,7 +1467,7 @@ static DECLCALLBACK(PVUSBURB) usbNetUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMi
     RTCritSectLeave(&pThis->CritSect);
 
     if (pUrb)
-        Log(("usbNetUrbReap/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
+        LogFunc(("/#%u/ pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     return pUrb;
 }
 
@@ -1467,7 +1478,7 @@ static DECLCALLBACK(PVUSBURB) usbNetUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMi
 static DECLCALLBACK(int) usbNetWakeup(PPDMUSBINS pUsbIns)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUrbReap/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
 
     return RTSemEventSignal(pThis->hEvtDoneQueue);
 }
@@ -1479,7 +1490,7 @@ static DECLCALLBACK(int) usbNetWakeup(PPDMUSBINS pUsbIns)
 static DECLCALLBACK(int) usbNetUrbCancel(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUrbCancel/#%u: pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
+    LogFlowFunc(("/#%u/ pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     RTCritSectEnter(&pThis->CritSect);
 
     /*
@@ -1655,7 +1666,7 @@ static int usbNetHandleBulkDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     if (pThis->fHaveToHostQueueWaiter)
         RTSemEventSignal(pThis->hEvtToHostQueue);
 
-    LogFlow(("usbNetHandleBulkDevToHost: Added %p:%s to the to-host queue\n", pUrb, pUrb->pszDesc));
+    LogFlowFunc(("/#%u/ Added %p:%s to the to-host queue\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     return VINF_SUCCESS;
 }
 
@@ -1697,7 +1708,7 @@ static int usbNetHandleIntrDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     else
         usbNetQueueAddTail(&pThis->ToHostIntrQueue, pUrb);
 
-    LogFlow(("usbNetHandleIntrDevToHost: Added %p:%s to the to-host interrupt queue\n", pUrb, pUrb->pszDesc));
+    LogFlowFunc(("/#%u/ Added %p:%s to the to-host interrupt queue\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     return VINF_SUCCESS;
 }
 
@@ -1710,7 +1721,7 @@ static int usbNetHandleIntrDevToHost(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
  */
 DECLHIDDEN(void) usbNetLinkStateNotify(PUSBNET pThis, PDMNETWORKLINKSTATE enmLinkState)
 {
-    LogFlowFunc(("#%d enmLinkState=%d\n", pThis->pUsbIns->iInstance, enmLinkState));
+    LogFlowFunc(("/#%u/ enmLinkState=%d\n", pThis->pUsbIns->iInstance, enmLinkState));
     RTCritSectEnter(&pThis->CritSect);
     /* Trigger notifications */
     pThis->fInitialLinkStatusSent  = false;
@@ -1903,7 +1914,7 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
 static DECLCALLBACK(int) usbNetQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetQueue/#%u: pUrb=%p:%s EndPt=%#x\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->EndPt));
+    LogFlowFunc(("/#%u/ pUrb=%p:%s EndPt=%#x\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->EndPt));
     RTCritSectEnter(&pThis->CritSect);
 
     /*
@@ -1948,7 +1959,7 @@ static DECLCALLBACK(int) usbNetQueue(PPDMUSBINS pUsbIns, PVUSBURB pUrb)
 static DECLCALLBACK(int) usbNetUsbClearHaltedEndpoint(PPDMUSBINS pUsbIns, unsigned uEndpoint)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUsbClearHaltedEndpoint/#%u: uEndpoint=%#x\n", pUsbIns->iInstance, uEndpoint));
+    LogFlowFunc(("/#%u/ uEndpoint=%#x\n", pUsbIns->iInstance, uEndpoint));
 
     if ((uEndpoint & ~0x80) < RT_ELEMENTS(pThis->aEps))
     {
@@ -1968,7 +1979,7 @@ static DECLCALLBACK(int) usbNetUsbSetInterface(PPDMUSBINS pUsbIns, uint8_t bInte
 {
     RT_NOREF(bInterfaceNumber);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUsbSetInterface/#%u: bInterfaceNumber=%u bAlternateSetting=%u\n", pUsbIns->iInstance, bInterfaceNumber, bAlternateSetting));
+    LogFlowFunc(("/#%u/ bInterfaceNumber=%u bAlternateSetting=%u\n", pUsbIns->iInstance, bInterfaceNumber, bAlternateSetting));
     Assert(bAlternateSetting == 0 || bAlternateSetting == 1);
     if (pThis->bAlternateSetting != bAlternateSetting)
     {
@@ -1998,7 +2009,7 @@ static DECLCALLBACK(int) usbNetUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t b
 {
     RT_NOREF(pvOldCfgDesc, pvOldIfState,  pvNewCfgDesc);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUsbSetConfiguration/#%u: bConfigurationValue=%u\n", pUsbIns->iInstance, bConfigurationValue));
+    LogFlowFunc(("/#%u/ bConfigurationValue=%u\n", pUsbIns->iInstance, bConfigurationValue));
     Assert(bConfigurationValue == 1);
     RTCritSectEnter(&pThis->CritSect);
 
@@ -2020,7 +2031,7 @@ static DECLCALLBACK(int) usbNetUsbSetConfiguration(PPDMUSBINS pUsbIns, uint8_t b
 static DECLCALLBACK(PCPDMUSBDESCCACHE) usbNetUsbGetDescriptorCache(PPDMUSBINS pUsbIns)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUsbGetDescriptorCache/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
     return &pThis->UsbDescCache;
 }
 
@@ -2032,7 +2043,7 @@ static DECLCALLBACK(int) usbNetUsbReset(PPDMUSBINS pUsbIns, bool fResetOnLinux)
 {
     RT_NOREF(fResetOnLinux);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetUsbReset/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
     RTCritSectEnter(&pThis->CritSect);
 
     int rc = usbNetResetWorker(pThis, NULL, false /*fSetConfig*/);
@@ -2050,7 +2061,7 @@ static DECLCALLBACK(int) usbNetDriverAttach(PPDMUSBINS pUsbIns, unsigned iLUN, u
     RT_NOREF(fFlags);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
-    LogFlow(("usbNetDriverAttach/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
 
     AssertMsg(iLUN == 0, ("UsbNet: No other LUN than 0 is supported\n"));
     AssertMsg(fFlags & PDM_TACH_FLAGS_NOT_HOT_PLUG,
@@ -2091,7 +2102,7 @@ static DECLCALLBACK(void) usbNetDriverDetach(PPDMUSBINS pUsbIns, unsigned iLUN, 
     RT_NOREF(iLUN, fFlags);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
-    LogFlow(("usbNetDriverDetach/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
 
     AssertMsg(iLUN == 0, ("UsbNet: No other LUN than 0 is supported\n"));
     AssertMsg(fFlags & PDM_TACH_FLAGS_NOT_HOT_PLUG,
@@ -2112,6 +2123,7 @@ static DECLCALLBACK(void) usbNetVMReset(PPDMUSBINS pUsbIns)
 {
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
 
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
     int rc = usbNetResetWorker(pThis, NULL, false /*fSetConfig*/);
     AssertRC(rc);
 }
@@ -2160,7 +2172,7 @@ static DECLCALLBACK(void) usbNetDestruct(PPDMUSBINS pUsbIns)
 {
     PDMUSB_CHECK_VERSIONS_RETURN_VOID(pUsbIns);
     PUSBNET pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
-    LogFlow(("usbNetDestruct/#%u:\n", pUsbIns->iInstance));
+    LogFlowFunc(("/#%u/\n", pUsbIns->iInstance));
 
     PDMUsbHlpTimerDestroy(pUsbIns, pThis->hTimerLinkUp);
 
@@ -2201,7 +2213,7 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
     PUSBNET     pThis = PDMINS_2_DATA(pUsbIns, PUSBNET);
     PCPDMUSBHLP pHlp  = pUsbIns->pHlpR3;
 
-    Log(("usbNetConstruct/#%u:\n", iInstance));
+    LogFlowFunc(("/#%u/\n", iInstance));
 
     /*
      * Perform the basic structure initialization first so the destructor

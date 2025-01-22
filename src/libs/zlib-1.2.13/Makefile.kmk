@@ -72,7 +72,7 @@ endif
 # Required for building NSIS (Windows Guest Additions installer) from source.
 #
 # We always build the x86 version, regardless of the actual target, as NSIS is 32-bit only (even on amd64).
-if defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
+if !defined(VBOX_OSE) && defined(VBOX_WITH_ADDITIONS) && !defined(VBOX_WITHOUT_ADDITIONS)
  DLLS.win += nsis-zlib-dll
  nsis-zlib-dll_EXTENDS      := VBox-zlib
  nsis-zlib-dll_NAME         := zlib1

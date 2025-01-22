@@ -6494,6 +6494,8 @@ VBOXDDU_DECL(int) VDCreateDiff(PVDISK pDisk, const char *pszBackend,
             if (RT_SUCCESS(rc2))
                 pImage->Backend->pfnSetParentModificationUuid(pImage->pBackendData,
                                                               &Uuid);
+            else if (rc2 == VERR_NOT_SUPPORTED) /* Not supporting modification UUIDs is not an error. */
+                rc2 = VINF_SUCCESS;
             if (pDisk->pLast->Backend->pfnGetTimestamp)
             {
                 rc2 = pDisk->pLast->Backend->pfnGetTimestamp(pDisk->pLast->pBackendData,

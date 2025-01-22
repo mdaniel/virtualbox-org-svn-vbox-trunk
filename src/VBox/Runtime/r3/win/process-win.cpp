@@ -695,8 +695,6 @@ static bool rtProcWinFindTokenByProcessAndPsApi(const char * const *papszNames, 
             }
             RTMemTmpFree(pwszProcName);
         }
-        else
-            rc = VERR_NO_TMP_MEMORY;
     }
     RTMemTmpFree(paPids);
 
@@ -1463,91 +1461,6 @@ static void rtProcWinStationPrep(HANDLE hTokenToUse, STARTUPINFOW *pStartupInfo,
     }
     else
         AssertFailed();
-}
-
-
-/**
- * Extracts the user name + domain from a given UPN (User Principal Name, "joedoe@example.com") or
- * Down-Level Logon Name format ("example.com\\joedoe") string.
- *
- * @return  IPRT status code.
- * @param   pwszString      Pointer to string to extract the account info from.
- * @param   pAccountInfo    Where to store the parsed account info.
- *                          Must be free'd with rtProcWinFreeAccountInfo().
- */
-static int rtProcWinParseAccountInfo(PRTUTF16 pwszString, PRTPROCWINACCOUNTINFO pAccountInfo)
-{
-    AssertPtrReturn(pwszString,   VERR_INVALID_POINTER);
-    AssertPtrReturn(pAccountInfo, VERR_INVALID_POINTER);
-
-    /*
-     * Note: UPN handling is defined in RFC 822. We only implement very rudimentary parsing for the user
-     *       name and domain fields though.
-     */
-    char *pszString;
-    int rc = RTUtf16ToUtf8(pwszString, &pszString);
-    if (RT_SUCCESS(rc))
-    {
-        do
-        {
-            /* UPN or FQDN handling needed? */
-            /** @todo Add more validation here as needed. Regular expressions would be nice. */
-            char *pszDelim = strchr(pszString, '@');
-            if (pszDelim) /* UPN name? */
-            {
-                rc = RTStrToUtf16Ex(pszString, pszDelim - pszString, &pAccountInfo->pwszUserName, 0, NULL);
-                if (RT_FAILURE(rc))
-                    break;
-
-                rc = RTStrToUtf16Ex(pszDelim + 1, RTSTR_MAX, &pAccountInfo->pwszDomain, 0, NULL);
-                if (RT_FAILURE(rc))
-                    break;
-            }
-            else if (pszDelim = strchr(pszString, '\\')) /* FQDN name? */
-            {
-                rc = RTStrToUtf16Ex(pszString, pszDelim - pszString, &pAccountInfo->pwszDomain, 0, NULL);
-                if (RT_FAILURE(rc))
-                    break;
-
-                rc = RTStrToUtf16Ex(pszDelim + 1, RTSTR_MAX, &pAccountInfo->pwszUserName, 0, NULL);
-                if (RT_FAILURE(rc))
-                    break;
-            }
-            else
-                rc = VERR_NOT_SUPPORTED;
-
-        } while (0);
-
-        RTStrFree(pszString);
-    }
-
-#ifdef DEBUG
-    LogRelFunc(("Name  : %ls\n", pAccountInfo->pwszUserName));
-    LogRelFunc(("Domain: %ls\n", pAccountInfo->pwszDomain));
-#endif
-
-    if (RT_FAILURE(rc))
-        LogRelFunc(("Parsing \"%ls\" failed with rc=%Rrc\n", pwszString, rc));
-    return rc;
-}
-
-
-static void rtProcWinFreeAccountInfo(PRTPROCWINACCOUNTINFO pAccountInfo)
-{
-    if (!pAccountInfo)
-        return;
-
-    if (pAccountInfo->pwszUserName)
-    {
-        RTUtf16Free(pAccountInfo->pwszUserName);
-        pAccountInfo->pwszUserName = NULL;
-    }
-
-    if (pAccountInfo->pwszDomain)
-    {
-        RTUtf16Free(pAccountInfo->pwszDomain);
-        pAccountInfo->pwszDomain = NULL;
-    }
 }
 
 

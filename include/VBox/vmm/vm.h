@@ -1219,6 +1219,40 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
                          ? VMGetStateName((pVCpu)->pVMR3->enmVMState) : "", (pVCpu)->enmTarget), \
                         (rc))
 
+#if defined(USING_VMM_COMMON_DEFS) || defined(DOXYGEN_RUNNING)
+/* Some VMM_COMMON_DEFS defines that actively changes the VM/VMCPU structures
+   that we bake into the VM_STRUCT_VERSION value. */
+# ifdef VBOX_WITH_MINIMAL_R0
+#  define VM_STRUCT_VERSION_F_31    RT_BIT_32(31)
+# else
+#  define VM_STRUCT_VERSION_F_31    UINT32_C(0)
+# endif
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  define VM_STRUCT_VERSION_F_30    RT_BIT_32(30)
+# else
+#  define VM_STRUCT_VERSION_F_30    UINT32_C(0)
+# endif
+# ifdef VBOX_WITH_PGM_NEM_MODE
+#  define VM_STRUCT_VERSION_F_29    RT_BIT_32(29)
+# else
+#  define VM_STRUCT_VERSION_F_29    UINT32_C(0)
+# endif
+# ifdef VBOX_WITH_HWVIRT
+#  define VM_STRUCT_VERSION_F_28    RT_BIT_32(28)
+# else
+#  define VM_STRUCT_VERSION_F_28    UINT32_C(0)
+# endif
+
+/** @define VM_STRUCT_VERSION
+ * The current VM structure version number.  */
+# define VM_STRUCT_VERSION          (  UINT32_C(2) \
+                                     | VM_STRUCT_VERSION_F_31 \
+                                     | VM_STRUCT_VERSION_F_30 \
+                                     | VM_STRUCT_VERSION_F_29 \
+                                     | VM_STRUCT_VERSION_F_28 )
+#endif
+
+
 #endif /* !VBOX_FOR_DTRACE_LIB */
 
 
@@ -1355,7 +1389,7 @@ typedef struct VM
     uint32_t                    cbSelf;
     /** Size of the VMCPU structure. */
     uint32_t                    cbVCpu;
-    /** Structure version number (TBD). */
+    /** Structure version number (VM_STRUCT_VERSION). */
     uint32_t                    uStructVersion;
 
     /** @name Various items that are frequently accessed.

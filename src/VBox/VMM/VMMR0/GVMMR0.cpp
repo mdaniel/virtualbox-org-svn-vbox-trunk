@@ -810,9 +810,9 @@ GVMMR0DECL(int) GVMMR0CreateVMReq(PGVMMCREATEVMREQ pReq, PSUPDRVSESSION pSession
         LogRel(("GVMMR0CreateVMReq: cbVCpu=%#x, expcted %#x\n", pReq->cbVCpu, sizeof(VMCPU)));
         return VINF_GVM_MISMATCH_VMCPU_SIZE;
     }
-    if (pReq->uStructVersion != 1)
+    if (pReq->uStructVersion != VM_STRUCT_VERSION)
     {
-        LogRel(("GVMMR0CreateVMReq: uStructVersion=%#x, expcted %#x\n", pReq->uStructVersion, 1));
+        LogRel(("GVMMR0CreateVMReq: uStructVersion=%#x, expcted %#x\n", pReq->uStructVersion, VM_STRUCT_VERSION));
         return VINF_GVM_MISMATCH_VM_STRUCT_VER;
     }
     if (pReq->uSvnRevision != VMMGetSvnRev())
@@ -1166,7 +1166,7 @@ static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMTARGET enmTarget, VM
     pGVM->pVMR0ForCall     = pGVM;
     pGVM->cCpusUnsafe      = cCpus;
     pGVM->uCpuExecutionCap = 100; /* default is no cap. */
-    pGVM->uStructVersion   = 1;
+    pGVM->uStructVersion   = VM_STRUCT_VERSION;
     pGVM->cbSelf           = sizeof(VM);
     pGVM->cbVCpu           = sizeof(VMCPU);
     pGVM->enmTargetUnsafe  = enmTarget;

@@ -71,7 +71,7 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
         CreateVMReq.cCpus           = cCpus;
         CreateVMReq.cbVM            = sizeof(VM);
         CreateVMReq.cbVCpu          = sizeof(VMCPU);
-        CreateVMReq.uStructVersion  = 1;
+        CreateVMReq.uStructVersion  = VM_STRUCT_VERSION;
         CreateVMReq.uSvnRevision    = VMMGetSvnRev();
         CreateVMReq.pVMR0           = NIL_RTR0PTR;
         CreateVMReq.pVMR3           = NULL;
@@ -108,7 +108,7 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
         pVM->uCpuExecutionCap     = 100;
         pVM->cbSelf               = sizeof(VM);
         pVM->cbVCpu               = sizeof(VMCPU);
-        pVM->uStructVersion       = 1;
+        pVM->uStructVersion       = VM_STRUCT_VERSION;
         pVM->enmTarget            = enmTarget;
 
         /* CPUs: */

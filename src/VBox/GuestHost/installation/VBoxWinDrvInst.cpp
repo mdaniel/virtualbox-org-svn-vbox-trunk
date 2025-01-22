@@ -282,7 +282,7 @@ DECLINLINE(void) vboxWinDrvInstLogErrorExV(PVBOXWINDRVINSTINTERNAL pCtx, bool fI
         pCtx->cErrors++;
 }
 
-#if 0 /* Unused */
+#ifdef RT_ARCH_X86
 /**
  * Logs an error message but ignores (skips) the error count.
  *
@@ -317,7 +317,7 @@ DECLINLINE(int) vboxWinDrvInstLogErrorRetIgn(PVBOXWINDRVINSTINTERNAL pCtx, int r
 
     return rc;
 }
-#endif /* Unused */
+#endif /* RT_ARCH_X86 */
 
 /**
  * Logs an error message.

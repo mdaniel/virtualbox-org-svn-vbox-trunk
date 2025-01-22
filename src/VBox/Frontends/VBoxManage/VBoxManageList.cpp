@@ -1280,7 +1280,7 @@ static HRESULT showDhcpConfig(ComPtr<IDHCPConfig> ptrConfig)
             }
         }
 
-    return S_OK;
+    return hrc;
 }
 
 
@@ -2712,7 +2712,6 @@ RTEXITCODE handleList(HandlerArg *a)
                 fOptMultiple = true;
                 if (enmOptCommand == kListNotSpecified)
                     break;
-                ch = enmOptCommand;
                 RT_FALL_THRU();
 
             case 'p':  /* --platform[-arch] */

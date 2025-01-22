@@ -823,5 +823,5 @@ void  UIWizardNewVMNameOSTypePage::setEditionSelectorEnabled()
     if (!m_pNameAndSystemEditor || !m_pUnattendedCheckBox)
         return;
     m_pNameAndSystemEditor->setEditionSelectorEnabled(   !m_pNameAndSystemEditor->isEditionsSelectorEmpty()
-                                                      && !m_pUnattendedCheckBox->isChecked());
+                                                      && m_pUnattendedCheckBox->isChecked());
 }

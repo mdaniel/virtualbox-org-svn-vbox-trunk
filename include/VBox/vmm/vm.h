@@ -1172,7 +1172,7 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
          && (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
              || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
                  && VM_IS_EMT(pVM))) \
-         && (pVM)->enmTarget != VMTARGET_DEFAULT)
+         && (pVM)->enmTarget == VMTARGET_DEFAULT)
 #else
 # define VM_IS_VALID_EXT(pVM) \
         (   RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
@@ -1199,7 +1199,7 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
         (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \
          && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
          && (unsigned)(a_pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
-         && (pVM)->enmTarget != VMTARGET_DEFAULT)
+         && (pVM)->enmTarget == VMTARGET_DEFAULT)
 #else
 # define VMCPU_IS_VALID_EXT(a_pVCpu) \
         (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \

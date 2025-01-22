@@ -4760,8 +4760,11 @@ static void vmsvgaR3FifoPendingActions(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGA
     {
         vmsvgaR3ChangeMode(pThis, pThisCC);
 # ifdef VBOX_WITH_VMSVGA3D
-        if (pThisCC->svga.p3dState != NULL)
+        if (pThis->svga.f3DEnabled && pThisCC->svga.p3dState != NULL)
+        {
+            /** @todo Implement !f3DEnabled and fVMSVGA2dGBO cases to prevent an occasional blank screens on VM startup */
             vmsvga3dChangeMode(pThisCC);
+        }
 # endif
     }
 }

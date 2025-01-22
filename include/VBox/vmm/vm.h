@@ -1164,35 +1164,59 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
                         (rc))
 
 /** @def VM_IS_VALID_EXT
- * Asserts a the VM handle is valid for external access, i.e. not being destroy
- * or terminated. */
-#define VM_IS_VALID_EXT(pVM) \
-        (    RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
-         &&  (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
-              || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
-                  && VM_IS_EMT(pVM))) )
+ * Check that a VM handle is valid for external access, i.e. not being destroy
+ * or terminated and matching the target platform architecture (ring-3). */
+#ifdef VMTARGET_DEFAULT
+# define VM_IS_VALID_EXT(pVM) \
+        (   RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+         && (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
+             || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
+                 && VM_IS_EMT(pVM))) \
+         && (pVM)->enmTarget != VMTARGET_DEFAULT)
+#else
+# define VM_IS_VALID_EXT(pVM) \
+        (   RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+         && (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
+             || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
+                 && VM_IS_EMT(pVM))) )
+#endif
 
 /** @def VM_ASSERT_VALID_EXT_RETURN
- * Asserts a the VM handle is valid for external access, i.e. not being
- * destroy or terminated.
+ * Asserts that a VM handle is valid for external access, i.e. not being destroy
+ * or terminated.
  */
 #define VM_ASSERT_VALID_EXT_RETURN(pVM, rc) \
         AssertMsgReturn(VM_IS_VALID_EXT(pVM), \
-                        ("pVM=%p state %s\n", (pVM), RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
-                         ? VMGetStateName(pVM->enmVMState) : ""), \
+                        ("pVM=%p state %s enmTarget=%#x\n", (pVM), RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+                         ? VMGetStateName(pVM->enmVMState) : "", (pVM)->enmTarget), \
                         (rc))
 
+/** @def VMCPU_IS_VALID_EXT
+ * Checks that a VMCPU handle is valid for external access, i.e. not being
+ * destroy or terminated and matching the target platform architecture (r3). */
+#ifdef VMTARGET_DEFAULT
+# define VMCPU_IS_VALID_EXT(a_pVCpu) \
+        (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \
+         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
+         && (unsigned)(a_pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
+         && (pVM)->enmTarget != VMTARGET_DEFAULT)
+#else
+# define VMCPU_IS_VALID_EXT(a_pVCpu) \
+        (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \
+         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
+         && (unsigned)(a_pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING)
+#endif
+
 /** @def VMCPU_ASSERT_VALID_EXT_RETURN
- * Asserts a the VMCPU handle is valid for external access, i.e. not being
- * destroy or terminated.
+ * Asserts that a VMCPU handle is valid for external access, i.e. not being
+ * destroy or terminated and matching the target platform architecutre (r3).
  */
 #define VMCPU_ASSERT_VALID_EXT_RETURN(pVCpu, rc) \
-        AssertMsgReturn(    RT_VALID_ALIGNED_PTR(pVCpu, 64) \
-                        &&  RT_VALID_ALIGNED_PTR((pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
-                        &&  (unsigned)(pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING, \
-                        ("pVCpu=%p pVM=%p state %s\n", (pVCpu), RT_VALID_ALIGNED_PTR(pVCpu, 64) ? (pVCpu)->CTX_SUFF(pVM) : NULL, \
+        AssertMsgReturn(VMCPU_IS_VALID_EXT(pVCpu), \
+                        ("pVCpu=%p pVM=%p state %s enmTarget=%#x\n", (pVCpu), \
+                        RT_VALID_ALIGNED_PTR(pVCpu, 64) ? (pVCpu)->CTX_SUFF(pVM) : NULL, \
                          RT_VALID_ALIGNED_PTR(pVCpu, 64) && RT_VALID_ALIGNED_PTR((pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
-                         ? VMGetStateName((pVCpu)->pVMR3->enmVMState) : ""), \
+                         ? VMGetStateName((pVCpu)->pVMR3->enmVMState) : "", (pVCpu)->enmTarget), \
                         (rc))
 
 #endif /* !VBOX_FOR_DTRACE_LIB */

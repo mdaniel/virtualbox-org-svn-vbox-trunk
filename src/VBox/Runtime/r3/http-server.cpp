@@ -1311,9 +1311,6 @@ static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient, RTMSINTERVAL msTi
 
         LogFlowFunc(("Reading client request ...\n"));
 
-        tsLastReadMs = RTTimeMilliTS();
-        cWaitMs      = 200;  /* All consequtive waits do busy waiting for now. */
-
         char  *pszReq      = szReq;
         size_t cbRead;
         size_t cbToRead    = sizeof(szReq);

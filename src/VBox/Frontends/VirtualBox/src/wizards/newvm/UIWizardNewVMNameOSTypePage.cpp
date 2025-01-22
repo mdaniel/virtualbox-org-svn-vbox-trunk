@@ -476,7 +476,7 @@ UIWizardNewVMNameOSTypePage::UIWizardNewVMNameOSTypePage(const QString strHelpKe
     : UINativeWizardPage(strHelpKeyword)
     , m_pNameAndSystemLayout(0)
     , m_pNameAndSystemEditor(0)
-    , m_pSkipUnattendedCheckBox(0)
+    , m_pUnattendedCheckBox(0)
     , m_pNameOSTypeLabel(0)
     , m_pInfoLabel(0)
 {
@@ -519,8 +519,8 @@ void UIWizardNewVMNameOSTypePage::createConnections()
         connect(m_pNameAndSystemEditor, &UINameAndSystemEditor::sigOSFamilyChanged, this, &UIWizardNewVMNameOSTypePage::sltGuestOSFamilyChanged);
         connect(m_pNameAndSystemEditor, &UINameAndSystemEditor::sigEditionChanged, this, &UIWizardNewVMNameOSTypePage::sltSelectedEditionChanged);
     }
-    if (m_pSkipUnattendedCheckBox)
-        connect(m_pSkipUnattendedCheckBox, &QCheckBox::toggled, this, &UIWizardNewVMNameOSTypePage::sltSkipUnattendedInstallChanged);
+    if (m_pUnattendedCheckBox)
+        connect(m_pUnattendedCheckBox, &QCheckBox::toggled, this, &UIWizardNewVMNameOSTypePage::sltSkipUnattendedInstallChanged);
 }
 
 bool UIWizardNewVMNameOSTypePage::isComplete() const
@@ -574,11 +574,10 @@ void UIWizardNewVMNameOSTypePage::sltRetranslateUI()
                                                       "to identify this machine. Additionally, you can select an ISO image which "
                                                       "may be used to install the guest operating system."));
 
-    if (m_pSkipUnattendedCheckBox)
+    if (m_pUnattendedCheckBox)
     {
-        m_pSkipUnattendedCheckBox->setText(UIWizardNewVM::tr("&Skip Unattended Installation"));
-        m_pSkipUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("When checked, the unattended install is disabled and the selected ISO "
-                                                                "is mounted on the vm."));
+        m_pUnattendedCheckBox->setText(UIWizardNewVM::tr("&Proceed with Unattended Installation"));
+        m_pUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("When checked, the unattended install is enabled."));
     }
 
     if (m_pNameAndSystemLayout && m_pNameAndSystemEditor)
@@ -728,7 +727,7 @@ void UIWizardNewVMNameOSTypePage::sltSkipUnattendedInstallChanged(bool fSkip)
 {
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "SkipUnattendedInstall";
-    wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(fSkip);
+    wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(!fSkip);
     setEditionSelectorEnabled();
     updateInfoLabel();
 }
@@ -755,10 +754,13 @@ QWidget *UIWizardNewVMNameOSTypePage::createNameOSTypeWidgets()
             if (m_pNameAndSystemEditor)
                 m_pNameAndSystemLayout->addWidget(m_pNameAndSystemEditor, 0, 0, 1, 2);
 
-            /* Prepare Skip Unattended checkbox: */
-            m_pSkipUnattendedCheckBox = new QCheckBox;
-            if (m_pSkipUnattendedCheckBox)
-                m_pNameAndSystemLayout->addWidget(m_pSkipUnattendedCheckBox, 1, 1);
+            /* Prepare Unattended checkbox: */
+            m_pUnattendedCheckBox = new QCheckBox;
+            if (m_pUnattendedCheckBox)
+            {
+                m_pNameAndSystemLayout->addWidget(m_pUnattendedCheckBox, 1, 1);
+                m_pUnattendedCheckBox->setChecked(true);
+            }
             m_pInfoLabel = new QIRichTextLabel(pContainerWidget);
             if (m_pInfoLabel)
                 m_pNameAndSystemLayout->addWidget(m_pInfoLabel, 2, 1);
@@ -785,20 +787,20 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
 
 void UIWizardNewVMNameOSTypePage::setSkipCheckBoxEnable()
 {
-    AssertReturnVoid(m_pSkipUnattendedCheckBox && m_pNameAndSystemEditor);
+    AssertReturnVoid(m_pUnattendedCheckBox && m_pNameAndSystemEditor);
     const QString &strPath = m_pNameAndSystemEditor->ISOImagePath();
     if (strPath.isEmpty())
     {
-        m_pSkipUnattendedCheckBox->setEnabled(false);
+        m_pUnattendedCheckBox->setEnabled(false);
         return;
     }
     if (!isUnattendedInstallSupported())
     {
-        m_pSkipUnattendedCheckBox->setEnabled(false);
+        m_pUnattendedCheckBox->setEnabled(false);
         return;
     }
 
-    m_pSkipUnattendedCheckBox->setEnabled(UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor));
+    m_pUnattendedCheckBox->setEnabled(UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor));
 }
 
 bool UIWizardNewVMNameOSTypePage::isUnattendedEnabled() const
@@ -818,8 +820,8 @@ bool UIWizardNewVMNameOSTypePage::isUnattendedInstallSupported() const
 
 void  UIWizardNewVMNameOSTypePage::setEditionSelectorEnabled()
 {
-    if (!m_pNameAndSystemEditor || !m_pSkipUnattendedCheckBox)
+    if (!m_pNameAndSystemEditor || !m_pUnattendedCheckBox)
         return;
     m_pNameAndSystemEditor->setEditionSelectorEnabled(   !m_pNameAndSystemEditor->isEditionsSelectorEmpty()
-                                                      && !m_pSkipUnattendedCheckBox->isChecked());
+                                                      && !m_pUnattendedCheckBox->isChecked());
 }

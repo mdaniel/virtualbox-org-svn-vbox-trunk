@@ -144,7 +144,7 @@ private:
         UIDiskFormatsComboBox *m_pFormatComboBox;
         UIMediumSizeAndPathGroupBox *m_pSizeAndLocationGroup;
         UINameAndSystemEditor *m_pNameAndSystemEditor;
-        QCheckBox *m_pSkipUnattendedCheckBox;
+        QCheckBox *m_pUnattendedCheckBox;
         QGridLayout *m_pNameAndSystemLayout;
         UINewVMHardwareContainer *m_pHardwareWidgetContainer;
         UIAdditionalUnattendedOptions *m_pAdditionalOptionsContainer;

@@ -106,7 +106,7 @@ private:
      * @{ */
         QGridLayout           *m_pNameAndSystemLayout;
         UINameAndSystemEditor *m_pNameAndSystemEditor;
-        QCheckBox             *m_pSkipUnattendedCheckBox;
+        QCheckBox             *m_pUnattendedCheckBox;
         QIRichTextLabel       *m_pNameOSTypeLabel;
         QIRichTextLabel       *m_pInfoLabel;
     /** @} */

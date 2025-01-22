@@ -239,7 +239,7 @@ RTEXITCODE handleUnregisterVM(HandlerArg *a)
         CHECK_ERROR_RET(machine, DeleteConfig(ComSafeArrayAsInParam(aMedia), pProgress.asOutParam()),
                         RTEXITCODE_FAILURE);
 
-        hrc = showProgress(pProgress);
+        showProgress(pProgress);
         CHECK_PROGRESS_ERROR_RET(pProgress, (Misc::tr("Machine delete failed")), RTEXITCODE_FAILURE);
     }
     else
@@ -252,9 +252,10 @@ RTEXITCODE handleUnregisterVM(HandlerArg *a)
         {
             IMedium *pMedium = aMedia[i];
             if (pMedium)
-                hrc = pMedium->Close();
+                pMedium->Close();
         }
-        hrc = S_OK; /** @todo r=andy Why overwriting the result from closing the medium above? */
+
+        hrc = S_OK; /* See comment above, so just set success here. */
     }
     return RTEXITCODE_SUCCESS;
 }
@@ -546,7 +547,7 @@ RTEXITCODE handleMoveVM(HandlerArg *a)
                                Bstr(pszType).raw(),
                                progress.asOutParam()),
                         RTEXITCODE_FAILURE);
-        hrc = showProgress(progress);
+        showProgress(progress);
         CHECK_PROGRESS_ERROR_RET(progress, (Misc::tr("Move VM failed")), RTEXITCODE_FAILURE);
 
         sessionMachine.setNull();
@@ -758,7 +759,7 @@ RTEXITCODE handleCloneVM(HandlerArg *a)
                                         ComSafeArrayAsInParam(options),
                                         progress.asOutParam()),
                     RTEXITCODE_FAILURE);
-    hrc = showProgress(progress);
+    showProgress(progress);
     CHECK_PROGRESS_ERROR_RET(progress, (Misc::tr("Clone VM failed")), RTEXITCODE_FAILURE);
 
     if (fRegister)
@@ -2006,7 +2007,6 @@ RTEXITCODE handleExtPack(HandlerArg *a)
     RTGETOPTSTATE   GetState;
     RTGETOPTUNION   ValueUnion;
     int             ch;
-    HRESULT         hrc = S_OK;
 
     if (!strcmp(a->argv[0], "install"))
     {
@@ -2095,7 +2095,7 @@ RTEXITCODE handleExtPack(HandlerArg *a)
         }
         ComPtr<IProgress> ptrProgress;
         CHECK_ERROR2I_RET(ptrExtPackFile, Install(fReplace, NULL, ptrProgress.asOutParam()), RTEXITCODE_FAILURE);
-        hrc = showProgress(ptrProgress);
+        showProgress(ptrProgress);
         CHECK_PROGRESS_ERROR_RET(ptrProgress, (Misc::tr("Failed to install \"%s\""), szPath), RTEXITCODE_FAILURE);
 
         RTPrintf(Misc::tr("Successfully installed \"%ls\".\n"), bstrName.raw());
@@ -2136,7 +2136,7 @@ RTEXITCODE handleExtPack(HandlerArg *a)
         Bstr bstrName(pszName);
         ComPtr<IProgress> ptrProgress;
         CHECK_ERROR2I_RET(ptrExtPackMgr, Uninstall(bstrName.raw(), fForced, NULL, ptrProgress.asOutParam()), RTEXITCODE_FAILURE);
-        hrc = showProgress(ptrProgress);
+        showProgress(ptrProgress);
         CHECK_PROGRESS_ERROR_RET(ptrProgress, (Misc::tr("Failed to uninstall \"%s\""), pszName), RTEXITCODE_FAILURE);
 
         RTPrintf(Misc::tr("Successfully uninstalled \"%s\".\n"), pszName);

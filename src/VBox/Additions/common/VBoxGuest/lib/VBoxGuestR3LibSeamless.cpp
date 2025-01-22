@@ -182,7 +182,7 @@ VBGLR3DECL(int) VbglR3SeamlessSendRects(uint32_t cRects, PRTRECT pRects)
 
 VBGLR3DECL(int) VbglR3SeamlessSendMonitorPositions(uint32_t cPositions, PRTPOINT pPositions)
 {
-    if (!pPositions || cPositions <= 0)
+    if (!pPositions || !cPositions)
         return VERR_INVALID_PARAMETER;
 
     VMMDevVideoUpdateMonitorPositions *pReq;
@@ -195,8 +195,7 @@ VBGLR3DECL(int) VbglR3SeamlessSendMonitorPositions(uint32_t cPositions, PRTPOINT
     if (RT_SUCCESS(rc))
     {
         pReq->cPositions = cPositions;
-        if (cPositions)
-            memcpy(&pReq->aPositions, pPositions, cPositions * sizeof(RTPOINT));
+        memcpy(&pReq->aPositions, pPositions, cPositions * sizeof(RTPOINT));
         rc = vbglR3GRPerform(&pReq->header);
         LogFunc(("Monitor position update request returned %Rrc, internal %Rrc.\n",
                  rc, pReq->header.rc));

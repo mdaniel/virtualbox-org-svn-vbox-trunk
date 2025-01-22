@@ -51,7 +51,7 @@ int main(int argc, char **argv)
      * Initialize IPRT and create the test.
      */
     RTTEST hTest;
-    int rc = RTTestInitAndCreate("tstAudioMixBuffer", &hTest);
+    int rc = RTTestInitAndCreate("tstAudioClient3", &hTest);
     if (rc)
         return rc;
     RTTestBanner(hTest);

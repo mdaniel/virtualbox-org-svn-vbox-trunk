@@ -282,6 +282,7 @@ DECLINLINE(void) vboxWinDrvInstLogErrorExV(PVBOXWINDRVINSTINTERNAL pCtx, bool fI
         pCtx->cErrors++;
 }
 
+#if 0 /* Unused */
 /**
  * Logs an error message but ignores (skips) the error count.
  *
@@ -316,6 +317,7 @@ DECLINLINE(int) vboxWinDrvInstLogErrorRetIgn(PVBOXWINDRVINSTINTERNAL pCtx, int r
 
     return rc;
 }
+#endif /* Unused */
 
 /**
  * Logs an error message.
@@ -1393,9 +1395,10 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                 else
                     rc = vboxWinDrvInstLogLastError(pCtx, "GetFullPathNameW() failed");
 
-                rc = vboxWinDrvTryInfSection(pCtx,
-                                             pParms->pwszInfFile, pParms->u.UnInstall.pwszSection,
-                                             vboxWinDrvInstallTryInfSectionCallback);
+                if (RT_SUCCESS(rc))
+                    rc = vboxWinDrvTryInfSection(pCtx,
+                                                 pParms->pwszInfFile, pParms->u.UnInstall.pwszSection,
+                                                 vboxWinDrvInstallTryInfSectionCallback);
             }
 
             if (RT_FAILURE(rc))
@@ -2203,6 +2206,7 @@ int VBoxWinDrvInstExecuteInfWorker(VBOXWINDRVINST hDrvInst,
     int rc = RTStrToUtf16(pszInfFile, &pCtx->Parms.pwszInfFile);
     if (RT_SUCCESS(rc) && pszSection) /* pszSection is optional. */
         rc = RTStrToUtf16(pszSection, &pCtx->Parms.u.ExecuteInf.pwszSection);
+    AssertRCReturn(rc, rc);
 
     pCtx->Parms.enmMode = fInstall ? VBOXWINDRVINSTMODE_INSTALL_INFSECTION : VBOXWINDRVINSTMODE_UNINSTALL_INFSECTION;
     pCtx->Parms.fFlags  = fFlags;

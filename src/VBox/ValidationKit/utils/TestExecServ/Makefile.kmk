@@ -37,6 +37,10 @@
 SUB_DEPTH = ../../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
+#
+# Include sub-makefiles.
+#
+include $(PATH_SUB_CURRENT)/txsshell/Makefile.kmk
 
 PROGRAMS += TestExecService
 TestExecService_TEMPLATE = VBoxValidationKitR3
@@ -86,4 +90,3 @@ TestExecServiceFiles_EXEC_SOURCES.win     := \
 
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

@@ -45,15 +45,18 @@
  *
  * @returns VBox status code.
  * @param   pUVM        The user mode VM handle.
+ * @param   enmTarget   The target platform architecture of the VM.
  * @param   cCpus       The number of CPUs to create the VM for.
  * @param   pSession    The support driver session handle.
  * @param   ppVM        Where to return the pointer to the VM structure.
  * @param   ppVMR0      Where to return the ring-0 address of the VM structure
  *                      for use in VMMR0 calls.
  */
-VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, uint32_t cCpus, PSUPDRVSESSION pSession, PVM *ppVM, PRTR0PTR ppVMR0)
+VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus, PSUPDRVSESSION pSession,
+                                   PVM *ppVM, PRTR0PTR ppVMR0)
 {
     AssertReturn(cCpus >= VMM_MIN_CPU_COUNT && cCpus <= VMM_MAX_CPU_COUNT, VERR_INVALID_PARAMETER);
+    AssertReturn(enmTarget == VMTARGET_X86 || enmTarget == VMTARGET_ARMV8, VERR_INVALID_PARAMETER);
     AssertCompile((sizeof(VM)    & HOST_PAGE_OFFSET_MASK) == 0);
     AssertCompile((sizeof(VMCPU) & HOST_PAGE_OFFSET_MASK) == 0);
 
@@ -64,14 +67,20 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, uint32_t cCpus, PSUPDRVSESSION pSe
         CreateVMReq.Hdr.u32Magic    = SUPVMMR0REQHDR_MAGIC;
         CreateVMReq.Hdr.cbReq       = sizeof(CreateVMReq);
         CreateVMReq.pSession        = pSession;
+        CreateVMReq.enmTarget       = enmTarget;
+        CreateVMReq.cCpus           = cCpus;
+        CreateVMReq.cbVM            = sizeof(VM);
+        CreateVMReq.cbVCpu          = sizeof(VMCPU);
+        CreateVMReq.uStructVersion  = 1;
+        CreateVMReq.uSvnRevision    = VMMGetSvnRev();
         CreateVMReq.pVMR0           = NIL_RTR0PTR;
         CreateVMReq.pVMR3           = NULL;
-        CreateVMReq.cCpus           = cCpus;
         rc = SUPR3CallVMMR0Ex(NIL_RTR0PTR, NIL_VMCPUID, VMMR0_DO_GVMM_CREATE_VM, 0, &CreateVMReq.Hdr);
         if (RT_SUCCESS(rc))
         {
             *ppVM   = CreateVMReq.pVMR3;
             *ppVMR0 = CreateVMReq.pVMR0;
+            Assert(CreateVMReq.pVMR3->enmTarget == enmTarget);
         }
     }
     else
@@ -100,6 +109,7 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, uint32_t cCpus, PSUPDRVSESSION pSe
         pVM->cbSelf               = sizeof(VM);
         pVM->cbVCpu               = sizeof(VMCPU);
         pVM->uStructVersion       = 1;
+        pVM->enmTarget            = enmTarget;
 
         /* CPUs: */
         PVMCPU pVCpu = (PVMCPU)((uintptr_t)pVM + sizeof(VM) + HOST_PAGE_SIZE);

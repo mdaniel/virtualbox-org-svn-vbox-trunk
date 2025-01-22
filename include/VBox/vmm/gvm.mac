@@ -42,6 +42,7 @@ struc GVMCPU
         .s                  resb VMCPU_size
 
         .idCpu              resd 1
+        .enmTarget          resd 1
 
         alignb 8
         .hEMT               RTR0PTR_RES 1
@@ -78,6 +79,7 @@ struc GVM
         .pVMR3              RTR3PTR_RES 1
         .pSession           RTR0PTR_RES 1
         .cCpus              resd 1
+        .enmTarget          resd 1
 
         alignb 64
         .gvmm               resb 4352

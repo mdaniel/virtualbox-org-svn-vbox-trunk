@@ -343,7 +343,7 @@ static PGVMM g_pGVMM = NULL;
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
-static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMCPUID cCpus, PSUPDRVSESSION pSession);
+static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMTARGET enmTarget, VMCPUID cCpus, PSUPDRVSESSION pSession);
 static DECLCALLBACK(void) gvmmR0HandleObjDestructor(void *pvObj, void *pvGVMM, void *pvHandle);
 static int gvmmR0ByGVM(PGVM pGVM, PGVMM *ppGVMM, bool fTakeUsedLock);
 static int gvmmR0ByGVMandEMT(PGVM pGVM, VMCPUID idCpu, PGVMM *ppGVMM);
@@ -799,13 +799,35 @@ GVMMR0DECL(int) GVMMR0CreateVMReq(PGVMMCREATEVMREQ pReq, PSUPDRVSESSION pSession
     if (pReq->pSession != pSession)
         return VERR_INVALID_POINTER;
 
+    /* Check that VBoxVMM and VMMR0 are likely to have the same idea about the structures. */
+    if (pReq->cbVM != sizeof(VM))
+    {
+        LogRel(("GVMMR0CreateVMReq: cbVM=%#x, expcted %#x\n", pReq->cbVM, sizeof(VM)));
+        return VINF_GVM_MISMATCH_VM_SIZE;
+    }
+    if (pReq->cbVCpu != sizeof(VMCPU))
+    {
+        LogRel(("GVMMR0CreateVMReq: cbVCpu=%#x, expcted %#x\n", pReq->cbVCpu, sizeof(VMCPU)));
+        return VINF_GVM_MISMATCH_VMCPU_SIZE;
+    }
+    if (pReq->uStructVersion != 1)
+    {
+        LogRel(("GVMMR0CreateVMReq: uStructVersion=%#x, expcted %#x\n", pReq->uStructVersion, 1));
+        return VINF_GVM_MISMATCH_VM_STRUCT_VER;
+    }
+    if (pReq->uSvnRevision != VMMGetSvnRev())
+    {
+        LogRel(("GVMMR0CreateVMReq: uSvnRevision=%u, expcted %u\n", pReq->uSvnRevision, VMMGetSvnRev()));
+        return VINF_GVM_MISMATCH_VMCPU_SIZE;
+    }
+
     /*
      * Execute it.
      */
     PGVM pGVM;
     pReq->pVMR0 = NULL;
     pReq->pVMR3 = NIL_RTR3PTR;
-    int rc = GVMMR0CreateVM(pSession, pReq->cCpus, &pGVM);
+    int rc = GVMMR0CreateVM(pSession, pReq->enmTarget, pReq->cCpus, &pGVM);
     if (RT_SUCCESS(rc))
     {
         pReq->pVMR0 = pGVM; /** @todo don't expose this to ring-3, use a unique random number instead. */
@@ -827,7 +849,7 @@ GVMMR0DECL(int) GVMMR0CreateVMReq(PGVMMCREATEVMREQ pReq, PSUPDRVSESSION pSession
  *
  * @thread  EMT.
  */
-GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *ppGVM)
+GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, VMTARGET enmTarget, uint32_t cCpus, PGVM *ppGVM)
 {
     LogFlow(("GVMMR0CreateVM: pSession=%p\n", pSession));
     PGVMM pGVMM;
@@ -838,6 +860,9 @@ GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *pp
 
     if (    cCpus == 0
         ||  cCpus > VMM_MAX_CPU_COUNT)
+        return VERR_INVALID_PARAMETER;
+    if (   enmTarget != VMTARGET_X86
+        && enmTarget != VMTARGET_ARMV8)
         return VERR_INVALID_PARAMETER;
 
     RTNATIVETHREAD hEMT0 = RTThreadNativeSelf();
@@ -914,7 +939,7 @@ GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *pp
                          * Initialise the structure.
                          */
                         RT_BZERO(pGVM, cPages << HOST_PAGE_SHIFT);
-                        gvmmR0InitPerVMData(pGVM, iHandle, cCpus, pSession);
+                        gvmmR0InitPerVMData(pGVM, iHandle, enmTarget, cCpus, pSession);
                         pGVM->gvmm.s.VMMemObj  = hVMMemObj;
 #ifndef VBOX_WITH_MINIMAL_R0
                         rc = GMMR0InitPerVMData(pGVM);
@@ -1115,10 +1140,11 @@ GVMMR0DECL(int) GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PGVM *pp
  *
  * @param   pGVM        Pointer to the global VM structure.
  * @param   hSelf       The handle.
+ * @param   enmTarget   The target platform architecture of the VM.
  * @param   cCpus       The CPU count.
  * @param   pSession    The session this VM is associated with.
  */
-static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMCPUID cCpus, PSUPDRVSESSION pSession)
+static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMTARGET enmTarget, VMCPUID cCpus, PSUPDRVSESSION pSession)
 {
     AssertCompile(RT_SIZEOFMEMB(GVM,gvmm.s) <= RT_SIZEOFMEMB(GVM,gvmm.padding));
     AssertCompile(RT_SIZEOFMEMB(GVMCPU,gvmm.s) <= RT_SIZEOFMEMB(GVMCPU,gvmm.padding));
@@ -1129,6 +1155,7 @@ static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMCPUID cCpus, PSUPDRV
     pGVM->u32Magic         = GVM_MAGIC;
     pGVM->hSelf            = hSelf;
     pGVM->cCpus            = cCpus;
+    pGVM->enmTarget        = enmTarget;
     pGVM->pSession         = pSession;
     pGVM->pSelf            = pGVM;
 
@@ -1142,6 +1169,7 @@ static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMCPUID cCpus, PSUPDRV
     pGVM->uStructVersion   = 1;
     pGVM->cbSelf           = sizeof(VM);
     pGVM->cbVCpu           = sizeof(VMCPU);
+    pGVM->enmTargetUnsafe  = enmTarget;
 
     /* GVMM: */
     pGVM->gvmm.s.VMMemObj       = NIL_RTR0MEMOBJ;
@@ -1171,6 +1199,8 @@ static void gvmmR0InitPerVMData(PGVM pGVM, int16_t hSelf, VMCPUID cCpus, PSUPDRV
     {
         pGVM->aCpus[i].idCpu                 = i;
         pGVM->aCpus[i].idCpuUnsafe           = i;
+        pGVM->aCpus[i].enmTarget             = enmTarget;
+        pGVM->aCpus[i].enmTargetUnsafe       = enmTarget;
         pGVM->aCpus[i].gvmm.s.HaltEventMulti = NIL_RTSEMEVENTMULTI;
         pGVM->aCpus[i].gvmm.s.VMCpuMapObj    = NIL_RTR0MEMOBJ;
         pGVM->aCpus[i].gvmm.s.idxEmtHash     = UINT16_MAX;

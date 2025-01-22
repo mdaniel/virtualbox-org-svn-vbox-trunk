@@ -67,8 +67,9 @@ typedef struct GVMCPU
 
     /** VCPU id (0 - (pVM->cCpus - 1). */
     VMCPUID             idCpu;
-    /** Padding. */
-    uint32_t            uPadding0;
+    /** The VM target platform architecture.
+     * Same as GVM::enmTarget, VMCPU::enmTarget and VM::enmTarget.  */
+    VMTARGET            enmTarget;
 
     /** Handle to the EMT thread. */
     RTNATIVETHREAD      hEMT;
@@ -209,10 +210,13 @@ typedef struct GVM
     /** The support driver session the VM is associated with. */
     PSUPDRVSESSION  pSession;
     /** Number of Virtual CPUs, i.e. how many entries there are in aCpus.
-     * Same same as VM::cCpus. */
+     * Same as VM::cCpus. */
     uint32_t        cCpus;
+    /** The VM target platform architecture.
+     * Same as VM::enmTarget. */
+    VMTARGET        enmTarget;
     /** Padding so gvmm starts on a 64 byte boundrary.   */
-    uint8_t         abPadding[HC_ARCH_BITS == 32 ? 12 + 28 : 28];
+    uint8_t         abPadding[HC_ARCH_BITS == 32 ? 12 + 24 : 24];
 
     /** The GVMM per vm data. */
     union

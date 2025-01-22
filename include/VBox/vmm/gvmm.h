@@ -218,7 +218,7 @@ GVMMR0DECL(void)    GVMMR0Term(void);
 GVMMR0DECL(int)     GVMMR0SetConfig(PSUPDRVSESSION pSession, const char *pszName, uint64_t u64Value);
 GVMMR0DECL(int)     GVMMR0QueryConfig(PSUPDRVSESSION pSession, const char *pszName, uint64_t *pu64Value);
 
-GVMMR0DECL(int)     GVMMR0CreateVM(PSUPDRVSESSION pSession, uint32_t cCpus, PVMCC *ppVM);
+GVMMR0DECL(int)     GVMMR0CreateVM(PSUPDRVSESSION pSession, VMTARGET enmTarget, uint32_t cCpus, PVMCC *ppVM);
 GVMMR0DECL(int)     GVMMR0InitVM(PGVM pGVM);
 GVMMR0DECL(void)    GVMMR0DoneInitVM(PGVM pGVM);
 GVMMR0DECL(bool)    GVMMR0DoingTermVM(PGVM pGVM);
@@ -261,8 +261,18 @@ typedef struct GVMMCREATEVMREQ
     SUPVMMR0REQHDR  Hdr;
     /** The support driver session. (IN) */
     PSUPDRVSESSION  pSession;
+    /** The VM's target arch.   */
+    VMTARGET        enmTarget;
     /** Number of virtual CPUs for the new VM. (IN) */
     uint32_t        cCpus;
+    /** Size of the VM structure. (IN) */
+    uint32_t        cbVM;
+    /** Size of the VMCPU structure. (IN) */
+    uint32_t        cbVCpu;
+    /** Structure version number (TBD). (IN) */
+    uint32_t        uStructVersion;
+    /** SVN revision. (IN) */
+    uint32_t        uSvnRevision;
     /** Pointer to the ring-3 mapping of the shared VM structure on return. (OUT) */
     PVMR3           pVMR3;
     /** Pointer to the ring-0 mapping of the shared VM structure on return. (OUT) */
@@ -347,7 +357,8 @@ GVMMR0DECL(int)     GVMMR0ResetStatisticsReq(PGVM pGVM, PGVMMRESETSTATISTICSSREQ
 
 
 #ifdef IN_RING3
-VMMR3_INT_DECL(int)  GVMMR3CreateVM(PUVM pUVM, uint32_t cCpus, PSUPDRVSESSION pSession, PVM *ppVM, PRTR0PTR ppVMR0);
+VMMR3_INT_DECL(int)  GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus, PSUPDRVSESSION pSession,
+                                    PVM *ppVM, PRTR0PTR ppVMR0);
 VMMR3_INT_DECL(int)  GVMMR3DestroyVM(PUVM pUVM, PVM pVM);
 VMMR3_INT_DECL(int)  GVMMR3RegisterVCpu(PVM pVM, VMCPUID idCpu);
 VMMR3_INT_DECL(int)  GVMMR3DeregisterVCpu(PVM pVM, VMCPUID idCpu);

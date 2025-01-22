@@ -200,7 +200,15 @@ typedef struct VMCPU
 #else
     VMCPUID                 idCpu;
 #endif
+    /** The VM target platform architecture.
+     * Same as VM::enmTarget, GVM::enmTarget and GVMCPU::enmTarget. */
+#ifdef IN_RING0
+    VMTARGET                enmTargetUnsafe;
+#else
+    VMTARGET                enmTarget;
+#endif
 
+#if HC_ARCH_BITS != 64
     /** Align the structures below bit on a 64-byte boundary and make sure it starts
      * at the same offset in both 64-bit and 32-bit builds.
      *
@@ -209,7 +217,8 @@ typedef struct VMCPU
      *          data could be lumped together at the end with a < 64 byte padding
      *          following it (to grow into and align the struct size).
      */
-    uint8_t                 abAlignment1[64 - 6 * (HC_ARCH_BITS == 32 ? 4 : 8) - 8 - 4];
+    uint8_t                 abAlignment1[64 - 6 * (HC_ARCH_BITS == 32 ? 4 : 8) - 8 - 4 - 4];
+#endif
     /** @} */
 
     /** HM part. */
@@ -1309,6 +1318,12 @@ typedef struct VM
 #else
     uint32_t                    cCpus;
 #endif
+    /** The VM target platform architecture. */
+#ifdef IN_RING0
+    VMTARGET                    enmTargetUnsafe;
+#else
+    VMTARGET                    enmTarget;
+#endif
     /** CPU excution cap (1-100) */
     uint32_t                    uCpuExecutionCap;
 
@@ -1333,7 +1348,7 @@ typedef struct VM
     /** @} */
 
     /** Alignment padding. */
-    uint8_t                     uPadding1[6];
+    uint8_t                     uPadding1[2];
 
     /** @name Debugging
      * @{ */

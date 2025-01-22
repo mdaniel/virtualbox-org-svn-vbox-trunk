@@ -67,7 +67,13 @@ struc VMCPU
     .hNativeThread          RTR3PTR_RES 1
     .hNativeThreadR0        RTR0PTR_RES 1
     .hThread                RTR3PTR_RES 1
+%ifdef IN_RING0
+    .idCpuUnsafe            resd 1
+    .enmTargetUnsafe        resd 1
+%else
     .idCpu                  resd 1
+    .enmTarget              resd 1
+%endif
 
     alignb 64
     .hm                     resb 9984
@@ -125,9 +131,11 @@ struc VM
 %ifdef IN_RING0
     .hSelfUnsafe            resd 1
     .cCpusUnsafe            resd 1
+    .enmTargetUnsafe        resd 1
 %else
     .hSelf                  resd 1
     .cCpus                  resd 1
+    .enmTarget              resd 1
 %endif
     .uCpuExecutionCap       resd 1
     .cbSelf                 resd 1
@@ -136,8 +144,7 @@ struc VM
     .bMainExecutionEngine   resb 1
     .fHMEnabled             resb 1
 
-    .uPadding1              resb 6
-
+    alignb 8
     .hTraceBufR3            RTR3PTR_RES 1
     .hTraceBufR0            RTR0PTR_RES 1
 

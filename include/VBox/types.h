@@ -267,6 +267,25 @@ typedef enum VMSTATE
     VMSTATE_MAKE_32BIT_HACK = 0x7fffffff
 } VMSTATE;
 
+
+/** The VM target platform architecture. */
+typedef enum VMTARGET
+{
+    VMTARGET_INVALID = 0,
+    VMTARGET_X86     = 0x8086,
+    VMTARGET_ARMV8   = 0xaa64
+} VMTARGET;
+
+/** @def VMTARGET_DEFAULT
+ * The default target according to the VBOX_VMM_TARGET_X86 /
+ * VBOX_VMM_TARGET_ARMV8 defines. */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define VMTARGET_DEFAULT   VMTARGET_X86
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define VMTARGET_DEFAULT   VMTARGET_ARMV8
+#endif
+
+
 /** We need RTERR_STRICT_RC.  */
 #if defined(VBOXSTRICTRC_STRICT_ENABLED) && !defined(RTERR_STRICT_RC)
 # define RTERR_STRICT_RC 1

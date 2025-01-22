@@ -2134,6 +2134,14 @@
 #define VINF_GVM_NOT_BUSY_IN_GC                     3902
 /** RTThreadYield was called during a GVMMR0SchedPoll call. */
 #define VINF_GVM_YIELDED                            3903
+/** Mismatching VM structure size between VMMR0 and VBoxVMM. */
+#define VINF_GVM_MISMATCH_VM_SIZE                   (-3904)
+/** Mismatching VMCPU structure size between VMMR0 and VBoxVMM. */
+#define VINF_GVM_MISMATCH_VMCPU_SIZE                (-3905)
+/** Mismatching VM structure version between VMMR0 and VBoxVMM. */
+#define VINF_GVM_MISMATCH_VM_STRUCT_VER             (-3906)
+/** Mismatching SVN revision number between VMMR0 and VBoxVMM. */
+#define VINF_GVM_MISMATCH_SVN_REV                   (-3907)
 /** @} */
 
 

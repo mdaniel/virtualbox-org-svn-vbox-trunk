@@ -597,7 +597,7 @@ static DECLCALLBACK(int) vmR3CreateU(PUVM pUVM, uint32_t cCpus, PFNCFGMCONSTRUCT
      * Request GVMM to create a new VM for us.
      */
     RTR0PTR pVMR0;
-    int rc = GVMMR3CreateVM(pUVM, cCpus, pUVM->vm.s.pSession, &pUVM->pVM, &pVMR0);
+    int rc = GVMMR3CreateVM(pUVM, VMTARGET_DEFAULT, cCpus, pUVM->vm.s.pSession, &pUVM->pVM, &pVMR0);
     if (RT_SUCCESS(rc))
     {
         PVM pVM = pUVM->pVM;
@@ -606,6 +606,7 @@ static DECLCALLBACK(int) vmR3CreateU(PUVM pUVM, uint32_t cCpus, PFNCFGMCONSTRUCT
         AssertRelease(pVM->pSession == pUVM->vm.s.pSession);
         AssertRelease(pVM->cCpus == cCpus);
         AssertRelease(pVM->uCpuExecutionCap == 100);
+        AssertRelease(pVM->enmTarget == VMTARGET_DEFAULT);
         AssertCompileMemberAlignment(VM, cpum, 64);
         AssertCompileMemberAlignment(VM, tm, 64);
 

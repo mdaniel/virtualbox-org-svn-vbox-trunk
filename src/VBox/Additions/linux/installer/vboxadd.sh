@@ -176,7 +176,7 @@ VBOX_REVISION="r`"$VBOXCONTROL" --version | cut -d r -f2`"
 running_module()
 {
     mod="$1"
-    [ -d "/sys/module/"$mod ]
+    [ -d "/sys/module/$mod" ]
 }
 
 # Returns the version string of a currently running kernel module.
@@ -187,7 +187,7 @@ running_module()
 running_module_version()
 {
     mod="$1"
-    version_string_path="/sys/module/"$mod"/version"
+    version_string_path="/sys/module/$mod/version"
 
     [ -n "$mod" ] || return
     if [ -r "$version_string_path" ]; then

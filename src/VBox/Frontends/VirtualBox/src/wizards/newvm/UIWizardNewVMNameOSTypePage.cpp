@@ -624,6 +624,9 @@ void UIWizardNewVMNameOSTypePage::updateInfoLabel()
                                            .arg(strType)
                                            .arg(UIWizardNewVM::tr("This OS type can be installed unattendedly. "
                                                                   "The install will start after this wizard is closed."));
+
+
+
     }
 
     const QIcon icon = UIIconPool::iconSet(":/session_info_16px.png");
@@ -645,7 +648,7 @@ void UIWizardNewVMNameOSTypePage::initializePage()
         if (m_pNameAndSystemEditor)
         {
             m_pNameAndSystemEditor->setFocus();
-            setEditionSelectorEnabled();
+            setEditionAndOSTypeSelectorsEnabled();
         }
         setSkipCheckBoxEnable();
     }
@@ -692,13 +695,13 @@ void UIWizardNewVMNameOSTypePage::sltISOPathChanged(const QString &strPath)
                                                           pWizard->detectedWindowsImageIndices());
 
     setSkipCheckBoxEnable();
-    setEditionSelectorEnabled();
+    setEditionAndOSTypeSelectorsEnabled();
     updateInfoLabel();
 
     /* Disable OS type selector(s) to prevent user from changing guest OS type manually: */
     if (m_pNameAndSystemEditor)
     {
-        m_pNameAndSystemEditor->setOSTypeStuffEnabled(!fOsTypeFixed);
+
 
         /* Redetect the OS type using the name if detection or the step above failed: */
         if (!fOsTypeFixed)
@@ -728,7 +731,7 @@ void UIWizardNewVMNameOSTypePage::sltSkipUnattendedInstallChanged(bool fSkip)
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "SkipUnattendedInstall";
     wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(!fSkip);
-    setEditionSelectorEnabled();
+    setEditionAndOSTypeSelectorsEnabled();
     updateInfoLabel();
 }
 
@@ -818,10 +821,18 @@ bool UIWizardNewVMNameOSTypePage::isUnattendedInstallSupported() const
 }
 
 
-void  UIWizardNewVMNameOSTypePage::setEditionSelectorEnabled()
+void  UIWizardNewVMNameOSTypePage::setEditionAndOSTypeSelectorsEnabled()
 {
+    UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+    AssertReturnVoid(pWizard);
     if (!m_pNameAndSystemEditor || !m_pUnattendedCheckBox)
         return;
     m_pNameAndSystemEditor->setEditionSelectorEnabled(   !m_pNameAndSystemEditor->isEditionsSelectorEmpty()
                                                       && m_pUnattendedCheckBox->isChecked());
+    /* Disable OS type, version, subtype selectors if unattended is enabled and edition list is not empty: */
+    if (pWizard->isUnattendedEnabled() && !m_pNameAndSystemEditor->isEditionsSelectorEmpty())
+        m_pNameAndSystemEditor->setOSTypeStuffEnabled(false);
+    else
+        m_pNameAndSystemEditor->setOSTypeStuffEnabled(true);
+
 }

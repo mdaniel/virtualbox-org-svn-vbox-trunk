@@ -121,7 +121,7 @@ private:
     bool validatePage() RT_OVERRIDE;
 
     bool isProductKeyWidgetEnabled() const;
-    void disableEnableUnattendedRelatedWidgets(bool fEnabled);
+    void disableEnableUnattendedRelatedWidgets();
     void markWidgets() const;
     QWidget *createUnattendedWidgets();
     QWidget *createNewDiskWidgets();

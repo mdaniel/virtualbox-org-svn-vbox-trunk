@@ -179,10 +179,12 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
 
     /* Populate the editions selector: */
     if (m_pNameAndSystemEditor)
+    {
         m_pNameAndSystemEditor->setEditionNameAndIndices(pWizard->detectedWindowsImageNames(),
                                                          pWizard->detectedWindowsImageIndices());
+    }
     setSkipCheckBoxEnable();
-    disableEnableUnattendedRelatedWidgets(isUnattendedEnabled());
+    disableEnableUnattendedRelatedWidgets();
 
     /* Redetect the OS type using the name if detection or the step above failed: */
     if (!fOsTypeFixed && m_pNameAndSystemEditor)
@@ -453,7 +455,7 @@ void UIWizardNewVMExpertPage::initializePage()
 
     setOSTypeDependedValues();
     setSkipCheckBoxEnable();
-    disableEnableUnattendedRelatedWidgets(isUnattendedEnabled());
+    disableEnableUnattendedRelatedWidgets();
     updateDiskWidgetsAfterMediumFormatChange();
     sltRetranslateUI();
 
@@ -710,17 +712,19 @@ bool UIWizardNewVMExpertPage::isProductKeyWidgetEnabled() const
     return true;
 }
 
-void UIWizardNewVMExpertPage::disableEnableUnattendedRelatedWidgets(bool fEnabled)
+void UIWizardNewVMExpertPage::disableEnableUnattendedRelatedWidgets()
 {
+    bool fUnattendedEnabled = isUnattendedEnabled();
     if (m_pUserNamePasswordGroupBox)
-        m_pUserNamePasswordGroupBox->setEnabled(fEnabled);
+        m_pUserNamePasswordGroupBox->setEnabled(fUnattendedEnabled);
     if (m_pAdditionalOptionsContainer)
-        m_pAdditionalOptionsContainer->setEnabled(fEnabled);
+        m_pAdditionalOptionsContainer->setEnabled(fUnattendedEnabled);
     if (m_pGAInstallationISOContainer)
-        m_pGAInstallationISOContainer->setEnabled(fEnabled);
+        m_pGAInstallationISOContainer->setEnabled(fUnattendedEnabled);
     if (m_pNameAndSystemEditor)
-        m_pNameAndSystemEditor->setEditionSelectorEnabled(fEnabled && !m_pNameAndSystemEditor->isEditionsSelectorEmpty());
+        m_pNameAndSystemEditor->setEditionSelectorEnabled(fUnattendedEnabled && !m_pNameAndSystemEditor->isEditionsSelectorEmpty());
     m_pAdditionalOptionsContainer->disableEnableProductKeyWidgets(isProductKeyWidgetEnabled());
+    m_pNameAndSystemEditor->setOSTypeStuffEnabled(!fUnattendedEnabled || m_pNameAndSystemEditor->isEditionsSelectorEmpty());
 }
 
 void UIWizardNewVMExpertPage::sltSkipUnattendedCheckBoxChecked(bool fSkip)
@@ -728,7 +732,7 @@ void UIWizardNewVMExpertPage::sltSkipUnattendedCheckBoxChecked(bool fSkip)
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "UnattendedInstall";
     wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(!fSkip);
-    disableEnableUnattendedRelatedWidgets(isUnattendedEnabled());
+    disableEnableUnattendedRelatedWidgets();
     emit completeChanged();
 }
 

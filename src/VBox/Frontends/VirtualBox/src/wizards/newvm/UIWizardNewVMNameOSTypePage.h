@@ -99,7 +99,7 @@ private:
     void setSkipCheckBoxEnable();
     bool isUnattendedEnabled() const;
     bool isUnattendedInstallSupported() const;
-    void setEditionSelectorEnabled();
+    void setEditionAndOSTypeSelectorsEnabled();
     void updateInfoLabel();
 
     /** @name Widgets

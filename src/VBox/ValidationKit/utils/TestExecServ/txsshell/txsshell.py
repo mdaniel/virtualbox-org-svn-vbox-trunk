@@ -42,10 +42,7 @@ import os;
 import sys;
 import time;
 
-# Make sure that the ModuleNotFoundError exception is found by Python 2.x.
-try:
-    ModuleNotFoundError
-except NameError:
+if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 6): # since 3.6
     ModuleNotFoundError = ImportError # pylint: disable=redefined-builtin
 
 try:    __file__                      # pylint: disable=used-before-assignment

@@ -309,8 +309,9 @@ def getHostOsVersion():
                                        "12": "Monterey",
                                        "13": "Ventura",
                                        "14": "Sonoma",
-                                       "15": "Unknown 15",
-                                       "16": "Unknown 16"}
+                                       "15": "Sequoia",
+                                       "16": "Unknown 16",
+                                       "17": "Unknown 17"}
 
             if aOsVersion[0] == '10':
                 sResult = codenames[aOsVersion[1]]

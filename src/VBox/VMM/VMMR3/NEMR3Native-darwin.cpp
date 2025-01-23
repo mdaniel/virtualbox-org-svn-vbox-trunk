@@ -519,6 +519,29 @@ DECLINLINE(int) nemR3DarwinHvSts2Rc(hv_return_t hrc)
 }
 
 
+/** Puts a name to a hypervisor framework status code. */
+static const char *nemR3DarwinHvStatusName(hv_return_t hrc)
+{
+    switch (hrc)
+    {
+        RT_CASE_RET_STR(HV_SUCCESS);
+        RT_CASE_RET_STR(HV_ERROR);
+        RT_CASE_RET_STR(HV_BUSY);
+        RT_CASE_RET_STR(HV_BAD_ARGUMENT);
+#ifdef HV_ILLEGAL_GUEST_STATE
+        RT_CASE_RET_STR(HV_ILLEGAL_GUEST_STATE);
+#endif
+        RT_CASE_RET_STR(HV_NO_RESOURCES);
+        RT_CASE_RET_STR(HV_NO_DEVICE);
+#ifdef HV_DENIED
+        RT_CASE_RET_STR(HV_DENIED);
+#endif
+        RT_CASE_RET_STR(HV_UNSUPPORTED);
+    }
+    return "";
+}
+
+
 /**
  * Unmaps the given guest physical address range (page aligned).
  *
@@ -553,8 +576,7 @@ DECLINLINE(int) nemR3DarwinUnmap(PVM pVM, RTGCPHYS GCPhys, size_t cb, uint8_t *p
     }
 
     STAM_REL_COUNTER_INC(&pVM->nem.s.StatUnmapPageFailed);
-    LogRel(("nemR3DarwinUnmap(%RGp): failed! hrc=%#x\n",
-            GCPhys, hrc));
+    LogRel(("nemR3DarwinUnmap(%RGp): failed! hrc=%#x (%s)\n", GCPhys, hrc, nemR3DarwinHvStatusName(hrc)));
     return VERR_NEM_IPE_6;
 }
 
@@ -3070,7 +3092,8 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
                     pVM->nem.s.fCreatedAsid = true;
                 }
                 else
-                    LogRel(("NEM: Failed to create ASID for VM (hrc=%#x), continuing...\n", pVM->nem.s.uVmAsid));
+                    LogRel(("NEM: Failed to create ASID for VM (hrc=%#x / %s), continuing...\n",
+                            hrc, nemR3DarwinHvStatusName(hrc)));
             }
             pVM->nem.s.fCreatedVm = true;
 
@@ -3101,7 +3124,7 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
         }
         else
             rc = RTErrInfoSetF(pErrInfo, VERR_NEM_INIT_FAILED,
-                               "hv_vm_create() failed: %#x", hrc);
+                               "hv_vm_create() failed: %#x (%s)", hrc, nemR3DarwinHvStatusName(hrc));
     }
 
     /*
@@ -3137,7 +3160,8 @@ static DECLCALLBACK(int) nemR3DarwinNativeInitVCpuOnEmt(PVM pVM, PVMCPU pVCpu, V
     hv_return_t hrc = hv_vcpu_create(&pVCpu->nem.s.hVCpuId, HV_VCPU_DEFAULT);
     if (hrc != HV_SUCCESS)
         return VMSetError(pVM, VERR_NEM_VM_CREATE_FAILED, RT_SRC_POS,
-                          "Call to hv_vcpu_create failed on vCPU %u: %#x (%Rrc)", idCpu, hrc, nemR3DarwinHvSts2Rc(hrc));
+                          "Call to hv_vcpu_create failed on vCPU %u: %#x (%s / %Rrc)",
+                          idCpu, hrc, nemR3DarwinHvStatusName(hrc), nemR3DarwinHvSts2Rc(hrc));
 
     if (idCpu == 0)
     {
@@ -3368,7 +3392,7 @@ int nemR3NativeTerm(PVM pVM)
     {
         hv_return_t hrc = hv_vm_destroy();
         if (hrc != HV_SUCCESS)
-            LogRel(("NEM: hv_vm_destroy() failed with %#x\n", hrc));
+            LogRel(("NEM: hv_vm_destroy() failed with %#x (%s)\n", hrc, nemR3DarwinHvStatusName(hrc)));
 
         pVM->nem.s.fCreatedVm = false;
     }
@@ -3836,8 +3860,8 @@ static VBOXSTRICTRC nemR3DarwinRunGuestNormal(PVM pVM, PVMCPU pVCpu)
         }
         else
         {
-            AssertLogRelMsgFailedReturn(("hv_vcpu_run()) failed for CPU #%u: %#x %u\n",
-                                        pVCpu->idCpu, hrc, vmxHCCheckGuestState(pVCpu, &pVCpu->nem.s.VmcsInfo)),
+            AssertLogRelMsgFailedReturn(("hv_vcpu_run()) failed for CPU #%u: %#x (%s) %u\n", pVCpu->idCpu, hrc,
+                                         nemR3DarwinHvStatusName(hrc), vmxHCCheckGuestState(pVCpu, &pVCpu->nem.s.VmcsInfo)),
                                         VERR_NEM_IPE_0);
         }
     } /* the run loop */
@@ -4065,8 +4089,8 @@ static VBOXSTRICTRC nemR3DarwinRunGuestDebug(PVM pVM, PVMCPU pVCpu)
         }
         else
         {
-            AssertLogRelMsgFailedReturn(("hv_vcpu_run()) failed for CPU #%u: %#x %u\n",
-                                        pVCpu->idCpu, hrc, vmxHCCheckGuestState(pVCpu, &pVCpu->nem.s.VmcsInfo)),
+            AssertLogRelMsgFailedReturn(("hv_vcpu_run()) failed for CPU #%u: %#x (%s) %u\n", pVCpu->idCpu, hrc,
+                                         nemR3DarwinHvStatusName(hrc), vmxHCCheckGuestState(pVCpu, &pVCpu->nem.s.VmcsInfo)),
                                         VERR_NEM_IPE_0);
         }
     } /* the run loop */
@@ -4212,7 +4236,7 @@ void nemR3NativeNotifyFF(PVM pVM, PVMCPU pVCpu, uint32_t fFlags)
 
     hv_return_t hrc = hv_vcpu_interrupt(&pVCpu->nem.s.hVCpuId, 1);
     if (hrc != HV_SUCCESS)
-        LogRel(("NEM: hv_vcpu_interrupt(%u, 1) failed with %#x\n", pVCpu->nem.s.hVCpuId, hrc));
+        LogRel(("NEM: hv_vcpu_interrupt(%u, 1) failed with %#x (%s)\n", pVCpu->nem.s.hVCpuId, hrc, nemR3DarwinHvStatusName(hrc)));
 }
 
 

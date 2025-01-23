@@ -79,7 +79,7 @@ ifndef VBOX_ONLY_EXTPACKS_USE_IMPLIBS
   endif
   PROGRAMS += \
   	tstCompressionBenchmark \
-	tstInt \
+  	tstInt \
   	tstIEMCheckMc \
   	tstIEMAImpl \
   	tstPDMQueue \

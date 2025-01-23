@@ -40,7 +40,6 @@
 #include "UILoggingDefs.h"
 #include "UITools.h"
 #include "UIToolsHandlerMouse.h"
-#include "UIToolsHandlerKeyboard.h"
 #include "UIToolsModel.h"
 #include "UITranslationEventListener.h"
 #include "UIExtraDataDefs.h"
@@ -67,7 +66,6 @@ UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent)
     , m_pTools(pParent)
     , m_pScene(0)
     , m_pMouseHandler(0)
-    , m_pKeyboardHandler(0)
     , m_fItemsEnabled(true)
 {
     prepare();
@@ -399,11 +397,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     /* Checking event-type: */
     switch (pEvent->type())
     {
-        /* Keyboard handler: */
-        case QEvent::KeyPress:
-            return m_pKeyboardHandler->handle(static_cast<QKeyEvent*>(pEvent), UIKeyboardEventType_Press);
-        case QEvent::KeyRelease:
-            return m_pKeyboardHandler->handle(static_cast<QKeyEvent*>(pEvent), UIKeyboardEventType_Release);
         /* Mouse handler: */
         case QEvent::GraphicsSceneMousePress:
             return m_pMouseHandler->handle(static_cast<QGraphicsSceneMouseEvent*>(pEvent), UIMouseEventType_Press);
@@ -551,7 +544,6 @@ void UIToolsModel::prepareItems()
 void UIToolsModel::prepareHandlers()
 {
     m_pMouseHandler = new UIToolsHandlerMouse(this);
-    m_pKeyboardHandler = new UIToolsHandlerKeyboard(this);
 }
 
 void UIToolsModel::loadSettings()
@@ -605,8 +597,6 @@ void UIToolsModel::loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmT
 
 void UIToolsModel::cleanupHandlers()
 {
-    delete m_pKeyboardHandler;
-    m_pKeyboardHandler = 0;
     delete m_pMouseHandler;
     m_pMouseHandler = 0;
 }

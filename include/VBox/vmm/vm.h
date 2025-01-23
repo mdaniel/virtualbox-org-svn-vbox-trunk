@@ -1243,7 +1243,7 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
 #  define VM_STRUCT_VERSION_F_28    UINT32_C(0)
 # endif
 
-/** @define VM_STRUCT_VERSION
+/** @def VM_STRUCT_VERSION
  * The current VM structure version number.  */
 # define VM_STRUCT_VERSION          (  UINT32_C(2) \
                                      | VM_STRUCT_VERSION_F_31 \

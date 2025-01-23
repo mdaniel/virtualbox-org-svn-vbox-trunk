@@ -184,14 +184,6 @@ running_vboxsf()
     lsmod | grep -q "vboxsf[^_-]"
 }
 
-# Returns if the vboxvideo module is running or not.
-#
-# Returns true if vboxvideo module is running, false if not.
-running_vboxvideo()
-{
-    lsmod | grep -q "vboxvideo[^_-]"
-}
-
 # Returns if a specific module is running or not.
 #
 # Input $1: Module name to check running status for.

@@ -341,6 +341,8 @@ int UIToolsItem::minimumWidthHint() const
 
     /* Two margins: */
     iProposedWidth += 2 * iMargin;
+    if (!model()->tools()->isPopup())
+        iProposedWidth += 2 * iMargin;
     /* And Tools-item content to take into account: */
     int iToolsItemWidth = m_pixmapSize.width();
     if (model()->tools()->isPopup())
@@ -931,7 +933,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     /* Paint left column: */
     {
         /* Prepare variables: */
-        int iPixmapX = iMargin;
+        int iPixmapX = model()->tools()->isPopup() ? iMargin : 2 * iMargin;
         int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
         paintPixmap(/* Painter: */

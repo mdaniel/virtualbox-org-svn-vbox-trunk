@@ -168,22 +168,6 @@ VBOX_VERSION="`"$VBOXCONTROL" --version | cut -d r -f1`"
 VBOX_REVISION="r`"$VBOXCONTROL" --version | cut -d r -f2`"
 [ "$VBOX_REVISION" != "r" ] || VBOX_REVISION='unknown'
 
-# Returns if the vboxguest module is running or not.
-#
-# Returns true if vboxguest module is running, false if not.
-running_vboxguest()
-{
-    lsmod | grep -q "vboxguest[^_-]"
-}
-
-# Returns if the vboxsf module is running or not.
-#
-# Returns true if vboxsf module is running, false if not.
-running_vboxsf()
-{
-    lsmod | grep -q "vboxsf[^_-]"
-}
-
 # Returns if a specific module is running or not.
 #
 # Input $1: Module name to check running status for.
@@ -880,7 +864,7 @@ Please install them and execute
     # Create user group which will have permissive access to DRP IPC server socket.
     groupadd -r -f vboxdrmipc >/dev/null 2>&1
 
-    if  running_vboxguest; then
+    if  running_module "vboxguest"; then
         # Only warn user if currently loaded modules version do not match Guest Additions Installation.
         check_running_module_version "vboxguest" || info "Running kernel modules will not be replaced until the system is restarted or 'rcvboxadd reload' triggered"
     fi
@@ -1163,8 +1147,8 @@ reload()
             # Try unload drivers unconditionally (ignore previous command exit code).
             # If final goal of unloading vboxguest.ko won't be met, we will fail on
             # the next step anyway.
-            running_vboxsf && modprobe -r vboxsf >/dev/null  2>&1
-            running_vboxguest
+            running_module "vboxsf" && modprobe -r vboxsf >/dev/null  2>&1
+            running_module "vboxguest"
             if [ $? -eq 0 ]; then
                 modprobe -r vboxguest >/dev/null  2>&1
                 [ $? -eq 0 ] && break
@@ -1175,7 +1159,7 @@ reload()
         done
 
         # Check if we succeeded with unloading vboxguest after several attempts.
-        running_vboxguest
+        running_module "vboxguest"
         if [ $? -eq 0 ]; then
             info "cannot reload kernel modules: one or more module(s) is still in use"
             false
@@ -1217,7 +1201,7 @@ reload()
 
 dmnstatus()
 {
-    if running_vboxguest; then
+    if running_module "vboxguest"; then
         echo "The VirtualBox Additions are currently running."
     else
         echo "The VirtualBox Additions are not currently running."

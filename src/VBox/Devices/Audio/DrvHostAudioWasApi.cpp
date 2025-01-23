@@ -545,13 +545,17 @@ public:
         IMMDeviceEnumerator *pIEnumerator = NULL;
         RTCritSectEnter(&m_CritSect);
         if (    m_pDrvWas != NULL
-            && (   (enmFlow == eRender  && enmRole == eMultimedia && !m_pDrvWas->pwszOutputDevId)
-                || (enmFlow == eCapture && enmRole == eMultimedia && !m_pDrvWas->pwszInputDevId)))
+            && (   (enmFlow == eRender  && !m_pDrvWas->pwszOutputDevId)
+                || (enmFlow == eCapture && !m_pDrvWas->pwszInputDevId)))
         {
             pIEnumerator = m_pDrvWas->pIEnumerator;
             if (pIEnumerator /* paranoia */)
                 pIEnumerator->AddRef();
         }
+
+        LogRelMax2(64, ("WasAPI: Default %s device changed (role=%#x, id='%ls')\n",
+                        enmFlow == eRender ? "output" : "input", enmRole, pwszDefaultDeviceId ? pwszDefaultDeviceId : L"<None>"));
+
         RTCritSectLeave(&m_CritSect);
         if (pIEnumerator)
         {

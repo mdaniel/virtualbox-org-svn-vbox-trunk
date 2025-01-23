@@ -1023,7 +1023,7 @@ check_status_kernel()
         for attempt in 1 2 3 4 5; do
 
             # Wait before the next attempt.
-            [ $? -ne 0 ] && sleep 1
+            [ -n "$vbox_add_wait" -a $? -ne 0 ] && sleep 1
 
             running_module "$mod"
             if [ $? -eq 0 ]; then
@@ -1264,6 +1264,12 @@ restart)
 # Tries to reload kernel modules and restart user processes.
 reload)
     check_root
+    # reload() we will call modprobe(8) in order to reload kernel
+    # modules. This operation is asynchronous and requires some time for
+    # modules to be loaded in most of the cases. By setting this variable, we 
+    # ask check_status_kernel() to wait a bit before making a decision
+    # whether modules were loaded or not.
+    vbox_add_wait=1
     reload
     ;;
 # Setup does a clean-up (see below) and re-does all Additions-specific

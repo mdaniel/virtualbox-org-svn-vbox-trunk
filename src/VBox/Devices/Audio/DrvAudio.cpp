@@ -4776,6 +4776,7 @@ static DECLCALLBACK(int) drvAudioConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, u
                                   "DriverName|"
                                   "InputEnabled|"
                                   "OutputEnabled|"
+                                  "CacheEnabled|"
                                   "DebugEnabled|"
                                   "DebugPathOut|"
                                   /* Deprecated: */

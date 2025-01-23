@@ -314,9 +314,9 @@
 
 
 /** Convert a zero-based index to a 1-based ID. */
-#define IDX_TO_ID(a)    (a + 1)
+#define IDX_TO_ID(a)    (uint8_t)(a + 1)
 /** Convert a 1-based ID to a zero-based index. */
-#define ID_TO_IDX(a)    (a - 1)
+#define ID_TO_IDX(a)    (uint8_t)(a - 1)
 
 /** PCI device related constants. */
 #define XHCI_PCI_MSI_CAP_OFS    0x80
@@ -433,14 +433,14 @@ AssertCompile(XHCI_RTREG_OFFSET > XHCI_XECP_OFFSET + XHCI_EXT_CAP_SIZE);
 
 /** @name xHCI Extended capability types.
  * @{ */
-#define XHCI_XCP_USB_LEGACY     1   /**< USB legacy support. */
-#define XHCI_XCP_PROTOCOL       2   /**< Protocols supported by ports. */
-#define XHCI_XCP_EXT_PM         3   /**< Extended power management (non-PCI). */
-#define XHCI_XCP_IOVIRT         4   /**< Hardware xHCI virtualization support. */
-#define XHCI_XCP_MSI            5   /**< Message interrupts (non-PCI). */
-#define XHCI_XCP_LOCAL_MEM      6   /**< Local memory (for debug support). */
-#define XHCI_XCP_USB_DEBUG      10  /**< USB debug capability. */
-#define XHCI_XCP_EXT_MSI        17  /**< MSI-X (non-PCI). */
+#define XHCI_XCP_USB_LEGACY     1u  /**< USB legacy support. */
+#define XHCI_XCP_PROTOCOL       2u  /**< Protocols supported by ports. */
+#define XHCI_XCP_EXT_PM         3u  /**< Extended power management (non-PCI). */
+#define XHCI_XCP_IOVIRT         4u  /**< Hardware xHCI virtualization support. */
+#define XHCI_XCP_MSI            5u  /**< Message interrupts (non-PCI). */
+#define XHCI_XCP_LOCAL_MEM      6u  /**< Local memory (for debug support). */
+#define XHCI_XCP_USB_DEBUG      10u /**< USB debug capability. */
+#define XHCI_XCP_EXT_MSI        17u /**< MSI-X (non-PCI). */
 /** @} */
 
 
@@ -613,8 +613,8 @@ AssertCompile(XHCI_RTREG_OFFSET > XHCI_XECP_OFFSET + XHCI_EXT_CAP_SIZE);
 
 /** @name Event Ring Deqeue Pointer Register (ERDP) bits
  * @{ */
-#define XHCI_ERDP_DESI_MASK     0x00000007  /**< RW   - Dequeue ERST Segment Index */
-#define XHCI_ERDP_EHB           RT_BIT(3)   /**< RW1C - Event Handler Busy */
+#define XHCI_ERDP_DESI_MASK     UINT64_C(7)     /**< RW   - Dequeue ERST Segment Index */
+#define XHCI_ERDP_EHB           RT_BIT_64(3)    /**< RW1C - Event Handler Busy */
 #define XHCI_ERDP_ADDR_MASK     UINT64_C(0xFFFFFFFFFFFFFFF0)    /**< RW - ERDP address mask */
 /** @} */
 
@@ -1890,10 +1890,10 @@ typedef enum sXHCI_JOB {
 #define IS_USB3_PORT_IDX_R3(a_pThisCC, a_uPort) ((a_uPort) >= (a_pThisCC)->RootHub2.cPortsImpl)
 
 /** Query the number of configured USB2 ports. */
-#define XHCI_NDP_USB2(a_pThisCC)        ((unsigned)(a_pThisCC)->RootHub2.cPortsImpl)
+#define XHCI_NDP_USB2(a_pThisCC)        ((a_pThisCC)->RootHub2.cPortsImpl)
 
 /** Query the number of configured USB3 ports. */
-#define XHCI_NDP_USB3(a_pThisCC)        ((unsigned)(a_pThisCC)->RootHub3.cPortsImpl)
+#define XHCI_NDP_USB3(a_pThisCC)        ((a_pThisCC)->RootHub3.cPortsImpl)
 
 /** Query the total number of configured ports. */
 #define XHCI_NDP_CFG(a_pThis)           ((unsigned)RT_MIN((a_pThis)->cTotalPorts, XHCI_NDP_MAX))
@@ -1909,7 +1909,7 @@ typedef enum sXHCI_JOB {
 #ifdef IN_RING3
 
 /** Build a Protocol extended capability. */
-static uint32_t xhciR3BuildProtocolCaps(uint8_t *pbCap, uint32_t cbMax, int cPorts, int nPortOfs, int ver)
+static uint32_t xhciR3BuildProtocolCaps(uint8_t *pbCap, uint32_t cbMax, unsigned cPorts, unsigned nPortOfs, int ver)
 {
     uint32_t    *pu32Cap = (uint32_t *)pbCap;
     unsigned    cPsi;
@@ -2814,7 +2814,6 @@ static DECLCALLBACK(bool)
 xhciR3WalkDataTRBsComplete(PPDMDEVINS pDevIns, PXHCI pThis, const XHCI_XFER_TRB *pXferTRB, RTGCPHYS GCPhysXfrTRB, void *pvContext)
 {
     XHCI_CTX_XFER_COMPLETE  *pCtx = (XHCI_CTX_XFER_COMPLETE *)pvContext;
-    int                     rc;
     unsigned                uXferLen;
     unsigned                uResidue;
     uint8_t                 cc;
@@ -2873,15 +2872,15 @@ xhciR3WalkDataTRBsComplete(PPDMDEVINS pDevIns, PXHCI pThis, const XHCI_XFER_TRB 
         uResidue = pXferTRB->norm.xfr_len - uXferLen;
         if (pXferTRB->norm.ioc || (pXferTRB->norm.isp && uResidue))
         {
-            rc = xhciR3PostXferEvent(pDevIns, pThis, pXferTRB->norm.int_tgt, uResidue, cc,
-                                     pCtx->uSlotID, pCtx->uEpDCI, GCPhysXfrTRB, pXferTRB->norm.bei, false);
+            xhciR3PostXferEvent(pDevIns, pThis, pXferTRB->norm.int_tgt, uResidue, cc,
+                                pCtx->uSlotID, pCtx->uEpDCI, GCPhysXfrTRB, pXferTRB->norm.bei, false);
         }
         break;
     case XHCI_TRB_EVT_DATA:
         if (pXferTRB->evtd.ioc)
         {
-            rc = xhciR3PostXferEvent(pDevIns, pThis, pXferTRB->evtd.int_tgt, pCtx->uEDTLA, pCtx->uLastCC,
-                                     pCtx->uSlotID, pCtx->uEpDCI, pXferTRB->evtd.evt_data, pXferTRB->evtd.bei, true);
+            xhciR3PostXferEvent(pDevIns, pThis, pXferTRB->evtd.int_tgt, pCtx->uEDTLA, pCtx->uLastCC,
+                                pCtx->uSlotID, pCtx->uEpDCI, pXferTRB->evtd.evt_data, pXferTRB->evtd.bei, true);
         }
         /* Clear the EDTLA. */
         pCtx->uEDTLA = 0;
@@ -2930,7 +2929,6 @@ static int xhciR3ConsumeNonXferTRBs(PPDMDEVINS pDevIns, PXHCI pThis, uint8_t uSl
     bool            dcs;
     bool            fInFlight;
     bool            fContinue = true;
-    int             rc;
     unsigned        cTrbs = 0;
 
     LogFlowFunc(("Slot ID: %u, EP DCI %u\n", uSlotID, uEpDCI));
@@ -2973,8 +2971,8 @@ static int xhciR3ConsumeNonXferTRBs(PPDMDEVINS pDevIns, PXHCI pThis, uint8_t uSl
                 if (!fInFlight)
                     pEpCtx->trep = pEpCtx->trdp;
                 if (xfer.link.ioc)
-                    rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.link.int_tgt, 0, XHCI_TCC_SUCCESS, uSlotID, uEpDCI,
-                                             GCPhysXfrTRB, false, false);
+                    xhciR3PostXferEvent(pDevIns, pThis, xfer.link.int_tgt, 0, XHCI_TCC_SUCCESS, uSlotID, uEpDCI,
+                                        GCPhysXfrTRB, false, false);
                 break;
             case XHCI_TRB_NOOP_XFER:
                 Log2(("No op xfer: IOC=%u CH=%u ENT=%u\n", xfer.nop.ioc, xfer.nop.ch, xfer.nop.ent));
@@ -2985,8 +2983,8 @@ static int xhciR3ConsumeNonXferTRBs(PPDMDEVINS pDevIns, PXHCI pThis, uint8_t uSl
                 if (!fInFlight)
                     pEpCtx->trep += sizeof(XHCI_XFER_TRB);
                 if (xfer.nop.ioc)
-                    rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.nop.int_tgt, 0, XHCI_TCC_SUCCESS, uSlotID, uEpDCI,
-                                             GCPhysXfrTRB, false, false);
+                    xhciR3PostXferEvent(pDevIns, pThis, xfer.nop.int_tgt, 0, XHCI_TCC_SUCCESS, uSlotID, uEpDCI,
+                                        GCPhysXfrTRB, false, false);
                 break;
             default:
                 fContinue = false;
@@ -3010,7 +3008,6 @@ static int xhciR3ConsumeNonXferTRBs(PPDMDEVINS pDevIns, PXHCI pThis, uint8_t uSl
 
             /* Get out of the loop. */
             fContinue = false;
-            rc = VERR_NOT_SUPPORTED;    /* No good error code really... */
         }
     } while (fContinue);
 
@@ -3042,7 +3039,6 @@ static DECLCALLBACK(void) xhciR3RhXferCompletion(PVUSBIROOTHUBPORT pInterface, P
     XHCI_EP_CTX     ep_ctx;
     XHCI_XFER_TRB   xfer;
     RTGCPHYS        GCPhysXfrTRB;
-    int             rc;
     unsigned        uResidue = 0;
     uint8_t         uSlotID  = pUrb->pHci->uSlotID;
     uint8_t         cc       = XHCI_TCC_SUCCESS;
@@ -3119,8 +3115,8 @@ static DECLCALLBACK(void) xhciR3RhXferCompletion(PVUSBIROOTHUBPORT pInterface, P
              */
             ep_ctx.ep_state = XHCI_EPST_HALTED;
             cc = XHCI_TCC_STALL;
-            rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
-                                     uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
+            xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
+                                uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
             break;
         case VUSBSTATUS_DNR:
             /* Halt the endpoint and inform the HCD.
@@ -3128,14 +3124,14 @@ static DECLCALLBACK(void) xhciR3RhXferCompletion(PVUSBIROOTHUBPORT pInterface, P
              */
             ep_ctx.ep_state = XHCI_EPST_HALTED;
             cc = XHCI_TCC_USB_XACT_ERR;
-            rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
-                                     uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
+            xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
+                                uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
             break;
         case VUSBSTATUS_CRC:    /// @todo Separate status for canceling?!
             ep_ctx.ep_state = XHCI_EPST_HALTED;
             cc = XHCI_TCC_USB_XACT_ERR;
-            rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
-                                     uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
+            xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
+                                uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
 
             /* NB: The TRDP is *not* advanced and TREP is reset. */
             ep_ctx.trep = ep_ctx.trdp;
@@ -3147,8 +3143,8 @@ static DECLCALLBACK(void) xhciR3RhXferCompletion(PVUSBIROOTHUBPORT pInterface, P
              */
             ep_ctx.ep_state = XHCI_EPST_HALTED;
             cc = XHCI_TCC_DATA_BUF_ERR;
-            rc = xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
-                                     uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
+            xhciR3PostXferEvent(pDevIns, pThis, xfer.gen.int_tgt, uResidue, cc,
+                                uSlotID, uEpDCI, GCPhysXfrTRB, false, false);
             break;
         default:
             AssertMsgFailed(("Unexpected URB status %u\n", pUrb->enmStatus));
@@ -3492,7 +3488,7 @@ static int xhciR3QueueIsochTD(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC, 
     XHCI_CTX_XFER_SUBMIT    ctxSubmit;
     uint64_t                uTREP;
     PVUSBURB                pUrb;
-    unsigned                cIsoPackets;
+    uint8_t                 cIsoPackets;
     uint32_t                cbPktMax;
 
     /* Discover how big this TD is. */
@@ -3805,7 +3801,7 @@ static int xhciR3ProcessDevCtx(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC,
     PXHCIROOTHUBR3  pRh;
     bool            dcs;
     bool            fContinue = true;
-    int             rc;
+    int             rc = VINF_SUCCESS;
     unsigned        cTrbs = 0;
 
     LogFlowFunc(("Slot ID: %u, DB target %u, DB stream ID %u\n", uSlotID, uDBTarget, (uDBVal & XHCI_DB_STRMID_MASK) >> XHCI_DB_STRMID_SHIFT));
@@ -4013,7 +4009,7 @@ static int xhciR3ProcessDevCtx(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC,
         ep_ctx.trep = ctxIsoch.uInitTREP;
         xhciR3WriteBackEp(pDevIns, pThis, uSlotID, uDBTarget, &ep_ctx);
     }
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -5047,7 +5043,6 @@ static int xhciR3ExecuteCommand(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC
     case XHCI_TRB_RESET_EP:
         /* Reset the given endpoint. */
         Log(("Reset Endpoint: slot ID %u, EP ID %u, TSP=%u\n", pCmd->rse.slot_id, pCmd->rse.ep_id, pCmd->rse.tsp));
-        cc = XHCI_TCC_SUCCESS;
         slot = ID_TO_IDX(pCmd->rse.slot_id);
         if ((slot >= RT_ELEMENTS(pThis->aSlotState)) || (pThis->aSlotState[slot] == XHCI_DEVSLOT_EMPTY))
             cc = XHCI_TCC_SLOT_NOT_ENB;
@@ -5060,7 +5055,6 @@ static int xhciR3ExecuteCommand(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC
     case XHCI_TRB_STOP_EP:
         /* Stop the given endpoint. */
         Log(("Stop Endpoint: slot ID %u, EP ID %u, SP=%u\n", pCmd->stp.slot_id, pCmd->stp.ep_id, pCmd->stp.sp));
-        cc = XHCI_TCC_SUCCESS;
         slot = ID_TO_IDX(pCmd->stp.slot_id);
         if ((slot >= RT_ELEMENTS(pThis->aSlotState)) || (pThis->aSlotState[slot] == XHCI_DEVSLOT_EMPTY))
             cc = XHCI_TCC_SLOT_NOT_ENB;
@@ -5073,7 +5067,6 @@ static int xhciR3ExecuteCommand(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC
     case XHCI_TRB_SET_DEQ_PTR:
         /* Set TR Dequeue Pointer. */
         Log(("Set TRDP: slot ID %u, EP ID %u, TRDP=%RX64\n", pCmd->stdp.slot_id, pCmd->stdp.ep_id, pCmd->stdp.tr_dqp));
-        cc = XHCI_TCC_SUCCESS;
         slot = ID_TO_IDX(pCmd->stdp.slot_id);
         if ((slot >= RT_ELEMENTS(pThis->aSlotState)) || (pThis->aSlotState[slot] == XHCI_DEVSLOT_EMPTY))
             cc = XHCI_TCC_SLOT_NOT_ENB;
@@ -5086,7 +5079,6 @@ static int xhciR3ExecuteCommand(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC
     case XHCI_TRB_RESET_DEV:
         /* Reset a device. */
         Log(("Reset Device: slot ID %u\n", pCmd->rsd.slot_id));
-        cc = XHCI_TCC_SUCCESS;
         slot = ID_TO_IDX(pCmd->rsd.slot_id);
         if ((slot >= RT_ELEMENTS(pThis->aSlotState)) || (pThis->aSlotState[slot] == XHCI_DEVSLOT_EMPTY))
             cc = XHCI_TCC_SLOT_NOT_ENB;
@@ -5099,7 +5091,6 @@ static int xhciR3ExecuteCommand(PPDMDEVINS pDevIns, PXHCI pThis, PXHCICC pThisCC
     case XHCI_TRB_GET_PORT_BW:
         /* Get port bandwidth. */
         Log(("Get Port Bandwidth: Dev Speed %u, Hub Slot ID %u, Context=%RX64\n", pCmd->gpbw.spd, pCmd->gpbw.slot_id, pCmd->gpbw.pbctx_ptr));
-        cc = XHCI_TCC_SUCCESS;
         if (pCmd->gpbw.slot_id)
             cc = XHCI_TCC_PARM_ERR; /* Potential undefined behavior, see 4.6.15. */
         else
@@ -5558,7 +5549,7 @@ static void xhciR3PortResetDone(PPDMDEVINS pDevIns, unsigned iPort)
  *
  * @returns true if device was connected and the flag was cleared.
  */
-static bool xhciR3RhPortSetIfConnected(PXHCI pThis, int iPort, uint32_t fValue)
+static bool xhciR3RhPortSetIfConnected(PXHCI pThis, unsigned iPort, uint32_t fValue)
 {
     /*
      * Writing a 0 has no effect
@@ -5947,43 +5938,51 @@ static VBOXSTRICTRC HcUsbcmd_w(PPDMDEVINS pDevIns, PXHCI pThis, uint32_t iReg, u
     if (val & ~XHCI_CMD_MASK)
         Log(("Unknown USBCMD bits %#x are set!\n", val & ~XHCI_CMD_MASK));
 
-    uint32_t old_cmd = pThis->cmd;
-#ifdef IN_RING3
-    pThis->cmd = val;
-#endif
 
-    if (val & XHCI_CMD_HCRST)
+    /* First deal with resets. These must be done in R3 and will initialize
+     * the USBCMD register.
+     */
+    if (val & (XHCI_CMD_HCRST | XHCI_CMD_LCRST))
     {
 #ifdef IN_RING3
-        LogRel(("xHCI: Hardware reset\n"));
-        xhciR3DoReset(pThis, pThisCC, XHCI_USB_RESET, true /* reset devices */);
+        /* NB: xhciR3DoReset() overwrites pThis->cmd */
+        if (val & XHCI_CMD_HCRST)
+        {
+            LogRel(("xHCI: Hardware reset\n"));
+            xhciR3DoReset(pThis, pThisCC, XHCI_USB_RESET, true /* reset devices */);
+        }
+        else if (val & XHCI_CMD_LCRST)
+        {
+            LogRel(("xHCI: Software reset\n"));
+            xhciR3DoReset(pThis, pThisCC, XHCI_USB_SUSPEND, false /* N/A */);
+        }
+        else
+            Assert(0);
+
+        return VINF_SUCCESS;
 #else
         return VINF_IOM_R3_MMIO_WRITE;
 #endif
     }
-    else if (val & XHCI_CMD_LCRST)
+
+    /* Not resetting, handle the remaining bits. */
+    if (pThis->status & XHCI_STATUS_HCE)
     {
-#ifdef IN_RING3
-        LogRel(("xHCI: Software reset\n"));
-        xhciR3DoReset(pThis, pThisCC, XHCI_USB_SUSPEND, false /* N/A */);
-#else
-        return VINF_IOM_R3_MMIO_WRITE;
-#endif
-    }
-    else if (pThis->status & XHCI_STATUS_HCE)
-    {
-        /* If HCE is set, don't restart the controller. Only a reset
-         * will clear the HCE bit.
+        /* If the HCE (HC Error) status bit is set, don't do anything.
+         * Only a reset will clear the HCE bit.
          */
         Log(("xHCI: HCE bit set, ignoring USBCMD register changes!\n"));
-        pThis->cmd = old_cmd;
         return VINF_SUCCESS;
     }
     else
     {
-        /* See what changed and take action on that. First the R/S bit. */
-        uint32_t old_state = old_cmd & XHCI_CMD_RS;
-        uint32_t new_state = val     & XHCI_CMD_RS;
+        /* See what changed and take action on that. First the R/S bit.
+         * Note that R/S changes must also be done in R3, so we get them
+         * out of the way first.
+         * NB: xhciR3BusStop() modifies USBCMD.
+         */
+        uint32_t old_state = pThis->cmd & XHCI_CMD_RS;
+        uint32_t new_state = val        & XHCI_CMD_RS;
 
         if (old_state != new_state)
         {
@@ -6005,8 +6004,8 @@ static VBOXSTRICTRC HcUsbcmd_w(PPDMDEVINS pDevIns, PXHCI pThis, uint32_t iReg, u
         }
 
         /* Check EWE (Enable MFINDEX Wraparound Event) changes. */
-        old_state = old_cmd & XHCI_CMD_EWE;
-        new_state = val     & XHCI_CMD_EWE;
+        old_state = pThis->cmd & XHCI_CMD_EWE;
+        new_state = val        & XHCI_CMD_EWE;
 
         if (old_state != new_state)
         {
@@ -6024,8 +6023,8 @@ static VBOXSTRICTRC HcUsbcmd_w(PPDMDEVINS pDevIns, PXHCI pThis, uint32_t iReg, u
         }
 
         /* INTE transitions need to twiddle interrupts. */
-        old_state = old_cmd & XHCI_CMD_INTE;
-        new_state = val     & XHCI_CMD_INTE;
+        old_state = pThis->cmd & XHCI_CMD_INTE;
+        new_state = val        & XHCI_CMD_INTE;
         if (old_state != new_state)
         {
             switch (new_state)
@@ -6060,9 +6059,10 @@ static VBOXSTRICTRC HcUsbcmd_w(PPDMDEVINS pDevIns, PXHCI pThis, uint32_t iReg, u
             val &= ~XHCI_CMD_CRS;
         }
     }
-#ifndef IN_RING3
+
+    /* Finally update the USBCMD register. */
     pThis->cmd = val;
-#endif
+
     return VINF_SUCCESS;
 }
 
@@ -7888,10 +7888,10 @@ static DECLCALLBACK(int) xhciR3Destruct(PPDMDEVINS pDevIns)
 /**
  * Worker for xhciR3Construct that registers a LUN (USB root hub).
  */
-static int xhciR3RegisterHub(PPDMDEVINS pDevIns, PXHCIROOTHUBR3 pRh, int iLun, const char *pszDesc)
+static int xhciR3RegisterHub(PPDMDEVINS pDevIns, PXHCIROOTHUBR3 pRh, uint32_t iLun, const char *pszDesc)
 {
     int rc = PDMDevHlpDriverAttach(pDevIns, iLun, &pRh->IBase, &pRh->pIBase, pszDesc);
-    AssertMsgRCReturn(rc, ("Configuration error: Failed to attach root hub driver to LUN #%d! (%Rrc)\n", iLun, rc), rc);
+    AssertMsgRCReturn(rc, ("Configuration error: Failed to attach root hub driver to LUN #%u! (%Rrc)\n", iLun, rc), rc);
 
     pRh->pIRhConn = PDMIBASE_QUERY_INTERFACE(pRh->pIBase, VUSBIROOTHUBCONNECTOR);
     AssertMsgReturn(pRh->pIRhConn,
@@ -7916,8 +7916,8 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     PXHCI           pThis   = PDMDEVINS_2_DATA(pDevIns, PXHCI);
     PXHCICC         pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PXHCICC);
     PCPDMDEVHLPR3   pHlp    = pDevIns->pHlpR3;
-    uint32_t        cUsb2Ports;
-    uint32_t        cUsb3Ports;
+    uint8_t         cUsb2Ports;
+    uint8_t         cUsb3Ports;
     int             rc;
     LogFlow(("xhciR3Construct:\n"));
     RT_NOREF(iInstance);
@@ -7933,7 +7933,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "USB2Ports|USB3Ports|ChipType", "");
 
     /* Number of USB2 ports option. */
-    rc = pHlp->pfnCFGMQueryU32Def(pCfg, "USB2Ports", &cUsb2Ports, XHCI_NDP_20_DEFAULT);
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "USB2Ports", &cUsb2Ports, XHCI_NDP_20_DEFAULT);
     if (RT_FAILURE(rc))
         return PDMDEV_SET_ERROR(pDevIns, rc,
                                 N_("xHCI configuration error: failed to read USB2Ports as integer"));
@@ -7944,7 +7944,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
                                    1, XHCI_NDP_MAX);
 
     /* Number of USB3 ports option. */
-    rc = pHlp->pfnCFGMQueryU32Def(pCfg, "USB3Ports", &cUsb3Ports, XHCI_NDP_30_DEFAULT);
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "USB3Ports", &cUsb3Ports, XHCI_NDP_30_DEFAULT);
     if (RT_FAILURE(rc))
         return PDMDEV_SET_ERROR(pDevIns, rc,
                                 N_("xHCI configuration error: failed to read USB3Ports as integer"));
@@ -8038,7 +8038,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     pThis->cTotalPorts                             = (uint8_t)(cUsb2Ports + cUsb3Ports);
 
     /* Set up the USB2 root hub interface. */
-    pThis->cUsb2Ports                              = (uint8_t)cUsb2Ports;
+    pThis->cUsb2Ports                              = cUsb2Ports;
     pThisCC->RootHub2.pXhciR3                      = pThisCC;
     pThisCC->RootHub2.cPortsImpl                   = cUsb2Ports;
     pThisCC->RootHub2.uPortBase                    = 0;
@@ -8052,7 +8052,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
     pThisCC->RootHub2.IRhPort.pfnXferError         = xhciR3RhXferError;
 
     /* Now the USB3 root hub interface. */
-    pThis->cUsb3Ports                              = (uint8_t)cUsb3Ports;
+    pThis->cUsb3Ports                              = cUsb3Ports;
     pThisCC->RootHub3.pXhciR3                      = pThisCC;
     pThisCC->RootHub3.cPortsImpl                   = cUsb3Ports;
     pThisCC->RootHub3.uPortBase                    = XHCI_NDP_USB2(pThisCC);

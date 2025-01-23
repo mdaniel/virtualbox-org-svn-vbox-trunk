@@ -844,6 +844,7 @@ GVMMR0DECL(int) GVMMR0CreateVMReq(PGVMMCREATEVMREQ pReq, PSUPDRVSESSION pSession
  *
  * @returns VBox status code.
  * @param   pSession    The support driver session.
+ * @param   enmTarget   The target platform architecture of the VM.
  * @param   cCpus       Number of virtual CPUs for the new VM.
  * @param   ppGVM       Where to store the pointer to the VM structure.
  *

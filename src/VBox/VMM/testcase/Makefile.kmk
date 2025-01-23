@@ -79,6 +79,7 @@ ifndef VBOX_ONLY_EXTPACKS_USE_IMPLIBS
   endif
   PROGRAMS += \
   	tstCompressionBenchmark \
+	tstInt \
   	tstIEMCheckMc \
   	tstIEMAImpl \
   	tstPDMQueue \
@@ -239,6 +240,15 @@ else
 endif
 tstGlobalConfig_SOURCES  = tstGlobalConfig.cpp
 tstGlobalConfig_LIBS     = $(LIB_RUNTIME)
+
+
+#
+# Testcase for bencharmking
+#
+tstInt_TEMPLATE       = VBoxR3SignedExe
+tstInt_DEFS           = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS) VBOX_SVN_REV=$(VBOX_SVN_REV)
+tstInt_SOURCES        = tstInt.cpp
+tstInt_LIBS           = $(LIB_RUNTIME)
 
 
 #

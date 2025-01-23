@@ -37,11 +37,6 @@
 SUB_DEPTH = ../../../../..
 include $(KBUILD_PATH)/subheader.kmk
 
-# We need the VMM/Config.kmk one for the VMM_COMMON_DEFS variable.
-ifndef VBOX_VMM_CONFIG_KMK_INCLUDED
- include $(PATH_ROOT)/src/VBox/VMM/Config.kmk
-endif
-
 PROGRAMS += \
 	SUPInstall \
 	SUPUninstall \
@@ -56,7 +51,6 @@ ifdef VBOX_WITH_TESTCASES
   	tstPage \
   	tstContiguous \
   	tstInit \
-  	tstInt \
   	tstLow \
   	tstPin \
   	tstGetPagingMode \
@@ -80,11 +74,6 @@ SUPUninstall_LIBS     = $(LIB_RUNTIME)
 SUPLoggerCtl_TEMPLATE = VBoxR3SignedExe
 SUPLoggerCtl_SOURCES  = SUPLoggerCtl.cpp
 SUPLoggerCtl_LIBS     = $(LIB_RUNTIME)
-
-tstInt_TEMPLATE       = VBoxR3SignedExe
-tstInt_DEFS           = VBOX_VMM_TARGET_AGNOSTIC $(VMM_COMMON_DEFS)
-tstInt_SOURCES        = tstInt.cpp
-tstInt_LIBS           = $(LIB_RUNTIME)
 
 tstContiguous_TEMPLATE = VBoxR3SignedTstExe
 tstContiguous_SOURCES = tstContiguous.cpp

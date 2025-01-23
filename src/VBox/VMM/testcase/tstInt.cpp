@@ -1,6 +1,9 @@
 /* $Id$ */
 /** @file
- * SUP Testcase - Test the interrupt gate feature of the support library.
+ * SUP Testcase - Benchmark VMMR0 calls.
+ *
+ * The 'Int' bit of the name refers to the interrupt gate we used to use back
+ * in the beginning.  This was more of a testcase back then.
  */
 
 /*
@@ -38,6 +41,13 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# define VBOX_VMM_TARGET_X86
+#elif defined(RT_ARCH_ARM64)
+# define VBOX_VMM_TARGET_ARMV8
+#else
+# error "port me"
+#endif
 #include <VBox/sup.h>
 #include <VBox/vmm/vmm.h>
 #include <VBox/vmm/gvmm.h>
@@ -99,9 +109,14 @@ int main(int argc, char **argv)
             CreateVMReq.Hdr.u32Magic    = SUPVMMR0REQHDR_MAGIC;
             CreateVMReq.Hdr.cbReq       = sizeof(CreateVMReq);
             CreateVMReq.pSession        = pSession;
-            CreateVMReq.pVMR0           = NIL_RTR0PTR;
-            CreateVMReq.pVMR3           = NULL;
+            CreateVMReq.enmTarget       = VMTARGET_DEFAULT;
             CreateVMReq.cCpus           = 1;
+            CreateVMReq.cbVM            = sizeof(VM);
+            CreateVMReq.cbVCpu          = sizeof(VMCPU);
+            CreateVMReq.uStructVersion  = VM_STRUCT_VERSION;
+            CreateVMReq.uSvnRevision    = VBOX_SVN_REV;
+            CreateVMReq.pVMR3           = NULL;
+            CreateVMReq.pVMR0           = NIL_RTR0PTR;
             rc = SUPR3CallVMMR0Ex(NIL_RTR0PTR, NIL_VMCPUID, VMMR0_DO_GVMM_CREATE_VM, 0, &CreateVMReq.Hdr);
             if (RT_SUCCESS(rc))
             {

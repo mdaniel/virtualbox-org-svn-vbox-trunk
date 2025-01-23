@@ -158,6 +158,8 @@ static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryBoolDef(PCFGMNODE pNode, con
         if (   strcmp(pDrvReg->szName, "AUDIO") == 0
             && strcmp(pszName, "DebugEnabled") == 0)
             *pf = g_fDrvAudioDebug;
+        else if (strcmp(pszName, "CacheEnabled") == 0)
+            *pf = g_fDrvHostAudioCacheEnabled;
 
         if (g_uVerbosity > 2)
             RTPrintf("debug: CFGMR3QueryBoolDef([%s], %s, %p, %RTbool) -> %RTbool\n", pDrvReg->szName, pszName, pf, fDef, *pf);

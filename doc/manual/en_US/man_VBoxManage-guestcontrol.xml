@@ -497,6 +497,22 @@
         a new guest process fails.
       </para>
     </refsect2>
+    <refsect2 id="vboxmanage-guestcontrol-GUI-limitations">
+      <title>Running Graphical Applications Inside a Guest</title>
+      <para>
+        If using the <command>VBoxManage guestcontrol run</command> or
+        <command>VBoxManage guestcontrol start</command> commands to
+        execute a graphical application then the guest will need to be
+        running a graphical windowing environment typically as the same
+        user executing the GUI application.  For example on Windows
+        guests the user running the GUI application in the guest needs
+        to be currently logged in with a running desktop session.
+        Similarly on UNIX and UNIX-like guests a graphical windowing
+        system such as X11 or Wayland needs to be running and the user
+        executing the GUI application needs authorization to be able to
+        connect to the display server.
+      </para>
+    </refsect2>
     <refsect2 id="vboxmanage-guestcontrol-run">
       <title>Run a Command in the guest</title>
       <remark role="help-copy-synopsis"/>
@@ -507,15 +523,7 @@
         standard output, and standard error are redirected from the VM
         to the host system until the program completes.
       </para>
-      <note>
-        <para>
-          Microsoft Windows imposes certain limitations when running
-          graphical user interface applications launched using
-          <command>VBoxManage guestcontrol run</command>. See
-          <xref linkend="known-issues" />.
-        </para>
-      </note>
-      <variablelist>
+     <variablelist>
         <varlistentry>
           <term><option>--exe=<replaceable>path-to-executable</replaceable></option></term>
           <listitem><para>
@@ -677,14 +685,6 @@
         command doesn't wait until all data from stdout or stderr
         has been read before returning.
       </para>
-      <note>
-        <para>
-          Microsoft Windows imposes certain limitations when running
-          graphical user interface applications launched using
-          <command>VBoxManage guestcontrol start</command>. See
-          <xref linkend="known-issues" />.
-        </para>
-      </note>
     </refsect2>
     <refsect2 id="vboxmanage-guestcontrol-copyfrom">
       <title>Copy a file from the guest to the host.</title>

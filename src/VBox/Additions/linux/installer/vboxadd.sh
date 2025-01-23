@@ -175,7 +175,8 @@ VBOX_REVISION="r`"$VBOXCONTROL" --version | cut -d r -f2`"
 # Returns true if the module is running, false if not.
 running_module()
 {
-    lsmod | grep -q "$1"
+    mod="$1"
+    [ -d "/sys/module/"$mod ]
 }
 
 # Returns the version string of a currently running kernel module.

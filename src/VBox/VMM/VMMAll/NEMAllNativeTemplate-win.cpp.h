@@ -346,7 +346,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kE8000,  pCtxMsrs->msr.MtrrFix4K_E8000);
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kF0000,  pCtxMsrs->msr.MtrrFix4K_F0000);
             ADD_REG64(WHvX64RegisterMsrMtrrFix4kF8000,  pCtxMsrs->msr.MtrrFix4K_F8000);
-            if (pVM->nem.s.fSpeculationControl)
+            if (pVM->nem.s.fDoIa32SpecCtrl)
                 ADD_REG64(WHvX64RegisterSpecCtrl, pCtxMsrs->msr.SpecCtrl);
 
 #if 0 /** @todo these registers aren't available? Might explain something.. .*/
@@ -620,7 +620,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kE8000;
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kF0000;
         aenmNames[iReg++] = WHvX64RegisterMsrMtrrFix4kF8000;
-        if (pVM->nem.s.fSpeculationControl)
+        if (pVM->nem.s.fDoIa32SpecCtrl)
             aenmNames[iReg++] = WHvX64RegisterSpecCtrl;
         /** @todo look for HvX64RegisterIa32MiscEnable and HvX64RegisterIa32FeatureControl? */
 //#ifdef LOG_ENABLED

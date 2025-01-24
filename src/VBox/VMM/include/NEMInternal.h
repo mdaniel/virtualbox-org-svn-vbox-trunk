@@ -264,6 +264,8 @@ typedef struct NEM
     bool                        fExtendedXcptExit : 1;
     /** Copy of WHV_CAPABILITY_FEATURES::SpeculationControl. */
     bool                        fSpeculationControl : 1;
+    /** Whether to export/import IA32_SPEC_CTRL. */
+    bool                        fDoIa32SpecCtrl : 1;
 #  ifdef NEM_WIN_WITH_A20
     /** Set if we've started more than one CPU and cannot mess with A20. */
     bool                        fA20Fixed : 1;

@@ -1540,6 +1540,13 @@ int nemR3NativeInitAfterCPUM(PVM pVM)
     AssertReturn(pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NATIVE_API, VERR_WRONG_ORDER);
 
     /*
+     * Determine whether we can and should export/import IA32_SPEC_CTRL.
+     */
+    pVM->nem.s.fDoIa32SpecCtrl = pVM->nem.s.fSpeculationControl
+                              && g_CpumHostFeatures.s.fSpecCtrlMsr
+                              && pVM->cpum.ro.GuestFeatures.fSpecCtrlMsr;
+
+    /*
      * Continue setting up the partition now that we've got most of the CPUID feature stuff.
      */
     WHV_PARTITION_PROPERTY Property;

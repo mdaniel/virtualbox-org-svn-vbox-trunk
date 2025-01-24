@@ -3781,6 +3781,7 @@ int Console::i_configAudioCtrl(ComPtr<IVirtualBox> pVBox, ComPtr<IMachine> pMach
                             || strTmp.equalsIgnoreCase("wasapi")) )
                     {
                         /* Nothing to do here, fall through to WAS driver. */
+                        LogRel(("Audio: Using Windows Audio Session (WAS) backend instead of DirectSound for performance reasons\n"));
                     }
                     else
                     {

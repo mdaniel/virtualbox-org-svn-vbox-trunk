@@ -1299,6 +1299,15 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                     if (dwErr == ERROR_LINE_NOT_FOUND)
                         fRc = true;
 
+                    /*
+                     * Work around an error which occurs on Windows Vista, where DiInstallDriverW() can't handle
+                     * primitive drivers (i.e. [Manufacturer] section is missing). So try installing the detected
+                     * INF section in the next block below.
+                     */
+                    if (dwErr == ERROR_WRONG_INF_TYPE)
+                        fRc = true;
+
+                    /* For anything else we want to get notified that something isn't working. */
                     if (!fRc)
                         rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
                 }

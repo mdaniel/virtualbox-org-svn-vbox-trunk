@@ -588,9 +588,9 @@ DECLINLINE(void) nemR3LnxSetGReg(PVMCPU pVCpu, uint8_t uReg, bool f64BitReg, boo
  */
 DECLINLINE(uint64_t) nemR3LnxGetGReg(PVMCPU pVCpu, uint8_t uReg)
 {
-    AssertReturn(uReg <= ARMV8_AARCH64_REG_ZR, 0);
+    AssertReturn(uReg <= ARMV8_A64_REG_XZR, 0);
 
-    if (uReg == ARMV8_AARCH64_REG_ZR)
+    if (uReg == ARMV8_A64_REG_XZR)
         return 0;
 
     /** @todo Import the register if extern. */
@@ -1115,7 +1115,7 @@ static VBOXSTRICTRC nemHCLnxHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, struc
         switch (uFunNum)
         {
             case ARM_PSCI_FUNC_ID_PSCI_VERSION:
-                nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
+                nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
                 break;
             case ARM_PSCI_FUNC_ID_SYSTEM_OFF:
                 rcStrict = VMR3PowerOff(pVM->pUVM);
@@ -1140,16 +1140,16 @@ static VBOXSTRICTRC nemHCLnxHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, struc
             }
             case ARM_PSCI_FUNC_ID_CPU_ON:
             {
-                uint64_t u64TgtCpu      = nemR3LnxGetGReg(pVCpu, ARMV8_AARCH64_REG_X1);
-                RTGCPHYS GCPhysExecAddr = nemR3LnxGetGReg(pVCpu, ARMV8_AARCH64_REG_X2);
-                uint64_t u64CtxId       = nemR3LnxGetGReg(pVCpu, ARMV8_AARCH64_REG_X3);
+                uint64_t u64TgtCpu      = nemR3LnxGetGReg(pVCpu, ARMV8_A64_REG_X1);
+                RTGCPHYS GCPhysExecAddr = nemR3LnxGetGReg(pVCpu, ARMV8_A64_REG_X2);
+                uint64_t u64CtxId       = nemR3LnxGetGReg(pVCpu, ARMV8_A64_REG_X3);
                 VMMR3CpuOn(pVM, u64TgtCpu & 0xff, GCPhysExecAddr, u64CtxId);
-                nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
+                nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
                 break;
             }
             case ARM_PSCI_FUNC_ID_PSCI_FEATURES:
             {
-                uint32_t u32FunNum = (uint32_t)nemR3LnxGetGReg(pVCpu, ARMV8_AARCH64_REG_X1);
+                uint32_t u32FunNum = (uint32_t)nemR3LnxGetGReg(pVCpu, ARMV8_A64_REG_X1);
                 switch (u32FunNum)
                 {
                     case ARM_PSCI_FUNC_ID_PSCI_VERSION:
@@ -1157,23 +1157,23 @@ static VBOXSTRICTRC nemHCLnxHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, struc
                     case ARM_PSCI_FUNC_ID_SYSTEM_RESET:
                     case ARM_PSCI_FUNC_ID_SYSTEM_RESET2:
                     case ARM_PSCI_FUNC_ID_CPU_ON:
-                        nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                        nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                         false /*f64BitReg*/, false /*fSignExtend*/,
                                         (uint64_t)ARM_PSCI_STS_SUCCESS);
                         break;
                     default:
-                        nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                        nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                         false /*f64BitReg*/, false /*fSignExtend*/,
                                         (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
                 }
                 break;
             }
             default:
-                nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+                nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
         }
     }
     else
-        nemR3LnxSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+        nemR3LnxSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
 
 
     return rcStrict;

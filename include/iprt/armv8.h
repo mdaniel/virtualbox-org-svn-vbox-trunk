@@ -55,17 +55,6 @@
  * @{
  */
 
-/** @name The AArch64 register encoding - deprecated.
- *  @deprecated  Use ARMV8_A64_REG_XXX instead.
- *  @todo correct code and drop these remaining ones.
- * @{ */
-#define ARMV8_AARCH64_REG_X0                        0
-#define ARMV8_AARCH64_REG_X1                        1
-#define ARMV8_AARCH64_REG_X2                        2
-#define ARMV8_AARCH64_REG_X3                        3
-#define ARMV8_AARCH64_REG_ZR                        31
-/** @} */
-
 /** @name The AArch64 general purpose register encoding.
  * @{ */
 #define ARMV8_A64_REG_X0                            0

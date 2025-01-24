@@ -142,6 +142,8 @@ typedef enum hv_gic_intid_t : uint16_t
     HV_GIC_INT_PERFORMANCE_MONITOR = 30
 } hv_gic_intid_t;
 
+#else
+# define HV_GIC_ICC_REG_INVALID (hv_gic_icc_reg_t)UINT16_MAX
 #endif
 
 typedef hv_vm_config_t  FN_HV_VM_CONFIG_CREATE(void);
@@ -1687,9 +1689,9 @@ DECLINLINE(void) nemR3DarwinSetGReg(PVMCPU pVCpu, uint8_t uReg, bool f64BitReg, 
  */
 DECLINLINE(uint64_t) nemR3DarwinGetGReg(PVMCPU pVCpu, uint8_t uReg)
 {
-    AssertReturn(uReg <= ARMV8_AARCH64_REG_ZR, 0);
+    AssertReturn(uReg <= ARMV8_A64_REG_XZR, 0);
 
-    if (uReg == ARMV8_AARCH64_REG_ZR)
+    if (uReg == ARMV8_A64_REG_XZR)
         return 0;
 
     /** @todo Import the register if extern. */
@@ -1987,7 +1989,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedHvcInsn(PVM pVM, PVMCPU
     {
         /** @todo Raise exception to EL1 if PSCI not configured. */
         /** @todo Need a generic mechanism here to pass this to, GIM maybe?. */
-        uint32_t uFunId = pVCpu->cpum.GstCtx.aGRegs[ARMV8_AARCH64_REG_X0].w;
+        uint32_t uFunId = pVCpu->cpum.GstCtx.aGRegs[ARMV8_A64_REG_X0].w;
         bool fHvc64 = RT_BOOL(uFunId & ARM_SMCCC_FUNC_ID_64BIT); RT_NOREF(fHvc64);
         uint32_t uEntity = ARM_SMCCC_FUNC_ID_ENTITY_GET(uFunId);
         uint32_t uFunNum = ARM_SMCCC_FUNC_ID_NUM_GET(uFunId);
@@ -1996,7 +1998,7 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedHvcInsn(PVM pVM, PVMCPU
             switch (uFunNum)
             {
                 case ARM_PSCI_FUNC_ID_PSCI_VERSION:
-                    nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
+                    nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
                     break;
                 case ARM_PSCI_FUNC_ID_SYSTEM_OFF:
                     rcStrict = VMR3PowerOff(pVM->pUVM);
@@ -2021,16 +2023,16 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedHvcInsn(PVM pVM, PVMCPU
                 }
                 case ARM_PSCI_FUNC_ID_CPU_ON:
                 {
-                    uint64_t u64TgtCpu      = nemR3DarwinGetGReg(pVCpu, ARMV8_AARCH64_REG_X1);
-                    RTGCPHYS GCPhysExecAddr = nemR3DarwinGetGReg(pVCpu, ARMV8_AARCH64_REG_X2);
-                    uint64_t u64CtxId       = nemR3DarwinGetGReg(pVCpu, ARMV8_AARCH64_REG_X3);
+                    uint64_t u64TgtCpu      = nemR3DarwinGetGReg(pVCpu, ARMV8_A64_REG_X1);
+                    RTGCPHYS GCPhysExecAddr = nemR3DarwinGetGReg(pVCpu, ARMV8_A64_REG_X2);
+                    uint64_t u64CtxId       = nemR3DarwinGetGReg(pVCpu, ARMV8_A64_REG_X3);
                     VMMR3CpuOn(pVM, u64TgtCpu & 0xff, GCPhysExecAddr, u64CtxId);
-                    nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
+                    nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
                     break;
                 }
                 case ARM_PSCI_FUNC_ID_PSCI_FEATURES:
                 {
-                    uint32_t u32FunNum = (uint32_t)nemR3DarwinGetGReg(pVCpu, ARMV8_AARCH64_REG_X1);
+                    uint32_t u32FunNum = (uint32_t)nemR3DarwinGetGReg(pVCpu, ARMV8_A64_REG_X1);
                     switch (u32FunNum)
                     {
                         case ARM_PSCI_FUNC_ID_PSCI_VERSION:
@@ -2039,26 +2041,26 @@ static VBOXSTRICTRC nemR3DarwinHandleExitExceptionTrappedHvcInsn(PVM pVM, PVMCPU
                         case ARM_PSCI_FUNC_ID_SYSTEM_RESET2:
                         case ARM_PSCI_FUNC_ID_CPU_ON:
                         case ARM_PSCI_FUNC_ID_MIGRATE_INFO_TYPE:
-                            nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                            nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                                false /*f64BitReg*/, false /*fSignExtend*/,
                                                (uint64_t)ARM_PSCI_STS_SUCCESS);
                             break;
                         default:
-                            nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                            nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                                false /*f64BitReg*/, false /*fSignExtend*/,
                                                (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
                     }
                     break;
                 }
                 case ARM_PSCI_FUNC_ID_MIGRATE_INFO_TYPE:
-                    nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_MIGRATE_INFO_TYPE_TOS_NOT_PRESENT);
+                    nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_MIGRATE_INFO_TYPE_TOS_NOT_PRESENT);
                     break;
                 default:
-                    nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+                    nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
             }
         }
         else
-            nemR3DarwinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+            nemR3DarwinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
     }
 
     /** @todo What to do if immediate is != 0? */

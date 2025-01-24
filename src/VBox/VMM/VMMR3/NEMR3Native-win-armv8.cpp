@@ -2084,9 +2084,9 @@ DECLINLINE(void) nemR3WinSetGReg(PVMCPU pVCpu, uint8_t uReg, bool f64BitReg, boo
  */
 DECLINLINE(uint64_t) nemR3WinGetGReg(PVMCPU pVCpu, uint8_t uReg)
 {
-    AssertReturn(uReg <= ARMV8_AARCH64_REG_ZR, 0);
+    AssertReturn(uReg <= ARMV8_A64_REG_XZR, 0);
 
-    if (uReg == ARMV8_AARCH64_REG_ZR)
+    if (uReg == ARMV8_A64_REG_XZR)
         return 0;
 
     /** @todo Import the register if extern. */
@@ -2324,7 +2324,7 @@ nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEX
         switch (uFunNum)
         {
             case ARM_PSCI_FUNC_ID_PSCI_VERSION:
-                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
+                nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_FUNC_ID_PSCI_VERSION_SET(1, 2));
                 break;
             case ARM_PSCI_FUNC_ID_SYSTEM_OFF:
                 rcStrict = VMR3PowerOff(pVM->pUVM);
@@ -2353,7 +2353,7 @@ nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEX
                 RTGCPHYS GCPhysExecAddr = pExit->Hypercall.X[2];
                 uint64_t u64CtxId       = pExit->Hypercall.X[3];
                 VMMR3CpuOn(pVM, u64TgtCpu & 0xff, GCPhysExecAddr, u64CtxId);
-                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
+                nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0, true /*f64BitReg*/, false /*fSignExtend*/, ARM_PSCI_STS_SUCCESS);
                 break;
             }
             case ARM_PSCI_FUNC_ID_PSCI_FEATURES:
@@ -2366,23 +2366,23 @@ nemR3WinHandleExitHypercall(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEX
                     case ARM_PSCI_FUNC_ID_SYSTEM_RESET:
                     case ARM_PSCI_FUNC_ID_SYSTEM_RESET2:
                     case ARM_PSCI_FUNC_ID_CPU_ON:
-                        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                        nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                         false /*f64BitReg*/, false /*fSignExtend*/,
                                         (uint64_t)ARM_PSCI_STS_SUCCESS);
                         break;
                     default:
-                        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0,
+                        nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0,
                                         false /*f64BitReg*/, false /*fSignExtend*/,
                                         (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
                 }
                 break;
             }
             default:
-                nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+                nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
         }
     }
     else
-        nemR3WinSetGReg(pVCpu, ARMV8_AARCH64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
+        nemR3WinSetGReg(pVCpu, ARMV8_A64_REG_X0, false /*f64BitReg*/, false /*fSignExtend*/, (uint64_t)ARM_PSCI_STS_NOT_SUPPORTED);
 
     /** @todo What to do if immediate is != 0? */
 

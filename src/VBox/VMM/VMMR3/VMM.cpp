@@ -1279,8 +1279,8 @@ static DECLCALLBACK(int) vmmR3CpuOn(PVM pVM, VMCPUID idCpu, RTGCPHYS GCPhysExecA
 
     PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
 
-    pCtx->aGRegs[ARMV8_AARCH64_REG_X0].x = u64CtxId;
-    pCtx->Pc.u64                         = GCPhysExecAddr;
+    pCtx->aGRegs[ARMV8_A64_REG_X0].x = u64CtxId;
+    pCtx->Pc.u64                     = GCPhysExecAddr;
 
     Log(("vmmR3CpuOn for VCPU %d with GCPhysExecAddr=%RGp u64CtxId=%#RX64\n", idCpu, GCPhysExecAddr, u64CtxId));
 

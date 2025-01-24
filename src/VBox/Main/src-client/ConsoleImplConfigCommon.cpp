@@ -3760,11 +3760,10 @@ int Console::i_configAudioCtrl(ComPtr<IVirtualBox> pVBox, ComPtr<IMachine> pMach
                     pszAudioDriver = "NullAudio";
                     break;
 #ifdef RT_OS_WINDOWS
-# ifdef VBOX_WITH_WINMM
                 case AudioDriverType_WinMM:
-#  error "Port WinMM audio backend!" /** @todo Still needed? */
-                    break;
-# endif
+                    LogRel(("Audio: Warning: WinMM is not supported, defaulting to WAS backend\n"));
+                    /* Fall through into the next case for selecting a valid Windows backend. */
+                    RT_FALL_THROUGH();
                 case AudioDriverType_DirectSound:
                     /* Use the Windows Audio Session (WAS) API rather than Direct Sound on Windows
                        versions we've tested it on (currently W7+).  Since Vista, Direct Sound has

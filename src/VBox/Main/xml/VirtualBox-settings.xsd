@@ -1072,6 +1072,7 @@
         <xsd:enumeration value="SolAudio"/> <!-- Solaris -->
         <xsd:enumeration value="WinMM"/> <!-- Windows -->
         <xsd:enumeration value="DirectSound"/> <!-- Windows -->
+        <xsd:enumeration value="WAS"/> <!-- Windows -->
       </xsd:restriction>
     </xsd:simpleType>
   </xsd:attribute>

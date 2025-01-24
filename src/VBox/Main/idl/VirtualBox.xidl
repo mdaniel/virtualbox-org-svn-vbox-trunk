@@ -24213,7 +24213,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
         <desc>PulseAudio (Linux hosts only).</desc>
     </const>
     <const name="WinMM"         value="5">
-        <desc>Windows multimedia (Windows hosts only, not supported at the moment).</desc>
+        <desc>Reserved for historical reasons.</desc>
     </const>
     <const name="DirectSound"   value="6">
         <desc>DirectSound (Windows hosts only).</desc>

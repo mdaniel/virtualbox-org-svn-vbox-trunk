@@ -2766,10 +2766,6 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                 else if (!RTStrICmp(ValueUnion.psz, "default"))
                     CHECK_ERROR(audioAdapter, COMSETTER(AudioDriver)(AudioDriverType_Default));
 #ifdef RT_OS_WINDOWS
-# ifdef VBOX_WITH_WINMM
-                else if (!RTStrICmp(ValueUnion.psz, "winmm"))
-                    CHECK_ERROR(audioAdapter, COMSETTER(AudioDriver)(AudioDriverType_WinMM));
-# endif
                 else if (!RTStrICmp(ValueUnion.psz, "dsound"))
                     CHECK_ERROR(audioAdapter, COMSETTER(AudioDriver)(AudioDriverType_DirectSound));
                 else if (!RTStrICmp(ValueUnion.psz, "was"))

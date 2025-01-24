@@ -52,7 +52,7 @@
           <HostInterface name="Home LAN"/>
         </Adapter>
       </Network>
-      <AudioAdapter driver="winmm" enabled="true"/>
+      <AudioAdapter driver="WAS" enabled="true"/>
     </Hardware>
 
     <HardDiskAttachments>
@@ -98,7 +98,7 @@
             <HostInterface name="Home LAN"/>
           </Adapter>
         </Network>
-        <AudioAdapter driver="winmm" enabled="true"/>
+        <AudioAdapter driver="WAS" enabled="true"/>
         <Clipboard mode="Disabled"/>
       </Hardware>
       <HardDiskAttachments>
@@ -144,7 +144,7 @@
                 <HostInterface name="Home LAN"/>
               </Adapter>
             </Network>
-            <AudioAdapter driver="winmm" enabled="true"/>
+            <AudioAdapter driver="WAS" enabled="true"/>
           </Hardware>
           <HardDiskAttachments>
             <HardDiskAttachment hardDisk="{508b474f-62ce-4872-9a42-3af09037a277}"
@@ -187,7 +187,7 @@
                 <HostInterface name="Home LAN"/>
               </Adapter>
             </Network>
-            <AudioAdapter driver="winmm" enabled="true"/>
+            <AudioAdapter driver="WAS" enabled="true"/>
           </Hardware>
           <HardDiskAttachments>
             <HardDiskAttachment hardDisk="{508b474f-62ce-4872-9a42-3af09037a277}"

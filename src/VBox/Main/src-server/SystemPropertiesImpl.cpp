@@ -1347,7 +1347,7 @@ HRESULT SystemProperties::getSupportedAudioDriverTypes(std::vector<AudioDriverTy
     {
         AudioDriverType_Default,
 #ifdef RT_OS_WINDOWS
-# if 0 /* deprecated for many years now */
+# if 0 /* Deprecated; not (ever) supported. See @bugref{10845} */
         AudioDriverType_WinMM,
 # endif
         AudioDriverType_WAS,
@@ -1360,7 +1360,7 @@ HRESULT SystemProperties::getSupportedAudioDriverTypes(std::vector<AudioDriverTy
         AudioDriverType_MMPM,
 #endif
 #ifdef RT_OS_SOLARIS
-# if 0 /* deprecated for many years now */
+# if 0 /*Deprecated for many years now. */
         AudioDriverType_SolAudio,
 # endif
 #endif

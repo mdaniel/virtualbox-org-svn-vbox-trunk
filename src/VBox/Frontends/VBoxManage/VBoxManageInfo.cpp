@@ -2278,6 +2278,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
                             pszDrv = "PulseAudio";
                         break;
                     case AudioDriverType_WinMM:
+                        /* Deprecated; not (ever) supported; leave this in for backwards compatibility. See @bugref{10845} */
                         if (details == VMINFO_MACHINEREADABLE)
                             pszDrv = "winmm";
                         else

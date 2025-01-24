@@ -549,6 +549,7 @@ template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const KAudioDriver
         case KAudioDriverType_OSS:         return QApplication::translate("UICommon", "OSS Audio", "AudioDriverType");
         case KAudioDriverType_ALSA:        return QApplication::translate("UICommon", "ALSA Audio", "AudioDriverType");
         case KAudioDriverType_Pulse:       return QApplication::translate("UICommon", "PulseAudio", "AudioDriverType");
+        /* Deprecated; not (ever) supported; leave this in for backwards compatibility. See @bugref{10845} */
         case KAudioDriverType_WinMM:       return QApplication::translate("UICommon", "Windows Multimedia", "AudioDriverType");
         case KAudioDriverType_DirectSound: return QApplication::translate("UICommon", "Windows DirectSound", "AudioDriverType");
         case KAudioDriverType_WAS:         return QApplication::translate("UICommon", "Windows Audio Session", "AudioDriverType");
@@ -569,6 +570,7 @@ template<> SHARED_LIBRARY_STUFF KAudioDriverType UIConverter::fromString<KAudioD
     list.insert(QApplication::translate("UICommon", "OSS Audio", "AudioDriverType"),             KAudioDriverType_OSS);
     list.insert(QApplication::translate("UICommon", "ALSA Audio", "AudioDriverType"),            KAudioDriverType_ALSA);
     list.insert(QApplication::translate("UICommon", "PulseAudio", "AudioDriverType"),            KAudioDriverType_Pulse);
+    /* Deprecated; not (ever) supported; leave this in for backwards compatibility. See @bugref{10845} */
     list.insert(QApplication::translate("UICommon", "Windows Multimedia", "AudioDriverType"),    KAudioDriverType_WinMM);
     list.insert(QApplication::translate("UICommon", "Windows DirectSound", "AudioDriverType"),   KAudioDriverType_DirectSound);
     list.insert(QApplication::translate("UICommon", "Windows Audio Session", "AudioDriverType"), KAudioDriverType_WAS);

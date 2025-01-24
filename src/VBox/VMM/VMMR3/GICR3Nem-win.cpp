@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GIC - Generic Interrupt Controller Architecture (GICv3) - Hyper-V interface.
+ * GIC - Generic Interrupt Controller Architecture (GIC) - Hyper-V interface.
  */
 
 /*
@@ -76,7 +76,7 @@ typedef GICHVDEV const *PCGICHVDEV;
 
 
 /*
- * The following definitions appeared in build 27744 allow interacting with the GICv3 controller,
+ * The following definitions appeared in build 27744 allow interacting with the GIC controller,
  * (there is no official SDK for this yet).
  */
 /** @todo Better way of defining these which doesn't require casting later on when calling APIs. */

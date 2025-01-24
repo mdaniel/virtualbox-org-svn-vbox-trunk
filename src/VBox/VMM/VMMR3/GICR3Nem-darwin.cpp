@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GIC - Generic Interrupt Controller Architecture (GICv3) - Hypervisor.framework in kernel interface.
+ * GIC - Generic Interrupt Controller Architecture (GIC) - Hypervisor.framework in kernel interface.
  */
 
 /*

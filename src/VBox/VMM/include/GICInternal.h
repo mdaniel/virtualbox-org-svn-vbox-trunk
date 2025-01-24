@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GIC - Generic Interrupt Controller Architecture (GICv3).
+ * GIC - Generic Interrupt Controller Architecture (GIC).
  */
 
 /*
@@ -102,6 +102,11 @@ typedef struct GICDEV
     volatile bool               fIrqGrp1Enabled;
     /** @} */
 
+    /** @name Configurables.
+     * @{ */
+    /** The GICD_TYPER.ItsLinesNumber bits. */
+    uint16_t                    uItLinesNumber;
+    /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */
 typedef GICDEV *PGICDEV;
@@ -130,6 +135,7 @@ typedef struct GICCPU
 {
     /** @name The per vCPU redistributor data is kept here.
      * @{ */
+    /** @} */
 
     /** @name Physical LPI register state.
      * @{ */

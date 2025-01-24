@@ -168,7 +168,7 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_WriteCpumOff(PVMCPUCC pVCpu, uint
 
 
 /** @callback_method_impl{FNCPUMRDSYSREG} */
-static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_GicV3Icc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t *puValue)
+static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_GicIcc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t *puValue)
 {
     RT_NOREF_PV(pRange);
     return PDMGicReadSysReg(pVCpu, idSysReg, puValue);
@@ -176,7 +176,7 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegRd_GicV3Icc(PVMCPUCC pVCpu, uint32_t
 
 
 /** @callback_method_impl{FNCPUMWRSYSREG} */
-static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_GicV3Icc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t uValue, uint64_t uRawValue)
+static DECLCALLBACK(VBOXSTRICTRC) cpumSysRegWr_GicIcc(PVMCPUCC pVCpu, uint32_t idSysReg, PCCPUMSYSREGRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
     return PDMGicWriteSysReg(pVCpu, idSysReg, uValue);
@@ -230,7 +230,7 @@ static const struct READSYSREGCLANG11WEIRDNOTHROW { PFNCPUMRDSYSREG pfnRdSysReg;
     { NULL }, /* Alias */
     { cpumSysRegRd_WriteOnly },
     { cpumSysRegRd_ReadCpumOff },
-    { cpumSysRegRd_GicV3Icc  },
+    { cpumSysRegRd_GicIcc  },
     { cpumSysRegRd_OslsrEl1  },
     { cpumSysRegRd_Pmu       }
 };
@@ -246,7 +246,7 @@ static const struct WRITESYSREGCLANG11WEIRDNOTHROW { PFNCPUMWRSYSREG pfnWrSysReg
     { cpumSysRegWr_ReadOnly },
     { NULL }, /* Alias */
     { cpumSysRegWr_WriteCpumOff },
-    { cpumSysRegWr_GicV3Icc },
+    { cpumSysRegWr_GicIcc },
     { cpumSysRegWr_OslarEl1 },
     { cpumSysRegWr_Pmu      }
 };
@@ -491,7 +491,7 @@ DECLHIDDEN(int) cpumR3SysRegStrictInitChecks(void)
     CPUM_ASSERT_RD_SYSREG_FN(FixedValue);
     CPUM_ASSERT_RD_SYSREG_FN(WriteOnly);
     CPUM_ASSERT_RD_SYSREG_FN(ReadCpumOff);
-    CPUM_ASSERT_RD_SYSREG_FN(GicV3Icc);
+    CPUM_ASSERT_RD_SYSREG_FN(GicIcc);
     CPUM_ASSERT_RD_SYSREG_FN(OslsrEl1);
     CPUM_ASSERT_RD_SYSREG_FN(Pmu);
 
@@ -499,7 +499,7 @@ DECLHIDDEN(int) cpumR3SysRegStrictInitChecks(void)
     CPUM_ASSERT_WR_SYSREG_FN(IgnoreWrite);
     CPUM_ASSERT_WR_SYSREG_FN(ReadOnly);
     CPUM_ASSERT_WR_SYSREG_FN(WriteCpumOff);
-    CPUM_ASSERT_WR_SYSREG_FN(GicV3Icc);
+    CPUM_ASSERT_WR_SYSREG_FN(GicIcc);
     CPUM_ASSERT_WR_SYSREG_FN(OslarEl1);
     CPUM_ASSERT_WR_SYSREG_FN(Pmu);
 

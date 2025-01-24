@@ -834,6 +834,9 @@
 
 /** SP_EL2 register - RW. */
 #define ARMV8_AARCH64_SYSREG_SP_EL2                 ARMV8_AARCH64_SYSREG_ID_CREATE(3, 6,  4,  1, 0)
+
+/** SP_EL2 register - RW. */
+#define ARMV8_AARCH64_SYSREG_ICC_SRE_EL3            ARMV8_AARCH64_SYSREG_ID_CREATE(3, 6, 12, 12, 5)
 /** @} */
 
 

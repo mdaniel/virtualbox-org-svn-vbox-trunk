@@ -1,5 +1,5 @@
 /** @file
- * ARMv8 Generic Interrupt Controller Architecture v3 (GICv3) definitions.
+ * ARMv8 Generic Interrupt Controller Architecture (GIC) definitions.
  */
 
 /*

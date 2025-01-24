@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * PDM - GICv3 (Generic Interrupt Controller) Interface.
+ * PDM - Generic Interrupt Controller (GIC) Interface.
  */
 
 /*

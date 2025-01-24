@@ -69,8 +69,8 @@ typedef enum CPUMSYSREGRDFN
     /** Read the value from the given offset from the beginning of CPUMGSTCTX. */
     kCpumSysRegRdFn_ReadCpumOff,
 
-    /** Read from a GICv3 PE ICC system register. */
-    kCpumSysRegRdFn_GicV3Icc,
+    /** Read from a GIC PE ICC system register. */
+    kCpumSysRegRdFn_GicIcc,
     /** Read from the OSLSR_EL1 syste register. */
     kCpumSysRegRdFn_OslsrEl1,
     /** Read from a PMU system register. */
@@ -99,8 +99,8 @@ typedef enum CPUMSYSREGWRFN
     /** Write the value to the given offset from the beginning of CPUMGSTCTX. */
     kCpumSysRegWrFn_WriteCpumOff,
 
-    /** Write to a GICv3 PE ICC system register. */
-    kCpumSysRegWrFn_GicV3Icc,
+    /** Write to a GIC PE ICC system register. */
+    kCpumSysRegWrFn_GicIcc,
     /** Write to the OSLAR_EL1 syste register. */
     kCpumSysRegWrFn_OslarEl1,
     /** Write to a PMU system register. */

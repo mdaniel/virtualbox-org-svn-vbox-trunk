@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GIC - Generic Interrupt Controller Architecture (GICv3) - All Contexts.
+ * GIC - Generic Interrupt Controller Architecture (GIC) - All Contexts.
  */
 
 /*
@@ -405,8 +405,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                        | GIC_DIST_REG_CTRL_ARE_S;
             break;
         case GIC_DIST_REG_TYPER_OFF:
-            *puValue =   GIC_DIST_REG_TYPER_NUM_ITLINES_SET(1)  /** @todo 32 SPIs for now. */
-                       | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* 1 PE */
+            *puValue =   GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pThis->uItLinesNumber)
+                       | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* 1 PE */ /** @todo r=ramshankar: Should this be pVCpu->cCpus? Currently it means 'ARE' must always be used? */
                        /*| GIC_DIST_REG_TYPER_ESPI*/            /** @todo */
                        /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Non-maskable interrupts */
                        /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo */
@@ -1147,7 +1147,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             break;
         }
         case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:
-            *pu64Value = pThis->bBinaryPointGrp1 & 0x7;
+            *pu64Value = ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_SET(pThis->bBinaryPointGrp1);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_CTLR_EL1:
             *pu64Value =   ARMV8_ICC_CTLR_EL1_AARCH64_PMHE
@@ -1210,7 +1210,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_BPR0_EL1:
-            pThis->bBinaryPointGrp0 = (uint8_t)(u64Value & 0x7);
+            pThis->bBinaryPointGrp0 = (uint8_t)ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_GET(u64Value);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
             /** @todo */
@@ -1320,7 +1320,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:
-            pThis->bBinaryPointGrp0 = (uint8_t)(u64Value & 0x7);
+            pThis->bBinaryPointGrp1 = (uint8_t)ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_GET(u64Value);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_CTLR_EL1:
             u64Value &= ARMV8_ICC_CTLR_EL1_RW;

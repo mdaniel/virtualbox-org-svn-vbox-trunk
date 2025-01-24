@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GIC - Generic Interrupt Controller Architecture (GICv3).
+ * GIC - Generic Interrupt Controller Architecture (GIC).
  */
 
 /*
@@ -53,23 +53,24 @@
 #define GIC_SAVED_STATE_VERSION                     1
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
-    { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicV3Icc, kCpumSysRegWrFn_GicV3Icc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
+    { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /**
- * System register ranges for the GICv3.
+ * System register ranges for the GIC.
  */
-static CPUMSYSREGRANGE const g_aSysRegRanges_GICv3[] =
+static CPUMSYSREGRANGE const g_aSysRegRanges_GIC[] =
 {
     GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,   ARMV8_AARCH64_SYSREG_ICC_PMR_EL1,     "ICC_PMR_EL1"),
     GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR0_EL1,  ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1,   "ICC_IAR0_EL1 - ICC_AP0R3_EL1"),
     GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1, ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1,  "ICC_AP1R0_EL1 - ICC_NMIAR1_EL1"),
     GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_DIR_EL1,   ARMV8_AARCH64_SYSREG_ICC_SGI0R_EL1,   "ICC_DIR_EL1 - ICC_SGI0R_EL1"),
     GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_IAR1_EL1,  ARMV8_AARCH64_SYSREG_ICC_IGRPEN1_EL1, "ICC_IAR1_EL1 - ICC_IGRPEN1_EL1"),
-    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_SRE_EL2,   ARMV8_AARCH64_SYSREG_ICC_SRE_EL2,     "ICC_SRE_EL2")
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_SRE_EL2,   ARMV8_AARCH64_SYSREG_ICC_SRE_EL2,     "ICC_SRE_EL2"),
+    GIC_SYSREGRANGE(ARMV8_AARCH64_SYSREG_ICC_SRE_EL3,   ARMV8_AARCH64_SYSREG_ICC_SRE_EL3,     "ICC_SRE_EL3")
 };
 
 
@@ -101,7 +102,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
-    pHlp->pfnPrintf(pHlp, "GICv3 Distributor:\n");
+    pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
     pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->u32RegIGrp0);
     pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->u32RegICfg0);
     pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->u32RegICfg1);
@@ -363,21 +364,6 @@ DECLCALLBACK(void) gicR3Relocate(PPDMDEVINS pDevIns, RTGCINTPTR offDelta)
 
 
 /**
- * Initializes the GIC state.
- *
- * @returns VBox status code.
- * @param   pVM     The cross context VM structure.
- */
-static int gicR3InitState(PVM pVM)
-{
-    LogFlowFunc(("pVM=%p\n", pVM));
-
-    RT_NOREF(pVM);
-    return VINF_SUCCESS;
-}
-
-
-/**
  * @interface_method_impl{PDMDEVREG,pfnDestruct}
  */
 DECLCALLBACK(int) gicR3Destruct(PPDMDEVINS pDevIns)
@@ -409,7 +395,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /*
      * Validate GIC settings.
      */
-    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase", "");
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase|ItLinesNumber", "");
 
 #if 0
     /*
@@ -421,6 +407,23 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     int rc;
 #endif
 
+    /** @devcfgm{gic, ItLinesNumber, uint16_t, 1}
+     * Configures GICD_TYPER.ItLinesNumber, bits [4:0].
+     *
+     * For the INTID range 32-1023, configures the maximum SPI supported. Valid values
+     * are [1, 31] which equates to interrupt IDs [63, 1023]. A value of 0 indicates no
+     * SPIs are supported, we do not allow configuring this value as it's expected most
+     * guests would assume support for SPIs. */
+    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "ItLinesNumber", &pGicDev->uItLinesNumber, 1 /* 63 interrupt IDs */);
+    AssertLogRelRCReturn(rc, rc);
+    if (   pGicDev->uItLinesNumber
+        && !(pGicDev->uItLinesNumber & ~GIC_DIST_REG_TYPER_NUM_ITLINES))
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"ItLinesNumber\" must be in the range [1,%u]"),
+                                   GIC_DIST_REG_TYPER_NUM_ITLINES);
+
     /*
      * Register the GIC with PDM.
      */
@@ -431,17 +434,13 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     AssertLogRelRCReturn(rc, rc);
 
     /*
-     * Initialize the GIC state.
+     * Insert the GIC system registers.
      */
-    for (uint32_t i = 0; i < RT_ELEMENTS(g_aSysRegRanges_GICv3); i++)
+    for (uint32_t i = 0; i < RT_ELEMENTS(g_aSysRegRanges_GIC); i++)
     {
-        rc = CPUMR3SysRegRangesInsert(pVM, &g_aSysRegRanges_GICv3[i]);
+        rc = CPUMR3SysRegRangesInsert(pVM, &g_aSysRegRanges_GIC[i]);
         AssertLogRelRCReturn(rc, rc);
     }
-
-    /* Finally, initialize the state. */
-    rc = gicR3InitState(pVM);
-    AssertRCReturn(rc, rc);
 
     /*
      * Register the MMIO ranges.
@@ -453,7 +452,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                 N_("Configuration error: Failed to get the \"DistributorMmioBase\" value"));
 
     rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, GIC_DIST_REG_FRAME_SIZE, gicDistMmioWrite, gicDistMmioRead,
-                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GICv3_Dist", &pGicDev->hMmioDist);
+                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC_Dist", &pGicDev->hMmioDist);
     AssertRCReturn(rc, rc);
 
     rc = pHlp->pfnCFGMQueryU64(pCfg, "RedistributorMmioBase", &GCPhysMmioBase);
@@ -463,7 +462,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
 
     RTGCPHYS cbRegion = (RTGCPHYS)pVM->cCpus * (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE); /* Adjacent and per vCPU. */
     rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicReDistMmioWrite, gicReDistMmioRead,
-                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GICv3_ReDist", &pGicDev->hMmioReDist);
+                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC_ReDist", &pGicDev->hMmioReDist);
     AssertRCReturn(rc, rc);
 
     /*

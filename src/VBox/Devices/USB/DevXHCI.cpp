@@ -4545,20 +4545,11 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
     RTGCPHYS        GCPhysInpCtx = uInpCtxAddr & XHCI_CTX_ADDR_MASK;
     RTGCPHYS        GCPhysInpSlot;
     RTGCPHYS        GCPhysOutSlot;
-    RTGCPHYS        GCPhysOutEndp;
     XHCI_INPC_CTX   icc;            /* Input Control Context (ICI=0). */
     XHCI_SLOT_CTX   out_slot_ctx;   /* Slot context (DCI=0). */
     XHCI_EP_CTX     out_endp_ctx;   /* Endpoint Context (DCI=1). */
     unsigned        cc = XHCI_TCC_SUCCESS;
-    uint32_t        uAddFlags;
-    uint32_t        uDropFlags;
-    unsigned        num_inp_ctx;
-    unsigned        num_out_ctx;
-    XHCI_DEV_CTX    dc_inp;
-    XHCI_DEV_CTX    dc_out;
     unsigned        uDCI;
-
-    RT_ZERO(dc_inp);
 
     Assert(uSlotID);
     LogFlowFunc(("Slot ID %u, input control context @ %RGp\n", uSlotID, GCPhysInpCtx));
@@ -4581,25 +4572,26 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
         }
 
         /* Check for deconfiguration request. */
-        if (fDC) {
-            if (out_slot_ctx.slot_state == XHCI_SLTST_CONFIGURED) {
+        if (fDC)
+        {
+            if (out_slot_ctx.slot_state == XHCI_SLTST_CONFIGURED)
+            {
                 /* Disable all enabled endpoints. */
-                uDropFlags = 0xFFFFFFFC; /** @todo r=bird: Why do you set uDropFlags and uAddFlags in a code path that doesn't use
-                                          * them?  This is a _very_ difficult function to get the hang of the way it's written.
-                                          * Stuff like this looks like there's a control flow flaw (as to the do-break-while-false
-                                          * loop which doesn't do any clean up or logging at the end and seems only sever the very
-                                          * dubious purpose of making sure ther's only one return statement).   The insistance on
-                                          * C-style variable declarations (top of function), makes checking state harder, which is
-                                          * why it's discouraged. */
-                uAddFlags  = 0;
+                /* This is a shortcut for handling the DC flag. It could also
+                 * be accomplished by setting
+                 *
+                 *  uDropFlags = 0xFFFFFFFC;
+                 *  uAddFlags  = 0;
+                 *
+                 *  and letting the generic code deal with it. However, here we minimize
+                 *  memory accesses.
+                 */
 
-                /* Start with EP1. */
-                GCPhysOutEndp = GCPhysOutSlot + sizeof(XHCI_SLOT_CTX) + sizeof(XHCI_EP_CTX);
-
+                /* Disable EP1. */
+                RTGCPHYS        GCPhysOutEndp = GCPhysOutSlot + sizeof(XHCI_SLOT_CTX) + sizeof(XHCI_EP_CTX);
                 PDMDevHlpPCIPhysReadMeta(pDevIns, GCPhysOutEndp, &out_endp_ctx, sizeof(out_endp_ctx));
                 out_endp_ctx.ep_state = XHCI_EPST_DISABLED;
                 PDMDevHlpPCIPhysWriteMeta(pDevIns, GCPhysOutEndp, &out_endp_ctx, sizeof(out_endp_ctx));
-                GCPhysOutEndp += sizeof(XHCI_EP_CTX);   /* Point to the next EP context. */
 
                 /* Finally update the output slot context. */
                 out_slot_ctx.ctx_ent    = 1;    /* Only EP0 left. */
@@ -4608,7 +4600,7 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
                 LogFlow(("Setting Output Slot State to Addressed, Context Entries = %u\n", out_slot_ctx.ctx_ent));
             }
             else
-                /* NB: Attempts to deconfigure a slot in Addressed state are ignored. */
+                /* NB: Attempts to deconfigure a slot in Addressed state are silently ignored. */
                 Log(("Ignoring attempt to deconfigure slot in Addressed state!\n"));
             break;
         }
@@ -4618,9 +4610,13 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
         PDMDevHlpPCIPhysReadMeta(pDevIns, GCPhysInpCtx, &icc, sizeof(icc));
         Assert(icc.add_flags || icc.drop_flags);    /* Make sure there's something to do. */
 
-        uAddFlags  = icc.add_flags;
-        uDropFlags = icc.drop_flags;
+        uint32_t    uAddFlags  = icc.add_flags;
+        uint32_t    uDropFlags = icc.drop_flags;
         LogFlowFunc(("Add Flags=%08X, Drop Flags=%08X\n", uAddFlags, uDropFlags));
+
+        /* Start out with an empty input device context. */
+        XHCI_DEV_CTX    dc_inp;
+        RT_ZERO(dc_inp);
 
         /* If and only if any 'add context' flag is set, fetch the corresponding
          * input device context.
@@ -4632,7 +4628,7 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
             /* Read the input Slot Context plus all Endpoint Contexts up to and
              * including the one with the highest 'add' bit set.
              */
-            num_inp_ctx = ASMBitLastSetU32(uAddFlags);
+            unsigned    num_inp_ctx = ASMBitLastSetU32(uAddFlags);
             Assert(num_inp_ctx);
             PDMDevHlpPCIPhysReadMeta(pDevIns, GCPhysInpSlot, &dc_inp, num_inp_ctx * sizeof(XHCI_DS_ENTRY));
 
@@ -4644,7 +4640,8 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
         /* Read the output Slot Context plus all Endpoint Contexts up to and
          * including the one with the highest 'add' or 'drop' bit set.
          */
-        num_out_ctx = ASMBitLastSetU32(uAddFlags | uDropFlags);
+        XHCI_DEV_CTX    dc_out;
+        unsigned        num_out_ctx = ASMBitLastSetU32(uAddFlags | uDropFlags);
         PDMDevHlpPCIPhysReadMeta(pDevIns, GCPhysOutSlot, &dc_out, num_out_ctx * sizeof(XHCI_DS_ENTRY));
 
         /* Drop contexts as directed by flags. */
@@ -4673,7 +4670,7 @@ static unsigned xhciR3ConfigureDevice(PPDMDEVINS pDevIns, PXHCI pThis, uint64_t 
         }
 
         /* Finally update the device context. */
-        if (fDC || dc_inp.entry[0].sc.ctx_ent == 1)
+        if (/*fDC ||*/ dc_inp.entry[0].sc.ctx_ent == 1)
         {
             dc_out.entry[0].sc.slot_state = XHCI_SLTST_ADDRESSED;
             dc_out.entry[0].sc.ctx_ent    = 1;

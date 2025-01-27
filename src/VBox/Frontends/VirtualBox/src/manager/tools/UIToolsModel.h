@@ -32,7 +32,6 @@
 #endif
 
 /* Qt includes: */
-#include <QMap>
 #include <QObject>
 #include <QPointer>
 #include <QTransform>
@@ -41,15 +40,10 @@
 #include "UIManagerDefs.h"
 #include "UIToolsItem.h"
 
-/* COM includes: */
-
 /* Forward declaration: */
 class QGraphicsItem;
 class QGraphicsScene;
-class QGraphicsSceneContextMenuEvent;
-class QMenu;
 class QPaintDevice;
-class QTimer;
 class UIActionPool;
 class UITools;
 

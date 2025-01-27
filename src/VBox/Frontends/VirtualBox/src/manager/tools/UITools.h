@@ -72,7 +72,7 @@ public:
     /** @name General stuff.
       * @{ */
         /** Returns the action-pool reference. */
-        UIActionPool *actionPool() const;
+        UIActionPool *actionPool() const { return m_pActionPool; }
 
         /** Returns whether tools represented as popup. */
         bool isPopup() const { return m_fPopup; }

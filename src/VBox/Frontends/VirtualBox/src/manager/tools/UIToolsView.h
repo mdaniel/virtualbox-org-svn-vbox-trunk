@@ -116,9 +116,9 @@ private:
     /** @name Layout stuff.
       * @{ */
         /** Holds the minimum width hint. */
-        int m_iMinimumWidthHint;
+        int  m_iMinimumWidthHint;
         /** Holds the minimum height hint. */
-        int m_iMinimumHeightHint;
+        int  m_iMinimumHeightHint;
     /** @} */
 };
 

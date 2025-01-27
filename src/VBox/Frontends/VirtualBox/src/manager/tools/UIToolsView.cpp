@@ -28,7 +28,6 @@
 /* Qt includes: */
 #include <QAccessibleWidget>
 #include <QApplication>
-#include <QScrollBar>
 
 /* GUI includes: */
 #include "UICommon.h"
@@ -121,7 +120,6 @@ UIToolsView::UIToolsView(UITools *pParent)
     , m_iMinimumWidthHint(0)
     , m_iMinimumHeightHint(0)
 {
-    /* Prepare: */
     prepare();
 }
 
@@ -129,8 +127,8 @@ void UIToolsView::sltFocusChanged()
 {
     /* Make sure focus-item set: */
     const UIToolsItem *pFocusItem = tools() && tools()->model()
-                                    ? tools()->model()->focusItem()
-                                    : 0;
+                                  ? tools()->model()->focusItem()
+                                  : 0;
     if (!pFocusItem)
         return;
 

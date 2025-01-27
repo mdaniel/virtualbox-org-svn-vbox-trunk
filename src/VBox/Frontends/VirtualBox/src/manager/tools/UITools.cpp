@@ -52,11 +52,6 @@ UITools::UITools(QWidget *pParent,
     prepare();
 }
 
-UIActionPool *UITools::actionPool() const
-{
-    return m_pActionPool;
-}
-
 void UITools::setToolsType(UIToolType enmType)
 {
     m_pToolsModel->setToolsType(enmType);

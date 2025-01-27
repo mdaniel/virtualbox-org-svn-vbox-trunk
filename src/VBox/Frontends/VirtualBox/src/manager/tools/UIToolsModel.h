@@ -73,11 +73,6 @@ signals:
         void sigSelectionChanged(UIToolType enmType);
         /** Notifies about focus changed. */
         void sigFocusChanged();
-
-        /** Notifies about group expanding started. */
-        void sigExpandingStarted();
-        /** Notifies about group expanding finished. */
-        void sigExpandingFinished();
     /** @} */
 
     /** @name Layout stuff.

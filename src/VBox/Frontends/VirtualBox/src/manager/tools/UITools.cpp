@@ -159,10 +159,6 @@ void UITools::prepareConnections()
             this, &UITools::sltClose);
     connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
             this, &UITools::sigSelectionChanged);
-    connect(m_pToolsModel, &UIToolsModel::sigExpandingStarted,
-            this, &UITools::sigExpandingStarted);
-    connect(m_pToolsModel, &UIToolsModel::sigExpandingFinished,
-            this, &UITools::sigExpandingFinished);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,
             m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,

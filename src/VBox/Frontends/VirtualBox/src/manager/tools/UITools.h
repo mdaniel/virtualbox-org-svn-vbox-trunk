@@ -56,11 +56,6 @@ signals:
         /** Notifies listeners about selection changed.
           * @param  enmType  Brings current tool type. */
         void sigSelectionChanged(UIToolType enmType);
-
-        /** Notifies listeners about expanding started. */
-        void sigExpandingStarted();
-        /** Notifies listeners about expanding finished. */
-        void sigExpandingFinished();
     /** @} */
 
 public:

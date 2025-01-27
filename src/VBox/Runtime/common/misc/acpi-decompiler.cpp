@@ -1194,7 +1194,7 @@ static int rtAcpiTblAmlDecode(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pAmlOpc,
 static int rtAcpiTblAmlDecodeTerminal(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, PRTERRINFO pErrInfo)
 {
     PCRTACPIAMLOPC pAmlOpc = NULL;
-    uint8_t bOpc;
+    uint8_t bOpc = 0; /* shut up gcc */
     int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bOpc, pErrInfo);
     if (RT_SUCCESS(rc))
     {

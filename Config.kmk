@@ -2640,9 +2640,11 @@ VBOX_PATH_NSIS ?= $(KBUILD_DEVTOOLS)/win.x86/nsis/v3.10-log-r1
 VBOX_PATH_WIX       ?= $(KBUILD_DEVTOOLS)/win.x86/wix/v4.0.5
 VBOX_PATH_MSITRAN   ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiTran.Exe
 VBOX_PATH_MSIDB     ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiDb.Exe
-# Note! The scripts has been moved to Bin in v8.0.
-VBOX_PATH_WISUBSTG  ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSubStg.vbs
-VBOX_PATH_WISUMINFO ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/WiSumInf.vbs
+# Note! The scripts have been moved to Bin in v8.0.
+# Note! Always select the x86 directory here, as the following scripts only are available for x86,
+#       but also are needed in order to build the Windows/Arm host installer.
+VBOX_PATH_WISUBSTG  ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/WiSubStg.vbs
+VBOX_PATH_WISUMINFO ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/WiSumInf.vbs
 
 ifdef VBOX_OSE ## @todo try get rid of this crap! People can use the latest and greatest Yasm release, no need to check in the binary for OSE.
  # We need to export YASM for OSE, but since it was converted to .zip we need to

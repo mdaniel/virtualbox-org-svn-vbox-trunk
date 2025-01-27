@@ -471,6 +471,24 @@ static int Extract(VBOXSTUBPKG const *pPackage, const char *pszTempFile, RTFILE 
     return ExtractFile(pPackage->szResourceName, pszTempFile, hFile, idxPackage);
 }
 
+/**
+ * Returns a string for the given package architecture.
+ *
+ * @returns String for the given package architecture, or "<Unknown>" if invalid/unknown.
+ * @param   enmPkgArch          Package architecture to return as a string.
+ */
+static const char *GetPackageArchStr(VBOXSTUBPKGARCH enmPkgArch)
+{
+    switch (enmPkgArch)
+    {
+        case VBOXSTUBPKGARCH_X86:   return "x86";
+        case VBOXSTUBPKGARCH_AMD64: return "x86_64";
+        case VBOXSTUBPKGARCH_ARM64: return "arm64";
+        default:                    break;
+    }
+
+    return "<Unknown>";
+}
 
 /**
  * Detects whether we're running on a 32- or 64-bit platform and returns the result.
@@ -1449,8 +1467,11 @@ int main(int argc, char **argv)
             return ShowError("Error creating MSI log file name, rc=%Rrc", vrc);
     }
 
+    VBOXSTUBPKGARCH const enmPkgArch = GetNativePackageArch();
+
     if (g_iVerbosity)
-    {
+    {        
+        RTPrintf("Host architecture        : %s\n",      GetPackageArchStr(enmPkgArch));
         RTPrintf("Extraction path          : %s\n",      szExtractPath);
         RTPrintf("Silent installation      : %RTbool\n", g_fSilent);
 #ifdef VBOX_WITH_CODE_SIGNING
@@ -1465,7 +1486,7 @@ int main(int argc, char **argv)
      */
     if (   !fExtractOnly
         && !g_fSilent
-        && GetNativePackageArch() == VBOXSTUBPKGARCH_X86)
+        && enmPkgArch == VBOXSTUBPKGARCH_X86)
         rcExit = ShowError("32-bit Windows hosts are not supported by this VirtualBox release.");
     else
     {

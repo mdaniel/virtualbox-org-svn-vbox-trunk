@@ -59,7 +59,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Next)" />
@@ -104,7 +104,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Back)" />
@@ -150,7 +150,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
         </Dialog>
@@ -179,7 +179,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Back" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Back)" />
@@ -216,7 +216,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Back" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Back)" />
@@ -283,7 +283,7 @@
             <!-- Build number text drawn left bottom -->
             <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
         </Dialog>
 
@@ -324,7 +324,7 @@
             <!-- Build number text drawn left bottom -->
             <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
         </Dialog>
 
@@ -356,7 +356,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Yes)" />
@@ -398,7 +398,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Yes)" />
@@ -491,7 +491,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
         </Dialog>
 
@@ -506,7 +506,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.ButtonText_Cancel)" />
@@ -577,7 +577,7 @@
             <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorTitle)" />
             <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorDescription1) !(loc.FatalErrorDescription2)" />
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
         </Dialog>
 
@@ -612,7 +612,7 @@
             </Control>
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.ButtonText_Cancel)" />
@@ -638,7 +638,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="[BannerBitmap]" />
@@ -685,7 +685,7 @@
             </Control>
             <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
         </Dialog>
 
@@ -713,7 +713,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Back)">
@@ -749,7 +749,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Next)">
@@ -772,7 +772,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="OK" Type="PushButton" X="304" Y="243" Width="56" Height="17" Default="yes" Cancel="yes" Text="!(loc.ButtonText_OK)">
@@ -827,7 +827,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Back)">
@@ -871,7 +871,7 @@
 
             <!-- Build number text drawn left bottom -->
             <Control Id="Build" Type="Text" X="20" Y="247" Width="220" Height="10" Transparent="yes" NoPrefix="yes">
-                <Text Value="[Version_text] $(var.Property_Version)" />
+                <Text Value="[Version_text] $(var.Property_Version) ($(env.KBUILD_TARGET_ARCH))" />
             </Control>
 
             <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.ButtonText_Cancel)">

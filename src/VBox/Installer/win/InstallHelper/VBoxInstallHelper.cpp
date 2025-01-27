@@ -1595,8 +1595,6 @@ UINT __stdcall GetPlatformArchitecture(MSIHANDLE hModule)
 {
     const char *pszArch;
 
-RT_BREAKPOINT();
-
     /* Only add supported platforms here. */
     uint32_t const uNativeArch = RTSystemGetNativeArch();
     switch (uNativeArch)

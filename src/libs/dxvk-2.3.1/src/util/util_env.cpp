@@ -9,6 +9,7 @@
 #endif
 
 #ifdef VBOX
+# include <iprt/param.h> /*RTPATH_MAX*/
 # include <iprt/process.h>
 #endif
 
@@ -76,7 +77,7 @@ namespace dxvk::env {
 
   std::string getExePath() {
 #ifdef VBOX
-    std::array<char, PATH_MAX> exePath = {};
+    std::array<char, RTPATH_MAX> exePath = {};
     if (!RTProcGetExecutablePath(exePath.data(), exePath.size()))
       return std::string("");
     return std::string(exePath.begin(), exePath.begin() + strlen(exePath.begin()));

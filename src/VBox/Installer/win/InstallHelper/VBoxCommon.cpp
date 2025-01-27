@@ -145,16 +145,68 @@ int VBoxMsiQueryPropInt32(MSIHANDLE hMsi, const char *pszName, DWORD *pdwValue)
     return rc;
 }
 
+/**
+ * Sets a MSI property.
+ *
+ * @returns UINT
+ * @param   hMsi                MSI handle to use.
+ * @param   pwszName            Name of property to set.
+ * @param   pwszValue           Value to set.
+ */
 UINT VBoxMsiSetProp(MSIHANDLE hMsi, const WCHAR *pwszName, const WCHAR *pwszValue)
 {
     return MsiSetPropertyW(hMsi, pwszName, pwszValue);
 }
-#endif
+#endif /* TESTCASE */
 
+/**
+ * Sets a MSI property (in UTF-8).
+ *
+ * Convenience function for VBoxMsiSetProp().
+ *
+ * @returns VBox status code.
+ * @param   hMsi                MSI handle to use.
+ * @param   pszName             Name of property to set.
+ * @param   pszValue            Value to set.
+ */
+int VBoxMsiSetPropUtf8(MSIHANDLE hMsi, const char *pszName, const char *pszValue)
+{
+    AssertPtrReturn(pszName, VERR_INVALID_POINTER);
+    AssertPtrReturn(pszValue, VERR_INVALID_POINTER);
+
+    PRTUTF16 pwszName;
+    int rc = RTStrToUtf16(pszName, &pwszName);
+    if (RT_SUCCESS(rc))
+    {
+        PRTUTF16 pwszValue;
+        rc = RTStrToUtf16(pszValue, &pwszValue);
+        if (RT_SUCCESS(rc))
+        {
+            UINT const uRc = VBoxMsiSetProp(hMsi, pwszName, pwszValue);
+            if (uRc != ERROR_SUCCESS)
+                rc = RTErrConvertFromWin32(uRc);
+            RTUtf16Free(pwszValue);
+        }
+
+        RTUtf16Free(pwszName);
+    }
+
+    return rc;
+}
+
+/**
+ * Sets a MSI property (DWORD).
+ *
+ * Convenience function for VBoxMsiSetProp().
+ *
+ * @returns UINT
+ * @param   hMsi                MSI handle to use.
+ * @param   pwszName            Name of property to set.
+ * @param   dwVal               Value to set.
+ */
 UINT VBoxMsiSetPropDWORD(MSIHANDLE hMsi, const WCHAR *pwszName, DWORD dwVal)
 {
     wchar_t wszTemp[32];
     RTUtf16Printf(wszTemp, RT_ELEMENTS(wszTemp), "%u", dwVal);
     return VBoxMsiSetProp(hMsi, pwszName, wszTemp);
 }
-

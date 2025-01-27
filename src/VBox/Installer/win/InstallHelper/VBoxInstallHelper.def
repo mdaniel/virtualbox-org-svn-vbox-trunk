@@ -33,6 +33,7 @@ EXPORTS
     IsMSCRTInstalled
     IsPythonInstalled
     IsWindows10
+    GetPlatformArchitecture
     ArePythonAPIDepsInstalled
     InstallPythonAPI
     InstallBranding

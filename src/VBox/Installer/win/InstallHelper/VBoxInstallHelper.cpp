@@ -64,6 +64,7 @@
 #include <iprt/path.h>   /* RTPATH_MAX, RTPATH_IS_SLASH */
 #include <iprt/string.h> /* RT_ZERO */
 #include <iprt/stream.h>
+#include <iprt/system.h>
 #include <iprt/thread.h>
 #include <iprt/utf16.h>
 
@@ -1576,6 +1577,45 @@ UINT __stdcall DriverUninstall(MSIHANDLE hModule)
 
     logStringF(hModule, "DriverUninstall: Handling done (rc=%Rrc)", rc);
     return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_DRIVER_STORE_DELETE_FAILED /* Close enough */;
+}
+
+/**
+ * Returns the platform architecture as a string.
+ *
+ * Sets public property VBOX_PLATFORM_ARCH to "x86", "amd64" or "arm64" on success.
+ * Called from the MSI installer as custom action.
+ *
+ * @returns UINT as Windows error code.
+ * @retval  ERROR_INSTALL_PLATFORM_UNSUPPORTED if the platform is invalid or unsupported.
+ * @param   hModule             Windows installer module handle.
+ *
+ * @note    We don't use WIX' util.QueryNativeMachine, as it's apparently on available on Windows 10 >= 1709.
+ */
+UINT __stdcall GetPlatformArchitecture(MSIHANDLE hModule)
+{
+    const char *pszArch;
+
+RT_BREAKPOINT();
+
+    /* Only add supported platforms here. */
+    uint32_t const uNativeArch = RTSystemGetNativeArch();
+    switch (uNativeArch)
+    {
+        case RT_ARCH_VAL_X86:   pszArch = "x86";   break;
+        case RT_ARCH_VAL_AMD64: pszArch = "amd64"; break;
+        case RT_ARCH_VAL_ARM64: pszArch = "arm64"; break;
+        default:                pszArch = NULL;    break;
+    }
+
+    int rc;
+    if (pszArch)
+        rc = VBoxMsiSetPropUtf8(hModule, "VBOX_PLATFORM_ARCH", pszArch);
+    else
+        rc = VERR_NOT_SUPPORTED;
+
+   logStringF(hModule, "GetPlatformArchitecture: Detected '%s' (%Rrc)", pszArch ? pszArch : "<Unknown>", rc);
+
+    return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_INSTALL_PLATFORM_UNSUPPORTED;
 }
 
 #if defined(VBOX_WITH_NETFLT) || defined(VBOX_WITH_NETADP)

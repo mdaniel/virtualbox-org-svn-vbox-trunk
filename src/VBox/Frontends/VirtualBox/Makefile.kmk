@@ -635,7 +635,6 @@ VirtualBox_QT_MOCHDRS = \
 	src/manager/tools/UITools.h \
 	src/manager/tools/UIToolsModel.h \
 	src/manager/tools/UIToolsView.h \
-	src/manager/tools/UIToolsHandlerMouse.h \
 	src/manager/tools/UIToolsItem.h \
 	src/medium/UIMediumDetailsWidget.h \
 	src/medium/UIMediumManager.h \
@@ -1168,7 +1167,6 @@ VirtualBox_SOURCES = \
 	src/manager/tools/UITools.cpp \
 	src/manager/tools/UIToolsModel.cpp \
 	src/manager/tools/UIToolsView.cpp \
-	src/manager/tools/UIToolsHandlerMouse.cpp \
 	src/manager/tools/UIToolsItem.cpp \
 	src/medium/UIMediumDetailsWidget.cpp \
 	src/medium/UIMediumManager.cpp \

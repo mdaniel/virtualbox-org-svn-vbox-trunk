@@ -52,7 +52,6 @@ class QPaintDevice;
 class QTimer;
 class UIActionPool;
 class UITools;
-class UIToolsHandlerMouse;
 
 /** QObject extension used as VM Tools-pane model: */
 class UIToolsModel : public QObject
@@ -227,16 +226,12 @@ private:
         void prepareScene();
         /** Prepares items. */
         void prepareItems();
-        /** Prepares handlers. */
-        void prepareHandlers();
         /** Loads settings. */
         void loadSettings();
 
         /** Loads last tool types. */
         static void loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmTypeMachine);
 
-        /** Cleanups handlers. */
-        void cleanupHandlers();
         /** Cleanups items. */
         void cleanupItems();
         /** Cleanups scene. */
@@ -261,9 +256,6 @@ private:
 
         /** Holds the scene reference. */
         QGraphicsScene *m_pScene;
-
-        /** Holds the mouse handler instance. */
-        UIToolsHandlerMouse *m_pMouseHandler;
 
         /** Holds whether items enabled. */
         bool  m_fItemsEnabled;

@@ -39,7 +39,6 @@
 #include "UIIconPool.h"
 #include "UILoggingDefs.h"
 #include "UITools.h"
-#include "UIToolsHandlerMouse.h"
 #include "UIToolsModel.h"
 #include "UITranslationEventListener.h"
 #include "UIExtraDataDefs.h"
@@ -65,7 +64,6 @@ UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent)
     , m_enmClass(enmClass)
     , m_pTools(pParent)
     , m_pScene(0)
-    , m_pMouseHandler(0)
     , m_fItemsEnabled(true)
 {
     prepare();
@@ -399,11 +397,39 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     {
         /* Mouse handler: */
         case QEvent::GraphicsSceneMousePress:
-            return m_pMouseHandler->handle(static_cast<QGraphicsSceneMouseEvent*>(pEvent), UIMouseEventType_Press);
-        case QEvent::GraphicsSceneMouseRelease:
-            return m_pMouseHandler->handle(static_cast<QGraphicsSceneMouseEvent*>(pEvent), UIMouseEventType_Release);
-        /* Shut up MSC: */
-        default: break;
+        {
+            /* Acquire event: */
+            QGraphicsSceneMouseEvent *pMouseEvent = static_cast<QGraphicsSceneMouseEvent*>(pEvent);
+            /* Get item under mouse cursor: */
+            QPointF scenePos = pMouseEvent->scenePos();
+            if (QGraphicsItem *pItemUnderMouse = itemAt(scenePos))
+            {
+                /* Which button it was? */
+                switch (pMouseEvent->button())
+                {
+                    /* Both buttons: */
+                    case Qt::LeftButton:
+                    case Qt::RightButton:
+                    {
+                        /* Which item we just clicked? */
+                        UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
+                        /* Make clicked item the current one: */
+                        if (pClickedItem && pClickedItem->isEnabled())
+                        {
+                            setCurrentItem(pClickedItem);
+                            close();
+                            return true;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+            break;
+        }
+        default:
+            break;
     }
 
     /* Call to base-class: */
@@ -446,8 +472,6 @@ void UIToolsModel::prepare()
     prepareScene();
     /* Prepare items: */
     prepareItems();
-    /* Prepare handlers: */
-    prepareHandlers();
     /* Apply language settings: */
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
@@ -541,11 +565,6 @@ void UIToolsModel::prepareItems()
     }
 }
 
-void UIToolsModel::prepareHandlers()
-{
-    m_pMouseHandler = new UIToolsHandlerMouse(this);
-}
-
 void UIToolsModel::loadSettings()
 {
     /* Load last tool types: */
@@ -595,12 +614,6 @@ void UIToolsModel::loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmT
              (int)enmTypeGlobal, (int)enmTypeMachine));
 }
 
-void UIToolsModel::cleanupHandlers()
-{
-    delete m_pMouseHandler;
-    m_pMouseHandler = 0;
-}
-
 void UIToolsModel::cleanupItems()
 {
     foreach (UIToolsItem *pItem, m_items)
@@ -616,8 +629,6 @@ void UIToolsModel::cleanupScene()
 
 void UIToolsModel::cleanup()
 {
-    /* Cleanup handlers: */
-    cleanupHandlers();
     /* Cleanup items: */
     cleanupItems();
     /* Cleanup scene: */

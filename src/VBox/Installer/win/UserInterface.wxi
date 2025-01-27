@@ -1140,11 +1140,14 @@
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Event="DoAction" Value="ca_CheckTargetDirPre" Order="1" />
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_INVALID_TARGET_DLG" Value="1" Order="2" Condition="VBox_Target_Dir_Is_Valid=&quot;0&quot;" />
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_INVALID_TARGET_DLG" Value="{}" Order="3" Condition="VBox_Target_Dir_Is_Valid=&quot;1&quot;" />
+<?if $(env.VBOX_WITH_PYTHON) = "yes" ?>
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_WARN_PYTHONAPI_DLG" Value="1" Order="4" Condition="(&amp;VBoxPython=3) AND (VBOX_PYTHON_DEPS_INSTALLED=&quot;0&quot;)" />
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_WARN_PYTHONAPI_DLG" Value="{}" Order="5" Condition="(&amp;VBoxPython&lt;3)" />
+<?endif?>
+<?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_WARN_DISCONNECTIFACES_DLG" Value="1" Order="6" Condition="&amp;VBoxNetworkFlt=3" />
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Property="VBOX_SHOW_WARN_DISCONNECTIFACES_DLG" Value="{}" Order="7" Condition="&amp;VBoxNetworkFlt&lt;3" />
-
+<?endif?>
         <!-- Show an error dialog if the chosen installation directory was found to be invalid. See @bugref{10616} -->
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Event="NewDialog" Value="VBoxInvalidTargetDirDlg" Order="10" Condition="VBOX_SHOW_INVALID_TARGET_DLG" />
         <Publish Dialog="VBoxCustomizeDlg" Control="Next" Event="NewDialog" Value="VBoxWarnDisconNetIfacesDlg" Order="20" Condition="VBOX_SHOW_WARN_DISCONNECTIFACES_DLG and (NOT VBOX_SHOW_INVALID_TARGET_DLG)" />

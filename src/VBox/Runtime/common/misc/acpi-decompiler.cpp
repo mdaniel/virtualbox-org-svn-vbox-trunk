@@ -286,7 +286,7 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
     AssertReturn(cchNameString >= 5, VERR_INVALID_PARAMETER); /* One name segment is at least 4 bytes (+ terminator). */
 
     /* Check for a root path. */
-    uint8_t bTmp;
+    uint8_t bTmp = 0; /* shut up gcc */
     int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bTmp, pErrInfo);
     if (RT_FAILURE(rc)) return rc;
 
@@ -1106,7 +1106,7 @@ static int rtAcpiTblAmlDecode(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pAmlOpc,
                     }
                     case kAcpiAmlOpcType_Word:
                     {
-                        uint16_t u16Val;
+                        uint16_t u16Val = 0; /* shut up gcc */
                         rc = rtAcpiTblAmlDecodeReadU16(pThis, &u16Val, pErrInfo);
                         if (RT_FAILURE(rc)) return rc;
 
@@ -1118,7 +1118,7 @@ static int rtAcpiTblAmlDecode(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pAmlOpc,
                     }
                     case kAcpiAmlOpcType_DWord:
                     {
-                        uint32_t u32Val;
+                        uint32_t u32Val = 0; /* shut up gcc */
                         rc = rtAcpiTblAmlDecodeReadU32(pThis, &u32Val, pErrInfo);
                         if (RT_FAILURE(rc)) return rc;
 

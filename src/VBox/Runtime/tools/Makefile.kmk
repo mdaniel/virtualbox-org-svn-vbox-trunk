@@ -298,6 +298,11 @@ if !defined(VBOX_ONLY_BUILD)
  RTDtc_TEMPLATE = VBoxR3Tool
  RTDtc_SOURCES = RTDtc.cpp
 
+ # RTIasl - ACPI source language compiler/decompiler.
+ PROGRAMS += RTIasl
+ RTIasl_TEMPLATE = VBoxR3Tool
+ RTIasl_SOURCES = RTIasl.cpp
+
 endif # !VBOX_ONLY_BUILD
 
 include $(FILE_KBUILD_SUB_FOOTER)

@@ -55,6 +55,21 @@ RT_C_DECLS_BEGIN
 
 #ifdef IN_RING3
 
+/**
+ * ACPI table type.
+ */
+typedef enum RTACPITBLTYPE
+{
+    /** The invalid output type. */
+    RTACPITBLTYPE_INVALID = 0,
+    /** Type is an UTF-8 ASL source. */
+    RTACPITBLTYPE_ASL,
+    /** Type is the AML bytecode. */
+    RTACPITBLTYPE_AML,
+    /** Usual 32-bit hack. */
+    RTACPITBLTYPE_32BIT_HACK = 0x7fffffff
+} RTACPITBLTYPE;
+
 
 /**
  * Regenerates the ACPI checksum for the given data.
@@ -73,6 +88,44 @@ RTDECL(uint8_t) RTAcpiChecksumGenerate(const void *pvData, size_t cbData);
  * @param   cbTbl               Size of the table in bytes, including the ACPI table header.
  */
 RTDECL(void) RTAcpiTblHdrChecksumGenerate(PACPITBLHDR pTbl, size_t cbTbl);
+
+
+/**
+ * Creates an ACPI table from the given VFS file.
+ *
+ * @returns IPRT status code.
+ * @param   phAcpiTbl           Where to store the ACPI table handle on success.
+ * @param   hVfsIos             The VFS I/O stream handle to read the ACPI table from.
+ * @param   enmInType           The input type of the ACPI table.
+ * @param   pErrInfo            Where to return additional error information.
+ */
+RTDECL(int) RTAcpiTblCreateFromVfsIoStrm(PRTACPITBL phAcpiTbl, RTVFSIOSTREAM hVfsIos, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo);
+
+
+/**
+ * Converts a given ACPI table input stream to the given output type.
+ *
+ * @returns IPRT status code.
+ * @param   hVfsIosOut          The VFS I/O stream handle to output the result to.
+ * @param   enmOutType          The output type.
+ * @param   hVfsIosIn           The VFS I/O stream handle to read the ACPI table from.
+ * @param   enmInType           The input type of the ACPI table.
+ * @param   pErrInfo            Where to return additional error information.
+ */
+RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYPE enmOutType,
+                                          RTVFSIOSTREAM hVfsIosIn, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo);
+
+
+/**
+ * Creates an ACPI table from the given filename.
+ *
+ * @returns IPRT status code.
+ * @param   phAcpiTbl           Where to store the ACPI table handle on success.
+ * @param   pszFilename         The filename to read the ACPI table from.
+ * @param   enmInType           The input type of the ACPI table.
+ * @param   pErrInfo            Where to return additional error information.
+ */
+RTDECL(int) RTAcpiTblCreateFromFile(PRTACPITBL phAcpiTbl, const char *pszFilename, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo);
 
 
 /**
@@ -128,9 +181,10 @@ RTDECL(uint32_t) RTAcpiTblGetSize(RTACPITBL hAcpiTbl);
  *
  * @returns IPRT status code.
  * @param   hAcpiTbl            The ACPI table handle.
+ * @param   enmOutType          The output type.
  * @param   hVfsIos             The VFS I/O stream handle to dump the table to.
  */
-RTDECL(int) RTAcpiTblDumpToVfsIoStrm(RTACPITBL hAcpiTbl, RTVFSIOSTREAM hVfsIos);
+RTDECL(int) RTAcpiTblDumpToVfsIoStrm(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, RTVFSIOSTREAM hVfsIos);
 
 
 /**
@@ -138,9 +192,10 @@ RTDECL(int) RTAcpiTblDumpToVfsIoStrm(RTACPITBL hAcpiTbl, RTVFSIOSTREAM hVfsIos);
  *
  * @returns IPRT status code.
  * @param   hAcpiTbl            The ACPI table handle.
+ * @param   enmOutType          The output type.
  * @param   pszFilename         The file path to dump the table to.
  */
-RTDECL(int) RTAcpiTblDumpToFile(RTACPITBL hAcpiTbl, const char *pszFilename);
+RTDECL(int) RTAcpiTblDumpToFile(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, const char *pszFilename);
 
 
 /**

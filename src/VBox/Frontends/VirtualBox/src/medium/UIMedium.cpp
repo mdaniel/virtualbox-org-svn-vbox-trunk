@@ -620,13 +620,13 @@ bool UIMedium::isMediumAttachedToHiddenMachinesOnly(const UIMedium &medium)
 UIMedium UIMedium::root() const
 {
     /* Redirect call to UICommon: */
-    return gpMediumEnumerator->medium(m_uRootId);
+    return UIMediumEnumerator::exists() ? gpMediumEnumerator->medium(m_uRootId) : UIMedium();
 }
 
 UIMedium UIMedium::parent() const
 {
     /* Redirect call to UICommon: */
-    return gpMediumEnumerator->medium(m_uParentId);
+    return UIMediumEnumerator::exists() ? gpMediumEnumerator->medium(m_uParentId) : UIMedium();
 }
 
 void UIMedium::checkNoDiffs(bool fNoDiffs)

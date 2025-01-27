@@ -80,7 +80,7 @@ namespace dxvk::env {
     std::array<char, RTPATH_MAX> exePath = {};
     if (!RTProcGetExecutablePath(exePath.data(), exePath.size()))
       return std::string("");
-    return std::string(exePath.begin(), exePath.begin() + strlen(exePath.begin()));
+    return std::string(exePath.begin(), exePath.begin() + strlen(exePath.data()));
 #else
 #if defined(_WIN32)
     std::vector<WCHAR> exePath;
@@ -96,8 +96,8 @@ namespace dxvk::env {
     size_t count = readlink("/proc/self/exe", exePath.data(), exePath.size());
 
     return std::string(exePath.begin(), exePath.begin() + count);
-#endif /* VBOX */
 #endif
+#endif /* VBOX */
   }
   
   

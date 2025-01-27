@@ -129,17 +129,12 @@ int VBoxMsiQueryPropInt32(MSIHANDLE hMsi, const char *pszName, DWORD *pdwValue)
    AssertPtrReturn(pszName, VERR_INVALID_POINTER);
    AssertPtrReturn(pdwValue, VERR_INVALID_POINTER);
 
-    PRTUTF16 pwszName;
-    int rc = RTStrToUtf16(pszName, &pwszName);
+    char *pszTemp;
+    int rc = VBoxMsiQueryPropUtf8(hMsi, pszName, &pszTemp);
     if (RT_SUCCESS(rc))
     {
-        char *pszTemp;
-        rc = VBoxMsiQueryPropUtf8(hMsi, pszName, &pszTemp);
-        if (RT_SUCCESS(rc))
-        {
-            *pdwValue = RTStrToInt32(pszTemp);
-            RTStrFree(pszTemp);
-        }
+        *pdwValue = RTStrToInt32(pszTemp);
+        RTStrFree(pszTemp);
     }
 
     return rc;

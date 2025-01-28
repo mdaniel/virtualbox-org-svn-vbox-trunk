@@ -77,7 +77,7 @@ private slots:
     void sltGAISOPathChanged(const QString &strPath);
     void sltOSFamilyTypeChanged(const QString &strGuestOSFamilyType);
     void sltInstallGACheckBoxToggle(bool fEnabled);
-    void sltSkipUnattendedCheckBoxChecked(bool fSkip);
+    void sltUnattendedCheckBoxChecked(bool fSkip);
     void sltMediumFormatChanged();
     void sltMediumSizeChanged(qulonglong uSize);
     void sltMediumPathChanged(const QString &strPath);
@@ -131,7 +131,7 @@ private:
     void updateDiskWidgetsAfterMediumFormatChange();
     void updateHostnameDomainNameFromMachineName();
     void setEnableNewDiskWidgets(bool fEnable);
-    void setSkipCheckBoxEnable();
+    void setUnattendedCheckBoxEnable();
     bool isUnattendedEnabled() const;
     bool isUnattendedInstallSupported() const;
     void setEnableDiskSelectionWidgets(bool fEnabled);

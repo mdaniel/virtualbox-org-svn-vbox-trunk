@@ -83,7 +83,7 @@ private slots:
     void sltOsTypeChanged();
     void sltISOPathChanged(const QString &strPath);
     void sltGuestOSFamilyChanged(const QString &strGuestOSFamilyId);
-    void sltSkipUnattendedInstallChanged(bool fSkip);
+    void sltUnattendedInstallEnableChanged(bool fSkip);
     void sltSelectedEditionChanged(ulong uEditionIndex);
     /** Translation stuff. */
     virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
@@ -96,7 +96,7 @@ private:
     void initializePage() RT_OVERRIDE;
     QWidget *createNameOSTypeWidgets();
     void markWidgets() const;
-    void setSkipCheckBoxEnable();
+    void setUnattendedCheckBoxEnable();
     bool isUnattendedEnabled() const;
     bool isUnattendedInstallSupported() const;
     void setEditionAndOSTypeSelectorsEnabled();

@@ -183,7 +183,7 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
         m_pNameAndSystemEditor->setEditionNameAndIndices(pWizard->detectedWindowsImageNames(),
                                                          pWizard->detectedWindowsImageIndices());
     }
-    setSkipCheckBoxEnable();
+    setUnattendedCheckBoxEnable();
     disableEnableUnattendedRelatedWidgets();
 
     /* Redetect the OS type using the name if detection or the step above failed: */
@@ -314,7 +314,7 @@ void UIWizardNewVMExpertPage::createConnections()
 
     if (m_pUnattendedCheckBox)
         connect(m_pUnattendedCheckBox, &QCheckBox::toggled,
-                this, &UIWizardNewVMExpertPage::sltSkipUnattendedCheckBoxChecked);
+                this, &UIWizardNewVMExpertPage::sltUnattendedCheckBoxChecked);
 
     if (m_pSizeAndLocationGroup)
     {
@@ -454,7 +454,7 @@ void UIWizardNewVMExpertPage::initializePage()
     }
 
     setOSTypeDependedValues();
-    setSkipCheckBoxEnable();
+    setUnattendedCheckBoxEnable();
     disableEnableUnattendedRelatedWidgets();
     updateDiskWidgetsAfterMediumFormatChange();
     sltRetranslateUI();
@@ -724,14 +724,22 @@ void UIWizardNewVMExpertPage::disableEnableUnattendedRelatedWidgets()
     if (m_pNameAndSystemEditor)
         m_pNameAndSystemEditor->setEditionSelectorEnabled(fUnattendedEnabled && !m_pNameAndSystemEditor->isEditionsSelectorEmpty());
     m_pAdditionalOptionsContainer->disableEnableProductKeyWidgets(isProductKeyWidgetEnabled());
-    m_pNameAndSystemEditor->setOSTypeStuffEnabled(!fUnattendedEnabled || m_pNameAndSystemEditor->isEditionsSelectorEmpty());
+    /* Disable OS type related selectors if unattended install is enabled. */
+    m_pNameAndSystemEditor->setOSTypeStuffEnabled(!fUnattendedEnabled);
 }
 
-void UIWizardNewVMExpertPage::sltSkipUnattendedCheckBoxChecked(bool fSkip)
+void UIWizardNewVMExpertPage::sltUnattendedCheckBoxChecked(bool fEnable)
 {
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "UnattendedInstall";
-    wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(!fSkip);
+    wizardWindow<UIWizardNewVM>()->setSkipUnattendedInstall(!fEnable);
+    /* Override OS type selectors when unattended is enabled: */
+    if (fEnable)
+    {
+        UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+        UIWizardNewVMNameOSTypeCommon::guessOSTypeDetectedOSTypeString(m_pNameAndSystemEditor,
+                                                                       pWizard->detectedOSTypeId());
+    }
     disableEnableUnattendedRelatedWidgets();
     emit completeChanged();
 }
@@ -992,7 +1000,7 @@ QWidget *UIWizardNewVMExpertPage::createNameOSTypeWidgets()
     return pContainerWidget;
 }
 
-void UIWizardNewVMExpertPage::setSkipCheckBoxEnable()
+void UIWizardNewVMExpertPage::setUnattendedCheckBoxEnable()
 {
     AssertReturnVoid(m_pUnattendedCheckBox && m_pNameAndSystemEditor);
     const QString &strPath = m_pNameAndSystemEditor->ISOImagePath();

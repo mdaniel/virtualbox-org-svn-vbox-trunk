@@ -220,6 +220,30 @@ DECLINLINE(int) rtAcpiTblAmlDecodeReadU32(PRTACPITBLAMLDECODE pThis, uint32_t *p
 }
 
 
+DECLINLINE(int) rtAcpiTblAmlDecodeReadU64(PRTACPITBLAMLDECODE pThis, uint64_t *pu64, PRTERRINFO pErrInfo)
+{
+    if (pThis->offTbl <= pThis->cbTbl + sizeof(uint64_t))
+    { /* probable */ }
+    else
+        return RTErrInfoSetF(pErrInfo, VERR_EOF, "AML stream ended prematurely at offset '%#x' trying to read eight bytes", pThis->offTbl);
+
+    if (pThis->pacbPkgLeft[pThis->iLvl] < sizeof(uint64_t))
+        return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Data overflows current package limitation");
+
+    pThis->pacbPkgLeft[pThis->iLvl] -= sizeof(uint64_t);
+
+    *pu64 =  pThis->pbTbl[pThis->offTbl++];
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] <<  8;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 16;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 24;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 32;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 40;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 48;
+    *pu64 |= (uint64_t)pThis->pbTbl[pThis->offTbl++] << 54;
+    return VINF_SUCCESS;
+}
+
+
 static int rtAcpiTblAmlDecodeNameSeg(PRTACPITBLAMLDECODE pThis, char *pszNameString, PRTERRINFO pErrInfo)
 {
     uint8_t abNameSeg[4];
@@ -232,14 +256,14 @@ static int rtAcpiTblAmlDecodeNameSeg(PRTACPITBLAMLDECODE pThis, char *pszNameStr
     /* LeadNameChar */
     if (   abNameSeg[0] != '_'
         && !RTLocCIsUpper(abNameSeg[0]))
-        return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid lead name character '%c'", abNameSeg[0]);
+        return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid lead name character '%#02RX8'", abNameSeg[0]);
 
     for (uint8_t i = 1; i < sizeof(abNameSeg); i++)
     {
         if (   abNameSeg[i] != '_'
             && !RTLocCIsUpper(abNameSeg[i])
             && !RTLocCIsDigit(abNameSeg[i]))
-            return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid name character '%c'", abNameSeg[i]);
+            return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid name character '%#02RX8", abNameSeg[i]);
     }
 
     pszNameString[0] = (char)abNameSeg[0];
@@ -262,14 +286,14 @@ static int rtAcpiTblAmlDecodeNameSegWithoutLeadChar(PRTACPITBLAMLDECODE pThis, u
     /* LeadNameChar */
     if (   bLeadChar != '_'
         && !RTLocCIsUpper(bLeadChar))
-        return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid lead name character '%c'", bLeadChar);
+        return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid lead name character '%#02RX8'", bLeadChar);
 
     for (uint8_t i = 1; i < sizeof(abNameSeg); i++)
     {
         if (   abNameSeg[i] != '_'
             && !RTLocCIsUpper(abNameSeg[i])
             && !RTLocCIsDigit(abNameSeg[i]))
-            return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid name character '%c'", abNameSeg[i]);
+            return RTErrInfoSetF(pErrInfo, VERR_INVALID_PARAMETER, "AML stream contains invalid name character '%#02RX8'", abNameSeg[i]);
     }
 
     pszNameString[0] = (char)bLeadChar;
@@ -280,16 +304,13 @@ static int rtAcpiTblAmlDecodeNameSegWithoutLeadChar(PRTACPITBLAMLDECODE pThis, u
 }
 
 
-
-static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszNameString, size_t cchNameString, size_t *pcbNameString, PRTERRINFO pErrInfo)
+static int rtAcpiTblAmlDecodeNameStringWithLead(PRTACPITBLAMLDECODE pThis, uint8_t bLeadChar, char *pszNameString, size_t cchNameString, size_t *pcbNameString, PRTERRINFO pErrInfo)
 {
     AssertReturn(cchNameString >= 5, VERR_INVALID_PARAMETER); /* One name segment is at least 4 bytes (+ terminator). */
 
     /* Check for a root path. */
-    uint8_t bTmp = 0; /* shut up gcc */
-    int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bTmp, pErrInfo);
-    if (RT_FAILURE(rc)) return rc;
-
+    int rc = VINF_SUCCESS;
+    uint8_t bTmp = bLeadChar;
     size_t idxName = 0;
     if (bTmp == '\\')
     {
@@ -312,8 +333,8 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
                 break;
 
             if (idxName == cchNameString - 1)
-                rc = RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "PrefixPath in AML byte stream is too long to fit into a %zu byte buffer",
-                                   cchNameString - 1);
+                return RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "PrefixPath in AML byte stream is too long to fit into a %zu byte buffer",
+                                     cchNameString - 1);
 
             pszNameString[idxName++] = '^';
         }
@@ -321,7 +342,7 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
 
     if (bTmp == ACPI_AML_BYTE_CODE_PREFIX_DUAL_NAME)
     {
-        if (idxName + 8 <= cchNameString)
+        if (idxName + 8 < cchNameString)
         {
             rc = rtAcpiTblAmlDecodeNameSeg(pThis, &pszNameString[idxName], pErrInfo);
             if (RT_FAILURE(rc)) return rc;
@@ -338,14 +359,30 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
     }
     else if (bTmp == ACPI_AML_BYTE_CODE_PREFIX_MULTI_NAME)
     {
-        /** @todo */
-        AssertReleaseFailed();
+        uint8_t cSegs = 0;
+        rc = rtAcpiTblAmlDecodeReadU8(pThis, &cSegs, pErrInfo);
+        if (RT_FAILURE(rc)) return rc;
+
+        if (idxName + cSegs * 4 < cchNameString)
+        {
+            for (uint8_t i = 0; i < cSegs; i++)
+            {
+                rc = rtAcpiTblAmlDecodeNameSeg(pThis, &pszNameString[idxName + i * 4], pErrInfo);
+                if (RT_FAILURE(rc)) return rc;
+            }
+
+            idxName += cSegs * 4;
+            pszNameString[idxName] = '\0';
+        }
+        else
+            rc = RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "MultiNamePrefix string in AML byte stream is too long to fit into a %zu byte buffer",
+                               cchNameString - 1);
     }
     else if (bTmp == ACPI_AML_BYTE_CODE_PREFIX_NULL_NAME)
         pszNameString[idxName] = '\0';
     else
     {
-        if (idxName + 4 <= cchNameString)
+        if (idxName + 4 < cchNameString)
         {
             rc = rtAcpiTblAmlDecodeNameSegWithoutLeadChar(pThis, bTmp, &pszNameString[idxName], pErrInfo);
             if (RT_FAILURE(rc)) return rc;
@@ -363,6 +400,18 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
 }
 
 
+static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszNameString, size_t cchNameString, size_t *pcbNameString, PRTERRINFO pErrInfo)
+{
+    AssertReturn(cchNameString >= 5, VERR_INVALID_PARAMETER); /* One name segment is at least 4 bytes (+ terminator). */
+
+    uint8_t bLead = 0; /* shut up gcc */
+    int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bLead, pErrInfo);
+    if (RT_FAILURE(rc)) return rc;
+
+    return rtAcpiTblAmlDecodeNameStringWithLead( pThis, bLead, pszNameString, cchNameString, pcbNameString, pErrInfo);
+}
+
+
 /**
  * Adds the proper indentation before a new line.
  *
@@ -376,7 +425,7 @@ static int rtAcpiTblAmlDecodeIndent(RTVFSIOSTREAM hVfsIos, uint32_t uIndentLvl)
     {
         ssize_t cch = RTVfsIoStrmPrintf(hVfsIos, "    ");
         if (cch != 4)
-            return cch < 0 ? -cch : VERR_BUFFER_UNDERFLOW;
+            return cch < 0 ? (int)cch : VERR_BUFFER_UNDERFLOW;
     }
 
     return VINF_SUCCESS;
@@ -464,7 +513,7 @@ DECLINLINE(int) rtAcpiTblAmlDecodePkgPop(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREA
         size_t cbPkg = pThis->pacbPkg[pThis->iLvl];
         pThis->iLvl--;
 
-        if (pThis->pacbPkgLeft[pThis->iLvl] <= cbPkg)
+        if (pThis->pacbPkgLeft[pThis->iLvl] < cbPkg)
             return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "AML contains invalid package length encoding");
 
         pThis->pacbPkgLeft[pThis->iLvl] -= cbPkg;
@@ -474,6 +523,183 @@ DECLINLINE(int) rtAcpiTblAmlDecodePkgPop(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREA
     }
 
     return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblAmlDecodeIntegerFromPrefix(PRTACPITBLAMLDECODE pThis, uint8_t bPrefix, uint64_t *pu64, size_t cbDecodeMax, size_t *pcbDecoded, PRTERRINFO pErrInfo)
+{
+    switch (bPrefix)
+    {
+        case ACPI_AML_BYTE_CODE_PREFIX_BYTE:
+        {
+            if (!cbDecodeMax)
+                return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Not enough data left to decode byte integer in AML stream");
+
+            uint8_t bInt = 0;
+            int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bInt, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            *pu64       = bInt;
+            *pcbDecoded = 2;
+            break;
+        }
+        case ACPI_AML_BYTE_CODE_PREFIX_WORD:
+        {
+            if (cbDecodeMax < 2)
+                return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Not enough data left to decode word integer in AML stream");
+
+            uint16_t u16 = 0;
+            int rc = rtAcpiTblAmlDecodeReadU16(pThis, &u16, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            *pu64       = u16;
+            *pcbDecoded = 3;
+            break;
+        }
+        case ACPI_AML_BYTE_CODE_PREFIX_DWORD:
+        {
+            if (cbDecodeMax < 4)
+                return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Not enough data left to decode double word integer in AML stream");
+
+            uint32_t u32 = 0;
+            int rc = rtAcpiTblAmlDecodeReadU32(pThis, &u32, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            *pu64       = u32;
+            *pcbDecoded = 5;
+            break;
+        }
+        case ACPI_AML_BYTE_CODE_PREFIX_QWORD:
+        {
+            if (cbDecodeMax < 8)
+                return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Not enough data left to decode quad word integer in AML stream");
+
+            uint64_t u64 = 0;
+            int rc = rtAcpiTblAmlDecodeReadU64(pThis, &u64, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            *pu64       = u64;
+            *pcbDecoded = 9;
+            break;
+        }
+        default:
+            return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Invalid integer prefix '%#02RX8'", bPrefix);
+    }
+
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblAmlDecodeIntegerWorker(PRTACPITBLAMLDECODE pThis, uint64_t *pu64, size_t cbDecodeMax, size_t *pcbDecoded, PRTERRINFO pErrInfo)
+{
+    AssertReturn(cbDecodeMax >= 1, VERR_INVALID_PARAMETER);
+
+    uint8_t bPrefix = 0; /* shut up gcc */
+    int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bPrefix, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    cbDecodeMax--;
+    return rtAcpiTblAmlDecodeIntegerFromPrefix(pThis, bPrefix, pu64, cbDecodeMax, pcbDecoded, pErrInfo);
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAmlDecodeNameObject(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, uint8_t bOp, PRTERRINFO pErrInfo)
+{
+    char szName[512];
+    size_t cbName = 0;
+
+    int rc = rtAcpiTblAmlDecodeNameStringWithLead(pThis, bOp, &szName[0], sizeof(szName), &cbName, pErrInfo);
+    if (RT_FAILURE(rc)) return rc;
+
+    return rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAmlDecodeString(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, uint8_t bOp, PRTERRINFO pErrInfo)
+{
+    RT_NOREF(bOp);
+
+    char szStr[512];
+    uint32_t i = 0;
+    for (;;)
+    {
+        uint8_t bTmp = 0; /* shut up gcc */
+        int rc = rtAcpiTblAmlDecodeReadU8(pThis, &bTmp, pErrInfo);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        if (bTmp >= 0x1 && bTmp <= 0x7f)
+            szStr[i++] = (char)bTmp;
+        else if (bTmp == 0x00)
+        {
+            szStr[i++] = '\0';
+            break;
+        }
+        else
+            return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Invalid ASCII string character %#x in string", bTmp);
+
+        if (i == sizeof(szStr))
+            return RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "ASCII string is out of bounds");
+    }
+
+    return rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "\"%s\"", szStr);
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAmlDecodeBuffer(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, uint8_t bOp, PRTERRINFO pErrInfo)
+{
+    RT_NOREF(bOp);
+
+    size_t cbPkg = 0;
+    size_t cbPkgLength = 0;
+    int rc = rtAcpiTblAmlDecodePkgLength(pThis, &cbPkg, &cbPkgLength, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    cbPkg -= cbPkgLength;
+    uint64_t u64 = 0;
+    size_t cbInt = 0;
+    rc = rtAcpiTblAmlDecodeIntegerWorker(pThis, &u64, cbPkg, &cbInt, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    cbPkg -= cbInt;
+
+    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "Buffer (%RU64) {", u64);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    /* Decode remaining bytes. */
+    while (cbPkg--)
+    {
+        uint8_t bTmp = 0;
+        rc = rtAcpiTblAmlDecodeReadU8(pThis, &bTmp, pErrInfo);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%#02RX8%s", bTmp, cbPkg ? "," : "");
+        if (RT_FAILURE(rc))
+            return rc;
+    }
+
+    return rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "}");
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAmlDecodeInteger(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, uint8_t bOp, PRTERRINFO pErrInfo)
+{
+    uint64_t u64 = 0;
+    size_t cbDecoded = 0;
+    int rc = rtAcpiTblAmlDecodeIntegerFromPrefix(pThis, bOp, &u64, sizeof(uint64_t), &cbDecoded, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    return rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%#RX64", u64);
 }
 
 
@@ -496,6 +722,8 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_5(a_pszOpc, a_fFlags, a_enmType0, a_enmType1, a_enmType2, a_enmType3, a_enmType4) \
     { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              a_enmType4              }, NULL }
+#define RTACPI_AML_OPC_HANDLER(a_pszOpc, a_pfnHandler) \
+    { a_pszOpc, 0,        { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, a_pfnHandler }
 
     /* 0x00 */ RTACPI_AML_OPC_SIMPLE_0("Zero", RTACPI_AML_OPC_F_NONE),
     /* 0x01 */ RTACPI_AML_OPC_SIMPLE_0("One",  RTACPI_AML_OPC_F_NONE),
@@ -507,15 +735,15 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     /* 0x07 */ RTACPI_AML_OPC_INVALID,
     /* 0x08 */ RTACPI_AML_OPC_SIMPLE_2("Name",   0,     kAcpiAmlOpcType_NameString,  kAcpiAmlOpcType_TermArg),
     /* 0x09 */ RTACPI_AML_OPC_INVALID,
-    /* 0x0a */ RTACPI_AML_OPC_INVALID,
-    /* 0x0b */ RTACPI_AML_OPC_INVALID,
-    /* 0x0c */ RTACPI_AML_OPC_INVALID,
-    /* 0x0d */ RTACPI_AML_OPC_INVALID,
-    /* 0x0e */ RTACPI_AML_OPC_INVALID,
+    /* 0x0a */ RTACPI_AML_OPC_HANDLER( "ByteInteger",   rtAcpiTblAmlDecodeInteger),
+    /* 0x0b */ RTACPI_AML_OPC_HANDLER( "WordInteger",   rtAcpiTblAmlDecodeInteger),
+    /* 0x0c */ RTACPI_AML_OPC_HANDLER( "DWordInteger",  rtAcpiTblAmlDecodeInteger),
+    /* 0x0d */ RTACPI_AML_OPC_HANDLER( "StringPrefix",  rtAcpiTblAmlDecodeString),
+    /* 0x0e */ RTACPI_AML_OPC_HANDLER( "QWordInteger",  rtAcpiTblAmlDecodeInteger),
     /* 0x0f */ RTACPI_AML_OPC_INVALID,
 
     /* 0x10 */ RTACPI_AML_OPC_SIMPLE_1("Scope",    RTACPI_AML_OPC_F_HAS_PKG_LENGTH,  kAcpiAmlOpcType_NameString),
-    /* 0x11 */ RTACPI_AML_OPC_INVALID,
+    /* 0x11 */ RTACPI_AML_OPC_HANDLER( "Buffer",   rtAcpiTblAmlDecodeBuffer),
     /* 0x12 */ RTACPI_AML_OPC_INVALID,
     /* 0x13 */ RTACPI_AML_OPC_INVALID,
     /* 0x14 */ RTACPI_AML_OPC_SIMPLE_2("Method",   RTACPI_AML_OPC_F_HAS_PKG_LENGTH,  kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte),
@@ -566,38 +794,38 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     /* 0x3f */ RTACPI_AML_OPC_INVALID,
 
     /* 0x40 */ RTACPI_AML_OPC_INVALID,
-    /* 0x41 */ RTACPI_AML_OPC_INVALID,
-    /* 0x42 */ RTACPI_AML_OPC_INVALID,
-    /* 0x43 */ RTACPI_AML_OPC_INVALID,
-    /* 0x44 */ RTACPI_AML_OPC_INVALID,
-    /* 0x45 */ RTACPI_AML_OPC_INVALID,
-    /* 0x46 */ RTACPI_AML_OPC_INVALID,
-    /* 0x47 */ RTACPI_AML_OPC_INVALID,
-    /* 0x48 */ RTACPI_AML_OPC_INVALID,
-    /* 0x49 */ RTACPI_AML_OPC_INVALID,
-    /* 0x4a */ RTACPI_AML_OPC_INVALID,
-    /* 0x4b */ RTACPI_AML_OPC_INVALID,
-    /* 0x4c */ RTACPI_AML_OPC_INVALID,
-    /* 0x4d */ RTACPI_AML_OPC_INVALID,
-    /* 0x4e */ RTACPI_AML_OPC_INVALID,
-    /* 0x4f */ RTACPI_AML_OPC_INVALID,
+    /* 0x41 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x42 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x43 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x44 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x45 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x46 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x47 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x48 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x49 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4a */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4b */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4c */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4d */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4e */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x4f */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
 
-    /* 0x50 */ RTACPI_AML_OPC_INVALID,
-    /* 0x51 */ RTACPI_AML_OPC_INVALID,
-    /* 0x52 */ RTACPI_AML_OPC_INVALID,
-    /* 0x53 */ RTACPI_AML_OPC_INVALID,
-    /* 0x54 */ RTACPI_AML_OPC_INVALID,
-    /* 0x55 */ RTACPI_AML_OPC_INVALID,
-    /* 0x56 */ RTACPI_AML_OPC_INVALID,
-    /* 0x57 */ RTACPI_AML_OPC_INVALID,
-    /* 0x58 */ RTACPI_AML_OPC_INVALID,
-    /* 0x59 */ RTACPI_AML_OPC_INVALID,
-    /* 0x5a */ RTACPI_AML_OPC_INVALID,
+    /* 0x50 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x51 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x52 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x53 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x54 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x55 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x56 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x57 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x58 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x59 */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
+    /* 0x5a */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
     /* 0x5b */ RTACPI_AML_OPC_INVALID,
-    /* 0x5c */ RTACPI_AML_OPC_INVALID,
+    /* 0x5c */ RTACPI_AML_OPC_HANDLER("RootChar",         rtAcpiTblAmlDecodeNameObject),
     /* 0x5d */ RTACPI_AML_OPC_INVALID,
-    /* 0x5e */ RTACPI_AML_OPC_INVALID,
-    /* 0x5f */ RTACPI_AML_OPC_INVALID,
+    /* 0x5e */ RTACPI_AML_OPC_HANDLER("ParentPrefixChar", rtAcpiTblAmlDecodeNameObject),
+    /* 0x5f */ RTACPI_AML_OPC_HANDLER("NameChar",         rtAcpiTblAmlDecodeNameObject),
 
     /* 0x60 */ RTACPI_AML_OPC_SIMPLE_0("Local0", RTACPI_AML_OPC_F_NONE),
     /* 0x61 */ RTACPI_AML_OPC_SIMPLE_0("Local1", RTACPI_AML_OPC_F_NONE),
@@ -639,9 +867,9 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     /* 0x83 */ RTACPI_AML_OPC_INVALID,
     /* 0x84 */ RTACPI_AML_OPC_INVALID,
     /* 0x85 */ RTACPI_AML_OPC_INVALID,
-    /* 0x86 */ RTACPI_AML_OPC_INVALID,
+    /* 0x86 */ RTACPI_AML_OPC_SIMPLE_2("Notify",                                0,     kAcpiAmlOpcType_SuperName, kAcpiAmlOpcType_TermArg),
     /* 0x87 */ RTACPI_AML_OPC_INVALID,
-    /* 0x88 */ RTACPI_AML_OPC_INVALID,
+    /* 0x88 */ RTACPI_AML_OPC_SIMPLE_3("Index",                                 0,     kAcpiAmlOpcType_TermArg,   kAcpiAmlOpcType_TermArg, kAcpiAmlOpcType_SuperName),
     /* 0x89 */ RTACPI_AML_OPC_INVALID,
     /* 0x8a */ RTACPI_AML_OPC_INVALID,
     /* 0x8b */ RTACPI_AML_OPC_INVALID,
@@ -668,7 +896,7 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     /* 0x9f */ RTACPI_AML_OPC_INVALID,
 
     /* 0xa0 */ RTACPI_AML_OPC_SIMPLE_1("If",      RTACPI_AML_OPC_F_HAS_PKG_LENGTH,     kAcpiAmlOpcType_TermArg),
-    /* 0xa1 */ RTACPI_AML_OPC_INVALID,
+    /* 0xa1 */ RTACPI_AML_OPC_SIMPLE_0("Else",    RTACPI_AML_OPC_F_HAS_PKG_LENGTH),
     /* 0xa2 */ RTACPI_AML_OPC_INVALID,
     /* 0xa3 */ RTACPI_AML_OPC_INVALID,
     /* 0xa4 */ RTACPI_AML_OPC_SIMPLE_1("Return",                                0,     kAcpiAmlOpcType_TermArg),
@@ -912,10 +1140,10 @@ static const RTACPIAMLOPC g_aAmlExtOpcodeDecode[] =
     /* 0x7e */ RTACPI_AML_OPC_INVALID,
     /* 0x7f */ RTACPI_AML_OPC_INVALID,
 
-    /* 0x80 */ RTACPI_AML_OPC_INVALID,
+    /* 0x80 */ RTACPI_AML_OPC_SIMPLE_4("OpRegion",                                0, kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte, kAcpiAmlOpcType_TermArg, kAcpiAmlOpcType_TermArg),
     /* 0x81 */ RTACPI_AML_OPC_INVALID,
-    /* 0x82 */ RTACPI_AML_OPC_INVALID,
-    /* 0x83 */ RTACPI_AML_OPC_SIMPLE_4("Processor", RTACPI_AML_OPC_F_HAS_PKG_LENGTH, kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte, kAcpiAmlOpcType_DWord, kAcpiAmlOpcType_Byte),
+    /* 0x82 */ RTACPI_AML_OPC_SIMPLE_1("Device",    RTACPI_AML_OPC_F_HAS_PKG_LENGTH, kAcpiAmlOpcType_NameString),
+    /* 0x83 */ RTACPI_AML_OPC_SIMPLE_4("Processor", RTACPI_AML_OPC_F_HAS_PKG_LENGTH, kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte, kAcpiAmlOpcType_DWord,   kAcpiAmlOpcType_Byte),
     /* 0x84 */ RTACPI_AML_OPC_INVALID,
     /* 0x85 */ RTACPI_AML_OPC_INVALID,
     /* 0x86 */ RTACPI_AML_OPC_INVALID,
@@ -1050,141 +1278,143 @@ static const RTACPIAMLOPC g_aAmlExtOpcodeDecode[] =
 };
 
 
+static int rtAcpiTblAmlDecodeSimple(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pAmlOpc, uint8_t bOpc, RTVFSIOSTREAM hVfsIosOut, PRTERRINFO pErrInfo)
+{
+    RT_NOREF(bOpc);
+
+    int rc;
+
+    /* Decode any package length field first. */
+    size_t cbPkg         = 0;
+    size_t cbPkgLength   = 0;
+    size_t cbPkgConsumed = 0;
+    if (pAmlOpc->fFlags & RTACPI_AML_OPC_F_HAS_PKG_LENGTH)
+    {
+        rc = rtAcpiTblAmlDecodePkgLength(pThis, &cbPkg, &cbPkgLength, pErrInfo);
+        if (RT_FAILURE(rc)) return rc;
+
+        cbPkgConsumed += cbPkgLength;
+    }
+
+    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", pAmlOpc->pszOpc);
+    if (RT_FAILURE(rc)) return rc;
+
+    /* Any arguments? */
+    if (pAmlOpc->aenmTypes[0] != kAcpiAmlOpcType_Invalid)
+    {
+        pThis->fIndent = false;
+
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "(");
+        if (RT_FAILURE(rc)) return rc;
+
+        for (uint32_t i = 0; i < RT_ELEMENTS(pAmlOpc->aenmTypes); i++)
+        {
+            if (pAmlOpc->aenmTypes[i] == kAcpiAmlOpcType_Invalid)
+                break; /* End of arguments. */
+
+            if (i > 0)
+            {
+                rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ", ");
+                if (RT_FAILURE(rc)) return rc;
+            }
+
+            switch (pAmlOpc->aenmTypes[i])
+            {
+                case kAcpiAmlOpcType_Byte:
+                {
+                    uint8_t bVal = 0; /* shut up gcc */
+                    rc = rtAcpiTblAmlDecodeReadU8(pThis, &bVal, pErrInfo);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RU8", bVal);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    cbPkgConsumed++;
+                    break;
+                }
+                case kAcpiAmlOpcType_Word:
+                {
+                    uint16_t u16Val = 0; /* shut up gcc */
+                    rc = rtAcpiTblAmlDecodeReadU16(pThis, &u16Val, pErrInfo);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RX16", u16Val);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    cbPkgConsumed += sizeof(uint16_t);
+                    break;
+                }
+                case kAcpiAmlOpcType_DWord:
+                {
+                    uint32_t u32Val = 0; /* shut up gcc */
+                    rc = rtAcpiTblAmlDecodeReadU32(pThis, &u32Val, pErrInfo);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RX32", u32Val);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    cbPkgConsumed += sizeof(uint32_t);
+                    break;
+                }
+                case kAcpiAmlOpcType_NameString:
+                {
+                    char szName[512];
+                    size_t cbName = 0;
+                    rc = rtAcpiTblAmlDecodeNameString(pThis, &szName[0], sizeof(szName), &cbName, pErrInfo);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    cbPkgConsumed += cbName;
+                    break;
+                }
+                case kAcpiAmlOpcType_SuperName:
+                case kAcpiAmlOpcType_TermArg:
+                {
+                    /** @todo SuperName has limited allowed arguments. */
+                    size_t offTblOrig = pThis->offTbl;
+
+                    rc = rtAcpiTblAmlDecodeTerminal(pThis, hVfsIosOut, pErrInfo);
+                    if (RT_FAILURE(rc)) return rc;
+
+                    cbPkgConsumed += pThis->offTbl - offTblOrig;
+                    break;
+                }
+                case kAcpiAmlOpcType_Invalid:
+                default:
+                    AssertReleaseFailed();
+            }
+        }
+
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")\n");
+        if (RT_FAILURE(rc)) return rc;
+
+        pThis->fIndent = true;
+    }
+    else if (pThis->fIndent)
+    {
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "\n");
+        if (RT_FAILURE(rc)) return rc;
+    }
+
+    if (pAmlOpc->fFlags & RTACPI_AML_OPC_F_HAS_PKG_LENGTH)
+    {
+        if (cbPkg < cbPkgConsumed)
+            return RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "Opcode arguments consumed more than the package length indicated (%zu vs %zu)", cbPkg, cbPkgConsumed);
+        rc = rtAcpiTblAmlDecodePkgPush(pThis, hVfsIosOut, cbPkg - cbPkgConsumed, pErrInfo);
+    }
+
+    return rc;
+}
+
 static int rtAcpiTblAmlDecode(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pAmlOpc, uint8_t bOpc, RTVFSIOSTREAM hVfsIosOut, PRTERRINFO pErrInfo)
 {
     if (pAmlOpc->pszOpc)
     {
-        int rc;
-
-        /* Decode any package length field first. */
-        size_t cbPkg         = 0;
-        size_t cbPkgLength   = 0;
-        size_t cbPkgConsumed = 0;
-        if (pAmlOpc->fFlags & RTACPI_AML_OPC_F_HAS_PKG_LENGTH)
-        {
-            rc = rtAcpiTblAmlDecodePkgLength(pThis, &cbPkg, &cbPkgLength, pErrInfo);
-            if (RT_FAILURE(rc)) return rc;
-
-            cbPkgConsumed += cbPkgLength;
-        }
-
-        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", pAmlOpc->pszOpc);
-        if (RT_FAILURE(rc)) return rc;
-
-        /* Any arguments? */
-        if (pAmlOpc->aenmTypes[0] != kAcpiAmlOpcType_Invalid)
-        {
-            pThis->fIndent = false;
-
-            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "(");
-            if (RT_FAILURE(rc)) return rc;
-
-            for (uint32_t i = 0; i < RT_ELEMENTS(pAmlOpc->aenmTypes); i++)
-            {
-                if (pAmlOpc->aenmTypes[i] == kAcpiAmlOpcType_Invalid)
-                    break; /* End of arguments. */
-
-                if (i > 0)
-                {
-                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ", ");
-                    if (RT_FAILURE(rc)) return rc;
-                }
-
-                switch (pAmlOpc->aenmTypes[i])
-                {
-                    case kAcpiAmlOpcType_Byte:
-                    {
-                        uint8_t bVal = 0; /* shut up gcc */
-                        rc = rtAcpiTblAmlDecodeReadU8(pThis, &bVal, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RU8", bVal);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed++;
-                        break;
-                    }
-                    case kAcpiAmlOpcType_Word:
-                    {
-                        uint16_t u16Val = 0; /* shut up gcc */
-                        rc = rtAcpiTblAmlDecodeReadU16(pThis, &u16Val, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RX16", u16Val);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed += sizeof(uint16_t);
-                        break;
-                    }
-                    case kAcpiAmlOpcType_DWord:
-                    {
-                        uint32_t u32Val = 0; /* shut up gcc */
-                        rc = rtAcpiTblAmlDecodeReadU32(pThis, &u32Val, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%RX32", u32Val);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed += sizeof(uint32_t);
-                        break;
-                    }
-                    case kAcpiAmlOpcType_NameString:
-                    {
-                        char szName[512];
-                        size_t cbName = 0;
-                        rc = rtAcpiTblAmlDecodeNameString(pThis, &szName[0], sizeof(szName), &cbName, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed += cbName;
-                        break;
-                    }
-                    case kAcpiAmlOpcType_TermArg:
-                    {
-                        size_t offTblOrig = pThis->offTbl;
-
-                        rc = rtAcpiTblAmlDecodeTerminal(pThis, hVfsIosOut, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed += pThis->offTbl - offTblOrig;
-                        break;
-                    }
-                    case kAcpiAmlOpcType_SuperName:
-                    {
-                        /** @todo SuperName includes more. */
-                        char szName[512];
-                        size_t cbName = 0;
-                        rc = rtAcpiTblAmlDecodeNameString(pThis, &szName[0], sizeof(szName), &cbName, pErrInfo);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
-                        if (RT_FAILURE(rc)) return rc;
-
-                        cbPkgConsumed += cbName;
-                        break;
-                    }
-                    case kAcpiAmlOpcType_Invalid:
-                    default:
-                        AssertReleaseFailed();
-                }
-            }
-
-            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")\n");
-            if (RT_FAILURE(rc)) return rc;
-
-            pThis->fIndent = true;
-        }
-
-        if (pAmlOpc->fFlags & RTACPI_AML_OPC_F_HAS_PKG_LENGTH)
-        {
-            if (cbPkg < cbPkgConsumed)
-                return RTErrInfoSetF(pErrInfo, VERR_BUFFER_OVERFLOW, "Opcode arguments consumed more than the package length indicated (%zu vs %zu)", cbPkg, cbPkgConsumed);
-            rc = rtAcpiTblAmlDecodePkgPush(pThis, hVfsIosOut, cbPkg - cbPkgConsumed, pErrInfo);
-        }
-
-        return rc;
+        if (pAmlOpc->pfnDecode)
+            return pAmlOpc->pfnDecode(pThis, hVfsIosOut, bOpc, pErrInfo);
+        return rtAcpiTblAmlDecodeSimple(pThis, pAmlOpc, bOpc, hVfsIosOut, pErrInfo);
     }
 
     return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Invalid opcode %#x in ACPI table at offset %u", bOpc, pThis->offTbl);
@@ -1286,11 +1516,11 @@ RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYP
                         {
                             cch = RTVfsIoStrmPrintf(hVfsIosOut, "}\n");
                             if (cch <= 0)
-                                rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : cch, "Failed to emit closing definition block");
+                                rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit closing definition block");
                         }
                     }
                     else
-                        rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : cch, "Failed to emit DefinitionBlock()");
+                        rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit DefinitionBlock()");
                 }
                 else
                     rc = RTErrInfoSetF(pErrInfo, rc, "Reading %u bytes of the ACPI table failed", Hdr.cbTbl);

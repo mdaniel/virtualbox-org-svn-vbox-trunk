@@ -55,9 +55,9 @@ extern const PDMGICBACKEND g_GicHvBackend;
 # endif
 #endif
 
-#define VMCPU_TO_GICCPU(a_pVCpu)             (&(a_pVCpu)->gic.s)
-#define VM_TO_GIC(a_pVM)                     (&(a_pVM)->gic.s)
-#define VM_TO_GICDEV(a_pVM)                  CTX_SUFF(VM_TO_GIC(a_pVM)->pGicDev)
+#define VMCPU_TO_GICCPU(a_pVCpu)            (&(a_pVCpu)->gic.s)
+#define VM_TO_GIC(a_pVM)                    (&(a_pVM)->gic.s)
+#define VM_TO_GICDEV(a_pVM)                 CTX_SUFF(VM_TO_GIC(a_pVM)->pGicDev)
 #ifdef IN_RING3
 # define VMCPU_TO_DEVINS(a_pVCpu)           ((a_pVCpu)->pVMR3->gic.s.pDevInsR3)
 #elif defined(IN_RING0)
@@ -104,8 +104,12 @@ typedef struct GICDEV
 
     /** @name Configurables.
      * @{ */
-    /** The GICD_TYPER.ItsLinesNumber bits. */
+    /** The maximum SPI supported (GICD_TYPER.ItsLinesNumber). */
     uint16_t                    uItLinesNumber;
+    /** The GIC architecture (GICD_PIDR2.ArchRev and GICR_PIDR2.ArchRev). */
+    uint8_t                     uArchRev;
+    /** Whether NMIs are supported (GICD_TYPER.NMI). */
+    bool                        fNmi;
     /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */
@@ -171,7 +175,7 @@ typedef struct GICCPU
     uint8_t                     bBinaryPointGrp0;
     /** The interrupt controller Binary Point Register for Group 1 interrupts. */
     uint8_t                     bBinaryPointGrp1;
-    /** The running poriorities caused by preemption. */
+    /** The running priorities caused by preemption. */
     volatile uint8_t            abRunningPriorities[256];
     /** The index to the current running priority. */
     volatile uint8_t            idxRunningPriority;

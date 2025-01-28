@@ -49,7 +49,7 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
-/** Some ancient version... */
+/** GIC saved state version. */
 #define GIC_SAVED_STATE_VERSION                     1
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
@@ -395,7 +395,10 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /*
      * Validate GIC settings.
      */
-    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase|ItLinesNumber", "");
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase"
+                                           "|ArchRev"
+                                           "|ArchExtNmi"
+                                           "|ItLinesNumber", "");
 
 #if 0
     /*
@@ -407,12 +410,36 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     int rc;
 #endif
 
+    /** @devcfgm{gic, ArchRev, uint8_t, 3}
+     * Configures the GIC architecture revision (GICD_PIDR2.ArchRev and
+     * GICR_PIDR2.ArchRev).
+     *
+     * Currently we only support GICv3. */
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRev", &pGicDev->uArchRev, 3);
+    AssertLogRelRCReturn(rc, rc);
+    if (pGicDev->uArchRev == 3)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"ArchRev\" %u is not supported"), pGicDev->uArchRev);
+
+    /** @devcfgm{gic, ArchExtNmi, bool, false}
+     * Configures whether NMIs are supported (GICD_TYPER.NMI). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ArchExtNmi", &pGicDev->fNmi, false);
+    AssertLogRelRCReturn(rc, rc);
+    if (   !pGicDev->fNmi
+        || pGicDev->uArchRev >= 3)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"ArchExtNmi\" requires architecture revision v3 or newer"));
+
     /** @devcfgm{gic, ItLinesNumber, uint16_t, 1}
      * Configures GICD_TYPER.ItLinesNumber, bits [4:0].
      *
      * For the INTID range 32-1023, configures the maximum SPI supported. Valid values
      * are [1, 31] which equates to interrupt IDs [63, 1023]. A value of 0 indicates no
-     * SPIs are supported, we do not allow configuring this value as it's expected most
+     * SPIs are supported. We do not allow configuring this value as it's expected most
      * guests would assume support for SPIs. */
     rc = pHlp->pfnCFGMQueryU16Def(pCfg, "ItLinesNumber", &pGicDev->uItLinesNumber, 1 /* 63 interrupt IDs */);
     AssertLogRelRCReturn(rc, rc);

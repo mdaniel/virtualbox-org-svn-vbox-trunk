@@ -299,7 +299,8 @@ DECLINLINE(void) gicDistHasIrqPendingForVCpu(PGICDEV pThis, PGICCPU pGicVCpu, VM
 
 
 /**
- * Updates the internal IRQ state and sets or clears the appropirate force action flags.
+ * Updates the internal IRQ state and sets or clears the appropriate force action
+ * flags.
  *
  * @returns Strict VBox status code.
  * @param   pThis           The GIC re-distributor state for the associated vCPU.
@@ -384,7 +385,7 @@ static int gicReDistInterruptSet(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted
 DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t *puValue)
 {
     VMCPU_ASSERT_EMT(pVCpu);
-    PGICDEV pThis  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGICDEV pThis = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
     if (offReg >= GIC_DIST_REG_IROUTERn_OFF_START && offReg <= GIC_DIST_REG_IROUTERn_OFF_LAST)
     {
@@ -436,13 +437,13 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         case GIC_DIST_REG_ICACTIVERn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
-        case GIC_DIST_REG_IPRIORITYn_OFF_START:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 4: /* These are banked for the PEs and access the redistributor. */
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 4: /* These are banked for the PEs and access the redistributor. */
         {
             PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
 
             /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYn_OFF_START;
+            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START;
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
 
             uint32_t u32Value = 0;
@@ -452,10 +453,10 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             *puValue = u32Value;
             break;
         }
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 32: /* Only 32 lines for now. */
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 32: /* Only 32 lines for now. */
         {
             /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYn_OFF_START - 32;
+            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START - 32;
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
 
             uint32_t u32Value = 0;
@@ -490,7 +491,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             AssertReleaseFailed();
             break;
         case GIC_DIST_REG_PIDR2_OFF:
-            *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(GIC_REDIST_REG_PIDR2_ARCH_REV_GICV3);
+            Assert(pThis->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
+            *puValue = GIC_DIST_REG_PIDR2_ARCH_REV_SET(pThis->uArchRev);
             break;
         case GIC_DIST_REG_IIDR_OFF:
         case GIC_DIST_REG_TYPER2_OFF:
@@ -518,8 +520,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
 DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t uValue)
 {
     VMCPU_ASSERT_EMT(pVCpu); RT_NOREF(pVCpu);
-    PGICDEV pThis  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    PVMCC    pVM   = PDMDevHlpGetVM(pDevIns);
+    PGICDEV pThis = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PVMCC   pVM   = PDMDevHlpGetVM(pDevIns);
 
     if (offReg >= GIC_DIST_REG_IROUTERn_OFF_START && offReg <= GIC_DIST_REG_IROUTERn_OFF_LAST)
     {
@@ -585,19 +587,19 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             ASMAtomicAndU32(&pThis->bmIntActive, ~uValue);
             rcStrict = gicDistUpdateIrqState(pVM, pThis);
             break;
-        case GIC_DIST_REG_IPRIORITYn_OFF_START: /* These are banked for the PEs and access the redistributor. */
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 4:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 8:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 12:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 16:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 20:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 24:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 28:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START: /* These are banked for the PEs and access the redistributor. */
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 4:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 8:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 12:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 16:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 20:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 24:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 28:
         {
             PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
 
             /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYn_OFF_START;
+            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START;
             Assert(idxPrio <= RT_ELEMENTS(pGicVCpu->abIntPriority) - sizeof(uint32_t));
             for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
             {
@@ -606,17 +608,17 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             }
             break;
         }
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 32: /* Only 32 lines for now. */
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 36:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 40:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 44:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 48:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 52:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 56:
-        case GIC_DIST_REG_IPRIORITYn_OFF_START + 60:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 32: /* Only 32 lines for now. */
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 36:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 40:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 44:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 48:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 52:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 56:
+        case GIC_DIST_REG_IPRIORITYRn_OFF_START + 60:
         {
             /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYn_OFF_START - 32;
+            uint8_t idxPrio = offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START - 32;
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
             for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
             {
@@ -685,7 +687,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterWrite(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
  */
 DECLINLINE(VBOXSTRICTRC) gicReDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint32_t idRedist, uint16_t offReg, uint32_t *puValue)
 {
-    RT_NOREF(pDevIns);
+    PGICDEV pThis = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
     switch (offReg)
     {
@@ -701,7 +703,8 @@ DECLINLINE(VBOXSTRICTRC) gicReDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = idRedist;
             break;
         case GIC_REDIST_REG_PIDR2_OFF:
-            *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(GIC_REDIST_REG_PIDR2_ARCH_REV_GICV3);
+            Assert(pThis->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
+            *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(pThis->uArchRev);
             break;
         default:
             *puValue = 0;
@@ -740,17 +743,17 @@ DECLINLINE(VBOXSTRICTRC) gicReDistSgiPpiRegisterRead(PPDMDEVINS pDevIns, PVMCPUC
         case GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF:
             *puValue = ASMAtomicReadU32(&pThis->bmIntActive);
             break;
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START +  4:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START +  8:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 12:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 16:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 20:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 24:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 28:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  4:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  8:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 12:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 16:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 20:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 24:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 28:
         {
             /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START;
+            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START;
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
 
             uint32_t u32Value = 0;
@@ -874,17 +877,17 @@ DECLINLINE(VBOXSTRICTRC) gicReDistSgiPpiRegisterWrite(PPDMDEVINS pDevIns, PVMCPU
             ASMAtomicAndU32(&pThis->bmIntActive, ~uValue);
             rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
             break;
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START +  4:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START +  8:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 12:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 16:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 20:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 24:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START + 28:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  4:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  8:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 12:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 16:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 20:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 24:
+        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 28:
         {
-            /* Figure out the register whch is written. */
-            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START;
+            /* Figure out the register which is written. */
+            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START;
             Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
             for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
             {
@@ -1415,7 +1418,8 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioRead(PPDMDEVINS pDevIns, void *p
     Assert(cb == 4); RT_NOREF_PV(cb);
 
     /*
-     * Determine the redistributor being targeted. Each redistributor takes GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE bytes
+     * Determine the redistributor being targeted. Each redistributor takes
+     * GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE bytes
      * and the redistributors are adjacent.
      */
     uint32_t idReDist = off / (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE);
@@ -1455,7 +1459,8 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioWrite(PPDMDEVINS pDevIns, void *
     uint32_t uValue = *(uint32_t *)pv;
 
     /*
-     * Determine the redistributor being targeted. Each redistributor takes GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE bytes
+     * Determine the redistributor being targeted. Each redistributor takes
+     * GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE bytes
      * and the redistributors are adjacent.
      */
     uint32_t idReDist = off / (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE);

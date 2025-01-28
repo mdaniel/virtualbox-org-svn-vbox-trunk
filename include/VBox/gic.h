@@ -211,9 +211,9 @@
 #define GIC_DIST_REG_ICACTIVERn_OFF_LAST                0x03fc
 
 /** Interrupt Priority Registers, start offset - RW. */
-#define GIC_DIST_REG_IPRIORITYn_OFF_START               0x0400
+#define GIC_DIST_REG_IPRIORITYRn_OFF_START              0x0400
 /** Interrupt Priority Registers, last offset - RW. */
-#define GIC_DIST_REG_IPRIORITYn_OFF_LAST                0x07f8
+#define GIC_DIST_REG_IPRIORITYRn_OFF_LAST               0x07f8
 
 /** Interrupt Processor Targets Registers, start offset - RO/RW. */
 #define GIC_DIST_REG_ITARGETSRn_OFF_START               0x0800
@@ -286,9 +286,9 @@
 #define GIC_DIST_REG_ICACTIVERnE_OFF_LAST               0x1c7c
 
 /** Interrupt Priority Registers for extended SPI range, start offset - RW. */
-#define GIC_DIST_REG_IPRIORITYnE_OFF_START              0x2000
+#define GIC_DIST_REG_IPRIORITYRnE_OFF_START             0x2000
 /** Interrupt Priority Registers for extended SPI range, last offset - RW. */
-#define GIC_DIST_REG_IPRIORITYnE_OFF_LAST               0x23fc
+#define GIC_DIST_REG_IPRIORITYRnE_OFF_LAST              0x23fc
 
 /** Interrupt Configuration Registers for extended SPI range, start offset - RW. */
 #define GIC_DIST_REG_ICFGRnE_OFF_START                  0x3000
@@ -501,13 +501,13 @@
 #define GIC_REDIST_SGI_PPI_REG_ICACTIVER2E_OFF          0x0388
 
 /** Interrupt Priority Registers, start offset - RW. */
-#define GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_START     0x0400
+#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START    0x0400
 /** Interrupt Priority Registers, last offset - RW. */
-#define GIC_REDIST_SGI_PPI_REG_IPRIORITYn_OFF_LAST      0x041c
+#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_LAST     0x041c
 /** Interrupt Priority Registers for extended PPI range, start offset - RW. */
-#define GIC_REDIST_SGI_PPI_REG_IPRIORITYnE_OFF_START    0x0420
+#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_START   0x0420
 /** Interrupt Priority Registers for extended PPI range, last offset - RW. */
-#define GIC_REDIST_SGI_PPI_REG_IPRIORITYnE_OFF_LAST     0x045c
+#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_LAST    0x045c
 
 /** SGI Configuration Register - RW. */
 #define GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF               0x0c00

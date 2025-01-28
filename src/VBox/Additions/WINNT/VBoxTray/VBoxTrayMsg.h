@@ -36,7 +36,9 @@
 #define VBOXTRAY_IPC_PIPE_PREFIX        "\\\\.\\pipe\\VBoxTrayIPC-"
 /** The IPC header's magic. */
 #define VBOXTRAY_IPC_HDR_MAGIC          0x19840804
-/** IPC header version number. */
+/** IPC header version number.
+ *  Note: This has been changed in VBox 6.0 (r153295) to be 1.
+ *        For VBox < 6.0 the value was 0. */
 #define VBOXTRAY_IPC_HDR_VERSION        1
 /** The max payload size accepted by VBoxTray.  Clients trying to send more
  *  will be disconnected. */

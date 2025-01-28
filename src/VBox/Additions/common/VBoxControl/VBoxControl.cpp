@@ -1731,7 +1731,12 @@ static RTEXITCODE sharedFolder_list(int argc, char **argv)
                                      paMappings[i].u32Root, rc);
             }
             if (!cMappings)
+            {
                 RTPrintf("No Shared Folders available.\n");
+                /* Return non-zero status for shell scripts to
+                 * detect that there is no mapping available. */
+                rc = VERR_NO_DATA;
+            }
             VbglR3SharedFolderFreeMappings(paMappings);
         }
         else

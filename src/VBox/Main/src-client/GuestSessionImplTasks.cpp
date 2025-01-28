@@ -2716,9 +2716,14 @@ HRESULT GuestSessionTaskUpdateAdditions::setUpdateErrorMsg(HRESULT hrc, const Ut
  * @returns VBox status code.
  * @param   pSession            Guest session to use.
  * @param   procInfo            Guest process startup info to use.
- * @param   fSilent             Whether to set progress into failure state in case of error.
+ * @param   fSilent             Whether to set progress into failure state in case of error. Defaults to \c false.
+ *                              Overrides \a fOptional.
+ * @param   fOptional           Whether the file to run is optional, i.e. can be missing (also its path).
+ *                              When set to \c false (non-optional), this will trigger an error if the file cannot be found.
+ *                              Defaults to \c false.
  */
-int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, GuestProcessStartupInfo &procInfo, bool fSilent)
+int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, GuestProcessStartupInfo &procInfo,
+                                                    bool fSilent /* = false */, bool fOptional /* = false */)
 {
     AssertPtrReturn(pSession, VERR_INVALID_POINTER);
 
@@ -2771,10 +2776,22 @@ int GuestSessionTaskUpdateAdditions::runFileOnGuest(GuestSession *pSession, Gues
                 break;
 
             }
+
             case VERR_GSTCTL_GUEST_ERROR:
+            {
+                if (   (   vrcGuest == VERR_FILE_NOT_FOUND
+                        || vrcGuest == VERR_PATH_NOT_FOUND)
+                    && fOptional)
+                {
+                    LogRel(("Guest Additions Update: File \"%s\" is absent, skipping\n", procInfo.mName.c_str()));
+                    vrc = VINF_SUCCESS;
+                    break;
+                }
+
                 setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR, tr("Running update file on guest failed"),
                                   GuestErrorInfo(GuestErrorInfo::Type_Process, vrcGuest, cmdLine.c_str()));
                 break;
+            }
 
             case VERR_INVALID_STATE: /** @todo Special guest control vrc needed! */
                 setUpdateErrorMsg(VBOX_E_GSTCTL_GUEST_ERROR,

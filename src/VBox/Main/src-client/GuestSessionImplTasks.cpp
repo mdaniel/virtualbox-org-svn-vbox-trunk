@@ -3282,6 +3282,11 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                             mFiles.push_back(ISOFile("VBOXWINDOWSADDITIONS-AMD64.EXE",
                                                      strUpdateDir + "VBoxWindowsAdditions-amd64.exe",
                                                      ISOFILE_FLAG_COPY_FROM_ISO));
+                            /* Note: Guest Additions for ARM64 don't exist on older Guest Additions .ISOs,
+                                     so mark them as optional. */
+                            mFiles.push_back(ISOFile("VBOXWINDOWSADDITIONS-ARM64.EXE",
+                                                     strUpdateDir + "VBoxWindowsAdditions-arm64.exe",
+                                                     ISOFILE_FLAG_COPY_FROM_ISO | ISOFILE_FLAG_OPTIONAL));
                             /* The stub loader which decides which flavor to run. */
                             UpdateAdditionsStartupInfo siInstaller;
                             siInstaller.mName = "VirtualBox Windows Guest Additions Installer";

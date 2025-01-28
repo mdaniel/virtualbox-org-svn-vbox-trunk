@@ -396,7 +396,7 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     switch (pEvent->type())
     {
         /* Mouse handler: */
-        case QEvent::GraphicsSceneMousePress:
+        case QEvent::GraphicsSceneMouseRelease:
         {
             /* Acquire event: */
             QGraphicsSceneMouseEvent *pMouseEvent = static_cast<QGraphicsSceneMouseEvent*>(pEvent);

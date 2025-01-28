@@ -1470,7 +1470,7 @@ int main(int argc, char **argv)
     VBOXSTUBPKGARCH const enmPkgArch = GetNativePackageArch();
 
     if (g_iVerbosity)
-    {        
+    {
         RTPrintf("Host architecture        : %s\n",      GetPackageArchStr(enmPkgArch));
         RTPrintf("Extraction path          : %s\n",      szExtractPath);
         RTPrintf("Silent installation      : %RTbool\n", g_fSilent);

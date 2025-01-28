@@ -2050,41 +2050,48 @@ static DECLCALLBACK(int) virtioScsiR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSS
 
     for (uint16_t uTarget = 0; uTarget < pThis->cTargets; uTarget++)
     {
-        uint16_t cReqsRedo;
-        rc = pHlp->pfnSSMGetU16(pSSM, &cReqsRedo);
-        AssertRCReturn(rc, rc);
-        AssertReturn(cReqsRedo < VIRTQ_SIZE,
-                     pHlp->pfnSSMSetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
-                                              N_("Bad count of I/O transactions to re-do in saved state (%#x, max %#x - 1)"),
-                                              cReqsRedo, VIRTQ_SIZE));
+        PVIRTIOSCSITARGET pTarget = &pThisCC->paTargetInstances[uTarget];
 
-        for (uint16_t uVirtqNbr = VIRTQ_REQ_BASE; uVirtqNbr < VIRTIOSCSI_VIRTQ_CNT; uVirtqNbr++)
+        /* Place all suspended requests in the request queue. */
+        if (pTarget->pDrvMediaEx)
         {
-            PVIRTIOSCSIWORKERR3 pWorkerR3 = &pThisCC->aWorkers[uVirtqNbr];
-            pWorkerR3->cRedoDescs = 0;
-        }
 
-        for (int i = 0; i < cReqsRedo; i++)
-        {
-            uint16_t uVirtqNbr;
-            rc = pHlp->pfnSSMGetU16(pSSM, &uVirtqNbr);
+            uint16_t cReqsRedo;
+            rc = pHlp->pfnSSMGetU16(pSSM, &cReqsRedo);
             AssertRCReturn(rc, rc);
-            AssertReturn(uVirtqNbr < VIRTIOSCSI_VIRTQ_CNT,
+            AssertReturn(cReqsRedo < VIRTQ_SIZE,
                          pHlp->pfnSSMSetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
-                                                  N_("Bad queue index for re-do in saved state (%#x, max %#x)"),
-                                                  uVirtqNbr, VIRTIOSCSI_VIRTQ_CNT - 1));
+                                                  N_("Bad count of I/O transactions to re-do in saved state (%#x, max %#x - 1)"),
+                                                  cReqsRedo, VIRTQ_SIZE));
 
-            uint16_t idxHead;
-            rc = pHlp->pfnSSMGetU16(pSSM, &idxHead);
-            AssertRCReturn(rc, rc);
-            AssertReturn(idxHead < VIRTQ_SIZE,
-                         pHlp->pfnSSMSetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
-                                                  N_("Bad queue element index for re-do in saved state (%#x, max %#x)"),
-                                                  idxHead, VIRTQ_SIZE - 1));
+            for (uint16_t uVirtqNbr = VIRTQ_REQ_BASE; uVirtqNbr < VIRTIOSCSI_VIRTQ_CNT; uVirtqNbr++)
+            {
+                PVIRTIOSCSIWORKERR3 pWorkerR3 = &pThisCC->aWorkers[uVirtqNbr];
+                pWorkerR3->cRedoDescs = 0;
+            }
 
-            PVIRTIOSCSIWORKERR3 pWorkerR3 = &pThisCC->aWorkers[uVirtqNbr];
-            pWorkerR3->auRedoDescs[pWorkerR3->cRedoDescs++] = idxHead;
-            pWorkerR3->cRedoDescs %= VIRTQ_SIZE;
+            for (int i = 0; i < cReqsRedo; i++)
+            {
+                uint16_t uVirtqNbr;
+                rc = pHlp->pfnSSMGetU16(pSSM, &uVirtqNbr);
+                AssertRCReturn(rc, rc);
+                AssertReturn(uVirtqNbr < VIRTIOSCSI_VIRTQ_CNT,
+                             pHlp->pfnSSMSetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
+                                                      N_("Bad queue index for re-do in saved state (%#x, max %#x)"),
+                                                      uVirtqNbr, VIRTIOSCSI_VIRTQ_CNT - 1));
+
+                uint16_t idxHead;
+                rc = pHlp->pfnSSMGetU16(pSSM, &idxHead);
+                AssertRCReturn(rc, rc);
+                AssertReturn(idxHead < VIRTQ_SIZE,
+                             pHlp->pfnSSMSetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
+                                                      N_("Bad queue element index for re-do in saved state (%#x, max %#x)"),
+                                                      idxHead, VIRTQ_SIZE - 1));
+
+                PVIRTIOSCSIWORKERR3 pWorkerR3 = &pThisCC->aWorkers[uVirtqNbr];
+                pWorkerR3->auRedoDescs[pWorkerR3->cRedoDescs++] = idxHead;
+                pWorkerR3->cRedoDescs %= VIRTQ_SIZE;
+            }
         }
     }
 

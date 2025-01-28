@@ -260,9 +260,14 @@ fi
 /etc/init.d/vboxweb-service stop 2>/dev/null
 VBOXSVC_PID=`pidof VBoxSVC 2>/dev/null || true`
 if [ -n "$VBOXSVC_PID" ]; then
-  # ask the daemon to terminate immediately
+  # Ask VBoxSVC to terminate gracefully if it is not
+  # busy with handling client requests.
   kill -USR1 $VBOXSVC_PID
-  sleep 1
+  # Wait for VBoxSVC to terminate.
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    [ -n "$(pidof VBoxSVC 2> /dev/null)" ] && sleep 1
+  done
+  # Still running?
   if pidof VBoxSVC > /dev/null 2>&1; then
     echo "A copy of VirtualBox is currently running.  Please close it and try again."
     echo "Please note that it can take up to ten seconds for VirtualBox (in particular"

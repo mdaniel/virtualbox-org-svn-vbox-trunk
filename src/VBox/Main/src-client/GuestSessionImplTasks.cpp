@@ -3320,14 +3320,21 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                         }
                         case eOSType_Linux:
                         {
-                            bool fIsArm = getPlatformArch() == PlatformArchitecture_ARM;
+                            bool const fIsArm = getPlatformArch() == PlatformArchitecture_ARM;
 
                             const Utf8Str strInstallerBinUC("VBOXLINUXADDITIONS" + Utf8Str(fIsArm ? "-ARM64" : "") + ".RUN");
                             const Utf8Str strInstallerBin  ("VBoxLinuxAdditions" + Utf8Str(fIsArm ? "-arm64" : "") + ".run");
 
-                            /* Copy over the installer to the guest but don't execute it.
-                             * Execution will be done by the shell instead. */
-                            mFiles.push_back(ISOFile(strInstallerBinUC, strUpdateDir + strInstallerBin, ISOFILE_FLAG_COPY_FROM_ISO));
+                            /**
+                             * Copy over the installer to the guest but don't execute it.
+                             * Execution will be done by the shell instead.
+                             *
+                             * Note: Guest Additions for ARM64 don't exist on older Guest Additions .ISOs,
+                             *       so mark them as optional.
+                             */
+                            mFiles.push_back(ISOFile(strInstallerBinUC, strUpdateDir + strInstallerBin,
+                                                       ISOFILE_FLAG_COPY_FROM_ISO
+                                                     | fIsArm ? ISOFILE_FLAG_OPTIONAL : ISOFILE_FLAG_NONE));
 
                             UpdateAdditionsStartupInfo siInstaller;
                             siInstaller.mName = "VirtualBox Linux Guest Additions Installer";

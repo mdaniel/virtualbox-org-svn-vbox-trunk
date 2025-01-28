@@ -981,46 +981,79 @@ check_pid()
 }
 
 # A wrapper for check_running_module_version.
-# Go through the list of Guest Additions' modules and
-# verify if they are loaded and running version matches
-# to current installation version. Skip vboxvideo since
-# it is not loaded for old guests.
-check_status_kernel()
+# Verify if module is loaded and its version matches
+# to current Additions installation version.
+check_running_module()
 {
-    for mod in vboxguest vboxsf; do
+    mod="$1"
 
-        for attempt in 1 2 3 4 5; do
+    # Check args.
+    [ -n "$mod" ] || return
 
-            # Wait before the next attempt.
-            [ -n "$vbox_add_wait" -a $? -ne 0 ] && sleep 1
+    # During reload action it may take some time for module
+    # to be fully loaded, so make a few attempts while checking this.
+    for attempt in 1 2 3 4 5; do
 
-            running_module "$mod"
-            if [ $? -eq 0 ]; then
-                mod_is_running="1"
-                check_running_module_version "$mod"
-                [ $? -eq 0 ] && break
-            else
-                mod_is_running=""
-                false
-            fi
+        # Wait before the next attempt.
+        [ -n "$vbox_add_wait" -a $? -ne 0 ] && sleep 1
 
-        done
-
-        # In case of error, try to print out proper reason of failure.
-        if [ $? -ne 0 ]; then
-            # Was module loaded?
-            if [ -z "$mod_is_running" ]; then
-                info "module $mod is not loaded"
-            else
-                # If module was loaded it means that it has incorrect version.
-                info "currently loaded module $mod version ($(running_module_version "$mod")) does not match to VirtualBox Guest Additions installation version ($VBOX_VERSION $VBOX_REVISION)"
-            fi
-
-            # Set "bad" rc.
+        running_module "$mod"
+        if [ $? -eq 0 ]; then
+            mod_is_running="1"
+            check_running_module_version "$mod"
+            [ $? -eq 0 ] && break
+        else
+            mod_is_running=""
             false
         fi
 
     done
+
+    # In case of error, try to print out proper reason of failure.
+    if [ $? -ne 0 ]; then
+        # Was module loaded?
+        if [ -z "$mod_is_running" ]; then
+            info "module $mod is not loaded"
+        else
+            # If module was loaded it means that it has incorrect version.
+            info "currently loaded module $mod version ($(running_module_version "$mod")) does not match to VirtualBox Guest Additions installation version ($VBOX_VERSION $VBOX_REVISION)"
+        fi
+
+        # Set "bad" rc.
+        false
+    fi
+}
+
+# Go through list of Additions modules and check
+# if they were properly loaded.
+check_status_kernel()
+{
+    # Module vboxguest should be loaded unconditionally once Guest Additions were installed.
+    check_running_module "vboxguest"
+
+    # Module vboxsf module might not be loaded if VM has no Shared Folder mappings.
+    # Check that first and then verify the module.
+    if [ $? -eq 0 ]; then
+        VBoxControl sharedfolder list >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            check_running_module "vboxsf"
+        else
+            # Do not spoil $?.
+            true
+        fi
+    fi
+
+    # Module vboxvideo is optional and expected to be loaded only when VM is
+    # running VBoxVGA or VBoxSVGA graphics.
+    if [ $? -eq 0 ]; then
+        gpu_vendor=$(lspci | grep 'VGA compatible controller' | cut -d ' ' -f 5 2>/dev/null)
+        if [ "gpu_vendor" = "InnoTek" ]; then
+            check_running_module "vboxvideo"
+        else
+            # Do not spoil $?.
+            true
+        fi
+    fi
 }
 
 # Check whether user-land processes are running.
@@ -1236,7 +1269,7 @@ reload)
     # reload() we will call modprobe(8) in order to reload kernel
     # modules. This operation is asynchronous and requires some time for
     # modules to be loaded in most of the cases. By setting this variable, we
-    # ask check_status_kernel() to wait a bit before making a decision
+    # ask check_running_module() to wait a bit before making a decision
     # whether modules were loaded or not.
     vbox_add_wait=1
     reload

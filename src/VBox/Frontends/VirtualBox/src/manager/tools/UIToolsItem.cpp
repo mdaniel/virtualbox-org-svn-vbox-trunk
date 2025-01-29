@@ -210,13 +210,11 @@ UIToolsItem::UIToolsItem(QGraphicsScene *pScene,
     , m_iPreviousMinimumHeightHint(0)
     , m_iMaximumNameWidth(0)
 {
-    /* Prepare: */
     prepare();
 }
 
 UIToolsItem::~UIToolsItem()
 {
-    /* Cleanup: */
     cleanup();
 }
 
@@ -227,9 +225,9 @@ UIToolsModel *UIToolsItem::model() const
     return pModel;
 }
 
-void UIToolsItem::reconfigure(const QString &strName)
+void UIToolsItem::setName(const QString &strName)
 {
-    /* If name is changed: */
+    /* If name changed: */
     if (m_strName != strName)
     {
         /* Update linked values: */
@@ -237,26 +235,6 @@ void UIToolsItem::reconfigure(const QString &strName)
         updateMinimumNameSize();
         updateVisibleName();
     }
-}
-
-UIToolClass UIToolsItem::itemClass() const
-{
-    return m_enmClass;
-}
-
-UIToolType UIToolsItem::itemType() const
-{
-    return m_enmType;
-}
-
-const QIcon &UIToolsItem::icon() const
-{
-    return m_icon;
-}
-
-const QString &UIToolsItem::name() const
-{
-    return m_strName;
 }
 
 void UIToolsItem::setEnabled(bool fEnabled)
@@ -275,11 +253,6 @@ void UIToolsItem::setHovered(bool fHovered)
         emit sigHoverEnter();
     else
         emit sigHoverLeave();
-}
-
-bool UIToolsItem::isHovered() const
-{
-    return m_fHovered;
 }
 
 void UIToolsItem::updateGeometry()
@@ -389,7 +362,7 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
         emit sigHoverEnter();
         update();
 
-        /* Show text at the right of item: */
+        /* Show tooltip at the right of item for widget mode: */
         if (!model()->tools()->isPopup())
         {
             const QPointF posAtScene = mapToScene(rect().topRight() + QPoint(3, -3));
@@ -407,7 +380,7 @@ void UIToolsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
         emit sigHoverLeave();
         update();
 
-        /* Hide text for good: */
+        /* Hide tooltip for good: */
         if (!model()->tools()->isPopup())
             QToolTip::hideText();
     }

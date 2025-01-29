@@ -99,25 +99,26 @@ public:
         /** Returns model reference. */
         UIToolsModel *model() const;
 
-        /** Reconfigures item with @a strName. */
-        void reconfigure(const QString &strName);
+        /** Returns item name. */
+        QString name() const { return m_strName; }
+        /** Defines item @a strName. */
+        void setName(const QString &strName);
+
+        /** Returns item icon. */
+        QIcon icon() const { return m_icon; }
 
         /** Returns item class. */
-        UIToolClass itemClass() const;
+        UIToolClass itemClass() const { return m_enmClass; }
         /** Returns item type. */
-        UIToolType itemType() const;
-        /** Returns item icon. */
-        const QIcon &icon() const;
-        /** Returns item name. */
-        const QString &name() const;
+        UIToolType itemType() const { return m_enmType; }
 
         /** Defines whether item is @a fEnabled. */
         void setEnabled(bool fEnabled);
 
+        /** Returns whether item is hovered. */
+        bool isHovered() const { return m_fHovered; }
         /** Defines whether item is @a fHovered. */
         void setHovered(bool fHovered);
-        /** Returns whether item is hovered. */
-        bool isHovered() const;
     /** @} */
 
     /** @name Layout stuff.

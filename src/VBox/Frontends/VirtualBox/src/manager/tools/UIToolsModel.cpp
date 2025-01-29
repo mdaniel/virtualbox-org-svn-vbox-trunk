@@ -442,20 +442,20 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-            case UIToolType_Welcome:     pItem->reconfigure(tr("Welcome")); break;
-            case UIToolType_Extensions:  pItem->reconfigure(tr("Extensions")); break;
-            case UIToolType_Media:       pItem->reconfigure(tr("Media")); break;
-            case UIToolType_Network:     pItem->reconfigure(tr("Network")); break;
-            case UIToolType_Cloud:       pItem->reconfigure(tr("Cloud")); break;
-            case UIToolType_Activities:  pItem->reconfigure(tr("Activities")); break;
+            case UIToolType_Welcome:     pItem->setName(tr("Welcome")); break;
+            case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
+            case UIToolType_Media:       pItem->setName(tr("Media")); break;
+            case UIToolType_Network:     pItem->setName(tr("Network")); break;
+            case UIToolType_Cloud:       pItem->setName(tr("Cloud")); break;
+            case UIToolType_Activities:  pItem->setName(tr("Activities")); break;
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-            case UIToolType_Machines:    pItem->reconfigure(tr("Machines")); break;
+            case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
 #endif
-            case UIToolType_Details:     pItem->reconfigure(tr("Details")); break;
-            case UIToolType_Snapshots:   pItem->reconfigure(tr("Snapshots")); break;
-            case UIToolType_Logs:        pItem->reconfigure(tr("Logs")); break;
-            case UIToolType_VMActivity:  pItem->reconfigure(tr("Activity")); break;
-            case UIToolType_FileManager: pItem->reconfigure(tr("File Manager")); break;
+            case UIToolType_Details:     pItem->setName(tr("Details")); break;
+            case UIToolType_Snapshots:   pItem->setName(tr("Snapshots")); break;
+            case UIToolType_Logs:        pItem->setName(tr("Logs")); break;
+            case UIToolType_VMActivity:  pItem->setName(tr("Activity")); break;
+            case UIToolType_FileManager: pItem->setName(tr("File Manager")); break;
             default: break;
         }
     }

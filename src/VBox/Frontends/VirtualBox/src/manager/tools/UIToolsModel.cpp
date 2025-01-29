@@ -493,40 +493,47 @@ void UIToolsModel::prepareItems()
         case UIToolClass_Global:
         {
             /* Welcome: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Welcome, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/welcome_screen_24px.png",
-                                                           ":/welcome_screen_24px.png"));
+                                                           ":/welcome_screen_24px.png"),
+                                       UIToolClass_Global, UIToolType_Welcome);
 
             /* Extensions: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Extensions, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/extension_pack_manager_24px.png",
-                                                           ":/extension_pack_manager_disabled_24px.png"));
+                                                           ":/extension_pack_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Extensions);
 
             /* Media: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Media, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/media_manager_24px.png",
-                                                           ":/media_manager_disabled_24px.png"));
+                                                           ":/media_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Media);
 
             /* Network: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Network, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/host_iface_manager_24px.png",
-                                                           ":/host_iface_manager_disabled_24px.png"));
+                                                           ":/host_iface_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Network);
 
             /* Cloud: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Cloud, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/cloud_profile_manager_24px.png",
-                                                           ":/cloud_profile_manager_disabled_24px.png"));
+                                                           ":/cloud_profile_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Cloud);
 
             /* Activities: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Activities, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/resources_monitor_24px.png",
-                                                           ":/resources_monitor_disabled_24px.png"));
+                                                           ":/resources_monitor_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Activities);
 
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             /* Machines: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Global, UIToolType_Machines, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                           ":/machine_details_manager_disabled_24px.png"));
+                                                           ":/machine_details_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Machines);
 #endif
 
             break;
@@ -534,29 +541,34 @@ void UIToolsModel::prepareItems()
         case UIToolClass_Machine:
         {
             /* Details: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Machine, UIToolType_Details, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                           ":/machine_details_manager_disabled_24px.png"));
+                                                           ":/machine_details_manager_disabled_24px.png"),
+                                       UIToolClass_Machine, UIToolType_Details);
 
             /* Snapshots: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Machine, UIToolType_Snapshots, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/snapshot_manager_24px.png",
-                                                           ":/snapshot_manager_disabled_24px.png"));
+                                                           ":/snapshot_manager_disabled_24px.png"),
+                                       UIToolClass_Machine, UIToolType_Snapshots);
 
             /* Logs: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Machine, UIToolType_Logs, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/vm_show_logs_24px.png",
-                                                           ":/vm_show_logs_disabled_24px.png"));
+                                                           ":/vm_show_logs_disabled_24px.png"),
+                                       UIToolClass_Machine, UIToolType_Logs);
 
             /* Activity: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Machine, UIToolType_VMActivity, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/performance_monitor_24px.png",
-                                                           ":/performance_monitor_disabled_24px.png"));
+                                                           ":/performance_monitor_disabled_24px.png"),
+                                       UIToolClass_Machine, UIToolType_VMActivity);
 
             /* File Manager: */
-            m_items << new UIToolsItem(scene(), UIToolClass_Machine, UIToolType_FileManager, QString(),
+            m_items << new UIToolsItem(scene(), QString(),
                                        UIIconPool::iconSet(":/file_manager_24px.png",
-                                                           ":/file_manager_disabled_24px.png"));
+                                                           ":/file_manager_disabled_24px.png"),
+                                       UIToolClass_Machine, UIToolType_FileManager);
 
             break;
         }

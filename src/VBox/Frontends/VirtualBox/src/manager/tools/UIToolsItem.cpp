@@ -185,8 +185,8 @@ private:
 *********************************************************************************************************************************/
 
 UIToolsItem::UIToolsItem(QGraphicsScene *pScene,
-                         UIToolClass enmClass, UIToolType enmType,
-                         const QString &strName, const QIcon &icon)
+                         const QString &strName, const QIcon &icon,
+                         UIToolClass enmClass, UIToolType enmType)
     : m_pScene(pScene)
     , m_enmClass(enmClass)
     , m_enmType(enmType)

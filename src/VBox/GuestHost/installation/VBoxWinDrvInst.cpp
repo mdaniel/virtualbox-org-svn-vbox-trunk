@@ -1309,7 +1309,24 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
 
                     /* For anything else we want to get notified that something isn't working. */
                     if (!fRc)
-                        rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
+                    {
+                        switch (dwErr)
+                        {
+                            case ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED:
+                            {
+                                /* For silent installs give a clue why this might have failed. */
+                                if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT)
+                                    vboxWinDrvInstLogWarn(pCtx, "Silent installation was selected, but required certificates "
+                                                                "were not pre-installed into the Windows drvier store, so "
+                                                                "the installation will be rejected automatically");
+                                RT_FALL_THROUGH();
+                            }
+
+                            default:
+                                rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
+                                break;
+                        }
+                    }
                 }
 
                 if (fRc)
@@ -1359,6 +1376,16 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                             {
                                 vboxWinDrvInstLogWarn(pCtx, "Not able to select a driver from the given INF, using given model");
                                 break;
+                            }
+
+                            case ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED:
+                            {
+                                /* For silent installs give a clue why this might have failed. */
+                                if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT)
+                                    vboxWinDrvInstLogWarn(pCtx, "Silent installation was selected, but required certificates "
+                                                                "were not pre-installed into the Windows drvier store, so "
+                                                                "the installation will be rejected automatically");
+                                RT_FALL_THROUGH();
                             }
 
                             default:

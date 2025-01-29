@@ -436,8 +436,22 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdInstallMain(PRTGETOPTSTATE pGetSta
     char *pszInfSection = NULL;
     uint64_t uOsVer = 0;
 
-    /* By default we want to force an installation and be silent. */
-    uint32_t fInstall = VBOX_WIN_DRIVERINSTALL_F_SILENT | VBOX_WIN_DRIVERINSTALL_F_FORCE;
+    /* By default we want to force an installation.
+     *
+     * However, we do *not* want the installation to be silent by default,
+     * as this this will result in an ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED error
+     * if drivers get installed with our mixed SHA1 / SH256 certificates on older
+     * Windows guest (7, Vista, ++).
+     *
+     * So if the VBOX_WIN_DRIVERINSTALL_F_SILENT is missing, this will result in a
+     * (desired) Windows driver installation dialog to confirm (or reject) the installation
+     * by the user.
+     *
+     * On the other hand, for unattended installs we need VBOX_WIN_DRIVERINSTALL_F_SILENT
+     * being set, as our certificates will get installed into the Windows certificate
+     * store *before* we perform any driver installation.
+     */
+    uint32_t fInstall = VBOX_WIN_DRIVERINSTALL_F_FORCE;
 
     /* Whether to ignore reboot messages or not. This will also affect the returned exit code. */
     bool fIgnoreReboot = false;

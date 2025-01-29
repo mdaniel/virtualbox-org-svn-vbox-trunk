@@ -80,7 +80,21 @@ typedef FNVBOXWINDRIVERLOGMSG *PFNVBOXWINDRIVERLOGMSG;
 
 /** No flags specified. */
 #define VBOX_WIN_DRIVERINSTALL_F_NONE       0
-/** Try a silent installation (if possible). */
+/** Try a silent installation (if possible).
+ *
+ *  When having this flag set, this will result in an ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED error
+ *  if drivers get installed with our mixed SHA1 / SH256 certificates on older Windows OSes (7, Vista, ++).
+ *
+ *  However, if VBOX_WIN_DRIVERINSTALL_F_SILENT is missing, this will result in a
+ *  (desired) Windows driver installation dialog to confirm (or reject) the installation
+ *  by the user.
+ *
+ *  On the other hand, for unattended installs we need VBOX_WIN_DRIVERINSTALL_F_SILENT
+ *  being set, as our certificates will get installed into the Windows certificate
+ *  store *before* we perform any driver installation.
+ *
+ *  So be careful using this flag to not break installations.
+ */
 #define VBOX_WIN_DRIVERINSTALL_F_SILENT     RT_BIT(0)
 /** Force driver installation, even if a newer driver version already is installed (overwrite). */
 #define VBOX_WIN_DRIVERINSTALL_F_FORCE      RT_BIT(1)

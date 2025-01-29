@@ -206,7 +206,6 @@ UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
     , m_iHighlightLightnessFinal(0)
     , m_iPreviousMinimumWidthHint(0)
     , m_iPreviousMinimumHeightHint(0)
-    , m_iMaximumNameWidth(0)
 {
     prepare();
 }
@@ -230,8 +229,7 @@ void UIToolsItem::setName(const QString &strName)
     {
         /* Update linked values: */
         m_strName = strName;
-        updateMinimumNameSize();
-        updateVisibleName();
+        updateNameSize();
     }
 }
 
@@ -292,7 +290,7 @@ int UIToolsItem::minimumWidthHint() const
     /* And Tools-item content to take into account: */
     int iToolsItemWidth = m_pixmapSize.width();
     if (model()->tools()->isPopup())
-        iToolsItemWidth += iSpacing + m_minimumNameSize.width();
+        iToolsItemWidth += iSpacing + m_nameSize.width();
     iProposedWidth += iToolsItemWidth;
 
     /* Return result: */
@@ -311,7 +309,7 @@ int UIToolsItem::minimumHeightHint() const
     iProposedHeight += 2 * iMargin;
     /* And Tools-item content to take into account: */
     int iToolsItemHeight = qMax(m_pixmapSize.height(),
-                                m_minimumNameSize.height());
+                                m_nameSize.height());
     iProposedHeight += iToolsItemHeight;
 
     /* Return result: */
@@ -334,22 +332,6 @@ void UIToolsItem::showEvent(QShowEvent *pEvent)
 
     /* Update pixmap: */
     updatePixmap();
-}
-
-void UIToolsItem::resizeEvent(QGraphicsSceneResizeEvent *pEvent)
-{
-    /* Call to base-class: */
-    QIGraphicsWidget::resizeEvent(pEvent);
-
-    /* What is the new geometry? */
-    const QRectF newGeometry = geometry();
-
-    /* Should we update visible name? */
-    if (previousGeometry().width() != newGeometry.width())
-        updateMaximumNameWidth();
-
-    /* Remember the new geometry: */
-    setPreviousGeometry(newGeometry);
 }
 
 void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
@@ -454,8 +436,7 @@ void UIToolsItem::prepare()
 
     /* Init: */
     updatePixmap();
-    updateMinimumNameSize();
-    updateVisibleName();
+    updateNameSize();
 }
 
 void UIToolsItem::prepareHoverAnimation()
@@ -587,7 +568,6 @@ void UIToolsItem::updatePixmap()
     if (m_pixmapSize != pixmapSize)
     {
         m_pixmapSize = pixmapSize;
-        updateMaximumNameWidth();
         updateGeometry();
     }
     if (m_pixmap.toImage() != pixmap.toImage())
@@ -597,90 +577,21 @@ void UIToolsItem::updatePixmap()
     }
 }
 
-void UIToolsItem::updateMinimumNameSize()
+void UIToolsItem::updateNameSize()
 {
     /* Prepare variables: */
     QPaintDevice *pPaintDevice = model()->paintDevice();
 
-    /* Calculate new minimum name size: */
+    /* Calculate new name size: */
     const QFontMetrics fm(m_nameFont, pPaintDevice);
-    const int iWidthOf15Letters = textWidthMonospace(m_nameFont, pPaintDevice, 15);
-    const QString strNameCompressedTo15Letters = compressText(m_nameFont, pPaintDevice, m_strName, iWidthOf15Letters);
-    const QSize minimumNameSize = QSize(fm.horizontalAdvance(strNameCompressedTo15Letters), fm.height());
+    const QSize nameSize = QSize(fm.horizontalAdvance(m_strName), fm.height());
 
     /* Update linked values: */
-    if (m_minimumNameSize != minimumNameSize)
+    if (m_nameSize != nameSize)
     {
-        m_minimumNameSize = minimumNameSize;
+        m_nameSize = nameSize;
         updateGeometry();
     }
-}
-
-void UIToolsItem::updateMaximumNameWidth()
-{
-    /* Prepare variables: */
-    const int iMargin = data(ToolsItemData_Margin).toInt();
-    const int iSpacing = data(ToolsItemData_Spacing).toInt();
-
-    /* Calculate new maximum name width: */
-    int iMaximumNameWidth = (int)geometry().width();
-    iMaximumNameWidth -= iMargin; /* left margin */
-    iMaximumNameWidth -= m_pixmapSize.width(); /* pixmap width */
-    iMaximumNameWidth -= iSpacing; /* spacing between pixmap and name(s) */
-    iMaximumNameWidth -= iMargin; /* right margin */
-
-    /* Update linked values: */
-    if (m_iMaximumNameWidth != iMaximumNameWidth)
-    {
-        m_iMaximumNameWidth = iMaximumNameWidth;
-        updateVisibleName();
-    }
-}
-
-void UIToolsItem::updateVisibleName()
-{
-    /* Prepare variables: */
-    QPaintDevice *pPaintDevice = model()->paintDevice();
-
-    /* Calculate new visible name: */
-    const QString strVisibleName = compressText(m_nameFont, pPaintDevice, m_strName, m_iMaximumNameWidth);
-
-    /* Update linked values: */
-    if (m_strVisibleName != strVisibleName)
-    {
-        m_strVisibleName = strVisibleName;
-        update();
-    }
-}
-
-/* static */
-int UIToolsItem::textWidthMonospace(const QFont &font, QPaintDevice *pPaintDevice, int iCount)
-{
-    /* Return text width, based on font-metrics: */
-    const QFontMetrics fm(font, pPaintDevice);
-    QString strString;
-    strString.fill('_', iCount);
-    return fm.horizontalAdvance(strString);
-}
-
-/* static */
-QString UIToolsItem::compressText(const QFont &font, QPaintDevice *pPaintDevice, QString strText, int iWidth)
-{
-    /* Check if passed text is empty: */
-    if (strText.isEmpty())
-        return strText;
-
-    /* Check if passed text already fits maximum width: */
-    const QFontMetrics fm(font, pPaintDevice);
-    if (fm.horizontalAdvance(strText) <= iWidth)
-        return strText;
-
-    /* Truncate otherwise: */
-    const QString strEllipsis = QString("...");
-    const int iEllipsisWidth = fm.horizontalAdvance(strEllipsis + " ");
-    while (!strText.isEmpty() && fm.horizontalAdvance(strText) + iEllipsisWidth > iWidth)
-        strText.truncate(strText.size() - 1);
-    return strText + strEllipsis;
 }
 
 void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) const
@@ -894,7 +805,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
         int iNameX = iMargin + m_pixmapSize.width() + iSpacing;
-        int iNameY = (iFullHeight - m_minimumNameSize.height()) / 2;
+        int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name: */
         if (model()->tools()->isPopup())
             paintText(/* Painter: */
@@ -906,7 +817,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Paint device: */
                       model()->paintDevice(),
                       /* Text to paint: */
-                      m_strVisibleName);
+                      m_strName);
     }
 }
 

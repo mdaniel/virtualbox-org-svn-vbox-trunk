@@ -142,9 +142,6 @@ protected:
         /** Handles show @a pEvent. */
         virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
-        /** Handles resize @a pEvent. */
-        virtual void resizeEvent(QGraphicsSceneResizeEvent *pEvent) RT_OVERRIDE;
-
         /** Handles hover enter @a event. */
         virtual void hoverMoveEvent(QGraphicsSceneHoverEvent *pEvent) RT_OVERRIDE;
         /** Handles hover leave @a event. */
@@ -208,24 +205,10 @@ private:
 
     /** @name Layout stuff.
       * @{ */
-        /** Defines previous @a geometry. */
-        void setPreviousGeometry(const QRectF &geometry) { m_previousGeometry = geometry; }
-        /** Returns previous geometry. */
-        const QRectF &previousGeometry() const { return m_previousGeometry; }
-
         /** Updates pixmap. */
         void updatePixmap();
-        /** Updates minimum name size. */
-        void updateMinimumNameSize();
-        /** Updates maximum name width. */
-        void updateMaximumNameWidth();
-        /** Updates visible name. */
-        void updateVisibleName();
-
-        /** Returns monospace text width of line containing @a iCount of chars calculated on the basis of certain @a font and @a pPaintDevice. */
-        static int textWidthMonospace(const QFont &font, QPaintDevice *pPaintDevice, int iCount);
-        /** Compresses @a strText to @a iWidth on the basis of certain @a font and @a pPaintDevice. */
-        static QString compressText(const QFont &font, QPaintDevice *pPaintDevice, QString strText, int iWidth);
+        /** Updates name size. */
+        void updateNameSize();
     /** @} */
 
     /** @name Painting stuff.
@@ -270,8 +253,6 @@ private:
         QPixmap  m_pixmap;
         /** Holds the item name font. */
         QFont    m_nameFont;
-        /** Holds the item visible name. */
-        QString  m_strVisibleName;
 
         /** Holds whether item is hovered. */
         bool                m_fHovered;
@@ -306,9 +287,6 @@ private:
 
     /** @name Layout stuff.
       * @{ */
-        /** Holds previous geometry. */
-        QRectF  m_previousGeometry;
-
         /** Holds previous minimum width hint. */
         int  m_iPreviousMinimumWidthHint;
         /** Holds previous minimum height hint. */
@@ -316,11 +294,8 @@ private:
 
         /** Holds the pixmap size. */
         QSize  m_pixmapSize;
-        /** Holds minimum name size. */
-        QSize  m_minimumNameSize;
-
-        /** Holds maximum name width. */
-        int  m_iMaximumNameWidth;
+        /** Holds the name size. */
+        QSize  m_nameSize;
     /** @} */
 };
 

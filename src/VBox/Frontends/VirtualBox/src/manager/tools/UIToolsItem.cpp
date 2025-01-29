@@ -184,14 +184,12 @@ private:
 *   Class UIToolsItem implementation.                                                                                            *
 *********************************************************************************************************************************/
 
-UIToolsItem::UIToolsItem(QGraphicsScene *pScene,
-                         const QString &strName, const QIcon &icon,
+UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
                          UIToolClass enmClass, UIToolType enmType)
     : m_pScene(pScene)
     , m_enmClass(enmClass)
     , m_enmType(enmType)
     , m_icon(icon)
-    , m_strName(strName)
     , m_fHovered(false)
     , m_pHoveringMachine(0)
     , m_pHoveringAnimationForward(0)

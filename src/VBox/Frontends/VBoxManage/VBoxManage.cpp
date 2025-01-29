@@ -387,10 +387,10 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
         fCancelable = FALSE;
     if (fCancelable)
     {
-        signal(SIGINT,   showProgressSignalHandler);
-        signal(SIGTERM,  showProgressSignalHandler);
+        (void)signal(SIGINT,   showProgressSignalHandler);
+        (void)signal(SIGTERM,  showProgressSignalHandler);
 #ifdef SIGBREAK
-        signal(SIGBREAK, showProgressSignalHandler);
+        (void)signal(SIGBREAK, showProgressSignalHandler);
 #endif
     }
 
@@ -477,10 +477,10 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
     /* undo signal handling */
     if (fCancelable)
     {
-        signal(SIGINT,   SIG_DFL);
-        signal(SIGTERM,  SIG_DFL);
+        (void)signal(SIGINT,   SIG_DFL);
+        (void)signal(SIGTERM,  SIG_DFL);
 # ifdef SIGBREAK
-        signal(SIGBREAK, SIG_DFL);
+        (void)signal(SIGBREAK, SIG_DFL);
 # endif
     }
 

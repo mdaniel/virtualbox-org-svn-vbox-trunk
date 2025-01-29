@@ -471,10 +471,6 @@ void UIMachineLogicFullscreen::prepareMachineWindows()
                                                                       UIMachineLogicFullscreen::nativeHandlerForApplicationActivation);
     UICocoaApplication::instance()->registerToNotificationOfWorkspace("NSWorkspaceActiveSpaceDidChangeNotification", this,
                                                                       UIMachineLogicFullscreen::nativeHandlerForActiveSpaceChange);
-
-    /* We have to make sure that we are getting the front most process.
-     * This is necessary for Qt versions > 4.3.3: */
-    darwinSetFrontMostProcess();
 #endif /* VBOX_WS_MAC */
 
     /* Update the multi-screen layout: */

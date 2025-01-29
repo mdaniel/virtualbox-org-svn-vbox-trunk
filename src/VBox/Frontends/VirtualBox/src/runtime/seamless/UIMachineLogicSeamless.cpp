@@ -260,12 +260,6 @@ void UIMachineLogicSeamless::prepareMachineWindows()
     if (isMachineWindowsCreated())
         return;
 
-#ifdef VBOX_WS_MAC
-    /* We have to make sure that we are getting the front most process.
-     * This is necessary for Qt versions > 4.3.3: */
-    darwinSetFrontMostProcess();
-#endif /* VBOX_WS_MAC */
-
     /* Update the multi-screen layout: */
     m_pScreenLayout->update();
 

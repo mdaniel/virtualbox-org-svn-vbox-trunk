@@ -227,31 +227,6 @@ UIToolsModel *UIToolsItem::model() const
     return pModel;
 }
 
-void UIToolsItem::reconfigure(UIToolClass enmClass, UIToolType enmType,
-                              const QIcon &icon, const QString &strName)
-{
-    /* If class is changed: */
-    if (m_enmClass != enmClass)
-    {
-        /* Update linked values: */
-        m_enmClass = enmClass;
-    }
-
-    /* If type is changed: */
-    if (m_enmType != enmType)
-    {
-        /* Update linked values: */
-        m_enmType = enmType;
-    }
-
-    /* Update linked values: */
-    m_icon = icon;
-    updatePixmap();
-
-    /* Update name finally: */
-    reconfigure(strName);
-}
-
 void UIToolsItem::reconfigure(const QString &strName)
 {
     /* If name is changed: */

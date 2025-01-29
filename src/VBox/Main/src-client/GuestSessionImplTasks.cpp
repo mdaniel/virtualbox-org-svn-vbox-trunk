@@ -3334,7 +3334,7 @@ int GuestSessionTaskUpdateAdditions::Run(void)
                              */
                             mFiles.push_back(ISOFile(strInstallerBinUC, strUpdateDir + strInstallerBin,
                                                        ISOFILE_FLAG_COPY_FROM_ISO
-                                                     | fIsArm ? ISOFILE_FLAG_OPTIONAL : ISOFILE_FLAG_NONE));
+                                                     | (fIsArm ? ISOFILE_FLAG_OPTIONAL : ISOFILE_FLAG_NONE)));
 
                             UpdateAdditionsStartupInfo siInstaller;
                             siInstaller.mName = "VirtualBox Linux Guest Additions Installer";

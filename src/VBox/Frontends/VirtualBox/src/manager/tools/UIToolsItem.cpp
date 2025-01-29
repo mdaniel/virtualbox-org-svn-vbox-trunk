@@ -187,9 +187,9 @@ private:
 UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
                          UIToolClass enmClass, UIToolType enmType)
     : m_pScene(pScene)
+    , m_icon(icon)
     , m_enmClass(enmClass)
     , m_enmType(enmType)
-    , m_icon(icon)
     , m_fHovered(false)
     , m_pHoveringMachine(0)
     , m_pHoveringAnimationForward(0)

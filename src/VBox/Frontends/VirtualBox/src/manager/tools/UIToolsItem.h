@@ -97,13 +97,13 @@ public:
         /** Returns model reference. */
         UIToolsModel *model() const;
 
+        /** Returns item icon. */
+        QIcon icon() const { return m_icon; }
+
         /** Returns item name. */
         QString name() const { return m_strName; }
         /** Defines item @a strName. */
         void setName(const QString &strName);
-
-        /** Returns item icon. */
-        QIcon icon() const { return m_icon; }
 
         /** Returns item class. */
         UIToolClass itemClass() const { return m_enmClass; }
@@ -257,22 +257,21 @@ private:
       * @{ */
         /** Holds the item parent. */
         QGraphicsScene *m_pScene;
-        /** Holds the item class. */
-        UIToolClass     m_enmClass;
-        /** Holds the item type. */
-        UIToolType      m_enmType;
         /** Holds the item icon. */
         QIcon           m_icon;
         /** Holds the item name. */
         QString         m_strName;
+        /** Holds the item class. */
+        UIToolClass     m_enmClass;
+        /** Holds the item type. */
+        UIToolType      m_enmType;
 
         /** Holds the item pixmap. */
         QPixmap  m_pixmap;
+        /** Holds the item name font. */
+        QFont    m_nameFont;
         /** Holds the item visible name. */
         QString  m_strVisibleName;
-
-        /** Holds name font. */
-        QFont  m_nameFont;
 
         /** Holds whether item is hovered. */
         bool                m_fHovered;

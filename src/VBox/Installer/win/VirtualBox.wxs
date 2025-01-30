@@ -231,7 +231,9 @@
         <?include VBoxMergeNetLwfCA.wxi ?>
         <?include VBoxMergeNetAdp6CA.wxi ?>
     <?endif?>
-    <?include VBoxMergeUSBCA.wxi ?>
+    <?if $(env.VBOX_WITH_USB) = "yes" ?>
+        <?include VBoxMergeUSBCA.wxi ?>
+    <?endif?>
     <?if $(env.VBOX_WITH_PYTHON) = "yes" ?>
         <?include VBoxMergePythonCA.wxi ?>
     <?endif?>
@@ -447,7 +449,9 @@
         <?include VBoxMergeNetLwfSeq.wxi ?>
         <?include VBoxMergeNetAdp6Seq.wxi ?>
     <?endif?>
-    <?include VBoxMergeUSBSeq.wxi ?>
+    <?if $(env.VBOX_WITH_USB) = "yes" ?>
+        <?include VBoxMergeUSBSeq.wxi ?>
+    <?endif?>
     <?if $(env.VBOX_WITH_PYTHON) = "yes" ?>
         <?include VBoxMergePythonSeq.wxi ?>
     <?endif?>

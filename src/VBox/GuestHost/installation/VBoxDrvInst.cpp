@@ -797,7 +797,7 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdServiceMain(PRTGETOPTSTATE pGetSta
     int rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, g_uVerbosity, &vboxDrvInstLogCallback, NULL /* pvUser */);
     if (RT_SUCCESS(rc))
     {
-        rc = VBooxWinDrvInstControlServiceEx(hWinDrvInst, pszService, enmFn, fFlags, msTimeout);
+        rc = VBoxWinDrvInstControlServiceEx(hWinDrvInst, pszService, enmFn, fFlags, msTimeout);
         VBoxWinDrvInstDestroy(hWinDrvInst);
     }
 

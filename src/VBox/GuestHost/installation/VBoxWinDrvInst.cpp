@@ -2498,7 +2498,7 @@ static int vbooxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
  * @param   fFlags              Service control flags (of type VBOXWINDRVSVCFN_F_XXX) to use.
  * @param   msTimeout           Timeout (in ms) to use. Only being used if VBOXWINDRVSVCFN_F_WAIT is specified in \a fFlags.
  */
-int VBooxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst,
+int VBoxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst,
                                     const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout)
 {
     PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
@@ -2537,7 +2537,7 @@ int VBoxWinDrvInstControlService(VBOXWINDRVINST hDrvInst, const char *pszService
     PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
     VBOXWINDRVINST_VALID_RETURN(pCtx);
 
-    return VBooxWinDrvInstControlServiceEx(pCtx, pszService, enmFn, VBOXWINDRVSVCFN_F_WAIT, RT_MS_30SEC);
+    return VBoxWinDrvInstControlServiceEx(pCtx, pszService, enmFn, VBOXWINDRVSVCFN_F_WAIT, RT_MS_30SEC);
 }
 
 #ifdef TESTCASE

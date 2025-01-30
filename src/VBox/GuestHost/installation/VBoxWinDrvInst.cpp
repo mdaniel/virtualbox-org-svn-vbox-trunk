@@ -2306,15 +2306,15 @@ int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszIn
  *                              VBOXWINDRVSVCFN_RESTART is not implemented and must be composed of
  *                              VBOXWINDRVSVCFN_START + VBOXWINDRVSVCFN_STOP by the caller.
  * @param   fFlags              Service control flags (of type VBOXWINDRVSVCFN_F_XXX) to use.
- * @param   msTimeout           Timeout (in ms) to use. Only being used if VBOXWINDRVSVCFN_F_WAIT is specified in \a fFlags.
+ * @param   msTimeout           Timeout (in ms) to use. Ignored if VBOXWINDRVSVCFN_F_WAIT is missing in \a fFlags.
  */
-static int vbooxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
-                                           const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout)
+static int vboxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
+                                          const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout)
 {
     AssertPtrReturn(pszService, VERR_INVALID_POINTER);
     AssertReturn(!(fFlags & ~VBOXWINDRVSVCFN_F_VALID_MASK), VERR_INVALID_PARAMETER);
     AssertReturn(enmFn > VBOXWINDRVSVCFN_INVALID && enmFn < VBOXWINDRVSVCFN_END, VERR_INVALID_PARAMETER);
-    AssertReturn(msTimeout == RT_INDEFINITE_WAIT || msTimeout, VERR_INVALID_PARAMETER);
+    AssertReturn(!(fFlags & VBOXWINDRVSVCFN_F_WAIT) || msTimeout, VERR_INVALID_PARAMETER);
 
     PRTUTF16 pwszService;
     int rc = RTStrToUtf16(pszService, &pwszService);
@@ -2406,7 +2406,7 @@ static int vbooxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
         }
         else
         {
-            vboxWinDrvInstLogInfo(pCtx, "Waiting for status change of service '%s' ...", pszService);
+            vboxWinDrvInstLogInfo(pCtx, "Waiting for status change of service '%s' (%ums timeout) ...", pszService, msTimeout);
             for (;;)
             {
                 DWORD dwBytes;
@@ -2505,7 +2505,7 @@ int VBoxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst,
     VBOXWINDRVINST_VALID_RETURN(pCtx);
 
 #define CONTROL_SERVICE(a_Fn) \
-    vbooxWinDrvInstControlServiceEx(pCtx, pszService, a_Fn, fFlags, msTimeout);
+    vboxWinDrvInstControlServiceEx(pCtx, pszService, a_Fn, fFlags, msTimeout);
 
     int rc;
     if (enmFn == VBOXWINDRVSVCFN_RESTART)

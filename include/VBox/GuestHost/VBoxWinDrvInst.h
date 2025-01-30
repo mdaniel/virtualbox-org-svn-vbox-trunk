@@ -106,6 +106,30 @@ typedef FNVBOXWINDRIVERLOGMSG *PFNVBOXWINDRIVERLOGMSG;
 /** Validation mask. */
 #define VBOX_WIN_DRIVERINSTALL_F_VALID_MASK 0xf
 
+/**
+ * Enumeration for Windows driver service functions.
+ */
+typedef enum VBOXWINDRVSVCFN
+{
+    /** Invalid function. */
+    VBOXWINDRVSVCFN_INVALID = 0,
+    /** Starts the service. */
+    VBOXWINDRVSVCFN_START,
+    /** Stops the service. */
+    VBOXWINDRVSVCFN_STOP,
+    /** Restart the service. */
+    VBOXWINDRVSVCFN_RESTART,
+    /** End marker, do not use. */
+    VBOXWINDRVSVCFN_END
+} VBOXWINDRVSVCFN;
+
+/** No service function flags specified. */
+#define VBOXWINDRVSVCFN_F_NONE              0
+/** Wait for the service function to get executed. */
+#define VBOXWINDRVSVCFN_F_WAIT              RT_BIT(0)
+/** Validation mask. */
+#define VBOXWINDRVSVCFN_F_VALID_MASK        0x1
+
 int VBoxWinDrvInstCreate(PVBOXWINDRVINST hDrvInst);
 int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVBOXWINDRIVERLOGMSG pfnLog, void *pvUser);
 int VBoxWinDrvInstDestroy(VBOXWINDRVINST hDrvInst);
@@ -119,7 +143,8 @@ int VBoxWinDrvInstInstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, uint3
 int VBoxWinDrvInstInstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszSection, uint32_t fFlags);
 int VBoxWinDrvInstUninstall(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszModel, const char *pszPnPId, uint32_t fFlags);
 int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszInfFile, const char *pszSection, uint32_t fFlags);
-
+int VBoxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst, const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags);
+int VBooxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst, const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout);
 RT_C_DECLS_END
 
 #endif /* !VBOX_INCLUDED_GuestHost_VBoxWinDrvInst_h */

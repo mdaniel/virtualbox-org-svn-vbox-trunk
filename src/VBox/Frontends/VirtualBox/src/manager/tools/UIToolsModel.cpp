@@ -417,7 +417,9 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                         if (pClickedItem && pClickedItem->isEnabled())
                         {
                             setCurrentItem(pClickedItem);
-                            close();
+                            /* Close the widget in popup mode only: */
+                            if (tools()->isPopup())
+                                close();
                             return true;
                         }
                         break;

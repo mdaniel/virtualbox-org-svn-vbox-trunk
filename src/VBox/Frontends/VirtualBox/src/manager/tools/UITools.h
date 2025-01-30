@@ -104,14 +104,6 @@ public:
         UIToolsItem *currentItem() const;
     /** @} */
 
-private slots:
-
-    /** @name General stuff.
-      * @{ */
-        /** Handles the close request. */
-        void sltClose();
-    /** @} */
-
 private:
 
     /** @name Prepare/Cleanup cascade.

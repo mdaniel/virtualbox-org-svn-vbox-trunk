@@ -87,13 +87,6 @@ UIToolsItem *UITools::currentItem() const
     return m_pToolsModel->currentItem();
 }
 
-void UITools::sltClose()
-{
-    /* Close the widget in popup mode only: */
-    if (isPopup())
-        close();
-}
-
 void UITools::prepare()
 {
     /* Prepare everything: */
@@ -151,7 +144,7 @@ void UITools::prepareConnections()
 {
     /* Model connections: */
     connect(m_pToolsModel, &UIToolsModel::sigClose,
-            this, &UITools::sltClose);
+            this, &UITools::close);
     connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
             this, &UITools::sigSelectionChanged);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,

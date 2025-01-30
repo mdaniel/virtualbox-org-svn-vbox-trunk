@@ -161,6 +161,7 @@
 /** Bit 27 - 31 - Indicates maximum INTID in the Extended SPI range. */
 # define GIC_DIST_REG_TYPER_ESPI_RANGE                  (  RT_BIT_32(27) | RT_BIT_32(28) | RT_BIT(29) \
                                                          | RT_BIT_32(30) | RT_BIT_32(31))
+# define GIC_DIST_REG_TYPER_ESPI_RANGE_BIT              27
 # define GIC_DIST_REG_TYPER_ESPI_RANGE_SET(a_Range)     (((a_Range) << 27) & GIC_DIST_REG_TYPER_ESPI_RANGE)
 
 /** Distributor Implementer Identification Register - RO. */

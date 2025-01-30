@@ -397,8 +397,10 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      */
     PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase"
                                            "|ArchRev"
-                                           "|ArchExtNmi"
-                                           "|ItLinesNumber", "");
+                                           "|Nmi"
+                                           "|MaxSpi"
+                                           "|MaxExtSpi"
+                                           "|PpiNum", "");
 
 #if 0
     /*
@@ -421,35 +423,63 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     { /* likely */ }
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
-                                   N_("Configuration error: \"ArchRev\" %u is not supported"), pGicDev->uArchRev);
+                                   N_("Configuration error: \"ArchRev\" value %u is not supported"), pGicDev->uArchRev);
 
-    /** @devcfgm{gic, ArchExtNmi, bool, false}
+    /** @devcfgm{gic, Nmi, bool, false}
      * Configures whether NMIs are supported (GICD_TYPER.NMI). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ArchExtNmi", &pGicDev->fNmi, false);
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Nmi", &pGicDev->fNmi, false);
     AssertLogRelRCReturn(rc, rc);
-    if (   !pGicDev->fNmi
-        || pGicDev->uArchRev >= 3)
-    { /* likely */ }
-    else
-        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
-                                   N_("Configuration error: \"ArchExtNmi\" requires architecture revision v3 or newer"));
 
-    /** @devcfgm{gic, ItLinesNumber, uint16_t, 1}
-     * Configures GICD_TYPER.ItLinesNumber, bits [4:0].
-     *
-     * For the INTID range 32-1023, configures the maximum SPI supported. Valid values
-     * are [1, 31] which equates to interrupt IDs [63, 1023]. A value of 0 indicates no
-     * SPIs are supported. We do not allow configuring this value as it's expected most
-     * guests would assume support for SPIs. */
-    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "ItLinesNumber", &pGicDev->uItLinesNumber, 1 /* 63 interrupt IDs */);
+    /** @devcfgm{gic, ExtSpi, bool, false}
+     * Configures whether extended SPIs are supported (GICD_TYPER.ESPI). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ExtSpi", &pGicDev->fExtSpi, false);
     AssertLogRelRCReturn(rc, rc);
-    if (   pGicDev->uItLinesNumber
-        && !(pGicDev->uItLinesNumber & ~GIC_DIST_REG_TYPER_NUM_ITLINES))
+
+    /** @devcfgm{gic, MaxSpi, uint16_t, 1}
+     * Configures GICD_TYPER.ItLinesNumber.
+     *
+     * For the INTID range [32,1023], configures the maximum SPI supported. Valid values
+     * are [1,31] which equates to interrupt IDs [63,1023]. A value of 0 implies SPIs
+     * are supported. We don't allow configuring this value as it's expected that
+     * most guests would assume support for SPIs. */
+    AssertCompile(GIC_DIST_REG_TYPER_NUM_ITLINES == 31);
+    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 1 /* 63 INTIDs */);
+    AssertLogRelRCReturn(rc, rc);
+    if (pGicDev->uMaxSpi - 1 < 31)
     { /* likely */ }
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
-                                   N_("Configuration error: \"ItLinesNumber\" must be in the range [1,%u]"),
+                                   N_("Configuration error: \"MaxSpi\" must be in the range [1,%u]"),
                                    GIC_DIST_REG_TYPER_NUM_ITLINES);
+
+    /** @devcfgm{gic, MaxExtSpi, uint16_t, 31}
+     * Configures GICD_TYPER.ESPI_range.
+     *
+     * For the extended SPI range [4096,5119], configures the maximum extended SPI
+     * supported. Valid values are [0,31] which equates to extended SPI INTIDs
+     * [4096,5119]. This is ignored (set to 0) when extended SPIs are disabled. */
+    AssertCompile(GIC_DIST_REG_TYPER_ESPI_RANGE >> GIC_DIST_REG_TYPER_ESPI_RANGE_BIT == 31);
+    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "MaxExtSpi", &pGicDev->uMaxExtSpi, 31);
+    AssertLogRelRCReturn(rc, rc);
+    if (pGicDev->uMaxExtSpi <= 31)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"MaxExtSpi\" must be in the range [0,31]"));
+
+    /** @devcfgm{gic, MaxExtPpi, uint16_t, 0}
+     * Configures GICR_TYPER.PPInum.
+     *
+     * For the extended PPI INTIDs [31,1056,1119], configures the maximum extended
+     * PPI supported. Valid values are [0,1,2] which equates [31,1087,1119]. A value of
+     * 0 implies extended PPIs are not supported. */
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "PpiNum", &pGicDev->fPpiNum, 0);
+    AssertLogRelRCReturn(rc, rc);
+    if (pGicDev->fPpiNum <= GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"PpiNum\" must be in the range [0,2]"));
 
     /*
      * Register the GIC with PDM.

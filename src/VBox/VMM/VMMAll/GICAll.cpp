@@ -406,7 +406,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistRegisterRead(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                        | GIC_DIST_REG_CTRL_ARE_S;
             break;
         case GIC_DIST_REG_TYPER_OFF:
-            *puValue =   GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pThis->uItLinesNumber)
+            Assert(pThis->uMaxSpi > 0 && pThis->uMaxSpi < GIC_DIST_REG_TYPER_NUM_ITLINES);
+            *puValue =   GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pThis->uMaxSpi)
                        | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* 1 PE */ /** @todo r=ramshankar: Should this be pVCpu->cCpus? Currently it means 'ARE' must always be used? */
                        /*| GIC_DIST_REG_TYPER_ESPI*/            /** @todo */
                        /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Non-maskable interrupts */

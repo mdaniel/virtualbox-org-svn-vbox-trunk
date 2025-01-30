@@ -1649,7 +1649,7 @@ UINT __stdcall ServiceControl(MSIHANDLE hModule)
                     if (RT_SUCCESS(rc))
                     {
                         rc = VBoxWinDrvInstControlServiceEx(hWinDrvInst, pszSvcCtlName, enmFn,
-                                                            msTimeout ? VBOXWINDRVSVCFN_F_WAIT : VBOXWINDRVSVCFN_F_NONE,
+                                                            msTimeout == 0 ? VBOXWINDRVSVCFN_F_NONE : VBOXWINDRVSVCFN_F_WAIT,
                                                             msTimeout);
                         VBoxWinDrvInstDestroy(hWinDrvInst);
                     }

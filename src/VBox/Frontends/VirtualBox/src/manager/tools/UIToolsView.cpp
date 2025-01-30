@@ -215,6 +215,7 @@ void UIToolsView::preparePalette()
                         ? backgroundColor.lighter(120)
                         : backgroundColor.darker(120);
     pal.setColor(QPalette::Active, QPalette::Base, backgroundColor);
+    pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColor);
     setPalette(pal);
 }
 

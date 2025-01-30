@@ -205,6 +205,7 @@ private:
         /* Layout hints: */
         ToolsModelData_Margin,
         ToolsModelData_Spacing,
+        ToolsModelData_MajorSpacing
     };
 
     /** @name Prepare/Cleanup cascade.

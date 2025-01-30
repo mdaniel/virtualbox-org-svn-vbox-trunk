@@ -323,9 +323,13 @@ void UIToolsModel::updateLayout()
     /* Prepare variables: */
     const int iMargin = data(ToolsModelData_Margin).toInt();
     const int iSpacing = data(ToolsModelData_Spacing).toInt();
+    const int iMajorSpacing = data(ToolsModelData_MajorSpacing).toInt();
     const QSize viewportSize = scene()->views()[0]->viewport()->size();
     const int iViewportWidth = viewportSize.width();
     int iVerticalIndent = iMargin;
+
+    /* Init last item type: */
+    UIToolType enmLastType = UIToolType_Invalid;
 
     /* Layout the children: */
     foreach (UIToolsItem *pItem, items())
@@ -333,6 +337,11 @@ void UIToolsModel::updateLayout()
         /* Make sure item visible: */
         if (!pItem->isVisible())
             continue;
+
+        /* In widget mode we should add spacing after Welcome item: */
+        if (   !tools()->isPopup()
+            && enmLastType == UIToolType_Welcome)
+            iVerticalIndent += iMajorSpacing;
 
         /* Set item position: */
         pItem->setPos(iMargin, iVerticalIndent);
@@ -342,6 +351,9 @@ void UIToolsModel::updateLayout()
         pItem->show();
         /* Advance vertical indent: */
         iVerticalIndent += (pItem->minimumHeightHint() + iSpacing);
+
+        /* Remember last item type: */
+        enmLastType = pItem->itemType();
     }
 }
 
@@ -643,8 +655,9 @@ QVariant UIToolsModel::data(int iKey) const
     switch (iKey)
     {
         /* Layout hints: */
-        case ToolsModelData_Margin:  return 0;
+        case ToolsModelData_Margin: return 0;
         case ToolsModelData_Spacing: return 1;
+        case ToolsModelData_MajorSpacing: return 20;
 
         /* Default: */
         default: break;

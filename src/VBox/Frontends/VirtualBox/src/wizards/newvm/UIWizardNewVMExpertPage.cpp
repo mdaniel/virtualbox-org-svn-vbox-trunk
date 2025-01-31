@@ -167,6 +167,7 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
 
     bool const fOsTypeFixed = UIWizardNewVMNameOSTypeCommon::guessOSTypeDetectedOSTypeString(m_pNameAndSystemEditor,
                                                                                              pWizard->detectedOSTypeId());
+    printf("os type %s\n", qPrintable(pWizard->detectedOSTypeId()));
     if (fOsTypeFixed)
         m_userModifiedParameters << "GuestOSTypeFromISO";
     else /* Remove GuestOSTypeFromISO from the set if it is there: */
@@ -222,8 +223,8 @@ void UIWizardNewVMExpertPage::sltRetranslateUI()
 {
     if (m_pUnattendedCheckBox)
     {
-        m_pUnattendedCheckBox->setText(UIWizardNewVM::tr("&Proceed with Unattended Installation"));
-        m_pUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("When checked, the unattended install is enabled."));
+        m_pUnattendedCheckBox->setText(UIWizardNewVM::tr("&Install OS Using Unattended Installation."));
+        m_pUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("The ISO is attached to the VM, so you can install the OS manually."));
     }
 
     if (m_pToolBox)

@@ -212,8 +212,8 @@ void UIToolsView::preparePalette()
     QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
     if (!tools()->isPopup())
         backgroundColor = uiCommon().isInDarkMode()
-                        ? backgroundColor.lighter(120)
-                        : backgroundColor.darker(120);
+                        ? backgroundColor.lighter(130)
+                        : backgroundColor.darker(110);
     pal.setColor(QPalette::Active, QPalette::Base, backgroundColor);
     pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColor);
     setPalette(pal);

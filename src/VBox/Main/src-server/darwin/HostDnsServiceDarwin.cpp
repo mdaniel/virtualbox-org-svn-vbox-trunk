@@ -114,11 +114,16 @@ void HostDnsServiceDarwin::uninit(void)
     HostDnsServiceBase::uninit();
 
     CFRelease(m->m_SourceStop);
+    m->m_SourceStop = NULL;
     CFRelease(m->m_RunLoopRef);
+    m->m_RunLoopRef = NULL;
     CFRelease(m->m_DnsWatcher);
+    m->m_DnsWatcher = NULL;
     CFRelease(m->m_store);
+    m->m_store = NULL;
 
     RTSemEventDestroy(m->m_evtStop);
+    m->m_evtStop = NIL_RTSEMEVENT;
 }
 
 int HostDnsServiceDarwin::monitorThreadShutdown(RTMSINTERVAL uTimeoutMs)
@@ -130,6 +135,7 @@ int HostDnsServiceDarwin::monitorThreadShutdown(RTMSINTERVAL uTimeoutMs)
         CFRunLoopSourceSignal(m->m_SourceStop);
         CFRunLoopStop(m->m_RunLoopRef);
 
+        grab.release(); /* bird 2025-01-31: May deadlock otherwise since hostDnsServiceStoreCallback takes the lock. */
         RTSemEventWait(m->m_evtStop, uTimeoutMs);
     }
 
@@ -162,7 +168,7 @@ int HostDnsServiceDarwin::monitorThreadProc(void)
     onMonitorThreadInitDone();
 
     /* Trigger initial update. */
-    int vrc = updateInfo();
+    int vrc = updateInfo(); /** @todo r=bird: Not holding the lock here, unlike what hostDnsServiceStoreCallback does... */
     AssertRC(vrc); /* Not fatal in release builds. */  /** @todo r=bird: The function always returns VINF_SUCCESS. */
 
     while (!ASMAtomicReadBool(&m->m_fStop))

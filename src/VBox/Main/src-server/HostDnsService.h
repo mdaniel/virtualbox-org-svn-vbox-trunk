@@ -61,6 +61,7 @@ public:
 
 /**
  * Base class for host DNS service implementations.
+ *
  * This class supposed to be a real DNS monitor object as a singleton,
  * so it lifecycle starts and ends together with VBoxSVC.
  */
@@ -117,6 +118,7 @@ public: /** @todo r=andy Why is this public? */
  * This class supposed to be a proxy for events on changing Host Name Resolving configurations.
  */
 class HostDnsMonitorProxy
+    : public Lockable
 {
 public:
 
@@ -133,17 +135,18 @@ public:
     HRESULT GetDomainName(com::Utf8Str *pDomainName);
     HRESULT GetSearchStrings(std::vector<com::Utf8Str> &aSearchStrings);
 
+    LockHandle *lockHandle() const RT_OVERRIDE;
+
 private:
 
-    void pollGlobalExtraData(void);
+    uint32_t pollGlobalExtraData(AutoWriteLock &aLock);
     bool updateInfo(const HostDnsInformation &info);
 
 private:
-
-    mutable RTCLockMtx m_LockMtx;
-
     struct Data;
     Data *m;
+    /** Object lock object. */
+    mutable util::RWLockHandle m_ObjectLock;
 };
 
 # if defined(RT_OS_DARWIN) || defined(DOXYGEN_RUNNING)
@@ -161,8 +164,8 @@ public:
 
 protected:
 
-    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs);
-    int monitorThreadProc(void);
+    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs) RT_OVERRIDE;
+    int monitorThreadProc(void) RT_OVERRIDE;
 
 private:
 
@@ -186,8 +189,8 @@ public:
 
 protected:
 
-    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs);
-    int monitorThreadProc(void);
+    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs) RT_OVERRIDE;
+    int monitorThreadProc(void) RT_OVERRIDE;
 
 private:
 
@@ -237,7 +240,8 @@ public:
 
 public:
 
-    virtual HRESULT init(HostDnsMonitorProxy *pProxy) {
+    virtual HRESULT init(HostDnsMonitorProxy *pProxy)
+    {
         return HostDnsServiceResolvConf::init(pProxy, "/etc/resolv.conf");
     }
 };
@@ -257,8 +261,8 @@ public:
 
 protected:
 
-    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs);
-    int monitorThreadProc(void);
+    int monitorThreadShutdown(RTMSINTERVAL uTimeoutMs) RT_OVERRIDE;
+    int monitorThreadProc(void) RT_OVERRIDE;
 
     /** Socket end to write shutdown notification to, so the monitor thread will
      *  wake up and terminate. */

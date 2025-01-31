@@ -710,16 +710,25 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Selection background: */
         if (model()->currentItem() == this)
         {
-            /* Prepare color: */
+            /* Acquire token color: */
             const QColor highlightColor = isEnabled()
                                         ? pal.color(QPalette::Active, QPalette::Highlight)
                                         : pal.color(QPalette::Disabled, QPalette::Highlight);
+            const QColor highlightColor1 = uiCommon().isInDarkMode()
+                                         ? highlightColor.lighter(m_iHighlightLightnessStart + 20)
+                                         : highlightColor.darker(m_iHighlightLightnessStart);
+            const QColor highlightColor2 = uiCommon().isInDarkMode()
+                                         ? highlightColor.lighter(m_iHighlightLightnessFinal + 20)
+                                         : highlightColor.darker(m_iHighlightLightnessFinal);
+
+            /* Prepare token sub-rect: */
             QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
                             QSize(4, rectangle.height() - 8));
+
             /* Draw gradient token: */
             QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
-            hlGrad.setColorAt(0, highlightColor.darker(m_iHighlightLightnessStart));
-            hlGrad.setColorAt(1, highlightColor.darker(m_iHighlightLightnessFinal));
+            hlGrad.setColorAt(0, highlightColor1);
+            hlGrad.setColorAt(1, highlightColor2);
             pPainter->fillRect(tokenRect, hlGrad);
         }
     }

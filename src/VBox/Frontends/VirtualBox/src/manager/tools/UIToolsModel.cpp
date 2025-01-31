@@ -482,14 +482,13 @@ void UIToolsModel::sltFocusItemDestroyed()
 
 void UIToolsModel::prepare()
 {
-    /* Prepare scene: */
+    /* Prepare everything: */
     prepareScene();
-    /* Prepare items: */
     prepareItems();
+    prepareConnections();
+
     /* Apply language settings: */
     sltRetranslateUI();
-    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
-            this, &UIToolsModel::sltRetranslateUI);
 }
 
 void UIToolsModel::prepareScene()
@@ -577,6 +576,13 @@ void UIToolsModel::prepareItems()
         default:
             break;
     }
+}
+
+void UIToolsModel::prepareConnections()
+{
+    /* Translation stuff: */
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIToolsModel::sltRetranslateUI);
 }
 
 void UIToolsModel::loadSettings()

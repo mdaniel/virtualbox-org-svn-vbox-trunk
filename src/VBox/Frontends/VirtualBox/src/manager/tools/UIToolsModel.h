@@ -216,6 +216,8 @@ private:
         void prepareScene();
         /** Prepares items. */
         void prepareItems();
+        /** Prepare connections. */
+        void prepareConnections();
         /** Loads settings. */
         void loadSettings();
 

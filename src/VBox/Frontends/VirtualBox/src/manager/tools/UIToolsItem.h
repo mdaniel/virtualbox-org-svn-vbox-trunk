@@ -112,6 +112,9 @@ public:
         /** Returns item type. */
         UIToolType itemType() const { return m_enmType; }
 
+        /** Returns whether item should have extra-button. */
+        bool hasExtraButton() const { return m_fExtraButton; }
+
         /** Defines whether item is @a fEnabled. */
         void setEnabled(bool fEnabled);
 

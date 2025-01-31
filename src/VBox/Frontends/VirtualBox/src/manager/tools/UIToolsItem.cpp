@@ -382,7 +382,8 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
     /* Paint extra-button if requested: */
-    if (m_fExtraButton)
+    if (   m_fExtraButton
+        && model()->isAtLeastOneItemHovered())
         paintExtraButton(pPainter, rectangle);
 }
 

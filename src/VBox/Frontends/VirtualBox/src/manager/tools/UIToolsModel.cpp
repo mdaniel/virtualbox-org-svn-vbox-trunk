@@ -318,6 +318,14 @@ UIToolsItem *UIToolsModel::item(UIToolType enmType) const
     return 0;
 }
 
+bool UIToolsModel::isAtLeastOneItemHovered() const
+{
+    foreach (UIToolsItem *pItem, items())
+        if (pItem->isHovered())
+            return true;
+    return false;
+}
+
 void UIToolsModel::updateLayout()
 {
     /* Prepare variables: */
@@ -450,6 +458,18 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     return QObject::eventFilter(pWatched, pEvent);
 }
 
+void UIToolsModel::sltHandleItemHoverChange()
+{
+    /* Just update all the items: */
+    foreach (UIToolsItem *pItem, items())
+        pItem->update();
+}
+
+void UIToolsModel::sltFocusItemDestroyed()
+{
+    AssertMsgFailed(("Focus item destroyed!"));
+}
+
 void UIToolsModel::sltRetranslateUI()
 {
     foreach (UIToolsItem *pItem, m_items)
@@ -473,11 +493,6 @@ void UIToolsModel::sltRetranslateUI()
             default: break;
         }
     }
-}
-
-void UIToolsModel::sltFocusItemDestroyed()
-{
-    AssertMsgFailed(("Focus item destroyed!"));
 }
 
 void UIToolsModel::prepare()
@@ -508,7 +523,8 @@ void UIToolsModel::prepareItems()
             /* Welcome: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
                                                                     ":/welcome_screen_24px.png"),
-                                       UIToolClass_Global, UIToolType_Welcome);
+                                       UIToolClass_Global, UIToolType_Welcome,
+                                       !tools()->isPopup() /* extra-button */);
 
             /* Extensions: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
@@ -583,6 +599,15 @@ void UIToolsModel::prepareConnections()
     /* Translation stuff: */
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIToolsModel::sltRetranslateUI);
+
+    /* Connect item hover listeners: */
+    foreach (UIToolsItem *pItem, m_items)
+    {
+        connect(pItem, &UIToolsItem::sigHoverEnter,
+                this, &UIToolsModel::sltHandleItemHoverChange);
+        connect(pItem, &UIToolsItem::sigHoverLeave,
+                this, &UIToolsModel::sltHandleItemHoverChange);
+    }
 }
 
 void UIToolsModel::loadSettings()

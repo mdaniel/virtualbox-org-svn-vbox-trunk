@@ -511,7 +511,7 @@ static RTEXITCODE handleWaitGuestProperty(HandlerArg *a)
         }
 
         ComPtr<IEvent> ev;
-        hrc = es->GetEvent(listener, cMsWait, ev.asOutParam());
+        hrc = es->GetEvent(listener, (LONG)cMsWait, ev.asOutParam());
         if (ev) /** @todo r=andy Why not using SUCCEEDED(hrc) here? */
         {
             VBoxEventType_T aType;

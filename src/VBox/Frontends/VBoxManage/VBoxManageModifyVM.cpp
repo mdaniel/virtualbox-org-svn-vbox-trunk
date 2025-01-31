@@ -602,7 +602,7 @@ void parseGroups(const char *pcszGroups, com::SafeArray<BSTR> *pGroups)
         char *pComma = RTStrStr(pcszGroups, ",");
         if (pComma)
         {
-            Bstr(pcszGroups, pComma - pcszGroups).detachTo(pGroups->appendedRaw());
+            Bstr(pcszGroups, (size_t)(pComma - pcszGroups)).detachTo(pGroups->appendedRaw());
             pcszGroups = pComma + 1;
         }
         else
@@ -655,7 +655,7 @@ static int parseNum(uint32_t uIndex, unsigned cMaxIndex, const char *pszName)
 {
     if (   uIndex >= 1
         && uIndex <= cMaxIndex)
-        return uIndex;
+        return (int)uIndex;
     errorArgument(ModifyVM::tr("Invalid %s number %u"), pszName, uIndex);
     return 0;
 }
@@ -1307,7 +1307,7 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
 
                 if (!RTStrICmp(ValueUnion.psz, "none"))
                 {
-                    sessionMachine->DetachDevice(bstrController.raw(), u1, u2);
+                    sessionMachine->DetachDevice(bstrController.raw(), (LONG)u1, (LONG)u2);
                 }
                 else
                 {
@@ -1321,7 +1321,7 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                     if (hardDisk)
                     {
                         CHECK_ERROR(sessionMachine, AttachDevice(bstrController.raw(),
-                                                          u1, u2,
+                                                          (LONG)u1, (LONG)u2,
                                                           DeviceType_HardDisk,
                                                           hardDisk));
                     }
@@ -1390,10 +1390,10 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                 if (!RTStrICmp(ValueUnion.psz, "none"))
                 {
                     hrc = sessionMachine->DetachDevice(Bstr("LsiLogic").raw(),
-                                               GetOptState.uIndex, 0);
+                                               (LONG)GetOptState.uIndex, 0);
                     if (FAILED(hrc))
                         CHECK_ERROR(sessionMachine, DetachDevice(Bstr("BusLogic").raw(),
-                                                          GetOptState.uIndex, 0));
+                                                          (LONG)GetOptState.uIndex, 0));
                 }
                 else
                 {
@@ -1407,13 +1407,13 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                     if (hardDisk)
                     {
                         hrc = sessionMachine->AttachDevice(Bstr("LsiLogic").raw(),
-                                                   GetOptState.uIndex, 0,
+                                                   (LONG)GetOptState.uIndex, 0,
                                                    DeviceType_HardDisk,
                                                    hardDisk);
                         if (FAILED(hrc))
                             CHECK_ERROR(sessionMachine,
                                         AttachDevice(Bstr("BusLogic").raw(),
-                                                     GetOptState.uIndex, 0,
+                                                     (LONG)GetOptState.uIndex, 0,
                                                      DeviceType_HardDisk,
                                                      hardDisk));
                     }

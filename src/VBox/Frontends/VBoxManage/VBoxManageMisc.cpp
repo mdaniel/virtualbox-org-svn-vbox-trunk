@@ -594,7 +594,7 @@ static int parseCloneOptions(const char *psz, com::SafeArray<CloneOptions_T> *op
         size_t len;
         const char *pszComma = strchr(psz, ',');
         if (pszComma)
-            len = pszComma - psz;
+            len = (size_t)(pszComma - psz);
         else
             len = strlen(psz);
         if (len > 0)
@@ -942,7 +942,7 @@ RTEXITCODE handleStartVM(HandlerArg *a)
                                     ProgressErrorInfo info(progress);
                                     com::GluePrintErrorInfo(info);
                                 }
-                                hrc = iRc;
+                                hrc = (HRESULT)iRc;
                             }
                         }
                     }
@@ -2707,7 +2707,7 @@ static RTEXITCODE handleUnattendedInstall(HandlerArg *a)
                             ProgressErrorInfo info(ptrProgress);
                             com::GluePrintErrorInfo(info);
                         }
-                        hrc = iRc;
+                        hrc = (HRESULT)iRc;
                     }
                 }
             }

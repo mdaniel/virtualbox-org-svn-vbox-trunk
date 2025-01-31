@@ -105,7 +105,7 @@ static int parseImportOptions(const char *psz, com::SafeArray<ImportOptions_T> *
         size_t len;
         const char *pszComma = strchr(psz, ',');
         if (pszComma)
-            len = pszComma - psz;
+            len = (size_t)(pszComma - psz);
         else
             len = strlen(psz);
         if (len > 0)
@@ -1463,7 +1463,7 @@ static int parseExportOptions(const char *psz, com::SafeArray<ExportOptions_T> *
         size_t len;
         const char *pszComma = strchr(psz, ',');
         if (pszComma)
-            len = pszComma - psz;
+            len = (size_t)(pszComma - psz);
         else
             len = strlen(psz);
         if (len > 0)

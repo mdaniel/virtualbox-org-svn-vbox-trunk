@@ -83,7 +83,7 @@ static int parseMediumVariant(const char *psz, MediumVariant_T *pMediumVariant)
         size_t len;
         const char *pszComma = strchr(psz, ',');
         if (pszComma)
-            len = pszComma - psz;
+            len = (size_t)(pszComma - psz);
         else
             len = strlen(psz);
         if (len > 0)
@@ -621,7 +621,7 @@ RTEXITCODE handleCreateMedium(HandlerArg *a)
         }
 
         if (fBase)
-            CHECK_ERROR(pMedium, CreateBaseStorage(size, ComSafeArrayAsInParam(l_variants), pProgress.asOutParam()));
+            CHECK_ERROR(pMedium, CreateBaseStorage((LONG64)size, ComSafeArrayAsInParam(l_variants), pProgress.asOutParam()));
         else
             CHECK_ERROR(pParentMedium, CreateDiffStorage(pMedium, ComSafeArrayAsInParam(l_variants), pProgress.asOutParam()));
         if (SUCCEEDED(hrc) && pProgress)
@@ -928,7 +928,7 @@ RTEXITCODE handleModifyMedium(HandlerArg *a)
     if (fModifyResize)
     {
         ComPtr<IProgress> pProgress;
-        CHECK_ERROR(pMedium, Resize(cbResize, pProgress.asOutParam()));
+        CHECK_ERROR(pMedium, Resize((LONG64)cbResize, pProgress.asOutParam()));
         if (SUCCEEDED(hrc))
             hrc = showProgress(pProgress);
         if (FAILED(hrc))
@@ -1196,7 +1196,7 @@ RTEXITCODE handleCloneMedium(HandlerArg *a)
 
         if (fNeedResize)
         {
-            CHECK_ERROR_BREAK(pSrcMedium, ResizeAndCloneTo(pDstMedium, cbResize, ComSafeArrayAsInParam(l_variants), NULL, pProgress.asOutParam()));
+            CHECK_ERROR_BREAK(pSrcMedium, ResizeAndCloneTo(pDstMedium, (LONG64)cbResize, ComSafeArrayAsInParam(l_variants), NULL, pProgress.asOutParam()));
         }
         else
         {
@@ -2288,7 +2288,7 @@ static RTEXITCODE mediumIOOpenMediumForIO(HandlerArg *pHandler, PCMEDIUMIOCOMMON
         {
             LONG64 cbLogical = 0;
             CHECK_ERROR2I_STMT(ptrMedium, COMGETTER(LogicalSize)(&cbLogical), hrc = hrcCheck);
-            *pcbMedium = cbLogical;
+            *pcbMedium = (uint64_t)cbLogical;
             if (!SUCCEEDED(hrc))
                 rPtrMediumIO.setNull();
         }
@@ -2456,7 +2456,7 @@ static RTEXITCODE handleMediumIOCat(HandlerArg *a, int iFirst, PMEDIUMIOCOMMONOP
                 /* Do the reading. */
                 uint32_t const  cbToRead = (uint32_t)RT_MIN(cb, _128K);
                 SafeArray<BYTE> SafeArrayBuf;
-                HRESULT hrc = ptrMediumIO->Read(off, cbToRead, ComSafeArrayAsOutParam(SafeArrayBuf));
+                HRESULT hrc = ptrMediumIO->Read((LONG64)off, cbToRead, ComSafeArrayAsOutParam(SafeArrayBuf));
                 if (FAILED(hrc))
                 {
                     RTStrPrintf(szLine, sizeof(szLine), Disk::tr("Read(%zu bytes at %#RX64)", "", cbToRead), cbToRead, off);
@@ -2513,7 +2513,7 @@ static RTEXITCODE handleMediumIOCat(HandlerArg *a, int iFirst, PMEDIUMIOCOMMONOP
                                 for (i = 0; i < cchWidth && offHex + i < offHexEnd; i++)
                                 {
                                     uint8_t const u8 = pbBuf[i];
-                                    szLine[cch++] = u8 < 127 && u8 >= 32 ? u8 : '.';
+                                    szLine[cch++] = u8 < 127 && u8 >= 32 ? (char)u8 : '.';
                                 }
                                 szLine[cch++] = '\n';
                                 szLine[cch]   = '\0';

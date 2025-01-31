@@ -410,7 +410,6 @@ static RTEXITCODE handleMetricsCollect(int argc, char *argv[],
     uint32_t period = 1, samples = 1;
     bool isDetached = false, listMatches = false;
     int i;
-
     setCurrentSubcommand(HELP_SCOPE_METRICS_COLLECT);
 
     for (i = 1; i < argc; i++)
@@ -459,21 +458,23 @@ static RTEXITCODE handleMetricsCollect(int argc, char *argv[],
     std::set<std::pair<ComPtr<IUnknown>,Bstr> > baseMetrics;
     ComPtr<IUnknown> objectFiltered;
     Bstr metricNameFiltered;
-    for (i = 0; i < (int)metricInfo.size(); i++)
+
+    for (size_t j = 0; j < metricInfo.size(); j++)
     {
-        CHECK_ERROR(metricInfo[i], COMGETTER(Object)(objectFiltered.asOutParam()));
-        CHECK_ERROR(metricInfo[i], COMGETTER(MetricName)(metricNameFiltered.asOutParam()));
+        CHECK_ERROR(metricInfo[j], COMGETTER(Object)(objectFiltered.asOutParam()));
+        CHECK_ERROR(metricInfo[j], COMGETTER(MetricName)(metricNameFiltered.asOutParam()));
         Utf8Str baseMetricName(metricNameFiltered);
         baseMetrics.insert(std::make_pair(objectFiltered, toBaseName(baseMetricName)));
     }
     com::SafeArray<BSTR>          baseMetricsFiltered(baseMetrics.size());
     com::SafeIfaceArray<IUnknown> objectsFiltered(baseMetrics.size());
     std::set<std::pair<ComPtr<IUnknown>,Bstr> >::iterator it;
-    i = 0;
+
+    size_t n = 0;
     for (it = baseMetrics.begin(); it != baseMetrics.end(); ++it)
     {
-        it->first.queryInterfaceTo(&objectsFiltered[i]);
-        Bstr(it->second).detachTo(&baseMetricsFiltered[i++]);
+        it->first.queryInterfaceTo(&objectsFiltered[n]);
+        Bstr(it->second).detachTo(&baseMetricsFiltered[n++]);
     }
     com::SafeIfaceArray<IPerformanceMetric> affectedMetrics;
     CHECK_ERROR(performanceCollector,

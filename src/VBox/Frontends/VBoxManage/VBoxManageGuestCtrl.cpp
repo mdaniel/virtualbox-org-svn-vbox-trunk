@@ -1565,7 +1565,7 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
                         RTPrintf(GuestCtrl::tr("Exit code=%u (Status=%u [%s])\n"),
                                  lExitCode, procStatus, gctlProcessStatusToText(procStatus));
 
-                    rcExit = gctlRunCalculateExitCode(procStatus, lExitCode, true /*fReturnExitCodes*/);
+                    rcExit = gctlRunCalculateExitCode(procStatus, (ULONG)lExitCode, true /*fReturnExitCodes*/);
                 }
                 else if (   procStatus == ProcessStatus_TimedOutKilled
                          || procStatus == ProcessStatus_TimedOutAbnormally)
@@ -1703,7 +1703,7 @@ static RTEXITCODE gctlHandleCopy(PGCTLCMDCTX pCtx, int argc, char **argv, bool f
     }
 
     char **papszSources = RTGetOptNonOptionArrayPtr(&GetState);
-    size_t cSources = &argv[argc] - papszSources;
+    size_t cSources = (size_t)(&argv[argc] - papszSources);
 
     if (!cSources)
         return errorSyntax(GuestCtrl::tr("No sources specified!"));

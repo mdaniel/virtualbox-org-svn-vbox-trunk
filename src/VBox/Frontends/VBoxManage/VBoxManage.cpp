@@ -485,7 +485,7 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
     }
 
     /* complete the line. */
-    LONG iRc = E_FAIL;
+    LONG iRc = (LONG)E_FAIL;
     hrc = progress->COMGETTER(ResultCode)(&iRc);
     if (SUCCEEDED(hrc))
     {
@@ -509,7 +509,7 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
             else if (fFlags != SHOW_PROGRESS_NONE)
                 RTStrmPrintf(g_pStdErr, "%Rhrc\n", iRc);
         }
-        hrc = iRc;
+        hrc = (HRESULT)iRc;
     }
     else
     {

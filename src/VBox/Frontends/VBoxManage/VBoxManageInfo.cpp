@@ -338,7 +338,7 @@ static void makeTimeStr(char *s, int cb, int64_t millies)
 
     RTTimeExplode(&t, &ts);
 
-    RTStrPrintf(s, cb, "%04d/%02d/%02d %02d:%02d:%02d UTC",
+    RTStrPrintf(s, (size_t)cb, "%04d/%02d/%02d %02d:%02d:%02d UTC",
                         t.i32Year, t.u8Month, t.u8MonthDay,
                         t.u8Hour, t.u8Minute, t.u8Second);
 }
@@ -486,7 +486,7 @@ static void outputMachineReadableStringWorker(const char *psz)
             RTStrmWrite(g_pStdOut, psz, strlen(psz));
             break;
         }
-        RTStrmWrite(g_pStdOut, psz, pszNext - psz);
+        RTStrmWrite(g_pStdOut, psz, (size_t)(pszNext - psz));
         char const szTmp[2] = { '\\', *pszNext };
         RTStrmWrite(g_pStdOut, szTmp, sizeof(szTmp));
 
@@ -909,7 +909,7 @@ static HRESULT showMediumAttachments(ComPtr<IMachine> &machine, ComPtr<IStorageC
         for (ULONG k = 0; k < cDevices; ++ k)
         {
             ComPtr<IMediumAttachment> mediumAttach;
-            HRESULT hrc = machine->GetMediumAttachment(bstrStorageCtlName.raw(), i, k, mediumAttach.asOutParam());
+            HRESULT hrc = machine->GetMediumAttachment(bstrStorageCtlName.raw(), (LONG)i, (LONG)k, mediumAttach.asOutParam());
             if (!SUCCEEDED(hrc) && hrc != VBOX_E_OBJECT_NOT_FOUND)
             {
                 com::GlueHandleComError(machine, "GetMediumAttachment", hrc, __FILE__, __LINE__);
@@ -933,7 +933,7 @@ static HRESULT showMediumAttachments(ComPtr<IMachine> &machine, ComPtr<IStorageC
             }
 
             ComPtr<IMedium> medium;
-            hrc = machine->GetMedium(bstrStorageCtlName.raw(), i, k, medium.asOutParam());
+            hrc = machine->GetMedium(bstrStorageCtlName.raw(), (LONG)i, (LONG)k, medium.asOutParam());
             if (SUCCEEDED(hrc) && medium)
             {
                 BOOL fPassthrough = FALSE;
@@ -3276,7 +3276,7 @@ RTEXITCODE handleShowVMInfo(HandlerArg *a)
             /* Reset the array */
             aLogData.setNull();
             /* Fetch a chunk of the log file */
-            CHECK_ERROR_BREAK(machine, ReadLog(uLogIdx, uOffset, _1M,
+            CHECK_ERROR_BREAK(machine, ReadLog(uLogIdx, (LONG64)uOffset, _1M,
                                                ComSafeArrayAsOutParam(aLogData)));
             cbLogData = aLogData.size();
             if (cbLogData == 0)

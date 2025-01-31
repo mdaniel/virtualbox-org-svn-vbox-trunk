@@ -1556,8 +1556,8 @@ RTEXITCODE handleControlVM(HandlerArg *a)
                     }
 
                     aChangeOrigin = TRUE;
-                    aOriginX      = RTStrToUInt32(argv[2]);
-                    aOriginY      = RTStrToUInt32(argv[3]);
+                    aOriginX      = (LONG)RTStrToUInt32(argv[2]);/* Explicit conversion */
+                    aOriginY      = (LONG)RTStrToUInt32(argv[3]);/* Explicit conversion */
                     aWidth        = RTStrToUInt32(argv[4]);
                     aHeight       = RTStrToUInt32(argv[5]);
                     aBitsPerPixel = RTStrToUInt32(argv[6]);

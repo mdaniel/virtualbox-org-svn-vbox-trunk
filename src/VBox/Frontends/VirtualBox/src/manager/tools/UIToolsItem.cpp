@@ -436,8 +436,9 @@ void UIToolsItem::prepare()
     setFocusPolicy(Qt::NoFocus);
     setFlag(QGraphicsItem::ItemIsSelectable, false);
 
-    /* Prepare hover animation: */
-    prepareHoverAnimation();
+    /* Prepare hover animation for popup mode only: */
+    if (model()->tools()->isPopup())
+        prepareHoverAnimation();
     /* Prepare connections: */
     prepareConnections();
 
@@ -730,6 +731,37 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             hlGrad.setColorAt(0, highlightColor1);
             hlGrad.setColorAt(1, highlightColor2);
             pPainter->fillRect(tokenRect, hlGrad);
+        }
+
+        /* Hovering background for widget: */
+        if (isHovered())
+        {
+            /* Configure painter: */
+            pPainter->setRenderHint(QPainter::Antialiasing, true);
+            /* Acquire background color: */
+            const QColor backgroundColor = pal.color(QPalette::Window);
+
+            /* Prepare icon sub-rect: */
+            QRect subRect;
+            subRect.setHeight(24 + 4 * 2);
+            subRect.setWidth(subRect.height());
+            subRect.moveCenter(rectangle.center());
+
+            /* Paint icon frame: */
+            QPainterPath painterPath;
+            painterPath.addRoundedRect(subRect, 4, 4);
+            const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                          ? backgroundColor.lighter(110)
+                                          : backgroundColor.darker(105);
+            pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
+            pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+
+            /* Fill icon body: */
+            pPainter->setClipPath(painterPath);
+            const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                          ? backgroundColor.lighter(180)
+                                          : backgroundColor.darker(140);
+            pPainter->fillRect(subRect, backgroundColor2);
         }
     }
 

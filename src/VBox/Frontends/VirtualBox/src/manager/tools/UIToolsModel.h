@@ -129,7 +129,7 @@ public:
         /** Returns the item of passed @a enmType. */
         UIToolsItem *item(UIToolType enmType) const;
 
-        /** Returns whether at least one item hovered: */
+        /** Returns whether at least one item hovered. */
         bool isAtLeastOneItemHovered() const;
     /** @} */
 

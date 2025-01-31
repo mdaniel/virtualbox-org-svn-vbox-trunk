@@ -609,51 +609,107 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     /* Prepare variables: */
     const QPalette pal = QApplication::palette();
 
-    /* Selection background for popup: */
-    if (   model()->currentItem() == this
-        && model()->tools()->isPopup())
+    /* For popup: */
+    if (model()->tools()->isPopup())
     {
-        /* Prepare color: */
-        const QColor backgroundColor = isEnabled()
-                                     ? pal.color(QPalette::Active, QPalette::Highlight)
-                                     : pal.color(QPalette::Disabled, QPalette::Window);
-        /* Draw gradient: */
-        QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-        bgGrad.setColorAt(0, backgroundColor.lighter(m_iHighlightLightnessStart));
-        bgGrad.setColorAt(1, backgroundColor.lighter(m_iHighlightLightnessFinal));
-        pPainter->fillRect(rectangle, bgGrad);
-
-        if (isEnabled() && isHovered())
+        /* Selection background: */
+        if (model()->currentItem() == this)
         {
             /* Prepare color: */
-            QColor animationColor1 = QColor(Qt::white);
-            QColor animationColor2 = QColor(Qt::white);
+            const QColor backgroundColor = isEnabled()
+                                         ? pal.color(QPalette::Active, QPalette::Highlight)
+                                         : pal.color(QPalette::Disabled, QPalette::Window);
+            /* Draw gradient: */
+            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
+            bgGrad.setColorAt(0, backgroundColor.lighter(m_iHighlightLightnessStart));
+            bgGrad.setColorAt(1, backgroundColor.lighter(m_iHighlightLightnessFinal));
+            pPainter->fillRect(rectangle, bgGrad);
+
+            if (isEnabled() && isHovered())
+            {
+                /* Prepare color: */
+                QColor animationColor1 = QColor(Qt::white);
+                QColor animationColor2 = QColor(Qt::white);
 #ifdef VBOX_WS_MAC
-            animationColor1.setAlpha(90);
+                animationColor1.setAlpha(90);
 #else
-            animationColor1.setAlpha(30);
+                animationColor1.setAlpha(30);
 #endif
-            animationColor2.setAlpha(0);
-            /* Draw hovering animated gradient: */
-            QRect animatedRect = rectangle;
-            animatedRect.setWidth(animatedRect.height());
-            const int iLength = 2 * animatedRect.width() + rectangle.width();
-            const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
-            animatedRect.moveLeft(iShift);
-            QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
-            bgAnimatedGrad.setColorAt(0,   animationColor2);
-            bgAnimatedGrad.setColorAt(0.1, animationColor2);
-            bgAnimatedGrad.setColorAt(0.5, animationColor1);
-            bgAnimatedGrad.setColorAt(0.9, animationColor2);
-            bgAnimatedGrad.setColorAt(1,   animationColor2);
-            pPainter->fillRect(rectangle, bgAnimatedGrad);
+                animationColor2.setAlpha(0);
+                /* Draw hovering animated gradient: */
+                QRect animatedRect = rectangle;
+                animatedRect.setWidth(animatedRect.height());
+                const int iLength = 2 * animatedRect.width() + rectangle.width();
+                const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
+                animatedRect.moveLeft(iShift);
+                QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
+                bgAnimatedGrad.setColorAt(0,   animationColor2);
+                bgAnimatedGrad.setColorAt(0.1, animationColor2);
+                bgAnimatedGrad.setColorAt(0.5, animationColor1);
+                bgAnimatedGrad.setColorAt(0.9, animationColor2);
+                bgAnimatedGrad.setColorAt(1,   animationColor2);
+                pPainter->fillRect(rectangle, bgAnimatedGrad);
+            }
+        }
+        /* Hovering background: */
+        else if (isHovered())
+        {
+            /* Prepare color: */
+            const QColor backgroundColor = isEnabled()
+                                         ? pal.color(QPalette::Active, QPalette::Highlight)
+                                         : pal.color(QPalette::Disabled, QPalette::Window);
+            /* Draw gradient: */
+            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
+            bgGrad.setColorAt(0, backgroundColor.lighter(m_iHoverLightnessStart));
+            bgGrad.setColorAt(1, backgroundColor.lighter(m_iHoverLightnessFinal));
+            pPainter->fillRect(rectangle, bgGrad);
+
+            if (isEnabled())
+            {
+                /* Prepare color: */
+                QColor animationColor1 = QColor(Qt::white);
+                QColor animationColor2 = QColor(Qt::white);
+#ifdef VBOX_WS_MAC
+                animationColor1.setAlpha(120);
+#else
+                animationColor1.setAlpha(50);
+#endif
+                animationColor2.setAlpha(0);
+                /* Draw hovering animated gradient: */
+                QRect animatedRect = rectangle;
+                animatedRect.setWidth(animatedRect.height());
+                const int iLength = 2 * animatedRect.width() + rectangle.width();
+                const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
+                animatedRect.moveLeft(iShift);
+                QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
+                bgAnimatedGrad.setColorAt(0,   animationColor2);
+                bgAnimatedGrad.setColorAt(0.1, animationColor2);
+                bgAnimatedGrad.setColorAt(0.5, animationColor1);
+                bgAnimatedGrad.setColorAt(0.9, animationColor2);
+                bgAnimatedGrad.setColorAt(1,   animationColor2);
+                pPainter->fillRect(rectangle, bgAnimatedGrad);
+            }
+        }
+        /* Default background: */
+        else
+        {
+            /* Prepare color: */
+            const QColor backgroundColor = isEnabled()
+                                         ? pal.color(QPalette::Active, QPalette::Window)
+                                         : pal.color(QPalette::Disabled, QPalette::Window);
+            /* Draw gradient: */
+            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
+            bgGrad.setColorAt(0, backgroundColor.lighter(m_iDefaultLightnessStart));
+            bgGrad.setColorAt(1, backgroundColor.lighter(m_iDefaultLightnessFinal));
+            pPainter->fillRect(rectangle, bgGrad);
         }
     }
-    /* Selection background for widget: */
-    else if (   model()->currentItem() == this
-             && !model()->tools()->isPopup())
-
+    /* For widget: */
+    else
     {
+        /* Selection background: */
+        if (model()->currentItem() == this)
+        {
             /* Prepare color: */
             const QColor highlightColor = isEnabled()
                                         ? pal.color(QPalette::Active, QPalette::Highlight)
@@ -665,58 +721,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             hlGrad.setColorAt(0, highlightColor.darker(m_iHighlightLightnessStart));
             hlGrad.setColorAt(1, highlightColor.darker(m_iHighlightLightnessFinal));
             pPainter->fillRect(tokenRect, hlGrad);
-    }
-    /* Hovering background: */
-    else if (isHovered())
-    {
-        /* Prepare color: */
-        const QColor backgroundColor = isEnabled()
-                                     ? pal.color(QPalette::Active, QPalette::Highlight)
-                                     : pal.color(QPalette::Disabled, QPalette::Window);
-        /* Draw gradient: */
-        QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-        bgGrad.setColorAt(0, backgroundColor.lighter(m_iHoverLightnessStart));
-        bgGrad.setColorAt(1, backgroundColor.lighter(m_iHoverLightnessFinal));
-        pPainter->fillRect(rectangle, bgGrad);
-
-        if (isEnabled())
-        {
-            /* Prepare color: */
-            QColor animationColor1 = QColor(Qt::white);
-            QColor animationColor2 = QColor(Qt::white);
-#ifdef VBOX_WS_MAC
-            animationColor1.setAlpha(120);
-#else
-            animationColor1.setAlpha(50);
-#endif
-            animationColor2.setAlpha(0);
-            /* Draw hovering animated gradient: */
-            QRect animatedRect = rectangle;
-            animatedRect.setWidth(animatedRect.height());
-            const int iLength = 2 * animatedRect.width() + rectangle.width();
-            const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
-            animatedRect.moveLeft(iShift);
-            QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
-            bgAnimatedGrad.setColorAt(0,   animationColor2);
-            bgAnimatedGrad.setColorAt(0.1, animationColor2);
-            bgAnimatedGrad.setColorAt(0.5, animationColor1);
-            bgAnimatedGrad.setColorAt(0.9, animationColor2);
-            bgAnimatedGrad.setColorAt(1,   animationColor2);
-            pPainter->fillRect(rectangle, bgAnimatedGrad);
         }
-    }
-    /* Default background for popup only: */
-    else if (model()->tools()->isPopup())
-    {
-        /* Prepare color: */
-        const QColor backgroundColor = isEnabled()
-                                     ? pal.color(QPalette::Active, QPalette::Window)
-                                     : pal.color(QPalette::Disabled, QPalette::Window);
-        /* Draw gradient: */
-        QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-        bgGrad.setColorAt(0, backgroundColor.lighter(m_iDefaultLightnessStart));
-        bgGrad.setColorAt(1, backgroundColor.lighter(m_iDefaultLightnessFinal));
-        pPainter->fillRect(rectangle, bgGrad);
     }
 
     /* Restore painter: */

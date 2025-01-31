@@ -83,12 +83,14 @@ signals:
 public:
 
     /** Constructs item on the basis of passed arguments.
-      * @param  pScene   Brings the scene reference to add item to.
-      * @param  icon     Brings the item icon.
-      * @param  enmClass Brings the item class.
-      * @param  enmType  Brings the item type. */
+      * @param  pScene        Brings the scene reference to add item to.
+      * @param  icon          Brings the item icon.
+      * @param  enmClass      Brings the item class.
+      * @param  enmType       Brings the item type.
+      * @param  fExtraButton  Brings whether item should have extra-button. */
     UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                UIToolClass enmClass, UIToolType enmType);
+                UIToolClass enmClass, UIToolType enmType,
+                bool fExtraButton = false);
     /** Destructs item. */
     virtual ~UIToolsItem() RT_OVERRIDE;
 
@@ -222,6 +224,9 @@ private:
         /** Paints tool info using using passed @a pPainter.
           * @param  rectangle  Brings the rectangle to limit painting with. */
         void paintToolInfo(QPainter *pPainter, const QRect &rectangle) const;
+        /** Paints extra-button using using passed @a pPainter.
+          * @param  rectangle  Brings the rectangle to limit painting with. */
+        void paintExtraButton(QPainter *pPainter, const QRect &rectangle) const;
 
         /** Paints @a pixmap using passed @a pPainter.
           * @param  pOptions  Brings the options set with painting data. */
@@ -248,6 +253,8 @@ private:
         UIToolClass     m_enmClass;
         /** Holds the item type. */
         UIToolType      m_enmType;
+        /** Holds whether item should have extra-button. */
+        bool            m_fExtraButton;
 
         /** Holds the item pixmap. */
         QPixmap  m_pixmap;

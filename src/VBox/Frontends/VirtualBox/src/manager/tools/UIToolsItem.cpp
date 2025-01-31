@@ -39,6 +39,7 @@
 #include <QWindow>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIImageTools.h"
 #include "UITools.h"
 #include "UIToolsItem.h"
@@ -185,11 +186,13 @@ private:
 *********************************************************************************************************************************/
 
 UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                         UIToolClass enmClass, UIToolType enmType)
+                         UIToolClass enmClass, UIToolType enmType,
+                         bool fExtraButton /* = false */)
     : m_pScene(pScene)
     , m_icon(icon)
     , m_enmClass(enmClass)
     , m_enmType(enmType)
+    , m_fExtraButton(fExtraButton)
     , m_fHovered(false)
     , m_pHoveringMachine(0)
     , m_pHoveringAnimationForward(0)
@@ -378,6 +381,9 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
         paintFrame(pPainter, rectangle);
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
+    /* Paint extra-button if requested: */
+    if (m_fExtraButton)
+        paintExtraButton(pPainter, rectangle);
 }
 
 void UIToolsItem::sltHandleWindowRemapped()
@@ -819,6 +825,48 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Text to paint: */
                       m_strName);
     }
+}
+
+void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) const
+{
+    /* Save painter: */
+    pPainter->save();
+
+    /* Configure painter: */
+    pPainter->setRenderHint(QPainter::Antialiasing, true);
+    /* Acquire background color: */
+    const QPalette pal = QApplication::palette();
+    QColor backgroundColor = pal.color(QPalette::Window);
+
+    /* Prepare button sub-rect: */
+    QRect subRect;
+    subRect.setWidth(rectangle.width() / 6);
+    subRect.setHeight(rectangle.height() / 2);
+    subRect.moveTopLeft(QPoint(rectangle.right() - subRect.width() - 2,
+                               rectangle.bottom() - 3 * rectangle.height() / 4 + 1));
+
+    /* Paint button frame: */
+    QPainterPath painterPath;
+    painterPath.addRoundedRect(subRect, 4, 4);
+    QColor backgroundColor1 = uiCommon().isInDarkMode()
+                            ? backgroundColor.lighter(110)
+                            : backgroundColor.darker(110);
+    pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
+    pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+
+    /* Fill button body: */
+    pPainter->setClipPath(painterPath);
+    QColor backgroundColor2 = uiCommon().isInDarkMode()
+                            ? backgroundColor.lighter(150)
+                            : backgroundColor.darker(150);
+    pPainter->fillRect(subRect, backgroundColor2);
+
+    /* Paint arrow: */
+    pPainter->drawLine(subRect.topLeft() + QPoint(3, 3), QPoint(subRect.right() - 2, subRect.center().y()));
+    pPainter->drawLine(subRect.bottomLeft() + QPoint(3, -3), QPoint(subRect.right() - 2, subRect.center().y()));
+
+    /* Restore painter: */
+    pPainter->restore();
 }
 
 /* static */

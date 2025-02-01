@@ -811,7 +811,7 @@ static DECLCALLBACK(int) rtAcpiTblAmlDecodeMethod(PRTACPITBLAMLDECODE pThis, RTV
 
     cbPkgConsumed += cchName;
 
-    uint8_t bMethod;
+    uint8_t bMethod = 0; /* shut up gcc */
     rc = rtAcpiTblAmlDecodeReadU8(pThis, &bMethod, pErrInfo);
     if (RT_FAILURE(rc))
         return rc;

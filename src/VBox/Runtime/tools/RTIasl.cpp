@@ -207,8 +207,8 @@ static RTEXITCODE RTCmdIasl(unsigned cArgs, char **papszArgs)
     };
 
     RTCMDIASLOPTS Opts;
-    Opts.enmInType              = RTACPITBLTYPE_INVALID;
-    Opts.enmOutType             = RTACPITBLTYPE_INVALID;
+    Opts.enmInType              = RTACPITBLTYPE_ASL;
+    Opts.enmOutType             = RTACPITBLTYPE_AML;
 
     RTEXITCODE      rcExit      = RTEXITCODE_SUCCESS;
     RTGETOPTSTATE GetState;

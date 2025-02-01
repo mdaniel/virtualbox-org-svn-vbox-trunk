@@ -421,19 +421,11 @@ static void rtScriptLexProduceTokEos(PRTSCRIPTLEXINT pThis, PRTSCRIPTLEXTOKEN pT
 }
 
 
-/**
- * Produce an error token with the given error message.
- *
- * @returns IPRT status code.
- * @param   pThis                  The lexer state.
- * @param   pTok                   The token to fill.
- * @param   rc                     The status code to use in the message.
- * @param   pszMsg                 The format string for the error message.
- * @param   ...                    Arguments to the format string.
- */
-static int rtScriptLexProduceTokError(PRTSCRIPTLEXINT pThis, PRTSCRIPTLEXTOKEN pTok,
-                                      int rc, const char *pszMsg, ...)
+RTDECL(int) RTScriptLexProduceTokError(RTSCRIPTLEX hScriptLex, PRTSCRIPTLEXTOKEN pTok,
+                                       int rc, const char *pszMsg, ...)
 {
+    PRTSCRIPTLEXINT pThis = hScriptLex;
+
     va_list va;
     va_start(va, pszMsg);
 
@@ -446,6 +438,21 @@ static int rtScriptLexProduceTokError(PRTSCRIPTLEXINT pThis, PRTSCRIPTLEXTOKEN p
     va_end(va);
 
     return rc;
+}
+
+
+RTDECL(int) RTScriptLexProduceTokIde(RTSCRIPTLEX hScriptLex, PRTSCRIPTLEXTOKEN pTok, const char *pszIde, size_t cchIde)
+{
+    PRTSCRIPTLEXINT pThis = hScriptLex;
+
+    /* Insert into string cache. */
+    pTok->enmType = RTSCRIPTLEXTOKTYPE_IDENTIFIER;
+    pTok->Type.Id.pszIde = RTStrCacheEnterN(pThis->hStrCacheId, pszIde, cchIde);
+    if (RT_UNLIKELY(!pTok->Type.Id.pszIde))
+        return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory inserting identifier into string cache");
+
+    pTok->PosEnd = pThis->Pos;
+    return VINF_SUCCESS;
 }
 
 
@@ -475,7 +482,7 @@ static void rtScriptLexProduceTokFromExactMatch(PRTSCRIPTLEXINT pThis, PRTSCRIPT
             pTok->Type.Punctuator.pPunctuator = pMatch;
             break;
         default:
-            rtScriptLexProduceTokError(pThis, pTok, VERR_INVALID_PARAMETER,
+            RTScriptLexProduceTokError(pThis, pTok, VERR_INVALID_PARAMETER,
                                        "Lexer: The match contains an invalid token type: %d\n",
                                        pTok->enmType);
     }
@@ -540,7 +547,7 @@ static int rtScriptLexProduceToken(PRTSCRIPTLEXINT pThis, PRTSCRIPTLEXTOKEN pTok
         if (pThis->pCfg->pfnProdDef)
             pThis->rcRdr = pThis->pCfg->pfnProdDef(pThis, ch, pTok, pThis->pCfg->pvProdDefUser);
         else
-            rtScriptLexProduceTokError(pThis, pTok, VERR_INVALID_PARAMETER,
+            RTScriptLexProduceTokError(pThis, pTok, VERR_INVALID_PARAMETER,
                                        "Lexer: Invalid character found in input: %c\n",
                                        ch);
     }
@@ -973,13 +980,13 @@ RTDECL(int) RTScriptLexScanIdentifier(RTSCRIPTLEX hScriptLex, char ch,
 
     if (   idx == sizeof(aszIde) - 1
         && rtScriptLexLocateChInStrConsume(hScriptLex, ch, pszCharSet))
-        return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_BUFFER_OVERFLOW, "Lexer: Identifier exceeds the allowed length");
+        return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_BUFFER_OVERFLOW, "Lexer: Identifier exceeds the allowed length");
 
     /* Insert into string cache. */
     pTok->enmType = RTSCRIPTLEXTOKTYPE_IDENTIFIER;
     pTok->Type.Id.pszIde = RTStrCacheEnterN(pThis->hStrCacheId, &aszIde[0], idx);
     if (RT_UNLIKELY(!pTok->Type.Id.pszIde))
-        return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory inserting identifier into string cache");
+        return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory inserting identifier into string cache");
 
     pTok->PosEnd = pThis->Pos;
     return VINF_SUCCESS;
@@ -1033,21 +1040,23 @@ RTDECL(int) RTScriptLexScanStringLiteralC(RTSCRIPTLEX hScriptLex, char ch,
     uint32_t idxChCur = 0;
     int rc = rtScriptLexScanStringLiteralChAdd(pThis, '\0', idxChCur);
     if (RT_FAILURE(rc))
-        return rtScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
+        return RTScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
 
     ch = RTScriptLexGetCh(hScriptLex);
     for (;;)
     {
         if (ch == '\0')
-            return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_EOF, "Lexer: End of stream before closing string literal terminal");
+            return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_EOF, "Lexer: End of stream before closing string literal terminal");
         else if (ch == '\"')
         {
+            RTScriptLexConsumeCh(hScriptLex);
+
             /* End of string, add it to the string literal cache and build the token. */
             pTok->enmType = RTSCRIPTLEXTOKTYPE_STRINGLIT;
             pTok->Type.StringLit.cchString = idxChCur;
             pTok->Type.StringLit.pszString = RTStrCacheEnterN(pThis->hStrCacheStringLit, pThis->pszStrLit, idxChCur);
             if (RT_UNLIKELY(!pTok->Type.StringLit.pszString))
-                return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Error adding string literal to the cache");
+                return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Error adding string literal to the cache");
             else
                 break;
         }
@@ -1103,7 +1112,7 @@ RTDECL(int) RTScriptLexScanStringLiteralC(RTSCRIPTLEX hScriptLex, char ch,
                 case 'U': /* Unicode point */
                 default:
                     /* Not supported for now. */
-                    return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_NOT_SUPPORTED, "Lexer: Invalid/unsupported escape sequence");
+                    return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_NOT_SUPPORTED, "Lexer: Invalid/unsupported escape sequence");
             }
         }
 
@@ -1111,7 +1120,7 @@ RTDECL(int) RTScriptLexScanStringLiteralC(RTSCRIPTLEX hScriptLex, char ch,
         if (RT_SUCCESS(rc))
             idxChCur++;
         else
-            return rtScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
+            return RTScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
 
         ch = RTScriptLexConsumeChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
     }
@@ -1131,13 +1140,13 @@ RTDECL(int) RTScriptLexScanStringLiteralPascal(RTSCRIPTLEX hScriptLex, char ch,
     uint32_t idxChCur = 0;
     int rc = rtScriptLexScanStringLiteralChAdd(pThis, '\0', idxChCur);
     if (RT_FAILURE(rc))
-        return rtScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
+        return RTScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
 
     ch = RTScriptLexGetChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
     for (;;)
     {
         if (ch == '\0')
-            return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_EOF, "Lexer: End of stream before closing string literal terminal");
+            return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_EOF, "Lexer: End of stream before closing string literal terminal");
         else if (ch == '\'')
         {
             /*
@@ -1152,7 +1161,7 @@ RTDECL(int) RTScriptLexScanStringLiteralPascal(RTSCRIPTLEX hScriptLex, char ch,
                 pTok->Type.StringLit.cchString = idxChCur;
                 pTok->Type.StringLit.pszString = RTStrCacheEnterN(pThis->hStrCacheStringLit, pThis->pszStrLit, idxChCur);
                 if (RT_UNLIKELY(!pTok->Type.StringLit.pszString))
-                    return rtScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Error adding string literal to the cache");
+                    return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_NO_STR_MEMORY, "Lexer: Error adding string literal to the cache");
                 else
                     break;
             }
@@ -1163,7 +1172,7 @@ RTDECL(int) RTScriptLexScanStringLiteralPascal(RTSCRIPTLEX hScriptLex, char ch,
         if (RT_SUCCESS(rc))
             idxChCur++;
         else
-            return rtScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
+            return RTScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
         ch = RTScriptLexConsumeChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
     }
 

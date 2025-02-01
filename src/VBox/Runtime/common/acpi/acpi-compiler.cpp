@@ -653,7 +653,7 @@ static int rtAcpiTblAslParserParse(PRTACPIASLCU pThis)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Table signature must be either 'DSDT' or 'SSDT': %s", pszTblSig);
 
     if (u64ComplianceRev > UINT8_MAX)
-        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Compliance revision %RU64 is out of range, must be in range [0..255]");
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Compliance revision %RU64 is out of range, must be in range [0..255]", u64ComplianceRev);
 
     if (strlen(pszOemId) > 6)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "OEM ID string must be at most 6 characters long");
@@ -662,7 +662,7 @@ static int rtAcpiTblAslParserParse(PRTACPIASLCU pThis)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "OEM table ID string must be at most 8 characters long");
 
     if (u64OemRev > UINT32_MAX)
-        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "OEM revision ID %RU64 is out of range, must fit into 32-bit unsigned integer");
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "OEM revision ID %RU64 is out of range, must fit into 32-bit unsigned integer", u64OemRev);
 
     int rc = RTAcpiTblCreate(&pThis->hAcpiTbl, u32TblSig, (uint8_t)u64ComplianceRev, pszOemId,
                              pszOemTblId, (uint32_t)u64OemRev, "VBOX", RTBldCfgRevision());

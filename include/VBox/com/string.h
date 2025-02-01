@@ -1290,6 +1290,13 @@ public:
         return *this;
     }
 
+    /** Resolve compiler confusion. */
+    RTCString &assign(size_t a_cTimes, char a_ch)
+    {
+        RTCString::assign(a_cTimes, a_ch);
+        return *this;
+    }
+
     /**
      * Assignment method for UTF-16 strings.
      *

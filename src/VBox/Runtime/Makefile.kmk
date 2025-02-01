@@ -394,6 +394,9 @@ RuntimeBaseR3_INCS          = \
 #    /usr/include
 
 RuntimeBaseR3_SOURCES      := \
+	common/acpi/acpi.cpp \
+	common/acpi/acpi-compiler.cpp \
+	common/acpi/acpi-decompiler.cpp \
 	common/alloc/alloc.cpp \
 	common/alloc/heapsimple.cpp \
 	common/alloc/heapoffset.cpp \
@@ -597,8 +600,6 @@ RuntimeBaseR3_SOURCES      := \
 	common/misc/RTFileOpenV.cpp \
 	common/misc/RTMemWipeThoroughly.cpp \
 	common/misc/RTSystemFirmwareTypeName.cpp \
-	common/misc/acpi.cpp \
-	common/misc/acpi-decompiler.cpp \
 	common/misc/assert.cpp \
 	common/misc/buildconfig.cpp \
 	common/misc/cidr.cpp \

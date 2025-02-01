@@ -44,12 +44,15 @@
 #include <iprt/ctype.h>
 #include <iprt/err.h>
 #include <iprt/file.h>
+#include <iprt/list.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
 #include <iprt/uuid.h>
 
 #include <iprt/formats/acpi-aml.h>
 #include <iprt/formats/acpi-resources.h>
+
+#include "internal/acpi.h"
 
 
 /*********************************************************************************************************************************
@@ -61,6 +64,46 @@
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
+
+
+/**
+ * AML object type.
+ */
+typedef enum RTACPITBLAMLOBJTYPE
+{
+    /** Invalid object type. */
+    kAcpiAmlObjType_Invalid = 0,
+    /** Unknown object type. */
+    kAcpiAmlObjType_Unknown,
+    /** Method object type. */
+    kAcpiAmlObjType_Method,
+    /** 32bit hack. */
+    kAcpiAmlObjType_32Bit_Hack = 0x7fffffff
+} RTACPITBLAMLOBJTYPE;
+
+
+/**
+ * Known object in namespace.
+ */
+typedef struct RTACPITBLAMLOBJ
+{
+    /** List node. */
+    RTLISTNODE          NdObjs;
+    /** Object Type. */
+    RTACPITBLAMLOBJTYPE enmType;
+    /** Additional data depending on the type. */
+    union
+    {
+        /** Method object argument count. */
+        uint32_t        cMethodArgs;
+    } u;
+    /** Zero terminated object name - variable in size. */
+    char                szName[1];
+} RTACPITBLAMLOBJ;
+typedef RTACPITBLAMLOBJ *PRTACPITBLAMLOBJ;
+typedef const RTACPITBLAMLOBJ *PCRTACPITBLAMLOBJ;
+
+
 
 /**
  * ACPI AML -> ASL decoder state.
@@ -83,6 +126,8 @@ typedef struct RTACPITBLAMLDECODE
     size_t        *pacbPkg;
     /** Flag whether to indent. */
     bool          fIndent;
+    /** List of known objects. */
+    RTLISTANCHOR  LstObjs;
 } RTACPITBLAMLDECODE;
 /** Pointer to a ACPI AML -> ASL decoder state. */
 typedef RTACPITBLAMLDECODE *PRTACPITBLAMLDECODE;
@@ -421,9 +466,13 @@ static int rtAcpiTblAmlDecodeNameString(PRTACPITBLAMLDECODE pThis, char *pszName
  */
 static int rtAcpiTblAmlDecodeIndent(RTVFSIOSTREAM hVfsIos, uint32_t uIndentLvl)
 {
+    ssize_t cch = RTVfsIoStrmPrintf(hVfsIos, "\n");
+    if (cch != 1)
+        return cch < 0 ? (int)cch : VERR_BUFFER_UNDERFLOW;
+
     while (uIndentLvl--)
     {
-        ssize_t cch = RTVfsIoStrmPrintf(hVfsIos, "    ");
+        cch = RTVfsIoStrmPrintf(hVfsIos, "    ");
         if (cch != 4)
             return cch < 0 ? (int)cch : VERR_BUFFER_UNDERFLOW;
     }
@@ -500,7 +549,7 @@ static int rtAcpiTblAmlDecodePkgPush(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hV
     uint32_t const iLvlNew = pThis->iLvl + 1;
     pThis->pacbPkgLeft[iLvlNew] = cbPkg;
     pThis->pacbPkg[iLvlNew]     = cbPkg;
-    int rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "{\n");
+    int rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "{");
     pThis->iLvl = iLvlNew;
     return rc;
 }
@@ -517,7 +566,7 @@ DECLINLINE(int) rtAcpiTblAmlDecodePkgPop(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREA
             return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "AML contains invalid package length encoding");
 
         pThis->pacbPkgLeft[pThis->iLvl] -= cbPkg;
-        int rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "}\n");
+        int rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "}");
         if (RT_FAILURE(rc))
             return rc;
     }
@@ -616,7 +665,47 @@ static DECLCALLBACK(int) rtAcpiTblAmlDecodeNameObject(PRTACPITBLAMLDECODE pThis,
     int rc = rtAcpiTblAmlDecodeNameStringWithLead(pThis, bOp, &szName[0], sizeof(szName), &cbName, pErrInfo);
     if (RT_FAILURE(rc)) return rc;
 
-    return rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+    PRTACPITBLAMLOBJ pIt;
+    bool fFound = false;
+    RTListForEach(&pThis->LstObjs, pIt, RTACPITBLAMLOBJ, NdObjs)
+    {
+        if (!strcmp(pIt->szName, szName))
+        {
+            fFound = true;
+            break;
+        }
+    }
+
+    if (fFound)
+    {
+        if (pIt->enmType == kAcpiAmlObjType_Method)
+        {
+            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s(", szName);
+            if (RT_FAILURE(rc)) return rc;
+
+            bool fIndentOld = pThis->fIndent;
+            pThis->fIndent = false;
+            for (uint32_t iArg = 0; iArg < pIt->u.cMethodArgs; iArg++)
+            {
+                rc = rtAcpiTblAmlDecodeTerminal(pThis, hVfsIosOut, pErrInfo);
+                if (RT_FAILURE(rc)) return rc;
+
+                if (iArg < pIt->u.cMethodArgs - 1)
+                {
+                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ", ", szName);
+                    if (RT_FAILURE(rc)) return rc;
+                }
+            }
+            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")");
+            pThis->fIndent = fIndentOld;
+        }
+        else
+            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+    }
+    else
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+
+    return rc;
 }
 
 
@@ -703,27 +792,76 @@ static DECLCALLBACK(int) rtAcpiTblAmlDecodeInteger(PRTACPITBLAMLDECODE pThis, RT
 }
 
 
+static DECLCALLBACK(int) rtAcpiTblAmlDecodeMethod(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM hVfsIosOut, uint8_t bOp, PRTERRINFO pErrInfo)
+{
+    RT_NOREF(bOp);
+
+    size_t cbPkg = 0;
+    size_t cbPkgLength = 0;
+    int rc = rtAcpiTblAmlDecodePkgLength(pThis, &cbPkg, &cbPkgLength, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    size_t cbPkgConsumed = cbPkgLength;
+    char szName[512]; RT_ZERO(szName);
+    size_t cchName = 0;
+    rc = rtAcpiTblAmlDecodeNameString(pThis, &szName[0], sizeof(szName), &cchName, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    cbPkgConsumed += cchName;
+
+    uint8_t bMethod;
+    rc = rtAcpiTblAmlDecodeReadU8(pThis, &bMethod, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    cbPkgConsumed++;
+
+    if (cbPkg < cbPkgConsumed)
+        return RTErrInfoSetF(pErrInfo, VERR_INVALID_STATE, "Number of bytes consumed for the current package exceeds package length (%zu vs %zu)",
+                             cbPkgConsumed, cbPkg);
+
+    PRTACPITBLAMLOBJ pObj = (PRTACPITBLAMLOBJ)RTMemAllocZ(RT_UOFFSETOF_DYN(RTACPITBLAMLOBJ, szName[cchName + 1]));
+    if (!pObj)
+        return RTErrInfoSetF(pErrInfo, VERR_NO_MEMORY, "Failed to allocate %zu bytes for method object %s",
+                             RT_UOFFSETOF_DYN(RTACPITBLAMLOBJ, szName[cchName + 1]), szName);
+
+    pObj->enmType       = kAcpiAmlObjType_Method;
+    pObj->u.cMethodArgs = bMethod & 0x7;
+    memcpy(&pObj->szName[0], &szName[0], cchName);
+    RTListAppend(&pThis->LstObjs, &pObj->NdObjs);
+
+    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "Method(%s, %u, %s, %u)",
+                                  pObj->szName, pObj->u.cMethodArgs, bMethod & RT_BIT(3) ? "Serialized" : "NotSerialized",
+                                  bMethod >> 4);
+    if (RT_FAILURE(rc))
+        return rc;
+    return rtAcpiTblAmlDecodePkgPush(pThis, hVfsIosOut, cbPkg - cbPkgConsumed, pErrInfo);
+}
+
+
 /**
  * AML Opcode -> ASL decoder array.
  */
 static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
 {
 #define RTACPI_AML_OPC_INVALID \
-    { NULL,     0,        { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
+    { NULL,     RTACPI_AML_OPC_F_NONE,  { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_0(a_pszOpc, a_fFlags) \
-    { a_pszOpc, a_fFlags, { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
+    { a_pszOpc, a_fFlags,               { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_1(a_pszOpc, a_fFlags, a_enmType0) \
-    { a_pszOpc, a_fFlags, { a_enmType0,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
+    { a_pszOpc, a_fFlags,               { a_enmType0,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_2(a_pszOpc, a_fFlags, a_enmType0, a_enmType1) \
-    { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
+    { a_pszOpc, a_fFlags,               { a_enmType0,              a_enmType1,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_3(a_pszOpc, a_fFlags, a_enmType0, a_enmType1, a_enmType2) \
-    { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              a_enmType2,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
+    { a_pszOpc, a_fFlags,               { a_enmType0,              a_enmType1,              a_enmType2,              kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_4(a_pszOpc, a_fFlags, a_enmType0, a_enmType1, a_enmType2, a_enmType3) \
-    { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              kAcpiAmlOpcType_Invalid }, NULL }
+    { a_pszOpc, a_fFlags,               { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              kAcpiAmlOpcType_Invalid }, NULL }
 #define RTACPI_AML_OPC_SIMPLE_5(a_pszOpc, a_fFlags, a_enmType0, a_enmType1, a_enmType2, a_enmType3, a_enmType4) \
-    { a_pszOpc, a_fFlags, { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              a_enmType4              }, NULL }
+    { a_pszOpc, a_fFlags,               { a_enmType0,              a_enmType1,              a_enmType2,              a_enmType3,              a_enmType4              }, NULL }
 #define RTACPI_AML_OPC_HANDLER(a_pszOpc, a_pfnHandler) \
-    { a_pszOpc, 0,        { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, a_pfnHandler }
+    { a_pszOpc, RTACPI_AML_OPC_F_NONE, { kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid, kAcpiAmlOpcType_Invalid }, a_pfnHandler }
 
     /* 0x00 */ RTACPI_AML_OPC_SIMPLE_0("Zero", RTACPI_AML_OPC_F_NONE),
     /* 0x01 */ RTACPI_AML_OPC_SIMPLE_0("One",  RTACPI_AML_OPC_F_NONE),
@@ -746,7 +884,7 @@ static const RTACPIAMLOPC g_aAmlOpcodeDecode[] =
     /* 0x11 */ RTACPI_AML_OPC_HANDLER( "Buffer",   rtAcpiTblAmlDecodeBuffer),
     /* 0x12 */ RTACPI_AML_OPC_INVALID,
     /* 0x13 */ RTACPI_AML_OPC_INVALID,
-    /* 0x14 */ RTACPI_AML_OPC_SIMPLE_2("Method",   RTACPI_AML_OPC_F_HAS_PKG_LENGTH,  kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte),
+    /* 0x14 */ RTACPI_AML_OPC_HANDLER( "Method",        rtAcpiTblAmlDecodeMethod),
     /* 0x15 */ RTACPI_AML_OPC_SIMPLE_3("External", RTACPI_AML_OPC_F_NONE,            kAcpiAmlOpcType_NameString, kAcpiAmlOpcType_Byte, kAcpiAmlOpcType_Byte),
     /* 0x16 */ RTACPI_AML_OPC_INVALID,
     /* 0x17 */ RTACPI_AML_OPC_INVALID,
@@ -1302,9 +1440,10 @@ static int rtAcpiTblAmlDecodeSimple(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pA
     /* Any arguments? */
     if (pAmlOpc->aenmTypes[0] != kAcpiAmlOpcType_Invalid)
     {
+        bool fOld = pThis->fIndent;
         pThis->fIndent = false;
 
-        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "(");
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, " (");
         if (RT_FAILURE(rc)) return rc;
 
         for (uint32_t i = 0; i < RT_ELEMENTS(pAmlOpc->aenmTypes); i++)
@@ -1363,8 +1502,51 @@ static int rtAcpiTblAmlDecodeSimple(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pA
                     rc = rtAcpiTblAmlDecodeNameString(pThis, &szName[0], sizeof(szName), &cbName, pErrInfo);
                     if (RT_FAILURE(rc)) return rc;
 
-                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+                    PRTACPITBLAMLOBJ pIt;
+                    bool fFound = false;
+                    RTListForEach(&pThis->LstObjs, pIt, RTACPITBLAMLOBJ, NdObjs)
+                    {
+                        if (!strcmp(pIt->szName, szName))
+                        {
+                            fFound = true;
+                            break;
+                        }
+                    }
+
+                    if (fFound)
+                    {
+                        if (pIt->enmType == kAcpiAmlObjType_Method)
+                        {
+                            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s(", szName);
+                            if (RT_FAILURE(rc)) return rc;
+
+                            bool fIndentOld = pThis->fIndent;
+                            pThis->fIndent = false;
+
+                            size_t offTblOrig = pThis->offTbl;
+                            for (uint32_t iArg = 0; iArg < pIt->u.cMethodArgs; iArg++)
+                            {
+                                rc = rtAcpiTblAmlDecodeTerminal(pThis, hVfsIosOut, pErrInfo);
+                                if (RT_FAILURE(rc)) return rc;
+
+                                if (iArg < pIt->u.cMethodArgs - 1)
+                                {
+                                    rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ", ", szName);
+                                    if (RT_FAILURE(rc)) return rc;
+                                }
+                            }
+                            cbPkgConsumed += pThis->offTbl - offTblOrig;
+
+                            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")");
+                            pThis->fIndent = fIndentOld;
+                        }
+                        else
+                            rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
+                    }
+                    else
+                        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "%s", szName);
                     if (RT_FAILURE(rc)) return rc;
+
 
                     cbPkgConsumed += cbName;
                     break;
@@ -1387,15 +1569,10 @@ static int rtAcpiTblAmlDecodeSimple(PRTACPITBLAMLDECODE pThis, PCRTACPIAMLOPC pA
             }
         }
 
-        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")\n");
+        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, ")");
         if (RT_FAILURE(rc)) return rc;
 
-        pThis->fIndent = true;
-    }
-    else if (pThis->fIndent)
-    {
-        rc = rtAcpiTblAmlDecodeFormat(pThis, hVfsIosOut, "\n");
-        if (RT_FAILURE(rc)) return rc;
+        pThis->fIndent = fOld;
     }
 
     if (pAmlOpc->fFlags & RTACPI_AML_OPC_F_HAS_PKG_LENGTH)
@@ -1446,29 +1623,8 @@ static int rtAcpiTblAmlDecodeTerminal(PRTACPITBLAMLDECODE pThis, RTVFSIOSTREAM h
 }
 
 
-RTDECL(int) RTAcpiTblCreateFromVfsIoStrm(PRTACPITBL phAcpiTbl, RTVFSIOSTREAM hVfsIos, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
+DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOSTREAM hVfsIosIn, PRTERRINFO pErrInfo)
 {
-    AssertPtrReturn(phAcpiTbl, VERR_INVALID_POINTER);
-    AssertReturn(hVfsIos != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
-
-    RT_NOREF(pErrInfo, enmInType);
-#if 0
-    if (enmInType == RTACPITBLTYPE_AML)
-        return rtAcpiTblLoadAml(phAcpiTbl, hVfsIos, pErrInfo);
-#endif
-
-    return VERR_NOT_IMPLEMENTED;
-}
-
-
-RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYPE enmOutType,
-                                          RTVFSIOSTREAM hVfsIosIn, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
-{
-    AssertReturn(hVfsIosOut != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
-    AssertReturn(hVfsIosIn  != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
-    AssertReturn(enmInType == RTACPITBLTYPE_AML, VERR_NOT_SUPPORTED);
-    AssertReturn(enmOutType == RTACPITBLTYPE_ASL, VERR_NOT_SUPPORTED);
-
     ACPITBLHDR Hdr;
     int rc = RTVfsIoStrmRead(hVfsIosIn, &Hdr, sizeof(Hdr), true /*fBlocking*/, NULL /*pcbRead*/);
     if (RT_SUCCESS(rc))
@@ -1488,7 +1644,7 @@ RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYP
                 if (RT_SUCCESS(rc))
                 {
                     /** @todo Verify checksum */
-                    ssize_t cch = RTVfsIoStrmPrintf(hVfsIosOut, "DefinitionBlock(\"\", \"%s\", %u, \"%.6s\", \"%.8s\", %u)\n",
+                    ssize_t cch = RTVfsIoStrmPrintf(hVfsIosOut, "DefinitionBlock(\"\", \"%s\", %u, \"%.6s\", \"%.8s\", %u)",
                                                     Hdr.u32Signature == ACPI_TABLE_HDR_SIGNATURE_SSDT ? "SSDT" : "DSDT",
                                                     1, &Hdr.abOemId[0], &Hdr.abOemTblId[0], Hdr.u32OemRevision);
                     if (cch > 0)
@@ -1501,6 +1657,7 @@ RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYP
                         AmlDecode.cPkgStackMax = 0;
                         AmlDecode.pacbPkgLeft  = NULL;
                         AmlDecode.fIndent      = true;
+                        RTListInit(&AmlDecode.LstObjs);
                         rc = rtAcpiTblAmlDecodePkgPush(&AmlDecode, hVfsIosOut, AmlDecode.cbTbl, pErrInfo);
                         while (   RT_SUCCESS(rc)
                                && AmlDecode.offTbl < Hdr.cbTbl - sizeof(Hdr))
@@ -1511,6 +1668,13 @@ RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYP
                         }
                         if (AmlDecode.pacbPkgLeft)
                             RTMemFree(AmlDecode.pacbPkgLeft);
+
+                        PRTACPITBLAMLOBJ pIt, pItNext;
+                        RTListForEachSafe(&AmlDecode.LstObjs, pIt, pItNext, RTACPITBLAMLOBJ, NdObjs)
+                        {
+                            RTListNodeRemove(&pIt->NdObjs);
+                            RTMemFree(pIt);
+                        } 
 
                         if (RT_SUCCESS(rc))
                         {
@@ -1537,19 +1701,5 @@ RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYP
     else
         rc = RTErrInfoSetF(pErrInfo, rc, "Reading the ACPI table header failed with %Rrc", rc);
 
-    return rc;
-}
-
-
-RTDECL(int) RTAcpiTblCreateFromFile(PRTACPITBL phAcpiTbl, const char *pszFilename, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
-{
-    RTVFSIOSTREAM hVfsIos = NIL_RTVFSIOSTREAM;
-    int rc = RTVfsChainOpenIoStream(pszFilename, RTFILE_O_READ | RTFILE_O_OPEN | RTFILE_O_DENY_NONE,
-                                    &hVfsIos, NULL /*poffError*/, pErrInfo);
-    if (RT_FAILURE(rc))
-        return rc;
-
-    rc = RTAcpiTblCreateFromVfsIoStrm(phAcpiTbl, hVfsIos, enmInType, pErrInfo);
-    RTVfsIoStrmRelease(hVfsIos);
     return rc;
 }

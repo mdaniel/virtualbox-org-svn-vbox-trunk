@@ -49,6 +49,8 @@
 #include <iprt/formats/acpi-aml.h>
 #include <iprt/formats/acpi-resources.h>
 
+#include "internal/acpi.h"
+
 
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
@@ -1099,6 +1101,50 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
 
     rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_FIELD);
     return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblCreateFromVfsIoStrm(PRTACPITBL phAcpiTbl, RTVFSIOSTREAM hVfsIos, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
+{
+    AssertPtrReturn(phAcpiTbl, VERR_INVALID_POINTER);
+    AssertReturn(hVfsIos != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
+
+    RT_NOREF(pErrInfo, enmInType);
+#if 0
+    if (enmInType == RTACPITBLTYPE_AML)
+        return rtAcpiTblLoadAml(phAcpiTbl, hVfsIos, pErrInfo);
+#endif
+
+    return VERR_NOT_IMPLEMENTED;
+}
+
+
+RTDECL(int) RTAcpiTblConvertFromVfsIoStrm(RTVFSIOSTREAM hVfsIosOut, RTACPITBLTYPE enmOutType,
+                                          RTVFSIOSTREAM hVfsIosIn, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
+{
+    AssertReturn(hVfsIosOut != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
+    AssertReturn(hVfsIosIn  != NIL_RTVFSIOSTREAM, VERR_INVALID_HANDLE);
+
+    if (enmInType == RTACPITBLTYPE_AML && enmOutType == RTACPITBLTYPE_ASL)
+        return rtAcpiTblConvertFromAmlToAsl(hVfsIosOut, hVfsIosIn, pErrInfo);
+    else if (enmInType == RTACPITBLTYPE_ASL && enmOutType == RTACPITBLTYPE_AML)
+        return rtAcpiTblConvertFromAslToAml(hVfsIosOut, hVfsIosIn, pErrInfo);
+
+    return VERR_NOT_SUPPORTED;
+}
+
+
+RTDECL(int) RTAcpiTblCreateFromFile(PRTACPITBL phAcpiTbl, const char *pszFilename, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
+{
+    RTVFSIOSTREAM hVfsIos = NIL_RTVFSIOSTREAM;
+    int rc = RTVfsChainOpenIoStream(pszFilename, RTFILE_O_READ | RTFILE_O_OPEN | RTFILE_O_DENY_NONE,
+                                    &hVfsIos, NULL /*poffError*/, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = RTAcpiTblCreateFromVfsIoStrm(phAcpiTbl, hVfsIos, enmInType, pErrInfo);
+    RTVfsIoStrmRelease(hVfsIos);
+    return rc;
 }
 
 

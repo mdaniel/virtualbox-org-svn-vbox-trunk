@@ -1674,7 +1674,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                         {
                             RTListNodeRemove(&pIt->NdObjs);
                             RTMemFree(pIt);
-                        } 
+                        }
 
                         if (RT_SUCCESS(rc))
                         {

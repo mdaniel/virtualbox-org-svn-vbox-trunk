@@ -41,27 +41,24 @@
 
 #include <algorithm>
 #include <set>
-#include <iprt/sanitized/string>
 #include "HostDnsService.h"
 
 
 
-static void dumpHostDnsStrVector(const std::string &prefix, const std::vector<std::string> &v)
+static void dumpHostDnsStrVector(const char *prefix, const std::vector<com::Utf8Str> &v)
 {
     int i = 1;
-    for (std::vector<std::string>::const_iterator it = v.begin();
-         it != v.end();
-         ++it, ++i)
-        LogRel(("  %s %d: %s\n", prefix.c_str(), i, it->c_str()));
+    for (std::vector<com::Utf8Str>::const_iterator it = v.begin(); it != v.end(); ++it, ++i)
+        LogRel(("  %s %d: %s\n", prefix, i, it->c_str()));
     if (v.empty())
-        LogRel(("  no %s entries\n", prefix.c_str()));
+        LogRel(("  no %s entries\n", prefix));
 }
 
 static void dumpHostDnsInformation(const HostDnsInformation &info)
 {
     dumpHostDnsStrVector("server", info.servers);
 
-    if (!info.domain.empty())
+    if (info.domain.isNotEmpty())
         LogRel(("  domain: %s\n", info.domain.c_str()));
     else
         LogRel(("  no domain set\n"));
@@ -76,8 +73,8 @@ bool HostDnsInformation::equals(const HostDnsInformation &info, uint32_t fLaxCom
         fSameServers = (servers == info.servers);
     else
     {
-        std::set<std::string> l(servers.begin(), servers.end());
-        std::set<std::string> r(info.servers.begin(), info.servers.end());
+        std::set<com::Utf8Str> l(servers.begin(), servers.end());
+        std::set<com::Utf8Str> r(info.servers.begin(), info.servers.end());
 
         fSameServers = (l == r);
     }
@@ -92,19 +89,6 @@ bool HostDnsInformation::equals(const HostDnsInformation &info, uint32_t fLaxCom
         fSameDomain = fSameSearchList = true;
 
     return fSameServers && fSameDomain && fSameSearchList;
-}
-
-DECLINLINE(void) detachVectorOfStrings(const std::vector<std::string>& v, std::vector<com::Utf8Str> &aArray)
-{
-    aArray.resize(v.size());
-    size_t i = 0;
-    for (std::vector<std::string>::const_iterator it = v.begin(); it != v.end(); ++it, ++i)
-        aArray[i] = Utf8Str(it->c_str()); /** @todo r=bird: *it isn't necessarily UTF-8 clean!!
-                                           * On darwin we do silly shit like using CFStringGetSystemEncoding()
-                                           * that may be UTF-8 but doesn't need to be.
-                                           *
-                                           * Why on earth are we using std::string here anyway?
-                                           */
 }
 
 struct HostDnsServiceBase::Data
@@ -383,7 +367,7 @@ HRESULT HostDnsMonitorProxy::GetNameServers(std::vector<com::Utf8Str> &aNameServ
     LogRel(("HostDnsMonitorProxy::GetNameServers:\n"));
     dumpHostDnsStrVector("name server", m->info.servers);
 
-    detachVectorOfStrings(m->info.servers, aNameServers);
+    aNameServers = m->info.servers;
 
     return S_OK;
 }
@@ -393,7 +377,7 @@ HRESULT HostDnsMonitorProxy::GetDomainName(com::Utf8Str *pDomainName)
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
     AssertReturn(m != NULL, E_FAIL);
 
-    LogRel(("HostDnsMonitorProxy::GetDomainName: %s\n", m->info.domain.empty() ? "no domain set" : m->info.domain.c_str()));
+    LogRel(("HostDnsMonitorProxy::GetDomainName: %s\n", m->info.domain.isEmpty() ? "no domain set" : m->info.domain.c_str()));
     *pDomainName = m->info.domain.c_str();
 
     return S_OK;
@@ -407,7 +391,7 @@ HRESULT HostDnsMonitorProxy::GetSearchStrings(std::vector<com::Utf8Str> &aSearch
     LogRel(("HostDnsMonitorProxy::GetSearchStrings:\n"));
     dumpHostDnsStrVector("search string", m->info.searchList);
 
-    detachVectorOfStrings(m->info.searchList, aSearchStrings);
+    aSearchStrings = m->info.searchList;
 
     return S_OK;
 }

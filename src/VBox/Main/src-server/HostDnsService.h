@@ -36,7 +36,6 @@
 #include <iprt/cpp/lock.h>
 
 #include <list>
-#include <iprt/sanitized/string>
 #include <vector>
 
 typedef std::list<com::Utf8Str> Utf8StrList;
@@ -52,10 +51,9 @@ public:
     static const uint32_t IGNORE_SUFFIXES     = RT_BIT_32(1);
 
 public:
-    /** @todo r=bird: Why on earth are we using std::string and not Utf8Str?   */
-    std::vector<std::string> servers;
-    std::string domain;
-    std::vector<std::string> searchList;
+    std::vector<com::Utf8Str> servers;
+    com::Utf8Str domain;
+    std::vector<com::Utf8Str> searchList;
     bool equals(const HostDnsInformation &, uint32_t fLaxComparison = 0) const;
 };
 
@@ -108,7 +106,7 @@ protected:
 
     mutable RTCLockMtx m_LockMtx;
 
-public: /** @todo r=andy Why is this public? */
+//public: /** @todo r=andy Why is this public? */
 
     struct Data;
     Data *m;
@@ -159,8 +157,8 @@ public:
 
 public:
 
-    HRESULT init(HostDnsMonitorProxy *pProxy);
-    void uninit(void);
+    HRESULT init(HostDnsMonitorProxy *pProxy) RT_OVERRIDE;
+    void uninit(void) RT_OVERRIDE;
 
 protected:
 
@@ -184,8 +182,8 @@ public:
 
 public:
 
-    HRESULT init(HostDnsMonitorProxy *pProxy);
-    void uninit(void);
+    HRESULT init(HostDnsMonitorProxy *pProxy) RT_OVERRIDE;
+    void uninit(void) RT_OVERRIDE;
 
 protected:
 
@@ -214,9 +212,9 @@ public:
 public:
 
     HRESULT init(HostDnsMonitorProxy *pProxy, const char *aResolvConfFileName);
-    void uninit(void);
+    void uninit(void) RT_OVERRIDE;
 
-    const std::string& getResolvConf(void) const;
+    const Utf8Str &getResolvConf(void) const;
 
 protected:
 
@@ -240,7 +238,7 @@ public:
 
 public:
 
-    virtual HRESULT init(HostDnsMonitorProxy *pProxy)
+    virtual HRESULT init(HostDnsMonitorProxy *pProxy) RT_OVERRIDE
     {
         return HostDnsServiceResolvConf::init(pProxy, "/etc/resolv.conf");
     }
@@ -257,7 +255,7 @@ public:
 
 public:
 
-    HRESULT init(HostDnsMonitorProxy *pProxy);
+    HRESULT init(HostDnsMonitorProxy *pProxy) RT_OVERRIDE;
 
 protected:
 
@@ -298,7 +296,7 @@ public:
 public:
 
     /* XXX: \\MPTN\\ETC should be taken from environment variable ETC  */
-    virtual HRESULT init(HostDnsMonitorProxy *pProxy)
+    virtual HRESULT init(HostDnsMonitorProxy *pProxy) RT_OVERRIDE
     {
         return HostDnsServiceResolvConf::init(pProxy, "\\MPTN\\ETC\\RESOLV2");
     }

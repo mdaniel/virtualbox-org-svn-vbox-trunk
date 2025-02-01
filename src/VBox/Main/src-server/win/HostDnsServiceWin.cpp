@@ -47,8 +47,6 @@
 #include <iprt/win/iphlpapi.h>
 
 #include <algorithm>
-#include <iprt/sanitized/sstream>
-#include <iprt/sanitized/string>
 #include <vector>
 
 
@@ -59,30 +57,27 @@ DECLINLINE(int) registerNotification(const HKEY &hKey, HANDLE &hEvent)
                                        REG_NOTIFY_CHANGE_LAST_SET,
                                        hEvent,
                                        TRUE);
-    AssertMsgReturn(lrc == ERROR_SUCCESS,
-                    ("Failed to register event on the key. Please debug me!"),
-                    VERR_INTERNAL_ERROR);
+    AssertLogRelMsgReturn(lrc == ERROR_SUCCESS,
+                          ("Failed to register event on the key. Please debug me!"),
+                          VERR_INTERNAL_ERROR);
 
     return VINF_SUCCESS;
 }
 
-static void appendTokenizedStrings(std::vector<std::string> &vecStrings, const std::string &strToAppend, char chDelim = ' ')
+static void appendTokenizedStrings(std::vector<com::Utf8Str> &vecStrings, const com::Utf8Str &strToAppend, char chDelim = ' ')
 {
-    if (strToAppend.empty())
+    if (strToAppend.isEmpty())
         return;
 
-    std::istringstream stream(strToAppend);
-    std::string substr;
-
-    while (std::getline(stream, substr, chDelim))
+    RTCString const strDelim(1, chDelim);
+    auto const      lstSubStrings  = strToAppend.split(strDelim);
+    size_t const    cSubStrings    = lstSubStrings.size();
+    for (size_t i = 0; i < cSubStrings; i++)
     {
-        if (substr.empty())
-            continue;
-
-        if (std::find(vecStrings.cbegin(), vecStrings.cend(), substr) != vecStrings.cend())
-            continue;
-
-        vecStrings.push_back(substr);
+        RTCString const &strCur = lstSubStrings[i];
+        if (strCur.isNotEmpty())
+            if (std::find(vecStrings.cbegin(), vecStrings.cend(), strCur) == vecStrings.cend())
+                vecStrings.push_back(strCur);
     }
 }
 
@@ -96,7 +91,7 @@ struct HostDnsServiceWin::Data
 #define DATA_DNS_UPDATE_EVENT 1
 #define DATA_TIMER            2
 #define DATA_MAX_EVENT        3
-    HANDLE haDataEvent[DATA_MAX_EVENT];
+    HANDLE ahDataEvents[DATA_MAX_EVENT];
 
     Data()
     {
@@ -104,17 +99,23 @@ struct HostDnsServiceWin::Data
         fTimerArmed = false;
 
         for (size_t i = 0; i < DATA_MAX_EVENT; ++i)
-            haDataEvent[i] = NULL;
+            ahDataEvents[i] = NULL;
     }
 
     ~Data()
     {
         if (hKeyTcpipParameters != NULL)
+        {
             RegCloseKey(hKeyTcpipParameters);
+            hKeyTcpipParameters = NULL;
+        }
 
         for (size_t i = 0; i < DATA_MAX_EVENT; ++i)
-            if (haDataEvent[i] != NULL)
-                CloseHandle(haDataEvent[i]);
+            if (ahDataEvents[i] != NULL)
+            {
+                CloseHandle(ahDataEvents[i]);
+                ahDataEvents[i] = NULL;
+            }
     }
 };
 
@@ -136,41 +137,33 @@ HRESULT HostDnsServiceWin::init(HostDnsMonitorProxy *pProxy)
     if (m == NULL)
         return E_FAIL;
 
-    bool fRc = true;
     LONG lRc = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
                              L"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
                              0,
-                             KEY_READ|KEY_NOTIFY,
+                             KEY_READ | KEY_NOTIFY,
                              &m->hKeyTcpipParameters);
     if (lRc != ERROR_SUCCESS)
     {
         LogRel(("HostDnsServiceWin: failed to open key Tcpip\\Parameters (error %d)\n", lRc));
-        fRc = false;
-    }
-    else
-    {
-        for (size_t i = 0; i < DATA_MAX_EVENT; ++i)
-        {
-            HANDLE h;
-
-            if (i ==  DATA_TIMER)
-                h = CreateWaitableTimer(NULL, FALSE, NULL);
-            else
-                h = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-            if (h == NULL)
-            {
-                LogRel(("HostDnsServiceWin: failed to create event (error %d)\n", GetLastError()));
-                fRc = false;
-                break;
-            }
-
-            m->haDataEvent[i] = h;
-        }
-    }
-
-    if (!fRc)
         return E_FAIL;
+    }
+
+    for (size_t i = 0; i < DATA_MAX_EVENT; ++i)
+    {
+        HANDLE h;
+        if (i == DATA_TIMER)
+            h = CreateWaitableTimer(NULL, FALSE, NULL);
+        else
+            h = CreateEvent(NULL, TRUE, FALSE, NULL);
+        if (h == NULL)
+        {
+            LogRel(("HostDnsServiceWin: failed to create %s (error %d)\n",
+                    i == DATA_TIMER ? "waitable timer" : "event", GetLastError()));
+            return E_FAIL;
+        }
+
+        m->ahDataEvents[i] = h;
+    }
 
     HRESULT hrc = HostDnsServiceBase::init(pProxy);
     if (FAILED(hrc))
@@ -186,11 +179,10 @@ void HostDnsServiceWin::uninit(void)
 
 int HostDnsServiceWin::monitorThreadShutdown(RTMSINTERVAL uTimeoutMs)
 {
-    RT_NOREF(uTimeoutMs);
+    AssertPtrReturn(m, VINF_SUCCESS);
 
-    AssertPtr(m);
-    SetEvent(m->haDataEvent[DATA_SHUTDOWN_EVENT]);
-    /** @todo r=andy Wait for thread? Check vrc here. Timeouts? */
+    SetEvent(m->ahDataEvents[DATA_SHUTDOWN_EVENT]);
+    RT_NOREF(uTimeoutMs); /* (Caller waits for the thread) */
 
     return VINF_SUCCESS;
 }
@@ -200,17 +192,13 @@ int HostDnsServiceWin::monitorThreadProc(void)
     Assert(m != NULL);
 
     registerNotification(m->hKeyTcpipParameters,
-                         m->haDataEvent[DATA_DNS_UPDATE_EVENT]);
+                         m->ahDataEvents[DATA_DNS_UPDATE_EVENT]);
 
     onMonitorThreadInitDone();
 
     for (;;)
     {
-        DWORD dwReady;
-
-        dwReady = WaitForMultipleObjects(DATA_MAX_EVENT, m->haDataEvent,
-                                         FALSE, INFINITE);
-
+        DWORD dwReady = WaitForMultipleObjects(DATA_MAX_EVENT, m->ahDataEvents, FALSE, INFINITE);
         if (dwReady == WAIT_OBJECT_0 + DATA_SHUTDOWN_EVENT)
             break;
 
@@ -224,13 +212,8 @@ int HostDnsServiceWin::monitorThreadProc(void)
             {
                 LARGE_INTEGER delay; /* in 100ns units */
                 delay.QuadPart = -2 * 1000 * 1000 * 10LL; /* relative: 2s */
-
-                BOOL ok = SetWaitableTimer(m->haDataEvent[DATA_TIMER], &delay,
-                                           0, NULL, NULL, FALSE);
-                if (ok)
-                {
+                if (SetWaitableTimer(m->ahDataEvents[DATA_TIMER], &delay, 0, NULL, NULL, FALSE))
                     m->fTimerArmed = true;
-                }
                 else
                 {
                     LogRel(("HostDnsServiceWin: failed to arm timer (error %d)\n", GetLastError()));
@@ -238,9 +221,9 @@ int HostDnsServiceWin::monitorThreadProc(void)
                 }
             }
 
-            ResetEvent(m->haDataEvent[DATA_DNS_UPDATE_EVENT]);
+            ResetEvent(m->ahDataEvents[DATA_DNS_UPDATE_EVENT]);
             registerNotification(m->hKeyTcpipParameters,
-                                 m->haDataEvent[DATA_DNS_UPDATE_EVENT]);
+                                 m->ahDataEvents[DATA_DNS_UPDATE_EVENT]);
         }
         else if (dwReady == WAIT_OBJECT_0 + DATA_TIMER)
         {
@@ -266,8 +249,8 @@ HRESULT HostDnsServiceWin::updateInfo(void)
 {
     HostDnsInformation info;
 
-    std::string strDomain;
-    std::string strSearchList;  /* NB: comma separated, no spaces */
+    com::Utf8Str strDomain;
+    com::Utf8Str strSearchList;  /* NB: comma separated, no spaces */
 
     /*
      * We ignore "DhcpDomain" key here since it's not stable.  If
@@ -278,16 +261,14 @@ HRESULT HostDnsServiceWin::updateInfo(void)
      */
     for (DWORD regIndex = 0; /**/; ++regIndex)
     {
-        char keyName[256];
-        DWORD cbKeyName = sizeof(keyName);
-        DWORD keyType = 0;
-        char keyData[1024];
-        DWORD cbKeyData = sizeof(keyData);
-
-/** @todo use unicode API. This isn't UTF-8 clean!   */
-        LSTATUS lrc = RegEnumValueA(m->hKeyTcpipParameters, regIndex,
-                                    keyName, &cbKeyName, 0,
-                                    &keyType, (LPBYTE)keyData, &cbKeyData);
+        WCHAR wszKeyName[256] = {0};
+        DWORD cbKeyName = RT_ELEMENTS(wszKeyName);
+        DWORD keyType   = 0;
+        WCHAR wszKeyData[1024];
+        DWORD cbKeyData = sizeof(wszKeyData);
+        LSTATUS lrc = RegEnumValueW(m->hKeyTcpipParameters, regIndex,
+                                    wszKeyName, &cbKeyName, NULL /*pReserved*/,
+                                    &keyType, (LPBYTE)wszKeyData, &cbKeyData);
 
         if (lrc == ERROR_NO_MORE_ITEMS)
             break;
@@ -304,35 +285,36 @@ HRESULT HostDnsServiceWin::updateInfo(void)
         if (keyType != REG_SZ)
             continue;
 
-        if (cbKeyData > 0 && keyData[cbKeyData - 1] == '\0')
-            --cbKeyData;     /* don't count trailing NUL if present */
+        size_t cwcKeyData = cbKeyData / sizeof(wszKeyData[0]);
+        if (cwcKeyData > 0 && wszKeyData[cwcKeyData - 1] == '\0')
+            --cwcKeyData;     /* don't count trailing NUL if present */
 
-        if (RTStrICmp("Domain", keyName) == 0)
+        if (RTUtf16ICmpAscii(wszKeyName, "Domain") == 0)
         {
-            strDomain.assign(keyData, cbKeyData);
+            strDomain.assign(wszKeyData, cwcKeyData);
             LogRel2(("HostDnsServiceWin: Domain=\"%s\"\n", strDomain.c_str()));
         }
-        else if (RTStrICmp("DhcpDomain", keyName) == 0)
+        else if (RTUtf16ICmpAscii(wszKeyName, "SearchList") == 0)
         {
-            std::string strDhcpDomain(keyData, cbKeyData);
-            LogRel2(("HostDnsServiceWin: DhcpDomain=\"%s\"\n", strDhcpDomain.c_str()));
-        }
-        else if (RTStrICmp("SearchList", keyName) == 0)
-        {
-            strSearchList.assign(keyData, cbKeyData);
+            strSearchList.assign(wszKeyData, cwcKeyData);
             LogRel2(("HostDnsServiceWin: SearchList=\"%s\"\n", strSearchList.c_str()));
+        }
+        else if (LogRelIs2Enabled() && RTUtf16ICmpAscii(wszKeyName, "DhcpDomain") == 0)
+        {
+            com::Utf8Str strDhcpDomain(wszKeyData, cwcKeyData);
+            LogRel2(("HostDnsServiceWin: DhcpDomain=\"%s\"\n", strDhcpDomain.c_str()));
         }
     }
 
     /* statically configured domain name */
-    if (!strDomain.empty())
+    if (strDomain.isNotEmpty())
     {
         info.domain = strDomain;
         info.searchList.push_back(strDomain);
     }
 
     /* statically configured search list */
-    if (!strSearchList.empty())
+    if (strSearchList.isNotEmpty())
         appendTokenizedStrings(info.searchList, strSearchList, ',');
 
     /*
@@ -342,138 +324,112 @@ HRESULT HostDnsServiceWin::updateInfo(void)
      * us to pick up the change).  Fortunately, DnsApi seems to do the
      * right thing there.
      */
-    DNS_STATUS status;
     PIP4_ARRAY pIp4Array = NULL;
-
-    // NB: must be set on input it seems, despite docs' claim to the contrary.
-    DWORD cbBuffer = sizeof(&pIp4Array);
-
-    status = DnsQueryConfig(DnsConfigDnsServerList,
-                            DNS_CONFIG_FLAG_ALLOC, NULL, NULL,
-                            &pIp4Array, &cbBuffer);
-
+    DWORD      cbBuffer  = sizeof(&pIp4Array); // NB: must be set on input it seems, despite docs' claim to the contrary.
+    DNS_STATUS status = DnsQueryConfig(DnsConfigDnsServerList, DNS_CONFIG_FLAG_ALLOC, NULL, NULL, &pIp4Array, &cbBuffer);
     if (status == NO_ERROR && pIp4Array != NULL)
     {
         for (DWORD i = 0; i < pIp4Array->AddrCount; ++i)
         {
-            char szAddrStr[16] = "";
-            RTStrPrintf(szAddrStr, sizeof(szAddrStr), "%RTnaipv4", pIp4Array->AddrArray[i]);
+            char szAddr[16] = "";
+            RTStrPrintf(szAddr, sizeof(szAddr), "%RTnaipv4", pIp4Array->AddrArray[i]);
 
-            LogRel2(("HostDnsServiceWin: server %d: %s\n", i+1,  szAddrStr));
-            info.servers.push_back(szAddrStr);
+            LogRel2(("HostDnsServiceWin: server %d: %s\n", i+1,  szAddr));
+            info.servers.push_back(szAddr);
         }
 
         LocalFree(pIp4Array);
     }
 
 
-    /**
+    /*
      * DnsQueryConfig(DnsConfigSearchList, ...) is not implemented.
      * Call GetAdaptersAddresses() that orders the returned list
      * appropriately and collect IP_ADAPTER_ADDRESSES::DnsSuffix.
      */
-    do {
-        PIP_ADAPTER_ADDRESSES pAddrBuf = NULL;
-        ULONG cbAddrBuf = 8 * 1024;
-        bool fReallocated = false;
-        ULONG err;
-
-        pAddrBuf = (PIP_ADAPTER_ADDRESSES) malloc(cbAddrBuf);
+    do /* not a loop */
+    {
+        ULONG                 cbAddrBuf    = _8K;
+        PIP_ADAPTER_ADDRESSES pAddrBuf     = (PIP_ADAPTER_ADDRESSES)RTMemAllocZ(cbAddrBuf);
         if (pAddrBuf == NULL)
         {
-            LogRel2(("HostDnsServiceWin: failed to allocate %zu bytes"
-                     " of GetAdaptersAddresses buffer\n",
-                     (size_t)cbAddrBuf));
+            LogRel2(("HostDnsServiceWin: failed to allocate %zu bytes of GetAdaptersAddresses buffer\n", (size_t)cbAddrBuf));
             break;
         }
 
-        while (pAddrBuf != NULL)
+        for (unsigned iReallocLoops = 0; ; iReallocLoops++)
         {
-            ULONG cbAddrBufProvided = cbAddrBuf;
+            ULONG const cbAddrBufProvided = cbAddrBuf; /* for logging */
 
-            err = GetAdaptersAddresses(AF_UNSPEC,
-                                         GAA_FLAG_SKIP_ANYCAST
-                                       | GAA_FLAG_SKIP_MULTICAST,
-                                       NULL,
-                                       pAddrBuf, &cbAddrBuf);
+            ULONG err = GetAdaptersAddresses(AF_UNSPEC,
+                                             GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST,
+                                             NULL,
+                                             pAddrBuf, &cbAddrBuf);
             if (err == NO_ERROR)
-            {
                 break;
-            }
-            else if (err == ERROR_BUFFER_OVERFLOW)
+            if (err == ERROR_BUFFER_OVERFLOW)
             {
-                LogRel2(("HostDnsServiceWin: provided GetAdaptersAddresses with %zu"
-                         " but asked again for %zu bytes\n",
+                LogRel2(("HostDnsServiceWin: provided GetAdaptersAddresses with %zu but asked again for %zu bytes\n",
                          (size_t)cbAddrBufProvided, (size_t)cbAddrBuf));
-
-                if (RT_UNLIKELY(fReallocated)) /* what? again?! */
+                if (iReallocLoops < 16)
                 {
-                    LogRel2(("HostDnsServiceWin: ... not going to realloc again\n"));
-                    free(pAddrBuf);
-                    pAddrBuf = NULL;
-                    break;
-                }
+                    /* Reallocate the buffer and try again. */
+                    void * const pvNew = RTMemRealloc(pAddrBuf, cbAddrBuf);
+                    if (pvNew)
+                    {
+                        pAddrBuf = (PIP_ADAPTER_ADDRESSES)pvNew;
+                        continue;
+                    }
 
-                PIP_ADAPTER_ADDRESSES pNewBuf = (PIP_ADAPTER_ADDRESSES) realloc(pAddrBuf, cbAddrBuf);
-                if (pNewBuf == NULL)
-                {
                     LogRel2(("HostDnsServiceWin: failed to reallocate %zu bytes\n", (size_t)cbAddrBuf));
-                    free(pAddrBuf);
-                    pAddrBuf = NULL;
-                    break;
                 }
-
-                /* try again */
-                pAddrBuf = pNewBuf; /* cbAddrBuf already updated */
-                fReallocated = true;
+                else
+                    LogRel2(("HostDnsServiceWin: iReallocLoops=%d - giving up!\n", iReallocLoops));
             }
             else
-            {
                 LogRel2(("HostDnsServiceWin: GetAdaptersAddresses error %d\n", err));
-                free(pAddrBuf);
-                pAddrBuf = NULL;
-                break;
-            }
-        }
-
-        if (pAddrBuf == NULL)
+            RTMemFree(pAddrBuf);
+            pAddrBuf = NULL;
             break;
-
-        for (PIP_ADAPTER_ADDRESSES pAdp = pAddrBuf; pAdp != NULL; pAdp = pAdp->Next)
+        }
+        if (pAddrBuf)
         {
-            LogRel2(("HostDnsServiceWin: %ls (status %u) ...\n",
-                     pAdp->FriendlyName ? pAdp->FriendlyName : L"(null)", pAdp->OperStatus));
-
-            if (pAdp->OperStatus != IfOperStatusUp)
-                continue;
-
-            if (pAdp->DnsSuffix == NULL || *pAdp->DnsSuffix == L'\0')
-                continue;
-
-            char *pszDnsSuffix = NULL;
-            int vrc = RTUtf16ToUtf8Ex(pAdp->DnsSuffix, RTSTR_MAX, &pszDnsSuffix, 0, /* allocate */ NULL);
-            if (RT_FAILURE(vrc))
+            for (PIP_ADAPTER_ADDRESSES pAdp = pAddrBuf; pAdp != NULL; pAdp = pAdp->Next)
             {
-                LogRel2(("HostDnsServiceWin: failed to convert DNS suffix \"%ls\": %Rrc\n", pAdp->DnsSuffix, vrc));
-                continue;
+                LogRel2(("HostDnsServiceWin: %ls (status %u) ...\n",
+                         pAdp->FriendlyName ? pAdp->FriendlyName : L"(null)", pAdp->OperStatus));
+
+                if (pAdp->OperStatus != IfOperStatusUp)
+                    continue;
+
+                if (pAdp->DnsSuffix == NULL || *pAdp->DnsSuffix == L'\0')
+                    continue;
+
+                char *pszDnsSuffix = NULL;
+                int vrc = RTUtf16ToUtf8Ex(pAdp->DnsSuffix, RTSTR_MAX, &pszDnsSuffix, 0, /* allocate */ NULL);
+                if (RT_FAILURE(vrc))
+                {
+                    LogRel2(("HostDnsServiceWin: failed to convert DNS suffix \"%ls\": %Rrc\n", pAdp->DnsSuffix, vrc));
+                    continue;
+                }
+
+                AssertContinue(pszDnsSuffix != NULL);
+                AssertContinue(*pszDnsSuffix != '\0');
+                LogRel2(("HostDnsServiceWin: ... suffix = \"%s\"\n", pszDnsSuffix));
+
+                appendTokenizedStrings(info.searchList, pszDnsSuffix);
+                RTStrFree(pszDnsSuffix);
             }
 
-            AssertContinue(pszDnsSuffix != NULL);
-            AssertContinue(*pszDnsSuffix != '\0');
-            LogRel2(("HostDnsServiceWin: ... suffix = \"%s\"\n", pszDnsSuffix));
-
-            appendTokenizedStrings(info.searchList, pszDnsSuffix);
-            RTStrFree(pszDnsSuffix);
+            RTMemFree(pAddrBuf);
         }
-
-        free(pAddrBuf);
     } while (0);
 
 
-    if (info.domain.empty() && !info.searchList.empty())
+    if (info.domain.isEmpty() && !info.searchList.empty())
         info.domain = info.searchList[0];
 
-    if (info.searchList.size() == 1)
+    if (info.searchList.size() == 1) /* ?? */
         info.searchList.clear();
 
     HostDnsServiceBase::setInfo(info);

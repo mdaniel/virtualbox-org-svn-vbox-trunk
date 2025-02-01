@@ -48,8 +48,6 @@ typedef int socklen_t;
 
 #include <VBox/log.h>
 
-#include <iprt/sanitized/string>
-
 #include "HostDnsService.h"
 #include "../../Devices/Network/slirp/resolv_conf_parser.h"
 
@@ -61,7 +59,7 @@ struct HostDnsServiceResolvConf::Data
     {
     };
 
-    std::string resolvConfFilename;
+    com::Utf8Str resolvConfFilename;
 };
 
 HostDnsServiceResolvConf::~HostDnsServiceResolvConf()
@@ -95,7 +93,7 @@ void HostDnsServiceResolvConf::uninit(void)
     HostDnsServiceBase::uninit();
 }
 
-const std::string& HostDnsServiceResolvConf::getResolvConf(void) const
+const com::Utf8Str &HostDnsServiceResolvConf::getResolvConf(void) const
 {
     return m->resolvConfFilename;
 }
@@ -103,7 +101,6 @@ const std::string& HostDnsServiceResolvConf::getResolvConf(void) const
 HRESULT HostDnsServiceResolvConf::readResolvConf(void)
 {
     struct rcp_state st;
-
     st.rcps_flags = RCPSF_NO_STR2IPCONV;
     int vrc = rcp_parse(&st, m->resolvConfFilename.c_str());
     if (vrc == -1)
@@ -113,19 +110,24 @@ HRESULT HostDnsServiceResolvConf::readResolvConf(void)
     for (unsigned i = 0; i != st.rcps_num_nameserver; ++i)
     {
         AssertBreak(st.rcps_str_nameserver[i]);
+        RTStrPurgeEncoding(st.rcps_str_nameserver[i]);
         info.servers.push_back(st.rcps_str_nameserver[i]);
     }
 
     if (st.rcps_domain)
+    {
+        RTStrPurgeEncoding(st.rcps_domain);
         info.domain = st.rcps_domain;
+    }
 
     for (unsigned i = 0; i != st.rcps_num_searchlist; ++i)
     {
         AssertBreak(st.rcps_searchlist[i]);
+        RTStrPurgeEncoding(st.rcps_searchlist[i]);
         info.searchList.push_back(st.rcps_searchlist[i]);
     }
-    setInfo(info);
 
+    setInfo(info);
     return S_OK;
 }
 

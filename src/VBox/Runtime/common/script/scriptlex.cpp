@@ -374,13 +374,13 @@ static int rtScriptLexFillBuffer(PRTSCRIPTLEXINT pThis)
     AssertReturn(!(pThis->fFlags & RTSCRIPT_LEX_INT_F_EOS), VERR_INVALID_STATE);
 
     /* If there is input left to process move it to the front and fill the remainder. */
-    if (pThis->pchCur != NULL)
+    if (   pThis->pchCur != NULL
+        && pThis->pchCur != &pThis->achBuf[pThis->cchBuf])
     {
         cchToRead = pThis->pchCur - &pThis->achBuf[0];
         /* Move the rest to the front. */
         memmove(&pThis->achBuf[0], pThis->pchCur, pThis->cchBuf - cchToRead);
         pchRead = (char *)pThis->pchCur + 1;
-        memset(pchRead, 0, cchToRead);
     }
 
     if (cchToRead)
@@ -394,6 +394,8 @@ static int rtScriptLexFillBuffer(PRTSCRIPTLEXINT pThis)
             pThis->offBufRead += cchRead;
             if (rc == VINF_EOF)
                 pThis->fFlags |= RTSCRIPT_LEX_INT_F_EOS;
+            if (cchRead < cchToRead)
+                memset(pchRead + cchRead, 0, cchToRead - cchRead);
             rc = VINF_SUCCESS;
         }
         else

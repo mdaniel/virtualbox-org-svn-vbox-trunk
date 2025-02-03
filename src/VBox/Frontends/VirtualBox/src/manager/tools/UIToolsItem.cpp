@@ -556,6 +556,7 @@ QVariant UIToolsItem::data(int iKey) const
         /* Layout hints: */
         case ToolsItemData_Margin:  return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
         case ToolsItemData_Spacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
+        case ToolsItemData_Padding: return 4;
 
         /* Default: */
         default: break;
@@ -736,6 +737,10 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Hovering background for widget: */
         if (isHovered())
         {
+            /* Prepare variables: */
+            const int iMargin = data(ToolsItemData_Margin).toInt();
+            const int iPadding = data(ToolsItemData_Padding).toInt();
+
             /* Configure painter: */
             pPainter->setRenderHint(QPainter::Antialiasing, true);
             /* Acquire background color: */
@@ -743,13 +748,13 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
 
             /* Prepare icon sub-rect: */
             QRect subRect;
-            subRect.setHeight(24 + 4 * 2);
+            subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
             subRect.setWidth(subRect.height());
-            subRect.moveCenter(rectangle.center());
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
 
             /* Paint icon frame: */
             QPainterPath painterPath;
-            painterPath.addRoundedRect(subRect, 4, 4);
+            painterPath.addRoundedRect(subRect, iPadding, iPadding);
             const QColor backgroundColor1 = uiCommon().isInDarkMode()
                                           ? backgroundColor.lighter(110)
                                           : backgroundColor.darker(105);

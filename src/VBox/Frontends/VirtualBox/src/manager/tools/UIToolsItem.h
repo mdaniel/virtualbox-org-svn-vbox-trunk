@@ -172,6 +172,7 @@ private:
         /* Layout hints: */
         ToolsItemData_Margin,
         ToolsItemData_Spacing,
+        ToolsItemData_Padding,
     };
 
     /** @name Prepare/cleanup cascade.

@@ -71,9 +71,13 @@
 
     <?include PublicProperties.wxi ?>
 
-    <!-- Make doubly sure we're on 64-bit windows NT.
-         Note! This is normally checked by  -->
+    <!-- Only 64-bit Windows hosts are supported (x86_64 and ARM64).
+         This is normally checked by VBoxStub, but we need to do this check here as well,
+         in case the .msi gets started directly. -->
     <Launch Condition="VersionNT64" Message="!(loc.Only64Bit)" />
+
+    <!-- Compare the current host's platform architecture with the installer's architecture (at build time). -->
+    <Launch Condition="VBOX_PLATFORM_ARCH=&quot;$(env.KBUILD_TARGET_ARCH)&quot;" Message="!(loc.WrongPlatformArch)" />
 
     <Launch Condition="Privileged" Message="!(loc.NeedAdmin)" />
 

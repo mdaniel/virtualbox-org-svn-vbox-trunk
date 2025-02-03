@@ -70,7 +70,8 @@
     <String Id="WrongOS" Value="Bu uygulama yalnızca Windows XP veya üzerinde çalışır." />
     <String Id="Only32Bit" Value="Bu uygulama yalnızca 32-bit Windows sistemlerinde çalışır. Lütfen [ProductName] 64-bit sürümünü yükleyin!" />
     <String Id="Only64Bit" Value="Bu uygulama yalnızca 64-bit Windows sistemlerinde çalışır. Lütfen [ProductName] 32-bit sürümünü yükleyin!" />
-    <String Id="SunFound" Value="Bu makinede eski bir Sun VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve sonra [ProductName] yükleyin!" />
+	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
+	<String Id="SunFound" Value="Bu makinede eski bir Sun VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve sonra [ProductName] yükleyin!" />
     <String Id="InnotekFound" Value="Bu makinede eski bir innotek VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve sonra [ProductName] yükleyin!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 

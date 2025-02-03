@@ -70,7 +70,8 @@
     <String Id="WrongOS" Value="This application only runs on Windows XP or above." />
     <String Id="Only32Bit" Value="This application only runs on 32-bit Windows systems. Please install the 64-bit version of [ProductName]!" />
     <String Id="Only64Bit" Value="This application only runs on 64-bit Windows systems. Please install the 32-bit version of [ProductName]!" />
-    <String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
+	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
+	<String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
     <String Id="InnotekFound" Value="An old innotek VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 

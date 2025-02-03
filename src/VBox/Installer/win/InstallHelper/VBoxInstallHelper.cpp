@@ -1580,22 +1580,28 @@ UINT __stdcall DriverUninstall(MSIHANDLE hModule)
 }
 
 /**
- * Returns the platform architecture as a string.
+ * Returns the host's platform architecture as a string.
  *
  * Sets public property VBOX_PLATFORM_ARCH to "x86", "amd64" or "arm64" on success.
  * Called from the MSI installer as custom action.
+ *
+ * We need this in order to distinguish the installer's build
+ * architecture from the current host architecture. Also,
+ * this deliberately is kept as a public property, so that it
+ * can be overriden for testing purposes.
  *
  * @returns UINT as Windows error code.
  * @retval  ERROR_INSTALL_PLATFORM_UNSUPPORTED if the platform is invalid or unsupported.
  * @param   hModule             Windows installer module handle.
  *
- * @note    We don't use WIX' util.QueryNativeMachine, as it's apparently on available on Windows 10 >= 1709.
+ * @note    We don't use WIX' util.QueryNativeMachine, as it's apparently not available on Windows 10 >= 1709.
  */
 UINT __stdcall GetPlatformArchitecture(MSIHANDLE hModule)
 {
     const char *pszArch;
 
-    /* Only add supported platforms here. */
+    /* Only add supported platforms here.
+     * Also, keep the string the same as kBuild's targets for easier comparrsion. */
     uint32_t const uNativeArch = RTSystemGetNativeArch();
     switch (uNativeArch)
     {
@@ -1611,7 +1617,10 @@ UINT __stdcall GetPlatformArchitecture(MSIHANDLE hModule)
     else
         rc = VERR_NOT_SUPPORTED;
 
-   logStringF(hModule, "GetPlatformArchitecture: Detected '%s' (%Rrc)", pszArch ? pszArch : "<Unknown>", rc);
+    if (RT_SUCCESS(rc))
+        logStringF(hModule, "GetPlatformArchitecture: Detected host architecture '%s'", pszArch);
+    else
+        logStringF(hModule, "GetPlatformArchitecture: Error detecting host architecture: %Rrc", rc);
 
     return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_INSTALL_PLATFORM_UNSUPPORTED;
 }

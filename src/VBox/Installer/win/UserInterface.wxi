@@ -1177,6 +1177,7 @@
         <!-- This defines the order in which the GUI panels will be shown to the user. -->
         <InstallUISequence>
 
+            <Custom Action="ca_GetPlatformArchitecture" After="AppSearch"/>
 <?if $(env.VBOX_WITH_CRT_PACKING) = "no" ?>
             <Custom Action="ca_IsMSCRTInstalled" After="AppSearch" />
 <?endif?>

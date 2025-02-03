@@ -38,6 +38,7 @@
     <CustomAction Id="ca_VBoxSupDrvUninst" DllEntry="DriverUninstall" Execute="immediate" Return="check" Impersonate="no" BinaryRef="VBoxInstallHelper" />
     <CustomAction Id="ca_VBoxSupDrvUninstArgModel" Property="VBoxDrvUninstModel" Value="VBoxSup*" Execute="immediate" />
 
+    <CustomAction Id="ca_GetPlatformArchitecture" DllEntry="GetPlatformArchitecture" Execute="immediate" Return="check" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 <?if $(env.VBOX_WITH_CRT_PACKING) = "no" ?>
     <CustomAction Id="ca_IsMSCRTInstalled" DllEntry="IsMSCRTInstalled" Execute="immediate" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 <?endif?>

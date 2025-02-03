@@ -63,6 +63,7 @@
     <String Id="WrongOS" Value="این برنامه فقط در ویندوز ایکس پی یا بالاتر اِجرا میشود." />
     <String Id="Only32Bit" Value="این برنامه فقط روی ویندوز 32 بیتی اِجرا میشود. لطفا نسخه 64 بیتی [ProductName] را نصب کنید!" />
     <String Id="Only64Bit" Value="این برنامه فقط روی ویندوز 64 بیتی اِجرا میشود. لطفا نسخه 32 بیتی [ProductName] را نصب کنید!" />
+	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
     <String Id="SunFound" Value="یک نصب قدیمی ویرچوال باکس روی این رایانه یافت شد. لطفا اول این بسته را حذف سپس [ProductName] را نصب کنید!" />
     <String Id="InnotekFound" Value="یک نسخه قدیمی نصب ویرچوال باکس در این ماشین یافت شد. لطفا اول این بسته را حذف و سپس [ProductName] را نصب کنید!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />

@@ -41,6 +41,7 @@
     <Custom Action="ca_VBoxSupDrvUninst" After="InstallInitialize"
             Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
 
+    <Custom Action="ca_GetPlatformArchitecture" Before="LaunchConditions"/>
 <?if $(env.VBOX_WITH_CRT_PACKING) = "no" ?>
     <Custom Action="ca_IsMSCRTInstalled" Before="LaunchConditions"/>
 <?endif?>

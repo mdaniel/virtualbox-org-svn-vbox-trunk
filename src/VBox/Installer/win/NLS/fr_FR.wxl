@@ -70,7 +70,8 @@
     <String Id="WrongOS" Value="Cette application nécéssite Windows XP ou plus récent." />
     <String Id="Only32Bit" Value="Cette application ne marche que sur des systèmes Windows 32-bit. Veuillez installer la version 64-bit de [ProductName]!" />
     <String Id="Only64Bit" Value="Cette application ne marche que sur des systèmes Windows 64-bit. Veuillez installer la version 32-bit de [ProductName]!" />
-    <String Id="InnotekFound" Value="Vous avez une ancienne installation de innotek VirtualBox sur cette machine. Il vous faudra la désinstaller avant de pouvoir installer [ProductName]." />
+	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
+	<String Id="InnotekFound" Value="Vous avez une ancienne installation de innotek VirtualBox sur cette machine. Il vous faudra la désinstaller avant de pouvoir installer [ProductName]." />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 
     <!---->

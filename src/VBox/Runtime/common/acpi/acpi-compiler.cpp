@@ -683,7 +683,7 @@ static int rtAcpiTblAslParseTerminal(PRTACPIASLCU pThis, RTACPIASLTERMINAL enmTe
 {
     int rc = VINF_SUCCESS;
 
-    AssertReturn(enmTerminal > RTACPIASLTERMINAL_INVALID && enmTerminal < RT_ELEMENTS(g_aAslKeywords), VERR_INTERNAL_ERROR);
+    AssertReturn(enmTerminal > RTACPIASLTERMINAL_INVALID && (unsigned)enmTerminal < RT_ELEMENTS(g_aAslKeywords), VERR_INTERNAL_ERROR);
 
     *ppAstNd = NULL;
 

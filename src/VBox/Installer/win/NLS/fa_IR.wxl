@@ -61,7 +61,6 @@
     <String Id="NeedAdmin" Value="برای حذف [ProductName] شما نیاز به اجازه مدیر دارید! این راه انداز حالا لغو میشود." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
     <String Id="WrongOS" Value="این برنامه فقط در ویندوز ایکس پی یا بالاتر اِجرا میشود." />
-    <String Id="Only32Bit" Value="این برنامه فقط روی ویندوز 32 بیتی اِجرا میشود. لطفا نسخه 64 بیتی [ProductName] را نصب کنید!" />
     <String Id="Only64Bit" Value="این برنامه فقط روی ویندوز 64 بیتی اِجرا میشود. لطفا نسخه 32 بیتی [ProductName] را نصب کنید!" />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
     <String Id="SunFound" Value="یک نصب قدیمی ویرچوال باکس روی این رایانه یافت شد. لطفا اول این بسته را حذف سپس [ProductName] را نصب کنید!" />

@@ -68,7 +68,6 @@
     <String Id="NeedAdmin" Value="Sie benötigen Administrations-Rechte zum (De-)Installieren von [ProductName]! Das Setup wird nun beendet." />
     <String Id="NeedMSCRT" Value="Für [ProductName] muss zuerst das Microsoft Visual C++ 2019 Redistributable Package installiert werden. Bitte installieren und danach die Installation von [ProductName] wiederholen." />
     <String Id="WrongOS" Value="[ProductName] läuft nur auf Windows XP oder höher!" />
-    <String Id="Only32Bit" Value="Diese Applikation läuft nur auf 32-bit Windows-Systemen. Bitte installieren Sie die 64-bit Version von [ProductName]!" />
     <String Id="Only64Bit" Value="Diese Applikation läuft nur auf 64-bit Windows-Systemen. Bitte installieren Sie die 32-bit Version von [ProductName]!" />
 	<String Id="WrongPlatformArch" Value="Diese Version von [ProductName] wurde für eine andere Plattform-Architektur entwickelt und kann daher nicht installiert werden. Bitte die passende Version für [ProductName] installieren!" />
     <String Id="SunFound" Value="Eine alte Sun Version von VirtualBox wurde auf diesem Computer gefunden. Bitte deinstallieren Sie diese Version zuerst. Danach können Sie [ProductName] installieren!" />

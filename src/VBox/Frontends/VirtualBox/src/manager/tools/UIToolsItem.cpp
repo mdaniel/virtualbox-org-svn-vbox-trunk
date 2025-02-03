@@ -846,8 +846,8 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     /* Paint left column: */
     {
         /* Prepare variables: */
-        int iPixmapX = model()->tools()->isPopup() ? iMargin : 2 * iMargin;
-        int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
+        const int iPixmapX = model()->tools()->isPopup() ? iMargin : 2 * iMargin;
+        const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
         paintPixmap(/* Painter: */
                     pPainter,
@@ -860,10 +860,12 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     /* Paint right column: */
     {
         /* Prepare variables: */
-        int iNameX = iMargin + m_pixmapSize.width() + iSpacing;
-        int iNameY = (iFullHeight - m_nameSize.height()) / 2;
-        /* Paint name: */
-        if (model()->tools()->isPopup())
+        const int iNameX = model()->tools()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
+                                                       : 2 * iMargin + m_pixmapSize.width() + iSpacing;
+        const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
+        /* Paint name (always for popup mode, if requested otherwise): */
+        if (   model()->tools()->isPopup()
+            || model()->showItemNames())
             paintText(/* Painter: */
                       pPainter,
                       /* Point to paint in: */

@@ -67,7 +67,7 @@
 <String Id="UsedByOtherApp" Value="检测到一个应用程序正在使用当前安装的 VirtualBox 版本。在继续安装之前，您必须删除该应用程序。有关详细信息，请参阅 VirtualBox 安装目录中的 dependency.dep 文件." />
 <String Id="NeedAdmin" Value="需要系统管理员权限安装 （或卸载）[ProductName]！此安装程序现在将中止。" />
 <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
-<String Id="WrongOS" Value="此应用程序只能运行在 Windows XP 或以上。" />
+<String Id="WrongOS" Value="此应用程序只能运行在 Windows 10 或以上。" />
 <String Id="Only64Bit" Value="此应用程序只能运行在 64 位 Windows 系统。 请安装 [ProductName] 的 32 位版本！" />
 <String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
 <String Id="SunFound" Value="在此计算机发现旧的 Sun VirtualBox 安装。 请先卸载此组件然后安装 [ProductName]！" />
@@ -432,7 +432,7 @@
 <String Id="Error1924" Value="不能更新环境变量 '[2]'。 请确认你有权限以修改环境变量。" />
 <String Id="Error1925" Value="你没有权限使计算机的所有用户都完成此安装。请以系统管理员权限登录，接著再重试此安装。" />
 <String Id="Error1926" Value="不能配置文件案 '[3]' 的文件安全性。 错误：[2]。 请确认你有权限以修改此文件的安全性权限。" />
-<String Id="Error1927" Value="这台计算机并未安装 Component Services (COM+ 1.0)。这项安装需要有 Component Services 才能进行。Component Services 包含在 Windows XP 中。" />
+<String Id="Error1927" Value="这台计算机并未安装 Component Services (COM+ 1.0)。这项安装需要有 Component Services 才能进行。Component Services 包含在 Windows 10 中。" />
 <String Id="Error1928" Value="注册 COM+ 应用程序时发生错误。请联络你的支持人员以取得其它信息。" />
 <String Id="Error1929" Value="解除 COM+ 应用程序注册时发生错误。请联络你的支持人员以取得其它信息。" />
 <String Id="Error1930" Value="不能更改服务 '[2]' ([3]) 的描述。" />

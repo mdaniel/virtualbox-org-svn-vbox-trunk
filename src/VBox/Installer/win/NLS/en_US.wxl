@@ -66,7 +66,7 @@
     <String Id="UsedByOtherApp" Value="It was detected an application which has been using currently installed VirtualBox version. You must remove this application before continuing installation. See the file dependency.dep in the VirtualBox installation directory for details." />
     <String Id="NeedAdmin" Value="You need to have administrator rights to (un)install [ProductName]! This setup will abort now." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
-    <String Id="WrongOS" Value="This application only runs on Windows XP or above." />
+    <String Id="WrongOS" Value="This application only runs on Windows 10 or above." />
     <String Id="Only64Bit" Value="This application only runs on 64-bit Windows systems. Please install the 32-bit version of [ProductName]!" />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
 	<String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />

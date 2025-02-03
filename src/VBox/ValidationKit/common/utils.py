@@ -259,16 +259,16 @@ def getHostOsVersion():
                 [ '/etc/gentoo-release', '' ],
                 [ '/etc/oracle-release', '' ],
                 [ '/etc/redhat-release', '' ],
-                [ '/etc/SuSE-release', '' ],
+                [ '/etc/SUSE-brand', '' ],
             ];
             for sFile, sPrefix in asFiles:
                 if os.path.isfile(sFile):
                     try:
                         with open(sFile) as oFile: # pylint: disable=unspecified-encoding
-                            sLine = oFile.readline();
+                            sLine = ''.join(oFile.readlines());
                     except:
                         continue;
-                    sLine = sLine.strip()
+                    sLine = sLine.strip().replace("VERSION =", "") # suse tweek
                     if sLine:
                         sVersion += ' / ' + sPrefix + sLine;
                     break;

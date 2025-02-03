@@ -25,15 +25,6 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/*
- * Oracle LGPL Disclaimer: For the avoidance of doubt, except that if any license choice
- * other than GPL or LGPL is available it will apply instead, Oracle elects to use only
- * the Lesser General Public License version 2.1 (LGPLv2) at this time for any software where
- * a choice of LGPL license versions is made available with the language indicating
- * that LGPLv2 or any later version may be used, or where a choice of which version
- * of the LGPL is applied is otherwise unspecified.
- */
-
 /* GTK - The GIMP Toolkit
  * Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald
  *
@@ -82,6 +73,15 @@
  * file for a list of people on the GLib Team.  See the ChangeLog
  * files for a list of changes.  These files are distributed with
  * GLib at ftp://ftp.gtk.org/pub/gtk/.
+ */
+
+/*
+ * Oracle LGPL Disclaimer: For the avoidance of doubt, except that if any license choice
+ * other than GPL or LGPL is available it will apply instead, Oracle elects to use only
+ * the Lesser General Public License version 2.1 (LGPLv2) at this time for any software where
+ * a choice of LGPL license versions is made available with the language indicating
+ * that LGPLv2 or any later version may be used, or where a choice of which version
+ * of the LGPL is applied is otherwise unspecified.
  */
 
 #ifndef GA_INCLUDED_SRC_x11_VBoxClient_vbox_gtk_h

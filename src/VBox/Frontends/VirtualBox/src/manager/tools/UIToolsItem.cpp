@@ -555,9 +555,10 @@ QVariant UIToolsItem::data(int iKey) const
     switch (iKey)
     {
         /* Layout hints: */
-        case ToolsItemData_Margin:  return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
+        case ToolsItemData_Margin: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
         case ToolsItemData_Spacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
         case ToolsItemData_Padding: return 4;
+        case ToolsItemData_ExtraButtonWidth: return 10;
 
         /* Default: */
         default: break;
@@ -882,6 +883,10 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
 
 void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) const
 {
+    /* Prepare variables: */
+    const int iPadding = data(ToolsItemData_Padding).toInt();
+    const int iButtonWidth = data(ToolsItemData_ExtraButtonWidth).toInt();
+
     /* Save painter: */
     pPainter->save();
 
@@ -893,24 +898,24 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
 
     /* Prepare button sub-rect: */
     QRect subRect;
-    subRect.setWidth(rectangle.width() / 6);
+    subRect.setWidth(iButtonWidth);
     subRect.setHeight(rectangle.height() / 2);
     subRect.moveTopLeft(QPoint(rectangle.right() - subRect.width() - 2,
                                rectangle.bottom() - 3 * rectangle.height() / 4 + 1));
 
     /* Paint button frame: */
     QPainterPath painterPath;
-    painterPath.addRoundedRect(subRect, 4, 4);
+    painterPath.addRoundedRect(subRect, iPadding, iPadding);
     QColor backgroundColor1 = uiCommon().isInDarkMode()
                             ? backgroundColor.lighter(110)
-                            : backgroundColor.darker(110);
+                            : backgroundColor.darker(105);
     pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
     pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
 
     /* Fill button body: */
     pPainter->setClipPath(painterPath);
     QColor backgroundColor2 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(140)
+                            ? backgroundColor.lighter(180)
                             : backgroundColor.darker(140);
     pPainter->fillRect(subRect, backgroundColor2);
 

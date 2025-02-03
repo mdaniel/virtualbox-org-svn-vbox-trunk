@@ -173,6 +173,7 @@ private:
         ToolsItemData_Margin,
         ToolsItemData_Spacing,
         ToolsItemData_Padding,
+        ToolsItemData_ExtraButtonWidth,
     };
 
     /** @name Prepare/cleanup cascade.

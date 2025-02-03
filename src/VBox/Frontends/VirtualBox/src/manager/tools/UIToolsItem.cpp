@@ -921,8 +921,16 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     pPainter->fillRect(subRect, backgroundColor2);
 
     /* Paint arrow: */
-    pPainter->drawLine(subRect.topLeft() + QPoint(3, 3), QPoint(subRect.right() - 2, subRect.center().y()));
-    pPainter->drawLine(subRect.bottomLeft() + QPoint(3, -3), QPoint(subRect.right() - 2, subRect.center().y()));
+    if (!model()->showItemNames())
+    {
+        pPainter->drawLine(subRect.topLeft() + QPoint(3, 3), QPoint(subRect.right() - 2, subRect.center().y()));
+        pPainter->drawLine(subRect.bottomLeft() + QPoint(3, -3), QPoint(subRect.right() - 2, subRect.center().y()));
+    }
+    else
+    {
+        pPainter->drawLine(subRect.topRight() + QPoint(-3, 3), QPoint(subRect.left() + 3, subRect.center().y()));
+        pPainter->drawLine(subRect.bottomRight() + QPoint(-3, -3), QPoint(subRect.left() + 3, subRect.center().y()));
+    }
 
     /* Restore painter: */
     pPainter->restore();

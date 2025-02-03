@@ -69,6 +69,7 @@
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
     <String Id="WrongOS" Value="Αυτή η εφαρμογή τρέχει μόνο σε Windows 10 ή παραπάνω." />
     <String Id="Only64Bit" Value="Αυτή η εφαρμογή τρέχει μόνο σε συστήματα Windows 64 bit. Εγκαταστήστε την έκδοση 32-bit του [ProductName]!" />
+	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
     <String Id="SunFound" Value="Βρέθηκε μία παλιότερη εγκατάσταση του Sun VirtualBox στον υπολογιστή. Καταργήστε πρώτα την εγκατάσταση αυτού του πακέτου και μετά εγκαταστήστε το [ProductName]!" />
     <String Id="InnotekFound" Value="Βρέθηκε μία παλιότερη εγκατάσταση του innotek VirtualBox στον υπολογιστή. Καταργήστε πρώτα την εγκατάσταση αυτού του πακέτου και μετά εγκαταστήστε το [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]." />

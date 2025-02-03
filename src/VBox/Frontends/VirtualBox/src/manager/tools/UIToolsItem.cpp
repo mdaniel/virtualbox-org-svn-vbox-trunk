@@ -292,7 +292,8 @@ int UIToolsItem::minimumWidthHint() const
         iProposedWidth += 2 * iMargin;
     /* And Tools-item content to take into account: */
     int iToolsItemWidth = m_pixmapSize.width();
-    if (model()->tools()->isPopup())
+    if (   model()->tools()->isPopup()
+        || model()->showItemNames())
         iToolsItemWidth += iSpacing + m_nameSize.width();
     iProposedWidth += iToolsItemWidth;
 
@@ -864,7 +865,8 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                                                        : 2 * iMargin + m_pixmapSize.width() + iSpacing;
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name (always for popup mode, if requested otherwise): */
-        if (model()->tools()->isPopup())
+        if (   model()->tools()->isPopup()
+            || model()->showItemNames())
             paintText(/* Painter: */
                       pPainter,
                       /* Point to paint in: */
@@ -908,8 +910,8 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     /* Fill button body: */
     pPainter->setClipPath(painterPath);
     QColor backgroundColor2 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(150)
-                            : backgroundColor.darker(150);
+                            ? backgroundColor.lighter(140)
+                            : backgroundColor.darker(140);
     pPainter->fillRect(subRect, backgroundColor2);
 
     /* Paint arrow: */

@@ -65,6 +65,7 @@ UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent)
     , m_pTools(pParent)
     , m_pScene(0)
     , m_fItemsEnabled(true)
+    , m_fShowItemNames(false)
 {
     prepare();
 }
@@ -318,6 +319,11 @@ UIToolsItem *UIToolsModel::item(UIToolType enmType) const
     return 0;
 }
 
+bool UIToolsModel::showItemNames() const
+{
+    return m_fShowItemNames;
+}
+
 bool UIToolsModel::isAtLeastOneItemHovered() const
 {
     foreach (UIToolsItem *pItem, items())
@@ -435,6 +441,15 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                         UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
                         if (pClickedItem)
                         {
+                            /* Toggle the button: */
+                            if (pClickedItem->hasExtraButton())
+                            {
+                                m_fShowItemNames = !m_fShowItemNames;
+                                foreach (UIToolsItem *pItem, m_items)
+                                    pItem->updateGeometry();
+                                updateLayout();
+                            }
+
                             /* Make clicked item the current one: */
                             if (pClickedItem->isEnabled())
                             {

@@ -129,6 +129,9 @@ public:
         /** Returns the item of passed @a enmType. */
         UIToolsItem *item(UIToolType enmType) const;
 
+        /** Returns whether we should show item names. */
+        bool showItemNames() const;
+
         /** Returns whether at least one item hovered. */
         bool isAtLeastOneItemHovered() const;
     /** @} */
@@ -269,6 +272,9 @@ private:
       * @{ */
         /** Holds the root stack. */
         QList<UIToolsItem*>  m_items;
+
+        /** Holds whether children should show names. */
+        bool  m_fShowItemNames;
     /** @} */
 
     /** @name Selection stuff.

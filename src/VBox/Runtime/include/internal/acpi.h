@@ -41,8 +41,113 @@
 #endif
 
 #include <iprt/acpi.h>
+#include <iprt/list.h>
 
 RT_C_DECLS_BEGIN
+
+/** Pointer to an ACPI AST node. */
+typedef struct RTACPIASTNODE *PRTACPIASTNODE;
+/** Pointer to a const ACPI AST node. */
+typedef const struct RTACPIASTNODE *PCRTACPIASTNODE;
+
+/**
+ * AST node argument type.
+ */
+typedef enum RTACPIASTARGTYPE
+{
+    kAcpiAstArgType_Invalid = 0,
+    kAcpiAstArgType_AstNode,
+    kAcpiAstArgType_NameString,
+    kAcpiAstArgType_U8,
+    kAcpiAstArgType_U16,
+    kAcpiAstArgType_U32,
+    kAcpiAstArgType_U64,
+    kAcpiAstArgType_32Bit_Hack = 0x7fffffff
+} RTACPIASTARGTYPE;
+
+
+/**
+ * An AST node argument
+ */
+typedef struct RTACPIASTARG
+{
+    /** Argument type. */
+    RTACPIASTARGTYPE    enmType;
+    /** Type dependent data. */
+    union
+    {
+        uintptr_t       uPtrInternal;
+        PCRTACPIASTNODE pAstNode;
+        const char      *pszNameString;
+        uint8_t         u8;
+        uint16_t        u16;
+        uint32_t        u32;
+        uint64_t        u64;
+    } u;
+} RTACPIASTARG;
+/** Pointer to an AST node argument. */
+typedef RTACPIASTARG *PRTACPIASTARG;
+/** Pointer to a const AST node argument. */
+typedef const RTACPIASTARG *PCRTACPIASTARG;
+
+
+/**
+ * The core ACPI AST node.
+ */
+typedef struct RTACPIASTNODE
+{
+    /** List node. */
+    RTLISTNODE          NdAst;
+    /** The AML opcode defining the node. */
+    uint8_t             bOpc;
+    /** Number of "arguments" for the opcode following (for example Scope(), Method(), If(), etc., i.e. anything requiring () after the keyword ). */
+    uint8_t             cArgs;
+    /** Padding */
+    uint8_t             abRsvd[2];
+    /** Some additional flags. */
+    uint32_t            fFlags;
+    /** List of other AST nodes for the opened scope if indicated by the AST flags (RTACPIASTNODE). */
+    RTLISTANCHOR        LstScopeNodes;
+    /** The AST node arguments - variable in size. */
+    RTACPIASTARG        aArgs[1];
+} RTACPIASTNODE;
+
+/** Default flags. */
+#define RTACPI_AST_NODE_F_DEFAULT       0
+/** The AST node opens a new scope. */
+#define RTACPI_AST_NODE_F_NEW_SCOPE     RT_BIT_32(0)
+/** The AST node opcode is part of the extended prefix opcode map. */
+#define RTACPI_AST_NODE_F_EXT_OPC       RT_BIT_32(1)
+
+
+/**
+ * Allocates a new ACPI AST node initialized with the given properties.
+ *
+ * @returns Pointer to the new ACPI AST node or NULL if out of memory.
+ * @param   bOpc                The opcode value for the AST node.
+ * @param   fFlags              Flags for this node.
+ * @param   cArgs               Number of arguments to allocate.
+ */
+DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(uint8_t bOpc, uint32_t fFlags, uint8_t cArgs);
+
+
+/**
+ * Frees the given AST node and all children nodes linked to this one.
+ *
+ * @param   pAstNd              The AST node to free.
+ */
+DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd);
+
+
+/**
+ * Dumps the given AST node and everything it references to the given ACPI table.
+ *
+ * @returns IPRT status code.
+ * @param   pAstNd              The AST node to dump.
+ * @param   hAcpiTbl            The ACPI table to dump to.
+ */
+DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl);
+
 
 /**
  * Worker for decompiling AML bytecode to the ASL source language.
@@ -56,7 +161,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
 
 
 /**
- * Worker for decompiling ASL bytecode to the AML source language.
+ * Worker for compiling ASL to the AML bytecode.
  *
  * @returns IPRT status code.
  * @param   hVfsIosOut          The VFS I/O stream handle to output the result to.

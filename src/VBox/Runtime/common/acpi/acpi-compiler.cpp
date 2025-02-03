@@ -72,6 +72,8 @@
 typedef enum RTACPIASLTERMINAL
 {
     RTACPIASLTERMINAL_INVALID = 0,
+
+    /** Keyword terminals, must come first as they are used for indexing into a table later on. */
     RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK,
     RTACPIASLTERMINAL_KEYWORD_SCOPE,
     RTACPIASLTERMINAL_KEYWORD_PROCESSOR,
@@ -98,11 +100,39 @@ typedef struct RTACPIASLCU
     RTACPITBL               hAcpiTbl;
     /** Error information. */
     PRTERRINFO              pErrInfo;
+    /** List of AST nodes for the DefinitionBlock() scope. */
+    RTLISTANCHOR            LstStmts;
 } RTACPIASLCU;
 /** Pointer to an ACPI ASL compilation unit state. */
 typedef RTACPIASLCU *PRTACPIASLCU;
 /** Pointer to a constant ACPI ASL compilation unit state. */
 typedef const RTACPIASLCU *PCRTACPIASLCU;
+
+
+/**
+ * ASL keyword encoding entry.
+ */
+typedef struct RTACPIASLKEYWORD
+{
+    /** Name of the opcode. */
+    const char               *pszOpc;
+    /** The opcode AML value. */
+    uint8_t                  bOpc;
+    /** Number of arguments required. */
+    uint8_t                  cArgsReq;
+    /** Number of optional arguments. */
+    uint8_t                  cArgsOpt;
+    /** Flags for the opcode. */
+    uint32_t                 fFlags;
+    /** Argument type for the required arguments. */
+    RTACPIASTARGTYPE         aenmTypes[5];
+    /** Arguments for optional arguments, including the default value if absent. */
+    RTACPIASTARG             aArgsOpt[3];
+} RTACPIASLKEYWORD;
+/** Pointer to a ASL keyword encoding entry. */
+typedef RTACPIASLKEYWORD *PRTACPIASLKEYWORD;
+/** Pointer to a const ASL keyword encoding entry. */
+typedef const RTACPIASLKEYWORD *PCRTACPIASLKEYWORD;
 
 
 /*********************************************************************************************************************************
@@ -154,11 +184,11 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 static const RTSCRIPTLEXRULE s_aRules[] =
 {
     { '\"', '\"',  RTSCRIPT_LEX_RULE_CONSUME, RTScriptLexScanStringLiteralC,      NULL},
-    { '0',  '9',   RTSCRIPT_LEX_RULE_CONSUME, rtAcpiAslLexerParseNumber,          NULL},
-    { 'A',  'Z',   RTSCRIPT_LEX_RULE_CONSUME, rtAcpiAslLexerParseNameString,      NULL},
-    { '_',  '_',   RTSCRIPT_LEX_RULE_CONSUME, rtAcpiAslLexerParseNameString,      NULL},
-    { '^',  '^',   RTSCRIPT_LEX_RULE_CONSUME, rtAcpiAslLexerParseNameString,      NULL},
-    { '\\',  '\\', RTSCRIPT_LEX_RULE_CONSUME, rtAcpiAslLexerParseNameString,      NULL},
+    { '0',  '9',   RTSCRIPT_LEX_RULE_DEFAULT, rtAcpiAslLexerParseNumber,          NULL},
+    { 'A',  'Z',   RTSCRIPT_LEX_RULE_DEFAULT, rtAcpiAslLexerParseNameString,      NULL},
+    { '_',  '_',   RTSCRIPT_LEX_RULE_DEFAULT, rtAcpiAslLexerParseNameString,      NULL},
+    { '^',  '^',   RTSCRIPT_LEX_RULE_DEFAULT, rtAcpiAslLexerParseNameString,      NULL},
+    { '\\',  '\\', RTSCRIPT_LEX_RULE_DEFAULT, rtAcpiAslLexerParseNameString,      NULL},
 
     { '\0', '\0',  RTSCRIPT_LEX_RULE_DEFAULT, NULL,                               NULL}
 };
@@ -248,10 +278,12 @@ static DECLCALLBACK(int) rtAcpiAslLexerParseNameString(RTSCRIPTLEX hScriptLex, c
 
     char aszIde[513]; RT_ZERO(aszIde);
     unsigned idx = 0;
-    aszIde[idx++] = ch;
 
     if (ch == '^') /* PrefixPath */
     {
+        aszIde[idx++] = '^';
+        RTScriptLexConsumeCh(hScriptLex);
+
         ch = RTScriptLexGetCh(hScriptLex);
         while (   idx < sizeof(aszIde) - 1
                && ch == '^')
@@ -263,6 +295,11 @@ static DECLCALLBACK(int) rtAcpiAslLexerParseNameString(RTSCRIPTLEX hScriptLex, c
 
         if (idx == sizeof(aszIde) - 1)
             return RTScriptLexProduceTokError(hScriptLex, pTok, VERR_BUFFER_OVERFLOW, "Lexer: PrefixPath exceeds the allowed length");
+    }
+    else if (ch == '\\')
+    {
+        aszIde[idx++] = '\\';
+        RTScriptLexConsumeCh(hScriptLex);
     }
 
     /* Now there is only a sequence of NameSeg allowed (separated by the . separator). */
@@ -306,6 +343,38 @@ static DECLCALLBACK(int) rtAcpiAslLexerRead(RTSCRIPTLEX hScriptLex, size_t offBu
         return VINF_EOF;
 
     return VINF_SUCCESS;
+}
+
+
+#if 0
+DECLINLINE(bool) rtAcpiAslLexerIsKeyword(PCRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerm)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
+    if (RT_FAILURE(rc))
+        return false;
+
+    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD
+        && pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)enmTerm)
+        return true;
+
+    return false;
+}
+#endif
+
+
+DECLINLINE(bool) rtAcpiAslLexerIsPunctuator(PCRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerm)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
+    if (RT_FAILURE(rc))
+        return false;
+
+    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_PUNCTUATOR
+        && pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)enmTerm)
+        return true;
+
+    return false;
 }
 
 
@@ -395,9 +464,9 @@ static int rtAcpiAslLexerConsumeIfNatural(PCRTACPIASLCU pThis, uint64_t *pu64, b
     if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_NUMBER
         && pTok->Type.Number.enmType == RTSCRIPTLEXTOKNUMTYPE_NATURAL)
     {
-        RTScriptLexConsumeToken(pThis->hLexSource);
         *pfConsumed = true;
         *pu64 = pTok->Type.Number.Type.u64;
+        RTScriptLexConsumeToken(pThis->hLexSource);
         return VINF_SUCCESS;
     }
 
@@ -476,48 +545,230 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected a natural number"); \
     } while(0)
 
-static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis);
+#define RTACPIASL_SKIP_CURRENT_TOKEN() \
+    RTScriptLexConsumeToken(pThis->hLexSource);
 
-static int rtAcpiTblAslParseTerminal(PRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerminal)
+
+static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis, PRTLISTANCHOR pLstStmts);
+
+/**
+ * Keyword encoding table, indexed by RTACPIASLTERMINAL_XXX.
+ */
+static const RTACPIASLKEYWORD g_aAslKeywords[] =
 {
-    int rc = VINF_SUCCESS;
+    /* RTACPIASLTERMINAL_INVALID */     {
+                                            NULL, 0, 0, 0, RTACPI_AST_NODE_F_DEFAULT,
+                                            {   kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid},
+                                            {
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } }
+                                            }
+                                        },
+    /* RTACPIASLTERMINAL_DEFINITION_BLOCK */ {
+                                            NULL, 0, 0, 0, RTACPI_AST_NODE_F_DEFAULT,
+                                            {   kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid,
+                                                kAcpiAstArgType_Invalid},
+                                            {
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } }
+                                            }
+                                        },
+    /* RTACPIASLTERMINAL_SCOPE   */     {
+                                            "Scope", ACPI_AML_BYTE_CODE_OP_SCOPE, 1, 0, RTACPI_AST_NODE_F_NEW_SCOPE,
+                                            {    kAcpiAstArgType_NameString,
+                                                 kAcpiAstArgType_Invalid,
+                                                 kAcpiAstArgType_Invalid,
+                                                 kAcpiAstArgType_Invalid,
+                                                 kAcpiAstArgType_Invalid
+                                            },
+                                            {
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } }
+                                            }
+                                        },
+    /* RTACPIASLTERMINAL_PROCESSOR */   {
+                                            "Processor", ACPI_AML_BYTE_CODE_EXT_OP_PROCESSOR, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_EXT_OPC,
+                                            {    kAcpiAstArgType_NameString,
+                                                 kAcpiAstArgType_U8,
+                                                 kAcpiAstArgType_Invalid,
+                                                 kAcpiAstArgType_Invalid,
+                                                 kAcpiAstArgType_Invalid
+                                            },
+                                            {
+                                                { kAcpiAstArgType_U32,     { 0 } },
+                                                { kAcpiAstArgType_U8,      { 0 } },
+                                                { kAcpiAstArgType_Invalid, { 0 } }
+                                            }
+                                        },
+};
 
-    switch (enmTerminal)
+static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword, uint8_t iArg, RTACPIASTARGTYPE enmArgType, PRTACPIASTARG pArg)
+{
+    switch (enmArgType)
     {
-        case RTACPIASLTERMINAL_KEYWORD_SCOPE:
+        case kAcpiAstArgType_AstNode:
         {
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
-            RTACPIASL_PARSE_NAME_STRING(pszName);
-            RT_NOREF(pszName);
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
-            rc = rtAcpiTblAslParseInner(pThis);
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+            //rtAcpiTblAslParseTerminal(pThis, RTACPIASLTERMINAL enmTerminal, PRTACPIASTNODE *ppAstNd)
             break;
         }
-        case RTACPIASLTERMINAL_KEYWORD_PROCESSOR:
+        case kAcpiAstArgType_NameString:
         {
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
-            RTACPIASL_PARSE_NAME_STRING(pszName);
-            RT_NOREF(pszName);
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
-            AssertFailed();
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
-            rc = rtAcpiTblAslParseInner(pThis);
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+            RTACPIASL_PARSE_NAME_STRING(pszNameString);
+            pArg->enmType         = kAcpiAstArgType_NameString;
+            pArg->u.pszNameString = pszNameString;
+            break;
+        }
+        case kAcpiAstArgType_U8:
+        {
+            RTACPIASL_PARSE_NATURAL(u64);
+            if (u64 > UINT8_MAX)
+                return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                     "Value for byte parameter %u is out of range (%#RX64) while processing keyword '%s'",
+                                     iArg, u64, pszKeyword);
+
+            pArg->enmType = kAcpiAstArgType_U8;
+            pArg->u.u8    = (uint8_t)u64;
+            break;
+        }
+        case kAcpiAstArgType_U16:
+        {
+            RTACPIASL_PARSE_NATURAL(u64);
+            if (u64 > UINT16_MAX)
+                return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                     "Value for word parameter %u is out of range (%#RX64) while processing keyword '%s'",
+                                     iArg, u64, pszKeyword);
+
+            pArg->enmType = kAcpiAstArgType_U16;
+            pArg->u.u16   = (uint16_t)u64;
+            break;
+        }
+        case kAcpiAstArgType_U32:
+        {
+            RTACPIASL_PARSE_NATURAL(u64);
+            if (u64 > UINT32_MAX)
+                return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                     "Value for 32-bit parameter %u is out of range (%#RX64) while processing keyword '%s'",
+                                     iArg, u64, pszKeyword);
+
+            pArg->enmType = kAcpiAstArgType_U32;
+            pArg->u.u32   = (uint32_t)u64;
+            break;
+        }
+        case kAcpiAstArgType_U64:
+        {
+            RTACPIASL_PARSE_NATURAL(u64);
+            pArg->enmType = kAcpiAstArgType_U64;
+            pArg->u.u64   = u64;
             break;
         }
         default:
-            rc = RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected keyword encountered");
-            break;
+            AssertReleaseFailed();
+    }
+
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblAslParseTerminal(PRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerminal, PRTACPIASTNODE *ppAstNd)
+{
+    int rc = VINF_SUCCESS;
+
+    AssertReturn(enmTerminal > RTACPIASLTERMINAL_INVALID && enmTerminal < RT_ELEMENTS(g_aAslKeywords), VERR_INTERNAL_ERROR);
+
+    *ppAstNd = NULL;
+
+    PCRTACPIASLKEYWORD pAslKeyword = &g_aAslKeywords[enmTerminal];
+    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(pAslKeyword->bOpc, pAslKeyword->fFlags, pAslKeyword->cArgsReq + pAslKeyword->cArgsOpt);
+    if (!pAstNd)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing keyword '%s'", pAslKeyword->pszOpc);
+
+    *ppAstNd = pAstNd;
+
+    if (pAslKeyword->cArgsReq || pAslKeyword->cArgsOpt)
+    {
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+
+        /* Process any required arguments. */
+        for (uint32_t i = 0; i < pAslKeyword->cArgsReq; i++)
+        {
+            rc = rtAcpiTblAslParseArgument(pThis, pAslKeyword->pszOpc, i, pAslKeyword->aenmTypes[i], &pAstNd->aArgs[i]);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            /* There must be a "," between required arguments, not counting the last required argument because it can be closed with ")". */
+            if (i < pAslKeyword->cArgsReq - 1)
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+        }
+
+        /* Process any optional arguments, this is a bit ugly. */
+        uint8_t iArg = 0;
+        while (iArg < pAslKeyword->cArgsOpt)
+        {
+            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+                break; /* The end of the argument list was reached. */
+
+            /*
+             * It is possible to have empty arguments in the list by having nothing to parse between the "," or something like ",)"
+             * (like "Method(NAM, 0,,)" for example).
+             */
+            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            {
+                RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip "," */
+
+                /*
+                 * If the next token is also a "," there is a hole in the argument list and we have to fill in the default,
+                 * if it is ")" we reached the end.
+                 */
+                if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+                    break;
+                else if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+                {
+                    pAstNd->aArgs[pAslKeyword->cArgsReq + iArg] = pAslKeyword->aArgsOpt[iArg];
+                    iArg++;
+                    continue; /* Continue with the next argument. */
+                }
+
+                /* So there is an argument we need to parse. */
+                rc = rtAcpiTblAslParseArgument(pThis, pAslKeyword->pszOpc, iArg, pAslKeyword->aArgsOpt[iArg].enmType, &pAstNd->aArgs[pAslKeyword->cArgsReq + iArg]);
+                if (RT_FAILURE(rc))
+                    return rc;
+
+                iArg++;
+            }
+        }
+
+        /* Fill remaining optional arguments with the defaults. */
+        for (; iArg < pAslKeyword->cArgsOpt; iArg++)
+            pAstNd->aArgs[pAslKeyword->cArgsReq + iArg] = pAslKeyword->aArgsOpt[iArg];
+
+        /* Now there must be a closing ) */
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+    }
+
+    /* For keywords opening a new scope do the parsing now. */
+    if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE)
+    {
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+        rc = rtAcpiTblAslParseInner(pThis, &pAstNd->LstScopeNodes);
+        if (RT_SUCCESS(rc))
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
     }
 
     return rc;
 }
 
 
-static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis)
+static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis, PRTLISTANCHOR pLstStmts)
 {
     for (;;)
     {
@@ -536,11 +787,18 @@ static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected token encountered");
 
         RTACPIASLTERMINAL enmKeyword = (RTACPIASLTERMINAL)pTok->Type.Keyword.pKeyword->u64Val;
-        RTScriptLexConsumeToken(pThis->hLexSource);
+        RTScriptLexConsumeToken(pThis->hLexSource); /* This must come here as rtAcpiTblAslParseTerminal() will continue parsing. */
 
-        rc = rtAcpiTblAslParseTerminal(pThis, enmKeyword);
+        PRTACPIASTNODE pAstNd = NULL;
+        rc = rtAcpiTblAslParseTerminal(pThis, enmKeyword, &pAstNd);
         if (RT_FAILURE(rc))
+        {
+            if (pAstNd)
+                rtAcpiAstNodeFree(pAstNd);
             return rc;
+        }
+
+        RTListAppend(pLstStmts, &pAstNd->NdAst);
     }
 }
 
@@ -595,13 +853,15 @@ static int rtAcpiTblAslParserParse(PRTACPIASLCU pThis)
     if (RT_SUCCESS(rc))
     {
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
-        rc = rtAcpiTblAslParseInner(pThis);
+        rc = rtAcpiTblAslParseInner(pThis, &pThis->LstStmts);
         if (RT_SUCCESS(rc))
         {
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
             rc = rtAcpiAslParserConsumeEos(pThis); /* No junk after the final closing bracket. */
         }
     }
+    else
+        rc = RTErrInfoSetF(pThis->pErrInfo, rc, "Call to RTAcpiTblCreate() failed");
 
     return rc;
 }
@@ -615,6 +875,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
     {
         pThis->hVfsIosIn  = hVfsIosIn;
         pThis->pErrInfo   = pErrInfo;
+        RTListInit(&pThis->LstStmts);
 
         rc = RTScriptLexCreateFromReader(&pThis->hLexSource, rtAcpiAslLexerRead,
                                          NULL /*pfnDtor*/, pThis /*pvUser*/, 0 /*cchBuf*/,
@@ -626,15 +887,46 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
             if (RT_SUCCESS(rc))
             {
                 /* 2. - Optimize AST (constant folding, etc). */
+                /** @todo */
+
                 /* 3. - Traverse AST and output table. */
-                RT_NOREF(hVfsIosOut);
+                PRTACPIASTNODE pIt;
+                RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
+                {
+                    rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
+                    if (RT_FAILURE(rc))
+                        break;
+                }
+
+                /* Finalize and write to the VFS I/O stream. */
+                if (RT_SUCCESS(rc))
+                {
+                    rc = RTAcpiTblFinalize(pThis->hAcpiTbl);
+                    if (RT_SUCCESS(rc))
+                    {
+                        rc = RTAcpiTblDumpToVfsIoStrm(pThis->hAcpiTbl, RTACPITBLTYPE_AML, hVfsIosOut);
+                        if (RT_FAILURE(rc))
+                            rc = RTErrInfoSetF(pErrInfo, rc, "Writing the ACPI table failed with %Rrc", rc);
+                    }
+                    else
+                        rc = RTErrInfoSetF(pErrInfo, rc, "Finalizing the ACPI table failed with %Rrc", rc);
+                }
+                else
+                    rc = RTErrInfoSetF(pErrInfo, rc, "Dumping AST to ACPI table failed with %Rrc", rc);
             }
 
-            /** @todo Destroy AST. */
             RTScriptLexDestroy(pThis->hLexSource);
         }
         else
             rc = RTErrInfoSetF(pErrInfo, rc, "Creating the ASL lexer failed with %Rrc", rc);
+
+        /* Destroy the AST nodes. */
+        PRTACPIASTNODE pIt, pItNext;
+        RTListForEachSafe(&pThis->LstStmts, pIt, pItNext, RTACPIASTNODE, NdAst)
+        {
+            RTListNodeRemove(&pIt->NdAst);
+            rtAcpiAstNodeFree(pIt);
+        }
 
         RTMemFree(pThis);
     }

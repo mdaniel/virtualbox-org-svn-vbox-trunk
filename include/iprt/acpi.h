@@ -279,6 +279,59 @@ RTDECL(int) RTAcpiTblDeviceFinalize(RTACPITBL hAcpiTbl);
 
 
 /**
+ * Starts a new processor object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszName             Name of the device object, must be <= 4 characters long.
+ * @param   bProcId             The processor ID.
+ * @param   u32PBlkAddr         Address of the processor register block.
+ * @param   cbPBlk              Size of the processor register block in bytes.
+ */
+RTDECL(int) RTAcpiTblProcessorStart(RTACPITBL hAcpiTbl, const char *pszName, uint8_t bProcId, uint32_t u32PBlkAddr,
+                                    uint8_t cbPBlk);
+
+
+/**
+ * Starts a new processor object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   bProcId             The processor ID.
+ * @param   u32PBlkAddr         Address of the processor register block.
+ * @param   cbPBlk              Size of the processor register block in bytes.
+ * @param   pszNameFmt          The name of the device as a format string.
+ * @param   ...                 The format arguments.
+ */
+RTDECL(int) RTAcpiTblProcessorStartF(RTACPITBL hAcpiTbl, uint8_t bProcId, uint32_t u32PBlkAddr, uint8_t cbPBlk,
+                                     const char *pszNameFmt, ...) RT_IPRT_FORMAT_ATTR(5, 6);
+
+
+/**
+ * Starts a new processor object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   bProcId             The processor ID.
+ * @param   u32PBlkAddr         Address of the processor register block.
+ * @param   cbPBlk              Size of the processor register block in bytes.
+ * @param   pszNameFmt          The name of the device as a format string.
+ * @param   va                  The format arguments.
+ */
+RTDECL(int) RTAcpiTblProcessorStartV(RTACPITBL hAcpiTbl, uint8_t bProcId, uint32_t u32PBlkAddr, uint8_t cbPBlk,
+                                     const char *pszNameFmt, va_list va) RT_IPRT_FORMAT_ATTR(5, 0);
+
+
+/**
+ * Finalizes the current scope object, nothing can be added to the scope afterwards.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblProcessorFinalize(RTACPITBL hAcpiTbl);
+
+
+/**
  * Starts a new method object for the given ACPI table in the current scope.
  *
  * @returns IPRT status code.

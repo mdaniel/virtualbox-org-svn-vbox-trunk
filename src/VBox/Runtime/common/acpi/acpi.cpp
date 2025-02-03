@@ -396,6 +396,26 @@ DECLINLINE(void) rtAcpiTblAppendByte(PRTACPITBLINT pThis, uint8_t bData)
 
 
 /**
+ * Appends the given double word to the ACPI table, updating the package length of the current package.
+ *
+ * @param pThis                 The ACPI table instance.
+ * @param u32                   The data to append.
+ */
+DECLINLINE(void) rtAcpiTblAppendDword(PRTACPITBLINT pThis, uint32_t u32)
+{
+    uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, sizeof(u32));
+    if (pb)
+    {
+        pb[0] = (uint8_t)u32;
+        pb[1] = (uint8_t)(u32 >>  8);
+        pb[2] = (uint8_t)(u32 >> 16);
+        pb[3] = (uint8_t)(u32 >> 24);
+        rtAcpiTblUpdatePkgLength(pThis, sizeof(u32));
+    }
+}
+
+
+/**
  * Appends the given date to the ACPI table, updating the package length of the current package.
  *
  * @param pThis                 The ACPI table instance.
@@ -695,7 +715,7 @@ RTDECL(int) RTAcpiTblDeviceStartF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ..
 
 RTDECL(int) RTAcpiTblDeviceStartV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va)
 {
-    char szName[5];
+    char szName[128];
     ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameFmt, va);
     if (cch <= 0)
         return VERR_BUFFER_OVERFLOW;
@@ -710,6 +730,53 @@ RTDECL(int) RTAcpiTblDeviceFinalize(RTACPITBL hAcpiTbl)
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
 
     return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_DEVICE);
+}
+
+
+RTDECL(int) RTAcpiTblProcessorStart(RTACPITBL hAcpiTbl, const char *pszName, uint8_t bProcId, uint32_t u32PBlkAddr,
+                                    uint8_t cbPBlk)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblPkgStartExt(pThis, ACPI_AML_BYTE_CODE_EXT_OP_PROCESSOR);
+    rtAcpiTblAppendNameString(pThis, pszName);
+    rtAcpiTblAppendByte(pThis, bProcId);
+    rtAcpiTblAppendDword(pThis, u32PBlkAddr);
+    rtAcpiTblAppendByte(pThis, cbPBlk);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblProcessorStartF(RTACPITBL hAcpiTbl, uint8_t bProcId, uint32_t u32PBlkAddr, uint8_t cbPBlk,
+                                     const char *pszNameFmt, ...)
+{
+    va_list va;
+    va_start(va, pszNameFmt);
+    int rc = RTAcpiTblProcessorStartV(hAcpiTbl, bProcId, u32PBlkAddr, cbPBlk, pszNameFmt, va);
+    va_end(va);
+    return rc;
+}
+
+
+RTDECL(int) RTAcpiTblProcessorStartV(RTACPITBL hAcpiTbl, uint8_t bProcId, uint32_t u32PBlkAddr, uint8_t cbPBlk,
+                                     const char *pszNameFmt, va_list va)
+{
+    char szName[128];
+    ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameFmt, va);
+    if (cch <= 0)
+        return VERR_BUFFER_OVERFLOW;
+
+    return RTAcpiTblProcessorStart(hAcpiTbl, &szName[0], bProcId, u32PBlkAddr, cbPBlk);
+}
+
+
+RTDECL(int) RTAcpiTblProcessorFinalize(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_PROCESSOR);
 }
 
 

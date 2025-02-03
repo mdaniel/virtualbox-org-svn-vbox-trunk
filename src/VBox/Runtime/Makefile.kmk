@@ -395,6 +395,7 @@ RuntimeBaseR3_INCS          = \
 
 RuntimeBaseR3_SOURCES      := \
 	common/acpi/acpi.cpp \
+	common/acpi/acpi-ast.cpp \
 	common/acpi/acpi-compiler.cpp \
 	common/acpi/acpi-decompiler.cpp \
 	common/alloc/alloc.cpp \

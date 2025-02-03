@@ -1162,7 +1162,11 @@ int vbsf_path_from_dentry(struct vbsf_super_info *pSuperInfo, struct vbsf_inode_
  *
  * @note Caller holds no relevant locks, just a dentry reference.
  */
-#if RTLNX_VER_MIN(3,6,0)
+
+#if RTLNX_VER_MIN(6,14,0)
+static int vbsf_dentry_revalidate(struct inode *parentDir, const struct qstr *parentName,
+                                  struct dentry *dentry, unsigned flags)
+#elif RTLNX_VER_MIN(3,6,0)
 static int vbsf_dentry_revalidate(struct dentry *dentry, unsigned flags)
 #elif RTLNX_VER_MIN(2,6,0)
 static int vbsf_dentry_revalidate(struct dentry *dentry, struct nameidata *nd)
@@ -1170,6 +1174,10 @@ static int vbsf_dentry_revalidate(struct dentry *dentry, struct nameidata *nd)
 static int vbsf_dentry_revalidate(struct dentry *dentry, int flags)
 #endif
 {
+#if RTLNX_VER_MIN(6,14,0)
+    /* Optional, not in use currently. */
+    RT_NOREF(parentDir, parentName);
+#endif
 #if RTLNX_VER_RANGE(2,6,0,  3,6,0)
     int const flags = nd ? nd->flags : 0;
 #endif

@@ -379,7 +379,9 @@ static struct drm_driver driver = {
 #endif
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
+#if RTLNX_VER_MAX(6,14,0)
 	.date = DRIVER_DATE,
+#endif
 	.major = DRIVER_MAJOR,
 	.minor = DRIVER_MINOR,
 	.patchlevel = DRIVER_PATCHLEVEL,

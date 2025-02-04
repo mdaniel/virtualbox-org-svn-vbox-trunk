@@ -818,6 +818,22 @@ HRESULT VirtualBox::init()
             if (FAILED(hrc)) throw hrc;
         }
 
+        for (settings::SharedFoldersList::const_iterator it = m->pMainConfigFile->llGlobalSharedFolders.begin();
+             it != m->pMainConfigFile->llGlobalSharedFolders.end();
+             ++it)
+        {
+            const settings::SharedFolder &sf = *it;
+            ComObjPtr<SharedFolder> pSharedFolder;
+            hrc = pSharedFolder.createObject();
+            AssertComRCThrowRC(hrc);
+            hrc = pSharedFolder->init(this, sf);
+            if (FAILED(hrc)) throw hrc;
+
+            AutoWriteLock alock(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+            m->allSharedFolders.addChild(pSharedFolder);
+            alock.release();
+        }
+
         /* net services - nat networks */
         for (settings::NATNetworksList::const_iterator it = m->pMainConfigFile->llNATNetworks.begin();
              it != m->pMainConfigFile->llNATNetworks.end();
@@ -1501,9 +1517,13 @@ HRESULT VirtualBox::getGuestOSTypes(std::vector<ComPtr<IGuestOSType> > &aGuestOS
 
 HRESULT VirtualBox::getSharedFolders(std::vector<ComPtr<ISharedFolder> > &aSharedFolders)
 {
-    NOREF(aSharedFolders);
-
-    return setError(E_NOTIMPL, tr("Not yet implemented"));
+    AutoReadLock al(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+    aSharedFolders.resize(m->allSharedFolders.size());
+    size_t i = 0;
+    for (SharedFoldersOList::const_iterator it= m->allSharedFolders.begin();
+         it!= m->allSharedFolders.end(); ++it, ++i)
+         (*it).queryInterfaceTo(aSharedFolders[i].asOutParam());
+    return S_OK;
 }
 
 HRESULT VirtualBox::getPerformanceCollector(ComPtr<IPerformanceCollector> &aPerformanceCollector)
@@ -2779,19 +2799,81 @@ HRESULT VirtualBox::createSharedFolder(const com::Utf8Str &aName,
                                        BOOL aAutomount,
                                        const com::Utf8Str &aAutoMountPoint)
 {
-    NOREF(aName);
-    NOREF(aHostPath);
-    NOREF(aWritable);
-    NOREF(aAutomount);
-    NOREF(aAutoMountPoint);
+    LogFlowThisFunc(("Entering for '%s' -> '%s'\n", aName.c_str(), aHostPath.c_str()));
 
-    return setError(E_NOTIMPL, tr("Not yet implemented"));
+    ComPtr<ISharedFolder> found;
+    HRESULT hrc = i_findSharedFolder(aName, found);
+    if (SUCCEEDED(hrc))
+        return setError(VBOX_E_OBJECT_IN_USE,
+                        tr("Shared folder named '%s' already exists"),
+                        aName.c_str());
+
+    ComObjPtr<SharedFolder> sharedFolder;
+    SymlinkPolicy_T enmSymlinkPolicy = SymlinkPolicy_None;
+    sharedFolder.createObject();
+    hrc = sharedFolder->init(this,
+                             aName,
+                             aHostPath,
+                             !!aWritable,
+                             !!aAutomount,
+                             aAutoMountPoint,
+                             true /* fFailOnError */,
+                             enmSymlinkPolicy);
+    if (FAILED(hrc)) return hrc;
+
+    AutoWriteLock alock(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+    m->allSharedFolders.addChild(sharedFolder);
+    alock.release();
+    {
+        AutoWriteLock vboxLock(this COMMA_LOCKVAL_SRC_POS);
+        hrc = i_saveSettings();
+        vboxLock.release();
+
+        if (FAILED(hrc))
+        {
+            alock.acquire();
+            m->allSharedFolders.removeChild(sharedFolder);
+            alock.release();
+        }
+    }
+
+    i_onSharedFolderChanged();
+    LogFlowThisFunc(("Leaving for '%s' -> '%s'\n", aName.c_str(), aHostPath.c_str()));
+    return hrc;
 }
 
 HRESULT VirtualBox::removeSharedFolder(const com::Utf8Str &aName)
 {
-    NOREF(aName);
-    return setError(E_NOTIMPL, tr("Not yet implemented"));
+    LogFlowThisFunc(("Entering for '%s'\n", aName.c_str()));
+
+    ComPtr<ISharedFolder> sharedFolder;
+    HRESULT hrc = i_findSharedFolder(aName, sharedFolder);
+    if (FAILED(hrc))
+        return hrc;
+
+    ISharedFolder *aP = sharedFolder;
+    SharedFolder *aP2 = static_cast<SharedFolder *>(aP);
+    AutoWriteLock alock(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+    m->allSharedFolders.removeChild(aP2);
+    alock.release();
+
+    {
+        AutoWriteLock vboxLock(this COMMA_LOCKVAL_SRC_POS);
+        hrc = i_saveSettings();
+        vboxLock.release();
+
+        if (FAILED(hrc))
+        {
+            alock.acquire();
+            m->allSharedFolders.addChild(aP2);
+            alock.release();
+        }
+    }
+
+    i_onSharedFolderChanged();
+    LogFlowThisFunc(("Leaving for '%s'\n", aName.c_str()));
+
+    return hrc;
 }
 
 /**
@@ -3621,6 +3703,29 @@ void VirtualBox::i_onMediumChanged(IMediumAttachment *aMediumAttachment)
     HRESULT hrc = ::CreateMediumChangedEvent(ptrEvent.asOutParam(), m->pEventSource, aMediumAttachment);
     AssertComRCReturnVoid(hrc);
     i_postEvent(new AsyncEvent(this, ptrEvent));
+}
+
+/**
+ *  @note Locks this object for reading.
+ */
+void VirtualBox::i_onSharedFolderChanged()
+{
+    LogFlowThisFunc(("\n"));
+
+    AutoCaller autoCaller(this);
+    AssertComRCReturnVoid(autoCaller.hrc());
+
+    SessionMachinesList aMachines;
+    i_getOpenedMachines(aMachines, NULL);
+    for (SessionMachinesList::iterator it = aMachines.begin();
+         it != aMachines.end();
+         ++it)
+    {
+        ComObjPtr<SessionMachine> &pMachine = *it;
+        AutoReadLock mlock(pMachine COMMA_LOCKVAL_SRC_POS);
+        pMachine->i_onSharedFolderChange(TRUE);
+    }
+    aMachines.clear();
 }
 
 /**
@@ -4554,6 +4659,43 @@ HRESULT VirtualBox::i_findRemoveableMedium(DeviceType_T mediumType,
     return hrc;
 }
 
+/**
+ *  Searches for a shared folder with the given logical name
+ *  in the collection of shared folders.
+ *
+ *  @param aName            logical name of the shared folder
+ *  @param aSharedFolder    where to return the found object
+ *
+ *  @return S_OK, E_INVALIDARG or VBOX_E_OBJECT_NOT_FOUND when not found.
+ *
+ *  @note must be called from under the object's lock
+ */
+HRESULT VirtualBox::i_findSharedFolder(const Utf8Str &aName,
+                                       ComPtr<ISharedFolder> &aSharedFolder)
+{
+    ComObjPtr<SharedFolder> found;
+
+    AutoReadLock alock(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+
+    for (SharedFoldersOList::const_iterator it = m->allSharedFolders.begin();
+        it != m->allSharedFolders.end();
+        ++it)
+    {
+        Bstr bstrSharedFolderName;
+        HRESULT hrc = (*it)->COMGETTER(Name)(bstrSharedFolderName.asOutParam());
+        if (FAILED(hrc)) return hrc;
+
+        if (Utf8Str(bstrSharedFolderName) == aName)
+        {
+            found = *it;
+            break;
+        }
+    }
+    if (!found)
+        return VBOX_E_OBJECT_NOT_FOUND;
+    return found.queryInterfaceTo(aSharedFolder.asOutParam());
+}
+
 /* Look for a GuestOSType object */
 HRESULT VirtualBox::i_findGuestOSType(const Utf8Str &strOSType,
                                       ComObjPtr<GuestOSType> &guestOSType)
@@ -5243,6 +5385,19 @@ HRESULT VirtualBox::i_saveSettings()
                 hrc = (*it)->i_saveSettings(d);
                 if (FAILED(hrc)) throw hrc;
                 m->pMainConfigFile->llDhcpServers.push_back(d);
+            }
+        }
+        m->pMainConfigFile->llGlobalSharedFolders.clear();
+        {
+            AutoReadLock sharedFolderLock(m->allSharedFolders.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+            for (SharedFoldersOList::const_iterator it = m->allSharedFolders.begin();
+                 it != m->allSharedFolders.end();
+                 ++it)
+            {
+                settings::SharedFolder sf;
+                hrc = (*it)->i_saveSettings(sf);
+                if (FAILED(hrc)) throw hrc;
+                m->pMainConfigFile->llGlobalSharedFolders.push_back(sf);
             }
         }
 

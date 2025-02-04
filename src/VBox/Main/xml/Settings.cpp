@@ -1647,6 +1647,32 @@ bool NATHostLoopbackOffset::operator==(const NATHostLoopbackOffset &o) const
             && u32Offset == o.u32Offset);
 }
 
+/**
+ * Constructor. Needs to set sane defaults which stand the test of time.
+ */
+SharedFolder::SharedFolder() :
+    fWritable(false),
+    fAutoMount(false),
+    enmSymlinkPolicy(SymlinkPolicy_None)
+{
+}
+
+/**
+ * Comparison operator. This gets called from MachineConfigFile::operator==,
+ * which in turn gets called from Machine::saveSettings to figure out whether
+ * machine settings have really changed and thus need to be written out to disk.
+ */
+bool SharedFolder::operator==(const SharedFolder &g) const
+{
+    return (this == &g)
+        || (   strName           == g.strName
+            && strHostPath       == g.strHostPath
+            && fWritable         == g.fWritable
+            && fAutoMount        == g.fAutoMount
+            && strAutoMountPoint == g.strAutoMountPoint
+            && enmSymlinkPolicy  == g.enmSymlinkPolicy);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -2100,6 +2126,44 @@ void MainConfigFile::readNATNetworks(const xml::ElementNode &elmNATNetworks)
     }
 }
 
+/**
+ * Reads in the \<SharedFolders\> chunk.
+ * @param elmSharedFolders
+ */
+void MainConfigFile::readSharedFolders(const xml::ElementNode &elmSharedFolders)
+{
+    xml::NodesLoop nl1(elmSharedFolders, "SharedFolder");
+    const xml::ElementNode *pelmFolder;
+    while ((pelmFolder = nl1.forAllNodes()))
+    {
+        SharedFolder sf;
+        pelmFolder->getAttributeValue("name", sf.strName);
+        pelmFolder->getAttributeValue("hostPath", sf.strHostPath);
+        pelmFolder->getAttributeValue("writable", sf.fWritable);
+        pelmFolder->getAttributeValue("autoMount", sf.fAutoMount);
+        pelmFolder->getAttributeValue("autoMountPoint", sf.strAutoMountPoint);
+
+        Utf8Str strTemp;
+        if (pelmFolder->getAttributeValue("symlinkPolicy", strTemp))
+        {
+            if (strTemp == "forbidden")
+                sf.enmSymlinkPolicy = SymlinkPolicy_Forbidden;
+            else if (strTemp == "subtree")
+                sf.enmSymlinkPolicy = SymlinkPolicy_AllowedInShareSubtree;
+            else if (strTemp == "relative")
+                sf.enmSymlinkPolicy = SymlinkPolicy_AllowedToRelativeTargets;
+            else if (strTemp == "any")
+                sf.enmSymlinkPolicy = SymlinkPolicy_AllowedToAnyTarget;
+            else
+                throw ConfigFileError(this,
+                                      pelmFolder,
+                                      N_("Invalid value '%s' in SharedFolder/@symlinkPolicy attribute"),
+                                      strTemp.c_str());
+        }
+        llGlobalSharedFolders.push_back(sf);
+    }
+}
+
 #ifdef VBOX_WITH_VMNET
 /**
  * Reads in the \<HostOnlyNetworks\> chunk.
@@ -2432,6 +2496,8 @@ MainConfigFile::MainConfigFile(const Utf8Str *pstrFilename)
 #endif /* VBOX_WITH_CLOUD_NET */
                         }
                     }
+                    else if (pelmGlobalChild->nameEquals("SharedFolders"))
+                        readSharedFolders(*pelmGlobalChild);
                     else if (pelmGlobalChild->nameEquals("USBDeviceFilters"))
                         readUSBDeviceFilters(*pelmGlobalChild, host.llUSBDeviceFilters);
                     else if (pelmGlobalChild->nameEquals("USBDeviceSources"))
@@ -2507,6 +2573,13 @@ void MainConfigFile::bumpSettingsVersionIfNeeded()
         if (   !llNATNetworks.empty())
             m->sv = SettingsVersion_v1_14;
     }
+    if (m->sv < SettingsVersion_v1_20)
+    {
+        // VirtualBox 7.1 adds global shared folders.
+        if (!llGlobalSharedFolders.empty())
+            m->sv = SettingsVersion_v1_20;
+    }
+
 }
 
 
@@ -2622,6 +2695,37 @@ void MainConfigFile::write(const com::Utf8Str strFilename)
         }
     }
 #endif /* VBOX_WITH_CLOUD_NET */
+
+xml::ElementNode *pelmSharedFolders = pelmGlobal->createChild("SharedFolders");
+    if (!llGlobalSharedFolders.empty())
+    {
+        for (SharedFoldersList::const_iterator it = llGlobalSharedFolders.begin();
+             it != llGlobalSharedFolders.end();
+             ++it)
+        {
+            const SharedFolder &sf = *it;
+            xml::ElementNode *pelmThis = pelmSharedFolders->createChild("SharedFolder");
+            pelmThis->setAttribute("name", sf.strName);
+            pelmThis->setAttribute("hostPath", sf.strHostPath);
+            pelmThis->setAttribute("writable", sf.fWritable);
+            pelmThis->setAttribute("autoMount", sf.fAutoMount);
+            if (sf.strAutoMountPoint.isNotEmpty())
+                pelmThis->setAttribute("autoMountPoint", sf.strAutoMountPoint);
+            const char *pcszSymlinkPolicy;
+            if (sf.enmSymlinkPolicy != SymlinkPolicy_None)
+            {
+                switch (sf.enmSymlinkPolicy)
+                {
+                    default: /*case SymlinkPolicy_Forbidden:*/    pcszSymlinkPolicy = "forbidden";  break;
+                    case SymlinkPolicy_AllowedInShareSubtree:     pcszSymlinkPolicy = "subtree";    break;
+                    case SymlinkPolicy_AllowedToRelativeTargets:  pcszSymlinkPolicy = "relative";   break;
+                    case SymlinkPolicy_AllowedToAnyTarget:        pcszSymlinkPolicy = "any";        break;
+                }
+                pelmThis->setAttribute("symlinkPolicy", pcszSymlinkPolicy);
+            }
+
+        }
+    }
 
 #ifdef VBOX_WITH_UPDATE_AGENT
     /* We keep the updates configuration as part of the host for now, as the API exposes the IHost::updateHost attribute,
@@ -3788,31 +3892,6 @@ bool AudioAdapter::operator==(const AudioAdapter &a) const
             && properties      == a.properties);
 }
 
-/**
- * Constructor. Needs to set sane defaults which stand the test of time.
- */
-SharedFolder::SharedFolder() :
-    fWritable(false),
-    fAutoMount(false),
-    enmSymlinkPolicy(SymlinkPolicy_None)
-{
-}
-
-/**
- * Comparison operator. This gets called from MachineConfigFile::operator==,
- * which in turn gets called from Machine::saveSettings to figure out whether
- * machine settings have really changed and thus need to be written out to disk.
- */
-bool SharedFolder::operator==(const SharedFolder &g) const
-{
-    return (this == &g)
-        || (   strName           == g.strName
-            && strHostPath       == g.strHostPath
-            && fWritable         == g.fWritable
-            && fAutoMount        == g.fAutoMount
-            && strAutoMountPoint == g.strAutoMountPoint
-            && enmSymlinkPolicy  == g.enmSymlinkPolicy);
-}
 
 /**
  * Constructor. Needs to set sane defaults which stand the test of time.

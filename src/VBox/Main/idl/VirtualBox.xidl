@@ -2763,7 +2763,7 @@
 
   <interface
     name="IVirtualBox" extends="$unknown"
-    uuid="d644ad1e-c501-4fc7-9ab6-aa6d763bc540"
+    uuid="2ce10519-3c09-45d8-a12d-e887786146b7"
     wsmap="managed"
     rest="managed"
     wrap-gen-hook="yes"
@@ -2951,11 +2951,6 @@
         New shared folders are added to the collection using
         <link to="#createSharedFolder"/>. Existing shared folders can be
         removed using <link to="#removeSharedFolder"/>.
-
-        <note>
-          In the current version of the product, global shared folders are not
-          implemented and therefore this collection is always empty.
-        </note>
       </desc>
     </attribute>
 
@@ -3629,10 +3624,14 @@
         name with the given host path, adds it to the collection of shared
         folders and starts sharing it. Refer to the description of
         <link to="ISharedFolder"/> to read more about logical names.
-        <note>
-          In the current implementation, this operation is not
-          implemented.
-        </note>
+
+        <result name="VBOX_E_OBJECT_IN_USE">
+          Shared folder already exists.
+        </result>
+        <result name="VBOX_E_FILE_ERROR">
+          Shared folder @a hostPath not accessible.
+        </result>
+
       </desc>
       <param name="name" type="wstring" dir="in">
         <desc>Unique logical name of the shared folder.</desc>
@@ -3661,10 +3660,11 @@
         Removes the global shared folder with the given name previously
         created by <link to="#createSharedFolder"/> from the collection of
         shared folders and stops sharing it.
-        <note>
-          In the current implementation, this operation is not
-          implemented.
-        </note>
+
+        <result name="VBOX_E_OBJECT_NOT_FOUND">
+          Shared folder @a name does not exist.
+        </result>
+
       </desc>
       <param name="name" type="wstring" dir="in">
         <desc>Logical name of the shared folder to remove.</desc>
@@ -24716,11 +24716,6 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
       Note that permanent and transient shared folders of different machines
       are in different name spaces, so they don't overlap and don't need to
       have unique logical names.
-
-      <note>
-        Global shared folders are not implemented in the current version of the
-        product.
-      </note>
     </desc>
 
     <attribute name="name" type="wstring" readonly="yes">

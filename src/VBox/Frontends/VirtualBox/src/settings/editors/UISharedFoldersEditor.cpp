@@ -465,14 +465,19 @@ void UISharedFoldersEditor::sltHandleCurrentItemChange(QTreeWidgetItem *pCurrent
         pCurrentItem->setSelected(true);
     const bool fAddEnabled = pCurrentItem;
     const bool fRemoveEnabled = fAddEnabled && pCurrentItem->parent();
+    SFTreeViewItem *pItem = static_cast<SFTreeViewItem*>(pCurrentItem);
+    const bool fEditEnabled = fRemoveEnabled && pItem->m_enmType != UISharedFolderType_Global;
     m_pActionAdd->setEnabled(fAddEnabled);
-    m_pActionEdit->setEnabled(fRemoveEnabled);
+    m_pActionEdit->setEnabled(fEditEnabled);
     m_pActionRemove->setEnabled(fRemoveEnabled);
 }
 
 void UISharedFoldersEditor::sltHandleDoubleClick(QTreeWidgetItem *pItem)
 {
-    const bool fEditEnabled = pItem && pItem->parent();
+    SFTreeViewItem *pSFItem = static_cast<SFTreeViewItem*>(pItem);
+    const bool fEditEnabled =    pItem
+                              && pItem->parent()
+                              && pSFItem->m_enmType != UISharedFolderType_Global;
     if (fEditEnabled)
         sltEditFolder();
 }
@@ -483,7 +488,9 @@ void UISharedFoldersEditor::sltHandleContextMenuRequest(const QPoint &position)
     QTreeWidgetItem *pItem = m_pTreeWidget->itemAt(position);
     if (m_pTreeWidget->isEnabled() && pItem && pItem->flags() & Qt::ItemIsSelectable)
     {
-        menu.addAction(m_pActionEdit);
+        SFTreeViewItem *pSFItem = static_cast<SFTreeViewItem*>(pItem);
+        if (pSFItem->m_enmType != UISharedFolderType_Global)
+            menu.addAction(m_pActionEdit);
         menu.addAction(m_pActionRemove);
     }
     else
@@ -507,7 +514,11 @@ void UISharedFoldersEditor::sltAddFolder()
     {
         const QString strName = dlgFolderDetails.name();
         const QString strPath = dlgFolderDetails.path();
-        const UISharedFolderType enmType = dlgFolderDetails.isPermanent() ? UISharedFolderType_Machine : UISharedFolderType_Console;
+        const UISharedFolderType enmType =   dlgFolderDetails.isGlobal()
+                                           ? UISharedFolderType_Global
+                                           : dlgFolderDetails.isPermanent()
+                                           ? UISharedFolderType_Machine
+                                           : UISharedFolderType_Console;
         /* Shared folder's name & path could not be empty: */
         Assert(!strName.isEmpty() && !strPath.isEmpty());
 
@@ -545,6 +556,7 @@ void UISharedFoldersEditor::sltEditFolder()
     dlgFolderDetails.setPath(pItem->m_strPath);
     dlgFolderDetails.setName(pItem->m_strName);
     dlgFolderDetails.setPermanent(pItem->m_enmType == UISharedFolderType_Machine);
+    dlgFolderDetails.setGlobal(pItem->m_enmType == UISharedFolderType_Global);
     dlgFolderDetails.setWriteable(pItem->m_fWritable);
     dlgFolderDetails.setAutoMount(pItem->m_fAutoMount);
     dlgFolderDetails.setAutoMountPoint(pItem->m_strAutoMountPoint);
@@ -554,7 +566,11 @@ void UISharedFoldersEditor::sltEditFolder()
     {
         const QString strName = dlgFolderDetails.name();
         const QString strPath = dlgFolderDetails.path();
-        const UISharedFolderType enmType = dlgFolderDetails.isPermanent() ? UISharedFolderType_Machine : UISharedFolderType_Console;
+        const UISharedFolderType enmType =   dlgFolderDetails.isGlobal()
+                                           ? UISharedFolderType_Global
+                                           : dlgFolderDetails.isPermanent()
+                                           ? UISharedFolderType_Machine
+                                           : UISharedFolderType_Console;
         /* Shared folder's name & path could not be empty: */
         Assert(!strName.isEmpty() && !strPath.isEmpty());
 
@@ -750,6 +766,7 @@ void UISharedFoldersEditor::setRootItemVisible(UISharedFolderType enmSharedFolde
             pRootItem->m_enmType = enmSharedFolderType;
             switch (enmSharedFolderType)
             {
+                case UISharedFolderType_Global: pRootItem->m_strName = tr(" Global Folders"); break;
                 case UISharedFolderType_Machine: pRootItem->m_strName = tr(" Machine Folders"); break;
                 case UISharedFolderType_Console: pRootItem->m_strName = tr(" Transient Folders"); break;
                 default: break;
@@ -765,6 +782,8 @@ void UISharedFoldersEditor::setRootItemVisible(UISharedFolderType enmSharedFolde
 
 void UISharedFoldersEditor::updateRootItemsVisibility()
 {
+    /* Update (show/hide) global root item: */
+    setRootItemVisible(UISharedFolderType_Global, m_foldersAvailable.value(UISharedFolderType_Global));
     /* Update (show/hide) machine (permanent) root item: */
     setRootItemVisible(UISharedFolderType_Machine, m_foldersAvailable.value(UISharedFolderType_Machine));
     /* Update (show/hide) console (temporary) root item: */

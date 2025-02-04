@@ -50,6 +50,7 @@
 <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage sharedfolder add</command>
       <group choice="req">
+        <arg choice="plain">global</arg>
         <arg choice="plain"><replaceable>uuid</replaceable></arg>
         <arg choice="plain"><replaceable>vmname</replaceable></arg>
       </group>
@@ -64,6 +65,7 @@
     <cmdsynopsis id="synopsis-vboxmanage-sharedfolder-remove">
       <command>VBoxManage sharedfolder remove</command>
       <group choice="req">
+        <arg choice="plain">global</arg>
         <arg choice="plain"><replaceable>uuid</replaceable></arg>
         <arg choice="plain"><replaceable>vmname</replaceable></arg>
       </group>
@@ -124,6 +126,13 @@
         host system can be accessed from within the guest OS.
       </para>
       <variablelist>
+        <varlistentry>
+          <term><literal>global</literal></term>
+          <listitem><para>
+              Specifies that the share is global which means that it is
+              available to all virtual machines.
+            </para></listitem>
+        </varlistentry>
         <varlistentry>
           <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
           <listitem><para>
@@ -202,6 +211,13 @@
         removes a shared folder.
       </para>
       <variablelist>
+        <varlistentry>
+          <term><literal>global</literal></term>
+          <listitem><para>
+              Specifies that the share is global which means that it is
+              accessible from all applicable guest VMs.
+            </para></listitem>
+        </varlistentry>
         <varlistentry>
           <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
           <listitem><para>

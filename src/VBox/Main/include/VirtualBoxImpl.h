@@ -170,6 +170,7 @@ public:
     void i_onMediumRegistered(const Guid &aMediumId, const DeviceType_T aDevType, BOOL aRegistered);
     void i_onMediumConfigChanged(IMedium *aMedium);
     void i_onMediumChanged(IMediumAttachment* aMediumAttachment);
+    void i_onSharedFolderChanged();
     void i_onStorageControllerChanged(const Guid &aMachineId, const com::Utf8Str &aControllerName);
     void i_onStorageDeviceChanged(IMediumAttachment* aStorageDevice, BOOL fRemoved, BOOL fSilent);
     void i_onMachineStateChanged(const Guid &aId, MachineState_T aState);
@@ -269,6 +270,8 @@ public:
                                    bool fRefresh,
                                    bool aSetError,
                                    ComObjPtr<Medium> &pMedium);
+    HRESULT i_findSharedFolder(const Utf8Str &aName,
+                               ComPtr<ISharedFolder> &aSharedFolder);
 
     HRESULT i_findGuestOSType(const Utf8Str &strOSType,
                               ComObjPtr<GuestOSType> &guestOSType);

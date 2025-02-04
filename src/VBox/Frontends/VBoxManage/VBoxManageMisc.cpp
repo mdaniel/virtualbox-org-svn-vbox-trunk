@@ -1686,47 +1686,58 @@ static RTEXITCODE handleSharedFolderAdd(HandlerArg *a)
     /*
      * Done parsing, do some work.
      */
-    ComPtr<IMachine> ptrMachine;
-    CHECK_ERROR2I_RET(a->virtualBox, FindMachine(Bstr(pszMachineName).raw(), ptrMachine.asOutParam()), RTEXITCODE_FAILURE);
-    AssertReturn(ptrMachine.isNotNull(), RTEXITCODE_FAILURE);
-
     HRESULT hrc;
-    if (fTransient)
+    if (!strcmp(pszMachineName, "global"))
     {
-        /* open an existing session for the VM */
-        CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Shared), RTEXITCODE_FAILURE);
-
-        /* get the session machine */
-        ComPtr<IMachine> ptrSessionMachine;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
-
-        /* get the session console */
-        ComPtr<IConsole> ptrConsole;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Console)(ptrConsole.asOutParam()), RTEXITCODE_FAILURE);
-        if (ptrConsole.isNull())
-            return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Machine '%s' is not currently running."), pszMachineName);
-
-        CHECK_ERROR2(hrc, ptrConsole, CreateSharedFolder(Bstr(pszName).raw(), Bstr(szAbsHostPath).raw(),
-                                                         fWritable, fAutoMount, Bstr(pszAutoMountPoint).raw()));
-        a->session->UnlockMachine();
+        if (fTransient)
+            return errorSyntax(Misc::tr("Invalid option: global and transient both specified"));
+        ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
+        CHECK_ERROR2(hrc, pVirtualBox, CreateSharedFolder(Bstr(pszName).raw(), Bstr(szAbsHostPath).raw(),
+                                                          fWritable, fAutoMount, Bstr(pszAutoMountPoint).raw()));
     }
     else
     {
-        /* open a session for the VM */
-        CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Write), RTEXITCODE_FAILURE);
+        ComPtr<IMachine> ptrMachine;
+        CHECK_ERROR2I_RET(a->virtualBox, FindMachine(Bstr(pszMachineName).raw(), ptrMachine.asOutParam()), RTEXITCODE_FAILURE);
+        AssertReturn(ptrMachine.isNotNull(), RTEXITCODE_FAILURE);
 
-        /* get the mutable session machine */
-        ComPtr<IMachine> ptrSessionMachine;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
-
-        CHECK_ERROR2(hrc, ptrSessionMachine, CreateSharedFolder(Bstr(pszName).raw(), Bstr(szAbsHostPath).raw(),
-                                                                fWritable, fAutoMount, Bstr(pszAutoMountPoint).raw()));
-        if (SUCCEEDED(hrc))
+        if (fTransient)
         {
-            CHECK_ERROR2(hrc, ptrSessionMachine, SaveSettings());
-        }
+            /* open an existing session for the VM */
+            CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Shared), RTEXITCODE_FAILURE);
 
-        a->session->UnlockMachine();
+            /* get the session machine */
+            ComPtr<IMachine> ptrSessionMachine;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+            /* get the session console */
+            ComPtr<IConsole> ptrConsole;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Console)(ptrConsole.asOutParam()), RTEXITCODE_FAILURE);
+            if (ptrConsole.isNull())
+                return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Machine '%s' is not currently running."), pszMachineName);
+
+            CHECK_ERROR2(hrc, ptrConsole, CreateSharedFolder(Bstr(pszName).raw(), Bstr(szAbsHostPath).raw(),
+                                                             fWritable, fAutoMount, Bstr(pszAutoMountPoint).raw()));
+            a->session->UnlockMachine();
+        }
+        else
+        {
+            /* open a session for the VM */
+            CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Write), RTEXITCODE_FAILURE);
+
+            /* get the mutable session machine */
+            ComPtr<IMachine> ptrSessionMachine;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+            CHECK_ERROR2(hrc, ptrSessionMachine, CreateSharedFolder(Bstr(pszName).raw(), Bstr(szAbsHostPath).raw(),
+                                                                    fWritable, fAutoMount, Bstr(pszAutoMountPoint).raw()));
+            if (SUCCEEDED(hrc))
+            {
+                CHECK_ERROR2(hrc, ptrSessionMachine, SaveSettings());
+            }
+
+            a->session->UnlockMachine();
+        }
     }
 
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
@@ -1784,45 +1795,53 @@ static RTEXITCODE handleSharedFolderRemove(HandlerArg *a)
     /*
      * Done parsing, do some real work.
      */
-    ComPtr<IMachine> ptrMachine;
-    CHECK_ERROR2I_RET(a->virtualBox, FindMachine(Bstr(pszMachineName).raw(), ptrMachine.asOutParam()), RTEXITCODE_FAILURE);
-    AssertReturn(ptrMachine.isNotNull(), RTEXITCODE_FAILURE);
-
     HRESULT hrc;
-    if (fTransient)
+    if (!strcmp(pszMachineName, "global"))
     {
-        /* open an existing session for the VM */
-        CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Shared), RTEXITCODE_FAILURE);
-        /* get the session machine */
-        ComPtr<IMachine> ptrSessionMachine;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
-        /* get the session console */
-        ComPtr<IConsole> ptrConsole;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Console)(ptrConsole.asOutParam()), RTEXITCODE_FAILURE);
-        if (ptrConsole.isNull())
-            return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Machine '%s' is not currently running.\n"), pszMachineName);
-
-        CHECK_ERROR2(hrc, ptrConsole, RemoveSharedFolder(Bstr(pszName).raw()));
-
-        a->session->UnlockMachine();
+        ComPtr<IVirtualBox> pVirtualBox = a->virtualBox;
+        CHECK_ERROR2(hrc, pVirtualBox, RemoveSharedFolder(Bstr(pszName).raw()));
     }
     else
     {
-        /* open a session for the VM */
-        CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Write), RTEXITCODE_FAILURE);
+        ComPtr<IMachine> ptrMachine;
+        CHECK_ERROR2I_RET(a->virtualBox, FindMachine(Bstr(pszMachineName).raw(), ptrMachine.asOutParam()), RTEXITCODE_FAILURE);
+        AssertReturn(ptrMachine.isNotNull(), RTEXITCODE_FAILURE);
 
-        /* get the mutable session machine */
-        ComPtr<IMachine> ptrSessionMachine;
-        CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
-
-        CHECK_ERROR2(hrc, ptrSessionMachine, RemoveSharedFolder(Bstr(pszName).raw()));
-
-        /* commit and close the session */
-        if (SUCCEEDED(hrc))
+        if (fTransient)
         {
-            CHECK_ERROR2(hrc, ptrSessionMachine, SaveSettings());
+            /* open an existing session for the VM */
+            CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Shared), RTEXITCODE_FAILURE);
+            /* get the session machine */
+            ComPtr<IMachine> ptrSessionMachine;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
+            /* get the session console */
+            ComPtr<IConsole> ptrConsole;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Console)(ptrConsole.asOutParam()), RTEXITCODE_FAILURE);
+            if (ptrConsole.isNull())
+                return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Machine '%s' is not currently running.\n"), pszMachineName);
+
+            CHECK_ERROR2(hrc, ptrConsole, RemoveSharedFolder(Bstr(pszName).raw()));
+
+            a->session->UnlockMachine();
         }
-        a->session->UnlockMachine();
+        else
+        {
+            /* open a session for the VM */
+            CHECK_ERROR2I_RET(ptrMachine, LockMachine(a->session, LockType_Write), RTEXITCODE_FAILURE);
+
+            /* get the mutable session machine */
+            ComPtr<IMachine> ptrSessionMachine;
+            CHECK_ERROR2I_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+            CHECK_ERROR2(hrc, ptrSessionMachine, RemoveSharedFolder(Bstr(pszName).raw()));
+
+            /* commit and close the session */
+            if (SUCCEEDED(hrc))
+            {
+                CHECK_ERROR2(hrc, ptrSessionMachine, SaveSettings());
+            }
+            a->session->UnlockMachine();
+        }
     }
 
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;

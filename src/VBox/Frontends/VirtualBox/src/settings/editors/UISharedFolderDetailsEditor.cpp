@@ -56,6 +56,7 @@ UISharedFolderDetailsEditor::UISharedFolderDetailsEditor(EditorType enmType,
     , m_pCheckBoxReadonly(0)
     , m_pCheckBoxAutoMount(0)
     , m_pCheckBoxPermanent(0)
+    , m_pCheckBoxGlobal(0)
     , m_pButtonBox(0)
 {
     prepare();
@@ -116,6 +117,17 @@ QString UISharedFolderDetailsEditor::autoMountPoint() const
     return m_pEditorAutoMountPoint ? m_pEditorAutoMountPoint->text() : QString();
 }
 
+void UISharedFolderDetailsEditor::setGlobal(bool fGlobal)
+{
+    if (m_pCheckBoxGlobal)
+        m_pCheckBoxGlobal->setChecked(fGlobal);
+}
+
+bool UISharedFolderDetailsEditor::isGlobal() const
+{
+    return m_pCheckBoxGlobal ? m_pCheckBoxGlobal->isChecked() : false;
+}
+
 void UISharedFolderDetailsEditor::setPermanent(bool fPermanent)
 {
     if (m_pCheckBoxPermanent)
@@ -170,9 +182,21 @@ void UISharedFolderDetailsEditor::sltRetranslateUI()
                                                "If left empty the guest will pick something fitting."));
     if (m_pCheckBoxPermanent)
     {
-        m_pCheckBoxPermanent->setText(tr("&Make Permanent"));
-        m_pCheckBoxPermanent->setToolTip(tr("When checked, this shared folder will be permanent."));
+        m_pCheckBoxPermanent->setText(tr("&Make Machine-permanent"));
+        m_pCheckBoxPermanent->setToolTip(tr("When checked, this shared folder will be permanent "
+                                            "to this guest machine."));
     }
+    if (m_pCheckBoxGlobal)
+    {
+        m_pCheckBoxGlobal->setText(tr("&Make Global"));
+        m_pCheckBoxGlobal->setToolTip(tr("When checked, this shared folder will be available "
+                                         "to all VMs."));
+    }
+}
+
+void UISharedFolderDetailsEditor::sltGlobalToggled()
+{
+    m_pCheckBoxPermanent->setHidden(m_pCheckBoxGlobal->isChecked());
 }
 
 void UISharedFolderDetailsEditor::sltValidate()
@@ -252,7 +276,7 @@ void UISharedFolderDetailsEditor::prepareWidgets()
     QGridLayout *pLayout = new QGridLayout(this);
     if (pLayout)
     {
-        pLayout->setRowStretch(6, 1);
+        pLayout->setRowStretch(7, 1);
 
         /* Prepare path label: */
         m_pLabelPath = new QLabel;
@@ -310,13 +334,19 @@ void UISharedFolderDetailsEditor::prepareWidgets()
             m_pCheckBoxPermanent->setHidden(!m_fUsePermanent);
             pLayout->addWidget(m_pCheckBoxPermanent, 5, 1);
         }
+        /* Prepare global check-box: */
+        m_pCheckBoxGlobal = new QCheckBox(this);
+        if (m_pCheckBoxGlobal)
+        {
+            pLayout->addWidget(m_pCheckBoxGlobal, 6, 1);
+        }
 
         /* Prepare button-box: */
         m_pButtonBox = new QIDialogButtonBox;
         if (m_pButtonBox)
         {
             m_pButtonBox->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
-            pLayout->addWidget(m_pButtonBox, 7, 0, 1, 2);
+            pLayout->addWidget(m_pButtonBox, 8, 0, 1, 2);
         }
     }
 }
@@ -334,8 +364,12 @@ void UISharedFolderDetailsEditor::prepareConnections()
         connect(m_pEditorName, &QLineEdit::textChanged,
                 this, &UISharedFolderDetailsEditor::sltValidate);
     if (m_fUsePermanent)
+    {
         connect(m_pCheckBoxPermanent, &QCheckBox::toggled,
                 this, &UISharedFolderDetailsEditor::sltValidate);
+        connect(m_pCheckBoxGlobal, &QCheckBox::toggled,
+                this, &UISharedFolderDetailsEditor::sltGlobalToggled);
+    }
     if (m_pButtonBox)
     {
         connect(m_pButtonBox, &QIDialogButtonBox::accepted,

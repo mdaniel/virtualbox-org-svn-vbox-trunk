@@ -3353,7 +3353,7 @@ HRESULT Console::removeSharedFolder(const com::Utf8Str &aName)
         if (FAILED(hrc))
             return hrc;
 
-        /* first, remove the machine or the global folder if there is any */
+        /* second, add the machine or the global folder if there is any */
         SharedFolderDataMap::const_iterator it;
         if (i_findOtherSharedFolder(aName, it))
         {
@@ -9478,7 +9478,99 @@ HRESULT Console::i_fetchSharedFolders(BOOL aGlobal)
     {
         if (aGlobal)
         {
-            /// @todo grab & process global folders when they are done
+            SharedFolderDataMap oldFolders;
+            oldFolders = m_mapGlobalSharedFolders;
+
+            m_mapGlobalSharedFolders.clear();
+
+            ComPtr<IVirtualBox> ptrVirtualBox;
+            hrc = mMachine->COMGETTER(Parent)(ptrVirtualBox.asOutParam());
+            if (FAILED(hrc)) throw hrc;
+            SafeIfaceArray<ISharedFolder> folders;
+            hrc = ptrVirtualBox->COMGETTER(SharedFolders)(ComSafeArrayAsOutParam(folders));
+            if (FAILED(hrc)) throw hrc;
+
+            for (size_t i = 0; i < folders.size(); ++i)
+            {
+                ComPtr<ISharedFolder> pSharedFolder = folders[i];
+
+                Bstr bstr;
+                hrc = pSharedFolder->COMGETTER(Name)(bstr.asOutParam());
+                if (FAILED(hrc)) throw hrc;
+                Utf8Str strName(bstr);
+
+                hrc = pSharedFolder->COMGETTER(HostPath)(bstr.asOutParam());
+                if (FAILED(hrc)) throw hrc;
+                Utf8Str strHostPath(bstr);
+
+                BOOL writable;
+                hrc = pSharedFolder->COMGETTER(Writable)(&writable);
+                if (FAILED(hrc)) throw hrc;
+
+                BOOL autoMount;
+                hrc = pSharedFolder->COMGETTER(AutoMount)(&autoMount);
+                if (FAILED(hrc)) throw hrc;
+
+                hrc = pSharedFolder->COMGETTER(AutoMountPoint)(bstr.asOutParam());
+                if (FAILED(hrc)) throw hrc;
+                Utf8Str strAutoMountPoint(bstr);
+
+                m_mapGlobalSharedFolders.insert(std::make_pair(strName,
+                                                               SharedFolderData(strHostPath, !!writable,
+                                                                                 !!autoMount, strAutoMountPoint)));
+
+                /* send changes to HGCM if the VM is running */
+                if (online)
+                {
+                    SharedFolderDataMap::iterator it = oldFolders.find(strName);
+                    if (    it == oldFolders.end()
+                         || it->second.m_strHostPath != strHostPath)
+                    {
+                        /* a new global folder is added or
+                         * the existing global folder is changed */
+                        if (m_mapSharedFolders.find(strName) != m_mapSharedFolders.end())
+                            ; /* the console folder exists, nothing to do */
+                        else if (m_mapMachineSharedFolders.find(strName) != m_mapMachineSharedFolders.end())
+                            ; /* the machine folder exists, nothing to do */
+                        else
+                        {
+                            /* remove the old global folder (when changed) */
+                            if (it != oldFolders.end())
+                            {
+                                hrc = i_removeSharedFolder(strName);
+                                if (FAILED(hrc)) throw hrc;
+                            }
+
+                            /* create the new global folder */
+                            hrc = i_createSharedFolder(strName,
+                                                       SharedFolderData(strHostPath, !!writable, !!autoMount, strAutoMountPoint));
+                            if (FAILED(hrc)) throw hrc;
+                        }
+                    }
+                    /* forget the processed (or identical) folder */
+                    if (it != oldFolders.end())
+                        oldFolders.erase(it);
+                }
+            }
+
+            /* process outdated (removed) folders */
+            if (online)
+            {
+                for (SharedFolderDataMap::const_iterator it = oldFolders.begin();
+                     it != oldFolders.end(); ++it)
+                {
+                    if (m_mapSharedFolders.find(it->first) != m_mapSharedFolders.end())
+                        ; /* the console folder exists, nothing to do */
+                    else if (m_mapMachineSharedFolders.find(it->first) != m_mapMachineSharedFolders.end())
+                        ; /* the machine folder exists, nothing to do */
+                    else
+                    {
+                        /* remove the outdated global folder */
+                        hrc = i_removeSharedFolder(it->first);
+                        if (FAILED(hrc)) throw hrc;
+                    }
+                }
+            }
         }
         else
         {
@@ -9616,7 +9708,7 @@ bool Console::i_findOtherSharedFolder(const Utf8Str &strName,
     if (aIt != m_mapMachineSharedFolders.end())
         return true;
 
-    /* second, search machine folders */
+    /* second, search global folders */
     aIt = m_mapGlobalSharedFolders.find(strName);
     if (aIt != m_mapGlobalSharedFolders.end())
         return true;

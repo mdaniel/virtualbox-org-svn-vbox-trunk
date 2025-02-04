@@ -166,19 +166,20 @@ HRESULT SharedFolder::initCopy(Machine *aMachine, SharedFolder *aThat)
     return hrc;
 }
 
-# if 0
 
 /**
  *  Initializes the shared folder object.
  *
- *  This variant initializes a global instance that lives in the server address space. It is not presently used.
+ *  This variant initializes a global instance that lives in the server address space.
  *
  *  @param aVirtualBox  VirtualBox parent object
  *  @param aName        logical name of the shared folder
  *  @param aHostPath    full path to the shared folder on the host
  *  @param aWritable    writable if true, readonly otherwise
+ *  @param aAutoMount   if auto mounted by guest true, false otherwise
  *  @param aAutoMountPoint Where the guest should try auto mount it.
  *  @param fFailOnError Whether to fail with an error if the shared folder path is bad.
+ *  @param enmSymlinkPolicy The symbolic link creation policy to apply.
  *
  *  @return          COM result indicator
  */
@@ -188,7 +189,8 @@ HRESULT SharedFolder::init(VirtualBox *aVirtualBox,
                            bool aWritable,
                            bool aAutoMount,
                            const Utf8Str &aAutoMountPoint,
-                           bool fFailOnError)
+                           bool fFailOnError,
+                           SymlinkPolicy_T enmSymlinkPolicy)
 {
     /* Enclose the state transition NotReady->InInit->Ready */
     AutoInitSpan autoInitSpan(this);
@@ -196,7 +198,8 @@ HRESULT SharedFolder::init(VirtualBox *aVirtualBox,
 
     unconst(mVirtualBox) = aVirtualBox;
 
-    HRESULT hrc = protectedInit(aVirtualBox, aName, aHostPath, aWritable, aAutoMount, aAutoMountPoint, fFailOnError);
+    HRESULT hrc = i_protectedInit(aVirtualBox, aName, aHostPath, aWritable, aAutoMount, aAutoMountPoint, fFailOnError,
+                                  enmSymlinkPolicy);
 
     /* Confirm a successful initialization when it's the case */
     if (SUCCEEDED(hrc))
@@ -205,7 +208,35 @@ HRESULT SharedFolder::init(VirtualBox *aVirtualBox,
     return hrc;
 }
 
-# endif
+/**
+ *  Initializes the shared folder object.
+ *
+ *  This variant initializes a global instance that lives in the server address space.
+ *
+ *  @param aVirtualBox  VirtualBox parent object
+ *  @param rData        Settings shared folder
+ *
+ *  @return          COM result indicator
+ */
+HRESULT SharedFolder::init(VirtualBox *aVirtualBox, const settings::SharedFolder &rData)
+{
+    /* Enclose the state transition NotReady->InInit->Ready */
+    AutoInitSpan autoInitSpan(this);
+    AssertReturn(autoInitSpan.isOk(), E_FAIL);
+
+    unconst(mVirtualBox) = aVirtualBox;
+    HRESULT hrc = i_protectedInit(aVirtualBox, rData.strName, rData.strHostPath,
+                                  rData.fWritable, rData.fAutoMount, rData.strAutoMountPoint,
+                                  false, rData.enmSymlinkPolicy);
+
+    /* Confirm a successful initialization or not: */
+    if (SUCCEEDED(hrc))
+        autoInitSpan.setSucceeded();
+    else
+        autoInitSpan.setFailed(hrc);
+    return hrc;
+}
+
 
 /**
  *  Shared initialization code. Called from the other constructors.
@@ -298,6 +329,23 @@ void SharedFolder::uninit()
     unconst(mParent) = NULL;
     unconst(mMachine) = NULL;
     unconst(mVirtualBox) = NULL;
+}
+
+HRESULT SharedFolder::i_saveSettings(settings::SharedFolder &data)
+{
+    AutoCaller autoCaller(this);
+    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    AssertReturn(!m->strName.isEmpty(), E_FAIL);
+    data.strName = m->strName;
+    data.strHostPath = m->strHostPath;
+    data.fWritable = m->fWritable != FALSE;
+    data.fAutoMount = m->fAutoMount != FALSE;
+    data.strAutoMountPoint = m->strAutoMountPoint;
+    data.enmSymlinkPolicy = m->enmSymlinkPolicy;
+
+    return S_OK;
 }
 
 // wrapped ISharedFolder properties

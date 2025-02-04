@@ -895,6 +895,7 @@ Q_DECLARE_METATYPE(MachineSettingsPageType);
 /** Common UI: Shared Folder types. */
 enum UISharedFolderType
 {
+    UISharedFolderType_Global,
     UISharedFolderType_Machine,
     UISharedFolderType_Console
 };

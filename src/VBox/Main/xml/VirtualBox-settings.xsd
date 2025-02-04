@@ -570,6 +570,7 @@
         </xsd:all>
       </xsd:complexType>
     </xsd:element>
+    <xsd:element name="SharedFolders" type="TSharedFolders" minOccurs="0"/>
     <xsd:element name="USBDeviceFilters">
       <xsd:complexType>
         <xsd:sequence>

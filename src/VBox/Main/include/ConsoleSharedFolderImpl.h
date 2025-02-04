@@ -52,8 +52,8 @@ public:
 //    HRESULT initCopy(Machine *aMachine, SharedFolder *aThat);
     HRESULT init(Console *aConsole, const com::Utf8Str &aName, const com::Utf8Str &aHostPath,
                  bool aWritable, bool aAutoMount, const com::Utf8Str &aAutoMountPoint, bool fFailOnError);
-//     HRESULT init(VirtualBox *aVirtualBox, const Utf8Str &aName, const Utf8Str &aHostPath,
-//                  bool aWritable, const com::Utf8Str &aAutoMountPoint, bool aAutoMount, bool fFailOnError);
+//  HRESULT init(VirtualBox *aVirtualBox, const Utf8Str &aName, const Utf8Str &aHostPath,
+//               bool aWritable, bool aAutoMount, const com::Utf8Str &aAutoMountPoint, bool fFailOnError);
     void uninit();
 
     // public methods for internal purposes only

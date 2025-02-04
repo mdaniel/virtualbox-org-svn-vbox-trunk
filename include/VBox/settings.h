@@ -223,6 +223,27 @@ struct NATHostLoopbackOffset
 
 typedef std::list<NATHostLoopbackOffset> NATLoopbackOffsetList;
 
+/**
+ * NOTE: If you add any fields in here, you must update a) the constructor and b)
+ * the operator== which is used by MachineConfigFile::operator==(), or otherwise
+ * your settings might never get saved.
+ */
+struct SharedFolder
+{
+    SharedFolder();
+
+    bool operator==(const SharedFolder &a) const;
+
+    com::Utf8Str    strName,
+                    strHostPath;
+    bool            fWritable;
+    bool            fAutoMount;
+    com::Utf8Str    strAutoMountPoint;
+    SymlinkPolicy_T enmSymlinkPolicy;
+};
+
+typedef std::list<SharedFolder> SharedFoldersList;
+
 typedef std::vector<uint8_t> IconBlob;
 
 /**
@@ -512,6 +533,7 @@ public:
 
     void readMachineRegistry(const xml::ElementNode &elmMachineRegistry);
     void readNATNetworks(const xml::ElementNode &elmNATNetworks);
+    void readSharedFolders(const xml::ElementNode &elmSharedFolders);
 #ifdef VBOX_WITH_VMNET
     void readHostOnlyNetworks(const xml::ElementNode &elmHostOnlyNetworks);
 #endif /* VBOX_WITH_VMNET */
@@ -528,6 +550,7 @@ public:
     MachinesRegistry        llMachines;
     DHCPServersList         llDhcpServers;
     NATNetworksList         llNATNetworks;
+    SharedFoldersList       llGlobalSharedFolders;
 #ifdef VBOX_WITH_VMNET
     HostOnlyNetworksList    llHostOnlyNetworks;
 #endif /* VBOX_WITH_VMNET */
@@ -996,27 +1019,6 @@ struct AudioAdapter
     AudioDriverType_T       driverType;
     settings::StringsMap properties;
 };
-
-/**
- * NOTE: If you add any fields in here, you must update a) the constructor and b)
- * the operator== which is used by MachineConfigFile::operator==(), or otherwise
- * your settings might never get saved.
- */
-struct SharedFolder
-{
-    SharedFolder();
-
-    bool operator==(const SharedFolder &a) const;
-
-    com::Utf8Str    strName,
-                    strHostPath;
-    bool            fWritable;
-    bool            fAutoMount;
-    com::Utf8Str    strAutoMountPoint;
-    SymlinkPolicy_T enmSymlinkPolicy;
-};
-
-typedef std::list<SharedFolder> SharedFoldersList;
 
 /**
  * NOTE: If you add any fields in here, you must update a) the constructor and b)

@@ -441,13 +441,31 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                         UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
                         if (pClickedItem)
                         {
-                            /* Toggle the button: */
+                            /* Do we have extra-button? */
                             if (pClickedItem->hasExtraButton())
                             {
-                                m_fShowItemNames = !m_fShowItemNames;
-                                foreach (UIToolsItem *pItem, m_items)
-                                    pItem->updateGeometry();
-                                updateLayout();
+                                /* Check if clicked place is within extra-button geometry: */
+                                const QPointF itemPos = pClickedItem->mapFromParent(scenePos);
+                                if (pClickedItem->extraButtonRect().contains(itemPos.toPoint()))
+                                {
+                                    /* Handle known button types: */
+                                    switch (pClickedItem->itemType())
+                                    {
+                                        case UIToolType_Welcome:
+                                        {
+                                            /* Toggle the button: */
+                                            m_fShowItemNames = !m_fShowItemNames;
+                                            /* Update geometry for all the items: */
+                                            foreach (UIToolsItem *pItem, m_items)
+                                                pItem->updateGeometry();
+                                            /* Recalculate layout: */
+                                            updateLayout();
+                                            break;
+                                        }
+                                        default:
+                                            break;
+                                    }
+                                }
                             }
 
                             /* Make clicked item the current one: */

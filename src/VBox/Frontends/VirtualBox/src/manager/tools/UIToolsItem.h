@@ -138,6 +138,9 @@ public:
           * @param  enmWhich    Brings size-hint type.
           * @param  constraint  Brings size constraint. */
         virtual QSizeF sizeHint(Qt::SizeHint enmWhich, const QSizeF &constraint = QSizeF()) const RT_OVERRIDE;
+
+        /** Returns the extra-button rectangle. */
+        QRect extraButtonRect() const { return m_extraButtonRect; }
     /** @} */
 
 protected:
@@ -308,6 +311,9 @@ private:
         QSize  m_pixmapSize;
         /** Holds the name size. */
         QSize  m_nameSize;
+
+        /** Holds the extra-button rectangle. */
+        mutable QRect  m_extraButtonRect;
     /** @} */
 };
 

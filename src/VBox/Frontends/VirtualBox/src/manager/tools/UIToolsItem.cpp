@@ -898,15 +898,14 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     QColor backgroundColor = pal.color(QPalette::Window);
 
     /* Prepare button sub-rect: */
-    QRect subRect;
-    subRect.setWidth(iButtonWidth);
-    subRect.setHeight(rectangle.height() / 2);
-    subRect.moveTopLeft(QPoint(rectangle.right() - subRect.width() - 2,
-                               rectangle.bottom() - 3 * rectangle.height() / 4 + 1));
+    m_extraButtonRect.setWidth(iButtonWidth);
+    m_extraButtonRect.setHeight(rectangle.height() / 2);
+    m_extraButtonRect.moveTopLeft(QPoint(rectangle.right() - m_extraButtonRect.width() - 2,
+                                         rectangle.bottom() - 3 * rectangle.height() / 4 + 1));
 
     /* Paint button frame: */
     QPainterPath painterPath;
-    painterPath.addRoundedRect(subRect, iPadding, iPadding);
+    painterPath.addRoundedRect(m_extraButtonRect, iPadding, iPadding);
     QColor backgroundColor1 = uiCommon().isInDarkMode()
                             ? backgroundColor.lighter(110)
                             : backgroundColor.darker(105);
@@ -918,18 +917,22 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     QColor backgroundColor2 = uiCommon().isInDarkMode()
                             ? backgroundColor.lighter(180)
                             : backgroundColor.darker(140);
-    pPainter->fillRect(subRect, backgroundColor2);
+    pPainter->fillRect(m_extraButtonRect, backgroundColor2);
 
     /* Paint arrow: */
     if (!model()->showItemNames())
     {
-        pPainter->drawLine(subRect.topLeft() + QPoint(3, 3), QPoint(subRect.right() - 2, subRect.center().y()));
-        pPainter->drawLine(subRect.bottomLeft() + QPoint(3, -3), QPoint(subRect.right() - 2, subRect.center().y()));
+        pPainter->drawLine(m_extraButtonRect.topLeft() + QPoint(3, 3),
+                           QPoint(m_extraButtonRect.right() - 2, m_extraButtonRect.center().y()));
+        pPainter->drawLine(m_extraButtonRect.bottomLeft() + QPoint(3, -3),
+                           QPoint(m_extraButtonRect.right() - 2, m_extraButtonRect.center().y()));
     }
     else
     {
-        pPainter->drawLine(subRect.topRight() + QPoint(-3, 3), QPoint(subRect.left() + 3, subRect.center().y()));
-        pPainter->drawLine(subRect.bottomRight() + QPoint(-3, -3), QPoint(subRect.left() + 3, subRect.center().y()));
+        pPainter->drawLine(m_extraButtonRect.topRight() + QPoint(-3, 3),
+                           QPoint(m_extraButtonRect.left() + 3, m_extraButtonRect.center().y()));
+        pPainter->drawLine(m_extraButtonRect.bottomRight() + QPoint(-3, -3),
+                           QPoint(m_extraButtonRect.left() + 3, m_extraButtonRect.center().y()));
     }
 
     /* Restore painter: */

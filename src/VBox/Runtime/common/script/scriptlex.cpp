@@ -588,6 +588,10 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
     AssertPtrReturn(pfnReader, VERR_INVALID_POINTER);
     AssertPtrReturn(pCfg, VERR_INVALID_POINTER);
 
+    /* Case insensitivity with internal lower or upper case conversion is mutually exclusive. */
+    AssertReturn(   (pCfg->fFlags & (RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_LOWER | RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_UPPER))
+                 != (RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_LOWER | RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_UPPER), VERR_INVALID_PARAMETER);
+
     if (!cchBuf)
         cchBuf = _16K;
     int rc = VINF_SUCCESS;
@@ -852,9 +856,13 @@ RTDECL(char) RTScriptLexPeekChEx(RTSCRIPTLEX hScriptLex, unsigned idx, uint32_t 
         AssertReleaseFailed();
     }
 
-    if (   (pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE)
-        && !(fFlags & RTSCRIPT_LEX_CONV_F_NOTHING))
-        ch = RT_C_TO_LOWER(ch);
+    if (!(fFlags & RTSCRIPT_LEX_CONV_F_NOTHING))
+    {
+        if (pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_LOWER)
+           ch = RT_C_TO_LOWER(ch);
+        else if (pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_UPPER)
+           ch = RT_C_TO_UPPER(ch);
+    }
 
     return ch;
 }
@@ -922,7 +930,7 @@ RTDECL(int) RTScriptLexScanNumber(RTSCRIPTLEX hScriptLex, uint8_t uBase, bool fA
     {
         /* Some hex prefix? */
         char chNext = RTScriptLexPeekCh(hScriptLex, 1);
-        if (chNext == 'x')
+        if (chNext == 'x' || chNext == 'X')
         {
             uBase = 16;
             RTScriptLexConsumeCh(hScriptLex);
@@ -937,7 +945,9 @@ RTDECL(int) RTScriptLexScanNumber(RTSCRIPTLEX hScriptLex, uint8_t uBase, bool fA
     for (;;)
     {
         if (   (ch < '0' || ch > '9')
-            && (ch < 'a' || ch > 'f' || uBase == 10))
+            && (   (   !(ch >= 'a' && ch <= 'f') 
+                    && !(ch >= 'A' && ch <= 'F'))
+                || uBase == 10))
         {
             if (pTok->Type.Number.enmType == RTSCRIPTLEXTOKNUMTYPE_INTEGER)
                 pTok->Type.Number.Type.i64 = -(int64_t)u64;
@@ -954,6 +964,11 @@ RTDECL(int) RTScriptLexScanNumber(RTSCRIPTLEX hScriptLex, uint8_t uBase, bool fA
         {
             Assert(uBase == 16);
             u64 = (u64 << 4) + 10 + (ch - 'a');
+        }
+        else if (ch >= 'A' && ch <= 'F')
+        {
+            Assert(uBase == 16);
+            u64 = (u64 << 4) + 10 + (ch - 'A');
         }
 
         ch = RTScriptLexConsumeCh(hScriptLex);

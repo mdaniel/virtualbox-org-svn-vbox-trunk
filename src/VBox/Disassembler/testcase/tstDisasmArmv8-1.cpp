@@ -126,7 +126,7 @@ static const RTSCRIPTLEXCFG s_LexCfg =
     /** pszDesc */
     "ARMv8 disassembler lexer",
     /** fFlags */
-    RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE,
+    RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_LOWER,
     /** pszWhitespace */
     NULL,
     /** pszNewline */

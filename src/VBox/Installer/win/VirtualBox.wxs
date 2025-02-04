@@ -159,26 +159,21 @@
 <?endif?>
     <Binary Id="VBoxInstallHelper" SourceFile="$(env.PATH_OUT)\bin\VBoxInstallHelper.dll" />
 
-    <!-- Custom actions -->
-
-    <!-- Figure out where a previous installation was, if any -->
-<?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
+    <!-- Figure out the initial (original) installation directory.
+         Note: For ARM64 this also will be ProgramFiles64Folder. See https://learn.microsoft.com/en-us/windows/arm/faq -->
+<?if $(env.KBUILD_TARGET_ARCH) = "amd64" or $(env.KBUILD_TARGET_ARCH) = "arm64" ?>
     <CustomAction Id="ca_OriginalTargetDir" Execute="firstSequence" Property="INSTALLDIR" Value="[ProgramFiles64Folder]\$(env.VBOX_VENDOR_SHORT)\VirtualBox" />
-
-    <Property Id="EXISTINGINSTALLDIR" Secure="yes">
-        <RegistrySearch Id="RegistryGetInstallPath" Root="HKLM" Key="$(var.Property_RegKey)" Name="InstallDir" Type="raw" Bitness="$(var.Property_Bitness)" />
-    </Property>
-    <CustomAction Id="ca_DefaultTargetDir" Execute="firstSequence" Property="INSTALLDIR" Value="[EXISTINGINSTALLDIR]" />
 <?else?>
     <CustomAction Id="ca_OriginalTargetDir" Execute="firstSequence" Property="INSTALLDIR" Value="[ProgramFilesFolder]\$(env.VBOX_VENDOR_SHORT)\VirtualBox" />
+<?endif?>
 
+    <!-- Figure out where a previous installation was, if any. -->
     <Property Id="EXISTINGINSTALLDIR" Secure="yes">
         <RegistrySearch Id="RegistryGetInstallPath" Root="HKLM" Key="$(var.Property_RegKey)" Name="InstallDir" Type="raw" Bitness="$(var.Property_Bitness)" />
     </Property>
     <CustomAction Id="ca_DefaultTargetDir" Execute="firstSequence" Property="INSTALLDIR" Value="[EXISTINGINSTALLDIR]" />
-<?endif?>
-    <CustomAction Id="ca_UninstallTAPInstances" DllEntry="UninstallTAPInstances" Execute="deferred" Return="check" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 
+    <CustomAction Id="ca_UninstallTAPInstances" DllEntry="UninstallTAPInstances" Execute="deferred" Return="check" Impersonate="no" BinaryRef="VBoxInstallHelper" />
     <CustomAction Id="ca_UninstallVBoxDrv" DllEntry="UninstallVBoxDrv" Execute="deferred" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 
     <Property Id="VBOXDEPENDENCY" Secure="yes">

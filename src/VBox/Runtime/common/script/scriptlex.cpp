@@ -945,7 +945,7 @@ RTDECL(int) RTScriptLexScanNumber(RTSCRIPTLEX hScriptLex, uint8_t uBase, bool fA
     for (;;)
     {
         if (   (ch < '0' || ch > '9')
-            && (   (   !(ch >= 'a' && ch <= 'f') 
+            && (   (   !(ch >= 'a' && ch <= 'f')
                     && !(ch >= 'A' && ch <= 'F'))
                 || uBase == 10))
         {

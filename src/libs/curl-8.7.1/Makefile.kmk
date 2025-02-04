@@ -149,6 +149,7 @@ VBox-libcurl_SOURCES        = \
 	lib/vtls/openssl.c \
 	lib/vtls/vtls.c \
 	lib/warnless.c \
+	lib/ws.c \
 	lib/version.c \
 	lib/vauth/digest.c \
 	lib/vauth/vauth.c \

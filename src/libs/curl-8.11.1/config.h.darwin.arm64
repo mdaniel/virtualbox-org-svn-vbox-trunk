@@ -816,7 +816,7 @@
 /* #undef NTLM_WB_FILE */
 
 /* cpu-machine-OS */
-#define OS "arm-apple-darwin20.1.0"
+#define CURL_OS "arm-apple-darwin20.1.0"
 
 /* Name of package */
 #define PACKAGE "curl"
@@ -1016,7 +1016,7 @@
 /* #undef USE_WINDOWS_SSPI */
 
 /* Version number of package */
-#define VERSION "7.83.1"
+#define VERSION "8.11.1"
 
 /* Define to 1 to provide own prototypes. */
 /* #undef WANT_IDN_PROTOTYPES */

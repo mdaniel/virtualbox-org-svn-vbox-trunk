@@ -740,7 +740,7 @@
 /* #undef NEED_REENTRANT */
 
 /* cpu-machine-OS */
-#define OS "i386-apple-darwin9.5.0"
+#define CURL_OS "i386-apple-darwin9.5.0"
 
 /* Name of package */
 #define PACKAGE "curl"
@@ -909,7 +909,7 @@
 /* #undef USE_YASSLEMUL */
 
 /* Version number of package */
-#define VERSION "7.83.1"
+#define VERSION "8.11.1"
 
 /* Define to avoid automatic inclusion of winsock.h */
 /* #undef WIN32_LEAN_AND_MEAN */

@@ -71,12 +71,39 @@
  */
 typedef enum RTACPIASLTERMINAL
 {
-    RTACPIASLTERMINAL_INVALID = 0,
+    RTACPIASLTERMINAL_INVALID = 2047,
 
-    /** Keyword terminals, must come first as they are used for indexing into a table later on. */
+    /** Miscelleanous keywords not appearing in the parser table. */
     RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK,
-    RTACPIASLTERMINAL_KEYWORD_SCOPE,
-    RTACPIASLTERMINAL_KEYWORD_PROCESSOR,
+    RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_INT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_STR_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_PKG_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_SERIALIZED,
+    RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED,
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_IO,
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_MEMORY,
+    RTACPIASLTERMINAL_KEYWORD_PCI_CONFIG,
+    RTACPIASLTERMINAL_KEYWORD_EMBEDDED_CONTROL,
+    RTACPIASLTERMINAL_KEYWORD_SMBUS,
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_CMOS,
+    RTACPIASLTERMINAL_KEYWORD_PCI_BAR_TARGET,
+    RTACPIASLTERMINAL_KEYWORD_IPMI,
+    RTACPIASLTERMINAL_KEYWORD_GENERAL_PURPOSE_IO,
+    RTACPIASLTERMINAL_KEYWORD_GENERIC_SERIAL_BUS,
+    RTACPIASLTERMINAL_KEYWORD_PCC,
+    RTACPIASLTERMINAL_KEYWORD_PRM,
+    RTACPIASLTERMINAL_KEYWORD_FFIXED_HW,
 
     RTACPIASLTERMINAL_PUNCTUATOR_COMMA,
     RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET,
@@ -85,6 +112,10 @@ typedef enum RTACPIASLTERMINAL
     RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET
 
 } RTACPIASLTERMINAL;
+/** Pointer to a terminal enum. */
+typedef RTACPIASLTERMINAL *PRTACPIASLTERMINAL;
+/** Pointer to a const terminal enum. */
+typedef const RTACPIASLTERMINAL *PCRTACPIASLTERMINAL;
 
 
 /**
@@ -109,6 +140,22 @@ typedef RTACPIASLCU *PRTACPIASLCU;
 typedef const RTACPIASLCU *PCRTACPIASLCU;
 
 
+/** Pointer to a const ASL keyword encoding entry. */
+typedef const struct RTACPIASLKEYWORD *PCRTACPIASLKEYWORD;
+
+/**
+ * ACPI ASL -> AST parse callback.
+ *
+ * @returns IPRT status code.
+ * @param   pThis               ACPI ASL compiler state.
+ * @param   pKeyword            The keyword entry being processed.
+ * @param   pAstNd              The AST node to initialize.
+ */
+typedef DECLCALLBACKTYPE(int, FNRTACPITBLASLPARSE,(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd));
+/** Pointer to a ACPI AML -> ASL decode callback. */
+typedef FNRTACPITBLASLPARSE *PFNRTACPITBLASLPARSE;
+
+
 /**
  * ASL keyword encoding entry.
  */
@@ -116,8 +163,9 @@ typedef struct RTACPIASLKEYWORD
 {
     /** Name of the opcode. */
     const char               *pszOpc;
-    /** The opcode AML value. */
-    uint8_t                  bOpc;
+    /** The parsing callback to call, optional.
+     * If not NULL this will have priority over the default parsing. */
+    PFNRTACPITBLASLPARSE     pfnParse;
     /** Number of arguments required. */
     uint8_t                  cArgsReq;
     /** Number of optional arguments. */
@@ -131,8 +179,6 @@ typedef struct RTACPIASLKEYWORD
 } RTACPIASLKEYWORD;
 /** Pointer to a ASL keyword encoding entry. */
 typedef RTACPIASLKEYWORD *PRTACPIASLKEYWORD;
-/** Pointer to a const ASL keyword encoding entry. */
-typedef const RTACPIASLKEYWORD *PCRTACPIASLKEYWORD;
 
 
 /*********************************************************************************************************************************
@@ -167,9 +213,60 @@ static const char *s_aszMultiEnd[] =
 static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 {
     /* Keywords */
+    { RT_STR_TUPLE("SCOPE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Scope                             },
+    { RT_STR_TUPLE("PROCESSOR"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Processor                         },
+    { RT_STR_TUPLE("EXTERNAL"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_External                          },
+    { RT_STR_TUPLE("METHOD"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Method                            },
+    { RT_STR_TUPLE("DEVICE"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Device                            },
+    { RT_STR_TUPLE("IF"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_If                                },
+    { RT_STR_TUPLE("ELSE"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Else                              },
+    { RT_STR_TUPLE("LAND"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LAnd                              },
+    { RT_STR_TUPLE("LEQUAL"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LEqual                            },
+    { RT_STR_TUPLE("LGREATER"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LGreater                          },
+    { RT_STR_TUPLE("LGREATEREQUAL"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LGreaterEqual                     },
+    { RT_STR_TUPLE("LLESS"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LLess                             },
+    { RT_STR_TUPLE("LLESSEQUAL"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LLessEqual                        },
+    { RT_STR_TUPLE("LNOT"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LNot                              },
+    { RT_STR_TUPLE("LNOTEQUAL"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LNotEqual                         },
+    { RT_STR_TUPLE("ZERO"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Zero                              },
+    { RT_STR_TUPLE("ONE"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_One                               },
+    { RT_STR_TUPLE("ONES"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Ones                              },
+    { RT_STR_TUPLE("RETURN"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Return                            },
+    { RT_STR_TUPLE("UNICODE"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Unicode                           },
+    { RT_STR_TUPLE("OPERATIONREGION"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_OperationRegion                   },
+
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
-    { RT_STR_TUPLE("PROCESSOR"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PROCESSOR              },
-    { RT_STR_TUPLE("SCOPE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SCOPE                  },
+    { RT_STR_TUPLE("UNKNOWNOBJ"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ            },
+    { RT_STR_TUPLE("INTOBJ"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_INT_OBJ                },
+    { RT_STR_TUPLE("STROBJ"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_STR_OBJ                },
+    { RT_STR_TUPLE("BUFFOBJ"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ               },
+    { RT_STR_TUPLE("PKGOBJ"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PKG_OBJ                },
+    { RT_STR_TUPLE("FIELDUNITOBJ"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ         },
+    { RT_STR_TUPLE("DEVICEOBJ"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ             },
+    { RT_STR_TUPLE("EVENTOBJ"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ              },
+    { RT_STR_TUPLE("METHODOBJ"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ             },
+    { RT_STR_TUPLE("MUTEXOBJ"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ              },
+    { RT_STR_TUPLE("OPREGIONOBJ"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ          },
+    { RT_STR_TUPLE("POWERRESOBJ"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ          },
+    { RT_STR_TUPLE("THERMALZONEOBJ"),           RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ       },
+    { RT_STR_TUPLE("BUFFFIELDOBJ"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ         },
+
+    { RT_STR_TUPLE("SERIALIZED"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SERIALIZED             },
+    { RT_STR_TUPLE("NOTSERIALIZED"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED         },
+
+    { RT_STR_TUPLE("SYSTEMIO"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SYSTEM_IO              },
+    { RT_STR_TUPLE("SYSTEMMEMORY"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SYSTEM_MEMORY          },
+    { RT_STR_TUPLE("PCI_CONFIG"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PCI_CONFIG             },
+    { RT_STR_TUPLE("EMBEDDEDCONTROL"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_EMBEDDED_CONTROL       },
+    { RT_STR_TUPLE("SMBUS"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SMBUS                  },
+    { RT_STR_TUPLE("SYSTEMCMOS"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SYSTEM_CMOS            },
+    { RT_STR_TUPLE("PCIBARTARGET"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PCI_BAR_TARGET         },
+    { RT_STR_TUPLE("IPMI"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_IPMI                   },
+    { RT_STR_TUPLE("GENERALPURPOSEIO"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_GENERAL_PURPOSE_IO     },
+    { RT_STR_TUPLE("GENERICSERIALBUS"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_GENERIC_SERIAL_BUS     },
+    { RT_STR_TUPLE("PCC"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PCC                    },
+    { RT_STR_TUPLE("PRM"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PRM                    },
+    { RT_STR_TUPLE("FFIXEDHW"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_FFIXED_HW              },
 
     /* Punctuators */
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, RTACPIASLTERMINAL_PUNCTUATOR_COMMA               },
@@ -378,6 +475,34 @@ DECLINLINE(bool) rtAcpiAslLexerIsPunctuator(PCRTACPIASLCU pThis, RTACPIASLTERMIN
 }
 
 
+static int rtAcpiAslLexerConsumeIfKeywordInList(PCRTACPIASLCU pThis, PCRTACPIASLTERMINAL paenmTerms, PRTACPIASLTERMINAL penmTerm)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Lexer: Failed to query keyword token with %Rrc", rc);
+
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD)
+    {
+        unsigned i = 0;
+        do
+        {
+            if (pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)paenmTerms[i])
+            {
+                RTScriptLexConsumeToken(pThis->hLexSource);
+                *penmTerm = paenmTerms[i];
+                return VINF_SUCCESS;
+            }
+
+            i++;
+        } while (paenmTerms[i] != RTACPIASLTERMINAL_INVALID);
+    }
+
+    *penmTerm = RTACPIASLTERMINAL_INVALID;
+    return VINF_SUCCESS;
+}
+
+
 static int rtAcpiAslLexerConsumeIfKeyword(PCRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerm, bool *pfConsumed)
 {
     PCRTSCRIPTLEXTOKEN pTok;
@@ -496,21 +621,21 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
 /* Some parser helper macros. */
 #define RTACPIASL_PARSE_KEYWORD(a_enmKeyword, a_pszKeyword) \
     do { \
-        bool fConsumed = false; \
-        int rc2 = rtAcpiAslLexerConsumeIfKeyword(pThis, a_enmKeyword, &fConsumed); \
+        bool fConsumed2 = false; \
+        int rc2 = rtAcpiAslLexerConsumeIfKeyword(pThis, a_enmKeyword, &fConsumed2); \
         if (RT_FAILURE(rc2)) \
             return rc2; \
-        if (!fConsumed) \
+        if (!fConsumed2) \
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected keyword '%s'", a_pszKeyword); \
     } while(0)
 
 #define RTACPIASL_PARSE_PUNCTUATOR(a_enmPunctuator, a_chPunctuator) \
     do { \
-        bool fConsumed = false; \
-        int rc2 = rtAcpiAslLexerConsumeIfPunctuator(pThis, a_enmPunctuator, &fConsumed); \
+        bool fConsumed2 = false; \
+        int rc2 = rtAcpiAslLexerConsumeIfPunctuator(pThis, a_enmPunctuator, &fConsumed2); \
         if (RT_FAILURE(rc2)) \
             return rc2; \
-        if (!fConsumed) \
+        if (!fConsumed2) \
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected punctuator '%c'", a_chPunctuator); \
     } while(0)
 
@@ -537,11 +662,11 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
 #define RTACPIASL_PARSE_NATURAL(a_u64) \
     uint64_t a_u64 = 0; \
     do { \
-        bool fConsumed = false; \
-        int rc2 = rtAcpiAslLexerConsumeIfNatural(pThis, &a_u64, &fConsumed); \
+        bool fConsumed2 = false; \
+        int rc2 = rtAcpiAslLexerConsumeIfNatural(pThis, &a_u64, &fConsumed2); \
         if (RT_FAILURE(rc2)) \
             return rc2; \
-        if (!fConsumed) \
+        if (!fConsumed2) \
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected a natural number"); \
     } while(0)
 
@@ -550,67 +675,356 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
 
 
 static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis, PRTLISTANCHOR pLstStmts);
+static int rtAcpiTblAslParseTermArg(PRTACPIASLCU pThis, PRTACPIASTNODE *ppAstNd);
+
+
+static const RTACPIASLTERMINAL g_aenmObjTypeKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_INT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_STR_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_PKG_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmSerializeRuleKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_SERIALIZED,
+    RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmRegionSpaceKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_IO,
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_MEMORY,
+    RTACPIASLTERMINAL_KEYWORD_PCI_CONFIG,
+    RTACPIASLTERMINAL_KEYWORD_EMBEDDED_CONTROL,
+    RTACPIASLTERMINAL_KEYWORD_SMBUS,
+    RTACPIASLTERMINAL_KEYWORD_SYSTEM_CMOS,
+    RTACPIASLTERMINAL_KEYWORD_PCI_BAR_TARGET,
+    RTACPIASLTERMINAL_KEYWORD_IPMI,
+    RTACPIASLTERMINAL_KEYWORD_GENERAL_PURPOSE_IO,
+    RTACPIASLTERMINAL_KEYWORD_GENERIC_SERIAL_BUS,
+    RTACPIASLTERMINAL_KEYWORD_PCC,
+    RTACPIASLTERMINAL_KEYWORD_PRM,
+    RTACPIASLTERMINAL_KEYWORD_FFIXED_HW,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword, pAstNd);
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+
+    /* Namestring is required. */
+    RTACPIASL_PARSE_NAME_STRING(pszNameString);
+    pAstNd->aArgs[0].enmType         = kAcpiAstArgType_NameString;
+    pAstNd->aArgs[0].u.pszNameString = pszNameString;
+
+    /* Defaults for optional arguments. */
+    pAstNd->aArgs[1].enmType      = kAcpiAstArgType_ObjType;
+    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Unknown;
+    pAstNd->aArgs[2].enmType      = kAcpiAstArgType_U8;
+    pAstNd->aArgs[2].u.u8         = 0;
+
+    if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+    {
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+        RTACPIASLTERMINAL enmKeyword;
+        int rc = rtAcpiAslLexerConsumeIfKeywordInList(pThis, &g_aenmObjTypeKeywords[0], &enmKeyword);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        if (enmKeyword != RTACPIASLTERMINAL_INVALID)
+        {
+            switch (enmKeyword)
+            {
+                case RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ:      pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Unknown; break;
+                case RTACPIASLTERMINAL_KEYWORD_INT_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Int; break;
+                case RTACPIASLTERMINAL_KEYWORD_STR_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Str; break;
+                case RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ:         pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Buff; break;
+                case RTACPIASLTERMINAL_KEYWORD_PKG_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Pkg; break;
+                case RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ:   pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_FieldUnit; break;
+                case RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ:       pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Device; break;
+                case RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ:        pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Event; break;
+                case RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ:       pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Method; break;
+                case RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ:        pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_MutexObj; break;
+                case RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_OpRegion; break;
+                case RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_PowerRes; break;
+                case RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ: pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_ThermalZone; break;
+                case RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ:   pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_BuffField; break;
+                default:
+                    AssertFailedReturn(VERR_INTERNAL_ERROR);
+            }
+        }
+
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+        {
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+            /** @todo ResultType */
+
+            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            {
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+                /** @todo ParameterTypes */
+            }
+        }
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+    return VINF_SUCCESS;
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword, pAstNd);
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+
+    /* Namestring is required. */
+    RTACPIASL_PARSE_NAME_STRING(pszNameString);
+    pAstNd->aArgs[0].enmType         = kAcpiAstArgType_NameString;
+    pAstNd->aArgs[0].u.pszNameString = pszNameString;
+
+    /* Defaults for optional arguments. */
+    pAstNd->aArgs[1].enmType      = kAcpiAstArgType_U8;
+    pAstNd->aArgs[1].u.u8         = 0;
+    pAstNd->aArgs[2].enmType      = kAcpiAstArgType_Bool;
+    pAstNd->aArgs[2].u.f          = false;
+    pAstNd->aArgs[3].enmType      = kAcpiAstArgType_U8;
+    pAstNd->aArgs[3].u.u8         = 0;
+
+    if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+    {
+        /* NumArgs */
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+        uint64_t u64 = 0;
+        bool fConsumed = false;
+        int rc = rtAcpiAslLexerConsumeIfNatural(pThis, &u64, &fConsumed);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        if (fConsumed)
+        {
+            if (u64 >= 8)
+                return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                     "Argument count value is out of range [0..7]: %u", u64);
+            pAstNd->aArgs[1].u.u8 = (uint8_t)u64;
+        }
+
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+        {
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+            /* Serialized|NotSerialized */
+            RTACPIASLTERMINAL enmKeyword;
+            rc = rtAcpiAslLexerConsumeIfKeywordInList(pThis, &g_aenmSerializeRuleKeywords[0], &enmKeyword);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            if (enmKeyword != RTACPIASLTERMINAL_INVALID)
+            {
+                Assert(enmKeyword == RTACPIASLTERMINAL_KEYWORD_SERIALIZED || enmKeyword == RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED);
+                pAstNd->aArgs[2].u.f =    enmKeyword == RTACPIASLTERMINAL_KEYWORD_SERIALIZED
+                                        ? RTACPI_METHOD_F_SERIALIZED
+                                        : RTACPI_METHOD_F_NOT_SERIALIZED;
+            }
+
+            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            {
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+                /* Sync Level */
+                u64 = 0;
+                rc = rtAcpiAslLexerConsumeIfNatural(pThis, &u64, &fConsumed);
+                if (RT_FAILURE(rc))
+                    return rc;
+
+                if (fConsumed)
+                {
+                    if (u64 >= 16)
+                        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                             "SyncLevel value is out of range [0..15]: %u", u64);
+                    pAstNd->aArgs[1].u.u8 = (uint8_t)u64;
+                }
+
+                if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+                {
+                    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+                    /** @todo ReturnType */
+
+                    if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+                    {
+                        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+                        /** @todo ParameterTypes */
+                    }
+                }
+            }
+        }
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+    return VINF_SUCCESS;
+}
+
+
+
+#define RTACPI_ASL_KEYWORD_DEFINE_INVALID \
+    { \
+        NULL, NULL, 0, 0, RTACPI_AST_NODE_F_DEFAULT, \
+        {   kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_HANDLER(a_szKeyword, a_pfnHandler, a_cArgReq, a_cArgOpt, a_fFlags) \
+    { \
+        a_szKeyword, a_pfnHandler, a_cArgReq, a_cArgOpt, a_fFlags, \
+        {   kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT(a_szKeyword, a_fFlags) \
+    { \
+        a_szKeyword, NULL, 0, 0, a_fFlags, \
+        {   kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT(a_szKeyword, a_fFlags, a_enmArgType0) \
+    { \
+        a_szKeyword, NULL, 1, 0, a_fFlags, \
+        {   a_enmArgType0, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgType1) \
+    { \
+        a_szKeyword, NULL, 2, 0, a_fFlags, \
+        {   a_enmArgType0, \
+            a_enmArgType1, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgType1, a_enmArgType2, a_enmArgType3) \
+    { \
+        a_szKeyword, NULL, 4, 0, a_fFlags, \
+        {   a_enmArgType0, \
+            a_enmArgType1, \
+            a_enmArgType2, \
+            a_enmArgType3, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
 
 /**
- * Keyword encoding table, indexed by RTACPIASLTERMINAL_XXX.
+ * Operations encoding table, indexed by kAcpiAstNodeOp_XXX.
  */
-static const RTACPIASLKEYWORD g_aAslKeywords[] =
+static const RTACPIASLKEYWORD g_aAslOps[] =
 {
-    /* RTACPIASLTERMINAL_INVALID */     {
-                                            NULL, 0, 0, 0, RTACPI_AST_NODE_F_DEFAULT,
-                                            {   kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid},
-                                            {
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } }
-                                            }
-                                        },
-    /* RTACPIASLTERMINAL_DEFINITION_BLOCK */ {
-                                            NULL, 0, 0, 0, RTACPI_AST_NODE_F_DEFAULT,
-                                            {   kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid,
-                                                kAcpiAstArgType_Invalid},
-                                            {
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } }
-                                            }
-                                        },
-    /* RTACPIASLTERMINAL_SCOPE   */     {
-                                            "Scope", ACPI_AML_BYTE_CODE_OP_SCOPE, 1, 0, RTACPI_AST_NODE_F_NEW_SCOPE,
-                                            {    kAcpiAstArgType_NameString,
-                                                 kAcpiAstArgType_Invalid,
-                                                 kAcpiAstArgType_Invalid,
-                                                 kAcpiAstArgType_Invalid,
-                                                 kAcpiAstArgType_Invalid
+    /* kAcpiAstNodeOp_Invalid           */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
+    /* kAcpiAstNodeOp_Identifier        */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
+    /* kAcpiAstNodeOp_StringLiteral     */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
+    /* kAcpiAstNodeOp_Number            */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
+    /* kAcpiAstNodeOp_Scope             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",         RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_Processor         */  {
+                                                "Processor", NULL, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE,
+                                                {
+                                                    kAcpiAstArgType_NameString,
+                                                    kAcpiAstArgType_U8,
+                                                    kAcpiAstArgType_Invalid,
+                                                    kAcpiAstArgType_Invalid,
+                                                    kAcpiAstArgType_Invalid
+                                                },
+                                                {
+                                                    { kAcpiAstArgType_U32,     { 0 } },
+                                                    { kAcpiAstArgType_U8,      { 0 } },
+                                                    { kAcpiAstArgType_Invalid, { 0 } }
+                                                }
                                             },
-                                            {
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } }
-                                            }
-                                        },
-    /* RTACPIASLTERMINAL_PROCESSOR */   {
-                                            "Processor", ACPI_AML_BYTE_CODE_EXT_OP_PROCESSOR, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_EXT_OPC,
-                                            {    kAcpiAstArgType_NameString,
-                                                 kAcpiAstArgType_U8,
-                                                 kAcpiAstArgType_Invalid,
-                                                 kAcpiAstArgType_Invalid,
-                                                 kAcpiAstArgType_Invalid
-                                            },
-                                            {
-                                                { kAcpiAstArgType_U32,     { 0 } },
-                                                { kAcpiAstArgType_U8,      { 0 } },
-                                                { kAcpiAstArgType_Invalid, { 0 } }
-                                            }
-                                        },
+    /* kAcpiAstNodeOp_External          */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "External",        rtAcpiTblAslParseExternal, 1, 2, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Method            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",          rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
+    /* kAcpiAstNodeOp_Device            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",          RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_If                */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",              RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Else              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",            RTACPI_AST_NODE_F_NEW_SCOPE),
+    /* kAcpiAstNodeOp_LAnd              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LEqual            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreater          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",        RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",   RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",      RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNot",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",       RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",            RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Ones              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Ones",            RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Return",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",         RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
+    /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion", RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+
 };
+
 
 static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword, uint8_t iArg, RTACPIASTARGTYPE enmArgType, PRTACPIASTARG pArg)
 {
@@ -618,7 +1032,12 @@ static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword,
     {
         case kAcpiAstArgType_AstNode:
         {
-            //rtAcpiTblAslParseTerminal(pThis, RTACPIASLTERMINAL enmTerminal, PRTACPIASTNODE *ppAstNd)
+            PRTACPIASTNODE pAstNd = NULL;
+            int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNd);
+            if (RT_FAILURE(rc))
+                return rc;
+            pArg->enmType  = kAcpiAstArgType_AstNode;
+            pArg->u.pAstNd = pAstNd;
             break;
         }
         case kAcpiAstArgType_NameString:
@@ -671,6 +1090,39 @@ static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword,
             pArg->u.u64   = u64;
             break;
         }
+        case kAcpiAstArgType_RegionSpace:
+        {
+            RTACPIASLTERMINAL enmKeyword;
+            int rc = rtAcpiAslLexerConsumeIfKeywordInList(pThis, &g_aenmRegionSpaceKeywords[0], &enmKeyword);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            if (enmKeyword != RTACPIASLTERMINAL_INVALID)
+            {
+                pArg->enmType = kAcpiAstArgType_RegionSpace;
+                switch (enmKeyword)
+                {
+                    case RTACPIASLTERMINAL_KEYWORD_SYSTEM_IO:          pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_SystemIo;         break;
+                    case RTACPIASLTERMINAL_KEYWORD_SYSTEM_MEMORY:      pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_SystemMemory;     break;
+                    case RTACPIASLTERMINAL_KEYWORD_PCI_CONFIG:         pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_PciConfig;        break;
+                    case RTACPIASLTERMINAL_KEYWORD_EMBEDDED_CONTROL:   pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_EmbeddedControl;  break;
+                    case RTACPIASLTERMINAL_KEYWORD_SMBUS:              pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_SmBus;            break;
+                    case RTACPIASLTERMINAL_KEYWORD_SYSTEM_CMOS:        pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_SystemCmos;       break;
+                    case RTACPIASLTERMINAL_KEYWORD_PCI_BAR_TARGET:     pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_PciBarTarget;     break;
+                    case RTACPIASLTERMINAL_KEYWORD_IPMI:               pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_Ipmi;             break;
+                    case RTACPIASLTERMINAL_KEYWORD_GENERAL_PURPOSE_IO: pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_Gpio;             break;
+                    case RTACPIASLTERMINAL_KEYWORD_GENERIC_SERIAL_BUS: pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_GenericSerialBus; break;
+                    case RTACPIASLTERMINAL_KEYWORD_PCC:                pArg->u.enmRegionSpace = kAcpiOperationRegionSpace_Pcc;              break;
+                    case RTACPIASLTERMINAL_KEYWORD_PRM:
+                    case RTACPIASLTERMINAL_KEYWORD_FFIXED_HW:
+                    default:
+                        AssertFailedReturn(VERR_INTERNAL_ERROR);
+                }
+            }
+            else
+                return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Unknown RegionSpace keyword encountered");
+            break;
+        }
         default:
             AssertReleaseFailed();
     }
@@ -679,22 +1131,29 @@ static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword,
 }
 
 
-static int rtAcpiTblAslParseTerminal(PRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerminal, PRTACPIASTNODE *ppAstNd)
+static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACPIASTNODE *ppAstNd)
 {
     int rc = VINF_SUCCESS;
 
-    AssertReturn(enmTerminal > RTACPIASLTERMINAL_INVALID && (unsigned)enmTerminal < RT_ELEMENTS(g_aAslKeywords), VERR_INTERNAL_ERROR);
+    AssertReturn(enmOp > kAcpiAstNodeOp_Invalid && (unsigned)enmOp < RT_ELEMENTS(g_aAslOps), VERR_INTERNAL_ERROR);
 
     *ppAstNd = NULL;
 
-    PCRTACPIASLKEYWORD pAslKeyword = &g_aAslKeywords[enmTerminal];
-    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(pAslKeyword->bOpc, pAslKeyword->fFlags, pAslKeyword->cArgsReq + pAslKeyword->cArgsOpt);
+    PCRTACPIASLKEYWORD pAslKeyword = &g_aAslOps[enmOp];
+    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(enmOp, pAslKeyword->fFlags, pAslKeyword->cArgsReq + pAslKeyword->cArgsOpt);
     if (!pAstNd)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing keyword '%s'", pAslKeyword->pszOpc);
 
     *ppAstNd = pAstNd;
 
-    if (pAslKeyword->cArgsReq || pAslKeyword->cArgsOpt)
+    /* Call and parse callback if present, otherwise do the default parsing. */
+    if (pAslKeyword->pfnParse)
+    {
+        rc = pAslKeyword->pfnParse(pThis, pAslKeyword, pAstNd);
+        if (RT_FAILURE(rc))
+            return rc;
+    }
+    else if (pAslKeyword->cArgsReq || pAslKeyword->cArgsOpt)
     {
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
 
@@ -768,36 +1227,148 @@ static int rtAcpiTblAslParseTerminal(PRTACPIASLCU pThis, RTACPIASLTERMINAL enmTe
 }
 
 
+/**
+ * Parses what looks like an name string, possibly with a call.
+ *
+ * @returns IPRT status code.
+ * @param   pThis           The ACPI compilation unit state.
+ * @param   pszIde          The identifier.
+ * @param   ppAstNd         Where to store the AST node on success.
+ */
+static int rtAcpiTblAslParseIde(PRTACPIASLCU pThis, const char *pszIde, PRTACPIASTNODE *ppAstNd)
+{
+    *ppAstNd = NULL;
+
+    /* If there is a ( following this looks like a function call which can have up to 8 arguments. */
+    uint8_t cArgs = 0;
+    RTACPIASTARG aArgs[8]; RT_ZERO(aArgs);
+    if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET))
+    {
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip "(" */
+
+        while (cArgs < RT_ELEMENTS(aArgs))
+        {
+            PRTACPIASTNODE pAstNd = NULL;
+            int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNd);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            aArgs[cArgs].enmType  = kAcpiAstArgType_AstNode;
+            aArgs[cArgs].u.pAstNd = pAstNd;
+            cArgs++;
+
+            /* ")" means we are done here. */
+            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+                break;
+
+            /* Arguments are separated by "," */
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+        }
+
+        /* Now there must be a closing ) */
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+    }
+
+    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_Identifier, RTACPI_AST_NODE_F_DEFAULT, cArgs);
+    if (!pAstNd)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing identifier '%s'", pszIde);
+
+    pAstNd->pszIde = pszIde;
+
+    /* Fill in the arguments. */
+    for (uint8_t i = 0; i < cArgs; i++)
+        pAstNd->aArgs[i] = aArgs[i];
+
+    *ppAstNd = pAstNd;
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblAslParseTermArg(PRTACPIASLCU pThis, PRTACPIASTNODE *ppAstNd)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Parser: Failed to query next token with %Rrc", rc);
+
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_ERROR)
+        return RTErrInfoSet(pThis->pErrInfo, VERR_INVALID_PARAMETER, pTok->Type.Error.pErr->pszMsg);
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_EOS)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected end of stream");
+
+    PRTACPIASTNODE pAstNd = NULL;
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD)
+    {
+        uint64_t idKeyword = pTok->Type.Keyword.pKeyword->u64Val;
+        if (idKeyword < RT_ELEMENTS(g_aAslOps))
+        {
+            RTScriptLexConsumeToken(pThis->hLexSource); /* This must come here as rtAcpiTblAslParseOp() will continue parsing. */
+            rc = rtAcpiTblAslParseOp(pThis, (RTACPIASTNODEOP)idKeyword, &pAstNd);
+        }
+        else
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected keyword '%s' encountered", pTok->Type.Keyword.pKeyword->pszMatch);
+    }
+    else if (pTok->enmType == RTSCRIPTLEXTOKTYPE_IDENTIFIER)
+    {
+        /* We can safely consume the token here after getting the pointer to the identifier string as the string is cached and doesn't go away. */
+        const char *pszIde = pTok->Type.Id.pszIde;
+        RTScriptLexConsumeToken(pThis->hLexSource);
+        rc = rtAcpiTblAslParseIde(pThis, pszIde, &pAstNd);
+    }
+    else if (pTok->enmType == RTSCRIPTLEXTOKTYPE_STRINGLIT)
+    {
+        pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_StringLiteral, RTACPI_AST_NODE_F_DEFAULT, 0);
+        if (!pAstNd)
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing identifier '%s'",
+                                 pTok->Type.StringLit.pszString);
+
+        pAstNd->pszStrLit = pTok->Type.StringLit.pszString;
+        RTScriptLexConsumeToken(pThis->hLexSource);
+    }
+    else if (pTok->enmType == RTSCRIPTLEXTOKTYPE_NUMBER)
+    {
+        Assert(pTok->Type.Number.enmType == RTSCRIPTLEXTOKNUMTYPE_NATURAL);
+        pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_Number, RTACPI_AST_NODE_F_DEFAULT, 0);
+        if (!pAstNd)
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing number '%#RX64'",
+                                 pTok->Type.Number.Type.u64);
+
+        pAstNd->u64 = pTok->Type.Number.Type.u64;
+        RTScriptLexConsumeToken(pThis->hLexSource);
+    }
+    else
+    {
+        AssertFailed();
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected token encountered");
+    }
+
+    if (RT_FAILURE(rc))
+    {
+        if (pAstNd)
+            rtAcpiAstNodeFree(pAstNd);
+        return rc;
+    }
+
+    AssertPtr(pAstNd);
+    *ppAstNd = pAstNd;
+    return VINF_SUCCESS;
+}
+
+
 static int rtAcpiTblAslParseInner(PRTACPIASLCU pThis, PRTLISTANCHOR pLstStmts)
 {
     for (;;)
     {
-        PCRTSCRIPTLEXTOKEN pTok;
-        int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
-        if (RT_FAILURE(rc))
-            return RTErrInfoSetF(pThis->pErrInfo, rc, "Parser: Failed to query next token with %Rrc", rc);
-
-        if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_PUNCTUATOR
-            && pTok->Type.Keyword.pKeyword->u64Val == RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET)
+        /* Need to break out of the loop if done processing this scope (consumption is done by the caller). */
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
             return VINF_SUCCESS;
 
-        if (pTok->enmType == RTSCRIPTLEXTOKTYPE_EOS)
-            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected end of stream");
-        if (pTok->enmType != RTSCRIPTLEXTOKTYPE_KEYWORD)
-            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected token encountered");
-
-        RTACPIASLTERMINAL enmKeyword = (RTACPIASLTERMINAL)pTok->Type.Keyword.pKeyword->u64Val;
-        RTScriptLexConsumeToken(pThis->hLexSource); /* This must come here as rtAcpiTblAslParseTerminal() will continue parsing. */
-
         PRTACPIASTNODE pAstNd = NULL;
-        rc = rtAcpiTblAslParseTerminal(pThis, enmKeyword, &pAstNd);
+        int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNd);
         if (RT_FAILURE(rc))
-        {
-            if (pAstNd)
-                rtAcpiAstNodeFree(pAstNd);
             return rc;
-        }
 
+        Assert(pAstNd);
         RTListAppend(pLstStmts, &pAstNd->NdAst);
     }
 }

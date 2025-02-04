@@ -403,6 +403,7 @@
 # define RTAcpiTblDumpToVfsIoStrm                       RT_MANGLER(RTAcpiTblDumpToVfsIoStrm)
 # define RTAcpiTblElseFinalize                          RT_MANGLER(RTAcpiTblElseFinalize)
 # define RTAcpiTblElseStart                             RT_MANGLER(RTAcpiTblElseStart)
+# define RTAcpiTblExternalAppend                        RT_MANGLER(RTAcpiTblExternalAppend)
 # define RTAcpiTblFieldAppend                           RT_MANGLER(RTAcpiTblFieldAppend)
 # define RTAcpiTblFinalize                              RT_MANGLER(RTAcpiTblFinalize)
 # define RTAcpiTblGetSize                               RT_MANGLER(RTAcpiTblGetSize)

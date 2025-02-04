@@ -68,12 +68,12 @@
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 
-DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(uint8_t bOpc, uint32_t fFlags, uint8_t cArgs)
+DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs)
 {
     PRTACPIASTNODE pAstNd = (PRTACPIASTNODE)RTMemAllocZ(RT_UOFFSETOF_DYN(RTACPIASTNODE, aArgs[cArgs]));
     if (pAstNd)
     {
-        pAstNd->bOpc   = bOpc;
+        pAstNd->enmOp  = enmOp;
         pAstNd->fFlags = fFlags;
         pAstNd->cArgs  = cArgs;
         RTListInit(&pAstNd->LstScopeNodes);
@@ -104,13 +104,28 @@ static int rtAcpiAstDumpAstList(PCRTLISTANCHOR pLst, RTACPITBL hAcpiTbl)
 }
 
 
-static int rtAcpiAstDumpExtOpc(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
+DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
 {
     int rc;
 
-    switch (pAstNd->bOpc)
+    switch (pAstNd->enmOp)
     {
-        case ACPI_AML_BYTE_CODE_EXT_OP_PROCESSOR:
+        case kAcpiAstNodeOp_Scope:
+        {
+            AssertBreakStmt(   pAstNd->cArgs == 1
+                            && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString,
+                            rc = VERR_INTERNAL_ERROR);
+            rc = RTAcpiTblScopeStart(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString);
+            if (RT_SUCCESS(rc))
+            {
+                /* Walk all the other AST nodes. */
+                rc = rtAcpiAstDumpAstList(&pAstNd->LstScopeNodes, hAcpiTbl);
+                if (RT_SUCCESS(rc))
+                    rc = RTAcpiTblScopeFinalize(hAcpiTbl);
+            }
+            break;
+        }
+        case kAcpiAstNodeOp_Processor:
         {
             AssertBreakStmt(   pAstNd->cArgs == 4
                             && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString
@@ -132,47 +147,38 @@ static int rtAcpiAstDumpExtOpc(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
             }
             break;
         }
-        default:
-            AssertFailedStmt(rc = VERR_NOT_IMPLEMENTED);
-    }
-
-    return rc;
-}
-
-
-static int rtAcpiAstDumpOpc(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
-{
-    int rc;
-
-    switch (pAstNd->bOpc)
-    {
-        case ACPI_AML_BYTE_CODE_OP_SCOPE:
+        case kAcpiAstNodeOp_External:
         {
-            AssertBreakStmt(   pAstNd->cArgs == 1
-                            && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString,
+            AssertBreakStmt(   pAstNd->cArgs == 3
+                            && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString
+                            && pAstNd->aArgs[1].enmType == kAcpiAstArgType_ObjType
+                            && pAstNd->aArgs[2].enmType == kAcpiAstArgType_U8,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblScopeStart(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString);
+            rc = RTAcpiTblExternalAppend(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString, pAstNd->aArgs[1].u.enmObjType, pAstNd->aArgs[2].u.u8);
+        }
+        case kAcpiAstNodeOp_Method:
+        {
+            AssertBreakStmt(   pAstNd->cArgs == 4
+                            && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString
+                            && pAstNd->aArgs[1].enmType == kAcpiAstArgType_U8
+                            && pAstNd->aArgs[2].enmType == kAcpiAstArgType_Bool
+                            && pAstNd->aArgs[3].enmType == kAcpiAstArgType_U8,
+                            rc = VERR_INTERNAL_ERROR);
+            rc = RTAcpiTblMethodStart(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString,
+                                      pAstNd->aArgs[1].u.u8,
+                                      pAstNd->aArgs[1].u.f ? RTACPI_METHOD_F_SERIALIZED : RTACPI_METHOD_F_NOT_SERIALIZED,
+                                      pAstNd->aArgs[1].u.u8);
             if (RT_SUCCESS(rc))
             {
                 /* Walk all the other AST nodes. */
                 rc = rtAcpiAstDumpAstList(&pAstNd->LstScopeNodes, hAcpiTbl);
                 if (RT_SUCCESS(rc))
-                    rc = RTAcpiTblScopeFinalize(hAcpiTbl);
+                    rc = RTAcpiTblMethodFinalize(hAcpiTbl);
             }
-            break;
         }
         default:
             AssertFailedStmt(rc = VERR_NOT_IMPLEMENTED);
     }
 
     return rc;
-}
-
-
-DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
-{
-    if (pAstNd->fFlags & RTACPI_AST_NODE_F_EXT_OPC)
-        return rtAcpiAstDumpExtOpc(pAstNd, hAcpiTbl);
-    else
-        return rtAcpiAstDumpOpc(pAstNd, hAcpiTbl);
 }

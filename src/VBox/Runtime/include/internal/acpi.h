@@ -58,10 +58,13 @@ typedef enum RTACPIASTARGTYPE
     kAcpiAstArgType_Invalid = 0,
     kAcpiAstArgType_AstNode,
     kAcpiAstArgType_NameString,
+    kAcpiAstArgType_Bool,
     kAcpiAstArgType_U8,
     kAcpiAstArgType_U16,
     kAcpiAstArgType_U32,
     kAcpiAstArgType_U64,
+    kAcpiAstArgType_ObjType,
+    kAcpiAstArgType_RegionSpace,
     kAcpiAstArgType_32Bit_Hack = 0x7fffffff
 } RTACPIASTARGTYPE;
 
@@ -72,17 +75,20 @@ typedef enum RTACPIASTARGTYPE
 typedef struct RTACPIASTARG
 {
     /** Argument type. */
-    RTACPIASTARGTYPE    enmType;
+    RTACPIASTARGTYPE        enmType;
     /** Type dependent data. */
     union
     {
-        uintptr_t       uPtrInternal;
-        PCRTACPIASTNODE pAstNode;
-        const char      *pszNameString;
-        uint8_t         u8;
-        uint16_t        u16;
-        uint32_t        u32;
-        uint64_t        u64;
+        uintptr_t           uPtrInternal;
+        PCRTACPIASTNODE     pAstNd;
+        const char          *pszNameString;
+        bool                f;
+        uint8_t             u8;
+        uint16_t            u16;
+        uint32_t            u32;
+        uint64_t            u64;
+        RTACPIOBJTYPE       enmObjType;
+        RTACPIOPREGIONSPACE enmRegionSpace;
     } u;
 } RTACPIASTARG;
 /** Pointer to an AST node argument. */
@@ -92,22 +98,66 @@ typedef const RTACPIASTARG *PCRTACPIASTARG;
 
 
 /**
+ * The ACPI AST node op.
+ */
+typedef enum RTACPIASTNODEOP
+{
+    kAcpiAstNodeOp_Invalid = 0,
+    kAcpiAstNodeOp_Identifier,
+    kAcpiAstNodeOp_StringLiteral,
+    kAcpiAstNodeOp_Number,
+    kAcpiAstNodeOp_Scope,
+    kAcpiAstNodeOp_Processor,
+    kAcpiAstNodeOp_External,
+    kAcpiAstNodeOp_Method,
+    kAcpiAstNodeOp_Device,
+    kAcpiAstNodeOp_If,
+    kAcpiAstNodeOp_Else,
+    kAcpiAstNodeOp_LAnd,
+    kAcpiAstNodeOp_LEqual,
+    kAcpiAstNodeOp_LGreater,
+    kAcpiAstNodeOp_LGreaterEqual,
+    kAcpiAstNodeOp_LLess,
+    kAcpiAstNodeOp_LLessEqual,
+    kAcpiAstNodeOp_LNot,
+    kAcpiAstNodeOp_LNotEqual,
+    kAcpiAstNodeOp_Zero,
+    kAcpiAstNodeOp_One,
+    kAcpiAstNodeOp_Ones,
+    kAcpiAstNodeOp_Return,
+    kAcpiAstNodeOp_Unicode,
+    kAcpiAstNodeOp_OperationRegion,
+    kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
+} RTACPIASTNODEOP;
+
+
+/**
  * The core ACPI AST node.
  */
 typedef struct RTACPIASTNODE
 {
     /** List node. */
     RTLISTNODE          NdAst;
-    /** The AML opcode defining the node. */
-    uint8_t             bOpc;
+    /** The AML op defining the node. */
+    RTACPIASTNODEOP     enmOp;
+    /** Some additional flags. */
+    uint32_t            fFlags;
+    /** Operation dependent data. */
+    union
+    {
+        /** List of other AST nodes for the opened scope if indicated by the AST flags (RTACPIASTNODE). */
+        RTLISTANCHOR    LstScopeNodes;
+        /** Pointer to the identifier if an identifier node. */
+        const char      *pszIde;
+        /** Pointer to the string literal if a string literal node. */
+        const char      *pszStrLit;
+        /** A number */
+        uint64_t        u64;
+    };
     /** Number of "arguments" for the opcode following (for example Scope(), Method(), If(), etc., i.e. anything requiring () after the keyword ). */
     uint8_t             cArgs;
     /** Padding */
     uint8_t             abRsvd[2];
-    /** Some additional flags. */
-    uint32_t            fFlags;
-    /** List of other AST nodes for the opened scope if indicated by the AST flags (RTACPIASTNODE). */
-    RTLISTANCHOR        LstScopeNodes;
     /** The AST node arguments - variable in size. */
     RTACPIASTARG        aArgs[1];
 } RTACPIASTNODE;
@@ -116,19 +166,17 @@ typedef struct RTACPIASTNODE
 #define RTACPI_AST_NODE_F_DEFAULT       0
 /** The AST node opens a new scope. */
 #define RTACPI_AST_NODE_F_NEW_SCOPE     RT_BIT_32(0)
-/** The AST node opcode is part of the extended prefix opcode map. */
-#define RTACPI_AST_NODE_F_EXT_OPC       RT_BIT_32(1)
 
 
 /**
  * Allocates a new ACPI AST node initialized with the given properties.
  *
  * @returns Pointer to the new ACPI AST node or NULL if out of memory.
- * @param   bOpc                The opcode value for the AST node.
+ * @param   enmOp               The operation of the AST node.
  * @param   fFlags              Flags for this node.
  * @param   cArgs               Number of arguments to allocate.
  */
-DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(uint8_t bOpc, uint32_t fFlags, uint8_t cArgs);
+DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs);
 
 
 /**

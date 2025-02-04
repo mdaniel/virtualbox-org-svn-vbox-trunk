@@ -295,6 +295,45 @@
 /** @} */
 
 
+/** @name Object type values found in AML
+ * @{ */
+/** Object type is uninitialized. */
+#define ACPI_AML_OBJECT_TYPE_UNINIT               0
+/** Object is an integer. */
+#define ACPI_AML_OBJECT_TYPE_INTEGER              1
+/** Object is a string. */
+#define ACPI_AML_OBJECT_TYPE_STRING               2
+/** Object is a buffer. */
+#define ACPI_AML_OBJECT_TYPE_BUFFER               3
+/** Object is a package. */
+#define ACPI_AML_OBJECT_TYPE_PACKAGE              4
+/** Object is a field unit. */
+#define ACPI_AML_OBJECT_TYPE_FIELD_UNIT           5
+/** Object is a device. */
+#define ACPI_AML_OBJECT_TYPE_DEVICE               6
+/** Object is an event. */
+#define ACPI_AML_OBJECT_TYPE_EVENT                7
+/** Object is a method. */
+#define ACPI_AML_OBJECT_TYPE_METHOD               8
+/** Object is a mutex. */
+#define ACPI_AML_OBJECT_TYPE_MUTEX                9
+/** Object is an operation region. */
+#define ACPI_AML_OBJECT_TYPE_OPERATION_REGION    10
+/** Object is a power resource. */
+#define ACPI_AML_OBJECT_TYPE_POWER_RESOURCE      11
+/** Object is a processor. */
+#define ACPI_AML_OBJECT_TYPE_PROCESSOR           12
+/** Object is a thermal zone. */
+#define ACPI_AML_OBJECT_TYPE_THERMAL_ZONE        13
+/** Object is a buffer field. */
+#define ACPI_AML_OBJECT_TYPE_BUFFER_FIELD        14
+/** Object is a DDB handle. */
+#define ACPI_AML_OBJECT_TYPE_DDB_HANDLE          15
+/** Object is the debug object. */
+#define ACPI_AML_OBJECT_TYPE_DEBUG               16
+/** @} */
+
+
 /** @name Some helpers for classifying AML bytecode.
  * @{ */
 DECLINLINE(bool) rtAcpiAmlOpcIsConstObj(uint8_t bOpc)

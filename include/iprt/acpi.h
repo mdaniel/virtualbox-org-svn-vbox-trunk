@@ -724,6 +724,55 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
                                  uint32_t cFields);
 
 
+/**
+ * Object type.
+ */
+typedef enum RTACPIOBJTYPE
+{
+    /** Invalid object type. */
+    kAcpiObjType_Invalid = 0,
+    /** Unknown object - UnknownObj */
+    kAcpiObjType_Unknown,
+    /** Integer object - IntObj */
+    kAcpiObjType_Int,
+    /** String object - StrObj */
+    kAcpiObjType_Str,
+    /** Buffer object - BuffObj */
+    kAcpiObjType_Buff,
+    /** Package object - PkgObj */
+    kAcpiObjType_Pkg,
+    /** Field unit object - FieldUnitObj */
+    kAcpiObjType_FieldUnit,
+    /** Device object - DeviceObj */
+    kAcpiObjType_Device,
+    /** Event object - EventObj */
+    kAcpiObjType_Event,
+    /** Method object - MethodObj */
+    kAcpiObjType_Method,
+    /** Mutex object - MutexObj */
+    kAcpiObjType_MutexObj,
+    /** OpRegion object - OpRegionObj */
+    kAcpiObjType_OpRegion,
+    /** Power resource object - PowerResObj */
+    kAcpiObjType_PowerRes,
+    /** Thermal zone object - ThermalZoneObj */
+    kAcpiObjType_ThermalZone,
+    /** Buffer field object - BuffFieldObj */
+    kAcpiObjType_BuffField
+} RTACPIOBJTYPE;
+
+
+/**
+ * Appends a new External declaration to the given ACPI table.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszName             The name stirng of the external object.
+ * @param   enmObjType          The object type.
+ * @param   cArgs               Number of arguments for the object (mostly method), valid is [0..7].
+ */
+RTDECL(int) RTAcpiTblExternalAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOBJTYPE enmObjType, uint8_t cArgs);
+
 
 /** @name ACPI resource builder related API.
  * @{ */

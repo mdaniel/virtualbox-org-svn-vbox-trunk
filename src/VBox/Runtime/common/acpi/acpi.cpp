@@ -1171,6 +1171,42 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
 }
 
 
+RTDECL(int) RTAcpiTblExternalAppend(RTACPITBL hAcpiTbl, const char *pszName, RTACPIOBJTYPE enmObjType, uint8_t cArgs)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(cArgs <= 7, VERR_INVALID_PARAMETER);
+
+    uint8_t bObjType;
+    switch (enmObjType)
+    {
+        case kAcpiObjType_Unknown:     bObjType = ACPI_AML_OBJECT_TYPE_UNINIT; break;
+        case kAcpiObjType_Int:         bObjType = ACPI_AML_OBJECT_TYPE_INTEGER; break;
+        case kAcpiObjType_Str:         bObjType = ACPI_AML_OBJECT_TYPE_STRING; break;
+        case kAcpiObjType_Buff:        bObjType = ACPI_AML_OBJECT_TYPE_BUFFER; break;
+        case kAcpiObjType_Pkg:         bObjType = ACPI_AML_OBJECT_TYPE_PACKAGE; break;
+        case kAcpiObjType_FieldUnit:   bObjType = ACPI_AML_OBJECT_TYPE_FIELD_UNIT; break;
+        case kAcpiObjType_Device:      bObjType = ACPI_AML_OBJECT_TYPE_DEVICE; break;
+        case kAcpiObjType_Event:       bObjType = ACPI_AML_OBJECT_TYPE_EVENT; break;
+        case kAcpiObjType_Method:      bObjType = ACPI_AML_OBJECT_TYPE_METHOD; break;
+        case kAcpiObjType_MutexObj:    bObjType = ACPI_AML_OBJECT_TYPE_MUTEX; break;
+        case kAcpiObjType_OpRegion:    bObjType = ACPI_AML_OBJECT_TYPE_OPERATION_REGION; break;
+        case kAcpiObjType_PowerRes:    bObjType = ACPI_AML_OBJECT_TYPE_POWER_RESOURCE; break;
+        case kAcpiObjType_ThermalZone: bObjType = ACPI_AML_OBJECT_TYPE_THERMAL_ZONE; break;
+        case kAcpiObjType_BuffField:   bObjType = ACPI_AML_OBJECT_TYPE_BUFFER_FIELD; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+
+    rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_OP_EXTERNAL);
+    rtAcpiTblAppendNameString(pThis, pszName);
+    rtAcpiTblAppendByte(pThis, bObjType);
+    rtAcpiTblAppendByte(pThis, cArgs);
+    return pThis->rcErr;
+}
+
+
 RTDECL(int) RTAcpiTblCreateFromVfsIoStrm(PRTACPITBL phAcpiTbl, RTVFSIOSTREAM hVfsIos, RTACPITBLTYPE enmInType, PRTERRINFO pErrInfo)
 {
     AssertPtrReturn(phAcpiTbl, VERR_INVALID_POINTER);

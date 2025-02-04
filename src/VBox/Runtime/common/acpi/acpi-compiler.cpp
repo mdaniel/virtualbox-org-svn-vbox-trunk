@@ -167,9 +167,9 @@ static const char *s_aszMultiEnd[] =
 static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 {
     /* Keywords */
-    { RT_STR_TUPLE("DefinitionBlock"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
-    { RT_STR_TUPLE("Processor"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PROCESSOR              },
-    { RT_STR_TUPLE("Scope"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SCOPE                  },
+    { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
+    { RT_STR_TUPLE("PROCESSOR"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PROCESSOR              },
+    { RT_STR_TUPLE("SCOPE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SCOPE                  },
 
     /* Punctuators */
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, RTACPIASLTERMINAL_PUNCTUATOR_COMMA               },
@@ -201,7 +201,7 @@ static const RTSCRIPTLEXCFG s_AslLexCfg =
     /** pszDesc */
     "ACPI ASL lexer",
     /** fFlags */
-    RTSCRIPT_LEX_CFG_F_DEFAULT,
+    RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_UPPER,
     /** pszWhitespace */
     NULL,
     /** pszNewline */

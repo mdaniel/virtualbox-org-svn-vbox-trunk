@@ -7429,7 +7429,7 @@ static DECLCALLBACK(int) vgaRZConstruct(PPDMDEVINS pDevIns)
         AssertRCReturn(rc, rc);
     }
     else
-        AssertReturn(!pThis->fVMSVGAEnabled, VERR_INVALID_STATE);
+        AssertReturn(!pThis->fVMSVGAEnabled || pThis->fVmSvga3, VERR_INVALID_STATE);
 
     if (pThis->hMmioSvga3 != NIL_IOMMMIOHANDLE)
     {

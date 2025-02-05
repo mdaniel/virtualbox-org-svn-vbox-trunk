@@ -48,7 +48,7 @@ class UIMediumManagerWidget;
 class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
 class UIVirtualMachineItemCloud;
-class UIWelcomePane;
+class UIHomePane;
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
 class UIMachineManagerWidget;
 #endif
@@ -120,8 +120,8 @@ private:
 
     /** Holds the stacked-layout instance. */
     QStackedLayout               *m_pLayout;
-    /** Holds the Welcome pane instance. */
-    UIWelcomePane                *m_pPaneWelcome;
+    /** Holds the Home pane instance. */
+    UIHomePane                   *m_pPaneHome;
     /** Holds the Extension Pack Manager instance. */
     UIExtensionPackManagerWidget *m_pPaneExtensions;
     /** Holds the Virtual Media Manager instance. */

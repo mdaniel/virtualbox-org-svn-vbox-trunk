@@ -41,7 +41,7 @@
 #include "UINetworkManager.h"
 #include "UIToolPaneGlobal.h"
 #include "UIVMActivityOverviewWidget.h"
-#include "UIWelcomePane.h"
+#include "UIHomePane.h"
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
 # include "UIMachineManagerWidget.h"
 #endif
@@ -54,7 +54,7 @@ UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
     , m_pLayout(0)
-    , m_pPaneWelcome(0)
+    , m_pPaneHome(0)
     , m_pPaneExtensions(0)
     , m_pPaneMedia(0)
     , m_pPaneNetwork(0)
@@ -122,16 +122,16 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
         {
             case UIToolType_Home:
             {
-                /* Create Welcome pane: */
-                m_pPaneWelcome = new UIWelcomePane;
-                AssertPtrReturnVoid(m_pPaneWelcome);
+                /* Create Home pane: */
+                m_pPaneHome = new UIHomePane;
+                AssertPtrReturnVoid(m_pPaneHome);
                 {
                     /* Configure pane: */
-                    m_pPaneWelcome->setProperty("ToolType", QVariant::fromValue(UIToolType_Home));
+                    m_pPaneHome->setProperty("ToolType", QVariant::fromValue(UIToolType_Home));
 
                     /* Add into layout: */
-                    m_pLayout->addWidget(m_pPaneWelcome);
-                    m_pLayout->setCurrentWidget(m_pPaneWelcome);
+                    m_pLayout->addWidget(m_pPaneHome);
+                    m_pLayout->setCurrentWidget(m_pPaneHome);
                 }
                 break;
             }
@@ -282,7 +282,7 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         /* Forget corresponding widget: */
         switch (enmType)
         {
-            case UIToolType_Home:       m_pPaneWelcome = 0; break;
+            case UIToolType_Home:       m_pPaneHome = 0; break;
             case UIToolType_Extensions: m_pPaneExtensions = 0; break;
             case UIToolType_Media:      m_pPaneMedia = 0; break;
             case UIToolType_Network:    m_pPaneNetwork = 0; break;
@@ -309,7 +309,7 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
     switch (currentTool())
     {
         case UIToolType_Home:
-            pCurrentToolWidget = m_pPaneWelcome;
+            pCurrentToolWidget = m_pPaneHome;
             break;
         case UIToolType_Extensions:
             pCurrentToolWidget = m_pPaneExtensions;

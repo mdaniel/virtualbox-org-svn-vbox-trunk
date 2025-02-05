@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIWelcomePane class declaration.
+ * VBox Qt GUI - UIHomePane class declaration.
  */
 
 /*
@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef FEQT_INCLUDED_SRC_manager_UIWelcomePane_h
-#define FEQT_INCLUDED_SRC_manager_UIWelcomePane_h
+#ifndef FEQT_INCLUDED_SRC_manager_UIHomePane_h
+#define FEQT_INCLUDED_SRC_manager_UIHomePane_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -44,15 +44,15 @@ class QAbstractButton;
 class QLabel;
 class QIRichTextLabel;
 
-/** QWidget subclass holding Welcome information about VirtualBox. */
-class UIWelcomePane : public QWidget
+/** QWidget subclass holding Home information about VirtualBox. */
+class UIHomePane : public QWidget
 {
     Q_OBJECT;
 
 public:
 
-    /** Constructs Welcome pane passing @a pParent to the base-class. */
-    UIWelcomePane(QWidget *pParent = 0);
+    /** Constructs Home pane passing @a pParent to the base-class. */
+    UIHomePane(QWidget *pParent = 0);
 
 protected:
 
@@ -93,4 +93,4 @@ private:
     QLabel                       *m_pLabelIcon;
 };
 
-#endif /* !FEQT_INCLUDED_SRC_manager_UIWelcomePane_h */
+#endif /* !FEQT_INCLUDED_SRC_manager_UIHomePane_h */

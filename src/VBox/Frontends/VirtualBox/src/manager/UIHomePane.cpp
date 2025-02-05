@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIWelcomePane class implementation.
+ * VBox Qt GUI - UIHomePane class implementation.
  */
 
 /*
@@ -41,17 +41,17 @@
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
 #include "UITranslationEventListener.h"
-#include "UIWelcomePane.h"
+#include "UIHomePane.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
 
 /*********************************************************************************************************************************
-*   Class UIWelcomePane implementation.                                                                                          *
+*   Class UIHomePane implementation.                                                                                          *
 *********************************************************************************************************************************/
 
-UIWelcomePane::UIWelcomePane(QWidget *pParent /* = 0 */)
+UIHomePane::UIHomePane(QWidget *pParent /* = 0 */)
     : QWidget(pParent)
     , m_pLabelGreetings(0)
     , m_pLabelMode(0)
@@ -60,7 +60,7 @@ UIWelcomePane::UIWelcomePane(QWidget *pParent /* = 0 */)
     prepare();
 }
 
-bool UIWelcomePane::event(QEvent *pEvent)
+bool UIHomePane::event(QEvent *pEvent)
 {
     /* Handle known event types: */
     switch (pEvent->type())
@@ -81,7 +81,7 @@ bool UIWelcomePane::event(QEvent *pEvent)
     return QWidget::event(pEvent);
 }
 
-void UIWelcomePane::sltRetranslateUI()
+void UIHomePane::sltRetranslateUI()
 {
     /* Translate greetings text: */
     if (m_pLabelGreetings)
@@ -113,12 +113,12 @@ void UIWelcomePane::sltRetranslateUI()
         m_buttons.value(true)->setText(tr("Expert Mode"));
 }
 
-void UIWelcomePane::sltHandleLinkActivated(const QUrl &urlLink)
+void UIHomePane::sltHandleLinkActivated(const QUrl &urlLink)
 {
     uiCommon().openURL(urlLink.toString());
 }
 
-void UIWelcomePane::sltHandleButtonClicked(QAbstractButton *pButton)
+void UIHomePane::sltHandleButtonClicked(QAbstractButton *pButton)
 {
     /* Make sure one of buttons was really pressed: */
     AssertReturnVoid(m_buttons.contains(pButton));
@@ -136,7 +136,7 @@ void UIWelcomePane::sltHandleButtonClicked(QAbstractButton *pButton)
     gEDataManager->setSettingsInExpertMode(fExpertMode);
 }
 
-void UIWelcomePane::prepare()
+void UIHomePane::prepare()
 {
     /* Prepare default welcome icon: */
     m_icon = UIIconPool::iconSet(":/tools_banner_global_200px.png");
@@ -163,7 +163,7 @@ void UIWelcomePane::prepare()
         if (m_pLabelGreetings)
         {
             m_pLabelGreetings->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
-            connect(m_pLabelGreetings, &QIRichTextLabel::sigLinkClicked, this, &UIWelcomePane::sltHandleLinkActivated);
+            connect(m_pLabelGreetings, &QIRichTextLabel::sigLinkClicked, this, &UIHomePane::sltHandleLinkActivated);
             pMainLayout->addWidget(m_pLabelGreetings, 0, 0);
         }
 
@@ -215,7 +215,7 @@ void UIWelcomePane::prepare()
                     }
 
                     connect(pButtonGroup, &QButtonGroup::buttonClicked,
-                            this, &UIWelcomePane::sltHandleButtonClicked);
+                            this, &UIHomePane::sltHandleButtonClicked);
                 }
 
                 pLayoutButton->addStretch();
@@ -230,14 +230,14 @@ void UIWelcomePane::prepare()
     /* Translate finally: */
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
-            this, &UIWelcomePane::sltRetranslateUI);
+            this, &UIHomePane::sltRetranslateUI);
 
     /* Update stuff: */
     updateTextLabels();
     updatePixmap();
 }
 
-void UIWelcomePane::updateTextLabels()
+void UIHomePane::updateTextLabels()
 {
     /* For all the text-labels: */
     QList<QIRichTextLabel*> labels = findChildren<QIRichTextLabel*>();
@@ -253,7 +253,7 @@ void UIWelcomePane::updateTextLabels()
     }
 }
 
-void UIWelcomePane::updatePixmap()
+void UIHomePane::updatePixmap()
 {
     /* Assign corresponding icon: */
     if (!m_icon.isNull() && m_pLabelIcon)

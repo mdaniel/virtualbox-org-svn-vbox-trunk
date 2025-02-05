@@ -598,6 +598,7 @@ VirtualBox_QT_MOCHDRS = \
 	src/extensionpackmanager/UIExtensionPackManager.h \
 	src/globals/UIStarter.h \
 	src/manager/UIErrorPane.h \
+	src/manager/UIHomePane.h \
 	src/manager/UIProgressTaskReadCloudMachineList.h \
 	src/manager/UITaskCloudGetSettingsForm.h \
 	src/manager/UIToolPaneGlobal.h \
@@ -606,7 +607,6 @@ VirtualBox_QT_MOCHDRS = \
 	src/manager/UIVirtualMachineItem.h \
 	src/manager/UIVirtualMachineItemCloud.h \
 	src/manager/UIVirtualMachineItemLocal.h \
-	src/manager/UIWelcomePane.h \
 	src/manager/chooser/UIChooser.h \
 	src/manager/chooser/UIChooserAbstractModel.h \
 	src/manager/chooser/UIChooserModel.h \
@@ -1130,6 +1130,7 @@ VirtualBox_SOURCES = \
 	src/globals/UIStarter.cpp \
 	src/manager/UICloudEntityKey.cpp \
 	src/manager/UIErrorPane.cpp \
+	src/manager/UIHomePane.cpp \
 	src/manager/UIProgressTaskReadCloudMachineList.cpp \
 	src/manager/UITaskCloudGetSettingsForm.cpp \
 	src/manager/UIToolPaneGlobal.cpp \
@@ -1138,7 +1139,6 @@ VirtualBox_SOURCES = \
 	src/manager/UIVirtualMachineItem.cpp \
 	src/manager/UIVirtualMachineItemCloud.cpp \
 	src/manager/UIVirtualMachineItemLocal.cpp \
-	src/manager/UIWelcomePane.cpp \
 	src/manager/chooser/UIChooser.cpp \
 	src/manager/chooser/UIChooserAbstractModel.cpp \
 	src/manager/chooser/UIChooserModel.cpp \

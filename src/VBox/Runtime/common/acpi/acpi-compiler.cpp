@@ -1118,7 +1118,7 @@ static DECLCALLBACK(int) rtAcpiTblAslParseField(PRTACPIASLCU pThis, PCRTACPIASLK
     {
         case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
         case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
-        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;  
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }

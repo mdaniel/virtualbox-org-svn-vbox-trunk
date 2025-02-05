@@ -1132,7 +1132,18 @@ UINT __stdcall IsWindows10(MSIHANDLE hModule)
         if (RT_SUCCESS(rc))
         {
             VBoxMsiSetProp(hModule, L"VBOX_IS_WINDOWS_10", dwMaj >= 10 ? L"1" : L"");
+            VBoxMsiSetPropDWORD(hModule, L"VBOX_WIN_VER_MAJOR", dwMaj);
 
+            DWORD dwMin;
+            rc = VBoxMsiRegQueryDWORD(hModule, hKey, "CurrentMinorVersionNumber", &dwMin);
+            if (RT_SUCCESS(rc))
+            {
+                VBoxMsiSetPropDWORD(hModule, L"VBOX_WIN_VER_MINOR", dwMin);
+
+                logStringF(hModule, "IsWindows10: Detected Windows %u.%u", dwMaj, dwMin);
+            }
+            else
+                logStringF(hModule, "IsWindows10: Error reading CurrentMinorVersionNumber (%Rrc)", rc);
         }
         else
             logStringF(hModule, "IsWindows10: Error reading CurrentMajorVersionNumber (%Rrc)", rc);

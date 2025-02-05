@@ -1023,7 +1023,7 @@ dt_aggregate_go(dtrace_hdl_t *dtp)
 {
 	dt_aggregate_t *agp = &dtp->dt_aggregate;
 	dtrace_optval_t size, cpu;
-	dtrace_bufdesc_t *buf = &agp->dtat_buf;
+	dtrace_bufdesc_t *buf;
 	int rval, i;
 
 	assert(agp->dtat_maxcpu == 0);

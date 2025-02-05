@@ -241,9 +241,15 @@ ctf_type_lname(ctf_file_t *fp, ctf_id_t type, char *buf, size_t len)
 		    cdp != NULL; cdp = ctf_list_next(cdp)) {
 
 			ctf_file_t *rfp = fp;
+			const char *name;
 			const ctf_type_t *tp =
 			    ctf_lookup_by_id(&rfp, cdp->cd_type);
-			const char *name = ctf_strptr(rfp, tp->ctt_name);
+
+			if (tp == NULL) {
+				return (-1); /* errno is set for us */
+			}
+
+			name = ctf_strptr(rfp, tp->ctt_name);
 
 			if (k != CTF_K_POINTER && k != CTF_K_ARRAY)
 				ctf_decl_sprintf(&cd, " ");
@@ -311,7 +317,7 @@ char *
 ctf_type_name(ctf_file_t *fp, ctf_id_t type, char *buf, size_t len)
 {
 	ssize_t rv = ctf_type_lname(fp, type, buf, len);
-	return (rv >= 0 && VBDTCAST(size_t)rv < len ? buf : NULL);
+	return ((rv >= 0 && (size_t)rv < len) ? buf : NULL);
 }
 
 /*
@@ -407,7 +413,10 @@ ctf_type_align(ctf_file_t *fp, ctf_id_t type)
 			const ctf_member_t *mp = vmp;
 			for (; n != 0; n--, mp++) {
 				ssize_t am = ctf_type_align(fp, mp->ctm_type);
-				align = MAX(VBDTCAST(ssize_t)align, am);
+				if (am == -1) {
+					return (-1); /* errno is set for us */
+				}
+				align = MAX(align, (size_t)am);
 			}
 		} else {
 			const ctf_lmember_t *lmp = vmp;

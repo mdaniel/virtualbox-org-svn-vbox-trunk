@@ -977,16 +977,22 @@ bool UIMachineSettingsSystem::saveMotherboardData()
         {
             CPlatform comPlatform = m_machine.GetPlatform();
             comPlatform.SetChipsetType(newSystemData.m_chipsetType);
-            fSuccess = comPlatform.isOk();
-            /// @todo convey error info ..
+            if (!comPlatform.isOk())
+            {
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comPlatform));
+                return false;
+            }
         }
         /* Save TPM type: */
         if (fSuccess && isMachineOffline() && newSystemData.m_tpmType != oldSystemData.m_tpmType)
         {
             CTrustedPlatformModule comModule = m_machine.GetTrustedPlatformModule();
             comModule.SetType(newSystemData.m_tpmType);
-            fSuccess = comModule.isOk();
-            /// @todo convey error info ..
+            if (!comModule.isOk())
+            {
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comModule));
+                return false;
+            }
         }
         /* Save pointing HID type: */
         if (fSuccess && isMachineOffline() && newSystemData.m_pointingHIDType != oldSystemData.m_pointingHIDType)
@@ -999,24 +1005,33 @@ bool UIMachineSettingsSystem::saveMotherboardData()
         {
             CFirmwareSettings comFirmwareSettings = m_machine.GetFirmwareSettings();
             comFirmwareSettings.SetIOAPICEnabled(newSystemData.m_fEnabledIoApic);
-            fSuccess = comFirmwareSettings.isOk();
-            /// @todo convey error info ..
+            if (!comFirmwareSettings.isOk())
+            {
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comFirmwareSettings));
+                return false;
+            }
         }
         /* Save firware type (whether EFI is enabled): */
         if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledEFI != oldSystemData.m_fEnabledEFI)
         {
             CFirmwareSettings comFirmwareSettings = m_machine.GetFirmwareSettings();
             comFirmwareSettings.SetFirmwareType(newSystemData.m_fEnabledEFI ? KFirmwareType_EFI : KFirmwareType_BIOS);
-            fSuccess = comFirmwareSettings.isOk();
-            /// @todo convey error info ..
+            if (!comFirmwareSettings.isOk())
+            {
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comFirmwareSettings));
+                return false;
+            }
         }
         /* Save whether UTC is enabled: */
         if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledUTC != oldSystemData.m_fEnabledUTC)
         {
             CPlatform comPlatform = m_machine.GetPlatform();
             comPlatform.SetRTCUseUTC(newSystemData.m_fEnabledUTC);
-            fSuccess = comPlatform.isOk();
-            /// @todo convey error info ..
+            if (!comPlatform.isOk())
+            {
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comPlatform));
+                return false;
+            }
         }
         /* Save whether secure boot is enabled: */
         if (   fSuccess && isMachineOffline()
@@ -1037,22 +1052,45 @@ bool UIMachineSettingsSystem::saveMotherboardData()
                 {
                     /* Init if required: */
                     if (!newSystemData.m_fAvailableSecureBoot)
+                    {
                         comStoreLvl1.InitUefiVariableStore(0);
+                        if (!comStoreLvl1.isOk())
+                        {
+                            notifyOperationProgressError(UIErrorString::formatErrorInfo(comStoreLvl1));
+                            return false;
+                        }
+                    }
                     /* Enroll everything: */
                     comStoreLvl2 = comStoreLvl1.GetUefiVariableStore();
                     comStoreLvl2.EnrollOraclePlatformKey();
+                    if (!comStoreLvl2.isOk())
+                    {
+                        notifyOperationProgressError(UIErrorString::formatErrorInfo(comStoreLvl2));
+                        return false;
+                    }
                     comStoreLvl2.EnrollDefaultMsSignatures();
+                    if (!comStoreLvl2.isOk())
+                    {
+                        notifyOperationProgressError(UIErrorString::formatErrorInfo(comStoreLvl2));
+                        return false;
+                    }
                 }
                 comStoreLvl2.SetSecureBootEnabled(true);
-                fSuccess = comStoreLvl2.isOk();
-                /// @todo convey error info ..
+                if (!comStoreLvl2.isOk())
+                {
+                    notifyOperationProgressError(UIErrorString::formatErrorInfo(comStoreLvl2));
+                    return false;
+                }
             }
             /* Disabling secure boot? */
             else if (!newSystemData.m_fEnabledSecureBoot)
             {
                 comStoreLvl2.SetSecureBootEnabled(false);
-                fSuccess = comStoreLvl2.isOk();
-                /// @todo convey error info ..
+                if (!comStoreLvl2.isOk())
+                {
+                    notifyOperationProgressError(UIErrorString::formatErrorInfo(comStoreLvl2));
+                    return false;
+                }
             }
         }
 
@@ -1099,15 +1137,21 @@ bool UIMachineSettingsSystem::saveProcessorData()
                     if (/*fSuccess &&*/ isMachineOffline() && newSystemData.m_fEnabledPAE != oldSystemData.m_fEnabledPAE)
                     {
                         comPlatformX86.SetCPUProperty(KCPUPropertyTypeX86_PAE, newSystemData.m_fEnabledPAE);
-                        fSuccess = comPlatformX86.isOk();
-                        /// @todo convey error info ..
+                        if (!comPlatformX86.isOk())
+                        {
+                            notifyOperationProgressError(UIErrorString::formatErrorInfo(comPlatformX86));
+                            return false;
+                        }
                     }
                     /* Save whether Nested HW Virt Ex is enabled: */
                     if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledNestedHwVirtEx != oldSystemData.m_fEnabledNestedHwVirtEx)
                     {
                         comPlatformX86.SetCPUProperty(KCPUPropertyTypeX86_HWVirt, newSystemData.m_fEnabledNestedHwVirtEx);
-                        fSuccess = comPlatformX86.isOk();
-                        /// @todo convey error info ..
+                        if (!comPlatformX86.isOk())
+                        {
+                            notifyOperationProgressError(UIErrorString::formatErrorInfo(comPlatformX86));
+                            return false;
+                        }
                     }
 
                     break;
@@ -1175,8 +1219,11 @@ bool UIMachineSettingsSystem::saveAccelerationData()
                     if (/*fSuccess &&*/ isMachineOffline() && newSystemData.m_fEnabledNestedPaging != oldSystemData.m_fEnabledNestedPaging)
                     {
                         comPlatformX86.SetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging, newSystemData.m_fEnabledNestedPaging);
-                        fSuccess = comPlatformX86.isOk();
-                        /// @todo convey error info ..
+                        if (!comPlatformX86.isOk())
+                        {
+                            notifyOperationProgressError(UIErrorString::formatErrorInfo(comPlatformX86));
+                            return false;
+                        }
                     }
 
                     break;

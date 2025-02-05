@@ -721,14 +721,14 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                                         : pal.color(QPalette::Disabled, QPalette::Highlight);
             const QColor highlightColor1 = uiCommon().isInDarkMode()
                                          ? highlightColor.lighter(m_iHighlightLightnessStart + 20)
-                                         : highlightColor.darker(m_iHighlightLightnessStart);
+                                         : highlightColor.darker(m_iHighlightLightnessStart + 20);
             const QColor highlightColor2 = uiCommon().isInDarkMode()
                                          ? highlightColor.lighter(m_iHighlightLightnessFinal + 20)
-                                         : highlightColor.darker(m_iHighlightLightnessFinal);
+                                         : highlightColor.darker(m_iHighlightLightnessFinal + 20);
 
             /* Prepare token sub-rect: */
             QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
-                            QSize(4, rectangle.height() - 8));
+                            QSize(5, rectangle.height() - 8));
 
             /* Draw gradient token: */
             QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());

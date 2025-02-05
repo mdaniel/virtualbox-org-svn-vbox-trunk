@@ -1052,28 +1052,27 @@ UINT __stdcall ArePythonAPIDepsInstalled(MSIHANDLE hModule)
  */
 UINT __stdcall IsMSCRTInstalled(MSIHANDLE hModule)
 {
-    HKEY hKeyVS = NULL;
+    HKEY hKey;
     LSTATUS lrc = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
                                 L"SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\X64",
-                                0, KEY_READ, &hKeyVS);
+                                0, KEY_READ, &hKey);
     if (lrc == ERROR_SUCCESS)
     {
-        DWORD dwVal = 0;
-        DWORD cbVal = sizeof(dwVal);
-        lrc = RegQueryValueExW(hKeyVS, L"Installed", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwVal, &cbVal);
-        if (lrc == ERROR_SUCCESS)
+        DWORD dwVal;
+        int rc = VBoxMsiRegQueryDWORD(hModule, hKey, "Installed", &dwVal);
+        if (RT_SUCCESS(rc))
         {
             if (dwVal >= 1)
             {
                 DWORD dwMaj;
-                lrc = RegQueryValueExW(hKeyVS, L"Major", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwMaj, &cbVal);
-                if (lrc == ERROR_SUCCESS)
+                rc = VBoxMsiRegQueryDWORD(hModule, hKey, "Major", &dwMaj);
+                if (RT_SUCCESS(rc))
                 {
                     VBoxMsiSetPropDWORD(hModule, L"VBOX_MSCRT_VER_MAJ", dwMaj);
 
-                    DWORD dwMin = 0;
-                    lrc = RegQueryValueExW(hKeyVS, L"Minor", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwMin, &cbVal);
-                    if (lrc == ERROR_SUCCESS)
+                    DWORD dwMin;
+                    lrc = VBoxMsiRegQueryDWORD(hModule, hKey, "Minor", &dwMin);
+                    if (RT_SUCCESS(rc))
                     {
                         VBoxMsiSetPropDWORD(hModule, L"VBOX_MSCRT_VER_MIN", dwMin);
 
@@ -1097,6 +1096,8 @@ UINT __stdcall IsMSCRTInstalled(MSIHANDLE hModule)
         }
         else
             logStringF(hModule, "IsMSCRTInstalled: Found, but 'Installed' key not present (lrc=%d)", lrc);
+
+        RegCloseKey(hKey);
     }
 
     if (lrc != ERROR_SUCCESS)
@@ -1122,23 +1123,21 @@ UINT __stdcall IsWindows10(MSIHANDLE hModule)
      *       all shims this, unfortunately. So we have to go another route by querying the major version
      *       number from the registry.
      */
-    HKEY hKeyCurVer = NULL;
-    LSTATUS lrc = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKeyCurVer);
+    HKEY hKey;
+    LSTATUS lrc = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey);
     if (lrc == ERROR_SUCCESS)
     {
-        DWORD dwVal = 0;
-        DWORD cbVal = sizeof(dwVal);
-        lrc = RegQueryValueExW(hKeyCurVer, L"CurrentMajorVersionNumber", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwVal, &cbVal);
-        if (lrc == ERROR_SUCCESS)
+        DWORD dwMaj;
+        int rc = VBoxMsiRegQueryDWORD(hModule, hKey, "CurrentMajorVersionNumber", &dwMaj);
+        if (RT_SUCCESS(rc))
         {
-            logStringF(hModule, "IsWindows10/CurrentMajorVersionNumber: %u", dwVal);
+            VBoxMsiSetProp(hModule, L"VBOX_IS_WINDOWS_10", dwMaj >= 10 ? L"1" : L"");
 
-            VBoxMsiSetProp(hModule, L"VBOX_IS_WINDOWS_10", dwVal >= 10 ? L"1" : L"");
         }
         else
-            logStringF(hModule, "IsWindows10/RegOpenKeyExW: Error reading CurrentMajorVersionNumber (%ld)", lrc);
+            logStringF(hModule, "IsWindows10: Error reading CurrentMajorVersionNumber (%Rrc)", rc);
 
-        RegCloseKey(hKeyCurVer);
+        RegCloseKey(hKey);
     }
     else
         logStringF(hModule, "IsWindows10/RegOpenKeyExW: Error opening CurrentVersion key (%ld)", lrc);

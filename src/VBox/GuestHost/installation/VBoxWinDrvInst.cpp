@@ -1985,16 +1985,19 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
                     /* When running this code in context of an MSI installer, the MSI engine might shim the Windows
                      * version which is being reported via API calls. So compare the both OS versions
                      * and prefer the one being reported via the registry if they don't match.
+                     * Ignore the build number (too specific).
                      *
                      * The OS version to use still can be later tweaked using VBoxWinDrvInstSetOsVersion(). */
-                    if (   (pCtx->uOsVer != uRegOsVer)
-                        && RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer) > 4 /* XP+ */)
+                    if (   (   RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer) != RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer)
+                            || RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer) != RTSYSTEM_NT_VERSION_GET_MINOR(uRegOsVer))
+                        && RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer) > 4 /* Only XP+ */)
                     {
-                        vboxWinDrvInstLogWarn(pCtx, "Detected Windows version (%u.%u) does not match the one stored in the registry (%u.%u)",
+                        vboxWinDrvInstLogInfo(pCtx, "Detected Windows version (%u.%u) does not match the one stored in the registry (%u.%u)",
                                               RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
                                               RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
                                               RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer),
                                               RTSYSTEM_NT_VERSION_GET_MINOR(uRegOsVer));
+                        vboxWinDrvInstLogInfo(pCtx, "This might be due a compatibility layer or MSI installer engine shimming the Windows version");
 
                         /* Override the OS version from the API with the one found in the registry. */
                         VBoxWinDrvInstSetOsVersion(pCtx, uRegOsVer);

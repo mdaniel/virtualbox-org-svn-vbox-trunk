@@ -316,7 +316,7 @@ void UIGlobalToolsManagerWidget::updateToolsMenu()
         restrictedTypes << UIToolType_Media
                         << UIToolType_Network;
     if (restrictedTypes.contains(toolMenu()->toolsType()))
-        setMenuToolType(UIToolType_Welcome);
+        setMenuToolType(UIToolType_Home);
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(restrictions);
 

@@ -1003,7 +1003,7 @@ void UIVirtualBoxManager::sltOpenManagerWindow(UIToolType enmType /* = UIToolTyp
     /* First check if instance of widget opened the embedded way: */
     if (m_pWidget->isGlobalToolOpened(enmType))
     {
-        m_pWidget->setToolsTypeGlobal(UIToolType_Welcome);
+        m_pWidget->setToolsTypeGlobal(UIToolType_Home);
         m_pWidget->closeGlobalTool(enmType);
     }
     if (m_pWidget->isMachineToolOpened(enmType))

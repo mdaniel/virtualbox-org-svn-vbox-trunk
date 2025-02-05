@@ -120,14 +120,14 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
         /* Create, remember, append corresponding stacked widget: */
         switch (enmType)
         {
-            case UIToolType_Welcome:
+            case UIToolType_Home:
             {
-                /* Create Desktop pane: */
+                /* Create Welcome pane: */
                 m_pPaneWelcome = new UIWelcomePane;
                 AssertPtrReturnVoid(m_pPaneWelcome);
                 {
                     /* Configure pane: */
-                    m_pPaneWelcome->setProperty("ToolType", QVariant::fromValue(UIToolType_Welcome));
+                    m_pPaneWelcome->setProperty("ToolType", QVariant::fromValue(UIToolType_Home));
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneWelcome);
@@ -282,7 +282,7 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         /* Forget corresponding widget: */
         switch (enmType)
         {
-            case UIToolType_Welcome:    m_pPaneWelcome = 0; break;
+            case UIToolType_Home:       m_pPaneWelcome = 0; break;
             case UIToolType_Extensions: m_pPaneExtensions = 0; break;
             case UIToolType_Media:      m_pPaneMedia = 0; break;
             case UIToolType_Network:    m_pPaneNetwork = 0; break;
@@ -308,7 +308,7 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
     QWidget *pCurrentToolWidget = 0;
     switch (currentTool())
     {
-        case UIToolType_Welcome:
+        case UIToolType_Home:
             pCurrentToolWidget = m_pPaneWelcome;
             break;
         case UIToolType_Extensions:
@@ -362,8 +362,8 @@ void UIToolPaneGlobal::prepare()
     /* Create stacked-layout: */
     m_pLayout = new QStackedLayout(this);
 
-    /* Create desktop pane: */
-    openTool(UIToolType_Welcome);
+    /* Create welcome pane: */
+    openTool(UIToolType_Home);
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     /* Create machines pane: */
     openTool(UIToolType_Machines);

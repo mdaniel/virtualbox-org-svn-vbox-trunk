@@ -222,9 +222,9 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     setFocusItem(currentItem());
 
     /* Adjust corrresponding actions finally: */
-    const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Welcome;
+    const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
     QMap<UIToolType, UIAction*> actions;
-    actions[UIToolType_Welcome] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_WelcomeScreen);
+    actions[UIToolType_Home] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_WelcomeScreen);
     actions[UIToolType_Extensions] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager);
     actions[UIToolType_Media] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager);
     actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
@@ -354,7 +354,7 @@ void UIToolsModel::updateLayout()
 
         /* In widget mode we should add spacing after Welcome item: */
         if (   !tools()->isPopup()
-            && enmLastType == UIToolType_Welcome)
+            && enmLastType == UIToolType_Home)
             iVerticalIndent += iMajorSpacing;
 
         /* Set item position: */
@@ -451,7 +451,7 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                                     /* Handle known button types: */
                                     switch (pClickedItem->itemType())
                                     {
-                                        case UIToolType_Welcome:
+                                        case UIToolType_Home:
                                         {
                                             /* Toggle the button: */
                                             m_fShowItemNames = !m_fShowItemNames;
@@ -512,7 +512,7 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-            case UIToolType_Welcome:     pItem->setName(tr("Welcome")); break;
+            case UIToolType_Home:        pItem->setName(tr("Home")); break;
             case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
             case UIToolType_Media:       pItem->setName(tr("Media")); break;
             case UIToolType_Network:     pItem->setName(tr("Network")); break;
@@ -556,11 +556,18 @@ void UIToolsModel::prepareItems()
     {
         case UIToolClass_Global:
         {
-            /* Welcome: */
+            /* Home: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
                                                                     ":/welcome_screen_24px.png"),
-                                       UIToolClass_Global, UIToolType_Welcome,
+                                       UIToolClass_Global, UIToolType_Home,
                                        !tools()->isPopup() /* extra-button */);
+
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            /* Machines: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
+                                                                    ":/machine_details_manager_disabled_24px.png"),
+                                       UIToolClass_Global, UIToolType_Machines);
+#endif
 
             /* Extensions: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
@@ -586,13 +593,6 @@ void UIToolsModel::prepareItems()
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
                                                                     ":/resources_monitor_disabled_24px.png"),
                                        UIToolClass_Global, UIToolType_Activities);
-
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-            /* Machines: */
-            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                                    ":/machine_details_manager_disabled_24px.png"),
-                                       UIToolClass_Global, UIToolType_Machines);
-#endif
 
             break;
         }
@@ -662,7 +662,7 @@ void UIToolsModel::loadSettings()
                 if (pItem->itemType() == enmTypeGlobal)
                     pCurrentItem = pItem;
             if (!pCurrentItem)
-                pCurrentItem = item(UIToolType_Welcome);
+                pCurrentItem = item(UIToolType_Home);
             break;
         }
         case UIToolClass_Machine:
@@ -687,7 +687,7 @@ void UIToolsModel::loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmT
     const QList<UIToolType> data = gEDataManager->toolsPaneLastItemsChosen();
     enmTypeGlobal = data.value(0);
     if (!UIToolStuff::isTypeOfClass(enmTypeGlobal, UIToolClass_Global))
-        enmTypeGlobal = UIToolType_Welcome;
+        enmTypeGlobal = UIToolType_Home;
     enmTypeMachine = data.value(1);
     if (!UIToolStuff::isTypeOfClass(enmTypeMachine, UIToolClass_Machine))
         enmTypeMachine = UIToolType_Details;

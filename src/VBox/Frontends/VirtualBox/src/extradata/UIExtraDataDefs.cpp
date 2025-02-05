@@ -289,7 +289,7 @@ bool UIToolStuff::isTypeOfClass(UIToolType enmType, UIToolClass enmClass)
         {
             switch (enmType)
             {
-                case UIToolType_Welcome:
+                case UIToolType_Home:
                 case UIToolType_Extensions:
                 case UIToolType_Media:
                 case UIToolType_Network:

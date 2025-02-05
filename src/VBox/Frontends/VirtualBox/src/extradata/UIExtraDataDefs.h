@@ -948,7 +948,7 @@ enum UIToolType
 {
     UIToolType_Invalid,
     /* Global types: */
-    UIToolType_Welcome,
+    UIToolType_Home,
     UIToolType_Extensions,
     UIToolType_Media,
     UIToolType_Network,

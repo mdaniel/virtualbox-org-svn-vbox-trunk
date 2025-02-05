@@ -493,7 +493,7 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
 
     switch (globalToolManager()->toolType())
     {
-        case UIToolType_Welcome:
+        case UIToolType_Home:
         {
             m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Application_S_Preferences));
             m_pToolBar->addSeparator();

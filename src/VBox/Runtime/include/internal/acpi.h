@@ -65,6 +65,8 @@ typedef enum RTACPIASTARGTYPE
     kAcpiAstArgType_U64,
     kAcpiAstArgType_ObjType,
     kAcpiAstArgType_RegionSpace,
+    kAcpiAstArgType_FieldAcc,
+    kAcpiAstArgType_FieldUpdate,
     kAcpiAstArgType_32Bit_Hack = 0x7fffffff
 } RTACPIASTARGTYPE;
 
@@ -89,6 +91,8 @@ typedef struct RTACPIASTARG
         uint64_t            u64;
         RTACPIOBJTYPE       enmObjType;
         RTACPIOPREGIONSPACE enmRegionSpace;
+        RTACPIFIELDACC      enmFieldAcc;
+        RTACPIFIELDUPDATE   enmFieldUpdate;
     } u;
 } RTACPIASTARG;
 /** Pointer to an AST node argument. */
@@ -127,6 +131,30 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_Return,
     kAcpiAstNodeOp_Unicode,
     kAcpiAstNodeOp_OperationRegion,
+    kAcpiAstNodeOp_Field,
+    kAcpiAstNodeOp_Name,
+    kAcpiAstNodeOp_ResourceTemplate,
+    kAcpiAstNodeOp_Arg0,
+    kAcpiAstNodeOp_Arg1,
+    kAcpiAstNodeOp_Arg2,
+    kAcpiAstNodeOp_Arg3,
+    kAcpiAstNodeOp_Arg4,
+    kAcpiAstNodeOp_Arg5,
+    kAcpiAstNodeOp_Arg6,
+    kAcpiAstNodeOp_Local0,
+    kAcpiAstNodeOp_Local1,
+    kAcpiAstNodeOp_Local2,
+    kAcpiAstNodeOp_Local3,
+    kAcpiAstNodeOp_Local4,
+    kAcpiAstNodeOp_Local5,
+    kAcpiAstNodeOp_Local6,
+    kAcpiAstNodeOp_Local7,
+    kAcpiAstNodeOp_Package,
+    kAcpiAstNodeOp_Buffer,
+    kAcpiAstNodeOp_ToUuid,
+    kAcpiAstNodeOp_DerefOf,
+    kAcpiAstNodeOp_Index,
+    kAcpiAstNodeOp_Store,
     kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
 } RTACPIASTNODEOP;
 
@@ -137,29 +165,33 @@ typedef enum RTACPIASTNODEOP
 typedef struct RTACPIASTNODE
 {
     /** List node. */
-    RTLISTNODE          NdAst;
+    RTLISTNODE              NdAst;
     /** The AML op defining the node. */
-    RTACPIASTNODEOP     enmOp;
+    RTACPIASTNODEOP         enmOp;
     /** Some additional flags. */
-    uint32_t            fFlags;
+    uint32_t                fFlags;
     /** Operation dependent data. */
     union
     {
         /** List of other AST nodes for the opened scope if indicated by the AST flags (RTACPIASTNODE). */
-        RTLISTANCHOR    LstScopeNodes;
+        RTLISTANCHOR        LstScopeNodes;
         /** Pointer to the identifier if an identifier node. */
-        const char      *pszIde;
+        const char          *pszIde;
         /** Pointer to the string literal if a string literal node. */
-        const char      *pszStrLit;
+        const char          *pszStrLit;
         /** A number */
-        uint64_t        u64;
+        uint64_t            u64;
+        /** Pointer to the field unit list - freed with RTMemFree() when the node is freed. */
+        PRTACPIFIELDENTRY   paFields;
+        /** The resource template. */
+        RTACPIRES           hAcpiRes;
     };
     /** Number of "arguments" for the opcode following (for example Scope(), Method(), If(), etc., i.e. anything requiring () after the keyword ). */
-    uint8_t             cArgs;
+    uint8_t                 cArgs;
     /** Padding */
-    uint8_t             abRsvd[2];
+    uint8_t                 abRsvd[2];
     /** The AST node arguments - variable in size. */
-    RTACPIASTARG        aArgs[1];
+    RTACPIASTARG            aArgs[1];
 } RTACPIASTNODE;
 
 /** Default flags. */

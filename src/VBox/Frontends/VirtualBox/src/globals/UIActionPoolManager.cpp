@@ -172,14 +172,14 @@ protected:
 };
 
 /** Simple action extension, used as 'Show Home Screen' action class. */
-class UIActionToggleManagerToolsGlobalShowWelcomeScreen : public UIActionToggle
+class UIActionToggleManagerToolsGlobalShowHomeScreen : public UIActionToggle
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionToggleManagerToolsGlobalShowWelcomeScreen(UIActionPool *pParent)
+    UIActionToggleManagerToolsGlobalShowHomeScreen(UIActionPool *pParent)
         : UIActionToggle(pParent)
     {
         setProperty("UIToolType", QVariant::fromValue(UIToolType_Home));
@@ -193,14 +193,14 @@ protected:
     /** Returns shortcut extra-data ID. */
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
-        return QString("WelcomeScreen");
+        return QString("HomeScreen");
     }
 
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Welcome Screen"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open the Welcome Screen"));
+        setName(QApplication::translate("UIActionPool", "&Home Screen"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open the Home Screen"));
     }
 };
 
@@ -3526,7 +3526,7 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_File_S_ImportAppliance] = new UIActionSimpleManagerFileShowImportApplianceWizard(this);
     m_pool[UIActionIndexMN_M_File_S_ExportAppliance] = new UIActionSimpleManagerFileShowExportApplianceWizard(this);
     m_pool[UIActionIndexMN_M_File_M_Tools] = new UIActionMenuManagerToolsGlobal(this);
-    m_pool[UIActionIndexMN_M_File_M_Tools_T_WelcomeScreen] = new UIActionToggleManagerToolsGlobalShowWelcomeScreen(this);
+    m_pool[UIActionIndexMN_M_File_M_Tools_T_HomeScreen] = new UIActionToggleManagerToolsGlobalShowHomeScreen(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager] = new UIActionToggleManagerToolsGlobalShowExtensionPackManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager] = new UIActionToggleManagerToolsGlobalShowVirtualMediaManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_NetworkManager] = new UIActionToggleManagerToolsGlobalShowNetworkManager(this);
@@ -3538,10 +3538,10 @@ void UIActionPoolManager::preparePool()
 #endif
     m_pool[UIActionIndexMN_M_File_S_Close] = new UIActionSimpleManagerFilePerformExit(this);
 
-    /* 'Welcome' actions: */
-    m_pool[UIActionIndexMN_M_Welcome] = new UIActionMenuManagerMachine(this);
-    m_pool[UIActionIndexMN_M_Welcome_S_New] = new UIActionSimpleManagerMachinePerformCreate(this);
-    m_pool[UIActionIndexMN_M_Welcome_S_Add] = new UIActionSimpleManagerMachinePerformAdd(this);
+    /* 'Home' actions: */
+    m_pool[UIActionIndexMN_M_Home] = new UIActionMenuManagerMachine(this);
+    m_pool[UIActionIndexMN_M_Home_S_New] = new UIActionSimpleManagerMachinePerformCreate(this);
+    m_pool[UIActionIndexMN_M_Home_S_Add] = new UIActionSimpleManagerMachinePerformAdd(this);
 
     /* 'Group' actions: */
     m_pool[UIActionIndexMN_M_Group] = new UIActionMenuManagerGroup(this);
@@ -3686,7 +3686,7 @@ void UIActionPoolManager::preparePool()
 
     /* 'File' action groups: */
     m_groupPool[UIActionIndexMN_M_File_M_Tools] = new QActionGroup(m_pool.value(UIActionIndexMN_M_File_M_Tools));
-    m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_WelcomeScreen));
+    m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_HomeScreen));
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager));
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager));
     m_groupPool[UIActionIndexMN_M_File_M_Tools]->addAction(m_pool.value(UIActionIndexMN_M_File_M_Tools_T_NetworkManager));
@@ -3713,7 +3713,7 @@ void UIActionPoolManager::preparePool()
     /* Prepare update-handlers for known menus: */
     m_menuUpdateHandlers[UIActionIndexMN_M_File].ptfm =                  &UIActionPoolManager::updateMenuFile;
     m_menuUpdateHandlers[UIActionIndexMN_M_File_M_Tools].ptfm =          &UIActionPoolManager::updateMenuFileTools;
-    m_menuUpdateHandlers[UIActionIndexMN_M_Welcome].ptfm =               &UIActionPoolManager::updateMenuWelcome;
+    m_menuUpdateHandlers[UIActionIndexMN_M_Home].ptfm =                  &UIActionPoolManager::updateMenuHome;
     m_menuUpdateHandlers[UIActionIndexMN_M_Group].ptfm =                 &UIActionPoolManager::updateMenuGroup;
     m_menuUpdateHandlers[UIActionIndexMN_M_Machine].ptfm =               &UIActionPoolManager::updateMenuMachine;
     m_menuUpdateHandlers[UIActionIndexMN_M_Group_M_MoveToGroup].ptfm =   &UIActionPoolManager::updateMenuGroupMoveToGroup;
@@ -3783,9 +3783,9 @@ void UIActionPoolManager::updateMenus()
     /* 'File' / 'Tools' menu: */
     updateMenuFileTools();
 
-    /* 'Welcome' menu: */
-    addMenu(m_mainMenus, action(UIActionIndexMN_M_Welcome));
-    updateMenuWelcome();
+    /* 'Home' menu: */
+    addMenu(m_mainMenus, action(UIActionIndexMN_M_Home));
+    updateMenuHome();
     /* 'Group' menu: */
     addMenu(m_mainMenus, action(UIActionIndexMN_M_Group));
     updateMenuGroup();
@@ -3856,10 +3856,10 @@ void UIActionPoolManager::setShortcutsVisible(int iIndex, bool fVisible)
     /* Handle known menus: */
     switch (iIndex)
     {
-        case UIActionIndexMN_M_Welcome:
+        case UIActionIndexMN_M_Home:
         {
-            actions << action(UIActionIndexMN_M_Welcome_S_New)
-                    << action(UIActionIndexMN_M_Welcome_S_Add);
+            actions << action(UIActionIndexMN_M_Home_S_New)
+                    << action(UIActionIndexMN_M_Home_S_Add);
             break;
         }
         case UIActionIndexMN_M_Group:
@@ -4069,20 +4069,20 @@ void UIActionPoolManager::updateMenuFileTools()
     m_invalidations.remove(UIActionIndexMN_M_File_M_Tools);
 }
 
-void UIActionPoolManager::updateMenuWelcome()
+void UIActionPoolManager::updateMenuHome()
 {
     /* Get corresponding menu: */
-    UIMenu *pMenu = action(UIActionIndexMN_M_Welcome)->menu();
+    UIMenu *pMenu = action(UIActionIndexMN_M_Home)->menu();
     AssertPtrReturnVoid(pMenu);
     /* Clear contents: */
     pMenu->clear();
 
-    /* Populate 'Welcome' menu: */
-    pMenu->addAction(action(UIActionIndexMN_M_Welcome_S_New));
-    pMenu->addAction(action(UIActionIndexMN_M_Welcome_S_Add));
+    /* Populate 'Home' menu: */
+    pMenu->addAction(action(UIActionIndexMN_M_Home_S_New));
+    pMenu->addAction(action(UIActionIndexMN_M_Home_S_Add));
 
     /* Mark menu as valid: */
-    m_invalidations.remove(UIActionIndexMN_M_Welcome);
+    m_invalidations.remove(UIActionIndexMN_M_Home);
 }
 
 void UIActionPoolManager::updateMenuGroup()

@@ -2548,10 +2548,10 @@ void UIVirtualBoxManager::prepareConnections()
     connect(actionPool()->actionGroup(UIActionIndexMN_M_File_M_Tools), &QActionGroup::triggered,
             this, &UIVirtualBoxManager::sltPerformSwitchToGlobalTool);
 
-    /* 'Welcome' menu connections: */
-    connect(actionPool()->action(UIActionIndexMN_M_Welcome_S_New), &UIAction::triggered,
+    /* 'Home' menu connections: */
+    connect(actionPool()->action(UIActionIndexMN_M_Home_S_New), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltOpenNewMachineWizard);
-    connect(actionPool()->action(UIActionIndexMN_M_Welcome_S_Add), &UIAction::triggered,
+    connect(actionPool()->action(UIActionIndexMN_M_Home_S_Add), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltOpenAddMachineDialog);
 
     /* 'Group' menu connections: */
@@ -2817,7 +2817,7 @@ bool UIVirtualBoxManager::checkUnattendedInstallError(const CUnattended &comUnat
 void UIVirtualBoxManager::openAddMachineDialog(const QString &strFileName /* = QString() */)
 {
     /* Lock the actions preventing cascade calls: */
-    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_Welcome_S_Add)
+    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_Home_S_Add)
                                                          << actionPool()->action(UIActionIndexMN_M_Machine_S_Add)
                                                          << actionPool()->action(UIActionIndexMN_M_Group_S_Add),
                                        "opened", true);
@@ -3428,7 +3428,7 @@ void UIVirtualBoxManager::updateActionsVisibility()
     const bool fGlobalMenuShown  = m_pWidget->isGlobalItemSelected();
     const bool fGroupMenuShown   = m_pWidget->isGroupItemSelected()   &&  isSingleGroupSelected();
     const bool fMachineMenuShown = m_pWidget->isMachineItemSelected() && !isSingleGroupSelected();
-    actionPool()->action(UIActionIndexMN_M_Welcome)->setVisible(fGlobalMenuShown);
+    actionPool()->action(UIActionIndexMN_M_Home)->setVisible(fGlobalMenuShown);
     actionPool()->action(UIActionIndexMN_M_Group)->setVisible(fGroupMenuShown);
     actionPool()->action(UIActionIndexMN_M_Machine)->setVisible(fMachineMenuShown);
 
@@ -3467,7 +3467,7 @@ void UIVirtualBoxManager::updateActionsVisibility()
 
     /* Hide action shortcuts: */
     if (!fGlobalMenuShown)
-        actionPool()->setShortcutsVisible(UIActionIndexMN_M_Welcome, false);
+        actionPool()->setShortcutsVisible(UIActionIndexMN_M_Home, false);
     if (!fGroupMenuShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Group, false);
     if (!fMachineMenuShown)
@@ -3475,7 +3475,7 @@ void UIVirtualBoxManager::updateActionsVisibility()
 
     /* Show action shortcuts: */
     if (fGlobalMenuShown)
-        actionPool()->setShortcutsVisible(UIActionIndexMN_M_Welcome, true);
+        actionPool()->setShortcutsVisible(UIActionIndexMN_M_Home, true);
     if (fGroupMenuShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Group, true);
     if (fMachineMenuShown)
@@ -3493,8 +3493,8 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance)->setEnabled(isActionEnabled(UIActionIndexMN_M_File_S_ImportAppliance, items));
 
     /* Enable/disable welcome actions: */
-    actionPool()->action(UIActionIndexMN_M_Welcome_S_New)->setEnabled(isActionEnabled(UIActionIndexMN_M_Welcome_S_New, items));
-    actionPool()->action(UIActionIndexMN_M_Welcome_S_Add)->setEnabled(isActionEnabled(UIActionIndexMN_M_Welcome_S_Add, items));
+    actionPool()->action(UIActionIndexMN_M_Home_S_New)->setEnabled(isActionEnabled(UIActionIndexMN_M_Home_S_New, items));
+    actionPool()->action(UIActionIndexMN_M_Home_S_Add)->setEnabled(isActionEnabled(UIActionIndexMN_M_Home_S_Add, items));
 
     /* Enable/disable group actions: */
     actionPool()->action(UIActionIndexMN_M_Group_S_New)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_New, items));
@@ -3668,8 +3668,8 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
         case UIActionIndex_M_Application_S_Preferences:
         case UIActionIndexMN_M_File_S_ExportAppliance:
         case UIActionIndexMN_M_File_S_ImportAppliance:
-        case UIActionIndexMN_M_Welcome_S_New:
-        case UIActionIndexMN_M_Welcome_S_Add:
+        case UIActionIndexMN_M_Home_S_New:
+        case UIActionIndexMN_M_Home_S_Add:
             return true;
         default:
             break;

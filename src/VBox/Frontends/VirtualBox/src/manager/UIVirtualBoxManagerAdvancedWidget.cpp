@@ -500,8 +500,8 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
             m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance));
             m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance));
             m_pToolBar->addSeparator();
-            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Welcome_S_New));
-            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Welcome_S_Add));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Home_S_New));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Home_S_Add));
             break;
         }
         case UIToolType_Extensions:

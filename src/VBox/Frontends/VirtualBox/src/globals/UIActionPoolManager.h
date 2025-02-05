@@ -49,7 +49,7 @@ enum UIActionIndexMN
     UIActionIndexMN_M_File_S_ImportAppliance,
     UIActionIndexMN_M_File_S_ExportAppliance,
     UIActionIndexMN_M_File_M_Tools,
-    UIActionIndexMN_M_File_M_Tools_T_WelcomeScreen,
+    UIActionIndexMN_M_File_M_Tools_T_HomeScreen,
     UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager,
     UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager,
     UIActionIndexMN_M_File_M_Tools_T_NetworkManager,
@@ -61,10 +61,10 @@ enum UIActionIndexMN
 #endif
     UIActionIndexMN_M_File_S_Close,
 
-    /* 'Welcome' menu actions: */
-    UIActionIndexMN_M_Welcome,
-    UIActionIndexMN_M_Welcome_S_New,
-    UIActionIndexMN_M_Welcome_S_Add,
+    /* 'Home' menu actions: */
+    UIActionIndexMN_M_Home,
+    UIActionIndexMN_M_Home_S_New,
+    UIActionIndexMN_M_Home_S_Add,
 
     /* 'Group' menu actions: */
     UIActionIndexMN_M_Group,
@@ -253,8 +253,8 @@ private:
     void updateMenuFile();
     /** Updates 'File' / 'Tools' menu. */
     void updateMenuFileTools();
-    /** Updates 'Welcome' menu. */
-    void updateMenuWelcome();
+    /** Updates 'Home' menu. */
+    void updateMenuHome();
     /** Updates 'Group' menu. */
     void updateMenuGroup();
     /** Updates 'Machine' menu. */

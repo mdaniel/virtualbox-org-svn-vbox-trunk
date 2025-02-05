@@ -696,7 +696,7 @@ typedef enum RTACPIFIELDUPDATE
  */
 typedef struct RTACPIFIELDENTRY
 {
-    /** The field name. */
+    /** The field name - NULL means the NullName. */
     const char              *pszName;
     /** Number of bits of the field. */
     uint64_t                cBits;

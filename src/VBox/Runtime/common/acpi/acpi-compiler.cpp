@@ -105,6 +105,26 @@ typedef enum RTACPIASLTERMINAL
     RTACPIASLTERMINAL_KEYWORD_PRM,
     RTACPIASLTERMINAL_KEYWORD_FFIXED_HW,
 
+    RTACPIASLTERMINAL_KEYWORD_ANY_ACC,
+    RTACPIASLTERMINAL_KEYWORD_BYTE_ACC,
+    RTACPIASLTERMINAL_KEYWORD_WORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_DWORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_QWORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC,
+
+    RTACPIASLTERMINAL_KEYWORD_LOCK,
+    RTACPIASLTERMINAL_KEYWORD_NO_LOCK,
+
+    RTACPIASLTERMINAL_KEYWORD_PRESERVE,
+    RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES,
+    RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES,
+
+    RTACPIASLTERMINAL_KEYWORD_OFFSET,
+
+    RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED,
+    RTACPIASLTERMINAL_KEYWORD_READONLY,
+    RTACPIASLTERMINAL_KEYWORD_READWRITE,
+
     RTACPIASLTERMINAL_PUNCTUATOR_COMMA,
     RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET,
     RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET,
@@ -234,7 +254,32 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("RETURN"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Return                            },
     { RT_STR_TUPLE("UNICODE"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Unicode                           },
     { RT_STR_TUPLE("OPERATIONREGION"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_OperationRegion                   },
+    { RT_STR_TUPLE("FIELD"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Field                             },
+    { RT_STR_TUPLE("NAME"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Name                              },
+    { RT_STR_TUPLE("RESOURCETEMPLATE"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_ResourceTemplate                  },
+    { RT_STR_TUPLE("ARG0"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg0                              },
+    { RT_STR_TUPLE("ARG1"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg1                              },
+    { RT_STR_TUPLE("ARG2"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg2                              },
+    { RT_STR_TUPLE("ARG3"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg3                              },
+    { RT_STR_TUPLE("ARG4"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg4                              },
+    { RT_STR_TUPLE("ARG5"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg5                              },
+    { RT_STR_TUPLE("ARG6"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Arg6                              },
+    { RT_STR_TUPLE("LOCAL0"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local0                            },
+    { RT_STR_TUPLE("LOCAL1"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local1                            },
+    { RT_STR_TUPLE("LOCAL2"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local2                            },
+    { RT_STR_TUPLE("LOCAL3"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local3                            },
+    { RT_STR_TUPLE("LOCAL4"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local4                            },
+    { RT_STR_TUPLE("LOCAL5"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local5                            },
+    { RT_STR_TUPLE("LOCAL6"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local6                            },
+    { RT_STR_TUPLE("LOCAL7"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Local7                            },
+    { RT_STR_TUPLE("PACKAGE"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Package                           },
+    { RT_STR_TUPLE("BUFFER"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Buffer                            },
+    { RT_STR_TUPLE("TOUUID"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_ToUuid                            },
+    { RT_STR_TUPLE("DEREFOF"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_DerefOf                           },
+    { RT_STR_TUPLE("INDEX"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Index                             },
+    { RT_STR_TUPLE("STORE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Store                             },
 
+    /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
     { RT_STR_TUPLE("UNKNOWNOBJ"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ            },
     { RT_STR_TUPLE("INTOBJ"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_INT_OBJ                },
@@ -267,6 +312,25 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("PCC"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PCC                    },
     { RT_STR_TUPLE("PRM"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PRM                    },
     { RT_STR_TUPLE("FFIXEDHW"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_FFIXED_HW              },
+
+    { RT_STR_TUPLE("ANYACC"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_ANY_ACC                },
+    { RT_STR_TUPLE("BYTEACC"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BYTE_ACC               },
+    { RT_STR_TUPLE("WORDACC"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_WORD_ACC               },
+    { RT_STR_TUPLE("DWORDACC"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DWORD_ACC              },
+    { RT_STR_TUPLE("QWORDACC"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_QWORD_ACC              },
+    { RT_STR_TUPLE("BUFFERACC"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC             },
+
+    { RT_STR_TUPLE("LOCK"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_LOCK                   },
+    { RT_STR_TUPLE("NOLOCK"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_NO_LOCK                },
+
+    { RT_STR_TUPLE("PRESERVE"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PRESERVE               },
+    { RT_STR_TUPLE("WRITEASONES"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES          },
+    { RT_STR_TUPLE("WRITEASZEROS"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES        },
+
+    { RT_STR_TUPLE("OFFSET"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_OFFSET                 },
+    { RT_STR_TUPLE("MEMORY32FIXED"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED         },
+    { RT_STR_TUPLE("READONLY"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_READONLY               },
+    { RT_STR_TUPLE("READWRITE"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_READWRITE              },
 
     /* Punctuators */
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, RTACPIASLTERMINAL_PUNCTUATOR_COMMA               },
@@ -629,6 +693,16 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected keyword '%s'", a_pszKeyword); \
     } while(0)
 
+#define RTACPIASL_PARSE_KEYWORD_LIST(a_enmKeyword, a_aenmKeywordList) \
+    RTACPIASLTERMINAL a_enmKeyword = RTACPIASLTERMINAL_INVALID; \
+    do { \
+        int rc2 = rtAcpiAslLexerConsumeIfKeywordInList(pThis, a_aenmKeywordList, &a_enmKeyword); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (a_enmKeyword == RTACPIASLTERMINAL_INVALID) \
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected keyword found"); \
+    } while(0)
+
 #define RTACPIASL_PARSE_PUNCTUATOR(a_enmPunctuator, a_chPunctuator) \
     do { \
         bool fConsumed2 = false; \
@@ -720,6 +794,46 @@ static const RTACPIASLTERMINAL g_aenmRegionSpaceKeywords[] = {
     RTACPIASLTERMINAL_KEYWORD_FFIXED_HW,
     RTACPIASLTERMINAL_INVALID
 };
+
+
+static const RTACPIASLTERMINAL g_aenmAccessTypeKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_ANY_ACC,
+    RTACPIASLTERMINAL_KEYWORD_BYTE_ACC,
+    RTACPIASLTERMINAL_KEYWORD_WORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_DWORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_QWORD_ACC,
+    RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmLockRuleKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_LOCK,
+    RTACPIASLTERMINAL_KEYWORD_NO_LOCK,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmUpdateRuleKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_PRESERVE,
+    RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES,
+    RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmResourceTemplateKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED,
+    RTACPIASLTERMINAL_INVALID
+};
+
+
+static const RTACPIASLTERMINAL g_aenmRwRoKeywords[] = {
+    RTACPIASLTERMINAL_KEYWORD_READONLY,
+    RTACPIASLTERMINAL_KEYWORD_READWRITE,
+    RTACPIASLTERMINAL_INVALID
+};
+
 
 
 static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
@@ -887,6 +1001,246 @@ static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASL
 }
 
 
+static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd)
+{
+    RTACPIFIELDENTRY aFieldEntries[128]; RT_ZERO(aFieldEntries); /** @todo Allow dynamic allocation? */
+    uint32_t cFields = 0;
+
+    for (;;)
+    {
+        /** @todo Is an empty list allowed (currently we allow that)? */
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
+            break;
+
+        /*
+         * Two of the following are possible:
+         *     Offset(Integer)
+         *     NameSeg "," Integer
+         */
+        bool fConsumed = false;
+        int rc = rtAcpiAslLexerConsumeIfKeyword(pThis, RTACPIASLTERMINAL_KEYWORD_OFFSET, &fConsumed);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        if (fConsumed)
+        {
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+            /* Must be an integer */
+            RTACPIASL_PARSE_NATURAL(offBytes);
+            aFieldEntries[cFields].pszName = NULL;
+            aFieldEntries[cFields].cBits   = offBytes * sizeof(uint8_t);
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+        }
+        else
+        {
+            /* This must be the second case. */
+            RTACPIASL_PARSE_NAME_STRING(pszName); /** @todo Verify that the name string consists only of a single name segment. */
+            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+            RTACPIASL_PARSE_NATURAL(cBits);
+            aFieldEntries[cFields].pszName = pszName;
+            aFieldEntries[cFields].cBits   = cBits;
+        }
+
+        cFields++;
+
+        /* A following "," means there is another entry, otherwise the closing "}" should follow. */
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            break;
+
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip the "," */
+
+        if (cFields == RT_ELEMENTS(aFieldEntries))
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_BUFFER_OVERFLOW,
+                                 "The field list overflows the current allowed maximum of %u fields", RT_ELEMENTS(aFieldEntries));
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+
+    /* Allocate the list to the node. */
+    pAstNd->paFields = (PRTACPIFIELDENTRY)RTMemAllocZ(cFields * sizeof(aFieldEntries[0]));
+    if (!pAstNd->paFields)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Out of memory allocating field unit list with %u entries", cFields);
+
+    for (uint32_t i = 0; i < cFields; i++)
+        pAstNd->paFields[i] = aFieldEntries[i];
+
+    return VINF_SUCCESS;
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAslParseField(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword);
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+
+    /* Namestring is required. */
+    RTACPIASL_PARSE_NAME_STRING(pszNameString);
+    pAstNd->aArgs[0].enmType         = kAcpiAstArgType_NameString;
+    pAstNd->aArgs[0].u.pszNameString = pszNameString;
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+    /* Must have an access type defined. */
+    RTACPIASL_PARSE_KEYWORD_LIST(enmAccessType, g_aenmAccessTypeKeywords);
+    pAstNd->aArgs[1].enmType = kAcpiAstArgType_FieldAcc;
+    switch (enmAccessType)
+    {
+        case RTACPIASLTERMINAL_KEYWORD_ANY_ACC:    pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Any;    break;
+        case RTACPIASLTERMINAL_KEYWORD_BYTE_ACC:   pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Byte;   break;
+        case RTACPIASLTERMINAL_KEYWORD_WORD_ACC:   pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Word;   break;
+        case RTACPIASLTERMINAL_KEYWORD_DWORD_ACC:  pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_DWord;  break;
+        case RTACPIASLTERMINAL_KEYWORD_QWORD_ACC:  pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_QWord;  break;
+        case RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC: pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Buffer; break;
+        default:
+            AssertFailedReturn(VERR_INTERNAL_ERROR);
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+    /* Must have a lock rule defined. */
+    RTACPIASL_PARSE_KEYWORD_LIST(enmLockRule, g_aenmLockRuleKeywords);
+    pAstNd->aArgs[2].enmType = kAcpiAstArgType_Bool;
+    switch (enmLockRule)
+    {
+        case RTACPIASLTERMINAL_KEYWORD_LOCK:    pAstNd->aArgs[1].u.f = true;  break;
+        case RTACPIASLTERMINAL_KEYWORD_NO_LOCK: pAstNd->aArgs[1].u.f = false; break;
+        default:
+            AssertFailedReturn(VERR_INTERNAL_ERROR);
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+
+    /* Must have an update rule defined. */
+    RTACPIASL_PARSE_KEYWORD_LIST(enmUpdateRule, g_aenmUpdateRuleKeywords);
+    pAstNd->aArgs[2].enmType = kAcpiAstArgType_FieldUpdate;
+    switch (enmUpdateRule)
+    {
+        case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;  
+        default:
+            AssertFailedReturn(VERR_INTERNAL_ERROR);
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    /* Parse the field unit list. */
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+    return rtAcpiTblParseFieldUnitList(pThis, pAstNd);
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword, pAstNd);
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+
+    RTACPIRES hAcpiRes = NULL;
+    int rc = RTAcpiResourceCreate(&hAcpiRes);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Creating the ACPI resource template failed while parsing");
+
+    /* Assign here already to have the ACPI resource freed when the node gets destroyed. */
+    pAstNd->hAcpiRes = hAcpiRes;
+
+    /* Get to work */
+    for (;;)
+    {
+        RTACPIASL_PARSE_KEYWORD_LIST(enmResourceKeyword, g_aenmResourceTemplateKeywords);
+        switch (enmResourceKeyword)
+        {
+            case RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED:
+            {
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+                RTACPIASL_PARSE_KEYWORD_LIST(enmKeywordAccess, g_aenmRwRoKeywords);
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+                RTACPIASL_PARSE_NATURAL(u64PhysAddrStart);
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+                RTACPIASL_PARSE_NATURAL(cbRegion);
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+                RTACPIASL_PARSE_NAME_STRING(pszName); /** @todo This is optional actually. */
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+                /* Check that the given range is within bounds. */
+                if (   u64PhysAddrStart >= _4G
+                    || cbRegion >= _4G
+                    || u64PhysAddrStart + cbRegion >= _4G
+                    || u64PhysAddrStart + cbRegion < u64PhysAddrStart)
+                    return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                         "The given memory range does not fit into a 32-bit memory address space: Start=%#RX64 Size=%#RX64",
+                                         u64PhysAddrStart, cbRegion);
+
+                rc = RTAcpiResourceAdd32BitFixedMemoryRange(hAcpiRes, u64PhysAddrStart, cbRegion, enmKeywordAccess == RTACPIASLTERMINAL_KEYWORD_READWRITE);
+                break;
+            }
+            default: /* This should never occur. */
+                AssertReleaseFailed();
+        }
+
+        /* Done processing (indicated by the closing "}")?. */
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
+            break;
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+    return VINF_SUCCESS;
+}
+
+
+static DECLCALLBACK(int) rtAcpiTblAslParsePackageOrBuffer(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword);
+
+    /* The scope flag manually because the parsing is done here already. */
+    RTListInit(&pAstNd->LstScopeNodes);
+    pAstNd->fFlags |= RTACPI_AST_NODE_F_NEW_SCOPE;
+
+    pAstNd->aArgs[0].enmType = kAcpiAstArgType_AstNode;
+    pAstNd->aArgs[0].u.pAstNd = NULL;
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+    {
+        PRTACPIASTNODE pAstNdSize = NULL;
+        int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNdSize);
+        if (RT_FAILURE(rc))
+            return rc;
+        pAstNd->aArgs[0].u.pAstNd = pAstNdSize;
+    }
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+
+    /* Get to work */
+    for (;;)
+    {
+        /** @todo Is an empty list allowed (currently we allow that)? */
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
+            break;
+
+        /* Parse the object */
+        PRTACPIASTNODE pAstNdPkg = NULL;
+        int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNdPkg);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        RTListAppend(&pAstNd->LstScopeNodes, &pAstNdPkg->NdAst);
+
+        /* A following "," means there is another entry, otherwise the closing "}" should follow. */
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            break;
+
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip the "," */
+    }
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+    return VINF_SUCCESS;
+}
 
 #define RTACPI_ASL_KEYWORD_DEFINE_INVALID \
     { \
@@ -928,6 +1282,21 @@ static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASL
             kAcpiAstArgType_Invalid}, \
         { \
             { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_0REQ_1OPT(a_szKeyword, a_fFlags, a_enmArgTypeOpt0) \
+    { \
+        a_szKeyword, NULL, 0, 0, a_fFlags, \
+        {   kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { a_enmArgTypeOpt0,        { 0 } }, \
             { kAcpiAstArgType_Invalid, { 0 } }, \
             { kAcpiAstArgType_Invalid, { 0 } } \
         } \
@@ -987,7 +1356,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Identifier        */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_StringLiteral     */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_Number            */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
-    /* kAcpiAstNodeOp_Scope             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",         RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_Scope             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",            RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_Processor         */  {
                                                 "Processor", NULL, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE,
                                                 {
@@ -1003,25 +1372,49 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
                                                     { kAcpiAstArgType_Invalid, { 0 } }
                                                 }
                                             },
-    /* kAcpiAstNodeOp_External          */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "External",        rtAcpiTblAslParseExternal, 1, 2, RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Method            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",          rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
-    /* kAcpiAstNodeOp_Device            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",          RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
-    /* kAcpiAstNodeOp_If                */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",              RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_Else              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",            RTACPI_AST_NODE_F_NEW_SCOPE),
-    /* kAcpiAstNodeOp_LAnd              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LEqual            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LGreater          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",        RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",   RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",      RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNot",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",       RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",            RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",             RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Ones              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Ones",            RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Return",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",         RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
-    /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion", RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_External          */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "External",         rtAcpiTblAslParseExternal, 1, 2, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Method            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",           rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
+    /* kAcpiAstNodeOp_Device            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",           RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_If                */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",               RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Else              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",             RTACPI_AST_NODE_F_NEW_SCOPE),
+    /* kAcpiAstNodeOp_LAnd              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LEqual            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreater          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",         RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",    RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",       RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNot",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",        RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",              RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Ones              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Ones",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Return",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
+    /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion",  RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Field             */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Field",            rtAcpiTblAslParseField,   4, 0, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Name              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Name",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_ResourceTemplate  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "ResourceTemplate", rtAcpiTblAslParseResourceTemplate,  0, 0, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg0              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg0",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg1              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg1",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg2              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg2",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg3              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg3",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg4              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg4",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg5              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg5",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Arg6              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg6",             RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local0            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local0",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local1            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local1",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local2            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local2",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local3            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local3",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local4            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local4",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local5            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local5",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local6            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local6",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Local7            */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Local7",           RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Package           */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Package",          rtAcpiTblAslParsePackageOrBuffer, 0, 1, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Buffer            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Buffer",           rtAcpiTblAslParsePackageOrBuffer, 0, 1, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_ToUUid            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("ToUUID",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_DerefOf           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("DerefOf",          RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Index             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Index",            RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Store             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Store",            RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
 
 };
 

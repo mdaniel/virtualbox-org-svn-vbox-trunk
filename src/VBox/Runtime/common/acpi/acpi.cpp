@@ -439,6 +439,8 @@ DECLINLINE(void) rtAcpiTblAppendData(PRTACPITBLINT pThis, const void *pvData, ui
  *
  * @param pThis                 The ACPI table instance.
  * @param pszName               The name to append, maximum is 4 bytes (or 5 if \\ is the first character).
+ *
+ * @todo This is completely wrong with how name strings are working.
  */
 DECLINLINE(void) rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszName)
 {
@@ -448,6 +450,38 @@ DECLINLINE(void) rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszN
     {
         rtAcpiTblCopyStringPadWith(pb, cbName, pszName, '_');
         rtAcpiTblUpdatePkgLength(pThis, cbName);
+    }
+}
+
+
+/**
+ * Appends a name segment or the NullName to the given ACPI table.
+ *
+ * @returns nothing.
+ * @param pThis                 The ACPI table instance.
+ * @param pszName               The name to append, maximum is 4 chracters. If less than 4 characters
+ *                              anything left is padded with _. NULL means append the NullName.
+ */
+DECLINLINE(void) rtAcpiTblAppendNameSegOrNullName(PRTACPITBLINT pThis, const char *pszName)
+{
+    if (!pszName)
+    {
+        uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, 1);
+        if (pb)
+        {
+            *pb = ACPI_AML_BYTE_CODE_PREFIX_NULL_NAME;
+            rtAcpiTblUpdatePkgLength(pThis, 1);
+        }
+    }
+    else
+    {
+        AssertReturnVoidStmt(strlen(pszName) <= 4, pThis->rcErr = VERR_INVALID_PARAMETER);
+        uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, 4);
+        if (pb)
+        {
+            rtAcpiTblCopyStringPadWith(pb, 4, pszName, '_');
+            rtAcpiTblUpdatePkgLength(pThis, 4);
+        }
     }
 }
 
@@ -1162,7 +1196,7 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
 
     for (uint32_t i = 0; i < cFields; i++)
     {
-        rtAcpiTblAppendNameString(pThis, paFields[i].pszName);
+        rtAcpiTblAppendNameSegOrNullName(pThis, paFields[i].pszName);
         rtAcpiTblEncodePkgLength(pThis, paFields[i].cBits);
     }
 

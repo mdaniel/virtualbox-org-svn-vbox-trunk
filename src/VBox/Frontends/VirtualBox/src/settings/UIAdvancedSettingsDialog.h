@@ -93,8 +93,6 @@ protected slots:
 
     /** Hides the modal dialog and sets the result code to Accepted. */
     virtual void accept();
-    /** Hides the modal dialog and sets the result code to Rejected. */
-    virtual void reject();
 
     /** Handles category change to @a cId. */
     virtual void sltCategoryChanged(int cId);

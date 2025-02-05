@@ -782,7 +782,7 @@ UIAdvancedSettingsDialog::UIAdvancedSettingsDialog(QWidget *pParent,
     , m_fPolished(false)
     , m_fFirstSerializationDone(false)
     , m_fSerializationIsInProgress(false)
-    , m_fSerializationClean(false)
+    , m_fSerializationClean(true)
     , m_fClosed(false)
     , m_iPageId(MachineSettingsPageType_Invalid)
     , m_pStatusBar(0)
@@ -811,17 +811,8 @@ void UIAdvancedSettingsDialog::accept()
     /* Save data: */
     save();
 
-    /* Close if there is no ongoing serialization
-     * and previous try was successful: */
-    if (   !isSerializationInProgress()
-        && m_fSerializationClean)
-        sltClose();
-}
-
-void UIAdvancedSettingsDialog::reject()
-{
-    /* Close if there is no ongoing serialization: */
-    if (!isSerializationInProgress())
+    /* Close if last serialization haven't failed: */
+    if (m_fSerializationClean)
         sltClose();
 }
 
@@ -1311,10 +1302,13 @@ bool UIAdvancedSettingsDialog::isSettingsChanged()
 
 void UIAdvancedSettingsDialog::sltClose()
 {
-    /* Check whether serialization was clean (save)
-     * or there are no unsaved settings to be lost (cancel): */
-    if (   m_fSerializationClean
-        || !isSettingsChanged()
+    /* Do not close if serialization happens atm: */
+    if (isSerializationInProgress())
+        return;
+
+    /* Make sure there are no unsaved settings to be lost
+     * or user agreed to forget them after all: */
+    if (   !isSettingsChanged()
         || msgCenter().confirmSettingsDiscarding(this))
     {
         /* Tell the listener to close us (once): */
@@ -1575,7 +1569,7 @@ void UIAdvancedSettingsDialog::prepareButtonBox()
         m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
         m_pButtonBox->button(QDialogButtonBox::Ok)->setShortcut(Qt::Key_Return);
         m_pButtonBox->button(QDialogButtonBox::Cancel)->setShortcut(Qt::Key_Escape);
-        connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIAdvancedSettingsDialog::reject);
+        connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIAdvancedSettingsDialog::sltClose);
         connect(m_pButtonBox, &QIDialogButtonBox::accepted, this, &UIAdvancedSettingsDialog::accept);
         connect(m_pButtonBox->button(QDialogButtonBox::Help), &QAbstractButton::pressed,
                 m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);

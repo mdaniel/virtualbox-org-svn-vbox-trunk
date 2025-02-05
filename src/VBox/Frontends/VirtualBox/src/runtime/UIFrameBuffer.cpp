@@ -276,6 +276,10 @@ protected:
     /** Updates coordinate-system: */
     void updateCoordinateSystem();
 
+    /** Applies alignment hack to HiDPI rectangle to avoid rounding problem.
+     * @todo Temporary hack, please redo.  */
+    static void alignHackForHiDPIRect(QRect &rectHiDPI, double rdPixelRatio);
+
     /** Default paint routine. */
     void paintDefault(QPaintEvent *pEvent);
     /** Paint routine for seamless mode. */
@@ -1251,6 +1255,37 @@ void UIFrameBufferPrivate::updateCoordinateSystem()
     m_transform = m_transform.scale(1.0 / devicePixelRatio(), 1.0 / devicePixelRatio());
 }
 
+/*static*/ void UIFrameBufferPrivate::alignHackForHiDPIRect(QRect &rectHiDPI, double rdPixelRatio)
+{
+    /* HACK ALERT! Extend the rectangle to avoid rounding issues related to devicePixelRatio(). */
+    if (rdPixelRatio != 1.0)
+    {
+        int iAlign;
+        switch (unsigned(rdPixelRatio * 8.0) & 7) /* ASSUMES scaling granularity  */
+        {
+            case 1: /* x.125 */
+            case 3: /* x.375 */
+            case 5: /* x.625 */
+            case 7: /* x.875 */
+                iAlign = 8;
+                break;
+            case 2: /* x.25 */
+            case 6: /* x.75 */
+                iAlign = 4;
+                break;
+            case 4: /* x.5 */
+                iAlign = 2;
+                break;
+            default:
+                return;
+        }
+        rectHiDPI.setTop(rectHiDPI.top() & ~iAlign);
+        rectHiDPI.setBottom((rectHiDPI.bottom() + iAlign - 1) & ~iAlign);
+        rectHiDPI.setLeft(rectHiDPI.left() & ~iAlign);
+        rectHiDPI.setRight((rectHiDPI.right() + iAlign - 1) & ~iAlign);
+    }
+}
+
 void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
 {
     /* Make sure cached image is valid: */
@@ -1294,6 +1329,7 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     /* Take the device-pixel-ratio into account: */
     paintRectHiDPI.moveTo(paintRectHiDPI.topLeft() * devicePixelRatio());
     paintRectHiDPI.setSize(paintRectHiDPI.size() * devicePixelRatio());
+    alignHackForHiDPIRect(paintRectHiDPI, devicePixelRatio());
 
     /* Make sure hidpi paint rectangle is within the image boundary: */
     paintRectHiDPI = paintRectHiDPI.intersected(pSourceImage->rect());
@@ -1388,6 +1424,7 @@ void UIFrameBufferPrivate::paintSeamless(QPaintEvent *pEvent)
     /* Take the device-pixel-ratio into account: */
     paintRectHiDPI.moveTo(paintRectHiDPI.topLeft() * devicePixelRatio());
     paintRectHiDPI.setSize(paintRectHiDPI.size() * devicePixelRatio());
+    alignHackForHiDPIRect(paintRectHiDPI, devicePixelRatio());
 
     /* Make sure hidpi paint rectangle is within the image boundary: */
     paintRectHiDPI = paintRectHiDPI.intersected(pSourceImage->rect());
@@ -1511,7 +1548,14 @@ void UIFrameBufferPrivate::drawImageRect(QPainter &painter, const QImage &image,
 
     /* Which point we should draw corresponding sub-pixmap? */
     QPoint paintPoint = rect.topLeft();
-    /* Take the device-pixel-ratio into account: */
+    /* Take the device-pixel-ratio into account.
+       Note! I (bird) suspect this is the culprit for the off by one issues
+             during stuff like XP text mode installer and a bunch of other
+             situations (some involving XP desktop).  alignHackForHiDPIRect()
+             attempts to work around this by avoiding any rounding by making
+             sure the update rectangle is a multiple of the scaling factor.
+             Unfortuantely, due to clipping concerns, we have to apply the
+             hack in the calling code. */
     paintPoint /= dDevicePixelRatio;
 
     /* Draw sub-pixmap: */

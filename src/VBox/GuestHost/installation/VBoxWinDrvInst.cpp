@@ -1964,7 +1964,47 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
         pCtx->pfnLog     = pfnLog;
         pCtx->pvUser     = pvUser;
 
+        /* 1. Detect the Windows version using API calls. */
         pCtx->uOsVer     = RTSystemGetNtVersion(); /* Might be overwritten later via VBoxWinDrvInstSetOsVersion(). */
+
+        /* 2. Detect the Windows from the registry. */
+        HKEY hKey;
+        LSTATUS lrc = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey);
+        if (lrc == ERROR_SUCCESS)
+        {
+            DWORD dwMaj;
+            rc = VBoxWinDrvRegQueryDWORD(hKey, "CurrentMajorVersionNumber", &dwMaj);
+            if (RT_SUCCESS(rc))
+            {
+                DWORD dwMin;
+                rc = VBoxWinDrvRegQueryDWORD(hKey, "CurrentMinorVersionNumber", &dwMin);
+                if (RT_SUCCESS(rc))
+                {
+                    uint64_t const uRegOsVer = RTSYSTEM_MAKE_NT_VERSION(dwMaj, dwMin, 0 /* Build, ignored */);
+
+                    /* When running this code in context of an MSI installer, the MSI engine might shim the Windows
+                     * version which is being reported via API calls. So compare the both OS versions
+                     * and prefer the one being reported via the registry if they don't match.
+                     *
+                     * The OS version to use still can be later tweaked using VBoxWinDrvInstSetOsVersion(). */
+                    if (   (pCtx->uOsVer != uRegOsVer)
+                        && RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer) > 4 /* XP+ */)
+                    {
+                        vboxWinDrvInstLogWarn(pCtx, "Detected Windows version (%u.%u) does not match the one stored in the registry (%u.%u)",
+                                              RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MINOR(uRegOsVer));
+
+                        /* Override the OS version from the API with the one found in the registry. */
+                        VBoxWinDrvInstSetOsVersion(pCtx, uRegOsVer);
+                    }
+                }
+            }
+
+            RegCloseKey(hKey);
+        }
+        /* else not fatal. */
 
         vboxWinDrvInstLogInfo(pCtx, VBOX_PRODUCT " Version " VBOX_VERSION_STRING " - r%s", RTBldCfgRevisionStr());
         vboxWinDrvInstLogInfo(pCtx, "Detected Windows version %d.%d.%d (%s)", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),

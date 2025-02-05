@@ -82,7 +82,7 @@ typedef struct RTACPIASTARG
     union
     {
         uintptr_t           uPtrInternal;
-        PCRTACPIASTNODE     pAstNd;
+        PRTACPIASTNODE      pAstNd;
         const char          *pszNameString;
         bool                f;
         uint8_t             u8;
@@ -155,6 +155,15 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_DerefOf,
     kAcpiAstNodeOp_Index,
     kAcpiAstNodeOp_Store,
+    kAcpiAstNodeOp_Break,
+    kAcpiAstNodeOp_Continue,
+    kAcpiAstNodeOp_Add,
+    kAcpiAstNodeOp_Subtract,
+    kAcpiAstNodeOp_And,
+    kAcpiAstNodeOp_Nand,
+    kAcpiAstNodeOp_Or,
+    kAcpiAstNodeOp_Xor,
+    kAcpiAstNodeOp_Not,
     kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
 } RTACPIASTNODEOP;
 
@@ -181,8 +190,13 @@ typedef struct RTACPIASTNODE
         const char          *pszStrLit;
         /** A number */
         uint64_t            u64;
-        /** Pointer to the field unit list - freed with RTMemFree() when the node is freed. */
-        PRTACPIFIELDENTRY   paFields;
+        struct
+        {
+            /** Pointer to the field unit list - freed with RTMemFree() when the node is freed. */
+            PRTACPIFIELDENTRY   paFields;
+            /** Number of field entries. */
+            uint32_t            cFields;
+        } Fields;
         /** The resource template. */
         RTACPIRES           hAcpiRes;
     };
@@ -217,6 +231,19 @@ DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(RTACPIASTNODEOP enmOp, uint32_t fF
  * @param   pAstNd              The AST node to free.
  */
 DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd);
+
+
+/**
+ * Does a few transformations on the given AST node and its children where required.
+ *
+ * @returns IPRT status.
+ * @param   pAstNd              The AST node to transform.
+ * @param   pErrInfo            Some additional error information on failure.
+ *
+ * @note This currently only implements merging if ... else ... nodes but can be extended to
+ *       also do some optimizations and proper checking.
+ */
+DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTERRINFO pErrInfo);
 
 
 /**

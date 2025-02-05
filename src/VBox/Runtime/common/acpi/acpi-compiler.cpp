@@ -278,6 +278,15 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("DEREFOF"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_DerefOf                           },
     { RT_STR_TUPLE("INDEX"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Index                             },
     { RT_STR_TUPLE("STORE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Store                             },
+    { RT_STR_TUPLE("BREAK"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Break                             },
+    { RT_STR_TUPLE("CONTINUE"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Continue                          },
+    { RT_STR_TUPLE("ADD"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Add                               },
+    { RT_STR_TUPLE("SUBTRACT"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Subtract                          },
+    { RT_STR_TUPLE("AND"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_And                               },
+    { RT_STR_TUPLE("NAND"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Nand                              },
+    { RT_STR_TUPLE("OR"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Or                                },
+    { RT_STR_TUPLE("XOR"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Xor                               },
+    { RT_STR_TUPLE("NOT"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Not                               },
 
     /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
@@ -505,23 +514,6 @@ static DECLCALLBACK(int) rtAcpiAslLexerRead(RTSCRIPTLEX hScriptLex, size_t offBu
 
     return VINF_SUCCESS;
 }
-
-
-#if 0
-DECLINLINE(bool) rtAcpiAslLexerIsKeyword(PCRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerm)
-{
-    PCRTSCRIPTLEXTOKEN pTok;
-    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
-    if (RT_FAILURE(rc))
-        return false;
-
-    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD
-        && pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)enmTerm)
-        return true;
-
-    return false;
-}
-#endif
 
 
 DECLINLINE(bool) rtAcpiAslLexerIsPunctuator(PCRTACPIASLCU pThis, RTACPIASLTERMINAL enmTerm)
@@ -1057,13 +1049,14 @@ static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
 
     /* Allocate the list to the node. */
-    pAstNd->paFields = (PRTACPIFIELDENTRY)RTMemAllocZ(cFields * sizeof(aFieldEntries[0]));
-    if (!pAstNd->paFields)
+    pAstNd->Fields.paFields = (PRTACPIFIELDENTRY)RTMemAllocZ(cFields * sizeof(aFieldEntries[0]));
+    if (!pAstNd->Fields.paFields)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Out of memory allocating field unit list with %u entries", cFields);
 
     for (uint32_t i = 0; i < cFields; i++)
-        pAstNd->paFields[i] = aFieldEntries[i];
+        pAstNd->Fields.paFields[i] = aFieldEntries[i];
 
+    pAstNd->Fields.cFields = cFields;
     return VINF_SUCCESS;
 }
 
@@ -1103,8 +1096,8 @@ static DECLCALLBACK(int) rtAcpiTblAslParseField(PRTACPIASLCU pThis, PCRTACPIASLK
     pAstNd->aArgs[2].enmType = kAcpiAstArgType_Bool;
     switch (enmLockRule)
     {
-        case RTACPIASLTERMINAL_KEYWORD_LOCK:    pAstNd->aArgs[1].u.f = true;  break;
-        case RTACPIASLTERMINAL_KEYWORD_NO_LOCK: pAstNd->aArgs[1].u.f = false; break;
+        case RTACPIASLTERMINAL_KEYWORD_LOCK:    pAstNd->aArgs[2].u.f = true;  break;
+        case RTACPIASLTERMINAL_KEYWORD_NO_LOCK: pAstNd->aArgs[2].u.f = false; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }
@@ -1113,12 +1106,12 @@ static DECLCALLBACK(int) rtAcpiTblAslParseField(PRTACPIASLCU pThis, PCRTACPIASLK
 
     /* Must have an update rule defined. */
     RTACPIASL_PARSE_KEYWORD_LIST(enmUpdateRule, g_aenmUpdateRuleKeywords);
-    pAstNd->aArgs[2].enmType = kAcpiAstArgType_FieldUpdate;
+    pAstNd->aArgs[3].enmType = kAcpiAstArgType_FieldUpdate;
     switch (enmUpdateRule)
     {
-        case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
-        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
-        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[2].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;
+        case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }
@@ -1188,7 +1181,10 @@ static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, P
     }
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
-    return VINF_SUCCESS;
+    rc = RTAcpiResourceSeal(hAcpiRes);
+    if (RT_FAILURE(rc))
+        rc = RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to seal the resource after being done parsing");
+    return rc;
 }
 
 
@@ -1347,6 +1343,36 @@ static DECLCALLBACK(int) rtAcpiTblAslParsePackageOrBuffer(PRTACPIASLCU pThis, PC
         } \
     }
 
+#define RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgType1, a_enmArgTypeOpt0) \
+    { \
+        a_szKeyword, NULL, 2, 1, a_fFlags, \
+        {   a_enmArgType0, \
+            a_enmArgType1, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { a_enmArgTypeOpt0,        { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
+#define RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgTypeOpt0) \
+    { \
+        a_szKeyword, NULL, 1, 1, a_fFlags, \
+        {   a_enmArgType0, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { a_enmArgTypeOpt0,        { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
 /**
  * Operations encoding table, indexed by kAcpiAstNodeOp_XXX.
  */
@@ -1413,8 +1439,18 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Buffer            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Buffer",           rtAcpiTblAslParsePackageOrBuffer, 0, 1, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_ToUUid            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("ToUUID",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_DerefOf           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("DerefOf",          RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_Index             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Index",            RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Index             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Index",            RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Store             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Store",            RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+
+    /* kAcpiAstNodeOp_Break             */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Break",            RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Continue          */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Continue",         RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Add               */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Add",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Subtract          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Subtract",         RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_And               */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("And",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Nand              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Nand",             RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Or                */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Or",               RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Xor               */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Xor",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Not               */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("Not",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
 
 };
 
@@ -1851,12 +1887,15 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
             if (RT_SUCCESS(rc))
             {
                 /* 2. - Optimize AST (constant folding, etc). */
-                /** @todo */
 
                 /* 3. - Traverse AST and output table. */
                 PRTACPIASTNODE pIt;
                 RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
                 {
+                    rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
+                    if (RT_FAILURE(rc))
+                        break;
+
                     rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
                     if (RT_FAILURE(rc))
                         break;

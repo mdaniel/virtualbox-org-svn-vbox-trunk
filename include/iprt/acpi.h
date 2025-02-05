@@ -400,6 +400,16 @@ RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz);
 
 
 /**
+ * Appends a given UTF-8 string as UTF-16 using a buffer object (Unicode() equivalent).
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   psz                 The string to append.
+ */
+RTDECL(int) RTAcpiTblStringAppendAsUtf16(RTACPITBL hAcpiTbl, const char *psz);
+
+
+/**
  * Appends a new integer object (depending on the value ZeroOp, OneOp,
  * BytePrefix, WordPrefix, DWordPrefix or QWordPrefix is used).
  *

@@ -44,6 +44,7 @@
 #include <iprt/file.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
+#include <iprt/utf16.h>
 #include <iprt/uuid.h>
 
 #include <iprt/formats/acpi-aml.h>
@@ -884,6 +885,26 @@ RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz)
 }
 
 
+RTDECL(int) RTAcpiTblStringAppendAsUtf16(RTACPITBL hAcpiTbl, const char *psz)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    PRTUTF16 pwsz = NULL;
+    size_t cwc = 0;
+    int rc = RTStrToUtf16Ex(psz, RTSTR_MAX, &pwsz, 0, &cwc);
+    if (RT_SUCCESS(rc))
+    {
+        RTAcpiTblBufferAppend(hAcpiTbl, pwsz, (cwc + 1) * sizeof(*pwsz));
+        RTUtf16Free(pwsz);
+    }
+    else
+        pThis->rcErr = rc;
+    return pThis->rcErr;
+}
+
+
 RTDECL(int) RTAcpiTblIntegerAppend(RTACPITBL hAcpiTbl, uint64_t u64)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
@@ -1014,10 +1035,7 @@ RTDECL(int) RTAcpiTblElseStart(RTACPITBL hAcpiTbl)
     PRTACPITBLINT pThis = hAcpiTbl;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
 
-    /* Makes only sense inside an IfOp package. */
-    AssertReturn(pThis->paPkgStack[pThis->idxPkgStackElem].bOp == ACPI_AML_BYTE_CODE_OP_IF, VERR_INVALID_STATE);
-
-    rtAcpiTblPkgStartExt(pThis, ACPI_AML_BYTE_CODE_OP_ELSE);
+    rtAcpiTblPkgStart(pThis, ACPI_AML_BYTE_CODE_OP_ELSE);
     return pThis->rcErr;
 }
 

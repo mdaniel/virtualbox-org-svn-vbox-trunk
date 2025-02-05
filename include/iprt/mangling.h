@@ -430,6 +430,7 @@
 # define RTAcpiTblScopeStart                            RT_MANGLER(RTAcpiTblScopeStart)
 # define RTAcpiTblStmtSimpleAppend                      RT_MANGLER(RTAcpiTblStmtSimpleAppend)
 # define RTAcpiTblStringAppend                          RT_MANGLER(RTAcpiTblStringAppend)
+# define RTAcpiTblStringAppendAsUtf16                   RT_MANGLER(RTAcpiTblStringAppendAsUtf16)
 # define RTAcpiTblUuidAppend                            RT_MANGLER(RTAcpiTblUuidAppend)
 # define RTAcpiTblUuidAppendFromStr                     RT_MANGLER(RTAcpiTblUuidAppendFromStr)
 # define RTArchValToString                              RT_MANGLER(RTArchValToString)

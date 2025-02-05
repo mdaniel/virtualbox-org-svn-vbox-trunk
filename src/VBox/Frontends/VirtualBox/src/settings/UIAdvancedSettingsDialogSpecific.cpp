@@ -579,8 +579,11 @@ void UIAdvancedSettingsDialogMachine::sltMachineDataChanged(const QUuid &uMachin
         return;
 
     /* Check if user had changed something and warn him about he will loose settings on reloading: */
-    if (isSettingsChanged() && !msgCenter().confirmSettingsReloading(this))
+    if (isSerializationClean() && isSettingsChanged() && !msgCenter().confirmSettingsReloading(this))
         return;
+
+    /* Make sure serialization reseted: */
+    resetSerializationClean();
 
     /* Reload data: */
     load();

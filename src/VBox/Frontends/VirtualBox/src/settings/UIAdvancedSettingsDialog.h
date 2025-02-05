@@ -142,6 +142,11 @@ protected:
     /** Returns whether the serialization is in progress. */
     bool isSerializationInProgress() const { return m_fSerializationIsInProgress; }
 
+    /** Holds whether there were no serialization errors. */
+    bool isSerializationClean() const { return m_fSerializationClean; }
+    /** Resets whether there were no serialization errors. */
+    void resetSerializationClean() { m_fSerializationClean = true; }
+
     /** Returns dialog optional flags. */
     QMap<QString, QVariant> optionalFlags() const { return m_flags; }
     /** Defines dialog optional @a flags. */

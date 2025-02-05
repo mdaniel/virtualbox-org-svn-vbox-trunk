@@ -27,12 +27,12 @@
 
 <?if $(env.VBOX_SIGNING_MODE) != "none" ?>
     <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-        <Component Id="cp_NetAdp6DriverCat_PreW10" Guid="40aab6d8-a9ca-41bd-3c5e-bd768d44faa7" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (NOT VBOX_IS_WINDOWS_10)">
+        <Component Id="cp_NetAdp6DriverCat_PreW10" Guid="40aab6d8-a9ca-41bd-3c5e-bd768d44faa7" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (NOT VBOX_IS_WINDOWS_SUPPORTED)">
             <!-- Note: ShortName is required to avoid naming collisions the the MSI file table. -->
             <File Id="file_VBoxNetAdp6_PreW10.cat" ShortName="NetAdp61.cat" Name="VBoxNetAdp6.cat" Source="$(env.PATH_OUT)\bin\VBoxNetAdp6-PreW10.cat" />
         </Component>
     <?endif?>
-    <Component Id="cp_NetAdp6DriverCat_W10" Guid="37431619-c0ac-4f6a-029e-6a8ac4cd58ad" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (VBOX_IS_WINDOWS_10)">
+    <Component Id="cp_NetAdp6DriverCat_W10" Guid="37431619-c0ac-4f6a-029e-6a8ac4cd58ad" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (VBOX_IS_WINDOWS_SUPPORTED)">
         <!-- Note: ShortName is required to avoid naming collisions the the MSI file table. -->
         <File Id="file_VBoxNetAdp6_W10.cat" ShortName="NetAdp62.cat" Name="VBoxNetAdp6.cat" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetAdp6.cat" />
     </Component>

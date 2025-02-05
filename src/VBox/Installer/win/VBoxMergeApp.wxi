@@ -50,11 +50,11 @@
         <Directory Id="dir_VBoxAppVBoxSup" Name="vboxsup">
 <?if $(env.VBOX_SIGNING_MODE) != "none" ?>
  <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-            <Component Id="cp_VBoxSupCat_PreW10" Guid="673195c2-f315-42e7-ff00-5acbd91ea0bd" Bitness="$(var.Property_Bitness)" Condition="(NOT VBOX_IS_WINDOWS_10)">
+            <Component Id="cp_VBoxSupCat_PreW10" Guid="673195c2-f315-42e7-ff00-5acbd91ea0bd" Bitness="$(var.Property_Bitness)" Condition="(NOT VBOX_IS_WINDOWS_SUPPORTED)">
                 <File Id="file_VBoxSup_PreW10.cat" Name="VBoxSup.cat" Source="$(env.PATH_OUT)\bin\VBoxSup-PreW10.cat" />
             </Component>
  <?endif?>
-            <Component Id="cp_VBoxSupCat_W10" Guid="589be90d-0286-4684-503d-a1681f9587bc" Bitness="$(var.Property_Bitness)" Condition="(VBOX_IS_WINDOWS_10)">
+            <Component Id="cp_VBoxSupCat_W10" Guid="589be90d-0286-4684-503d-a1681f9587bc" Bitness="$(var.Property_Bitness)" Condition="(VBOX_IS_WINDOWS_SUPPORTED)">
                 <File Id="file_VBoxSup.cat" Name="VBoxSup.cat" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxSup.cat" />
             </Component>
 <?endif?>

@@ -1107,16 +1107,18 @@ UINT __stdcall IsMSCRTInstalled(MSIHANDLE hModule)
 }
 
 /**
- * Checks if the running OS is (at least) Windows 10 (e.g. >= build 10000).
+ * Checks if the running OS is supported for installing (at least Windows 10 (e.g. >= build 10000)).
  *
  * Called from the MSI installer as custom action.
  *
  * @returns Always ERROR_SUCCESS.
- *          Sets public property VBOX_IS_WINDOWS_10 to "" (empty / false) or "1" (success).
+ *          Sets public property VBOX_IS_WINDOWS_SUPPORTED to "" (empty / false) or "1" (success).
+ *          Sets public property VBOX_WIN_VER_MAJOR to the Windows major version.
+ *          Sets public property VBOX_WIN_VER_MINOR to the Windows minor version.
  *
  * @param   hModule             Windows installer module handle.
  */
-UINT __stdcall IsWindows10(MSIHANDLE hModule)
+UINT __stdcall IsWindowsSupported(MSIHANDLE hModule)
 {
     /*
      * Note: We cannot use RtlGetVersion() / GetVersionExW() here, as the Windows Installer service
@@ -1131,7 +1133,8 @@ UINT __stdcall IsWindows10(MSIHANDLE hModule)
         int rc = VBoxMsiRegQueryDWORD(hModule, hKey, "CurrentMajorVersionNumber", &dwMaj);
         if (RT_SUCCESS(rc))
         {
-            VBoxMsiSetProp(hModule, L"VBOX_IS_WINDOWS_10", dwMaj >= 10 ? L"1" : L"");
+            /* We support installing on Windows 10 or newer. */
+            VBoxMsiSetProp(hModule, L"VBOX_IS_WINDOWS_SUPPORTED", dwMaj >= 10 ? L"1" : L"");
             VBoxMsiSetPropDWORD(hModule, L"VBOX_WIN_VER_MAJOR", dwMaj);
 
             DWORD dwMin;
@@ -1140,18 +1143,18 @@ UINT __stdcall IsWindows10(MSIHANDLE hModule)
             {
                 VBoxMsiSetPropDWORD(hModule, L"VBOX_WIN_VER_MINOR", dwMin);
 
-                logStringF(hModule, "IsWindows10: Detected Windows %u.%u", dwMaj, dwMin);
+                logStringF(hModule, "IsWindowsSupported: Detected Windows %u.%u", dwMaj, dwMin);
             }
             else
-                logStringF(hModule, "IsWindows10: Error reading CurrentMinorVersionNumber (%Rrc)", rc);
+                logStringF(hModule, "IsWindowsSupported: Error reading CurrentMinorVersionNumber (%Rrc)", rc);
         }
         else
-            logStringF(hModule, "IsWindows10: Error reading CurrentMajorVersionNumber (%Rrc)", rc);
+            logStringF(hModule, "IsWindowsSupported: Error reading CurrentMajorVersionNumber (%Rrc)", rc);
 
         RegCloseKey(hKey);
     }
     else
-        logStringF(hModule, "IsWindows10/RegOpenKeyExW: Error opening CurrentVersion key (%ld)", lrc);
+        logStringF(hModule, "IsWindowsSupported/RegOpenKeyExW: Error opening CurrentVersion key (%ld)", lrc);
 
     return ERROR_SUCCESS; /* Never return failure. */
 }

@@ -43,7 +43,7 @@
     <CustomAction Id="ca_IsMSCRTInstalled" DllEntry="IsMSCRTInstalled" Execute="immediate" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 <?endif?>
 
-    <CustomAction Id="ca_IsWindows10" DllEntry="IsWindows10" Execute="immediate" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />
+    <CustomAction Id="ca_IsWindowsSupported" DllEntry="IsWindowsSupported" Execute="immediate" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 
     <!-- Makes sure we check if the chosen target directory is valid before allowing to install. See @bugref{10616} -->
     <CustomAction Id="ca_CheckTargetDirPre" DllEntry="CheckTargetDir" Execute="immediate" Return="ignore" Impersonate="no" BinaryRef="VBoxInstallHelper" />

@@ -51,7 +51,7 @@
          See @bugref{10616} -->
     <Custom Action="ca_CheckTargetDirPost" After="InstallFinalize" Condition="NOT REMOVE"/>
 
-    <Custom Action="ca_IsWindows10" After="FileCost"/>
+    <Custom Action="ca_IsWindowsSupported" After="FileCost"/>
 
 </Include>
 

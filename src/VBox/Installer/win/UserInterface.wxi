@@ -1184,7 +1184,7 @@
             <Custom Action="ca_CheckTargetDirPre" After="AppSearch" /> <!-- Required for launch conditions. See @bugref{10616} -->
             <Custom Action="ca_OriginalTargetDir" After="FileCost" Condition="(NOT INSTALLDIR) AND (NOT EXISTINGINSTALLDIR)" />
             <Custom Action="ca_DefaultTargetDir" After="FileCost" Condition="NOT Installed AND (NOT INSTALLDIR) AND EXISTINGINSTALLDIR" />
-            <Custom Action="ca_IsWindows10" After="CostFinalize" />
+            <Custom Action="ca_IsWindowsSupported" After="CostFinalize" />
 
 <?if $(env.VBOX_WITH_PYTHON) = "yes" ?>
             <!-- Check for the Python core package and other dependencies first.

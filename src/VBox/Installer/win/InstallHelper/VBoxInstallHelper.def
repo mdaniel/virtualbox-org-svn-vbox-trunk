@@ -32,7 +32,7 @@ EXPORTS
     CheckTargetDir
     IsMSCRTInstalled
     IsPythonInstalled
-    IsWindows10
+    IsWindowsSupported
     GetPlatformArchitecture
     ArePythonAPIDepsInstalled
     InstallPythonAPI

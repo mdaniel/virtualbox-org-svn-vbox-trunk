@@ -1059,7 +1059,7 @@ RTDECL(int) RTScriptLexScanStringLiteralC(RTSCRIPTLEX hScriptLex, char ch,
     if (RT_FAILURE(rc))
         return RTScriptLexProduceTokError(hScriptLex, pTok, rc, "Lexer: Error adding character to string literal");
 
-    ch = RTScriptLexGetCh(hScriptLex);
+    ch = RTScriptLexGetChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
     for (;;)
     {
         if (ch == '\0')
@@ -1080,8 +1080,8 @@ RTDECL(int) RTScriptLexScanStringLiteralC(RTSCRIPTLEX hScriptLex, char ch,
         else if (ch == '\\')
         {
             /* Start of escape sequence. */
-            RTScriptLexConsumeCh(hScriptLex);
-            ch = RTScriptLexGetCh(hScriptLex);
+            RTScriptLexConsumeChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
+            ch = RTScriptLexGetChEx(hScriptLex, RTSCRIPT_LEX_CONV_F_NOTHING);
             switch (ch)
             {
                 case 'a': /* Alert (Bell) */

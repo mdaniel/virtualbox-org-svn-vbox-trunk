@@ -1060,20 +1060,19 @@ UINT __stdcall IsMSCRTInstalled(MSIHANDLE hModule)
     {
         DWORD dwVal = 0;
         DWORD cbVal = sizeof(dwVal);
-        DWORD dwValueType = REG_DWORD; /** @todo r=bird: output only parameter, optional, so pointless. */
-        lrc = RegQueryValueExW(hKeyVS, L"Installed", NULL, &dwValueType, (LPBYTE)&dwVal, &cbVal);
+        lrc = RegQueryValueExW(hKeyVS, L"Installed", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwVal, &cbVal);
         if (lrc == ERROR_SUCCESS)
         {
             if (dwVal >= 1)
             {
-                DWORD dwMaj = 0; /** @todo r=bird: It's purdent to initialize values if you don't bother to check the type and size! */
-                lrc = RegQueryValueExW(hKeyVS, L"Major", NULL, &dwValueType, (LPBYTE)&dwMaj, &cbVal);
+                DWORD dwMaj;
+                lrc = RegQueryValueExW(hKeyVS, L"Major", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwMaj, &cbVal);
                 if (lrc == ERROR_SUCCESS)
                 {
                     VBoxMsiSetPropDWORD(hModule, L"VBOX_MSCRT_VER_MAJ", dwMaj);
 
                     DWORD dwMin = 0;
-                    lrc = RegQueryValueExW(hKeyVS, L"Minor", NULL, &dwValueType, (LPBYTE)&dwMin, &cbVal);
+                    lrc = RegQueryValueExW(hKeyVS, L"Minor", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwMin, &cbVal);
                     if (lrc == ERROR_SUCCESS)
                     {
                         VBoxMsiSetPropDWORD(hModule, L"VBOX_MSCRT_VER_MIN", dwMin);
@@ -1129,8 +1128,7 @@ UINT __stdcall IsWindows10(MSIHANDLE hModule)
     {
         DWORD dwVal = 0;
         DWORD cbVal = sizeof(dwVal);
-        DWORD dwValueType = REG_DWORD; /** @todo r=bird: Again, the type is an optional output parameter. pointless to init or pass it unless you check.  */
-        lrc = RegQueryValueExW(hKeyCurVer, L"CurrentMajorVersionNumber", NULL, &dwValueType, (LPBYTE)&dwVal, &cbVal);
+        lrc = RegQueryValueExW(hKeyCurVer, L"CurrentMajorVersionNumber", NULL /* lpReserved */, NULL /* lpType */, (LPBYTE)&dwVal, &cbVal);
         if (lrc == ERROR_SUCCESS)
         {
             logStringF(hModule, "IsWindows10/CurrentMajorVersionNumber: %u", dwVal);

@@ -50,9 +50,11 @@ VBoxInstallHelper_SOURCES  = \
 	VBoxInstallHelper.def \
 	VBoxInstallHelper.rc \
 	VBoxCommon.cpp \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvCommon.cpp \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvInst.cpp \
-	$(PATH_ROOT)/src/VBox/GuestHost/Installation/VBoxWinDrvStore.cpp
+	$(PATH_ROOT)/src/VBox/GuestHost/installation/VBoxWinDrvCommon.cpp \
+	$(PATH_ROOT)/src/VBox/GuestHost/installation/VBoxWinDrvInst.cpp \
+	$(PATH_ROOT)/src/VBox/GuestHost/installation/VBoxWinDrvStore.cpp
+VBoxInstallHelper_INCS    += \
+	$(PATH_ROOT)/src/VBox/GuestHost/installation
 ifndef VBOX_OSE
  VBoxInstallHelper_SOURCES += \
  	internal/VBoxSerial.cpp

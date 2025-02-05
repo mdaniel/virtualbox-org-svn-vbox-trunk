@@ -38,6 +38,8 @@
 #include <iprt/string.h>
 #include <iprt/utf16.h>
 
+#include <VBox/GuestHost/VBoxWinDrvInst.h>
+#include <VBoxWinDrvCommon.h>
 #include "VBoxCommon.h"
 
 
@@ -205,3 +207,47 @@ UINT VBoxMsiSetPropDWORD(MSIHANDLE hMsi, const WCHAR *pwszName, DWORD dwVal)
     RTUtf16Printf(wszTemp, RT_ELEMENTS(wszTemp), "%u", dwVal);
     return VBoxMsiSetProp(hMsi, pwszName, wszTemp);
 }
+
+/**
+ * Queries a DWORD value from a Windows registry key, Unicode (wide char) version.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_FILE_NOT_FOUND if the value has not been found.
+ * @retval  VERR_WRONG_TYPE if the type (DWORD) of the value does not match.
+ * @retval  VERR_MISMATCH if the type sizes do not match.
+ * @param   hMsi                MSI handle to use.
+ * @param   hKey                Registry handle of key to query.
+ * @param   pwszName            Name of the value to query.
+ * @param   pdwValue            Where to return the actual value on success.
+ */
+int VBoxMsiRegQueryDWORDW(MSIHANDLE hMsi, HKEY hKey, LPCWSTR pwszName, DWORD *pdwValue)
+{
+    RT_NOREF(hMsi);
+
+    return VBoxWinDrvRegQueryDWORDW(hKey, pwszName, pdwValue);
+}
+
+/**
+ * Queries a DWORD value from a Windows registry key.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_FILE_NOT_FOUND if the value has not been found.
+ * @retval  VERR_WRONG_TYPE if the type (DWORD) of the value does not match.
+ * @retval  VERR_MISMATCH if the type sizes do not match.
+ * @param   hKey                Registry handle of key to query.
+ * @param   pszName             Name of the value to query.
+ * @param   pdwValue            Where to return the actual value on success.
+ */
+int VBoxMsiRegQueryDWORD(MSIHANDLE hMsi, HKEY hKey, const char *pszName, DWORD *pdwValue)
+{
+    PRTUTF16 pwszName;
+    int rc = RTStrToUtf16Ex(pszName, RTSTR_MAX, &pwszName, 0, NULL);
+    if (RT_SUCCESS(rc))
+    {
+        rc = VBoxMsiRegQueryDWORDW(hMsi, hKey, pwszName, pdwValue);
+        RTUtf16Free(pwszName);
+    }
+
+    return rc;
+}
+

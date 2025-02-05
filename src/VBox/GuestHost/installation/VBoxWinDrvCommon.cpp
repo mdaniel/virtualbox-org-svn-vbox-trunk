@@ -696,3 +696,68 @@ int VBoxWinDrvInstErrorFromWin32(unsigned uNativeCode)
     return rc;
 }
 
+/**
+ * Queries a DWORD value from a Windows registry key, Unicode (wide char) version.
+ *
+ * @returns IPRT status code.
+ * @retval  VERR_FILE_NOT_FOUND if the value has not been found.
+ * @retval  VERR_WRONG_TYPE if the type (DWORD) of the value does not match.
+ * @retval  VERR_MISMATCH if the type sizes do not match.
+ * @param   hKey                    Registry handle of key to query.
+ * @param   pwszName                Name of the value to query.
+ * @param   pdwValue                Where to return the actual value on success.
+ *
+ * @note    Taken from IPRT's rtSystemWinRegistryQueryDWORDW.
+ */
+int VBoxWinDrvRegQueryDWORDW(HKEY hKey, LPCWSTR pwszName, DWORD *pdwValue)
+{
+    int rc = VINF_SUCCESS;
+
+    DWORD cbType = sizeof(DWORD);
+    DWORD dwType = 0;
+    DWORD dwValue;
+    LONG lErr = RegQueryValueExW(hKey, pwszName, NULL, &dwType, (BYTE *)&dwValue, &cbType);
+    if (lErr == ERROR_SUCCESS)
+    {
+        if (cbType == sizeof(DWORD))
+        {
+            if (dwType == REG_DWORD)
+            {
+                *pdwValue = dwValue;
+            }
+            else
+                rc = VERR_WRONG_TYPE;
+        }
+        else
+            rc = VERR_MISMATCH;
+    }
+    else
+        rc = RTErrConvertFromWin32(lErr);
+
+    return rc;
+}
+
+/**
+ * Queries a DWORD value from a Windows registry key.
+ *
+ * @returns IPRT status code.
+ * @retval  VERR_FILE_NOT_FOUND if the value has not been found.
+ * @retval  VERR_WRONG_TYPE if the type (DWORD) of the value does not match.
+ * @retval  VERR_MISMATCH if the type sizes do not match.
+ * @param   hKey                    Registry handle of key to query.
+ * @param   pszName                 Name of the value to query.
+ * @param   pdwValue                Where to return the actual value on success.
+ */
+int VBoxWinDrvRegQueryDWORD(HKEY hKey, const char *pszName, DWORD *pdwValue)
+{
+    PRTUTF16 pwszName;
+    int rc = RTStrToUtf16Ex(pszName, RTSTR_MAX, &pwszName, 0, NULL);
+    if (RT_SUCCESS(rc))
+    {
+        rc = VBoxWinDrvRegQueryDWORDW(hKey, pwszName, pdwValue);
+        RTUtf16Free(pwszName);
+    }
+
+    return rc;
+}
+

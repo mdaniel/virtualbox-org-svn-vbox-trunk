@@ -759,16 +759,16 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             QPainterPath painterPath;
             painterPath.addRoundedRect(subRect, iPadding, iPadding);
             const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(110)
-                                          : backgroundColor.darker(105);
+                                          ? backgroundColor.lighter(220)
+                                          : backgroundColor.darker(140);
             pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
             pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
 
             /* Fill icon body: */
             pPainter->setClipPath(painterPath);
             const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(180)
-                                          : backgroundColor.darker(140);
+                                          ? backgroundColor.lighter(160)
+                                          : backgroundColor.darker(120);
             pPainter->fillRect(subRect, backgroundColor2);
         }
     }
@@ -907,16 +907,16 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     QPainterPath painterPath;
     painterPath.addRoundedRect(m_extraButtonRect, iPadding, iPadding);
     QColor backgroundColor1 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(110)
-                            : backgroundColor.darker(105);
+                            ? backgroundColor.lighter(220)
+                            : backgroundColor.darker(140);
     pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
     pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
 
     /* Fill button body: */
     pPainter->setClipPath(painterPath);
     QColor backgroundColor2 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(180)
-                            : backgroundColor.darker(140);
+                            ? backgroundColor.lighter(160)
+                            : backgroundColor.darker(120);
     pPainter->fillRect(m_extraButtonRect, backgroundColor2);
 
     /* Paint arrow: */

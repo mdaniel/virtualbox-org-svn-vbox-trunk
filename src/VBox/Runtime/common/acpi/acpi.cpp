@@ -504,7 +504,7 @@ static void rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszName)
             cSegments++;
     }
 
-    size_t cbReq = cSegments * 4 * sizeof(uint8_t);
+    uint32_t cbReq = cSegments * 4 * sizeof(uint8_t);
     if (cSegments == 2)
         cbReq++; /* DualName Prefix */
     else if (cSegments != 1)

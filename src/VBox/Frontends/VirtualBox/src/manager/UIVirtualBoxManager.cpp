@@ -2417,14 +2417,8 @@ void UIVirtualBoxManager::prepareMenuBar()
     {
         /* Make sure menu-bar fills own solid background: */
         menuBar()->setAutoFillBackground(true);
-# ifdef VBOX_WS_WIN
-        // WORKAROUND:
-        // On Windows we have to override Windows Vista style with style-sheet:
-        menuBar()->setStyleSheet(QString("QMenuBar { background-color: %1; }")
-                                        .arg(QApplication::palette().color(QPalette::Active, QPalette::Window).name(QColor::HexRgb)));
-# endif
     }
-#endif
+#endif /* !VBOX_WS_MAC */
 
     /* Create action-pool: */
     m_pActionPool = UIActionPool::create(UIType_ManagerUI);

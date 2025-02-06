@@ -247,6 +247,11 @@ private:
         static void paintText(QPainter *pPainter, QPoint point,
                               const QFont &font, QPaintDevice *pPaintDevice,
                               const QString &strText);
+
+#ifndef VBOX_WS_MAC
+        /** Returns a number shifter per 10% from @a i1 to @a i2. */
+        static int iShift30(int i1, int i2);
+#endif
     /** @} */
 
     /** @name Item stuff.

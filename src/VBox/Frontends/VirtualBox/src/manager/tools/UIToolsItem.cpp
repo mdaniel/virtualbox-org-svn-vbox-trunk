@@ -747,7 +747,16 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             /* Configure painter: */
             pPainter->setRenderHint(QPainter::Antialiasing, true);
             /* Acquire background color: */
-            const QColor backgroundColor = pal.color(QPalette::Window);
+#ifdef VBOX_WS_MAC
+            const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+#else /* !VBOX_WS_MAC */
+            const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
+            const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
+            const int iRed = iShift30(windowColor.red(), accentColor.red());
+            const int iGreen = iShift30(windowColor.green(), accentColor.green());
+            const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
+            const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
+#endif /* !VBOX_WS_MAC */
 
             /* Prepare icon sub-rect: */
             QRect subRect;
@@ -758,17 +767,29 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             /* Paint icon frame: */
             QPainterPath painterPath;
             painterPath.addRoundedRect(subRect, iPadding, iPadding);
+#ifdef VBOX_WS_MAC
             const QColor backgroundColor1 = uiCommon().isInDarkMode()
                                           ? backgroundColor.lighter(220)
                                           : backgroundColor.darker(140);
+#else /* !VBOX_WS_MAC */
+            const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                          ? backgroundColor.lighter(140)
+                                          : backgroundColor.darker(120);
+#endif /* !VBOX_WS_MAC */
             pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
             pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
 
             /* Fill icon body: */
             pPainter->setClipPath(painterPath);
+#ifdef VBOX_WS_MAC
             const QColor backgroundColor2 = uiCommon().isInDarkMode()
                                           ? backgroundColor.lighter(160)
                                           : backgroundColor.darker(120);
+#else /* !VBOX_WS_MAC */
+            const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                          ? backgroundColor.lighter(105)
+                                          : backgroundColor.darker(105);
+#endif /* !VBOX_WS_MAC */
             pPainter->fillRect(subRect, backgroundColor2);
         }
     }
@@ -895,7 +916,16 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     pPainter->setRenderHint(QPainter::Antialiasing, true);
     /* Acquire background color: */
     const QPalette pal = QApplication::palette();
-    QColor backgroundColor = pal.color(QPalette::Window);
+#ifdef VBOX_WS_MAC
+    const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+#else /* !VBOX_WS_MAC */
+    const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
+    const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
+    const int iRed = iShift30(windowColor.red(), accentColor.red());
+    const int iGreen = iShift30(windowColor.green(), accentColor.green());
+    const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
+    const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
+#endif /* !VBOX_WS_MAC */
 
     /* Prepare button sub-rect: */
     m_extraButtonRect.setWidth(iButtonWidth);
@@ -906,17 +936,29 @@ void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) c
     /* Paint button frame: */
     QPainterPath painterPath;
     painterPath.addRoundedRect(m_extraButtonRect, iPadding, iPadding);
-    QColor backgroundColor1 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(220)
-                            : backgroundColor.darker(140);
+#ifdef VBOX_WS_MAC
+    const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                  ? backgroundColor.lighter(220)
+                                  : backgroundColor.darker(140);
+#else /* !VBOX_WS_MAC */
+    const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                  ? backgroundColor.lighter(140)
+                                  : backgroundColor.darker(120);
+#endif /* !VBOX_WS_MAC */
     pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
     pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
 
     /* Fill button body: */
     pPainter->setClipPath(painterPath);
-    QColor backgroundColor2 = uiCommon().isInDarkMode()
-                            ? backgroundColor.lighter(160)
-                            : backgroundColor.darker(120);
+#ifdef VBOX_WS_MAC
+    const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                  ? backgroundColor.lighter(160)
+                                  : backgroundColor.darker(120);
+#else /* !VBOX_WS_MAC */
+    const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                  ? backgroundColor.lighter(105)
+                                  : backgroundColor.darker(105);
+#endif /* !VBOX_WS_MAC */
     pPainter->fillRect(m_extraButtonRect, backgroundColor2);
 
     /* Paint arrow: */
@@ -968,3 +1010,22 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     /* Restore painter: */
     pPainter->restore();
 }
+
+#ifndef VBOX_WS_MAC
+/* static */
+int UIToolsItem::iShift30(int i1, int i2)
+{
+    const int iMin = qMin(i1, i2);
+    const int iMax = qMax(i1, i2);
+    const int iDiff = iMax - iMin;
+    const int iDiff10 = iDiff * 0.3;
+
+    int iResult = 0;
+    if (i1 > i2)
+        iResult = i1 - iDiff10;
+    else
+        iResult = i1 + iDiff10;
+
+    return qMin(255, iResult);
+}
+#endif /* !VBOX_WS_MAC */

@@ -28,18 +28,11 @@
 <?if $(env.VBOX_WITH_NETFLT) = "yes" ?>
 
     <?if $(env.VBOX_SIGNING_MODE) != "none" ?>
-        <?if $(env.KBUILD_TARGET_ARCH) = "amd64" ?>
-            <Component Id="cp_NetLwfDriverCat_PreW10" Guid="cede9469-b1bc-4194-348f-8799485a6283" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (NOT VBOX_IS_WINDOWS_SUPPORTED)">
-                <!-- Note: ShortName is required to avoid naming collisions the the MSI file table. -->
-                <File Id="file_VBoxNetLwf_PreW10.cat" ShortName="NetLwf1.cat" Name="VBoxNetLwf.cat" Source="$(env.PATH_OUT)\bin\VBoxNetLwf-PreW10.cat" />
-            </Component>
-        <?endif?>
-        <Component Id="cp_NetLwfDriverCat_W10" Guid="0932500d-4d45-4d79-8693-3192528d7cae" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;) AND (VBOX_IS_WINDOWS_SUPPORTED)">
+        <Component Id="cp_NetLwfDriverCat_W10" Guid="0932500d-4d45-4d79-8693-3192528d7cae" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;)">
             <!-- Note: ShortName is required to avoid naming collisions the the MSI file table. -->
             <File Id="file_VBoxNetLwf_W10.cat" ShortName="NetLwf2.cat" Name="VBoxNetLwf.cat" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetLwf.cat" />
         </Component>
     <?endif?>
-
     <Component Id="cp_NetLwfDriver" Guid="831b909d-f09a-4281-b6b0-99393fa4769d" Bitness="$(var.Property_Bitness)" Condition="(NETWORKTYPE=&quot;NDIS6&quot;)">
         <File Id="file_VBoxNetLwf.sys" Name="VBoxNetLwf.sys" KeyPath="yes" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetLwf.sys" Checksum="yes" />
         <File Id="file_VBoxNetLwf.inf" Name="VBoxNetLwf.inf" Source="$(env.VBOX_PATH_ATTESTATION_SIGNED)\VBoxNetLwf.inf" />

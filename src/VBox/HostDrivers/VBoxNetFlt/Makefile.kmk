@@ -153,10 +153,6 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys \
    	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat
    #	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwfNobj.dll
-   VBoxNetLwf-inf_SOURCES.win.x86 += \
-   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
-   VBoxNetLwf-inf_SOURCES.win.amd64 += \
-   	$(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.cat=>VBoxNetLwf-PreW10.cat
 
    $(PATH_TARGET)/VBoxNetLwfCat.dir/VBoxNetLwf.sys: $$(VBoxNetLwf_1_TARGET) | $$(dir $$@)
 	$(INSTALL) -m 644 $< $(@D)
@@ -353,4 +349,3 @@ ifeq ($(KBUILD_TARGET),freebsd)
 endif # freebsd
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

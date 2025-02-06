@@ -155,10 +155,6 @@ ifeq ($(KBUILD_TARGET),win)
    VBoxNetAdp6-inf_SOURCES += \
    	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.sys \
    	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat
-   VBoxNetAdp6-inf_SOURCES.win.x86 += \
-   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat=>VBoxNetAdp6-PreW10.cat
-   VBoxNetAdp6-inf_SOURCES.win.amd64 += \
-   	$(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.cat=>VBoxNetAdp6-PreW10.cat
 
    $(PATH_TARGET)/VBoxNetAdp6Cat.dir/VBoxNetAdp6.sys: $$(VBoxNetAdp6_1_TARGET) | $$(dir $$@)
 	$(INSTALL) -m 644 $< $(@D)

@@ -67,8 +67,8 @@
     <String Id="UsedByOtherApp" Value="Il a été détecté une application qui utilise la version de VirtualBox actuellement installée. Vous devez supprimer cette application avant de poursuivre l'installation. Voir le fichier dependency.dep dans le répertoire d'installation de VirtualBox pour plus de détails." />
     <String Id="NeedAdmin" Value="Vous ne pouvez pas (dés)installer [ProductName] sans droits d'administrateur! Ce programme d'installation terminera maintenant." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
-    <String Id="WrongOS" Value="Cette application nécéssite Windows 10 ou plus récent." />
-    <String Id="Only64Bit" Value="Cette application ne marche que sur des systèmes Windows 64-bit. Veuillez installer la version 32-bit de [ProductName]!" />
+    <String Id="WrongOS" Value="[ProductName] nécéssite Windows 10 ou plus récent." />
+    <String Id="Only64Bit" Value="[ProductName] ne marche que sur des systèmes Windows 64-bit." />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
 	<String Id="InnotekFound" Value="Vous avez une ancienne installation de innotek VirtualBox sur cette machine. Il vous faudra la désinstaller avant de pouvoir installer [ProductName]." />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />

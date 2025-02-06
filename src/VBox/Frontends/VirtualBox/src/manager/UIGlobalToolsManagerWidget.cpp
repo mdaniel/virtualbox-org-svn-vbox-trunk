@@ -219,9 +219,7 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
     {
         /* Configure layout: */
         m_pLayout->setContentsMargins(0, 0, 0, 0);
-#ifdef VBOX_WS_MAC
         m_pLayout->setSpacing(0);
-#endif
 
         /* Create tool-menu: */
         m_pMenu = new UITools(this, UIToolClass_Global, actionPool(), Qt::Widget);

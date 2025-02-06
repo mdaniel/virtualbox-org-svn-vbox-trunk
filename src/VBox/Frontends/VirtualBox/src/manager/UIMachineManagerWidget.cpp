@@ -399,8 +399,8 @@ void UIMachineManagerWidget::prepareWidgets()
     if (pLayout)
     {
         /* Configure layout: */
-        pLayout->setSpacing(0);
         pLayout->setContentsMargins(0, 0, 0, 0);
+        pLayout->setSpacing(0);
 
         /* Create splitter: */
         m_pSplitter = new QISplitter;

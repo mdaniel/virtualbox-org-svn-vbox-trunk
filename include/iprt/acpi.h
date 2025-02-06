@@ -487,7 +487,7 @@ typedef enum RTACPISTMT
     /** Decrement(TermArg) statement. */
     kAcpiStmt_Decrement,
     /** CondRefOf(TermArg, Target) statement. */
-    kAcpiStmt_CondRefOf,
+    kAcpiStmt_CondRefOf
 } RTACPISTMT;
 
 

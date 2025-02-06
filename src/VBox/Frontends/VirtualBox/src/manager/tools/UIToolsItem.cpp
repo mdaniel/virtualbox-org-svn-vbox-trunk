@@ -289,7 +289,7 @@ int UIToolsItem::minimumWidthHint() const
     /* Two margins: */
     iProposedWidth += 2 * iMargin;
     if (!model()->tools()->isPopup())
-        iProposedWidth += 2 * iMargin;
+        iProposedWidth += 3 * iMargin;
     /* And Tools-item content to take into account: */
     int iToolsItemWidth = m_pixmapSize.width();
     if (   model()->tools()->isPopup()
@@ -753,7 +753,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             QRect subRect;
             subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
             subRect.setWidth(subRect.height());
-            subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(2.5 * iMargin - iPadding, iMargin - iPadding));
 
             /* Paint icon frame: */
             QPainterPath painterPath;
@@ -849,7 +849,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     /* Paint left column: */
     {
         /* Prepare variables: */
-        const int iPixmapX = model()->tools()->isPopup() ? iMargin : 2 * iMargin;
+        const int iPixmapX = model()->tools()->isPopup() ? iMargin : 2.5 * iMargin;
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
         paintPixmap(/* Painter: */
@@ -864,7 +864,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
         const int iNameX = model()->tools()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
-                                                       : 2 * iMargin + m_pixmapSize.width() + iSpacing;
+                                                       : 2.5 * iMargin + m_pixmapSize.width() + iSpacing;
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name (always for popup mode, if requested otherwise): */
         if (   model()->tools()->isPopup()

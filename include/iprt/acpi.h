@@ -772,7 +772,7 @@ typedef enum RTACPIOBJTYPE
     /** Buffer field object - BuffFieldObj */
     kAcpiObjType_BuffField,
     /** Processor object - ProcessorObj */
-    kAcpiObjType_Processor,
+    kAcpiObjType_Processor
 } RTACPIOBJTYPE;
 
 

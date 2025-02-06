@@ -228,6 +228,12 @@ void UIToolsView::preparePalette()
 
     /* Assing changed palette: */
     setPalette(pal);
+#ifdef VBOX_WS_WIN
+    // WORKAROUND:
+    // New Windows Modern look&feel style have different palettes for view
+    // and viewport, so we are assigning viewport palette as well.
+    viewport()->setPalette(pal);
+#endif
 }
 
 void UIToolsView::resizeEvent(QResizeEvent *pEvent)

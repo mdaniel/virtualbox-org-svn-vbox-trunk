@@ -507,7 +507,15 @@ static DECLCALLBACK(int) vusbPDMHubDetachDevice(PPDMDRVINS pDrvIns, PPDMUSBINS p
      * (anything but reset)
      */
     vusbDevSetStateCmp(pDev, VUSB_DEVICE_STATE_DEFAULT, VUSB_DEVICE_STATE_RESET);
-    vusbHubDetach(pThis, pDev);
+    /*
+     * USB Devices that do not support state saving get detached during save prep step.
+     * We do not want to re-attach these back if VM gets shut down, which means that
+     * they will be in detached state when PDMR3Term gets called, and it will try to
+     * detach these again. Prevent detaching the same device twice!
+     * See @bugref for details.
+     */
+    if (vusbDevGetState(pDev) != VUSB_DEVICE_STATE_DETACHED)
+        vusbHubDetach(pThis, pDev);
     vusbDevRelease(pDev, "vusbPDMHubDetachDevice");
     return VINF_SUCCESS;
 }
@@ -1407,8 +1415,9 @@ static DECLCALLBACK(int) vusbR3RhSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
 
                 /*
                  * Save the device pointers here so we can reattach them afterwards.
-                 * This will work fine even if the save fails since the Done handler is
-                 * called unconditionally if the Prep handler was called.
+                 * Note that the actual reattaching happens in the Resume handler, not
+                 * in the Done handler, because memory writes are still disallowed when
+                 * the Done handler is called.
                  */
                 Assert(!pThis->apDevByPort[i]);
                 pThis->apDevByPort[i] = pDev;
@@ -1417,43 +1426,6 @@ static DECLCALLBACK(int) vusbR3RhSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
         }
     }
 
-    return VINF_SUCCESS;
-}
-
-
-/**
- * @callback_method_impl{FNSSMDRVSAVEDONE}
- */
-static DECLCALLBACK(int) vusbR3RhSaveDone(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
-{
-    PVUSBROOTHUB pThis = PDMINS_2_DATA(pDrvIns, PVUSBROOTHUB);
-    PVUSBDEV     aPortsOld[VUSB_DEVICES_MAX];
-    unsigned     i;
-    LogFlow(("vusbR3RhSaveDone:\n"));
-    RT_NOREF(pSSM);
-
-    /* Save the current data. */
-    memcpy(aPortsOld, pThis->apDevByPort, sizeof(aPortsOld));
-    AssertCompile(sizeof(aPortsOld) == sizeof(pThis->apDevByPort));
-
-    /*
-     * NULL the dev pointers.
-     */
-    for (i = 0; i < RT_ELEMENTS(pThis->apDevByPort); i++)
-        if (pThis->apDevByPort[i] && !VUSBIDevIsSavedStateSupported(&pThis->apDevByPort[i]->IDevice))
-            pThis->apDevByPort[i] = NULL;
-
-    /*
-     * Attach the devices.
-     */
-    for (i = 0; i < RT_ELEMENTS(pThis->apDevByPort); i++)
-    {
-        PVUSBDEV pDev = aPortsOld[i];
-        if (pDev && !VUSBIDevIsSavedStateSupported(&pDev->IDevice))
-            vusbHubAttach(pThis, pDev);
-    }
-
-    ASMAtomicXchgBool(&pThis->fSavingState, false);
     return VINF_SUCCESS;
 }
 
@@ -1593,6 +1565,45 @@ static DECLCALLBACK(void *) vusbRhQueryInterface(PPDMIBASE pInterface, const cha
 
 
 /* -=-=-=-=-=- PDM Driver methods -=-=-=-=-=- */
+
+
+/**
+ * @interface_method_impl{PDMDRVREG,pfnResume}
+ */
+static DECLCALLBACK(void) vusbRhResume(PPDMDRVINS pDrvIns)
+{
+    VMRESUMEREASON enmReason = PDMDrvHlpVMGetResumeReason(pDrvIns);
+
+    LogFlowFunc(("enmReason=%u\n", enmReason));
+    if (enmReason == VMRESUMEREASON_STATE_SAVED)
+    {
+        PVUSBROOTHUB pThis = PDMINS_2_DATA(pDrvIns, PVUSBROOTHUB);
+        PVUSBDEV     aPortsOld[VUSB_DEVICES_MAX];
+        unsigned     i;
+        /* Save the current data. */
+        memcpy(aPortsOld, pThis->apDevByPort, sizeof(aPortsOld));
+        AssertCompile(sizeof(aPortsOld) == sizeof(pThis->apDevByPort));
+        Assert(ASMAtomicReadBool(&pThis->fSavingState));
+
+        /*
+        * NULL the dev pointers.
+        */
+        for (i = 0; i < RT_ELEMENTS(pThis->apDevByPort); i++)
+            if (pThis->apDevByPort[i] && !VUSBIDevIsSavedStateSupported(&pThis->apDevByPort[i]->IDevice))
+                pThis->apDevByPort[i] = NULL;
+
+        /*
+        * Attach the devices.
+        */
+        for (i = 0; i < RT_ELEMENTS(pThis->apDevByPort); i++)
+        {
+            PVUSBDEV pDev = aPortsOld[i];
+            if (pDev && !VUSBIDevIsSavedStateSupported(&pDev->IDevice))
+                vusbHubAttach(pThis, pDev);
+        }
+        ASMAtomicXchgBool(&pThis->fSavingState, false);
+    }
+}
 
 
 /**
@@ -1756,7 +1767,7 @@ static DECLCALLBACK(int) vusbRhConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
      */
     rc = PDMDrvHlpSSMRegisterEx(pDrvIns, VUSB_ROOTHUB_SAVED_STATE_VERSION, 0,
                                 NULL, NULL, NULL,
-                                vusbR3RhSavePrep, NULL, vusbR3RhSaveDone,
+                                vusbR3RhSavePrep, NULL, NULL /* see vusbRhResume */,
                                 vusbR3RhLoadPrep, NULL, vusbR3RhLoadDone);
     AssertRCReturn(rc, rc);
 
@@ -1935,7 +1946,7 @@ const PDMDRVREG g_DrvVUSBRootHub =
     /* pfnSuspend */
     NULL,
     /* pfnResume */
-    NULL,
+    vusbRhResume,
     /* pfnAttach */
     NULL,
     /* pfnDetach */

@@ -210,6 +210,8 @@ void UIToolsView::preparePalette()
     /* Setup palette: */
     QPalette pal = qApp->palette();
 
+#if defined(VBOX_WS_MAC)
+
     /* We are just taking the [in]active Window colors and
      * making them a bit darker/lighter according to theme: */
     QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
@@ -225,6 +227,40 @@ void UIToolsView::preparePalette()
     }
     pal.setColor(QPalette::Active, QPalette::Base, backgroundColorActive);
     pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColorInactive);
+
+#else /* !VBOX_WS_MAC */
+
+    if (tools()->isPopup())
+    {
+        /* Same as on macOS for now, will go away soon: */
+        QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
+        QColor backgroundColorInactive = pal.color(QPalette::Inactive, QPalette::Window);
+        if (!tools()->isPopup())
+        {
+            backgroundColorActive = uiCommon().isInDarkMode()
+                                  ? backgroundColorActive.lighter(120)
+                                  : backgroundColorActive.darker(108);
+            backgroundColorInactive = uiCommon().isInDarkMode()
+                                    ? backgroundColorInactive.lighter(120)
+                                    : backgroundColorInactive.darker(108);
+        }
+        pal.setColor(QPalette::Active, QPalette::Base, backgroundColorActive);
+        pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColorInactive);
+    }
+    else
+    {
+        /* Blending Window color to 10% of Accent color: */
+        const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+        const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
+        const int iRed = iShift10(backgroundColor.red(), accentColor.red());
+        const int iGreen = iShift10(backgroundColor.green(), accentColor.green());
+        const int iBlue = iShift10(backgroundColor.blue(), accentColor.blue());
+        const QColor blendColor = QColor(qRgb(iRed, iGreen, iBlue));
+        pal.setColor(QPalette::Active, QPalette::Base, blendColor);
+        pal.setColor(QPalette::Inactive, QPalette::Base, blendColor);
+    }
+
+#endif /* !VBOX_WS_MAC */
 
     /* Assing changed palette: */
     setPalette(pal);
@@ -248,3 +284,22 @@ void UIToolsView::updateSceneRect()
 {
     setSceneRect(0, 0, m_iMinimumWidthHint, m_iMinimumHeightHint);
 }
+
+#ifndef VBOX_WS_MAC
+/* static */
+int UIToolsView::iShift10(int i1, int i2)
+{
+    const int iMin = qMin(i1, i2);
+    const int iMax = qMax(i1, i2);
+    const int iDiff = iMax - iMin;
+    const int iDiff10 = iDiff * 0.1;
+
+    int iResult = 0;
+    if (i1 > i2)
+        iResult = i1 - iDiff10;
+    else
+        iResult = i1 + iDiff10;
+
+    return qMin(255, iResult);
+}
+#endif /* VBOX_WS_WIN */

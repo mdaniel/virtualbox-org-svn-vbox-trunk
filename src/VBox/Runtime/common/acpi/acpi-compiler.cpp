@@ -89,6 +89,7 @@ typedef enum RTACPIASLTERMINAL
     RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ,
     RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ,
     RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ,
     RTACPIASLTERMINAL_KEYWORD_SERIALIZED,
     RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED,
     RTACPIASLTERMINAL_KEYWORD_SYSTEM_IO,
@@ -287,6 +288,7 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("OR"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Or                                },
     { RT_STR_TUPLE("XOR"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Xor                               },
     { RT_STR_TUPLE("NOT"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Not                               },
+    { RT_STR_TUPLE("NOTIFY"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Notify                            },
 
     /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
@@ -304,6 +306,7 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("POWERRESOBJ"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ          },
     { RT_STR_TUPLE("THERMALZONEOBJ"),           RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ       },
     { RT_STR_TUPLE("BUFFFIELDOBJ"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ         },
+    { RT_STR_TUPLE("PROCESSOROBJ"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ          },
 
     { RT_STR_TUPLE("SERIALIZED"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SERIALIZED             },
     { RT_STR_TUPLE("NOTSERIALIZED"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_NOT_SERIALIZED         },
@@ -488,6 +491,8 @@ static DECLCALLBACK(int) rtAcpiAslLexerParseNameString(RTSCRIPTLEX hScriptLex, c
         ch = RTScriptLexGetCh(hScriptLex);
         if (ch != '.')
             break;
+        aszIde[idx++] = '.';
+        RTScriptLexConsumeCh(hScriptLex);
     }
 
     if (idx == sizeof(aszIde) - 1)
@@ -759,6 +764,7 @@ static const RTACPIASLTERMINAL g_aenmObjTypeKeywords[] = {
     RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ,
     RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ,
     RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ,
+    RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ,
     RTACPIASLTERMINAL_INVALID
 };
 
@@ -872,6 +878,7 @@ static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIA
                 case RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_PowerRes; break;
                 case RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ: pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_ThermalZone; break;
                 case RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ:   pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_BuffField; break;
+                case RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Processor; break;
                 default:
                     AssertFailedReturn(VERR_INTERNAL_ERROR);
             }
@@ -1238,6 +1245,38 @@ static DECLCALLBACK(int) rtAcpiTblAslParsePackageOrBuffer(PRTACPIASLCU pThis, PC
     return VINF_SUCCESS;
 }
 
+
+static DECLCALLBACK(int) rtAcpiTblAslParseReturn(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+{
+    RT_NOREF(pKeyword);
+
+    pAstNd->aArgs[0].enmType = kAcpiAstArgType_AstNode;
+    pAstNd->aArgs[0].u.pAstNd = NULL;
+
+    /*
+     * Return has three valid forms:
+     *    Return
+     *    Return ()
+     *    Return (TermArg)
+     */
+    if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET))
+    {
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip the "(" */
+
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+        {
+            PRTACPIASTNODE pAstNdSize = NULL;
+            int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNdSize);
+            if (RT_FAILURE(rc))
+                return rc;
+            pAstNd->aArgs[0].u.pAstNd = pAstNdSize;
+        }
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+    }
+
+    return VINF_SUCCESS;
+}
+
 #define RTACPI_ASL_KEYWORD_DEFINE_INVALID \
     { \
         NULL, NULL, 0, 0, RTACPI_AST_NODE_F_DEFAULT, \
@@ -1414,7 +1453,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",             RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",              RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Ones              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Ones",             RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Return",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Return",           rtAcpiTblAslParseReturn,  0, 1, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
     /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion",  RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Field             */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Field",            rtAcpiTblAslParseField,   4, 0, RTACPI_AST_NODE_F_DEFAULT),
@@ -1451,6 +1490,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Or                */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Or",               RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Xor               */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Xor",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Not               */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("Not",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Notify            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Notify",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
 
 };
 

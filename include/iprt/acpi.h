@@ -477,7 +477,9 @@ typedef enum RTACPISTMT
     /** Index(BuffPkgStrObj, IndexValue, Target) statement. */
     kAcpiStmt_Index,
     /** DerefOf(ObjReference) statement. */
-    kAcpiStmt_DerefOf
+    kAcpiStmt_DerefOf,
+    /** Store(SuperName, TermArg => Integer) statement. */
+    kAcpiStmt_Notify
 } RTACPISTMT;
 
 
@@ -768,7 +770,9 @@ typedef enum RTACPIOBJTYPE
     /** Thermal zone object - ThermalZoneObj */
     kAcpiObjType_ThermalZone,
     /** Buffer field object - BuffFieldObj */
-    kAcpiObjType_BuffField
+    kAcpiObjType_BuffField,
+    /** Processor object - ProcessorObj */
+    kAcpiObjType_Processor,
 } RTACPIOBJTYPE;
 
 

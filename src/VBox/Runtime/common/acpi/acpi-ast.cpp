@@ -389,7 +389,12 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
                             rc = VERR_INTERNAL_ERROR);
             rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl, kAcpiStmt_Return);
             if (RT_SUCCESS(rc))
-                rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
+            {
+                if (pAstNd->aArgs[0].u.pAstNd)
+                    rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
+                else
+                    rc = RTAcpiTblNullNameAppend(hAcpiTbl);
+            }
             break;
         }
         case kAcpiAstNodeOp_Unicode:
@@ -595,12 +600,16 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
             break;
         }
         case kAcpiAstNodeOp_Store:
+        case kAcpiAstNodeOp_Notify:
         {
             AssertBreakStmt(   pAstNd->cArgs == 2
                             && pAstNd->aArgs[0].enmType == kAcpiAstArgType_AstNode
                             && pAstNd->aArgs[1].enmType == kAcpiAstArgType_AstNode,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl, kAcpiStmt_Store);
+            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl,
+                                             pAstNd->enmOp == kAcpiAstNodeOp_Store
+                                           ? kAcpiStmt_Store
+                                           : kAcpiStmt_Notify);
             if (RT_SUCCESS(rc))
                 rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
             if (RT_SUCCESS(rc))

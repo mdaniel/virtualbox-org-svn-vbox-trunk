@@ -68,8 +68,8 @@
  */
 typedef struct RTACPITBLSTACKELEM
 {
-    /** Pointer to the table buffer memory where the PkgLength object starts. */
-    uint8_t                     *pbPkgLength;
+    /** Offset into the table buffer memory where the PkgLength object starts. */
+    uint32_t                    offPkgLength;
     /** Current size of the package in bytes, without the PkgLength object. */
     uint32_t                    cbPkg;
     /** The operator creating the package, UINT8_MAX denotes the special root operator. */
@@ -199,6 +199,7 @@ static uint8_t *rtAcpiTblBufEnsureSpace(PRTACPITBLINT pThis, uint32_t cbReq)
 
     pThis->pbTblBuf = pbNew;
     pThis->cbTblBuf = cbNew;
+    pThis->pHdr     = (PACPITBLHDR)pbNew;
 
     uint8_t *pb = &pThis->pbTblBuf[pThis->offTblBuf];
     pThis->offTblBuf += cbReq;
@@ -213,9 +214,9 @@ static uint8_t *rtAcpiTblBufEnsureSpace(PRTACPITBLINT pThis, uint32_t cbReq)
  * @retval VERR_NO_MEMORY if allocating additional resources to hold the new package failed.
  * @param pThis                 The ACPI table instance.
  * @param bOp                   The opcode byte the package starts with (for verification purposes when finalizing the package).
- * @param pbPkgBuf              The Start of the package buffer.
+ * @param offPkgBuf             Offset of the start of the package buffer.
  */
-static int rtAcpiTblPkgAppendEx(PRTACPITBLINT pThis, uint8_t bOp, uint8_t *pbPkgBuf)
+static int rtAcpiTblPkgAppendEx(PRTACPITBLINT pThis, uint8_t bOp, uint32_t offPkgBuf)
 {
     /* Get a new stack element. */
     if (pThis->idxPkgStackElem + 1 == pThis->cPkgStackElems)
@@ -233,9 +234,9 @@ static int rtAcpiTblPkgAppendEx(PRTACPITBLINT pThis, uint8_t bOp, uint8_t *pbPkg
     }
 
     PRTACPITBLSTACKELEM pStackElem = &pThis->paPkgStack[++pThis->idxPkgStackElem];
-    pStackElem->pbPkgLength = pbPkgBuf;
-    pStackElem->cbPkg       = 0;
-    pStackElem->bOp         = bOp;
+    pStackElem->offPkgLength = offPkgBuf;
+    pStackElem->cbPkg        = 0;
+    pStackElem->bOp          = bOp;
     return VINF_SUCCESS;
 }
 
@@ -267,7 +268,7 @@ static int rtAcpiTblPkgStart(PRTACPITBLINT pThis, uint8_t bOp)
      * the PkgLength object's final length will be added in rtAcpiTblPkgFinish().
      */
     rtAcpiTblUpdatePkgLength(pThis, sizeof(bOp));
-    return rtAcpiTblPkgAppendEx(pThis, bOp, pbPkg + 1);
+    return rtAcpiTblPkgAppendEx(pThis, bOp, (pbPkg + 1) - pThis->pbTblBuf);
 }
 
 
@@ -301,7 +302,7 @@ static int rtAcpiTblPkgStartExt(PRTACPITBLINT pThis, uint8_t bOp)
      * the PkgLength object's final length will be added in rtAcpiTblPkgFinish().
      */
     rtAcpiTblUpdatePkgLength(pThis, sizeof(uint8_t) + sizeof(bOp));
-    return rtAcpiTblPkgAppendEx(pThis, bOp, pbPkg + 2);
+    return rtAcpiTblPkgAppendEx(pThis, bOp, (pbPkg + 2) - pThis->pbTblBuf);
 }
 
 
@@ -328,7 +329,7 @@ static int rtAcpiTblPkgFinish(PRTACPITBLINT pThis, uint8_t bOp)
      *
      * Note! PkgLength will also include its own length.
      */
-    uint8_t  *pbPkgLength = pPkgElem->pbPkgLength;
+    uint8_t  *pbPkgLength = &pThis->pbTblBuf[pPkgElem->offPkgLength];
     uint32_t cbThisPkg    = pPkgElem->cbPkg;
     if (cbThisPkg + 1 <= 63)
     {
@@ -435,22 +436,111 @@ DECLINLINE(void) rtAcpiTblAppendData(PRTACPITBLINT pThis, const void *pvData, ui
 
 
 /**
+ * Appends the given name segment to the destination padding the segment with '_' if the
+ * name segment is shorter than 4 characters.
+ *
+ * @returns Pointer to the character after the given name segment.
+ * @param   pbDst               Where to store the name segment.
+ * @param   pachNameSeg         The name segment to append.
+ */
+DECLINLINE(const char *) rtAcpiTblAppendNameSeg(uint8_t *pbDst, const char *pachNameSeg)
+{
+    Assert(pachNameSeg[0] != '.' && pachNameSeg[0] != '\0');
+
+    uint8_t cch = 1;
+    pbDst[0] = pachNameSeg[0];
+
+    for (uint8_t i = 1; i < 4; i++)
+    {
+        if (   pachNameSeg[cch] != '.'
+            && pachNameSeg[cch] != '\0')
+        {
+            pbDst[i] = pachNameSeg[cch];
+            cch++;
+        }
+        else
+            pbDst[i] = '_';
+    }
+
+    return &pachNameSeg[cch];
+}
+
+
+/**
  * Appends the given namestring to the ACPI table, updating the package length of the current package
  * and padding the name with _ if too short.
  *
  * @param pThis                 The ACPI table instance.
- * @param pszName               The name to append, maximum is 4 bytes (or 5 if \\ is the first character).
- *
- * @todo This is completely wrong with how name strings are working.
+ * @param pszName               The name string to append.
  */
-DECLINLINE(void) rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszName)
+static void rtAcpiTblAppendNameString(PRTACPITBLINT pThis, const char *pszName)
 {
-    uint32_t cbName = *pszName == '\\' ? 5 : 4;
-    uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, cbName);
+    if (*pszName == '\\')
+    {
+        /* Root prefix. */
+        rtAcpiTblAppendByte(pThis, '\\');
+        pszName++;
+    }
+    else if (*pszName == '^')
+    {
+        /* PrefixPath */
+        do
+        {
+            rtAcpiTblAppendByte(pThis, '^');
+            pszName++;
+        }
+        while (*pszName == '^');
+    }
+
+    /*
+     * We need to count the number of segments to decide whether a
+     * NameSeg, DualNamePath or MultiNamePath is needed.
+     */
+    uint8_t cSegments = 1;
+    const char *pszTmp = pszName;
+    while (*pszTmp != '\0')
+    {
+        if (*pszTmp++ == '.')
+            cSegments++;
+    }
+
+    size_t cbReq = cSegments * 4 * sizeof(uint8_t);
+    if (cSegments == 2)
+        cbReq++; /* DualName Prefix */
+    else if (cSegments != 1)
+        cbReq += 2; /* MultiName prefix + segment count */
+    uint8_t *pb = rtAcpiTblBufEnsureSpace(pThis, cbReq);
     if (pb)
     {
-        rtAcpiTblCopyStringPadWith(pb, cbName, pszName, '_');
-        rtAcpiTblUpdatePkgLength(pThis, cbName);
+        if (cSegments == 1)
+        {
+            rtAcpiTblAppendNameSeg(pb, pszName);
+            rtAcpiTblUpdatePkgLength(pThis, 4);
+        }
+        else if (cSegments == 2)
+        {
+            *pb++ = ACPI_AML_BYTE_CODE_PREFIX_DUAL_NAME;
+            pszName = rtAcpiTblAppendNameSeg(pb, pszName);
+            pb += 4;
+            Assert(*pszName == '.');
+            pszName++;
+            pszName = rtAcpiTblAppendNameSeg(pb, pszName);
+            Assert(*pszName == '\0'); RT_NOREF(pszName);
+            rtAcpiTblUpdatePkgLength(pThis, 1 + 8);
+        }
+        else
+        {
+            *pb++ = ACPI_AML_BYTE_CODE_PREFIX_MULTI_NAME;
+            *pb++ = cSegments;
+            for (uint8_t i = 0; i < cSegments; i++)
+            {
+                pszName = rtAcpiTblAppendNameSeg(pb, pszName);
+                Assert(*pszName == '.' || *pszName == '\0');
+                pb += 4;
+                pszName++;
+            }
+            rtAcpiTblUpdatePkgLength(pThis, 2 + cSegments * 4);
+        }
     }
 }
 
@@ -586,7 +676,7 @@ RTDECL(int) RTAcpiTblCreate(PRTACPITBL phAcpiTbl, uint32_t u32TblSig, uint8_t bR
                 pThis->cPkgStackElems = cPkgElemsInitial;
 
                 PRTACPITBLSTACKELEM pStackElem = &pThis->paPkgStack[pThis->idxPkgStackElem];
-                pStackElem->pbPkgLength        = pThis->pbTblBuf; /* Starts with the header. */
+                pStackElem->offPkgLength       = 0; /* Starts with the header. */
                 pStackElem->cbPkg              = sizeof(*pThis->pHdr);
                 pStackElem->bOp                = UINT8_MAX;
 
@@ -1003,6 +1093,7 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Store:      bOp = ACPI_AML_BYTE_CODE_OP_STORE;       break;
         case kAcpiStmt_Index:      bOp = ACPI_AML_BYTE_CODE_OP_INDEX;       break;
         case kAcpiStmt_DerefOf:    bOp = ACPI_AML_BYTE_CODE_OP_DEREF_OF;    break;
+        case kAcpiStmt_Notify:     bOp = ACPI_AML_BYTE_CODE_OP_NOTIFY;      break;
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
@@ -1246,6 +1337,7 @@ RTDECL(int) RTAcpiTblExternalAppend(RTACPITBL hAcpiTbl, const char *pszName, RTA
         case kAcpiObjType_PowerRes:    bObjType = ACPI_AML_OBJECT_TYPE_POWER_RESOURCE; break;
         case kAcpiObjType_ThermalZone: bObjType = ACPI_AML_OBJECT_TYPE_THERMAL_ZONE; break;
         case kAcpiObjType_BuffField:   bObjType = ACPI_AML_OBJECT_TYPE_BUFFER_FIELD; break;
+        case kAcpiObjType_Processor:   bObjType = ACPI_AML_OBJECT_TYPE_PROCESSOR; break;
         default:
             pThis->rcErr = VERR_INVALID_PARAMETER;
             AssertFailedReturn(pThis->rcErr);

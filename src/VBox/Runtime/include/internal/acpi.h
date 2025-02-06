@@ -164,6 +164,7 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_Or,
     kAcpiAstNodeOp_Xor,
     kAcpiAstNodeOp_Not,
+    kAcpiAstNodeOp_Notify,
     kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
 } RTACPIASTNODEOP;
 

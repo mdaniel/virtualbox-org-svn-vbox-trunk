@@ -2010,10 +2010,10 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
         /* else not fatal. */
 
         vboxWinDrvInstLogInfo(pCtx, VBOX_PRODUCT " Version " VBOX_VERSION_STRING " - r%s", RTBldCfgRevisionStr());
-        vboxWinDrvInstLogInfo(pCtx, "Detected Windows version %d.%d.%d (%s)", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
-                                                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
-                                                                              RTSYSTEM_NT_VERSION_GET_BUILD(pCtx->uOsVer),
-                                                                              RTBldCfgTargetArch());
+        vboxWinDrvInstLogInfo(pCtx, "Using Windows version %d.%d.%d (%s)", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                                                           RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
+                                                                           RTSYSTEM_NT_VERSION_GET_BUILD(pCtx->uOsVer),
+                                                                           RTBldCfgTargetArch());
 
         rc = RTOnce(&g_vboxWinDrvInstResolveOnce, vboxWinDrvInstResolveOnce, pCtx);
         if (RT_SUCCESS(rc))
@@ -2113,8 +2113,8 @@ void VBoxWinDrvInstSetOsVersion(VBOXWINDRVINST hDrvInst, uint64_t uOsVer)
 
     pCtx->uOsVer = uOsVer;
 
-    vboxWinDrvInstLogInfo(pCtx, "Set OS version to: %u.%u\n", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
-                                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer));
+    vboxWinDrvInstLogInfo(pCtx, "Set OS version to: %u.%u", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                                            RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer));
 }
 
 /**
@@ -2608,4 +2608,3 @@ void VBoxWinDrvInstTestParmsDestroy(PVBOXWINDRVINSTPARMS pParms)
     vboxWinDrvInstParmsDestroy(pParms);
 }
 #endif /* TESTCASE */
-

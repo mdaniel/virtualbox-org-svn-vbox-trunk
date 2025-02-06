@@ -289,6 +289,12 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("XOR"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Xor                               },
     { RT_STR_TUPLE("NOT"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Not                               },
     { RT_STR_TUPLE("NOTIFY"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Notify                            },
+    { RT_STR_TUPLE("SIZEOF"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_SizeOf                            },
+    { RT_STR_TUPLE("WHILE"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_While                             },
+    { RT_STR_TUPLE("INCREMENT"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Increment                         },
+    { RT_STR_TUPLE("DECREMENT"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Decrement                         },
+    { RT_STR_TUPLE("CONDREFOF"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CondRefOf                         },
+    { RT_STR_TUPLE("INDEXFIELD"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_IndexField                        },
 
     /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
@@ -1068,60 +1074,81 @@ static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd
 }
 
 
-static DECLCALLBACK(int) rtAcpiTblAslParseField(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+static DECLCALLBACK(int) rtAcpiTblAslParseFieldOrIndexField(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
 {
     RT_NOREF(pKeyword);
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
 
+    uint8_t idxArg = 0;
+
+    if (pKeyword->cArgsReq == 5)
+    {
+        /* This is an IndexField. */
+
+        /* Namestring is required. */
+        RTACPIASL_PARSE_NAME_STRING(pszNameString);
+        pAstNd->aArgs[idxArg].enmType         = kAcpiAstArgType_NameString;
+        pAstNd->aArgs[idxArg].u.pszNameString = pszNameString;
+        idxArg++;
+
+        RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    }
+    else /* Field */
+        Assert(pKeyword->cArgsReq == 4);
+
     /* Namestring is required. */
     RTACPIASL_PARSE_NAME_STRING(pszNameString);
-    pAstNd->aArgs[0].enmType         = kAcpiAstArgType_NameString;
-    pAstNd->aArgs[0].u.pszNameString = pszNameString;
+    pAstNd->aArgs[idxArg].enmType         = kAcpiAstArgType_NameString;
+    pAstNd->aArgs[idxArg].u.pszNameString = pszNameString;
+    idxArg++;
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
 
     /* Must have an access type defined. */
     RTACPIASL_PARSE_KEYWORD_LIST(enmAccessType, g_aenmAccessTypeKeywords);
-    pAstNd->aArgs[1].enmType = kAcpiAstArgType_FieldAcc;
+    pAstNd->aArgs[idxArg].enmType = kAcpiAstArgType_FieldAcc;
     switch (enmAccessType)
     {
-        case RTACPIASLTERMINAL_KEYWORD_ANY_ACC:    pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Any;    break;
-        case RTACPIASLTERMINAL_KEYWORD_BYTE_ACC:   pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Byte;   break;
-        case RTACPIASLTERMINAL_KEYWORD_WORD_ACC:   pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Word;   break;
-        case RTACPIASLTERMINAL_KEYWORD_DWORD_ACC:  pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_DWord;  break;
-        case RTACPIASLTERMINAL_KEYWORD_QWORD_ACC:  pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_QWord;  break;
-        case RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC: pAstNd->aArgs[1].u.enmFieldAcc = kAcpiFieldAcc_Buffer; break;
+        case RTACPIASLTERMINAL_KEYWORD_ANY_ACC:    pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_Any;    break;
+        case RTACPIASLTERMINAL_KEYWORD_BYTE_ACC:   pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_Byte;   break;
+        case RTACPIASLTERMINAL_KEYWORD_WORD_ACC:   pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_Word;   break;
+        case RTACPIASLTERMINAL_KEYWORD_DWORD_ACC:  pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_DWord;  break;
+        case RTACPIASLTERMINAL_KEYWORD_QWORD_ACC:  pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_QWord;  break;
+        case RTACPIASLTERMINAL_KEYWORD_BUFFER_ACC: pAstNd->aArgs[idxArg].u.enmFieldAcc = kAcpiFieldAcc_Buffer; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }
+    idxArg++;
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
 
     /* Must have a lock rule defined. */
     RTACPIASL_PARSE_KEYWORD_LIST(enmLockRule, g_aenmLockRuleKeywords);
-    pAstNd->aArgs[2].enmType = kAcpiAstArgType_Bool;
+    pAstNd->aArgs[idxArg].enmType = kAcpiAstArgType_Bool;
     switch (enmLockRule)
     {
-        case RTACPIASLTERMINAL_KEYWORD_LOCK:    pAstNd->aArgs[2].u.f = true;  break;
-        case RTACPIASLTERMINAL_KEYWORD_NO_LOCK: pAstNd->aArgs[2].u.f = false; break;
+        case RTACPIASLTERMINAL_KEYWORD_LOCK:    pAstNd->aArgs[idxArg].u.f = true;  break;
+        case RTACPIASLTERMINAL_KEYWORD_NO_LOCK: pAstNd->aArgs[idxArg].u.f = false; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }
+    idxArg++;
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
 
     /* Must have an update rule defined. */
     RTACPIASL_PARSE_KEYWORD_LIST(enmUpdateRule, g_aenmUpdateRuleKeywords);
-    pAstNd->aArgs[3].enmType = kAcpiAstArgType_FieldUpdate;
+    pAstNd->aArgs[idxArg].enmType = kAcpiAstArgType_FieldUpdate;
     switch (enmUpdateRule)
     {
-        case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
-        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
-        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[3].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;
+        case RTACPIASLTERMINAL_KEYWORD_PRESERVE:        pAstNd->aArgs[idxArg].u.enmFieldUpdate = kAcpiFieldUpdate_Preserve;      break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES:   pAstNd->aArgs[idxArg].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsOnes;   break;
+        case RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES: pAstNd->aArgs[idxArg].u.enmFieldUpdate = kAcpiFieldUpdate_WriteAsZeroes; break;
         default:
             AssertFailedReturn(VERR_INTERNAL_ERROR);
     }
+    idxArg++;
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
 
@@ -1448,7 +1475,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",    RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",       RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNot",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("LNot",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",        RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",             RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",              RTACPI_AST_NODE_F_DEFAULT),
@@ -1456,7 +1483,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Return",           rtAcpiTblAslParseReturn,  0, 1, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
     /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion",  RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_Field             */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Field",            rtAcpiTblAslParseField,   4, 0, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_Field             */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Field",            rtAcpiTblAslParseFieldOrIndexField, 4, 0, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Name              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Name",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_ResourceTemplate  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "ResourceTemplate", rtAcpiTblAslParseResourceTemplate,  0, 0, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Arg0              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg0",             RTACPI_AST_NODE_F_DEFAULT),
@@ -1491,7 +1518,12 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Xor               */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_1OPT("Xor",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Not               */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("Not",              RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Notify            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Notify",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-
+    /* kAcpiAstNodeOp_SizeOf            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("SizeOf",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_While             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("While",            RTACPI_AST_NODE_F_NEW_SCOPE,  kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Increment         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Increment",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Decrement         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Decrement",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_CondRefOf         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("CondRefOf",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_IndexField        */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "IndexField",       rtAcpiTblAslParseFieldOrIndexField, 5, 0, RTACPI_AST_NODE_F_DEFAULT),
 };
 
 

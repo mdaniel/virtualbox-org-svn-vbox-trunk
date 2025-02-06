@@ -1076,6 +1076,7 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
 
     uint8_t bOp;
+    bool fExtOp = false;
     switch (enmStmt)
     {
         case kAcpiStmt_Return:     bOp = ACPI_AML_BYTE_CODE_OP_RETURN;      break;
@@ -1094,9 +1095,15 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Index:      bOp = ACPI_AML_BYTE_CODE_OP_INDEX;       break;
         case kAcpiStmt_DerefOf:    bOp = ACPI_AML_BYTE_CODE_OP_DEREF_OF;    break;
         case kAcpiStmt_Notify:     bOp = ACPI_AML_BYTE_CODE_OP_NOTIFY;      break;
+        case kAcpiStmt_SizeOf:     bOp = ACPI_AML_BYTE_CODE_OP_SIZE_OF;     break;
+        case kAcpiStmt_Increment:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
+        case kAcpiStmt_Decrement:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
+        case kAcpiStmt_CondRefOf:  bOp = ACPI_AML_BYTE_CODE_EXT_OP_COND_REF_OF; fExtOp = true; break;
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
+    if (fExtOp)
+        rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_PREFIX_EXT_OP);
     rtAcpiTblAppendByte(pThis, bOp);
     return pThis->rcErr;
 }
@@ -1137,6 +1144,25 @@ RTDECL(int) RTAcpiTblElseFinalize(RTACPITBL hAcpiTbl)
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
 
     return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_ELSE);
+}
+
+
+RTDECL(int) RTAcpiTblWhileStart(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblPkgStart(pThis, ACPI_AML_BYTE_CODE_OP_WHILE);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblWhileFinalize(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_WHILE);
 }
 
 

@@ -331,6 +331,26 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
             }
             break;
         }
+        case kAcpiAstNodeOp_While:
+        {
+            AssertBreakStmt(   pAstNd->cArgs == 1
+                            && pAstNd->aArgs[0].enmType == kAcpiAstArgType_AstNode,
+                            rc = VERR_INTERNAL_ERROR);
+            rc = RTAcpiTblWhileStart(hAcpiTbl);
+            if (RT_SUCCESS(rc))
+            {
+                /* Predicate. */
+                rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
+                if (RT_SUCCESS(rc))
+                {
+                    /* Walk all the other AST nodes. */
+                    rc = rtAcpiAstDumpAstList(&pAstNd->LstScopeNodes, hAcpiTbl);
+                    if (RT_SUCCESS(rc))
+                        rc = RTAcpiTblWhileFinalize(hAcpiTbl);
+                }
+            }
+            break;
+        }
         case kAcpiAstNodeOp_LAnd:
         case kAcpiAstNodeOp_LEqual:
         case kAcpiAstNodeOp_LGreater:
@@ -590,11 +610,28 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
             break;
         }
         case kAcpiAstNodeOp_DerefOf:
+        case kAcpiAstNodeOp_SizeOf:
+        case kAcpiAstNodeOp_Increment:
+        case kAcpiAstNodeOp_Decrement:
         {
             AssertBreakStmt(   pAstNd->cArgs == 1
                             && pAstNd->aArgs[0].enmType == kAcpiAstArgType_AstNode,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl, kAcpiStmt_DerefOf);
+
+            RTACPISTMT enmStmt;
+            switch (pAstNd->enmOp)
+            {
+                case kAcpiAstNodeOp_DerefOf:   enmStmt = kAcpiStmt_DerefOf;   break;
+                case kAcpiAstNodeOp_SizeOf:    enmStmt = kAcpiStmt_SizeOf;    break;
+                case kAcpiAstNodeOp_Increment: enmStmt = kAcpiStmt_Increment; break;
+                case kAcpiAstNodeOp_Decrement: enmStmt = kAcpiStmt_Decrement; break;
+                default:
+                    AssertReleaseFailed(); /* Impossible */
+                    return VERR_INTERNAL_ERROR;
+            }
+
+
+            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl, enmStmt);
             if (RT_SUCCESS(rc))
                 rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
             break;
@@ -617,12 +654,16 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, RTACPITBL hAcpiTbl)
             break;
         }
         case kAcpiAstNodeOp_Not:
+        case kAcpiAstNodeOp_CondRefOf:
         {
             AssertBreakStmt(   pAstNd->cArgs == 2
                             && pAstNd->aArgs[0].enmType == kAcpiAstArgType_AstNode
                             && pAstNd->aArgs[1].enmType == kAcpiAstArgType_AstNode,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl, kAcpiStmt_Store);
+            rc = RTAcpiTblStmtSimpleAppend(hAcpiTbl,
+                                             pAstNd->enmOp == kAcpiAstNodeOp_Not
+                                           ? kAcpiStmt_Not
+                                           : kAcpiStmt_CondRefOf);
             if (RT_SUCCESS(rc))
                 rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[0].u.pAstNd, hAcpiTbl);
             if (RT_SUCCESS(rc))

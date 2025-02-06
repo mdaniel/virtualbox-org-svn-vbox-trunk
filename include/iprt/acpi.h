@@ -479,7 +479,15 @@ typedef enum RTACPISTMT
     /** DerefOf(ObjReference) statement. */
     kAcpiStmt_DerefOf,
     /** Store(SuperName, TermArg => Integer) statement. */
-    kAcpiStmt_Notify
+    kAcpiStmt_Notify,
+    /** SizeOf(SuperName) statement. */
+    kAcpiStmt_SizeOf,
+    /** Increment(TermArg) statement. */
+    kAcpiStmt_Increment,
+    /** Decrement(TermArg) statement. */
+    kAcpiStmt_Decrement,
+    /** CondRefOf(TermArg, Target) statement. */
+    kAcpiStmt_CondRefOf,
 } RTACPISTMT;
 
 
@@ -527,6 +535,24 @@ RTDECL(int) RTAcpiTblElseStart(RTACPITBL hAcpiTbl);
  * @param   hAcpiTbl            The ACPI table handle.
  */
 RTDECL(int) RTAcpiTblElseFinalize(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Starts a new While statement operation.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblWhileStart(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Finalizes the current While statement operation.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblWhileFinalize(RTACPITBL hAcpiTbl);
 
 
 /**

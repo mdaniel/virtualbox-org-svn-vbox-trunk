@@ -134,9 +134,27 @@ namespace dxvk {
 
     // ID3D11View has no methods to query the exact type of
     // the view, so we'll have to check each possible class
+#if defined(VBOX) && defined(RT_OS_WINDOWS)
+    // Avoid RTTI/dynamic_cast
+    D3D11DepthStencilView* dsv = nullptr;
+    ID3D11DepthStencilView* pDSV;
+    if (SUCCEEDED(pResourceView->QueryInterface(__uuidof(ID3D11DepthStencilView), reinterpret_cast<void**>(&pDSV))))
+      dsv = reinterpret_cast<D3D11DepthStencilView*>(pDSV);
+
+    D3D11RenderTargetView* rtv = nullptr;
+    ID3D11RenderTargetView* pRTV;
+    if (SUCCEEDED(pResourceView->QueryInterface(__uuidof(ID3D11RenderTargetView), reinterpret_cast<void**>(&pRTV))))
+      rtv = reinterpret_cast<D3D11RenderTargetView*>(pRTV);
+
+    D3D11UnorderedAccessView* uav = nullptr;
+    ID3D11UnorderedAccessView* pUAV;
+    if (SUCCEEDED(pResourceView->QueryInterface(__uuidof(ID3D11UnorderedAccessView), reinterpret_cast<void**>(&pUAV))))
+      uav = reinterpret_cast<D3D11UnorderedAccessView*>(pUAV);
+#else
     auto dsv = dynamic_cast<D3D11DepthStencilView*>(pResourceView);
     auto rtv = dynamic_cast<D3D11RenderTargetView*>(pResourceView);
     auto uav = dynamic_cast<D3D11UnorderedAccessView*>(pResourceView);
+#endif
 
     Rc<DxvkImageView> view;
     if (dsv) view = dsv->GetImageView();
@@ -667,10 +685,33 @@ namespace dxvk {
 
     // ID3D11View has no methods to query the exact type of
     // the view, so we'll have to check each possible class
+#if defined(VBOX) && defined(RT_OS_WINDOWS)
+    // Avoid RTTI/dynamic_cast
+    D3D11DepthStencilView* dsv = nullptr;
+    ID3D11DepthStencilView* pDSV;
+    if (SUCCEEDED(pView->QueryInterface(__uuidof(ID3D11DepthStencilView), reinterpret_cast<void**>(&pDSV))))
+      dsv = reinterpret_cast<D3D11DepthStencilView*>(pDSV);
+
+    D3D11RenderTargetView* rtv = nullptr;
+    ID3D11RenderTargetView* pRTV;
+    if (SUCCEEDED(pView->QueryInterface(__uuidof(ID3D11RenderTargetView), reinterpret_cast<void**>(&pRTV))))
+      rtv = reinterpret_cast<D3D11RenderTargetView*>(pRTV);
+
+    D3D11UnorderedAccessView* uav = nullptr;
+    ID3D11UnorderedAccessView* pUAV;
+    if (SUCCEEDED(pView->QueryInterface(__uuidof(ID3D11UnorderedAccessView), reinterpret_cast<void**>(&pUAV))))
+      uav = reinterpret_cast<D3D11UnorderedAccessView*>(pUAV);
+
+    D3D11VideoProcessorOutputView* vov = nullptr;
+    ID3D11VideoProcessorOutputView* pVPOV;
+    if (SUCCEEDED(pView->QueryInterface(__uuidof(ID3D11VideoProcessorOutputView), reinterpret_cast<void**>(&pVPOV))))
+      vov = reinterpret_cast<D3D11VideoProcessorOutputView*>(pVPOV);
+#else
     auto dsv = dynamic_cast<D3D11DepthStencilView*>(pView);
     auto rtv = dynamic_cast<D3D11RenderTargetView*>(pView);
     auto uav = dynamic_cast<D3D11UnorderedAccessView*>(pView);
     auto vov = dynamic_cast<D3D11VideoProcessorOutputView*>(pView);
+#endif
 
     // Retrieve underlying resource view
     Rc<DxvkBufferView> bufView;

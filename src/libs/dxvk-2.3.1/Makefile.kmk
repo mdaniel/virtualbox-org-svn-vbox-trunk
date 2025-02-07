@@ -40,8 +40,7 @@ DLLS      += VBoxDxVk
 VBOX_PATH_DXVK := $(PATH_SUB_CURRENT)
 ifeq ($(KBUILD_TARGET),win)
  VBOX_DXVK_PLATFORM = DXVK_PLATFORM_WINDOWS
- VBOX_DXVK_CXXFLAGS_WIN = -GR # DXVK uses RTTI
- VBOX_DXVK_CXXFLAGS_WIN += -wd4101 # 'e': unreferenced local variable
+ VBOX_DXVK_CXXFLAGS_WIN  = -wd4101 # 'e': unreferenced local variable
  VBOX_DXVK_CXXFLAGS_WIN += -wd4146 # unary minus operator applied to unsigned type, result still unsigned
  VBOX_DXVK_CXXFLAGS_WIN += -wd4265 # 'dxvk::DxgiMonitorInfo': class has virtual functions, but its non-trivial destructor is not virtual; instances of this class may not be destructed correctly
  VBOX_DXVK_CXXFLAGS_WIN += -wd4355 # 'this': used in base member initializer list

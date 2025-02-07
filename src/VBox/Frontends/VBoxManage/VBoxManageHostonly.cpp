@@ -53,12 +53,12 @@ DECLARE_TRANSLATION_CONTEXT(HostOnly);
 
 using namespace com;
 
+#if defined(VBOX_WITH_NETFLT) && !defined(RT_OS_SOLARIS)
 static const RTGETOPTDEF g_aHostOnlyCreateOptions[] =
 {
     { "--machinereadable",  'M', RTGETOPT_REQ_NOTHING },
 };
 
-#if defined(VBOX_WITH_NETFLT) && !defined(RT_OS_SOLARIS)
 static RTEXITCODE handleCreate(HandlerArg *a)
 {
     /*

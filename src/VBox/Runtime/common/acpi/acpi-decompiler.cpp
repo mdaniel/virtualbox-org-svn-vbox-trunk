@@ -1637,63 +1637,67 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
         if (   Hdr.u32Signature == ACPI_TABLE_HDR_SIGNATURE_SSDT
             || Hdr.u32Signature == ACPI_TABLE_HDR_SIGNATURE_DSDT)
         {
-            uint8_t *pbTbl = (uint8_t *)RTMemAlloc(Hdr.cbTbl);
-            if (pbTbl)
+            /** @todo Verify checksum */
+            ssize_t cch = RTVfsIoStrmPrintf(hVfsIosOut, "DefinitionBlock(\"\", \"%s\", %u, \"%.6s\", \"%.8s\", %u)",
+                                            Hdr.u32Signature == ACPI_TABLE_HDR_SIGNATURE_SSDT ? "SSDT" : "DSDT",
+                                            1, &Hdr.abOemId[0], &Hdr.abOemTblId[0], Hdr.u32OemRevision);
+            if (cch > 0)
             {
-                rc = RTVfsIoStrmRead(hVfsIosIn, pbTbl, Hdr.cbTbl - sizeof(Hdr), true /*fBlocking*/, NULL /*pcbRead*/);
-                if (RT_SUCCESS(rc))
-                {
-                    /** @todo Verify checksum */
-                    ssize_t cch = RTVfsIoStrmPrintf(hVfsIosOut, "DefinitionBlock(\"\", \"%s\", %u, \"%.6s\", \"%.8s\", %u)",
-                                                    Hdr.u32Signature == ACPI_TABLE_HDR_SIGNATURE_SSDT ? "SSDT" : "DSDT",
-                                                    1, &Hdr.abOemId[0], &Hdr.abOemTblId[0], Hdr.u32OemRevision);
-                    if (cch > 0)
+                uint32_t const cbTbl = Hdr.cbTbl - sizeof(Hdr);
+                if (cbTbl) /* Do we have something to decode at all? */
+                { 
+                    uint8_t *pbTbl = (uint8_t *)RTMemAlloc(cbTbl);
+                    if (pbTbl)
                     {
-                        RTACPITBLAMLDECODE AmlDecode;
-                        AmlDecode.pbTbl        = pbTbl;
-                        AmlDecode.cbTbl        = Hdr.cbTbl - sizeof(Hdr);
-                        AmlDecode.offTbl       = 0;
-                        AmlDecode.iLvl         = 0;
-                        AmlDecode.cPkgStackMax = 0;
-                        AmlDecode.pacbPkgLeft  = NULL;
-                        AmlDecode.fIndent      = true;
-                        RTListInit(&AmlDecode.LstObjs);
-                        rc = rtAcpiTblAmlDecodePkgPush(&AmlDecode, hVfsIosOut, AmlDecode.cbTbl, pErrInfo);
-                        while (   RT_SUCCESS(rc)
-                               && AmlDecode.offTbl < Hdr.cbTbl - sizeof(Hdr))
-                        {
-                            rc = rtAcpiTblAmlDecodeTerminal(&AmlDecode, hVfsIosOut, pErrInfo);
-                            if (RT_SUCCESS(rc))
-                                rc = rtAcpiTblAmlDecodePkgPop(&AmlDecode, hVfsIosOut, pErrInfo);
-                        }
-                        if (AmlDecode.pacbPkgLeft)
-                            RTMemFree(AmlDecode.pacbPkgLeft);
-
-                        PRTACPITBLAMLOBJ pIt, pItNext;
-                        RTListForEachSafe(&AmlDecode.LstObjs, pIt, pItNext, RTACPITBLAMLOBJ, NdObjs)
-                        {
-                            RTListNodeRemove(&pIt->NdObjs);
-                            RTMemFree(pIt);
-                        }
-
+                        rc = RTVfsIoStrmRead(hVfsIosIn, pbTbl, cbTbl, true /*fBlocking*/, NULL /*pcbRead*/);
                         if (RT_SUCCESS(rc))
                         {
-                            cch = RTVfsIoStrmPrintf(hVfsIosOut, "}\n");
-                            if (cch <= 0)
-                                rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit closing definition block");
+
+                                RTACPITBLAMLDECODE AmlDecode;
+                                AmlDecode.pbTbl        = pbTbl;
+                                AmlDecode.cbTbl        = cbTbl;
+                                AmlDecode.offTbl       = 0;
+                                AmlDecode.iLvl         = 0;
+                                AmlDecode.cPkgStackMax = 0;
+                                AmlDecode.pacbPkgLeft  = NULL;
+                                AmlDecode.fIndent      = true;
+                                RTListInit(&AmlDecode.LstObjs);
+                                rc = rtAcpiTblAmlDecodePkgPush(&AmlDecode, hVfsIosOut, AmlDecode.cbTbl, pErrInfo);
+                                while (   RT_SUCCESS(rc)
+                                       && AmlDecode.offTbl < cbTbl)
+                                {
+                                    rc = rtAcpiTblAmlDecodeTerminal(&AmlDecode, hVfsIosOut, pErrInfo);
+                                    if (RT_SUCCESS(rc))
+                                        rc = rtAcpiTblAmlDecodePkgPop(&AmlDecode, hVfsIosOut, pErrInfo);
+                                }
+                                if (AmlDecode.pacbPkgLeft)
+                                    RTMemFree(AmlDecode.pacbPkgLeft);
+
+                                PRTACPITBLAMLOBJ pIt, pItNext;
+                                RTListForEachSafe(&AmlDecode.LstObjs, pIt, pItNext, RTACPITBLAMLOBJ, NdObjs)
+                                {
+                                    RTListNodeRemove(&pIt->NdObjs);
+                                    RTMemFree(pIt);
+                                }
                         }
+                        else
+                            rc = RTErrInfoSetF(pErrInfo, rc, "Reading %u bytes of the ACPI table failed", Hdr.cbTbl);
+
+                        RTMemFree(pbTbl);
+                        pbTbl = NULL;
                     }
                     else
-                        rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit DefinitionBlock()");
+                        rc = RTErrInfoSetF(pErrInfo, VERR_NO_MEMORY, "Allocating memory for the ACPI table failed");
                 }
                 else
-                    rc = RTErrInfoSetF(pErrInfo, rc, "Reading %u bytes of the ACPI table failed", Hdr.cbTbl);
-
-                RTMemFree(pbTbl);
-                pbTbl = NULL;
+                {  
+                    cch = RTVfsIoStrmPrintf(hVfsIosOut, "{\n}\n");
+                    if (cch <= 0)
+                        rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit empty body");
+                }
             }
             else
-                rc = RTErrInfoSetF(pErrInfo, VERR_NO_MEMORY, "Allocating memory for the ACPI table failed");
+                rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit DefinitionBlock()");
         }
         else
             rc = RTErrInfoSetF(pErrInfo, VERR_NOT_SUPPORTED, "Only DSDT and SSDT ACPI tables are supported");

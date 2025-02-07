@@ -981,7 +981,7 @@ static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASL
                     if (u64 >= 16)
                         return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
                                              "SyncLevel value is out of range [0..15]: %u", u64);
-                    pAstNd->aArgs[1].u.u8 = (uint8_t)u64;
+                    pAstNd->aArgs[3].u.u8 = (uint8_t)u64;
                 }
 
                 if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))

@@ -1652,33 +1652,32 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                         rc = RTVfsIoStrmRead(hVfsIosIn, pbTbl, cbTbl, true /*fBlocking*/, NULL /*pcbRead*/);
                         if (RT_SUCCESS(rc))
                         {
+                            RTACPITBLAMLDECODE AmlDecode;
+                            AmlDecode.pbTbl        = pbTbl;
+                            AmlDecode.cbTbl        = cbTbl;
+                            AmlDecode.offTbl       = 0;
+                            AmlDecode.iLvl         = 0;
+                            AmlDecode.cPkgStackMax = 0;
+                            AmlDecode.pacbPkgLeft  = NULL;
+                            AmlDecode.fIndent      = true;
+                            RTListInit(&AmlDecode.LstObjs);
+                            rc = rtAcpiTblAmlDecodePkgPush(&AmlDecode, hVfsIosOut, AmlDecode.cbTbl, pErrInfo);
+                            while (   RT_SUCCESS(rc)
+                                   && AmlDecode.offTbl < cbTbl)
+                            {
+                                rc = rtAcpiTblAmlDecodeTerminal(&AmlDecode, hVfsIosOut, pErrInfo);
+                                if (RT_SUCCESS(rc))
+                                    rc = rtAcpiTblAmlDecodePkgPop(&AmlDecode, hVfsIosOut, pErrInfo);
+                            }
+                            if (AmlDecode.pacbPkgLeft)
+                                RTMemFree(AmlDecode.pacbPkgLeft);
 
-                                RTACPITBLAMLDECODE AmlDecode;
-                                AmlDecode.pbTbl        = pbTbl;
-                                AmlDecode.cbTbl        = cbTbl;
-                                AmlDecode.offTbl       = 0;
-                                AmlDecode.iLvl         = 0;
-                                AmlDecode.cPkgStackMax = 0;
-                                AmlDecode.pacbPkgLeft  = NULL;
-                                AmlDecode.fIndent      = true;
-                                RTListInit(&AmlDecode.LstObjs);
-                                rc = rtAcpiTblAmlDecodePkgPush(&AmlDecode, hVfsIosOut, AmlDecode.cbTbl, pErrInfo);
-                                while (   RT_SUCCESS(rc)
-                                       && AmlDecode.offTbl < cbTbl)
-                                {
-                                    rc = rtAcpiTblAmlDecodeTerminal(&AmlDecode, hVfsIosOut, pErrInfo);
-                                    if (RT_SUCCESS(rc))
-                                        rc = rtAcpiTblAmlDecodePkgPop(&AmlDecode, hVfsIosOut, pErrInfo);
-                                }
-                                if (AmlDecode.pacbPkgLeft)
-                                    RTMemFree(AmlDecode.pacbPkgLeft);
-
-                                PRTACPITBLAMLOBJ pIt, pItNext;
-                                RTListForEachSafe(&AmlDecode.LstObjs, pIt, pItNext, RTACPITBLAMLOBJ, NdObjs)
-                                {
-                                    RTListNodeRemove(&pIt->NdObjs);
-                                    RTMemFree(pIt);
-                                }
+                            PRTACPITBLAMLOBJ pIt, pItNext;
+                            RTListForEachSafe(&AmlDecode.LstObjs, pIt, pItNext, RTACPITBLAMLOBJ, NdObjs)
+                            {
+                                RTListNodeRemove(&pIt->NdObjs);
+                                RTMemFree(pIt);
+                            }
                         }
                         else
                             rc = RTErrInfoSetF(pErrInfo, rc, "Reading %u bytes of the ACPI table failed", Hdr.cbTbl);

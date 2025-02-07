@@ -105,7 +105,7 @@ void UIWizardCloneVMExpertPage::sltRetranslateUI()
     if (m_pCloneModeGroupBox)
         m_pCloneModeGroupBox->setTitle(UIWizardCloneVM::tr("Snapshots"));
     if (m_pAdditionalOptionsGroupBox)
-        m_pAdditionalOptionsGroupBox->setTitle(UIWizardCloneVM::tr("Additional Options"));
+        m_pAdditionalOptionsGroupBox->setTitle(UIWizardCloneVM::tr("OS Installation Options"));
 }
 
 void UIWizardCloneVMExpertPage::initializePage()

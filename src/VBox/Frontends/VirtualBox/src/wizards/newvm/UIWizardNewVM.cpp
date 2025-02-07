@@ -390,7 +390,7 @@ bool UIWizardNewVM::attachDefaultDevices()
 void UIWizardNewVM::sltRetranslateUI()
 {
     UINativeWizard::sltRetranslateUI();
-    setWindowTitle(tr("Create Virtual Machine"));
+    setWindowTitle(tr("New Virtual Machine"));
 }
 
 QString UIWizardNewVM::getNextControllerName(KStorageBus type)

@@ -167,7 +167,6 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
 
     bool const fOsTypeFixed = UIWizardNewVMNameOSTypeCommon::guessOSTypeDetectedOSTypeString(m_pNameAndSystemEditor,
                                                                                              pWizard->detectedOSTypeId());
-    printf("os type %s\n", qPrintable(pWizard->detectedOSTypeId()));
     if (fOsTypeFixed)
         m_userModifiedParameters << "GuestOSTypeFromISO";
     else /* Remove GuestOSTypeFromISO from the set if it is there: */
@@ -469,13 +468,16 @@ void UIWizardNewVMExpertPage::markWidgets() const
 {
     if (m_pNameAndSystemEditor)
     {
-        m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
-                                               tr("Guest machine name cannot be empty"), tr("Guest machine name is valid"));
+        if (m_pNameAndSystemEditor->name().isEmpty())
+            m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
+                                                   tr("Virtual machine name cannot be empty"), tr("Virtual machine name is valid"));
+        else
+            m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
+                                                   tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
+
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));
-        m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
-                                               tr("Guest machine path is not unique"), tr("Guest machine name is valid"));
     }
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     if (pWizard && pWizard->installGuestAdditions() && m_pGAInstallationISOContainer)
@@ -603,7 +605,7 @@ bool UIWizardNewVMExpertPage::isComplete() const
             {
                 m_pToolBox->setPageTitleIcon(ExpertToolboxItems_Unattended,
                                              UIIconPool::iconSet(":/status_error_16px.png"),
-                                             UIWizardNewVM::tr("Invalid username and/or password"));
+                                             UIWizardNewVM::tr("Invalid user name and/or password"));
                 fIsComplete = false;
             }
         }
@@ -613,7 +615,7 @@ bool UIWizardNewVMExpertPage::isComplete() const
             {
                 m_pToolBox->setPageTitleIcon(ExpertToolboxItems_Unattended,
                                              UIIconPool::iconSet(":/status_error_16px.png"),
-                                             UIWizardNewVM::tr("Invalid hostname or domain name"));
+                                             UIWizardNewVM::tr("Invalid host name or domain name"));
                 fIsComplete = false;
             }
         }
@@ -625,7 +627,14 @@ bool UIWizardNewVMExpertPage::isComplete() const
         {
             m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
                                          UIIconPool::iconSet(":/status_error_16px.png"),
-                                         UIWizardNewVM::tr("Virtual machine name is invalid"));
+                                         UIWizardNewVM::tr("Virtual machine name is invalid (possibly empty)"));
+            fIsComplete = false;
+        }
+        else if (QDir(m_pNameAndSystemEditor->fullPath()).exists())
+        {
+            m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
+                                         UIIconPool::iconSet(":/status_error_16px.png"),
+                                         UIWizardNewVM::tr("Virtual` machine path is not unique"));
             fIsComplete = false;
         }
         if (!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor))
@@ -633,13 +642,6 @@ bool UIWizardNewVMExpertPage::isComplete() const
             m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
                                          UIIconPool::iconSet(":/status_error_16px.png"),
                                          UIWizardNewVM::tr("Invalid ISO file"));
-            fIsComplete = false;
-        }
-        if (QDir(m_pNameAndSystemEditor->fullPath()).exists())
-        {
-            m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
-                                         UIIconPool::iconSet(":/status_error_16px.png"),
-                                         UIWizardNewVM::tr("Guest machine path is not unique"));
             fIsComplete = false;
         }
     }

@@ -227,8 +227,8 @@ bool UIUserNamePasswordEditor::isUserNameComplete()
 {
     bool fComplete = (m_pUserNameLineEdit && !m_pUserNameLineEdit->text().isEmpty());
     if (m_pUserNameLineEdit)
-        m_pUserNameLineEdit->mark(!fComplete, UIUserNamePasswordEditor::tr("Username cannot be an empty string"),
-                                  UIUserNamePasswordEditor::tr("Username is valid"));
+        m_pUserNameLineEdit->mark(!fComplete, UIUserNamePasswordEditor::tr("User name cannot be an empty string"),
+                                  UIUserNamePasswordEditor::tr("User name is valid"));
     return fComplete;
 }
 
@@ -276,8 +276,8 @@ void UIUserNamePasswordEditor::setLabelsVisible(bool fVisible)
 void UIUserNamePasswordEditor::sltRetranslateUI()
 {
     QString strPassword = tr("Pass&word");
-    QString strRepeatPassword = tr("&Repeat Password");
-    QString strUsername = tr("U&sername");
+    QString strRepeatPassword = tr("&Confirm Password");
+    QString strUsername = tr("U&ser Name");
     if (m_pUserNameLabel)
         m_pUserNameLabel->setText(QString("%1%2").arg(strUsername).arg(":"));
 
@@ -306,11 +306,11 @@ void UIUserNamePasswordEditor::sltRetranslateUI()
             m_pPasswordRepeatLineEdit->setPlaceholderText(QString());
     }
     if(m_pUserNameLineEdit)
-        m_pUserNameLineEdit->setToolTip(tr("Holds username."));
+        m_pUserNameLineEdit->setToolTip(tr("User name for the guest operating system."));
     if (m_pPasswordLineEdit)
-        m_pPasswordLineEdit->setToolTip(tr("Holds password."));
+        m_pPasswordLineEdit->setToolTip(tr("Password for the guest operating system user account."));
     if (m_pPasswordRepeatLineEdit)
-        m_pPasswordRepeatLineEdit->setToolTip(tr("Holds the repeated password."));
+        m_pPasswordRepeatLineEdit->setToolTip(tr("Password must match."));
     m_strPasswordError = tr("Invalid password pair");
 }
 

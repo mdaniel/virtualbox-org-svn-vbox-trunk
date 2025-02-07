@@ -566,7 +566,7 @@ void UIWizardNewVMNameOSTypePage::sltOsTypeChanged()
 
 void UIWizardNewVMNameOSTypePage::sltRetranslateUI()
 {
-    setTitle(UIWizardNewVM::tr("Virtual machine Name and Operating System"));
+    setTitle(UIWizardNewVM::tr("Virtual machine name and operating system"));
 
     if (m_pNameOSTypeLabel)
         m_pNameOSTypeLabel->setText(UIWizardNewVM::tr("Please choose a descriptive name and destination folder for the new "
@@ -606,27 +606,24 @@ void UIWizardNewVMNameOSTypePage::updateInfoLabel()
     if (m_pNameAndSystemEditor->ISOImagePath().isEmpty())
         strMessage = UIWizardNewVM::tr("No ISO image is selected, the guest OS will need to be installed manually.");
     else if (pWizard->detectedOSTypeId().isEmpty())
-        strMessage = UIWizardNewVM::tr("OS type cannot be determined from the selected ISO, "
-                                       "the guest OS will need to be installed manually.");
+        strMessage = UIWizardNewVM::tr("VirtualBox can't install an OS from the selected ISO. OS cannot be determined, the guest OS will need to be installed manually.");
     else if (!pWizard->detectedOSTypeId().isEmpty())
     {
         QString strType = gpGlobalSession->guestOSTypeManager().getDescription(pWizard->detectedOSTypeId());
         if (!pWizard->isUnattendedInstallSupported())
             strMessage = UIWizardNewVM::tr("Detected OS type: %1. %2")
                                            .arg(strType)
-                                           .arg(UIWizardNewVM::tr("This OS type cannot be installed unattendedly. "
-                                                                  "The install needs to be started manually."));
+                .arg(UIWizardNewVM::tr("This OS can't be installed using Unattended Installation. "
+                                       "The installation needs to be done manually."));
+
         else if (pWizard->skipUnattendedInstall())
             strMessage = UIWizardNewVM::tr("You have selected to skip unattended guest OS install, "
                                            "the guest OS will need to be installed manually.");
         else
             strMessage = UIWizardNewVM::tr("Detected OS type: %1. %2")
                                            .arg(strType)
-                                           .arg(UIWizardNewVM::tr("This OS type can be installed unattendedly. "
-                                                                  "The install will start after this wizard is closed."));
-
-
-
+                                           .arg(UIWizardNewVM::tr("VirtualBox will install the OS using an unattended installation when the VM is created. "
+                                                                  "Supply the required information in the following steps."));
     }
 
     const QIcon icon = UIIconPool::iconSet(":/session_info_16px.png");
@@ -785,10 +782,13 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
 {
     if (m_pNameAndSystemEditor)
     {
-        m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
-                                               tr("Guest machine name cannot be empty"), tr("Guest machine name is valid"));
+        if (m_pNameAndSystemEditor->name().isEmpty())
+            m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
+                                                   tr("Virtual machine name cannot be empty"), tr("Virtual machine name is valid"));
+        else
         m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
-                                               tr("Guest machine path is not unique"), tr("Guest machine name is valid"));
+                                               tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
+
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));

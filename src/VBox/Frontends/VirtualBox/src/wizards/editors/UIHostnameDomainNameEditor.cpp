@@ -78,9 +78,9 @@ void UIHostnameDomainNameEditor::mark()
 {
     if (m_pHostnameLineEdit)
         m_pHostnameLineEdit->mark(!m_pHostnameLineEdit->hasAcceptableInput(),
-                                  tr("Hostname should be at least 2 character long. "
+                                  tr("Host name should be at least 2 character long. "
                                      "Allowed characters are alphanumerics, \"-\" and \".\""),
-                                  tr("Hostname is valid"));
+                                  tr("Host name is valid"));
     if (m_pDomainNameLineEdit)
         m_pDomainNameLineEdit->mark(!m_pDomainNameLineEdit->hasAcceptableInput(),
                                     tr("Domain name should be at least 2 character long. "
@@ -117,23 +117,22 @@ QString UIHostnameDomainNameEditor::hostnameDomainName() const
 void UIHostnameDomainNameEditor::sltRetranslateUI()
 {
     if (m_pHostnameLabel)
-        m_pHostnameLabel->setText(tr("Hostna&me:"));
+        m_pHostnameLabel->setText(tr("Host Na&me:"));
     if (m_pHostnameLineEdit)
-        m_pHostnameLineEdit->setToolTip(tr("Holds the hostname."));
+        m_pHostnameLineEdit->setToolTip(tr("Host name to be assigned to the virtual machine."));
     if (m_pDomainNameLabel)
         m_pDomainNameLabel->setText(tr("&Domain Name:"));
     if (m_pDomainNameLineEdit)
-        m_pDomainNameLineEdit->setToolTip(tr("Holds the domain name."));
+        m_pDomainNameLineEdit->setToolTip(tr("Doamin name to be assigned to the virtual machine."));
     if (m_pProductKeyLabel)
         m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
     if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("Holds the product key."));
+        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("The product key."));
 
     if (m_pStartHeadlessCheckBox)
     {
         m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
-        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
-                                                               "unattended guest OS installation of newly created virtual machine."));
+        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("Start the virtusl machine without a GUI."));
     }
 }
 
@@ -206,9 +205,9 @@ void UIHostnameDomainNameEditor::prepare()
 void UIHostnameDomainNameEditor::sltHostnameChanged()
 {
     m_pHostnameLineEdit->mark(!m_pHostnameLineEdit->hasAcceptableInput(),
-                              tr("Hostname should be at least 2 character long. "
+                              tr("Host name should be at least 2 character long. "
                                  "Allowed characters are alphanumerics, \"-\" and \".\""),
-                              tr("Hostname is valid"));
+                              tr("Host name is valid"));
     emit sigHostnameDomainNameChanged(hostnameDomainName(), isComplete());
 }
 

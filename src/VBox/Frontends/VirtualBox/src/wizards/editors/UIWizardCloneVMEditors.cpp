@@ -368,7 +368,7 @@ void UICloneVMAdditionalOptionsEditor::sltRetranslateUI()
     }
 
     if (m_pAdditionalOptionsLabel)
-        m_pAdditionalOptionsLabel->setText(UIWizardCloneVM::tr("Additional Options:"));
+        m_pAdditionalOptionsLabel->setText(UIWizardCloneVM::tr("OS Installation Options:"));
     if (m_pKeepDiskNamesCheckBox)
     {
         m_pKeepDiskNamesCheckBox->setToolTip(UIWizardCloneVM::tr("When checked, disk names will be preserved during cloning."));

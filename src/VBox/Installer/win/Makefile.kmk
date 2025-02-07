@@ -82,7 +82,7 @@ endif
 
 # Disable installing NetAdp and NetLwf drivers on arm64, as Windows/Arm requires at least NDIS 6.3
 # which we don't support yet. See @bugref{10846}
-if "$(KBUILD_TARGET_ARCH)" == "arm64"
+ifeq ($(KBUILD_TARGET_ARCH),arm64)
  VBOX_WITH_NETADP               :=
  VBOX_WITH_NETFLT               :=
 endif

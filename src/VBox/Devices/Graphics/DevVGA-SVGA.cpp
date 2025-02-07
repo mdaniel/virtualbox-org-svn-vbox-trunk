@@ -7115,8 +7115,9 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
     }
     else
     {
-        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_WIDTH]  = 4096;
-        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_HEIGHT] = 4096;
+        /* These max values are used by vmwgfx.ko only to validate a virtual displays layout. */
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_WIDTH]  = 16384;
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_HEIGHT] = 16384;
         pThis->svga.au32DevCaps[SVGA3D_DEVCAP_DXFMT_X8R8G8B8] = 0x3f7;
     }
 

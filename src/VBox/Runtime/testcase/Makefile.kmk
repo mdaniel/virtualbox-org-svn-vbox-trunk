@@ -66,6 +66,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
  #
  ifndef VBOX_ONLY_VALIDATIONKIT
   PROGRAMS += \
+  	tstRTAcpi \
   	tstRTArmv8 \
   	tstRTAssertCompile \
   	tstRTAvl \
@@ -279,6 +280,9 @@ ifdef VBOX_WITH_TESTCASES # The whole file
  #
  # Target configs in almost alphabetical order.
  #
+ tstRTAcpi_TEMPLATE = VBoxR3TstExe
+ tstRTAcpi_SOURCES = tstRTAcpi.cpp
+
  tstRTArmv8_TEMPLATE = VBoxR3TstExe
  tstRTArmv8_SOURCES = tstRTArmv8.cpp
 

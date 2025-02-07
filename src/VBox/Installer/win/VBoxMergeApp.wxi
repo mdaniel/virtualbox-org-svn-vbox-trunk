@@ -180,6 +180,9 @@
         <File Id="file_VBoxSupLib.dll" Name="VBoxSupLib.dll" Source="$(env.PATH_OUT)\bin\VBoxSupLib.dll" />
 <?endif?>
         <File Id="file_VBoxVMM.dll" Name="VBoxVMM.dll" Source="$(env.PATH_OUT)\bin\VBoxVMM.dll" />
+<?if $(env.KBUILD_TARGET_ARCH) = "arm64" ?>
+        <File Id="file_VBoxVMMArm.dll" Name="VBoxVMMArm.dll" Source="$(env.PATH_OUT)\bin\VBoxVMMArm.dll" />
+<?endif?>
 <?if $(env.VBOX_WITH_LIBSSH) = "yes" ?>
         <File Id="file_VBoxLibSsh.dll" Name="VBoxLibSsh.dll" Source="$(env.PATH_OUT)\bin\VBoxLibSsh.dll" />
 <?endif?>

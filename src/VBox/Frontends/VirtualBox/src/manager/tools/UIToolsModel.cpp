@@ -418,58 +418,46 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
             QPointF scenePos = pMouseEvent->scenePos();
             if (QGraphicsItem *pItemUnderMouse = itemAt(scenePos))
             {
-                /* Which button it was? */
-                switch (pMouseEvent->button())
+                /* Which item we just clicked? */
+                UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
+                if (pClickedItem)
                 {
-                    /* Both buttons: */
-                    case Qt::LeftButton:
-                    case Qt::RightButton:
+                    /* Do we have extra-button? */
+                    if (pClickedItem->hasExtraButton())
                     {
-                        /* Which item we just clicked? */
-                        UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
-                        if (pClickedItem)
+                        /* Check if clicked place is within extra-button geometry: */
+                        const QPointF itemPos = pClickedItem->mapFromParent(scenePos);
+                        if (pClickedItem->extraButtonRect().contains(itemPos.toPoint()))
                         {
-                            /* Do we have extra-button? */
-                            if (pClickedItem->hasExtraButton())
+                            /* Handle known button types: */
+                            switch (pClickedItem->itemType())
                             {
-                                /* Check if clicked place is within extra-button geometry: */
-                                const QPointF itemPos = pClickedItem->mapFromParent(scenePos);
-                                if (pClickedItem->extraButtonRect().contains(itemPos.toPoint()))
+                                case UIToolType_Home:
                                 {
-                                    /* Handle known button types: */
-                                    switch (pClickedItem->itemType())
-                                    {
-                                        case UIToolType_Home:
-                                        {
-                                            /* Toggle the button: */
-                                            m_fShowItemNames = !m_fShowItemNames;
-                                            /* Update geometry for all the items: */
-                                            foreach (UIToolsItem *pItem, m_items)
-                                                pItem->updateGeometry();
-                                            /* Recalculate layout: */
-                                            updateLayout();
-                                            break;
-                                        }
-                                        default:
-                                            break;
-                                    }
+                                    /* Toggle the button: */
+                                    m_fShowItemNames = !m_fShowItemNames;
+                                    /* Update geometry for all the items: */
+                                    foreach (UIToolsItem *pItem, m_items)
+                                        pItem->updateGeometry();
+                                    /* Recalculate layout: */
+                                    updateLayout();
+                                    break;
                                 }
-                            }
-
-                            /* Make clicked item the current one: */
-                            if (pClickedItem->isEnabled())
-                            {
-                                setCurrentItem(pClickedItem);
-                                /* Close the widget in popup mode only: */
-                                if (tools()->isPopup())
-                                    close();
-                                return true;
+                                default:
+                                    break;
                             }
                         }
-                        break;
                     }
-                    default:
-                        break;
+
+                    /* Make clicked item the current one: */
+                    if (pClickedItem->isEnabled())
+                    {
+                        setCurrentItem(pClickedItem);
+                        /* Close the widget in popup mode only: */
+                        if (tools()->isPopup())
+                            close();
+                        return true;
+                    }
                 }
             }
             break;

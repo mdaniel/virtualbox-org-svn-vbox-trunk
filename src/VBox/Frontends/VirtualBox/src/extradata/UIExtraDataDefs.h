@@ -938,6 +938,7 @@ enum WizardMode
 enum UIToolClass
 {
     UIToolClass_Invalid,
+    UIToolClass_Aux,
     UIToolClass_Global,
     UIToolClass_Machine
 };
@@ -947,6 +948,8 @@ enum UIToolClass
 enum UIToolType
 {
     UIToolType_Invalid,
+    /* Aux types: */
+    UIToolType_Toggle,
     /* Global types: */
     UIToolType_Home,
     UIToolType_Extensions,

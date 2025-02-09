@@ -285,6 +285,17 @@ bool UIToolStuff::isTypeOfClass(UIToolType enmType, UIToolClass enmClass)
 {
     switch (enmClass)
     {
+        case UIToolClass_Aux:
+        {
+            switch (enmType)
+            {
+                case UIToolType_Toggle:
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        }
         case UIToolClass_Global:
         {
             switch (enmType)

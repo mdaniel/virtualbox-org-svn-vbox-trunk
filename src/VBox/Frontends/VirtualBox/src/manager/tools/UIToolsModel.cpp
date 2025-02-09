@@ -339,11 +339,18 @@ void UIToolsModel::updateLayout()
     const int iSpacing = data(ToolsModelData_Spacing).toInt();
     const QSize viewportSize = scene()->views()[0]->viewport()->size();
     const int iViewportWidth = viewportSize.width();
+    const int iViewportHeight = viewportSize.height();
+
+    /* Start from above: */
     int iVerticalIndent = iMargin;
 
-    /* Layout the children: */
+    /* Layout normal children: */
     foreach (UIToolsItem *pItem, items())
     {
+        /* Skip aux children: */
+        if (pItem->itemClass() == UIToolClass_Aux)
+            continue;
+
         /* Make sure item visible: */
         if (!pItem->isVisible())
             continue;
@@ -356,6 +363,26 @@ void UIToolsModel::updateLayout()
         pItem->show();
         /* Advance vertical indent: */
         iVerticalIndent += (pItem->minimumHeightHint() + iSpacing);
+    }
+
+    /* Start from bottom: */
+    iVerticalIndent = iViewportHeight - iMargin;
+
+    /* Layout aux children: */
+    foreach (UIToolsItem *pItem, items())
+    {
+        /* Skip normal children: */
+        if (pItem->itemClass() != UIToolClass_Aux)
+            continue;
+
+        /* Set item position: */
+        pItem->setPos(iMargin, iVerticalIndent - pItem->minimumHeightHint());
+        /* Set root-item size: */
+        pItem->resize(iViewportWidth, pItem->minimumHeightHint());
+        /* Make sure item is shown: */
+        pItem->show();
+        /* Decrease vertical indent: */
+        iVerticalIndent -= (pItem->minimumHeightHint() + iSpacing);
     }
 }
 
@@ -422,17 +449,15 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                 UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
                 if (pClickedItem)
                 {
-                    /* Do we have extra-button? */
-                    if (pClickedItem->hasExtraButton())
+                    /* Handle known item classes: */
+                    switch (pClickedItem->itemClass())
                     {
-                        /* Check if clicked place is within extra-button geometry: */
-                        const QPointF itemPos = pClickedItem->mapFromParent(scenePos);
-                        if (pClickedItem->extraButtonRect().contains(itemPos.toPoint()))
+                        case UIToolClass_Aux:
                         {
-                            /* Handle known button types: */
+                            /* Handle known item types: */
                             switch (pClickedItem->itemType())
                             {
-                                case UIToolType_Home:
+                                case UIToolType_Toggle:
                                 {
                                     /* Toggle the button: */
                                     m_fShowItemNames = !m_fShowItemNames;
@@ -441,22 +466,29 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                                         pItem->updateGeometry();
                                     /* Recalculate layout: */
                                     updateLayout();
-                                    break;
+                                    return true;
                                 }
                                 default:
                                     break;
                             }
+                            break;
                         }
-                    }
-
-                    /* Make clicked item the current one: */
-                    if (pClickedItem->isEnabled())
-                    {
-                        setCurrentItem(pClickedItem);
-                        /* Close the widget in popup mode only: */
-                        if (tools()->isPopup())
-                            close();
-                        return true;
+                        case UIToolClass_Global:
+                        case UIToolClass_Machine:
+                        {
+                            /* Make clicked item the current one: */
+                            if (pClickedItem->isEnabled())
+                            {
+                                setCurrentItem(pClickedItem);
+                                /* Close the widget in popup mode only: */
+                                if (tools()->isPopup())
+                                    close();
+                                return true;
+                            }
+                            break;
+                        }
+                        default:
+                            break;
                     }
                 }
             }
@@ -489,6 +521,7 @@ void UIToolsModel::sltRetranslateUI()
         switch (pItem->itemType())
         {
             case UIToolType_Home:        pItem->setName(tr("Home")); break;
+            case UIToolType_Toggle:      pItem->setName(QString()); break;
             case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
             case UIToolType_Media:       pItem->setName(tr("Media")); break;
             case UIToolType_Network:     pItem->setName(tr("Network")); break;
@@ -535,8 +568,7 @@ void UIToolsModel::prepareItems()
             /* Home: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
                                                                     ":/welcome_screen_24px.png"),
-                                       UIToolClass_Global, UIToolType_Home,
-                                       !tools()->isPopup() /* extra-button */);
+                                       UIToolClass_Global, UIToolType_Home);
 
 #ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             /* Machines: */
@@ -569,6 +601,13 @@ void UIToolsModel::prepareItems()
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/resources_monitor_24px.png",
                                                                     ":/resources_monitor_disabled_24px.png"),
                                        UIToolClass_Global, UIToolType_Activities);
+
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            /* Toggle: */
+            m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
+                                                                    ":/tools_menu_24px.png"),
+                                       UIToolClass_Aux, UIToolType_Toggle);
+#endif
 
             break;
         }

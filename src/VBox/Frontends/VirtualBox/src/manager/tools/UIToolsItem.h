@@ -231,10 +231,12 @@ private:
         /** Paints @a strText using passed @a pPainter.
           * @param  point         Brings upper-left corner pixmap should be mapped to.
           * @param  font          Brings the text font.
-          * @param  pPaintDevice  Brings the paint-device reference to initilize painting from. */
+          * @param  pPaintDevice  Brings the paint-device reference to initilize painting from.
+          * @param  fPopup        Brings whether it's a text for popup mode, widget mode otherwise. */
         static void paintText(QPainter *pPainter, QPoint point,
                               const QFont &font, QPaintDevice *pPaintDevice,
-                              const QString &strText);
+                              const QString &strText,
+                              bool fPopup);
 
 #ifndef VBOX_WS_MAC
         /** Returns a number shifter per 10% from @a i1 to @a i2. */

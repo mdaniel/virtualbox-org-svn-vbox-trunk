@@ -923,7 +923,9 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Paint device: */
                       model()->paintDevice(),
                       /* Text to paint: */
-                      m_strName);
+                      m_strName,
+                      /* Text for popup mode? */
+                      model()->tools()->isPopup());
     }
 }
 
@@ -938,7 +940,8 @@ void UIToolsItem::paintPixmap(QPainter *pPainter, const QPoint &point,
 /* static */
 void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
                             const QFont &font, QPaintDevice *pPaintDevice,
-                            const QString &strText)
+                            const QString &strText,
+                            bool fPopup)
 {
     /* Save painter: */
     pPainter->save();
@@ -951,7 +954,20 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     point += QPoint(0, fm.ascent());
 
     /* Draw text: */
-    pPainter->drawText(point, strText);
+    if (fPopup)
+        pPainter->drawText(point, strText);
+    else
+    {
+        QPainterPath textPath;
+        textPath.addText(0, 0, font, strText);
+        textPath.translate(point);
+        pPainter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+        pPainter->setPen(QPen(uiCommon().isInDarkMode() ? Qt::black : Qt::white, 2, Qt::SolidLine, Qt::RoundCap));
+        pPainter->drawPath(QPainterPathStroker().createStroke(textPath));
+        pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
+        pPainter->setPen(Qt::NoPen);
+        pPainter->drawPath(textPath);
+    }
 
     /* Restore painter: */
     pPainter->restore();

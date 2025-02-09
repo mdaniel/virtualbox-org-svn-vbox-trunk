@@ -86,11 +86,9 @@ public:
       * @param  pScene        Brings the scene reference to add item to.
       * @param  icon          Brings the item icon.
       * @param  enmClass      Brings the item class.
-      * @param  enmType       Brings the item type.
-      * @param  fExtraButton  Brings whether item should have extra-button. */
+      * @param  enmType       Brings the item type. */
     UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                UIToolClass enmClass, UIToolType enmType,
-                bool fExtraButton = false);
+                UIToolClass enmClass, UIToolType enmType);
     /** Destructs item. */
     virtual ~UIToolsItem() RT_OVERRIDE;
 
@@ -111,9 +109,6 @@ public:
         UIToolClass itemClass() const { return m_enmClass; }
         /** Returns item type. */
         UIToolType itemType() const { return m_enmType; }
-
-        /** Returns whether item should have extra-button. */
-        bool hasExtraButton() const { return m_fExtraButton; }
 
         /** Defines whether item is @a fEnabled. */
         void setEnabled(bool fEnabled);
@@ -138,9 +133,6 @@ public:
           * @param  enmWhich    Brings size-hint type.
           * @param  constraint  Brings size constraint. */
         virtual QSizeF sizeHint(Qt::SizeHint enmWhich, const QSizeF &constraint = QSizeF()) const RT_OVERRIDE;
-
-        /** Returns the extra-button rectangle. */
-        QRect extraButtonRect() const { return m_extraButtonRect; }
     /** @} */
 
 protected:
@@ -176,7 +168,6 @@ private:
         ToolsItemData_Margin,
         ToolsItemData_Spacing,
         ToolsItemData_Padding,
-        ToolsItemData_ExtraButtonWidth,
     };
 
     /** @name Prepare/cleanup cascade.
@@ -232,9 +223,6 @@ private:
         /** Paints tool info using using passed @a pPainter.
           * @param  rectangle  Brings the rectangle to limit painting with. */
         void paintToolInfo(QPainter *pPainter, const QRect &rectangle) const;
-        /** Paints extra-button using using passed @a pPainter.
-          * @param  rectangle  Brings the rectangle to limit painting with. */
-        void paintExtraButton(QPainter *pPainter, const QRect &rectangle) const;
 
         /** Paints @a pixmap using passed @a pPainter.
           * @param  pOptions  Brings the options set with painting data. */
@@ -266,8 +254,6 @@ private:
         UIToolClass     m_enmClass;
         /** Holds the item type. */
         UIToolType      m_enmType;
-        /** Holds whether item should have extra-button. */
-        bool            m_fExtraButton;
 
         /** Holds the item pixmap. */
         QPixmap  m_pixmap;
@@ -316,9 +302,6 @@ private:
         QSize  m_pixmapSize;
         /** Holds the name size. */
         QSize  m_nameSize;
-
-        /** Holds the extra-button rectangle. */
-        mutable QRect  m_extraButtonRect;
     /** @} */
 };
 

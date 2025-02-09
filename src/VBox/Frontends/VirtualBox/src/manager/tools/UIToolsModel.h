@@ -131,9 +131,6 @@ public:
 
         /** Returns whether we should show item names. */
         bool showItemNames() const;
-
-        /** Returns whether at least one item hovered. */
-        bool isAtLeastOneItemHovered() const;
     /** @} */
 
     /** @name Selection stuff.
@@ -190,12 +187,6 @@ protected:
     /** @} */
 
 private slots:
-
-    /** @name Children stuff.
-      * @{ */
-       /** Handles signal about one of items was [un]hovered. */
-       void sltHandleItemHoverChange();
-    /** @} */
 
     /** @name Selection stuff.
       * @{ */

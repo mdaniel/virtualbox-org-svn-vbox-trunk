@@ -186,13 +186,11 @@ private:
 *********************************************************************************************************************************/
 
 UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                         UIToolClass enmClass, UIToolType enmType,
-                         bool fExtraButton /* = false */)
+                         UIToolClass enmClass, UIToolType enmType)
     : m_pScene(pScene)
     , m_icon(icon)
     , m_enmClass(enmClass)
     , m_enmType(enmType)
-    , m_fExtraButton(fExtraButton)
     , m_fHovered(false)
     , m_pHoveringMachine(0)
     , m_pHoveringAnimationForward(0)
@@ -401,10 +399,6 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
         paintFrame(pPainter, rectangle);
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
-    /* Paint extra-button if requested: */
-    if (   m_fExtraButton
-        && model()->isAtLeastOneItemHovered())
-        paintExtraButton(pPainter, rectangle);
 }
 
 void UIToolsItem::sltHandleWindowRemapped()
@@ -577,7 +571,6 @@ QVariant UIToolsItem::data(int iKey) const
         case ToolsItemData_Margin: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
         case ToolsItemData_Spacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
         case ToolsItemData_Padding: return 4;
-        case ToolsItemData_ExtraButtonWidth: return 10;
 
         /* Default: */
         default: break;
@@ -932,84 +925,6 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Text to paint: */
                       m_strName);
     }
-}
-
-void UIToolsItem::paintExtraButton(QPainter *pPainter, const QRect &rectangle) const
-{
-    /* Prepare variables: */
-    const int iPadding = data(ToolsItemData_Padding).toInt();
-    const int iButtonWidth = data(ToolsItemData_ExtraButtonWidth).toInt();
-
-    /* Save painter: */
-    pPainter->save();
-
-    /* Configure painter: */
-    pPainter->setRenderHint(QPainter::Antialiasing, true);
-    /* Acquire background color: */
-    const QPalette pal = QApplication::palette();
-#ifdef VBOX_WS_MAC
-    const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
-#else /* !VBOX_WS_MAC */
-    const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
-    const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
-    const int iRed = iShift30(windowColor.red(), accentColor.red());
-    const int iGreen = iShift30(windowColor.green(), accentColor.green());
-    const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
-    const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
-#endif /* !VBOX_WS_MAC */
-
-    /* Prepare button sub-rect: */
-    m_extraButtonRect.setWidth(iButtonWidth);
-    m_extraButtonRect.setHeight(rectangle.height() / 2);
-    m_extraButtonRect.moveTopLeft(QPoint(rectangle.right() - m_extraButtonRect.width() - 2,
-                                         rectangle.bottom() - 3 * rectangle.height() / 4 + 1));
-
-    /* Paint button frame: */
-    QPainterPath painterPath;
-    painterPath.addRoundedRect(m_extraButtonRect, iPadding, iPadding);
-#ifdef VBOX_WS_MAC
-    const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                  ? backgroundColor.lighter(220)
-                                  : backgroundColor.darker(140);
-#else /* !VBOX_WS_MAC */
-    const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                  ? backgroundColor.lighter(140)
-                                  : backgroundColor.darker(120);
-#endif /* !VBOX_WS_MAC */
-    pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
-    pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
-
-    /* Fill button body: */
-    pPainter->setClipPath(painterPath);
-#ifdef VBOX_WS_MAC
-    const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                  ? backgroundColor.lighter(160)
-                                  : backgroundColor.darker(120);
-#else /* !VBOX_WS_MAC */
-    const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                  ? backgroundColor.lighter(105)
-                                  : backgroundColor.darker(105);
-#endif /* !VBOX_WS_MAC */
-    pPainter->fillRect(m_extraButtonRect, backgroundColor2);
-
-    /* Paint arrow: */
-    if (!model()->showItemNames())
-    {
-        pPainter->drawLine(m_extraButtonRect.topLeft() + QPoint(3, 3),
-                           QPoint(m_extraButtonRect.right() - 2, m_extraButtonRect.center().y()));
-        pPainter->drawLine(m_extraButtonRect.bottomLeft() + QPoint(3, -3),
-                           QPoint(m_extraButtonRect.right() - 2, m_extraButtonRect.center().y()));
-    }
-    else
-    {
-        pPainter->drawLine(m_extraButtonRect.topRight() + QPoint(-3, 3),
-                           QPoint(m_extraButtonRect.left() + 3, m_extraButtonRect.center().y()));
-        pPainter->drawLine(m_extraButtonRect.bottomRight() + QPoint(-3, -3),
-                           QPoint(m_extraButtonRect.left() + 3, m_extraButtonRect.center().y()));
-    }
-
-    /* Restore painter: */
-    pPainter->restore();
 }
 
 /* static */

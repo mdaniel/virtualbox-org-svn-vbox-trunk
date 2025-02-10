@@ -175,7 +175,7 @@ PYTHONDIR="/usr /usr/local"
 QT6DIR="/usr/lib/qt6 /usr/share/qt6 /usr/lib64/qt6 /usr /usr/local"
 QT6DIR_PKGCONFIG=1
 QT6MAJ=6
-QT6MIN=3
+QT6MIN=6
 KBUILDDIR="`cd \`dirname $0\`; pwd`/kBuild"
 DEVDIR="`cd \`dirname $0\`; pwd`/tools"
 if [ -d "/lib/modules/`uname -r`/build" ]; then

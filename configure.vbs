@@ -637,7 +637,7 @@ sub CheckForkBuild(strOptkBuild)
    end if
 
    '
-   ' Determin the location of the kBuild binaries.
+   ' Determine the location of the kBuild binaries.
    '
    if g_strPathkBuildBin = "" then
       g_strPathkBuildBin = g_strPathkBuild & "/bin/win." & g_strHostArch

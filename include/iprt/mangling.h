@@ -399,6 +399,7 @@
 # define RTAcpiTblDeviceStart                           RT_MANGLER(RTAcpiTblDeviceStart)
 # define RTAcpiTblDeviceStartF                          RT_MANGLER(RTAcpiTblDeviceStartF)
 # define RTAcpiTblDeviceStartV                          RT_MANGLER(RTAcpiTblDeviceStartV)
+# define RTAcpiTblDumpToBufferA                         RT_MANGLER(RTAcpiTblDumpToBufferA)
 # define RTAcpiTblDumpToFile                            RT_MANGLER(RTAcpiTblDumpToFile)
 # define RTAcpiTblDumpToVfsIoStrm                       RT_MANGLER(RTAcpiTblDumpToVfsIoStrm)
 # define RTAcpiTblElseFinalize                          RT_MANGLER(RTAcpiTblElseFinalize)

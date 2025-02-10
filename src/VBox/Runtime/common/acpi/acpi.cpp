@@ -777,6 +777,22 @@ RTDECL(int) RTAcpiTblDumpToFile(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, co
 }
 
 
+RTDECL(int) RTAcpiTblDumpToBufferA(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, uint8_t **ppbAcpiTbl, size_t *pcbAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertPtrReturn(ppbAcpiTbl, VERR_INVALID_POINTER);
+    AssertPtrReturn(pcbAcpiTbl, VERR_INVALID_POINTER);
+    AssertRCReturn(pThis->rcErr, 0);
+    AssertReturn(pThis->fFinalized, VERR_INVALID_STATE);
+    AssertReturn(enmOutType == RTACPITBLTYPE_AML, VERR_NOT_SUPPORTED);
+
+    *ppbAcpiTbl = (uint8_t *)RTMemDup(pThis->pbTblBuf, pThis->paPkgStack[0].cbPkg);
+    *pcbAcpiTbl = pThis->paPkgStack[0].cbPkg;
+    return *ppbAcpiTbl != NULL ? VINF_SUCCESS : VERR_NO_MEMORY;
+}
+
+
 RTDECL(int) RTAcpiTblScopeFinalize(RTACPITBL hAcpiTbl)
 {
     PRTACPITBLINT pThis = hAcpiTbl;

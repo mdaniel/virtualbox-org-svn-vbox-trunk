@@ -199,6 +199,21 @@ RTDECL(int) RTAcpiTblDumpToFile(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, co
 
 
 /**
+ * Dumps the given ACPI table to a memory buffer allocated with RTMemAlloc() and returns the pointer
+ * to the allocated memory.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   enmOutType          The output type.
+ * @param   ppbAcpiTbl          Where to store the pointer to the ACPI table on success.
+ * @param   pcbAcpiTbl          Where to store the size of the ACPI table in bytes on success.
+ *
+ * @note The caller has to free the buffer with RTMemFree().
+ */
+RTDECL(int) RTAcpiTblDumpToBufferA(RTACPITBL hAcpiTbl, RTACPITBLTYPE enmOutType, uint8_t **ppbAcpiTbl, size_t *pcbAcpiTbl);
+
+
+/**
  * Starts a new DefScope object.
  *
  * @returns IPRT status code.

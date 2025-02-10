@@ -978,9 +978,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  	$(VBoxDD_0_OUTDIR)/vboxaml.hex \
  	$(VBoxDD_0_OUTDIR)/vboxaml.aml \
  	$(VBoxDD_0_OUTDIR)/vboxaml.aml.tmp \
- 	$(VBoxDD_0_OUTDIR)/vboxssdt_standard.hex \
- 	$(VBoxDD_0_OUTDIR)/vboxssdt_standard.aml \
- 	$(VBoxDD_0_OUTDIR)/vboxssdt_standard.aml.tmp \
  	$(VBoxDD_0_OUTDIR)/vboxssdt_cpuhotplug.hex \
  	$(VBoxDD_0_OUTDIR)/vboxssdt_cpuhotplug.aml \
  	$(VBoxDD_0_OUTDIR)/vboxssdt_cpuhotplug.aml.tmp \
@@ -990,7 +987,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  	$(if $(VBOX_WITH_TPM),$(VBoxDD_0_OUTDIR)/vboxssdt_tpm.aml.tmp,)
  PC/ACPI/VBoxAcpi.cpp_DEPS = \
  	$(VBoxDD_0_OUTDIR)/vboxaml.hex \
- 	$(VBoxDD_0_OUTDIR)/vboxssdt_standard.hex \
  	$(VBoxDD_0_OUTDIR)/vboxssdt_cpuhotplug.hex \
  	$(if $(VBOX_WITH_TPM),$(VBoxDD_0_OUTDIR)/vboxssdt_tpm.hex,)
 
@@ -1003,18 +999,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
 	$(QUIET)$(RM) -f $@.tmp
 
  vboxaml.hex:: $$(VBoxDD_0_OUTDIR)/vboxaml.hex
-
- $$(VBoxDD_0_OUTDIR)/vboxssdt_standard.hex: $(PATH_SUB_CURRENT)/PC/vbox-standard.dsl | $$(dir $$@)
-	$(call MSG_TOOL,iasl,VBoxDD,$<,$@)
-	$(QUIET)$(RM) -f $@ $@.tmp
-	$(QUIET)$(VBOX_IASLCMD) -tc -vs -p $@ $<
-	$(QUIET)$(MV) -f $@ $@.tmp
-	$(QUIET)$(SED) -e "s/AmlCode\|vboxssdt_standard_aml_code/AmlCodeSsdtStandard/g" \
-		--output $@ $@.tmp
-	$(QUIET)$(RM) -f $@.tmp
-
-
- vboxssdt_standard.hex:: $$(VBoxDD_0_OUTDIR)/vboxssdt_standard.hex
 
  $$(VBoxDD_0_OUTDIR)/vboxssdt_cpuhotplug.hex: $(PATH_SUB_CURRENT)/PC/vbox-cpuhotplug.dsl | $$(dir $$@)
 	$(call MSG_TOOL,iasl,VBoxDD,$<,$@)

@@ -41,14 +41,15 @@
 #include <VBox/param.h>
 #include <VBox/vmm/cfgm.h>
 #include <VBox/vmm/mm.h>
+#include <iprt/acpi.h>
 #include <iprt/assert.h>
 #include <iprt/alloc.h>
+#include <iprt/buildconfig.h>
 #include <iprt/string.h>
 #include <iprt/file.h>
 
 /* Statically compiled AML */
 #include <vboxaml.hex>
-#include <vboxssdt_standard.hex>
 #include <vboxssdt_cpuhotplug.hex>
 #ifdef VBOX_WITH_TPM
 # include <vboxssdt_tpm.hex>
@@ -56,8 +57,20 @@
 
 #include "VBoxDD.h"
 
+/** The CPU suffixes being used for processor object names. */
+static const char g_achCpuSuff[] = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
-static int patchAml(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
+/**
+ * Creates the SSDT exposing configured CPUs as processor objects.
+ *
+ * @returns VBox status code.
+ * @param   pDevIns             The PDM device instance data.
+ * @param   ppabAml             Where to store the pointer to the buffer containing the ACPI table on success.
+ * @param   pcbAml              Where to store the size of the ACPI table in bytes on success.
+ *
+ * @note This replaces the old vbox-standard.dsl which was patched accordingly.
+ */
+static int acpiCreateCpuSsdt(PPDMDEVINS pDevIns, uint8_t **ppabAml, size_t *pcbAml)
 {
     PCPDMDEVHLPR3 pHlp = pDevIns->pHlpR3;
 
@@ -66,68 +79,48 @@ static int patchAml(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
     if (RT_FAILURE(rc))
         return rc;
 
-    /* Clear CPU objects at all, if needed */
     bool fShowCpu;
     rc = pHlp->pfnCFGMQueryBoolDef(pDevIns->pCfg, "ShowCpu", &fShowCpu, false);
     if (RT_FAILURE(rc))
         return rc;
 
+    /* Don't expose any CPU object if we are not required to. */
     if (!fShowCpu)
         cCpus = 0;
 
-    /*
-     * Now search AML for:
-     *  AML_PROCESSOR_OP            (UINT16) 0x5b83
-     * and replace whole block with
-     *  AML_NOOP_OP                 (UINT16) 0xa3
-     * for VCPU not configured
-     */
-    for (uint32_t i = 0; i < cbAml - 7; i++)
+    RTACPITBL hAcpiTbl;
+    rc = RTAcpiTblCreate(&hAcpiTbl, ACPI_TABLE_HDR_SIGNATURE_SSDT, 1, "VBOX  ", "VBOXCPUT", 2, "VBOX", RTBldCfgRevision());
+    if (RT_SUCCESS(rc))
     {
-        /*
-         * AML_PROCESSOR_OP
-         *
-         * DefProcessor := ProcessorOp PkgLength NameString ProcID PblkAddr PblkLen ObjectList
-         * ProcessorOp  := ExtOpPrefix 0x83
-         * ProcID       := ByteData
-         * PblkAddr     := DwordData
-         * PblkLen      := ByteData
-         */
-        if (pabAml[i] == 0x5b && pabAml[i+1] == 0x83)
+        RTAcpiTblScopeStart(hAcpiTbl, "\\_PR");
+        for (uint16_t i = 0; i < cCpus; i++)
         {
-            if (pabAml[i+3] != 'C' || pabAml[i+4] != 'P')
-                /* false alarm, not named starting CP */
-                continue;
-
-            /* Processor ID */
-            if (pabAml[i+7] < cCpus)
-              continue;
-
-            /* Will fill unwanted CPU block with NOOPs */
-            /*
-             * See 18.2.4 Package Length Encoding in ACPI spec
-             * for full format
-             */
-            uint32_t cBytes = pabAml[i + 2];
-            AssertReleaseMsg((cBytes >> 6) == 0,
-                             ("So far, we only understand simple package length"));
-
-            /* including AML_PROCESSOR_OP itself */
-            for (uint32_t j = 0; j < cBytes + 2; j++)
-                pabAml[i+j] = 0xa3;
-
-            /* Can increase i by cBytes + 1, but not really worth it */
+            uint8_t const cCpuSuff = RT_ELEMENTS(g_achCpuSuff);
+            RTAcpiTblProcessorStartF(hAcpiTbl, i /*bProcId*/, 0 /*u32PBlkAddr*/, 0 /*cbPBlk*/, "CP%c%c",
+                                     i < cCpuSuff ? 'U' : 'V',
+                                     g_achCpuSuff[i % cCpuSuff]);
+            rc = RTAcpiTblProcessorFinalize(hAcpiTbl);
+            if (RT_FAILURE(rc))
+                break;
         }
+        RTAcpiTblScopeFinalize(hAcpiTbl);
+
+        rc = RTAcpiTblFinalize(hAcpiTbl);
+        if (RT_SUCCESS(rc))
+        {
+            rc = RTAcpiTblDumpToBufferA(hAcpiTbl, RTACPITBLTYPE_AML, ppabAml, pcbAml);
+            if (RT_FAILURE(rc))
+                rc = PDMDEV_SET_ERROR(pDevIns, rc, N_("ACPI error: Failed to dump CPU SSDT"));
+        }
+        else
+            rc = PDMDEV_SET_ERROR(pDevIns, rc, N_("ACPI error: Failed to finalize CPU SSDT"));
+
+        RTAcpiTblDestroy(hAcpiTbl);
     }
+    else
+        rc = PDMDEV_SET_ERROR(pDevIns, rc, N_("ACPI error: Failed to create CPU SSDT"));
 
-    /* now recompute checksum, whole file byte sum must be 0 */
-    pabAml[9] = 0;
-    uint8_t         bSum = 0;
-    for (uint32_t i = 0; i < cbAml; i++)
-      bSum = bSum + pabAml[i];
-    pabAml[9] = (uint8_t)(0 - bSum);
-
-    return VINF_SUCCESS;
+    return rc;
 }
 
 /**
@@ -348,9 +341,6 @@ static int acpiAmlLoadExternal(PPDMDEVINS pDevIns, const char *pcszCfgName, cons
 /** No docs, lazy coder. */
 int acpiPrepareDsdt(PPDMDEVINS pDevIns,  void **ppvPtr, size_t *pcbDsdt)
 {
-#ifdef VBOX_WITH_DYNAMIC_DSDT
-    return prepareDynamicDsdt(pDevIns, ppvPtr, pcbDsdt);
-#else
     uint8_t *pabAmlCodeDsdt = NULL;
     size_t cbAmlCodeDsdt = 0;
     int rc = acpiAmlLoadExternal(pDevIns, "DsdtFilePath", "DSDT", &pabAmlCodeDsdt, &cbAmlCodeDsdt);
@@ -369,25 +359,19 @@ int acpiPrepareDsdt(PPDMDEVINS pDevIns,  void **ppvPtr, size_t *pcbDsdt)
 
     if (RT_SUCCESS(rc))
     {
-        patchAml(pDevIns, pabAmlCodeDsdt, cbAmlCodeDsdt);
         *ppvPtr = pabAmlCodeDsdt;
         *pcbDsdt = cbAmlCodeDsdt;
     }
     return rc;
-#endif
 }
 
 /** No docs, lazy coder. */
 int acpiCleanupDsdt(PPDMDEVINS pDevIns, void *pvPtr)
 {
-#ifdef VBOX_WITH_DYNAMIC_DSDT
-    return cleanupDynamicDsdt(pDevIns, pvPtr);
-#else
     RT_NOREF1(pDevIns);
     if (pvPtr)
         RTMemFree(pvPtr);
     return VINF_SUCCESS;
-#endif
 }
 
 /** No docs, lazy coder. */
@@ -408,21 +392,13 @@ int acpiPrepareSsdt(PPDMDEVINS pDevIns, void **ppvPtr, size_t *pcbSsdt)
             {
                 cbAmlCodeSsdt  = sizeof(AmlCodeSsdtCpuHotPlug);
                 pabAmlCodeSsdt = (uint8_t *)RTMemDup(AmlCodeSsdtCpuHotPlug, sizeof(AmlCodeSsdtCpuHotPlug));
-            }
-            else
-            {
-                cbAmlCodeSsdt  = sizeof(AmlCodeSsdtStandard);
-                pabAmlCodeSsdt = (uint8_t *)RTMemDup(AmlCodeSsdtStandard, sizeof(AmlCodeSsdtStandard));
-            }
-            if (pabAmlCodeSsdt)
-            {
-                if (fCpuHotPlug)
+                if (pabAmlCodeSsdt)
                     patchAmlCpuHotPlug(pDevIns, pabAmlCodeSsdt, cbAmlCodeSsdt);
                 else
-                    patchAml(pDevIns, pabAmlCodeSsdt, cbAmlCodeSsdt);
+                    rc = VERR_NO_MEMORY;
             }
             else
-                rc = VERR_NO_MEMORY;
+                rc = acpiCreateCpuSsdt(pDevIns, &pabAmlCodeSsdt, &cbAmlCodeSsdt);
         }
     }
     else if (RT_FAILURE(rc))

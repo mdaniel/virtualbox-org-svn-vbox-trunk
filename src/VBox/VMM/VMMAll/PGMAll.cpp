@@ -64,7 +64,9 @@
 *********************************************************************************************************************************/
 #ifdef VBOX_VMM_TARGET_X86
 DECLINLINE(int) pgmShwGetLongModePDPtr(PVMCPUCC pVCpu, RTGCPTR64 GCPtr, PX86PML4E *ppPml4e, PX86PDPT *ppPdpt, PX86PDPAE *ppPD);
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 DECLINLINE(int) pgmShwGetPaePoolPagePD(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPOOLPAGE *ppShwPde);
+# endif
 DECLINLINE(int) pgmGstMapCr3(PVMCPUCC pVCpu, RTGCPHYS GCPhysCr3, PRTHCPTR pHCPtrGuestCr3);
 # ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
 static int pgmGstSlatWalk(PVMCPUCC pVCpu, RTGCPHYS GCPhysNested, bool fIsLinearAddrValid, RTGCPTR GCPtrNested, PPGMPTWALK pWalk,
@@ -4047,6 +4049,7 @@ static DECLCALLBACK(size_t) pgmFormatTypeHandlerPage(PFNRTSTROUTPUT pfnOutput, v
             cch += RTStrFormatNumber(&szTmp[cch], PGM_PAGE_GET_PAGEID(pPage), 16, 7, 0, RTSTR_F_ZEROPAD | RTSTR_F_32BIT);
         }
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         if (IS_PART_INCLUDED(6))
         {
             szTmp[cch++] = ':';
@@ -4054,6 +4057,7 @@ static DECLCALLBACK(size_t) pgmFormatTypeHandlerPage(PFNRTSTROUTPUT pfnOutput, v
             szTmp[cch++] = s_achRefs[PGM_PAGE_GET_TD_CREFS_NA(pPage)];
             cch += RTStrFormatNumber(&szTmp[cch], PGM_PAGE_GET_TD_IDX_NA(pPage), 16, 4, 0, RTSTR_F_ZEROPAD | RTSTR_F_16BIT);
         }
+# endif
 # undef IS_PART_INCLUDED
 
         cch = pfnOutput(pvArgOutput, szTmp, cch);

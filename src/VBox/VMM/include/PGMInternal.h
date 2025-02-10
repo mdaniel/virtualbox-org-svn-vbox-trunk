@@ -1909,6 +1909,8 @@ typedef PPPGMCHUNKR3MAP                 PPPGMPAGEMAP;
 /** @} */
 
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE /* No pool in NEM-only mode! */
+
 /** @name PGM Pool Indexes.
  * Aka. the unique shadow page identifier.
  * @{ */
@@ -2507,6 +2509,8 @@ DECLINLINE(void *) pgmPoolMapPageStrict(PPGMPOOLPAGE a_pPage, const char *pszCal
  * @param   u16         The tracking data word. */
 #define PGMPOOL_TD_GET_IDX(u16)         ( ((u16) >> PGMPOOL_TD_IDX_SHIFT)   & PGMPOOL_TD_IDX_MASK   )
 /** @} */
+
+#endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE - No pool in NEM-only mode! */
 
 
 
@@ -3146,11 +3150,19 @@ typedef struct PGM
 
     /** RAM range TLB for R3. */
     R3PTRTYPE(PPGMRAMRANGE)         apRamRangesTlb[PGM_RAMRANGE_TLB_ENTRIES];
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** Shadow Page Pool - R3 Ptr. */
     R3PTRTYPE(PPGMPOOL)             pPoolR3;
+#else
+    RTR3PTR                         ReservedPoolR3;
+#endif
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** Shadow Page Pool - R0 Ptr. */
     R0PTRTYPE(PPGMPOOL)             pPoolR0;
+#else
+    RTR0PTR                         ReservedPoolR0;
+#endif
 
     /** Hack: Number of deprecated page mapping locks taken by the current lock
      *  owner via pgmPhysGCPhys2CCPtrInternalDepr. */
@@ -3858,6 +3870,7 @@ typedef struct PGMR0PERVM
     uint32_t                        acRomRangePages[PGM_MAX_ROM_RANGES];
     /** @} */
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** @name PGM Pool related stuff.
      * @{ */
     /** Critical section for serializing pool growth. */
@@ -3867,6 +3880,7 @@ typedef struct PGMR0PERVM
     /** The ring-3 mapping objects for the pool pages. */
     RTR0MEMOBJ                      ahPoolMapObjs[(PGMPOOL_IDX_LAST + PGMPOOL_CFG_MAX_GROW - 1) / PGMPOOL_CFG_MAX_GROW];
     /** @} */
+# endif
 
     /** Physical access handler types for ring-0.
      * Initialized to callback causing return to ring-3 and invalid enmKind. */

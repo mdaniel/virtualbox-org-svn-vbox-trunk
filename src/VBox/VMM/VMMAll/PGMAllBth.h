@@ -4216,9 +4216,11 @@ PGM_BTH_DECL(unsigned, AssertCR3)(PVMCPUCC pVCpu, uint64_t cr3, uint64_t cr4, RT
 #if PGM_TYPE_IS_NESTED_OR_EPT(PGM_SHW_TYPE) || PGM_SHW_TYPE == PGM_TYPE_NONE
     return 0;
 #else
-    unsigned cErrors = 0;
-    PVMCC    pVM     = pVCpu->CTX_SUFF(pVM);
-    PPGMPOOL pPool   = pVM->pgm.s.CTX_SUFF(pPool); NOREF(pPool);
+    unsigned       cErrors = 0;
+    PVMCC const    pVM     = pVCpu->CTX_SUFF(pVM); RT_NOREF(pVM);
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+    PPGMPOOL const pPool   = pVM->pgm.s.CTX_SUFF(pPool); NOREF(pPool);
+# endif
 
 # if PGM_GST_TYPE == PGM_TYPE_PAE
     /** @todo currently broken; crashes below somewhere */

@@ -218,7 +218,7 @@ static int acpiCreateCpuHotplugSsdt(PPDMDEVINS pDevIns, uint8_t **ppabAml, size_
                                     RTAcpiTblNameStringAppend(hAcpiTbl, "APIC");
                                     RTAcpiTblIntegerAppend(hAcpiTbl, 4);
                                     RTAcpiTblNullNameAppend(hAcpiTbl);
- 
+
                         RTAcpiTblIfFinalize(hAcpiTbl);
                         RTAcpiTblElseStart(hAcpiTbl);
                         RTAcpiTblElseFinalize(hAcpiTbl);
@@ -502,4 +502,3 @@ int acpiCleanupTpmSsdt(PPDMDEVINS pDevIns, void *pvPtr)
     return VINF_SUCCESS;
 }
 #endif
-

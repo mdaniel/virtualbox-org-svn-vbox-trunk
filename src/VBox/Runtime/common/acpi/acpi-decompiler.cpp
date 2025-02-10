@@ -1645,7 +1645,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
             {
                 uint32_t const cbTbl = Hdr.cbTbl - sizeof(Hdr);
                 if (cbTbl) /* Do we have something to decode at all? */
-                { 
+                {
                     uint8_t *pbTbl = (uint8_t *)RTMemAlloc(cbTbl);
                     if (pbTbl)
                     {
@@ -1689,7 +1689,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAmlToAsl(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                         rc = RTErrInfoSetF(pErrInfo, VERR_NO_MEMORY, "Allocating memory for the ACPI table failed");
                 }
                 else
-                {  
+                {
                     cch = RTVfsIoStrmPrintf(hVfsIosOut, "{\n}\n");
                     if (cch <= 0)
                         rc = RTErrInfoSetF(pErrInfo, cch == 0 ? VERR_NO_MEMORY : (int)cch, "Failed to emit empty body");

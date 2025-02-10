@@ -168,7 +168,6 @@ VBoxVMM_SOURCES  = \
 	VMMR3/PGMDbg.cpp \
 	VMMR3/PGMHandler.cpp \
 	VMMR3/PGMPhys.cpp \
-	VMMR3/PGMPool.cpp \
 	VMMR3/PGMSavedState.cpp \
 	VMMR3/PGMSharedPage.cpp \
 	VMMR3/SELM.cpp \
@@ -218,7 +217,6 @@ VBoxVMM_SOURCES  = \
 	VMMAll/PGMAll.cpp \
 	VMMAll/PGMAllHandler.cpp \
 	VMMAll/PGMAllPhys.cpp \
-	VMMAll/PGMAllPool.cpp \
 	VMMAll/SELMAll.cpp \
 	VMMAll/EMAll.cpp \
 	VMMAll/GCMAll.cpp \
@@ -232,6 +230,11 @@ VBoxVMM_SOURCES  = \
 	VMMAll/TRPMAll.cpp \
 	VMMAll/VMAll.cpp \
 	VMMAll/VMMAll.cpp
+ifn1of (VBOX_WITH_ONLY_PGM_NEM_MODE, $(VBoxVMM_DEFS))
+ VBoxVMM_SOURCES += \
+ 	VMMR3/PGMPool.cpp \
+ 	VMMAll/PGMAllPool.cpp
+endif
 VBoxVMM_SOURCES.amd64 += \
 	VMMR3/PGMR3DbgA.asm \
 	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/IEMAllAImpl.asm,) \
@@ -465,11 +468,9 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMR3/PDMR3Task.cpp \
  	VMMR3/PDMThread.cpp \
  	VMMR3/PGM.cpp \
- 	VMMR3/PGM-armv8.cpp \
  	VMMR3/PGMDbg.cpp \
  	VMMR3/PGMHandler.cpp \
  	VMMR3/PGMPhys.cpp \
- 	VMMR3/PGMPool.cpp \
  	VMMR3/PGMSavedState.cpp \
  	VMMR3/PGMSharedPage.cpp \
  	VMMR3/PMUR3.cpp \
@@ -501,9 +502,9 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMAll/PDMAllGic.cpp \
  	VMMAll/PDMAllQueue.cpp \
  	VMMAll/PDMAllTask.cpp \
+ 	VMMAll/PGMAll.cpp \
  	VMMAll/PGMAllHandler.cpp \
  	VMMAll/PGMAllPhys.cpp \
- 	VMMAll/PGMAllPool.cpp \
  	VMMAll/EMAll.cpp \
  	VMMAll/GICAll.cpp \
  	VMMAll/GIMAll.cpp \

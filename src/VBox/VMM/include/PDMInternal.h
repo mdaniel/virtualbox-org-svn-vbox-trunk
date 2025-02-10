@@ -47,10 +47,11 @@
 #include <VBox/vmm/pdmblkcache.h>
 #include <VBox/vmm/pdmcommon.h>
 #include <VBox/vmm/pdmtask.h>
-#ifdef VBOX_VMM_TARGET_ARMV8
-# include <VBox/vmm/pdmgic.h>
-#else
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 # include <VBox/vmm/pdmapic.h>
+#endif
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(VBOX_VMM_TARGET_AGNOSTIC)
+# include <VBox/vmm/pdmgic.h>
 #endif
 #include <VBox/sup.h>
 #include <VBox/msi.h>
@@ -1827,17 +1828,19 @@ extern const PDMPCIRAWHLPR3 g_pdmR3DevPciRawHlp;
 # ifdef IN_RING3
 #  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdm.s.Ic.u.x86.ApicBackend))
 #  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.u.x86.ApicBackend))
-#else
+# else
 #  define PDM_TO_APICBACKEND(a_pVM)          (&((a_pVM)->pdmr0.s.Ic.u.x86.ApicBackend))
 #  define PDMCPU_TO_APICBACKEND(a_pVCpu)     (&((a_pVCpu)->CTX_SUFF(pVM)->pdmr0.s.Ic.u.x86.ApicBackend))
-#endif
+# endif
 #else
 # ifdef IN_RING3
 #  define PDM_TO_GICBACKEND(a_pVM)           (&((a_pVM)->pdm.s.Ic.u.armv8.GicBackend))
 #  define PDMCPU_TO_GICBACKEND(a_pVCpu)      (&((a_pVCpu)->CTX_SUFF(pVM)->pdm.s.Ic.u.armv8.GicBackend))
-#else
-# error "Implement me"
-#endif
+# else
+#  ifndef VBOX_WITH_MINIMAL_R0 /* hack for AllPdbTypeHack.cpp */
+#   error "Implement me"
+#  endif
+# endif
 #endif
 
 /*******************************************************************************

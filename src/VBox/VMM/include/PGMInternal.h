@@ -75,7 +75,7 @@
 /**
  * Optimization for PAE page tables that are modified often
  */
-#ifndef VBOX_VMM_TARGET_ARMV8
+#if !defined(VBOX_VMM_TARGET_ARMV8) && !defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
 # define PGMPOOL_WITH_OPTIMIZED_DIRTY_PT
 #endif
 
@@ -2512,7 +2512,11 @@ DECLINLINE(void *) pgmPoolMapPageStrict(PPGMPOOLPAGE a_pPage, const char *pszCal
 
 /** @name A20 gate macros
  * @{ */
-#define PGM_WITH_A20
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define PGM_WITH_A20
+#elif !defined(VBOX_VMM_TARGET_ARMV8) && !defined(IN_TSTVMSTRUCT)
+# error "Misconfig"
+#endif
 #ifdef PGM_WITH_A20
 # define PGM_A20_IS_ENABLED(a_pVCpu)                        ((a_pVCpu)->pgm.s.fA20Enabled)
 # define PGM_A20_APPLY(a_pVCpu, a_GCPhys)                   ((a_GCPhys) & (a_pVCpu)->pgm.s.GCPhysA20Mask)
@@ -3999,6 +4003,7 @@ int             pgmR3PhysRamTerm(PVM pVM);
 void            pgmR3PhysRomTerm(PVM pVM);
 void            pgmR3PhysAssertSharedPageChecksums(PVM pVM);
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 int             pgmR3PoolInit(PVM pVM);
 void            pgmR3PoolRelocate(PVM pVM);
 void            pgmR3PoolResetUnpluggedCpu(PVM pVM, PVMCPU pVCpu);
@@ -4006,11 +4011,13 @@ void            pgmR3PoolReset(PVM pVM);
 void            pgmR3PoolClearAll(PVM pVM, bool fFlushRemTlb);
 DECLCALLBACK(VBOXSTRICTRC) pgmR3PoolClearAllRendezvous(PVM pVM, PVMCPU pVCpu, void *fpvFlushRemTbl);
 void            pgmR3PoolWriteProtectPages(PVM pVM);
+# endif
 
 #endif /* IN_RING3 */
-#ifdef IN_RING0
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# ifdef IN_RING0
 int             pgmR0PoolInitVM(PGVM pGVM);
-#endif
+# endif
 int             pgmPoolAlloc(PVMCC pVM, RTGCPHYS GCPhys, PGMPOOLKIND enmKind, PGMPOOLACCESS enmAccess, bool fA20Enabled,
                              uint16_t iUser, uint32_t iUserTable, bool fLockPage, PPPGMPOOLPAGE ppPage);
 void            pgmPoolFree(PVM pVM, RTHCPHYS HCPhys, uint16_t iUser, uint32_t iUserTable);
@@ -4075,6 +4082,7 @@ DECLINLINE(R3PTRTYPE(PPGMPOOLPAGE)) pgmPoolConvertPageToR3(PPGMPOOL pPool, PPGMP
 int             pgmR3ExitShadowModeBeforePoolFlush(PVMCPU pVCpu);
 int             pgmR3ReEnterShadowModeAfterPoolFlush(PVM pVM, PVMCPU pVCpu);
 void            pgmR3RefreshShadowModeAfterA20Change(PVMCPU pVCpu);
+#endif  /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
 int             pgmShwMakePageSupervisorAndWritable(PVMCPUCC pVCpu, RTGCPTR GCPtr, bool fBigPage, uint32_t fOpFlags);
 int             pgmShwSyncPaePDPtr(PVMCPUCC pVCpu, RTGCPTR GCPtr, X86PGPAEUINT uGstPdpe, PX86PDPAE *ppPD);

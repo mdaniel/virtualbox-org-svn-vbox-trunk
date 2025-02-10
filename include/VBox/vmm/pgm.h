@@ -256,12 +256,18 @@ typedef FNPGMPHYSHANDLER *PFNPGMPHYSHANDLER;
  * Paging mode.
  *
  * @note    Part of saved state.  Change with extreme care.
+ * @note    Due to PGMGetShadowMode() and the possibility that we will be
+ *          running ARMv8 VMs on a AMD64 hosts, it's safer to combine these
+ *          modes. We could rethink this if we start using PGMMODE exclusively
+ *          for the guest mode and come up with a different enum for the host.
  */
 typedef enum PGMMODE
 {
     /** The usual invalid value. */
     PGMMODE_INVALID = 0,
-#ifndef VBOX_VMM_TARGET_ARMV8
+
+    /** @name X86
+     * @{ */
     /** Real mode. */
     PGMMODE_REAL,
     /** Protected mode, no paging. */
@@ -284,16 +290,21 @@ typedef enum PGMMODE
     PGMMODE_NESTED_AMD64,
     /** Extended paging (Intel) mode. */
     PGMMODE_EPT,
-    /** Special mode used by NEM to indicate no shadow paging necessary. */
-    PGMMODE_NONE,
-#else
-    /** Paging is not enabled by the guest. */
-    PGMMODE_NONE,
+    /** @} */
+
+    /** ARMv8: Paging is not enabled by the guest.
+     * AMD64 host: Special mode used by NEM to indicate no shadow paging
+     * necessary.  Not used by X86 guests. */
+    PGMMODE_NONE = 32,
+
+    /** @name ARMv8
+     * @{ */
     /** VMSAv8-32 Virtual Memory System Architecture v8 - 32-bit variant enabled. */
     PGMMODE_VMSA_V8_32,
     /** VMSAv8-64 Virtual Memory System Architecture v8 - 64-bit variant enabled. */
     PGMMODE_VMSA_V8_64,
-#endif
+    /** @} */
+
     /** The max number of modes */
     PGMMODE_MAX,
     /** 32bit hackishness. */
@@ -781,7 +792,6 @@ VMMDECL(const char *) PGMGetModeName(PGMMODE enmMode);
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
 VMM_INT_DECL(const char *) PGMGetSlatModeName(PGMSLAT enmSlatMode);
 #endif
-VMM_INT_DECL(RTGCPHYS) PGMGetGuestCR3Phys(PVMCPU pVCpu);
 VMM_INT_DECL(void)  PGMNotifyNxeChanged(PVMCPU pVCpu, bool fNxe);
 VMMDECL(bool)       PGMHasDirtyPages(PVM pVM);
 VMM_INT_DECL(void)  PGMSetGuestEptPtr(PVMCPUCC pVCpu, uint64_t uEptPtr);

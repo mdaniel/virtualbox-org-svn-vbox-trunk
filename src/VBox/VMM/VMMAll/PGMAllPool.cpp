@@ -31,6 +31,9 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_PGM_POOL
 #define VBOX_WITHOUT_PAGING_BIT_FIELDS /* 64-bit bitfields are just asking for trouble. See @bugref{9841} and others. */
+#ifndef VBOX_VMM_TARGET_X86
+# define VBOX_VMM_TARGET_X86
+#endif
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/em.h>

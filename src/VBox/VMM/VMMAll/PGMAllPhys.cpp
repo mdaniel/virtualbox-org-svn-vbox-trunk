@@ -31,6 +31,9 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_PGM_PHYS
 #define VBOX_WITHOUT_PAGING_BIT_FIELDS /* 64-bit bitfields are just asking for trouble. See @bugref{9841} and others. */
+#ifdef IN_RING0
+# define VBOX_VMM_TARGET_X86
+#endif
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/trpm.h>
 #include <VBox/vmm/vmm.h>
@@ -4866,14 +4869,22 @@ VMMDECL(int) PGMPhysSimpleDirtyWriteGCPtr(PVMCPUCC pVCpu, RTGCPTR GCPtrDst, cons
     {
         memcpy(pvDst, pvSrc, cb);
         PGMPhysReleasePageMappingLock(pVM, &Lock);
+#ifdef VBOX_VMM_TARGET_X86
         rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D)); AssertRC(rc);
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
         return VINF_SUCCESS;
     }
 
     /* copy to the end of the page. */
     memcpy(pvDst, pvSrc, cbPage);
     PGMPhysReleasePageMappingLock(pVM, &Lock);
+#ifdef VBOX_VMM_TARGET_X86
     rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D)); AssertRC(rc);
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
     GCPtrDst = (RTGCPTR)((RTGCUINTPTR)GCPtrDst + cbPage);
     pvSrc = (const uint8_t *)pvSrc + cbPage;
     cb -= cbPage;
@@ -4893,14 +4904,22 @@ VMMDECL(int) PGMPhysSimpleDirtyWriteGCPtr(PVMCPUCC pVCpu, RTGCPTR GCPtrDst, cons
         {
             memcpy(pvDst, pvSrc, cb);
             PGMPhysReleasePageMappingLock(pVM, &Lock);
+#ifdef VBOX_VMM_TARGET_X86
             rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D)); AssertRC(rc);
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
             return VINF_SUCCESS;
         }
 
         /* copy the entire page and advance */
         memcpy(pvDst, pvSrc, GUEST_PAGE_SIZE);
         PGMPhysReleasePageMappingLock(pVM, &Lock);
+#ifdef VBOX_VMM_TARGET_X86
         rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D)); AssertRC(rc);
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
         GCPtrDst = (RTGCPTR)((RTGCUINTPTR)GCPtrDst + GUEST_PAGE_SIZE);
         pvSrc    = (const uint8_t *)pvSrc          + GUEST_PAGE_SIZE;
         cb      -=                                   GUEST_PAGE_SIZE;
@@ -4951,13 +4970,16 @@ VMMDECL(VBOXSTRICTRC) PGMPhysReadGCPtr(PVMCPUCC pVCpu, void *pvDst, RTGCPTR GCPt
         AssertMsgRCReturn(rc, ("GetPage failed with %Rrc for %RGv\n", rc, GCPtrSrc), rc);
         RTGCPHYS const GCPhys = Walk.GCPhys | ((RTGCUINTPTR)GCPtrSrc & GUEST_PAGE_OFFSET_MASK);
 
+#ifdef VBOX_VMM_TARGET_X86
         /* mark the guest page as accessed. */
         if (!(Walk.fEffective & X86_PTE_A))
         {
             rc = PGMGstModifyPage(pVCpu, GCPtrSrc, 1, X86_PTE_A, ~(uint64_t)(X86_PTE_A));
             AssertRC(rc);
         }
-
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
         return PGMPhysRead(pVM, GCPhys, pvDst, cb, enmOrigin);
     }
 
@@ -4972,12 +4994,16 @@ VMMDECL(VBOXSTRICTRC) PGMPhysReadGCPtr(PVMCPUCC pVCpu, void *pvDst, RTGCPTR GCPt
         AssertMsgRCReturn(rc, ("GetPage failed with %Rrc for %RGv\n", rc, GCPtrSrc), rc);
         RTGCPHYS const GCPhys = Walk.GCPhys | ((RTGCUINTPTR)GCPtrSrc & GUEST_PAGE_OFFSET_MASK);
 
+#ifdef VBOX_VMM_TARGET_X86
         /* mark the guest page as accessed. */
         if (!(Walk.fEffective & X86_PTE_A))
         {
             rc = PGMGstModifyPage(pVCpu, GCPtrSrc, 1, X86_PTE_A, ~(uint64_t)(X86_PTE_A));
             AssertRC(rc);
         }
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
 
         /* copy */
         size_t cbRead = GUEST_PAGE_SIZE - ((RTGCUINTPTR)GCPtrSrc & GUEST_PAGE_OFFSET_MASK);
@@ -5046,12 +5072,16 @@ VMMDECL(VBOXSTRICTRC) PGMPhysWriteGCPtr(PVMCPUCC pVCpu, RTGCPTR GCPtrDst, const 
         if (!(Walk.fEffective & X86_PTE_RW))
             Log(("PGMPhysWriteGCPtr: Writing to RO page %RGv %#x\n", GCPtrDst, cb));
 
+#ifdef VBOX_VMM_TARGET_X86
         /* Mark the guest page as accessed and dirty if necessary. */
         if ((Walk.fEffective & (X86_PTE_A | X86_PTE_D)) != (X86_PTE_A | X86_PTE_D))
         {
             rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D));
             AssertRC(rc);
         }
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
 
         return PGMPhysWrite(pVM, GCPhys, pvSrc, cb, enmOrigin);
     }
@@ -5071,12 +5101,16 @@ VMMDECL(VBOXSTRICTRC) PGMPhysWriteGCPtr(PVMCPUCC pVCpu, RTGCPTR GCPtrDst, const 
         if (!(Walk.fEffective & X86_PTE_RW))
             Log(("PGMPhysWriteGCPtr: Writing to RO page %RGv %#x\n", GCPtrDst, cb));
 
+#ifdef VBOX_VMM_TARGET_X86
         /* Mark the guest page as accessed and dirty if necessary. */
         if ((Walk.fEffective & (X86_PTE_A | X86_PTE_D)) != (X86_PTE_A | X86_PTE_D))
         {
             rc = PGMGstModifyPage(pVCpu, GCPtrDst, 1, X86_PTE_A | X86_PTE_D, ~(uint64_t)(X86_PTE_A | X86_PTE_D));
             AssertRC(rc);
         }
+#elif !defined(VBOX_VMM_TARGET_ARMV8)
+# error "misconfig"
+#endif
 
         /* copy */
         size_t cbWrite = GUEST_PAGE_SIZE - ((RTGCUINTPTR)GCPtrDst & GUEST_PAGE_OFFSET_MASK);
@@ -5372,6 +5406,7 @@ VMM_INT_DECL(int) PGMPhysIemGCPhys2Ptr(PVMCC pVM, PVMCPUCC pVCpu, RTGCPHYS GCPhy
                                        void **ppv, PPGMPAGEMAPLOCK pLock)
 {
     PGM_A20_APPLY_TO_VAR(pVCpu, GCPhys);
+    RT_NOREF(pVCpu);
 
     PGM_LOCK_VOID(pVM);
 

@@ -405,7 +405,9 @@ static DECLCALLBACK(int) pgmR3PhysGCPhys2CCPtrDelegated(PVM pVM, PRTGCPHYS pGCPh
             /* We *must* flush any corresponding pgm pool page here, otherwise we'll
              * not be informed about writes and keep bogus gst->shw mappings around.
              */
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             pgmPoolFlushPageByGCPhys(pVM, *pGCPhys);
+#endif
             Assert(!PGM_PAGE_HAS_ACTIVE_HANDLERS(pPage));
             /** @todo r=bird: return VERR_PGM_PHYS_PAGE_RESERVED here if it still has
              *        active handlers, see the PGMR3PhysGCPhys2CCPtrExternal docs. */
@@ -5352,9 +5354,11 @@ VMMR3DECL(int) PGMR3PhysRomProtect(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cb, PGMROM
                     /* flush references to the page. */
                     RTGCPHYS const GCPhysPage = pRom->GCPhys + (iPage << GUEST_PAGE_SHIFT);
                     PPGMPAGE pRamPage = pgmPhysGetPage(pVM, GCPhysPage);
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
                     int rc2 = pgmPoolTrackUpdateGCPhys(pVM, GCPhysPage, pRamPage, true /*fFlushPTEs*/, &fFlushTLB);
                     if (rc2 != VINF_SUCCESS && (rc == VINF_SUCCESS || RT_FAILURE(rc2)))
                         rc = rc2;
+#endif
 #ifdef VBOX_WITH_NATIVE_NEM
                     uint8_t u2State = PGM_PAGE_GET_NEM_STATE(pRamPage);
 #endif
@@ -5447,14 +5451,17 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysChangeMemBalloonRendezvous(PVM pVM, P
     unsigned            cPages          = paUser[1];
     RTGCPHYS           *paPhysPage      = (RTGCPHYS *)paUser[2];
     int                 rc              = VINF_SUCCESS;
+    RT_NOREF(pVCpu);
 
     Log(("pgmR3PhysChangeMemBalloonRendezvous: %s %x pages\n", (fInflate) ? "inflate" : "deflate", cPages));
     PGM_LOCK_VOID(pVM);
 
     if (fInflate)
     {
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         /* Flush the PGM pool cache as we might have stale references to pages that we just freed. */
         pgmR3PoolClearAllRendezvous(pVM, pVCpu, NULL);
+# endif
 
         /* Replace pages with ZERO pages. */
         uint32_t         cPendingPages   = 0;
@@ -5480,8 +5487,10 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysChangeMemBalloonRendezvous(PVM pVM, P
 
             LogFlow(("balloon page: %RGp\n", paPhysPage[i]));
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             /* Flush the shadow PT if this page was previously used as a guest page table. */
             pgmPoolFlushPageByGCPhys(pVM, paPhysPage[i]);
+# endif
 
             rc = pgmPhysFreePage(pVM, pReq, &cPendingPages, pPage, paPhysPage[i], (PGMPAGETYPE)PGM_PAGE_GET_TYPE(pPage));
             if (RT_FAILURE(rc))
@@ -5525,7 +5534,7 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysChangeMemBalloonRendezvous(PVM pVM, P
         /* Note that we currently do not map any ballooned pages in our shadow page tables, so no need to flush the pgm pool. */
     }
 
-#if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
+# if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_WITH_MINIMAL_R0)
     /* Notify GMM about the balloon change. */
     rc = GMMR3BalloonedPages(pVM, (fInflate) ? GMMBALLOONACTION_INFLATE : GMMBALLOONACTION_DEFLATE, cPages);
     if (RT_SUCCESS(rc))
@@ -5538,7 +5547,7 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysChangeMemBalloonRendezvous(PVM pVM, P
         else
             pVM->pgm.s.cBalloonedPages += cPages;
     }
-#endif
+# endif
 
     PGM_UNLOCK(pVM);
 
@@ -5696,7 +5705,9 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysWriteProtectRAMRendezvous(PVM pVM, PV
             }
         }
     }
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pgmR3PoolWriteProtectPages(pVM);
+#endif
     PGM_INVL_ALL_VCPU_TLBS(pVM);
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
         CPUMSetChangedFlags(pVM->apCpusR3[idCpu], CPUM_CHANGED_GLOBAL_TLB_FLUSH);
@@ -5967,10 +5978,12 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysUnmapChunkRendezvous(PVM pVM, PVMCPU 
 
     if (pVM->pgm.s.ChunkR3Map.c >= pVM->pgm.s.ChunkR3Map.cMax)
     {
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         /* Flush the pgm pool cache; call the internal rendezvous handler as we're already in a rendezvous handler here. */
         /** @todo also not really efficient to unmap a chunk that contains PD
          *  or PT pages. */
         pgmR3PoolClearAllRendezvous(pVM, pVM->apCpusR3[0], NULL /* no need to flush the REM TLB as we already did that above */);
+#endif
 
         /*
          * Request the ring-0 part to unmap a chunk to make space in the mapping cache.
@@ -6349,8 +6362,10 @@ VMMDECL(void) PGMR3PhysSetA20(PVMCPU pVCpu, bool fEnable)
             NEMR3NotifySetA20(pVCpu, fEnable);
 # ifdef PGM_WITH_A20
         VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
+#  ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         pgmR3RefreshShadowModeAfterA20Change(pVCpu);
         HMFlushTlb(pVCpu);
+#  endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 # endif
 # if 0 /* PGMGetPage will apply the A20 mask to the GCPhys it returns, so we must invalid both sides of the TLB. */
         IEMTlbInvalidateAllPhysical(pVCpu);

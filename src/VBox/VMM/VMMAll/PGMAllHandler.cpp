@@ -31,6 +31,9 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_PGM
 #define VBOX_WITHOUT_PAGING_BIT_FIELDS /* 64-bit bitfields are just asking for trouble. See @bugref{9841} and others. */
+#ifdef IN_RING0
+# define VBOX_VMM_TARGET_X86
+#endif
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/iem.h>
@@ -560,11 +563,15 @@ static int pgmHandlerPhysicalSetRamFlagsAndFlushShadowPTs(PVMCC pVM, PPGMPHYSHAN
         {
             PGM_PAGE_SET_HNDL_PHYS_STATE(pPage, uState, pCurType->fNotInHm);
 
+#if defined(VBOX_WITH_NATIVE_NEM) || !defined(VBOX_WITH_ONLY_PGM_NEM_MODE)
             const RTGCPHYS GCPhysPage = pRam->GCPhys + (i << GUEST_PAGE_SHIFT);
+#endif
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             int rc2 = pgmPoolTrackUpdateGCPhys(pVM, GCPhysPage, pPage,
                                                false /* allow updates of PTEs (instead of flushing) */, &fFlushTLBs);
             if (rc2 != VINF_SUCCESS && rc == VINF_SUCCESS)
                 rc = rc2;
+#endif
 
 #ifdef VBOX_WITH_NATIVE_NEM
             /* Tell NEM about the protection update. */
@@ -870,12 +877,14 @@ DECLINLINE(void) pgmHandlerPhysicalRecalcPageState(PVMCC pVM, RTGCPHYS GCPhys, b
         {
             /* This should normally not be necessary. */
             PGM_PAGE_SET_HNDL_PHYS_STATE_ONLY(pPage, uState);
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             bool fFlushTLBs;
             rc = pgmPoolTrackUpdateGCPhys(pVM, GCPhys, pPage, false /*fFlushPTEs*/, &fFlushTLBs);
             if (RT_SUCCESS(rc) && fFlushTLBs)
                 PGM_INVL_ALL_VCPU_TLBS(pVM);
             else
                 AssertRC(rc);
+#endif
 
 #ifdef VBOX_WITH_NATIVE_NEM
             /* Tell NEM about the protection update. */
@@ -924,12 +933,13 @@ void pgmHandlerPhysicalResetAliasedPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPh
     /*
      * Flush any shadow page table references *first*.
      */
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    AssertReleaseFailed();
+#endif
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     bool fFlushTLBs = false;
     int rc = pgmPoolTrackUpdateGCPhys(pVM, GCPhysPage, pPage, true /*fFlushPTEs*/, &fFlushTLBs);
     AssertLogRelRCReturnVoid(rc);
-#if defined(VBOX_VMM_TARGET_ARMV8)
-    AssertReleaseFailed();
-#else
     HMFlushTlbOnAllVCpus(pVM);
 #endif
 
@@ -955,14 +965,14 @@ void pgmHandlerPhysicalResetAliasedPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPh
     if (fDoAccounting)
     {
         PPGMPHYSHANDLER pHandler;
-        rc = pgmHandlerPhysicalLookup(pVM, GCPhysPage, &pHandler);
-        if (RT_SUCCESS(rc))
+        int rc2 = pgmHandlerPhysicalLookup(pVM, GCPhysPage, &pHandler);
+        if (RT_SUCCESS(rc2))
         {
             Assert(pHandler->cAliasedPages > 0);
             pHandler->cAliasedPages--;
         }
         else
-            AssertMsgFailed(("rc=%Rrc GCPhysPage=%RGp\n", rc, GCPhysPage));
+            AssertMsgFailed(("rc2=%Rrc GCPhysPage=%RGp\n", rc2, GCPhysPage));
     }
 
 #ifdef VBOX_WITH_NATIVE_NEM

@@ -1068,11 +1068,13 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     if (RT_SUCCESS(rc))
         rc = pgmR3InitPaging(pVM);
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*
      * Init the page pool.
      */
     if (RT_SUCCESS(rc))
         rc = pgmR3PoolInit(pVM);
+# endif
 
     if (RT_SUCCESS(rc))
     {
@@ -1933,10 +1935,12 @@ VMMR3DECL(void) PGMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
             AssertFailed();
     }
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*
      * The page pool.
      */
     pgmR3PoolRelocate(pVM);
+# endif
 
 #else
     RT_NOREF(pVM, offDelta);
@@ -1969,7 +1973,9 @@ VMMR3DECL(void) PGMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
 
     STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cGuestModeChanges);
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pgmR3PoolResetUnpluggedCpu(pVM, pVCpu);
+# endif
 
     /*
      * Re-init other members.
@@ -2072,8 +2078,10 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
             pVCpu->pgm.s.GCPhysA20Mask = ~((RTGCPHYS)!pVCpu->pgm.s.fA20Enabled << 20);
 # ifdef PGM_WITH_A20
             VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
+#  ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
             pgmR3RefreshShadowModeAfterA20Change(pVCpu);
             HMFlushTlb(pVCpu);
+#  endif
 # endif
         }
     }
@@ -2400,6 +2408,7 @@ static DECLCALLBACK(void) pgmR3InfoCr3(PVM pVM, PCDBGFINFOHLP pHlp, const char *
     PGM_UNLOCK(pVM);
 }
 
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
 
 /**
  * Called by pgmPoolFlushAllInt prior to flushing the pool.
@@ -2428,9 +2437,9 @@ int pgmR3ExitShadowModeBeforePoolFlush(PVMCPU pVCpu)
         AssertMsgRCReturn(rc, ("Exit failed for shadow mode %d: %Rrc\n", pVCpu->pgm.s.enmShadowMode, rc), rc);
     }
 
-# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 == NULL);
-# endif
+#  endif
     return rc;
 }
 
@@ -2450,9 +2459,9 @@ int pgmR3ReEnterShadowModeAfterPoolFlush(PVM pVM, PVMCPU pVCpu)
     AssertRCReturn(rc, rc);
     AssertRCSuccessReturn(rc, VERR_IPE_UNEXPECTED_INFO_STATUS);
 
-# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     Assert(pVCpu->pgm.s.pShwPageCR3R3 != NULL || pVCpu->pgm.s.enmShadowMode == PGMMODE_NONE);
-# endif
+#  endif
     AssertMsg(   pVCpu->pgm.s.enmShadowMode >= PGMMODE_NESTED_32BIT
               || CPUMGetHyperCR3(pVCpu) == PGMGetHyperCR3(pVCpu),
               ("%RHp != %RHp %s\n", (RTHCPHYS)CPUMGetHyperCR3(pVCpu), PGMGetHyperCR3(pVCpu), PGMGetModeName(pVCpu->pgm.s.enmShadowMode)));
@@ -2474,6 +2483,7 @@ void pgmR3RefreshShadowModeAfterA20Change(PVMCPU pVCpu)
     AssertReleaseRC(rc);
 }
 
+# endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 #endif /* VBOX_VMM_TARGET_X86 */
 #ifdef VBOX_WITH_DEBUGGER
 # ifndef VBOX_WITH_ONLY_PGM_NEM_MODE

@@ -1936,7 +1936,9 @@ static DECLCALLBACK(int) pgmR3LiveExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uPass)
     pgmR3ScanRomPages(pVM);
     pgmR3ScanMmio2Pages(pVM, uPass);
     pgmR3ScanRamPages(pVM, false /*fFinalPass*/);
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     pgmR3PoolClearAll(pVM, true /*fFlushRemTlb*/); /** @todo this could perhaps be optimized a bit. */
+#endif
 
     /*
      * Save the pages.
@@ -3166,7 +3168,11 @@ static int pgmR3LoadFinalLocked(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion)
     {
         PVMCPU pVCpu = pVM->apCpusR3[i];
         pVCpu->pgm.s.GCPhysA20Mask = ~((RTGCPHYS)!pVCpu->pgm.s.fA20Enabled << 20);
+#ifdef VBOX_VMM_TARGET_X86
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         pgmR3RefreshShadowModeAfterA20Change(pVCpu);
+# endif
+#endif
     }
 
     /*
@@ -3327,6 +3333,10 @@ static DECLCALLBACK(int) pgmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, 
             {
                 PVMCPU pVCpu = pVM->apCpusR3[i];
 
+                /** @todo ARM VMs may have an invalid value here, since PGMMODE_NONE was
+                 *        moved from 12 to 31.  Thus far, though, this is a complete NOOP on
+                 *        ARM and we still have very limited PGM functionality there (the
+                 *        saved state is mostly X86-isms). */
                 rc = PGMHCChangeMode(pVM, pVCpu, pVCpu->pgm.s.enmGuestMode, false /* fForce */);
                 AssertLogRelRCReturn(rc, rc);
 

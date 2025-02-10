@@ -334,7 +334,6 @@ EXPORTS
     PGMPhysSimpleWriteGCPhys
     PGMPhysSimpleWriteGCPtr
     PGMPhysWriteGCPtr
-    PGMShwMakePageWritable
     PGMR3QueryGlobalMemoryStats
     PGMR3QueryMemoryStats
 

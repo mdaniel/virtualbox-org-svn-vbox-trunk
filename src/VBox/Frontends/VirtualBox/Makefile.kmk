@@ -485,11 +485,6 @@ if1of ($(KBUILD_TARGET), linux netbsd openbsd)
  VirtualBox_LIBS += dl
 endif
 
-# Xinerama library required for multi-monitor support:
-VirtualBox_LIBS.linux   += Xinerama
-VirtualBox_LIBS.solaris += Xinerama
-VirtualBox_LIBS.freebsd += Xinerama
-
 # XCB library required for direct XCB native code support:
 VirtualBox_LIBS.linux   += xcb
 VirtualBox_LIBS.solaris += xcb
@@ -528,11 +523,6 @@ if1of ($(KBUILD_TARGET), linux netbsd openbsd)
  VirtualBoxVM_LIBS += dl
 endif
 
-# Xinerama library required for multi-monitor support:
-VirtualBoxVM_LIBS.linux   += Xinerama
-VirtualBoxVM_LIBS.solaris += Xinerama
-VirtualBoxVM_LIBS.freebsd += Xinerama
-
 # XCB library required for direct XCB native code support:
 VirtualBoxVM_LIBS.linux   += xcb
 VirtualBoxVM_LIBS.solaris += xcb
@@ -561,11 +551,6 @@ endif
 # VirtualBox - GUI Global Shared Library.
 # Libraries.
 #
-
-# Xinerama library required for multi-monitor support:
-UICommon_LIBS.linux   += Xinerama
-UICommon_LIBS.solaris += Xinerama
-UICommon_LIBS.freebsd += Xinerama
 
 # Various Windows hosts libraries:
 UICommon_LIBS.win = \

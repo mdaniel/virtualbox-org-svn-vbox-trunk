@@ -43,17 +43,9 @@ class UIChooserNodeGlobal : public UIChooserNode
 public:
 
     /** Constructs chooser node passing @a pParent to the base-class.
-      * @param  iPosition  Brings the initial node position.
-      * @param  strTip     Brings the dummy tip. */
+      * @param  iPosition  Brings the initial node position. */
     UIChooserNodeGlobal(UIChooserNode *pParent,
-                        int iPosition,
-                        const QString &strTip);
-    /** Constructs chooser node passing @a pParent to the base-class.
-      * @param  iPosition  Brings the initial node position.
-      * @param  pCopyFrom  Brings the node to copy data from. */
-    UIChooserNodeGlobal(UIChooserNode *pParent,
-                        int iPosition,
-                        UIChooserNodeGlobal *pCopyFrom);
+                        int iPosition);
     /** Destructs chooser node. */
     virtual ~UIChooserNodeGlobal() RT_OVERRIDE;
 

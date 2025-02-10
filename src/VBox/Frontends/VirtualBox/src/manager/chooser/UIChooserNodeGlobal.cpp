@@ -35,23 +35,7 @@
 
 
 UIChooserNodeGlobal::UIChooserNodeGlobal(UIChooserNode *pParent,
-                                         int iPosition,
-                                         const QString &)
-    : UIChooserNode(pParent)
-{
-    /* Add to parent: */
-    if (parentNode())
-        parentNode()->addNode(this, iPosition);
-
-    /* Apply language settings: */
-    sltRetranslateUI();
-    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
-            this, &UIChooserNodeGlobal::sltRetranslateUI);
-}
-
-UIChooserNodeGlobal::UIChooserNodeGlobal(UIChooserNode *pParent,
-                                         int iPosition,
-                                         UIChooserNodeGlobal *pCopyFrom)
+                                         int iPosition)
     : UIChooserNode(pParent)
 {
     /* Add to parent: */

@@ -46,37 +46,16 @@
 #include <iprt/string.h>
 #include <iprt/file.h>
 
-#ifdef VBOX_WITH_DYNAMIC_DSDT
-/* vbox.dsl - input to generate proper DSDT on the fly */
-# include <vboxdsl.hex>
-#else
 /* Statically compiled AML */
-# include <vboxaml.hex>
-# include <vboxssdt_standard.hex>
-# include <vboxssdt_cpuhotplug.hex>
-# ifdef VBOX_WITH_TPM
-#  include <vboxssdt_tpm.hex>
-# endif
+#include <vboxaml.hex>
+#include <vboxssdt_standard.hex>
+#include <vboxssdt_cpuhotplug.hex>
+#ifdef VBOX_WITH_TPM
+# include <vboxssdt_tpm.hex>
 #endif
 
 #include "VBoxDD.h"
 
-
-#ifdef VBOX_WITH_DYNAMIC_DSDT
-
-static int prepareDynamicDsdt(PPDMDEVINS pDevIns, void **ppvPtr, size_t *pcbDsdt)
-{
-  *ppvPtr = NULL;
-  *pcbDsdt = 0;
-  return 0;
-}
-
-static int cleanupDynamicDsdt(PPDMDEVINS pDevIns, void *pvPtr)
-{
-    return 0;
-}
-
-#else  /* VBOX_WITH_DYNAMIC_DSDT */
 
 static int patchAml(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
 {
@@ -288,7 +267,6 @@ static int patchAmlCpuHotPlug(PPDMDEVINS pDevIns, uint8_t *pabAml, size_t cbAml)
     return VINF_SUCCESS;
 }
 
-#endif /* VBOX_WITH_DYNAMIC_DSDT */
 
 /**
  * Loads an AML file if present in CFGM

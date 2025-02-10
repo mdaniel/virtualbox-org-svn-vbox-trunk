@@ -980,6 +980,27 @@ RTDECL(int) RTAcpiTblNameStringAppend(RTACPITBL hAcpiTbl, const char *pszName)
 }
 
 
+RTDECL(int) RTAcpiTblNameStringAppendF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ...)
+{
+    va_list va;
+    va_start(va, pszNameFmt);
+    int rc = RTAcpiTblNameStringAppendV(hAcpiTbl, pszNameFmt, va);
+    va_end(va);
+    return rc;
+}
+
+
+RTDECL(int) RTAcpiTblNameStringAppendV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va)
+{
+    char szName[512];
+    ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameFmt, va);
+    if (cch <= 0)
+        return VERR_BUFFER_OVERFLOW;
+
+    return RTAcpiTblNameStringAppend(hAcpiTbl, &szName[0]);
+}
+
+
 RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
@@ -988,6 +1009,27 @@ RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz)
     rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_PREFIX_STRING);
     rtAcpiTblAppendData(pThis, psz, (uint32_t)strlen(psz) + 1);
     return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblStringAppendF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ...)
+{
+    va_list va;
+    va_start(va, pszNameFmt);
+    int rc = RTAcpiTblStringAppendV(hAcpiTbl, pszNameFmt, va);
+    va_end(va);
+    return rc;
+}
+
+
+RTDECL(int) RTAcpiTblStringAppendV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va)
+{
+    char szName[512];
+    ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameFmt, va);
+    if (cch <= 0)
+        return VERR_BUFFER_OVERFLOW;
+
+    return RTAcpiTblStringAppend(hAcpiTbl, &szName[0]);
 }
 
 

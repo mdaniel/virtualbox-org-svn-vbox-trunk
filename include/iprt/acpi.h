@@ -405,6 +405,28 @@ RTDECL(int) RTAcpiTblNameStringAppend(RTACPITBL hAcpiTbl, const char *pszName);
 
 
 /**
+ * Appends a new String object - format string variant.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszNameFmt          The format string to build the name string from.
+ * @param   ...                 Arguments for the format string.
+ */
+RTDECL(int) RTAcpiTblNameStringAppendF(RTACPITBL hAcpiTbl, const char *pszNameFmt, ...) RT_IPRT_FORMAT_ATTR(2, 3);
+
+
+/**
+ * Appends a new String object - format string variant.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszNameFmt          The format string to build the name string from.
+ * @param   va                  The format arguments.
+ */
+RTDECL(int) RTAcpiTblNameStringAppendV(RTACPITBL hAcpiTbl, const char *pszNameFmt, va_list va) RT_IPRT_FORMAT_ATTR(2, 0);
+
+
+/**
  * Appends a new String object.
  *
  * @returns IPRT status code.
@@ -412,6 +434,28 @@ RTDECL(int) RTAcpiTblNameStringAppend(RTACPITBL hAcpiTbl, const char *pszName);
  * @param   psz                 The string to append.
  */
 RTDECL(int) RTAcpiTblStringAppend(RTACPITBL hAcpiTbl, const char *psz);
+
+
+/**
+ * Appends a new String object - format string variant.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszFmt              The format string to build the string from.
+ * @param   ...                 Arguments for the format string.
+ */
+RTDECL(int) RTAcpiTblStringAppendF(RTACPITBL hAcpiTbl, const char *pszFmt, ...) RT_IPRT_FORMAT_ATTR(2, 3);
+
+
+/**
+ * Appends a new String object - format string variant.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszFmt              The format string to build the string from.
+ * @param   va                  The format arguments.
+ */
+RTDECL(int) RTAcpiTblStringAppendV(RTACPITBL hAcpiTbl, const char *pszFmt, va_list va) RT_IPRT_FORMAT_ATTR(2, 0);
 
 
 /**

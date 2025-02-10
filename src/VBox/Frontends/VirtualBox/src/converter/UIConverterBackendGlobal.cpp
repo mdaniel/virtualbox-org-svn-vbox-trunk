@@ -1647,13 +1647,13 @@ template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UITo
     switch (enmToolType)
     {
         case UIToolType_Home:         strResult = "Home"; break;
+        case UIToolType_Machines:     strResult = "Machines"; break;
         case UIToolType_Extensions:   strResult = "Extensions"; break;
         case UIToolType_Media:        strResult = "Media"; break;
         case UIToolType_Network:      strResult = "Network"; break;
         case UIToolType_Cloud:        strResult = "Cloud"; break;
         case UIToolType_CloudConsole: strResult = "CloudConsole"; break;
         case UIToolType_Activities:   strResult = "Activities"; break;
-        case UIToolType_Machines:     strResult = "Machines"; break;
         case UIToolType_Details:      strResult = "Details"; break;
         case UIToolType_Snapshots:    strResult = "Snapshots"; break;
         case UIToolType_Logs:         strResult = "Logs"; break;
@@ -1673,6 +1673,8 @@ template<> SHARED_LIBRARY_STUFF UIToolType UIConverter::fromInternalString<UIToo
 {
     if (strToolType.compare("Home", Qt::CaseInsensitive) == 0)
         return UIToolType_Home;
+    if (strToolType.compare("Machines", Qt::CaseInsensitive) == 0)
+        return UIToolType_Machines;
     if (strToolType.compare("Extensions", Qt::CaseInsensitive) == 0)
         return UIToolType_Extensions;
     if (strToolType.compare("Media", Qt::CaseInsensitive) == 0)
@@ -1685,8 +1687,6 @@ template<> SHARED_LIBRARY_STUFF UIToolType UIConverter::fromInternalString<UIToo
         return UIToolType_CloudConsole;
     if (strToolType.compare("Activities", Qt::CaseInsensitive) == 0)
         return UIToolType_Activities;
-    if (strToolType.compare("Machines", Qt::CaseInsensitive) == 0)
-        return UIToolType_Machines;
     if (strToolType.compare("Details", Qt::CaseInsensitive) == 0)
         return UIToolType_Details;
     if (strToolType.compare("Snapshots", Qt::CaseInsensitive) == 0)

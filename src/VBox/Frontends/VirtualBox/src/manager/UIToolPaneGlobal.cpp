@@ -55,14 +55,14 @@ UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /
     , m_pActionPool(pActionPool)
     , m_pLayout(0)
     , m_pPaneHome(0)
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    , m_pPaneMachines(0)
+#endif
     , m_pPaneExtensions(0)
     , m_pPaneMedia(0)
     , m_pPaneNetwork(0)
     , m_pPaneCloud(0)
     , m_pPaneActivities(0)
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-    , m_pPaneMachines(0)
-#endif
     , m_fActive(false)
 {
     prepare();
@@ -135,6 +135,28 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 }
                 break;
             }
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            case UIToolType_Machines:
+            {
+                /* Create Machine Manager: */
+                m_pPaneMachines = new UIMachineManagerWidget(this, m_pActionPool);
+                AssertPtrReturnVoid(m_pPaneMachines);
+                {
+                    /* Configure pane: */
+                    m_pPaneMachines->setProperty("ToolType", QVariant::fromValue(UIToolType_Machines));
+                    /// @todo connect!
+# ifndef VBOX_WS_MAC
+                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
+                    m_pPaneMachines->setContentsMargins(iMargin, 0, iMargin, 0);
+# endif
+
+                    /* Add into layout: */
+                    m_pLayout->addWidget(m_pPaneMachines);
+                    m_pLayout->setCurrentWidget(m_pPaneMachines);
+                }
+                break;
+            }
+#endif /* VBOX_GUI_WITH_ADVANCED_WIDGETS */
             case UIToolType_Extensions:
             {
                 /* Create Extension Pack Manager: */
@@ -237,28 +259,6 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 }
                 break;
             }
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-            case UIToolType_Machines:
-            {
-                /* Create Machine Manager: */
-                m_pPaneMachines = new UIMachineManagerWidget(this, m_pActionPool);
-                AssertPtrReturnVoid(m_pPaneMachines);
-                {
-                    /* Configure pane: */
-                    m_pPaneMachines->setProperty("ToolType", QVariant::fromValue(UIToolType_Machines));
-                    /// @todo connect!
-# ifndef VBOX_WS_MAC
-                    const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
-                    m_pPaneMachines->setContentsMargins(iMargin, 0, iMargin, 0);
-# endif
-
-                    /* Add into layout: */
-                    m_pLayout->addWidget(m_pPaneMachines);
-                    m_pLayout->setCurrentWidget(m_pPaneMachines);
-                }
-                break;
-            }
-#endif /* VBOX_GUI_WITH_ADVANCED_WIDGETS */
             default:
                 AssertFailedReturnVoid();
         }
@@ -283,14 +283,14 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         switch (enmType)
         {
             case UIToolType_Home:       m_pPaneHome = 0; break;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            case UIToolType_Machines:   m_pPaneMachines = 0; break;
+#endif
             case UIToolType_Extensions: m_pPaneExtensions = 0; break;
             case UIToolType_Media:      m_pPaneMedia = 0; break;
             case UIToolType_Network:    m_pPaneNetwork = 0; break;
             case UIToolType_Cloud:      m_pPaneCloud = 0; break;
             case UIToolType_Activities: m_pPaneActivities = 0; break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-            case UIToolType_Machines:   m_pPaneMachines = 0; break;
-#endif
             default: break;
         }
         /* Delete corresponding widget: */
@@ -311,6 +311,11 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
         case UIToolType_Home:
             pCurrentToolWidget = m_pPaneHome;
             break;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+        case UIToolType_Machines:
+            pCurrentToolWidget = m_pPaneMachines;
+            break;
+#endif
         case UIToolType_Extensions:
             pCurrentToolWidget = m_pPaneExtensions;
             break;
@@ -326,11 +331,6 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
         case UIToolType_Activities:
             pCurrentToolWidget = m_pPaneActivities;
             break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-        case UIToolType_Machines:
-            pCurrentToolWidget = m_pPaneMachines;
-            break;
-#endif
         default:
             break;
     }

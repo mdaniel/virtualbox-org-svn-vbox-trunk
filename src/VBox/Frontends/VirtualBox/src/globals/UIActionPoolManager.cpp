@@ -204,6 +204,38 @@ protected:
     }
 };
 
+/** Simple action extension, used as 'Machine Manager' action class. */
+class UIActionToggleManagerToolsGlobalShowMachineManager : public UIActionToggle
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionToggleManagerToolsGlobalShowMachineManager(UIActionPool *pParent)
+        : UIActionToggle(pParent)
+    {
+        setProperty("UIToolType", QVariant::fromValue(UIToolType_Machines));
+        /// @todo use icons with check-boxes
+        setIcon(UIIconPool::iconSetFull(":/machine_24px.png", ":/machine_16px.png"));
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("ToolsGlobalMachineManager");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "&Machine Manager"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open the Machine Manager"));
+    }
+};
+
 /** Simple action extension, used as 'Show Extension Pack Manager' action class. */
 class UIActionToggleManagerToolsGlobalShowExtensionPackManager : public UIActionToggle
 {
@@ -390,38 +422,6 @@ protected:
     {
         setName(QApplication::translate("UIActionPool", "&VM Activity Overview"));
         setStatusTip(QApplication::translate("UIActionPool", "Open the VM Activity Overview"));
-    }
-};
-
-/** Simple action extension, used as 'Machine Manager' action class. */
-class UIActionToggleManagerToolsGlobalShowMachineManager : public UIActionToggle
-{
-    Q_OBJECT;
-
-public:
-
-    /** Constructs action passing @a pParent to the base-class. */
-    UIActionToggleManagerToolsGlobalShowMachineManager(UIActionPool *pParent)
-        : UIActionToggle(pParent)
-    {
-        setProperty("UIToolType", QVariant::fromValue(UIToolType_Machines));
-        /// @todo use icons with check-boxes
-        setIcon(UIIconPool::iconSetFull(":/machine_24px.png", ":/machine_16px.png"));
-    }
-
-protected:
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("ToolsGlobalMachineManager");
-    }
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE
-    {
-        setName(QApplication::translate("UIActionPool", "&Machine Manager"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open the Machine Manager"));
     }
 };
 
@@ -3527,12 +3527,12 @@ void UIActionPoolManager::preparePool()
     m_pool[UIActionIndexMN_M_File_S_ExportAppliance] = new UIActionSimpleManagerFileShowExportApplianceWizard(this);
     m_pool[UIActionIndexMN_M_File_M_Tools] = new UIActionMenuManagerToolsGlobal(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_HomeScreen] = new UIActionToggleManagerToolsGlobalShowHomeScreen(this);
+    m_pool[UIActionIndexMN_M_File_M_Tools_T_MachineManager] = new UIActionToggleManagerToolsGlobalShowMachineManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager] = new UIActionToggleManagerToolsGlobalShowExtensionPackManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager] = new UIActionToggleManagerToolsGlobalShowVirtualMediaManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_NetworkManager] = new UIActionToggleManagerToolsGlobalShowNetworkManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager] = new UIActionToggleManagerToolsGlobalShowCloudProfileManager(this);
     m_pool[UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview] = new UIActionToggleManagerToolsGlobalShowVMActivityOverview(this);
-    m_pool[UIActionIndexMN_M_File_M_Tools_T_MachineManager] = new UIActionToggleManagerToolsGlobalShowMachineManager(this);
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
     m_pool[UIActionIndexMN_M_File_S_ShowExtraDataManager] = new UIActionSimpleManagerFileShowExtraDataManager(this);
 #endif

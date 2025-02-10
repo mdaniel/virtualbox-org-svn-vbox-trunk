@@ -952,13 +952,13 @@ enum UIToolType
     UIToolType_Toggle,
     /* Global types: */
     UIToolType_Home,
+    UIToolType_Machines,
     UIToolType_Extensions,
     UIToolType_Media,
     UIToolType_Network,
     UIToolType_Cloud,
     UIToolType_CloudConsole,
     UIToolType_Activities,
-    UIToolType_Machines,
     /* Machine types: */
     UIToolType_Error,
     UIToolType_Details,

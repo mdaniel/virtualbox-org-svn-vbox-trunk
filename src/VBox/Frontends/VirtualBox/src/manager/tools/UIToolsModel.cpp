@@ -225,14 +225,14 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
     QMap<UIToolType, UIAction*> actions;
     actions[UIToolType_Home] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_HomeScreen);
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+    actions[UIToolType_Machines] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_MachineManager);
+#endif
     actions[UIToolType_Extensions] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager);
     actions[UIToolType_Media] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager);
     actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
     actions[UIToolType_Cloud] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager);
     actions[UIToolType_Activities] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview);
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-    actions[UIToolType_Machines] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_MachineManager);
-#endif
     if (actions.contains(enmType))
         actions.value(enmType)->setChecked(true);
 }
@@ -505,16 +505,18 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-            case UIToolType_Home:        pItem->setName(tr("Home")); break;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             case UIToolType_Toggle:      pItem->setName(QString()); break;
+#endif
+            case UIToolType_Home:        pItem->setName(tr("Home")); break;
+#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
+            case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
+#endif
             case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
             case UIToolType_Media:       pItem->setName(tr("Media")); break;
             case UIToolType_Network:     pItem->setName(tr("Network")); break;
             case UIToolType_Cloud:       pItem->setName(tr("Cloud")); break;
             case UIToolType_Activities:  pItem->setName(tr("Activities")); break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-            case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
-#endif
             case UIToolType_Details:     pItem->setName(tr("Details")); break;
             case UIToolType_Snapshots:   pItem->setName(tr("Snapshots")); break;
             case UIToolType_Logs:        pItem->setName(tr("Logs")); break;

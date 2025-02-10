@@ -301,13 +301,13 @@ bool UIToolStuff::isTypeOfClass(UIToolType enmType, UIToolClass enmClass)
             switch (enmType)
             {
                 case UIToolType_Home:
+                case UIToolType_Machines:
                 case UIToolType_Extensions:
                 case UIToolType_Media:
                 case UIToolType_Network:
                 case UIToolType_Cloud:
                 case UIToolType_CloudConsole:
                 case UIToolType_Activities:
-                case UIToolType_Machines:
                     return true;
                 default:
                     break;

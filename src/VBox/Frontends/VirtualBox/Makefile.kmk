@@ -90,12 +90,6 @@ IMAGES         :=
 
 
 #
-# Build GUI with advanced widgets.
-#
-#VBOX_GUI_WITH_ADVANCED_WIDGETS := 1
-
-
-#
 # Perform initial new version check on startup.
 # If this setting is disabled the user can still check using the menu.
 #
@@ -598,12 +592,15 @@ VirtualBox_QT_MOCHDRS = \
 	src/extensionpackmanager/UIExtensionPackManager.h \
 	src/globals/UIStarter.h \
 	src/manager/UIErrorPane.h \
+	src/manager/UIGlobalToolsManagerWidget.h \
 	src/manager/UIHomePane.h \
+	src/manager/UIMachineManagerWidget.h \
 	src/manager/UIProgressTaskReadCloudMachineList.h \
 	src/manager/UITaskCloudGetSettingsForm.h \
 	src/manager/UIToolPaneGlobal.h \
 	src/manager/UIToolPaneMachine.h \
 	src/manager/UIVirtualBoxManager.h \
+	src/manager/UIVirtualBoxManagerAdvancedWidget.h \
 	src/manager/UIVirtualMachineItem.h \
 	src/manager/UIVirtualMachineItemCloud.h \
 	src/manager/UIVirtualMachineItemLocal.h \
@@ -697,16 +694,6 @@ VirtualBox_QT_MOCHDRS = \
 	src/wizards/importappliance/UIWizardImportAppPageExpert.h \
 	src/wizards/importappliance/UIWizardImportAppPageSettings.h \
 	src/wizards/importappliance/UIWizardImportAppPageSource.h
-
-ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
- VirtualBox_QT_MOCHDRS += \
- 	src/manager/UIVirtualBoxManagerWidget.h
-else
- VirtualBox_QT_MOCHDRS += \
- 	src/manager/UIGlobalToolsManagerWidget.h \
- 	src/manager/UIMachineManagerWidget.h \
- 	src/manager/UIVirtualBoxManagerAdvancedWidget.h
-endif
 
 
 #
@@ -1130,12 +1117,15 @@ VirtualBox_SOURCES = \
 	src/globals/UIStarter.cpp \
 	src/manager/UICloudEntityKey.cpp \
 	src/manager/UIErrorPane.cpp \
+	src/manager/UIGlobalToolsManagerWidget.cpp \
 	src/manager/UIHomePane.cpp \
+	src/manager/UIMachineManagerWidget.cpp \
 	src/manager/UIProgressTaskReadCloudMachineList.cpp \
 	src/manager/UITaskCloudGetSettingsForm.cpp \
 	src/manager/UIToolPaneGlobal.cpp \
 	src/manager/UIToolPaneMachine.cpp \
 	src/manager/UIVirtualBoxManager.cpp \
+	src/manager/UIVirtualBoxManagerAdvancedWidget.cpp \
 	src/manager/UIVirtualMachineItem.cpp \
 	src/manager/UIVirtualMachineItemCloud.cpp \
 	src/manager/UIVirtualMachineItemLocal.cpp \
@@ -1230,16 +1220,6 @@ VirtualBox_SOURCES = \
 	src/wizards/importappliance/UIWizardImportAppPageExpert.cpp \
 	src/wizards/importappliance/UIWizardImportAppPageSettings.cpp \
 	src/wizards/importappliance/UIWizardImportAppPageSource.cpp
-
-ifndef VBOX_GUI_WITH_ADVANCED_WIDGETS
- VirtualBox_SOURCES += \
- 	src/manager/UIVirtualBoxManagerWidget.cpp
-else
- VirtualBox_SOURCES += \
- 	src/manager/UIGlobalToolsManagerWidget.cpp \
- 	src/manager/UIMachineManagerWidget.cpp \
- 	src/manager/UIVirtualBoxManagerAdvancedWidget.cpp
-endif
 
 VirtualBox_SOURCES.darwin += \
 	src/platform/darwin/UIDesktopServices_darwin.cpp \

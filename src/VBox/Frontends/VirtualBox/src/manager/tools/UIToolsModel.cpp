@@ -45,7 +45,7 @@
 #include "UIExtraDataManager.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
-#include "UIVirtualBoxManagerWidget.h"
+#include "UIVirtualBoxManagerAdvancedWidget.h"
 #include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
@@ -225,9 +225,7 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
     QMap<UIToolType, UIAction*> actions;
     actions[UIToolType_Home] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_HomeScreen);
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     actions[UIToolType_Machines] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_MachineManager);
-#endif
     actions[UIToolType_Extensions] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager);
     actions[UIToolType_Media] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager);
     actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
@@ -505,13 +503,9 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             case UIToolType_Toggle:      pItem->setName(QString()); break;
-#endif
             case UIToolType_Home:        pItem->setName(tr("Home")); break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
-#endif
             case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;
             case UIToolType_Media:       pItem->setName(tr("Media")); break;
             case UIToolType_Network:     pItem->setName(tr("Network")); break;
@@ -557,12 +551,10 @@ void UIToolsModel::prepareItems()
                                                                     ":/welcome_screen_24px.png"),
                                        UIToolClass_Global, UIToolType_Home);
 
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             /* Machines: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
                                                                     ":/machine_details_manager_disabled_24px.png"),
                                        UIToolClass_Global, UIToolType_Machines);
-#endif
 
             /* Extensions: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
@@ -589,12 +581,10 @@ void UIToolsModel::prepareItems()
                                                                     ":/resources_monitor_disabled_24px.png"),
                                        UIToolClass_Global, UIToolType_Activities);
 
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             /* Toggle: */
             m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
                                                                     ":/tools_menu_24px.png"),
                                        UIToolClass_Aux, UIToolType_Toggle);
-#endif
 
             break;
         }

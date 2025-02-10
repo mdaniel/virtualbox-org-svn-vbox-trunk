@@ -44,14 +44,12 @@ class QUuid;
 class UIActionPool;
 class UICloudProfileManagerWidget;
 class UIExtensionPackManagerWidget;
+class UIMachineManagerWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
 class UIVirtualMachineItemCloud;
 class UIHomePane;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-class UIMachineManagerWidget;
-#endif
 
 /** QWidget subclass representing container for Global tool panes. */
 class UIToolPaneGlobal : public QWidget
@@ -98,10 +96,8 @@ public:
     /** Defines the @a cloudItems. */
     void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     /** Holds the Machine Manager instance. */
     UIMachineManagerWidget *machineManager() const;
-#endif
 
 private:
 
@@ -122,10 +118,8 @@ private:
     QStackedLayout               *m_pLayout;
     /** Holds the Home pane instance. */
     UIHomePane                   *m_pPaneHome;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     /** Holds the Machine Manager instance. */
     UIMachineManagerWidget       *m_pPaneMachines;
-#endif
     /** Holds the Extension Pack Manager instance. */
     UIExtensionPackManagerWidget *m_pPaneExtensions;
     /** Holds the Virtual Media Manager instance. */

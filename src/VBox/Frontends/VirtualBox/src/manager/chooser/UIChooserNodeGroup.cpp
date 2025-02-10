@@ -326,8 +326,10 @@ void UIChooserNodeGroup::copyContents(UIChooserNodeGroup *pCopyFrom)
 {
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Group))
         new UIChooserNodeGroup(this, m_nodesGroup.size(), pNode->toGroupNode());
+#ifdef VBOX_GUI_WITH_LEGACY_WIDGETS
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Global))
         new UIChooserNodeGlobal(this, m_nodesGlobal.size(), pNode->toGlobalNode());
+#endif
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Machine))
         new UIChooserNodeMachine(this, m_nodesMachine.size(), pNode->toMachineNode());
 }

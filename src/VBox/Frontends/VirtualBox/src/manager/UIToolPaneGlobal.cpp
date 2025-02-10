@@ -37,14 +37,12 @@
 #include "UICommon.h"
 #include "UICloudProfileManager.h"
 #include "UIExtensionPackManager.h"
+#include "UIHomePane.h"
+#include "UIMachineManagerWidget.h"
 #include "UIMediumManager.h"
 #include "UINetworkManager.h"
 #include "UIToolPaneGlobal.h"
 #include "UIVMActivityOverviewWidget.h"
-#include "UIHomePane.h"
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
-# include "UIMachineManagerWidget.h"
-#endif
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
@@ -55,9 +53,7 @@ UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /
     , m_pActionPool(pActionPool)
     , m_pLayout(0)
     , m_pPaneHome(0)
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     , m_pPaneMachines(0)
-#endif
     , m_pPaneExtensions(0)
     , m_pPaneMedia(0)
     , m_pPaneNetwork(0)
@@ -135,7 +131,6 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 }
                 break;
             }
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             case UIToolType_Machines:
             {
                 /* Create Machine Manager: */
@@ -145,10 +140,10 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                     /* Configure pane: */
                     m_pPaneMachines->setProperty("ToolType", QVariant::fromValue(UIToolType_Machines));
                     /// @todo connect!
-# ifndef VBOX_WS_MAC
+#ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneMachines->setContentsMargins(iMargin, 0, iMargin, 0);
-# endif
+#endif
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneMachines);
@@ -156,7 +151,6 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                 }
                 break;
             }
-#endif /* VBOX_GUI_WITH_ADVANCED_WIDGETS */
             case UIToolType_Extensions:
             {
                 /* Create Extension Pack Manager: */
@@ -283,9 +277,7 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         switch (enmType)
         {
             case UIToolType_Home:       m_pPaneHome = 0; break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
             case UIToolType_Machines:   m_pPaneMachines = 0; break;
-#endif
             case UIToolType_Extensions: m_pPaneExtensions = 0; break;
             case UIToolType_Media:      m_pPaneMedia = 0; break;
             case UIToolType_Network:    m_pPaneNetwork = 0; break;
@@ -311,11 +303,9 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
         case UIToolType_Home:
             pCurrentToolWidget = m_pPaneHome;
             break;
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
         case UIToolType_Machines:
             pCurrentToolWidget = m_pPaneMachines;
             break;
-#endif
         case UIToolType_Extensions:
             pCurrentToolWidget = m_pPaneExtensions;
             break;
@@ -350,12 +340,10 @@ void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemClou
     }
 }
 
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
 UIMachineManagerWidget *UIToolPaneGlobal::machineManager() const
 {
     return m_pPaneMachines;
 }
-#endif
 
 void UIToolPaneGlobal::prepare()
 {
@@ -364,10 +352,8 @@ void UIToolPaneGlobal::prepare()
 
     /* Create welcome pane: */
     openTool(UIToolType_Home);
-#ifdef VBOX_GUI_WITH_ADVANCED_WIDGETS
     /* Create machines pane: */
     openTool(UIToolType_Machines);
-#endif
 }
 
 void UIToolPaneGlobal::cleanup()

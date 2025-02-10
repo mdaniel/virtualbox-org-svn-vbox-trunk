@@ -53,7 +53,7 @@
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINotificationCenter.h"
-#include "UIVirtualBoxManagerWidget.h"
+#include "UIVirtualBoxManagerAdvancedWidget.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
 

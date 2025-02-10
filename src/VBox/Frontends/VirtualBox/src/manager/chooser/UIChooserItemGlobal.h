@@ -60,8 +60,6 @@ public:
 
         /** Returns whether passed @a position belongs to tool button area. */
         bool isToolButtonArea(const QPoint &position, int iMarginMultiplier = 1) const;
-        /** Returns whether passed @a position belongs to pin button area. */
-        bool isPinButtonArea(const QPoint &position, int iMarginMultiplier = 1) const;
     /** @} */
 
     /** @name Layout stuff.
@@ -94,9 +92,6 @@ protected:
         /** Returns RTTI item type. */
         virtual int type() const RT_OVERRIDE { return Type; }
 
-        /** Defines whether item is @a fFavorite. */
-        virtual void setFavorite(bool fFavorite) RT_OVERRIDE;
-
         /** Starts item editing. */
         virtual void startEditing() RT_OVERRIDE;
 
@@ -111,8 +106,8 @@ protected:
         /** Returns children items of certain @a enmType. */
         virtual QList<UIChooserItem*> items(UIChooserNodeType enmType = UIChooserNodeType_Any) const RT_OVERRIDE;
 
-        /** Adds possible @a fFavorite child @a pItem to certain @a iPosition. */
-        virtual void addItem(UIChooserItem *pItem, bool fFavorite, int iPosition) RT_OVERRIDE;
+        /** Adds a child @a pItem to certain @a iPosition. */
+        virtual void addItem(UIChooserItem *pItem, int iPosition) RT_OVERRIDE;
         /** Removes child @a pItem. */
         virtual void removeItem(UIChooserItem *pItem) RT_OVERRIDE;
 
@@ -209,8 +204,6 @@ private:
         void updatePixmap();
         /** Updates tool pixmap. */
         void updateToolPixmap();
-        /** Updates pin pixmap. */
-        void updatePinPixmap();
         /** Updates minimum name width. */
         void updateMinimumNameWidth();
         /** Updates maximum name width. */
@@ -248,8 +241,6 @@ private:
         QPixmap  m_pixmap;
         /** Holds item tool pixmap. */
         QPixmap  m_toolPixmap;
-        /** Holds item pin pixmap. */
-        QPixmap  m_pinPixmap;
 
         /** Holds item visible name. */
         QString  m_strVisibleName;
@@ -264,8 +255,6 @@ private:
         QSize  m_pixmapSize;
         /** Holds tool pixmap size. */
         QSize  m_toolPixmapSize;
-        /** Holds pin pixmap size. */
-        QSize  m_pinPixmapSize;
         /** Holds visible name size. */
         QSize  m_visibleNameSize;
 

@@ -129,8 +129,8 @@ protected:
         /** Returns children items of certain @a enmType. */
         virtual QList<UIChooserItem*> items(UIChooserNodeType enmType = UIChooserNodeType_Any) const RT_OVERRIDE;
 
-        /** Adds possible @a fFavorite child @a pItem to certain @a iPosition. */
-        virtual void addItem(UIChooserItem *pItem, bool fFavorite, int iPosition) RT_OVERRIDE;
+        /** Adds a child @a pItem to certain @a iPosition. */
+        virtual void addItem(UIChooserItem *pItem, int iPosition) RT_OVERRIDE;
         /** Removes child @a pItem. */
         virtual void removeItem(UIChooserItem *pItem) RT_OVERRIDE;
 

@@ -36,9 +36,8 @@
 
 UIChooserNodeGlobal::UIChooserNodeGlobal(UIChooserNode *pParent,
                                          int iPosition,
-                                         bool fFavorite,
                                          const QString &)
-    : UIChooserNode(pParent, fFavorite)
+    : UIChooserNode(pParent)
 {
     /* Add to parent: */
     if (parentNode())
@@ -53,7 +52,7 @@ UIChooserNodeGlobal::UIChooserNodeGlobal(UIChooserNode *pParent,
 UIChooserNodeGlobal::UIChooserNodeGlobal(UIChooserNode *pParent,
                                          int iPosition,
                                          UIChooserNodeGlobal *pCopyFrom)
-    : UIChooserNode(pParent, pCopyFrom->isFavorite())
+    : UIChooserNode(pParent)
 {
     /* Add to parent: */
     if (parentNode())
@@ -90,14 +89,11 @@ QString UIChooserNodeGlobal::description() const
     return m_strDescription;
 }
 
-QString UIChooserNodeGlobal::definition(bool fFull /* = false */) const
+QString UIChooserNodeGlobal::definition(bool) const
 {
     const QString strNodePrefix = UIChooserAbstractModel::prefixToString(UIChooserNodeDataPrefixType_Global);
-    const QString strNodeOptionFavorite = UIChooserAbstractModel::optionToString(UIChooserNodeDataOptionType_GlobalFavorite);
     const QString strNodeValueDefault = UIChooserAbstractModel::valueToString(UIChooserNodeDataValueType_GlobalDefault);
-    return   fFull
-           ? QString("%1%2=%3").arg(strNodePrefix).arg(isFavorite() ? strNodeOptionFavorite : "").arg(strNodeValueDefault)
-           : QString("%1=%2").arg(strNodePrefix).arg(strNodeValueDefault);
+    return QString("%1=%2").arg(strNodePrefix).arg(strNodeValueDefault);
 }
 
 bool UIChooserNodeGlobal::hasNodes(UIChooserNodeType enmType /* = UIChooserNodeType_Any */) const

@@ -396,18 +396,6 @@ QString UIChooserItem::definition() const
     return node()->definition();
 }
 
-bool UIChooserItem::isFavorite() const
-{
-    return node()->isFavorite();
-}
-
-void UIChooserItem::setFavorite(bool fFavorite)
-{
-    node()->setFavorite(fFavorite);
-    if (m_pParent)
-        m_pParent->toGroupItem()->updateFavorites();
-}
-
 int UIChooserItem::position() const
 {
     return node()->position();

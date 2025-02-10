@@ -120,8 +120,6 @@ public:
 
         /** Handles tool button click for certain @a pItem. */
         void handleToolButtonClick(UIChooserItem *pItem);
-        /** Handles pin button click for certain @a pItem. */
-        void handlePinButtonClick(UIChooserItem *pItem);
     /** @} */
 
     /** @name Selection stuff.

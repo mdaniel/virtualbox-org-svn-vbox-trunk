@@ -69,8 +69,6 @@ UIChooserItemGroup::UIChooserItemGroup(QGraphicsScene *pScene, UIChooserNodeGrou
     , m_iAdditionalHeight(0)
     , m_pToggleButton(0)
     , m_pNameEditorWidget(0)
-    , m_pContainerFavorite(0)
-    , m_pLayoutFavorite(0)
     , m_pScrollArea(0)
     , m_pContainer(0)
     , m_pLayout(0)
@@ -93,8 +91,6 @@ UIChooserItemGroup::UIChooserItemGroup(UIChooserItem *pParent, UIChooserNodeGrou
     , m_iAdditionalHeight(0)
     , m_pToggleButton(0)
     , m_pNameEditorWidget(0)
-    , m_pContainerFavorite(0)
-    , m_pLayoutFavorite(0)
     , m_pScrollArea(0)
     , m_pContainer(0)
     , m_pLayout(0)
@@ -146,31 +142,6 @@ void UIChooserItemGroup::open(bool fAnimated /* = true */)
 {
     AssertMsg(!isRoot(), ("Can't open root-item!"));
     m_pToggleButton->setToggled(true, fAnimated);
-}
-
-void UIChooserItemGroup::updateFavorites()
-{
-    /* Global items only for now, move items to corresponding layout: */
-    foreach (UIChooserItem *pItem, items(UIChooserNodeType_Global))
-        if (pItem->isFavorite())
-        {
-            for (int iIndex = 0; iIndex < m_pLayoutGlobal->count(); ++iIndex)
-                if (m_pLayoutGlobal->itemAt(iIndex) == pItem)
-                    m_pLayoutFavorite->addItem(pItem);
-        }
-        else
-        {
-            for (int iIndex = 0; iIndex < m_pLayoutFavorite->count(); ++iIndex)
-                if (m_pLayoutFavorite->itemAt(iIndex) == pItem)
-                    m_pLayoutGlobal->addItem(pItem);
-        }
-
-    /* Update/activate children layout: */
-    m_pLayout->updateGeometry();
-    m_pLayout->activate();
-
-    /* Relayout model: */
-    model()->updateLayout();
 }
 
 int UIChooserItemGroup::scrollingValue() const
@@ -411,7 +382,7 @@ QList<UIChooserItem*> UIChooserItemGroup::items(UIChooserNodeType type /* = UICh
     return QList<UIChooserItem*>();
 }
 
-void UIChooserItemGroup::addItem(UIChooserItem *pItem, bool fFavorite, int iPosition)
+void UIChooserItemGroup::addItem(UIChooserItem *pItem, int iPosition)
 {
     /* Check item type: */
     switch (pItem->type())
@@ -421,18 +392,12 @@ void UIChooserItemGroup::addItem(UIChooserItem *pItem, bool fFavorite, int iPosi
             AssertMsg(!m_globalItems.contains(pItem), ("Global-item already added!"));
             if (iPosition < 0 || iPosition >= m_globalItems.size())
             {
-                if (fFavorite)
-                    m_pLayoutFavorite->addItem(pItem);
-                else
-                    m_pLayoutGlobal->addItem(pItem);
+                m_pLayoutGlobal->addItem(pItem);
                 m_globalItems.append(pItem);
             }
             else
             {
-                if (fFavorite)
-                    m_pLayoutFavorite->insertItem(iPosition, pItem);
-                else
-                    m_pLayoutGlobal->insertItem(iPosition, pItem);
+                m_pLayoutGlobal->insertItem(iPosition, pItem);
                 m_globalItems.insert(iPosition, pItem);
             }
             break;
@@ -490,30 +455,21 @@ void UIChooserItemGroup::removeItem(UIChooserItem *pItem)
         {
             AssertMsg(m_globalItems.contains(pItem), ("Global-item was not found!"));
             m_globalItems.removeAt(m_globalItems.indexOf(pItem));
-            if (pItem->isFavorite())
-                m_pLayoutFavorite->removeItem(pItem);
-            else
-                m_pLayoutGlobal->removeItem(pItem);
+            m_pLayoutGlobal->removeItem(pItem);
             break;
         }
         case UIChooserNodeType_Group:
         {
             AssertMsg(m_groupItems.contains(pItem), ("Group-item was not found!"));
             m_groupItems.removeAt(m_groupItems.indexOf(pItem));
-            if (pItem->isFavorite())
-                m_pLayoutFavorite->removeItem(pItem);
-            else
-                m_pLayoutGroup->removeItem(pItem);
+            m_pLayoutGroup->removeItem(pItem);
             break;
         }
         case UIChooserNodeType_Machine:
         {
             AssertMsg(m_machineItems.contains(pItem), ("Machine-item was not found!"));
             m_machineItems.removeAt(m_machineItems.indexOf(pItem));
-            if (pItem->isFavorite())
-                m_pLayoutFavorite->removeItem(pItem);
-            else
-                m_pLayoutMachine->removeItem(pItem);
+            m_pLayoutMachine->removeItem(pItem);
             break;
         }
         default:
@@ -640,12 +596,8 @@ void UIChooserItemGroup::updateLayout()
         /* Adjust scroll-view geometry: */
         QSize viewSize = pView->size();
         viewSize.setHeight(viewSize.height() - iPreviousVerticalIndent);
-        /* Adjust favorite children container: */
-        m_pContainerFavorite->resize(viewSize.width(), m_pContainerFavorite->minimumSizeHint().height());
-        m_pContainerFavorite->setPos(0, iPreviousVerticalIndent);
-        iPreviousVerticalIndent += m_pContainerFavorite->minimumSizeHint().height();
         /* Adjust other children scroll-area: */
-        m_pScrollArea->resize(viewSize.width(), viewSize.height() - m_pContainerFavorite->minimumSizeHint().height());
+        m_pScrollArea->resize(viewSize.width(), viewSize.height());
         m_pScrollArea->setPos(0, iPreviousVerticalIndent);
     }
     /* Header (non-root-item): */
@@ -671,25 +623,19 @@ void UIChooserItemGroup::updateLayout()
         /* Adjust scroll-view geometry: */
         QSize itemSize = size().toSize();
         itemSize.setHeight(itemSize.height() - iPreviousVerticalIndent);
-        /* Adjust favorite children container: */
-        m_pContainerFavorite->resize(itemSize.width() - iParentIndent, m_pContainerFavorite->minimumSizeHint().height());
-        m_pContainerFavorite->setPos(iParentIndent, iPreviousVerticalIndent);
-        iPreviousVerticalIndent += m_pContainerFavorite->minimumSizeHint().height();
         /* Adjust other children scroll-area: */
-        m_pScrollArea->resize(itemSize.width() - iParentIndent, itemSize.height() - m_pContainerFavorite->minimumSizeHint().height());
+        m_pScrollArea->resize(itemSize.width() - iParentIndent, itemSize.height());
         m_pScrollArea->setPos(iParentIndent, iPreviousVerticalIndent);
     }
 
     /* No body for closed group: */
     if (isClosed())
     {
-        m_pContainerFavorite->hide();
         m_pScrollArea->hide();
     }
     /* Body for opened group: */
     else
     {
-        m_pContainerFavorite->show();
         m_pScrollArea->show();
         foreach (UIChooserItem *pItem, items())
             pItem->updateLayout();
@@ -1106,22 +1052,6 @@ void UIChooserItemGroup::prepare()
         }
     }
 
-    /* Prepare favorite children container: */
-    m_pContainerFavorite = new QIGraphicsWidget(this);
-    if (m_pContainerFavorite)
-    {
-        /* Make it always above other children scroll-area: */
-        m_pContainerFavorite->setZValue(1);
-
-        /* Prepare favorite children layout: */
-        m_pLayoutFavorite = new QGraphicsLinearLayout(Qt::Vertical, m_pContainerFavorite);
-        if (m_pLayoutFavorite)
-        {
-            m_pLayoutFavorite->setContentsMargins(0, 0, 0, 0);
-            m_pLayoutFavorite->setSpacing(0);
-        }
-    }
-
     /* Prepare scroll-area: */
     m_pScrollArea = new UIGraphicsScrollArea(Qt::Vertical, this);
     if (m_pScrollArea)
@@ -1176,7 +1106,7 @@ void UIChooserItemGroup::prepare()
     /* Add item to the parent instead (if passed),
      * it will be added to the scene indirectly: */
     else if (parentItem())
-        parentItem()->addItem(this, isFavorite(), position());
+        parentItem()->addItem(this, position());
     /* Otherwise sombody forgot to pass scene or parent. */
     else
         AssertFailedReturnVoid();
@@ -1404,8 +1334,7 @@ int UIChooserItemGroup::minimumWidthHintForGroup(bool fGroupOpened) const
         if (node()->hasNodes())
         {
             /* We have to take maximum children width into account: */
-            iProposedWidth = qMax(m_pContainerFavorite->minimumSizeHint().width(),
-                                  m_pContainer->minimumSizeHint().width());
+            iProposedWidth = m_pContainer->minimumSizeHint().width();
         }
     }
     /* For other items: */
@@ -1422,8 +1351,7 @@ int UIChooserItemGroup::minimumWidthHintForGroup(bool fGroupOpened) const
         if (fGroupOpened)
         {
             /* We have to take maximum children width into account: */
-            iProposedWidth = qMax(m_pContainerFavorite->minimumSizeHint().width(),
-                                  m_pContainer->minimumSizeHint().width());
+            iProposedWidth = m_pContainer->minimumSizeHint().width();
         }
 
         /* And 2 margins at last - left and right: */
@@ -1449,7 +1377,6 @@ int UIChooserItemGroup::minimumHeightHintForGroup(bool fGroupOpened) const
             const int iSpacingV = data(GroupItemData_ChildrenSpacing).toInt();
 
             /* We have to take maximum children height into account: */
-            iProposedHeight += m_pContainerFavorite->minimumSizeHint().height();
             iProposedHeight += m_pContainer->minimumSizeHint().height();
             iProposedHeight += iSpacingV;
         }
@@ -1469,7 +1396,6 @@ int UIChooserItemGroup::minimumHeightHintForGroup(bool fGroupOpened) const
         if (fGroupOpened)
         {
             /* We have to take maximum children height into account: */
-            iProposedHeight += m_pContainerFavorite->minimumSizeHint().height();
             iProposedHeight += m_pContainer->minimumSizeHint().height();
         }
 

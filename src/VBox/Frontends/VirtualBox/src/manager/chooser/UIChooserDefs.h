@@ -72,7 +72,6 @@ enum UIChooserNodeDataPrefixType
 /** UIChooserNode extra-data option types. */
 enum UIChooserNodeDataOptionType
 {
-    UIChooserNodeDataOptionType_GlobalFavorite,
     UIChooserNodeDataOptionType_GroupOpened
 };
 

@@ -586,10 +586,8 @@ QString UIChooserAbstractModel::optionToString(UIChooserNodeDataOptionType enmTy
 {
     switch (enmType)
     {
-        /* Global nodes: */
-        case UIChooserNodeDataOptionType_GlobalFavorite: return "f";
         /* Group nodes: */
-        case UIChooserNodeDataOptionType_GroupOpened:    return "o";
+        case UIChooserNodeDataOptionType_GroupOpened: return "o";
     }
     return QString();
 }
@@ -1470,38 +1468,6 @@ bool UIChooserAbstractModel::shouldGroupNodeBeOpened(UIChooserNode *pParentNode,
             /* Get group descriptor: */
             const QString strDescriptor = mt.captured(1);
             if (strDescriptor.contains(strNodeOptionOpened))
-                return true;
-        }
-    }
-
-    /* Return 'false' by default: */
-    return false;
-}
-
-bool UIChooserAbstractModel::shouldGlobalNodeBeFavorite(UIChooserNode *pParentNode) const
-{
-    /* Read group definitions: */
-    const QStringList definitions = gEDataManager->machineGroupDefinitions(pParentNode->fullName());
-    /* Return 'false' if no definitions found: */
-    if (definitions.isEmpty())
-        return false;
-
-    /* Prepare required group definition reg-exp: */
-    const QString strNodePrefix = prefixToString(UIChooserNodeDataPrefixType_Global);
-    const QString strNodeOptionFavorite = optionToString(UIChooserNodeDataOptionType_GlobalFavorite);
-    const QString strNodeValueDefault = valueToString(UIChooserNodeDataValueType_GlobalDefault);
-    const QString strDefinitionTemplate = QString("%1(\\S)*=%2").arg(strNodePrefix, strNodeValueDefault);
-    const QRegularExpression re(strDefinitionTemplate);
-    /* For each the group definition: */
-    foreach (const QString &strDefinition, definitions)
-    {
-        /* Check if this is required definition: */
-        const QRegularExpressionMatch mt = re.match(strDefinition);
-        if (mt.capturedStart() == 0)
-        {
-            /* Get group descriptor: */
-            const QString strDescriptor = mt.captured(1);
-            if (strDescriptor.contains(strNodeOptionFavorite))
                 return true;
         }
     }

@@ -44,11 +44,9 @@ public:
 
     /** Constructs chooser node passing @a pParent to the base-class.
       * @param  iPosition  Brings the initial node position.
-      * @param  fFavorite  Brings whether the node is favorite.
       * @param  strTip     Brings the dummy tip. */
     UIChooserNodeGlobal(UIChooserNode *pParent,
                         int iPosition,
-                        bool fFavorite,
                         const QString &strTip);
     /** Constructs chooser node passing @a pParent to the base-class.
       * @param  iPosition  Brings the initial node position.

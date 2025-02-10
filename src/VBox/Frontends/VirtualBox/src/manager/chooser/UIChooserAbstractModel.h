@@ -312,9 +312,6 @@ private:
         bool shouldGroupNodeBeOpened(UIChooserNode *pParentNode,
                                      UIChooserNodeDataPrefixType enmDataType,
                                      const QString &strName) const;
-        /** Returns whether global node should be favorite,
-          * searching starting from the passed @a pParentNode. */
-        bool shouldGlobalNodeBeFavorite(UIChooserNode *pParentNode) const;
 
         /** Wipes out empty groups starting from @a pParentItem. */
         void wipeOutEmptyGroupsStartingFrom(UIChooserNode *pParentNode);

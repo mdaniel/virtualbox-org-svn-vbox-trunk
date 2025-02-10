@@ -35,10 +35,9 @@
 #include "iprt/cpp/utils.h"
 
 
-UIChooserNode::UIChooserNode(UIChooserNode *pParent /* = 0 */, bool fFavorite /* = false */)
+UIChooserNode::UIChooserNode(UIChooserNode *pParent /* = 0 */)
     : QObject(pParent)
     , m_pParent(pParent)
-    , m_fFavorite(fFavorite)
     , m_pModel(0)
     , m_fDisabled(false)
 {

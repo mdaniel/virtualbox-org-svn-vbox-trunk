@@ -39,7 +39,7 @@
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
                                            int iPosition,
                                            const CMachine &comMachine)
-    : UIChooserNode(pParent, false /* favorite */)
+    : UIChooserNode(pParent)
     , m_pCache(new UIVirtualMachineItemLocal(comMachine))
 {
     /* Add to parent: */
@@ -55,7 +55,7 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
                                            int iPosition,
                                            const CCloudMachine &comCloudMachine)
-    : UIChooserNode(pParent, false /* favorite */)
+    : UIChooserNode(pParent)
     , m_pCache(new UIVirtualMachineItemCloud(comCloudMachine))
 {
     /* Add to parent: */
@@ -79,7 +79,7 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
                                            int iPosition,
                                            UIFakeCloudVirtualMachineItemState enmState)
-    : UIChooserNode(pParent, false /* favorite */)
+    : UIChooserNode(pParent)
     , m_pCache(new UIVirtualMachineItemCloud(enmState))
 {
     /* Add to parent: */
@@ -95,7 +95,7 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
                                            int iPosition,
                                            UIChooserNodeMachine *pCopyFrom)
-    : UIChooserNode(pParent, pCopyFrom->isFavorite())
+    : UIChooserNode(pParent)
 {
     /* Prepare cache of corresponding type: */
     switch (pCopyFrom->cacheType())

@@ -283,7 +283,7 @@ QList<UIChooserItem*> UIChooserItemMachine::items(UIChooserNodeType) const
     return QList<UIChooserItem*>();
 }
 
-void UIChooserItemMachine::addItem(UIChooserItem*, bool, int)
+void UIChooserItemMachine::addItem(UIChooserItem*, int)
 {
     AssertMsgFailed(("Machine graphics item do NOT support children!"));
 }
@@ -596,7 +596,7 @@ void UIChooserItemMachine::prepare()
 
     /* Add item to the parent: */
     AssertPtrReturnVoid(parentItem());
-    parentItem()->addItem(this, isFavorite(), position());
+    parentItem()->addItem(this, position());
 
     /* Configure connections: */
     connect(gpManager, &UIVirtualBoxManager::sigWindowRemapped,

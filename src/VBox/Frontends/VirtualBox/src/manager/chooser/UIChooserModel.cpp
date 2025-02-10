@@ -128,18 +128,6 @@ void UIChooserModel::handleToolButtonClick(UIChooserItem *pItem)
                               pItem->type() == UIChooserNodeType_Machine ? pItem->toMachineItem()->cache() : 0);
 }
 
-void UIChooserModel::handlePinButtonClick(UIChooserItem *pItem)
-{
-    switch (pItem->type())
-    {
-        case UIChooserNodeType_Global:
-            pItem->setFavorite(!pItem->isFavorite());
-            break;
-        default:
-            break;
-    }
-}
-
 void UIChooserModel::setSelectedItems(const QList<UIChooserItem*> &items)
 {
     /* Is there something changed? */

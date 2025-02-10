@@ -1204,11 +1204,8 @@ include $(FILE_KBUILD_SUB_FOOTER)
 # Alias the PGM templates to the object in which they are defined.
 PGMInternal.o: PGM.o
 
-PGMAllBth.o PGMAllGst.o PGMAllShw.o \
-PGMAllBth.obj PGMAllGst.obj PGMAllShw.obj: PGMAll.o
-
-PGMRCBth.o PGMRCGst.o PGMRCShw.o \
-PGMRCBth.obj PGMRCGst.obj PGMRCShw.obj: PGMRC.o
+PGMAllGst-x86.cpp.o PGMAllShw-x86.cpp.o PGMAllBth-x86.cpp.o \
+PGMAllGst-armv8.cpp.o: PGMAll.o
 
 PGMPhysRWTmpl.o PGMPhysRWTmpl.obj: PGMPhys.o
 

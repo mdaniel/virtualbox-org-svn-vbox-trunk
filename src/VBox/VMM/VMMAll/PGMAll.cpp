@@ -101,7 +101,7 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_32BIT
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_32BIT(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
@@ -109,9 +109,9 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_32BIT_REAL(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_32BIT_PT_FOR_PHYS
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_32BIT_PD_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllGst.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllGst-x86.cpp.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
 # undef PGM_BTH_NAME
@@ -124,9 +124,9 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_32BIT_PROT(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_32BIT_PT_FOR_PHYS
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_32BIT_PD_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllGst.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllGst-x86.cpp.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
 # undef PGM_BTH_NAME
@@ -140,9 +140,9 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_32BIT_PT_FOR_32BIT_PT
 # define BTH_PGMPOOLKIND_PT_FOR_BIG  PGMPOOLKIND_32BIT_PT_FOR_32BIT_4MB
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_32BIT_PD
-# include "PGMGstDefs.h"
-# include "PGMAllGst.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllGst-x86.cpp.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_BIG
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
@@ -160,7 +160,7 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_SHW_TYPE                PGM_TYPE_PAE
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_PAE(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_PAE_REAL(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
@@ -168,8 +168,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_PAE_REAL(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_PAE_PT_FOR_PHYS
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_PAE_PDPT_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
 # undef PGM_BTH_NAME
@@ -182,8 +182,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_PAE_PROT(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_PAE_PT_FOR_PHYS
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_PAE_PDPT_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
 # undef PGM_BTH_NAME
@@ -197,8 +197,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_PAE_PT_FOR_32BIT_PT
 # define BTH_PGMPOOLKIND_PT_FOR_BIG  PGMPOOLKIND_PAE_PT_FOR_32BIT_4MB
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_PAE_PDPT_FOR_32BIT
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_BIG
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
@@ -214,9 +214,9 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_PAE_PT_FOR_PAE_PT
 # define BTH_PGMPOOLKIND_PT_FOR_BIG  PGMPOOLKIND_PAE_PT_FOR_PAE_2MB
 # define BTH_PGMPOOLKIND_ROOT        PGMPOOLKIND_PAE_PDPT
-# include "PGMGstDefs.h"
-# include "PGMAllGst.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllGst-x86.cpp.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_BIG
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
@@ -233,7 +233,7 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE               PGM_TYPE_AMD64
 # define PGM_SHW_NAME(name)         PGM_SHW_NAME_AMD64(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - protected mode (only used for AMD-V nested paging in 64 bits mode) */
 /** @todo retire this hack. */
@@ -242,8 +242,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_BTH_NAME(name)         PGM_BTH_NAME_AMD64_PROT(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT  PGMPOOLKIND_PAE_PT_FOR_PHYS
 # define BTH_PGMPOOLKIND_ROOT       PGMPOOLKIND_PAE_PD_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef BTH_PGMPOOLKIND_ROOT
 # undef PGM_BTH_NAME
@@ -258,9 +258,9 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define BTH_PGMPOOLKIND_PT_FOR_PT PGMPOOLKIND_PAE_PT_FOR_PAE_PT
 #  define BTH_PGMPOOLKIND_PT_FOR_BIG PGMPOOLKIND_PAE_PT_FOR_PAE_2MB
 #  define BTH_PGMPOOLKIND_ROOT      PGMPOOLKIND_64BIT_PML4
-#  include "PGMGstDefs.h"
-#  include "PGMAllGst.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllGst-x86.cpp.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef BTH_PGMPOOLKIND_PT_FOR_BIG
 #  undef BTH_PGMPOOLKIND_PT_FOR_PT
 #  undef BTH_PGMPOOLKIND_ROOT
@@ -278,14 +278,14 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_NESTED_32BIT
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_NESTED_32BIT(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
 # define PGM_GST_NAME(name)          PGM_GST_NAME_REAL(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_32BIT_REAL(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -294,8 +294,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PROT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PROT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_32BIT_PROT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -304,8 +304,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_32BIT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_32BIT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_32BIT_32BIT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -314,8 +314,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PAE
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PAE(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_32BIT_PAE(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -325,8 +325,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define PGM_GST_TYPE               PGM_TYPE_AMD64
 #  define PGM_GST_NAME(name)         PGM_GST_NAME_AMD64(name)
 #  define PGM_BTH_NAME(name)         PGM_BTH_NAME_NESTED_32BIT_AMD64(name)
-#  include "PGMGstDefs.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef PGM_BTH_NAME
 #  undef PGM_GST_TYPE
 #  undef PGM_GST_NAME
@@ -341,14 +341,14 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_NESTED_PAE
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_NESTED_PAE(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
 # define PGM_GST_NAME(name)          PGM_GST_NAME_REAL(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_PAE_REAL(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -357,8 +357,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PROT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PROT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_PAE_PROT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -367,8 +367,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_32BIT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_32BIT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_PAE_32BIT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -377,8 +377,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PAE
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PAE(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_PAE_PAE(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -388,8 +388,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define PGM_GST_TYPE               PGM_TYPE_AMD64
 #  define PGM_GST_NAME(name)         PGM_GST_NAME_AMD64(name)
 #  define PGM_BTH_NAME(name)         PGM_BTH_NAME_NESTED_PAE_AMD64(name)
-#  include "PGMGstDefs.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef PGM_BTH_NAME
 #  undef PGM_GST_TYPE
 #  undef PGM_GST_NAME
@@ -404,14 +404,14 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_NESTED_AMD64
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_NESTED_AMD64(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
 # define PGM_GST_NAME(name)          PGM_GST_NAME_REAL(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_AMD64_REAL(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -420,8 +420,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PROT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PROT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_AMD64_PROT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -430,8 +430,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_32BIT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_32BIT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_AMD64_32BIT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -440,8 +440,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PAE
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PAE(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NESTED_AMD64_PAE(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -451,8 +451,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define PGM_GST_TYPE               PGM_TYPE_AMD64
 #  define PGM_GST_NAME(name)         PGM_GST_NAME_AMD64(name)
 #  define PGM_BTH_NAME(name)         PGM_BTH_NAME_NESTED_AMD64_AMD64(name)
-#  include "PGMGstDefs.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef PGM_BTH_NAME
 #  undef PGM_GST_TYPE
 #  undef PGM_GST_NAME
@@ -467,15 +467,15 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_EPT
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_EPT(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
 # define PGM_GST_NAME(name)          PGM_GST_NAME_REAL(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_EPT_REAL(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_EPT_PT_FOR_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
@@ -486,8 +486,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PROT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_EPT_PROT(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_EPT_PT_FOR_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
@@ -498,8 +498,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_NAME(name)          PGM_GST_NAME_32BIT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_EPT_32BIT(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_EPT_PT_FOR_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
@@ -510,8 +510,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PAE(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_EPT_PAE(name)
 # define BTH_PGMPOOLKIND_PT_FOR_PT   PGMPOOLKIND_EPT_PT_FOR_PHYS
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef BTH_PGMPOOLKIND_PT_FOR_PT
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
@@ -523,8 +523,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define PGM_GST_NAME(name)         PGM_GST_NAME_AMD64(name)
 #  define PGM_BTH_NAME(name)         PGM_BTH_NAME_EPT_AMD64(name)
 #  define BTH_PGMPOOLKIND_PT_FOR_PT  PGMPOOLKIND_EPT_PT_FOR_PHYS
-#  include "PGMGstDefs.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef BTH_PGMPOOLKIND_PT_FOR_PT
 #  undef PGM_BTH_NAME
 #  undef PGM_GST_TYPE
@@ -540,14 +540,14 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
  */
 # define PGM_SHW_TYPE                PGM_TYPE_NONE
 # define PGM_SHW_NAME(name)          PGM_SHW_NAME_NONE(name)
-# include "PGMAllShw.h"
+# include "PGMAllShw-x86.cpp.h"
 
 /* Guest - real mode */
 # define PGM_GST_TYPE                PGM_TYPE_REAL
 # define PGM_GST_NAME(name)          PGM_GST_NAME_REAL(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NONE_REAL(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -556,8 +556,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_PROT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_PROT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NONE_PROT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -566,8 +566,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE                PGM_TYPE_32BIT
 # define PGM_GST_NAME(name)          PGM_GST_NAME_32BIT(name)
 # define PGM_BTH_NAME(name)          PGM_BTH_NAME_NONE_32BIT(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -576,8 +576,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 # define PGM_GST_TYPE               PGM_TYPE_PAE
 # define PGM_GST_NAME(name)         PGM_GST_NAME_PAE(name)
 # define PGM_BTH_NAME(name)         PGM_BTH_NAME_NONE_PAE(name)
-# include "PGMGstDefs.h"
-# include "PGMAllBth.h"
+# include "PGMGstDefs-x86.h"
+# include "PGMAllBth-x86.cpp.h"
 # undef PGM_BTH_NAME
 # undef PGM_GST_TYPE
 # undef PGM_GST_NAME
@@ -587,8 +587,8 @@ static bool pgmHandlePageZeroingCode(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 #  define PGM_GST_TYPE               PGM_TYPE_AMD64
 #  define PGM_GST_NAME(name)         PGM_GST_NAME_AMD64(name)
 #  define PGM_BTH_NAME(name)         PGM_BTH_NAME_NONE_AMD64(name)
-#  include "PGMGstDefs.h"
-#  include "PGMAllBth.h"
+#  include "PGMGstDefs-x86.h"
+#  include "PGMAllBth-x86.cpp.h"
 #  undef PGM_BTH_NAME
 #  undef PGM_GST_TYPE
 #  undef PGM_GST_NAME
@@ -962,8 +962,10 @@ AssertCompile(PGMMODE_NONE == 32);
 
 #elif defined(VBOX_VMM_TARGET_ARMV8)
 
-/** @todo  Proper ARMv8 guest support for PGM   */
-# include "PGMAllGst-armv8.h"
+/** @todo  Proper ARMv8 guest support for PGM;  The idea is to cache the
+ *         configuration register values and lazily reconfigure when they
+ *         change. */
+# include "PGMAllGst-armv8.cpp.h"
 
 #else
 # error "port me"

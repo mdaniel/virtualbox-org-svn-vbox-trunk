@@ -600,11 +600,6 @@ static int hmR0InitAmd(void)
     int rc = SVMR0GlobalInit();
     if (RT_SUCCESS(rc))
     {
-        /*
-         * Install the AMD-V methods.
-         */
-        g_HmR0Ops = g_HmR0OpsSvm;
-
         /* Query AMD features. */
         uint32_t u32Dummy;
         ASMCpuId(0x8000000a, &g_uHmSvmRev, &g_uHmMaxAsid, &u32Dummy, &g_fHmSvmFeatures);
@@ -625,7 +620,11 @@ static int hmR0InitAmd(void)
 #endif
         if (RT_SUCCESS(rc))
         {
+            /*
+             * Install the AMD-V methods and mark it enabled.
+             */
             SUPR0GetHwvirtMsrs(&g_HmMsrs, SUPVTCAPS_AMD_V, false /* fForce */);
+            g_HmR0Ops = g_HmR0OpsSvm;
             g_fHmSvmSupported = true;
         }
         else

@@ -39,6 +39,7 @@
 /VMMRC/PGMRCGst.h: --no-fix-header-guards
 /VMMAll/PGMAllBth.h: --no-fix-header-guards
 /VMMAll/PGMAllGst.h: --no-fix-header-guards
+/VMMAll/PGMAllGst-armv8.h: --no-fix-header-guards
 /VMMAll/PGMAllShw.h: --no-fix-header-guards
 /VMMAll/IEMAllInstCommonBodyMacros.h: --no-fix-header-guards
 /VMMAll/IEMAllN8veLiveness.h: --no-fix-header-guards

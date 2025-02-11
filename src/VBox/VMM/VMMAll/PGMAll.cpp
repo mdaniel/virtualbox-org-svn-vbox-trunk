@@ -1954,61 +1954,6 @@ int pgmShwSyncNestedPageLocked(PVMCPUCC pVCpu, RTGCPHYS GCPhys, uint32_t cPages,
 
 # endif /* !VBOX_WITH_ONLY_PGM_NEM_MODE */
 
-#endif /* VBOX_VMM_TARGET_X86 */
-
-
-/**
- * Gets effective Guest OS page information.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
- * @param   GCPtr       Guest Context virtual address of the page.
- * @param   pWalk       Where to store the page walk information.
- * @thread  EMT(pVCpu)
- */
-VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
-{
-    VMCPU_ASSERT_EMT(pVCpu);
-    Assert(pWalk);
-#ifdef VBOX_VMM_TARGET_X86
-    uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
-    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
-    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
-    return g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, pWalk);
-
-#elif defined(VBOX_VMM_TARGET_ARMV8)
-    return pgmGstGetPageArmv8Hack(pVCpu, GCPtr, pWalk);
-#else
-# error "port me"
-#endif
-}
-
-#ifdef VBOX_VMM_TARGET_X86
-
-/**
- * Gets effective Guest OS page information.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
- * @param   GCPtr       Guest Context virtual address of the page.
- * @param   fFlags      PGMQPAGE_F_XXX. If zero, no accessed or dirty bits will
- *                      be set.
- * @param   pWalk       Where to store the page walk information.
- * @thread  EMT(pVCpu)
- */
-VMM_INT_DECL(int) PGMGstQueryPageFast(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fFlags, PPGMPTWALKFAST pWalk)
-{
-    VMCPU_ASSERT_EMT(pVCpu);
-    Assert(pWalk);
-    Assert(!(fFlags & ~(PGMQPAGE_F_VALID_MASK)));
-    Assert(!(fFlags & PGMQPAGE_F_EXECUTE) || !(fFlags & PGMQPAGE_F_WRITE));
-    uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
-    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
-    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
-    return g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, pWalk);
-}
-
-
 /**
  * Maps the guest CR3.
  *
@@ -2050,6 +1995,60 @@ DECLINLINE(int) pgmGstUnmapCr3(PVMCPUCC pVCpu)
 }
 # endif
 
+#endif /* VBOX_VMM_TARGET_X86 */
+
+
+/**
+ * Gets effective Guest OS page information.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ * @param   GCPtr       Guest Context virtual address of the page.
+ * @param   pWalk       Where to store the page walk information.
+ * @thread  EMT(pVCpu)
+ */
+VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
+{
+    VMCPU_ASSERT_EMT(pVCpu);
+    Assert(pWalk);
+#ifdef VBOX_VMM_TARGET_X86
+    uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
+    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
+    return g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, pWalk);
+
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    return pgmGstGetPageArmv8Hack(pVCpu, GCPtr, pWalk);
+
+#else
+# error "port me"
+#endif
+}
+
+
+#ifdef VBOX_VMM_TARGET_X86 /** @todo Implement PGMGstQueryPageFast for ARMv8! */
+/**
+ * Gets effective Guest OS page information.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ * @param   GCPtr       Guest Context virtual address of the page.
+ * @param   fFlags      PGMQPAGE_F_XXX. If zero, no accessed or dirty bits will
+ *                      be set.
+ * @param   pWalk       Where to store the page walk information.
+ * @thread  EMT(pVCpu)
+ */
+VMM_INT_DECL(int) PGMGstQueryPageFast(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fFlags, PPGMPTWALKFAST pWalk)
+{
+    VMCPU_ASSERT_EMT(pVCpu);
+    Assert(pWalk);
+    Assert(!(fFlags & ~(PGMQPAGE_F_VALID_MASK)));
+    Assert(!(fFlags & PGMQPAGE_F_EXECUTE) || !(fFlags & PGMQPAGE_F_WRITE));
+    uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
+    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
+    return g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, pWalk);
+}
 #endif /* VBOX_VMM_TARGET_X86 */
 
 
@@ -2115,51 +2114,6 @@ int pgmGstPtWalk(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST 
 # error "port me"
 #endif
 }
-
-
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
-/**
- * Performs a guest second-level address translation (SLAT).
- *
- * @returns VBox status code.
- * @retval  VINF_SUCCESS on success.
- * @retval  VERR_PAGE_TABLE_NOT_PRESENT on failure.  Check pWalk for details.
- * @retval  VERR_PGM_NOT_USED_IN_MODE if not paging isn't enabled. @a pWalk is
- *          not valid, except enmType is PGMPTWALKGSTTYPE_INVALID.
- *
- * @param   pVCpu               The cross context virtual CPU structure of the calling EMT.
- * @param   GCPhysNested        The nested-guest physical address being translated.
- * @param   fIsLinearAddrValid  Whether the linear address in @a GCPtrNested is the
- *                              cause for this translation.
- * @param   GCPtrNested         The nested-guest virtual address that initiated the
- *                              SLAT. If none, pass 0 (and not NIL_RTGCPTR).
- * @param   pWalk               Where to return the walk result. This is updated for
- *                              all error codes other than
- *                              VERR_PGM_NOT_USED_IN_MODE.
- * @param   pGstWalk            Where to store the second-level paging-mode specific
- *                              walk info.
- */
-static int pgmGstSlatWalk(PVMCPUCC pVCpu, RTGCPHYS GCPhysNested, bool fIsLinearAddrValid, RTGCPTR GCPtrNested,
-                          PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk)
-{
-    /* SLAT mode must be valid at this point as this should only be used -after- we have determined SLAT mode. */
-    Assert(   pVCpu->pgm.s.enmGuestSlatMode != PGMSLAT_DIRECT
-           && pVCpu->pgm.s.enmGuestSlatMode != PGMSLAT_INVALID);
-    AssertPtr(pWalk);
-    AssertPtr(pGstWalk);
-    switch (pVCpu->pgm.s.enmGuestSlatMode)
-    {
-        case PGMSLAT_EPT:
-            pGstWalk->enmType = PGMPTWALKGSTTYPE_EPT;
-            return PGM_GST_SLAT_NAME_EPT(Walk)(pVCpu, GCPhysNested, fIsLinearAddrValid, GCPtrNested, pWalk, &pGstWalk->u.Ept);
-
-        default:
-            AssertFailed();
-            pGstWalk->enmType = PGMPTWALKGSTTYPE_INVALID;
-            return VERR_PGM_NOT_USED_IN_MODE;
-    }
-}
-#endif /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
 
 
 /**
@@ -2612,6 +2566,50 @@ static void pgmGstFlushPaePdpes(PVMCPU pVCpu)
 
 
 # ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+
+/**
+ * Performs a guest second-level address translation (SLAT).
+ *
+ * @returns VBox status code.
+ * @retval  VINF_SUCCESS on success.
+ * @retval  VERR_PAGE_TABLE_NOT_PRESENT on failure.  Check pWalk for details.
+ * @retval  VERR_PGM_NOT_USED_IN_MODE if not paging isn't enabled. @a pWalk is
+ *          not valid, except enmType is PGMPTWALKGSTTYPE_INVALID.
+ *
+ * @param   pVCpu               The cross context virtual CPU structure of the calling EMT.
+ * @param   GCPhysNested        The nested-guest physical address being translated.
+ * @param   fIsLinearAddrValid  Whether the linear address in @a GCPtrNested is the
+ *                              cause for this translation.
+ * @param   GCPtrNested         The nested-guest virtual address that initiated the
+ *                              SLAT. If none, pass 0 (and not NIL_RTGCPTR).
+ * @param   pWalk               Where to return the walk result. This is updated for
+ *                              all error codes other than
+ *                              VERR_PGM_NOT_USED_IN_MODE.
+ * @param   pGstWalk            Where to store the second-level paging-mode specific
+ *                              walk info.
+ */
+static int pgmGstSlatWalk(PVMCPUCC pVCpu, RTGCPHYS GCPhysNested, bool fIsLinearAddrValid, RTGCPTR GCPtrNested,
+                          PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk)
+{
+    /* SLAT mode must be valid at this point as this should only be used -after- we have determined SLAT mode. */
+    Assert(   pVCpu->pgm.s.enmGuestSlatMode != PGMSLAT_DIRECT
+           && pVCpu->pgm.s.enmGuestSlatMode != PGMSLAT_INVALID);
+    AssertPtr(pWalk);
+    AssertPtr(pGstWalk);
+    switch (pVCpu->pgm.s.enmGuestSlatMode)
+    {
+        case PGMSLAT_EPT:
+            pGstWalk->enmType = PGMPTWALKGSTTYPE_EPT;
+            return PGM_GST_SLAT_NAME_EPT(Walk)(pVCpu, GCPhysNested, fIsLinearAddrValid, GCPtrNested, pWalk, &pGstWalk->u.Ept);
+
+        default:
+            AssertFailed();
+            pGstWalk->enmType = PGMPTWALKGSTTYPE_INVALID;
+            return VERR_PGM_NOT_USED_IN_MODE;
+    }
+}
+
+
 /**
  * Performs second-level address translation for the given CR3 and updates the
  * nested-guest CR3 when successful.
@@ -2654,8 +2652,8 @@ static int pgmGstSlatTranslateCr3(PVMCPUCC pVCpu, uint64_t uCr3, PRTGCPHYS pGCPh
     *pGCPhysCr3 = pVCpu->pgm.s.GCPhysCR3;
     return VINF_SUCCESS;
 }
-# endif
 
+# endif /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
 
 /**
  * Performs and schedules necessary updates following a CR3 load or reload.
@@ -2989,6 +2987,87 @@ VMMDECL(int) PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4
     if (rcSync == VINF_SUCCESS)
         PGM_INVL_VCPU_TLBS(pVCpu);
     return rcSync;
+}
+
+
+# ifdef VBOX_STRICT
+/**
+ * Asserts that everything related to the guest CR3 is correctly shadowed.
+ *
+ * This will call PGMAssertNoMappingConflicts() and PGMAssertHandlerAndFlagsInSync(),
+ * and assert the correctness of the guest CR3 mapping before asserting that the
+ * shadow page tables is in sync with the guest page tables.
+ *
+ * @returns Number of conflicts.
+ * @param   pVM     The cross context VM structure.
+ * @param   pVCpu   The cross context virtual CPU structure.
+ * @param   cr3     The current guest CR3 register value.
+ * @param   cr4     The current guest CR4 register value.
+ */
+VMMDECL(unsigned) PGMAssertCR3(PVMCC pVM, PVMCPUCC pVCpu, uint64_t cr3, uint64_t cr4)
+{
+    AssertReturn(pVM->enmTarget == VMTARGET_X86, 0);
+    STAM_PROFILE_START(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,SyncCR3), a);
+
+    uintptr_t const idxBth = pVCpu->pgm.s.idxBothModeData;
+    AssertReturn(idxBth < RT_ELEMENTS(g_aPgmBothModeData), -VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmBothModeData[idxBth].pfnAssertCR3, -VERR_PGM_MODE_IPE);
+
+    PGM_LOCK_VOID(pVM);
+    unsigned cErrors = g_aPgmBothModeData[idxBth].pfnAssertCR3(pVCpu, cr3, cr4, 0, ~(RTGCPTR)0);
+    PGM_UNLOCK(pVM);
+
+    STAM_PROFILE_STOP(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,SyncCR3), a);
+    return cErrors;
+}
+# endif /* VBOX_STRICT */
+
+
+/**
+ * Called by CPUM or REM when CR0.WP changes to 1.
+ *
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ * @thread  EMT
+ */
+VMMDECL(void) PGMCr0WpEnabled(PVMCPUCC pVCpu)
+{
+    /*
+     * Netware WP0+RO+US hack cleanup when WP0 -> WP1.
+     *
+     * Use the counter to judge whether there might be pool pages with active
+     * hacks in them.  If there are, we will be running the risk of messing up
+     * the guest by allowing it to write to read-only pages.  Thus, we have to
+     * clear the page pool ASAP if there is the slightest chance.
+     */
+    if (pVCpu->pgm.s.cNetwareWp0Hacks > 0)
+    {
+        Assert(pVCpu->CTX_SUFF(pVM)->cCpus == 1);
+
+        Log(("PGMCr0WpEnabled: %llu WP0 hacks active - clearing page pool\n", pVCpu->pgm.s.cNetwareWp0Hacks));
+        pVCpu->pgm.s.cNetwareWp0Hacks = 0;
+        pVCpu->pgm.s.fSyncFlags |= PGM_SYNC_CLEAR_PGM_POOL;
+        VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
+    }
+}
+
+
+/**
+ * Updates PGM's copy of the guest's EPT pointer.
+ *
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   uEptPtr     The EPT pointer.
+ *
+ * @remarks This can be called as part of VM-entry so we might be in the midst of
+ *          switching to VMX non-root mode.
+ */
+VMM_INT_DECL(void) PGMSetGuestEptPtr(PVMCPUCC pVCpu, uint64_t uEptPtr)
+{
+    PVMCC pVM = pVCpu->CTX_SUFF(pVM);
+    PGM_LOCK_VOID(pVM);
+    pVCpu->pgm.s.uEptPtr = uEptPtr;
+    pVCpu->pgm.s.pGstEptPml4R3 = 0;
+    pVCpu->pgm.s.pGstEptPml4R0 = 0;
+    PGM_UNLOCK(pVM);
 }
 
 
@@ -3699,34 +3778,38 @@ VMM_INT_DECL(int) PGMHCChangeMode(PVMCC pVM, PVMCPUCC pVCpu, PGMMODE enmGuestMod
 }
 
 
-#ifdef VBOX_VMM_TARGET_X86
 /**
- * Called by CPUM or REM when CR0.WP changes to 1.
+ * Get mode name.
  *
- * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
- * @thread  EMT
+ * @returns read-only name string.
+ * @param   enmMode     The mode which name is desired.
  */
-VMMDECL(void) PGMCr0WpEnabled(PVMCPUCC pVCpu)
+VMMDECL(const char *) PGMGetModeName(PGMMODE enmMode)
 {
-    /*
-     * Netware WP0+RO+US hack cleanup when WP0 -> WP1.
-     *
-     * Use the counter to judge whether there might be pool pages with active
-     * hacks in them.  If there are, we will be running the risk of messing up
-     * the guest by allowing it to write to read-only pages.  Thus, we have to
-     * clear the page pool ASAP if there is the slightest chance.
-     */
-    if (pVCpu->pgm.s.cNetwareWp0Hacks > 0)
+    switch (enmMode)
     {
-        Assert(pVCpu->CTX_SUFF(pVM)->cCpus == 1);
+        case PGMMODE_REAL:          return "Real";
+        case PGMMODE_PROTECTED:     return "Protected";
+        case PGMMODE_32_BIT:        return "32-bit";
+        case PGMMODE_PAE:           return "PAE";
+        case PGMMODE_PAE_NX:        return "PAE+NX";
+        case PGMMODE_AMD64:         return "AMD64";
+        case PGMMODE_AMD64_NX:      return "AMD64+NX";
+        case PGMMODE_NESTED_32BIT:  return "Nested-32";
+        case PGMMODE_NESTED_PAE:    return "Nested-PAE";
+        case PGMMODE_NESTED_AMD64:  return "Nested-AMD64";
+        case PGMMODE_EPT:           return "EPT";
+        case PGMMODE_NONE:          return "None";
+        case PGMMODE_VMSA_V8_32:    return "VMSAv8-32";
+        case PGMMODE_VMSA_V8_64:    return "VMSAv8-64";
 
-        Log(("PGMCr0WpEnabled: %llu WP0 hacks active - clearing page pool\n", pVCpu->pgm.s.cNetwareWp0Hacks));
-        pVCpu->pgm.s.cNetwareWp0Hacks = 0;
-        pVCpu->pgm.s.fSyncFlags |= PGM_SYNC_CLEAR_PGM_POOL;
-        VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
+        case PGMMODE_INVALID:
+        case PGMMODE_MAX:
+        case PGMMODE_32BIT_HACK:
+            break;
     }
+    return "unknown mode value";
 }
-#endif /* VBOX_VMM_TARGET_X86 */
 
 
 /**
@@ -3759,8 +3842,8 @@ VMMDECL(PGMMODE) PGMGetShadowMode(PVMCPU pVCpu)
 #endif
 }
 
-
 #ifdef VBOX_VMM_TARGET_X86
+
 /**
  * Gets the current host paging mode.
  *
@@ -3796,39 +3879,9 @@ VMMDECL(PGMMODE) PGMGetHostMode(PVM pVM)
 
     return PGMMODE_INVALID;
 }
-#endif /* VBOX_VMM_TARGET_X86 */
 
 
-/**
- * Get mode name.
- *
- * @returns read-only name string.
- * @param   enmMode     The mode which name is desired.
- */
-VMMDECL(const char *) PGMGetModeName(PGMMODE enmMode)
-{
-    switch (enmMode)
-    {
-        case PGMMODE_REAL:          return "Real";
-        case PGMMODE_PROTECTED:     return "Protected";
-        case PGMMODE_32_BIT:        return "32-bit";
-        case PGMMODE_PAE:           return "PAE";
-        case PGMMODE_PAE_NX:        return "PAE+NX";
-        case PGMMODE_AMD64:         return "AMD64";
-        case PGMMODE_AMD64_NX:      return "AMD64+NX";
-        case PGMMODE_NESTED_32BIT:  return "Nested-32";
-        case PGMMODE_NESTED_PAE:    return "Nested-PAE";
-        case PGMMODE_NESTED_AMD64:  return "Nested-AMD64";
-        case PGMMODE_EPT:           return "EPT";
-        case PGMMODE_NONE:          return "None";
-        case PGMMODE_VMSA_V8_32:    return "VMSAv8-32";
-        case PGMMODE_VMSA_V8_64:    return "VMSAv8-64";
-        default:                    return "unknown mode value";
-    }
-}
-
-
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
 /**
  * Gets the SLAT mode name.
  *
@@ -3847,10 +3900,9 @@ VMM_INT_DECL(const char *) PGMGetSlatModeName(PGMSLAT enmSlatMode)
         default:                    return "Unknown";
     }
 }
-#endif  /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
+# endif  /* VBOX_WITH_NESTED_HWVIRT_VMX_EPT */
 
 
-#ifdef VBOX_VMM_TARGET_X86
 /**
  * Notification from CPUM that the EFER.NXE bit has changed.
  *
@@ -3907,8 +3959,8 @@ VMM_INT_DECL(void) PGMNotifyNxeChanged(PVMCPU pVCpu, bool fNxe)
         pVCpu->pgm.s.fGstAmd64ShadowedPml4eMask   &= ~X86_PML4E_NX;
     }
 }
-#endif /* VBOX_VMM_TARGET_X86 */
 
+#endif /* VBOX_VMM_TARGET_X86 */
 
 /**
  * Check if any pgm pool pages are marked dirty (not monitored)
@@ -4163,61 +4215,6 @@ VMMDECL(void) PGMDeregisterStringFormatTypes(void)
 #endif
 }
 
-#ifdef VBOX_VMM_TARGET_X86
-
-# ifdef VBOX_STRICT
-/**
- * Asserts that everything related to the guest CR3 is correctly shadowed.
- *
- * This will call PGMAssertNoMappingConflicts() and PGMAssertHandlerAndFlagsInSync(),
- * and assert the correctness of the guest CR3 mapping before asserting that the
- * shadow page tables is in sync with the guest page tables.
- *
- * @returns Number of conflicts.
- * @param   pVM     The cross context VM structure.
- * @param   pVCpu   The cross context virtual CPU structure.
- * @param   cr3     The current guest CR3 register value.
- * @param   cr4     The current guest CR4 register value.
- */
-VMMDECL(unsigned) PGMAssertCR3(PVMCC pVM, PVMCPUCC pVCpu, uint64_t cr3, uint64_t cr4)
-{
-    AssertReturn(pVM->enmTarget == VMTARGET_X86, 0);
-    STAM_PROFILE_START(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,SyncCR3), a);
-
-    uintptr_t const idxBth = pVCpu->pgm.s.idxBothModeData;
-    AssertReturn(idxBth < RT_ELEMENTS(g_aPgmBothModeData), -VERR_PGM_MODE_IPE);
-    AssertReturn(g_aPgmBothModeData[idxBth].pfnAssertCR3, -VERR_PGM_MODE_IPE);
-
-    PGM_LOCK_VOID(pVM);
-    unsigned cErrors = g_aPgmBothModeData[idxBth].pfnAssertCR3(pVCpu, cr3, cr4, 0, ~(RTGCPTR)0);
-    PGM_UNLOCK(pVM);
-
-    STAM_PROFILE_STOP(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,SyncCR3), a);
-    return cErrors;
-}
-# endif /* VBOX_STRICT */
-
-
-/**
- * Updates PGM's copy of the guest's EPT pointer.
- *
- * @param   pVCpu       The cross context virtual CPU structure.
- * @param   uEptPtr     The EPT pointer.
- *
- * @remarks This can be called as part of VM-entry so we might be in the midst of
- *          switching to VMX non-root mode.
- */
-VMM_INT_DECL(void) PGMSetGuestEptPtr(PVMCPUCC pVCpu, uint64_t uEptPtr)
-{
-    PVMCC pVM = pVCpu->CTX_SUFF(pVM);
-    PGM_LOCK_VOID(pVM);
-    pVCpu->pgm.s.uEptPtr = uEptPtr;
-    pVCpu->pgm.s.pGstEptPml4R3 = 0;
-    pVCpu->pgm.s.pGstEptPml4R0 = 0;
-    PGM_UNLOCK(pVM);
-}
-
-#endif /* VBOX_VMM_TARGET_X86 */
 #ifdef PGM_WITH_PAGE_ZEROING_DETECTION
 # ifndef VBOX_VMM_TARGET_X86
 #  error "misconfig: PGM_WITH_PAGE_ZEROING_DETECTION not implemented for ARM guests"

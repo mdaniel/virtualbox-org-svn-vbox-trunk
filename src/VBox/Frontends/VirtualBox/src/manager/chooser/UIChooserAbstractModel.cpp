@@ -566,6 +566,7 @@ QString UIChooserAbstractModel::prefixToString(UIChooserNodeDataPrefixType enmTy
         case UIChooserNodeDataPrefixType_Local:    return "g";
         case UIChooserNodeDataPrefixType_Provider: return "p";
         case UIChooserNodeDataPrefixType_Profile:  return "a";
+        default: break;
     }
     return QString();
 }
@@ -1489,6 +1490,7 @@ int UIChooserAbstractModel::getDesiredNodePosition(UIChooserNode *pParentNode,
             case UIChooserNodeDataPrefixType_Local:
             case UIChooserNodeDataPrefixType_Provider:
             case UIChooserNodeDataPrefixType_Profile:  enmType = UIChooserNodeType_Group; break;
+            default: break;
         }
         const QList<UIChooserNode*> nodes = pParentNode->nodes(enmType);
         for (int i = nodes.size() - 1; i >= 0; --i)

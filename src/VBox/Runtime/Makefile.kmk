@@ -398,6 +398,7 @@ RuntimeBaseR3_SOURCES      := \
 	common/acpi/acpi-ast.cpp \
 	common/acpi/acpi-compiler.cpp \
 	common/acpi/acpi-decompiler.cpp \
+	common/acpi/acpi-ns.cpp \
 	common/alloc/alloc.cpp \
 	common/alloc/heapsimple.cpp \
 	common/alloc/heapoffset.cpp \

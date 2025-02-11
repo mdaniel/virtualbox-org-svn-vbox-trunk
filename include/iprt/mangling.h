@@ -384,6 +384,7 @@
 # define RTAcpiResourceAddWordBusNumber                 RT_MANGLER(RTAcpiResourceAddWordBusNumber)
 # define RTAcpiResourceCreate                           RT_MANGLER(RTAcpiResourceCreate)
 # define RTAcpiResourceDestroy                          RT_MANGLER(RTAcpiResourceDestroy)
+# define RTAcpiResourceGetOffset                        RT_MANGLER(RTAcpiResourceGetOffset)
 # define RTAcpiResourceQueryBuffer                      RT_MANGLER(RTAcpiResourceQueryBuffer)
 # define RTAcpiResourceReset                            RT_MANGLER(RTAcpiResourceReset)
 # define RTAcpiResourceSeal                             RT_MANGLER(RTAcpiResourceSeal)

@@ -1615,6 +1615,16 @@ RTDECL(void) RTAcpiResourceReset(RTACPIRES hAcpiRes)
 }
 
 
+RTDECL(uint32_t) RTAcpiResourceGetOffset(RTACPIRES hAcpiRes)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertReturn(pThis, UINT32_MAX);
+    AssertRCReturn(pThis->rcErr, UINT32_MAX);
+
+    return pThis->offResBuf;
+}
+
+
 RTDECL(int) RTAcpiResourceSeal(RTACPIRES hAcpiRes)
 {
     PRTACPIRESINT pThis = hAcpiRes;

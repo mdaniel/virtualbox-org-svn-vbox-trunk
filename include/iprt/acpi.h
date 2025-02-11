@@ -902,6 +902,16 @@ RTDECL(void) RTAcpiResourceReset(RTACPIRES hAcpiRes);
 
 
 /**
+ * Returns the offset where the next resource added to the template would be.
+ *
+ * @returns Offset into the resource buffer where the next resource will be appended
+ * @retval  UINT32_MAX if the handle is invalid or the resource is in an error state.
+ * @param   hAcpiRes            The ACPI resource handle.
+ */
+RTDECL(uint32_t) RTAcpiResourceGetOffset(RTACPIRES hAcpiRes);
+
+
+/**
  * Seals the given ACPI resource against further changes and adds any
  * missing data required to complete the resource buffer.
  *

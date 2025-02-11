@@ -219,6 +219,58 @@ typedef struct RTACPIASTNODE
 #define RTACPI_AST_NODE_F_DEFAULT       0
 /** The AST node opens a new scope. */
 #define RTACPI_AST_NODE_F_NEW_SCOPE     RT_BIT_32(0)
+/** The AST node has an associated namespace entry. */
+#define RTACPI_AST_NODE_F_NS_ENTRY      RT_BIT_32(1)
+
+
+/** Pointer to an ACPI namespace entry. */
+typedef struct RTACPINSENTRY *PRTACPINSENTRY;
+
+
+/**
+ * An ACPI namespace entry.
+ */
+typedef struct RTACPINSENTRY
+{
+    /** Node for the namespace list. */
+    RTLISTNODE              NdNs;
+    /** Pointer to the parent in the namespace, NULL if this is the root. */
+    PRTACPINSENTRY          pParent;
+    /** The name segment identifying the entry. */
+    char                    achNameSeg[4];
+    /** Flag whether the name space entry points to a node or just has some
+     * integer data attached. */
+    bool                    fAstNode;
+    /** Type dependent data. */
+    union
+    {
+        PCRTACPIASTNODE     pAstNd;
+        uint64_t            u64Val;
+    } u;
+    /** List of namespace entries below this entry. */
+    RTLISTANCHOR            LstNsEntries;
+} RTACPINSENTRY;
+/** Pointer to a const ACPI namespace entry. */
+typedef const RTACPINSENTRY *PCRTACPINSENTRY;
+
+
+/**
+ * An ACPI namespace root
+ */
+typedef struct RTACPINSROOT
+{
+    /** Root namespace entry. */
+    RTACPINSENTRY           RootEntry;
+    /** Current top of the stack. */
+    uint8_t                 idxNsStack;
+    /** Stack of name space entries for navigation - 255 entries
+     * is enough because a path name can only be encoded with 255 entries. */
+    PRTACPINSENTRY          aNsStack[255];
+} RTACPINSROOT;
+/** Pointer to an ACPI namespace root. */
+typedef RTACPINSROOT *PRTACPINSROOT;
+/** Pointer to a const ACPI namespace root. */
+typedef const RTACPINSROOT *PCRTACPINSROOT;
 
 
 /**
@@ -251,6 +303,66 @@ DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd);
  *       also do some optimizations and proper checking.
  */
 DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTERRINFO pErrInfo);
+
+
+/**
+ * Creates a new namespace and returns the root.
+ *
+ * @returns Pointer to the namespace root or NULL if out of memory.
+ */
+DECLHIDDEN(PRTACPINSROOT) rtAcpiNsCreate(void);
+
+
+/**
+ * Destroys the given namespace, freeing all allocated resources,
+ * including all namespace entries int it.
+ *
+ * @param   pNsRoot             The namespace root to destroy.
+ */
+DECLHIDDEN(void) rtAcpiNsDestroy(PRTACPINSROOT pNsRoot);
+
+
+/**
+ * Adds a new namespace entry to the given name space - AST node variant.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root to add the entry to.
+ * @param   pszNameString       An ACPI NameString (either segment or path).
+ * @param   pAstNd              The AST node to associate with the entry.
+ * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
+ */
+DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASTNODE pAstNd, bool fSwitchTo);
+
+
+/**
+ * Adds a new namespace entry to the given name space - 64-bit value variant.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root to add the entry to.
+ * @param   pszNameString       An ACPI NameString (either segment or path).
+ * @param   u64Val              The 64-bit value to associate with the entry.
+ * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
+ */
+DECLHIDDEN(int) rtAcpiNsAddEntryU64(PRTACPINSROOT pNsRoot, const char *pszNameString, uint64_t u64Val, bool fSwitchTo);
+
+
+/**
+ * Pops the current name space entry from the stack and returns to the previous one.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root.
+ */
+DECLHIDDEN(int) rtAcpiNsPop(PRTACPINSROOT pNsRoot);
+
+
+/**
+ * Looks up the given name string and returns the namespace entry if found.
+ *
+ * @returns Pointer to the namespace entry or NULL if not found.
+ * @param   pNsRoot             The namespace root.
+ * @param   pszNameString       The ACPI NameString (either segment or path) to lookup.
+ */
+DECLHIDDEN(PCRTACPINSENTRY) rtAcpiNsLookup(PRTACPINSROOT pNsRoot, const char *pszNameString);
 
 
 /**

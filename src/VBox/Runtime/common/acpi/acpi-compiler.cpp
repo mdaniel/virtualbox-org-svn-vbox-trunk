@@ -154,6 +154,8 @@ typedef struct RTACPIASLCU
     PRTERRINFO              pErrInfo;
     /** List of AST nodes for the DefinitionBlock() scope. */
     RTLISTANCHOR            LstStmts;
+    /** The ACPI namespace. */
+    PRTACPINSROOT           pNs;
 } RTACPIASLCU;
 /** Pointer to an ACPI ASL compilation unit state. */
 typedef RTACPIASLCU *PRTACPIASLCU;
@@ -906,6 +908,11 @@ static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIA
     }
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, true /*fSwitchTo*/);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add External(%s,,,) to namespace", pAstNd->aArgs[0].u.pszNameString);
+
     return VINF_SUCCESS;
 }
 
@@ -1002,6 +1009,11 @@ static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASL
     }
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, true /*fSwitchTo*/);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add Method(%s,,,) to namespace", pAstNd->aArgs[0].u.pszNameString);
+
     return VINF_SUCCESS;
 }
 
@@ -1448,9 +1460,9 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Identifier        */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_StringLiteral     */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_Number            */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
-    /* kAcpiAstNodeOp_Scope             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",            RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_Scope             */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",            RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,   kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_Processor         */  {
-                                                "Processor", NULL, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE,
+                                                "Processor", NULL, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,
                                                 {
                                                     kAcpiAstArgType_NameString,
                                                     kAcpiAstArgType_U8,
@@ -1466,25 +1478,25 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
                                             },
     /* kAcpiAstNodeOp_External          */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "External",         rtAcpiTblAslParseExternal, 1, 2, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Method            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",           rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
-    /* kAcpiAstNodeOp_Device            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",           RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_NameString),
-    /* kAcpiAstNodeOp_If                */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",               RTACPI_AST_NODE_F_NEW_SCOPE, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Device            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",           RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,   kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_If                */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",               RTACPI_AST_NODE_F_NEW_SCOPE,                                kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Else              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",             RTACPI_AST_NODE_F_NEW_SCOPE),
-    /* kAcpiAstNodeOp_LAnd              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LEqual            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",           RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LGreater          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",         RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",    RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",            RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",       RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("LNot",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode),
-    /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",        RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LAnd              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",             RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LEqual            */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",           RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreater          */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",         RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LGreaterEqual     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",    RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLess             */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLess",            RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LLessEqual        */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LLessEqual",       RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNot              */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("LNot",             RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LNotEqual         */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LNotEqual",        RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Zero              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Zero",             RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_One               */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("One",              RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Ones              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Ones",             RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Return            */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Return",           rtAcpiTblAslParseReturn,  0, 1, RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",          RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_AstNode), /* Actually only String allowed here */
-    /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion",  RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Unicode           */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Unicode",          RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode), /* Actually only String allowed here */
+    /* kAcpiAstNodeOp_OperationRegion   */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("OperationRegion",  RTACPI_AST_NODE_F_DEFAULT | RTACPI_AST_NODE_F_NS_ENTRY,     kAcpiAstArgType_NameString, kAcpiAstArgType_RegionSpace, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Field             */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Field",            rtAcpiTblAslParseFieldOrIndexField, 4, 0, RTACPI_AST_NODE_F_DEFAULT),
-    /* kAcpiAstNodeOp_Name              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Name",             RTACPI_AST_NODE_F_DEFAULT,   kAcpiAstArgType_NameString, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_Name              */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("Name",             RTACPI_AST_NODE_F_NS_ENTRY,                                 kAcpiAstArgType_NameString, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_ResourceTemplate  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "ResourceTemplate", rtAcpiTblAslParseResourceTemplate,  0, 0, RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Arg0              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg0",             RTACPI_AST_NODE_F_DEFAULT),
     /* kAcpiAstNodeOp_Arg1              */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Arg1",             RTACPI_AST_NODE_F_DEFAULT),
@@ -1713,6 +1725,20 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
 
         /* Now there must be a closing ) */
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+        if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
+        {
+            /*
+             * Create a new namespace entry, we currently assume that the first argument is a namestring
+             * which gives the path.
+             */
+            AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
+
+            bool fSwitchTo = RT_BOOL(pAslKeyword->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE);
+            rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, fSwitchTo);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
     }
 
     /* For keywords opening a new scope do the parsing now. */
@@ -1722,6 +1748,9 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
         rc = rtAcpiTblAslParseInner(pThis, &pAstNd->LstScopeNodes);
         if (RT_SUCCESS(rc))
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+
+        if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
+            rtAcpiNsPop(pThis->pNs);
     }
 
     return rc;
@@ -1949,59 +1978,67 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
         pThis->pErrInfo   = pErrInfo;
         RTListInit(&pThis->LstStmts);
 
-        rc = RTScriptLexCreateFromReader(&pThis->hLexSource, rtAcpiAslLexerRead,
-                                         NULL /*pfnDtor*/, pThis /*pvUser*/, 0 /*cchBuf*/,
-                                         NULL /*phStrCacheId*/, NULL /*phStrCacheStringLit*/,
-                                         &s_AslLexCfg);
-        if (RT_SUCCESS(rc))
+        pThis->pNs = rtAcpiNsCreate();
+        if (pThis->pNs)
         {
-            rc = rtAcpiTblAslParserParse(pThis);
+            rc = RTScriptLexCreateFromReader(&pThis->hLexSource, rtAcpiAslLexerRead,
+                                             NULL /*pfnDtor*/, pThis /*pvUser*/, 0 /*cchBuf*/,
+                                             NULL /*phStrCacheId*/, NULL /*phStrCacheStringLit*/,
+                                             &s_AslLexCfg);
             if (RT_SUCCESS(rc))
             {
-                /* 2. - Optimize AST (constant folding, etc). */
-
-                /* 3. - Traverse AST and output table. */
-                PRTACPIASTNODE pIt;
-                RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
-                {
-                    rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
-                    if (RT_FAILURE(rc))
-                        break;
-
-                    rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
-                    if (RT_FAILURE(rc))
-                        break;
-                }
-
-                /* Finalize and write to the VFS I/O stream. */
+                rc = rtAcpiTblAslParserParse(pThis);
                 if (RT_SUCCESS(rc))
                 {
-                    rc = RTAcpiTblFinalize(pThis->hAcpiTbl);
+                    /* 2. - Optimize AST (constant folding, etc). */
+
+                    /* 3. - Traverse AST and output table. */
+                    PRTACPIASTNODE pIt;
+                    RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
+                    {
+                        rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
+                        if (RT_FAILURE(rc))
+                            break;
+
+                        rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
+                        if (RT_FAILURE(rc))
+                            break;
+                    }
+
+                    /* Finalize and write to the VFS I/O stream. */
                     if (RT_SUCCESS(rc))
                     {
-                        rc = RTAcpiTblDumpToVfsIoStrm(pThis->hAcpiTbl, RTACPITBLTYPE_AML, hVfsIosOut);
-                        if (RT_FAILURE(rc))
-                            rc = RTErrInfoSetF(pErrInfo, rc, "Writing the ACPI table failed with %Rrc", rc);
+                        rc = RTAcpiTblFinalize(pThis->hAcpiTbl);
+                        if (RT_SUCCESS(rc))
+                        {
+                            rc = RTAcpiTblDumpToVfsIoStrm(pThis->hAcpiTbl, RTACPITBLTYPE_AML, hVfsIosOut);
+                            if (RT_FAILURE(rc))
+                                rc = RTErrInfoSetF(pErrInfo, rc, "Writing the ACPI table failed with %Rrc", rc);
+                        }
+                        else
+                            rc = RTErrInfoSetF(pErrInfo, rc, "Finalizing the ACPI table failed with %Rrc", rc);
                     }
                     else
-                        rc = RTErrInfoSetF(pErrInfo, rc, "Finalizing the ACPI table failed with %Rrc", rc);
+                        rc = RTErrInfoSetF(pErrInfo, rc, "Dumping AST to ACPI table failed with %Rrc", rc);
                 }
-                else
-                    rc = RTErrInfoSetF(pErrInfo, rc, "Dumping AST to ACPI table failed with %Rrc", rc);
+
+                RTScriptLexDestroy(pThis->hLexSource);
+            }
+            else
+                rc = RTErrInfoSetF(pErrInfo, rc, "Creating the ASL lexer failed with %Rrc", rc);
+
+            /* Destroy the AST nodes. */
+            PRTACPIASTNODE pIt, pItNext;
+            RTListForEachSafe(&pThis->LstStmts, pIt, pItNext, RTACPIASTNODE, NdAst)
+            {
+                RTListNodeRemove(&pIt->NdAst);
+                rtAcpiAstNodeFree(pIt);
             }
 
-            RTScriptLexDestroy(pThis->hLexSource);
+            rtAcpiNsDestroy(pThis->pNs);
         }
         else
-            rc = RTErrInfoSetF(pErrInfo, rc, "Creating the ASL lexer failed with %Rrc", rc);
-
-        /* Destroy the AST nodes. */
-        PRTACPIASTNODE pIt, pItNext;
-        RTListForEachSafe(&pThis->LstStmts, pIt, pItNext, RTACPIASTNODE, NdAst)
-        {
-            RTListNodeRemove(&pIt->NdAst);
-            rtAcpiAstNodeFree(pIt);
-        }
+            rc = RTErrInfoSetF(pErrInfo, VERR_NO_MEMORY, "Out of memory allocating the ACPI namespace state");
 
         RTMemFree(pThis);
     }

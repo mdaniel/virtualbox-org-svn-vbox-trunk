@@ -223,7 +223,7 @@ void UIWizardNewVMExpertPage::sltRetranslateUI()
     if (m_pUnattendedCheckBox)
     {
         m_pUnattendedCheckBox->setText(UIWizardNewVM::tr("&Install OS Using Unattended Installation."));
-        m_pUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("The ISO is attached to the VM, so you can install the OS manually."));
+        m_pUnattendedCheckBox->setToolTip(UIWizardNewVM::tr("The ISO is attached to the VM, so you can install the OS manually"));
     }
 
     if (m_pToolBox)

@@ -95,12 +95,12 @@ void UIVirtualCPUEditor::sltRetranslateUI()
     if (m_pLabelVCPUMin)
     {
         m_pLabelVCPUMin->setText(tr("%1 CPU", "%1 is 1 for now").arg(m_uMinVCPUCount));
-        m_pLabelVCPUMin->setToolTip(tr("Minimum possible virtual CPU count."));
+        m_pLabelVCPUMin->setToolTip(tr("Minimum possible virtual CPU count"));
     }
     if (m_pLabelVCPUMax)
     {
         m_pLabelVCPUMax->setText(tr("%1 CPUs", "%1 is host cpu count * 2 for now").arg(m_uMaxVCPUCount));
-        m_pLabelVCPUMax->setToolTip(tr("Maximum possible virtual CPU count."));
+        m_pLabelVCPUMax->setToolTip(tr("Maximum possible virtual CPU count"));
     }
 }
 

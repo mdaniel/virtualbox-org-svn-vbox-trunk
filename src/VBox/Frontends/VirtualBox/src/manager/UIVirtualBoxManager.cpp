@@ -3653,20 +3653,27 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
         && actionPool()->action(iActionIndex)->property("opened").toBool())
         return false;
 
-    /* For known *global* action types: */
+    /* Some actions available even if no VM items present yet: */
     switch (iActionIndex)
     {
+        /* For known *global* action types: */
         case UIActionIndex_M_Application_S_Preferences:
         case UIActionIndexMN_M_File_S_ExportAppliance:
         case UIActionIndexMN_M_File_S_ImportAppliance:
         case UIActionIndexMN_M_Home_S_New:
         case UIActionIndexMN_M_Home_S_Add:
             return true;
+        /* For known *machine* action types: */
+        case UIActionIndexMN_M_Group_S_New:
+        case UIActionIndexMN_M_Group_S_Add:
+        case UIActionIndexMN_M_Machine_S_New:
+        case UIActionIndexMN_M_Machine_S_Add:
+            return !isGroupSavingInProgress();
         default:
             break;
     }
 
-    /* No *machine* actions enabled for empty item list: */
+    /* No other *machine* actions enabled for empty item list: */
     if (items.isEmpty())
         return false;
 
@@ -3676,11 +3683,6 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
     /* For known *machine* action types: */
     switch (iActionIndex)
     {
-        case UIActionIndexMN_M_Group_S_New:
-        case UIActionIndexMN_M_Group_S_Add:
-        {
-            return !isGroupSavingInProgress();
-        }
         case UIActionIndexMN_M_Group_S_Sort:
         {
             return !isGroupSavingInProgress() &&
@@ -3694,11 +3696,6 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
                    isSingleGroupSelected() &&
                    isItemsLocal(items) &&
                    isItemsPoweredOff(items);
-        }
-        case UIActionIndexMN_M_Machine_S_New:
-        case UIActionIndexMN_M_Machine_S_Add:
-        {
-            return !isGroupSavingInProgress();
         }
         case UIActionIndexMN_M_Machine_S_Settings:
         {

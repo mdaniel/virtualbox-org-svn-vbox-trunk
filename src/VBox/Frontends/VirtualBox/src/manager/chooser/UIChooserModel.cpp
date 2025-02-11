@@ -286,11 +286,6 @@ bool UIChooserModel::isGroupItemSelected() const
     return firstSelectedItem() && firstSelectedItem()->type() == UIChooserNodeType_Group;
 }
 
-bool UIChooserModel::isGlobalItemSelected() const
-{
-    return firstSelectedItem() && firstSelectedItem()->type() == UIChooserNodeType_Global;
-}
-
 bool UIChooserModel::isMachineItemSelected() const
 {
     return firstSelectedItem() && firstSelectedItem()->type() == UIChooserNodeType_Machine;

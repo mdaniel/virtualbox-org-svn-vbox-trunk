@@ -96,12 +96,6 @@ bool UIVirtualBoxManagerAdvancedWidget::isGroupItemSelected() const
     return chooser()->isGroupItemSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isGlobalItemSelected() const
-{
-    AssertPtrReturn(chooser(), false);
-    return chooser()->isGlobalItemSelected();
-}
-
 bool UIVirtualBoxManagerAdvancedWidget::isMachineItemSelected() const
 {
     AssertPtrReturn(chooser(), false);

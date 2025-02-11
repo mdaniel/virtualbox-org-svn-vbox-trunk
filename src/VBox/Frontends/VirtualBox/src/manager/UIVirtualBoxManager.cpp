@@ -3415,27 +3415,28 @@ void UIVirtualBoxManager::updateMenuMachineClose(QMenu *pMenu)
 void UIVirtualBoxManager::updateActionsVisibility()
 {
     /* Determine whether Machine or Group menu should be shown at all: */
-    const bool fGlobalMenuShown  = m_pWidget->isGlobalItemSelected();
-    const bool fGroupMenuShown   = m_pWidget->isGroupItemSelected()   &&  isSingleGroupSelected();
-    const bool fMachineMenuShown = m_pWidget->isMachineItemSelected() && !isSingleGroupSelected();
-    actionPool()->action(UIActionIndexMN_M_Home)->setVisible(fGlobalMenuShown);
+    const bool fMachinesToolShown  = m_pWidget->currentGlobalTool() == UIToolType_Machines;
+    const bool fGlobalToolShown    = !fMachinesToolShown;
+    const bool fGroupMenuShown   = fMachinesToolShown && m_pWidget->isGroupItemSelected() && isSingleGroupSelected();
+    const bool fMachineMenuShown = fMachinesToolShown && m_pWidget->isMachineItemSelected() && !isSingleGroupSelected();
+    actionPool()->action(UIActionIndexMN_M_Home)->setVisible(fGlobalToolShown);
     actionPool()->action(UIActionIndexMN_M_Group)->setVisible(fGroupMenuShown);
     actionPool()->action(UIActionIndexMN_M_Machine)->setVisible(fMachineMenuShown);
 
     /* Determine whether Extensions menu should be visible: */
-    const bool fExtensionsMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Extensions;
+    const bool fExtensionsMenuShown = fGlobalToolShown && m_pWidget->currentGlobalTool() == UIToolType_Extensions;
     actionPool()->action(UIActionIndexMN_M_Extension)->setVisible(fExtensionsMenuShown);
     /* Determine whether Media menu should be visible: */
-    const bool fMediumMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Media;
+    const bool fMediumMenuShown = fGlobalToolShown && m_pWidget->currentGlobalTool() == UIToolType_Media;
     actionPool()->action(UIActionIndexMN_M_Medium)->setVisible(fMediumMenuShown);
     /* Determine whether Network menu should be visible: */
-    const bool fNetworkMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Network;
+    const bool fNetworkMenuShown = fGlobalToolShown && m_pWidget->currentGlobalTool() == UIToolType_Network;
     actionPool()->action(UIActionIndexMN_M_Network)->setVisible(fNetworkMenuShown);
     /* Determine whether Cloud menu should be visible: */
-    const bool fCloudMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Cloud;
+    const bool fCloudMenuShown = fGlobalToolShown && m_pWidget->currentGlobalTool() == UIToolType_Cloud;
     actionPool()->action(UIActionIndexMN_M_Cloud)->setVisible(fCloudMenuShown);
     /* Determine whether Activities menu should be visible: */
-    const bool fResourcesMenuShown = fGlobalMenuShown && m_pWidget->currentGlobalTool() == UIToolType_Activities;
+    const bool fResourcesMenuShown = fGlobalToolShown && m_pWidget->currentGlobalTool() == UIToolType_Activities;
     actionPool()->action(UIActionIndexMN_M_VMActivityOverview)->setVisible(fResourcesMenuShown);
 
     /* Determine whether Snapshots menu should be visible: */
@@ -3456,7 +3457,7 @@ void UIVirtualBoxManager::updateActionsVisibility()
     actionPool()->action(UIActionIndex_M_FileManager)->setVisible(fFileManagerMenuShown);
 
     /* Hide action shortcuts: */
-    if (!fGlobalMenuShown)
+    if (!fGlobalToolShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Home, false);
     if (!fGroupMenuShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Group, false);
@@ -3464,7 +3465,7 @@ void UIVirtualBoxManager::updateActionsVisibility()
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Machine, false);
 
     /* Show action shortcuts: */
-    if (fGlobalMenuShown)
+    if (fGlobalToolShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Home, true);
     if (fGroupMenuShown)
         actionPool()->setShortcutsVisible(UIActionIndexMN_M_Group, true);

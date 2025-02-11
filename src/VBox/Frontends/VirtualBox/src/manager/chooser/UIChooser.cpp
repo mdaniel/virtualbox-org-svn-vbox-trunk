@@ -91,12 +91,6 @@ bool UIChooser::isGroupItemSelected() const
     return model()->isGroupItemSelected();
 }
 
-bool UIChooser::isGlobalItemSelected() const
-{
-    AssertPtrReturn(model(), false);
-    return model()->isGlobalItemSelected();
-}
-
 bool UIChooser::isMachineItemSelected() const
 {
     AssertPtrReturn(model(), false);

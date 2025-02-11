@@ -592,17 +592,6 @@ QString UIChooserAbstractModel::optionToString(UIChooserNodeDataOptionType enmTy
     return QString();
 }
 
-/* static */
-QString UIChooserAbstractModel::valueToString(UIChooserNodeDataValueType enmType)
-{
-    switch (enmType)
-    {
-        /* Global nodes: */
-        case UIChooserNodeDataValueType_GlobalDefault: return "GLOBAL";
-    }
-    return QString();
-}
-
 void UIChooserAbstractModel::setKeepCloudNodesUpdated(bool fUpdate)
 {
     /* Make sure something changed: */

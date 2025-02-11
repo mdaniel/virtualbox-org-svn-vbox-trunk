@@ -76,8 +76,7 @@ QString UIChooserNodeGlobal::description() const
 QString UIChooserNodeGlobal::definition(bool) const
 {
     const QString strNodePrefix = UIChooserAbstractModel::prefixToString(UIChooserNodeDataPrefixType_Global);
-    const QString strNodeValueDefault = UIChooserAbstractModel::valueToString(UIChooserNodeDataValueType_GlobalDefault);
-    return QString("%1=%2").arg(strNodePrefix).arg(strNodeValueDefault);
+    return QString("%1=%2").arg(strNodePrefix).arg(QString());
 }
 
 bool UIChooserNodeGlobal::hasNodes(UIChooserNodeType enmType /* = UIChooserNodeType_Any */) const

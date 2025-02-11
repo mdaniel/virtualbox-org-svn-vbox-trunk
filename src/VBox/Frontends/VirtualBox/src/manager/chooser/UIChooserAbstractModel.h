@@ -141,8 +141,6 @@ public:
         static QString prefixToString(UIChooserNodeDataPrefixType enmType);
         /** Returns node extra-data option of certain @a enmType. */
         static QString optionToString(UIChooserNodeDataOptionType enmType);
-        /** Returns node extra-data value of certain @a enmType. */
-        static QString valueToString(UIChooserNodeDataValueType enmType);
     /** @} */
 
     /** @name Cloud update stuff.

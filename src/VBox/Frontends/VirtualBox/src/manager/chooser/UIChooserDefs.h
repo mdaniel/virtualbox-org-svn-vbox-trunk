@@ -76,13 +76,6 @@ enum UIChooserNodeDataOptionType
 };
 
 
-/** UIChooserNode extra-data value types. */
-enum UIChooserNodeDataValueType
-{
-    UIChooserNodeDataValueType_GlobalDefault
-};
-
-
 /** UIChooserItem search flags. */
 enum UIChooserItemSearchFlag
 {

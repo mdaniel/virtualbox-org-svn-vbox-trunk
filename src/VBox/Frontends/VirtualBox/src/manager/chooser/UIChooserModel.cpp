@@ -40,7 +40,6 @@
 #include "UIChooserHandlerMouse.h"
 #include "UIChooserHandlerKeyboard.h"
 #include "UIChooserItemGroup.h"
-#include "UIChooserItemGlobal.h"
 #include "UIChooserItemMachine.h"
 #include "UIChooserModel.h"
 #include "UIChooserNode.h"
@@ -375,8 +374,7 @@ UIChooserItem *UIChooserModel::findClosestUnselectedItem() const
             {
                 pItem = navigationItems().at(idxAfter);
                 if (   !selectedItems().contains(pItem)
-                    && (   pItem->type() == UIChooserNodeType_Machine
-                        || pItem->type() == UIChooserNodeType_Global))
+                    && pItem->type() == UIChooserNodeType_Machine)
                     return pItem;
                 ++idxAfter;
             }
@@ -384,8 +382,7 @@ UIChooserItem *UIChooserModel::findClosestUnselectedItem() const
             {
                 pItem = navigationItems().at(idxBefore);
                 if (   !selectedItems().contains(pItem)
-                    && (   pItem->type() == UIChooserNodeType_Machine
-                        || pItem->type() == UIChooserNodeType_Global))
+                    && pItem->type() == UIChooserNodeType_Machine)
                     return pItem;
                 --idxBefore;
             }
@@ -414,10 +411,6 @@ void UIChooserModel::makeSureNoItemWithCertainIdSelected(const QUuid &uId)
     const QSet<UIChooserItem*> selectedItemsSet(selectedItemsList.begin(), selectedItemsList.end());
     if (selectedItemsSet.intersects(matchedItems))
         setSelectedItem(findClosestUnselectedItem());
-
-    /* If global item is currently chosen, selection should be invalidated: */
-    if (firstSelectedItem() && firstSelectedItem()->type() == UIChooserNodeType_Global)
-        emit sigSelectionInvalidated();
 }
 
 void UIChooserModel::makeSureAtLeastOneItemSelected()
@@ -1415,43 +1408,6 @@ void UIChooserModel::prepareScene()
 
 void UIChooserModel::prepareContextMenu()
 {
-    /* Context menu for global(s): */
-    m_localMenus[UIChooserNodeType_Global] = new QMenu;
-    if (QMenu *pMenuGlobal = m_localMenus.value(UIChooserNodeType_Global))
-    {
-#ifdef VBOX_WS_MAC
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndex_M_Application_S_About));
-        pMenuGlobal->addSeparator();
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndex_M_Application_S_Preferences));
-        pMenuGlobal->addSeparator();
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance));
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance));
-# ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ShowExtraDataManager));
-        pMenuGlobal->addSeparator();
-# endif
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_M_Tools));
-
-#else /* !VBOX_WS_MAC */
-
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndex_M_Application_S_Preferences));
-        pMenuGlobal->addSeparator();
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance));
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance));
-        pMenuGlobal->addSeparator();
-# ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ShowExtraDataManager));
-        pMenuGlobal->addSeparator();
-# endif
-        pMenuGlobal->addAction(actionPool()->action(UIActionIndexMN_M_File_M_Tools));
-        pMenuGlobal->addSeparator();
-# ifdef VBOX_GUI_WITH_NETWORK_MANAGER
-        if (gEDataManager->applicationUpdateEnabled())
-            pMenuGlobal->addAction(actionPool()->action(UIActionIndex_M_Application_S_CheckForUpdates));
-# endif
-#endif /* !VBOX_WS_MAC */
-    }
-
     /* Context menu for local group(s): */
     m_localMenus[UIChooserNodeType_Group] = new QMenu;
     if (QMenu *pMenuGroup = m_localMenus.value(UIChooserNodeType_Group))
@@ -1629,12 +1585,6 @@ bool UIChooserModel::processContextMenuEvent(QGraphicsSceneContextMenuEvent *pEv
             {
                 switch (pItem->type())
                 {
-                    case UIChooserNodeType_Global:
-                    {
-                        /* Global context menu for all global item cases: */
-                        m_localMenus.value(UIChooserNodeType_Global)->exec(pEvent->screenPos());
-                        break;
-                    }
                     case UIChooserNodeType_Group:
                     {
                         /* Get group-item: */
@@ -1683,12 +1633,6 @@ bool UIChooserModel::processContextMenuEvent(QGraphicsSceneContextMenuEvent *pEv
             {
                 switch (pItem->type())
                 {
-                    case UIChooserNodeType_Global:
-                    {
-                        /* Global context menu for all global item cases: */
-                        m_localMenus.value(UIChooserNodeType_Global)->exec(pEvent->screenPos());
-                        break;
-                    }
                     case UIChooserNodeType_Group:
                     {
                         /* Get group-item: */
@@ -1745,9 +1689,6 @@ QList<UIChooserItem*> UIChooserModel::createNavigationItemList(UIChooserItem *pI
     /* Prepare navigation list: */
     QList<UIChooserItem*> navigationItems;
 
-    /* Iterate over all the global-items: */
-    foreach (UIChooserItem *pGlobalItem, pItem->items(UIChooserNodeType_Global))
-        navigationItems << pGlobalItem;
     /* Iterate over all the group-items: */
     foreach (UIChooserItem *pGroupItem, pItem->items(UIChooserNodeType_Group))
     {

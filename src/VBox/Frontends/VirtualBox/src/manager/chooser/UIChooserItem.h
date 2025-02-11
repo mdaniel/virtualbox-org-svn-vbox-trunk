@@ -50,7 +50,6 @@ class QPropertyAnimation;
 class QStateMachine;
 class UIActionPool;
 class UIChooserItemGroup;
-class UIChooserItemGlobal;
 class UIChooserItemMachine;
 class UIChooserModel;
 class UIChooserNode;
@@ -115,8 +114,6 @@ public:
 
         /** Casts item to group one. */
         UIChooserItemGroup *toGroupItem();
-        /** Casts item to global one. */
-        UIChooserItemGlobal *toGlobalItem();
         /** Casts item to machine one. */
         UIChooserItemMachine *toMachineItem();
 

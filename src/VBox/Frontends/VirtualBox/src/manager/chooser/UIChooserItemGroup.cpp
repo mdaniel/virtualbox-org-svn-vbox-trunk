@@ -39,7 +39,6 @@
 #include <QWindow>
 
 /* GUI includes: */
-#include "UIChooserItemGlobal.h"
 #include "UIChooserItemGroup.h"
 #include "UIChooserItemMachine.h"
 #include "UIChooserModel.h"
@@ -373,8 +372,7 @@ QList<UIChooserItem*> UIChooserItemGroup::items(UIChooserNodeType type /* = UICh
 {
     switch (type)
     {
-        case UIChooserNodeType_Any: return items(UIChooserNodeType_Global) + items(UIChooserNodeType_Group) + items(UIChooserNodeType_Machine);
-        case UIChooserNodeType_Global: return m_globalItems;
+        case UIChooserNodeType_Any: return items(UIChooserNodeType_Group) + items(UIChooserNodeType_Machine);
         case UIChooserNodeType_Group: return m_groupItems;
         case UIChooserNodeType_Machine: return m_machineItems;
         default: break;
@@ -387,21 +385,6 @@ void UIChooserItemGroup::addItem(UIChooserItem *pItem, int iPosition)
     /* Check item type: */
     switch (pItem->type())
     {
-        case UIChooserNodeType_Global:
-        {
-            AssertMsg(!m_globalItems.contains(pItem), ("Global-item already added!"));
-            if (iPosition < 0 || iPosition >= m_globalItems.size())
-            {
-                m_pLayoutGlobal->addItem(pItem);
-                m_globalItems.append(pItem);
-            }
-            else
-            {
-                m_pLayoutGlobal->insertItem(iPosition, pItem);
-                m_globalItems.insert(iPosition, pItem);
-            }
-            break;
-        }
         case UIChooserNodeType_Group:
         {
             AssertMsg(!m_groupItems.contains(pItem), ("Group-item already added!"));
@@ -451,13 +434,6 @@ void UIChooserItemGroup::removeItem(UIChooserItem *pItem)
     /* Check item type: */
     switch (pItem->type())
     {
-        case UIChooserNodeType_Global:
-        {
-            AssertMsg(m_globalItems.contains(pItem), ("Global-item was not found!"));
-            m_globalItems.removeAt(m_globalItems.indexOf(pItem));
-            m_pLayoutGlobal->removeItem(pItem);
-            break;
-        }
         case UIChooserNodeType_Group:
         {
             AssertMsg(m_groupItems.contains(pItem), ("Group-item was not found!"));
@@ -528,9 +504,6 @@ UIChooserItem* UIChooserItemGroup::searchForItem(const QString &strSearchTag, in
 
     /* Search among all the children, but machines first: */
     foreach (UIChooserItem *pItem, items(UIChooserNodeType_Machine))
-        if (UIChooserItem *pFoundItem = pItem->searchForItem(strSearchTag, iSearchFlags))
-            return pFoundItem;
-    foreach (UIChooserItem *pItem, items(UIChooserNodeType_Global))
         if (UIChooserItem *pFoundItem = pItem->searchForItem(strSearchTag, iSearchFlags))
             return pFoundItem;
     foreach (UIChooserItem *pItem, items(UIChooserNodeType_Group))
@@ -1159,7 +1132,6 @@ void UIChooserItemGroup::cleanup()
 
     /* Delete all the items: */
     while (!m_groupItems.isEmpty()) { delete m_groupItems.last(); }
-    while (!m_globalItems.isEmpty()) { delete m_globalItems.last(); }
     while (!m_machineItems.isEmpty()) { delete m_machineItems.last(); }
 
     /* If that item is current: */
@@ -1244,8 +1216,6 @@ void UIChooserItemGroup::copyContents(UIChooserNodeGroup *pCopyFrom)
 {
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Group))
         new UIChooserItemGroup(this, pNode->toGroupNode());
-    foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Global))
-        new UIChooserItemGlobal(this, pNode->toGlobalNode());
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Machine))
         new UIChooserItemMachine(this, pNode->toMachineNode());
 }
@@ -1545,9 +1515,8 @@ void UIChooserItemGroup::updateMinimumHeaderSize()
 
 void UIChooserItemGroup::updateLayoutSpacings()
 {
-    m_pLayout->setItemSpacing(0, m_globalItems.isEmpty() ? 0 : 1);
-    m_pLayout->setItemSpacing(1, m_groupItems.isEmpty() ? 0 : 1);
-    m_pLayout->setItemSpacing(2, m_machineItems.isEmpty() ? 0 : 1);
+    m_pLayout->setItemSpacing(0, m_groupItems.isEmpty() ? 0 : 1);
+    m_pLayout->setItemSpacing(1, m_machineItems.isEmpty() ? 0 : 1);
 }
 
 void UIChooserItemGroup::paintBackground(QPainter *pPainter, const QRect &rect)

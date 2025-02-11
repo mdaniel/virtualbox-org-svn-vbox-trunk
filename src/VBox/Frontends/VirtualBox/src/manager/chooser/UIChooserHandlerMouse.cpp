@@ -32,7 +32,6 @@
 #include "UIChooserHandlerMouse.h"
 #include "UIChooserModel.h"
 #include "UIChooserItemGroup.h"
-#include "UIChooserItemGlobal.h"
 #include "UIChooserItemMachine.h"
 
 
@@ -77,21 +76,6 @@ bool UIChooserHandlerMouse::handleMousePress(QGraphicsSceneMouseEvent *pEvent) c
                 /* Was that a group item? */
                 if (UIChooserItemGroup *pGroupItem = qgraphicsitem_cast<UIChooserItemGroup*>(pItemUnderMouse))
                     pClickedItem = pGroupItem;
-                /* Or a global one? */
-                else if (UIChooserItemGlobal *pGlobalItem = qgraphicsitem_cast<UIChooserItemGlobal*>(pItemUnderMouse))
-                {
-                    const QPoint itemCursorPos = pGlobalItem->mapFromScene(scenePos).toPoint();
-                    if (   pGlobalItem->isToolButtonArea(itemCursorPos)
-                        && (   model()->firstSelectedItem() == pGlobalItem
-                            || pGlobalItem->isHovered()))
-                    {
-                        model()->handleToolButtonClick(pGlobalItem);
-                        if (model()->firstSelectedItem() != pGlobalItem)
-                            pClickedItem = pGlobalItem;
-                    }
-                    else
-                        pClickedItem = pGlobalItem;
-                }
                 /* Or a machine one? */
                 else if (UIChooserItemMachine *pMachineItem = qgraphicsitem_cast<UIChooserItemMachine*>(pItemUnderMouse))
                 {
@@ -129,16 +113,7 @@ bool UIChooserHandlerMouse::handleMousePress(QGraphicsSceneMouseEvent *pEvent) c
                         /* Wipe out items of inconsistent types: */
                         QList<UIChooserItem*> filteredItems;
                         foreach (UIChooserItem *pIteratedItem, items)
-                        {
-                            /* So, the logic is to add intermediate item if
-                             * - first and intermediate selected items are global or
-                             * - first and intermediate selected items are NOT global. */
-                            if (   (   pFirstItem->type() == UIChooserNodeType_Global
-                                    && pIteratedItem->type() == UIChooserNodeType_Global)
-                                || (   pFirstItem->type() != UIChooserNodeType_Global
-                                    && pIteratedItem->type() != UIChooserNodeType_Global))
-                                filteredItems << pIteratedItem;
-                        }
+                            filteredItems << pIteratedItem;
                         /* Make that list selected: */
                         model()->setSelectedItems(filteredItems);
                         /* Make item closest to clicked the current one: */
@@ -153,16 +128,9 @@ bool UIChooserHandlerMouse::handleMousePress(QGraphicsSceneMouseEvent *pEvent) c
                             model()->removeFromSelectedItems(pClickedItem);
                         else
                         {
-                            /* So, the logic is to add newly clicked item if
-                             * - previously and newly selected items are global or
-                             * - previously and newly selected items are NOT global. */
                             UIChooserItem *pFirstItem = model()->firstSelectedItem();
                             AssertPtrReturn(pFirstItem, false); // is failure possible?
-                            if (   (   pFirstItem->type() == UIChooserNodeType_Global
-                                    && pClickedItem->type() == UIChooserNodeType_Global)
-                                || (   pFirstItem->type() != UIChooserNodeType_Global
-                                    && pClickedItem->type() != UIChooserNodeType_Global))
-                                model()->addToSelectedItems(pClickedItem);
+                            model()->addToSelectedItems(pClickedItem);
                         }
                         /* Make clicked item current one: */
                         model()->setCurrentItem(pClickedItem);
@@ -184,9 +152,6 @@ bool UIChooserHandlerMouse::handleMousePress(QGraphicsSceneMouseEvent *pEvent) c
                 /* Was that a group item? */
                 if (UIChooserItemGroup *pGroupItem = qgraphicsitem_cast<UIChooserItemGroup*>(pItemUnderMouse))
                     pClickedItem = pGroupItem;
-                /* Or a global one? */
-                else if (UIChooserItemGlobal *pGlobalItem = qgraphicsitem_cast<UIChooserItemGlobal*>(pItemUnderMouse))
-                    pClickedItem = pGlobalItem;
                 /* Or a machine one? */
                 else if (UIChooserItemMachine *pMachineItem = qgraphicsitem_cast<UIChooserItemMachine*>(pItemUnderMouse))
                     pClickedItem = pMachineItem;

@@ -377,8 +377,6 @@ private:
         /** Holds the machine layout instance. */
         QGraphicsLinearLayout *m_pLayoutMachine;
 
-        /** Holds the global children list. */
-        QList<UIChooserItem*>  m_globalItems;
         /** Holds the group children list. */
         QList<UIChooserItem*>  m_groupItems;
         /** Holds the machine children list. */

@@ -111,11 +111,7 @@ bool UIChooserHandlerKeyboard::handleKeyPress(QKeyEvent *pEvent) const
                         for (int i = iPosition - 1; i >= iLimit; --i)
                         {
                             pPossiblePreviousItem = model()->navigationItems().at(i);
-                            if ((      pCurrentItem->type() == UIChooserNodeType_Global
-                                    && pPossiblePreviousItem->type() == UIChooserNodeType_Global)
-                                || (   pCurrentItem->type() != UIChooserNodeType_Global
-                                    && pPossiblePreviousItem->type() != UIChooserNodeType_Global))
-                                pPreviousItem = pPossiblePreviousItem;
+                            pPreviousItem = pPossiblePreviousItem;
                         }
                     }
                 }
@@ -216,11 +212,7 @@ bool UIChooserHandlerKeyboard::handleKeyPress(QKeyEvent *pEvent) const
                         for (int i = iPosition + 1; i <= iLimit; ++i)
                         {
                             pPossibleNextItem = model()->navigationItems().at(i);
-                            if ((      pCurrentItem->type() == UIChooserNodeType_Global
-                                    && pPossibleNextItem->type() == UIChooserNodeType_Global)
-                                || (   pCurrentItem->type() != UIChooserNodeType_Global
-                                    && pPossibleNextItem->type() != UIChooserNodeType_Global))
-                                pNextItem = pPossibleNextItem;
+                            pNextItem = pPossibleNextItem;
                         }
                     }
                 }

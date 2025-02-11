@@ -1047,7 +1047,7 @@ check_status_kernel()
     # running VBoxVGA or VBoxSVGA graphics.
     if [ $? -eq 0 ]; then
         gpu_vendor=$(lspci | grep 'VGA compatible controller' | cut -d ' ' -f 5 2>/dev/null)
-        if [ "gpu_vendor" = "InnoTek" ]; then
+        if [ "$gpu_vendor" = "InnoTek" ]; then
             check_running_module "vboxvideo"
         else
             # Do not spoil $?.

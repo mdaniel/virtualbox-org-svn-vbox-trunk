@@ -205,12 +205,6 @@ void UIChooser::setCurrentMachine(const QUuid &uId)
     model()->setCurrentMachineItem(uId);
 }
 
-void UIChooser::setCurrentGlobal()
-{
-    AssertPtrReturnVoid(model());
-    model()->setCurrentGlobalItem();
-}
-
 void UIChooser::sltToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
 {
     /* Translate scene coordinates to global one: */

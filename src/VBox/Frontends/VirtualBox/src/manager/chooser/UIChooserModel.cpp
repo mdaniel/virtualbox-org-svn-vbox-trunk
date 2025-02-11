@@ -520,14 +520,6 @@ UIChooserItem *UIChooserModel::searchItemByDefinition(const QString &strDefiniti
                                       UIChooserItemSearchFlag_CloudProfile |
                                       UIChooserItemSearchFlag_FullName);
     }
-    /* Its a global-item definition? */
-    else if (strItemType == prefixToString(UIChooserNodeDataPrefixType_Global))
-    {
-        /* Search for global-item with required name: */
-        pItem = root()->searchForItem(strItemDescriptor,
-                                      UIChooserItemSearchFlag_Global |
-                                      UIChooserItemSearchFlag_ExactName);
-    }
     /* Its a machine-item definition? */
     else if (strItemType == prefixToString(UIChooserNodeDataPrefixType_Machine))
     {
@@ -1000,17 +992,6 @@ void UIChooserModel::setCurrentMachineItem(const QUuid &uId)
     UIChooserItem *pItem = root()->searchForItem(uId.toString(),
                                                  UIChooserItemSearchFlag_Machine |
                                                  UIChooserItemSearchFlag_ExactId);
-
-    /* Select item if exists: */
-    if (pItem)
-        setSelectedItem(pItem);
-}
-
-void UIChooserModel::setCurrentGlobalItem()
-{
-    /* Look whether we have such item at all: */
-    UIChooserItem *pItem = root()->searchForItem(QString(),
-                                                 UIChooserItemSearchFlag_Global);
 
     /* Select item if exists: */
     if (pItem)

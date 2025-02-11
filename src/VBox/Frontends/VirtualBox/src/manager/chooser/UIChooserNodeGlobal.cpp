@@ -125,10 +125,6 @@ int UIChooserNodeGlobal::positionOf(UIChooserNode *pNode)
 
 void UIChooserNodeGlobal::searchForNodes(const QString &strSearchTerm, int iSearchFlags, QList<UIChooserNode*> &matchedItems)
 {
-    /* Ignore if we are not searching for the global-node: */
-    if (!(iSearchFlags & UIChooserItemSearchFlag_Global))
-        return;
-
     /* If the search term is empty we just add the node to the matched list: */
     if (strSearchTerm.isEmpty())
         matchedItems << this;

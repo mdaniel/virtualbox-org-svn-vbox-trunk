@@ -67,6 +67,7 @@ typedef enum RTACPIASTARGTYPE
     kAcpiAstArgType_RegionSpace,
     kAcpiAstArgType_FieldAcc,
     kAcpiAstArgType_FieldUpdate,
+    kAcpiAstArgType_StringLiteral,
     kAcpiAstArgType_32Bit_Hack = 0x7fffffff
 } RTACPIASTARGTYPE;
 
@@ -84,6 +85,7 @@ typedef struct RTACPIASTARG
         uintptr_t           uPtrInternal;
         PRTACPIASTNODE      pAstNd;
         const char          *pszNameString;
+        const char          *pszStrLit;
         bool                f;
         uint8_t             u8;
         uint16_t            u16;
@@ -171,6 +173,13 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_Decrement,
     kAcpiAstNodeOp_CondRefOf,
     kAcpiAstNodeOp_IndexField,
+    kAcpiAstNodeOp_EisaId,
+    kAcpiAstNodeOp_CreateField,
+    kAcpiAstNodeOp_CreateBitField,
+    kAcpiAstNodeOp_CreateByteField,
+    kAcpiAstNodeOp_CreateWordField,
+    kAcpiAstNodeOp_CreateDWordField,
+    kAcpiAstNodeOp_CreateQWordField,
     kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
 } RTACPIASTNODEOP;
 
@@ -344,6 +353,32 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
  * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
  */
 DECLHIDDEN(int) rtAcpiNsAddEntryU64(PRTACPINSROOT pNsRoot, const char *pszNameString, uint64_t u64Val, bool fSwitchTo);
+
+
+/**
+ * Adds a new namespace entry to the given name space - 64-bit value variant with format name string.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root to add the entry to.
+ * @param   u64Val              The 64-bit value to associate with the entry.
+ * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
+ * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
+ * @param   ...                 The arguments for the format string.
+ */
+DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, ...); RT_IPRT_FORMAT_ATTR(4, 5);
+
+
+/**
+ * Adds a new namespace entry to the given name space - 64-bit value variant with format name string.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root to add the entry to.
+ * @param   u64Val              The 64-bit value to associate with the entry.
+ * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
+ * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
+ * @param   va                  The format arguments.
+ */
+DECLHIDDEN(int) rtAcpiNsAddEntryU64V(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, va_list va); RT_IPRT_FORMAT_ATTR(4, 0);
 
 
 /**

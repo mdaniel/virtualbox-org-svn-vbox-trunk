@@ -1138,6 +1138,52 @@ RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETY
 RTDECL(int) RTAcpiResourceAddWordBusNumber(RTACPIRES hAcpiRes, uint32_t fAddrSpace, uint16_t u16BusMin, uint16_t u16BusMax,
                                            uint16_t u16OffTrans, uint16_t u16Granularity, uint16_t u16Length);
 
+
+/**
+ * I/O decode type.
+ */
+typedef enum RTACPIRESIODECODETYPE
+{
+    /** Invalid value. */
+    kAcpiResIoDecodeType_Invalid = 0,
+    /** 10-bit decoding. */
+    kAcpiResIoDecodeType_Decode10,
+    /** 16-bit decoding. */
+    kAcpiResIoDecodeType_Decode16,
+    /** 32-bit blowup hack. */
+    kAcpiResIoDecodeType_32BitHack = 0x7fffffff
+} RTACPIRESIODECODETYPE;
+
+
+/**
+ * Adds an I/O port descriptor to the given ACPI resource.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmDecode           The decoding type of the range.
+ * @param   u16AddrMin          Minimum base I/O address the range might be configured for.
+ * @param   u16AddrMax          Maximum base I/O address the range might be configured for.
+ * @param   u8AddrAlignment     Alignment of the minimum base address.
+ * @param   u8RangeLength       Number of contiguous I/O ports requested.
+ */
+RTDECL(int) RTAcpiResourceAddIo(RTACPIRES hAcpiRes, RTACPIRESIODECODETYPE enmDecode, uint16_t u16AddrMin, uint16_t u16AddrMax,
+                                uint8_t u8AddrAlignment, uint8_t u8RangeLength);
+
+
+/**
+ * Adds an extended interrupt descriptor with the given configuration to the given ACPI resource.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   fEdgeTriggered      Flag whether the interrupt is edged (true) or level (false) triggered.
+ * @param   fActiveLow          Flag whether the interrupt polarity is active low (true) or active high (false).
+ * @param   fShared             Flag whether the interrupt is shared between different entities (true) or exclusive to the assigned entity (false).
+ * @param   fWakeCapable        Flag whether the interrupt can wake the system (true) or not (false).
+ * @param   bmIntrs             Bitmap of interrupts (0..15) requested.
+ */
+RTDECL(int) RTAcpiResourceAddIrq(RTACPIRES hAcpiRes, bool fEdgeTriggered, bool fActiveLow, bool fShared,
+                                 bool fWakeCapable, uint16_t bmIntrs);
+
 /** @} */
 
 #endif /* IN_RING3 */

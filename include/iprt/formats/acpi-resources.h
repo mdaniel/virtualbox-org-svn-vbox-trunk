@@ -56,6 +56,29 @@
 #define ACPI_RSRCS_TAG_END                              0x79
 
 
+/** @name Small Resource Data Type.
+ * @{ */
+/** The bit identifying a small resource data type. */
+#define ACPI_RSRCS_SMALL_TYPE                           0
+/** IRQ format descriptor. */
+#define ACPI_RSRCS_ITEM_IRQ                             0x04
+/** DMA format descriptor. */
+#define ACPI_RSRCS_ITEM_DMA                             0x05
+/** Start dependent functions descriptor. */
+#define ACPI_RSRCS_ITEM_START_DEP_FN                    0x06
+/** End dependent functions descriptor. */
+#define ACPI_RSRCS_ITEM_END_DEP_FN                      0x07
+/** I/O port descriptor. */
+#define ACPI_RSRCS_ITEM_IO                              0x08
+/** Fixed location I/O port descriptor. */
+#define ACPI_RSRCS_ITEM_FIXED_LOCATION_IO               0x09
+/** Fixed DMA descriptor. */
+#define ACPI_RSRCS_ITEM_FIXED_DMA                       0x0a
+/** End tag descriptor. */
+#define ACPI_RSRCS_ITEM_END_TAG                         0x0f
+/** @} */
+
+
 /** @name Large Resource Data Type.
  * @{ */
 /** The bit identifying a large resource data type. */
@@ -125,6 +148,30 @@
 #define ACPI_RSRCS_EXT_INTR_VEC_F_WAKE_CAP              RT_BIT(4)
 /** Interrupt is not capable of waking the system. */
 #define ACPI_RSRCS_EXT_INTR_VEC_F_NOT_WAKE_CAP          0
+/** @} */
+
+
+/** @name IRQ descriptor related definitions.
+ * @{ */
+/** Interrupt is edge triggered. */
+#define ACPI_RSRCS_IRQ_F_EDGE_TRIGGERED                 RT_BIT(0)
+/** Interrupt is level triggered. */
+#define ACPI_RSRCS_IRQ_F_LEVEL_TRIGGERED                0
+
+/** Interrupt polarity is active low. */
+#define ACPI_RSRCS_IRQ_F_ACTIVE_LOW                     RT_BIT(3)
+/** Interrupt polarity is active high. */
+#define ACPI_RSRCS_IRQ_F_ACTIVE_HIGH                    0
+
+/** Interrupt is shared. */
+#define ACPI_RSRCS_IRQ_F_SHARED                         RT_BIT(4)
+/** Interrupt is exclusive. */
+#define ACPI_RSRCS_IRQ_F_EXCLUSIVE                      0
+
+/** Interrupt is capable of waking the system. */
+#define ACPI_RSRCS_IRQ_F_WAKE_CAP                       RT_BIT(5)
+/** Interrupt is not capable of waking the system. */
+#define ACPI_RSRCS_IRQ_F_NOT_WAKE_CAP                   0
 /** @} */
 
 

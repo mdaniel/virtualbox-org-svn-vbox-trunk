@@ -1967,5 +1967,52 @@ RTDECL(int) RTAcpiResourceAddWordBusNumber(RTACPIRES hAcpiRes, uint32_t fAddrSpa
     pb = rtAcpiResEncode16BitInteger(pb,     u16OffTrans);
          rtAcpiResEncode16BitInteger(pb,     u16Length);
     return VINF_SUCCESS;
+}
 
+
+RTDECL(int) RTAcpiResourceAddIo(RTACPIRES hAcpiRes, RTACPIRESIODECODETYPE enmDecode, uint16_t u16AddrMin, uint16_t u16AddrMax,
+                                uint8_t u8AddrAlignment, uint8_t u8RangeLength)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 8);
+    if (!pb)
+        return VERR_NO_MEMORY;
+
+    pb[0] = ACPI_RSRCS_SMALL_TYPE | (ACPI_RSRCS_ITEM_IO << 3) | 7; /* Tag */
+    pb[1] = enmDecode == kAcpiResIoDecodeType_Decode10 ? 0 : 1;
+    rtAcpiResEncode16BitInteger(&pb[2], u16AddrMin);
+    rtAcpiResEncode16BitInteger(&pb[4], u16AddrMax);
+    pb[6] = u8AddrAlignment;
+    pb[7] = u8RangeLength;
+
+    return VINF_SUCCESS;
+}
+
+
+RTDECL(int) RTAcpiResourceAddIrq(RTACPIRES hAcpiRes, bool fEdgeTriggered, bool fActiveLow, bool fShared,
+                                 bool fWakeCapable, uint16_t bmIntrs)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    bool fDefaultCfg = fEdgeTriggered && !fActiveLow && !fShared && !fWakeCapable;
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 2 + (fDefaultCfg ? 0 : 1));
+    if (!pb)
+        return VERR_NO_MEMORY;
+
+    pb[0] = ACPI_RSRCS_SMALL_TYPE | (ACPI_RSRCS_ITEM_IRQ << 3) | (fDefaultCfg ? 2 : 3); /* Tag */
+    rtAcpiResEncode16BitInteger(&pb[1], bmIntrs);
+    if (!fDefaultCfg)
+        pb[3] =   (fEdgeTriggered ? ACPI_RSRCS_IRQ_F_EDGE_TRIGGERED : ACPI_RSRCS_IRQ_F_LEVEL_TRIGGERED)
+                | (fActiveLow     ? ACPI_RSRCS_IRQ_F_ACTIVE_LOW     : ACPI_RSRCS_IRQ_F_ACTIVE_HIGH)
+                | (fShared        ? ACPI_RSRCS_IRQ_F_SHARED         : ACPI_RSRCS_IRQ_F_EXCLUSIVE)
+                | (fWakeCapable   ? ACPI_RSRCS_IRQ_F_WAKE_CAP       : ACPI_RSRCS_IRQ_F_NOT_WAKE_CAP);
+
+    return VINF_SUCCESS;
 }

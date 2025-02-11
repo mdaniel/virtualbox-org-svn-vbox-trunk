@@ -126,6 +126,21 @@ typedef enum RTACPIASLTERMINAL
     RTACPIASLTERMINAL_KEYWORD_READONLY,
     RTACPIASLTERMINAL_KEYWORD_READWRITE,
 
+    RTACPIASLTERMINAL_KEYWORD_IRQ,
+    RTACPIASLTERMINAL_KEYWORD_IRQ_NO_FLAGS,
+    RTACPIASLTERMINAL_KEYWORD_EDGE,
+    RTACPIASLTERMINAL_KEYWORD_LEVEL,
+    RTACPIASLTERMINAL_KEYWORD_ACTIVE_HIGH,
+    RTACPIASLTERMINAL_KEYWORD_ACTIVE_LOW,
+    RTACPIASLTERMINAL_KEYWORD_SHARED,
+    RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE,
+    RTACPIASLTERMINAL_KEYWORD_SHARED_AND_WAKE,
+    RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE_AND_WAKE,
+
+    RTACPIASLTERMINAL_KEYWORD_IO,
+    RTACPIASLTERMINAL_KEYWORD_DECODE_10,
+    RTACPIASLTERMINAL_KEYWORD_DECODE_16,
+
     RTACPIASLTERMINAL_PUNCTUATOR_COMMA,
     RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET,
     RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET,
@@ -297,6 +312,13 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("DECREMENT"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Decrement                         },
     { RT_STR_TUPLE("CONDREFOF"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CondRefOf                         },
     { RT_STR_TUPLE("INDEXFIELD"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_IndexField                        },
+    { RT_STR_TUPLE("EISAID"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_EisaId                            },
+    { RT_STR_TUPLE("CREATEFIELD"),              RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateField                       },
+    { RT_STR_TUPLE("CREATEBITFIELD"),           RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateBitField                    },
+    { RT_STR_TUPLE("CREATEBYTEFIELD"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateByteField                   },
+    { RT_STR_TUPLE("CREATEWORDFIELD"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateWordField                   },
+    { RT_STR_TUPLE("CREATEDWORDFIELD"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateDWordField                  },
+    { RT_STR_TUPLE("CREATEQWORDFIELD"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateQWordField                  },
 
     /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
@@ -351,6 +373,22 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("MEMORY32FIXED"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED         },
     { RT_STR_TUPLE("READONLY"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_READONLY               },
     { RT_STR_TUPLE("READWRITE"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_READWRITE              },
+
+    { RT_STR_TUPLE("IRQ"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_IRQ                    },
+    { RT_STR_TUPLE("IRQNOFLAGS"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_IRQ_NO_FLAGS           },
+    { RT_STR_TUPLE("EDGE"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_EDGE                   },
+    { RT_STR_TUPLE("LEVEL"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_LEVEL                  },
+    { RT_STR_TUPLE("ACTIVEHIGH"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_ACTIVE_HIGH            },
+    { RT_STR_TUPLE("ACTIVELOW"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_ACTIVE_LOW             },
+    { RT_STR_TUPLE("SHARED"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SHARED                 },
+    { RT_STR_TUPLE("EXCLUSIVE"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE              },
+    { RT_STR_TUPLE("SHAREDANDWAKE"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_SHARED_AND_WAKE        },
+    { RT_STR_TUPLE("EXCLUSIVEANDWAKE"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE_AND_WAKE     },
+
+    { RT_STR_TUPLE("IO"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_IO                     },
+    { RT_STR_TUPLE("DECODE10"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DECODE_10              },
+    { RT_STR_TUPLE("DECODE16"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DECODE_16              },
+
 
     /* Punctuators */
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, RTACPIASLTERMINAL_PUNCTUATOR_COMMA               },
@@ -708,6 +746,14 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Unexpected keyword found"); \
     } while(0)
 
+#define RTACPIASL_PARSE_OPTIONAL_KEYWORD_LIST(a_enmKeyword, a_aenmKeywordList, a_enmDefault) \
+    RTACPIASLTERMINAL a_enmKeyword = a_enmDefault; \
+    do { \
+        int rc2 = rtAcpiAslLexerConsumeIfKeywordInList(pThis, a_aenmKeywordList, &a_enmKeyword); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+    } while(0)
+
 #define RTACPIASL_PARSE_PUNCTUATOR(a_enmPunctuator, a_chPunctuator) \
     do { \
         bool fConsumed2 = false; \
@@ -716,6 +762,14 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
             return rc2; \
         if (!fConsumed2) \
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected punctuator '%c'", a_chPunctuator); \
+    } while(0)
+
+#define RTACPIASL_PARSE_OPTIONAL_PUNCTUATOR(a_enmPunctuator) \
+    do { \
+        bool fConsumed2 = false; \
+        int rc2 = rtAcpiAslLexerConsumeIfPunctuator(pThis, a_enmPunctuator, &fConsumed2); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
     } while(0)
 
 #define RTACPIASL_PARSE_STRING_LIT(a_pszStrLit) \
@@ -736,6 +790,14 @@ static int rtAcpiAslParserConsumeEos(PCRTACPIASLCU pThis)
             return rc2; \
         if (!a_pszIde) \
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Parser: Expected an identifier"); \
+    } while(0)
+
+#define RTACPIASL_PARSE_OPTIONAL_NAME_STRING(a_pszIde) \
+    const char *a_pszIde = NULL; \
+    do { \
+        int rc2 = rtAcpiAslLexerConsumeIfIdentifier(pThis, &a_pszIde); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
     } while(0)
 
 #define RTACPIASL_PARSE_NATURAL(a_u64) \
@@ -824,12 +886,6 @@ static const RTACPIASLTERMINAL g_aenmUpdateRuleKeywords[] = {
     RTACPIASLTERMINAL_KEYWORD_PRESERVE,
     RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ONES,
     RTACPIASLTERMINAL_KEYWORD_WRITE_AS_ZEROES,
-    RTACPIASLTERMINAL_INVALID
-};
-
-
-static const RTACPIASLTERMINAL g_aenmResourceTemplateKeywords[] = {
-    RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED,
     RTACPIASLTERMINAL_INVALID
 };
 
@@ -1170,9 +1226,267 @@ static DECLCALLBACK(int) rtAcpiTblAslParseFieldOrIndexField(PRTACPIASLCU pThis, 
 }
 
 
+static int rtAcpiTblParseResourceMemory32Fixed(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTACPIASTNODE pAstNd)
+{
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmKeywordAccess, g_aenmRwRoKeywords);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(u64PhysAddrStart);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(cbRegion);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    /* Check that the given range is within bounds. */
+    if (   u64PhysAddrStart >= _4G
+        || cbRegion >= _4G
+        || u64PhysAddrStart + cbRegion >= _4G
+        || u64PhysAddrStart + cbRegion < u64PhysAddrStart)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                             "The given memory range does not fit into a 32-bit memory address space: Start=%#RX64 Size=%#RX64",
+                             u64PhysAddrStart, cbRegion);
+
+    if (pszName)
+    {
+        /* Create namespace entries. */
+        uint32_t const offResource = RTAcpiResourceGetOffset(hAcpiRes);
+        int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pszName, pAstNd, true /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+        {
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_BAS", offResource + 4, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._BAS' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_LEN", offResource + 8, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._LEN' to namespace",
+                                     pszName);
+
+            rtAcpiNsPop(pThis->pNs);
+        }
+        else
+            return RTErrInfoSetF(pThis->pErrInfo, rc,
+                                 "Failed to add Memory32Fixed(, %#RX64 Size=%#RX64, %s) to namespace",
+                                 u64PhysAddrStart, cbRegion, pszName);
+    }
+
+    int rc = RTAcpiResourceAdd32BitFixedMemoryRange(hAcpiRes, u64PhysAddrStart, cbRegion, enmKeywordAccess == RTACPIASLTERMINAL_KEYWORD_READWRITE);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc,
+                             "Failed to add Memory32Fixed(fRw=%RTbool, %#RX64 Size=%#RX64, %s)",
+                             enmKeywordAccess == RTACPIASLTERMINAL_KEYWORD_READWRITE, u64PhysAddrStart, cbRegion,
+                             pszName ? pszName : "<NONE>");
+
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblParseIrqList(PRTACPIASLCU pThis, uint16_t *pbmIntrs)
+{
+    uint16_t bmIntrs = 0;
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+    for (;;)
+    {
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
+            break;
+
+        RTACPIASL_PARSE_NATURAL(u64Intr);
+        if (u64Intr > 15)
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                 "Interrupt number %u is out of range [0..15]: %RU64",
+                                 u64Intr);
+        if (bmIntrs & RT_BIT(u64Intr))
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Duplicate interrupt %u in list", u64Intr);
+
+        bmIntrs |= RT_BIT(u64Intr);
+
+        /* A following "," means there is another entry, otherwise the closing "}" should follow. */
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            break;
+
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip the "," */
+    }
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+
+    *pbmIntrs = bmIntrs;
+    return VINF_SUCCESS;
+}
+
+static int rtAcpiTblParseResourceIrq(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTACPIASTNODE pAstNd)
+{
+    static const RTACPIASLTERMINAL s_aenmEdgeLevelKeywords[]   = { RTACPIASLTERMINAL_KEYWORD_EDGE,            RTACPIASLTERMINAL_KEYWORD_LEVEL,              RTACPIASLTERMINAL_INVALID };
+    static const RTACPIASLTERMINAL s_aenmActiveLevelKeywords[] = { RTACPIASLTERMINAL_KEYWORD_ACTIVE_HIGH,     RTACPIASLTERMINAL_KEYWORD_ACTIVE_LOW,         RTACPIASLTERMINAL_INVALID };
+    static const RTACPIASLTERMINAL s_aenmSharedExclKeywords[]  = { RTACPIASLTERMINAL_KEYWORD_SHARED,          RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE,
+                                                                   RTACPIASLTERMINAL_KEYWORD_SHARED_AND_WAKE, RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE_AND_WAKE, RTACPIASLTERMINAL_INVALID };
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmEdgeLevel, s_aenmEdgeLevelKeywords);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmActiveHigh, s_aenmActiveLevelKeywords);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_OPTIONAL_KEYWORD_LIST(enmSharedExcl, s_aenmSharedExclKeywords, RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE);
+    RTACPIASL_PARSE_OPTIONAL_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA);
+    RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    uint16_t bmIntrs = 0;
+    int rc = rtAcpiTblParseIrqList(pThis, &bmIntrs);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    if (pszName)
+    {
+        /* Create namespace entries. */
+        uint32_t const offResource = RTAcpiResourceGetOffset(hAcpiRes);
+        rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pszName, pAstNd, true /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+        {
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_HE", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._HE' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_LL", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._LL' to namespace",
+                                     pszName);
+
+            rtAcpiNsPop(pThis->pNs);
+        }
+        else
+            return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add IRQ(,,,,, %s) to namespace", pszName);
+    }
+
+    rc = RTAcpiResourceAddIrq(hAcpiRes,
+                              enmEdgeLevel == RTACPIASLTERMINAL_KEYWORD_EDGE,
+                              enmActiveHigh == RTACPIASLTERMINAL_KEYWORD_ACTIVE_LOW,
+                              enmSharedExcl == RTACPIASLTERMINAL_KEYWORD_SHARED || enmSharedExcl == RTACPIASLTERMINAL_KEYWORD_SHARED_AND_WAKE,
+                              enmSharedExcl == RTACPIASLTERMINAL_KEYWORD_SHARED_AND_WAKE || enmSharedExcl == RTACPIASLTERMINAL_KEYWORD_EXCLUSIVE_AND_WAKE,
+                              bmIntrs);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc,
+                             "Failed to add IRQ(,,,,, %s)", pszName ? pszName : "<NONE>");
+
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblParseResourceIrqNoFlags(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTACPIASTNODE pAstNd)
+{
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    uint16_t bmIntrs = 0;
+    int rc = rtAcpiTblParseIrqList(pThis, &bmIntrs);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    if (pszName)
+    {
+        /* Create namespace entries. */
+        uint32_t const offResource = RTAcpiResourceGetOffset(hAcpiRes); RT_NOREF(offResource);
+        rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pszName, pAstNd, false /*fSwitchTo*/);
+        if (RT_FAILURE(rc))
+            return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add IRQNoFlags(%s) to namespace", pszName);
+    }
+
+    rc = RTAcpiResourceAddIrq(hAcpiRes, true /*fEdgeTriggered*/, false /*fActiveLow*/, false /*fShared*/, false /*fWakeCapable*/, bmIntrs);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc,
+                             "Failed to add IRQNoFlags(%s)", pszName ? pszName : "<NONE>");
+
+    return VINF_SUCCESS;
+}
+
+
+static int rtAcpiTblParseResourceIo(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTACPIASTNODE pAstNd)
+{
+    static const RTACPIASLTERMINAL s_aenmDecodeKeywords[] = { RTACPIASLTERMINAL_KEYWORD_DECODE_10, RTACPIASLTERMINAL_KEYWORD_DECODE_16, RTACPIASLTERMINAL_INVALID };
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmDecode, s_aenmDecodeKeywords);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(u64AddrMin);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(u64AddrMax);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(u64AddrAlignment);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_NATURAL(u64RangeLength);
+    RTACPIASL_PARSE_OPTIONAL_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA);
+    RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    if (   u64AddrMin > UINT16_MAX
+        || u64AddrMax > UINT16_MAX
+        || u64AddrAlignment > UINT8_MAX
+        || u64RangeLength > UINT8_MAX)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                             "Invalid parameters given to IO macro: AddressMin=%#RX16 AddressMax=%#RX16 AddressAlignment=%#RX8 RangeLength=%#RX8",
+                             u64AddrMin, u64AddrMax, u64AddrAlignment, u64RangeLength);
+
+    if (pszName)
+    {
+        /* Create namespace entries. */
+        uint32_t const offResource = RTAcpiResourceGetOffset(hAcpiRes);
+        int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pszName, pAstNd, true /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+        {
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_DEC", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._DEC' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_MIN", offResource + 2, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._MIN' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_MAX", offResource + 4, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._MAX' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_ALN", offResource + 6, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._ALN' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_LEN", offResource + 7, false /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._LEN' to namespace",
+                                     pszName);
+
+            rtAcpiNsPop(pThis->pNs);
+        }
+        else
+            return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add IO(,,,,, %s) to namespace", pszName);
+    }
+
+    int rc = RTAcpiResourceAddIo(hAcpiRes, enmDecode == RTACPIASLTERMINAL_KEYWORD_DECODE_10 ? kAcpiResIoDecodeType_Decode10 : kAcpiResIoDecodeType_Decode16,
+                                 (uint16_t)u64AddrMin, (uint16_t)u64AddrMax, (uint8_t)u64AddrAlignment, (uint8_t)u64RangeLength);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc,
+                             "Failed to add IO(,,,,, %s)", pszName ? pszName : "<NONE>");
+
+    return VINF_SUCCESS;
+}
+
+
 static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
 {
-    RT_NOREF(pKeyword, pAstNd);
+    RT_NOREF(pKeyword);
+
+    static const RTACPIASLTERMINAL s_aenmResourceTemplateKeywords[] = {
+        RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED,
+        RTACPIASLTERMINAL_KEYWORD_IRQ,
+        RTACPIASLTERMINAL_KEYWORD_IRQ_NO_FLAGS,
+        RTACPIASLTERMINAL_KEYWORD_IO,
+        RTACPIASLTERMINAL_INVALID
+    };
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
@@ -1184,42 +1498,40 @@ static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, P
     if (RT_FAILURE(rc))
         return RTErrInfoSetF(pThis->pErrInfo, rc, "Creating the ACPI resource template failed while parsing");
 
-    /* Assign here already to have the ACPI resource freed when the node gets destroyed. */
+    /* Assign here already to have the ACPI resource freed when the node gets destroyed, even if there is an error while parsing. */
     pAstNd->hAcpiRes = hAcpiRes;
 
     /* Get to work */
     for (;;)
     {
-        RTACPIASL_PARSE_KEYWORD_LIST(enmResourceKeyword, g_aenmResourceTemplateKeywords);
+        RTACPIASL_PARSE_KEYWORD_LIST(enmResourceKeyword, s_aenmResourceTemplateKeywords);
         switch (enmResourceKeyword)
         {
             case RTACPIASLTERMINAL_KEYWORD_MEMORY32_FIXED:
             {
-                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
-                RTACPIASL_PARSE_KEYWORD_LIST(enmKeywordAccess, g_aenmRwRoKeywords);
-                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
-                RTACPIASL_PARSE_NATURAL(u64PhysAddrStart);
-                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
-                RTACPIASL_PARSE_NATURAL(cbRegion);
-                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
-                RTACPIASL_PARSE_NAME_STRING(pszName); /** @todo This is optional actually. */
-                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
-
-                /* Check that the given range is within bounds. */
-                if (   u64PhysAddrStart >= _4G
-                    || cbRegion >= _4G
-                    || u64PhysAddrStart + cbRegion >= _4G
-                    || u64PhysAddrStart + cbRegion < u64PhysAddrStart)
-                    return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
-                                         "The given memory range does not fit into a 32-bit memory address space: Start=%#RX64 Size=%#RX64",
-                                         u64PhysAddrStart, cbRegion);
-
-                rc = RTAcpiResourceAdd32BitFixedMemoryRange(hAcpiRes, u64PhysAddrStart, cbRegion, enmKeywordAccess == RTACPIASLTERMINAL_KEYWORD_READWRITE);
+                rc = rtAcpiTblParseResourceMemory32Fixed(pThis, hAcpiRes, pAstNd);
+                break;
+            }
+            case RTACPIASLTERMINAL_KEYWORD_IRQ:
+            {
+                rc = rtAcpiTblParseResourceIrq(pThis, hAcpiRes, pAstNd);
+                break;
+            }
+            case RTACPIASLTERMINAL_KEYWORD_IRQ_NO_FLAGS:
+            {
+                rc = rtAcpiTblParseResourceIrqNoFlags(pThis, hAcpiRes, pAstNd);
+                break;
+            }
+            case RTACPIASLTERMINAL_KEYWORD_IO:
+            {
+                rc = rtAcpiTblParseResourceIo(pThis, hAcpiRes, pAstNd);
                 break;
             }
             default: /* This should never occur. */
                 AssertReleaseFailed();
         }
+        if (RT_FAILURE(rc))
+            return rc;
 
         /* Done processing (indicated by the closing "}")?. */
         if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
@@ -1406,6 +1718,21 @@ static DECLCALLBACK(int) rtAcpiTblAslParseReturn(PRTACPIASLCU pThis, PCRTACPIASL
         } \
     }
 
+#define RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgType1, a_enmArgType2) \
+    { \
+        a_szKeyword, NULL, 3, 0, a_fFlags, \
+        {   a_enmArgType0, \
+            a_enmArgType1, \
+            a_enmArgType2, \
+            kAcpiAstArgType_Invalid, \
+            kAcpiAstArgType_Invalid}, \
+        { \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } }, \
+            { kAcpiAstArgType_Invalid, { 0 } } \
+        } \
+    }
+
 #define RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT(a_szKeyword, a_fFlags, a_enmArgType0, a_enmArgType1, a_enmArgType2, a_enmArgType3) \
     { \
         a_szKeyword, NULL, 4, 0, a_fFlags, \
@@ -1536,6 +1863,13 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Decrement         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Decrement",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_CondRefOf         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("CondRefOf",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_IndexField        */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "IndexField",       rtAcpiTblAslParseFieldOrIndexField, 5, 0, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_EisaId            */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("EisaId",           RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_StringLiteral),
+    /* kAcpiAstNodeOp_CreateField       */  RTACPI_ASL_KEYWORD_DEFINE_4REQ_0OPT("CreateField",      RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_CreateBitField    */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateBitField",   RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_CreateByteField   */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateByteField",  RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_CreateWordField   */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateWordField",  RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_CreateDWordField  */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateDWordField", RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_CreateQWordField  */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateQWordField", RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
 };
 
 
@@ -1636,6 +1970,13 @@ static int rtAcpiTblAslParseArgument(PRTACPIASLCU pThis, const char *pszKeyword,
                 return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Unknown RegionSpace keyword encountered");
             break;
         }
+        case kAcpiAstArgType_StringLiteral:
+        {
+            RTACPIASL_PARSE_STRING_LIT(psz);
+            pArg->enmType     = kAcpiAstArgType_StringLiteral;
+            pArg->u.pszStrLit = psz;
+            break;
+        }
         default:
             AssertReleaseFailed();
     }
@@ -1676,6 +2017,19 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
             rc = rtAcpiTblAslParseArgument(pThis, pAslKeyword->pszOpc, i, pAslKeyword->aenmTypes[i], &pAstNd->aArgs[i]);
             if (RT_FAILURE(rc))
                 return rc;
+
+            if (i == 0 && (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY))
+            {
+                /*
+                 * Create a new namespace entry, we currently assume that the first argument is a namestring
+                 * which gives the path.
+                 */
+                AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
+
+                rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, true /*fSwitchTo*/);
+                if (RT_FAILURE(rc))
+                    return rc;
+            }
 
             /* There must be a "," between required arguments, not counting the last required argument because it can be closed with ")". */
             if (i < (uint8_t)(pAslKeyword->cArgsReq - 1))
@@ -1725,20 +2079,6 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
 
         /* Now there must be a closing ) */
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
-
-        if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
-        {
-            /*
-             * Create a new namespace entry, we currently assume that the first argument is a namestring
-             * which gives the path.
-             */
-            AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
-
-            bool fSwitchTo = RT_BOOL(pAslKeyword->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE);
-            rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, fSwitchTo);
-            if (RT_FAILURE(rc))
-                return rc;
-        }
     }
 
     /* For keywords opening a new scope do the parsing now. */
@@ -1748,10 +2088,10 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
         rc = rtAcpiTblAslParseInner(pThis, &pAstNd->LstScopeNodes);
         if (RT_SUCCESS(rc))
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
-
-        if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
-            rtAcpiNsPop(pThis->pNs);
     }
+
+    if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
+        rtAcpiNsPop(pThis->pNs);
 
     return rc;
 }

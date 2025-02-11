@@ -353,7 +353,11 @@ bool UIChooserModel::isAllItemsOfOneGroupSelected() const
 
 QString UIChooserModel::fullGroupName() const
 {
-    return isSingleGroupSelected() ? firstSelectedItem()->fullName() : firstSelectedItem()->parentItem()->fullName();
+    return   !firstSelectedItem()
+           ? QString()
+           : isSingleGroupSelected()
+           ? firstSelectedItem()->fullName()
+           : firstSelectedItem()->parentItem()->fullName();
 }
 
 UIChooserItem *UIChooserModel::findClosestUnselectedItem() const

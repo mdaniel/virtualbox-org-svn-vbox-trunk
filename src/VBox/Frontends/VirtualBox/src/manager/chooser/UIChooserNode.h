@@ -43,7 +43,6 @@
 /* Forward declaration: */
 class UIChooserAbstractModel;
 class UIChooserNodeGroup;
-class UIChooserNodeGlobal;
 class UIChooserNodeMachine;
 
 
@@ -66,8 +65,6 @@ public:
 
     /** Casts node to group one. */
     UIChooserNodeGroup *toGroupNode();
-    /** Casts node to global one. */
-    UIChooserNodeGlobal *toGlobalNode();
     /** Casts node to machine one. */
     UIChooserNodeMachine *toMachineNode();
 

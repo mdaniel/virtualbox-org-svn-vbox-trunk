@@ -143,8 +143,6 @@ private:
 
     /** Holds group children. */
     QList<UIChooserNode*>  m_nodesGroup;
-    /** Holds global children. */
-    QList<UIChooserNode*>  m_nodesGlobal;
     /** Holds machine children. */
     QList<UIChooserNode*>  m_nodesMachine;
 };

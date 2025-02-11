@@ -43,7 +43,6 @@ enum UIChooserNodeType
 {
     UIChooserNodeType_Any     = QGraphicsItem::UserType,
     UIChooserNodeType_Group,
-    UIChooserNodeType_Global,
     UIChooserNodeType_Machine
 };
 
@@ -61,7 +60,7 @@ enum UIChooserNodeGroupType
 /** UIChooserNode extra-data prefix types. */
 enum UIChooserNodeDataPrefixType
 {
-    UIChooserNodeDataPrefixType_Global,
+    UIChooserNodeDataPrefixType_Invalid,
     UIChooserNodeDataPrefixType_Machine,
     UIChooserNodeDataPrefixType_Local,
     UIChooserNodeDataPrefixType_Provider,

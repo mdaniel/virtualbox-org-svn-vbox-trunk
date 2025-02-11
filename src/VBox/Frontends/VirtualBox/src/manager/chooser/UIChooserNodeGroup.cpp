@@ -28,7 +28,6 @@
 /* GUI includes: */
 #include "UIChooserAbstractModel.h"
 #include "UIChooserNodeGroup.h"
-#include "UIChooserNodeGlobal.h"
 #include "UIChooserNodeMachine.h"
 #include "UITranslationEventListener.h"
 
@@ -86,8 +85,6 @@ UIChooserNodeGroup::~UIChooserNodeGroup()
      * gives us proper recursion: */
     while (!m_nodesGroup.isEmpty())
         delete m_nodesGroup.last();
-    while (!m_nodesGlobal.isEmpty())
-        delete m_nodesGlobal.last();
     while (!m_nodesMachine.isEmpty())
         delete m_nodesMachine.last();
 
@@ -150,11 +147,9 @@ bool UIChooserNodeGroup::hasNodes(UIChooserNodeType enmType /* = UIChooserNodeTy
     switch (enmType)
     {
         case UIChooserNodeType_Any:
-            return hasNodes(UIChooserNodeType_Group) || hasNodes(UIChooserNodeType_Global) || hasNodes(UIChooserNodeType_Machine);
+            return hasNodes(UIChooserNodeType_Group) || hasNodes(UIChooserNodeType_Machine);
         case UIChooserNodeType_Group:
             return !m_nodesGroup.isEmpty();
-        case UIChooserNodeType_Global:
-            return !m_nodesGlobal.isEmpty();
         case UIChooserNodeType_Machine:
             return !m_nodesMachine.isEmpty();
     }
@@ -165,9 +160,8 @@ QList<UIChooserNode*> UIChooserNodeGroup::nodes(UIChooserNodeType enmType /* = U
 {
     switch (enmType)
     {
-        case UIChooserNodeType_Any:     return m_nodesGlobal + m_nodesGroup + m_nodesMachine;
+        case UIChooserNodeType_Any:     return m_nodesGroup + m_nodesMachine;
         case UIChooserNodeType_Group:   return m_nodesGroup;
-        case UIChooserNodeType_Global:  return m_nodesGlobal;
         case UIChooserNodeType_Machine: return m_nodesMachine;
     }
     AssertFailedReturn(QList<UIChooserNode*>());
@@ -178,7 +172,6 @@ void UIChooserNodeGroup::addNode(UIChooserNode *pNode, int iPosition)
     switch (pNode->type())
     {
         case UIChooserNodeType_Group:   m_nodesGroup.insert(iPosition < 0 || iPosition > m_nodesGroup.size() ? m_nodesGroup.size() : iPosition, pNode); return;
-        case UIChooserNodeType_Global:  m_nodesGlobal.insert(iPosition < 0 || iPosition > m_nodesGlobal.size() ? m_nodesGlobal.size() : iPosition, pNode); return;
         case UIChooserNodeType_Machine: m_nodesMachine.insert(iPosition < 0 || iPosition > m_nodesMachine.size() ? m_nodesMachine.size() : iPosition, pNode); return;
         default: break;
     }
@@ -190,7 +183,6 @@ void UIChooserNodeGroup::removeNode(UIChooserNode *pNode)
     switch (pNode->type())
     {
         case UIChooserNodeType_Group:   m_nodesGroup.removeAll(pNode); return;
-        case UIChooserNodeType_Global:  m_nodesGlobal.removeAll(pNode); return;
         case UIChooserNodeType_Machine: m_nodesMachine.removeAll(pNode); return;
         default: break;
     }
@@ -220,7 +212,6 @@ int UIChooserNodeGroup::positionOf(UIChooserNode *pNode)
     switch (pNode->type())
     {
         case UIChooserNodeType_Group:   return m_nodesGroup.indexOf(pNode->toGroupNode());
-        case UIChooserNodeType_Global:  return m_nodesGlobal.indexOf(pNode->toGlobalNode());
         case UIChooserNodeType_Machine: return m_nodesMachine.indexOf(pNode->toMachineNode());
         default: break;
     }
@@ -286,8 +277,6 @@ void UIChooserNodeGroup::searchForNodes(const QString &strSearchTerm, int iSearc
     /* Search among all the children: */
     foreach (UIChooserNode *pNode, m_nodesGroup)
         pNode->searchForNodes(strSearchTerm, iSearchFlags, matchedItems);
-    foreach (UIChooserNode *pNode, m_nodesGlobal)
-        pNode->searchForNodes(strSearchTerm, iSearchFlags, matchedItems);
     foreach (UIChooserNode *pNode, m_nodesMachine)
         pNode->searchForNodes(strSearchTerm, iSearchFlags, matchedItems);
 }
@@ -298,11 +287,6 @@ void UIChooserNodeGroup::sortNodes()
     foreach (UIChooserNode *pNode, m_nodesGroup)
         mapGroup[pNode->name()] = pNode;
     m_nodesGroup = mapGroup.values();
-
-    QMap<QString, UIChooserNode*> mapGlobal;
-    foreach (UIChooserNode *pNode, m_nodesGlobal)
-        mapGlobal[pNode->name()] = pNode;
-    m_nodesGlobal = mapGlobal.values();
 
     QMap<QString, UIChooserNode*> mapMachine;
     foreach (UIChooserNode *pNode, m_nodesMachine)
@@ -326,10 +310,6 @@ void UIChooserNodeGroup::copyContents(UIChooserNodeGroup *pCopyFrom)
 {
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Group))
         new UIChooserNodeGroup(this, m_nodesGroup.size(), pNode->toGroupNode());
-#ifdef VBOX_GUI_WITH_LEGACY_WIDGETS
-    foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Global))
-        new UIChooserNodeGlobal(this, m_nodesGlobal.size(), pNode->toGlobalNode());
-#endif
     foreach (UIChooserNode *pNode, pCopyFrom->nodes(UIChooserNodeType_Machine))
         new UIChooserNodeMachine(this, m_nodesMachine.size(), pNode->toMachineNode());
 }

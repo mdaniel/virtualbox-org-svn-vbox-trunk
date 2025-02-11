@@ -44,7 +44,6 @@
 #include "UIChooserModel.h"
 #include "UIChooserNode.h"
 #include "UIChooserNodeGroup.h"
-#include "UIChooserNodeGlobal.h"
 #include "UIChooserNodeMachine.h"
 #include "UIChooserView.h"
 #include "UICloudNetworkingStuff.h"

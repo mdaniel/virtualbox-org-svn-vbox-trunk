@@ -36,7 +36,6 @@
 #include "UIChooserAbstractModel.h"
 #include "UIChooserNode.h"
 #include "UIChooserNodeGroup.h"
-#include "UIChooserNodeGlobal.h"
 #include "UIChooserNodeMachine.h"
 #include "UICloudNetworkingStuff.h"
 #include "UIExtraDataManager.h"
@@ -404,14 +403,6 @@ void UIChooserAbstractModel::init()
         /* Link root to this model: */
         invisibleRoot()->setModel(this);
 
-#ifdef VBOX_GUI_WITH_LEGACY_WIDGETS
-        /* Create global node: */
-        new UIChooserNodeGlobal(invisibleRoot() /* parent */,
-                                0 /* position */,
-                                shouldGlobalNodeBeFavorite(invisibleRoot()),
-                                QString() /* tip */);
-#endif
-
         /* Reload local tree: */
         reloadLocalTree();
         /* Reload cloud tree: */
@@ -569,8 +560,6 @@ QString UIChooserAbstractModel::prefixToString(UIChooserNodeDataPrefixType enmTy
 {
     switch (enmType)
     {
-        /* Global nodes: */
-        case UIChooserNodeDataPrefixType_Global:   return "n";
         /* Machine nodes: */
         case UIChooserNodeDataPrefixType_Machine:  return "m";
         /* Group nodes: */
@@ -1496,7 +1485,6 @@ int UIChooserAbstractModel::getDesiredNodePosition(UIChooserNode *pParentNode,
         UIChooserNodeType enmType = UIChooserNodeType_Any;
         switch (enmDataType)
         {
-            case UIChooserNodeDataPrefixType_Global:   enmType = UIChooserNodeType_Global; break;
             case UIChooserNodeDataPrefixType_Machine:  enmType = UIChooserNodeType_Machine; break;
             case UIChooserNodeDataPrefixType_Local:
             case UIChooserNodeDataPrefixType_Provider:
@@ -1509,7 +1497,7 @@ int UIChooserAbstractModel::getDesiredNodePosition(UIChooserNode *pParentNode,
             UIChooserNode *pNode = nodes.at(i);
             AssertPtrReturn(pNode, iNewNodeDesiredPosition);
             /* Which position should be current node placed by definitions? */
-            UIChooserNodeDataPrefixType enmNodeDataType = UIChooserNodeDataPrefixType_Global;
+            UIChooserNodeDataPrefixType enmNodeDataType = UIChooserNodeDataPrefixType_Invalid;
             QString strDefinitionName;
             switch (pNode->type())
             {
@@ -1781,13 +1769,6 @@ void UIChooserAbstractModel::gatherGroupDefinitions(QMap<QString, QStringList> &
 {
     /* Prepare extra-data key for current group: */
     const QString strExtraDataKey = pParentGroup->fullName();
-    /* Iterate over all the global-nodes: */
-    foreach (UIChooserNode *pNode, pParentGroup->nodes(UIChooserNodeType_Global))
-    {
-        /* Append node definition: */
-        AssertPtrReturnVoid(pNode);
-        definitions[strExtraDataKey] << pNode->definition(true /* full */);
-    }
     /* Iterate over all the group-nodes: */
     foreach (UIChooserNode *pNode, pParentGroup->nodes(UIChooserNodeType_Group))
     {

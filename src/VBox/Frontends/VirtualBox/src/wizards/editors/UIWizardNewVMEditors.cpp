@@ -178,7 +178,7 @@ void UIGAInstallationGroupBox::sltRetranslateUI()
     if (m_pGAISOPathLabel)
         m_pGAISOPathLabel->setText(UIWizardNewVM::tr("Guest &Additions ISO Image:"));
     setTitle(UIWizardNewVM::tr("Install Gu&est Additions"));
-    setToolTip(UIWizardNewVM::tr("When checked, the guest additions will be installed after the guest OS install"));
+    setToolTip(UIWizardNewVM::tr("Install the VirtualBox Guest Additions on the guest OS"));
 }
 
 QString UIGAInstallationGroupBox::path() const

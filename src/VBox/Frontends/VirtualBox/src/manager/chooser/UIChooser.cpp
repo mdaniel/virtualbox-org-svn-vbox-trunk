@@ -211,12 +211,6 @@ void UIChooser::setCurrentGlobal()
     model()->setCurrentGlobalItem();
 }
 
-void UIChooser::setGlobalItemHeightHint(int iHeight)
-{
-    AssertPtrReturnVoid(model());
-    model()->setGlobalItemHeightHint(iHeight);
-}
-
 void UIChooser::sltToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
 {
     /* Translate scene coordinates to global one: */

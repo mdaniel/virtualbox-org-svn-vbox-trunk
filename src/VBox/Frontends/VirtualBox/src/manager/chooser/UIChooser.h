@@ -193,14 +193,6 @@ public:
         void setCurrentGlobal();
     /** @} */
 
-public slots:
-
-    /** @name Layout stuff.
-      * @{ */
-        /** Defines global item @a iHeight. */
-        void setGlobalItemHeightHint(int iHeight);
-    /** @} */
-
 private slots:
 
     /** @name General stuff.

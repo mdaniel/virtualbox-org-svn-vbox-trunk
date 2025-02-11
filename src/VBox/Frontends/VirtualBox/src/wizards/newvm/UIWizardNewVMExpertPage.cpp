@@ -228,28 +228,28 @@ void UIWizardNewVMExpertPage::sltRetranslateUI()
 
     if (m_pToolBox)
     {
-        m_pToolBox->setPageTitle(ExpertToolboxItems_NameAndOSType, QString(UIWizardNewVM::tr("Name and &Operating System")));
-        m_pToolBox->setPageTitle(ExpertToolboxItems_Unattended, UIWizardNewVM::tr("&Unattended Install"));
-        m_pToolBox->setPageTitle(ExpertToolboxItems_Disk, UIWizardNewVM::tr("Hard Dis&k"));
-        m_pToolBox->setPageTitle(ExpertToolboxItems_Hardware, UIWizardNewVM::tr("H&ardware"));
+        m_pToolBox->setPageTitle(ExpertToolboxItems_NameAndOSType, QString(UIWizardNewVM::tr("Virtual machine name and &operating system")));
+        m_pToolBox->setPageTitle(ExpertToolboxItems_Unattended, UIWizardNewVM::tr("Set up &unattended guest OS installation"));
+        m_pToolBox->setPageTitle(ExpertToolboxItems_Disk, UIWizardNewVM::tr("Specify virtual hard dis&k"));
+        m_pToolBox->setPageTitle(ExpertToolboxItems_Hardware, UIWizardNewVM::tr("Specify virtual h&ardware"));
     }
 
     if (m_pDiskEmpty)
-        m_pDiskEmpty->setText(UIWizardNewVM::tr("&Do Not Add a Virtual Hard Disk"));
+        m_pDiskEmpty->setText(UIWizardNewVM::tr("C&reate Virtual Machine Without a Virtual Hard Disk"));
     if (m_pDiskNew)
-        m_pDiskNew->setText(UIWizardNewVM::tr("&Create a Virtual Hard Disk Now"));
+        m_pDiskNew->setText(UIWizardNewVM::tr("&Create a New Virtual Hard Disk"));
     if (m_pDiskExisting)
         m_pDiskExisting->setText(UIWizardNewVM::tr("U&se an Existing Virtual Hard Disk File"));
     if (m_pDiskSelectionButton)
-        m_pDiskSelectionButton->setToolTip(UIWizardNewVM::tr("Chooses a Virtual Hard Fisk File..."));
+        m_pDiskSelectionButton->setToolTip(UIWizardNewVM::tr("Select a Virtual Hard Disk File..."));
     if (m_pDiskSelectionButton)
-        m_pDiskSelectionButton->setText(UIWizardNewVM::tr("Choose a Virtual Hard Fisk File"));
+        m_pDiskSelectionButton->setText(UIWizardNewVM::tr("Select a Virtual Hard Disk File"));
 
     if (m_pNameAndSystemLayout && m_pNameAndSystemEditor)
         m_pNameAndSystemLayout->setColumnMinimumWidth(0, m_pNameAndSystemEditor->firstColumnWidth());
 
     if (m_pDiskFormatVariantGroupBox)
-        m_pDiskFormatVariantGroupBox->setTitle(UIWizardNewVM::tr("Hard Disk File &Type and Variant"));
+        m_pDiskFormatVariantGroupBox->setTitle(UIWizardNewVM::tr("Hard Disk File &Type and Format"));
 }
 
 void UIWizardNewVMExpertPage::createConnections()

@@ -569,10 +569,7 @@ void UIWizardNewVMNameOSTypePage::sltRetranslateUI()
     setTitle(UIWizardNewVM::tr("Virtual machine name and operating system"));
 
     if (m_pNameOSTypeLabel)
-        m_pNameOSTypeLabel->setText(UIWizardNewVM::tr("Please choose a descriptive name and destination folder for the new "
-                                                      "virtual machine. The name you choose will be used throughout VirtualBox "
-                                                      "to identify this machine. Additionally, you can select an ISO image which "
-                                                      "may be used to install the guest operating system."));
+        m_pNameOSTypeLabel->setText(UIWizardNewVM::tr("The ISO image is used to install the operating system on the VM."));
 
     if (m_pUnattendedCheckBox)
     {

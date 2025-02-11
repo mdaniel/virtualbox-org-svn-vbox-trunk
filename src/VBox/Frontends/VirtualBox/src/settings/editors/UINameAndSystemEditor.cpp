@@ -284,19 +284,19 @@ int UINameAndSystemEditor::firstColumnWidth() const
 void UINameAndSystemEditor::sltRetranslateUI()
 {
     if (m_pLabelName)
-        m_pLabelName->setText(tr("VM &Name:"));
+        m_pLabelName->setText(tr("VM &Name"));
     if (m_pLabelPath)
-        m_pLabelPath->setText(tr("VM &Folder:"));
+        m_pLabelPath->setText(tr("VM &Folder"));
     if (m_pLabelImage)
-        m_pLabelImage->setText(tr("&ISO Image:"));
+        m_pLabelImage->setText(tr("&ISO Image"));
     if (m_pLabelEdition)
-        m_pLabelEdition->setText(tr("OS &Edition:"));
+        m_pLabelEdition->setText(tr("OS &Edition"));
     if (m_pLabelFamily)
-        m_pLabelFamily->setText(tr("&Type:"));
+        m_pLabelFamily->setText(tr("OS &Type"));
     if (m_pLabelDistribution)
-        m_pLabelDistribution->setText(tr("Va&riant:"));
+        m_pLabelDistribution->setText(tr("OS Va&riant"));
     if (m_pLabelType)
-        m_pLabelType->setText(tr("&Version:"));
+        m_pLabelType->setText(tr("OS &Version"));
 
     if (m_pEditorName)
         m_pEditorName->setToolTip(tr("Descriptive name to uniquely identify the virtual machine."));
@@ -305,7 +305,7 @@ void UINameAndSystemEditor::sltRetranslateUI()
     if (m_pComboEdition)
         m_pComboEdition->setToolTip(tr("Edition of guest operating system to install."));
     if (m_pComboFamily)
-        m_pComboFamily->setToolTip(tr("Guest operating systme type."));
+        m_pComboFamily->setToolTip(tr("Guest operating system type."));
 
     if (m_pComboDistribution)
         m_pComboDistribution->setToolTip(tr("Guest operating system variant, if applicable."));

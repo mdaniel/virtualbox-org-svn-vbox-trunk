@@ -103,7 +103,6 @@ private:
        QRadioButton *m_pDiskExisting;
        UIMediaComboBox *m_pDiskSelector;
        QIToolButton *m_pDiskSelectionButton;
-       QIRichTextLabel *m_pLabel;
        QLabel          *m_pMediumSizeEditorLabel;
        UIMediumSizeEditor *m_pMediumSizeEditor;
        QIRichTextLabel *m_pDescriptionLabel;

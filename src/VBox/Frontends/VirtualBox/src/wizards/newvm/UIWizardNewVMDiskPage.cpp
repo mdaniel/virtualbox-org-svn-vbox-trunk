@@ -74,7 +74,6 @@ UIWizardNewVMDiskPage::UIWizardNewVMDiskPage(UIActionPool *pActionPool, const QS
     , m_pDiskExisting(0)
     , m_pDiskSelector(0)
     , m_pDiskSelectionButton(0)
-    , m_pLabel(0)
     , m_pMediumSizeEditorLabel(0)
     , m_pMediumSizeEditor(0)
     , m_pDescriptionLabel(0)
@@ -93,8 +92,6 @@ void UIWizardNewVMDiskPage::prepare()
 {
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
 
-    m_pLabel = new QIRichTextLabel(this);
-    pMainLayout->addWidget(m_pLabel);
     pMainLayout->addWidget(createDiskWidgets());
 
     pMainLayout->addStretch();
@@ -218,29 +215,24 @@ void UIWizardNewVMDiskPage::sltGetWithFileOpenDialog()
 
 void UIWizardNewVMDiskPage::sltRetranslateUI()
 {
-    setTitle(UIWizardNewVM::tr("Virtual Hard disk"));
-
-    if (m_pLabel)
-        m_pLabel->setText(UIWizardNewVM::tr("If you wish you can add a virtual hard disk to the new machine. "
-                                            "You can either create a new hard disk file or select an existing one. "
-                                            "Alternatively you can create a virtual machine without a virtual hard disk."));
+    setTitle(UIWizardNewVM::tr("Specify virtual hard disk"));
 
     if (m_pDiskEmpty)
-        m_pDiskEmpty->setText(UIWizardNewVM::tr("&Do Not Add a Virtual Hard Disk"));
+        m_pDiskEmpty->setText(UIWizardNewVM::tr("C&reate Virtual Machine Without a Virtual Hard Disk"));
     if (m_pDiskNew)
-        m_pDiskNew->setText(UIWizardNewVM::tr("&Create a Virtual Hard Disk Now"));
+        m_pDiskNew->setText(UIWizardNewVM::tr("&Create a New Virtual Hard Disk"));
     if (m_pDiskExisting)
         m_pDiskExisting->setText(UIWizardNewVM::tr("U&se an Existing Virtual Hard Disk File"));
     if (m_pDiskSelectionButton)
-        m_pDiskSelectionButton->setToolTip(UIWizardNewVM::tr("Chooses a Virtual Hard Fisk File..."));
+        m_pDiskSelectionButton->setToolTip(UIWizardNewVM::tr("Select a Virtual Hard Disk File..."));
 
     if (m_pMediumSizeEditorLabel)
-        m_pMediumSizeEditorLabel->setText(UIWizardNewVM::tr("D&isk Size:"));
+        m_pMediumSizeEditorLabel->setText(UIWizardNewVM::tr("D&isk Size"));
 
     if (m_pFixedCheckBox)
     {
         m_pFixedCheckBox->setText(UIWizardNewVM::tr("Pre-allocate &Full Size"));
-        m_pFixedCheckBox->setToolTip(UIWizardNewVM::tr("When checked, the virtual disk image is allocated with its full size during VM creation time"));
+        m_pFixedCheckBox->setToolTip(UIWizardNewVM::tr("Disk space is allocated in full to the virtual machine when created"));
     }
 
     /* Translate rich text labels: */

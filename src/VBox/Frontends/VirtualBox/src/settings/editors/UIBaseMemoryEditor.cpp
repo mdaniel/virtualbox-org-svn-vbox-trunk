@@ -301,9 +301,9 @@ void UIBaseMemoryEditor::setMinimumLayoutIndent(int iIndent)
 void UIBaseMemoryEditor::sltRetranslateUI()
 {
     if (m_pLabelMemory)
-        m_pLabelMemory->setText(tr("Base &Memory:"));
+        m_pLabelMemory->setText(tr("Base &Memory"));
 
-    const QString strToolTip(tr("Holds the amount of base memory the virtual machine will have."));
+    const QString strToolTip(tr("The amount of RAM that VirtualBox will allocate to the virtual machine every time it is started."));
     if (m_pSlider)
         m_pSlider->setToolTip(strToolTip);
     if (m_pSpinBox)

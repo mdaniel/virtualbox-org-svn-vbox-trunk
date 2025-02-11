@@ -144,7 +144,7 @@ void UIWizardNewVDExpertPage::sltSelectLocationButtonClicked()
 void UIWizardNewVDExpertPage::sltRetranslateUI()
 {
     if (m_pFormatVariantGroupBox)
-        m_pFormatVariantGroupBox->setTitle(UIWizardNewVD::tr("Hard Disk File &Type and Variant"));
+        m_pFormatVariantGroupBox->setTitle(UIWizardNewVD::tr("Hard Disk File &Type and Format"));
 }
 
 void UIWizardNewVDExpertPage::initializePage()

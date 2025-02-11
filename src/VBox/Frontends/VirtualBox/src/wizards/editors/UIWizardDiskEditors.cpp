@@ -218,12 +218,12 @@ void UIDiskVariantWidget::sltRetranslateUI()
     if (m_pFixedCheckBox)
     {
         m_pFixedCheckBox->setText(tr("Pre-allocate &Full Size"));
-        m_pFixedCheckBox->setToolTip(tr("When checked, the virtual disk image is allocated with its full size during VM creation time"));
+        m_pFixedCheckBox->setToolTip(tr("Disk space is allocated in full to the virtual machine when created"));
     }
     if (m_pSplitBox)
     {
-        m_pSplitBox->setText(tr("&Split Into 2GB Parts"));
-        m_pSplitBox->setToolTip(tr("When checked, the virtual hard disk file is split into 2GB parts."));
+        m_pSplitBox->setText(tr("&Split Disk Into 2 GB Parts"));
+        m_pSplitBox->setToolTip(tr("The virtual hard disk file is split into 2 GB parts"));
     }
 }
 
@@ -413,7 +413,7 @@ void UIMediumSizeAndPathGroupBox::sltRetranslateUI()
         setTitle(tr("Hard Disk File Location and Size"));
     if (m_pLocationOpenButton)
     {
-        m_pLocationOpenButton->setToolTip(tr("Specify a location for new virtual hard disk file..."));
+        m_pLocationOpenButton->setToolTip(tr("Specify the location for the new virtual hard disk file..."));
         /* Some screen readers do no read tooltips: */
         m_pLocationOpenButton->setText(tr("Specify a location for new virtual hard disk file..."));
     }

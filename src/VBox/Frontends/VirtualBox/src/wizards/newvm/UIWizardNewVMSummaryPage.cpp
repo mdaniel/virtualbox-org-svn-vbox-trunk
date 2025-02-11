@@ -355,46 +355,46 @@ void UIWizardNewVMSummaryModel::populateData(UIWizardNewVM *pWizard)
         delete m_pRootItem;
     m_pRootItem = new UIWizardNewVMSummaryItem(pParentTree, "root");
 
-    UIWizardNewVMSummaryItem *pNameRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Machine Name and OS Type"),
+    UIWizardNewVMSummaryItem *pNameRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Virtual Machine Name and Operating System"),
                                                                 QVariant(), UIIconPool::iconSet(":/name_16px.png"));
     pNameRoot->setIsSectionTitle(true);
 
     /* Name and OS Type page stuff: */
-    pNameRoot->addChild(UIWizardNewVM::tr("Machine Name"), pWizard->machineBaseName());
-    pNameRoot->addChild(UIWizardNewVM::tr("Machine Folder"), pWizard->machineFolder());
+    pNameRoot->addChild(UIWizardNewVM::tr("VM Name"), pWizard->machineBaseName());
+    pNameRoot->addChild(UIWizardNewVM::tr("VM Folder"), pWizard->machineFolder());
     pNameRoot->addChild(UIWizardNewVM::tr("ISO Image"), pWizard->ISOFilePath());
     pNameRoot->addChild(UIWizardNewVM::tr("Guest OS Type"), gpGlobalSession->guestOSTypeManager().getDescription(pWizard->guestOSTypeId()));
 
     const QString &ISOPath = pWizard->ISOFilePath();
     if (!ISOPath.isNull() && !ISOPath.isEmpty())
-        pNameRoot->addChild(UIWizardNewVM::tr("Proceed with Unattended Install"), pWizard->skipUnattendedInstall());
+        pNameRoot->addChild(UIWizardNewVM::tr("Proceed with Unattended Install"), !pWizard->skipUnattendedInstall());
 
     /* Unattended install related info: */
     if (pWizard->isUnattendedEnabled())
     {
-        UIWizardNewVMSummaryItem *pUnattendedRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Unattended Install"), QVariant(),
+        UIWizardNewVMSummaryItem *pUnattendedRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Unattended Installation of Guest OS"), QVariant(),
                                                                           UIIconPool::iconSet(":/extension_pack_install_16px.png"));
         pUnattendedRoot->setIsSectionTitle(true);
 
         pUnattendedRoot->addChild(UIWizardNewVM::tr("User Name"), pWizard->userName());
-        pUnattendedRoot->addChild(UIWizardNewVM::tr("Product Key"), pWizard->installGuestAdditions());
+        pUnattendedRoot->addChild(UIWizardNewVM::tr("Product Key"), pWizard->productKey());
         pUnattendedRoot->addChild(UIWizardNewVM::tr("Host Name/Domain Name"), pWizard->hostnameDomainName());
         pUnattendedRoot->addChild(UIWizardNewVM::tr("Install in Background"), pWizard->startHeadless());
         pUnattendedRoot->addChild(UIWizardNewVM::tr("Install Guest Additions"), pWizard->installGuestAdditions());
         if (pWizard->installGuestAdditions())
-            pUnattendedRoot->addChild(UIWizardNewVM::tr("Guest Additions ISO"), pWizard->guestAdditionsISOPath());
+            pUnattendedRoot->addChild(UIWizardNewVM::tr("Guest Additions ISO Image"), pWizard->guestAdditionsISOPath());
     }
 
 
-    UIWizardNewVMSummaryItem *pHardwareRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Hardware"), QVariant(),
+    UIWizardNewVMSummaryItem *pHardwareRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Virtual Hardware"), QVariant(),
                                                                     UIIconPool::iconSet(":/cpu_16px.png"));
     pHardwareRoot->setIsSectionTitle(true);
     pHardwareRoot->addChild(UIWizardNewVM::tr("Base Memory"), pWizard->memorySize());
-    pHardwareRoot->addChild(UIWizardNewVM::tr("Processor(s)"), pWizard->CPUCount());
-    pHardwareRoot->addChild(UIWizardNewVM::tr("EFI Enable"), pWizard->EFIEnabled());
+    pHardwareRoot->addChild(UIWizardNewVM::tr("Processors"), pWizard->CPUCount());
+    pHardwareRoot->addChild(UIWizardNewVM::tr("Use EFI"), pWizard->EFIEnabled());
 
     /* Disk related info: */
-    UIWizardNewVMSummaryItem *pDiskRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Disk"), QVariant(),
+    UIWizardNewVMSummaryItem *pDiskRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Virtual Hard Disk"), QVariant(),
                                                                 UIIconPool::iconSet(":/hd_16px.png"));
     pDiskRoot->setIsSectionTitle(true);
     if (pWizard->diskSource() == SelectedDiskSource_New)
@@ -458,10 +458,8 @@ void UIWizardNewVMSummaryPage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Summary"));
     if (m_pLabel)
-        m_pLabel->setText(UIWizardNewVM::tr("The following table summarizes the configuration you have"
-                                            " chosen for the new virtual machine. When you are happy with the configuration"
-                                            " press Finish to create the virtual machine. Alternatively you can go back"
-                                            " and modify the configuration."));
+        m_pLabel->setText(UIWizardNewVM::tr("A new VM will be created with the following configuration."));
+
     if (m_pTree)
         m_pTree->setWhatsThis(UIWizardNewVM::tr("Lists chosen configuration of the guest system."));
 }

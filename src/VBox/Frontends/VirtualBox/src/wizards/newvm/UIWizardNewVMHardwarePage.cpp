@@ -77,11 +77,10 @@ void UIWizardNewVMHardwarePage::createConnections()
 
 void UIWizardNewVMHardwarePage::sltRetranslateUI()
 {
-    setTitle(UIWizardNewVM::tr("Hardware"));
+    setTitle(UIWizardNewVM::tr("Specify virtual hardware"));
 
     if (m_pLabel)
-        m_pLabel->setText(UIWizardNewVM::tr("You can modify virtual machine's hardware by changing amount of RAM and "
-                                            "virtual CPU count. Enabling EFI is also possible."));
+        m_pLabel->setText(UIWizardNewVM::tr("Specify the VM's hardware. Resources allocated to the VM will not be available to the host when the VM is running."));
 }
 
 void UIWizardNewVMHardwarePage::initializePage()

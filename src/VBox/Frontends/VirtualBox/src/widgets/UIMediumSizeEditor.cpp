@@ -279,10 +279,10 @@ void UIMediumSizeEditor::sltRetranslateUI()
     m_pLabelMaxSize->setText(UITranslator::formatSize(m_uSizeMax));
 
     /* Translate fields: */
-    m_pSlider->setToolTip(tr("Holds the size of this medium."));
-    m_pEditor->setToolTip(tr("Holds the size of this medium."));
-    m_pLabelMinSize->setToolTip(tr("Minimum size for this medium."));
-    m_pLabelMaxSize->setToolTip(tr("Maximum size for this medium."));
+    m_pSlider->setToolTip(tr("Medium size"));
+    m_pEditor->setToolTip(tr("Medium size"));
+    m_pLabelMinSize->setToolTip(tr("Minimum possible disk size"));
+    m_pLabelMaxSize->setToolTip(tr("Maximum possible disk size"));
 }
 
 void UIMediumSizeEditor::sltSizeSliderChanged(qulonglong uValue)
@@ -398,7 +398,7 @@ void UIMediumSizeEditor::prepare()
 
 void UIMediumSizeEditor::updateSizeToolTips(qulonglong uSize)
 {
-    const QString strToolTip = tr("%1 (%2 B)").arg(UITranslator::formatSize(uSize)).arg(uSize);
+    const QString strToolTip = tr("Disk size set to %1").arg(UITranslator::formatSize(uSize));
     m_pSlider->setToolTip(strToolTip);
     m_pEditor->setToolTip(strToolTip);
 }

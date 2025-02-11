@@ -83,10 +83,10 @@ void UIVirtualCPUEditor::setMinimumLayoutIndent(int iIndent)
 void UIVirtualCPUEditor::sltRetranslateUI()
 {
     if (m_pLabelVCPU)
-        m_pLabelVCPU->setText(tr("&Processors:"));
+        m_pLabelVCPU->setText(tr("&Processors"));
 
-    QString strToolTip(tr("Holds the number of virtual CPUs in the virtual machine. You need hardware "
-                          "virtualization support on your host system to use more than one virtual CPU."));
+    QString strToolTip(tr("The number of virtual CPUs in the virtual machine. Do not assign more than half of the total processor threads on the host."));
+
     if (m_pSlider)
         m_pSlider->setToolTip(strToolTip);
     if (m_pSpinBox)

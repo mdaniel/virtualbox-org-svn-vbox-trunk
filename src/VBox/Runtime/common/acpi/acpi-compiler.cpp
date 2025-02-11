@@ -1316,7 +1316,7 @@ static int rtAcpiTblParseIrqList(PRTACPIASLCU pThis, uint16_t *pbmIntrs)
         RTACPIASL_PARSE_NATURAL(u64Intr);
         if (u64Intr > 15)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
-                                 "Interrupt number %u is out of range [0..15]: %RU64",
+                                 "Interrupt is out of range [0..15]: %RU64",
                                  u64Intr);
         if (bmIntrs & RT_BIT(u64Intr))
             return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Duplicate interrupt %u in list", u64Intr);

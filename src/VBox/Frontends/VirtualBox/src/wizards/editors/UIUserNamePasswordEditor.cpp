@@ -279,13 +279,13 @@ void UIUserNamePasswordEditor::sltRetranslateUI()
     QString strRepeatPassword = tr("&Confirm Password");
     QString strUsername = tr("U&ser Name");
     if (m_pUserNameLabel)
-        m_pUserNameLabel->setText(QString("%1%2").arg(strUsername).arg(":"));
+        m_pUserNameLabel->setText(strUsername);
 
     if (m_pPasswordLabel)
-        m_pPasswordLabel->setText(QString("%1%2").arg(strPassword).arg(":"));
+        m_pPasswordLabel->setText(strPassword);
 
     if (m_pPasswordRepeatLabel)
-        m_pPasswordRepeatLabel->setText(QString("%1%2").arg(strRepeatPassword).arg(":"));
+        m_pPasswordRepeatLabel->setText(strRepeatPassword);
 
     if (m_fShowPlaceholderText)
     {
@@ -306,11 +306,11 @@ void UIUserNamePasswordEditor::sltRetranslateUI()
             m_pPasswordRepeatLineEdit->setPlaceholderText(QString());
     }
     if(m_pUserNameLineEdit)
-        m_pUserNameLineEdit->setToolTip(tr("User name for the guest operating system."));
+        m_pUserNameLineEdit->setToolTip(tr("User name for the guest operating system"));
     if (m_pPasswordLineEdit)
-        m_pPasswordLineEdit->setToolTip(tr("Password for the guest operating system user account."));
+        m_pPasswordLineEdit->setToolTip(tr("Password for the guest operating system user account"));
     if (m_pPasswordRepeatLineEdit)
-        m_pPasswordRepeatLineEdit->setToolTip(tr("Password must match."));
+        m_pPasswordRepeatLineEdit->setToolTip(tr("Password must match"));
     m_strPasswordError = tr("Invalid password pair");
 }
 

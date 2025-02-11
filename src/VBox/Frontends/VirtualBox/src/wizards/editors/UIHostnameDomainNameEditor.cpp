@@ -117,22 +117,22 @@ QString UIHostnameDomainNameEditor::hostnameDomainName() const
 void UIHostnameDomainNameEditor::sltRetranslateUI()
 {
     if (m_pHostnameLabel)
-        m_pHostnameLabel->setText(tr("Host Na&me:"));
+        m_pHostnameLabel->setText(tr("Host Na&me"));
     if (m_pHostnameLineEdit)
-        m_pHostnameLineEdit->setToolTip(tr("Host name to be assigned to the virtual machine."));
+        m_pHostnameLineEdit->setToolTip(tr("Host name to be assigned to the virtual machine"));
     if (m_pDomainNameLabel)
-        m_pDomainNameLabel->setText(tr("&Domain Name:"));
+        m_pDomainNameLabel->setText(tr("&Domain Name"));
     if (m_pDomainNameLineEdit)
-        m_pDomainNameLineEdit->setToolTip(tr("Doamin name to be assigned to the virtual machine."));
+        m_pDomainNameLineEdit->setToolTip(tr("Doamin name to be assigned to the virtual machine"));
     if (m_pProductKeyLabel)
-        m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
+        m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key"));
     if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("The product key."));
+        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("The product key"));
 
     if (m_pStartHeadlessCheckBox)
     {
         m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
-        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("Start the virtusl machine without a GUI."));
+        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("Start the virtual machine without a GUI"));
     }
 }
 

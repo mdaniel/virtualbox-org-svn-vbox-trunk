@@ -365,7 +365,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryU64(PRTACPINSROOT pNsRoot, const char *pszNameSt
  * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
  * @param   ...                 The arguments for the format string.
  */
-DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, ...); RT_IPRT_FORMAT_ATTR(4, 5);
+DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, ...) RT_IPRT_FORMAT_ATTR(4, 5);
 
 
 /**
@@ -378,7 +378,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, boo
  * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
  * @param   va                  The format arguments.
  */
-DECLHIDDEN(int) rtAcpiNsAddEntryU64V(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, va_list va); RT_IPRT_FORMAT_ATTR(4, 0);
+DECLHIDDEN(int) rtAcpiNsAddEntryU64V(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, va_list va) RT_IPRT_FORMAT_ATTR(4, 0);
 
 
 /**

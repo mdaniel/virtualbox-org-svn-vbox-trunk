@@ -1171,7 +1171,7 @@ RTDECL(int) RTAcpiResourceAddIo(RTACPIRES hAcpiRes, RTACPIRESIODECODETYPE enmDec
 
 
 /**
- * Adds an extended interrupt descriptor with the given configuration to the given ACPI resource.
+ * Adds an IRQ descriptor with the given configuration to the given ACPI resource.
  *
  * @returns IPRT status code.
  * @param   hAcpiRes            The ACPI resource handle.

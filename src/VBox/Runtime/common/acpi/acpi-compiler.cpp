@@ -141,6 +141,17 @@ typedef enum RTACPIASLTERMINAL
     RTACPIASLTERMINAL_KEYWORD_DECODE_10,
     RTACPIASLTERMINAL_KEYWORD_DECODE_16,
 
+    RTACPIASLTERMINAL_KEYWORD_DMA,
+    RTACPIASLTERMINAL_KEYWORD_COMPATIBILITY,
+    RTACPIASLTERMINAL_KEYWORD_TYPE_A,
+    RTACPIASLTERMINAL_KEYWORD_TYPE_B,
+    RTACPIASLTERMINAL_KEYWORD_TYPE_F,
+    RTACPIASLTERMINAL_KEYWORD_BUS_MASTER,
+    RTACPIASLTERMINAL_KEYWORD_NOT_BUS_MASTER,
+    RTACPIASLTERMINAL_KEYWORD_TRANSFER_8,
+    RTACPIASLTERMINAL_KEYWORD_TRANSFER_16,
+    RTACPIASLTERMINAL_KEYWORD_TRANSFER_8_16,
+
     RTACPIASLTERMINAL_PUNCTUATOR_COMMA,
     RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET,
     RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET,
@@ -389,6 +400,16 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("DECODE10"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DECODE_10              },
     { RT_STR_TUPLE("DECODE16"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DECODE_16              },
 
+    { RT_STR_TUPLE("DMA"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DMA                    },
+    { RT_STR_TUPLE("COMPATIBILITY"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_COMPATIBILITY          },
+    { RT_STR_TUPLE("TYPEA"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TYPE_A                 },
+    { RT_STR_TUPLE("TYPEB"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TYPE_B                 },
+    { RT_STR_TUPLE("TYPEF"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TYPE_F                 },
+    { RT_STR_TUPLE("BUSMASTER"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_BUS_MASTER             },
+    { RT_STR_TUPLE("NOTBUSMASTER"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_NOT_BUS_MASTER         },
+    { RT_STR_TUPLE("TRANSFER8"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TRANSFER_8             },
+    { RT_STR_TUPLE("TRANSFER16"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TRANSFER_16            },
+    { RT_STR_TUPLE("TRANSFER8_16"),             RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_TRANSFER_8_16          },
 
     /* Punctuators */
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, RTACPIASLTERMINAL_PUNCTUATOR_COMMA               },
@@ -1234,7 +1255,7 @@ static int rtAcpiTblParseResourceMemory32Fixed(PRTACPIASLCU pThis, RTACPIRES hAc
     RTACPIASL_PARSE_NATURAL(u64PhysAddrStart);
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
     RTACPIASL_PARSE_NATURAL(cbRegion);
-    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_OPTIONAL_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA);
     RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
 
@@ -1476,6 +1497,91 @@ static int rtAcpiTblParseResourceIo(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTA
 }
 
 
+static int rtAcpiTblParseResourceDma(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRTACPIASTNODE pAstNd)
+{
+    static const RTACPIASLTERMINAL s_aenmDmaTypeKeywords[] = { RTACPIASLTERMINAL_KEYWORD_COMPATIBILITY, RTACPIASLTERMINAL_KEYWORD_TYPE_A,
+                                                               RTACPIASLTERMINAL_KEYWORD_TYPE_B, RTACPIASLTERMINAL_KEYWORD_TYPE_F,
+                                                               RTACPIASLTERMINAL_INVALID };
+    static const RTACPIASLTERMINAL s_aenmBusMasterKeywords[] = { RTACPIASLTERMINAL_KEYWORD_BUS_MASTER, RTACPIASLTERMINAL_KEYWORD_NOT_BUS_MASTER,
+                                                                 RTACPIASLTERMINAL_INVALID };
+    static const RTACPIASLTERMINAL s_aenmDmaTransferSizeKeywords[] = { RTACPIASLTERMINAL_KEYWORD_TRANSFER_8, RTACPIASLTERMINAL_KEYWORD_TRANSFER_16,
+                                                                       RTACPIASLTERMINAL_KEYWORD_TRANSFER_8_16, RTACPIASLTERMINAL_INVALID };
+
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmDmaType, s_aenmDmaTypeKeywords);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_OPTIONAL_KEYWORD_LIST(enmBusMaster, s_aenmBusMasterKeywords, RTACPIASLTERMINAL_KEYWORD_BUS_MASTER);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+    RTACPIASL_PARSE_KEYWORD_LIST(enmDmaTransferSize, s_aenmDmaTransferSizeKeywords);
+    RTACPIASL_PARSE_OPTIONAL_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA);
+    RTACPIASL_PARSE_OPTIONAL_NAME_STRING(pszName);
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+    uint8_t bmDmaChannels = 0;
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
+    for (;;)
+    {
+        if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET))
+            break;
+
+        RTACPIASL_PARSE_NATURAL(u64DmaChannel);
+        if (u64DmaChannel > 7)
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER,
+                                 "DM channel number %u is out of range [0..7]: %RU64",
+                                 u64DmaChannel);
+        if (bmDmaChannels & RT_BIT(u64DmaChannel))
+            return RTErrInfoSetF(pThis->pErrInfo, VERR_INVALID_PARAMETER, "Duplicate DMA channel %u in list", u64DmaChannel);
+
+        bmDmaChannels |= RT_BIT(u64DmaChannel);
+
+        /* A following "," means there is another entry, otherwise the closing "}" should follow. */
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
+            break;
+
+        RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip the "," */
+    }
+    RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
+
+    if (pszName)
+    {
+        /* Create namespace entries. */
+        uint32_t const offResource = RTAcpiResourceGetOffset(hAcpiRes);
+        int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pszName, pAstNd, true /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+        {
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_TYP", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._TYP' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_BM", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._BM' to namespace",
+                                     pszName);
+
+            rc = rtAcpiNsAddEntryU64(pThis->pNs, "_SIZ", offResource, false /*fSwitchTo*/); /** @todo */
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s._SIZ' to namespace",
+                                     pszName);
+
+            rtAcpiNsPop(pThis->pNs);
+        }
+        else
+            return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add DMA(,,,,, %s) to namespace", pszName);
+    }
+
+#if 0
+    int rc = RTAcpiResourceAddIo(hAcpiRes, enmDecode == RTACPIASLTERMINAL_KEYWORD_DECODE_10 ? kAcpiResIoDecodeType_Decode10 : kAcpiResIoDecodeType_Decode16,
+                                 (uint16_t)u64AddrMin, (uint16_t)u64AddrMax, (uint8_t)u64AddrAlignment, (uint8_t)u64RangeLength);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc,
+                             "Failed to add DMA(,,,,, %s)", pszName ? pszName : "<NONE>");
+#endif
+
+    return VINF_SUCCESS;
+}
+
+
 static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
 {
     RT_NOREF(pKeyword);
@@ -1485,6 +1591,7 @@ static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, P
         RTACPIASLTERMINAL_KEYWORD_IRQ,
         RTACPIASLTERMINAL_KEYWORD_IRQ_NO_FLAGS,
         RTACPIASLTERMINAL_KEYWORD_IO,
+        RTACPIASLTERMINAL_KEYWORD_DMA,
         RTACPIASLTERMINAL_INVALID
     };
 
@@ -1525,6 +1632,11 @@ static DECLCALLBACK(int) rtAcpiTblAslParseResourceTemplate(PRTACPIASLCU pThis, P
             case RTACPIASLTERMINAL_KEYWORD_IO:
             {
                 rc = rtAcpiTblParseResourceIo(pThis, hAcpiRes, pAstNd);
+                break;
+            }
+            case RTACPIASLTERMINAL_KEYWORD_DMA:
+            {
+                rc = rtAcpiTblParseResourceDma(pThis, hAcpiRes, pAstNd);
                 break;
             }
             default: /* This should never occur. */
@@ -2116,23 +2228,26 @@ static int rtAcpiTblAslParseIde(PRTACPIASLCU pThis, const char *pszIde, PRTACPIA
     {
         RTACPIASL_SKIP_CURRENT_TOKEN(); /* Skip "(" */
 
-        while (cArgs < RT_ELEMENTS(aArgs))
+        if (!rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
         {
-            PRTACPIASTNODE pAstNd = NULL;
-            int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNd);
-            if (RT_FAILURE(rc))
-                return rc;
+            while (cArgs < RT_ELEMENTS(aArgs))
+            {
+                PRTACPIASTNODE pAstNd = NULL;
+                int rc = rtAcpiTblAslParseTermArg(pThis, &pAstNd);
+                if (RT_FAILURE(rc))
+                    return rc;
 
-            aArgs[cArgs].enmType  = kAcpiAstArgType_AstNode;
-            aArgs[cArgs].u.pAstNd = pAstNd;
-            cArgs++;
+                aArgs[cArgs].enmType  = kAcpiAstArgType_AstNode;
+                aArgs[cArgs].u.pAstNd = pAstNd;
+                cArgs++;
 
-            /* ")" means we are done here. */
-            if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
-                break;
+                /* ")" means we are done here. */
+                if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET))
+                    break;
 
-            /* Arguments are separated by "," */
-            RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+                /* Arguments are separated by "," */
+                RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_COMMA, ',');
+            }
         }
 
         /* Now there must be a closing ) */

@@ -1740,7 +1740,7 @@ static int rtAcpiResourceAddQWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
                                               uint64_t u64Granularity, uint64_t u64Length,
                                               const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
-    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
+    uint32_t cchRsrcSrc = pszRsrcSrc ? (uint32_t)strlen(pszRsrcSrc) + 2 : 0;
     uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 43 + cchRsrcSrc);
     if (!pb)
         return VERR_NO_MEMORY;

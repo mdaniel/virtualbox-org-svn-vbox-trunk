@@ -544,6 +544,10 @@ void UINativeWizard::prepare()
                         && enmType == WizardButtonType_Next)
                         pButton->setDefault(true);
                 }
+                /* Hide Back button in Expert mode: */
+                if (   m_enmMode == WizardMode_Expert
+                    && wizardButton(WizardButtonType_Back))
+                    wizardButton(WizardButtonType_Back)->hide();
                 /* Connect buttons: */
                 if (wizardButton(WizardButtonType_Help))
                 {

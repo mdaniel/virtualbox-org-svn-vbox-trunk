@@ -50,6 +50,7 @@
 #define SVNSYNC_PROP_REPLACE_LICENSE    SVNSYNC_PROP_PREFIX "replace-license"
 #define SVNSYNC_PROP_IGNORE_CHANGESET   SVNSYNC_PROP_PREFIX "ignore-changeset"
 #define SVNSYNC_PROP_REV__FMT           SVNSYNC_PROP_PREFIX "rev-%ld"
+#define SVNSYNC_PROP_XREF_SRC_REPO_REV  SVNSYNC_PROP_PREFIX "xref-src-repo-rev"
 
 #define SVN_PROP_LICENSE                "license"
 
@@ -2764,7 +2765,16 @@ do_synchronize(svn_ra_session_t *to_session, void *b, apr_pool_t *pool)
         SVN_ERR(copy_revprops(from_session, to_session, current,
                               baton->committed_rev, TRUE, subpool));
 
-        /* Add a revision cross-reference revprop. */
+        /* Add a revision cross-reference revprop visible to the public. */
+        SVN_ERR(svn_ra_change_rev_prop2(to_session, baton->committed_rev,
+                                        SVNSYNC_PROP_XREF_SRC_REPO_REV, NULL,
+                                        svn_string_create(apr_psprintf(subpool,
+                                                                       "%ld",
+                                                                       current),
+                                                          subpool),
+                                        subpool));
+
+        /* Add a revision cross-reference revprop for sync purposes. */
         SVN_ERR(svn_ra_change_rev_prop2(to_session, 0,
                                         apr_psprintf(subpool,
                                                      SVNSYNC_PROP_REV__FMT,

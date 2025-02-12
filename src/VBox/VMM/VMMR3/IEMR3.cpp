@@ -259,13 +259,12 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
         if (idCpu == 0)
         {
             pVCpu->iem.s.enmCpuVendor                     = CPUMGetGuestCpuVendor(pVM);
-            pVCpu->iem.s.enmHostCpuVendor                 = CPUMGetHostCpuVendor(pVM);
 #if !defined(VBOX_VMM_TARGET_ARMV8)
             pVCpu->iem.s.aidxTargetCpuEflFlavour[0]       =    pVCpu->iem.s.enmCpuVendor == CPUMCPUVENDOR_INTEL
                                                             || pVCpu->iem.s.enmCpuVendor == CPUMCPUVENDOR_VIA /*??*/
                                                           ? IEMTARGETCPU_EFL_BEHAVIOR_INTEL : IEMTARGETCPU_EFL_BEHAVIOR_AMD;
 # if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
-            if (pVCpu->iem.s.enmCpuVendor == pVCpu->iem.s.enmHostCpuVendor)
+            if (pVCpu->iem.s.enmCpuVendor == CPUMGetHostCpuVendor(pVM))
                 pVCpu->iem.s.aidxTargetCpuEflFlavour[1]   = IEMTARGETCPU_EFL_BEHAVIOR_NATIVE;
             else
 # endif
@@ -301,7 +300,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
         else
         {
             pVCpu->iem.s.enmCpuVendor                     = pVM->apCpusR3[0]->iem.s.enmCpuVendor;
-            pVCpu->iem.s.enmHostCpuVendor                 = pVM->apCpusR3[0]->iem.s.enmHostCpuVendor;
             pVCpu->iem.s.aidxTargetCpuEflFlavour[0]       = pVM->apCpusR3[0]->iem.s.aidxTargetCpuEflFlavour[0];
             pVCpu->iem.s.aidxTargetCpuEflFlavour[1]       = pVM->apCpusR3[0]->iem.s.aidxTargetCpuEflFlavour[1];
 #if IEM_CFG_TARGET_CPU == IEMTARGETCPU_DYNAMIC

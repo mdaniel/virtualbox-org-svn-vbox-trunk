@@ -230,47 +230,24 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
     PRTACPINSENTRY pNsEntry = NULL;
     int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, &pNsEntry);
     if (RT_SUCCESS(rc))
-    {
-        pNsEntry->fAstNode = true;
-        pNsEntry->u.pAstNd = pAstNd;
-    }
+        pNsEntry->pAstNd = pAstNd;
 
     return rc;
 }
 
 
-DECLHIDDEN(int) rtAcpiNsAddEntryU64(PRTACPINSROOT pNsRoot, const char *pszNameString, uint64_t u64Val, bool fSwitchTo)
+DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *pszNameString, uint32_t offBits, uint32_t cBits)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, &pNsEntry);
     if (RT_SUCCESS(rc))
     {
-        pNsEntry->fAstNode = false;
-        pNsEntry->u.u64Val = u64Val;
+        pNsEntry->pAstNd  = NULL;
+        pNsEntry->offBits = offBits;
+        pNsEntry->cBits   = cBits;
     }
 
     return rc;
-}
-
-
-DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, ...)
-{
-    va_list va;
-    va_start(va, pszNameStringFmt);
-    int rc = rtAcpiNsAddEntryU64V(pNsRoot, u64Val, fSwitchTo, pszNameStringFmt, va);
-    va_end(va);
-    return rc;
-}
-
-
-DECLHIDDEN(int) rtAcpiNsAddEntryU64V(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, va_list va)
-{
-    char szName[256];
-    ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameStringFmt, va);
-    if (cch <= 0)
-        return VERR_BUFFER_OVERFLOW;
-
-    return rtAcpiNsAddEntryU64(pNsRoot, &szName[0], u64Val, fSwitchTo);
 }
 
 

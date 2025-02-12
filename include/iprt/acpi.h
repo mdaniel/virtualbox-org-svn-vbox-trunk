@@ -521,6 +521,8 @@ typedef enum RTACPISTMT
     kAcpiStmt_Add,
     /** Subtract(Operand, Operand, Target) statement. */
     kAcpiStmt_Subtract,
+    /** Multiply(Operand, Operand, Target) statement. */
+    kAcpiStmt_Multiply,
     /** And(Operand, Operand, Target) statement. */
     kAcpiStmt_And,
     /** Nand(Operand, Operand, Target) statement. */
@@ -529,6 +531,10 @@ typedef enum RTACPISTMT
     kAcpiStmt_Or,
     /** Xor(Operand, Operand, Target) statement. */
     kAcpiStmt_Xor,
+    /** ShiftLeft(Operand, Operand, Target) statement. */
+    kAcpiStmt_ShiftLeft,
+    /** ShiftRight(Operand, Operand, Target) statement. */
+    kAcpiStmt_ShiftRight,
     /** Not(Operand, Target) statement. */
     kAcpiStmt_Not,
     /** Store(TermArg, Supername) statement. */
@@ -979,7 +985,10 @@ RTDECL(int) RTAcpiResourceAddExtendedInterrupt(RTACPIRES hAcpiRes, bool fConsume
 #define RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED         RT_BIT_32(2)
 #define RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_CHANGEABLE    0
 
-#define RTACPI_RESOURCE_ADDR_RANGE_F_VALID_MASK             UINT32_C(0x00000007)
+#define RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER               RT_BIT_32(3)
+#define RTACPI_RESOURCE_ADDR_RANGE_F_CONSUMER               0
+
+#define RTACPI_RESOURCE_ADDR_RANGE_F_VALID_MASK             UINT32_C(0x0000000f)
 /** @} */
 
 /**
@@ -993,7 +1002,7 @@ typedef enum RTACPIRESMEMRANGECACHEABILITY
     kAcpiResMemRangeCacheability_NonCacheable,
     /** Memory is cacheable. */
     kAcpiResMemRangeCacheability_Cacheable,
-    /** Memory is cacheable and supports write comining. */
+    /** Memory is cacheable and supports write combining. */
     kAcpiResMemRangeCacheability_CacheableWriteCombining,
     /** Memory is cacheable and supports prefetching. */
     kAcpiResMemRangeCacheability_CacheablePrefetchable,
@@ -1044,6 +1053,32 @@ RTDECL(int) RTAcpiResourceAddQWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
 
 
 /**
+ * Adds a quad word (64-bit) memory range to the given ACPI resource - extended version.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmCacheability     The cacheability of the memory range.
+ * @param   enmType             Memory range type.
+ * @param   fRw                 Flag whether the memory range is read/write (true) or readonly (false).
+ * @param   fStatic             Flag whether the translation type is static (true) or translation (false).
+ * @param   fAddrSpace          Additional address space flags (combination of RTACPI_RESOURCE_ADDR_RANGE_F_XXX).
+ * @param   u64AddrMin          The start address of the memory range.
+ * @param   u64AddrMax          Last valid address of the range.
+ * @param   u64OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
+ * @param   u64Granularity      The access granularity of the range in bytes.
+ * @param   u64Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
+ */
+RTDECL(int) RTAcpiResourceAddQWordMemoryRangeEx(RTACPIRES hAcpiRes, RTACPIRESMEMRANGECACHEABILITY enmCacheability,
+                                                RTACPIRESMEMRANGETYPE enmType, bool fRw, bool fStatic, uint32_t fAddrSpace,
+                                                uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
+                                                uint64_t u64Granularity, uint64_t u64Length,
+                                                const char *pszRsrcSrc, uint8_t bRsrcIndex);
+
+
+/**
  * Adds a double word (32-bit) memory range to the given ACPI resource.
  *
  * @returns IPRT status code.
@@ -1062,6 +1097,32 @@ RTDECL(int) RTAcpiResourceAddDWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
                                               RTACPIRESMEMRANGETYPE enmType, bool fRw, uint32_t fAddrSpace,
                                               uint32_t u32AddrMin, uint32_t u32AddrMax, uint32_t u32OffTrans,
                                               uint32_t u32Granularity, uint32_t u32Length);
+
+
+/**
+ * Adds a double word (32-bit) memory range to the given ACPI resource - extended version.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmCacheability     The cacheability of the memory range.
+ * @param   enmType             Memory range type.
+ * @param   fRw                 Flag whether the memory range is read/write (true) or readonly (false).
+ * @param   fStatic             Flag whether the translation type is static (true) or translation (false).
+ * @param   fAddrSpace          Additional address space flags (combination of RTACPI_RESOURCE_ADDR_RANGE_F_XXX).
+ * @param   u32AddrMin          The start address of the memory range.
+ * @param   u32AddrMax          Last valid address of the range.
+ * @param   u32OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
+ * @param   u32Granularity      The access granularity of the range in bytes.
+ * @param   u32Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
+ */
+RTDECL(int) RTAcpiResourceAddDWordMemoryRangeEx(RTACPIRES hAcpiRes, RTACPIRESMEMRANGECACHEABILITY enmCacheability,
+                                                RTACPIRESMEMRANGETYPE enmType, bool fRw, bool fStatic, uint32_t fAddrSpace,
+                                                uint32_t u32AddrMin, uint32_t u32AddrMax, uint32_t u32OffTrans,
+                                                uint32_t u32Granularity, uint32_t u32Length,
+                                                const char *pszRsrcSrc, uint8_t bRsrcIndex);
 
 
 /**
@@ -1124,6 +1185,28 @@ RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETY
 
 
 /**
+ * Adds a word (16-bit) I/O range to the given ACPI resource - extended version.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmIoType           The I/O range type.
+ * @param   enmIoRange          The I/O range coverage.
+ * @param   fAddrSpace          Additional address space flags (combination of RTACPI_RESOURCE_ADDR_RANGE_F_XXX).
+ * @param   u16AddrMin          The start address of the memory range.
+ * @param   u16AddrMax          Last valid address of the range.
+ * @param   u16OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
+ * @param   u16Granularity      The access granularity of the range in bytes.
+ * @param   u16Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
+ */
+RTDECL(int) RTAcpiResourceAddWordIoRangeEx(RTACPIRES hAcpiRes, RTACPIRESIORANGETYPE enmIoType, RTACPIRESIORANGE enmIoRange,
+                                           uint32_t fAddrSpace, uint16_t u16AddrMin, uint16_t u16AddrMax, uint64_t u16OffTrans,
+                                           uint16_t u16Granularity, uint16_t u16Length, const char *pszRsrcSrc, uint8_t bRsrcIndex);
+
+
+/**
  * Adds a word (16-bit) bus number to the given ACPI resource.
  *
  * @returns IPRT status code.
@@ -1137,6 +1220,26 @@ RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETY
  */
 RTDECL(int) RTAcpiResourceAddWordBusNumber(RTACPIRES hAcpiRes, uint32_t fAddrSpace, uint16_t u16BusMin, uint16_t u16BusMax,
                                            uint16_t u16OffTrans, uint16_t u16Granularity, uint16_t u16Length);
+
+
+/**
+ * Adds a word (16-bit) bus number to the given ACPI resource - extended version.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   fAddrSpace          Additional address space flags (combination of RTACPI_RESOURCE_ADDR_RANGE_F_XXX).
+ * @param   u16BusMin           Starting bus number.
+ * @param   u16BusMax           Last valid bus number.
+ * @param   u16OffTrans         Translation offset being applied to the bus number.
+ * @param   u16Granularity      The access granularity of the bus number.
+ * @param   u16Length           Length of the bus range.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
+ */
+RTDECL(int) RTAcpiResourceAddWordBusNumberEx(RTACPIRES hAcpiRes, uint32_t fAddrSpace, uint16_t u16BusMin, uint16_t u16BusMax,
+                                             uint16_t u16OffTrans, uint16_t u16Granularity, uint16_t u16Length,
+                                             const char *pszRsrcSrc, uint8_t bRsrcIndex);
 
 
 /**
@@ -1183,6 +1286,58 @@ RTDECL(int) RTAcpiResourceAddIo(RTACPIRES hAcpiRes, RTACPIRESIODECODETYPE enmDec
  */
 RTDECL(int) RTAcpiResourceAddIrq(RTACPIRES hAcpiRes, bool fEdgeTriggered, bool fActiveLow, bool fShared,
                                  bool fWakeCapable, uint16_t bmIntrs);
+
+
+/**
+ * DMA channel speed.
+ */
+typedef enum RTACPIRESDMACHANSPEED
+{
+    /** Invalid value. */
+    kAcpiResDmaChanSpeed_Invalid = 0,
+    /** Compatibility mode. */
+    kAcpiResDmaChanSpeed_Compatibility,
+    /** Type A DMA as described in EISA. */
+    kAcpiResDmaChanSpeed_TypeA,
+    /** Type B DMA. */
+    kAcpiResDmaChanSpeed_TypeB,
+    /** Type F. */
+    kAcpiResDmaChanSpeed_TypeF,
+    /** 32-bit blowup hack. */
+    kAcpiResDmaChanSpeed_32BitHack = 0x7fffffff
+} RTACPIRESDMACHANSPEED;
+
+
+/**
+ * DMA transfer type.
+ */
+typedef enum RTACPIRESDMATRANSFERTYPE
+{
+    /** Invalid value. */
+    kAcpiResDmaTransferType_Invalid = 0,
+    /** 8bit only. */
+    kAcpiResDmaTransferType_8Bit,
+    /** 8-bit and 16-bit. */
+    kAcpiResDmaTransferType_8Bit_16Bit,
+    /** 16-bit only. */
+    kAcpiResDmaTransferType_16Bit,
+    /** 32-bit blowup hack. */
+    kAcpiResDmaTransferType_32BitHack = 0x7fffffff
+} RTACPIRESDMATRANSFERTYPE;
+
+
+/**
+ * Adds a DMA descriptor with the given configuration to the given ACPI resource.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmChanSpeed        The DMA channel speed.
+ * @param   fBusMaster          Flag whether the device is a bus master.
+ * @param   enmTransferType     DMA transfer type preference.
+ * @param   bmChannels          Bitmap of DMA channels (0..7) requested.
+ */
+RTDECL(int) RTAcpiResourceAddDma(RTACPIRES hAcpiRes, RTACPIRESDMACHANSPEED enmChanSpeed, bool fBusMaster,
+                                 RTACPIRESDMATRANSFERTYPE enmTransferType, uint8_t bmChannels);
 
 /** @} */
 

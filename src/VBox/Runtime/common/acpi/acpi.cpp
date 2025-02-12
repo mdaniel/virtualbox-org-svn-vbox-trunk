@@ -1144,10 +1144,13 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Continue:   bOp = ACPI_AML_BYTE_CODE_OP_CONTINUE;    break;
         case kAcpiStmt_Add:        bOp = ACPI_AML_BYTE_CODE_OP_ADD;         break;
         case kAcpiStmt_Subtract:   bOp = ACPI_AML_BYTE_CODE_OP_SUBTRACT;    break;
+        case kAcpiStmt_Multiply:   bOp = ACPI_AML_BYTE_CODE_OP_MULTIPLY;    break;
         case kAcpiStmt_And:        bOp = ACPI_AML_BYTE_CODE_OP_AND;         break;
         case kAcpiStmt_Nand:       bOp = ACPI_AML_BYTE_CODE_OP_NAND;        break;
         case kAcpiStmt_Or:         bOp = ACPI_AML_BYTE_CODE_OP_OR;          break;
         case kAcpiStmt_Xor:        bOp = ACPI_AML_BYTE_CODE_OP_XOR;         break;
+        case kAcpiStmt_ShiftLeft:  bOp = ACPI_AML_BYTE_CODE_OP_SHIFT_LEFT;  break;
+        case kAcpiStmt_ShiftRight: bOp = ACPI_AML_BYTE_CODE_OP_SHIFT_RIGHT; break;
         case kAcpiStmt_Not:        bOp = ACPI_AML_BYTE_CODE_OP_NOT;         break;
         case kAcpiStmt_Store:      bOp = ACPI_AML_BYTE_CODE_OP_STORE;       break;
         case kAcpiStmt_Index:      bOp = ACPI_AML_BYTE_CODE_OP_INDEX;       break;
@@ -1728,12 +1731,17 @@ RTDECL(int) RTAcpiResourceAddExtendedInterrupt(RTACPIRES hAcpiRes, bool fConsume
  * @param   u64OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
  * @param   u64Granularity      The access granularity of the range in bytes.
  * @param   u64Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
  */
 static int rtAcpiResourceAddQWordAddressRange(PRTACPIRESINT pThis, uint8_t bType, uint32_t fAddrSpace, uint8_t fType,
                                               uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
-                                              uint64_t u64Granularity, uint64_t u64Length)
+                                              uint64_t u64Granularity, uint64_t u64Length,
+                                              const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
-    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 43);
+    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 43 + cchRsrcSrc);
     if (!pb)
         return VERR_NO_MEMORY;
 
@@ -1743,14 +1751,20 @@ static int rtAcpiResourceAddQWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
     pb[3] = bType;
     pb[4] =   (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_SUB ? ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_SUB : ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_POS)
             | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_CHANGEABLE)
-            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE);
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE)
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER        ? ACPI_RSRCS_ADDR_SPACE_F_PRODUCER        : ACPI_RSRCS_ADDR_SPACE_F_CONSUMER);
     pb[5] = fType;
 
     pb = rtAcpiResEncode64BitInteger(&pb[6], u64Granularity);
     pb = rtAcpiResEncode64BitInteger(pb,     u64AddrMin);
     pb = rtAcpiResEncode64BitInteger(pb,     u64AddrMax);
     pb = rtAcpiResEncode64BitInteger(pb,     u64OffTrans);
-         rtAcpiResEncode64BitInteger(pb,     u64Length);
+    pb = rtAcpiResEncode64BitInteger(pb,     u64Length);
+    if (pszRsrcSrc)
+    {
+        *pb++ = bRsrcIndex;
+        memcpy(pb, pszRsrcSrc, cchRsrcSrc + 1);
+    }
     return VINF_SUCCESS;
 }
 
@@ -1769,11 +1783,16 @@ static int rtAcpiResourceAddQWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
  * @param   u32OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
  * @param   u32Granularity      The access granularity of the range in bytes.
  * @param   u32Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
  */
 static int rtAcpiResourceAddDWordAddressRange(PRTACPIRESINT pThis, uint8_t bType, uint32_t fAddrSpace, uint8_t fType,
                                               uint32_t u32AddrMin, uint32_t u32AddrMax, uint32_t u32OffTrans,
-                                              uint32_t u32Granularity, uint32_t u32Length)
+                                              uint32_t u32Granularity, uint32_t u32Length,
+                                              const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
+    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
     uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 23);
     if (!pb)
         return VERR_NO_MEMORY;
@@ -1784,14 +1803,73 @@ static int rtAcpiResourceAddDWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
     pb[3] = bType;
     pb[4] =   (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_SUB ? ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_SUB : ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_POS)
             | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_CHANGEABLE)
-            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE);
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE)
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER        ? ACPI_RSRCS_ADDR_SPACE_F_PRODUCER        : ACPI_RSRCS_ADDR_SPACE_F_CONSUMER);
     pb[5] = fType;
 
     pb = rtAcpiResEncode32BitInteger(&pb[6], u32Granularity);
     pb = rtAcpiResEncode32BitInteger(pb,     u32AddrMin);
     pb = rtAcpiResEncode32BitInteger(pb,     u32AddrMax);
     pb = rtAcpiResEncode32BitInteger(pb,     u32OffTrans);
-         rtAcpiResEncode32BitInteger(pb,     u32Length);
+    pb = rtAcpiResEncode32BitInteger(pb,     u32Length);
+    if (pszRsrcSrc)
+    {
+        *pb++ = bRsrcIndex;
+        memcpy(pb, pszRsrcSrc, cchRsrcSrc + 1);
+    }
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * Common worker for encoding a new word (16-bit) address range.
+ *
+ * @returns IPRT status code
+ * @retval  VERR_NO_MEMORY if not enough memory could be reserved in the ACPI resource descriptor.
+ * @param   pThis               The ACPI resource instance.
+ * @param   bType               The ACPI address range type.
+ * @param   fAddrSpace          Combination of RTACPI_RESOURCE_ADDR_RANGE_F_XXX.
+ * @param   fType               The range flags returned from rtAcpiResourceMemoryRangeToTypeFlags().
+ * @param   u16AddrMin          The start address of the memory range.
+ * @param   u16AddrMax          Last valid address of the range.
+ * @param   u16OffTrans         Translation offset being applied to the address (for a PCIe bridge or IOMMU for example).
+ * @param   u16Granularity      The access granularity of the range in bytes.
+ * @param   u16Length           Length of the memory range in bytes.
+ * @param   pszRsrcSrc          Name of the device object that produces the the descriptor consumed by the device, optional.
+ *                              NULL means the device consumes the resource out of a global pool.
+ * @param   bRsrcIndex          Index into the resource descriptor this device consumes from. Ignored if pszRsrcSrc is NULL.
+ */
+static int rtAcpiResourceAddWordAddressRange(PRTACPIRESINT pThis, uint8_t bType, uint32_t fAddrSpace, uint8_t fType,
+                                              uint16_t u16AddrMin, uint16_t u16AddrMax, uint16_t u16OffTrans,
+                                              uint16_t u16Granularity, uint16_t u16Length,
+                                              const char *pszRsrcSrc, uint8_t bRsrcIndex)
+{
+    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 13 + cchRsrcSrc);
+    if (!pb)
+        return VERR_NO_MEMORY;
+
+    pb[0] = ACPI_RSRCS_LARGE_TYPE | ACPI_RSRCS_ITEM_WORD_ADDR_SPACE;          /* Tag          */
+    pb[1] = 13;                                                               /* Length[7:0]  */
+    pb[2] = 0;                                                                /* Length[15:8] */
+    pb[3] = bType;
+    pb[4] =   (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_SUB ? ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_SUB : ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_POS)
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_CHANGEABLE)
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE)
+            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER        ? ACPI_RSRCS_ADDR_SPACE_F_PRODUCER        : ACPI_RSRCS_ADDR_SPACE_F_CONSUMER);
+    pb[5] = fType;
+
+    pb = rtAcpiResEncode16BitInteger(&pb[6], u16Granularity);
+    pb = rtAcpiResEncode16BitInteger(pb,     u16AddrMin);
+    pb = rtAcpiResEncode16BitInteger(pb,     u16AddrMax);
+    pb = rtAcpiResEncode16BitInteger(pb,     u16OffTrans);
+    pb = rtAcpiResEncode16BitInteger(pb,     u16Length);
+    if (pszRsrcSrc)
+    {
+        *pb++ = bRsrcIndex;
+        memcpy(pb, pszRsrcSrc, cchRsrcSrc + 1);
+    }
+
     return VINF_SUCCESS;
 }
 
@@ -1803,11 +1881,13 @@ static int rtAcpiResourceAddDWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
  * @param   enmCacheability     The cacheability enum to convert.
  * @param   enmType             THe memory range type enum to convert.
  * @param   fRw                 The read/write flag.
+ * @param   fStatic             Static/Translation type flag.
  */
 DECLINLINE(uint8_t) rtAcpiResourceMemoryRangeToTypeFlags(RTACPIRESMEMRANGECACHEABILITY enmCacheability, RTACPIRESMEMRANGETYPE enmType,
-                                                         bool fRw)
+                                                         bool fRw, bool fStatic)
 {
-    uint8_t fType = fRw ? ACPI_RSRCS_ADDR_SPACE_MEM_F_RW : ACPI_RSRCS_ADDR_SPACE_MEM_F_RO;
+    uint8_t fType =   (fRw ? ACPI_RSRCS_ADDR_SPACE_MEM_F_RW : ACPI_RSRCS_ADDR_SPACE_MEM_F_RO)
+                    | (fStatic ? ACPI_RSRCS_ADDR_SPACE_MEM_F_TYPE_STATIC : ACPI_RSRCS_ADDR_SPACE_MEM_F_TYPE_TRANSLATION);
 
     switch (enmCacheability)
     {
@@ -1856,6 +1936,18 @@ RTDECL(int) RTAcpiResourceAddQWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
                                               uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
                                               uint64_t u64Granularity, uint64_t u64Length)
 {
+    return RTAcpiResourceAddQWordMemoryRangeEx(hAcpiRes,  enmCacheability, enmType,  fRw, true /*fStatic*/, fAddrSpace,
+                                               u64AddrMin, u64AddrMax, u64OffTrans, u64Granularity, u64Length,
+                                               NULL /*pszRsrcSrc*/, 0 /*bRsrcIndex*/);
+}
+
+
+RTDECL(int) RTAcpiResourceAddQWordMemoryRangeEx(RTACPIRES hAcpiRes, RTACPIRESMEMRANGECACHEABILITY enmCacheability,
+                                                RTACPIRESMEMRANGETYPE enmType, bool fRw, bool fStatic, uint32_t fAddrSpace,
+                                                uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
+                                                uint64_t u64Granularity, uint64_t u64Length,
+                                                const char *pszRsrcSrc, uint8_t bRsrcIndex)
+{
     PRTACPIRESINT pThis = hAcpiRes;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
     AssertReturn(enmCacheability != kAcpiResMemRangeCacheability_Invalid, VERR_INVALID_PARAMETER);
@@ -1864,9 +1956,10 @@ RTDECL(int) RTAcpiResourceAddQWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
     AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
     AssertRCReturn(pThis->rcErr, pThis->rcErr);
 
-    uint8_t fType = rtAcpiResourceMemoryRangeToTypeFlags(enmCacheability, enmType, fRw);
+    uint8_t fType = rtAcpiResourceMemoryRangeToTypeFlags(enmCacheability, enmType, fRw, fStatic);
     return rtAcpiResourceAddQWordAddressRange(pThis, ACPI_RSRCS_ADDR_SPACE_TYPE_MEMORY, fAddrSpace, fType,
-                                              u64AddrMin, u64AddrMax, u64OffTrans, u64Granularity, u64Length);
+                                              u64AddrMin, u64AddrMax, u64OffTrans, u64Granularity, u64Length,
+                                              pszRsrcSrc, bRsrcIndex);
 }
 
 
@@ -1875,6 +1968,18 @@ RTDECL(int) RTAcpiResourceAddDWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
                                               uint32_t u32AddrMin, uint32_t u32AddrMax, uint32_t u32OffTrans,
                                               uint32_t u32Granularity, uint32_t u32Length)
 {
+    return RTAcpiResourceAddDWordMemoryRangeEx(hAcpiRes, enmCacheability, enmType, fRw, true /*fStatic*/, fAddrSpace,
+                                               u32AddrMin, u32AddrMax, u32OffTrans, u32Granularity, u32Length,
+                                               NULL /*pszRsrcSrc*/, 0 /*bRsrcIndex*/);
+}
+
+
+RTDECL(int) RTAcpiResourceAddDWordMemoryRangeEx(RTACPIRES hAcpiRes, RTACPIRESMEMRANGECACHEABILITY enmCacheability,
+                                                RTACPIRESMEMRANGETYPE enmType, bool fRw, bool fStatic, uint32_t fAddrSpace,
+                                                uint32_t u32AddrMin, uint32_t u32AddrMax, uint32_t u32OffTrans,
+                                                uint32_t u32Granularity, uint32_t u32Length,
+                                                const char *pszRsrcSrc, uint8_t bRsrcIndex)
+{
     PRTACPIRESINT pThis = hAcpiRes;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
     AssertReturn(enmCacheability != kAcpiResMemRangeCacheability_Invalid, VERR_INVALID_PARAMETER);
@@ -1883,24 +1988,22 @@ RTDECL(int) RTAcpiResourceAddDWordMemoryRange(RTACPIRES hAcpiRes, RTACPIRESMEMRA
     AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
     AssertRCReturn(pThis->rcErr, pThis->rcErr);
 
-    uint8_t fType = rtAcpiResourceMemoryRangeToTypeFlags(enmCacheability, enmType, fRw);
+    uint8_t fType = rtAcpiResourceMemoryRangeToTypeFlags(enmCacheability, enmType, fRw, fStatic);
     return rtAcpiResourceAddDWordAddressRange(pThis, ACPI_RSRCS_ADDR_SPACE_TYPE_MEMORY, fAddrSpace, fType,
-                                              u32AddrMin, u32AddrMax, u32OffTrans, u32Granularity, u32Length);
+                                              u32AddrMin, u32AddrMax, u32OffTrans, u32Granularity, u32Length,
+                                              pszRsrcSrc, bRsrcIndex);
 }
 
 
-RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETYPE enmIoType, RTACPIRESIORANGE enmIoRange,
-                                          uint32_t fAddrSpace, uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
-                                          uint64_t u64Granularity, uint64_t u64Length)
+/**
+ * Converts the given I/O type and range flag to the ACPI resource flags.
+ *
+ * @returns Converted ACPI resource flags.
+ * @param   enmIoType           The I/O type enum to convert.
+ * @param   enmIoRange          The I/O range enum to convert.
+ */
+DECLINLINE(uint8_t) rtAcpiResourceIoRangeToTypeFlags(RTACPIRESIORANGETYPE enmIoType, RTACPIRESIORANGE enmIoRange)
 {
-    PRTACPIRESINT pThis = hAcpiRes;
-    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
-    AssertReturn(enmIoType != kAcpiResIoRangeType_Invalid, VERR_INVALID_PARAMETER);
-    AssertReturn(enmIoRange != kAcpiResIoRange_Invalid, VERR_INVALID_PARAMETER);
-    AssertReturn(!(fAddrSpace & ~RTACPI_RESOURCE_ADDR_RANGE_F_VALID_MASK), VERR_INVALID_PARAMETER);
-    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
-    AssertRCReturn(pThis->rcErr, pThis->rcErr);
-
     uint8_t fType = 0;
     switch (enmIoType)
     {
@@ -1934,13 +2037,59 @@ RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETY
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
 
+    return fType;
+}
+
+
+RTDECL(int) RTAcpiResourceAddQWordIoRange(RTACPIRES hAcpiRes, RTACPIRESIORANGETYPE enmIoType, RTACPIRESIORANGE enmIoRange,
+                                          uint32_t fAddrSpace, uint64_t u64AddrMin, uint64_t u64AddrMax, uint64_t u64OffTrans,
+                                          uint64_t u64Granularity, uint64_t u64Length)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(enmIoType != kAcpiResIoRangeType_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmIoRange != kAcpiResIoRange_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(!(fAddrSpace & ~RTACPI_RESOURCE_ADDR_RANGE_F_VALID_MASK), VERR_INVALID_PARAMETER);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    uint8_t fType = rtAcpiResourceIoRangeToTypeFlags(enmIoType, enmIoRange);
     return rtAcpiResourceAddQWordAddressRange(pThis, ACPI_RSRCS_ADDR_SPACE_TYPE_IO, fAddrSpace, fType,
-                                              u64AddrMin, u64AddrMax, u64OffTrans, u64Granularity, u64Length);
+                                              u64AddrMin, u64AddrMax, u64OffTrans, u64Granularity, u64Length,
+                                              NULL /*pszRsrcSrc*/, 0 /*bRsrcIndex*/);
+}
+
+
+RTDECL(int) RTAcpiResourceAddWordIoRangeEx(RTACPIRES hAcpiRes, RTACPIRESIORANGETYPE enmIoType, RTACPIRESIORANGE enmIoRange,
+                                           uint32_t fAddrSpace, uint16_t u16AddrMin, uint16_t u16AddrMax, uint64_t u16OffTrans,
+                                           uint16_t u16Granularity, uint16_t u16Length, const char *pszRsrcSrc, uint8_t bRsrcIndex)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(enmIoType != kAcpiResIoRangeType_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmIoRange != kAcpiResIoRange_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(!(fAddrSpace & ~RTACPI_RESOURCE_ADDR_RANGE_F_VALID_MASK), VERR_INVALID_PARAMETER);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    uint8_t fType = rtAcpiResourceIoRangeToTypeFlags(enmIoType, enmIoRange);
+    return rtAcpiResourceAddWordAddressRange(pThis, ACPI_RSRCS_ADDR_SPACE_TYPE_IO, fAddrSpace, fType,
+                                             u16AddrMin, u16AddrMax, u16OffTrans, u16Granularity, u16Length,
+                                             pszRsrcSrc, bRsrcIndex);
 }
 
 
 RTDECL(int) RTAcpiResourceAddWordBusNumber(RTACPIRES hAcpiRes, uint32_t fAddrSpace, uint16_t u16BusMin, uint16_t u16BusMax,
                                            uint16_t u16OffTrans, uint16_t u16Granularity, uint16_t u16Length)
+{
+    return RTAcpiResourceAddWordBusNumberEx(hAcpiRes, fAddrSpace, u16BusMin, u16BusMax, u16OffTrans, u16Granularity, u16Length,
+                                            NULL /*pszRsrcSrc*/, 0 /*bRsrcIndex*/);
+}
+
+
+RTDECL(int) RTAcpiResourceAddWordBusNumberEx(RTACPIRES hAcpiRes, uint32_t fAddrSpace, uint16_t u16BusMin, uint16_t u16BusMax,
+                                             uint16_t u16OffTrans, uint16_t u16Granularity, uint16_t u16Length,
+                                             const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
     PRTACPIRESINT pThis = hAcpiRes;
     AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
@@ -1948,25 +2097,9 @@ RTDECL(int) RTAcpiResourceAddWordBusNumber(RTACPIRES hAcpiRes, uint32_t fAddrSpa
     AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
     AssertRCReturn(pThis->rcErr, pThis->rcErr);
 
-    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 13);
-    if (!pb)
-        return VERR_NO_MEMORY;
-
-    pb[0] = ACPI_RSRCS_LARGE_TYPE | ACPI_RSRCS_ITEM_WORD_ADDR_SPACE;          /* Tag          */
-    pb[1] = 13;                                                               /* Length[7:0]  */
-    pb[2] = 0;                                                                /* Length[15:8] */
-    pb[3] = ACPI_RSRCS_ADDR_SPACE_TYPE_BUS_NUM_RANGE;
-    pb[4] =   (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_SUB ? ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_SUB : ACPI_RSRCS_ADDR_SPACE_F_DECODE_TYPE_POS)
-            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MIN_ADDR_CHANGEABLE)
-            | (fAddrSpace & RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED  ? ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_FIXED  : ACPI_RSRCS_ADDR_SPACE_F_MAX_ADDR_CHANGEABLE);
-    pb[5] = 0;
-
-    pb = rtAcpiResEncode16BitInteger(&pb[6], u16Granularity);
-    pb = rtAcpiResEncode16BitInteger(pb,     u16BusMin);
-    pb = rtAcpiResEncode16BitInteger(pb,     u16BusMax);
-    pb = rtAcpiResEncode16BitInteger(pb,     u16OffTrans);
-         rtAcpiResEncode16BitInteger(pb,     u16Length);
-    return VINF_SUCCESS;
+    return rtAcpiResourceAddWordAddressRange(pThis, ACPI_RSRCS_ADDR_SPACE_TYPE_BUS_NUM_RANGE, fAddrSpace, 0 /*fType*/,
+                                             u16BusMin, u16BusMax, u16OffTrans, u16Granularity, u16Length,
+                                             pszRsrcSrc, bRsrcIndex);
 }
 
 
@@ -2013,6 +2146,51 @@ RTDECL(int) RTAcpiResourceAddIrq(RTACPIRES hAcpiRes, bool fEdgeTriggered, bool f
                 | (fActiveLow     ? ACPI_RSRCS_IRQ_F_ACTIVE_LOW     : ACPI_RSRCS_IRQ_F_ACTIVE_HIGH)
                 | (fShared        ? ACPI_RSRCS_IRQ_F_SHARED         : ACPI_RSRCS_IRQ_F_EXCLUSIVE)
                 | (fWakeCapable   ? ACPI_RSRCS_IRQ_F_WAKE_CAP       : ACPI_RSRCS_IRQ_F_NOT_WAKE_CAP);
+
+    return VINF_SUCCESS;
+}
+
+
+RTDECL(int) RTAcpiResourceAddDma(RTACPIRES hAcpiRes, RTACPIRESDMACHANSPEED enmChanSpeed, bool fBusMaster,
+                                 RTACPIRESDMATRANSFERTYPE enmTransferType, uint8_t bmChannels)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(enmChanSpeed != kAcpiResDmaChanSpeed_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmTransferType != kAcpiResDmaTransferType_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3);
+    if (!pb)
+        return VERR_NO_MEMORY;
+
+    uint8_t fSpeed = 0;
+    switch (enmChanSpeed)
+    {
+        case kAcpiResDmaChanSpeed_Compatibility: fSpeed = 0; break;
+        case kAcpiResDmaChanSpeed_TypeA:         fSpeed = 1; break;
+        case kAcpiResDmaChanSpeed_TypeB:         fSpeed = 2; break;
+        case kAcpiResDmaChanSpeed_TypeF:         fSpeed = 3; break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    uint8_t fTransferType = 0;
+    switch (enmTransferType)
+    {
+        case kAcpiResDmaTransferType_8Bit:       fTransferType = 0; break;
+        case kAcpiResDmaTransferType_8Bit_16Bit: fTransferType = 1; break;
+        case kAcpiResDmaTransferType_16Bit:      fTransferType = 2; break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    pb[0] = ACPI_RSRCS_SMALL_TYPE | (ACPI_RSRCS_ITEM_DMA << 3) | 2; /* Tag */
+    pb[1] = bmChannels;
+    pb[2] =   fSpeed << 5
+            | (fBusMaster ? RT_BIT(2) : 0)
+            | fTransferType;
 
     return VINF_SUCCESS;
 }

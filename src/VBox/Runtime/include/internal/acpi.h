@@ -161,10 +161,13 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_Continue,
     kAcpiAstNodeOp_Add,
     kAcpiAstNodeOp_Subtract,
+    kAcpiAstNodeOp_Multiply,
     kAcpiAstNodeOp_And,
     kAcpiAstNodeOp_Nand,
     kAcpiAstNodeOp_Or,
     kAcpiAstNodeOp_Xor,
+    kAcpiAstNodeOp_ShiftLeft,
+    kAcpiAstNodeOp_ShiftRight,
     kAcpiAstNodeOp_Not,
     kAcpiAstNodeOp_Notify,
     kAcpiAstNodeOp_SizeOf,
@@ -180,6 +183,7 @@ typedef enum RTACPIASTNODEOP
     kAcpiAstNodeOp_CreateWordField,
     kAcpiAstNodeOp_CreateDWordField,
     kAcpiAstNodeOp_CreateQWordField,
+    kAcpiAstNodeOp_ConcatenateResTemplate,
     kAcpiAstNodeOp_32Bit_Hack = 0x7fffffff
 } RTACPIASTNODEOP;
 
@@ -247,15 +251,12 @@ typedef struct RTACPINSENTRY
     PRTACPINSENTRY          pParent;
     /** The name segment identifying the entry. */
     char                    achNameSeg[4];
-    /** Flag whether the name space entry points to a node or just has some
-     * integer data attached. */
-    bool                    fAstNode;
-    /** Type dependent data. */
-    union
-    {
-        PCRTACPIASTNODE     pAstNd;
-        uint64_t            u64Val;
-    } u;
+    /** The AST node associated with this namespace entry. */
+    PCRTACPIASTNODE         pAstNd;
+    /** Bit offset for resource fields. */
+    uint32_t                offBits;
+    /** Bit count for resource fields. */
+    uint32_t                cBits;
     /** List of namespace entries below this entry. */
     RTLISTANCHOR            LstNsEntries;
 } RTACPINSENTRY;
@@ -344,41 +345,15 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
 
 
 /**
- * Adds a new namespace entry to the given name space - 64-bit value variant.
+ * Adds a new namespace entry to the given name space - resource field.
  *
  * @returns IPRT status code.
  * @param   pNsRoot             The namespace root to add the entry to.
  * @param   pszNameString       An ACPI NameString (either segment or path).
- * @param   u64Val              The 64-bit value to associate with the entry.
- * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
+ * @param   offBits             Bit offset from the beginning of the resource.
+ * @param   cBits               NUmber of bits this resource field has.
  */
-DECLHIDDEN(int) rtAcpiNsAddEntryU64(PRTACPINSROOT pNsRoot, const char *pszNameString, uint64_t u64Val, bool fSwitchTo);
-
-
-/**
- * Adds a new namespace entry to the given name space - 64-bit value variant with format name string.
- *
- * @returns IPRT status code.
- * @param   pNsRoot             The namespace root to add the entry to.
- * @param   u64Val              The 64-bit value to associate with the entry.
- * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
- * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
- * @param   ...                 The arguments for the format string.
- */
-DECLHIDDEN(int) rtAcpiNsAddEntryU64F(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, ...) RT_IPRT_FORMAT_ATTR(4, 5);
-
-
-/**
- * Adds a new namespace entry to the given name space - 64-bit value variant with format name string.
- *
- * @returns IPRT status code.
- * @param   pNsRoot             The namespace root to add the entry to.
- * @param   u64Val              The 64-bit value to associate with the entry.
- * @param   fSwitchTo           Flag whether to switch the current point for the namespace to this entry.
- * @param   pszNameStringFmt    An ACPI NameString (either segment or path) as a format string.
- * @param   va                  The format arguments.
- */
-DECLHIDDEN(int) rtAcpiNsAddEntryU64V(PRTACPINSROOT pNsRoot, uint64_t u64Val, bool fSwitchTo, const char *pszNameStringFmt, va_list va) RT_IPRT_FORMAT_ATTR(4, 0);
+DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *pszNameString, uint32_t offBits, uint32_t cBits);
 
 
 /**

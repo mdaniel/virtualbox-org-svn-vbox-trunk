@@ -524,7 +524,7 @@ const QString &UIWizardNewVM::createdMachineFolder() const
 
 void UIWizardNewVM::setCreatedMachineFolder(const QString &strCreatedMachineFolder)
 {
-    m_strCreatedFolder = strCreatedMachineFolder;
+    m_strCreatedFolder = QDir::cleanPath(strCreatedMachineFolder);
 }
 
 QString UIWizardNewVM::detectedOSTypeId() const

@@ -101,7 +101,7 @@ private:
     bool isUnattendedInstallSupported() const;
     void setEditionAndOSTypeSelectorsEnabled();
     void updateInfoLabel();
-
+    bool isMachineFolderUnique() const;
     /** @name Widgets
      * @{ */
         QGridLayout           *m_pNameAndSystemLayout;

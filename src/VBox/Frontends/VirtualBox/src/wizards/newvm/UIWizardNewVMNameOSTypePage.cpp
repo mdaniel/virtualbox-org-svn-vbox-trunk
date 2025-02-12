@@ -525,10 +525,12 @@ void UIWizardNewVMNameOSTypePage::createConnections()
 
 bool UIWizardNewVMNameOSTypePage::isComplete() const
 {
+    UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+    AssertReturn(pWizard, false);
     markWidgets();
     if (m_pNameAndSystemEditor->name().isEmpty())
         return false;
-    if (QDir(m_pNameAndSystemEditor->fullPath()).exists())
+    if (!isMachineFolderUnique())
         return false;
     return UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor);
 }
@@ -783,8 +785,8 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
             m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
                                                    tr("Virtual machine name cannot be empty"), tr("Virtual machine name is valid"));
         else
-        m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
-                                               tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
+            m_pNameAndSystemEditor->markNameEditor(!isMachineFolderUnique(),
+                                                   tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
 
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
@@ -839,4 +841,19 @@ void  UIWizardNewVMNameOSTypePage::setEditionAndOSTypeSelectorsEnabled()
     else
         m_pNameAndSystemEditor->setOSTypeStuffEnabled(true);
 
+}
+
+bool UIWizardNewVMNameOSTypePage::isMachineFolderUnique() const
+{
+    UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+    AssertReturn(pWizard, false);
+
+    if (QDir(m_pNameAndSystemEditor->fullPath()).exists())
+    {
+        /* Make sure that existing machine folder has not been created during this intantiation of the wizard.
+         * This can happen, for example, when we come back to this page (via Back button): */
+        if (pWizard->createdMachineFolder() != m_pNameAndSystemEditor->fullPath())
+            return false;
+    }
+    return true;
 }

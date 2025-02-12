@@ -68,6 +68,8 @@ public:
             UIToolClass enmClass,
             UIActionPool *pActionPool,
             Qt::WindowFlags theFlags = Qt::Popup);
+    /** Destructs Tools-pane. */
+    virtual ~UITools();
 
     /** @name General stuff.
       * @{ */
@@ -120,6 +122,11 @@ private:
         void prepareConnections();
         /** Inits model. */
         void initModel();
+
+        /** Cleanups connections. */
+        void cleanupConnections();
+        /** Cleanups all. */
+        void cleanup();
     /** @} */
 
     /** @name General stuff.

@@ -52,6 +52,11 @@ UITools::UITools(QWidget *pParent,
     prepare();
 }
 
+UITools::~UITools()
+{
+    cleanup();
+}
+
 void UITools::setToolsType(UIToolType enmType)
 {
     m_pToolsModel->setToolsType(enmType);
@@ -162,4 +167,29 @@ void UITools::prepareConnections()
 void UITools::initModel()
 {
     m_pToolsModel->init();
+}
+
+void UITools::cleanupConnections()
+{
+    /* Model connections: */
+    disconnect(m_pToolsModel, &UIToolsModel::sigClose,
+               this, &UITools::close);
+    disconnect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
+               this, &UITools::sigSelectionChanged);
+    disconnect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,
+               m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
+    disconnect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,
+               m_pToolsView, &UIToolsView::sltMinimumHeightHintChanged);
+    disconnect(m_pToolsModel, &UIToolsModel::sigFocusChanged,
+               m_pToolsView, &UIToolsView::sltFocusChanged);
+
+    /* View connections: */
+    disconnect(m_pToolsView, &UIToolsView::sigResized,
+               m_pToolsModel, &UIToolsModel::sltHandleViewResized);
+}
+
+void UITools::cleanup()
+{
+    /* Cleanup everything: */
+    cleanupConnections();
 }

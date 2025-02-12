@@ -183,7 +183,9 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
         m_pNameAndSystemEditor->setEditionNameAndIndices(pWizard->detectedWindowsImageNames(),
                                                          pWizard->detectedWindowsImageIndices());
     }
-    setUnattendedCheckBoxEnable();
+    UIWizardNewVMNameOSTypeCommon::setUnattendedCheckBoxEnable(m_pUnattendedCheckBox,
+                                                               m_pNameAndSystemEditor->ISOImagePath(),
+                                                               isUnattendedInstallSupported());
     disableEnableUnattendedRelatedWidgets();
 
     /* Redetect the OS type using the name if detection or the step above failed: */
@@ -454,7 +456,9 @@ void UIWizardNewVMExpertPage::initializePage()
     }
 
     setOSTypeDependedValues();
-    setUnattendedCheckBoxEnable();
+    UIWizardNewVMNameOSTypeCommon::setUnattendedCheckBoxEnable(m_pUnattendedCheckBox,
+                                                               m_pNameAndSystemEditor->ISOImagePath(),
+                                                               isUnattendedInstallSupported());
     disableEnableUnattendedRelatedWidgets();
     updateDiskWidgetsAfterMediumFormatChange();
     sltRetranslateUI();
@@ -475,7 +479,7 @@ void UIWizardNewVMExpertPage::markWidgets() const
             m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
                                                    tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
 
-        m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
+        m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath()),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));
     }
@@ -583,7 +587,7 @@ bool UIWizardNewVMExpertPage::isComplete() const
     if (isUnattendedEnabled())
     {
         /* Check the installation medium: */
-        if (!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor))
+        if (!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath()))
         {
             m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
                                          UIIconPool::iconSet(":/status_error_16px.png"),
@@ -637,7 +641,7 @@ bool UIWizardNewVMExpertPage::isComplete() const
                                          UIWizardNewVM::tr("Virtual` machine path is not unique"));
             fIsComplete = false;
         }
-        if (!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor))
+        if (!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath()))
         {
             m_pToolBox->setPageTitleIcon(ExpertToolboxItems_NameAndOSType,
                                          UIIconPool::iconSet(":/status_error_16px.png"),
@@ -998,27 +1002,9 @@ QWidget *UIWizardNewVMExpertPage::createNameOSTypeWidgets()
     if (m_pUnattendedCheckBox)
     {
         m_pNameAndSystemLayout->addWidget(m_pUnattendedCheckBox, 1, 1);
-        m_pUnattendedCheckBox->setChecked(true);
+        m_pUnattendedCheckBox->setChecked(false);
     }
     return pContainerWidget;
-}
-
-void UIWizardNewVMExpertPage::setUnattendedCheckBoxEnable()
-{
-    AssertReturnVoid(m_pUnattendedCheckBox && m_pNameAndSystemEditor);
-    const QString &strPath = m_pNameAndSystemEditor->ISOImagePath();
-    if (strPath.isEmpty())
-    {
-        m_pUnattendedCheckBox->setEnabled(false);
-        return;
-    }
-    if (!isUnattendedInstallSupported())
-    {
-        m_pUnattendedCheckBox->setEnabled(false);
-        return;
-    }
-
-    m_pUnattendedCheckBox->setEnabled(UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor));
 }
 
 void UIWizardNewVMExpertPage::updateHostnameDomainNameFromMachineName()

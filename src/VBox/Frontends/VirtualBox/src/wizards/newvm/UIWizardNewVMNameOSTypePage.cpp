@@ -459,17 +459,31 @@ bool UIWizardNewVMNameOSTypeCommon::cleanupMachineFolder(UIWizardNewVM *pWizard,
     return true;
 }
 
-bool UIWizardNewVMNameOSTypeCommon::checkISOFile(UINameAndSystemEditor *pNameAndSystemEditor)
+bool UIWizardNewVMNameOSTypeCommon::checkISOFile(const QString &strPath)
 {
-    if (!pNameAndSystemEditor)
-        return false;
-    const QString &strPath = pNameAndSystemEditor->ISOImagePath();
     if (strPath.isNull() || strPath.isEmpty())
         return true;
     QFileInfo fileInfo(strPath);
     if (!fileInfo.exists() || !fileInfo.isReadable())
         return false;
     return true;
+}
+
+void UIWizardNewVMNameOSTypeCommon::setUnattendedCheckBoxEnable(QCheckBox *pUnattendedCheckBox,
+                                                                const QString &strISOPath, bool fIsUnattendedInstallSupported)
+{
+    AssertReturnVoid(pUnattendedCheckBox);
+
+    if (!fIsUnattendedInstallSupported)
+    {
+        pUnattendedCheckBox->setEnabled(false);
+        pUnattendedCheckBox->setChecked(false);
+    }
+    else
+    {
+        pUnattendedCheckBox->setEnabled(UIWizardNewVMNameOSTypeCommon::checkISOFile(strISOPath));
+        pUnattendedCheckBox->setChecked(true);
+    }
 }
 
 UIWizardNewVMNameOSTypePage::UIWizardNewVMNameOSTypePage(const QString strHelpKeyword /* = QString() */)
@@ -532,7 +546,7 @@ bool UIWizardNewVMNameOSTypePage::isComplete() const
         return false;
     if (!isMachineFolderUnique())
         return false;
-    return UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor);
+    return UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath());
 }
 
 void UIWizardNewVMNameOSTypePage::sltNameChanged(const QString &strNewName)
@@ -636,28 +650,19 @@ void UIWizardNewVMNameOSTypePage::initializePage()
 {
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
+    AssertReturnVoid(m_pNameAndSystemEditor);
 
     sltRetranslateUI();
 
     /* Initialize this page's widgets etc: */
-    {
-        if (m_pNameAndSystemEditor)
-        {
-            m_pNameAndSystemEditor->setFocus();
-            setEditionAndOSTypeSelectorsEnabled();
-        }
-        setUnattendedCheckBoxEnable();
-    }
+    m_pNameAndSystemEditor->setFocus();
+    setEditionAndOSTypeSelectorsEnabled();
+    UIWizardNewVMNameOSTypeCommon::setUnattendedCheckBoxEnable(m_pUnattendedCheckBox,
+                                                               m_pNameAndSystemEditor->ISOImagePath(), isUnattendedInstallSupported());
 
     /* Initialize some of the wizard's parameters: */
-    {
-        if (m_pNameAndSystemEditor)
-        {
-            pWizard->setGuestOSFamilyId(m_pNameAndSystemEditor->familyId());
-            pWizard->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
-            /* Vm name, folder, file path etc. will be initilized by composeMachineFilePath: */
-        }
-    }
+    pWizard->setGuestOSFamilyId(m_pNameAndSystemEditor->familyId());
+    pWizard->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
 }
 
 bool UIWizardNewVMNameOSTypePage::validatePage()
@@ -690,15 +695,15 @@ void UIWizardNewVMNameOSTypePage::sltISOPathChanged(const QString &strPath)
          m_pNameAndSystemEditor->setEditionNameAndIndices(pWizard->detectedWindowsImageNames(),
                                                           pWizard->detectedWindowsImageIndices());
 
-    setUnattendedCheckBoxEnable();
+    UIWizardNewVMNameOSTypeCommon::setUnattendedCheckBoxEnable(m_pUnattendedCheckBox,
+                                                               m_pNameAndSystemEditor->ISOImagePath(),
+                                                               isUnattendedInstallSupported());
     setEditionAndOSTypeSelectorsEnabled();
     updateInfoLabel();
 
     /* Disable OS type selector(s) to prevent user from changing guest OS type manually: */
     if (m_pNameAndSystemEditor)
     {
-
-
         /* Redetect the OS type using the name if detection or the step above failed: */
         if (!fOsTypeFixed)
             sltNameChanged(m_pNameAndSystemEditor->name());
@@ -765,7 +770,7 @@ QWidget *UIWizardNewVMNameOSTypePage::createNameOSTypeWidgets()
             if (m_pUnattendedCheckBox)
             {
                 m_pNameAndSystemLayout->addWidget(m_pUnattendedCheckBox, 1, 1);
-                m_pUnattendedCheckBox->setChecked(true);
+                m_pUnattendedCheckBox->setChecked(false);
             }
             m_pInfoLabel = new QIRichTextLabel(pContainerWidget);
             if (m_pInfoLabel)
@@ -788,28 +793,10 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
             m_pNameAndSystemEditor->markNameEditor(!isMachineFolderUnique(),
                                                    tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
 
-        m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
+        m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath()),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));
     }
-}
-
-void UIWizardNewVMNameOSTypePage::setUnattendedCheckBoxEnable()
-{
-    AssertReturnVoid(m_pUnattendedCheckBox && m_pNameAndSystemEditor);
-    const QString &strPath = m_pNameAndSystemEditor->ISOImagePath();
-    if (strPath.isEmpty())
-    {
-        m_pUnattendedCheckBox->setEnabled(false);
-        return;
-    }
-    if (!isUnattendedInstallSupported())
-    {
-        m_pUnattendedCheckBox->setEnabled(false);
-        return;
-    }
-
-    m_pUnattendedCheckBox->setEnabled(UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor));
 }
 
 bool UIWizardNewVMNameOSTypePage::isUnattendedEnabled() const
@@ -825,7 +812,6 @@ bool UIWizardNewVMNameOSTypePage::isUnattendedInstallSupported() const
     AssertReturn(pWizard, false);
     return pWizard->isUnattendedInstallSupported();
 }
-
 
 void  UIWizardNewVMNameOSTypePage::setEditionAndOSTypeSelectorsEnabled()
 {

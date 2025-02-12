@@ -503,7 +503,7 @@ void UIToolsModel::sltRetranslateUI()
     {
         switch (pItem->itemType())
         {
-            case UIToolType_Toggle:      pItem->setName(QString()); break;
+            case UIToolType_Toggle:      pItem->setName(tr("Show text")); break;
             case UIToolType_Home:        pItem->setName(tr("Home")); break;
             case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
             case UIToolType_Extensions:  pItem->setName(tr("Extensions")); break;

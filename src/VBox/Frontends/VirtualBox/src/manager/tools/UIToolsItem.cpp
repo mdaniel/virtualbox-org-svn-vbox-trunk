@@ -299,10 +299,11 @@ int UIToolsItem::minimumWidthHint() const
     /* Add pixmap size by default: */
     iProposedWidth += m_pixmapSize.width();
 
-    /* Add text size for popup mode or
-     * if it's requested for widget mode: */
-    if (   model()->tools()->isPopup()
-        || model()->showItemNames())
+    /* Add text size for non-Aux tools in popup mode
+     * or if it is requested for widget mode: */
+    if (   m_enmClass != UIToolClass_Aux
+        && (   model()->tools()->isPopup()
+            || model()->showItemNames()))
     {
         iProposedWidth += m_nameSize.width();
 
@@ -901,6 +902,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     }
 
     /* Paint right column: */
+    if (m_enmClass != UIToolClass_Aux)
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC

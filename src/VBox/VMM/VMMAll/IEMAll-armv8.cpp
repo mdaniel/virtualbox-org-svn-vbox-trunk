@@ -48,8 +48,9 @@
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 
-VMMDECL(VBOXSTRICTRC) IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
-                                      uint32_t cMaxInstructionsWithoutExits, PIEMEXECFOREXITSTATS pStats)
+VMM_INT_DECL(VBOXSTRICTRC)
+IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
+                uint32_t cMaxInstructionsWithoutExits, PIEMEXECFOREXITSTATS pStats)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu, fWillExit, cMinInstructions, cMaxInstructions, cMaxInstructionsWithoutExits);
@@ -58,7 +59,7 @@ VMMDECL(VBOXSTRICTRC) IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu, cMaxInstructions, cPollRate, pcInstructions);
@@ -66,7 +67,7 @@ VMMDECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uin
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu);
@@ -74,8 +75,8 @@ VMMDECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
-                                                   const void *pvOpcodeBytes, size_t cbOpcodeBytes)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+                                                        const void *pvOpcodeBytes, size_t cbOpcodeBytes)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu, OpcodeBytesPC, pvOpcodeBytes, cbOpcodeBytes);
@@ -83,16 +84,16 @@ VMMDECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t Opco
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneBypassEx(PVMCPUCC pVCpu, uint32_t *pcbWritten)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneBypass(PVMCPUCC pVCpu)
 {
     AssertReleaseFailed();
-    RT_NOREF(pVCpu, pcbWritten);
+    RT_NOREF(pVCpu);
     return VERR_NOT_IMPLEMENTED;
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
-                                                         const void *pvOpcodeBytes, size_t cbOpcodeBytes)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+                                                              const void *pvOpcodeBytes, size_t cbOpcodeBytes)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu, OpcodeBytesPC, pvOpcodeBytes, cbOpcodeBytes);
@@ -100,7 +101,7 @@ VMMDECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMInjectTrpmEvent(PVMCPUCC pVCpu)
+VMM_INT_DECL(VBOXSTRICTRC) IEMInjectTrpmEvent(PVMCPUCC pVCpu)
 {
     AssertReleaseFailed();
     RT_NOREF(pVCpu);

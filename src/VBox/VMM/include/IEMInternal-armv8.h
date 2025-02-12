@@ -525,9 +525,6 @@ typedef struct IEMCPU
     uint32_t                cInstructions;
     /** The number of potential exits. */
     uint32_t                cPotentialExits;
-    /** The number of bytes data or stack written (mostly for IEMExecOneEx).
-     * This may contain uncommitted writes.  */
-    uint32_t                cbWritten;
     /** Counts the VERR_IEM_INSTR_NOT_IMPLEMENTED returns. */
     uint32_t                cRetInstrNotImplemented;
     /** Counts the VERR_IEM_ASPECT_NOT_IMPLEMENTED returns. */
@@ -562,7 +559,7 @@ typedef struct IEMCPU
      * Intel CPUs produce different EFLAGS. */
     uint8_t                 aidxTargetCpuEflFlavour[2];
 
-    uint8_t                 bPadding;
+    uint8_t                 bPadding[5];
 
     /** The CPU vendor. */
     CPUMCPUVENDOR           enmCpuVendor;

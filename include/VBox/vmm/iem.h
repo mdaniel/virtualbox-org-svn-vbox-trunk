@@ -149,15 +149,14 @@ typedef IEMXCPTRAISE *PIEMXCPTRAISE;
 /** @} */
 
 
-VMMDECL(VBOXSTRICTRC)       IEMExecOne(PVMCPUCC pVCpu);
-VMMDECL(VBOXSTRICTRC)       IEMExecOneEx(PVMCPUCC pVCpu, uint32_t *pcbWritten);
-VMMDECL(VBOXSTRICTRC)       IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecOne(PVMCPUCC pVCpu);
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
                                                          const void *pvOpcodeBytes, size_t cbOpcodeBytes);
-VMMDECL(VBOXSTRICTRC)       IEMExecOneBypassEx(PVMCPUCC pVCpu, uint32_t *pcbWritten);
-VMMDECL(VBOXSTRICTRC)       IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecOneBypass(PVMCPUCC pVCpu);
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
                                                                const void *pvOpcodeBytes, size_t cbOpcodeBytes);
-VMMDECL(VBOXSTRICTRC)       IEMExecOneIgnoreLock(PVMCPUCC pVCpu);
-VMMDECL(VBOXSTRICTRC)       IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions);
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecOneIgnoreLock(PVMCPUCC pVCpu);
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions);
 VMM_INT_DECL(VBOXSTRICTRC)  IEMExecRecompiler(PVMCC pVM, PVMCPUCC pVCpu, bool fWasHalted);
 /** Statistics returned by IEMExecForExits. */
 typedef struct IEMEXECFOREXITSTATS
@@ -169,9 +168,10 @@ typedef struct IEMEXECFOREXITSTATS
 } IEMEXECFOREXITSTATS;
 /** Pointer to statistics returned by IEMExecForExits. */
 typedef IEMEXECFOREXITSTATS *PIEMEXECFOREXITSTATS;
-VMMDECL(VBOXSTRICTRC)       IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
+VMM_INT_DECL(VBOXSTRICTRC)  IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
                                             uint32_t cMaxInstructionsWithoutExits, PIEMEXECFOREXITSTATS pStats);
-VMMDECL(VBOXSTRICTRC)       IEMInjectTrpmEvent(PVMCPUCC pVCpu);
+
+VMM_INT_DECL(VBOXSTRICTRC)  IEMInjectTrpmEvent(PVMCPUCC pVCpu);
 VMM_INT_DECL(VBOXSTRICTRC)  IEMInjectTrap(PVMCPUCC pVCpu, uint8_t u8TrapNo, TRPMEVENT enmType, uint16_t uErrCode, RTGCPTR uCr2,
                                           uint8_t cbInstr);
 
@@ -211,12 +211,13 @@ VMM_INT_DECL(IEMXCPTRAISE)  IEMEvaluateRecursiveXcpt(PVMCPUCC pVCpu, uint32_t fP
 /** @defgroup grp_iem_r3     The IEM Host Context Ring-3 API.
  * @{
  */
-VMMR3DECL(int)      IEMR3Init(PVM pVM);
-VMMR3DECL(int)      IEMR3Term(PVM pVM);
-VMMR3DECL(void)     IEMR3Relocate(PVM pVM);
+VMMR3_INT_DECL(int)         IEMR3Init(PVM pVM);
+VMMR3_INT_DECL(int)         IEMR3Term(PVM pVM);
+VMMR3_INT_DECL(void)        IEMR3Relocate(PVM pVM);
 VMMR3_INT_DECL(VBOXSTRICTRC) IEMR3ProcessForceFlag(PVM pVM, PVMCPUCC pVCpu, VBOXSTRICTRC rcStrict);
-VMMR3DECL(const char *) IEMR3GetExitName(uint32_t uExit);
-VMMR3DECL(int)      IEMR3ThreadedProfileRecompilingSavedTbs(PVM pVM, const char *pszFilename, uint32_t cMinTbs);
+VMMR3_INT_DECL(const char *) IEMR3GetExitName(uint32_t uExit);
+
+VMMR3DECL(int)              IEMR3ThreadedProfileRecompilingSavedTbs(PVM pVM, const char *pszFilename, uint32_t cMinTbs);
 /** @} */
 
 /** @} */

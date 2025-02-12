@@ -980,7 +980,7 @@ VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstruction(PVMCPUCC pVCpu)
     LogFlow(("EMInterpretInstruction %RGv\n", (RTGCPTR)CPUMGetGuestRIP(pVCpu)));
 #endif
 
-    VBOXSTRICTRC rc = IEMExecOneBypassEx(pVCpu, NULL /*pcbWritten*/);
+    VBOXSTRICTRC rc = IEMExecOneBypass(pVCpu);
     if (RT_UNLIKELY(   rc == VERR_IEM_ASPECT_NOT_IMPLEMENTED
                     || rc == VERR_IEM_INSTR_NOT_IMPLEMENTED))
         rc = VERR_EM_INTERPRETER;

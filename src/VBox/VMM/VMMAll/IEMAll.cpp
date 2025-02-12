@@ -6122,21 +6122,6 @@ void iemFpuStackPushOverflowWithMemOp(PVMCPUCC pVCpu, uint8_t iEffSeg, RTGCPTR G
 #define LOG_GROUP LOG_GROUP_IEM_MEM
 
 /**
- * Updates the IEMCPU::cbWritten counter if applicable.
- *
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   fAccess             The access being accounted for.
- * @param   cbMem               The access size.
- */
-DECL_FORCE_INLINE(void) iemMemUpdateWrittenCounter(PVMCPUCC pVCpu, uint32_t fAccess, size_t cbMem)
-{
-    if (   (fAccess & (IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_WRITE)) == (IEM_ACCESS_WHAT_STACK | IEM_ACCESS_TYPE_WRITE)
-        || (fAccess & (IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_WRITE)) == (IEM_ACCESS_WHAT_DATA  | IEM_ACCESS_TYPE_WRITE) )
-        pVCpu->iem.s.cbWritten += (uint32_t)cbMem;
-}
-
-
-/**
  * Applies the segment limit, base and attributes.
  *
  * This may raise a \#GP or \#SS.
@@ -6749,7 +6734,6 @@ iemMemBounceBufferMapCrossPage(PVMCPUCC pVCpu, int iMemMap, void **ppvMem, uint8
     pVCpu->iem.s.iNextMapping = iMemMap + 1;
     pVCpu->iem.s.cActiveMappings++;
 
-    iemMemUpdateWrittenCounter(pVCpu, fAccess, cbMem);
     *ppvMem = pbBuf;
     *pbUnmapInfo = iMemMap | 0x08 | ((fAccess & IEM_ACCESS_TYPE_MASK) << 4);
     return VINF_SUCCESS;
@@ -6838,7 +6822,6 @@ static VBOXSTRICTRC iemMemBounceBufferMapPhys(PVMCPUCC pVCpu, unsigned iMemMap, 
     pVCpu->iem.s.iNextMapping = iMemMap + 1;
     pVCpu->iem.s.cActiveMappings++;
 
-    iemMemUpdateWrittenCounter(pVCpu, fAccess, cbMem);
     *ppvMem = pbBuf;
     *pbUnmapInfo = iMemMap | 0x08 | ((fAccess & IEM_ACCESS_TYPE_MASK) << 4);
     return VINF_SUCCESS;
@@ -7213,7 +7196,6 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
     pVCpu->iem.s.iNextMapping     = iMemMap + 1;
     pVCpu->iem.s.cActiveMappings += 1;
 
-    iemMemUpdateWrittenCounter(pVCpu, fAccess, cbMem);
     *ppvMem = pvMem;
     *pbUnmapInfo = iMemMap | 0x08 | ((fAccess & IEM_ACCESS_TYPE_MASK) << 4);
     AssertCompile(IEM_ACCESS_TYPE_MASK <= 0xf);
@@ -7709,8 +7691,6 @@ static void *iemMemMapJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, ui
     pVCpu->iem.s.aMemMappings[iMemMap].fAccess = fAccess;
     pVCpu->iem.s.iNextMapping = iMemMap + 1;
     pVCpu->iem.s.cActiveMappings++;
-
-    iemMemUpdateWrittenCounter(pVCpu, fAccess, cbMem);
 
     *pbUnmapInfo = iMemMap | 0x08 | ((fAccess & IEM_ACCESS_TYPE_MASK) << 4);
     return pvMem;
@@ -9708,8 +9688,8 @@ static VBOXSTRICTRC iemHandleNestedInstructionBoundaryFFs(PVMCPUCC pVCpu, VBOXST
 
 
 /**
- * The actual code execution bits of IEMExecOne, IEMExecOneEx, and
- * IEMExecOneWithPrefetchedByPC.
+ * The actual code execution bits of IEMExecOne, IEMExecOneWithPrefetchedByPC,
+ * IEMExecOneBypass and friends.
  *
  * Similar code is found in IEMExecLots.
  *
@@ -9845,7 +9825,7 @@ DECLINLINE(VBOXSTRICTRC) iemExecOneInner(PVMCPUCC pVCpu, bool fExecuteInhibit, c
  * @return  Strict VBox status code.
  * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
  */
-VMMDECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
 {
     AssertCompile(sizeof(pVCpu->iem.s) <= sizeof(pVCpu->iem.padding)); /* (tstVMStruct can't do it's job w/o instruction stats) */
 #ifdef LOG_ENABLED
@@ -9868,25 +9848,8 @@ VMMDECL(VBOXSTRICTRC) IEMExecOne(PVMCPUCC pVCpu)
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneEx(PVMCPUCC pVCpu, uint32_t *pcbWritten)
-{
-    uint32_t const cbOldWritten = pVCpu->iem.s.cbWritten;
-    VBOXSTRICTRC rcStrict = iemInitDecoderAndPrefetchOpcodes(pVCpu, 0 /*fExecOpts*/);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        rcStrict = iemExecOneInner(pVCpu, true, "IEMExecOneEx");
-        if (pcbWritten)
-            *pcbWritten = pVCpu->iem.s.cbWritten - cbOldWritten;
-    }
-    else if (pVCpu->iem.s.cActiveMappings > 0)
-        iemMemRollback(pVCpu);
-
-    return rcStrict;
-}
-
-
-VMMDECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
-                                                   const void *pvOpcodeBytes, size_t cbOpcodeBytes)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+                                                        const void *pvOpcodeBytes, size_t cbOpcodeBytes)
 {
     VBOXSTRICTRC rcStrict;
     if (   cbOpcodeBytes
@@ -9917,16 +9880,11 @@ VMMDECL(VBOXSTRICTRC) IEMExecOneWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t Opco
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneBypassEx(PVMCPUCC pVCpu, uint32_t *pcbWritten)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneBypass(PVMCPUCC pVCpu)
 {
-    uint32_t const cbOldWritten = pVCpu->iem.s.cbWritten;
     VBOXSTRICTRC rcStrict = iemInitDecoderAndPrefetchOpcodes(pVCpu, IEM_F_BYPASS_HANDLERS);
     if (rcStrict == VINF_SUCCESS)
-    {
-        rcStrict = iemExecOneInner(pVCpu, false, "IEMExecOneBypassEx");
-        if (pcbWritten)
-            *pcbWritten = pVCpu->iem.s.cbWritten - cbOldWritten;
-    }
+        rcStrict = iemExecOneInner(pVCpu, false, "IEMExecOneBypass");
     else if (pVCpu->iem.s.cActiveMappings > 0)
         iemMemRollback(pVCpu);
 
@@ -9934,8 +9892,8 @@ VMMDECL(VBOXSTRICTRC) IEMExecOneBypassEx(PVMCPUCC pVCpu, uint32_t *pcbWritten)
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
-                                                         const void *pvOpcodeBytes, size_t cbOpcodeBytes)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_t OpcodeBytesPC,
+                                                              const void *pvOpcodeBytes, size_t cbOpcodeBytes)
 {
     VBOXSTRICTRC rcStrict;
     if (   cbOpcodeBytes
@@ -9976,7 +9934,7 @@ VMMDECL(VBOXSTRICTRC) IEMExecOneBypassWithPrefetchedByPC(PVMCPUCC pVCpu, uint64_
  * @returns Strict VBox status code.
  * @param   pVCpu   The cross context virtual CPU structure of the calling EMT.
  */
-VMMDECL(VBOXSTRICTRC) IEMExecOneIgnoreLock(PVMCPUCC pVCpu)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecOneIgnoreLock(PVMCPUCC pVCpu)
 {
     /*
      * Do the decoding and emulation.
@@ -10051,7 +10009,7 @@ VBOXSTRICTRC iemExecInjectPendingTrap(PVMCPUCC pVCpu)
 }
 
 
-VMMDECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions)
+VMM_INT_DECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uint32_t cPollRate, uint32_t *pcInstructions)
 {
     uint32_t const cInstructionsAtStart = pVCpu->iem.s.cInstructions;
     AssertMsg(RT_IS_POWER_OF_TWO(cPollRate + 1), ("%#x\n", cPollRate));
@@ -10222,8 +10180,9 @@ VMMDECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions, uin
  *                              The max number of instructions without exits.
  * @param   pStats              Where to return statistics.
  */
-VMMDECL(VBOXSTRICTRC) IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
-                                      uint32_t cMaxInstructionsWithoutExits, PIEMEXECFOREXITSTATS pStats)
+VMM_INT_DECL(VBOXSTRICTRC)
+IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, uint32_t cMaxInstructions,
+                uint32_t cMaxInstructionsWithoutExits, PIEMEXECFOREXITSTATS pStats)
 {
     NOREF(fWillExit); /** @todo define flexible exit crits */
 
@@ -10469,7 +10428,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMInjectTrap(PVMCPUCC pVCpu, uint8_t u8TrapNo, TRPME
  * @returns Strict VBox status code.
  * @param   pVCpu               The cross context virtual CPU structure.
  */
-VMMDECL(VBOXSTRICTRC) IEMInjectTrpmEvent(PVMCPUCC pVCpu)
+VMM_INT_DECL(VBOXSTRICTRC) IEMInjectTrpmEvent(PVMCPUCC pVCpu)
 {
 #ifndef IEM_IMPLEMENTS_TASKSWITCH
     IEM_RETURN_ASPECT_NOT_IMPLEMENTED_LOG(("Event injection\n"));

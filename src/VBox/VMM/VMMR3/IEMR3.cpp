@@ -115,7 +115,7 @@ static const char *iemGetTargetCpuName(uint32_t enmTargetCpu)
  * @returns VBox status code.
  * @param   pVM                The cross context VM structure.
  */
-VMMR3DECL(int)      IEMR3Init(PVM pVM)
+VMMR3_INT_DECL(int) IEMR3Init(PVM pVM)
 {
     /*
      * Read configuration.
@@ -374,8 +374,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "Informational statuses returned",              "/IEM/CPU%u/cRetInfStatuses", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.cRetErrStatuses,             STAMTYPE_U32_RESET, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
                         "Error statuses returned",                      "/IEM/CPU%u/cRetErrStatuses", idCpu);
-        STAMR3RegisterF(pVM, &pVCpu->iem.s.cbWritten,                   STAMTYPE_U32,       STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,
-                        "Approx bytes written",                         "/IEM/CPU%u/cbWritten", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.cPendingCommit,              STAMTYPE_U32,       STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,
                         "Times RC/R0 had to postpone instruction committing to ring-3", "/IEM/CPU%u/cPendingCommit", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.cMisalignedAtomics,          STAMTYPE_U32_RESET, STAMVISIBILITY_ALWAYS, STAMUNIT_BYTES,
@@ -1102,7 +1100,7 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
 }
 
 
-VMMR3DECL(int)      IEMR3Term(PVM pVM)
+VMMR3_INT_DECL(int) IEMR3Term(PVM pVM)
 {
     NOREF(pVM);
 #ifdef IEM_WITH_TLB_TRACE
@@ -1121,7 +1119,7 @@ VMMR3DECL(int)      IEMR3Term(PVM pVM)
 }
 
 
-VMMR3DECL(void)     IEMR3Relocate(PVM pVM)
+VMMR3_INT_DECL(void) IEMR3Relocate(PVM pVM)
 {
     RT_NOREF(pVM);
 }
@@ -1133,7 +1131,7 @@ VMMR3DECL(void)     IEMR3Relocate(PVM pVM)
  * @returns Pointer to read only string if @a uExit is known, otherwise NULL.
  * @param   uExit               The IEM exit to name.
  */
-VMMR3DECL(const char *) IEMR3GetExitName(uint32_t uExit)
+VMMR3_INT_DECL(const char *) IEMR3GetExitName(uint32_t uExit)
 {
     static const char * const s_apszNames[] =
     {

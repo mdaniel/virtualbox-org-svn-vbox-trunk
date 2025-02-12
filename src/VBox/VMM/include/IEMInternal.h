@@ -235,6 +235,37 @@ RT_C_DECLS_BEGIN
 #endif
 /* ASM-NOINC-END */
 
+
+//#define IEM_WITH_CODE_TLB // - work in progress
+//#define IEM_WITH_DATA_TLB // - work in progress
+
+
+/** @def IEM_USE_UNALIGNED_DATA_ACCESS
+ * Use unaligned accesses instead of elaborate byte assembly. */
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING)  /*ASM-NOINC*/
+# define IEM_USE_UNALIGNED_DATA_ACCESS
+#endif                                                                          /*ASM-NOINC*/
+
+//#define IEM_LOG_MEMORY_WRITES
+
+
+/** @def IEM_CFG_TARGET_CPU
+ * The minimum target CPU for the IEM emulation (IEMTARGETCPU_XXX value).
+ *
+ * By default we allow this to be configured by the user via the
+ * CPUM/GuestCpuName config string, but this comes at a slight cost during
+ * decoding.  So, for applications of this code where there is no need to
+ * be dynamic wrt target CPU, just modify this define.
+ */
+#if !defined(IEM_CFG_TARGET_CPU) || defined(DOXYGEN_RUNNING)
+# define IEM_CFG_TARGET_CPU     IEMTARGETCPU_DYNAMIC
+#endif
+
+
+/*
+ * X86 config.
+ */
+
 #define IEM_IMPLEMENTS_TASKSWITCH
 
 /** @def IEM_WITH_3DNOW
@@ -268,31 +299,6 @@ RT_C_DECLS_BEGIN
 #  define IEM_WITH_VEX
 # endif
 #endif
-
-/** @def IEM_CFG_TARGET_CPU
- * The minimum target CPU for the IEM emulation (IEMTARGETCPU_XXX value).
- *
- * By default we allow this to be configured by the user via the
- * CPUM/GuestCpuName config string, but this comes at a slight cost during
- * decoding.  So, for applications of this code where there is no need to
- * be dynamic wrt target CPU, just modify this define.
- */
-#if !defined(IEM_CFG_TARGET_CPU) || defined(DOXYGEN_RUNNING)
-# define IEM_CFG_TARGET_CPU     IEMTARGETCPU_DYNAMIC
-#endif
-
-//#define IEM_WITH_CODE_TLB // - work in progress
-//#define IEM_WITH_DATA_TLB // - work in progress
-
-
-/** @def IEM_USE_UNALIGNED_DATA_ACCESS
- * Use unaligned accesses instead of elaborate byte assembly. */
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) || defined(DOXYGEN_RUNNING)  /*ASM-NOINC*/
-# define IEM_USE_UNALIGNED_DATA_ACCESS
-#endif                                                                          /*ASM-NOINC*/
-
-//#define IEM_LOG_MEMORY_WRITES
-
 
 
 #ifndef RT_IN_ASSEMBLER /* ASM-NOINC-START - the rest of the file */
@@ -368,7 +374,9 @@ typedef IEMINSTRSTATS *PIEMINSTRSTATS;
 
 
 /**
- * Branch types.
+ * Branch types - iemCImpl_BranchTaskSegment(), iemCImpl_BranchTaskGate(),
+ * iemCImpl_BranchCallGate() and iemCImpl_BranchSysSel().
+ * @note x86 specific
  */
 typedef enum IEMBRANCH
 {
@@ -382,7 +390,8 @@ AssertCompileSize(IEMBRANCH, 4);
 
 
 /**
- * INT instruction types.
+ * INT instruction types - iemCImpl_int().
+ * @note x86 specific
  */
 typedef enum IEMINT
 {
@@ -400,6 +409,7 @@ AssertCompileSize(IEMINT, 4);
 
 /**
  * A FPU result.
+ * @note x86 specific
  */
 typedef struct IEMFPURESULT
 {
@@ -417,6 +427,7 @@ typedef IEMFPURESULT const *PCIEMFPURESULT;
 
 /**
  * A FPU result consisting of two output values and FSW.
+ * @note x86 specific
  */
 typedef struct IEMFPURESULTTWO
 {
@@ -806,13 +817,13 @@ typedef enum : uint8_t
     kIemTlbTraceType_FlushGlobal,
     kIemTlbTraceType_Load,
     kIemTlbTraceType_LoadGlobal,
-    kIemTlbTraceType_Load_Cr0,
-    kIemTlbTraceType_Load_Cr3,
-    kIemTlbTraceType_Load_Cr4,
-    kIemTlbTraceType_Load_Efer,
+    kIemTlbTraceType_Load_Cr0,  /**< x86 specific */
+    kIemTlbTraceType_Load_Cr3,  /**< x86 specific */
+    kIemTlbTraceType_Load_Cr4,  /**< x86 specific */
+    kIemTlbTraceType_Load_Efer, /**< x86 specific */
     kIemTlbTraceType_Irq,
     kIemTlbTraceType_Xcpt,
-    kIemTlbTraceType_IRet,
+    kIemTlbTraceType_IRet,      /**< x86 specific */
     kIemTlbTraceType_Tb_Compile,
     kIemTlbTraceType_Tb_Exec_Threaded,
     kIemTlbTraceType_Tb_Exec_Native,
@@ -931,6 +942,7 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 
 
 /** @name IEM_MC_F_XXX - MC block flags/clues.
+ * @note x86 specific
  * @todo Merge with IEM_CIMPL_F_XXX
  * @{ */
 #define IEM_MC_F_ONLY_8086          RT_BIT_32(0)
@@ -976,18 +988,22 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 #define IEM_CIMPL_F_BRANCH_RELATIVE      RT_BIT_32(2)
 /** Flag set if conditional branch, clear if unconditional. */
 #define IEM_CIMPL_F_BRANCH_CONDITIONAL   RT_BIT_32(3)
-/** Flag set if it's a far branch (changes CS). */
+/** Flag set if it's a far branch (changes CS).
+ * @note x86 specific */
 #define IEM_CIMPL_F_BRANCH_FAR           RT_BIT_32(4)
 /** Convenience: Testing any kind of branch. */
 #define IEM_CIMPL_F_BRANCH_ANY          (IEM_CIMPL_F_BRANCH_DIRECT | IEM_CIMPL_F_BRANCH_INDIRECT | IEM_CIMPL_F_BRANCH_RELATIVE)
 
 /** Execution flags may change (IEMCPU::fExec). */
 #define IEM_CIMPL_F_MODE                RT_BIT_32(5)
-/** May change significant portions of RFLAGS. */
+/** May change significant portions of RFLAGS.
+ * @note x86 specific */
 #define IEM_CIMPL_F_RFLAGS              RT_BIT_32(6)
-/** May change the status bits (X86_EFL_STATUS_BITS) in RFLAGS. */
+/** May change the status bits (X86_EFL_STATUS_BITS) in RFLAGS.
+ * @note x86 specific */
 #define IEM_CIMPL_F_STATUS_FLAGS        RT_BIT_32(7)
-/** May trigger interrupt shadowing. */
+/** May trigger interrupt shadowing.
+ * @note x86 specific */
 #define IEM_CIMPL_F_INHIBIT_SHADOW      RT_BIT_32(8)
 /** May enable interrupts, so recheck IRQ immediately afterwards executing
  *  the instruction. */
@@ -1004,17 +1020,20 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 #define IEM_CIMPL_F_FPU                 RT_BIT_32(12)
 /** REP prefixed instruction which may yield before updating PC.
  * @todo Not sure if this is useful, REP functions now return non-zero
- *       status if they don't update the PC. */
+ *       status if they don't update the PC.
+ * @note x86 specific */
 #define IEM_CIMPL_F_REP                 RT_BIT_32(13)
 /** I/O instruction.
- * @todo Not sure if this is useful yet.  */
+ * @todo Not sure if this is useful yet.
+ * @note x86 specific */
 #define IEM_CIMPL_F_IO                  RT_BIT_32(14)
 /** Force end of TB after the instruction. */
 #define IEM_CIMPL_F_END_TB              RT_BIT_32(15)
 /** Flag set if a branch may also modify the stack (push/pop return address). */
 #define IEM_CIMPL_F_BRANCH_STACK        RT_BIT_32(16)
 /** Flag set if a branch may also modify the stack (push/pop return address)
- *  and switch it (load/restore SS:RSP). */
+ *  and switch it (load/restore SS:RSP).
+ * @note x86 specific */
 #define IEM_CIMPL_F_BRANCH_STACK_FAR    RT_BIT_32(17)
 /** Convenience: Raise exception (technically unnecessary, since it shouldn't return VINF_SUCCESS). */
 #define IEM_CIMPL_F_XCPT \
@@ -1035,14 +1054,16 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
  * X86FXSTATE pointer argument.
  * Mutually exclusive with IEM_CIMPL_F_CALLS_CIMPL, IEM_CIMPL_F_CALLS_AIMPL and
  * IEM_CIMPL_F_CALLS_AIMPL_WITH_XSTATE.
- * @note The python scripts will add this if missing.  */
+ * @note The python scripts will add this if missing.
+ * @note x86 specific */
 #define IEM_CIMPL_F_CALLS_AIMPL_WITH_FXSTATE    RT_BIT_32(20)
 /** The block calls an ASM-implementation instruction function with an implicit
  * X86XSAVEAREA pointer argument.
  * Mutually exclusive with IEM_CIMPL_F_CALLS_CIMPL, IEM_CIMPL_F_CALLS_AIMPL and
  * IEM_CIMPL_F_CALLS_AIMPL_WITH_FXSTATE.
  * @note No different from IEM_CIMPL_F_CALLS_AIMPL_WITH_FXSTATE, so same value.
- * @note The python scripts will add this if missing.  */
+ * @note The python scripts will add this if missing.
+ * @note x86 specific */
 #define IEM_CIMPL_F_CALLS_AIMPL_WITH_XSTATE     IEM_CIMPL_F_CALLS_AIMPL_WITH_FXSTATE
 /** @} */
 
@@ -1184,7 +1205,8 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 
 /** Checks that EIP/IP is wihin CS.LIM before each instruction.  Used when
  * we're close the limit before starting a TB, as determined by
- * iemGetTbFlagsForCurrentPc(). */
+ * iemGetTbFlagsForCurrentPc().
+ * @note x86 specific */
 #define IEMTB_F_CS_LIM_CHECKS           UINT32_C(0x10000000)
 
 /** Mask of the IEMTB_F_XXX flags that are part of the TB lookup key.
@@ -1692,11 +1714,13 @@ typedef IEMTBCACHE *PIEMTBCACHE;
 #define IEMBRANCHED_F_RELATIVE      UINT8_C(0x04)
 /** Flag set if conditional branch, clear if unconditional. */
 #define IEMBRANCHED_F_CONDITIONAL   UINT8_C(0x08)
-/** Flag set if it's a far branch. */
+/** Flag set if it's a far branch.
+ * @note x86 specific */
 #define IEMBRANCHED_F_FAR           UINT8_C(0x10)
 /** Flag set if the stack pointer is modified. */
 #define IEMBRANCHED_F_STACK         UINT8_C(0x20)
-/** Flag set if the stack pointer and (maybe) the stack segment are modified. */
+/** Flag set if the stack pointer and (maybe) the stack segment are modified.
+ * @note x86 specific */
 #define IEMBRANCHED_F_STACK_FAR     UINT8_C(0x40)
 /** Flag set (by IEM_MC_REL_JMP_XXX) if it's a zero bytes relative jump. */
 #define IEMBRANCHED_F_ZERO          UINT8_C(0x80)
@@ -2467,9 +2491,9 @@ typedef IEMCPU const *PCIEMCPU;
  * @param   a_fExtrnMbz     The mask of CPUMCTX_EXTRN_XXX flags that must be zero.
  */
 #define IEM_CTX_ASSERT(a_pVCpu, a_fExtrnMbz) \
-   AssertMsg(!((a_pVCpu)->cpum.GstCtx.fExtrn & (a_fExtrnMbz)), \
-             ("fExtrn=%#RX64 & fExtrnMbz=%#RX64 -> %#RX64\n", \
-             (a_pVCpu)->cpum.GstCtx.fExtrn, (a_fExtrnMbz), (a_pVCpu)->cpum.GstCtx.fExtrn & (a_fExtrnMbz) ))
+    AssertMsg(!((a_pVCpu)->cpum.GstCtx.fExtrn & (a_fExtrnMbz)), \
+              ("fExtrn=%#RX64 & fExtrnMbz=%#RX64 -> %#RX64\n", \
+              (a_pVCpu)->cpum.GstCtx.fExtrn, (a_fExtrnMbz), (a_pVCpu)->cpum.GstCtx.fExtrn & (a_fExtrnMbz) ))
 
 /** @def IEM_CTX_IMPORT_RET
  * Makes sure the CPU context bits given by @a a_fExtrnImport are imported.
@@ -2546,7 +2570,8 @@ typedef IEMCPU const *PCIEMCPU;
 #endif
 
 /** @def IEM_GET_INSTR_LEN
- * Gets the instruction length. */
+ * Gets the instruction length.
+ * @note x86 specific */
 #ifdef IEM_WITH_CODE_TLB
 # define IEM_GET_INSTR_LEN(a_pVCpu)     ((a_pVCpu)->iem.s.offInstrNextByte - (uint32_t)(int32_t)(a_pVCpu)->iem.s.offCurInstrStart)
 #else
@@ -2689,6 +2714,7 @@ typedef struct IEM
 /** @} */
 
 /** @name Prefix constants (IEMCPU::fPrefixes)
+ * @note x86 specific
  * @{ */
 #define IEM_OP_PRF_SEG_CS               RT_BIT_32(0)  /**< CS segment prefix (0x2e). */
 #define IEM_OP_PRF_SEG_SS               RT_BIT_32(1)  /**< SS segment prefix (0x36). */
@@ -2724,6 +2750,7 @@ typedef struct IEM
 
 /** @name IEMOPFORM_XXX - Opcode forms
  * @note These are ORed together with IEMOPHINT_XXX.
+ * @note x86 specific
  * @{ */
 /** ModR/M: reg, r/m */
 #define IEMOPFORM_RM            0
@@ -2870,6 +2897,7 @@ typedef struct IEM
 
 /** @name IEMOPHINT_XXX - Additional Opcode Hints
  * @note These are ORed together with IEMOPFORM_XXX.
+ * @note x86 specific
  * @{ */
 /** Ignores the operand size prefix (66h). */
 #define IEMOPHINT_IGNORES_OZ_PFX    RT_BIT_32(10)
@@ -2899,7 +2927,8 @@ typedef struct IEM
 /** @} */
 
 /**
- * Possible hardware task switch sources.
+ * Possible hardware task switch sources - iemTaskSwitch(), iemVmxVmexitTaskSwitch().
+ * @note x86 specific
  */
 typedef enum IEMTASKSWITCH
 {
@@ -2915,7 +2944,8 @@ typedef enum IEMTASKSWITCH
 AssertCompileSize(IEMTASKSWITCH, 4);
 
 /**
- * Possible CrX load (write) sources.
+ * Possible CrX load (write) sources - iemCImpl_load_CrX().
+ * @note x86 specific
  */
 typedef enum IEMACCESSCRX
 {

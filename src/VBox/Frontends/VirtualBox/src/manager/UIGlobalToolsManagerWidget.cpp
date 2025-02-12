@@ -180,6 +180,11 @@ void UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange()
     updateToolsMenu();
 }
 
+void UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange()
+{
+    updateToolsMenu();
+}
+
 void UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange(const QString &, const QString &)
 {
     /* If Global Activities tool is currently chosen: */
@@ -253,6 +258,8 @@ void UIGlobalToolsManagerWidget::prepareConnections()
             this, &UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange);
 
     /* Chooser-pane connections: */
+    connect(chooser(), &UIChooser::sigSelectionChanged,
+            this, &UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange);
     connect(chooser(), &UIChooser::sigCloudProfileStateChange,
             this, &UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange);
 
@@ -281,6 +288,8 @@ void UIGlobalToolsManagerWidget::cleanupConnections()
                this, &UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange);
 
     /* Chooser-pane connections: */
+    disconnect(chooser(), &UIChooser::sigSelectionChanged,
+               this, &UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange);
     disconnect(chooser(), &UIChooser::sigCloudProfileStateChange,
                this, &UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange);
 
@@ -310,19 +319,29 @@ UIToolPaneMachine *UIGlobalToolsManagerWidget::toolPaneMachine() const
 
 void UIGlobalToolsManagerWidget::updateToolsMenu()
 {
-    /* Update global tools restrictions: */
+    /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
+
     /* Restrict some types for Basic mode: */
     const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
     if (!fExpertMode)
         restrictedTypes << UIToolType_Media
                         << UIToolType_Network;
+
+    /* Make sure Machines tool is hidden for empty Chooser-pane: */
+    if (!chooser()->currentItem())
+        restrictedTypes << UIToolType_Machines;
+
+    /* Make sure no restricted tool is selected: */
     if (restrictedTypes.contains(toolMenu()->toolsType()))
         setMenuToolType(UIToolType_Home);
+
+    /* Hide restricted tools in the menu: */
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(restrictions);
 
-    /* Take restrictions into account, closing all restricted tools: */
+    /* Close all restricted tools (besides the Machines): */
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)
-        toolPane()->closeTool(enmRestrictedType);
+        if (enmRestrictedType != UIToolType_Machines)
+            toolPane()->closeTool(enmRestrictedType);
 }

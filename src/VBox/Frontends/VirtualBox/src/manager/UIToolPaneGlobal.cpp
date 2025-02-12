@@ -38,7 +38,7 @@
 #include "UICloudProfileManager.h"
 #include "UIExtensionPackManager.h"
 #include "UIHomePane.h"
-#include "UIMachineManagerWidget.h"
+#include "UIMachineToolsManagerWidget.h"
 #include "UIMediumManager.h"
 #include "UINetworkManager.h"
 #include "UIToolPaneGlobal.h"
@@ -133,8 +133,8 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
             }
             case UIToolType_Machines:
             {
-                /* Create Machine Manager: */
-                m_pPaneMachines = new UIMachineManagerWidget(this, m_pActionPool);
+                /* Create Machine Tool Manager: */
+                m_pPaneMachines = new UIMachineToolsManagerWidget(this, m_pActionPool);
                 AssertPtrReturnVoid(m_pPaneMachines);
                 {
                     /* Configure pane: */
@@ -340,7 +340,7 @@ void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemClou
     }
 }
 
-UIMachineManagerWidget *UIToolPaneGlobal::machineManager() const
+UIMachineToolsManagerWidget *UIToolPaneGlobal::machineToolManager() const
 {
     return m_pPaneMachines;
 }

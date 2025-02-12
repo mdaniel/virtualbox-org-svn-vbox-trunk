@@ -43,7 +43,7 @@ class QIToolBar;
 class UIActionPool;
 class UIChooser;
 class UIGlobalToolsManagerWidget;
-class UIMachineManagerWidget;
+class UIMachineToolsManagerWidget;
 class UIToolPaneGlobal;
 class UIToolPaneMachine;
 class UIVirtualBoxManager;
@@ -275,7 +275,7 @@ private:
         UIToolPaneGlobal *globalToolPane() const;
 
         /** Returns Machine Tool Manager reference. */
-        UIMachineManagerWidget *machineToolManager() const;
+        UIMachineToolsManagerWidget *machineToolManager() const;
         /** Returns Machine Tool Pane reference. */
         UIToolPaneMachine *machineToolPane() const;
         /** Returns Machine Chooser Pane reference. */

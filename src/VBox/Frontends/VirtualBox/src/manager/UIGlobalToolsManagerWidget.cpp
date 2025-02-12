@@ -34,7 +34,7 @@
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsManagerWidget.h"
-#include "UIMachineManagerWidget.h"
+#include "UIMachineToolsManagerWidget.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
@@ -66,9 +66,9 @@ UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
     return m_pPane;
 }
 
-UIMachineManagerWidget *UIGlobalToolsManagerWidget::machineManager() const
+UIMachineToolsManagerWidget *UIGlobalToolsManagerWidget::machineToolManager() const
 {
-    return toolPane()->machineManager();
+    return toolPane()->machineToolManager();
 }
 
 UIToolType UIGlobalToolsManagerWidget::menuToolType() const
@@ -161,8 +161,8 @@ QString UIGlobalToolsManagerWidget::currentHelpKeyword() const
 {
     if (toolType() == UIToolType_Machines)
     {
-        AssertPtrReturn(machineManager(), QString());
-        return machineManager()->currentHelpKeyword();
+        AssertPtrReturn(machineToolManager(), QString());
+        return machineToolManager()->currentHelpKeyword();
     }
 
     AssertPtrReturn(toolPane(), QString());
@@ -297,12 +297,12 @@ UITools *UIGlobalToolsManagerWidget::toolMenu() const
 
 UIChooser *UIGlobalToolsManagerWidget::chooser() const
 {
-    return machineManager()->chooser();
+    return machineToolManager()->chooser();
 }
 
 UIToolPaneMachine *UIGlobalToolsManagerWidget::toolPaneMachine() const
 {
-    return machineManager()->toolPane();
+    return machineToolManager()->toolPane();
 }
 
 void UIGlobalToolsManagerWidget::updateToolsMenu()

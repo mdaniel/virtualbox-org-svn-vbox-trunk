@@ -44,7 +44,7 @@ class QUuid;
 class UIActionPool;
 class UICloudProfileManagerWidget;
 class UIExtensionPackManagerWidget;
-class UIMachineManagerWidget;
+class UIMachineToolsManagerWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
@@ -96,8 +96,8 @@ public:
     /** Defines the @a cloudItems. */
     void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
-    /** Holds the Machine Manager instance. */
-    UIMachineManagerWidget *machineManager() const;
+    /** Holds the Machine Tool Manager instance. */
+    UIMachineToolsManagerWidget *machineToolManager() const;
 
 private:
 
@@ -118,8 +118,8 @@ private:
     QStackedLayout               *m_pLayout;
     /** Holds the Home pane instance. */
     UIHomePane                   *m_pPaneHome;
-    /** Holds the Machine Manager instance. */
-    UIMachineManagerWidget       *m_pPaneMachines;
+    /** Holds the Machine Tool Manager instance. */
+    UIMachineToolsManagerWidget  *m_pPaneMachines;
     /** Holds the Extension Pack Manager instance. */
     UIExtensionPackManagerWidget *m_pPaneExtensions;
     /** Holds the Virtual Media Manager instance. */

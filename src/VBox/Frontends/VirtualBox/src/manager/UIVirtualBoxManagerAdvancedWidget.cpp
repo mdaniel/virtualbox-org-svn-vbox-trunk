@@ -38,7 +38,7 @@
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsManagerWidget.h"
-#include "UIMachineManagerWidget.h"
+#include "UIMachineToolsManagerWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
@@ -437,15 +437,15 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
             this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tool Manager connections: */
-    connect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    connect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
-    connect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneIndexChange,
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneIndexChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
-    connect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneSelectionChange,
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneSelectionChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    connect(machineToolManager(), &UIMachineManagerWidget::sigCloudMachineStateChange,
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigCloudMachineStateChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     connect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
@@ -675,15 +675,15 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
                this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tool Manager connections: */
-    disconnect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    disconnect(machineToolManager(), &UIMachineManagerWidget::sigToolTypeChange,
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
-    disconnect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneIndexChange,
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneIndexChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
-    disconnect(machineToolManager(), &UIMachineManagerWidget::sigChooserPaneSelectionChange,
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneSelectionChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    disconnect(machineToolManager(), &UIMachineManagerWidget::sigCloudMachineStateChange,
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigCloudMachineStateChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     disconnect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
@@ -720,9 +720,9 @@ UIToolPaneGlobal *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
     return globalToolManager()->toolPane();
 }
 
-UIMachineManagerWidget *UIVirtualBoxManagerAdvancedWidget::machineToolManager() const
+UIMachineToolsManagerWidget *UIVirtualBoxManagerAdvancedWidget::machineToolManager() const
 {
-    return globalToolManager()->machineManager();
+    return globalToolManager()->machineToolManager();
 }
 
 UIToolPaneMachine *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const

@@ -579,7 +579,7 @@ VirtualBox_QT_MOCHDRS = \
 	src/manager/UIErrorPane.h \
 	src/manager/UIGlobalToolsManagerWidget.h \
 	src/manager/UIHomePane.h \
-	src/manager/UIMachineManagerWidget.h \
+	src/manager/UIMachineToolsManagerWidget.h \
 	src/manager/UIProgressTaskReadCloudMachineList.h \
 	src/manager/UITaskCloudGetSettingsForm.h \
 	src/manager/UIToolPaneGlobal.h \
@@ -1102,7 +1102,7 @@ VirtualBox_SOURCES = \
 	src/manager/UIErrorPane.cpp \
 	src/manager/UIGlobalToolsManagerWidget.cpp \
 	src/manager/UIHomePane.cpp \
-	src/manager/UIMachineManagerWidget.cpp \
+	src/manager/UIMachineToolsManagerWidget.cpp \
 	src/manager/UIProgressTaskReadCloudMachineList.cpp \
 	src/manager/UITaskCloudGetSettingsForm.cpp \
 	src/manager/UIToolPaneGlobal.cpp \

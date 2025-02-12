@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIMachineManagerWidget class implementation.
+ * VBox Qt GUI - UIMachineToolsManagerWidget class implementation.
  */
 
 /*
@@ -36,7 +36,7 @@
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalSession.h"
-#include "UIMachineManagerWidget.h"
+#include "UIMachineToolsManagerWidget.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
@@ -45,7 +45,7 @@
 #include "UIVirtualMachineItemLocal.h"
 
 
-UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool)
+UIMachineToolsManagerWidget::UIMachineToolsManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
     , m_pParent(pParent)
     , m_pActionPool(pActionPool)
@@ -60,64 +60,64 @@ UIMachineManagerWidget::UIMachineManagerWidget(UIToolPaneGlobal *pParent, UIActi
     prepare();
 }
 
-UIChooser *UIMachineManagerWidget::chooser() const
+UIChooser *UIMachineToolsManagerWidget::chooser() const
 {
     return m_pPaneChooser;
 }
 
-UIVirtualMachineItem *UIMachineManagerWidget::currentItem() const
+UIVirtualMachineItem *UIMachineToolsManagerWidget::currentItem() const
 {
     return chooser()->currentItem();
 }
 
-QList<UIVirtualMachineItem*> UIMachineManagerWidget::currentItems() const
+QList<UIVirtualMachineItem*> UIMachineToolsManagerWidget::currentItems() const
 {
     return chooser()->currentItems();
 }
 
-bool UIMachineManagerWidget::isItemAccessible(UIVirtualMachineItem *pItem /* = 0 */) const
+bool UIMachineToolsManagerWidget::isItemAccessible(UIVirtualMachineItem *pItem /* = 0 */) const
 {
     if (!pItem)
         pItem = currentItem();
     return pItem && pItem->accessible();
 }
 
-bool UIMachineManagerWidget::isGroupItemSelected() const
+bool UIMachineToolsManagerWidget::isGroupItemSelected() const
 {
     return chooser()->isGroupItemSelected();
 }
 
-bool UIMachineManagerWidget::isMachineItemSelected() const
+bool UIMachineToolsManagerWidget::isMachineItemSelected() const
 {
     return chooser()->isMachineItemSelected();
 }
 
-bool UIMachineManagerWidget::isLocalMachineItemSelected() const
+bool UIMachineToolsManagerWidget::isLocalMachineItemSelected() const
 {
     return chooser()->isLocalMachineItemSelected();
 }
 
-bool UIMachineManagerWidget::isCloudMachineItemSelected() const
+bool UIMachineToolsManagerWidget::isCloudMachineItemSelected() const
 {
     return chooser()->isCloudMachineItemSelected();
 }
 
-bool UIMachineManagerWidget::isSingleLocalGroupSelected() const
+bool UIMachineToolsManagerWidget::isSingleLocalGroupSelected() const
 {
     return chooser()->isSingleLocalGroupSelected();
 }
 
-bool UIMachineManagerWidget::isSingleCloudProviderGroupSelected() const
+bool UIMachineToolsManagerWidget::isSingleCloudProviderGroupSelected() const
 {
     return chooser()->isSingleCloudProviderGroupSelected();
 }
 
-bool UIMachineManagerWidget::isSingleCloudProfileGroupSelected() const
+bool UIMachineToolsManagerWidget::isSingleCloudProfileGroupSelected() const
 {
     return chooser()->isSingleCloudProfileGroupSelected();
 }
 
-UIMachineManagerWidget::SelectionType UIMachineManagerWidget::selectionType() const
+UIMachineToolsManagerWidget::SelectionType UIMachineToolsManagerWidget::selectionType() const
 {
     return   isSingleLocalGroupSelected()
            ? SelectionType_SingleLocalGroupItem
@@ -130,18 +130,18 @@ UIMachineManagerWidget::SelectionType UIMachineManagerWidget::selectionType() co
            : SelectionType_Invalid;
 }
 
-UIToolPaneMachine *UIMachineManagerWidget::toolPane() const
+UIToolPaneMachine *UIMachineToolsManagerWidget::toolPane() const
 {
     return m_pPaneTools;
 }
 
-UIToolType UIMachineManagerWidget::menuToolType() const
+UIToolType UIMachineToolsManagerWidget::menuToolType() const
 {
     AssertPtrReturn(toolMenu(), UIToolType_Invalid);
     return toolMenu()->toolsType();
 }
 
-void UIMachineManagerWidget::setMenuToolType(UIToolType enmType)
+void UIMachineToolsManagerWidget::setMenuToolType(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -152,13 +152,13 @@ void UIMachineManagerWidget::setMenuToolType(UIToolType enmType)
     toolMenu()->setToolsType(enmType);
 }
 
-UIToolType UIMachineManagerWidget::toolType() const
+UIToolType UIMachineToolsManagerWidget::toolType() const
 {
     AssertPtrReturn(toolPane(), UIToolType_Invalid);
     return toolPane()->currentTool();
 }
 
-bool UIMachineManagerWidget::isToolOpened(UIToolType enmType) const
+bool UIMachineToolsManagerWidget::isToolOpened(UIToolType enmType) const
 {
     /* Sanity check: */
     AssertReturn(enmType != UIToolType_Invalid, false);
@@ -169,7 +169,7 @@ bool UIMachineManagerWidget::isToolOpened(UIToolType enmType) const
     return toolPane()->isToolOpened(enmType);
 }
 
-void UIMachineManagerWidget::switchToolTo(UIToolType enmType)
+void UIMachineToolsManagerWidget::switchToolTo(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -184,7 +184,7 @@ void UIMachineManagerWidget::switchToolTo(UIToolType enmType)
     emit sigToolTypeChange();
 }
 
-void UIMachineManagerWidget::closeTool(UIToolType enmType)
+void UIMachineToolsManagerWidget::closeTool(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -195,24 +195,24 @@ void UIMachineManagerWidget::closeTool(UIToolType enmType)
     toolPane()->closeTool(enmType);
 }
 
-QString UIMachineManagerWidget::currentHelpKeyword() const
+QString UIMachineToolsManagerWidget::currentHelpKeyword() const
 {
     AssertPtrReturn(toolPane(), QString());
     return toolPane()->currentHelpKeyword();
 }
 
-void UIMachineManagerWidget::sltRetranslateUI()
+void UIMachineToolsManagerWidget::sltRetranslateUI()
 {
     /* Make sure chosen item fetched: */
     sltHandleChooserPaneIndexChange();
 }
 
-void UIMachineManagerWidget::sltHandleCommitData()
+void UIMachineToolsManagerWidget::sltHandleCommitData()
 {
     cleanupConnections();
 }
 
-void UIMachineManagerWidget::sltHandleMachineStateChange(const QUuid &uId)
+void UIMachineToolsManagerWidget::sltHandleMachineStateChange(const QUuid &uId)
 {
     // WORKAROUND:
     // In certain intermediate states VM info can be NULL which
@@ -234,7 +234,7 @@ void UIMachineManagerWidget::sltHandleMachineStateChange(const QUuid &uId)
     recacheCurrentMachineItemInformation();
 }
 
-void UIMachineManagerWidget::sltHandleSettingsExpertModeChange()
+void UIMachineToolsManagerWidget::sltHandleSettingsExpertModeChange()
 {
     /* Update tools restrictions for currently selected item: */
     UIVirtualMachineItem *pItem = currentItem();
@@ -242,7 +242,7 @@ void UIMachineManagerWidget::sltHandleSettingsExpertModeChange()
         updateToolsMenu(pItem);
 }
 
-void UIMachineManagerWidget::sltHandleSplitterMove()
+void UIMachineToolsManagerWidget::sltHandleSplitterMove()
 {
     /* Create timer if isn't exist already: */
     if (!m_pSplitterSettingsSaveTimer)
@@ -253,20 +253,20 @@ void UIMachineManagerWidget::sltHandleSplitterMove()
             m_pSplitterSettingsSaveTimer->setInterval(300);
             m_pSplitterSettingsSaveTimer->setSingleShot(true);
             connect(m_pSplitterSettingsSaveTimer, &QTimer::timeout,
-                    this, &UIMachineManagerWidget::sltHandleSplitterSettingsSave);
+                    this, &UIMachineToolsManagerWidget::sltHandleSplitterSettingsSave);
         }
     }
     /* [Re]start timer finally: */
     m_pSplitterSettingsSaveTimer->start();
 }
 
-void UIMachineManagerWidget::sltHandleSplitterSettingsSave()
+void UIMachineToolsManagerWidget::sltHandleSplitterSettingsSave()
 {
     const QList<int> splitterSizes = m_pSplitter->sizes();
     gEDataManager->setSelectorWindowSplitterHints(splitterSizes);
 }
 
-void UIMachineManagerWidget::sltHandleChooserPaneIndexChange()
+void UIMachineToolsManagerWidget::sltHandleChooserPaneIndexChange()
 {
     /* Let the parent know: */
     emit sigChooserPaneIndexChange();
@@ -293,12 +293,12 @@ void UIMachineManagerWidget::sltHandleChooserPaneIndexChange()
     m_fSelectedMachineItemAccessible = fCurrentItemIsOk;
 }
 
-void UIMachineManagerWidget::sltHandleChooserPaneSelectionInvalidated()
+void UIMachineToolsManagerWidget::sltHandleChooserPaneSelectionInvalidated()
 {
     recacheCurrentMachineItemInformation(true /* fDontRaiseErrorPane */);
 }
 
-void UIMachineManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
+void UIMachineToolsManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
 {
     /* Acquire current item: */
     UIVirtualMachineItem *pItem = currentItem();
@@ -338,7 +338,7 @@ void UIMachineManagerWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
     emit sigCloudMachineStateChange(uId);
 }
 
-void UIMachineManagerWidget::sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
+void UIMachineToolsManagerWidget::sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
 {
     /* Update tools menu beforehand: */
     UITools *pMenu = pItem ? toolMenu() : 0;
@@ -361,12 +361,12 @@ void UIMachineManagerWidget::sltHandleToolMenuRequested(const QPoint &position, 
     pMenu->resize(ourGeo.size());
 }
 
-void UIMachineManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
+void UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
 {
     switchToolTo(enmType);
 }
 
-void UIMachineManagerWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
+void UIMachineToolsManagerWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
 {
     AssertPtrReturnVoid(chooser());
     AssertPtrReturnVoid(toolMenu());
@@ -374,7 +374,7 @@ void UIMachineManagerWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
     toolMenu()->setToolsType(UIToolType_VMActivity);
 }
 
-void UIMachineManagerWidget::prepare()
+void UIMachineToolsManagerWidget::prepare()
 {
     /* Prepare everything: */
     prepareWidgets();
@@ -386,13 +386,13 @@ void UIMachineManagerWidget::prepare()
     /* Translate UI: */
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
-            this, &UIMachineManagerWidget::sltRetranslateUI);
+            this, &UIMachineToolsManagerWidget::sltRetranslateUI);
 
     /* Make sure current Chooser-pane index fetched: */
     sltHandleChooserPaneIndexChange();
 }
 
-void UIMachineManagerWidget::prepareWidgets()
+void UIMachineToolsManagerWidget::prepareWidgets()
 {
     /* Create layout: */
     QHBoxLayout *pLayout = new QHBoxLayout(this);
@@ -441,35 +441,35 @@ void UIMachineManagerWidget::prepareWidgets()
     chooser()->setFocus();
 }
 
-void UIMachineManagerWidget::prepareConnections()
+void UIMachineToolsManagerWidget::prepareConnections()
 {
     /* UICommon connections: */
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
-            this, &UIMachineManagerWidget::sltHandleCommitData);
+            this, &UIMachineToolsManagerWidget::sltHandleCommitData);
 
     /* Global COM event handlers: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-            this, &UIMachineManagerWidget::sltHandleMachineStateChange);
+            this, &UIMachineToolsManagerWidget::sltHandleMachineStateChange);
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-            this, &UIMachineManagerWidget::sltHandleSettingsExpertModeChange);
+            this, &UIMachineToolsManagerWidget::sltHandleSettingsExpertModeChange);
 
     /* Parent connections: */
     connect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
-            this, &UIMachineManagerWidget::sltSwitchToVMActivityTool);
+            this, &UIMachineToolsManagerWidget::sltSwitchToVMActivityTool);
 
     /* Splitter connections: */
     connect(m_pSplitter, &QISplitter::splitterMoved,
-            this, &UIMachineManagerWidget::sltHandleSplitterMove);
+            this, &UIMachineToolsManagerWidget::sltHandleSplitterMove);
 
     /* Chooser-pane connections: */
     connect(chooser(), &UIChooser::sigSelectionChanged,
-            this, &UIMachineManagerWidget::sltHandleChooserPaneIndexChange);
+            this, &UIMachineToolsManagerWidget::sltHandleChooserPaneIndexChange);
     connect(chooser(), &UIChooser::sigSelectionInvalidated,
-            this, &UIMachineManagerWidget::sltHandleChooserPaneSelectionInvalidated);
+            this, &UIMachineToolsManagerWidget::sltHandleChooserPaneSelectionInvalidated);
     connect(chooser(), &UIChooser::sigToolMenuRequested,
-            this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
+            this, &UIMachineToolsManagerWidget::sltHandleToolMenuRequested);
     connect(chooser(), &UIChooser::sigCloudMachineStateChange,
-            this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
+            this, &UIMachineToolsManagerWidget::sltHandleCloudMachineStateChange);
     connect(chooser(), &UIChooser::sigToggleStarted,
             toolPane(), &UIToolPaneMachine::sigToggleStarted);
     connect(chooser(), &UIChooser::sigToggleFinished,
@@ -477,10 +477,10 @@ void UIMachineManagerWidget::prepareConnections()
 
     /* Tools-menu connections: */
     connect(toolMenu(), &UITools::sigSelectionChanged,
-            this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
+            this, &UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange);
 }
 
-void UIMachineManagerWidget::loadSettings()
+void UIMachineToolsManagerWidget::loadSettings()
 {
     /* Restore splitter handle position: */
     {
@@ -498,31 +498,31 @@ void UIMachineManagerWidget::loadSettings()
     switchToolTo(toolMenu()->toolsType());
 }
 
-void UIMachineManagerWidget::cleanupConnections()
+void UIMachineToolsManagerWidget::cleanupConnections()
 {
     /* Global COM event handlers: */
     disconnect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-               this, &UIMachineManagerWidget::sltHandleMachineStateChange);
+               this, &UIMachineToolsManagerWidget::sltHandleMachineStateChange);
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-               this, &UIMachineManagerWidget::sltHandleSettingsExpertModeChange);
+               this, &UIMachineToolsManagerWidget::sltHandleSettingsExpertModeChange);
 
     /* Parent connections: */
     disconnect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
-               this, &UIMachineManagerWidget::sltSwitchToVMActivityTool);
+               this, &UIMachineToolsManagerWidget::sltSwitchToVMActivityTool);
 
     /* Splitter connections: */
     disconnect(m_pSplitter, &QISplitter::splitterMoved,
-               this, &UIMachineManagerWidget::sltHandleSplitterMove);
+               this, &UIMachineToolsManagerWidget::sltHandleSplitterMove);
 
     /* Chooser-pane connections: */
     disconnect(chooser(), &UIChooser::sigSelectionChanged,
-               this, &UIMachineManagerWidget::sltHandleChooserPaneIndexChange);
+               this, &UIMachineToolsManagerWidget::sltHandleChooserPaneIndexChange);
     disconnect(chooser(), &UIChooser::sigSelectionInvalidated,
-               this, &UIMachineManagerWidget::sltHandleChooserPaneSelectionInvalidated);
+               this, &UIMachineToolsManagerWidget::sltHandleChooserPaneSelectionInvalidated);
     disconnect(chooser(), &UIChooser::sigToolMenuRequested,
-               this, &UIMachineManagerWidget::sltHandleToolMenuRequested);
+               this, &UIMachineToolsManagerWidget::sltHandleToolMenuRequested);
     disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,
-               this, &UIMachineManagerWidget::sltHandleCloudMachineStateChange);
+               this, &UIMachineToolsManagerWidget::sltHandleCloudMachineStateChange);
     disconnect(chooser(), &UIChooser::sigToggleStarted,
                toolPane(), &UIToolPaneMachine::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,
@@ -530,15 +530,15 @@ void UIMachineManagerWidget::cleanupConnections()
 
     /* Tools-menu connections: */
     disconnect(toolMenu(), &UITools::sigSelectionChanged,
-               this, &UIMachineManagerWidget::sltHandleToolsMenuIndexChange);
+               this, &UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange);
 }
 
-UITools *UIMachineManagerWidget::toolMenu() const
+UITools *UIMachineToolsManagerWidget::toolMenu() const
 {
     return m_pMenuTools;
 }
 
-void UIMachineManagerWidget::recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane /* = false */)
+void UIMachineToolsManagerWidget::recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane /* = false */)
 {
     /* Sanity check, this method is for machine or group of machine items: */
     if (!isMachineItemSelected() && !isGroupItemSelected())
@@ -571,7 +571,7 @@ void UIMachineManagerWidget::recacheCurrentMachineItemInformation(bool fDontRais
     }
 }
 
-void UIMachineManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
+void UIMachineToolsManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
 {
     /* Get current item state: */
     const bool fCurrentItemIsOk = isItemAccessible(pItem);

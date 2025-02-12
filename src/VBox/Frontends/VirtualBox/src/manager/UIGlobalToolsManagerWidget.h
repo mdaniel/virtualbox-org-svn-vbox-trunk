@@ -42,7 +42,7 @@ class QGridLayout;
 class QIToolBar;
 class UIActionPool;
 class UIChooser;
-class UIMachineManagerWidget;
+class UIMachineToolsManagerWidget;
 class UIToolPaneGlobal;
 class UIToolPaneMachine;
 class UITools;
@@ -83,8 +83,8 @@ public:
       * @{ */
         /** Returns tool-pane instance. */
         UIToolPaneGlobal *toolPane() const;
-        /** Returns Machine Manager reference. */
-        UIMachineManagerWidget *machineManager() const;
+        /** Returns Machine Tool Manager reference. */
+        UIMachineToolsManagerWidget *machineToolManager() const;
 
         /** Returns menu tool type. */
         UIToolType menuToolType() const;
@@ -159,9 +159,9 @@ private:
       * @{ */
         /** Returns tool-menu instance. */
         UITools *toolMenu() const;
-        /** Returns Machine Manager's Chooser-pane reference. */
+        /** Returns Machine Tool Manager's Chooser-pane reference. */
         UIChooser *chooser() const;
-        /** Returns Machine Manager's Tool-pane instance. */
+        /** Returns Machine Tool Manager's Tool-pane instance. */
         UIToolPaneMachine *toolPaneMachine() const;
 
         /** Updates tools menu. */

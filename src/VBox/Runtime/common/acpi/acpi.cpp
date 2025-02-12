@@ -1792,7 +1792,7 @@ static int rtAcpiResourceAddDWordAddressRange(PRTACPIRESINT pThis, uint8_t bType
                                               uint32_t u32Granularity, uint32_t u32Length,
                                               const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
-    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
+    uint32_t cchRsrcSrc = pszRsrcSrc ? (uint32_t)strlen(pszRsrcSrc) + 2 : 0;
     uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 23);
     if (!pb)
         return VERR_NO_MEMORY;
@@ -1844,7 +1844,7 @@ static int rtAcpiResourceAddWordAddressRange(PRTACPIRESINT pThis, uint8_t bType,
                                               uint16_t u16Granularity, uint16_t u16Length,
                                               const char *pszRsrcSrc, uint8_t bRsrcIndex)
 {
-    size_t cchRsrcSrc = pszRsrcSrc ? strlen(pszRsrcSrc) + 2 : 0;
+    uint32_t cchRsrcSrc = pszRsrcSrc ? (uint32_t)strlen(pszRsrcSrc) + 2 : 0;
     uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + 13 + cchRsrcSrc);
     if (!pb)
         return VERR_NO_MEMORY;
@@ -2018,7 +2018,7 @@ DECLINLINE(uint8_t) rtAcpiResourceIoRangeToTypeFlags(RTACPIRESIORANGETYPE enmIoT
             break;
         case kAcpiResIoRangeType_Invalid:
         default:
-            AssertFailedReturn(VERR_INVALID_PARAMETER);
+            AssertFailedReturn(0);
     }
 
     switch (enmIoRange)
@@ -2034,7 +2034,7 @@ DECLINLINE(uint8_t) rtAcpiResourceIoRangeToTypeFlags(RTACPIRESIORANGETYPE enmIoT
             break;
         case kAcpiResIoRange_Invalid:
         default:
-            AssertFailedReturn(VERR_INVALID_PARAMETER);
+            AssertFailedReturn(0);
     }
 
     return fType;

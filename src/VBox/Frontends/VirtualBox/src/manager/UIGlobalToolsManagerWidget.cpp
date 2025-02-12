@@ -269,6 +269,9 @@ void UIGlobalToolsManagerWidget::loadSettings()
 {
     /* Open tool last chosen in tools-menu: */
     switchToolTo(toolMenu()->toolsType());
+
+    /* Update tools restrictions: */
+    updateToolsMenu();
 }
 
 void UIGlobalToolsManagerWidget::cleanupConnections()
@@ -309,6 +312,7 @@ void UIGlobalToolsManagerWidget::updateToolsMenu()
 {
     /* Update global tools restrictions: */
     QSet<UIToolType> restrictedTypes;
+    /* Restrict some types for Basic mode: */
     const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
     if (!fExpertMode)
         restrictedTypes << UIToolType_Media

@@ -94,6 +94,8 @@ private:
         void prepare();
         /** Prepares palette. */
         void preparePalette();
+        /** Prepare connections. */
+        void prepareConnections();
     /** @} */
 
     /** @name General stuff.

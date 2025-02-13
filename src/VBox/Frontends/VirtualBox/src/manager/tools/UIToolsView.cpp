@@ -185,10 +185,11 @@ void UIToolsView::prepare()
     /* Update scene-rect: */
     updateSceneRect();
 
+    /* Prepare connections: */
+    prepareConnections();
+
     /* Apply language settings: */
     sltRetranslateUI();
-    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
-            this, &UIToolsView::sltRetranslateUI);
 }
 
 void UIToolsView::preparePalette()
@@ -256,6 +257,13 @@ void UIToolsView::preparePalette()
     // and viewport, so we are assigning viewport palette as well.
     viewport()->setPalette(pal);
 #endif
+}
+
+void UIToolsView::prepareConnections()
+{
+    /* Translation signal: */
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIToolsView::sltRetranslateUI);
 }
 
 void UIToolsView::resizeEvent(QResizeEvent *pEvent)

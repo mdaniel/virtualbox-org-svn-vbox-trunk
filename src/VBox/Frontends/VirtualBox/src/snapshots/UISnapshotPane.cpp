@@ -683,6 +683,12 @@ void UISnapshotPane::showEvent(QShowEvent *pEvent)
     adjustTreeWidget();
 }
 
+void UISnapshotPane::sltDetachCOM()
+{
+    /* Clear machine item list: */
+    setMachineItems(QList<UIVirtualMachineItem*>());
+}
+
 void UISnapshotPane::sltHandleMachineDataChange(const QUuid &uMachineId)
 {
     /* Make sure it's our VM: */
@@ -1331,6 +1337,10 @@ void UISnapshotPane::prepare()
 
 void UISnapshotPane::prepareConnections()
 {
+    /* Install cleanup handler: */
+    connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
+            this, &UISnapshotPane::sltDetachCOM);
+
     /* Configure Main event connections: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineDataChange,
             this, &UISnapshotPane::sltHandleMachineDataChange);

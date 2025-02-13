@@ -111,6 +111,11 @@ protected:
 
 private slots:
 
+    /** @name Common signal handlers.
+      * @{ */
+        void sltDetachCOM();
+    /** @} */
+
     /** @name Main event handlers.
       * @{ */
         /** Handles machine data change for machine with @a uMachineId. */

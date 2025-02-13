@@ -194,10 +194,10 @@ VBoxVMM_SOURCES  = \
 	VMMAll/HMSVMAll.cpp \
 	VMMAll/HMVMXAll.cpp \
 	VMMAll/IEMAll.cpp \
-	VMMAll/IEMAllIntprTables1.cpp \
-	VMMAll/IEMAllIntprTables2.cpp \
-	VMMAll/IEMAllIntprTables3.cpp \
-	VMMAll/IEMAllIntprTables4.cpp \
+	VMMAll/target-x86/IEMAllIntprTables1-x86.cpp \
+	VMMAll/target-x86/IEMAllIntprTables2-x86.cpp \
+	VMMAll/target-x86/IEMAllIntprTables3-x86.cpp \
+	VMMAll/target-x86/IEMAllIntprTables4-x86.cpp \
 	VMMAll/target-x86/IEMAllAImplC-x86.cpp \
 	VMMAll/target-x86/IEMAllCImpl-x86.cpp \
 	VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp \
@@ -261,29 +261,29 @@ endif
 ifdef VBOX_WITH_IEM_RECOMPILER
  VBoxVMM_SOURCES += \
  	VMMAll/IEMAllThrdRecompiler.cpp \
- 	VMMAll/IEMAllThrdTables1.cpp \
- 	VMMAll/IEMAllThrdTables2.cpp \
- 	VMMAll/IEMAllThrdTables3.cpp \
- 	VMMAll/IEMAllThrdTables4.cpp \
- 	VMMAll/IEMAllThrdFuncs.cpp \
+ 	VMMAll/target-x86/IEMAllThrdTables1-x86.cpp \
+ 	VMMAll/target-x86/IEMAllThrdTables2-x86.cpp \
+ 	VMMAll/target-x86/IEMAllThrdTables3-x86.cpp \
+ 	VMMAll/target-x86/IEMAllThrdTables4-x86.cpp \
+ 	VMMAll/target-x86/IEMAllThrdFuncs-x86.cpp \
  	VMMAll/IEMAllThrdFuncsBltIn.cpp
  ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER
   VBoxVMM_SOURCES += \
   	VMMAll/IEMAllN8veExecMem.cpp \
   	VMMAll/IEMAllN8veRecompiler.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs1.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs2.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs3.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs4.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs5.cpp \
-  	VMMAll/IEMAllN8veRecompFuncs6.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs1-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs2-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs3-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs4-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs5-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veRecompFuncs6-x86.cpp \
   	VMMAll/IEMAllN8veRecompBltIn.cpp \
-  	VMMAll/IEMAllN8veLiveness1.cpp \
-  	VMMAll/IEMAllN8veLiveness2.cpp \
-  	VMMAll/IEMAllN8veLiveness3.cpp \
-  	VMMAll/IEMAllN8veLiveness4.cpp \
-  	VMMAll/IEMAllN8veLiveness5.cpp \
-  	VMMAll/IEMAllN8veLiveness6.cpp
+  	VMMAll/target-x86/IEMAllN8veLiveness1-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veLiveness2-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veLiveness3-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veLiveness4-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veLiveness5-x86.cpp \
+  	VMMAll/target-x86/IEMAllN8veLiveness6-x86.cpp
   VBoxVMM_SOURCES.amd64 += \
   	VMMAll/IEMAllN8veHlpA.asm
   VBoxVMM_SOURCES.arm64 += \
@@ -295,7 +295,7 @@ ifdef VBOX_WITH_IEM_RECOMPILER
   endif
   VMMAll/IEMAllN8veRecompiler.cpp_CXXFLAGS.win := -bigobj
  endif
- VMMAll/IEMAllThrdFuncs.cpp_CXXFLAGS.win       := -bigobj
+ VMMAll/target-x86/IEMAllThrdFuncs-x86.cpp_CXXFLAGS.win := -bigobj
 endif
 
 ifdef VBOX_WITH_NATIVE_NEM
@@ -353,31 +353,32 @@ endif
 #endif
 
 if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
- VBoxVMM_VMMAll/IEMAll.cpp_CXXFLAGS                  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllIntprTables1.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- #VBoxVMM_VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- #VBoxVMM_VMMAll/IEMAllIntprTables4.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAll.cpp_CXXFLAGS                                 = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllIntprTables1-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllIntprTables2-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ #VBoxVMM_VMMAll/target-x86/IEMAllIntprTables3-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ #VBoxVMM_VMMAll/target-x86/IEMAllIntprTables4-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS            = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllN8veExecMem.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllN8veRecompiler.cpp_CXXFLAGS    = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllN8veRecompFuncs1.cpp_CXXFLAGS  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- #VBoxVMM_VMMAll/IEMAllN8veRecompFuncs2.cpp_CXXFLAGS  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllN8veRecompBltIn.cpp_CXXFLAGS   = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllN8veLiveness1.cpp_CXXFLAGS     = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- #VBoxVMM_VMMAll/IEMAllN8veLiveness2.cpp_CXXFLAGS     = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllThrdRecompiler.cpp_CXXFLAGS    = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllThrdFuncsBltIn.cpp_CXXFLAGS    = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllThrdTables1.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- #VBoxVMM_VMMAll/IEMAllThrdFuncs.cpp_CXXFLAGS         = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/PGMAll.cpp_CXXFLAGS                  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/PDMAllCritSect.cpp_CXXFLAGS          = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllN8veExecMem.cpp_CXXFLAGS                      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllN8veRecompiler.cpp_CXXFLAGS                   = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllN8veRecompFuncs1-x86.cpp_CXXFLAGS  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ #VBoxVMM_VMMAll/target-x86/IEMAllN8veRecompFuncs2-x86.cpp_CXXFLAGS  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllN8veRecompBltIn.cpp_CXXFLAGS                  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllN8veLiveness1-x86.cpp_CXXFLAGS     = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ #VBoxVMM_VMMAll/target-x86/IEMAllN8veLiveness2-x86.cpp_CXXFLAGS     = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllThrdRecompiler.cpp_CXXFLAGS                   = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllThrdFuncsBltIn.cpp_CXXFLAGS                   = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllThrdTables1-x86.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ #VBoxVMM_VMMAll/target-x86/IEMAllThrdFuncs-x86.cpp_CXXFLAGS         = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/PGMAll.cpp_CXXFLAGS                                 = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/PDMAllCritSect.cpp_CXXFLAGS                         = /FAcs /Fa$(subst /,\\,$(outbase).cod)
 
  VBoxVMM_CLEAN += $(addprefix $(VBoxVMM_0_OUTDIR)/VMMAll/, \
- 		IEMAll.cod IEMAllIntprTables1.cod IEMAllIntprTables2.cod IEMAllIntprTables3.cod IEMAllIntprTables4.cod IEMAllAImplC-x86.cod \
- 		IEMAllN8veExecMem.cod IEMAllN8veRecompiler.cod IEMAllN8veRecompFuncs1.cod IEMAllN8veRecompFuncs2.cod \
- 		IEMAllThrdRecompiler.cod IEMAllThrdFuncsBltIn.cod IEMAllThrdTables1.cod IEMAllThrdFuncs.cod \
- 		IEMAllN8veRecompBltIn.cod IEMAllN8veLiveness1.cod IEMAllN8veLiveness2.cod PGMAll.cod PDMAllCritSect.cod)
+ 		IEMAll.cod IEMAllIntprTables1-x86.cod IEMAllIntprTables2-x86.cod IEMAllIntprTables3-x86.cod \
+ 		IEMAllIntprTables4-x86.cod IEMAllAImplC-x86.cod \
+ 		IEMAllN8veExecMem.cod IEMAllN8veRecompiler.cod IEMAllN8veRecompFuncs1-x86.cod IEMAllN8veRecompFuncs2-x86.cod \
+ 		IEMAllThrdRecompiler.cod IEMAllThrdFuncsBltIn.cod IEMAllThrdTables1-x86.cod IEMAllThrdFuncs-x86.cod \
+ 		IEMAllN8veRecompBltIn.cod IEMAllN8veLiveness1-x86.cod IEMAllN8veLiveness2-x86.cod PGMAll.cod PDMAllCritSect.cod)
 endif
 
 $(call VBOX_SET_VER_INFO_DLL,VBoxVMM,VirtualBox VMM) # Version info / description.
@@ -617,18 +618,18 @@ ifdef VBOX_WITH_IEM_RECOMPILER
  		$(PATH_SUB_CURRENT)/VMMAll/IEMAllThrdPython.py \
  		$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstPython.py \
  		$(PATH_SUB_CURRENT)/VMMAll/IEMAllN8vePython.py \
- 		$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstCommon.cpp.h \
- 		$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstCommonBodyMacros.h \
- 		$(if-expr !defined(IEM_WITHOUT_3DNOW)      ,$(PATH_SUB_CURRENT)/VMMAll/IEMAllInst3DNow.cpp.h,) \
- 		$(if-expr !defined(IEM_WITHOUT_THREE_0F_38),$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstThree0f38.cpp.h,) \
- 		$(if-expr !defined(IEM_WITHOUT_THREE_0F_3A),$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstThree0f3a.cpp.h,) \
- 		$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstTwoByte0f.cpp.h \
+ 		$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstCommon-x86.cpp.h \
+ 		$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstCommonBodyMacros-x86.h \
+ 		$(if-expr !defined(IEM_WITHOUT_3DNOW)      ,$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInst3DNow-x86.cpp.h,) \
+ 		$(if-expr !defined(IEM_WITHOUT_THREE_0F_38),$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstThree0f38-x86.cpp.h,) \
+ 		$(if-expr !defined(IEM_WITHOUT_THREE_0F_3A),$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstThree0f3a-x86.cpp.h,) \
+ 		$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstTwoByte0f-x86.cpp.h \
  		$(if-expr !defined(IEM_WITHOUT_VEX), \
- 			$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstVexMap1.cpp.h \
- 			$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstVexMap2.cpp.h \
- 			$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstVexMap3.cpp.h,) \
- 		$(PATH_SUB_CURRENT)/VMMAll/IEMAllInstOneByte.cpp.h
-	$(QUIET)$(call MSG_GENERATE,VBoxVMM,$@,VMMAll/IEMAllInst*.cpp.h)
+ 			$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstVexMap1-x86.cpp.h \
+ 			$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstVexMap2-x86.cpp.h \
+ 			$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstVexMap3-x86.cpp.h,) \
+ 		$(PATH_SUB_CURRENT)/VMMAll/target-x86/IEMAllInstOneByte-x86.cpp.h
+	$(QUIET)$(call MSG_GENERATE,VBoxVMM,$@,VMMAll/target-x86/IEMAllInst*.cpp.h)
 	$(QUIET)$(RM) -f -- \
 		$(foreach x, 1 2 3 4,"$(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMThreadedInstructions${x}.cpp.h.ts") \
 		"$(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMThreadedFunctions.cpp.h.ts" \
@@ -935,10 +936,10 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/HMSVMAll.cpp \
   	VMMAll/HMVMXAll.cpp \
   	VMMAll/IEMAll.cpp \
-  	VMMAll/IEMAllIntprTables1.cpp \
-  	VMMAll/IEMAllIntprTables2.cpp \
-  	VMMAll/IEMAllIntprTables3.cpp \
-  	VMMAll/IEMAllIntprTables4.cpp \
+  	VMMAll/target-x86/IEMAllIntprTables1-x86.cpp \
+  	VMMAll/target-x86/IEMAllIntprTables2-x86.cpp \
+  	VMMAll/target-x86/IEMAllIntprTables3-x86.cpp \
+  	VMMAll/target-x86/IEMAllIntprTables4-x86.cpp \
   	VMMAll/target-x86/IEMAllAImplC-x86.cpp \
   	VMMAll/target-x86/IEMAllCImpl-x86.cpp \
   	VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp \
@@ -1148,25 +1149,25 @@ if "$(KBUILD_TYPE)" == "release" || ($(USERNAME) != "aeichner")
   # -noover is recognized despite the statement saying otherwise. It silences these warnings:
   # cl : Command line warning D9025 : overriding '/Od' with '/O2'
   # cl : Command line warning D9025 : overriding '/Oy-' with '/Oy'
-  VMMAll/IEMAll.cpp_CXXFLAGS                        += -noover -O2xy
+  VMMAll/IEMAll.cpp_CXXFLAGS                                       += -noover -O2xy
   VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS                  += -noover -O2xy
   VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -noover -O2xy
   VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -noover -O2xy
   VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp_CXXFLAGS           += -noover -O2xy
-  VMMAll/IEMAllIntprTables1.cpp_CXXFLAGS            += -noover -O2xy
-  VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS            += -noover -O2xy
-  VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS            += -noover -O2xy
-  VMMAll/IEMAllIntprTables4.cpp_CXXFLAGS            += -noover -O2xy
+  VMMAll/target-x86/IEMAllIntprTables1-x86.cpp_CXXFLAGS            += -noover -O2xy
+  VMMAll/target-x86/IEMAllIntprTables2-x86.cpp_CXXFLAGS            += -noover -O2xy
+  VMMAll/target-x86/IEMAllIntprTables3-x86.cpp_CXXFLAGS            += -noover -O2xy
+  VMMAll/target-x86/IEMAllIntprTables4-x86.cpp_CXXFLAGS            += -noover -O2xy
  else
   # Omitting the frame pointer results in larger code, but it might be worth it. (esp addressing vs ebp?)
-  VMMAll/IEMAll.cpp_CXXFLAGS                        += -O2 -fomit-frame-pointer
+  VMMAll/IEMAll.cpp_CXXFLAGS                                       += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllIntprTables1.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllIntprTables4.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllIntprTables1-x86.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllIntprTables2-x86.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllIntprTables3-x86.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllIntprTables4-x86.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
  endif
 endif # bird wants good stacks (aeichner as well)
 

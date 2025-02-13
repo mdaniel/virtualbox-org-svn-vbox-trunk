@@ -158,15 +158,15 @@ define def_VBoxGenIEMInstructionStatisticsTmpl_Header
  $$(call KB_FN_AUTO_CMD_DEPS,$(2)/IEMInstructionStatisticsTmpl.h.ts)
  $(2)/IEMInstructionStatisticsTmpl.h.ts \
  +| $(2)/IEMInstructionStatisticsTmpl.h: \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstCommon.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstOneByte.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstTwoByte0f.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstThree0f38.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstThree0f3a.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstVexMap1.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstVexMap2.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInstVexMap3.cpp.h \
- 		$$(VBOX_PATH_SRC_VMM)/VMMAll/IEMAllInst3DNow.cpp.h
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstCommon-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstOneByte-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstTwoByte0f-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstThree0f38-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstThree0f3a-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstVexMap1-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstVexMap2-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInstVexMap3-x86.cpp.h \
+ 		$$(VBOX_PATH_SRC_VMM)/VMMAll/target-x86/IEMAllInst3DNow-x86.cpp.h
 	$$(QUIET)$(call MSG_GENERATE,$(1),$$@,VMMAll/IEMAllInst*.cpp.h)
 	$$(QUIET)$$(RM) -f -- "$$@.tmp" "$$@.tmp" "$$@.sorted"
 	$$(QUIET)$$(MKDIR) -p -- "$$(dir $$@)"

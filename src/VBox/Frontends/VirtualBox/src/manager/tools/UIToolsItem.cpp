@@ -543,12 +543,6 @@ void UIToolsItem::prepareConnections()
 
 void UIToolsItem::cleanup()
 {
-    /* If that item is focused: */
-    if (model()->focusItem() == this)
-    {
-        /* Unset the focus item: */
-        model()->setFocusItem(0);
-    }
     /* If that item is current: */
     if (model()->currentItem() == this)
     {

@@ -218,9 +218,6 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     /* Notify about selection change: */
     emit sigSelectionChanged(toolsType());
 
-    /* Move focus to current-item: */
-    setFocusItem(currentItem());
-
     /* Adjust corresponding actions finally: */
     const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
     QMap<UIToolType, UIAction*> actions;
@@ -238,45 +235,6 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
 UIToolsItem *UIToolsModel::currentItem() const
 {
     return m_pCurrentItem;
-}
-
-void UIToolsModel::setFocusItem(UIToolsItem *pItem)
-{
-    /* Always make sure real focus unset: */
-    scene()->setFocusItem(0);
-
-    /* Is there something changed? */
-    if (m_pFocusItem == pItem)
-        return;
-
-    /* Remember old focus-item: */
-    UIToolsItem *pOldFocusItem = m_pFocusItem;
-
-    /* If there is item: */
-    if (pItem)
-    {
-        /* Set this item to focus if navigation list contains it: */
-        if (navigationList().contains(pItem))
-            m_pFocusItem = pItem;
-        /* Otherwise it's error: */
-        else
-            AssertMsgFailed(("Passed item is not in navigation list!"));
-    }
-    /* Otherwise reset focus item: */
-    else
-        m_pFocusItem = 0;
-
-    /* Disconnect old focus-item (if any): */
-    if (pOldFocusItem)
-        disconnect(pOldFocusItem, &UIToolsItem::destroyed, this, &UIToolsModel::sltFocusItemDestroyed);
-    /* Connect new focus-item (if any): */
-    if (m_pFocusItem)
-        connect(m_pFocusItem.data(), &UIToolsItem::destroyed, this, &UIToolsModel::sltFocusItemDestroyed);
-}
-
-UIToolsItem *UIToolsModel::focusItem() const
-{
-    return m_pFocusItem;
 }
 
 const QList<UIToolsItem*> &UIToolsModel::navigationList() const
@@ -412,10 +370,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     if (pWatched != scene())
         return QObject::eventFilter(pWatched, pEvent);
 
-    /* Process only item focused by model: */
-    if (scene()->focusItem())
-        return QObject::eventFilter(pWatched, pEvent);
-
     /* Do not handle disabled items: */
     if (!currentItem()->isEnabled())
         return QObject::eventFilter(pWatched, pEvent);
@@ -489,11 +443,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
 
     /* Call to base-class: */
     return QObject::eventFilter(pWatched, pEvent);
-}
-
-void UIToolsModel::sltFocusItemDestroyed()
-{
-    AssertMsgFailed(("Focus item destroyed!"));
 }
 
 void UIToolsModel::sltRetranslateUI()

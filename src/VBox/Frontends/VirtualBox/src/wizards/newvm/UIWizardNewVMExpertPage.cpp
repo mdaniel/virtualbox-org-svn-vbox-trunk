@@ -128,6 +128,7 @@ void UIWizardNewVMExpertPage::sltNameChanged(const QString &strNewName)
 void UIWizardNewVMExpertPage::sltPathChanged(const QString &strNewPath)
 {
     Q_UNUSED(strNewPath);
+    emit completeChanged();
     UIWizardNewVMNameOSTypeCommon::composeMachineFilePath(m_pNameAndSystemEditor, wizardWindow<UIWizardNewVM>());
     if (!m_userModifiedParameters.contains("MediumPath"))
         updateVirtualMediumPathFromMachinePathName();

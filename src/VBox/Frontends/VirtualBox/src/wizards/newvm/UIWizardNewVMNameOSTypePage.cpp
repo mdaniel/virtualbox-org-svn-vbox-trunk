@@ -569,6 +569,7 @@ void UIWizardNewVMNameOSTypePage::sltNameChanged(const QString &strNewName)
 void UIWizardNewVMNameOSTypePage::sltPathChanged(const QString &strNewPath)
 {
     Q_UNUSED(strNewPath);
+    emit completeChanged();
     UIWizardNewVMNameOSTypeCommon::composeMachineFilePath(m_pNameAndSystemEditor, wizardWindow<UIWizardNewVM>());
 }
 

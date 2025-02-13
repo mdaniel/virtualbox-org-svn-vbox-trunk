@@ -158,7 +158,6 @@ void UIToolsView::sltMinimumHeightHintChanged(int iHint)
 
 void UIToolsView::sltRetranslateUI()
 {
-    /* Translate this: */
     setWhatsThis(tr("Contains a list of VirtualBox tools."));
 }
 
@@ -167,12 +166,23 @@ void UIToolsView::prepare()
     /* Install Tools-view accessibility interface factory: */
     QAccessible::installFactory(UIAccessibilityInterfaceForUIToolsView::pFactory);
 
+    /* Prepare everything: */
+    prepareThis();
+    preparePalette();
+    prepareConnections();
+
+    /* Update scene-rect: */
+    updateSceneRect();
+
+    /* Apply language settings: */
+    sltRetranslateUI();
+}
+
+void UIToolsView::prepareThis()
+{
     /* No minimum size-hint for widget mode: */
     if (!isPopup())
         setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-
-    /* Prepare palette: */
-    preparePalette();
 
     /* Setup frame: */
     setFrameShape(QFrame::NoFrame);
@@ -181,15 +191,6 @@ void UIToolsView::prepare()
 
     /* Setup scroll-bars policy: */
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    /* Update scene-rect: */
-    updateSceneRect();
-
-    /* Prepare connections: */
-    prepareConnections();
-
-    /* Apply language settings: */
-    sltRetranslateUI();
 }
 
 void UIToolsView::preparePalette()

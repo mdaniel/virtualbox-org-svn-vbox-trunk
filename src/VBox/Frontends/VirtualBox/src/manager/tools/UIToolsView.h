@@ -92,9 +92,11 @@ private:
       * @{ */
         /** Prepares all. */
         void prepare();
+        /** Prepares this. */
+        void prepareThis();
         /** Prepares palette. */
         void preparePalette();
-        /** Prepare connections. */
+        /** Prepares connections. */
         void prepareConnections();
     /** @} */
 

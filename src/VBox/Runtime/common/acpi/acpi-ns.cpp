@@ -230,7 +230,10 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
     PRTACPINSENTRY pNsEntry = NULL;
     int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, &pNsEntry);
     if (RT_SUCCESS(rc))
+    {
+        pNsEntry->fAstNd = true;
         pNsEntry->pAstNd = pAstNd;
+    }
 
     return rc;
 }
@@ -242,12 +245,107 @@ DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *psz
     int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, &pNsEntry);
     if (RT_SUCCESS(rc))
     {
+        pNsEntry->fAstNd  = false;
         pNsEntry->pAstNd  = NULL;
         pNsEntry->offBits = offBits;
         pNsEntry->cBits   = cBits;
     }
 
     return rc;
+}
+
+
+DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal)
+{
+    PRTACPINSENTRY pNsEntry = NULL;
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, &pNsEntry);
+    if (RT_SUCCESS(rc))
+    {
+        pNsEntry->fAstNd    = false;
+        pNsEntry->pExternal = pExternal;
+    }
+
+    return rc;
+}
+
+
+DECLHIDDEN(int) rtAcpiNsQueryNamePathForNameString(PRTACPINSROOT pNsRoot, const char *pszNameString, char *pachNamePath, size_t *pcchNamePath)
+{
+    AssertReturn(!pachNamePath || *pcchNamePath >= 6, VERR_INVALID_PARAMETER); /* Needs to support at least \XXXX and the zero terminator. */
+
+    const char *pszNameSegLast = NULL;
+    PCRTACPINSENTRY pNsEntry = rtAcpiNsLookupWorker(pNsRoot, pszNameString, true /*fExcludeLast*/, &pszNameSegLast);
+    if (pNsEntry)
+    {
+        int rc = VERR_BUFFER_OVERFLOW;
+        size_t cchNamePath = 1; /* For the root prefix. */
+
+        if (!pachNamePath)
+        {
+            /* Calculate the name path size based on the number of segments. */
+            uint32_t cEntries = 0;
+            do
+            {
+                cEntries++;
+                pNsEntry = pNsEntry->pParent;
+            } while (pNsEntry);
+
+            cchNamePath += cEntries * (4 + 1) - 1; /* XXXX., except for the last one. */
+        }
+        else
+        {
+            uint32_t idxEntry = 0;
+            PCRTACPINSENTRY aNsEntries[255]; /* Maximum amount of name segments possible. */
+            do
+            {
+                aNsEntries[idxEntry++] = pNsEntry;
+                pNsEntry = pNsEntry->pParent;
+            } while (pNsEntry);
+
+            char *pch = pachNamePath;
+            *pch++ = '\\';
+            *pch   = '\0';
+
+            /* The last entry must be the root entry. */
+            idxEntry--;
+            Assert(!aNsEntries[idxEntry]->pParent);
+
+            while (idxEntry)
+            {
+                pNsEntry = aNsEntries[--idxEntry];
+                if (cchNamePath + 5 < *pcchNamePath)
+                {
+                    pch[0] = pNsEntry->achNameSeg[0];
+                    pch[1] = pNsEntry->achNameSeg[1];
+                    pch[2] = pNsEntry->achNameSeg[2];
+                    pch[3] = pNsEntry->achNameSeg[3];
+                    pch[4] = '.';
+                    pch += 5;
+                }
+                cchNamePath += 5;
+            }
+
+            /* Append the last name segment. */
+            if (cchNamePath + 5 < *pcchNamePath)
+            {
+                pch[0] = pszNameSegLast[0];
+                pch[1] = pszNameSegLast[1];
+                pch[2] = pszNameSegLast[2];
+                pch[3] = pszNameSegLast[3];
+                pch[4] = '\0';
+                cchNamePath += 4;
+            }
+
+            if (cchNamePath <= *pcchNamePath)
+                rc = VINF_SUCCESS;
+        }
+
+        *pcchNamePath = cchNamePath;
+        return rc;
+    }
+
+    *pcchNamePath = 0;
+    return VERR_NOT_FOUND;
 }
 
 

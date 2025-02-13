@@ -236,6 +236,31 @@ typedef struct RTACPIASTNODE
 #define RTACPI_AST_NODE_F_NS_ENTRY      RT_BIT_32(1)
 
 
+/**
+ * External declaration.
+ */
+typedef struct RTACPIASLEXTERNAL
+{
+    /** List node for the list of externals. */
+    RTLISTNODE              NdExternal;
+    /** The object type. */
+    RTACPIOBJTYPE           enmObjType;
+    /** For methods this will hold the argument count. */
+    uint32_t                cArgs;
+    /** The name as parsed from the source file. */
+    const char              *pszName;
+    /** Size of the full name path in characters excluding the terminating zero. */
+    size_t                  cchNamePath;
+    /** The name path - variable in size. */
+    char                    szNamePath[1];
+} RTACPIASLEXTERNAL;
+/** Pointer to an external declaration. */
+typedef RTACPIASLEXTERNAL *PRTACPIASLEXTERNAL;
+/** Pointer to a const external declaration. */
+typedef const RTACPIASLEXTERNAL *PCRTACPIASLEXTERNAL;
+
+
+
 /** Pointer to an ACPI namespace entry. */
 typedef struct RTACPINSENTRY *PRTACPINSENTRY;
 
@@ -251,8 +276,16 @@ typedef struct RTACPINSENTRY
     PRTACPINSENTRY          pParent;
     /** The name segment identifying the entry. */
     char                    achNameSeg[4];
-    /** The AST node associated with this namespace entry. */
-    PCRTACPIASTNODE         pAstNd;
+    /** Flag whether this points to an AST node or an external. */
+    bool                    fAstNd;
+    /** Type dependent data. */
+    union
+    {
+        /** The AST node associated with this namespace entry. */
+        PCRTACPIASTNODE     pAstNd;
+        /** Pointer to the external declaration. */
+        PCRTACPIASLEXTERNAL pExternal;
+    };
     /** Bit offset for resource fields. */
     uint32_t                offBits;
     /** Bit count for resource fields. */
@@ -354,6 +387,34 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
  * @param   cBits               NUmber of bits this resource field has.
  */
 DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *pszNameString, uint32_t offBits, uint32_t cBits);
+
+
+/**
+ * Adds a new namespace entry to the given name space - resource field.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root to add the entry to.
+ * @param   pszNameString       An ACPI NameString (either segment or path).
+ * @param   offBits             Bit offset from the beginning of the resource.
+ * @param   cBits               NUmber of bits this resource field has.
+ */
+DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal);
+
+
+/**
+ * Queries the name path for the given name string based on the current scope.
+ *
+ * @returns IPRT status code.
+ * @retval  VERR_NOT_FOUND if the name string can't be resolved to a name path with the given namespace.
+ * @retval  VERR_BUFFER_OVERFLOW if the buffer for holding the name path is too small. pcchNamePath will
+ *                               hold the required number of characters, excluding the zero temrinator.
+ * @param   pNsRoot             The namespace root.
+ * @param   pszNameString       The name string to query the name path for.
+ * @param   pachNamePath        Where to store the name path (including zero terminator), or NULL if the size is queried.
+ * @param   pcchNamePath        Holds the size of the name path buffer on input, on successful return
+ *                              holds the actual length of the name path excluding the zero terminator.
+ */
+DECLHIDDEN(int) rtAcpiNsQueryNamePathForNameString(PRTACPINSROOT pNsRoot, const char *pszNameString, char *pachNamePath, size_t *pcchNamePath);
 
 
 /**

@@ -208,6 +208,8 @@ typedef struct RTACPIASLCU
     RTACPITBL               hAcpiTbl;
     /** Error information. */
     PRTERRINFO              pErrInfo;
+    /** List of external declarations. */
+    RTLISTANCHOR            LstExternals;
     /** List of AST nodes for the DefinitionBlock() scope. */
     RTLISTANCHOR            LstStmts;
     /** The ACPI namespace. */
@@ -995,22 +997,14 @@ static const RTACPIASLTERMINAL g_aenmRwRoKeywords[] = {
 
 
 
-static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIASLKEYWORD pKeyword, PRTACPIASTNODE pAstNd)
+static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis)
 {
-    RT_NOREF(pKeyword, pAstNd);
-
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_BRACKET, '(');
 
     /* Namestring is required. */
     RTACPIASL_PARSE_NAME_STRING(pszNameString);
-    pAstNd->aArgs[0].enmType         = kAcpiAstArgType_NameString;
-    pAstNd->aArgs[0].u.pszNameString = pszNameString;
 
-    /* Defaults for optional arguments. */
-    pAstNd->aArgs[1].enmType      = kAcpiAstArgType_ObjType;
-    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Unknown;
-    pAstNd->aArgs[2].enmType      = kAcpiAstArgType_U8;
-    pAstNd->aArgs[2].u.u8         = 0;
+    RTACPIOBJTYPE enmObjType = kAcpiObjType_Unknown;
 
     if (rtAcpiAslLexerIsPunctuator(pThis, RTACPIASLTERMINAL_PUNCTUATOR_COMMA))
     {
@@ -1025,21 +1019,21 @@ static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIA
         {
             switch (enmKeyword)
             {
-                case RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ:      pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Unknown; break;
-                case RTACPIASLTERMINAL_KEYWORD_INT_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Int; break;
-                case RTACPIASLTERMINAL_KEYWORD_STR_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Str; break;
-                case RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ:         pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Buff; break;
-                case RTACPIASLTERMINAL_KEYWORD_PKG_OBJ:          pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Pkg; break;
-                case RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ:   pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_FieldUnit; break;
-                case RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ:       pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Device; break;
-                case RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ:        pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Event; break;
-                case RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ:       pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Method; break;
-                case RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ:        pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_MutexObj; break;
-                case RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_OpRegion; break;
-                case RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_PowerRes; break;
-                case RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ: pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_ThermalZone; break;
-                case RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ:   pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_BuffField; break;
-                case RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ:    pAstNd->aArgs[1].u.enmObjType = kAcpiObjType_Processor; break;
+                case RTACPIASLTERMINAL_KEYWORD_UNKNOWN_OBJ:      enmObjType = kAcpiObjType_Unknown; break;
+                case RTACPIASLTERMINAL_KEYWORD_INT_OBJ:          enmObjType = kAcpiObjType_Int; break;
+                case RTACPIASLTERMINAL_KEYWORD_STR_OBJ:          enmObjType = kAcpiObjType_Str; break;
+                case RTACPIASLTERMINAL_KEYWORD_BUFF_OBJ:         enmObjType = kAcpiObjType_Buff; break;
+                case RTACPIASLTERMINAL_KEYWORD_PKG_OBJ:          enmObjType = kAcpiObjType_Pkg; break;
+                case RTACPIASLTERMINAL_KEYWORD_FIELD_UNIT_OBJ:   enmObjType = kAcpiObjType_FieldUnit; break;
+                case RTACPIASLTERMINAL_KEYWORD_DEVICE_OBJ:       enmObjType = kAcpiObjType_Device; break;
+                case RTACPIASLTERMINAL_KEYWORD_EVENT_OBJ:        enmObjType = kAcpiObjType_Event; break;
+                case RTACPIASLTERMINAL_KEYWORD_METHOD_OBJ:       enmObjType = kAcpiObjType_Method; break;
+                case RTACPIASLTERMINAL_KEYWORD_MUTEX_OBJ:        enmObjType = kAcpiObjType_MutexObj; break;
+                case RTACPIASLTERMINAL_KEYWORD_OP_REGION_OBJ:    enmObjType = kAcpiObjType_OpRegion; break;
+                case RTACPIASLTERMINAL_KEYWORD_POWER_RES_OBJ:    enmObjType = kAcpiObjType_PowerRes; break;
+                case RTACPIASLTERMINAL_KEYWORD_THERMAL_ZONE_OBJ: enmObjType = kAcpiObjType_ThermalZone; break;
+                case RTACPIASLTERMINAL_KEYWORD_BUFF_FIELD_OBJ:   enmObjType = kAcpiObjType_BuffField; break;
+                case RTACPIASLTERMINAL_KEYWORD_PROCESSOR_OBJ:    enmObjType = kAcpiObjType_Processor; break;
                 default:
                     AssertFailedReturn(VERR_INTERNAL_ERROR);
             }
@@ -1062,9 +1056,29 @@ static DECLCALLBACK(int) rtAcpiTblAslParseExternal(PRTACPIASLCU pThis, PCRTACPIA
 
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
 
-    int rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, true /*fSwitchTo*/);
+    /* Query the final name path. */
+    char achNamePath[_1K];
+    size_t cchNamePath = RT_ELEMENTS(achNamePath) * sizeof(char);
+    int rc = rtAcpiNsQueryNamePathForNameString(pThis->pNs, pszNameString, &achNamePath[0], &cchNamePath);
     if (RT_FAILURE(rc))
-        return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add External(%s,,,) to namespace", pAstNd->aArgs[0].u.pszNameString);
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to query name path for External(%s,,,)", pszNameString);
+
+    size_t const cbExternal = RT_UOFFSETOF_DYN(RTACPIASLEXTERNAL, szNamePath[cchNamePath + 1]);
+    PRTACPIASLEXTERNAL pExternal = (PRTACPIASLEXTERNAL)RTMemAllocZ(cbExternal);
+    if (!pExternal)
+        return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Out of memory allocating %u bytes for External(%s,,,)", pszNameString, cbExternal);
+
+    RTListAppend(&pThis->LstExternals, &pExternal->NdExternal);
+
+    pExternal->enmObjType  = enmObjType;
+    pExternal->cArgs       = UINT32_MAX;
+    pExternal->pszName     = pszNameString;
+    pExternal->cchNamePath = cchNamePath;
+    memcpy(&pExternal->szNamePath[0], &achNamePath[0], cchNamePath + 1);
+
+    rc = rtAcpiNsAddEntryExternal(pThis->pNs, pszNameString, pExternal);
+    if (RT_FAILURE(rc))
+        return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add External(%s,,,) to namespace", pszNameString);
 
     return VINF_SUCCESS;
 }
@@ -1198,7 +1212,7 @@ static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd
             /* Must be an integer */
             RTACPIASL_PARSE_NATURAL(offBytes);
             aFieldEntries[cFields].pszName = NULL;
-            aFieldEntries[cFields].cBits   = offBytes * sizeof(uint8_t);
+            aFieldEntries[cFields].cBits   = offBytes * 8;
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
         }
         else
@@ -2398,7 +2412,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
                                                           { kAcpiAstArgType_Invalid, { 0 } }
                                                       }
                                                   },
-    /* kAcpiAstNodeOp_External                */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "External",               rtAcpiTblAslParseExternal, 1, 2, RTACPI_AST_NODE_F_DEFAULT),
+    /* kAcpiAstNodeOp_External                */  RTACPI_ASL_KEYWORD_DEFINE_INVALID, /* Special handling. */
     /* kAcpiAstNodeOp_Method                  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",                 rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
     /* kAcpiAstNodeOp_Device                  */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",                 RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,   kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_If                      */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",                     RTACPI_AST_NODE_F_NEW_SCOPE,                                kAcpiAstArgType_AstNode),
@@ -2757,10 +2771,27 @@ static int rtAcpiTblAslParseIde(PRTACPIASLCU pThis, const char *pszIde, PRTACPIA
 
 static int rtAcpiTblAslParseTermArg(PRTACPIASLCU pThis, PRTACPIASTNODE *ppAstNd)
 {
+    int rc;
     PCRTSCRIPTLEXTOKEN pTok;
-    int rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
-    if (RT_FAILURE(rc))
-        return RTErrInfoSetF(pThis->pErrInfo, rc, "Parser: Failed to query next token with %Rrc", rc);
+
+    /* External declarations are treated differently so consume all here. */
+    for (;;)
+    {
+        rc = RTScriptLexQueryToken(pThis->hLexSource, &pTok);
+        if (RT_FAILURE(rc))
+            return RTErrInfoSetF(pThis->pErrInfo, rc, "Parser: Failed to query next token with %Rrc", rc);
+
+        if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD
+            && pTok->Type.Keyword.pKeyword->u64Val == kAcpiAstNodeOp_External)
+        {
+            RTScriptLexConsumeToken(pThis->hLexSource);
+            rc = rtAcpiTblAslParseExternal(pThis);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+        else
+            break;
+    }
 
     if (pTok->enmType == RTSCRIPTLEXTOKTYPE_ERROR)
         return RTErrInfoSet(pThis->pErrInfo, VERR_INVALID_PARAMETER, pTok->Type.Error.pErr->pszMsg);
@@ -2917,6 +2948,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
     {
         pThis->hVfsIosIn  = hVfsIosIn;
         pThis->pErrInfo   = pErrInfo;
+        RTListInit(&pThis->LstExternals);
         RTListInit(&pThis->LstStmts);
 
         pThis->pNs = rtAcpiNsCreate();
@@ -2934,16 +2966,38 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                     /* 2. - Optimize AST (constant folding, etc). */
 
                     /* 3. - Traverse AST and output table. */
-                    PRTACPIASTNODE pIt;
-                    RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
-                    {
-                        rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
-                        if (RT_FAILURE(rc))
-                            break;
 
-                        rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
-                        if (RT_FAILURE(rc))
-                            break;
+                    /* First external declarations - those are enclosed in an If (0) { } block. */
+                    if (!RTListIsEmpty(&pThis->LstExternals))
+                    {
+                        RTAcpiTblIfStart(pThis->hAcpiTbl);
+                            RTAcpiTblIntegerAppend(pThis->hAcpiTbl, 0);
+
+                        PRTACPIASLEXTERNAL pExternal;
+                        RTListForEach(&pThis->LstExternals, pExternal, RTACPIASLEXTERNAL, NdExternal)
+                        {
+                            rc = RTAcpiTblExternalAppend(pThis->hAcpiTbl, pExternal->szNamePath, pExternal->enmObjType,
+                                                         pExternal->cArgs == UINT32_MAX ? 0 : pExternal->cArgs);
+                            if (RT_FAILURE(rc))
+                                break;
+                        }
+
+                        RTAcpiTblIfFinalize(pThis->hAcpiTbl);
+                    }
+
+                    if (RT_SUCCESS(rc))
+                    {
+                        PRTACPIASTNODE pIt;
+                        RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
+                        {
+                            rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
+                            if (RT_FAILURE(rc))
+                                break;
+
+                            rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
+                            if (RT_FAILURE(rc))
+                                break;
+                        }
                     }
 
                     /* Finalize and write to the VFS I/O stream. */

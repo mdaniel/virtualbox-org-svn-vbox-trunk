@@ -179,8 +179,22 @@ void UITools::cleanupConnections()
                m_pToolsModel, &UIToolsModel::sltHandleViewResized);
 }
 
+void UITools::cleanupView()
+{
+    delete m_pToolsView;
+    m_pToolsView = 0;
+}
+
+void UITools::cleanupModel()
+{
+    delete m_pToolsModel;
+    m_pToolsModel = 0;
+}
+
 void UITools::cleanup()
 {
     /* Cleanup everything: */
     cleanupConnections();
+    cleanupView();
+    cleanupModel();
 }

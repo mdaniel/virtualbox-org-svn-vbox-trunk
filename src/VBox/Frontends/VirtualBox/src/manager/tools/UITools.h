@@ -118,6 +118,10 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
+        /** Cleanups view. */
+        void cleanupView();
+        /** Cleanups model. */
+        void cleanupModel();
         /** Cleanups all. */
         void cleanup();
     /** @} */

@@ -2453,6 +2453,7 @@ RuntimeBldProg_SOURCES          = \
 	common/log/RTLogCreateEx.cpp \
 	common/math/bignum.cpp \
 	common/misc/assert.cpp \
+	common/misc/buildconfig.cpp \
 	common/misc/cidr.cpp \
 	common/misc/getopt.cpp \
 	common/misc/getoptargv.cpp \
@@ -2574,6 +2575,7 @@ RuntimeBldProg_SOURCES          = \
 	common/vfs/vfsmemory.cpp \
 	common/vfs/vfsmisc.cpp \
 	common/vfs/vfsmsg.cpp \
+	common/vfs/vfsprintf.cpp \
 	common/vfs/vfsstddir.cpp \
 	common/vfs/vfsstdfile.cpp \
 	common/vfs/vfsstdpipe.cpp \

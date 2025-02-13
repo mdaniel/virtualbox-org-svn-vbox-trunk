@@ -1028,7 +1028,7 @@ static int rtScriptLexScanStringLiteralChAdd(PRTSCRIPTLEXINT pThis, char ch, uin
     {
         /* Increase memory. */
         size_t cchMaxNew = pThis->cchStrLitMax + 64;
-        char *pszNew = NULL;
+        char *pszNew = pThis->pszStrLit;
         rc = RTStrRealloc(&pszNew, cchMaxNew * sizeof(char));
         if (RT_SUCCESS(rc))
         {

@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef VMM_INCLUDED_SRC_VMMAll_IEMAllIntprTables_h
-#define VMM_INCLUDED_SRC_VMMAll_IEMAllIntprTables_h
+#ifndef VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllIntprTables_x86_h
+#define VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllIntprTables_x86_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -101,4 +101,4 @@
 #include "IEMAllInstCommonBodyMacros-x86.h"
 #include "IEMAllInstCommon-x86.cpp.h"
 
-#endif /* !VMM_INCLUDED_SRC_VMMAll_IEMAllIntprTables_h */
+#endif /* !VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllIntprTables_x86_h */

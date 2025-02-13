@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef VMM_INCLUDED_SRC_VMMAll_IEMAllThrdTables_h
-#define VMM_INCLUDED_SRC_VMMAll_IEMAllThrdTables_h
+#ifndef VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllThrdTables_x86_h
+#define VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllThrdTables_x86_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -452,4 +452,4 @@ DECL_FORCE_INLINE(void) iemThreadedSetBranched(PVMCPUCC pVCpu, uint8_t fTbBranch
 }
 
 
-#endif /* !VMM_INCLUDED_SRC_VMMAll_IEMAllThrdTables_h */
+#endif /* !VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllThrdTables_x86_h */

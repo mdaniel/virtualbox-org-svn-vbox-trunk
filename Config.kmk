@@ -2574,6 +2574,9 @@ VBOX_RTSIGNTOOL ?= $(PATH_OBJ)/bldRTSignTool/bldRTSignTool$(HOSTSUFF_EXE)
 # RTIsoMaker (our own ISO maker).
 VBOX_RTISOMAKER  ?= $(PATH_OBJ)/bldRTIsoMaker/bldRTIsoMaker$(HOSTSUFF_EXE)
 
+# RTIasl (our own ACPI/ASL compiler/disassembler).
+VBOX_RTIASL      ?= $(PATH_OBJ)/bldRTIasl/bldRTIasl$(HOSTSUFF_EXE)
+
 # RTLdrCheckImports (checks imports against oldest supported OS version (GAs typically))
 VBOX_RTLDRCHECKIMPORTS ?= $(PATH_OBJ)/bldRTLdrCheckImports/bldRTLdrCheckImports$(HOSTSUFF_EXE)
 

@@ -38,7 +38,6 @@
 #include "UIActionPoolManager.h"
 #include "UIIconPool.h"
 #include "UILoggingDefs.h"
-#include "UITools.h"
 #include "UIToolsModel.h"
 #include "UITranslationEventListener.h"
 #include "UIExtraDataDefs.h"
@@ -59,10 +58,10 @@
 typedef QSet<QString> UIStringSet;
 
 
-UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent, bool fPopup)
+UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass, bool fPopup)
     : QObject(pParent)
+    , m_pActionPool(pActionPool)
     , m_enmClass(enmClass)
-    , m_pTools(pParent)
     , m_fPopup(fPopup)
     , m_pView(0)
     , m_pScene(0)
@@ -87,16 +86,6 @@ void UIToolsModel::init()
 
     /* Load settings: */
     loadSettings();
-}
-
-UITools *UIToolsModel::tools() const
-{
-    return m_pTools;
-}
-
-UIActionPool *UIToolsModel::actionPool() const
-{
-    return tools() ? tools()->actionPool() : 0;
 }
 
 QGraphicsScene *UIToolsModel::scene() const

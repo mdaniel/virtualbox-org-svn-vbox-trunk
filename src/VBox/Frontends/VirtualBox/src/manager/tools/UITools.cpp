@@ -117,7 +117,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(m_enmClass, this, isPopup());
+    m_pToolsModel = new UIToolsModel(this, m_pActionPool, m_enmClass, m_fPopup);
     if (m_pToolsModel)
         prepareView();
 }
@@ -128,7 +128,7 @@ void UITools::prepareView()
     AssertPtrReturnVoid(m_pMainLayout);
 
     /* Prepare view: */
-    m_pToolsView = new UIToolsView(this, m_pToolsModel, isPopup());
+    m_pToolsView = new UIToolsView(this, m_pToolsModel, m_fPopup);
     if (m_pToolsView)
     {
         m_pToolsView->show();

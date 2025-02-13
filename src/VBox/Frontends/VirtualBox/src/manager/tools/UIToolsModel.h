@@ -45,7 +45,6 @@ class QGraphicsItem;
 class QGraphicsScene;
 class QPaintDevice;
 class UIActionPool;
-class UITools;
 class UIToolsView;
 
 /** QObject extension used as VM Tools-pane model: */
@@ -79,9 +78,10 @@ signals:
 public:
 
     /** Constructs Tools-model passing @a pParent to the base-class.
-      * @param  enmClass  Brings the tools class, it will be const one.
-      * @param  fPopup    Brings whether tools represented as popup. */
-    UIToolsModel(UIToolClass enmClass, UITools *pParent, bool fPopup);
+      * @param  pActionPool  Brings the action-pool reference.
+      * @param  enmClass     Brings the tools class, it will be const one.
+      * @param  fPopup       Brings whether tools represented as popup. */
+    UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass, bool fPopup);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -90,10 +90,8 @@ public:
         /** Inits model. */
         void init();
 
-        /** Returns the Tools reference. */
-        UITools *tools() const;
         /** Returns the action-pool reference. */
-        UIActionPool *actionPool() const;
+        UIActionPool *actionPool() const { return m_pActionPool; }
         /** Returns whether tools represented as popup. */
         bool isPopup() const { return m_fPopup; }
 
@@ -233,11 +231,11 @@ private:
 
     /** @name General stuff.
       * @{ */
+        /** Holds the action-pool reference. */
+        UIActionPool *m_pActionPool;
+
         /** Holds the tools class. */
         const UIToolClass  m_enmClass;
-
-        /** Holds the Tools reference. */
-        UITools *m_pTools;
 
         /** Holds whether tools represented as popup. */
         const bool  m_fPopup;

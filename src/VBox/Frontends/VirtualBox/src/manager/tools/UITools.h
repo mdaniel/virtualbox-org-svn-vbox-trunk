@@ -72,15 +72,6 @@ public:
 
     /** @name General stuff.
       * @{ */
-        /** Returns the action-pool reference. */
-        UIActionPool *actionPool() const { return m_pActionPool; }
-
-        /** Returns whether tools represented as popup. */
-        bool isPopup() const { return m_fPopup; }
-
-        /** Return the Tools-view instance. */
-        UIToolsView *view() const { return m_pToolsView; }
-
         /** Defines current tools @a enmType. */
         void setToolsType(UIToolType enmType);
         /** Returns current tools type. */

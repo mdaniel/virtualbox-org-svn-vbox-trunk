@@ -514,7 +514,7 @@ ifdef VBOX_WITH_BS3KIT
  $$(bs3-cpu-generated-1_0_OUTDIR)/bs3-cpu-generated-1-data.c16: \
  		$(PATH_SUB_CURRENT)/bs3-cpu-generated-1-data.py \
  		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInstPython.py \
- 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInst*.cpp.h \
+ 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/target-x86/IEMAllInst*-x86.cpp.h \
  		| $$(dir $$@)
 	$(REDIRECT) -0 /dev/null -- $(VBOX_BLD_PYTHON) $< $@
 

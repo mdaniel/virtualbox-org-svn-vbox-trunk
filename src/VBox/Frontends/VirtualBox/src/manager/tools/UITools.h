@@ -40,7 +40,6 @@
 /* Forward declarations: */
 class QVBoxLayout;
 class UIActionPool;
-class UIToolsItem;
 class UIToolsModel;
 class UIToolsView;
 
@@ -89,21 +88,15 @@ public:
         /** Returns current tools type. */
         UIToolType toolsType() const;
 
-        /** Defines whether tool items @a fEnabled.*/
+        /** Defines whether tool items @a fEnabled. */
         void setItemsEnabled(bool fEnabled);
-        /** Returns whether tool items enabled.*/
+        /** Returns whether tool items enabled. */
         bool isItemsEnabled() const;
 
         /** Defines restructed tool @a types. */
         void setRestrictedToolTypes(const QList<UIToolType> &types);
         /** Returns restricted tool types. */
         QList<UIToolType> restrictedToolTypes() const;
-    /** @} */
-
-    /** @name Current item stuff.
-      * @{ */
-        /** Returns current item. */
-        UIToolsItem *currentItem() const;
     /** @} */
 
 private:

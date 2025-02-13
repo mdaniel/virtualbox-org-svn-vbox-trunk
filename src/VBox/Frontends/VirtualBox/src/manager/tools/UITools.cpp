@@ -87,11 +87,6 @@ QList<UIToolType> UITools::restrictedToolTypes() const
     return m_pToolsModel->restrictedToolTypes();
 }
 
-UIToolsItem *UITools::currentItem() const
-{
-    return m_pToolsModel->currentItem();
-}
-
 void UITools::prepare()
 {
     /* Prepare everything: */

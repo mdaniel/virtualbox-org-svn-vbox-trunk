@@ -131,7 +131,6 @@ void UITools::prepareView()
     m_pToolsView = new UIToolsView(this, m_pToolsModel, isPopup());
     if (m_pToolsView)
     {
-        m_pToolsView->setScene(m_pToolsModel->scene());
         m_pToolsView->show();
         setFocusProxy(m_pToolsView);
 

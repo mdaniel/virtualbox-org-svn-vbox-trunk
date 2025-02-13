@@ -114,9 +114,10 @@ private:
 };
 
 
-UIToolsView::UIToolsView(UITools *pParent)
+UIToolsView::UIToolsView(UITools *pParent, bool fPopup)
     : QIGraphicsView(pParent)
     , m_pTools(pParent)
+    , m_fPopup(fPopup)
     , m_iMinimumWidthHint(0)
     , m_iMinimumHeightHint(0)
 {
@@ -167,7 +168,7 @@ void UIToolsView::prepare()
     QAccessible::installFactory(UIAccessibilityInterfaceForUIToolsView::pFactory);
 
     /* No minimum size-hint for widget mode: */
-    if (!tools()->isPopup())
+    if (!isPopup())
         setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     /* Prepare palette: */
@@ -201,7 +202,7 @@ void UIToolsView::preparePalette()
      * making them a bit darker/lighter according to theme: */
     QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
     QColor backgroundColorInactive = pal.color(QPalette::Inactive, QPalette::Window);
-    if (!tools()->isPopup())
+    if (!isPopup())
     {
         backgroundColorActive = uiCommon().isInDarkMode()
                               ? backgroundColorActive.lighter(120)
@@ -215,12 +216,12 @@ void UIToolsView::preparePalette()
 
 #else /* !VBOX_WS_MAC */
 
-    if (tools()->isPopup())
+    if (isPopup())
     {
         /* Same as on macOS for now, will go away soon: */
         QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
         QColor backgroundColorInactive = pal.color(QPalette::Inactive, QPalette::Window);
-        if (!tools()->isPopup())
+        if (!isPopup())
         {
             backgroundColorActive = uiCommon().isInDarkMode()
                                   ? backgroundColorActive.lighter(120)

@@ -31,6 +31,9 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_IEM
 #define IEM_WITH_OPAQUE_DECODER_STATE
+#ifdef IN_RING0
+# define VBOX_VMM_TARGET_X86
+#endif
 #include <VBox/vmm/iem.h>
 #include "IEMInternal.h"
 #include <VBox/vmm/vmcc.h>

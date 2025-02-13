@@ -669,7 +669,10 @@ TSTIEMAIMPL_TEST_DATA_DEPS := \
 tstIEMAImpl_TEMPLATE  = VBoxR3TstExe
 tstIEMAImpl_DEFS      = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITHOUT_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS
 tstIEMAImpl_SDKS      = VBoxSoftFloatR3Shared
-tstIEMAImpl_INCS      = ../include .
+tstIEMAImpl_INCS      = \
+	$(VBOX_PATH_VMM_SRC)/include \
+	$(VBOX_PATH_VMM_SRC) \
+	$(VBOX_PATH_VMM_SRC)/testcase
 tstIEMAImpl_SOURCES   = \
 	tstIEMAImpl.cpp \
 	../VMMAll/IEMAllAImplC.cpp \
@@ -692,7 +695,10 @@ tstIEMAImplAsm_SDKS          := VBoxSoftFloatR3Shared
 tstIEMAImplAsm_DEFS           = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITH_ASSEMBLY IEM_WITHOUT_INSTRUCTION_STATS TSTIEMAIMPL_WITH_GENERATOR
 tstIEMAImplAsm_ASFLAGS.amd64 := -Werror
 tstIEMAImplAsm_ASFLAGS.x86   := -Werror
-tstIEMAImplAsm_INCS          := ../include .
+tstIEMAImplAsm_INCS          := \
+	$(VBOX_PATH_VMM_SRC)/include \
+	$(VBOX_PATH_VMM_SRC) \
+	$(VBOX_PATH_VMM_SRC)/testcase
 tstIEMAImplAsm_SOURCES        = \
 	tstIEMAImpl.cpp \
 	../VMMAll/IEMAllAImpl.asm \
@@ -714,6 +720,9 @@ tstIEMAImplDataSseBinary.S_DEPS   = \
 tstIEMCheckMc_TEMPLATE  = VBoxR3TstExe
 tstIEMCheckMc_SOURCES   = tstIEMCheckMc.cpp
 tstIEMCheckMc_DEFS      = VBOX_VMM_TARGET_X86 $(VMM_COMMON_DEFS) IEM_WITHOUT_INSTRUCTION_STATS
+tstIEMCheckMc_INCS     := \
+	$(VBOX_PATH_VMM_SRC)/include \
+	$(VBOX_PATH_VMM_SRC)
 tstIEMCheckMc_LIBS      = $(LIB_RUNTIME)
 ifeq ($(KBUILD_TARGET),win)
  tstIEMCheckMc_CXXFLAGS = $(VBOX_C_CXX_FLAGS_NO_UNUSED_PARAMETERS) -wd4189 # local variable is initialized but not used.

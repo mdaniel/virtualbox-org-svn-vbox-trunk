@@ -39,7 +39,7 @@
 #include <VBox/log.h>
 #define TST_IEM_CHECK_MC    /**< For hacks.  */
 #define IN_TSTVMSTRUCT 1    /**< Ditto. */
-#include "../include/IEMInternal.h"
+#include "IEMInternal.h"
 #include <VBox/vmm/vm.h>
 
 

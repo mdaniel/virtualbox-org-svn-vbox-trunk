@@ -32,6 +32,9 @@
 #define LOG_GROUP LOG_GROUP_IEM_RE_NATIVE
 #define IEM_WITH_OPAQUE_DECODER_STATE
 #define VMM_INCLUDED_SRC_include_IEMMc_h /* block IEMMc.h inclusion. */
+#ifdef IN_RING0
+# error "port me!"
+#endif
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
 #include "IEMInternal.h"

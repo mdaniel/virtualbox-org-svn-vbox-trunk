@@ -32,6 +32,9 @@
 #define LOG_GROUP   LOG_GROUP_IEM
 #define VMCPU_INCL_CPUM_GST_CTX
 #define IEM_WITH_OPAQUE_DECODER_STATE
+#ifdef IN_RING0
+# define VBOX_VMM_TARGET_X86
+#endif
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/pdmapic.h>
@@ -92,6 +95,25 @@
 #else
 # define IEM_FLUSH_PREFETCH_HEAVY(a_pVCpu, a_cbInstr) do { } while (0)
 #endif
+
+
+/*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
+/**
+ * Branch types - iemCImpl_BranchTaskSegment(), iemCImpl_BranchTaskGate(),
+ * iemCImpl_BranchCallGate() and iemCImpl_BranchSysSel().
+ */
+typedef enum IEMBRANCH
+{
+    IEMBRANCH_JUMP = 1,
+    IEMBRANCH_CALL,
+    IEMBRANCH_TRAP,
+    IEMBRANCH_SOFTWARE_INT,
+    IEMBRANCH_HARDWARE_INT
+} IEMBRANCH;
+AssertCompileSize(IEMBRANCH, 4);
+
 
 
 

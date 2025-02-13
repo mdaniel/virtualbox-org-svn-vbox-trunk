@@ -95,7 +95,8 @@ VBoxVMM_SDKS     = VBoxSoftFloatR3Shared
 
 VBoxVMM_INCS     = \
 	include \
-	$(VBoxVMM_0_OUTDIR)/CommonGenIncs
+	$(VBoxVMM_0_OUTDIR)/CommonGenIncs \
+	.
 VBoxVMM_ASINCS   = .
 VBoxVMM_ASFLAGS.amd64  = -Werror
 VBoxVMM_ASFLAGS.x86    = -Werror
@@ -411,7 +412,8 @@ ifdef VBOX_WITH_VIRT_ARMV8
 
  VBoxVMMArm_INCS     = \
  	include \
- 	$(VBoxVMM_0_OUTDIR)/CommonGenIncs
+ 	$(VBoxVMM_0_OUTDIR)/CommonGenIncs \
+ 	.
  VBoxVMMArm_SOURCES  = \
  	VBoxVMM.d \
  	VMMR3/VMMR3VTable.cpp \
@@ -872,7 +874,8 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
 
  VMMR0_INCS      = \
  	include \
- 	$(VBoxVMM_0_OUTDIR)/CommonGenIncs
+ 	$(VBoxVMM_0_OUTDIR)/CommonGenIncs \
+ 	.
 
  VMMR0_SOURCES   = \
  	VBoxVMM.d \

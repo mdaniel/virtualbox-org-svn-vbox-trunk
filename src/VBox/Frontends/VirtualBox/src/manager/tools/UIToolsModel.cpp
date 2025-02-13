@@ -221,7 +221,7 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     /* Move focus to current-item: */
     setFocusItem(currentItem());
 
-    /* Adjust corrresponding actions finally: */
+    /* Adjust corresponding actions finally: */
     const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
     QMap<UIToolType, UIAction*> actions;
     actions[UIToolType_Home] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_HomeScreen);
@@ -272,9 +272,6 @@ void UIToolsModel::setFocusItem(UIToolsItem *pItem)
     /* Connect new focus-item (if any): */
     if (m_pFocusItem)
         connect(m_pFocusItem.data(), &UIToolsItem::destroyed, this, &UIToolsModel::sltFocusItemDestroyed);
-
-    /* Notify about focus change: */
-    emit sigFocusChanged();
 }
 
 UIToolsItem *UIToolsModel::focusItem() const

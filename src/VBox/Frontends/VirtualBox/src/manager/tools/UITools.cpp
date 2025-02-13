@@ -156,8 +156,6 @@ void UITools::prepareConnections()
             m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,
             m_pToolsView, &UIToolsView::sltMinimumHeightHintChanged);
-    connect(m_pToolsModel, &UIToolsModel::sigFocusChanged,
-            m_pToolsView, &UIToolsView::sltFocusChanged);
 
     /* View connections: */
     connect(m_pToolsView, &UIToolsView::sigResized,
@@ -180,8 +178,6 @@ void UITools::cleanupConnections()
                m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
     disconnect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,
                m_pToolsView, &UIToolsView::sltMinimumHeightHintChanged);
-    disconnect(m_pToolsModel, &UIToolsModel::sigFocusChanged,
-               m_pToolsView, &UIToolsView::sltFocusChanged);
 
     /* View connections: */
     disconnect(m_pToolsView, &UIToolsView::sigResized,

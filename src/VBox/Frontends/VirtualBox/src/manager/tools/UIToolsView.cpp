@@ -123,21 +123,6 @@ UIToolsView::UIToolsView(UITools *pParent)
     prepare();
 }
 
-void UIToolsView::sltFocusChanged()
-{
-    /* Make sure focus-item set: */
-    const UIToolsItem *pFocusItem = tools() && tools()->model()
-                                  ? tools()->model()->focusItem()
-                                  : 0;
-    if (!pFocusItem)
-        return;
-
-    const QSize viewSize = viewport()->size();
-    QRectF geo = pFocusItem->geometry();
-    geo &= QRectF(geo.topLeft(), viewSize);
-    ensureVisible(geo, 0, 0);
-}
-
 void UIToolsView::sltMinimumWidthHintChanged(int iHint)
 {
     /* Is there something changed? */

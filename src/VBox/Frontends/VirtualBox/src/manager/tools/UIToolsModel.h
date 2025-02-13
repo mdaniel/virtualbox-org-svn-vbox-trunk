@@ -65,8 +65,6 @@ signals:
         /** Notifies about selection changed.
           * @param  enmType  Brings current tool type. */
         void sigSelectionChanged(UIToolType enmType);
-        /** Notifies about focus changed. */
-        void sigFocusChanged();
     /** @} */
 
     /** @name Layout stuff.

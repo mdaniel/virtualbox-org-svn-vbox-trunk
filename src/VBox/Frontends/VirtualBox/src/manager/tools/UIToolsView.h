@@ -61,12 +61,6 @@ public:
 
 public slots:
 
-    /** @name General stuff.
-      * @{ */
-        /** Handles focus change to @a pFocusItem. */
-        void sltFocusChanged();
-    /** @} */
-
     /** @name Layout stuff.
       * @{ */
         /** Handles minimum width @a iHint change. */

@@ -187,6 +187,7 @@ void UIToolsView::prepareThis()
 {
     /* Exchange information with model: */
     setScene(model()->scene());
+    model()->setView(this);
 
     /* No minimum size-hint for widget mode: */
     if (!isPopup())

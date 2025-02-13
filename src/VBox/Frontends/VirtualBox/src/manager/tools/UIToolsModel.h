@@ -46,6 +46,7 @@ class QGraphicsScene;
 class QPaintDevice;
 class UIActionPool;
 class UITools;
+class UIToolsView;
 
 /** QObject extension used as VM Tools-pane model: */
 class UIToolsModel : public QObject
@@ -93,16 +94,21 @@ public:
         UITools *tools() const;
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const;
+        /** Returns whether tools represented as popup. */
+        bool isPopup() const { return m_fPopup; }
+
         /** Returns the scene reference. */
         QGraphicsScene *scene() const;
         /** Returns the paint device reference. */
         QPaintDevice *paintDevice() const;
 
-        /** Returns whether tools represented as popup. */
-        bool isPopup() const { return m_fPopup; }
-
         /** Returns item at @a position, taking into account possible @a deviceTransform. */
         QGraphicsItem *itemAt(const QPointF &position, const QTransform &deviceTransform = QTransform()) const;
+
+        /** Returns tools-view reference. */
+        UIToolsView *view() const;
+        /** Defines tools @a pView reference. */
+        void setView(UIToolsView *pView);
 
         /** Defines current tools @a enmType. */
         void setToolsType(UIToolType enmType);
@@ -236,6 +242,8 @@ private:
         /** Holds whether tools represented as popup. */
         const bool  m_fPopup;
 
+        /** Holds the view reference. */
+        UIToolsView    *m_pView;
         /** Holds the scene reference. */
         QGraphicsScene *m_pScene;
 

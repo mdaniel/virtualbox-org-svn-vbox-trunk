@@ -64,6 +64,7 @@ UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent, bool fPopup)
     , m_enmClass(enmClass)
     , m_pTools(pParent)
     , m_fPopup(fPopup)
+    , m_pView(0)
     , m_pScene(0)
     , m_fItemsEnabled(true)
     , m_fShowItemNames(gEDataManager->isToolTextVisible())
@@ -113,6 +114,16 @@ QPaintDevice *UIToolsModel::paintDevice() const
 QGraphicsItem *UIToolsModel::itemAt(const QPointF &position, const QTransform &deviceTransform /* = QTransform() */) const
 {
     return scene() ? scene()->itemAt(position, deviceTransform) : 0;
+}
+
+UIToolsView *UIToolsModel::view() const
+{
+    return m_pView;
+}
+
+void UIToolsModel::setView(UIToolsView *pView)
+{
+    m_pView = pView;
 }
 
 void UIToolsModel::setToolsType(UIToolType enmType)

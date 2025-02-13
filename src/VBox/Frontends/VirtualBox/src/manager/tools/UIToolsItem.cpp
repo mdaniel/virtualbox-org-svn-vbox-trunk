@@ -76,7 +76,7 @@ public:
         AssertPtrReturn(item(), 0);
 
         /* Return the parent: */
-        return QAccessible::queryAccessibleInterface(item()->model()->tools()->view());
+        return QAccessible::queryAccessibleInterface(item()->model()->view());
     }
 
     /** Returns the number of children. */
@@ -117,8 +117,8 @@ public:
         /* Now goes the mapping: */
         const QSize   itemSize         = item()->size().toSize();
         const QPointF itemPosInScene   = item()->mapToScene(QPointF(0, 0));
-        const QPoint  itemPosInView    = item()->model()->tools()->view()->mapFromScene(itemPosInScene);
-        const QPoint  itemPosInScreen  = item()->model()->tools()->view()->mapToGlobal(itemPosInView);
+        const QPoint  itemPosInView    = item()->model()->view()->mapFromScene(itemPosInScene);
+        const QPoint  itemPosInScreen  = item()->model()->view()->mapToGlobal(itemPosInView);
         const QRect   itemRectInScreen = QRect(itemPosInScreen, itemSize);
         return itemRectInScreen;
     }
@@ -368,7 +368,7 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
             && !model()->showItemNames())
         {
             const QPointF posAtScene = mapToScene(rect().topRight() + QPoint(3, -3));
-            const QPoint posAtScreen = model()->tools()->mapToGlobal(posAtScene.toPoint());
+            const QPoint posAtScreen = model()->view()->parentWidget()->mapToGlobal(posAtScene.toPoint());
             QToolTip::showText(posAtScreen, name());
         }
     }

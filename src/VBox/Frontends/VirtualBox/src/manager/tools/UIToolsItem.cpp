@@ -288,11 +288,11 @@ int UIToolsItem::minimumWidthHint() const
     iProposedWidth += 2 * iMargin;
 #ifdef VBOX_WS_MAC
     /* Additional 2 margins for widget mode: */
-    if (!model()->tools()->isPopup())
+    if (!model()->isPopup())
         iProposedWidth += 2 * iMargin;
 #else
     /* Additional 1 margin for widget mode: */
-    if (!model()->tools()->isPopup())
+    if (!model()->isPopup())
         iProposedWidth += iMargin;
 #endif
 
@@ -302,7 +302,7 @@ int UIToolsItem::minimumWidthHint() const
     /* Add text size for non-Aux tools in popup mode
      * or if it is requested for widget mode: */
     if (   m_enmClass != UIToolClass_Aux
-        && (   model()->tools()->isPopup()
+        && (   model()->isPopup()
             || model()->showItemNames()))
     {
         iProposedWidth += m_nameSize.width();
@@ -310,7 +310,7 @@ int UIToolsItem::minimumWidthHint() const
         /* Add 1 spacing by default: */
         iProposedWidth += iSpacing;
         /* Additional 1 spacing for widget mode: */
-        if (!model()->tools()->isPopup())
+        if (!model()->isPopup())
             iProposedWidth += iSpacing;
     }
 
@@ -364,7 +364,7 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
         update();
 
         /* Show tooltip at the right of item for widget mode: */
-        if (   !model()->tools()->isPopup()
+        if (   !model()->isPopup()
             && !model()->showItemNames())
         {
             const QPointF posAtScene = mapToScene(rect().topRight() + QPoint(3, -3));
@@ -383,7 +383,7 @@ void UIToolsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
         update();
 
         /* Hide tooltip for good: */
-        if (!model()->tools()->isPopup())
+        if (!model()->isPopup())
             QToolTip::hideText();
     }
 }
@@ -396,7 +396,7 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
     /* Paint background: */
     paintBackground(pPainter, rectangle);
     /* Paint frame for popup only: */
-    if (model()->tools()->isPopup())
+    if (model()->isPopup())
         paintFrame(pPainter, rectangle);
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
@@ -452,7 +452,7 @@ void UIToolsItem::prepare()
     setFlag(QGraphicsItem::ItemIsSelectable, false);
 
     /* Prepare hover animation for popup mode only: */
-    if (model()->tools()->isPopup())
+    if (model()->isPopup())
         prepareHoverAnimation();
     /* Prepare connections: */
     prepareConnections();
@@ -621,7 +621,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     const QPalette pal = QApplication::palette();
 
     /* For popup: */
-    if (model()->tools()->isPopup())
+    if (model()->isPopup())
     {
         /* Selection background: */
         if (model()->currentItem() == this)
@@ -855,7 +855,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     const QPalette pal = QApplication::palette();
 
     /* Selected or hovered item foreground for popup mode: */
-    if (   model()->tools()->isPopup()
+    if (   model()->isPopup()
         && (model()->currentItem() == this || isHovered()))
     {
         /* Get background color: */
@@ -881,9 +881,9 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        const int iPixmapX = model()->tools()->isPopup() ? iMargin : 2 * iMargin;
+        const int iPixmapX = model()->isPopup() ? iMargin : 2 * iMargin;
 #else
-        const int iPixmapX = model()->tools()->isPopup() ? iMargin : 1.5 * iMargin;
+        const int iPixmapX = model()->isPopup() ? iMargin : 1.5 * iMargin;
 #endif
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
@@ -900,15 +900,15 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        const int iNameX = model()->tools()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
+        const int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
                                                        : 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #else
-        const int iNameX = model()->tools()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
+        const int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
                                                        : 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name (always for popup mode, if requested otherwise): */
-        if (   model()->tools()->isPopup()
+        if (   model()->isPopup()
             || model()->showItemNames())
             paintText(/* Painter: */
                       pPainter,
@@ -921,7 +921,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Text to paint: */
                       m_strName,
                       /* Text for popup mode? */
-                      model()->tools()->isPopup());
+                      model()->isPopup());
     }
 }
 

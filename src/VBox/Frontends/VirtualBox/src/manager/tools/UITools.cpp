@@ -117,7 +117,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(m_enmClass, this);
+    m_pToolsModel = new UIToolsModel(m_enmClass, this, isPopup());
     if (m_pToolsModel)
         prepareView();
 }

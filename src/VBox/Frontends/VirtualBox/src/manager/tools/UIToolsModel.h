@@ -78,8 +78,9 @@ signals:
 public:
 
     /** Constructs Tools-model passing @a pParent to the base-class.
-      * @param  Brings the tools class, it will be fixed one. */
-    UIToolsModel(UIToolClass enmClass, UITools *pParent);
+      * @param  enmClass  Brings the tools class, it will be const one.
+      * @param  fPopup    Brings whether tools represented as popup. */
+    UIToolsModel(UIToolClass enmClass, UITools *pParent, bool fPopup);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -96,6 +97,9 @@ public:
         QGraphicsScene *scene() const;
         /** Returns the paint device reference. */
         QPaintDevice *paintDevice() const;
+
+        /** Returns whether tools represented as popup. */
+        bool isPopup() const { return m_fPopup; }
 
         /** Returns item at @a position, taking into account possible @a deviceTransform. */
         QGraphicsItem *itemAt(const QPointF &position, const QTransform &deviceTransform = QTransform()) const;
@@ -228,6 +232,9 @@ private:
 
         /** Holds the Tools reference. */
         UITools *m_pTools;
+
+        /** Holds whether tools represented as popup. */
+        const bool  m_fPopup;
 
         /** Holds the scene reference. */
         QGraphicsScene *m_pScene;

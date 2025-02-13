@@ -407,6 +407,11 @@ public:
         /** Defines the list of detached @a tools of VirtualBox Manager. */
         void setDetachedTools(const QList<UIToolType> &tools);
 
+        /** Returns whether tools tool-bar text visible. */
+        bool isToolTextVisible();
+        /** Defines whether tools tool-bar text @a fVisible. */
+        void setToolTextVisible(bool fVisible);
+
         /** Returns whether selector-window status-bar visible. */
         bool selectorWindowStatusBarVisible();
         /** Defines whether selector-window status-bar @a fVisible. */

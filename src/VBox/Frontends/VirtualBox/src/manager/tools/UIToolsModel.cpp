@@ -65,7 +65,7 @@ UIToolsModel::UIToolsModel(UIToolClass enmClass, UITools *pParent)
     , m_pTools(pParent)
     , m_pScene(0)
     , m_fItemsEnabled(true)
-    , m_fShowItemNames(false)
+    , m_fShowItemNames(gEDataManager->isToolTextVisible())
 {
     prepare();
 }
@@ -456,6 +456,8 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                                         pItem->updateGeometry();
                                     /* Recalculate layout: */
                                     updateLayout();
+                                    /* Save the change: */
+                                    gEDataManager->setToolTextVisible(m_fShowItemNames);
                                     return true;
                                 }
                                 default:

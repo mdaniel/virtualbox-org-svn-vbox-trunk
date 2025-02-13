@@ -2924,6 +2924,18 @@ void UIExtraDataManager::setDetachedTools(const QList<UIToolType> &tools)
     setExtraDataStringList(GUI_Tools_Detached, data);
 }
 
+bool UIExtraDataManager::isToolTextVisible()
+{
+    /* 'False' unless feature allowed: */
+    return isFeatureAllowed(GUI_Tools_Text);
+}
+
+void UIExtraDataManager::setToolTextVisible(bool fVisible)
+{
+    /* 'True' if feature allowed, null-string otherwise: */
+    return setExtraDataString(GUI_Tools_Text, toFeatureAllowed(fVisible));
+}
+
 bool UIExtraDataManager::selectorWindowStatusBarVisible()
 {
     /* 'True' unless feature restricted: */

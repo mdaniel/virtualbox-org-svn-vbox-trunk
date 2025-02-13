@@ -189,6 +189,8 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_Tools_LastItemsSelected;
         /** Holds the list of detached tools of VirtualBox Manager. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Tools_Detached;
+        /** Holds whether tools tool-bar text visible. */
+        SHARED_LIBRARY_STUFF extern const char *GUI_Tools_Text;
         /** Holds whether selector-window status-bar visible. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Statusbar;
         /** Prefix used by composite extra-data keys,

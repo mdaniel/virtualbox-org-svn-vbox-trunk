@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Instruction Implementation in C/C++ (code include).
+ * IEM - Instruction Implementation in C/C++, x86 target.
  */
 
 /*
@@ -8350,40 +8350,40 @@ IEM_CIMPL_DEF_3(iemCImpl_bound_32, int32_t, idxArray, int32_t, idxLowerBound, in
  */
 #define OP_SIZE     8
 #define ADDR_SIZE   16
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     8
 #define ADDR_SIZE   32
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     8
 #define ADDR_SIZE   64
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 
 #define OP_SIZE     16
 #define ADDR_SIZE   16
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     16
 #define ADDR_SIZE   32
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     16
 #define ADDR_SIZE   64
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 
 #define OP_SIZE     32
 #define ADDR_SIZE   16
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     32
 #define ADDR_SIZE   32
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     32
 #define ADDR_SIZE   64
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 
 #define OP_SIZE     64
 #define ADDR_SIZE   32
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 #define OP_SIZE     64
 #define ADDR_SIZE   64
-#include "IEMAllCImplStrInstr.cpp.h"
+#include "IEMAllCImplStrInstr-x86.cpp.h"
 
 
 /**

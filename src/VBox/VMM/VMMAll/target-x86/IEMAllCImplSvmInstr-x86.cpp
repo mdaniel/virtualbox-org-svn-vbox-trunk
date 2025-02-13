@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - AMD-V (Secure Virtual Machine) instruction implementation.
+ * IEM - AMD-V (Secure Virtual Machine) instruction implementation (x86 target).
  */
 
 /*

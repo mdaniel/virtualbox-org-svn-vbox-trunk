@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - VT-x instruction implementation.
+ * IEM - VT-x instruction implementation (x86 target).
  */
 
 /*

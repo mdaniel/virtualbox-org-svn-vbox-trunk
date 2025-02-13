@@ -1,6 +1,6 @@
 ; $Id$
 ;; @file
-; IEM - Instruction Implementation in Assembly.
+; IEM - Instruction Implementation in Assembly, x86 target, amd64 host.
 ;
 
 ;

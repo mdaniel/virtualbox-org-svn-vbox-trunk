@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - String Instruction Implementation Code Template.
+ * IEM - String Instruction Implementation Code Template, x86 target.
  */
 
 /*

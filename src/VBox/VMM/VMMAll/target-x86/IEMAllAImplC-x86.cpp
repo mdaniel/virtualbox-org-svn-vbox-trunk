@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Instruction Implementation in Assembly, portable C variant.
+ * IEM - Instruction Implementation in Assembly, x86 target, portable C variant.
  */
 
 /*

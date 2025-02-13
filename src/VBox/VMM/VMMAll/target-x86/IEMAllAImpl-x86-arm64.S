@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Instruction Implementation in Assembly, ARM64 variant.
+ * IEM - Instruction Implementation in Assembly, x86 target, ARM64 host.
  */
 
 /*

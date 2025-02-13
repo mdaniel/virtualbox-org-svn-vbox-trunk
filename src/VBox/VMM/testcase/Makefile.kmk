@@ -675,7 +675,7 @@ tstIEMAImpl_INCS      = \
 	$(VBOX_PATH_VMM_SRC)/testcase
 tstIEMAImpl_SOURCES   = \
 	tstIEMAImpl.cpp \
-	../VMMAll/IEMAllAImplC.cpp \
+	../VMMAll/target-x86/IEMAllAImplC-x86.cpp \
 	$(tstIEMAImpl_CLEAN)
 tstIEMAImpl_SOURCES.x86   += tstIEMAImplDataSseBinary.asm
 tstIEMAImpl_SOURCES.amd64 += tstIEMAImplDataSseBinary.asm
@@ -684,7 +684,7 @@ tstIEMAImplDataSseBinary.asm_DEPS = \
 
 tstIEMAImpl_SOURCES.arm64  = \
 	tstIEMAImplDataSseBinary.S \
-	../VMMAll/IEMAllAImpl-arm64.S
+	../VMMAll/target-x86/IEMAllAImpl-x86-arm64.S
 tstIEMAImplDataSseBinary.S_DEPS   = \
 	$(TSTIEMAIMPL_TEST_DATA_DEPS)
 $(call KB_FN_DO_PASS0_ON_TARGET,tstIEMAImpl)
@@ -701,8 +701,8 @@ tstIEMAImplAsm_INCS          := \
 	$(VBOX_PATH_VMM_SRC)/testcase
 tstIEMAImplAsm_SOURCES        = \
 	tstIEMAImpl.cpp \
-	../VMMAll/IEMAllAImpl.asm \
-	../VMMAll/IEMAllAImplC.cpp \
+	../VMMAll/target-x86/IEMAllAImpl-x86-amd64.asm \
+	../VMMAll/target-x86/IEMAllAImplC-x86.cpp \
 	$(tstIEMAImpl_CLEAN)
 tstIEMAImplAsm_SOURCES.x86   += tstIEMAImplDataSseBinary.asm
 tstIEMAImplAsm_SOURCES.amd64 += tstIEMAImplDataSseBinary.asm

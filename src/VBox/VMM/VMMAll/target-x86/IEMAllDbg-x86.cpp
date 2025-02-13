@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Debug and Logging.
+ * IEM - Syscall Logging, x86 targets.
  */
 
 /*

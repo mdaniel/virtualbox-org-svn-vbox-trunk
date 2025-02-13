@@ -198,11 +198,11 @@ VBoxVMM_SOURCES  = \
 	VMMAll/IEMAllIntprTables2.cpp \
 	VMMAll/IEMAllIntprTables3.cpp \
 	VMMAll/IEMAllIntprTables4.cpp \
-	VMMAll/IEMAllAImplC.cpp \
-	VMMAll/IEMAllCImpl.cpp \
-	VMMAll/IEMAllCImplSvmInstr.cpp \
-	VMMAll/IEMAllCImplVmxInstr.cpp \
-	VMMAll/IEMAllDbg.cpp \
+	VMMAll/target-x86/IEMAllAImplC-x86.cpp \
+	VMMAll/target-x86/IEMAllCImpl-x86.cpp \
+	VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp \
+	VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp \
+	VMMAll/target-x86/IEMAllDbg-x86.cpp \
 	VMMAll/IOMAll.cpp \
 	VMMAll/IOMAllMmioNew.cpp \
 	VMMAll/MMAll.cpp \
@@ -238,10 +238,10 @@ ifn1of (VBOX_WITH_ONLY_PGM_NEM_MODE, $(VBoxVMM_DEFS))
 endif
 VBoxVMM_SOURCES.amd64 += \
 	VMMR3/PGMR3DbgA.asm \
-	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/IEMAllAImpl.asm,) \
+	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/target-x86/IEMAllAImpl-x86-amd64.asm,) \
 	VMMAll/VMMAllA.asm
 VBoxVMM_SOURCES.arm64 += \
-	VMMAll/IEMAllAImpl-arm64.S
+	VMMAll/target-x86/IEMAllAImpl-x86-arm64.S
 ifdef VBOX_WITH_VUSB
  VBoxVMM_SOURCES += VMMR3/PDMUsb.cpp
 endif
@@ -358,7 +358,7 @@ if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
  VBoxVMM_VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  #VBoxVMM_VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  #VBoxVMM_VMMAll/IEMAllIntprTables4.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
- VBoxVMM_VMMAll/IEMAllAImplC.cpp_CXXFLAGS            = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS            = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/IEMAllN8veExecMem.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/IEMAllN8veRecompiler.cpp_CXXFLAGS    = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/IEMAllN8veRecompFuncs1.cpp_CXXFLAGS  = /FAcs /Fa$(subst /,\\,$(outbase).cod)
@@ -374,7 +374,7 @@ if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
  VBoxVMM_VMMAll/PDMAllCritSect.cpp_CXXFLAGS          = /FAcs /Fa$(subst /,\\,$(outbase).cod)
 
  VBoxVMM_CLEAN += $(addprefix $(VBoxVMM_0_OUTDIR)/VMMAll/, \
- 		IEMAll.cod IEMAllIntprTables1.cod IEMAllIntprTables2.cod IEMAllIntprTables3.cod IEMAllIntprTables4.cod IEMAllAImplC.cod \
+ 		IEMAll.cod IEMAllIntprTables1.cod IEMAllIntprTables2.cod IEMAllIntprTables3.cod IEMAllIntprTables4.cod IEMAllAImplC-x86.cod \
  		IEMAllN8veExecMem.cod IEMAllN8veRecompiler.cod IEMAllN8veRecompFuncs1.cod IEMAllN8veRecompFuncs2.cod \
  		IEMAllThrdRecompiler.cod IEMAllThrdFuncsBltIn.cod IEMAllThrdTables1.cod IEMAllThrdFuncs.cod \
  		IEMAllN8veRecompBltIn.cod IEMAllN8veLiveness1.cod IEMAllN8veLiveness2.cod PGMAll.cod PDMAllCritSect.cod)
@@ -939,11 +939,11 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/IEMAllIntprTables2.cpp \
   	VMMAll/IEMAllIntprTables3.cpp \
   	VMMAll/IEMAllIntprTables4.cpp \
-  	VMMAll/IEMAllAImplC.cpp \
-  	VMMAll/IEMAllCImpl.cpp \
-  	VMMAll/IEMAllCImplSvmInstr.cpp \
-  	VMMAll/IEMAllCImplVmxInstr.cpp \
-  	VMMAll/IEMAllDbg.cpp \
+  	VMMAll/target-x86/IEMAllAImplC-x86.cpp \
+  	VMMAll/target-x86/IEMAllCImpl-x86.cpp \
+  	VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp \
+  	VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp \
+  	VMMAll/target-x86/IEMAllDbg-x86.cpp \
   	VMMAll/IOMAll.cpp \
   	VMMAll/IOMAllMmioNew.cpp \
   	VMMAll/MMAll.cpp \
@@ -973,7 +973,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMRZ/CPUMRZA.asm \
   	VMMR0/HMR0A.asm \
   	VMMR0/HMR0UtilA.asm \
-  	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/IEMAllAImpl.asm,) \
+  	$(if-expr !defined(IEM_WITHOUT_ASSEMBLY),VMMAll/target-x86/IEMAllAImpl-x86-amd64.asm,) \
   	VMMAll/VMMAllA.asm
 
   ifdef VBOX_WITH_TRIPLE_FAULT_HACK
@@ -1002,10 +1002,10 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
  $(call VBOX_SET_VER_INFO_R0,VMMR0,VirtualBox VMM - ring-0 context parts) # Version info / description.
 
  if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
-  VMMR0_VMMAll/IEMAll.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
-  VMMR0_VMMAll/IEMAllAImplC.cpp_CXXFLAGS = /FAcs /Fa$(subst /,\\,$(outbase).cod)
-  VMMR0_VMMAll/PGMAll.cpp_CXXFLAGS       = /FAcs /Fa$(subst /,\\,$(outbase).cod)
-  VMMR0_CLEAN += $(addprefix $(VMMR0_0_OUTDIR)/VMMAll/, IEMAll.cod IEMAllAImplC.cod PGMAll.cod)
+  VMMR0_VMMAll/IEMAll.cpp_CXXFLAGS                      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+  VMMR0_VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+  VMMR0_VMMAll/PGMAll.cpp_CXXFLAGS                      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+  VMMR0_CLEAN += $(addprefix $(VMMR0_0_OUTDIR)/VMMAll/, IEMAll.cod IEMAllAImplC-x86.cod PGMAll.cod)
  endif
 
  VMMR0_INTERMEDIATES += $(VBoxVMM_0_OUTDIR)/CommonGenIncs/IEMInstructionStatisticsTmpl.h
@@ -1149,10 +1149,10 @@ if "$(KBUILD_TYPE)" == "release" || ($(USERNAME) != "aeichner")
   # cl : Command line warning D9025 : overriding '/Od' with '/O2'
   # cl : Command line warning D9025 : overriding '/Oy-' with '/Oy'
   VMMAll/IEMAll.cpp_CXXFLAGS                        += -noover -O2xy
-  VMMAll/IEMAllAImplC.cpp_CXXFLAGS                  += -noover -O2xy
-  VMMAll/IEMAllCImpl.cpp_CXXFLAGS                   += -noover -O2xy
-  VMMAll/IEMAllCImplSvmInstr.cpp_CXXFLAGS           += -noover -O2xy
-  VMMAll/IEMAllCImplVmxInstr.cpp_CXXFLAGS           += -noover -O2xy
+  VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS                  += -noover -O2xy
+  VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -noover -O2xy
+  VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -noover -O2xy
+  VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp_CXXFLAGS           += -noover -O2xy
   VMMAll/IEMAllIntprTables1.cpp_CXXFLAGS            += -noover -O2xy
   VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS            += -noover -O2xy
   VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS            += -noover -O2xy
@@ -1160,9 +1160,9 @@ if "$(KBUILD_TYPE)" == "release" || ($(USERNAME) != "aeichner")
  else
   # Omitting the frame pointer results in larger code, but it might be worth it. (esp addressing vs ebp?)
   VMMAll/IEMAll.cpp_CXXFLAGS                        += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllCImpl.cpp_CXXFLAGS                   += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllCImplSvmInstr.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
-  VMMAll/IEMAllCImplVmxInstr.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
   VMMAll/IEMAllIntprTables1.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
   VMMAll/IEMAllIntprTables2.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
   VMMAll/IEMAllIntprTables3.cpp_CXXFLAGS            += -O2 -fomit-frame-pointer
@@ -1228,7 +1228,7 @@ IEMAllInst3DNow.cpp.o IEMAllInst3DNow.cpp.obj: IEMAllInstInterpretOnly.o
 
 IEMInternal.o IEMInternal.obj: IEMAll.o
 
-IEMAllCImplStrInstr.cpp.o IEMAllCImplStrInstr.cpp.obj: IEMAllCImpl.o
+IEMAllCImplStrInstr-x86.cpp.o IEMAllCImplStrInstr-x86.cpp.obj: IEMAllCImpl-x86.o
 
 # Alias the NEM template to the objects where it is used:
 NEMAllNativeTemplate-win.cpp.o: NEMR3Native-win.o

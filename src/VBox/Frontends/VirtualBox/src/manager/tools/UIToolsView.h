@@ -35,29 +35,26 @@
 #include "QIGraphicsView.h"
 
 /* Forward declarations: */
-class UITools;
+class UIToolsModel;
 
 /** QIGraphicsView extension used as VM Tools-pane view. */
 class UIToolsView : public QIGraphicsView
 {
     Q_OBJECT;
 
-signals:
-
-    /** Notifies listeners about resize. */
-    void sigResized();
-
 public:
 
     /** Constructs a Tools-view passing @a pParent to the base-class.
-      * @param  pParent  Brings the Tools-container to embed into.
-      * @param  fPopup   Brings whether tools represented as popup. */
-    UIToolsView(UITools *pParent, bool fPopup);
+      * @param  pModel  Brings the tools model reference.
+      * @param  fPopup  Brings whether tools represented as popup. */
+    UIToolsView(QWidget *pParent, UIToolsModel *pModel, bool fPopup);
+    /** Destructs a Tools-view. */
+    virtual ~UIToolsView();
 
     /** @name General stuff.
       * @{ */
-        /** Returns the Tools reference. */
-        UITools *tools() const { return m_pTools; }
+        /** Returns the tools model reference. */
+        UIToolsModel *model() const { return m_pModel; }
     /** @} */
 
 public slots:
@@ -98,6 +95,11 @@ private:
         void preparePalette();
         /** Prepares connections. */
         void prepareConnections();
+
+        /** Cleanups connections. */
+        void cleanupConnections();
+        /** Cleanups all. */
+        void cleanup();
     /** @} */
 
     /** @name General stuff.
@@ -116,8 +118,8 @@ private:
 
     /** @name General stuff.
       * @{ */
-        /** Holds the Tools-pane reference. */
-        UITools *m_pTools;
+        /** Holds the tools model reference. */
+        UIToolsModel *m_pModel;
 
         /** Holds whether tools represented as popup. */
         const bool  m_fPopup;

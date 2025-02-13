@@ -157,12 +157,6 @@ public:
 
 public slots:
 
-    /** @name General stuff.
-      * @{ */
-        /** Handles Tools-view resize. */
-        void sltHandleViewResized() { updateLayout(); }
-    /** @} */
-
     /** @name Children stuff.
       * @{ */
         /** Handles minimum width hint change. */

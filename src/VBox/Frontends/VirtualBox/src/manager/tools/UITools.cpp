@@ -128,7 +128,7 @@ void UITools::prepareView()
     AssertPtrReturnVoid(m_pMainLayout);
 
     /* Prepare view: */
-    m_pToolsView = new UIToolsView(this, isPopup());
+    m_pToolsView = new UIToolsView(this, m_pToolsModel, isPopup());
     if (m_pToolsView)
     {
         m_pToolsView->setScene(m_pToolsModel->scene());
@@ -147,14 +147,6 @@ void UITools::prepareConnections()
             this, &UITools::close);
     connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
             this, &UITools::sigSelectionChanged);
-    connect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,
-            m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
-    connect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,
-            m_pToolsView, &UIToolsView::sltMinimumHeightHintChanged);
-
-    /* View connections: */
-    connect(m_pToolsView, &UIToolsView::sigResized,
-            m_pToolsModel, &UIToolsModel::sltHandleViewResized);
 }
 
 void UITools::initModel()
@@ -169,14 +161,6 @@ void UITools::cleanupConnections()
                this, &UITools::close);
     disconnect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
                this, &UITools::sigSelectionChanged);
-    disconnect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,
-               m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
-    disconnect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,
-               m_pToolsView, &UIToolsView::sltMinimumHeightHintChanged);
-
-    /* View connections: */
-    disconnect(m_pToolsView, &UIToolsView::sigResized,
-               m_pToolsModel, &UIToolsModel::sltHandleViewResized);
 }
 
 void UITools::cleanupView()

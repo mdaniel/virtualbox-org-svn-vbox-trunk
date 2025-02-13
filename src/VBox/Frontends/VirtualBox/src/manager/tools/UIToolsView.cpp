@@ -69,7 +69,7 @@ public:
         AssertPtrReturn(view(), 0);
 
         /* Return the number of children: */
-        return view()->tools()->model()->items().size();
+        return view()->model()->items().size();
     }
 
     /** Returns the child with the passed @a iIndex. */
@@ -81,7 +81,7 @@ public:
         AssertReturn(iIndex >= 0 && iIndex < childCount(), 0);
 
         /* Return the child with the passed iIndex: */
-        return QAccessible::queryAccessibleInterface(view()->tools()->model()->items().at(iIndex));
+        return QAccessible::queryAccessibleInterface(view()->model()->items().at(iIndex));
     }
 
     /** Returns the index of passed @a pChild. */
@@ -93,7 +93,7 @@ public:
         AssertReturn(pChild, -1);
 
         /* Return the index of passed model child: */
-        return view()->tools()->model()->items().indexOf(qobject_cast<UIToolsItem*>(pChild->object()));
+        return view()->model()->items().indexOf(qobject_cast<UIToolsItem*>(pChild->object()));
     }
 
     /** Returns a text for the passed @a enmTextRole. */
@@ -114,14 +114,19 @@ private:
 };
 
 
-UIToolsView::UIToolsView(UITools *pParent, bool fPopup)
+UIToolsView::UIToolsView(QWidget *pParent, UIToolsModel *pModel, bool fPopup)
     : QIGraphicsView(pParent)
-    , m_pTools(pParent)
+    , m_pModel(pModel)
     , m_fPopup(fPopup)
     , m_iMinimumWidthHint(0)
     , m_iMinimumHeightHint(0)
 {
     prepare();
+}
+
+UIToolsView::~UIToolsView()
+{
+    cleanup();
 }
 
 void UIToolsView::sltMinimumWidthHintChanged(int iHint)
@@ -265,14 +270,36 @@ void UIToolsView::prepareConnections()
     /* Translation signal: */
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIToolsView::sltRetranslateUI);
+
+    /* Model connections: */
+    connect(model(), &UIToolsModel::sigItemMinimumWidthHintChanged,
+            this, &UIToolsView::sltMinimumWidthHintChanged);
+    connect(model(), &UIToolsModel::sigItemMinimumHeightHintChanged,
+            this, &UIToolsView::sltMinimumHeightHintChanged);
+}
+
+void UIToolsView::cleanupConnections()
+{
+    /* Model connections: */
+    disconnect(model(), &UIToolsModel::sigItemMinimumWidthHintChanged,
+               this, &UIToolsView::sltMinimumWidthHintChanged);
+    disconnect(model(), &UIToolsModel::sigItemMinimumHeightHintChanged,
+               this, &UIToolsView::sltMinimumHeightHintChanged);
+}
+
+void UIToolsView::cleanup()
+{
+    /* Cleanup everything: */
+    cleanupConnections();
 }
 
 void UIToolsView::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
     QIGraphicsView::resizeEvent(pEvent);
-    /* Notify listeners: */
-    emit sigResized();
+
+    /* Update model's layout: */
+    model()->updateLayout();
 }
 
 void UIToolsView::updateSceneRect()

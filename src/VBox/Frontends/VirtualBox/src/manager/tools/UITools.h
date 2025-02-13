@@ -78,8 +78,6 @@ public:
         /** Returns whether tools represented as popup. */
         bool isPopup() const { return m_fPopup; }
 
-        /** Return the Tools-model instance. */
-        UIToolsModel *model() const { return m_pToolsModel; }
         /** Return the Tools-view instance. */
         UIToolsView *view() const { return m_pToolsView; }
 

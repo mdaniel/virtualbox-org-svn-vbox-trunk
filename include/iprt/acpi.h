@@ -894,7 +894,8 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
  *
  * @returns IPRT status code.
  * @param   hAcpiTbl            The ACPI table handle.
- * @param   pszNameRef          The region/buffer the field describes.
+ * @param   pszNameIndex        The index object.
+ * @param   pszNameData         The data object.
  * @param   enmAcc              The access type,
  * @param   fLock               Flag whether access must happen under a lock.
  * @param   enmUpdate           The update rule.

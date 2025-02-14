@@ -302,6 +302,7 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("IF"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_If                                },
     { RT_STR_TUPLE("ELSE"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_Else                              },
     { RT_STR_TUPLE("LAND"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LAnd                              },
+    { RT_STR_TUPLE("LOR"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LOr                               },
     { RT_STR_TUPLE("LEQUAL"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LEqual                            },
     { RT_STR_TUPLE("LGREATER"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LGreater                          },
     { RT_STR_TUPLE("LGREATEREQUAL"),            RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_LGreaterEqual                     },
@@ -366,6 +367,8 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("CREATEDWORDFIELD"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateDWordField                  },
     { RT_STR_TUPLE("CREATEQWORDFIELD"),         RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_CreateQWordField                  },
     { RT_STR_TUPLE("CONCATENATERESTEMPLATE"),   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_ConcatenateResTemplate            },
+    { RT_STR_TUPLE("FINDSETLEFTBIT"),           RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_FindSetLeftBit                    },
+    { RT_STR_TUPLE("FINDSETRIGHTBIT"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kAcpiAstNodeOp_FindSetRightBit                   },
 
     /* Keywords not in the operation parser table. */
     { RT_STR_TUPLE("DEFINITIONBLOCK"),          RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  RTACPIASLTERMINAL_KEYWORD_DEFINITION_BLOCK       },
@@ -2418,6 +2421,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_If                      */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",                     RTACPI_AST_NODE_F_NEW_SCOPE,                                kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Else                    */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",                   RTACPI_AST_NODE_F_NEW_SCOPE),
     /* kAcpiAstNodeOp_LAnd                    */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LAnd",                   RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_LOr                     */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LOr",                    RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LEqual                  */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LEqual",                 RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LGreater                */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreater",               RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_LGreaterEqual           */  RTACPI_ASL_KEYWORD_DEFINE_2REQ_0OPT("LGreaterEqual",          RTACPI_AST_NODE_F_DEFAULT,                                  kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
@@ -2482,6 +2486,8 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_CreateDWordField        */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateDWordField",       RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_CreateQWordField        */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("CreateQWordField",       RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_ConcatenateResTemplate  */  RTACPI_ASL_KEYWORD_DEFINE_3REQ_0OPT("ConcatenateResTemplate", RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_FindSetLeftBit          */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("FindSetLeftBit",         RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
+    /* kAcpiAstNodeOp_FindSetRightBit         */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_1OPT("FindSetRightBit",        RTACPI_AST_NODE_F_DEFAULT,    kAcpiAstArgType_AstNode, kAcpiAstArgType_AstNode),
 };
 
 
@@ -2994,7 +3000,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                             if (RT_FAILURE(rc))
                                 break;
 
-                            rc = rtAcpiAstDumpToTbl(pIt, pThis->hAcpiTbl);
+                            rc = rtAcpiAstDumpToTbl(pIt, pThis->pNs, pThis->hAcpiTbl);
                             if (RT_FAILURE(rc))
                                 break;
                         }

@@ -130,7 +130,7 @@ static PRTACPINSENTRY rtAcpiNsLookupWorker(PRTACPINSROOT pNsRoot, const char *ps
         bool fFound = false;
         RTListForEach(&pNsEntry->LstNsEntries, pIt, RTACPINSENTRY, NdNs)
         {
-            if (!memcmp(&pIt->achNameSeg[0], pszCur, sizeof(pIt->achNameSeg[0])))
+            if (!memcmp(&pIt->achNameSeg[0], pszCur, sizeof(pIt->achNameSeg)))
             {
                 pNsEntry = pIt;
                 fFound = true;

@@ -41,6 +41,7 @@
 #define LOG_GROUP RTLOGGROUP_ACPI
 #include <iprt/acpi.h>
 #include <iprt/asm.h>
+#include <iprt/ctype.h>
 #include <iprt/file.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
@@ -949,6 +950,36 @@ RTDECL(int) RTAcpiTblMethodFinalize(RTACPITBL hAcpiTbl)
 }
 
 
+RTDECL(int) RTAcpiTblBufferStart(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgStart(pThis, ACPI_AML_BYTE_CODE_OP_BUFFER);
+}
+
+
+RTDECL(int) RTAcpiTblBufferFinalize(RTACPITBL hAcpiTbl)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    return rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_OP_BUFFER);
+}
+
+
+RTDECL(int) RTAcpiTblBufferAppendRawData(RTACPITBL hAcpiTbl, const void *pvBuf, size_t cbBuf)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(!cbBuf || RT_VALID_PTR(pvBuf), VERR_INVALID_PARAMETER);
+    AssertReturn(cbBuf <= UINT32_MAX, VERR_BUFFER_OVERFLOW);
+
+    rtAcpiTblAppendData(pThis, pvBuf, (uint32_t)cbBuf);
+    return pThis->rcErr;
+}
+
+
 RTDECL(int) RTAcpiTblNameAppend(RTACPITBL hAcpiTbl, const char *pszName)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
@@ -1137,6 +1168,7 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
     bool fExtOp = false;
     switch (enmStmt)
     {
+        case kAcpiStmt_Ones:       bOp = ACPI_AML_BYTE_CODE_OP_ONES;        break;
         case kAcpiStmt_Return:     bOp = ACPI_AML_BYTE_CODE_OP_RETURN;      break;
         case kAcpiStmt_Breakpoint: bOp = ACPI_AML_BYTE_CODE_OP_BREAK_POINT; break;
         case kAcpiStmt_Nop:        bOp = ACPI_AML_BYTE_CODE_OP_NOOP;        break;
@@ -1160,6 +1192,15 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Increment:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
         case kAcpiStmt_Decrement:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
         case kAcpiStmt_CondRefOf:  bOp = ACPI_AML_BYTE_CODE_EXT_OP_COND_REF_OF; fExtOp = true; break;
+        case kAcpiStmt_LNot:       bOp = ACPI_AML_BYTE_CODE_OP_LNOT;        break;
+        case kAcpiStmt_CreateBitField:   bOp = ACPI_AML_BYTE_CODE_OP_CREATE_BIT_FIELD;   break;
+        case kAcpiStmt_CreateByteField:  bOp = ACPI_AML_BYTE_CODE_OP_CREATE_BYTE_FIELD;  break;
+        case kAcpiStmt_CreateWordField:  bOp = ACPI_AML_BYTE_CODE_OP_CREATE_WORD_FIELD;  break;
+        case kAcpiStmt_CreateDWordField: bOp = ACPI_AML_BYTE_CODE_OP_CREATE_DWORD_FIELD; break;
+        case kAcpiStmt_CreateQWordField: bOp = ACPI_AML_BYTE_CODE_OP_CREATE_QWORD_FIELD; break;
+        case kAcpiStmt_ConcatenateResTemplate: bOp = ACPI_AML_BYTE_CODE_OP_CONCAT_RES;         break;
+        case kAcpiStmt_FindSetLeftBit:         bOp = ACPI_AML_BYTE_CODE_OP_FIND_SET_LEFT_BIT;  break;
+        case kAcpiStmt_FindSetRightBit:        bOp = ACPI_AML_BYTE_CODE_OP_FIND_SET_RIGHT_BIT; break;
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
@@ -1236,6 +1277,7 @@ RTDECL(int) RTAcpiTblBinaryOpAppend(RTACPITBL hAcpiTbl, RTACPIBINARYOP enmBinary
     switch (enmBinaryOp)
     {
         case kAcpiBinaryOp_LAnd:            bOp = ACPI_AML_BYTE_CODE_OP_LAND;     break;
+        case kAcpiBinaryOp_LOr:             bOp = ACPI_AML_BYTE_CODE_OP_LOR;      break;
         case kAcpiBinaryOp_LEqual:          bOp = ACPI_AML_BYTE_CODE_OP_LEQUAL;   break;
         case kAcpiBinaryOp_LGreater:        bOp = ACPI_AML_BYTE_CODE_OP_LGREATER; break;
         case kAcpiBinaryOp_LLess:           bOp = ACPI_AML_BYTE_CODE_OP_LLESS;    break;
@@ -1302,6 +1344,43 @@ RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid)
     if (RT_SUCCESS(pThis->rcErr))
         return RTAcpiTblUuidAppend(pThis, &Uuid);
 
+    return pThis->rcErr;
+}
+
+
+DECLINLINE(uint8_t) rtAcpiTblHexCharToByte(char ch)
+{
+    ch = RT_C_TO_LOWER(ch);
+    return RT_C_IS_DIGIT(ch) ? ch - '0' : ch - 'a';
+}
+
+
+RTDECL(int) RTAcpiTblEisaIdAppend(RTACPITBL hAcpiTbl, const char *pszEisaId)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+    AssertReturn(strlen(pszEisaId) == 7, VERR_INVALID_PARAMETER);
+    AssertReturn(   RT_C_IS_UPPER(pszEisaId[0])
+                 && RT_C_IS_UPPER(pszEisaId[1])
+                 && RT_C_IS_UPPER(pszEisaId[2])
+                 && RT_C_IS_XDIGIT(pszEisaId[3])
+                 && RT_C_IS_XDIGIT(pszEisaId[4])
+                 && RT_C_IS_XDIGIT(pszEisaId[5])
+                 && RT_C_IS_XDIGIT(pszEisaId[6]),
+                 VERR_INVALID_PARAMETER);
+
+    uint8_t bMfgCode0 = pszEisaId[0] - 0x40;
+    uint8_t bMfgCode1 = pszEisaId[1] - 0x40;
+    uint8_t bMfgCode2 = pszEisaId[2] - 0x40;
+
+    uint8_t abDword[4] = { 0 };
+    abDword[0] = (bMfgCode0 << 2) | (bMfgCode1 >> 3);
+    abDword[1] = (bMfgCode1 << 5) | bMfgCode2;
+    abDword[2] = (rtAcpiTblHexCharToByte(pszEisaId[3]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[4]);
+    abDword[3] = (rtAcpiTblHexCharToByte(pszEisaId[5]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[6]);
+    rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_PREFIX_DWORD);
+    rtAcpiTblAppendData(pThis, &abDword[0], sizeof(abDword));
     return pThis->rcErr;
 }
 
@@ -1397,6 +1476,54 @@ RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTA
     }
 
     rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_FIELD);
+    return pThis->rcErr;
+}
+
+
+RTDECL(int) RTAcpiTblIndexFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameIndex, const char *pszNameData,
+                                      RTACPIFIELDACC enmAcc, bool fLock, RTACPIFIELDUPDATE enmUpdate,
+                                      PCRTACPIFIELDENTRY paFields, uint32_t cFields)
+{
+    PRTACPITBLINT pThis = hAcpiTbl;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+
+    rtAcpiTblPkgStartExt(pThis, ACPI_AML_BYTE_CODE_EXT_OP_INDEX_FIELD);
+    rtAcpiTblAppendNameString(pThis, pszNameIndex);
+    rtAcpiTblAppendNameString(pThis, pszNameData);
+
+    uint8_t fFlags = 0;
+    switch (enmAcc)
+    {
+        case kAcpiFieldAcc_Any:    fFlags = 0; break;
+        case kAcpiFieldAcc_Byte:   fFlags = 1; break;
+        case kAcpiFieldAcc_Word:   fFlags = 2; break;
+        case kAcpiFieldAcc_DWord:  fFlags = 3; break;
+        case kAcpiFieldAcc_QWord:  fFlags = 4; break;
+        case kAcpiFieldAcc_Buffer: fFlags = 5; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+    if (fLock)
+        fFlags |= RT_BIT(4);
+    switch (enmUpdate)
+    {
+        case kAcpiFieldUpdate_Preserve:      fFlags |= 0 << 5; break;
+        case kAcpiFieldUpdate_WriteAsOnes:   fFlags |= 1 << 5; break;
+        case kAcpiFieldUpdate_WriteAsZeroes: fFlags |= 2 << 5; break;
+        default:
+            pThis->rcErr = VERR_INVALID_PARAMETER;
+            AssertFailedReturn(pThis->rcErr);
+    }
+    rtAcpiTblAppendByte(pThis, fFlags);
+
+    for (uint32_t i = 0; i < cFields; i++)
+    {
+        rtAcpiTblAppendNameSegOrNullName(pThis, paFields[i].pszName);
+        rtAcpiTblEncodePkgLength(pThis, paFields[i].cBits);
+    }
+
+    rtAcpiTblPkgFinish(pThis, ACPI_AML_BYTE_CODE_EXT_OP_INDEX_FIELD);
     return pThis->rcErr;
 }
 

@@ -347,6 +347,35 @@ RTDECL(int) RTAcpiTblProcessorFinalize(RTACPITBL hAcpiTbl);
 
 
 /**
+ * Starts a new buffer object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblBufferStart(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Finalizes the current buffer object, nothing can be added to the scope afterwards.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ */
+RTDECL(int) RTAcpiTblBufferFinalize(RTACPITBL hAcpiTbl);
+
+
+/**
+ * Appends data to the current raw buffer object (needs to be called between RTAcpiTblBufferStart() and RTAcpiTblBufferFinalize()).
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pvBuf               The data to append.
+ * @param   cbBuf               Size of the buffer in bytes.
+ */
+RTDECL(int) RTAcpiTblBufferAppendRawData(RTACPITBL hAcpiTbl, const void *pvBuf, size_t cbBuf);
+
+
+/**
  * Starts a new method object for the given ACPI table in the current scope.
  *
  * @returns IPRT status code.
@@ -507,6 +536,8 @@ typedef enum RTACPISTMT
 {
     /** Invalid statement. */
     kAcpiStmt_Invalid = 0,
+    /** Ones statement. */
+    kAcpiStmt_Ones,
     /** Return statement. */
     kAcpiStmt_Return,
     /** Breakpoint statement. */
@@ -552,7 +583,25 @@ typedef enum RTACPISTMT
     /** Decrement(TermArg) statement. */
     kAcpiStmt_Decrement,
     /** CondRefOf(TermArg, Target) statement. */
-    kAcpiStmt_CondRefOf
+    kAcpiStmt_CondRefOf,
+    /** LNot(Source) statement. */
+    kAcpiStmt_LNot,
+    /** CreateBitField(SourceBuff, BitIndex, NameString) statement. */
+    kAcpiStmt_CreateBitField,
+    /** CreateByteField(SourceBuff, ByteIndex, NameString) statement. */
+    kAcpiStmt_CreateByteField,
+    /** CreateWordField(SourceBuff, ByteIndex, NameString) statement. */
+    kAcpiStmt_CreateWordField,
+    /** CreateDWordField(SourceBuff, ByteIndex, NameString) statement. */
+    kAcpiStmt_CreateDWordField,
+    /** CreateQWordField(SourceBuff, ByteIndex, NameString) statement. */
+    kAcpiStmt_CreateQWordField,
+    /** ConcatenateResTemplate(Source1, Source2, Result) statement. */
+    kAcpiStmt_ConcatenateResTemplate,
+    /** FindSetLeftBit(Source, Result) statement. */
+    kAcpiStmt_FindSetLeftBit,
+    /** FindSetRightBit(Source, Result) statement. */
+    kAcpiStmt_FindSetRightBit,
 } RTACPISTMT;
 
 
@@ -629,6 +678,8 @@ typedef enum RTACPIBINARYOP
     kAcpiBinaryOp_Invalid = 0,
     /** LAnd(Operand, Operand). */
     kAcpiBinaryOp_LAnd,
+    /** LOr(Operand, Operand). */
+    kAcpiBinaryOp_LOr,
     /** LEqual(Operand, Operand). */
     kAcpiBinaryOp_LEqual,
     /** LGreater(Operand, Operand). */
@@ -692,6 +743,17 @@ RTDECL(int) RTAcpiTblUuidAppend(RTACPITBL hAcpiTbl, PCRTUUID pUuid);
  * @param   pszUuid             The UUID string to append as a buffer.
  */
 RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid);
+
+
+/**
+ * Appends the given 7 character EISA ID string as the corresponding 4-byte
+ * integer.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszEisaId           The EISA ID to append.
+ */
+RTDECL(int) RTAcpiTblEisaIdAppend(RTACPITBL hAcpiTbl, const char *pszEisaId);
 
 
 /**
@@ -825,6 +887,23 @@ typedef const RTACPIFIELDENTRY *PCRTACPIFIELDENTRY;
 RTDECL(int) RTAcpiTblFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameRef, RTACPIFIELDACC enmAcc,
                                  bool fLock, RTACPIFIELDUPDATE enmUpdate, PCRTACPIFIELDENTRY paFields,
                                  uint32_t cFields);
+
+
+/**
+ * Appends a new index field descriptor to the given ACPI table.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   pszNameRef          The region/buffer the field describes.
+ * @param   enmAcc              The access type,
+ * @param   fLock               Flag whether access must happen under a lock.
+ * @param   enmUpdate           The update rule.
+ * @param   paFields            Pointer to the field descriptors.
+ * @param   cFields             Number of entries in the array.
+ */
+RTDECL(int) RTAcpiTblIndexFieldAppend(RTACPITBL hAcpiTbl, const char *pszNameIndex, const char *pszNameData,
+                                      RTACPIFIELDACC enmAcc, bool fLock, RTACPIFIELDUPDATE enmUpdate,
+                                      PCRTACPIFIELDENTRY paFields, uint32_t cFields);
 
 
 /**

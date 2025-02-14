@@ -57,16 +57,6 @@ public:
         UIToolsModel *model() const { return m_pModel; }
     /** @} */
 
-public slots:
-
-    /** @name Layout stuff.
-      * @{ */
-        /** Handles minimum width @a iHint change. */
-        void sltMinimumWidthHintChanged(int iHint);
-        /** Handles minimum height @a iHint change. */
-        void sltMinimumHeightHintChanged(int iHint);
-    /** @} */
-
 protected:
 
     /** @name Event handling stuff.
@@ -82,6 +72,14 @@ private slots:
        /** Handles translation event. */
        void sltRetranslateUI();
     /** @} */
+
+   /** @name Layout stuff.
+     * @{ */
+       /** Handles minimum width @a iHint change. */
+       void sltMinimumWidthHintChanged(int iHint);
+       /** Handles minimum height @a iHint change. */
+       void sltMinimumHeightHintChanged(int iHint);
+   /** @} */
 
 private:
 

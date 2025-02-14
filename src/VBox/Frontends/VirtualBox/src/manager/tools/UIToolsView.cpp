@@ -129,6 +129,20 @@ UIToolsView::~UIToolsView()
     cleanup();
 }
 
+void UIToolsView::resizeEvent(QResizeEvent *pEvent)
+{
+    /* Call to base-class: */
+    QIGraphicsView::resizeEvent(pEvent);
+
+    /* Update model's layout: */
+    model()->updateLayout();
+}
+
+void UIToolsView::sltRetranslateUI()
+{
+    setWhatsThis(tr("Contains a list of VirtualBox tools."));
+}
+
 void UIToolsView::sltMinimumWidthHintChanged(int iHint)
 {
     /* Is there something changed? */
@@ -159,11 +173,6 @@ void UIToolsView::sltMinimumHeightHintChanged(int iHint)
 
     /* Update scene-rect: */
     updateSceneRect();
-}
-
-void UIToolsView::sltRetranslateUI()
-{
-    setWhatsThis(tr("Contains a list of VirtualBox tools."));
 }
 
 void UIToolsView::prepare()
@@ -295,15 +304,6 @@ void UIToolsView::cleanup()
 {
     /* Cleanup everything: */
     cleanupConnections();
-}
-
-void UIToolsView::resizeEvent(QResizeEvent *pEvent)
-{
-    /* Call to base-class: */
-    QIGraphicsView::resizeEvent(pEvent);
-
-    /* Update model's layout: */
-    model()->updateLayout();
 }
 
 void UIToolsView::updateSceneRect()

@@ -49,6 +49,65 @@ RT_C_DECLS_BEGIN
 typedef struct RTACPIASTNODE *PRTACPIASTNODE;
 /** Pointer to a const ACPI AST node. */
 typedef const struct RTACPIASTNODE *PCRTACPIASTNODE;
+/** Pointer to an ACPI namespace entry. */
+typedef struct RTACPINSENTRY *PRTACPINSENTRY;
+
+
+/**
+ * External declaration.
+ */
+typedef struct RTACPIASLEXTERNAL
+{
+    /** List node for the list of externals. */
+    RTLISTNODE              NdExternal;
+    /** The object type. */
+    RTACPIOBJTYPE           enmObjType;
+    /** For methods this will hold the argument count. */
+    uint32_t                cArgs;
+    /** The name as parsed from the source file. */
+    const char              *pszName;
+    /** Size of the full name path in characters excluding the terminating zero. */
+    size_t                  cchNamePath;
+    /** The name path - variable in size. */
+    char                    szNamePath[1];
+} RTACPIASLEXTERNAL;
+/** Pointer to an external declaration. */
+typedef RTACPIASLEXTERNAL *PRTACPIASLEXTERNAL;
+/** Pointer to a const external declaration. */
+typedef const RTACPIASLEXTERNAL *PCRTACPIASLEXTERNAL;
+
+
+/**
+ * An ACPI namespace entry.
+ */
+typedef struct RTACPINSENTRY
+{
+    /** Node for the namespace list. */
+    RTLISTNODE              NdNs;
+    /** Pointer to the parent in the namespace, NULL if this is the root. */
+    PRTACPINSENTRY          pParent;
+    /** The name segment identifying the entry. */
+    char                    achNameSeg[4];
+    /** Flag whether this points to an AST node or an external. */
+    bool                    fAstNd;
+    /** Type dependent data. */
+    union
+    {
+        /** The AST node associated with this namespace entry. */
+        PCRTACPIASTNODE     pAstNd;
+        /** Pointer to the external declaration. */
+        PCRTACPIASLEXTERNAL pExternal;
+    };
+    /** Bit offset for resource fields. */
+    uint32_t                offBits;
+    /** Bit count for resource fields. */
+    uint32_t                cBits;
+    /** List of namespace entries below this entry. */
+    RTLISTANCHOR            LstNsEntries;
+} RTACPINSENTRY;
+/** Pointer to a const ACPI namespace entry. */
+typedef const RTACPINSENTRY *PCRTACPINSENTRY;
+
 
 /**
  * AST node argument type.
@@ -198,6 +257,8 @@ typedef struct RTACPIASTNODE
 {
     /** List node. */
     RTLISTNODE              NdAst;
+    /** The owning namespace entry. */
+    PCRTACPINSENTRY         pNsEntry;
     /** The AML op defining the node. */
     RTACPIASTNODEOP         enmOp;
     /** Some additional flags. */
@@ -237,67 +298,8 @@ typedef struct RTACPIASTNODE
 #define RTACPI_AST_NODE_F_NEW_SCOPE     RT_BIT_32(0)
 /** The AST node has an associated namespace entry. */
 #define RTACPI_AST_NODE_F_NS_ENTRY      RT_BIT_32(1)
-
-
-/**
- * External declaration.
- */
-typedef struct RTACPIASLEXTERNAL
-{
-    /** List node for the list of externals. */
-    RTLISTNODE              NdExternal;
-    /** The object type. */
-    RTACPIOBJTYPE           enmObjType;
-    /** For methods this will hold the argument count. */
-    uint32_t                cArgs;
-    /** The name as parsed from the source file. */
-    const char              *pszName;
-    /** Size of the full name path in characters excluding the terminating zero. */
-    size_t                  cchNamePath;
-    /** The name path - variable in size. */
-    char                    szNamePath[1];
-} RTACPIASLEXTERNAL;
-/** Pointer to an external declaration. */
-typedef RTACPIASLEXTERNAL *PRTACPIASLEXTERNAL;
-/** Pointer to a const external declaration. */
-typedef const RTACPIASLEXTERNAL *PCRTACPIASLEXTERNAL;
-
-
-
-/** Pointer to an ACPI namespace entry. */
-typedef struct RTACPINSENTRY *PRTACPINSENTRY;
-
-
-/**
- * An ACPI namespace entry.
- */
-typedef struct RTACPINSENTRY
-{
-    /** Node for the namespace list. */
-    RTLISTNODE              NdNs;
-    /** Pointer to the parent in the namespace, NULL if this is the root. */
-    PRTACPINSENTRY          pParent;
-    /** The name segment identifying the entry. */
-    char                    achNameSeg[4];
-    /** Flag whether this points to an AST node or an external. */
-    bool                    fAstNd;
-    /** Type dependent data. */
-    union
-    {
-        /** The AST node associated with this namespace entry. */
-        PCRTACPIASTNODE     pAstNd;
-        /** Pointer to the external declaration. */
-        PCRTACPIASLEXTERNAL pExternal;
-    };
-    /** Bit offset for resource fields. */
-    uint32_t                offBits;
-    /** Bit count for resource fields. */
-    uint32_t                cBits;
-    /** List of namespace entries below this entry. */
-    RTLISTANCHOR            LstNsEntries;
-} RTACPINSENTRY;
-/** Pointer to a const ACPI namespace entry. */
-typedef const RTACPINSENTRY *PCRTACPINSENTRY;
+/** The AST node switches the namespace (only Scope). */
+#define RTACPI_AST_NODE_F_NS_SWITCH     RT_BIT_32(2)
 
 
 /**
@@ -323,11 +325,12 @@ typedef const RTACPINSROOT *PCRTACPINSROOT;
  * Allocates a new ACPI AST node initialized with the given properties.
  *
  * @returns Pointer to the new ACPI AST node or NULL if out of memory.
+ * @param   pNs                 The namespace this AST node will be part of.
  * @param   enmOp               The operation of the AST node.
  * @param   fFlags              Flags for this node.
  * @param   cArgs               Number of arguments to allocate.
  */
-DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs);
+DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(PCRTACPINSROOT pNs, RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs);
 
 
 /**
@@ -366,6 +369,16 @@ DECLHIDDEN(PRTACPINSROOT) rtAcpiNsCreate(void);
  * @param   pNsRoot             The namespace root to destroy.
  */
 DECLHIDDEN(void) rtAcpiNsDestroy(PRTACPINSROOT pNsRoot);
+
+
+/**
+ * Switches to the given existing namespace.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root.
+ * @param   pszNameString       The namespace to switch to.
+ */
+DECLHIDDEN(int) rtAcpiNsSwitchTo(PRTACPINSROOT pNsRoot, const char *pszNameString);
 
 
 /**
@@ -419,6 +432,39 @@ DECLHIDDEN(int) rtAcpiNsQueryNamePathForNameString(PRTACPINSROOT pNsRoot, const 
 
 
 /**
+ * Tries to compress the given name string to a shorter representation.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root.
+ * @param   pNsEntry            The namespace entry the namestring belongs to.
+ * @param   pszNameString       The name string to try to compress.
+ * @param   pszNameStringComp   Where to store the result.
+ * @param   cchNameStringComp   Size of the buffer in characters.
+ *
+ * @note This will only try to compress absolute name paths by converting it to a relative one
+ *       (\SEG1 -> SEG1 for example if the current scope is \) Otherwise the string is just copied as is.
+ */
+DECLHIDDEN(int) rtAcpiNsCompressNameString(PCRTACPINSROOT pNsRoot, PCRTACPINSENTRY pNsEntry, const char *pszNameString, char *pszNameStringComp, size_t cchNameStringComp);
+
+
+/**
+ * Tries to convert an absolute namestring to a relative one from the given namespace.
+ *
+ * @returns IPRT status code.
+ * @param   pNsRoot             The namespace root.
+ * @param   pNsEntrySrc         The source namespace.
+ * @param   pszNameStringDst    The destination name string to try to convert.
+ * @param   pszNameStringRel    Where to store the result.
+ * @param   cchNameStringRel    Size of the buffer in characters.
+ *
+ * @note This will only try to resolve absolute name paths. Others are just copied as is.
+ */
+DECLHIDDEN(int) rtAcpiNsAbsoluteNameStringToRelative(PRTACPINSROOT pNsRoot, PCRTACPINSENTRY pNsEntrySrc,
+                                                     const char *pszNameStringDst,
+                                                     char *pszNameStringRel, size_t cchNameStringRel);
+
+
+/**
  * Pops the current name space entry from the stack and returns to the previous one.
  *
  * @returns IPRT status code.
@@ -434,7 +480,16 @@ DECLHIDDEN(int) rtAcpiNsPop(PRTACPINSROOT pNsRoot);
  * @param   pNsRoot             The namespace root.
  * @param   pszNameString       The ACPI NameString (either segment or path) to lookup.
  */
-DECLHIDDEN(PCRTACPINSENTRY) rtAcpiNsLookup(PRTACPINSROOT pNsRoot, const char *pszNameString);
+DECLHIDDEN(PRTACPINSENTRY) rtAcpiNsLookup(PRTACPINSROOT pNsRoot, const char *pszNameString);
+
+
+/**
+ * Returns the current namespace entry being active.
+ *
+ * @returns Pointer to the current namespace entry.
+ * @param   pNsRoot             The namespace root.
+ */
+DECLHIDDEN(PCRTACPINSENTRY) rtAcpiNsGetCurrent(PCRTACPINSROOT pNsRoot);
 
 
 /**

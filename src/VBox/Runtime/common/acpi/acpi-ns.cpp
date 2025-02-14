@@ -40,7 +40,7 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP RTLOGGROUP_ACPI
 #include <iprt/assert.h>
-#include <iprt/errcore.h>
+#include <iprt/err.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
@@ -76,6 +76,24 @@ static void rtAcpiNsEntryDestroy(PRTACPINSENTRY pNsEntry)
         rtAcpiNsEntryDestroy(pIt);
     }
     RTMemFree(pNsEntry);
+}
+
+
+static PRTACPINSENTRY rtAcpiNsLookupWorkerSingleNameSeg(PCRTACPINSENTRY pNsEntry, const char *pszNameSeg)
+{
+    do
+    {
+        PRTACPINSENTRY pIt;
+        RTListForEach(&pNsEntry->LstNsEntries, pIt, RTACPINSENTRY, NdNs)
+        {
+            if (!memcmp(&pIt->achNameSeg[0], pszNameSeg, sizeof(pIt->achNameSeg)))
+                return pIt;
+        }
+
+        pNsEntry = pNsEntry->pParent;
+    } while (pNsEntry);
+
+    return NULL;
 }
 
 
@@ -116,7 +134,22 @@ static PRTACPINSENTRY rtAcpiNsLookupWorker(PRTACPINSROOT pNsRoot, const char *ps
         }
     }
     else
+    {
         pNsEntry = pNsRoot->aNsStack[pNsRoot->idxNsStack];
+
+        /* For single name segments there is a special search rule which searches recursively upwards in the namespace. */
+        if (pszNameString[4] == '\0')
+        {
+            if (fExcludeLast)
+            {
+                AssertPtr(ppszNameSegLast);
+                *ppszNameSegLast = pszNameString;
+                return pNsEntry;
+            }
+            else
+                return rtAcpiNsLookupWorkerSingleNameSeg(pNsEntry, pszNameString);
+        }
+    }
 
     /* This ASSUMES the namestring has always full 4 character name segments and is well formed. */
     do
@@ -156,19 +189,70 @@ static PRTACPINSENTRY rtAcpiNsLookupWorker(PRTACPINSROOT pNsRoot, const char *ps
 
 
 /**
+ * Looks up a name string under the specified entry.
+ *
+ * @returns Pointer to the namespace entry or NULL if not found.
+ * @param   pNsEntry            The namespace entry to start searching at.
+ * @param   pszNameString       The name string to look for.
+ */
+static PCRTACPINSENTRY rtAcpiNsLookupSubTree(PCRTACPINSENTRY pNsEntry, const char *pszNameString)
+{
+    /* This ASSUMES the namestring has always full 4 character name segments and is well formed. */
+    do
+    {
+        Assert(pszNameString[0] != '\0' && pszNameString[1] != '\0' && pszNameString[2] != '\0' && pszNameString[3] != '\0');
+
+        PCRTACPINSENTRY pIt;
+        bool fFound = false;
+        RTListForEach(&pNsEntry->LstNsEntries, pIt, RTACPINSENTRY, NdNs)
+        {
+            if (!memcmp(&pIt->achNameSeg[0], pszNameString, sizeof(pIt->achNameSeg)))
+            {
+                pNsEntry = pIt;
+                fFound = true;
+                break;
+            }
+        }
+
+        /* The name path is invalid. */
+        if (!fFound)
+            return NULL;
+
+        pszNameString += 4;
+    } while (*pszNameString++ == '.');
+
+    return pNsEntry;
+}
+
+
+/**
  * Adds a new entry in the given namespace under the given path.
  *
  * @returns IPRT status code.
  * @param   pNsRoot             The namespace to add the new entry to.
  * @param   pszNameString       The namestring to add.
  * @param   fSwitchTo           Flag whether to switch to the new entry.
+ * @param   fIgnoreExisting     Flag whether to ignore any existing entry in the namespace parents.
  * @param   ppNsEntry           Where to store the pointer to the created entry on success.
  */
-static int rtAcpiNsAddEntryWorker(PRTACPINSROOT pNsRoot, const char *pszNameString, bool fSwitchTo, PRTACPINSENTRY *ppNsEntry)
+static int rtAcpiNsAddEntryWorker(PRTACPINSROOT pNsRoot, const char *pszNameString, bool fSwitchTo, bool fIgnoreExisting, PRTACPINSENTRY *ppNsEntry)
 {
     AssertReturn(   !fSwitchTo
                  || pNsRoot->idxNsStack < RT_ELEMENTS(pNsRoot->aNsStack),
                  VERR_INVALID_STATE);
+
+    /* Does it exist already? */
+    if (!fIgnoreExisting)
+    {
+        PRTACPINSENTRY pNsEntry = rtAcpiNsLookupWorker(pNsRoot, pszNameString, false /*fExcludeLast*/, NULL);
+        if (pNsEntry)
+        {
+            *ppNsEntry = pNsEntry;
+            if (fSwitchTo)
+                pNsRoot->aNsStack[++pNsRoot->idxNsStack] = pNsEntry;
+            return VERR_ALREADY_EXISTS;
+        }
+    }
 
     int rc;
     const char *pszNameSegLast = NULL;
@@ -208,6 +292,22 @@ DECLHIDDEN(PRTACPINSROOT) rtAcpiNsCreate(void)
         pNsRoot->RootEntry.pParent = NULL;
         pNsRoot->idxNsStack        = 0;
         pNsRoot->aNsStack[pNsRoot->idxNsStack] = &pNsRoot->RootEntry;
+        /* Create the default scopes. */
+        int rc = rtAcpiNsAddEntryAstNode(pNsRoot, "\\_SB_", NULL /*pAstNd*/, false /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+            rc = rtAcpiNsAddEntryAstNode(pNsRoot, "\\_PR_", NULL /*pAstNd*/, false /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+            rc = rtAcpiNsAddEntryAstNode(pNsRoot, "\\_GPE", NULL /*pAstNd*/, false /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+            rc = rtAcpiNsAddEntryAstNode(pNsRoot, "\\_SI_", NULL /*pAstNd*/, false /*fSwitchTo*/);
+        if (RT_SUCCESS(rc))
+            rc = rtAcpiNsAddEntryAstNode(pNsRoot, "\\_TZ_", NULL /*pAstNd*/, false /*fSwitchTo*/);
+        Assert(RT_SUCCESS(rc) || rc == VERR_NO_MEMORY);
+        if (RT_FAILURE(rc))
+        {
+            RTMemFree(pNsRoot);
+            pNsRoot = NULL;
+        }
     }
     return pNsRoot;
 }
@@ -225,10 +325,23 @@ DECLHIDDEN(void) rtAcpiNsDestroy(PRTACPINSROOT pNsRoot)
 }
 
 
+DECLHIDDEN(int) rtAcpiNsSwitchTo(PRTACPINSROOT pNsRoot, const char *pszNameString)
+{
+    PRTACPINSENTRY pNsEntry = rtAcpiNsLookup(pNsRoot, pszNameString);
+    if (!pNsEntry)
+        return VERR_NOT_FOUND;
+
+    pNsRoot->aNsStack[++pNsRoot->idxNsStack] = pNsEntry;
+    return VINF_SUCCESS;
+}
+
+
 DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASTNODE pAstNd, bool fSwitchTo)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, false /*fIgnoreExisting*/, &pNsEntry);
+    if (rc == VERR_ALREADY_EXISTS)
+        rc = VINF_SUCCESS;
     if (RT_SUCCESS(rc))
     {
         pNsEntry->fAstNd = true;
@@ -242,7 +355,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
 DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *pszNameString, uint32_t offBits, uint32_t cBits)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, true /*fIgnoreExisting*/, &pNsEntry);
     if (RT_SUCCESS(rc))
     {
         pNsEntry->fAstNd  = false;
@@ -258,7 +371,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *psz
 DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, false /*fIgnoreExisting*/, &pNsEntry);
     if (RT_SUCCESS(rc))
     {
         pNsEntry->fAstNd    = false;
@@ -349,6 +462,126 @@ DECLHIDDEN(int) rtAcpiNsQueryNamePathForNameString(PRTACPINSROOT pNsRoot, const 
 }
 
 
+DECLHIDDEN(int) rtAcpiNsCompressNameString(PCRTACPINSROOT pNsRoot, PCRTACPINSENTRY pNsEntry, const char *pszNameString, char *pszNameStringComp, size_t cchNameStringComp)
+{
+    size_t cchNameString = strlen(pszNameString);
+    if (cchNameString > cchNameStringComp)
+        return VERR_BUFFER_OVERFLOW;
+
+    if (   *pszNameString != '\\'
+        || pNsEntry != rtAcpiNsGetCurrent(pNsRoot))
+    {
+        memcpy(pszNameStringComp, pszNameString, cchNameString + 1);
+        return VINF_SUCCESS;
+    }
+
+    /* Try to remove as many components as possible. */
+    uint32_t cEntries = 0;
+    PCRTACPINSENTRY aNsEntries[255]; /* Maximum amount of name segments possible. */
+    do
+    {
+        aNsEntries[cEntries++] = pNsEntry;
+        pNsEntry = pNsEntry->pParent;
+    } while (pNsEntry);
+
+    Assert(cEntries > 0); /* Should have at least the root entry. */
+
+    /* Remove the \ specifier. */
+    pszNameString++;
+    cchNameString--;
+    uint32_t idxEntry = 1;
+    while (idxEntry < cEntries)
+    {
+        pNsEntry = aNsEntries[idxEntry++];
+        if (memcmp(pszNameString, &pNsEntry->achNameSeg[0], sizeof(pNsEntry->achNameSeg)))
+            break;
+
+        Assert(pszNameString[4] == '.');
+        pszNameString += 5;
+        cchNameString -= 5;
+    }
+
+    /* The remaining string is what we end up with. */
+    memcpy(pszNameStringComp, pszNameString, cchNameString + 1);
+    return VINF_SUCCESS;
+}
+
+
+DECLHIDDEN(int) rtAcpiNsAbsoluteNameStringToRelative(PRTACPINSROOT pNsRoot, PCRTACPINSENTRY pNsEntrySrc, const char *pszNameStringDst, char *pszNameStringRel, size_t cchNameStringRel)
+{
+    size_t cchNameStringDst = strlen(pszNameStringDst);
+    if (cchNameStringDst > cchNameStringRel)
+        return VERR_BUFFER_OVERFLOW;
+
+    /* Init with the default. */
+    memcpy(pszNameStringRel, pszNameStringDst, cchNameStringDst + 1);
+    if (*pszNameStringDst != '\\')
+        return VINF_SUCCESS;
+
+    PCRTACPINSENTRY pNsDst = rtAcpiNsLookup(pNsRoot, pszNameStringDst);
+    AssertReturn(pNsDst, VERR_NOT_FOUND);
+
+    uint32_t cEntriesSrc = 0;
+    PCRTACPINSENTRY aNsEntriesSrc[255]; /* Maximum amount of name segments possible. */
+    do
+    {
+        aNsEntriesSrc[cEntriesSrc++] = pNsEntrySrc;
+        pNsEntrySrc = pNsEntrySrc->pParent;
+    } while (pNsEntrySrc);
+
+    uint32_t cEntriesDst = 0;
+    PCRTACPINSENTRY aNsEntriesDst[255]; /* Maximum amount of name segments possible. */
+    do
+    {
+        aNsEntriesDst[cEntriesDst++] = pNsDst;
+        pNsDst = pNsDst->pParent;
+    } while (pNsDst);
+
+    Assert(cEntriesSrc > 0 && cEntriesDst > 0); /* Should have at least the root entry. */
+    uint32_t idxEntrySrc = cEntriesSrc;
+    idxEntrySrc--;
+    cEntriesDst--;
+    Assert(aNsEntriesSrc[idxEntrySrc] == aNsEntriesDst[cEntriesDst]);
+
+    /* Remove the \ specifier. */
+    size_t cchNameStringNew = cchNameStringDst;
+    pszNameStringDst++;
+    cchNameStringNew--;
+
+    /* Find the first different path entry. */
+    while (   idxEntrySrc
+           && cEntriesDst)
+    {
+        if (   aNsEntriesSrc[--idxEntrySrc] != aNsEntriesDst[--cEntriesDst]
+            || pszNameStringDst[4] == '\0')
+            break;
+
+        Assert(pszNameStringDst[4] == '.');
+        pszNameStringDst += 5;
+        cchNameStringNew -= 5;
+    }
+
+    /*
+     * Calculate how many parent prefixes we need to add.
+     * If the remaining name path is just a segment it must be a
+     * direct parent of the source and can be written as a simple name segment
+     * due to the default search rules.
+     */
+    uint32_t cParentPrefixes =   (   rtAcpiNsLookupSubTree(aNsEntriesSrc[idxEntrySrc], pszNameStringDst)
+                                  || pszNameStringDst[4] == '\0')
+                               ? 0
+                               : idxEntrySrc + 1;
+    /* Only overwrite with our result if it is shorter. */
+    if (cParentPrefixes + cchNameStringNew < cchNameStringDst)
+    {
+        for (uint32_t i = 0; i < cParentPrefixes; i++)
+            pszNameStringRel[i] = '^';
+        memcpy(&pszNameStringRel[cParentPrefixes], pszNameStringDst, cchNameStringNew + 1);
+    }
+    return VINF_SUCCESS;
+}
+
+
 DECLHIDDEN(int) rtAcpiNsPop(PRTACPINSROOT pNsRoot)
 {
     AssertReturn(pNsRoot->idxNsStack, VERR_INVALID_STATE); /* The root can't be popped from the stack. */
@@ -357,7 +590,13 @@ DECLHIDDEN(int) rtAcpiNsPop(PRTACPINSROOT pNsRoot)
 }
 
 
-DECLHIDDEN(PCRTACPINSENTRY) rtAcpiNsLookup(PRTACPINSROOT pNsRoot, const char *pszNameString)
+DECLHIDDEN(PRTACPINSENTRY) rtAcpiNsLookup(PRTACPINSROOT pNsRoot, const char *pszNameString)
 {
     return rtAcpiNsLookupWorker(pNsRoot, pszNameString, false /*fExcludeLast*/, NULL /*ppszNameSegLast*/);
+}
+
+
+DECLHIDDEN(PCRTACPINSENTRY) rtAcpiNsGetCurrent(PCRTACPINSROOT pNsRoot)
+{
+    return pNsRoot->aNsStack[pNsRoot->idxNsStack];
 }

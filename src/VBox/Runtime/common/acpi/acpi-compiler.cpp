@@ -1188,11 +1188,12 @@ static DECLCALLBACK(int) rtAcpiTblAslParseMethod(PRTACPIASLCU pThis, PCRTACPIASL
 }
 
 
-static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd)
+static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, const char *pszFieldName, PRTACPIASTNODE pAstNd)
 {
     RTACPIFIELDENTRY aFieldEntries[128]; RT_ZERO(aFieldEntries); /** @todo Allow dynamic allocation? */
     uint32_t cFields = 0;
 
+    uint32_t offBits = 0;
     for (;;)
     {
         /** @todo Is an empty list allowed (currently we allow that)? */
@@ -1215,7 +1216,7 @@ static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd
             /* Must be an integer */
             RTACPIASL_PARSE_NATURAL(offBytes);
             aFieldEntries[cFields].pszName = NULL;
-            aFieldEntries[cFields].cBits   = offBytes * 8;
+            aFieldEntries[cFields].cBits   = (offBytes * 8) - offBits;
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
         }
         else
@@ -1226,8 +1227,14 @@ static int rtAcpiTblParseFieldUnitList(PRTACPIASLCU pThis, PRTACPIASTNODE pAstNd
             RTACPIASL_PARSE_NATURAL(cBits);
             aFieldEntries[cFields].pszName = pszName;
             aFieldEntries[cFields].cBits   = cBits;
+
+            rc = rtAcpiNsAddEntryRsrcField(pThis->pNs, pszName, offBits, cBits);
+            if (RT_FAILURE(rc))
+                return RTErrInfoSetF(pThis->pErrInfo, rc, "Failed to add '%s.%s' to namespace", pszFieldName, pszName);
+
         }
 
+        offBits += aFieldEntries[cFields].cBits;
         cFields++;
 
         /* A following "," means there is another entry, otherwise the closing "}" should follow. */
@@ -1336,7 +1343,7 @@ static DECLCALLBACK(int) rtAcpiTblAslParseFieldOrIndexField(PRTACPIASLCU pThis, 
 
     /* Parse the field unit list. */
     RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_OPEN_CURLY_BRACKET, '{');
-    return rtAcpiTblParseFieldUnitList(pThis, pAstNd);
+    return rtAcpiTblParseFieldUnitList(pThis, pszNameString, pAstNd);
 }
 
 
@@ -1530,7 +1537,8 @@ static int rtAcpiTblParseResourceIrqNoFlags(PRTACPIASLCU pThis, RTACPIRES hAcpiR
     {
         static const RTACPIRSRCNSENTRY s_aRsrcNs[] =
         {
-            { NULL, 0,  0 }
+            { "_INT", 1 * 8, 16 },
+            { NULL,       0,  0 }
         };
         rc = rtAcpiTblParseResourceNsCreateEntries(pThis, hAcpiRes, pAstNd, "IRQNoFlags", pszName, &s_aRsrcNs[0]);
         if (RT_FAILURE(rc))
@@ -1673,8 +1681,8 @@ static int rtAcpiTblParseResourceDma(PRTACPIASLCU pThis, RTACPIRES hAcpiRes, PRT
     switch (enmDmaTransferSize)
     {
         case RTACPIASLTERMINAL_KEYWORD_TRANSFER_8:    enmTransferType = kAcpiResDmaTransferType_8Bit;       break;
-        case RTACPIASLTERMINAL_KEYWORD_TRANSFER_16:   enmTransferType = kAcpiResDmaTransferType_8Bit_16Bit; break;
-        case RTACPIASLTERMINAL_KEYWORD_TRANSFER_8_16: enmTransferType = kAcpiResDmaTransferType_16Bit;      break;
+        case RTACPIASLTERMINAL_KEYWORD_TRANSFER_16:   enmTransferType = kAcpiResDmaTransferType_16Bit;      break;
+        case RTACPIASLTERMINAL_KEYWORD_TRANSFER_8_16: enmTransferType = kAcpiResDmaTransferType_8Bit_16Bit; break;
         default:
             AssertReleaseFailed();
     }
@@ -1907,10 +1915,10 @@ static int rtAcpiTblParseResourceDWordMemory(PRTACPIASLCU pThis, RTACPIRES hAcpi
             { "_MTP",  5 * 8 + 3,  2 },
             { "_TTP",  5 * 8 + 5,  1 },
             { "_GRA",  6 * 8,     32 },
-            { "_MIN", 12 * 8,     32 },
-            { "_MAX", 16 * 8,     32 },
-            { "_TRA", 24 * 8,     32 },
-            { "_LEN", 32 * 8,     32 },
+            { "_MIN", 10 * 8,     32 },
+            { "_MAX", 14 * 8,     32 },
+            { "_TRA", 18 * 8,     32 },
+            { "_LEN", 22 * 8,     32 },
             { NULL,        0,      0 }
         };
         int rc = rtAcpiTblParseResourceNsCreateEntries(pThis, hAcpiRes, pAstNd, "DWordMemory", pszName, &s_aRsrcNs[0]);
@@ -2399,7 +2407,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
     /* kAcpiAstNodeOp_Identifier              */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_StringLiteral           */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
     /* kAcpiAstNodeOp_Number                  */  RTACPI_ASL_KEYWORD_DEFINE_INVALID,
-    /* kAcpiAstNodeOp_Scope                   */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",                  RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,   kAcpiAstArgType_NameString),
+    /* kAcpiAstNodeOp_Scope                   */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Scope",                  RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_SWITCH,  kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_Processor               */  {
                                                       "Processor", NULL, 2, 2, RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,
                                                       {
@@ -2416,7 +2424,7 @@ static const RTACPIASLKEYWORD g_aAslOps[] =
                                                       }
                                                   },
     /* kAcpiAstNodeOp_External                */  RTACPI_ASL_KEYWORD_DEFINE_INVALID, /* Special handling. */
-    /* kAcpiAstNodeOp_Method                  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",                 rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE),
+    /* kAcpiAstNodeOp_Method                  */  RTACPI_ASL_KEYWORD_DEFINE_HANDLER(  "Method",                 rtAcpiTblAslParseMethod,   1, 3, RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY),
     /* kAcpiAstNodeOp_Device                  */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("Device",                 RTACPI_AST_NODE_F_NEW_SCOPE | RTACPI_AST_NODE_F_NS_ENTRY,   kAcpiAstArgType_NameString),
     /* kAcpiAstNodeOp_If                      */  RTACPI_ASL_KEYWORD_DEFINE_1REQ_0OPT("If",                     RTACPI_AST_NODE_F_NEW_SCOPE,                                kAcpiAstArgType_AstNode),
     /* kAcpiAstNodeOp_Else                    */  RTACPI_ASL_KEYWORD_DEFINE_0REQ_0OPT("Else",                   RTACPI_AST_NODE_F_NEW_SCOPE),
@@ -2612,7 +2620,7 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
     *ppAstNd = NULL;
 
     PCRTACPIASLKEYWORD pAslKeyword = &g_aAslOps[enmOp];
-    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(enmOp, pAslKeyword->fFlags, pAslKeyword->cArgsReq + pAslKeyword->cArgsOpt);
+    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(pThis->pNs, enmOp, pAslKeyword->fFlags, pAslKeyword->cArgsReq + pAslKeyword->cArgsOpt);
     if (!pAstNd)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing keyword '%s'", pAslKeyword->pszOpc);
 
@@ -2635,19 +2643,6 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
             rc = rtAcpiTblAslParseArgument(pThis, pAslKeyword->pszOpc, i, pAslKeyword->aenmTypes[i], &pAstNd->aArgs[i]);
             if (RT_FAILURE(rc))
                 return rc;
-
-            if (i == 0 && (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY))
-            {
-                /*
-                 * Create a new namespace entry, we currently assume that the first argument is a namestring
-                 * which gives the path.
-                 */
-                AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
-
-                rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, true /*fSwitchTo*/);
-                if (RT_FAILURE(rc))
-                    return rc;
-            }
 
             /* There must be a "," between required arguments, not counting the last required argument because it can be closed with ")". */
             if (i < (uint8_t)(pAslKeyword->cArgsReq - 1))
@@ -2697,6 +2692,29 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
 
         /* Now there must be a closing ) */
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
+
+        if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
+        {
+            /*
+             * Create a new namespace entry, we currently assume that the first argument is a namestring
+             * which gives the path.
+             */
+            AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
+
+            rc = rtAcpiNsAddEntryAstNode(pThis->pNs, pAstNd->aArgs[0].u.pszNameString, pAstNd, RT_BOOL(pAslKeyword->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE) /*fSwitchTo*/);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+        else if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_SWITCH)
+        {
+            AssertReturn(pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString, VERR_NOT_SUPPORTED);
+            Assert(pAslKeyword->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE);
+
+            rc = rtAcpiNsSwitchTo(pThis->pNs, pAstNd->aArgs[0].u.pszNameString);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+
     }
 
     /* For keywords opening a new scope do the parsing now. */
@@ -2706,10 +2724,10 @@ static int rtAcpiTblAslParseOp(PRTACPIASLCU pThis, RTACPIASTNODEOP enmOp, PRTACP
         rc = rtAcpiTblAslParseInner(pThis, &pAstNd->LstScopeNodes);
         if (RT_SUCCESS(rc))
             RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_CURLY_BRACKET, '}');
-    }
 
-    if (pAslKeyword->fFlags & RTACPI_AST_NODE_F_NS_ENTRY)
-        rtAcpiNsPop(pThis->pNs);
+        if (pAslKeyword->fFlags & (RTACPI_AST_NODE_F_NS_ENTRY | RTACPI_AST_NODE_F_NS_SWITCH))
+            rtAcpiNsPop(pThis->pNs);
+    }
 
     return rc;
 }
@@ -2760,7 +2778,7 @@ static int rtAcpiTblAslParseIde(PRTACPIASLCU pThis, const char *pszIde, PRTACPIA
         RTACPIASL_PARSE_PUNCTUATOR(RTACPIASLTERMINAL_PUNCTUATOR_CLOSE_BRACKET, ')');
     }
 
-    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_Identifier, RTACPI_AST_NODE_F_DEFAULT, cArgs);
+    PRTACPIASTNODE pAstNd = rtAcpiAstNodeAlloc(pThis->pNs, kAcpiAstNodeOp_Identifier, RTACPI_AST_NODE_F_DEFAULT, cArgs);
     if (!pAstNd)
         return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing identifier '%s'", pszIde);
 
@@ -2825,7 +2843,7 @@ static int rtAcpiTblAslParseTermArg(PRTACPIASLCU pThis, PRTACPIASTNODE *ppAstNd)
     }
     else if (pTok->enmType == RTSCRIPTLEXTOKTYPE_STRINGLIT)
     {
-        pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_StringLiteral, RTACPI_AST_NODE_F_DEFAULT, 0);
+        pAstNd = rtAcpiAstNodeAlloc(pThis->pNs, kAcpiAstNodeOp_StringLiteral, RTACPI_AST_NODE_F_DEFAULT, 0);
         if (!pAstNd)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing identifier '%s'",
                                  pTok->Type.StringLit.pszString);
@@ -2836,7 +2854,7 @@ static int rtAcpiTblAslParseTermArg(PRTACPIASLCU pThis, PRTACPIASTNODE *ppAstNd)
     else if (pTok->enmType == RTSCRIPTLEXTOKTYPE_NUMBER)
     {
         Assert(pTok->Type.Number.enmType == RTSCRIPTLEXTOKNUMTYPE_NATURAL);
-        pAstNd = rtAcpiAstNodeAlloc(kAcpiAstNodeOp_Number, RTACPI_AST_NODE_F_DEFAULT, 0);
+        pAstNd = rtAcpiAstNodeAlloc(pThis->pNs, kAcpiAstNodeOp_Number, RTACPI_AST_NODE_F_DEFAULT, 0);
         if (!pAstNd)
             return RTErrInfoSetF(pThis->pErrInfo, VERR_NO_MEMORY, "Failed to allocate ACPI AST node when processing number '%#RX64'",
                                  pTok->Type.Number.Type.u64);

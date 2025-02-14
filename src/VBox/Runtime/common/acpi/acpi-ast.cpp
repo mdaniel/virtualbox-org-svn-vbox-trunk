@@ -68,14 +68,15 @@
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
 
-DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs)
+DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(PCRTACPINSROOT pNs, RTACPIASTNODEOP enmOp, uint32_t fFlags, uint8_t cArgs)
 {
     PRTACPIASTNODE pAstNd = (PRTACPIASTNODE)RTMemAllocZ(RT_UOFFSETOF_DYN(RTACPIASTNODE, aArgs[cArgs]));
     if (pAstNd)
     {
-        pAstNd->enmOp  = enmOp;
-        pAstNd->fFlags = fFlags;
-        pAstNd->cArgs  = cArgs;
+        pAstNd->pNsEntry = rtAcpiNsGetCurrent(pNs);
+        pAstNd->enmOp    = enmOp;
+        pAstNd->fFlags   = fFlags;
+        pAstNd->cArgs    = cArgs;
         RTListInit(&pAstNd->LstScopeNodes);
     }
 
@@ -178,6 +179,7 @@ static int rtAcpiAstNodeEvaluateToInteger(PCRTACPIASTNODE pAstNd, PRTACPINSROOT 
             return VERR_NOT_FOUND;
 
         *pu64 = pNsEntry->offBits;
+        return VINF_SUCCESS;
     }
 
     /** @todo */
@@ -202,12 +204,16 @@ static int rtAcpiAstDumpAstList(PCRTLISTANCHOR pLst, PRTACPINSROOT pNsRoot, RTAC
 DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot, RTACPITBL hAcpiTbl)
 {
     int rc = VINF_SUCCESS;
+    char szNameString[_1K];
 
     switch (pAstNd->enmOp)
     {
         case kAcpiAstNodeOp_Identifier:
         {
-            rc = RTAcpiTblNameStringAppend(hAcpiTbl, pAstNd->pszIde);
+            rc = rtAcpiNsAbsoluteNameStringToRelative(pNsRoot, pAstNd->pNsEntry, pAstNd->pszIde, &szNameString[0], sizeof(szNameString));
+            AssertRC(rc);
+
+            rc = RTAcpiTblNameStringAppend(hAcpiTbl, szNameString);
             if (RT_SUCCESS(rc))
             {
                 for (uint8_t i = 0; i < pAstNd->cArgs; i++)
@@ -231,7 +237,11 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
             AssertBreakStmt(   pAstNd->cArgs == 1
                             && pAstNd->aArgs[0].enmType == kAcpiAstArgType_NameString,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblScopeStart(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString);
+            rc = rtAcpiNsCompressNameString(pNsRoot, pAstNd->pNsEntry, pAstNd->aArgs[0].u.pszNameString,
+                                            &szNameString[0], sizeof(szNameString));
+            AssertRC(rc);
+
+            rc = RTAcpiTblScopeStart(hAcpiTbl, szNameString);
             if (RT_SUCCESS(rc))
             {
                 /* Walk all the other AST nodes. */
@@ -271,7 +281,11 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
                             && pAstNd->aArgs[2].enmType == kAcpiAstArgType_Bool
                             && pAstNd->aArgs[3].enmType == kAcpiAstArgType_U8,
                             rc = VERR_INTERNAL_ERROR);
-            rc = RTAcpiTblMethodStart(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString,
+            rc = rtAcpiNsCompressNameString(pNsRoot, pAstNd->pNsEntry, pAstNd->aArgs[0].u.pszNameString,
+                                            &szNameString[0], sizeof(szNameString));
+            AssertRC(rc);
+
+            rc = RTAcpiTblMethodStart(hAcpiTbl, szNameString,
                                       pAstNd->aArgs[1].u.u8,
                                       pAstNd->aArgs[2].u.f ? RTACPI_METHOD_F_SERIALIZED : RTACPI_METHOD_F_NOT_SERIALIZED,
                                       pAstNd->aArgs[3].u.u8);
@@ -465,8 +479,10 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
                             && pAstNd->aArgs[2].enmType == kAcpiAstArgType_Bool
                             && pAstNd->aArgs[3].enmType == kAcpiAstArgType_FieldUpdate,
                             rc = VERR_INTERNAL_ERROR);
+            rc = rtAcpiNsAbsoluteNameStringToRelative(pNsRoot, pAstNd->pNsEntry, pAstNd->aArgs[0].u.pszNameString, &szNameString[0], sizeof(szNameString));
+            AssertRC(rc);
 
-            rc = RTAcpiTblFieldAppend(hAcpiTbl, pAstNd->aArgs[0].u.pszNameString, pAstNd->aArgs[1].u.enmFieldAcc,
+            rc = RTAcpiTblFieldAppend(hAcpiTbl, szNameString, pAstNd->aArgs[1].u.enmFieldAcc,
                                       pAstNd->aArgs[2].u.f, pAstNd->aArgs[3].u.enmFieldUpdate, pAstNd->Fields.paFields,
                                       pAstNd->Fields.cFields);
             break;
@@ -810,10 +826,16 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
             if (RT_SUCCESS(rc))
             {
                 /* Try to resolve to an integer. */
-                uint64_t offBits = 0;
-                rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[1].u.pAstNd, pNsRoot, &offBits);
+                uint64_t off = 0;
+                if (pAstNd->aArgs[1].u.pAstNd->enmOp == kAcpiAstNodeOp_Number)
+                    off = pAstNd->aArgs[1].u.pAstNd->u64;
+                else
+                {
+                    rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[1].u.pAstNd, pNsRoot, &off);
+                    off = pAstNd->enmOp == kAcpiAstNodeOp_CreateBitField ? off : off / 8;
+                }
                 if (RT_SUCCESS(rc))
-                    rc = RTAcpiTblIntegerAppend(hAcpiTbl, pAstNd->enmOp == kAcpiAstNodeOp_CreateBitField ? offBits : offBits / 8);
+                    rc = RTAcpiTblIntegerAppend(hAcpiTbl, off);
                 else
                     rc = rtAcpiAstDumpToTbl(pAstNd->aArgs[1].u.pAstNd, pNsRoot, hAcpiTbl);
             }

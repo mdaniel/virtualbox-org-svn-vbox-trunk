@@ -1190,7 +1190,7 @@ RTDECL(int) RTAcpiTblStmtSimpleAppend(RTACPITBL hAcpiTbl, RTACPISTMT enmStmt)
         case kAcpiStmt_Notify:     bOp = ACPI_AML_BYTE_CODE_OP_NOTIFY;      break;
         case kAcpiStmt_SizeOf:     bOp = ACPI_AML_BYTE_CODE_OP_SIZE_OF;     break;
         case kAcpiStmt_Increment:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
-        case kAcpiStmt_Decrement:  bOp = ACPI_AML_BYTE_CODE_OP_INCREMENT;   break;
+        case kAcpiStmt_Decrement:  bOp = ACPI_AML_BYTE_CODE_OP_DECREMENT;   break;
         case kAcpiStmt_CondRefOf:  bOp = ACPI_AML_BYTE_CODE_EXT_OP_COND_REF_OF; fExtOp = true; break;
         case kAcpiStmt_LNot:       bOp = ACPI_AML_BYTE_CODE_OP_LNOT;        break;
         case kAcpiStmt_CreateBitField:   bOp = ACPI_AML_BYTE_CODE_OP_CREATE_BIT_FIELD;   break;
@@ -1348,10 +1348,10 @@ RTDECL(int) RTAcpiTblUuidAppendFromStr(RTACPITBL hAcpiTbl, const char *pszUuid)
 }
 
 
-DECLINLINE(uint8_t) rtAcpiTblHexCharToByte(char ch)
+DECLINLINE(uint32_t) rtAcpiTblHexCharToByte(char ch)
 {
     ch = RT_C_TO_LOWER(ch);
-    return RT_C_IS_DIGIT(ch) ? ch - '0' : ch - 'a';
+    return RT_C_IS_DIGIT(ch) ? ch - '0' : 10 + ch - 'a';
 }
 
 
@@ -1370,18 +1370,15 @@ RTDECL(int) RTAcpiTblEisaIdAppend(RTACPITBL hAcpiTbl, const char *pszEisaId)
                  && RT_C_IS_XDIGIT(pszEisaId[6]),
                  VERR_INVALID_PARAMETER);
 
-    uint8_t bMfgCode0 = pszEisaId[0] - 0x40;
-    uint8_t bMfgCode1 = pszEisaId[1] - 0x40;
-    uint8_t bMfgCode2 = pszEisaId[2] - 0x40;
+    uint32_t bMfgCode0 = (pszEisaId[0] - 0x40) & 0x1f;
+    uint32_t bMfgCode1 = (pszEisaId[1] - 0x40) & 0x1f;
+    uint32_t bMfgCode2 = (pszEisaId[2] - 0x40) & 0x1f;
 
-    uint8_t abDword[4] = { 0 };
-    abDword[0] = (bMfgCode0 << 2) | (bMfgCode1 >> 3);
-    abDword[1] = (bMfgCode1 << 5) | bMfgCode2;
-    abDword[2] = (rtAcpiTblHexCharToByte(pszEisaId[3]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[4]);
-    abDword[3] = (rtAcpiTblHexCharToByte(pszEisaId[5]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[6]);
-    rtAcpiTblAppendByte(pThis, ACPI_AML_BYTE_CODE_PREFIX_DWORD);
-    rtAcpiTblAppendData(pThis, &abDword[0], sizeof(abDword));
-    return pThis->rcErr;
+    uint32_t u32 =   ((bMfgCode0 << 2) | ((bMfgCode1 >> 3) & 0x3))
+                   | (((bMfgCode1 & 0x7) << 5) | bMfgCode2) << 8
+                   | ((rtAcpiTblHexCharToByte(pszEisaId[3]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[4])) << 16
+                   | ((rtAcpiTblHexCharToByte(pszEisaId[5]) << 4) | rtAcpiTblHexCharToByte(pszEisaId[6])) << 24;
+    return RTAcpiTblIntegerAppend(hAcpiTbl, u32);
 }
 
 
@@ -1768,7 +1765,7 @@ RTDECL(int) RTAcpiResourceSeal(RTACPIRES hAcpiRes)
         return VERR_NO_MEMORY;
 
     *pb++ = ACPI_RSRCS_TAG_END;
-#if 1
+#if 0
     /*
      * Generate checksum, we could just write 0 here which will be treated as checksum operation succeeded,
      * but having this might catch some bugs.
@@ -2267,7 +2264,7 @@ RTDECL(int) RTAcpiResourceAddIrq(RTACPIRES hAcpiRes, bool fEdgeTriggered, bool f
     AssertRCReturn(pThis->rcErr, pThis->rcErr);
 
     bool fDefaultCfg = fEdgeTriggered && !fActiveLow && !fShared && !fWakeCapable;
-    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 2 + (fDefaultCfg ? 0 : 1));
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 3 + (fDefaultCfg ? 0 : 1));
     if (!pb)
         return VERR_NO_MEMORY;
 

@@ -164,7 +164,8 @@ void ossl_rcu_lock_free(CRYPTO_RCU_LOCK *lock)
     /* make sure we're synchronized */
     ossl_synchronize_rcu(rlock);
 
-    AssertRC(RTSemRWDestroy(rlock->rw_lock));
+    int rc = RTSemRWDestroy(rlock->rw_lock);
+    AssertRC(rc);
     OPENSSL_free(rlock);
 }
 # endif /* VBOX_OPENSSL_WITH_RCU_SUPPORT */

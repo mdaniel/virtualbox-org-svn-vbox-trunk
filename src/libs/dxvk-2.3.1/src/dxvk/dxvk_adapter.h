@@ -56,6 +56,9 @@ namespace dxvk {
     uint32_t graphics;
     uint32_t transfer;
     uint32_t sparse;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    uint32_t videoDecode;
+#endif
   };
   
   /**
@@ -301,6 +304,14 @@ namespace dxvk {
     bool isLinkedToDGPU() const {
         return m_linkedToDGPU;
     }
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    VkQueueFlags getQueueFlags(uint32_t  queueFamily) {
+      if (queueFamily < m_queueFamilies.size())
+        return m_queueFamilies[queueFamily].queueFlags;
+      return 0;
+    }
+#endif
 
   private:
     

@@ -173,6 +173,9 @@ namespace dxvk {
     m_vki           (device->instance()->vki()) {
     const auto& graphicsQueue = m_device->queues().graphics;
     const auto& transferQueue = m_device->queues().transfer;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const auto& videoDecodeQueue = m_device->queues().videoDecode;
+#endif
 
     VkSemaphoreCreateInfo semaphoreInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
@@ -180,6 +183,17 @@ namespace dxvk {
      || m_vkd->vkCreateSemaphore(m_vkd->device(), &semaphoreInfo, nullptr, &m_postSemaphore)
      || m_vkd->vkCreateSemaphore(m_vkd->device(), &semaphoreInfo, nullptr, &m_sdmaSemaphore))
       throw DxvkError("DxvkCommandList: Failed to create semaphore");
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    VkSemaphoreTypeCreateInfo typeInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
+    typeInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+    typeInfo.initialValue = m_vdecSemaphoreValue;
+
+    semaphoreInfo.pNext = &typeInfo;
+
+    if (m_vkd->vkCreateSemaphore(m_vkd->device(), &semaphoreInfo, nullptr, &m_vdecSemaphore))
+      throw DxvkError("DxvkCommandList: Failed to create video decode timeline semaphore");
+#endif
 
     VkFenceCreateInfo fenceInfo = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 
@@ -192,6 +206,11 @@ namespace dxvk {
       m_transferPool = new DxvkCommandPool(device, transferQueue.queueFamily);
     else
       m_transferPool = m_graphicsPool;
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (videoDecodeQueue.queueFamily != VK_QUEUE_FAMILY_IGNORED)
+      m_videoDecodePool = new DxvkCommandPool(device, videoDecodeQueue.queueFamily);
+#endif
   }
   
   
@@ -201,17 +220,43 @@ namespace dxvk {
     m_vkd->vkDestroySemaphore(m_vkd->device(), m_bindSemaphore, nullptr);
     m_vkd->vkDestroySemaphore(m_vkd->device(), m_postSemaphore, nullptr);
     m_vkd->vkDestroySemaphore(m_vkd->device(), m_sdmaSemaphore, nullptr);
+#ifdef VBOX_WITH_DXVK_VIDEO
+    m_vkd->vkDestroySemaphore(m_vkd->device(), m_vdecSemaphore, nullptr);
+#endif
 
     m_vkd->vkDestroyFence(m_vkd->device(), m_fence, nullptr);
   }
   
   
+#ifdef VBOX_WITH_DXVK_VIDEO
+  void DxvkCommandList::addSubmissionFences(
+    DxvkCmdBuffer cmdBuffer,
+    const DxvkCommandSubmissionInfo& cmd) {
+    for (const auto& entry : cmd.submissionFences) {
+      if (entry.cmdBuffer == cmdBuffer) {
+        if (entry.op == DxvkFenceOp::FenceOpWait) {
+          m_commandSubmission.waitSemaphore(entry.fence.fence->handle(),
+            entry.fence.value, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT);
+        }
+        else if (entry.op == DxvkFenceOp::FenceOpSignal) {
+          m_commandSubmission.signalSemaphore(entry.fence.fence->handle(),
+            entry.fence.value, VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
+        }
+      }
+    }
+  }
+#endif
+
+
   VkResult DxvkCommandList::submit() {
     VkResult status = VK_SUCCESS;
 
     const auto& graphics = m_device->queues().graphics;
     const auto& transfer = m_device->queues().transfer;
     const auto& sparse = m_device->queues().sparse;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const auto& videoDecode = m_device->queues().videoDecode;
+#endif
 
     m_commandSubmission.reset();
 
@@ -273,8 +318,15 @@ namespace dxvk {
       }
 
       // Submit graphics commands
+#ifdef VBOX_WITH_DXVK_VIDEO
+      if (cmd.usedFlags.test(DxvkCmdBuffer::InitBuffer)) {
+        addSubmissionFences(DxvkCmdBuffer::InitBuffer, cmd);
+        m_commandSubmission.executeCommandBuffer(cmd.initBuffer);
+      }
+#else
       if (cmd.usedFlags.test(DxvkCmdBuffer::InitBuffer))
         m_commandSubmission.executeCommandBuffer(cmd.initBuffer);
+#endif
 
       if (cmd.usedFlags.test(DxvkCmdBuffer::ExecBuffer))
         m_commandSubmission.executeCommandBuffer(cmd.execBuffer);
@@ -299,6 +351,24 @@ namespace dxvk {
       // Finally, submit all graphics commands of the current submission
       if ((status = m_commandSubmission.submit(m_device, graphics.queueHandle)))
         return status;
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+      if (videoDecode.queueFamily != VK_QUEUE_FAMILY_IGNORED) {
+        // Submit video decode commands as necessary
+
+        // Always signal the vdec command buffer completion. synchronizeFence waits for it.
+        m_commandSubmission.signalSemaphore(m_vdecSemaphore, ++m_vdecSemaphoreValue, VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
+
+        if (cmd.usedFlags.test(DxvkCmdBuffer::VDecBuffer)) {
+          addSubmissionFences(DxvkCmdBuffer::VDecBuffer, cmd);
+          m_commandSubmission.executeCommandBuffer(cmd.vdecBuffer);
+        }
+
+        // Submit all video decode commands of the current submission
+        if ((status = m_commandSubmission.submit(m_device, videoDecode.queueHandle)))
+          return status;
+      }
+#endif
     }
 
     return VK_SUCCESS;
@@ -312,6 +382,10 @@ namespace dxvk {
     m_cmd.execBuffer = m_graphicsPool->getCommandBuffer();
     m_cmd.initBuffer = m_graphicsPool->getCommandBuffer();
     m_cmd.sdmaBuffer = m_transferPool->getCommandBuffer();
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_videoDecodePool.ptr() != nullptr)
+      m_cmd.vdecBuffer = m_videoDecodePool->getCommandBuffer();
+#endif
   }
   
   
@@ -324,6 +398,10 @@ namespace dxvk {
     this->endCommandBuffer(m_cmd.execBuffer);
     this->endCommandBuffer(m_cmd.initBuffer);
     this->endCommandBuffer(m_cmd.sdmaBuffer);
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_videoDecodePool.ptr() != nullptr)
+      this->endCommandBuffer(m_cmd.vdecBuffer);
+#endif
 
     // Reset all command buffer handles
     m_cmd = DxvkCommandSubmissionInfo();
@@ -354,11 +432,37 @@ namespace dxvk {
       m_cmd.sdmaBuffer = m_transferPool->getCommandBuffer();
     }
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_videoDecodePool.ptr() != nullptr) {
+      if (m_cmd.usedFlags.test(DxvkCmdBuffer::VDecBuffer)) {
+        this->endCommandBuffer(m_cmd.vdecBuffer);
+        m_cmd.vdecBuffer = m_videoDecodePool->getCommandBuffer();
+      }
+    }
+
+    m_cmd.submissionFences.clear();
+#endif
+
     m_cmd.usedFlags = 0;
   }
 
   
   VkResult DxvkCommandList::synchronizeFence() {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_device->queues().videoDecode.queueFamily != VK_QUEUE_FAMILY_IGNORED) {
+      /* Wait for completion of vdec buffer */
+      const uint64_t waitValue = m_vdecSemaphoreValue;
+
+      VkSemaphoreWaitInfo waitInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
+      // waitInfo.flags = 0;
+      waitInfo.semaphoreCount = 1;
+      waitInfo.pSemaphores = &m_vdecSemaphore;
+      waitInfo.pValues = &waitValue;
+
+      m_vkd->vkWaitSemaphores(m_vkd->device(), &waitInfo, ~0ull);
+    }
+#endif
+
     return m_vkd->vkWaitForFences(m_vkd->device(), 1, &m_fence, VK_TRUE, ~0ull);
   }
 
@@ -402,6 +506,10 @@ namespace dxvk {
     // Reset actual command buffers and pools
     m_graphicsPool->reset();
     m_transferPool->reset();
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_videoDecodePool.ptr() != nullptr)
+      m_videoDecodePool->reset();
+#endif
 
     // Reset fence
     if (m_vkd->vkResetFences(m_vkd->device(), 1, &m_fence))

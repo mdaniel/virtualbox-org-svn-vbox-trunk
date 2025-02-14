@@ -97,6 +97,9 @@ namespace dxvk {
   
   DxvkBufferHandle DxvkBuffer::allocBuffer(VkDeviceSize sliceCount, bool clear) const {
     VkBufferCreateInfo info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+#ifdef VBOX_WITH_DXVK_VIDEO
+    info.pNext = m_info.pNext;
+#endif
     info.flags = m_info.flags;
     info.size = m_physSliceStride * sliceCount;
     info.usage = m_info.usage;

@@ -69,6 +69,10 @@ namespace dxvk {
 
     // Shared handle info
     DxvkSharedHandleInfo sharing;
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    void* pNext = nullptr;
+#endif
   };
   
   

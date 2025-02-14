@@ -694,6 +694,28 @@ namespace dxvk {
     D3D11DXGIDevice* m_container;
     D3D11Device*     m_device;
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    struct D3D11VideoDecoderProfile {
+      GUID guid;
+      std::vector<D3D11_VIDEO_DECODER_CONFIG> decoderConfigs;
+      std::vector<DXGI_FORMAT>              supportedFormats;
+    };
+
+    /* Vulkan video profiles, supported by DxvkVideoDecoder. Not necessarily supported by hardware. */
+    std::array<DxvkVideoDecodeProfileInfo, 1> m_vulkanDecodeProfiles;
+
+    /* Supported D3D11 profiles with a reference to the underlaying Vulkan profile (m_vulkanDecodeProfiles).
+     * This is what the D3D11 methods expose to applications.
+     */
+    std::vector<std::pair<D3D11VideoDecoderProfile, DxvkVideoDecodeProfileInfo&> > m_decoderProfiles;
+
+    void InitDecoderProfiles();
+    int GetDecoderProfileIndex(
+      const GUID &guid);
+    int ProfileIndexFromDecoderDesc(
+      const D3D11_VIDEO_DECODER_DESC* pVideoDesc);
+#endif
+
   };
 
 

@@ -34,6 +34,11 @@ namespace dxvk {
     
     /// Allowed access patterns
     VkAccessFlags access;
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    /// VkBufferCreateInfo::pNext
+    void* pNext = nullptr;
+#endif
   };
   
   

@@ -350,6 +350,10 @@ namespace dxvk {
 
     std::stringstream str;
 
+#ifdef VBOX
+    str << "VKValidation: ";
+#endif
+
     if (pCallbackData->pMessageIdName)
       str << pCallbackData->pMessageIdName << ": " << std::endl;
 

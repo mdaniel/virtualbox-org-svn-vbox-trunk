@@ -55,10 +55,18 @@ ifeq ($(KBUILD_TARGET),win)
  VBOX_DXVK_CXXFLAGS_WIN += -wd5041 # 'DefaultFrameLatency': out-of-line definition for constexpr static data member is not needed and is deprecated in C++17
  VBOX_DXVK_CXXFLAGS_WIN += -wd5204 # class has virtual functions, but its trivial destructor is not virtual
  VBOX_DXVK_CXXFLAGS_WIN += -wd5219 # implicit conversion from 'int' to 'float', possible loss of data
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5246 # 'anonymous struct or union': the initialization of a subobject should be wrapped in braces
+ VBOX_DXVK_CXXFLAGS_WIN += -wd5249 # '_DXVA_ExtendedFormat::NominalRange' of type 'DXVA_NominalRange' has named enumerators with values that cannot be represented in the given bit field width of '3'.
  VBOX_DXVK_CXXFLAGS_WIN += -wd5264 # 'MaxPendingSubmits': 'const' variable is not used
  VBOX_DXVK_CXXFLAGS_WIN += -wd5267 # definition of implicit copy constructor for 'dxvk::DxvkSparseBindSubmission' is deprecated because it has a user-provided destructor
 else
  VBOX_DXVK_PLATFORM = DXVK_PLATFORM_LINUX
+endif
+
+VBOX_DXVK_COMMON_DEFINES =
+ifdef VBOX_WITH_DXVK_VIDEO
+ VBOX_DXVK_COMMON_DEFINES += \
+ 	VBOX_WITH_DXVK_VIDEO
 endif
 
 # The HLSL to Spir-V shader compiler
@@ -97,6 +105,7 @@ endef
 #
 VBox-DxVkNativeUtil_TEMPLATE       = VBoxR3DllNonPedantic
 VBox-DxVkNativeUtil_DEFS           = \
+	$(VBOX_DXVK_COMMON_DEFINES) \
 	DXVK_NATIVE \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
@@ -190,6 +199,7 @@ VBox-DxVkNativeUtil_SOURCES        = \
 #
 VBox-DxVkNativeDxVk_TEMPLATE       = VBoxR3DllNonPedantic
 VBox-DxVkNativeDxVk_DEFS           = \
+	$(VBOX_DXVK_COMMON_DEFINES) \
 	DXVK_NATIVE \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
@@ -265,6 +275,10 @@ VBox-DxVkNativeDxVk_SOURCES        = \
 	src/dxvk/hud/dxvk_hud_item.cpp \
 	src/dxvk/hud/dxvk_hud_renderer.cpp \
 	src/dxvk/platform/dxvk_headless_exts.cpp
+ifdef VBOX_WITH_DXVK_VIDEO
+VBox-DxVkNativeDxVk_SOURCES       += \
+	src/dxvk/dxvk_video_decoder.cpp
+endif
 VBox-DxVkNativeDxVk_VBOX_SHADERS := \
 	$(PATH_SUB_CURRENT)/src/dxvk/shaders/dxvk_clear_buffer_u.comp \
 	$(PATH_SUB_CURRENT)/src/dxvk/shaders/dxvk_clear_image2d_u.comp \
@@ -327,6 +341,7 @@ $(evalcall2 def_VBoxDxVkCompilerShaders,VBox-DxVkNativeDxVk)
 #
 VBox-DxVkNativeD3D11_TEMPLATE        = VBoxR3DllNonPedantic
 VBox-DxVkNativeD3D11_DEFS            = \
+	$(VBOX_DXVK_COMMON_DEFINES) \
 	DXVK_NATIVE \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00
@@ -417,6 +432,7 @@ $(evalcall2 def_VBoxDxVkCompilerShaders,VBox-DxVkNativeD3D11)
 #
 VBoxDxVk_TEMPLATE = VBoxR3DllNonPedantic
 VBoxDxVk_DEFS     = \
+	$(VBOX_DXVK_COMMON_DEFINES) \
 	DXVK_NATIVE \
 	NOMINMAX \
 	_WIN32_WINNT=0xa00

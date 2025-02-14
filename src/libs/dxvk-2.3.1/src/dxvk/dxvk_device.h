@@ -25,6 +25,9 @@
 #include "dxvk_stats.h"
 #include "dxvk_unbound.h"
 #include "dxvk_marker.h"
+#ifdef VBOX_WITH_DXVK_VIDEO
+#include "dxvk_video_decoder.h"
+#endif
 
 namespace dxvk {
   
@@ -65,6 +68,9 @@ namespace dxvk {
     DxvkDeviceQueue graphics;
     DxvkDeviceQueue transfer;
     DxvkDeviceQueue sparse;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    DxvkDeviceQueue videoDecode;
+#endif
   };
   
   /**
@@ -359,6 +365,23 @@ namespace dxvk {
      * \returns Sparse page allocator
      */
     Rc<DxvkSparsePageAllocator> createSparsePageAllocator();
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    /**
+     * \brief Creates a video decoder
+     *
+     * \param [in] profileInfo Vulkan video profile and caps
+     * \param [in] sampleWidth The video frame width
+     * \param [in] sampleHeight The video frame height
+     * \param [in] outputFormat The format of decoded frame
+     * \returns Video decoder
+     */
+    Rc<DxvkVideoDecoder> createVideoDecoder(
+      const DxvkVideoDecodeProfileInfo& profile,
+            uint32_t sampleWidth,
+            uint32_t sampleHeight,
+            VkFormat outputFormat);
+#endif
 
     /**
      * \brief Imports a buffer

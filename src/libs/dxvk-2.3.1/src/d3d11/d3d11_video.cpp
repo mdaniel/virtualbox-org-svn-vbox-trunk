@@ -8,6 +8,474 @@
 
 namespace dxvk {
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+  D3D11VideoDecoder::D3D11VideoDecoder(
+          D3D11Device*                    pDevice,
+          const D3D11_VIDEO_DECODER_DESC  &VideoDesc,
+          const D3D11_VIDEO_DECODER_CONFIG &Config,
+          const DxvkVideoDecodeProfileInfo& profile)
+  : D3D11DeviceChild<ID3D11VideoDecoder>(pDevice),
+    m_desc(VideoDesc), m_config(Config),
+    m_device(pDevice->GetDXVKDevice()) {
+    DXGI_VK_FORMAT_INFO formatInfo = pDevice->LookupFormat(
+      m_desc.OutputFormat, DXGI_VK_FORMAT_MODE_COLOR);
+
+    if (formatInfo.Format == VK_FORMAT_UNDEFINED)
+      throw DxvkError(str::format("D3D11VideoDecoder: Unsupported output DXGI format: ", m_desc.OutputFormat));
+
+    m_videoDecoder = m_device->createVideoDecoder(profile, m_desc.SampleWidth, m_desc.SampleHeight, formatInfo.Format);
+  }
+
+
+  D3D11VideoDecoder::~D3D11VideoDecoder() {
+
+  }
+
+
+  HRESULT STDMETHODCALLTYPE D3D11VideoDecoder::QueryInterface(
+          REFIID                  riid,
+          void**                  ppvObject) {
+    if (riid == __uuidof(IUnknown)
+     || riid == __uuidof(ID3D11DeviceChild)
+     || riid == __uuidof(ID3D11VideoDecoder)) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    if (logQueryInterfaceError(__uuidof(ID3D11VideoDecoder), riid)) {
+      Logger::warn("D3D11VideoDecoder::QueryInterface: Unknown interface query");
+      Logger::warn(str::format(riid));
+    }
+
+    return E_NOINTERFACE;
+  }
+
+
+  HRESULT STDMETHODCALLTYPE D3D11VideoDecoder::GetCreationParameters(
+        D3D11_VIDEO_DECODER_DESC *pVideoDesc,
+        D3D11_VIDEO_DECODER_CONFIG *pConfig) {
+    if (pVideoDesc != nullptr)
+      *pVideoDesc = m_desc;
+    if (pConfig != nullptr)
+      *pConfig = m_config;
+    return S_OK;
+  }
+
+
+  HRESULT STDMETHODCALLTYPE D3D11VideoDecoder::GetDriverHandle(
+        HANDLE *pDriverHandle) {
+    if (pDriverHandle != nullptr)
+      *pDriverHandle = m_videoDecoder.ptr();
+    return S_OK;
+  }
+
+
+  HRESULT D3D11VideoDecoder::GetDecoderBuffer(
+          D3D11_VIDEO_DECODER_BUFFER_TYPE Type,
+          UINT*                           BufferSize,
+          void**                          ppBuffer)
+  {
+    if (Type >= m_decoderBuffers.size())
+      return E_INVALIDARG;
+
+    D3D11VideoDecoderBuffer& decoderBuffer = m_decoderBuffers[Type];
+
+    if (decoderBuffer.buffer.size() == 0) {
+      size_t cbBuffer;
+      switch (Type)
+      {
+        case D3D11_VIDEO_DECODER_BUFFER_BITSTREAM:
+          /* Arbitrary. Sufficiently big for one compressed frame (usually). */
+          cbBuffer = 1024*1024;
+          break;
+        default:
+          cbBuffer = 65536;
+      }
+      decoderBuffer.buffer.resize(cbBuffer);
+    }
+
+    if (BufferSize != nullptr)
+      *BufferSize = decoderBuffer.buffer.size();
+    if (ppBuffer != nullptr)
+      *ppBuffer = decoderBuffer.buffer.data();
+    return S_OK;
+  }
+
+
+  HRESULT D3D11VideoDecoder::ReleaseDecoderBuffer(
+          D3D11_VIDEO_DECODER_BUFFER_TYPE Type)
+  {
+    if (Type >= m_decoderBuffers.size())
+      return E_INVALIDARG;
+
+    return S_OK;
+  }
+
+
+  template<typename DXVA_Slice_H264_T>
+  static bool GetSliceOffsetsAndNALType(
+          DxvkVideoDecodeInputParameters *pParms,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc,
+    const void *pSlices,
+    const uint8_t *pBitStream,
+          uint32_t cbBitStream) {
+     const DXVA_Slice_H264_T *paSlices = (DXVA_Slice_H264_T *)pSlices;
+     const uint32_t cSlices = pSliceDesc->DataSize / sizeof(DXVA_Slice_H264_T);
+
+     /* D3D11VideoDecoder::GetVideoDecodeH264InputParameters checks that 'pSliceDesc->DataSize' is less than
+      * the size of D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL buffer that is assigned in
+      * D3D11VideoDecoder::GetDecoderBuffer. I.e. 'cSlices' is limuted too.
+      */
+     pParms->sliceOffsets.resize(cSlices);
+
+     for (uint32_t i = 0; i < cSlices; ++i) {
+       const DXVA_Slice_H264_T& slice = paSlices[i];
+
+       if (slice.SliceBytesInBuffer > cbBitStream
+        || slice.BSNALunitDataLocation > cbBitStream - slice.SliceBytesInBuffer
+        || slice.SliceBytesInBuffer < 4) { /* NALU header: 00, 00, 01, xx */
+         Logger::warn(str::format("D3D11VideoDecoder::GetH264: Invalid slice at ",
+           slice.BSNALunitDataLocation, "/", slice.SliceBytesInBuffer, ", bitstream size ", cbBitStream));
+         return false;
+       }
+
+       if (slice.wBadSliceChopping) {
+         /* Should not happen because we use a sufficiently big bitstream buffer (see GetDecoderBuffer). */
+         Logger::warn(str::format("D3D11VideoDecoder::GetH264: Ignored slice with wBadSliceChopping ",
+           slice.wBadSliceChopping));
+         return false; /// @todo not supported yet
+       }
+
+       pParms->sliceOffsets[i] = slice.BSNALunitDataLocation;
+
+       const uint8_t *pu8NALHdr = pBitStream + slice.BSNALunitDataLocation;
+       const uint8_t nal_unit_type = pu8NALHdr[3] & 0x1F;
+
+       Logger::debug(str::format("NAL[", i, "]=", (uint32_t)nal_unit_type, " at ",
+         slice.BSNALunitDataLocation, "/", slice.SliceBytesInBuffer));
+
+       if (i == 0)
+         pParms->nal_unit_type = nal_unit_type;
+     }
+
+     return true;
+  }
+
+
+  bool D3D11VideoDecoder::GetVideoDecodeH264InputParameters(
+          UINT BufferCount,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs,
+          DxvkVideoDecodeInputParameters *pParms) {
+    /*
+     * Fetch all pieces of data from available buffers.
+     */
+    const DXVA_PicParams_H264*             pPicParams     = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pPicParamsDesc = nullptr;
+    const DXVA_Qmatrix_H264*               pQmatrix       = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pQmatrixDesc   = nullptr;
+    const void*                            pSlices        = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc     = nullptr;
+    const uint8_t*                         pBitStream     = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBitStreamDesc = nullptr;
+
+    for (UINT i = 0; i < BufferCount; ++i) {
+      const auto& desc = pBufferDescs[i];
+      if (desc.BufferType >= m_decoderBuffers.size()) {
+        Logger::warn(str::format("DXVK: Video Decode: Ignored buffer type ", desc.BufferType));
+        continue;
+      }
+
+      D3D11VideoDecoderBuffer const &b = m_decoderBuffers[desc.BufferType];
+      Logger::debug(str::format("D3D11VideoDecoder::GetH264: Type ", desc.BufferType, ", size ", b.buffer.size()));
+
+      if (desc.DataSize > b.buffer.size()) {
+        Logger::warn(str::format("DXVK: Video Decode: Buffer ", desc.BufferType, " invalid size: ", desc.DataSize, " > ", b.buffer.size()));
+        continue;
+      }
+
+      switch (desc.BufferType) {
+        case D3D11_VIDEO_DECODER_BUFFER_PICTURE_PARAMETERS:
+          pPicParams = (DXVA_PicParams_H264 *)b.buffer.data();
+          pPicParamsDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_INVERSE_QUANTIZATION_MATRIX:
+          pQmatrix = (DXVA_Qmatrix_H264 *)b.buffer.data();
+          pQmatrixDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL:
+          pSlices = b.buffer.data();
+          pSliceDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_BITSTREAM:
+          pBitStream = (uint8_t *)b.buffer.data();
+          pBitStreamDesc = &desc;
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    if (pPicParams == nullptr || pSlices == nullptr || pBitStream == nullptr) {
+      Logger::warn(str::format("DXVK: Video Decode: Not enough data:"
+        " PicParams ", (uint32_t)(pPicParams != nullptr),
+        " Slice ", (uint32_t)(pSlices != nullptr),
+        " BitStream ", (uint32_t)(pBitStream != nullptr)));
+      return false;
+    }
+
+    if (pPicParamsDesc->DataSize < sizeof(DXVA_PicParams_H264)) {
+      Logger::warn(str::format("DXVK: Video Decode: PicParams buffer size is too small: ", pPicParamsDesc->DataSize));
+      return false;
+    }
+
+    if (pQmatrixDesc->DataSize < sizeof(DXVA_Qmatrix_H264)) {
+      Logger::warn(str::format("DXVK: Video Decode: Qmatrix buffer size is too small: ", pQmatrixDesc->DataSize));
+      return false;
+    }
+
+    struct DxvkVideoDecodeInputParameters &p = *pParms;
+
+    p.sps.flags.constraint_set0_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.constraint_set1_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.constraint_set2_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.constraint_set3_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.constraint_set4_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.constraint_set5_flag                 = 0; /* not known, assume unconstrained */
+    p.sps.flags.direct_8x8_inference_flag            = pPicParams->ContinuationFlag
+                                                      ? (pPicParams->direct_8x8_inference_flag ? 1 : 0)
+                                                      : 0;
+    p.sps.flags.mb_adaptive_frame_field_flag         = pPicParams->MbaffFrameFlag ? 1 : 0; /// @todo Is it?
+    p.sps.flags.frame_mbs_only_flag                  = pPicParams->frame_mbs_only_flag ? 1 : 0;
+    p.sps.flags.delta_pic_order_always_zero_flag     = pPicParams->ContinuationFlag
+                                                      ? (pPicParams->delta_pic_order_always_zero_flag ? 1 : 0)
+                                                      : 0;
+    p.sps.flags.separate_colour_plane_flag           = 0; /* 4:4:4 only. Apparently DXVA decoding profiles do not use this flags. */
+    p.sps.flags.gaps_in_frame_num_value_allowed_flag = 1; /// @todo unknown
+    p.sps.flags.qpprime_y_zero_transform_bypass_flag = 0; /// @todo unknown
+    p.sps.flags.frame_cropping_flag                  = 0; /* not used */
+    p.sps.flags.seq_scaling_matrix_present_flag      = 0; /* not used */
+    p.sps.flags.vui_parameters_present_flag          = 0; /* not used */
+    p.sps.profile_idc                                = STD_VIDEO_H264_PROFILE_IDC_HIGH; /* Unknown */
+    p.sps.level_idc                                  = StdVideoH264LevelIdc(0); /* Unknown, set to maxLevelIdc by Dxvk decoder. */
+    p.sps.chroma_format_idc                          = StdVideoH264ChromaFormatIdc(pPicParams->chroma_format_idc);
+    p.sps.seq_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.sps.bit_depth_luma_minus8                      = pPicParams->bit_depth_luma_minus8;
+    p.sps.bit_depth_chroma_minus8                    = pPicParams->bit_depth_chroma_minus8;
+    p.sps.log2_max_frame_num_minus4                  = pPicParams->ContinuationFlag
+                                                        ? pPicParams->log2_max_frame_num_minus4
+                                                        : 0;
+    p.sps.pic_order_cnt_type                         = pPicParams->ContinuationFlag
+                                                        ? StdVideoH264PocType(pPicParams->pic_order_cnt_type)
+                                                        : StdVideoH264PocType(0);
+    p.sps.offset_for_non_ref_pic                     = 0; /// @todo unknown
+    p.sps.offset_for_top_to_bottom_field             = 0; /// @todo unknown
+    p.sps.log2_max_pic_order_cnt_lsb_minus4          = pPicParams->ContinuationFlag
+                                                        ? pPicParams->log2_max_pic_order_cnt_lsb_minus4
+                                                        : 0;
+    p.sps.num_ref_frames_in_pic_order_cnt_cycle      = 0; /* Unknown */
+    p.sps.max_num_ref_frames                         = pPicParams->num_ref_frames;
+    p.sps.reserved1                                  = 0;
+    p.sps.pic_width_in_mbs_minus1                    = pPicParams->wFrameWidthInMbsMinus1;
+    p.sps.pic_height_in_map_units_minus1             = pPicParams->wFrameHeightInMbsMinus1; /// @todo Is it?
+    p.sps.frame_crop_left_offset                     = 0; /* not used */
+    p.sps.frame_crop_right_offset                    = 0; /* not used */
+    p.sps.frame_crop_top_offset                      = 0; /* not used */
+    p.sps.frame_crop_bottom_offset                   = 0; /* not used */
+    p.sps.reserved2                                  = 0;
+    p.sps.pOffsetForRefFrame                         = nullptr; /* &p.spsOffsetForRefFrame, updated by dxvk decoder. */
+    p.sps.pScalingLists                              = nullptr; /* not used */
+    p.sps.pSequenceParameterSetVui                   = nullptr; /* not used */
+    p.spsOffsetForRefFrame                           = 0; /// @todo Is it?
+
+    p.pps.flags.transform_8x8_mode_flag                = pPicParams->transform_8x8_mode_flag;
+    p.pps.flags.redundant_pic_cnt_present_flag         = pPicParams->ContinuationFlag
+                                                          ? (pPicParams->redundant_pic_cnt_present_flag ? 1 : 0)
+                                                          : 0;
+    p.pps.flags.constrained_intra_pred_flag            = pPicParams->constrained_intra_pred_flag ? 1 : 0;
+    p.pps.flags.deblocking_filter_control_present_flag = pPicParams->deblocking_filter_control_present_flag ? 1 : 0;
+    p.pps.flags.weighted_pred_flag                     = pPicParams->weighted_pred_flag ? 1 : 0;
+    p.pps.flags.bottom_field_pic_order_in_frame_present_flag = pPicParams->ContinuationFlag
+                                                                ? (pPicParams->pic_order_present_flag ? 1 : 0)
+                                                                : 0;
+    p.pps.flags.entropy_coding_mode_flag               = pPicParams->ContinuationFlag
+                                                          ? (pPicParams->entropy_coding_mode_flag ? 1 : 0)
+                                                          : 0;
+    p.pps.flags.pic_scaling_matrix_present_flag        = pQmatrix != nullptr ? 1 : 0;
+    p.pps.seq_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.pps.pic_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.pps.num_ref_idx_l0_default_active_minus1         = pPicParams->ContinuationFlag
+                                                          ? pPicParams->num_ref_idx_l0_active_minus1
+                                                          : 0;
+    p.pps.num_ref_idx_l1_default_active_minus1         = pPicParams->ContinuationFlag
+                                                          ? pPicParams->num_ref_idx_l1_active_minus1
+                                                          : 0;
+    p.pps.weighted_bipred_idc                          = StdVideoH264WeightedBipredIdc(pPicParams->weighted_bipred_idc);
+    p.pps.pic_init_qp_minus26                          = pPicParams->ContinuationFlag
+                                                          ? pPicParams->pic_init_qp_minus26
+                                                          : 0;
+    p.pps.pic_init_qs_minus26                          = pPicParams->pic_init_qs_minus26;
+    p.pps.chroma_qp_index_offset                       = pPicParams->chroma_qp_index_offset;
+    p.pps.second_chroma_qp_index_offset                = pPicParams->second_chroma_qp_index_offset;
+    p.pps.pScalingLists                                = nullptr; /* &p.ppsScalingLists, updated by dxvk decoder. */
+
+    if (p.pps.flags.pic_scaling_matrix_present_flag) {
+      p.ppsScalingLists.scaling_list_present_mask        = 0xFF; /* 6x 4x4 and 2x 8x8 = 8 bits total */
+      p.ppsScalingLists.use_default_scaling_matrix_mask  = 0;
+      memcpy(p.ppsScalingLists.ScalingList4x4, pQmatrix->bScalingLists4x4, sizeof(pQmatrix->bScalingLists4x4));
+      memcpy(p.ppsScalingLists.ScalingList8x8, pQmatrix->bScalingLists8x8, sizeof(pQmatrix->bScalingLists8x8));
+    }
+
+    /* Fetch slice offsets. */
+    bool fSuccess = m_config.ConfigBitstreamRaw == 2
+      ? GetSliceOffsetsAndNALType<DXVA_Slice_H264_Short>(&p, pSliceDesc, pSlices, pBitStream, pBitStreamDesc->DataSize)
+      : GetSliceOffsetsAndNALType<DXVA_Slice_H264_Long>(&p, pSliceDesc, pSlices, pBitStream, pBitStreamDesc->DataSize);
+    if (!fSuccess)
+      return false;
+
+    /// @todo Avoid intermediate buffer. Directly copy to a DxvkBuffer?
+    p.bitstreamLength = pBitStreamDesc->DataSize;
+    p.bitstream.resize(p.bitstreamLength);
+    memcpy(p.bitstream.data(), pBitStream, p.bitstream.size());
+
+    p.stdH264PictureInfo.flags.field_pic_flag           = pPicParams->field_pic_flag;
+    p.stdH264PictureInfo.flags.is_intra                 = pPicParams->IntraPicFlag;
+    p.stdH264PictureInfo.flags.IdrPicFlag               = p.nal_unit_type == 5 ? 1 : 0; 
+    p.stdH264PictureInfo.flags.bottom_field_flag        = pPicParams->CurrPic.AssociatedFlag; /* flag is bottom field flag */
+    p.stdH264PictureInfo.flags.is_reference             = pPicParams->RefPicFlag;
+    p.stdH264PictureInfo.flags.complementary_field_pair = 0; /// @todo unknown
+    p.stdH264PictureInfo.seq_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.stdH264PictureInfo.pic_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.stdH264PictureInfo.reserved1                      = 0;
+    p.stdH264PictureInfo.reserved2                      = 0;
+    p.stdH264PictureInfo.frame_num                      = pPicParams->frame_num;
+    p.stdH264PictureInfo.idr_pic_id                     = 0; /// @todo unknown
+    p.stdH264PictureInfo.PicOrderCnt[0]                 = pPicParams->CurrFieldOrderCnt[0]; /// @todo Is it?
+    p.stdH264PictureInfo.PicOrderCnt[1]                 = pPicParams->CurrFieldOrderCnt[1];
+
+    p.stdH264ReferenceInfo.flags.top_field_flag         =
+      (p.stdH264PictureInfo.flags.field_pic_flag && !p.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
+    p.stdH264ReferenceInfo.flags.bottom_field_flag      =
+      (p.stdH264PictureInfo.flags.field_pic_flag && p.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
+    p.stdH264ReferenceInfo.flags.used_for_long_term_reference = 0; /// @todo
+    p.stdH264ReferenceInfo.flags.is_non_existing        = 0;
+    p.stdH264ReferenceInfo.FrameNum                     = pPicParams->frame_num;
+    p.stdH264ReferenceInfo.reserved                     = 0;
+    p.stdH264ReferenceInfo.PicOrderCnt[0]               = pPicParams->CurrFieldOrderCnt[0]; /// @todo Is it?
+    p.stdH264ReferenceInfo.PicOrderCnt[1]               = pPicParams->CurrFieldOrderCnt[1];
+
+    return true;
+  }
+
+
+
+
+  D3D11VideoDecoderOutputView::D3D11VideoDecoderOutputView(
+          D3D11Device*            pDevice,
+          ID3D11Resource*         pResource,
+    const D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC& Desc)
+  : D3D11DeviceChild<ID3D11VideoDecoderOutputView>(pDevice),
+    m_resource(pResource), m_desc(Desc) {
+    /* Desc.DecodeProfile and resource format has been verified by the caller (Device). */
+    D3D11_COMMON_RESOURCE_DESC resourceDesc = { };
+    GetCommonResourceDesc(pResource, &resourceDesc);
+
+    DXGI_VK_FORMAT_INFO formatInfo = pDevice->LookupFormat(
+      resourceDesc.Format, DXGI_VK_FORMAT_MODE_COLOR);
+
+    /* In principle it is possible to use this view as video decode output if the Vulkan implementation
+     * supports VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR capability. In this case
+     * the image must be either created with VkVideoProfileListInfoKHR it its pNext chain or with
+     * VK_IMAGE_CREATE_VIDEO_PROFILE_INDEPENDENT_BIT_KHR flag (if VK_KHR_VIDEO_MAINTENANCE_1 is supported,
+     * which is not always the case).
+     *
+     * However the video profile is not known at D3D11_BIND_DECODER texture creation time.
+     * D3D11 provides this information only when creating a VideoDecoderOutputView.
+     *
+     * Therefore the video decoder output view image is created without the video profile and
+     * the dxvk decoder will copy decoded picture to it.
+     *
+     * If Vulkan implementation supports VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR
+     * then the decoded picture has to be copied to the output image anyway.
+     *
+     * Otherwise the dxvk video decoder will use an internal output image and will copy it to
+     * the video decoder output view.
+     *
+     * In either case the D3D11 video decoder output view is only used as a transfer destination.
+     */
+    Rc<DxvkImage> dxvkImage = GetCommonTexture(pResource)->GetImage();
+
+    DxvkImageViewCreateInfo viewInfo;
+    viewInfo.format  = formatInfo.Format;
+    viewInfo.aspect  = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.swizzle = formatInfo.Swizzle;
+    viewInfo.usage   = dxvkImage->info().usage & ~VK_IMAGE_USAGE_SAMPLED_BIT;
+
+    switch (m_desc.ViewDimension) {
+      case D3D11_VDOV_DIMENSION_TEXTURE2D:
+        if (m_desc.Texture2D.ArraySlice >= dxvkImage->info().numLayers)
+          throw DxvkError(str::format("Invalid video decoder output view ArraySlice ", m_desc.Texture2D.ArraySlice));
+
+        viewInfo.type       = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.minLevel   = 0;
+        viewInfo.numLevels  = 1;
+        viewInfo.minLayer   = m_desc.Texture2D.ArraySlice;
+        viewInfo.numLayers  = 1;
+        break;
+
+      case D3D11_VDOV_DIMENSION_UNKNOWN:
+      default:
+        throw DxvkError("Invalid view dimension");
+    }
+
+    m_view = pDevice->GetDXVKDevice()->createImageView(
+      dxvkImage, viewInfo);
+  }
+
+
+  D3D11VideoDecoderOutputView::~D3D11VideoDecoderOutputView() {
+
+  }
+
+
+  HRESULT STDMETHODCALLTYPE D3D11VideoDecoderOutputView::QueryInterface(
+          REFIID                  riid,
+          void**                  ppvObject) {
+    if (riid == __uuidof(IUnknown)
+     || riid == __uuidof(ID3D11DeviceChild)
+     || riid == __uuidof(ID3D11View)
+     || riid == __uuidof(ID3D11VideoDecoderOutputView)) {
+      *ppvObject = ref(this);
+      return S_OK;
+    }
+
+    if (logQueryInterfaceError(__uuidof(ID3D11VideoDecoderOutputView), riid)) {
+      Logger::warn("D3D11VideoDecoderOutputView::QueryInterface: Unknown interface query");
+      Logger::warn(str::format(riid));
+    }
+
+    return E_NOINTERFACE;
+  }
+
+
+  void STDMETHODCALLTYPE D3D11VideoDecoderOutputView::GetResource(
+          ID3D11Resource**        ppResource) {
+    *ppResource = m_resource.ref();
+  }
+
+
+  void STDMETHODCALLTYPE D3D11VideoDecoderOutputView::GetDesc(
+          D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC* pDesc) {
+    *pDesc = m_desc;
+  }
+#endif
+
+
+
+
   D3D11VideoProcessorEnumerator::D3D11VideoProcessorEnumerator(
           D3D11Device*            pDevice,
     const D3D11_VIDEO_PROCESSOR_CONTENT_DESC& Desc)
@@ -200,7 +668,11 @@ namespace dxvk {
         viewInfo.type       = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.minLevel   = m_desc.Texture2D.MipSlice;
         viewInfo.numLevels  = 1;
+#ifdef VBOX_WITH_DXVK_VIDEO
+        viewInfo.minLayer   = m_desc.Texture2D.ArraySlice;
+#else
         viewInfo.minLayer   = 0;
+#endif
         viewInfo.numLayers  = 1;
         break;
 
@@ -421,16 +893,26 @@ namespace dxvk {
           D3D11_VIDEO_DECODER_BUFFER_TYPE Type,
           UINT*                           BufferSize,
           void**                          ppBuffer) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    auto videoDecoder = static_cast<D3D11VideoDecoder*>(pDecoder);
+    return videoDecoder->GetDecoderBuffer(Type, BufferSize, ppBuffer);
+#else
     Logger::err("D3D11VideoContext::GetDecoderBuffer: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D11VideoContext::ReleaseDecoderBuffer(
           ID3D11VideoDecoder*             pDecoder,
           D3D11_VIDEO_DECODER_BUFFER_TYPE Type) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    auto videoDecoder = static_cast<D3D11VideoDecoder*>(pDecoder);
+    return videoDecoder->ReleaseDecoderBuffer(Type);
+#else
     Logger::err("D3D11VideoContext::ReleaseDecoderBuffer: Stub");
     return E_NOTIMPL;
+#endif
   }
 
   HRESULT STDMETHODCALLTYPE D3D11VideoContext::DecoderBeginFrame(
@@ -438,15 +920,41 @@ namespace dxvk {
           ID3D11VideoDecoderOutputView*   pView,
           UINT                            KeySize,
     const void*                           pKey) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    auto videoDecoder = static_cast<D3D11VideoDecoder*>(pDecoder);
+    auto dxvkDecoder = videoDecoder->GetDecoder();
+    auto dxvkView = static_cast<D3D11VideoDecoderOutputView*>(pView)->GetView();
+
+    m_ctx->EmitCs([
+      cDecoder = dxvkDecoder,
+      cView = dxvkView
+    ] (DxvkContext* ctx) {
+      cDecoder->BeginFrame(ctx, cView);
+    });
+    return S_OK;
+#else
     Logger::err("D3D11VideoContext::DecoderBeginFrame: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D11VideoContext::DecoderEndFrame(
           ID3D11VideoDecoder*             pDecoder) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    auto videoDecoder = static_cast<D3D11VideoDecoder*>(pDecoder);
+    auto dxvkDecoder = videoDecoder->GetDecoder();
+
+    m_ctx->EmitCs([
+      cDecoder = dxvkDecoder
+    ] (DxvkContext* ctx) {
+      cDecoder->EndFrame(ctx);
+    });
+    return S_OK;
+#else
     Logger::err("D3D11VideoContext::DecoderEndFrame: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -454,8 +962,26 @@ namespace dxvk {
           ID3D11VideoDecoder*             pDecoder,
           UINT                            BufferCount,
     const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    auto videoDecoder = static_cast<D3D11VideoDecoder*>(pDecoder);
+    auto dxvkDecoder = videoDecoder->GetDecoder();
+
+    DxvkVideoDecodeInputParameters parms;
+    if (!videoDecoder->GetVideoDecodeH264InputParameters(BufferCount, pBufferDescs, &parms))
+       return E_INVALIDARG;
+
+    m_ctx->EmitCs([
+      cDecoder = dxvkDecoder,
+      cParms = parms
+    ] (DxvkContext* ctx) {
+      cDecoder->Decode(ctx, cParms);
+    });
+
+    return S_OK;
+#else
     Logger::err("D3D11VideoContext::SubmitDecoderBuffers: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 

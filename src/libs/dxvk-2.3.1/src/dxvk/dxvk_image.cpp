@@ -20,6 +20,9 @@ namespace dxvk {
     // If defined, we should provide a format list, which
     // allows some drivers to enable image compression
     VkImageFormatListCreateInfo formatList = { VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO };
+#ifdef VBOX_WITH_DXVK_VIDEO
+    formatList.pNext           = createInfo.pNext;
+#endif
     formatList.viewFormatCount = createInfo.viewFormatCount;
     formatList.pViewFormats    = createInfo.viewFormats;
 

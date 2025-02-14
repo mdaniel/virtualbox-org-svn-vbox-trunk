@@ -328,6 +328,11 @@ namespace dxvk {
     DxvkExt nvRawAccessChains                 = { VK_NV_RAW_ACCESS_CHAINS_EXTENSION_NAME,                   DxvkExtMode::Optional };
     DxvkExt nvxBinaryImport                   = { VK_NVX_BINARY_IMPORT_EXTENSION_NAME,                      DxvkExtMode::Disabled };
     DxvkExt nvxImageViewHandle                = { VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME,                  DxvkExtMode::Disabled };
+#ifdef VBOX_WITH_DXVK_VIDEO
+    DxvkExt khrVideoQueue                     = { VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,                        DxvkExtMode::Optional };
+    DxvkExt khrVideoDecodeQueue               = { VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,                 DxvkExtMode::Optional };
+    DxvkExt khrVideoDecodeH264                = { VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,                  DxvkExtMode::Optional };
+#endif
   };
   
   /**

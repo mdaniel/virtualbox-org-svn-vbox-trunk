@@ -158,10 +158,19 @@ namespace dxvk {
         VK_QUEUE_SPARSE_BINDING_BIT);
     }
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    uint32_t videoDecodeQueue = findQueueFamily(
+      VK_QUEUE_VIDEO_DECODE_BIT_KHR,
+      VK_QUEUE_VIDEO_DECODE_BIT_KHR);
+#endif
+
     DxvkAdapterQueueIndices queues;
     queues.graphics = graphicsQueue;
     queues.transfer = transferQueue;
     queues.sparse = sparseQueue;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    queues.videoDecode = videoDecodeQueue;
+#endif
     return queues;
   }
 
@@ -469,6 +478,11 @@ namespace dxvk {
     if (queueFamilies.sparse != VK_QUEUE_FAMILY_IGNORED)
       queueFamiliySet.insert(queueFamilies.sparse);
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (queueFamilies.videoDecode != VK_QUEUE_FAMILY_IGNORED)
+      queueFamiliySet.insert(queueFamilies.videoDecode);
+#endif
+
     this->logQueueFamilies(queueFamilies);
     
     for (uint32_t family : queueFamiliySet) {
@@ -519,6 +533,9 @@ namespace dxvk {
     queues.graphics = getDeviceQueue(vkd, queueFamilies.graphics, 0);
     queues.transfer = getDeviceQueue(vkd, queueFamilies.transfer, 0);
     queues.sparse = getDeviceQueue(vkd, queueFamilies.sparse, 0);
+#ifdef VBOX_WITH_DXVK_VIDEO
+    queues.videoDecode = getDeviceQueue(vkd, queueFamilies.videoDecode, 0);
+#endif
 
     return new DxvkDevice(instance, this, vkd, enabledFeatures, queues, DxvkQueueCallback());
   }
@@ -718,6 +735,12 @@ namespace dxvk {
         }
       }
     }
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    for (uint32_t i = 0; i < m_queueFamilies.size(); ++i) {
+      Logger::info(str::format("  Queue[", i, "]: Flags = 0x", std::hex, m_queueFamilies[i].queueFlags, std::dec));
+    }
+#endif
   }
   
   
@@ -964,6 +987,11 @@ namespace dxvk {
     if (m_deviceExtensions.supports(VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME))
       m_deviceFeatures.nvxImageViewHandle = VK_TRUE;
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_deviceExtensions.supports(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME))
+      m_deviceFeatures.khrVideoDecodeQueue = VK_TRUE;
+#endif
+
     m_vki->vkGetPhysicalDeviceFeatures2(m_handle, &m_deviceFeatures.core);
   }
 
@@ -1028,6 +1056,11 @@ namespace dxvk {
       &devExtensions.nvRawAccessChains,
       &devExtensions.nvxBinaryImport,
       &devExtensions.nvxImageViewHandle,
+#ifdef VBOX_WITH_DXVK_VIDEO
+      &devExtensions.khrVideoQueue,
+      &devExtensions.khrVideoDecodeQueue,
+      &devExtensions.khrVideoDecodeH264,
+#endif
     }};
   }
 
@@ -1178,6 +1211,11 @@ namespace dxvk {
 
     if (devExtensions.khrWin32KeyedMutex)
       enabledFeatures.khrWin32KeyedMutex = VK_TRUE;
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (devExtensions.khrVideoDecodeQueue)
+      enabledFeatures.khrVideoDecodeQueue = VK_TRUE;
+#endif
   }
 
   
@@ -1330,6 +1368,11 @@ namespace dxvk {
       "\n  extension supported                    : ", features.nvxImageViewHandle ? "1" : "0",
       "\n", VK_KHR_WIN32_KEYED_MUTEX_EXTENSION_NAME,
       "\n  extension supported                    : ", features.khrWin32KeyedMutex ? "1" : "0"));
+#ifdef VBOX_WITH_DXVK_VIDEO
+    Logger::info(str::format(
+      "",  VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
+      "\n  extension supported                    : ", features.khrVideoDecodeQueue ? "1" : "0"));
+#endif
   }
 
 
@@ -1337,7 +1380,12 @@ namespace dxvk {
     Logger::info(str::format("Queue families:",
       "\n  Graphics : ", queues.graphics,
       "\n  Transfer : ", queues.transfer,
+#ifdef VBOX_WITH_DXVK_VIDEO
+      "\n  Sparse   : ", queues.sparse != VK_QUEUE_FAMILY_IGNORED ? str::format(queues.sparse) : "n/a",
+      "\n  VideoDec : ", queues.videoDecode != VK_QUEUE_FAMILY_IGNORED ? str::format(queues.videoDecode) : "n/a"));
+#else
       "\n  Sparse   : ", queues.sparse != VK_QUEUE_FAMILY_IGNORED ? str::format(queues.sparse) : "n/a"));
+#endif
   }
   
 }

@@ -855,6 +855,103 @@ namespace dxvk {
             uint32_t          counterDivisor,
             uint32_t          counterBias);
     
+#ifdef VBOX_WITH_DXVK_VIDEO
+    /**
+     * \brief Begin a video coding scope.
+
+     * \param [in] videoBeginCodingInfo Parameters of the video coding scope
+     */
+    void beginVideoCodingKHR(
+            VkVideoBeginCodingInfoKHR *videoBeginCodingInfo) {
+      m_cmd->cmdBeginVideoCodingKHR(
+        videoBeginCodingInfo);
+    }
+
+    /**
+     * \brief Control video coding parameters.
+
+     * \param [in] videoDecodeInfo Control parameters
+     */
+    void controlVideoCodingKHR(
+            VkVideoCodingControlInfoKHR *videoCodingControlInfo) {
+      m_cmd->cmdControlVideoCodingKHR(
+        videoCodingControlInfo);
+    }
+
+    /**
+     * \brief Decode video data.
+
+     * \param [in] videoDecodeInfo Video decoder input data
+     */
+    void decodeVideoKHR(
+            VkVideoDecodeInfoKHR *videoDecodeInfo) {
+      m_cmd->cmdDecodeVideoKHR(
+        videoDecodeInfo);
+    }
+
+    /**
+     * \brief End a video coding scope.
+
+     * \param [in] videoEndCodingInfo Parameters for ending the video coding scope
+     */
+    void endVideoCodingKHR(
+            VkVideoEndCodingInfoKHR *videoEndCodingInfo) {
+      m_cmd->cmdEndVideoCodingKHR(
+        videoEndCodingInfo);
+    }
+
+    void emitPipelineBarrier(
+            DxvkCmdBuffer           cmdBuffer,
+      const VkDependencyInfo*       dependencyInfo) {
+      m_cmd->cmdPipelineBarrier(cmdBuffer, dependencyInfo);
+    }
+
+    void emitCopyImage(
+            DxvkCmdBuffer           cmdBuffer,
+      const VkCopyImageInfo2*       copyInfo) {
+      m_cmd->cmdCopyImage(cmdBuffer, copyInfo);
+    }
+
+    void transferImageQueueOwnership(
+            DxvkCmdBuffer           srcCmdBuffer,
+      const VkImageMemoryBarrier2*  srcBarrier,
+            DxvkCmdBuffer           dstCmdBuffer,
+      const VkImageMemoryBarrier2*  dstBarrier,
+      const Rc<DxvkFence>&          fence,
+            uint64_t                value) {
+      // Submit 'release=src' barrier.
+      VkDependencyInfo dependencyInfo =
+        { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+      dependencyInfo.imageMemoryBarrierCount = 1;
+      dependencyInfo.pImageMemoryBarriers    = srcBarrier;
+
+      m_cmd->cmdPipelineBarrier(srcCmdBuffer, &dependencyInfo);
+      m_cmd->signalSubmissionFence(srcCmdBuffer, fence, value);
+
+      // Split command buffers so that we submit barriers in the right order.
+      // That is the release barrier is submitted to the source queue before
+      // the acquire barrier is submitted to the destination queue.
+      splitCommands();
+
+      // Submit 'acquire=dst' barrier.
+      dependencyInfo.pImageMemoryBarriers    = dstBarrier;
+
+      m_cmd->cmdPipelineBarrier(dstCmdBuffer, &dependencyInfo);
+      m_cmd->waitSubmissionFence(dstCmdBuffer, fence, value);
+    }
+
+    void trackResource(
+            DxvkAccess access,
+      const Rc<DxvkResource>& resource) {
+      if (access == DxvkAccess::Write)
+        m_cmd->trackResource<DxvkAccess::Write>(resource);
+      else if (access == DxvkAccess::Read)
+        m_cmd->trackResource<DxvkAccess::Read>(resource);
+      else
+        m_cmd->trackResource<DxvkAccess::None>(resource);
+    }
+#endif
+
     /**
      * \brief Emits graphics barrier
      *

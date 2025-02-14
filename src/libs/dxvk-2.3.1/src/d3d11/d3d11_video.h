@@ -1,8 +1,103 @@
 #pragma once
 
+#include "../dxvk/dxvk_video_decoder.h"
+
 #include "d3d11_device.h"
 
 namespace dxvk {
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+
+  class D3D11VideoDecoder : public D3D11DeviceChild<ID3D11VideoDecoder> {
+
+  public:
+
+    D3D11VideoDecoder(
+            D3D11Device*                      pDevice,
+            const D3D11_VIDEO_DECODER_DESC    &VideoDesc,
+            const D3D11_VIDEO_DECODER_CONFIG  &Config,
+            const DxvkVideoDecodeProfileInfo& profile);
+
+    ~D3D11VideoDecoder();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(
+            REFIID                  riid,
+            void**                  ppvObject);
+
+    virtual HRESULT STDMETHODCALLTYPE GetCreationParameters(
+            D3D11_VIDEO_DECODER_DESC *pVideoDesc,
+            D3D11_VIDEO_DECODER_CONFIG *pConfig);
+
+    virtual HRESULT STDMETHODCALLTYPE GetDriverHandle(
+            HANDLE *pDriverHandle);
+
+    HRESULT GetDecoderBuffer(
+            D3D11_VIDEO_DECODER_BUFFER_TYPE Type,
+            UINT*                           BufferSize,
+            void**                          ppBuffer);
+
+    HRESULT ReleaseDecoderBuffer(
+            D3D11_VIDEO_DECODER_BUFFER_TYPE Type);
+
+    Rc<DxvkVideoDecoder> GetDecoder() {
+      return m_videoDecoder;
+    }
+
+    bool GetVideoDecodeH264InputParameters(
+      UINT BufferCount,
+      const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs,
+      DxvkVideoDecodeInputParameters *pParms);
+
+  private:
+
+    struct D3D11VideoDecoderBuffer {
+      std::vector<uint8_t> buffer;
+    };
+
+    D3D11_VIDEO_DECODER_DESC                    m_desc;
+    D3D11_VIDEO_DECODER_CONFIG                  m_config;
+
+    /* All buffer types except for D3D11_VIDEO_DECODER_BUFFER_HUFFMAN_TABLE. */
+    std::array<D3D11VideoDecoderBuffer, D3D11_VIDEO_DECODER_BUFFER_FILM_GRAIN + 1> m_decoderBuffers;
+    Rc<DxvkDevice>                              m_device;
+    Rc<DxvkVideoDecoder>                        m_videoDecoder;
+
+  };
+
+
+  class D3D11VideoDecoderOutputView : public D3D11DeviceChild<ID3D11VideoDecoderOutputView> {
+
+  public:
+
+    D3D11VideoDecoderOutputView(
+            D3D11Device*            pDevice,
+            ID3D11Resource*         pResource,
+      const D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC& Desc);
+
+    ~D3D11VideoDecoderOutputView();
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(
+            REFIID                  riid,
+            void**                  ppvObject);
+
+    void STDMETHODCALLTYPE GetResource(
+            ID3D11Resource**        ppResource);
+
+    void STDMETHODCALLTYPE GetDesc(
+            D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC* pDesc);
+
+    Rc<DxvkImageView> GetView() const {
+      return m_view;
+    }
+
+  private:
+
+    Com<ID3D11Resource>                     m_resource;
+    D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC    m_desc;
+    Rc<DxvkImageView>                       m_view;
+
+  };
+#endif /* VBOX_WITH_DXVK_VIDEO */
 
   static constexpr uint32_t D3D11_VK_VIDEO_STREAM_COUNT = 8;
 

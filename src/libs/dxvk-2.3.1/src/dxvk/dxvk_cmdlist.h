@@ -30,6 +30,9 @@ namespace dxvk {
     InitBuffer = 0,
     ExecBuffer = 1,
     SdmaBuffer = 2,
+#ifdef VBOX_WITH_DXVK_VIDEO
+    VDecBuffer = 3,
+#endif
   };
   
   using DxvkCmdBufferFlags = Flags<DxvkCmdBuffer>;
@@ -119,6 +122,19 @@ namespace dxvk {
   };
 
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+  enum class DxvkFenceOp : uint32_t {
+    FenceOpWait = 0,
+    FenceOpSignal = 1,
+  };
+
+  struct DxvkCommandSubmissionFence {
+    DxvkFenceOp         op;          /* Do this op, */
+    DxvkFenceValuePair  fence;       /* for this fence (timeline semaphore in fact), */
+    DxvkCmdBuffer       cmdBuffer;   /* when submitting a command buffer of this type. */
+  };
+#endif
+
   /**
    * \brief Command submission info
    *
@@ -130,8 +146,14 @@ namespace dxvk {
     VkCommandBuffer     execBuffer  = VK_NULL_HANDLE;
     VkCommandBuffer     initBuffer  = VK_NULL_HANDLE;
     VkCommandBuffer     sdmaBuffer  = VK_NULL_HANDLE;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    VkCommandBuffer     vdecBuffer  = VK_NULL_HANDLE;
+#endif
     VkBool32            sparseBind  = VK_FALSE;
     uint32_t            sparseCmd   = 0;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    std::vector<DxvkCommandSubmissionFence> submissionFences;
+#endif
   };
 
 
@@ -998,6 +1020,47 @@ namespace dxvk {
     }
 
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    void cmdBeginVideoCodingKHR(
+            VkVideoBeginCodingInfoKHR *videoBeginCodingInfo) {
+      m_cmd.usedFlags.set(DxvkCmdBuffer::VDecBuffer);
+
+      m_vkd->vkCmdBeginVideoCodingKHR(m_cmd.vdecBuffer, videoBeginCodingInfo);
+    }
+
+    void cmdControlVideoCodingKHR(
+            VkVideoCodingControlInfoKHR *videoCodingControlInfo) {
+      m_cmd.usedFlags.set(DxvkCmdBuffer::VDecBuffer);
+
+      m_vkd->vkCmdControlVideoCodingKHR(m_cmd.vdecBuffer, videoCodingControlInfo);
+    }
+
+    void cmdDecodeVideoKHR(
+            VkVideoDecodeInfoKHR *videoDecodeInfo) {
+      m_cmd.usedFlags.set(DxvkCmdBuffer::VDecBuffer);
+
+      m_vkd->vkCmdDecodeVideoKHR(m_cmd.vdecBuffer, videoDecodeInfo);
+    }
+
+    void cmdEndVideoCodingKHR(
+            VkVideoEndCodingInfoKHR *videoEndCodingInfo) {
+      m_cmd.usedFlags.set(DxvkCmdBuffer::VDecBuffer);
+
+      m_vkd->vkCmdEndVideoCodingKHR(m_cmd.vdecBuffer, videoEndCodingInfo);
+    }
+
+    void waitSubmissionFence(DxvkCmdBuffer cmdBuffer, Rc<DxvkFence> fence, uint64_t value) {
+      m_cmd.submissionFences.emplace_back(
+        DxvkCommandSubmissionFence {DxvkFenceOp::FenceOpWait, {std::move(fence), value}, cmdBuffer });
+    }
+
+    void signalSubmissionFence(DxvkCmdBuffer cmdBuffer, Rc<DxvkFence> fence, uint64_t value) {
+      m_cmd.submissionFences.emplace_back(
+        DxvkCommandSubmissionFence {DxvkFenceOp::FenceOpSignal, {std::move(fence), value}, cmdBuffer });
+    }
+#endif
+
+
     void bindBufferMemory(
       const DxvkSparseBufferBindKey& key,
       const DxvkSparsePageHandle&   memory) {
@@ -1034,10 +1097,17 @@ namespace dxvk {
     
     Rc<DxvkCommandPool>       m_graphicsPool;
     Rc<DxvkCommandPool>       m_transferPool;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    Rc<DxvkCommandPool>       m_videoDecodePool;
+#endif
 
     VkSemaphore               m_bindSemaphore = VK_NULL_HANDLE;
     VkSemaphore               m_postSemaphore = VK_NULL_HANDLE;
     VkSemaphore               m_sdmaSemaphore = VK_NULL_HANDLE;
+#ifdef VBOX_WITH_DXVK_VIDEO
+    VkSemaphore               m_vdecSemaphore = VK_NULL_HANDLE;
+    std::atomic<uint64_t>     m_vdecSemaphoreValue = 0;
+#endif
     VkFence                   m_fence         = VK_NULL_HANDLE;
 
     DxvkCommandSubmissionInfo m_cmd;
@@ -1069,6 +1139,9 @@ namespace dxvk {
       if (cmdBuffer == DxvkCmdBuffer::ExecBuffer) return m_cmd.execBuffer;
       if (cmdBuffer == DxvkCmdBuffer::InitBuffer) return m_cmd.initBuffer;
       if (cmdBuffer == DxvkCmdBuffer::SdmaBuffer) return m_cmd.sdmaBuffer;
+#ifdef VBOX_WITH_DXVK_VIDEO
+      if (cmdBuffer == DxvkCmdBuffer::VDecBuffer) return m_cmd.vdecBuffer;
+#endif
       return VK_NULL_HANDLE;
     }
 
@@ -1084,6 +1157,11 @@ namespace dxvk {
 
     void endCommandBuffer(VkCommandBuffer cmdBuffer);
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    void addSubmissionFences(
+      DxvkCmdBuffer cmdBuffer,
+      const DxvkCommandSubmissionInfo& cmd);
+#endif
   };
   
 }

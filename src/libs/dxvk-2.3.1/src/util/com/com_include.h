@@ -6,6 +6,10 @@
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #endif // __GNUC__
 
+#ifdef VBOX
+#include <iprt/asm.h>
+#endif
+
 #define WIN32_LEAN_AND_MEAN
 #if defined(VBOX) && defined(_WIN32)
 #include <iprt/win/windows.h>

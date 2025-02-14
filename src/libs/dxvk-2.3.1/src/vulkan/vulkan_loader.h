@@ -168,6 +168,13 @@ namespace dxvk::vk {
     #ifdef VK_EXT_swapchain_maintenance1
     VULKAN_FN(vkReleaseSwapchainImagesEXT);
     #endif
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    #ifdef VK_KHR_video_queue
+    VULKAN_FN(vkGetPhysicalDeviceVideoCapabilitiesKHR);
+    VULKAN_FN(vkGetPhysicalDeviceVideoFormatPropertiesKHR);
+    #endif
+#endif /* VBOX_WITH_DXVK_VIDEO */
   };
   
   
@@ -452,6 +459,25 @@ namespace dxvk::vk {
     VULKAN_FN(wine_vkAcquireKeyedMutex);
     VULKAN_FN(wine_vkReleaseKeyedMutex);
     #endif
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+    #ifdef VK_KHR_video_queue
+    VULKAN_FN(vkCreateVideoSessionKHR);
+    VULKAN_FN(vkDestroyVideoSessionKHR);
+    VULKAN_FN(vkGetVideoSessionMemoryRequirementsKHR);
+    VULKAN_FN(vkBindVideoSessionMemoryKHR);
+    VULKAN_FN(vkCreateVideoSessionParametersKHR);
+    VULKAN_FN(vkUpdateVideoSessionParametersKHR);
+    VULKAN_FN(vkDestroyVideoSessionParametersKHR);
+    VULKAN_FN(vkCmdBeginVideoCodingKHR);
+    VULKAN_FN(vkCmdEndVideoCodingKHR);
+    VULKAN_FN(vkCmdControlVideoCodingKHR);
+    #endif
+
+    #ifdef VK_KHR_video_decode_queue
+    VULKAN_FN(vkCmdDecodeVideoKHR);
+    #endif
+#endif /* VBOX_WITH_DXVK_VIDEO */
   };
   
 }

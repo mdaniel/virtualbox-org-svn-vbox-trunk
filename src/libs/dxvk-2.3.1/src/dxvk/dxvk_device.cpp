@@ -196,6 +196,18 @@ namespace dxvk {
   }
 
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+  Rc<DxvkVideoDecoder> DxvkDevice::createVideoDecoder(
+    const DxvkVideoDecodeProfileInfo& profile,
+          uint32_t sampleWidth,
+          uint32_t sampleHeight,
+          VkFormat outputFormat) {
+    return new DxvkVideoDecoder(this, m_objects.memoryManager(),
+      profile, sampleWidth, sampleHeight, outputFormat);
+  }
+#endif
+
+
   DxvkStatCounters DxvkDevice::getStatCounters() {
     DxvkPipelineCount pipe = m_objects.pipelineManager().getPipelineCount();
     DxvkPipelineWorkerStats workers = m_objects.pipelineManager().getWorkerStats();

@@ -1,3 +1,7 @@
+#if defined(VBOX_WITH_DXVK_VIDEO) && defined(RT_OS_WINDOWS)
+#define INITGUID
+#endif
+
 #include <algorithm>
 #include <cstring>
 
@@ -2810,6 +2814,9 @@ namespace dxvk {
           D3D11Device*            pDevice)
   : m_container(pContainer), m_device(pDevice) {
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    InitDecoderProfiles();
+#endif
   }
 
 
@@ -2839,8 +2846,24 @@ namespace dxvk {
     const D3D11_VIDEO_DECODER_DESC*                     pVideoDesc,
     const D3D11_VIDEO_DECODER_CONFIG*                   pConfig,
           ID3D11VideoDecoder**                          ppDecoder) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = ProfileIndexFromDecoderDesc(pVideoDesc);
+    if (i >= 0) {
+      const DxvkVideoDecodeProfileInfo& v = m_decoderProfiles[i].second;
+
+      try {
+        *ppDecoder = ref(new D3D11VideoDecoder(m_device, *pVideoDesc, *pConfig, v));
+        return S_OK;
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_FAIL;
+      }
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::CreateVideoDecoder: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -2881,8 +2904,22 @@ namespace dxvk {
           ID3D11Resource*                               pResource,
     const D3D11_VIDEO_DECODER_OUTPUT_VIEW_DESC*         pDesc,
           ID3D11VideoDecoderOutputView**                ppVDOVView) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = GetDecoderProfileIndex(pDesc->DecodeProfile);
+    if (i >= 0) {
+      try {
+        *ppVDOVView = ref(new D3D11VideoDecoderOutputView(m_device, pResource, *pDesc));
+        return S_OK;
+      } catch (const DxvkError& e) {
+        Logger::err(e.message());
+        return E_FAIL;
+      }
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::CreateVideoDecoderOutputView: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -2930,16 +2967,29 @@ namespace dxvk {
 
 
   UINT STDMETHODCALLTYPE D3D11VideoDevice::GetVideoDecoderProfileCount() {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    return m_decoderProfiles.size();
+#else
     Logger::err("D3D11VideoDevice::GetVideoDecoderProfileCount: Stub");
     return 0;
+#endif
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D11VideoDevice::GetVideoDecoderProfile(
           UINT                                          Index,
           GUID*                                         pDecoderProfile) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (Index < m_decoderProfiles.size()) {
+      if (pDecoderProfile != nullptr)
+        *pDecoderProfile = m_decoderProfiles[Index].first.guid;
+      return S_OK;
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::GetVideoDecoderProfile: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -2947,16 +2997,43 @@ namespace dxvk {
     const GUID*                                         pDecoderProfile,
           DXGI_FORMAT                                   Format,
           BOOL*                                         pSupported) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = GetDecoderProfileIndex(*pDecoderProfile);
+    if (i >= 0) {
+      const D3D11VideoDecoderProfile &p = m_decoderProfiles[i].first;
+
+      const auto it = std::find_if(p.supportedFormats.begin(), p.supportedFormats.end(),
+        [Format](DXGI_FORMAT f) -> bool { return f == Format; });
+
+      if (pSupported != nullptr)
+        *pSupported = it != p.supportedFormats.end();
+      return S_OK;
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::CheckVideoDecoderFormat: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
   HRESULT STDMETHODCALLTYPE D3D11VideoDevice::GetVideoDecoderConfigCount(
     const D3D11_VIDEO_DECODER_DESC*                     pDesc,
           UINT*                                         pCount) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = ProfileIndexFromDecoderDesc(pDesc);
+    if (i >= 0) {
+      const D3D11VideoDecoderProfile& p = m_decoderProfiles[i].first;
+
+      if (pCount != nullptr)
+        *pCount = p.decoderConfigs.size();
+      return S_OK;
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::GetVideoDecoderConfigCount: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -2964,8 +3041,23 @@ namespace dxvk {
     const D3D11_VIDEO_DECODER_DESC*                     pDesc,
           UINT                                          Index,
           D3D11_VIDEO_DECODER_CONFIG*                   pConfig) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = ProfileIndexFromDecoderDesc(pDesc);
+    if (i >= 0) {
+      const D3D11VideoDecoderProfile &p = m_decoderProfiles[i].first;
+
+      if (Index >= p.decoderConfigs.size())
+        return E_INVALIDARG;
+
+      if (pConfig != nullptr)
+        *pConfig = p.decoderConfigs[Index];
+      return S_OK;
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::GetVideoDecoderConfig: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -2973,8 +3065,18 @@ namespace dxvk {
     const GUID*                                         pCryptoType,
     const GUID*                                         pDecoderProfile,
           D3D11_VIDEO_CONTENT_PROTECTION_CAPS*          pCaps) {
+#ifdef VBOX_WITH_DXVK_VIDEO
+    const int i = GetDecoderProfileIndex(*pDecoderProfile);
+    if (i >= 0) {
+      if (pCaps != nullptr)
+        memset(pCaps, 0, sizeof(*pCaps));
+      return S_OK;
+    }
+    return E_INVALIDARG;
+#else
     Logger::err("D3D11VideoDevice::GetContentProtectionCaps: Stub");
     return E_NOTIMPL;
+#endif
   }
 
 
@@ -3001,6 +3103,229 @@ namespace dxvk {
     const IUnknown*                                     pData) {
     return m_container->SetPrivateDataInterface(Name, pData);
   }
+
+
+#ifdef VBOX_WITH_DXVK_VIDEO
+  void D3D11VideoDevice::InitDecoderProfiles() {
+    Rc<DxvkDevice> dxvkDevice = m_device->GetDXVKDevice();
+
+    /* Check that video decoding is supported. */
+    if (!dxvkDevice->features().khrVideoDecodeQueue
+     || dxvkDevice->queues().videoDecode.queueHandle == VK_NULL_HANDLE)
+      return;
+
+    /*
+     * Create a list of D3D11 profiles descriptions (m_decoderProfiles) with backlinks to
+     * supported Vulkan video profiles.
+     */
+
+    /* A Vulkan video profile with a list of compatible D3D11 profiles. */
+    struct D3D11VideoDecodeProfileMapping {
+      DxvkVideoDecodeProfileInfo&           dxvkProfile;
+      std::vector<D3D11VideoDecoderProfile> d3dProfiles;
+    };
+    std::vector<D3D11VideoDecodeProfileMapping> mappings;
+
+    /*
+     * D3D11 profiles descriptions.
+     */
+    const struct D3D11VideoDecoderProfile profile_ModeH264_VLD_NoFGT = {
+      /* .guid = */ DXVA2_ModeH264_VLD_NoFGT,  /* D3D11_DECODER_PROFILE_H264_VLD_NOFGT */
+      /* .decoderConfigs = */ std::vector<D3D11_VIDEO_DECODER_CONFIG> {
+        {
+          /* .guidConfigBitstreamEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigMBcontrolEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigResidDiffEncryption = */ DXVA2_NoEncrypt,
+          /* .ConfigBitstreamRaw = */ 1,
+          /* .ConfigMBcontrolRasterOrder = */ 0,
+          /* .ConfigResidDiffHost = */ 0,
+          /* .ConfigSpatialResid8 = */ 0,
+          /* .ConfigResid8Subtraction = */ 0,
+          /* .ConfigSpatialHost8or9Clipping = */ 0,
+          /* .ConfigSpatialResidInterleaved = */ 0,
+          /* .ConfigIntraResidUnsigned = */ 0,
+          /* .ConfigResidDiffAccelerator = */ 1,
+          /* .ConfigHostInverseScan = */ 1,
+          /* .ConfigSpecificIDCT = */ 2,
+          /* .Config4GroupedCoefs = */ 0,
+          /* .ConfigMinRenderTargetBuffCount = */ 3,
+          /* .ConfigDecoderSpecific = */ 0
+        },
+        {
+          /* .guidConfigBitstreamEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigMBcontrolEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigResidDiffEncryption = */ DXVA2_NoEncrypt,
+          /* .ConfigBitstreamRaw = */ 2,
+          /* .ConfigMBcontrolRasterOrder = */ 0,
+          /* .ConfigResidDiffHost = */ 0,
+          /* .ConfigSpatialResid8 = */ 0,
+          /* .ConfigResid8Subtraction = */ 0,
+          /* .ConfigSpatialHost8or9Clipping = */ 0,
+          /* .ConfigSpatialResidInterleaved = */ 0,
+          /* .ConfigIntraResidUnsigned = */ 0,
+          /* .ConfigResidDiffAccelerator = */ 1,
+          /* .ConfigHostInverseScan = */ 1,
+          /* .ConfigSpecificIDCT = */ 2,
+          /* .Config4GroupedCoefs = */ 0,
+          /* .ConfigMinRenderTargetBuffCount = */ 3,
+          /* .ConfigDecoderSpecific = */ 0
+        }
+      },
+      /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
+          DXGI_FORMAT_NV12
+      }
+    };
+
+    /*
+     * Add desired Vulkan profile descriptions to the 'mappings'.
+     */
+    m_vulkanDecodeProfiles[0].profileName            = "H.264";
+    m_vulkanDecodeProfiles[0].h264ProfileInfo        =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PROFILE_INFO_KHR, nullptr,
+        STD_VIDEO_H264_PROFILE_IDC_HIGH,
+        VK_VIDEO_DECODE_H264_PICTURE_LAYOUT_INTERLACED_INTERLEAVED_LINES_BIT_KHR
+      };
+    m_vulkanDecodeProfiles[0].profileInfo            =
+      { VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR, &m_vulkanDecodeProfiles[0].h264ProfileInfo,
+        VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR,
+        VK_VIDEO_CHROMA_SUBSAMPLING_420_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR
+      };
+    m_vulkanDecodeProfiles[0].decodeH264Capabilities =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_CAPABILITIES_KHR };
+    m_vulkanDecodeProfiles[0].decodeCapabilities     =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[0].decodeH264Capabilities };
+    m_vulkanDecodeProfiles[0].videoCapabilities      =
+      { VK_STRUCTURE_TYPE_VIDEO_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[0].decodeCapabilities };
+
+    mappings.push_back({ m_vulkanDecodeProfiles[0] });
+    mappings.back().d3dProfiles.push_back(profile_ModeH264_VLD_NoFGT);
+
+    /// @todo More Vulkan profiles: H.265 and AV1
+
+    /*
+     * Query caps of every Vulkan profile and add supported profiles to the m_decoderProfiles list.
+     */
+    auto vki = dxvkDevice->adapter()->vki();
+    auto physicalDevice = dxvkDevice->adapter()->handle();
+
+    for (auto& m: mappings) {
+      VkResult vr = vki->vkGetPhysicalDeviceVideoCapabilitiesKHR(physicalDevice,
+        &m.dxvkProfile.profileInfo, &m.dxvkProfile.videoCapabilities);
+      if (vr != VK_SUCCESS)
+        continue;
+
+      Logger::info(str::format("DXVK: Video Decode: ", m.dxvkProfile.profileName, ":"
+        " separate reference images=",
+        (m.dxvkProfile.videoCapabilities.flags & VK_VIDEO_CAPABILITY_SEPARATE_REFERENCE_IMAGES_BIT_KHR) ? "1" : "0",
+        ", DPB and output distinct=",
+        (m.dxvkProfile.decodeCapabilities.flags & VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR) ? "1" : "0",
+        ", DPB and output coincide=",
+        (m.dxvkProfile.decodeCapabilities.flags & VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR) ? "1" : "0"));
+
+      m.dxvkProfile.videoQueueHasTransfer =
+        (dxvkDevice->adapter()->getQueueFlags(dxvkDevice->queues().videoDecode.queueFamily) & VK_QUEUE_TRANSFER_BIT) != 0;
+
+      /* Query format caps of DPB images. */
+      VkVideoProfileListInfoKHR profileListInfo =
+        { VK_STRUCTURE_TYPE_VIDEO_PROFILE_LIST_INFO_KHR };
+      profileListInfo.profileCount = 1;
+      profileListInfo.pProfiles    = &m.dxvkProfile.profileInfo;
+
+      VkPhysicalDeviceVideoFormatInfoKHR physicalFormatInfo =
+        { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VIDEO_FORMAT_INFO_KHR, &profileListInfo };
+
+      /* 42.4.2. Video Format Capabilities */
+      switch (m.dxvkProfile.decodeCapabilities.flags
+        & (VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR
+         | VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR))
+      {
+        case VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR
+          | VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR:
+        case VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR:
+          physicalFormatInfo.imageUsage = VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR
+                                        | VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR
+                                        | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+          break;
+        case VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR:
+          physicalFormatInfo.imageUsage = VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR;
+          break;
+        default:
+          continue; /* Must not be returned by Vulkan. */
+      }
+
+      uint32_t videoFormatPropertyCount = 0;
+      vr = vki->vkGetPhysicalDeviceVideoFormatPropertiesKHR(physicalDevice,
+        &physicalFormatInfo, &videoFormatPropertyCount, nullptr);
+      if (vr != VK_SUCCESS)
+        continue;
+
+      std::vector<VkVideoFormatPropertiesKHR> videoFormatProperties(videoFormatPropertyCount,
+        { VK_STRUCTURE_TYPE_VIDEO_FORMAT_PROPERTIES_KHR });
+      vr = vki->vkGetPhysicalDeviceVideoFormatPropertiesKHR(physicalDevice,
+        &physicalFormatInfo, &videoFormatPropertyCount, videoFormatProperties.data());
+      if (vr != VK_SUCCESS)
+        continue;
+
+      /* Verify that DXGI_FORMAT_NV12 is supported for DPB. */
+      const VkVideoFormatPropertiesKHR *pFormatProperties = nullptr;
+      for (uint32_t i = 0; i < videoFormatPropertyCount; ++i) {
+        const VkVideoFormatPropertiesKHR &p = videoFormatProperties[i];
+        if (p.format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM) {
+          pFormatProperties = &videoFormatProperties[i];
+          break;
+        }
+      }
+
+      if (pFormatProperties == nullptr)
+        continue;
+
+      m.dxvkProfile.dpbFormatProperties = *pFormatProperties;
+
+      /* Add supported D3D11 profiles to the list. */
+      for (auto &p: m.d3dProfiles) {
+        m_decoderProfiles.push_back({ p, m.dxvkProfile });
+      }
+    }
+  }
+
+
+  int D3D11VideoDevice::GetDecoderProfileIndex(const GUID &guid)
+  {
+    const auto it = std::find_if(m_decoderProfiles.begin(), m_decoderProfiles.end(),
+      [ &guid ](std::pair<D3D11VideoDecoderProfile, DxvkVideoDecodeProfileInfo&>& p) -> bool
+        { return p.first.guid == guid; });
+    if (it != m_decoderProfiles.end())
+      return std::distance(m_decoderProfiles.begin(), it);
+    return -1;
+  }
+
+  int D3D11VideoDevice::ProfileIndexFromDecoderDesc(
+    const D3D11_VIDEO_DECODER_DESC* pVideoDesc)
+  {
+    const int i = GetDecoderProfileIndex(pVideoDesc->Guid);
+    if (i >= 0) {
+      const D3D11VideoDecoderProfile &p = m_decoderProfiles[i].first;
+
+      const auto it = std::find_if(p.supportedFormats.begin(), p.supportedFormats.end(),
+        [ OutputFormat = pVideoDesc->OutputFormat ](DXGI_FORMAT f) -> bool { return f == OutputFormat; });
+      if (it == p.supportedFormats.end())
+        return -1;
+
+      const DxvkVideoDecodeProfileInfo& v = m_decoderProfiles[i].second;
+
+      if (pVideoDesc->SampleWidth > v.videoCapabilities.maxCodedExtent.width
+       || pVideoDesc->SampleHeight > v.videoCapabilities.maxCodedExtent.height)
+        return -1;
+
+      if (pVideoDesc->SampleWidth < v.videoCapabilities.minCodedExtent.width
+       || pVideoDesc->SampleHeight < v.videoCapabilities.minCodedExtent.height)
+        return -1;
+    }
+    return i;
+  }
+#endif /* VBOX_WITH_DXVK_VIDEO */
 
 
 

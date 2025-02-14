@@ -79,6 +79,11 @@ namespace dxvk {
       formatFamily.Add(VK_FORMAT_R32_SINT);
     }
 
+#ifdef VBOX_WITH_DXVK_VIDEO
+    if (m_desc.BindFlags & D3D11_BIND_DECODER)
+      formatFamily.Add(VK_FORMAT_G8_B8R8_2PLANE_420_UNORM);
+#endif
+
     // The image must be marked as mutable if it can be reinterpreted
     // by a view with a different format. Depth-stencil formats cannot
     // be reinterpreted in Vulkan, so we'll ignore those.

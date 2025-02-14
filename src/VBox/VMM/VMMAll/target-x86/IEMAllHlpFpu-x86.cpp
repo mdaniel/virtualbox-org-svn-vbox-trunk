@@ -44,7 +44,7 @@
 #include "IEMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include <VBox/log.h>
-#include <VBox/err.h>
+#include <iprt/errcore.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
 #include <iprt/x86.h>

@@ -268,6 +268,7 @@ static unsigned iemMemMapFindFree(PVMCPUCC pVCpu)
 }
 
 
+#ifdef IEM_WITH_DATA_TLB
 /**
  * Helper for iemMemMap, iemMemMapJmp and iemMemBounceBufferMapCrossPage.
  * @todo duplicated
@@ -280,6 +281,7 @@ iemMemCheckDataBreakpoint(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrMem, size_t cb
         return DBGFBpCheckDataWrite(pVM, pVCpu, GCPtrMem, (uint32_t)cbMem, fSysAccess);
     return DBGFBpCheckDataRead(pVM, pVCpu, GCPtrMem, (uint32_t)cbMem, fSysAccess);
 }
+#endif
 
 
 /**

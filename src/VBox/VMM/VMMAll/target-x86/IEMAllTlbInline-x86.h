@@ -1,6 +1,8 @@
 /* $Id$ */
 /** @file
- * IEM - Interpreted Execution Manager - All Contexts.
+ * IEM - Interpreted Execution Manager - x86 target, Inline TLB routines.
+ *
+ * Mainly related to large pages.
  */
 
 /*

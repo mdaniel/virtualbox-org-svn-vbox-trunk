@@ -601,7 +601,7 @@ typedef enum RTACPISTMT
     /** FindSetLeftBit(Source, Result) statement. */
     kAcpiStmt_FindSetLeftBit,
     /** FindSetRightBit(Source, Result) statement. */
-    kAcpiStmt_FindSetRightBit,
+    kAcpiStmt_FindSetRightBit
 } RTACPISTMT;
 
 

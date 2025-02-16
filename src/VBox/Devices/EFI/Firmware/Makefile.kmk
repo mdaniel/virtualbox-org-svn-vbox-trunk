@@ -272,7 +272,7 @@ endif
 VBOX_EFI_BUILD_CMD += \
 	-E 'PYTHONPATH=$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/Python' \
 	-E 'PYTHONDONTWRITEBYTECODE=1' \
-	-E 'IASL_BIN=$(VBOX_IASLCMD)' \
+	-E 'IASL_BIN=$(VBOX_RTIASL)' \
 	-E 'NASM_BIN=$(VBOX_NASMCMD)' \
 	-E 'CONF_PATH=$(abspath $(@D)/../../Conf)' \
 	-E 'WORKSPACE=$(VBOX_PATH_EFI_FIRMWARE)' \
@@ -347,10 +347,11 @@ $(VBoxEfiFirmware_0_OUTDIR)/amd64/Conf/tools_def.txt \
 $(VBoxEfiFirmware_0_OUTDIR)/arm32/Conf/tools_def.txt \
 $(VBoxEfiFirmware_0_OUTDIR)/arm64/Conf/tools_def.txt: \
 		$(VBOX_PATH_EFI_FIRMWARE)/vbox-tools_def.txt \
-		$(MAKEFILE) | $$(dir $$@)
+		$(MAKEFILE) \
+		$(VBOX_RTIASL) | $$(dir $$@)
 	$(RM) -f -- "$@"
 	$(SED) \
-		-e 's,@VBOX_IASLCMD@,$(VBOX_IASLCMD),' \
+		-e 's,@VBOX_IASLCMD@,$(VBOX_RTIASL),' \
 		-e 's,@VBOX_YASMCMD@,$(VBOX_YASMCMD),' \
 		-e 's,@VBOX_NASMCMD@,$(VBOX_NASMCMD),' \
 		-e 's,@KMK@,$(MAKE),' \

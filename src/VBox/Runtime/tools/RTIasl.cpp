@@ -426,6 +426,7 @@ static RTEXITCODE RTCmdIasl(unsigned cArgs, char **papszArgs)
     {
         { "--disassemble",                      'd', RTGETOPT_REQ_NOTHING },
         { "--out",                              'o', RTGETOPT_REQ_STRING  },
+        { "--path",                             'p', RTGETOPT_REQ_STRING  },
         { "--help",                             'h', RTGETOPT_REQ_NOTHING },
         { "--version",                          'v', RTGETOPT_REQ_NOTHING },
         { "--text-c-hdr",                       't', RTGETOPT_REQ_STRING  }
@@ -470,6 +471,7 @@ static RTEXITCODE RTCmdIasl(unsigned cArgs, char **papszArgs)
                     break;
 
                 case 'o':
+                case 'p':
                     Opts.pszOutFile = ValueUnion.psz;
                     break;
 

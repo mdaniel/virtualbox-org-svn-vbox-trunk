@@ -2533,9 +2533,6 @@ ifeq ($(VBOX_XCURSOR_LIBS),)
 endif
 
 
-# Intel ASL compiler for ACPI
-VBOX_IASLCMD   ?= $(firstword $(wildcard $(KBUILD_DEVTOOLS_HST)/bin/iasl$(HOSTSUFF_EXE)) iasl$(HOSTSUFF_EXE))
-
 # libxslt XSLT processor. (see PATH_TOOL_YASM for explanation why it's temporarily located in bin.)
 ifeq ($(VBOX_XSLTPROC),)
  ifeq ($(KBUILD_HOST),win)

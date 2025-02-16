@@ -119,7 +119,8 @@ namespace dxvk {
     ~DxvkVideoSessionParametersHandle();
 
     void create(
-      const VkVideoSessionParametersCreateInfoKHR& sessionParametersCreateInfo);
+      const Rc<DxvkVideoSessionHandle>& videoSession,
+      const void *pDecoderSessionParametersCreateInfo);
 
     VkVideoSessionParametersKHR handle() const {
       return m_videoSessionParameters;
@@ -128,6 +129,8 @@ namespace dxvk {
   private:
 
     Rc<DxvkDevice>              m_device;
+    /* Hold a reference because session must be deleted after parameters. */
+    Rc<DxvkVideoSessionHandle>  m_videoSession;
     VkVideoSessionParametersKHR m_videoSessionParameters = VK_NULL_HANDLE;
 
   };

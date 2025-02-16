@@ -65,7 +65,16 @@ namespace dxvk {
 
 
   void DxvkVideoSessionParametersHandle::create(
-    const VkVideoSessionParametersCreateInfoKHR& sessionParametersCreateInfo) {
+    const Rc<DxvkVideoSessionHandle>& videoSession,
+    const void *pDecoderSessionParametersCreateInfo) {
+    m_videoSession = videoSession;
+
+    VkVideoSessionParametersCreateInfoKHR sessionParametersCreateInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_SESSION_PARAMETERS_CREATE_INFO_KHR, pDecoderSessionParametersCreateInfo };
+    sessionParametersCreateInfo.flags                          = 0;
+    sessionParametersCreateInfo.videoSessionParametersTemplate = nullptr;
+    sessionParametersCreateInfo.videoSession                   = m_videoSession->handle();
+
     VkResult vr = m_device->vkd()->vkCreateVideoSessionParametersKHR(m_device->handle(),
       &sessionParametersCreateInfo, nullptr, &m_videoSessionParameters);
     if (vr)
@@ -315,13 +324,7 @@ namespace dxvk {
     h264SessionParametersCreateInfo.maxStdPPSCount     = m_parameterSetCache.pps.size();
     h264SessionParametersCreateInfo.pParametersAddInfo = nullptr; /* Added in 'Decode' as necessary. */
 
-    VkVideoSessionParametersCreateInfoKHR sessionParametersCreateInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_SESSION_PARAMETERS_CREATE_INFO_KHR, &h264SessionParametersCreateInfo };
-    sessionParametersCreateInfo.flags                          = 0;
-    sessionParametersCreateInfo.videoSessionParametersTemplate = nullptr;
-    sessionParametersCreateInfo.videoSession                   = m_videoSession->handle();
-
-    m_videoSessionParameters->create(sessionParametersCreateInfo);
+    m_videoSessionParameters->create(m_videoSession, &h264SessionParametersCreateInfo);
   }
 
 
@@ -640,6 +643,35 @@ namespace dxvk {
     dstDPBSlot.isReferencePicture = false;
     dstDPBSlot.stdRefInfo         = parms.stdH264ReferenceInfo;
 
+    /*
+     * Prepare destination DPB image.
+     */
+    VkImageMemoryBarrier2 barrier =
+      { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+
+    /* Change the destination DPB slot image layout to VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR */
+    barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
+    barrier.srcAccessMask       = 0;
+    barrier.dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
+    barrier.dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
+    barrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
+    barrier.newLayout           = VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image               = dstDPBSlot.image->handle();
+    barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel   = 0;
+    barrier.subresourceRange.levelCount     = 1;
+    barrier.subresourceRange.baseArrayLayer = dstDPBSlot.baseArrayLayer;
+    barrier.subresourceRange.layerCount     = 1;
+
+    VkDependencyInfo dependencyInfo =
+      { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    dependencyInfo.imageMemoryBarrierCount = 1;
+    dependencyInfo.pImageMemoryBarriers    = &barrier;
+
+    ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
+
     const int DPBCapacity = m_DPB.slots.size();
 
     /* Reference pictures and the destination slot to be bound for video decoding. */
@@ -693,57 +725,27 @@ namespace dxvk {
       m_fControlResetSubmitted = true;
     }
 
-    /*
-     * Prepare destination DPB image.
-     */
-    std::array<VkImageMemoryBarrier2, 2> barriers{{
-      { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 },
-      { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 }}};
-
-    /* Change the destination DPB slot image layout to VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR */
-    barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
-    barriers[0].srcAccessMask       = 0;
-    barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
-    barriers[0].dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
-    barriers[0].oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
-    barriers[0].newLayout           = VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR;
-    barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barriers[0].image               = dstDPBSlot.image->handle();
-    barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    barriers[0].subresourceRange.baseMipLevel   = 0;
-    barriers[0].subresourceRange.levelCount     = 1;
-    barriers[0].subresourceRange.baseArrayLayer = dstDPBSlot.baseArrayLayer;
-    barriers[0].subresourceRange.layerCount     = 1;
-
-    VkDependencyInfo dependencyInfo =
-      { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-    dependencyInfo.imageMemoryBarrierCount = 1;
-    dependencyInfo.pImageMemoryBarriers    = barriers.data();
-
-    ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
-
     if (m_caps.distinctOutputImage) {
       /*
        * Prepare decode destination.
        */
-      barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
-      barriers[0].srcAccessMask       = 0;
-      barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
-      barriers[0].dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
-      barriers[0].oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
-      barriers[0].newLayout           = VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR;
-      barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].image               = m_imageDecodeDst->handle();
-      barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      barriers[0].subresourceRange.baseMipLevel   = 0;
-      barriers[0].subresourceRange.levelCount     = 1;
-      barriers[0].subresourceRange.baseArrayLayer = 0;
-      barriers[0].subresourceRange.layerCount     = 1;
+      barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
+      barrier.srcAccessMask       = 0;
+      barrier.dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
+      barrier.dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
+      barrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
+      barrier.newLayout           = VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image               = m_imageDecodeDst->handle();
+      barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel   = 0;
+      barrier.subresourceRange.levelCount     = 1;
+      barrier.subresourceRange.baseArrayLayer = 0;
+      barrier.subresourceRange.layerCount     = 1;
 
       dependencyInfo.imageMemoryBarrierCount = 1;
-      dependencyInfo.pImageMemoryBarriers    = barriers.data();
+      dependencyInfo.pImageMemoryBarriers    = &barrier;
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
     }
@@ -883,27 +885,27 @@ namespace dxvk {
 
     if (m_profile.videoQueueHasTransfer) {
       /* Wait for the decoded image to be available as a transfer source. */
-      barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
-      barriers[0].srcAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
-      barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-      barriers[0].dstAccessMask       = VK_ACCESS_2_TRANSFER_READ_BIT;
-      barriers[0].oldLayout           = decodedPictureLayout;
-      barriers[0].newLayout           = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-      barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].image               = decodedPicture->handle();
-      barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      barriers[0].subresourceRange.baseMipLevel   = 0;
-      barriers[0].subresourceRange.levelCount     = 1;
-      barriers[0].subresourceRange.baseArrayLayer = decodedArrayLayer;
-      barriers[0].subresourceRange.layerCount     = 1;
+      barrier.srcStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
+      barrier.srcAccessMask       = VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR;
+      barrier.dstStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+      barrier.dstAccessMask       = VK_ACCESS_2_TRANSFER_READ_BIT;
+      barrier.oldLayout           = decodedPictureLayout;
+      barrier.newLayout           = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image               = decodedPicture->handle();
+      barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel   = 0;
+      barrier.subresourceRange.levelCount     = 1;
+      barrier.subresourceRange.baseArrayLayer = decodedArrayLayer;
+      barrier.subresourceRange.layerCount     = 1;
 
       /* Output image is already in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL. */
 
       dependencyInfo =
         { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
       dependencyInfo.imageMemoryBarrierCount = 1;
-      dependencyInfo.pImageMemoryBarriers    = barriers.data();
+      dependencyInfo.pImageMemoryBarriers    = &barrier;
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
 
@@ -948,27 +950,27 @@ namespace dxvk {
       ctx->emitCopyImage(DxvkCmdBuffer::VDecBuffer, &copyImageInfo);
 
       /* Restore layout of the decoded image. */
-      barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-      barriers[0].srcAccessMask       = VK_ACCESS_2_TRANSFER_READ_BIT;
-      barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
-      barriers[0].dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_READ_BIT_KHR;
-      barriers[0].oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-      barriers[0].newLayout           = decodedPictureLayout;
-      barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].image               = decodedPicture->handle();
-      barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      barriers[0].subresourceRange.baseMipLevel   = 0;
-      barriers[0].subresourceRange.levelCount     = 1;
-      barriers[0].subresourceRange.baseArrayLayer = decodedArrayLayer;
-      barriers[0].subresourceRange.layerCount     = 1;
+      barrier.srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+      barrier.srcAccessMask       = VK_ACCESS_2_TRANSFER_READ_BIT;
+      barrier.dstStageMask        = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
+      barrier.dstAccessMask       = VK_ACCESS_2_VIDEO_DECODE_READ_BIT_KHR;
+      barrier.oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+      barrier.newLayout           = decodedPictureLayout;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image               = decodedPicture->handle();
+      barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel   = 0;
+      barrier.subresourceRange.levelCount     = 1;
+      barrier.subresourceRange.baseArrayLayer = decodedArrayLayer;
+      barrier.subresourceRange.layerCount     = 1;
 
       /* Output image is will be release back to the graphics queue in EndFrame. */
 
       dependencyInfo =
         { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
       dependencyInfo.imageMemoryBarrierCount = 1;
-      dependencyInfo.pImageMemoryBarriers    = barriers.data();
+      dependencyInfo.pImageMemoryBarriers    = &barrier;
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
     }
@@ -991,25 +993,25 @@ namespace dxvk {
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
       /* Prepare output image for transfer destination. */
-      barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
-      barriers[0].srcAccessMask       = 0;
-      barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-      barriers[0].dstAccessMask       = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-      barriers[0].oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
-      barriers[0].newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-      barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].image               = m_outputImageView->imageHandle();
-      barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      barriers[0].subresourceRange.baseMipLevel   = 0;
-      barriers[0].subresourceRange.levelCount     = 1;
-      barriers[0].subresourceRange.baseArrayLayer = m_outputImageView->info().minLayer;
-      barriers[0].subresourceRange.layerCount     = 1;
+      barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
+      barrier.srcAccessMask       = 0;
+      barrier.dstStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+      barrier.dstAccessMask       = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+      barrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; /* 'The contents ... may be discarded.' */
+      barrier.newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image               = m_outputImageView->imageHandle();
+      barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel   = 0;
+      barrier.subresourceRange.levelCount     = 1;
+      barrier.subresourceRange.baseArrayLayer = m_outputImageView->info().minLayer;
+      barrier.subresourceRange.layerCount     = 1;
 
       dependencyInfo =
         { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
       dependencyInfo.imageMemoryBarrierCount = 1;
-      dependencyInfo.pImageMemoryBarriers    = barriers.data();
+      dependencyInfo.pImageMemoryBarriers    = &barrier;
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::InitBuffer, &dependencyInfo);
 
@@ -1054,25 +1056,25 @@ namespace dxvk {
       ctx->emitCopyImage(DxvkCmdBuffer::InitBuffer, &copyImageInfo);
 
       /* Restore layout of the output image. */
-      barriers[0].srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-      barriers[0].srcAccessMask       = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-      barriers[0].dstStageMask        = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
-      barriers[0].dstAccessMask       = 0;
-      barriers[0].oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-      barriers[0].newLayout           = m_outputImageView->image()->info().layout; /* VK_IMAGE_LAYOUT_GENERAL. */
-      barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barriers[0].image               = m_outputImageView->imageHandle();
-      barriers[0].subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-      barriers[0].subresourceRange.baseMipLevel   = 0;
-      barriers[0].subresourceRange.levelCount     = 1;
-      barriers[0].subresourceRange.baseArrayLayer = m_outputImageView->info().minLayer;
-      barriers[0].subresourceRange.layerCount     = 1;
+      barrier.srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+      barrier.srcAccessMask       = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+      barrier.dstStageMask        = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR;
+      barrier.dstAccessMask       = 0;
+      barrier.oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+      barrier.newLayout           = m_outputImageView->image()->info().layout; /* VK_IMAGE_LAYOUT_GENERAL. */
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image               = m_outputImageView->imageHandle();
+      barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel   = 0;
+      barrier.subresourceRange.levelCount     = 1;
+      barrier.subresourceRange.baseArrayLayer = m_outputImageView->info().minLayer;
+      barrier.subresourceRange.layerCount     = 1;
 
       dependencyInfo =
         { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
       dependencyInfo.imageMemoryBarrierCount = 1;
-      dependencyInfo.pImageMemoryBarriers    = barriers.data();
+      dependencyInfo.pImageMemoryBarriers    = &barrier;
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::InitBuffer, &dependencyInfo);
 

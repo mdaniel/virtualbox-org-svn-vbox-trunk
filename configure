@@ -130,6 +130,7 @@ CXX="g++"
 CXX32=""
 CXX64=""
 YASM="yasm"
+IASL="iasl"
 XSLTPROC="xsltproc"
 INCCRYPTO=""
 LIBCRYPTO="-lssl -lcrypto"
@@ -656,6 +657,25 @@ check_yasm()
         [ "$YASM" != "yasm" ] && cnf_append "PATH_TOOL_YASM" "`dirname $YASM`"
         log_success "found version $yasm_ver"
       fi
+    fi
+  fi
+}
+
+
+#
+# Check for the iasl ACPI compiler, needed to compile vbox.dsl
+#
+check_iasl()
+{
+  test_header iasl
+  if check_avail "$IASL" IASL; then
+    iasl_ver=`$IASL|grep "ASL.*version"|sed 's+^ASL.*version \([0-9]*\).*+\1+'`
+    if [ $? -ne 0 ]; then
+      log_failure "iasl not found"
+      fail
+    else
+      log_success "found version $iasl_ver"
+      cnf_append "VBOX_IASLCMD" "`which_wrapper $IASL`"
     fi
   fi
 }
@@ -2548,7 +2568,8 @@ Paths:
   --with-gcc=PATH          location of the gcc compiler [$CC]
   --with-g++=PATH          location of the g++ compiler [$CXX]
   --with-kbuild=DIR        kbuild directory [$KBUILDDIR]
-  --with-yasm=PATH         location of the yasm compiler [$YASM]
+  --with-iasl=PATH         location of the iasl compiler [$IASL]
+  --with-yasm=PATH         location of the iasl compiler [$YASM]
   --with-makeself=PATH     location of makeself [$MAKESELF]
 EOF
 [ "$OS"   = "darwin" ] && echo "  --with-xcode-dir=DIR     custom path to Xcode root directory; it is assumed that Xcode"
@@ -2680,6 +2701,9 @@ for option in "$@"; do
       ;;
     --with-gsoap-import=*)
       GSOAP_IMPORT=`echo $option | cut -d'=' -f2`
+      ;;
+    --with-iasl=*)
+      IASL=`echo $option | cut -d'=' -f2`
       ;;
     --with-yasm=*)
       YASM=`echo $option | cut -d'=' -f2`
@@ -2991,6 +3015,7 @@ fi
 [ "$OS" = "darwin"  ] && check_xcode
 if [ $ONLY_ADDITIONS -eq 0 ]; then
   check_open_watcom
+  [ "$OS" != "darwin"  ] && check_iasl
   [ $OSE -ge 1 ] && check_yasm
   [ "$OS" != "darwin"  ] && check_xsltproc
 fi

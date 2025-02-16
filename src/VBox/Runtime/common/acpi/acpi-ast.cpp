@@ -91,66 +91,16 @@ DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd)
 }
 
 
-DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTERRINFO pErrInfo)
-{
-#if 0
-    /* Walk all arguments containing AST nodes first. */
-    for (uint8_t i = 0; i < pAstNd->cArgs; i++)
-    {
-        if (   pAstNd->aArgs[i].enmType == kAcpiAstArgType_AstNode
-            && pAstNd->aArgs[i].u.pAstNd)
-        {
-            int rc = rtAcpiAstNodeTransform(pAstNd->aArgs[i].u.pAstNd, pErrInfo);
-            if (RT_FAILURE(rc))
-                return rc;
-        }
-    }
-
-    if (pAstNd->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE)
-    {
-        PRTACPIASTNODE pIt/*, pItPrev*/;
-        /* Do transformations on the nodes first. */
-        RTListForEach(&pAstNd->LstScopeNodes, pIt, RTACPIASTNODE, NdAst)
-        {
-            int rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
-            if (RT_FAILURE(rc))
-                return rc;
-        }
-
-        /* Now do transformations on our level. */
-        RTListForEachReverseSafe(&pAstNd->LstScopeNodes, pIt, pItPrev, RTACPIASTNODE, NdAst)
-        {
-            /*
-             * If there is an If AST node followed by Else we move the Else branch as the last
-             * statement in the If because when emitting to AML the Else is enclosed in the If
-             * package.
-             */
-            if (   pIt->enmOp == kAcpiAstNodeOp_Else
-                && pItPrev
-                && pItPrev->enmOp == kAcpiAstNodeOp_If)
-            {
-                RTListNodeRemove(&pIt->NdAst);
-                RTListAppend(&pItPrev->LstScopeNodes, &pIt->NdAst);
-            }
-        }
-    }
-#else
-    RT_NOREF(pAstNd, pErrInfo);
-#endif
-
-    return VINF_SUCCESS;
-}
-
-
 /**
  * Evaluates the given AST node to an integer if possible.
  *
  * @returns IPRT status code.
- * @param   pAstNd          The AST node to evaluate.
- * @param   pNsRoot         The namespace root this AST belongs to.
- * @param   pu64            Where to store the integer on success.
+ * @param   pAstNd                  The AST node to evaluate.
+ * @param   pNsRoot                 The namespace root this AST belongs to.
+ * @param   fResolveIdentifiers     Flag whether to try resolving identifiers to constant integers.
+ * @param   pu64                    Where to store the integer on success.
  */
-static int rtAcpiAstNodeEvaluateToInteger(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot, uint64_t *pu64)
+static int rtAcpiAstNodeEvaluateToInteger(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot, bool fResolveIdentifiers, uint64_t *pu64)
 {
     /* Easy way out?. */
     if (pAstNd->enmOp == kAcpiAstNodeOp_Number)
@@ -171,19 +121,89 @@ static int rtAcpiAstNodeEvaluateToInteger(PCRTACPIASTNODE pAstNd, PRTACPINSROOT 
         return VINF_SUCCESS;
     }
 
-    if (pAstNd->enmOp == kAcpiAstNodeOp_Identifier)
+    if (   pAstNd->enmOp == kAcpiAstNodeOp_Identifier
+        && fResolveIdentifiers)
     {
         /* Look it up in the namespace and use the result. */
         PCRTACPINSENTRY pNsEntry = rtAcpiNsLookup(pNsRoot, pAstNd->pszIde);
         if (!pNsEntry)
             return VERR_NOT_FOUND;
+        if (pNsEntry->enmType != kAcpiNsEntryType_ResourceField)
+            return VERR_NOT_SUPPORTED;
 
-        *pu64 = pNsEntry->offBits;
+        *pu64 = pNsEntry->RsrcFld.offBits;
         return VINF_SUCCESS;
     }
 
     /** @todo */
     return VERR_NOT_IMPLEMENTED;
+}
+
+
+DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot, PRTERRINFO pErrInfo)
+{
+    /* Walk all arguments containing AST nodes first. */
+    for (uint8_t i = 0; i < pAstNd->cArgs; i++)
+    {
+        if (   pAstNd->aArgs[i].enmType == kAcpiAstArgType_AstNode
+            && pAstNd->aArgs[i].u.pAstNd)
+        {
+            int rc = rtAcpiAstNodeTransform(pAstNd->aArgs[i].u.pAstNd, pNsRoot, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+    }
+
+    if (pAstNd->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE)
+    {
+        PRTACPIASTNODE pIt/*, pItPrev*/;
+        /* Do transformations on the nodes first. */
+        RTListForEach(&pAstNd->LstScopeNodes, pIt, RTACPIASTNODE, NdAst)
+        {
+            int rc = rtAcpiAstNodeTransform(pIt, pNsRoot, pErrInfo);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+    }
+
+    /* Now do optimizations we can do here. */
+    switch (pAstNd->enmOp)
+    {
+        case kAcpiAstNodeOp_ShiftLeft:
+        {
+            /*
+             * If both arguments evaluate to constant integers we can convert this
+             * to the final result.
+             */
+            /** @todo Skips the 3 operand variant (no target), check what iasl is doing here. */
+            if (!pAstNd->aArgs[2].u.pAstNd)
+            {
+                uint64_t u64ValToShift = 0;
+                uint64_t u64ValShift = 0;
+                int rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[0].u.pAstNd, pNsRoot, false /*fResolveIdentifiers*/, &u64ValToShift);
+                if (RT_SUCCESS(rc))
+                    rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[1].u.pAstNd, pNsRoot, false /*fResolveIdentifiers*/, &u64ValShift);
+                if (   RT_SUCCESS(rc)
+                    && u64ValShift <= 63)
+                {
+                    /** @todo Check overflow handling. */
+                    rtAcpiAstNodeFree(pAstNd->aArgs[0].u.pAstNd);
+                    rtAcpiAstNodeFree(pAstNd->aArgs[1].u.pAstNd);
+
+                    pAstNd->aArgs[0].u.pAstNd = NULL;
+                    pAstNd->aArgs[1].u.pAstNd = NULL;
+                    pAstNd->cArgs             = 0;
+                    pAstNd->enmOp             = kAcpiAstNodeOp_Number;
+                    pAstNd->u64               = u64ValToShift << u64ValShift;
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    return VINF_SUCCESS;
 }
 
 
@@ -547,7 +567,7 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
             if (pAstNd->aArgs[0].u.pAstNd)
             {
                 /* Try resolving to a constant expression. */
-                rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[0].u.pAstNd, pNsRoot, &cElems);
+                rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[0].u.pAstNd, pNsRoot, true /*fResolveIdentifiers*/, &cElems);
                 if (RT_FAILURE(rc))
                     break;
             }
@@ -614,7 +634,7 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
                     {
                         /* Try resolving to a constant expression. */
                         uint64_t u64 = 0;
-                        rc = rtAcpiAstNodeEvaluateToInteger(pIt, pNsRoot, &u64);
+                        rc = rtAcpiAstNodeEvaluateToInteger(pIt, pNsRoot, true /*fResolveIdentifiers*/, &u64);
                         if (RT_FAILURE(rc))
                             break;
                         if (u64 > UINT8_MAX)
@@ -831,7 +851,7 @@ DECLHIDDEN(int) rtAcpiAstDumpToTbl(PCRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot
                     off = pAstNd->aArgs[1].u.pAstNd->u64;
                 else
                 {
-                    rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[1].u.pAstNd, pNsRoot, &off);
+                    rc = rtAcpiAstNodeEvaluateToInteger(pAstNd->aArgs[1].u.pAstNd, pNsRoot, true /*fResolveIdentifiers*/, &off);
                     off = pAstNd->enmOp == kAcpiAstNodeOp_CreateBitField ? off : off / 8;
                 }
                 if (RT_SUCCESS(rc))

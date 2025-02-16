@@ -230,12 +230,13 @@ static PCRTACPINSENTRY rtAcpiNsLookupSubTree(PCRTACPINSENTRY pNsEntry, const cha
  *
  * @returns IPRT status code.
  * @param   pNsRoot             The namespace to add the new entry to.
+ * @param   enmType             The type of the namespace entry.
  * @param   pszNameString       The namestring to add.
  * @param   fSwitchTo           Flag whether to switch to the new entry.
  * @param   fIgnoreExisting     Flag whether to ignore any existing entry in the namespace parents.
  * @param   ppNsEntry           Where to store the pointer to the created entry on success.
  */
-static int rtAcpiNsAddEntryWorker(PRTACPINSROOT pNsRoot, const char *pszNameString, bool fSwitchTo, bool fIgnoreExisting, PRTACPINSENTRY *ppNsEntry)
+static int rtAcpiNsAddEntryWorker(PRTACPINSROOT pNsRoot, RTACPINSENTRYTYPE enmType, const char *pszNameString, bool fSwitchTo, bool fIgnoreExisting, PRTACPINSENTRY *ppNsEntry)
 {
     AssertReturn(   !fSwitchTo
                  || pNsRoot->idxNsStack < RT_ELEMENTS(pNsRoot->aNsStack),
@@ -262,6 +263,7 @@ static int rtAcpiNsAddEntryWorker(PRTACPINSROOT pNsRoot, const char *pszNameStri
         PRTACPINSENTRY pNsEntry = (PRTACPINSENTRY)RTMemAllocZ(sizeof(*pNsEntry));
         if (pNsEntry)
         {
+            pNsEntry->enmType = enmType;
             pNsEntry->pParent = pNsEntryParent;
             RTListInit(&pNsEntry->LstNsEntries);
 
@@ -339,14 +341,11 @@ DECLHIDDEN(int) rtAcpiNsSwitchTo(PRTACPINSROOT pNsRoot, const char *pszNameStrin
 DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASTNODE pAstNd, bool fSwitchTo)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, fSwitchTo, false /*fIgnoreExisting*/, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, kAcpiNsEntryType_AstNode, pszNameString, fSwitchTo, false /*fIgnoreExisting*/, &pNsEntry);
     if (rc == VERR_ALREADY_EXISTS)
         rc = VINF_SUCCESS;
     if (RT_SUCCESS(rc))
-    {
-        pNsEntry->fAstNd = true;
         pNsEntry->pAstNd = pAstNd;
-    }
 
     return rc;
 }
@@ -355,13 +354,11 @@ DECLHIDDEN(int) rtAcpiNsAddEntryAstNode(PRTACPINSROOT pNsRoot, const char *pszNa
 DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *pszNameString, uint32_t offBits, uint32_t cBits)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, true /*fIgnoreExisting*/, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, kAcpiNsEntryType_ResourceField, pszNameString, false /*fSwitchTo*/, true /*fIgnoreExisting*/, &pNsEntry);
     if (RT_SUCCESS(rc))
     {
-        pNsEntry->fAstNd  = false;
-        pNsEntry->pAstNd  = NULL;
-        pNsEntry->offBits = offBits;
-        pNsEntry->cBits   = cBits;
+        pNsEntry->RsrcFld.offBits = offBits;
+        pNsEntry->RsrcFld.cBits   = cBits;
     }
 
     return rc;
@@ -371,12 +368,9 @@ DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *psz
 DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal)
 {
     PRTACPINSENTRY pNsEntry = NULL;
-    int rc = rtAcpiNsAddEntryWorker(pNsRoot, pszNameString, false /*fSwitchTo*/, false /*fIgnoreExisting*/, &pNsEntry);
+    int rc = rtAcpiNsAddEntryWorker(pNsRoot, kAcpiNsEntryType_External, pszNameString, false /*fSwitchTo*/, false /*fIgnoreExisting*/, &pNsEntry);
     if (RT_SUCCESS(rc))
-    {
-        pNsEntry->fAstNd    = false;
         pNsEntry->pExternal = pExternal;
-    }
 
     return rc;
 }

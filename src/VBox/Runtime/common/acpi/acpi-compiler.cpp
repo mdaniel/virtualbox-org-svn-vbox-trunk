@@ -2988,6 +2988,13 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
                 if (RT_SUCCESS(rc))
                 {
                     /* 2. - Optimize AST (constant folding, etc). */
+                    PRTACPIASTNODE pIt;
+                    RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
+                    {
+                        rc = rtAcpiAstNodeTransform(pIt, pThis->pNs, pErrInfo);
+                        if (RT_FAILURE(rc))
+                            break;
+                    }
 
                     /* 3. - Traverse AST and output table. */
 
@@ -3011,13 +3018,9 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
 
                     if (RT_SUCCESS(rc))
                     {
-                        PRTACPIASTNODE pIt;
+                        pIt;
                         RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
                         {
-                            rc = rtAcpiAstNodeTransform(pIt, pErrInfo);
-                            if (RT_FAILURE(rc))
-                                break;
-
                             rc = rtAcpiAstDumpToTbl(pIt, pThis->pNs, pThis->hAcpiTbl);
                             if (RT_FAILURE(rc))
                                 break;

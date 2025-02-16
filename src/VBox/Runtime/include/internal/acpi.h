@@ -78,6 +78,24 @@ typedef const RTACPIASLEXTERNAL *PCRTACPIASLEXTERNAL;
 
 
 /**
+ * ACPI namespace entry type.
+ */
+typedef enum RTACPINSENTRYTYPE
+{
+    /** Invalid type. */
+    kAcpiNsEntryType_Invalid = 0,
+    /** Namespace entry points to an AST node. */
+    kAcpiNsEntryType_AstNode,
+    /** Namesapce entry points to an external declaration. */
+    kAcpiNsEntryType_External,
+    /** Namespace entry is a resource field containing an offset and number of bits. */
+    kAcpiNsEntryType_ResourceField,
+    /** 32bit hack. */
+    kAcpiNsEntryType_32Bit_Hack = 0x7fffffff
+} RTACPINSENTRYTYPE;
+
+
+/**
  * An ACPI namespace entry.
  */
 typedef struct RTACPINSENTRY
@@ -88,8 +106,8 @@ typedef struct RTACPINSENTRY
     PRTACPINSENTRY          pParent;
     /** The name segment identifying the entry. */
     char                    achNameSeg[4];
-    /** Flag whether this points to an AST node or an external. */
-    bool                    fAstNd;
+    /** Namespace entry type.. */
+    RTACPINSENTRYTYPE       enmType;
     /** Type dependent data. */
     union
     {
@@ -97,11 +115,15 @@ typedef struct RTACPINSENTRY
         PCRTACPIASTNODE     pAstNd;
         /** Pointer to the external declaration. */
         PCRTACPIASLEXTERNAL pExternal;
+        /** Resource field data. */
+        struct
+        {
+                /** Bit offset for resource fields. */
+                uint32_t    offBits;
+                /** Bit count for resource fields. */
+                uint32_t    cBits;
+        } RsrcFld;
     };
-    /** Bit offset for resource fields. */
-    uint32_t                offBits;
-    /** Bit count for resource fields. */
-    uint32_t                cBits;
     /** List of namespace entries below this entry. */
     RTLISTANCHOR            LstNsEntries;
 } RTACPINSENTRY;
@@ -346,12 +368,10 @@ DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd);
  *
  * @returns IPRT status.
  * @param   pAstNd              The AST node to transform.
+ * @param   pNsRoot             The namespace root.
  * @param   pErrInfo            Some additional error information on failure.
- *
- * @note This currently only implements merging if ... else ... nodes but can be extended to
- *       also do some optimizations and proper checking.
  */
-DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTERRINFO pErrInfo);
+DECLHIDDEN(int) rtAcpiAstNodeTransform(PRTACPIASTNODE pAstNd, PRTACPINSROOT pNsRoot, PRTERRINFO pErrInfo);
 
 
 /**

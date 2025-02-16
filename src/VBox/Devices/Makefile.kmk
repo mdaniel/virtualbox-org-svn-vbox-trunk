@@ -976,8 +976,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  # VBoxAcpi.cpp needs vboxaml.hex which we generate from PC/vbox.dsl
  VBoxDD_CLEAN       += \
  	$(VBoxDD_0_OUTDIR)/vboxaml.hex \
- 	$(VBoxDD_0_OUTDIR)/vboxaml.aml \
- 	$(VBoxDD_0_OUTDIR)/vboxaml.aml.tmp \
  	$(if $(VBOX_WITH_TPM),$(VBoxDD_0_OUTDIR)/vboxssdt_tpm.hex,)
  PC/ACPI/VBoxAcpi.cpp_DEPS = \
  	$(VBoxDD_0_OUTDIR)/vboxaml.hex \
@@ -985,11 +983,7 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
 
  $$(VBoxDD_0_OUTDIR)/vboxaml.hex: $(PATH_SUB_CURRENT)/PC/vbox.dsl | $$(dir $$@)
 	$(call MSG_TOOL,iasl,VBoxDD,$<,$@)
-	$(QUIET)$(VBOX_IASLCMD) -tc -vs -p $@ $<
-	$(QUIET)$(MV) -f $@ $@.tmp
-	$(QUIET)$(SED) -e "s/vboxaml_aml_code/AmlCode/g" \
-		--output $@ $@.tmp
-	$(QUIET)$(RM) -f $@.tmp
+	$(QUIET)$(VBOX_RTIASL) --text-c-hdr AmlCode -o $@ $<
 
  vboxaml.hex:: $$(VBoxDD_0_OUTDIR)/vboxaml.hex
 

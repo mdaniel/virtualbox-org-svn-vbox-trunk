@@ -3018,7 +3018,6 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
 
                     if (RT_SUCCESS(rc))
                     {
-                        pIt;
                         RTListForEach(&pThis->LstStmts, pIt, RTACPIASTNODE, NdAst)
                         {
                             rc = rtAcpiAstDumpToTbl(pIt, pThis->pNs, pThis->hAcpiTbl);

@@ -86,7 +86,28 @@ DECLHIDDEN(PRTACPIASTNODE) rtAcpiAstNodeAlloc(PCRTACPINSROOT pNs, RTACPIASTNODEO
 
 DECLHIDDEN(void) rtAcpiAstNodeFree(PRTACPIASTNODE pAstNd)
 {
-    /** @todo */
+    /* Free all the arguments first. */
+    for (uint8_t i = 0; i < pAstNd->cArgs; i++)
+    {
+        if (   pAstNd->aArgs[i].enmType == kAcpiAstArgType_AstNode
+            && pAstNd->aArgs[i].u.pAstNd)
+            rtAcpiAstNodeFree(pAstNd->aArgs[i].u.pAstNd);
+    }
+
+    if (pAstNd->fFlags & RTACPI_AST_NODE_F_NEW_SCOPE)
+    {
+        PRTACPIASTNODE pIt, pItNext;
+        /* Do transformations on the nodes first. */
+        RTListForEachSafe(&pAstNd->LstScopeNodes, pIt, pItNext, RTACPIASTNODE, NdAst)
+        {
+            RTListNodeRemove(&pIt->NdAst);
+            rtAcpiAstNodeFree(pIt);
+        }
+    }
+
+    pAstNd->enmOp  = kAcpiAstNodeOp_Invalid;
+    pAstNd->cArgs  = 0;
+    pAstNd->fFlags = 0;
     RTMemFree(pAstNd);
 }
 

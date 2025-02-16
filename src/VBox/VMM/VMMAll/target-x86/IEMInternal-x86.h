@@ -41,6 +41,8 @@ RT_C_DECLS_BEGIN
  * @{
  */
 
+VBOXSTRICTRC iemOpcodeFetchPrefetch(PVMCPUCC pVCpu) RT_NOEXCEPT;
+
 
 /** @name Prefix constants (IEMCPU::fPrefixes)
  * @note x86 specific

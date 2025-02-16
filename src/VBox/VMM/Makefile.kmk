@@ -196,6 +196,7 @@ VBoxVMM_SOURCES  = \
 	VMMAll/IEMAll.cpp \
 	VMMAll/target-x86/IEMAllExec-x86.cpp \
 	VMMAll/target-x86/IEMAllMem-x86.cpp \
+	VMMAll/target-x86/IEMAllOpHlp-x86.cpp \
 	VMMAll/target-x86/IEMAllXcpt-x86.cpp \
 	VMMAll/target-x86/IEMAllHlpFpu-x86.cpp \
 	VMMAll/target-x86/IEMAllIntprTables1-x86.cpp \
@@ -942,6 +943,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/IEMAll.cpp \
   	VMMAll/target-x86/IEMAllExec-x86.cpp \
   	VMMAll/target-x86/IEMAllMem-x86.cpp \
+  	VMMAll/target-x86/IEMAllOpHlp-x86.cpp \
   	VMMAll/target-x86/IEMAllXcpt-x86.cpp \
   	VMMAll/target-x86/IEMAllHlpFpu-x86.cpp \
   	VMMAll/target-x86/IEMAllIntprTables1-x86.cpp \

@@ -31,6 +31,7 @@
 # pragma once
 #endif
 
+#include <VBox/err.h>
 
 
 /**

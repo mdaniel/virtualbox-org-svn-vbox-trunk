@@ -423,6 +423,7 @@ static RTEXITCODE generateOutputInnerX86AndAMD64(FILE *pOutput)
             "; Import pointers. Initialized to point to lazy loading stubs.\n"
             ";\n"
             "BEGINDATA\n"
+            "ALIGNDATA(RTCCPTR_CB)\n"
             "g_apfnImports:\n");
     for (PMYEXPORT pExp = g_pExpHead; pExp; pExp = pExp->pNext)
         if (pExp->fData)
@@ -579,6 +580,7 @@ static RTEXITCODE generateOutputInnerX86AndAMD64(FILE *pOutput)
             "; The module handle.\n"
             ";\n"
             "BEGINDATA\n"
+            "ALIGNDATA(RTCCPTR_CB)\n"
             "g_hMod RTCCPTR_DEF 0\n"
             "\n"
             "\n"

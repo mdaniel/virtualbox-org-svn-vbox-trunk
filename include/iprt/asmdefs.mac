@@ -816,6 +816,7 @@ ENDPROC_RAW NAME(%1)
    section .text
    section .data   align=16
    section .rodata align=16
+   section .text    ; Make the .text segment default and w/o attributes
   %endif
  %endif
 %endif
@@ -825,6 +826,7 @@ ENDPROC_RAW NAME(%1)
   %ifndef RT_NOINC_SEGMENTS
    section .text align=16
    section .data align=16
+   section .text    ; Make the .text segment default and w/o attributes (or stuc/endstruc will trigger warnings).
   %endif
  %endif
 %endif

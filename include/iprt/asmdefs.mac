@@ -808,7 +808,8 @@ ENDPROC_RAW NAME(%1)
 %ifdef ASM_FORMAT_MACHO
  %ifdef __YASM__
   section .text
-  section .data
+  section .data align=16
+  section .rodata align=16
  %endif
 %endif
 

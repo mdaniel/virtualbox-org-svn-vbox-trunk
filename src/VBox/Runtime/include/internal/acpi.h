@@ -106,7 +106,7 @@ typedef struct RTACPINSENTRY
     PRTACPINSENTRY          pParent;
     /** The name segment identifying the entry. */
     char                    achNameSeg[4];
-    /** Namespace entry type.. */
+    /** Namespace entry type. */
     RTACPINSENTRYTYPE       enmType;
     /** Type dependent data. */
     union
@@ -431,6 +431,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *psz
  * @returns IPRT status code.
  * @param   pNsRoot             The namespace root to add the entry to.
  * @param   pszNameString       An ACPI NameString (either segment or path).
+ * @param   pExternal           The external to add the entry for. 
  */
 DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal);
 
@@ -462,7 +463,7 @@ DECLHIDDEN(int) rtAcpiNsQueryNamePathForNameString(PRTACPINSROOT pNsRoot, const 
  * @param   cchNameStringComp   Size of the buffer in characters.
  *
  * @note This will only try to compress absolute name paths by converting it to a relative one
- *       (\SEG1 -> SEG1 for example if the current scope is \) Otherwise the string is just copied as is.
+ *       (\\SEG1 -> SEG1 for example if the current scope is \\) Otherwise the string is just copied as is.
  */
 DECLHIDDEN(int) rtAcpiNsCompressNameString(PCRTACPINSROOT pNsRoot, PCRTACPINSENTRY pNsEntry, const char *pszNameString, char *pszNameStringComp, size_t cchNameStringComp);
 

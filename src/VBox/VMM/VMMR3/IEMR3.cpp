@@ -60,6 +60,9 @@
 # include "IEMN8veRecompiler.h"
 # include "IEMThreadedFunctions.h"
 # include "IEMInline.h"
+# ifdef VBOX_VMM_TARGET_X86
+#  include "VMMAll/target-x86/IEMInline-x86.h"
+# endif
 #endif
 
 

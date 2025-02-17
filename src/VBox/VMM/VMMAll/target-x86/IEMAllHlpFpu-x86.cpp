@@ -49,7 +49,7 @@
 #include <iprt/string.h>
 #include <iprt/x86.h>
 
-#include "IEMInline.h"
+#include "IEMInline-x86.h"
 
 
 /** @name   FPU access and helpers.

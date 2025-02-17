@@ -43,13 +43,13 @@
 #include <VBox/log.h>
 #include <VBox/param.h>
 #include <iprt/assert.h>
+#include <iprt/errcore.h>
 #include <iprt/string.h>
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
-#ifdef VBOX_VMM_TARGET_X86
-# include "IEMAllTlbInline-x86.h"
-#endif
+#include "IEMInline-x86.h"
+#include "IEMAllTlbInline-x86.h"
 
 
 #ifndef IEM_WITH_CODE_TLB

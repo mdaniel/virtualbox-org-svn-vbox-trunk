@@ -45,7 +45,7 @@
 #include <iprt/string.h>
 #include <iprt/x86.h>
 
-#include "IEMInline.h"
+#include "IEMInlineDecode-x86.h"
 
 
 

@@ -35,7 +35,6 @@
 # define VBOX_VMM_TARGET_X86
 #endif
 #include <VBox/vmm/iem.h>
-#include <VBox/vmm/pdmapic.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/em.h>
@@ -57,6 +56,7 @@
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
+#include "IEMInline-x86.h"
 
 #ifdef VBOX_WITH_NESTED_HWVIRT_SVM /* Almost the whole file. */
 

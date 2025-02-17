@@ -42,10 +42,11 @@
 #include <VBox/log.h>
 #include <VBox/param.h>
 #include <iprt/assert.h>
+#include <iprt/errcore.h>
 #include <iprt/string.h>
 #include <iprt/x86.h>
 
-#include "IEMInline.h"
+#include "IEMInline-x86.h" /* iemRegFinishClearingRF */
 
 
 /**

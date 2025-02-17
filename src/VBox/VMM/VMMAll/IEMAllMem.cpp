@@ -49,6 +49,7 @@
 
 #include "IEMInline.h"
 #ifdef VBOX_VMM_TARGET_X86
+# include "target-x86/IEMInline-x86.h" /* not really required. sigh. */
 # include "target-x86/IEMAllTlbInline-x86.h"
 #endif
 

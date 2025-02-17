@@ -54,21 +54,6 @@
 #endif
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
-#include <VBox/vmm/pdmapic.h>
-#include <VBox/vmm/pdm.h>
-#include <VBox/vmm/pgm.h>
-#include <VBox/vmm/iom.h>
-#include <VBox/vmm/em.h>
-#include <VBox/vmm/hm.h>
-#include <VBox/vmm/nem.h>
-#include <VBox/vmm/gim.h>
-#ifdef VBOX_WITH_NESTED_HWVIRT_SVM
-# include <VBox/vmm/em.h>
-# include <VBox/vmm/hm_svm.h>
-#endif
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
-# include <VBox/vmm/hmvmxinline.h>
-#endif
 #include <VBox/vmm/tm.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/dbgftrace.h>
@@ -88,11 +73,13 @@
 #include <iprt/sort.h>
 #include <iprt/x86.h>
 
-#ifndef TST_IEM_CHECK_MC
-# include "IEMInline.h"
-# include "IEMOpHlp.h"
-# include "IEMMc.h"
+#include "IEMInline.h"
+#ifdef VBOX_VMM_TARGET_X86
+# include "target-x86/IEMInline-x86.h"
+# include "target-x86/IEMInlineDecode-x86.h"
 #endif
+#include "IEMOpHlp.h"
+#include "IEMMc.h"
 
 #include "IEMThreadedFunctions.h"
 #ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER

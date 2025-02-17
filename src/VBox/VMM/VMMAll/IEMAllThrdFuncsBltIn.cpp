@@ -70,6 +70,9 @@
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
+#ifdef VBOX_VMM_TARGET_X86
+# include "target-x86/IEMInline-x86.h"
+#endif
 
 
 

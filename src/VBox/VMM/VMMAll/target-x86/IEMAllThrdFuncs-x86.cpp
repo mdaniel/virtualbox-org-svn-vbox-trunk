@@ -70,6 +70,8 @@
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
+#include "IEMInline-x86.h"
+#include "IEMInlineMem-x86.h"
 #include "IEMMc.h"
 
 #include "IEMThreadedFunctions.h"

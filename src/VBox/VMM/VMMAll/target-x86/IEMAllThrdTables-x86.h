@@ -80,6 +80,9 @@
 
 #ifndef TST_IEM_CHECK_MC
 # include "IEMInline.h"
+# include "IEMInline-x86.h"
+# include "IEMInlineDecode-x86.h"
+# include "IEMInlineMem-x86.h"
 # include "IEMOpHlp.h"
 # include "IEMMc.h"
 #endif

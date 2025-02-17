@@ -47,6 +47,8 @@
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
+#include "IEMInline-x86.h"
+#include "IEMInlineMem-x86.h"
 #include "IEMAllTlbInline-x86.h"
 
 

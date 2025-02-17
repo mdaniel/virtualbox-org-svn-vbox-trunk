@@ -152,6 +152,7 @@
     OPENSSL_sk_pop_free
     OPENSSL_sk_value
     PEM_read_bio_DHparams
+    PEM_read_bio_Parameters
     RAND_load_file
     RAND_seed
     RAND_status
@@ -166,6 +167,7 @@
     SSL_CTX_get_cert_store
     ;exported above: SSL_CTX_load_verify_locations
     ;exported above: SSL_CTX_new
+    SSL_CTX_set0_tmp_dh_pkey
     SSL_CTX_set_client_CA_list
     SSL_CTX_set_default_passwd_cb
     SSL_CTX_set_default_passwd_cb_userdata

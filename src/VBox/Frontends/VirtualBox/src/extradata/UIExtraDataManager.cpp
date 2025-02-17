@@ -2872,7 +2872,7 @@ void UIExtraDataManager::setSelectorWindowToolBarTextVisible(bool fVisible)
     setExtraDataString(GUI_Toolbar_Text, toFeatureRestricted(!fVisible));
 }
 
-QList<UIToolType> UIExtraDataManager::toolsPaneLastItemsChosen()
+void UIExtraDataManager::toolsPaneLastItemsChosen(UIToolType &enmTypeGlobal, UIToolType &enmTypeMachine)
 {
     /* Parse loaded data: */
     QList<UIToolType> result;
@@ -2883,15 +2883,21 @@ QList<UIToolType> UIExtraDataManager::toolsPaneLastItemsChosen()
             result << enmType;
     }
 
-    /* Return result: */
-    return result;
+    /* Assign values: */
+    enmTypeGlobal = result.value(0);
+    if (!UIToolStuff::isTypeOfClass(enmTypeGlobal, UIToolClass_Global))
+        enmTypeGlobal = UIToolType_Home;
+    enmTypeMachine = result.value(1);
+    if (!UIToolStuff::isTypeOfClass(enmTypeMachine, UIToolClass_Machine))
+        enmTypeMachine = UIToolType_Details;
 }
 
-void UIExtraDataManager::setToolsPaneLastItemsChosen(const QList<UIToolType> &set)
+void UIExtraDataManager::setToolsPaneLastItemsChosen(UIToolType enmTypeGlobal, UIToolType enmTypeMachine)
 {
     /* Serialize passed values: */
+    const QList<UIToolType> currentTypes = QList<UIToolType>() << enmTypeGlobal << enmTypeMachine;
     QStringList data;
-    foreach (const UIToolType &enmType, set)
+    foreach (const UIToolType &enmType, currentTypes)
         data << gpConverter->toInternalString(enmType);
 
     /* Re-cache corresponding extra-data: */

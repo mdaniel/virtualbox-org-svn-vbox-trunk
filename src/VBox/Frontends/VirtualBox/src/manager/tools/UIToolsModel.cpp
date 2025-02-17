@@ -34,6 +34,7 @@
 
 /* GUI includes: */
 #include "UIActionPoolManager.h"
+#include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
 #include "UILoggingDefs.h"
@@ -73,8 +74,8 @@ void UIToolsModel::init()
     sltItemMinimumWidthHintChanged();
     sltItemMinimumHeightHintChanged();
 
-    /* Load settings: */
-    loadSettings();
+    /* Load current items finally: */
+    loadCurrentItems();
 }
 
 QGraphicsScene *UIToolsModel::scene() const
@@ -165,33 +166,8 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
     /* Remember old current-item: */
     UIToolsItem *pOldCurrentItem = m_pCurrentItem;
 
-    /* If there is item: */
-    if (pItem)
-    {
-        /* Set this item as current: */
-        m_pCurrentItem = pItem;
-
-        /* Load last tool types: */
-        UIToolType enmTypeGlobal, enmTypeMachine;
-        loadLastToolTypes(enmTypeGlobal, enmTypeMachine);
-
-        /* Depending on tool class: */
-        switch (m_enmClass)
-        {
-            case UIToolClass_Global: enmTypeGlobal = m_pCurrentItem->itemType(); break;
-            case UIToolClass_Machine: enmTypeMachine = m_pCurrentItem->itemType(); break;
-            default: break;
-        }
-
-        /* Save selected items data: */
-        const QList<UIToolType> currentTypes = QList<UIToolType>() << enmTypeGlobal << enmTypeMachine;
-        LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d\n",
-                 (int)enmTypeGlobal, (int)enmTypeMachine));
-        gEDataManager->setToolsPaneLastItemsChosen(currentTypes);
-    }
-    /* Otherwise reset current item: */
-    else
-        m_pCurrentItem = 0;
+    /* Update current item: */
+    m_pCurrentItem = pItem;
 
     /* Update old item (if any): */
     if (pOldCurrentItem)
@@ -430,6 +406,12 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     return QObject::eventFilter(pWatched, pEvent);
 }
 
+void UIToolsModel::sltHandleCommitData()
+{
+    /* Save current items first of all: */
+    saveCurrentItems();
+}
+
 void UIToolsModel::sltRetranslateUI()
 {
     foreach (UIToolsItem *pItem, m_items)
@@ -557,58 +539,59 @@ void UIToolsModel::prepareItems()
 
 void UIToolsModel::prepareConnections()
 {
+    /* UICommon connections: */
+    connect(&uiCommon(), &UICommon::sigAskToCommitData,
+            this, &UIToolsModel::sltHandleCommitData);
+
     /* Translation stuff: */
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
             this, &UIToolsModel::sltRetranslateUI);
 }
 
-void UIToolsModel::loadSettings()
+void UIToolsModel::loadCurrentItems()
 {
     /* Load last tool types: */
     UIToolType enmTypeGlobal, enmTypeMachine;
-    loadLastToolTypes(enmTypeGlobal, enmTypeMachine);
-
-    /* Depending on tool class: */
-    UIToolsItem *pCurrentItem = 0;
-    switch (m_enmClass)
-    {
-        case UIToolClass_Global:
-        {
-            foreach (UIToolsItem *pItem, items())
-                if (pItem->itemType() == enmTypeGlobal)
-                    pCurrentItem = pItem;
-            if (!pCurrentItem)
-                pCurrentItem = item(UIToolType_Home);
-            break;
-        }
-        case UIToolClass_Machine:
-        {
-            foreach (UIToolsItem *pItem, items())
-                if (pItem->itemType() == enmTypeMachine)
-                    pCurrentItem = pItem;
-            if (!pCurrentItem)
-                pCurrentItem = item(UIToolType_Details);
-            break;
-        }
-        default:
-            break;
-    }
-    setCurrentItem(pCurrentItem);
-}
-
-/* static */
-void UIToolsModel::loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmTypeMachine)
-{
-    /* Load selected items data: */
-    const QList<UIToolType> data = gEDataManager->toolsPaneLastItemsChosen();
-    enmTypeGlobal = data.value(0);
-    if (!UIToolStuff::isTypeOfClass(enmTypeGlobal, UIToolClass_Global))
-        enmTypeGlobal = UIToolType_Home;
-    enmTypeMachine = data.value(1);
-    if (!UIToolStuff::isTypeOfClass(enmTypeMachine, UIToolClass_Machine))
-        enmTypeMachine = UIToolType_Details;
+    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
     LogRel2(("GUI: UIToolsModel: Restoring tool items as: Global=%d, Machine=%d\n",
              (int)enmTypeGlobal, (int)enmTypeMachine));
+
+    /* Assign values depending on model class: */
+    if (m_enmClass == UIToolClass_Global)
+    {
+        UIToolsItem *pItem = item(enmTypeGlobal);
+        if (!pItem)
+            pItem = item(UIToolType_Home);
+        setCurrentItem(pItem);
+    }
+    else if (m_enmClass == UIToolClass_Machine)
+    {
+        UIToolsItem *pItem = item(enmTypeMachine);
+        if (!pItem)
+            pItem = item(UIToolType_Details);
+        setCurrentItem(pItem);
+    }
+}
+
+void UIToolsModel::saveCurrentItems()
+{
+    /* Load last tool types: */
+    UIToolType enmTypeGlobal, enmTypeMachine;
+    gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
+
+    /* Update values depending on model class: */
+    if (m_pCurrentItem)
+    {
+        if (m_enmClass == UIToolClass_Global)
+            enmTypeGlobal = m_pCurrentItem->itemType();
+        else if (m_enmClass == UIToolClass_Machine)
+            enmTypeMachine = m_pCurrentItem->itemType();
+    }
+
+    /* Save selected items data: */
+    LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d\n",
+             (int)enmTypeGlobal, (int)enmTypeMachine));
+    gEDataManager->setToolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 }
 
 void UIToolsModel::cleanupItems()

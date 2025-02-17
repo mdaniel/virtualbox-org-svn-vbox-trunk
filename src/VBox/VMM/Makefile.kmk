@@ -194,6 +194,7 @@ VBoxVMM_SOURCES  = \
 	VMMAll/HMSVMAll.cpp \
 	VMMAll/HMVMXAll.cpp \
 	VMMAll/IEMAll.cpp \
+	VMMAll/target-x86/IEMAll-x86.cpp \
 	VMMAll/target-x86/IEMAllExec-x86.cpp \
 	VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp \
 	VMMAll/target-x86/IEMAllOpHlp-x86.cpp \
@@ -942,6 +943,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/HMSVMAll.cpp \
   	VMMAll/HMVMXAll.cpp \
   	VMMAll/IEMAll.cpp \
+  	VMMAll/target-x86/IEMAll-x86.cpp \
   	VMMAll/target-x86/IEMAllExec-x86.cpp \
   	VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp \
   	VMMAll/target-x86/IEMAllOpHlp-x86.cpp \

@@ -89,16 +89,6 @@ typedef enum IEMXCPTCLASS
 } IEMXCPTCLASS;
 
 
-/*********************************************************************************************************************************
-*   Global Variables                                                                                                             *
-*********************************************************************************************************************************/
-#if defined(IEM_LOG_MEMORY_WRITES)
-/** What IEM just wrote. */
-uint8_t g_abIemWrote[256];
-/** How much IEM just wrote. */
-size_t g_cbIemWrote;
-#endif
-
 
 /** @name  Misc Worker Functions.
  * @{

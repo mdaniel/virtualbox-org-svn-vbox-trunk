@@ -751,10 +751,15 @@ ENDPROC_RAW NAME(%1)
 
 
 ;
-; Do OMF and Mach-O/Yasm segment definitions
+; Do OMF, Mach-O/Yasm and ELF/Yasm segment definitions.
 ;
-; Both format requires this to get the segment order right, in the Mach-O/Yasm case
-; it's only to make sure the .bss section ends up last (it's not declared here).
+; For OMF and Mach-O it is to get the segment order right. For Mach-O it's only
+; to make sure the .bss section ends up last (it's not declared here).
+;
+; Neither Mach-O nor ELF have data alignments propagated to the section
+; alignment, so we have to explictly set the .data section and .rodata/.text
+; alignments here to 16 bytes to ensure we can cope with most stuff.
+; TODO: Check what nasm does!
 ;
 %ifdef ASM_FORMAT_OMF
  %ifndef RT_NOINC_SEGMENTS
@@ -807,9 +812,20 @@ ENDPROC_RAW NAME(%1)
 
 %ifdef ASM_FORMAT_MACHO
  %ifdef __YASM__
-  section .text
-  section .data align=16
-  section .rodata align=16
+  %ifndef RT_NOINC_SEGMENTS
+   section .text
+   section .data   align=16
+   section .rodata align=16
+  %endif
+ %endif
+%endif
+
+%ifdef ASM_FORMAT_ELF
+ %ifdef __YASM__
+  %ifndef RT_NOINC_SEGMENTS
+   section .text align=16
+   section .data align=16
+  %endif
  %endif
 %endif
 

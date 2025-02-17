@@ -69,60 +69,6 @@ size_t g_cbIemWrote;
  * @{
  */
 
-#if 0 /*unused*/
-/**
- * Looks up a memory mapping entry.
- *
- * @returns The mapping index (positive) or VERR_NOT_FOUND (negative).
- * @param   pVCpu           The cross context virtual CPU structure of the calling thread.
- * @param   pvMem           The memory address.
- * @param   fAccess         The access to.
- */
-DECLINLINE(int) iemMapLookup(PVMCPUCC pVCpu, void *pvMem, uint32_t fAccess)
-{
-    Assert(pVCpu->iem.s.cActiveMappings <= RT_ELEMENTS(pVCpu->iem.s.aMemMappings));
-    fAccess &= IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_MASK;
-    if (   pVCpu->iem.s.aMemMappings[0].pv == pvMem
-        && (pVCpu->iem.s.aMemMappings[0].fAccess & (IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_MASK)) == fAccess)
-        return 0;
-    if (   pVCpu->iem.s.aMemMappings[1].pv == pvMem
-        && (pVCpu->iem.s.aMemMappings[1].fAccess & (IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_MASK)) == fAccess)
-        return 1;
-    if (   pVCpu->iem.s.aMemMappings[2].pv == pvMem
-        && (pVCpu->iem.s.aMemMappings[2].fAccess & (IEM_ACCESS_WHAT_MASK | IEM_ACCESS_TYPE_MASK)) == fAccess)
-        return 2;
-    return VERR_NOT_FOUND;
-}
-#endif
-
-/**
- * Finds a free memmap entry when using iNextMapping doesn't work.
- *
- * @returns Memory mapping index, 1024 on failure.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- */
-static unsigned iemMemMapFindFree(PVMCPUCC pVCpu)
-{
-    /*
-     * The easy case.
-     */
-    if (pVCpu->iem.s.cActiveMappings == 0)
-    {
-        pVCpu->iem.s.iNextMapping = 1;
-        return 0;
-    }
-
-    /* There should be enough mappings for all instructions. */
-    AssertReturn(pVCpu->iem.s.cActiveMappings < RT_ELEMENTS(pVCpu->iem.s.aMemMappings), 1024);
-
-    for (unsigned i = 0; i < RT_ELEMENTS(pVCpu->iem.s.aMemMappings); i++)
-        if (pVCpu->iem.s.aMemMappings[i].fAccess == IEM_ACCESS_INVALID)
-            return i;
-
-    AssertFailedReturn(1024);
-}
-
-
 /**
  * Commits a bounce buffer that needs writing back and unmaps it.
  *

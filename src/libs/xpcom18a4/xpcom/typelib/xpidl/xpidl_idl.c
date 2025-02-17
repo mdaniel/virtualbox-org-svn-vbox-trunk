@@ -702,9 +702,6 @@ xpidl_process_idl(char *filename, IncludePathEntry *include_path,
         state.file = stdout;
     }
     state.tree = top;
-#ifdef VBOX_XPIDL_EMULATE_GENJIFACES
-    state.real_outname = real_outname;
-#endif
 
     if (emitter->emit_prolog)
         emitter->emit_prolog(&state);

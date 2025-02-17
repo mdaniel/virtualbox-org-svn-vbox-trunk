@@ -116,10 +116,6 @@ struct TreeState {
     GSList           *base_includes;
     nodeHandler      *dispatch;
     void             *priv;     /* mode-private data */
-#ifdef VBOX_XPIDL_EMULATE_GENJIFACES
-    char             *real_outname;
-#endif
-
 };
 
 /*

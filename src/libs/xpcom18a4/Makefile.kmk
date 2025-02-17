@@ -304,26 +304,12 @@ xpidl_TEMPLATE = XPComBldProg
 xpidl_DEFS = EXPORT_XPT_API
 ## @todo This assumes HOST == TARGET.
 xpidl_INST = $(INST_BIN)
-## Obsolete hack: MacPorts is 32-bit on 10.5 and 64-bit on 10.6. Set your KBUILD_HOST_ARCH env.vars. accordingly.
-#if "$(KBUILD_HOST).$(KBUILD_HOST_ARCH)" == "darwin.amd64" && defined(VBOX_MACOS_10_5_WORKAROUND)
-# xpidl_BLD_TRG_ARCH = x86
-# ## @todo kBuild ticket 84 workarounds:
-# xpidl_DEFS.x86     = $(TEMPLATE_XPComBldProg_DEFS.x86)
-# xpidl_CFLAGS.x86   = $(TEMPLATE_XPComBldProg_CFLAGS.x86)
-# xpidl_CXXFLAGS.x86 = $(TEMPLATE_XPComBldProg_CXXFLAGS.x86)
-# xpidl_LDFLAGS.x86  = $(TEMPLATE_XPComBldProg_LDFLAGS.x86)
-#endif
-ifdef VBOX_WITH_JAVA_SUPPORT_IN_XPIDL
- xpidl_DEFS += VBOX_XPIDL_EMULATE_GENJIFACES VBOX_XPIDL_EMULATE_GENJIFACES_DIFF
-endif
 xpidl_SOURCES = \
 	xpcom/typelib/xpidl/xpidl.c \
 	xpcom/typelib/xpidl/xpidl_idl.c \
 	xpcom/typelib/xpidl/xpidl_util.c \
 	xpcom/typelib/xpidl/xpidl_header.c \
 	xpcom/typelib/xpidl/xpidl_typelib.c \
-	xpcom/typelib/xpidl/xpidl_doc.c \
-	xpcom/typelib/xpidl/xpidl_java.c \
 	xpcom/typelib/xpt/src/xpt_arena.c \
 	xpcom/typelib/xpt/src/xpt_struct.c \
 	xpcom/typelib/xpt/src/xpt_xdr.c

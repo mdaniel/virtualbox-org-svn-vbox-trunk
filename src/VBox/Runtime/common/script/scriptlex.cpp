@@ -379,8 +379,9 @@ static int rtScriptLexFillBuffer(PRTSCRIPTLEXINT pThis)
     {
         cchToRead = pThis->pchCur - &pThis->achBuf[0];
         /* Move the rest to the front. */
-        memmove(&pThis->achBuf[0], pThis->pchCur, pThis->cchBuf - cchToRead);
-        pchRead = (char *)pThis->pchCur + 1;
+        size_t const cchLeft = pThis->cchBuf - cchToRead;
+        memmove(&pThis->achBuf[0], pThis->pchCur, cchLeft);
+        pchRead = &pThis->achBuf[0] + cchLeft;
     }
 
     if (cchToRead)
@@ -844,6 +845,10 @@ RTDECL(char) RTScriptLexPeekChEx(RTSCRIPTLEX hScriptLex, unsigned idx, uint32_t 
 {
     PRTSCRIPTLEXINT pThis = hScriptLex;
     AssertPtrReturn(pThis, '\0');
+
+    /* Try to fill up the input buffer if peeking would overflow it. */
+    if (pThis->pchCur + idx >=  &pThis->achBuf[pThis->cchBuf])
+        rtScriptLexFillBuffer(pThis);
 
     /* Just return the character if it is in the current buffer. */
     char ch = '\0';

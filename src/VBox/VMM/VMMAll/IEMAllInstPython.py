@@ -3026,7 +3026,7 @@ g_dMcStmtParsers = {
     'IEM_MC_ADD_LOCAL_S16_TO_EFF_ADDR':                          (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_ADD_LOCAL_S32_TO_EFF_ADDR':                          (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_ADD_LOCAL_S64_TO_EFF_ADDR':                          (McBlock.parseMcGeneric,           True,  True,  True,  ),
-    'IEM_MC_ADVANCE_RIP_AND_FINISH':                             (McBlock.parseMcGeneric,           True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH':                              (McBlock.parseMcGeneric,           True,  True,  True,  ),
     'IEM_MC_AND_2LOCS_U32':                                      (McBlock.parseMcGeneric,           False, False, False, ),
     'IEM_MC_AND_ARG_U16':                                        (McBlock.parseMcGeneric,           False, False, True,  ),
     'IEM_MC_AND_ARG_U32':                                        (McBlock.parseMcGeneric,           False, False, True,  ),

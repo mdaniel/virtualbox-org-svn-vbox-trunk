@@ -60,7 +60,7 @@
 
 /** Advances RIP, finishes the instruction and returns.
  * This may include raising debug exceptions and such. */
-#define IEM_MC_ADVANCE_RIP_AND_FINISH()                 return iemRegAddToRipAndFinishingClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu))
+#define IEM_MC_ADVANCE_PC_AND_FINISH()                  return iemRegAddToRipAndFinishingClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu))
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns. */
 #define IEM_MC_REL_JMP_S8_AND_FINISH(a_i8) \
     return iemRegRipRelativeJumpS8AndFinishClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu), (a_i8), pVCpu->iem.s.enmEffOpSize)

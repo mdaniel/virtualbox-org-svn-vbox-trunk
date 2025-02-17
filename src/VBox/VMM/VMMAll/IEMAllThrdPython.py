@@ -1106,9 +1106,9 @@ class ThreadedFunctionVariation(object):
                                 oNewStmt.asParams[0], self.dParamRefs['bRmEx'][0].sNewName, sSibAndMore,
                                 self.dParamRefs['u32Disp'][0].sNewName, self.dParamRefs['cbInstr'][0].sNewName,
                             ];
-                # ... and IEM_MC_ADVANCE_RIP_AND_FINISH into *_THREADED_PCxx[_WITH_FLAGS] ...
+                # ... and IEM_MC_ADVANCE_PC_AND_FINISH into *_THREADED_PCxx[_WITH_FLAGS] ...
                 elif (   oNewStmt.sName
-                      in ('IEM_MC_ADVANCE_RIP_AND_FINISH',
+                      in ('IEM_MC_ADVANCE_PC_AND_FINISH',
                           'IEM_MC_REL_JMP_S8_AND_FINISH',  'IEM_MC_REL_JMP_S16_AND_FINISH', 'IEM_MC_REL_JMP_S32_AND_FINISH',
                           'IEM_MC_SET_RIP_U16_AND_FINISH', 'IEM_MC_SET_RIP_U32_AND_FINISH', 'IEM_MC_SET_RIP_U64_AND_FINISH',
                           'IEM_MC_REL_CALL_S16_AND_FINISH', 'IEM_MC_REL_CALL_S32_AND_FINISH', 'IEM_MC_REL_CALL_S64_AND_FINISH',
@@ -1150,14 +1150,14 @@ class ThreadedFunctionVariation(object):
                             oNewStmt.sName += '_THREADED_PC32_FLAT_WITH_FLAGS';
 
                     # This is making the wrong branch of conditionals break out of the TB.
-                    if (oStmt.sName in ('IEM_MC_ADVANCE_RIP_AND_FINISH', 'IEM_MC_REL_JMP_S8_AND_FINISH',
+                    if (oStmt.sName in ('IEM_MC_ADVANCE_PC_AND_FINISH', 'IEM_MC_REL_JMP_S8_AND_FINISH',
                                         'IEM_MC_REL_JMP_S16_AND_FINISH', 'IEM_MC_REL_JMP_S32_AND_FINISH')):
                         sExitTbStatus = 'VINF_SUCCESS';
                         if self.sVariation in self.kdVariationsWithConditional:
                             if self.sVariation in self.kdVariationsWithConditionalNoJmp:
-                                if oStmt.sName != 'IEM_MC_ADVANCE_RIP_AND_FINISH':
+                                if oStmt.sName != 'IEM_MC_ADVANCE_PC_AND_FINISH':
                                     sExitTbStatus = 'VINF_IEM_REEXEC_BREAK';
-                            elif oStmt.sName == 'IEM_MC_ADVANCE_RIP_AND_FINISH':
+                            elif oStmt.sName == 'IEM_MC_ADVANCE_PC_AND_FINISH':
                                 sExitTbStatus = 'VINF_IEM_REEXEC_BREAK';
                         oNewStmt.asParams.append(sExitTbStatus);
 
@@ -1332,7 +1332,7 @@ class ThreadedFunctionVariation(object):
                 aiSkipParams = {};
 
             # Several statements have implicit parameters and some have different parameters.
-            if oStmt.sName in ('IEM_MC_ADVANCE_RIP_AND_FINISH', 'IEM_MC_REL_JMP_S8_AND_FINISH', 'IEM_MC_REL_JMP_S16_AND_FINISH',
+            if oStmt.sName in ('IEM_MC_ADVANCE_PC_AND_FINISH', 'IEM_MC_REL_JMP_S8_AND_FINISH', 'IEM_MC_REL_JMP_S16_AND_FINISH',
                                'IEM_MC_REL_JMP_S32_AND_FINISH',
                                'IEM_MC_REL_CALL_S16_AND_FINISH', 'IEM_MC_REL_CALL_S32_AND_FINISH',
                                'IEM_MC_REL_CALL_S64_AND_FINISH',
@@ -2069,7 +2069,7 @@ class ThreadedFunction(object):
         return True;
 
     kdReturnStmtAnnotations = {
-        'IEM_MC_ADVANCE_RIP_AND_FINISH':    g_ksFinishAnnotation_Advance,
+        'IEM_MC_ADVANCE_PC_AND_FINISH':     g_ksFinishAnnotation_Advance,
         'IEM_MC_REL_JMP_S8_AND_FINISH':     g_ksFinishAnnotation_RelJmp,
         'IEM_MC_REL_JMP_S16_AND_FINISH':    g_ksFinishAnnotation_RelJmp,
         'IEM_MC_REL_JMP_S32_AND_FINISH':    g_ksFinishAnnotation_RelJmp,
@@ -2323,7 +2323,7 @@ class ThreadedFunction(object):
                     ]);
 
         if not iai.McStmt.findStmtByNames(aoStmts,
-                                          { 'IEM_MC_ADVANCE_RIP_AND_FINISH':  True,
+                                          { 'IEM_MC_ADVANCE_PC_AND_FINISH':   True,
                                             'IEM_MC_REL_JMP_S8_AND_FINISH':   True,
                                             'IEM_MC_REL_JMP_S16_AND_FINISH':  True,
                                             'IEM_MC_REL_JMP_S32_AND_FINISH':  True,
@@ -2728,7 +2728,7 @@ class ThreadedFunction(object):
                         aoDecoderStmts.pop();
                         if not fIsConditional:
                             aoDecoderStmts.extend(self.emitThreadedCallStmts());
-                        elif oStmt.sName == 'IEM_MC_ADVANCE_RIP_AND_FINISH':
+                        elif oStmt.sName == 'IEM_MC_ADVANCE_PC_AND_FINISH':
                             aoDecoderStmts.extend(self.emitThreadedCallStmts('NoJmp', True));
                         else:
                             assert oStmt.sName in { 'IEM_MC_REL_JMP_S8_AND_FINISH':  True,
@@ -2745,7 +2745,7 @@ class ThreadedFunction(object):
                         assert fIsConditional;
                         aoDecoderStmts.pop();
                         if sBranchAnnotation == g_ksFinishAnnotation_Advance:
-                            assert iai.McStmt.findStmtByNames(aoStmts[iStmt:], {'IEM_MC_ADVANCE_RIP_AND_FINISH':1,})
+                            assert iai.McStmt.findStmtByNames(aoStmts[iStmt:], {'IEM_MC_ADVANCE_PC_AND_FINISH':1,})
                             aoDecoderStmts.extend(self.emitThreadedCallStmts('NoJmp', True));
                         elif sBranchAnnotation == g_ksFinishAnnotation_RelJmp:
                             assert iai.McStmt.findStmtByNames(aoStmts[iStmt:],

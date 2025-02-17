@@ -65,7 +65,7 @@
                     IEM_MC_CALL_AIMPL_3(uint32_t, fEFlagsRet, a_fnNormalU16, fEFlagsIn, pu16Dst, u16Src); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -89,7 +89,7 @@
                     IEM_MC_CLEAR_HIGH_GREG_U64(IEM_GET_MODRM_REG(pVCpu, a_bRm)); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -112,7 +112,7 @@
                     IEM_MC_CALL_AIMPL_3(uint32_t, fEFlagsRet, a_fnNormalU64, fEFlagsIn, pu64Dst, u64Src); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -147,7 +147,7 @@
                     IEM_MC_CALL_AIMPL_3(uint32_t, fEFlagsRet, a_fnNormalU16, fEFlagsIn, pu16Dst, u16Src); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -173,7 +173,7 @@
                     IEM_MC_CLEAR_HIGH_GREG_U64(IEM_GET_MODRM_REG(pVCpu, a_bRm)); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -198,7 +198,7 @@
                     IEM_MC_CALL_AIMPL_3(uint32_t, fEFlagsRet, a_fnNormalU64, fEFlagsIn, pu64Dst, u64Src); \
                     IEM_MC_COMMIT_EFLAGS(fEFlagsRet); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -241,7 +241,7 @@
                     IEM_MC_REF_EFLAGS(pEFlags); \
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU16, pu16Dst, u16Src, pEFlags); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -265,7 +265,7 @@
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU32, pu32Dst, u32Src, pEFlags); \
                     IEM_MC_CLEAR_HIGH_GREG_U64(IEM_GET_MODRM_REG(pVCpu, a_bRm)); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -288,7 +288,7 @@
                     IEM_MC_REF_EFLAGS(pEFlags); \
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU64, pu64Dst, u64Src, pEFlags); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -323,7 +323,7 @@
                     IEM_MC_REF_EFLAGS(pEFlags); \
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU16, pu16Dst, u16Src, pEFlags); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -349,7 +349,7 @@
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU32, pu32Dst, u32Src, pEFlags); \
                     IEM_MC_CLEAR_HIGH_GREG_U64(IEM_GET_MODRM_REG(pVCpu, a_bRm)); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \
@@ -374,7 +374,7 @@
                     IEM_MC_REF_EFLAGS(pEFlags); \
                     IEM_MC_CALL_VOID_AIMPL_3(a_fnNormalU64, pu64Dst, u64Src, pEFlags); \
                 } IEM_MC_NATIVE_ENDIF(); \
-                IEM_MC_ADVANCE_RIP_AND_FINISH(); \
+                IEM_MC_ADVANCE_PC_AND_FINISH(); \
                 IEM_MC_END(); \
                 break; \
             \

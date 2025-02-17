@@ -901,7 +901,7 @@ FNIEMOP_DEF_1(iemOpCommonPushSReg, uint8_t, iReg)
             IEM_MC_LOCAL(uint16_t, u16Value);
             IEM_MC_FETCH_SREG_U16(u16Value, iReg);
             IEM_MC_PUSH_U16(u16Value);
-            IEM_MC_ADVANCE_RIP_AND_FINISH();
+            IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
 
@@ -911,7 +911,7 @@ FNIEMOP_DEF_1(iemOpCommonPushSReg, uint8_t, iReg)
             IEM_MC_LOCAL(uint32_t, u32Value);
             IEM_MC_FETCH_SREG_ZX_U32(u32Value, iReg);
             IEM_MC_PUSH_U32_SREG(u32Value); /* Intel CPUs do funny things with this instruction. */
-            IEM_MC_ADVANCE_RIP_AND_FINISH();
+            IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
 
@@ -921,7 +921,7 @@ FNIEMOP_DEF_1(iemOpCommonPushSReg, uint8_t, iReg)
             IEM_MC_LOCAL(uint64_t, u64Value);
             IEM_MC_FETCH_SREG_ZX_U64(u64Value, iReg);
             IEM_MC_PUSH_U64(u64Value);
-            IEM_MC_ADVANCE_RIP_AND_FINISH();
+            IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
 

@@ -54,13 +54,13 @@ g_dMcStmtThreaded = {
     'IEM_MC_DEFER_TO_CIMPL_2_RET_THREADED':                              (None, True,  True,  True,  ),
     'IEM_MC_DEFER_TO_CIMPL_3_RET_THREADED':                              (None, True,  True,  True,  ),
 
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC16':                       (None, True,  True,  True,  ),
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC32':                       (None, True,  True,  True,  ),
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC64':                       (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC16':                        (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC32':                        (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC64':                        (None, True,  True,  True,  ),
 
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC16_WITH_FLAGS':            (None, True,  True,  True,  ),
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC32_WITH_FLAGS':            (None, True,  True,  True,  ),
-    'IEM_MC_ADVANCE_RIP_AND_FINISH_THREADED_PC64_WITH_FLAGS':            (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC16_WITH_FLAGS':             (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC32_WITH_FLAGS':             (None, True,  True,  True,  ),
+    'IEM_MC_ADVANCE_PC_AND_FINISH_THREADED_PC64_WITH_FLAGS':             (None, True,  True,  True,  ),
 
     'IEM_MC_REL_JMP_S8_AND_FINISH_THREADED_PC16':                        (None, True,  True,  True,  ),
     'IEM_MC_REL_JMP_S8_AND_FINISH_THREADED_PC32':                        (None, True,  True,  True,  ),

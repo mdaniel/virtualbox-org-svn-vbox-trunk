@@ -431,7 +431,7 @@ DECLHIDDEN(int) rtAcpiNsAddEntryRsrcField(PRTACPINSROOT pNsRoot, const char *psz
  * @returns IPRT status code.
  * @param   pNsRoot             The namespace root to add the entry to.
  * @param   pszNameString       An ACPI NameString (either segment or path).
- * @param   pExternal           The external to add the entry for. 
+ * @param   pExternal           The external to add the entry for.
  */
 DECLHIDDEN(int) rtAcpiNsAddEntryExternal(PRTACPINSROOT pNsRoot, const char *pszNameString, PCRTACPIASLEXTERNAL pExternal);
 

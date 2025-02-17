@@ -276,8 +276,8 @@ VBox-DxVkNativeDxVk_SOURCES        = \
 	src/dxvk/hud/dxvk_hud_renderer.cpp \
 	src/dxvk/platform/dxvk_headless_exts.cpp
 ifdef VBOX_WITH_DXVK_VIDEO
-VBox-DxVkNativeDxVk_SOURCES       += \
-	src/dxvk/dxvk_video_decoder.cpp
+ VBox-DxVkNativeDxVk_SOURCES       += \
+ 	src/dxvk/dxvk_video_decoder.cpp
 endif
 VBox-DxVkNativeDxVk_VBOX_SHADERS := \
 	$(PATH_SUB_CURRENT)/src/dxvk/shaders/dxvk_clear_buffer_u.comp \

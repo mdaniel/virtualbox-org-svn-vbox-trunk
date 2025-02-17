@@ -324,7 +324,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U8
 #define TMPL_MEM_FMT_TYPE   "%#04x"
 #define TMPL_MEM_FMT_DESC   "byte"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_MEM_WITH_STACK
 
@@ -334,7 +334,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U16
 #define TMPL_MEM_FMT_TYPE   "%#06x"
 #define TMPL_MEM_FMT_DESC   "word"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_WITH_PUSH_SREG
 #define TMPL_MEM_TYPE       uint32_t
@@ -343,7 +343,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U32
 #define TMPL_MEM_FMT_TYPE   "%#010x"
 #define TMPL_MEM_FMT_DESC   "dword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef  TMPL_WITH_PUSH_SREG
 
 #define TMPL_MEM_TYPE       uint64_t
@@ -352,7 +352,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U64
 #define TMPL_MEM_FMT_TYPE   "%#018RX64"
 #define TMPL_MEM_FMT_DESC   "qword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #undef TMPL_MEM_WITH_STACK
 #undef TMPL_MEM_WITH_ATOMIC_MAPPING
@@ -366,7 +366,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U32NoAc
 #define TMPL_MEM_FMT_TYPE   "%#010x"
 #define TMPL_MEM_FMT_DESC   "dword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_MEM_NO_STORE
 #define TMPL_MEM_TYPE       uint64_t
@@ -375,7 +375,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U64NoAc
 #define TMPL_MEM_FMT_TYPE   "%#018RX64"
 #define TMPL_MEM_FMT_DESC   "qword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_MEM_NO_STORE
 #define TMPL_MEM_TYPE       uint64_t
@@ -384,7 +384,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U64AlignedU128
 #define TMPL_MEM_FMT_TYPE   "%#018RX64"
 #define TMPL_MEM_FMT_DESC   "qword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #undef TMPL_MEM_NO_MAPPING
 
@@ -394,7 +394,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    R80
 #define TMPL_MEM_FMT_TYPE   "%.10Rhxs"
 #define TMPL_MEM_FMT_DESC   "tword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_MEM_TYPE       RTPBCD80U
 #define TMPL_MEM_TYPE_ALIGN 7           /** @todo RTPBCD80U alignment testcase */
@@ -402,7 +402,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    D80
 #define TMPL_MEM_FMT_TYPE   "%.10Rhxs"
 #define TMPL_MEM_FMT_DESC   "tword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 
 #define TMPL_MEM_WITH_ATOMIC_MAPPING
 #define TMPL_MEM_TYPE       RTUINT128U
@@ -411,7 +411,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U128
 #define TMPL_MEM_FMT_TYPE   "%.16Rhxs"
 #define TMPL_MEM_FMT_DESC   "dqword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef  TMPL_MEM_WITH_ATOMIC_MAPPING
 
 #define TMPL_MEM_NO_MAPPING
@@ -421,7 +421,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U128NoAc
 #define TMPL_MEM_FMT_TYPE   "%.16Rhxs"
 #define TMPL_MEM_FMT_DESC   "dqword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef TMPL_MEM_NO_MAPPING
 
 
@@ -436,7 +436,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U128AlignedSse
 #define TMPL_MEM_FMT_TYPE   "%.16Rhxs"
 #define TMPL_MEM_FMT_DESC   "dqword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef  TMPL_MEM_NO_MAPPING
 
 #define TMPL_MEM_NO_MAPPING
@@ -446,7 +446,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U256NoAc
 #define TMPL_MEM_FMT_TYPE   "%.32Rhxs"
 #define TMPL_MEM_FMT_DESC   "qqword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef TMPL_MEM_NO_MAPPING
 
 #define TMPL_MEM_NO_MAPPING
@@ -456,7 +456,7 @@ DECLINLINE(void) iemMemFakeStackSelDesc(PIEMSELDESC pDescSs, uint32_t uDpl) RT_N
 #define TMPL_MEM_FN_SUFF    U256AlignedAvx
 #define TMPL_MEM_FMT_TYPE   "%.32Rhxs"
 #define TMPL_MEM_FMT_DESC   "qqword"
-#include "../VMMAll/IEMAllMemRWTmplInline.cpp.h"
+#include "IEMAllMemRWTmplInline-x86.cpp.h"
 #undef TMPL_MEM_NO_MAPPING
 
 #undef TMPL_MEM_CHECK_UNALIGNED_WITHIN_PAGE_OK

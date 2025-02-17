@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Interpreted Execution Manager - Inlined R/W Memory Functions Template.
+ * IEM - Interpreted Execution Manager - Inlined R/W Memory Functions Template, x86 target.
  */
 
 /*

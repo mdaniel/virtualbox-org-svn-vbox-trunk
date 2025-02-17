@@ -145,7 +145,6 @@ interface(TreeState *state)
     IDL_tree iface = state->tree, iter, orig;
     char *className = IDL_IDENT(IDL_INTERFACE(iface).ident).str;
     char *classNameUpper = NULL;
-    char *classNameImpl = NULL;
     char *cp;
     gboolean ok = TRUE;
     gboolean keepvtable;
@@ -480,137 +479,11 @@ interface(TreeState *state)
     }
     fputc('\n', state->file);
 
-    /*
-     * Build a sample implementation template.
-     */
-    if (strlen(className) >= 3 && className[2] == 'I') {
-        classNameImpl = xpidl_strdup(className);
-        if (!classNameImpl)
-            FAIL;
-        memmove(&classNameImpl[2], &classNameImpl[3], strlen(classNameImpl) - 2);
-    } else {
-        classNameImpl = xpidl_strdup("_MYCLASS_");
-        if (!classNameImpl)
-            FAIL;
-    }
-
-    fputs("#if 0\n"
-          "/* Use the code below as a template for the "
-          "implementation class for this interface. */\n"
-          "\n"
-          "/* Header file */"
-          "\n",
-          state->file);
-    fprintf(state->file, "class %s : public %s\n", classNameImpl, className);
-    fputs("{\n"
-          "public:\n", state->file);
-    write_indent(state->file);
-    fputs("NS_DECL_ISUPPORTS\n", state->file);
-    write_indent(state->file);
-    fprintf(state->file, "NS_DECL_%s\n", classNameUpper);
-    fputs("\n", state->file);
-    write_indent(state->file);
-    fprintf(state->file, "%s();\n", classNameImpl);
-    fputs("\n"
-          "private:\n", state->file);
-    write_indent(state->file);
-    fprintf(state->file, "~%s();\n", classNameImpl);
-    fputs("\n"
-          "protected:\n", state->file);
-    write_indent(state->file);
-    fputs("/* additional members */\n", state->file);
-    fputs("};\n\n", state->file);
-
-    fputs("/* Implementation file */\n", state->file);
-
-    fprintf(state->file, 
-            "NS_IMPL_ISUPPORTS1(%s, %s)\n", classNameImpl, className);
-    fputs("\n", state->file);
-    
-    fprintf(state->file, "%s::%s()\n", classNameImpl, classNameImpl);
-    fputs("{\n", state->file);
-    write_indent(state->file);
-    fputs("/* member initializers and constructor code */\n", state->file);
-    fputs("}\n\n", state->file);
-    
-    fprintf(state->file, "%s::~%s()\n", classNameImpl, classNameImpl);
-    fputs("{\n", state->file);
-    write_indent(state->file);
-    fputs("/* destructor code */\n", state->file);
-    fputs("}\n\n", state->file);
-
-    for (iter = IDL_INTERFACE(state->tree).body;
-         iter != NULL;
-         iter = IDL_LIST(iter).next)
-    {
-        IDL_tree data = IDL_LIST(iter).data;
-
-        switch(IDL_NODE_TYPE(data)) {
-          case IDLN_OP_DCL:
-            /* It would be nice to remove this state-twiddling. */
-            orig = state->tree; 
-            state->tree = data;
-            xpidl_write_comment(state, 0);
-            state->tree = orig;
-
-            write_method_signature(data, state->file, AS_IMPL, classNameImpl);
-            fputs("\n{\n", state->file);
-            write_indent(state->file);
-            write_indent(state->file);
-            fputs("return NS_ERROR_NOT_IMPLEMENTED;\n"
-                  "}\n"
-                  "\n", state->file);
-            break;
-
-          case IDLN_ATTR_DCL:
-            /* It would be nice to remove this state-twiddling. */
-            orig = state->tree; 
-            state->tree = data;
-            xpidl_write_comment(state, 0);
-            state->tree = orig;
-            
-            if (!write_attr_accessor(data, state->file, TRUE, 
-                                     AS_IMPL, classNameImpl))
-                FAIL;
-            fputs("\n{\n", state->file);
-            write_indent(state->file);
-            write_indent(state->file);
-            fputs("return NS_ERROR_NOT_IMPLEMENTED;\n"
-                  "}\n", state->file);
-
-            if (!IDL_ATTR_DCL(data).f_readonly) {
-                if (!write_attr_accessor(data, state->file, FALSE, 
-                                         AS_IMPL, classNameImpl))
-                    FAIL;
-                fputs("\n{\n", state->file);
-                write_indent(state->file);
-                write_indent(state->file);
-                fputs("return NS_ERROR_NOT_IMPLEMENTED;\n"
-                      "}\n", state->file);
-            }
-            fputs("\n", state->file);
-            break;
-
-          case IDLN_CONST_DCL:
-          case IDLN_CODEFRAG:
-              continue;
-
-          default:
-            FAIL;
-        }
-    }
-
-    fputs("/* End of implementation class template. */\n"
-          "#endif\n"
-          "\n", state->file);
-
 #undef FAIL
 
 out:
     if (classNameUpper)
         free(classNameUpper);
-    if (classNameImpl)
-        free(classNameImpl);
     return ok;
 }
 

@@ -1156,7 +1156,8 @@ endif
 # 3. run it.
 $(VBOX_VMM_TESTCASE_OUT_DIR)/tstAsmStructs.run: \
 		$$(tstAsmStructs_1_STAGE_TARGET) \
-		$(if-expr defined(VBOX_WITH_RAW_MODE),$$(tstAsmStructsRC_1_STAGE_TARGET),)
+		$(if-expr defined(VBOX_WITH_RAW_MODE),$$(tstAsmStructsRC_1_STAGE_TARGET),) \
+		| $$(dir $$@) $$(VBOX_RUN_TARGET_ORDER_DEPS)
 	$(QUIET)$(RM) -f $@
 	$(tstAsmStructs_1_STAGE_TARGET)
 ifdef VBOX_WITH_RAW_MODE
@@ -1178,7 +1179,9 @@ ifdef VBOX_WITH_RAW_MODE
 endif # VBOX_WITH_RAW_MODE
 
 # 2. run it.
-$(VBOX_VMM_TESTCASE_OUT_DIR)/tstVMStructSize.run: $$(tstVMStructSize_1_STAGE_TARGET) | $$(dir $$@)
+$(VBOX_VMM_TESTCASE_OUT_DIR)/tstVMStructSize.run: \
+		$$(tstVMStructSize_1_STAGE_TARGET) \
+		| $$(dir $$@) $$(VBOX_RUN_TARGET_ORDER_DEPS)
 	$(QUIET)$(RM) -f $@
 	$<
 	$(QUIET)$(APPEND) "$@" "done"

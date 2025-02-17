@@ -144,7 +144,9 @@ ifdef VBOX_WITH_RAW_MODE
 endif
 
 # 3. run it.
-$(VBOX_DEVICES_TEST_OUT_DIR)/tstDeviceStructSize.run: $$(tstDeviceStructSize_1_STAGE_TARGET) | $$(dir $$@)
+$(VBOX_DEVICES_TEST_OUT_DIR)/tstDeviceStructSize.run: \
+		$$(tstDeviceStructSize_1_STAGE_TARGET) \
+		| $$(dir $$@) $$(VBOX_RUN_TARGET_ORDER_DEPS)
 	$(QUIET)$(RM) -f $@
 	$^
 	$(QUIET)$(APPEND) "$@" "done"

@@ -160,6 +160,7 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
     endif
    endif
    ifeq ($(KBUILD_TYPE),asan)
+    VBOX_RUN_TARGET_ORDER_DEPS = $(InstallExternalLibs_1_TARGET) # We need the ASAN DLLs. This is a bit of a hack...
     ifeq ($(KBUILD_TARGET_ARCH),amd64)
      InstallExternalLibs_SOURCES += \
      	$(call VBOX_RE_SIGN_DLL_FN,InstallExternalLibs,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)AMD64_BIN)/clang_rt.asan_dynamic-x86_64.dll) \

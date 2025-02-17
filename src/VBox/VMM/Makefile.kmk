@@ -194,6 +194,7 @@ VBoxVMM_SOURCES  = \
 	VMMAll/HMSVMAll.cpp \
 	VMMAll/HMVMXAll.cpp \
 	VMMAll/IEMAll.cpp \
+	VMMAll/IEMAllTlb.cpp \
 	VMMAll/target-x86/IEMAll-x86.cpp \
 	VMMAll/target-x86/IEMAllExec-x86.cpp \
 	VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp \
@@ -361,6 +362,7 @@ endif
 
 if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
  VBoxVMM_VMMAll/IEMAll.cpp_CXXFLAGS                                 = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+ VBoxVMM_VMMAll/IEMAllTlb.cpp_CXXFLAGS                              = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/target-x86/IEMAllIntprTables1-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  VBoxVMM_VMMAll/target-x86/IEMAllIntprTables2-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
  #VBoxVMM_VMMAll/target-x86/IEMAllIntprTables3-x86.cpp_CXXFLAGS      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
@@ -943,6 +945,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
   	VMMAll/HMSVMAll.cpp \
   	VMMAll/HMVMXAll.cpp \
   	VMMAll/IEMAll.cpp \
+  	VMMAll/IEMAllTlb.cpp \
   	VMMAll/target-x86/IEMAll-x86.cpp \
   	VMMAll/target-x86/IEMAllExec-x86.cpp \
   	VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp \
@@ -1018,6 +1021,7 @@ if defined(VBOX_WITH_R0_MODULES) && !defined(VBOX_ONLY_BUILD)
 
  if "$(USERNAME)" == "bird" && "$(KBUILD_TARGET)" == "win"
   VMMR0_VMMAll/IEMAll.cpp_CXXFLAGS                      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
+  VMMR0_VMMAll/IEMAllTlb.cpp_CXXFLAGS                   = /FAcs /Fa$(subst /,\\,$(outbase).cod)
   VMMR0_VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS = /FAcs /Fa$(subst /,\\,$(outbase).cod)
   VMMR0_VMMAll/PGMAll.cpp_CXXFLAGS                      = /FAcs /Fa$(subst /,\\,$(outbase).cod)
   VMMR0_CLEAN += $(addprefix $(VMMR0_0_OUTDIR)/VMMAll/, IEMAll.cod IEMAllAImplC-x86.cod PGMAll.cod)
@@ -1164,10 +1168,13 @@ if "$(KBUILD_TYPE)" == "release" || ($(USERNAME) != "aeichner")
   # cl : Command line warning D9025 : overriding '/Od' with '/O2'
   # cl : Command line warning D9025 : overriding '/Oy-' with '/Oy'
   VMMAll/IEMAll.cpp_CXXFLAGS                                       += -noover -O2xy
+  VMMAll/IEMAllTlb.cpp_CXXFLAGS                                    += -noover -O2xy
   VMMAll/target-x86/IEMAllExec-x86.cpp_CXXFLAGS                    += -noover -O2xy
-  VMMAll/target-x86/IEMAllMem-x86.cpp_CXXFLAGS                     += -noover -O2xy
-  VMMAll/target-x86/IEMAllXcpt-x86.cpp_CXXFLAGS                    += -noover -O2xy
   VMMAll/target-x86/IEMAllHlpFpu-x86.cpp_CXXFLAGS                  += -noover -O2xy
+  VMMAll/target-x86/IEMAllMem-x86.cpp_CXXFLAGS                     += -noover -O2xy
+  VMMAll/target-x86/IEMAllOpHlp-x86.cpp_CXXFLAGS                   += -noover -O2xy
+  VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp_CXXFLAGS             += -noover -O2xy
+  VMMAll/target-x86/IEMAllXcpt-x86.cpp_CXXFLAGS                    += -noover -O2xy
   VMMAll/target-x86/IEMAllAImplC-x86.cpp_CXXFLAGS                  += -noover -O2xy
   VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -noover -O2xy
   VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -noover -O2xy
@@ -1179,10 +1186,14 @@ if "$(KBUILD_TYPE)" == "release" || ($(USERNAME) != "aeichner")
  else
   # Omitting the frame pointer results in larger code, but it might be worth it. (esp addressing vs ebp?)
   VMMAll/IEMAll.cpp_CXXFLAGS                                       += -O2 -fomit-frame-pointer
+  VMMAll/IEMAllTlb.cpp_CXXFLAGS                                    += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAll-x86.cpp_CXXFLAGS                        += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllExec-x86.cpp_CXXFLAGS                    += -O2 -fomit-frame-pointer
-  VMMAll/target-x86/IEMAllMem-x86.cpp_CXXFLAGS                     += -O2 -fomit-frame-pointer
-  VMMAll/target-x86/IEMAllXcpt-x86.cpp_CXXFLAGS                    += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllHlpFpu-x86.cpp_CXXFLAGS                  += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllMem-x86.cpp_CXXFLAGS                     += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllOpHlp-x86.cpp_CXXFLAGS                   += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllOpcodeFetch-x86.cpp_CXXFLAGS             += -O2 -fomit-frame-pointer
+  VMMAll/target-x86/IEMAllXcpt-x86.cpp_CXXFLAGS                    += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImpl-x86.cpp_CXXFLAGS                   += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImplSvmInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer
   VMMAll/target-x86/IEMAllCImplVmxInstr-x86.cpp_CXXFLAGS           += -O2 -fomit-frame-pointer

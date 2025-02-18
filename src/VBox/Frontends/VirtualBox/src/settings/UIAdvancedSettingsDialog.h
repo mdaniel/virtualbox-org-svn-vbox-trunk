@@ -236,6 +236,11 @@ private:
         void cleanup();
     /** @} */
 
+    /** Handles request to close dialog as QWidget, not QWindow.
+      * No need for QWindow destruction functionality.
+      * Parent will handle destruction itself. */
+    void tellListenerToCloseUs();
+
     /** Adjusts look&feel for disabled widget.
       * @param  pWidget   Brings the widget to adjust look&feel for. */
     static void adjustLookAndFeelForDisabledWidget(QWidget *pWidget);

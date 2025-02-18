@@ -1408,76 +1408,76 @@ iemNativeEmitIp16RelativeJumpAndFinishingNoFlags(PIEMRECOMPILERSTATE pReNative, 
 
 
 /*********************************************************************************************************************************
-*   Emitters for changing PC/RIP/EIP/IP with a indirect jump (IEM_MC_SET_RIP_UXX_AND_FINISH).                                    *
+*   Emitters for changing PC/RIP/EIP/IP with a indirect jump (IEM_MC_IND_JMP_UXX_AND_FINISH).                                    *
 *********************************************************************************************************************************/
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for pre-386 targets. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC16(a_u16NewIP) \
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for pre-386 targets. */
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC16(a_u16NewIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u16NewIP), false /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint16_t))
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for 386+ targets. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC32(a_u16NewIP) \
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for 386+ targets. */
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC32(a_u16NewIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u16NewIP), false /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint16_t))
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for use in 64-bit code. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC64(a_u16NewIP) \
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for use in 64-bit code. */
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC64(a_u16NewIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u16NewIP),  true /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint16_t))
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for pre-386 targets that checks and
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for pre-386 targets that checks and
  *  clears flags. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_u16NewIP) \
-    IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC16(a_u16NewIP); \
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC16_WITH_FLAGS(a_u16NewIP) \
+    IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC16(a_u16NewIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for 386+ targets that checks and
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for 386+ targets that checks and
  *  clears flags. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u16NewIP) \
-    IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC32(a_u16NewIP); \
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u16NewIP) \
+    IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC32(a_u16NewIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-/** Variant of IEM_MC_SET_RIP_U16_AND_FINISH for use in 64-bit code that checks and
+/** Variant of IEM_MC_IND_JMP_U16_AND_FINISH for use in 64-bit code that checks and
  *  clears flags. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u16NewIP) \
-    IEM_MC_SET_RIP_U16_AND_FINISH_THREADED_PC64(a_u16NewIP); \
+#define IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u16NewIP) \
+    IEM_MC_IND_JMP_U16_AND_FINISH_THREADED_PC64(a_u16NewIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-#undef IEM_MC_SET_RIP_U16_AND_FINISH
+#undef IEM_MC_IND_JMP_U16_AND_FINISH
 
 
-/** Variant of IEM_MC_SET_RIP_U32_AND_FINISH for 386+ targets. */
-#define IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC32(a_u32NewEIP) \
+/** Variant of IEM_MC_IND_JMP_U32_AND_FINISH for 386+ targets. */
+#define IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC32(a_u32NewEIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u32NewEIP), false /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint32_t))
 
-/** Variant of IEM_MC_SET_RIP_U32_AND_FINISH for use in 64-bit code. */
-#define IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC64(a_u32NewEIP) \
+/** Variant of IEM_MC_IND_JMP_U32_AND_FINISH for use in 64-bit code. */
+#define IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC64(a_u32NewEIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u32NewEIP),  true /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint32_t))
 
-/** Variant of IEM_MC_SET_RIP_U32_AND_FINISH for 386+ targets that checks and
+/** Variant of IEM_MC_IND_JMP_U32_AND_FINISH for 386+ targets that checks and
  *  clears flags. */
-#define IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u32NewEIP) \
-    IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC32(a_u32NewEIP); \
+#define IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC32_WITH_FLAGS(a_u32NewEIP) \
+    IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC32(a_u32NewEIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-/** Variant of IEM_MC_SET_RIP_U32_AND_FINISH for use in 64-bit code that checks
+/** Variant of IEM_MC_IND_JMP_U32_AND_FINISH for use in 64-bit code that checks
  *  and clears flags. */
-#define IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u32NewEIP) \
-    IEM_MC_SET_RIP_U32_AND_FINISH_THREADED_PC64(a_u32NewEIP); \
+#define IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u32NewEIP) \
+    IEM_MC_IND_JMP_U32_AND_FINISH_THREADED_PC64(a_u32NewEIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-#undef IEM_MC_SET_RIP_U32_AND_FINISH
+#undef IEM_MC_IND_JMP_U32_AND_FINISH
 
 
-/** Variant of IEM_MC_SET_RIP_U64_AND_FINISH for use in 64-bit code. */
-#define IEM_MC_SET_RIP_U64_AND_FINISH_THREADED_PC64(a_u64NewEIP) \
+/** Variant of IEM_MC_IND_JMP_U64_AND_FINISH for use in 64-bit code. */
+#define IEM_MC_IND_JMP_U64_AND_FINISH_THREADED_PC64(a_u64NewEIP) \
     off = iemNativeEmitRipJumpNoFlags(pReNative, off, (a_u64NewEIP),  true /*f64Bit*/, pCallEntry->idxInstr, sizeof(uint64_t))
 
-/** Variant of IEM_MC_SET_RIP_U64_AND_FINISH for use in 64-bit code that checks
+/** Variant of IEM_MC_IND_JMP_U64_AND_FINISH for use in 64-bit code that checks
  *  and clears flags. */
-#define IEM_MC_SET_RIP_U64_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u64NewEIP) \
-    IEM_MC_SET_RIP_U64_AND_FINISH_THREADED_PC64(a_u64NewEIP); \
+#define IEM_MC_IND_JMP_U64_AND_FINISH_THREADED_PC64_WITH_FLAGS(a_u64NewEIP) \
+    IEM_MC_IND_JMP_U64_AND_FINISH_THREADED_PC64(a_u64NewEIP); \
     off = iemNativeEmitFinishInstructionFlagsCheck(pReNative, off)
 
-#undef IEM_MC_SET_RIP_U64_AND_FINISH
+#undef IEM_MC_IND_JMP_U64_AND_FINISH
 
 
 /** Same as iemRegRipJumpU16AndFinishNoFlags,

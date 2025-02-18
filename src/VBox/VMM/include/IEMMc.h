@@ -61,6 +61,8 @@
 /** Advances RIP, finishes the instruction and returns.
  * This may include raising debug exceptions and such. */
 #define IEM_MC_ADVANCE_PC_AND_FINISH()                  return iemRegAddToRipAndFinishingClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu))
+
+
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns. */
 #define IEM_MC_REL_JMP_S8_AND_FINISH(a_i8) \
     return iemRegRipRelativeJumpS8AndFinishClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu), (a_i8), pVCpu->iem.s.enmEffOpSize)
@@ -72,13 +74,13 @@
 #define IEM_MC_REL_JMP_S32_AND_FINISH(a_i32) \
     return iemRegRipRelativeJumpS32AndFinishClearingRF(pVCpu, IEM_GET_INSTR_LEN(pVCpu), (a_i32), pVCpu->iem.s.enmEffOpSize)
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns. */
-#define IEM_MC_SET_RIP_U16_AND_FINISH(a_u16NewIP) \
+#define IEM_MC_IND_JMP_U16_AND_FINISH(a_u16NewIP) \
     return iemRegRipJumpU16AndFinishClearingRF((pVCpu), (a_u16NewIP), IEM_GET_INSTR_LEN(pVCpu))
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns. */
-#define IEM_MC_SET_RIP_U32_AND_FINISH(a_u32NewIP) \
+#define IEM_MC_IND_JMP_U32_AND_FINISH(a_u32NewIP) \
     return iemRegRipJumpU32AndFinishClearingRF((pVCpu), (a_u32NewIP), IEM_GET_INSTR_LEN(pVCpu))
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns. */
-#define IEM_MC_SET_RIP_U64_AND_FINISH(a_u64NewIP) \
+#define IEM_MC_IND_JMP_U64_AND_FINISH(a_u64NewIP) \
     return iemRegRipJumpU64AndFinishClearingRF((pVCpu), (a_u64NewIP), IEM_GET_INSTR_LEN(pVCpu))
 
 /** Sets RIP (may trigger \#GP), finishes the instruction and returns.

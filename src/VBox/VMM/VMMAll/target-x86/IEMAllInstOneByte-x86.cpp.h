@@ -15295,7 +15295,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_LOCAL(uint16_t, u16Target);
                 IEM_MC_FETCH_GREG_U16(u16Target, IEM_GET_MODRM_RM(pVCpu, bRm));
-                IEM_MC_SET_RIP_U16_AND_FINISH(u16Target);
+                IEM_MC_IND_JMP_U16_AND_FINISH(u16Target);
                 IEM_MC_END();
                 break;
 
@@ -15304,7 +15304,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_LOCAL(uint32_t, u32Target);
                 IEM_MC_FETCH_GREG_U32(u32Target, IEM_GET_MODRM_RM(pVCpu, bRm));
-                IEM_MC_SET_RIP_U32_AND_FINISH(u32Target);
+                IEM_MC_IND_JMP_U32_AND_FINISH(u32Target);
                 IEM_MC_END();
                 break;
 
@@ -15313,7 +15313,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_LOCAL(uint64_t, u64Target);
                 IEM_MC_FETCH_GREG_U64(u64Target, IEM_GET_MODRM_RM(pVCpu, bRm));
-                IEM_MC_SET_RIP_U64_AND_FINISH(u64Target);
+                IEM_MC_IND_JMP_U64_AND_FINISH(u64Target);
                 IEM_MC_END();
                 break;
 
@@ -15332,7 +15332,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_MEM_U16(u16Target, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
-                IEM_MC_SET_RIP_U16_AND_FINISH(u16Target);
+                IEM_MC_IND_JMP_U16_AND_FINISH(u16Target);
                 IEM_MC_END();
                 break;
 
@@ -15343,7 +15343,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_MEM_U32(u32Target, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
-                IEM_MC_SET_RIP_U32_AND_FINISH(u32Target);
+                IEM_MC_IND_JMP_U32_AND_FINISH(u32Target);
                 IEM_MC_END();
                 break;
 
@@ -15354,7 +15354,7 @@ FNIEMOP_DEF_1(iemOp_Grp5_jmpn_Ev, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_MEM_U64(u64Target, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
-                IEM_MC_SET_RIP_U64_AND_FINISH(u64Target);
+                IEM_MC_IND_JMP_U64_AND_FINISH(u64Target);
                 IEM_MC_END();
                 break;
 

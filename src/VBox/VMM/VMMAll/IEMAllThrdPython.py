@@ -1110,12 +1110,12 @@ class ThreadedFunctionVariation(object):
                 elif (   oNewStmt.sName
                       in ('IEM_MC_ADVANCE_PC_AND_FINISH',
                           'IEM_MC_REL_JMP_S8_AND_FINISH',  'IEM_MC_REL_JMP_S16_AND_FINISH', 'IEM_MC_REL_JMP_S32_AND_FINISH',
-                          'IEM_MC_SET_RIP_U16_AND_FINISH', 'IEM_MC_SET_RIP_U32_AND_FINISH', 'IEM_MC_SET_RIP_U64_AND_FINISH',
+                          'IEM_MC_IND_JMP_U16_AND_FINISH', 'IEM_MC_IND_JMP_U32_AND_FINISH', 'IEM_MC_IND_JMP_U64_AND_FINISH',
                           'IEM_MC_REL_CALL_S16_AND_FINISH', 'IEM_MC_REL_CALL_S32_AND_FINISH', 'IEM_MC_REL_CALL_S64_AND_FINISH',
                           'IEM_MC_IND_CALL_U16_AND_FINISH', 'IEM_MC_IND_CALL_U32_AND_FINISH', 'IEM_MC_IND_CALL_U64_AND_FINISH',
                           'IEM_MC_RETN_AND_FINISH',)):
-                    if oNewStmt.sName not in ('IEM_MC_SET_RIP_U16_AND_FINISH', 'IEM_MC_SET_RIP_U32_AND_FINISH',
-                                              'IEM_MC_SET_RIP_U64_AND_FINISH', ):
+                    if oNewStmt.sName not in ('IEM_MC_IND_JMP_U16_AND_FINISH', 'IEM_MC_IND_JMP_U32_AND_FINISH',
+                                              'IEM_MC_IND_JMP_U64_AND_FINISH', ):
                         oNewStmt.asParams.append(self.dParamRefs['cbInstr'][0].sNewName);
                     if (    oNewStmt.sName in ('IEM_MC_REL_JMP_S8_AND_FINISH', 'IEM_MC_RETN_AND_FINISH', )
                         and self.sVariation not in self.kdVariationsOnlyPre386):
@@ -2073,9 +2073,9 @@ class ThreadedFunction(object):
         'IEM_MC_REL_JMP_S8_AND_FINISH':     g_ksFinishAnnotation_RelJmp,
         'IEM_MC_REL_JMP_S16_AND_FINISH':    g_ksFinishAnnotation_RelJmp,
         'IEM_MC_REL_JMP_S32_AND_FINISH':    g_ksFinishAnnotation_RelJmp,
-        'IEM_MC_SET_RIP_U16_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
-        'IEM_MC_SET_RIP_U32_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
-        'IEM_MC_SET_RIP_U64_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
+        'IEM_MC_IND_JMP_U16_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
+        'IEM_MC_IND_JMP_U32_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
+        'IEM_MC_IND_JMP_U64_AND_FINISH':    g_ksFinishAnnotation_SetJmp,
         'IEM_MC_REL_CALL_S16_AND_FINISH':   g_ksFinishAnnotation_RelCall,
         'IEM_MC_REL_CALL_S32_AND_FINISH':   g_ksFinishAnnotation_RelCall,
         'IEM_MC_REL_CALL_S64_AND_FINISH':   g_ksFinishAnnotation_RelCall,
@@ -2327,9 +2327,9 @@ class ThreadedFunction(object):
                                             'IEM_MC_REL_JMP_S8_AND_FINISH':   True,
                                             'IEM_MC_REL_JMP_S16_AND_FINISH':  True,
                                             'IEM_MC_REL_JMP_S32_AND_FINISH':  True,
-                                            'IEM_MC_SET_RIP_U16_AND_FINISH':  True,
-                                            'IEM_MC_SET_RIP_U32_AND_FINISH':  True,
-                                            'IEM_MC_SET_RIP_U64_AND_FINISH':  True,
+                                            'IEM_MC_IND_JMP_U16_AND_FINISH':  True,
+                                            'IEM_MC_IND_JMP_U32_AND_FINISH':  True,
+                                            'IEM_MC_IND_JMP_U64_AND_FINISH':  True,
                                             'IEM_MC_REL_CALL_S16_AND_FINISH': True,
                                             'IEM_MC_REL_CALL_S32_AND_FINISH': True,
                                             'IEM_MC_REL_CALL_S64_AND_FINISH': True,

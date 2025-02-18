@@ -117,6 +117,11 @@ private slots:
 
     /** @name COM event handling stuff.
       * @{ */
+        /** Handles signal about machine registration change.
+          * @param  uId          Brings [un]registered machine id.
+          * @param  fRegistered  Brings whether machine was registered, unregistered otherwise. */
+        void sltHandleMachineRegistrationChanged(const QUuid &uId, const bool fRegistered);
+
         /** Handles signal about settings expert mode change. */
         void sltHandleSettingsExpertModeChange();
     /** @} */

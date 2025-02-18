@@ -975,6 +975,8 @@ Q_DECLARE_METATYPE(UIToolType);
 /** Contains stuff related to tools handling. */
 namespace UIToolStuff
 {
+    /** Returns @a enmClass for passed @a enmType. */
+    SHARED_LIBRARY_STUFF UIToolClass castTypeToClass(UIToolType enmType);
     /** Returns whether passed @a enmType is of passed @a enmClass. */
     SHARED_LIBRARY_STUFF bool isTypeOfClass(UIToolType enmType, UIToolClass enmClass);
 }

@@ -163,7 +163,7 @@ public:
         state.selectable = true;
 
         /* Compose the state of current item: */
-        if (item() && item() == item()->model()->currentItem())
+        if (item() && item() == item()->model()->currentItem(item()->itemClass()))
         {
             state.active = true;
             state.focused = true;
@@ -544,7 +544,7 @@ void UIToolsItem::prepareConnections()
 void UIToolsItem::cleanup()
 {
     /* If that item is current: */
-    if (model()->currentItem() == this)
+    if (model()->currentItem(itemClass()) == this)
     {
         /* Unset the current item: */
         model()->setCurrentItem(0);
@@ -624,7 +624,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     if (model()->isPopup())
     {
         /* Selection background: */
-        if (model()->currentItem() == this)
+        if (model()->currentItem(itemClass()) == this)
         {
             /* Prepare color: */
             const QColor backgroundColor = isEnabled()
@@ -719,7 +719,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     else
     {
         /* Selection background: */
-        if (model()->currentItem() == this)
+        if (model()->currentItem(itemClass()) == this)
         {
             /* Acquire token color: */
             const QColor highlightColor = isEnabled()
@@ -822,7 +822,7 @@ void UIToolsItem::paintFrame(QPainter *pPainter, const QRect &rectangle) const
     QColor strokeColor;
 
     /* Selection frame: */
-    if (model()->currentItem() == this)
+    if (model()->currentItem(itemClass()) == this)
         strokeColor = pal.color(QPalette::Active, QPalette::Highlight).lighter(m_iHighlightLightnessStart - 40);
     /* Hovering frame: */
     else if (isHovered())
@@ -856,11 +856,11 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
 
     /* Selected or hovered item foreground for popup mode: */
     if (   model()->isPopup()
-        && (model()->currentItem() == this || isHovered()))
+        && (model()->currentItem(itemClass()) == this || isHovered()))
     {
         /* Get background color: */
         const QColor highlight = pal.color(QPalette::Active, QPalette::Highlight);
-        const QColor background = model()->currentItem() == this
+        const QColor background = model()->currentItem(itemClass()) == this
                                 ? highlight.lighter(m_iHighlightLightnessStart)
                                 : highlight.lighter(m_iHoverLightnessStart);
 

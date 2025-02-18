@@ -107,13 +107,14 @@ void UIToolsModel::setView(UIToolsView *pView)
 
 void UIToolsModel::setToolsType(UIToolType enmType)
 {
-    if (!currentItem() || currentItem()->itemType() != enmType)
+    const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
+    if (!currentItem(enmClass) || currentItem(enmClass)->itemType() != enmType)
         setCurrentItem(item(enmType));
 }
 
-UIToolType UIToolsModel::toolsType() const
+UIToolType UIToolsModel::toolsType(UIToolClass enmClass) const
 {
-    return currentItem() ? currentItem()->itemType() : UIToolType_Invalid;
+    return currentItem(enmClass) ? currentItem(enmClass)->itemType() : UIToolType_Invalid;
 }
 
 void UIToolsModel::setItemsEnabled(bool fEnabled)
@@ -159,30 +160,50 @@ void UIToolsModel::close()
 
 void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
 {
-    /* Is there something changed? */
-    if (m_pCurrentItem == pItem)
-        return;
+    /* Valid item passed? */
+    if (pItem)
+    {
+        /* What's the item class? */
+        const UIToolClass enmClass = pItem->itemClass();
 
-    /* Remember old current-item: */
-    UIToolsItem *pOldCurrentItem = m_pCurrentItem;
+        /* Is there something changed? */
+        if (m_mapCurrentItems.value(enmClass) == pItem)
+            return;
 
-    /* Update current item: */
-    m_pCurrentItem = pItem;
+        /* Remember old current-item: */
+        UIToolsItem *pOldCurrentItem = m_mapCurrentItems.value(enmClass);
+        /* Set new item as current: */
+        m_mapCurrentItems[enmClass] = pItem;
 
-    /* Update old item (if any): */
-    if (pOldCurrentItem)
-        pOldCurrentItem->update();
-    /* Update new item (if any): */
-    if (m_pCurrentItem)
-        m_pCurrentItem->update();
+        /* Update old item (if any): */
+        if (pOldCurrentItem)
+            pOldCurrentItem->update();
+        /* Update new item: */
+        m_mapCurrentItems.value(enmClass)->update();
 
-    /* Notify about selection change: */
-    emit sigSelectionChanged(toolsType());
+        /* Notify about selection change: */
+        emit sigSelectionChanged(toolsType(enmClass));
+    }
+    /* Null item passed? */
+    else
+    {
+        /* Is there something changed? */
+        if (   !m_mapCurrentItems.value(UIToolClass_Global)
+            && !m_mapCurrentItems.value(UIToolClass_Machine))
+            return;
+
+        /* Clear all current items: */
+        m_mapCurrentItems[UIToolClass_Global] = 0;
+        m_mapCurrentItems[UIToolClass_Machine] = 0;
+
+        /* Notify about selection change: */
+        emit sigSelectionChanged(UIToolType_Invalid);
+    }
 }
 
-UIToolsItem *UIToolsModel::currentItem() const
+UIToolsItem *UIToolsModel::currentItem(UIToolClass enmClass) const
 {
-    return m_pCurrentItem;
+    return m_mapCurrentItems.value(enmClass);
 }
 
 const QList<UIToolsItem*> &UIToolsModel::navigationList() const
@@ -540,14 +561,16 @@ void UIToolsModel::loadCurrentItems()
              (int)enmTypeGlobal, (int)enmTypeMachine));
 
     /* Assign values depending on model class: */
-    if (m_enmClass == UIToolClass_Global)
+    if (   m_enmClass == UIToolClass_Global
+        || m_enmClass == UIToolClass_Invalid)
     {
         UIToolsItem *pItem = item(enmTypeGlobal);
         if (!pItem)
             pItem = item(UIToolType_Home);
         setCurrentItem(pItem);
     }
-    else if (m_enmClass == UIToolClass_Machine)
+    if (   m_enmClass == UIToolClass_Machine
+        || m_enmClass == UIToolClass_Invalid)
     {
         UIToolsItem *pItem = item(enmTypeMachine);
         if (!pItem)
@@ -563,12 +586,17 @@ void UIToolsModel::saveCurrentItems()
     gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 
     /* Update values depending on model class: */
-    if (currentItem())
+    if (   m_enmClass == UIToolClass_Global
+        || m_enmClass == UIToolClass_Invalid)
     {
-        if (m_enmClass == UIToolClass_Global)
-            enmTypeGlobal = currentItem()->itemType();
-        else if (m_enmClass == UIToolClass_Machine)
-            enmTypeMachine = currentItem()->itemType();
+        if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
+            enmTypeGlobal = pItem->itemType();
+    }
+    if (   m_enmClass == UIToolClass_Machine
+        || m_enmClass == UIToolClass_Invalid)
+    {
+        if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
+            enmTypeMachine = pItem->itemType();
     }
 
     /* Save selected items data: */

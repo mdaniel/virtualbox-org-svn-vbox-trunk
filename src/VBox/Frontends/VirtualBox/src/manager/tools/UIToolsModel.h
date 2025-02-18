@@ -110,8 +110,8 @@ public:
 
         /** Defines current tools @a enmType. */
         void setToolsType(UIToolType enmType);
-        /** Returns current tools type. */
-        UIToolType toolsType() const;
+        /** Returns current tools type for the @a enmClass specified. */
+        UIToolType toolsType(UIToolClass enmClass) const;
 
         /** Defines whether tool items @a fEnabled.*/
         void setItemsEnabled(bool fEnabled);
@@ -143,8 +143,8 @@ public:
       * @{ */
         /** Defines current @a pItem. */
         void setCurrentItem(UIToolsItem *pItem);
-        /** Returns current item. */
-        UIToolsItem *currentItem() const;
+        /** Returns current item for the @a enmClass specified. */
+        UIToolsItem *currentItem(UIToolClass enmClass) const;
     /** @} */
 
     /** @name Navigation stuff.
@@ -266,8 +266,8 @@ private:
 
     /** @name Selection stuff.
       * @{ */
-        /** Holds the selected item reference. */
-        QPointer<UIToolsItem>  m_pCurrentItem;
+        /** Holds the selected item map reference. */
+        QMap<UIToolClass, QPointer<UIToolsItem> >  m_mapCurrentItems;
     /** @} */
 
     /** @name Navigation stuff.

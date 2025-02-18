@@ -138,7 +138,7 @@ UIToolPaneMachine *UIMachineToolsManagerWidget::toolPane() const
 UIToolType UIMachineToolsManagerWidget::menuToolType() const
 {
     AssertPtrReturn(toolMenu(), UIToolType_Invalid);
-    return toolMenu()->toolsType();
+    return toolMenu()->toolsType(UIToolClass_Machine);
 }
 
 void UIMachineToolsManagerWidget::setMenuToolType(UIToolType enmType)
@@ -309,7 +309,7 @@ void UIMachineToolsManagerWidget::sltHandleCloudMachineStateChange(const QUuid &
     {
         /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
         if (toolPane()->currentTool() == UIToolType_Error)
-            switchToolTo(toolMenu()->toolsType());
+            switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
 
         /* If we still have same item selected: */
         if (pItem && pItem->id() == uId)
@@ -495,7 +495,7 @@ void UIMachineToolsManagerWidget::loadSettings()
     }
 
     /* Open tool last chosen in tools-menu: */
-    switchToolTo(toolMenu()->toolsType());
+    switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
 }
 
 void UIMachineToolsManagerWidget::cleanupConnections()
@@ -553,7 +553,7 @@ void UIMachineToolsManagerWidget::recacheCurrentMachineItemInformation(bool fDon
     {
         /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
         if (toolPane()->currentTool() == UIToolType_Error)
-            switchToolTo(toolMenu()->toolsType());
+            switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
 
         /* Propagate current items to the Tools pane: */
         toolPane()->setItems(currentItems());
@@ -585,7 +585,7 @@ void UIMachineToolsManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
         restrictedTypes << UIToolType_Snapshots
                         << UIToolType_Logs
                         << UIToolType_FileManager;
-    if (restrictedTypes.contains(toolMenu()->toolsType()))
+    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
         toolMenu()->setToolsType(UIToolType_Details);
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(restrictions);

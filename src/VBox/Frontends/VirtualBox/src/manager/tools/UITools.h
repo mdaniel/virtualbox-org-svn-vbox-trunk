@@ -74,8 +74,8 @@ public:
       * @{ */
         /** Defines current tools @a enmType. */
         void setToolsType(UIToolType enmType);
-        /** Returns current tools type. */
-        UIToolType toolsType() const;
+        /** Returns current tools type for the @a enmClass specified. */
+        UIToolType toolsType(UIToolClass enmClass) const;
 
         /** Defines whether tool items @a fEnabled. */
         void setItemsEnabled(bool fEnabled);

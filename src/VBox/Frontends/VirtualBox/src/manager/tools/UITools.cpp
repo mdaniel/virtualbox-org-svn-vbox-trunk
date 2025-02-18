@@ -62,9 +62,9 @@ void UITools::setToolsType(UIToolType enmType)
     m_pToolsModel->setToolsType(enmType);
 }
 
-UIToolType UITools::toolsType() const
+UIToolType UITools::toolsType(UIToolClass enmClass) const
 {
-    return m_pToolsModel->toolsType();
+    return m_pToolsModel->toolsType(enmClass);
 }
 
 void UITools::setItemsEnabled(bool fEnabled)

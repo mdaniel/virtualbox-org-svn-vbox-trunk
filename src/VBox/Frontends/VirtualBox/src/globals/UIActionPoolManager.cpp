@@ -4055,6 +4055,8 @@ void UIActionPoolManager::updateMenuFileTools()
 
     /* Populate 'File' / 'Tools' menu: */
     const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
+    pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_HomeScreen));
+    pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_MachineManager));
     pMenu->addAction(action(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager));
     if (fExpertMode)
     {

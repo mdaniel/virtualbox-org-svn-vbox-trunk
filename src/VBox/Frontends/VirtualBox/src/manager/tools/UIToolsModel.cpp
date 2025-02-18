@@ -178,19 +178,6 @@ void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
 
     /* Notify about selection change: */
     emit sigSelectionChanged(toolsType());
-
-    /* Adjust corresponding actions finally: */
-    const UIToolType enmType = currentItem() ? currentItem()->itemType() : UIToolType_Home;
-    QMap<UIToolType, UIAction*> actions;
-    actions[UIToolType_Home] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_HomeScreen);
-    actions[UIToolType_Machines] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_MachineManager);
-    actions[UIToolType_Extensions] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_ExtensionPackManager);
-    actions[UIToolType_Media] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VirtualMediaManager);
-    actions[UIToolType_Network] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_NetworkManager);
-    actions[UIToolType_Cloud] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_CloudProfileManager);
-    actions[UIToolType_Activities] = actionPool()->action(UIActionIndexMN_M_File_M_Tools_T_VMActivityOverview);
-    if (actions.contains(enmType))
-        actions.value(enmType)->setChecked(true);
 }
 
 UIToolsItem *UIToolsModel::currentItem() const

@@ -661,7 +661,6 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
     return VINF_SUCCESS;
 }
 
-#ifdef IEM_WITH_SETJMP
 
 /**
  * Maps the specified guest memory for the given kind of access, longjmp on
@@ -1101,7 +1100,6 @@ static void *iemMemMapSafeJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem
     return iemMemMapJmp<true /*a_fSafeCall*/>(pVCpu, pbUnmapInfo, cbMem, iSegReg, GCPtrMem, fAccess, uAlignCtl);
 }
 
-#endif /* IEM_WITH_SETJMP */
 
 
 /*
@@ -1373,7 +1371,6 @@ VBOXSTRICTRC iemMemStoreDataU128AlignedSse(PVMCPUCC pVCpu, uint8_t iSegReg, RTGC
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /**
  * Stores a data dqword, SSE aligned.
  *
@@ -1396,7 +1393,6 @@ void iemMemStoreDataU128AlignedSseJmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR G
     iemMemCommitAndUnmapJmp(pVCpu, bUnmapInfo);
     Log5(("IEM WR dqword %d|%RGv: %.16Rhxs\n", iSegReg, GCPtrMem, pu128Dst));
 }
-#endif
 
 
 /**
@@ -1429,7 +1425,6 @@ VBOXSTRICTRC iemMemStoreDataU256(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrM
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /**
  * Stores a data dqword, longjmp on error.
  *
@@ -1452,7 +1447,6 @@ void iemMemStoreDataU256Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, P
     iemMemCommitAndUnmapJmp(pVCpu, bUnmapInfo);
     Log5(("IEM WR qqword %d|%RGv: %.32Rhxs\n", iSegReg, GCPtrMem, pu256Dst));
 }
-#endif
 
 
 /**

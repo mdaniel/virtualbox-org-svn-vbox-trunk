@@ -599,7 +599,6 @@ void iemMemRollbackAndUnmap(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEPT
     pVCpu->iem.s.cActiveMappings--;
 }
 
-#ifdef IEM_WITH_SETJMP
 
 /**
  * Commits the guest memory if bounce buffered and unmaps it, longjmp on error.
@@ -678,7 +677,6 @@ void iemMemRollbackAndUnmapWoSafe(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEP
     iemMemRollbackAndUnmap(pVCpu, bUnmapInfo);
 }
 
-#endif /* IEM_WITH_SETJMP */
 
 #ifndef IN_RING3
 /**

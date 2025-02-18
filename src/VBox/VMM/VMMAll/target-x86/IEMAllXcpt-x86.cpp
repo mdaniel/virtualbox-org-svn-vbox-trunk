@@ -2600,7 +2600,6 @@ iemRaiseXcptOrInt(PVMCPUCC    pVCpu,
     return rcStrict;
 }
 
-#ifdef IEM_WITH_SETJMP
 /**
  * See iemRaiseXcptOrInt.  Will not return.
  */
@@ -2615,7 +2614,6 @@ iemRaiseXcptOrIntJmp(PVMCPUCC    pVCpu,
     VBOXSTRICTRC rcStrict = iemRaiseXcptOrInt(pVCpu, cbInstr, u8Vector, fFlags, uErr, uCr2);
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
 }
-#endif
 
 
 /** \#DE - 00.  */
@@ -2634,13 +2632,11 @@ VBOXSTRICTRC iemRaiseDivideError(PVMCPUCC pVCpu) RT_NOEXCEPT
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /** \#DE - 00.  */
 DECL_NO_RETURN(void) iemRaiseDivideErrorJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_DE, IEM_XCPT_FLAGS_T_CPU_XCPT, 0, 0);
 }
-#endif
 
 
 /** \#DB - 01.
@@ -2667,13 +2663,11 @@ VBOXSTRICTRC iemRaiseUndefinedOpcode(PVMCPUCC pVCpu) RT_NOEXCEPT
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /** \#UD - 06.  */
 DECL_NO_RETURN(void) iemRaiseUndefinedOpcodeJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_UD, IEM_XCPT_FLAGS_T_CPU_XCPT, 0, 0);
 }
-#endif
 
 
 /** \#NM - 07.  */
@@ -2683,13 +2677,11 @@ VBOXSTRICTRC iemRaiseDeviceNotAvailable(PVMCPUCC pVCpu) RT_NOEXCEPT
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /** \#NM - 07.  */
 DECL_NO_RETURN(void) iemRaiseDeviceNotAvailableJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_NM, IEM_XCPT_FLAGS_T_CPU_XCPT, 0, 0);
 }
-#endif
 
 
 /** \#TS(err) - 0a.  */
@@ -2774,14 +2766,13 @@ VBOXSTRICTRC iemRaiseGeneralProtectionFault0(PVMCPUCC pVCpu) RT_NOEXCEPT
     return iemRaiseXcptOrInt(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#GP(0) - 0d.  */
 DECL_NO_RETURN(void) iemRaiseGeneralProtectionFault0Jmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     Log(("iemRaiseGeneralProtectionFault0Jmp: cs:rip=%04x:%RX64\n", pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.rip));
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
-#endif
 
 
 /** \#GP(sel) - 0d.  */
@@ -2812,7 +2803,7 @@ VBOXSTRICTRC iemRaiseSelectorBounds(PVMCPUCC pVCpu, uint32_t iSegReg, uint32_t f
                              IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#GP(sel) - 0d, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseSelectorBoundsJmp(PVMCPUCC pVCpu, uint32_t iSegReg, uint32_t fAccess) IEM_NOEXCEPT_MAY_LONGJMP
 {
@@ -2822,7 +2813,7 @@ DECL_NO_RETURN(void) iemRaiseSelectorBoundsJmp(PVMCPUCC pVCpu, uint32_t iSegReg,
     iemRaiseXcptOrIntJmp(pVCpu, 0, iSegReg == X86_SREG_SS ? X86_XCPT_SS : X86_XCPT_GP,
                          IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
-#endif
+
 
 /** \#GP(sel) - 0d.  */
 VBOXSTRICTRC iemRaiseSelectorBoundsBySelector(PVMCPUCC pVCpu, RTSEL Sel) RT_NOEXCEPT
@@ -2833,7 +2824,7 @@ VBOXSTRICTRC iemRaiseSelectorBoundsBySelector(PVMCPUCC pVCpu, RTSEL Sel) RT_NOEX
     return iemRaiseXcptOrInt(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#GP(sel) - 0d, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseSelectorBoundsBySelectorJmp(PVMCPUCC pVCpu, RTSEL Sel) IEM_NOEXCEPT_MAY_LONGJMP
 {
@@ -2842,7 +2833,6 @@ DECL_NO_RETURN(void) iemRaiseSelectorBoundsBySelectorJmp(PVMCPUCC pVCpu, RTSEL S
     NOREF(Sel);
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
-#endif
 
 
 /** \#GP(sel) - 0d.  */
@@ -2854,14 +2844,13 @@ VBOXSTRICTRC iemRaiseSelectorInvalidAccess(PVMCPUCC pVCpu, uint32_t iSegReg, uin
     return iemRaiseXcptOrInt(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#GP(sel) - 0d, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseSelectorInvalidAccessJmp(PVMCPUCC pVCpu, uint32_t iSegReg, uint32_t fAccess) IEM_NOEXCEPT_MAY_LONGJMP
 {
     NOREF(iSegReg); NOREF(fAccess);
     iemRaiseXcptOrIntJmp(pVCpu, 0, X86_XCPT_GP, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
-#endif
 
 
 /** \#PF(n) - 0e.  */
@@ -2929,14 +2918,13 @@ VBOXSTRICTRC iemRaisePageFault(PVMCPUCC pVCpu, RTGCPTR GCPtrWhere, uint32_t cbAc
                              uErr, GCPtrWhere);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#PF(n) - 0e, longjmp.  */
 DECL_NO_RETURN(void) iemRaisePageFaultJmp(PVMCPUCC pVCpu, RTGCPTR GCPtrWhere, uint32_t cbAccess,
                                           uint32_t fAccess, int rc) IEM_NOEXCEPT_MAY_LONGJMP
 {
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(iemRaisePageFault(pVCpu, GCPtrWhere, cbAccess, fAccess, rc)));
 }
-#endif
 
 
 /** \#MF(0) - 10.  */
@@ -2950,13 +2938,12 @@ VBOXSTRICTRC iemRaiseMathFault(PVMCPUCC pVCpu) RT_NOEXCEPT
     return iemRegUpdateRipAndFinishClearingRF(pVCpu);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#MF(0) - 10, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseMathFaultJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(iemRaiseMathFault(pVCpu)));
 }
-#endif
 
 
 /** \#AC(0) - 11.  */
@@ -2965,13 +2952,12 @@ VBOXSTRICTRC iemRaiseAlignmentCheckException(PVMCPUCC pVCpu) RT_NOEXCEPT
     return iemRaiseXcptOrInt(pVCpu, 0, X86_XCPT_AC, IEM_XCPT_FLAGS_T_CPU_XCPT | IEM_XCPT_FLAGS_ERR, 0, 0);
 }
 
-#ifdef IEM_WITH_SETJMP
+
 /** \#AC(0) - 11, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseAlignmentCheckExceptionJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(iemRaiseAlignmentCheckException(pVCpu)));
 }
-#endif
 
 
 /** \#XF(0)/\#XM(0) - 19.   */
@@ -2981,13 +2967,11 @@ VBOXSTRICTRC iemRaiseSimdFpException(PVMCPUCC pVCpu) RT_NOEXCEPT
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /** \#XF(0)/\#XM(0) - 19s, longjmp.  */
 DECL_NO_RETURN(void) iemRaiseSimdFpExceptionJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(iemRaiseSimdFpException(pVCpu)));
 }
-#endif
 
 
 /** Accessed via IEMOP_RAISE_DIVIDE_ERROR.   */

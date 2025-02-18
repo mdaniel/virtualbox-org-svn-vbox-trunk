@@ -735,31 +735,6 @@ VBOXSTRICTRC iemOpcodeFetchMoreBytes(PVMCPUCC pVCpu, size_t cbMin) RT_NOEXCEPT
 }
 
 #endif /* !IEM_WITH_CODE_TLB */
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU8 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the
- *                              calling thread.
- * @param   pb                  Where to return the opcode byte.
- */
-VBOXSTRICTRC iemOpcodeGetNextU8Slow(PVMCPUCC pVCpu, uint8_t *pb) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 1);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-        *pb = pVCpu->iem.s.abOpcode[offOpcode];
-        pVCpu->iem.s.offOpcode = offOpcode + 1;
-    }
-    else
-        *pb = 0;
-    return rcStrict;
-}
-
-#else  /* IEM_WITH_SETJMP */
 
 /**
  * Deals with the problematic cases that iemOpcodeGetNextU8Jmp doesn't like, longjmp on error.
@@ -769,103 +744,18 @@ VBOXSTRICTRC iemOpcodeGetNextU8Slow(PVMCPUCC pVCpu, uint8_t *pb) RT_NOEXCEPT
  */
 uint8_t iemOpcodeGetNextU8SlowJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# ifdef IEM_WITH_CODE_TLB
+#ifdef IEM_WITH_CODE_TLB
     uint8_t u8;
     iemOpcodeFetchBytesJmp(pVCpu, sizeof(u8), &u8);
     return u8;
-# else
+#else
     VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 1);
     if (rcStrict == VINF_SUCCESS)
         return pVCpu->iem.s.abOpcode[pVCpu->iem.s.offOpcode++];
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
-# endif
+#endif
 }
 
-#endif /* IEM_WITH_SETJMP */
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextS8SxU16 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu16                Where to return the opcode dword.
- */
-VBOXSTRICTRC iemOpcodeGetNextS8SxU16Slow(PVMCPUCC pVCpu, uint16_t *pu16) RT_NOEXCEPT
-{
-    uint8_t      u8;
-    VBOXSTRICTRC rcStrict = iemOpcodeGetNextU8Slow(pVCpu, &u8);
-    if (rcStrict == VINF_SUCCESS)
-        *pu16 = (int8_t)u8;
-    return rcStrict;
-}
-
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextS8SxU32 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu32                Where to return the opcode dword.
- */
-VBOXSTRICTRC iemOpcodeGetNextS8SxU32Slow(PVMCPUCC pVCpu, uint32_t *pu32) RT_NOEXCEPT
-{
-    uint8_t      u8;
-    VBOXSTRICTRC rcStrict = iemOpcodeGetNextU8Slow(pVCpu, &u8);
-    if (rcStrict == VINF_SUCCESS)
-        *pu32 = (int8_t)u8;
-    return rcStrict;
-}
-
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextS8SxU64 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu64                Where to return the opcode qword.
- */
-VBOXSTRICTRC iemOpcodeGetNextS8SxU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
-{
-    uint8_t      u8;
-    VBOXSTRICTRC rcStrict = iemOpcodeGetNextU8Slow(pVCpu, &u8);
-    if (rcStrict == VINF_SUCCESS)
-        *pu64 = (int8_t)u8;
-    return rcStrict;
-}
-
-#endif /* !IEM_WITH_SETJMP */
-
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU16 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu16                Where to return the opcode word.
- */
-VBOXSTRICTRC iemOpcodeGetNextU16Slow(PVMCPUCC pVCpu, uint16_t *pu16) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 2);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
-        *pu16 = *(uint16_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-# else
-        *pu16 = RT_MAKE_U16(pVCpu->iem.s.abOpcode[offOpcode], pVCpu->iem.s.abOpcode[offOpcode + 1]);
-# endif
-        pVCpu->iem.s.offOpcode = offOpcode + 2;
-    }
-    else
-        *pu16 = 0;
-    return rcStrict;
-}
-
-#else  /* IEM_WITH_SETJMP */
 
 /**
  * Deals with the problematic cases that iemOpcodeGetNextU16Jmp doesn't like, longjmp on error
@@ -875,106 +765,26 @@ VBOXSTRICTRC iemOpcodeGetNextU16Slow(PVMCPUCC pVCpu, uint16_t *pu16) RT_NOEXCEPT
  */
 uint16_t iemOpcodeGetNextU16SlowJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# ifdef IEM_WITH_CODE_TLB
+#ifdef IEM_WITH_CODE_TLB
     uint16_t u16;
     iemOpcodeFetchBytesJmp(pVCpu, sizeof(u16), &u16);
     return u16;
-# else
+#else
     VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 2);
     if (rcStrict == VINF_SUCCESS)
     {
         uint8_t offOpcode = pVCpu->iem.s.offOpcode;
         pVCpu->iem.s.offOpcode += 2;
-#  ifdef IEM_USE_UNALIGNED_DATA_ACCESS
+# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
         return *(uint16_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-#  else
+# else
         return RT_MAKE_U16(pVCpu->iem.s.abOpcode[offOpcode], pVCpu->iem.s.abOpcode[offOpcode + 1]);
-#  endif
+# endif
     }
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
-# endif
+#endif
 }
 
-#endif /* IEM_WITH_SETJMP */
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU16ZxU32 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu32                Where to return the opcode double word.
- */
-VBOXSTRICTRC iemOpcodeGetNextU16ZxU32Slow(PVMCPUCC pVCpu, uint32_t *pu32) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 2);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-        *pu32 = RT_MAKE_U16(pVCpu->iem.s.abOpcode[offOpcode], pVCpu->iem.s.abOpcode[offOpcode + 1]);
-        pVCpu->iem.s.offOpcode = offOpcode + 2;
-    }
-    else
-        *pu32 = 0;
-    return rcStrict;
-}
-
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU16ZxU64 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu64                Where to return the opcode quad word.
- */
-VBOXSTRICTRC iemOpcodeGetNextU16ZxU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 2);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-        *pu64 = RT_MAKE_U16(pVCpu->iem.s.abOpcode[offOpcode], pVCpu->iem.s.abOpcode[offOpcode + 1]);
-        pVCpu->iem.s.offOpcode = offOpcode + 2;
-    }
-    else
-        *pu64 = 0;
-    return rcStrict;
-}
-
-#endif /* !IEM_WITH_SETJMP */
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU32 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu32                Where to return the opcode dword.
- */
-VBOXSTRICTRC iemOpcodeGetNextU32Slow(PVMCPUCC pVCpu, uint32_t *pu32) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 4);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
-        *pu32 = *(uint32_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-# else
-        *pu32 = RT_MAKE_U32_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 1],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 2],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 3]);
-# endif
-        pVCpu->iem.s.offOpcode = offOpcode + 4;
-    }
-    else
-        *pu32 = 0;
-    return rcStrict;
-}
-
-#else  /* IEM_WITH_SETJMP */
 
 /**
  * Deals with the problematic cases that iemOpcodeGetNextU32Jmp doesn't like, longjmp on error.
@@ -984,119 +794,29 @@ VBOXSTRICTRC iemOpcodeGetNextU32Slow(PVMCPUCC pVCpu, uint32_t *pu32) RT_NOEXCEPT
  */
 uint32_t iemOpcodeGetNextU32SlowJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# ifdef IEM_WITH_CODE_TLB
+#ifdef IEM_WITH_CODE_TLB
     uint32_t u32;
     iemOpcodeFetchBytesJmp(pVCpu, sizeof(u32), &u32);
     return u32;
-# else
+#else
     VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 4);
     if (rcStrict == VINF_SUCCESS)
     {
         uint8_t offOpcode = pVCpu->iem.s.offOpcode;
         pVCpu->iem.s.offOpcode = offOpcode + 4;
-#  ifdef IEM_USE_UNALIGNED_DATA_ACCESS
+# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
         return *(uint32_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-#  else
+# else
         return RT_MAKE_U32_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
                                    pVCpu->iem.s.abOpcode[offOpcode + 1],
                                    pVCpu->iem.s.abOpcode[offOpcode + 2],
                                    pVCpu->iem.s.abOpcode[offOpcode + 3]);
-#  endif
+# endif
     }
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
-# endif
+#endif
 }
 
-#endif /* IEM_WITH_SETJMP */
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU32ZxU64 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu64                Where to return the opcode dword.
- */
-VBOXSTRICTRC iemOpcodeGetNextU32ZxU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 4);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-        *pu64 = RT_MAKE_U32_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 1],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 2],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 3]);
-        pVCpu->iem.s.offOpcode = offOpcode + 4;
-    }
-    else
-        *pu64 = 0;
-    return rcStrict;
-}
-
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextS32SxU64 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu64                Where to return the opcode qword.
- */
-VBOXSTRICTRC iemOpcodeGetNextS32SxU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 4);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-        *pu64 = (int32_t)RT_MAKE_U32_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
-                                             pVCpu->iem.s.abOpcode[offOpcode + 1],
-                                             pVCpu->iem.s.abOpcode[offOpcode + 2],
-                                             pVCpu->iem.s.abOpcode[offOpcode + 3]);
-        pVCpu->iem.s.offOpcode = offOpcode + 4;
-    }
-    else
-        *pu64 = 0;
-    return rcStrict;
-}
-
-#endif /* !IEM_WITH_SETJMP */
-
-#ifndef IEM_WITH_SETJMP
-
-/**
- * Deals with the problematic cases that iemOpcodeGetNextU64 doesn't like.
- *
- * @returns Strict VBox status code.
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pu64                Where to return the opcode qword.
- */
-VBOXSTRICTRC iemOpcodeGetNextU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
-{
-    VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 8);
-    if (rcStrict == VINF_SUCCESS)
-    {
-        uint8_t offOpcode = pVCpu->iem.s.offOpcode;
-# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
-        *pu64 = *(uint64_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-# else
-        *pu64 = RT_MAKE_U64_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 1],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 2],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 3],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 4],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 5],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 6],
-                                    pVCpu->iem.s.abOpcode[offOpcode + 7]);
-# endif
-        pVCpu->iem.s.offOpcode = offOpcode + 8;
-    }
-    else
-        *pu64 = 0;
-    return rcStrict;
-}
-
-#else  /* IEM_WITH_SETJMP */
 
 /**
  * Deals with the problematic cases that iemOpcodeGetNextU64Jmp doesn't like, longjmp on error.
@@ -1106,19 +826,19 @@ VBOXSTRICTRC iemOpcodeGetNextU64Slow(PVMCPUCC pVCpu, uint64_t *pu64) RT_NOEXCEPT
  */
 uint64_t iemOpcodeGetNextU64SlowJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# ifdef IEM_WITH_CODE_TLB
+#ifdef IEM_WITH_CODE_TLB
     uint64_t u64;
     iemOpcodeFetchBytesJmp(pVCpu, sizeof(u64), &u64);
     return u64;
-# else
+#else
     VBOXSTRICTRC rcStrict = iemOpcodeFetchMoreBytes(pVCpu, 8);
     if (rcStrict == VINF_SUCCESS)
     {
         uint8_t offOpcode = pVCpu->iem.s.offOpcode;
         pVCpu->iem.s.offOpcode = offOpcode + 8;
-#  ifdef IEM_USE_UNALIGNED_DATA_ACCESS
+# ifdef IEM_USE_UNALIGNED_DATA_ACCESS
         return *(uint64_t const *)&pVCpu->iem.s.abOpcode[offOpcode];
-#  else
+# else
         return RT_MAKE_U64_FROM_U8(pVCpu->iem.s.abOpcode[offOpcode],
                                    pVCpu->iem.s.abOpcode[offOpcode + 1],
                                    pVCpu->iem.s.abOpcode[offOpcode + 2],
@@ -1127,11 +847,9 @@ uint64_t iemOpcodeGetNextU64SlowJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP
                                    pVCpu->iem.s.abOpcode[offOpcode + 5],
                                    pVCpu->iem.s.abOpcode[offOpcode + 6],
                                    pVCpu->iem.s.abOpcode[offOpcode + 7]);
-#  endif
+# endif
     }
     IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
-# endif
+#endif
 }
-
-#endif /* IEM_WITH_SETJMP */
 

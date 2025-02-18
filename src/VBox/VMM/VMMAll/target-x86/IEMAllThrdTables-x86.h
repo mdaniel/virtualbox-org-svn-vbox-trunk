@@ -103,10 +103,6 @@
 # error The data TLB must be enabled for the recompiler.
 #endif
 
-#ifndef IEM_WITH_SETJMP
-# error The setjmp approach must be enabled for the recompiler.
-#endif
-
 
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
@@ -132,15 +128,9 @@
  * Override IEM_MC_CALC_RM_EFF_ADDR to use iemOpHlpCalcRmEffAddrJmpEx and produce uEffAddrInfo.
  */
 #undef IEM_MC_CALC_RM_EFF_ADDR
-#ifndef IEM_WITH_SETJMP
-# define IEM_MC_CALC_RM_EFF_ADDR(a_GCPtrEff, a_bRm, a_cbImmAndRspOffset) \
-    uint64_t uEffAddrInfo; \
-    IEM_MC_RETURN_ON_FAILURE(iemOpHlpCalcRmEffAddrJmpEx(pVCpu, (a_bRm), (a_cbImmAndRspOffset), &(a_GCPtrEff), &uEffAddrInfo))
-#else
-# define IEM_MC_CALC_RM_EFF_ADDR(a_GCPtrEff, a_bRm, a_cbImmAndRspOffset) \
+#define IEM_MC_CALC_RM_EFF_ADDR(a_GCPtrEff, a_bRm, a_cbImmAndRspOffset) \
     uint64_t uEffAddrInfo; \
     ((a_GCPtrEff) = iemOpHlpCalcRmEffAddrJmpEx(pVCpu, (a_bRm), (a_cbImmAndRspOffset), &uEffAddrInfo))
-#endif
 
 /*
  * Likewise override IEM_OPCODE_SKIP_RM_EFF_ADDR_BYTES so we fetch all the opcodes.

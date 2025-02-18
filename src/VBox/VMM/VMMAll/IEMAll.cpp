@@ -542,7 +542,6 @@ DECLINLINE(VBOXSTRICTRC) iemExecOneInner(PVMCPUCC pVCpu, bool fExecuteInhibit, c
     AssertMsg(pVCpu->iem.s.aMemMappings[2].fAccess == IEM_ACCESS_INVALID, ("2: %#x %RGp\n", pVCpu->iem.s.aMemMappings[2].fAccess, pVCpu->iem.s.aMemBbMappings[2].GCPhysFirst));
     RT_NOREF_PV(pszFunction);
 
-#ifdef IEM_WITH_SETJMP
     VBOXSTRICTRC rcStrict;
     IEM_TRY_SETJMP(pVCpu, rcStrict)
     {
@@ -554,10 +553,6 @@ DECLINLINE(VBOXSTRICTRC) iemExecOneInner(PVMCPUCC pVCpu, bool fExecuteInhibit, c
         pVCpu->iem.s.cLongJumps++;
     }
     IEM_CATCH_LONGJMP_END(pVCpu);
-#else
-    uint8_t b; IEM_OPCODE_GET_FIRST_U8(&b);
-    VBOXSTRICTRC rcStrict = FNIEMOP_CALL(g_apfnIemInterpretOnlyOneByteMap[b]);
-#endif
     if (rcStrict == VINF_SUCCESS)
         pVCpu->iem.s.cInstructions++;
     if (pVCpu->iem.s.cActiveMappings > 0)
@@ -603,7 +598,6 @@ DECLINLINE(VBOXSTRICTRC) iemExecOneInner(PVMCPUCC pVCpu, bool fExecuteInhibit, c
 #ifdef LOG_ENABLED
             iemLogCurInstr(pVCpu, false, pszFunction);
 #endif
-#ifdef IEM_WITH_SETJMP
             IEM_TRY_SETJMP_AGAIN(pVCpu, rcStrict)
             {
                 uint8_t b; IEM_OPCODE_GET_FIRST_U8(&b);
@@ -614,10 +608,6 @@ DECLINLINE(VBOXSTRICTRC) iemExecOneInner(PVMCPUCC pVCpu, bool fExecuteInhibit, c
                 pVCpu->iem.s.cLongJumps++;
             }
             IEM_CATCH_LONGJMP_END(pVCpu);
-#else
-            IEM_OPCODE_GET_FIRST_U8(&b);
-            rcStrict = FNIEMOP_CALL(g_apfnIemInterpretOnlyOneByteMap[b]);
-#endif
             if (rcStrict == VINF_SUCCESS)
             {
                 pVCpu->iem.s.cInstructions++;
@@ -873,10 +863,8 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions
     VBOXSTRICTRC rcStrict = iemInitDecoderAndPrefetchOpcodes(pVCpu, 0 /*fExecOpts*/);
     if (rcStrict == VINF_SUCCESS)
     {
-#ifdef IEM_WITH_SETJMP
         pVCpu->iem.s.cActiveMappings = 0; /** @todo wtf? */
         IEM_TRY_SETJMP(pVCpu, rcStrict)
-#endif
         {
             /*
              * The run loop.  We limit ourselves to 4096 instructions right now.
@@ -959,18 +947,16 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecLots(PVMCPUCC pVCpu, uint32_t cMaxInstructions
                 break;
             }
         }
-#ifdef IEM_WITH_SETJMP
         IEM_CATCH_LONGJMP_BEGIN(pVCpu, rcStrict);
         {
             if (pVCpu->iem.s.cActiveMappings > 0)
                 iemMemRollback(pVCpu);
-# if defined(VBOX_WITH_NESTED_HWVIRT_SVM) || defined(VBOX_WITH_NESTED_HWVIRT_VMX)
+#if defined(VBOX_WITH_NESTED_HWVIRT_SVM) || defined(VBOX_WITH_NESTED_HWVIRT_VMX)
             rcStrict = iemExecStatusCodeFiddling(pVCpu, rcStrict);
-# endif
+#endif
             pVCpu->iem.s.cLongJumps++;
         }
         IEM_CATCH_LONGJMP_END(pVCpu);
-#endif
 
         /*
          * Assert hidden register sanity (also done in iemInitDecoder and iemReInitDecoder).
@@ -1036,10 +1022,8 @@ IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, u
     VBOXSTRICTRC rcStrict = iemInitDecoderAndPrefetchOpcodes(pVCpu, 0 /*fExecOpts*/);
     if (rcStrict == VINF_SUCCESS)
     {
-#ifdef IEM_WITH_SETJMP
         pVCpu->iem.s.cActiveMappings     = 0; /** @todo wtf?!? */
         IEM_TRY_SETJMP(pVCpu, rcStrict)
-#endif
         {
 #ifdef IN_RING0
             bool const fCheckPreemptionPending   = !RTThreadPreemptIsPossible() || !RTThreadPreemptIsEnabled(NIL_RTTHREAD);
@@ -1146,7 +1130,6 @@ IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, u
                 break;
             }
         }
-#ifdef IEM_WITH_SETJMP
         IEM_CATCH_LONGJMP_BEGIN(pVCpu, rcStrict);
         {
             if (pVCpu->iem.s.cActiveMappings > 0)
@@ -1154,7 +1137,6 @@ IEMExecForExits(PVMCPUCC pVCpu, uint32_t fWillExit, uint32_t cMinInstructions, u
             pVCpu->iem.s.cLongJumps++;
         }
         IEM_CATCH_LONGJMP_END(pVCpu);
-#endif
 
         /*
          * Assert hidden register sanity (also done in iemInitDecoder and iemReInitDecoder).

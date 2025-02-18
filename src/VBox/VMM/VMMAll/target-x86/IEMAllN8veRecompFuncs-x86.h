@@ -78,10 +78,6 @@
 # error The data TLB must be enabled for the recompiler.
 #endif
 
-#ifndef IEM_WITH_SETJMP
-# error The setjmp approach must be enabled for the recompiler.
-#endif
-
 
 /*********************************************************************************************************************************
 *   Code emitters for flushing pending guest register writes and sanity checks                                                   *

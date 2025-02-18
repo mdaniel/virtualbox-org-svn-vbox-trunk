@@ -50,8 +50,7 @@
 /**
  * Standard fetch function.
  *
- * This is used by CImpl code, so it needs to be kept even when IEM_WITH_SETJMP
- * is defined.
+ * This is used by CImpl code.
  */
 VBOXSTRICTRC RT_CONCAT(iemMemFetchData,TMPL_MEM_FN_SUFF)(PVMCPUCC pVCpu, TMPL_MEM_TYPE *puDst,
                                                          uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT
@@ -71,17 +70,16 @@ VBOXSTRICTRC RT_CONCAT(iemMemFetchData,TMPL_MEM_FN_SUFF)(PVMCPUCC pVCpu, TMPL_ME
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /**
  * Safe/fallback fetch function that longjmps on error.
  */
-# ifdef TMPL_MEM_BY_REF
+#ifdef TMPL_MEM_BY_REF
 void
 RT_CONCAT3(iemMemFetchData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, TMPL_MEM_TYPE *pDst, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-#  if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeReadPath++;
-#  endif
+# endif
     uint8_t              bUnmapInfo;
     TMPL_MEM_TYPE const *pSrc = (TMPL_MEM_TYPE const *)iemMemMapSafeJmp(pVCpu, &bUnmapInfo, sizeof(*pSrc), iSegReg, GCPtrMem,
                                                                         IEM_ACCESS_DATA_R, TMPL_MEM_TYPE_ALIGN | TMPL_MEM_MAP_FLAGS_ADD);
@@ -89,13 +87,13 @@ RT_CONCAT3(iemMemFetchData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, TMPL_MEM_TY
     iemMemCommitAndUnmapJmp(pVCpu, bUnmapInfo);
     Log2(("IEM RD " TMPL_MEM_FMT_DESC " %d|%RGv: " TMPL_MEM_FMT_TYPE "\n", iSegReg, GCPtrMem, pDst));
 }
-# else /* !TMPL_MEM_BY_REF */
+#else /* !TMPL_MEM_BY_REF */
 TMPL_MEM_TYPE
 RT_CONCAT3(iemMemFetchData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-#  if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeReadPath++;
-#  endif
+# endif
     uint8_t              bUnmapInfo;
     TMPL_MEM_TYPE const *puSrc = (TMPL_MEM_TYPE const *)iemMemMapSafeJmp(pVCpu, &bUnmapInfo, sizeof(*puSrc), iSegReg, GCPtrMem,
                                                                          IEM_ACCESS_DATA_R, TMPL_MEM_TYPE_ALIGN | TMPL_MEM_MAP_FLAGS_ADD);
@@ -104,16 +102,14 @@ RT_CONCAT3(iemMemFetchData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, uint8_t iSe
     Log2(("IEM RD " TMPL_MEM_FMT_DESC " %d|%RGv: " TMPL_MEM_FMT_TYPE "\n", iSegReg, GCPtrMem, uRet));
     return uRet;
 }
-# endif /* !TMPL_MEM_BY_REF */
-#endif /* IEM_WITH_SETJMP */
+#endif /* !TMPL_MEM_BY_REF */
 
 
 
 /**
  * Standard store function.
  *
- * This is used by CImpl code, so it needs to be kept even when IEM_WITH_SETJMP
- * is defined.
+ * This is used by CImpl code.
  */
 VBOXSTRICTRC RT_CONCAT(iemMemStoreData,TMPL_MEM_FN_SUFF)(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem,
 #ifdef TMPL_MEM_BY_REF
@@ -145,7 +141,6 @@ VBOXSTRICTRC RT_CONCAT(iemMemStoreData,TMPL_MEM_FN_SUFF)(PVMCPUCC pVCpu, uint8_t
 }
 
 
-#ifdef IEM_WITH_SETJMP
 /**
  * Stores a data byte, longjmp on error.
  *
@@ -162,9 +157,9 @@ void RT_CONCAT3(iemMemStoreData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, uint8_
                                                           TMPL_MEM_TYPE uValue) IEM_NOEXCEPT_MAY_LONGJMP
 #endif
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#endif
 #ifdef TMPL_MEM_BY_REF
     Log6(("IEM WR " TMPL_MEM_FMT_DESC " %d|%RGv: " TMPL_MEM_FMT_TYPE "\n", iSegReg, GCPtrMem, pValue));
 #else
@@ -180,10 +175,7 @@ void RT_CONCAT3(iemMemStoreData,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, uint8_
 #endif
     iemMemCommitAndUnmapJmp(pVCpu, bUnmapInfo);
 }
-#endif /* IEM_WITH_SETJMP */
 
-
-#ifdef IEM_WITH_SETJMP
 
 /**
  * Maps a data buffer for atomic read+write direct access (or via a bounce
@@ -199,9 +191,9 @@ TMPL_MEM_TYPE *
 RT_CONCAT3(iemMemMapData,TMPL_MEM_FN_SUFF,AtSafeJmp)(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo,
                                                      uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#endif
     Log8(("IEM AT/map " TMPL_MEM_FMT_DESC " %d|%RGv\n", iSegReg, GCPtrMem));
     *pbUnmapInfo = 1 | ((IEM_ACCESS_TYPE_READ  | IEM_ACCESS_TYPE_WRITE) << 4); /* zero is for the TLB hit */
     return (TMPL_MEM_TYPE *)iemMemMapSafeJmp(pVCpu, pbUnmapInfo, sizeof(TMPL_MEM_TYPE), iSegReg, GCPtrMem,
@@ -223,9 +215,9 @@ TMPL_MEM_TYPE *
 RT_CONCAT3(iemMemMapData,TMPL_MEM_FN_SUFF,RwSafeJmp)(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo,
                                                      uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#endif
     Log8(("IEM RW/map " TMPL_MEM_FMT_DESC " %d|%RGv\n", iSegReg, GCPtrMem));
     *pbUnmapInfo = 1 | ((IEM_ACCESS_TYPE_READ  | IEM_ACCESS_TYPE_WRITE) << 4); /* zero is for the TLB hit */
     return (TMPL_MEM_TYPE *)iemMemMapSafeJmp(pVCpu, pbUnmapInfo, sizeof(TMPL_MEM_TYPE), iSegReg, GCPtrMem,
@@ -247,9 +239,9 @@ TMPL_MEM_TYPE *
 RT_CONCAT3(iemMemMapData,TMPL_MEM_FN_SUFF,WoSafeJmp)(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo,
                                                      uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#endif
     Log8(("IEM WO/map " TMPL_MEM_FMT_DESC " %d|%RGv\n", iSegReg, GCPtrMem));
     *pbUnmapInfo = 1 | (IEM_ACCESS_TYPE_WRITE << 4); /* zero is for the TLB hit */
     return (TMPL_MEM_TYPE *)iemMemMapSafeJmp(pVCpu, pbUnmapInfo, sizeof(TMPL_MEM_TYPE), iSegReg, GCPtrMem,
@@ -271,16 +263,14 @@ TMPL_MEM_TYPE const *
 RT_CONCAT3(iemMemMapData,TMPL_MEM_FN_SUFF,RoSafeJmp)(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo,
                                                      uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#endif
     Log4(("IEM RO/map " TMPL_MEM_FMT_DESC " %d|%RGv\n", iSegReg, GCPtrMem));
     *pbUnmapInfo = 1 | (IEM_ACCESS_TYPE_READ << 4); /* zero is for the TLB hit */
     return (TMPL_MEM_TYPE *)iemMemMapSafeJmp(pVCpu, pbUnmapInfo, sizeof(TMPL_MEM_TYPE), iSegReg, GCPtrMem,
                                              IEM_ACCESS_DATA_R, TMPL_MEM_TYPE_ALIGN | TMPL_MEM_MAP_FLAGS_ADD);
 }
-
-#endif /* IEM_WITH_SETJMP */
 
 
 #ifdef TMPL_MEM_WITH_STACK
@@ -482,17 +472,15 @@ RT_CONCAT3(iemMemStackPop,TMPL_MEM_FN_SUFF,Ex)(PVMCPUCC pVCpu, TMPL_MEM_TYPE *pu
 }
 
 
-# ifdef IEM_WITH_SETJMP
-
 /**
  * Safe/fallback stack store function that longjmps on error.
  */
 void RT_CONCAT3(iemMemStoreStack,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, RTGCPTR GCPtrMem,
                                                            TMPL_MEM_TYPE uValue) IEM_NOEXCEPT_MAY_LONGJMP
 {
-#  if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-#  endif
+# endif
 
     uint8_t        bUnmapInfo;
     TMPL_MEM_TYPE *puDst = (TMPL_MEM_TYPE *)iemMemMapSafeJmp(pVCpu, &bUnmapInfo, sizeof(TMPL_MEM_TYPE), X86_SREG_SS, GCPtrMem,
@@ -504,16 +492,16 @@ void RT_CONCAT3(iemMemStoreStack,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, RTGCP
 }
 
 
-#  ifdef TMPL_WITH_PUSH_SREG
+# ifdef TMPL_WITH_PUSH_SREG
 /**
  * Safe/fallback stack SREG store function that longjmps on error.
  */
 void RT_CONCAT3(iemMemStoreStack,TMPL_MEM_FN_SUFF,SRegSafeJmp)(PVMCPUCC pVCpu, RTGCPTR GCPtrMem,
                                                                TMPL_MEM_TYPE uValue) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#  if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#  endif
 
     /* bs3-cpu-weird-1 explores this instruction. AMD 3990X does it by the book,
       with a zero extended DWORD write.  While my Intel 10890XE goes all weird
@@ -557,7 +545,7 @@ void RT_CONCAT3(iemMemStoreStack,TMPL_MEM_FN_SUFF,SRegSafeJmp)(PVMCPUCC pVCpu, R
         Log12(("IEM WR " TMPL_MEM_FMT_DESC " SS|%RGv: " TMPL_MEM_FMT_TYPE " [sreg]\n", GCPtrMem, uValue));
     }
 }
-#  endif /* TMPL_WITH_PUSH_SREG */
+# endif /* TMPL_WITH_PUSH_SREG */
 
 
 /**
@@ -639,15 +627,15 @@ void RT_CONCAT3(iemMemStackPopGReg,TMPL_MEM_FN_SUFF,SafeJmp)(PVMCPUCC pVCpu, uin
         pVCpu->cpum.GstCtx.aGRegs[iGReg].u16 = uValue;
 }
 
-#  ifdef TMPL_WITH_PUSH_SREG
+# ifdef TMPL_WITH_PUSH_SREG
 /**
  * Safe/fallback stack push function that longjmps on error.
  */
 void RT_CONCAT3(iemMemStackPush,TMPL_MEM_FN_SUFF,SRegSafeJmp)(PVMCPUCC pVCpu, TMPL_MEM_TYPE uValue) IEM_NOEXCEPT_MAY_LONGJMP
 {
-# if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
+#  if defined(IEM_WITH_DATA_TLB) && defined(IN_RING3)
     pVCpu->iem.s.DataTlb.cTlbSafeWritePath++;
-# endif
+#  endif
 
     /* Decrement the stack pointer (prep). */
     uint64_t      uNewRsp;
@@ -675,9 +663,7 @@ void RT_CONCAT3(iemMemStackPush,TMPL_MEM_FN_SUFF,SRegSafeJmp)(PVMCPUCC pVCpu, TM
            GCPtrTop, pVCpu->cpum.GstCtx.rsp, uNewRsp, uValue));
     pVCpu->cpum.GstCtx.rsp = uNewRsp;
 }
-#  endif /* TMPL_WITH_PUSH_SREG */
-
-# endif /* IEM_WITH_SETJMP */
+# endif /* TMPL_WITH_PUSH_SREG */
 
 #endif /* TMPL_MEM_WITH_STACK */
 

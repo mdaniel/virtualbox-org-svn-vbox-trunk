@@ -55,20 +55,9 @@ RT_C_DECLS_BEGIN
 # define IEM_STATIC static
 #endif
 
-/** @def IEM_WITH_SETJMP
- * Enables alternative status code handling using setjmps.
- *
- * This adds a bit of expense via the setjmp() call since it saves all the
- * non-volatile registers.  However, it eliminates return code checks and allows
- * for more optimal return value passing (return regs instead of stack buffer).
- */
-#if defined(DOXYGEN_RUNNING) || defined(RT_OS_WINDOWS) || 1
-# define IEM_WITH_SETJMP
-#endif
-
 /** @def IEM_WITH_THROW_CATCH
  * Enables using C++ throw/catch as an alternative to setjmp/longjmp in user
- * mode code when IEM_WITH_SETJMP is in effect.
+ * mode code.
  *
  * With GCC 11.3.1 and code TLB on linux, using throw/catch instead of
  * setjmp/long resulted in bs2-test-1 running 3.00% faster and all but on test
@@ -79,7 +68,7 @@ RT_C_DECLS_BEGIN
  * the MMIO and CPUID tests ran noticeably faster. Variation is greater than on
  * Linux, but it should be quite a bit faster for normal code.
  */
-#if (defined(IEM_WITH_SETJMP) && defined(IN_RING3) && (defined(__GNUC__) || defined(_MSC_VER))) \
+#if (defined(IN_RING3) && (defined(__GNUC__) || defined(_MSC_VER))) \
  || defined(DOXYGEN_RUNNING)
 # define IEM_WITH_THROW_CATCH
 #endif
@@ -91,12 +80,10 @@ RT_C_DECLS_BEGIN
  * @param   a_pVCpu     The CPU handle.
  * @param   a_rc        The status code jump back with / throw.
  */
-#if defined(IEM_WITH_SETJMP) || defined(DOXYGEN_RUNNING)
-# ifdef IEM_WITH_THROW_CATCH
-#  define IEM_DO_LONGJMP(a_pVCpu, a_rc)  throw int(a_rc)
-# else
-#  define IEM_DO_LONGJMP(a_pVCpu, a_rc)  longjmp(*(a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf), (a_rc))
-# endif
+#ifdef IEM_WITH_THROW_CATCH
+# define IEM_DO_LONGJMP(a_pVCpu, a_rc)  throw int(a_rc)
+#else
+# define IEM_DO_LONGJMP(a_pVCpu, a_rc)  longjmp(*(a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf), (a_rc))
 #endif
 
 /** For use with IEM function that may do a longjmp (when enabled).
@@ -129,7 +116,7 @@ RT_C_DECLS_BEGIN
  *
  * @see https://developercommunity.visualstudio.com/t/fragile-behavior-of-longjmp-called-from-noexcept-f/1532859
  */
-#if defined(IEM_WITH_SETJMP) && (defined(_MSC_VER) || defined(IEM_WITH_THROW_CATCH))
+#if defined(_MSC_VER) || defined(IEM_WITH_THROW_CATCH)
 # define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT_EX(false)
 #else
 # define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT
@@ -1221,22 +1208,16 @@ void                    iemInitPendingBreakpointsSlow(PVMCPUCC pVCpu);
  * @{ */
 VBOXSTRICTRC            iemRaiseXcptOrInt(PVMCPUCC pVCpu, uint8_t cbInstr, uint8_t u8Vector, uint32_t fFlags,
                                           uint16_t uErr, uint64_t uCr2) RT_NOEXCEPT;
-#ifdef IEM_WITH_SETJMP
 DECL_NO_RETURN(void)    iemRaiseXcptOrIntJmp(PVMCPUCC pVCpu, uint8_t cbInstr, uint8_t u8Vector,
                                              uint32_t fFlags, uint16_t uErr, uint64_t uCr2) IEM_NOEXCEPT_MAY_LONGJMP;
-#endif
 VBOXSTRICTRC            iemRaiseDivideError(PVMCPUCC pVCpu) RT_NOEXCEPT;
 VBOXSTRICTRC            iemRaiseDebugException(PVMCPUCC pVCpu) RT_NOEXCEPT;
 VBOXSTRICTRC            iemRaiseUndefinedOpcode(PVMCPUCC pVCpu) RT_NOEXCEPT;
 VBOXSTRICTRC            iemRaisePageFault(PVMCPUCC pVCpu, RTGCPTR GCPtrWhere, uint32_t cbAccess, uint32_t fAccess, int rc) RT_NOEXCEPT;
-#ifdef IEM_WITH_SETJMP
 DECL_NO_RETURN(void)    iemRaisePageFaultJmp(PVMCPUCC pVCpu, RTGCPTR GCPtrWhere, uint32_t cbAccess, uint32_t fAccess, int rc) IEM_NOEXCEPT_MAY_LONGJMP;
-#endif
 VBOXSTRICTRC            iemRaiseMathFault(PVMCPUCC pVCpu) RT_NOEXCEPT;
 VBOXSTRICTRC            iemRaiseAlignmentCheckException(PVMCPUCC pVCpu) RT_NOEXCEPT;
-#ifdef IEM_WITH_SETJMP
 DECL_NO_RETURN(void)    iemRaiseAlignmentCheckExceptionJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_MAY_LONGJMP;
-#endif
 VBOXSTRICTRC            iemRaiseSimdFpException(PVMCPUCC pVCpu) RT_NOEXCEPT;
 
 IEM_CIMPL_DEF_0(iemCImplRaiseDivideError);
@@ -1286,7 +1267,6 @@ VBOXSTRICTRC    iemMemFetchDataR80(PVMCPUCC pVCpu, PRTFLOAT80U pr80Dst, uint8_t 
 VBOXSTRICTRC    iemMemFetchDataD80(PVMCPUCC pVCpu, PRTPBCD80U pd80Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT;
 VBOXSTRICTRC    iemMemFetchDataU128(PVMCPUCC pVCpu, PRTUINT128U pu128Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT;
 VBOXSTRICTRC    iemMemFetchDataU256(PVMCPUCC pVCpu, PRTUINT256U pu256Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT;
-#ifdef IEM_WITH_SETJMP
 uint8_t         iemMemFetchDataU8Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
 uint16_t        iemMemFetchDataU16Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
 uint32_t        iemMemFetchDataU32Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
@@ -1295,7 +1275,6 @@ void            iemMemFetchDataR80Jmp(PVMCPUCC pVCpu, PRTFLOAT80U pr80Dst, uint8
 void            iemMemFetchDataD80Jmp(PVMCPUCC pVCpu, PRTPBCD80U pd80Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemFetchDataU128Jmp(PVMCPUCC pVCpu, PRTUINT128U pu128Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemFetchDataU256Jmp(PVMCPUCC pVCpu, PRTUINT256U pu256Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) IEM_NOEXCEPT_MAY_LONGJMP;
-#endif
 
 VBOXSTRICTRC    iemMemFetchSysU8(PVMCPUCC pVCpu, uint8_t *pu8Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT;
 VBOXSTRICTRC    iemMemFetchSysU16(PVMCPUCC pVCpu, uint16_t *pu16Dst, uint8_t iSegReg, RTGCPTR GCPtrMem) RT_NOEXCEPT;
@@ -1308,14 +1287,12 @@ VBOXSTRICTRC    iemMemStoreDataU32(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPt
 VBOXSTRICTRC    iemMemStoreDataU64(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, uint64_t u64Value) RT_NOEXCEPT;
 VBOXSTRICTRC    iemMemStoreDataU128(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, RTUINT128U u128Value) RT_NOEXCEPT;
 VBOXSTRICTRC    iemMemStoreDataU256(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, PCRTUINT256U pu256Value) RT_NOEXCEPT;
-#ifdef IEM_WITH_SETJMP
 void            iemMemStoreDataU8Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, uint8_t u8Value) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemStoreDataU16Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, uint16_t u16Value) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemStoreDataU32Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, uint32_t u32Value) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemStoreDataU64Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, uint64_t u64Value) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemStoreDataU128Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, RTUINT128U u128Value) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemStoreDataU256Jmp(PVMCPUCC pVCpu, uint8_t iSegReg, RTGCPTR GCPtrMem, PCRTUINT256U pu256Value) IEM_NOEXCEPT_MAY_LONGJMP;
-#endif
 
 VBOXSTRICTRC    iemMemStackPushBeginSpecial(PVMCPUCC pVCpu, size_t cbMem, uint32_t cbAlign,
                                             void **ppvMem, uint64_t *puNewRsp) RT_NOEXCEPT;

@@ -94,10 +94,6 @@
 # error The data TLB must be enabled for the recompiler.
 #endif
 
-#ifndef IEM_WITH_SETJMP
-# error The setjmp approach must be enabled for the recompiler.
-#endif
-
 /** @todo eliminate this clang build hack. */
 #if RT_CLANG_PREREQ(4, 0)
 # pragma GCC diagnostic ignored "-Wunused-function"

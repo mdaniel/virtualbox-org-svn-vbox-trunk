@@ -64,20 +64,9 @@ RT_C_DECLS_BEGIN
 # define IEM_STATIC static
 #endif
 
-/** @def IEM_WITH_SETJMP
- * Enables alternative status code handling using setjmps.
- *
- * This adds a bit of expense via the setjmp() call since it saves all the
- * non-volatile registers.  However, it eliminates return code checks and allows
- * for more optimal return value passing (return regs instead of stack buffer).
- */
-#if defined(DOXYGEN_RUNNING) || defined(RT_OS_WINDOWS) || 1
-# define IEM_WITH_SETJMP
-#endif
-
 /** @def IEM_WITH_THROW_CATCH
  * Enables using C++ throw/catch as an alternative to setjmp/longjmp in user
- * mode code when IEM_WITH_SETJMP is in effect.
+ * mode code.
  *
  * With GCC 11.3.1 and code TLB on linux, using throw/catch instead of
  * setjmp/long resulted in bs2-test-1 running 3.00% faster and all but on test
@@ -88,7 +77,7 @@ RT_C_DECLS_BEGIN
  * the MMIO and CPUID tests ran noticeably faster. Variation is greater than on
  * Linux, but it should be quite a bit faster for normal code.
  */
-#if defined(__cplusplus) && defined(IEM_WITH_SETJMP) && defined(IN_RING3) && (defined(__GNUC__) || defined(_MSC_VER)) /* ASM-NOINC-START */
+#if defined(__cplusplus) && defined(IN_RING3) && (defined(__GNUC__) || defined(_MSC_VER)) /* ASM-NOINC-START */
 # define IEM_WITH_THROW_CATCH
 #endif /*ASM-NOINC-END*/
 
@@ -182,20 +171,18 @@ RT_C_DECLS_BEGIN
  * @param   a_pVCpu     The CPU handle.
  * @param   a_rc        The status code jump back with / throw.
  */
-#if defined(IEM_WITH_SETJMP) || defined(DOXYGEN_RUNNING)
-# ifdef IEM_WITH_THROW_CATCH
-#  ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER_LONGJMP
-#   define IEM_DO_LONGJMP(a_pVCpu, a_rc) do { \
+#ifdef IEM_WITH_THROW_CATCH
+# ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER_LONGJMP
+#  define IEM_DO_LONGJMP(a_pVCpu, a_rc) do { \
             if ((a_pVCpu)->iem.s.pvTbFramePointerR3) \
                 iemNativeTbLongJmp((a_pVCpu)->iem.s.pvTbFramePointerR3, (a_rc)); \
             throw int(a_rc); \
         } while (0)
-#  else
-#   define IEM_DO_LONGJMP(a_pVCpu, a_rc) throw int(a_rc)
-#  endif
 # else
-#  define IEM_DO_LONGJMP(a_pVCpu, a_rc)  longjmp(*(a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf), (a_rc))
+#  define IEM_DO_LONGJMP(a_pVCpu, a_rc) throw int(a_rc)
 # endif
+#else
+# define IEM_DO_LONGJMP(a_pVCpu, a_rc)  longjmp(*(a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf), (a_rc))
 #endif
 
 /** For use with IEM function that may do a longjmp (when enabled).
@@ -228,7 +215,7 @@ RT_C_DECLS_BEGIN
  *
  * @see https://developercommunity.visualstudio.com/t/fragile-behavior-of-longjmp-called-from-noexcept-f/1532859
  */
-#if defined(IEM_WITH_SETJMP) && (defined(_MSC_VER) || defined(IEM_WITH_THROW_CATCH))
+#if defined(_MSC_VER) || defined(IEM_WITH_THROW_CATCH)
 # define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT_EX(false)
 #else
 # define IEM_NOEXCEPT_MAY_LONGJMP   RT_NOEXCEPT
@@ -2536,39 +2523,37 @@ typedef IEMCPU const *PCIEMCPU;
  * @note Use with extreme care as this is a fragile macro.
  * @param   a_pVCpu     The cross context virtual CPU structure of the calling EMT.
  */
-#if defined(IEM_WITH_SETJMP) || defined(DOXYGEN_RUNNING)
-# ifdef IEM_WITH_THROW_CATCH
-#  define IEM_TRY_SETJMP(a_pVCpu, a_rcTarget) \
+#ifdef IEM_WITH_THROW_CATCH
+# define IEM_TRY_SETJMP(a_pVCpu, a_rcTarget) \
         a_rcTarget = VINF_SUCCESS; \
         try
-#  define IEM_TRY_SETJMP_AGAIN(a_pVCpu, a_rcTarget) \
+# define IEM_TRY_SETJMP_AGAIN(a_pVCpu, a_rcTarget) \
         IEM_TRY_SETJMP(a_pVCpu, a_rcTarget)
-#  define IEM_CATCH_LONGJMP_BEGIN(a_pVCpu, a_rcTarget) \
+# define IEM_CATCH_LONGJMP_BEGIN(a_pVCpu, a_rcTarget) \
         catch (int rcThrown) \
         { \
             a_rcTarget = rcThrown
-#  define IEM_CATCH_LONGJMP_END(a_pVCpu) \
+# define IEM_CATCH_LONGJMP_END(a_pVCpu) \
         } \
         ((void)0)
-# else  /* !IEM_WITH_THROW_CATCH */
-#  define IEM_TRY_SETJMP(a_pVCpu, a_rcTarget) \
+#else  /* !IEM_WITH_THROW_CATCH */
+# define IEM_TRY_SETJMP(a_pVCpu, a_rcTarget) \
         jmp_buf  JmpBuf; \
         jmp_buf * volatile pSavedJmpBuf = (a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf); \
         (a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf) = &JmpBuf; \
         if ((rcStrict = setjmp(JmpBuf)) == 0)
-#  define IEM_TRY_SETJMP_AGAIN(a_pVCpu, a_rcTarget) \
+# define IEM_TRY_SETJMP_AGAIN(a_pVCpu, a_rcTarget) \
         pSavedJmpBuf = (a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf); \
         (a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf) = &JmpBuf; \
         if ((rcStrict = setjmp(JmpBuf)) == 0)
-#  define IEM_CATCH_LONGJMP_BEGIN(a_pVCpu, a_rcTarget) \
+# define IEM_CATCH_LONGJMP_BEGIN(a_pVCpu, a_rcTarget) \
         else \
         { \
             ((void)0)
-#  define IEM_CATCH_LONGJMP_END(a_pVCpu) \
+# define IEM_CATCH_LONGJMP_END(a_pVCpu) \
         } \
         (a_pVCpu)->iem.s.CTX_SUFF(pJmpBuf) = pSavedJmpBuf
-# endif /* !IEM_WITH_THROW_CATCH */
-#endif  /* IEM_WITH_SETJMP */
+#endif /* !IEM_WITH_THROW_CATCH */
 
 
 /**
@@ -3170,14 +3155,12 @@ VBOXSTRICTRC    iemMemCommitAndUnmapPostponeTroubleToR3(PVMCPUCC pVCpu, uint8_t 
 void            iemMemRollbackAndUnmap(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEPT;
 void            iemMemRollback(PVMCPUCC pVCpu) RT_NOEXCEPT;
 
-#ifdef IEM_WITH_SETJMP
 void            iemMemCommitAndUnmapJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemCommitAndUnmapRwSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemCommitAndUnmapAtSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemCommitAndUnmapWoSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemCommitAndUnmapRoSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemRollbackAndUnmapWoSafe(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEPT;
-#endif
 
 void            iemTlbInvalidateAllPhysicalSlow(PVMCPUCC pVCpu) RT_NOEXCEPT;
 /** @} */

@@ -318,10 +318,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
     if (pWatched != scene())
         return QObject::eventFilter(pWatched, pEvent);
 
-    /* Do not handle disabled items: */
-    if (!currentItem()->isEnabled())
-        return QObject::eventFilter(pWatched, pEvent);
-
     /* Checking event-type: */
     switch (pEvent->type())
     {
@@ -334,9 +330,9 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
             QPointF scenePos = pMouseEvent->scenePos();
             if (QGraphicsItem *pItemUnderMouse = itemAt(scenePos))
             {
-                /* Which item we just clicked? */
+                /* Which item we just clicked? Is it enabled? */
                 UIToolsItem *pClickedItem = qgraphicsitem_cast<UIToolsItem*>(pItemUnderMouse);
-                if (pClickedItem)
+                if (pClickedItem && pClickedItem->isEnabled())
                 {
                     /* Handle known item classes: */
                     switch (pClickedItem->itemClass())
@@ -567,12 +563,12 @@ void UIToolsModel::saveCurrentItems()
     gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine);
 
     /* Update values depending on model class: */
-    if (m_pCurrentItem)
+    if (currentItem())
     {
         if (m_enmClass == UIToolClass_Global)
-            enmTypeGlobal = m_pCurrentItem->itemType();
+            enmTypeGlobal = currentItem()->itemType();
         else if (m_enmClass == UIToolClass_Machine)
-            enmTypeMachine = m_pCurrentItem->itemType();
+            enmTypeMachine = currentItem()->itemType();
     }
 
     /* Save selected items data: */

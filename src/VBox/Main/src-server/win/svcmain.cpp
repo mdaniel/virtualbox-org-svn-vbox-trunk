@@ -953,6 +953,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
         { "--registervbox", 'b',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
         { "-registervbox",  'b',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
         { "/registervbox",  'b',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
+        { "--version",      'V',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
+        { "-version",       'V',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
+        { "/version",       'V',    RTGETOPT_REQ_NOTHING | RTGETOPT_FLAG_ICASE },
     };
 
     bool            fRun = true;

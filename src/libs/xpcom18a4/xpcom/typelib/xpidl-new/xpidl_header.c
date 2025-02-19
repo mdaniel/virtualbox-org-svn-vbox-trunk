@@ -46,10 +46,11 @@
 #define AS_CALL 1
 #define AS_IMPL 2
 
-static gboolean write_method_signature(IDL_tree method_tree, FILE *outfile,
+#if 0
+static bool write_method_signature(IDL_tree method_tree, FILE *outfile,
                                        int mode, const char *className);
-static gboolean write_attr_accessor(IDL_tree attr_tree, FILE * outfile,
-                                    gboolean getter, 
+static bool write_attr_accessor(IDL_tree attr_tree, FILE * outfile,
+                                    bool getter, 
                                     int mode, const char *className);
 
 static void
@@ -57,7 +58,7 @@ write_indent(FILE *outfile) {
     fputs("  ", outfile);
 }
 
-static gboolean
+static bool
 header_prolog(TreeState *state)
 {
     char *define = xpidl_basename(state->basename);
@@ -114,7 +115,7 @@ header_prolog(TreeState *state)
     return TRUE;
 }
 
-static gboolean
+static bool
 header_epilog(TreeState *state)
 {
     char *define = xpidl_basename(state->basename);
@@ -139,15 +140,15 @@ write_classname_iid_define(FILE *file, const char *className)
     fputs("_IID", file);
 }
 
-static gboolean
+static bool
 interface(TreeState *state)
 {
     IDL_tree iface = state->tree, iter, orig;
     char *className = IDL_IDENT(IDL_INTERFACE(iface).ident).str;
     char *classNameUpper = NULL;
     char *cp;
-    gboolean ok = TRUE;
-    gboolean keepvtable;
+    bool ok = TRUE;
+    bool keepvtable;
     const char *iid;
     const char *name_space;
     struct nsID id;
@@ -487,7 +488,7 @@ out:
     return ok;
 }
 
-static gboolean
+static bool
 list(TreeState *state)
 {
     IDL_tree iter;
@@ -499,8 +500,8 @@ list(TreeState *state)
     return TRUE;
 }
 
-static gboolean
-write_type(IDL_tree type_tree, gboolean is_out, FILE *outfile)
+static bool
+write_type(IDL_tree type_tree, bool is_out, FILE *outfile)
 {
     if (!type_tree) {
         fputs("void", outfile);
@@ -509,7 +510,7 @@ write_type(IDL_tree type_tree, gboolean is_out, FILE *outfile)
 
     switch (IDL_NODE_TYPE(type_tree)) {
       case IDLN_TYPE_INTEGER: {
-        gboolean sign = IDL_TYPE_INTEGER(type_tree).f_signed;
+        bool sign = IDL_TYPE_INTEGER(type_tree).f_signed;
         switch (IDL_TYPE_INTEGER(type_tree).f_type) {
           case IDL_INTEGER_TYPE_SHORT:
             fputs(sign ? "PRInt16" : "PRUint16", outfile);
@@ -609,9 +610,9 @@ write_type(IDL_tree type_tree, gboolean is_out, FILE *outfile)
  *  AS_IMPL writes 'NS_IMETHODIMP className::foo(string bar, long sil)'
  *  AS_CALL writes 'foo(bar, sil)'
  */
-static gboolean
+static bool
 write_attr_accessor(IDL_tree attr_tree, FILE * outfile,
-                    gboolean getter, int mode, const char *className)
+                    bool getter, int mode, const char *className)
 {
     char *attrname = ATTR_IDENT(attr_tree).str;
 
@@ -649,7 +650,7 @@ write_attr_accessor(IDL_tree attr_tree, FILE * outfile,
     return TRUE;
 }
 
-static gboolean
+static bool
 attr_dcl(TreeState *state)
 {
     GSList *doc_comments;
@@ -695,7 +696,7 @@ attr_dcl(TreeState *state)
     return TRUE;
 }
 
-static gboolean
+static bool
 do_enum(TreeState *state)
 {
     IDL_tree_error(state->tree, "enums not supported, "
@@ -703,12 +704,12 @@ do_enum(TreeState *state)
     return FALSE;
 }
 
-static gboolean
+static bool
 do_const_dcl(TreeState *state)
 {
     struct _IDL_CONST_DCL *dcl = &IDL_CONST_DCL(state->tree);
     const char *name = IDL_IDENT(dcl->ident).str;
-    gboolean is_signed;
+    bool is_signed;
     GSList *doc_comments = IDL_IDENT(dcl->ident).comments;
     IDL_tree real_type;
     const char *const_format;
@@ -735,7 +736,7 @@ do_const_dcl(TreeState *state)
     return TRUE;
 }
 
-static gboolean
+static bool
 do_typedef(TreeState *state)
 {
     IDL_tree type = IDL_TYPE_DCL(state->tree).type_spec;
@@ -794,11 +795,11 @@ do_typedef(TreeState *state)
  */
 
 /* If notype is true, just write the param name. */
-static gboolean
+static bool
 write_param(IDL_tree param_tree, FILE *outfile)
 {
     IDL_tree param_type_spec = IDL_PARAM_DCL(param_tree).param_type_spec;
-    gboolean is_in = IDL_PARAM_DCL(param_tree).attr == IDL_PARAM_IN;
+    bool is_in = IDL_PARAM_DCL(param_tree).attr == IDL_PARAM_IN;
     /* in string, wstring, nsid, domstring, utf8string, cstring and 
      * astring any explicitly marked [const] are const 
      */
@@ -849,7 +850,7 @@ write_param(IDL_tree param_tree, FILE *outfile)
 /*
  * A forward declaration, usually an interface.
  */
-static gboolean
+static bool
 forward_dcl(TreeState *state)
 {
     IDL_tree iface = state->tree;
@@ -870,13 +871,13 @@ forward_dcl(TreeState *state)
  *  AS_IMPL writes 'NS_IMETHODIMP className::foo(string bar, long sil)'
  *  AS_CALL writes 'foo(bar, sil)'
  */
-static gboolean
+static bool
 write_method_signature(IDL_tree method_tree, FILE *outfile, int mode,
                        const char *className)
 {
     struct _IDL_OP_DCL *op = &IDL_OP_DCL(method_tree);
-    gboolean no_generated_args = TRUE;
-    gboolean op_notxpcom =
+    bool no_generated_args = TRUE;
+    bool op_notxpcom =
         (IDL_tree_property_get(op->ident, "notxpcom") != NULL);
     const char *name;
     IDL_tree iter;
@@ -968,7 +969,7 @@ write_method_signature(IDL_tree method_tree, FILE *outfile, int mode,
  * A method is an `operation', therefore a method decl is an `op dcl'.
  * I blame Elliot.
  */
-static gboolean
+static bool
 op_dcl(TreeState *state)
 {
     GSList *doc_comments = IDL_IDENT(IDL_OP_DCL(state->tree).ident).comments;
@@ -1003,7 +1004,7 @@ write_codefrag_line(gpointer data, gpointer user_data)
     fputc('\n', state->file);
 }
 
-static gboolean
+static bool
 codefrag(TreeState *state)
 {
     const char *desc = IDL_CODEFRAG(state->tree).desc;
@@ -1029,30 +1030,33 @@ codefrag(TreeState *state)
 
     return TRUE;
 }
+#endif
 
 backend *
 xpidl_header_dispatch(void)
 {
     static backend result;
-    static nodeHandler table[IDLN_LAST];
-    static gboolean initialized = FALSE;
+    static nodeHandler table[10 /*IDLN_LAST*/];
+    static bool initialized = false;
     
-    result.emit_prolog = header_prolog;
-    result.emit_epilog = header_epilog;
+    result.emit_prolog = NULL; //header_prolog;
+    result.emit_epilog = NULL; //header_epilog;
 
+#if 0
     if (!initialized) {
-        table[IDLN_LIST] = list;
-        table[IDLN_ATTR_DCL] = attr_dcl;
-        table[IDLN_OP_DCL] = op_dcl;
-        table[IDLN_FORWARD_DCL] = forward_dcl;
-        table[IDLN_TYPE_ENUM] = do_enum;
-        table[IDLN_INTERFACE] = interface;
-        table[IDLN_CODEFRAG] = codefrag;
-        table[IDLN_TYPE_DCL] = do_typedef;
-        table[IDLN_CONST_DCL] = do_const_dcl;
-        table[IDLN_NATIVE] = check_native;
-        initialized = TRUE;
+        table[IDLN_LIST] = NULL; //list;
+        table[IDLN_ATTR_DCL] = NULL; //attr_dcl;
+        table[IDLN_OP_DCL] = NULL; //op_dcl;
+        table[IDLN_FORWARD_DCL] = NULL; //forward_dcl;
+        table[IDLN_TYPE_ENUM] = NULL; //do_enum;
+        table[IDLN_INTERFACE] = NULL; //interface;
+        table[IDLN_CODEFRAG] = NULL; //codefrag;
+        table[IDLN_TYPE_DCL] = NULL; //do_typedef;
+        table[IDLN_CONST_DCL] = NULL; //do_const_dcl;
+        table[IDLN_NATIVE]    = NULL; //check_native;
+        initialized = true;
     }
+#endif
 
     result.dispatch_table = table;
     return &result;

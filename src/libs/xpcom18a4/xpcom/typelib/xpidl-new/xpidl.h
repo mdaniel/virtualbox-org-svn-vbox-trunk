@@ -42,31 +42,143 @@
 #ifndef __xpidl_h
 #define __xpidl_h
 
+#include <iprt/errcore.h>
+#include <iprt/list.h>
+#include <iprt/script.h>
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib.h>
-#include <string.h> /* After glib.h to avoid warnings about shadowing 'index'. */
-
-#ifndef XP_MAC
-#include <libIDL/IDL.h>
-#else
-#include <IDL.h>
-#endif
+#include <string.h>
 
 #include <xpt_struct.h>
 
-#define XPIDL_WARNING(x) IDL_tree_warning x
+
+/**
+ * An include path.
+ */
+typedef struct XPIDLINCLUDEDIR
+{
+    /** Node for the list of include paths. */
+    RTLISTNODE          NdIncludes;
+    /** The zero terminated include path. */
+    const char          *pszPath;
+} XPIDLINCLUDEDIR;
+/** Pointer to an include path. */
+typedef XPIDLINCLUDEDIR *PXPIDLINCLUDEDIR;
+/** Pointer to a const include path. */
+typedef const XPIDLINCLUDEDIR *PCXPIDLINCLUDEDIR;
+
+
+/**
+ * The input stream.
+ */
+typedef struct XPIDLINPUT
+{
+    /** Node for the list of inputs. */
+    RTLISTNODE          NdInput;
+    /** The list of includes this input generated. */
+    RTLISTANCHOR        LstIncludes;
+    /** The basename for this input. */
+    char                *pszBasename;
+    /** The filename for this input. */
+    char                *pszFilename;
+    /** The lexer instance for this input. */
+    RTSCRIPTLEX         hIdlLex;
+} XPIDLINPUT;
+/** Pointer to an input stream. */
+typedef XPIDLINPUT *PXPIDLINPUT;
+/** Pointer to a const input stream. */
+typedef const XPIDLINPUT *PCXPIDLINPUT;
+
+
+/**
+ * IDL node type.
+ */
+typedef enum XPIDLNDTYPE
+{
+    kXpidlNdType_Invalid = 0,
+    kXpidlNdType_RawBlock,
+    kXpidlNdType_Typedef,
+    kXpidlNdType_Native,
+    kXpidlNdType_Interface,
+    kXpidlNdType_Forward_Decl
+} XPIDLNDTYPE;
+
+
+/**
+ * A node attribute.
+ */
+typedef struct XPIDLATTR
+{
+    /** The attribute name. */
+    const char          *pszName;
+    /** The value assigned if any. */
+    const char          *pszVal;
+} XPIDLATTR;
+/** Pointer to an attribute. */
+typedef XPIDLATTR *PXPIDLATTR;
+/** Pointer to a const attribute. */
+typedef const XPIDLATTR *PCXPIDLATTR;
+
+
+/** Pointer to an IDL node. */
+typedef struct XPIDLNODE *PXPIDLNODE;
+/** Pointer to a const IDL node. */
+typedef const struct XPIDLNODE *PCXPIDLNODE;
+
+/**
+ * IDL node.
+ */
+typedef struct XPIDLNODE
+{
+    /** Node for the list this node is in. */
+    RTLISTNODE          NdLst;
+    /** The parent node (if any). */
+    PCXPIDLNODE         pParent;
+    /** The input stream this node was generated from (via #include's). */
+    PCXPIDLINPUT        pInput;
+    /** The node type. */
+    XPIDLNDTYPE         enmType;
+    /** Node type dependent data. */
+    union
+    {
+        struct
+        {
+            const char *pszRaw;
+            size_t     cchRaw;
+        } RawBlock;
+    } u;
+} XPIDLNODE;
+
+
+/**
+ * The IDL parsing state.
+ */
+typedef struct XPIDLPARSE
+{
+    /** List of input files. */
+    RTLISTANCHOR        LstInputs;
+    /** The list of XPIDL nodes from the root. */
+    RTLISTANCHOR        LstNodes;
+    /** Extended error info. */
+    RTERRINFOSTATIC     ErrInfo;
+} XPIDLPARSE;
+/** Pointer to an IDL parsing state. */
+typedef XPIDLPARSE *PXPIDLPARSE;
+/** Pointer to a const IDL parsing state. */
+typedef const XPIDLPARSE *PCXPIDLPARSE;
+
 
 /*
  * Internal operation flags.
  */
-extern gboolean enable_debug;
-extern gboolean enable_warnings;
-extern gboolean verbose_mode;
-extern gboolean emit_typelib_annotations;
-extern gboolean explicit_output_filename;
+extern bool enable_debug;
+extern bool enable_warnings;
+extern bool verbose_mode;
+extern bool emit_typelib_annotations;
+extern bool explicit_output_filename;
 
 extern PRUint8  major_version;
 extern PRUint8  minor_version;
@@ -76,7 +188,7 @@ typedef struct TreeState TreeState;
 /*
  * A function to handle an IDL_tree type.
  */
-typedef gboolean (*nodeHandler)(TreeState *);
+typedef bool (*nodeHandler)(TreeState *);
 
 /*
  * Struct containing functions to define the behavior of a given output mode.
@@ -92,8 +204,6 @@ typedef backend *(*backendFactory)();
 
 extern backend *xpidl_header_dispatch(void);
 extern backend *xpidl_typelib_dispatch(void);
-extern backend *xpidl_doc_dispatch(void);
-extern backend *xpidl_java_dispatch(void);
 
 typedef struct ModeData {
     char               *mode;
@@ -102,18 +212,12 @@ typedef struct ModeData {
     backendFactory     factory;
 } ModeData;
 
-typedef struct IncludePathEntry {
-    char                    *directory;
-    struct IncludePathEntry *next;
-} IncludePathEntry;
 
 struct TreeState {
     FILE             *file;
     /* Maybe supplied by -o. Not related to (g_)basename from string.h or glib */
     char             *basename;
-    IDL_ns           ns;
-    IDL_tree         tree;
-    GSList           *base_includes;
+    RTLISTANCHOR     *base_includes;
     nodeHandler      *dispatch;
     void             *priv;     /* mode-private data */
 };
@@ -123,14 +227,8 @@ struct TreeState {
  * appropriate.
  */
 int
-xpidl_process_idl(char *filename, IncludePathEntry *include_path,
+xpidl_process_idl(char *filename, PRTLISTANCHOR pLstIncludePaths,
                   char *file_basename, ModeData *mode);
-
-/*
- * Iterate over an IDLN_LIST -- why is this not part of libIDL?
- */
-void
-xpidl_list_foreach(IDL_tree p, IDL_tree_func foreach, gpointer user_data);
 
 /*
  * Wrapper whines to stderr then exits after null return from malloc or strdup.
@@ -151,7 +249,7 @@ xpidl_basename(const char * path);
 /*
  * Process an XPIDL node and its kids, if any.
  */
-gboolean
+bool
 xpidl_process_node(TreeState *state);
 
 /*
@@ -176,17 +274,18 @@ xpidl_write_comment(TreeState *state, int indent);
  * Print an iid to into a supplied buffer; the buffer should be at least
  * UUID_LENGTH bytes.
  */
-gboolean
+bool
 xpidl_sprint_iid(nsID *iid, char iidbuf[]);
 
 /*
  * Parse a uuid string into an nsID struct.  We cannot link against libxpcom,
  * so we re-implement nsID::Parse here.
  */
-gboolean
+bool
 xpidl_parse_iid(nsID *id, const char *str);
 
 
+#if 0
 /* Try to common a little node-handling stuff. */
 
 /* is this node from an aggregate type (interface)? */
@@ -252,5 +351,6 @@ check_native(TreeState *state);
 
 void
 printlist(FILE *outfile, GSList *slist);
+#endif
 
 #endif /* __xpidl_h */

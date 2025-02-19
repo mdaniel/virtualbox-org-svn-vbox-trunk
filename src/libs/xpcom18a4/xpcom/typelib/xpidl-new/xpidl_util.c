@@ -72,6 +72,7 @@ xpidl_strdup(const char *s)
     return ns;
 }
 
+#if 0
 void
 xpidl_write_comment(TreeState *state, int indent)
 {
@@ -82,12 +83,13 @@ xpidl_write_comment(TreeState *state, int indent)
                     IDLF_OUTPUT_PROPERTIES);
     fputs(" */\n", state->file);
 }
+#endif
 
 /*
  * Print an iid to into a supplied buffer; the buffer should be at least
  * UUID_LENGTH bytes.
  */
-gboolean
+bool
 xpidl_sprint_iid(nsID *id, char iidbuf[])
 {
     int printed;
@@ -115,7 +117,7 @@ static const char nsIDFmt2[] =
  * Parse a uuid string into an nsID struct.  We cannot link against libxpcom,
  * so we re-implement nsID::Parse here.
  */
-gboolean
+bool
 xpidl_parse_iid(nsID *id, const char *str)
 {
     PRInt32 count = 0;
@@ -125,7 +127,7 @@ xpidl_parse_iid(nsID *id, const char *str)
     XPT_ASSERT(str != NULL);
     
     if (strlen(str) != 36) {
-        return FALSE;
+        return false;
     }
      
 #ifdef DEBUG_shaver_iid
@@ -151,9 +153,10 @@ xpidl_parse_iid(nsID *id, const char *str)
         fputs("\n", stderr);
     }
 #endif
-    return (gboolean)(count == 11);
+    return (count == 11);
 }
 
+#if 0
 gboolean
 verify_const_declaration(IDL_tree const_tree) {
     struct _IDL_CONST_DCL *dcl = &IDL_CONST_DCL(const_tree);
@@ -846,3 +849,4 @@ xpidl_basename(const char * path)
 #endif
     return result;
 }
+#endif

@@ -191,6 +191,7 @@ UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
     , m_icon(icon)
     , m_enmClass(enmClass)
     , m_enmType(enmType)
+    , m_enmReason(HidingReason_Null)
     , m_fHovered(false)
     , m_pHoveringMachine(0)
     , m_pHoveringAnimationForward(0)
@@ -241,6 +242,15 @@ void UIToolsItem::setEnabled(bool fEnabled)
 
     /* Update linked values: */
     updatePixmap();
+}
+
+void UIToolsItem::setHiddenByReason(bool fHidden, HidingReason enmReason)
+{
+    if (fHidden && !(m_enmReason & enmReason))
+        m_enmReason = (HidingReason)(m_enmReason | enmReason);
+    else if (!fHidden && (m_enmReason & enmReason))
+        m_enmReason = (HidingReason)(m_enmReason ^ enmReason);
+    setVisible(m_enmReason == HidingReason_Null);
 }
 
 void UIToolsItem::setHovered(bool fHovered)

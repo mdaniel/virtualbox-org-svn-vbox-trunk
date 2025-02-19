@@ -141,7 +141,7 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
             if (pItem->itemClass() != enmClass)
                 continue;
             const bool fRestricted = m_mapRestrictedToolTypes.value(enmClass).contains(pItem->itemType());
-            pItem->setVisible(!fRestricted);
+            pItem->setHiddenByReason(fRestricted, UIToolsItem::HidingReason_Restricted);
         }
 
         /* Update linked values: */

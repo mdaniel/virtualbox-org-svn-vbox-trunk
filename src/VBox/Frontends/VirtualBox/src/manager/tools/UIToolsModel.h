@@ -239,7 +239,7 @@ private:
         /** Holds whether items enabled. */
         bool  m_fItemsEnabled;
 
-        /** Holds a list of restricted tool types. */
+        /** Holds a map of restricted tool types. */
         QMap<UIToolClass, QList<UIToolType> >  m_mapRestrictedToolTypes;
     /** @} */
 

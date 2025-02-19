@@ -1159,6 +1159,23 @@
 # define RT_GCC_NO_WARN_CONVERSION_END
 #endif
 
+/** @def RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_BEGIN
+ * Used to start a block of code where the compiler (gcc, ++) should not warn
+ * about unused inline function prototypes.  (This lead the compiler to
+ * ignore more than just inline functions.) */
+#if RT_GNUC_PREREQ(4, 6)
+# define RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_BEGIN \
+   _Pragma("GCC diagnostic push") \
+   _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+/** @def RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_END
+ * Paired with RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_BEGIN */
+# define RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_END \
+   _Pragma("GCC diagnostic pop")
+#else
+# define RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_BEGIN
+# define RT_NO_WARN_UNUSED_INLINE_PROTOTYPE_END
+#endif
+
 /** @def RT_COMPILER_GROKS_64BIT_BITFIELDS
  * Macro that is defined if the compiler understands 64-bit bitfields. */
 #if !defined(RT_OS_OS2) || (!defined(__IBMC__) && !defined(__IBMCPP__))

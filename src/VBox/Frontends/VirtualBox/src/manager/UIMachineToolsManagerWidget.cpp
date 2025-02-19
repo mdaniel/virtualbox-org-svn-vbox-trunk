@@ -573,25 +573,33 @@ void UIMachineToolsManagerWidget::recacheCurrentMachineItemInformation(bool fDon
 
 void UIMachineToolsManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
 {
-    /* Get current item state: */
-    const bool fCurrentItemIsOk = isItemAccessible(pItem);
-
-    /* Update machine tools restrictions: */
+    /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
+
+    /* Restrict some types for Basic mode: */
     const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
     if (!fExpertMode)
         restrictedTypes << UIToolType_FileManager;
+
+    /* Make sure local VM tools are hidden for cloud VMs: */
     if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
         restrictedTypes << UIToolType_Snapshots
                         << UIToolType_Logs
                         << UIToolType_FileManager;
+
+    /* Make sure no restricted tool is selected: */
     if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
-        toolMenu()->setToolsType(UIToolType_Details);
+        setMenuToolType(UIToolType_Details);
+
+    /* Hide restricted tools in the menu: */
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
-    toolMenu()->setRestrictedToolTypes(restrictions);
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
+
+    /* Disable even unrestricted tools for inacccessible VMs: */
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
     toolMenu()->setItemsEnabled(fCurrentItemIsOk);
 
-    /* Take restrictions into account, closing all restricted tools: */
+    /* Close all restricted tools: */
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)
         toolPane()->closeTool(enmRestrictedType);
 }

@@ -82,10 +82,8 @@ public:
         /** Returns whether tool items enabled. */
         bool isItemsEnabled() const;
 
-        /** Defines restructed tool @a types. */
-        void setRestrictedToolTypes(const QList<UIToolType> &types);
-        /** Returns restricted tool types. */
-        QList<UIToolType> restrictedToolTypes() const;
+        /** Defines restructed tool @a types for the @a enmClass specified. */
+        void setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types);
     /** @} */
 
 private:

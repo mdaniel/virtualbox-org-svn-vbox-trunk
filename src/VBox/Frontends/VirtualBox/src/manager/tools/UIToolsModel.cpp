@@ -131,24 +131,24 @@ bool UIToolsModel::isItemsEnabled() const
     return m_fItemsEnabled;
 }
 
-void UIToolsModel::setRestrictedToolTypes(const QList<UIToolType> &types)
+void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types)
 {
-    if (m_restrictedToolTypes != types)
+    if (m_mapRestrictedToolTypes.value(enmClass) != types)
     {
-        m_restrictedToolTypes = types;
+        m_mapRestrictedToolTypes[enmClass] = types;
         foreach (UIToolsItem *pItem, items())
-            pItem->setVisible(!m_restrictedToolTypes.contains(pItem->itemType()));
+        {
+            if (pItem->itemClass() != enmClass)
+                continue;
+            const bool fRestricted = m_mapRestrictedToolTypes.value(enmClass).contains(pItem->itemType());
+            pItem->setVisible(!fRestricted);
+        }
 
         /* Update linked values: */
         updateLayout();
         sltItemMinimumWidthHintChanged();
         sltItemMinimumHeightHintChanged();
     }
-}
-
-QList<UIToolType> UIToolsModel::restrictedToolTypes() const
-{
-    return m_restrictedToolTypes;
 }
 
 void UIToolsModel::close()

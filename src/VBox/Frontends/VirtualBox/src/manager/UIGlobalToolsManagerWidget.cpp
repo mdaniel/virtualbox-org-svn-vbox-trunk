@@ -350,7 +350,7 @@ void UIGlobalToolsManagerWidget::updateToolsMenu()
 
     /* Hide restricted tools in the menu: */
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
-    toolMenu()->setRestrictedToolTypes(restrictions);
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Global, restrictions);
 
     /* Close all restricted tools (besides the Machines): */
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)

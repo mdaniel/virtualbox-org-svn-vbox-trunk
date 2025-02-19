@@ -93,7 +93,8 @@ static int systemTableAcpiMmioDevResource(RTACPITBL hDsdt, RTACPIRES hAcpiRes, u
 {
     uint32_t const fAddrSpace =   RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_POS
                                 | RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED
-                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED;
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER;
 
     RTAcpiResourceReset(hAcpiRes);
     int vrc;
@@ -122,7 +123,8 @@ static int systemTableAcpiMmioDevResourceNoIrq(RTACPITBL hDsdt, RTACPIRES hAcpiR
 {
     uint32_t const fAddrSpace =   RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_POS
                                 | RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED
-                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED;
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER;
 
     RTAcpiResourceReset(hAcpiRes);
     int vrc = RTAcpiResourceAddQWordMemoryRange(hAcpiRes, kAcpiResMemRangeCacheability_NonCacheable, kAcpiResMemType_Memory, true /*fRw*/,
@@ -379,7 +381,8 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
 
     uint32_t const fAddrSpace =   RTACPI_RESOURCE_ADDR_RANGE_F_DECODE_TYPE_POS
                                 | RTACPI_RESOURCE_ADDR_RANGE_F_MIN_ADDR_FIXED
-                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED;
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_MAX_ADDR_FIXED
+                                | RTACPI_RESOURCE_ADDR_RANGE_F_PRODUCER;
 
     RTAcpiResourceReset(m_hAcpiRes);
     int vrc = RTAcpiResourceAddWordBusNumber(m_hAcpiRes, fAddrSpace, 0 /*u16BusMin*/, m_bPciBusMax /*u16BusMax*/,

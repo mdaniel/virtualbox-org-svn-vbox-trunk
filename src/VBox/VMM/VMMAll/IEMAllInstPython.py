@@ -3386,7 +3386,6 @@ g_dMcStmtParsers = {
     'IEM_MC_REL_JMP_S32_AND_FINISH':                             (McBlock.parseMcGeneric,           True,  True,  False, ),
     'IEM_MC_REL_JMP_S8_AND_FINISH':                              (McBlock.parseMcGeneric,           True,  True,  False, ),
     'IEM_MC_RETN_AND_FINISH':                                    (McBlock.parseMcGeneric,           True,  True,  False, ),
-    'IEM_MC_RETURN_ON_FAILURE':                                  (McBlock.parseMcGeneric,           False, False, False, ),
     'IEM_MC_SAR_LOCAL_S16':                                      (McBlock.parseMcGeneric,           False, False, True,  ),
     'IEM_MC_SAR_LOCAL_S32':                                      (McBlock.parseMcGeneric,           False, False, True,  ),
     'IEM_MC_SAR_LOCAL_S64':                                      (McBlock.parseMcGeneric,           False, False, True,  ),

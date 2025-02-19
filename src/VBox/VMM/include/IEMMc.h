@@ -43,17 +43,6 @@
 #define IEM_MC_BEGIN(a_fMcFlags, a_fCImplFlags) {
 #define IEM_MC_END()                            }
 
-/** Internal macro. */
-#define IEM_MC_RETURN_ON_FAILURE(a_Expr) \
-    do \
-    { \
-        VBOXSTRICTRC rcStrict2 = a_Expr; \
-        if (rcStrict2 == VINF_SUCCESS) \
-        { /* likely */ } \
-        else \
-            return rcStrict2; \
-    } while (0)
-
 
 /** Dummy MC that prevents native recompilation. */
 #define IEM_MC_NO_NATIVE_RECOMPILE()                    ((void)0)

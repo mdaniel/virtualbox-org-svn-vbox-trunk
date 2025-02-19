@@ -972,10 +972,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
     int vrc = RTGetOptInit(&GetOptState, argc, argv, &s_aOptions[0], RT_ELEMENTS(s_aOptions), 1, 0 /*fFlags*/);
     AssertRC(vrc);
 
+    char            ch;
     RTGETOPTUNION   ValueUnion;
-    while ((vrc = RTGetOpt(&GetOptState, &ValueUnion)))
+    while ((ch = RTGetOpt(&GetOptState, &ValueUnion)))
     {
-        switch (vrc)
+        switch (ch)
         {
             case 'e':
                 /* already handled above */
@@ -1055,7 +1056,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
                 /** @todo this assumes that stderr is visible, which is not
                  * true for standard Windows applications. */
                 /* continue on command line errors... */
-                RTGetOptPrintError(vrc, &ValueUnion);
+                RTGetOptPrintError(ch, &ValueUnion);
         }
     }
 

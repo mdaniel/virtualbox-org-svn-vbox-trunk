@@ -587,7 +587,7 @@ static void rtScriptLexProduceTokFromSingleLineComment(PRTSCRIPTLEXINT pThis, un
  *                                  size of the buffer if re-allocation was required.
  * @param   cchCur                  How much of the current buffer is used.
  * @param   cchAdd                  How many additional characters are required.
- * @param   pTok                    The token to fill in if re-allocating the buffer failed.  
+ * @param   pTok                    The token to fill in if re-allocating the buffer failed.
  */
 DECLINLINE(bool) rtScriptLexEnsureTmpBufSpace(PRTSCRIPTLEXINT pThis, char **ppchTmp, size_t *pcchTmp,
                                               size_t cchCur, size_t cchAdd, PRTSCRIPTLEXTOKEN pTok)
@@ -673,7 +673,7 @@ static void rtScriptLexProduceTokFromMultiLineComment(PRTSCRIPTLEXINT pThis, uns
             }
 
             if (chTmp == '\0')
-                break; /* End of stream before closing lexeme. */ 
+                break; /* End of stream before closing lexeme. */
 
             if (!rtScriptLexEnsureTmpBufSpace(pThis, &pszTmp, &cchTmp, cchComment,
                                               strlen(pszClosing), pTok))
@@ -891,7 +891,7 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
                         pThis->fFlags |= RTSCRIPT_LEX_INT_F_STR_CACHE_STR_LIT_FREE;
 
                     if (pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
-                    {   
+                    {
                         if (phStrCacheComments)
                             *phStrCacheComments = pThis->hStrCacheComments;
                         else

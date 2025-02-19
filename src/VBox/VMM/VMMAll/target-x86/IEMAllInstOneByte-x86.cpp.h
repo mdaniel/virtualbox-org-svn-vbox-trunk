@@ -6127,7 +6127,7 @@ FNIEMOP_DEF(iemOp_mov_Eb_Gb)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
         IEM_MC_FETCH_GREG_U8(u8Value, IEM_GET_MODRM_REG(pVCpu, bRm));
-        IEM_MC_STORE_MEM_U8(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u8Value);
+        IEM_MC_STORE_MEM_SEG_U8(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u8Value);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }
@@ -6197,7 +6197,7 @@ FNIEMOP_DEF(iemOp_mov_Ev_Gv)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U16(u16Value, IEM_GET_MODRM_REG(pVCpu, bRm));
-                IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
+                IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -6209,7 +6209,7 @@ FNIEMOP_DEF(iemOp_mov_Ev_Gv)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U32(u32Value, IEM_GET_MODRM_REG(pVCpu, bRm));
-                IEM_MC_STORE_MEM_U32(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Value);
+                IEM_MC_STORE_MEM_SEG_U32(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -6221,7 +6221,7 @@ FNIEMOP_DEF(iemOp_mov_Ev_Gv)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U64(u64Value, IEM_GET_MODRM_REG(pVCpu, bRm));
-                IEM_MC_STORE_MEM_U64(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Value);
+                IEM_MC_STORE_MEM_SEG_U64(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -6457,7 +6457,7 @@ FNIEMOP_DEF(iemOp_mov_Ev_Sw)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
         IEM_MC_FETCH_SREG_U16(u16Value, iSegReg);
-        IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
+        IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }
@@ -7333,7 +7333,7 @@ FNIEMOP_DEF(iemOp_mov_Ob_AL)
     IEM_MC_LOCAL(uint8_t, u8Tmp);
     IEM_MC_FETCH_GREG_U8(u8Tmp, X86_GREG_xAX);
     IEM_MC_LOCAL_CONST(RTGCPTR, GCPtrMemOff, GCPtrMemOffDecode);
-    IEM_MC_STORE_MEM_U8(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u8Tmp);
+    IEM_MC_STORE_MEM_SEG_U8(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u8Tmp);
     IEM_MC_ADVANCE_PC_AND_FINISH();
     IEM_MC_END();
 }
@@ -7362,7 +7362,7 @@ FNIEMOP_DEF(iemOp_mov_Ov_rAX)
             IEM_MC_LOCAL(uint16_t, u16Tmp);
             IEM_MC_FETCH_GREG_U16(u16Tmp, X86_GREG_xAX);
             IEM_MC_LOCAL_CONST(RTGCPTR, GCPtrMemOff, GCPtrMemOffDecode);
-            IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u16Tmp);
+            IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u16Tmp);
             IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
@@ -7373,7 +7373,7 @@ FNIEMOP_DEF(iemOp_mov_Ov_rAX)
             IEM_MC_LOCAL(uint32_t, u32Tmp);
             IEM_MC_FETCH_GREG_U32(u32Tmp, X86_GREG_xAX);
             IEM_MC_LOCAL_CONST(RTGCPTR, GCPtrMemOff, GCPtrMemOffDecode);
-            IEM_MC_STORE_MEM_U32(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u32Tmp);
+            IEM_MC_STORE_MEM_SEG_U32(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u32Tmp);
             IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
@@ -7384,7 +7384,7 @@ FNIEMOP_DEF(iemOp_mov_Ov_rAX)
             IEM_MC_LOCAL(uint64_t, u64Tmp);
             IEM_MC_FETCH_GREG_U64(u64Tmp, X86_GREG_xAX);
             IEM_MC_LOCAL_CONST(RTGCPTR, GCPtrMemOff, GCPtrMemOffDecode);
-            IEM_MC_STORE_MEM_U64(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u64Tmp);
+            IEM_MC_STORE_MEM_SEG_U64(pVCpu->iem.s.iEffSeg, GCPtrMemOff, u64Tmp);
             IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
             break;
@@ -7402,7 +7402,7 @@ FNIEMOP_DEF(iemOp_mov_Ov_rAX)
         IEM_MC_FETCH_GREG_U##AddrBits##_ZX_U64(uAddr, X86_GREG_xSI); \
         IEM_MC_FETCH_MEM_SEG_U##ValBits(uValue, pVCpu->iem.s.iEffSeg, uAddr); \
         IEM_MC_FETCH_GREG_U##AddrBits##_ZX_U64(uAddr, X86_GREG_xDI); \
-        IEM_MC_STORE_MEM_U##ValBits(X86_SREG_ES, uAddr, uValue); \
+        IEM_MC_STORE_MEM_SEG_U##ValBits(X86_SREG_ES, uAddr, uValue); \
         IEM_MC_IF_EFL_BIT_SET(X86_EFL_DF) { \
             IEM_MC_SUB_GREG_U##AddrBits(X86_GREG_xDI, ValBits / 8); \
             IEM_MC_SUB_GREG_U##AddrBits(X86_GREG_xSI, ValBits / 8); \
@@ -7935,7 +7935,7 @@ FNIEMOP_DEF(iemOp_test_eAX_Iz)
         IEM_MC_LOCAL(RTGCPTR, uAddr); \
         IEM_MC_FETCH_GREG_U##ValBits(uValue, X86_GREG_xAX); \
         IEM_MC_FETCH_GREG_U##AddrBits##_ZX_U64(uAddr,  X86_GREG_xDI); \
-        IEM_MC_STORE_MEM_U##ValBits(X86_SREG_ES, uAddr, uValue); \
+        IEM_MC_STORE_MEM_SEG_U##ValBits(X86_SREG_ES, uAddr, uValue); \
         IEM_MC_IF_EFL_BIT_SET(X86_EFL_DF) { \
             IEM_MC_SUB_GREG_U##AddrBits(X86_GREG_xDI, ValBits / 8); \
         } IEM_MC_ELSE() { \
@@ -9388,7 +9388,7 @@ FNIEMOP_DEF(iemOp_Grp11_Eb_Ib)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 1);
         uint8_t u8Imm; IEM_OPCODE_GET_NEXT_U8(&u8Imm);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-        IEM_MC_STORE_MEM_U8_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u8Imm);
+        IEM_MC_STORE_MEM_SEG_U8_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u8Imm);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }
@@ -9451,7 +9451,7 @@ FNIEMOP_DEF(iemOp_Grp11_Ev_Iz)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 2);
                 uint16_t u16Imm; IEM_OPCODE_GET_NEXT_U16(&u16Imm);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_STORE_MEM_U16_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Imm);
+                IEM_MC_STORE_MEM_SEG_U16_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Imm);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -9462,7 +9462,7 @@ FNIEMOP_DEF(iemOp_Grp11_Ev_Iz)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 4);
                 uint32_t u32Imm; IEM_OPCODE_GET_NEXT_U32(&u32Imm);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_STORE_MEM_U32_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Imm);
+                IEM_MC_STORE_MEM_SEG_U32_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Imm);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -9473,7 +9473,7 @@ FNIEMOP_DEF(iemOp_Grp11_Ev_Iz)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffDst, bRm, 4);
                 uint64_t u64Imm; IEM_OPCODE_GET_NEXT_S32_SX_U64(&u64Imm);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_STORE_MEM_U64_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Imm);
+                IEM_MC_STORE_MEM_SEG_U64_CONST(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Imm);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -11074,7 +11074,7 @@ FNIEMOP_DEF_1(iemOp_fnstcw, uint8_t, bRm)
     IEM_MC_MAYBE_RAISE_DEVICE_NOT_AVAILABLE();
     IEM_MC_ACTUALIZE_FPU_STATE_FOR_READ();
     IEM_MC_FETCH_FCW(u16Fcw);
-    IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Fcw);
+    IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Fcw);
     IEM_MC_ADVANCE_PC_AND_FINISH(); /* C0-C3 are documented as undefined, we leave them unmodified. */
     IEM_MC_END();
 }
@@ -12968,7 +12968,7 @@ FNIEMOP_DEF_1(iemOp_fnstsw,      uint8_t, bRm)
 
     IEM_MC_ACTUALIZE_FPU_STATE_FOR_READ();
     IEM_MC_FETCH_FSW(u16Tmp);
-    IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Tmp);
+    IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Tmp);
     IEM_MC_ADVANCE_PC_AND_FINISH();
 
 /** @todo Debug / drop a hint to the verifier that things may differ

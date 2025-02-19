@@ -954,20 +954,20 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_FETCH_MEM_FLAT_U16_SX_U64(a_u64Dst, a_GCPtrMem)                                  IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U32_SX_U64(a_u64Dst, a_GCPtrMem)                                  IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_STORE_MEM_U8(a_iSeg, a_GCPtrMem, a_u8Value)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U16(a_iSeg, a_GCPtrMem, a_u16Value)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U32(a_iSeg, a_GCPtrMem, a_u32Value)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U64(a_iSeg, a_GCPtrMem, a_u64Value)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U8(a_iSeg, a_GCPtrMem, a_u8Value)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U16(a_iSeg, a_GCPtrMem, a_u16Value)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U32(a_iSeg, a_GCPtrMem, a_u32Value)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U64(a_iSeg, a_GCPtrMem, a_u64Value)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_STORE_MEM_FLAT_U8(a_GCPtrMem, a_u8Value)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U16(a_GCPtrMem, a_u16Value)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U32(a_GCPtrMem, a_u32Value)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U64(a_GCPtrMem, a_u64Value)                                       IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_STORE_MEM_U8_CONST(a_iSeg, a_GCPtrMem, a_u8C)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U16_CONST(a_iSeg, a_GCPtrMem, a_u16C)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U32_CONST(a_iSeg, a_GCPtrMem, a_u32C)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U64_CONST(a_iSeg, a_GCPtrMem, a_u64C)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U8_CONST(a_iSeg, a_GCPtrMem, a_u8C)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U16_CONST(a_iSeg, a_GCPtrMem, a_u16C)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U32_CONST(a_iSeg, a_GCPtrMem, a_u32C)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U64_CONST(a_iSeg, a_GCPtrMem, a_u64C)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_STORE_MEM_FLAT_U8_CONST(a_GCPtrMem, a_u8C)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U16_CONST(a_GCPtrMem, a_u16C)                                     IEM_LIVENESS_MEM_FLAT()
@@ -983,17 +983,17 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_STORE_MEM_BY_REF_R80_NEG_QNAN(a_pr80Dst)                                         NOP()
 #define IEM_MC_STORE_MEM_BY_REF_D80_INDEF(a_pd80Dst)                                            NOP()
 
-#define IEM_MC_STORE_MEM_U128(a_iSeg, a_GCPtrMem, a_u128Value)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U128_ALIGN_SSE(a_iSeg, a_GCPtrMem, a_u128Value)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U128_NO_AC(a_iSeg, a_GCPtrMem, a_u128Value)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U128(a_iSeg, a_GCPtrMem, a_u128Value)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U128_ALIGN_SSE(a_iSeg, a_GCPtrMem, a_u128Value)                    IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U128_NO_AC(a_iSeg, a_GCPtrMem, a_u128Value)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_STORE_MEM_FLAT_U128(a_GCPtrMem, a_u128Value)                                     IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U128_ALIGN_SSE(a_GCPtrMem, a_u128Value)                           IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U128_NO_AC(a_GCPtrMem, a_u128Value)                               IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_STORE_MEM_U256(a_iSeg, a_GCPtrMem, a_u256Value)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U256_ALIGN_AVX(a_iSeg, a_GCPtrMem, a_u256Value)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_STORE_MEM_U256_NO_AC(a_iSeg, a_GCPtrMem, a_u256Value)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U256(a_iSeg, a_GCPtrMem, a_u256Value)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U256_ALIGN_AVX(a_iSeg, a_GCPtrMem, a_u256Value)                    IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_STORE_MEM_SEG_U256_NO_AC(a_iSeg, a_GCPtrMem, a_u256Value)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_STORE_MEM_FLAT_U256(a_GCPtrMem, a_u256Value)                                     IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_STORE_MEM_FLAT_U256_ALIGN_AVX(a_GCPtrMem, a_u256Value)                           IEM_LIVENESS_MEM_FLAT()

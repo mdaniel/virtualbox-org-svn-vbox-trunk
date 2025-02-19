@@ -1278,13 +1278,13 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 #define IEM_MC_FETCH_MEM_FLAT_U32_SX_U64(a_u64Dst, a_GCPtrMem) \
     ((a_u64Dst) = (int32_t)iemMemFlatFetchDataU32Jmp(pVCpu, (a_GCPtrMem)))
 
-#define IEM_MC_STORE_MEM_U8(a_iSeg, a_GCPtrMem, a_u8Value) \
+#define IEM_MC_STORE_MEM_SEG_U8(a_iSeg, a_GCPtrMem, a_u8Value) \
     iemMemStoreDataU8Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u8Value))
-#define IEM_MC_STORE_MEM_U16(a_iSeg, a_GCPtrMem, a_u16Value) \
+#define IEM_MC_STORE_MEM_SEG_U16(a_iSeg, a_GCPtrMem, a_u16Value) \
     iemMemStoreDataU16Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u16Value))
-#define IEM_MC_STORE_MEM_U32(a_iSeg, a_GCPtrMem, a_u32Value) \
+#define IEM_MC_STORE_MEM_SEG_U32(a_iSeg, a_GCPtrMem, a_u32Value) \
     iemMemStoreDataU32Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u32Value))
-#define IEM_MC_STORE_MEM_U64(a_iSeg, a_GCPtrMem, a_u64Value) \
+#define IEM_MC_STORE_MEM_SEG_U64(a_iSeg, a_GCPtrMem, a_u64Value) \
     iemMemStoreDataU64Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u64Value))
 
 #define IEM_MC_STORE_MEM_FLAT_U8(a_GCPtrMem, a_u8Value) \
@@ -1296,13 +1296,13 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 #define IEM_MC_STORE_MEM_FLAT_U64(a_GCPtrMem, a_u64Value) \
     iemMemFlatStoreDataU64Jmp(pVCpu, (a_GCPtrMem), (a_u64Value))
 
-#define IEM_MC_STORE_MEM_U8_CONST(a_iSeg, a_GCPtrMem, a_u8C) \
+#define IEM_MC_STORE_MEM_SEG_U8_CONST(a_iSeg, a_GCPtrMem, a_u8C) \
     iemMemStoreDataU8Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u8C))
-#define IEM_MC_STORE_MEM_U16_CONST(a_iSeg, a_GCPtrMem, a_u16C) \
+#define IEM_MC_STORE_MEM_SEG_U16_CONST(a_iSeg, a_GCPtrMem, a_u16C) \
     iemMemStoreDataU16Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u16C))
-#define IEM_MC_STORE_MEM_U32_CONST(a_iSeg, a_GCPtrMem, a_u32C) \
+#define IEM_MC_STORE_MEM_SEG_U32_CONST(a_iSeg, a_GCPtrMem, a_u32C) \
     iemMemStoreDataU32Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u32C))
-#define IEM_MC_STORE_MEM_U64_CONST(a_iSeg, a_GCPtrMem, a_u64C) \
+#define IEM_MC_STORE_MEM_SEG_U64_CONST(a_iSeg, a_GCPtrMem, a_u64C) \
     iemMemStoreDataU64Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u64C))
 
 #define IEM_MC_STORE_MEM_FLAT_U8_CONST(a_GCPtrMem, a_u8C) \
@@ -1331,11 +1331,11 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
         (a_pd80Dst)->au16[4] = UINT16_C(0xffff); \
     } while (0)
 
-#define IEM_MC_STORE_MEM_U128(a_iSeg, a_GCPtrMem, a_u128Value) \
+#define IEM_MC_STORE_MEM_SEG_U128(a_iSeg, a_GCPtrMem, a_u128Value) \
     iemMemStoreDataU128Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), &(a_u128Value))
-#define IEM_MC_STORE_MEM_U128_NO_AC(a_iSeg, a_GCPtrMem, a_u128Value) \
+#define IEM_MC_STORE_MEM_SEG_U128_NO_AC(a_iSeg, a_GCPtrMem, a_u128Value) \
     iemMemStoreDataU128NoAcJmp(pVCpu, (a_iSeg), (a_GCPtrMem), &(a_u128Value))
-#define IEM_MC_STORE_MEM_U128_ALIGN_SSE(a_iSeg, a_GCPtrMem, a_u128Value) \
+#define IEM_MC_STORE_MEM_SEG_U128_ALIGN_SSE(a_iSeg, a_GCPtrMem, a_u128Value) \
     iemMemStoreDataU128AlignedSseJmp(pVCpu, (a_iSeg), (a_GCPtrMem), (a_u128Value))
 
 #define IEM_MC_STORE_MEM_FLAT_U128(a_GCPtrMem, a_u128Value) \
@@ -1345,11 +1345,11 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 #define IEM_MC_STORE_MEM_FLAT_U128_ALIGN_SSE(a_GCPtrMem, a_u128Value) \
     iemMemStoreDataU128AlignedSseJmp(pVCpu, UINT8_MAX, (a_GCPtrMem), (a_u128Value))
 
-#define IEM_MC_STORE_MEM_U256(a_iSeg, a_GCPtrMem, a_u256Value) \
+#define IEM_MC_STORE_MEM_SEG_U256(a_iSeg, a_GCPtrMem, a_u256Value) \
     iemMemStoreDataU256Jmp(pVCpu, (a_iSeg), (a_GCPtrMem), &(a_u256Value))
-#define IEM_MC_STORE_MEM_U256_NO_AC(a_iSeg, a_GCPtrMem, a_u256Value) \
+#define IEM_MC_STORE_MEM_SEG_U256_NO_AC(a_iSeg, a_GCPtrMem, a_u256Value) \
     iemMemStoreDataU256NoAcJmp(pVCpu, (a_iSeg), (a_GCPtrMem), &(a_u256Value))
-#define IEM_MC_STORE_MEM_U256_ALIGN_AVX(a_iSeg, a_GCPtrMem, a_u256Value) \
+#define IEM_MC_STORE_MEM_SEG_U256_ALIGN_AVX(a_iSeg, a_GCPtrMem, a_u256Value) \
     iemMemStoreDataU256AlignedAvxJmp(pVCpu, (a_iSeg), (a_GCPtrMem), &(a_u256Value))
 
 #define IEM_MC_STORE_MEM_FLAT_U256(a_GCPtrMem, a_u256Value) \

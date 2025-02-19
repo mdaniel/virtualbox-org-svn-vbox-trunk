@@ -956,20 +956,20 @@ class ThreadedFunctionVariation(object):
         'IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64':
             (  2, 'IEM_MC_FETCH_MEM_FLAT_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64' ),
         'IEM_MC_FETCH_MEM_SEG_YMM_NO_AC_AND_YREG_YMM':  (  2, 'IEM_MC_FETCH_MEM_FLAT_YMM_ALIGN_AVX_AND_YREG_YMM' ),
-        'IEM_MC_STORE_MEM_U8':                    (  0, 'IEM_MC_STORE_MEM_FLAT_U8' ),
-        'IEM_MC_STORE_MEM_U16':                   (  0, 'IEM_MC_STORE_MEM_FLAT_U16' ),
-        'IEM_MC_STORE_MEM_U32':                   (  0, 'IEM_MC_STORE_MEM_FLAT_U32' ),
-        'IEM_MC_STORE_MEM_U64':                   (  0, 'IEM_MC_STORE_MEM_FLAT_U64' ),
-        'IEM_MC_STORE_MEM_U8_CONST':              (  0, 'IEM_MC_STORE_MEM_FLAT_U8_CONST' ),
-        'IEM_MC_STORE_MEM_U16_CONST':             (  0, 'IEM_MC_STORE_MEM_FLAT_U16_CONST' ),
-        'IEM_MC_STORE_MEM_U32_CONST':             (  0, 'IEM_MC_STORE_MEM_FLAT_U32_CONST' ),
-        'IEM_MC_STORE_MEM_U64_CONST':             (  0, 'IEM_MC_STORE_MEM_FLAT_U64_CONST' ),
-        'IEM_MC_STORE_MEM_U128':                  (  0, 'IEM_MC_STORE_MEM_FLAT_U128' ),
-        'IEM_MC_STORE_MEM_U128_NO_AC':            (  0, 'IEM_MC_STORE_MEM_FLAT_U128_NO_AC' ),
-        'IEM_MC_STORE_MEM_U128_ALIGN_SSE':        (  0, 'IEM_MC_STORE_MEM_FLAT_U128_ALIGN_SSE' ),
-        'IEM_MC_STORE_MEM_U256':                  (  0, 'IEM_MC_STORE_MEM_FLAT_U256' ),
-        'IEM_MC_STORE_MEM_U256_NO_AC':            (  0, 'IEM_MC_STORE_MEM_FLAT_U256_NO_AC' ),
-        'IEM_MC_STORE_MEM_U256_ALIGN_AVX':        (  0, 'IEM_MC_STORE_MEM_FLAT_U256_ALIGN_AVX' ),
+        'IEM_MC_STORE_MEM_SEG_U8':                (  0, 'IEM_MC_STORE_MEM_FLAT_U8' ),
+        'IEM_MC_STORE_MEM_SEG_U16':               (  0, 'IEM_MC_STORE_MEM_FLAT_U16' ),
+        'IEM_MC_STORE_MEM_SEG_U32':               (  0, 'IEM_MC_STORE_MEM_FLAT_U32' ),
+        'IEM_MC_STORE_MEM_SEG_U64':               (  0, 'IEM_MC_STORE_MEM_FLAT_U64' ),
+        'IEM_MC_STORE_MEM_SEG_U8_CONST':          (  0, 'IEM_MC_STORE_MEM_FLAT_U8_CONST' ),
+        'IEM_MC_STORE_MEM_SEG_U16_CONST':         (  0, 'IEM_MC_STORE_MEM_FLAT_U16_CONST' ),
+        'IEM_MC_STORE_MEM_SEG_U32_CONST':         (  0, 'IEM_MC_STORE_MEM_FLAT_U32_CONST' ),
+        'IEM_MC_STORE_MEM_SEG_U64_CONST':         (  0, 'IEM_MC_STORE_MEM_FLAT_U64_CONST' ),
+        'IEM_MC_STORE_MEM_SEG_U128':              (  0, 'IEM_MC_STORE_MEM_FLAT_U128' ),
+        'IEM_MC_STORE_MEM_SEG_U128_NO_AC':        (  0, 'IEM_MC_STORE_MEM_FLAT_U128_NO_AC' ),
+        'IEM_MC_STORE_MEM_SEG_U128_ALIGN_SSE':    (  0, 'IEM_MC_STORE_MEM_FLAT_U128_ALIGN_SSE' ),
+        'IEM_MC_STORE_MEM_SEG_U256':              (  0, 'IEM_MC_STORE_MEM_FLAT_U256' ),
+        'IEM_MC_STORE_MEM_SEG_U256_NO_AC':        (  0, 'IEM_MC_STORE_MEM_FLAT_U256_NO_AC' ),
+        'IEM_MC_STORE_MEM_SEG_U256_ALIGN_AVX':    (  0, 'IEM_MC_STORE_MEM_FLAT_U256_ALIGN_AVX' ),
         'IEM_MC_MEM_SEG_MAP_D80_WO':              (  2, 'IEM_MC_MEM_FLAT_MAP_D80_WO' ),
         'IEM_MC_MEM_SEG_MAP_I16_WO':              (  2, 'IEM_MC_MEM_FLAT_MAP_I16_WO' ),
         'IEM_MC_MEM_SEG_MAP_I32_WO':              (  2, 'IEM_MC_MEM_FLAT_MAP_I32_WO' ),
@@ -1183,7 +1183,7 @@ class ThreadedFunctionVariation(object):
                 # ... and in FLAT modes we must morph memory access into FLAT accesses ...
                 elif (    self.sVariation in self.kdVariationsWithFlatAddress
                       and (   oNewStmt.sName.startswith('IEM_MC_FETCH_MEM')
-                           or (oNewStmt.sName.startswith('IEM_MC_STORE_MEM_') and oNewStmt.sName.find('_BY_REF') < 0)
+                           or oNewStmt.sName.startswith('IEM_MC_STORE_MEM_SEG')
                            or oNewStmt.sName.startswith('IEM_MC_MEM_SEG_MAP') )):
                     idxEffSeg = self.kdMemMcToFlatInfo[oNewStmt.sName][0];
                     if idxEffSeg != -1:
@@ -1766,28 +1766,28 @@ class ThreadedFunction(object):
         'IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128_AND_RAX_RDX_U64': '__mem128',
         'IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64': '__mem128',
 
-        'IEM_MC_STORE_MEM_BY_REF_I16_CONST':        '__mem16',
-        'IEM_MC_STORE_MEM_BY_REF_I32_CONST':        '__mem32',
-        'IEM_MC_STORE_MEM_BY_REF_I64_CONST':        '__mem64',
-        'IEM_MC_STORE_MEM_BY_REF_I8_CONST':         '__mem8',
-        'IEM_MC_STORE_MEM_BY_REF_D80_INDEF':        '__mem80',
-        'IEM_MC_STORE_MEM_BY_REF_R32_NEG_QNAN':     '__mem32',
-        'IEM_MC_STORE_MEM_BY_REF_R64_NEG_QNAN':     '__mem64',
-        'IEM_MC_STORE_MEM_BY_REF_R80_NEG_QNAN':     '__mem80',
-        'IEM_MC_STORE_MEM_U128':                    '__mem128',
-        'IEM_MC_STORE_MEM_U128_ALIGN_SSE':          '__mem128',
-        'IEM_MC_STORE_MEM_U128_NO_AC':              '__mem128',
-        'IEM_MC_STORE_MEM_U16':                     '__mem16',
-        'IEM_MC_STORE_MEM_U16_CONST':               '__mem16c',
-        'IEM_MC_STORE_MEM_U256':                    '__mem256',
-        'IEM_MC_STORE_MEM_U256_ALIGN_AVX':          '__mem256',
-        'IEM_MC_STORE_MEM_U256_NO_AC':              '__mem256',
-        'IEM_MC_STORE_MEM_U32':                     '__mem32',
-        'IEM_MC_STORE_MEM_U32_CONST':               '__mem32c',
-        'IEM_MC_STORE_MEM_U64':                     '__mem64',
-        'IEM_MC_STORE_MEM_U64_CONST':               '__mem64c',
-        'IEM_MC_STORE_MEM_U8':                      '__mem8',
-        'IEM_MC_STORE_MEM_U8_CONST':                '__mem8c',
+        'IEM_MC_STORE_MEM_BY_REF_I16_CONST':    '__mem16',
+        'IEM_MC_STORE_MEM_BY_REF_I32_CONST':    '__mem32',
+        'IEM_MC_STORE_MEM_BY_REF_I64_CONST':    '__mem64',
+        'IEM_MC_STORE_MEM_BY_REF_I8_CONST':     '__mem8',
+        'IEM_MC_STORE_MEM_BY_REF_D80_INDEF':    '__mem80',
+        'IEM_MC_STORE_MEM_BY_REF_R32_NEG_QNAN': '__mem32',
+        'IEM_MC_STORE_MEM_BY_REF_R64_NEG_QNAN': '__mem64',
+        'IEM_MC_STORE_MEM_BY_REF_R80_NEG_QNAN': '__mem80',
+        'IEM_MC_STORE_MEM_SEG_U128':                '__mem128',
+        'IEM_MC_STORE_MEM_SEG_U128_ALIGN_SSE':      '__mem128',
+        'IEM_MC_STORE_MEM_SEG_U128_NO_AC':          '__mem128',
+        'IEM_MC_STORE_MEM_SEG_U16':                 '__mem16',
+        'IEM_MC_STORE_MEM_SEG_U16_CONST':           '__mem16c',
+        'IEM_MC_STORE_MEM_SEG_U256':                '__mem256',
+        'IEM_MC_STORE_MEM_SEG_U256_ALIGN_AVX':      '__mem256',
+        'IEM_MC_STORE_MEM_SEG_U256_NO_AC':          '__mem256',
+        'IEM_MC_STORE_MEM_SEG_U32':                 '__mem32',
+        'IEM_MC_STORE_MEM_SEG_U32_CONST':           '__mem32c',
+        'IEM_MC_STORE_MEM_SEG_U64':                 '__mem64',
+        'IEM_MC_STORE_MEM_SEG_U64_CONST':           '__mem64c',
+        'IEM_MC_STORE_MEM_SEG_U8':                  '__mem8',
+        'IEM_MC_STORE_MEM_SEG_U8_CONST':            '__mem8c',
 
         'IEM_MC_MEM_SEG_MAP_D80_WO':                '__mem80',
         'IEM_MC_MEM_SEG_MAP_I16_WO':                '__mem16',
@@ -2259,10 +2259,10 @@ class ThreadedFunction(object):
                                                    'IEM_MC_FETCH_MEM_SEG_U16' : True,  # mov_rAX_Ov ++
                                                    'IEM_MC_FETCH_MEM_SEG_U32' : True,
                                                    'IEM_MC_FETCH_MEM_SEG_U64' : True,
-                                                   'IEM_MC_STORE_MEM_U8'  : True,  # mov_Ob_AL ++
-                                                   'IEM_MC_STORE_MEM_U16' : True,  # mov_Ov_rAX ++
-                                                   'IEM_MC_STORE_MEM_U32' : True,
-                                                   'IEM_MC_STORE_MEM_U64' : True, }):
+                                                   'IEM_MC_STORE_MEM_SEG_U8'  : True,  # mov_Ob_AL ++
+                                                   'IEM_MC_STORE_MEM_SEG_U16' : True,  # mov_Ov_rAX ++
+                                                   'IEM_MC_STORE_MEM_SEG_U32' : True,
+                                                   'IEM_MC_STORE_MEM_SEG_U64' : True, }):
             if 'IEM_MC_F_64BIT' in self.oMcBlock.dsMcFlags:
                 asVariations = ThreadedFunctionVariation.kasVariationsWithAddressOnly64;
             elif 'IEM_MC_F_NOT_64BIT' in self.oMcBlock.dsMcFlags and 'IEM_MC_F_NOT_286_OR_OLDER' in self.oMcBlock.dsMcFlags:

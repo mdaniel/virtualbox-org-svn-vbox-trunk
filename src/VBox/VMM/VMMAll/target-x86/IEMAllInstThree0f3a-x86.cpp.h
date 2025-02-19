@@ -616,7 +616,7 @@ FNIEMOP_DEF(iemOp_pextrb_RdMb_Vdq_Ib)
         IEM_MC_PREPARE_SSE_USAGE();
 
         IEM_MC_FETCH_XREG_U8(uValue, IEM_GET_MODRM_REG(pVCpu, bRm), bImm & 15 /*a_iByte*/);
-        IEM_MC_STORE_MEM_U8(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uValue);
+        IEM_MC_STORE_MEM_SEG_U8(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uValue);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }
@@ -660,7 +660,7 @@ FNIEMOP_DEF(iemOp_pextrw_RdMw_Vdq_Ib)
         IEM_MC_PREPARE_SSE_USAGE();
 
         IEM_MC_FETCH_XREG_U16(uValue, IEM_GET_MODRM_REG(pVCpu, bRm), bImm & 7 /*a_iWord*/);
-        IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uValue);
+        IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uValue);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }
@@ -711,7 +711,7 @@ FNIEMOP_DEF(iemOp_pextrd_q_RdMw_Vdq_Ib)
             IEM_MC_PREPARE_SSE_USAGE();
 
             IEM_MC_FETCH_XREG_U64(uSrc, IEM_GET_MODRM_REG(pVCpu, bRm), bImm & 1 /*a_iQword*/);
-            IEM_MC_STORE_MEM_U64(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
+            IEM_MC_STORE_MEM_SEG_U64(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
             IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
         }
@@ -757,7 +757,7 @@ FNIEMOP_DEF(iemOp_pextrd_q_RdMw_Vdq_Ib)
             IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
             IEM_MC_PREPARE_SSE_USAGE();
             IEM_MC_FETCH_XREG_U32(uSrc, IEM_GET_MODRM_REG(pVCpu, bRm), bImm & 3 /*a_iDword*/);
-            IEM_MC_STORE_MEM_U32(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
+            IEM_MC_STORE_MEM_SEG_U32(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
             IEM_MC_ADVANCE_PC_AND_FINISH();
             IEM_MC_END();
         }
@@ -801,7 +801,7 @@ FNIEMOP_DEF(iemOp_extractps_Ed_Vdq_Ib)
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_FETCH_XREG_U32(uSrc, IEM_GET_MODRM_REG(pVCpu, bRm), bImm & 3 /*a_iDword*/);
-        IEM_MC_STORE_MEM_U32(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
+        IEM_MC_STORE_MEM_SEG_U32(pVCpu->iem.s.iEffSeg, GCPtrEffSrc, uSrc);
         IEM_MC_ADVANCE_PC_AND_FINISH();
         IEM_MC_END();
     }

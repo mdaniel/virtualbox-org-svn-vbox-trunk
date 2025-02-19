@@ -1829,7 +1829,7 @@ FNIEMOP_DEF(iemOp_movbe_Mv_Gv)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U16(u16Value, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_BSWAP_LOCAL_U16(u16Value);
-                IEM_MC_STORE_MEM_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
+                IEM_MC_STORE_MEM_SEG_U16(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u16Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -1842,7 +1842,7 @@ FNIEMOP_DEF(iemOp_movbe_Mv_Gv)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U32(u32Value, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_BSWAP_LOCAL_U32(u32Value);
-                IEM_MC_STORE_MEM_U32(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Value);
+                IEM_MC_STORE_MEM_SEG_U32(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u32Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;
@@ -1855,7 +1855,7 @@ FNIEMOP_DEF(iemOp_movbe_Mv_Gv)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_FETCH_GREG_U64(u64Value, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_BSWAP_LOCAL_U64(u64Value);
-                IEM_MC_STORE_MEM_U64(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Value);
+                IEM_MC_STORE_MEM_SEG_U64(pVCpu->iem.s.iEffSeg, GCPtrEffDst, u64Value);
                 IEM_MC_ADVANCE_PC_AND_FINISH();
                 IEM_MC_END();
                 break;

@@ -549,12 +549,6 @@ void UIToolsItem::cleanup()
         /* Unset the current item: */
         model()->setCurrentItem(0);
     }
-    /* If that item is in navigation list: */
-    if (model()->navigationList().contains(this))
-    {
-        /* Remove item from the navigation list: */
-        model()->removeFromNavigationList(this);
-    }
 }
 
 QVariant UIToolsItem::data(int iKey) const

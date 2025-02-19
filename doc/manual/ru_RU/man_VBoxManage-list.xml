@@ -213,7 +213,7 @@
       <para>
         Команда <command>VBoxManage list extpacks</command> показывает
         все пакеты расширения &product-name;, установленные в системе
-        на данный момент. Смотрите <xref linkend="intro-installing"/> и
+        на данный момент. Смотрите <xref linkend="install-ext-pack"/> и
         <xref linkend="vboxmanage-extpack"/>.
       </para>
     </refsect2>

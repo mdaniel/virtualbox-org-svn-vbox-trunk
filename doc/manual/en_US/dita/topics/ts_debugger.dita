@@ -4,9 +4,9 @@
   <title>The Built-In VM Debugger</title>
   
   <body>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> includes a built-in VM debugger, which advanced users may find useful. This debugger enables you to examine and, to some extent, control the VM state. </p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> includes a built-in VM debugger, which advanced users may find useful. This debugger enables you to examine and, to some extent, control the VM state.</p>
     <note type="caution">
-      <p>Use the VM debugger at your own risk. There is no support for it, and the following documentation is only made available for advanced users with a very high level of familiarity with the x86/AMD64 machine instruction set, as well as detailed knowledge of the PC architecture. A degree of familiarity with the internals of the guest OS in question may also be very helpful. </p>
+      <p>Use the VM debugger at your own risk. There is no support for it, and the following documentation is only made available for advanced users with a very high level of familiarity with the x86/AMD64 machine instruction set, as well as detailed knowledge of the PC architecture. A degree of familiarity with the internals of the guest OS in question may also be very helpful.</p>
     </note>
     <p>The VM debugger is available in all regular production versions of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, but it is disabled by default because the average user will have little use for it. There are two ways to access the debugger:</p>
     <ul>
@@ -37,29 +37,19 @@
     <p>A brief summary of frequently used commands is as follows:</p>
     <ul>
       <li>
-        <p><userinput>stop</userinput>: Stops the VM execution and enables
-            single stepping
-          </p>
+        <p><userinput>stop</userinput>: Stops the VM execution and enables single stepping</p>
       </li>
       <li>
-        <p><userinput>g</userinput>: Continue VM execution
-          </p>
+        <p><userinput>g</userinput>: Continue VM execution</p>
       </li>
       <li>
-        <p><userinput>t</userinput>: Single step an instruction
-          </p>
+        <p><userinput>t</userinput>: Single step an instruction</p>
       </li>
       <li>
-        <p><userinput>rg</userinput>, <userinput>rh</userinput>, and
-            <userinput>r</userinput>: Print the guest, hypervisor, and
-            current registers
-          </p>
+        <p><userinput>rg</userinput>, <userinput>rh</userinput>, and <userinput>r</userinput>: Print the guest, hypervisor, and current registers</p>
       </li>
       <li>
-        <p><userinput>kg</userinput>, <userinput>kh</userinput>, and
-            <userinput>k</userinput>: Print the guest, hypervisor, and
-            current call stack
-          </p>
+        <p><userinput>kg</userinput>, <userinput>kh</userinput>, and <userinput>k</userinput>: Print the guest, hypervisor, and current call stack</p>
       </li>
       <li>
         <p><userinput>da</userinput>, <userinput>db</userinput>, <userinput>dw</userinput>, <userinput>dd</userinput>, <userinput>dq</userinput>: Print memory contents as ASCII, bytes, words, dwords, and qwords</p>
@@ -151,7 +141,7 @@
           </p>
       </li>
     </ul>
-    <p>The output of the <userinput>info</userinput> commands generally requires in-depth knowledge of the emulated device or <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VMM internals. However, when used properly, the information provided can be invaluable.</p>
+    <p>The output of the <userinput>info</userinput> commands generally requires in-depth knowledge of the emulated device or <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VMM internals. However, when used properly, the information provided can be very valuable.</p>
   </body>
   
 </topic>

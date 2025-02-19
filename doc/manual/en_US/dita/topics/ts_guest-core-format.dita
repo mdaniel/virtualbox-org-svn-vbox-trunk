@@ -5,12 +5,10 @@
   
   <body>
     <p>
-      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> uses the 64-bit ELF format for its VM core files created by <userinput>VBoxManage debugvm</userinput>, see <xref href="../cli_topics/vboxmanage-debugvm.dita"/>. The VM core file contain the memory and CPU dumps of the VM and can be useful for debugging your guest OS. The 64-bit ELF object format specification can be obtained at: </p>
+      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> uses the 64-bit ELF format for its VM core files created by <userinput>VBoxManage debugvm</userinput>, see <xref href="../cli_topics/vboxmanage-debugvm.dita"/>. The VM core file contain the memory and CPU dumps of the VM and can be useful for debugging your guest OS. The 64-bit ELF object format specification can be obtained at:</p>
     <p><ph>http://downloads.openwatcom.org/ftp/devel/docs/elf-64-gen.pdf</ph>.
       </p>
-    <p>
-        The overall layout of the VM core format is as follows:
-      </p>
+    <p> The overall layout of the VM core format is as follows:</p>
     <pre xml:space="preserve">[ ELF 64 Header]
 [ Program Header, type PT_NOTE ]
   → offset to COREDESCRIPTOR
@@ -28,23 +26,9 @@
   [ DBGFCORECPU - vCPU 1 dump ]
 [ Additional Notes + Data ] - currently unused
 [ Memory dump ]</pre>
-    <p>
-        The memory descriptors contain physical addresses relative to
-        the guest and not virtual addresses. Regions of memory such as
-        MMIO regions are not included in the core file.
-      </p>
-    <p>
-        The relevant data structures and definitions can be found in the
-        <ph conkeyref="vbox-conkeyref-phrases/product-name"/> sources under the following header files:
-        <filepath>include/VBox/dbgfcorefmt.h</filepath>,
-        <filepath>include/iprt/x86.h</filepath> and
-        <filepath>src/VBox/Runtime/include/internal/ldrELFCommon.h</filepath>.
-      </p>
-    <p>
-        The VM core file can be inspected using
-        <userinput>elfdump</userinput> and GNU <userinput>readelf</userinput> or
-        other similar utilities.
-      </p>
+    <p>The memory descriptors contain physical addresses relative to the guest and not virtual addresses. Regions of memory such as MMIO regions are not included in the core file.</p>
+    <p>The relevant data structures and definitions can be found in the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> sources under the following header files: <filepath>include/VBox/dbgfcorefmt.h</filepath>, <filepath>include/iprt/x86.h</filepath> and <filepath>src/VBox/Runtime/include/internal/ldrELFCommon.h</filepath>. </p>
+    <p>The VM core file can be inspected using <userinput>elfdump</userinput> and GNU <userinput>readelf</userinput> or other similar utilities.</p>
   </body>
   
 </topic>

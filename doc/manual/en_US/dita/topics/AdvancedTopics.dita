@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="AdvancedTopics">
-  <title>Advanced Topics</title>
+  <title><?oxy_comment_start author="Mhari Duncan" timestamp="20250131T161440+0000" comment="Aim to remove this chapter and move content to main tasks, reference, customization, or remove if not required."?>Advanced Topics<?oxy_comment_end?></title>
   
   <body/>
 </topic>

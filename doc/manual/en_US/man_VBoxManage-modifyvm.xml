@@ -1119,7 +1119,7 @@ it unless this changes. -->
               Enables or disables hardware 3D acceleration for the
               graphics adapter variants which support it. This option
               has an effect only when the Guest Additions are installed.
-              See <xref linkend="guestadd-3d" />.
+              See <xref linkend="guestadd-video" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>

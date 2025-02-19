@@ -3,6 +3,6 @@
 <topic id="ts-legacy-os">
     <title>Running Legacy Guest OSs</title>
     <body>
-        <p>Older Operating Systems that are no longer supported may work in VirtualBox, but may need some additional setup and will have limitations. Here are some suggestions.</p>
+        <p>Older Operating Systems that are no longer supported may work in VirtualBox, but may need some additional setup and will have limitations. Here are some suggestions and workarounds for common problems.</p>
     </body>
 </topic>

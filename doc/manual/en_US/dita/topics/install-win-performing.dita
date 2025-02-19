@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="install-win-performing">
   <title>Performing the Installation</title>
-
+  
   <body>
     <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> installation can be started in either of the following
       ways: </p>
@@ -118,6 +118,15 @@
     <p>For example, to only install USB support along with the main binaries, run either of the following commands: </p>
     <pre xml:space="preserve">VirtualBox.exe -msiparams ADDLOCAL=VBoxApplication,VBoxUSB</pre>
     <pre xml:space="preserve">msiexec /i VirtualBox-&lt;version&gt;-Win.msi ADDLOCAL=VBoxApplication,VBoxUSB</pre>
+    <p>The user is able to choose between NDIS5 and NDIS6 host network filter drivers during the installation. This is
+      done using a command line parameter, <codeph>NETWORKTYPE</codeph>. The NDIS6 driver is the default for most
+      supported Windows hosts. For some legacy Windows versions, the installer will automatically select the NDIS5
+      driver and this cannot be changed. </p>
+    <p>You can force an install of the legacy NDIS5 host network filter driver by specifying
+        <codeph>NETWORKTYPE=NDIS5</codeph>. For example, to install the NDIS5 driver on Windows 7 use either of the
+      following commands: </p>
+    <pre xml:space="preserve">VirtualBox.exe -msiparams NETWORKTYPE=NDIS5</pre>
+    <pre xml:space="preserve">msiexec /i VirtualBox-&lt;version&gt;-Win;.msi NETWORKTYPE=NDIS5</pre>
   </body>
-
+  
 </topic>

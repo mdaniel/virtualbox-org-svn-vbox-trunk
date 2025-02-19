@@ -8,11 +8,7 @@
       integrate with your <ph conkeyref="vbox-conkeyref-phrases/oci"/> account. </p>
     <ol>
       <li>
-        <p><b outputclass="bold">Install the Extension Pack.</b>
-            Cloud integration features are only available when you
-            install the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>. See
-            <xref href="intro-installing.dita#intro-installing"/>.
-          </p>
+        <p><b outputclass="bold">Install the Extension Pack.</b> Cloud integration features are only available when you install the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>. See <xref href="install-ext-pack.dita"/>.</p>
       </li>
       <li>
         <p><b outputclass="bold">Create a key pair.</b> Generate

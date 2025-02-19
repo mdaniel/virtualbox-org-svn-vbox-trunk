@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="BasicConcepts">
-  <title>Configuring Virtual Machines</title>
+  <title>Working with Virtual Machines</title>
   
   <body>
     <p>This chapter provides detailed steps for configuring an <ph conkeyref="vbox-conkeyref-phrases/product-name"/>

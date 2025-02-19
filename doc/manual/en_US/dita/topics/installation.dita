@@ -1,10 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="installation">
-  <title>Installation Details</title>
+  <title>Installing VirtualBox</title>
   
   <body>
-    <p>As installation of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> varies depending on your host operating
-      system, the following sections provide installation instructions for Windows, macOS, Linux, and Oracle Solaris. </p>
+    <p>Installation of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> varies depending on your host operating system. Choose the instructions you require for Windows, macOS, Linux, or Oracle Solaris.</p>
   </body>
 </topic>

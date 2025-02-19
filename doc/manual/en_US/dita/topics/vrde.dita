@@ -7,13 +7,7 @@
     <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> can display virtual machines remotely, meaning that a
       virtual machine can execute on one computer even though the machine will be displayed on a second computer, and
       the machine will be controlled from there as well, as if the virtual machine was running on that second computer. </p>
-    <p>For maximum flexibility, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> implements remote machine display
-      through a generic extension interface called the VirtualBox Remote Desktop Extension (VRDE). The base open source
-      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> package only provides this interface, while
-      implementations can be supplied by third parties with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>
-      extension packages, which must be installed separately from the base package. See <xref
-        href="intro-installing.dita">Installing <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and Extension
-        Packs</xref>. </p>
+    <p>For maximum flexibility, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> implements remote machine display through a generic extension interface called the VirtualBox Remote Desktop Extension (VRDE). The base open source <ph conkeyref="vbox-conkeyref-phrases/product-name"/> package only provides this interface, while implementations can be supplied by third parties with <ph conkeyref="vbox-conkeyref-phrases/product-name"/> extension packages, which must be installed separately from the base package. See  <xref href="install-ext-pack.dita"/>.</p>
     <p>Oracle provides support for the VirtualBox Remote Display Protocol (VRDP) in such an <ph conkeyref="vbox-conkeyref-phrases/product-name"/> extension package.</p>
     <p>VRDP is a backward-compatible extension to Microsoft's Remote Desktop Protocol (RDP). As a result, you can use any standard RDP client to control the remote VM.</p>
     <p>Even when the extension is installed, the VRDP server is disabled by default. It can easily be enabled on a

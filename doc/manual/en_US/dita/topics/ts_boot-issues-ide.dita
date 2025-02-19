@@ -3,20 +3,7 @@
 <topic id="ts-boot-issues-ide">
     <title>Guest OSs With no ATAPI CD-ROM Support May Fail to Boot</title>
     <body>
-        <dl>
-            <dlentry>
-                <dt>Details</dt>
-                <dd>
-                    <p>Some guest operating systems predating ATAPI CD-ROMs may exhibit long delays or entirely fail to boot in certain configurations. This is most likely to happen when an IDE/ATAPI CD-ROM exists alone on a primary or secondary IDE channel.</p>
-                    <p>Affected operating systems are MS OS/2 1.21: fails to boot with an error message referencing COUNTRY.SYS and MS OS/2 1.3: long boot delays.</p>
-                </dd>
-            </dlentry>
-            <dlentry>
-                <dt>Workaround</dt>
-                <dd>
-                    <p>Disable the emulated IDE/ATAPI CD-ROM. The guest OS can't use this device, anyway.</p>
-                </dd>
-            </dlentry>
-        </dl>
+        <p>Some guest operating systems predating ATAPI CD-ROMs may exhibit long delays or entirely fail to boot in certain configurations. This is most likely to happen when an IDE/ATAPI CD-ROM exists alone on a primary or secondary IDE channel. For example, OS/2 1.21 fails to boot with an error message referencing COUNTRY.SYS, and OS/2 1.3 experiences long boot delays.</p>
+        <p>Disable the emulated IDE/ATAPI CD-ROM. The guest OS can't use this device anyway.</p>
     </body>
 </topic>

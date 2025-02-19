@@ -1,92 +1,26 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="hwvirt">
-  <title>Hardware Virtualization</title>
+  <title><?oxy_comment_start author="Mhari Duncan" timestamp="20250115T153620+0000" comment="Reference this from the config steps to the appropriate task."?>Hardware Virtualization<?oxy_comment_end?></title>
   
   <body>
-    <p>
-      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables software in the virtual machine to run
-      directly on the processor of the host, but an array of complex
-      techniques is employed to intercept operations that would
-      interfere with your host. Whenever the guest attempts to do
-      something that could be harmful to your computer and its data,
-      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> steps in and takes action. In particular, for lots
-      of hardware that the guest believes to be accessing,
-      <ph conkeyref="vbox-conkeyref-phrases/product-name"/> simulates a certain <i>virtual</i>
-      environment according to how you have configured a virtual
-      machine. For example, when the guest attempts to access a hard
-      disk, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> redirects these requests to whatever you have
-      configured to be the virtual machine's virtual hard disk. This is
-      normally an image file on your host.
-    </p>
-    <p>
-      Unfortunately, the x86 platform was never designed to be
-      virtualized. Detecting situations in which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> needs to
-      take control over the guest code that is executing, as described
-      above, is difficult. To achieve this, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> uses
-      <i>hardware virtualization</i>.
-    </p>
-    <p>
-      Intel and AMD processors have support for hardware virtualization.
-      This means that these processors can help <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to
-      intercept potentially dangerous operations that a guest operating
-      system may be attempting and also makes it easier to present
-      virtual hardware to a virtual machine.
-    </p>
-    <p>
-      These hardware features differ between Intel and AMD processors.
-      Intel named its technology VT-x, AMD calls theirs AMD-V. The Intel
-      and AMD support for virtualization is very different in detail,
-      but not very different in principle.
-    </p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables software in the virtual machine to run directly on the processor of the host, but an array of complex techniques is employed to intercept operations that would interfere with your host. Whenever the guest attempts to do something that could be harmful to your computer and its data, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> steps in and takes action. In particular, for lots of hardware that the guest believes to be accessing, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> simulates a certain <i>virtual</i> environment according to how you have configured a virtual machine. For example, when the guest attempts to access a hard disk, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> redirects these requests to whatever you have configured to be the virtual machine's virtual hard disk. This is normally an image file on your host.</p>
+    <p>Unfortunately, the x86 platform was never designed to be virtualized. Detecting situations in which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> needs to take control over the guest code that is executing, as described above, is difficult. To achieve this, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> uses <i>hardware virtualization</i>.</p>
+    <p>Intel and AMD processors have support for hardware virtualization. This means that these processors can help <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to intercept potentially dangerous operations that a guest operating system may be attempting and also makes it easier to present virtual hardware to a virtual machine.</p>
+    <p>These hardware features differ between <?oxy_comment_start author="Mhari Duncan" timestamp="20250131T154758+0000" comment="What about Arm? and apple silicon?"?>Intel and AMD processors<?oxy_comment_end?>. Intel named its technology VT-x, AMD calls theirs AMD-V. The Intel and AMD support for virtualization is very different in detail, but not very different in principle.</p>
     <note>
-      <p>
-        On many systems, the hardware virtualization features first need
-        to be enabled in the BIOS before <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can use them.
-      </p>
+      <p>On many systems, the hardware virtualization features first need to be enabled in the BIOS before <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can use them.</p>
     </note>
-    <p>
-      Enabling hardware virtualization is <i>required</i>
-      in the following scenarios:
-    </p>
+    <p>Enabling hardware virtualization is <i>required</i> in the following scenarios:</p>
     <ul>
       <li>
-        <p>
-          Certain rare guest operating systems like OS/2 make use of
-          very esoteric processor instructions. For virtual machines
-          that are configured to use such an operating system, hardware
-          virtualization is enabled automatically.
-        </p>
+        <p> Certain rare guest operating systems like OS/2 make use of very esoteric processor instructions. For virtual machines that are configured to use such an operating system, hardware virtualization is enabled automatically.</p>
       </li>
       <li>
         <p>
-          <ph conkeyref="vbox-conkeyref-phrases/product-name"/>'s 64-bit guest and multiprocessing (SMP)
-          support both require hardware virtualization to be enabled.
-          This is not much of a limitation since the vast majority of
-          64-bit and multicore CPUs ship with hardware virtualization.
-          The exceptions to this rule are some legacy Intel and AMD
-          CPUs.
-        </p>
+          <ph conkeyref="vbox-conkeyref-phrases/product-name"/>'s 64-bit guest and multiprocessing (SMP) support both require hardware virtualization to be enabled. This is not much of a limitation since the vast majority of 64-bit and multicore CPUs ship with hardware virtualization. The exceptions to this rule are some legacy Intel and AMD CPUs.</p>
       </li>
     </ul>
-    <note type="caution">
-      <p>
-        Do not run other hypervisors, either open source or commercial
-        virtualization products, together with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. While
-        several hypervisors can normally be
-        <i>installed</i> in parallel, do not attempt to
-        <i>run</i> several virtual machines from competing
-        hypervisors at the same time. <ph conkeyref="vbox-conkeyref-phrases/product-name"/> cannot track what
-        another hypervisor is currently attempting to do on the same
-        host, and especially if several products attempt to use hardware
-        virtualization features such as VT-x, this can crash the entire
-        host.
-      </p>
-    </note>
-    <p>
-      See <xref href="hwvirt-details.dita#hwvirt-details"/> for a technical discussion of
-      hardware virtualization.
-    </p>
   </body>
   
 </topic>

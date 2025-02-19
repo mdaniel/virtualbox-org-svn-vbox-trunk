@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="nichardware">
   <title>Virtual Networking Hardware</title>
-
+  
   <body>
     <p>For each card, you can individually select what kind of <i>hardware</i> will be presented to the virtual machine.
         <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can virtualize the following types of networking hardware: </p>
@@ -24,9 +24,6 @@
       </li>
       <li>
         <p>Paravirtualized network adapter (virtio-net) </p>
-      </li>
-      <li>
-        <p>Ethernet over USB network adapter (usbnet) </p>
       </li>
     </ul>
     <p>The PCNet FAST III is the default because it is supported by nearly all operating systems, as well as by the GNU
@@ -63,5 +60,5 @@
       This does not cause problems with guest operating systems in their default configuration, as jumbo frames need to
       be explicitly enabled. </p>
   </body>
-
+  
 </topic>

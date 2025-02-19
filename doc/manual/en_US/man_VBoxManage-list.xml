@@ -227,7 +227,7 @@
       <para>
         The <command>VBoxManage list extpacks</command> command shows
         all &product-name; extension packs that are currently installed.
-        See <xref linkend="intro-installing"/> and
+        See <xref linkend="install-ext-pack"/> and
         <xref linkend="vboxmanage-extpack"/>.
       </para>
     </refsect2>

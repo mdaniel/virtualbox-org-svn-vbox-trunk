@@ -1,28 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="Introduction">
-  <title>First Steps</title>
+  <title>About <ph conkeyref="vbox-conkeyref-phrases/product-name"/></title>
   
   <body>
-    <p>Welcome to <ph conkeyref="vbox-conkeyref-phrases/product-name"/>.</p>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is a cross-platform virtualization application. That means
-      it extends the capabilities of your existing computer so that it can run multiple operating systems, inside
-      multiple virtual machines (VMs), at the same time. As an example, you can run Windows and Linux on your Mac, run
-      Windows Server on your Linux server, run Linux on your Windows PC, and so on, all alongside your existing
-      applications. You can install and run as many virtual machines as you like. The only practical limits are disk
-      space and memory.</p>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is deceptively simple yet also very powerful. It can run
-      everywhere from small embedded systems or desktop class machines all the way up to data center deployments and
-      even Cloud environments. </p>
-    <p>In this User Guide, we will begin simply with a quick introduction to virtualization and how to get your first
-      virtual machine running with the easy-to-use <ph conkeyref="vbox-conkeyref-phrases/product-name"/> graphical user
-      interface. Subsequent chapters will go into much more detail covering more powerful tools and features, but
-      fortunately, it is not necessary to read the entire User Guide before you can use <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
-    <p>You can find a summary of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>'s capabilities in <xref
-        href="features-overview.dita#features-overview"/>. For existing <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> users who just want to find out what is new in this release,
-      see the <xref href="https://docs.oracle.com/en/virtualization/virtualbox/7.0/relnotes/relnotes-ChangeLog.html"
-        format="html" scope="external">Change Log</xref>. </p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is a cross-platform virtualization application. That means it extends the capabilities of your existing computer so that it can run multiple operating systems, inside multiple virtual machines (VMs), at the same time. As an example, you can run Windows and Linux on your Mac, run Windows Server on your Linux server, run Linux on your Windows PC, and so on, all alongside your existing applications.</p>
+    <p>You can install and run as many virtual machines as you like. The only practical limits are disk space and memory. You can also save, copy, export and transfer VMs between hosts, and Oracle Cloud Infrastructure.</p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> can run on multiple host operating systems, and on small embedded systems or desktop machines all the way up to data center servers and Cloud environments. You can install appliances (VMs pre-installed with applications and configured for a particular purpose, such as a mail server) to save time and improve consistency. You may even be able to install an old OS that your host computer no longer runs, because you can configure virtual hardware in a VM to suit your needs.</p>
+    <p>Virtualization can significantly reduce hardware and electricity costs. Most of the time, computers only use a fraction of their potential power and run with low average system loads. A lot of hardware resources are therefore wasted. So, instead of running many such physical computers that are only partially used, you can pack many VMs onto a few powerful hosts and balance the loads between them.</p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> is a useful tool for development and testing. For example, you can investigate issues with software configuration or networking using VMs.</p>
+    <p>For more information on <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, including support and licensing, see <xref href="https://www.oracle.com/virtualization/virtualbox/#licensing" format="html" scope="external"/>.</p>
   </body>
 </topic>

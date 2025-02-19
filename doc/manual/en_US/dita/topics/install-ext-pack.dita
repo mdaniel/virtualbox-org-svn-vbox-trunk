@@ -4,9 +4,7 @@
   <title>Installing an Extension Pack</title>
   
   <body>
-    <p>Extension packs provide extra functionality to the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> base
-      package, such as extended USB device support and cloud integration features. See <xref
-        href="intro-installing.dita#intro-installing"/>. </p>
+    <p>Extension packs provide extra functionality to the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> base package, such as extended USB device support and cloud integration features. See <xref href="vbox-components.dita"/>. </p>
     <p>To install an <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>, do the following: </p>
     <ol>
       <li>

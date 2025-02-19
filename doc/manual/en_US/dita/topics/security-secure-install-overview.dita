@@ -37,15 +37,7 @@
         All <ph conkeyref="vbox-conkeyref-phrases/product-name"/> binaries should be executed as a regular user
         and never as a privileged user.
       </p>
-    <p>
-        The <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/> provides additional features
-        and must be downloaded and installed separately, see
-        <xref href="intro-installing.dita">Installing <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and Extension Packs</xref>. As for the base package, the
-        SHA256 checksum of the extension pack should be verified. As the
-        installation requires system privileges, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will ask
-        for the system password during the installation of the extension
-        pack.
-      </p>
+    <p> The <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/> provides additional features and must be downloaded and installed separately, see <xref href="install-ext-pack.dita"/>. As for the base package, the SHA256 checksum of the extension pack should be verified. As the installation requires system privileges, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will ask for the system password during the installation of the extension pack. </p>
   </body>
   
 </topic>

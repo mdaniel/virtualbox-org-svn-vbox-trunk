@@ -2483,14 +2483,6 @@ typedef IEMCPU const *PCIEMCPU;
 # define IEM_GET_TARGET_CPU(a_pVCpu)    ((a_pVCpu)->iem.s.uTargetCpu)
 #endif
 
-/** @def IEM_GET_INSTR_LEN
- * Gets the instruction length.
- * @note x86 specific */
-#ifdef IEM_WITH_CODE_TLB
-# define IEM_GET_INSTR_LEN(a_pVCpu)     ((a_pVCpu)->iem.s.offInstrNextByte - (uint32_t)(int32_t)(a_pVCpu)->iem.s.offCurInstrStart)
-#else
-# define IEM_GET_INSTR_LEN(a_pVCpu)     ((a_pVCpu)->iem.s.offOpcode)
-#endif
 
 /** @def IEM_TRY_SETJMP
  * Wrapper around setjmp / try, hiding all the ugly differences.

@@ -40,6 +40,7 @@
 #include "UITools.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualBoxManagerAdvancedWidget.h"
+#include "UIVirtualMachineItem.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -82,8 +83,6 @@ void UIGlobalToolsManagerWidget::setMenuToolType(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
-    /* Make sure new tool type is of Global class: */
-    AssertReturnVoid(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Global));
 
     AssertPtrReturnVoid(toolMenu());
     toolMenu()->setToolsType(enmType);
@@ -206,7 +205,7 @@ void UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange(const QString 
     }
 }
 
-void UIGlobalToolsManagerWidget::sltHandleToolMenuUpdate()
+void UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate()
 {
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
@@ -233,6 +232,35 @@ void UIGlobalToolsManagerWidget::sltHandleToolMenuUpdate()
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)
         if (enmRestrictedType != UIToolType_Machines)
             toolPane()->closeTool(enmRestrictedType);
+}
+
+void UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem)
+{
+    /* Prepare tool restrictions: */
+    QSet<UIToolType> restrictedTypes;
+
+    /* Restrict some types for Basic mode: */
+    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
+    if (!fExpertMode)
+        restrictedTypes << UIToolType_FileManager;
+
+    /* Make sure local VM tools are hidden for cloud VMs: */
+    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
+        restrictedTypes << UIToolType_Snapshots
+                        << UIToolType_Logs
+                        << UIToolType_FileManager;
+
+    /* Make sure no restricted tool is selected: */
+    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
+        setMenuToolType(UIToolType_Details);
+
+    /* Hide restricted tools in the menu: */
+    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
+
+    // /* Disable even unrestricted tools for inacccessible VMs: */
+    // const bool fCurrentItemIsOk = isItemAccessible(pItem);
+    // toolMenu()->setItemsEnabled(fCurrentItemIsOk);
 }
 
 void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
@@ -310,7 +338,9 @@ void UIGlobalToolsManagerWidget::prepareConnections()
 
     /* Tools-pane connections: */
     connect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
-            this, &UIGlobalToolsManagerWidget::sltHandleToolMenuUpdate);
+            this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
+    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+            this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
     connect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
             this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
 }
@@ -342,7 +372,9 @@ void UIGlobalToolsManagerWidget::cleanupConnections()
 
     /* Tools-pane connections: */
     disconnect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
-               this, &UIGlobalToolsManagerWidget::sltHandleToolMenuUpdate);
+               this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
+    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+               this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
     disconnect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
                this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
 }

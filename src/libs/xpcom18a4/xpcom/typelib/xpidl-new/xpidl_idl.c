@@ -40,8 +40,28 @@ typedef enum XPIDLKEYWORD
     kXpidlKeyword_Invalid = 0,
     kXpidlKeyword_Include,
     kXpidlKeyword_Typedef,
+    kXpidlKeyword_Char,
+    kXpidlKeyword_Wide_Char,
+    kXpidlKeyword_Unsigned,
+    kXpidlKeyword_Long,
+    kXpidlKeyword_Short,
+    kXpidlKeyword_Boolean,
+    kXpidlKeyword_Octet,
+    kXpidlKeyword_String,
+    kXpidlKeyword_Wide_String,
+    kXpidlKeyword_Double,
+    kXpidlKeyword_Float,
+    kXpidlKeyword_Native,
+    kXpidlKeyword_Interface,
+    kXpidlKeyword_Readonly,
+    kXpidlKeyword_Attribute,
+    kXpidlKeyword_In,
+    kXpidlKeyword_Out,
+    kXpidlKeyword_InOut,
     kXpidlKeyword_32Bit_Hack = 0x7fffffff
 } XPIDLKEYWORD;
+typedef const XPIDLKEYWORD *PCXPIDLKEYWORD;
+typedef XPIDLKEYWORD *PXPIDLKEYWORD;
 
 static DECLCALLBACK(int) xpidlIdlLexParseNumberIdentifierOrUuid(RTSCRIPTLEX hScriptLex, char ch, PRTSCRIPTLEXTOKEN pToken, void *pvUser);
 
@@ -71,24 +91,30 @@ static const char *s_aszMultiEnd[] =
 
 static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 {
-    { RT_STR_TUPLE("#include"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Include },
-    { RT_STR_TUPLE("uuid"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("ptr"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("ref"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("in"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("out"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("scriptable"),               RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("noscript"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("array"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("size_is"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("readonly"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("attribute"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("retval"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("interface"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
+    { RT_STR_TUPLE("#include"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Include     },
+
+    { RT_STR_TUPLE("char"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Char        },
+    { RT_STR_TUPLE("long"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Long        },
+    { RT_STR_TUPLE("wchar"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Wide_Char   },
+    { RT_STR_TUPLE("wstring"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Wide_String },
+    { RT_STR_TUPLE("boolean"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Boolean     },
+    { RT_STR_TUPLE("double"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Double      },
+    { RT_STR_TUPLE("float"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Float       },
+    { RT_STR_TUPLE("octet"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Octet       },
+    { RT_STR_TUPLE("short"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Short       },
+    { RT_STR_TUPLE("string"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_String      },
+    { RT_STR_TUPLE("unsigned"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Unsigned    },
+
+    { RT_STR_TUPLE("typedef"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Typedef     },
+    { RT_STR_TUPLE("native"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Native      },
+    { RT_STR_TUPLE("interface"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Interface   },
+    { RT_STR_TUPLE("readonly"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Readonly    },
+    { RT_STR_TUPLE("attribute"),                RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Attribute   },
+    { RT_STR_TUPLE("in"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_In          },
+    { RT_STR_TUPLE("inout"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_InOut       },
+    { RT_STR_TUPLE("out"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Out         },
+
     { RT_STR_TUPLE("const"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("native"),                   RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("nsid"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
-    { RT_STR_TUPLE("typedef"),                  RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Typedef },
 
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, ',' },
     { RT_STR_TUPLE("["),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, '[' },
@@ -144,7 +170,8 @@ static const RTSCRIPTLEXCFG g_IdlLexCfg =
 };
 
 
-static bool g_fRequiredUuid = false;
+static bool g_fParsingAttributes = false;
+static bool g_fRequiredUuid      = false;
 
 static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pLstIncludePaths);
 
@@ -234,6 +261,116 @@ static int xpidlLexerConsumeIfStringLit(PXPIDLPARSE pThis, PXPIDLINPUT pInput, c
 }
 
 
+static int xpidlLexerConsumeIfKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, XPIDLKEYWORD enmKeyword, bool *pfConsumed)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+    if (RT_FAILURE(rc))
+        return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query keyword token with %Rrc", rc);
+
+    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD
+        && pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)enmKeyword)
+    {
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+        *pfConsumed = true;
+        return VINF_SUCCESS;
+    }
+
+    *pfConsumed = false;
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlLexerConsumeIfKeywordInList(PXPIDLPARSE pThis, PXPIDLINPUT pInput,
+                                            PCXPIDLKEYWORD paenmKeywords, PXPIDLKEYWORD penmKeyword)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+    if (RT_FAILURE(rc))
+        return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query keyword token with %Rrc", rc);
+
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD)
+    {
+        unsigned i = 0;
+        do
+        {
+            if (pTok->Type.Keyword.pKeyword->u64Val == (uint64_t)paenmKeywords[i])
+            {
+                RTScriptLexConsumeToken(pInput->hIdlLex);
+                *penmKeyword = paenmKeywords[i];
+                return VINF_SUCCESS;
+            }
+
+            i++;
+        } while (paenmKeywords[i] != kXpidlKeyword_Invalid);
+    }
+
+    *penmKeyword = kXpidlKeyword_Invalid;
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlLexerConsumeIfIdentifier(PXPIDLPARSE pThis, PXPIDLINPUT pInput, bool fAllowKeywords, const char **ppszIde)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+    if (RT_FAILURE(rc))
+        return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query string literal token with %Rrc", rc);
+
+    if (pTok->enmType == RTSCRIPTLEXTOKTYPE_IDENTIFIER)
+    {
+        *ppszIde = pTok->Type.Id.pszIde;
+
+        /*
+         * HACK HACK HACK for UUIDs because they can start with digits but are not numbers.
+         *
+         * This must be done here before consuming the token because the lexer alwas peeks
+         * ahead and the format for UUIDs is 'uuid(<UUID>)' so activating this hack afterwards
+         * would make the lexer try to fill the next token with the wrong content (or most
+         * likely fail).
+         *
+         * This assumes that uuid will not be used standalone elsewhere in the attributes.
+         */
+        if (   g_fParsingAttributes
+            && !strcmp(pTok->Type.Id.pszIde, "uuid"))
+            g_fRequiredUuid = true;
+
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+        return VINF_SUCCESS;
+    }
+    else if (   fAllowKeywords
+             && pTok->enmType == RTSCRIPTLEXTOKTYPE_KEYWORD)
+    {
+        *ppszIde = pTok->Type.Keyword.pKeyword->pszMatch;
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+        return VINF_SUCCESS;
+    }
+
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlLexerConsumeIfPunctuator(PXPIDLPARSE pThis, PXPIDLINPUT pInput,
+                                         char chPunctuator, bool *pfConsumed)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+    if (RT_FAILURE(rc))
+        return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query punctuator token with %Rrc", rc);
+
+    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_PUNCTUATOR
+        && pTok->Type.Keyword.pKeyword->u64Val == chPunctuator)
+    {
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+        *pfConsumed = true;
+        return VINF_SUCCESS;
+    }
+
+    *pfConsumed = false;
+    return VINF_SUCCESS;
+}
+
+
 #define XPIDL_PARSE_STRING_LIT(a_pszStrLit) \
     const char *a_pszStrLit = NULL; \
     do { \
@@ -242,6 +379,89 @@ static int xpidlLexerConsumeIfStringLit(PXPIDLPARSE pThis, PXPIDLINPUT pInput, c
             return rc2; \
         if (!a_pszStrLit) \
             return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected a string literal"); \
+    } while(0)
+
+
+/* Some parser helper macros. */
+#define XPIDL_PARSE_OPTIONAL_KEYWORD(a_fConsumed, a_enmKeyword) \
+    bool a_fConsumed = false; \
+    do { \
+        int rc2 = xpidlLexerConsumeIfKeyword(pThis, pInput, a_enmKeyword, &a_fConsumed); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+    } while(0)
+
+
+#define XPIDL_PARSE_OPTIONAL_KEYWORD_LIST(a_enmKeyword, a_aenmKeywordList, a_enmDefault) \
+    XPIDLKEYWORD a_enmKeyword = kXpidlKeyword_Invalid; \
+    do { \
+        int rc2 = xpidlLexerConsumeIfKeywordInList(pThis, pInput, a_aenmKeywordList, &a_enmKeyword); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (a_enmKeyword == kXpidlKeyword_Invalid) \
+            a_enmKeyword = a_enmDefault; \
+    } while(0)
+
+
+#define XPIDL_PARSE_KEYWORD_LIST(a_enmKeyword, a_aenmKeywordList) \
+    XPIDLKEYWORD a_enmKeyword = kXpidlKeyword_Invalid; \
+    do { \
+        int rc2 = xpidlLexerConsumeIfKeywordInList(pThis, pInput, a_aenmKeywordList, &a_enmKeyword); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (a_enmKeyword == kXpidlKeyword_Invalid) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Unexpected keyword found"); \
+    } while(0)
+
+
+#define XPIDL_PARSE_IDENTIFIER(a_pszIde) \
+    const char *a_pszIde = NULL; \
+    do { \
+        int rc2 = xpidlLexerConsumeIfIdentifier(pThis, pInput, false /*fAllowKeywords*/, &a_pszIde); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!a_pszIde) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected an identifier"); \
+    } while(0)
+
+
+#define XPIDL_PARSE_IDENTIFIER_ALLOW_KEYWORDS(a_pszIde) \
+    const char *a_pszIde = NULL; \
+    do { \
+        int rc2 = xpidlLexerConsumeIfIdentifier(pThis, pInput, true /*fAllowKeywords*/, &a_pszIde); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!a_pszIde) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected an identifier"); \
+    } while(0)
+
+
+#define XPIDL_PARSE_IDENTIFIER_EXT(a_pszIde) \
+    do { \
+        int rc2 = xpidlLexerConsumeIfIdentifier(pThis, pInput, false /*fAllowKeywords*/, &a_pszIde); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!a_pszIde) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected an identifier"); \
+    } while(0)
+
+
+#define XPIDL_PARSE_PUNCTUATOR(a_chPunctuator) \
+    do { \
+        bool fConsumed2 = false; \
+        int rc2 = xpidlLexerConsumeIfPunctuator(pThis, pInput, a_chPunctuator, &fConsumed2); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!fConsumed2) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected punctuator '%c'", a_chPunctuator); \
+    } while(0)
+
+
+#define XPIDL_PARSE_OPTIONAL_PUNCTUATOR(a_fConsumed, a_chPunctuator) \
+    do { \
+        int rc2 = xpidlLexerConsumeIfPunctuator(pThis, pInput, a_chPunctuator, &a_fConsumed); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
     } while(0)
 
 
@@ -266,14 +486,29 @@ static PXPIDLINPUT xpidlInputCreate(const char *pszFilename, PRTLISTANCHOR pLstI
 }
 
 
-static PXPIDLNODE xpidlNodeCreate(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLINPUT pInput, XPIDLNDTYPE enmType)
+static PXPIDLNODE xpidlNodeCreateWithAttrs(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLINPUT pInput, XPIDLNDTYPE enmType,
+                                           PXPIDLATTR paAttrs, uint32_t cAttrs)
 {
-    PXPIDLNODE pNode = (PXPIDLNODE)RTMemAllocZ(sizeof(*pNode));
+    PXPIDLNODE pNode = (PXPIDLNODE)RTMemAllocZ(RT_UOFFSETOF_DYN(XPIDLNODE, aAttrs[cAttrs]));
     if (pNode)
     {
         pNode->pParent = pParent;
         pNode->pInput  = pInput;
         pNode->enmType = enmType;
+        switch (enmType)
+        {
+            case kXpidlNdType_Interface_Def:
+                RTListInit(&pNode->u.If.LstBody);
+                break;
+            case kXpidlNdType_Method:
+                RTListInit(&pNode->u.Method.LstParams);
+                break;
+            default:
+                break;
+        }
+
+        if (cAttrs)
+            memcpy(&pNode->aAttrs[0], &paAttrs[0], cAttrs * sizeof(pThis->aAttrs[0]));
     }
     else
         xpidlParseError(pThis, pInput, NULL, VERR_NO_MEMORY, "Failed to allocate node of type %u\n", enmType);
@@ -282,7 +517,385 @@ static PXPIDLNODE xpidlNodeCreate(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLI
 }
 
 
-static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pLstIncludePaths,
+static PXPIDLNODE xpidlNodeCreate(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLINPUT pInput, XPIDLNDTYPE enmType)
+{
+    return xpidlNodeCreateWithAttrs(pThis, pParent, pInput, enmType, NULL /*paAttrs*/, 0 /*cAttrs*/);
+}
+
+
+static int xpidlParseAttributes(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLATTR paAttrs, uint32_t cAttrsMax, uint32_t *pcAttrs)
+{
+    g_fParsingAttributes = true;
+    uint32_t cAttrs = 0;
+    for (;;)
+    {
+        bool fConsumed = false;
+        const char *pszVal = NULL;
+
+        XPIDL_PARSE_IDENTIFIER(pszAttr);
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '(');
+        if (fConsumed)
+        {
+            XPIDL_PARSE_IDENTIFIER_EXT(pszVal);
+            g_fRequiredUuid = false;
+            XPIDL_PARSE_PUNCTUATOR(')');
+        }
+
+        if (cAttrs == cAttrsMax)
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER,
+                                   "Too many attributes in attributes list, maximum is %u", cAttrsMax);
+
+        paAttrs[cAttrs].pszName = pszAttr;
+        paAttrs[cAttrs].pszVal  = pszVal;
+        cAttrs++;
+
+        /* No ',' means end of attribute list. */
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ',');
+        if (!fConsumed)
+            break;
+    }
+    g_fParsingAttributes = false;
+
+    XPIDL_PARSE_PUNCTUATOR(']');
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlParseTypeSpec(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE *ppNode)
+{
+    /* Need a keyword or an identifier. */
+    static const XPIDLKEYWORD g_aenmTypeKeywordsStart[] =
+    {
+        kXpidlKeyword_Char,
+        kXpidlKeyword_Wide_Char,
+        kXpidlKeyword_Unsigned,
+        kXpidlKeyword_Long,
+        kXpidlKeyword_Short,
+        kXpidlKeyword_Boolean,
+        kXpidlKeyword_Octet,
+        kXpidlKeyword_String,
+        kXpidlKeyword_Wide_String,
+        kXpidlKeyword_Double,
+        kXpidlKeyword_Float,
+        kXpidlKeyword_Invalid
+    };
+
+    int rc = VINF_SUCCESS;
+    XPIDL_PARSE_OPTIONAL_KEYWORD_LIST(enmType, g_aenmTypeKeywordsStart, kXpidlKeyword_Invalid);
+    if (enmType != kXpidlKeyword_Invalid)
+    {
+        XPIDLTYPE enmBaseType = kXpidlType_Invalid;
+
+        /* Unsigned, and long has more to follow. */
+        switch (enmType)
+        {
+            case kXpidlKeyword_Char:
+                enmBaseType = kXpidlType_Char;
+                break;
+            case kXpidlKeyword_Wide_Char:
+                enmBaseType = kXpidlType_Wide_Char;
+                break;
+            case kXpidlKeyword_Unsigned:
+            {
+                /*
+                 * Possibilities:
+                 *     unsigned short
+                 *     unsigned long
+                 *     unsigned long long
+                 */
+                static const XPIDLKEYWORD g_aenmUnsignedKeywords[] =
+                {
+                    kXpidlKeyword_Long,
+                    kXpidlKeyword_Short,
+                    kXpidlKeyword_Invalid
+                };
+
+                XPIDL_PARSE_KEYWORD_LIST(enmUnsignedType, g_aenmUnsignedKeywords);
+                switch (enmUnsignedType)
+                {
+                    case kXpidlKeyword_Long:
+                    {
+                        /* Another long following? */
+                        XPIDL_PARSE_OPTIONAL_KEYWORD(fConsumed, kXpidlKeyword_Long);
+                        if (fConsumed)
+                            enmBaseType = kXpidlType_Unsigned_Long_Long;
+                        else
+                            enmBaseType = kXpidlType_Unsigned_Long;
+                        break;
+                    }
+                    case kXpidlKeyword_Short:
+                        enmBaseType = kXpidlType_Unsigned_Short;
+                        break;
+                    default:
+                        AssertReleaseFailed(); /* Impossible */
+                }
+                break;
+            }
+            case kXpidlKeyword_Long:
+            {
+                /* Another long can follow. */
+                XPIDL_PARSE_OPTIONAL_KEYWORD(fConsumed, kXpidlKeyword_Long);
+                if (fConsumed)
+                    enmBaseType = kXpidlType_Long_Long;
+                else
+                    enmBaseType = kXpidlType_Long;
+                break;
+            }
+            case kXpidlKeyword_Short:
+                enmBaseType = kXpidlType_Short;
+                break;
+            case kXpidlKeyword_Boolean:
+                enmBaseType = kXpidlType_Boolean;
+                break;
+            case kXpidlKeyword_Octet:
+                enmBaseType = kXpidlType_Octet;
+                break;
+            case kXpidlKeyword_String:
+                enmBaseType = kXpidlType_String;
+                break;
+            case kXpidlKeyword_Wide_String:
+                enmBaseType = kXpidlType_Wide_String;
+                break;
+            case kXpidlKeyword_Double:
+                enmBaseType = kXpidlType_Double;
+                break;
+            case kXpidlKeyword_Float:
+                enmBaseType = kXpidlType_Float;
+                break;
+            default:
+                AssertReleaseFailed();
+        }
+
+        PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_BaseType);
+        if (pNode)
+        {
+            pNode->u.enmBaseType = enmBaseType;
+            *ppNode = pNode;
+        }
+        else
+            rc = VERR_NO_MEMORY;
+    }
+    else
+    {
+        /* Identifier */
+        XPIDL_PARSE_IDENTIFIER(pszName);
+        PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_Identifier);
+        if (pNode)
+        {
+            pNode->u.pszIde = pszName;
+            *ppNode = pNode;
+        }
+        else
+            rc = VERR_NO_MEMORY;
+    }
+
+    return rc;
+}
+
+
+static int xpidlParseMethodParameters(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdMethod)
+{
+    for (;;)
+    {
+        /* Each parameter can have an attribute list. */
+        bool fConsumed = false;
+        XPIDLATTR aAttrs[32];
+        uint32_t cAttrs = 0;
+
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '[');
+        if (fConsumed)
+        {
+            int rc = xpidlParseAttributes(pThis, pInput, &aAttrs[0], RT_ELEMENTS(aAttrs), &cAttrs);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+
+        /* Direction specifier. */
+        static const XPIDLKEYWORD g_aenmDirectionKeywords[] =
+        {
+            kXpidlKeyword_In,
+            kXpidlKeyword_InOut,
+            kXpidlKeyword_Out,
+            kXpidlKeyword_Invalid
+        };
+        XPIDL_PARSE_KEYWORD_LIST(enmDirection, g_aenmDirectionKeywords);
+
+        PXPIDLNODE pNdParam = xpidlNodeCreateWithAttrs(pThis, pNdMethod, pInput, kXpidlNdType_Parameter,
+                                                       &aAttrs[0], cAttrs);
+        if (pNdParam)
+        {
+            RTListAppend(&pNdMethod->u.Method.LstParams, &pNdParam->NdLst);
+
+            PXPIDLNODE pNdTypeSpec = NULL;
+            int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+            if (RT_FAILURE(rc))
+                return rc;
+            pNdParam->u.Param.pNdTypeSpec = pNdTypeSpec;
+
+            XPIDL_PARSE_IDENTIFIER(pszName); /* The parameter name is always required. */
+            pNdParam->u.Param.pszName = pszName;
+            switch (enmDirection)
+            {
+                case kXpidlKeyword_In:
+                    pNdParam->u.Param.enmDir = kXpidlDirection_In;
+                    break;
+                case kXpidlKeyword_InOut:
+                    pNdParam->u.Param.enmDir = kXpidlDirection_InOut;
+                    break;
+                case kXpidlKeyword_Out:
+                    pNdParam->u.Param.enmDir = kXpidlDirection_Out;
+                    break;
+                default:
+                    AssertReleaseFailed(); /* Impossible */
+            }
+        }
+        else
+            return VERR_NO_MEMORY;
+
+        /* No ',' means end of attribute list. */
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ',');
+        if (!fConsumed)
+            break;
+    }
+
+    XPIDL_PARSE_PUNCTUATOR(')');
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdIf)
+{
+    for (;;)
+    {
+        /* A closing '}' means we reached the end of the interface body. */
+        bool fConsumed = false;
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '}');
+        if (fConsumed)
+            break;
+
+        /*
+         * Select one of the following possibilities:
+         *     readonly attribute <type spec> <name>;
+         *     attribute <type spec> <name>;
+         *     <type spec> <name> (...);
+         */
+        static const XPIDLKEYWORD g_aenmAttributesKeywords[] =
+        {
+            kXpidlKeyword_Readonly,
+            kXpidlKeyword_Attribute,
+            kXpidlKeyword_Invalid
+        };
+
+        XPIDL_PARSE_OPTIONAL_KEYWORD_LIST(enmAttr, g_aenmAttributesKeywords, kXpidlKeyword_Invalid);
+        if (enmAttr != kXpidlKeyword_Invalid)
+        {
+            AssertFailed();
+        }
+        else
+        {
+            /* We need to parse a type spec. */
+            int rc = VINF_SUCCESS;
+            PXPIDLNODE pNdRetType = NULL;
+            XPIDLATTR aAttrs[32];
+            uint32_t cAttrs = 0;
+
+            /* A list of attributes for this method?. */
+            XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '[');
+            if (fConsumed)
+            {
+                rc = xpidlParseAttributes(pThis, pInput, &aAttrs[0], RT_ELEMENTS(aAttrs), &cAttrs);
+                if (RT_FAILURE(rc))
+                    return rc;
+            }
+
+            rc = xpidlParseTypeSpec(pThis, pInput, &pNdRetType);
+            if (RT_FAILURE(rc))
+                return rc;
+
+            PXPIDLNODE pNdMethod = xpidlNodeCreateWithAttrs(pThis, pNdIf, pInput, kXpidlNdType_Method,
+                                                            &aAttrs[0], cAttrs);
+            if (pNdMethod)
+            {
+                RTListAppend(&pNdIf->u.If.LstBody, &pNdMethod->NdLst);
+
+                pNdMethod->u.Method.pNdTypeSpecRet = pNdRetType;
+                XPIDL_PARSE_IDENTIFIER(pszName); /* The method name is always required. */
+                pNdMethod->u.Method.pszName = pszName;
+                XPIDL_PARSE_PUNCTUATOR('(');
+
+                XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ')');
+                if (!fConsumed)
+                {
+                    /* Parse the parameter spec. */
+                    rc = xpidlParseMethodParameters(pThis, pInput, pNdMethod);
+                    if (RT_FAILURE(rc))
+                        return rc;
+                }
+            }
+            else
+                return VERR_NO_MEMORY;
+        }
+
+        XPIDL_PARSE_PUNCTUATOR(';');
+    }
+
+    XPIDL_PARSE_PUNCTUATOR(';');
+    return VINF_SUCCESS;
+}
+
+
+static int xpidlParseInterface(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pParent)
+{
+    /*
+     * We only support parsing a subset of what is actually possible:
+     *     - Forward declarations
+     *     - Actual interface definitions with at most a single parent inheriting from
+     */
+    XPIDL_PARSE_IDENTIFIER(pszName); /* The interface name is always required. */
+    bool fConsumed = false;
+    XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ';');
+
+    int rc = VINF_SUCCESS;
+    if (!fConsumed)
+    {
+        const char *pszIfInherit = NULL;
+
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ':');
+        if (fConsumed)
+            XPIDL_PARSE_IDENTIFIER_EXT(pszIfInherit);
+        XPIDL_PARSE_PUNCTUATOR('{');
+        /* Now for the fun part, parsing the body of the interface. */
+        PXPIDLNODE pNode = xpidlNodeCreate(pThis, pParent, pInput, kXpidlNdType_Interface_Def);
+        if (pNode)
+        {
+            pNode->u.If.pszIfName    = pszName;
+            pNode->u.If.pszIfInherit = pszIfInherit;
+            RTListAppend(&pThis->LstNodes, &pNode->NdLst);
+
+            rc = xpidlParseInterfaceBody(pThis, pInput, pNode);
+        }
+        else
+            rc = VERR_NO_MEMORY;
+
+    }
+    else
+    {
+        /* That was easy, just a forward declaration. */
+        PXPIDLNODE pNode = xpidlNodeCreate(pThis, pParent, pInput, kXpidlNdType_Interface_Forward_Decl);
+        if (pNode)
+        {
+            pNode->u.pszIfFwdName = pszName;
+            RTListAppend(&pThis->LstNodes, &pNode->NdLst);
+        }
+        else
+            rc = VERR_NO_MEMORY;
+    }
+
+    return rc;
+}
+
+
+static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pParent, PRTLISTANCHOR pLstIncludePaths,
                              PCRTSCRIPTLEXTOKMATCH pKeyword)
 {
     RT_NOREF(pThis, pInput, pLstIncludePaths);
@@ -303,21 +916,56 @@ static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHO
         }
         case kXpidlKeyword_Typedef:
         {
-            /** @todo */
+            PXPIDLNODE pNdTypeSpec = NULL;
+            rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+            if (RT_FAILURE(rc))
+                break;
+            XPIDL_PARSE_IDENTIFIER(pszName);
+            XPIDL_PARSE_PUNCTUATOR(';');
+
+            PXPIDLNODE pNode = xpidlNodeCreate(pThis, pParent, pInput, kXpidlNdType_Typedef);
+            if (pNode)
+            {
+                pNdTypeSpec->pParent = pNode;
+
+                pNode->u.Typedef.pNodeTypeSpec = pNdTypeSpec;
+                pNode->u.Typedef.pszName       = pszName;
+                RTListAppend(&pThis->LstNodes, &pNode->NdLst);
+            }
+            else
+                rc = VERR_NO_MEMORY;
             break;
-        } 
+        }
+        case kXpidlKeyword_Native:
+        {
+            XPIDL_PARSE_IDENTIFIER(pszName);
+            XPIDL_PARSE_PUNCTUATOR('(');
+            XPIDL_PARSE_IDENTIFIER_ALLOW_KEYWORDS(pszNative); /* char is a keyword but also allowed */
+            XPIDL_PARSE_PUNCTUATOR(')');
+            XPIDL_PARSE_PUNCTUATOR(';');
+
+            PXPIDLNODE pNode = xpidlNodeCreateWithAttrs(pThis, pParent, pInput, kXpidlNdType_Native,
+                                                        &pThis->aAttrs[0], pThis->cAttrs);
+            if (pNode)
+            {
+                pThis->cAttrs = 0;
+
+                pNode->u.Native.pszName   = pszName;
+                pNode->u.Native.pszNative = pszNative;
+                RTListAppend(&pThis->LstNodes, &pNode->NdLst);
+            }
+            else
+                rc = VERR_NO_MEMORY;
+            break;
+        }
+        case kXpidlKeyword_Interface:
+            rc = xpidlParseInterface(pThis, pInput, pParent);
+            break;
         default:
             rc = xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Unexpected keyword '%s' found",
                                  pKeyword->pszMatch);
     } 
     return rc;
-}
-
-
-static int xpidlParseAttributes(PXPIDLPARSE pThis, PXPIDLINPUT pInput)
-{
-    RT_NOREF(pThis, pInput);
-    return VERR_NOT_IMPLEMENTED;
 }
 
 
@@ -368,7 +1016,7 @@ static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pL
             {
                 PCRTSCRIPTLEXTOKMATCH pKeyword = pTok->Type.Keyword.pKeyword;
                 RTScriptLexConsumeToken(pInput->hIdlLex);
-                rc = xpidlParseKeyword(pThis, pInput, pLstIncludePaths, pKeyword); /** @todo This allows too much */
+                rc = xpidlParseKeyword(pThis, pInput, NULL, pLstIncludePaths, pKeyword); /** @todo This allows too much */
                 break;
             }
             case RTSCRIPTLEXTOKTYPE_PUNCTUATOR:
@@ -376,7 +1024,12 @@ static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pL
                 if (pTok->Type.Punctuator.pPunctuator->u64Val == '[')
                 {
                     RTScriptLexConsumeToken(pInput->hIdlLex);
-                    rc = xpidlParseAttributes(pThis, pInput);
+
+                    if (pThis->cAttrs)
+                        return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER,
+                                               "Start of attribute list directly after an existing attribute list");
+
+                    rc = xpidlParseAttributes(pThis, pInput, &pThis->aAttrs[0], RT_ELEMENTS(pThis->aAttrs), &pThis->cAttrs);
                 }
                 else
                     rc = xpidlParseError(pThis, pInput, pTok, VERR_INVALID_PARAMETER, "Unexpected punctuator found, expected '[', got '%c'",
@@ -406,6 +1059,7 @@ int xpidl_process_idl(char *filename, PRTLISTANCHOR pLstIncludePaths,
     RTListInit(&ParseState.LstInputs);
     RTListInit(&ParseState.LstNodes);
     RTErrInfoInitStatic(&ParseState.ErrInfo);
+    ParseState.cAttrs    = 0;
 
     PXPIDLINPUT pInput = xpidlInputCreate(filename, pLstIncludePaths);
     if (!pInput)

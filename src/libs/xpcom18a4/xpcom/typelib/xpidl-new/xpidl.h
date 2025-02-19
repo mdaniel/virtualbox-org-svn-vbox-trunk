@@ -101,10 +101,50 @@ typedef enum XPIDLNDTYPE
     kXpidlNdType_Invalid = 0,
     kXpidlNdType_RawBlock,
     kXpidlNdType_Typedef,
+    kXpidlNdType_BaseType,
+    kXpidlNdType_Identifier,
     kXpidlNdType_Native,
-    kXpidlNdType_Interface,
-    kXpidlNdType_Forward_Decl
+    kXpidlNdType_Interface_Forward_Decl,
+    kXpidlNdType_Interface_Def,
+    kXpidlNdType_Attribute,
+    kXpidlNdType_Method,
+    kXpidlNdType_Parameter
 } XPIDLNDTYPE;
+
+
+/**
+ * IDL base type.
+ */
+typedef enum XPIDLTYPE
+{
+    kXpidlType_Invalid = 0,
+    kXpidlType_Boolean,
+    kXpidlType_Octet,
+    kXpidlType_Char,
+    kXpidlType_Wide_Char,
+    kXpidlType_Short,
+    kXpidlType_Long,
+    kXpidlType_Long_Long,
+    kXpidlType_Unsigned_Short,
+    kXpidlType_Unsigned_Long,
+    kXpidlType_Unsigned_Long_Long,
+    kXpidlType_String,
+    kXpidlType_Wide_String,
+    kXpidlType_Double,
+    kXpidlType_Float,
+} XPIDLTYPE;
+
+
+/**
+ * IDL direction.
+ */
+typedef enum XPIDLDIRECTION
+{
+    kXpidlDirection_Invalid = 0,
+    kXpidlDirection_In,
+    kXpidlDirection_InOut,
+    kXpidlDirection_Out
+} XPIDLDIRECTION;
 
 
 /**
@@ -149,7 +189,48 @@ typedef struct XPIDLNODE
             const char *pszRaw;
             size_t     cchRaw;
         } RawBlock;
+        struct
+        {
+            PCXPIDLNODE pNodeTypeSpec;
+            const char  *pszName;
+        } Typedef;
+        XPIDLTYPE       enmBaseType;
+        const char      *pszIde;
+        struct
+        {
+            const char  *pszName;
+            const char  *pszNative;
+        } Native;
+        const char      *pszIfFwdName;
+        struct
+        {
+            const char  *pszIfName;
+            const char  *pszIfInherit;
+            RTLISTANCHOR LstBody;
+        } If;
+        struct
+        {
+            bool        fReadonly;
+            PCXPIDLNODE pNdTypeSpec;
+            const char  *pszName;
+        } Attribute;
+        struct
+        {
+            PCXPIDLNODE pNdTypeSpecRet;
+            const char  *pszName;
+            RTLISTANCHOR LstParams;
+        } Method;
+        struct
+        {
+            PCXPIDLNODE pNdTypeSpec;
+            const char  *pszName;
+            XPIDLDIRECTION enmDir;
+        } Param;
     } u;
+    /** Number of entries in the attribute array. */
+    uint32_t            cAttrs;
+    /** Node attributes array - variable in size. */
+    XPIDLATTR           aAttrs[1];
 } XPIDLNODE;
 
 
@@ -164,6 +245,10 @@ typedef struct XPIDLPARSE
     RTLISTANCHOR        LstNodes;
     /** Extended error info. */
     RTERRINFOSTATIC     ErrInfo;
+    /** Current attributes parsed. */
+    XPIDLATTR           aAttrs[32];
+    /** Number of entries in the attribute array. */
+    uint32_t            cAttrs;
 } XPIDLPARSE;
 /** Pointer to an IDL parsing state. */
 typedef XPIDLPARSE *PXPIDLPARSE;

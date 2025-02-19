@@ -1398,7 +1398,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_ATOMIC
  */
-#define IEM_MC_MEM_MAP_U8_ATOMIC(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U8_ATOMIC(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu8Mem) = iemMemMapDataU8AtJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1411,7 +1411,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RW
  */
-#define IEM_MC_MEM_MAP_U8_RW(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U8_RW(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu8Mem) = iemMemMapDataU8RwJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1424,7 +1424,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_U8_WO(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U8_WO(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu8Mem) = iemMemMapDataU8WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1437,7 +1437,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RO
  */
-#define IEM_MC_MEM_MAP_U8_RO(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U8_RO(a_pu8Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu8Mem) = iemMemMapDataU8RoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1505,7 +1505,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_ATOMIC
  */
-#define IEM_MC_MEM_MAP_U16_ATOMIC(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U16_ATOMIC(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu16Mem) = iemMemMapDataU16AtJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1518,7 +1518,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RW
  */
-#define IEM_MC_MEM_MAP_U16_RW(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U16_RW(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu16Mem) = iemMemMapDataU16RwJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1531,7 +1531,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_U16_WO(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U16_WO(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu16Mem) = iemMemMapDataU16WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1544,7 +1544,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RO
  */
-#define IEM_MC_MEM_MAP_U16_RO(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U16_RO(a_pu16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu16Mem) = iemMemMapDataU16RoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1600,7 +1600,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
     (a_pu16Mem) = iemMemFlatMapDataU16RoJmp(pVCpu, &(a_bUnmapInfo), (a_GCPtrMem))
 
 /** int16_t alias. */
-#define IEM_MC_MEM_MAP_I16_WO(a_pi16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_I16_WO(a_pi16Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pi16Mem) = (int16_t *)iemMemMapDataU16WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /** Flat int16_t alias. */
@@ -1620,7 +1620,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_ATOMIC
  */
-#define IEM_MC_MEM_MAP_U32_ATOMIC(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U32_ATOMIC(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu32Mem) = iemMemMapDataU32AtJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1633,7 +1633,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RW
  */
-#define IEM_MC_MEM_MAP_U32_RW(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U32_RW(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu32Mem) = iemMemMapDataU32RwJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1646,7 +1646,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_U32_WO(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U32_WO(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu32Mem) = iemMemMapDataU32WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1659,7 +1659,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RO
  */
-#define IEM_MC_MEM_MAP_U32_RO(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U32_RO(a_pu32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu32Mem) = iemMemMapDataU32RoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1715,7 +1715,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
     (a_pu32Mem) = iemMemFlatMapDataU32RoJmp(pVCpu, &(a_bUnmapInfo), (a_GCPtrMem))
 
 /** int32_t alias. */
-#define IEM_MC_MEM_MAP_I32_WO(a_pi32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_I32_WO(a_pi32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pi32Mem) = (int32_t *)iemMemMapDataU32WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /** Flat int32_t alias. */
@@ -1723,7 +1723,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
     (a_pi32Mem) = (int32_t *)iemMemFlatMapDataU32WoJmp(pVCpu, &(a_bUnmapInfo), (a_GCPtrMem))
 
 /** RTFLOAT32U alias. */
-#define IEM_MC_MEM_MAP_R32_WO(a_pr32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_R32_WO(a_pr32Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pr32Mem) = (PRTFLOAT32U)iemMemMapDataU32WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /** Flat RTFLOAT32U alias. */
@@ -1743,7 +1743,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_ATOMIC
  */
-#define IEM_MC_MEM_MAP_U64_ATOMIC(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U64_ATOMIC(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu64Mem) = iemMemMapDataU64AtJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1756,7 +1756,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RW
  */
-#define IEM_MC_MEM_MAP_U64_RW(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U64_RW(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu64Mem) = iemMemMapDataU64RwJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1769,7 +1769,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_U64_WO(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U64_WO(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu64Mem) = iemMemMapDataU64WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1782,7 +1782,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RO
  */
-#define IEM_MC_MEM_MAP_U64_RO(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U64_RO(a_pu64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu64Mem) = iemMemMapDataU64RoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1838,7 +1838,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
     (a_pu64Mem) = iemMemFlatMapDataU64RoJmp(pVCpu, &(a_bUnmapInfo), (a_GCPtrMem))
 
 /** int64_t alias. */
-#define IEM_MC_MEM_MAP_I64_WO(a_pi64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_I64_WO(a_pi64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pi64Mem) = (int64_t *)iemMemMapDataU64WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /** Flat int64_t alias. */
@@ -1846,7 +1846,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
     (a_pi64Mem) = (int64_t *)iemMemFlatMapDataU64WoJmp(pVCpu, &(a_bUnmapInfo), (a_GCPtrMem))
 
 /** RTFLOAT64U alias. */
-#define IEM_MC_MEM_MAP_R64_WO(a_pr64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_R64_WO(a_pr64Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pr64Mem) = (PRTFLOAT64U)iemMemMapDataU64WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /** Flat RTFLOAT64U alias. */
@@ -1866,7 +1866,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_ATOMIC
  */
-#define IEM_MC_MEM_MAP_U128_ATOMIC(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U128_ATOMIC(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu128Mem) = iemMemMapDataU128AtJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1879,7 +1879,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RW
  */
-#define IEM_MC_MEM_MAP_U128_RW(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U128_RW(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu128Mem) = iemMemMapDataU128RwJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1892,7 +1892,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_U128_WO(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U128_WO(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu128Mem) = iemMemMapDataU128WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1905,7 +1905,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_RO
  */
-#define IEM_MC_MEM_MAP_U128_RO(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_U128_RO(a_pu128Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pu128Mem) = iemMemMapDataU128RoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1973,7 +1973,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_R80_WO(a_pr80Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_R80_WO(a_pr80Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pr80Mem) = iemMemMapDataR80WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**
@@ -1999,7 +1999,7 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
  * @remarks Will return/long jump on errors.
  * @see     IEM_MC_MEM_COMMIT_AND_UNMAP_WO
  */
-#define IEM_MC_MEM_MAP_D80_WO(a_pd80Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
+#define IEM_MC_MEM_SEG_MAP_D80_WO(a_pd80Mem, a_bUnmapInfo, a_iSeg, a_GCPtrMem) \
     (a_pd80Mem) = iemMemMapDataD80WoJmp(pVCpu, &(a_bUnmapInfo), (a_iSeg), (a_GCPtrMem))
 
 /**

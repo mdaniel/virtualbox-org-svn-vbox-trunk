@@ -7956,7 +7956,7 @@ DECLINLINE(int) ASMBitNextClear(const volatile void RT_FAR *pvBitmap, uint32_t c
  * Finds the first set bit in a bitmap.
  *
  * @returns Index of the first set bit.
- * @returns -1 if no clear bit was found.
+ * @returns -1 if no set bit was found.
  * @param   pvBitmap    Pointer to the bitmap (little endian).
  * @param   cBits       The number of bits in the bitmap. Multiple of 32.
  */

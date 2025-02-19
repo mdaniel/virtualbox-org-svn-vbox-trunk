@@ -78,6 +78,9 @@ signals:
 
     /** @name Tools pane stuff.
       * @{ */
+        /** Notifies about required tool menu update for the @a pItem specified. */
+        void sigToolMenuUpdate(UIVirtualMachineItem *pItem);
+
         /** Notifies about Tool type change. */
         void sigToolTypeChange();
     /** @} */
@@ -198,6 +201,9 @@ private slots:
 
     /** @name Tools pane stuff.
       * @{ */
+        /** Handles request for tools menu update for the @a pItem specified. */
+        void sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem);
+
         /** Handles tool popup-menu request. */
         void sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
 
@@ -226,7 +232,7 @@ private:
         void cleanupConnections();
     /** @} */
 
-    /** @name Tools stuff.
+    /** @name Tools pane stuff.
       * @{ */
         /** Returns tool-menu instance. */
         UITools *toolMenu() const;
@@ -234,9 +240,6 @@ private:
         /** Recaches current machine item information.
           * @param  fDontRaiseErrorPane  Brings whether we should not raise error-pane. */
         void recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane = false);
-
-        /** Updates tools menu for @a pItem specified. */
-        void updateToolsMenu(UIVirtualMachineItem *pItem);
     /** @} */
 
     /** Holds the parent reference. */

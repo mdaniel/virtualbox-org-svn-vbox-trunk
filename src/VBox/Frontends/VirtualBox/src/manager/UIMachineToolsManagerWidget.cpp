@@ -236,10 +236,10 @@ void UIMachineToolsManagerWidget::sltHandleMachineStateChange(const QUuid &uId)
 
 void UIMachineToolsManagerWidget::sltHandleSettingsExpertModeChange()
 {
-    /* Update tools restrictions for currently selected item: */
+    /* Update tool restrictions for currently selected item: */
     UIVirtualMachineItem *pItem = currentItem();
     if (pItem)
-        updateToolsMenu(pItem);
+        emit sigToolMenuUpdate(pItem);
 }
 
 void UIMachineToolsManagerWidget::sltHandleSplitterMove()
@@ -271,10 +271,10 @@ void UIMachineToolsManagerWidget::sltHandleChooserPaneIndexChange()
     /* Let the parent know: */
     emit sigChooserPaneIndexChange();
 
-    /* Update tools restrictions for currently selected item: */
+    /* Update tool restrictions for currently selected item: */
     UIVirtualMachineItem *pItem = currentItem();
     if (pItem)
-        updateToolsMenu(pItem);
+        emit sigToolMenuUpdate(pItem);
 
     /* Recache current machine item information: */
     recacheCurrentMachineItemInformation();
@@ -338,27 +338,59 @@ void UIMachineToolsManagerWidget::sltHandleCloudMachineStateChange(const QUuid &
     emit sigCloudMachineStateChange(uId);
 }
 
+void UIMachineToolsManagerWidget::sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem)
+{
+    /* Prepare tool restrictions: */
+    QSet<UIToolType> restrictedTypes;
+
+    /* Restrict some types for Basic mode: */
+    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
+    if (!fExpertMode)
+        restrictedTypes << UIToolType_FileManager;
+
+    /* Make sure local VM tools are hidden for cloud VMs: */
+    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
+        restrictedTypes << UIToolType_Snapshots
+                        << UIToolType_Logs
+                        << UIToolType_FileManager;
+
+    /* Make sure no restricted tool is selected: */
+    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
+        setMenuToolType(UIToolType_Details);
+
+    /* Hide restricted tools in the menu: */
+    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
+
+    /* Disable even unrestricted tools for inacccessible VMs: */
+    const bool fCurrentItemIsOk = isItemAccessible(pItem);
+    toolMenu()->setItemsEnabled(fCurrentItemIsOk);
+
+    /* Close all restricted tools: */
+    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
+        toolPane()->closeTool(enmRestrictedType);
+}
+
 void UIMachineToolsManagerWidget::sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
 {
-    /* Update tools menu beforehand: */
-    UITools *pMenu = pItem ? toolMenu() : 0;
-    AssertPtrReturnVoid(pMenu);
+    /* Update tools restrictions for item specified: */
+    AssertPtrReturnVoid(pItem);
     if (pItem)
-        updateToolsMenu(pItem);
+        emit sigToolMenuUpdate(pItem);
 
     /* Compose popup-menu geometry first of all: */
-    QRect ourGeo = QRect(position, pMenu->minimumSizeHint());
+    QRect ourGeo = QRect(position, toolMenu()->minimumSizeHint());
     /* Adjust location only to properly fit into available geometry space: */
     const QRect availableGeo = gpDesktop->availableGeometry(position);
     ourGeo = gpDesktop->normalizeGeometry(ourGeo, availableGeo, false /* resize? */);
 
     /* Move, resize and show: */
-    pMenu->move(ourGeo.topLeft());
-    pMenu->show();
+    toolMenu()->move(ourGeo.topLeft());
+    toolMenu()->show();
     // WORKAROUND:
     // Don't want even to think why, but for Qt::Popup resize to
     // smaller size often being ignored until it is actually shown.
-    pMenu->resize(ourGeo.size());
+    toolMenu()->resize(ourGeo.size());
 }
 
 void UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
@@ -476,6 +508,8 @@ void UIMachineToolsManagerWidget::prepareConnections()
             toolPane(), &UIToolPaneMachine::sigToggleFinished);
 
     /* Tools-menu connections: */
+    connect(this, &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+            this, &UIMachineToolsManagerWidget::sltHandleToolMenuUpdate);
     connect(toolMenu(), &UITools::sigSelectionChanged,
             this, &UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange);
 }
@@ -529,6 +563,8 @@ void UIMachineToolsManagerWidget::cleanupConnections()
                toolPane(), &UIToolPaneMachine::sigToggleFinished);
 
     /* Tools-menu connections: */
+    disconnect(this, &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+               this, &UIMachineToolsManagerWidget::sltHandleToolMenuUpdate);
     disconnect(toolMenu(), &UITools::sigSelectionChanged,
                this, &UIMachineToolsManagerWidget::sltHandleToolsMenuIndexChange);
 }
@@ -569,37 +605,4 @@ void UIMachineToolsManagerWidget::recacheCurrentMachineItemInformation(bool fDon
         if (pItem)
             toolPane()->setErrorDetails(pItem->accessError());
     }
-}
-
-void UIMachineToolsManagerWidget::updateToolsMenu(UIVirtualMachineItem *pItem)
-{
-    /* Prepare tool restrictions: */
-    QSet<UIToolType> restrictedTypes;
-
-    /* Restrict some types for Basic mode: */
-    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
-    if (!fExpertMode)
-        restrictedTypes << UIToolType_FileManager;
-
-    /* Make sure local VM tools are hidden for cloud VMs: */
-    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
-        restrictedTypes << UIToolType_Snapshots
-                        << UIToolType_Logs
-                        << UIToolType_FileManager;
-
-    /* Make sure no restricted tool is selected: */
-    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
-        setMenuToolType(UIToolType_Details);
-
-    /* Hide restricted tools in the menu: */
-    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
-    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
-
-    /* Disable even unrestricted tools for inacccessible VMs: */
-    const bool fCurrentItemIsOk = isItemAccessible(pItem);
-    toolMenu()->setItemsEnabled(fCurrentItemIsOk);
-
-    /* Close all restricted tools: */
-    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
-        toolPane()->closeTool(enmRestrictedType);
 }

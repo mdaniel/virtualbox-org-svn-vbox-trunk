@@ -1314,18 +1314,18 @@ AssertCompile(X86_CR4_FSGSBASE > UINT8_MAX);
 #define IEM_MC_STORE_MEM_FLAT_U64_CONST(a_GCPtrMem, a_u64C) \
     iemMemFlatStoreDataU64Jmp(pVCpu, (a_GCPtrMem), (a_u64C))
 
-#define IEM_MC_STORE_MEM_I8_CONST_BY_REF( a_pi8Dst,  a_i8C)     *(a_pi8Dst)  = (a_i8C)
-#define IEM_MC_STORE_MEM_I16_CONST_BY_REF(a_pi16Dst, a_i16C)    *(a_pi16Dst) = (a_i16C)
-#define IEM_MC_STORE_MEM_I32_CONST_BY_REF(a_pi32Dst, a_i32C)    *(a_pi32Dst) = (a_i32C)
-#define IEM_MC_STORE_MEM_I64_CONST_BY_REF(a_pi64Dst, a_i64C)    *(a_pi64Dst) = (a_i64C)
-#define IEM_MC_STORE_MEM_NEG_QNAN_R32_BY_REF(a_pr32Dst)         (a_pr32Dst)->u = UINT32_C(0xffc00000)
-#define IEM_MC_STORE_MEM_NEG_QNAN_R64_BY_REF(a_pr64Dst)         (a_pr64Dst)->u = UINT64_C(0xfff8000000000000)
-#define IEM_MC_STORE_MEM_NEG_QNAN_R80_BY_REF(a_pr80Dst) \
+#define IEM_MC_STORE_MEM_BY_REF_I8_CONST( a_pi8Dst,  a_i8C)     *(a_pi8Dst)  = (a_i8C)
+#define IEM_MC_STORE_MEM_BY_REF_I16_CONST(a_pi16Dst, a_i16C)    *(a_pi16Dst) = (a_i16C)
+#define IEM_MC_STORE_MEM_BY_REF_I32_CONST(a_pi32Dst, a_i32C)    *(a_pi32Dst) = (a_i32C)
+#define IEM_MC_STORE_MEM_BY_REF_I64_CONST(a_pi64Dst, a_i64C)    *(a_pi64Dst) = (a_i64C)
+#define IEM_MC_STORE_MEM_BY_REF_R32_NEG_QNAN(a_pr32Dst)         (a_pr32Dst)->u = UINT32_C(0xffc00000)
+#define IEM_MC_STORE_MEM_BY_REF_R64_NEG_QNAN(a_pr64Dst)         (a_pr64Dst)->u = UINT64_C(0xfff8000000000000)
+#define IEM_MC_STORE_MEM_BY_REF_R80_NEG_QNAN(a_pr80Dst) \
     do { \
         (a_pr80Dst)->au64[0] = UINT64_C(0xc000000000000000); \
         (a_pr80Dst)->au16[4] = UINT16_C(0xffff); \
     } while (0)
-#define IEM_MC_STORE_MEM_INDEF_D80_BY_REF(a_pd80Dst) \
+#define IEM_MC_STORE_MEM_BY_REF_D80_INDEF(a_pd80Dst) \
     do { \
         (a_pd80Dst)->au64[0] = UINT64_C(0xc000000000000000); \
         (a_pd80Dst)->au16[4] = UINT16_C(0xffff); \

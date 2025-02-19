@@ -10949,7 +10949,7 @@ FNIEMOP_DEF_1(iemOp_fst_m32r, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_NEG_QNAN_R32_BY_REF(pr32Dst);
+            IEM_MC_STORE_MEM_BY_REF_R32_NEG_QNAN(pr32Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -10988,7 +10988,7 @@ FNIEMOP_DEF_1(iemOp_fstp_m32r, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_NEG_QNAN_R32_BY_REF(pr32Dst);
+            IEM_MC_STORE_MEM_BY_REF_R32_NEG_QNAN(pr32Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12077,7 +12077,7 @@ FNIEMOP_DEF_1(iemOp_fisttp_m32i, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I32_CONST_BY_REF(pi32Dst, INT32_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I32_CONST(pi32Dst, INT32_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12116,7 +12116,7 @@ FNIEMOP_DEF_1(iemOp_fist_m32i, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I32_CONST_BY_REF(pi32Dst, INT32_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I32_CONST(pi32Dst, INT32_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12155,7 +12155,7 @@ FNIEMOP_DEF_1(iemOp_fistp_m32i, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I32_CONST_BY_REF(pi32Dst, INT32_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I32_CONST(pi32Dst, INT32_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12226,7 +12226,7 @@ FNIEMOP_DEF_1(iemOp_fstp_m80r, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_NEG_QNAN_R80_BY_REF(pr80Dst);
+            IEM_MC_STORE_MEM_BY_REF_R80_NEG_QNAN(pr80Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12821,7 +12821,7 @@ FNIEMOP_DEF_1(iemOp_fisttp_m64i, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I64_CONST_BY_REF(pi64Dst, INT64_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I64_CONST(pi64Dst, INT64_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12860,7 +12860,7 @@ FNIEMOP_DEF_1(iemOp_fst_m64r,    uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_NEG_QNAN_R64_BY_REF(pr64Dst);
+            IEM_MC_STORE_MEM_BY_REF_R64_NEG_QNAN(pr64Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -12901,7 +12901,7 @@ FNIEMOP_DEF_1(iemOp_fstp_m64r,   uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_NEG_QNAN_R64_BY_REF(pr64Dst);
+            IEM_MC_STORE_MEM_BY_REF_R64_NEG_QNAN(pr64Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -13443,7 +13443,7 @@ FNIEMOP_DEF_1(iemOp_fisttp_m16i, uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I16_CONST_BY_REF(pi16Dst, INT16_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I16_CONST(pi16Dst, INT16_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -13482,7 +13482,7 @@ FNIEMOP_DEF_1(iemOp_fist_m16i,   uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I16_CONST_BY_REF(pi16Dst, INT16_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I16_CONST(pi16Dst, INT16_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -13521,7 +13521,7 @@ FNIEMOP_DEF_1(iemOp_fistp_m16i,  uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I16_CONST_BY_REF(pi16Dst, INT16_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I16_CONST(pi16Dst, INT16_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -13624,7 +13624,7 @@ FNIEMOP_DEF_1(iemOp_fbstp_m80d,  uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_INDEF_D80_BY_REF(pd80Dst);
+            IEM_MC_STORE_MEM_BY_REF_D80_INDEF(pd80Dst);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);
@@ -13663,7 +13663,7 @@ FNIEMOP_DEF_1(iemOp_fistp_m64i,  uint8_t, bRm)
         IEM_MC_UPDATE_FSW_WITH_MEM_OP_THEN_POP(u16Fsw, pVCpu->iem.s.iEffSeg, GCPtrEffDst, pVCpu->iem.s.uFpuOpcode);
     } IEM_MC_ELSE() {
         IEM_MC_IF_FCW_IM() {
-            IEM_MC_STORE_MEM_I64_CONST_BY_REF(pi64Dst, INT64_MIN /* (integer indefinite) */);
+            IEM_MC_STORE_MEM_BY_REF_I64_CONST(pi64Dst, INT64_MIN /* (integer indefinite) */);
             IEM_MC_MEM_COMMIT_AND_UNMAP_WO(bUnmapInfo);
         } IEM_MC_ELSE() {
             IEM_MC_MEM_ROLLBACK_AND_UNMAP_WO(bUnmapInfo);

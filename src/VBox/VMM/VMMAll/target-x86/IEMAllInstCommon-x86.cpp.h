@@ -945,9 +945,9 @@ FNIEMOP_DEF_2(iemOpCommonLoadSRegAndGreg, uint8_t, iSegReg, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEff, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_ARG(uint16_t,        offSeg,                                  1);
-                IEM_MC_FETCH_MEM_U16(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff); /** @todo check memory access pattern */
+                IEM_MC_FETCH_MEM_SEG_U16(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff); /** @todo check memory access pattern */
                 IEM_MC_ARG(uint16_t,        uSel,                                    0);
-                IEM_MC_FETCH_MEM_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 2);
+                IEM_MC_FETCH_MEM_SEG_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 2);
                 IEM_MC_ARG_CONST(uint8_t,   iSegRegArg,/*=*/iSegReg,                 2);
                 IEM_MC_ARG_CONST(uint8_t,   iGRegArg,  /*=*/iGReg,                   3);
                 IEM_MC_ARG_CONST(IEMMODE,   enmEffOpSize,/*=*/pVCpu->iem.s.enmEffOpSize, 4);
@@ -967,9 +967,9 @@ FNIEMOP_DEF_2(iemOpCommonLoadSRegAndGreg, uint8_t, iSegReg, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEff, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_ARG(uint16_t,        offSeg,                                  1);
-                IEM_MC_FETCH_MEM_U16(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff); /** @todo check memory access pattern */
+                IEM_MC_FETCH_MEM_SEG_U16(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff); /** @todo check memory access pattern */
                 IEM_MC_ARG(uint16_t,        uSel,                                    0);
-                IEM_MC_FETCH_MEM_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 2);
+                IEM_MC_FETCH_MEM_SEG_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 2);
                 IEM_MC_ARG_CONST(uint8_t,   iSegRegArg,/*=*/iSegReg,                 2);
                 IEM_MC_ARG_CONST(uint8_t,   iGRegArg,  /*=*/iGReg,                   3);
                 IEM_MC_ARG_CONST(IEMMODE,   enmEffOpSize,/*=*/pVCpu->iem.s.enmEffOpSize, 4);
@@ -991,9 +991,9 @@ FNIEMOP_DEF_2(iemOpCommonLoadSRegAndGreg, uint8_t, iSegReg, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEff, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_ARG(uint32_t,        offSeg,                                  1);    /** @todo check memory access pattern */
-                IEM_MC_FETCH_MEM_U32(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
+                IEM_MC_FETCH_MEM_SEG_U32(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
                 IEM_MC_ARG(uint16_t,        uSel,                                    0);
-                IEM_MC_FETCH_MEM_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 4);
+                IEM_MC_FETCH_MEM_SEG_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 4);
                 IEM_MC_ARG_CONST(uint8_t,   iSegRegArg,/*=*/iSegReg,                 2);
                 IEM_MC_ARG_CONST(uint8_t,   iGRegArg,  /*=*/iGReg,                   3);
                 IEM_MC_ARG_CONST(IEMMODE,   enmEffOpSize,/*=*/pVCpu->iem.s.enmEffOpSize, 4);
@@ -1013,9 +1013,9 @@ FNIEMOP_DEF_2(iemOpCommonLoadSRegAndGreg, uint8_t, iSegReg, uint8_t, bRm)
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEff, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
                 IEM_MC_ARG(uint32_t,        offSeg,                                  1);    /** @todo check memory access pattern */
-                IEM_MC_FETCH_MEM_U32(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
+                IEM_MC_FETCH_MEM_SEG_U32(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
                 IEM_MC_ARG(uint16_t,        uSel,                                    0);
-                IEM_MC_FETCH_MEM_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 4);
+                IEM_MC_FETCH_MEM_SEG_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 4);
                 IEM_MC_ARG_CONST(uint8_t,   iSegRegArg,/*=*/iSegReg,                 2);
                 IEM_MC_ARG_CONST(uint8_t,   iGRegArg,  /*=*/iGReg,                   3);
                 IEM_MC_ARG_CONST(IEMMODE,   enmEffOpSize,/*=*/pVCpu->iem.s.enmEffOpSize, 4);
@@ -1038,10 +1038,10 @@ FNIEMOP_DEF_2(iemOpCommonLoadSRegAndGreg, uint8_t, iSegReg, uint8_t, bRm)
             IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
 IEM_MC_NO_NATIVE_RECOMPILE(); /** @todo sort out the IEM_IS_GUEST_CPU_AMD stuff. */
             if (IEM_IS_GUEST_CPU_AMD(pVCpu)) /** @todo testcase: rev 3.15 of the amd manuals claims it only loads a 32-bit greg. */
-                IEM_MC_FETCH_MEM_U32_SX_U64(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
+                IEM_MC_FETCH_MEM_SEG_U32_SX_U64(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
             else
-                IEM_MC_FETCH_MEM_U64(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
-            IEM_MC_FETCH_MEM_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 8);
+                IEM_MC_FETCH_MEM_SEG_U64(offSeg, pVCpu->iem.s.iEffSeg, GCPtrEff);
+            IEM_MC_FETCH_MEM_SEG_U16_DISP(uSel, pVCpu->iem.s.iEffSeg, GCPtrEff, 8);
             IEM_MC_ARG_CONST(uint8_t,   iSegRegArg,/*=*/iSegReg,                 2);
             IEM_MC_ARG_CONST(uint8_t,   iGRegArg,  /*=*/iGReg,                   3);
             IEM_MC_ARG_CONST(IEMMODE,   enmEffOpSize,/*=*/pVCpu->iem.s.enmEffOpSize, 4);

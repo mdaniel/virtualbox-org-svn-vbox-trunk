@@ -823,61 +823,61 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 
 #define IEM_MC_CLEAR_ZREG_256_UP(a_iYReg)                                               NOP()
 
-#define IEM_MC_FETCH_MEM_U8(a_u8Dst, a_iSeg, a_GCPtrMem)                                        IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM16_U8(a_u8Dst, a_iSeg, a_GCPtrMem16)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM32_U8(a_u8Dst, a_iSeg, a_GCPtrMem32)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8(a_u8Dst, a_iSeg, a_GCPtrMem)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM16_SEG_U8(a_u8Dst, a_iSeg, a_GCPtrMem16)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM32_SEG_U8(a_u8Dst, a_iSeg, a_GCPtrMem32)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U8(a_u8Dst, a_GCPtrMem)                                           IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM16_FLAT_U8(a_u8Dst, a_GCPtrMem16)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM32_FLAT_U8(a_u8Dst, a_GCPtrMem32)                                       IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U16_DISP(a_u16Dst, a_iSeg, a_GCPtrMem, a_offDisp)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_I16(a_i16Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_I16_DISP(a_i16Dst, a_iSeg, a_GCPtrMem, a_offDisp)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16_DISP(a_u16Dst, a_iSeg, a_GCPtrMem, a_offDisp)                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_I16(a_i16Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_I16_DISP(a_i16Dst, a_iSeg, a_GCPtrMem, a_offDisp)                  IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U16(a_u16Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U16_DISP(a_u16Dst, a_GCPtrMem, a_offDisp)                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_I16(a_i16Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_I16_DISP(a_i16Dst, a_GCPtrMem, a_offDisp)                         IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U32_DISP(a_u32Dst, a_iSeg, a_GCPtrMem, a_offDisp)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_I32(a_i32Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_I32_DISP(a_i32Dst, a_iSeg, a_GCPtrMem, a_offDisp)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U32_DISP(a_u32Dst, a_iSeg, a_GCPtrMem, a_offDisp)                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_I32(a_i32Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_I32_DISP(a_i32Dst, a_iSeg, a_GCPtrMem, a_offDisp)                  IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U32(a_u32Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U32_DISP(a_u32Dst, a_GCPtrMem, a_offDisp)                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_I32(a_i32Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_I32_DISP(a_i32Dst, a_GCPtrMem, a_offDisp)                         IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U64_DISP(a_u64Dst, a_iSeg, a_GCPtrMem, a_offDisp)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U64_ALIGN_U128(a_u64Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_I64(a_i64Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U64_DISP(a_u64Dst, a_iSeg, a_GCPtrMem, a_offDisp)                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U64_ALIGN_U128(a_u64Dst, a_iSeg, a_GCPtrMem)                       IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_I64(a_i64Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U64(a_u64Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U64_DISP(a_u64Dst, a_GCPtrMem, a_offDisp)                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U64_ALIGN_U128(a_u64Dst, a_GCPtrMem)                              IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_I64(a_i64Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_R32(a_r32Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_R64(a_r64Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_R80(a_r80Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_D80(a_d80Dst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_R32(a_r32Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_R64(a_r64Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_R80(a_r80Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_D80(a_d80Dst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_R32(a_r32Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_R64(a_r64Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_R80(a_r80Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_D80(a_d80Dst, a_GCPtrMem)                                         IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U128(a_u128Dst, a_iSeg, a_GCPtrMem)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U128_NO_AC(a_u128Dst, a_iSeg, a_GCPtrMem)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U128_ALIGN_SSE(a_u128Dst, a_iSeg, a_GCPtrMem)                          IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U128(a_u128Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U128_NO_AC(a_u128Dst, a_iSeg, a_GCPtrMem)                          IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(a_u128Dst, a_iSeg, a_GCPtrMem)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
 
-#define IEM_MC_FETCH_MEM_XMM(a_XmmDst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_XMM_NO_AC(a_XmmDst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_XMM_ALIGN_SSE(a_XmmDst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM(a_XmmDst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_NO_AC(a_XmmDst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_ALIGN_SSE(a_XmmDst, a_iSeg, a_GCPtrMem)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U128(a_u128Dst, a_GCPtrMem)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U128_NO_AC(a_u128Dst, a_GCPtrMem)                                 IEM_LIVENESS_MEM_FLAT()
@@ -887,21 +887,21 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_FETCH_MEM_FLAT_XMM_NO_AC(a_XmmDst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_XMM_ALIGN_SSE(a_XmmDst, a_GCPtrMem)                               IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U128_AND_XREG_U128(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)              IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)          IEM_LIVENESS_MEM_SEG(a_iSeg)
 #define IEM_MC_FETCH_MEM_FLAT_U128_AND_XREG_U128(a_Dst, a_iXReg1, a_GCPtrMem2)                  IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_XMM_ALIGN_SSE_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)          IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_ALIGN_SSE_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2)      IEM_LIVENESS_MEM_SEG(a_iSeg)
 #define IEM_MC_FETCH_MEM_FLAT_XMM_ALIGN_SSE_AND_XREG_XMM(a_Dst, a_iXReg1, a_GCPtrMem2)          IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_XMM_NO_AC_AND_XREG_XMM(a_Dst, a_iXReg1, a_GCPtrMem2)              IEM_LIVENESS_MEM_FLAT()
-#define IEM_MC_FETCH_MEM_XMM_U32_AND_XREG_XMM(a_Dst, a_iXReg1, a_iDWord2, a_iSeg2, a_GCPtrMem2) IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_U32_AND_XREG_XMM(a_Dst, a_iXReg1, a_iDWord2, a_iSeg2, a_GCPtrMem2) IEM_LIVENESS_MEM_SEG(a_iSeg)
 #define IEM_MC_FETCH_MEM_FLAT_XMM_U32_AND_XREG_XMM(a_Dst, a_iXReg1, a_iDWord2, a_GCPtrMem2)     IEM_LIVENESS_MEM_FLAT()
-#define IEM_MC_FETCH_MEM_XMM_U64_AND_XREG_XMM(a_Dst, a_iXReg1, a_iQWord2, a_iSeg2, a_GCPtrMem2) IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_XMM_U64_AND_XREG_XMM(a_Dst, a_iXReg1, a_iQWord2, a_iSeg2, a_GCPtrMem2) IEM_LIVENESS_MEM_SEG(a_iSeg)
 #define IEM_MC_FETCH_MEM_FLAT_XMM_U64_AND_XREG_XMM(a_Dst, a_iXReg1, a_iQWord2, a_GCPtrMem2)     IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U128_AND_XREG_U128_AND_RAX_RDX_U64(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
+#define IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128_AND_RAX_RDX_U64(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
     do { IEM_LIVENESS_MEM_SEG(a_iSeg2); IEM_LIVENESS_GPR_INPUT(X86_GREG_xAX); IEM_LIVENESS_GPR_INPUT(X86_GREG_xDX); } while (0)
-#define IEM_MC_FETCH_MEM_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
+#define IEM_MC_FETCH_MEM_SEG_U128_AND_XREG_U128_AND_EAX_EDX_U32_SX_U64(a_Dst, a_iXReg1, a_iSeg2, a_GCPtrMem2) \
     do { IEM_LIVENESS_MEM_SEG(a_iSeg2); IEM_LIVENESS_GPR_INPUT(X86_GREG_xAX); IEM_LIVENESS_GPR_INPUT(X86_GREG_xDX); } while (0)
 
 #define IEM_MC_FETCH_MEM_FLAT_U128_AND_XREG_U128_AND_RAX_RDX_U64(a_Dst, a_iXReg1, a_GCPtrMem2) \
@@ -910,13 +910,13 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
     do { IEM_LIVENESS_MEM_FLAT(); IEM_LIVENESS_GPR_INPUT(X86_GREG_xAX); IEM_LIVENESS_GPR_INPUT(X86_GREG_xDX); } while (0)
 
 
-#define IEM_MC_FETCH_MEM_U256(a_u256Dst, a_iSeg, a_GCPtrMem)                                    IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U256_NO_AC(a_u256Dst, a_iSeg, a_GCPtrMem)                              IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U256_ALIGN_AVX(a_u256Dst, a_iSeg, a_GCPtrMem)                          IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U256(a_u256Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U256_NO_AC(a_u256Dst, a_iSeg, a_GCPtrMem)                          IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U256_ALIGN_AVX(a_u256Dst, a_iSeg, a_GCPtrMem)                      IEM_LIVENESS_MEM_SEG(a_iSeg)
 
-#define IEM_MC_FETCH_MEM_YMM(a_YmmDst, a_iSeg, a_GCPtrMem)                                      IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_YMM_NO_AC(a_YmmDst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_YMM_ALIGN_AVX(a_YmmDst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_YMM(a_YmmDst, a_iSeg, a_GCPtrMem)                                  IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_YMM_NO_AC(a_YmmDst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_YMM_ALIGN_AVX(a_YmmDst, a_iSeg, a_GCPtrMem)                        IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U256(a_u256Dst, a_GCPtrMem)                                       IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U256_NO_AC(a_u256Dst, a_GCPtrMem)                                 IEM_LIVENESS_MEM_FLAT()
@@ -926,12 +926,12 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_FETCH_MEM_FLAT_YMM_NO_AC(a_YmmDst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_YMM_ALIGN_AVX(a_YmmDst, a_GCPtrMem)                               IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U8_ZX_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U8_ZX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U8_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U16_ZX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U16_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U32_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_ZX_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_ZX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16_ZX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U32_ZX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U8_ZX_U16(a_u16Dst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U8_ZX_U32(a_u32Dst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()
@@ -940,12 +940,12 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
 #define IEM_MC_FETCH_MEM_FLAT_U16_ZX_U64(a_u64Dst, a_GCPtrMem)                                  IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U32_ZX_U64(a_u64Dst, a_GCPtrMem)                                  IEM_LIVENESS_MEM_FLAT()
 
-#define IEM_MC_FETCH_MEM_U8_SX_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U8_SX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U8_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                                IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U16_SX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U16_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
-#define IEM_MC_FETCH_MEM_U32_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                               IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_SX_U16(a_u16Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_SX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U8_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                            IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16_SX_U32(a_u32Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U16_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
+#define IEM_MC_FETCH_MEM_SEG_U32_SX_U64(a_u64Dst, a_iSeg, a_GCPtrMem)                           IEM_LIVENESS_MEM_SEG(a_iSeg)
 
 #define IEM_MC_FETCH_MEM_FLAT_U8_SX_U16(a_u16Dst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()
 #define IEM_MC_FETCH_MEM_FLAT_U8_SX_U32(a_u32Dst, a_GCPtrMem)                                   IEM_LIVENESS_MEM_FLAT()

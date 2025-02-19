@@ -80,7 +80,7 @@ FNIEMOP_DEF_1(iemOpCommonMmxOpt_FullFull_To_Full_Ssse3, PFNIEMAIMPLMEDIAOPTF2U64
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSsse3);
         IEM_MC_MAYBE_RAISE_MMX_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_FPU_USAGE();
         IEM_MC_FPU_TO_MMX_MODE();
@@ -140,7 +140,7 @@ FNIEMOP_DEF_1(iemOpCommonSsse3Opt_FullFull_To_Full, PFNIEMAIMPLMEDIAOPTF2U128, p
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSsse3);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -198,7 +198,7 @@ FNIEMOP_DEF_1(iemOpCommonSse41Opt_FullFull_To_Full, PFNIEMAIMPLMEDIAOPTF2U128, p
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse41);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -254,7 +254,7 @@ FNIEMOP_DEF_1(iemOpCommonSse42Opt_FullFull_To_Full, PFNIEMAIMPLMEDIAOPTF2U128, p
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse42);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -313,7 +313,7 @@ FNIEMOP_DEF_1(iemOpCommonAesNi_FullFull_To_Full, PFNIEMAIMPLMEDIAOPTF2U128, pfnU
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fAesNi);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -373,7 +373,7 @@ FNIEMOP_DEF_1(iemOpCommonSha_FullFull_To_Full, PFNIEMAIMPLMEDIAOPTF2U128, pfnU12
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSha);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -667,7 +667,7 @@ FNIEMOP_DEF(iemOp_pmulhrsw_Vx_Wx)
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse41); \
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT(); \
         IEM_MC_PREPARE_SSE_USAGE(); \
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
         IEM_MC_REF_XREG_U128(puDst, IEM_GET_MODRM_REG(pVCpu, bRm)); \
         IEM_MC_REF_XREG_U128_CONST(puMask, 0); \
         IEM_MC_CALL_VOID_AIMPL_3(IEM_SELECT_HOST_OR_FALLBACK(fSse41, \
@@ -767,7 +767,7 @@ FNIEMOP_DEF(iemOp_ptest_Vx_Wx)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse41);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc2, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc2, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128_CONST(puSrc1,      IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -891,7 +891,7 @@ FNIEMOP_DEF(iemOp_pabsd_Vx_Wx)
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSse41); \
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT(); \
         IEM_MC_PREPARE_SSE_USAGE(); \
-        IEM_MC_FETCH_MEM_U## a_SrcWidth (uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
+        IEM_MC_FETCH_MEM_SEG_U## a_SrcWidth (uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
         IEM_MC_NATIVE_IF(a_fMemNativeArchs) { \
             IEM_MC_NATIVE_EMIT_2(RT_CONCAT3(iemNativeEmit_,a_Instr,_rv_u128), IEM_GET_MODRM_REG(pVCpu, bRm), uSrc); \
         } IEM_MC_NATIVE_ELSE() { \
@@ -1009,7 +1009,7 @@ FNIEMOP_DEF(iemOp_movntdqa_Vdq_Mdq)
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
         IEM_MC_ACTUALIZE_SSE_STATE_FOR_CHANGE();
 
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
         IEM_MC_STORE_XREG_U128(IEM_GET_MODRM_REG(pVCpu, bRm), uSrc);
 
         IEM_MC_ADVANCE_PC_AND_FINISH();
@@ -1562,7 +1562,7 @@ FNIEMOP_DEF(iemOp_sha256rnds2_Vdq_Wdq)
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(fSha);
         IEM_MC_MAYBE_RAISE_SSE_RELATED_XCPT();
-        IEM_MC_FETCH_MEM_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U128_ALIGN_SSE(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_PREPARE_SSE_USAGE();
         IEM_MC_REF_XREG_U128(puDst,             IEM_GET_MODRM_REG(pVCpu, bRm));
@@ -1703,7 +1703,7 @@ FNIEMOP_DEF(iemOp_movbe_Gv_Mv)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U16(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U16(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_BSWAP_LOCAL_U16(uSrc);
                 IEM_MC_STORE_GREG_U16(IEM_GET_MODRM_REG(pVCpu, bRm), uSrc);
@@ -1719,7 +1719,7 @@ FNIEMOP_DEF(iemOp_movbe_Gv_Mv)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U32(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U32(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_BSWAP_LOCAL_U32(uSrc);
                 IEM_MC_STORE_GREG_U32(IEM_GET_MODRM_REG(pVCpu, bRm), uSrc);
@@ -1735,7 +1735,7 @@ FNIEMOP_DEF(iemOp_movbe_Gv_Mv)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_BSWAP_LOCAL_U64(uSrc);
                 IEM_MC_STORE_GREG_U64(IEM_GET_MODRM_REG(pVCpu, bRm), uSrc);
@@ -1794,7 +1794,7 @@ FNIEMOP_DEF(iemOp_crc32_Gd_Eb)
 
         IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
         IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-        IEM_MC_FETCH_MEM_U8(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+        IEM_MC_FETCH_MEM_SEG_U8(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
         IEM_MC_REF_GREG_U32(puDst, IEM_GET_MODRM_REG(pVCpu, bRm));
         IEM_MC_CALL_VOID_AIMPL_2(IEM_SELECT_HOST_OR_FALLBACK(fSse42, iemAImpl_crc32_u8, iemAImpl_crc32_u8_fallback), puDst, uSrc);
@@ -1949,7 +1949,7 @@ FNIEMOP_DEF(iemOp_crc32_Gv_Ev)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U16(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U16(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_REF_GREG_U32(puDst, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_CALL_VOID_AIMPL_2(IEM_SELECT_HOST_OR_FALLBACK(fSse42, iemAImpl_crc32_u16, iemAImpl_crc32_u16_fallback),
@@ -1968,7 +1968,7 @@ FNIEMOP_DEF(iemOp_crc32_Gv_Ev)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U32(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U32(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_REF_GREG_U32(puDst, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_CALL_VOID_AIMPL_2(IEM_SELECT_HOST_OR_FALLBACK(fSse42, iemAImpl_crc32_u32, iemAImpl_crc32_u32_fallback),
@@ -1987,7 +1987,7 @@ FNIEMOP_DEF(iemOp_crc32_Gv_Ev)
 
                 IEM_MC_CALC_RM_EFF_ADDR(GCPtrEffSrc, bRm, 0);
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX();
-                IEM_MC_FETCH_MEM_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
+                IEM_MC_FETCH_MEM_SEG_U64(uSrc, pVCpu->iem.s.iEffSeg, GCPtrEffSrc);
 
                 IEM_MC_REF_GREG_U32(puDst, IEM_GET_MODRM_REG(pVCpu, bRm));
                 IEM_MC_CALL_VOID_AIMPL_2(IEM_SELECT_HOST_OR_FALLBACK(fSse42, iemAImpl_crc32_u64, iemAImpl_crc32_u64_fallback),
@@ -2058,7 +2058,7 @@ FNIEMOP_DEF(iemOp_crc32_Gv_Ev)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX(); \
                 \
                 IEM_MC_ARG(uint64_t,    u64Src,     2); \
-                IEM_MC_FETCH_MEM_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
+                IEM_MC_FETCH_MEM_SEG_U64(u64Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
                 IEM_MC_ARG(uint64_t *,  pu64Dst,    1); \
                 IEM_MC_REF_GREG_U64(pu64Dst, IEM_GET_MODRM_REG(pVCpu, bRm)); \
                 IEM_MC_ARG_EFLAGS(      fEFlagsIn,  0); \
@@ -2096,7 +2096,7 @@ FNIEMOP_DEF(iemOp_crc32_Gv_Ev)
                 IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX(); \
                 \
                 IEM_MC_ARG(uint32_t,    u32Src,     2); \
-                IEM_MC_FETCH_MEM_U32(u32Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
+                IEM_MC_FETCH_MEM_SEG_U32(u32Src, pVCpu->iem.s.iEffSeg, GCPtrEffSrc); \
                 IEM_MC_ARG(uint32_t *,  pu32Dst,    1); \
                 IEM_MC_REF_GREG_U32(pu32Dst, IEM_GET_MODRM_REG(pVCpu, bRm)); \
                 IEM_MC_ARG_EFLAGS(      fEFlagsIn,  0); \

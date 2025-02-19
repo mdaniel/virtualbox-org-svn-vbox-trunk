@@ -97,6 +97,10 @@ typedef enum RTSCRIPTLEXTOKTYPE
     RTSCRIPTLEXTOKTYPE_KEYWORD,
     /** Some punctuator. */
     RTSCRIPTLEXTOKTYPE_PUNCTUATOR,
+    /** A single line comment. */
+    RTSCRIPTLEXTOKTYPE_COMMENT_SINGLE_LINE,
+    /** A multi line comment. */
+    RTSCRIPTLEXTOKTYPE_COMMENT_MULTI_LINE,
     /** Special error token, conveying an error message from the lexer. */
     RTSCRIPTLEXTOKTYPE_ERROR,
     /** End of stream token. */
@@ -211,6 +215,14 @@ typedef struct RTSCRIPTLEXTOKEN
             /** Pointer to the matched punctuator descriptor. */
             PCRTSCRIPTLEXTOKMATCH pPunctuator;
         } Punctuator;
+        /** Comment */
+        struct
+        {
+            /** Pointer to the start of the comment (including the symbols starting the comment). */
+            const char            *pszComment;
+            /** Number of characters of the comment, including the null terminator. */
+            size_t                cchComment;
+        } Comment;
         /** Error. */
         struct
         {
@@ -315,6 +327,8 @@ typedef const RTSCRIPTLEXCFG *PCRTSCRIPTLEXCFG;
 /** Case insensitive lexing, keywords and so on must be used uppercase to match
  * as the lexer will convert everything to uppercase internally. */
 #define RTSCRIPT_LEX_CFG_F_CASE_INSENSITIVE_UPPER RT_BIT(1)
+/** Comments are not skipped but passed back as tokens. */
+#define RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS     RT_BIT(2)
 
 
 /** Default character conversions (converting to lower case when the case insensitive flag is set). */
@@ -368,12 +382,17 @@ typedef FNRTSCRIPTLEXDTOR *PFNRTSCRIPTLEXDTOR;
  *                                 scanned string literals on success, optional.
  *                                 If not NULL the string cache must be freed by the caller when not used
  *                                 anymore.
+ * @param   phStrCacheComments     Where to store the pointer to the string cache containing all
+ *                                 comments on success when RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS
+ *                                 is given, optional.
+ *                                 If not NULL the string cache must be freed by the caller when not used
+ *                                 anymore.
  * @param   pCfg                   The lexer config to use for identifying the different tokens.
  */
 RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEXRDR pfnReader,
                                         PFNRTSCRIPTLEXDTOR pfnDtor, void *pvUser,
                                         size_t cchBuf, PRTSTRCACHE phStrCacheId, PRTSTRCACHE phStrCacheStringLit,
-                                        PCRTSCRIPTLEXCFG pCfg);
+                                        PRTSTRCACHE phStrCacheComments, PCRTSCRIPTLEXCFG pCfg);
 
 
 /**
@@ -390,10 +409,16 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
  *                                 scanned string literals on success, optional.
  *                                 If not NULL the string cache must be freed by the caller when not used
  *                                 anymore.
+ * @param   phStrCacheComments     Where to store the pointer to the string cache containing all
+ *                                 comments on success when RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS
+ *                                 is given, optional.
+ *                                 If not NULL the string cache must be freed by the caller when not used
+ *                                 anymore.
  * @param   pCfg                   The lexer config to use for identifying the different tokens.
  */
 RTDECL(int) RTScriptLexCreateFromString(PRTSCRIPTLEX phScriptLex, const char *pszSrc, PRTSTRCACHE phStrCacheId,
-                                        PRTSTRCACHE phStrCacheStringLit, PCRTSCRIPTLEXCFG pCfg);
+                                        PRTSTRCACHE phStrCacheStringLit, PRTSTRCACHE phStrCacheComments,
+                                        PCRTSCRIPTLEXCFG pCfg);
 
 
 /**
@@ -410,10 +435,16 @@ RTDECL(int) RTScriptLexCreateFromString(PRTSCRIPTLEX phScriptLex, const char *ps
  *                                 scanned string literals on success, optional.
  *                                 If not NULL the string cache must be freed by the caller when not used
  *                                 anymore.
+ * @param   phStrCacheComments     Where to store the pointer to the string cache containing all
+ *                                 comments on success when RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS
+ *                                 is given, optional.
+ *                                 If not NULL the string cache must be freed by the caller when not used
+ *                                 anymore.
  * @param   pCfg                   The lexer config to use for identifying the different tokens.
  */
 RTDECL(int) RTScriptLexCreateFromFile(PRTSCRIPTLEX phScriptLex, const char *pszFilename, PRTSTRCACHE phStrCacheId,
-                                      PRTSTRCACHE phStrCacheStringLit, PCRTSCRIPTLEXCFG pCfg);
+                                      PRTSTRCACHE phStrCacheStringLit, PRTSTRCACHE phStrCacheComments,
+                                      PCRTSCRIPTLEXCFG pCfg);
 
 
 /**

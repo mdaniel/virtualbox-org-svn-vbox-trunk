@@ -2981,7 +2981,7 @@ DECLHIDDEN(int) rtAcpiTblConvertFromAslToAml(RTVFSIOSTREAM hVfsIosOut, RTVFSIOST
             rc = RTScriptLexCreateFromReader(&pThis->hLexSource, rtAcpiAslLexerRead,
                                              NULL /*pfnDtor*/, pThis /*pvUser*/, 0 /*cchBuf*/,
                                              NULL /*phStrCacheId*/, NULL /*phStrCacheStringLit*/,
-                                             &s_AslLexCfg);
+                                             NULL /*phStrCacheComments*/, &s_AslLexCfg);
             if (RT_SUCCESS(rc))
             {
                 rc = rtAcpiTblAslParserParse(pThis);

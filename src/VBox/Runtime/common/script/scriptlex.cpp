@@ -81,6 +81,8 @@ typedef struct RTSCRIPTLEXINT
     RTSTRCACHE           hStrCacheId;
     /** String literal string cache. */
     RTSTRCACHE           hStrCacheStringLit;
+    /** Comment string cache. */
+    RTSTRCACHE           hStrCacheComments;
     /** Status code from the reader. */
     int                  rcRdr;
     /** Internal error info. */
@@ -105,11 +107,13 @@ typedef RTSCRIPTLEXINT *PRTSCRIPTLEXINT;
 
 
 /** Free the identifier string cache literal on destruction. */
-#define RTSCRIPT_LEX_INT_F_STR_CACHE_ID_FREE      RT_BIT_32(0)
+#define RTSCRIPT_LEX_INT_F_STR_CACHE_ID_FREE       RT_BIT_32(0)
 /** Free the string literal string cache literal on destruction. */
-#define RTSCRIPT_LEX_INT_F_STR_CACHE_STR_LIT_FREE RT_BIT_32(1)
+#define RTSCRIPT_LEX_INT_F_STR_CACHE_STR_LIT_FREE  RT_BIT_32(1)
+/** Free the comments string cache literal on destruction. */
+#define RTSCRIPT_LEX_INT_F_STR_CACHE_COMMENTS_FREE RT_BIT_32(2)
 /** End of stream reached. */
-#define RTSCRIPT_LEX_INT_F_EOS                    RT_BIT_32(2)
+#define RTSCRIPT_LEX_INT_F_EOS                     RT_BIT_32(3)
 
 
 /*********************************************************************************************************************************
@@ -266,11 +270,11 @@ DECLINLINE(bool) rtScriptLexLocateExactMatchConsume(PRTSCRIPTLEXINT pThis, char 
 }
 
 
-DECLINLINE(bool) rtScriptLexIsNewlineConsume(PRTSCRIPTLEXINT pThis, char ch)
+DECLINLINE(bool) rtScriptLexIsNewlineConsumeEx(PRTSCRIPTLEXINT pThis, char ch, unsigned *pidx)
 {
-    const char **papszNl = pThis->pCfg->pszWhitespace ? pThis->pCfg->papszNewline : g_aszNlDef;
+    const char **papszNl = pThis->pCfg->papszNewline ? pThis->pCfg->papszNewline : g_aszNlDef;
 
-    bool fMatched = rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszNl, NULL);
+    bool fMatched = rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszNl, pidx);
     if (fMatched)
     {
         pThis->Pos.iLine++;
@@ -278,6 +282,33 @@ DECLINLINE(bool) rtScriptLexIsNewlineConsume(PRTSCRIPTLEXINT pThis, char ch)
     }
 
     return fMatched;
+}
+
+
+DECLINLINE(bool) rtScriptLexIsNewlineConsume(PRTSCRIPTLEXINT pThis, char ch)
+{
+    return rtScriptLexIsNewlineConsumeEx(pThis, ch, NULL);
+}
+
+
+/**
+ * Checks whether the character is the beginning of a multi line comment.
+ *
+ * @returns Flag whether a comment was detected.
+ * @param   hScriptLex             The lexer state.
+ * @param   ch                     The character to check for.
+ * @param   pidxMatch              Where to store the index of the matching substring if found,
+ *                                 optional.
+ * @note This consumes the start of the single line comment.
+ */
+DECLINLINE(bool) rtScriptLexIsMultiLineComment(PRTSCRIPTLEXINT pThis, char ch, unsigned *pidxMatch)
+{
+    const char **papszCommentMultiStart = pThis->pCfg->papszCommentMultiStart;
+    if (   papszCommentMultiStart
+        && rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszCommentMultiStart, pidxMatch))
+        return true;
+
+    return false;
 }
 
 
@@ -291,12 +322,8 @@ DECLINLINE(bool) rtScriptLexIsNewlineConsume(PRTSCRIPTLEXINT pThis, char ch)
  */
 DECLINLINE(bool) rtScriptLexIsMultiLineCommentConsume(PRTSCRIPTLEXINT pThis, char ch)
 {
-    const char **papszCommentMultiStart = pThis->pCfg->papszCommentMultiStart;
     unsigned idxComment = 0;
-
-    if (   papszCommentMultiStart
-        && rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszCommentMultiStart,
-                                                         &idxComment))
+    if (rtScriptLexIsMultiLineComment(pThis, ch, &idxComment))
     {
         /* Look for the matching closing lexeme in the input consuming everything along the way. */
         const char *pszClosing = pThis->pCfg->papszCommentMultiEnd[idxComment];
@@ -326,6 +353,27 @@ DECLINLINE(bool) rtScriptLexIsMultiLineCommentConsume(PRTSCRIPTLEXINT pThis, cha
 
 
 /**
+ * Checks whether the character is the beginning of a single line comment.
+ *
+ * @returns Flag whether a comment was detected.
+ * @param   hScriptLex             The lexer state.
+ * @param   ch                     The character to check for.
+ * @param   pidxMatch              Where to store the index of the matching substring if found,
+ *                                 optional.
+ * @note This consumes the start of the single line comment.
+ */
+DECLINLINE(bool) rtScriptLexIsSingleLineComment(PRTSCRIPTLEXINT pThis, char ch, unsigned *pidxMatch)
+{
+    const char **papszCommentSingleStart = pThis->pCfg->papszCommentSingleStart;
+    if (   papszCommentSingleStart
+        && rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszCommentSingleStart, pidxMatch))
+        return true;
+
+    return false;
+}
+
+
+/**
  * Checks whether the character is the beginning of a single line comment, skipping the whole
  * comment if necessary.
  *
@@ -335,11 +383,7 @@ DECLINLINE(bool) rtScriptLexIsMultiLineCommentConsume(PRTSCRIPTLEXINT pThis, cha
  */
 DECLINLINE(bool) rtScriptLexIsSingleLineCommentConsume(PRTSCRIPTLEXINT pThis, char ch)
 {
-    const char **papszCommentSingleStart = pThis->pCfg->papszCommentSingleStart;
-
-    if (   papszCommentSingleStart
-        && rtScriptLexLocateSubStrInStrArrayMatchConsume(pThis, ch, papszCommentSingleStart,
-                                                         NULL))
+    if (rtScriptLexIsSingleLineComment(pThis, ch, NULL))
     {
         for (;;)
         {
@@ -460,6 +504,203 @@ RTDECL(int) RTScriptLexProduceTokIde(RTSCRIPTLEX hScriptLex, PRTSCRIPTLEXTOKEN p
 
 
 /**
+ * Creates a single line comment token.
+ *
+ * @returns Flag whether a matching rule was found.
+ * @param   pThis                  The lexer state.
+ * @param   idxComment             The index into the single line comment token start array.
+ * @param   pTok                   The token to fill.
+ */
+static void rtScriptLexProduceTokFromSingleLineComment(PRTSCRIPTLEXINT pThis, unsigned idxComment, PRTSCRIPTLEXTOKEN pTok)
+{
+    const char *pszCommentSingleStart = pThis->pCfg->papszCommentSingleStart[idxComment];
+    AssertPtr(pszCommentSingleStart);
+
+    pTok->PosStart = pThis->Pos;
+
+    /** @todo Optimize */
+    size_t cchTmp = 512;
+    char *pszTmp = (char *)RTMemAlloc(cchTmp);
+    if (pszTmp)
+    {
+        size_t cchComment = 0;
+        while (*pszCommentSingleStart != '\0')
+            pszTmp[cchComment++] = *pszCommentSingleStart++;
+
+        for (;;)
+        {
+            char chTmp = RTScriptLexGetCh(pThis);
+
+            if (   chTmp == '\0'
+                || rtScriptLexIsNewlineConsume(pThis, chTmp))
+            {
+                pszTmp[cchComment++] = '\0';
+                break;
+            }
+
+            if (cchComment == cchTmp - 1)
+            {
+                char *pszNew = (char *)RTMemRealloc(pszTmp, cchTmp + 512);
+                if (!pszNew)
+                {
+                    RTMemFree(pszTmp);
+                    pszTmp = NULL;
+                    RTScriptLexProduceTokError(pThis, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory allocating temporary memory for a single line comment");
+                    break;
+                }
+
+                cchTmp += 512;
+                pszTmp = pszNew;
+            }
+
+            pszTmp[cchComment++] = chTmp;
+            RTScriptLexConsumeCh(pThis);
+        }
+
+        if (pszTmp)
+        {
+            pTok->enmType  = RTSCRIPTLEXTOKTYPE_COMMENT_SINGLE_LINE;
+            pTok->PosEnd   = pThis->Pos;
+            pTok->Type.Comment.pszComment = RTStrCacheEnterN(pThis->hStrCacheId, pszTmp, cchComment);
+            pTok->Type.Comment.cchComment = cchComment;
+            if (RT_UNLIKELY(!pTok->Type.Comment.pszComment))
+                RTScriptLexProduceTokError(pThis, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory inserting comment into comment cache");
+
+            RTMemFree(pszTmp);
+        }
+    }
+    else
+        RTScriptLexProduceTokError(pThis, pTok, VERR_NO_MEMORY, "Lexer: Out of memory allocating temporary memory for a single line comment");
+}
+
+
+/**
+ * Ensures there is enough space in the given buffer for the given amount of bytes,
+ * extending the buffer or creating an error token if this fails.
+ *
+ * @returns Flag whether there is enough space in the buffer.
+ * @param   pThis                   The lexer state.
+ * @param   ppchTmp                 Pointer to the pointer for the character buffer being checked.
+ *                                  On successful return this might contain a different pointer if
+ *                                  re-allocation was required.
+ * @param   pcchTmp                 On input the size of the buffer in characters, on return the new
+ *                                  size of the buffer if re-allocation was required.
+ * @param   cchCur                  How much of the current buffer is used.
+ * @param   cchAdd                  How many additional characters are required.
+ * @param   pTok                    The token to fill in if re-allocating the buffer failed.  
+ */
+DECLINLINE(bool) rtScriptLexEnsureTmpBufSpace(PRTSCRIPTLEXINT pThis, char **ppchTmp, size_t *pcchTmp,
+                                              size_t cchCur, size_t cchAdd, PRTSCRIPTLEXTOKEN pTok)
+{
+    if (RT_LIKELY(cchCur + cchAdd + 1 <= *pcchTmp)) /* Always keep room for the zero terminator. */
+        return true;
+
+    size_t cchNew = *pcchTmp + _1K;
+    char *pchNew = (char *)RTMemRealloc(*ppchTmp, cchNew);
+    if (!pchNew)
+    {
+        RTMemFree(*ppchTmp);
+        *ppchTmp = NULL;
+        RTScriptLexProduceTokError(pThis, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory allocating temporary memory for a multi line comment");
+        return false;
+    }
+
+    *ppchTmp = pchNew;
+    *pcchTmp = cchNew;
+    return true;
+}
+
+
+/**
+ * Creates a multi line comment token.
+ *
+ * @returns Flag whether a matching rule was found.
+ * @param   pThis                  The lexer state.
+ * @param   idxComment             The index into the single line comment token start array.
+ * @param   pTok                   The token to fill.
+ */
+static void rtScriptLexProduceTokFromMultiLineComment(PRTSCRIPTLEXINT pThis, unsigned idxComment, PRTSCRIPTLEXTOKEN pTok)
+{
+    const char *pszCommentMultiStart = pThis->pCfg->papszCommentMultiStart[idxComment];
+    AssertPtr(pszCommentMultiStart);
+
+    pTok->PosStart = pThis->Pos;
+
+    /** @todo Optimize */
+    size_t cchTmp = _1K;
+    char *pszTmp = (char *)RTMemAlloc(cchTmp);
+    if (pszTmp)
+    {
+        /* Look for the matching closing lexeme in the input consuming everything along the way. */
+        const char *pszClosing = pThis->pCfg->papszCommentMultiEnd[idxComment];
+
+        size_t cchComment = 0;
+        while (*pszCommentMultiStart != '\0')
+            pszTmp[cchComment++] = *pszCommentMultiStart++;
+
+        for (;;)
+        {
+            char chTmp = RTScriptLexGetCh(pThis);
+
+            /* Check for new lines explicetly to advance the position information and copy it over. */
+            unsigned idxNewLine = 0;
+            if (rtScriptLexIsNewlineConsumeEx(pThis, chTmp, &idxNewLine))
+            {
+                const char *pszNl =   pThis->pCfg->papszNewline
+                                    ? pThis->pCfg->papszNewline[idxNewLine]
+                                    : g_aszNlDef[idxNewLine];
+                if (!rtScriptLexEnsureTmpBufSpace(pThis, &pszTmp, &cchTmp, cchComment,
+                                                  strlen(pszNl), pTok))
+                    break;
+
+                while (*pszNl != '\0')
+                    pszTmp[cchComment++] = *pszNl++;
+                continue;
+            }
+
+            /* Check for the closing lexeme. */
+            if (rtScriptLexMatchStrConsume(pThis, chTmp, pszClosing, NULL))
+            {
+                /* Copy over the closing comment lexeme. */
+                if (rtScriptLexEnsureTmpBufSpace(pThis, &pszTmp, &cchTmp, cchComment,
+                                                 strlen(pszClosing), pTok))
+                {
+                    while (*pszClosing != '\0')
+                        pszTmp[cchComment++] = *pszClosing++;
+                    pszTmp[cchComment++] = '\0';
+                }
+                break;
+            }
+
+            if (chTmp == '\0')
+                break; /* End of stream before closing lexeme. */ 
+
+            if (!rtScriptLexEnsureTmpBufSpace(pThis, &pszTmp, &cchTmp, cchComment,
+                                              strlen(pszClosing), pTok))
+                break;
+
+            pszTmp[cchComment++] = chTmp;
+            RTScriptLexConsumeCh(pThis);
+        }
+
+        if (pszTmp)
+        {
+            pTok->enmType  = RTSCRIPTLEXTOKTYPE_COMMENT_MULTI_LINE;
+            pTok->PosEnd   = pThis->Pos;
+            pTok->Type.Comment.pszComment = RTStrCacheEnterN(pThis->hStrCacheId, pszTmp, cchComment);
+            pTok->Type.Comment.cchComment = cchComment;
+            if (RT_UNLIKELY(!pTok->Type.Comment.pszComment))
+                RTScriptLexProduceTokError(pThis, pTok, VERR_NO_STR_MEMORY, "Lexer: Out of memory inserting comment into comment cache");
+
+            RTMemFree(pszTmp);
+        }
+    }
+    else
+        RTScriptLexProduceTokError(pThis, pTok, VERR_NO_MEMORY, "Lexer: Out of memory allocating temporary memory for a multi line comment");
+}
+
+
+/**
  * Create the token from the exact match.
  *
  * @returns nothing.
@@ -541,8 +782,15 @@ static int rtScriptLexProduceToken(PRTSCRIPTLEXINT pThis, PRTSCRIPTLEXTOKEN pTok
 
     char ch = RTScriptLexGetCh(pThis);
     PCRTSCRIPTLEXTOKMATCH pMatch = NULL;
+    unsigned idxComment = 0;
     if (ch == '\0')
         rtScriptLexProduceTokEos(pThis, pTok);
+    else if (  (pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
+             && rtScriptLexIsSingleLineComment(pThis, ch, &idxComment))
+        rtScriptLexProduceTokFromSingleLineComment(pThis, idxComment, pTok);
+    else if (  (pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
+             && rtScriptLexIsMultiLineComment(pThis, ch, &idxComment))
+        rtScriptLexProduceTokFromMultiLineComment(pThis, idxComment, pTok);
     else if (rtScriptLexLocateExactMatchConsume(pThis, ch, &pMatch))
         rtScriptLexProduceTokFromExactMatch(pThis, pTok, pMatch);
     else if (!rtScriptLexProduceTokFromRules(pThis, ch, pTok))
@@ -583,7 +831,7 @@ static int rtScriptLexPopulate(PRTSCRIPTLEXINT pThis)
 RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEXRDR pfnReader,
                                         PFNRTSCRIPTLEXDTOR pfnDtor, void *pvUser,
                                         size_t cchBuf, PRTSTRCACHE phStrCacheId, PRTSTRCACHE phStrCacheStringLit,
-                                        PCRTSCRIPTLEXCFG pCfg)
+                                        PRTSTRCACHE phStrCacheComments, PCRTSCRIPTLEXCFG pCfg)
 {
     AssertPtrReturn(phScriptLex, VERR_INVALID_POINTER);
     AssertPtrReturn(pfnReader, VERR_INVALID_POINTER);
@@ -616,6 +864,10 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
         pThis->pchCur       = NULL;
         pThis->hStrCacheId  = NULL;
         pThis->hStrCacheStringLit  = NULL;
+        pThis->hStrCacheComments   = NULL;
+
+        if (pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
+            rc = RTStrCacheCreate(&pThis->hStrCacheComments, "LEX-Comments");
 
         rc = RTStrCacheCreate(&pThis->hStrCacheId, "LEX-Ide");
         if (RT_SUCCESS(rc))
@@ -638,6 +890,14 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
                     else
                         pThis->fFlags |= RTSCRIPT_LEX_INT_F_STR_CACHE_STR_LIT_FREE;
 
+                    if (pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
+                    {   
+                        if (phStrCacheComments)
+                            *phStrCacheComments = pThis->hStrCacheComments;
+                        else
+                            pThis->fFlags |= RTSCRIPT_LEX_INT_F_STR_CACHE_COMMENTS_FREE;
+                    }
+
                     return VINF_SUCCESS;
                 }
 
@@ -647,6 +907,8 @@ RTDECL(int) RTScriptLexCreateFromReader(PRTSCRIPTLEX phScriptLex, PFNRTSCRIPTLEX
             RTStrCacheDestroy(pThis->hStrCacheId);
         }
 
+        if (pThis->hStrCacheComments)
+            RTStrCacheDestroy(pThis->hStrCacheComments);
         RTMemFree(pThis);
     }
     else
@@ -681,10 +943,10 @@ static DECLCALLBACK(int) rtScriptLexReaderStr(RTSCRIPTLEX hScriptLex, size_t off
 
 
 RTDECL(int) RTScriptLexCreateFromString(PRTSCRIPTLEX phScriptLex, const char *pszSrc, PRTSTRCACHE phStrCacheId,
-                                        PRTSTRCACHE phStrCacheStringLit, PCRTSCRIPTLEXCFG pCfg)
+                                        PRTSTRCACHE phStrCacheStringLit, PRTSTRCACHE phStrCacheComments, PCRTSCRIPTLEXCFG pCfg)
 {
     return RTScriptLexCreateFromReader(phScriptLex, rtScriptLexReaderStr, NULL, (void *)pszSrc, 0,
-                                       phStrCacheId, phStrCacheStringLit, pCfg);
+                                       phStrCacheId, phStrCacheStringLit, phStrCacheComments, pCfg);
 }
 
 
@@ -714,14 +976,14 @@ static DECLCALLBACK(void) rtScriptLexDtorFile(RTSCRIPTLEX hScriptLex, void *pvUs
 
 
 RTDECL(int) RTScriptLexCreateFromFile(PRTSCRIPTLEX phScriptLex, const char *pszFilename, PRTSTRCACHE phStrCacheId,
-                                      PRTSTRCACHE phStrCacheStringLit, PCRTSCRIPTLEXCFG pCfg)
+                                      PRTSTRCACHE phStrCacheStringLit, PRTSTRCACHE phStrCacheComments, PCRTSCRIPTLEXCFG pCfg)
 {
     RTFILE hFile;
     int rc = RTFileOpen(&hFile, pszFilename, RTFILE_O_READ | RTFILE_O_DENY_WRITE | RTFILE_O_OPEN);
     if (RT_SUCCESS(rc))
     {
         rc = RTScriptLexCreateFromReader(phScriptLex, rtScriptLexReaderFile, rtScriptLexDtorFile, (void *)hFile, 0,
-                                         phStrCacheId, phStrCacheStringLit, pCfg);
+                                         phStrCacheId, phStrCacheStringLit, phStrCacheComments, pCfg);
         if (RT_FAILURE(rc))
             RTFileClose(hFile);
     }
@@ -742,6 +1004,8 @@ RTDECL(void) RTScriptLexDestroy(RTSCRIPTLEX hScriptLex)
         RTStrCacheDestroy(pThis->hStrCacheId);
     if (pThis->fFlags & RTSCRIPT_LEX_INT_F_STR_CACHE_STR_LIT_FREE)
         RTStrCacheDestroy(pThis->hStrCacheStringLit);
+    if (pThis->fFlags & RTSCRIPT_LEX_INT_F_STR_CACHE_COMMENTS_FREE)
+        RTStrCacheDestroy(pThis->hStrCacheComments);
 
     if (pThis->pszStrLit)
         RTStrFree(pThis->pszStrLit);
@@ -901,9 +1165,12 @@ RTDECL(void) RTScriptLexSkipWhitespace(RTSCRIPTLEX hScriptLex)
         const char *pszWs = pThis->pCfg->pszWhitespace ? pThis->pCfg->pszWhitespace : g_szWsDef;
 
         if (   rtScriptLexLocateChInStrConsume(pThis, ch, pszWs)
-            || rtScriptLexIsNewlineConsume(pThis, ch)
-            || rtScriptLexIsMultiLineCommentConsume(pThis, ch)
-            || rtScriptLexIsSingleLineCommentConsume(pThis, ch))
+            || rtScriptLexIsNewlineConsume(pThis, ch))
+            continue;
+
+        if (   !(pThis->pCfg->fFlags & RTSCRIPT_LEX_CFG_F_COMMENTS_AS_TOKENS)
+            && (   rtScriptLexIsMultiLineCommentConsume(pThis, ch)
+                || rtScriptLexIsSingleLineCommentConsume(pThis, ch)))
             continue;
 
         /* All white space skipped, next is some real content. */

@@ -590,8 +590,10 @@ QVariant UIToolsItem::data(int iKey) const
 
 void UIToolsItem::updatePixmap()
 {
-    /* Prepare variables: */
-    const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * 1.5;
+    /* Smaller Machine tool icons in widget mode: */
+    const int iIconMetric = model()->isPopup() || itemClass() != UIToolClass_Machine
+                          ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * 1.5
+                          : QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
 
     /* Prepare new pixmap size: */
     const QSize pixmapSize = QSize(iIconMetric, iIconMetric);
@@ -893,10 +895,15 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        const int iPixmapX = model()->isPopup() ? iMargin : 2 * iMargin;
+        int iPixmapX = model()->isPopup() ? iMargin : 2 * iMargin;
 #else
-        const int iPixmapX = model()->isPopup() ? iMargin : 1.5 * iMargin;
+        int iPixmapX = model()->isPopup() ? iMargin : 1.5 * iMargin;
 #endif
+
+        /* A bit of indentation for Machine tools in widget mode: */
+        if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+            iPixmapX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
+
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
         /* Paint pixmap: */
         paintPixmap(/* Painter: */
@@ -912,12 +919,17 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        const int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
-                                                       : 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
+                                        : 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #else
-        const int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
-                                                       : 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
+                                        : 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
+
+        /* A bit of indentation for Machine tools in widget mode: */
+        if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+            iNameX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
+
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
         /* Paint name (always for popup mode, if requested otherwise): */
         if (   model()->isPopup()

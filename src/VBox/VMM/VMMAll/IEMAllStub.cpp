@@ -1,6 +1,9 @@
 /* $Id$ */
 /** @file
- * IEM - Interpreted Execution Manager, ARMv8 specific things.
+ * IEM - Interpreted Execution Manager, dummy IEM stub functions.
+ *
+ * This is for use during porting to a new host as well as when IEM isn't
+ * required for some reason.
  */
 
 /*
@@ -29,18 +32,11 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#define LOG_GROUP LOG_GROUP_EM
+#define LOG_GROUP LOG_GROUP_IEM
 #include <VBox/vmm/iem.h>
-#include <VBox/vmm/cpum.h>
-#include <VBox/vmm/dbgf.h>
-#include <VBox/vmm/mm.h>
-#include "IEMInternal-armv8.h"
-#include <VBox/vmm/vm.h>
-#include <VBox/vmm/vmapi.h>
 
 #include <iprt/assert.h>
 #include <iprt/errcore.h>
-#include <iprt/getopt.h>
 #include <iprt/string.h>
 
 
@@ -133,3 +129,4 @@ VMMR3_INT_DECL(VBOXSTRICTRC) IEMR3ProcessForceFlag(PVM pVM, PVMCPUCC pVCpu, VBOX
     RT_NOREF(pVM, pVCpu, rcStrict);
     return VERR_NOT_IMPLEMENTED;
 }
+

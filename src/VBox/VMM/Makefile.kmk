@@ -504,7 +504,7 @@ ifdef VBOX_WITH_VIRT_ARMV8
  	VMMAll/DBGFAll.cpp \
  	VMMAll/DBGFAllBp.cpp \
  	$(if-expr defined(VBOX_WITH_DBGF_TRACING), VMMAll/DBGFAllTracer.cpp,) \
- 	VMMAll/IEMAll-armv8.cpp \
+ 	VMMAll/IEMAllStub.cpp \
  	VMMAll/IOMAll.cpp \
  	VMMAll/IOMAllMmioNew.cpp \
  	VMMAll/MMAll.cpp \

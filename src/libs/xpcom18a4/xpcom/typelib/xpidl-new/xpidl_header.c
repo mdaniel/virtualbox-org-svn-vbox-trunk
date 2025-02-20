@@ -162,13 +162,13 @@ static int xpidlHdrWriteType(PCXPIDLNODE pNd, FILE *outfile)
                 fputs("PRInt64", outfile);
                 break;
             case kXpidlType_Unsigned_Short:
-                fputs("PRUInt16", outfile);
+                fputs("PRUint16", outfile);
                 break;
             case kXpidlType_Unsigned_Long:
-                fputs("PRUInt32", outfile);
+                fputs("PRUint32", outfile);
                 break;
             case kXpidlType_Unsigned_Long_Long:
-                fputs("PRUInt64", outfile);
+                fputs("PRUint64", outfile);
                 break;
             case kXpidlType_String:
                 fputs("char *", outfile);
@@ -188,22 +188,25 @@ static int xpidlHdrWriteType(PCXPIDLNODE pNd, FILE *outfile)
     }
     else
     {
-        Assert(pNd->enmType == kXpidlNdType_Identifier);
-        if (UP_IS_NATIVE(pNd))
+        Assert(   pNd->enmType == kXpidlNdType_Identifier
+               && pNd->pNdTypeRef);
+
+        PCXPIDLNODE pNdType = pNd->pNdTypeRef;
+        if (pNdType->enmType == kXpidlNdType_Native)
         {
-            if (   xpidlNodeAttrFind(pNd, "domstring")
-                || xpidlNodeAttrFind(pNd, "astring"))
+            if (   xpidlNodeAttrFind(pNdType, "domstring")
+                || xpidlNodeAttrFind(pNdType, "astring"))
                 fputs("nsAString", outfile);
-            else if (xpidlNodeAttrFind(pNd, "utf8string"))
+            else if (xpidlNodeAttrFind(pNdType, "utf8string"))
                 fputs("nsACString", outfile);
-            else if (xpidlNodeAttrFind(pNd, "cstring"))
+            else if (xpidlNodeAttrFind(pNdType, "cstring"))
                 fputs("nsACString", outfile);
             else
-                fputs(pNd->u.Native.pszNative, outfile);
+                fputs(pNdType->u.Native.pszNative, outfile);
 
-            if (xpidlNodeAttrFind(pNd, "ptr"))
+            if (xpidlNodeAttrFind(pNdType, "ptr"))
                 fputs(" *", outfile);
-            else if (xpidlNodeAttrFind(pNd, "ref"))
+            else if (xpidlNodeAttrFind(pNdType, "ref"))
                 fputs(" &", outfile);
         }
         else
@@ -278,21 +281,24 @@ static int write_param(PCXPIDLNODE pNd, FILE *pFile)
  * Shared between the interface class declaration and the NS_DECL_IFOO macro
  * provided to aid declaration of implementation classes.  
  */
-static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, const char *className)
+static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, bool fDecl)
 {
     bool no_generated_args = true;
     bool op_notxpcom = (xpidlNodeAttrFind(pNd, "notxpcom") != NULL);
 
-    if (op_notxpcom) {
-        fputs("NS_IMETHOD_(", pFile);
-        int rc = xpidlHdrWriteType(pNd->u.Method.pNdTypeSpecRet, pFile);
-        if (RT_FAILURE(rc))
-            return rc;
-        fputc(')', pFile);
-    } else {
-        fputs("NS_IMETHOD", pFile);
+    if (fDecl)
+    {
+        if (op_notxpcom) {
+            fputs("NS_IMETHOD_(", pFile);
+            int rc = xpidlHdrWriteType(pNd->u.Method.pNdTypeSpecRet, pFile);
+            if (RT_FAILURE(rc))
+                return rc;
+            fputc(')', pFile);
+        } else {
+            fputs("NS_IMETHOD", pFile);
+        }
+        fputc(' ', pFile);
     }
-    fputc(' ', pFile);
 
     const char *pszName = pNd->u.Method.pszName;
     fprintf(pFile, "%c%s(", toupper(*pszName), pszName + 1);
@@ -300,9 +306,14 @@ static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, const char *clas
     PCXPIDLNODE pIt;
     RTListForEach(&pNd->u.Method.LstParams, pIt, XPIDLNODE, NdLst)
     {
-        int rc = write_param(pIt, pFile);
-        if (RT_FAILURE(rc))
-            return rc;
+        if (fDecl)
+        {
+            int rc = write_param(pIt, pFile);
+            if (RT_FAILURE(rc))
+                return rc;
+        }
+        else
+            fputs(pIt->u.Param.pszName, pFile);
 
         if (!RTListNodeIsLast(&pNd->u.Method.LstParams, &pIt->NdLst))
             fputs(", ", pFile);
@@ -343,11 +354,31 @@ static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, const char *clas
      * If generated method has no arguments, output 'void' to avoid C legacy
      * behavior of disabling type checking.
      */
-    if (no_generated_args)
+    if (no_generated_args && fDecl)
         fputs("void", pFile);
 
     fputc(')', pFile);
     return VINF_SUCCESS;
+}
+
+
+static void xpidlHdrWriteIdlAttrs(PCXPIDLNODE pIt, FILE *pFile)
+{
+    if (pIt->cAttrs)
+    {
+        fputs("[", pFile);
+        for (uint32_t i = 0; i < pIt->cAttrs; i++)
+        {
+            if (pIt->aAttrs[i].pszVal)
+                fprintf(pFile, "%s (%s)", pIt->aAttrs[i].pszName, pIt->aAttrs[i].pszVal);
+            else
+                fprintf(pFile, "%s", pIt->aAttrs[i].pszName);
+
+            if (i < pIt->cAttrs - 1)
+                fputs(", ", pFile);
+        }
+        fputs("] ", pFile);
+    }
 }
 
 
@@ -362,8 +393,33 @@ static int xpidlHdrWriteMethod(PCXPIDLNODE pNd, FILE *pFile)
         return FALSE;
 #endif
 
+    /* Dump the signature as a comment. */
     write_indent(pFile);
-    int rc = write_method_signature(pNd, pFile, NULL);
+    fputs("/* ", pFile);
+    xpidlHdrWriteIdlAttrs(pNd, pFile);
+    xpidlHdrWriteIdlType(pNd->u.Method.pNdTypeSpecRet, pFile);
+    fprintf(pFile, " %s (", pNd->u.Method.pszName);
+    PCXPIDLNODE pIt;
+    RTListForEach(&pNd->u.Method.LstParams, pIt, XPIDLNODE, NdLst)
+    {
+        xpidlHdrWriteIdlAttrs(pIt, pFile);
+        if (pIt->u.Param.enmDir == kXpidlDirection_In)
+            fputs("in ", pFile);
+        else if (pIt->u.Param.enmDir == kXpidlDirection_Out)
+            fputs("out ", pFile);
+        else
+            fputs("inout ", pFile);
+
+        xpidlHdrWriteIdlType(pIt->u.Param.pNdTypeSpec, pFile);
+        fprintf(pFile, " %s", pIt->u.Param.pszName);
+
+        if (!RTListNodeIsLast(&pNd->u.Method.LstParams, &pIt->NdLst))
+            fputs(", ", pFile);
+    }
+    fputs("); */\n", pFile);
+
+    write_indent(pFile);
+    int rc = write_method_signature(pNd, pFile, true /*fDecl*/);
     if (RT_FAILURE(rc))
         return rc;
     fputs(" = 0;\n\n", pFile);
@@ -372,32 +428,36 @@ static int xpidlHdrWriteMethod(PCXPIDLNODE pNd, FILE *pFile)
 }
 
 
-static int xpidlHdrWriteAttrAccessor(PCXPIDLNODE pNd, FILE *pFile, bool getter)
+static int xpidlHdrWriteAttrAccessor(PCXPIDLNODE pNd, FILE *pFile, bool getter, bool fDecl)
 {
     const char *pszName = pNd->u.Attribute.pszName;
 
-    fputs("NS_IMETHOD ", pFile);
+    if (fDecl)
+        fputs("NS_IMETHOD ", pFile);
     fprintf(pFile, "%cet%c%s(",
             getter ? 'G' : 'S',
             toupper(*pszName), pszName + 1);
-    /* Setters for string, wstring, nsid, domstring, utf8string, 
-     * cstring and astring get const. 
-     */
-    if (!getter &&
-        (xpidlNdIsStringType(pNd->u.Attribute.pNdTypeSpec) ||
-         xpidlNodeAttrFind(pNd, "nsid") ||
-         xpidlNodeAttrFind(pNd, "domstring")  ||
-         xpidlNodeAttrFind(pNd, "utf8string") ||
-         xpidlNodeAttrFind(pNd, "cstring")    ||
-         xpidlNodeAttrFind(pNd, "astring")))
-        fputs("const ", pFile);
+    if (fDecl)
+    {
+        /* Setters for string, wstring, nsid, domstring, utf8string, 
+         * cstring and astring get const. 
+         */
+        if (!getter &&
+            (xpidlNdIsStringType(pNd->u.Attribute.pNdTypeSpec) ||
+             xpidlNodeAttrFind(pNd, "nsid") ||
+             xpidlNodeAttrFind(pNd, "domstring")  ||
+             xpidlNodeAttrFind(pNd, "utf8string") ||
+             xpidlNodeAttrFind(pNd, "cstring")    ||
+             xpidlNodeAttrFind(pNd, "astring")))
+            fputs("const ", pFile);
 
-    int rc = xpidlHdrWriteType(pNd->u.Attribute.pNdTypeSpec, pFile);
-    if (RT_FAILURE(rc))
-        return rc;
-    fprintf(pFile, "%s%s",
-            (STARRED_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "" : " "),
-            (getter && !DIPPER_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "*" : ""));
+        int rc = xpidlHdrWriteType(pNd->u.Attribute.pNdTypeSpec, pFile);
+        if (RT_FAILURE(rc))
+            return rc;
+        fprintf(pFile, "%s%s",
+                (STARRED_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "" : " "),
+                (getter && !DIPPER_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "*" : ""));
+    }
     fprintf(pFile, "a%c%s)", toupper(pszName[0]), pszName + 1);
     return VINF_SUCCESS;
 }
@@ -419,14 +479,14 @@ static int xpidlHdrWriteAttribute(PCXPIDLNODE pNd, FILE *pFile)
     fprintf(pFile, " %s; */\n", pNd->u.Attribute.pszName);
 
     write_indent(pFile);
-    int rc = xpidlHdrWriteAttrAccessor(pNd, pFile, true);
+    int rc = xpidlHdrWriteAttrAccessor(pNd, pFile, true, true /*fDecl*/);
     if (RT_FAILURE(rc))
         return rc;
     fputs(" = 0;\n", pFile);
 
     if (!pNd->u.Attribute.fReadonly) {
         write_indent(pFile);
-        rc = xpidlHdrWriteAttrAccessor(pNd, pFile, false);
+        rc = xpidlHdrWriteAttrAccessor(pNd, pFile, false, true /*fDecl*/);
         if (RT_FAILURE(rc))
             return rc;
         fputs(" = 0;\n", pFile);
@@ -561,17 +621,17 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             case kXpidlNdType_Const:
                 rc = xpidlHdrWriteConst(pIt, pFile);
                 if (RT_FAILURE(rc))
-                    return rc;
+                    FAIL;
                 break;
             case kXpidlNdType_Attribute:
                 rc = xpidlHdrWriteAttribute(pIt, pFile);
                 if (RT_FAILURE(rc))
-                    return rc;
+                    FAIL;
                 break;
             case kXpidlNdType_Method:
                 rc = xpidlHdrWriteMethod(pIt, pFile);
                 if (RT_FAILURE(rc))
-                    return rc;
+                    FAIL;
                 break;
             default:
                 FAIL;
@@ -581,7 +641,6 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
     fputs("};\n", pFile);
     fputc('\n', pFile);
 
-#if 0
     /*
      * #define NS_DECL_NSIFOO - create method prototypes that can be used in
      * class definitions that support this interface.
@@ -589,76 +648,62 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
      * Walk the tree explicitly to prototype a reworking of xpidl to get rid of
      * the callback mechanism.
      */
-    state->tree = orig;
     fputs("/* Use this macro when declaring classes that implement this "
-          "interface. */\n", state->file);
-    fputs("#define NS_DECL_", state->file);
-    classNameUpper = xpidl_strdup(className);
+          "interface. */\n", pFile);
+    fputs("#define NS_DECL_", pFile);
+    classNameUpper = xpidl_strdup(pNd->u.If.pszIfName);
     if (!classNameUpper)
         FAIL;
 
     for (cp = classNameUpper; *cp != '\0'; cp++)
         *cp = toupper(*cp);
-    fprintf(state->file, "%s \\\n", classNameUpper);
-    if (IDL_INTERFACE(state->tree).body == NULL) {
-        write_indent(state->file);
-        fputs("/* no methods! */\n", state->file);
-    }
-
-    for (iter = IDL_INTERFACE(state->tree).body;
-         iter != NULL;
-         iter = IDL_LIST(iter).next)
+    fprintf(pFile, "%s \\\n", classNameUpper);
+    if (RTListIsEmpty(&pNd->u.If.LstBody))
     {
-        IDL_tree data = IDL_LIST(iter).data;
-
-        switch(IDL_NODE_TYPE(data)) {
-          case IDLN_OP_DCL:
-            write_indent(state->file);
-            write_method_signature(data, state->file, AS_DECL, NULL);
-            break;
-
-          case IDLN_ATTR_DCL:
-            write_indent(state->file);
-            if (!write_attr_accessor(data, state->file, TRUE, AS_DECL, NULL))
-                FAIL;
-            if (!IDL_ATTR_DCL(data).f_readonly) {
-                fputs(" NS_OVERRIDE; \\\n", state->file); /* Terminate the previous one. */
-                write_indent(state->file);
-                if (!write_attr_accessor(data, state->file,
-                                         FALSE, AS_DECL, NULL))
-                    FAIL;
-                /* '; \n' at end will clean up. */
-            }
-            break;
-
-          case IDLN_CONST_DCL:
-            /* ignore it here; it doesn't contribute to the macro. */
-            continue;
-
-          case IDLN_CODEFRAG:
-            XPIDL_WARNING((iter, IDL_WARNING1,
-                           "%%{ .. %%} code fragment within interface "
-                           "ignored when generating NS_DECL_%s macro; "
-                           "if the code fragment contains method "
-                           "declarations, the macro probably isn't "
-                           "complete.", classNameUpper));
-            continue;
-
-          default:
-            IDL_tree_error(iter,
-                           "unexpected node type %d! "
-                           "Please file a bug against the xpidl component.",
-                           IDL_NODE_TYPE(data));
-            FAIL;
-        }
-
-        if (IDL_LIST(iter).next != NULL) {
-            fprintf(state->file, " NS_OVERRIDE; \\\n");
-        } else {
-            fprintf(state->file, " NS_OVERRIDE; \n");
-        }
+        write_indent(pFile);
+        fputs("/* no methods! */\n", pFile);
     }
-    fputc('\n', state->file);
+
+    RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
+    {
+        switch (pIt->enmType)
+        {
+            case kXpidlNdType_Const:
+                /* ignore it here; it doesn't contribute to the macro. */
+                continue;
+            case kXpidlNdType_Attribute:
+            {
+                write_indent(pFile);
+                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                if (!pIt->u.Attribute.fReadonly)
+                {
+                    fputs(" NS_OVERRIDE; \\\n", pFile); /* Terminate the previous one. */
+                    write_indent(pFile);
+                    rc = xpidlHdrWriteAttrAccessor(pIt, pFile, false, true /*fDecl*/);
+                    if (RT_FAILURE(rc))
+                        FAIL;
+                    /* '; \n' at end will clean up. */
+                }
+                break;
+            }
+            case kXpidlNdType_Method:
+                write_indent(pFile);
+                rc = write_method_signature(pIt, pFile, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                break;
+            default:
+                FAIL;
+        }
+
+        if (!RTListNodeIsLast(&pNd->u.If.LstBody, &pIt->NdLst))
+            fprintf(pFile, " NS_OVERRIDE; \\\n");
+        else
+            fprintf(pFile, " NS_OVERRIDE; \n");
+    }
+    fputc('\n', pFile);
 
     /* XXX abstract above and below into one function? */
     /*
@@ -666,66 +711,68 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
      * behavior from in implementation to another object.  As generated by
      * idlc.
      */
-    fprintf(state->file,
+    fprintf(pFile,
             "/* Use this macro to declare functions that forward the "
             "behavior of this interface to another object. */\n"
             "#define NS_FORWARD_%s(_to) \\\n",
             classNameUpper);
-    if (IDL_INTERFACE(state->tree).body == NULL) {
-        write_indent(state->file);
-        fputs("/* no methods! */\n", state->file);
-    }
-
-    for (iter = IDL_INTERFACE(state->tree).body;
-         iter != NULL;
-         iter = IDL_LIST(iter).next)
+    if (RTListIsEmpty(&pNd->u.If.LstBody))
     {
-        IDL_tree data = IDL_LIST(iter).data;
-
-        switch(IDL_NODE_TYPE(data)) {
-          case IDLN_OP_DCL:
-            write_indent(state->file);
-            write_method_signature(data, state->file, AS_DECL, NULL);
-            fputs(" { return _to ", state->file);
-            write_method_signature(data, state->file, AS_CALL, NULL);
-            break;
-
-          case IDLN_ATTR_DCL:
-            write_indent(state->file);
-            if (!write_attr_accessor(data, state->file, TRUE, AS_DECL, NULL))
-                FAIL;
-            fputs(" { return _to ", state->file);
-            if (!write_attr_accessor(data, state->file, TRUE, AS_CALL, NULL))
-                FAIL;
-            if (!IDL_ATTR_DCL(data).f_readonly) {
-                fputs("; } \\\n", state->file); /* Terminate the previous one. */
-                write_indent(state->file);
-                if (!write_attr_accessor(data, state->file,
-                                         FALSE, AS_DECL, NULL))
-                    FAIL;
-                fputs(" { return _to ", state->file);
-                if (!write_attr_accessor(data, state->file,
-                                         FALSE, AS_CALL, NULL))
-                    FAIL;
-                /* '; } \n' at end will clean up. */
-            }
-            break;
-
-          case IDLN_CONST_DCL:
-          case IDLN_CODEFRAG:
-              continue;
-
-          default:
-            FAIL;
-        }
-
-        if (IDL_LIST(iter).next != NULL) {
-            fprintf(state->file, "; } \\\n");
-        } else {
-            fprintf(state->file, "; } \n");
-        }
+        write_indent(pFile);
+        fputs("/* no methods! */\n", pFile);
     }
-    fputc('\n', state->file);
+
+    RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
+    {
+        switch (pIt->enmType)
+        {
+            case kXpidlNdType_Const:
+                continue;
+            case kXpidlNdType_Attribute:
+            {
+                write_indent(pFile);
+                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                fputs(" { return _to ", pFile);
+                rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, false /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                if (!pIt->u.Attribute.fReadonly)
+                {
+                    fputs("; } \\\n", pFile); /* Terminate the previous one. */
+                    write_indent(pFile);
+                    rc = xpidlHdrWriteAttrAccessor(pIt, pFile, false, true /*fDecl*/);
+                    if (RT_FAILURE(rc))
+                        FAIL;
+                    fputs(" { return _to ", pFile);
+                    rc = xpidlHdrWriteAttrAccessor(pIt, pFile, false, false /*fDecl*/);
+                    if (RT_FAILURE(rc))
+                        FAIL;
+                    /* '; } \n' at end will clean up. */
+                }
+                break;
+            }
+            case kXpidlNdType_Method:
+                write_indent(pFile);
+                int rc = write_method_signature(pIt, pFile, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                fputs(" { return _to ", pFile);
+                rc = write_method_signature(pIt, pFile, false /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                break;
+            default:
+                FAIL;
+        }
+
+        if (!RTListNodeIsLast(&pNd->u.If.LstBody, &pIt->NdLst))
+            fprintf(pFile, "; } \\\n");
+        else
+            fprintf(pFile, "; } \n");
+    }
+    fputc('\n', pFile);
 
 
     /* XXX abstract above and below into one function? */
@@ -734,66 +781,67 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
      * behavior from in implementation to another object.  As generated by
      * idlc.
      */
-    fprintf(state->file,
+    fprintf(pFile,
             "/* Use this macro to declare functions that forward the "
             "behavior of this interface to another object in a safe way. */\n"
             "#define NS_FORWARD_SAFE_%s(_to) \\\n",
             classNameUpper);
-    if (IDL_INTERFACE(state->tree).body == NULL) {
-        write_indent(state->file);
-        fputs("/* no methods! */\n", state->file);
-    }
-
-    for (iter = IDL_INTERFACE(state->tree).body;
-         iter != NULL;
-         iter = IDL_LIST(iter).next)
+    if (RTListIsEmpty(&pNd->u.If.LstBody))
     {
-        IDL_tree data = IDL_LIST(iter).data;
-
-        switch(IDL_NODE_TYPE(data)) {
-          case IDLN_OP_DCL:
-            write_indent(state->file);
-            write_method_signature(data, state->file, AS_DECL, NULL);
-            fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", state->file);
-            write_method_signature(data, state->file, AS_CALL, NULL);
-            break;
-
-          case IDLN_ATTR_DCL:
-            write_indent(state->file);
-            if (!write_attr_accessor(data, state->file, TRUE, AS_DECL, NULL))
-                FAIL;
-            fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", state->file);
-            if (!write_attr_accessor(data, state->file, TRUE, AS_CALL, NULL))
-                FAIL;
-            if (!IDL_ATTR_DCL(data).f_readonly) {
-                fputs("; } \\\n", state->file); /* Terminate the previous one. */
-                write_indent(state->file);
-                if (!write_attr_accessor(data, state->file,
-                                         FALSE, AS_DECL, NULL))
-                    FAIL;
-                fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", state->file);
-                if (!write_attr_accessor(data, state->file,
-                                         FALSE, AS_CALL, NULL))
-                    FAIL;
-                /* '; } \n' at end will clean up. */
-            }
-            break;
-
-          case IDLN_CONST_DCL:
-          case IDLN_CODEFRAG:
-              continue;
-
-          default:
-            FAIL;
-        }
-
-        if (IDL_LIST(iter).next != NULL) {
-            fprintf(state->file, "; } \\\n");
-        } else {
-            fprintf(state->file, "; } \n");
-        }
+        write_indent(pFile);
+        fputs("/* no methods! */\n", pFile);
     }
-#endif
+
+    RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
+    {
+        switch (pIt->enmType)
+        {
+            case kXpidlNdType_Const:
+                continue;
+            case kXpidlNdType_Attribute:
+            {
+                write_indent(pFile);
+                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", pFile);
+                rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, false /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                if (!pIt->u.Attribute.fReadonly)
+                {
+                    fputs("; } \\\n", pFile); /* Terminate the previous one. */
+                    write_indent(pFile);
+                    rc = xpidlHdrWriteAttrAccessor(pIt, pFile, false, true /*fDecl*/);
+                    if (RT_FAILURE(rc))
+                        FAIL;
+                    fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", pFile);
+                    rc = xpidlHdrWriteAttrAccessor(pIt, pFile, false, false /*fDecl*/);
+                    if (RT_FAILURE(rc))
+                        FAIL;
+                    /* '; } \n' at end will clean up. */
+                }
+                break;
+            }
+            case kXpidlNdType_Method:
+                write_indent(pFile);
+                int rc = write_method_signature(pIt, pFile, true /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", pFile);
+                rc = write_method_signature(pIt, pFile, false /*fDecl*/);
+                if (RT_FAILURE(rc))
+                    FAIL;
+                break;
+            default:
+                FAIL;
+        }
+
+        if (!RTListNodeIsLast(&pNd->u.If.LstBody, &pIt->NdLst))
+            fprintf(pFile, "; } \\\n");
+        else
+            fprintf(pFile, "; } \n");
+    }
     fputc('\n', pFile);
 
 #undef FAIL

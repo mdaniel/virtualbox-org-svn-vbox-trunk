@@ -183,6 +183,8 @@ typedef struct XPIDLNODE
     PCXPIDLNODE         pParent;
     /** The input stream this node was generated from (via #include's). */
     PCXPIDLINPUT        pInput;
+    /** The type this node references (for identifiers only). */
+    PCXPIDLNODE         pNdTypeRef;
     /** The node type. */
     XPIDLNDTYPE         enmType;
     /** Node type dependent data. */
@@ -368,13 +370,13 @@ DECLINLINE(bool) xpidlNdIsStringType(PCXPIDLNODE pNd)
 
 /* is this node from an aggregate type (interface)? */
 #define UP_IS_AGGREGATE(a_pNd) \
-    (   a_pNd->pParent \
-     && (   a_pNd->pParent->enmType == kXpidlNdType_Interface_Forward_Decl \
-         || a_pNd->pParent->enmType == kXpidlNdType_Interface_Def))
+    (   a_pNd->pNdTypeRef \
+     && (   a_pNd->pNdTypeRef->enmType == kXpidlNdType_Interface_Forward_Decl \
+         || a_pNd->pNdTypeRef->enmType == kXpidlNdType_Interface_Def))
 
 #define UP_IS_NATIVE(a_pNd) \
-    (   a_pNd->pParent \
-     && a_pNd->pParent->enmType == kXpidlNdType_Native)
+    (   a_pNd->pNdTypeRef \
+     && a_pNd->pNdTypeRef->enmType == kXpidlNdType_Native)
 
 /* is this type output in the form "<foo> *"? */
 #define STARRED_TYPE(a_pNd) (xpidlNdIsStringType(a_pNd) ||   \
@@ -382,10 +384,10 @@ DECLINLINE(bool) xpidlNdIsStringType(PCXPIDLNODE pNd)
                              UP_IS_AGGREGATE(a_pNd)))
 
 #define DIPPER_TYPE(a_pNd)                                                     \
-    (xpidlNodeAttrFind(a_pNd, "domstring")  ||                     \
-     xpidlNodeAttrFind(a_pNd, "utf8string") ||                     \
-     xpidlNodeAttrFind(a_pNd, "cstring")    ||                     \
-     xpidlNodeAttrFind(a_pNd, "astring"))
+    (xpidlNodeAttrFind(a_pNd, "domstring") != NULL  ||                     \
+     xpidlNodeAttrFind(a_pNd, "utf8string") != NULL ||                     \
+     xpidlNodeAttrFind(a_pNd, "cstring") != NULL    ||                     \
+     xpidlNodeAttrFind(a_pNd, "astring") != NULL)
 
 
 /*

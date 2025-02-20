@@ -594,6 +594,38 @@ static PXPIDLNODE xpidlNodeCreate(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLI
 }
 
 
+static PCXPIDLNODE xpidlParseFindType(PXPIDLPARSE pThis, const char *pszName)
+{
+    PCXPIDLNODE pIt;
+    RTListForEach(&pThis->LstNodes, pIt, XPIDLNODE, NdLst)
+    {
+        switch (pIt->enmType)
+        {
+            case kXpidlNdType_Typedef:
+                if (!strcmp(pszName, pIt->u.Typedef.pszName))
+                    return pIt;
+                break;
+            case kXpidlNdType_Native:
+                if (!strcmp(pszName, pIt->u.Native.pszName))
+                    return pIt;
+                break;
+            case kXpidlNdType_Interface_Forward_Decl:
+                if (!strcmp(pszName, pIt->u.pszIfFwdName))
+                    return pIt;
+                break;
+            case kXpidlNdType_Interface_Def:
+                if (!strcmp(pszName, pIt->u.If.pszIfName))
+                    return pIt;
+                break;
+            default:
+                break;
+        }
+    }
+
+    return NULL;
+}
+
+
 static int xpidlParseAttributes(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLATTR paAttrs, uint32_t cAttrsMax, uint32_t *pcAttrs)
 {
     g_fParsingAttributes = true;
@@ -755,10 +787,16 @@ static int xpidlParseTypeSpec(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE 
     {
         /* Identifier */
         XPIDL_PARSE_IDENTIFIER(pszName);
+        PCXPIDLNODE pNdTypeRef = xpidlParseFindType(pThis, pszName);
+        if (!pNdTypeRef)
+            return xpidlParseError(pThis, pInput, NULL, VERR_NOT_FOUND, "Unknown referenced type '%s'\n", pszName);
+
         PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_Identifier);
         if (pNode)
         {
-            pNode->u.pszIde = pszName;
+            /* Try resolving the referenced type. */
+            pNode->pNdTypeRef = pNdTypeRef;
+            pNode->u.pszIde   = pszName;
             *ppNode = pNode;
         }
         else
@@ -1054,6 +1092,14 @@ static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE p
         case kXpidlKeyword_Include:
         {
             XPIDL_PARSE_STRING_LIT(pszFilename);
+            /* Check whether this was parsed already. */
+            PCXPIDLINPUT pIt;
+            RTListForEach(&pThis->LstInputs, pIt, XPIDLINPUT, NdInput)
+            {
+                if (!strcmp(pIt->pszFilename, pszFilename))
+                    return VINF_SUCCESS;
+            }
+
             PXPIDLINPUT pInputNew = xpidlInputCreate(pszFilename, pLstIncludePaths);
             if (!pInputNew)
                 return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Failed opening include file '%s'",
@@ -1151,8 +1197,8 @@ static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pL
                     PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_RawBlock);
                     if (pNode)
                     {
-                        pNode->u.RawBlock.pszRaw = pTok->Type.Comment.pszComment + 5;
-                        pNode->u.RawBlock.cchRaw = pTok->Type.Comment.cchComment - (5 + 2 + 1); /* Start + end + zero terminator. */
+                        pNode->u.RawBlock.pszRaw = pTok->Type.Comment.pszComment + 6; /* Assumes a newline after %{C++ */
+                        pNode->u.RawBlock.cchRaw = pTok->Type.Comment.cchComment - (6 + 2 + 1); /* Start + end + zero terminator. */
                         RTListAppend(&pThis->LstNodes, &pNode->NdLst);
                     }
                     else

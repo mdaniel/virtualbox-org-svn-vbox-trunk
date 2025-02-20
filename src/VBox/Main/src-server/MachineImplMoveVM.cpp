@@ -930,7 +930,7 @@ void MachineMoveVM::i_MoveVMThreadTask(MachineMoveVM *task)
         machine->mParent->i_copyPathRelativeToConfig(strTargetSettingsFilePath, machineData->m_strConfigFile);
 
         /* Marks the global registry for uuid as modified */
-        Guid uuid = machine->mData->mUuid;
+        Guid uuid = machine->mParent->i_getGlobalRegistryId();
         machine->mParent->i_markRegistryModified(uuid);
 
         /* for saving the global settings we should hold only the VirtualBox lock */
@@ -1061,7 +1061,7 @@ void MachineMoveVM::i_MoveVMThreadTask(MachineMoveVM *task)
             {
                 AutoWriteLock  srcLock(machine COMMA_LOCKVAL_SRC_POS);
                 srcLock.release();
-                Guid uuid = machine->mData->mUuid;
+                Guid uuid = machine->mParent->i_getGlobalRegistryId();
                 machine->mParent->i_markRegistryModified(uuid);
                 srcLock.acquire();
             }

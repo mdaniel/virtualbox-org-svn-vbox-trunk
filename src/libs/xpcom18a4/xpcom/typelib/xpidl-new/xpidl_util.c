@@ -72,18 +72,6 @@ xpidl_strdup(const char *s)
     return ns;
 }
 
-#if 0
-void
-xpidl_write_comment(TreeState *state, int indent)
-{
-    fprintf(state->file, "%*s/* ", indent, "");
-    IDL_tree_to_IDL(state->tree, state->ns, state->file,
-                    IDLF_OUTPUT_NO_NEWLINES |
-                    IDLF_OUTPUT_NO_QUALIFY_IDENTS |
-                    IDLF_OUTPUT_PROPERTIES);
-    fputs(" */\n", state->file);
-}
-#endif
 
 /*
  * Print an iid to into a supplied buffer; the buffer should be at least

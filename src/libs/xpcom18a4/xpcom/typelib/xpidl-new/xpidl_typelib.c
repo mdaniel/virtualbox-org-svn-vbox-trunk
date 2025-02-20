@@ -39,47 +39,51 @@
  * Generate typelib files for use with InterfaceInfo.
  * http://www.mozilla.org/scriptable/typelib_file.html
  */
+#include <iprt/assert.h>
+#include <iprt/string.h>
 
 #include "xpidl.h"
 #include <xpt_xdr.h>
 #include <xpt_struct.h>
 #include <time.h>               /* XXX XP? */
 
-struct priv_data {
+typedef struct XPIDLTYPELIBSTATE {
     XPTHeader *header;
     uint16 ifaces;
-    GHashTable *interface_map;
+    RTLISTANCHOR LstInterfaces;
     XPTInterfaceDescriptor *current;
     XPTArena *arena;
     uint16 next_method;
     uint16 next_const;
     uint16 next_type;   /* used for 'additional_types' for idl arrays */
-};
+} XPIDLTYPELIBSTATE;
+typedef XPIDLTYPELIBSTATE *PXPIDLTYPELIBSTATE;
 
-#define HEADER(state)     (((struct priv_data *)state->priv)->header)
-#define IFACES(state)     (((struct priv_data *)state->priv)->ifaces)
-#define IFACE_MAP(state)  (((struct priv_data *)state->priv)->interface_map)
-#define CURRENT(state)    (((struct priv_data *)state->priv)->current)
-#define ARENA(state)      (((struct priv_data *)state->priv)->arena)
-#define NEXT_METH(state)  (((struct priv_data *)state->priv)->next_method)
-#define NEXT_CONST(state) (((struct priv_data *)state->priv)->next_const)
-#define NEXT_TYPE(state)  (((struct priv_data *)state->priv)->next_type)
+#define HEADER(state)     (state->header)
+#define IFACES(state)     (state->ifaces)
+#define IFACE_MAP(state)  (state->LstInterfaces)
+#define CURRENT(state)    (state->current)
+#define ARENA(state)      (state->arena)
+#define NEXT_METH(state)  (state->next_method)
+#define NEXT_CONST(state) (state->next_const)
+#define NEXT_TYPE(state)  (state->next_type)
 
 #ifdef DEBUG_shaver
 /* #define DEBUG_shaver_sort */
 #endif
 
 typedef struct {
+    RTLISTNODE NdInterfaces;
     char     *full_name;
     char     *name;
     char     *name_space;
     char     *iid;
-    gboolean is_forward_dcl;
+    bool     is_forward_dcl;
 } NewInterfaceHolder;
 
 static NewInterfaceHolder*
-CreateNewInterfaceHolder(char *name, char *name_space, char *iid, 
-                         gboolean is_forward_dcl)
+CreateNewInterfaceHolder(const char *name, char *name_space, char *iid, 
+                         bool is_forward_dcl)
 {
     NewInterfaceHolder *holder = calloc(1, sizeof(NewInterfaceHolder));
     if (holder) {
@@ -125,91 +129,108 @@ DeleteNewInterfaceHolder(NewInterfaceHolder *holder)
  * If p is an ident for an interface, and we don't have an entry in the
  * interface map yet, add one.
  */
-static gboolean
-add_interface_maybe(IDL_tree_func_data *tfd, gpointer user_data)
+static bool add_interface_maybe(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
 {
-    TreeState *state = user_data;
-    if (IDL_NODE_TYPE(tfd->tree) == IDLN_IDENT) {
-        IDL_tree_type node_type = IDL_NODE_TYPE(IDL_NODE_UP(tfd->tree));
-        if (node_type == IDLN_INTERFACE || node_type == IDLN_FORWARD_DCL) {
+    if (pNd->enmType == kXpidlNdType_Identifier)
+    {
+        pNd = pNd->pNdTypeRef;
+        AssertPtr(pNd);
+    }
 
-            /* We only want to add a new entry if there is no entry by this 
-             * name or if the previously found entry was just a forward 
-             * declaration and the new entry is not.
-             */
+    if (   pNd->enmType == kXpidlNdType_Interface_Forward_Decl
+        || pNd->enmType == kXpidlNdType_Interface_Def)
+    {
 
-            char *iface = IDL_IDENT(tfd->tree).str;
-            NewInterfaceHolder *old_holder = (NewInterfaceHolder *) 
-                    g_hash_table_lookup(IFACE_MAP(state), iface);
-            if (old_holder && old_holder->is_forward_dcl &&
-                node_type != IDLN_FORWARD_DCL)
+        /* We only want to add a new entry if there is no entry by this 
+         * name or if the previously found entry was just a forward 
+         * declaration and the new entry is not.
+         */
+
+        const char *pszIfName =   pNd->enmType == kXpidlNdType_Interface_Forward_Decl
+                                ? pNd->u.pszIfFwdName
+                                : pNd->u.If.pszIfName;
+        NewInterfaceHolder *old_holder = NULL;
+
+        NewInterfaceHolder *pIt;
+        RTListForEach(&IFACE_MAP(pThis), pIt, NewInterfaceHolder, NdInterfaces)
+        {
+            if (!strcmp(pIt->name, pszIfName))
             {
-                g_hash_table_remove(IFACE_MAP(state), iface);
-                DeleteNewInterfaceHolder(old_holder);
-                old_holder = NULL;
+                old_holder = pIt;
+                break;
             }
-            if (!old_holder) {
-                /* XXX should we parse here and store a struct nsID *? */
-                char *iid = (char *)IDL_tree_property_get(tfd->tree, "uuid");
-                char *name_space = (char *)
-                            IDL_tree_property_get(tfd->tree, "namespace");
-                NewInterfaceHolder *holder =
-                        CreateNewInterfaceHolder(iface, name_space, iid,
-                                     (gboolean) node_type == IDLN_FORWARD_DCL);
-                if (!holder)
-                    return FALSE;
-                g_hash_table_insert(IFACE_MAP(state),
-                                    holder->full_name, holder);
-                IFACES(state)++;
+        }
+
+        if (   old_holder
+            && old_holder->is_forward_dcl
+            && pNd->enmType != kXpidlNdType_Interface_Forward_Decl)
+        {
+            RTListNodeRemove(&old_holder->NdInterfaces);
+            DeleteNewInterfaceHolder(old_holder);
+            old_holder = NULL;
+        }
+
+        if (!old_holder)
+        {
+            /* XXX should we parse here and store a struct nsID *? */
+            char *iid = (char *)xpidlNodeAttrFind(pNd, "uuid");
+            char *name_space = (char *)xpidlNodeAttrFind(pNd, "namespace");
+            NewInterfaceHolder *holder = CreateNewInterfaceHolder(pszIfName, name_space, iid, pNd->enmType == kXpidlNdType_Interface_Forward_Decl);
+            if (!holder)
+                return false;
+            RTListAppend(&pThis->LstInterfaces, &holder->NdInterfaces);                
+
+            IFACES(pThis)++;
 #ifdef DEBUG_shaver_ifaces
-                fprintf(stderr, "adding interface #%d: %s/%s\n", IFACES(state),
-                        iface, iid[0] ? iid : "<unresolved>");
+            fprintf(stderr, "adding interface #%d: %s/%s\n", IFACES(pThis),
+                    pszIfName, iid[0] ? iid : "<unresolved>");
 #endif
-            }
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /* Find all the interfaces referenced in the tree (uses add_interface_maybe) */
-static gboolean
-find_interfaces(IDL_tree_func_data *tfd, gpointer user_data)
+static bool find_interfaces(PXPIDLTYPELIBSTATE pThis, PCXPIDLINPUT pInput, PCRTLISTANCHOR pLstNodes)
 {
-    IDL_tree node = NULL;
-
-    switch (IDL_NODE_TYPE(tfd->tree)) {
-      case IDLN_ATTR_DCL:
-        node = IDL_ATTR_DCL(tfd->tree).param_type_spec;
-        break;
-      case IDLN_OP_DCL:
-         IDL_tree_walk_in_order(IDL_OP_DCL(tfd->tree).parameter_dcls, find_interfaces,
-                               user_data);
-        node = IDL_OP_DCL(tfd->tree).op_type_spec;
-        break;
-      case IDLN_PARAM_DCL:
-        node = IDL_PARAM_DCL(tfd->tree).param_type_spec;
-        break;
-      case IDLN_INTERFACE:
-        node = IDL_INTERFACE(tfd->tree).inheritance_spec;
-        if (node)
-            xpidl_list_foreach(node, add_interface_maybe, user_data);
-        node = IDL_INTERFACE(tfd->tree).ident;
-        break;
-      case IDLN_FORWARD_DCL:
-        node = IDL_FORWARD_DCL(tfd->tree).ident;
-        break;
-      default:
-        node = NULL;
+    PCXPIDLNODE pIt;
+    RTListForEach(pLstNodes, pIt, XPIDLNODE, NdLst)
+    {
+        switch (pIt->enmType)
+        {
+            case kXpidlNdType_Identifier:
+            {
+                if (pIt->u.Attribute.pNdTypeSpec)
+                    add_interface_maybe(pThis, pIt->u.Attribute.pNdTypeSpec);
+                break;
+            }
+            case kXpidlNdType_Interface_Forward_Decl:
+                add_interface_maybe(pThis, pIt);
+                break;
+            case kXpidlNdType_Interface_Def:
+                if (pIt->u.Attribute.pNdTypeSpec)
+                    add_interface_maybe(pThis, pIt->u.Attribute.pNdTypeSpec);
+                add_interface_maybe(pThis, pIt);
+                if (!find_interfaces(pThis, pInput, &pIt->u.If.LstBody))
+                    return false;
+                break;
+            case kXpidlNdType_Attribute:
+                add_interface_maybe(pThis, pIt->u.Attribute.pNdTypeSpec);
+                break;
+            case kXpidlNdType_Method:
+                add_interface_maybe(pThis, pIt->u.Method.pNdTypeSpecRet);
+                if (!find_interfaces(pThis, pInput, &pIt->u.Method.LstParams))
+                    return false;
+            case kXpidlNdType_Parameter:
+                add_interface_maybe(pThis, pIt->u.Param.pNdTypeSpec);
+                break;
+            default:
+                break;
+        }
     }
 
-    if (node && IDL_NODE_TYPE(node) == IDLN_IDENT) {
-        IDL_tree_func_data new_tfd;
-        new_tfd.tree = node;
-        add_interface_maybe(&new_tfd, user_data);
-    }
-
-    return TRUE;
+    return true;
 }
 
 #ifdef DEBUG_shaver
@@ -225,45 +246,47 @@ print_IID(struct nsID *iid, FILE *file)
 #endif
 
 /* fill the interface_directory IDE table from the interface_map */
-static gboolean
-fill_ide_table(gpointer key, gpointer value, gpointer user_data)
+static bool fill_ide_table(PXPIDLTYPELIBSTATE pThis)
 {
-    TreeState *state = user_data;
-    NewInterfaceHolder *holder = (NewInterfaceHolder *) value;
-    struct nsID id;
-    XPTInterfaceDirectoryEntry *ide;
+    NewInterfaceHolder *pIt, *pItNext;
+    RTListForEachSafe(&pThis->LstInterfaces, pIt, pItNext, NewInterfaceHolder, NdInterfaces)
+    {
+        struct nsID id;
+        XPTInterfaceDirectoryEntry *ide;
 
-    XPT_ASSERT(holder);
+        XPT_ASSERT(pIt);
 
 #ifdef DEBUG_shaver_ifaces
-    fprintf(stderr, "filling %s\n", holder->full_name);
+        fprintf(stderr, "filling %s\n", pIt->full_name);
 #endif
 
-    if (holder->iid) {
-        if (strlen(holder->iid) != 36) {
-            IDL_tree_error(state->tree, "IID %s is the wrong length\n",
-                           holder->iid);
-            return FALSE;
+        if (pIt->iid) {
+            if (strlen(pIt->iid) != 36) {
+                //IDL_tree_error(state->tree, "IID %s is the wrong length\n",
+                //               pIt->iid);
+                return false;
+            }
+            if (!xpidl_parse_iid(&id, pIt->iid)) {
+                //IDL_tree_error(state->tree, "cannot parse IID %s\n", holder->iid);
+                return false;
+            }
+        } else {
+            memset(&id, 0, sizeof(id));
         }
-        if (!xpidl_parse_iid(&id, holder->iid)) {
-            IDL_tree_error(state->tree, "cannot parse IID %s\n", holder->iid);
-            return FALSE;
+
+        ide = &(HEADER(pThis)->interface_directory[IFACES(pThis)]);
+        if (!XPT_FillInterfaceDirectoryEntry(ARENA(pThis), ide, &id, pIt->name,
+                                             pIt->name_space, NULL)) {
+            //IDL_tree_error(state->tree, "INTERNAL: XPT_FillIDE failed for %s\n",
+            //               holder->full_name);
+            return false;
         }
-    } else {
-        memset(&id, 0, sizeof(id));
-    }
 
-    ide = &(HEADER(state)->interface_directory[IFACES(state)]);
-    if (!XPT_FillInterfaceDirectoryEntry(ARENA(state), ide, &id, holder->name,
-                                         holder->name_space, NULL)) {
-        IDL_tree_error(state->tree, "INTERNAL: XPT_FillIDE failed for %s\n",
-                       holder->full_name);
-        return FALSE;
+        IFACES(pThis)++;
+        RTListNodeRemove(&pIt->NdInterfaces);
+        DeleteNewInterfaceHolder(pIt);
     }
-
-    IFACES(state)++;
-    DeleteNewInterfaceHolder(holder);
-    return TRUE;
+    return true;
 }
 
 static int
@@ -299,7 +322,7 @@ compare_IDEs(const void *ap, const void *bp)
 
 /* sort the IDE block as per the typelib spec: IID order, unresolved first */
 static void
-sort_ide_block(TreeState *state)
+sort_ide_block(PXPIDLTYPELIBSTATE pThis)
 {
     XPTInterfaceDirectoryEntry *ide;
     int i;
@@ -307,31 +330,32 @@ sort_ide_block(TreeState *state)
     /* boy, I sure hope qsort works correctly everywhere */
 #ifdef DEBUG_shaver_sort
     fputs("before sort:\n", stderr);
-    for (i = 0; i < IFACES(state); i++) {
+    for (i = 0; i < IFACES(pThis); i++) {
         fputs("  ", stderr);
-        print_IID(&HEADER(state)->interface_directory[i].iid, stderr);
+        print_IID(&HEADER(pThis)->interface_directory[i].iid, stderr);
         fputc('\n', stderr);
     }
 #endif
-    qsort(HEADER(state)->interface_directory, IFACES(state),
+    qsort(HEADER(pThis)->interface_directory, IFACES(pThis),
           sizeof(*ide), compare_IDEs);
 #ifdef DEBUG_shaver_sort
     fputs("after sort:\n", stderr);
-    for (i = 0; i < IFACES(state); i++) {
+    for (i = 0; i < IFACES(pThis); i++) {
         fputs("  ", stderr);
-        print_IID(&HEADER(state)->interface_directory[i].iid, stderr);
+        print_IID(&HEADER(pThis)->interface_directory[i].iid, stderr);
         fputc('\n', stderr);
     }
 #endif
 
-    for (i = 0; i < IFACES(state); i++) {
-        ide = HEADER(state)->interface_directory + i;
-        g_hash_table_insert(IFACE_MAP(state), ide->name, (void *)(i + 1));
+#if 0
+    for (i = 0; i < IFACES(pThis); i++) {
+        ide = HEADER(pThis)->interface_directory + i;
+        g_hash_table_insert(IFACE_MAP(pThis), ide->name, (void *)(i + 1));
     }
-
-    return;
+#endif
 }
 
+#if 0
 static gboolean
 typelib_list(TreeState *state)
 {
@@ -343,42 +367,37 @@ typelib_list(TreeState *state)
     }
     return TRUE;
 }
+#endif
 
-static gboolean
-typelib_prolog(TreeState *state)
+static int typelib_prolog(PXPIDLTYPELIBSTATE pThis, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse)
 {
-    state->priv = calloc(1, sizeof(struct priv_data));
-    if (!state->priv)
-        return FALSE;
-    IFACES(state) = 0;
-    IFACE_MAP(state) = g_hash_table_new(g_str_hash, g_str_equal);
-    if (!IFACE_MAP(state)) {
-        /* XXX report error */
-        free(state->priv);
-        return FALSE;
-    }
+    IFACES(pThis) = 0;
+    RTListInit(&IFACE_MAP(pThis));
+
     /* find all interfaces, top-level and referenced by others */
-    IDL_tree_walk_in_order(state->tree, find_interfaces, state);
-    ARENA(state) = XPT_NewArena(1024, sizeof(double), "main xpidl arena");
-    HEADER(state) = XPT_NewHeader(ARENA(state), IFACES(state), 
+    if (!find_interfaces(pThis, pInput, &pParse->LstNodes))
+        return VERR_BUFFER_OVERFLOW;
+
+    ARENA(pThis) = XPT_NewArena(1024, sizeof(double), "main xpidl arena");
+    HEADER(pThis) = XPT_NewHeader(ARENA(pThis), IFACES(pThis), 
                                   major_version, minor_version);
 
     /* fill IDEs from hash table */
-    IFACES(state) = 0;
-    g_hash_table_foreach_remove(IFACE_MAP(state), fill_ide_table, state);
+    IFACES(pThis) = 0;
+    if (!fill_ide_table(pThis))
+        return VERR_NO_MEMORY;
 
     /* if any are left then we must have failed in fill_ide_table */
-    if (g_hash_table_size(IFACE_MAP(state)))
-        return FALSE;
+    if (!RTListIsEmpty(&IFACE_MAP(pThis)))
+        return VERR_BUFFER_OVERFLOW;
 
     /* sort the IDEs by IID order and store indices in the interface map */
-    sort_ide_block(state);
+    sort_ide_block(pThis);
 
-    return TRUE;
+    return VINF_SUCCESS;
 }
 
-static gboolean
-typelib_epilog(TreeState *state)
+static int typelib_epilog(PXPIDLTYPELIBSTATE pThis, FILE *pFile, PCXPIDLINPUT pInput)
 {
     XPTState *xstate = XPT_NewXDRState(XPT_ENCODE, NULL, 0);
     XPTCursor curs, *cursor = &curs;
@@ -403,16 +422,16 @@ typelib_epilog(TreeState *state)
         /* Avoid dependence on nspr; no PR_smprintf and friends. */
 
         /* How large should the annotation string be? */
-        annotation_len = strlen(annotation_format) + strlen(state->basename) +
+        annotation_len = strlen(annotation_format) + strlen(pInput->pszBasename) +
             strlen(timestr);
 #ifdef VBOX
         /* note that '%s' is contained two times in annotation_format and both
          * format specifiers are replaced by a string. So in fact we reserve 4
          * bytes minus one byte (for the terminating '\0') more than necessary. */
 #endif
-        for (i = 0; i < HEADER(state)->num_interfaces; i++) {
+        for (i = 0; i < HEADER(pThis)->num_interfaces; i++) {
             XPTInterfaceDirectoryEntry *ide;
-            ide = &HEADER(state)->interface_directory[i];
+            ide = &HEADER(pThis)->interface_directory[i];
             if (ide->interface_descriptor) {
                 annotation_len += strlen(ide->name) + 1;
             }
@@ -420,69 +439,67 @@ typelib_epilog(TreeState *state)
 
         annotate_val = (char *) malloc(annotation_len);
         written_so_far = sprintf(annotate_val, annotation_format,
-                                 state->basename, timestr);
+                                 pInput->pszBasename, timestr);
         
-        for (i = 0; i < HEADER(state)->num_interfaces; i++) {
+        for (i = 0; i < HEADER(pThis)->num_interfaces; i++) {
             XPTInterfaceDirectoryEntry *ide;
-            ide = &HEADER(state)->interface_directory[i];
+            ide = &HEADER(pThis)->interface_directory[i];
             if (ide->interface_descriptor) {
                 written_so_far += sprintf(annotate_val + written_so_far, " %s",
                                           ide->name);
             }
         }
 
-        HEADER(state)->annotations =
-            XPT_NewAnnotation(ARENA(state), 
+        HEADER(pThis)->annotations =
+            XPT_NewAnnotation(ARENA(pThis), 
                               XPT_ANN_LAST | XPT_ANN_PRIVATE,
-                              XPT_NewStringZ(ARENA(state), "xpidl 0.99.9"),
-                              XPT_NewStringZ(ARENA(state), annotate_val));
+                              XPT_NewStringZ(ARENA(pThis), "xpidl 0.99.9"),
+                              XPT_NewStringZ(ARENA(pThis), annotate_val));
         free(annotate_val);
     } else {
-        HEADER(state)->annotations =
-            XPT_NewAnnotation(ARENA(state), XPT_ANN_LAST, NULL, NULL);
+        HEADER(pThis)->annotations =
+            XPT_NewAnnotation(ARENA(pThis), XPT_ANN_LAST, NULL, NULL);
     }
 
-    if (!HEADER(state)->annotations) {
+    if (!HEADER(pThis)->annotations) {
         /* XXX report out of memory error */
-        return FALSE;
+        return false;
     }
 
     /* Write the typelib */
-    header_sz = XPT_SizeOfHeaderBlock(HEADER(state));
+    header_sz = XPT_SizeOfHeaderBlock(HEADER(pThis));
 
     if (!xstate ||
         !XPT_MakeCursor(xstate, XPT_HEADER, header_sz, cursor))
         goto destroy_header;
     oldOffset = cursor->offset;
-    if (!XPT_DoHeader(ARENA(state), cursor, &HEADER(state)))
+    if (!XPT_DoHeader(ARENA(pThis), cursor, &HEADER(pThis)))
         goto destroy;
     newOffset = cursor->offset;
     XPT_GetXDRDataLength(xstate, XPT_HEADER, &len);
-    HEADER(state)->file_length = len;
+    HEADER(pThis)->file_length = len;
     XPT_GetXDRDataLength(xstate, XPT_DATA, &len);
-    HEADER(state)->file_length += len;
+    HEADER(pThis)->file_length += len;
     XPT_SeekTo(cursor, oldOffset);
-    if (!XPT_DoHeaderPrologue(ARENA(state), cursor, &HEADER(state), NULL))
+    if (!XPT_DoHeaderPrologue(ARENA(pThis), cursor, &HEADER(pThis), NULL))
         goto destroy;
     XPT_SeekTo(cursor, newOffset);
     XPT_GetXDRData(xstate, XPT_HEADER, &data, &len);
-    fwrite(data, len, 1, state->file);
+    fwrite(data, len, 1, pFile);
     XPT_GetXDRData(xstate, XPT_DATA, &data, &len);
-    fwrite(data, len, 1, state->file);
+    fwrite(data, len, 1, pFile);
 
  destroy:
     XPT_DestroyXDRState(xstate);
  destroy_header:
-    /* XXX XPT_DestroyHeader(HEADER(state)) */
+    /* XXX XPT_DestroyHeader(HEADER(pThis)) */
 
-    XPT_FreeHeader(ARENA(state), HEADER(state));
-    XPT_DestroyArena(ARENA(state));
-
-    /* XXX should destroy priv_data here */
-
-    return TRUE;
+    XPT_FreeHeader(ARENA(pThis), HEADER(pThis));
+    XPT_DestroyArena(ARENA(pThis));
+    return VINF_SUCCESS;
 }
 
+#if 0
 static XPTInterfaceDirectoryEntry *
 FindInterfaceByName(XPTInterfaceDirectoryEntry *ides, uint16 num_interfaces,
                     const char *name)
@@ -1193,31 +1210,19 @@ typelib_enum(TreeState *state)
                    IDL_IDENT(IDL_TYPE_ENUM(state->tree).ident).str));
     return TRUE;
 }
+#endif
 
-backend *
-xpidl_typelib_dispatch(void)
+DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse)
 {
-    static backend result;
-    static nodeHandler table[IDLN_LAST];
-    static gboolean initialized = FALSE;
-
-    result.emit_prolog = typelib_prolog;
-    result.emit_epilog = typelib_epilog;
-
-    if (!initialized) {
-        /* Initialize non-NULL elements */
-        table[IDLN_LIST] = typelib_list;
-        table[IDLN_ATTR_DCL] = typelib_attr_dcl;
-        table[IDLN_OP_DCL] = typelib_op_dcl;
-        table[IDLN_INTERFACE] = typelib_interface;
-        table[IDLN_CONST_DCL] = typelib_const_dcl;
-        table[IDLN_TYPE_ENUM] = typelib_enum;
-        table[IDLN_NATIVE] = check_native;
-        initialized = TRUE;
+    XPIDLTYPELIBSTATE This; RT_ZERO(This);
+    int rc = typelib_prolog(&This, pInput, pParse);
+    if (RT_SUCCESS(rc))
+    {
+        /** @todo */
+        rc = typelib_epilog(&This, pFile, pInput);
     }
 
-    result.dispatch_table = table;
-    return &result;
+    return rc;
 }
 
 

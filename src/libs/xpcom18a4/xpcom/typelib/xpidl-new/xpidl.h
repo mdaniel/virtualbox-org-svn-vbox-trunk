@@ -183,7 +183,7 @@ typedef struct XPIDLNODE
     PCXPIDLNODE         pParent;
     /** The input stream this node was generated from (via #include's). */
     PCXPIDLINPUT        pInput;
-    /** The type this node references (for identifiers only). */
+    /** The type this node references (for identifiers and the inheritance for interfaces only). */
     PCXPIDLNODE         pNdTypeRef;
     /** The node type. */
     XPIDLNDTYPE         enmType;

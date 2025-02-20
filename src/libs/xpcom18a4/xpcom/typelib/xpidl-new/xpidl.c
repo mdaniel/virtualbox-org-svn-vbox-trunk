@@ -44,7 +44,7 @@
 
 static ModeData modes[] = {
     {"header",  "Generate C++ header",         "h",    xpidl_header_dispatch},
-/*    {"typelib", "Generate XPConnect typelib",  "xpt",  xpidl_typelib_dispatch},*/
+    {"typelib", "Generate XPConnect typelib",  "xpt",  xpidl_typelib_dispatch},
     {0,         0,                             0,      0}
 };
 

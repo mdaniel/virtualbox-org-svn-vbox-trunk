@@ -78,6 +78,8 @@ typedef struct XPIDLINPUT
 {
     /** Node for the list of inputs. */
     RTLISTNODE          NdInput;
+    /** Node for the list of include. */
+    RTLISTNODE          NdInclude;
     /** The list of includes this input generated. */
     RTLISTANCHOR        LstIncludes;
     /** The basename for this input. */
@@ -108,7 +110,8 @@ typedef enum XPIDLNDTYPE
     kXpidlNdType_Interface_Def,
     kXpidlNdType_Attribute,
     kXpidlNdType_Method,
-    kXpidlNdType_Parameter
+    kXpidlNdType_Parameter,
+    kXpidlNdType_Const
 } XPIDLNDTYPE;
 
 
@@ -118,6 +121,7 @@ typedef enum XPIDLNDTYPE
 typedef enum XPIDLTYPE
 {
     kXpidlType_Invalid = 0,
+    kXpidlType_Void,
     kXpidlType_Boolean,
     kXpidlType_Octet,
     kXpidlType_Char,
@@ -226,6 +230,12 @@ typedef struct XPIDLNODE
             const char  *pszName;
             XPIDLDIRECTION enmDir;
         } Param;
+        struct
+        {
+            PCXPIDLNODE pNdTypeSpec;
+            const char  *pszName;
+            uint64_t    u64Const; /* Only allowing numbers for now. */
+        } Const;
     } u;
     /** Number of entries in the attribute array. */
     uint32_t            cAttrs;
@@ -268,44 +278,30 @@ extern bool explicit_output_filename;
 extern PRUint8  major_version;
 extern PRUint8  minor_version;
 
-typedef struct TreeState TreeState;
 
-/*
- * A function to handle an IDL_tree type.
+/**
+ * Dispatch callback.
+ *
+ * @returns IPRT status code.
+ * @param   pFile       The file to output to.
+ * @param   pInput      The original input file to generate for.
+ * @param   pParse      The parsing state.
  */
-typedef bool (*nodeHandler)(TreeState *);
+typedef DECLCALLBACKTYPE(int, FNXPIDLDISPATCH,(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse));
+/** Pointer to a dispatch callback. */
+typedef FNXPIDLDISPATCH *PFNXPIDLDISPATCH;
 
-/*
- * Struct containing functions to define the behavior of a given output mode.
- */
-typedef struct backend {
-    nodeHandler *dispatch_table; /* nodeHandlers table, indexed by node type. */
-    nodeHandler emit_prolog;     /* called at beginning of output generation. */
-    nodeHandler emit_epilog;     /* called at end. */
-} backend;
 
-/* Function that produces a struct of output-generation functions */
-typedef backend *(*backendFactory)();
-
-extern backend *xpidl_header_dispatch(void);
-extern backend *xpidl_typelib_dispatch(void);
+DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse);
+DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse);
 
 typedef struct ModeData {
     char               *mode;
     char               *modeInfo;
     char               *suffix;
-    backendFactory     factory;
+    PFNXPIDLDISPATCH    dispatch;
 } ModeData;
 
-
-struct TreeState {
-    FILE             *file;
-    /* Maybe supplied by -o. Not related to (g_)basename from string.h or glib */
-    char             *basename;
-    RTLISTANCHOR     *base_includes;
-    nodeHandler      *dispatch;
-    void             *priv;     /* mode-private data */
-};
 
 /*
  * Process an IDL file, generating InterfaceInfo, documentation and headers as
@@ -330,20 +326,6 @@ xpidl_strdup(const char *s);
  */
 char *
 xpidl_basename(const char * path);
-
-/*
- * Process an XPIDL node and its kids, if any.
- */
-bool
-xpidl_process_node(TreeState *state);
-
-/*
- * Write a newline folllowed by an indented, one-line comment containing IDL
- * source decompiled from state->tree.
- */
-void
-xpidl_write_comment(TreeState *state, int indent);
-
 
 
 /*
@@ -370,31 +352,48 @@ bool
 xpidl_parse_iid(nsID *id, const char *str);
 
 
-#if 0
+DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr);
+
+
 /* Try to common a little node-handling stuff. */
 
-/* is this node from an aggregate type (interface)? */
-#define UP_IS_AGGREGATE(node)                                                 \
-    (IDL_NODE_UP(node) &&                                                     \
-     (IDL_NODE_TYPE(IDL_NODE_UP(node)) == IDLN_INTERFACE ||                   \
-      IDL_NODE_TYPE(IDL_NODE_UP(node)) == IDLN_FORWARD_DCL))
 
-#define UP_IS_NATIVE(node)                                                    \
-    (IDL_NODE_UP(node) &&                                                     \
-     IDL_NODE_TYPE(IDL_NODE_UP(node)) == IDLN_NATIVE)
+DECLINLINE(bool) xpidlNdIsStringType(PCXPIDLNODE pNd)
+{
+    return    pNd->enmType == kXpidlNdType_BaseType
+           && (   pNd->u.enmBaseType == kXpidlType_String
+               || pNd->u.enmBaseType == kXpidlType_Wide_String);
+}
+
+
+/* is this node from an aggregate type (interface)? */
+#define UP_IS_AGGREGATE(a_pNd) \
+    (   a_pNd->pParent \
+     && (   a_pNd->pParent->enmType == kXpidlNdType_Interface_Forward_Decl \
+         || a_pNd->pParent->enmType == kXpidlNdType_Interface_Def))
+
+#define UP_IS_NATIVE(a_pNd) \
+    (   a_pNd->pParent \
+     && a_pNd->pParent->enmType == kXpidlNdType_Native)
 
 /* is this type output in the form "<foo> *"? */
-#define STARRED_TYPE(node) (IDL_NODE_TYPE(node) == IDLN_TYPE_STRING ||        \
-                            IDL_NODE_TYPE(node) == IDLN_TYPE_WIDE_STRING ||   \
-                            (IDL_NODE_TYPE(node) == IDLN_IDENT &&             \
-                             UP_IS_AGGREGATE(node)))
+#define STARRED_TYPE(a_pNd) (xpidlNdIsStringType(a_pNd) ||   \
+                            (a_pNd->enmType == kXpidlNdType_Identifier &&     \
+                             UP_IS_AGGREGATE(a_pNd)))
 
-#define DIPPER_TYPE(node)                                                     \
-    (NULL != IDL_tree_property_get(node, "domstring")  ||                     \
-     NULL != IDL_tree_property_get(node, "utf8string") ||                     \
-     NULL != IDL_tree_property_get(node, "cstring")    ||                     \
-     NULL != IDL_tree_property_get(node, "astring"))
+#define DIPPER_TYPE(a_pNd)                                                     \
+    (xpidlNodeAttrFind(a_pNd, "domstring")  ||                     \
+     xpidlNodeAttrFind(a_pNd, "utf8string") ||                     \
+     xpidlNodeAttrFind(a_pNd, "cstring")    ||                     \
+     xpidlNodeAttrFind(a_pNd, "astring"))
 
+
+/*
+ * Verifies the interface declaration
+ */
+DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd);
+
+#if 0
 /*
  * Find the underlying type of an identifier typedef.  Returns NULL
  * (and doesn't complain) on failure.
@@ -420,12 +419,6 @@ verify_attribute_declaration(IDL_tree method_tree);
  */
 gboolean
 verify_method_declaration(IDL_tree method_tree);
-
-/*
- * Verifies the interface declaration
- */
-gboolean
-verify_interface_declaration(IDL_tree method_tree);
 
 /*
  * Verify that a native declaration has an associated C++ expression, i.e. that

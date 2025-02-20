@@ -771,50 +771,21 @@ check_native(TreeState *state)
                    native_name, native_name);
     return FALSE;
 }
-
-/*
- * Print a GSList as char strings to a file.
- */
-void
-printlist(FILE *outfile, GSList *slist)
-{
-    guint i;
-    guint len = g_slist_length(slist);
-
-    for(i = 0; i < len; i++) {
-        fprintf(outfile, 
-                "%s\n", (char *)g_slist_nth_data(slist, i));
-    }
-}
-
-void
-xpidl_list_foreach(IDL_tree p, IDL_tree_func foreach, gpointer user_data)
-{
-    IDL_tree_func_data tfd;
-
-    while (p) {
-        struct _IDL_LIST *list = &IDL_LIST(p);
-        tfd.tree = list->data;
-        if (!foreach(&tfd, user_data))
-            return;
-        p = list->next;
-    }
-}
+#endif
 
 /*
  * Verify that the interface declaration is correct
  */
-gboolean
-verify_interface_declaration(IDL_tree interface_tree)
+DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd)
 {
-    IDL_tree iter;
     /* 
      * If we have the scriptable attribute then make sure all of our direct
      * parents have it as well.
      * NOTE: We don't recurse since all interfaces will fall through here
      */
-    if (IDL_tree_property_get(IDL_INTERFACE(interface_tree).ident, 
-        "scriptable")) {
+    if (xpidlNodeAttrFind(pNd,  "scriptable"))
+    {
+#if 0
         for (iter = IDL_INTERFACE(interface_tree).inheritance_spec; iter; 
             iter = IDL_LIST(iter).next) {
             if (IDL_tree_property_get(
@@ -825,28 +796,19 @@ verify_interface_declaration(IDL_tree interface_tree)
                     IDL_IDENT(IDL_INTERFACE(iter).ident).str));
             }
         }
+#endif
     }
-    return TRUE;
+    return true;
 }
 
-/*
- * Return a pointer to the start of the base filename of path
- */
-char *
-xpidl_basename(const char * path)
+
+DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr)
 {
-    char * result = g_path_get_basename(path);
-    /* 
-     *If this is windows then we'll handle either / or \ as a separator
-     * g_basename only handles \ for windows
-     */
-#if defined(XP_WIN32)
-# error adapt regarding g_basename() vs. g_path_get_basename()!
-    const char * slash = strrchr(path, '/');
-    /* If we found a slash and its after the current default OS separator */
-    if (slash != NULL && (slash > result))
-        result = slash + 1;
-#endif
-    return result;
+    for (uint32_t i = 0; i < pNd->cAttrs; i++)
+    {
+        if (!strcmp(pNd->aAttrs[i].pszName, pszAttr))
+            return &pNd->aAttrs[i];
+    }
+
+    return NULL;
 }
-#endif

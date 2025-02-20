@@ -40,6 +40,7 @@ typedef enum XPIDLKEYWORD
     kXpidlKeyword_Invalid = 0,
     kXpidlKeyword_Include,
     kXpidlKeyword_Typedef,
+    kXpidlKeyword_Void,
     kXpidlKeyword_Char,
     kXpidlKeyword_Wide_Char,
     kXpidlKeyword_Unsigned,
@@ -58,6 +59,7 @@ typedef enum XPIDLKEYWORD
     kXpidlKeyword_In,
     kXpidlKeyword_Out,
     kXpidlKeyword_InOut,
+    kXpidlKeyword_Const,
     kXpidlKeyword_32Bit_Hack = 0x7fffffff
 } XPIDLKEYWORD;
 typedef const XPIDLKEYWORD *PCXPIDLKEYWORD;
@@ -93,6 +95,7 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
 {
     { RT_STR_TUPLE("#include"),                 RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Include     },
 
+    { RT_STR_TUPLE("void"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Void        },
     { RT_STR_TUPLE("char"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Char        },
     { RT_STR_TUPLE("long"),                     RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Long        },
     { RT_STR_TUPLE("wchar"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Wide_Char   },
@@ -113,8 +116,7 @@ static const RTSCRIPTLEXTOKMATCH s_aMatches[] =
     { RT_STR_TUPLE("in"),                       RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_In          },
     { RT_STR_TUPLE("inout"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_InOut       },
     { RT_STR_TUPLE("out"),                      RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Out         },
-
-    { RT_STR_TUPLE("const"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  0 },
+    { RT_STR_TUPLE("const"),                    RTSCRIPTLEXTOKTYPE_KEYWORD,    true,  kXpidlKeyword_Const       },
 
     { RT_STR_TUPLE(","),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, ',' },
     { RT_STR_TUPLE("["),                        RTSCRIPTLEXTOKTYPE_PUNCTUATOR, false, '[' },
@@ -240,6 +242,30 @@ static int xpidlParseError(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PCRTSCRIPTLEXT
     rc = RTErrInfoSetV(&pThis->ErrInfo.Core, rc, pszFmt, Args);
     va_end(Args);
     return rc;
+}
+
+
+static int xpidlParseSkipComments(PXPIDLPARSE pThis, PXPIDLINPUT pInput)
+{
+    for (;;)
+    {
+        PCRTSCRIPTLEXTOKEN pTok;
+        int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+        if (RT_FAILURE(rc))
+            return xpidlParseError(pThis, pInput, pTok, rc, "Lexer: Failed to query string literal token with %Rrc", rc);
+
+        if (   pTok->enmType != RTSCRIPTLEXTOKTYPE_COMMENT_SINGLE_LINE
+            && pTok->enmType != RTSCRIPTLEXTOKTYPE_COMMENT_MULTI_LINE)
+            return VINF_SUCCESS;
+
+        /* Make sure we don't miss any %{C++ %} blocks. */
+        if (!strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++")))
+            return xpidlParseError(pThis, pInput, pTok, VERR_INVALID_PARAMETER, "Parser: Encountered unexpected raw code block comment");
+
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+    }
+
+    return VINF_SUCCESS;
 }
 
 
@@ -371,6 +397,27 @@ static int xpidlLexerConsumeIfPunctuator(PXPIDLPARSE pThis, PXPIDLINPUT pInput,
 }
 
 
+static int xpidlLexerConsumeIfNatural(PXPIDLPARSE pThis, PXPIDLINPUT pInput, uint64_t *pu64, bool *pfConsumed)
+{
+    PCRTSCRIPTLEXTOKEN pTok;
+    int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+    if (RT_FAILURE(rc))
+        return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query punctuator token with %Rrc", rc);
+
+    if (   pTok->enmType == RTSCRIPTLEXTOKTYPE_NUMBER
+        && pTok->Type.Number.enmType == RTSCRIPTLEXTOKNUMTYPE_NATURAL)
+    {
+        *pfConsumed = true;
+        *pu64 = pTok->Type.Number.Type.u64;
+        RTScriptLexConsumeToken(pInput->hIdlLex);
+        return VINF_SUCCESS;
+    }
+
+    *pfConsumed = false;
+    return VINF_SUCCESS;
+}
+
+/* Some parser helper macros. */
 #define XPIDL_PARSE_STRING_LIT(a_pszStrLit) \
     const char *a_pszStrLit = NULL; \
     do { \
@@ -382,7 +429,17 @@ static int xpidlLexerConsumeIfPunctuator(PXPIDLPARSE pThis, PXPIDLINPUT pInput,
     } while(0)
 
 
-/* Some parser helper macros. */
+#define XPIDL_PARSE_KEYWORD(a_enmKeyword, a_pszKeyword) \
+    do { \
+        bool fConsumed2 = false; \
+        int rc2 = xpidlLexerConsumeIfKeyword(pThis, pInput, a_enmKeyword, &fConsumed2); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!fConsumed2) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected keyword '%s'", a_pszKeyword); \
+    } while(0)
+
+
 #define XPIDL_PARSE_OPTIONAL_KEYWORD(a_fConsumed, a_enmKeyword) \
     bool a_fConsumed = false; \
     do { \
@@ -465,6 +522,18 @@ static int xpidlLexerConsumeIfPunctuator(PXPIDLPARSE pThis, PXPIDLINPUT pInput,
     } while(0)
 
 
+#define XPIDL_PARSE_NATURAL(a_u64) \
+    uint64_t a_u64 = 0; \
+    do { \
+        bool fConsumed2 = false; \
+        int rc2 = xpidlLexerConsumeIfNatural(pThis, pInput, &a_u64, &fConsumed2); \
+        if (RT_FAILURE(rc2)) \
+            return rc2; \
+        if (!fConsumed2) \
+            return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Parser: Expected a natural number"); \
+    } while(0)
+
+
 static PXPIDLINPUT xpidlInputCreate(const char *pszFilename, PRTLISTANCHOR pLstIncludePaths)
 {
     RTSCRIPTLEX hIdlLex = NULL;
@@ -482,6 +551,7 @@ static PXPIDLINPUT xpidlInputCreate(const char *pszFilename, PRTLISTANCHOR pLstI
     RTListInit(&pInput->LstIncludes);
     pInput->hIdlLex     = hIdlLex;
     pInput->pszFilename = xpidl_strdup(pszFilename);
+    pInput->pszBasename = RTPathFilename(pInput->pszFilename);
     return pInput;
 }
 
@@ -495,6 +565,7 @@ static PXPIDLNODE xpidlNodeCreateWithAttrs(PXPIDLPARSE pThis, PXPIDLNODE pParent
         pNode->pParent = pParent;
         pNode->pInput  = pInput;
         pNode->enmType = enmType;
+        pNode->cAttrs  = cAttrs;
         switch (enmType)
         {
             case kXpidlNdType_Interface_Def:
@@ -554,6 +625,7 @@ static int xpidlParseAttributes(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLATT
         if (!fConsumed)
             break;
     }
+    *pcAttrs = cAttrs;
     g_fParsingAttributes = false;
 
     XPIDL_PARSE_PUNCTUATOR(']');
@@ -566,6 +638,7 @@ static int xpidlParseTypeSpec(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE 
     /* Need a keyword or an identifier. */
     static const XPIDLKEYWORD g_aenmTypeKeywordsStart[] =
     {
+        kXpidlKeyword_Void,
         kXpidlKeyword_Char,
         kXpidlKeyword_Wide_Char,
         kXpidlKeyword_Unsigned,
@@ -589,6 +662,9 @@ static int xpidlParseTypeSpec(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE 
         /* Unsigned, and long has more to follow. */
         switch (enmType)
         {
+            case kXpidlKeyword_Void:
+                enmBaseType = kXpidlType_Void;
+                break;
             case kXpidlKeyword_Char:
                 enmBaseType = kXpidlType_Char;
                 break;
@@ -693,6 +769,59 @@ static int xpidlParseTypeSpec(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE 
 }
 
 
+static int xpidlParseConst(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdIf)
+{
+    int rc;
+    PXPIDLNODE pNdConst = xpidlNodeCreate(pThis, pNdIf, pInput, kXpidlNdType_Const);
+    if (pNdConst)
+    {
+        RTListAppend(&pNdIf->u.If.LstBody, &pNdConst->NdLst);
+
+        PXPIDLNODE pNdTypeSpec = NULL;
+        int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+        if (RT_FAILURE(rc))
+            return rc;
+        pNdConst->u.Const.pNdTypeSpec = pNdTypeSpec;
+
+        XPIDL_PARSE_IDENTIFIER(pszName); /* The parameter name is always required. */
+        pNdConst->u.Const.pszName = pszName;
+
+        XPIDL_PARSE_PUNCTUATOR('=');
+        XPIDL_PARSE_NATURAL(u64);
+        pNdConst->u.Const.u64Const = u64;
+    }
+    else
+        rc = VERR_NO_MEMORY;
+
+    return rc;
+}
+
+
+static int xpidlParseAttribute(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdIf, bool fReadonly)
+{
+    int rc;
+    PXPIDLNODE pNdConst = xpidlNodeCreate(pThis, pNdIf, pInput, kXpidlNdType_Attribute);
+    if (pNdConst)
+    {
+        RTListAppend(&pNdIf->u.If.LstBody, &pNdConst->NdLst);
+
+        PXPIDLNODE pNdTypeSpec = NULL;
+        int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+        if (RT_FAILURE(rc))
+            return rc;
+        pNdConst->u.Attribute.pNdTypeSpec = pNdTypeSpec;
+
+        XPIDL_PARSE_IDENTIFIER(pszName); /* The parameter name is always required. */
+        pNdConst->u.Attribute.pszName = pszName;
+        pNdConst->u.Attribute.fReadonly = fReadonly;
+    }
+    else
+        rc = VERR_NO_MEMORY;
+
+    return rc;
+}
+
+
 static int xpidlParseMethodParameters(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdMethod)
 {
     for (;;)
@@ -767,6 +896,10 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
 {
     for (;;)
     {
+        int rc = xpidlParseSkipComments(pThis, pInput);
+        if (RT_FAILURE(rc))
+            return rc;
+
         /* A closing '}' means we reached the end of the interface body. */
         bool fConsumed = false;
         XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '}');
@@ -777,24 +910,36 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
          * Select one of the following possibilities:
          *     readonly attribute <type spec> <name>;
          *     attribute <type spec> <name>;
+         *     const <type spec> <name> = <value>;
          *     <type spec> <name> (...);
          */
-        static const XPIDLKEYWORD g_aenmAttributesKeywords[] =
+        static const XPIDLKEYWORD g_aenmBodyKeywords[] =
         {
             kXpidlKeyword_Readonly,
             kXpidlKeyword_Attribute,
+            kXpidlKeyword_Const,
             kXpidlKeyword_Invalid
         };
 
-        XPIDL_PARSE_OPTIONAL_KEYWORD_LIST(enmAttr, g_aenmAttributesKeywords, kXpidlKeyword_Invalid);
-        if (enmAttr != kXpidlKeyword_Invalid)
+        XPIDL_PARSE_OPTIONAL_KEYWORD_LIST(enmStart, g_aenmBodyKeywords, kXpidlKeyword_Invalid);
+        if (enmStart != kXpidlKeyword_Invalid)
         {
-            AssertFailed();
+            if (enmStart == kXpidlKeyword_Const)
+                rc = xpidlParseConst(pThis, pInput, pNdIf);
+            else if (enmStart == kXpidlKeyword_Readonly)
+            {
+                XPIDL_PARSE_KEYWORD(kXpidlKeyword_Attribute, "attribute");
+                rc = xpidlParseAttribute(pThis, pInput, pNdIf, true /*fReadonly*/);
+            }
+            else
+            {
+                Assert(enmStart == kXpidlKeyword_Attribute);
+                rc = xpidlParseAttribute(pThis, pInput, pNdIf, false /*fReadonly*/);
+            }
         }
         else
         {
             /* We need to parse a type spec. */
-            int rc = VINF_SUCCESS;
             PXPIDLNODE pNdRetType = NULL;
             XPIDLATTR aAttrs[32];
             uint32_t cAttrs = 0;
@@ -835,6 +980,8 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
             else
                 return VERR_NO_MEMORY;
         }
+        if (RT_FAILURE(rc))
+            return rc;
 
         XPIDL_PARSE_PUNCTUATOR(';');
     }
@@ -859,15 +1006,17 @@ static int xpidlParseInterface(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE
     if (!fConsumed)
     {
         const char *pszIfInherit = NULL;
-
         XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, ':');
         if (fConsumed)
             XPIDL_PARSE_IDENTIFIER_EXT(pszIfInherit);
         XPIDL_PARSE_PUNCTUATOR('{');
         /* Now for the fun part, parsing the body of the interface. */
-        PXPIDLNODE pNode = xpidlNodeCreate(pThis, pParent, pInput, kXpidlNdType_Interface_Def);
+        PXPIDLNODE pNode = xpidlNodeCreateWithAttrs(pThis, pParent, pInput, kXpidlNdType_Interface_Def,
+                                                    &pThis->aAttrs[0], pThis->cAttrs);
         if (pNode)
         {
+            pThis->cAttrs = 0;
+
             pNode->u.If.pszIfName    = pszName;
             pNode->u.If.pszIfInherit = pszIfInherit;
             RTListAppend(&pThis->LstNodes, &pNode->NdLst);
@@ -905,13 +1054,14 @@ static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE p
         case kXpidlKeyword_Include:
         {
             XPIDL_PARSE_STRING_LIT(pszFilename);
-            PXPIDLINPUT pInput = xpidlInputCreate(pszFilename, pLstIncludePaths);
-            if (!pInput)
+            PXPIDLINPUT pInputNew = xpidlInputCreate(pszFilename, pLstIncludePaths);
+            if (!pInputNew)
                 return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Failed opening include file '%s'",
                                        pszFilename);
 
-            RTListAppend(&pThis->LstInputs, &pInput->NdInput);
-            rc = xpidlParseIdl(pThis, pInput, pLstIncludePaths);
+            RTListAppend(&pInput->LstIncludes, &pInputNew->NdInclude);
+            RTListAppend(&pThis->LstInputs, &pInputNew->NdInput);
+            rc = xpidlParseIdl(pThis, pInputNew, pLstIncludePaths);
             break;
         }
         case kXpidlKeyword_Typedef:
@@ -1069,7 +1219,62 @@ int xpidl_process_idl(char *filename, PRTLISTANCHOR pLstIncludePaths,
     int rc = xpidlParseIdl(&ParseState, pInput, pLstIncludePaths);
     if (RT_SUCCESS(rc))
     {
-        /** @todo Output. */
+        char *tmp, *outname, *real_outname = NULL;
+
+        pInput->pszBasename = xpidl_strdup(filename);
+
+        /* if basename has an .extension, truncate it. */
+        tmp = strrchr(pInput->pszBasename, '.');
+        if (tmp)
+            *tmp = '\0';
+
+        if (!file_basename)
+            outname = xpidl_strdup(pInput->pszBasename);
+        else
+            outname = xpidl_strdup(file_basename);
+
+        FILE *pFile = NULL;
+        if (strcmp(outname, "-"))
+        {
+            const char *fopen_mode;
+            char *out_basename;
+
+            /* explicit_output_filename can't be true without a filename */
+            if (explicit_output_filename) {
+                real_outname = xpidl_strdup(outname);
+            } else {
+
+                if (!file_basename) {
+                    out_basename = RTPathFilename(outname);
+                } else {
+                    out_basename = outname;
+                }
+
+                rc = RTStrAPrintf(&real_outname, "%s.%s", out_basename, mode->suffix);
+                if (RT_FAILURE(rc))
+                    return rc;
+
+                if (out_basename != outname)
+                    free(out_basename);
+            }
+
+            /* Use binary write for typelib mode */
+            fopen_mode = (strcmp(mode->mode, "typelib")) ? "w" : "wb";
+            pFile = fopen(real_outname, fopen_mode);
+            if (!pFile) {
+                perror("error opening output file");
+                free(outname);
+                return VERR_INVALID_PARAMETER;
+            }
+        }
+        else
+            pFile = stdout;
+
+        rc = mode->dispatch(pFile, pInput, &ParseState);
+
+        if (pFile != stdout)
+            fclose(pFile);
+        free(outname);
     }
     else
         RTMsgError(ParseState.ErrInfo.Core.pszMsg);

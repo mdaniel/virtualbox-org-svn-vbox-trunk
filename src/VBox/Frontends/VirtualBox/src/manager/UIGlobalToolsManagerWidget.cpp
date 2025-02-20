@@ -265,7 +265,15 @@ void UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachine
 
 void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
 {
-    switchToolTo(enmType);
+    /* Determine tool class of passed tool type: */
+    const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
+
+    /* For Global tool class => switch tool-pane accordingly: */
+    if (enmClass == UIToolClass_Global)
+        switchToolTo(enmType);
+    /* For Machine tool class => switch tool-pane accordingly: */
+    else if (enmClass == UIToolClass_Machine)
+        machineToolManager()->switchToolTo(enmType);
 }
 
 void UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool()
@@ -347,8 +355,11 @@ void UIGlobalToolsManagerWidget::prepareConnections()
 
 void UIGlobalToolsManagerWidget::loadSettings()
 {
-    /* Open tool last chosen in tools-menu: */
-    switchToolTo(toolMenu()->toolsType(UIToolClass_Global));
+    /* Acquire & select tools currently chosen in the menu: */
+    const UIToolType enmTypeGlobal = toolMenu()->toolsType(UIToolClass_Global);
+    const UIToolType enmTypeMachine = toolMenu()->toolsType(UIToolClass_Machine);
+    sltHandleToolsMenuIndexChange(enmTypeGlobal);
+    sltHandleToolsMenuIndexChange(enmTypeMachine);
 
     /* Update tools restrictions: */
     emit sigToolMenuUpdate();

@@ -1284,7 +1284,7 @@ HRESULT MachineMoveVM::getFilesList(const Utf8Str &strRootFolder, fileList_t &fi
     if (RT_SUCCESS(vrc))
     {
         /** @todo r=bird: RTDIRENTRY is big and this function is doing
-         * unrestrained recursion of arbritrary depth.  Four things:
+         * unrestrained recursion of arbritrary depth.  Three things:
          *      - Add a depth counter parameter and refuse to go deeper than
          *        a certain reasonable limit.
          *      - Split this method into a main and a worker, placing
@@ -1294,16 +1294,24 @@ HRESULT MachineMoveVM::getFilesList(const Utf8Str &strRootFolder, fileList_t &fi
          *        VERR_NO_MORE_FILES.  For instance someone could create an
          *        entry with a name longer than RTDIRENTRY have space to
          *        store (windows host with UTF-16 encoding shorter than 255
-         *        chars, but UTF-8 encoding longer than 260).
-         *      - enmType can be RTDIRENTRYTYPE_UNKNOWN if the file system or
-         *        the host doesn't return the information.  See
-         *        RTDIRENTRY::enmType.  Use RTDirQueryUnknownType() to get the
-         *        actual type. */
+         *        chars, but UTF-8 encoding longer than 260). */
         RTDIRENTRY DirEntry;
         while (RT_SUCCESS(RTDirRead(hDir, &DirEntry, NULL)))
         {
             if (RTDirEntryIsStdDotLink(&DirEntry))
                 continue;
+
+            /* Make sure we've got the entry type. */
+            if (DirEntry.enmType == RTDIRENTRYTYPE_UNKNOWN)
+            {
+                /* Build the complete path which is needed by RTDirQueryUnknownType(). */
+                char szPath[RTPATH_MAX];
+                vrc = RTPathJoin(szPath, sizeof(szPath), strRootFolder.c_str(), DirEntry.szName);
+                if (RT_SUCCESS(vrc))
+                    vrc = RTDirQueryUnknownType(szPath, false /*fFollowSymlinks*/, &DirEntry.enmType);
+                if (RT_FAILURE(vrc))
+                    continue;
+            }
 
             if (DirEntry.enmType == RTDIRENTRYTYPE_FILE)
             {

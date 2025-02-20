@@ -451,10 +451,6 @@ void UIToolsItem::prepare()
     m_iHighlightLightnessFinal = 100;
 #endif /* !VBOX_WS_MAC && !VBOX_WS_WIN */
 
-    /* Prepare fonts: */
-    m_nameFont = font();
-    m_nameFont.setWeight(QFont::Bold);
-
     /* Configure item options: */
     setOwnedByLayout(false);
     setAcceptHoverEvents(true);
@@ -567,9 +563,24 @@ QVariant UIToolsItem::data(int iKey) const
     switch (iKey)
     {
         /* Layout hints: */
-        case ToolsItemData_Margin: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
+        case ToolsItemData_Margin:  return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 3 * 2;
         case ToolsItemData_Spacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
         case ToolsItemData_Padding: return 4;
+
+        /* Font hints: */
+        case Qt::FontRole:
+        {
+            /* Init font: */
+            QFont fnt = font();
+            fnt.setWeight(QFont::Bold);
+
+            /* Make Machine tool font smaller for widget mode: */
+            if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+                fnt.setPointSize(fnt.pointSize() - 1);
+
+            /* Return font: */
+            return fnt;
+        }
 
         /* Default: */
         default: break;
@@ -601,11 +612,8 @@ void UIToolsItem::updatePixmap()
 
 void UIToolsItem::updateNameSize()
 {
-    /* Prepare variables: */
-    QPaintDevice *pPaintDevice = model()->paintDevice();
-
     /* Calculate new name size: */
-    const QFontMetrics fm(m_nameFont, pPaintDevice);
+    const QFontMetrics fm(data(Qt::FontRole).value<QFont>(), model()->paintDevice());
     const QSize nameSize = QSize(fm.horizontalAdvance(m_strName), fm.height());
 
     /* Update linked values: */
@@ -919,7 +927,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Point to paint in: */
                       QPoint(iNameX, iNameY),
                       /* Font to paint text: */
-                      m_nameFont,
+                      data(Qt::FontRole).value<QFont>(),
                       /* Paint device: */
                       model()->paintDevice(),
                       /* Text to paint: */

@@ -270,8 +270,6 @@ private:
 
         /** Holds the item pixmap. */
         QPixmap  m_pixmap;
-        /** Holds the item name font. */
-        QFont    m_nameFont;
 
         /** Holds the hiding reason. */
         HidingReason  m_enmReason;

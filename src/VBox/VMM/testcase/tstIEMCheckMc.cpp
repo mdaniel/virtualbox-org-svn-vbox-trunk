@@ -1112,14 +1112,14 @@ typedef VBOXSTRICTRC (* PFNIEMOPRM)(PVMCPU pVCpu, uint8_t bRm);
 #define IEM_MC_CALL_AVX_AIMPL_4(a_pfnAImpl, a0, a1, a2, a3) \
     do { (void)fAvxHost; (void)fAvxWrite; CHK_CALL_ARG(a0, 0); CHK_CALL_ARG(a1, 1); CHK_CALL_ARG(a2, 2); CHK_CALL_ARG(a3, 3); (void)fMcBegin; } while (0)
 
-#define IEM_MC_IF_EFL_BIT_SET(a_fBit)                                   (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_BIT_NOT_SET(a_fBit)                               (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_ANY_BITS_SET(a_fBits)                             (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_NO_BITS_SET(a_fBits)                              (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_BITS_NE(a_fBit1, a_fBit2)                         (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_BITS_EQ(a_fBit1, a_fBit2)                         (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2)      (void)fMcBegin; if (g_fRandom) {
-#define IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BIT_SET(a_fBit)                                 (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET(a_fBit)                             (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_ANY_BITS_SET(a_fBits)                           (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_NO_BITS_SET(a_fBits)                            (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BITS_NE(a_fBit1, a_fBit2)                       (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BITS_EQ(a_fBit1, a_fBit2)                       (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2)    (void)fMcBegin; if (g_fRandom) {
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) (void)fMcBegin; if (g_fRandom) {
 #define IEM_MC_IF_CX_IS_NZ()                                            (void)fMcBegin; if (g_fRandom) {
 #define IEM_MC_IF_ECX_IS_NZ()                                           (void)fMcBegin; if (g_fRandom) {
 #define IEM_MC_IF_RCX_IS_NZ()                                           (void)fMcBegin; if (g_fRandom) {

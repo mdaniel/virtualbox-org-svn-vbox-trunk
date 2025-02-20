@@ -3364,11 +3364,11 @@ RT_CONSTEXPR unsigned iemNativeEflagsToSingleBitNo(void)
 }
 
 
-#define IEM_MC_IF_EFL_ANY_BITS_SET(a_fBits) \
+#define IEM_MC_IF_FLAGS_ANY_BITS_SET(a_fBits) \
         off = iemNativeEmitIfEflagAnysBitsSet(pReNative, off, (a_fBits), iemNativeEflagsToLivenessMask<a_fBits>()); \
         do {
 
-/** Emits code for IEM_MC_IF_EFL_ANY_BITS_SET. */
+/** Emits code for IEM_MC_IF_FLAGS_ANY_BITS_SET. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
@@ -3392,11 +3392,11 @@ iemNativeEmitIfEflagAnysBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uin
 }
 
 
-#define IEM_MC_IF_EFL_NO_BITS_SET(a_fBits) \
+#define IEM_MC_IF_FLAGS_NO_BITS_SET(a_fBits) \
         off = iemNativeEmitIfEflagNoBitsSet(pReNative, off, (a_fBits), iemNativeEflagsToLivenessMask<a_fBits>()); \
         do {
 
-/** Emits code for IEM_MC_IF_EFL_NO_BITS_SET. */
+/** Emits code for IEM_MC_IF_FLAGS_NO_BITS_SET. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint32_t fBitsInEfl, uint64_t fLivenessEflBits)
 {
@@ -3420,12 +3420,12 @@ iemNativeEmitIfEflagNoBitsSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint3
 }
 
 
-#define IEM_MC_IF_EFL_BIT_SET(a_fBit) \
+#define IEM_MC_IF_FLAGS_BIT_SET(a_fBit) \
         off = iemNativeEmitIfEflagsBitSet(pReNative, off, iemNativeEflagsToSingleBitNo<a_fBit>(), \
                                           iemNativeEflagsToLivenessMask<a_fBit>()); \
         do {
 
-/** Emits code for IEM_MC_IF_EFL_BIT_SET. */
+/** Emits code for IEM_MC_IF_FLAGS_BIT_SET. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
@@ -3449,12 +3449,12 @@ iemNativeEmitIfEflagsBitSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigne
 }
 
 
-#define IEM_MC_IF_EFL_BIT_NOT_SET(a_fBit) \
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET(a_fBit) \
         off = iemNativeEmitIfEflagsBitNotSet(pReNative, off, iemNativeEflagsToSingleBitNo<a_fBit>(), \
                                              iemNativeEflagsToLivenessMask<a_fBit>()); \
         do {
 
-/** Emits code for IEM_MC_IF_EFL_BIT_NOT_SET. */
+/** Emits code for IEM_MC_IF_FLAGS_BIT_NOT_SET. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsigned iBitNo, uint64_t fLivenessEflBit)
 {
@@ -3478,21 +3478,21 @@ iemNativeEmitIfEflagsBitNotSet(PIEMRECOMPILERSTATE pReNative, uint32_t off, unsi
 }
 
 
-#define IEM_MC_IF_EFL_BITS_EQ(a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BITS_EQ(a_fBit1, a_fBit2) \
     off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, false /*fInverted*/, \
                                             iemNativeEflagsToSingleBitNo<a_fBit1>(), \
                                             iemNativeEflagsToSingleBitNo<a_fBit2>(), \
                                             iemNativeEflagsToLivenessMask<a_fBit1 | a_fBit2>()); \
     do {
 
-#define IEM_MC_IF_EFL_BITS_NE(a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BITS_NE(a_fBit1, a_fBit2) \
     off = iemNativeEmitIfEflagsTwoBitsEqual(pReNative, off, true /*fInverted*/, \
                                             iemNativeEflagsToSingleBitNo<a_fBit1>(), \
                                             iemNativeEflagsToSingleBitNo<a_fBit2>(), \
                                             iemNativeEflagsToLivenessMask<a_fBit1 | a_fBit2>()); \
     do {
 
-/** Emits code for IEM_MC_IF_EFL_BITS_EQ and IEM_MC_IF_EFL_BITS_NE. */
+/** Emits code for IEM_MC_IF_FLAGS_BITS_EQ and IEM_MC_IF_FLAGS_BITS_NE. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                   bool fInverted, unsigned iBitNo1, unsigned iBitNo2, uint64_t fLivenessEflBits)
@@ -3551,7 +3551,7 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
 }
 
 
-#define IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) \
     off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, false /*fInverted*/, \
                                                         iemNativeEflagsToSingleBitNo<a_fBit>(), \
                                                         iemNativeEflagsToSingleBitNo<a_fBit1>(), \
@@ -3559,7 +3559,7 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                                         iemNativeEflagsToLivenessMask<a_fBit | a_fBit1 | a_fBit2>()); \
     do {
 
-#define IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2) \
     off = iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(pReNative, off, true /*fInverted*/, \
                                                         iemNativeEflagsToSingleBitNo<a_fBit>(), \
                                                         iemNativeEflagsToSingleBitNo<a_fBit1>(), \
@@ -3567,8 +3567,8 @@ iemNativeEmitIfEflagsTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off,
                                                         iemNativeEflagsToLivenessMask<a_fBit | a_fBit1 | a_fBit2>()); \
     do {
 
-/** Emits code for IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ and
- *  IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE. */
+/** Emits code for IEM_MC_IF_FLAGS_BIT_NOT_SET_AND_BITS_EQ and
+ *  IEM_MC_IF_FLAGS_BIT_SET_OR_BITS_NE. */
 DECL_INLINE_THROW(uint32_t)
 iemNativeEmitIfEflagsBitNotSetAndTwoBitsEqual(PIEMRECOMPILERSTATE pReNative, uint32_t off, bool fInverted,
                                               unsigned iBitNo, unsigned iBitNo1, unsigned iBitNo2, uint64_t fLivenessEflBits)

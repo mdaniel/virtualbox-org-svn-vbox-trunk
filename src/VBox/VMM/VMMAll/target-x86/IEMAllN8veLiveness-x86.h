@@ -1180,29 +1180,29 @@ AssertCompile(IEMLIVENESS_STATE_INPUT == IEMLIVENESS_STATE_MASK);
          else { AssertMsgFailed(("#s (%#x)\n", #a_fBit, (a_fBit)));  IEM_LIVENESS_ALL_EFLAGS_INPUT(); } \
     } while (0)
 
-#define IEM_MC_IF_EFL_BIT_SET(a_fBit)                   IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); {
-#define IEM_MC_IF_EFL_BIT_NOT_SET(a_fBit)               IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); {
-#define IEM_MC_IF_EFL_ANY_BITS_SET(a_fBits) \
+#define IEM_MC_IF_FLAGS_BIT_SET(a_fBit)                 IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); {
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET(a_fBit)             IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); {
+#define IEM_MC_IF_FLAGS_ANY_BITS_SET(a_fBits) \
     do { if ((a_fBits) == (X86_EFL_CF | X86_EFL_ZF)) \
          { IEM_LIVENESS_ONE_EFLAG_INPUT(fEflCf); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflZf); } \
          else { AssertMsgFailed(("#s (%#x)\n", #a_fBits, (a_fBits)));  IEM_LIVENESS_ALL_EFLAGS_INPUT(); } \
     } while (0);                                        {
-#define IEM_MC_IF_EFL_NO_BITS_SET(a_fBits) \
+#define IEM_MC_IF_FLAGS_NO_BITS_SET(a_fBits) \
     do { if ((a_fBits) == (X86_EFL_CF | X86_EFL_ZF)) \
          { IEM_LIVENESS_ONE_EFLAG_INPUT(fEflCf); IEM_LIVENESS_ONE_EFLAG_INPUT(fEflZf); } \
          else { AssertMsgFailed(("#s (%#x)\n", #a_fBits, (a_fBits)));  IEM_LIVENESS_ALL_EFLAGS_INPUT(); } \
     } while (0);                                        {
-#define IEM_MC_IF_EFL_BITS_NE(a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BITS_NE(a_fBit1, a_fBit2) \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit1); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit2);       {
-#define IEM_MC_IF_EFL_BITS_EQ(a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BITS_EQ(a_fBit1, a_fBit2) \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit1); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit2);       {
-#define IEM_MC_IF_EFL_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BIT_SET_OR_BITS_NE(a_fBit, a_fBit1, a_fBit2) \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit1); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit2);       {
-#define IEM_MC_IF_EFL_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) \
+#define IEM_MC_IF_FLAGS_BIT_NOT_SET_AND_BITS_EQ(a_fBit, a_fBit1, a_fBit2) \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit1); \
     IEM_LIVENESS_ONE_STATUS_EFLAG_INPUT(a_fBit2);       {

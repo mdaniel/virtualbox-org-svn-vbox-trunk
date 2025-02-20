@@ -746,15 +746,48 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                                          ? highlightColor.lighter(110)
                                          : highlightColor.darker(110);
 
-            /* Prepare token sub-rect: */
-            QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
-                            QSize(5, rectangle.height() - 8));
+            /* Depending on item class: */
+            switch (itemClass())
+            {
+                case UIToolClass_Global:
+                {
+                    /* Prepare token sub-rect: */
+                    QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
+                                    QSize(5, rectangle.height() - 8));
 
-            /* Draw gradient token: */
-            QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
-            hlGrad.setColorAt(0, highlightColor1);
-            hlGrad.setColorAt(1, highlightColor2);
-            pPainter->fillRect(tokenRect, hlGrad);
+                    /* Draw gradient token: */
+                    QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                    hlGrad.setColorAt(0, highlightColor1);
+                    hlGrad.setColorAt(1, highlightColor2);
+                    pPainter->fillRect(tokenRect, hlGrad);
+                    break;
+                }
+                case UIToolClass_Machine:
+                {
+                    /* A bit of indentation for Machine tools in widget mode: */
+                    int iIndent = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
+
+                    /* Prepare token sub-rect: */
+                    QRect tokenRect(rectangle.topLeft() + QPoint(iIndent, rectangle.height() / 2 - 2),
+                                    QSize(5, 5));
+
+                    /* Restrict painter path: */
+                    pPainter->save();
+                    QPainterPath path;
+                    path.addEllipse(tokenRect);
+                    pPainter->setClipPath(path);
+
+                    /* Draw gradient token: */
+                    QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                    hlGrad.setColorAt(0, highlightColor1);
+                    hlGrad.setColorAt(1, highlightColor2);
+                    pPainter->fillRect(tokenRect, hlGrad);
+                    pPainter->restore();
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         /* Hovering background for widget: */
@@ -778,14 +811,18 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
 #endif /* !VBOX_WS_MAC */
 
+            /* A bit of indentation for Machine tools in widget mode: */
+            const int iIndent = itemClass() == UIToolClass_Machine
+                              ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5 : 0;
+
             /* Prepare icon sub-rect: */
             QRect subRect;
             subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
             subRect.setWidth(subRect.height());
 #ifdef VBOX_WS_MAC
-            subRect.moveTopLeft(rectangle.topLeft() + QPoint(2 * iMargin - iPadding, iMargin - iPadding));
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 2 * iMargin - iPadding, iMargin - iPadding));
 #else
-            subRect.moveTopLeft(rectangle.topLeft() + QPoint(1.5 * iMargin - iPadding, iMargin - iPadding));
+            subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 1.5 * iMargin - iPadding, iMargin - iPadding));
 #endif
 
             /* Paint icon frame: */

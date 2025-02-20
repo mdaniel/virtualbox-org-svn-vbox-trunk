@@ -82,6 +82,11 @@ void UITools::setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolTyp
     m_pToolsModel->setRestrictedToolTypes(enmClass, types);
 }
 
+void UITools::setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable)
+{
+    m_pToolsModel->setUnsuitableToolClass(enmClass, fUnsuitable);
+}
+
 void UITools::prepare()
 {
     /* Prepare everything: */

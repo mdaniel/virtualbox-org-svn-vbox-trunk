@@ -268,9 +268,15 @@ void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmTyp
     /* Determine tool class of passed tool type: */
     const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
 
-    /* For Global tool class => switch tool-pane accordingly: */
+    /* For Global tool class: */
     if (enmClass == UIToolClass_Global)
+    {
+        /* Mark Machine tools [un]suitable depending on Global tool selected: */
+        toolMenu()->setUnsuitableToolClass(UIToolClass_Machine, enmType != UIToolType_Machines);
+
+        /* Switch tool-pane accordingly: */
         switchToolTo(enmType);
+    }
     /* For Machine tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Machine)
         machineToolManager()->switchToolTo(enmType);

@@ -253,7 +253,7 @@ namespace dxvk {
     p.sps.flags.delta_pic_order_always_zero_flag     = pPicParams->ContinuationFlag
                                                       ? (pPicParams->delta_pic_order_always_zero_flag ? 1 : 0)
                                                       : 0;
-    p.sps.flags.separate_colour_plane_flag           = 0; /* 4:4:4 only. Apparently DXVA decoding profiles do not use this flags. */
+    p.sps.flags.separate_colour_plane_flag           = 0; /* 4:4:4 only. Apparently DXVA decoding profiles do not support this format. */
     p.sps.flags.gaps_in_frame_num_value_allowed_flag = 1; /// @todo unknown
     p.sps.flags.qpprime_y_zero_transform_bypass_flag = 0; /// @todo unknown
     p.sps.flags.frame_cropping_flag                  = 0; /* not used */
@@ -280,7 +280,9 @@ namespace dxvk {
     p.sps.max_num_ref_frames                         = pPicParams->num_ref_frames;
     p.sps.reserved1                                  = 0;
     p.sps.pic_width_in_mbs_minus1                    = pPicParams->wFrameWidthInMbsMinus1;
-    p.sps.pic_height_in_map_units_minus1             = pPicParams->wFrameHeightInMbsMinus1; /// @todo Is it?
+    p.sps.pic_height_in_map_units_minus1             = pPicParams->frame_mbs_only_flag /* H.264 (V15) (08/2024) (7.18) */
+                                                       ? pPicParams->wFrameHeightInMbsMinus1
+                                                       : (pPicParams->wFrameHeightInMbsMinus1 + 1) / 2 - 1;
     p.sps.frame_crop_left_offset                     = 0; /* not used */
     p.sps.frame_crop_right_offset                    = 0; /* not used */
     p.sps.frame_crop_top_offset                      = 0; /* not used */
@@ -353,7 +355,7 @@ namespace dxvk {
     p.stdH264PictureInfo.reserved2                      = 0;
     p.stdH264PictureInfo.frame_num                      = pPicParams->frame_num;
     p.stdH264PictureInfo.idr_pic_id                     = 0; /// @todo unknown
-    p.stdH264PictureInfo.PicOrderCnt[0]                 = pPicParams->CurrFieldOrderCnt[0]; /// @todo Is it?
+    p.stdH264PictureInfo.PicOrderCnt[0]                 = pPicParams->CurrFieldOrderCnt[0];
     p.stdH264PictureInfo.PicOrderCnt[1]                 = pPicParams->CurrFieldOrderCnt[1];
 
     p.stdH264ReferenceInfo.flags.top_field_flag         =
@@ -364,8 +366,37 @@ namespace dxvk {
     p.stdH264ReferenceInfo.flags.is_non_existing        = 0;
     p.stdH264ReferenceInfo.FrameNum                     = pPicParams->frame_num;
     p.stdH264ReferenceInfo.reserved                     = 0;
-    p.stdH264ReferenceInfo.PicOrderCnt[0]               = pPicParams->CurrFieldOrderCnt[0]; /// @todo Is it?
+    p.stdH264ReferenceInfo.PicOrderCnt[0]               = pPicParams->CurrFieldOrderCnt[0];
     p.stdH264ReferenceInfo.PicOrderCnt[1]               = pPicParams->CurrFieldOrderCnt[1];
+
+    /* The picture identifier of destination uncompressed surface. */
+    p.idSurface                     = pPicParams->CurrPic.Index7Bits;
+
+    if (pPicParams->IntraPicFlag) {
+      p.refFramesCount = 0;
+    }
+    else {
+      /* Reference frame surfaces. */
+      uint32_t idxRefFrame = 0;
+      for (uint32_t i = 0; i < 16; ++i) {
+        const DXVA_PicEntry_H264& r = pPicParams->RefFrameList[i];
+        if (r.bPicEntry == 0xFF)
+          continue;
+
+        DxvkRefFrameInfo& refFrameInfo = p.refFrames[idxRefFrame];
+        refFrameInfo.idSurface         = r.Index7Bits;
+        refFrameInfo.longTermReference = r.AssociatedFlag;
+        refFrameInfo.usedForReference  = (uint8_t)(pPicParams->UsedForReferenceFlags >> (2 * i)) & 0x3;
+        refFrameInfo.nonExistingFrame  = (uint8_t)(pPicParams->NonExistingFrameFlags >> i) & 0x1;
+        refFrameInfo.frame_num         = pPicParams->FrameNumList[i];
+        refFrameInfo.PicOrderCnt[0]    = pPicParams->FieldOrderCntList[i][0];
+        refFrameInfo.PicOrderCnt[1]    = pPicParams->FieldOrderCntList[i][1];
+
+        ++idxRefFrame;
+      }
+
+      p.refFramesCount = idxRefFrame;
+    }
 
     return true;
   }

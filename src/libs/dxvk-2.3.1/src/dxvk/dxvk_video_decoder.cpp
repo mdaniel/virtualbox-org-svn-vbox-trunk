@@ -305,7 +305,10 @@ namespace dxvk {
         bindMemoryInfo.sType           = VK_STRUCTURE_TYPE_BIND_VIDEO_SESSION_MEMORY_INFO_KHR;
         bindMemoryInfo.memory          = m_videoSessionMemory[i].memory();
         bindMemoryInfo.memoryOffset    = m_videoSessionMemory[i].offset();
-        bindMemoryInfo.memorySize      = m_videoSessionMemory[i].length();
+        /* Use original size instead of m_videoSessionMemory[i].length() because the latter
+         * can be greater and then Vulkan validation complains.
+         */
+        bindMemoryInfo.memorySize      = requirement.memoryRequirements.size;
         bindMemoryInfo.memoryBindIndex = requirement.memoryBindIndex;
       }
 
@@ -439,7 +442,7 @@ namespace dxvk {
 
 #define DXVK_VD_CMP_SPS_FIELDS(_f) \
   if (sps1._f != sps2._f) { \
-    Logger::debug(str::format("SPS.", #_f ,": ", sps1._f, " != ", sps2._f)); \
+    Logger::debug(str::format("SPS.", #_f ,": ", (int32_t)sps1._f, " != ", (int32_t)sps2._f)); \
     return false; \
   }
   static bool IsSPSEqual(
@@ -484,7 +487,7 @@ namespace dxvk {
 
 #define DXVK_VD_CMP_PPS_FIELDS(_f) \
   if (pps1._f != pps2._f) { \
-    Logger::debug(str::format("PPS.", #_f ,": ", pps1._f, " != ", pps2._f)); \
+    Logger::debug(str::format("PPS.", #_f ,": ", (int32_t)pps1._f, " != ", (int32_t)pps2._f)); \
     return false; \
   }
   static bool IsPPSEqual(
@@ -624,27 +627,92 @@ namespace dxvk {
      */
 
     /*
-     * Reset frames if requested.
+     * Reset Decoded Picture Buffer if requested.
      */
-    if (parms.nal_unit_type == 5) { /* IDR immediate decoder reset. */
-      m_DPB.idxCurrentDPBSlot = 0;
-      for (auto &slot: m_DPB.slots) {
-        slot.isReferencePicture = false;
+    if (parms.nal_unit_type == 5) /* IDR, immediate decoder reset. */
+      m_DPB.reset();
+
+    /*
+     * Update information about decoded reference frames.
+     */
+    for (uint32_t i = 0; i < parms.refFramesCount; ++i) {
+      const DxvkRefFrameInfo& r = parms.refFrames[i];
+
+      /* Update ref frame info if the frame exists and is associated with a DPB slot.
+       * This is always true for valid video streams.
+       */
+      if (m_DPB.refFrames.find(r.idSurface) != m_DPB.refFrames.end()
+       && m_DPB.refFrames[r.idSurface].dpbSlotIndex != -1) {
+        DxvkRefFrame& refFrame = m_DPB.refFrames[r.idSurface];
+        refFrame.refFrameInfo = r;
+
+        /* Update stdRefInfo with now known values from DxvkRefFrameInfo */
+        StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].stdRefInfo;
+        stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
+        stdRefInfo.flags.is_non_existing              = r.nonExistingFrame;
+        stdRefInfo.FrameNum                           = r.frame_num;
+        stdRefInfo.PicOrderCnt[0]                     = r.PicOrderCnt[0];
+        stdRefInfo.PicOrderCnt[1]                     = r.PicOrderCnt[1];
       }
     }
 
     /*
      * Begin video decoding.
      */
-    /* Init the target DPB slot, i.e. the slot where the reconstructed picture will be placed. */
-    const int32_t dstSlotIndex = m_DPB.idxCurrentDPBSlot; /* Destination DPB slot for the decoded frame. */
+    auto itRefFrame = m_DPB.refFrames.find(parms.idSurface);
+    if (itRefFrame != m_DPB.refFrames.end()) {
+      /* The surface id is being reused for a new decoded picture. Remove old information. */
+      DxvkRefFrame& refFrame = itRefFrame->second;
 
+      if (refFrame.dpbSlotIndex != -1)
+        m_DPB.slots[refFrame.dpbSlotIndex].deactivate();
+
+      m_DPB.refFrames.erase(itRefFrame);
+    }
+
+    /* Find a destination DPB slot, i.e. the slot where the reconstructed picture will be placed. */
+    int32_t dstSlotIndex = -1;
+
+    /* Scan DPB slots for a free slot or a short term reference. */
+    for (uint32_t i = 0; i < m_DPB.slots.size(); ++i) {
+      DxvkDPBSlot& slot = m_DPB.slots[m_DPB.idxCurrentDPBSlot];
+      if (slot.isReferencePicture
+       && slot.stdRefInfo.flags.used_for_long_term_reference) {
+        m_DPB.idxCurrentDPBSlot = (m_DPB.idxCurrentDPBSlot + 1) % m_DPB.slots.size();
+        continue;
+      }
+
+      /* This slot can be (re-)used. */
+      dstSlotIndex = m_DPB.idxCurrentDPBSlot;
+
+      if (slot.idSurface != DXVK_VIDEO_DECODER_SURFACE_INVALID) {
+        /* If this slot contained a short-term reference, erase it. */
+        itRefFrame = m_DPB.refFrames.find(slot.idSurface);
+        if (itRefFrame != m_DPB.refFrames.end())
+          m_DPB.refFrames.erase(itRefFrame);
+        slot.idSurface = DXVK_VIDEO_DECODER_SURFACE_INVALID;
+      }
+
+      break;
+    }
+
+    if (dstSlotIndex == -1) {
+      /* No free slots. This can happen only if entire DPB is occupied by long-term references,
+       * which is probably due to an invalid video stream.
+       * Try to recover by resetting the DPB.
+       */
+      m_DPB.reset();
+      dstSlotIndex = 0;
+    }
+
+    /* Init the target DPB slot, i.e. the slot where the reconstructed picture will be placed. */
     DxvkDPBSlot &dstDPBSlot = m_DPB.slots[dstSlotIndex];
     dstDPBSlot.isReferencePicture = false;
     dstDPBSlot.stdRefInfo         = parms.stdH264ReferenceInfo;
+    dstDPBSlot.idSurface          = DXVK_VIDEO_DECODER_SURFACE_INVALID; /* Reference picture will be associated later. */
 
     /*
-     * Prepare destination DPB image.
+     * Prepare destination DPB image layout.
      */
     VkImageMemoryBarrier2 barrier =
       { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
@@ -672,62 +740,9 @@ namespace dxvk {
 
     ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
 
-    const int DPBCapacity = m_DPB.slots.size();
-
-    /* Reference pictures and the destination slot to be bound for video decoding. */
-    std::vector<VkVideoPictureResourceInfoKHR> pictureResourceInfo(DPBCapacity);
-    std::vector<VkVideoReferenceSlotInfoKHR> referenceSlotsInfo(DPBCapacity);
-
-    for (int i = 0; i < DPBCapacity; ++i) {
-      /* Deactivate DPB slots that contain frames with the same FrameNum as the currently decoded frame. */
-      if (m_DPB.slots[i].isReferencePicture
-       && m_DPB.slots[i].stdRefInfo.FrameNum == dstDPBSlot.stdRefInfo.FrameNum)
-        m_DPB.slots[i].isReferencePicture = false;
-
-      pictureResourceInfo[i] =
-        { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
-      pictureResourceInfo[i].codedOffset      = { 0, 0 };
-      pictureResourceInfo[i].codedExtent      = { m_sampleWidth, m_sampleHeight };
-      pictureResourceInfo[i].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
-      pictureResourceInfo[i].imageViewBinding = m_DPB.slots[i].imageView->handle();
-
-      referenceSlotsInfo[i] =
-        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR };
-      referenceSlotsInfo[i].slotIndex         = m_DPB.slots[i].isReferencePicture ? i : -1;
-      referenceSlotsInfo[i].pPictureResource  = &pictureResourceInfo[i];
-    }
-
-    VkVideoBeginCodingInfoKHR beginCodingInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_BEGIN_CODING_INFO_KHR };
-    beginCodingInfo.flags                  = 0; /* reserved for future use */
-    beginCodingInfo.videoSession           = m_videoSession->handle();
-    beginCodingInfo.videoSessionParameters = m_videoSessionParameters->handle();
-    beginCodingInfo.referenceSlotCount     = referenceSlotsInfo.size();
-    beginCodingInfo.pReferenceSlots        = referenceSlotsInfo.data();
-
-#ifdef DEBUG
-    Logger::info(str::format("VREF: beginVideoCoding: dstSlotIndex=", dstSlotIndex, " ", m_sampleWidth, "x", m_sampleHeight));
-    for (uint32_t i = 0; i < beginCodingInfo.referenceSlotCount; ++i) {
-      auto &s = beginCodingInfo.pReferenceSlots[i];
-      Logger::info(str::format("      DPB[", i, "]: slotIndex=", s.slotIndex, ", FrameNum=", m_DPB.slots[i].stdRefInfo.FrameNum, ", image=", s.pPictureResource->imageViewBinding, "/", m_DPB.slots[i].imageView->imageHandle()));
-    }
-#endif
-
-    ctx->beginVideoCodingKHR(&beginCodingInfo);
-
-    if (!m_fControlResetSubmitted) {
-      VkVideoCodingControlInfoKHR controlInfo =
-        { VK_STRUCTURE_TYPE_VIDEO_CODING_CONTROL_INFO_KHR };
-      controlInfo.flags = VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR;
-
-      ctx->controlVideoCodingKHR(&controlInfo);
-
-      m_fControlResetSubmitted = true;
-    }
-
     if (m_caps.distinctOutputImage) {
       /*
-       * Prepare decode destination.
+       * Prepare decode destination layout.
        */
       barrier.srcStageMask        = VK_PIPELINE_STAGE_2_NONE;
       barrier.srcAccessMask       = 0;
@@ -750,48 +765,109 @@ namespace dxvk {
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
     }
 
-    /*
-     * Setup "active reference pictures."
-     */
-    /* Count the number of reference pictures in the DPB. */
-    uint32_t refSlotsCount = 0;
-    for (auto &slot: m_DPB.slots) {
-      if (slot.isReferencePicture)
-        ++refSlotsCount;
-    }
+    const uint32_t maxRefSlotsCount = std::min(parms.refFramesCount, (uint32_t)parms.sps.max_num_ref_frames);
 
-    /* VkVideoReferenceSlotInfoKHR refSlotInfo[idxRefSlot].pNext */
-    std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(refSlotsCount);
+    /* Reference pictures and the destination slot to be bound for video decoding. */
+    std::vector<VkVideoPictureResourceInfoKHR> pictureResourceInfo(maxRefSlotsCount + 1);
+    std::vector<VkVideoReferenceSlotInfoKHR> referenceSlotsInfo(maxRefSlotsCount + 1);
 
-    /* VkVideoReferenceSlotInfoKHR refSlotInfo[idxRefSlot].pPictureResource */
-    std::vector<VkVideoPictureResourceInfoKHR>   refSlotPictureResourceInfo(refSlotsCount);
+    uint32_t refSlotsCount = 0; /* How many reference frames are actually added to referenceSlotsInfo */
+    for (uint32_t i = 0; i < maxRefSlotsCount; ++i) {
+      const DxvkRefFrameInfo& r = parms.refFrames[i];
 
-    /* VkVideoDecodeInfoKHR decodeInfo.pReferenceSlots */
-    std::vector<VkVideoReferenceSlotInfoKHR>     refSlotInfo(refSlotsCount);
-
-    uint32_t idxRefSlot = 0;
-    for (unsigned i = 0; i < m_DPB.slots.size(); ++i) {
-      if (!m_DPB.slots[i].isReferencePicture) {
+      itRefFrame = m_DPB.refFrames.find(r.idSurface);
+      if (itRefFrame == m_DPB.refFrames.end()) {
+        /* Skip invalid reference frame. */
         continue;
       }
 
-      h264DpbSlotInfo[idxRefSlot] =
-        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
-      h264DpbSlotInfo[idxRefSlot].pStdReferenceInfo           = &m_DPB.slots[i].stdRefInfo;
+      const int32_t dpbSlotIndex = itRefFrame->second.dpbSlotIndex;
+      if (dpbSlotIndex == -1) {
+        /* Skip invalid reference frame. */
+        continue;
+      }
 
-      refSlotPictureResourceInfo[idxRefSlot] =
+      pictureResourceInfo[refSlotsCount] =
         { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
-      refSlotPictureResourceInfo[idxRefSlot].codedOffset      = { 0, 0 };
-      refSlotPictureResourceInfo[idxRefSlot].codedExtent      = { m_sampleWidth, m_sampleHeight };
-      refSlotPictureResourceInfo[idxRefSlot].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
-      refSlotPictureResourceInfo[idxRefSlot].imageViewBinding = m_DPB.slots[i].imageView->handle();
+      pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
+      pictureResourceInfo[refSlotsCount].codedExtent      = { m_sampleWidth, m_sampleHeight };
+      pictureResourceInfo[refSlotsCount].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
+      pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dpbSlotIndex].imageView->handle();
 
-      refSlotInfo[idxRefSlot] =
-        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &h264DpbSlotInfo[idxRefSlot] };
-      refSlotInfo[idxRefSlot].slotIndex                       = i;
-      refSlotInfo[idxRefSlot].pPictureResource                = &refSlotPictureResourceInfo[idxRefSlot];
+      referenceSlotsInfo[refSlotsCount] =
+        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR };
+      referenceSlotsInfo[refSlotsCount].slotIndex         = dpbSlotIndex;
+      referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
 
-      ++idxRefSlot;
+      ++refSlotsCount;
+    }
+
+    /* Destination picture. */
+    pictureResourceInfo[refSlotsCount] =
+      { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
+    pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
+    pictureResourceInfo[refSlotsCount].codedExtent      = { m_sampleWidth, m_sampleHeight };
+    pictureResourceInfo[refSlotsCount].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
+    pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dstSlotIndex].imageView->handle();
+
+    referenceSlotsInfo[refSlotsCount] =
+      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR };
+    referenceSlotsInfo[refSlotsCount].slotIndex         = -1;
+    referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
+
+    /* Begin video coding scope. */
+    VkVideoBeginCodingInfoKHR beginCodingInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_BEGIN_CODING_INFO_KHR };
+    beginCodingInfo.flags                  = 0; /* reserved for future use */
+    beginCodingInfo.videoSession           = m_videoSession->handle();
+    beginCodingInfo.videoSessionParameters = m_videoSessionParameters->handle();
+    beginCodingInfo.referenceSlotCount     = refSlotsCount + 1;
+    beginCodingInfo.pReferenceSlots        = referenceSlotsInfo.data();
+
+#ifdef DEBUG
+    Logger::debug(str::format("VREF: beginVideoCoding: dstSlotIndex=", dstSlotIndex,
+      " ", m_sampleWidth, "x", m_sampleHeight));
+    for (uint32_t i = 0; i < beginCodingInfo.referenceSlotCount; ++i) {
+      auto &s = beginCodingInfo.pReferenceSlots[i];
+      const DxvkDPBSlot& dpbSlot = m_DPB.slots[s.slotIndex == -1 ? dstSlotIndex : s.slotIndex];
+      Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
+        ", FrameNum=", dpbSlot.stdRefInfo.FrameNum,
+        ", image=", dpbSlot.imageView->imageHandle(),
+        ", view=", s.pPictureResource->imageViewBinding));
+    }
+#endif
+
+    ctx->beginVideoCodingKHR(&beginCodingInfo);
+
+    if (!m_fControlResetSubmitted) {
+      VkVideoCodingControlInfoKHR controlInfo =
+        { VK_STRUCTURE_TYPE_VIDEO_CODING_CONTROL_INFO_KHR };
+      controlInfo.flags = VK_VIDEO_CODING_CONTROL_RESET_BIT_KHR;
+
+      ctx->controlVideoCodingKHR(&controlInfo);
+
+      m_fControlResetSubmitted = true;
+    }
+
+    /*
+     * Setup "active reference pictures."
+     */
+    /* Reuse first refFramesCount elements in pictureResourceInfo and referenceSlotsInfo.
+     * Add h264DpbSlotInfo to referenceSlotsInfo.
+     */
+    /* VkVideoReferenceSlotInfoKHR refSlotInfo[idxRefSlot].pNext */
+    std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(refSlotsCount);
+
+    for (uint32_t i = 0; i < refSlotsCount; ++i) {
+      const DxvkRefFrameInfo& r = parms.refFrames[i];
+
+      StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[referenceSlotsInfo[i].slotIndex].stdRefInfo;
+
+      h264DpbSlotInfo[i] =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
+      h264DpbSlotInfo[i].pStdReferenceInfo = &stdRefInfo;
+
+      referenceSlotsInfo[i].pNext = &h264DpbSlotInfo[i];
     }
 
     /*
@@ -844,16 +920,21 @@ namespace dxvk {
       decodeInfo.dstPictureResource.imageViewBinding = dstDPBSlot.imageView->handle();
     }
     decodeInfo.pSetupReferenceSlot = &dstSlotInfo;
-    decodeInfo.referenceSlotCount  = refSlotInfo.size();
-    decodeInfo.pReferenceSlots     = refSlotInfo.data();
+    decodeInfo.referenceSlotCount  = refSlotsCount;
+    decodeInfo.pReferenceSlots     = referenceSlotsInfo.data();
 
 #ifdef DEBUG
-    Logger::info(str::format("VREF: decodeVideo: dstSlotIndex=", dstSlotIndex));
+    Logger::debug(str::format("VREF: decodeVideo: dstSlotIndex=", dstSlotIndex));
     for (uint32_t i = 0; i < decodeInfo.referenceSlotCount; ++i) {
       auto &s = decodeInfo.pReferenceSlots[i];
-      Logger::info(str::format("       ref[", i, "]: slotIndex=", s.slotIndex, ", FrameNum=", h264DpbSlotInfo[i].pStdReferenceInfo->FrameNum, ", image=", s.pPictureResource->imageViewBinding));
+      Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
+        ", FrameNum=", h264DpbSlotInfo[i].pStdReferenceInfo->FrameNum,
+        ", view=", s.pPictureResource->imageViewBinding));
     }
-    Logger::info(str::format("       dst: slotIndex=", dstSlotInfo.slotIndex, ", FrameNum=", dstH264DpbSlotInfo.pStdReferenceInfo->FrameNum, " ref=", parms.stdH264PictureInfo.flags.is_reference, ", image=", dstSlotInfo.pPictureResource->imageViewBinding));
+    Logger::info(str::format("VREF:  dst: slotIndex=", dstSlotInfo.slotIndex,
+      ", FrameNum=", dstH264DpbSlotInfo.pStdReferenceInfo->FrameNum,
+      ", is_ref=", parms.stdH264PictureInfo.flags.is_reference,
+      ", view=", dstSlotInfo.pPictureResource->imageViewBinding));
 #endif
 
     ctx->decodeVideoKHR(&decodeInfo);
@@ -965,7 +1046,7 @@ namespace dxvk {
       barrier.subresourceRange.baseArrayLayer = decodedArrayLayer;
       barrier.subresourceRange.layerCount     = 1;
 
-      /* Output image is will be release back to the graphics queue in EndFrame. */
+      /* Output image will be release back to the graphics queue in EndFrame. */
 
       dependencyInfo =
         { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
@@ -1092,7 +1173,9 @@ namespace dxvk {
         decodedPictureLayout);
     }
 
-    /* Make sure that the involved objects are alive during command buffer execution. */
+    /*
+     * Make sure that the involved objects are alive during command buffer execution.
+     */
     ctx->trackResource(DxvkAccess::None, m_videoSession);
     ctx->trackResource(DxvkAccess::None, m_videoSessionParameters);
     ctx->trackResource(DxvkAccess::Write, m_outputImageView->image());
@@ -1106,10 +1189,17 @@ namespace dxvk {
       ctx->trackResource(DxvkAccess::Write, m_imageDecodeDst);
     ctx->trackResource(DxvkAccess::Read, m_bitstreamBuffer.buffer);
 
-    /* Keep reference picture. */
+    /*
+     * Keep reference picture.
+     */
     if (parms.stdH264PictureInfo.flags.is_reference) {
       dstDPBSlot.isReferencePicture = true;
-      m_DPB.idxCurrentDPBSlot = (m_DPB.idxCurrentDPBSlot + 1) % DPBCapacity;
+
+      /* Remember the surface id. */
+      dstDPBSlot.idSurface             = parms.idSurface;
+      m_DPB.refFrames[parms.idSurface] = { dstSlotIndex, { parms.idSurface } };
+
+      m_DPB.idxCurrentDPBSlot = (m_DPB.idxCurrentDPBSlot + 1) % m_DPB.slots.size();
     }
   }
 

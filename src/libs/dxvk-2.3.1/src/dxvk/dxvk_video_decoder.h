@@ -37,6 +37,8 @@ namespace dxvk {
 
   class DxvkDevice;
 
+#define DXVK_VIDEO_DECODER_SURFACE_INVALID 0xff
+
   struct DxvkVideoDecodeProfileInfo {
     const char *                          profileName;
 
@@ -59,6 +61,16 @@ namespace dxvk {
   };
 
 
+  struct DxvkRefFrameInfo {
+    uint8_t  idSurface;
+    uint8_t  longTermReference : 1;
+    uint8_t  usedForReference : 2;
+    uint8_t  nonExistingFrame : 1;
+    uint16_t frame_num;
+    int32_t  PicOrderCnt[2];
+  };
+
+
   struct DxvkVideoDecodeInputParameters {
     StdVideoH264SequenceParameterSet sps;
     int32_t                          spsOffsetForRefFrame;
@@ -74,6 +86,10 @@ namespace dxvk {
     std::vector<uint32_t>            sliceOffsets;
 
     uint8_t                          nal_unit_type;
+
+    uint8_t                          idSurface;
+    uint32_t                         refFramesCount;
+    std::array<DxvkRefFrameInfo, 16> refFrames;
 
     std::vector<uint8_t>             bitstream;
   };
@@ -207,13 +223,36 @@ namespace dxvk {
       Rc<DxvkImage>                     image = nullptr;
       Rc<DxvkImageView>                 imageView = nullptr;
       uint32_t                          baseArrayLayer = 0;
-      bool                              isReferencePicture = 0;
+      bool                              isReferencePicture = false;
       StdVideoDecodeH264ReferenceInfo   stdRefInfo = {};
+      uint8_t                           idSurface = DXVK_VIDEO_DECODER_SURFACE_INVALID;
+
+      void deactivate() {
+        this->isReferencePicture = false;
+        this->stdRefInfo         = {};
+        this->idSurface          = DXVK_VIDEO_DECODER_SURFACE_INVALID;
+      }
+    };
+
+    /* Information about an uncompressed surface. */
+    struct DxvkRefFrame {
+      int32_t                           dpbSlotIndex = -1;
+      DxvkRefFrameInfo                  refFrameInfo = {};
     };
 
     struct DxvkDPB {
       std::vector<DxvkDPBSlot>          slots;
       int                               idxCurrentDPBSlot = 0;
+
+      /* Uncompressed surface id (idSurface) -> frame information. */
+      std::map<uint8_t, DxvkRefFrame>   refFrames;
+
+      void reset() {
+        for (auto &slot: this->slots)
+          slot.deactivate();
+        this->idxCurrentDPBSlot = 0;
+        this->refFrames.clear();
+      }
     };
     struct DxvkDPB                      m_DPB;
 

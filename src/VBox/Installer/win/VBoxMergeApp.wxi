@@ -72,25 +72,35 @@
 <?endif?>
 
     <!-- COM components have a separate entry mainly because of the KeyPath attribute (that hints the
-         TypeLib element where to take the TLB resource from) may appear only once per component -->
+         TypeLib element where to take the TLB resource from) may appear only once per component.
+
+         Note: Before we VBoxSDS in an own component (cp_VBoxSDS), however, this makes the MSI validator freak
+               out, as our (generated) typelib definitions we install below use files (VBoxC.dll + VBoxSDS.exe)
+               from different components then. So we have to keep VBoxC.dll and VBoxSDS.exe in the same component -->
     <Component Id="cp_MainCOM" Guid="CD4A3C6C-C2D5-428D-90A1-B6DA3D0777D6" Bitness="$(var.Property_Bitness)">
 
         <!-- Note: This file ID *must not* be changed because of our typelib template generation file! -->
-        <File Id="VBoxSVC" Name="VBoxSVC.exe" Source="$(env.PATH_OUT)\bin\VBoxSVC.exe">
-        </File>
+        <File Id="VBoxSVC" Name="VBoxSVC.exe" Source="$(env.PATH_OUT)\bin\VBoxSVC.exe" />
 
+        <!-- The following ifdef is needed to not have two files with a KeyPath attribute set, which breaks the build.
+             If VBOX_WITH_SDS is defined, the VBoxSDS.exe below is being used as a KeyPath, as ServiceInstall uses the
+             file for which the KeyPath attribute has been set as the service binary being written to the registry.
+             So we have to prefer VBoxSDS in that case -->
+<?if $(env.VBOX_WITH_SDS) = "yes" ?>
+        <File Id="VBoxC" Name="VBoxC.dll" Source="$(env.PATH_OUT)\bin\VBoxC.dll" />
+<?else?>
         <!-- We set KeyPath on this file to instruct TypeLib to read the TLB resource from it
-             and create appropriate Interface registry entries. Note that the same TLB is present
-             in VBoxSVC.exe - it's just a matter of choice which one to use -->
-        <!-- Note: This file ID *must not* be changed because of our typelib template generation file! -->
-        <File Id="VBoxC" Name="VBoxC.dll" Source="$(env.PATH_OUT)\bin\VBoxC.dll" KeyPath="yes">
-        </File>
+             and create appropriate Interface registry entries
 
+             Note that the same TLB is present in VBoxSVC.exe and VBoxSDS.exe - it's just a matter of choice which one to use
+             The file ID *must not* be changed because of our typelib template generation file! -->
+        <File Id="VBoxC" Name="VBoxC.dll" Source="$(env.PATH_OUT)\bin\VBoxC.dll" KeyPath="$(var.Property_VBoxCDllAsTypelib)" />
+<?endif?>
         <!-- Include the auto-generated TypeLib block -->
         <?include $(env.PATH_TARGET)\VirtualBox_TypeLib.wxi ?>
 
 <?if $(env.VBOX_WITH_SDS) = "yes" ?>
-        <File Id="VBoxSDS" Name="VBoxSDS.exe" Vital="yes" Source="$(env.PATH_OUT)\bin\VBoxSDS.exe" />
+        <File Id="VBoxSDS" Name="VBoxSDS.exe" Vital="yes" Source="$(env.PATH_OUT)\bin\VBoxSDS.exe" KeyPath="yes" />
 
         <!-- The name of the Windows service is referenced in different places.
              Don't forget to change it in other places too If you change it here :

@@ -897,6 +897,7 @@ static int xpidlParseMethodParameters(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXP
             int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
             if (RT_FAILURE(rc))
                 return rc;
+            pNdTypeSpec->pParent          = pNdParam;
             pNdParam->u.Param.pNdTypeSpec = pNdTypeSpec;
 
             XPIDL_PARSE_IDENTIFIER(pszName); /* The parameter name is always required. */

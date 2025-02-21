@@ -241,10 +241,12 @@ int main(int argc, char *argv[])
      * Don't try to process multiple files, given that we don't handle -o
      * multiply.
      */
-    if (xpidl_process_idl(argv[i], &LstIncludePaths, file_basename, mode))
+    int rc = xpidl_process_idl(argv[i], &LstIncludePaths, file_basename, mode);
+    if (RT_SUCCESS(rc))
         return 0;
 
     /** @todo Free include paths. */
 
+    printf("Failed to process IDL file\n");
     return 1;
 }

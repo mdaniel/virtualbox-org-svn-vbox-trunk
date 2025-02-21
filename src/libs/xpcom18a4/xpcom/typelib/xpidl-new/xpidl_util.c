@@ -38,6 +38,7 @@
 /*
  * Utility functions called by various backends.
  */ 
+#include <iprt/assert.h>
 
 #include "xpidl.h"
 
@@ -343,31 +344,25 @@ verify_attribute_declaration(IDL_tree attr_tree)
     }
     return TRUE;
 }
+#endif
 
 /*
  * Find the underlying type of an identifier typedef.
- * 
- * All the needed tree-walking seems pretty shaky; isn't there something in
- * libIDL to automate this?
  */
-IDL_tree /* IDL_TYPE_DCL */
-find_underlying_type(IDL_tree typedef_ident)
+DECLHIDDEN(PCXPIDLNODE) find_underlying_type(PCXPIDLNODE pNd)
 {
-    IDL_tree up;
-
-    if (typedef_ident == NULL || IDL_NODE_TYPE(typedef_ident) != IDLN_IDENT)
+    if (pNd == NULL || pNd->enmType != kXpidlNdType_Identifier)
         return NULL;
 
-    up = IDL_NODE_UP(typedef_ident);
-    if (up == NULL || IDL_NODE_TYPE(up) != IDLN_LIST)
-        return NULL;
-    up = IDL_NODE_UP(up);
-    if (up == NULL || IDL_NODE_TYPE(up) != IDLN_TYPE_DCL)
-        return NULL;
-
-    return IDL_TYPE_DCL(up).type_spec;
+    AssertPtr(pNd->pNdTypeRef);
+    pNd = pNd->pNdTypeRef;
+    if (pNd->enmType == kXpidlNdType_Typedef)
+        pNd = pNd->u.Typedef.pNodeTypeSpec;
+    return pNd;
 }
 
+
+#if 0
 static IDL_tree /* IDL_PARAM_DCL */
 find_named_parameter(IDL_tree method_tree, const char *param_name)
 {
@@ -741,25 +736,26 @@ verify_method_declaration(IDL_tree method_tree)
 
     return TRUE;
 }
+#endif
 
 /*
  * Verify that a native declaration has an associated C++ expression, i.e. that
  * it's of the form native <idl-name>(<c++-name>)
  */
-gboolean
-check_native(TreeState *state)
+DECLHIDDEN(bool) check_native(PCXPIDLNODE pNd)
 {
-    char *native_name;
+    Assert(pNd->enmType == kXpidlNdType_Native);
+
     /* require that native declarations give a native type */
-    if (IDL_NATIVE(state->tree).user_type) 
-        return TRUE;
-    native_name = IDL_IDENT(IDL_NATIVE(state->tree).ident).str;
-    IDL_tree_error(state->tree,
-                   "``native %s;'' needs C++ type: ``native %s(<C++ type>);''",
-                   native_name, native_name);
-    return FALSE;
+    if (pNd->u.Native.pszNative) 
+        return true;
+
+    //IDL_tree_error(state->tree,
+    //               "``native %s;'' needs C++ type: ``native %s(<C++ type>);''",
+    //               pNd->u.Native.pszName, pNd->u.Native.pszName);
+    return false;
 }
-#endif
+
 
 /*
  * Verify that the interface declaration is correct

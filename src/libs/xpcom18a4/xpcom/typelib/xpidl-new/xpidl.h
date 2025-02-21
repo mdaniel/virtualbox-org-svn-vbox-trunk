@@ -395,14 +395,13 @@ DECLINLINE(bool) xpidlNdIsStringType(PCXPIDLNODE pNd)
  */
 DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd);
 
-#if 0
 /*
  * Find the underlying type of an identifier typedef.  Returns NULL
  * (and doesn't complain) on failure.
  */
-IDL_tree /* IDL_TYPE_DCL */
-find_underlying_type(IDL_tree typedef_ident);
+DECLHIDDEN(PCXPIDLNODE) find_underlying_type(PCXPIDLNODE pNd);
 
+#if 0
 /*
  * Check that const declarations match their stated sign and are of the
  * appropriate types.
@@ -421,16 +420,12 @@ verify_attribute_declaration(IDL_tree method_tree);
  */
 gboolean
 verify_method_declaration(IDL_tree method_tree);
+#endif
 
 /*
  * Verify that a native declaration has an associated C++ expression, i.e. that
  * it's of the form native <idl-name>(<c++-name>)
  */
-gboolean
-check_native(TreeState *state);
-
-void
-printlist(FILE *outfile, GSList *slist);
-#endif
+DECLHIDDEN(bool) check_native(PCXPIDLNODE pNd);
 
 #endif /* __xpidl_h */

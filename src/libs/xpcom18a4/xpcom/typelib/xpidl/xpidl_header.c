@@ -333,6 +333,7 @@ static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, bool fDecl)
         Nd.u.Param.pszName = "_retval";
         Nd.u.Param.enmDir = kXpidlDirection_Out;
         Nd.u.Param.pNdTypeSpec = pNd->u.Method.pNdTypeSpecRet;
+        Nd.cAttrs = 0;
         int rc = write_param(&Nd, pFile);
         if (RT_FAILURE(rc))
         {

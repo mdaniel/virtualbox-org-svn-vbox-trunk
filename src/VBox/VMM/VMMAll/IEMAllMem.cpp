@@ -604,8 +604,7 @@ void iemMemRollbackAndUnmap(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEPT
  * Commits the guest memory if bounce buffered and unmaps it, longjmp on error.
  *
  * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   pvMem               The mapping.
- * @param   fAccess             The kind of access.
+ * @param   bUnmapInfo          Unmap info set by iemMemMap.
  */
 void iemMemCommitAndUnmapJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP
 {

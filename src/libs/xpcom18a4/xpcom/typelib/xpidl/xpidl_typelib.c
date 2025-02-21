@@ -129,7 +129,8 @@ DeleteNewInterfaceHolder(NewInterfaceHolder *holder)
 static XPTInterfaceDirectoryEntry *FindInterfaceByName(XPTInterfaceDirectoryEntry *ides, uint16 num_interfaces,
                                                        const char *name, uint16_t *pu16Id)
 {
-    for (uint16_t i = 0; i < num_interfaces; i++) {
+    uint16_t i;
+    for (i = 0; i < num_interfaces; i++) {
         if (!strcmp(ides[i].name, name))
         {
             if (pu16Id)

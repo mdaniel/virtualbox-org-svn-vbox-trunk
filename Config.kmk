@@ -2744,15 +2744,6 @@ ifneq ($(KBUILD_TARGET),win)
  	$(VBOX_PATH_SDK)/bindings/xpcom/include/xpcom \
  	$(VBOX_PATH_SDK)/bindings/xpcom/include/nsprpub \
  	$(VBOX_PATH_SDK)/bindings/xpcom/include/ipcd
- ifneq ($(KBUILD_TARGET),os2)
-  # libIDL-config (for xpcom18a4)
-  ifeq ($(origin VBOX_LIBIDL_CONFIG),undefined)
-   ifeq ($(KBUILD_HOST),solaris)
-    VBOX_LIBIDL_CONFIG_FALLBACK = $(lastword $(wildcard $(KBUILD_DEVTOOLS)/solaris.amd64/libIDL/*/bin/libIDL-config-2))
-   endif
-   export VBOX_LIBIDL_CONFIG := $(firstword $(which libIDL-config-2 libIDL-config) $(VBOX_LIBIDL_CONFIG_FALLBACK) libIDL-config-2-not-found)
-  endif
- endif
 endif
 
 # The X11 LIBPATH. (The amd64 hack is for RHEL4.)

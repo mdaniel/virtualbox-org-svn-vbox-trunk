@@ -38,6 +38,7 @@
 /*
  * Utility functions called by various backends.
  */ 
+#include <iprt/assert.h>
 
 #include "xpidl.h"
 
@@ -72,22 +73,12 @@ xpidl_strdup(const char *s)
     return ns;
 }
 
-void
-xpidl_write_comment(TreeState *state, int indent)
-{
-    fprintf(state->file, "%*s/* ", indent, "");
-    IDL_tree_to_IDL(state->tree, state->ns, state->file,
-                    IDLF_OUTPUT_NO_NEWLINES |
-                    IDLF_OUTPUT_NO_QUALIFY_IDENTS |
-                    IDLF_OUTPUT_PROPERTIES);
-    fputs(" */\n", state->file);
-}
 
 /*
  * Print an iid to into a supplied buffer; the buffer should be at least
  * UUID_LENGTH bytes.
  */
-gboolean
+bool
 xpidl_sprint_iid(nsID *id, char iidbuf[])
 {
     int printed;
@@ -115,7 +106,7 @@ static const char nsIDFmt2[] =
  * Parse a uuid string into an nsID struct.  We cannot link against libxpcom,
  * so we re-implement nsID::Parse here.
  */
-gboolean
+bool
 xpidl_parse_iid(nsID *id, const char *str)
 {
     PRInt32 count = 0;
@@ -125,7 +116,7 @@ xpidl_parse_iid(nsID *id, const char *str)
     XPT_ASSERT(str != NULL);
     
     if (strlen(str) != 36) {
-        return FALSE;
+        return false;
     }
      
 #ifdef DEBUG_shaver_iid
@@ -151,9 +142,10 @@ xpidl_parse_iid(nsID *id, const char *str)
         fputs("\n", stderr);
     }
 #endif
-    return (gboolean)(count == 11);
+    return (count == 11);
 }
 
+#if 0
 gboolean
 verify_const_declaration(IDL_tree const_tree) {
     struct _IDL_CONST_DCL *dcl = &IDL_CONST_DCL(const_tree);
@@ -352,31 +344,25 @@ verify_attribute_declaration(IDL_tree attr_tree)
     }
     return TRUE;
 }
+#endif
 
 /*
  * Find the underlying type of an identifier typedef.
- * 
- * All the needed tree-walking seems pretty shaky; isn't there something in
- * libIDL to automate this?
  */
-IDL_tree /* IDL_TYPE_DCL */
-find_underlying_type(IDL_tree typedef_ident)
+DECLHIDDEN(PCXPIDLNODE) find_underlying_type(PCXPIDLNODE pNd)
 {
-    IDL_tree up;
-
-    if (typedef_ident == NULL || IDL_NODE_TYPE(typedef_ident) != IDLN_IDENT)
+    if (pNd == NULL || pNd->enmType != kXpidlNdType_Identifier)
         return NULL;
 
-    up = IDL_NODE_UP(typedef_ident);
-    if (up == NULL || IDL_NODE_TYPE(up) != IDLN_LIST)
-        return NULL;
-    up = IDL_NODE_UP(up);
-    if (up == NULL || IDL_NODE_TYPE(up) != IDLN_TYPE_DCL)
-        return NULL;
-
-    return IDL_TYPE_DCL(up).type_spec;
+    AssertPtr(pNd->pNdTypeRef);
+    pNd = pNd->pNdTypeRef;
+    if (pNd->enmType == kXpidlNdType_Typedef)
+        pNd = pNd->u.Typedef.pNodeTypeSpec;
+    return pNd;
 }
 
+
+#if 0
 static IDL_tree /* IDL_PARAM_DCL */
 find_named_parameter(IDL_tree method_tree, const char *param_name)
 {
@@ -750,68 +736,40 @@ verify_method_declaration(IDL_tree method_tree)
 
     return TRUE;
 }
+#endif
 
 /*
  * Verify that a native declaration has an associated C++ expression, i.e. that
  * it's of the form native <idl-name>(<c++-name>)
  */
-gboolean
-check_native(TreeState *state)
+DECLHIDDEN(bool) check_native(PCXPIDLNODE pNd)
 {
-    char *native_name;
+    Assert(pNd->enmType == kXpidlNdType_Native);
+
     /* require that native declarations give a native type */
-    if (IDL_NATIVE(state->tree).user_type) 
-        return TRUE;
-    native_name = IDL_IDENT(IDL_NATIVE(state->tree).ident).str;
-    IDL_tree_error(state->tree,
-                   "``native %s;'' needs C++ type: ``native %s(<C++ type>);''",
-                   native_name, native_name);
-    return FALSE;
+    if (pNd->u.Native.pszNative) 
+        return true;
+
+    //IDL_tree_error(state->tree,
+    //               "``native %s;'' needs C++ type: ``native %s(<C++ type>);''",
+    //               pNd->u.Native.pszName, pNd->u.Native.pszName);
+    return false;
 }
 
-/*
- * Print a GSList as char strings to a file.
- */
-void
-printlist(FILE *outfile, GSList *slist)
-{
-    guint i;
-    guint len = g_slist_length(slist);
-
-    for(i = 0; i < len; i++) {
-        fprintf(outfile, 
-                "%s\n", (char *)g_slist_nth_data(slist, i));
-    }
-}
-
-void
-xpidl_list_foreach(IDL_tree p, IDL_tree_func foreach, gpointer user_data)
-{
-    IDL_tree_func_data tfd;
-
-    while (p) {
-        struct _IDL_LIST *list = &IDL_LIST(p);
-        tfd.tree = list->data;
-        if (!foreach(&tfd, user_data))
-            return;
-        p = list->next;
-    }
-}
 
 /*
  * Verify that the interface declaration is correct
  */
-gboolean
-verify_interface_declaration(IDL_tree interface_tree)
+DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd)
 {
-    IDL_tree iter;
     /* 
      * If we have the scriptable attribute then make sure all of our direct
      * parents have it as well.
      * NOTE: We don't recurse since all interfaces will fall through here
      */
-    if (IDL_tree_property_get(IDL_INTERFACE(interface_tree).ident, 
-        "scriptable")) {
+    if (xpidlNodeAttrFind(pNd,  "scriptable"))
+    {
+#if 0
         for (iter = IDL_INTERFACE(interface_tree).inheritance_spec; iter; 
             iter = IDL_LIST(iter).next) {
             if (IDL_tree_property_get(
@@ -822,27 +780,19 @@ verify_interface_declaration(IDL_tree interface_tree)
                     IDL_IDENT(IDL_INTERFACE(iter).ident).str));
             }
         }
+#endif
     }
-    return TRUE;
+    return true;
 }
 
-/*
- * Return a pointer to the start of the base filename of path
- */
-char *
-xpidl_basename(const char * path)
+
+DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr)
 {
-    char * result = g_path_get_basename(path);
-    /* 
-     *If this is windows then we'll handle either / or \ as a separator
-     * g_basename only handles \ for windows
-     */
-#if defined(XP_WIN32)
-# error adapt regarding g_basename() vs. g_path_get_basename()!
-    const char * slash = strrchr(path, '/');
-    /* If we found a slash and its after the current default OS separator */
-    if (slash != NULL && (slash > result))
-        result = slash + 1;
-#endif
-    return result;
+    for (uint32_t i = 0; i < pNd->cAttrs; i++)
+    {
+        if (!strcmp(pNd->aAttrs[i].pszName, pszAttr))
+            return &pNd->aAttrs[i];
+    }
+
+    return NULL;
 }

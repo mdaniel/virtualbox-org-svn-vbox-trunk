@@ -517,7 +517,11 @@ static int xpidlHdrWriteConst(PCXPIDLNODE pNd, FILE *pFile)
 
     write_indent(pFile);
     fprintf(pFile, "enum { %s = ", pNd->u.Const.pszName);
+#ifdef RT_OS_DARWIN
+    fprintf(pFile, "%lluU", pNd->u.Const.u64Const);
+#else
     fprintf(pFile, "%luU", pNd->u.Const.u64Const);
+#endif
     fprintf(pFile, " };\n\n");
 
     return VINF_SUCCESS;

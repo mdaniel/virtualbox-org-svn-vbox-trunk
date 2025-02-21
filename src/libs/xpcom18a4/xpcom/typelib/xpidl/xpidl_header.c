@@ -506,7 +506,7 @@ static int xpidlHdrWriteConst(PCXPIDLNODE pNd, FILE *pFile)
 
     write_indent(pFile);
     fprintf(pFile, "enum { %s = ", pNd->u.Const.pszName);
-    fprintf(pFile, "%lluU", pNd->u.Const.u64Const);
+    fprintf(pFile, "%luU", pNd->u.Const.u64Const);
     fprintf(pFile, " };\n\n");
 
     return VINF_SUCCESS;

@@ -376,7 +376,8 @@ static void xpidlHdrWriteIdlAttrs(PCXPIDLNODE pIt, FILE *pFile)
     if (pIt->cAttrs)
     {
         fputs("[", pFile);
-        for (uint32_t i = 0; i < pIt->cAttrs; i++)
+        uint32_t i;
+        for (i = 0; i < pIt->cAttrs; i++)
         {
             if (pIt->aAttrs[i].pszVal)
                 fprintf(pFile, "%s (%s)", pIt->aAttrs[i].pszName, pIt->aAttrs[i].pszVal);

@@ -262,8 +262,8 @@ static int xpidlParseSkipComments(PXPIDLPARSE pThis, PXPIDLINPUT pInput, bool *p
             return VINF_SUCCESS;
 
         /* Make sure we don't miss any %{C++ %} blocks. */
-        if (   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
-            || !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{ C++")))
+        if (   !strncmp(pTok->Type.Comment.pszComment, "%{C++", sizeof("%{C++") - 1)
+            || !strncmp(pTok->Type.Comment.pszComment, "%{ C++", sizeof("%{ C++") - 1))
         {
             if (pfRawBlock)
                 *pfRawBlock = true; 
@@ -957,7 +957,7 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
             if (RT_FAILURE(rc))
                 return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query punctuator token with %Rrc", rc);
 
-            size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+            size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, "%{C++", sizeof("%{C++") - 1)
                               ? 6  /* Assumes a newline after %{C++ */
                               : 7; /* Assumes a newline after %{C++ */
             /* Create a new raw block node. */
@@ -1241,10 +1241,10 @@ static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pL
             case RTSCRIPTLEXTOKTYPE_COMMENT_MULTI_LINE:
             {
                 /* Could be a raw block, check that the string starts with %{C++. */
-                if (   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
-                    || !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{ C++")))
+                if (   !strncmp(pTok->Type.Comment.pszComment, "%{C++", sizeof("%{C++") - 1)
+                    || !strncmp(pTok->Type.Comment.pszComment, "%{ C++", sizeof("%{ C++") - 1))
                 {
-                    size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+                    size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, "%{C++", sizeof("%{C++") - 1)
                                       ? 6  /* Assumes a newline after %{C++ */
                                       : 7; /* Assumes a newline after %{C++ */
                     /* Create a new raw block node. */

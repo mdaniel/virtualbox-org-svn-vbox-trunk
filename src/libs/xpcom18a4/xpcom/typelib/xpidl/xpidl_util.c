@@ -790,7 +790,8 @@ DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd)
 
 DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr)
 {
-    for (uint32_t i = 0; i < pNd->cAttrs; i++)
+    uint32_t i;
+    for (i = 0; i < pNd->cAttrs; i++)
     {
         if (!strcmp(pNd->aAttrs[i].pszName, pszAttr))
             return &pNd->aAttrs[i];

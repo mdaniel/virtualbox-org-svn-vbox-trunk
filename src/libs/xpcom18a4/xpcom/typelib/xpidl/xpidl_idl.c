@@ -24,6 +24,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-only
  */
+#include <iprt/cdefs.h>
 #include <iprt/errcore.h>
 #include <iprt/file.h>
 #include <iprt/mem.h>

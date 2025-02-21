@@ -79,6 +79,7 @@ static const char *s_aszMultiStart[] =
 {
     "/*",
     "%{C++",
+    "%{ C++",
     NULL
 };
 
@@ -86,6 +87,7 @@ static const char *s_aszMultiStart[] =
 static const char *s_aszMultiEnd[] =
 {
     "*/",
+    "%}",
     "%}",
     NULL
 };
@@ -245,7 +247,7 @@ static int xpidlParseError(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PCRTSCRIPTLEXT
 }
 
 
-static int xpidlParseSkipComments(PXPIDLPARSE pThis, PXPIDLINPUT pInput)
+static int xpidlParseSkipComments(PXPIDLPARSE pThis, PXPIDLINPUT pInput, bool *pfRawBlock)
 {
     for (;;)
     {
@@ -259,8 +261,13 @@ static int xpidlParseSkipComments(PXPIDLPARSE pThis, PXPIDLINPUT pInput)
             return VINF_SUCCESS;
 
         /* Make sure we don't miss any %{C++ %} blocks. */
-        if (!strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++")))
-            return xpidlParseError(pThis, pInput, pTok, VERR_INVALID_PARAMETER, "Parser: Encountered unexpected raw code block comment");
+        if (   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+            || !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{ C++")))
+        {
+            if (pfRawBlock)
+                *pfRawBlock = true; 
+            return VINF_SUCCESS;
+        }
 
         RTScriptLexConsumeToken(pInput->hIdlLex);
     }
@@ -635,7 +642,7 @@ static int xpidlParseAttributes(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLATT
         bool fConsumed = false;
         const char *pszVal = NULL;
 
-        XPIDL_PARSE_IDENTIFIER(pszAttr);
+        XPIDL_PARSE_IDENTIFIER_ALLOW_KEYWORDS(pszAttr); /* For const for example. */
         XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '(');
         if (fConsumed)
         {
@@ -838,9 +845,11 @@ static int xpidlParseConst(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNd
 static int xpidlParseAttribute(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNdIf, bool fReadonly)
 {
     int rc;
-    PXPIDLNODE pNdConst = xpidlNodeCreate(pThis, pNdIf, pInput, kXpidlNdType_Attribute);
+    PXPIDLNODE pNdConst = xpidlNodeCreateWithAttrs(pThis, pNdIf, pInput, kXpidlNdType_Attribute,
+                                                   &pThis->aAttrs[0], pThis->cAttrs);
     if (pNdConst)
     {
+        pThis->cAttrs = 0;
         RTListAppend(&pNdIf->u.If.LstBody, &pNdConst->NdLst);
 
         PXPIDLNODE pNdTypeSpec = NULL;
@@ -935,14 +944,53 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
 {
     for (;;)
     {
-        int rc = xpidlParseSkipComments(pThis, pInput);
+        bool fRawBlock = false;
+        int rc = xpidlParseSkipComments(pThis, pInput, &fRawBlock);
         if (RT_FAILURE(rc))
             return rc;
+
+        if (fRawBlock)
+        {
+            PCRTSCRIPTLEXTOKEN pTok;
+            int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
+            if (RT_FAILURE(rc))
+                return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query punctuator token with %Rrc", rc);
+
+            size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+                              ? 6  /* Assumes a newline after %{C++ */
+                              : 7; /* Assumes a newline after %{C++ */
+            /* Create a new raw block node. */
+            PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_RawBlock);
+            if (pNode)
+            {
+                pNode->u.RawBlock.pszRaw = pTok->Type.Comment.pszComment + cchIntro;
+                pNode->u.RawBlock.cchRaw = pTok->Type.Comment.cchComment - (cchIntro + 2 + 1); /* Start + end + zero terminator. */
+                RTScriptLexConsumeToken(pInput->hIdlLex);
+                RTListAppend(&pNdIf->u.If.LstBody, &pNode->NdLst);
+            }
+            else
+            {
+                rc = VERR_NO_MEMORY;
+                break;
+            }
+        }
 
         /* A closing '}' means we reached the end of the interface body. */
         bool fConsumed = false;
         XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '}');
         if (fConsumed)
+            break;
+
+        XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '[');
+        if (fConsumed)
+        {
+            if (pThis->cAttrs)
+                return xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER,
+                                       "Start of attribute list directly after an existing attribute list");
+
+            rc = xpidlParseAttributes(pThis, pInput, &pThis->aAttrs[0], RT_ELEMENTS(pThis->aAttrs), &pThis->cAttrs);
+        }
+        if (RT_FAILURE(rc))
             break;
 
         /*
@@ -980,26 +1028,16 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
         {
             /* We need to parse a type spec. */
             PXPIDLNODE pNdRetType = NULL;
-            XPIDLATTR aAttrs[32];
-            uint32_t cAttrs = 0;
-
-            /* A list of attributes for this method?. */
-            XPIDL_PARSE_OPTIONAL_PUNCTUATOR(fConsumed, '[');
-            if (fConsumed)
-            {
-                rc = xpidlParseAttributes(pThis, pInput, &aAttrs[0], RT_ELEMENTS(aAttrs), &cAttrs);
-                if (RT_FAILURE(rc))
-                    return rc;
-            }
 
             rc = xpidlParseTypeSpec(pThis, pInput, &pNdRetType);
             if (RT_FAILURE(rc))
                 return rc;
 
             PXPIDLNODE pNdMethod = xpidlNodeCreateWithAttrs(pThis, pNdIf, pInput, kXpidlNdType_Method,
-                                                            &aAttrs[0], cAttrs);
+                                                            &pThis->aAttrs[0], pThis->cAttrs);
             if (pNdMethod)
             {
+                pThis->cAttrs = 0;
                 RTListAppend(&pNdIf->u.If.LstBody, &pNdMethod->NdLst);
 
                 pNdMethod->u.Method.pNdTypeSpecRet = pNdRetType;
@@ -1202,14 +1240,18 @@ static int xpidlParseIdl(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PRTLISTANCHOR pL
             case RTSCRIPTLEXTOKTYPE_COMMENT_MULTI_LINE:
             {
                 /* Could be a raw block, check that the string starts with %{C++. */
-                if (!strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++")))
+                if (   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+                    || !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{ C++")))
                 {
+                    size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, RT_STR_TUPLE("%{C++"))
+                                      ? 6  /* Assumes a newline after %{C++ */
+                                      : 7; /* Assumes a newline after %{C++ */
                     /* Create a new raw block node. */
                     PXPIDLNODE pNode = xpidlNodeCreate(pThis, NULL, pInput, kXpidlNdType_RawBlock);
                     if (pNode)
                     {
-                        pNode->u.RawBlock.pszRaw = pTok->Type.Comment.pszComment + 6; /* Assumes a newline after %{C++ */
-                        pNode->u.RawBlock.cchRaw = pTok->Type.Comment.cchComment - (6 + 2 + 1); /* Start + end + zero terminator. */
+                        pNode->u.RawBlock.pszRaw = pTok->Type.Comment.pszComment + cchIntro;
+                        pNode->u.RawBlock.cchRaw = pTok->Type.Comment.cchComment - (cchIntro + 2 + 1); /* Start + end + zero terminator. */
                         RTListAppend(&pThis->LstNodes, &pNode->NdLst);
                     }
                     else

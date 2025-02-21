@@ -351,6 +351,8 @@ verify_attribute_declaration(IDL_tree attr_tree)
  */
 DECLHIDDEN(PCXPIDLNODE) find_underlying_type(PCXPIDLNODE pNd)
 {
+    if (pNd->enmType == kXpidlNdType_BaseType)
+        return pNd;
     if (pNd == NULL || pNd->enmType != kXpidlNdType_Identifier)
         return NULL;
 

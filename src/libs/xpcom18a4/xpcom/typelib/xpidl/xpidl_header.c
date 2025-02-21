@@ -230,7 +230,7 @@ static int xpidlHdrWriteType(PCXPIDLNODE pNd, FILE *outfile)
 /* If notype is true, just write the param name. */
 static int write_param(PCXPIDLNODE pNd, FILE *pFile)
 {
-    PCXPIDLNODE pNdTypeSpec = pNd->u.Param.pNdTypeSpec;
+    PCXPIDLNODE pNdTypeSpec = find_underlying_type(pNd->u.Param.pNdTypeSpec);
     bool is_in = pNd->u.Param.enmDir == kXpidlDirection_In;
     /* in string, wstring, nsid, domstring, utf8string, cstring and 
      * astring any explicitly marked [const] are const 
@@ -238,8 +238,7 @@ static int write_param(PCXPIDLNODE pNd, FILE *pFile)
 
     if (is_in &&
         (xpidlNdIsStringType(pNdTypeSpec) ||
-//         IDL_tree_property_get(IDL_PARAM_DCL(param_tree).simple_declarator,
-//                               "const") ||
+         xpidlNodeAttrFind(pNd, "const") ||
          xpidlNodeAttrFind(pNdTypeSpec, "nsid") ||
          xpidlNodeAttrFind(pNdTypeSpec, "domstring")  ||
          xpidlNodeAttrFind(pNdTypeSpec, "utf8string") ||
@@ -252,7 +251,8 @@ static int write_param(PCXPIDLNODE pNd, FILE *pFile)
         fputs("const ", pFile);
     }
 
-    int rc = xpidlHdrWriteType(pNdTypeSpec, pFile);
+    int rc = xpidlHdrWriteType(pNd->u.Param.pNdTypeSpec, pFile);
+    AssertRC(rc);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -320,16 +320,25 @@ static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, bool fDecl)
         no_generated_args = false;
     }
 
-#if 0
     /* make IDL return value into trailing out argument */
-    if (op->op_type_spec && !op_notxpcom) {
-        IDL_tree fake_param = IDL_param_dcl_new(IDL_PARAM_OUT,
-                                                op->op_type_spec,
-                                                IDL_ident_new("_retval"));
-        if (!fake_param)
-            return FALSE;
-        if (!write_param(fake_param, pFile))
-            return FALSE;
+    if (   pNd->u.Method.pNdTypeSpecRet
+        && (   pNd->u.Method.pNdTypeSpecRet->enmType != kXpidlNdType_BaseType
+            || pNd->u.Method.pNdTypeSpecRet->u.enmBaseType != kXpidlType_Void)
+        && !op_notxpcom)
+    {
+        if (!no_generated_args)
+            fputs(", ", pFile);
+        XPIDLNODE Nd;
+        Nd.enmType = kXpidlNdType_Parameter;
+        Nd.u.Param.pszName = "_retval";
+        Nd.u.Param.enmDir = kXpidlDirection_Out;
+        Nd.u.Param.pNdTypeSpec = pNd->u.Method.pNdTypeSpecRet;
+        int rc = write_param(&Nd, pFile);
+        if (RT_FAILURE(rc))
+        {
+            AssertFailed();
+            return VERR_INVALID_PARAMETER;
+        }
 
 #if 0
         if (op->f_varargs)
@@ -337,7 +346,6 @@ static int write_method_signature(PCXPIDLNODE pNd, FILE *pFile, bool fDecl)
 #endif
         no_generated_args = false;
     }
-#endif
 
 #if 0 /** @todo No varargs allowed. */
     /* varargs go last */
@@ -442,21 +450,23 @@ static int xpidlHdrWriteAttrAccessor(PCXPIDLNODE pNd, FILE *pFile, bool getter, 
         /* Setters for string, wstring, nsid, domstring, utf8string, 
          * cstring and astring get const. 
          */
+        PCXPIDLNODE pNdTypeSpec = find_underlying_type(pNd->u.Attribute.pNdTypeSpec);
+
         if (!getter &&
-            (xpidlNdIsStringType(pNd->u.Attribute.pNdTypeSpec) ||
-             xpidlNodeAttrFind(pNd, "nsid") ||
-             xpidlNodeAttrFind(pNd, "domstring")  ||
-             xpidlNodeAttrFind(pNd, "utf8string") ||
-             xpidlNodeAttrFind(pNd, "cstring")    ||
-             xpidlNodeAttrFind(pNd, "astring")))
+            (xpidlNdIsStringType(pNdTypeSpec) ||
+             xpidlNodeAttrFind(pNdTypeSpec, "nsid") ||
+             xpidlNodeAttrFind(pNdTypeSpec, "domstring")  ||
+             xpidlNodeAttrFind(pNdTypeSpec, "utf8string") ||
+             xpidlNodeAttrFind(pNdTypeSpec, "cstring")    ||
+             xpidlNodeAttrFind(pNdTypeSpec, "astring")))
             fputs("const ", pFile);
 
         int rc = xpidlHdrWriteType(pNd->u.Attribute.pNdTypeSpec, pFile);
         if (RT_FAILURE(rc))
             return rc;
         fprintf(pFile, "%s%s",
-                (STARRED_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "" : " "),
-                (getter && !DIPPER_TYPE(pNd->u.Attribute.pNdTypeSpec) ? "*" : ""));
+                (STARRED_TYPE(pNdTypeSpec) ? "" : " "),
+                (getter && !DIPPER_TYPE(pNdTypeSpec) ? "*" : ""));
     }
     fprintf(pFile, "a%c%s)", toupper(pszName[0]), pszName + 1);
     return VINF_SUCCESS;
@@ -524,7 +534,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
     if (!verify_interface_declaration(pNd))
         return VERR_INVALID_PARAMETER;
 
-#define FAIL    do {rc = VERR_INVALID_PARAMETER; goto out;} while(0)
+#define FAIL    do {AssertFailed(); rc = VERR_INVALID_PARAMETER; goto out;} while(0)
 
     fprintf(pFile, "\n/* starting interface:    %s */\n", pNd->u.If.pszIfName);
 
@@ -586,16 +596,16 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
      * the optimization.
      */
     bool keepvtable = false;
-#if 0 /* We don't allow code fragments in interface definitions. */
-    for (iter = IDL_INTERFACE(state->tree).body;
-         iter != NULL;
-         iter = IDL_LIST(iter).next)
+    PCXPIDLNODE pIt;
+    RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
     {
-        IDL_tree data = IDL_LIST(iter).data;
-        if (IDL_NODE_TYPE(data) == IDLN_CODEFRAG)
-            keepvtable = TRUE;
+        if (pIt->enmType == kXpidlNdType_RawBlock)
+        {
+            keepvtable = true;
+            break;
+        }
     }
-#endif
+
 
     /* The interface declaration itself. */
     fprintf(pFile,
@@ -613,7 +623,6 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
     write_classname_iid_define(pFile, pNd->u.If.pszIfName);
     fputs(")\n\n", pFile);
 
-    PCXPIDLNODE pIt;
     RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
     {
         switch (pIt->enmType)
@@ -632,6 +641,9 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
                 rc = xpidlHdrWriteMethod(pIt, pFile);
                 if (RT_FAILURE(rc))
                     FAIL;
+                break;
+            case kXpidlNdType_RawBlock:
+                fprintf(pFile, "%.*s", (int)pIt->u.RawBlock.cchRaw, pIt->u.RawBlock.pszRaw);
                 break;
             default:
                 FAIL;
@@ -669,6 +681,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
         switch (pIt->enmType)
         {
             case kXpidlNdType_Const:
+            case kXpidlNdType_RawBlock:
                 /* ignore it here; it doesn't contribute to the macro. */
                 continue;
             case kXpidlNdType_Attribute:
@@ -727,6 +740,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
         switch (pIt->enmType)
         {
             case kXpidlNdType_Const:
+            case kXpidlNdType_RawBlock:
                 continue;
             case kXpidlNdType_Attribute:
             {
@@ -797,6 +811,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
         switch (pIt->enmType)
         {
             case kXpidlNdType_Const:
+            case kXpidlNdType_RawBlock:
                 continue;
             case kXpidlNdType_Attribute:
             {

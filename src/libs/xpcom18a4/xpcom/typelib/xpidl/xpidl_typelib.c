@@ -1210,6 +1210,8 @@ static int xpidlTypelibProcessIf(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
             case kXpidlNdType_Const:
                 rc = xpidlTypelibProcessConst(pThis, pIt);
                 break;
+            case kXpidlNdType_RawBlock:
+                break;
             default:
                 AssertReleaseFailed();
                 break;

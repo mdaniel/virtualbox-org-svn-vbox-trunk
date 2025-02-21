@@ -823,7 +823,7 @@ static int xpidlParseConst(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE pNd
         RTListAppend(&pNdIf->u.If.LstBody, &pNdConst->NdLst);
 
         PXPIDLNODE pNdTypeSpec = NULL;
-        int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+        rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
         if (RT_FAILURE(rc))
             return rc;
         pNdConst->u.Const.pNdTypeSpec = pNdTypeSpec;
@@ -853,7 +853,7 @@ static int xpidlParseAttribute(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE
         RTListAppend(&pNdIf->u.If.LstBody, &pNdConst->NdLst);
 
         PXPIDLNODE pNdTypeSpec = NULL;
-        int rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
+        rc = xpidlParseTypeSpec(pThis, pInput, &pNdTypeSpec);
         if (RT_FAILURE(rc))
             return rc;
         pNdConst->u.Attribute.pNdTypeSpec = pNdTypeSpec;
@@ -1135,7 +1135,7 @@ static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE p
                              PCRTSCRIPTLEXTOKMATCH pKeyword)
 {
     RT_NOREF(pThis, pInput, pLstIncludePaths);
-    int rc;
+    int rc = VINF_SUCCESS;
     switch (pKeyword->u64Val)
     {
         case kXpidlKeyword_Include:
@@ -1209,7 +1209,7 @@ static int xpidlParseKeyword(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDLNODE p
         default:
             rc = xpidlParseError(pThis, pInput, NULL, VERR_INVALID_PARAMETER, "Unexpected keyword '%s' found",
                                  pKeyword->pszMatch);
-    } 
+    }
     return rc;
 }
 

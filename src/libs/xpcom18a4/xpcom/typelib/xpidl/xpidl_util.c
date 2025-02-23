@@ -124,9 +124,9 @@ xpidl_parse_iid(nsID *id, const char *str)
 #endif
 
     count = sscanf(str, nsIDFmt2,
-                   &n0, &n1, &n2,
-                   &n3[0],&n3[1],&n3[2],&n3[3],
-                   &n3[4],&n3[5],&n3[6],&n3[7]);
+                   (uint32_t *)&n0, (uint32_t *)&n1, (uint32_t *)&n2,
+                   (uint32_t *)&n3[0],(uint32_t *)&n3[1],(uint32_t *)&n3[2],(uint32_t *)&n3[3],
+                   (uint32_t *)&n3[4],(uint32_t *)&n3[5],(uint32_t *)&n3[6],(uint32_t *)&n3[7]);
 
     id->m0 = (PRInt32) n0;
     id->m1 = (PRInt16) n1;

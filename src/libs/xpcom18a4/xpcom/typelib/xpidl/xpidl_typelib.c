@@ -261,6 +261,7 @@ static bool find_interfaces(PXPIDLTYPELIBSTATE pThis, PCXPIDLINPUT pInput, PCRTL
                 add_interface_maybe(pThis, pIt->u.Method.pNdTypeSpecRet);
                 if (!find_interfaces(pThis, pInput, &pIt->u.Method.LstParams))
                     return false;
+                break;
             case kXpidlNdType_Parameter:
                 add_interface_maybe(pThis, pIt->u.Param.pNdTypeSpec);
                 break;

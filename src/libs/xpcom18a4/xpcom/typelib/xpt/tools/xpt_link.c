@@ -499,7 +499,7 @@ main(int argc, char **argv)
             
             /* Fix parent_interface first.
              */
-            if (id->parent_interface && id->parent_interface != 0) {
+            if (id->parent_interface) {
                 id->parent_interface = 
                     get_new_index(fix_array, totalNumberOfInterfaces,
                                   fix_array[i].file_num, id->parent_interface);

@@ -59,7 +59,9 @@ typedef struct fixElement fixElement;
 static int compare_IDEs_by_IID(const void *ap, const void *bp);
 static int compare_IDE_with_zero(const void *ap);
 static int compare_IDEs_by_name(const void *ap, const void *bp);
+#if 0 /* unused */
 static int compare_IDEs_by_name_space(const void *ap, const void *bp);
+#endif
 static int compare_strings(const void *ap, const void *bp);
 static int compare_pointers(const void *ap, const void *bp);
 static int compare_fixElements_by_IID(const void *ap, const void *bp);
@@ -688,6 +690,7 @@ compare_IDEs_by_name(const void *ap,
     return answer;
 }
 
+#if 0 /* unused */
 static int 
 compare_IDEs_by_name_space(const void *ap,
                            const void *bp)
@@ -696,6 +699,7 @@ compare_IDEs_by_name_space(const void *ap,
     
     return compare_strings(ide1->name_space, ide2->name_space);
 }
+#endif
 
 static int 
 compare_strings(const void *ap, const void *bp)

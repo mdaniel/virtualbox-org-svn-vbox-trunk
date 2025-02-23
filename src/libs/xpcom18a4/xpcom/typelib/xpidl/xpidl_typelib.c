@@ -364,12 +364,11 @@ static void
 sort_ide_block(PXPIDLTYPELIBSTATE pThis)
 {
     XPTInterfaceDirectoryEntry *ide;
-    int i;
 
     /* boy, I sure hope qsort works correctly everywhere */
 #ifdef DEBUG_shaver_sort
     fputs("before sort:\n", stderr);
-    for (i = 0; i < IFACES(pThis); i++) {
+    for (uint16_t i = 0; i < IFACES(pThis); i++) {
         fputs("  ", stderr);
         print_IID(&HEADER(pThis)->interface_directory[i].iid, stderr);
         fputc('\n', stderr);
@@ -379,7 +378,7 @@ sort_ide_block(PXPIDLTYPELIBSTATE pThis)
           sizeof(*ide), compare_IDEs);
 #ifdef DEBUG_shaver_sort
     fputs("after sort:\n", stderr);
-    for (i = 0; i < IFACES(pThis); i++) {
+    for (uint16_t i = 0; i < IFACES(pThis); i++) {
         fputs("  ", stderr);
         print_IID(&HEADER(pThis)->interface_directory[i].iid, stderr);
         fputc('\n', stderr);
@@ -556,9 +555,6 @@ static bool get_size_and_length(PCXPIDLNODE pNdType,
 
     if (pNdType->enmType == kXpidlNdType_Parameter)
     {
-        const char *size_is;
-        const char *length_is;
-
         /* only if size_is is found does any of this matter */
         PCXPIDLATTR pAttr = xpidlNodeAttrFind(pNdType, "size_is");
         if (!pAttr)
@@ -1158,7 +1154,6 @@ static int xpidlTypelibProcessIf(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     if (xpidlNodeAttrFind(pNd, "function"))
         interface_flags |= XPT_ID_FUNCTION;
 
-    uint16_t u16Id = 0;
     ide = FindInterfaceByName(HEADER(pThis)->interface_directory,
                               HEADER(pThis)->num_interfaces, name,
                               NULL);

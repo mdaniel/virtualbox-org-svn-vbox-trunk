@@ -84,9 +84,9 @@ static char xpidl_usage_str[] =
 static void
 xpidl_usage(int argc, char *argv[])
 {
-    int i;
+    RT_NOREF(argc);
     fprintf(stderr, xpidl_usage_str, argv[0]);
-    for (i = 0; modes[i].mode; i++) {
+    for (int i = 0; modes[i].mode; i++) {
         fprintf(stderr, "          %-12s  %-30s (.%s)\n", modes[i].mode,
                 modes[i].modeInfo, modes[i].suffix);
     }

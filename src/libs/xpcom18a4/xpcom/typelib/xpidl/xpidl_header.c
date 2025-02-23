@@ -693,7 +693,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             case kXpidlNdType_Attribute:
             {
                 write_indent(pFile);
-                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
                 if (RT_FAILURE(rc))
                     FAIL;
                 if (!pIt->u.Attribute.fReadonly)
@@ -751,7 +751,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             case kXpidlNdType_Attribute:
             {
                 write_indent(pFile);
-                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
                 if (RT_FAILURE(rc))
                     FAIL;
                 fputs(" { return _to ", pFile);
@@ -775,7 +775,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             }
             case kXpidlNdType_Method:
                 write_indent(pFile);
-                int rc = write_method_signature(pIt, pFile, true /*fDecl*/);
+                rc = write_method_signature(pIt, pFile, true /*fDecl*/);
                 if (RT_FAILURE(rc))
                     FAIL;
                 fputs(" { return _to ", pFile);
@@ -822,7 +822,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             case kXpidlNdType_Attribute:
             {
                 write_indent(pFile);
-                int rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
+                rc = xpidlHdrWriteAttrAccessor(pIt, pFile, true, true /*fDecl*/);
                 if (RT_FAILURE(rc))
                     FAIL;
                 fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", pFile);
@@ -846,7 +846,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
             }
             case kXpidlNdType_Method:
                 write_indent(pFile);
-                int rc = write_method_signature(pIt, pFile, true /*fDecl*/);
+                rc = write_method_signature(pIt, pFile, true /*fDecl*/);
                 if (RT_FAILURE(rc))
                     FAIL;
                 fputs(" { return !_to ? NS_ERROR_NULL_POINTER : _to->", pFile);

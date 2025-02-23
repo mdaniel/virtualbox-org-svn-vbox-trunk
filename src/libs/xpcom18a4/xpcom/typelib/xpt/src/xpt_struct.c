@@ -414,6 +414,8 @@ XPT_NewInterfaceDescriptor(XPTArena *arena,
 XPT_PUBLIC_API(void)
 XPT_FreeInterfaceDescriptor(XPTArena *arena, XPTInterfaceDescriptor* id)
 {
+    RT_NOREF(arena);
+
     if (id) {
         XPTMethodDescriptor *md, *mdend;
         XPTConstDescriptor *cd, *cdend;

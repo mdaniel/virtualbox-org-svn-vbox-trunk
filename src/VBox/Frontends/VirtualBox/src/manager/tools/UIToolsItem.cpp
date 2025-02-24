@@ -735,16 +735,45 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         /* Selection background: */
         if (model()->currentItem(itemClass()) == this)
         {
+            /* Acquire background color: */
+#ifdef VBOX_WS_MAC
+            const QColor selectionColor = uiCommon().isInDarkMode()
+                                        ? pal.color(QPalette::Active, QPalette::Button).lighter(150)
+                                        : pal.color(QPalette::Active, QPalette::Button).darker(150);
+#else
+            const QColor selectionColor = uiCommon().isInDarkMode()
+                                        ? pal.color(QPalette::Active, QPalette::Accent)
+                                        : pal.color(QPalette::Active, QPalette::Accent);
+#endif
+            QColor selectionColor1 = selectionColor;
+            QColor selectionColor2 = selectionColor;
+            if (model()->showItemNames())
+            {
+                selectionColor1.setAlpha(0);
+                selectionColor2.setAlpha(255);
+            }
+            else
+            {
+                selectionColor1.setAlpha(100);
+                selectionColor2.setAlpha(110);
+            }
+
+            /* Draw gradient token: */
+            QLinearGradient hlGrad(rectangle.topLeft(), rectangle.topRight());
+            hlGrad.setColorAt(0, selectionColor1);
+            hlGrad.setColorAt(1, selectionColor2);
+            pPainter->fillRect(rectangle, hlGrad);
+
             /* Acquire token color: */
             const QColor highlightColor = isEnabled()
                                         ? pal.color(QPalette::Active, QPalette::Highlight)
                                         : pal.color(QPalette::Disabled, QPalette::Highlight);
             const QColor highlightColor1 = uiCommon().isInDarkMode()
-                                         ? highlightColor.lighter(130)
-                                         : highlightColor.darker(130);
+                                         ? highlightColor.lighter(160)
+                                         : highlightColor.darker(160);
             const QColor highlightColor2 = uiCommon().isInDarkMode()
-                                         ? highlightColor.lighter(110)
-                                         : highlightColor.darker(110);
+                                         ? highlightColor.lighter(140)
+                                         : highlightColor.darker(140);
 
             /* Depending on item class: */
             switch (itemClass())
@@ -789,7 +818,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
         }
 
         /* Hovering background for widget: */
-        if (isHovered())
+        else if (isHovered())
         {
             /* Prepare variables: */
             const int iMargin = data(ToolsItemData_Margin).toInt();

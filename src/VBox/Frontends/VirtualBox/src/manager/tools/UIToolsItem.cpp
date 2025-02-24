@@ -797,24 +797,14 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                 case UIToolClass_Machine:
                 case UIToolClass_Management:
                 {
-                    /* A bit of indentation for Machine tools in widget mode: */
-                    const int iIndent = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
                     /* Prepare token sub-rect: */
-                    QRect tokenRect(rectangle.topLeft() + QPoint(iIndent, rectangle.height() / 2 - 2),
-                                    QSize(5, 5));
-
-                    /* Restrict painter path: */
-                    pPainter->save();
-                    QPainterPath path;
-                    path.addEllipse(tokenRect);
-                    pPainter->setClipPath(path);
+                    QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
 
                     /* Draw gradient token: */
                     QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
                     hlGrad.setColorAt(0, highlightColor1);
                     hlGrad.setColorAt(1, highlightColor2);
                     pPainter->fillRect(tokenRect, hlGrad);
-                    pPainter->restore();
                     break;
                 }
                 default:

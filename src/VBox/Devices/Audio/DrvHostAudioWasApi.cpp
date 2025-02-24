@@ -568,7 +568,17 @@ public:
         RTCritSectEnter(&m_CritSect);
         if (    m_pDrvWas != NULL
             && (   (enmFlow == eRender  && !m_pDrvWas->pwszOutputDevId)
-                || (enmFlow == eCapture && !m_pDrvWas->pwszInputDevId)))
+                || (enmFlow == eCapture && !m_pDrvWas->pwszInputDevId))
+            /* We only care for the multimedia role of a device here.
+             * Devices can have multiple roles they expose interfaces for.
+             *
+             * Not having this check will result in several OnDefaultDeviceChanged calls
+             * with the same device ID but with a different role. However, in our audio stack there is no concept
+             * of a device role, so we try avoiding that by only caring about eMultimedia.
+             *
+             * See @bugref{10844} */
+            && (enmRole == eMultimedia)
+           )
         {
             pIEnumerator = m_pDrvWas->pIEnumerator;
             if (pIEnumerator /* paranoia */)
@@ -1282,6 +1292,20 @@ static int drvHostAudioWasCacheLookupOrCreate(PDRVHOSTAUDIOWAS pThis, IMMDevice 
                     && pDevEntry->enmDir   == pCfgReq->enmDir
                     && RTUtf16Cmp(pDevEntry->wszDevId, pwszDevId) == 0)
                 {
+                    /* First, try retrieving the current device state here as a yet another messure for
+                     * AUDCLNT_E_DEVICE_INVALIDATED errors.  See @bugref{10844} */
+                    DWORD dwState;
+                    hrc = pIDevice->GetState(&dwState);
+                    if (SUCCEEDED(hrc))
+                    {
+                        if (dwState != DEVICE_STATE_ACTIVE)
+                            LOG_STALE_DEVICE_BREAK(("WasAPI: Cache hit for device '%ls': Non-active state (state %#x)\n",
+                                                    pDevEntry->wszDevId, drvHostAudioWasMMDeviceStateToString(dwState)));
+                    }
+                    else
+                        LOG_STALE_DEVICE_BREAK(("WasAPI: Cache hit for device '%ls': Unable to retrieve state (hr=%#x)\n",
+                                                pDevEntry->wszDevId, hrc));
+
                     /*
                      * Cache hit -- here we now need to also check if the device interface we want to look up
                      * actually matches the one we have in the cache entry.

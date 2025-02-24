@@ -78,6 +78,7 @@ Unattended::Unattended()
     mStrIsoPath                         = "/iso/path/file.iso";
     mStrAdditionsIsoPath                = "/iso/path/addition.iso";
     mfInstallGuestAdditions             = true;
+    mfProductKeyRequired                = false;
     mfInstallTestExecService            = true;
     mStrValidationKitIsoPath            = "/iso/path/valkit.iso";
     mStrTimeZone                        = "cet";
@@ -220,6 +221,12 @@ HRESULT Unattended::setFullUserName(const com::Utf8Str &fullUserName)
 HRESULT Unattended::getProductKey(com::Utf8Str &productKey)
 {
     RT_NOREF(productKey);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getProductKeyRequired(BOOL *productKeyRequired)
+{
+    RT_NOREF(productKeyRequired);
     return E_NOTIMPL;
 }
 

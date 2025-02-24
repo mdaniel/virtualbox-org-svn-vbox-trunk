@@ -1050,7 +1050,7 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     RTListForEach(&pNd->u.Method.LstParams, pIt, XPIDLNODE, NdLst)
     {
         XPTParamDescriptor *pd = &meth->params[num_args++];
-        int rc = fill_pd_from_param(pThis, pd, pIt);
+        rc = fill_pd_from_param(pThis, pd, pIt);
         if (RT_FAILURE(rc))
             return rc;
     }
@@ -1070,7 +1070,7 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
         }
 #endif
 
-        int rc = fill_pd_as_nsresult(meth->result);
+        rc = fill_pd_as_nsresult(meth->result);
         if (RT_FAILURE(rc))
             return rc;
     }
@@ -1079,8 +1079,8 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
 #ifdef DEBUG_shaver_notxpcom
         fprintf(stderr, "%s is notxpcom\n", pNd->u.Method.pszName);
 #endif
-        int rc = fill_pd_from_type(pThis, meth->result, XPT_PD_RETVAL,
-                                   pNd->u.Method.pNdTypeSpecRet);
+        rc = fill_pd_from_type(pThis, meth->result, XPT_PD_RETVAL,
+                               pNd->u.Method.pNdTypeSpecRet);
         if (RT_FAILURE(rc))
             return rc;
     }

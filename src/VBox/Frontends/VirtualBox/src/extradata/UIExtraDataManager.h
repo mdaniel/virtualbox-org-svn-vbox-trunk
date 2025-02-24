@@ -399,9 +399,13 @@ public:
         void setSelectorWindowToolBarTextVisible(bool fVisible);
 
         /** Returns last selected tool set of VirtualBox Manager. */
-        void toolsPaneLastItemsChosen(UIToolType &enmTypeGlobal, UIToolType &enmTypeMachine);
+        void toolsPaneLastItemsChosen(UIToolType &enmTypeGlobal,
+                                      UIToolType &enmTypeMachine,
+                                      UIToolType &enmTypeManagement);
         /** Defines last selected tool @a set of VirtualBox Manager. */
-        void setToolsPaneLastItemsChosen(UIToolType enmTypeGlobal, UIToolType enmTypeMachine);
+        void setToolsPaneLastItemsChosen(UIToolType enmTypeGlobal,
+                                         UIToolType enmTypeMachine,
+                                         UIToolType enmTypeManagement);
         /** Returns the list of detached tools of VirtualBox Manager. */
         QList<UIToolType> detachedTools();
         /** Defines the list of detached @a tools of VirtualBox Manager. */

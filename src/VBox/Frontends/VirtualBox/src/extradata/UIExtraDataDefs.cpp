@@ -290,6 +290,7 @@ UIToolClass UIToolStuff::castTypeToClass(UIToolType enmType)
             return UIToolClass_Aux;
         case UIToolType_Home:
         case UIToolType_Machines:
+        case UIToolType_Managers:
         case UIToolType_Extensions:
         case UIToolType_Media:
         case UIToolType_Network:

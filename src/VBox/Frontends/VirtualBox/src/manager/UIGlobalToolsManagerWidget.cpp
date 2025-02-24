@@ -116,7 +116,7 @@ void UIGlobalToolsManagerWidget::switchToolTo(UIToolType enmType)
     AssertPtrReturnVoid(toolPane());
     toolPane()->openTool(enmType);
 
-    /* Special handling for Machines Global tool,
+    /* Special handling for Machines global tool,
      * notify Machine tool-pane it's active: */
     if (enmType == UIToolType_Machines)
     {
@@ -271,8 +271,9 @@ void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmTyp
     /* For Global tool class: */
     if (enmClass == UIToolClass_Global)
     {
-        /* Mark Machine tools [un]suitable depending on Global tool selected: */
+        /* Mark Machine & Management tools [un]suitable depending on Global tool selected: */
         toolMenu()->setUnsuitableToolClass(UIToolClass_Machine, enmType != UIToolType_Machines);
+        toolMenu()->setUnsuitableToolClass(UIToolClass_Management, enmType != UIToolType_Managers);
 
         /* Switch tool-pane accordingly: */
         switchToolTo(enmType);
@@ -280,6 +281,9 @@ void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmTyp
     /* For Machine tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Machine)
         machineToolManager()->switchToolTo(enmType);
+    /* For Management tool class => switch tool-pane accordingly: */
+    else if (enmClass == UIToolClass_Management)
+        switchToolTo(enmType);
 }
 
 void UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool()

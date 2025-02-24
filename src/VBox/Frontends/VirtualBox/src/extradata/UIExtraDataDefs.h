@@ -942,7 +942,8 @@ enum UIToolClass
     UIToolClass_Invalid,
     UIToolClass_Aux,
     UIToolClass_Global,
-    UIToolClass_Machine
+    UIToolClass_Machine,
+    UIToolClass_Management
 };
 
 
@@ -955,6 +956,7 @@ enum UIToolType
     /* Global types: */
     UIToolType_Home,
     UIToolType_Machines,
+    UIToolType_Managers,
     UIToolType_Extensions,
     UIToolType_Media,
     UIToolType_Network,

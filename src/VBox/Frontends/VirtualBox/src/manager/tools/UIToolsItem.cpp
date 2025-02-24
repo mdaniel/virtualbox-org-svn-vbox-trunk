@@ -574,8 +574,10 @@ QVariant UIToolsItem::data(int iKey) const
             QFont fnt = font();
             fnt.setWeight(QFont::Bold);
 
-            /* Make Machine tool font smaller for widget mode: */
-            if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+            /* Make Machine & Management tool font smaller for widget mode: */
+            if (   !model()->isPopup()
+                && (   itemClass() == UIToolClass_Machine
+                    || itemClass() == UIToolClass_Management))
                 fnt.setPointSize(fnt.pointSize() - 1);
 
             /* Return font: */
@@ -590,10 +592,12 @@ QVariant UIToolsItem::data(int iKey) const
 
 void UIToolsItem::updatePixmap()
 {
-    /* Smaller Machine tool icons in widget mode: */
-    const int iIconMetric = model()->isPopup() || itemClass() != UIToolClass_Machine
-                          ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * 1.5
-                          : QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
+    /* Smaller Machine & Management tool icons in widget mode: */
+    const int iIconMetric =    !model()->isPopup()
+                            && (   itemClass() == UIToolClass_Machine
+                                || itemClass() == UIToolClass_Management)
+                          ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize)
+                          : QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * 1.5;
 
     /* Prepare new pixmap size: */
     const QSize pixmapSize = QSize(iIconMetric, iIconMetric);
@@ -791,6 +795,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                     break;
                 }
                 case UIToolClass_Machine:
+                case UIToolClass_Management:
                 {
                     /* A bit of indentation for Machine tools in widget mode: */
                     const int iIndent = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
@@ -838,8 +843,8 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
 #endif /* !VBOX_WS_MAC */
 
-            /* A bit of indentation for Machine tools in widget mode: */
-            const int iIndent = itemClass() == UIToolClass_Machine
+            /* A bit of indentation for Machine & Management tools in widget mode: */
+            const int iIndent = itemClass() == UIToolClass_Machine || itemClass() == UIToolClass_Management
                               ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5 : 0;
 
             /* Prepare icon sub-rect: */
@@ -965,8 +970,10 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
         int iPixmapX = model()->isPopup() ? iMargin : 1.5 * iMargin;
 #endif
 
-        /* A bit of indentation for Machine tools in widget mode: */
-        if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+        /* A bit of indentation for Machine & Management tools in widget mode: */
+        if (   !model()->isPopup()
+            && (   itemClass() == UIToolClass_Machine
+                || itemClass() == UIToolClass_Management))
             iPixmapX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
 
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
@@ -991,8 +998,10 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                                         : 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
 
-        /* A bit of indentation for Machine tools in widget mode: */
-        if (!model()->isPopup() && itemClass() == UIToolClass_Machine)
+        /* A bit of indentation for Machine & Management tools in widget mode: */
+        if (   !model()->isPopup()
+            && (   itemClass() == UIToolClass_Machine
+                || itemClass() == UIToolClass_Management))
             iNameX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
 
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;

@@ -58,7 +58,7 @@ xpidl_malloc(size_t nbytes)
 char *
 xpidl_strdup(const char *s)
 {
-#if defined(XP_MAC) || defined(XP_SOLARIS) /* bird: dunno why this is required, but whatever*/
+#if defined(RT_OS_SOLARIS)
     size_t len = strlen(s);
 	char *ns = malloc(len + 1);
 	if (ns)

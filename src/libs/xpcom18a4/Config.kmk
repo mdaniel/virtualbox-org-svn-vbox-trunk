@@ -217,6 +217,7 @@ TEMPLATE_XPComBldProg_DEFS.$(KBUILD_HOST) = $(TEMPLATE_VBoxAdvBldProg_DEFS.$(KBU
 TEMPLATE_XPComBldProg_DEFS.x86            = $(TEMPLATE_VBoxAdvBldProg_DEFS.x86)            $(TEMPLATE_XPComExe_DEFS.x86)
 TEMPLATE_XPComBldProg_DEFS.amd64          = $(TEMPLATE_VBoxAdvBldProg_DEFS.amd64)          $(TEMPLATE_XPComExe_DEFS.amd64)
 TEMPLATE_XPComBldProg_DEFS.arm64          = $(TEMPLATE_VBoxAdvBldProg_DEFS.arm64)          $(TEMPLATE_XPComExe_DEFS.arm64)
+TEMPLATE_XPComBldProg_CFLAGS  			 += -std=c99
 TEMPLATE_XPComBldProg_INCS                = \
 	$(VBOX_PATH_SDK)/bindings/xpcom/include \
 	$(VBOX_PATH_SDK)/bindings/xpcom/include/nsprpub \

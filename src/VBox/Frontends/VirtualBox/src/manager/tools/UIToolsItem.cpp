@@ -752,8 +752,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                 case UIToolClass_Global:
                 {
                     /* Prepare token sub-rect: */
-                    QRect tokenRect(rectangle.topLeft() + QPoint(0, 4),
-                                    QSize(5, rectangle.height() - 8));
+                    QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
 
                     /* Draw gradient token: */
                     QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
@@ -765,8 +764,7 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
                 case UIToolClass_Machine:
                 {
                     /* A bit of indentation for Machine tools in widget mode: */
-                    int iIndent = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
-
+                    const int iIndent = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
                     /* Prepare token sub-rect: */
                     QRect tokenRect(rectangle.topLeft() + QPoint(iIndent, rectangle.height() / 2 - 2),
                                     QSize(5, 5));

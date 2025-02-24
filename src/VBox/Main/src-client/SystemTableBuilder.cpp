@@ -61,6 +61,7 @@ typedef struct SYSTEMTABLEDEVICE
     const char *pszFdtCompatible;
     const char *pszAcpiName;
     const char *pszAcpiHid;
+    bool       fEisaId;
 } SYSTEMTABLEDEVICE;
 typedef SYSTEMTABLEDEVICE *PSYSTEMTABLEDEVICE;
 typedef const SYSTEMTABLEDEVICE *PCSYSTEMTABLEDEVICE;
@@ -71,10 +72,10 @@ typedef const SYSTEMTABLEDEVICE *PCSYSTEMTABLEDEVICE;
 *********************************************************************************************************************************/
 static const SYSTEMTABLEDEVICE g_aSysTblDevices[] =
 {
-    { "qemu-fw-cfg",        "fw-cfg",   "qemu,fw-cfg-mmio",         "FWC", "QEMU0002" },
-    { "arm-pl011",          "pl011",    "arm,pl011",                "SRL", "ARMH0011" },
-    { "arm-pl061-gpio",     "pl061",    "arm,pl061",                "GPI", "ARMH0061" },
-    { "pci-generic-ecam",   "pcie",     "pci-host-ecam-generic",    "PCI", "PNP0A08"  },
+    { "qemu-fw-cfg",        "fw-cfg",   "qemu,fw-cfg-mmio",         "FWC", "QEMU0002", false },
+    { "arm-pl011",          "pl011",    "arm,pl011",                "SRL", "ARMH0011", false },
+    { "arm-pl061-gpio",     "pl061",    "arm,pl061",                "GPI", "ARMH0061", false },
+    { "pci-generic-ecam",   "pcie",     "pci-host-ecam-generic",    "PCI", "PNP0A08",  true  },
 };
 
 
@@ -301,7 +302,10 @@ int SystemTableBuilderAcpi::addMmioDeviceNoIrq(const char *pszVBoxName, uint32_t
     RTAcpiTblDeviceStartF(m_hAcpiDsdt, "%s%RX32", pSysTblDev->pszAcpiName, uInstance);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
-    RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
+    if (pSysTblDev->fEisaId)
+        RTAcpiTblEisaIdAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
+    else
+        RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, uInstance);
@@ -323,7 +327,10 @@ int SystemTableBuilderAcpi::addMmioDevice(const char *pszVBoxName, uint32_t uIns
     RTAcpiTblDeviceStartF(m_hAcpiDsdt, "%s%RX32", pSysTblDev->pszAcpiName, uInstance);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
-    RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
+    if (pSysTblDev->fEisaId)
+        RTAcpiTblEisaIdAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
+    else
+        RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, uInstance);
@@ -369,7 +376,7 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
     RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_CID");
-    RTAcpiTblStringAppend(m_hAcpiDsdt, "PNP0A03"); /** @todo */
+    RTAcpiTblEisaIdAppend(m_hAcpiDsdt, "PNP0A03");
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
@@ -414,7 +421,7 @@ int SystemTableBuilderAcpi::configurePcieRootBus(const char *pszVBoxName, uint32
     RTAcpiTblDeviceStart(m_hAcpiDsdt, "RES0");
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
-    RTAcpiTblStringAppend(m_hAcpiDsdt, "PNP0C02");
+    RTAcpiTblEisaIdAppend(m_hAcpiDsdt, "PNP0C02");
 
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_CRS");
     RTAcpiResourceReset(m_hAcpiRes);

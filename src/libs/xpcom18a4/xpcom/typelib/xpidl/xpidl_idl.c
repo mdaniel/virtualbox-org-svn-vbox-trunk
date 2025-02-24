@@ -1372,7 +1372,7 @@ int xpidl_process_idl(char *filename, PRTLISTANCHOR pLstIncludePaths,
         else
             pFile = stdout;
 
-        rc = mode->dispatch(pFile, pInput, &ParseState);
+        rc = mode->dispatch(pFile, pInput, &ParseState, &ParseState.ErrInfo.Core);
 
         if (pFile != stdout)
             fclose(pFile);

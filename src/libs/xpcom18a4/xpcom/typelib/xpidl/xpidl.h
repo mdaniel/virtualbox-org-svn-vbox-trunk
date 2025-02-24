@@ -288,14 +288,15 @@ extern PRUint8  minor_version;
  * @param   pFile       The file to output to.
  * @param   pInput      The original input file to generate for.
  * @param   pParse      The parsing state.
+ * @param   pErrInfo    Error information.
  */
-typedef DECLCALLBACKTYPE(int, FNXPIDLDISPATCH,(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse));
+typedef DECLCALLBACKTYPE(int, FNXPIDLDISPATCH,(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse, PRTERRINFO pErrInfo));
 /** Pointer to a dispatch callback. */
 typedef FNXPIDLDISPATCH *PFNXPIDLDISPATCH;
 
 
-DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse);
-DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse);
+DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse, PRTERRINFO pErrInfo);
+DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse, PRTERRINFO pErrInfo);
 
 typedef struct ModeData {
     char               *mode;
@@ -356,6 +357,8 @@ xpidl_parse_iid(nsID *id, const char *str);
 
 DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr);
 
+
+DECLHIDDEN(int) xpidlIdlError(PRTERRINFO pErrInfo, PCXPIDLNODE pNd, int rc, const char *pszFmt, ...);
 
 /* Try to common a little node-handling stuff. */
 

@@ -799,3 +799,15 @@ DECLHIDDEN(PCXPIDLATTR) xpidlNodeAttrFind(PCXPIDLNODE pNd, const char *pszAttr)
 
     return NULL;
 }
+
+
+DECLHIDDEN(int) xpidlIdlError(PRTERRINFO pErrInfo, PCXPIDLNODE pNd, int rc, const char *pszFmt, ...)
+{
+    RT_NOREF(pNd);
+
+    va_list Args;
+    va_start(Args, pszFmt);
+    rc = RTErrInfoSetV(pErrInfo, rc, pszFmt, Args);
+    va_end(Args);
+    return rc;
+}

@@ -529,7 +529,7 @@ static int xpidlHdrWriteConst(PCXPIDLNODE pNd, FILE *pFile)
 }
 
 
-static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
+static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrInfo)
 {
     char *classNameUpper = NULL;
     char *cp;
@@ -552,8 +552,10 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
         AssertPtr(pAttrIid->pszVal);
 
         /* Redundant, but a better error than 'cannot parse.' */
-        if (strlen(pAttrIid->pszVal) != 36) {
-            //IDL_tree_error(state->tree, "IID %s is the wrong length\n", iid);
+        if (strlen(pAttrIid->pszVal) != 36)
+        {
+            rc = xpidlIdlError(pErrInfo, pNd, VERR_INVALID_STATE,
+                               "IID %s is the wrong length", pAttrIid->pszVal);
             FAIL;
         }
 
@@ -561,12 +563,16 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
          * Parse uuid and then output resulting nsID to string, to validate
          * uuid and normalize resulting .h files.
          */
-        if (!xpidl_parse_iid(&id, pAttrIid->pszVal)) {
-            //IDL_tree_error(state->tree, "cannot parse IID %s\n", iid);
+        if (!xpidl_parse_iid(&id, pAttrIid->pszVal))
+        {
+            rc = xpidlIdlError(pErrInfo, pNd, VERR_INVALID_STATE,
+                               "cannot parse IID %s\n", pAttrIid->pszVal);
             FAIL;
         }
-        if (!xpidl_sprint_iid(&id, iid_parsed)) {
-            //IDL_tree_error(state->tree, "error formatting IID %s\n", iid);
+        if (!xpidl_sprint_iid(&id, iid_parsed))
+        {
+            rc = xpidlIdlError(pErrInfo, pNd, VERR_INVALID_STATE,
+                               "error formatting IID %s\n", pAttrIid->pszVal);
             FAIL;
         }
 
@@ -587,9 +593,11 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile)
                 id.m3[0], id.m3[1], id.m3[2], id.m3[3],
                 id.m3[4], id.m3[5], id.m3[6], id.m3[7]);
         fputc('\n', pFile);
-    } else {
-        //IDL_tree_error(state->tree, "interface %s lacks a uuid attribute\n", 
-        //    className);
+    }
+    else
+    {
+        rc = xpidlIdlError(pErrInfo, pNd, VERR_INVALID_STATE,
+                           "interface %s lacks a uuid attribute\n", pNd->u.If.pszIfName);
         FAIL;
     }
 
@@ -874,7 +882,7 @@ out:
 }
 
 
-DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse)
+DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput, PCXPIDLPARSE pParse, PRTERRINFO pErrInfo)
 {
     char *define = RTPathFilename(pInput->pszBasename);
     fprintf(pFile, "/*\n * DO NOT EDIT.  THIS FILE IS GENERATED FROM"
@@ -939,7 +947,7 @@ DECL_HIDDEN_CALLBACK(int) xpidl_header_dispatch(FILE *pFile, PCXPIDLINPUT pInput
             }
             case kXpidlNdType_Interface_Def:
             {
-                rc = xpidlHdrWriteInterface(pNd, pFile);
+                rc = xpidlHdrWriteInterface(pNd, pFile, pErrInfo);
                 break;
             }
             case kXpidlNdType_Typedef:

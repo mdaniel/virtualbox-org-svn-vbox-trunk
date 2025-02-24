@@ -1141,8 +1141,9 @@ static int xpidlTypelibProcessIf(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     uint16_t parent_id = 0;
     PRUint8 interface_flags = 0;
 
-    //if (!verify_interface_declaration(iface))
-    //    return FALSE;
+    int rc = verify_interface_declaration(pNd, pThis->pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     if (xpidlNodeAttrFind(pNd, "scriptable"))
         interface_flags |= XPT_ID_SCRIPTABLE;
@@ -1184,7 +1185,6 @@ static int xpidlTypelibProcessIf(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
 
     /* Walk the children and process. */
     PCXPIDLNODE pIt;
-    int rc = VINF_SUCCESS;
     RTListForEach(&pNd->u.If.LstBody, pIt, XPIDLNODE, NdLst)
     {
         switch (pIt->enmType)

@@ -978,8 +978,9 @@ static int xpidlTypelibProcessAttr(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     /* If it's marked [noscript], mark it as hidden in the typelib. */
     bool hidden = (xpidlNodeAttrFind(pNd, "noscript") != NULL);
 
-    //if (!verify_attribute_declaration(state->tree))
-    //    return VERR_NO_MEMORY;
+    int rc = verify_attribute_declaration(pNd, pThis->pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     if (!XPT_InterfaceDescriptorAddMethods(ARENA(pThis), id, 
                                            (PRUint16) (pNd->u.Attribute.fReadonly ? 1 : 2)))
@@ -987,7 +988,7 @@ static int xpidlTypelibProcessAttr(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
 
     meth = &id->method_descriptors[NEXT_METH(pThis)];
 
-    int rc = typelib_attr_accessor(pThis, pNd, meth, true, hidden);
+    rc = typelib_attr_accessor(pThis, pNd, meth, true, hidden);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -1011,8 +1012,9 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     bool op_notxpcom = (xpidlNodeAttrFind(pNd, "notxpcom") != NULL);
     bool op_noscript = (xpidlNodeAttrFind(pNd, "noscript") != NULL);
 
-    //if (!verify_method_declaration(pNd))
-    //    return FALSE;
+    int rc = verify_method_declaration(pNd, pThis->pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     if (!XPT_InterfaceDescriptorAddMethods(ARENA(pThis), id, 1))
         return VERR_NO_MEMORY;
@@ -1093,8 +1095,9 @@ static int xpidlTypelibProcessConst(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     XPTInterfaceDescriptor *id;
     XPTConstDescriptor *cd;
 
-    //if (!verify_const_declaration(state->tree))
-    //    return FALSE;
+    int rc = verify_const_declaration(pNd, pThis->pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     /* Could be a typedef; try to map it to the real type. */
     PCXPIDLNODE pNdRealType = find_underlying_type(pNd->u.Const.pNdTypeSpec);
@@ -1116,7 +1119,7 @@ static int xpidlTypelibProcessConst(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
 #ifdef DEBUG_shaver_const
     fprintf(stderr, "DBG: adding const %s\n", cd->name);
 #endif
-    int rc = fill_td_from_type(pThis, &cd->type, pNd->u.Const.pNdTypeSpec);
+    rc = fill_td_from_type(pThis, &cd->type, pNd->u.Const.pNdTypeSpec);
     if (RT_FAILURE(rc))
         return rc;
     
@@ -1217,8 +1220,6 @@ DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInpu
     XPIDLTYPELIBSTATE This; RT_ZERO(This);
     This.pErrInfo = pErrInfo;
     int rc = typelib_prolog(&This, pInput, pParse);
-    AssertRC(rc);
-
     if (RT_SUCCESS(rc))
     {
         PCXPIDLNODE pIt;
@@ -1230,8 +1231,7 @@ DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInpu
             switch (pIt->enmType)
             {
                 case kXpidlNdType_Native:
-                    if (!check_native(pIt))
-                        rc = VERR_INVALID_PARAMETER;
+                    rc = check_native(pIt, pErrInfo);
                     break;
                 case kXpidlNdType_Interface_Def:
                     rc = xpidlTypelibProcessIf(&This, pIt);
@@ -1244,7 +1244,6 @@ DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInpu
                     AssertReleaseFailed();
                     break;
             }
-            AssertRC(rc);
             if (RT_FAILURE(rc))
                 break;
         }
@@ -1253,6 +1252,5 @@ DECL_HIDDEN_CALLBACK(int) xpidl_typelib_dispatch(FILE *pFile, PCXPIDLINPUT pInpu
             rc = typelib_epilog(&This, pFile, pInput);
     }
 
-    AssertRC(rc);
     return rc;
 }

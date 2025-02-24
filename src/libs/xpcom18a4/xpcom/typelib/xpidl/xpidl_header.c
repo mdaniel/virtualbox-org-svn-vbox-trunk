@@ -392,16 +392,15 @@ static void xpidlHdrWriteIdlAttrs(PCXPIDLNODE pIt, FILE *pFile)
 }
 
 
-static int xpidlHdrWriteMethod(PCXPIDLNODE pNd, FILE *pFile)
+static int xpidlHdrWriteMethod(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrInfo)
 {
-#if 0 /** @todo */
     /*
      * Verify that e.g. non-scriptable methods in [scriptable] interfaces
      * are declared so.  Do this in a separate verification pass?
      */
-    if (!verify_method_declaration(state->tree))
-        return FALSE;
-#endif
+    int rc = verify_method_declaration(pNd, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     /* Dump the signature as a comment. */
     write_indent(pFile);
@@ -429,7 +428,7 @@ static int xpidlHdrWriteMethod(PCXPIDLNODE pNd, FILE *pFile)
     fputs("); */\n", pFile);
 
     write_indent(pFile);
-    int rc = write_method_signature(pNd, pFile, true /*fDecl*/);
+    rc = write_method_signature(pNd, pFile, true /*fDecl*/);
     if (RT_FAILURE(rc))
         return rc;
     fputs(" = 0;\n\n", pFile);
@@ -474,12 +473,11 @@ static int xpidlHdrWriteAttrAccessor(PCXPIDLNODE pNd, FILE *pFile, bool getter, 
     return VINF_SUCCESS;
 }
 
-static int xpidlHdrWriteAttribute(PCXPIDLNODE pNd, FILE *pFile)
+static int xpidlHdrWriteAttribute(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrInfo)
 {
-#if 0 /** @todo */
-    if (!verify_attribute_declaration(state->tree))
-        return FALSE;
-#endif
+    int rc = verify_attribute_declaration(pNd, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     /* Write the attribute as a comment. */
     write_indent(pFile);
@@ -491,7 +489,7 @@ static int xpidlHdrWriteAttribute(PCXPIDLNODE pNd, FILE *pFile)
     fprintf(pFile, " %s; */\n", pNd->u.Attribute.pszName);
 
     write_indent(pFile);
-    int rc = xpidlHdrWriteAttrAccessor(pNd, pFile, true, true /*fDecl*/);
+    rc = xpidlHdrWriteAttrAccessor(pNd, pFile, true, true /*fDecl*/);
     if (RT_FAILURE(rc))
         return rc;
     fputs(" = 0;\n", pFile);
@@ -509,12 +507,11 @@ static int xpidlHdrWriteAttribute(PCXPIDLNODE pNd, FILE *pFile)
 }
 
 
-static int xpidlHdrWriteConst(PCXPIDLNODE pNd, FILE *pFile)
+static int xpidlHdrWriteConst(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrInfo)
 {
-#if 0 /** @todo We only allow unsigned numbers for now. */
-    if (!verify_const_declaration(pNd))
-        return FALSE;
-#endif
+    int rc = verify_const_declaration(pNd, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
     write_indent(pFile);
     fprintf(pFile, "enum { %s = ", pNd->u.Const.pszName);
@@ -535,12 +532,12 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
     char *cp;
     struct nsID id;
     char iid_parsed[UUID_LENGTH];
-    int rc = VINF_SUCCESS;
 
-    if (!verify_interface_declaration(pNd))
-        return VERR_INVALID_PARAMETER;
+    int rc = verify_interface_declaration(pNd, pErrInfo);
+    if (RT_FAILURE(rc))
+        return rc;
 
-#define FAIL    do {AssertFailed(); rc = VERR_INVALID_PARAMETER; goto out;} while(0)
+#define FAIL    do {/*AssertFailed();*/ rc = VERR_INVALID_PARAMETER; goto out;} while(0)
 
     fprintf(pFile, "\n/* starting interface:    %s */\n", pNd->u.If.pszIfName);
 
@@ -642,17 +639,17 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
         switch (pIt->enmType)
         {
             case kXpidlNdType_Const:
-                rc = xpidlHdrWriteConst(pIt, pFile);
+                rc = xpidlHdrWriteConst(pIt, pFile, pErrInfo);
                 if (RT_FAILURE(rc))
                     FAIL;
                 break;
             case kXpidlNdType_Attribute:
-                rc = xpidlHdrWriteAttribute(pIt, pFile);
+                rc = xpidlHdrWriteAttribute(pIt, pFile, pErrInfo);
                 if (RT_FAILURE(rc))
                     FAIL;
                 break;
             case kXpidlNdType_Method:
-                rc = xpidlHdrWriteMethod(pIt, pFile);
+                rc = xpidlHdrWriteMethod(pIt, pFile, pErrInfo);
                 if (RT_FAILURE(rc))
                     FAIL;
                 break;

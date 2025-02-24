@@ -394,41 +394,36 @@ DECLINLINE(bool) xpidlNdIsStringType(PCXPIDLNODE pNd)
 
 
 /*
- * Verifies the interface declaration
- */
-DECLHIDDEN(bool) verify_interface_declaration(PCXPIDLNODE pNd);
-
-/*
  * Find the underlying type of an identifier typedef.  Returns NULL
  * (and doesn't complain) on failure.
  */
 DECLHIDDEN(PCXPIDLNODE) find_underlying_type(PCXPIDLNODE pNd);
 
-#if 0
+/*
+ * Verifies the interface declaration
+ */
+DECLHIDDEN(int) verify_interface_declaration(PCXPIDLNODE pNd, PRTERRINFO pErrInfo);
+
 /*
  * Check that const declarations match their stated sign and are of the
  * appropriate types.
  */
-gboolean
-verify_const_declaration(IDL_tree const_tree);
+DECLHIDDEN(int) verify_const_declaration(PCXPIDLNODE pNd, PRTERRINFO pErrInfo);
 
 /*
  * Check that scriptable attributes in scriptable interfaces actually are.
  */
-gboolean
-verify_attribute_declaration(IDL_tree method_tree);
+DECLHIDDEN(int) verify_attribute_declaration(PCXPIDLNODE pNd, PRTERRINFO pErrInfo);
 
 /*
  * Perform various validation checks on methods.
  */
-gboolean
-verify_method_declaration(IDL_tree method_tree);
-#endif
+DECLHIDDEN(int) verify_method_declaration(PCXPIDLNODE pNd, PRTERRINFO pErrInfo);
 
 /*
  * Verify that a native declaration has an associated C++ expression, i.e. that
  * it's of the form native <idl-name>(<c++-name>)
  */
-DECLHIDDEN(bool) check_native(PCXPIDLNODE pNd);
+DECLHIDDEN(int) check_native(PCXPIDLNODE pNd, PRTERRINFO pErrInfo);
 
 #endif /* __xpidl_h */

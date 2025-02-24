@@ -606,6 +606,7 @@ static PXPIDLNODE xpidlNodeCreate(PXPIDLPARSE pThis, PXPIDLNODE pParent, PXPIDLI
 
 static PCXPIDLNODE xpidlParseFindType(PXPIDLPARSE pThis, const char *pszName)
 {
+    PCXPIDLNODE pIfFwd = NULL;
     PCXPIDLNODE pIt;
     RTListForEach(&pThis->LstNodes, pIt, XPIDLNODE, NdLst)
     {
@@ -621,7 +622,7 @@ static PCXPIDLNODE xpidlParseFindType(PXPIDLPARSE pThis, const char *pszName)
                 break;
             case kXpidlNdType_Interface_Forward_Decl:
                 if (!strcmp(pszName, pIt->u.pszIfFwdName))
-                    return pIt;
+                    pIfFwd = pIt; /* We will try finding the real definition before returning the forward declaration. */
                 break;
             case kXpidlNdType_Interface_Def:
                 if (!strcmp(pszName, pIt->u.If.pszIfName))
@@ -632,7 +633,7 @@ static PCXPIDLNODE xpidlParseFindType(PXPIDLPARSE pThis, const char *pszName)
         }
     }
 
-    return NULL;
+    return pIfFwd;
 }
 
 
@@ -1378,7 +1379,8 @@ int xpidl_process_idl(char *filename, PRTLISTANCHOR pLstIncludePaths,
             fclose(pFile);
         free(outname);
     }
-    else
+
+    if (RT_FAILURE(rc))
         RTMsgError(ParseState.ErrInfo.Core.pszMsg);
 
     return rc;

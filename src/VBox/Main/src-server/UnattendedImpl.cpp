@@ -25,6 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+#include <cstdio>
+
 
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
@@ -259,7 +261,7 @@ Unattended::Unattended()
     , menmFirmwareType(FirmwareType_BIOS), mpInstaller(NULL)
     , mfInstallGuestAdditions(false), mfInstallTestExecService(false), mfInstallUserPayload(false)
     , mpTimeZoneInfo(NULL), mfIsDefaultAuxiliaryBasePath(true), midxImage(0), mfDoneDetectIsoOS(false)
-    , mEnmOsType(VBOXOSTYPE_Unknown)
+    , mfProductKeyRequired(false), mEnmOsType(VBOXOSTYPE_Unknown)
     , mfAvoidUpdatesOverNetwork(false), mfDoneSupportedGuestOSList(false)
 { }
 
@@ -362,6 +364,7 @@ HRESULT Unattended::detectIsoOS()
     mDetectedOSLanguages.clear();
     mStrDetectedOSHints.setNull();
     mDetectedImages.clear();
+    mfProductKeyRequired = false;
 
     /*
      * Open the ISO.
@@ -496,7 +499,8 @@ HRESULT Unattended::detectIsoOS()
             return E_OUTOFMEMORY;
         }
     }
-
+    if (mStrDetectedOSTypeId.startsWithI("windows11"))
+        mfProductKeyRequired = true;
     /* Check if detected OS type is supported (covers platform architecture). */
     bool fSupported = false;
     for (size_t i = 0; i < mSupportedGuestOSTypes.size() && !fSupported; ++i)
@@ -2633,7 +2637,9 @@ HRESULT Unattended::prepare()
         return setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("The prepare method has been called (must call done to restart)"));
     if ((Machine *)ptrMachine != (Machine *)mMachine)
         return setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("The 'machine' while we were using it - please don't do that"));
-
+    /* Check if required product key is set. */
+    if (mfProductKeyRequired && mStrProductKey.isEmpty())
+        return setErrorBoth(E_FAIL, VERR_MISSING, tr("Product key is required for this kind of OS"));
     /*
      * Check if the specified ISOs and files exist.
      */
@@ -3597,6 +3603,13 @@ HRESULT Unattended::setInstallGuestAdditions(BOOL installGuestAdditions)
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
     AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
     mfInstallGuestAdditions = installGuestAdditions != FALSE;
+    return S_OK;
+}
+
+HRESULT Unattended::getProductKeyRequired(BOOL *productKeyRequired)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    *productKeyRequired = mfProductKeyRequired;
     return S_OK;
 }
 

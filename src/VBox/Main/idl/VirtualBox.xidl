@@ -5036,7 +5036,7 @@
 
   <interface
     name="IUnattended" extends="$unknown"
-    uuid="a71e5822-365b-49ba-bd14-c8d616e6740d"
+    uuid="39d1f56c-c1c2-40df-84e9-468062d84768"
     wsmap="managed"
     rest="managed"
     reservedMethods="4" reservedAttributes="16"
@@ -5134,6 +5134,12 @@
         Setting this to false does not affect additions shipped with the linux
         distribution, only the installation of additions pointed to by
         <link to="IUnattended::additionsIsoPath"/>.
+      </desc>
+    </attribute>
+
+    <attribute name="productKeyRequired" type="boolean"  readonly="yes">
+      <desc>
+        Indicates whether the product key is required for the installation.
       </desc>
     </attribute>
 

@@ -768,6 +768,7 @@ namespace dxvk {
     const uint32_t maxRefSlotsCount = std::min(parms.refFramesCount, (uint32_t)parms.sps.max_num_ref_frames);
 
     /* Reference pictures and the destination slot to be bound for video decoding. */
+    std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoPictureResourceInfoKHR> pictureResourceInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoReferenceSlotInfoKHR> referenceSlotsInfo(maxRefSlotsCount + 1);
 
@@ -787,6 +788,10 @@ namespace dxvk {
         continue;
       }
 
+      h264DpbSlotInfo[refSlotsCount] =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
+      h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].stdRefInfo;
+
       pictureResourceInfo[refSlotsCount] =
         { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
       pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
@@ -795,7 +800,7 @@ namespace dxvk {
       pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dpbSlotIndex].imageView->handle();
 
       referenceSlotsInfo[refSlotsCount] =
-        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR };
+        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &h264DpbSlotInfo[refSlotsCount] };
       referenceSlotsInfo[refSlotsCount].slotIndex         = dpbSlotIndex;
       referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
 
@@ -803,15 +808,19 @@ namespace dxvk {
     }
 
     /* Destination picture. */
+    h264DpbSlotInfo[refSlotsCount] =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
+    h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.stdRefInfo;
+
     pictureResourceInfo[refSlotsCount] =
       { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
     pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
     pictureResourceInfo[refSlotsCount].codedExtent      = { m_sampleWidth, m_sampleHeight };
     pictureResourceInfo[refSlotsCount].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
-    pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dstSlotIndex].imageView->handle();
+    pictureResourceInfo[refSlotsCount].imageViewBinding = dstDPBSlot.imageView->handle();
 
     referenceSlotsInfo[refSlotsCount] =
-      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR };
+      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &h264DpbSlotInfo[refSlotsCount] };
     referenceSlotsInfo[refSlotsCount].slotIndex         = -1;
     referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
 
@@ -850,54 +859,21 @@ namespace dxvk {
     }
 
     /*
-     * Setup "active reference pictures."
-     */
-    /* Reuse first refFramesCount elements in pictureResourceInfo and referenceSlotsInfo.
-     * Add h264DpbSlotInfo to referenceSlotsInfo.
-     */
-    /* VkVideoReferenceSlotInfoKHR refSlotInfo[idxRefSlot].pNext */
-    std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(refSlotsCount);
-
-    for (uint32_t i = 0; i < refSlotsCount; ++i) {
-      const DxvkRefFrameInfo& r = parms.refFrames[i];
-
-      StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[referenceSlotsInfo[i].slotIndex].stdRefInfo;
-
-      h264DpbSlotInfo[i] =
-        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
-      h264DpbSlotInfo[i].pStdReferenceInfo = &stdRefInfo;
-
-      referenceSlotsInfo[i].pNext = &h264DpbSlotInfo[i];
-    }
-
-    /*
      * Setup video decoding parameters 'decodeInfo' (VkVideoDecodeInfoKHR).
+     *
+     * Reuse first refFramesCount elements in referenceSlotsInfo as pReferenceSlots for decodeVideo.
+     * The last element is the destination picture for pSetupReferenceSlot.
      */
+
+    /* Update the destination DPB slot index. It was set to -1 for beginVideoCoding above. */
+    referenceSlotsInfo[refSlotsCount].slotIndex = dstSlotIndex;
+
     /* VkVideoDecodeInfoKHR decodeInfo.pNext */
     VkVideoDecodeH264PictureInfoKHR h264PictureInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_KHR };
     h264PictureInfo.pStdPictureInfo = &parms.stdH264PictureInfo;
     h264PictureInfo.sliceCount      = parms.sliceOffsets.size();
     h264PictureInfo.pSliceOffsets   = parms.sliceOffsets.data();
-
-    /* VkVideoReferenceSlotInfoKHR dstSlotInfo.pNext */
-    VkVideoDecodeH264DpbSlotInfoKHR dstH264DpbSlotInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
-    dstH264DpbSlotInfo.pStdReferenceInfo    = &dstDPBSlot.stdRefInfo;
-
-    /* VkVideoReferenceSlotInfoKHR  dstSlotInfo.pPictureResource */
-    VkVideoPictureResourceInfoKHR dstPictureResourceInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
-    dstPictureResourceInfo.codedOffset      = { 0, 0 };
-    dstPictureResourceInfo.codedExtent      = { m_sampleWidth, m_sampleHeight };
-    dstPictureResourceInfo.baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
-    dstPictureResourceInfo.imageViewBinding = dstDPBSlot.imageView->handle();
-
-    /* VkVideoDecodeInfoKHR decodeInfo.pSetupReferenceSlot */
-    VkVideoReferenceSlotInfoKHR dstSlotInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &dstH264DpbSlotInfo };
-    dstSlotInfo.slotIndex                   = dstSlotIndex;
-    dstSlotInfo.pPictureResource            = &dstPictureResourceInfo;
 
     VkVideoDecodeInfoKHR decodeInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR, &h264PictureInfo };
@@ -919,7 +895,7 @@ namespace dxvk {
     else {
       decodeInfo.dstPictureResource.imageViewBinding = dstDPBSlot.imageView->handle();
     }
-    decodeInfo.pSetupReferenceSlot = &dstSlotInfo;
+    decodeInfo.pSetupReferenceSlot = &referenceSlotsInfo[refSlotsCount];
     decodeInfo.referenceSlotCount  = refSlotsCount;
     decodeInfo.pReferenceSlots     = referenceSlotsInfo.data();
 
@@ -931,10 +907,10 @@ namespace dxvk {
         ", FrameNum=", h264DpbSlotInfo[i].pStdReferenceInfo->FrameNum,
         ", view=", s.pPictureResource->imageViewBinding));
     }
-    Logger::info(str::format("VREF:  dst: slotIndex=", dstSlotInfo.slotIndex,
-      ", FrameNum=", dstH264DpbSlotInfo.pStdReferenceInfo->FrameNum,
+    Logger::info(str::format("VREF:  dst: slotIndex=", dstSlotIndex,
+      ", FrameNum=", dstDPBSlot.stdRefInfo.FrameNum,
       ", is_ref=", parms.stdH264PictureInfo.flags.is_reference,
-      ", view=", dstSlotInfo.pPictureResource->imageViewBinding));
+      ", view=", dstDPBSlot.imageView->handle()));
 #endif
 
     ctx->decodeVideoKHR(&decodeInfo);

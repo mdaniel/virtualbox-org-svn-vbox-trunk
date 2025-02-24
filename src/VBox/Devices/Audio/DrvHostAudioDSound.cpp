@@ -81,12 +81,6 @@
 
 /** Maximum number of attempts to restore the sound buffer before giving up. */
 #define DRV_DSOUND_RESTORE_ATTEMPTS_MAX         3
-#if 0 /** @todo r=bird: What are these for? Nobody is using them... */
-/** Default input latency (in ms). */
-#define DRV_DSOUND_DEFAULT_LATENCY_MS_IN        50
-/** Default output latency (in ms). */
-#define DRV_DSOUND_DEFAULT_LATENCY_MS_OUT       50
-#endif
 
 
 /*********************************************************************************************************************************
@@ -579,102 +573,10 @@ static HRESULT drvHostDSoundCreateDSPlaybackInstance(LPCGUID pGUID, LPDIRECTSOUN
 }
 
 
-#if 0 /* not used */
-static HRESULT directSoundPlayGetStatus(PDRVHOSTDSOUND pThis, LPDIRECTSOUNDBUFFER8 pDSB, DWORD *pdwStatus)
-{
-    AssertPtrReturn(pThis, E_POINTER);
-    AssertPtrReturn(pDSB,  E_POINTER);
-
-    AssertPtrNull(pdwStatus);
-
-    DWORD dwStatus = 0;
-    HRESULT hr = E_FAIL;
-    for (unsigned i = 0; i < DRV_DSOUND_RESTORE_ATTEMPTS_MAX; i++)
-    {
-        hr = IDirectSoundBuffer8_GetStatus(pDSB, &dwStatus);
-        if (   hr == DSERR_BUFFERLOST
-            || (   SUCCEEDED(hr)
-                && (dwStatus & DSBSTATUS_BUFFERLOST)))
-        {
-            LogFlowFunc(("Getting status failed due to lost buffer, restoring ...\n"));
-            directSoundPlayRestore(pThis, pDSB);
-        }
-        else
-            break;
-    }
-
-    if (SUCCEEDED(hr))
-    {
-        if (pdwStatus)
-            *pdwStatus = dwStatus;
-    }
-    else
-        DSLOGREL(("DSound: Retrieving playback status failed with %Rhrc\n", hr));
-
-    return hr;
-}
-#endif
-
 
 /*
  * DirectSoundCapture
  */
-
-#if 0 /* unused */
-static LPCGUID dsoundCaptureSelectDevice(PDRVHOSTDSOUND pThis, PPDMAUDIOSTREAMCFG pCfg)
-{
-    AssertPtrReturn(pThis, NULL);
-    AssertPtrReturn(pCfg,  NULL);
-
-    int rc = VINF_SUCCESS;
-
-    LPCGUID pGUID = pThis->Cfg.pGuidCapture;
-    if (!pGUID)
-    {
-        PDSOUNDDEV pDev = NULL;
-        switch (pCfg->enmPath)
-        {
-            case PDMAUDIOPATH_IN_LINE:
-                /*
-                 * At the moment we're only supporting line-in in the HDA emulation,
-                 * and line-in + mic-in in the AC'97 emulation both are expected
-                 * to use the host's mic-in as well.
-                 *
-                 * So the fall through here is intentional for now.
-                 */
-            case PDMAUDIOPATH_IN_MIC:
-                pDev = (PDSOUNDDEV)DrvAudioHlpDeviceEnumGetDefaultDevice(&pThis->DeviceEnum, PDMAUDIODIR_IN);
-                break;
-
-            default:
-                AssertFailedStmt(rc = VERR_NOT_SUPPORTED);
-                break;
-        }
-
-        if (   RT_SUCCESS(rc)
-            && pDev)
-        {
-            DSLOG(("DSound: Guest source '%s' is using host recording device '%s'\n",
-                   PDMAudioPathGetName(pCfg->enmPath), pDev->Core.szName));
-            pGUID = &pDev->Guid;
-        }
-        if (RT_FAILURE(rc))
-        {
-            LogRel(("DSound: Selecting recording device failed with %Rrc\n", rc));
-            return NULL;
-        }
-    }
-
-    /* This always has to be in the release log. */
-    char *pszGUID = dsoundGUIDToUtf8StrA(pGUID);
-    LogRel(("DSound: Guest source '%s' is using host recording device with GUID '%s'\n",
-            PDMAudioPathGetName(pCfg->enmPath), pszGUID ? pszGUID: "{?}"));
-    RTStrFree(pszGUID);
-
-    return pGUID;
-}
-#endif
-
 
 /**
  * Creates a DirectSound capture instance.
@@ -1459,15 +1361,6 @@ static HRESULT drvHostDSoundStreamCreateCapture(PDRVHOSTDSOUND pThis, PDSOUNDSTR
     /*
      * Query the actual stream configuration.
      */
-#if 0 /** @todo r=bird: WTF was this for? */
-    DWORD offByteReadPos = 0;
-    hrc = IDirectSoundCaptureBuffer8_GetCurrentPosition(pStreamDS->In.pDSCB, NULL, &offByteReadPos);
-    if (FAILED(hrc))
-    {
-        offByteReadPos = 0;
-        DSLOGREL(("DSound: Getting capture position failed with %Rhrc\n", hr));
-    }
-#endif
     RT_ZERO(*pWaveFmtExt);
     hrc = IDirectSoundCaptureBuffer8_GetFormat(pStreamDS->In.pDSCB, &pWaveFmtExt->Format, sizeof(*pWaveFmtExt), NULL);
     if (SUCCEEDED(hrc))

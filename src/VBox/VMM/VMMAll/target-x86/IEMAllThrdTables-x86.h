@@ -211,7 +211,7 @@ DECL_FORCE_INLINE(int) iemThreadedCompileBackAtFirstInstruction(PVMCPU pVCpu, PI
         if (   !pVCpu->iem.s.fTbCrossedPage \
             && !pVCpu->iem.s.fTbCheckOpcodes \
             && !pVCpu->iem.s.fTbBranched \
-            && !(pTb->fFlags & IEMTB_F_CS_LIM_CHECKS)) \
+            && !(pTb->fFlags & IEMTB_F_X86_CS_LIM_CHECKS)) \
         { \
             /* Break/loop if we're back to the first instruction in the TB again. */ \
             if (   pTb->aRanges[idxRangeMc2].idxPhysPage != 0 \

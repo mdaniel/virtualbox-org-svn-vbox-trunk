@@ -1994,14 +1994,14 @@ static DECLCALLBACK(void) iemR3InfoTb(PVM pVM, PCDBGFINFOHLP pHlp, int cArgs, ch
         if (pVM->cCpus == 1)
             fFlags |= IEM_F_X86_DISREGARD_LOCK;
         if (CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
-            fFlags |= IEMTB_F_INHIBIT_SHADOW;
+            fFlags |= IEMTB_F_X86_INHIBIT_SHADOW;
         if (CPUMAreInterruptsInhibitedByNmiEx(&pVCpu->cpum.GstCtx))
-            fFlags |= IEMTB_F_INHIBIT_NMI;
+            fFlags |= IEMTB_F_X86_INHIBIT_NMI;
         if ((IEM_F_MODE_X86_CPUMODE_MASK & fFlags) != IEMMODE_64BIT)
         {
             int64_t const offFromLim = (int64_t)pVCpu->cpum.GstCtx.cs.u32Limit - (int64_t)pVCpu->cpum.GstCtx.eip;
             if (offFromLim < X86_PAGE_SIZE + 16 - (int32_t)(pVCpu->cpum.GstCtx.cs.u64Base & GUEST_PAGE_OFFSET_MASK))
-                fFlags |= IEMTB_F_CS_LIM_CHECKS;
+                fFlags |= IEMTB_F_X86_CS_LIM_CHECKS;
         }
     }
 

@@ -1145,19 +1145,16 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 
 /** Set when we're starting the block in an "interrupt shadow".
  * We don't need to distingish between the two types of this mask, thus the one.
- * @see CPUMCTX_INHIBIT_SHADOW, CPUMIsInInterruptShadow()
- * @note x86 specific */
-#define IEMTB_F_INHIBIT_SHADOW          UINT32_C(0x04000000)
+ * @see CPUMCTX_INHIBIT_SHADOW, CPUMIsInInterruptShadow()  */
+#define IEMTB_F_X86_INHIBIT_SHADOW      UINT32_C(0x04000000)
 /** Set when we're currently inhibiting NMIs
- * @see CPUMCTX_INHIBIT_NMI, CPUMAreInterruptsInhibitedByNmi()
- * @note x86 specific */
-#define IEMTB_F_INHIBIT_NMI             UINT32_C(0x08000000)
+ * @see CPUMCTX_INHIBIT_NMI, CPUMAreInterruptsInhibitedByNmi() */
+#define IEMTB_F_X86_INHIBIT_NMI         UINT32_C(0x08000000)
 
 /** Checks that EIP/IP is wihin CS.LIM before each instruction.  Used when
  * we're close the limit before starting a TB, as determined by
- * iemGetTbFlagsForCurrentPc().
- * @note x86 specific */
-#define IEMTB_F_CS_LIM_CHECKS           UINT32_C(0x10000000)
+ * iemGetTbFlagsForCurrentPc(). */
+#define IEMTB_F_X86_CS_LIM_CHECKS       UINT32_C(0x10000000)
 
 /** Mask of the IEMTB_F_XXX flags that are part of the TB lookup key.
  *

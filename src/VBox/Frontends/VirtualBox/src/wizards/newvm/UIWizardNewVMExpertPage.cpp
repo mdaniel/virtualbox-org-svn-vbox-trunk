@@ -453,6 +453,7 @@ void UIWizardNewVMExpertPage::initializePage()
     {
         m_pGAInstallationISOContainer->blockSignals(true);
         m_pGAInstallationISOContainer->setChecked(pWizard->installGuestAdditions());
+        m_pGAInstallationISOContainer->setPath(pWizard->guestAdditionsISOPath());
         m_pGAInstallationISOContainer->blockSignals(false);
     }
 

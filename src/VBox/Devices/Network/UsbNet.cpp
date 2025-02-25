@@ -1628,7 +1628,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     }
     if (pNth16->dwSignature != USBNCMNTH16_SIGNATURE)
     {
-        LogFunc(("/#%u/ NTH16: Invalid dwSignature value: %#x\n", pNth16->dwSignature));
+        LogFunc(("/#%u/ NTH16: Invalid dwSignature value: %#x\n", pThis->pUsbIns->iInstance, pNth16->dwSignature));
         return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
     Log2Func(("/#%u/ NTH16: wHeaderLength=%#x wSequence=%#x wBlockLength=%#x wNdpIndex=%#x cbData=%#x fShortNotOk=%RTbool\n", pThis->pUsbIns->iInstance,

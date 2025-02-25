@@ -288,6 +288,11 @@ protected:
                               int iContentsShiftX, int iContentsShiftY,
                               double dDevicePixelRatio);
 
+    /** Finds greatest common divisor for @a a and @a b. */
+    static int greatestCommonDivisor(int a, int b);
+    /** Finds multiple of @a fScaleFactor which is @a fLarger than @a iNumber. */
+    static int findMultipleOfScaleFactor(double fScaleFactor, int iNumber, bool fLarger);
+
     /** Holds the screen-id. */
     ulong m_uScreenId;
 
@@ -1278,7 +1283,15 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     pSourceImage->setDevicePixelRatio(devicePixelRatio());
 
     /* Prepare the base and hidpi paint rectangles: */
-    const QRect paintRect = pEvent->rect();
+    QRect paintRect = pEvent->rect();
+    /* Adjust original rectangle the way that it can be fractionally upscaled to int values: */
+    if (devicePixelRatio() != 1.0)
+    {
+        paintRect.setLeft(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.left(), false));
+        paintRect.setTop(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.top(), false));
+        paintRect.setRight(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.right(), true));
+        paintRect.setBottom(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.bottom(), true));
+    }
     QRect paintRectHiDPI = paintRect;
 
     /* Take the device-pixel-ratio into account: */
@@ -1372,7 +1385,15 @@ void UIFrameBufferPrivate::paintSeamless(QPaintEvent *pEvent)
     pSourceImage->setDevicePixelRatio(devicePixelRatio());
 
     /* Prepare the base and hidpi paint rectangles: */
-    const QRect paintRect = pEvent->rect();
+    QRect paintRect = pEvent->rect();
+    /* Adjust original rectangle the way that it can be fractionally upscaled to int values: */
+    if (devicePixelRatio() != 1.0)
+    {
+        paintRect.setLeft(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.left(), false));
+        paintRect.setTop(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.top(), false));
+        paintRect.setRight(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.right(), true));
+        paintRect.setBottom(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.bottom(), true));
+    }
     QRect paintRectHiDPI = paintRect;
 
     /* Take the device-pixel-ratio into account: */
@@ -1506,6 +1527,37 @@ void UIFrameBufferPrivate::drawImageRect(QPainter &painter, const QImage &image,
 
     /* Draw sub-pixmap: */
     painter.drawPixmap(paintPoint, subPixmap);
+}
+
+/* static */
+int UIFrameBufferPrivate::greatestCommonDivisor(int a, int b)
+{
+    /* Using simple Euclidean algorithm: */
+    while (b)
+    {
+        a %= b;
+        qSwap(a, b);
+    }
+    return a;
+}
+
+/* static */
+int UIFrameBufferPrivate::findMultipleOfScaleFactor(double fScaleFactor, int iNumber, bool fLarger)
+{
+    /* Approximate scale-factor as a fraction: */
+    int iDenominator = 100; // precision, scale-factor is percentage
+    int iNumerator = static_cast<int>(fScaleFactor * iDenominator);
+    int iCommonDivisor = greatestCommonDivisor(iNumerator, iDenominator);
+    /* We need smallest denominator after all: */
+    iDenominator /= iCommonDivisor;
+
+    /* Find the largest/smallest multiple
+     * of the denominator <=/>= iNumber: */
+    int iResult = (iNumber / iDenominator) * iDenominator;
+    /* Append denominator if requested: */
+    if (fLarger && iResult < iNumber)
+        iResult += iDenominator;
+    return iResult;
 }
 
 

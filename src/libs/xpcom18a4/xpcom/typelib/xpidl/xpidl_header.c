@@ -537,7 +537,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
     if (RT_FAILURE(rc))
         return rc;
 
-#define FAIL    do {/*AssertFailed();*/ rc = VERR_INVALID_PARAMETER; goto out;} while(0)
+#define FAIL    do {/*AssertFailed();*/ goto out;} while(0)
 
     fprintf(pFile, "\n/* starting interface:    %s */\n", pNd->u.If.pszIfName);
 
@@ -657,6 +657,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
                 fprintf(pFile, "%.*s", (int)pIt->u.RawBlock.cchRaw, pIt->u.RawBlock.pszRaw);
                 break;
             default:
+                rc = VERR_INVALID_PARAMETER;
                 FAIL;
         }
     }
@@ -719,6 +720,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
                     FAIL;
                 break;
             default:
+                rc = VERR_INVALID_PARAMETER;
                 FAIL;
         }
 
@@ -789,6 +791,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
                     FAIL;
                 break;
             default:
+                rc = VERR_INVALID_PARAMETER;
                 FAIL;
         }
 
@@ -860,6 +863,7 @@ static int xpidlHdrWriteInterface(PCXPIDLNODE pNd, FILE *pFile, PRTERRINFO pErrI
                     FAIL;
                 break;
             default:
+                rc = VERR_INVALID_PARAMETER;
                 FAIL;
         }
 

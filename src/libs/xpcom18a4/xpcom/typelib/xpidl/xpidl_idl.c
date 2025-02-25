@@ -284,7 +284,7 @@ static int xpidlLexerConsumeIfStringLit(PXPIDLPARSE pThis, PXPIDLINPUT pInput, c
     PCRTSCRIPTLEXTOKEN pTok;
     int rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
     if (RT_FAILURE(rc))
-        return xpidlParseError(pThis, pInput, pTok, rc, "Lexer: Failed to query string literal token with %Rrc", rc);
+        return xpidlParseError(pThis, pInput, NULL /*pTok*/, rc, "Lexer: Failed to query string literal token with %Rrc", rc);
 
     if (pTok->enmType == RTSCRIPTLEXTOKTYPE_STRINGLIT)
     {
@@ -958,7 +958,7 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
             PCRTSCRIPTLEXTOKEN pTok;
             rc = RTScriptLexQueryToken(pInput->hIdlLex, &pTok);
             if (RT_FAILURE(rc))
-                return xpidlParseError(pThis, pInput, NULL, rc, "Lexer: Failed to query punctuator token with %Rrc", rc);
+                return xpidlParseError(pThis, pInput, NULL, rc, "Parser: Failed to query punctuator token with %Rrc", rc);
 
             size_t cchIntro =   !strncmp(pTok->Type.Comment.pszComment, "%{C++", sizeof("%{C++") - 1)
                               ? 6  /* Assumes a newline after %{C++ */
@@ -973,10 +973,7 @@ static int xpidlParseInterfaceBody(PXPIDLPARSE pThis, PXPIDLINPUT pInput, PXPIDL
                 RTListAppend(&pNdIf->u.If.LstBody, &pNode->NdLst);
             }
             else
-            {
-                rc = VERR_NO_MEMORY;
-                break;
-            }
+                return xpidlParseError(pThis, pInput, pTok, VERR_NO_MEMORY, "Parser: Failed to allocate memory for raw block AST node");
         }
 
         /* A closing '}' means we reached the end of the interface body. */

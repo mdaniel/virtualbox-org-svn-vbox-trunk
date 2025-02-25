@@ -751,9 +751,10 @@ handle_typedef:
                 {
                     XPTInterfaceDirectoryEntry *ide, *ides;
                     uint16 num_ifaces;
-                    const char *className = NULL;
+                    const char *className;
                     const char *iid_is;
 handle_iid_is:
+                    className = NULL;
                     ides = HEADER(pThis)->interface_directory;
                     num_ifaces = HEADER(pThis)->num_interfaces;
                     /* might get here via the goto, so re-check type */

@@ -4119,12 +4119,12 @@ void UIActionPoolRuntime::updateMenuViewRescale(QMenu *pMenu)
 
         /* Get device-pixel-ratio: */
         bool fDevicePixelRatioMentioned = false;
-        const double dDevicePixelRatioActual = qMin(UIDesktopWidgetWatchdog::devicePixelRatioActual(m_mapHostScreenForGuestScreen.value(iGuestScreenIndex)),
-                                                    10.0 /* meh, who knows? */);
+        const double dDevicePixelRatio = qMin(UIDesktopWidgetWatchdog::devicePixelRatio(m_mapHostScreenForGuestScreen.value(iGuestScreenIndex)),
+                                              10.0 /* meh, who knows? */);
 
         /* Calculate minimum, maximum and step: */
         const double dMinimum = 1.0;
-        const double dMaximum = ceil(dMinimum + dDevicePixelRatioActual);
+        const double dMaximum = ceil(dMinimum + dDevicePixelRatio);
         const double dStep = 0.25;
 
         /* Now, iterate possible scale-factors: */
@@ -4140,7 +4140,7 @@ void UIActionPoolRuntime::updateMenuViewRescale(QMenu *pMenu)
                 if (dScaleFactor == 1.0)
                 {
                     pAction->setProperty("Requested Scale Factor", dScaleFactor);
-                    if (dDevicePixelRatioActual == 1.0)
+                    if (dDevicePixelRatio == 1.0)
                         pAction->setText(QApplication::translate("UIActionPool", "Scale to %1%", "scale-factor")
                                          .arg(dScaleFactor * 100));
                     else
@@ -4148,13 +4148,13 @@ void UIActionPoolRuntime::updateMenuViewRescale(QMenu *pMenu)
                                          .arg(dScaleFactor * 100));
                 }
                 /* For the 'autoscaled' action: */
-                else if (   (dScaleFactor >= dDevicePixelRatioActual)
-                         && (dDevicePixelRatioActual != 1.0)
+                else if (   (dScaleFactor >= dDevicePixelRatio)
+                         && (dDevicePixelRatio != 1.0)
                          && !fDevicePixelRatioMentioned)
                 {
-                    pAction->setProperty("Requested Scale Factor", dDevicePixelRatioActual);
+                    pAction->setProperty("Requested Scale Factor", dDevicePixelRatio);
                     pAction->setText(QApplication::translate("UIActionPool", "Scale to %1% (autoscaled output)", "scale-factor")
-                                     .arg(dDevicePixelRatioActual * 100));
+                                     .arg(dDevicePixelRatio * 100));
                     fDevicePixelRatioMentioned = true;
                 }
                 /* For other actions: */

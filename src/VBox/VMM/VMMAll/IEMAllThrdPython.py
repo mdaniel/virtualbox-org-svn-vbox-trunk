@@ -2485,12 +2485,12 @@ class ThreadedFunction(object):
 
         #
         # Determine what we're switch on.
-        # This ASSUMES that (IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK | IEM_F_MODE_CPUMODE_MASK) == 7!
+        # This ASSUMES that (IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK | IEM_F_MODE_X86_CPUMODE_MASK) == 7!
         #
         fSimple = True;
-        sSwitchValue  = '(pVCpu->iem.s.fExec & (IEM_F_MODE_CPUMODE_MASK | IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK))';
+        sSwitchValue  = '(pVCpu->iem.s.fExec & (IEM_F_MODE_X86_CPUMODE_MASK | IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK))';
         if dByVari.keys() & self.kdVariationsWithNeedForPrefixCheck.keys():
-            sSwitchValue += ' | (pVCpu->iem.s.enmEffAddrMode == (pVCpu->iem.s.fExec & IEM_F_MODE_CPUMODE_MASK) ? 0 : 8)';
+            sSwitchValue += ' | (pVCpu->iem.s.enmEffAddrMode == (pVCpu->iem.s.fExec & IEM_F_MODE_X86_CPUMODE_MASK) ? 0 : 8)';
             # Accesses via FS and GS and CS goes thru non-FLAT functions. (CS
             # is not writable in 32-bit mode (at least), thus the penalty mode
             # for any accesses via it (simpler this way).)
@@ -3629,7 +3629,7 @@ class IEMThreadedGenerator(object):
         # File header and assert assumptions.
         #
         oOut.write('\n'.join(self.generateLicenseHeader()));
-        oOut.write('AssertCompile((IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK | IEM_F_MODE_CPUMODE_MASK) == 7);\n');
+        oOut.write('AssertCompile((IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK | IEM_F_MODE_X86_CPUMODE_MASK) == 7);\n');
 
         #
         # Iterate all parsers (input files) and output the ones related to the

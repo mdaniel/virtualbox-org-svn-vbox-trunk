@@ -9372,9 +9372,9 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     PCIEMTBDBG const        pDbgInfo      = pTb->pDbgInfo;
 #endif
-    DISCPUMODE              enmGstCpuMode = (pTb->fFlags & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT ? DISCPUMODE_16BIT
-                                          : (pTb->fFlags & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT ? DISCPUMODE_32BIT
-                                          :                                                            DISCPUMODE_64BIT;
+    DISCPUMODE              enmGstCpuMode = (pTb->fFlags & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT ? DISCPUMODE_16BIT
+                                          : (pTb->fFlags & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT ? DISCPUMODE_32BIT
+                                          :                                                                DISCPUMODE_64BIT;
 #ifdef IEMNATIVE_WITH_TB_DEBUG_INFO
     IEMNATIVDISASMSYMCTX    SymCtx        = { pVCpu, pTb, iemExecMemGetTbChunkCtx(pVCpu, pTb), pDbgInfo };
 #else
@@ -9460,9 +9460,9 @@ DECLHIDDEN(void) iemNativeDisassembleTb(PVMCPU pVCpu, PCIEMTB pTb, PCDBGFINFOHLP
                                                 iemTbFlagsToString(pDbgInfo->aEntries[iDbgEntry].GuestInstruction.fExec,
                                                                    szDisBuf, sizeof(szDisBuf)));
                                 fExec = pDbgInfo->aEntries[iDbgEntry].GuestInstruction.fExec;
-                                enmGstCpuMode = (fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT ? DISCPUMODE_16BIT
-                                              : (fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT ? DISCPUMODE_32BIT
-                                              :                                                      DISCPUMODE_64BIT;
+                                enmGstCpuMode = (fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT ? DISCPUMODE_16BIT
+                                              : (fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT ? DISCPUMODE_32BIT
+                                              :                                                          DISCPUMODE_64BIT;
                             }
 
                             /* New opcode range? We need to fend up a spurious debug info entry here for cases

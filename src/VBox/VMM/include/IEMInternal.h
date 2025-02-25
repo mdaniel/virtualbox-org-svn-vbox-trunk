@@ -728,16 +728,16 @@ typedef enum : uint8_t
     kIemTlbTraceType_LargeEvictSlot,
     kIemTlbTraceType_LargeScan,
     kIemTlbTraceType_Flush,
-    kIemTlbTraceType_FlushGlobal,
+    kIemTlbTraceType_FlushGlobal,   /**< x86 specific */
     kIemTlbTraceType_Load,
-    kIemTlbTraceType_LoadGlobal,
-    kIemTlbTraceType_Load_Cr0,  /**< x86 specific */
-    kIemTlbTraceType_Load_Cr3,  /**< x86 specific */
-    kIemTlbTraceType_Load_Cr4,  /**< x86 specific */
-    kIemTlbTraceType_Load_Efer, /**< x86 specific */
+    kIemTlbTraceType_LoadGlobal,    /**< x86 specific */
+    kIemTlbTraceType_Load_Cr0,      /**< x86 specific */
+    kIemTlbTraceType_Load_Cr3,      /**< x86 specific */
+    kIemTlbTraceType_Load_Cr4,      /**< x86 specific */
+    kIemTlbTraceType_Load_Efer,     /**< x86 specific */
     kIemTlbTraceType_Irq,
     kIemTlbTraceType_Xcpt,
-    kIemTlbTraceType_IRet,      /**< x86 specific */
+    kIemTlbTraceType_IRet,          /**< x86 specific */
     kIemTlbTraceType_Tb_Compile,
     kIemTlbTraceType_Tb_Exec_Threaded,
     kIemTlbTraceType_Tb_Exec_Native,
@@ -994,46 +994,109 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
  * in IEMCPU::fExec.
  *
  * @{ */
-/** Mode: The block target mode mask. */
-#define IEM_F_MODE_MASK                     UINT32_C(0x0000001f)
-/** Mode: The IEMMODE part of the IEMTB_F_MODE_MASK value. */
-#define IEM_F_MODE_CPUMODE_MASK             UINT32_C(0x00000003)
+/** Mode: The block target mode mask.
+ * X86: CPUMODE plus protected, v86 and pre-386 indicators.
+ * ARM: PSTATE.nRW | PSTATE.T | PSTATE.EL.  This doesn't quite overlap with
+ *      SPSR_ELx when in AARCH32 mode, but that's life. */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEM_F_MODE_MASK                    UINT32_C(0x0000001f)
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define IEM_F_MODE_MASK                    UINT32_C(0x0000003c)
+#endif
+
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+/** X86 Mode: The IEMMODE part of the IEMTB_F_MODE_MASK value. */
+# define IEM_F_MODE_X86_CPUMODE_MASK        UINT32_C(0x00000003)
 /** X86 Mode: Bit used to indicating pre-386 CPU in 16-bit mode (for eliminating
  * conditional in EIP/IP updating), and flat wide open CS, SS, DS, and ES in
  * 32-bit mode (for simplifying most memory accesses). */
-#define IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK UINT32_C(0x00000004)
+# define IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK UINT32_C(0x00000004)
 /** X86 Mode: Bit indicating protected mode, real mode (or SMM) when not set. */
-#define IEM_F_MODE_X86_PROT_MASK            UINT32_C(0x00000008)
+# define IEM_F_MODE_X86_PROT_MASK           UINT32_C(0x00000008)
 /** X86 Mode: Bit used to indicate virtual 8086 mode (only 16-bit). */
-#define IEM_F_MODE_X86_V86_MASK             UINT32_C(0x00000010)
+# define IEM_F_MODE_X86_V86_MASK            UINT32_C(0x00000010)
 
 /** X86 Mode: 16-bit on 386 or later. */
-#define IEM_F_MODE_X86_16BIT                UINT32_C(0x00000000)
+# define IEM_F_MODE_X86_16BIT               UINT32_C(0x00000000)
 /** X86 Mode: 80286, 80186 and 8086/88 targetting blocks (EIP update opt). */
-#define IEM_F_MODE_X86_16BIT_PRE_386        UINT32_C(0x00000004)
+# define IEM_F_MODE_X86_16BIT_PRE_386       UINT32_C(0x00000004)
 /** X86 Mode: 16-bit protected mode on 386 or later. */
-#define IEM_F_MODE_X86_16BIT_PROT           UINT32_C(0x00000008)
+# define IEM_F_MODE_X86_16BIT_PROT          UINT32_C(0x00000008)
 /** X86 Mode: 16-bit protected mode on 386 or later. */
-#define IEM_F_MODE_X86_16BIT_PROT_PRE_386   UINT32_C(0x0000000c)
+# define IEM_F_MODE_X86_16BIT_PROT_PRE_386  UINT32_C(0x0000000c)
 /** X86 Mode: 16-bit virtual 8086 protected mode (on 386 or later). */
-#define IEM_F_MODE_X86_16BIT_PROT_V86       UINT32_C(0x00000018)
+# define IEM_F_MODE_X86_16BIT_PROT_V86      UINT32_C(0x00000018)
 
 /** X86 Mode: 32-bit on 386 or later. */
-#define IEM_F_MODE_X86_32BIT                UINT32_C(0x00000001)
+# define IEM_F_MODE_X86_32BIT               UINT32_C(0x00000001)
 /** X86 Mode: 32-bit mode with wide open flat CS, SS, DS and ES. */
-#define IEM_F_MODE_X86_32BIT_FLAT           UINT32_C(0x00000005)
+# define IEM_F_MODE_X86_32BIT_FLAT          UINT32_C(0x00000005)
 /** X86 Mode: 32-bit protected mode. */
-#define IEM_F_MODE_X86_32BIT_PROT           UINT32_C(0x00000009)
+# define IEM_F_MODE_X86_32BIT_PROT          UINT32_C(0x00000009)
 /** X86 Mode: 32-bit protected mode with wide open flat CS, SS, DS and ES. */
-#define IEM_F_MODE_X86_32BIT_PROT_FLAT      UINT32_C(0x0000000d)
+# define IEM_F_MODE_X86_32BIT_PROT_FLAT     UINT32_C(0x0000000d)
 
 /** X86 Mode: 64-bit (includes protected, but not the flat bit). */
-#define IEM_F_MODE_X86_64BIT                UINT32_C(0x0000000a)
+# define IEM_F_MODE_X86_64BIT               UINT32_C(0x0000000a)
 
 /** X86 Mode: Checks if @a a_fExec represent a FLAT mode. */
-#define IEM_F_MODE_X86_IS_FLAT(a_fExec)     (   ((a_fExec) & IEM_F_MODE_MASK) == IEM_F_MODE_X86_64BIT \
+# define IEM_F_MODE_X86_IS_FLAT(a_fExec)    (   ((a_fExec) & IEM_F_MODE_MASK) == IEM_F_MODE_X86_64BIT \
                                              || ((a_fExec) & IEM_F_MODE_MASK) == IEM_F_MODE_X86_32BIT_PROT_FLAT \
                                              || ((a_fExec) & IEM_F_MODE_MASK) == IEM_F_MODE_X86_32BIT_FLAT)
+
+/** X86: The current protection level (CPL) shift factor.   */
+# define IEM_F_X86_CPL_SHIFT                 8
+/** X86: The current protection level (CPL) mask. */
+# define IEM_F_X86_CPL_MASK                  UINT32_C(0x00000300)
+/** X86: The current protection level (CPL) shifted mask. */
+# define IEM_F_X86_CPL_SMASK                 UINT32_C(0x00000003)
+
+/** X86: Alignment checks enabled (CR0.AM=1 & EFLAGS.AC=1). */
+# define IEM_F_X86_AC                        UINT32_C(0x00080000)
+
+/** X86 execution context.
+ * The IEM_F_X86_CTX_XXX values are individual flags that can be combined (with
+ * the exception of IEM_F_X86_CTX_NORMAL).  This allows running VMs from SMM
+ * mode. */
+# define IEM_F_X86_CTX_MASK                  UINT32_C(0x0000f000)
+/** X86 context: Plain regular execution context. */
+# define IEM_F_X86_CTX_NORMAL                UINT32_C(0x00000000)
+/** X86 context: VT-x enabled. */
+# define IEM_F_X86_CTX_VMX                   UINT32_C(0x00001000)
+/** X86 context: AMD-V enabled. */
+# define IEM_F_X86_CTX_SVM                   UINT32_C(0x00002000)
+/** X86 context: In AMD-V or VT-x guest mode. */
+# define IEM_F_X86_CTX_IN_GUEST              UINT32_C(0x00004000)
+/** X86 context: System management mode (SMM). */
+# define IEM_F_X86_CTX_SMM                   UINT32_C(0x00008000)
+
+/** @todo Add TF+RF+INHIBIT indicator(s), so we can eliminate the conditional in
+ * iemRegFinishClearingRF() most for most situations (CPUMCTX_DBG_HIT_DRX_MASK
+ * and CPUMCTX_DBG_DBGF_MASK are covered by the IEM_F_PENDING_BRK_XXX bits
+ * alread). */
+
+/** @todo Add TF+RF+INHIBIT indicator(s), so we can eliminate the conditional in
+ *        iemRegFinishClearingRF() most for most situations
+ *        (CPUMCTX_DBG_HIT_DRX_MASK and CPUMCTX_DBG_DBGF_MASK are covered by
+ *        the IEM_F_PENDING_BRK_XXX bits alread). */
+
+#endif /* X86 || doxygen  */
+
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(DOXYGEN_RUNNING)
+/** ARM Mode: Exception (privilege) level shift count. */
+# define IEM_F_MODE_ARM_EL_SHIFT            2
+/** ARM Mode: Exception (privilege) level mask. */
+# define IEM_F_MODE_ARM_EL_MASK             UINT32_C(0x0000000c)
+/** ARM Mode: Exception (privilege) level shifted down mask. */
+# define IEM_F_MODE_ARM_EL_SMASK            UINT32_C(0x00000003)
+/** ARM Mode: 32-bit (set) or 64-bit (clear) indicator (SPSR_ELx.M[4]). */
+# define IEM_F_MODE_ARM_32BIT               UINT32_C(0x00000010)
+/** ARM Mode: Thumb mode indicator (SPSR_ELx.T).  */
+# define IEM_F_MODE_ARM_T32                 UINT32_C(0x00000020)
+
+/** ARM Mode: Get the exception (privilege) level. */
+# define IEM_F_MODE_ARM_GET_EL(a_fExec)     (((a_fExec) >> IEM_F_MODE_ARM_EL_SHIFT) & IEM_F_MODE_ARM_EL_SMASK)
+#endif /* ARM || doxygen  */
 
 /** Bypass access handlers when set. */
 #define IEM_F_BYPASS_HANDLERS               UINT32_C(0x00010000)
@@ -1048,47 +1111,18 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 #define IEM_F_X86_DISREGARD_LOCK            UINT32_C(0x00000800)
 
 /** Pending breakpoint mask (what iemCalcExecDbgFlags works out). */
-#define IEM_F_PENDING_BRK_MASK              (IEM_F_PENDING_BRK_INSTR | IEM_F_PENDING_BRK_DATA | IEM_F_PENDING_BRK_X86_IO)
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEM_F_PENDING_BRK_MASK             (IEM_F_PENDING_BRK_INSTR | IEM_F_PENDING_BRK_DATA | IEM_F_PENDING_BRK_X86_IO)
+#else
+# define IEM_F_PENDING_BRK_MASK             (IEM_F_PENDING_BRK_INSTR | IEM_F_PENDING_BRK_DATA)
+#endif
 
 /** Caller configurable options. */
-#define IEM_F_USER_OPTS                     (IEM_F_BYPASS_HANDLERS | IEM_F_X86_DISREGARD_LOCK)
-
-/** X86: The current protection level (CPL) shift factor.   */
-#define IEM_F_X86_CPL_SHIFT                 8
-/** X86: The current protection level (CPL) mask. */
-#define IEM_F_X86_CPL_MASK                  UINT32_C(0x00000300)
-/** X86: The current protection level (CPL) shifted mask. */
-#define IEM_F_X86_CPL_SMASK                 UINT32_C(0x00000003)
-
-/** X86: Alignment checks enabled (CR0.AM=1 & EFLAGS.AC=1). */
-#define IEM_F_X86_AC                        UINT32_C(0x00080000)
-
-/** X86 execution context.
- * The IEM_F_X86_CTX_XXX values are individual flags that can be combined (with
- * the exception of IEM_F_X86_CTX_NORMAL).  This allows running VMs from SMM
- * mode. */
-#define IEM_F_X86_CTX_MASK                  UINT32_C(0x0000f000)
-/** X86 context: Plain regular execution context. */
-#define IEM_F_X86_CTX_NORMAL                UINT32_C(0x00000000)
-/** X86 context: VT-x enabled. */
-#define IEM_F_X86_CTX_VMX                   UINT32_C(0x00001000)
-/** X86 context: AMD-V enabled. */
-#define IEM_F_X86_CTX_SVM                   UINT32_C(0x00002000)
-/** X86 context: In AMD-V or VT-x guest mode. */
-#define IEM_F_X86_CTX_IN_GUEST              UINT32_C(0x00004000)
-/** X86 context: System management mode (SMM). */
-#define IEM_F_X86_CTX_SMM                   UINT32_C(0x00008000)
-
-/** @todo Add TF+RF+INHIBIT indicator(s), so we can eliminate the conditional in
- * iemRegFinishClearingRF() most for most situations (CPUMCTX_DBG_HIT_DRX_MASK
- * and CPUMCTX_DBG_DBGF_MASK are covered by the IEM_F_PENDING_BRK_XXX bits
- * alread). */
-
-/** @todo Add TF+RF+INHIBIT indicator(s), so we can eliminate the conditional in
- *        iemRegFinishClearingRF() most for most situations
- *        (CPUMCTX_DBG_HIT_DRX_MASK and CPUMCTX_DBG_DBGF_MASK are covered by
- *        the IEM_F_PENDING_BRK_XXX bits alread). */
-
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEM_F_USER_OPTS                    (IEM_F_BYPASS_HANDLERS | IEM_F_X86_DISREGARD_LOCK)
+#else
+# define IEM_F_USER_OPTS                    (IEM_F_BYPASS_HANDLERS)
+#endif
 /** @} */
 
 
@@ -1111,10 +1145,12 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 
 /** Set when we're starting the block in an "interrupt shadow".
  * We don't need to distingish between the two types of this mask, thus the one.
- * @see CPUMCTX_INHIBIT_SHADOW, CPUMIsInInterruptShadow() */
+ * @see CPUMCTX_INHIBIT_SHADOW, CPUMIsInInterruptShadow()
+ * @note x86 specific */
 #define IEMTB_F_INHIBIT_SHADOW          UINT32_C(0x04000000)
 /** Set when we're currently inhibiting NMIs
- * @see CPUMCTX_INHIBIT_NMI, CPUMAreInterruptsInhibitedByNmi() */
+ * @see CPUMCTX_INHIBIT_NMI, CPUMAreInterruptsInhibitedByNmi()
+ * @note x86 specific */
 #define IEMTB_F_INHIBIT_NMI             UINT32_C(0x08000000)
 
 /** Checks that EIP/IP is wihin CS.LIM before each instruction.  Used when
@@ -1135,22 +1171,27 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
  *       Since most OSes will not share code between rings, this shouldn't
  *       have any real effect on TB/memory/recompiling load.
  */
-#define IEMTB_F_KEY_MASK                ((UINT32_MAX & ~(IEM_F_X86_CTX_MASK | IEMTB_F_TYPE_MASK)) | IEM_F_X86_CTX_SMM)
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEMTB_F_KEY_MASK               ((UINT32_MAX & ~(IEM_F_X86_CTX_MASK | IEMTB_F_TYPE_MASK)) | IEM_F_X86_CTX_SMM)
+#else
+# define IEMTB_F_KEY_MASK               (UINT32_MAX)
+#endif
 /** @} */
 
-AssertCompile( (IEM_F_MODE_X86_16BIT              & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT);
+#ifdef VBOX_VMM_TARGET_X86
+AssertCompile( (IEM_F_MODE_X86_16BIT              & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT);
 AssertCompile(!(IEM_F_MODE_X86_16BIT              & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
 AssertCompile(!(IEM_F_MODE_X86_16BIT              & IEM_F_MODE_X86_PROT_MASK));
 AssertCompile(!(IEM_F_MODE_X86_16BIT              & IEM_F_MODE_X86_V86_MASK));
-AssertCompile( (IEM_F_MODE_X86_16BIT_PRE_386      & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT);
+AssertCompile( (IEM_F_MODE_X86_16BIT_PRE_386      & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT);
 AssertCompile(  IEM_F_MODE_X86_16BIT_PRE_386      & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK);
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PRE_386      & IEM_F_MODE_X86_PROT_MASK));
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PRE_386      & IEM_F_MODE_X86_V86_MASK));
-AssertCompile( (IEM_F_MODE_X86_16BIT_PROT         & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT);
+AssertCompile( (IEM_F_MODE_X86_16BIT_PROT         & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT);
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PROT         & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
 AssertCompile(  IEM_F_MODE_X86_16BIT_PROT         & IEM_F_MODE_X86_PROT_MASK);
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PROT         & IEM_F_MODE_X86_V86_MASK));
-AssertCompile( (IEM_F_MODE_X86_16BIT_PROT_PRE_386 & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_16BIT);
+AssertCompile( (IEM_F_MODE_X86_16BIT_PROT_PRE_386 & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_16BIT);
 AssertCompile(  IEM_F_MODE_X86_16BIT_PROT_PRE_386 & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK);
 AssertCompile(  IEM_F_MODE_X86_16BIT_PROT_PRE_386 & IEM_F_MODE_X86_PROT_MASK);
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PROT_PRE_386 & IEM_F_MODE_X86_V86_MASK));
@@ -1158,22 +1199,30 @@ AssertCompile(  IEM_F_MODE_X86_16BIT_PROT_V86     & IEM_F_MODE_X86_PROT_MASK);
 AssertCompile(!(IEM_F_MODE_X86_16BIT_PROT_V86     & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
 AssertCompile(  IEM_F_MODE_X86_16BIT_PROT_V86     & IEM_F_MODE_X86_V86_MASK);
 
-AssertCompile( (IEM_F_MODE_X86_32BIT              & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT);
+AssertCompile( (IEM_F_MODE_X86_32BIT              & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT);
 AssertCompile(!(IEM_F_MODE_X86_32BIT              & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
 AssertCompile(!(IEM_F_MODE_X86_32BIT              & IEM_F_MODE_X86_PROT_MASK));
-AssertCompile( (IEM_F_MODE_X86_32BIT_FLAT         & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT);
+AssertCompile( (IEM_F_MODE_X86_32BIT_FLAT         & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT);
 AssertCompile(  IEM_F_MODE_X86_32BIT_FLAT         & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK);
 AssertCompile(!(IEM_F_MODE_X86_32BIT_FLAT         & IEM_F_MODE_X86_PROT_MASK));
-AssertCompile( (IEM_F_MODE_X86_32BIT_PROT         & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT);
+AssertCompile( (IEM_F_MODE_X86_32BIT_PROT         & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT);
 AssertCompile(!(IEM_F_MODE_X86_32BIT_PROT         & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
 AssertCompile(  IEM_F_MODE_X86_32BIT_PROT         & IEM_F_MODE_X86_PROT_MASK);
-AssertCompile( (IEM_F_MODE_X86_32BIT_PROT_FLAT    & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT);
+AssertCompile( (IEM_F_MODE_X86_32BIT_PROT_FLAT    & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT);
 AssertCompile(  IEM_F_MODE_X86_32BIT_PROT_FLAT    & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK);
 AssertCompile(  IEM_F_MODE_X86_32BIT_PROT_FLAT    & IEM_F_MODE_X86_PROT_MASK);
 
-AssertCompile( (IEM_F_MODE_X86_64BIT              & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT);
+AssertCompile( (IEM_F_MODE_X86_64BIT              & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_64BIT);
 AssertCompile(  IEM_F_MODE_X86_64BIT              & IEM_F_MODE_X86_PROT_MASK);
 AssertCompile(!(IEM_F_MODE_X86_64BIT              & IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK));
+#endif /* VBOX_VMM_TARGET_X86 */
+
+#ifdef VBOX_VMM_TARGET_ARMV8
+AssertCompile(IEM_F_MODE_ARM_EL_SHIFT == ARMV8_SPSR_EL2_AARCH64_EL_SHIFT);
+AssertCompile(IEM_F_MODE_ARM_EL_MASK  == ARMV8_SPSR_EL2_AARCH64_EL);
+AssertCompile(IEM_F_MODE_ARM_32BIT    == ARMV8_SPSR_EL2_AARCH64_M4);
+AssertCompile(IEM_F_MODE_ARM_T32      == ARMV8_SPSR_EL2_AARCH64_T);
+#endif
 
 /** Native instruction type for use with the native code generator.
  * This is a byte (uint8_t) for x86 and amd64 and uint32_t for the other(s). */
@@ -1220,7 +1269,8 @@ typedef struct IEMTHRDEDCALLENTRY
     /** Flags - IEMTHREADEDCALLENTRY_F_XXX. */
     uint8_t     fFlags;
 
-    /** Generic parameters. */
+    /** Generic parameters.
+     * @todo ARM: Hope we can get away with one param here... */
     uint64_t    auParams[3];
 } IEMTHRDEDCALLENTRY;
 AssertCompileSize(IEMTHRDEDCALLENTRY, sizeof(uint64_t) * 4);

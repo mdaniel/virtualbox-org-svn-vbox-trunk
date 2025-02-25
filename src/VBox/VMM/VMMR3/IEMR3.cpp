@@ -36,12 +36,7 @@
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/mm.h>
 #include <VBox/vmm/ssm.h>
-/** @todo this isn't sustainable.   */
-#if defined(VBOX_VMM_TARGET_ARMV8)
-# include "IEMInternal-armv8.h"
-#else
-# include "IEMInternal.h"
-#endif
+#include "IEMInternal.h"
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/vmapi.h>
 #include <VBox/err.h>
@@ -128,7 +123,7 @@ VMMR3_INT_DECL(int) IEMR3Init(PVM pVM)
     int rc;
 #endif
 
-#if !defined(VBOX_VMM_TARGET_ARMV8) && !defined(VBOX_WITHOUT_CPUID_HOST_CALL)
+#if defined(VBOX_VMM_TARGET_X86) && !defined(VBOX_WITHOUT_CPUID_HOST_CALL)
     /** @cfgm{/IEM/CpuIdHostCall, boolean, false}
      * Controls whether the custom VBox specific CPUID host call interface is
      * enabled or not. */
@@ -2002,7 +1997,7 @@ static DECLCALLBACK(void) iemR3InfoTb(PVM pVM, PCDBGFINFOHLP pHlp, int cArgs, ch
             fFlags |= IEMTB_F_INHIBIT_SHADOW;
         if (CPUMAreInterruptsInhibitedByNmiEx(&pVCpu->cpum.GstCtx))
             fFlags |= IEMTB_F_INHIBIT_NMI;
-        if ((IEM_F_MODE_CPUMODE_MASK & fFlags) != IEMMODE_64BIT)
+        if ((IEM_F_MODE_X86_CPUMODE_MASK & fFlags) != IEMMODE_64BIT)
         {
             int64_t const offFromLim = (int64_t)pVCpu->cpum.GstCtx.cs.u32Limit - (int64_t)pVCpu->cpum.GstCtx.eip;
             if (offFromLim < X86_PAGE_SIZE + 16 - (int32_t)(pVCpu->cpum.GstCtx.cs.u64Base & GUEST_PAGE_OFFSET_MASK))

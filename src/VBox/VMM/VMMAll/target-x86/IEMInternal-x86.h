@@ -2397,7 +2397,7 @@ IEM_DECL_IMPL_PROTO(uint32_t, iemAImpl_vcvtpd2dq_u128_u256_fallback,(uint32_t uM
  * @returns IEMMODE
  * @param   a_pVCpu         The cross context virtual CPU structure of the calling thread.
  */
-#define IEM_GET_CPU_MODE(a_pVCpu)           ((a_pVCpu)->iem.s.fExec & IEM_F_MODE_CPUMODE_MASK)
+#define IEM_GET_CPU_MODE(a_pVCpu)           ((a_pVCpu)->iem.s.fExec & IEM_F_MODE_X86_CPUMODE_MASK)
 
 /**
  * Check if we're currently executing in real or virtual 8086 mode.

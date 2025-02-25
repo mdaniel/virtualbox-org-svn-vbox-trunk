@@ -1090,7 +1090,7 @@
 /** @def IEM_MC_CALL_CIMPL_HLP_RET
  * Helper macro for check that all important IEM_CIMPL_F_XXX bits are set.
  */
-#ifdef VBOX_STRICT
+#if defined(VBOX_STRICT) && defined(VBOX_VMM_TARGET_X86)
 # define IEM_MC_CALL_CIMPL_HLP_RET(a_fFlags, a_CallExpr) \
     do { \
         uint8_t      const cbInstr     = IEM_GET_INSTR_LEN(pVCpu); /* may be flushed */ \
@@ -1101,7 +1101,7 @@
         VBOXSTRICTRC const rcStrictHlp = a_CallExpr; \
         if (rcStrictHlp == VINF_SUCCESS) \
         { \
-            uint64_t const fRipMask = (pVCpu->iem.s.fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_64BIT ? UINT64_MAX : UINT32_MAX; \
+            uint64_t const fRipMask = (pVCpu->iem.s.fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_64BIT ? UINT64_MAX : UINT32_MAX; \
             AssertMsg(   ((a_fFlags) & IEM_CIMPL_F_BRANCH_ANY) \
                       || (   ((uRipBefore + cbInstr) & fRipMask) == pVCpu->cpum.GstCtx.rip \
                           && uCsBefore  == pVCpu->cpum.GstCtx.cs.Sel) \
@@ -1126,7 +1126,7 @@
                 AssertMsg(   fExecBefore == fExecRecalc \
                              /* in case ES, DS or SS was external initially (happens alot with HM): */ \
                           || (   fExecBefore == (fExecRecalc & ~IEM_F_MODE_X86_FLAT_OR_PRE_386_MASK) \
-                              && (fExecRecalc & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT), \
+                              && (fExecRecalc & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT), \
                           ("fExec=%#x -> %#x (diff %#x)\n", fExecBefore, fExecRecalc, fExecBefore ^ fExecRecalc)); \
             } \
         } \

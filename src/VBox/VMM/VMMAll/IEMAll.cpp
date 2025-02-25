@@ -193,12 +193,12 @@ DECLINLINE(void) iemInitDecoder(PVMCPUCC pVCpu, uint32_t fExecOpts)
     pVCpu->iem.s.fExec = fExec = iemCalcExecFlags(pVCpu) | fExecOpts;
 
     /* Decoder state: */
-    pVCpu->iem.s.enmDefAddrMode     = fExec & IEM_F_MODE_CPUMODE_MASK;  /** @todo check if this is correct... */
-    pVCpu->iem.s.enmEffAddrMode     = fExec & IEM_F_MODE_CPUMODE_MASK;
-    if ((fExec & IEM_F_MODE_CPUMODE_MASK) != IEMMODE_64BIT)
+    pVCpu->iem.s.enmDefAddrMode     = fExec & IEM_F_MODE_X86_CPUMODE_MASK;  /** @todo check if this is correct... */
+    pVCpu->iem.s.enmEffAddrMode     = fExec & IEM_F_MODE_X86_CPUMODE_MASK;
+    if ((fExec & IEM_F_MODE_X86_CPUMODE_MASK) != IEMMODE_64BIT)
     {
-        pVCpu->iem.s.enmDefOpSize   = fExec & IEM_F_MODE_CPUMODE_MASK;  /** @todo check if this is correct... */
-        pVCpu->iem.s.enmEffOpSize   = fExec & IEM_F_MODE_CPUMODE_MASK;
+        pVCpu->iem.s.enmDefOpSize   = fExec & IEM_F_MODE_X86_CPUMODE_MASK;  /** @todo check if this is correct... */
+        pVCpu->iem.s.enmEffOpSize   = fExec & IEM_F_MODE_X86_CPUMODE_MASK;
     }
     else
     {

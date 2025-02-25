@@ -1648,7 +1648,7 @@ iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t c
         off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegSsAttr, X86DESCATTR_D);
         iemNativeRegFreeTmp(pReNative, idxRegSsAttr);
         offFixupJumpToUseOtherBitSp = off;
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
         {
             off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off /*8-bit suffices*/, kIemNativeInstrCond_e); /* jump if zero */
             off = iemNativeEmitStackPushUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
@@ -1693,7 +1693,7 @@ iemNativeEmitStackPushRip(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t c
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 10);
 #endif
         iemNativeFixupFixedJump(pReNative, offFixupJumpToUseOtherBitSp, off);
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
             off = iemNativeEmitStackPushUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
         else
             off = iemNativeEmitStackPushUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
@@ -2389,7 +2389,7 @@ iemNativeEmitRetn(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t cbInstr, 
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 12);
 #endif
         iemNativeFixupFixedJump(pReNative, offFixupJumpToUseOtherBitSp, off);
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
             off = iemNativeEmitStackPopForRetnUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, cbPopArgs,
                                                       idxRegMemResult);
         else
@@ -8274,7 +8274,7 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
         off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegSsAttr, X86DESCATTR_D);
         iemNativeRegFreeTmp(pReNative, idxRegSsAttr);
         offFixupJumpToUseOtherBitSp = off;
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
         {
             off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off /*8-bit suffices*/, kIemNativeInstrCond_e); /* jump if zero */
             off = iemNativeEmitStackPushUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
@@ -8324,7 +8324,7 @@ iemNativeEmitStackPush(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t idxV
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 10);
 #endif
         iemNativeFixupFixedJump(pReNative, offFixupJumpToUseOtherBitSp, off);
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
             off = iemNativeEmitStackPushUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
         else
             off = iemNativeEmitStackPushUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);
@@ -8656,7 +8656,7 @@ iemNativeEmitStackPopGReg(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
         off = iemNativeEmitTestAnyBitsInGpr32Ex(pCodeBuf, off, idxRegSsAttr, X86DESCATTR_D);
         iemNativeRegFreeTmp(pReNative, idxRegSsAttr);
         offFixupJumpToUseOtherBitSp = off;
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
         {
 /** @todo can skip idxRegRsp updating when popping ESP.   */
             off = iemNativeEmitJccToFixedEx(pCodeBuf, off, off /*8-bit suffices*/, kIemNativeInstrCond_e); /* jump if zero */
@@ -8700,7 +8700,7 @@ iemNativeEmitStackPopGReg(PIEMRECOMPILERSTATE pReNative, uint32_t off, uint8_t i
         PIEMNATIVEINSTR const pCodeBuf = iemNativeInstrBufEnsure(pReNative, off, 10);
 #endif
         iemNativeFixupFixedJump(pReNative, offFixupJumpToUseOtherBitSp, off);
-        if ((pReNative->fExec & IEM_F_MODE_CPUMODE_MASK) == IEMMODE_32BIT)
+        if ((pReNative->fExec & IEM_F_MODE_X86_CPUMODE_MASK) == IEMMODE_32BIT)
             off = iemNativeEmitStackPopUse16Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem, idxRegMemResult);
         else
             off = iemNativeEmitStackPopUse32Sp(pCodeBuf, off, idxRegRsp, idxRegEffSp, cbMem);

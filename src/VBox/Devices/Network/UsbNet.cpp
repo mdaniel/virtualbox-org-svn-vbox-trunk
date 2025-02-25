@@ -421,6 +421,7 @@ typedef struct USBNET
     STAMCOUNTER                         StatReceiveBytes;
     STAMCOUNTER                         StatTransmitBytes;
 
+    uint32_t                            u32PktNo;
     /**
      * LUN\#0 data.
      */
@@ -1132,7 +1133,7 @@ static int usbNetCompleteStall(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb, cons
  */
 static int usbNetCompleteOk(PUSBNET pThis, PVUSBURB pUrb, size_t cbData)
 {
-    LogFunc(("/#%u/ pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
+    LogFlowFunc(("/#%u/ pUrb=%p:%s cbData=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, cbData));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     pUrb->cbData    = (uint32_t)cbData;
@@ -1148,7 +1149,7 @@ static int usbNetCompleteOk(PUSBNET pThis, PVUSBURB pUrb, size_t cbData)
  */
 static void usbNetCompleteNotificationOk(PUSBNET pThis, PVUSBURB pUrb, const void *pSrc, size_t cbSrc)
 {
-    LogFunc(("/#%u/ pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
+    LogFlowFunc(("/#%u/ pUrb=%p:%s (cbData=%#x) cbSrc=%#zx\n", pThis->pUsbIns->iInstance, pUrb, pUrb->pszDesc, pUrb->cbData, cbSrc));
 
     pUrb->enmStatus = VUSBSTATUS_OK;
     if (pSrc)   /* Can be NULL if not copying anything. */
@@ -1163,7 +1164,7 @@ static void usbNetCompleteNotificationOk(PUSBNET pThis, PVUSBURB pUrb, const voi
         size_t cbCopy = RT_MIN(pUrb->cbData, cbSrc);
         memcpy(pDst, pSrc, cbCopy);
         pUrb->cbData = (uint32_t)cbCopy;
-        Log(("Copied %zu bytes to pUrb->abData, source had %zu bytes\n", cbCopy, cbSrc));
+        Log2Func(("/#%u/ Copied %zu bytes to pUrb->abData, source had %zu bytes\n", pThis->pUsbIns->iInstance, cbCopy, cbSrc));
 
         /*
          * Need to check length differences. If cbSrc is less than what
@@ -1266,6 +1267,95 @@ static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pIn
     return rc;
 }
 
+#ifdef LOG_ENABLED
+
+DECLINLINE(void) usbNetProtocolDump(const uint8_t *cpPacket, uint32_t cb)
+{
+    RT_NOREF(cb);
+    uint8_t  protocol;
+    uint16_t offset = sizeof(RTNETETHERHDR);
+    uint16_t uEthType = RT_N2H_U16(*(uint16_t*)(cpPacket+12));
+    if (uEthType == RTNET_ETHERTYPE_VLAN)
+    {
+        uEthType = RT_N2H_U16(*(uint16_t*)(cpPacket+16));
+        offset += 4;
+    }
+    if (uEthType == RTNET_ETHERTYPE_ARP)
+    {
+        Log4(("\tARP\n"));
+        return;
+    }
+    else if (uEthType == RTNET_ETHERTYPE_IPV4)
+    {
+        PRTNETIPV4 pHdr = (PRTNETIPV4)(cpPacket + offset);
+        offset += pHdr->ip_hl * 4;
+        protocol = pHdr->ip_p;
+        Log4(("\tIPv4: %RTnaipv4 => %RTnaipv4\n", pHdr->ip_src, pHdr->ip_dst));
+    }
+    else if (uEthType == RTNET_ETHERTYPE_IPV6)
+    {
+        PRTNETIPV6 pHdr = (PRTNETIPV6)(cpPacket + offset);
+        protocol = pHdr->ip6_nxt;
+        offset += sizeof(RTNETIPV6);
+        if (protocol == 0 || protocol == 60)
+        {
+            /* Skip hop-by-hop and destination options */
+            while (cpPacket[offset] == 0 || cpPacket[offset] == 60)
+                offset += 8 * (1 + cpPacket[offset+1]);
+            protocol = cpPacket[offset];
+            offset += 8 * (1 + cpPacket[offset+1]);
+        }
+        Log4(("\tIPv6: %RTnaipv6 => %RTnaipv6\n", pHdr->ip6_src, pHdr->ip6_dst));
+    }
+    else
+    {
+        Log4(("\tEthernet: 0x%04x\n", uEthType));
+        return;
+    }     
+    switch (protocol)
+    {
+        case 1: Log4(("\tICMP\n")); break;
+        case 2: Log4(("\tIGMP\n")); break;
+        case 58: Log4(("\tICMPv6\n")); break;
+
+        case 6:
+            {
+                PRTNETTCP pTcp = (PRTNETTCP)(cpPacket + offset);
+                Log4(("\tTCP: %u => %u, seq=%u ack=%u\n", RT_N2H_U16(pTcp->th_sport), RT_N2H_U16(pTcp->th_dport),
+                      RT_N2H_U32(pTcp->th_seq), RT_N2H_U32(pTcp->th_ack)));
+            }
+            break;
+        case 17:
+            {
+                PRTNETUDP pUdp = (PRTNETUDP)(cpPacket + offset);
+                Log4(("\tUDP: %u => %u\n", RT_N2H_U16(pUdp->uh_sport), RT_N2H_U16(pUdp->uh_dport)));
+            }
+            break;
+        default:
+            Log4(("\tUnknown (%u)", protocol));
+            break;
+    }
+}
+
+DECLINLINE(void) usbNetPacketDump(PUSBNET pThis, const void *pvBuf, size_t cb, const char *pcszText)
+{
+    const uint8_t *cpPacket = (const uint8_t *)pvBuf;
+    if (cb < 14)
+        Log3(("/#%u/ %s packet #%d is too small (%u bytes):\n%.*Rhxd\n",
+              pThis->pUsbIns->iInstance, pcszText, ++pThis->u32PktNo, (uint32_t)cb, (uint32_t)cb, cpPacket));
+    else
+    {
+        Log3(("/#%u/ %s packet #%d, %u bytes, %RTmac => %RTmac\n",
+              pThis->pUsbIns->iInstance, pcszText, ++pThis->u32PktNo, (uint32_t)cb, cpPacket+6, cpPacket));
+        if (LogIs4Enabled())
+            usbNetProtocolDump(cpPacket, (uint32_t)cb);
+        Log5(("%.*Rhxd\n", (uint32_t)cb, cpPacket));
+    }
+}
+
+#else
+#define usbNetPacketDump(pUsbIns, pvBuf, cb, pcszText)
+#endif
 
 /**
  * Receive data and pass it to lwIP for processing.
@@ -1308,6 +1398,8 @@ static DECLCALLBACK(int) usbNetNetworkDown_Receive(PPDMINETWORKDOWN pInterface, 
         RTCritSectLeave(&pThis->CritSect);
         return VINF_SUCCESS;
     }
+
+    usbNetPacketDump(pThis, pvBuf, cb, "<-- Rx");
 
     PUSBNCMNTH16 pNth16 = (PUSBNCMNTH16)&pUrb->abData[0];
     PUSBNCMNDP16 pNdp16 = (PUSBNCMNDP16)(pNth16 + 1);
@@ -1467,7 +1559,7 @@ static DECLCALLBACK(PVUSBURB) usbNetUrbReap(PPDMUSBINS pUsbIns, RTMSINTERVAL cMi
     RTCritSectLeave(&pThis->CritSect);
 
     if (pUrb)
-        LogFunc(("/#%u/ pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
+        Log2Func(("/#%u/ pUrb=%p:%s\n", pUsbIns->iInstance, pUrb, pUrb->pszDesc));
     return pUrb;
 }
 
@@ -1524,31 +1616,31 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     PCUSBNCMNTH16 pNth16 = (PCUSBNCMNTH16)&pUrb->abData[0];
     if (pUrb->cbData < sizeof(*pNth16))
     {
-        Log(("UsbNet: Bad NTH16: cbData=%#x < min=%#x\n", pUrb->cbData, sizeof(*pNth16) ));
+        LogFunc(("/#%u/ Bad NTH16: cbData=%#x < min=%#x\n", pThis->pUsbIns->iInstance, pUrb->cbData, sizeof(*pNth16) ));
         return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NTH16");
     }
     if (pNth16->dwSignature != USBNCMNTH16_SIGNATURE)
     {
-        Log(("UsbNet: NTH16: Invalid dwSignature value: %#x\n", pNth16->dwSignature));
+        LogFunc(("/#%u/ NTH16: Invalid dwSignature value: %#x\n", pNth16->dwSignature));
         return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
-    Log(("UsbNet: NTH16: wHeaderLength=%#x wSequence=%#x wBlockLength=%#x wNdpIndex=%#x cbData=%#x fShortNotOk=%RTbool\n",
-         pNth16->wHeaderLength, pNth16->wSequence, pNth16->wBlockLength, pNth16->wNdpIndex, pUrb->cbData, pUrb->fShortNotOk));
+    Log2Func(("/#%u/ NTH16: wHeaderLength=%#x wSequence=%#x wBlockLength=%#x wNdpIndex=%#x cbData=%#x fShortNotOk=%RTbool\n", pThis->pUsbIns->iInstance,
+              pNth16->wHeaderLength, pNth16->wSequence, pNth16->wBlockLength, pNth16->wNdpIndex, pUrb->cbData, pUrb->fShortNotOk));
     if (pNth16->wHeaderLength != sizeof(*pNth16))
     {
-        Log(("UsbNet: NTH16: Bad wHeaderLength value: %#x\n", pNth16->wHeaderLength));
+        LogFunc(("/#%u/ NTH16: Bad wHeaderLength value: %#x\n", pThis->pUsbIns->iInstance, pNth16->wHeaderLength));
         return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
 
     }
     if (pNth16->wBlockLength > pUrb->cbData)
     {
-        Log(("UsbNet: NTH16: Bad wBlockLength value: %#x\n", pNth16->wBlockLength));
+        LogFunc(("/#%u/ NTH16: Bad wBlockLength value: %#x\n", pThis->pUsbIns->iInstance, pNth16->wBlockLength));
         return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
 
     if (pNth16->wNdpIndex < sizeof(*pNth16))
     {
-        Log(("UsbNet: NTH16: wNdpIndex is too small: %#x (%u), at least required %#x\n",
+        LogFunc(("/#%u/ NTH16: wNdpIndex is too small: %#x (%u), at least required %#x\n", pThis->pUsbIns->iInstance,
              pNth16->wNdpIndex, pNth16->wNdpIndex, sizeof(*pNth16) ));
         return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NTH16");
     }
@@ -1559,7 +1651,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
     {
         if (offNdp16Next >= pUrb->cbData)
         {
-            Log(("UsbNet: Bad NDP16: offNdp16Next=%#x >= cbData=%#x\n", offNdp16Next, pUrb->cbData));
+            LogFunc(("/#%u/ Bad NDP16: offNdp16Next=%#x >= cbData=%#x\n", pThis->pUsbIns->iInstance, offNdp16Next, pUrb->cbData));
             return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
         }
 
@@ -1567,14 +1659,14 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
         PCUSBNCMNDP16 pNdp16 = (PCUSBNCMNDP16)&pUrb->abData[pNth16->wNdpIndex];
         if (cbNdpMax < sizeof(*pNdp16))
         {
-            Log(("UsbNet: Bad NDP16: cbNdpMax=%#x < min=%#x\n", cbNdpMax, sizeof(*pNdp16) ));
+            LogFunc(("/#%u/ Bad NDP16: cbNdpMax=%#x < min=%#x\n", pThis->pUsbIns->iInstance, cbNdpMax, sizeof(*pNdp16) ));
             return usbNetCompleteStall(pThis, NULL, pUrb, "BAD NDP16");
         }
 
         if (   pNdp16->dwSignature != USBNCMNDP16_SIGNATURE_NCM0
             && pNdp16->dwSignature != USBNCMNDP16_SIGNATURE_NCM1)
         {
-            Log(("UsbNet: NDP16: Invalid dwSignature value: %#x\n", pNdp16->dwSignature));
+            LogFunc(("/#%u/ NDP16: Invalid dwSignature value: %#x\n", pThis->pUsbIns->iInstance, pNdp16->dwSignature));
             return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
 
@@ -1582,7 +1674,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
             || (pNdp16->wLength & 0x3)
             || pNdp16->wLength > cbNdpMax)
         {
-            Log(("UsbNet: NDP16: Invalid size value: %#x, req. (min %#x max %#x)\n",
+            LogFunc(("/#%u/ NDP16: Invalid size value: %#x, req. (min %#x max %#x)\n", pThis->pUsbIns->iInstance,
                  pNdp16->wLength, sizeof(*pNdp16), cbNdpMax));
             return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
@@ -1606,13 +1698,13 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
                 if (   pDGram->wDatagramIndex < sizeof(*pNth16)
                     || pDGram->wDatagramIndex >= pUrb->cbData)
                 {
-                    Log(("UsbNet: DGRAM16: Invalid wDatagramIndex value: %#x\n", pDGram->wDatagramIndex));
+                    LogFunc(("/#%u/ DGRAM16: Invalid wDatagramIndex value: %#x\n", pThis->pUsbIns->iInstance, pDGram->wDatagramIndex));
                     return usbNetCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
                 }
 
                 if (pUrb->cbData - pDGram->wDatagramIndex < pDGram->wDatagramLength)
                 {
-                    Log(("UsbNet: DGRAM16: Invalid wDatagramLength value: %#x (max %#x)\n",
+                    LogFunc(("/#%u/ DGRAM16: Invalid wDatagramLength value: %#x (max %#x)\n", pThis->pUsbIns->iInstance,
                          pDGram->wDatagramLength, pUrb->cbData - pDGram->wDatagramIndex));
                     return usbNetCompleteStall(pThis, NULL, pUrb, "Bad DGRAM16");
                 }
@@ -1623,6 +1715,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
                 {
                     uint8_t *pbBuf = pSgBuf ? (uint8_t *)pSgBuf->aSegs[0].pvSeg : NULL;
                     memcpy(pbBuf, &pUrb->abData[pDGram->wDatagramIndex], pDGram->wDatagramLength);
+                    usbNetPacketDump(pThis, pbBuf, pDGram->wDatagramLength, "--> Tx");
                     pSgBuf->cbUsed = pDGram->wDatagramLength;
                     rc = pThis->Lun0.pINetwork->pfnSendBuf(pThis->Lun0.pINetwork, pSgBuf, true /* fOnWorkerThread */);
                     if (RT_FAILURE(rc))
@@ -1639,7 +1732,7 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
         }
         else
         {
-            Log(("UsbNet: NDP16: Not implemented\n"));
+            LogFunc(("/#%u/ NDP16: Not implemented\n", pThis->pUsbIns->iInstance));
             return usbNetCompleteStall(pThis, NULL, pUrb, "Bad NDP16");
         }
 
@@ -1753,7 +1846,7 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
             {
                 if (pSetup->bmRequestType != (VUSB_TO_DEVICE | VUSB_REQ_STANDARD | VUSB_DIR_TO_HOST))
                 {
-                    Log(("UsbNet: Bad GET_DESCRIPTOR req: bmRequestType=%#x\n", pSetup->bmRequestType));
+                    LogFunc(("/#%u/ Bad GET_DESCRIPTOR req: bmRequestType=%#x\n", pThis->pUsbIns->iInstance, pSetup->bmRequestType));
                     return usbNetCompleteStall(pThis, pEp, pUrb, "Bad GET_DESCRIPTOR");
                 }
 
@@ -1762,24 +1855,24 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
                     uint32_t    cbCopy;
 
                     case VUSB_DT_STRING:
-                        Log(("UsbNet: GET_DESCRIPTOR DT_STRING wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        LogFunc(("/#%u/ GET_DESCRIPTOR DT_STRING wValue=%#x wIndex=%#x\n", pThis->pUsbIns->iInstance, pSetup->wValue, pSetup->wIndex));
                         break;
                     case VUSB_DT_DEVICE_QUALIFIER:
-                        Log(("UsbNet: GET_DESCRIPTOR DT_DEVICE_QUALIFIER wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        LogFunc(("/#%u/ GET_DESCRIPTOR DT_DEVICE_QUALIFIER wValue=%#x wIndex=%#x\n", pThis->pUsbIns->iInstance, pSetup->wValue, pSetup->wIndex));
                         /* Returned data is written after the setup message. */
                         cbCopy = pUrb->cbData - sizeof(*pSetup);
                         cbCopy = RT_MIN(cbCopy, sizeof(g_UsbNetDeviceQualifier));
                         memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbNetDeviceQualifier, cbCopy);
                         return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                     case VUSB_DT_BOS:
-                        Log(("UsbNet: GET_DESCRIPTOR DT_BOS wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        LogFunc(("/#%u/ GET_DESCRIPTOR DT_BOS wValue=%#x wIndex=%#x\n", pThis->pUsbIns->iInstance, pSetup->wValue, pSetup->wIndex));
                         /* Returned data is written after the setup message. */
                         cbCopy = pUrb->cbData - sizeof(*pSetup);
                         cbCopy = RT_MIN(cbCopy, sizeof(g_UsbNetBOS));
                         memcpy(&pUrb->abData[sizeof(*pSetup)], &g_UsbNetBOS, cbCopy);
                         return usbNetCompleteOk(pThis, pUrb, cbCopy + sizeof(*pSetup));
                     default:
-                        Log(("UsbNet: GET_DESCRIPTOR, huh? wValue=%#x wIndex=%#x\n", pSetup->wValue, pSetup->wIndex));
+                        LogFunc(("/#%u/ GET_DESCRIPTOR, huh? wValue=%#x wIndex=%#x\n", pThis->pUsbIns->iInstance, pSetup->wValue, pSetup->wIndex));
                         break;
                 }
                 break;
@@ -1853,7 +1946,7 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
         }
 
         /** @todo implement this. */
-        Log(("UsbNet: Implement standard request: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
+        LogFunc(("/#%u/ Implement standard request: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n", pThis->pUsbIns->iInstance,
              pSetup->bmRequestType, pSetup->bRequest, pSetup->wValue, pSetup->wIndex, pSetup->wLength));
 
         usbNetCompleteStall(pThis, pEp, pUrb, "TODO: standard request stuff");
@@ -1866,7 +1959,7 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
             {
                 if (pSetup->bmRequestType != (VUSB_TO_INTERFACE | VUSB_REQ_CLASS | VUSB_DIR_TO_HOST))
                 {
-                    Log(("UsbNet: Bad GET_NTB_PARAMETERS req: bmRequestType=%#x\n", pSetup->bmRequestType));
+                    LogFunc(("/#%u/ Bad GET_NTB_PARAMETERS req: bmRequestType=%#x\n", pThis->pUsbIns->iInstance, pSetup->bmRequestType));
                     return usbNetCompleteStall(pThis, pEp, pUrb, "Bad GET_NTB_PARAMETERS");
                 }
 
@@ -1899,7 +1992,7 @@ static int usbNetHandleDefaultPipe(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb)
     }
     else
     {
-        Log(("UsbNet: Unknown control msg: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n",
+        LogFunc(("/#%u/ Unknown control msg: bmRequestType=%#x bRequest=%#x wValue=%#x wIndex=%#x wLength=%#x\n", pThis->pUsbIns->iInstance,
              pSetup->bmRequestType, pSetup->bRequest, pSetup->wValue, pSetup->wIndex, pSetup->wLength));
         return usbNetCompleteStall(pThis, pEp, pUrb, "Unknown control msg");
     }
@@ -2215,6 +2308,7 @@ static DECLCALLBACK(int) usbNetConstruct(PPDMUSBINS pUsbIns, int iInstance, PCFG
 
     LogFlowFunc(("/#%u/\n", iInstance));
 
+    pThis->u32PktNo = 1;
     /*
      * Perform the basic structure initialization first so the destructor
      * will not misbehave.

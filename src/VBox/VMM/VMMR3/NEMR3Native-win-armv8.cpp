@@ -1878,8 +1878,11 @@ static void nemR3WinLogState(PVMCC pVM, PVMCPUCC pVCpu)
  */
 DECLINLINE(void) nemR3WinCopyStateFromArmHeader(PVMCPUCC pVCpu, WHV_INTERCEPT_MESSAGE_HEADER const *pMsgHdr)
 {
-    Assert(   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_PSTATE))
-           ==                              (CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_PSTATE));
+#ifdef LOG_ENABLED /* When state logging is enabled the state is synced completely upon VM exit. */
+    if (!LogIs3Enabled())
+#endif
+        Assert(   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_PSTATE))
+               ==                              (CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_PSTATE));
 
     pVCpu->cpum.GstCtx.Pc.u64   = pMsgHdr->Pc;
     pVCpu->cpum.GstCtx.fPState  = pMsgHdr->Cpsr;
@@ -2157,9 +2160,7 @@ nemR3WinHandleExitMemory(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT c
                                             ? EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_WRITE)
                                             : EMEXIT_MAKE_FT(EMEXIT_F_KIND_EM, EMEXITTYPE_MMIO_READ),
                                             pHdr->Pc, uHostTsc);
-#pragma message("nemR3WinHandleExitMemory: Why not calling nemR3WinCopyStateFromArmHeader?")
-/** @todo r=bird: Why is nemR3WinCopyStateFromArmHeader commented out? */
-    //nemR3WinCopyStateFromArmHeader(pVCpu, &pExit->MemoryAccess.Header);
+    nemR3WinCopyStateFromArmHeader(pVCpu, &pExit->MemoryAccess.Header);
     RT_NOREF_PV(pExitRec);
     rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, IEM_CPUMCTX_EXTRN_MUST_MASK);
     AssertRCReturn(rc, rc);
@@ -2438,12 +2439,14 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExitUnrecoverableException(PVMCC pVM,
  */
 NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, MY_WHV_RUN_VP_EXIT_CONTEXT const *pExit)
 {
-    int rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, CPUMCTX_EXTRN_ALL);
-    AssertRCReturn(rc, rc);
-
 #ifdef LOG_ENABLED
     if (LogIs3Enabled())
+    {
+        int rc = nemHCWinCopyStateFromHyperV(pVM, pVCpu, CPUMCTX_EXTRN_ALL);
+        AssertRCReturn(rc, rc);
+
         nemR3WinLogState(pVM, pVCpu);
+    }
 #endif
 
     switch (pExit->ExitReason)

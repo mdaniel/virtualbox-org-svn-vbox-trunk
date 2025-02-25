@@ -1711,9 +1711,9 @@ static int usbNetHandleBulkHostToDev(PUSBNET pThis, PUSBNETEP pEp, PVUSBURB pUrb
 
                 PPDMSCATTERGATHER pSgBuf;
                 rc = pThis->Lun0.pINetwork->pfnAllocBuf(pThis->Lun0.pINetwork, pDGram->wDatagramLength, NULL /*pGso*/, &pSgBuf);
-                if (RT_SUCCESS(rc))
+                if (RT_SUCCESS(rc) && pSgBuf)
                 {
-                    uint8_t *pbBuf = pSgBuf ? (uint8_t *)pSgBuf->aSegs[0].pvSeg : NULL;
+                    uint8_t *pbBuf = (uint8_t *)pSgBuf->aSegs[0].pvSeg;
                     memcpy(pbBuf, &pUrb->abData[pDGram->wDatagramIndex], pDGram->wDatagramLength);
                     usbNetPacketDump(pThis, pbBuf, pDGram->wDatagramLength, "--> Tx");
                     pSgBuf->cbUsed = pDGram->wDatagramLength;

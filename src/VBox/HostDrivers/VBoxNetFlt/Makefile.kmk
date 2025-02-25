@@ -206,7 +206,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   PROGRAMS.win += NetAdp6Install
   NetAdp6Install_TEMPLATE   = VBoxNetFltR3
   NetAdp6Install_SOURCES    = win/tools/VBoxNetAdpInstall.cpp
-  NetAdp6Install_DEFS 	    = NDIS630=1
+  NetAdp6Install_DEFS       = NDIS630=1
 
   #
   # NetAdp6Uninstall

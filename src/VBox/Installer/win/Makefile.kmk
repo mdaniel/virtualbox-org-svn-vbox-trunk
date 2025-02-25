@@ -80,13 +80,6 @@ ifdef VBOX_INSTALLER_QUICK
  VBOX_CAB_COMPRESSION_LEVEL     := none
 endif
 
-# Disable installing NetAdp and NetLwf drivers on arm64, as Windows/Arm requires at least NDIS 6.3
-# which we don't support yet. See @bugref{10846}
-ifeq ($(KBUILD_TARGET_ARCH),arm64)
- VBOX_WITH_NETADP               :=
- VBOX_WITH_NETFLT               :=
-endif
-
 # Make sure that we show the license page in non-OSE release builds.
 if !defined(VBOX_OSE) && defined(VBOX_RELEASE_EXACT_MATCH) && !defined(VBOX_WITH_LICENSE_DISPLAY)
  $(error In release mode the non-OSE installer must be built with license agreement being displayed!)

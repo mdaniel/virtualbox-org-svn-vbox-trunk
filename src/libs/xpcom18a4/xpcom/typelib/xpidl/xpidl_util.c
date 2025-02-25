@@ -39,6 +39,7 @@
  * Utility functions called by various backends.
  */ 
 #include <iprt/assert.h>
+#include <iprt/string.h>
 
 #include "xpidl.h"
 
@@ -58,15 +59,9 @@ xpidl_malloc(size_t nbytes)
 char *
 xpidl_strdup(const char *s)
 {
-#if defined(RT_OS_SOLARIS)
-    size_t len = strlen(s);
-	char *ns = malloc(len + 1);
-	if (ns)
-		memcpy(ns, s, len + 1);
-#else
-    char *ns = strdup(s);
-#endif
-    if (!ns) {
+    char *ns = RTStrDup(s);
+    if (!ns)
+    {
         fputs(OOM, stderr);
         exit(1);
     }

@@ -3543,7 +3543,7 @@ DECLHIDDEN(int) iemPollTimers(PVMCC pVM, PVMCPUCC pVCpu) RT_NOEXCEPT
 /** Helper for iemTbExec. */
 DECL_FORCE_INLINE(PIEMTB *) iemTbGetTbLookupEntryWithRip(PCIEMTB pTb, uint8_t uTbLookup, uint64_t uRip)
 {
-    uint8_t const idx = IEM_TB_LOOKUP_TAB_GET_IDX_WITH_RIP(uTbLookup, uRip);
+    uint8_t const idx = IEM_TB_LOOKUP_TAB_GET_IDX_WITH_PC(uTbLookup, uRip);
     Assert(idx < pTb->cTbLookupEntries);
     return IEMTB_GET_TB_LOOKUP_TAB_ENTRY(pTb, idx);
 }

@@ -1283,9 +1283,9 @@ typedef IEMTHRDEDCALLENTRY const *PCIEMTHRDEDCALLENTRY;
 #define IEM_TB_LOOKUP_TAB_GET_SIZE(a_uTbLookup)         (!((a_uTbLookup) & 0x80) ? 1 : IEM_TB_LOOKUP_TAB_LARGE_SIZE)
 /** Get the first lookup table index from IEMTHRDEDCALLENTRY::uTbLookup. */
 #define IEM_TB_LOOKUP_TAB_GET_IDX(a_uTbLookup)          ((a_uTbLookup) & 0x7f)
-/** Get the lookup table index from IEMTHRDEDCALLENTRY::uTbLookup and RIP. */
-#define IEM_TB_LOOKUP_TAB_GET_IDX_WITH_RIP(a_uTbLookup, a_Rip) \
-    (!((a_uTbLookup) & 0x80) ? (a_uTbLookup) & 0x7f : ((a_uTbLookup) & 0x7f) + ((a_Rip) & (IEM_TB_LOOKUP_TAB_LARGE_SIZE - 1)) )
+/** Get the lookup table index from IEMTHRDEDCALLENTRY::uTbLookup and PC. */
+#define IEM_TB_LOOKUP_TAB_GET_IDX_WITH_PC(a_uTbLookup, a_Pc) \
+    (!((a_uTbLookup) & 0x80) ? (a_uTbLookup) & 0x7f : ((a_uTbLookup) & 0x7f) + ((a_Pc) & (IEM_TB_LOOKUP_TAB_LARGE_SIZE - 1)) )
 
 /** Make a IEMTHRDEDCALLENTRY::uTbLookup value. */
 #define IEM_TB_LOOKUP_TAB_MAKE(a_idxTable, a_fLarge)    ((a_idxTable) | ((a_fLarge) ? 0x80 : 0))

@@ -426,6 +426,11 @@ static int __init vbox_init(void)
 	if (!vbox_mod_should_load())
 		return -EINVAL;
 
+#if RTLNX_VER_MIN(6,0,0)
+	printk(KERN_ERR "vboxvideo: VM is using legacy graphics controller, "
+			"please consider to configure this guest to use VMSVGA instead\n");
+#endif
+
 	printk("vboxvideo: loading version " VBOX_VERSION_STRING " r" __stringify(VBOX_SVN_REV) "\n");
 	if (VBOX_VIDEO_NOMODESET())
 	{

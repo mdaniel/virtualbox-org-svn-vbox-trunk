@@ -68,13 +68,13 @@ QString UIHostnameDomainNameEditor::hostname() const
     return QString();
 }
 
-bool UIHostnameDomainNameEditor::isComplete() const
+bool UIHostnameDomainNameEditor::hostDomainNameComplete() const
 {
     return m_pHostnameLineEdit && m_pHostnameLineEdit->hasAcceptableInput() &&
         m_pDomainNameLineEdit && m_pDomainNameLineEdit->hasAcceptableInput();
 }
 
-void UIHostnameDomainNameEditor::mark()
+void UIHostnameDomainNameEditor::mark(bool fProductKeyRequired)
 {
     if (m_pHostnameLineEdit)
         m_pHostnameLineEdit->mark(!m_pHostnameLineEdit->hasAcceptableInput(),
@@ -86,6 +86,10 @@ void UIHostnameDomainNameEditor::mark()
                                     tr("Domain name should be at least 2 character long. "
                                        "Allowed characters are alphanumerics, \"-\" and \".\""),
                                     tr("Domain name is valid"));
+    if (m_pProductKeyLineEdit)
+        m_pProductKeyLineEdit->mark(fProductKeyRequired && !m_pProductKeyLineEdit->hasAcceptableInput(),
+                                    tr("Selected OS requires a valid product key"),
+                                    tr("Product key is valid"));
 }
 
 void UIHostnameDomainNameEditor::setHostname(const QString &strHostname)
@@ -208,7 +212,7 @@ void UIHostnameDomainNameEditor::sltHostnameChanged()
                               tr("Host name should be at least 2 character long. "
                                  "Allowed characters are alphanumerics, \"-\" and \".\""),
                               tr("Host name is valid"));
-    emit sigHostnameDomainNameChanged(hostnameDomainName(), isComplete());
+    emit sigHostnameDomainNameChanged(hostnameDomainName(), hostDomainNameComplete());
 }
 
 void UIHostnameDomainNameEditor::sltDomainChanged()
@@ -217,7 +221,7 @@ void UIHostnameDomainNameEditor::sltDomainChanged()
                                 tr("Domain name should be at least 2 character long. "
                                    "Allowed characters are alphanumerics, \"-\" and \".\""),
                                 tr("Domain name is valid"));
-    emit sigHostnameDomainNameChanged(hostnameDomainName(), isComplete());
+    emit sigHostnameDomainNameChanged(hostnameDomainName(), hostDomainNameComplete());
 }
 
 void UIHostnameDomainNameEditor::disableEnableProductKeyWidgets(bool fEnabled)
@@ -226,4 +230,11 @@ void UIHostnameDomainNameEditor::disableEnableProductKeyWidgets(bool fEnabled)
         m_pProductKeyLabel->setEnabled(fEnabled);
     if (m_pProductKeyLineEdit)
         m_pProductKeyLineEdit->setEnabled(fEnabled);
+}
+
+bool UIHostnameDomainNameEditor::hasProductKeyAcceptableInput() const
+{
+    if (m_pProductKeyLineEdit)
+        return m_pProductKeyLineEdit->hasAcceptableInput();
+    return false;
 }

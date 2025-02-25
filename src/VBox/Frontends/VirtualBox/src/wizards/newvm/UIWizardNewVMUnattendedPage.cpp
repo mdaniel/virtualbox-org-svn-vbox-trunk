@@ -147,7 +147,7 @@ void UIWizardNewVMUnattendedPage::initializePage()
             m_pAdditionalOptionsContainer->setHostname(pWizard->machineBaseName());
             m_pAdditionalOptionsContainer->setDomainName("myguest.virtualbox.org");
             /* Initialize unattended hostname here since we cannot get the efault value from CUnattended this early (unlike username etc): */
-            if (m_pAdditionalOptionsContainer->isHostnameComplete())
+            if (m_pAdditionalOptionsContainer->hostDomainNameComplete())
                 pWizard->setHostnameDomainName(m_pAdditionalOptionsContainer->hostnameDomainName());
         }
         m_pAdditionalOptionsContainer->blockSignals(false);
@@ -171,13 +171,16 @@ bool UIWizardNewVMUnattendedPage::isComplete() const
 {
     markWidgets();
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
-    if (pWizard && pWizard->installGuestAdditions() &&
+    AssertReturn(pWizard, false);
+    if (pWizard->installGuestAdditions() &&
         m_pGAInstallationISOContainer &&
         !UIWizardNewVMUnattendedCommon::checkGAISOFile(m_pGAInstallationISOContainer->path()))
         return false;
     if (m_pUserNamePasswordGroupBox && !m_pUserNamePasswordGroupBox->isComplete())
         return false;
-    if (m_pAdditionalOptionsContainer && !m_pAdditionalOptionsContainer->isComplete())
+    if (m_pAdditionalOptionsContainer && !m_pAdditionalOptionsContainer->hostDomainNameComplete())
+        return false;
+    if (pWizard->isProductKeyRequired() && !m_pAdditionalOptionsContainer->hasProductKeyAcceptableInput())
         return false;
     return true;
 }
@@ -232,6 +235,7 @@ void UIWizardNewVMUnattendedPage::sltHostnameDomainNameChanged(const QString &st
 
 void UIWizardNewVMUnattendedPage::sltProductKeyChanged(const QString &strProductKey)
 {
+    emit completeChanged();
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "ProductKey";
     wizardWindow<UIWizardNewVM>()->setProductKey(strProductKey);
@@ -249,6 +253,8 @@ void UIWizardNewVMUnattendedPage::markWidgets() const
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     if (pWizard && pWizard->installGuestAdditions() && m_pGAInstallationISOContainer)
         m_pGAInstallationISOContainer->mark();
+    if (m_pAdditionalOptionsContainer)
+        m_pAdditionalOptionsContainer->mark(pWizard->isProductKeyRequired());
 }
 
 void UIWizardNewVMUnattendedPage::sltSelectedWindowsImageChanged(ulong uImageIndex)

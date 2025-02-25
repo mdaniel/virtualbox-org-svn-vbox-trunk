@@ -485,10 +485,11 @@ void UIWizardNewVMExpertPage::markWidgets() const
                                                 UIWizardNewVM::tr("File path is valid"));
     }
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+    AssertReturnVoid(pWizard);
     if (pWizard && pWizard->installGuestAdditions() && m_pGAInstallationISOContainer)
         m_pGAInstallationISOContainer->mark();
     if (isUnattendedEnabled())
-        m_pAdditionalOptionsContainer->mark();
+        m_pAdditionalOptionsContainer->mark(pWizard->isProductKeyRequired());
 }
 
 QWidget *UIWizardNewVMExpertPage::createUnattendedWidgets()
@@ -616,12 +617,22 @@ bool UIWizardNewVMExpertPage::isComplete() const
         }
         if (m_pAdditionalOptionsContainer)
         {
-            if (!m_pAdditionalOptionsContainer->isComplete())
+            if (!m_pAdditionalOptionsContainer->hostDomainNameComplete())
             {
                 m_pToolBox->setPageTitleIcon(ExpertToolboxItems_Unattended,
                                              UIIconPool::iconSet(":/status_error_16px.png"),
                                              UIWizardNewVM::tr("Invalid host name or domain name"));
                 fIsComplete = false;
+            }
+            if (pWizard->isProductKeyRequired())
+            {
+                if (!m_pAdditionalOptionsContainer->hasProductKeyAcceptableInput())
+                {
+                    m_pToolBox->setPageTitleIcon(ExpertToolboxItems_Unattended,
+                                                 UIIconPool::iconSet(":/status_error_16px.png"),
+                                                 UIWizardNewVM::tr("Invalid product key"));
+                    fIsComplete = false;
+                }
             }
         }
     }
@@ -1019,7 +1030,7 @@ void UIWizardNewVMExpertPage::updateHostnameDomainNameFromMachineName()
     m_pAdditionalOptionsContainer->setHostname(pWizard->machineBaseName());
     m_pAdditionalOptionsContainer->setDomainName("myguest.virtualbox.org");
     /* Initialize unattended hostname here since we cannot get the default value from CUnattended this early (unlike username etc): */
-    if (m_pAdditionalOptionsContainer->isHostnameComplete())
+    if (m_pAdditionalOptionsContainer->hostDomainNameComplete())
         pWizard->setHostnameDomainName(m_pAdditionalOptionsContainer->hostnameDomainName());
 
     m_pAdditionalOptionsContainer->blockSignals(false);

@@ -291,29 +291,31 @@ QString UIAdditionalUnattendedOptions::hostnameDomainName() const
     return QString();
 }
 
-bool UIAdditionalUnattendedOptions::isComplete() const
-{
-    return isHostnameComplete();
-}
-
-bool UIAdditionalUnattendedOptions::isHostnameComplete() const
+bool UIAdditionalUnattendedOptions::hostDomainNameComplete() const
 {
     if (m_pHostnameDomainNameEditor)
-        return m_pHostnameDomainNameEditor->isComplete();
+        return m_pHostnameDomainNameEditor->hostDomainNameComplete();
     return false;
 }
 
 
-void UIAdditionalUnattendedOptions::mark()
+void UIAdditionalUnattendedOptions::mark(bool fProductKeyRequired)
 {
     if (m_pHostnameDomainNameEditor)
-        m_pHostnameDomainNameEditor->mark();
+        m_pHostnameDomainNameEditor->mark(fProductKeyRequired);
 }
 
 void UIAdditionalUnattendedOptions::disableEnableProductKeyWidgets(bool fEnabled)
 {
     if (m_pHostnameDomainNameEditor)
         m_pHostnameDomainNameEditor->disableEnableProductKeyWidgets(fEnabled);
+}
+
+bool UIAdditionalUnattendedOptions::hasProductKeyAcceptableInput() const
+{
+    if (m_pHostnameDomainNameEditor)
+       return m_pHostnameDomainNameEditor->hasProductKeyAcceptableInput();
+    return false;
 }
 
 /*********************************************************************************************************************************

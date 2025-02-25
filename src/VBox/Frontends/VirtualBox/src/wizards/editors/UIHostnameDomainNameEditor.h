@@ -65,10 +65,11 @@ public:
 
     QString hostnameDomainName() const;
 
-    bool isComplete() const;
-    void mark();
+    bool hostDomainNameComplete() const;
+    void mark(bool fProductKeyRequired);
 
     void disableEnableProductKeyWidgets(bool fEnabled);
+    bool hasProductKeyAcceptableInput() const;
 
 private slots:
 

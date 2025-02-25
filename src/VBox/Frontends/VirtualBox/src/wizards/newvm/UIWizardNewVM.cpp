@@ -840,6 +840,12 @@ bool UIWizardNewVM::isGuestOSTypeWindows() const
     return m_strGuestOSFamilyId.contains("windows", Qt::CaseInsensitive);
 }
 
+bool UIWizardNewVM::isProductKeyRequired() const
+{
+    AssertReturn(!m_comUnattended.isNull(), false);
+    return m_comUnattended.GetProductKeyRequired();
+}
+
 void UIWizardNewVM::setUnattendedPageVisible(bool fVisible)
 {
     if (m_iUnattendedInstallPageIndex != -1)

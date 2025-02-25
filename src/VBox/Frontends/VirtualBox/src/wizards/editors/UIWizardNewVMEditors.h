@@ -130,17 +130,18 @@ public:
 
     UIAdditionalUnattendedOptions(QWidget *pParent = 0);
 
-    /** @name Wrappers for UIFilePathSelector
+    /** @name Wrappers for member editors
       * @{ */
         QString hostname() const;
         void setHostname(const QString &strHostname);
         QString domainName() const;
         void setDomainName(const QString &strDomain);
         QString hostnameDomainName() const;
-        bool isComplete() const;
-        bool isHostnameComplete() const;
-        void mark();
+        bool hostDomainNameComplete() const;
+        void mark(bool fProductKeyRequired);
         void disableEnableProductKeyWidgets(bool fEnabled);
+        QString productKey() const;
+        bool hasProductKeyAcceptableInput() const;
     /** @} */
 
 private slots:

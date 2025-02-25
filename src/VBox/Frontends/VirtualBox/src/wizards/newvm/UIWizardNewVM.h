@@ -67,6 +67,7 @@ public:
     bool isUnattendedEnabled() const;
     bool isUnattendedInstallSupported() const;
     bool isGuestOSTypeWindows() const;
+    bool isProductKeyRequired() const;
 
     bool createVM();
     bool createVirtualDisk();

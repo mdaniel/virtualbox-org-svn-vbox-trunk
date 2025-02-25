@@ -40,7 +40,7 @@
 #endif
 
 #define VBOXNETADP_VERSION_NDIS_MAJOR        6
-#define VBOXNETADP_VERSION_NDIS_MINOR        0
+#define VBOXNETADP_VERSION_NDIS_MINOR        30
 
 #define VBOXNETADP_VERSION_MAJOR             1
 #define VBOXNETADP_VERSION_MINOR             0

@@ -114,9 +114,7 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   # ifdef VBOX_LOOPBACK_USEFLAGS
   #  VBoxNetLwf_DEFS.win += VBOX_LOOPBACK_USEFLAGS
   # endif
-  VBoxNetLwf_DEFS.win.x86   = NDIS60=1
-  VBoxNetLwf_DEFS.win.amd64 = NDIS60=1
-  VBoxNetLwf_DEFS.win.arm64 = NDIS630=1 # The minimum version for non-x86/amd64.
+  VBoxNetLwf_DEFS.win = NDIS630=1
   VBoxNetLwf_SDKS.win = ReorderCompilerIncs $(VBOX_WINDDK_WLH) $(VBOX_WINPSDK_INCS)
   VBoxNetLwf_INCS = .
   VBoxNetLwf_SOURCES = \
@@ -206,17 +204,17 @@ if1of ($(KBUILD_TARGET), darwin win) # this ifeq must go, see @todo around elif
   # NetAdp6Install
   #
   PROGRAMS.win += NetAdp6Install
-  NetAdp6Install_TEMPLATE = VBoxNetFltR3
-  NetAdp6Install_SOURCES = win/tools/VBoxNetAdpInstall.cpp
-  NetAdp6Install_DEFS    = NDIS60=1
+  NetAdp6Install_TEMPLATE   = VBoxNetFltR3
+  NetAdp6Install_SOURCES    = win/tools/VBoxNetAdpInstall.cpp
+  NetAdp6Install_DEFS 	    = NDIS630=1
 
   #
   # NetAdp6Uninstall
   #
   PROGRAMS.win += NetAdp6Uninstall
-  NetAdp6Uninstall_TEMPLATE = VBoxNetFltR3
-  NetAdp6Uninstall_SOURCES = win/tools/VBoxNetAdpUninstall.cpp
-  NetAdp6Uninstall_DEFS    = NDIS60=1
+  NetAdp6Uninstall_TEMPLATE   = VBoxNetFltR3
+  NetAdp6Uninstall_SOURCES    = win/tools/VBoxNetAdpUninstall.cpp
+  NetAdp6Uninstall_DEFS       = NDIS630=1
 
   #
   # NetLwfInstall

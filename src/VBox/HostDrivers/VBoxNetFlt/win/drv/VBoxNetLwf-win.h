@@ -40,7 +40,7 @@
 #endif
 
 #define VBOXNETLWF_VERSION_NDIS_MAJOR        6
-#define VBOXNETLWF_VERSION_NDIS_MINOR        0
+#define VBOXNETLWF_VERSION_NDIS_MINOR        30
 
 #define VBOXNETLWF_NAME_FRIENDLY             L"VirtualBox NDIS Light-Weight Filter"
 #define VBOXNETLWF_NAME_UNIQUE               L"{7af6b074-048d-4444-bfce-1ecc8bc5cb76}"

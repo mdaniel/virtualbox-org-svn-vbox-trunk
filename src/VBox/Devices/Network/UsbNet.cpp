@@ -1249,21 +1249,28 @@ static DECLCALLBACK(void *) usbNetLun0QueryInterface(PPDMIBASE pInterface, const
 static DECLCALLBACK(int) usbNetNetworkDown_WaitReceiveAvail(PPDMINETWORKDOWN pInterface, RTMSINTERVAL cMillies)
 {
     PUSBNET pThis = RT_FROM_MEMBER(pInterface, USBNET, Lun0.INetworkDown);
-
+    int rc = VINF_SUCCESS;
     LogFlowFunc(("/#%u/ pInterface=%p cMillies=%u\n", pThis->pUsbIns->iInstance, pInterface, cMillies));
+    
     RTCritSectEnter(&pThis->CritSect);
-    if (!usbNetQueueIsEmpty(&pThis->ToHostQueue) || pThis->fSuspended)
-    {
-        RTCritSectLeave(&pThis->CritSect);
-        return VINF_SUCCESS;
-    }
-    pThis->fHaveToHostQueueWaiter = true;
+    pThis->fHaveToHostQueueWaiter = usbNetQueueIsEmpty(&pThis->ToHostQueue) && !pThis->fSuspended;
     RTCritSectLeave(&pThis->CritSect);
+    /*
+    * It is ok to read fHaveToHostQueueWaiter outside of the critical section because:
+    * 1) There is only one receive thread that calls this function;
+    * 2) This is the only function that modifies fHaveToHostQueueWaiter.
+    */
+    while (ASMAtomicReadBool(&pThis->fHaveToHostQueueWaiter))
+    {
+        rc = RTSemEventWait(pThis->hEvtToHostQueue, cMillies);
 
-    LogFlowFunc(("/#%u/ pInterface=%p waiting for hEvtToHostQueue\n", pThis->pUsbIns->iInstance, pInterface));
-    int rc = RTSemEventWait(pThis->hEvtToHostQueue, cMillies);
-    ASMAtomicXchgBool(&pThis->fHaveToHostQueueWaiter, false);
-    LogFlowFunc(("/#%u/ pInterface=%p received hEvtToHostQueue\n", pThis->pUsbIns->iInstance, pInterface));
+        RTCritSectEnter(&pThis->CritSect);
+        pThis->fHaveToHostQueueWaiter = usbNetQueueIsEmpty(&pThis->ToHostQueue) && !pThis->fSuspended;
+        RTCritSectLeave(&pThis->CritSect);
+        Log6Func(("/#%u/ pInterface=%p received hEvtToHostQueue, %s need to wait\n",
+                  pThis->pUsbIns->iInstance, pInterface, pThis->fHaveToHostQueueWaiter ? "still" : "no"));
+    }
+    LogFlowFunc(("/#%u/ pInterface=%p returned %u\n", pThis->pUsbIns->iInstance, pInterface, rc));
     return rc;
 }
 

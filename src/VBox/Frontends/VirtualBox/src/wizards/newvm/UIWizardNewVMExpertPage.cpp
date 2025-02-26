@@ -919,6 +919,7 @@ void UIWizardNewVMExpertPage::sltHostnameDomainNameChanged(const QString &strHos
 
 void UIWizardNewVMExpertPage::sltProductKeyChanged(const QString &strProductKey)
 {
+    emit completeChanged();
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     m_userModifiedParameters << "ProductKey";
     wizardWindow<UIWizardNewVM>()->setProductKey(strProductKey);

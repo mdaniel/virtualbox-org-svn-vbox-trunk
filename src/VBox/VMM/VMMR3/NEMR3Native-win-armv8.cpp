@@ -2799,9 +2799,12 @@ bool nemR3NativeSetSingleInstruction(PVM pVM, PVMCPU pVCpu, bool fEnable)
 void nemR3NativeNotifyFF(PVM pVM, PVMCPU pVCpu, uint32_t fFlags)
 {
     Log8(("nemR3NativeNotifyFF: canceling %u\n", pVCpu->idCpu));
-    HRESULT hrc = WHvCancelRunVirtualProcessor(pVM->nem.s.hPartition, pVCpu->idCpu, 0);
-    AssertMsg(SUCCEEDED(hrc), ("WHvCancelRunVirtualProcessor -> hrc=%Rhrc\n", hrc));
-    RT_NOREF_PV(hrc);
+    if (pVM->nem.s.fCreatedEmts)
+    {
+        HRESULT hrc = WHvCancelRunVirtualProcessor(pVM->nem.s.hPartition, pVCpu->idCpu, 0);
+        AssertMsg(SUCCEEDED(hrc), ("WHvCancelRunVirtualProcessor -> hrc=%Rhrc\n", hrc));
+        RT_NOREF_PV(hrc);
+    }
     RT_NOREF_PV(fFlags);
 }
 

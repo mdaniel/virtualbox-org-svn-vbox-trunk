@@ -469,14 +469,12 @@ static DECLCALLBACK(int) pl031R3LoadDone(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 
     RT_NOREF(pSSM);
     int rc = VINF_SUCCESS;
+    PDMDevHlpTimerLockClock(pDevIns, pThis->hTimerSecond, VERR_IGNORED);
     if (pThis->fRtcStarted)
-    {
-        PDMDevHlpTimerLockClock(pDevIns, pThis->hTimerSecond, VERR_IGNORED);
         rc = PDMDevHlpTimerSetMillies(pDevIns, pThis->hTimerSecond, RT_MS_1SEC);
-        PDMDevHlpTimerUnlockClock(pDevIns, pThis->hTimerSecond);
-    }
     else
         PDMDevHlpTimerStop(pDevIns, pThis->hTimerSecond);
+    PDMDevHlpTimerUnlockClock(pDevIns, pThis->hTimerSecond);
 
     return rc;
 }

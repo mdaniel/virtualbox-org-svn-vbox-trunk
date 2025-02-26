@@ -1269,9 +1269,6 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
         }
     }
 
-    /* Take the device-pixel-ratio into account: */
-    pSourceImage->setDevicePixelRatio(devicePixelRatio());
-
     /* Prepare the base and hidpi paint rectangles: */
     QRect paintRect = pEvent->rect();
     /* Adjust original rectangle the way that it can be fractionally upscaled to int values: */

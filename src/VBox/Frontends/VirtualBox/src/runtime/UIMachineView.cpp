@@ -807,6 +807,8 @@ void UIMachineView::sltHandleNotifyUpdate(int iX, int iY, int iWidth, int iHeigh
 
     /* Limit the resulting part by the viewport rectangle: */
     rect &= viewport()->rect();
+    if (rect.isEmpty())
+        return;
 
     /* Update corresponding viewport part: */
     viewport()->update(rect);

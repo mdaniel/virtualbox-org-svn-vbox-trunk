@@ -1264,7 +1264,7 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
                 break;
             default:
                 pSourceImage = new QImage(pSourceImage->scaled(effectiveSize, Qt::IgnoreAspectRatio,
-                                                               transformationMode(scalingOptimizationType(), m_dScaleFactor)));
+                                                               transformationMode(scalingOptimizationType(), scaleFactor())));
                 break;
         }
     }
@@ -1286,7 +1286,7 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     paintRectHiDPI.setSize(paintRectHiDPI.size() * devicePixelRatio());
 
     /* Make sure hidpi paint rectangle is within the image boundary: */
-    paintRectHiDPI = paintRectHiDPI.intersected(pSourceImage->rect());
+    paintRectHiDPI &= pSourceImage->rect();
     if (paintRectHiDPI.isEmpty())
         return;
 

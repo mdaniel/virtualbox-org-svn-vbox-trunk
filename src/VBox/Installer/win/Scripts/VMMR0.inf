@@ -38,7 +38,7 @@ Provider    = %ORACLE%
 
 [SourceDisksFiles]
 VMMR0.r0=1
-VBoxDDR0.r0=1
+;amd64 VBoxDDR0.r0=1
 
 [DestinationDirs]
 DefaultDestDir = 12

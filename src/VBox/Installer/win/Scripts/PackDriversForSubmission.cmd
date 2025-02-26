@@ -278,8 +278,11 @@ echo .Set DestinationDir=VMMR0>>                                                
 echo .\VMMR0.inf VMMR0.inf>>                                                            "%_MY_OPT_DDF_FILE%"
 echo %_MY_OPT_BINDIR%\VMMR0.r0 VMMR0.r0>>                                               "%_MY_OPT_DDF_FILE%"
 if "%_MY_OPT_WITH_PDB%" == "1" echo %_MY_OPT_PDBDIR%\VMMR0.pdb VMMR0.pdb>>              "%_MY_OPT_DDF_FILE%"
+rem For win.arm64: skip VBoxDDR0 (officially would need checking VBOX_WITH_MINIMAL_R0)
+if "%_MY_OPT_ARCH%" == "arm64" goto skip_vboxddr0
 echo %_MY_OPT_BINDIR%\VBoxDDR0.r0 VBoxDDR0.r0>>                                         "%_MY_OPT_DDF_FILE%"
 if "%_MY_OPT_WITH_PDB%" == "1" echo %_MY_OPT_PDBDIR%\VBoxDDR0.pdb VBoxDDR0.pdb>>        "%_MY_OPT_DDF_FILE%"
+:skip_vboxddr0
 :skip_main_package
 
 if "%_MY_OPT_WITH_EXTPACK%" == "0" goto no_extpack_ddf

@@ -195,6 +195,9 @@ static decltype(WHvRunVirtualProcessor) *           g_pfnWHvRunVirtualProcessor;
 static decltype(WHvCancelRunVirtualProcessor) *     g_pfnWHvCancelRunVirtualProcessor;
 static decltype(WHvGetVirtualProcessorRegisters) *  g_pfnWHvGetVirtualProcessorRegisters;
 static decltype(WHvSetVirtualProcessorRegisters) *  g_pfnWHvSetVirtualProcessorRegisters;
+static decltype(WHvSuspendPartitionTime) *          g_pfnWHvSuspendPartitionTime;
+static decltype(WHvResumePartitionTime) *           g_pfnWHvResumePartitionTime;
+
 //static decltype(WHvGetVirtualProcessorState) *      g_pfnWHvGetVirtualProcessorState;
 decltype(WHvRequestInterrupt) *                     g_pfnWHvRequestInterrupt;
 /** @} */
@@ -232,6 +235,8 @@ static const struct
     NEM_WIN_IMPORT(0, false, WHvCancelRunVirtualProcessor),
     NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorRegisters),
     NEM_WIN_IMPORT(0, false, WHvSetVirtualProcessorRegisters),
+    NEM_WIN_IMPORT(0, false, WHvSuspendPartitionTime),
+    NEM_WIN_IMPORT(0, false, WHvResumePartitionTime),
 //    NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorState),
     NEM_WIN_IMPORT(0, false, WHvRequestInterrupt),
 #undef NEM_WIN_IMPORT
@@ -259,13 +264,10 @@ static const struct
 # define WHvCancelRunVirtualProcessor               g_pfnWHvCancelRunVirtualProcessor
 # define WHvGetVirtualProcessorRegisters            g_pfnWHvGetVirtualProcessorRegisters
 # define WHvSetVirtualProcessorRegisters            g_pfnWHvSetVirtualProcessorRegisters
+# define WHvSuspendPartitionTime                    g_pfnWHvSuspendPartitionTime
+# define WHvResumePartitionTime                     g_pfnWHvResumePartitionTime
 //# define WHvGetVirtualProcessorState                g_pfnWHvGetVirtualProcessorState
 # define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
-
-# define VidMessageSlotHandleAndGetNext             g_pfnVidMessageSlotHandleAndGetNext
-# define VidStartVirtualProcessor                   g_pfnVidStartVirtualProcessor
-# define VidStopVirtualProcessor                    g_pfnVidStopVirtualProcessor
-
 #endif
 
 #if 0 /* unused */
@@ -1758,23 +1760,18 @@ VMM_INT_DECL(int) NEMHCQueryCpuTick(PVMCPUCC pVCpu, uint64_t *pcTicks, uint32_t 
     VMCPU_ASSERT_EMT_RETURN(pVCpu, VERR_VM_THREAD_NOT_EMT);
     AssertReturn(VM_IS_NEM_ENABLED(pVM), VERR_NEM_IPE_9);
 
-#pragma message("NEMHCQueryCpuTick: Implement it!")
-#if 0 /** @todo */
     /* Call the offical API. */
-    WHV_REGISTER_NAME  aenmNames[2] = { WHvX64RegisterTsc, WHvX64RegisterTscAux };
-    WHV_REGISTER_VALUE aValues[2]   = { { {0, 0} }, { {0, 0} } };
-    Assert(RT_ELEMENTS(aenmNames) == RT_ELEMENTS(aValues));
-    HRESULT hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, aenmNames, 2, aValues);
+    WHV_REGISTER_NAME  enmName = WHvArm64RegisterCntvctEl0;
+    WHV_REGISTER_VALUE Value   = { { {0, 0} } };
+    HRESULT hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, &enmName, 1, &Value);
     AssertLogRelMsgReturn(SUCCEEDED(hrc),
-                          ("WHvGetVirtualProcessorRegisters(%p, %u,{tsc,tsc_aux},2,) -> %Rhrc (Last=%#x/%u)\n",
+                          ("WHvGetVirtualProcessorRegisters(%p, %u,{CNTVCT_EL0},1,) -> %Rhrc (Last=%#x/%u)\n",
                            pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                           , VERR_NEM_GET_REGISTERS_FAILED);
-    *pcTicks = aValues[0].Reg64;
+    *pcTicks = Value.Reg64;
     if (puAux)
-        *puAux = pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_TSC_AUX ? aValues[1].Reg64 : CPUMGetGuestTscAux(pVCpu);
-#else
-    RT_NOREF(pVCpu, pcTicks, puAux);
-#endif
+        *puAux =0;
+
     return VINF_SUCCESS;
 }
 
@@ -1797,38 +1794,30 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
     /*
      * Call the offical API to do the job.
      */
-    if (pVM->cCpus > 1)
-        RTThreadYield(); /* Try decrease the chance that we get rescheduled in the middle. */
-
-#pragma message("NEMHCResumeCpuTickOnAll: Implement it!")
-#if 0 /** @todo */
-    /* Start with the first CPU. */
-    WHV_REGISTER_NAME  enmName   = WHvX64RegisterTsc;
-    WHV_REGISTER_VALUE Value     = { {0, 0} };
-    Value.Reg64 = uPausedTscValue;
-    uint64_t const     uFirstTsc = ASMReadTSC();
-    HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, 0 /*iCpu*/, &enmName, 1, &Value);
+    /* Ensure time for the partition is suspended - it will be resumed as soon as a vCPU starts executing. */
+    HRESULT hrc = WHvSuspendPartitionTime(pVM->nem.s.hPartition);
     AssertLogRelMsgReturn(SUCCEEDED(hrc),
-                          ("WHvSetVirtualProcessorRegisters(%p, 0,{tsc},2,%#RX64) -> %Rhrc (Last=%#x/%u)\n",
-                           pVM->nem.s.hPartition, uPausedTscValue, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                          ("WHvSuspendPartitionTime(%p) -> %Rhrc (Last=%#x/%u)\n",
+                           pVM->nem.s.hPartition, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                           , VERR_NEM_SET_TSC);
 
-    /* Do the other CPUs, adjusting for elapsed TSC and keeping finger crossed
-       that we don't introduce too much drift here. */
-    for (VMCPUID iCpu = 1; iCpu < pVM->cCpus; iCpu++)
+    /*
+     * Now set the CNTVCT_EL0 register for each vCPU, Hyper-V will program the timer offset in
+     * CNTVOFF_EL2 accordingly. ARM guarantees that CNTVCT_EL0 is synchronised across all CPUs,
+     * as long as CNTVOFF_EL2 is the same everywhere. Lets just hope scheduling will not affect it
+     * if the partition time is suspended.
+     */
+    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
-        Assert(enmName == WHvX64RegisterTsc);
-        const uint64_t offDelta = (ASMReadTSC() - uFirstTsc);
-        Value.Reg64 = uPausedTscValue + offDelta;
-        hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, iCpu, &enmName, 1, &Value);
+        WHV_REGISTER_NAME enmName = WHvArm64RegisterCntvctEl0;
+        WHV_REGISTER_VALUE Value;
+        Value.Reg64 = uPausedTscValue;
+        hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, idCpu, &enmName, 1, &Value);
         AssertLogRelMsgReturn(SUCCEEDED(hrc),
-                              ("WHvSetVirtualProcessorRegisters(%p, 0,{tsc},2,%#RX64 + %#RX64) -> %Rhrc (Last=%#x/%u)\n",
-                               pVM->nem.s.hPartition, iCpu, uPausedTscValue, offDelta, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                              ("WHvSetVirtualProcessorRegisters(%p, 0,{CNTVCT_EL0},1,%#RX64) -> %Rhrc (Last=%#x/%u)\n",
+                               pVM->nem.s.hPartition, idCpu, uPausedTscValue, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                               , VERR_NEM_SET_TSC);
     }
-#else
-    RT_NOREF(uPausedTscValue);
-#endif
 
     return VINF_SUCCESS;
 }

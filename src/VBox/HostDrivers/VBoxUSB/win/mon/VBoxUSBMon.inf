@@ -60,7 +60,7 @@ CopyFiles=VBoxUSBMon_CopyFiles
 AddService=VBoxUSBMon,0x00000002,VBoxUSBMon_Service,VBoxUSBMon_AddEventLog
 
 [DefaultUninstall@DOT-NT-ARCH@.Services]
-DelService = VBoxUSBMon
+DelService = VBoxUSBMon,0x00000200
 DelReg     = VBoxUSBMon_AddEventLogRegistry
 LegacyUninstall=1
 

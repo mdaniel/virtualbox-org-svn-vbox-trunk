@@ -391,11 +391,11 @@ static DECLCALLBACK(int) gicR3HvSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
                     pVM->nem.s.hPartition, pState, cbState, hrc, RTNtLastStatusValue(), RTNtLastErrorValue()));
     AssertLogRelMsgReturn(cbWritten == cbState,
                           ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,) -> cbWritten=%u vs expected=%u\n",
-                           pVM->nem.s.hPartition, cbWritten, cbState);
+                           pVM->nem.s.hPartition, cbWritten, cbState)
                           , VERR_NEM_GET_REGISTERS_FAILED);
     AssertLogRelMsgReturn(pState->bVersion == MY_WHV_GLOBAL_INTERRUPT_CONTROLLER_STATE_VERSION,
                           ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,) -> bVersion=%u vs expected=%u\n",
-                           pVM->nem.s.hPartition, pState->bVersion, MY_WHV_GLOBAL_INTERRUPT_CONTROLLER_STATE_VERSION);
+                           pVM->nem.s.hPartition, pState->bVersion, MY_WHV_GLOBAL_INTERRUPT_CONTROLLER_STATE_VERSION)
                           , VERR_NEM_GET_REGISTERS_FAILED); 
 
     if (SUCCEEDED(hrc))
@@ -424,11 +424,11 @@ static DECLCALLBACK(int) gicR3HvSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
                               , VERR_NEM_GET_REGISTERS_FAILED);
         AssertLogRelMsgReturn(cbWritten == sizeof(LocalState),
                               ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeInterruptControllerState2,) -> cbWritten=%u vs expected=%u\n",
-                               pVM->nem.s.hPartition, cbWritten, sizeof(LocalState));
+                               pVM->nem.s.hPartition, cbWritten, sizeof(LocalState))
                               , VERR_NEM_GET_REGISTERS_FAILED);
         AssertLogRelMsgReturn(LocalState.bVersion == MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE_VERSION,
                               ("WHvGetVirtualProcessorState(%p, %u, WHvVirtualProcessorStateTypeInterruptControllerState2,) -> bVersion=%u vs expected=%u\n",
-                               pVM->nem.s.hPartition, idCpu, LocalState.bVersion, MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE_VERSION);
+                               pVM->nem.s.hPartition, idCpu, LocalState.bVersion, MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE_VERSION)
                               , VERR_NEM_GET_REGISTERS_FAILED);  
 
         pHlp->pfnSSMPutStruct(pSSM, (const void *)&LocalState, &g_aWHvGicLocalInterruptState[0]);

@@ -522,6 +522,9 @@ typedef struct NEMCPU
     RTR3PTR                     pvMsgSlotMapping;
     /** The windows thread handle. */
     RTR3PTR                     hNativeThreadHandle;
+# elif defined(VBOX_VMM_TARGET_ARMV8)
+    /** Flag whether syncing the CNTV_CTL_EL0/CNTV_CVAL_EL0 registers to Hyper-V is required. */
+    bool                        fSyncCntvRegs;
 # endif
 
     /** @name Statistics

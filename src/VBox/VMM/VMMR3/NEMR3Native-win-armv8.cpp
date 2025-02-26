@@ -1817,6 +1817,10 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
                               ("WHvSetVirtualProcessorRegisters(%p, 0,{CNTVCT_EL0},1,%#RX64) -> %Rhrc (Last=%#x/%u)\n",
                                pVM->nem.s.hPartition, idCpu, uPausedTscValue, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                               , VERR_NEM_SET_TSC);
+
+        /* Make sure the CNTV_CTL_EL0 and CNTV_CVAL_EL0 registers are up to date after resuming (saved state load). */
+        PVMCPUCC pVCpuDst = pVM->apCpusR3[idCpu];
+        pVCpuDst->nem.s.fSyncCntvRegs = true;
     }
 
     return VINF_SUCCESS;
@@ -2503,6 +2507,22 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
         return VINF_SUCCESS;
     }
 
+    if (pVCpu->nem.s.fSyncCntvRegs)
+    {
+        static const WHV_REGISTER_NAME s_aNames[2] = { WHvArm64RegisterCntvCtlEl0, WHvArm64RegisterCntvCvalEl0 };
+        WHV_REGISTER_VALUE aRegs[RT_ELEMENTS(s_aNames)];
+        aRegs[0].Reg64 = pVCpu->cpum.GstCtx.CntvCtlEl0;
+        aRegs[1].Reg64 = pVCpu->cpum.GstCtx.CntvCValEl0;
+
+        HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, s_aNames, RT_ELEMENTS(s_aNames), aRegs);
+        AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                              ("WHvSetVirtualProcessorRegisters(%p, 0,{CNTV_CTL_EL0, CNTV_CVAL_EL0}, 2,) -> %Rhrc (Last=%#x/%u)\n",
+                               pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                              , VERR_NEM_IPE_9);
+        pVCpu->nem.s.fSyncCntvRegs = false;
+    }
+
+
     /*
      * The run loop.
      *
@@ -2562,6 +2582,18 @@ VBOXSTRICTRC nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu)
 #endif
                 if (SUCCEEDED(hrc))
                 {
+                    /* Always sync the CNTV_CTL_EL0/CNTV_CVAL_EL0 registers, just like we do on macOS. */
+                    static const WHV_REGISTER_NAME s_aNames[2] = { WHvArm64RegisterCntvCtlEl0, WHvArm64RegisterCntvCvalEl0 };
+                    WHV_REGISTER_VALUE aRegs[RT_ELEMENTS(s_aNames)] = { { { {0, 0} } } };
+                    hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, s_aNames, RT_ELEMENTS(s_aNames), aRegs);
+                    AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                                          ("WHvGetVirtualProcessorRegisters(%p, 0,{CNTV_CTL_EL0, CNTV_CVAL_EL0}, 2,) -> %Rhrc (Last=%#x/%u)\n",
+                                           pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                                          , VERR_NEM_IPE_9);
+
+                    pVCpu->cpum.GstCtx.CntvCtlEl0  = aRegs[0].Reg64;
+                    pVCpu->cpum.GstCtx.CntvCValEl0 = aRegs[1].Reg64;
+
                     /*
                      * Deal with the message.
                      */

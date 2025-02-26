@@ -274,8 +274,6 @@ protected:
 
     /** Default paint routine. */
     void paintDefault(QPaintEvent *pEvent);
-    /** Paint routine for seamless mode. */
-    void paintSeamless(QPaintEvent *pEvent);
 
     /** Returns the transformation mode corresponding to the passed @a dScaleFactor and ScalingOptimizationType. */
     static Qt::TransformationMode transformationMode(ScalingOptimizationType type, double dScaleFactor = 0);
@@ -981,16 +979,8 @@ void UIFrameBufferPrivate::handlePaintEvent(QPaintEvent *pEvent)
         return;
     }
 
-    /* Depending on visual-state type: */
-    switch (m_pMachineView->machineLogic()->visualStateType())
-    {
-        case UIVisualStateType_Seamless:
-            paintSeamless(pEvent);
-            break;
-        default:
-            paintDefault(pEvent);
-            break;
-    }
+    /* Handle paint-event: */
+    paintDefault(pEvent);
 
     /* Unlock access to frame-buffer: */
     unlock();
@@ -1306,130 +1296,52 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     /* Create painter: */
     QPainter painter(m_pMachineView->viewport());
 
+    /* Depending on visual-state type: */
+    switch (m_pMachineView->visualStateType())
+    {
+        case UIVisualStateType_Normal:
+        case UIVisualStateType_Fullscreen:
+        case UIVisualStateType_Scale:
+        {
 #ifdef VBOX_WS_MAC
-    /* On OSX for Qt5 we need to fill the backing store first: */
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(paintRect, QColor(Qt::black));
-    painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
+            /* On OSX for Qt5 we need to fill the backing store first: */
+            painter.setCompositionMode(QPainter::CompositionMode_Source);
+            painter.fillRect(paintRect, QColor(Qt::black));
+            painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
 #endif /* VBOX_WS_MAC */
 
-    /* Draw hidpi image rectangle: */
-    drawImageRect(painter, *pSourceImage, paintRectHiDPI,
-                  m_pMachineView->contentsX(), m_pMachineView->contentsY(),
-                  devicePixelRatio());
-
-    /* If we had to scale image for some reason: */
-    if (   scaledSize().isValid()
-        || (!useUnscaledHiDPIOutput() && devicePixelRatio() != 1.0))
-    {
-        /* Wipe out copied image: */
-        delete pSourceImage;
-        pSourceImage = 0;
-    }
-
-    /* Paint cursor if it has valid shape and position.
-     * Also, please take into account, we are not currently painting
-     * framebuffer cursor if mouse integration is supported and enabled. */
-    if (   !m_cursorRectangle.isNull()
-        && !m_pMachineView->uimachine()->isHidingHostPointer()
-        && m_pMachineView->uimachine()->isValidPointerShapePresent()
-        && m_pMachineView->uimachine()->isValidCursorPositionPresent()
-        && (   !m_pMachineView->uimachine()->isMouseIntegrated()
-            || !m_pMachineView->uimachine()->isMouseSupportsAbsolute()))
-    {
-        /* Acquire session cursor shape pixmap: */
-        QPixmap cursorPixmap = m_pMachineView->uimachine()->cursorShapePixmap();
-
-        /* Take the device-pixel-ratio into account: */
-        cursorPixmap.setDevicePixelRatio(devicePixelRatio());
-
-        /* Draw sub-pixmap: */
-        painter.drawPixmap(m_cursorRectangle.topLeft(), cursorPixmap);
-    }
-}
-
-void UIFrameBufferPrivate::paintSeamless(QPaintEvent *pEvent)
-{
-    /* Make sure cached image is valid: */
-    if (m_image.isNull())
-        return;
-
-    /* First we take the cached image as the source: */
-    QImage *pSourceImage = &m_image;
-
-    /* But if we should scale image by some reason: */
-    if (   scaledSize().isValid()
-        || (!useUnscaledHiDPIOutput() && devicePixelRatio() != 1.0))
-    {
-        /* Calculate final scaled size: */
-        QSize effectiveSize = !scaledSize().isValid() ? pSourceImage->size() : scaledSize();
-        /* Take the device-pixel-ratio into account: */
-        if (!useUnscaledHiDPIOutput() && devicePixelRatio() != 1.0)
-            effectiveSize *= devicePixelRatio();
-        /* We scale the image to requested size and retain it
-         * by making heap shallow copy of that temporary object: */
-        switch (m_pMachineView->visualStateType())
-        {
-            case UIVisualStateType_Scale:
-                pSourceImage = new QImage(pSourceImage->scaled(effectiveSize, Qt::IgnoreAspectRatio,
-                                                               transformationMode(scalingOptimizationType())));
-                break;
-            default:
-                pSourceImage = new QImage(pSourceImage->scaled(effectiveSize, Qt::IgnoreAspectRatio,
-                                                               transformationMode(scalingOptimizationType(), m_dScaleFactor)));
-                break;
+            break;
         }
-    }
+        case UIVisualStateType_Seamless:
+        {
+            /* Adjust painter for erasing: */
+            lock();
+            painter.setClipRegion(QRegion(paintRect) - m_syncVisibleRegion);
+            painter.setCompositionMode(QPainter::CompositionMode_Clear);
+            unlock();
 
-    /* Take the device-pixel-ratio into account: */
-    pSourceImage->setDevicePixelRatio(devicePixelRatio());
+            /* Erase hidpi rectangle: */
+            eraseImageRect(painter, paintRectHiDPI,
+                           devicePixelRatio());
 
-    /* Prepare the base and hidpi paint rectangles: */
-    QRect paintRect = pEvent->rect();
-    /* Adjust original rectangle the way that it can be fractionally upscaled to int values: */
-    if (devicePixelRatio() != 1.0)
-    {
-        paintRect.setLeft(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.left(), false));
-        paintRect.setTop(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.top(), false));
-        paintRect.setRight(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.right(), true));
-        paintRect.setBottom(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.bottom(), true));
-    }
-    QRect paintRectHiDPI = paintRect;
-
-    /* Take the device-pixel-ratio into account: */
-    paintRectHiDPI.moveTo(paintRectHiDPI.topLeft() * devicePixelRatio());
-    paintRectHiDPI.setSize(paintRectHiDPI.size() * devicePixelRatio());
-
-    /* Make sure hidpi paint rectangle is within the image boundary: */
-    paintRectHiDPI = paintRectHiDPI.intersected(pSourceImage->rect());
-    if (paintRectHiDPI.isEmpty())
-        return;
-
-    /* Create painter: */
-    QPainter painter(m_pMachineView->viewport());
-
-    /* Adjust painter for erasing: */
-    lock();
-    painter.setClipRegion(QRegion(paintRect) - m_syncVisibleRegion);
-    painter.setCompositionMode(QPainter::CompositionMode_Clear);
-    unlock();
-
-    /* Erase hidpi rectangle: */
-    eraseImageRect(painter, paintRectHiDPI,
-                   devicePixelRatio());
-
-    /* Adjust painter for painting: */
-    lock();
-    painter.setClipRegion(QRegion(paintRect) & m_syncVisibleRegion);
-    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    unlock();
+            /* Adjust painter for painting: */
+            lock();
+            painter.setClipRegion(QRegion(paintRect) & m_syncVisibleRegion);
+            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+            unlock();
 
 #ifdef VBOX_WITH_TRANSLUCENT_SEAMLESS
-    /* In case of translucent seamless for Qt5 we need to fill the backing store first: */
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(paintRect, QColor(Qt::black));
-    painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
+            /* In case of translucent seamless for Qt5 we need to fill the backing store first: */
+            painter.setCompositionMode(QPainter::CompositionMode_Source);
+            painter.fillRect(paintRect, QColor(Qt::black));
+            painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
 #endif /* VBOX_WITH_TRANSLUCENT_SEAMLESS */
+
+            break;
+        }
+        default:
+            break;
+    }
 
     /* Draw hidpi image rectangle: */
     drawImageRect(painter, *pSourceImage, paintRectHiDPI,

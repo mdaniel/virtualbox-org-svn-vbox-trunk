@@ -1067,6 +1067,35 @@ static DECLCALLBACK(void) vmR3DefaultNotifyCpuFF(PUVMCPU pUVCpu, uint32_t fFlags
 }
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+
+/**
+ * Method NEM - The host (NEM) does the halting.
+ */
+static DECLCALLBACK(int) vmR3HaltNemHalt(PUVMCPU pUVCpu, const uint64_t fMask, uint64_t u64Now)
+{
+    PVMCPU  pVCpu   = pUVCpu->pVCpu;
+
+    RT_NOREF(fMask, u64Now);
+    return NEMR3Halt(pUVCpu->pVM, pVCpu);
+}
+
+
+/**
+ * Default VMR3NotifyFF() worker.
+ *
+ * @param   pUVCpu          Pointer to the user mode VMCPU structure.
+ * @param   fFlags          Notification flags, VMNOTIFYFF_FLAGS_*.
+ */
+static DECLCALLBACK(void) vmR3NemNotifyCpuFF(PUVMCPU pUVCpu, uint32_t fFlags)
+{
+    PVMCPU pVCpu = pUVCpu->pVCpu;
+    if (pVCpu)
+        NEMR3NotifyFF(pUVCpu->pVM, pVCpu, fFlags);
+}
+#endif
+
+
 /**
  * Array with halt method descriptors.
  * VMINT::iHaltMethod contains an index into this array.
@@ -1095,6 +1124,9 @@ static const struct VMHALTMETHODDESC
     { VMHALTMETHOD_OLD,       false, NULL,                NULL,   vmR3HaltOldDoHalt,   vmR3DefaultWait,     vmR3DefaultNotifyCpuFF,     NULL },
     { VMHALTMETHOD_1,         false, vmR3HaltMethod1Init, NULL,   vmR3HaltMethod1Halt, vmR3DefaultWait,     vmR3DefaultNotifyCpuFF,     NULL },
     { VMHALTMETHOD_GLOBAL_1,   true, vmR3HaltGlobal1Init, NULL,   vmR3HaltGlobal1Halt, vmR3HaltGlobal1Wait, vmR3HaltGlobal1NotifyCpuFF, NULL },
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+    { VMHALTMETHOD_NEM,       false, NULL,                NULL,   vmR3HaltNemHalt,     vmR3DefaultWait,     vmR3NemNotifyCpuFF,         NULL },
+#endif
 };
 
 
@@ -1417,7 +1449,11 @@ int vmR3SetHaltMethodU(PUVM pUVM, VMHALTMETHOD enmHaltMethod)
     {
         LogRel(("VMEmt: Halt method %s (%d) not available in driverless mode, using %s (%d) instead\n",
                 vmR3GetHaltMethodName(enmHaltMethod), enmHaltMethod, vmR3GetHaltMethodName(VMHALTMETHOD_1), VMHALTMETHOD_1));
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+        enmHaltMethod = VMHALTMETHOD_NEM;
+#else
         enmHaltMethod = VMHALTMETHOD_1;
+#endif
     }
 
 

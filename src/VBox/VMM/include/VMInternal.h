@@ -154,6 +154,10 @@ typedef enum
     VMHALTMETHOD_1,
     /** The first go at a more global approach. */
     VMHALTMETHOD_GLOBAL_1,
+#if defined(VBOX_VMM_TARGET_ARMV8) && defined(RT_OS_WINDOWS)
+    /** NEM takes over halting. */
+    VMHALTMETHOD_NEM,
+#endif
     /** The end of valid methods. (not inclusive of course) */
     VMHALTMETHOD_END,
     /** The usual 32-bit max value. */

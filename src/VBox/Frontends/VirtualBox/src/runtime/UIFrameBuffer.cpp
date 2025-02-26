@@ -1279,8 +1279,8 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     {
         paintRect.setLeft(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.left(), false));
         paintRect.setTop(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.top(), false));
-        paintRect.setRight(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.right(), true));
-        paintRect.setBottom(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.bottom(), true));
+        paintRect.setWidth(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.width(), true));
+        paintRect.setHeight(findMultipleOfScaleFactor(devicePixelRatio(), paintRect.height(), true));
     }
     QRect paintRectHiDPI = paintRect;
 

@@ -87,6 +87,8 @@
 /*********************************************************************************************************************************
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
+/** Saved state version for the device. */
+#define QEMU_FW_CFG_SAVED_STATE_VERSION             1
 
 /** Start of the I/O port region. */
 #define QEMU_FW_CFG_IO_PORT_START                   0x510
@@ -1166,6 +1168,108 @@ static DECLCALLBACK(VBOXSTRICTRC) qemuFwCfgMmioWrite(PPDMDEVINS pDevIns, void *p
 }
 
 
+
+/* -=-=-=-=-=-=-=-=- Saved State -=-=-=-=-=-=-=-=- */
+
+/**
+ * @callback_method_impl{FNSSMDEVLIVEEXEC}
+ */
+static DECLCALLBACK(int) qemuFwCfgR3LiveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uPass)
+{
+    PDEVQEMUFWCFG pThis = PDMDEVINS_2_DATA(pDevIns, PDEVQEMUFWCFG);
+    PCPDMDEVHLPR3 pHlp  = pDevIns->pHlpR3;
+    RT_NOREF(uPass);
+
+    pHlp->pfnSSMPutBool(pSSM, pThis->fRamfbSupported);
+    return VINF_SSM_DONT_CALL_AGAIN;
+}
+
+
+/**
+ * @callback_method_impl{FNSSMDEVSAVEEXEC}
+ */
+static DECLCALLBACK(int) qemuFwCfgR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
+{
+    PDEVQEMUFWCFG pThis = PDMDEVINS_2_DATA(pDevIns, PDEVQEMUFWCFG);
+    PCPDMDEVHLPR3 pHlp  = pDevIns->pHlpR3;
+
+    /* The config. */
+    qemuFwCfgR3LiveExec(pDevIns, pSSM, SSM_PASS_FINAL);
+
+    /* The state. */
+    pHlp->pfnSSMPutGCPhys(pSSM, pThis->RamfbCfg.GCPhysRamfbBase);
+    pHlp->pfnSSMPutU32(   pSSM, pThis->RamfbCfg.cbStride);
+    pHlp->pfnSSMPutU32(   pSSM, pThis->RamfbCfg.cWidth);
+    pHlp->pfnSSMPutU32(   pSSM, pThis->RamfbCfg.cHeight);
+    pHlp->pfnSSMPutU32(   pSSM, pThis->RamfbCfg.u32FourCC);
+    pHlp->pfnSSMPutU32(   pSSM, pThis->RamfbCfg.u32Flags);
+
+    return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX); /* sanity/terminator */
+}
+
+
+/**
+ * @callback_method_impl{FNSSMDEVLOADEXEC}
+ */
+static DECLCALLBACK(int) qemuFwCfgR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass)
+{
+    PDEVQEMUFWCFG pThis = PDMDEVINS_2_DATA(pDevIns, PDEVQEMUFWCFG);
+    PCPDMDEVHLPR3 pHlp  = pDevIns->pHlpR3;
+    int rc;
+
+    if (uVersion != QEMU_FW_CFG_SAVED_STATE_VERSION)
+        return VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION;
+
+    /* The config. */
+    bool fRamfbSupported;
+    rc = pHlp->pfnSSMGetBool(pSSM, &fRamfbSupported);
+    AssertRCReturn(rc, rc);
+    if (fRamfbSupported != pThis->fRamfbSupported)
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch - fRamfbSupported: saved=%RTbool config=%RTbool"),
+                                                            fRamfbSupported, pThis->fRamfbSupported);
+
+    if (uPass != SSM_PASS_FINAL)
+        return VINF_SUCCESS;
+
+    pHlp->pfnSSMGetGCPhys(pSSM, &pThis->RamfbCfg.GCPhysRamfbBase);
+    pHlp->pfnSSMGetU32(   pSSM, &pThis->RamfbCfg.cbStride);
+    pHlp->pfnSSMGetU32(   pSSM, &pThis->RamfbCfg.cWidth);
+    pHlp->pfnSSMGetU32(   pSSM, &pThis->RamfbCfg.cHeight);
+    pHlp->pfnSSMGetU32(   pSSM, &pThis->RamfbCfg.u32FourCC);
+    pHlp->pfnSSMGetU32(   pSSM, &pThis->RamfbCfg.u32Flags);
+
+    /* The marker. */
+    uint32_t u32;
+    rc = pHlp->pfnSSMGetU32(pSSM, &u32);
+    AssertRCReturn(rc, rc);
+    AssertMsgReturn(u32 == UINT32_MAX, ("%#x\n", u32), VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
+
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * @callback_method_impl{FNSSMDEVLOADDONE}
+ */
+static DECLCALLBACK(int) qemuFwCfgR3LoadDone(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
+{
+    PDEVQEMUFWCFG pThis = PDMDEVINS_2_DATA(pDevIns, PDEVQEMUFWCFG);
+    RT_NOREF(pSSM);
+
+    if (   pThis->pDrvL0
+        && pThis->RamfbCfg.GCPhysRamfbBase)
+    {
+        int rc = pThis->pDrvL0->pfnResize(pThis->pDrvL0, QEMU_RAMFB_CFG_BPP * 8, NULL /*pvVRAM*/,
+                                          pThis->RamfbCfg.cbStride,
+                                          pThis->RamfbCfg.cWidth,
+                                          pThis->RamfbCfg.cHeight);
+        AssertRC(rc);
+    }
+
+    return VINF_SUCCESS;
+}
+
+
 /**
  * Sets up the initrd memory file and CPIO filesystem stream for writing.
  *
@@ -2116,6 +2220,15 @@ static DECLCALLBACK(int) qemuFwCfgConstruct(PPDMDEVINS pDevIns, int iInstance, P
                                      qemuFwCfgR3RamfbCfgWrite, NULL /*pfnCleanup*/);
         AssertRCReturn(rc, rc);
     }
+
+    /*
+     * Register saved state callbacks.
+     */
+    rc = PDMDevHlpSSMRegisterEx(pDevIns, QEMU_FW_CFG_SAVED_STATE_VERSION, 0 /*cbGuess*/, NULL,
+                                NULL, qemuFwCfgR3LiveExec, NULL,
+                                NULL, qemuFwCfgR3SaveExec, NULL,
+                                NULL, qemuFwCfgR3LoadExec, qemuFwCfgR3LoadDone);
+    AssertRCReturn(rc, rc);
 
     rc = qemuFwCfgInitrdMaybeCreate(pThis);
     if (RT_FAILURE(rc))

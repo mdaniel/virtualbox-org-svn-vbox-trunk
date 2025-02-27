@@ -168,6 +168,12 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
     /* Write ID_AA64ISAR0_EL1 register back. */
     pVM->cpum.s.GuestIdRegs.u64RegIdAa64Isar0El1 = u64IdReg;
 
+
+    u64IdReg = pVM->cpum.s.GuestIdRegs.u64RegIdAa64Dfr0El1;
+    PORTABLE_DISABLE_FEATURE_BIT_CFG(0, u64IdReg, ARMV8_ID_AA64DFR0_EL1_PMUVER,   ARMV8_ID_AA64DFR0_EL1_PMUVER_SUPPORTED_V3, CPUMISAEXTCFG_DISABLED ,    ARMV8_ID_AA64DFR0_EL1_PMUVER_NOT_IMPL);
+
+    pVM->cpum.s.GuestIdRegs.u64RegIdAa64Dfr0El1 = u64IdReg;
+
     /** @todo Other ID and feature registers. */
 
     return VINF_SUCCESS;

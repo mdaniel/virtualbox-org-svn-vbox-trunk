@@ -1762,15 +1762,23 @@ VMM_INT_DECL(int) NEMHCQueryCpuTick(PVMCPUCC pVCpu, uint64_t *pcTicks, uint32_t 
     VMCPU_ASSERT_EMT_RETURN(pVCpu, VERR_VM_THREAD_NOT_EMT);
     AssertReturn(VM_IS_NEM_ENABLED(pVM), VERR_NEM_IPE_9);
 
+    /* Ensure time for the partition is suspended - it will be resumed as soon as a vCPU starts executing. */
+    HRESULT hrc = WHvSuspendPartitionTime(pVM->nem.s.hPartition);
+    AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                          ("WHvSuspendPartitionTime(%p) -> %Rhrc (Last=%#x/%u)\n",
+                           pVM->nem.s.hPartition, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                          , VERR_NEM_GET_REGISTERS_FAILED);
+
     /* Call the offical API. */
     WHV_REGISTER_NAME  enmName = WHvArm64RegisterCntvctEl0;
     WHV_REGISTER_VALUE Value   = { { {0, 0} } };
-    HRESULT hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, &enmName, 1, &Value);
+    hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, &enmName, 1, &Value);
     AssertLogRelMsgReturn(SUCCEEDED(hrc),
                           ("WHvGetVirtualProcessorRegisters(%p, %u,{CNTVCT_EL0},1,) -> %Rhrc (Last=%#x/%u)\n",
                            pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
                           , VERR_NEM_GET_REGISTERS_FAILED);
     *pcTicks = Value.Reg64;
+    LogFlow(("NEMHCQueryCpuTick: %#RX64 (host: %#RX64)\n", *pcTicks, ASMReadTSC()));
     if (puAux)
         *puAux =0;
 
@@ -1796,12 +1804,7 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
     /*
      * Call the offical API to do the job.
      */
-    /* Ensure time for the partition is suspended - it will be resumed as soon as a vCPU starts executing. */
-    HRESULT hrc = WHvSuspendPartitionTime(pVM->nem.s.hPartition);
-    AssertLogRelMsgReturn(SUCCEEDED(hrc),
-                          ("WHvSuspendPartitionTime(%p) -> %Rhrc (Last=%#x/%u)\n",
-                           pVM->nem.s.hPartition, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
-                          , VERR_NEM_SET_TSC);
+    LogFlow(("NEMHCResumeCpuTickOnAll: %#RX64 (host: %#RX64)\n", uPausedTscValue, ASMReadTSC()));
 
     /*
      * Now set the CNTVCT_EL0 register for each vCPU, Hyper-V will program the timer offset in
@@ -1814,7 +1817,7 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
         WHV_REGISTER_NAME enmName = WHvArm64RegisterCntvctEl0;
         WHV_REGISTER_VALUE Value;
         Value.Reg64 = uPausedTscValue;
-        hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, idCpu, &enmName, 1, &Value);
+        HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, idCpu, &enmName, 1, &Value);
         AssertLogRelMsgReturn(SUCCEEDED(hrc),
                               ("WHvSetVirtualProcessorRegisters(%p, 0,{CNTVCT_EL0},1,%#RX64) -> %Rhrc (Last=%#x/%u)\n",
                                pVM->nem.s.hPartition, idCpu, uPausedTscValue, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
@@ -1824,6 +1827,12 @@ VMM_INT_DECL(int) NEMHCResumeCpuTickOnAll(PVMCC pVM, PVMCPUCC pVCpu, uint64_t uP
         PVMCPUCC pVCpuDst = pVM->apCpusR3[idCpu];
         pVCpuDst->nem.s.fSyncCntvRegs = true;
     }
+
+    HRESULT hrc = WHvResumePartitionTime(pVM->nem.s.hPartition);
+    AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                          ("WHvResumePartitionTime(%p) -> %Rhrc (Last=%#x/%u)\n",
+                           pVM->nem.s.hPartition, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                          , VERR_NEM_SET_TSC);
 
     return VINF_SUCCESS;
 }

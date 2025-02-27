@@ -110,17 +110,17 @@
 
     <Upgrade Id="C4BAD770-BFE8-4D2C-A592-693028A7215B"> <!-- Upgrade of Sun xVM VirtualBox >= v1.6.0 -->
 
-        <!-- Detect if the same version (as this version) of VirtualBox already is installed.
+        <!-- Detect and uninstall if the same version (as this version) of VirtualBox already is installed.
              Useful for debugging / testboxes -->
         <UpgradeVersion Property="SAMEVERSIONDETECTED" Minimum="$(var.Property_Version)" IncludeMinimum="yes"
                                                        Maximum="$(var.Property_Version)" IncludeMaximum="yes"
-                                                       OnlyDetect="yes" />
+                                                       OnlyDetect="no" />
 
-        <!-- Detect if a newer version (than this version) of VirtualBox already is installed.
+        <!-- Detect and uninstall if a newer version (than this version) of VirtualBox already is installed.
              @todo Should make a dialog appear asking user to confirm downgrade -->
         <UpgradeVersion Property="NEWERVERSIONDETECTED" Minimum="$(var.Property_Version)" IncludeMinimum="no"
                                                         Maximum="9.9.99"                  IncludeMaximum="yes"
-                                                        OnlyDetect="yes" />
+                                                        OnlyDetect="no" />
 
         <!-- Detect if an older version (than this version) of VirtualBox already is installed. -->
         <UpgradeVersion Property="PREVIOUSVERSIONDETECTED" Minimum="1.0.0.0" Maximum="$(var.Property_Version)" IncludeMaximum="no" />
@@ -416,8 +416,8 @@
         <AppSearch Sequence="1"></AppSearch>
         <LaunchConditions After="AppSearch" />
 
-        <!-- First install the new version and then remove the old version. This is more efficient -->
-        <RemoveExistingProducts After="InstallValidate" Condition="PREVIOUSVERSIONDETECTED OR NEWERVERSIONDETECTED" />
+        <!-- First uninstall any installed VBox version, then install this version. -->
+        <RemoveExistingProducts After="InstallValidate" Condition="PREVIOUSVERSIONDETECTED OR NEWERVERSIONDETECTED OR SAMEVERSIONDETECTED" />
 
         <Custom Action="ca_OriginalTargetDir" After="FileCost" Condition="(NOT INSTALLDIR)" />
         <Custom Action="ca_DefaultTargetDir" Before="FileCost" Condition="NOT INSTALLDIR AND EXISTINGINSTALLDIR" />

@@ -50,6 +50,8 @@
 
 #include "IEMInline.h"
 #include "IEMInline-x86.h"
+#include "IEMInlineExec.h"
+#include "IEMInlineExec-x86.h"
 
 
 /**

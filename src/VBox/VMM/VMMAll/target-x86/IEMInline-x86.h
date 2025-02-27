@@ -283,54 +283,6 @@ DECL_FORCE_INLINE(void) iemRecalcExecDbgFlags(PVMCPUCC pVCpu)
 
 #endif /* VBOX_INCLUDED_vmm_dbgf_h */
 
-
-#ifndef IEM_WITH_OPAQUE_DECODER_STATE
-# ifdef VBOX_STRICT
-DECLINLINE(void) iemInitExecTargetStrict(PVMCPUCC pVCpu) RT_NOEXCEPT
-{
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.cs));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.ss));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.es));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.ds));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.fs));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.gs));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.ldtr));
-    Assert(CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, &pVCpu->cpum.GstCtx.tr));
-
-    pVCpu->iem.s.enmDefAddrMode     = (IEMMODE)0xfe;
-    pVCpu->iem.s.enmEffAddrMode     = (IEMMODE)0xfe;
-    pVCpu->iem.s.enmDefOpSize       = (IEMMODE)0xfe;
-    pVCpu->iem.s.enmEffOpSize       = (IEMMODE)0xfe;
-    pVCpu->iem.s.fPrefixes          = 0xfeedbeef;
-    pVCpu->iem.s.uRexReg            = 127;
-    pVCpu->iem.s.uRexB              = 127;
-    pVCpu->iem.s.offModRm           = 127;
-    pVCpu->iem.s.uRexIndex          = 127;
-    pVCpu->iem.s.iEffSeg            = 127;
-    pVCpu->iem.s.idxPrefix          = 127;
-    pVCpu->iem.s.uVex3rdReg         = 127;
-    pVCpu->iem.s.uVexLength         = 127;
-    pVCpu->iem.s.fEvexStuff         = 127;
-    pVCpu->iem.s.uFpuOpcode         = UINT16_MAX;
-#  ifdef IEM_WITH_CODE_TLB
-    pVCpu->iem.s.offInstrNextByte   = UINT16_MAX;
-    pVCpu->iem.s.pbInstrBuf         = NULL;
-    pVCpu->iem.s.cbInstrBuf         = UINT16_MAX;
-    pVCpu->iem.s.cbInstrBufTotal    = UINT16_MAX;
-    pVCpu->iem.s.offCurInstrStart   = INT16_MAX;
-    pVCpu->iem.s.uInstrBufPc        = UINT64_C(0xc0ffc0ffcff0c0ff);
-#   ifdef IEM_WITH_CODE_TLB_AND_OPCODE_BUF
-    pVCpu->iem.s.offOpcode          = 127;
-#   endif
-#  else
-    pVCpu->iem.s.offOpcode          = 127;
-    pVCpu->iem.s.cbOpcode           = 127;
-#  endif
-}
-# endif /* VBOX_STRICT */
-#endif /* !IEM_WITH_OPAQUE_DECODER_STATE */
-
-
 /**
  * Macro used by the IEMExec* method to check the given instruction length.
  *

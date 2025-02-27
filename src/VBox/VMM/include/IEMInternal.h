@@ -1707,11 +1707,17 @@ typedef struct IEMCPU
 #ifdef IEM_WITH_CODE_TLB
     /** The offset of the next instruction byte. */
     uint32_t                offInstrNextByte;                                                               /* 0x08 */
-    /** The number of bytes available at pbInstrBuf for the current instruction.
-     * This takes the max opcode length into account so that doesn't need to be
-     * checked separately. */
-    uint32_t                cbInstrBuf;                                                                     /* 0x0c */
-    /** Pointer to the page containing RIP, user specified buffer or abOpcode.
+# if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+    /** X86: The number of bytes available at pbInstrBuf for the current
+     * instruction. This takes the max opcode length into account so that doesn't
+     * need to be checked separately. */
+    uint32_t                cbInstrBuf;                                                                /* x86: 0x0c */
+# else
+    /** The number of bytes available at pbInstrBuf in total (for IEMExecLots).
+     * @note Set to zero when the code TLB is flushed to trigger TLB reload. */
+    uint32_t                cbInstrBufTotal;                                                          /* !x86: 0x0c */
+# endif
+    /** Pointer to the page containing PC, user specified buffer or abOpcode.
      * This can be NULL if the page isn't mappable for some reason, in which
      * case we'll do fallback stuff.
      *
@@ -1719,8 +1725,8 @@ typedef struct IEMCPU
      * IEMExecOneWithPrefetchedByPC and friends, this is not necessarily a page
      * aligned pointer but pointer to the user data.
      *
-     * For instructions crossing pages, this will start on the first page and be
-     * advanced to the next page by the time we've decoded the instruction.  This
+     * X86: For instructions crossing pages, this will start on the first page and
+     * be advanced to the next page by the time we've decoded the instruction.  This
      * therefore precludes stuff like <tt>pbInstrBuf[offInstrNextByte + cbInstrBuf - cbCurInstr]</tt>
      */
     uint8_t const          *pbInstrBuf;                                                                     /* 0x10 */
@@ -1732,113 +1738,151 @@ typedef struct IEMCPU
     uint64_t                uInstrBufPc;                                                                    /* 0x18 */
     /** The guest physical address corresponding to pbInstrBuf. */
     RTGCPHYS                GCPhysInstrBuf;                                                                 /* 0x20 */
-    /** The number of bytes available at pbInstrBuf in total (for IEMExecLots).
+# if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+    /** X86: The number of bytes available at pbInstrBuf in total (for IEMExecLots).
      * This takes the CS segment limit into account.
      * @note Set to zero when the code TLB is flushed to trigger TLB reload. */
-    uint16_t                cbInstrBufTotal;                                                                /* 0x28 */
-    /** Offset into pbInstrBuf of the first byte of the current instruction.
+    uint16_t                cbInstrBufTotal;                                                           /* x86: 0x28 */
+    /** X86: Offset into pbInstrBuf of the first byte of the current instruction.
      * Can be negative to efficiently handle cross page instructions. */
-    int16_t                 offCurInstrStart;                                                               /* 0x2a */
+    int16_t                 offCurInstrStart;                                                          /* x86: 0x2a */
+# endif
 
-# ifndef IEM_WITH_OPAQUE_DECODER_STATE
-    /** The prefix mask (IEM_OP_PRF_XXX). */
-    uint32_t                fPrefixes;                                                                      /* 0x2c */
-    /** The extra REX ModR/M register field bit (REX.R << 3). */
-    uint8_t                 uRexReg;                                                                        /* 0x30 */
-    /** The extra REX ModR/M r/m field, SIB base and opcode reg bit
+# if (!defined(IEM_WITH_OPAQUE_DECODER_STATE) && defined(VBOX_VMM_TARGET_X86)) || defined(DOXYGEN_RUNNING)
+    /** X86: The prefix mask (IEM_OP_PRF_XXX). */
+    uint32_t                fPrefixes;                                                                 /* x86: 0x2c */
+    /** X86: The extra REX ModR/M register field bit (REX.R << 3). */
+    uint8_t                 uRexReg;                                                                   /* x86: 0x30 */
+    /** X86: The extra REX ModR/M r/m field, SIB base and opcode reg bit
      * (REX.B << 3). */
-    uint8_t                 uRexB;                                                                          /* 0x31 */
-    /** The extra REX SIB index field bit (REX.X << 3). */
-    uint8_t                 uRexIndex;                                                                      /* 0x32 */
+    uint8_t                 uRexB;                                                                     /* x86: 0x31 */
+    /** X86: The extra REX SIB index field bit (REX.X << 3). */
+    uint8_t                 uRexIndex;                                                                 /* x86: 0x32 */
 
-    /** The effective segment register (X86_SREG_XXX). */
-    uint8_t                 iEffSeg;                                                                        /* 0x33 */
+    /** X86: The effective segment register (X86_SREG_XXX). */
+    uint8_t                 iEffSeg;                                                                   /* x86: 0x33 */
 
-    /** The offset of the ModR/M byte relative to the start of the instruction. */
-    uint8_t                 offModRm;                                                                       /* 0x34 */
+    /** X86: The offset of the ModR/M byte relative to the start of the instruction. */
+    uint8_t                 offModRm;                                                                  /* x86: 0x34 */
 
 #  ifdef IEM_WITH_CODE_TLB_AND_OPCODE_BUF
-    /** The current offset into abOpcode. */
-    uint8_t                 offOpcode;                                                                      /* 0x35 */
+    /** X86: The current offset into abOpcode. */
+    uint8_t                 offOpcode;                                                                 /* x86: 0x35 */
 #  else
-    uint8_t                 bUnused;                                                                        /* 0x35 */
+    uint8_t                 bUnused;                                                                   /* x86: 0x35 */
 #  endif
-# else  /* IEM_WITH_OPAQUE_DECODER_STATE */
+# else  /* IEM_WITH_OPAQUE_DECODER_STATE || !X86 */
+#  ifdef VBOX_VMM_TARGET_X86
     uint8_t                 abOpaqueDecoderPart1[0x36 - 0x2c];
-# endif /* IEM_WITH_OPAQUE_DECODER_STATE */
+#  endif
+# endif /* IEM_WITH_OPAQUE_DECODER_STATE || !X86 */
 
 #else  /* !IEM_WITH_CODE_TLB */
 #  ifndef IEM_WITH_OPAQUE_DECODER_STATE
     /** The size of what has currently been fetched into abOpcode. */
     uint8_t                 cbOpcode;                                                                       /*       0x08 */
-    /** The current offset into abOpcode. */
-    uint8_t                 offOpcode;                                                                      /*       0x09 */
-    /** The offset of the ModR/M byte relative to the start of the instruction. */
-    uint8_t                 offModRm;                                                                       /*       0x0a */
 
-    /** The effective segment register (X86_SREG_XXX). */
-    uint8_t                 iEffSeg;                                                                        /*       0x0b */
+#   ifdef VBOX_VMM_TARGET_X86
+    /** X86: The current offset into abOpcode. */
+    uint8_t                 offOpcode;                                                                 /* x86:       0x09 */
+    /** X86: The offset of the ModR/M byte relative to the start of the
+     *  instruction. */
+    uint8_t                 offModRm;                                                                  /* x86:       0x0a */
 
-    /** The prefix mask (IEM_OP_PRF_XXX). */
-    uint32_t                fPrefixes;                                                                      /*       0x0c */
-    /** The extra REX ModR/M register field bit (REX.R << 3). */
-    uint8_t                 uRexReg;                                                                        /*       0x10 */
-    /** The extra REX ModR/M r/m field, SIB base and opcode reg bit
+    /** X86: The effective segment register (X86_SREG_XXX). */
+    uint8_t                 iEffSeg;                                                                   /* x86:       0x0b */
+
+    /** X86: The prefix mask (IEM_OP_PRF_XXX). */
+    uint32_t                fPrefixes;                                                                 /* x86:       0x0c */
+    /** X86: The extra REX ModR/M register field bit (REX.R << 3). */
+    uint8_t                 uRexReg;                                                                   /* x86:       0x10 */
+    /** X86: The extra REX ModR/M r/m field, SIB base and opcode reg bit
      * (REX.B << 3). */
-    uint8_t                 uRexB;                                                                          /*       0x11 */
-    /** The extra REX SIB index field bit (REX.X << 3). */
-    uint8_t                 uRexIndex;                                                                      /*       0x12 */
-
+    uint8_t                 uRexB;                                                                     /* x86:       0x11 */
+    /** X86: The extra REX SIB index field bit (REX.X << 3). */
+    uint8_t                 uRexIndex;                                                                 /* x86:       0x12 */
+#   endif
 # else  /* IEM_WITH_OPAQUE_DECODER_STATE */
+#   ifndef VBOX_VMM_TARGET_X86
+    uint8_t                 abOpaqueDecoderPart1[1];
+#   else
     uint8_t                 abOpaqueDecoderPart1[0x13 - 0x08];
+#   endif
 # endif /* IEM_WITH_OPAQUE_DECODER_STATE */
 #endif /* !IEM_WITH_CODE_TLB */
 
-#ifndef IEM_WITH_OPAQUE_DECODER_STATE
-    /** The effective operand mode. */
-    IEMMODE                 enmEffOpSize;                                                                   /* 0x36, 0x13 */
-    /** The default addressing mode. */
-    IEMMODE                 enmDefAddrMode;                                                                 /* 0x37, 0x14 */
-    /** The effective addressing mode. */
-    IEMMODE                 enmEffAddrMode;                                                                 /* 0x38, 0x15 */
-    /** The default operand mode. */
-    IEMMODE                 enmDefOpSize;                                                                   /* 0x39, 0x16 */
+#if  (!defined(IEM_WITH_OPAQUE_DECODER_STATE) && (defined(VBOX_VMM_TARGET_X86) || !defined(IEM_WITH_CODE_TLB))) \
+  || defined(DOXGYEN_RUNNING)
+# ifdef VBOX_VMM_TARGET_X86
+    /** X86: The effective operand mode. */
+    IEMMODE                 enmEffOpSize;                                                              /* x86: 0x36, 0x13 */
+    /** X86: The default addressing mode. */
+    IEMMODE                 enmDefAddrMode;                                                            /* x86: 0x37, 0x14 */
+    /** X86: The effective addressing mode. */
+    IEMMODE                 enmEffAddrMode;                                                            /* x86: 0x38, 0x15 */
+    /** X86: The default operand mode. */
+    IEMMODE                 enmDefOpSize;                                                              /* x86: 0x39, 0x16 */
 
-    /** Prefix index (VEX.pp) for two byte and three byte tables. */
-    uint8_t                 idxPrefix;                                                                      /* 0x3a, 0x17 */
-    /** 3rd VEX/EVEX/XOP register.
+    /** X86: Prefix index (VEX.pp) for two byte and three byte tables. */
+    uint8_t                 idxPrefix;                                                                 /* x86: 0x3a, 0x17 */
+    /** X86: 3rd VEX/EVEX/XOP register.
      * Please use IEM_GET_EFFECTIVE_VVVV to access.  */
-    uint8_t                 uVex3rdReg;                                                                     /* 0x3b, 0x18 */
-    /** The VEX/EVEX/XOP length field. */
-    uint8_t                 uVexLength;                                                                     /* 0x3c, 0x19 */
-    /** Additional EVEX stuff. */
-    uint8_t                 fEvexStuff;                                                                     /* 0x3d, 0x1a */
+    uint8_t                 uVex3rdReg;                                                                /* x86: 0x3b, 0x18 */
+    /** X86: The VEX/EVEX/XOP length field. */
+    uint8_t                 uVexLength;                                                                /* x86: 0x3c, 0x19 */
+    /** X86: Additional EVEX stuff. */
+    uint8_t                 fEvexStuff;                                                                /* x86: 0x3d, 0x1a */
 
-# ifndef IEM_WITH_CODE_TLB
+#  ifndef IEM_WITH_CODE_TLB
     /** Explicit alignment padding. */
-    uint8_t                 abAlignment2a[1];                                                               /*       0x1b */
-# endif
-    /** The FPU opcode (FOP). */
-    uint16_t                uFpuOpcode;                                                                     /* 0x3e, 0x1c */
-# ifndef IEM_WITH_CODE_TLB
-    /** Explicit alignment padding. */
-    uint8_t                 abAlignment2b[2];                                                               /*       0x1e */
-# endif
+    uint8_t                 abAlignment2a[1];                                                          /* x86:       0x1b */
+#  endif
+    /** X86: The FPU opcode (FOP). */
+    uint16_t                uFpuOpcode;                                                                /* x86: 0x3e, 0x1c */
+#  ifndef IEM_WITH_CODE_TLB
+    /** Opcode buffer alignment padding. */
+    uint8_t                 abAlignment2b[2];                                                          /* x86:       0x1e */
+#  endif
+# else  /* !VBOX_VMM_TARGET_X86 */
+    /** Opcode buffer alignment padding. */
+    uint8_t                 abAlignment2b[3+4];                                                       /* !x86:       0x09 */
+# endif /* !VBOX_VMM_TARGET_X86 */
 
     /** The opcode bytes. */
-    uint8_t                 abOpcode[15];                                                                   /* 0x40, 0x20 */
-    /** Explicit alignment padding. */
-# ifdef IEM_WITH_CODE_TLB
-    //uint8_t                 abAlignment2c[0x4f - 0x4f];                                                     /* 0x4f */
+# ifdef VBOX_VMM_TARGET_X86
+    uint8_t                 abOpcode[15];                                                              /* x86: 0x40, 0x20 */
 # else
-    uint8_t                 abAlignment2c[0x4f - 0x2f];                                                     /*       0x2f */
+    union
+    {
+        uint8_t             abOpcode[  32];                                                           /* !x86:       0x10 */
+        uint16_t            au16Opcode[16];
+        uint32_t            au32Opcode[ 8];
+    };
 # endif
+    /** Explicit alignment padding. */
+#  ifdef VBOX_VMM_TARGET_X86
+#   ifdef IEM_WITH_CODE_TLB
+    //uint8_t                 abAlignment2c[0x4f - 0x4f];                                              /* x86: 0x4f */
+#   else
+    uint8_t                 abAlignment2c[0x4f - 0x2f];                                                /* x86:       0x2f */
+#   endif
+#  else
+    uint8_t                 abAlignment2c[0x4f - 0x30];                                               /* !x86:       0x30 */
+#  endif
 
-#else  /* IEM_WITH_OPAQUE_DECODER_STATE */
+#else  /* IEM_WITH_OPAQUE_DECODER_STATE || (!x86 && TLB) */
 # ifdef IEM_WITH_CODE_TLB
+#  ifdef VBOX_VMM_TARGET_X86
     uint8_t                 abOpaqueDecoderPart2[0x4f - 0x36];
+#  else
+    uint8_t                 abOpaqueDecoderPart2[0x4f - 0x28];
+#  endif
 # else
+#  ifdef VBOX_VMM_TARGET_X86
     uint8_t                 abOpaqueDecoderPart2[0x4f - 0x13];
+#  else
+    uint8_t                 abOpaqueDecoderPart2[0x4f - 0x09];
+#  endif
 # endif
 #endif /* IEM_WITH_OPAQUE_DECODER_STATE */
     /** @} */
@@ -1885,11 +1929,14 @@ typedef struct IEMCPU
         bool                afAlignment5[3];
     } aMemBbMappings[3];                                                                                    /* 0xb0 LB 0x48 */
 
-    /** The flags of the current exception / interrupt. */
+    /** The flags of the current exception / interrupt.
+     * @note X86 specific? */
     uint32_t                fCurXcpt;                                                                       /* 0xf8 */
-    /** The current exception / interrupt. */
+    /** The current exception / interrupt.
+     *@note X86 specific? */
     uint8_t                 uCurXcpt;                                                                       /* 0xfc */
-    /** Exception / interrupt recursion depth. */
+    /** Exception / interrupt recursion depth.
+     *@note X86 specific? */
     int8_t                  cXcptRecursions;                                                                /* 0xfb */
 
     /** The next unused mapping index.

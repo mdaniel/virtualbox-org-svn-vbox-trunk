@@ -74,9 +74,13 @@
 #include <iprt/x86.h>
 
 #include "IEMInline.h"
+#include "IEMInlineExec.h"
 #ifdef VBOX_VMM_TARGET_X86
 # include "target-x86/IEMInline-x86.h"
 # include "target-x86/IEMInlineDecode-x86.h"
+# include "target-x86/IEMInlineExec-x86.h"
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# include "target-armv8/IEMInlineExec-armv8.h"
 #endif
 #include "IEMOpHlp.h"
 #include "IEMMc.h"

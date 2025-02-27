@@ -52,6 +52,9 @@ extern const PDMGICBACKEND g_GicHvfBackend;
 # elif defined(RT_OS_WINDOWS)
 /** The Hyper-V GIC backend. */
 extern const PDMGICBACKEND g_GicHvBackend;
+# elif defined(RT_OS_LINUX)
+/** The KVM GIC backend. */
+extern const PDMGICBACKEND g_GicKvmBackend;
 # endif
 #endif
 

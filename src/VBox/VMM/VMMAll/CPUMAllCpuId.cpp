@@ -47,6 +47,9 @@
 #include <iprt/x86-helpers.h>
 #if defined(RT_ARCH_ARM64) || defined(VBOX_VMM_TARGET_ARMV8)
 # include <iprt/armv8.h>
+# if defined(RT_OS_LINUX)
+#  include <sys/auxv.h>
+# endif
 #endif
 
 

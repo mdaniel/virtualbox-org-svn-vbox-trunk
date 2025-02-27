@@ -275,14 +275,13 @@ DECLCALLBACK(int) gicR3KvmConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
      * Init the data.
      */
     pGic->pDevInsR3 = pDevIns;
-    pGic->fNemGic   = true;
     pThis->pDevIns  = pDevIns;
     pThis->fdKvmVm  = pVM->nem.s.fdVm;
 
     /*
      * Validate GIC settings.
      */
-    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase", "");
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase", "");
 
     /*
      * Disable automatic PDM locking for this device.

@@ -2731,72 +2731,17 @@ VMMR3_INT_DECL(bool) NEMR3CanExecuteGuest(PVM pVM, PVMCPU pVCpu)
 
 VMMR3_INT_DECL(int) NEMR3Halt(PVM pVM, PVMCPU pVCpu)
 {
+    Assert(EMGetState(pVCpu) == EMSTATE_WAIT_SIPI);
+
     /*
-     * Try switch to NEM runloop state.
+     * Force the vCPU to get out of the SIPI state and into the normal runloop
+     * as Hyper-V doesn't cause VM exits for PSCI calls so we wouldn't notice when
+     * when the guest brings APs online.
+     * Instead we force the EMT to run the vCPU through Hyper-V which manages the state.
      */
-    if (VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM, VMCPUSTATE_STARTED_HALTED))
-    { /* likely */ }
-    else
-    {
-        VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM, VMCPUSTATE_STARTED_EXEC_NEM_CANCELED);
-        LogFlow(("NEM/%u: returning immediately because canceled\n", pVCpu->idCpu));
-        return VINF_SUCCESS;
-    }
-
-    VBOXSTRICTRC    rcStrict            = VINF_SUCCESS;
-
-    /* Ensure that Hyper-V has the whole state. */
-    int rc2 = nemHCWinCopyStateToHyperV(pVM, pVCpu);
-    AssertRCReturn(rc2, rc2);
-
-    if (   !VM_FF_IS_ANY_SET(pVM, VM_FF_EMT_RENDEZVOUS | VM_FF_TM_VIRTUAL_SYNC)
-        && !VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_HM_TO_R3_MASK))
-    {
-        if (VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM_WAIT, VMCPUSTATE_STARTED_EXEC_NEM))
-        {
-            MY_WHV_RUN_VP_EXIT_CONTEXT ExitReason = {0};
-            HRESULT hrc = WHvRunVirtualProcessor(pVM->nem.s.hPartition, pVCpu->idCpu, &ExitReason, sizeof(ExitReason));
-            VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC_NEM, VMCPUSTATE_STARTED_EXEC_NEM_WAIT);
-            TMNotifyEndOfExecution(pVM, pVCpu, ASMReadTSC());
-#ifdef LOG_ENABLED
-            LogFlow(("NEM/%u: Exit  @ @todo Reason=%#x\n", pVCpu->idCpu, ExitReason.ExitReason));
-#endif
-            if (SUCCEEDED(hrc))
-            {
-                /*
-                 * Deal with the message.
-                 */
-                rcStrict = nemR3WinHandleExit(pVM, pVCpu, &ExitReason);
-                LogFlow(("NEM/%u: breaking: nemHCWinHandleMessage -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
-                STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
-            }
-            else
-                AssertLogRelMsgFailedReturn(("WHvRunVirtualProcessor failed for CPU #%u: %#x (%u)\n",
-                                             pVCpu->idCpu, hrc, GetLastError()),
-                                            VERR_NEM_IPE_0);
-
-            /** @todo Try handle pending flags, not just return to EM loops.  Take care
-             *        not to set important RCs here unless we've handled a message. */
-            LogFlow(("NEM/%u: breaking: pending FF (%#x / %#RX64)\n",
-                     pVCpu->idCpu, pVM->fGlobalForcedActions, (uint64_t)pVCpu->fLocalForcedActions));
-            STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnFFPost);
-        }
-        else
-        {
-            LogFlow(("NEM/%u: breaking: canceled %d (pre exec)\n", pVCpu->idCpu, VMCPU_GET_STATE(pVCpu) ));
-            STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnCancel);
-        }
-    }
-    else
-    {
-        LogFlow(("NEM/%u: breaking: pending FF (pre exec)\n", pVCpu->idCpu));
-        STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnFFPre);
-    }
-
-    if (!VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_HALTED, VMCPUSTATE_STARTED_EXEC_NEM))
-        VMCPU_CMPXCHG_STATE(pVCpu, VMCPUSTATE_STARTED_HALTED, VMCPUSTATE_STARTED_EXEC_NEM_CANCELED);
-
-    return rcStrict;
+    RT_NOREF(pVM);
+    EMSetState(pVCpu, EMSTATE_HALTED);
+    return VINF_EM_RESCHEDULE;
 }
 
 

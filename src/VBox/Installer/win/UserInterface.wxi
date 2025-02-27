@@ -1111,10 +1111,10 @@
 
         <!-- Note: All values except 0 and "" (empty string) are interpreted as TRUE. -->
 
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="VBOX_SHOW_LICENSE_DLG" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="(NOT VBOX_SHOW_LICENSE_DLG) AND VBOX_SHOW_SERIAL_CHECK_DLG" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="NOT VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxLicenseAgreementDlg" Condition="VBOX_SHOW_LICENSE_DLG" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxCheckSerialDlg" Condition="(NOT VBOX_SHOW_LICENSE_DLG) AND VBOX_SHOW_SERIAL_CHECK_DLG" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxCustomizeDlg" Condition="VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxVerifyReadyDlg" Condition="NOT VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
 
         <Publish Dialog="VBoxLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="VBoxCheckSerialDlg" Condition="VBOX_SHOW_SERIAL_CHECK_DLG" />
         <Publish Dialog="VBoxLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="VBoxCustomizeDlg" Condition="(NOT VBOX_SHOW_SERIAL_CHECK_DLG) AND (VBOX_SHOW_CUSTOMIZE_DLG)" />

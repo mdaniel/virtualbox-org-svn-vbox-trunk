@@ -578,10 +578,11 @@
             <Control Id="Desc1" Type="Text" X="135" Y="60" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorDlg_Description1)" />
             <Control Id="Desc2" Type="Text" X="135" Y="85" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorDlg_Description2)" />
             <Control Id="BrowseButton" Type="PushButton" X="135" Y="170" Width="100" Height="17" Text="!(loc.FatalErrorDlg_DescLogOpen)">
-                <Publish Event="DoAction" Value="ca_OpenLogFile" />
+                <Publish Property="WixShellExecTarget" Value="[MsiLogFileLocation]" />
+                <Publish Event="DoAction" Value="ca_ShellExecIgnore" />
             </Control>
-            <Control Id="Desc3" Type="Text" X="135" Y="190" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorDlg_DescLogPath)" />
-            <Control Id="Desc4" Type="Text" X="135" Y="205" Width="220" Height="80" Transparent="yes" NoPrefix="yes" Text="[MsiLogFileLocation]" />
+            <Control Id="Desc3" Type="Text" X="135" Y="195" Width="220" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.FatalErrorDlg_DescLogPath)" />
+            <Control Id="Desc4" Type="Text" X="135" Y="210" Width="220" Height="15" Transparent="yes" NoPrefix="yes" Text="[MsiLogFileLocation]" />
         </Dialog>
 
         <Dialog Id="FilesInUse" Width="370" Height="270" Title="[ProductName] !(loc.Setup)" KeepModeless="yes">
@@ -1110,10 +1111,10 @@
 
         <!-- Note: All values except 0 and "" (empty string) are interpreted as TRUE. -->
 
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxLicenseAgreementDlg" Condition="VBOX_SHOW_LICENSE_DLG" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxCheckSerialDlg" Condition="(NOT VBOX_SHOW_LICENSE_DLG) AND VBOX_SHOW_SERIAL_CHECK_DLG" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxCustomizeDlg" Condition="VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
-        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxVerifyReadyDlg" Condition="NOT VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="VBOX_SHOW_LICENSE_DLG" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="(NOT VBOX_SHOW_LICENSE_DLG) AND VBOX_SHOW_SERIAL_CHECK_DLG" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
+        <Publish Dialog="VBoxWelcomeDlg" Control="Next" Event="NewDialog" Value="VBoxFatalErrorDlg" Condition="NOT VBOX_SHOW_CUSTOMIZE_DLG AND (NOT VBOX_SHOW_LICENSE_DLG) AND (NOT VBOX_SHOW_SERIAL_CHECK_DLG)" />
 
         <Publish Dialog="VBoxLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="VBoxCheckSerialDlg" Condition="VBOX_SHOW_SERIAL_CHECK_DLG" />
         <Publish Dialog="VBoxLicenseAgreementDlg" Control="Next" Event="NewDialog" Value="VBoxCustomizeDlg" Condition="(NOT VBOX_SHOW_SERIAL_CHECK_DLG) AND (VBOX_SHOW_CUSTOMIZE_DLG)" />

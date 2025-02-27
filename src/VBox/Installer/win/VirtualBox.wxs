@@ -215,9 +215,15 @@
     <!-- Note: Make sure to set the CWD (via 'Directory' attribute) to not run off a possibly temporary directory or some such (see @bugref{10203}). -->
     <CustomAction Id="ca_StartVBox" Directory="INSTALLDIR" ExeCommand="[INSTALLDIR]VirtualBox.exe" Return="asyncNoWait" Impersonate="yes" />
 <?endif?>
-    <!-- Opens the installer's log file using the user's default editor.
-         Note: Make sure to set the CWD (via 'Directory' attribute) to not run off a possibly temporary directory or some such (see @bugref{10203}). -->
-    <CustomAction Id="ca_OpenLogFile" Directory="INSTALLDIR" ExeCommand='rundll32.exe shell32.dll,ShellExec_RunDLL [MsiLogFileLocation]' Return="asyncNoWait" Impersonate="yes" />
+    <!-- General custom action for starting an application or opening a file using the system's default open handler. Ignores result.
+         The "WixShellExecTarget" property must be set beforehand as the actual execution parameter.
+
+         Note! Manually using a custom action w/ ExecCommand + "rundll32 [...]" will result in big delays on Windows/ARM,
+               probably due to the x86 emulation layer and/or shimming in-between. So we need to this built-in action (part of wixutil)
+               instead.
+
+         Currently being used for displaying the MSI log file in the fatal error dialog. -->
+    <CustomAction Id="ca_ShellExecIgnore" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Execute="immediate" Return="ignore" />
 
     <CustomAction Id="ca_CheckSerial" DllEntry="CheckSerial" Impersonate="no" BinaryRef="VBoxInstallHelper" />
 

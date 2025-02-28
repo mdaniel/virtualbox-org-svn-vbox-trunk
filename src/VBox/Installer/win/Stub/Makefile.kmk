@@ -56,8 +56,16 @@ VBoxStub_SOURCES = \
 VBoxStub_SDKS = \
 	VBoxNtDll
 
+# Enables splash screen support.
+#VBOX_STUB_WITH_SPLASH=
+
+ifdef VBOX_STUB_WITH_SPLASH
+ VBoxStub.cpp_DEFS += VBOX_STUB_WITH_SPLASH
+ VBOX_STUB_IMPORTS += user32.dll shlwapi.dll gdi32.dll
+endif
+
 VBoxStub_LDFLAGS = -SubSystem:Windows
-VBoxStub_POST_CMDS = $(VBOX_CHECK_IMPORTS) --image $(out) ntdll.dll kernel32.dll
+VBoxStub_POST_CMDS = $(VBOX_CHECK_IMPORTS) --image $(out) ntdll.dll kernel32.dll $(VBOX_STUB_IMPORTS)
 ifeq ($(KBUILD_TYPE),asan)
  VBoxStub_POST_CMDS += advapi32.dll clang_rt.asan_dynamic-i386.dll
 endif
@@ -179,6 +187,16 @@ $$(VBoxStub_0_OUTDIR)/ComCtl32LazyLoad.asm: $(PATH_SUB_CURRENT)/comctl32.def $(V
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
 	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library COMCTL32.DLL --output "$@" $(filter %.def, $^)
+
+# Dynamic import no. 7: GDIPLUS.DLL
+ifdef VBOX_STUB_WITH_SPLASH
+ VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm
+ VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm
+$$(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm: $(PATH_SUB_CURRENT)/gdiplus.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
+	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
+	$(QUIET)$(RM) -f -- "$@"
+	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library GDIPLUS.DLL --output "$@" $(filter %.def, $^)
+endif
 
 include $(FILE_KBUILD_SUB_FOOTER)
 

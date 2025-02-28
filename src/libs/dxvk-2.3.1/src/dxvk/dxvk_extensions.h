@@ -332,6 +332,7 @@ namespace dxvk {
     DxvkExt khrVideoQueue                     = { VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,                        DxvkExtMode::Optional };
     DxvkExt khrVideoDecodeQueue               = { VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,                 DxvkExtMode::Optional };
     DxvkExt khrVideoDecodeH264                = { VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,                  DxvkExtMode::Optional };
+    DxvkExt khrVideoDecodeH265                = { VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,                  DxvkExtMode::Optional };
 #endif
   };
   

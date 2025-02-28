@@ -637,6 +637,7 @@ static const char *nemR3DarwinHvStatusName(hv_return_t hrc)
 }
 
 
+#if 0 /* unused right now */
 /**
  * Converts an ICC system register into Darwin's Hypervisor.Framework equivalent.
  *
@@ -678,6 +679,7 @@ static hv_gic_icc_reg_t nemR3DarwinIccRegFromSysReg(uint32_t u32Reg)
     AssertReleaseFailed();
     return HV_GIC_ICC_REG_INVALID;
 }
+#endif
 
 
 /**

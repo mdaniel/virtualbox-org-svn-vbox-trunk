@@ -192,7 +192,7 @@ $$(VBoxStub_0_OUTDIR)/ComCtl32LazyLoad.asm: $(PATH_SUB_CURRENT)/comctl32.def $(V
 ifdef VBOX_STUB_WITH_SPLASH
  VBoxStub_SOURCES += $(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm
  VBoxStub_CLEAN   += $(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm
-$$(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm: $(PATH_SUB_CURRENT)/gdiplus.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
+ $$(VBoxStub_0_OUTDIR)/GdiPlusLazyLoad.asm: $(PATH_SUB_CURRENT)/gdiplus.def $(VBOX_DEF_2_LAZY_LOAD) | $$(dir $$@)
 	$(call MSG_TOOL,VBoxDef2LazyLoad,VBoxStub,$(filter %.def, $^),$@)
 	$(QUIET)$(RM) -f -- "$@"
 	$(VBOX_DEF_2_LAZY_LOAD) --target "$(VBoxStub_BLD_TRG_ARCH)" --system --library GDIPLUS.DLL --output "$@" $(filter %.def, $^)

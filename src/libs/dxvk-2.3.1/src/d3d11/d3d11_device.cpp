@@ -3176,6 +3176,34 @@ namespace dxvk {
       }
     };
 
+    const struct D3D11VideoDecoderProfile profile_ModeHEVC_VLD_Main = {
+      /* .guid = */ DXVA2_ModeHEVC_VLD_Main,  /* D3D11_DECODER_PROFILE_HEVC_VLD_MAIN */
+      /* .decoderConfigs = */ std::vector<D3D11_VIDEO_DECODER_CONFIG> {
+        {
+          /* .guidConfigBitstreamEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigMBcontrolEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigResidDiffEncryption = */ DXVA2_NoEncrypt,
+          /* .ConfigBitstreamRaw = */ 1,
+          /* .ConfigMBcontrolRasterOrder = */ 0,
+          /* .ConfigResidDiffHost = */ 0,
+          /* .ConfigSpatialResid8 = */ 0,
+          /* .ConfigResid8Subtraction = */ 0,
+          /* .ConfigSpatialHost8or9Clipping = */ 0,
+          /* .ConfigSpatialResidInterleaved = */ 0,
+          /* .ConfigIntraResidUnsigned = */ 0,
+          /* .ConfigResidDiffAccelerator = */ 0,
+          /* .ConfigHostInverseScan = */ 0,
+          /* .ConfigSpecificIDCT = */ 0,
+          /* .Config4GroupedCoefs = */ 0,
+          /* .ConfigMinRenderTargetBuffCount = */ 3,
+          /* .ConfigDecoderSpecific = */ 0
+        }
+      },
+      /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
+          DXGI_FORMAT_NV12
+      }
+    };
+
     /*
      * Add desired Vulkan profile descriptions to the 'mappings'.
      */
@@ -3202,7 +3230,29 @@ namespace dxvk {
     mappings.push_back({ m_vulkanDecodeProfiles[0] });
     mappings.back().d3dProfiles.push_back(profile_ModeH264_VLD_NoFGT);
 
-    /// @todo More Vulkan profiles: H.265 and AV1
+    m_vulkanDecodeProfiles[1].profileName            = "H.265";
+    m_vulkanDecodeProfiles[1].h265ProfileInfo        =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PROFILE_INFO_KHR, nullptr,
+        STD_VIDEO_H265_PROFILE_IDC_MAIN
+      };
+    m_vulkanDecodeProfiles[1].profileInfo            =
+      { VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR, &m_vulkanDecodeProfiles[1].h264ProfileInfo,
+        VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR,
+        VK_VIDEO_CHROMA_SUBSAMPLING_420_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR
+      };
+    m_vulkanDecodeProfiles[1].decodeH265Capabilities =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_CAPABILITIES_KHR };
+    m_vulkanDecodeProfiles[1].decodeCapabilities     =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[1].decodeH265Capabilities };
+    m_vulkanDecodeProfiles[1].videoCapabilities      =
+      { VK_STRUCTURE_TYPE_VIDEO_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[1].decodeCapabilities };
+
+    mappings.push_back({ m_vulkanDecodeProfiles[1] });
+    mappings.back().d3dProfiles.push_back(profile_ModeHEVC_VLD_Main);
+
+    /// @todo More Vulkan profiles: AV1
 
     /*
      * Query caps of every Vulkan profile and add supported profiles to the m_decoderProfiles list.

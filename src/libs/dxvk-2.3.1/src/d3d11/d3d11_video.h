@@ -43,7 +43,7 @@ namespace dxvk {
       return m_videoDecoder;
     }
 
-    bool GetVideoDecodeH264InputParameters(
+    bool GetVideoDecodeInputParameters(
       UINT BufferCount,
       const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs,
       DxvkVideoDecodeInputParameters *pParms);

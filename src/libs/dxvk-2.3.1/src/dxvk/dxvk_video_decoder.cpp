@@ -101,9 +101,19 @@ namespace dxvk {
     /*
      * Update internal pointers of m_profileInfo.
      */
-    m_profile.profileInfo.pNext        = &m_profile.h264ProfileInfo;
-    m_profile.decodeCapabilities.pNext = &m_profile.decodeH264Capabilities;
-    m_profile.videoCapabilities.pNext  = &m_profile.decodeCapabilities;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      m_profile.profileInfo.pNext        = &m_profile.h264ProfileInfo;
+      m_profile.decodeCapabilities.pNext = &m_profile.decodeH264Capabilities;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      m_profile.profileInfo.pNext        = &m_profile.h265ProfileInfo;
+      m_profile.decodeCapabilities.pNext = &m_profile.decodeH265Capabilities;
+    }
+    else {
+      throw DxvkError(str::format("DxvkVideoDecoder: videoCodecOperation ", m_profile.profileInfo.videoCodecOperation,
+        " is not supported"));
+    }
+    m_profile.videoCapabilities.pNext    = &m_profile.decodeCapabilities;
 
     /*
      * Assess capabilities.
@@ -321,13 +331,29 @@ namespace dxvk {
     /*
      * Create video session parameters object.
      */
-    VkVideoDecodeH264SessionParametersCreateInfoKHR h264SessionParametersCreateInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_CREATE_INFO_KHR };
-    h264SessionParametersCreateInfo.maxStdSPSCount     = m_parameterSetCache.sps.size();
-    h264SessionParametersCreateInfo.maxStdPPSCount     = m_parameterSetCache.pps.size();
-    h264SessionParametersCreateInfo.pParametersAddInfo = nullptr; /* Added in 'Decode' as necessary. */
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      VkVideoDecodeH264SessionParametersCreateInfoKHR h264SessionParametersCreateInfo =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_CREATE_INFO_KHR };
+      h264SessionParametersCreateInfo.maxStdSPSCount     = m_parameterSetCache.h264.sps.size();
+      h264SessionParametersCreateInfo.maxStdPPSCount     = m_parameterSetCache.h264.pps.size();
+      h264SessionParametersCreateInfo.pParametersAddInfo = nullptr; /* Added in 'Decode' as necessary. */
 
-    m_videoSessionParameters->create(m_videoSession, &h264SessionParametersCreateInfo);
+      m_videoSessionParameters->create(m_videoSession, &h264SessionParametersCreateInfo);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      VkVideoDecodeH265SessionParametersCreateInfoKHR h265SessionParametersCreateInfo =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_CREATE_INFO_KHR };
+      h265SessionParametersCreateInfo.maxStdVPSCount     = m_parameterSetCache.h265.vps.size();
+      h265SessionParametersCreateInfo.maxStdSPSCount     = m_parameterSetCache.h265.sps.size();
+      h265SessionParametersCreateInfo.maxStdPPSCount     = m_parameterSetCache.h265.pps.size();
+      h265SessionParametersCreateInfo.pParametersAddInfo = nullptr; /* Added in 'Decode' as necessary. */
+
+      m_videoSessionParameters->create(m_videoSession, &h265SessionParametersCreateInfo);
+    }
+    else {
+      throw DxvkError(str::format("DxvkVideoDecoder: videoCodecOperation ", m_profile.profileInfo.videoCodecOperation,
+        " is not supported"));
+    }
   }
 
 
@@ -440,12 +466,37 @@ namespace dxvk {
   }
 
 
-#define DXVK_VD_CMP_SPS_FIELDS(_f) \
-  if (sps1._f != sps2._f) { \
-    Logger::debug(str::format("SPS.", #_f ,": ", (int32_t)sps1._f, " != ", (int32_t)sps2._f)); \
+#define DXVK_VD_CMP_FIELD(_s, _f) \
+  if ((_s##1)._f != (_s##2)._f) { \
+    Logger::debug(str::format(#_s, ".", #_f ,": ", (int32_t)(_s##1)._f, " != ", (int32_t)(_s##2)._f)); \
     return false; \
   }
-  static bool IsSPSEqual(
+
+  static bool IsH265VPSEqual(
+    const StdVideoH265VideoParameterSet &vps1,
+    const StdVideoH265VideoParameterSet &vps2) {
+    DXVK_VD_CMP_FIELD(vps, flags.vps_temporal_id_nesting_flag);
+    DXVK_VD_CMP_FIELD(vps, flags.vps_sub_layer_ordering_info_present_flag);
+    DXVK_VD_CMP_FIELD(vps, flags.vps_timing_info_present_flag);
+    DXVK_VD_CMP_FIELD(vps, flags.vps_poc_proportional_to_timing_flag);
+    DXVK_VD_CMP_FIELD(vps, vps_video_parameter_set_id);
+    DXVK_VD_CMP_FIELD(vps, vps_max_sub_layers_minus1);
+    DXVK_VD_CMP_FIELD(vps, vps_num_units_in_tick);
+    DXVK_VD_CMP_FIELD(vps, vps_time_scale);
+    DXVK_VD_CMP_FIELD(vps, vps_num_ticks_poc_diff_one_minus1);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_tier_flag);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_progressive_source_flag);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_interlaced_source_flag);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_non_packed_constraint_flag);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_frame_only_constraint_flag);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->general_profile_idc);
+    DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->general_level_idc);
+    return true;
+  }
+
+
+#define DXVK_VD_CMP_SPS_FIELDS(_f) DXVK_VD_CMP_FIELD(sps, _f)
+  static bool IsH264SPSEqual(
     const StdVideoH264SequenceParameterSet &sps1,
     const StdVideoH264SequenceParameterSet &sps2) {
     DXVK_VD_CMP_SPS_FIELDS(flags.constraint_set0_flag)
@@ -485,12 +536,81 @@ namespace dxvk {
 #undef DXVK_VD_CMP_SPS_FIELDS
 
 
-#define DXVK_VD_CMP_PPS_FIELDS(_f) \
-  if (pps1._f != pps2._f) { \
-    Logger::debug(str::format("PPS.", #_f ,": ", (int32_t)pps1._f, " != ", (int32_t)pps2._f)); \
-    return false; \
+  static bool IsH265SPSEqual(
+    const StdVideoH265SequenceParameterSet &sps1,
+    const StdVideoH265SequenceParameterSet &sps2) {
+    DXVK_VD_CMP_FIELD(sps, flags.sps_temporal_id_nesting_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.separate_colour_plane_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.conformance_window_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_sub_layer_ordering_info_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.scaling_list_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_scaling_list_data_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.amp_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sample_adaptive_offset_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.pcm_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.pcm_loop_filter_disabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.long_term_ref_pics_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_temporal_mvp_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.strong_intra_smoothing_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.vui_parameters_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_extension_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_range_extension_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.transform_skip_rotation_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.transform_skip_context_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.implicit_rdpcm_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.explicit_rdpcm_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.extended_precision_processing_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.intra_smoothing_disabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.high_precision_offsets_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.persistent_rice_adaptation_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.cabac_bypass_alignment_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_scc_extension_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_curr_pic_ref_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.palette_mode_enabled_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.sps_palette_predictor_initializers_present_flag);
+    DXVK_VD_CMP_FIELD(sps, flags.intra_boundary_filtering_disabled_flag);
+    DXVK_VD_CMP_FIELD(sps, chroma_format_idc);
+    DXVK_VD_CMP_FIELD(sps, pic_width_in_luma_samples);
+    DXVK_VD_CMP_FIELD(sps, pic_height_in_luma_samples);
+    DXVK_VD_CMP_FIELD(sps, sps_video_parameter_set_id);
+    DXVK_VD_CMP_FIELD(sps, sps_max_sub_layers_minus1);
+    DXVK_VD_CMP_FIELD(sps, sps_seq_parameter_set_id);
+    DXVK_VD_CMP_FIELD(sps, bit_depth_luma_minus8);
+    DXVK_VD_CMP_FIELD(sps, bit_depth_chroma_minus8);
+    DXVK_VD_CMP_FIELD(sps, log2_max_pic_order_cnt_lsb_minus4);
+    DXVK_VD_CMP_FIELD(sps, log2_min_luma_coding_block_size_minus3);
+    DXVK_VD_CMP_FIELD(sps, log2_diff_max_min_luma_coding_block_size);
+    DXVK_VD_CMP_FIELD(sps, log2_min_luma_transform_block_size_minus2);
+    DXVK_VD_CMP_FIELD(sps, log2_diff_max_min_luma_transform_block_size);
+    DXVK_VD_CMP_FIELD(sps, max_transform_hierarchy_depth_inter);
+    DXVK_VD_CMP_FIELD(sps, max_transform_hierarchy_depth_intra);
+    DXVK_VD_CMP_FIELD(sps, num_short_term_ref_pic_sets);
+    DXVK_VD_CMP_FIELD(sps, num_long_term_ref_pics_sps);
+    DXVK_VD_CMP_FIELD(sps, pcm_sample_bit_depth_luma_minus1);
+    DXVK_VD_CMP_FIELD(sps, pcm_sample_bit_depth_chroma_minus1);
+    DXVK_VD_CMP_FIELD(sps, log2_min_pcm_luma_coding_block_size_minus3);
+    DXVK_VD_CMP_FIELD(sps, log2_diff_max_min_pcm_luma_coding_block_size);
+    DXVK_VD_CMP_FIELD(sps, palette_max_size);
+    DXVK_VD_CMP_FIELD(sps, delta_palette_max_predictor_size);
+    DXVK_VD_CMP_FIELD(sps, motion_vector_resolution_control_idc);
+    DXVK_VD_CMP_FIELD(sps, sps_num_palette_predictor_initializers_minus1);
+    DXVK_VD_CMP_FIELD(sps, conf_win_left_offset);
+    DXVK_VD_CMP_FIELD(sps, conf_win_right_offset);
+    DXVK_VD_CMP_FIELD(sps, conf_win_top_offset);
+    DXVK_VD_CMP_FIELD(sps, conf_win_bottom_offset);
+    /* Unused DXVK_VD_CMP_FIELD(sps, pProfileTierLevel); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pDecPicBufMgr); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pScalingLists); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pShortTermRefPicSet); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pLongTermRefPicsSps); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pSequenceParameterSetVui); */
+    /* Unused DXVK_VD_CMP_FIELD(sps, pPredictorPaletteEntries); */
+    return true;
   }
-  static bool IsPPSEqual(
+
+
+#define DXVK_VD_CMP_PPS_FIELDS(_f) DXVK_VD_CMP_FIELD(pps, _f)
+  static bool IsH264PPSEqual(
     const StdVideoH264PictureParameterSet &pps1,
     const StdVideoH264PictureParameterSet &pps2) {
     DXVK_VD_CMP_PPS_FIELDS(flags.transform_8x8_mode_flag)
@@ -516,61 +636,141 @@ namespace dxvk {
 #undef DXVK_VD_CMP_PPS_FIELDS
 
 
-  VkResult DxvkVideoDecoder::UpdateSessionParameters(
+  static bool IsH265PPSEqual(
+    const StdVideoH265PictureParameterSet &pps1,
+    const StdVideoH265PictureParameterSet &pps2) {
+    DXVK_VD_CMP_FIELD(pps, flags.dependent_slice_segments_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.output_flag_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.sign_data_hiding_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.cabac_init_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.constrained_intra_pred_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.transform_skip_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.cu_qp_delta_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_slice_chroma_qp_offsets_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.weighted_pred_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.weighted_bipred_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.transquant_bypass_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.tiles_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.entropy_coding_sync_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.uniform_spacing_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.loop_filter_across_tiles_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_loop_filter_across_slices_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.deblocking_filter_control_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.deblocking_filter_override_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_deblocking_filter_disabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_scaling_list_data_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.lists_modification_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.slice_segment_header_extension_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_extension_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.cross_component_prediction_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.chroma_qp_offset_list_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_curr_pic_ref_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.residual_adaptive_colour_transform_enabled_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_slice_act_qp_offsets_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_palette_predictor_initializers_present_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.monochrome_palette_flag);
+    DXVK_VD_CMP_FIELD(pps, flags.pps_range_extension_flag);
+    DXVK_VD_CMP_FIELD(pps, pps_pic_parameter_set_id);
+    DXVK_VD_CMP_FIELD(pps, pps_seq_parameter_set_id);
+    DXVK_VD_CMP_FIELD(pps, sps_video_parameter_set_id);
+    DXVK_VD_CMP_FIELD(pps, num_extra_slice_header_bits);
+    DXVK_VD_CMP_FIELD(pps, num_ref_idx_l0_default_active_minus1);
+    DXVK_VD_CMP_FIELD(pps, num_ref_idx_l1_default_active_minus1);
+    DXVK_VD_CMP_FIELD(pps, init_qp_minus26);
+    DXVK_VD_CMP_FIELD(pps, diff_cu_qp_delta_depth);
+    DXVK_VD_CMP_FIELD(pps, pps_cb_qp_offset);
+    DXVK_VD_CMP_FIELD(pps, pps_cr_qp_offset);
+    DXVK_VD_CMP_FIELD(pps, pps_beta_offset_div2);
+    DXVK_VD_CMP_FIELD(pps, pps_tc_offset_div2);
+    DXVK_VD_CMP_FIELD(pps, log2_parallel_merge_level_minus2);
+    DXVK_VD_CMP_FIELD(pps, log2_max_transform_skip_block_size_minus2);
+    DXVK_VD_CMP_FIELD(pps, diff_cu_chroma_qp_offset_depth);
+    DXVK_VD_CMP_FIELD(pps, chroma_qp_offset_list_len_minus1);
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE; ++i) {
+      DXVK_VD_CMP_FIELD(pps, cb_qp_offset_list[i]);
+    }
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE; ++i) {
+      DXVK_VD_CMP_FIELD(pps, cr_qp_offset_list[i]);
+    }
+    DXVK_VD_CMP_FIELD(pps, log2_sao_offset_scale_luma);
+    DXVK_VD_CMP_FIELD(pps, log2_sao_offset_scale_chroma);
+    DXVK_VD_CMP_FIELD(pps, pps_act_y_qp_offset_plus5);
+    DXVK_VD_CMP_FIELD(pps, pps_act_cb_qp_offset_plus5);
+    DXVK_VD_CMP_FIELD(pps, pps_act_cr_qp_offset_plus3);
+    DXVK_VD_CMP_FIELD(pps, pps_num_palette_predictor_initializers);
+    DXVK_VD_CMP_FIELD(pps, luma_bit_depth_entry_minus8);
+    DXVK_VD_CMP_FIELD(pps, chroma_bit_depth_entry_minus8);
+    DXVK_VD_CMP_FIELD(pps, num_tile_columns_minus1);
+    DXVK_VD_CMP_FIELD(pps, num_tile_rows_minus1);
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_TILE_COLS_LIST_SIZE; ++i) {
+      DXVK_VD_CMP_FIELD(pps, column_width_minus1[i]);
+    }
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_TILE_ROWS_LIST_SIZE; ++i) {
+      DXVK_VD_CMP_FIELD(pps, row_height_minus1[i]);
+    }
+    if (pps1.flags.pps_scaling_list_data_present_flag) {
+      /// @todo Compare scaling lists. DXVK_VD_CMP_FIELD(pps, pScalingLists);
+    }
+    /* Unused DXVK_VD_CMP_FIELD(pps, pPredictorPaletteEntries); */
+    return true;
+  }
+
+
+  VkResult DxvkVideoDecoder::UpdateSessionParametersH264(
     DxvkVideoDecodeInputParameters *pParms) {
     /* Update internal pointer(s). */
-    pParms->sps.pOffsetForRefFrame = &pParms->spsOffsetForRefFrame;
-    pParms->pps.pScalingLists = &pParms->ppsScalingLists;
+    pParms->h264.sps.pOffsetForRefFrame = &pParms->h264.spsOffsetForRefFrame;
+    pParms->h264.pps.pScalingLists = &pParms->h264.ppsScalingLists;
 
     /* Information about a possible update of session parameters. */
     VkVideoDecodeH264SessionParametersAddInfoKHR h264AddInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_SESSION_PARAMETERS_ADD_INFO_KHR };
 
     /* Find out if the SPS is already in the cache. */
-    auto itSPS = std::find_if(m_parameterSetCache.sps.begin(),
-      std::next(m_parameterSetCache.sps.begin(), m_parameterSetCache.spsCount),
-      [&sps = pParms->sps](StdVideoH264SequenceParameterSet &v) -> bool { return IsSPSEqual(sps, v); });
-    if (itSPS == std::next(m_parameterSetCache.sps.begin(), m_parameterSetCache.spsCount)) {
+    auto itSPS = std::find_if(m_parameterSetCache.h264.sps.begin(),
+      std::next(m_parameterSetCache.h264.sps.begin(), m_parameterSetCache.spsCount),
+      [&sps = pParms->h264.sps](StdVideoH264SequenceParameterSet &v) -> bool { return IsH264SPSEqual(sps, v); });
+    if (itSPS == std::next(m_parameterSetCache.h264.sps.begin(), m_parameterSetCache.spsCount)) {
       /* A new SPS. */
-      if (itSPS == m_parameterSetCache.sps.end()) {
-        Logger::err(str::format("DxvkVideoDecoder: SPS count > ", m_parameterSetCache.sps.size()));
+      if (itSPS == m_parameterSetCache.h264.sps.end()) {
+        Logger::err(str::format("DxvkVideoDecoder: SPS count > ", m_parameterSetCache.h264.sps.size()));
         return VK_ERROR_TOO_MANY_OBJECTS;
       }
 
-      *itSPS = pParms->sps;
+      *itSPS = pParms->h264.sps;
       ++m_parameterSetCache.spsCount;
 
       h264AddInfo.stdSPSCount = 1;
-      h264AddInfo.pStdSPSs = &pParms->sps;
+      h264AddInfo.pStdSPSs = &pParms->h264.sps;
     }
 
     /* Find out if the PPS is already in the cache. */
-    auto itPPS = std::find_if(m_parameterSetCache.pps.begin(),
-      std::next(m_parameterSetCache.pps.begin(), m_parameterSetCache.ppsCount),
-      [&pps = pParms->pps](StdVideoH264PictureParameterSet &v) -> bool { return IsPPSEqual(pps, v); });
-    if (itPPS == std::next(m_parameterSetCache.pps.begin(), m_parameterSetCache.ppsCount)) {
+    auto itPPS = std::find_if(m_parameterSetCache.h264.pps.begin(),
+      std::next(m_parameterSetCache.h264.pps.begin(), m_parameterSetCache.ppsCount),
+      [&pps = pParms->h264.pps](StdVideoH264PictureParameterSet &v) -> bool { return IsH264PPSEqual(pps, v); });
+    if (itPPS == std::next(m_parameterSetCache.h264.pps.begin(), m_parameterSetCache.ppsCount)) {
       /* A new PPS. */
-      if (itPPS == m_parameterSetCache.pps.end()) {
-        Logger::err(str::format("DxvkVideoDecoder: PPS count > ", m_parameterSetCache.pps.size()));
+      if (itPPS == m_parameterSetCache.h264.pps.end()) {
+        Logger::err(str::format("DxvkVideoDecoder: PPS count > ", m_parameterSetCache.h264.pps.size()));
         return VK_ERROR_TOO_MANY_OBJECTS;
       }
 
-      *itPPS = pParms->pps;
+      *itPPS = pParms->h264.pps;
       ++m_parameterSetCache.ppsCount;
 
       h264AddInfo.stdPPSCount = 1;
-      h264AddInfo.pStdPPSs = &pParms->pps;
+      h264AddInfo.pStdPPSs = &pParms->h264.pps;
     }
 
-    const uint32_t spsId = std::distance(m_parameterSetCache.sps.begin(), itSPS);
-    const uint32_t ppsId = std::distance(m_parameterSetCache.pps.begin(), itPPS);
+    const uint32_t spsId = std::distance(m_parameterSetCache.h264.sps.begin(), itSPS);
+    const uint32_t ppsId = std::distance(m_parameterSetCache.h264.pps.begin(), itPPS);
 
-    pParms->sps.seq_parameter_set_id                = spsId;
-    pParms->pps.seq_parameter_set_id                = spsId;
-    pParms->pps.pic_parameter_set_id                = ppsId;
-    pParms->stdH264PictureInfo.seq_parameter_set_id = spsId;
-    pParms->stdH264PictureInfo.pic_parameter_set_id = ppsId;
-    pParms->sps.level_idc                           = m_profile.decodeH264Capabilities.maxLevelIdc;
+    pParms->h264.sps.seq_parameter_set_id                = spsId;
+    pParms->h264.pps.seq_parameter_set_id                = spsId;
+    pParms->h264.pps.pic_parameter_set_id                = ppsId;
+    pParms->h264.stdH264PictureInfo.seq_parameter_set_id = spsId;
+    pParms->h264.stdH264PictureInfo.pic_parameter_set_id = ppsId;
+    pParms->h264.sps.level_idc                           = m_profile.decodeH264Capabilities.maxLevelIdc;
 
     if (h264AddInfo.stdSPSCount == 0 && h264AddInfo.stdPPSCount == 0)
       return VK_SUCCESS;
@@ -585,6 +785,142 @@ namespace dxvk {
   }
 
 
+  VkResult DxvkVideoDecoder::UpdateSessionParametersH265(
+    DxvkVideoDecodeInputParameters *pParms) {
+    /* Update internal pointer(s). */
+    pParms->h265.vps.pProfileTierLevel = &pParms->h265.vpsProfileTierLevel;
+    pParms->h265.sps.pProfileTierLevel = &pParms->h265.vpsProfileTierLevel;
+    pParms->h265.pps.pScalingLists = &pParms->h265.ppsScalingLists;
+
+    /* Information about a possible update of session parameters. */
+    VkVideoDecodeH265SessionParametersAddInfoKHR addInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_SESSION_PARAMETERS_ADD_INFO_KHR };
+
+    /* Find out if the VPS is already in the cache. */
+    auto itVPS = std::find_if(m_parameterSetCache.h265.vps.begin(),
+      std::next(m_parameterSetCache.h265.vps.begin(), m_parameterSetCache.vpsCount),
+      [&vps = pParms->h265.vps](StdVideoH265VideoParameterSet &v) -> bool { return IsH265VPSEqual(vps, v); });
+    if (itVPS == std::next(m_parameterSetCache.h265.vps.begin(), m_parameterSetCache.vpsCount)) {
+      /* A new VPS. */
+      if (itVPS == m_parameterSetCache.h265.vps.end()) {
+        Logger::err(str::format("DxvkVideoDecoder: VPS count > ", m_parameterSetCache.h265.vps.size()));
+        return VK_ERROR_TOO_MANY_OBJECTS;
+      }
+
+      *itVPS = pParms->h265.vps;
+      ++m_parameterSetCache.vpsCount;
+
+      addInfo.stdVPSCount = 1;
+      addInfo.pStdVPSs = &pParms->h265.vps;
+    }
+
+    /* Find out if the SPS is already in the cache. */
+    auto itSPS = std::find_if(m_parameterSetCache.h265.sps.begin(),
+      std::next(m_parameterSetCache.h265.sps.begin(), m_parameterSetCache.spsCount),
+      [&sps = pParms->h265.sps](StdVideoH265SequenceParameterSet &v) -> bool { return IsH265SPSEqual(sps, v); });
+    if (itSPS == std::next(m_parameterSetCache.h265.sps.begin(), m_parameterSetCache.spsCount)) {
+      /* A new SPS. */
+      if (itSPS == m_parameterSetCache.h265.sps.end()) {
+        Logger::err(str::format("DxvkVideoDecoder: SPS count > ", m_parameterSetCache.h265.sps.size()));
+        return VK_ERROR_TOO_MANY_OBJECTS;
+      }
+
+      *itSPS = pParms->h265.sps;
+      ++m_parameterSetCache.spsCount;
+
+      addInfo.stdSPSCount = 1;
+      addInfo.pStdSPSs = &pParms->h265.sps;
+    }
+
+    /* Find out if the PPS is already in the cache. */
+    auto itPPS = std::find_if(m_parameterSetCache.h265.pps.begin(),
+      std::next(m_parameterSetCache.h265.pps.begin(), m_parameterSetCache.ppsCount),
+      [&pps = pParms->h265.pps](StdVideoH265PictureParameterSet &v) -> bool { return IsH265PPSEqual(pps, v); });
+    if (itPPS == std::next(m_parameterSetCache.h265.pps.begin(), m_parameterSetCache.ppsCount)) {
+      /* A new PPS. */
+      if (itPPS == m_parameterSetCache.h265.pps.end()) {
+        Logger::err(str::format("DxvkVideoDecoder: PPS count > ", m_parameterSetCache.h265.pps.size()));
+        return VK_ERROR_TOO_MANY_OBJECTS;
+      }
+
+      *itPPS = pParms->h265.pps;
+      ++m_parameterSetCache.ppsCount;
+
+      addInfo.stdPPSCount = 1;
+      addInfo.pStdPPSs = &pParms->h265.pps;
+    }
+
+    const uint32_t vpsId = 0; /// @todo
+    const uint32_t spsId = std::distance(m_parameterSetCache.h265.sps.begin(), itSPS);
+    const uint32_t ppsId = std::distance(m_parameterSetCache.h265.pps.begin(), itPPS);
+
+    pParms->h265.vps.vps_video_parameter_set_id            = vpsId;
+    pParms->h265.sps.sps_seq_parameter_set_id              = spsId;
+    pParms->h265.sps.sps_video_parameter_set_id            = vpsId;
+    pParms->h265.pps.pps_pic_parameter_set_id              = ppsId;
+    pParms->h265.pps.pps_seq_parameter_set_id              = spsId;
+    pParms->h265.pps.sps_video_parameter_set_id            = vpsId;
+    pParms->h265.stdPictureInfo.sps_video_parameter_set_id = vpsId;
+    pParms->h265.stdPictureInfo.pps_seq_parameter_set_id   = spsId;
+    pParms->h265.stdPictureInfo.pps_pic_parameter_set_id   = ppsId;
+    pParms->h265.vpsProfileTierLevel.general_level_idc     = m_profile.decodeH265Capabilities.maxLevelIdc;
+
+    /* 42.13.6. H.265 Decoding Parameters: "RefPicSetStCurrBefore, RefPicSetStCurrAfter, and RefPicSetLtCurr"
+     * ... "each element of these arrays" ... "identifies an active reference picture using its DPB slot index".
+     * D3D11VideoDecoder passes surface ids in these arrays. Translate surface ids to the DPB slot indices.
+     */
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t idSurface = pParms->h265.stdPictureInfo.RefPicSetStCurrBefore[i];
+      if (idSurface != 0xff) {
+        if (m_DPB.refFrames.find(idSurface) != m_DPB.refFrames.end()
+         && m_DPB.refFrames[idSurface].dpbSlotIndex >= 0) {
+          const int32_t dpbSlotIndex = m_DPB.refFrames[idSurface].dpbSlotIndex;
+          pParms->h265.stdPictureInfo.RefPicSetStCurrBefore[i] = (uint8_t)dpbSlotIndex;
+        }
+        else
+          pParms->h265.stdPictureInfo.RefPicSetStCurrBefore[i] = 0xff;
+      }
+    }
+
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t idSurface = pParms->h265.stdPictureInfo.RefPicSetStCurrAfter[i];
+      if (idSurface != 0xff) {
+        if (m_DPB.refFrames.find(idSurface) != m_DPB.refFrames.end()
+         && m_DPB.refFrames[idSurface].dpbSlotIndex >= 0) {
+          const int32_t dpbSlotIndex = m_DPB.refFrames[idSurface].dpbSlotIndex;
+          pParms->h265.stdPictureInfo.RefPicSetStCurrAfter[i] = (uint8_t)dpbSlotIndex;
+        }
+        else
+          pParms->h265.stdPictureInfo.RefPicSetStCurrAfter[i] = 0xff;
+      }
+    }
+
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t idSurface = pParms->h265.stdPictureInfo.RefPicSetLtCurr[i];
+      if (idSurface != 0xff) {
+        if (m_DPB.refFrames.find(idSurface) != m_DPB.refFrames.end()
+         && m_DPB.refFrames[idSurface].dpbSlotIndex >= 0) {
+          const int32_t dpbSlotIndex = m_DPB.refFrames[idSurface].dpbSlotIndex;
+          pParms->h265.stdPictureInfo.RefPicSetLtCurr[i] = (uint8_t)dpbSlotIndex;
+        }
+        else
+          pParms->h265.stdPictureInfo.RefPicSetLtCurr[i] = 0xff;
+      }
+    }
+
+    if (addInfo.stdVPSCount == 0 && addInfo.stdSPSCount == 0 && addInfo.stdPPSCount == 0)
+      return VK_SUCCESS;
+
+    /* Update videoSessionParameters with the new picture info. */
+    VkVideoSessionParametersUpdateInfoKHR updateInfo =
+     { VK_STRUCTURE_TYPE_VIDEO_SESSION_PARAMETERS_UPDATE_INFO_KHR, &addInfo };
+    updateInfo.updateSequenceCount = ++m_parameterSetCache.updateSequenceCount; /* Must start from 1. */
+
+    return m_device->vkd()->vkUpdateVideoSessionParametersKHR(m_device->handle(),
+      m_videoSessionParameters->handle(), &updateInfo);
+  }
+
+
   void DxvkVideoDecoder::Decode(
     DxvkContext* ctx,
     DxvkVideoDecodeInputParameters parms)
@@ -592,7 +928,12 @@ namespace dxvk {
     VkResult vr;
 
     /* Complete the provided parameters. */
-    vr = this->UpdateSessionParameters(&parms);
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      vr = this->UpdateSessionParametersH264(&parms);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      vr = this->UpdateSessionParametersH265(&parms);
+    }
     if (vr != VK_SUCCESS)
       return;
 
@@ -629,7 +970,14 @@ namespace dxvk {
     /*
      * Reset Decoded Picture Buffer if requested.
      */
-    if (parms.nal_unit_type == 5) /* IDR, immediate decoder reset. */
+    bool doIDR = false;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      doIDR = parms.nal_unit_type == 5;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      doIDR = parms.h265.stdPictureInfo.flags.IdrPicFlag;
+    }
+    if (doIDR) /* IDR, immediate decoder reset. */
       m_DPB.reset();
 
     /*
@@ -647,12 +995,20 @@ namespace dxvk {
         refFrame.refFrameInfo = r;
 
         /* Update stdRefInfo with now known values from DxvkRefFrameInfo */
-        StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].stdRefInfo;
-        stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
-        stdRefInfo.flags.is_non_existing              = r.nonExistingFrame;
-        stdRefInfo.FrameNum                           = r.frame_num;
-        stdRefInfo.PicOrderCnt[0]                     = r.PicOrderCnt[0];
-        stdRefInfo.PicOrderCnt[1]                     = r.PicOrderCnt[1];
+        if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+          StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].h264.stdRefInfo;
+          stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
+          stdRefInfo.flags.is_non_existing              = r.nonExistingFrame;
+          stdRefInfo.FrameNum                           = r.frame_num;
+          stdRefInfo.PicOrderCnt[0]                     = r.PicOrderCnt[0];
+          stdRefInfo.PicOrderCnt[1]                     = r.PicOrderCnt[1];
+        }
+        else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+          StdVideoDecodeH265ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].h265.stdRefInfo;
+          stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
+          stdRefInfo.flags.unused_for_reference         = 0; /* It is a ref frame. */
+          stdRefInfo.PicOrderCntVal                     = r.PicOrderCnt[0];
+        }
       }
     }
 
@@ -676,8 +1032,15 @@ namespace dxvk {
     /* Scan DPB slots for a free slot or a short term reference. */
     for (uint32_t i = 0; i < m_DPB.slots.size(); ++i) {
       DxvkDPBSlot& slot = m_DPB.slots[m_DPB.idxCurrentDPBSlot];
-      if (slot.isReferencePicture
-       && slot.stdRefInfo.flags.used_for_long_term_reference) {
+      bool isLongReference = false;
+      if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+        isLongReference = slot.h264.stdRefInfo.flags.used_for_long_term_reference != 0;
+      }
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+        isLongReference = slot.h265.stdRefInfo.flags.used_for_long_term_reference != 0;
+      }
+      if (slot.isActive
+       && isLongReference) {
         m_DPB.idxCurrentDPBSlot = (m_DPB.idxCurrentDPBSlot + 1) % m_DPB.slots.size();
         continue;
       }
@@ -707,8 +1070,13 @@ namespace dxvk {
 
     /* Init the target DPB slot, i.e. the slot where the reconstructed picture will be placed. */
     DxvkDPBSlot &dstDPBSlot = m_DPB.slots[dstSlotIndex];
-    dstDPBSlot.isReferencePicture = false;
-    dstDPBSlot.stdRefInfo         = parms.stdH264ReferenceInfo;
+    dstDPBSlot.isActive = false;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      dstDPBSlot.h264.stdRefInfo  = parms.h264.stdH264ReferenceInfo;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      dstDPBSlot.h265.stdRefInfo  = parms.h265.stdReferenceInfo;
+    }
     dstDPBSlot.idSurface          = DXVK_VIDEO_DECODER_SURFACE_INVALID; /* Reference picture will be associated later. */
 
     /*
@@ -765,12 +1133,22 @@ namespace dxvk {
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
     }
 
-    const uint32_t maxRefSlotsCount = std::min(parms.refFramesCount, (uint32_t)parms.sps.max_num_ref_frames);
+    uint32_t maxRefFrames = 0;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      maxRefFrames = parms.h264.sps.max_num_ref_frames;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      maxRefFrames = parms.h265.sps_max_dec_pic_buffering;
+    }
+    const uint32_t maxRefSlotsCount = std::min(parms.refFramesCount, maxRefFrames);
 
     /* Reference pictures and the destination slot to be bound for video decoding. */
     std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(maxRefSlotsCount + 1);
+    std::vector<VkVideoDecodeH265DpbSlotInfoKHR> h265DpbSlotInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoPictureResourceInfoKHR> pictureResourceInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoReferenceSlotInfoKHR> referenceSlotsInfo(maxRefSlotsCount + 1);
+
+    const void *pNext = nullptr;
 
     uint32_t refSlotsCount = 0; /* How many reference frames are actually added to referenceSlotsInfo */
     for (uint32_t i = 0; i < maxRefSlotsCount; ++i) {
@@ -788,9 +1166,18 @@ namespace dxvk {
         continue;
       }
 
-      h264DpbSlotInfo[refSlotsCount] =
-        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
-      h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].stdRefInfo;
+      if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+        h264DpbSlotInfo[refSlotsCount] =
+          { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
+        h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].h264.stdRefInfo;
+        pNext = &h264DpbSlotInfo[refSlotsCount];
+      }
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+        h265DpbSlotInfo[refSlotsCount] =
+          { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_DPB_SLOT_INFO_KHR };
+        h265DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].h265.stdRefInfo;
+        pNext = &h265DpbSlotInfo[refSlotsCount];
+      }
 
       pictureResourceInfo[refSlotsCount] =
         { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
@@ -800,7 +1187,7 @@ namespace dxvk {
       pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dpbSlotIndex].imageView->handle();
 
       referenceSlotsInfo[refSlotsCount] =
-        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &h264DpbSlotInfo[refSlotsCount] };
+        { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, pNext };
       referenceSlotsInfo[refSlotsCount].slotIndex         = dpbSlotIndex;
       referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
 
@@ -808,9 +1195,19 @@ namespace dxvk {
     }
 
     /* Destination picture. */
-    h264DpbSlotInfo[refSlotsCount] =
-      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
-    h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.stdRefInfo;
+    pNext = nullptr;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      h264DpbSlotInfo[refSlotsCount] =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
+      h264DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.h264.stdRefInfo;
+      pNext = &h264DpbSlotInfo[refSlotsCount];
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      h265DpbSlotInfo[refSlotsCount] =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_DPB_SLOT_INFO_KHR };
+      h265DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.h265.stdRefInfo;
+      pNext = &h265DpbSlotInfo[refSlotsCount];
+    }
 
     pictureResourceInfo[refSlotsCount] =
       { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
@@ -820,7 +1217,7 @@ namespace dxvk {
     pictureResourceInfo[refSlotsCount].imageViewBinding = dstDPBSlot.imageView->handle();
 
     referenceSlotsInfo[refSlotsCount] =
-      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, &h264DpbSlotInfo[refSlotsCount] };
+      { VK_STRUCTURE_TYPE_VIDEO_REFERENCE_SLOT_INFO_KHR, pNext };
     referenceSlotsInfo[refSlotsCount].slotIndex         = -1;
     referenceSlotsInfo[refSlotsCount].pPictureResource  = &pictureResourceInfo[refSlotsCount];
 
@@ -839,8 +1236,13 @@ namespace dxvk {
     for (uint32_t i = 0; i < beginCodingInfo.referenceSlotCount; ++i) {
       auto &s = beginCodingInfo.pReferenceSlots[i];
       const DxvkDPBSlot& dpbSlot = m_DPB.slots[s.slotIndex == -1 ? dstSlotIndex : s.slotIndex];
+      int32_t FrameNum = 0;
+      if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR)
+        FrameNum = dpbSlot.h264.stdRefInfo.FrameNum;
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
+        FrameNum = dpbSlot.h265.stdRefInfo.PicOrderCntVal;
       Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
-        ", FrameNum=", dpbSlot.stdRefInfo.FrameNum,
+        ", FrameNum=", FrameNum,
         ", image=", dpbSlot.imageView->imageHandle(),
         ", view=", s.pPictureResource->imageViewBinding));
     }
@@ -869,14 +1271,28 @@ namespace dxvk {
     referenceSlotsInfo[refSlotsCount].slotIndex = dstSlotIndex;
 
     /* VkVideoDecodeInfoKHR decodeInfo.pNext */
+    pNext = nullptr;
+
     VkVideoDecodeH264PictureInfoKHR h264PictureInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_KHR };
-    h264PictureInfo.pStdPictureInfo = &parms.stdH264PictureInfo;
-    h264PictureInfo.sliceCount      = parms.sliceOffsets.size();
-    h264PictureInfo.pSliceOffsets   = parms.sliceOffsets.data();
+    VkVideoDecodeH265PictureInfoKHR h265PictureInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_KHR };
+
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      h264PictureInfo.pStdPictureInfo = &parms.h264.stdH264PictureInfo;
+      h264PictureInfo.sliceCount      = parms.sliceOffsets.size();
+      h264PictureInfo.pSliceOffsets   = parms.sliceOffsets.data();
+      pNext = &h264PictureInfo;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      h265PictureInfo.pStdPictureInfo      = &parms.h265.stdPictureInfo;
+      h265PictureInfo.sliceSegmentCount    = parms.sliceOffsets.size();
+      h265PictureInfo.pSliceSegmentOffsets = parms.sliceOffsets.data();
+      pNext = &h265PictureInfo;
+    }
 
     VkVideoDecodeInfoKHR decodeInfo =
-      { VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR, &h264PictureInfo };
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR, pNext };
     decodeInfo.flags               = 0;
     decodeInfo.srcBuffer           = m_bitstreamBuffer.buffer->getSliceHandle().handle;
     decodeInfo.srcBufferOffset     = offFrame;
@@ -903,13 +1319,25 @@ namespace dxvk {
     Logger::debug(str::format("VREF: decodeVideo: dstSlotIndex=", dstSlotIndex));
     for (uint32_t i = 0; i < decodeInfo.referenceSlotCount; ++i) {
       auto &s = decodeInfo.pReferenceSlots[i];
+      const DxvkDPBSlot& dpbSlot = m_DPB.slots[s.slotIndex];
+      int32_t FrameNum = 0;
+      if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR)
+        FrameNum = dpbSlot.h264.stdRefInfo.FrameNum;
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
+        FrameNum = dpbSlot.h265.stdRefInfo.PicOrderCntVal;
       Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
-        ", FrameNum=", h264DpbSlotInfo[i].pStdReferenceInfo->FrameNum,
+        ", FrameNum=", FrameNum,
         ", view=", s.pPictureResource->imageViewBinding));
     }
-    Logger::info(str::format("VREF:  dst: slotIndex=", dstSlotIndex,
-      ", FrameNum=", dstDPBSlot.stdRefInfo.FrameNum,
-      ", is_ref=", parms.stdH264PictureInfo.flags.is_reference,
+    Logger::debug(str::format("VREF:  dst: slotIndex=", dstSlotIndex,
+      ", FrameNum=", (int32_t)(m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR
+                   ? dstDPBSlot.h264.stdRefInfo.FrameNum
+                   : (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
+                   ? dstDPBSlot.h265.stdRefInfo.PicOrderCntVal
+                   : -1),
+      ", is_ref=", (uint32_t)(m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR
+                   ? parms.h264.stdH264PictureInfo.flags.is_reference
+                   : 0),
       ", view=", dstDPBSlot.imageView->handle()));
 #endif
 
@@ -1157,7 +1585,7 @@ namespace dxvk {
     ctx->trackResource(DxvkAccess::Write, m_outputImageView->image());
     if (m_profile.videoCapabilities.flags & VK_VIDEO_CAPABILITY_SEPARATE_REFERENCE_IMAGES_BIT_KHR) {
       for (auto &slot: m_DPB.slots)
-        ctx->trackResource(slot.isReferencePicture? DxvkAccess::Read : DxvkAccess::Write, slot.image);
+        ctx->trackResource(slot.isActive? DxvkAccess::Read : DxvkAccess::Write, slot.image);
     }
     else
       ctx->trackResource(DxvkAccess::Write, dstDPBSlot.image); /* Same image in every slot. */
@@ -1168,8 +1596,15 @@ namespace dxvk {
     /*
      * Keep reference picture.
      */
-    if (parms.stdH264PictureInfo.flags.is_reference) {
-      dstDPBSlot.isReferencePicture = true;
+    bool activateSlot = false;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      activateSlot = parms.h264.stdH264PictureInfo.flags.is_reference != 0;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      activateSlot = true; /* It is not known yet if the picture is a reference. */
+    }
+    if (activateSlot) {
+      dstDPBSlot.isActive = true;
 
       /* Remember the surface id. */
       dstDPBSlot.idSurface             = parms.idSurface;

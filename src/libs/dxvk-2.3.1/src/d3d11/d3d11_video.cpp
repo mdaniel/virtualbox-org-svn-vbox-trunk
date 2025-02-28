@@ -112,24 +112,24 @@ namespace dxvk {
   }
 
 
-  template<typename DXVA_Slice_H264_T>
+  template<typename DXVA_Slice_T>
   static bool GetSliceOffsetsAndNALType(
           DxvkVideoDecodeInputParameters *pParms,
     const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc,
     const void *pSlices,
     const uint8_t *pBitStream,
           uint32_t cbBitStream) {
-     const DXVA_Slice_H264_T *paSlices = (DXVA_Slice_H264_T *)pSlices;
-     const uint32_t cSlices = pSliceDesc->DataSize / sizeof(DXVA_Slice_H264_T);
+     const DXVA_Slice_T *paSlices = (DXVA_Slice_T *)pSlices;
+     const uint32_t cSlices = pSliceDesc->DataSize / sizeof(DXVA_Slice_T);
 
-     /* D3D11VideoDecoder::GetVideoDecodeH264InputParameters checks that 'pSliceDesc->DataSize' is less than
+     /* D3D11VideoDecoder::GetVideoDecodeInputParameters checks that 'pSliceDesc->DataSize' is less than
       * the size of D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL buffer that is assigned in
       * D3D11VideoDecoder::GetDecoderBuffer. I.e. 'cSlices' is limuted too.
       */
      pParms->sliceOffsets.resize(cSlices);
 
      for (uint32_t i = 0; i < cSlices; ++i) {
-       const DXVA_Slice_H264_T& slice = paSlices[i];
+       const DXVA_Slice_T& slice = paSlices[i];
 
        if (slice.SliceBytesInBuffer > cbBitStream
         || slice.BSNALunitDataLocation > cbBitStream - slice.SliceBytesInBuffer
@@ -162,63 +162,17 @@ namespace dxvk {
   }
 
 
-  bool D3D11VideoDecoder::GetVideoDecodeH264InputParameters(
-          UINT BufferCount,
-    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs,
+  static bool GetVideoDecodeH264InputParameters(
+    const D3D11_VIDEO_DECODER_CONFIG&      config,
+    const DXVA_PicParams_H264*             pPicParams,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pPicParamsDesc,
+    const DXVA_Qmatrix_H264*               pQmatrix,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pQmatrixDesc,
+    const void*                            pSlices,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc,
+    const uint8_t*                         pBitStream,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBitStreamDesc,
           DxvkVideoDecodeInputParameters *pParms) {
-    /*
-     * Fetch all pieces of data from available buffers.
-     */
-    const DXVA_PicParams_H264*             pPicParams     = nullptr;
-    const D3D11_VIDEO_DECODER_BUFFER_DESC* pPicParamsDesc = nullptr;
-    const DXVA_Qmatrix_H264*               pQmatrix       = nullptr;
-    const D3D11_VIDEO_DECODER_BUFFER_DESC* pQmatrixDesc   = nullptr;
-    const void*                            pSlices        = nullptr;
-    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc     = nullptr;
-    const uint8_t*                         pBitStream     = nullptr;
-    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBitStreamDesc = nullptr;
-
-    for (UINT i = 0; i < BufferCount; ++i) {
-      const auto& desc = pBufferDescs[i];
-      if (desc.BufferType >= m_decoderBuffers.size()) {
-        Logger::warn(str::format("DXVK: Video Decode: Ignored buffer type ", desc.BufferType));
-        continue;
-      }
-
-      D3D11VideoDecoderBuffer const &b = m_decoderBuffers[desc.BufferType];
-      Logger::debug(str::format("D3D11VideoDecoder::GetH264: Type ", desc.BufferType, ", size ", b.buffer.size()));
-
-      if (desc.DataSize > b.buffer.size()) {
-        Logger::warn(str::format("DXVK: Video Decode: Buffer ", desc.BufferType, " invalid size: ", desc.DataSize, " > ", b.buffer.size()));
-        continue;
-      }
-
-      switch (desc.BufferType) {
-        case D3D11_VIDEO_DECODER_BUFFER_PICTURE_PARAMETERS:
-          pPicParams = (DXVA_PicParams_H264 *)b.buffer.data();
-          pPicParamsDesc = &desc;
-          break;
-
-        case D3D11_VIDEO_DECODER_BUFFER_INVERSE_QUANTIZATION_MATRIX:
-          pQmatrix = (DXVA_Qmatrix_H264 *)b.buffer.data();
-          pQmatrixDesc = &desc;
-          break;
-
-        case D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL:
-          pSlices = b.buffer.data();
-          pSliceDesc = &desc;
-          break;
-
-        case D3D11_VIDEO_DECODER_BUFFER_BITSTREAM:
-          pBitStream = (uint8_t *)b.buffer.data();
-          pBitStreamDesc = &desc;
-          break;
-
-        default:
-          break;
-      }
-    }
-
     if (pPicParams == nullptr || pSlices == nullptr || pBitStream == nullptr) {
       Logger::warn(str::format("DXVK: Video Decode: Not enough data:"
         " PicParams ", (uint32_t)(pPicParams != nullptr),
@@ -239,135 +193,130 @@ namespace dxvk {
 
     struct DxvkVideoDecodeInputParameters &p = *pParms;
 
-    p.sps.flags.constraint_set0_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.constraint_set1_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.constraint_set2_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.constraint_set3_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.constraint_set4_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.constraint_set5_flag                 = 0; /* not known, assume unconstrained */
-    p.sps.flags.direct_8x8_inference_flag            = pPicParams->ContinuationFlag
+    p.h264.sps.flags.constraint_set0_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.constraint_set1_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.constraint_set2_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.constraint_set3_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.constraint_set4_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.constraint_set5_flag                 = 0; /* not known, assume unconstrained */
+    p.h264.sps.flags.direct_8x8_inference_flag            = pPicParams->ContinuationFlag
                                                       ? (pPicParams->direct_8x8_inference_flag ? 1 : 0)
                                                       : 0;
-    p.sps.flags.mb_adaptive_frame_field_flag         = pPicParams->MbaffFrameFlag ? 1 : 0; /// @todo Is it?
-    p.sps.flags.frame_mbs_only_flag                  = pPicParams->frame_mbs_only_flag ? 1 : 0;
-    p.sps.flags.delta_pic_order_always_zero_flag     = pPicParams->ContinuationFlag
+    p.h264.sps.flags.mb_adaptive_frame_field_flag         = pPicParams->MbaffFrameFlag ? 1 : 0; /// @todo Is it?
+    p.h264.sps.flags.frame_mbs_only_flag                  = pPicParams->frame_mbs_only_flag ? 1 : 0;
+    p.h264.sps.flags.delta_pic_order_always_zero_flag     = pPicParams->ContinuationFlag
                                                       ? (pPicParams->delta_pic_order_always_zero_flag ? 1 : 0)
                                                       : 0;
-    p.sps.flags.separate_colour_plane_flag           = 0; /* 4:4:4 only. Apparently DXVA decoding profiles do not support this format. */
-    p.sps.flags.gaps_in_frame_num_value_allowed_flag = 1; /// @todo unknown
-    p.sps.flags.qpprime_y_zero_transform_bypass_flag = 0; /// @todo unknown
-    p.sps.flags.frame_cropping_flag                  = 0; /* not used */
-    p.sps.flags.seq_scaling_matrix_present_flag      = 0; /* not used */
-    p.sps.flags.vui_parameters_present_flag          = 0; /* not used */
-    p.sps.profile_idc                                = STD_VIDEO_H264_PROFILE_IDC_HIGH; /* Unknown */
-    p.sps.level_idc                                  = StdVideoH264LevelIdc(0); /* Unknown, set to maxLevelIdc by Dxvk decoder. */
-    p.sps.chroma_format_idc                          = StdVideoH264ChromaFormatIdc(pPicParams->chroma_format_idc);
-    p.sps.seq_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
-    p.sps.bit_depth_luma_minus8                      = pPicParams->bit_depth_luma_minus8;
-    p.sps.bit_depth_chroma_minus8                    = pPicParams->bit_depth_chroma_minus8;
-    p.sps.log2_max_frame_num_minus4                  = pPicParams->ContinuationFlag
+    p.h264.sps.flags.separate_colour_plane_flag           = 0; /* 4:4:4 only. Apparently DXVA decoding profiles do not support this format. */
+    p.h264.sps.flags.gaps_in_frame_num_value_allowed_flag = 1; /// @todo unknown
+    p.h264.sps.flags.qpprime_y_zero_transform_bypass_flag = 0; /// @todo unknown
+    p.h264.sps.flags.frame_cropping_flag                  = 0; /* not used */
+    p.h264.sps.flags.seq_scaling_matrix_present_flag      = 0; /* not used */
+    p.h264.sps.flags.vui_parameters_present_flag          = 0; /* not used */
+    p.h264.sps.profile_idc                                = STD_VIDEO_H264_PROFILE_IDC_HIGH; /* Unknown */
+    p.h264.sps.level_idc                                  = StdVideoH264LevelIdc(0); /* Unknown, set to maxLevelIdc by Dxvk decoder. */
+    p.h264.sps.chroma_format_idc                          = StdVideoH264ChromaFormatIdc(pPicParams->chroma_format_idc);
+    p.h264.sps.seq_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h264.sps.bit_depth_luma_minus8                      = pPicParams->bit_depth_luma_minus8;
+    p.h264.sps.bit_depth_chroma_minus8                    = pPicParams->bit_depth_chroma_minus8;
+    p.h264.sps.log2_max_frame_num_minus4                  = pPicParams->ContinuationFlag
                                                         ? pPicParams->log2_max_frame_num_minus4
                                                         : 0;
-    p.sps.pic_order_cnt_type                         = pPicParams->ContinuationFlag
+    p.h264.sps.pic_order_cnt_type                         = pPicParams->ContinuationFlag
                                                         ? StdVideoH264PocType(pPicParams->pic_order_cnt_type)
                                                         : StdVideoH264PocType(0);
-    p.sps.offset_for_non_ref_pic                     = 0; /// @todo unknown
-    p.sps.offset_for_top_to_bottom_field             = 0; /// @todo unknown
-    p.sps.log2_max_pic_order_cnt_lsb_minus4          = pPicParams->ContinuationFlag
+    p.h264.sps.offset_for_non_ref_pic                     = 0; /// @todo unknown
+    p.h264.sps.offset_for_top_to_bottom_field             = 0; /// @todo unknown
+    p.h264.sps.log2_max_pic_order_cnt_lsb_minus4          = pPicParams->ContinuationFlag
                                                         ? pPicParams->log2_max_pic_order_cnt_lsb_minus4
                                                         : 0;
-    p.sps.num_ref_frames_in_pic_order_cnt_cycle      = 0; /* Unknown */
-    p.sps.max_num_ref_frames                         = pPicParams->num_ref_frames;
-    p.sps.reserved1                                  = 0;
-    p.sps.pic_width_in_mbs_minus1                    = pPicParams->wFrameWidthInMbsMinus1;
-    p.sps.pic_height_in_map_units_minus1             = pPicParams->frame_mbs_only_flag /* H.264 (V15) (08/2024) (7.18) */
+    p.h264.sps.num_ref_frames_in_pic_order_cnt_cycle      = 0; /* Unknown */
+    p.h264.sps.max_num_ref_frames                         = pPicParams->num_ref_frames;
+    p.h264.sps.reserved1                                  = 0;
+    p.h264.sps.pic_width_in_mbs_minus1                    = pPicParams->wFrameWidthInMbsMinus1;
+    p.h264.sps.pic_height_in_map_units_minus1             = pPicParams->frame_mbs_only_flag /* H.264 (V15) (08/2024) (7.18) */
                                                        ? pPicParams->wFrameHeightInMbsMinus1
                                                        : (pPicParams->wFrameHeightInMbsMinus1 + 1) / 2 - 1;
-    p.sps.frame_crop_left_offset                     = 0; /* not used */
-    p.sps.frame_crop_right_offset                    = 0; /* not used */
-    p.sps.frame_crop_top_offset                      = 0; /* not used */
-    p.sps.frame_crop_bottom_offset                   = 0; /* not used */
-    p.sps.reserved2                                  = 0;
-    p.sps.pOffsetForRefFrame                         = nullptr; /* &p.spsOffsetForRefFrame, updated by dxvk decoder. */
-    p.sps.pScalingLists                              = nullptr; /* not used */
-    p.sps.pSequenceParameterSetVui                   = nullptr; /* not used */
-    p.spsOffsetForRefFrame                           = 0; /// @todo Is it?
+    p.h264.sps.frame_crop_left_offset                     = 0; /* not used */
+    p.h264.sps.frame_crop_right_offset                    = 0; /* not used */
+    p.h264.sps.frame_crop_top_offset                      = 0; /* not used */
+    p.h264.sps.frame_crop_bottom_offset                   = 0; /* not used */
+    p.h264.sps.reserved2                                  = 0;
+    p.h264.sps.pOffsetForRefFrame                         = nullptr; /* &p.spsOffsetForRefFrame, updated by dxvk decoder. */
+    p.h264.sps.pScalingLists                              = nullptr; /* not used */
+    p.h264.sps.pSequenceParameterSetVui                   = nullptr; /* not used */
+    p.h264.spsOffsetForRefFrame                           = 0; /// @todo Is it?
 
-    p.pps.flags.transform_8x8_mode_flag                = pPicParams->transform_8x8_mode_flag;
-    p.pps.flags.redundant_pic_cnt_present_flag         = pPicParams->ContinuationFlag
+    p.h264.pps.flags.transform_8x8_mode_flag                = pPicParams->transform_8x8_mode_flag;
+    p.h264.pps.flags.redundant_pic_cnt_present_flag         = pPicParams->ContinuationFlag
                                                           ? (pPicParams->redundant_pic_cnt_present_flag ? 1 : 0)
                                                           : 0;
-    p.pps.flags.constrained_intra_pred_flag            = pPicParams->constrained_intra_pred_flag ? 1 : 0;
-    p.pps.flags.deblocking_filter_control_present_flag = pPicParams->deblocking_filter_control_present_flag ? 1 : 0;
-    p.pps.flags.weighted_pred_flag                     = pPicParams->weighted_pred_flag ? 1 : 0;
-    p.pps.flags.bottom_field_pic_order_in_frame_present_flag = pPicParams->ContinuationFlag
+    p.h264.pps.flags.constrained_intra_pred_flag            = pPicParams->constrained_intra_pred_flag ? 1 : 0;
+    p.h264.pps.flags.deblocking_filter_control_present_flag = pPicParams->deblocking_filter_control_present_flag ? 1 : 0;
+    p.h264.pps.flags.weighted_pred_flag                     = pPicParams->weighted_pred_flag ? 1 : 0;
+    p.h264.pps.flags.bottom_field_pic_order_in_frame_present_flag = pPicParams->ContinuationFlag
                                                                 ? (pPicParams->pic_order_present_flag ? 1 : 0)
                                                                 : 0;
-    p.pps.flags.entropy_coding_mode_flag               = pPicParams->ContinuationFlag
+    p.h264.pps.flags.entropy_coding_mode_flag               = pPicParams->ContinuationFlag
                                                           ? (pPicParams->entropy_coding_mode_flag ? 1 : 0)
                                                           : 0;
-    p.pps.flags.pic_scaling_matrix_present_flag        = pQmatrix != nullptr ? 1 : 0;
-    p.pps.seq_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
-    p.pps.pic_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
-    p.pps.num_ref_idx_l0_default_active_minus1         = pPicParams->ContinuationFlag
+    p.h264.pps.flags.pic_scaling_matrix_present_flag        = pQmatrix != nullptr ? 1 : 0;
+    p.h264.pps.seq_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h264.pps.pic_parameter_set_id                         = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h264.pps.num_ref_idx_l0_default_active_minus1         = pPicParams->ContinuationFlag
                                                           ? pPicParams->num_ref_idx_l0_active_minus1
                                                           : 0;
-    p.pps.num_ref_idx_l1_default_active_minus1         = pPicParams->ContinuationFlag
+    p.h264.pps.num_ref_idx_l1_default_active_minus1         = pPicParams->ContinuationFlag
                                                           ? pPicParams->num_ref_idx_l1_active_minus1
                                                           : 0;
-    p.pps.weighted_bipred_idc                          = StdVideoH264WeightedBipredIdc(pPicParams->weighted_bipred_idc);
-    p.pps.pic_init_qp_minus26                          = pPicParams->ContinuationFlag
+    p.h264.pps.weighted_bipred_idc                          = StdVideoH264WeightedBipredIdc(pPicParams->weighted_bipred_idc);
+    p.h264.pps.pic_init_qp_minus26                          = pPicParams->ContinuationFlag
                                                           ? pPicParams->pic_init_qp_minus26
                                                           : 0;
-    p.pps.pic_init_qs_minus26                          = pPicParams->pic_init_qs_minus26;
-    p.pps.chroma_qp_index_offset                       = pPicParams->chroma_qp_index_offset;
-    p.pps.second_chroma_qp_index_offset                = pPicParams->second_chroma_qp_index_offset;
-    p.pps.pScalingLists                                = nullptr; /* &p.ppsScalingLists, updated by dxvk decoder. */
+    p.h264.pps.pic_init_qs_minus26                          = pPicParams->pic_init_qs_minus26;
+    p.h264.pps.chroma_qp_index_offset                       = pPicParams->chroma_qp_index_offset;
+    p.h264.pps.second_chroma_qp_index_offset                = pPicParams->second_chroma_qp_index_offset;
+    p.h264.pps.pScalingLists                                = nullptr; /* &p.h264.ppsScalingLists, updated by dxvk decoder. */
 
-    if (p.pps.flags.pic_scaling_matrix_present_flag) {
-      p.ppsScalingLists.scaling_list_present_mask        = 0xFF; /* 6x 4x4 and 2x 8x8 = 8 bits total */
-      p.ppsScalingLists.use_default_scaling_matrix_mask  = 0;
-      memcpy(p.ppsScalingLists.ScalingList4x4, pQmatrix->bScalingLists4x4, sizeof(pQmatrix->bScalingLists4x4));
-      memcpy(p.ppsScalingLists.ScalingList8x8, pQmatrix->bScalingLists8x8, sizeof(pQmatrix->bScalingLists8x8));
+    if (p.h264.pps.flags.pic_scaling_matrix_present_flag) {
+      p.h264.ppsScalingLists.scaling_list_present_mask        = 0xFF; /* 6x 4x4 and 2x 8x8 = 8 bits total */
+      p.h264.ppsScalingLists.use_default_scaling_matrix_mask  = 0;
+      memcpy(p.h264.ppsScalingLists.ScalingList4x4, pQmatrix->bScalingLists4x4, sizeof(pQmatrix->bScalingLists4x4));
+      memcpy(p.h264.ppsScalingLists.ScalingList8x8, pQmatrix->bScalingLists8x8, sizeof(pQmatrix->bScalingLists8x8));
     }
 
     /* Fetch slice offsets. */
-    bool fSuccess = m_config.ConfigBitstreamRaw == 2
+    bool fSuccess = config.ConfigBitstreamRaw == 2
       ? GetSliceOffsetsAndNALType<DXVA_Slice_H264_Short>(&p, pSliceDesc, pSlices, pBitStream, pBitStreamDesc->DataSize)
       : GetSliceOffsetsAndNALType<DXVA_Slice_H264_Long>(&p, pSliceDesc, pSlices, pBitStream, pBitStreamDesc->DataSize);
     if (!fSuccess)
       return false;
 
-    /// @todo Avoid intermediate buffer. Directly copy to a DxvkBuffer?
-    p.bitstreamLength = pBitStreamDesc->DataSize;
-    p.bitstream.resize(p.bitstreamLength);
-    memcpy(p.bitstream.data(), pBitStream, p.bitstream.size());
+    p.h264.stdH264PictureInfo.flags.field_pic_flag           = pPicParams->field_pic_flag;
+    p.h264.stdH264PictureInfo.flags.is_intra                 = pPicParams->IntraPicFlag;
+    p.h264.stdH264PictureInfo.flags.IdrPicFlag               = p.nal_unit_type == 5 ? 1 : 0; 
+    p.h264.stdH264PictureInfo.flags.bottom_field_flag        = pPicParams->CurrPic.AssociatedFlag; /* flag is bottom field flag */
+    p.h264.stdH264PictureInfo.flags.is_reference             = pPicParams->RefPicFlag;
+    p.h264.stdH264PictureInfo.flags.complementary_field_pair = 0; /// @todo unknown
+    p.h264.stdH264PictureInfo.seq_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h264.stdH264PictureInfo.pic_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h264.stdH264PictureInfo.reserved1                      = 0;
+    p.h264.stdH264PictureInfo.reserved2                      = 0;
+    p.h264.stdH264PictureInfo.frame_num                      = pPicParams->frame_num;
+    p.h264.stdH264PictureInfo.idr_pic_id                     = 0; /// @todo unknown
+    p.h264.stdH264PictureInfo.PicOrderCnt[0]                 = pPicParams->CurrFieldOrderCnt[0];
+    p.h264.stdH264PictureInfo.PicOrderCnt[1]                 = pPicParams->CurrFieldOrderCnt[1];
 
-    p.stdH264PictureInfo.flags.field_pic_flag           = pPicParams->field_pic_flag;
-    p.stdH264PictureInfo.flags.is_intra                 = pPicParams->IntraPicFlag;
-    p.stdH264PictureInfo.flags.IdrPicFlag               = p.nal_unit_type == 5 ? 1 : 0; 
-    p.stdH264PictureInfo.flags.bottom_field_flag        = pPicParams->CurrPic.AssociatedFlag; /* flag is bottom field flag */
-    p.stdH264PictureInfo.flags.is_reference             = pPicParams->RefPicFlag;
-    p.stdH264PictureInfo.flags.complementary_field_pair = 0; /// @todo unknown
-    p.stdH264PictureInfo.seq_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
-    p.stdH264PictureInfo.pic_parameter_set_id           = 0; /* Unknown, will be inferred by the Dxvk decoder. */
-    p.stdH264PictureInfo.reserved1                      = 0;
-    p.stdH264PictureInfo.reserved2                      = 0;
-    p.stdH264PictureInfo.frame_num                      = pPicParams->frame_num;
-    p.stdH264PictureInfo.idr_pic_id                     = 0; /// @todo unknown
-    p.stdH264PictureInfo.PicOrderCnt[0]                 = pPicParams->CurrFieldOrderCnt[0];
-    p.stdH264PictureInfo.PicOrderCnt[1]                 = pPicParams->CurrFieldOrderCnt[1];
-
-    p.stdH264ReferenceInfo.flags.top_field_flag         =
-      (p.stdH264PictureInfo.flags.field_pic_flag && !p.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
-    p.stdH264ReferenceInfo.flags.bottom_field_flag      =
-      (p.stdH264PictureInfo.flags.field_pic_flag && p.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
-    p.stdH264ReferenceInfo.flags.used_for_long_term_reference = 0; /// @todo
-    p.stdH264ReferenceInfo.flags.is_non_existing        = 0;
-    p.stdH264ReferenceInfo.FrameNum                     = pPicParams->frame_num;
-    p.stdH264ReferenceInfo.reserved                     = 0;
-    p.stdH264ReferenceInfo.PicOrderCnt[0]               = pPicParams->CurrFieldOrderCnt[0];
-    p.stdH264ReferenceInfo.PicOrderCnt[1]               = pPicParams->CurrFieldOrderCnt[1];
+    p.h264.stdH264ReferenceInfo.flags.top_field_flag         =
+      (p.h264.stdH264PictureInfo.flags.field_pic_flag && !p.h264.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
+    p.h264.stdH264ReferenceInfo.flags.bottom_field_flag      =
+      (p.h264.stdH264PictureInfo.flags.field_pic_flag && p.h264.stdH264PictureInfo.flags.bottom_field_flag) ? 1 : 0;
+    p.h264.stdH264ReferenceInfo.flags.used_for_long_term_reference = 0;
+    p.h264.stdH264ReferenceInfo.flags.is_non_existing        = 0;
+    p.h264.stdH264ReferenceInfo.FrameNum                     = pPicParams->frame_num;
+    p.h264.stdH264ReferenceInfo.reserved                     = 0;
+    p.h264.stdH264ReferenceInfo.PicOrderCnt[0]               = pPicParams->CurrFieldOrderCnt[0];
+    p.h264.stdH264ReferenceInfo.PicOrderCnt[1]               = pPicParams->CurrFieldOrderCnt[1];
 
     /* The picture identifier of destination uncompressed surface. */
     p.idSurface                     = pPicParams->CurrPic.Index7Bits;
@@ -399,6 +348,385 @@ namespace dxvk {
     }
 
     return true;
+  }
+
+
+  static bool GetVideoDecodeH265InputParameters(
+    const DXVA_PicParams_HEVC*             pPicParams,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pPicParamsDesc,
+    const DXVA_Qmatrix_HEVC*               pQmatrix,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pQmatrixDesc,
+    const void*                            pSlices,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc,
+    const uint8_t*                         pBitStream,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBitStreamDesc,
+          DxvkVideoDecodeInputParameters *pParms) {
+    if (pPicParams == nullptr || pSlices == nullptr || pBitStream == nullptr) {
+      Logger::warn(str::format("DXVK: Video Decode: Not enough data:"
+        " PicParams ", (uint32_t)(pPicParams != nullptr),
+        " Slice ", (uint32_t)(pSlices != nullptr),
+        " BitStream ", (uint32_t)(pBitStream != nullptr)));
+      return false;
+    }
+
+    if (pPicParamsDesc->DataSize < sizeof(DXVA_PicParams_HEVC)) {
+      Logger::warn(str::format("DXVK: Video Decode: PicParams buffer size is too small: ", pPicParamsDesc->DataSize));
+      return false;
+    }
+
+    if (pQmatrixDesc != nullptr && pQmatrixDesc->DataSize < sizeof(DXVA_Qmatrix_HEVC)) {
+      Logger::warn(str::format("DXVK: Video Decode: Qmatrix buffer size is too small: ", pQmatrixDesc->DataSize));
+      return false;
+    }
+
+    struct DxvkVideoDecodeInputParameters &p = *pParms;
+
+    /* Calculate some derived variables. */
+    const uint32_t MinCbLog2SizeY = pPicParams->log2_min_luma_coding_block_size_minus3 + 3; /* T-REC-H.265-202108 (7-10) */
+    const uint32_t MinCbSizeY = 1 << MinCbLog2SizeY;                                        /* T-REC-H.265-202108 (7-12) */
+
+    p.h265.vps.flags.vps_temporal_id_nesting_flag             = 0;
+    p.h265.vps.flags.vps_sub_layer_ordering_info_present_flag = 0;
+    p.h265.vps.flags.vps_timing_info_present_flag             = 0;
+    p.h265.vps.flags.vps_poc_proportional_to_timing_flag      = 0;
+    p.h265.vps.vps_video_parameter_set_id                     = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.vps.vps_max_sub_layers_minus1                      = 0; /// @todo unknown
+    p.h265.vps.reserved1                                      = 0;
+    p.h265.vps.reserved2                                      = 0;
+    p.h265.vps.vps_num_units_in_tick                          = 0; /// @todo unknown
+    p.h265.vps.vps_time_scale                                 = 0; /// @todo unknown
+    p.h265.vps.vps_num_ticks_poc_diff_one_minus1              = 0xFFFFFFFF; /// @todo unknown
+    p.h265.vps.reserved3                                      = 0;
+    p.h265.vps.pDecPicBufMgr                                  = nullptr; /// @todo unused StdVideoH265DecPicBufMgr
+    p.h265.vps.pHrdParameters                                 = nullptr; /// @todo unused StdVideoH265HrdParameters
+    p.h265.vps.pProfileTierLevel                              = nullptr; /* &p.h265.vpsProfileTierLevel */
+
+    p.h265.vpsProfileTierLevel.flags.general_tier_flag                  = 1;
+    p.h265.vpsProfileTierLevel.flags.general_progressive_source_flag    = 1;
+    p.h265.vpsProfileTierLevel.flags.general_interlaced_source_flag     = 0;
+    p.h265.vpsProfileTierLevel.flags.general_non_packed_constraint_flag = 1;
+    p.h265.vpsProfileTierLevel.flags.general_frame_only_constraint_flag = 1;
+    p.h265.vpsProfileTierLevel.general_profile_idc                      = STD_VIDEO_H265_PROFILE_IDC_MAIN;
+    p.h265.vpsProfileTierLevel.general_level_idc                        = STD_VIDEO_H265_LEVEL_IDC_6_2; /* Unknown, set to maxLevelIdc by Dxvk decoder. */
+
+    p.h265.sps.flags.sps_temporal_id_nesting_flag             = 0; /// @todo Unknown
+    p.h265.sps.flags.separate_colour_plane_flag               = pPicParams->separate_colour_plane_flag;
+    p.h265.sps.flags.conformance_window_flag                  = 0; /* Unknown */
+    p.h265.sps.flags.sps_sub_layer_ordering_info_present_flag = 0; /// @todo Unknown
+    p.h265.sps.flags.scaling_list_enabled_flag                = pPicParams->scaling_list_enabled_flag;
+    p.h265.sps.flags.sps_scaling_list_data_present_flag       = 0; /// @todo pps?
+    p.h265.sps.flags.amp_enabled_flag                         = pPicParams->amp_enabled_flag;
+    p.h265.sps.flags.sample_adaptive_offset_enabled_flag      = pPicParams->sample_adaptive_offset_enabled_flag;
+    p.h265.sps.flags.pcm_enabled_flag                         = pPicParams->pcm_enabled_flag;
+    p.h265.sps.flags.pcm_loop_filter_disabled_flag            = pPicParams->pcm_loop_filter_disabled_flag;
+    p.h265.sps.flags.long_term_ref_pics_present_flag          = pPicParams->long_term_ref_pics_present_flag;
+    p.h265.sps.flags.sps_temporal_mvp_enabled_flag            = pPicParams->sps_temporal_mvp_enabled_flag;
+    p.h265.sps.flags.strong_intra_smoothing_enabled_flag      = pPicParams->strong_intra_smoothing_enabled_flag;
+    p.h265.sps.flags.vui_parameters_present_flag              = 0; /* Unused */
+    p.h265.sps.flags.sps_extension_present_flag               = 0; /// @todo unknown
+    p.h265.sps.flags.sps_range_extension_flag                 = 0; /// @todo unknown
+    p.h265.sps.flags.transform_skip_rotation_enabled_flag     = pPicParams->transform_skip_enabled_flag;
+    p.h265.sps.flags.transform_skip_context_enabled_flag      = pPicParams->transform_skip_enabled_flag;
+    p.h265.sps.flags.implicit_rdpcm_enabled_flag              = 0; /// @todo unknown
+    p.h265.sps.flags.explicit_rdpcm_enabled_flag              = 0; /// @todo unknown
+    p.h265.sps.flags.extended_precision_processing_flag       = 0; /// @todo unknown
+    p.h265.sps.flags.intra_smoothing_disabled_flag            = 0; /// @todo unknown
+    p.h265.sps.flags.high_precision_offsets_enabled_flag      = 0; /// @todo unknown
+    p.h265.sps.flags.persistent_rice_adaptation_enabled_flag  = 0; /// @todo unknown
+    p.h265.sps.flags.cabac_bypass_alignment_enabled_flag      = 0; /// @todo unknown
+    p.h265.sps.flags.sps_scc_extension_flag                   = 0; /// @todo unknown
+    p.h265.sps.flags.sps_curr_pic_ref_enabled_flag            = 0; /// @todo unknown
+    p.h265.sps.flags.palette_mode_enabled_flag                = 0; /* Unused */
+    p.h265.sps.flags.sps_palette_predictor_initializers_present_flag = 0; /* Unused */
+    p.h265.sps.flags.intra_boundary_filtering_disabled_flag   = 0; /// @todo unknown
+    p.h265.sps.chroma_format_idc                              = StdVideoH265ChromaFormatIdc(pPicParams->chroma_format_idc);
+    p.h265.sps.pic_width_in_luma_samples                      = pPicParams->PicWidthInMinCbsY * MinCbSizeY;
+    p.h265.sps.pic_height_in_luma_samples                     = pPicParams->PicHeightInMinCbsY * MinCbSizeY;
+    p.h265.sps.sps_video_parameter_set_id                     = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.sps.sps_max_sub_layers_minus1                      = 0; /// @todo unknown
+    p.h265.sps.sps_seq_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.sps.bit_depth_luma_minus8                          = pPicParams->bit_depth_luma_minus8;
+    p.h265.sps.bit_depth_chroma_minus8                        = pPicParams->bit_depth_chroma_minus8;
+    p.h265.sps.log2_max_pic_order_cnt_lsb_minus4              = pPicParams->log2_max_pic_order_cnt_lsb_minus4;
+    p.h265.sps.log2_min_luma_coding_block_size_minus3         = pPicParams->log2_min_luma_coding_block_size_minus3;
+    p.h265.sps.log2_diff_max_min_luma_coding_block_size       = pPicParams->log2_diff_max_min_luma_coding_block_size;
+    p.h265.sps.log2_min_luma_transform_block_size_minus2      = pPicParams->log2_min_transform_block_size_minus2;
+    p.h265.sps.log2_diff_max_min_luma_transform_block_size    = pPicParams->log2_diff_max_min_transform_block_size;
+    p.h265.sps.max_transform_hierarchy_depth_inter            = pPicParams->max_transform_hierarchy_depth_inter;
+    p.h265.sps.max_transform_hierarchy_depth_intra            = pPicParams->max_transform_hierarchy_depth_intra;
+    p.h265.sps.num_short_term_ref_pic_sets                    = pPicParams->num_short_term_ref_pic_sets;
+    p.h265.sps.num_long_term_ref_pics_sps                     = pPicParams->num_long_term_ref_pics_sps;
+    p.h265.sps.pcm_sample_bit_depth_luma_minus1               = pPicParams->pcm_sample_bit_depth_luma_minus1;
+    p.h265.sps.pcm_sample_bit_depth_chroma_minus1             = pPicParams->pcm_sample_bit_depth_chroma_minus1;
+    p.h265.sps.log2_min_pcm_luma_coding_block_size_minus3     = pPicParams->log2_min_pcm_luma_coding_block_size_minus3;
+    p.h265.sps.log2_diff_max_min_pcm_luma_coding_block_size   = pPicParams->log2_diff_max_min_pcm_luma_coding_block_size;
+    p.h265.sps.reserved1                                      = 0;
+    p.h265.sps.reserved2                                      = 0;
+    p.h265.sps.palette_max_size                               = 0; /* Unused */
+    p.h265.sps.delta_palette_max_predictor_size               = 0; /* Unused */
+    p.h265.sps.motion_vector_resolution_control_idc           = 0; /// @todo unknown
+    p.h265.sps.sps_num_palette_predictor_initializers_minus1  = 0; /* Unused */
+    p.h265.sps.conf_win_left_offset                           = 0; /* Unused */
+    p.h265.sps.conf_win_right_offset                          = 0; /* Unused */
+    p.h265.sps.conf_win_top_offset                            = 0; /* Unused */
+    p.h265.sps.conf_win_bottom_offset                         = 0; /* Unused */
+    p.h265.sps.pProfileTierLevel                              = nullptr; /// @todo unknown StdVideoH265ProfileTierLevel
+    p.h265.sps.pDecPicBufMgr                                  = nullptr; /// @todo unknown StdVideoH265DecPicBufMgr
+    p.h265.sps.pScalingLists                                  = nullptr; /*  Part of pps */
+    p.h265.sps.pShortTermRefPicSet                            = nullptr; /// @todo unknown StdVideoH265ShortTermRefPicSet
+    p.h265.sps.pLongTermRefPicsSps                            = nullptr; /// @todo unknown StdVideoH265LongTermRefPicsSps
+    p.h265.sps.pSequenceParameterSetVui                       = nullptr; /* Unused StdVideoH265SequenceParameterSetVui */
+    p.h265.sps.pPredictorPaletteEntries                       = nullptr; /* Unused StdVideoH265PredictorPaletteEntries */
+
+    p.h265.pps.flags.dependent_slice_segments_enabled_flag    = pPicParams->dependent_slice_segments_enabled_flag;
+    p.h265.pps.flags.output_flag_present_flag                 = pPicParams->output_flag_present_flag;
+    p.h265.pps.flags.sign_data_hiding_enabled_flag            = pPicParams->sign_data_hiding_enabled_flag;
+    p.h265.pps.flags.cabac_init_present_flag                  = pPicParams->cabac_init_present_flag;
+    p.h265.pps.flags.constrained_intra_pred_flag              = pPicParams->constrained_intra_pred_flag;
+    p.h265.pps.flags.transform_skip_enabled_flag              = pPicParams->transform_skip_enabled_flag;
+    p.h265.pps.flags.cu_qp_delta_enabled_flag                 = pPicParams->cu_qp_delta_enabled_flag;
+    p.h265.pps.flags.pps_slice_chroma_qp_offsets_present_flag = pPicParams->pps_slice_chroma_qp_offsets_present_flag;
+    p.h265.pps.flags.weighted_pred_flag                       = pPicParams->weighted_pred_flag;
+    p.h265.pps.flags.weighted_bipred_flag                     = pPicParams->weighted_bipred_flag;
+    p.h265.pps.flags.transquant_bypass_enabled_flag           = pPicParams->transquant_bypass_enabled_flag;
+    p.h265.pps.flags.tiles_enabled_flag                       = pPicParams->tiles_enabled_flag;
+    p.h265.pps.flags.entropy_coding_sync_enabled_flag         = pPicParams->entropy_coding_sync_enabled_flag;
+    p.h265.pps.flags.uniform_spacing_flag                     = pPicParams->uniform_spacing_flag;
+    p.h265.pps.flags.loop_filter_across_tiles_enabled_flag    = pPicParams->loop_filter_across_tiles_enabled_flag;
+    p.h265.pps.flags.pps_loop_filter_across_slices_enabled_flag = pPicParams->pps_loop_filter_across_slices_enabled_flag;
+    p.h265.pps.flags.deblocking_filter_control_present_flag    = 0; /// @todo unknown
+    p.h265.pps.flags.deblocking_filter_override_enabled_flag  = pPicParams->deblocking_filter_override_enabled_flag;
+    p.h265.pps.flags.pps_deblocking_filter_disabled_flag      = pPicParams->pps_deblocking_filter_disabled_flag;
+    p.h265.pps.flags.pps_scaling_list_data_present_flag       = pQmatrix != nullptr ? 1 : 0;
+    p.h265.pps.flags.lists_modification_present_flag          = pPicParams->lists_modification_present_flag;
+    p.h265.pps.flags.slice_segment_header_extension_present_flag = pPicParams->slice_segment_header_extension_present_flag;
+    p.h265.pps.flags.pps_extension_present_flag               = 0; /// @todo unknown
+    p.h265.pps.flags.cross_component_prediction_enabled_flag  = 0; /// @todo unknown
+    p.h265.pps.flags.chroma_qp_offset_list_enabled_flag       = pPicParams->pps_slice_chroma_qp_offsets_present_flag; /// @todo is it?
+    p.h265.pps.flags.pps_curr_pic_ref_enabled_flag            = 0; /// @todo unknown
+    p.h265.pps.flags.residual_adaptive_colour_transform_enabled_flag = 0; /// @todo unknown
+    p.h265.pps.flags.pps_slice_act_qp_offsets_present_flag    = 0; /// @todo unknown
+    p.h265.pps.flags.pps_palette_predictor_initializers_present_flag = 0; /* Unused */
+    p.h265.pps.flags.monochrome_palette_flag                  = 0; /* Unused */
+    p.h265.pps.flags.pps_range_extension_flag                 = 0; /// @todo unknown
+    p.h265.pps.pps_pic_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.pps.pps_seq_parameter_set_id                       = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.pps.sps_video_parameter_set_id                     = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.pps.num_extra_slice_header_bits                    = pPicParams->num_extra_slice_header_bits;
+    p.h265.pps.num_ref_idx_l0_default_active_minus1           = pPicParams->num_ref_idx_l0_default_active_minus1;
+    p.h265.pps.num_ref_idx_l1_default_active_minus1           = pPicParams->num_ref_idx_l1_default_active_minus1;
+    p.h265.pps.init_qp_minus26                                = pPicParams->init_qp_minus26;
+    p.h265.pps.diff_cu_qp_delta_depth                         = pPicParams->diff_cu_qp_delta_depth;
+    p.h265.pps.pps_cb_qp_offset                               = pPicParams->pps_cb_qp_offset;
+    p.h265.pps.pps_cr_qp_offset                               = pPicParams->pps_cr_qp_offset;
+    p.h265.pps.pps_beta_offset_div2                           = pPicParams->pps_beta_offset_div2;
+    p.h265.pps.pps_tc_offset_div2                             = pPicParams->pps_tc_offset_div2;
+    p.h265.pps.log2_parallel_merge_level_minus2               = pPicParams->log2_parallel_merge_level_minus2;
+    p.h265.pps.log2_max_transform_skip_block_size_minus2      = 0; /// @todo unknown
+    p.h265.pps.diff_cu_chroma_qp_offset_depth                 = 0; /// @todo unknown
+    p.h265.pps.chroma_qp_offset_list_len_minus1               = 0; /// @todo unknown
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE; ++i) {
+      p.h265.pps.cb_qp_offset_list[i] = 0; /// @todo unknown
+    }
+    for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE; ++i) {
+      p.h265.pps.cr_qp_offset_list[i] = 0; /// @todo unknown
+    }
+    p.h265.pps.log2_sao_offset_scale_luma                    = 0; /// @todo unknown
+    p.h265.pps.log2_sao_offset_scale_chroma                  = 0; /// @todo unknown
+    p.h265.pps.pps_act_y_qp_offset_plus5                     = 0; /// @todo unknown
+    p.h265.pps.pps_act_cb_qp_offset_plus5                    = 0; /// @todo unknown
+    p.h265.pps.pps_act_cr_qp_offset_plus3                    = 0; /// @todo unknown
+    p.h265.pps.pps_num_palette_predictor_initializers        = 0; /* Unused */
+    p.h265.pps.luma_bit_depth_entry_minus8                   = 0; /// @todo unknown
+    p.h265.pps.chroma_bit_depth_entry_minus8                 = 0; /// @todo unknown
+    p.h265.pps.num_tile_columns_minus1                       = pPicParams->num_tile_columns_minus1;
+    p.h265.pps.num_tile_rows_minus1                          = pPicParams->num_tile_rows_minus1;
+    p.h265.pps.reserved1                                     = 0;
+    p.h265.pps.reserved2                                     = 0;
+    memcpy(p.h265.pps.column_width_minus1, pPicParams->column_width_minus1, sizeof(p.h265.pps.column_width_minus1));
+    memcpy(p.h265.pps.row_height_minus1, pPicParams->row_height_minus1, sizeof(p.h265.pps.row_height_minus1));
+    p.h265.pps.reserved3                                     = 0;
+    p.h265.pps.pScalingLists                                 = nullptr; /* &p.h265.ppsScalingLists StdVideoH265ScalingLists */
+    p.h265.pps.pPredictorPaletteEntries                      = nullptr; /* Unused StdVideoH265PredictorPaletteEntries */
+
+    if (p.h265.pps.flags.pps_scaling_list_data_present_flag) {
+      memcpy(p.h265.ppsScalingLists.ScalingList4x4, pQmatrix->ucScalingLists0, sizeof(p.h265.ppsScalingLists.ScalingList4x4));
+      memcpy(p.h265.ppsScalingLists.ScalingList8x8, pQmatrix->ucScalingLists1, sizeof(p.h265.ppsScalingLists.ScalingList8x8));
+      memcpy(p.h265.ppsScalingLists.ScalingList16x16, pQmatrix->ucScalingLists2, sizeof(p.h265.ppsScalingLists.ScalingList16x16));
+      memcpy(p.h265.ppsScalingLists.ScalingList32x32, pQmatrix->ucScalingLists3, sizeof(p.h265.ppsScalingLists.ScalingList32x32));
+      memcpy(p.h265.ppsScalingLists.ScalingListDCCoef16x16, pQmatrix->ucScalingListDCCoefSizeID2, sizeof(p.h265.ppsScalingLists.ScalingListDCCoef16x16));
+      memcpy(p.h265.ppsScalingLists.ScalingListDCCoef32x32, pQmatrix->ucScalingListDCCoefSizeID3, sizeof(p.h265.ppsScalingLists.ScalingListDCCoef32x32));
+    }
+
+    bool fSuccess = GetSliceOffsetsAndNALType<DXVA_Slice_HEVC_Short>(
+      &p, pSliceDesc, pSlices, pBitStream, pBitStreamDesc->DataSize);
+    if (!fSuccess)
+      return false;
+
+    p.h265.stdPictureInfo.flags.IrapPicFlag            = pPicParams->IrapPicFlag;
+    p.h265.stdPictureInfo.flags.IdrPicFlag             = pPicParams->IdrPicFlag;
+    p.h265.stdPictureInfo.flags.IsReference            = 1; /// @todo unknown
+    p.h265.stdPictureInfo.flags.short_term_ref_pic_set_sps_flag = 0; /* Unknown */
+    p.h265.stdPictureInfo.sps_video_parameter_set_id   = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.stdPictureInfo.pps_seq_parameter_set_id     = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.stdPictureInfo.pps_pic_parameter_set_id     = 0; /* Unknown, will be inferred by the Dxvk decoder. */
+    p.h265.stdPictureInfo.NumDeltaPocsOfRefRpsIdx      = pPicParams->ucNumDeltaPocsOfRefRpsIdx;
+    p.h265.stdPictureInfo.PicOrderCntVal               = pPicParams->CurrPicOrderCntVal;
+    p.h265.stdPictureInfo.NumBitsForSTRefPicSetInSlice = pPicParams->wNumBitsForShortTermRPSInSlice;
+    p.h265.stdPictureInfo.reserved                     = 0;
+    /* 42.13.6. H.265 Decoding Parameters: "RefPicSetStCurrBefore, RefPicSetStCurrAfter, and RefPicSetLtCurr"
+     * ... "each element of these arrays" ... "identifies an active reference picture using its DPB slot index".
+     * D3D11 passes indices to pPicParams->RefPicList in these arrays. Convert indices to surface ids here.
+     * Dxvk decoder will convert surface ids to the corresponding DPB slot indices.
+     */
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t index = pPicParams->RefPicSetStCurrBefore[i];
+      if (index < 15)
+        p.h265.stdPictureInfo.RefPicSetStCurrBefore[i] = pPicParams->RefPicList[index].Index7Bits;
+      else
+        p.h265.stdPictureInfo.RefPicSetStCurrBefore[i] = 0xff;
+    }
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t index = pPicParams->RefPicSetStCurrAfter[i];
+      if (index < 15)
+        p.h265.stdPictureInfo.RefPicSetStCurrAfter[i] = pPicParams->RefPicList[index].Index7Bits;
+      else
+        p.h265.stdPictureInfo.RefPicSetStCurrAfter[i] = 0xff;
+    }
+    for (uint32_t i = 0; i < 8; ++i) {
+      const uint8_t index = pPicParams->RefPicSetLtCurr[i];
+      if (index < 15)
+        p.h265.stdPictureInfo.RefPicSetLtCurr[i] = pPicParams->RefPicList[index].Index7Bits;
+      else
+        p.h265.stdPictureInfo.RefPicSetLtCurr[i] = 0xff;
+    }
+
+    p.h265.stdReferenceInfo.flags.used_for_long_term_reference = 0; /// @todo unknown
+    p.h265.stdReferenceInfo.flags.unused_for_reference         = 0; /// @todo unknown
+    p.h265.stdReferenceInfo.PicOrderCntVal                     = pPicParams->CurrPicOrderCntVal;
+
+    /* How many pictures to keep. */
+    p.h265.sps_max_dec_pic_buffering   = pPicParams->sps_max_dec_pic_buffering_minus1 + 1;
+
+    /* The picture identifier of destination uncompressed surface. */
+    p.idSurface                        = pPicParams->CurrPic.Index7Bits;
+
+    if (pPicParams->IntraPicFlag) {
+      p.refFramesCount = 0;
+    }
+    else {
+      /* Reference frame surfaces. */
+      uint32_t idxRefFrame = 0;
+      for (uint32_t i = 0; i < 15; ++i) {
+        const DXVA_PicEntry_HEVC& r = pPicParams->RefPicList[i];
+        if (r.Index7Bits == 0x7F)
+          continue;
+
+        DxvkRefFrameInfo& refFrameInfo = p.refFrames[idxRefFrame];
+        refFrameInfo.idSurface         = r.Index7Bits;
+        refFrameInfo.longTermReference = r.AssociatedFlag;
+        refFrameInfo.usedForReference  = 0x3;
+        refFrameInfo.nonExistingFrame  = 0;
+        refFrameInfo.frame_num         = 0; /* Unused */
+        refFrameInfo.PicOrderCnt[0]    = pPicParams->PicOrderCntValList[i];
+        refFrameInfo.PicOrderCnt[1]    = refFrameInfo.PicOrderCnt[0];
+
+        ++idxRefFrame;
+      }
+
+      p.refFramesCount                 = idxRefFrame;
+    }
+
+    return true;
+  }
+
+
+  bool D3D11VideoDecoder::GetVideoDecodeInputParameters(
+          UINT BufferCount,
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBufferDescs,
+          DxvkVideoDecodeInputParameters *pParms) {
+    /*
+     * Fetch all pieces of data from available buffers.
+     */
+    const void*                            pPicParams     = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pPicParamsDesc = nullptr;
+    const void*                            pQmatrix       = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pQmatrixDesc   = nullptr;
+    const void*                            pSlices        = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pSliceDesc     = nullptr;
+    const void*                            pBitStream     = nullptr;
+    const D3D11_VIDEO_DECODER_BUFFER_DESC* pBitStreamDesc = nullptr;
+
+    for (UINT i = 0; i < BufferCount; ++i) {
+      const auto& desc = pBufferDescs[i];
+      if (desc.BufferType >= m_decoderBuffers.size()) {
+        Logger::warn(str::format("DXVK: Video Decode: Ignored buffer type ", desc.BufferType));
+        continue;
+      }
+
+      D3D11VideoDecoderBuffer const &b = m_decoderBuffers[desc.BufferType];
+      Logger::debug(str::format("D3D11VideoDecoder::GetParams: Type ", desc.BufferType, ", size ", b.buffer.size()));
+
+      if (desc.DataSize > b.buffer.size()) {
+        Logger::warn(str::format("DXVK: Video Decode: Buffer ", desc.BufferType, " invalid size: ", desc.DataSize, " > ", b.buffer.size()));
+        continue;
+      }
+
+      switch (desc.BufferType) {
+        case D3D11_VIDEO_DECODER_BUFFER_PICTURE_PARAMETERS:
+          pPicParams = b.buffer.data();
+          pPicParamsDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_INVERSE_QUANTIZATION_MATRIX:
+          pQmatrix = b.buffer.data();
+          pQmatrixDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_SLICE_CONTROL:
+          pSlices = b.buffer.data();
+          pSliceDesc = &desc;
+          break;
+
+        case D3D11_VIDEO_DECODER_BUFFER_BITSTREAM:
+          pBitStream = b.buffer.data();
+          pBitStreamDesc = &desc;
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    if (pBitStream) {
+      /// @todo Avoid intermediate buffer. Directly copy to a DxvkBuffer?
+      pParms->bitstreamLength = pBitStreamDesc->DataSize;
+      pParms->bitstream.resize(pParms->bitstreamLength);
+      memcpy(pParms->bitstream.data(), pBitStream, pParms->bitstream.size());
+    }
+
+    const VkVideoCodecOperationFlagsKHR videoCodecOperation = m_videoDecoder->GetVideoCodecOperation();
+
+    if (videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      if (GetVideoDecodeH264InputParameters(
+        m_config,
+        (DXVA_PicParams_H264*)pPicParams, pPicParamsDesc,
+        (DXVA_Qmatrix_H264*)pQmatrix, pQmatrixDesc,
+        pSlices, pSliceDesc,
+        (uint8_t*)pBitStream, pBitStreamDesc,
+        pParms))
+         return true;
+    }
+    else if (videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      if (GetVideoDecodeH265InputParameters(
+        (DXVA_PicParams_HEVC *)pPicParams, pPicParamsDesc,
+        (DXVA_Qmatrix_HEVC *)pQmatrix, pQmatrixDesc,
+        pSlices, pSliceDesc,
+        (uint8_t*)pBitStream, pBitStreamDesc,
+        pParms))
+         return true;
+    }
+    return false;
   }
 
 
@@ -998,7 +1326,7 @@ namespace dxvk {
     auto dxvkDecoder = videoDecoder->GetDecoder();
 
     DxvkVideoDecodeInputParameters parms;
-    if (!videoDecoder->GetVideoDecodeH264InputParameters(BufferCount, pBufferDescs, &parms))
+    if (!videoDecoder->GetVideoDecodeInputParameters(BufferCount, pBufferDescs, &parms))
        return E_INVALIDARG;
 
     m_ctx->EmitCs([

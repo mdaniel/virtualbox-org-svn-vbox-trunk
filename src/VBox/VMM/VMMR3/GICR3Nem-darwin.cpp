@@ -41,6 +41,9 @@
 #include <VBox/vmm/ssm.h>
 #include <VBox/vmm/vm.h>
 
+#include <Hypervisor/Hypervisor.h>
+
+
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE
 
 
@@ -60,6 +63,84 @@ typedef struct GICHVFDEV
 typedef GICHVFDEV *PGICHVFDEV;
 /** Pointer to a const GIC KVM device. */
 typedef GICHVFDEV const *PCGICHVFDEV;
+
+typedef hv_return_t FN_HV_GIC_SET_SPI(uint32_t intid, bool level);
+
+
+/*********************************************************************************************************************************
+*   Global Variables                                                                                                             *
+*********************************************************************************************************************************/
+
+extern FN_HV_GIC_SET_SPI *g_pfnHvGicSetSpi; /* Since 15.0, exported for GICR3Nem-darwin.cpp */
+
+#ifndef IN_SLICKEDIT
+# define hv_gic_set_spi                             g_pfnHvGicSetSpi
+#endif
+
+
+/*********************************************************************************************************************************
+*   Internal Functions                                                                                                           *
+*********************************************************************************************************************************/
+
+/**
+ * Converts a HV return code to a VBox status code.
+ *
+ * @returns VBox status code.
+ * @param   hrc                 The HV return code to convert.
+ */
+DECLINLINE(int) nemR3DarwinHvSts2Rc(hv_return_t hrc)
+{
+    if (hrc == HV_SUCCESS)
+        return VINF_SUCCESS;
+
+    switch (hrc)
+    {
+        case HV_ERROR:        return VERR_INVALID_STATE;
+        case HV_BUSY:         return VERR_RESOURCE_BUSY;
+        case HV_BAD_ARGUMENT: return VERR_INVALID_PARAMETER;
+        case HV_NO_RESOURCES: return VERR_OUT_OF_RESOURCES;
+        case HV_NO_DEVICE:    return VERR_NOT_FOUND;
+        case HV_UNSUPPORTED:  return VERR_NOT_SUPPORTED;
+    }
+
+    return VERR_IPE_UNEXPECTED_STATUS;
+}
+
+
+/**
+ * Sets the given SPI inside the in-kernel HvF GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVM         The VM instance.
+ * @param   uIntId      The SPI ID to update.
+ * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
+ */
+static DECLCALLBACK(int) gicR3HvfSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
+{
+    RT_NOREF(pVM);
+    Assert(hv_gic_set_spi);
+
+    hv_return_t hrc = hv_gic_set_spi(uIntId + GIC_INTID_RANGE_SPI_START, fAsserted);
+    return nemR3DarwinHvSts2Rc(hrc);
+}
+
+
+/**
+ * Sets the given PPI inside the in-kernel HvF GIC.
+ *
+ * @returns VBox status code.
+ * @param   pVCpu       The vCPU for which the PPI state is to be updated.
+ * @param   uIntId      The PPI ID to update.
+ * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
+ */
+static DECLCALLBACK(int) gicR3HvfSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
+{
+    RT_NOREF(pVCpu, uIntId, fAsserted);
+
+    /* Should never be called as the PPIs are handled entirely in Hypervisor.framework/AppleHV. */
+    AssertFailed();
+    return VERR_NEM_IPE_9;
+}
 
 
 /**
@@ -155,10 +236,10 @@ const PDMDEVREG g_DeviceGICNem =
  */
 const PDMGICBACKEND g_GicHvfBackend =
 {
-    /* .pfnReadSysReg = */  NEMR3GicReadSysReg,
-    /* .pfnWriteSysReg = */ NEMR3GicWriteSysReg,
-    /* .pfnSetSpi = */      NEMR3GicSetSpi,
-    /* .pfnSetPpi = */      NEMR3GicSetPpi,
+    /* .pfnReadSysReg = */  NULL,
+    /* .pfnWriteSysReg = */ NULL,
+    /* .pfnSetSpi = */      gicR3HvfSetSpi,
+    /* .pfnSetPpi = */      gicR3HvfSetPpi,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

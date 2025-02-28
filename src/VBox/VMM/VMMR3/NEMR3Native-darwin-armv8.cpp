@@ -227,7 +227,7 @@ static FN_HV_GIC_SET_STATE                          *g_pfnHvGicSetState         
 static FN_HV_GIC_STATE_GET_SIZE                     *g_pfnHvGicStateGetSize                     = NULL; /* Since 15.0 */
 static FN_HV_GIC_STATE_GET_DATA                     *g_pfnHvGicStateGetData                     = NULL; /* Since 15.0 */
 static FN_HV_GIC_SEND_MSI                           *g_pfnHvGicSendMsi                          = NULL; /* Since 15.0 */
-static FN_HV_GIC_SET_SPI                            *g_pfnHvGicSetSpi                           = NULL; /* Since 15.0 */
+       FN_HV_GIC_SET_SPI                            *g_pfnHvGicSetSpi                           = NULL; /* Since 15.0, exported for GICR3Nem-darwin.cpp */
 static FN_HV_GIC_GET_DISTRIBUTOR_REG                *g_pfnHvGicGetDistributorReg                = NULL; /* Since 15.0 */
 static FN_HV_GIC_GET_MSI_REG                        *g_pfnHvGicGetMsiReg                        = NULL; /* Since 15.0 */
 static FN_HV_GIC_GET_ICC_REG                        *g_pfnHvGicGetIccReg                        = NULL; /* Since 15.0 */
@@ -1194,74 +1194,6 @@ static void nemR3DarwinDumpGicInfo(void)
 }
 
 
-/**
- * Sets the given SPI inside the in-kernel HvF GIC.
- *
- * @returns VBox status code.
- * @param   pVM         The VM instance.
- * @param   uIntId      The SPI ID to update.
- * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
- */
-VMM_INT_DECL(int) NEMR3GicSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted)
-{
-    RT_NOREF(pVM);
-    Assert(hv_gic_set_spi);
-
-    hv_return_t hrc = hv_gic_set_spi(uIntId + GIC_INTID_RANGE_SPI_START, fAsserted);
-    return nemR3DarwinHvSts2Rc(hrc);
-}
-
-
-/**
- * Sets the given PPI inside the in-kernel HvF GIC.
- *
- * @returns VBox status code.
- * @param   pVCpu       The vCPU for which the PPI state is to be updated.
- * @param   uIntId      The PPI ID to update.
- * @param   fAsserted   Flag whether the interrupt is asserted (true) or not (false).
- */
-VMM_INT_DECL(int) NEMR3GicSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted)
-{
-    RT_NOREF(pVCpu, uIntId, fAsserted);
-
-    /* Should never be called as the PPIs are handled entirely in Hypervisor.framework/AppleHV. */
-    AssertFailed();
-    return VERR_NEM_IPE_9;
-}
-
-
-/**
- * Writes a system ICC register inside the in-kernel HvF GIC.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure.
- * @param   u32Reg      The ICC register.
- * @param   u64Value    The value being set.
- */
-VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value)
-{
-    hv_gic_icc_reg_t const enmIccReg = nemR3DarwinIccRegFromSysReg(u32Reg);
-    hv_return_t const hrc = hv_gic_set_icc_reg(pVCpu->nem.s.hVCpu, enmIccReg, u64Value);
-    return nemR3DarwinHvSts2Rc(hrc);
-}
-
-
-/**
- * Reads a system ICC register inside the in-kernel HvF GIC.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure.
- * @param   u32Reg      The ICC register.
- * @param   pu64Value   Where to store value.
- */
-VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value)
-{
-    hv_gic_icc_reg_t const enmIccReg = nemR3DarwinIccRegFromSysReg(u32Reg);
-    hv_return_t const hrc = hv_gic_get_icc_reg(pVCpu->nem.s.hVCpu, enmIccReg, pu64Value);
-    return nemR3DarwinHvSts2Rc(hrc);
-}
-
-
 static int nemR3DarwinGicCreate(PVM pVM)
 {
     nemR3DarwinDumpGicInfo();
@@ -1300,8 +1232,6 @@ static int nemR3DarwinGicCreate(PVM pVM)
     if (hrc != HV_SUCCESS)
         return nemR3DarwinHvSts2Rc(hrc);
 
-    /* Make sure the device is not instantiated as Hypervisor.framework provides it. */
-    //CFGMR3RemoveNode(pGicDev);
     return rc;
 }
 

@@ -730,11 +730,6 @@ VBOXSTRICTRC    nemR3NativeRunGC(PVM pVM, PVMCPU pVCpu);
 bool            nemR3NativeCanExecuteGuest(PVM pVM, PVMCPU pVCpu);
 bool            nemR3NativeSetSingleInstruction(PVM pVM, PVMCPU pVCpu, bool fEnable);
 
-/** GIC API is currently implemented in NEM rather than in GIC. */
-VMM_INT_DECL(int)          NEMR3GicSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted);
-VMM_INT_DECL(int)          NEMR3GicSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted);
-VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value);
-VMM_INT_DECL(VBOXSTRICTRC) NEMR3GicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value);
 
 /**
  * Forced flag notification call from VMEmt.h.

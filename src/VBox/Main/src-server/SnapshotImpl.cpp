@@ -852,7 +852,7 @@ void Snapshot::i_updateNVRAMPaths(const Utf8Str &strOldPath,
     AutoWriteLock alock(m->pMachine COMMA_LOCKVAL_SRC_POS);
 
     // call the implementation under the tree lock
-    i_updateSavedStatePathsImpl(strOldPath, strNewPath);
+    i_updateNVRAMPathsImpl(strOldPath, strNewPath);
 }
 
 /**

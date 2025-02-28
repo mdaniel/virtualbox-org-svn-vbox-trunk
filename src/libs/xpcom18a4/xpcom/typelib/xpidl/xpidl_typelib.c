@@ -1028,8 +1028,11 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     {
         num_args++;
     }
-    //if (op->op_type_spec && !op_notxpcom)
-    //    num_args++;             /* fake param for _retval */
+    if (   !op_notxpcom
+        && pNd->u.Method.pNdTypeSpecRet
+        && (   pNd->u.Method.pNdTypeSpecRet->enmType != kXpidlNdType_BaseType
+            || pNd->u.Method.pNdTypeSpecRet->u.enmBaseType != kXpidlType_Void))
+        num_args++;             /* fake param for _retval */
 
     if (op_noscript)
         op_flags |= XPT_MD_HIDDEN;
@@ -1059,17 +1062,18 @@ static int xpidlTypelibProcessMethod(PXPIDLTYPELIBSTATE pThis, PCXPIDLNODE pNd)
     /* XXX unless [notxpcom] */
     if (!op_notxpcom)
     {
-#if 0
-        if (op->op_type_spec) {
-            uint8 pdflags = DIPPER_TYPE(op->op_type_spec) ?
+        if (   pNd->u.Method.pNdTypeSpecRet
+            && (   pNd->u.Method.pNdTypeSpecRet->enmType != kXpidlNdType_BaseType
+                || pNd->u.Method.pNdTypeSpecRet->u.enmBaseType != kXpidlType_Void))
+        {
+            uint8 pdflags = DIPPER_TYPE(pNd) ?
                                 (XPT_PD_RETVAL | XPT_PD_IN | XPT_PD_DIPPER) :
                                 (XPT_PD_RETVAL | XPT_PD_OUT);
     
-            if (!fill_pd_from_type(pThis, &meth->params[num_args],
-                                   pdflags, op->op_type_spec))
-                return VERR_INVALID_PARAMETER;
+            rc = fill_pd_from_type(pThis, &meth->params[num_args], pdflags, pNd->u.Method.pNdTypeSpecRet);
+            if (RT_FAILURE(rc))
+                return rc;
         }
-#endif
 
         rc = fill_pd_as_nsresult(meth->result);
         if (RT_FAILURE(rc))

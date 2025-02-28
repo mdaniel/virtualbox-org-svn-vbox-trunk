@@ -38,7 +38,8 @@
 #endif
 #define APP_MANIFEST 1
 
-#define IDB_SPLASH   102
+#ifdef VBOX_STUB_WITH_SPLASH
+# define IDB_SPLASH    102
+#endif
 
 #endif /* !VBOX_INCLUDED_SRC_Stub_resource_h */
-

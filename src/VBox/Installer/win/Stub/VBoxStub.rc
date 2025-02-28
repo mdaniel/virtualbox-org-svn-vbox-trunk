@@ -61,7 +61,9 @@ BEGIN
    END
 END
 
-IDB_SPLASH PNG "splash.png"
+#ifdef VBOX_STUB_WITH_SPLASH
+ IDB_SPLASH PNG "splash.png"
+#endif
 
 #include "VBoxStub-icon.rc"
 #include "VBoxStub-manifest.rc"

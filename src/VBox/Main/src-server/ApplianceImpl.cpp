@@ -462,7 +462,7 @@ ovf::CIMOSType_T convertVBoxOSType2CIMOSType(const char *pcszVBox, BOOL fLongMod
                         return g_aOsTypes[j].cim;
                 if (i > 0)
                 {
-                    for (size_t j = i-1; j > 0; j++)
+                    for (size_t j = i-1; j > 0; j--)
                         if (g_aOsTypes[j].osType == enmDesiredOsType)
                             return g_aOsTypes[j].cim;
                 }

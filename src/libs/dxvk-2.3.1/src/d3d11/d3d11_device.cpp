@@ -3272,7 +3272,9 @@ namespace dxvk {
         ", DPB and output distinct=",
         (m.dxvkProfile.decodeCapabilities.flags & VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR) ? "1" : "0",
         ", DPB and output coincide=",
-        (m.dxvkProfile.decodeCapabilities.flags & VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR) ? "1" : "0"));
+        (m.dxvkProfile.decodeCapabilities.flags & VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_COINCIDE_BIT_KHR) ? "1" : "0",
+        ", bitstream size alignment=", m.dxvkProfile.videoCapabilities.minBitstreamBufferSizeAlignment,
+        ", bitstream offset alignment=", m.dxvkProfile.videoCapabilities.minBitstreamBufferOffsetAlignment));
 
       m.dxvkProfile.videoQueueHasTransfer =
         (dxvkDevice->adapter()->getQueueFlags(dxvkDevice->queues().videoDecode.queueFamily) & VK_QUEUE_TRANSFER_BIT) != 0;

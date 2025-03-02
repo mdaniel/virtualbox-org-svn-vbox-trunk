@@ -380,7 +380,8 @@ namespace dxvk {
       const DxvkVideoDecodeProfileInfo& profile,
             uint32_t sampleWidth,
             uint32_t sampleHeight,
-            VkFormat outputFormat);
+            VkFormat outputFormat,
+            uint32_t bitstreamBufferSize);
 #endif
 
     /**

@@ -23,7 +23,11 @@ namespace dxvk {
     if (formatInfo.Format == VK_FORMAT_UNDEFINED)
       throw DxvkError(str::format("D3D11VideoDecoder: Unsupported output DXGI format: ", m_desc.OutputFormat));
 
-    m_videoDecoder = m_device->createVideoDecoder(profile, m_desc.SampleWidth, m_desc.SampleHeight, formatInfo.Format);
+    /* Arbitrary. Sufficiently big for a compressed frame (usually). */
+    m_bitstreamBufferSize = align(m_desc.SampleWidth * m_desc.SampleHeight / 5, 1024 * 1024);
+
+    m_videoDecoder = m_device->createVideoDecoder(profile,
+      m_desc.SampleWidth, m_desc.SampleHeight, formatInfo.Format, m_bitstreamBufferSize);
   }
 
 
@@ -85,8 +89,7 @@ namespace dxvk {
       switch (Type)
       {
         case D3D11_VIDEO_DECODER_BUFFER_BITSTREAM:
-          /* Arbitrary. Sufficiently big for one compressed frame (usually). */
-          cbBuffer = 1024*1024;
+          cbBuffer = m_bitstreamBufferSize;
           break;
         default:
           cbBuffer = 65536;

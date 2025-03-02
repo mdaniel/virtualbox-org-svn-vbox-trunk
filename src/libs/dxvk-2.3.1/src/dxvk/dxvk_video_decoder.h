@@ -170,6 +170,47 @@ namespace dxvk {
 
 
   /**
+   * \brief Video bitstream buffer
+   * 
+   * Manages a buffer for source bitstream for the decoder.
+   */
+  class DxvkVideoBitstreamBuffer : public DxvkResource {
+
+  public:
+    DxvkVideoBitstreamBuffer(
+      const Rc<DxvkDevice>& device,
+      DxvkMemoryAllocator& memAlloc);
+    ~DxvkVideoBitstreamBuffer();
+
+    void create(
+      const VkVideoProfileListInfoKHR &profileListInfo,
+      VkDeviceSize size);
+
+    VkBuffer buffer() const {
+      return m_buffer.buffer;
+    }
+
+    void* mapPtr(VkDeviceSize offset) const  {
+      return m_mapPtr ? m_mapPtr + offset : nullptr;
+    }
+
+    VkDeviceSize length() const {
+      return m_length;
+    }
+
+  private:
+
+    Rc<DxvkDevice>              m_device;
+    DxvkMemoryAllocator&        m_memAlloc;
+    DxvkBufferHandle            m_buffer;
+
+    /* Shortcuts. */
+    uint8_t*                    m_mapPtr = nullptr;
+    VkDeviceSize                m_length = 0;
+  };
+
+
+  /**
    * \brief Video decoder
    *
    * Provides decoding.
@@ -184,7 +225,8 @@ namespace dxvk {
       const DxvkVideoDecodeProfileInfo& profile,
             uint32_t sampleWidth,
             uint32_t sampleHeight,
-            VkFormat outputFormat);
+            VkFormat outputFormat,
+            uint32_t bitstreamBufferSize);
     ~DxvkVideoDecoder();
 
     void BeginFrame(
@@ -231,11 +273,9 @@ namespace dxvk {
     Rc<DxvkImageView>                   m_outputImageView = nullptr;
 
     /* Ring buffer for incoming encoded video data. */
-    struct DxvkBitstreamBuffer {
-      Rc<DxvkBuffer>                    buffer;
-      uint32_t                          offFree = 0;
-    };
-    struct DxvkBitstreamBuffer          m_bitstreamBuffer;
+    Rc<DxvkVideoBitstreamBuffer>        m_bitstreamBuffer;
+    /* Ring buffer offset. */
+    uint32_t                            m_offFree = 0;
 
     /* Decoded Picture Buffer.
      * Contains reconstructed pictures including the currently decoded frame.

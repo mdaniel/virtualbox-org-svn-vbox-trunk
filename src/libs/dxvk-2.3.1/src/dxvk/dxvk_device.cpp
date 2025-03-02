@@ -201,9 +201,10 @@ namespace dxvk {
     const DxvkVideoDecodeProfileInfo& profile,
           uint32_t sampleWidth,
           uint32_t sampleHeight,
-          VkFormat outputFormat) {
+          VkFormat outputFormat,
+          uint32_t bitstreamBufferSize) {
     return new DxvkVideoDecoder(this, m_objects.memoryManager(),
-      profile, sampleWidth, sampleHeight, outputFormat);
+      profile, sampleWidth, sampleHeight, outputFormat, bitstreamBufferSize);
   }
 #endif
 

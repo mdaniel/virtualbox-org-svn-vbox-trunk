@@ -56,6 +56,7 @@ namespace dxvk {
 
     D3D11_VIDEO_DECODER_DESC                    m_desc;
     D3D11_VIDEO_DECODER_CONFIG                  m_config;
+    UINT                                        m_bitstreamBufferSize = 0;
 
     /* All buffer types except for D3D11_VIDEO_DECODER_BUFFER_HUFFMAN_TABLE. */
     std::array<D3D11VideoDecoderBuffer, D3D11_VIDEO_DECODER_BUFFER_FILM_GRAIN + 1> m_decoderBuffers;

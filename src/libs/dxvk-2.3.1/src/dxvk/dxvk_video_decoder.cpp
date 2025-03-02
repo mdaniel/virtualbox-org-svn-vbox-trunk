@@ -82,8 +82,93 @@ namespace dxvk {
   }
 
 
+  DxvkVideoBitstreamBuffer::DxvkVideoBitstreamBuffer(
+    const Rc<DxvkDevice>& device,
+    DxvkMemoryAllocator& memAlloc)
+  : m_device(device),
+    m_memAlloc(memAlloc){
+  }
+
+
+  DxvkVideoBitstreamBuffer::~DxvkVideoBitstreamBuffer() {
+    m_device->vkd()->vkDestroyBuffer(m_device->vkd()->device(), m_buffer.buffer, nullptr);
+  }
+
+
+  void DxvkVideoBitstreamBuffer::create(
+      const VkVideoProfileListInfoKHR &profileListInfo,
+      VkDeviceSize size) {
+    const VkMemoryPropertyFlags memFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                         | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    /* Use a dedicated memory allocation for the buffer.
+     * This is a workaround for Intel where the buffer memory requires 4096 bytes alignment,
+     * otherwise H.264 video decoding produces garbled output.
+     * The expectation is that the Intel decoder will always work fine with a dedicated allocation.
+     */
+    VkBufferCreateInfo bufferCreateInfo =
+      { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, &profileListInfo };
+    bufferCreateInfo.size        = size;
+    bufferCreateInfo.usage       = VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR;
+    bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (m_device->vkd()->vkCreateBuffer(m_device->vkd()->device(),
+      &bufferCreateInfo, nullptr, &m_buffer.buffer))
+      throw DxvkError(str::format(
+        "DxvkBuffer: Failed to create video bitstream buffer:"
+        "\n  flags: ", std::hex, bufferCreateInfo.flags,
+        "\n  size:  ", std::dec, bufferCreateInfo.size,
+        "\n  usage: ", std::hex, bufferCreateInfo.usage));
+
+    // Query memory requirements
+    DxvkMemoryRequirements memoryRequirements = { };
+    memoryRequirements.tiling = VK_IMAGE_TILING_LINEAR;
+    memoryRequirements.dedicated = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS };
+    memoryRequirements.core = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2, &memoryRequirements.dedicated };
+
+    VkBufferMemoryRequirementsInfo2 memoryRequirementInfo = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2 };
+    memoryRequirementInfo.buffer = m_buffer.buffer;
+
+    m_device->vkd()->vkGetBufferMemoryRequirements2(m_device->vkd()->device(),
+      &memoryRequirementInfo, &memoryRequirements.core);
+
+    if (m_device->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS, 0, 0)
+     || m_device->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA, 0, 0)) {
+      /* The memoryRequirements.alignment field is not actually used when allocating a dedicated memory
+       * via vkAllocateMemory. However align the size just in case.
+       */
+      //memoryRequirements.core.memoryRequirements.alignment =
+      //  align(memoryRequirements.core.memoryRequirements.alignment, 4096);
+      memoryRequirements.core.memoryRequirements.size =
+        align(memoryRequirements.core.memoryRequirements.size, 4096);
+    }
+
+    // Fill in desired memory properties. Request a dedicated allocation.
+    DxvkMemoryProperties memoryProperties = { };
+    memoryProperties.flags = memFlags;
+    memoryProperties.dedicated = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO };
+    memoryProperties.dedicated.buffer = m_buffer.buffer;
+
+    DxvkMemoryFlags hints(DxvkMemoryFlag::GpuReadable);
+
+    m_buffer.memory = m_memAlloc.alloc(
+      memoryRequirements, memoryProperties, hints);
+    if (!m_buffer.memory)
+      throw DxvkError("DxvkBuffer: Failed to allocate device memory for video bitstream buffer");
+
+    if (m_device->vkd()->vkBindBufferMemory(m_device->vkd()->device(), m_buffer.buffer,
+        m_buffer.memory.memory(), m_buffer.memory.offset()) != VK_SUCCESS)
+      throw DxvkError("DxvkBuffer: Failed to bind device memory for video bitstream buffer");
+
+    /* Fetch data for quicker access. */
+    m_mapPtr = (uint8_t *)m_buffer.memory.mapPtr(0);
+    m_length = m_buffer.memory.length();
+  }
+
+
   DxvkVideoDecoder::DxvkVideoDecoder(const Rc<DxvkDevice>& device, DxvkMemoryAllocator& memAlloc,
-      const DxvkVideoDecodeProfileInfo& profile, uint32_t sampleWidth, uint32_t sampleHeight, VkFormat outputFormat)
+      const DxvkVideoDecodeProfileInfo& profile, uint32_t sampleWidth, uint32_t sampleHeight, VkFormat outputFormat,
+            uint32_t bitstreamBufferSize)
   : m_device(device),
     m_memAlloc(memAlloc),
     m_profile(profile),
@@ -91,7 +176,8 @@ namespace dxvk {
     m_sampleHeight(sampleHeight),
     m_outputFormat(outputFormat),
     m_videoSession(new DxvkVideoSessionHandle(device)),
-    m_videoSessionParameters(new DxvkVideoSessionParametersHandle(device)) {
+    m_videoSessionParameters(new DxvkVideoSessionParametersHandle(device)),
+    m_bitstreamBuffer(new DxvkVideoBitstreamBuffer(device, memAlloc)) {
     VkResult vr;
 
     DxvkFenceCreateInfo fenceInfo;
@@ -151,21 +237,7 @@ namespace dxvk {
     profileListInfo.profileCount = 1;
     profileListInfo.pProfiles    = &m_profile.profileInfo;
 
-    /* Source buffer for bitstream data. */
-    DxvkBufferCreateInfo info;
-    info.pNext  = &profileListInfo;
-    info.flags  = 0;
-    info.size   = 1024 * 1024; /// @todo Specified by caller?
-    info.usage  = VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR;
-    info.stages = VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR;
-    /* Hack: Access bits are not used as buffer creation parameters,
-     * however they are used for checking if the memory must be GPU writable.
-     * No access makes it GPU readable.
-     */
-    info.access = 0;
-    m_bitstreamBuffer.buffer = m_device->createBuffer(info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                                                          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-                                                          | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    m_bitstreamBuffer->create(profileListInfo, bitstreamBufferSize);
 
     /* Decoded Picture Buffer (DPB), i.e. array of decoded frames. */
     const uint32_t cMaxDPBSlots = std::max(
@@ -943,24 +1015,24 @@ namespace dxvk {
     /* How many bytes in the ring buffer is required including alignment. */
     const uint32_t cbFrame = align(parms.bitstreamLength, m_profile.videoCapabilities.minBitstreamBufferSizeAlignment);
     /* How many bytes remains in the buffer. */
-    const uint32_t cbRemaining = uint32_t(m_bitstreamBuffer.buffer->getSliceHandle().length) - m_bitstreamBuffer.offFree;
+    const uint32_t cbRemaining = m_bitstreamBuffer->length() - m_offFree;
 
     if (cbFrame > cbRemaining) {
-      m_bitstreamBuffer.offFree = 0; /* Start from begin of the ring buffer. */
-      if (cbFrame > m_bitstreamBuffer.buffer->getSliceHandle().length)
+      m_offFree = 0; /* Start from begin of the ring buffer. */
+      if (cbFrame > m_bitstreamBuffer->length())
         return; /* Frame data is apparently invalid. */
     }
 
     /* offFrame starts at 0, i.e. aligned. */
-    const uint32_t offFrame = m_bitstreamBuffer.offFree;
-    memcpy((uint8_t *)m_bitstreamBuffer.buffer->getSliceHandle().mapPtr + offFrame,
+    const uint32_t offFrame = m_offFree;
+    memcpy(m_bitstreamBuffer->mapPtr(offFrame),
       parms.bitstream.data(), parms.bitstreamLength);
 
     /* Advance the offset of the free space past the just copied frame. */
-    m_bitstreamBuffer.offFree += cbFrame;
-    m_bitstreamBuffer.offFree = align(m_bitstreamBuffer.offFree, m_profile.videoCapabilities.minBitstreamBufferOffsetAlignment);
-    if (m_bitstreamBuffer.offFree >= m_bitstreamBuffer.buffer->getSliceHandle().length)
-      m_bitstreamBuffer.offFree = 0; /* Start from begin of the ring buffer. */
+    m_offFree += cbFrame;
+    m_offFree = align(m_offFree, m_profile.videoCapabilities.minBitstreamBufferOffsetAlignment);
+    if (m_offFree >= m_bitstreamBuffer->length())
+      m_offFree = 0; /* Start from begin of the ring buffer. */
 
     /* A BufferMemoryBarrier is not needed because the buffer update happens before vkSubmit and:
      * "Queue submission commands automatically perform a domain operation from host to device
@@ -1294,7 +1366,7 @@ namespace dxvk {
     VkVideoDecodeInfoKHR decodeInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_INFO_KHR, pNext };
     decodeInfo.flags               = 0;
-    decodeInfo.srcBuffer           = m_bitstreamBuffer.buffer->getSliceHandle().handle;
+    decodeInfo.srcBuffer           = m_bitstreamBuffer->buffer();
     decodeInfo.srcBufferOffset     = offFrame;
     decodeInfo.srcBufferRange      = cbFrame;
     decodeInfo.dstPictureResource  =
@@ -1591,7 +1663,7 @@ namespace dxvk {
       ctx->trackResource(DxvkAccess::Write, dstDPBSlot.image); /* Same image in every slot. */
     if (m_caps.distinctOutputImage)
       ctx->trackResource(DxvkAccess::Write, m_imageDecodeDst);
-    ctx->trackResource(DxvkAccess::Read, m_bitstreamBuffer.buffer);
+    ctx->trackResource(DxvkAccess::Read, m_bitstreamBuffer);
 
     /*
      * Keep reference picture.

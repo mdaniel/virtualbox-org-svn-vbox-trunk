@@ -134,6 +134,34 @@ RTDECL(int)  RTPipeCreate(PRTPIPE phPipeRead, PRTPIPE phPipeWrite, uint32_t fFla
     AssertPtrReturn(phPipeWrite, VERR_INVALID_POINTER);
     AssertReturn(!(fFlags & ~RTPIPE_C_VALID_MASK), VERR_INVALID_PARAMETER);
 
+    /** @todo r=bird/2025-03-03: The use of FILE_FLAG_OVERLAPPED is potentially
+     * extremely problematic on the write end if the handle is passed down to
+     * child processes, if the child processes performs concurrent synchronous
+     * WriteFile calls to the handle.  The kmk stdout problems on tinderwin3 in
+     * early 2025 is a mild example of what can happen when handing an
+     * asynchronous pipe handle to an unsuspecting child process.
+     *
+     * The problem appears to be a race condition in WriteFile where competing
+     * writes may get woken up in the wrong order, because the NtWriteFile call
+     * returns with STATUS_PENDING on a full asynchronous pipe and WriteFile can
+     * only respond by calling NtWaitForSingleObject on the file handle.  If two or
+     * more threads/processes race here, they may somehow end up doing the two calls
+     * inverse order, so the wrong thread is woken up by ReadFile activity.
+     * The IO_STATUS_BLOCK on the stack still contains zero-bytes-written and
+     * (probably) STATUS_PENDING, so WriteFile returns zero bytes written and UCRT
+     * translates that into errno = ENOSPC.  Then when the actual write finally
+     * completes, the kernel will update the IO_STATUS_BLOCK,
+     * possibly causing random stack corruption.
+     *
+     * A partial fix would be to add flags indicating intention (passing to child,
+     * non-blocking access, etc) here and/or work out a way to get all the code to
+     * work w/o using overlapping.  Older windows version had the OS/2 event model,
+     * and windows 10 build xxxxxx adds a new undocument event interface as well.
+     *
+     * The NOWAIT mode can also be toggled after creation, however it'll affect
+     * other users of the pipe.
+     */
+
     /*
      * Create the read end of the pipe.
      */

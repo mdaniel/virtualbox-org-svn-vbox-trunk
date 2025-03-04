@@ -2343,6 +2343,7 @@ int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszIn
  * Controls a Windows service, internal version.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the given service was not found.
  * @param   hDrvInst            Windows driver installer handle to use.
  * @param   pszService          Name of service to control.
  * @param   enmFn               Service control function to use.
@@ -2372,9 +2373,7 @@ static int vboxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
         if (hSvc == NULL)
         {
             rc = RTErrConvertFromWin32(GetLastError());
-            if (rc == VERR_NOT_FOUND)
-                vboxWinDrvInstLogError(pCtx, "Service '%s' not found", pszService);
-            else
+            if (rc != VERR_NOT_FOUND)
                 rc = vboxWinDrvInstLogLastError(pCtx, "Opening service '%s' failed", pszService);
         }
     }

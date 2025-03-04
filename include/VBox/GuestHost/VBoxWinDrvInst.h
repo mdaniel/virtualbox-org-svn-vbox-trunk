@@ -119,6 +119,8 @@ typedef enum VBOXWINDRVSVCFN
     VBOXWINDRVSVCFN_STOP,
     /** Restart the service. */
     VBOXWINDRVSVCFN_RESTART,
+    /** Deletes a service. */
+    VBOXWINDRVSVCFN_DELETE,
     /** End marker, do not use. */
     VBOXWINDRVSVCFN_END
 } VBOXWINDRVSVCFN;

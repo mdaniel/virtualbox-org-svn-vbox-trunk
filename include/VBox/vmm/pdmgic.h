@@ -80,9 +80,9 @@ typedef struct PDMGICBACKENDR3
      * Reads a GIC system register.
      *
      * @returns Strict VBox status code.
-     * @param   pVCpu           The cross context virtual CPU structure.
-     * @param   u32Reg          The system register being read.
-     * @param   pu64Value       Where to store the read value.
+     * @param   pVCpu       The cross context virtual CPU structure.
+     * @param   u32Reg      The system register being read.
+     * @param   pu64Value   Where to store the read value.
      */
     DECLR3CALLBACKMEMBER(VBOXSTRICTRC, pfnReadSysReg, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value));
 
@@ -90,9 +90,9 @@ typedef struct PDMGICBACKENDR3
      * Writes an GIC system register.
      *
      * @returns Strict VBox status code.
-     * @param   pVCpu           The cross context virtual CPU structure.
-     * @param   u32Reg          The system register being written (IPRT system  register identifier).
-     * @param   u64Value        The value to write.
+     * @param   pVCpu       The cross context virtual CPU structure.
+     * @param   u32Reg      The system register being written (IPRT system  register identifier).
+     * @param   u64Value    The value to write.
      */
     DECLR3CALLBACKMEMBER(VBOXSTRICTRC, pfnWriteSysReg, (PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value));
 
@@ -100,9 +100,10 @@ typedef struct PDMGICBACKENDR3
      * Sets the specified shared peripheral interrupt starting.
      *
      * @returns VBox status code.
-     * @param   pVM                 The cross context virtual machine structure.
-     * @param   uIntId              The SPI ID (minus GIC_INTID_RANGE_SPI_START) to assert/de-assert.
-     * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
+     * @param   pVM         The cross context virtual machine structure.
+     * @param   uSpiIntId   The SPI ID (minus GIC_INTID_RANGE_SPI_START) to
+     *                      assert/de-assert.
+     * @param   fAsserted   Flag whether to mark the interrupt as asserted/de-asserted.
      */
     DECLR3CALLBACKMEMBER(int, pfnSetSpi, (PVMCC pVM, uint32_t uSpiIntId, bool fAsserted));
 
@@ -110,9 +111,10 @@ typedef struct PDMGICBACKENDR3
      * Sets the specified private peripheral interrupt starting.
      *
      * @returns VBox status code.
-     * @param   pVCpu               The cross context virtual CPU structure.
-     * @param   uIntId              The PPI ID (minus GIC_INTID_RANGE_PPI_START) to assert/de-assert.
-     * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
+     * @param   pVCpu       The cross context virtual CPU structure.
+     * @param   uPpiIntId   The PPI ID (minus GIC_INTID_RANGE_PPI_START) to
+     *                      assert/de-assert.
+     * @param   fAsserted   Flag whether to mark the interrupt as asserted/de-asserted.
      */
     DECLR3CALLBACKMEMBER(int, pfnSetPpi, (PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAsserted));
 

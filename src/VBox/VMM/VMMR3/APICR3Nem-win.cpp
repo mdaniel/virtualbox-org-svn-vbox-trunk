@@ -333,7 +333,7 @@ static DECLCALLBACK(int) apicR3HvGetTimerFreq(PVMCC pVM, uint64_t *pu64Value)
     AssertPtrReturn(pu64Value, VERR_INVALID_PARAMETER);
 
     RT_NOREF(pVM, pu64Value);
-    AssertFailed();    
+    AssertFailed();
     return VERR_PDM_NO_APIC_INSTANCE;
 }
 

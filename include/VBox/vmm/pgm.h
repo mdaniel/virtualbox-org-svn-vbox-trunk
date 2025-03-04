@@ -377,11 +377,17 @@ typedef uint32_t PGMWALKFAIL;
 /** @} */
 
 
-/** @name PGM_PTATTRS_XXX - PGM page-table attributes.
+/** PGM page-table attributes.
  *
- * This is VirtualBox's combined page table attributes. It combines regular page
- * table and Intel EPT attributes. It's 64-bit in size so there's ample room for
- * bits added in the future to EPT or regular page tables (for e.g. Protection Key).
+ * This is VirtualBox's combined page table attributes.  This combines
+ * attributes from the regular page/translation tables and the nested page
+ * tables / stage 2 translation tables. */
+typedef uint64_t PGMPTATTRS;
+/** Pointer to a PGMPTATTRS type. */
+typedef PGMPTATTRS *PPGMPTATTRS;
+
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+/** @name PGM_PTATTRS_XXX - PGM page-table attributes, x86 edition.
  *
  * The following bits map 1:1 (shifted by PGM_PTATTRS_EPT_SHIFT) to the Intel EPT
  * attributes as these are unique to EPT and fit within 64-bits despite the shift:
@@ -409,10 +415,6 @@ typedef uint32_t PGMWALKFAIL;
  * use by software and we may want to use/preserve them in the future.
  *
  * @{ */
-typedef uint64_t PGMPTATTRS;
-/** Pointer to a PGMPTATTRS type. */
-typedef PGMPTATTRS *PPGMPTATTRS;
-
 /** Read bit (always 1 for regular PT, copy of EPT_R for EPT). */
 #define PGM_PTATTRS_R_SHIFT                         0
 #define PGM_PTATTRS_R_MASK                          RT_BIT_64(PGM_PTATTRS_R_SHIFT)
@@ -568,7 +570,146 @@ AssertCompile(PGM_PTATTRS_EPT_W_SHIFT          - PGM_PTATTRS_EPT_SHIFT == EPT_E_
 AssertCompile(PGM_PTATTRS_EPT_X_SUPER_SHIFT    - PGM_PTATTRS_EPT_SHIFT == EPT_E_BIT_EXECUTE);
 AssertCompile(PGM_PTATTRS_EPT_IGNORE_PAT_SHIFT - PGM_PTATTRS_EPT_SHIFT == EPT_E_BIT_IGNORE_PAT);
 AssertCompile(PGM_PTATTRS_EPT_X_USER_SHIFT     - PGM_PTATTRS_EPT_SHIFT == EPT_E_BIT_USER_EXECUTE);
+/** @}  */
+#endif /* VBOX_VMM_TARGET_X86 || DOXYGEN_RUNNING */
+
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(DOXYGEN_RUNNING)
+/** @name PGM_PTATTRS_XXX - PGM page-table attributes, ARMv8 edition.
+ *
+ * The translation tables on ARMv8 are complicated by compressed and index
+ * attributes as well as a myriade of feature dependent field interpretations.
+ *
+ * The stage 1 effective access attributes are placed in bits 47:32, with some
+ * room reserved for new stuff. A set of leaf bits are copied raw, but NSE had
+ * to be shifted down due to nG confusion.
+ *
+ * The stage 2 effective access attributes are placed in bit 31:24.  Bits taken
+ * directly from the leaf translation table entry are shifted down 7 bits to
+ * avoid collision with similar bits from the stage 1 leaf.
+ *
+ * @{ */
+
+/** Stage 2, page/block: D - dirty flag. (shifted down 7) */
+#define PGM_PTATTRS_S2_D_SHIFT                      0
+#define PGM_PTATTRS_S2_D_MASK                       RT_BIT_64(PGM_PTATTRS_S2_D_SHIFT)
+/** Stage 2, page/block: AF - access flag. (shifted down 7) */
+#define PGM_PTATTRS_S2_AF_SHIFT                     3
+#define PGM_PTATTRS_S2_AF_MASK                      RT_BIT_64(PGM_PTATTRS_S2_AF_SHIFT)
+/** Page/block level: NS - Non-secure. */
+#define PGM_PTATTRS_NS_SHIFT                        5
+#define PGM_PTATTRS_NS_MASK                         RT_BIT_64(PGM_PTATTRS_NS_SHIFT)
+/** Page/block level: NSE - Non-secure extension (?) - FEAT_RME, FEAT_SEL2.
+ * @note Overlaps with nG, shifted down. */
+#define PGM_PTATTRS_NSE_SHIFT                       6
+#define PGM_PTATTRS_NSE_MASK                        RT_BIT_64(PGM_PTATTRS_NSE_SHIFT)
+/** Page/block level: nD - Not dirty. */
+#define PGM_PTATTRS_ND_SHIFT                        7
+#define PGM_PTATTRS_ND_MASK                         RT_BIT_64(PGM_PTATTRS_AF_SHIFT)
+/** Stage 2, page/block: nT, FEAT_BBM. Only supported with 64KB page size. */
+#define PGM_PTATTRS_S2_NT_SHIFT                     9
+#define PGM_PTATTRS_S2_NT_MASK                      RT_BIT_64(PGM_PTATTRS_NT_SHIFT)
+/** Combined: AF - Access flag.
+ * @note The table and page/block AF attributes ANDed together. */
+#define PGM_PTATTRS_AF_SHIFT                        10
+#define PGM_PTATTRS_AF_MASK                         RT_BIT_64(PGM_PTATTRS_AF_SHIFT)
+/** Page/block level: nG - Not global nG bit. */
+#define PGM_PTATTRS_NG_SHIFT                        11
+#define PGM_PTATTRS_NG_MASK                         RT_BIT_64(PGM_PTATTRS_NG_SHIFT)
+/** Page/block level: nT, FEAT_BBM. Only supported with 64KB page size. */
+#define PGM_PTATTRS_NT_SHIFT                        16
+#define PGM_PTATTRS_NT_MASK                         RT_BIT_64(PGM_PTATTRS_NT_SHIFT)
+
+/** Stage 2: Read access. */
+#define PGM_PTATTRS_S2_R_SHIFT                      24
+#define PGM_PTATTRS_S2_R_MASK                       RT_BIT_64(PGM_PTATTRS_S2_UX_SHIFT)
+/** Stage 2: Full write access. */
+#define PGM_PTATTRS_S2_W_SHIFT                      25
+#define PGM_PTATTRS_S2_W_MASK                       RT_BIT_64(PGM_PTATTRS_S2_UX_SHIFT)
+/** Stage 2: Privileged execution access. */
+#define PGM_PTATTRS_S2_PX_SHIFT                     26
+#define PGM_PTATTRS_S2_PX_MASK                      RT_BIT_64(PGM_PTATTRS_S2_UX_SHIFT)
+/** Stage 2: Unprivileged execution access. */
+#define PGM_PTATTRS_S2_UX_SHIFT                     27
+#define PGM_PTATTRS_S2_UX_MASK                      RT_BIT_64(PGM_PTATTRS_S2_UX_SHIFT)
+/** Stage 2: Limited write access - only MMU and RCW. */
+#define PGM_PTATTRS_S2_W_LIM_SHIFT                  28
+#define PGM_PTATTRS_S2_W_LIM_MASK                   RT_BIT_64(PGM_PTATTRS_S2_UX_SHIFT)
+/** Stage 2: TopLevel0 - only used with PGM_PTATTRS_S2_W_LIM_MASK. */
+#define PGM_PTATTRS_S2_TL0_SHIFT                    29
+#define PGM_PTATTRS_S2_TL0_MASK                     RT_BIT_64(PGM_PTATTRS_S2_TL0_SHIFT)
+/** Stage 2: TopLevel1 - only used with PGM_PTATTRS_S2_W_LIM_MASK. */
+#define PGM_PTATTRS_S2_TL1_SHIFT                    30
+#define PGM_PTATTRS_S2_TL1_MASK                     RT_BIT_64(PGM_PTATTRS_S2_TL1_SHIFT)
+
+/** Stage 1: Privileged read access. */
+#define PGM_PTATTRS_PR_SHIFT                        32
+#define PGM_PTATTRS_PR_MASK                         RT_BIT_64(PGM_PTATTRS_PR_SHIFT)
+/** Stage 1:  Privileged write access. */
+#define PGM_PTATTRS_PW_SHIFT                        33
+#define PGM_PTATTRS_PW_MASK                         RT_BIT_64(PGM_PTATTRS_PW_SHIFT)
+/** Stage 1:  Privileged execute access. */
+#define PGM_PTATTRS_PX_SHIFT                        34
+#define PGM_PTATTRS_PX_MASK                         RT_BIT_64(PGM_PTATTRS_PX_SHIFT)
+/** Stage 1:  Privileged guarded control stack (GCS) access. */
+#define PGM_PTATTRS_PGCS_SHIFT                      35
+#define PGM_PTATTRS_PGCS_MASK                       RT_BIT_64(PGM_PTATTRS_PGCS_SHIFT)
+/** Stage 1:  Privileged write-implies-no-execute access.
+ * @todo not sure if we need expose this bit.  */
+#define PGM_PTATTRS_PWXN_SHIFT                      36
+#define PGM_PTATTRS_PWXN_MASK                       RT_BIT_64(PGM_PTATTRS_PWXN_SHIFT)
+
+/** Stage 1:  Unprivileged read access. */
+#define PGM_PTATTRS_UR_SHIFT                        40
+#define PGM_PTATTRS_UR_MASK                         RT_BIT_64(PGM_PTATTRS_UR_SHIFT)
+/** Stage 1:  Unprivileged write access. */
+#define PGM_PTATTRS_UW_SHIFT                        41
+#define PGM_PTATTRS_UW_MASK                         RT_BIT_64(PGM_PTATTRS_UW_SHIFT)
+/** Stage 1:  Unprivileged execute access. */
+#define PGM_PTATTRS_UX_SHIFT                        42
+#define PGM_PTATTRS_UX_MASK                         RT_BIT_64(PGM_PTATTRS_UX_SHIFT)
+/** Stage 1:  Unprivileged guarded control stack (GCS) access. */
+#define PGM_PTATTRS_UGCS_SHIFT                      43
+#define PGM_PTATTRS_UGCS_MASK                       RT_BIT_64(PGM_PTATTRS_UGCS_SHIFT)
+/** Stage 1:  Unprivileged write-implies-no-execute access.
+ * @todo not sure if we need expose this bit. */
+#define PGM_PTATTRS_UWXN_SHIFT                      44
+#define PGM_PTATTRS_UWXN_MASK                       RT_BIT_64(PGM_PTATTRS_UWXN_SHIFT)
+
+/** Page/block level: Guarded page */
+#define PGM_PTATTRS_GP_SHIFT                        50
+#define PGM_PTATTRS_GP_MASK                         RT_BIT_64(PGM_PTATTRS_GP_SHIFT)
+/** Stage 2, page/block: AssuredOnly. (shifted down 7 bits) */
+#define PGM_PTATTRS_S2_AO_SHIFT                     51
+#define PGM_PTATTRS_S2_AO_MASK                      RT_BIT_64(PGM_PTATTRS_S2_TL1_SHIFT)
+/** Stage 2, page/block: Alternate MECID (encryption related). (shifted down
+ *  7 bits) */
+#define PGM_PTATTRS_S2_AMEC_SHIFT                   56
+#define PGM_PTATTRS_S2_AMEC_MASK                    RT_BIT_64(PGM_PTATTRS_S2_AMEC_SHIFT)
+/** Page/block level: Alternate MECID (encryption related). */
+#define PGM_PTATTRS_AMEC_SHIFT                      63
+#define PGM_PTATTRS_AMEC_MASK                       RT_BIT_64(PGM_PTATTRS_AMEC_SHIFT)
+
+/** Stage 1 page/block level bits that are copied raw. */
+#define PGM_PTATTRS_S1_LEAF_MASK                    (  PGM_PTATTRS_NS_MASK \
+                                                     /*| PGM_PTATTRS_NSE_MASK shifted */ \
+                                                     | PGM_PTATTRS_AF_MASK \
+                                                     | PGM_PTATTRS_NG_MASK \
+                                                     | PGM_PTATTRS_NT_MASK \
+                                                     | PGM_PTATTRS_GP_MASK \
+                                                     | PGM_PTATTRS_AMEC_MASK )
+
+/** Stage 2 page/block level entry shift down count. */
+#define PGM_PTATTRS_S2_LEAF_SHIFT                   7
+/** Stage 2 page/block level entry mask of shifted down bits copied. */
+#define PGM_PTATTRS_S2_LEAF_MASK                    (  PGM_PTATTRS_S2_D_MASK \
+                                                     | PGM_PTATTRS_S2_AF_MASK \
+                                                     | PGM_PTATTRS_S2_NT_MASK \
+                                                     | PGM_PTATTRS_S2_AO_MASK \
+                                                     | PGM_PTATTRS_S2_AMEC_MASK )
+
 /** @} */
+#endif /* VBOX_VMM_TARGET_ARMV8 || DOXYGEN_RUNNING */
+
 
 
 /**
@@ -582,7 +723,7 @@ typedef struct PGMPTWALK
     /** The linear address that is being resolved (input). */
     RTGCPTR         GCPtr;
 
-    /** The second-level physical address (input/output).
+    /** The second-level (/ stage 2) physical address (input/output).
      *  @remarks only valid if fIsSlat is set. */
     RTGCPHYS        GCPhysNested;
 
@@ -591,14 +732,16 @@ typedef struct PGMPTWALK
 
     /** Set if the walk succeeded. */
     bool            fSucceeded;
-    /** Whether this is a second-level address translation. */
+    /** Whether this is a second-level (/ stage 2) address translation. */
     bool            fIsSlat;
     /** Whether the linear address (GCPtr) caused the second-level
      *  address translation. */
     bool            fIsLinearAddrValid;
     /** The level problem arrised at.
-     * PTE is level 1, PDE is level 2, PDPE is level 3, PML4 is level 4, CR3 is
-     * level 8.  This is 0 on success. */
+     * @x86     PTE is level 1, PDE is level 2, PDPE is level 3, PML4 is level 4,
+     *          CR3 is level 8.  This is 0 on success.
+     * @arm64   TBD.
+     * @todo    Check if anyone is using this and unify it between the platforms. */
     uint8_t         uLevel;
     /** Set if the page isn't present. */
     bool            fNotPresent;
@@ -608,7 +751,7 @@ typedef struct PGMPTWALK
     bool            fRsvdError;
     /** Set if it involves a big page (2/4 MB). */
     bool            fBigPage;
-    /** Set if it involves a gigantic page (1 GB). */
+    /** Set if it involves a gigantic page (X86: 1 GB; ARM: ). */
     bool            fGigantPage;
     bool            afPadding[3];
     /** Page-walk failure type, PGM_WALKFAIL_XXX. */
@@ -627,13 +770,21 @@ typedef PGMPTWALK const *PCPGMPTWALK;
  * @{ */
 /** Set if the walk succeeded. */
 #define PGM_WALKINFO_SUCCEEDED                  RT_BIT_32(0)
-/** Whether this is a second-level address translation. */
+/** Whether this is a second-level (/ stage 2) address translation. */
 #define PGM_WALKINFO_IS_SLAT                    RT_BIT_32(1)
 
-/** Set if it involves a big page (2/4 MB). */
+/** Set if it involves a big page.
+ * @x86     2MB (PAE+LM), 4MB (legacy).
+ * @arm64   Level 2 block - 2MB (gr=4KB v8), 32MB (gr=16KB v8), 512MB (gr=64KB
+ *          v8), 1MB (gr=4K v9), 16MB (gr=16KB v9), 256MB (gr=64KB v9). */
 #define PGM_WALKINFO_BIG_PAGE                   RT_BIT_32(7)
-/** Set if it involves a gigantic page (1 GB). */
+/** Set if it involves a gigantic page.
+ * @x86     1 GB.
+ * @arm64   Level 1 block - 1GB (gr=4KB v8), 256MB (gr=4KB v9), 16GB (gr=16KB
+ *          v9), 1TB (gr=64KB v9). */
 #define PGM_WALKINFO_GIGANTIC_PAGE              RT_BIT_32(8)
+
+/** @todo Add a level 0 block flag for ARM/VMSAv9. */
 
 /** Whether the linear address (GCPtr) caused the second-level
  * address translation - read the code to figure this one.

@@ -300,6 +300,12 @@ ALIASES +=     opstats="IEM Stats:"
 ALIASES +=  opfunction="IEM Function"
 ALIASES +=      opdone="-------------------------"
 
+# Architecture specific (for VMM target mostly) docs.
+ALIASES +=          x86="\par X86:   "
+ALIASES +=        amd64="\par ARM64: "
+ALIASES +=          arm="\par ARM:   "
+ALIASES +=        arm64="\par ARM64: "
+ALIASES +=        arm32="\par ARM32: "
 
 # bugref - xTracker bug reference, takes one to four bug numbers.
 ALIASES               += bugref{1}="https://xtracker.innotek.de/index.php?bug=\1"

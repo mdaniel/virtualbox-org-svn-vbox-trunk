@@ -1160,7 +1160,7 @@ static VBOXSTRICTRC gicDistWriteIntrGroupReg(PCVM pVM, PGICDEV pGicDev, uint16_t
 static VBOXSTRICTRC gicReDistReadIntrPriorityReg(PCGICDEV pGicDev, PGICCPU pGicCpu, uint16_t idxReg, uint32_t *puValue)
 {
     /* When affinity routing is disabled, reads return 0. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     uint16_t const idxPriority = idxReg * sizeof(uint32_t);
     AssertReturn(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
     AssertCompile(sizeof(*puValue) == sizeof(uint32_t));
@@ -1182,7 +1182,7 @@ static VBOXSTRICTRC gicReDistReadIntrPriorityReg(PCGICDEV pGicDev, PGICCPU pGicC
 static VBOXSTRICTRC gicReDistWriteIntrPriorityReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint16_t idxReg, uint32_t uValue)
 {
     /* When affinity routing is disabled, writes are ignored. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
     uint16_t const idxPriority = idxReg * sizeof(uint32_t);
     AssertReturn(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
@@ -1207,7 +1207,7 @@ static VBOXSTRICTRC gicReDistWriteIntrPriorityReg(PCGICDEV pGicDev, PVMCPUCC pVC
 static VBOXSTRICTRC gicReDistReadIntrPendingReg(PCGICDEV pGicDev, PGICCPU pGicCpu, uint16_t idxReg, uint32_t *puValue)
 {
     /* When affinity routing is disabled, reads return 0. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrPending));
     *puValue = pGicCpu->bmIntrPending[idxReg];
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicCpu->bmIntrPending[idxReg]));
@@ -1270,7 +1270,7 @@ static VBOXSTRICTRC gicReDistWriteIntrClearPendingReg(PCGICDEV pGicDev, PVMCPUCC
  */
 static VBOXSTRICTRC gicReDistReadIntrEnableReg(PCGICDEV pGicDev, PGICCPU pGicCpu, uint16_t idxReg, uint32_t *puValue)
 {
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrEnabled));
     *puValue = pGicCpu->bmIntrEnabled[idxReg];
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicCpu->bmIntrEnabled[idxReg]));
@@ -1386,7 +1386,7 @@ static VBOXSTRICTRC gicReDistWriteIntrClearActiveReg(PCGICDEV pGicDev, PVMCPUCC 
 static VBOXSTRICTRC gicReDistReadIntrConfigReg(PCGICDEV pGicDev, PGICCPU pGicCpu, uint16_t idxReg, uint32_t *puValue)
 {
     /* When affinity routing is disabled, reads return 0. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     if (idxReg > 0)
     {
         Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrConfig));
@@ -1414,7 +1414,7 @@ static VBOXSTRICTRC gicReDistReadIntrConfigReg(PCGICDEV pGicDev, PGICCPU pGicCpu
 static VBOXSTRICTRC gicReDistWriteIntrConfigReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint16_t idxReg, uint32_t uValue)
 {
     /* When affinity routing is disabled, writes are ignored. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
     if (idxReg > 0)
     {
@@ -1444,7 +1444,7 @@ static VBOXSTRICTRC gicReDistWriteIntrConfigReg(PCGICDEV pGicDev, PVMCPUCC pVCpu
 static VBOXSTRICTRC gicReDistReadIntrGroupReg(PCGICDEV pGicDev, PGICCPU pGicCpu, uint16_t idxReg, uint32_t *puValue)
 {
     /* When affinity routing is disabled, reads return 0. */
-    Assert(pGicDev->fAffRoutingEnabled);
+    Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrGroup));
     *puValue = pGicCpu->bmIntrGroup[idxReg];
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicCpu->bmIntrGroup[idxReg]));
@@ -1982,7 +1982,7 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
  */
 DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t *puValue)
 {
-    VMCPU_ASSERT_EMT(pVCpu);
+    VMCPU_ASSERT_EMT(pVCpu); RT_NOREF(pVCpu);
     PGICDEV  pGicDev     = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     uint16_t const cbReg = sizeof(uint32_t);
 
@@ -2282,7 +2282,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
  */
 DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t uValue)
 {
-    VMCPU_ASSERT_EMT(pVCpu);
+    VMCPU_ASSERT_EMT(pVCpu); RT_NOREF(pVCpu);
     PGICDEV        pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     PVMCC          pVM     = PDMDevHlpGetVM(pDevIns);
     uint16_t const cbReg   = sizeof(uint32_t);

@@ -3736,7 +3736,8 @@ DECLHIDDEN(void) gicReset(PPDMDEVINS pDevIns)
  * Initializes per-VCPU GIC to the state following a power-up or hardware
  * reset.
  *
- * @param   pVCpu   The cross context virtual CPU structure.
+ * @param   pDevIns     The device instance.
+ * @param   pVCpu       The cross context virtual CPU structure.
  */
 DECLHIDDEN(void) gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 {

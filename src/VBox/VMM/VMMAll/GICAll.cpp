@@ -3696,7 +3696,6 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
     RT_ZERO(pGicCpu->bmIntrPending);
     RT_ZERO(pGicCpu->bmIntrActive);
     RT_ZERO(pGicCpu->abIntrPriority);
-    pGicCpu->fRegWritePending = false;
 
     /* SGIs are always edge-triggered, writes to GICR_ICFGR0 are to be ignored. */
     pGicCpu->bmIntrConfig[0] = 0xaaaaaaaa;

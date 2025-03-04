@@ -229,8 +229,6 @@ typedef struct GICCPU
     uint32_t                    bmIntrActive[3];
     /** Interrupt priorities. */
     uint8_t                     abIntrPriority[96];
-    /** Flag indicating register write pending (GICR_CTLR.RWP). */
-    bool                        fRegWritePending;
 #else
     /** Interrupt Group 0 Register. */
     volatile uint32_t           u32RegIGrp0;
@@ -253,20 +251,20 @@ typedef struct GICCPU
      * @{ */
     /** The control register (ICC_CTLR_EL1). */
     uint64_t                    uIccCtlr;
-    /** Flag whether group 0 interrupts are currently enabled. */
-    bool                        fIrqGrp0Enabled;
-    /** Flag whether group 1 interrupts are currently enabled. */
-    bool                        fIrqGrp1Enabled;
+    /** The running priorities caused by preemption. */
+    uint8_t                     abRunningPriorities[256];
+    /** The index to the current running priority. */
+    uint8_t                     idxRunningPriority;
     /** The current interrupt priority, only interrupts with a higher priority get signalled. */
     uint8_t                     bInterruptPriority;
     /** The interrupt controller Binary Point Register for Group 0 interrupts. */
     uint8_t                     bBinaryPointGrp0;
     /** The interrupt controller Binary Point Register for Group 1 interrupts. */
     uint8_t                     bBinaryPointGrp1;
-    /** The running priorities caused by preemption. */
-    uint8_t                     abRunningPriorities[256];
-    /** The index to the current running priority. */
-    uint8_t                     idxRunningPriority;
+    /** Flag whether group 0 interrupts are currently enabled. */
+    bool                        fIrqGrp0Enabled;
+    /** Flag whether group 1 interrupts are currently enabled. */
+    bool                        fIrqGrp1Enabled;
     /** @} */
 
     /** @name Log Max counters

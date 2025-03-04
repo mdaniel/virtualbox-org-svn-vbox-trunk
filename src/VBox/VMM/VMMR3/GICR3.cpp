@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     1
+#define GIC_SAVED_STATE_VERSION                     2
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -351,8 +351,77 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 
     return rc;
 #else
-    RT_NOREF2(pDevIns, pSSM);
-    return VERR_NOT_IMPLEMENTED;
+
+    PCVM          pVM     = PDMDevHlpGetVM(pDevIns);
+    PCPDMDEVHLPR3 pHlp    = pDevIns->pHlpR3;
+    PCGICDEV      pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    AssertPtrReturn(pVM, VERR_INVALID_VM_HANDLE);
+    LogFlowFunc(("\n"));
+
+#define GIC_SSM_PUT_ARRAY(a_pfnSSM, a_Array) \
+    do \
+    { \
+        pHlp->pfnSSMPutU32(pSSM, RT_ELEMENTS(a_Array)); \
+        for (uint32_t i = 0; i < RT_ELEMENTS(a_Array); i++) \
+            (a_pfnSSM)(pSSM, (a_Array)[i]); \
+    } while (0)
+
+    /*
+     * Save per-VM data.
+     */
+    pHlp->pfnSSMPutU32(pSSM,  pVM->cCpus);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->uArchRev);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
+    /** @todo I am not sure we really benefit offering this amount of customization
+     *        right now. It makes the code way more complicated (lots of extra bounds
+     *        checking in lots of places we cannot really test) and it only reduces
+     *        functionality rather than increase it in the end. */
+#if 0
+    pHlp->pfnSSMPutU16(pSSM,  pGicDev->uMaxSpi);
+    pHlp->pfnSSMPutU16(pSSM,  pGicDev->uMaxExtSpi);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->fPpiNum);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtSpi);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSelSupport);
+#endif
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp0Enabled);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp1Enabled);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fAffRoutingEnabled);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrGroup);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrConfig);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrEnabled);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrPending);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrActive);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8,  pGicDev->abIntrPriority);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->au32IntrRouting);
+    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrRoutingMode);
+
+    /*
+     * Save per-VCPU data.
+     */
+    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
+    {
+        PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVM->apCpusR3[idCpu]);
+        Assert(pGicCpu);
+
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrGroup);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrConfig);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrEnabled);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrPending);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrActive);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8,  pGicCpu->abIntrPriority);
+
+        pHlp->pfnSSMPutU64(pSSM,             pGicCpu->uIccCtlr);
+        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8, pGicCpu->abRunningPriorities);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp0);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp1);
+        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIrqGrp0Enabled);
+        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIrqGrp1Enabled);
+    }
+
+    return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX);
+#undef GIC_SSM_PUT_ARRAY
 #endif
 }
 
@@ -415,8 +484,104 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
 
     return rc;
 #else
-    RT_NOREF4(pDevIns, pSSM, uVersion, uPass);
-    return VERR_NOT_IMPLEMENTED;
+    PVM           pVM  = PDMDevHlpGetVM(pDevIns);
+    PCPDMDEVHLPR3 pHlp = pDevIns->pHlpR3;
+
+    AssertPtrReturn(pVM, VERR_INVALID_VM_HANDLE);
+    AssertReturn(uPass == SSM_PASS_FINAL, VERR_WRONG_ORDER);
+    LogFlowFunc(("uVersion=%u uPass=%#x\n", uVersion, uPass));
+
+    /*
+     * Validate supported saved-state versions.
+     */
+    if (uVersion != GIC_SAVED_STATE_VERSION)
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid saved-state version %u (%#x)"), uVersion, uVersion);
+
+#define GIC_SSM_GET_ARRAY(a_pfnSSM, a_Array) \
+    do \
+    { \
+        uint32_t       cItems    = 0; \
+        uint32_t const cExpected = RT_ELEMENTS(a_Array); \
+        int const      rcSsm     = pHlp->pfnSSMGetU32(pSSM, &cItems); \
+        AssertRCReturn(rcSsm, rcSsm); \
+        if (cItems != cExpected) \
+            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, \
+                                           N_("Config mismatch: number of elements in " RT_STR(a_Array) ": got=%u expected=%u"), \
+                                           cItems, cExpected); \
+        for (uint32_t i = 0; i < cExpected; i++) \
+            (a_pfnSSM)(pSSM, &(a_Array)[i]); \
+    } while (0)
+
+    /*
+     * Load per-VM data.
+     */
+    uint32_t cCpus;
+    pHlp->pfnSSMGetU32(pSSM,  &cCpus);
+    if (cCpus != pVM->cCpus)
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: cCpus: got=%u expected=%u"), cCpus, pVM->cCpus);
+
+    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uArchRev);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
+#if 0
+    pHlp->pfnSSMGetU16(pSSM,  &pGicDev->uMaxSpi);
+    pHlp->pfnSSMGetU16(pSSM,  &pGicDev->uMaxExtSpi);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->fPpiNum);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtSpi);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSelSupport);
+#endif
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIrqGrp0Enabled);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIrqGrp1Enabled);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAffRoutingEnabled);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrGroup);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrConfig);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrEnabled);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrPending);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrActive);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8,  pGicDev->abIntrPriority);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->au32IntrRouting);
+    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrRoutingMode);
+
+    /*
+     * Load per-VCPU data.
+     */
+    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
+    {
+        PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVM->apCpusR3[idCpu]);
+        Assert(pGicCpu);
+
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrGroup);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrConfig);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrEnabled);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrPending);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrActive);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8,  pGicCpu->abIntrPriority);
+
+        pHlp->pfnSSMGetU64(pSSM,             &pGicCpu->uIccCtlr);
+        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8, pGicCpu->abRunningPriorities);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp0);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp1);
+        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIrqGrp0Enabled);
+        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIrqGrp1Enabled);
+    }
+
+    /*
+     * Check that we're still good wrt restored data.
+     */
+    int rc = pHlp->pfnSSMHandleGetStatus(pSSM);
+    AssertRCReturn(rc, rc);
+
+    uint32_t uMarker = 0;
+    rc = pHlp->pfnSSMGetU32(pSSM, &uMarker);
+    AssertRCReturn(rc, rc);
+    if (uMarker == UINT32_MAX)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: Marker: got=%u expected=%u"), uMarker, UINT32_MAX);
+    return rc;
+#undef GIC_SSM_GET_ARRAY
 #endif
 }
 

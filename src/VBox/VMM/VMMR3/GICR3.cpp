@@ -83,7 +83,41 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GIC[] =
  */
 static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
-    RT_NOREF(pVM, pHlp, pszArgs);
+    RT_NOREF(pszArgs);
+
+    PCGIC       pGic    = VM_TO_GIC(pVM);
+    PPDMDEVINS  pDevIns = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+
+    pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
+    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->bmIntrGroup[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->bmIntrConfig[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->bmIntrConfig[1]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicDev->bmIntrEnabled[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicDev->bmIntrPending[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicDev->bmIntrActive[0]);
+
+    PVMCPU pVCpu = VMMGetCpu(pVM);
+    if (!pVCpu)
+        pVCpu = pVM->apCpusR3[0];
+    PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+
+    pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicCpu->bmIntrGroup[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicCpu->bmIntrConfig[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicCpu->bmIntrConfig[1]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicCpu->bmIntrEnabled[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicCpu->bmIntrPending[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicCpu->bmIntrActive[0]);
+
+    pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicCpu->fIrqGrp0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicCpu->fIrqGrp1Enabled);
+    pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
+    pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicCpu->idxRunningPriority);
+    pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
 }
 
 
@@ -103,6 +137,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
     pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
+#if 0
     pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->u32RegIGrp0);
     pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->u32RegICfg0);
     pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->u32RegICfg1);
@@ -116,6 +151,20 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntRouting); i++)
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", GIC_INTID_RANGE_SPI_START + i, pGicDev->au32IntRouting[i]);
+#else
+    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->bmIntrGroup[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->bmIntrConfig[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->bmIntrConfig[1]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicDev->bmIntrEnabled[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicDev->bmIntrPending[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicDev->bmIntrActive[0]);
+    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
+    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->abIntrPriority); i++)
+        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->abIntrPriority[i]);
+    pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
+    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntrRouting); i++)
+        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->au32IntrRouting[i]);
+#endif
 
     pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicDev->fIrqGrp0Enabled);
     pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicDev->fIrqGrp1Enabled);
@@ -136,6 +185,7 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     if (!pVCpu)
         pVCpu = pVM->apCpusR3[0];
 
+#if 0
     PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
@@ -157,9 +207,33 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicVCpu->bBinaryPointGrp1);
     pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicVCpu->idxRunningPriority);
     pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicVCpu->abRunningPriorities[pGicVCpu->idxRunningPriority]);
+#else
+    PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+
+    pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicCpu->bmIntrGroup[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicCpu->bmIntrConfig[0]);
+    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicCpu->bmIntrConfig[1]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicCpu->bmIntrEnabled[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicCpu->bmIntrPending[0]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicCpu->bmIntrActive[0]);
+    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
+    for (uint32_t i = 0; i < RT_ELEMENTS(pGicCpu->abIntrPriority); i++)
+        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicReDistGetIntIdFromIndex(i), pGicCpu->abIntrPriority[i]);
+
+    pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicCpu->fIrqGrp0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicCpu->fIrqGrp1Enabled);
+    pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
+    pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicCpu->idxRunningPriority);
+    pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
+#endif
 }
 
 
+#if 0
 /**
  * Worker for saving per-VM GIC data.
  *
@@ -186,8 +260,10 @@ static int gicR3SaveVMData(PPDMDEVINS pDevIns, PVM pVM, PSSMHANDLE pSSM)
 
     return pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp1Enabled);
 }
+#endif
 
 
+#if 0
 /**
  * Worker for loading per-VM GIC data.
  *
@@ -229,6 +305,7 @@ static int gicR3LoadVMData(PPDMDEVINS pDevIns, PVM pVM, PSSMHANDLE pSSM)
 
     return VINF_SUCCESS;
 }
+#endif
 
 
 /**
@@ -236,6 +313,7 @@ static int gicR3LoadVMData(PPDMDEVINS pDevIns, PVM pVM, PSSMHANDLE pSSM)
  */
 static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 {
+#if 0
     PVM             pVM  = PDMDevHlpGetVM(pDevIns);
     PCPDMDEVHLPR3   pHlp = pDevIns->pHlpR3;
 
@@ -272,6 +350,10 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     }
 
     return rc;
+#else
+    RT_NOREF2(pDevIns, pSSM);
+    return VERR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -280,6 +362,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
  */
 static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass)
 {
+#if 0
     PVM             pVM  = PDMDevHlpGetVM(pDevIns);
     PCPDMDEVHLPR3   pHlp = pDevIns->pHlpR3;
 
@@ -331,6 +414,10 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     }
 
     return rc;
+#else
+    RT_NOREF4(pDevIns, pSSM, uVersion, uPass);
+    return VERR_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -345,11 +432,17 @@ DECLCALLBACK(void) gicR3Reset(PPDMDEVINS pDevIns)
 
     LogFlow(("GIC: gicR3Reset\n"));
 
+    gicReset(pDevIns);
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
+#if 0
         PVMCPU  pVCpuDest = pVM->apCpusR3[idCpu];
 
         gicResetCpu(pVCpuDest);
+#else
+        PVMCPU pVCpuDest = pVM->apCpusR3[idCpu];
+        gicResetCpu(pDevIns, pVCpuDest);
+#endif
     }
 }
 
@@ -440,7 +533,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      *
      * For the INTID range [32,1023], configures the maximum SPI supported. Valid values
      * are [1,31] which equates to interrupt IDs [63,1023]. A value of 0 implies SPIs
-     * are supported. We don't allow configuring this value as it's expected that
+     * are not supported. We don't allow configuring this value as it's expected that
      * most guests would assume support for SPIs. */
     AssertCompile(GIC_DIST_REG_TYPER_NUM_ITLINES == 31);
     rc = pHlp->pfnCFGMQueryU16Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 1 /* 63 INTIDs */);
@@ -480,6 +573,12 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Configuration error: \"PpiNum\" must be in the range [0,2]"));
+
+    /** @devcfgm{gic, ExtSpi, bool, false}
+     * Configures whether range-selector support is enabled (GICD_TYPER.RSS and
+     * ICC_CTLR_EL1.RSS). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "RangeSelSupport", &pGicDev->fRangeSelSupport, true);
+    AssertLogRelRCReturn(rc, rc);
 
     /*
      * Register the GIC with PDM.

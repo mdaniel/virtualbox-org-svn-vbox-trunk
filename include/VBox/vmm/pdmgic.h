@@ -269,7 +269,7 @@ VMM_INT_DECL(int)           PDMGicRegisterBackend(PVMCC pVM, PDMGICBACKENDTYPE e
 
 VMM_INT_DECL(VBOXSTRICTRC)  PDMGicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t *pu64Value);
 VMM_INT_DECL(VBOXSTRICTRC)  PDMGicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg, uint64_t u64Value);
-VMM_INT_DECL(int)           PDMGicSetSpi(PVMCC pVM, uint32_t uIntId, bool fAsserted);
+VMM_INT_DECL(int)           PDMGicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted);
 VMM_INT_DECL(int)           PDMGicSetPpi(PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted);
 
 RT_C_DECLS_END

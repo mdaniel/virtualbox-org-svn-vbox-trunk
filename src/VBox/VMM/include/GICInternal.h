@@ -70,6 +70,32 @@ extern const PDMGICBACKEND g_GicKvmBackend;
 /** Maximum number of SPI interrupts. */
 #define GIC_SPI_MAX                         32
 
+/** @def GIC_CACHE_LINE_SIZE
+ * Padding (in bytes) for aligning data in different cache lines. The ARMv8 cache
+ * line size is 64 bytes.
+ *
+ * See ARM spec "Cache Size ID Register, CCSIDR_EL1".
+ */
+#define GIC_CACHE_LINE_SIZE                64
+
+#if 1
+/**
+ * GIC Interrupt-Delivery Bitmap (IDB).
+ */
+typedef struct GICIDB
+{
+    uint64_t volatile   au64IntIdBitmap[33];
+    uint32_t volatile   fOutstandingNotification;
+    uint8_t             abAlignment[52];
+} GICIDB;
+AssertCompileMemberOffset(GICIDB, fOutstandingNotification, 264);
+AssertCompileSizeAlignment(GICIDB, GIC_CACHE_LINE_SIZE);
+/** Pointer to a pending-interrupt bitmap. */
+typedef GICIDB *PGICIDB;
+/** Pointer to a const pending-interrupt bitmap. */
+typedef const GICIDB *PCGICIDB;
+#endif
+
 /**
  * GIC PDM instance data (per-VM).
  */
@@ -80,6 +106,37 @@ typedef struct GICDEV
     /** The redistributor MMIO handle. */
     IOMMMIOHANDLE               hMmioReDist;
 
+    /** @name Distributor register state for SPIs and extended SPIs.
+     * @{
+     */
+#if 1
+    /** Interrupt group bitmap. */
+    uint32_t                    bmIntrGroup[64];
+    /** Interrupt config bitmap (edge-triggered vs level-sensitive). */
+    uint32_t                    bmIntrConfig[128];
+    /** Interrupt enabled bitmap. */
+    uint32_t                    bmIntrEnabled[64];
+    /** Interrupt pending bitmap. */
+    uint32_t                    bmIntrPending[64];
+    /** Interrupt active bitmap. */
+    uint32_t                    bmIntrActive[64];
+    /** Interrupt priorities. */
+    uint8_t                     abIntrPriority[2048];
+    /** Interrupt routing info. */
+    uint32_t                    au32IntrRouting[2048];
+    /** Interrupt routine mode bitmap. */
+    uint32_t                    bmIntrRoutingMode[64];
+
+    /** Flag whether group 0 interrupts are enabled. */
+    bool                        fIrqGrp0Enabled;
+    /** Flag whether group 1 interrupts are enabled. */
+    bool                        fIrqGrp1Enabled;
+    /** Flag whether affinity routing is enabled. */
+    bool                        fAffRoutingEnabled;
+    /** Padding. */
+    bool                        afPadding;
+    /** @} */
+#else
     /** @name SPI distributor register state.
      * @{ */
     /** Interrupt Group 0 Register. */
@@ -104,9 +161,14 @@ typedef struct GICDEV
     /** Flag whether group 1 interrupts are currently enabled. */
     volatile bool               fIrqGrp1Enabled;
     /** @} */
+#endif
 
     /** @name Configurables.
      * @{ */
+    /** The maximum SPI supported (GICD_TYPER.ItsLinesNumber). */
+    uint16_t                    uMaxSpi;
+    /** Maximum extended SPI supported (GICR_TYPER.ESPI_range).  */
+    uint16_t                    uMaxExtSpi;
     /** The GIC architecture (GICD_PIDR2.ArchRev and GICR_PIDR2.ArchRev). */
     uint8_t                     uArchRev;
     /** Extended PPIs supported (GICR_TYPER.PpiNum). */
@@ -115,10 +177,8 @@ typedef struct GICDEV
     bool                        fExtSpi;
     /** Whether NMIs are supported (GICD_TYPER.NMI). */
     bool                        fNmi;
-    /** The maximum SPI supported (GICD_TYPER.ItsLinesNumber). */
-    uint16_t                    uMaxSpi;
-    /** Maximum extended SPI supported (GICR_TYPER.ESPI_range).  */
-    uint16_t                    uMaxExtSpi;
+    /** Whether range-selector is supported (GICD_TYPER.RSS and ICC_CTLR_EL1.RSS). */
+    bool                        fRangeSelSupport;
     /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */
@@ -156,6 +216,22 @@ typedef struct GICCPU
 
     /** @name SGI and PPI redistributor register state.
      * @{ */
+#if 1
+    /** Interrupt group bitmap. */
+    uint32_t                    bmIntrGroup[3];
+    /** Interrupt config bitmap (edge-triggered vs level-sensitive). */
+    uint32_t                    bmIntrConfig[6];
+    /** Interrupt enabled bitmap. */
+    uint32_t                    bmIntrEnabled[3];
+    /** Interrupt pending bitmap. */
+    uint32_t                    bmIntrPending[3];
+    /** Interrupt active bitmap. */
+    uint32_t                    bmIntrActive[3];
+    /** Interrupt priorities. */
+    uint8_t                     abIntrPriority[96];
+    /** Flag indicating register write pending (GICR_CTLR.RWP). */
+    bool                        fRegWritePending;
+#else
     /** Interrupt Group 0 Register. */
     volatile uint32_t           u32RegIGrp0;
     /** Interrupt Configuration Register 0. */
@@ -170,24 +246,27 @@ typedef struct GICCPU
     volatile uint32_t           bmIntActive;
     /** The interrupt priority for each of the SGI/PPIs */
     volatile uint8_t            abIntPriority[GIC_INTID_RANGE_PPI_LAST + 1];
+#endif
     /** @} */
 
     /** @name ICC system register state.
      * @{ */
+    /** The control register (ICC_CTLR_EL1). */
+    uint64_t                    uIccCtlr;
     /** Flag whether group 0 interrupts are currently enabled. */
-    volatile bool               fIrqGrp0Enabled;
+    bool                        fIrqGrp0Enabled;
     /** Flag whether group 1 interrupts are currently enabled. */
-    volatile bool               fIrqGrp1Enabled;
+    bool                        fIrqGrp1Enabled;
     /** The current interrupt priority, only interrupts with a higher priority get signalled. */
-    volatile uint8_t            bInterruptPriority;
+    uint8_t                     bInterruptPriority;
     /** The interrupt controller Binary Point Register for Group 0 interrupts. */
     uint8_t                     bBinaryPointGrp0;
     /** The interrupt controller Binary Point Register for Group 1 interrupts. */
     uint8_t                     bBinaryPointGrp1;
     /** The running priorities caused by preemption. */
-    volatile uint8_t            abRunningPriorities[256];
+    uint8_t                     abRunningPriorities[256];
     /** The index to the current running priority. */
-    volatile uint8_t            idxRunningPriority;
+    uint8_t                     idxRunningPriority;
     /** @} */
 
     /** @name Log Max counters
@@ -234,7 +313,10 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicDistMmioWrite(PPDMDEVINS pDevIns, voi
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicReDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicReDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
 
-DECLHIDDEN(void)                        gicResetCpu(PVMCPUCC pVCpu);
+DECLHIDDEN(void)                        gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu);
+DECLHIDDEN(void)                        gicReset(PPDMDEVINS pDevIns);
+DECLHIDDEN(uint16_t)                    gicReDistGetIntIdFromIndex(uint16_t idxIntr);
+DECLHIDDEN(uint16_t)                    gicDistGetIntIdFromIndex(uint16_t idxIntr);
 
 DECLCALLBACK(int)                       gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg);
 DECLCALLBACK(int)                       gicR3Destruct(PPDMDEVINS pDevIns);

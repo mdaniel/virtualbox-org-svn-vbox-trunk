@@ -111,8 +111,8 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
     pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicCpu->bmIntrActive[0]);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicCpu->fIrqGrp0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicCpu->fIrqGrp1Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
     pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
     pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
     pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
@@ -166,8 +166,8 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->au32IntrRouting[i]);
 #endif
 
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicDev->fIrqGrp0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicDev->fIrqGrp1Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicDev->fIntrGroup0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicDev->fIntrGroup1Enabled);
 }
 
 
@@ -222,8 +222,8 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicReDistGetIntIdFromIndex(i), pGicCpu->abIntrPriority[i]);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicCpu->fIrqGrp0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicCpu->fIrqGrp1Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
     pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
     pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
     pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
@@ -383,8 +383,8 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtSpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSelSupport);
 #endif
-    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp0Enabled);
-    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp1Enabled);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup0Enabled);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup1Enabled);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fAffRoutingEnabled);
     GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrGroup);
     GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrConfig);
@@ -416,8 +416,8 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bInterruptPriority);
         pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp0);
         pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp1);
-        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIrqGrp0Enabled);
-        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIrqGrp1Enabled);
+        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup0Enabled);
+        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup1Enabled);
     }
 
     return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX);
@@ -530,8 +530,8 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtSpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSelSupport);
 #endif
-    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIrqGrp0Enabled);
-    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIrqGrp1Enabled);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup1Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAffRoutingEnabled);
     GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrGroup);
     GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrConfig);
@@ -563,8 +563,8 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bInterruptPriority);
         pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp0);
         pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp1);
-        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIrqGrp0Enabled);
-        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIrqGrp1Enabled);
+        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup0Enabled);
+        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup1Enabled);
     }
 
     /*

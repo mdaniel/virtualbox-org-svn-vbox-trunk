@@ -67,9 +67,12 @@ extern const PDMGICBACKEND g_GicKvmBackend;
 # error "Not implemented!"
 #endif
 
+#if 0
 /** Maximum number of SPI interrupts. */
 #define GIC_SPI_MAX                         32
+#endif
 
+#if 0
 /** @def GIC_CACHE_LINE_SIZE
  * Padding (in bytes) for aligning data in different cache lines. The ARMv8 cache
  * line size is 64 bytes.
@@ -78,7 +81,6 @@ extern const PDMGICBACKEND g_GicKvmBackend;
  */
 #define GIC_CACHE_LINE_SIZE                64
 
-#if 1
 /**
  * GIC Interrupt-Delivery Bitmap (IDB).
  */
@@ -106,7 +108,7 @@ typedef struct GICDEV
     /** The redistributor MMIO handle. */
     IOMMMIOHANDLE               hMmioReDist;
 
-    /** @name Distributor register state for SPIs and extended SPIs.
+    /** @name Distributor register state.
      * @{
      */
 #if 1
@@ -128,13 +130,13 @@ typedef struct GICDEV
     uint32_t                    bmIntrRoutingMode[64];
 
     /** Flag whether group 0 interrupts are enabled. */
-    bool                        fIrqGrp0Enabled;
+    bool                        fIntrGroup0Enabled;
     /** Flag whether group 1 interrupts are enabled. */
-    bool                        fIrqGrp1Enabled;
+    bool                        fIntrGroup1Enabled;
     /** Flag whether affinity routing is enabled. */
     bool                        fAffRoutingEnabled;
-    /** Padding. */
-    bool                        afPadding;
+    /** Alignment. */
+    bool                        fAlignment0;
     /** @} */
 #else
     /** @name SPI distributor register state.
@@ -179,6 +181,8 @@ typedef struct GICDEV
     bool                        fNmi;
     /** Whether range-selector is supported (GICD_TYPER.RSS and ICC_CTLR_EL1.RSS). */
     bool                        fRangeSelSupport;
+    /** Alignment. */
+    bool                        afAlignment0[3];
     /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */
@@ -257,14 +261,16 @@ typedef struct GICCPU
     uint8_t                     idxRunningPriority;
     /** The current interrupt priority, only interrupts with a higher priority get signalled. */
     uint8_t                     bInterruptPriority;
-    /** The interrupt controller Binary Point Register for Group 0 interrupts. */
+    /** The binary point register for group 0 interrupts. */
     uint8_t                     bBinaryPointGrp0;
-    /** The interrupt controller Binary Point Register for Group 1 interrupts. */
+    /** The binary point register for group 1 interrupts. */
     uint8_t                     bBinaryPointGrp1;
-    /** Flag whether group 0 interrupts are currently enabled. */
-    bool                        fIrqGrp0Enabled;
-    /** Flag whether group 1 interrupts are currently enabled. */
-    bool                        fIrqGrp1Enabled;
+    /** Flag whether group 0 interrupts are enabled. */
+    bool                        fIntrGroup0Enabled;
+    /** Flag whether group 1 interrupts are enabled. */
+    bool                        fIntrGroup1Enabled;
+    /** Alignment. */
+    bool                        afAlignment0[2];
     /** @} */
 
     /** @name Log Max counters

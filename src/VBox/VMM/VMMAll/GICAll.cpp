@@ -1609,7 +1609,7 @@ static VBOXSTRICTRC gicPostInterrupt(PVMCPUCC pVCpu, PVMCPUSET pCpuSet, uint16_t
  */
 DECL_FORCE_INLINE(VMCPUID) gicGetCpuIdFromAffinity(uint8_t idCpuInterface, uint8_t uAff1,  uint8_t uAff2,  uint8_t uAff3)
 {
-    AssertReturn(idCpuInterface < 16, VERR_INVALID_PARAMETER);
+    AssertReturn(idCpuInterface < 16, 0);
     return (uAff3 * 1048576) + (uAff2 * 4096) + (uAff1 * 16) + idCpuInterface;
 }
 

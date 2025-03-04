@@ -286,7 +286,7 @@ DECLHIDDEN(uint16_t) gicReDistGetIntIdFromIndex(uint16_t idxIntr)
  * Gets the redistributor interrupt index given an interrupt ID.
  *
  * @returns The interrupt ID.
- * @param   idxIntr
+ * @param   uIntId      The interrupt ID.
  * @remarks A redistributor interrupt is an interrupt type that belong in the
  *          redistributor (e.g. SGIs, PPIs, extended PPIs).
  */
@@ -3102,7 +3102,7 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
  * Sets the specified software generated interrupt (SGI).
  *
  * @returns VBox status code.
- * @param   pVM             The cross context VM structure.
+ * @param   pGicDev     The GIC distributor state.
  * @param   pVCpu           The cross context virtual CPU structure.
  * @param   pDestCpuSet     Which CPUs to deliver the SGI to.
  * @param   uIntId          The SGI interrupt ID.
@@ -3723,7 +3723,7 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
  * Initializes per-VM GIC to the state following a power-up or hardware
  * reset.
  *
- * @param   pVM     The cross context VM structure.
+ * @param   pDevIns     The device instance.
  */
 DECLHIDDEN(void) gicReset(PPDMDEVINS pDevIns)
 {
@@ -3736,7 +3736,7 @@ DECLHIDDEN(void) gicReset(PPDMDEVINS pDevIns)
  * Initializes per-VCPU GIC to the state following a power-up or hardware
  * reset.
  *
- * @param   pVCpu               The cross context virtual CPU structure.
+ * @param   pVCpu   The cross context virtual CPU structure.
  */
 DECLHIDDEN(void) gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 {

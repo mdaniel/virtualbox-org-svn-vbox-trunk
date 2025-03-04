@@ -104,7 +104,7 @@ typedef struct PDMGICBACKENDR3
      * @param   uIntId              The SPI ID (minus GIC_INTID_RANGE_SPI_START) to assert/de-assert.
      * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
      */
-    DECLR3CALLBACKMEMBER(int, pfnSetSpi, (PVMCC pVM, uint32_t uIntId, bool fAsserted));
+    DECLR3CALLBACKMEMBER(int, pfnSetSpi, (PVMCC pVM, uint32_t uSpiIntId, bool fAsserted));
 
     /**
      * Sets the specified private peripheral interrupt starting.
@@ -114,7 +114,7 @@ typedef struct PDMGICBACKENDR3
      * @param   uIntId              The PPI ID (minus GIC_INTID_RANGE_PPI_START) to assert/de-assert.
      * @param   fAsserted           Flag whether to mark the interrupt as asserted/de-asserted.
      */
-    DECLR3CALLBACKMEMBER(int, pfnSetPpi, (PVMCPUCC pVCpu, uint32_t uIntId, bool fAsserted));
+    DECLR3CALLBACKMEMBER(int, pfnSetPpi, (PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAsserted));
 
     /** @name Reserved for future (MBZ).
      * @{ */

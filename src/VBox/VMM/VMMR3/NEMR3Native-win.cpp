@@ -162,6 +162,15 @@ static decltype(WHvRunVirtualProcessor) *           g_pfnWHvRunVirtualProcessor;
 static decltype(WHvCancelRunVirtualProcessor) *     g_pfnWHvCancelRunVirtualProcessor;
 static decltype(WHvGetVirtualProcessorRegisters) *  g_pfnWHvGetVirtualProcessorRegisters;
 static decltype(WHvSetVirtualProcessorRegisters) *  g_pfnWHvSetVirtualProcessorRegisters;
+static decltype(WHvSuspendPartitionTime) *          g_pfnWHvSuspendPartitionTime;
+static decltype(WHvResumePartitionTime) *           g_pfnWHvResumePartitionTime;
+decltype(WHvGetVirtualProcessorState) *             g_pfnWHvGetVirtualProcessorState = NULL;
+decltype(WHvSetVirtualProcessorState) *             g_pfnWHvSetVirtualProcessorState = NULL;
+decltype(WHvGetVirtualProcessorInterruptControllerState)  *g_pfnWHvGetVirtualProcessorInterruptControllerState = NULL;
+decltype(WHvSetVirtualProcessorInterruptControllerState)  *g_pfnWHvSetVirtualProcessorInterruptControllerState = NULL;
+decltype(WHvGetVirtualProcessorInterruptControllerState2) *g_pfnWHvGetVirtualProcessorInterruptControllerState2 = NULL;
+decltype(WHvSetVirtualProcessorInterruptControllerState2) *g_pfnWHvSetVirtualProcessorInterruptControllerState2 = NULL;
+decltype(WHvRequestInterrupt) *                     g_pfnWHvRequestInterrupt;
 /** @} */
 
 /** @name APIs imported from Vid.dll
@@ -212,6 +221,15 @@ static const struct
     NEM_WIN_IMPORT(0, false, WHvCancelRunVirtualProcessor),
     NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorRegisters),
     NEM_WIN_IMPORT(0, false, WHvSetVirtualProcessorRegisters),
+    NEM_WIN_IMPORT(0, true,  WHvSuspendPartitionTime),
+    NEM_WIN_IMPORT(0, true,  WHvResumePartitionTime),
+    NEM_WIN_IMPORT(0, true,  WHvRequestInterrupt),
+    NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorState),
+    NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorState),
+    NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorInterruptControllerState),
+    NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorInterruptControllerState),
+    NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorInterruptControllerState2),
+    NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorInterruptControllerState2),
 
     NEM_WIN_IMPORT(1, true,  VidGetHvPartitionId),
     NEM_WIN_IMPORT(1, true,  VidGetPartitionProperty),
@@ -284,6 +302,13 @@ static const HV_X64_INTERCEPT_MESSAGE_HEADER *g_pX64MsgHdr;
 # define WHvCancelRunVirtualProcessor               g_pfnWHvCancelRunVirtualProcessor
 # define WHvGetVirtualProcessorRegisters            g_pfnWHvGetVirtualProcessorRegisters
 # define WHvSetVirtualProcessorRegisters            g_pfnWHvSetVirtualProcessorRegisters
+# define WHvSuspendPartitionTime                    g_pfnWHvSuspendPartitionTime
+# define WHvResumePartitionTime                     g_pfnWHvResumePartitionTime
+# define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
+# define WHvGetVirtualProcessorState                g_pfnWHvGetVirtualProcessorState
+# define WHvSetVirtualProcessorState                g_pfnWHvSetVirtualProcessorState
+# define WHvGetVirtualProcessorInterruptControllerState     g_pfnWHvGetVirtualProcessorInterruptControllerState
+# define WHvGetVirtualProcessorInterruptControllerState2    g_pfnWHvGetVirtualProcessorInterruptControllerState2
 
 # define VidMessageSlotHandleAndGetNext             g_pfnVidMessageSlotHandleAndGetNext
 # define VidStartVirtualProcessor                   g_pfnVidStartVirtualProcessor
@@ -584,7 +609,7 @@ static int nemR3WinInitProbeAndLoad(bool fForced, PRTERRINFO pErrInfo)
             {
                 *g_aImports[i].ppfn = NULL;
 
-                LogRel(("NEM:  %s: Failed to import %s!%s: %Rrc",
+                LogRel(("NEM:  %s: Failed to import %s!%s: %Rrc\n",
                         g_aImports[i].fOptional ? "info" : fForced ? "fatal" : "error",
                         s_apszDllNames[g_aImports[i].idxDll], g_aImports[i].pszName, rc2));
                 if (!g_aImports[i].fOptional)
@@ -739,6 +764,7 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
     if (Caps.Features.AsUINT64 & ~fKnownFeatures)
         NEM_LOG_REL_CAP_SUB_EX("Unknown features", "%#RX64", Caps.ExtendedVmExits.AsUINT64 & ~fKnownVmExits);
     pVM->nem.s.fSpeculationControl = RT_BOOL(Caps.Features.SpeculationControl);
+    pVM->nem.s.fLocalApicEmulation = RT_BOOL(Caps.Features.LocalApicEmulation);
     /** @todo RECHECK: WHV_CAPABILITY_FEATURES typedef. */
 
     /*
@@ -1254,7 +1280,7 @@ static int nemR3WinInitCreatePartition(PVM pVM, PRTERRINFO pErrInfo)
         return RTErrInfoSetF(pErrInfo, VERR_NEM_VM_CREATE_FAILED, "WHvCreatePartition failed with %Rhrc (Last=%#x/%u)",
                              hrc, RTNtLastStatusValue(), RTNtLastErrorValue());
 
-    int rc;
+    int rc = VINF_SUCCESS;
 
     /*
      * Set partition properties, most importantly the CPU count.
@@ -1280,13 +1306,58 @@ static int nemR3WinInitCreatePartition(PVM pVM, PRTERRINFO pErrInfo)
         hrc = WHvSetPartitionProperty(hPartition, WHvPartitionPropertyCodeExtendedVmExits, &Property, sizeof(Property));
         if (SUCCEEDED(hrc))
         {
+            RT_ZERO(Property);
             /*
-             * We'll continue setup in nemR3NativeInitAfterCPUM.
+             * If the APIC is enabled and LocalApicEmulation is supported we'll use Hyper-V's APIC emulation
+             * for best performance.
              */
-            pVM->nem.s.fCreatedEmts     = false;
-            pVM->nem.s.hPartition       = hPartition;
-            LogRel(("NEM: Created partition %p.\n", hPartition));
-            return VINF_SUCCESS;
+            PCFGMNODE pCfgmApic = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/Devices/apic");
+            if (   pCfgmApic
+                && pVM->nem.s.fLocalApicEmulation
+                && 0) /** @todo Finish */
+            {
+                /* If setting this fails log an error but continue. */
+                Property.LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic;
+                hrc = WHvSetPartitionProperty(hPartition, WHvPartitionPropertyCodeLocalApicEmulationMode  , &Property, sizeof(Property));
+                if (FAILED(hrc))
+                {
+                    LogRel(("NEM: Failed setting WHvPartitionPropertyCodeLocalApicEmulationMode to WHvX64LocalApicEmulationModeXApic: %Rhrc (Last=%#x/%u)",
+                            hrc, RTNtLastStatusValue(), RTNtLastErrorValue()));
+                    pVM->nem.s.fLocalApicEmulation = false;
+                }
+                else
+                {
+                    /* Rewrite the configuration tree to point to our APIC emulation. */
+                    PCFGMNODE pCfgmDev = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/Devices");
+                    Assert(pCfgmDev);
+
+                    PCFGMNODE pCfgmApicHv = NULL;
+                    rc = CFGMR3InsertNode(pCfgmDev, "apic-nem", &pCfgmApicHv);
+                    if (RT_SUCCESS(rc))
+                    {
+                        rc = CFGMR3CopyTree(pCfgmApicHv, pCfgmApic, CFGM_COPY_FLAGS_IGNORE_EXISTING_KEYS | CFGM_COPY_FLAGS_IGNORE_EXISTING_VALUES);
+                        if (RT_SUCCESS(rc))
+                            CFGMR3RemoveNode(pCfgmApic);
+                    }
+
+                    if (RT_FAILURE(rc))
+                        rc = RTErrInfoSetF(pErrInfo, rc, "Failed replace APIC device config with Hyper-V one");
+                }
+            }
+            else
+                pVM->nem.s.fLocalApicEmulation = false;
+
+
+            if (RT_SUCCESS(rc))
+            {
+                /*
+                 * We'll continue setup in nemR3NativeInitAfterCPUM.
+                 */
+                pVM->nem.s.fCreatedEmts     = false;
+                pVM->nem.s.hPartition       = hPartition;
+                LogRel(("NEM: Created partition %p.\n", hPartition));
+                return VINF_SUCCESS;
+            }
         }
 
         rc = RTErrInfoSetF(pErrInfo, VERR_NEM_VM_CREATE_FAILED,
@@ -1320,6 +1391,8 @@ static int nemR3WinDisableX2Apic(PVM pVM)
      * This defaults to APIC, so no need to change unless it's X2APIC.
      */
     PCFGMNODE pCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/Devices/apic/0/Config");
+    if (!pCfg)
+        pCfg = CFGMR3GetChild(CFGMR3GetRoot(pVM), "/Devices/apic-nem/0/Config");
     if (pCfg)
     {
         uint8_t bMode = 0;

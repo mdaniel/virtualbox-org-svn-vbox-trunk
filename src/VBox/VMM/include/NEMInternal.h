@@ -266,6 +266,8 @@ typedef struct NEM
     bool                        fSpeculationControl : 1;
     /** Whether to export/import IA32_SPEC_CTRL. */
     bool                        fDoIa32SpecCtrl : 1;
+    /** WHvX64LocalApicEmulationModeXApic is used. */
+    bool                        fLocalApicEmulation : 1;
 #  ifdef NEM_WIN_WITH_A20
     /** Set if we've started more than one CPU and cannot mess with A20. */
     bool                        fA20Fixed : 1;
@@ -283,7 +285,7 @@ typedef struct NEM
         /** 64-bit view. */
         uint64_t                u64;
 # ifdef _WINHVAPIDEFS_H_
-        /** Interpreed features. */
+        /** Interpreted features. */
         WHV_PROCESSOR_FEATURES  u;
 # endif
     } uCpuFeatures;
@@ -512,8 +514,14 @@ typedef struct NEMCPU
     uint8_t                     fCurrentInterruptWindows;
     /** The desired state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
     uint8_t                     fDesiredInterruptWindows;
+    /** Cached TPR value. */
+    uint8_t                     bTpr;
     /** Last copy of HV_X64_VP_EXECUTION_STATE::InterruptShadow. */
     bool                        fLastInterruptShadow : 1;
+    /** Flag whether the IRQ window notification was registered (for injecting PIC interrupts). */
+    bool                        fIrqWindowRegistered: 1;
+    /** Flag whether it is possible inject a PIC interrupt. */
+    bool                        fPicReadyForInterrupt: 1;
     uint32_t                    uPadding;
     /** The VID_MSHAGN_F_XXX flags.
      * Either VID_MSHAGN_F_HANDLE_MESSAGE | VID_MSHAGN_F_GET_NEXT_MESSAGE or zero. */

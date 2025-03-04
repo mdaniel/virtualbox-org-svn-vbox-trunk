@@ -720,6 +720,12 @@ static int pdmR3DevLoadModules(PVM pVM)
     /* Register the internal VMM APIC device. */
     int rc = pdmR3DevReg_Register(&RegCB.Core, &g_DeviceAPIC);
     AssertRCReturn(rc, rc);
+
+# if defined(RT_OS_WINDOWS)
+    /* Register the internal VMM APIC device for NEM mode. */
+    rc = pdmR3DevReg_Register(&RegCB.Core, &g_DeviceAPICNem);
+    AssertRCReturn(rc, rc);
+# endif
 #endif
 
     /*

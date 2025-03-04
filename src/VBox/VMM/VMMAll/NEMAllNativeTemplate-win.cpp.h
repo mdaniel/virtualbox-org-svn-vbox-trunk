@@ -364,46 +364,74 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
     if (fWhat & CPUMCTX_EXTRN_NEM_WIN_EVENT_INJECT)
         ADD_REG64(WHvRegisterPendingInterruption, 0);
 
-    /* Interruptibility state.  This can get a little complicated since we get
-       half of the state via HV_X64_VP_EXECUTION_STATE. */
-    if (   (fWhat & (CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI))
-        ==          (CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI) )
+    if (!pVM->nem.s.fLocalApicEmulation)
     {
-        ADD_REG64(WHvRegisterInterruptState, 0);
-        if (CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
-            aValues[iReg - 1].InterruptState.InterruptShadow = 1;
-        aValues[iReg - 1].InterruptState.NmiMasked = CPUMAreInterruptsInhibitedByNmi(&pVCpu->cpum.GstCtx);
-    }
-    else if (fWhat & CPUMCTX_EXTRN_INHIBIT_INT)
-    {
-        if (   pVCpu->nem.s.fLastInterruptShadow
-            || CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
+        /* Interruptibility state.  This can get a little complicated since we get
+           half of the state via HV_X64_VP_EXECUTION_STATE. */
+        if (   (fWhat & (CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI))
+            ==          (CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI) )
         {
             ADD_REG64(WHvRegisterInterruptState, 0);
             if (CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
                 aValues[iReg - 1].InterruptState.InterruptShadow = 1;
-            /** @todo Retrieve NMI state, currently assuming it's zero. (yes this may happen on I/O) */
-            //if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_BLOCK_NMIS))
-            //    aValues[iReg - 1].InterruptState.NmiMasked = 1;
+            aValues[iReg - 1].InterruptState.NmiMasked = CPUMAreInterruptsInhibitedByNmi(&pVCpu->cpum.GstCtx);
+        }
+        else if (fWhat & CPUMCTX_EXTRN_INHIBIT_INT)
+        {
+            if (   pVCpu->nem.s.fLastInterruptShadow
+                || CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
+            {
+                ADD_REG64(WHvRegisterInterruptState, 0);
+                if (CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx))
+                    aValues[iReg - 1].InterruptState.InterruptShadow = 1;
+                /** @todo Retrieve NMI state, currently assuming it's zero. (yes this may happen on I/O) */
+                //if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_BLOCK_NMIS))
+                //    aValues[iReg - 1].InterruptState.NmiMasked = 1;
+            }
+        }
+        else
+            Assert(!(fWhat & CPUMCTX_EXTRN_INHIBIT_NMI));
+
+        /* Interrupt windows. Always set if active as Hyper-V seems to be forgetful. */
+        uint8_t const fDesiredIntWin = pVCpu->nem.s.fDesiredInterruptWindows;
+        if (   fDesiredIntWin
+            || pVCpu->nem.s.fCurrentInterruptWindows != fDesiredIntWin)
+        {
+            pVCpu->nem.s.fCurrentInterruptWindows = pVCpu->nem.s.fDesiredInterruptWindows;
+            Log8(("Setting WHvX64RegisterDeliverabilityNotifications, fDesiredIntWin=%X\n", fDesiredIntWin));
+            ADD_REG64(WHvX64RegisterDeliverabilityNotifications, fDesiredIntWin);
+            Assert(aValues[iReg - 1].DeliverabilityNotifications.NmiNotification == RT_BOOL(fDesiredIntWin & NEM_WIN_INTW_F_NMI));
+            Assert(aValues[iReg - 1].DeliverabilityNotifications.InterruptNotification == RT_BOOL(fDesiredIntWin & NEM_WIN_INTW_F_REGULAR));
+            Assert(aValues[iReg - 1].DeliverabilityNotifications.InterruptPriority == (unsigned)((fDesiredIntWin & NEM_WIN_INTW_F_PRIO_MASK) >> NEM_WIN_INTW_F_PRIO_SHIFT));
         }
     }
-    else
-        Assert(!(fWhat & CPUMCTX_EXTRN_INHIBIT_NMI));
-
-    /* Interrupt windows. Always set if active as Hyper-V seems to be forgetful. */
-    uint8_t const fDesiredIntWin = pVCpu->nem.s.fDesiredInterruptWindows;
-    if (   fDesiredIntWin
-        || pVCpu->nem.s.fCurrentInterruptWindows != fDesiredIntWin)
+    else if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INTERRUPT_PIC))
     {
-        pVCpu->nem.s.fCurrentInterruptWindows = pVCpu->nem.s.fDesiredInterruptWindows;
-        Log8(("Setting WHvX64RegisterDeliverabilityNotifications, fDesiredIntWin=%X\n", fDesiredIntWin));
-        ADD_REG64(WHvX64RegisterDeliverabilityNotifications, fDesiredIntWin);
-        Assert(aValues[iReg - 1].DeliverabilityNotifications.NmiNotification == RT_BOOL(fDesiredIntWin & NEM_WIN_INTW_F_NMI));
-        Assert(aValues[iReg - 1].DeliverabilityNotifications.InterruptNotification == RT_BOOL(fDesiredIntWin & NEM_WIN_INTW_F_REGULAR));
-        Assert(aValues[iReg - 1].DeliverabilityNotifications.InterruptPriority == (unsigned)((fDesiredIntWin & NEM_WIN_INTW_F_PRIO_MASK) >> NEM_WIN_INTW_F_PRIO_SHIFT));
-    }
+        Log8(("Setting WHvX64RegisterDeliverabilityNotifications, fDesiredIntWin=%X fPicReadyForInterrupt=%RTbool\n",
+              pVCpu->nem.s.fDesiredInterruptWindows, pVCpu->nem.s.fPicReadyForInterrupt));
 
-    /// @todo WHvRegisterPendingEvent
+        if (   pVCpu->nem.s.fDesiredInterruptWindows
+            && pVCpu->nem.s.fPicReadyForInterrupt)
+        {
+            ADD_REG64(WHvRegisterPendingEvent, 0);
+
+            uint8_t bInterrupt;
+            int rc = PDMGetInterrupt(pVCpu, &bInterrupt);
+            AssertRC(rc);
+
+            aValues[iReg - 1].Reg64                    = 0;
+            aValues[iReg - 1].ExtIntEvent.EventPending = 1;
+            aValues[iReg - 1].ExtIntEvent.EventType    = WHvX64PendingEventExtInt;
+            aValues[iReg - 1].ExtIntEvent.Vector       = bInterrupt;
+        }
+
+        if (!pVCpu->nem.s.fIrqWindowRegistered)
+        {
+            ADD_REG64(WHvX64RegisterDeliverabilityNotifications, 0);
+            aValues[iReg - 1].DeliverabilityNotifications.InterruptNotification = 1;
+            pVCpu->nem.s.fIrqWindowRegistered = true;
+        }
+    }
 
 #undef ADD_REG64
 #undef ADD_REG128
@@ -418,6 +446,12 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
     Log12(("Calling WHvSetVirtualProcessorRegisters(%p, %u, %p, %u, %p)\n",
            pVM->nem.s.hPartition, pVCpu->idCpu, aenmNames, iReg, aValues));
 #endif
+
+    pVCpu->nem.s.fPicReadyForInterrupt = false;
+
+    if (!iReg)
+        return VINF_SUCCESS;
+
     HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, aenmNames, iReg, aValues);
     if (SUCCEEDED(hrc))
     {
@@ -1761,6 +1795,9 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExitInterruptWindow(PVMCC pVM, PVMCPU
           pExit->InterruptWindow.DeliverableType, RT_BOOL(pExit->VpContext.Rflags & X86_EFL_IF),
           pExit->VpContext.ExecutionState.InterruptShadow, pExit->VpContext.Cr8));
 
+    pVCpu->nem.s.fIrqWindowRegistered  = false;
+    pVCpu->nem.s.fPicReadyForInterrupt = true;
+
     /** @todo call nemHCWinHandleInterruptFF   */
     RT_NOREF(pVM);
     return VINF_SUCCESS;
@@ -2365,6 +2402,11 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, WHV_R
             STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatExitUnrecoverable);
             return nemR3WinHandleExitUnrecoverableException(pVM, pVCpu, pExit);
 
+        case WHvRunVpExitReasonX64ApicEoi:
+            Assert(pVM->nem.s.fLocalApicEmulation);
+            PDMIoApicBroadcastEoi(pVCpu->CTX_SUFF(pVM), pExit->ApicEoi.InterruptVector);
+            return VINF_SUCCESS;
+
         case WHvRunVpExitReasonUnsupportedFeature:
         case WHvRunVpExitReasonInvalidVpRegisterValue:
             LogRel(("Unimplemented exit:\n%.*Rhxd\n", (int)sizeof(*pExit), pExit));
@@ -2390,7 +2432,7 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemR3WinHandleExit(PVMCC pVM, PVMCPUCC pVCpu, WHV_R
  */
 NEM_TMPL_STATIC VBOXSTRICTRC nemHCWinHandleInterruptFF(PVMCC pVM, PVMCPUCC pVCpu, uint8_t *pfInterruptWindows)
 {
-    Assert(!TRPMHasTrap(pVCpu));
+    Assert(!TRPMHasTrap(pVCpu) && !pVM->nem.s.fLocalApicEmulation);
     RT_NOREF_PV(pVM);
 
     /*
@@ -2547,19 +2589,30 @@ NEM_TMPL_STATIC VBOXSTRICTRC nemHCWinRunGC(PVMCC pVM, PVMCPUCC pVCpu)
          * to the state syncing.
          */
         pVCpu->nem.s.fDesiredInterruptWindows = 0;
-        if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC
-                                     | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI))
+        if (!pVM->nem.s.fLocalApicEmulation)
         {
-            /* Try inject interrupt. */
-            rcStrict = nemHCWinHandleInterruptFF(pVM, pVCpu, &pVCpu->nem.s.fDesiredInterruptWindows);
-            if (rcStrict == VINF_SUCCESS)
-            { /* likely */ }
-            else
+            if (VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC
+                                         | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI))
             {
-                LogFlow(("NEM/%u: breaking: nemHCWinHandleInterruptFF -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
-                STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
-                break;
+                /* Try inject interrupt. */
+                rcStrict = nemHCWinHandleInterruptFF(pVM, pVCpu, &pVCpu->nem.s.fDesiredInterruptWindows);
+                if (rcStrict == VINF_SUCCESS)
+                { /* likely */ }
+                else
+                {
+                    LogFlow(("NEM/%u: breaking: nemHCWinHandleInterruptFF -> %Rrc\n", pVCpu->idCpu, VBOXSTRICTRC_VAL(rcStrict) ));
+                    STAM_REL_COUNTER_INC(&pVCpu->nem.s.StatBreakOnStatus);
+                    break;
+                }
             }
+        }
+        else
+        {
+            /* We only need to handle the PIC usign ExtInt here, the APIC is handled through the NEM APIC backend. */
+            Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INTERRUPT_APIC));
+
+            if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INTERRUPT_PIC))
+                pVCpu->nem.s.fDesiredInterruptWindows |= NEM_WIN_INTW_F_REGULAR;
         }
 
 #ifndef NEM_WIN_WITH_A20

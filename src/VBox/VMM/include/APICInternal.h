@@ -45,6 +45,10 @@
 #ifdef VBOX_INCLUDED_vmm_pdmapic_h
 /** The VirtualBox APIC backend table. */
 extern const PDMAPICBACKEND g_ApicBackend;
+#if defined(RT_OS_WINDOWS)
+/** The Hyper-V APIC backend. */
+extern const PDMAPICBACKEND g_ApicNemBackend;
+# endif
 #endif
 
 /** The APIC hardware version we are emulating. */

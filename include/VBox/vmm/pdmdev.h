@@ -754,6 +754,10 @@ typedef PCPDMDEVREGRC                           PCPDMDEVREG;
 #if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** The PDM APIC device registration structure. */
 extern const PDMDEVREG g_DeviceAPIC;
+# if defined(RT_OS_WINDOWS)
+/** The PDM APIC device registration structure for the Hyper-V NEM. */
+extern const PDMDEVREG g_DeviceAPICNem;
+# endif
 #elif defined(VBOX_VMM_TARGET_ARMV8)
 /** The PDM GIC device registration structure. */
 extern const PDMDEVREG g_DeviceGIC;

@@ -128,29 +128,46 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrPending", pGicDev->bmIntrPending);
     GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrActive",  pGicDev->bmIntrActive);
 
-    uint32_t const cPriorities = RT_ELEMENTS(pGicDev->abIntrPriority);
-    AssertCompile(!(cPriorities % 16));
-    pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
-    for (uint32_t i = 0; i < cPriorities; i += 16)
-        pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
-                              "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
-                        gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
-                        pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
-                        pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
-                        pGicDev->abIntrPriority[i + 4],  pGicDev->abIntrPriority[i + 5],
-                        pGicDev->abIntrPriority[i + 6],  pGicDev->abIntrPriority[i + 7],
-                        gicDistGetIntIdFromIndex(i + 8), gicDistGetIntIdFromIndex(i + 15),
-                        pGicDev->abIntrPriority[i + 8],  pGicDev->abIntrPriority[i + 9],
-                        pGicDev->abIntrPriority[i + 10], pGicDev->abIntrPriority[i + 11],
-                        pGicDev->abIntrPriority[i + 12], pGicDev->abIntrPriority[i + 13],
-                        pGicDev->abIntrPriority[i + 14], pGicDev->abIntrPriority[i + 15]);
+    /* Interrupt priorities.*/
+    {
+        uint32_t const cPriorities = RT_ELEMENTS(pGicDev->abIntrPriority);
+        AssertCompile(!(cPriorities % 16));
+        pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
+        for (uint32_t i = 0; i < cPriorities; i += 16)
+            pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                            gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
+                            pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
+                            pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
+                            pGicDev->abIntrPriority[i + 4],  pGicDev->abIntrPriority[i + 5],
+                            pGicDev->abIntrPriority[i + 6],  pGicDev->abIntrPriority[i + 7],
+                            gicDistGetIntIdFromIndex(i + 8), gicDistGetIntIdFromIndex(i + 15),
+                            pGicDev->abIntrPriority[i + 8],  pGicDev->abIntrPriority[i + 9],
+                            pGicDev->abIntrPriority[i + 10], pGicDev->abIntrPriority[i + 11],
+                            pGicDev->abIntrPriority[i + 12], pGicDev->abIntrPriority[i + 13],
+                            pGicDev->abIntrPriority[i + 14], pGicDev->abIntrPriority[i + 15]);
+    }
 
-    /** @todo Print routing information. */
-#if 0
-    pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntrRouting); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->au32IntrRouting[i]);
-#endif
+    /* Interrupt routing.*/
+    {
+        /** @todo Interrupt rounting mode. */
+        uint32_t const cRouting = RT_ELEMENTS(pGicDev->au32IntrRouting);
+        AssertCompile(!(cRouting % 16));
+        pHlp->pfnPrintf(pHlp, "  Interrupt routing:\n");
+        for (uint32_t i = 0; i < cRouting; i += 16)
+            pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                            gicDistGetIntIdFromIndex(i),      gicDistGetIntIdFromIndex(i + 7),
+                            pGicDev->au32IntrRouting[i],      pGicDev->au32IntrRouting[i + 1],
+                            pGicDev->au32IntrRouting[i + 2],  pGicDev->au32IntrRouting[i + 3],
+                            pGicDev->au32IntrRouting[i + 4],  pGicDev->au32IntrRouting[i + 5],
+                            pGicDev->au32IntrRouting[i + 6],  pGicDev->au32IntrRouting[i + 7],
+                            gicDistGetIntIdFromIndex(i + 8),  gicDistGetIntIdFromIndex(i + 15),
+                            pGicDev->au32IntrRouting[i + 8],  pGicDev->au32IntrRouting[i + 9],
+                            pGicDev->au32IntrRouting[i + 10], pGicDev->au32IntrRouting[i + 11],
+                            pGicDev->au32IntrRouting[i + 12], pGicDev->au32IntrRouting[i + 13],
+                            pGicDev->au32IntrRouting[i + 14], pGicDev->au32IntrRouting[i + 15]);
+    }
 
 #undef GIC_DBGFINFO_DIST_INTR_BITMAP
 }

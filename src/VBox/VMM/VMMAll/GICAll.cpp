@@ -1065,14 +1065,15 @@ static VBOXSTRICTRC gicDistWriteIntrClearPendingReg(PVMCC pVM, PGICDEV pGicDev, 
  */
 static VBOXSTRICTRC gicDistReadIntrConfigReg(PCGICDEV pGicDev, uint16_t idxReg, uint32_t *puValue)
 {
-    /* SGIs are read-only and are always edge-triggered. */
-    if (idxReg > 0)
+    /* When affinity routing is enabled SGIs and PPIs, reads to SGIs and PPIs return 0. */
+    Assert(pGicDev->fAffRoutingEnabled);
+    if (idxReg >= 2)
     {
         Assert(idxReg < RT_ELEMENTS(pGicDev->bmIntrConfig));
         *puValue = pGicDev->bmIntrConfig[idxReg];
     }
     else
-        *puValue = 0xaaaaaaaa;
+        AssertReleaseFailed();
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicDev->bmIntrConfig[idxReg]));
     return VINF_SUCCESS;
 }
@@ -1088,8 +1089,9 @@ static VBOXSTRICTRC gicDistReadIntrConfigReg(PCGICDEV pGicDev, uint16_t idxReg, 
  */
 static VBOXSTRICTRC gicDistWriteIntrConfigReg(PGICDEV pGicDev, uint16_t idxReg, uint32_t uValue)
 {
-    /* Writes to SGIs are ignored. */
-    if (idxReg > 0)
+    /* When affinity routing is enabled SGIs and PPIs, writes to SGIs and PPIs are ignored. */
+    Assert(pGicDev->fAffRoutingEnabled);
+    if (idxReg >= 2)
     {
         Assert(idxReg < RT_ELEMENTS(pGicDev->bmIntrConfig));
         pGicDev->bmIntrConfig[idxReg] = uValue;
@@ -1117,10 +1119,10 @@ static VBOXSTRICTRC gicDistReadIntrGroupReg(PGICDEV pGicDev, uint16_t idxReg, ui
     {
         Assert(idxReg < RT_ELEMENTS(pGicDev->bmIntrGroup));
         *puValue = pGicDev->bmIntrGroup[idxReg];
-        LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
     }
     else
         AssertReleaseFailed();
+    LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
     return VINF_SUCCESS;
 }
 

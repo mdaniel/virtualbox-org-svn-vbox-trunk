@@ -181,10 +181,12 @@ const VBOXDRVINSTCMD g_CmdInstall =
  */
 enum
 {
-    VBOXDRVINST_UNINSTALL_OPT_INF_FILE = 900,
+    VBOXDRVINST_UNINSTALL_OPT_HOST = 900,
+    VBOXDRVINST_UNINSTALL_OPT_INF_FILE,
     VBOXDRVINST_UNINSTALL_OPT_INF_SECTION,
     VBOXDRVINST_UNINSTALL_OPT_MODEL,
     VBOXDRVINST_UNINSTALL_OPT_PNPID,
+    VBOXDRVINST_UNINSTALL_OPT_FORCE,
     VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT,
     VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT
 };
@@ -194,12 +196,16 @@ enum
  */
 static const RTGETOPTDEF g_aCmdUninstallOptions[] =
 {
+    /* Sub commands. */
+    { "host",            VBOXDRVINST_UNINSTALL_OPT_HOST,          RTGETOPT_REQ_NOTHING  },
+    /* Parameters. */
     { "--inf-file",      VBOXDRVINST_UNINSTALL_OPT_INF_FILE,      RTGETOPT_REQ_STRING  },
     { "--inf-section",   VBOXDRVINST_UNINSTALL_OPT_INF_SECTION,   RTGETOPT_REQ_STRING  },
     { "--model",         VBOXDRVINST_UNINSTALL_OPT_MODEL,         RTGETOPT_REQ_STRING  },
     { "--pnp",           VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
     { "--pnpid" ,        VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
     { "--pnp-id",        VBOXDRVINST_UNINSTALL_OPT_PNPID,         RTGETOPT_REQ_STRING  },
+    { "--force",         VBOXDRVINST_UNINSTALL_OPT_FORCE,         RTGETOPT_REQ_NOTHING },
     { "--not-silent",    VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT,    RTGETOPT_REQ_NOTHING },
     { "--ignore-reboot", VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT, RTGETOPT_REQ_NOTHING }
 };
@@ -594,15 +600,93 @@ static DECLCALLBACK(const char *) vboxDrvInstCmdUninstallHelp(PCRTGETOPTDEF pOpt
 {
     switch (pOpt->iShort)
     {
+        case VBOXDRVINST_UNINSTALL_OPT_HOST:          return "Uninstalls all VirtualBox host drivers";
         case VBOXDRVINST_UNINSTALL_OPT_INF_FILE:      return "Specifies the INF File to uninstall";
         case VBOXDRVINST_UNINSTALL_OPT_INF_SECTION:   return "Specifies the INF section to uninstall";
         case VBOXDRVINST_UNINSTALL_OPT_MODEL:         return "Specifies the driver model to uninstall";
         case VBOXDRVINST_UNINSTALL_OPT_PNPID:         return "Specifies the PnP (device) ID to uninstall";
+        case VBOXDRVINST_UNINSTALL_OPT_FORCE:         return "Forces uninstallation";
+        case VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT:    return "Runs uninstallation in non-silent mode";
         case VBOXDRVINST_UNINSTALL_OPT_IGNORE_REBOOT: return "Ignores reboot requirements";
         default:
             break;
     }
     return NULL;
+}
+
+/**
+ * Uninstalls all (see notes below) VirtualBox host-related drivers.
+ *
+ * @returns VBox status code.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   fInstallFlags       [Un]Installation flags to use (of type VBOX_WIN_DRIVERINSTALL_F_XXX).
+ */
+static int vboxDrvInstCmdUninstallVBoxHost(VBOXWINDRVINST hDrvInst, uint32_t fInstallFlags)
+{
+    /** @todo Check for running VirtualBox processes first? */
+
+    int rc;
+
+#define UNINSTALL_DRIVER(a_Driver) \
+    rc = VBoxWinDrvInstUninstall(hDrvInst, NULL /* pszInfFile */, a_Driver, NULL /* pszPnPId */, fInstallFlags); \
+    if (   RT_FAILURE(rc) \
+        && !(fInstallFlags & VBOX_WIN_DRIVERINSTALL_F_FORCE)) \
+        return rc;
+
+#define CONTROL_SERVICE(a_Svc, a_Fn) \
+    rc = VBoxWinDrvInstControlServiceEx(hDrvInst, a_Svc, a_Fn, VBOXWINDRVSVCFN_F_WAIT, RT_MS_30SEC); \
+    if (RT_FAILURE(rc)) \
+    { \
+        if (   rc != VERR_NOT_FOUND /* Service is optional, thus not fatal if not found. */ \
+            && !(fInstallFlags & VBOX_WIN_DRIVERINSTALL_F_FORCE)) \
+            return rc; \
+    }
+
+#define STOP_SERVICE(a_Svc) CONTROL_SERVICE(a_Svc, VBOXWINDRVSVCFN_STOP)
+#define DELETE_SERVICE(a_Svc) CONTROL_SERVICE(a_Svc, VBOXWINDRVSVCFN_DELETE)
+
+    /* Stop VBoxSDS first. */
+    STOP_SERVICE("VBoxSDS");
+
+    /*
+     * Note! The order how to uninstall all drivers is important here,
+     *       as drivers can (and will!) hold references to the VBoxSUP (VirtualBox support) driver.
+     *       So do not change the order here unless you exactly know what you are doing.
+     */
+    static const char *s_aszDriverUninstallOrdered[] =
+    {
+        "VBoxNetAdp*", /* To catch also deprecated VBoxNetAdp5 drivers. */
+        "VBoxNetLwf*",
+        "VBoxUSB*"
+    };
+
+    for (size_t i = 0; i < RT_ELEMENTS(s_aszDriverUninstallOrdered); i++)
+        UNINSTALL_DRIVER(s_aszDriverUninstallOrdered[i]);
+
+    static const char *s_aszServicesToStopOrdered[] =
+    {
+        "VBoxNetAdp",
+        "VBoxNetLwf",
+        "VBoxUSBMon"
+    };
+
+    for (size_t i = 0; i < RT_ELEMENTS(s_aszServicesToStopOrdered); i++)
+        STOP_SERVICE(s_aszServicesToStopOrdered[i]);
+
+    /* Must come last. */
+    UNINSTALL_DRIVER("VBoxSup*");
+
+    /* Delete all services (if not already done via driver uninstallation). */
+    for (size_t i = 0; i < RT_ELEMENTS(s_aszServicesToStopOrdered); i++)
+        DELETE_SERVICE(s_aszServicesToStopOrdered[i]);
+
+    /* Ditto. */
+    DELETE_SERVICE("VBoxSup");
+
+#undef STOP_SERVICE
+#undef UNINSTALL_DRIVER
+
+    return VINF_SUCCESS;
 }
 
 /**
@@ -618,11 +702,13 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
     char *pszPnpId = NULL;
     char *pszInfSection = NULL;
 
-    /* By default we want a silent uninstallation. */
+    /* By default we want a silent uninstallation (but not forcing it). */
     uint32_t fInstall = VBOX_WIN_DRIVERINSTALL_F_SILENT;
 
     /* Whether to ignore reboot messages or not. This will also affect the returned exit code. */
     bool fIgnoreReboot = false;
+    /* Whether to (automatically) uninstall all related VBox host drivers or not. */
+    bool fVBoxHost = false;
 
     int rc = VINF_SUCCESS;
 
@@ -644,6 +730,10 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
             case 'h':
                 return vboxDrvInstShowUsage(g_pStdOut, &g_CmdUninstall);
 
+            case VBOXDRVINST_UNINSTALL_OPT_HOST:
+                fVBoxHost = true;
+                break;
+
             case VBOXDRVINST_UNINSTALL_OPT_INF_FILE:
                 DUP_ARG_TO_STR(pszInfFile);
                 break;
@@ -658,6 +748,10 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
 
             case VBOXDRVINST_UNINSTALL_OPT_PNPID:
                 DUP_ARG_TO_STR(pszPnpId);
+                break;
+
+            case VBOXDRVINST_UNINSTALL_OPT_FORCE:
+                fInstall |= VBOX_WIN_DRIVERINSTALL_F_FORCE;
                 break;
 
             case VBOXDRVINST_UNINSTALL_OPT_NOT_SILENT:
@@ -684,7 +778,10 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdUninstallMain(PRTGETOPTSTATE pGetS
     rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, g_uVerbosity, &vboxDrvInstLogCallback, NULL /* pvUser */);
     if (RT_SUCCESS(rc))
     {
-        rc = VBoxWinDrvInstUninstall(hWinDrvInst, pszInfFile, pszModel, pszPnpId, fInstall);
+        if (fVBoxHost)
+            rc = vboxDrvInstCmdUninstallVBoxHost(hWinDrvInst, fInstall);
+        else
+            rc = VBoxWinDrvInstUninstall(hWinDrvInst, pszInfFile, pszModel, pszPnpId, fInstall);
         if (RT_SUCCESS(rc))
         {
             if (   rc == VINF_REBOOT_NEEDED
@@ -877,6 +974,7 @@ static RTEXITCODE vboxDrvInstShowUsage(PRTSTREAM pStrm, PCVBOXDRVINSTCMD pOnlyCm
     RTStrmPrintf(pStrm, "\nExamples:\n");
     RTStrmPrintf(pStrm, "\t%s install   --inf-file C:\\Path\\To\\VBoxUSB.inf\n", pszProcName);
     RTStrmPrintf(pStrm, "\t%s install   --debug-os-ver 6:0 --inf-file C:\\Path\\To\\VBoxGuest.inf\n", pszProcName);
+    RTStrmPrintf(pStrm, "\t%s uninstall host\n", pszProcName);
     RTStrmPrintf(pStrm, "\t%s uninstall --inf -file C:\\Path\\To\\VBoxUSB.inf --pnp-id \"USB\\VID_80EE&PID_CAFE\"\n", pszProcName);
     RTStrmPrintf(pStrm, "\t%s uninstall --model \"VBoxUSB.AMD64\"\n", pszProcName);
     RTStrmPrintf(pStrm, "\t%s uninstall --model \"VBoxUSB*\"\n", pszProcName);

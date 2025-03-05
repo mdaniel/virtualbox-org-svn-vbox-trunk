@@ -1094,7 +1094,7 @@ static VBOXSTRICTRC gicDistWriteIntrConfigReg(PGICDEV pGicDev, uint16_t idxReg, 
     if (idxReg >= 2)
     {
         Assert(idxReg < RT_ELEMENTS(pGicDev->bmIntrConfig));
-        pGicDev->bmIntrConfig[idxReg] = uValue;
+        pGicDev->bmIntrConfig[idxReg] = uValue & 0xaaaaaaaa;
     }
     else
         AssertReleaseFailed();
@@ -1390,16 +1390,10 @@ static VBOXSTRICTRC gicReDistReadIntrConfigReg(PCGICDEV pGicDev, PGICCPU pGicCpu
 {
     /* When affinity routing is disabled, reads return 0. */
     Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
-    if (idxReg > 0)
-    {
-        Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrConfig));
-        *puValue = pGicCpu->bmIntrConfig[idxReg];
-    }
-    else
-    {
-        /* SGIs are read-only and are always edge-triggered. */
-        *puValue = 0xaaaaaaaa;
-    }
+    Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrConfig));
+    *puValue = pGicCpu->bmIntrConfig[idxReg];
+    /* Ensure SGIs are read-only and remain configured as edge-triggered. */
+    Assert(idxReg > 0 || *puValue == 0xaaaaaaaa);
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
     return VINF_SUCCESS;
 }
@@ -1422,11 +1416,11 @@ static VBOXSTRICTRC gicReDistWriteIntrConfigReg(PCGICDEV pGicDev, PVMCPUCC pVCpu
     if (idxReg > 0)
     {
         Assert(idxReg < RT_ELEMENTS(pGicCpu->bmIntrConfig));
-        pGicCpu->bmIntrConfig[idxReg] = uValue;
+        pGicCpu->bmIntrConfig[idxReg] = uValue & 0xaaaaaaaa;
     }
     else
     {
-        /* SGIs are always edge triggered ignore writes, verify value on strict builds (e.g. aarch64 Win11 writes this). */
+        /* SGIs are always edge-triggered ignore writes, verify value on strict builds (arm64 Win11 guests writes this). */
         Assert(uValue == 0xaaaaaaaa);
         Assert(pGicCpu->bmIntrConfig[0] == uValue);
     }
@@ -2018,9 +2012,10 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
                          pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
             pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bPriority;
 
-            /* Clear edge level interrupts like SGIs as pending. */
-            /** @todo do this for all edge-triggered? */
-            if (idxIntr <= GIC_INTID_RANGE_SGI_LAST)
+            /* If it is an edge-triggered interrupt, mark it as no longer pending. */
+            AssertRelease(2 * idxIntr + 1 < sizeof(pGicCpu->bmIntrConfig) * 8);
+            bool const fEdgeTriggered = ASMBitTest(&pGicCpu->bmIntrConfig[0], 2 * idxIntr + 1);
+            if (fEdgeTriggered)
                 ASMBitClear(&pGicCpu->bmIntrPending[0], idxIntr);
 
             /* Update the redistributor IRQ state to reflect change in active interrupt. */
@@ -2046,6 +2041,12 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
                          bPriority,
                          pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
             pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bPriority;
+
+            /* If it is an edge-triggered interrupt, mark it as no longer pending. */
+            AssertRelease(2 * idxIntr + 1 < sizeof(pGicDev->bmIntrConfig) * 8);
+            bool const fEdgeTriggered = ASMBitTest(&pGicDev->bmIntrConfig[0], 2 * idxIntr + 1);
+            if (fEdgeTriggered)
+                ASMBitClear(&pGicDev->bmIntrPending[0], idxIntr);
 
             /* Update the distributor IRQ state to reflect change in active interrupt. */
             gicDistUpdateIrqState(pVCpu->CTX_SUFF(pVM), pGicDev);

@@ -38,8 +38,6 @@ EXPORTS
     InstallPythonAPI
     InstallBranding
     UninstallBranding
-    InstallNetFlt
-    UninstallNetFlt
     UninstallNetAdp
     InstallNetLwf
     UninstallNetLwf
@@ -48,9 +46,7 @@ EXPORTS
     DriverInstall
     DriverUninstall
     ServiceControl
-    CreateHostOnlyInterface
     StopHostOnlyInterfaces
-    UpdateHostOnlyInterfaces
     RemoveHostOnlyInterfaces
     Ndis6CreateHostOnlyInterface
     Ndis6UpdateHostOnlyInterfaces

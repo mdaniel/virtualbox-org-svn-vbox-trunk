@@ -113,7 +113,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     do \
     { \
         pHlp->pfnPrintf(pHlp, "  " a_Name " =\n"); \
-        for (unsigned i = 0; i < RT_ELEMENTS(a_bmIntr); i += 8) \
+        for (uint32_t i = 0; i < RT_ELEMENTS(a_bmIntr); i += 8) \
             pHlp->pfnPrintf(pHlp, "    [%2u..%-2u] %#010x %#010x %#010x %#010x %#010x %#010x %#010x %#010x\n", i, i + 7, \
                             (a_bmIntr)[i],   (a_bmIntr)[i+1], (a_bmIntr)[i+2], (a_bmIntr)[i+3],  \
                             (a_bmIntr)[i+4], (a_bmIntr)[i+5], (a_bmIntr)[i+6], (a_bmIntr)[i+7]); \
@@ -128,11 +128,25 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrPending", pGicDev->bmIntrPending);
     GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrActive",  pGicDev->bmIntrActive);
 
-    /** @todo Print priorioties and routing information. */
+    uint32_t const cPriorities = RT_ELEMENTS(pGicDev->abIntrPriority);
+    AssertCompile(!(cPriorities % 16));
+    pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
+    for (uint32_t i = 0; i < cPriorities; i += 16)
+        pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                              "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                        gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
+                        pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
+                        pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
+                        pGicDev->abIntrPriority[i + 4],  pGicDev->abIntrPriority[i + 5],
+                        pGicDev->abIntrPriority[i + 6],  pGicDev->abIntrPriority[i + 7],
+                        gicDistGetIntIdFromIndex(i + 8), gicDistGetIntIdFromIndex(i + 15),
+                        pGicDev->abIntrPriority[i + 8],  pGicDev->abIntrPriority[i + 9],
+                        pGicDev->abIntrPriority[i + 10], pGicDev->abIntrPriority[i + 11],
+                        pGicDev->abIntrPriority[i + 12], pGicDev->abIntrPriority[i + 13],
+                        pGicDev->abIntrPriority[i + 14], pGicDev->abIntrPriority[i + 15]);
+
+    /** @todo Print routing information. */
 #if 0
-    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->abIntrPriority); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->abIntrPriority[i]);
     pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntrRouting); i++)
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->au32IntrRouting[i]);
@@ -168,12 +182,22 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrPending[0], pGicCpu->bmIntrPending[1], pGicCpu->bmIntrPending[2]);
     pHlp->pfnPrintf(pHlp, "  bmIntrActive[0..2]  = %#010x %#010x %#010x\n", pGicCpu->bmIntrActive[0],  pGicCpu->bmIntrActive[1],  pGicCpu->bmIntrActive[2]);
 
-    /** @todo Interrupt priorities. */
-#if 0
-    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicCpu->abIntrPriority); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicReDistGetIntIdFromIndex(i), pGicCpu->abIntrPriority[i]);
-#endif
+    uint32_t const cPriorities = RT_ELEMENTS(pGicCpu->abIntrPriority);
+    AssertCompile(!(cPriorities % 16));
+    pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
+    for (uint32_t i = 0; i < cPriorities; i += 16)
+        pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                              "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                        gicReDistGetIntIdFromIndex(i),     gicReDistGetIntIdFromIndex(i + 7),
+                        pGicCpu->abIntrPriority[i],        pGicCpu->abIntrPriority[i + 1],
+                        pGicCpu->abIntrPriority[i + 2],    pGicCpu->abIntrPriority[i + 3],
+                        pGicCpu->abIntrPriority[i + 4],    pGicCpu->abIntrPriority[i + 5],
+                        pGicCpu->abIntrPriority[i + 6],    pGicCpu->abIntrPriority[i + 7],
+                        gicReDistGetIntIdFromIndex(i + 8), gicReDistGetIntIdFromIndex(i + 15),
+                        pGicCpu->abIntrPriority[i + 8],    pGicCpu->abIntrPriority[i + 9],
+                        pGicCpu->abIntrPriority[i + 10],   pGicCpu->abIntrPriority[i + 11],
+                        pGicCpu->abIntrPriority[i + 12],   pGicCpu->abIntrPriority[i + 13],
+                        pGicCpu->abIntrPriority[i + 14],   pGicCpu->abIntrPriority[i + 15]);
 
     pHlp->pfnPrintf(pHlp, "\nVCPU[%u] ICC state:\n", pVCpu->idCpu);
     pHlp->pfnPrintf(pHlp, "  uIccCtlr            = %#RX64\n",  pGicCpu->uIccCtlr);

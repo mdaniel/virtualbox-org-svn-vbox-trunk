@@ -272,7 +272,7 @@ DECLHIDDEN(uint16_t) gicReDistGetIntIdFromIndex(uint16_t idxIntr)
         uIntId = idxIntr;
     /* Extended PPIs. */
     else if (idxIntr < 96)
-        uIntId = GIC_INTID_RANGE_PPI_LAST + 1 + idxIntr - GIC_INTID_RANGE_EXT_PPI_START;
+        uIntId = GIC_INTID_RANGE_EXT_PPI_START + idxIntr - 32;
     else
     {
         uIntId = 0;

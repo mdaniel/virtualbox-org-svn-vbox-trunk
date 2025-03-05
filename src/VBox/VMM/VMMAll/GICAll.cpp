@@ -1652,6 +1652,7 @@ static DECLCALLBACK(void) gicUpdatePendingInterrupts(PVMCPUCC pVCpu)
 #endif
 
 
+#if 0
 /**
  * Gets the highest priority pending distributor interrupt that can be forwarded to
  * the redistributor.
@@ -1810,6 +1811,7 @@ static uint16_t gicReDistGetHighestPrioPendingIntr(PCGICCPU pGicCpu, bool fGroup
     LogFlowFunc(("uIntId=%u [idxIntr=%u uPriority=%u]\n", uIntId, idxIntr, uPriority));
     return uIntId;
 }
+#endif
 
 
 #if 1
@@ -1986,42 +1988,17 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
     Assert(fGroup0 || fGroup1);
     LogFlowFunc(("fGroup0=%RTbool fGroup1=%RTbool\n", fGroup0, fGroup1));
 
-    /** @todo Later combine the redistributor and distributor interrupt
-     *        gathering.  */
-
     /* Get highest priority pending interrupt from the distributor. */
-    uint8_t  bPriority;
-    uint16_t idxIntr;
-    uint16_t uIntId = gicDistGetHighestPrioPendingIntr(pGicDev, fGroup0, fGroup1, &idxIntr, &bPriority);
-
-    /* Compare with the highest priority pending interrupt from the redistributor. */
-    PGICCPU  pGicCpu   = VMCPU_TO_GICCPU(pVCpu);
-    bool     fInRedist = false;
-    uint8_t  bPriorityRedist;
-    uint16_t idxRedistIntr;
-    uint16_t const uIntIdRedist = gicReDistGetHighestPrioPendingIntr(pGicCpu, fGroup0, fGroup1, &idxRedistIntr, &bPriorityRedist);
-    if (   uIntIdRedist != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT
-        && bPriorityRedist < bPriority)
-    {
-        fInRedist = true;
-        bPriority = bPriorityRedist;
-        uIntId    = uIntIdRedist;
-        idxIntr   = idxRedistIntr;
-    }
-
-    /* Sanity check if the interrupt ID is within known ranges. */
-    Assert(   GIC_IS_INTR_SGI_OR_PPI(uIntId)
-           || GIC_IS_INTR_SPI(uIntId)
-           || GIC_IS_INTR_EXT_PPI(uIntId)
-           || GIC_IS_INTR_EXT_SPI(uIntId)
-           || uIntId == GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT);
-    /* Ensure that if no interrupt is pending, the priority is appropriate. */
-    Assert(uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT || bPriority == GIC_IDLE_PRIORITY);
+    uint8_t   bPriority;
+    uint16_t  idxIntr;
+    PGICCPU   pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+    uint16_t const uIntId = gicGetHighestPrioPendingIntrEx(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bPriority);
 
     /* Acknowledge the interrupt. */
     if (uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT)
     {
-        if (fInRedist)
+        bool const fIsRedistIntId = GIC_IS_INTR_SGI_OR_PPI(uIntId) || GIC_IS_INTR_EXT_PPI(uIntId);
+        if (fIsRedistIntId)
         {
             /** @todo Check if the interrupt has sufficient priority (preemption level
              *        checking?). */
@@ -2052,6 +2029,9 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
             /** @todo Check if the interrupt has sufficient priority (preemption level
              *        checking?). */
 
+            /* Sanity check if the interrupt ID belongs to the distirbutor. */
+            Assert(GIC_IS_INTR_SPI(uIntId) || GIC_IS_INTR_EXT_SPI(uIntId));
+
             /* Mark the interrupt as active. */
             Assert(idxIntr < sizeof(pGicDev->bmIntrActive) * 8);
             ASMBitSet(&pGicDev->bmIntrActive[0], idxIntr);
@@ -2069,6 +2049,8 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
             gicDistUpdateIrqState(pVCpu->CTX_SUFF(pVM), pGicDev);
         }
     }
+    else
+        Assert(bPriority == GIC_IDLE_PRIORITY);
 
     LogFlowFunc(("uIntId=%u\n", uIntId));
     return uIntId;

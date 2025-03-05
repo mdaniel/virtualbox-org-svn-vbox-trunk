@@ -1812,6 +1812,122 @@ static uint16_t gicReDistGetHighestPrioPendingIntr(PCGICCPU pGicCpu, bool fGroup
 }
 
 
+#if 1
+/**
+ * Gets the highest priority pending interrupt that can be signalled to the PE.
+ *
+ * @returns The interrupt ID or GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT if no interrupt
+ *          is pending or not in a state to be signalled to the PE.
+ * @param   pGicDev     The GIC distributor state.
+ * @param   pGicCpu     The GIC redistributor and CPU interface state.
+ * @param   fGroup0     Whether to consider group 0 interrupts.
+ * @param   fGroup1     Whether to consider group 1 interrupts.
+ * @param   pidxIntr    Where to store the distributor interrupt index for the
+ *                      returned interrupt ID. UINT16_MAX if this function returns
+ *                      GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT. Optional, can be
+ *                      NULL.
+ * @param   pbPriority  Where to store the priority of the returned interrupt ID.
+ *                      GIC_IDLE_PRIORITY if this function returns
+ *                      GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT.
+ */
+static uint16_t gicGetHighestPrioPendingIntrEx(PCGICDEV pGicDev, PCGICCPU pGicCpu, bool fGroup0, bool fGroup1,
+                                               uint16_t *pidxIntr, uint8_t *pbPriority)
+{
+#define GIC_DIST_INTR_COUNT     RT_ELEMENTS(pGicDev->bmIntrPending)
+#define GIC_REDIST_INTR_COUNT   RT_ELEMENTS(pGicCpu->bmIntrPending)
+
+    /*
+     * Collect interrupts that are pending, enabled and inactive.
+     * Discard interrupts if the group they belong to is disabled.
+     */
+    uint32_t bmIntrPending[GIC_REDIST_INTR_COUNT + GIC_DIST_INTR_COUNT];
+    for (uint16_t i = 0; i < GIC_REDIST_INTR_COUNT; i++)
+    {
+        bmIntrPending[i] = (pGicCpu->bmIntrPending[i] & pGicCpu->bmIntrEnabled[i]) & ~pGicCpu->bmIntrActive[i];
+        if (!fGroup1)
+            bmIntrPending[i] &= ~pGicCpu->bmIntrGroup[i];
+        if (!fGroup0)
+            bmIntrPending[i] &= pGicCpu->bmIntrGroup[i];
+    }
+    for (uint16_t i = 0; i < GIC_DIST_INTR_COUNT; i++)
+    {
+        uint16_t const idxPending = i + GIC_REDIST_INTR_COUNT;
+        bmIntrPending[idxPending] = (pGicDev->bmIntrPending[i] & pGicDev->bmIntrEnabled[i]) & ~pGicDev->bmIntrActive[i];
+        if (!fGroup1)
+            bmIntrPending[idxPending] &= ~pGicDev->bmIntrGroup[i];
+        if (!fGroup0)
+            bmIntrPending[idxPending] &= pGicDev->bmIntrGroup[i];
+    }
+
+    /*
+     * Among the collected interrupts, pick the one with the highest, non-idle priority.
+     */
+    uint16_t uIntId     = GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
+    uint16_t idxHighest = UINT16_MAX;
+    uint8_t  uPriority  = GIC_IDLE_PRIORITY;
+    /* Redistributor. */
+    {
+        const void    *pvIntrs = &bmIntrPending[0];
+        uint32_t const cIntrs  = sizeof(pGicCpu->bmIntrPending) * 8; AssertCompile(!(cIntrs % 32));
+        int32_t        idxIntr = ASMBitFirstSet(pvIntrs, cIntrs);
+        if (idxIntr >= 0)
+        {
+            do
+            {
+                if (pGicCpu->abIntrPriority[idxIntr] < uPriority)
+                {
+                    idxHighest = (uint16_t)idxIntr;
+                    uPriority  = pGicCpu->abIntrPriority[idxIntr];
+                }
+                idxIntr = ASMBitNextSet(pvIntrs, cIntrs, idxIntr);
+            } while (idxIntr != -1);
+            if (uPriority != GIC_IDLE_PRIORITY)
+                uIntId = gicReDistGetIntIdFromIndex(idxHighest);
+        }
+    }
+    /* Distributor. */
+    {
+        const void    *pvIntrs = &bmIntrPending[GIC_REDIST_INTR_COUNT];
+        uint32_t const cIntrs  = sizeof(pGicDev->bmIntrPending) * 8; AssertCompile(!(cIntrs % 32));
+        int32_t        idxIntr = ASMBitFirstSet(pvIntrs, cIntrs);
+        if (idxIntr >= 0)
+        {
+            do
+            {
+                if (pGicDev->abIntrPriority[idxIntr] < uPriority)
+                {
+                    idxHighest = (uint16_t)idxIntr;
+                    uPriority  = pGicDev->abIntrPriority[idxIntr];
+                }
+                idxIntr = ASMBitNextSet(pvIntrs, cIntrs, idxIntr);
+            } while (idxIntr != -1);
+            if (uPriority != GIC_IDLE_PRIORITY)
+                uIntId = gicDistGetIntIdFromIndex(idxHighest);
+        }
+    }
+
+    /* Sanity check if the interrupt ID is within known ranges. */
+    Assert(   GIC_IS_INTR_SGI_OR_PPI(uIntId)
+           || GIC_IS_INTR_EXT_PPI(uIntId)
+           || GIC_IS_INTR_SPI(uIntId)
+           || GIC_IS_INTR_EXT_PPI(uIntId)
+           || GIC_IS_INTR_EXT_SPI(uIntId)
+           || uIntId == GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT);
+    /* Ensure that if no interrupt is pending, the idle priority is returned. */
+    Assert(uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT || uPriority == GIC_IDLE_PRIORITY);
+
+    if (pbPriority)
+        *pbPriority = uPriority;
+    if (pidxIntr)
+        *pidxIntr = idxHighest;
+
+    LogFlowFunc(("uIntId=%u [idxHighest=%u uPriority=%u]\n", uIntId, idxHighest, uPriority));
+    return uIntId;
+
+#undef GIC_DIST_INTR_COUNT
+#undef GIC_REDIST_INTR_COUNT
+}
+#else
 /**
  * Gets the highest priority pending interrupt that can be signalled to the PE.
  *
@@ -1852,6 +1968,7 @@ static uint16_t gicGetHighestPrioPendingIntr(PCVMCPUCC pVCpu, PCGICDEV pGicDev, 
     LogFlowFunc(("uIntId=%u [bPriority=%u]\n", uIntId, bPriority));
     return uIntId;
 }
+#endif
 
 
 /**
@@ -3379,7 +3496,8 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             }
 #else
             AssertReleaseFailed();
-            *pu64Value = gicGetHighestPrioPendingIntr(pVCpu, pGicDev, false /*fGroup0*/, true /*fGroup1*/);
+            *pu64Value = gicGetHighestPrioPendingIntrEx(pGicDev, pGicCpu, false /*fGroup0*/, true /*fGroup1*/, NULL /*pidxIntr*/,
+                                                        NULL /*pbPriority*/);
 #endif
             break;
         }

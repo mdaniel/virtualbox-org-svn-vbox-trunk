@@ -3346,7 +3346,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_BPR0_EL1:
-            *pu64Value = ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_SET(pGicCpu->bBinaryPointGrp0);
+            *pu64Value = ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_SET(pGicCpu->bBinaryPtGroup0);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
             AssertReleaseFailed();
@@ -3487,7 +3487,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             break;
         }
         case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:
-            *pu64Value = ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_SET(pGicCpu->bBinaryPointGrp1);
+            *pu64Value = ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_SET(pGicCpu->bBinaryPtGroup1);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_CTLR_EL1:
             *pu64Value = pGicCpu->uIccCtlr;
@@ -3557,7 +3557,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
 #if 0
             pThis->bBinaryPointGrp0 = (uint8_t)ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_GET(u64Value);
 #else
-            pGicCpu->bBinaryPointGrp0 = (uint8_t)ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_GET(u64Value);
+            pGicCpu->bBinaryPtGroup0 = (uint8_t)ARMV8_ICC_BPR0_EL1_AARCH64_BINARYPOINT_GET(u64Value);
 #endif
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
@@ -3743,7 +3743,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_BPR1_EL1:
-            pGicCpu->bBinaryPointGrp1 = (uint8_t)ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_GET(u64Value);
+            pGicCpu->bBinaryPtGroup1 = (uint8_t)ARMV8_ICC_BPR1_EL1_AARCH64_BINARYPOINT_GET(u64Value);
             break;
         case ARMV8_AARCH64_SYSREG_ICC_CTLR_EL1:
             pGicCpu->uIccCtlr &= ARMV8_ICC_CTLR_EL1_RW;
@@ -3825,8 +3825,8 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 
     /* The binary point register are undefined on reset, initialized
        with arbitrarily chosen values in our implementation. */
-    pGicCpu->bBinaryPointGrp0 = 3;
-    pGicCpu->bBinaryPointGrp1 = 3;
+    pGicCpu->bBinaryPtGroup0 = 3;
+    pGicCpu->bBinaryPtGroup1 = 3;
 }
 
 

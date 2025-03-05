@@ -262,9 +262,9 @@ typedef struct GICCPU
     /** The current interrupt priority, only interrupts with a higher priority get signalled. */
     uint8_t                     bInterruptPriority;
     /** The binary point register for group 0 interrupts. */
-    uint8_t                     bBinaryPointGrp0;
+    uint8_t                     bBinaryPtGroup0;
     /** The binary point register for group 1 interrupts. */
-    uint8_t                     bBinaryPointGrp1;
+    uint8_t                     bBinaryPtGroup1;
     /** Flag whether group 0 interrupts are enabled. */
     bool                        fIntrGroup0Enabled;
     /** Flag whether group 1 interrupts are enabled. */

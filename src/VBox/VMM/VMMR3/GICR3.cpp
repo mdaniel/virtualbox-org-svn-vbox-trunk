@@ -84,40 +84,13 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GIC[] =
 static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     RT_NOREF(pszArgs);
-
-    PCGIC       pGic    = VM_TO_GIC(pVM);
-    PPDMDEVINS  pDevIns = pGic->CTX_SUFF(pDevIns);
-    PCGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
-
-    pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->bmIntrGroup[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->bmIntrConfig[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->bmIntrConfig[1]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicDev->bmIntrEnabled[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicDev->bmIntrPending[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicDev->bmIntrActive[0]);
-
-    PVMCPU pVCpu = VMMGetCpu(pVM);
-    if (!pVCpu)
-        pVCpu = pVM->apCpusR3[0];
-    PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-
-    pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicCpu->bmIntrGroup[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicCpu->bmIntrConfig[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicCpu->bmIntrConfig[1]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicCpu->bmIntrEnabled[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicCpu->bmIntrPending[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicCpu->bmIntrActive[0]);
-
-    pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
-    pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
-    pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicCpu->idxRunningPriority);
-    pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
+    PCGIC      pGic    = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    pHlp->pfnPrintf(pHlp, "GIC:\n");
+    pHlp->pfnPrintf(pHlp, "  uArchRev         = %u\n",      pGicDev->uArchRev);
+    pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
+    pHlp->pfnPrintf(pHlp, "  fRangeSelSupport = %RTbool\n", pGicDev->fRangeSelSupport);
 }
 
 
@@ -136,28 +109,27 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
-    pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
-#if 0
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->u32RegIGrp0);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->u32RegICfg0);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->u32RegICfg1);
-    pHlp->pfnPrintf(pHlp, "  bmIntEnabled     = %#RX32\n", pGicDev->bmIntEnabled);
-    pHlp->pfnPrintf(pHlp, "  bmIntPending     = %#RX32\n", pGicDev->bmIntPending);
-    pHlp->pfnPrintf(pHlp, "  bmIntActive      = %#RX32\n", pGicDev->bmIntActive);
-    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->abIntPriority); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", GIC_INTID_RANGE_SPI_START + i, pGicDev->abIntPriority[i]);
+#define GIC_DBGFINFO_DIST_INTR_BITMAP(a_Name, a_bmIntr) \
+    do \
+    { \
+        pHlp->pfnPrintf(pHlp, "  " a_Name " =\n"); \
+        for (unsigned i = 0; i < RT_ELEMENTS(a_bmIntr); i += 8) \
+            pHlp->pfnPrintf(pHlp, "    [%2u..%-2u] %#010x %#010x %#010x %#010x %#010x %#010x %#010x %#010x\n", i, i + 7, \
+                            (a_bmIntr)[i],   (a_bmIntr)[i+1], (a_bmIntr)[i+2], (a_bmIntr)[i+3],  \
+                            (a_bmIntr)[i+4], (a_bmIntr)[i+5], (a_bmIntr)[i+6], (a_bmIntr)[i+7]); \
+    } while (0)
 
-    pHlp->pfnPrintf(pHlp, " Interrupt routing:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->au32IntRouting); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", GIC_INTID_RANGE_SPI_START + i, pGicDev->au32IntRouting[i]);
-#else
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicDev->bmIntrGroup[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicDev->bmIntrConfig[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicDev->bmIntrConfig[1]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicDev->bmIntrEnabled[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicDev->bmIntrPending[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicDev->bmIntrActive[0]);
+    pHlp->pfnPrintf(pHlp, "GIC Distributor:\n");
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicDev->fIntrGroup0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicDev->fIntrGroup1Enabled);
+    pHlp->pfnPrintf(pHlp, "  fAffRoutingEnabled = %RTbool\n", pGicDev->fAffRoutingEnabled);
+    GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrGroup",   pGicDev->bmIntrGroup);
+    GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrEnabled", pGicDev->bmIntrEnabled);
+    GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrPending", pGicDev->bmIntrPending);
+    GIC_DBGFINFO_DIST_INTR_BITMAP("bmIntrActive",  pGicDev->bmIntrActive);
+
+    /** @todo Print priorioties and routing information. */
+#if 0
     pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicDev->abIntrPriority); i++)
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->abIntrPriority[i]);
@@ -166,8 +138,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicDistGetIntIdFromIndex(i), pGicDev->au32IntrRouting[i]);
 #endif
 
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicDev->fIntrGroup0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicDev->fIntrGroup1Enabled);
+#undef GIC_DBGFINFO_DIST_INTR_BITMAP
 }
 
 
@@ -185,51 +156,33 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     if (!pVCpu)
         pVCpu = pVM->apCpusR3[0];
 
-#if 0
-    PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
-
-    pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicVCpu->u32RegIGrp0);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicVCpu->u32RegICfg0);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicVCpu->u32RegICfg1);
-    pHlp->pfnPrintf(pHlp, "  bmIntEnabled     = %#RX32\n", pGicVCpu->bmIntEnabled);
-    pHlp->pfnPrintf(pHlp, "  bmIntPending     = %#RX32\n", pGicVCpu->bmIntPending);
-    pHlp->pfnPrintf(pHlp, "  bmIntActive      = %#RX32\n", pGicVCpu->bmIntActive);
-    pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
-    for (uint32_t i = 0; i < RT_ELEMENTS(pGicVCpu->abIntPriority); i++)
-        pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", i, pGicVCpu->abIntPriority[i]);
-
-    pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp0Enabled    = %RTbool\n", pGicVCpu->fIrqGrp0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIrqGrp1Enabled    = %RTbool\n", pGicVCpu->fIrqGrp1Enabled);
-    pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicVCpu->bInterruptPriority);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicVCpu->bBinaryPointGrp0);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicVCpu->bBinaryPointGrp1);
-    pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicVCpu->idxRunningPriority);
-    pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicVCpu->abRunningPriorities[pGicVCpu->idxRunningPriority]);
-#else
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  IGRP0            = %#RX32\n", pGicCpu->bmIntrGroup[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG0            = %#RX32\n", pGicCpu->bmIntrConfig[0]);
-    pHlp->pfnPrintf(pHlp, "  ICFG1            = %#RX32\n", pGicCpu->bmIntrConfig[1]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled    = %#RX32\n", pGicCpu->bmIntrEnabled[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrPending    = %#RX32\n", pGicCpu->bmIntrPending[0]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrActive     = %#RX32\n", pGicCpu->bmIntrActive[0]);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrGroup)   == 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrEnabled) == 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrPending) == 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrActive)  == 3);
+    pHlp->pfnPrintf(pHlp, "  bmIntrGroup[0..2]   = %#010x %#010x %#010x\n", pGicCpu->bmIntrGroup[0],   pGicCpu->bmIntrGroup[1],   pGicCpu->bmIntrGroup[2]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrEnabled[0], pGicCpu->bmIntrEnabled[1], pGicCpu->bmIntrEnabled[2]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrPending[0], pGicCpu->bmIntrPending[1], pGicCpu->bmIntrPending[2]);
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive[0..2]  = %#010x %#010x %#010x\n", pGicCpu->bmIntrActive[0],  pGicCpu->bmIntrActive[1],  pGicCpu->bmIntrActive[2]);
+
+    /** @todo Interrupt priorities. */
+#if 0
     pHlp->pfnPrintf(pHlp, " Interrupt priorities:\n");
     for (uint32_t i = 0; i < RT_ELEMENTS(pGicCpu->abIntrPriority); i++)
         pHlp->pfnPrintf(pHlp, "     INTID %u    = %u\n", gicReDistGetIntIdFromIndex(i), pGicCpu->abIntrPriority[i]);
-
-    pHlp->pfnPrintf(pHlp, "VCPU[%u] ICC state:\n", pVCpu->idCpu);
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
-    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
-    pHlp->pfnPrintf(pHlp, "  bInterruptPriority = %u\n",      pGicCpu->bInterruptPriority);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp0   = %u\n",      pGicCpu->bBinaryPointGrp0);
-    pHlp->pfnPrintf(pHlp, "  bBinaryPointGrp1   = %u\n",      pGicCpu->bBinaryPointGrp1);
-    pHlp->pfnPrintf(pHlp, "  idxRunningPriority = %u\n",      pGicCpu->idxRunningPriority);
-    pHlp->pfnPrintf(pHlp, "  Running priority   = %u\n",      pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
 #endif
+
+    pHlp->pfnPrintf(pHlp, "\nVCPU[%u] ICC state:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "  uIccCtlr            = %#RX64\n",  pGicCpu->uIccCtlr);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled  = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
+    pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled  = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPtGroup0     = %#x\n",     pGicCpu->bBinaryPtGroup0);
+    pHlp->pfnPrintf(pHlp, "  bBinaryPtGroup1     = %#x\n",     pGicCpu->bBinaryPtGroup1);
+    pHlp->pfnPrintf(pHlp, "  idxRunningPriority  = %#x\n",     pGicCpu->idxRunningPriority);
+    pHlp->pfnPrintf(pHlp, "  Running priority    = %#x\n",     pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
 }
 
 
@@ -414,8 +367,8 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8, pGicCpu->abRunningPriorities);
         pHlp->pfnSSMPutU8(pSSM,              pGicCpu->idxRunningPriority);
         pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bInterruptPriority);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp0);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPointGrp1);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPtGroup0);
+        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup0Enabled);
         pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup1Enabled);
     }
@@ -561,8 +514,8 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8, pGicCpu->abRunningPriorities);
         pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->idxRunningPriority);
         pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bInterruptPriority);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp0);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPointGrp1);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPtGroup0);
+        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup0Enabled);
         pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup1Enabled);
     }

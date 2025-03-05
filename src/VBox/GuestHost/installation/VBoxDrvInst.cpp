@@ -231,6 +231,7 @@ enum
     VBOXDRVINST_SERVICE_OPT_START = 900,
     VBOXDRVINST_SERVICE_OPT_STOP,
     VBOXDRVINST_SERVICE_OPT_RESTART,
+    VBOXDRVINST_SERVICE_OPT_DELETE,
     VBOXDRVINST_SERVICE_OPT_WAIT,
     VBOXDRVINST_SERVICE_OPT_NO_WAIT
 };
@@ -240,9 +241,12 @@ enum
  */
 static const RTGETOPTDEF g_aCmdServiceOptions[] =
 {
+    /* Sub commands. */
     { "start",     VBOXDRVINST_SERVICE_OPT_START,   RTGETOPT_REQ_NOTHING },
     { "stop",      VBOXDRVINST_SERVICE_OPT_STOP,    RTGETOPT_REQ_NOTHING },
     { "restart",   VBOXDRVINST_SERVICE_OPT_RESTART, RTGETOPT_REQ_NOTHING },
+    { "delete",    VBOXDRVINST_SERVICE_OPT_DELETE,  RTGETOPT_REQ_NOTHING },
+    /* Parameters. */
     { "--wait",    VBOXDRVINST_SERVICE_OPT_WAIT,    RTGETOPT_REQ_INT32 },
     { "--no-wait", VBOXDRVINST_SERVICE_OPT_NO_WAIT, RTGETOPT_REQ_NOTHING }
 };
@@ -807,11 +811,12 @@ static DECLCALLBACK(const char *) vboxDrvInstCmdServiceHelp(PCRTGETOPTDEF pOpt)
 {
     switch (pOpt->iShort)
     {
-        case VBOXDRVINST_SERVICE_OPT_START:   return "Starts the service";
-        case VBOXDRVINST_SERVICE_OPT_STOP:    return "Stops the service";
-        case VBOXDRVINST_SERVICE_OPT_RESTART: return "Restarts the service";
-        case VBOXDRVINST_SERVICE_OPT_WAIT:    return "Waits for the service to reach the desired state";
-        case VBOXDRVINST_SERVICE_OPT_NO_WAIT: return "Skips waiting for the service to reach the desired state";
+        case VBOXDRVINST_SERVICE_OPT_START:   return "Starts a service";
+        case VBOXDRVINST_SERVICE_OPT_STOP:    return "Stops a service";
+        case VBOXDRVINST_SERVICE_OPT_RESTART: return "Restarts a service";
+        case VBOXDRVINST_SERVICE_OPT_DELETE:  return "Deletes a service";
+        case VBOXDRVINST_SERVICE_OPT_WAIT:    return "Waits for a service to reach the desired state";
+        case VBOXDRVINST_SERVICE_OPT_NO_WAIT: return "Skips waiting for a service to reach the desired state";
 
         default:
             break;
@@ -857,6 +862,14 @@ static DECLCALLBACK(RTEXITCODE) vboxDrvInstCmdServiceMain(PRTGETOPTSTATE pGetSta
                 if (enmFn != VBOXWINDRVSVCFN_INVALID)
                     return RTMsgErrorExitFailure("Service control function already specified\n");
                 enmFn = VBOXWINDRVSVCFN_RESTART;
+                break;
+            }
+
+            case VBOXDRVINST_SERVICE_OPT_DELETE:
+            {
+                if (enmFn != VBOXWINDRVSVCFN_INVALID)
+                    return RTMsgErrorExitFailure("Service control function already specified\n");
+                enmFn = VBOXWINDRVSVCFN_DELETE;
                 break;
             }
 

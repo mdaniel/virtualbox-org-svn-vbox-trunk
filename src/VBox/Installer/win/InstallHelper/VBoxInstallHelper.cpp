@@ -1710,7 +1710,7 @@ UINT __stdcall ServiceControl(MSIHANDLE hModule)
 
 static MSIHANDLE g_hCurrentModule = NULL;
 
-static UINT _uninstallNetLwf(MSIHANDLE hModule);
+static UINT uninstallNetLwf(MSIHANDLE hModule);
 
 static VOID vboxDrvLoggerCallback(VBOXDRVCFG_LOG_SEVERITY_T enmSeverity, char *pszMsg, void *pvContext)
 {
@@ -1910,7 +1910,7 @@ static UINT vboxNetFltQueryInfArray(MSIHANDLE hModule, OUT LPWSTR pwszPtInf, DWO
     return uErr;
 }
 
-static UINT _uninstallNetLwf(MSIHANDLE hModule)
+static UINT uninstallNetLwf(MSIHANDLE hModule)
 {
     INetCfg *pNetCfg;
     UINT uErr;
@@ -1957,7 +1957,7 @@ static UINT _uninstallNetLwf(MSIHANDLE hModule)
 UINT __stdcall UninstallNetLwf(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETFLT
-    return _uninstallNetLwf(hModule);
+    return uninstallNetLwf(hModule);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -1965,7 +1965,7 @@ UINT __stdcall UninstallNetLwf(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETFLT
-static UINT _installNetLwf(MSIHANDLE hModule)
+static UINT installNetLwf(MSIHANDLE hModule)
 {
     UINT uErr;
     INetCfg *pNetCfg;
@@ -2038,7 +2038,7 @@ static UINT _installNetLwf(MSIHANDLE hModule)
 UINT __stdcall InstallNetLwf(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETFLT
-    return _installNetLwf(hModule);
+    return installNetLwf(hModule);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -2046,7 +2046,7 @@ UINT __stdcall InstallNetLwf(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETADP
-static UINT _createHostOnlyInterface(MSIHANDLE hModule, LPCWSTR pwszId, LPCWSTR pwszInfName)
+static UINT createHostOnlyInterface(MSIHANDLE hModule, LPCWSTR pwszId, LPCWSTR pwszInfName)
 {
     netCfgLoggerEnable(hModule);
 
@@ -2172,7 +2172,7 @@ UINT __stdcall CreateHostOnlyInterface(MSIHANDLE hModule)
     Sleep(1002);
     __debugbreak();
 # endif
-    return _createHostOnlyInterface(hModule, NETADP_ID, L"VBoxNetAdp6.inf");
+    return createHostOnlyInterface(hModule, NETADP_ID, L"VBoxNetAdp6.inf");
 #else /* !VBOX_WITH_NETADP */
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -2180,7 +2180,7 @@ UINT __stdcall CreateHostOnlyInterface(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETADP
-static UINT _removeHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
+static UINT removeHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
 {
     netCfgLoggerEnable(hModule);
 
@@ -2214,7 +2214,7 @@ static UINT _removeHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
 UINT __stdcall RemoveHostOnlyInterfaces(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETADP
-    return _removeHostOnlyInterfaces(hModule, NETADP_ID);
+    return removeHostOnlyInterfaces(hModule, NETADP_ID);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -2222,7 +2222,7 @@ UINT __stdcall RemoveHostOnlyInterfaces(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETADP
-static UINT _stopHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
+static UINT stopHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
 {
     netCfgLoggerEnable(hModule);
 
@@ -2250,7 +2250,7 @@ static UINT _stopHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszId)
 UINT __stdcall StopHostOnlyInterfaces(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETADP
-    return _stopHostOnlyInterfaces(hModule, NETADP_ID);
+    return stopHostOnlyInterfaces(hModule, NETADP_ID);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -2258,7 +2258,7 @@ UINT __stdcall StopHostOnlyInterfaces(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETADP
-static UINT _updateHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszInfName, LPCWSTR pwszId)
+static UINT updateHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszInfName, LPCWSTR pwszId)
 {
     netCfgLoggerEnable(hModule);
 
@@ -2335,7 +2335,7 @@ static UINT _updateHostOnlyInterfaces(MSIHANDLE hModule, LPCWSTR pwszInfName, LP
 UINT __stdcall UpdateHostOnlyInterfaces(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETADP
-    return _updateHostOnlyInterfaces(hModule, L"VBoxNetAdp6.inf", NETADP_ID);
+    return updateHostOnlyInterfaces(hModule, L"VBoxNetAdp6.inf", NETADP_ID);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;
@@ -2343,7 +2343,7 @@ UINT __stdcall UpdateHostOnlyInterfaces(MSIHANDLE hModule)
 }
 
 #ifdef VBOX_WITH_NETADP
-static UINT _uninstallNetAdp(MSIHANDLE hModule, LPCWSTR pwszId)
+static UINT uninstallNetAdp(MSIHANDLE hModule, LPCWSTR pwszId)
 {
     INetCfg *pNetCfg;
     UINT uErr;
@@ -2390,7 +2390,7 @@ static UINT _uninstallNetAdp(MSIHANDLE hModule, LPCWSTR pwszId)
 UINT __stdcall UninstallNetAdp(MSIHANDLE hModule)
 {
 #ifdef VBOX_WITH_NETADP
-    return _uninstallNetAdp(hModule, NETADP_ID);
+    return uninstallNetAdp(hModule, NETADP_ID);
 #else
     RT_NOREF(hModule);
     return ERROR_SUCCESS;

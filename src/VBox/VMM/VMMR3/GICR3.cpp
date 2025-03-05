@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     2
+#define GIC_SAVED_STATE_VERSION                     3
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -335,14 +335,6 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     AssertPtrReturn(pVM, VERR_INVALID_VM_HANDLE);
     LogFlowFunc(("\n"));
 
-#define GIC_SSM_PUT_ARRAY(a_pfnSSM, a_Array) \
-    do \
-    { \
-        pHlp->pfnSSMPutU32(pSSM, RT_ELEMENTS(a_Array)); \
-        for (uint32_t i = 0; i < RT_ELEMENTS(a_Array); i++) \
-            (a_pfnSSM)(pSSM, (a_Array)[i]); \
-    } while (0)
-
     /*
      * Save per-VM data.
      */
@@ -360,17 +352,19 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtSpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSelSupport);
 #endif
+
+    /* Distributor state. */
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup0Enabled);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup1Enabled);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fAffRoutingEnabled);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrGroup);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrConfig);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrEnabled);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrPending);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrActive);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8,  pGicDev->abIntrPriority);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->au32IntrRouting);
-    GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicDev->bmIntrRoutingMode);
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrGroup[0],       sizeof(pGicDev->bmIntrGroup));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrConfig[0],      sizeof(pGicDev->bmIntrConfig));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrEnabled[0],     sizeof(pGicDev->bmIntrEnabled));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrPending[0],     sizeof(pGicDev->bmIntrPending));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrActive[0],      sizeof(pGicDev->bmIntrActive));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
 
     /*
      * Save per-VCPU data.
@@ -380,21 +374,23 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVM->apCpusR3[idCpu]);
         Assert(pGicCpu);
 
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrGroup);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrConfig);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrEnabled);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrPending);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU32, pGicCpu->bmIntrActive);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8,  pGicCpu->abIntrPriority);
+        /* Redistributor state. */
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmIntrGroup[0],    sizeof(pGicCpu->bmIntrGroup));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmIntrConfig[0],   sizeof(pGicCpu->bmIntrConfig));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmIntrEnabled[0],  sizeof(pGicCpu->bmIntrEnabled));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmIntrPending[0],  sizeof(pGicCpu->bmIntrPending));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmIntrActive[0],   sizeof(pGicCpu->bmIntrActive));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abIntrPriority[0], sizeof(pGicCpu->abIntrPriority));
 
-        pHlp->pfnSSMPutU64(pSSM,             pGicCpu->uIccCtlr);
-        GIC_SSM_PUT_ARRAY(pHlp->pfnSSMPutU8, pGicCpu->abRunningPriorities);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->idxRunningPriority);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bInterruptPriority);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPtGroup0);
-        pHlp->pfnSSMPutU8(pSSM,              pGicCpu->bBinaryPtGroup1);
-        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup0Enabled);
-        pHlp->pfnSSMPutBool(pSSM,            pGicCpu->fIntrGroup1Enabled);
+        /* ICC system register state. */
+        pHlp->pfnSSMPutU64(pSSM, pGicCpu->uIccCtlr);
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup0);
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup1);
+        pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup0Enabled);
+        pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup1Enabled);
     }
 
     return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX);
@@ -474,21 +470,6 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     if (uVersion != GIC_SAVED_STATE_VERSION)
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid saved-state version %u (%#x)"), uVersion, uVersion);
 
-#define GIC_SSM_GET_ARRAY(a_pfnSSM, a_Array) \
-    do \
-    { \
-        uint32_t       cItems    = 0; \
-        uint32_t const cExpected = RT_ELEMENTS(a_Array); \
-        int const      rcSsm     = pHlp->pfnSSMGetU32(pSSM, &cItems); \
-        AssertRCReturn(rcSsm, rcSsm); \
-        if (cItems != cExpected) \
-            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, \
-                                           N_("Config mismatch: number of elements in " RT_STR(a_Array) ": got=%u expected=%u"), \
-                                           cItems, cExpected); \
-        for (uint32_t i = 0; i < cExpected; i++) \
-            (a_pfnSSM)(pSSM, &(a_Array)[i]); \
-    } while (0)
-
     /*
      * Load per-VM data.
      */
@@ -507,17 +488,19 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtSpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSelSupport);
 #endif
+
+    /* Distributor state. */
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup1Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAffRoutingEnabled);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrGroup);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrConfig);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrEnabled);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrPending);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrActive);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8,  pGicDev->abIntrPriority);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->au32IntrRouting);
-    GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicDev->bmIntrRoutingMode);
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrGroup[0],       sizeof(pGicDev->bmIntrGroup));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrConfig[0],      sizeof(pGicDev->bmIntrConfig));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrEnabled[0],     sizeof(pGicDev->bmIntrEnabled));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrPending[0],     sizeof(pGicDev->bmIntrPending));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrActive[0],      sizeof(pGicDev->bmIntrActive));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
+    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
 
     /*
      * Load per-VCPU data.
@@ -527,21 +510,23 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVM->apCpusR3[idCpu]);
         Assert(pGicCpu);
 
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrGroup);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrConfig);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrEnabled);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrPending);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU32, pGicCpu->bmIntrActive);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8,  pGicCpu->abIntrPriority);
+        /* Redistributor state. */
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmIntrGroup[0],    sizeof(pGicCpu->bmIntrGroup));
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmIntrConfig[0],   sizeof(pGicCpu->bmIntrConfig));
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmIntrEnabled[0],  sizeof(pGicCpu->bmIntrEnabled));
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmIntrPending[0],  sizeof(pGicCpu->bmIntrPending));
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->bmIntrActive[0],   sizeof(pGicCpu->bmIntrActive));
+        pHlp->pfnSSMGetMem(pSSM, &pGicCpu->abIntrPriority[0], sizeof(pGicCpu->abIntrPriority));
 
-        pHlp->pfnSSMGetU64(pSSM,             &pGicCpu->uIccCtlr);
-        GIC_SSM_GET_ARRAY(pHlp->pfnSSMGetU8, pGicCpu->abRunningPriorities);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->idxRunningPriority);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bInterruptPriority);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPtGroup0);
-        pHlp->pfnSSMGetU8(pSSM,              &pGicCpu->bBinaryPtGroup1);
-        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup0Enabled);
-        pHlp->pfnSSMGetBool(pSSM,            &pGicCpu->fIntrGroup1Enabled);
+        /* ICC system register state. */
+        pHlp->pfnSSMGetU64(pSSM,  &pGicCpu->uIccCtlr);
+        pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup0);
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup1);
+        pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup0Enabled);
+        pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup1Enabled);
     }
 
     /*

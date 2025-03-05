@@ -1729,6 +1729,32 @@ static VOID vboxDrvLoggerCallback(VBOXDRVCFG_LOG_SEVERITY_T enmSeverity, char *p
     }
 }
 
+static UINT errorConvertFromHResult(MSIHANDLE hModule, HRESULT hr)
+{
+    UINT uRet;
+    switch (hr)
+    {
+        case S_OK:
+            uRet = ERROR_SUCCESS;
+            break;
+
+        case NETCFG_S_REBOOT:
+        {
+            logStringF(hModule, "Reboot required, setting REBOOT property to \"force\"");
+            HRESULT hr2 = MsiSetPropertyW(hModule, L"REBOOT", L"Force");
+            if (hr2 != ERROR_SUCCESS)
+                logStringF(hModule, "Failed to set REBOOT property, error = %#x", hr2);
+            uRet = ERROR_SUCCESS; /* Never fail here. */
+            break;
+        }
+
+        default:
+            logStringF(hModule, "Converting unhandled HRESULT (%#x) to ERROR_GEN_FAILURE", hr);
+            uRet = ERROR_GEN_FAILURE;
+    }
+    return uRet;
+}
+
 static DECLCALLBACK(void) netCfgLoggerCallback(const char *pszString)
 {
     if (g_hCurrentModule)
@@ -1758,33 +1784,7 @@ static VOID netCfgLoggerEnable(MSIHANDLE hModule)
 //    VBoxDrvCfgLoggerSet(vboxDrvLoggerCallback, NULL);
 }
 
-static UINT errorConvertFromHResult(MSIHANDLE hModule, HRESULT hr)
-{
-    UINT uRet;
-    switch (hr)
-    {
-        case S_OK:
-            uRet = ERROR_SUCCESS;
-            break;
-
-        case NETCFG_S_REBOOT:
-        {
-            logStringF(hModule, "Reboot required, setting REBOOT property to \"force\"");
-            HRESULT hr2 = MsiSetPropertyW(hModule, L"REBOOT", L"Force");
-            if (hr2 != ERROR_SUCCESS)
-                logStringF(hModule, "Failed to set REBOOT property, error = %#x", hr2);
-            uRet = ERROR_SUCCESS; /* Never fail here. */
-            break;
-        }
-
-        default:
-            logStringF(hModule, "Converting unhandled HRESULT (%#x) to ERROR_GEN_FAILURE", hr);
-            uRet = ERROR_GEN_FAILURE;
-    }
-    return uRet;
-}
-
-static MSIHANDLE createNetCfgLockedMsgRecord(MSIHANDLE hModule)
+static MSIHANDLE netCfgCreateLockedMsgRecord(MSIHANDLE hModule)
 {
     MSIHANDLE hRecord = MsiCreateRecord(2);
     if (hRecord)
@@ -1792,18 +1792,18 @@ static MSIHANDLE createNetCfgLockedMsgRecord(MSIHANDLE hModule)
         UINT uErr = MsiRecordSetInteger(hRecord, 1, 25001);
         if (uErr != ERROR_SUCCESS)
         {
-            logStringF(hModule, "createNetCfgLockedMsgRecord: MsiRecordSetInteger failed, error = %#x", uErr);
+            logStringF(hModule, "netCfgCreateLockedMsgRecord: MsiRecordSetInteger failed, error = %#x", uErr);
             MsiCloseHandle(hRecord);
             hRecord = NULL;
         }
     }
     else
-        logStringF(hModule, "createNetCfgLockedMsgRecord: Failed to create a record");
+        logStringF(hModule, "netCfgCreateLockedMsgRecord: Failed to create a record");
 
     return hRecord;
 }
 
-static UINT doNetCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
+static UINT netCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
 {
     MSIHANDLE hMsg = NULL;
     UINT uErr = ERROR_GEN_FAILURE;
@@ -1817,7 +1817,7 @@ static UINT doNetCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
         if (hr != NETCFG_E_NO_WRITE_LOCK)
         {
             if (FAILED(hr))
-                logStringF(hModule, "doNetCfgInit: VBoxNetCfgWinQueryINetCfg failed, error = %#x", hr);
+                logStringF(hModule, "netCfgInit: VBoxNetCfgWinQueryINetCfg failed, error = %#x", hr);
             uErr = errorConvertFromHResult(hModule, hr);
             break;
         }
@@ -1826,7 +1826,7 @@ static UINT doNetCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
 
         if (!lpszLockedBy)
         {
-            logStringF(hModule, "doNetCfgInit: lpszLockedBy == NULL, breaking");
+            logStringF(hModule, "netCfgInit: lpszLockedBy == NULL, breaking");
             break;
         }
 
@@ -1840,17 +1840,17 @@ static UINT doNetCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
             && RTUtf16ICmpAscii(lpszLockedBy, "6to4svc.dll") == 0)
         {
             cRetries++;
-            logStringF(hModule, "doNetCfgInit: lpszLockedBy is 6to4svc.dll, retrying %d out of %d", cRetries, VBOX_NETCFG_MAX_RETRIES);
+            logStringF(hModule, "netCfgInit: lpszLockedBy is 6to4svc.dll, retrying %d out of %d", cRetries, VBOX_NETCFG_MAX_RETRIES);
             MsgResult = IDRETRY;
         }
         else
         {
             if (!hMsg)
             {
-                hMsg = createNetCfgLockedMsgRecord(hModule);
+                hMsg = netCfgCreateLockedMsgRecord(hModule);
                 if (!hMsg)
                 {
-                    logStringF(hModule, "doNetCfgInit: Failed to create a message record, breaking");
+                    logStringF(hModule, "netCfgInit: Failed to create a message record, breaking");
                     CoTaskMemFree(lpszLockedBy);
                     break;
                 }
@@ -1860,14 +1860,14 @@ static UINT doNetCfgInit(MSIHANDLE hModule, INetCfg **ppnc, BOOL bWrite)
             NonStandardAssert(rTmp == ERROR_SUCCESS);
             if (rTmp != ERROR_SUCCESS)
             {
-                logStringF(hModule, "doNetCfgInit: MsiRecordSetStringW failed, error = #%x", rTmp);
+                logStringF(hModule, "netCfgInit: MsiRecordSetStringW failed, error = #%x", rTmp);
                 CoTaskMemFree(lpszLockedBy);
                 break;
             }
 
             MsgResult = MsiProcessMessage(hModule, (INSTALLMESSAGE)(INSTALLMESSAGE_USER | MB_RETRYCANCEL), hMsg);
             NonStandardAssert(MsgResult == IDRETRY || MsgResult == IDCANCEL);
-            logStringF(hModule, "doNetCfgInit: MsiProcessMessage returned (%#x)", MsgResult);
+            logStringF(hModule, "netCfgInit: MsiProcessMessage returned (%#x)", MsgResult);
         }
         CoTaskMemFree(lpszLockedBy);
     } while(MsgResult == IDRETRY);
@@ -1923,7 +1923,7 @@ static UINT uninstallNetLwf(MSIHANDLE hModule)
     {
         logStringF(hModule, "Uninstalling NetLwf");
 
-        uErr = doNetCfgInit(hModule, &pNetCfg, TRUE);
+        uErr = netCfgInit(hModule, &pNetCfg, TRUE);
         if (uErr == ERROR_SUCCESS)
         {
             HRESULT hr = VBoxNetCfgWinNetLwfUninstall(pNetCfg);
@@ -1937,7 +1937,7 @@ static UINT uninstallNetLwf(MSIHANDLE hModule)
             logStringF(hModule, "Uninstalling NetLwf done, error = %#x", uErr);
         }
         else
-            logStringF(hModule, "UninstallNetLwf: doNetCfgInit failed, error = %#x", uErr);
+            logStringF(hModule, "UninstallNetLwf: netCfgInit failed, error = %#x", uErr);
     }
     __finally
     {
@@ -1979,7 +1979,7 @@ static UINT installNetLwf(MSIHANDLE hModule)
 
         logStringF(hModule, "InstallNetLwf: Installing NetLwf");
 
-        uErr = doNetCfgInit(hModule, &pNetCfg, TRUE);
+        uErr = netCfgInit(hModule, &pNetCfg, TRUE);
         if (uErr == ERROR_SUCCESS)
         {
             WCHAR wszInf[MAX_PATH];
@@ -2018,7 +2018,7 @@ static UINT installNetLwf(MSIHANDLE hModule)
             logStringF(hModule, "InstallNetLwf: Done");
         }
         else
-            logStringF(hModule, "InstallNetLwf: doNetCfgInit failed, error = %#x", uErr);
+            logStringF(hModule, "InstallNetLwf: netCfgInit failed, error = %#x", uErr);
     }
     __finally
     {
@@ -2356,7 +2356,7 @@ static UINT uninstallNetAdp(MSIHANDLE hModule, LPCWSTR pwszId)
     {
         logStringF(hModule, "Uninstalling NetAdp");
 
-        uErr = doNetCfgInit(hModule, &pNetCfg, TRUE);
+        uErr = netCfgInit(hModule, &pNetCfg, TRUE);
         if (uErr == ERROR_SUCCESS)
         {
             HRESULT hr = VBoxNetCfgWinNetAdpUninstall(pNetCfg, pwszId);
@@ -2370,7 +2370,7 @@ static UINT uninstallNetAdp(MSIHANDLE hModule, LPCWSTR pwszId)
             logStringF(hModule, "Uninstalling NetAdp done, error = %#x", uErr);
         }
         else
-            logStringF(hModule, "UninstallNetAdp: doNetCfgInit failed, error = %#x", uErr);
+            logStringF(hModule, "UninstallNetAdp: netCfgInit failed, error = %#x", uErr);
     }
     __finally
     {

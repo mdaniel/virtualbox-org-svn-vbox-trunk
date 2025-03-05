@@ -48,5 +48,5 @@ EXPORTS
     ServiceControl
     StopHostOnlyInterfaces
     RemoveHostOnlyInterfaces
-    Ndis6CreateHostOnlyInterface
-    Ndis6UpdateHostOnlyInterfaces
+    CreateHostOnlyInterface
+    UpdateHostOnlyInterfaces

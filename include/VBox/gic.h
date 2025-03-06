@@ -580,7 +580,7 @@
 /** Interrupt Priority Registers for extended PPI range, last offset - RW. */
 #define GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_LAST    0x045c
 /** Interrupt Priority Registers for extended PPI range, range in bytes. */
-#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE  (GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_LAST + sizeof(uint32_t) - GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_START)
+#define GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE  (GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_OFF_LAST + sizeof(uint32_t) - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START)
 
 /** SGI Configuration Register - RW. */
 #define GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF               0x0c00

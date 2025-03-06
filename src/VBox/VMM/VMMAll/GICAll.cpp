@@ -1165,7 +1165,7 @@ static VBOXSTRICTRC gicReDistReadIntrPriorityReg(PCGICDEV pGicDev, PGICCPU pGicC
     /* When affinity routing is disabled, reads return 0. */
     Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     uint16_t const idxPriority = idxReg * sizeof(uint32_t);
-    AssertReturn(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
+    AssertReturn(idxPriority <= RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
     AssertCompile(sizeof(*puValue) == sizeof(uint32_t));
     *puValue = *(uint32_t *)&pGicCpu->abIntrPriority[idxPriority];
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
@@ -1188,7 +1188,7 @@ static VBOXSTRICTRC gicReDistWriteIntrPriorityReg(PCGICDEV pGicDev, PVMCPUCC pVC
     Assert(pGicDev->fAffRoutingEnabled); RT_NOREF(pGicDev);
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
     uint16_t const idxPriority = idxReg * sizeof(uint32_t);
-    AssertReturn(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
+    AssertReturn(idxPriority <= RT_ELEMENTS(pGicCpu->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
     AssertCompile(sizeof(uValue) == sizeof(uint32_t));
     *(uint32_t *)&pGicCpu->abIntrPriority[idxPriority] = uValue;
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, *(uint32_t *)&pGicCpu->abIntrPriority[idxPriority]));
@@ -1989,6 +1989,10 @@ static uint16_t gicAckHighestPrioPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu, bo
     uint16_t  idxIntr;
     PGICCPU   pGicCpu = VMCPU_TO_GICCPU(pVCpu);
     uint16_t const uIntId = gicGetHighestPrioPendingIntrEx(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bPriority);
+
+    /* If the priority must be higher than the priority mask for the interrupt to be signalled/acknowledged. */
+    if (pGicCpu->bIntrPriorityMask <= bPriority)
+        return GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
 
     /* Acknowledge the interrupt. */
     if (uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT)
@@ -3052,7 +3056,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
         }
     }
 
-    AssertReleaseFailed();
+    AssertReleaseMsgFailed(("offReg=%#RX16\n", offReg));
     return VERR_INTERNAL_ERROR_2;
 #else
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;

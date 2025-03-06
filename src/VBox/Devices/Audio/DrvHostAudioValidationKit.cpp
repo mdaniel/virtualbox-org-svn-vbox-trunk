@@ -990,8 +990,8 @@ static DECLCALLBACK(uint32_t) drvHostValKitAudioHA_StreamGetWritable(PPDMIHOSTAU
                 cbWritable = UINT32_MAX;
             }
         }
-        else
-            LogRel2(("ValKit: Reporting UINT32_MAX bytes writable (no playback test running)\n"));
+        else /* Only log this with high verbosity -- too noisy otherwise. */
+            LogRel5(("ValKit: Reporting UINT32_MAX bytes writable (no playback test running)\n"));
 
         int rc2 = RTCritSectLeave(&pThis->CritSect);
         AssertRC(rc2);

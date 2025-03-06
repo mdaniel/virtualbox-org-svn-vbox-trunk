@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     3
+#define GIC_SAVED_STATE_VERSION                     4
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -89,8 +89,16 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
     PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     pHlp->pfnPrintf(pHlp, "GIC:\n");
     pHlp->pfnPrintf(pHlp, "  uArchRev         = %u\n",      pGicDev->uArchRev);
-    pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
+    pHlp->pfnPrintf(pHlp, "  uMaxSpi          = %u (upto IntId %u)\n", pGicDev->uMaxSpi, 32 * (pGicDev->uMaxSpi + 1));
+    pHlp->pfnPrintf(pHlp, "  fExtSpi          = %RTbool\n", pGicDev->fExtSpi);
+    pHlp->pfnPrintf(pHlp, "  uMaxExtSpi       = %u (upto IntId %u)\n", pGicDev->uMaxExtSpi,
+                    GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (pGicDev->uMaxExtSpi + 1));
+    pHlp->pfnPrintf(pHlp, "  fExtPpi          = %RTbool\n", pGicDev->fExtPpi);
+    pHlp->pfnPrintf(pHlp, "  uMaxExtPpi       = %u (upto IntId %u)\n", pGicDev->uMaxExtPpi,
+                    pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST);
     pHlp->pfnPrintf(pHlp, "  fRangeSelSupport = %RTbool\n", pGicDev->fRangeSelSupport);
+    pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
+    pHlp->pfnPrintf(pHlp, "  fMbi             = %RTbool\n", pGicDev->fMbi);
 }
 
 
@@ -357,18 +365,14 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
      */
     pHlp->pfnSSMPutU32(pSSM,  pVM->cCpus);
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uArchRev);
-    pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
-    /** @todo I am not sure we really benefit offering this amount of customization
-     *        right now. It makes the code way more complicated (lots of extra bounds
-     *        checking in lots of places we cannot really test) and it only reduces
-     *        functionality rather than increase it in the end. */
-#if 0
-    pHlp->pfnSSMPutU16(pSSM,  pGicDev->uMaxSpi);
-    pHlp->pfnSSMPutU16(pSSM,  pGicDev->uMaxExtSpi);
-    pHlp->pfnSSMPutU8(pSSM,   pGicDev->fPpiNum);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxSpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtSpi);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxExtSpi);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtPpi);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxExtPpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSelSupport);
-#endif
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fMbi);
 
     /* Distributor state. */
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup0Enabled);
@@ -485,7 +489,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
      * Validate supported saved-state versions.
      */
     if (uVersion != GIC_SAVED_STATE_VERSION)
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid saved-state version %u (%#x)"), uVersion, uVersion);
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid saved-state version %u"), uVersion);
 
     /*
      * Load per-VM data.
@@ -497,27 +501,42 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
 
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uArchRev);
-    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
-#if 0
-    pHlp->pfnSSMGetU16(pSSM,  &pGicDev->uMaxSpi);
-    pHlp->pfnSSMGetU16(pSSM,  &pGicDev->uMaxExtSpi);
-    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->fPpiNum);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxSpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtSpi);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxExtSpi);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtPpi);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxExtPpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSelSupport);
-#endif
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fMbi);
+
+    /* Sanity checks. */
+    if (pGicDev->uMaxSpi - 1 < 31)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxSpi, got %u expected range [1,31]"), pGicDev->uMaxSpi);
+    if (pGicDev->uMaxExtSpi <= 31)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtSpi, got %u expected range [0,31]"), pGicDev->uMaxExtSpi);
+    if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087
+        || pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtPpi, got %u expected range [1,2]"), pGicDev->uMaxExtPpi);
 
     /* Distributor state. */
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup1Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAffRoutingEnabled);
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrGroup[0],       sizeof(pGicDev->bmIntrGroup));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrConfig[0],      sizeof(pGicDev->bmIntrConfig));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrEnabled[0],     sizeof(pGicDev->bmIntrEnabled));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrPending[0],     sizeof(pGicDev->bmIntrPending));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrActive[0],      sizeof(pGicDev->bmIntrActive));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
-    pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrGroup[0],       sizeof(pGicDev->bmIntrGroup));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrConfig[0],      sizeof(pGicDev->bmIntrConfig));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrEnabled[0],     sizeof(pGicDev->bmIntrEnabled));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrPending[0],     sizeof(pGicDev->bmIntrPending));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrActive[0],      sizeof(pGicDev->bmIntrActive));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
+    pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
 
     /*
      * Load per-VCPU data.
@@ -662,25 +681,15 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Configuration error: \"ArchRev\" value %u is not supported"), pGicDev->uArchRev);
 
-    /** @devcfgm{gic, Nmi, bool, false}
-     * Configures whether NMIs are supported (GICD_TYPER.NMI). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Nmi", &pGicDev->fNmi, false);
-    AssertLogRelRCReturn(rc, rc);
-
-    /** @devcfgm{gic, ExtSpi, bool, false}
-     * Configures whether extended SPIs are supported (GICD_TYPER.ESPI). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ExtSpi", &pGicDev->fExtSpi, false);
-    AssertLogRelRCReturn(rc, rc);
-
-    /** @devcfgm{gic, MaxSpi, uint16_t, 1}
+    /** @devcfgm{gic, MaxSpi, uint8_t, 31}
      * Configures GICD_TYPER.ItLinesNumber.
      *
-     * For the INTID range [32,1023], configures the maximum SPI supported. Valid values
+     * For the IntId range [32,1023], configures the maximum SPI supported. Valid values
      * are [1,31] which equates to interrupt IDs [63,1023]. A value of 0 implies SPIs
      * are not supported. We don't allow configuring this value as it's expected that
      * most guests would assume support for SPIs. */
     AssertCompile(GIC_DIST_REG_TYPER_NUM_ITLINES == 31);
-    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 1 /* 63 INTIDs */);
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 31 /* Upto and incl. IntId 1023 */);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxSpi - 1 < 31)
     { /* likely */ }
@@ -689,14 +698,20 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                    N_("Configuration error: \"MaxSpi\" must be in the range [1,%u]"),
                                    GIC_DIST_REG_TYPER_NUM_ITLINES);
 
-    /** @devcfgm{gic, MaxExtSpi, uint16_t, 31}
+    /** @devcfgm{gic, ExtSpi, bool, false}
+     * Configures whether extended SPIs supported is enabled (GICD_TYPER.ESPI). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ExtSpi", &pGicDev->fExtSpi, false);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, MaxExtSpi, uint8_t, 31}
      * Configures GICD_TYPER.ESPI_range.
      *
      * For the extended SPI range [4096,5119], configures the maximum extended SPI
-     * supported. Valid values are [0,31] which equates to extended SPI INTIDs
-     * [4096,5119]. This is ignored (set to 0) when extended SPIs are disabled. */
+     * supported. Valid values are [0,31] which equates to extended SPI IntIds
+     * [4127,5119]. This is ignored (set to 0 in the register) when extended SPIs are
+     * disabled. */
     AssertCompile(GIC_DIST_REG_TYPER_ESPI_RANGE >> GIC_DIST_REG_TYPER_ESPI_RANGE_BIT == 31);
-    rc = pHlp->pfnCFGMQueryU16Def(pCfg, "MaxExtSpi", &pGicDev->uMaxExtSpi, 31);
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtSpi", &pGicDev->uMaxExtSpi, 31);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxExtSpi <= 31)
     { /* likely */ }
@@ -704,24 +719,42 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Configuration error: \"MaxExtSpi\" must be in the range [0,31]"));
 
-    /** @devcfgm{gic, MaxExtPpi, uint16_t, 0}
+    /** @devcfgm{gic, ExtPpi, bool, true}
+     * Configures whether extended PPIs support is enabled. */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "ExtPpi", &pGicDev->fExtPpi, true);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, MaxExtPpi, uint8_t, 2}
      * Configures GICR_TYPER.PPInum.
      *
-     * For the extended PPI INTIDs [31,1056,1119], configures the maximum extended
-     * PPI supported. Valid values are [0,1,2] which equates [31,1087,1119]. A value of
-     * 0 implies extended PPIs are not supported. */
-    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "PpiNum", &pGicDev->fPpiNum, 0);
+     * For the extended PPI range [1056,5119], configures the maximum extended PPI
+     * supported. Valid values are [1,2] which equates to extended PPI IntIds
+     * [1087,1119]. This is unused when extended PPIs are disabled. */
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtPpi", &pGicDev->uMaxExtPpi, 2);
     AssertLogRelRCReturn(rc, rc);
-    if (pGicDev->fPpiNum <= GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
+    if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087
+        || pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
     { /* likely */ }
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
-                                   N_("Configuration error: \"PpiNum\" must be in the range [0,2]"));
+                                   N_("Configuration error: \"MaxExtPpi\" must be in the range [0,2]"));
 
-    /** @devcfgm{gic, ExtSpi, bool, false}
+    /** @devcfgm{gic, RangeSelSupport, bool, true}
      * Configures whether range-selector support is enabled (GICD_TYPER.RSS and
      * ICC_CTLR_EL1.RSS). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "RangeSelSupport", &pGicDev->fRangeSelSupport, true);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, Nmi, bool, false}
+     * Configures whether non-maskable interrupts (NMIs) are supported
+     * (GICD_TYPER.NMI). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Nmi", &pGicDev->fNmi, false);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, Nmi, bool, false}
+     * Configures whether message-based interrupts (MBIs) are supported
+     * (GICD_TYPER.MBIS). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, false);
     AssertLogRelRCReturn(rc, rc);
 
     /*

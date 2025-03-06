@@ -2243,17 +2243,22 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                      | (pGicDev->fAffRoutingEnabled ? GIC_DIST_REG_CTRL_ARE_S : 0);
             break;
         case GIC_DIST_REG_TYPER_OFF:
-            Assert(pGicDev->uMaxSpi > 0 && pGicDev->uMaxSpi < GIC_DIST_REG_TYPER_NUM_ITLINES);
+        {
+            Assert(pGicDev->uMaxSpi > 0 && pGicDev->uMaxSpi <= GIC_DIST_REG_TYPER_NUM_ITLINES);
+            Assert(pGicDev->fAffRoutingEnabled);
             *puValue = GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pGicDev->uMaxSpi)
-                     | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* 1 PE */ /** @todo r=ramshankar: Should this be pVCpu->cCpus? Currently it means 'ARE' must always be used? */
-                     /*| GIC_DIST_REG_TYPER_ESPI*/            /** @todo */
-                     /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Non-maskable interrupts */
-                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo */
-                     /*| GIC_DIST_REG_TYPER_MBIS */           /** @todo Message based interrupts */
+                     | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* Affinity routing is always enabled, hence this MBZ. */
+                     /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Support non-maskable interrupts */
+                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo Support dual security states. */
+                     /*| GIC_DIST_REG_TYPER_MBIS */           /** @todo Support message-based interrupts */
                      /*| GIC_DIST_REG_TYPER_LPIS */           /** @todo Support LPIs */
                      | (pGicDev->fRangeSelSupport ? GIC_DIST_REG_TYPER_RSS : 0)
-                     | GIC_DIST_REG_TYPER_IDBITS_SET(16);
+                     | GIC_DIST_REG_TYPER_IDBITS_SET(16);    /* We only support 16-bit interrupt IDs. */
+            if (pGicDev->fExtSpi)
+                *puValue |= GIC_DIST_REG_TYPER_ESPI
+                         |  GIC_DIST_REG_TYPER_ESPI_RANGE_SET(pGicDev->uMaxExtSpi);
             break;
+        }
         case GIC_DIST_REG_STATUSR_OFF:
             AssertReleaseFailed();
             break;
@@ -2701,15 +2706,17 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
 DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint32_t idRedist, uint16_t offReg, uint32_t *puValue)
 {
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    Assert(idRedist == pVCpu->idCpu);   /* Assert for now, maybe remove function parameter later. */
+    AssertRelease(idRedist == pVCpu->idCpu);
     switch (offReg)
     {
         case GIC_REDIST_REG_TYPER_OFF:
         {
-            PCVMCC pVM = PDMDevHlpGetVM(pDevIns);
-            *puValue = ((pVCpu->idCpu == pVM->cCpus - 1) ? GIC_REDIST_REG_TYPER_LAST : 0)
+            PCVMCC pVM = pVCpu->CTX_SUFF(pVM);
+            *puValue = (pVCpu->idCpu == pVM->cCpus - 1 ? GIC_REDIST_REG_TYPER_LAST : 0)
                      | GIC_REDIST_REG_TYPER_CPU_NUMBER_SET(idRedist)
-                     | GIC_REDIST_REG_TYPER_CMN_LPI_AFF_SET(GIC_REDIST_REG_TYPER_CMN_LPI_AFF_ALL);
+                     | GIC_REDIST_REG_TYPER_CMN_LPI_AFF_SET(GIC_REDIST_REG_TYPER_CMN_LPI_AFF_ALL)
+                     | (pGicDev->fExtPpi ? GIC_REDIST_REG_TYPER_PPI_NUM_SET(pGicDev->uMaxExtPpi) : 0);
+            Assert(!pGicDev->fExtPpi || pGicDev->uMaxExtPpi > 0);
             break;
         }
         case GIC_REDIST_REG_IIDR_OFF:

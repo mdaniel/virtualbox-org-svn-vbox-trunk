@@ -167,22 +167,26 @@ typedef struct GICDEV
 
     /** @name Configurables.
      * @{ */
-    /** The maximum SPI supported (GICD_TYPER.ItsLinesNumber). */
-    uint16_t                    uMaxSpi;
-    /** Maximum extended SPI supported (GICR_TYPER.ESPI_range).  */
-    uint16_t                    uMaxExtSpi;
     /** The GIC architecture (GICD_PIDR2.ArchRev and GICR_PIDR2.ArchRev). */
     uint8_t                     uArchRev;
-    /** Extended PPIs supported (GICR_TYPER.PpiNum). */
-    uint8_t                     fPpiNum;
-    /** Whether extended SPIs are supported (GICD_TYPER.ESPI). */
+    /** The maximum SPI supported (GICD_TYPER.ItLinesNumber). */
+    uint8_t                     uMaxSpi;
+    /** Whether extended SPIs are supported (GICD_ESPI). */
     bool                        fExtSpi;
-    /** Whether NMIs are supported (GICD_TYPER.NMI). */
-    bool                        fNmi;
+    /** The maximum extended SPI supported (GICD_TYPER.ESPI_range).  */
+    uint8_t                     uMaxExtSpi;
+    /** Whether extended PPIs are supported. */
+    bool                        fExtPpi;
+    /** The maximum extended PPI supported (GICR_TYPER.PPInum). */
+    uint8_t                     uMaxExtPpi;
     /** Whether range-selector is supported (GICD_TYPER.RSS and ICC_CTLR_EL1.RSS). */
     bool                        fRangeSelSupport;
+    /** Whether NMIs are supported (GICD_TYPER.NMI). */
+    bool                        fNmi;
+    /** Whether message-based interrupts are supported (GICD_TYPER.MBIS). */
+    bool                        fMbi;
     /** Alignment. */
-    bool                        afAlignment0[3];
+    bool                        afPadding[3];
     /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */

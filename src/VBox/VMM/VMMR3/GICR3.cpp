@@ -407,7 +407,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         pHlp->pfnSSMPutU64(pSSM, pGicCpu->uIccCtlr);
         pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->idxRunningPriority);
-        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bIntrPriorityMask);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup0);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup0Enabled);
@@ -558,7 +558,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
         pHlp->pfnSSMGetU64(pSSM,  &pGicCpu->uIccCtlr);
         pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->idxRunningPriority);
-        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bInterruptPriority);
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bIntrPriorityMask);
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup0);
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup0Enabled);

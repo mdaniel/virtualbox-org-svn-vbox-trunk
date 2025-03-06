@@ -496,7 +496,7 @@ DECLINLINE(void) gicReDistHasIrqPending(PCGICCPU pGicCpu, bool *pfIrq, bool *pfF
     }
 
     /* Only allow interrupts with higher priority than the current configured and running one. */
-    uint8_t const bPriority = RT_MIN(pGicCpu->bInterruptPriority, pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
+    uint8_t const bPriority = RT_MIN(pGicCpu->bIntrPriorityMask, pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
 
     uint32_t const cIntrs  = sizeof(bmIntrs) * 8;
     int32_t        idxIntr = ASMBitFirstSet(&bmIntrs[0], cIntrs);
@@ -602,7 +602,7 @@ DECLINLINE(void) gicDistHasIrqPendingForVCpu(PCGICDEV pGicDev, PCVMCPUCC pVCpu, 
 
     /* Only allow interrupts with higher priority than the current configured and running one. */
     PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-    uint8_t const bPriority = RT_MIN(pGicCpu->bInterruptPriority, pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
+    uint8_t const bPriority = RT_MIN(pGicCpu->bIntrPriorityMask, pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
 
     /*
      * The distributor's interrupt pending/enabled/active bitmaps have 2048 bits which map
@@ -3341,7 +3341,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
     switch (u32Reg)
     {
         case ARMV8_AARCH64_SYSREG_ICC_PMR_EL1:
-            *pu64Value = pGicCpu->bInterruptPriority;
+            *pu64Value = pGicCpu->bIntrPriorityMask;
             break;
         case ARMV8_AARCH64_SYSREG_ICC_IAR0_EL1:
             AssertReleaseFailed();
@@ -3547,7 +3547,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             ASMAtomicWriteU8(&pThis->bInterruptPriority, (uint8_t)u64Value);
             gicReDistUpdateIrqState(pThis, pVCpu);
 #else
-            pGicCpu->bInterruptPriority = (uint8_t)u64Value;
+            pGicCpu->bIntrPriorityMask = (uint8_t)u64Value;
             rcStrict = gicReDistUpdateIrqState(pGicDev, pVCpu);
 #endif
             break;
@@ -3826,7 +3826,7 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 
     memset((void *)&pGicCpu->abRunningPriorities[0], 0xff, sizeof(pGicCpu->abRunningPriorities));
     pGicCpu->idxRunningPriority = 0;
-    pGicCpu->bInterruptPriority = 0; /* Means no interrupt gets through to the PE. */
+    pGicCpu->bIntrPriorityMask  = 0; /* Means no interrupt gets through to the PE. */
     pGicCpu->fIntrGroup0Enabled = false;
     pGicCpu->fIntrGroup1Enabled = false;
 

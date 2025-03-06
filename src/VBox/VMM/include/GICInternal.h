@@ -263,8 +263,9 @@ typedef struct GICCPU
     uint8_t                     abRunningPriorities[256];
     /** The index to the current running priority. */
     uint8_t                     idxRunningPriority;
-    /** The current interrupt priority, only interrupts with a higher priority get signalled. */
-    uint8_t                     bInterruptPriority;
+    /** The interrupt priority mask, only interrupts with a higher priority get
+     *  signalled. */
+    uint8_t                     bIntrPriorityMask;
     /** The binary point register for group 0 interrupts. */
     uint8_t                     bBinaryPtGroup0;
     /** The binary point register for group 1 interrupts. */

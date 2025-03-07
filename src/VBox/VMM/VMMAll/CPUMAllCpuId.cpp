@@ -1840,7 +1840,9 @@ VMMDECL(int) CPUMCpuIdCollectIdRegistersFromArmV8Host(PCPUMARMV8IDREGS pIdRegs)
         READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr2El1, ID_AA64MMFR2_EL1);
         /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr3El1, ID_AA64MMFR3_EL1);
         /// @todo READ_SYS_REG(pIdRegs->u64RegIdAa64Mmfr4El1, ID_AA64MMFR4_EL1);
+#  ifndef RT_OS_LINUX /* Not supported */
         READ_SYS_REG(pIdRegs->u64RegClidrEl1,       CLIDR_EL1);
+#  endif
 
         /// @todo READ_SYS_REG(pIdRegs->uMainIdRegEl1,        MIDR_EL1);
         /// @todo READ_SYS_REG(pIdRegs->uMpIdRegEl1,          MPIDR_EL1);

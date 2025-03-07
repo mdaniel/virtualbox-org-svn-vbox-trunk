@@ -90,6 +90,24 @@
 #define KVM_ARM64_REG_FP_FPSR                KVM_ARM64_REG_FP_CREATE(0xd4)
 #define KVM_ARM64_REG_FP_FPCR                KVM_ARM64_REG_FP_CREATE(0xd5)
 
+/* In case the build host doesn't ship with a new enough kvm.h. */
+#ifndef KVM_ARM_VM_SMCCC_CTRL
+# define KVM_ARM_VM_SMCCC_CTRL          0
+# define KVM_ARM_VM_SMCCC_FILTER        0
+
+# define KVM_SMCCC_FILTER_HANDLE        0
+# define KVM_SMCCC_FILTER_DENY          1
+# define KVM_SMCCC_FILTER_FWD_TO_USER   2
+
+struct kvm_smccc_filter
+{
+  uint32_t base;
+  uint32_t nr_functions;
+  uint8_t  action;
+  uint8_t  pad[15];
+};
+#endif
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *

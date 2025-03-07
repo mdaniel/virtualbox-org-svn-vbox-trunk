@@ -172,9 +172,9 @@
  * @returns Page aligned address of the given symbol
  * @param   a_Symbol    The symbol to get the page address from.
  */
-#if defined(__clang__)
+#if defined(ASM_FORMAT_MACHO)
 # define PAGE(a_Symbol) a_Symbol ## @PAGE
-#elif defined(__GNUC__)
+#elif defined(ASM_FORMAT_ELF)
 # define PAGE(a_Symbol) a_Symbol
 #else
 # error "Port me!"
@@ -186,9 +186,9 @@
  * @returns Page offset of the given symbol inside a page.
  * @param   a_Symbol    The symbol to get the page offset from.
  */
-#if defined(__clang__)
+#if defined(ASM_FORMAT_MACHO)
 # define PAGEOFF(a_Symbol) a_Symbol ## @PAGEOFF
-#elif defined(__GNUC__)
+#elif defined(ASM_FORMAT_ELF)
 # define PAGEOFF(a_Symbol) :lo12: ## a_Symbol
 #else
 # error "Port me!"

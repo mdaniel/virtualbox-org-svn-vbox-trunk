@@ -3199,8 +3199,11 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+#ifdef VBOX_WITH_STATISTICS
+    PVMCPU pVCpu = VMMGetCpu(pVM);
+    if (pVCpu)
+        STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSpi));
+#endif
 
 #if 0
     /* Update the interrupts pending state. */
@@ -3215,16 +3218,19 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
     uint16_t const idxIntr = gicDistGetIndexFromIntId(uIntId);
 
     Assert(idxIntr >= GIC_INTID_RANGE_SPI_START);
-    AssertMsgReturnStmt(idxIntr < sizeof(pGicDev->bmIntrPending) * 8,
-                        ("out-of-range SPI interrupt ID %RU32 (%RU32)\n", uIntId, uSpiIntId),
-                        PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3),
-                        VERR_INVALID_PARAMETER);
+    AssertMsgReturn(idxIntr < sizeof(pGicDev->bmIntrPending) * 8,
+                    ("out-of-range SPI interrupt ID %RU32 (%RU32)\n", uIntId, uSpiIntId),
+                    VERR_INVALID_PARAMETER);
+
+    int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 
     /* Update the interrupt pending state. */
     if (fAsserted)
         ASMBitSet(&pGicDev->bmIntrPending[0], idxIntr);
     else
         ASMBitClear(&pGicDev->bmIntrPending[0], idxIntr);
+
     int const rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pGicDev));
 #endif
 
@@ -3243,8 +3249,6 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
     PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     PGICCPU    pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 
 #if 0
     AssertReturn(uIntId <= (GIC_INTID_RANGE_PPI_LAST - GIC_INTID_RANGE_PPI_START), VERR_INVALID_PARAMETER);
@@ -3254,21 +3258,23 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
     uint16_t const idxIntr = gicReDistGetIndexFromIntId(uIntId);
 
     Assert(idxIntr >= GIC_INTID_RANGE_PPI_START);
-    AssertMsgReturnStmt(idxIntr < sizeof(pGicCpu->bmIntrPending) * 8,
-                        ("out-of-range PPI interrupt ID %RU32 (%RU32)\n", uIntId, uPpiIntId),
-                        PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3),
-                        VERR_INVALID_PARAMETER);
+    AssertMsgReturn(idxIntr < sizeof(pGicCpu->bmIntrPending) * 8,
+                    ("out-of-range PPI interrupt ID %RU32 (%RU32)\n", uIntId, uPpiIntId),
+                    VERR_INVALID_PARAMETER);
+
+    int const  rcLock  = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 
     /* Update the interrupt pending state. */
     if (fAsserted)
         ASMBitSet(&pGicCpu->bmIntrPending[0], idxIntr);
     else
         ASMBitClear(&pGicCpu->bmIntrPending[0], idxIntr);
+
     int const rc = VBOXSTRICTRC_VAL(gicReDistUpdateIrqState(pGicDev, pVCpu));
 #endif
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
-
     return rc;
 }
 
@@ -3396,6 +3402,8 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
      */
     VMCPU_ASSERT_EMT(pVCpu);
     Assert(pu64Value);
+
+    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSysRegRead));
 
     *pu64Value = 0;
     PGICCPU    pGicCpu = VMCPU_TO_GICCPU(pVCpu);
@@ -3597,6 +3605,8 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
      */
     VMCPU_ASSERT_EMT(pVCpu);
     LogFlowFunc(("pVCpu=%p u32Reg=%#x{%s} u64Value=%RX64\n", pVCpu, u32Reg, gicIccGetRegDescription(u32Reg), u64Value));
+
+    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSysRegWrite));
 
     PPDMDEVINS pDevIns = VMCPU_TO_DEVINS(pVCpu);
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);

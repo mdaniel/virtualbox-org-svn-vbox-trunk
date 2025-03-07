@@ -289,6 +289,10 @@ typedef struct GICCPU
     STAMCOUNTER                 StatSysRegReadR3;
     /** Number of MSR writes in R3. */
     STAMCOUNTER                 StatSysRegWriteR3;
+    /** Number of set SPI callbacks. */
+    STAMCOUNTER                 StatSetSpiR3;
+    /** Number of set PPI callbacks. */
+    STAMCOUNTER                 StatSetPpiR3;
 
 # if 0 /* No R0 for now. */
     /** Number of MMIO reads in RZ. */

@@ -1828,8 +1828,8 @@ static uint16_t gicReDistGetHighestPrioPendingIntr(PCGICCPU pGicCpu, bool fGroup
  *                      GIC_IDLE_PRIORITY if this function returns
  *                      GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT.
  */
-static uint16_t gicGetHighestPriorityPendingIntrEx(PCGICDEV pGicDev, PCGICCPU pGicCpu, bool fGroup0, bool fGroup1,
-                                                   uint16_t *pidxIntr, uint8_t *pbPriority)
+static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGicCpu, bool fGroup0, bool fGroup1,
+                                                 uint16_t *pidxIntr, uint8_t *pbPriority)
 {
 #define GIC_DIST_INTR_COUNT     RT_ELEMENTS(pGicDev->bmIntrPending)
 #define GIC_REDIST_INTR_COUNT   RT_ELEMENTS(pGicCpu->bmIntrPending)
@@ -1990,8 +1990,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
     uint8_t  bIntrPriority;
     uint16_t idxIntr;
     PGICCPU  pGicCpu = VMCPU_TO_GICCPU(pVCpu);
-    uint16_t const uIntId = gicGetHighestPriorityPendingIntrEx(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bIntrPriority);
-
+    uint16_t const uIntId = gicGetHighestPriorityPendingIntr(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bIntrPriority);
     if (uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT)
     {
         /*
@@ -3520,8 +3519,8 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             }
 #else
             AssertReleaseFailed();
-            *pu64Value = gicGetHighestPriorityPendingIntrEx(pGicDev, pGicCpu, false /*fGroup0*/, true /*fGroup1*/,
-                                                            NULL /*pidxIntr*/, NULL /*pbPriority*/);
+            *pu64Value = gicGetHighestPriorityPendingIntr(pGicDev, pGicCpu, false /*fGroup0*/, true /*fGroup1*/,
+                                                          NULL /*pidxIntr*/, NULL /*pbPriority*/);
 #endif
             break;
         }

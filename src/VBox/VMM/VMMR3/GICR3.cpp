@@ -142,8 +142,8 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         AssertCompile(!(cPriorities % 16));
         pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
         for (uint32_t i = 0; i < cPriorities; i += 16)
-            pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
-                                  "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+            pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
                             gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
                             pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
                             pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
@@ -163,8 +163,8 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         AssertCompile(!(cRouting % 16));
         pHlp->pfnPrintf(pHlp, "  Interrupt routing:\n");
         for (uint32_t i = 0; i < cRouting; i += 16)
-            pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
-                                  "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+            pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
                             gicDistGetIntIdFromIndex(i),      gicDistGetIntIdFromIndex(i + 7),
                             pGicDev->au32IntrRouting[i],      pGicDev->au32IntrRouting[i + 1],
                             pGicDev->au32IntrRouting[i + 2],  pGicDev->au32IntrRouting[i + 3],
@@ -198,10 +198,10 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
-    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrGroup)   == 3);
-    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrEnabled) == 3);
-    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrPending) == 3);
-    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrActive)  == 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrGroup)   >= 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrEnabled) >= 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrPending) >= 3);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrActive)  >= 3);
     pHlp->pfnPrintf(pHlp, "  bmIntrGroup[0..2]   = %#010x %#010x %#010x\n", pGicCpu->bmIntrGroup[0],   pGicCpu->bmIntrGroup[1],   pGicCpu->bmIntrGroup[2]);
     pHlp->pfnPrintf(pHlp, "  bmIntrEnabled[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrEnabled[0], pGicCpu->bmIntrEnabled[1], pGicCpu->bmIntrEnabled[2]);
     pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrPending[0], pGicCpu->bmIntrPending[1], pGicCpu->bmIntrPending[2]);
@@ -211,8 +211,8 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     AssertCompile(!(cPriorities % 16));
     pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
     for (uint32_t i = 0; i < cPriorities; i += 16)
-        pHlp->pfnPrintf(pHlp, "    IntId[ %4u..%-4u ] = %3u %3u %3u %3u %3u %3u %3u %3u"
-                              "    IntId[ %4u..%-4u ] %3u %3u %3u %3u %3u %3u %3u %3u\n",
+        pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                              "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
                         gicReDistGetIntIdFromIndex(i),     gicReDistGetIntIdFromIndex(i + 7),
                         pGicCpu->abIntrPriority[i],        pGicCpu->abIntrPriority[i + 1],
                         pGicCpu->abIntrPriority[i + 2],    pGicCpu->abIntrPriority[i + 3],

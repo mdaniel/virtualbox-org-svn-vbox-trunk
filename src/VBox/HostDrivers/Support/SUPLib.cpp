@@ -155,6 +155,7 @@ DECL_HIDDEN_DATA(uint32_t)          g_uSupFakeMode = UINT32_MAX;
 static int supInitFake(PSUPDRVSESSION *ppSession);
 
 
+#ifdef RT_OS_DARWIN
 /** Touch a range of pages. */
 DECLINLINE(void) supR3TouchPages(void *pv, size_t cPages)
 {
@@ -165,6 +166,7 @@ DECLINLINE(void) supR3TouchPages(void *pv, size_t cPages)
         pu32 += PAGE_SIZE / sizeof(uint32_t);
     }
 }
+#endif
 
 
 SUPR3DECL(int) SUPR3Install(void)

@@ -95,6 +95,7 @@ static int rtLinuxConstructPathV(char *pszBuf, size_t cchBuf,
 }
 
 
+#if 0 /*Unused*/
 /**
  * Constructs the path of a sysfs file from the format parameters passed,
  * prepending a prefix if the path is relative.
@@ -118,6 +119,7 @@ DECLINLINE(int) rtLinuxConstructPath(char *pszBuf, size_t cchBuf,
     va_end(va);
     return rc;
 }
+#endif
 
 
 /**

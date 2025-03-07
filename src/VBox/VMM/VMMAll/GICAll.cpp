@@ -2010,7 +2010,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
          * We mask the sub-priority bits and only compare the group priority.
          *
          * When the binary point registers indicates no preemption, we must allow interrupts that have
-         * a higher priority than the idle. Hence the two different masks here.
+         * a higher priority than idle. Hence, the use of two different masks below.
          *
          * See ARM GIC spec. 4.8.3 "Priority grouping".
          * See ARM GIC spec. 4.8.5 "Preemption".

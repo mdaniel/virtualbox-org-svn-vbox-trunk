@@ -194,7 +194,6 @@ typedef GICDEV *PGICDEV;
 /** Pointer to a const GIC device. */
 typedef GICDEV const *PCGICDEV;
 
-
 /**
  * GIC VM Instance data.
  */
@@ -214,15 +213,7 @@ AssertCompileSizeAlignment(GIC, 8);
  */
 typedef struct GICCPU
 {
-    /** @name The per vCPU redistributor data is kept here.
-     * @{ */
-    /** @} */
-
-    /** @name Physical LPI register state.
-     * @{ */
-    /** @} */
-
-    /** @name SGI and PPI redistributor register state.
+    /** @name Redistributor register state.
      * @{ */
 #if 1
     /** Interrupt group bitmap. */
@@ -259,16 +250,16 @@ typedef struct GICCPU
      * @{ */
     /** The control register (ICC_CTLR_EL1). */
     uint64_t                    uIccCtlr;
-    /** The running priorities caused by preemption. */
-    uint8_t                     abRunningPriorities[256];
+    /** The interrupt priority mask of the CPU interface (ICC_PMR_EL1). */
+    uint8_t                     bIntrPriorityMask;
     /** The index to the current running priority. */
     uint8_t                     idxRunningPriority;
+    /** The running priorities caused by preemption. */
+    uint8_t                     abRunningPriorities[256];
     /** The active priorities group 0 bitmap. */
     uint32_t                    bmActivePriorityGroup0[4];
     /** The active priorities group 0 bitmap. */
     uint32_t                    bmActivePriorityGroup1[4];
-    /** The interrupt priority mask of the CPU interface (ICC_PMR_EL1). */
-    uint8_t                     bIntrPriorityMask;
     /** The binary point register for group 0 interrupts. */
     uint8_t                     bBinaryPtGroup0;
     /** The binary point register for group 1 interrupts. */
@@ -277,8 +268,6 @@ typedef struct GICCPU
     bool                        fIntrGroup0Enabled;
     /** Flag whether group 1 interrupts are enabled. */
     bool                        fIntrGroup1Enabled;
-    /** Alignment. */
-    bool                        afAlignment0[2];
     /** @} */
 
     /** @name Log Max counters
@@ -319,21 +308,20 @@ typedef GICCPU *PGICCPU;
 /** Pointer to a const GIC VMCPU instance data. */
 typedef GICCPU const *PCGICCPU;
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicReDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC)      gicReDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
+DECLHIDDEN(void)                   gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu);
+DECLHIDDEN(void)                   gicReset(PPDMDEVINS pDevIns);
+DECLHIDDEN(uint16_t)               gicReDistGetIntIdFromIndex(uint16_t idxIntr);
+DECLHIDDEN(uint16_t)               gicDistGetIntIdFromIndex(uint16_t idxIntr);
 
-DECLHIDDEN(void)                        gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu);
-DECLHIDDEN(void)                        gicReset(PPDMDEVINS pDevIns);
-DECLHIDDEN(uint16_t)                    gicReDistGetIntIdFromIndex(uint16_t idxIntr);
-DECLHIDDEN(uint16_t)                    gicDistGetIntIdFromIndex(uint16_t idxIntr);
-
-DECLCALLBACK(int)                       gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg);
-DECLCALLBACK(int)                       gicR3Destruct(PPDMDEVINS pDevIns);
-DECLCALLBACK(void)                      gicR3Relocate(PPDMDEVINS pDevIns, RTGCINTPTR offDelta);
-DECLCALLBACK(void)                      gicR3Reset(PPDMDEVINS pDevIns);
+DECLCALLBACK(int)                  gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg);
+DECLCALLBACK(int)                  gicR3Destruct(PPDMDEVINS pDevIns);
+DECLCALLBACK(void)                 gicR3Relocate(PPDMDEVINS pDevIns, RTGCINTPTR offDelta);
+DECLCALLBACK(void)                 gicR3Reset(PPDMDEVINS pDevIns);
 
 /** @} */
 

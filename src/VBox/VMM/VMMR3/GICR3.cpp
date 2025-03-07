@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     4
+#define GIC_SAVED_STATE_VERSION                     5
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -144,16 +144,16 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         for (uint32_t i = 0; i < cPriorities; i += 16)
             pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
                                   "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
-                            gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
-                            pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
-                            pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
-                            pGicDev->abIntrPriority[i + 4],  pGicDev->abIntrPriority[i + 5],
-                            pGicDev->abIntrPriority[i + 6],  pGicDev->abIntrPriority[i + 7],
-                            gicDistGetIntIdFromIndex(i + 8), gicDistGetIntIdFromIndex(i + 15),
-                            pGicDev->abIntrPriority[i + 8],  pGicDev->abIntrPriority[i + 9],
-                            pGicDev->abIntrPriority[i + 10], pGicDev->abIntrPriority[i + 11],
-                            pGicDev->abIntrPriority[i + 12], pGicDev->abIntrPriority[i + 13],
-                            pGicDev->abIntrPriority[i + 14], pGicDev->abIntrPriority[i + 15]);
+                                  gicDistGetIntIdFromIndex(i),     gicDistGetIntIdFromIndex(i + 7),
+                                  pGicDev->abIntrPriority[i],      pGicDev->abIntrPriority[i + 1],
+                                  pGicDev->abIntrPriority[i + 2],  pGicDev->abIntrPriority[i + 3],
+                                  pGicDev->abIntrPriority[i + 4],  pGicDev->abIntrPriority[i + 5],
+                                  pGicDev->abIntrPriority[i + 6],  pGicDev->abIntrPriority[i + 7],
+                                  gicDistGetIntIdFromIndex(i + 8), gicDistGetIntIdFromIndex(i + 15),
+                                  pGicDev->abIntrPriority[i + 8],  pGicDev->abIntrPriority[i + 9],
+                                  pGicDev->abIntrPriority[i + 10], pGicDev->abIntrPriority[i + 11],
+                                  pGicDev->abIntrPriority[i + 12], pGicDev->abIntrPriority[i + 13],
+                                  pGicDev->abIntrPriority[i + 14], pGicDev->abIntrPriority[i + 15]);
     }
 
     /* Interrupt routing.*/
@@ -165,16 +165,16 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
         for (uint32_t i = 0; i < cRouting; i += 16)
             pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
                                   "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
-                            gicDistGetIntIdFromIndex(i),      gicDistGetIntIdFromIndex(i + 7),
-                            pGicDev->au32IntrRouting[i],      pGicDev->au32IntrRouting[i + 1],
-                            pGicDev->au32IntrRouting[i + 2],  pGicDev->au32IntrRouting[i + 3],
-                            pGicDev->au32IntrRouting[i + 4],  pGicDev->au32IntrRouting[i + 5],
-                            pGicDev->au32IntrRouting[i + 6],  pGicDev->au32IntrRouting[i + 7],
-                            gicDistGetIntIdFromIndex(i + 8),  gicDistGetIntIdFromIndex(i + 15),
-                            pGicDev->au32IntrRouting[i + 8],  pGicDev->au32IntrRouting[i + 9],
-                            pGicDev->au32IntrRouting[i + 10], pGicDev->au32IntrRouting[i + 11],
-                            pGicDev->au32IntrRouting[i + 12], pGicDev->au32IntrRouting[i + 13],
-                            pGicDev->au32IntrRouting[i + 14], pGicDev->au32IntrRouting[i + 15]);
+                                  gicDistGetIntIdFromIndex(i),      gicDistGetIntIdFromIndex(i + 7),
+                                  pGicDev->au32IntrRouting[i],      pGicDev->au32IntrRouting[i + 1],
+                                  pGicDev->au32IntrRouting[i + 2],  pGicDev->au32IntrRouting[i + 3],
+                                  pGicDev->au32IntrRouting[i + 4],  pGicDev->au32IntrRouting[i + 5],
+                                  pGicDev->au32IntrRouting[i + 6],  pGicDev->au32IntrRouting[i + 7],
+                                  gicDistGetIntIdFromIndex(i + 8),  gicDistGetIntIdFromIndex(i + 15),
+                                  pGicDev->au32IntrRouting[i + 8],  pGicDev->au32IntrRouting[i + 9],
+                                  pGicDev->au32IntrRouting[i + 10], pGicDev->au32IntrRouting[i + 11],
+                                  pGicDev->au32IntrRouting[i + 12], pGicDev->au32IntrRouting[i + 13],
+                                  pGicDev->au32IntrRouting[i + 14], pGicDev->au32IntrRouting[i + 15]);
     }
 
 #undef GIC_DBGFINFO_DIST_INTR_BITMAP
@@ -207,24 +207,27 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrPending[0], pGicCpu->bmIntrPending[1], pGicCpu->bmIntrPending[2]);
     pHlp->pfnPrintf(pHlp, "  bmIntrActive[0..2]  = %#010x %#010x %#010x\n", pGicCpu->bmIntrActive[0],  pGicCpu->bmIntrActive[1],  pGicCpu->bmIntrActive[2]);
 
-    uint32_t const cPriorities = RT_ELEMENTS(pGicCpu->abIntrPriority);
-    AssertCompile(!(cPriorities % 16));
-    pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
-    for (uint32_t i = 0; i < cPriorities; i += 16)
-        pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
-                              "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
-                        gicReDistGetIntIdFromIndex(i),     gicReDistGetIntIdFromIndex(i + 7),
-                        pGicCpu->abIntrPriority[i],        pGicCpu->abIntrPriority[i + 1],
-                        pGicCpu->abIntrPriority[i + 2],    pGicCpu->abIntrPriority[i + 3],
-                        pGicCpu->abIntrPriority[i + 4],    pGicCpu->abIntrPriority[i + 5],
-                        pGicCpu->abIntrPriority[i + 6],    pGicCpu->abIntrPriority[i + 7],
-                        gicReDistGetIntIdFromIndex(i + 8), gicReDistGetIntIdFromIndex(i + 15),
-                        pGicCpu->abIntrPriority[i + 8],    pGicCpu->abIntrPriority[i + 9],
-                        pGicCpu->abIntrPriority[i + 10],   pGicCpu->abIntrPriority[i + 11],
-                        pGicCpu->abIntrPriority[i + 12],   pGicCpu->abIntrPriority[i + 13],
-                        pGicCpu->abIntrPriority[i + 14],   pGicCpu->abIntrPriority[i + 15]);
+    /* Interrupt priorities. */
+    {
+        uint32_t const cPriorities = RT_ELEMENTS(pGicCpu->abIntrPriority);
+        AssertCompile(!(cPriorities % 16));
+        pHlp->pfnPrintf(pHlp, "  Interrupt priorities:\n");
+        for (uint32_t i = 0; i < cPriorities; i += 16)
+            pHlp->pfnPrintf(pHlp, "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    IntId[%4u..%-4u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                                  gicReDistGetIntIdFromIndex(i),     gicReDistGetIntIdFromIndex(i + 7),
+                                  pGicCpu->abIntrPriority[i],        pGicCpu->abIntrPriority[i + 1],
+                                  pGicCpu->abIntrPriority[i + 2],    pGicCpu->abIntrPriority[i + 3],
+                                  pGicCpu->abIntrPriority[i + 4],    pGicCpu->abIntrPriority[i + 5],
+                                  pGicCpu->abIntrPriority[i + 6],    pGicCpu->abIntrPriority[i + 7],
+                                  gicReDistGetIntIdFromIndex(i + 8), gicReDistGetIntIdFromIndex(i + 15),
+                                  pGicCpu->abIntrPriority[i + 8],    pGicCpu->abIntrPriority[i + 9],
+                                  pGicCpu->abIntrPriority[i + 10],   pGicCpu->abIntrPriority[i + 11],
+                                  pGicCpu->abIntrPriority[i + 12],   pGicCpu->abIntrPriority[i + 13],
+                                  pGicCpu->abIntrPriority[i + 14],   pGicCpu->abIntrPriority[i + 15]);
+    }
 
-    pHlp->pfnPrintf(pHlp, "\nVCPU[%u] ICC state:\n", pVCpu->idCpu);
+    pHlp->pfnPrintf(pHlp, "\nVCPU[%u] ICC system register state:\n", pVCpu->idCpu);
     pHlp->pfnPrintf(pHlp, "  uIccCtlr            = %#RX64\n",  pGicCpu->uIccCtlr);
     pHlp->pfnPrintf(pHlp, "  fIntrGroup0Enabled  = %RTbool\n", pGicCpu->fIntrGroup0Enabled);
     pHlp->pfnPrintf(pHlp, "  fIntrGroup1Enabled  = %RTbool\n", pGicCpu->fIntrGroup1Enabled);
@@ -232,6 +235,37 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     pHlp->pfnPrintf(pHlp, "  bBinaryPtGroup1     = %#x\n",     pGicCpu->bBinaryPtGroup1);
     pHlp->pfnPrintf(pHlp, "  idxRunningPriority  = %#x\n",     pGicCpu->idxRunningPriority);
     pHlp->pfnPrintf(pHlp, "  Running priority    = %#x\n",     pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority]);
+
+    /* Running interrupt priorities. */
+    {
+        uint32_t const cPriorities = RT_ELEMENTS(pGicCpu->abRunningPriorities);
+        AssertCompile(!(cPriorities % 16));
+        pHlp->pfnPrintf(pHlp, "  Running-interrupt priorities:\n");
+        for (uint32_t i = 0; i < cPriorities; i += 16)
+            pHlp->pfnPrintf(pHlp, "    [%3u..%-3u] = %3u %3u %3u %3u %3u %3u %3u %3u"
+                                  "    [%3u..%-3u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
+                                       i,                                    i + 7,
+                                       pGicCpu->abRunningPriorities[i],      pGicCpu->abRunningPriorities[i + 1],
+                                       pGicCpu->abRunningPriorities[i + 2],  pGicCpu->abRunningPriorities[i + 3],
+                                       pGicCpu->abRunningPriorities[i + 4],  pGicCpu->abRunningPriorities[i + 5],
+                                       pGicCpu->abRunningPriorities[i + 6],  pGicCpu->abRunningPriorities[i + 7],
+                                       i + 8,                                i + 15,
+                                       pGicCpu->abRunningPriorities[i + 8],  pGicCpu->abRunningPriorities[i + 9],
+                                       pGicCpu->abRunningPriorities[i + 10], pGicCpu->abRunningPriorities[i + 11],
+                                       pGicCpu->abRunningPriorities[i + 12], pGicCpu->abRunningPriorities[i + 13],
+                                       pGicCpu->abRunningPriorities[i + 14], pGicCpu->abRunningPriorities[i + 15]);
+    }
+
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmActivePriorityGroup0) >= 4);
+    pHlp->pfnPrintf(pHlp, "  Active-interrupt priorities Group 0:\n");
+    pHlp->pfnPrintf(pHlp, "    [0..3] = %#010x %#010x %#010x %#010x\n",
+                               pGicCpu->bmActivePriorityGroup0[0], pGicCpu->bmActivePriorityGroup0[1],
+                               pGicCpu->bmActivePriorityGroup0[2], pGicCpu->bmActivePriorityGroup0[3]);
+    AssertCompile(RT_ELEMENTS(pGicCpu->bmActivePriorityGroup1) >= 4);
+    pHlp->pfnPrintf(pHlp, "  Active-interrupt priorities Group 1:\n");
+    pHlp->pfnPrintf(pHlp, "    [0..3] = %#010x %#010x %#010x %#010x\n",
+                               pGicCpu->bmActivePriorityGroup1[0], pGicCpu->bmActivePriorityGroup1[1],
+                               pGicCpu->bmActivePriorityGroup1[2], pGicCpu->bmActivePriorityGroup1[3]);
 }
 
 
@@ -404,10 +438,12 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abIntrPriority[0], sizeof(pGicCpu->abIntrPriority));
 
         /* ICC system register state. */
-        pHlp->pfnSSMPutU64(pSSM, pGicCpu->uIccCtlr);
-        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
-        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMPutU64(pSSM,  pGicCpu->uIccCtlr);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bIntrPriorityMask);
+        pHlp->pfnSSMPutU8(pSSM,   pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmActivePriorityGroup0[0], sizeof(pGicCpu->bmActivePriorityGroup0));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmActivePriorityGroup1[0], sizeof(pGicCpu->bmActivePriorityGroup1));
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup0);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMPutBool(pSSM, pGicCpu->fIntrGroup0Enabled);
@@ -510,21 +546,6 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fMbi);
 
-    /* Sanity checks. */
-    if (pGicDev->uMaxSpi - 1 < 31)
-    { /* likely */ }
-    else
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxSpi, got %u expected range [1,31]"), pGicDev->uMaxSpi);
-    if (pGicDev->uMaxExtSpi <= 31)
-    { /* likely */ }
-    else
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtSpi, got %u expected range [0,31]"), pGicDev->uMaxExtSpi);
-    if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087
-        || pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
-    { /* likely */ }
-    else
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtPpi, got %u expected range [1,2]"), pGicDev->uMaxExtPpi);
-
     /* Distributor state. */
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup1Enabled);
@@ -556,9 +577,11 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
 
         /* ICC system register state. */
         pHlp->pfnSSMGetU64(pSSM,  &pGicCpu->uIccCtlr);
-        pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
-        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->idxRunningPriority);
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bIntrPriorityMask);
+        pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->idxRunningPriority);
+        pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->abRunningPriorities[0],    sizeof(pGicCpu->abRunningPriorities));
+        pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->bmActivePriorityGroup0[0], sizeof(pGicCpu->bmActivePriorityGroup0));
+        pHlp->pfnSSMGetMem(pSSM,  &pGicCpu->bmActivePriorityGroup1[0], sizeof(pGicCpu->bmActivePriorityGroup1));
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup0);
         pHlp->pfnSSMGetU8(pSSM,   &pGicCpu->bBinaryPtGroup1);
         pHlp->pfnSSMGetBool(pSSM, &pGicCpu->fIntrGroup0Enabled);
@@ -578,6 +601,24 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     { /* likely */ }
     else
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: Marker: got=%u expected=%u"), uMarker, UINT32_MAX);
+
+    /*
+     * Finally, perform sanity checks.
+     */
+    if (pGicDev->uMaxSpi - 1 < 31)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxSpi, got %u expected range [1,31]"), pGicDev->uMaxSpi);
+    if (pGicDev->uMaxExtSpi <= 31)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtSpi, got %u expected range [0,31]"), pGicDev->uMaxExtSpi);
+    if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087
+        || pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1119)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtPpi, got %u expected range [1,2]"), pGicDev->uMaxExtPpi);
+
     return rc;
 #undef GIC_SSM_GET_ARRAY
 #endif

@@ -2043,9 +2043,9 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
             AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
             uint8_t const idxPreemptionLevel = bIntrPriority >> 1;
             if (fGroup0)
-                ASMBitSet(&pGicCpu->bmActivePriorityGroup0, idxPreemptionLevel);
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup0[0], idxPreemptionLevel);
             if (fGroup1)
-                ASMBitSet(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup1[0], idxPreemptionLevel);
 
             /* Drop priority. */
             if (RT_LIKELY(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1))
@@ -2054,10 +2054,11 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
                              pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
                              bIntrPriority,
                              pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
-                pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bIntrPriority;
+                ++pGicCpu->idxRunningPriority;
+                pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority] = bIntrPriority;
             }
             else
-                AssertReleaseMsgFailed(("Index of running interrupt priority out-of-bounds %u\n", pGicCpu->idxRunningPriority));
+                AssertReleaseMsgFailed(("Index of running-interrupt priority out-of-bounds %u\n", pGicCpu->idxRunningPriority));
             /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
@@ -2084,18 +2085,22 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
             AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
             uint8_t const idxPreemptionLevel = bIntrPriority >> 1;
             if (fGroup0)
-                ASMBitSet(&pGicCpu->bmActivePriorityGroup0, idxPreemptionLevel);
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup0[0], idxPreemptionLevel);
             if (fGroup1)
-                ASMBitSet(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup1[0], idxPreemptionLevel);
 
             /* Drop priority. */
-            Assert(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1);
-
-            LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
-                         pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
-                         bIntrPriority,
-                         pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
-            pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bIntrPriority;
+            if (RT_LIKELY(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1))
+            {
+                LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
+                             pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
+                             bIntrPriority,
+                             pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
+                ++pGicCpu->idxRunningPriority;
+                pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority] = bIntrPriority;
+            }
+            else
+                AssertReleaseMsgFailed(("Index of running-interrupt priority out-of-bounds %u\n", pGicCpu->idxRunningPriority));
             /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
@@ -3795,22 +3800,29 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             /*
              * Drop priority by restoring previous interrupt.
              */
-            Assert(pGicCpu->idxRunningPriority > 0);
-            if (RT_LIKELY(pGicCpu->idxRunningPriority > 0))
+            if (RT_LIKELY(pGicCpu->idxRunningPriority))
             {
                 LogFlowFunc(("Restoring interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
                              pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
                              pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority - 1],
                              pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority - 1));
 
-                /* Update the active priorities bitmap. */
-                /** @todo Double check if this is doing the right thing :/ */
+                /*
+                 * Clear the interrupt priority from the active priorities bitmap.
+                 * It is up to the guest to ensure that writes to EOI registers are done in the exact
+                 * reverse order of the reads from the IAR registers.
+                 *
+                 * See ARM GIC spec 4.1.1 "Physical CPU interface".
+                 */
                 uint8_t const idxPreemptionLevel = pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority] >> 1;
                 AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
-                ASMBitClear(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
+                ASMBitClear(&pGicCpu->bmActivePriorityGroup1[0], idxPreemptionLevel);
 
                 pGicCpu->idxRunningPriority--;
+                Assert(pGicCpu->abRunningPriorities[0] == GIC_IDLE_PRIORITY);
             }
+            else
+                AssertReleaseMsgFailed(("Index of running-priority interrupt out-of-bounds %u\n", pGicCpu->idxRunningPriority));
             rcStrict = gicReDistUpdateIrqState(pGicDev, pVCpu);
 #endif
             break;
@@ -3880,29 +3892,27 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
     PGICCPU pGicCpu = &pVCpu->gic.s;
     RT_ZERO(pGicCpu->bmIntrGroup);
     RT_ZERO(pGicCpu->bmIntrConfig);
+    /* SGIs are always edge-triggered, writes to GICR_ICFGR0 are to be ignored. */
+    pGicCpu->bmIntrConfig[0] = 0xaaaaaaaa;
     RT_ZERO(pGicCpu->bmIntrEnabled);
     RT_ZERO(pGicCpu->bmIntrPending);
     RT_ZERO(pGicCpu->bmIntrActive);
     RT_ZERO(pGicCpu->abIntrPriority);
-
-    /* SGIs are always edge-triggered, writes to GICR_ICFGR0 are to be ignored. */
-    pGicCpu->bmIntrConfig[0] = 0xaaaaaaaa;
 
     pGicCpu->uIccCtlr = ARMV8_ICC_CTLR_EL1_AARCH64_PMHE
                       | ARMV8_ICC_CTLR_EL1_AARCH64_PRIBITS_SET(4)
                       | ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_SET(ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_16BITS)
                       | (pGicDev->fRangeSelSupport ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0);
 
-    memset((void *)&pGicCpu->abRunningPriorities[0], 0xff, sizeof(pGicCpu->abRunningPriorities));
-    pGicCpu->idxRunningPriority = 0;
     pGicCpu->bIntrPriorityMask  = 0; /* Means no interrupt gets through to the PE. */
+    pGicCpu->idxRunningPriority = 0;
+    memset((void *)&pGicCpu->abRunningPriorities[0], 0xff, sizeof(pGicCpu->abRunningPriorities));
+    RT_ZERO(pGicCpu->bmActivePriorityGroup0);
+    RT_ZERO(pGicCpu->bmActivePriorityGroup1);
+    pGicCpu->bBinaryPtGroup0    = 0;
+    pGicCpu->bBinaryPtGroup1    = 0;
     pGicCpu->fIntrGroup0Enabled = false;
     pGicCpu->fIntrGroup1Enabled = false;
-
-    /* The binary point register are undefined on reset, initialized
-       with arbitrarily chosen values in our implementation. */
-    pGicCpu->bBinaryPtGroup0 = 0;
-    pGicCpu->bBinaryPtGroup1 = 0;
 }
 
 

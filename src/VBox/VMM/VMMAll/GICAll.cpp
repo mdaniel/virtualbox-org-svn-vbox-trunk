@@ -1420,7 +1420,7 @@ static VBOXSTRICTRC gicReDistWriteIntrConfigReg(PCGICDEV pGicDev, PVMCPUCC pVCpu
     }
     else
     {
-        /* SGIs are always edge-triggered ignore writes, verify value on strict builds (arm64 Win11 guests writes this). */
+        /* SGIs are always edge-triggered ignore writes. Windows 11 (24H2) arm64 guests writes these. */
         Assert(uValue == 0xaaaaaaaa);
         Assert(pGicCpu->bmIntrConfig[0] == uValue);
     }
@@ -2037,14 +2037,28 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
             AssertMsg(idxIntr < sizeof(pGicCpu->bmIntrActive) * 8, ("idxIntr=%u\n", idxIntr));
             ASMBitSet(&pGicCpu->bmIntrActive[0], idxIntr);
 
-            /* Drop priority. */
-            Assert(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1);
+            /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (start). */
+            /* Update the active priorities bitmap. */
+            AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup0) * 8 >= 128);
+            AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
+            uint8_t const idxPreemptionLevel = bIntrPriority >> 1;
+            if (fGroup0)
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup0, idxPreemptionLevel);
+            if (fGroup1)
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
 
-            LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
-                         pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
-                         bIntrPriority,
-                         pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
-            pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bIntrPriority;
+            /* Drop priority. */
+            if (RT_LIKELY(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1))
+            {
+                LogFlowFunc(("Dropping interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
+                             pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
+                             bIntrPriority,
+                             pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
+                pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bIntrPriority;
+            }
+            else
+                AssertReleaseMsgFailed(("Index of running interrupt priority out-of-bounds %u\n", pGicCpu->idxRunningPriority));
+            /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
             AssertRelease(2 * idxIntr + 1 < sizeof(pGicCpu->bmIntrConfig) * 8);
@@ -2057,12 +2071,22 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         }
         else
         {
-            /* Sanity check if the interrupt ID belongs to the distirbutor. */
+            /* Sanity check if the interrupt ID belongs to the distributor. */
             Assert(GIC_IS_INTR_SPI(uIntId) || GIC_IS_INTR_EXT_SPI(uIntId));
 
             /* Mark the interrupt as active. */
             Assert(idxIntr < sizeof(pGicDev->bmIntrActive) * 8);
             ASMBitSet(&pGicDev->bmIntrActive[0], idxIntr);
+
+            /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (start). */
+            /* Update the active priorities bitmap. */
+            AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup0) * 8 >= 128);
+            AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
+            uint8_t const idxPreemptionLevel = bIntrPriority >> 1;
+            if (fGroup0)
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup0, idxPreemptionLevel);
+            if (fGroup1)
+                ASMBitSet(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
 
             /* Drop priority. */
             Assert(pGicCpu->idxRunningPriority < RT_ELEMENTS(pGicCpu->abRunningPriorities) - 1);
@@ -2072,6 +2096,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
                          bIntrPriority,
                          pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority + 1));
             pGicCpu->abRunningPriorities[++pGicCpu->idxRunningPriority] = bIntrPriority;
+            /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
             AssertRelease(2 * idxIntr + 1 < sizeof(pGicDev->bmIntrConfig) * 8);
@@ -2716,8 +2741,14 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             AssertReleaseFailed();
             break;
         default:
-            //AssertReleaseFailed();
+        {
+            /* Windows 11 arm64 (24H2) writes zeroes into these reserved registers. We ignore them. */
+            if (offReg >= 0x7fe0 && offReg <= 0x7ffc)
+                LogFlowFunc(("Bad guest writing to reserved GIC distributor register space [0x7fe0..0x7ffc] -- ignoring!"));
+            else
+                AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
             break;
+        }
     }
 
     return rcStrict;
@@ -3599,7 +3630,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
 #endif
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
-            /** @todo */
+            AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R1_EL1:
             AssertReleaseFailed();
@@ -3611,7 +3642,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1:
-            /** @todo */
+            AssertReleaseFailed();
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R1_EL1:
             AssertReleaseFailed();
@@ -3762,15 +3793,22 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             }
 
             /*
-             * Restore previous interrupt priority.
+             * Drop priority by restoring previous interrupt.
              */
             Assert(pGicCpu->idxRunningPriority > 0);
-            if (RT_LIKELY(pGicCpu->idxRunningPriority))
+            if (RT_LIKELY(pGicCpu->idxRunningPriority > 0))
             {
                 LogFlowFunc(("Restoring interrupt priority from %u -> %u (idxRunningPriority: %u -> %u)\n",
                              pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority],
                              pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority - 1],
                              pGicCpu->idxRunningPriority, pGicCpu->idxRunningPriority - 1));
+
+                /* Update the active priorities bitmap. */
+                /** @todo Double check if this is doing the right thing :/ */
+                uint8_t const idxPreemptionLevel = pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority] >> 1;
+                AssertCompile(sizeof(pGicCpu->bmActivePriorityGroup1) * 8 >= 128);
+                ASMBitClear(&pGicCpu->bmActivePriorityGroup1, idxPreemptionLevel);
+
                 pGicCpu->idxRunningPriority--;
             }
             rcStrict = gicReDistUpdateIrqState(pGicDev, pVCpu);

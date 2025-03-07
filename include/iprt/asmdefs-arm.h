@@ -172,7 +172,7 @@
  * @returns Page aligned address of the given symbol
  * @param   a_Symbol    The symbol to get the page address from.
  */
-#if defined(ASM_FORMAT_MACHO)
+#if defined(ASM_FORMAT_MACHO) || defined(ASM_FORMAT_PE)
 # define PAGE(a_Symbol) a_Symbol ## @PAGE
 #elif defined(ASM_FORMAT_ELF)
 # define PAGE(a_Symbol) a_Symbol
@@ -186,7 +186,7 @@
  * @returns Page offset of the given symbol inside a page.
  * @param   a_Symbol    The symbol to get the page offset from.
  */
-#if defined(ASM_FORMAT_MACHO)
+#if defined(ASM_FORMAT_MACHO) || defined(ASM_FORMAT_PE)
 # define PAGEOFF(a_Symbol) a_Symbol ## @PAGEOFF
 #elif defined(ASM_FORMAT_ELF)
 # define PAGEOFF(a_Symbol) :lo12: ## a_Symbol

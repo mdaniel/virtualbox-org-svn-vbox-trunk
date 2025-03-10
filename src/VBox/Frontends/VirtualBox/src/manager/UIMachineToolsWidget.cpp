@@ -38,7 +38,6 @@
 #include "UIGlobalSession.h"
 #include "UIMachineToolsWidget.h"
 #include "UIToolPane.h"
-#include "UIToolPaneMachine.h"
 #include "UITools.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
@@ -130,7 +129,7 @@ UIMachineToolsWidget::SelectionType UIMachineToolsWidget::selectionType() const
            : SelectionType_Invalid;
 }
 
-UIToolPaneMachine *UIMachineToolsWidget::toolPane() const
+UIToolPane *UIMachineToolsWidget::toolPane() const
 {
     return m_pPaneTools;
 }
@@ -447,7 +446,7 @@ void UIMachineToolsWidget::prepareWidgets()
             }
 
             /* Create tool-pane: */
-            m_pPaneTools = new UIToolPaneMachine(actionPool());
+            m_pPaneTools = new UIToolPane(this, UIToolClass_Machine, actionPool());
             if (toolPane())
             {
                 /// @todo make sure it's used properly
@@ -503,9 +502,9 @@ void UIMachineToolsWidget::prepareConnections()
     connect(chooser(), &UIChooser::sigCloudMachineStateChange,
             this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     connect(chooser(), &UIChooser::sigToggleStarted,
-            toolPane(), &UIToolPaneMachine::sigToggleStarted);
+            toolPane(), &UIToolPane::sigToggleStarted);
     connect(chooser(), &UIChooser::sigToggleFinished,
-            toolPane(), &UIToolPaneMachine::sigToggleFinished);
+            toolPane(), &UIToolPane::sigToggleFinished);
 
     /* Tools-menu connections: */
     connect(this, &UIMachineToolsWidget::sigToolMenuUpdate,
@@ -558,9 +557,9 @@ void UIMachineToolsWidget::cleanupConnections()
     disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,
                this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     disconnect(chooser(), &UIChooser::sigToggleStarted,
-               toolPane(), &UIToolPaneMachine::sigToggleStarted);
+               toolPane(), &UIToolPane::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,
-               toolPane(), &UIToolPaneMachine::sigToggleFinished);
+               toolPane(), &UIToolPane::sigToggleFinished);
 
     /* Tools-menu connections: */
     disconnect(this, &UIMachineToolsWidget::sigToolMenuUpdate,

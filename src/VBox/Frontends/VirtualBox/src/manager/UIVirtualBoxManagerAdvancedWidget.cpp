@@ -41,7 +41,6 @@
 #include "UIMachineToolsWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPane.h"
-#include "UIToolPaneMachine.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualBoxManagerAdvancedWidget.h"
 #if defined(VBOX_WS_MAC) && (defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32))
@@ -448,11 +447,11 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
-    connect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
+    connect(machineToolPane(), &UIToolPane::sigLinkClicked,
             this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSettingsLinkClicked);
-    connect(machineToolPane(), &UIToolPaneMachine::sigCurrentSnapshotItemChange,
+    connect(machineToolPane(), &UIToolPane::sigCurrentSnapshotItemChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCurrentSnapshotItemChange);
-    connect(machineToolPane(), &UIToolPaneMachine::sigDetachToolPane,
+    connect(machineToolPane(), &UIToolPane::sigDetachToolPane,
             this, &UIVirtualBoxManagerAdvancedWidget::sigDetachToolPane);
 
     /* Chooser-pane connections: */
@@ -686,11 +685,11 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
-    disconnect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
+    disconnect(machineToolPane(), &UIToolPane::sigLinkClicked,
                this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSettingsLinkClicked);
-    disconnect(machineToolPane(), &UIToolPaneMachine::sigCurrentSnapshotItemChange,
+    disconnect(machineToolPane(), &UIToolPane::sigCurrentSnapshotItemChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCurrentSnapshotItemChange);
-    disconnect(machineToolPane(), &UIToolPaneMachine::sigDetachToolPane,
+    disconnect(machineToolPane(), &UIToolPane::sigDetachToolPane,
                this, &UIVirtualBoxManagerAdvancedWidget::sigDetachToolPane);
 
     /* Chooser-pane connections: */
@@ -725,7 +724,7 @@ UIMachineToolsWidget *UIVirtualBoxManagerAdvancedWidget::machineToolsWidget() co
     return globalToolsWidget()->machineToolsWidget();
 }
 
-UIToolPaneMachine *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const
+UIToolPane *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const
 {
     return machineToolsWidget()->toolPane();
 }

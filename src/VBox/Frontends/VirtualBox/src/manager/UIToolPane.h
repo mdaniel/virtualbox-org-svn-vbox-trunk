@@ -32,22 +32,28 @@
 #endif
 
 /* Qt includes: */
+#include <QUuid>
 #include <QWidget>
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
-#include "UIManagerDefs.h"
 
 /* Forward declarations: */
 class QStackedLayout;
-class QUuid;
 class UIActionPool;
 class UICloudProfileManagerWidget;
+class UIDetails;
+class UIErrorPane;
 class UIExtensionPackManagerWidget;
+class UIFileManager;
 class UIMachineToolsWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
+class UISnapshotPane;
 class UIVMActivityOverviewWidget;
+class UIVMActivityToolWidget;
+class UIVMLogViewerWidget;
+class UIVirtualMachineItem;
 class UIVirtualMachineItemCloud;
 class UIHomePane;
 
@@ -58,13 +64,35 @@ class UIToolPane : public QWidget
 
 signals:
 
-    /** Notifies listeners about creation procedure was requested. */
-    void sigCreateMedium();
-    /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
-    void sigCopyMedium(const QUuid &uMediumId);
+    /** @name Global tool stuff.
+      * @{ */
+        /** Notifies listeners about creation procedure was requested. */
+        void sigCreateMedium();
+        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+        void sigCopyMedium(const QUuid &uMediumId);
 
-    /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
-    void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
+        /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
+        void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
+    /** @} */
+
+    /** @name Machine tool stuff.
+      * @{ */
+        /** Redirects signal from UIVirtualBoxManager to UIDetails. */
+        void sigToggleStarted();
+        /** Redirects signal from UIVirtualBoxManager to UIDetails. */
+        void sigToggleFinished();
+        /** Redirects signal from UIDetails to UIVirtualBoxManager. */
+        void sigLinkClicked(const QString &strCategory, const QString &strControl, const QUuid &uId);
+
+        /** Notifies listeners about current Snapshot pane item change. */
+        void sigCurrentSnapshotItemChange();
+
+        /** Notifies listeners about request to switch to Activity Overview pane. */
+        void sigSwitchToActivityOverviewPane();
+
+        /** Notifies listeners about request to detach pane with tool type @enmToolType. */
+        void sigDetachToolPane(UIToolType enmToolType);
+    /** @} */
 
 public:
 
@@ -95,11 +123,37 @@ public:
     /** Returns the help keyword of the current tool's widget. */
     QString currentHelpKeyword() const;
 
-    /** Defines the @a cloudItems. */
-    void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
+    /** @name Global tool stuff.
+      * @{ */
+        /** Defines the @a cloudItems. */
+        void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
-    /** Holds the Machine Tools Widget instance. */
-    UIMachineToolsWidget *machineToolsWidget() const;
+        /** Holds the Machine Tools Widget instance. */
+        UIMachineToolsWidget *machineToolsWidget() const;
+    /** @} */
+
+    /** @name Machine tool stuff.
+      * @{ */
+        /** Defines error @a strDetails and switches to Error pane. */
+        void setErrorDetails(const QString &strDetails);
+
+        /** Defines the machine @a items. */
+        void setItems(const QList<UIVirtualMachineItem*> &items);
+
+        /** Returns whether current-state item of Snapshot pane is selected. */
+        bool isCurrentStateItemSelected() const;
+
+        /** Returns currently selected snapshot ID if any. */
+        QUuid currentSnapshotId();
+    /** @} */
+
+private slots:
+
+    /** @name Machine tool stuff.
+      * @{ */
+        /** Handles the detach signals received from panes.*/
+        void sltDetachToolPane();
+    /** @} */
 
 private:
 
@@ -119,27 +173,61 @@ private:
     UIActionPool *m_pActionPool;
 
     /** Holds the stacked-layout instance. */
-    QStackedLayout               *m_pLayout;
+    QStackedLayout *m_pLayout;
+
     /** Holds the Home pane instance. */
-    UIHomePane                   *m_pPaneHome;
-    /** Holds the Machine Tools Widget instance. */
-    UIMachineToolsWidget         *m_pPaneMachines;
-    /** Holds the Extension Pack Manager instance. */
-    UIExtensionPackManagerWidget *m_pPaneExtensions;
-    /** Holds the Virtual Media Manager instance. */
-    UIMediumManagerWidget        *m_pPaneMedia;
-    /** Holds the Network Manager instance. */
-    UINetworkManagerWidget       *m_pPaneNetwork;
-    /** Holds the Cloud Profile Manager instance. */
-    UICloudProfileManagerWidget  *m_pPaneCloud;
-    /** Holds the VM Activity Overview instance. */
-    UIVMActivityOverviewWidget   *m_pPaneActivities;
+    UIHomePane *m_pPaneHome;
+
+    /** @name Global tool stuff.
+      * @{ */
+        /** Holds the Machine Tools Widget instance. */
+        UIMachineToolsWidget *m_pPaneMachines;
+    /** @} */
+
+    /** @name Machine tool stuff.
+      * @{ */
+        /** Holds the Error pane instance. */
+        UIErrorPane            *m_pPaneError;
+        /** Holds the Details pane instance. */
+        UIDetails              *m_pPaneDetails;
+        /** Holds the Snapshots pane instance. */
+        UISnapshotPane         *m_pPaneSnapshots;
+        /** Holds the Logviewer pane instance. */
+        UIVMLogViewerWidget    *m_pPaneLogViewer;
+        /** Holds the Performance Monitor pane instance. */
+        UIVMActivityToolWidget *m_pPaneVMActivityMonitor;
+        /** Holds the File Manager pane instance. */
+        UIFileManager          *m_pPaneFileManager;
+    /** @} */
+
+    /** @name Global tool stuff.
+      * @{ */
+        /** Holds the Extension Pack Manager instance. */
+        UIExtensionPackManagerWidget *m_pPaneExtensions;
+        /** Holds the Virtual Media Manager instance. */
+        UIMediumManagerWidget        *m_pPaneMedia;
+        /** Holds the Network Manager instance. */
+        UINetworkManagerWidget       *m_pPaneNetwork;
+        /** Holds the Cloud Profile Manager instance. */
+        UICloudProfileManagerWidget  *m_pPaneCloud;
+        /** Holds the VM Activity Overview instance. */
+        UIVMActivityOverviewWidget   *m_pPaneActivities;
+    /** @} */
 
     /** Holds whether this pane is active. */
     bool  m_fActive;
 
-    /** Holds the cache of passed cloud machine items. */
-    QList<UIVirtualMachineItemCloud*>  m_cloudItems;
+    /** @name Global tool stuff.
+      * @{ */
+        /** Holds the cache of passed cloud machine items. */
+        QList<UIVirtualMachineItemCloud*>  m_cloudItems;
+    /** @} */
+
+    /** @name Machine tool stuff.
+      * @{ */
+        /** Holds the cache of passed items. */
+        QList<UIVirtualMachineItem*>  m_items;
+    /** @} */
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_UIToolPane_h */

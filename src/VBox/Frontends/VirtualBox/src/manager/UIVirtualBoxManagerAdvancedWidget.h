@@ -45,7 +45,6 @@ class UIChooser;
 class UIGlobalToolsWidget;
 class UIMachineToolsWidget;
 class UIToolPane;
-class UIToolPaneMachine;
 class UIVirtualBoxManager;
 class UIVirtualMachineItem;
 
@@ -277,7 +276,7 @@ private:
         /** Returns Machine Tools Widget reference. */
         UIMachineToolsWidget *machineToolsWidget() const;
         /** Returns Machine Tool Pane reference. */
-        UIToolPaneMachine *machineToolPane() const;
+        UIToolPane *machineToolPane() const;
         /** Returns Machine Chooser Pane reference. */
         UIChooser *chooser() const;
     /** @} */

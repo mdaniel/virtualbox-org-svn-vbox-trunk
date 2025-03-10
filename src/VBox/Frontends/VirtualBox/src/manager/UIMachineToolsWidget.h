@@ -44,7 +44,6 @@ class QISplitter;
 class UIActionPool;
 class UIChooser;
 class UIToolPane;
-class UIToolPaneMachine;
 class UITools;
 class UIVirtualMachineItem;
 
@@ -133,7 +132,7 @@ public:
     /** @name Tools pane stuff.
       * @{ */
         /** Returns tool-pane instance. */
-        UIToolPaneMachine *toolPane() const;
+        UIToolPane *toolPane() const;
 
         /** Returns menu tool type. */
         UIToolType menuToolType() const;
@@ -248,13 +247,13 @@ private:
     UIActionPool *m_pActionPool;
 
     /** Holds the central splitter instance. */
-    QISplitter        *m_pSplitter;
+    QISplitter *m_pSplitter;
     /** Holds the Chooser-pane instance. */
-    UIChooser         *m_pPaneChooser;
+    UIChooser  *m_pPaneChooser;
     /** Holds the Tools-pane instance. */
-    UIToolPaneMachine *m_pPaneTools;
+    UIToolPane *m_pPaneTools;
     /** Holds the Tools-menu instance. */
-    UITools           *m_pMenuTools;
+    UITools    *m_pMenuTools;
 
     /** Holds the last selection type. */
     SelectionType  m_enmSelectionType;

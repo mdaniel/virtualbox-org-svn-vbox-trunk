@@ -1990,6 +1990,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
     uint8_t  bIntrPriority;
     uint16_t idxIntr;
     PGICCPU  pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
     uint16_t const uIntId = gicGetHighestPriorityPendingIntr(pGicDev, pGicCpu, fGroup0, fGroup1, &idxIntr, &bIntrPriority);
     if (uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT)
     {
@@ -2001,7 +2002,10 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
          * See ARM GIC spec. 4.8.6 "Priority masking".
          */
         if (bIntrPriority >= pGicCpu->bIntrPriorityMask)
+        {
+            STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
             return GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
+        }
 
         /*
          * The group priority of the pending interrupt must be higher than that of the running priority.
@@ -2025,7 +2029,10 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         uint8_t const bRunningGroupPriority = bRunningPriority & fRunningPriorityMask;
         uint8_t const bIntrGroupPriority    = bIntrPriority    & fGroupPriorityMask;
         if (bIntrGroupPriority >= bRunningGroupPriority)
+        {
+            STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);
             return GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
+        }
 
         /*
          * Acknowledge the interrupt.
@@ -2117,6 +2124,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         Assert(bIntrPriority == GIC_IDLE_PRIORITY);
 
     LogFlowFunc(("uIntId=%u\n", uIntId));
+    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF(StatProfIntrAck), x);
     return uIntId;
 }
 
@@ -3201,9 +3209,9 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
     PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
 #ifdef VBOX_WITH_STATISTICS
-    PVMCPU pVCpu = VMMGetCpu(pVM);
-    if (pVCpu)
-        STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSpi));
+    PVMCPU pVCpu = VMMGetCpuById(pVM, 0);
+    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSpi));
+    PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 #endif
 
 #if 0
@@ -3215,6 +3223,8 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
 
     int rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pThis));
 #else
+    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetSpi), a);
+
     uint16_t const uIntId  = GIC_INTID_RANGE_SPI_START + uSpiIntId;
     uint16_t const idxIntr = gicDistGetIndexFromIntId(uIntId);
 
@@ -3233,6 +3243,7 @@ static DECLCALLBACK(int) gicSetSpi(PVMCC pVM, uint32_t uSpiIntId, bool fAsserted
         ASMBitClear(&pGicDev->bmIntrPending[0], idxIntr);
 
     int const rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pGicDev));
+    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetSpi), a);
 #endif
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
@@ -3255,6 +3266,9 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
     AssertReturn(uIntId <= (GIC_INTID_RANGE_PPI_LAST - GIC_INTID_RANGE_PPI_START), VERR_INVALID_PARAMETER);
     int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_PPI_START, fAsserted);
 #else
+    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetPpi));
+    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetPpi), b);
+
     uint32_t const uIntId  = GIC_INTID_RANGE_PPI_START + uPpiIntId;
     uint16_t const idxIntr = gicReDistGetIndexFromIntId(uIntId);
 
@@ -3273,6 +3287,7 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
         ASMBitClear(&pGicCpu->bmIntrPending[0], idxIntr);
 
     int const rc = VBOXSTRICTRC_VAL(gicReDistUpdateIrqState(pGicDev, pVCpu));
+    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetPpi), b);
 #endif
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
@@ -3283,13 +3298,13 @@ static DECLCALLBACK(int) gicSetPpi(PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAss
 /**
  * Sets the specified software generated interrupt (SGI).
  *
- * @returns VBox status code.
+ * @returns Strict VBox status code.
  * @param   pGicDev     The GIC distributor state.
  * @param   pVCpu           The cross context virtual CPU structure.
  * @param   pDestCpuSet     Which CPUs to deliver the SGI to.
  * @param   uIntId          The SGI interrupt ID.
  */
-static int gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, uint8_t uIntId)
+static VBOXSTRICTRC gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, uint8_t uIntId)
 {
 #if 0
     LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u fAsserted=%RTbool\n",
@@ -3302,6 +3317,7 @@ static int gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, u
     AssertReturn(uIntId <= (GIC_INTID_RANGE_SGI_LAST - GIC_INTID_RANGE_SGI_START), VERR_INVALID_PARAMETER);
     int rc = gicReDistInterruptSet(pVCpu, uIntId + GIC_INTID_RANGE_SGI_START, fAsserted);
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    return rc;
 #else
     LogFlowFunc(("pVCpu=%p{.idCpu=%u} uIntId=%u\n", pVCpu, pVCpu->idCpu, uIntId));
 
@@ -3309,9 +3325,7 @@ static int gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, u
     PCVMCC         pVM     = pVCpu->CTX_SUFF(pVM);
     uint32_t const cCpus   = pVM->cCpus;
     AssertReturn(uIntId <= GIC_INTID_RANGE_SGI_LAST, VERR_INVALID_PARAMETER);
-
-    int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VERR_IGNORED);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    Assert(PDMDevHlpCritSectIsOwner(pDevIns, pDevIns->pCritSectRoR3)); RT_NOREF_PV(pDevIns);
 
     for (VMCPUID idCpu = 0; idCpu < cCpus; idCpu++)
         if (VMCPUSET_IS_PRESENT(pDestCpuSet, idCpu))
@@ -3320,10 +3334,8 @@ static int gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, u
             pGicCpu->bmIntrPending[0] |= RT_BIT_32(uIntId);
         }
 
-    int const rc = VBOXSTRICTRC_VAL(gicDistUpdateIrqState(pVM, pGicDev));
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    return gicDistUpdateIrqState(pVM, pGicDev);
 #endif
-    return rc;
 }
 
 
@@ -3337,7 +3349,14 @@ static int gicSetSgi(PCGICDEV pGicDev, PVMCPUCC pVCpu, PCVMCPUSET pDestCpuSet, u
  */
 static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint64_t uValue)
 {
+#ifdef VBOX_WITH_STATISTICS
+    PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+    STAM_COUNTER_INC(&pVCpu->gic.s.CTX_SUFF_Z(StatSetSgi));
+    STAM_PROFILE_START(&pGicCpu->CTX_SUFF_Z(StatProfSetSgi), c);
+#else
     PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+#endif
+
     VMCPUSET DestCpuSet;
     if (uValue & ARMV8_ICC_SGI1R_EL1_AARCH64_IRM)
     {
@@ -3388,9 +3407,12 @@ static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint6
         uint16_t const idxIdb = uSgiIntId;
         gicPostInterrupt(pVCpu, &DestCpuSet, idxIdb);
 #else
-        gicSetSgi(pGicDev, pVCpu, &DestCpuSet, uSgiIntId);
+        VBOXSTRICTRC const rcStrict = gicSetSgi(pGicDev, pVCpu, &DestCpuSet, uSgiIntId);
+        Assert(RT_SUCCESS(rcStrict)); RT_NOREF_PV(rcStrict);
 #endif
     }
+
+    STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfSetSgi), c);
     return VINF_SUCCESS;
 }
 

@@ -273,15 +273,7 @@ typedef struct GICCPU
     bool                        fIntrGroup1Enabled;
     /** @} */
 
-    /** @name Log Max counters
-     * @{ */
-    uint32_t                    cLogMaxAccessError;
-    uint32_t                    cLogMaxSetApicBaseAddr;
-    uint32_t                    cLogMaxGetApicBaseAddr;
-    uint32_t                    uAlignment4;
-    /** @} */
-
-    /** @name APIC statistics.
+    /** @name Statistics.
      * @{ */
 #ifdef VBOX_WITH_STATISTICS
     /** Number of MMIO reads in R3. */
@@ -296,6 +288,17 @@ typedef struct GICCPU
     STAMCOUNTER                 StatSetSpiR3;
     /** Number of set PPI callbacks. */
     STAMCOUNTER                 StatSetPpiR3;
+    /** Number of SGIs generated. */
+    STAMCOUNTER                 StatSetSgiR3;
+
+    /** Profiling of interrupt acknowledge (IAR). */
+    STAMPROFILE                 StatProfIntrAckR3;
+    /** Profiling of set SPI callback. */
+    STAMPROFILE                 StatProfSetSpiR3;
+    /** Profiling of set PPI callback. */
+    STAMPROFILE                 StatProfSetPpiR3;
+    /** Profiling of set SGI function. */
+    STAMPROFILE                 StatProfSetSgiR3;
 
 # if 0 /* No R0 for now. */
     /** Number of MMIO reads in RZ. */

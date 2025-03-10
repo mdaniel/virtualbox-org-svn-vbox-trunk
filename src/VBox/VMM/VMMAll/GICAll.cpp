@@ -1837,89 +1837,87 @@ static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGic
     /*
      * Collect interrupts that are pending, enabled and inactive.
      * Discard interrupts if the group they belong to is disabled.
+     * While collected the interrupts, pick the one with the highest, non-idle priority.
      */
-    uint32_t bmIntrPending[GIC_REDIST_INTR_COUNT + GIC_DIST_INTR_COUNT];
-    for (uint16_t i = 0; i < GIC_REDIST_INTR_COUNT; i++)
-    {
-        bmIntrPending[i] = (pGicCpu->bmIntrPending[i] & pGicCpu->bmIntrEnabled[i]) & ~pGicCpu->bmIntrActive[i];
-        if (!fGroup1)
-            bmIntrPending[i] &= ~pGicCpu->bmIntrGroup[i];
-        if (!fGroup0)
-            bmIntrPending[i] &= pGicCpu->bmIntrGroup[i];
-    }
-    for (uint16_t i = 0; i < GIC_DIST_INTR_COUNT; i++)
-    {
-        uint16_t const idxPending = i + GIC_REDIST_INTR_COUNT;
-        bmIntrPending[idxPending] = (pGicDev->bmIntrPending[i] & pGicDev->bmIntrEnabled[i]) & ~pGicDev->bmIntrActive[i];
-        if (!fGroup1)
-            bmIntrPending[idxPending] &= ~pGicDev->bmIntrGroup[i];
-        if (!fGroup0)
-            bmIntrPending[idxPending] &= pGicDev->bmIntrGroup[i];
-    }
+    uint16_t uIntId    = GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
+    uint16_t idxIntr   = UINT16_MAX;
+    uint8_t  uPriority = GIC_IDLE_PRIORITY;
 
-    /*
-     * Among the collected interrupts, pick the one with the highest, non-idle priority.
-     */
-    uint16_t uIntId     = GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
-    uint16_t idxHighest = UINT16_MAX;
-    uint8_t  uPriority  = GIC_IDLE_PRIORITY;
     /* Redistributor. */
     {
-        const void    *pvIntrs = &bmIntrPending[0];
-        uint32_t const cIntrs  = sizeof(pGicCpu->bmIntrPending) * 8; AssertCompile(!(cIntrs % 32));
-        int32_t        idxIntr = ASMBitFirstSet(pvIntrs, cIntrs);
-        if (idxIntr >= 0)
+        uint16_t idxHighest = UINT16_MAX;
+        uint32_t bmIntrPending[GIC_REDIST_INTR_COUNT];
+        for (uint16_t i = 0; i < GIC_REDIST_INTR_COUNT; i++)
         {
-            do
+            bmIntrPending[i] = (pGicCpu->bmIntrPending[i] & pGicCpu->bmIntrEnabled[i]) & ~pGicCpu->bmIntrActive[i];
+            if (!fGroup1)
+                bmIntrPending[i] &= ~pGicCpu->bmIntrGroup[i];
+            if (!fGroup0)
+                bmIntrPending[i] &= pGicCpu->bmIntrGroup[i];
+
+            uint16_t const idxPending = ASMBitFirstSetU32(bmIntrPending[i]);
+            if (idxPending > 0)
             {
-                if (pGicCpu->abIntrPriority[idxIntr] < uPriority)
+                uint32_t const idxPriority = (32 * i) + idxPending - 1;
+                Assert(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority));
+                if (pGicCpu->abIntrPriority[idxPriority] < uPriority)
                 {
-                    idxHighest = (uint16_t)idxIntr;
-                    uPriority  = pGicCpu->abIntrPriority[idxIntr];
+                    idxHighest = idxPriority;
+                    uPriority  = pGicCpu->abIntrPriority[idxPriority];
                 }
-                idxIntr = ASMBitNextSet(pvIntrs, cIntrs, idxIntr);
-            } while (idxIntr != -1);
-            if (uPriority != GIC_IDLE_PRIORITY)
-                uIntId = gicReDistGetIntIdFromIndex(idxHighest);
+            }
+        }
+        if (idxHighest != UINT16_MAX)
+        {
+            idxIntr = idxHighest;
+            uIntId  = gicReDistGetIntIdFromIndex(idxHighest);
+            Assert(   GIC_IS_INTR_SGI_OR_PPI(uIntId)
+                   || GIC_IS_INTR_EXT_PPI(uIntId));
+            Assert(uPriority != GIC_IDLE_PRIORITY);
         }
     }
+
     /* Distributor. */
     {
-        const void    *pvIntrs = &bmIntrPending[GIC_REDIST_INTR_COUNT];
-        uint32_t const cIntrs  = sizeof(pGicDev->bmIntrPending) * 8; AssertCompile(!(cIntrs % 32));
-        int32_t        idxIntr = ASMBitFirstSet(pvIntrs, cIntrs);
-        if (idxIntr >= 0)
+        uint16_t idxHighest = UINT16_MAX;
+        uint32_t bmIntrPending[GIC_DIST_INTR_COUNT];
+        for (uint16_t i = 0; i < GIC_DIST_INTR_COUNT; i++)
         {
-            do
+            bmIntrPending[i] = (pGicDev->bmIntrPending[i] & pGicDev->bmIntrEnabled[i]) & ~pGicDev->bmIntrActive[i];
+            if (!fGroup1)
+                bmIntrPending[i] &= ~pGicDev->bmIntrGroup[i];
+            if (!fGroup0)
+                bmIntrPending[i] &= pGicDev->bmIntrGroup[i];
+
+            uint16_t const idxPending = ASMBitFirstSetU32(bmIntrPending[i]);
+            if (idxPending > 0)
             {
-                if (pGicDev->abIntrPriority[idxIntr] < uPriority)
+                uint32_t const idxPriority = (32 * i) + idxPending - 1;
+                if (pGicDev->abIntrPriority[idxPriority] < uPriority)
                 {
-                    idxHighest = (uint16_t)idxIntr;
-                    uPriority  = pGicDev->abIntrPriority[idxIntr];
+                    idxHighest = idxPriority;
+                    uPriority  = pGicDev->abIntrPriority[idxPriority];
                 }
-                idxIntr = ASMBitNextSet(pvIntrs, cIntrs, idxIntr);
-            } while (idxIntr != -1);
-            if (uPriority != GIC_IDLE_PRIORITY)
-                uIntId = gicDistGetIntIdFromIndex(idxHighest);
+            }
+        }
+        if (idxHighest != UINT16_MAX)
+        {
+            idxIntr = idxHighest;
+            uIntId  = gicDistGetIntIdFromIndex(idxHighest);
+            Assert(   GIC_IS_INTR_SPI(uIntId)
+                   || GIC_IS_INTR_EXT_SPI(uIntId));
+            Assert(uPriority != GIC_IDLE_PRIORITY);
         }
     }
 
-    /* Sanity check if the interrupt ID is within known ranges. */
-    Assert(   GIC_IS_INTR_SGI_OR_PPI(uIntId)
-           || GIC_IS_INTR_EXT_PPI(uIntId)
-           || GIC_IS_INTR_SPI(uIntId)
-           || GIC_IS_INTR_EXT_PPI(uIntId)
-           || GIC_IS_INTR_EXT_SPI(uIntId)
-           || uIntId == GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT);
     /* Ensure that if no interrupt is pending, the idle priority is returned. */
     Assert(uIntId != GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT || uPriority == GIC_IDLE_PRIORITY);
-
     if (pbPriority)
         *pbPriority = uPriority;
     if (pidxIntr)
-        *pidxIntr = idxHighest;
+        *pidxIntr = idxIntr;
 
-    LogFlowFunc(("uIntId=%u [idxHighest=%u uPriority=%u]\n", uIntId, idxHighest, uPriority));
+    LogFlowFunc(("uIntId=%u [idxIntr=%u uPriority=%u]\n", uIntId, idxIntr, uPriority));
     return uIntId;
 
 #undef GIC_DIST_INTR_COUNT

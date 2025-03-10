@@ -87,6 +87,7 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
     PCGIC      pGic    = VM_TO_GIC(pVM);
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
     PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+
     pHlp->pfnPrintf(pHlp, "GIC:\n");
     pHlp->pfnPrintf(pHlp, "  uArchRev         = %u\n",      pGicDev->uArchRev);
     pHlp->pfnPrintf(pHlp, "  uMaxSpi          = %u (upto IntId %u)\n", pGicDev->uMaxSpi, 32 * (pGicDev->uMaxSpi + 1));
@@ -99,6 +100,7 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
     pHlp->pfnPrintf(pHlp, "  fRangeSelSupport = %RTbool\n", pGicDev->fRangeSel);
     pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
     pHlp->pfnPrintf(pHlp, "  fMbi             = %RTbool\n", pGicDev->fMbi);
+    pHlp->pfnPrintf(pHlp, "  fAff3Levels      = %RTbool\n", pGicDev->fAff3Levels);
 }
 
 
@@ -115,7 +117,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
 
     PGIC pGic = VM_TO_GIC(pVM);
     PPDMDEVINS pDevIns = pGic->CTX_SUFF(pDevIns);
-    PGICDEV    pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PCGICDEV   pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
 
 #define GIC_DBGFINFO_DIST_INTR_BITMAP(a_Name, a_bmIntr) \
     do \
@@ -195,7 +197,7 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     if (!pVCpu)
         pVCpu = pVM->apCpusR3[0];
 
-    PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
+    PCGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
     pHlp->pfnPrintf(pHlp, "VCPU[%u] Redistributor:\n", pVCpu->idCpu);
     AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrGroup)   >= 3);

@@ -131,9 +131,6 @@
                   Starts a VM with a detachable user interface (UI),
                   which means that the VM runs headless with the UI in a
                   separate process.
-                </para><para>
-                  This is an experimental feature that lacks certain
-                  functionality, such as 3D acceleration.
                 </para></listitem>
             </varlistentry>
           </variablelist></listitem>

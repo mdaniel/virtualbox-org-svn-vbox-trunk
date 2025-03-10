@@ -3432,27 +3432,35 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup0[0];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R1_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup0[1];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R2_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup0[2];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup0[3];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup1[0];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R1_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup1[1];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R2_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup1[2];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R3_EL1:
             AssertReleaseFailed();
+            *pu64Value = pGicCpu->bmActivePriorityGroup1[3];
             break;
         case ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1:
             AssertReleaseFailed();

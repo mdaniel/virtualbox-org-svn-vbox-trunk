@@ -2021,11 +2021,9 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
         uint8_t const idxPriorityMask       = (fGroup0 || (pGicCpu->uIccCtlr & ARMV8_ICC_CTLR_EL1_AARCH64_CBPR))
                                             ? pGicCpu->bBinaryPtGroup0 & 7
                                             : pGicCpu->bBinaryPtGroup1 & 7;
-        uint8_t const fGroupPriorityMask    = s_afGroupPriorityMasks[idxPriorityMask];
-        uint8_t const fRunningPriorityMask  = s_afRunningPriorityMasks[idxPriorityMask];
         uint8_t const bRunningPriority      = pGicCpu->abRunningPriorities[pGicCpu->idxRunningPriority];
-        uint8_t const bRunningGroupPriority = bRunningPriority & fRunningPriorityMask;
-        uint8_t const bIntrGroupPriority    = bIntrPriority    & fGroupPriorityMask;
+        uint8_t const bRunningGroupPriority = bRunningPriority & s_afRunningPriorityMasks[idxPriorityMask];
+        uint8_t const bIntrGroupPriority    = bIntrPriority    & s_afGroupPriorityMasks[idxPriorityMask];
         if (bIntrGroupPriority >= bRunningGroupPriority)
         {
             STAM_PROFILE_STOP(&pGicCpu->CTX_SUFF_Z(StatProfIntrAck), x);

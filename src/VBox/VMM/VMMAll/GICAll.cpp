@@ -2311,7 +2311,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                      | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* Affinity routing is always enabled, hence this MBZ. */
                      /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Support non-maskable interrupts */
                      /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo Support dual security states. */
-                     /*| GIC_DIST_REG_TYPER_MBIS */           /** @todo Support message-based interrupts */
+                     | (pGicDev->fMbi ? GIC_DIST_REG_TYPER_MBIS : 0)
                      /*| GIC_DIST_REG_TYPER_LPIS */           /** @todo Support LPIs */
                      | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
                      | GIC_DIST_REG_TYPER_IDBITS_SET(16);    /* We only support 16-bit interrupt IDs. */
@@ -2378,9 +2378,11 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         case GIC_DIST_REG_ITARGETSRn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
+#if 0
         case GIC_DIST_REG_ICFGRn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
+#endif
         case GIC_DIST_REG_IGRPMODRn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
@@ -2587,7 +2589,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
      * GICD_ICFGR<n> and GICD_ICFGR<n>E.
      */
     {
-        if (offReg - GIC_DIST_REG_ICFGRn_OFF_START + cbReg < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
+        if (offReg - GIC_DIST_REG_ICFGRn_OFF_START < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICFGRn_OFF_START) / cbReg;
             return gicDistWriteIntrConfigReg(pGicDev, idxReg, uValue);
@@ -3653,28 +3655,14 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
 #endif
             break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R0_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R1_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R2_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP0R3_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R0_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R1_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R2_EL1:
-            AssertReleaseFailed();
-            break;
         case ARMV8_AARCH64_SYSREG_ICC_AP1R3_EL1:
-            AssertReleaseFailed();
+            /* Writes ignored, well behaving guest would write all 0s or the last read value of the register. */
             break;
         case ARMV8_AARCH64_SYSREG_ICC_NMIAR1_EL1:
             AssertReleaseFailed();

@@ -38,7 +38,7 @@
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsManagerWidget.h"
-#include "UIMachineToolsManagerWidget.h"
+#include "UIMachineToolsWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
@@ -230,14 +230,14 @@ UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeGlobal() const
 
 void UIVirtualBoxManagerAdvancedWidget::setToolsTypeMachine(UIToolType enmType)
 {
-    AssertPtrReturnVoid(machineToolManager());
-    machineToolManager()->setMenuToolType(enmType);
+    AssertPtrReturnVoid(machineToolsWidget());
+    machineToolsWidget()->setMenuToolType(enmType);
 }
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeMachine() const
 {
-    AssertPtrReturn(machineToolManager(), UIToolType_Invalid);
-    return machineToolManager()->menuToolType();
+    AssertPtrReturn(machineToolsWidget(), UIToolType_Invalid);
+    return machineToolsWidget()->menuToolType();
 }
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::currentGlobalTool() const
@@ -248,8 +248,8 @@ UIToolType UIVirtualBoxManagerAdvancedWidget::currentGlobalTool() const
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::currentMachineTool() const
 {
-    AssertPtrReturn(machineToolManager(), UIToolType_Invalid);
-    return machineToolManager()->toolType();
+    AssertPtrReturn(machineToolsWidget(), UIToolType_Invalid);
+    return machineToolsWidget()->toolType();
 }
 
 bool UIVirtualBoxManagerAdvancedWidget::isGlobalToolOpened(UIToolType enmType) const
@@ -260,8 +260,8 @@ bool UIVirtualBoxManagerAdvancedWidget::isGlobalToolOpened(UIToolType enmType) c
 
 bool UIVirtualBoxManagerAdvancedWidget::isMachineToolOpened(UIToolType enmType) const
 {
-    AssertPtrReturn(machineToolManager(), false);
-    return machineToolManager()->isToolOpened(enmType);
+    AssertPtrReturn(machineToolsWidget(), false);
+    return machineToolsWidget()->isToolOpened(enmType);
 }
 
 void UIVirtualBoxManagerAdvancedWidget::closeGlobalTool(UIToolType enmType)
@@ -272,8 +272,8 @@ void UIVirtualBoxManagerAdvancedWidget::closeGlobalTool(UIToolType enmType)
 
 void UIVirtualBoxManagerAdvancedWidget::closeMachineTool(UIToolType enmType)
 {
-    AssertPtrReturnVoid(machineToolManager());
-    machineToolManager()->closeTool(enmType);
+    AssertPtrReturnVoid(machineToolsWidget());
+    machineToolsWidget()->closeTool(enmType);
 }
 
 bool UIVirtualBoxManagerAdvancedWidget::isCurrentStateItemSelected() const
@@ -437,15 +437,15 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
             this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tool Manager connections: */
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneIndexChange,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneSelectionChange,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigCloudMachineStateChange,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     connect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
@@ -478,7 +478,7 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
     /* Make sure stuff exists: */
     AssertPtrReturnVoid(m_pToolBar);
     AssertPtrReturnVoid(globalToolManager());
-    AssertPtrReturnVoid(machineToolManager());
+    AssertPtrReturnVoid(machineToolsWidget());
 
     /* Clear toolbar initially: */
     m_pToolBar->clear();
@@ -498,7 +498,7 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
         }
         case UIToolType_Machines:
         {
-            switch (machineToolManager()->toolType())
+            switch (machineToolsWidget()->toolType())
             {
                 case UIToolType_Details:
                 {
@@ -675,15 +675,15 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
                this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tool Manager connections: */
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolTypeChange,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneIndexChange,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigChooserPaneSelectionChange,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigCloudMachineStateChange,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     disconnect(machineToolPane(), &UIToolPaneMachine::sigLinkClicked,
@@ -720,17 +720,17 @@ UIToolPaneGlobal *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
     return globalToolManager()->toolPane();
 }
 
-UIMachineToolsManagerWidget *UIVirtualBoxManagerAdvancedWidget::machineToolManager() const
+UIMachineToolsWidget *UIVirtualBoxManagerAdvancedWidget::machineToolsWidget() const
 {
-    return globalToolManager()->machineToolManager();
+    return globalToolManager()->machineToolsWidget();
 }
 
 UIToolPaneMachine *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const
 {
-    return machineToolManager()->toolPane();
+    return machineToolsWidget()->toolPane();
 }
 
 UIChooser *UIVirtualBoxManagerAdvancedWidget::chooser() const
 {
-    return machineToolManager()->chooser();
+    return machineToolsWidget()->chooser();
 }

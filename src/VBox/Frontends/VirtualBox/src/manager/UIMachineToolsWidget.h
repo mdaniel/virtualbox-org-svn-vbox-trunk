@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIMachineToolsManagerWidget class declaration.
+ * VBox Qt GUI - UIMachineToolsWidget class declaration.
  */
 
 /*
@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef FEQT_INCLUDED_SRC_manager_UIMachineToolsManagerWidget_h
-#define FEQT_INCLUDED_SRC_manager_UIMachineToolsManagerWidget_h
+#ifndef FEQT_INCLUDED_SRC_manager_UIMachineToolsWidget_h
+#define FEQT_INCLUDED_SRC_manager_UIMachineToolsWidget_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -48,8 +48,8 @@ class UIToolPaneMachine;
 class UITools;
 class UIVirtualMachineItem;
 
-/** QWidget extension used as Machine Tool Manager Widget instance. */
-class UIMachineToolsManagerWidget : public QWidget
+/** QWidget extension used as Machine Tools Widget instance. */
+class UIMachineToolsWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -87,9 +87,9 @@ signals:
 
 public:
 
-    /** Constructs Machine Tool Manager widget passing @a pParent to the base-class.
+    /** Constructs Machine Tools Widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference. */
-    UIMachineToolsManagerWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool);
+    UIMachineToolsWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool);
 
     /** @name Common stuff.
       * @{ */
@@ -265,4 +265,4 @@ private:
     QTimer *m_pSplitterSettingsSaveTimer;
 };
 
-#endif /* !FEQT_INCLUDED_SRC_manager_UIMachineToolsManagerWidget_h */
+#endif /* !FEQT_INCLUDED_SRC_manager_UIMachineToolsWidget_h */

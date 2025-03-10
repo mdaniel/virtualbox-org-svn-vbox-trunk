@@ -34,7 +34,7 @@
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsManagerWidget.h"
-#include "UIMachineToolsManagerWidget.h"
+#include "UIMachineToolsWidget.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
@@ -68,9 +68,9 @@ UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
     return m_pPane;
 }
 
-UIMachineToolsManagerWidget *UIGlobalToolsManagerWidget::machineToolManager() const
+UIMachineToolsWidget *UIGlobalToolsManagerWidget::machineToolsWidget() const
 {
-    return toolPane()->machineToolManager();
+    return toolPane()->machineToolsWidget();
 }
 
 UIToolType UIGlobalToolsManagerWidget::menuToolType() const
@@ -161,8 +161,8 @@ QString UIGlobalToolsManagerWidget::currentHelpKeyword() const
 {
     if (toolType() == UIToolType_Machines)
     {
-        AssertPtrReturn(machineToolManager(), QString());
-        return machineToolManager()->currentHelpKeyword();
+        AssertPtrReturn(machineToolsWidget(), QString());
+        return machineToolsWidget()->currentHelpKeyword();
     }
 
     AssertPtrReturn(toolPane(), QString());
@@ -280,7 +280,7 @@ void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmTyp
     }
     /* For Machine tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Machine)
-        machineToolManager()->switchToolTo(enmType);
+        machineToolsWidget()->switchToolTo(enmType);
     /* For Management tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Management)
         switchToolTo(enmType);
@@ -357,7 +357,7 @@ void UIGlobalToolsManagerWidget::prepareConnections()
     /* Tools-pane connections: */
     connect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
             this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
-    connect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
             this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
     connect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
             this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
@@ -394,7 +394,7 @@ void UIGlobalToolsManagerWidget::cleanupConnections()
     /* Tools-pane connections: */
     disconnect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
                this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
-    disconnect(machineToolManager(), &UIMachineToolsManagerWidget::sigToolMenuUpdate,
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
                this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
     disconnect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
                this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
@@ -407,10 +407,10 @@ UITools *UIGlobalToolsManagerWidget::toolMenu() const
 
 UIChooser *UIGlobalToolsManagerWidget::chooser() const
 {
-    return machineToolManager()->chooser();
+    return machineToolsWidget()->chooser();
 }
 
 UIToolPaneMachine *UIGlobalToolsManagerWidget::toolPaneMachine() const
 {
-    return machineToolManager()->toolPane();
+    return machineToolsWidget()->toolPane();
 }

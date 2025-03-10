@@ -440,7 +440,8 @@
 /** Bit 8 - 23 - A unique identifier for the PE. */
 # define GIC_REDIST_REG_TYPER_CPU_NUMBER                UINT32_C(0x00ffff00)
 # define GIC_REDIST_REG_TYPER_CPU_NUMBER_SET(a_CpuNum)  (((a_CpuNum) << 8) & GIC_REDIST_REG_TYPER_CPU_NUMBER)
-/** Bit 24 - 25 - The affinity level at Redistributorsshare an LPI Configuration table. */
+/** Bit 24 - 25 - The affinity level at Redistributors share an LPI Configuration
+ *  table. */
 # define GIC_REDIST_REG_TYPER_CMN_LPI_AFF               (RT_BIT_32(24) | RT_BIT_32(25))
 # define GIC_REDIST_REG_TYPER_CMN_LPI_AFF_SET(a_LpiAff) (((a_LpiAff) << 24) & GIC_REDIST_REG_TYPER_CMN_LPI_AFF)
 /** All Redistributors must share an LPI Configuration table. */

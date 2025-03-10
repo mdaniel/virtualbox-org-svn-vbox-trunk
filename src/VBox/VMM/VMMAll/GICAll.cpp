@@ -2305,11 +2305,11 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
     switch (offReg)
     {
         case GIC_DIST_REG_CTLR_OFF:
-            Assert(pGicDev->fAffRoutingEnabled);    /* We don't support GICv2 backwards compatibility, so ARE bit must be set. */
+            Assert(pGicDev->fAffRoutingEnabled);
             *puValue = (pGicDev->fIntrGroup0Enabled ? GIC_DIST_REG_CTRL_ENABLE_GRP0    : 0)
                      | (pGicDev->fIntrGroup1Enabled ? GIC_DIST_REG_CTRL_ENABLE_GRP1_NS : 0)
-                     | GIC_DIST_REG_CTRL_DS
-                     | (pGicDev->fAffRoutingEnabled ? GIC_DIST_REG_CTRL_ARE_S : 0);
+                     | GIC_DIST_REG_CTRL_DS         /* We don't support multiple security states. */
+                     | GIC_DIST_REG_CTRL_ARE_S;     /* We don't support GICv2 backwards compatibility, ARE is always enabled. */
             break;
         case GIC_DIST_REG_TYPER_OFF:
         {
@@ -2318,9 +2318,9 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             *puValue = GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pGicDev->uMaxSpi)
                      | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* Affinity routing is always enabled, hence this MBZ. */
                      /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Support non-maskable interrupts */
-                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo Support dual security states. */
+                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN*/   /** @todo Support dual security states. */
                      | (pGicDev->fMbi ? GIC_DIST_REG_TYPER_MBIS : 0)
-                     /*| GIC_DIST_REG_TYPER_LPIS */           /** @todo Support LPIs */
+                     /*| GIC_DIST_REG_TYPER_LPIS*/            /** @todo Support LPIs */
                      | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
                      | GIC_DIST_REG_TYPER_IDBITS_SET(16)      /* We only support 16-bit interrupt IDs. */
                      | (pGicDev->fAff3Levels ? GIC_DIST_REG_TYPER_A3V : 0);
@@ -2382,7 +2382,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             break;
         }
 #endif
-        case GIC_DIST_REG_ITARGETSRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_ITARGETSRn_OFF_START:
             AssertReleaseFailed();
             break;
 #if 0
@@ -2390,10 +2390,10 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             AssertReleaseFailed();
             break;
 #endif
-        case GIC_DIST_REG_IGRPMODRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_IGRPMODRn_OFF_START:
             AssertReleaseFailed();
             break;
-        case GIC_DIST_REG_NSACRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_NSACRn_OFF_START:
             AssertReleaseFailed();
             break;
         case GIC_DIST_REG_SGIR_OFF:
@@ -2725,7 +2725,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             break;
         }
 #endif
-        case GIC_DIST_REG_ITARGETSRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_ITARGETSRn_OFF_START:
             AssertReleaseFailed();
             break;
 #if 0
@@ -2736,10 +2736,10 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             ASMAtomicWriteU32(&pThis->u32RegICfg1, uValue);
             break;
 #endif
-        case GIC_DIST_REG_IGRPMODRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_IGRPMODRn_OFF_START:
             AssertReleaseFailed();
             break;
-        case GIC_DIST_REG_NSACRn_OFF_START: /* Only 32 lines for now. */
+        case GIC_DIST_REG_NSACRn_OFF_START:
             AssertReleaseFailed();
             break;
         case GIC_DIST_REG_SGIR_OFF:

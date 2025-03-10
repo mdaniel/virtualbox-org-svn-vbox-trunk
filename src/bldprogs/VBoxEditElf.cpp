@@ -57,7 +57,7 @@ typedef struct
     Elf64_Half      vd_cnt;
     Elf64_Word      vd_hash;
     Elf64_Word      vd_aux;
-    Elf64_Word      vd_next;    
+    Elf64_Word      vd_next;
 } Elf64_Verdef;
 
 

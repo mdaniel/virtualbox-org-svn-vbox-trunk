@@ -90,6 +90,10 @@ BLDPROGS.win += VBoxCheckImports
 VBoxCheckImports_TEMPLATE = VBoxBldProg
 VBoxCheckImports_SOURCES  = VBoxCheckImports.cpp
 
+BLDPROGS += VBoxEditElf
+VBoxEditElf_TEMPLATE = VBoxAdvBldProg
+VBoxEditElf_SOURCES  = VBoxEditElf.cpp
+
 ifneq ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH),solaris.sparc64)
  BLDPROGS += VBoxDef2LazyLoad
 endif

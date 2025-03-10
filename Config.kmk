@@ -2608,6 +2608,9 @@ VBOX_CHECK_IMPORTS ?= $(PATH_OBJ)/VBoxCheckImports/VBoxCheckImports$(HOSTSUFF_EX
 # VBoxEditCoffLib (symbol name tweaking for VBoxSF on windows)
 VBOX_EDIT_COFF_LIB ?= $(PATH_OBJ)/VBoxEditCoffLib/VBoxEditCoffLib$(HOSTSUFF_EXE)
 
+# VBoxEditElf (Simple ELF binary editor).
+VBOX_EDIT_ELF      ?= $(PATH_OBJ)/VBoxEditElf/VBoxEditElf$(HOSTSUFF_EXE)
+
 # GNU tar if present.
 if1of ($(KBUILD_TARGET), linux os2 win)
  VBOX_GTAR ?= tar

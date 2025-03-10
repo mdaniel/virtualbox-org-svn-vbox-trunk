@@ -295,6 +295,8 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
    endif
 
   else # x11
+   qt-bin_DEPS = $(VBOX_EDIT_ELF)
+
    VBOX_QT_VERSION_MAJOR := 6
    ifdef VBOX_WITH_HARDENING
     # The wildcards are necessary to install the libs instead of the symlinks
@@ -313,7 +315,7 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
     		$$(qt-bin_0_OUTDIR)/% : $(PATH_SDK_QT6_LIB)/% | $$(qt-bin_0_OUTDIR)/
 	$(call MSG_INST_FILE,$^,$@)
 	$(QUIET)$(CP) $^ $@
-	$(QUIET)chrpath --replace "\$$ORIGIN" $@
+	$(QUIET)$(VBOX_EDIT_ELF) --change-runpath "\$$ORIGIN" $@
 
     ifn1of ($(KBUILD_TARGET), solaris linux)
      $(foreach lib,$(VBOX_QT_PLUGINS),$$(qt-bin_0_OUTDIR)/$(lib)): $$(qt-bin_0_OUTDIR)/% : \
@@ -321,7 +323,7 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
 	$(call MSG_INST_FILE,$^,$@)
 	$(QUIET)$(MKDIR) -p $(@D)
 	$(QUIET)$(CP) $^ $@
-	$(QUIET)chrpath --delete $@
+	$(QUIET)$(VBOX_EDIT_ELF) --delete-runpath --input $@
     endif # !solaris and !linux
 
     # @todo For solaris and some linuxes dlopen fails to navigate executable rpath to dependent libraries,
@@ -332,7 +334,7 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
 	$(call MSG_INST_FILE,$^,$@)
 	$(QUIET)$(MKDIR) -p $(@D)
 	$(QUIET)$(CP) $^ $@
-	$(QUIET)chrpath --replace "\$$ORIGIN/../../" $@
+	$(QUIET)$(VBOX_EDIT_ELF) --change-runpath "\$$ORIGIN/../../" $@
     endif # solaris linux
 
    endif # !VBOX_WITH_HARDENING

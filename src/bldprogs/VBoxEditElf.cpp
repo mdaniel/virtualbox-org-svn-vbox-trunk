@@ -392,7 +392,7 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
         ||  Hdr.e_ident[EI_MAG1] != ELFMAG1
         ||  Hdr.e_ident[EI_MAG2] != ELFMAG2
         ||  Hdr.e_ident[EI_MAG3] != ELFMAG3)
-        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Invalid ELF magic (%.*Rhxs)", sizeof(Hdr.e_ident), Hdr.e_ident);
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "%s: Invalid ELF magic (%.*Rhxs)", pszInput, sizeof(Hdr.e_ident), Hdr.e_ident);
     if (Hdr.e_ident[EI_CLASS] != ELFCLASS64)
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Invalid ELF class (%.*Rhxs)", sizeof(Hdr.e_ident), Hdr.e_ident);
     if (Hdr.e_ident[EI_DATA] != ELFDATA2LSB)
@@ -525,6 +525,7 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
 
     /* Remove all undefined entries from .dynsym and rewrite all exposed symbols to point to the first section header in the stub. */
     uint32_t cDynSymsExport = 0;
+    uint32_t idxFirstNonLocalSym = 0;
     for (uint32_t i = 0; i < cbDynSyms / sizeof(*paDynSyms); i++)
     {
         if (paDynSyms[i].st_shndx)
@@ -534,6 +535,9 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
             paDynSyms[cDynSymsExport].st_value = 0;
             if (pu16GnuVerSym)
                 pu16GnuVerSym[cDynSymsExport] = pu16GnuVerSym[i];
+
+            if (ELF64_ST_BIND(paDynSyms[cDynSymsExport].st_info) != STB_LOCAL)
+                idxFirstNonLocalSym = cDynSymsExport;
 
             cDynSymsExport++;
         }
@@ -590,7 +594,7 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     aShdrs[idx].sh_offset    = sizeof(Hdr) + Hdr.e_shnum * sizeof(aShdrs[0]);
     aShdrs[idx].sh_size      = cDynSymsExport * sizeof(*paDynSyms);
     aShdrs[idx].sh_link      = 2;
-    aShdrs[idx].sh_info      = 0;
+    aShdrs[idx].sh_info      = idxFirstNonLocalSym;
     aShdrs[idx].sh_addralign = sizeof(uint64_t);
     aShdrs[idx].sh_entsize   = sizeof(*paDynSyms);
     idx++;
@@ -698,7 +702,7 @@ static RTEXITCODE usage(FILE *pOut, const char *argv0)
             "  --quiet                                  Quiet execution.\n"
             "  --delete-runpath                         Deletes all DT_RUNPATH entries.\n"
             "  --change-runpath <new runpath>           Changes the first DT_RUNPATH entry to the new one.\n"
-            "  --create-linker-stub <path/to/stub>      Creates a stub library used for linking.\n"
+            "  --create-stub-library <path/to/stub>     Creates a stub library used for linking.\n"
             , argv0);
     return pOut == stdout ? RTEXITCODE_SUCCESS : RTEXITCODE_SYNTAX;
 }

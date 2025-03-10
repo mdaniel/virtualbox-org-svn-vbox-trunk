@@ -1831,13 +1831,10 @@ static uint16_t gicReDistGetHighestPrioPendingIntr(PCGICCPU pGicCpu, bool fGroup
 static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGicCpu, bool fGroup0, bool fGroup1,
                                                  uint16_t *pidxIntr, uint8_t *pbPriority)
 {
-#define GIC_DIST_INTR_COUNT     RT_ELEMENTS(pGicDev->bmIntrPending)
-#define GIC_REDIST_INTR_COUNT   RT_ELEMENTS(pGicCpu->bmIntrPending)
-
     /*
      * Collect interrupts that are pending, enabled and inactive.
      * Discard interrupts if the group they belong to is disabled.
-     * While collected the interrupts, pick the one with the highest, non-idle priority.
+     * While collecting the interrupts, pick the one with the highest, non-idle priority.
      */
     uint16_t uIntId    = GIC_INTID_RANGE_SPECIAL_NO_INTERRUPT;
     uint16_t idxIntr   = UINT16_MAX;
@@ -1846,19 +1843,18 @@ static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGic
     /* Redistributor. */
     {
         uint16_t idxHighest = UINT16_MAX;
-        uint32_t bmIntrPending[GIC_REDIST_INTR_COUNT];
-        for (uint16_t i = 0; i < GIC_REDIST_INTR_COUNT; i++)
+        for (uint16_t i = 0; i < RT_ELEMENTS(pGicCpu->bmIntrPending); i++)
         {
-            bmIntrPending[i] = (pGicCpu->bmIntrPending[i] & pGicCpu->bmIntrEnabled[i]) & ~pGicCpu->bmIntrActive[i];
+            uint32_t uIntrPending = (pGicCpu->bmIntrPending[i] & pGicCpu->bmIntrEnabled[i]) & ~pGicCpu->bmIntrActive[i];
             if (!fGroup1)
-                bmIntrPending[i] &= ~pGicCpu->bmIntrGroup[i];
+                uIntrPending &= ~pGicCpu->bmIntrGroup[i];
             if (!fGroup0)
-                bmIntrPending[i] &= pGicCpu->bmIntrGroup[i];
+                uIntrPending &= pGicCpu->bmIntrGroup[i];
 
-            uint16_t const idxPending = ASMBitFirstSetU32(bmIntrPending[i]);
+            uint16_t const idxPending = ASMBitFirstSetU32(uIntrPending);
             if (idxPending > 0)
             {
-                uint32_t const idxPriority = (32 * i) + idxPending - 1;
+                uint32_t const idxPriority = 32 * i + idxPending - 1;
                 Assert(idxPriority < RT_ELEMENTS(pGicCpu->abIntrPriority));
                 if (pGicCpu->abIntrPriority[idxPriority] < uPriority)
                 {
@@ -1880,19 +1876,26 @@ static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGic
     /* Distributor. */
     {
         uint16_t idxHighest = UINT16_MAX;
-        uint32_t bmIntrPending[GIC_DIST_INTR_COUNT];
-        for (uint16_t i = 0; i < GIC_DIST_INTR_COUNT; i++)
+        for (uint16_t i = 0; i < RT_ELEMENTS(pGicDev->bmIntrPending) / 2; i++)
         {
-            bmIntrPending[i] = (pGicDev->bmIntrPending[i] & pGicDev->bmIntrEnabled[i]) & ~pGicDev->bmIntrActive[i];
+            uint32_t uLo = (pGicDev->bmIntrPending[i]     & pGicDev->bmIntrEnabled[i])     & ~pGicDev->bmIntrActive[i];
+            uint32_t uHi = (pGicDev->bmIntrPending[i + 1] & pGicDev->bmIntrEnabled[i + 1]) & ~pGicDev->bmIntrActive[i + 1];
             if (!fGroup1)
-                bmIntrPending[i] &= ~pGicDev->bmIntrGroup[i];
+            {
+                uLo &= ~pGicDev->bmIntrGroup[i];
+                uHi &= ~pGicDev->bmIntrGroup[i + 1];
+            }
             if (!fGroup0)
-                bmIntrPending[i] &= pGicDev->bmIntrGroup[i];
+            {
+                uLo &= pGicDev->bmIntrGroup[i];
+                uHi &= pGicDev->bmIntrGroup[i + 1];
+            }
 
-            uint16_t const idxPending = ASMBitFirstSetU32(bmIntrPending[i]);
+            uint64_t const uIntrPending = RT_MAKE_U64(uLo, uHi);
+            uint16_t const idxPending   = ASMBitFirstSetU64(uIntrPending);
             if (idxPending > 0)
             {
-                uint32_t const idxPriority = (32 * i) + idxPending - 1;
+                uint32_t const idxPriority = 64 * i + idxPending - 1;
                 if (pGicDev->abIntrPriority[idxPriority] < uPriority)
                 {
                     idxHighest = idxPriority;
@@ -1919,9 +1922,6 @@ static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGic
 
     LogFlowFunc(("uIntId=%u [idxIntr=%u uPriority=%u]\n", uIntId, idxIntr, uPriority));
     return uIntId;
-
-#undef GIC_DIST_INTR_COUNT
-#undef GIC_REDIST_INTR_COUNT
 }
 #else
 /**

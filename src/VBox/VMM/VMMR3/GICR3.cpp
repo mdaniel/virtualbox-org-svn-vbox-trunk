@@ -804,7 +804,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /** @devcfgm{gic, Nmi, bool, false}
      * Configures whether message-based interrupts (MBIs) are supported
      * (GICD_TYPER.MBIS). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, false);
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, true);
     AssertLogRelRCReturn(rc, rc);
 
     /*

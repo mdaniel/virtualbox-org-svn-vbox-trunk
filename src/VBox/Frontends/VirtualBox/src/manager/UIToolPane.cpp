@@ -1,10 +1,10 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIToolPaneGlobal class implementation.
+ * VBox Qt GUI - UIToolPane class implementation.
  */
 
 /*
- * Copyright (C) 2017-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,14 +41,14 @@
 #include "UIMachineToolsWidget.h"
 #include "UIMediumManager.h"
 #include "UINetworkManager.h"
-#include "UIToolPaneGlobal.h"
+#include "UIToolPane.h"
 #include "UIVMActivityOverviewWidget.h"
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
 
 
-UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /* = 0 */)
+UIToolPane::UIToolPane(UIActionPool *pActionPool, QWidget *pParent /* = 0 */)
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
     , m_pLayout(0)
@@ -64,12 +64,12 @@ UIToolPaneGlobal::UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent /
     prepare();
 }
 
-UIToolPaneGlobal::~UIToolPaneGlobal()
+UIToolPane::~UIToolPane()
 {
     cleanup();
 }
 
-void UIToolPaneGlobal::setActive(bool fActive)
+void UIToolPane::setActive(bool fActive)
 {
     /* Save activity: */
     if (m_fActive != fActive)
@@ -81,14 +81,14 @@ void UIToolPaneGlobal::setActive(bool fActive)
     }
 }
 
-UIToolType UIToolPaneGlobal::currentTool() const
+UIToolType UIToolPane::currentTool() const
 {
     return   m_pLayout && m_pLayout->currentWidget()
            ? m_pLayout->currentWidget()->property("ToolType").value<UIToolType>()
            : UIToolType_Invalid;
 }
 
-bool UIToolPaneGlobal::isToolOpened(UIToolType enmType) const
+bool UIToolPane::isToolOpened(UIToolType enmType) const
 {
     for (int iIndex = 0; iIndex < m_pLayout->count(); ++iIndex)
         if (m_pLayout->widget(iIndex)->property("ToolType").value<UIToolType>() == enmType)
@@ -96,7 +96,7 @@ bool UIToolPaneGlobal::isToolOpened(UIToolType enmType) const
     return false;
 }
 
-void UIToolPaneGlobal::openTool(UIToolType enmType)
+void UIToolPane::openTool(UIToolType enmType)
 {
     /* Search through the stacked widgets: */
     int iActualIndex = -1;
@@ -179,9 +179,9 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                     /* Configure pane: */
                     m_pPaneMedia->setProperty("ToolType", QVariant::fromValue(UIToolType_Media));
                     connect(m_pPaneMedia, &UIMediumManagerWidget::sigCreateMedium,
-                            this, &UIToolPaneGlobal::sigCreateMedium);
+                            this, &UIToolPane::sigCreateMedium);
                     connect(m_pPaneMedia, &UIMediumManagerWidget::sigCopyMedium,
-                            this, &UIToolPaneGlobal::sigCopyMedium);
+                            this, &UIToolPane::sigCopyMedium);
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
                     m_pPaneMedia->setContentsMargins(iMargin, 0, iMargin, 0);
@@ -240,7 +240,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                     /* Configure pane: */
                     m_pPaneActivities->setProperty("ToolType", QVariant::fromValue(UIToolType_Activities));
                     connect(m_pPaneActivities, &UIVMActivityOverviewWidget::sigSwitchToMachineActivityPane,
-                            this, &UIToolPaneGlobal::sigSwitchToMachineActivityPane);
+                            this, &UIToolPane::sigSwitchToMachineActivityPane);
                     m_pPaneActivities->setCloudMachineItems(m_cloudItems);
 #ifndef VBOX_WS_MAC
                     const int iMargin = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 4;
@@ -262,7 +262,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
     handleTokenChange();
 }
 
-void UIToolPaneGlobal::closeTool(UIToolType enmType)
+void UIToolPane::closeTool(UIToolType enmType)
 {
     /* Search through the stacked widgets: */
     int iActualIndex = -1;
@@ -295,7 +295,7 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
     handleTokenChange();
 }
 
-QString UIToolPaneGlobal::currentHelpKeyword() const
+QString UIToolPane::currentHelpKeyword() const
 {
     QWidget *pCurrentToolWidget = 0;
     switch (currentTool())
@@ -327,7 +327,7 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
     return uiCommon().helpKeyword(pCurrentToolWidget);
 }
 
-void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems)
+void UIToolPane::setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems)
 {
     /* Cache passed value: */
     m_cloudItems = cloudItems;
@@ -340,12 +340,12 @@ void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemClou
     }
 }
 
-UIMachineToolsWidget *UIToolPaneGlobal::machineToolsWidget() const
+UIMachineToolsWidget *UIToolPane::machineToolsWidget() const
 {
     return m_pPaneMachines;
 }
 
-void UIToolPaneGlobal::prepare()
+void UIToolPane::prepare()
 {
     /* Create stacked-layout: */
     m_pLayout = new QStackedLayout(this);
@@ -356,7 +356,7 @@ void UIToolPaneGlobal::prepare()
     openTool(UIToolType_Machines);
 }
 
-void UIToolPaneGlobal::cleanup()
+void UIToolPane::cleanup()
 {
     /* Remove all widgets prematurelly: */
     while (m_pLayout->count())
@@ -367,7 +367,7 @@ void UIToolPaneGlobal::cleanup()
     }
 }
 
-void UIToolPaneGlobal::handleTokenChange()
+void UIToolPane::handleTokenChange()
 {
     /* Determine whether resource monitor is currently active tool: */
     if (m_pPaneActivities)

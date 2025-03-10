@@ -43,7 +43,7 @@ class QTimer;
 class QISplitter;
 class UIActionPool;
 class UIChooser;
-class UIToolPaneGlobal;
+class UIToolPane;
 class UIToolPaneMachine;
 class UITools;
 class UIVirtualMachineItem;
@@ -89,7 +89,7 @@ public:
 
     /** Constructs Machine Tools Widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference. */
-    UIMachineToolsWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool);
+    UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pActionPool);
 
     /** @name Common stuff.
       * @{ */
@@ -243,9 +243,9 @@ private:
     /** @} */
 
     /** Holds the parent reference. */
-    UIToolPaneGlobal *m_pParent;
+    UIToolPane   *m_pParent;
     /** Holds the action-pool reference. */
-    UIActionPool     *m_pActionPool;
+    UIActionPool *m_pActionPool;
 
     /** Holds the central splitter instance. */
     QISplitter        *m_pSplitter;

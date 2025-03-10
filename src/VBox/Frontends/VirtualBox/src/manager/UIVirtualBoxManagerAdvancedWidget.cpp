@@ -40,7 +40,7 @@
 #include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
 #include "UINotificationCenter.h"
-#include "UIToolPaneGlobal.h"
+#include "UIToolPane.h"
 #include "UIToolPaneMachine.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualBoxManagerAdvancedWidget.h"
@@ -431,9 +431,9 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
     connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
-    connect(globalToolPane(), &UIToolPaneGlobal::sigCreateMedium,
+    connect(globalToolPane(), &UIToolPane::sigCreateMedium,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCreateMedium);
-    connect(globalToolPane(), &UIToolPaneGlobal::sigCopyMedium,
+    connect(globalToolPane(), &UIToolPane::sigCopyMedium,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tools Widget connections: */
@@ -669,9 +669,9 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
     disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
-    disconnect(globalToolPane(), &UIToolPaneGlobal::sigCreateMedium,
+    disconnect(globalToolPane(), &UIToolPane::sigCreateMedium,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCreateMedium);
-    disconnect(globalToolPane(), &UIToolPaneGlobal::sigCopyMedium,
+    disconnect(globalToolPane(), &UIToolPane::sigCopyMedium,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
     /* Machine Tools Widget connections: */
@@ -715,7 +715,7 @@ UIGlobalToolsWidget *UIVirtualBoxManagerAdvancedWidget::globalToolsWidget() cons
     return m_pGlobalToolsWidget;
 }
 
-UIToolPaneGlobal *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
+UIToolPane *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
 {
     return globalToolsWidget()->toolPane();
 }

@@ -1,10 +1,10 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIToolPaneGlobal class declaration.
+ * VBox Qt GUI - UIToolPane class declaration.
  */
 
 /*
- * Copyright (C) 2017-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef FEQT_INCLUDED_SRC_manager_UIToolPaneGlobal_h
-#define FEQT_INCLUDED_SRC_manager_UIToolPaneGlobal_h
+#ifndef FEQT_INCLUDED_SRC_manager_UIToolPane_h
+#define FEQT_INCLUDED_SRC_manager_UIToolPane_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -52,7 +52,7 @@ class UIVirtualMachineItemCloud;
 class UIHomePane;
 
 /** QWidget subclass representing container for Global tool panes. */
-class UIToolPaneGlobal : public QWidget
+class UIToolPane : public QWidget
 {
     Q_OBJECT;
 
@@ -69,9 +69,9 @@ signals:
 public:
 
     /** Constructs tools pane passing @a pParent to the base-class. */
-    UIToolPaneGlobal(UIActionPool *pActionPool, QWidget *pParent = 0);
+    UIToolPane(UIActionPool *pActionPool, QWidget *pParent = 0);
     /** Destructs tools pane. */
-    virtual ~UIToolPaneGlobal() RT_OVERRIDE;
+    virtual ~UIToolPane() RT_OVERRIDE;
 
     /** Returns the action-pool reference. */
     UIActionPool *actionPool() const { return m_pActionPool; }
@@ -138,4 +138,4 @@ private:
     QList<UIVirtualMachineItemCloud*>  m_cloudItems;
 };
 
-#endif /* !FEQT_INCLUDED_SRC_manager_UIToolPaneGlobal_h */
+#endif /* !FEQT_INCLUDED_SRC_manager_UIToolPane_h */

@@ -35,7 +35,7 @@
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
-#include "UIToolPaneGlobal.h"
+#include "UIToolPane.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
 #include "UIVirtualBoxEventHandler.h"
@@ -62,7 +62,7 @@ void UIGlobalToolsWidget::addToolBar(QIToolBar *pToolBar)
     m_pLayout->addWidget(pToolBar, 0, 1);
 }
 
-UIToolPaneGlobal *UIGlobalToolsWidget::toolPane() const
+UIToolPane *UIGlobalToolsWidget::toolPane() const
 {
     return m_pPane;
 }
@@ -319,7 +319,7 @@ void UIGlobalToolsWidget::prepareWidgets()
         }
 
         /* Create tool-pane: */
-        m_pPane = new UIToolPaneGlobal(actionPool());
+        m_pPane = new UIToolPane(actionPool());
         if (toolPane())
         {
             /// @todo make sure it's used properly

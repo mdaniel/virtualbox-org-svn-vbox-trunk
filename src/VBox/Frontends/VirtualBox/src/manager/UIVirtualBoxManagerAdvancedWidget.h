@@ -44,7 +44,7 @@ class UIActionPool;
 class UIChooser;
 class UIGlobalToolsWidget;
 class UIMachineToolsWidget;
-class UIToolPaneGlobal;
+class UIToolPane;
 class UIToolPaneMachine;
 class UIVirtualBoxManager;
 class UIVirtualMachineItem;
@@ -272,7 +272,7 @@ private:
         /** Returns Global Tools Widget instance. */
         UIGlobalToolsWidget *globalToolsWidget() const;
         /** Returns Global Tool Pane reference. */
-        UIToolPaneGlobal *globalToolPane() const;
+        UIToolPane *globalToolPane() const;
 
         /** Returns Machine Tools Widget reference. */
         UIMachineToolsWidget *machineToolsWidget() const;

@@ -37,7 +37,7 @@
 #include "UIExtraDataManager.h"
 #include "UIGlobalSession.h"
 #include "UIMachineToolsWidget.h"
-#include "UIToolPaneGlobal.h"
+#include "UIToolPane.h"
 #include "UIToolPaneMachine.h"
 #include "UITools.h"
 #include "UITranslationEventListener.h"
@@ -45,7 +45,7 @@
 #include "UIVirtualMachineItemLocal.h"
 
 
-UIMachineToolsWidget::UIMachineToolsWidget(UIToolPaneGlobal *pParent, UIActionPool *pActionPool)
+UIMachineToolsWidget::UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
     , m_pParent(pParent)
     , m_pActionPool(pActionPool)
@@ -486,7 +486,7 @@ void UIMachineToolsWidget::prepareConnections()
             this, &UIMachineToolsWidget::sltHandleSettingsExpertModeChange);
 
     /* Parent connections: */
-    connect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
+    connect(m_pParent, &UIToolPane::sigSwitchToMachineActivityPane,
             this, &UIMachineToolsWidget::sltSwitchToVMActivityTool);
 
     /* Splitter connections: */
@@ -541,7 +541,7 @@ void UIMachineToolsWidget::cleanupConnections()
                this, &UIMachineToolsWidget::sltHandleSettingsExpertModeChange);
 
     /* Parent connections: */
-    disconnect(m_pParent, &UIToolPaneGlobal::sigSwitchToMachineActivityPane,
+    disconnect(m_pParent, &UIToolPane::sigSwitchToMachineActivityPane,
                this, &UIMachineToolsWidget::sltSwitchToVMActivityTool);
 
     /* Splitter connections: */

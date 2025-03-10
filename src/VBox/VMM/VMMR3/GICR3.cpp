@@ -605,6 +605,11 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     /*
      * Finally, perform sanity checks.
      */
+    if (pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid uArchRev, got %u expected range [1,31]"), pGicDev->uArchRev,
+                                       GIC_DIST_REG_PIDR2_ARCH_REV_GICV1, GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
     if (pGicDev->uMaxSpi - 1 < 31)
     { /* likely */ }
     else

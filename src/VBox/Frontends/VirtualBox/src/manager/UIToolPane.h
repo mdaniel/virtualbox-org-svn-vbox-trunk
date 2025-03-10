@@ -68,9 +68,11 @@ signals:
 
 public:
 
-    /** Constructs tools pane passing @a pParent to the base-class. */
-    UIToolPane(UIActionPool *pActionPool, QWidget *pParent = 0);
-    /** Destructs tools pane. */
+    /** Constructs tool-pane passing @a pParent to the base-class.
+      * @param  enmClass     Brings the tool-pane class.
+      * @param  pActionPool  Brings the action-pool reference. */
+    UIToolPane(QWidget *pParent, UIToolClass enmClass, UIActionPool *pActionPool);
+    /** Destructs tool-pane. */
     virtual ~UIToolPane() RT_OVERRIDE;
 
     /** Returns the action-pool reference. */
@@ -111,6 +113,8 @@ private:
     /** Handles token change. */
     void handleTokenChange();
 
+    /** Holds the tool-pane class. */
+    UIToolClass   m_enmClass;
     /** Holds the action pool reference. */
     UIActionPool *m_pActionPool;
 

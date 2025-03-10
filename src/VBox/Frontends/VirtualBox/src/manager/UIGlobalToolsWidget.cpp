@@ -319,7 +319,7 @@ void UIGlobalToolsWidget::prepareWidgets()
         }
 
         /* Create tool-pane: */
-        m_pPane = new UIToolPane(actionPool());
+        m_pPane = new UIToolPane(this, UIToolClass_Global, actionPool());
         if (toolPane())
         {
             /// @todo make sure it's used properly

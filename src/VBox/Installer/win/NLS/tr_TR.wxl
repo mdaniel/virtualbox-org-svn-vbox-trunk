@@ -2,7 +2,7 @@
     Language Definition Include for VirtualBox WiX script.
 -->
 <!--
-    Copyright (C) 2011-2024 Oracle and/or its affiliates.
+    Copyright (C) 2011-2025 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -64,15 +64,15 @@
 
     <!---->
 
-    <String Id="UsedByOtherApp" Value="Şu anda yüklü olan VirtualBox sürümünü kullanan bir uygulama tespit edildi. Kuruluma devam etmeden önce bu uygulamayı kaldırmalısınız. Ayrıntılar için VirtualBox kurulum dizinindeki dependency.dep dosyasına bakın." />
+    <String Id="UsedByOtherApp" Value="Şu anda yüklü olan VirtualBox sürümünü kullanan bir uygulama algılandı. Kuruluma devam etmeden önce bu uygulamayı kaldırmak zorundasınız. Ayrıntılar için VirtualBox kurulum dizinindeki dependency.dep dosyasına bakın." />
     <String Id="NeedAdmin" Value="[ProductName] uygulamasını yüklemek(kaldırmak) için yönetici haklarına sahip olmanız gerekir! Bu kur şimdi iptal edilecek." />
     <String Id="NeedMSCRT" Value="[ProductName] uygulamasının öncelikle Microsoft Visual C++ 2019 Yeniden Dağıtılabilir Paketinin yüklenmesine ihtiyacı var. Lütfen [ProductName] uygulamasının kurulumunu yeniden başlatın ve yükleyin." />
     <String Id="WrongOS" Value="[ProductName] yalnızca Windows 10 veya üzerinde çalışır." />
     <String Id="Only64Bit" Value="[ProductName] yalnızca 64-bit Windows sistemlerinde çalışır." />
-	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-	<String Id="SunFound" Value="Bu makinede eski bir Sun VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve sonra [ProductName] yükleyin!" />
-    <String Id="InnotekFound" Value="Bu makinede eski bir innotek VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve sonra [ProductName] yükleyin!" />
-    <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
+	<String Id="WrongPlatformArch" Value="[ProductName] uygulamasının bu sürümü farklı bir platform mimarisi için geliştirilmiştir ve bu nedenle yüklenemez. Lütfen [ProductName] uygulamasının eşleşen bir sürümünü yükleyin!" />
+	<String Id="SunFound" Value="Bu makinede eski bir Sun VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve ardından [ProductName] uygulamasını yükleyin!" />
+    <String Id="InnotekFound" Value="Bu makinede eski bir innotek VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve ardından [ProductName] uygulamasını yükleyin!" />
+    <String Id="InvalidTargetDir" Value="Geçersiz kurulum dizini belirtildi! [ProductName] uygulamasını yüklemek için lütfen başka bir kurulum dizini kullanın. Daha fazla bilgi için [ProductName] kılavuzuna bakın." />
 
     <!---->
 
@@ -92,9 +92,9 @@
 
     <!---->
 
-    <String Id="InvalidTargetDirDlg_Header" Value="Invalid installation directory" />
-    <String Id="InvalidTargetDirDlg_Desc1" Value="The chosen installation directory is invalid, as it does not meet the security requirements. Refer to the [ProductName] manual for more information." />
-    <String Id="InvalidTargetDirDlg_Desc2" Value="Please choose another directory for installing [ProductName]." />
+    <String Id="InvalidTargetDirDlg_Header" Value="Geçersiz kurulum dizini" />
+    <String Id="InvalidTargetDirDlg_Desc1" Value="Seçilen kurulum dizini güvenlik gereksinimlerini karşılamadığından geçersiz. Daha fazla bilgi için [ProductName] kılavuzuna bakın." />
+    <String Id="InvalidTargetDirDlg_Desc2" Value="Lütfen [ProductName] yüklemek için başka bir dizin seçin." />
 
     <!---->
 
@@ -182,7 +182,7 @@
 
     <!---->
 
-    <String Id="VerifyReadyDlg_ReadyToBegin" Value="Kur Sihirbazı, [InstallMode] kuruluma başlamak için hazır." />
+    <String Id="VerifyReadyDlg_ReadyToBegin" Value="Kur Sihirbazı, [InstallMode] kurulumuna başlamak için hazır." />
     <String Id="VerifyReadyDlg_ClickInstall" Value="Kuruluma başlamak için Yükle'ye tıklayın. Eğer herhangi bir kurulum ayarınızı gözden geçirmek veya değiştirmek istiyorsanız, Geri'ye tıklayın. Sihirbazdan çıkmak için İptal'e tıklayın." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Yüklemek için hazır" />
 
@@ -194,11 +194,11 @@
 
     <!---->
 
-    <String Id="FatalErrorDlg_Title" Value="[ProductName] Kurulum Sihirbazı zamanından önce sonlandırıldı" />
-    <String Id="FatalErrorDlg_Description1" Value="Lütfen yeniden başlatın ve (un)kurulumu yeniden çalıştırarak tekrar deneyin." />
-    <String Id="FatalErrorDlg_Description2" Value="Alternatif olarak, forumlara veya [ProductName] belgelerine başvurun." />
+    <String Id="FatalErrorDlg_Title" Value="[ProductName] Kur Sihirbazı zamanından önce sonlandırıldı" />
+    <String Id="FatalErrorDlg_Description1" Value="Lütfen yeniden başlatın ve kurulumu(kaldırmayı) yeniden çalıştırarak tekrar deneyin." />
+    <String Id="FatalErrorDlg_Description2" Value="Alternatif olarak, [ProductName] forumlarına veya belgelerine başvurun." />
     <String Id="FatalErrorDlg_DescLogOpen" Value="Günlük Dosyasını Aç" />
-    <String Id="FatalErrorDlg_DescLogPath" Value="Günlük dosyasına yazıldı:" />
+    <String Id="FatalErrorDlg_DescLogPath" Value="Günlük dosyası şuna yazıldı:" />
 
     <!---->
 
@@ -218,7 +218,7 @@
 
     <!---->
 
-    <String Id="ResumeDlg_Header" Value="[ProductName] Kur Sihirbazına Devam Ediliyor" />
+    <String Id="ResumeDlg_Header" Value="[ProductName] Kur Sihirbazına devam ediliyor" />
     <String Id="ResumeDlg_Desc" Value="Kur Sihirbazı [ProductName] uygulamasının bilgisayarınıza kurulumunu tamamlayacak. Devam etmek için Yükle'ye veya Kur Sihirbazından çıkmak için İptal'e tıklayın." />
 
     <!---->
@@ -238,7 +238,7 @@
 
     <!---->
 
-    <String Id="MaintenanceWelcomeDlg_Header" Value="[ProductName] Kur Sihirbazına Hoş Geldiniz" />
+    <String Id="MaintenanceWelcomeDlg_Header" Value="[ProductName] Kur Sihirbazına hoş geldiniz" />
     <String Id="MaintenanceWelcomeDlg_Desc" Value="Kur Sihirbazı şu anki kurulumunuzu onarmanıza veya [ProductName] uygulamasını bilgisayarınızdan kaldırmanıza izin verecektir. Devam etmek için İleri'ye veya Kur Sihirbazından çıkmak için İptal'e tıklayın." />
 
     <!---->
@@ -503,7 +503,7 @@
     <String Id="ProgressTextRemoveDuplicateFiles" Value="Çoğaltılmış dosyalar kaldırılıyor" />
     <String Id="ProgressTextRemoveDuplicateFilesTemplate" Value="Dosya: [1], Dizin: [9]" />
     <String Id="ProgressTextRemoveEnvironmentStrings" Value="Ortam dizeleri güncelleniyor" />
-    <String Id="ProgressTextRemoveEnvironmentStringsTemplate" Value="Adı: [1], Değer: [2], Eylem [3]" />
+    <String Id="ProgressTextRemoveEnvironmentStringsTemplate" Value="Ad: [1], Değer: [2], Eylem [3]" />
     <String Id="ProgressTextRemoveExistingProducts" Value="Uygulamalar kaldırılıyor" />
     <String Id="ProgressTextRemoveExistingProductsTemplate" Value="Uygulama: [1], Komut satırı: [2]" />
     <String Id="ProgressTextRemoveFiles" Value="Dosyalar kaldırılıyor" />
@@ -514,7 +514,7 @@
     <String Id="ProgressTextRemoveIniValuesTemplate" Value="Dosya: [1],  Bölüm: [2],  Anahtar: [3], Değer: [4]" />
     <String Id="ProgressTextRemoveODBC" Value="ODBC bileşenleri kaldırılıyor" />
     <String Id="ProgressTextRemoveRegistryValues" Value="Sistem kayıt defteri değerleri kaldırılıyor" />
-    <String Id="ProgressTextRemoveRegistryValuesTemplate" Value="Anahtar: [1], Adı: [2]" />
+    <String Id="ProgressTextRemoveRegistryValuesTemplate" Value="Anahtar: [1], Ad: [2]" />
     <String Id="ProgressTextRemoveShortcuts" Value="Kısayollar kaldırılıyor" />
     <String Id="ProgressTextRemoveShortcutsTemplate" Value="Kısayol: [1]" />
     <String Id="ProgressTextRMCCPSearch" Value="Niteleyici ürünler aranıyor" />
@@ -546,11 +546,11 @@
     <String Id="ProgressTextUnregisterTypeLibraries" Value="Tür kütüphanelerinin kaydı kaldırılıyor" />
     <String Id="ProgressTextUnregisterTypeLibrariesTemplate" Value="KtphKimliği: [1]" />
     <String Id="ProgressTextWriteEnvironmentStrings" Value="Ortam dizeleri güncelleniyor" />
-    <String Id="ProgressTextWriteEnvironmentStringsTemplate" Value="Adı: [1], Değer: [2], Eylem [3]" />
+    <String Id="ProgressTextWriteEnvironmentStringsTemplate" Value="Ad: [1], Değer: [2], Eylem [3]" />
     <String Id="ProgressTextWriteIniValues" Value="INI dosyaları değerleri yazılıyor" />
     <String Id="ProgressTextWriteIniValuesTemplate" Value="Dosya: [1],  Bölüm: [2],  Anahtar: [3], Değer: [4]" />
     <String Id="ProgressTextWriteRegistryValues" Value="Sistem kayıt defteri değerleri yazılıyor" />
-    <String Id="ProgressTextWriteRegistryValuesTemplate" Value="Anahtar: [1], Adı: [2], Değer: [3]" />
+    <String Id="ProgressTextWriteRegistryValuesTemplate" Value="Anahtar: [1], Ad: [2], Değer: [3]" />
     <String Id="ProgressTextAdvertise" Value="Uygulama duyuruluyor" />
     <String Id="ProgressTextGenerateScript" Value="Şu eylem için betik işlemleri üretiliyor:" />
     <String Id="ProgressTextGenerateScriptTemplate" Value="[1]" />
@@ -568,27 +568,27 @@
     <String Id="ProgressTextUnmoveFilesTemplate" Value="Dosya: [1], Dizin: [9]" />
     <String Id="ProgressTextUnpublishProduct" Value="Ürün bilgisi yayından kaldırılıyor" />
 
-    <String Id="ProgressTextCheckTargetDir" Value="Checking target directory ..." />
+    <String Id="ProgressTextCheckTargetDir" Value="Hedef dizin denetleniyor ..." />
 
-    <String Id="ProgressTextSupDrvInt" Value="Installing support driver ..." />
-    <String Id="ProgressTextSupDrvStart" Value="Starting support driver ..." />
-    <String Id="ProgressTextSupDrvUninst" Value="Uninstalling support driver ..." />
+    <String Id="ProgressTextSupDrvInt" Value="Destek sürücüsü yükleniyor ..." />
+    <String Id="ProgressTextSupDrvStart" Value="Destek sürücüsü başlatılıyor ..." />
+    <String Id="ProgressTextSupDrvUninst" Value="Destek sürücüsü kaldırılıyor ..." />
 
-    <String Id="ProgressTextUSBDevDrvInst" Value="Installing USB device driver ..." />
-    <String Id="ProgressTextUSBDevDrvUninst" Value="Uninstalling USB device driver ..." />
-    <String Id="ProgressTextUSBMonDrvInst" Value="Installing USB monitor driver ..." />
-    <String Id="ProgressTextUSBMonDrvStart" Value="Starting USB monitor driver ..." />
-    <String Id="ProgressTextUSBMonDrvUninst" Value="Uninstalling USB monitor driver ..." />
+    <String Id="ProgressTextUSBDevDrvInst" Value="USB aygıt sürücüsü yükleniyor ..." />
+    <String Id="ProgressTextUSBDevDrvUninst" Value="USB aygıt sürücüsü kaldırılıyor ..." />
+    <String Id="ProgressTextUSBMonDrvInst" Value="USB monitör sürücüsü yükleniyor ..." />
+    <String Id="ProgressTextUSBMonDrvStart" Value="USB monitör sürücüsü başlatılıyor ..." />
+    <String Id="ProgressTextUSBMonDrvUninst" Value="USB monitör sürücüsü kaldırılıyor ..." />
 
-    <String Id="ProgressTextNetAdp6Create" Value="Creating network adapter ..." />
-    <String Id="ProgressTextNetAdp6Remove" Value="Removing network adapter ..." />
-    <String Id="ProgressTextNetAdp6Update" Value="Updating network adapter ..." />
-    <String Id="ProgressTextNetAdp6Uninst" Value="Uninstalling network adapter ..." />
+    <String Id="ProgressTextNetAdp6Create" Value="Ağ bağdaştırıcısı oluşturuluyor ..." />
+    <String Id="ProgressTextNetAdp6Remove" Value="Ağ bağdaştırıcısı siliniyor ..." />
+    <String Id="ProgressTextNetAdp6Update" Value="Ağ bağdaştırıcısı güncelleniyor ..." />
+    <String Id="ProgressTextNetAdp6Uninst" Value="Ağ bağdaştırıcısı kaldırılıyor ..." />
 
-    <String Id="ProgressTextNetLwfInst" Value="Installing network filter ..." />
-    <String Id="ProgressTextNetLwfRollbackInst" Value="Rolling back installation of network filter ..." />
-    <String Id="ProgressTextNetLwfUninst" Value="Uninstalling network filter ..." />
-    <String Id="ProgressTextNetLwfRollbackUninst" Value="Rolling back uninstallation of network filter ..." />
+    <String Id="ProgressTextNetLwfInst" Value="Ağ süzgeci yükleniyor ..." />
+    <String Id="ProgressTextNetLwfRollbackInst" Value="Ağ süzgeci yüklemesi geri alınıyor ..." />
+    <String Id="ProgressTextNetLwfUninst" Value="Ağ süzgeci kaldırılıyor ..." />
+    <String Id="ProgressTextNetLwfRollbackUninst" Value="Ağ süzgeci kaldırılması geri alınıyor ..." />
 
     <String Id="UITextbytes" Value="bayt" />
     <String Id="UITextGB" Value="GB" />

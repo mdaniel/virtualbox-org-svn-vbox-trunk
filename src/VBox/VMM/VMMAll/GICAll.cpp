@@ -2331,7 +2331,6 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         case GIC_DIST_REG_ICENABLERn_OFF_START + 4: /* Only 32 lines for now. */
             *puValue = ASMAtomicReadU32(&pThis->bmIntEnabled);
             break;
-#endif
         case GIC_DIST_REG_ISPENDRn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
@@ -2344,7 +2343,6 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         case GIC_DIST_REG_ICACTIVERn_OFF_START: /* Only 32 lines for now. */
             AssertReleaseFailed();
             break;
-#if 0
         case GIC_DIST_REG_IPRIORITYRn_OFF_START:
         case GIC_DIST_REG_IPRIORITYRn_OFF_START + 4: /* These are banked for the PEs and access the redistributor. */
         {

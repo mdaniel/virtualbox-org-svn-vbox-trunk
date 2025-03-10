@@ -42,7 +42,7 @@
 #include <iprt/stream.h>
 #include <iprt/string.h>
 #include <iprt/types.h>
-#include <iprt/formats/elf.h>
+#include <iprt/formats/elf64.h>
 
 
 /*********************************************************************************************************************************
@@ -107,11 +107,11 @@ static RTEXITCODE deleteRunpath(const char *pszInput)
              || Hdr.e_type == ET_DYN
              || Hdr.e_type == ET_EXEC))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Elf header e_phentsize is %d expected %d!", Hdr.e_phentsize, sizeof(Elf64_Phdr));
-    if (sizeof(Elf_Shdr) != Hdr.e_shentsize)
+    if (sizeof(Elf64_Shdr) != Hdr.e_shentsize)
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Elf header e_shentsize is %d expected %d!", Hdr.e_shentsize, sizeof(Elf64_Shdr));
 
     /* Find dynamic section. */
-    Elf64_Phdr Phdr;
+    Elf64_Phdr Phdr; RT_ZERO(Phdr);
     bool fFound = false;
     for (uint32_t i = 0; i < Hdr.e_phnum; i++)
     {
@@ -279,11 +279,11 @@ static RTEXITCODE changeRunpath(const char *pszInput, const char *pszRunpath)
              || Hdr.e_type == ET_DYN
              || Hdr.e_type == ET_EXEC))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Elf header e_phentsize is %d expected %d!", Hdr.e_phentsize, sizeof(Elf64_Phdr));
-    if (sizeof(Elf_Shdr) != Hdr.e_shentsize)
+    if (sizeof(Elf64_Shdr) != Hdr.e_shentsize)
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Elf header e_shentsize is %d expected %d!", Hdr.e_shentsize, sizeof(Elf64_Shdr));
 
     /* Find dynamic section. */
-    Elf64_Phdr Phdr;
+    Elf64_Phdr Phdr; RT_ZERO(Phdr);
     bool fFound = false;
     for (uint32_t i = 0; i < Hdr.e_phnum; i++)
     {

@@ -806,13 +806,13 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Nmi", &pGicDev->fNmi, false);
     AssertLogRelRCReturn(rc, rc);
 
-    /** @devcfgm{gic, Nmi, bool, false}
+    /** @devcfgm{gic, Mbi, bool, true}
      * Configures whether message-based interrupts (MBIs) are supported
      * (GICD_TYPER.MBIS). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, true);
     AssertLogRelRCReturn(rc, rc);
 
-    /** @devcfgm{gic, Nmi, bool, false}
+    /** @devcfgm{gic, Aff3Levels, bool, true}
      * Configures whether non-zero affinity 3 levels (A3V) are supported
      * (GICD_TYPER.A3V) and (ICC_CTLR.A3V). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Aff3Levels", &pGicDev->fAff3Levels, true);

@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     5
+#define GIC_SAVED_STATE_VERSION                     6
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -407,6 +407,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSel);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fMbi);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fAff3Levels);
 
     /* Distributor state. */
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup0Enabled);
@@ -441,7 +442,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
         pHlp->pfnSSMPutU64(pSSM,  pGicCpu->uIccCtlr);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bIntrPriorityMask);
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->idxRunningPriority);
-        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0], sizeof(pGicCpu->abRunningPriorities));
+        pHlp->pfnSSMPutMem(pSSM, &pGicCpu->abRunningPriorities[0],    sizeof(pGicCpu->abRunningPriorities));
         pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmActivePriorityGroup0[0], sizeof(pGicCpu->bmActivePriorityGroup0));
         pHlp->pfnSSMPutMem(pSSM, &pGicCpu->bmActivePriorityGroup1[0], sizeof(pGicCpu->bmActivePriorityGroup1));
         pHlp->pfnSSMPutU8(pSSM,   pGicCpu->bBinaryPtGroup0);
@@ -545,6 +546,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSel);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fMbi);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAff3Levels);
 
     /* Distributor state. */
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
@@ -706,7 +708,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                            "|MaxExtPpi"
                                            "|RangeSel"
                                            "|Nmi"
-                                           "|Mbi", "");
+                                           "|Mbi"
+                                           "|Aff3Levels", "");
 
 #if 0
     /*
@@ -805,6 +808,12 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * Configures whether message-based interrupts (MBIs) are supported
      * (GICD_TYPER.MBIS). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, true);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, Nmi, bool, false}
+     * Configures whether non-zero affinity 3 levels (A3V) are supported
+     * (GICD_TYPER.A3V) and (ICC_CTLR.A3V). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Aff3Levels", &pGicDev->fAff3Levels, true);
     AssertLogRelRCReturn(rc, rc);
 
     /*

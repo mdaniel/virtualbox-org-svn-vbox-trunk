@@ -2314,7 +2314,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                      | (pGicDev->fMbi ? GIC_DIST_REG_TYPER_MBIS : 0)
                      /*| GIC_DIST_REG_TYPER_LPIS */           /** @todo Support LPIs */
                      | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
-                     | GIC_DIST_REG_TYPER_IDBITS_SET(16);    /* We only support 16-bit interrupt IDs. */
+                     | GIC_DIST_REG_TYPER_IDBITS_SET(16)      /* We only support 16-bit interrupt IDs. */
+                     | (pGicDev->fAff3Levels ? GIC_DIST_REG_TYPER_A3V : 0);
             if (pGicDev->fExtSpi)
                 *puValue |= GIC_DIST_REG_TYPER_ESPI
                          |  GIC_DIST_REG_TYPER_ESPI_RANGE_SET(pGicDev->uMaxExtSpi);
@@ -3358,7 +3359,9 @@ static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint6
         uint16_t const bmCpuInterfaces  = ARMV8_ICC_SGI1R_EL1_AARCH64_TARGET_LIST_GET(uValue);
         uint8_t const  uAff1            = ARMV8_ICC_SGI1R_EL1_AARCH64_AFF1_GET(uValue);
         uint8_t const  uAff2            = ARMV8_ICC_SGI1R_EL1_AARCH64_AFF2_GET(uValue);
-        uint8_t const  uAff3            = ARMV8_ICC_SGI1R_EL1_AARCH64_AFF3_GET(uValue);
+        uint8_t const  uAff3            = (pGicCpu->uIccCtlr & ARMV8_ICC_CTLR_EL1_AARCH64_A3V)
+                                        ? ARMV8_ICC_SGI1R_EL1_AARCH64_AFF3_GET(uValue)
+                                        : 0;
         uint32_t const cCpus            = pVCpu->CTX_SUFF(pVM)->cCpus;
         for (uint8_t idCpuInterface = 0; idCpuInterface < 16; idCpuInterface++)
         {
@@ -3865,7 +3868,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
  *
  * @param   pDevIns     The device instance.
  */
-DECLHIDDEN(void) gicInit(PPDMDEVINS pDevIns)
+static void gicInit(PPDMDEVINS pDevIns)
 {
     LogFlowFunc(("\n"));
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
@@ -3889,11 +3892,12 @@ DECLHIDDEN(void) gicInit(PPDMDEVINS pDevIns)
  * @param   pDevIns     The device instance.
  * @param   pVCpu       The cross context virtual CPU structure.
  */
-DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
+static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 {
     LogFlowFunc(("[%u]\n", pVCpu->idCpu));
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     PGICCPU pGicCpu = &pVCpu->gic.s;
+
     RT_ZERO(pGicCpu->bmIntrGroup);
     RT_ZERO(pGicCpu->bmIntrConfig);
     /* SGIs are always edge-triggered, writes to GICR_ICFGR0 are to be ignored. */
@@ -3906,7 +3910,8 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
     pGicCpu->uIccCtlr = ARMV8_ICC_CTLR_EL1_AARCH64_PMHE
                       | ARMV8_ICC_CTLR_EL1_AARCH64_PRIBITS_SET(4)
                       | ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_SET(ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_16BITS)
-                      | (pGicDev->fRangeSel ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0);
+                      | (pGicDev->fRangeSel   ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0)
+                      | (pGicDev->fAff3Levels ? ARMV8_ICC_CTLR_EL1_AARCH64_A3V : 0);
 
     pGicCpu->bIntrPriorityMask  = 0; /* Means no interrupt gets through to the PE. */
     pGicCpu->idxRunningPriority = 0;

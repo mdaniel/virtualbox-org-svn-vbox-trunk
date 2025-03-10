@@ -2313,7 +2313,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
                      /*| GIC_DIST_REG_TYPER_SECURITY_EXTN */  /** @todo Support dual security states. */
                      /*| GIC_DIST_REG_TYPER_MBIS */           /** @todo Support message-based interrupts */
                      /*| GIC_DIST_REG_TYPER_LPIS */           /** @todo Support LPIs */
-                     | (pGicDev->fRangeSelSupport ? GIC_DIST_REG_TYPER_RSS : 0)
+                     | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
                      | GIC_DIST_REG_TYPER_IDBITS_SET(16);    /* We only support 16-bit interrupt IDs. */
             if (pGicDev->fExtSpi)
                 *puValue |= GIC_DIST_REG_TYPER_ESPI
@@ -3912,7 +3912,7 @@ DECLHIDDEN(void) gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
     pGicCpu->uIccCtlr = ARMV8_ICC_CTLR_EL1_AARCH64_PMHE
                       | ARMV8_ICC_CTLR_EL1_AARCH64_PRIBITS_SET(4)
                       | ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_SET(ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_16BITS)
-                      | (pGicDev->fRangeSelSupport ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0);
+                      | (pGicDev->fRangeSel ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0);
 
     pGicCpu->bIntrPriorityMask  = 0; /* Means no interrupt gets through to the PE. */
     pGicCpu->idxRunningPriority = 0;

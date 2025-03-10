@@ -180,7 +180,7 @@ typedef struct GICDEV
     /** The maximum extended PPI supported (GICR_TYPER.PPInum). */
     uint8_t                     uMaxExtPpi;
     /** Whether range-selector is supported (GICD_TYPER.RSS and ICC_CTLR_EL1.RSS). */
-    bool                        fRangeSelSupport;
+    bool                        fRangeSel;
     /** Whether NMIs are supported (GICD_TYPER.NMI). */
     bool                        fNmi;
     /** Whether message-based interrupts are supported (GICD_TYPER.MBIS). */

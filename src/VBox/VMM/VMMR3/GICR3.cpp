@@ -96,7 +96,7 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
     pHlp->pfnPrintf(pHlp, "  fExtPpi          = %RTbool\n", pGicDev->fExtPpi);
     pHlp->pfnPrintf(pHlp, "  uMaxExtPpi       = %u (upto IntId %u)\n", pGicDev->uMaxExtPpi,
                     pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST);
-    pHlp->pfnPrintf(pHlp, "  fRangeSelSupport = %RTbool\n", pGicDev->fRangeSelSupport);
+    pHlp->pfnPrintf(pHlp, "  fRangeSelSupport = %RTbool\n", pGicDev->fRangeSel);
     pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
     pHlp->pfnPrintf(pHlp, "  fMbi             = %RTbool\n", pGicDev->fMbi);
 }
@@ -404,7 +404,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxExtSpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtPpi);
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxExtPpi);
-    pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSelSupport);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fRangeSel);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fMbi);
 
@@ -542,7 +542,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxExtSpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtPpi);
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxExtPpi);
-    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSelSupport);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fRangeSel);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fMbi);
 
@@ -694,10 +694,14 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      */
     PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase"
                                            "|ArchRev"
-                                           "|Nmi"
                                            "|MaxSpi"
+                                           "|ExtSpi"
                                            "|MaxExtSpi"
-                                           "|PpiNum", "");
+                                           "|ExtPpi"
+                                           "|MaxExtPpi"
+                                           "|RangeSel"
+                                           "|Nmi"
+                                           "|Mbi", "");
 
 #if 0
     /*
@@ -783,7 +787,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /** @devcfgm{gic, RangeSelSupport, bool, true}
      * Configures whether range-selector support is enabled (GICD_TYPER.RSS and
      * ICC_CTLR_EL1.RSS). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "RangeSelSupport", &pGicDev->fRangeSelSupport, true);
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "RangeSel", &pGicDev->fRangeSel, true);
     AssertLogRelRCReturn(rc, rc);
 
     /** @devcfgm{gic, Nmi, bool, false}

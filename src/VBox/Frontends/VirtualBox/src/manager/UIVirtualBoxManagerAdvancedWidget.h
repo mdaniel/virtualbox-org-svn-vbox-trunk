@@ -42,7 +42,7 @@
 class QIToolBar;
 class UIActionPool;
 class UIChooser;
-class UIGlobalToolsManagerWidget;
+class UIGlobalToolsWidget;
 class UIMachineToolsWidget;
 class UIToolPaneGlobal;
 class UIToolPaneMachine;
@@ -269,8 +269,8 @@ private:
 
     /** @name Tools stuff.
       * @{ */
-        /** Returns Global Tool Manager instance. */
-        UIGlobalToolsManagerWidget *globalToolManager() const;
+        /** Returns Global Tools Widget instance. */
+        UIGlobalToolsWidget *globalToolsWidget() const;
         /** Returns Global Tool Pane reference. */
         UIToolPaneGlobal *globalToolPane() const;
 
@@ -288,8 +288,8 @@ private:
     /** Holds the main toolbar instance. */
     QIToolBar *m_pToolBar;
 
-    /** Holds the Global Tool Manager instance. */
-    UIGlobalToolsManagerWidget *m_pGlobalToolManager;
+    /** Holds the Global Tools Widget instance. */
+    UIGlobalToolsWidget *m_pGlobalToolsWidget;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_UIVirtualBoxManagerAdvancedWidget_h */

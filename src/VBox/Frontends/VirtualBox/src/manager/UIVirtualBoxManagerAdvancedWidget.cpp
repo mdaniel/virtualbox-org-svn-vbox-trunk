@@ -37,7 +37,7 @@
 #include "UIChooser.h"
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
-#include "UIGlobalToolsManagerWidget.h"
+#include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
 #include "UINotificationCenter.h"
 #include "UIToolPaneGlobal.h"
@@ -59,7 +59,7 @@
 UIVirtualBoxManagerAdvancedWidget::UIVirtualBoxManagerAdvancedWidget(UIVirtualBoxManager *pParent)
     : m_pActionPool(pParent->actionPool())
     , m_pToolBar(0)
-    , m_pGlobalToolManager(0)
+    , m_pGlobalToolsWidget(0)
 {
     prepare();
 }
@@ -218,14 +218,14 @@ void UIVirtualBoxManagerAdvancedWidget::setMachineSearchWidgetVisibility(bool fV
 
 void UIVirtualBoxManagerAdvancedWidget::setToolsTypeGlobal(UIToolType enmType, bool)
 {
-    AssertPtrReturnVoid(globalToolManager());
-    globalToolManager()->setMenuToolType(enmType);
+    AssertPtrReturnVoid(globalToolsWidget());
+    globalToolsWidget()->setMenuToolType(enmType);
 }
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeGlobal() const
 {
-    AssertPtrReturn(globalToolManager(), UIToolType_Invalid);
-    return globalToolManager()->menuToolType();
+    AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
+    return globalToolsWidget()->menuToolType();
 }
 
 void UIVirtualBoxManagerAdvancedWidget::setToolsTypeMachine(UIToolType enmType)
@@ -242,8 +242,8 @@ UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeMachine() const
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::currentGlobalTool() const
 {
-    AssertPtrReturn(globalToolManager(), UIToolType_Invalid);
-    return globalToolManager()->toolType();
+    AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
+    return globalToolsWidget()->toolType();
 }
 
 UIToolType UIVirtualBoxManagerAdvancedWidget::currentMachineTool() const
@@ -254,8 +254,8 @@ UIToolType UIVirtualBoxManagerAdvancedWidget::currentMachineTool() const
 
 bool UIVirtualBoxManagerAdvancedWidget::isGlobalToolOpened(UIToolType enmType) const
 {
-    AssertPtrReturn(globalToolManager(), false);
-    return globalToolManager()->isToolOpened(enmType);
+    AssertPtrReturn(globalToolsWidget(), false);
+    return globalToolsWidget()->isToolOpened(enmType);
 }
 
 bool UIVirtualBoxManagerAdvancedWidget::isMachineToolOpened(UIToolType enmType) const
@@ -266,8 +266,8 @@ bool UIVirtualBoxManagerAdvancedWidget::isMachineToolOpened(UIToolType enmType) 
 
 void UIVirtualBoxManagerAdvancedWidget::closeGlobalTool(UIToolType enmType)
 {
-    AssertPtrReturnVoid(globalToolManager());
-    globalToolManager()->closeTool(enmType);
+    AssertPtrReturnVoid(globalToolsWidget());
+    globalToolsWidget()->closeTool(enmType);
 }
 
 void UIVirtualBoxManagerAdvancedWidget::closeMachineTool(UIToolType enmType)
@@ -290,8 +290,8 @@ QUuid UIVirtualBoxManagerAdvancedWidget::currentSnapshotId()
 
 QString UIVirtualBoxManagerAdvancedWidget::currentHelpKeyword() const
 {
-    AssertPtrReturn(globalToolManager(), QString());
-    return globalToolManager()->currentHelpKeyword();
+    AssertPtrReturn(globalToolsWidget(), QString());
+    return globalToolsWidget()->currentHelpKeyword();
 }
 
 void UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest(const QPoint &position)
@@ -355,12 +355,12 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
         pLayout->setContentsMargins(0, 0, 0, 0);
         pLayout->setSpacing(0);
 
-        /* Create Global Tool Manager: */
-        m_pGlobalToolManager = new UIGlobalToolsManagerWidget(this, actionPool());
-        if (globalToolManager())
+        /* Create Global Tools Widget: */
+        m_pGlobalToolsWidget = new UIGlobalToolsWidget(this, actionPool());
+        if (globalToolsWidget())
         {
             /* Add into layout: */
-            pLayout->addWidget(globalToolManager());
+            pLayout->addWidget(globalToolsWidget());
         }
 
         /* Create Main toolbar: */
@@ -397,7 +397,7 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
 #endif /* VBOX_WS_MAC && (RT_ARCH_ARM64 || RT_ARCH_ARM32) */
 
             /* Add toolbar into layout: */
-            m_pGlobalToolManager->addToolBar(m_pToolBar);
+            m_pGlobalToolsWidget->addToolBar(m_pToolBar);
         }
     }
 
@@ -425,10 +425,10 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
     connect(m_pToolBar, &QIToolBar::customContextMenuRequested,
             this, &UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest);
 
-    /* Global Tool Manager connections: */
-    connect(globalToolManager(), &UIGlobalToolsManagerWidget::sigToolTypeChange,
+    /* Global Tools Widget connections: */
+    connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    connect(globalToolManager(), &UIGlobalToolsManagerWidget::sigToolTypeChange,
+    connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
     connect(globalToolPane(), &UIToolPaneGlobal::sigCreateMedium,
@@ -436,7 +436,7 @@ void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
     connect(globalToolPane(), &UIToolPaneGlobal::sigCopyMedium,
             this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
-    /* Machine Tool Manager connections: */
+    /* Machine Tools Widget connections: */
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
@@ -477,13 +477,13 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
 {
     /* Make sure stuff exists: */
     AssertPtrReturnVoid(m_pToolBar);
-    AssertPtrReturnVoid(globalToolManager());
+    AssertPtrReturnVoid(globalToolsWidget());
     AssertPtrReturnVoid(machineToolsWidget());
 
     /* Clear toolbar initially: */
     m_pToolBar->clear();
 
-    switch (globalToolManager()->toolType())
+    switch (globalToolsWidget()->toolType())
     {
         case UIToolType_Home:
         {
@@ -663,10 +663,10 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
     disconnect(m_pToolBar, &QIToolBar::customContextMenuRequested,
                this, &UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest);
 
-    /* Global Tool Manager connections: */
-    disconnect(globalToolManager(), &UIGlobalToolsManagerWidget::sigToolTypeChange,
+    /* Global Tools Widget connections: */
+    disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
-    disconnect(globalToolManager(), &UIGlobalToolsManagerWidget::sigToolTypeChange,
+    disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
     disconnect(globalToolPane(), &UIToolPaneGlobal::sigCreateMedium,
@@ -674,7 +674,7 @@ void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
     disconnect(globalToolPane(), &UIToolPaneGlobal::sigCopyMedium,
                this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
 
-    /* Machine Tool Manager connections: */
+    /* Machine Tools Widget connections: */
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
@@ -710,19 +710,19 @@ void UIVirtualBoxManagerAdvancedWidget::cleanup()
     UINotificationCenter::destroy();
 }
 
-UIGlobalToolsManagerWidget *UIVirtualBoxManagerAdvancedWidget::globalToolManager() const
+UIGlobalToolsWidget *UIVirtualBoxManagerAdvancedWidget::globalToolsWidget() const
 {
-    return m_pGlobalToolManager;
+    return m_pGlobalToolsWidget;
 }
 
 UIToolPaneGlobal *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
 {
-    return globalToolManager()->toolPane();
+    return globalToolsWidget()->toolPane();
 }
 
 UIMachineToolsWidget *UIVirtualBoxManagerAdvancedWidget::machineToolsWidget() const
 {
-    return globalToolManager()->machineToolsWidget();
+    return globalToolsWidget()->machineToolsWidget();
 }
 
 UIToolPaneMachine *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const

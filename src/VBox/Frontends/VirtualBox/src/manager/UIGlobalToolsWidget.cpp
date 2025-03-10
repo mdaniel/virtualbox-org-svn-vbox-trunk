@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIGlobalToolsManagerWidget class implementation.
+ * VBox Qt GUI - UIGlobalToolsWidget class implementation.
  */
 
 /*
@@ -33,7 +33,7 @@
 #include "UIChooser.h"
 #include "UICommon.h"
 #include "UIExtraDataManager.h"
-#include "UIGlobalToolsManagerWidget.h"
+#include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
@@ -46,8 +46,7 @@
 #include "iprt/assert.h"
 
 
-UIGlobalToolsManagerWidget::UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvancedWidget *pParent,
-                                                       UIActionPool *pActionPool)
+UIGlobalToolsWidget::UIGlobalToolsWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
     , m_pLayout(0)
@@ -57,29 +56,29 @@ UIGlobalToolsManagerWidget::UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvanc
     prepare();
 }
 
-void UIGlobalToolsManagerWidget::addToolBar(QIToolBar *pToolBar)
+void UIGlobalToolsWidget::addToolBar(QIToolBar *pToolBar)
 {
     AssertPtrReturnVoid(m_pLayout);
     m_pLayout->addWidget(pToolBar, 0, 1);
 }
 
-UIToolPaneGlobal *UIGlobalToolsManagerWidget::toolPane() const
+UIToolPaneGlobal *UIGlobalToolsWidget::toolPane() const
 {
     return m_pPane;
 }
 
-UIMachineToolsWidget *UIGlobalToolsManagerWidget::machineToolsWidget() const
+UIMachineToolsWidget *UIGlobalToolsWidget::machineToolsWidget() const
 {
     return toolPane()->machineToolsWidget();
 }
 
-UIToolType UIGlobalToolsManagerWidget::menuToolType() const
+UIToolType UIGlobalToolsWidget::menuToolType() const
 {
     AssertPtrReturn(toolMenu(), UIToolType_Invalid);
     return toolMenu()->toolsType(UIToolClass_Global);
 }
 
-void UIGlobalToolsManagerWidget::setMenuToolType(UIToolType enmType)
+void UIGlobalToolsWidget::setMenuToolType(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -88,13 +87,13 @@ void UIGlobalToolsManagerWidget::setMenuToolType(UIToolType enmType)
     toolMenu()->setToolsType(enmType);
 }
 
-UIToolType UIGlobalToolsManagerWidget::toolType() const
+UIToolType UIGlobalToolsWidget::toolType() const
 {
     AssertPtrReturn(toolPane(), UIToolType_Invalid);
     return toolPane()->currentTool();
 }
 
-bool UIGlobalToolsManagerWidget::isToolOpened(UIToolType enmType) const
+bool UIGlobalToolsWidget::isToolOpened(UIToolType enmType) const
 {
     /* Sanity check: */
     AssertReturn(enmType != UIToolType_Invalid, false);
@@ -105,7 +104,7 @@ bool UIGlobalToolsManagerWidget::isToolOpened(UIToolType enmType) const
     return toolPane()->isToolOpened(enmType);
 }
 
-void UIGlobalToolsManagerWidget::switchToolTo(UIToolType enmType)
+void UIGlobalToolsWidget::switchToolTo(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -146,7 +145,7 @@ void UIGlobalToolsManagerWidget::switchToolTo(UIToolType enmType)
     emit sigToolTypeChange();
 }
 
-void UIGlobalToolsManagerWidget::closeTool(UIToolType enmType)
+void UIGlobalToolsWidget::closeTool(UIToolType enmType)
 {
     /* Sanity check: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
@@ -157,7 +156,7 @@ void UIGlobalToolsManagerWidget::closeTool(UIToolType enmType)
     toolPane()->closeTool(enmType);
 }
 
-QString UIGlobalToolsManagerWidget::currentHelpKeyword() const
+QString UIGlobalToolsWidget::currentHelpKeyword() const
 {
     if (toolType() == UIToolType_Machines)
     {
@@ -169,12 +168,12 @@ QString UIGlobalToolsManagerWidget::currentHelpKeyword() const
     return toolPane()->currentHelpKeyword();
 }
 
-void UIGlobalToolsManagerWidget::sltHandleCommitData()
+void UIGlobalToolsWidget::sltHandleCommitData()
 {
     cleanupConnections();
 }
 
-void UIGlobalToolsManagerWidget::sltHandleMachineRegistrationChanged(const QUuid &, const bool fRegistered)
+void UIGlobalToolsWidget::sltHandleMachineRegistrationChanged(const QUuid &, const bool fRegistered)
 {
     /* On any VM registered switch from Home to Machines: */
     AssertPtrReturnVoid(toolMenu());
@@ -182,19 +181,19 @@ void UIGlobalToolsManagerWidget::sltHandleMachineRegistrationChanged(const QUuid
         setMenuToolType(UIToolType_Machines);
 }
 
-void UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange()
+void UIGlobalToolsWidget::sltHandleSettingsExpertModeChange()
 {
     /* Update tools restrictions: */
     emit sigToolMenuUpdate();
 }
 
-void UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange()
+void UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange()
 {
     /* Update tools restrictions: */
     emit sigToolMenuUpdate();
 }
 
-void UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange(const QString &, const QString &)
+void UIGlobalToolsWidget::sltHandleCloudProfileStateChange(const QString &, const QString &)
 {
     /* If Global Activities tool is currently chosen: */
     AssertPtrReturnVoid(toolPane());
@@ -205,7 +204,7 @@ void UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange(const QString 
     }
 }
 
-void UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate()
+void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
 {
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
@@ -234,7 +233,7 @@ void UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate()
             toolPane()->closeTool(enmRestrictedType);
 }
 
-void UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem)
+void UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem)
 {
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
@@ -263,7 +262,7 @@ void UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachine
     // toolMenu()->setItemsEnabled(fCurrentItemIsOk);
 }
 
-void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
+void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
 {
     /* Determine tool class of passed tool type: */
     const UIToolClass enmClass = UIToolStuff::castTypeToClass(enmType);
@@ -286,12 +285,12 @@ void UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange(UIToolType enmTyp
         switchToolTo(enmType);
 }
 
-void UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool()
+void UIGlobalToolsWidget::sltSwitchToActivitiesTool()
 {
     setMenuToolType(UIToolType_Activities);
 }
 
-void UIGlobalToolsManagerWidget::prepare()
+void UIGlobalToolsWidget::prepare()
 {
     /* Prepare everything: */
     prepareWidgets();
@@ -301,7 +300,7 @@ void UIGlobalToolsManagerWidget::prepare()
     loadSettings();
 }
 
-void UIGlobalToolsManagerWidget::prepareWidgets()
+void UIGlobalToolsWidget::prepareWidgets()
 {
     /* Create layout: */
     m_pLayout = new QGridLayout(this);
@@ -332,38 +331,38 @@ void UIGlobalToolsManagerWidget::prepareWidgets()
     }
 }
 
-void UIGlobalToolsManagerWidget::prepareConnections()
+void UIGlobalToolsWidget::prepareConnections()
 {
     /* UICommon connections: */
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
-            this, &UIGlobalToolsManagerWidget::sltHandleCommitData);
+            this, &UIGlobalToolsWidget::sltHandleCommitData);
 
     /* Global COM event handlers: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineRegistered,
-            this, &UIGlobalToolsManagerWidget::sltHandleMachineRegistrationChanged);
+            this, &UIGlobalToolsWidget::sltHandleMachineRegistrationChanged);
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-            this, &UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange);
+            this, &UIGlobalToolsWidget::sltHandleSettingsExpertModeChange);
 
     /* Chooser-pane connections: */
     connect(chooser(), &UIChooser::sigSelectionChanged,
-            this, &UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange);
+            this, &UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange);
     connect(chooser(), &UIChooser::sigCloudProfileStateChange,
-            this, &UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange);
+            this, &UIGlobalToolsWidget::sltHandleCloudProfileStateChange);
 
     /* Tools-menu connections: */
     connect(toolMenu(), &UITools::sigSelectionChanged,
-            this, &UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange);
+            this, &UIGlobalToolsWidget::sltHandleToolsMenuIndexChange);
 
     /* Tools-pane connections: */
-    connect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
-            this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
+    connect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
+            this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
-            this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
+            this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     connect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
-            this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
+            this, &UIGlobalToolsWidget::sltSwitchToActivitiesTool);
 }
 
-void UIGlobalToolsManagerWidget::loadSettings()
+void UIGlobalToolsWidget::loadSettings()
 {
     /* Acquire & select tools currently chosen in the menu: */
     const UIToolType enmTypeGlobal = toolMenu()->toolsType(UIToolClass_Global);
@@ -375,42 +374,42 @@ void UIGlobalToolsManagerWidget::loadSettings()
     emit sigToolMenuUpdate();
 }
 
-void UIGlobalToolsManagerWidget::cleanupConnections()
+void UIGlobalToolsWidget::cleanupConnections()
 {
     /* Global COM event handlers: */
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-               this, &UIGlobalToolsManagerWidget::sltHandleSettingsExpertModeChange);
+               this, &UIGlobalToolsWidget::sltHandleSettingsExpertModeChange);
 
     /* Chooser-pane connections: */
     disconnect(chooser(), &UIChooser::sigSelectionChanged,
-               this, &UIGlobalToolsManagerWidget::sltHandleChooserPaneSelectionChange);
+               this, &UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange);
     disconnect(chooser(), &UIChooser::sigCloudProfileStateChange,
-               this, &UIGlobalToolsManagerWidget::sltHandleCloudProfileStateChange);
+               this, &UIGlobalToolsWidget::sltHandleCloudProfileStateChange);
 
     /* Tools-menu connections: */
     disconnect(toolMenu(), &UITools::sigSelectionChanged,
-               this, &UIGlobalToolsManagerWidget::sltHandleToolsMenuIndexChange);
+               this, &UIGlobalToolsWidget::sltHandleToolsMenuIndexChange);
 
     /* Tools-pane connections: */
-    disconnect(this, &UIGlobalToolsManagerWidget::sigToolMenuUpdate,
-               this, &UIGlobalToolsManagerWidget::sltHandleGlobalToolMenuUpdate);
+    disconnect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
+               this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
-               this, &UIGlobalToolsManagerWidget::sltHandleMachineToolMenuUpdate);
+               this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     disconnect(toolPaneMachine(), &UIToolPaneMachine::sigSwitchToActivityOverviewPane,
-               this, &UIGlobalToolsManagerWidget::sltSwitchToActivitiesTool);
+               this, &UIGlobalToolsWidget::sltSwitchToActivitiesTool);
 }
 
-UITools *UIGlobalToolsManagerWidget::toolMenu() const
+UITools *UIGlobalToolsWidget::toolMenu() const
 {
     return m_pMenu;
 }
 
-UIChooser *UIGlobalToolsManagerWidget::chooser() const
+UIChooser *UIGlobalToolsWidget::chooser() const
 {
     return machineToolsWidget()->chooser();
 }
 
-UIToolPaneMachine *UIGlobalToolsManagerWidget::toolPaneMachine() const
+UIToolPaneMachine *UIGlobalToolsWidget::toolPaneMachine() const
 {
     return machineToolsWidget()->toolPane();
 }

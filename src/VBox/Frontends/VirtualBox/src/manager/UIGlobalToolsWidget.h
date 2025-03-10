@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIGlobalToolsManagerWidget class declaration.
+ * VBox Qt GUI - UIGlobalToolsWidget class declaration.
  */
 
 /*
@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef FEQT_INCLUDED_SRC_manager_UIGlobalToolsManagerWidget_h
-#define FEQT_INCLUDED_SRC_manager_UIGlobalToolsManagerWidget_h
+#ifndef FEQT_INCLUDED_SRC_manager_UIGlobalToolsWidget_h
+#define FEQT_INCLUDED_SRC_manager_UIGlobalToolsWidget_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -49,8 +49,8 @@ class UITools;
 class UIVirtualBoxManagerAdvancedWidget;
 class UIVirtualMachineItem;
 
-/** QWidget extension used as Global Tools Manager Widget instance. */
-class UIGlobalToolsManagerWidget : public QWidget
+/** QWidget extension used as Global Tools Widget instance. */
+class UIGlobalToolsWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -67,9 +67,9 @@ signals:
 
 public:
 
-    /** Constructs Global Tools Manager widget passing @a pParent to the base-class.
+    /** Constructs Global Tools Widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.  */
-    UIGlobalToolsManagerWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool);
+    UIGlobalToolsWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool);
 
     /** @name Common stuff.
       * @{ */
@@ -176,9 +176,9 @@ private:
       * @{ */
         /** Returns tool-menu instance. */
         UITools *toolMenu() const;
-        /** Returns Machine Tool Manager's Chooser-pane reference. */
+        /** Returns Machine Tools Widget's Chooser-pane reference. */
         UIChooser *chooser() const;
-        /** Returns Machine Tool Manager's Tool-pane instance. */
+        /** Returns Machine Tools Widget's Tool-pane instance. */
         UIToolPaneMachine *toolPaneMachine() const;
     /** @} */
 
@@ -194,4 +194,4 @@ private:
     UIToolPaneGlobal *m_pPane;
 };
 
-#endif /* !FEQT_INCLUDED_SRC_manager_UIGlobalToolsManagerWidget_h */
+#endif /* !FEQT_INCLUDED_SRC_manager_UIGlobalToolsWidget_h */

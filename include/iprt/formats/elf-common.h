@@ -267,6 +267,8 @@ typedef struct {
 #define DT_LOPROC       0x70000000      /* First processor-specific type. */
 #define DT_HIPROC       0x7fffffff      /* Last processor-specific type. */
 
+#define DT_FLAGS_1      0x6ffffffb
+
 /* Values for DT_FLAGS */
 #define DF_ORIGIN       0x0001  /* Indicates that the object being loaded may
                                    make reference to the $ORIGIN substitution

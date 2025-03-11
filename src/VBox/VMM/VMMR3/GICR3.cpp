@@ -75,7 +75,7 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GIC[] =
 
 
 /**
- * Dumps basic APIC state.
+ * Dumps basic GIC state.
  *
  * @param   pVM         The cross context VM structure.
  * @param   pHlp        The info helpers.
@@ -696,7 +696,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /*
      * Init the data.
      */
-    pGic->pDevInsR3     = pDevIns;
+    pGic->pDevInsR3 = pDevIns;
 
     /*
      * Validate GIC settings.
@@ -719,8 +719,6 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      */
     int rc = PDMDevHlpSetDeviceCritSect(pDevIns, PDMDevHlpCritSectGetNop(pDevIns));
     AssertRCReturn(rc, rc);
-#else
-    int rc;
 #endif
 
     /** @devcfgm{gic, ArchRev, uint8_t, 3}
@@ -728,7 +726,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * GICR_PIDR2.ArchRev).
      *
      * Currently we only support GICv3. */
-    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRev", &pGicDev->uArchRev, 3);
+    int rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRev", &pGicDev->uArchRev, 3);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uArchRev == 3)
     { /* likely */ }
@@ -854,7 +852,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         return PDMDEV_SET_ERROR(pDevIns, rc,
                                 N_("Configuration error: Failed to get the \"RedistributorMmioBase\" value"));
 
-    RTGCPHYS cbRegion = (RTGCPHYS)pVM->cCpus * (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE); /* Adjacent and per vCPU. */
+    RTGCPHYS const cbRegion = (RTGCPHYS)pVM->cCpus
+                            * (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE); /* Adjacent and per vCPU. */
     rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicReDistMmioWrite, gicReDistMmioRead,
                                    IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC_ReDist", &pGicDev->hMmioReDist);
     AssertRCReturn(rc, rc);
@@ -889,8 +888,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
 
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
-        PVMCPU  pVCpu     = pVM->apCpusR3[idCpu];
-        PGICCPU pGicCpu  = VMCPU_TO_GICCPU(pVCpu);
+        PVMCPU  pVCpu   = pVM->apCpusR3[idCpu];
+        PGICCPU pGicCpu = VMCPU_TO_GICCPU(pVCpu);
 
         GIC_REG_COUNTER(&pGicCpu->StatMmioReadR3,    "%u/MmioRead",     "Number of MMIO reads in R3.");
         GIC_REG_COUNTER(&pGicCpu->StatMmioWriteR3,   "%u/MmioWrite",    "Number of MMIO writes in R3.");
@@ -907,7 +906,6 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     }
 # undef GIC_PROF_COUNTER
 #endif
-
 
     gicR3Reset(pDevIns);
     return VINF_SUCCESS;

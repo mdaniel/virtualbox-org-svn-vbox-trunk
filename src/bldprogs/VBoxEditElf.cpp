@@ -72,6 +72,12 @@ typedef struct
 #define SHT_GNU_verdef   UINT32_C(0x6ffffffd)
 #define SHT_GNU_verneed  UINT32_C(0x6ffffffe)
 
+#define DT_VERDEF        UINT32_C(0x6ffffffc)
+#define DT_VERDEFNUM     UINT32_C(0x6ffffffd)
+#define DT_VERNEED       UINT32_C(0x6ffffffe)
+#define DT_VERNEEDNUM    UINT32_C(0x6fffffff)
+#define DT_VERSYM        UINT32_C(0x6ffffff0)
+
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
@@ -94,7 +100,7 @@ static const char *g_pszRunpath = NULL;
 static const char *g_pszLinkerStub = NULL;
 /** @} */
 
-static const char s_achShStrTab[] = "\0.shstrtab\0.dynsym\0.dynstr\0.gnu.version\0.gnu.version_d";
+static const char s_achShStrTab[] = "\0.shstrtab\0.dynsym\0.dynstr\0.gnu.version\0.gnu.version_d\0.gnu.version_r\0.dynamic";
 
 
 static void verbose(const char *pszFmt, ...)
@@ -412,10 +418,13 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
 
     /* Find all the dynamic sections we need. */
     uint32_t idStrTab = UINT32_MAX;
+    uint32_t idDynamic = UINT32_MAX;
+    Elf64_Shdr ShdrDyn; RT_ZERO(ShdrDyn);
     char *pachStrTab = NULL; size_t cbStrTab = 0;
-    Elf64_Sym *paDynSyms = NULL; size_t cbDynSyms = 0;
+    Elf64_Sym *paDynSyms = NULL; size_t cbDynSyms = 0; uint32_t u32DynSymInfo = 0;
     uint16_t *pu16GnuVerSym = NULL; size_t cbGnuVerSym = 0;
-    uint8_t *pbGnuVerDef = NULL; size_t cbGnuVerDef = 0;
+    uint8_t *pbGnuVerDef = NULL; size_t cbGnuVerDef = 0; uint32_t cVerdefEntries = 0;
+    uint8_t *pbGnuVerNeed = NULL; size_t cbGnuVerNeed = 0; uint32_t cVerNeedEntries = 0;
 
     for (uint32_t i = 0; i < Hdr.e_shnum; i++)
     {
@@ -445,6 +454,7 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
             case SHT_DYNSYM:
             {
                 cbDynSyms = Shdr.sh_size;
+                u32DynSymInfo = Shdr.sh_info;
                 paDynSyms = (Elf64_Sym *)RTMemAllocZ(cbDynSyms);
                 if (!paDynSyms)
                     return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to allocate %zu bytes for .dynsym section in '%s'\n", cbDynSyms, pszInput);
@@ -478,8 +488,9 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
             {
                 cbGnuVerDef = Shdr.sh_size;
                 pbGnuVerDef = (uint8_t *)RTMemAllocZ(cbGnuVerDef);
+                cVerdefEntries = Shdr.sh_info;
                 if (!pbGnuVerDef)
-                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to allocate %zu bytes for .gnu.version section in '%s'\n", cbGnuVerDef, pszInput);
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to allocate %zu bytes for .gnu.version_d section in '%s'\n", cbGnuVerDef, pszInput);
 
                 rc = RTFileReadAt(hFileElf, Shdr.sh_offset, pbGnuVerDef, cbGnuVerDef, NULL /*pcbRead*/);
                 if (RT_FAILURE(rc))
@@ -492,6 +503,38 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
                     return RTMsgErrorExit(RTEXITCODE_FAILURE, "String table index %u doesn't match %u in '%s'\n", Shdr.sh_link, idStrTab, pszInput);
                 break;
             }
+            case SHT_GNU_verneed:
+            {
+                cbGnuVerNeed = Shdr.sh_size;
+                pbGnuVerNeed = (uint8_t *)RTMemAllocZ(cbGnuVerNeed);
+                cVerNeedEntries = Shdr.sh_info;
+                if (!pbGnuVerNeed)
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to allocate %zu bytes for .gnu.version_r section in '%s'\n", cbGnuVerNeed, pszInput);
+
+                rc = RTFileReadAt(hFileElf, Shdr.sh_offset, pbGnuVerNeed, cbGnuVerNeed, NULL /*pcbRead*/);
+                if (RT_FAILURE(rc))
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to read .gnu.version_r section at %RX64 from '%s'\n", Shdr.sh_offset, pszInput);
+
+                /* It should link to the string table. */
+                if (idStrTab == UINT32_MAX)
+                    idStrTab = Shdr.sh_link;
+                else if (idStrTab != Shdr.sh_link)
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "String table index %u doesn't match %u in '%s'\n", Shdr.sh_link, idStrTab, pszInput);
+                break;
+            }
+            case SHT_DYNAMIC:
+            {
+                if (idDynamic != UINT32_MAX)
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "More than one .dynamic section in '%s'\n", pszInput);
+
+                idDynamic = i;
+                ShdrDyn = Shdr;
+                /* It should link to the string table. */
+                if (idStrTab == UINT32_MAX)
+                    idStrTab = Shdr.sh_link;
+                else if (idStrTab != Shdr.sh_link)
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "String table index %u doesn't match %u in '%s'\n", Shdr.sh_link, idStrTab, pszInput);
+            }
             default:
                 break; /* Ignored. */
         }
@@ -499,6 +542,8 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
 
     if (idStrTab == UINT32_MAX)
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "String table index not found in '%s'\n", pszInput);
+    if (idDynamic == UINT32_MAX)
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, ".dynamic section index not found in '%s'\n", pszInput);
 
     if (pbGnuVerDef && !pu16GnuVerSym)
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Versioned library '%s' misses .gnu.version\n", pszInput);
@@ -519,6 +564,15 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     if (RT_FAILURE(rc))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to read .strtab section at %RX64 from '%s'\n", Shdr.sh_offset, pszInput);
 
+    /* Read the .dynamic section. */
+    Elf64_Dyn *paDynEnt = (Elf64_Dyn *)RTMemAllocZ(ShdrDyn.sh_size);
+    if (!paDynEnt)
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to allocate %zu bytes for .dynamic section in '%s'\n", ShdrDyn.sh_size, pszInput);
+
+    rc = RTFileReadAt(hFileElf, ShdrDyn.sh_offset, paDynEnt, ShdrDyn.sh_size, NULL /*pcbRead*/);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to read .dynamic section at %RX64 from '%s'\n", ShdrDyn.sh_offset, pszInput);
+
     RTFileClose(hFileElf);
 
     verbose("Processing symbol table\n");
@@ -528,10 +582,10 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     uint32_t idxFirstNonLocalSym = 0;
     for (uint32_t i = 0; i < cbDynSyms / sizeof(*paDynSyms); i++)
     {
-        if (paDynSyms[i].st_shndx)
+        if (1 /*paDynSyms[i].st_shndx*/)
         {
             paDynSyms[cDynSymsExport] = paDynSyms[i];
-            paDynSyms[cDynSymsExport].st_shndx = 1;
+            paDynSyms[cDynSymsExport].st_shndx = paDynSyms[cDynSymsExport].st_shndx ? 1 : 0;
             paDynSyms[cDynSymsExport].st_value = 0;
             if (pu16GnuVerSym)
                 pu16GnuVerSym[cDynSymsExport] = pu16GnuVerSym[i];
@@ -545,8 +599,8 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
             verbose("Nuked symbol entry %u\n", i);
     }
 
+#if 0
     /* Figure out the number of .gnu.version entries. */
-    uint32_t cVerdefEntries = 0;
     if (pbGnuVerDef)
     {
         cVerdefEntries = 1;
@@ -562,6 +616,7 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
                 return RTMsgErrorExit(RTEXITCODE_FAILURE, "Version definition next entry points outside .gnu.version section '%s': %Rrc\n", pszInput);
         }
     }
+#endif
 
     /* Start writing the output ELF file. */
 
@@ -572,18 +627,17 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     if (RT_FAILURE(rc))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to create file '%s': %Rrc\n", pszStubPath, rc);
 
+    /* Program headers. */
+    Elf64_Phdr aPhdrs[4];
+
     /* Rewrite the header. */
-    Hdr.e_phoff = 0;
-    Hdr.e_shoff = sizeof(Hdr);
-    Hdr.e_phnum = 0;
-    Hdr.e_shnum = pbGnuVerDef ? 6 : 4; /* NULL + .dynsym + .dynstr + (.gnu.version + gnu.version_d) + .shstrtab */
-    Hdr.e_shstrndx = 5;
+    Hdr.e_phoff = sizeof(Hdr);
+    Hdr.e_shoff = Hdr.e_phoff + sizeof(aPhdrs);
+    Hdr.e_phnum = RT_ELEMENTS(aPhdrs);
+    Hdr.e_shnum = pbGnuVerDef ? 8 : 6; /* NULL + .dynsym + .dynstr + (.gnu.version + gnu.version_d + gnu.version_r) + .dynamic + .shstrtab */
+    Hdr.e_shstrndx = pbGnuVerDef ? 7 : 5;
 
-    rc = RTFileWriteAt(hFileOut, 0, &Hdr, sizeof(Hdr), NULL /*pcbWritten*/);
-    if (RT_FAILURE(rc))
-        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write ELF header to '%s': %Rrc\n", pszStubPath, rc);
-
-    Elf64_Shdr aShdrs[6]; RT_ZERO(aShdrs);
+    Elf64_Shdr aShdrs[8]; RT_ZERO(aShdrs);
     uint32_t idx = 1;
     /* NULL header */
     /* .dynsym */
@@ -591,13 +645,13 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     aShdrs[idx].sh_type      = SHT_DYNSYM;
     aShdrs[idx].sh_flags     = SHF_ALLOC;
     aShdrs[idx].sh_addr      = 0;
-    aShdrs[idx].sh_offset    = sizeof(Hdr) + Hdr.e_shnum * sizeof(aShdrs[0]);
+    aShdrs[idx].sh_offset    = Hdr.e_shoff + Hdr.e_shnum * sizeof(aShdrs[0]);
     aShdrs[idx].sh_size      = cDynSymsExport * sizeof(*paDynSyms);
     aShdrs[idx].sh_link      = 2;
-    aShdrs[idx].sh_info      = idxFirstNonLocalSym;
+    aShdrs[idx].sh_info      = u32DynSymInfo;
     aShdrs[idx].sh_addralign = sizeof(uint64_t);
     aShdrs[idx].sh_entsize   = sizeof(*paDynSyms);
-    idx++;
+    uint32_t const idxDynSym = idx++;
 
     /* .dynstr */
     aShdrs[idx].sh_name      = 19;
@@ -610,36 +664,153 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     aShdrs[idx].sh_info      = 0;
     aShdrs[idx].sh_addralign = sizeof(uint8_t);
     aShdrs[idx].sh_entsize   = 0;
-    idx++;
+    uint32_t const idxDynStr = idx++;
 
-    if (pbGnuVerDef)
+    uint32_t idxGnuVerSym = 0;
+    uint32_t idxGnuVerDef = 0;
+    uint32_t idxGnuVerNeed = 0;
+    if (pbGnuVerDef || pbGnuVerNeed)
     {
         /* .gnu.version */
         aShdrs[idx].sh_name      = 27;
         aShdrs[idx].sh_type      = SHT_GNU_versym;
         aShdrs[idx].sh_flags     = SHF_ALLOC;
-        aShdrs[idx].sh_addr      = 0;
+        aShdrs[idx].sh_addr      = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint16_t));
         aShdrs[idx].sh_offset    = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint16_t));
         aShdrs[idx].sh_size      = cDynSymsExport * sizeof(uint16_t);
         aShdrs[idx].sh_link      = 1; /* .dynsym */
         aShdrs[idx].sh_info      = 0;
         aShdrs[idx].sh_addralign = sizeof(uint16_t);
         aShdrs[idx].sh_entsize   = 2;
-        idx++;
+        idxGnuVerSym = idx++;
 
-        /* .gnu.version_d */
-        aShdrs[idx].sh_name      = 40;
-        aShdrs[idx].sh_type      = SHT_GNU_verdef;
-        aShdrs[idx].sh_flags     = SHF_ALLOC;
-        aShdrs[idx].sh_addr      = 0;
-        aShdrs[idx].sh_offset    = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
-        aShdrs[idx].sh_size      = cbGnuVerDef;
-        aShdrs[idx].sh_link      = 2; /* .dynstr */
-        aShdrs[idx].sh_info      = cVerdefEntries;
-        aShdrs[idx].sh_addralign = sizeof(uint64_t);
-        aShdrs[idx].sh_entsize   = 0;
-        idx++;
+        if (pbGnuVerDef)
+        {
+            /* .gnu.version_d */
+            aShdrs[idx].sh_name      = 40;
+            aShdrs[idx].sh_type      = SHT_GNU_verdef;
+            aShdrs[idx].sh_flags     = SHF_ALLOC;
+            aShdrs[idx].sh_addr      = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+            aShdrs[idx].sh_offset    = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+            aShdrs[idx].sh_size      = cbGnuVerDef;
+            aShdrs[idx].sh_link      = 2; /* .dynstr */
+            aShdrs[idx].sh_info      = cVerdefEntries;
+            aShdrs[idx].sh_addralign = sizeof(uint64_t);
+            aShdrs[idx].sh_entsize   = 0;
+            idxGnuVerDef = idx++;
+        }
+
+        if (pbGnuVerNeed)
+        {
+            /* .gnu.version_r */
+            aShdrs[idx].sh_name      = 55;
+            aShdrs[idx].sh_type      = SHT_GNU_verneed;
+            aShdrs[idx].sh_flags     = SHF_ALLOC;
+            aShdrs[idx].sh_addr      = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+            aShdrs[idx].sh_offset    = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+            aShdrs[idx].sh_size      = cbGnuVerNeed;
+            aShdrs[idx].sh_link      = 2; /* .dynstr */
+            aShdrs[idx].sh_info      = cVerNeedEntries;
+            aShdrs[idx].sh_addralign = sizeof(uint64_t);
+            aShdrs[idx].sh_entsize   = 0;
+            idxGnuVerNeed = idx++;
+        }
     }
+
+    /* Process the .dynamic section. */
+    uint32_t cDynEntries = 0;
+    for (uint32_t i = 0; i < ShdrDyn.sh_size / sizeof(*paDynEnt); i++)
+    {
+        switch (paDynEnt[i].d_tag)
+        {
+            case DT_RUNPATH:
+            case DT_RPATH:
+            case DT_SONAME:
+            case DT_NEEDED:
+            case DT_FLAGS:
+            case DT_FLAGS_1:
+            case DT_STRSZ:
+            case DT_SYMENT:
+            case DT_VERDEFNUM:
+            case DT_VERNEEDNUM:
+                paDynEnt[cDynEntries++] = paDynEnt[i];
+                break;
+            case DT_VERDEF:
+                paDynEnt[cDynEntries] = paDynEnt[i];
+                paDynEnt[cDynEntries++].d_un.d_val = aShdrs[idxGnuVerDef].sh_offset;
+                break;
+            case DT_VERNEED:
+                paDynEnt[cDynEntries] = paDynEnt[i];
+                paDynEnt[cDynEntries++].d_un.d_val = aShdrs[idxGnuVerNeed].sh_offset;
+                break;
+            case DT_VERSYM:
+                paDynEnt[cDynEntries] = paDynEnt[i];
+                paDynEnt[cDynEntries++].d_un.d_val = aShdrs[idxGnuVerSym].sh_offset;
+                break;
+            case DT_STRTAB:
+                paDynEnt[cDynEntries] = paDynEnt[i];
+                paDynEnt[cDynEntries++].d_un.d_val = aShdrs[idxDynStr].sh_offset;
+                break;
+            case DT_SYMTAB:
+                paDynEnt[cDynEntries] = paDynEnt[i];
+                paDynEnt[cDynEntries++].d_un.d_val = aShdrs[idxDynSym].sh_offset;
+                break;
+        }
+    }
+    /* Close with 0. */
+    paDynEnt[cDynEntries].d_tag = DT_NULL;
+    paDynEnt[cDynEntries++].d_un.d_val = 0;
+
+    /* .dynamic */
+    aShdrs[idx].sh_name      = 70;
+    aShdrs[idx].sh_type      = SHT_DYNAMIC;
+    aShdrs[idx].sh_flags     = SHF_ALLOC | SHF_WRITE;
+    aShdrs[idx].sh_addr      = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+    aShdrs[idx].sh_offset    = RT_ALIGN_64(aShdrs[idx - 1].sh_offset + aShdrs[idx - 1].sh_size, sizeof(uint64_t));
+    aShdrs[idx].sh_size      = cDynEntries * sizeof(Elf64_Dyn);
+    aShdrs[idx].sh_link      = 2; /* .dynstr */
+    aShdrs[idx].sh_info      = 0;
+    aShdrs[idx].sh_addralign = sizeof(uint64_t);
+    aShdrs[idx].sh_entsize   = sizeof(Elf64_Dyn);
+
+    /* Build the program headers. */
+    aPhdrs[0].p_type    = PT_PHDR;
+    aPhdrs[0].p_flags   = PF_R;
+    aPhdrs[0].p_offset  = Hdr.e_phoff;
+    aPhdrs[0].p_vaddr   = Hdr.e_phoff;
+    aPhdrs[0].p_paddr   = Hdr.e_phoff;
+    aPhdrs[0].p_filesz  = sizeof(aPhdrs);
+    aPhdrs[0].p_memsz   = sizeof(aPhdrs);
+    aPhdrs[0].p_align   = sizeof(uint64_t);
+
+    aPhdrs[1].p_type    = PT_LOAD;
+    aPhdrs[1].p_flags   = PF_R | PF_X;
+    aPhdrs[1].p_offset  = 0;
+    aPhdrs[1].p_vaddr   = 0;
+    aPhdrs[1].p_paddr   = 0;
+    aPhdrs[1].p_filesz  = aShdrs[idx].sh_offset;
+    aPhdrs[1].p_memsz   = aShdrs[idx].sh_offset;
+    aPhdrs[1].p_align   = 0x10000;
+
+    aPhdrs[2].p_type    = PT_LOAD;
+    aPhdrs[2].p_flags   = PF_R | PF_W;
+    aPhdrs[2].p_offset  = aShdrs[idx].sh_offset;
+    aPhdrs[2].p_vaddr   = aShdrs[idx].sh_offset;
+    aPhdrs[2].p_paddr   = aShdrs[idx].sh_offset;
+    aPhdrs[2].p_filesz  = aShdrs[idx].sh_size;
+    aPhdrs[2].p_memsz   = aShdrs[idx].sh_size;
+    aPhdrs[2].p_align   = 0x10000;
+
+    aPhdrs[3].p_type    = PT_DYNAMIC;
+    aPhdrs[3].p_flags   = PF_R | PF_W;
+    aPhdrs[3].p_offset  = aShdrs[idx].sh_offset;
+    aPhdrs[3].p_vaddr   = aShdrs[idx].sh_offset;
+    aPhdrs[3].p_paddr   = aShdrs[idx].sh_offset;
+    aPhdrs[3].p_filesz  = aShdrs[idx].sh_size;
+    aPhdrs[3].p_memsz   = aShdrs[idx].sh_size;
+    aPhdrs[3].p_align   = sizeof(uint64_t);
+
+    idx++;
 
     /* .shstrtab */
     aShdrs[idx].sh_name      = 1;
@@ -654,7 +825,15 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     aShdrs[idx].sh_entsize   = 0;
     idx++;
 
-    rc = RTFileWriteAt(hFileOut, sizeof(Hdr), &aShdrs[0], idx * sizeof(aShdrs[0]), NULL /*pcbWritten*/);
+    rc = RTFileWriteAt(hFileOut, 0, &Hdr, sizeof(Hdr), NULL /*pcbWritten*/);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write ELF header to '%s': %Rrc\n", pszStubPath, rc);
+
+    rc = RTFileWriteAt(hFileOut, Hdr.e_phoff, &aPhdrs[0], sizeof(aPhdrs), NULL /*pcbWritten*/);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write section headers to '%s': %Rrc\n", pszStubPath, rc);
+
+    rc = RTFileWriteAt(hFileOut, Hdr.e_shoff, &aShdrs[0], idx * sizeof(aShdrs[0]), NULL /*pcbWritten*/);
     if (RT_FAILURE(rc))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write section headers to '%s': %Rrc\n", pszStubPath, rc);
 
@@ -667,16 +846,30 @@ static RTEXITCODE createLinkerStubFrom(const char *pszInput, const char *pszStub
     if (RT_FAILURE(rc))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .dynstr section to '%s': %Rrc\n", pszStubPath, rc);
 
-    if (pbGnuVerDef)
+    if (pbGnuVerDef || pbGnuVerNeed)
     {
         rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, pu16GnuVerSym, cDynSymsExport * sizeof(uint16_t), NULL /*pcbWritten*/);
         if (RT_FAILURE(rc))
             return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .gnu.version section to '%s': %Rrc\n", pszStubPath, rc);
 
-        rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, pbGnuVerDef, cbGnuVerDef, NULL /*pcbWritten*/);
-        if (RT_FAILURE(rc))
-            return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .gnu.version section to '%s': %Rrc\n", pszStubPath, rc);
+        if (pbGnuVerDef)
+        {
+            rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, pbGnuVerDef, cbGnuVerDef, NULL /*pcbWritten*/);
+            if (RT_FAILURE(rc))
+                return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .gnu.version section to '%s': %Rrc\n", pszStubPath, rc);
+        }
+
+        if (pbGnuVerNeed)
+        {
+            rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, pbGnuVerNeed, cbGnuVerNeed, NULL /*pcbWritten*/);
+            if (RT_FAILURE(rc))
+                return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .gnu.version section to '%s': %Rrc\n", pszStubPath, rc);
+        }
     }
+
+    rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, paDynEnt, cDynEntries * sizeof(Elf64_Dyn), NULL /*pcbWritten*/);
+    if (RT_FAILURE(rc))
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, "Failed to write .dynamic section to '%s': %Rrc\n", pszStubPath, rc);
 
     rc = RTFileWriteAt(hFileOut, aShdrs[idx++].sh_offset, s_achShStrTab, sizeof(s_achShStrTab), NULL /*pcbWritten*/);
     if (RT_FAILURE(rc))

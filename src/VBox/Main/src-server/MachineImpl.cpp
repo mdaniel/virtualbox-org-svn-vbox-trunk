@@ -4654,10 +4654,10 @@ HRESULT Machine::unregister(AutoCaller &autoCaller,
         mData->llFilesToDelete.push_back(strNVRAMFile);
 
     Utf8Str strServerCertificate(VRDE_AUTO_GENENERATED_CERT_FILENAME);
-    int vrc = i_calculateFullPath(strServerCertificate, strServerCertificate);
+    i_calculateFullPath(strServerCertificate, strServerCertificate);
 
     Utf8Str strServerPrivateKey(VRDE_AUTO_GENENERATED_PKEY_FILENAME);
-    vrc = i_calculateFullPath(strServerPrivateKey, strServerPrivateKey);
+    i_calculateFullPath(strServerPrivateKey, strServerPrivateKey);
 
     if (RTFileExists(strServerPrivateKey.c_str()))
         mData->llFilesToDelete.push_back(strServerPrivateKey);

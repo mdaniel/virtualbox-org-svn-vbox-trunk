@@ -295,7 +295,6 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
    endif
 
   else # x11
-   qt-bin_DEPS := $(VBOX_EDIT_ELF)
 
    VBOX_QT_VERSION_MAJOR := 6
    ifdef VBOX_WITH_HARDENING
@@ -312,17 +311,17 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
     	$(foreach lib,$(VBOX_QT_PLUGINS),$(qt-bin_0_OUTDIR)/$(lib)=>$(lib))
 
     $(foreach qtmod,$(VBOX_QT_MOD_NAMES),$$(qt-bin_0_OUTDIR)/lib$(qtmod).so.$(VBOX_QT_VERSION_MAJOR)): \
-    		$$(qt-bin_0_OUTDIR)/% : $(PATH_SDK_QT6_LIB)/% | $$(qt-bin_0_OUTDIR)/
+    		$$(qt-bin_0_OUTDIR)/% : $(PATH_SDK_QT6_LIB)/% $(VBOX_EDIT_ELF) | $$(qt-bin_0_OUTDIR)/
 	$(call MSG_INST_FILE,$^,$@)
-	$(QUIET)$(CP) $^ $@
+	$(QUIET)$(CP) $< $@
 	$(QUIET)$(VBOX_EDIT_ELF) --change-runpath "\$$ORIGIN" --input $@
 
     ifn1of ($(KBUILD_TARGET), solaris linux)
-     $(foreach lib,$(VBOX_QT_PLUGINS),$$(qt-bin_0_OUTDIR)/$(lib)): $$(qt-bin_0_OUTDIR)/% : \
-     		$(PATH_SDK_QT6)/% | $$(qt-bin_0_OUTDIR)/
+     $(foreach lib,$(VBOX_QT_PLUGINS),$$(qt-bin_0_OUTDIR)/$(lib)): $$(VBOX_EDIT_ELF) $$(qt-bin_0_OUTDIR)/% : \
+     		$(PATH_SDK_QT6)/% $(VBOX_EDIT_ELF) | $$(qt-bin_0_OUTDIR)/
 	$(call MSG_INST_FILE,$^,$@)
 	$(QUIET)$(MKDIR) -p $(@D)
-	$(QUIET)$(CP) $^ $@
+	$(QUIET)$(CP) $< $@
 	$(QUIET)$(VBOX_EDIT_ELF) --delete-runpath --input $@
     endif # !solaris and !linux
 
@@ -330,10 +329,10 @@ if   !defined(VBOX_ONLY_ADDITIONS) \
     #       so add explicit rpath for libqxcb.so, find better solution later.
     if1of ($(KBUILD_TARGET), solaris linux)
      $(foreach lib,$(VBOX_QT_PLUGINS),$$(qt-bin_0_OUTDIR)/$(lib)): $$(qt-bin_0_OUTDIR)/% : \
-     		$(PATH_SDK_QT6)/% | $$(qt-bin_0_OUTDIR)/
+     		$(PATH_SDK_QT6)/% $(VBOX_EDIT_ELF) | $$(qt-bin_0_OUTDIR)/
 	$(call MSG_INST_FILE,$^,$@)
 	$(QUIET)$(MKDIR) -p $(@D)
-	$(QUIET)$(CP) $^ $@
+	$(QUIET)$(CP) $< $@
 	$(QUIET)$(VBOX_EDIT_ELF) --change-runpath "\$$ORIGIN/../../" --input $@
     endif # solaris linux
 

@@ -1876,7 +1876,7 @@ static uint16_t gicGetHighestPriorityPendingIntr(PCGICDEV pGicDev, PCGICCPU pGic
     /* Distributor. */
     {
         uint16_t idxHighest = UINT16_MAX;
-        for (uint16_t i = 0; i < RT_ELEMENTS(pGicDev->bmIntrPending) / 2; i++)
+        for (uint16_t i = 0; i < RT_ELEMENTS(pGicDev->bmIntrPending); i += 2)
         {
             uint32_t uLo = (pGicDev->bmIntrPending[i]     & pGicDev->bmIntrEnabled[i])     & ~pGicDev->bmIntrActive[i];
             uint32_t uHi = (pGicDev->bmIntrPending[i + 1] & pGicDev->bmIntrEnabled[i + 1]) & ~pGicDev->bmIntrActive[i + 1];

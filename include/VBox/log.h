@@ -122,6 +122,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_DEV_FDC,
     /** Flash Device group. */
     LOG_GROUP_DEV_FLASH,
+    /** Generic Interrupt Controller Device group. */
+    LOG_GROUP_DEV_GIC,
     /** Guest Interface Manager Device group. */
     LOG_GROUP_DEV_GIM,
     /** General Purpose I/O controller Device group. */
@@ -908,6 +910,7 @@ typedef enum VBOXLOGGROUP
     "DEV_ELNK", \
     "DEV_FDC", \
     "DEV_FLASH", \
+    "DEV_GIC", \
     "DEV_GIM", \
     "DEV_GPIO", \
     "DEV_HDA", \

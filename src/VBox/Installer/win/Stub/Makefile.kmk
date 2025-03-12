@@ -57,7 +57,7 @@ VBoxStub_SDKS = \
 	VBoxNtDll
 
 # Enables splash screen support.
-#VBOX_STUB_WITH_SPLASH=
+VBOX_STUB_WITH_SPLASH=1
 
 ifdef VBOX_STUB_WITH_SPLASH
  VBoxStub.cpp_DEFS += VBOX_STUB_WITH_SPLASH

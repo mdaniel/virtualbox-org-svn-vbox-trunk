@@ -694,11 +694,10 @@ static VBOXSTRICTRC gicDistReadIntrRoutingReg(PCGICDEV pGicDev, uint16_t idxReg,
  *
  * @returns Strict VBox status code.
  * @param   pGicDev     The GIC distributor state.
- * @param   offReg      The offset of the register in the distributor register map.
  * @param   idxReg      The index of the register in the GICD_IROUTER range.
  * @param   uValue      The value to write to the register.
  */
-static VBOXSTRICTRC gicDistWriteIntrRoutingReg(PGICDEV pGicDev, uint16_t offReg, uint16_t idxReg, uint32_t uValue)
+static VBOXSTRICTRC gicDistWriteIntrRoutingReg(PGICDEV pGicDev, uint16_t idxReg, uint32_t uValue)
 {
     /* When affinity routing is disabled, writes are ignored. */
     Assert(pGicDev->fAffRoutingEnabled);
@@ -707,7 +706,7 @@ static VBOXSTRICTRC gicDistWriteIntrRoutingReg(PGICDEV pGicDev, uint16_t offReg,
     idxReg += GIC_INTID_RANGE_SPI_START;
     AssertReturn(idxReg < RT_ELEMENTS(pGicDev->au32IntrRouting), VERR_BUFFER_OVERFLOW);
     Assert(idxReg < sizeof(pGicDev->bmIntrRoutingMode) * 8);
-    if (!(offReg & 4))
+    if (!(idxReg % 2))
     {
         /* Lower 32-bits. */
         bool const fIrm = GIC_DIST_REG_IROUTERn_IRM_GET(uValue);
@@ -2081,13 +2080,13 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
     if (offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / cbReg;
-        return gicDistWriteIntrRoutingReg(pGicDev, offReg, idxReg, uValue);
+        return gicDistWriteIntrRoutingReg(pGicDev, idxReg, uValue);
     }
     if (offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
     {
         uint16_t const idxExt = RT_ELEMENTS(pGicDev->au32IntrRouting) / 2;
         uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / cbReg;
-        return gicDistWriteIntrRoutingReg(pGicDev, offReg, idxReg, uValue);
+        return gicDistWriteIntrRoutingReg(pGicDev, idxReg, uValue);
     }
 
     /*

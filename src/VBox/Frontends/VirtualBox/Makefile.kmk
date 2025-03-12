@@ -584,7 +584,7 @@ VirtualBox_QT_MOCHDRS = \
 	src/manager/UITaskCloudGetSettingsForm.h \
 	src/manager/UIToolPane.h \
 	src/manager/UIVirtualBoxManager.h \
-	src/manager/UIVirtualBoxManagerAdvancedWidget.h \
+	src/manager/UIVirtualBoxWidget.h \
 	src/manager/UIVirtualMachineItem.h \
 	src/manager/UIVirtualMachineItemCloud.h \
 	src/manager/UIVirtualMachineItemLocal.h \
@@ -1106,7 +1106,7 @@ VirtualBox_SOURCES = \
 	src/manager/UITaskCloudGetSettingsForm.cpp \
 	src/manager/UIToolPane.cpp \
 	src/manager/UIVirtualBoxManager.cpp \
-	src/manager/UIVirtualBoxManagerAdvancedWidget.cpp \
+	src/manager/UIVirtualBoxWidget.cpp \
 	src/manager/UIVirtualMachineItem.cpp \
 	src/manager/UIVirtualMachineItemCloud.cpp \
 	src/manager/UIVirtualMachineItemLocal.cpp \

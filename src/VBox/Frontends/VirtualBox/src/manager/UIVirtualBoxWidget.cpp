@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIVirtualBoxManagerAdvancedWidget class implementation.
+ * VBox Qt GUI - UIVirtualBoxWidget class implementation.
  */
 
 /*
@@ -42,7 +42,7 @@
 #include "UINotificationCenter.h"
 #include "UIToolPane.h"
 #include "UIVirtualBoxManager.h"
-#include "UIVirtualBoxManagerAdvancedWidget.h"
+#include "UIVirtualBoxWidget.h"
 #if defined(VBOX_WS_MAC) && (defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32))
 # include "UIGlobalSession.h"
 # include "UIIconPool.h"
@@ -55,7 +55,7 @@
 #endif /* VBOX_WS_MAC && (RT_ARCH_ARM64 || RT_ARCH_ARM32) */
 
 
-UIVirtualBoxManagerAdvancedWidget::UIVirtualBoxManagerAdvancedWidget(UIVirtualBoxManager *pParent)
+UIVirtualBoxWidget::UIVirtualBoxWidget(UIVirtualBoxManager *pParent)
     : m_pActionPool(pParent->actionPool())
     , m_pToolBar(0)
     , m_pGlobalToolsWidget(0)
@@ -63,12 +63,12 @@ UIVirtualBoxManagerAdvancedWidget::UIVirtualBoxManagerAdvancedWidget(UIVirtualBo
     prepare();
 }
 
-UIVirtualBoxManagerAdvancedWidget::~UIVirtualBoxManagerAdvancedWidget()
+UIVirtualBoxWidget::~UIVirtualBoxWidget()
 {
     cleanup();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::updateToolBarMenuButtons(bool fSeparateMenuSection)
+void UIVirtualBoxWidget::updateToolBarMenuButtons(bool fSeparateMenuSection)
 {
     QAction *pAction = actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow);
     AssertPtrReturnVoid(pAction);
@@ -77,223 +77,223 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolBarMenuButtons(bool fSeparateM
         pButton->setPopupMode(fSeparateMenuSection ? QToolButton::MenuButtonPopup : QToolButton::DelayedPopup);
 }
 
-UIVirtualMachineItem *UIVirtualBoxManagerAdvancedWidget::currentItem() const
+UIVirtualMachineItem *UIVirtualBoxWidget::currentItem() const
 {
     AssertPtrReturn(chooser(), 0);
     return chooser()->currentItem();
 }
 
-QList<UIVirtualMachineItem*> UIVirtualBoxManagerAdvancedWidget::currentItems() const
+QList<UIVirtualMachineItem*> UIVirtualBoxWidget::currentItems() const
 {
     AssertPtrReturn(chooser(), QList<UIVirtualMachineItem*>());
     return chooser()->currentItems();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isGroupItemSelected() const
+bool UIVirtualBoxWidget::isGroupItemSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isGroupItemSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isMachineItemSelected() const
+bool UIVirtualBoxWidget::isMachineItemSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isMachineItemSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isLocalMachineItemSelected() const
+bool UIVirtualBoxWidget::isLocalMachineItemSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isLocalMachineItemSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isCloudMachineItemSelected() const
+bool UIVirtualBoxWidget::isCloudMachineItemSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isCloudMachineItemSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isSingleGroupSelected() const
+bool UIVirtualBoxWidget::isSingleGroupSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isSingleGroupSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isSingleLocalGroupSelected() const
+bool UIVirtualBoxWidget::isSingleLocalGroupSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isSingleLocalGroupSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isSingleCloudProviderGroupSelected() const
+bool UIVirtualBoxWidget::isSingleCloudProviderGroupSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isSingleCloudProviderGroupSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isSingleCloudProfileGroupSelected() const
+bool UIVirtualBoxWidget::isSingleCloudProfileGroupSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isSingleCloudProfileGroupSelected();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isAllItemsOfOneGroupSelected() const
+bool UIVirtualBoxWidget::isAllItemsOfOneGroupSelected() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isAllItemsOfOneGroupSelected();
 }
 
-QString UIVirtualBoxManagerAdvancedWidget::fullGroupName() const
+QString UIVirtualBoxWidget::fullGroupName() const
 {
     AssertPtrReturn(chooser(), QString());
     return chooser()->fullGroupName();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isGroupSavingInProgress() const
+bool UIVirtualBoxWidget::isGroupSavingInProgress() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isGroupSavingInProgress();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isCloudProfileUpdateInProgress() const
+bool UIVirtualBoxWidget::isCloudProfileUpdateInProgress() const
 {
     AssertPtrReturn(chooser(), false);
     return chooser()->isCloudProfileUpdateInProgress();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::openGroupNameEditor()
+void UIVirtualBoxWidget::openGroupNameEditor()
 {
     AssertPtrReturnVoid(chooser());
     chooser()->openGroupNameEditor();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::disbandGroup()
+void UIVirtualBoxWidget::disbandGroup()
 {
     AssertPtrReturnVoid(chooser());
     chooser()->disbandGroup();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::removeMachine()
+void UIVirtualBoxWidget::removeMachine()
 {
     AssertPtrReturnVoid(chooser());
     chooser()->removeMachine();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::moveMachineToGroup(const QString &strName /* = QString() */)
+void UIVirtualBoxWidget::moveMachineToGroup(const QString &strName /* = QString() */)
 {
     AssertPtrReturnVoid(chooser());
     chooser()->moveMachineToGroup(strName);
 }
 
-QStringList UIVirtualBoxManagerAdvancedWidget::possibleGroupsForMachineToMove(const QUuid &uId)
+QStringList UIVirtualBoxWidget::possibleGroupsForMachineToMove(const QUuid &uId)
 {
     AssertPtrReturn(chooser(), QStringList());
     return chooser()->possibleGroupsForMachineToMove(uId);
 }
 
-QStringList UIVirtualBoxManagerAdvancedWidget::possibleGroupsForGroupToMove(const QString &strFullName)
+QStringList UIVirtualBoxWidget::possibleGroupsForGroupToMove(const QString &strFullName)
 {
     AssertPtrReturn(chooser(), QStringList());
     return chooser()->possibleGroupsForGroupToMove(strFullName);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::refreshMachine()
+void UIVirtualBoxWidget::refreshMachine()
 {
     AssertPtrReturnVoid(chooser());
     chooser()->refreshMachine();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::sortGroup()
+void UIVirtualBoxWidget::sortGroup()
 {
     AssertPtrReturnVoid(chooser());
     chooser()->sortGroup();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::setMachineSearchWidgetVisibility(bool fVisible)
+void UIVirtualBoxWidget::setMachineSearchWidgetVisibility(bool fVisible)
 {
     AssertPtrReturnVoid(chooser());
     chooser()->setMachineSearchWidgetVisibility(fVisible);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::setToolsTypeGlobal(UIToolType enmType, bool)
+void UIVirtualBoxWidget::setToolsTypeGlobal(UIToolType enmType, bool)
 {
     AssertPtrReturnVoid(globalToolsWidget());
     globalToolsWidget()->setMenuToolType(enmType);
 }
 
-UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeGlobal() const
+UIToolType UIVirtualBoxWidget::toolsTypeGlobal() const
 {
     AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
     return globalToolsWidget()->menuToolType();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::setToolsTypeMachine(UIToolType enmType)
+void UIVirtualBoxWidget::setToolsTypeMachine(UIToolType enmType)
 {
     AssertPtrReturnVoid(machineToolsWidget());
     machineToolsWidget()->setMenuToolType(enmType);
 }
 
-UIToolType UIVirtualBoxManagerAdvancedWidget::toolsTypeMachine() const
+UIToolType UIVirtualBoxWidget::toolsTypeMachine() const
 {
     AssertPtrReturn(machineToolsWidget(), UIToolType_Invalid);
     return machineToolsWidget()->menuToolType();
 }
 
-UIToolType UIVirtualBoxManagerAdvancedWidget::currentGlobalTool() const
+UIToolType UIVirtualBoxWidget::currentGlobalTool() const
 {
     AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
     return globalToolsWidget()->toolType();
 }
 
-UIToolType UIVirtualBoxManagerAdvancedWidget::currentMachineTool() const
+UIToolType UIVirtualBoxWidget::currentMachineTool() const
 {
     AssertPtrReturn(machineToolsWidget(), UIToolType_Invalid);
     return machineToolsWidget()->toolType();
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isGlobalToolOpened(UIToolType enmType) const
+bool UIVirtualBoxWidget::isGlobalToolOpened(UIToolType enmType) const
 {
     AssertPtrReturn(globalToolsWidget(), false);
     return globalToolsWidget()->isToolOpened(enmType);
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isMachineToolOpened(UIToolType enmType) const
+bool UIVirtualBoxWidget::isMachineToolOpened(UIToolType enmType) const
 {
     AssertPtrReturn(machineToolsWidget(), false);
     return machineToolsWidget()->isToolOpened(enmType);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::closeGlobalTool(UIToolType enmType)
+void UIVirtualBoxWidget::closeGlobalTool(UIToolType enmType)
 {
     AssertPtrReturnVoid(globalToolsWidget());
     globalToolsWidget()->closeTool(enmType);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::closeMachineTool(UIToolType enmType)
+void UIVirtualBoxWidget::closeMachineTool(UIToolType enmType)
 {
     AssertPtrReturnVoid(machineToolsWidget());
     machineToolsWidget()->closeTool(enmType);
 }
 
-bool UIVirtualBoxManagerAdvancedWidget::isCurrentStateItemSelected() const
+bool UIVirtualBoxWidget::isCurrentStateItemSelected() const
 {
     AssertPtrReturn(machineToolPane(), false);
     return machineToolPane()->isCurrentStateItemSelected();
 }
 
-QUuid UIVirtualBoxManagerAdvancedWidget::currentSnapshotId()
+QUuid UIVirtualBoxWidget::currentSnapshotId()
 {
     AssertPtrReturn(machineToolPane(), QUuid());
     return machineToolPane()->currentSnapshotId();
 }
 
-QString UIVirtualBoxManagerAdvancedWidget::currentHelpKeyword() const
+QString UIVirtualBoxWidget::currentHelpKeyword() const
 {
     AssertPtrReturn(globalToolsWidget(), QString());
     return globalToolsWidget()->currentHelpKeyword();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest(const QPoint &position)
+void UIVirtualBoxWidget::sltHandleToolBarContextMenuRequest(const QPoint &position)
 {
     /* Populate toolbar actions: */
     QList<QAction*> actions;
@@ -323,18 +323,18 @@ void UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest(const
     }
 }
 
-void UIVirtualBoxManagerAdvancedWidget::sltHandleCommitData()
+void UIVirtualBoxWidget::sltHandleCommitData()
 {
     cleanupConnections();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar()
+void UIVirtualBoxWidget::sltUpdateToolbar()
 {
     /* Update toolbar to show/hide corresponding actions: */
     updateToolbar();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::prepare()
+void UIVirtualBoxWidget::prepare()
 {
     /* Prepare everything: */
     prepareWidgets();
@@ -344,7 +344,7 @@ void UIVirtualBoxManagerAdvancedWidget::prepare()
     loadSettings();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
+void UIVirtualBoxWidget::prepareWidgets()
 {
     /* Create layout: */
     QVBoxLayout *pLayout = new QVBoxLayout(this);
@@ -410,69 +410,69 @@ void UIVirtualBoxManagerAdvancedWidget::prepareWidgets()
     chooser()->setFocus();
 }
 
-void UIVirtualBoxManagerAdvancedWidget::prepareConnections()
+void UIVirtualBoxWidget::prepareConnections()
 {
     /* UICommon connections: */
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltHandleCommitData);
+            this, &UIVirtualBoxWidget::sltHandleCommitData);
 
     /* Global COM event handlers: */
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+            this, &UIVirtualBoxWidget::sltUpdateToolbar);
 
     /* Tool-bar connections: */
     connect(m_pToolBar, &QIToolBar::customContextMenuRequested,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest);
+            this, &UIVirtualBoxWidget::sltHandleToolBarContextMenuRequest);
 
     /* Global Tools Widget connections: */
     connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+            this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
+            this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
     connect(globalToolPane(), &UIToolPane::sigCreateMedium,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigCreateMedium);
+            this, &UIVirtualBoxWidget::sigCreateMedium);
     connect(globalToolPane(), &UIToolPane::sigCopyMedium,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
+            this, &UIVirtualBoxWidget::sigCopyMedium);
 
     /* Machine Tools Widget connections: */
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+            this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
+            this, &UIVirtualBoxWidget::sigToolTypeChangeMachine);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
+            this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+            this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
+            this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     connect(machineToolPane(), &UIToolPane::sigLinkClicked,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSettingsLinkClicked);
+            this, &UIVirtualBoxWidget::sigMachineSettingsLinkClicked);
     connect(machineToolPane(), &UIToolPane::sigCurrentSnapshotItemChange,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigCurrentSnapshotItemChange);
+            this, &UIVirtualBoxWidget::sigCurrentSnapshotItemChange);
     connect(machineToolPane(), &UIToolPane::sigDetachToolPane,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigDetachToolPane);
+            this, &UIVirtualBoxWidget::sigDetachToolPane);
 
     /* Chooser-pane connections: */
     connect(chooser(), &UIChooser::sigGroupSavingStateChanged,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigGroupSavingStateChanged);
+            this, &UIVirtualBoxWidget::sigGroupSavingStateChanged);
     connect(chooser(), &UIChooser::sigCloudUpdateStateChanged,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigCloudUpdateStateChanged);
+            this, &UIVirtualBoxWidget::sigCloudUpdateStateChanged);
     connect(chooser(), &UIChooser::sigStartOrShowRequest,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigStartOrShowRequest);
+            this, &UIVirtualBoxWidget::sigStartOrShowRequest);
     connect(chooser(), &UIChooser::sigMachineSearchWidgetVisibilityChanged,
-            this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSearchWidgetVisibilityChanged);
+            this, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::loadSettings()
+void UIVirtualBoxWidget::loadSettings()
 {
     /* Make sure stuff exists: */
     AssertPtrReturnVoid(m_pToolBar);
     m_pToolBar->setUseTextLabels(gEDataManager->selectorWindowToolBarTextVisible());
 }
 
-void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
+void UIVirtualBoxWidget::updateToolbar()
 {
     /* Make sure stuff exists: */
     AssertPtrReturnVoid(m_pToolBar);
@@ -652,84 +652,84 @@ void UIVirtualBoxManagerAdvancedWidget::updateToolbar()
     }
 }
 
-void UIVirtualBoxManagerAdvancedWidget::cleanupConnections()
+void UIVirtualBoxWidget::cleanupConnections()
 {
     /* Global COM event handlers: */
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+               this, &UIVirtualBoxWidget::sltUpdateToolbar);
 
     /* Tool-bar connections: */
     disconnect(m_pToolBar, &QIToolBar::customContextMenuRequested,
-               this, &UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest);
+               this, &UIVirtualBoxWidget::sltHandleToolBarContextMenuRequest);
 
     /* Global Tools Widget connections: */
     disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+               this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal);
+               this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
     /* Global Tool Pane connections: */
     disconnect(globalToolPane(), &UIToolPane::sigCreateMedium,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigCreateMedium);
+               this, &UIVirtualBoxWidget::sigCreateMedium);
     disconnect(globalToolPane(), &UIToolPane::sigCopyMedium,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium);
+               this, &UIVirtualBoxWidget::sigCopyMedium);
 
     /* Machine Tools Widget connections: */
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+               this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolTypeChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine);
+               this, &UIVirtualBoxWidget::sigToolTypeChangeMachine);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneIndexChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange);
+               this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sltUpdateToolbar);
+               this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange);
+               this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     disconnect(machineToolPane(), &UIToolPane::sigLinkClicked,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSettingsLinkClicked);
+               this, &UIVirtualBoxWidget::sigMachineSettingsLinkClicked);
     disconnect(machineToolPane(), &UIToolPane::sigCurrentSnapshotItemChange,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigCurrentSnapshotItemChange);
+               this, &UIVirtualBoxWidget::sigCurrentSnapshotItemChange);
     disconnect(machineToolPane(), &UIToolPane::sigDetachToolPane,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigDetachToolPane);
+               this, &UIVirtualBoxWidget::sigDetachToolPane);
 
     /* Chooser-pane connections: */
     disconnect(chooser(), &UIChooser::sigGroupSavingStateChanged,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigGroupSavingStateChanged);
+               this, &UIVirtualBoxWidget::sigGroupSavingStateChanged);
     disconnect(chooser(), &UIChooser::sigCloudUpdateStateChanged,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigCloudUpdateStateChanged);
+               this, &UIVirtualBoxWidget::sigCloudUpdateStateChanged);
     disconnect(chooser(), &UIChooser::sigStartOrShowRequest,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigStartOrShowRequest);
+               this, &UIVirtualBoxWidget::sigStartOrShowRequest);
     disconnect(chooser(), &UIChooser::sigMachineSearchWidgetVisibilityChanged,
-               this, &UIVirtualBoxManagerAdvancedWidget::sigMachineSearchWidgetVisibilityChanged);
+               this, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged);
 }
 
-void UIVirtualBoxManagerAdvancedWidget::cleanup()
+void UIVirtualBoxWidget::cleanup()
 {
     /* Destroy notification-center: */
     UINotificationCenter::destroy();
 }
 
-UIGlobalToolsWidget *UIVirtualBoxManagerAdvancedWidget::globalToolsWidget() const
+UIGlobalToolsWidget *UIVirtualBoxWidget::globalToolsWidget() const
 {
     return m_pGlobalToolsWidget;
 }
 
-UIToolPane *UIVirtualBoxManagerAdvancedWidget::globalToolPane() const
+UIToolPane *UIVirtualBoxWidget::globalToolPane() const
 {
     return globalToolsWidget()->toolPane();
 }
 
-UIMachineToolsWidget *UIVirtualBoxManagerAdvancedWidget::machineToolsWidget() const
+UIMachineToolsWidget *UIVirtualBoxWidget::machineToolsWidget() const
 {
     return globalToolsWidget()->machineToolsWidget();
 }
 
-UIToolPane *UIVirtualBoxManagerAdvancedWidget::machineToolPane() const
+UIToolPane *UIVirtualBoxWidget::machineToolPane() const
 {
     return machineToolsWidget()->toolPane();
 }
 
-UIChooser *UIVirtualBoxManagerAdvancedWidget::chooser() const
+UIChooser *UIVirtualBoxWidget::chooser() const
 {
     return machineToolsWidget()->chooser();
 }

@@ -51,7 +51,7 @@ class UIAction;
 class UIActionPool;
 class UINativeWizard;
 struct UIUnattendedInstallData;
-class UIVirtualBoxManagerAdvancedWidget;
+class UIVirtualBoxWidget;
 class UIVirtualMachineItem;
 class CCloudMachine;
 class CUnattended;
@@ -512,7 +512,7 @@ private:
     QMap<WizardType, UINativeWizard*>  m_wizards;
 
     /** Holds the central-widget instance. */
-    UIVirtualBoxManagerAdvancedWidget *m_pWidget;
+    UIVirtualBoxWidget *m_pWidget;
 
     /** Holds the geometry save timer ID. */
     int  m_iGeometrySaveTimerId;

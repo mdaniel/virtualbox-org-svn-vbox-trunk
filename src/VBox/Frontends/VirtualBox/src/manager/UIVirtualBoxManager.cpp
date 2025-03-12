@@ -79,7 +79,7 @@
 #include "UIQObjectStuff.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
-#include "UIVirtualBoxManagerAdvancedWidget.h"
+#include "UIVirtualBoxWidget.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
 #include "UIVirtualBoxEventHandler.h"
@@ -2458,7 +2458,7 @@ void UIVirtualBoxManager::prepareStatusBar()
 void UIVirtualBoxManager::prepareWidgets()
 {
     /* Prepare central-widget: */
-    m_pWidget = new UIVirtualBoxManagerAdvancedWidget(this);
+    m_pWidget = new UIVirtualBoxWidget(this);
     if (m_pWidget)
         setCentralWidget(m_pWidget);
 }
@@ -2478,33 +2478,33 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltHandleMediumEnumerationFinish);
 
     /* Widget connections: */
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigChooserPaneIndexChange,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigChooserPaneIndexChange,
             this, &UIVirtualBoxManager::sltHandleChooserPaneIndexChange);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigStartOrShowRequest,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigStartOrShowRequest,
             this, &UIVirtualBoxManager::sltPerformStartOrShowMachine);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeGlobal,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigToolTypeChangeGlobal,
             this, &UIVirtualBoxManager::sltHandleGlobalToolTypeChange);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigToolTypeChangeMachine,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigToolTypeChangeMachine,
             this, &UIVirtualBoxManager::sltHandleMachineToolTypeChange);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigCreateMedium,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigCreateMedium,
             this, &UIVirtualBoxManager::sltCreateMedium);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigCopyMedium,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigCopyMedium,
             this, &UIVirtualBoxManager::sltCopyMedium);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigMachineSettingsLinkClicked,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigMachineSettingsLinkClicked,
             this, &UIVirtualBoxManager::sltOpenSettingsDialog);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigDetachToolPane,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigDetachToolPane,
             this, &UIVirtualBoxManager::sltDetachToolPane);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigGroupSavingStateChanged,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigGroupSavingStateChanged,
             this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigCloudUpdateStateChanged,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigCloudUpdateStateChanged,
             this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigCloudMachineStateChange,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigCloudMachineStateChange,
             this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigCurrentSnapshotItemChange,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigCurrentSnapshotItemChange,
             this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
 
     connect(menuBar(), &QMenuBar::customContextMenuRequested,
-            m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sltHandleToolBarContextMenuRequest);
+            m_pWidget, &UIVirtualBoxWidget::sltHandleToolBarContextMenuRequest);
 
     /* Global VBox event handlers: */
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackInstalled,
@@ -2573,7 +2573,7 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformGroupSorting);
     connect(actionPool()->action(UIActionIndexMN_M_Group_T_Search), &UIAction::toggled,
             this, &UIVirtualBoxManager::sltPerformMachineSearchWidgetVisibilityToggling);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigMachineSearchWidgetVisibilityChanged,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged,
             actionPool()->action(UIActionIndexMN_M_Group_T_Search), &QAction::setChecked);
 
     /* 'Machine' menu connections: */
@@ -2615,7 +2615,7 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformGroupSorting);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_T_Search), &UIAction::toggled,
             this, &UIVirtualBoxManager::sltPerformMachineSearchWidgetVisibilityToggling);
-    connect(m_pWidget, &UIVirtualBoxManagerAdvancedWidget::sigMachineSearchWidgetVisibilityChanged,
+    connect(m_pWidget, &UIVirtualBoxWidget::sigMachineSearchWidgetVisibilityChanged,
             actionPool()->action(UIActionIndexMN_M_Machine_T_Search), &QAction::setChecked);
 
     /* 'Group/Start or Show' menu connections: */

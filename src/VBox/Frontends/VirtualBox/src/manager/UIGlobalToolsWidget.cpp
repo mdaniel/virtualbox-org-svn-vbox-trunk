@@ -38,14 +38,13 @@
 #include "UIToolPane.h"
 #include "UITools.h"
 #include "UIVirtualBoxEventHandler.h"
-#include "UIVirtualBoxManagerAdvancedWidget.h"
 #include "UIVirtualMachineItem.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
 
-UIGlobalToolsWidget::UIGlobalToolsWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool)
+UIGlobalToolsWidget::UIGlobalToolsWidget(QWidget *pParent, UIActionPool *pActionPool)
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
     , m_pLayout(0)

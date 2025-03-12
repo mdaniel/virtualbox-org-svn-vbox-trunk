@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * VBox Qt GUI - UIVirtualBoxManagerAdvancedWidget class declaration.
+ * VBox Qt GUI - UIVirtualBoxWidget class declaration.
  */
 
 /*
@@ -25,8 +25,8 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-#ifndef FEQT_INCLUDED_SRC_manager_UIVirtualBoxManagerAdvancedWidget_h
-#define FEQT_INCLUDED_SRC_manager_UIVirtualBoxManagerAdvancedWidget_h
+#ifndef FEQT_INCLUDED_SRC_manager_UIVirtualBoxWidget_h
+#define FEQT_INCLUDED_SRC_manager_UIVirtualBoxWidget_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -49,7 +49,7 @@ class UIVirtualBoxManager;
 class UIVirtualMachineItem;
 
 /** QWidget extension used as VirtualBox Manager Widget instance. */
-class UIVirtualBoxManagerAdvancedWidget : public QWidget
+class UIVirtualBoxWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -109,10 +109,10 @@ signals:
 
 public:
 
-    /** Constructs VirtualBox Manager widget. */
-    UIVirtualBoxManagerAdvancedWidget(UIVirtualBoxManager *pParent);
-    /** Destructs VirtualBox Manager widget. */
-    virtual ~UIVirtualBoxManagerAdvancedWidget() RT_OVERRIDE;
+    /** Constructs VirtualBox Widget. */
+    UIVirtualBoxWidget(UIVirtualBoxManager *pParent);
+    /** Destructs VirtualBox Widget. */
+    virtual ~UIVirtualBoxWidget() RT_OVERRIDE;
 
     /** @name Common stuff.
       * @{ */
@@ -291,4 +291,4 @@ private:
     UIGlobalToolsWidget *m_pGlobalToolsWidget;
 };
 
-#endif /* !FEQT_INCLUDED_SRC_manager_UIVirtualBoxManagerAdvancedWidget_h */
+#endif /* !FEQT_INCLUDED_SRC_manager_UIVirtualBoxWidget_h */

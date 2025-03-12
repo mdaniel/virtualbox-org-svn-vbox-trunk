@@ -45,7 +45,6 @@ class UIChooser;
 class UIMachineToolsWidget;
 class UIToolPane;
 class UITools;
-class UIVirtualBoxManagerAdvancedWidget;
 class UIVirtualMachineItem;
 
 /** QWidget extension used as Global Tools Widget instance. */
@@ -68,7 +67,7 @@ public:
 
     /** Constructs Global Tools Widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.  */
-    UIGlobalToolsWidget(UIVirtualBoxManagerAdvancedWidget *pParent, UIActionPool *pActionPool);
+    UIGlobalToolsWidget(QWidget *pParent, UIActionPool *pActionPool);
 
     /** @name Common stuff.
       * @{ */

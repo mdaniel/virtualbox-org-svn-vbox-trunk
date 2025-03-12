@@ -40,13 +40,11 @@ TEMPLATE_VBoxStubTemplate_POST_CMDS = $(NO_SUCH_VARIABLE)
 #
 # Installer stub program
 #
-PROGRAMS += VBoxStub
-VBoxStub_TEMPLATE      := VBoxStubTemplate
 if1of ($(KBUILD_TARGET_ARCH), x86 amd64) # don't care for this on arm64
+ PROGRAMS += VBoxStub
+ VBoxStub_TEMPLATE     := VBoxStubTemplate
  VBoxStub_BLD_TRG_ARCH := x86
  VBoxStub_DEFS         := IN_RT_R3 _WIN32_WINNT=0x0501
-else
- VBoxStub_DEFS         := IN_RT_R3
 endif
 
 VBoxStub_SOURCES = \

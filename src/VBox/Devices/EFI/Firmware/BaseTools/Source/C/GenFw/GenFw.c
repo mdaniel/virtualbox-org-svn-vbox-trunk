@@ -7,7 +7,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #ifndef __GNUC__
+# ifdef VBOX
+// RUNTIME_FUNCTION typedef conflicts; just use EFI headers
+# else
 #include <windows.h>
+#endif
 #include <io.h>
 #include <sys/types.h>
 #include <sys/stat.h>

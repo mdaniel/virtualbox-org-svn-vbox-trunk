@@ -702,9 +702,7 @@ static VBOXSTRICTRC gicDistWriteIntrRoutingReg(PGICDEV pGicDev, uint16_t idxReg,
     /* When affinity routing is disabled, writes are ignored. */
     Assert(pGicDev->fAffRoutingEnabled);
 
-    /* Hardware does not map the first 32 registers (corresponding to SGIs and PPIs). */
-    idxReg += GIC_INTID_RANGE_SPI_START;
-    AssertReturn(idxReg < RT_ELEMENTS(pGicDev->au32IntrRouting), VERR_BUFFER_OVERFLOW);
+    AssertMsgReturn(idxReg < RT_ELEMENTS(pGicDev->au32IntrRouting), ("idxReg=%u\n", idxReg), VERR_BUFFER_OVERFLOW);
     Assert(idxReg < sizeof(pGicDev->bmIntrRoutingMode) * 8);
     if (!(idxReg % 2))
     {
@@ -888,7 +886,7 @@ static VBOXSTRICTRC gicDistReadIntrPriorityReg(PGICDEV pGicDev, uint16_t idxReg,
     if (idxReg > 7)
     {
         uint16_t const idxPriority = idxReg * sizeof(uint32_t);
-        AssertReturn(idxPriority < RT_ELEMENTS(pGicDev->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
+        AssertReturn(idxPriority <= RT_ELEMENTS(pGicDev->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
         AssertCompile(sizeof(*puValue) == sizeof(uint32_t));
         *puValue = *(uint32_t *)&pGicDev->abIntrPriority[idxPriority];
     }
@@ -919,7 +917,7 @@ static VBOXSTRICTRC gicDistWriteIntrPriorityReg(PGICDEV pGicDev, uint16_t idxReg
     if (idxReg > 7)
     {
         uint16_t const idxPriority = idxReg * sizeof(uint32_t);
-        AssertReturn(idxPriority < RT_ELEMENTS(pGicDev->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
+        AssertReturn(idxPriority <= RT_ELEMENTS(pGicDev->abIntrPriority) - sizeof(uint32_t), VERR_BUFFER_OVERFLOW);
         AssertCompile(sizeof(uValue) == sizeof(uint32_t));
         *(uint32_t *)&pGicDev->abIntrPriority[idxPriority] = uValue;
         LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, *(uint32_t *)&pGicDev->abIntrPriority[idxPriority]));
@@ -1840,13 +1838,15 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
     {
         if (offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
         {
-            uint16_t const idxReg = (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / cbReg;
+            /* Hardware does not map the first 32 registers (corresponding to SGIs and PPIs). */
+            uint16_t const idxExt = GIC_INTID_RANGE_SPI_START;
+            uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / sizeof(uint64_t);
             return gicDistReadIntrRoutingReg(pGicDev, idxReg, puValue);
         }
         if (offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->au32IntrRouting) / 2;
-            uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / cbReg;
+            uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / sizeof(uint64_t);
             return gicDistReadIntrRoutingReg(pGicDev, idxReg, puValue);
         }
     }
@@ -2079,13 +2079,15 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
      */
     if (offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
     {
-        uint16_t const idxReg = (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / cbReg;
+        /* Hardware does not map the first 32 registers (corresponding to SGIs and PPIs). */
+        uint16_t const idxExt = GIC_INTID_RANGE_SPI_START;
+        uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / sizeof(uint64_t);
         return gicDistWriteIntrRoutingReg(pGicDev, idxReg, uValue);
     }
     if (offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
     {
         uint16_t const idxExt = RT_ELEMENTS(pGicDev->au32IntrRouting) / 2;
-        uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / cbReg;
+        uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / sizeof(uint64_t);
         return gicDistWriteIntrRoutingReg(pGicDev, idxReg, uValue);
     }
 

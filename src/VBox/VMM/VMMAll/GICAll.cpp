@@ -2343,7 +2343,6 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
     PCGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     uint16_t const cbReg = sizeof(uint32_t);
 
-#if 1
     /*
      * GICR_IGROUPR0 and GICR_IGROUPR<n>E.
      */
@@ -2431,54 +2430,6 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
     AssertReleaseFailed();
     *puValue = 0;
     return VINF_SUCCESS;
-#else
-    switch (offReg)
-    {
-        case GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF:
-        case GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF:
-            *puValue = ASMAtomicReadU32(&pThis->bmIntEnabled);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF:
-        case GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF:
-            *puValue = ASMAtomicReadU32(&pThis->bmIntPending);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF:
-        case GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF:
-            *puValue = ASMAtomicReadU32(&pThis->bmIntActive);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  4:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  8:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 12:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 16:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 20:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 24:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 28:
-        {
-            /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START;
-            Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
-
-            uint32_t u32Value = 0;
-            for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
-                u32Value |= pThis->abIntPriority[i] << ((i - idxPrio) * 8);
-
-            *puValue = u32Value;
-            break;
-        }
-        case GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF:
-            *puValue = ASMAtomicReadU32(&pThis->u32RegICfg0);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ICFGR1_OFF:
-            *puValue = ASMAtomicReadU32(&pThis->u32RegICfg1);
-            break;
-        default:
-            AssertReleaseFailed();
-            *puValue = 0;
-    }
-
-    return VINF_SUCCESS;
-#endif
 }
 
 
@@ -2547,8 +2498,6 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
 DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t uValue)
 {
     VMCPU_ASSERT_EMT(pVCpu);
-
-#if 1
     PCGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
 
     /*
@@ -2643,69 +2592,6 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
 
     AssertReleaseMsgFailed(("offReg=%#RX16\n", offReg));
     return VERR_INTERNAL_ERROR_2;
-#else
-    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
-    switch (offReg)
-    {
-        case GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF:
-            ASMAtomicOrU32(&pThis->u32RegIGrp0, uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF:
-            ASMAtomicOrU32(&pThis->bmIntEnabled, uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF:
-            ASMAtomicAndU32(&pThis->bmIntEnabled, ~uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF:
-            ASMAtomicOrU32(&pThis->bmIntPending, uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF:
-            ASMAtomicAndU32(&pThis->bmIntPending, ~uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF:
-            ASMAtomicOrU32(&pThis->bmIntActive, uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF:
-            ASMAtomicAndU32(&pThis->bmIntActive, ~uValue);
-            rcStrict = gicReDistUpdateIrqState(pThis, pVCpu);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  4:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START +  8:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 12:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 16:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 20:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 24:
-        case GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START + 28:
-        {
-            /* Figure out the register which is written. */
-            uint8_t idxPrio = offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START;
-            Assert(idxPrio <= RT_ELEMENTS(pThis->abIntPriority) - sizeof(uint32_t));
-            for (uint32_t i = idxPrio; i < idxPrio + sizeof(uint32_t); i++)
-            {
-                pThis->abIntPriority[i] = (uint8_t)(uValue & 0xff);
-                uValue >>= 8;
-            }
-            break;
-        }
-        case GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF:
-            ASMAtomicWriteU32(&pThis->u32RegICfg0, uValue);
-            break;
-        case GIC_REDIST_SGI_PPI_REG_ICFGR1_OFF:
-            ASMAtomicWriteU32(&pThis->u32RegICfg1, uValue);
-            break;
-        default:
-            //AssertReleaseFailed();
-            break;
-    }
-    return rcStrict;
-#endif
 }
 
 

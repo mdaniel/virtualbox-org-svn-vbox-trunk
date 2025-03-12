@@ -271,125 +271,11 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
 }
 
 
-#if 0
-/**
- * Worker for saving per-VM GIC data.
- *
- * @returns VBox status code.
- * @param   pDevIns     The device instance.
- * @param   pVM     The cross context VM structure.
- * @param   pSSM    The SSM handle.
- */
-static int gicR3SaveVMData(PPDMDEVINS pDevIns, PVM pVM, PSSMHANDLE pSSM)
-{
-    PCPDMDEVHLPR3   pHlp    = pDevIns->pHlpR3;
-    PGICDEV         pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-
-    pHlp->pfnSSMPutU32( pSSM, pVM->cCpus);
-    pHlp->pfnSSMPutU32( pSSM, GIC_SPI_MAX);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->u32RegIGrp0);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->u32RegICfg0);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->u32RegICfg1);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->bmIntEnabled);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->bmIntPending);
-    pHlp->pfnSSMPutU32( pSSM, pGicDev->bmIntActive);
-    pHlp->pfnSSMPutMem( pSSM, (void *)&pGicDev->abIntPriority[0], sizeof(pGicDev->abIntPriority));
-    pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp0Enabled);
-
-    return pHlp->pfnSSMPutBool(pSSM, pGicDev->fIrqGrp1Enabled);
-}
-#endif
-
-
-#if 0
-/**
- * Worker for loading per-VM GIC data.
- *
- * @returns VBox status code.
- * @param   pDevIns     The device instance.
- * @param   pVM     The cross context VM structure.
- * @param   pSSM    The SSM handle.
- */
-static int gicR3LoadVMData(PPDMDEVINS pDevIns, PVM pVM, PSSMHANDLE pSSM)
-{
-    PCPDMDEVHLPR3   pHlp    = pDevIns->pHlpR3;
-    PGICDEV         pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-
-    /* Load and verify number of CPUs. */
-    uint32_t cCpus;
-    int rc = pHlp->pfnSSMGetU32(pSSM, &cCpus);
-    AssertRCReturn(rc, rc);
-    if (cCpus != pVM->cCpus)
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch - cCpus: saved=%u config=%u"), cCpus, pVM->cCpus);
-
-    /* Load and verify maximum number of SPIs. */
-    uint32_t cSpisMax;
-    rc = pHlp->pfnSSMGetU32(pSSM, &cSpisMax);
-    AssertRCReturn(rc, rc);
-    if (cSpisMax != GIC_SPI_MAX)
-        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch - cSpisMax: saved=%u config=%u"),
-                                       cSpisMax, GIC_SPI_MAX);
-
-    /* Load the state. */
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->u32RegIGrp0);
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->u32RegICfg0);
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->u32RegICfg1);
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->bmIntEnabled);
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->bmIntPending);
-    pHlp->pfnSSMGetU32V( pSSM, &pGicDev->bmIntActive);
-    pHlp->pfnSSMGetMem(  pSSM, (void *)&pGicDev->abIntPriority[0], sizeof(pGicDev->abIntPriority));
-    pHlp->pfnSSMGetBoolV(pSSM, &pGicDev->fIrqGrp0Enabled);
-    pHlp->pfnSSMGetBoolV(pSSM, &pGicDev->fIrqGrp1Enabled);
-
-    return VINF_SUCCESS;
-}
-#endif
-
-
 /**
  * @copydoc FNSSMDEVSAVEEXEC
  */
 static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 {
-#if 0
-    PVM             pVM  = PDMDevHlpGetVM(pDevIns);
-    PCPDMDEVHLPR3   pHlp = pDevIns->pHlpR3;
-
-    AssertReturn(pVM, VERR_INVALID_VM_HANDLE);
-
-    LogFlow(("GIC: gicR3SaveExec\n"));
-
-    /* Save per-VM data. */
-    int rc = gicR3SaveVMData(pDevIns, pVM, pSSM);
-    AssertRCReturn(rc, rc);
-
-    /* Save per-VCPU data.*/
-    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
-    {
-        PVMCPU pVCpu = pVM->apCpusR3[idCpu];
-        PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
-
-        /* Load the redistributor state. */
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->u32RegIGrp0);
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->u32RegICfg0);
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->u32RegICfg1);
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->bmIntEnabled);
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->bmIntPending);
-        pHlp->pfnSSMPutU32( pSSM, pGicVCpu->bmIntActive);
-        pHlp->pfnSSMPutMem( pSSM, (void *)&pGicVCpu->abIntPriority[0], sizeof(pGicVCpu->abIntPriority));
-
-        pHlp->pfnSSMPutBool(pSSM, pGicVCpu->fIrqGrp0Enabled);
-        pHlp->pfnSSMPutBool(pSSM, pGicVCpu->fIrqGrp1Enabled);
-        pHlp->pfnSSMPutU8(  pSSM, pGicVCpu->bInterruptPriority);
-        pHlp->pfnSSMPutU8(  pSSM, pGicVCpu->bBinaryPointGrp0);
-        pHlp->pfnSSMPutU8(  pSSM, pGicVCpu->bBinaryPointGrp1);
-        pHlp->pfnSSMPutMem( pSSM, (void *)&pGicVCpu->abRunningPriorities[0], sizeof(pGicVCpu->abRunningPriorities));
-        pHlp->pfnSSMPutU8(  pSSM, pGicVCpu->idxRunningPriority);
-    }
-
-    return rc;
-#else
-
     PCVM          pVM     = PDMDevHlpGetVM(pDevIns);
     PCPDMDEVHLPR3 pHlp    = pDevIns->pHlpR3;
     PCGICDEV      pGicDev = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
@@ -454,8 +340,6 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     }
 
     return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX);
-#undef GIC_SSM_PUT_ARRAY
-#endif
 }
 
 
@@ -464,59 +348,6 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
  */
 static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass)
 {
-#if 0
-    PVM             pVM  = PDMDevHlpGetVM(pDevIns);
-    PCPDMDEVHLPR3   pHlp = pDevIns->pHlpR3;
-
-    AssertReturn(pVM, VERR_INVALID_VM_HANDLE);
-    AssertReturn(uPass == SSM_PASS_FINAL, VERR_WRONG_ORDER);
-
-    LogFlow(("GIC: gicR3LoadExec: uVersion=%u uPass=%#x\n", uVersion, uPass));
-
-    /* Weed out invalid versions. */
-    if (uVersion != GIC_SAVED_STATE_VERSION)
-    {
-        LogRel(("GIC: gicR3LoadExec: Invalid/unrecognized saved-state version %u (%#x)\n", uVersion, uVersion));
-        return VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION;
-    }
-
-    int rc = gicR3LoadVMData(pDevIns, pVM, pSSM);
-    AssertRCReturn(rc, rc);
-
-    /*
-     * Restore per CPU state.
-     *
-     * Note! PDM will restore the VMCPU_FF_INTERRUPT_IRQ and VMCPU_FF_INTERRUPT_FIQ flags for us.
-     *       This code doesn't touch it.  No devices should make us touch
-     *       it later during the restore either, only during the 'done' phase.
-     */
-    for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
-    {
-        PVMCPU  pVCpu    = pVM->apCpusR3[idCpu];
-        PGICCPU pGicVCpu = VMCPU_TO_GICCPU(pVCpu);
-
-        /* Load the redistributor state. */
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->u32RegIGrp0);
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->u32RegICfg0);
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->u32RegICfg1);
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->bmIntEnabled);
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->bmIntPending);
-        pHlp->pfnSSMGetU32V(    pSSM, &pGicVCpu->bmIntActive);
-        pHlp->pfnSSMGetMem(     pSSM, (void *)&pGicVCpu->abIntPriority[0], sizeof(pGicVCpu->abIntPriority));
-
-        pHlp->pfnSSMGetBoolV(   pSSM, &pGicVCpu->fIrqGrp0Enabled);
-        pHlp->pfnSSMGetBoolV(   pSSM, &pGicVCpu->fIrqGrp1Enabled);
-        pHlp->pfnSSMGetU8V(     pSSM, &pGicVCpu->bInterruptPriority);
-        pHlp->pfnSSMGetU8(      pSSM, &pGicVCpu->bBinaryPointGrp0);
-        pHlp->pfnSSMGetU8(      pSSM, &pGicVCpu->bBinaryPointGrp1);
-        pHlp->pfnSSMGetMem(     pSSM, (void *)&pGicVCpu->abRunningPriorities[0], sizeof(pGicVCpu->abRunningPriorities));
-        rc = pHlp->pfnSSMGetU8V(pSSM, &pGicVCpu->idxRunningPriority);
-        if (RT_FAILURE(rc))
-            return rc;
-    }
-
-    return rc;
-#else
     PVM           pVM  = PDMDevHlpGetVM(pDevIns);
     PCPDMDEVHLPR3 pHlp = pDevIns->pHlpR3;
 
@@ -627,10 +458,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     { /* likely */ }
     else
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtPpi, got %u expected range [1,2]"), pGicDev->uMaxExtPpi);
-
     return rc;
-#undef GIC_SSM_GET_ARRAY
-#endif
 }
 
 
@@ -648,14 +476,8 @@ DECLCALLBACK(void) gicR3Reset(PPDMDEVINS pDevIns)
     gicReset(pDevIns);
     for (VMCPUID idCpu = 0; idCpu < pVM->cCpus; idCpu++)
     {
-#if 0
-        PVMCPU  pVCpuDest = pVM->apCpusR3[idCpu];
-
-        gicResetCpu(pVCpuDest);
-#else
         PVMCPU pVCpuDest = pVM->apCpusR3[idCpu];
         gicResetCpu(pDevIns, pVCpuDest);
-#endif
     }
 }
 

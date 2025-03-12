@@ -277,8 +277,8 @@ static RTEXITCODE changeRunpathEntry(RTFILE hFileElf, const char *pszInput, Elf6
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "New runpath '%s' is too long to overwrite current one, maximum length is: %zu\n", cchNewRunpath, cchMax);
     }
 
-    memcpy(pbStr, pszRunpath, cchNewRunpath);
-    rc = RTFileReadAt(hFileElf, offStrTab, pbStrTab, cbStrTab, NULL);
+    memcpy(pbStr, pszRunpath, cchNewRunpath + 1);
+    rc = RTFileWriteAt(hFileElf, offStrTab, pbStrTab, cbStrTab, NULL);
     RTMemFree(pbStrTab);
     if (RT_FAILURE(rc))
         return RTMsgErrorExit(RTEXITCODE_FAILURE, "Writing altered string table failed: %Rrc\n", rc);

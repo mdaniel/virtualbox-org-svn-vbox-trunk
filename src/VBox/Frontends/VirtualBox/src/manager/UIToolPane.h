@@ -66,13 +66,8 @@ signals:
 
     /** @name Global tool stuff.
       * @{ */
-        /** Notifies listeners about creation procedure was requested. */
-        void sigCreateMedium();
-        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
-        void sigCopyMedium(const QUuid &uMediumId);
-
-        /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
-        void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
+        /** Notifies listeners about request to detach pane with tool type @enmToolType. */
+        void sigDetachToolPane(UIToolType enmToolType);
     /** @} */
 
     /** @name Machine tool stuff.
@@ -89,9 +84,17 @@ signals:
 
         /** Notifies listeners about request to switch to Activity Overview pane. */
         void sigSwitchToActivityOverviewPane();
+    /** @} */
 
-        /** Notifies listeners about request to detach pane with tool type @enmToolType. */
-        void sigDetachToolPane(UIToolType enmToolType);
+    /** @name Manager tool stuff.
+      * @{ */
+        /** Notifies listeners about creation procedure was requested. */
+        void sigCreateMedium();
+        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+        void sigCopyMedium(const QUuid &uMediumId);
+
+        /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
+        void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
     /** @} */
 
 public:
@@ -125,9 +128,6 @@ public:
 
     /** @name Global tool stuff.
       * @{ */
-        /** Defines the @a cloudItems. */
-        void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
-
         /** Holds the Machine Tools Widget instance. */
         UIMachineToolsWidget *machineToolsWidget() const;
     /** @} */
@@ -142,14 +142,19 @@ public:
 
         /** Returns whether current-state item of Snapshot pane is selected. */
         bool isCurrentStateItemSelected() const;
-
         /** Returns currently selected snapshot ID if any. */
         QUuid currentSnapshotId();
     /** @} */
 
+    /** @name Manager tool stuff.
+      * @{ */
+        /** Defines the @a cloudItems. */
+        void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
+    /** @} */
+
 private slots:
 
-    /** @name Machine tool stuff.
+    /** @name Global tool stuff.
       * @{ */
         /** Handles the detach signals received from panes.*/
         void sltDetachToolPane();
@@ -172,14 +177,17 @@ private:
     /** Holds the action pool reference. */
     UIActionPool *m_pActionPool;
 
+    /** Holds whether this pane is active. */
+    bool  m_fActive;
+
     /** Holds the stacked-layout instance. */
     QStackedLayout *m_pLayout;
 
-    /** Holds the Home pane instance. */
-    UIHomePane *m_pPaneHome;
-
     /** @name Global tool stuff.
       * @{ */
+        /** Holds the Home pane instance. */
+        UIHomePane *m_pPaneHome;
+
         /** Holds the Machine Tools Widget instance. */
         UIMachineToolsWidget *m_pPaneMachines;
     /** @} */
@@ -198,9 +206,12 @@ private:
         UIVMActivityToolWidget *m_pPaneVMActivityMonitor;
         /** Holds the File Manager pane instance. */
         UIFileManager          *m_pPaneFileManager;
+
+        /** Holds the cache of passed machine items. */
+        QList<UIVirtualMachineItem*>  m_items;
     /** @} */
 
-    /** @name Global tool stuff.
+    /** @name Manager tool stuff.
       * @{ */
         /** Holds the Extension Pack Manager instance. */
         UIExtensionPackManagerWidget *m_pPaneExtensions;
@@ -212,21 +223,9 @@ private:
         UICloudProfileManagerWidget  *m_pPaneCloud;
         /** Holds the VM Activity Overview instance. */
         UIVMActivityOverviewWidget   *m_pPaneActivities;
-    /** @} */
 
-    /** Holds whether this pane is active. */
-    bool  m_fActive;
-
-    /** @name Global tool stuff.
-      * @{ */
         /** Holds the cache of passed cloud machine items. */
         QList<UIVirtualMachineItemCloud*>  m_cloudItems;
-    /** @} */
-
-    /** @name Machine tool stuff.
-      * @{ */
-        /** Holds the cache of passed items. */
-        QList<UIVirtualMachineItem*>  m_items;
     /** @} */
 };
 

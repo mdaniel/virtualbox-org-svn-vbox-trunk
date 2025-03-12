@@ -732,10 +732,26 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
 
     gicR3Reset(pDevIns);
 
-    LogRel(("GIC: ArchRev=%u MaxSpi=%u ExtSpi=%RTbool MaxExtSpi=%u ExtPpi=%RTbool "
-            "MaxExtPpi=%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool\n",
-            pGicDev->uArchRev, pGicDev->uMaxSpi, pGicDev->fExtSpi, pGicDev->uMaxExtSpi,
-            pGicDev->fExtPpi, pGicDev->uMaxExtPpi, pGicDev->fRangeSel, pGicDev->fNmi, pGicDev->fMbi));
+    /*
+     * Log features/config.
+     */
+    uint8_t const uArchRev     = pGicDev->uArchRev;
+    uint8_t const uMaxSpi      = pGicDev->uMaxSpi;
+    bool const    fExtSpi      = pGicDev->fExtSpi;
+    uint8_t const uMaxExtSpi   = pGicDev->uMaxExtSpi;
+    bool const    fExtPpi      = pGicDev->fExtPpi;
+    uint8_t const uMaxExtPpi   = pGicDev->uMaxExtPpi;
+    bool const fRangeSel       = pGicDev->fRangeSel;
+    bool const fNmi            = pGicDev->fNmi;
+    bool const fMbi            = pGicDev->fMbi;
+    bool const fAff3Levels     = pGicDev->fAff3Levels;
+    uint16_t const uExtPpiLast = uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST;
+    LogRel(("GIC: ArchRev=%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool\n",
+            uArchRev, fRangeSel, fNmi, fMbi, fAff3Levels));
+    LogRel(("GIC: SPIs=true (%u:32..%u) ExtSPIs=%RTbool (%u:4095..%u) ExtPPIs=%RTbool (%u:1056..%u)\n",
+            uMaxSpi, 32 * (uMaxSpi + 1),
+            fExtSpi, uMaxExtSpi, GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (uMaxExtSpi + 1),
+            fExtPpi, uMaxExtPpi, uExtPpiLast));
     return VINF_SUCCESS;
 }
 

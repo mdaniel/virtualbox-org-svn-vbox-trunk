@@ -726,6 +726,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         GIC_PROF_COUNTER(&pGicCpu->StatProfSetPpiR3,  "%u/Prof/SetPpi",  "Profiling of set PPI callback in R3.");
         GIC_PROF_COUNTER(&pGicCpu->StatProfSetSgiR3,  "%u/Prof/SetSgi",  "Profiling of SGIs generated in R3.");
     }
+# undef GIC_REG_COUNTER
 # undef GIC_PROF_COUNTER
 #endif
 

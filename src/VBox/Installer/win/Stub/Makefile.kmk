@@ -61,6 +61,7 @@ VBoxStub_SDKS = \
 
 ifdef VBOX_STUB_WITH_SPLASH
  VBoxStub.cpp_DEFS += VBOX_STUB_WITH_SPLASH
+ VBoxStub.rc_DEFS  += VBOX_STUB_WITH_SPLASH
  VBOX_STUB_IMPORTS += user32.dll shlwapi.dll gdi32.dll
 endif
 

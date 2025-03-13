@@ -1350,6 +1350,11 @@ static DECLCALLBACK(int) SplashScreenThread(RTTHREAD hSelf, void *pvUser)
     /* Must come after pImage has been destroyed. */
     Gdiplus::GdiplusShutdown(gdiplusToken);
 
+    /* GdiplusShutdown() apparently forgets to uninit COM, so we have to do that ourselves via CoUninitialize().
+     * Not doing that will result in a debug assertion in experimental code in rtThreadNativeUninitComAndOle()
+     * where we check for dangling COM inits. Sigh. */
+    CoUninitialize();
+
     return VINF_SUCCESS;
 }
 

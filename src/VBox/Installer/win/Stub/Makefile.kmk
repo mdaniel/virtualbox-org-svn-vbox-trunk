@@ -62,6 +62,10 @@ ifdef VBOX_STUB_WITH_SPLASH
  VBoxStub.rc_DEFS  += VBOX_STUB_WITH_SPLASH
  VBoxStub_CXXFLAGS += -wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc. Undefined behavior may occur if this function throws an exception.
  VBOX_STUB_IMPORTS += user32.dll shlwapi.dll gdi32.dll
+ # gdiplus apparently forgets to uninit COM in GdiplusShutdown(), so we have to do that ourselves via CoUninitialize().
+ # Not doing that will result in a debug assertion in experimental code in rtThreadNativeUninitComAndOle()
+ # where we check for dangling COM inits.
+ VBOX_STUB_IMPORTS += ole32.dll
 endif
 
 VBoxStub_LDFLAGS = -SubSystem:Windows

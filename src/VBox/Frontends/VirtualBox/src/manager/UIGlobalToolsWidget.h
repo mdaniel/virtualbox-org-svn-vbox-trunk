@@ -180,7 +180,7 @@ private:
         UIToolPane *toolPaneMachine() const;
     /** @} */
 
-    /** Holds the action-pool instance. */
+    /** Holds the action-pool reference. */
     UIActionPool *m_pActionPool;
 
     /** Holds the grid-layout instance. */

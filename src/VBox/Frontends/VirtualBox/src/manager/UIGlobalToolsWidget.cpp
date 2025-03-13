@@ -250,7 +250,7 @@ void UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *p
     // /* Disable even unrestricted tools for inacccessible VMs: */
     // const bool fCurrentItemIsOk = isItemAccessible(pItem);
     // toolMenu()->setItemsEnabled(fCurrentItemIsOk);
-    
+
     /* Close all restricted tools: */
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)
         toolPaneMachine()->closeTool(enmRestrictedType);

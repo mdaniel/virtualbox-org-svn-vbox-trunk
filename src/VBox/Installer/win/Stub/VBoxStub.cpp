@@ -1171,8 +1171,8 @@ static void SplashScreenPaint(PVBOXSPLASHSCREENCTX pCtx, HDC hdc)
     unsigned const uCenterY = uHeight / 2 +  80 /* Offset for drawing the dot below the VBox logo */;
 
     /* Calculate the position of the spinning circle. */
-    unsigned const x = uCenterX + static_cast<int>(uRadius * cos(pCtx->uDotAngle * M_PI / 180));
-    unsigned const y = uCenterY + static_cast<int>(uRadius * sin(pCtx->uDotAngle * M_PI / 180));
+    unsigned const x = uCenterX + static_cast<int>(uRadius * cos(pCtx->uDotAngle * 3.14159 /* PI */ / 180));
+    unsigned const y = uCenterY + static_cast<int>(uRadius * sin(pCtx->uDotAngle * 3.14159 /* PI */ / 180));
 
     Gdiplus::SolidBrush brush(Gdiplus::Color(255, 0, 0, 100)); /* Dark blue dot. */
     graphics.FillEllipse(&brush, x - 5, y - 5, 10, 10);

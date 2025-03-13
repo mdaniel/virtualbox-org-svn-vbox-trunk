@@ -134,21 +134,40 @@ RTDECL(int) RTEfiVarStoreOpenAsVfs(RTVFSFILE hVfsFileIn, uint32_t fMntFlags, uin
 /** @} */
 
 /**
+ * EFI variable store config.
+ */
+typedef struct RTEFIVARSTORECFG
+{
+    /** The size of the firmware volume. */
+    uint32_t            cbFv;
+    /** The block size. */
+    uint32_t            cbBlock;
+    /** Size of the variable store in bytes (minus metadata overhead). */
+    uint32_t            cbVarStore;
+    /** Size of the NV event log area following the variable store - 0 if no NV event log area is configured. */
+    uint32_t            cbNvEventLog;
+    /** Size of the fault tolerant working space - 0 to disable the FTW area. */
+    uint32_t            cbFtw;
+    /** Write queue size in bytes of the FTW area. */
+    uint64_t            cbWriteQueue;
+} RTEFIVARSTORECFG;
+/** Pointer to an EFI variable store config. */
+typedef RTEFIVARSTORECFG *PRTEFIVARSTORECFG;
+/** Pointer to a const EFI variable store config. */
+typedef const RTEFIVARSTORECFG *PCRTEFIVARSTORECFG;
+
+
+/**
  * Creates a new EFI variable store.
  *
  * @returns IRPT status code.
  * @param   hVfsFile            The store file.
  * @param   offStore            The offset into @a hVfsFile of the file.
  *                              Typically 0.
- * @param   cbStore             The size of the variable store.  Pass 0 if the rest of
- *                              hVfsFile should be used. The remaining space for variables
- *                              will be less because of some metadata overhead.
- * @param   fFlags              See RTEFIVARSTORE_F_XXX.
- * @param   cbBlock             The logical block size.
+ * @param   pCfg                The firmware volume config for the variable store.
  * @param   pErrInfo            Additional error information, maybe.  Optional.
  */
-RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t cbStore, uint32_t fFlags, uint32_t cbBlock,
-                                PRTERRINFO pErrInfo);
+RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, PCRTEFIVARSTORECFG pCfg, PRTERRINFO pErrInfo);
 
 
 /**

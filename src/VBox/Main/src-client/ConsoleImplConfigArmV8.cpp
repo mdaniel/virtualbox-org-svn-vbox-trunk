@@ -613,7 +613,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         vrc = RTFdtNodePropertyAddU32(     hFdt, "bank-width", 4);                          VRC();
         vrc = RTFdtNodePropertyAddCellsU64(hFdt, "reg", 4,
                                            GCPhysFw,    cbFw,     /* First region (EFI). */
-                                           GCPhysFlash, cbFlash); /* Second region (NVRAM). */ VRC();
+                                           GCPhysFlash, 3 * _256K); /* Second region (NVRAM), see NvramStoreImpl.cpp for an explanation of the size choice. */ VRC();
         vrc = RTFdtNodePropertyAddString(  hFdt, "compatible", "cfi-flash");                VRC();
         vrc = RTFdtNodeFinalize(hFdt);                                                      VRC();
 

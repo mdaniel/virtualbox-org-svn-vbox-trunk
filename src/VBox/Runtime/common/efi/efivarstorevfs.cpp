@@ -2435,52 +2435,16 @@ RTDECL(int) RTEfiVarStoreOpenAsVfs(RTVFSFILE hVfsFileIn, uint32_t fMntFlags, uin
 }
 
 
-RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t cbStore, uint32_t fFlags, uint32_t cbBlock,
-                                PRTERRINFO pErrInfo)
+RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, PCRTEFIVARSTORECFG pCfg, PRTERRINFO pErrInfo)
 {
     RT_NOREF(pErrInfo);
 
     /*
      * Validate input.
      */
-    if (!cbBlock)
-        cbBlock = 4096;
-    else
-        AssertMsgReturn(cbBlock <= 8192 && RT_IS_POWER_OF_TWO(cbBlock),
-                        ("cbBlock=%#x\n", cbBlock), VERR_INVALID_PARAMETER);
-    AssertReturn(!(fFlags & ~RTEFIVARSTORE_CREATE_F_VALID_MASK), VERR_INVALID_FLAGS);
+    AssertPtrReturn(pCfg, VERR_INVALID_PARAMETER);
 
-    if (!cbStore)
-    {
-        uint64_t cbFile;
-        int rc = RTVfsFileQuerySize(hVfsFile, &cbFile);
-        AssertRCReturn(rc, rc);
-        AssertMsgReturn(cbFile > offStore, ("cbFile=%#RX64 offStore=%#RX64\n", cbFile, offStore), VERR_INVALID_PARAMETER);
-        cbStore = cbFile - offStore;
-    }
-
-    uint32_t cbFtw = 0;
-    uint32_t offFtw = 0;
-    uint32_t cbVarStore = cbStore;
-    uint32_t cbNvEventLog = 0;
-    uint32_t offNvEventLog = 0;
-    if (!(fFlags & RTEFIVARSTORE_CREATE_F_NO_FTW_WORKING_SPACE))
-    {
-        /* Split the available space in half for the fault tolerant working area. */
-        /** @todo Don't fully understand how these values come together right now but
-         * we want to create NVRAM files matching the default OVMF_VARS.fd for now, see
-         * https://github.com/tianocore/edk2/commit/b24fca05751f8222acf264853709012e0ab7bf49
-         * for the layout.
-         * Probably have toadd more arguments to control the different parameters.
-         */
-        cbNvEventLog  = _4K;
-        cbVarStore    = cbStore / 2 - cbNvEventLog - _4K;
-        cbFtw         = cbVarStore + _4K;
-        offNvEventLog = cbVarStore;
-        offFtw        = offNvEventLog + cbNvEventLog;
-    }
-
-    uint32_t const cBlocks = (uint32_t)(cbStore / cbBlock);
+    uint32_t const cBlocks = (uint32_t)(pCfg->cbFv / pCfg->cbBlock);
 
     EFI_GUID                   GuidVarStore = EFI_VARSTORE_FILESYSTEM_GUID;
     EFI_GUID                   GuidVarAuth  = EFI_VARSTORE_HEADER_GUID_AUTHENTICATED_VARIABLE;
@@ -2490,7 +2454,7 @@ RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t 
 
     /* Firmware volume header. */
     memcpy(&FvHdr.GuidFilesystem, &GuidVarStore, sizeof(GuidVarStore));
-    FvHdr.cbFv           = RT_H2LE_U64(cbStore);
+    FvHdr.cbFv           = RT_H2LE_U64(pCfg->cbFv);
     FvHdr.u32Signature   = RT_H2LE_U32(EFI_FIRMWARE_VOLUME_HEADER_SIGNATURE);
     FvHdr.fAttr          = RT_H2LE_U32(0x4feff); /** @todo */
     FvHdr.cbFvHdr        = RT_H2LE_U16(sizeof(FvHdr) + sizeof(aBlockMap));
@@ -2502,8 +2466,8 @@ RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t 
     while (pu16 < (const uint16_t *)&FvHdr + (sizeof(FvHdr) / sizeof(uint16_t)))
         u16Chksum += RT_LE2H_U16(*pu16++);
 
-    /* Block map, the second entry remains 0 as it serves the delimiter. */
-    aBlockMap[0].cbBlock     = RT_H2LE_U32(cbBlock);
+    /* Block map, the second entry remains 0 as it serves as the delimiter. */
+    aBlockMap[0].cbBlock     = RT_H2LE_U32(pCfg->cbBlock);
     aBlockMap[0].cBlocks     = RT_H2LE_U32(cBlocks);
 
     pu16 = (const uint16_t *)&aBlockMap[0];
@@ -2514,9 +2478,13 @@ RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t 
 
     /* Variable store header. */
     memcpy(&VarStoreHdr.GuidVarStore, &GuidVarAuth, sizeof(GuidVarAuth));
-    VarStoreHdr.cbVarStore   = RT_H2LE_U32(cbVarStore - sizeof(FvHdr) - sizeof(aBlockMap));
+    VarStoreHdr.cbVarStore   = RT_H2LE_U32(pCfg->cbVarStore - (sizeof(FvHdr) + sizeof(aBlockMap)));
     VarStoreHdr.bFmt         = EFI_VARSTORE_HEADER_FMT_FORMATTED;
     VarStoreHdr.bState       = EFI_VARSTORE_HEADER_STATE_HEALTHY;
+
+    /* Fill the remainder with 0xff as it would be the case for a real NAND flash device. */
+    uint64_t const offVarStoreStart = offStore + sizeof(FvHdr) + sizeof(aBlockMap) + sizeof(VarStoreHdr);
+    uint64_t const offVarStoreEnd   = offVarStoreStart + (pCfg->cbVarStore - offVarStoreStart);
 
     /* Write everything. */
     int rc = RTVfsFileWriteAt(hVfsFile, offStore, &FvHdr, sizeof(FvHdr), NULL);
@@ -2525,34 +2493,30 @@ RTDECL(int) RTEfiVarStoreCreate(RTVFSFILE hVfsFile, uint64_t offStore, uint64_t 
     if (RT_SUCCESS(rc))
         rc = RTVfsFileWriteAt(hVfsFile, offStore + sizeof(FvHdr) + sizeof(aBlockMap), &VarStoreHdr, sizeof(VarStoreHdr), NULL);
     if (RT_SUCCESS(rc))
-    {
-        /* Fill the remainder with 0xff as it would be the case for a real NAND flash device. */
-        uint64_t offStart = offStore + sizeof(FvHdr) + sizeof(aBlockMap) + sizeof(VarStoreHdr);
-        uint64_t offEnd   = offStore + cbVarStore;
+        rc = rtEfiVarStoreFillWithFF(hVfsFile, offVarStoreStart, offVarStoreEnd);
 
-        rc = rtEfiVarStoreFillWithFF(hVfsFile, offStart, offEnd);
-    }
+    /* The area starts with the event log which defaults to 0xff. */
+    if (   RT_SUCCESS(rc)
+        && pCfg->cbNvEventLog)
+        rc = rtEfiVarStoreFillWithFF(hVfsFile, offVarStoreEnd, offVarStoreEnd + pCfg->cbNvEventLog);
 
     if (   RT_SUCCESS(rc)
-        && !(fFlags & RTEFIVARSTORE_CREATE_F_NO_FTW_WORKING_SPACE))
+        && pCfg->cbFtw)
     {
         EFI_GUID             GuidFtwArea = EFI_WORKING_BLOCK_SIGNATURE_GUID;
         EFI_FTW_BLOCK_HEADER FtwHdr; RT_ZERO(FtwHdr);
 
         memcpy(&FtwHdr.GuidSignature, &GuidFtwArea, sizeof(GuidFtwArea));
         FtwHdr.fWorkingBlockValid = RT_H2LE_U32(0xfffffffe); /** @todo */
-        FtwHdr.cbWriteQueue       = RT_H2LE_U64(0xfe0ULL); /* This comes from the default OVMF variable volume. */
+        FtwHdr.cbWriteQueue       = RT_H2LE_U64(pCfg->cbWriteQueue);
         FtwHdr.u32Chksum          = RTCrc32(&FtwHdr, sizeof(FtwHdr));
 
-        /* The area starts with the event log which defaults to 0xff. */
-        rc = rtEfiVarStoreFillWithFF(hVfsFile, offNvEventLog, offNvEventLog + cbNvEventLog);
+        uint32_t const offFtwStart = offVarStoreEnd + pCfg->cbNvEventLog;
+
+        /* Write the FTW header. */
+        rc = RTVfsFileWriteAt(hVfsFile, offFtwStart, &FtwHdr, sizeof(FtwHdr), NULL);
         if (RT_SUCCESS(rc))
-        {
-            /* Write the FTW header. */
-            rc = RTVfsFileWriteAt(hVfsFile, offFtw, &FtwHdr, sizeof(FtwHdr), NULL);
-            if (RT_SUCCESS(rc))
-                rc = rtEfiVarStoreFillWithFF(hVfsFile, offFtw + sizeof(FtwHdr), offFtw + cbFtw);
-        }
+            rc = rtEfiVarStoreFillWithFF(hVfsFile, offFtwStart + sizeof(FtwHdr), offFtwStart + pCfg->cbFtw);
     }
 
     return rc;

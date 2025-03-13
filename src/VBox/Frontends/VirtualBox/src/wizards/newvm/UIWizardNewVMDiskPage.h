@@ -73,11 +73,7 @@ protected:
 
 private slots:
 
-    void sltSelectedDiskSourceChanged();
-    void sltMediaComboBoxIndexChanged();
-    void sltGetWithFileOpenDialog();
     void sltHandleSizeEditorChange(qulonglong uSize);
-    void sltFixedCheckBoxToggled(bool fChecked);
     virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
@@ -85,30 +81,16 @@ private:
     void prepare();
     void createConnections();
     QWidget *createNewDiskWidgets();
-    void setEnableNewDiskWidgets(bool fEnable);
     QWidget *createDiskWidgets();
-    QWidget *createMediumVariantWidgets(bool fWithLabels);
 
     virtual void initializePage() RT_OVERRIDE RT_FINAL;
     virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
-    void setEnableDiskSelectionWidgets(bool fEnabled);
-    void setWidgetVisibility(const CMediumFormat &mediumFormat);
 
     /** @name Widgets
      * @{ */
-       QButtonGroup *m_pDiskSourceButtonGroup;
-       QRadioButton *m_pDiskEmpty;
-       QRadioButton *m_pDiskNew;
-       QRadioButton *m_pDiskExisting;
-       UIMediaComboBox *m_pDiskSelector;
-       QIToolButton *m_pDiskSelectionButton;
        QLabel          *m_pMediumSizeEditorLabel;
        UIMediumSizeEditor *m_pMediumSizeEditor;
-       QIRichTextLabel *m_pDescriptionLabel;
-       QIRichTextLabel *m_pDynamicLabel;
-       QIRichTextLabel *m_pFixedLabel;
-       QCheckBox *m_pFixedCheckBox;
     /** @} */
 
     /** @name Variables

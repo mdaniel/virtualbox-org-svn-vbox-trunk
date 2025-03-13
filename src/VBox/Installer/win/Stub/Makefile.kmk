@@ -60,6 +60,7 @@ VBOX_STUB_WITH_SPLASH = 1
 ifdef VBOX_STUB_WITH_SPLASH
  VBoxStub.cpp_DEFS += VBOX_STUB_WITH_SPLASH
  VBoxStub.rc_DEFS  += VBOX_STUB_WITH_SPLASH
+ VBoxStub_CXXFLAGS += -wd5039 # pointer or reference to potentially throwing function passed to 'extern "C"' function under -EHc. Undefined behavior may occur if this function throws an exception.
  VBOX_STUB_IMPORTS += user32.dll shlwapi.dll gdi32.dll
 endif
 

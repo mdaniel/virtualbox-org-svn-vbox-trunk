@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -89,12 +89,6 @@ public:
     /** Constructs Machine Tools Widget passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference. */
     UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pActionPool);
-
-    /** @name Common stuff.
-      * @{ */
-        /** Returns the action-pool reference. */
-        UIActionPool *actionPool() const { return m_pActionPool; }
-    /** @} */
 
     /** @name Chooser pane stuff.
       * @{ */
@@ -229,6 +223,12 @@ private:
 
         /** Cleanups connections. */
         void cleanupConnections();
+    /** @} */
+
+    /** @name Common stuff.
+      * @{ */
+        /** Returns the action-pool reference. */
+        UIActionPool *actionPool() const { return m_pActionPool; }
     /** @} */
 
     /** @name Tools pane stuff.

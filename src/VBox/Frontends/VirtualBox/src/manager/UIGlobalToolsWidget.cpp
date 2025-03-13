@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,10 +70,10 @@ UIMachineToolsWidget *UIGlobalToolsWidget::machineToolsWidget() const
     return toolPane()->machineToolsWidget();
 }
 
-UIToolType UIGlobalToolsWidget::menuToolType() const
+UIToolType UIGlobalToolsWidget::menuToolType(UIToolClass enmClass) const
 {
     AssertPtrReturn(toolMenu(), UIToolType_Invalid);
-    return toolMenu()->toolsType(UIToolClass_Global);
+    return toolMenu()->toolsType(enmClass);
 }
 
 void UIGlobalToolsWidget::setMenuToolType(UIToolType enmType)
@@ -113,19 +113,9 @@ void UIGlobalToolsWidget::switchToolTo(UIToolType enmType)
     AssertPtrReturnVoid(toolPane());
     toolPane()->openTool(enmType);
 
-    /* Special handling for Machines global tool,
-     * notify Machine tool-pane it's active: */
-    if (enmType == UIToolType_Machines)
-    {
-        toolPane()->setActive(false);
-        toolPaneMachine()->setActive(true);
-    }
-    /* Otherwise, notify Global tool-pane it's active: */
-    else
-    {
-        toolPaneMachine()->setActive(false);
-        toolPane()->setActive(true);
-    }
+    /* Notify corresponding tool-pane it's active: */
+    toolPane()->setActive(enmType != UIToolType_Machines && enmType != UIToolType_Managers);
+    toolPaneMachine()->setActive(enmType == UIToolType_Machines);
 
     /* Special handling for Activities Global tool,
      * start unconditionally updating all cloud VMs: */
@@ -225,9 +215,10 @@ void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(UIToolClass_Global, restrictions);
 
-    /* Close all restricted tools (besides the Machines): */
+    /* Close all restricted tools (besides the Machines and Management): */
     foreach (const UIToolType &enmRestrictedType, restrictedTypes)
-        if (enmRestrictedType != UIToolType_Machines)
+        if (   enmRestrictedType != UIToolType_Machines
+            && enmRestrictedType != UIToolType_Managers)
             toolPane()->closeTool(enmRestrictedType);
 }
 
@@ -255,9 +246,14 @@ void UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *p
     const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
     toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
 
+    /// @todo finish that
     // /* Disable even unrestricted tools for inacccessible VMs: */
     // const bool fCurrentItemIsOk = isItemAccessible(pItem);
     // toolMenu()->setItemsEnabled(fCurrentItemIsOk);
+    
+    /* Close all restricted tools: */
+    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
+        toolPaneMachine()->closeTool(enmRestrictedType);
 }
 
 void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
@@ -363,10 +359,8 @@ void UIGlobalToolsWidget::prepareConnections()
 void UIGlobalToolsWidget::loadSettings()
 {
     /* Acquire & select tools currently chosen in the menu: */
-    const UIToolType enmTypeGlobal = toolMenu()->toolsType(UIToolClass_Global);
-    const UIToolType enmTypeMachine = toolMenu()->toolsType(UIToolClass_Machine);
-    sltHandleToolsMenuIndexChange(enmTypeGlobal);
-    sltHandleToolsMenuIndexChange(enmTypeMachine);
+    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Global));
+    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Machine));
 
     /* Update tools restrictions: */
     emit sigToolMenuUpdate();
@@ -375,6 +369,8 @@ void UIGlobalToolsWidget::loadSettings()
 void UIGlobalToolsWidget::cleanupConnections()
 {
     /* Global COM event handlers: */
+    disconnect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineRegistered,
+               this, &UIGlobalToolsWidget::sltHandleMachineRegistrationChanged);
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
                this, &UIGlobalToolsWidget::sltHandleSettingsExpertModeChange);
 

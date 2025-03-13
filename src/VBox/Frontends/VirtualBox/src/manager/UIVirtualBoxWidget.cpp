@@ -224,7 +224,7 @@ void UIVirtualBoxWidget::setToolsTypeGlobal(UIToolType enmType, bool)
 UIToolType UIVirtualBoxWidget::toolsTypeGlobal() const
 {
     AssertPtrReturn(globalToolsWidget(), UIToolType_Invalid);
-    return globalToolsWidget()->menuToolType();
+    return globalToolsWidget()->menuToolType(UIToolClass_Global);
 }
 
 void UIVirtualBoxWidget::setToolsTypeMachine(UIToolType enmType)

@@ -162,8 +162,8 @@ static decltype(WHvRunVirtualProcessor) *           g_pfnWHvRunVirtualProcessor;
 static decltype(WHvCancelRunVirtualProcessor) *     g_pfnWHvCancelRunVirtualProcessor;
 static decltype(WHvGetVirtualProcessorRegisters) *  g_pfnWHvGetVirtualProcessorRegisters;
 static decltype(WHvSetVirtualProcessorRegisters) *  g_pfnWHvSetVirtualProcessorRegisters;
-static decltype(WHvSuspendPartitionTime) *          g_pfnWHvSuspendPartitionTime;
-static decltype(WHvResumePartitionTime) *           g_pfnWHvResumePartitionTime;
+static decltype(WHvResumePartitionTime)            *g_pfnWHvResumePartitionTime;
+static decltype(WHvSuspendPartitionTime)           *g_pfnWHvSuspendPartitionTime;
 decltype(WHvGetVirtualProcessorState) *             g_pfnWHvGetVirtualProcessorState = NULL;
 decltype(WHvSetVirtualProcessorState) *             g_pfnWHvSetVirtualProcessorState = NULL;
 decltype(WHvGetVirtualProcessorInterruptControllerState)  *g_pfnWHvGetVirtualProcessorInterruptControllerState = NULL;
@@ -221,8 +221,8 @@ static const struct
     NEM_WIN_IMPORT(0, false, WHvCancelRunVirtualProcessor),
     NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorRegisters),
     NEM_WIN_IMPORT(0, false, WHvSetVirtualProcessorRegisters),
-    NEM_WIN_IMPORT(0, true,  WHvSuspendPartitionTime),
-    NEM_WIN_IMPORT(0, true,  WHvResumePartitionTime),
+    NEM_WIN_IMPORT(0, true,  WHvResumePartitionTime),  /* since 19H1 */
+    NEM_WIN_IMPORT(0, true,  WHvSuspendPartitionTime), /* since 19H1 */
     NEM_WIN_IMPORT(0, true,  WHvRequestInterrupt),
     NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorState),
     NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorState),
@@ -302,8 +302,8 @@ static const HV_X64_INTERCEPT_MESSAGE_HEADER *g_pX64MsgHdr;
 # define WHvCancelRunVirtualProcessor               g_pfnWHvCancelRunVirtualProcessor
 # define WHvGetVirtualProcessorRegisters            g_pfnWHvGetVirtualProcessorRegisters
 # define WHvSetVirtualProcessorRegisters            g_pfnWHvSetVirtualProcessorRegisters
-# define WHvSuspendPartitionTime                    g_pfnWHvSuspendPartitionTime
 # define WHvResumePartitionTime                     g_pfnWHvResumePartitionTime
+# define WHvSuspendPartitionTime                    g_pfnWHvSuspendPartitionTime
 # define WHvRequestInterrupt                        g_pfnWHvRequestInterrupt
 # define WHvGetVirtualProcessorState                g_pfnWHvGetVirtualProcessorState
 # define WHvSetVirtualProcessorState                g_pfnWHvSetVirtualProcessorState

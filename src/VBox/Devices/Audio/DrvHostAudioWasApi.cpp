@@ -1152,7 +1152,7 @@ static int drvHostAudioWasCacheInitConfig(PDRVHOSTAUDIOWASCACHEDEVCFG pDevCfg)
  *
  * If lookup fails, a new entry will be created.
  *
- * @note    Called holding the cache's lock (if \a fUseCache is @true), returning without holding it!
+ * @note    Called holding the cache's lock (if \a fUseCache is \c true), returning without holding it!
  */
 static int drvHostAudioWasCacheLookupOrCreateConfig(PDRVHOSTAUDIOWAS pThis, PDRVHOSTAUDIOWASCACHEDEV pDevEntry,
                                                     PCPDMAUDIOSTREAMCFG pCfgReq, bool fUseCache, bool fOnWorker,

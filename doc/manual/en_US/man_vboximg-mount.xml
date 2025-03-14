@@ -70,7 +70,6 @@
       <command>vboximg-mount</command>
       <arg choice="req">--list</arg>
       <arg>--image=<replaceable>image-UUID</replaceable></arg>
-      <arg>--guest-filesystem</arg>
       <arg>--verbose</arg>
       <arg>--vm=<replaceable>vm-UUID</replaceable></arg>
       <arg>--wide</arg>
@@ -102,7 +101,7 @@
       chain of snapshots, including the base image.
     </para>
     <para>
-      The <command>vboximg-mount</command> command includes experimental
+      The <command>vboximg-mount</command> command features
       read-only access to file systems inside a VM disk image. This
       feature enables you to extract some files from the VM disk image
       without starting the VM and without requiring third-party file
@@ -180,7 +179,7 @@
         <varlistentry>
           <term><option>--guest-filesystem</option></term>
           <listitem><para>
-              Enables experimental read-only support for guest file
+              Enables read-only support for guest file
               systems. When you specify this option, all known file
               systems are made available to access.
             </para><para>
@@ -239,27 +238,6 @@
       </para>
       <variablelist>
         <varlistentry>
-          <term><option>--image=<replaceable>disk-image</replaceable></option></term>
-          <listitem><para>
-              Specifies the UUID, name, or path of the &product-name;
-              disk image.
-            </para><para>
-              The short form of the <option>--image</option> option is
-              <option>-i</option>.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>--guest-filesystem</option></term>
-          <listitem><para>
-              Enables experimental read-only support for guest file
-              systems. When you specify this option, all known file
-              systems are made available to access.
-            </para><para>
-              The short form of the <option>--guest-filesystem</option>
-              option is <option>-g</option>.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
           <term><option>--list</option></term>
           <listitem><para>
               Shows information about the disks that are associated with
@@ -273,6 +251,16 @@
             </para><para>
               The short form of the <option>--list</option> option is
               <option>-l</option>.
+            </para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--image=<replaceable>disk-image</replaceable></option></term>
+          <listitem><para>
+              Specifies the UUID, name, or path of the &product-name;
+              disk image.
+            </para><para>
+              The short form of the <option>--image</option> option is
+              <option>-i</option>.
             </para></listitem>
         </varlistentry>
         <varlistentry>

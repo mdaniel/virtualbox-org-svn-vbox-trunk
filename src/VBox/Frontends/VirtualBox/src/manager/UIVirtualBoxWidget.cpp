@@ -520,7 +520,28 @@ void UIVirtualBoxWidget::updateToolbar()
     /* Clear toolbar initially: */
     m_pToolBar->clear();
 
-    switch (globalToolsWidget()->toolType())
+    /* Determine actual tool-type: */
+    const UIToolType enmGlobalType = globalToolsWidget()->toolType();
+    UIToolType enmType = UIToolType_Invalid;
+    switch (enmGlobalType)
+    {
+        case UIToolType_Invalid:
+        case UIToolType_Toggle:
+            break;
+        case UIToolType_Machines:
+            enmType = machineToolsWidget()->toolType();
+            break;
+        case UIToolType_Managers:
+            enmType = managementToolsWidget()->toolType();
+            break;
+        default:
+            enmType = enmGlobalType;
+            break;
+    }
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+
+    /* Populate toolbar depending on actual tool-type: */
+    switch (enmType)
     {
         case UIToolType_Home:
         {
@@ -533,100 +554,91 @@ void UIVirtualBoxWidget::updateToolbar()
             m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance));
             break;
         }
-        case UIToolType_Machines:
+        case UIToolType_Details:
         {
-            switch (machineToolsWidget()->toolType())
+            if (isSingleGroupSelected())
             {
-                case UIToolType_Details:
-                {
-                    if (isSingleGroupSelected())
-                    {
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
-                        m_pToolBar->addSeparator();
-                        if (isSingleLocalGroupSelected())
-                            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
-                        else if (   isSingleCloudProviderGroupSelected()
-                                 || isSingleCloudProfileGroupSelected())
-                            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Stop_S_Terminate));
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
-                    }
-                    else
-                    {
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_New));
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
-                        m_pToolBar->addSeparator();
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                        if (isLocalMachineItemSelected())
-                            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                        else if (isCloudMachineItemSelected())
-                            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop_S_Terminate));
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                    }
-                    break;
-                }
-                case UIToolType_Snapshots:
-                {
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Take));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Delete));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Restore));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_T_Properties));
-                    if (gEDataManager->isSettingsInExpertMode())
-                        m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Clone));
-                    m_pToolBar->addSeparator();
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                    break;
-                }
-                case UIToolType_Logs:
-                {
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Save));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Find));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Filter));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Bookmark));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Preferences));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Refresh));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Reload));
-                    m_pToolBar->addSeparator();
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                    break;
-                }
-                case UIToolType_VMActivity:
-                {
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_S_Export));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_S_ToVMActivityOverview));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_T_Preferences));
-                    m_pToolBar->addSeparator();
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                    break;
-                }
-                case UIToolType_FileManager:
-                {
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Preferences));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Operations));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Log));
-                    m_pToolBar->addSeparator();
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
-                    break;
-                }
-                case UIToolType_Error:
-                {
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_New));
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
-                    m_pToolBar->addSeparator();
-                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
-                    break;
-                }
-                default:
-                    break;
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_New));
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
+                m_pToolBar->addSeparator();
+                if (isSingleLocalGroupSelected())
+                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
+                else if (   isSingleCloudProviderGroupSelected()
+                         || isSingleCloudProfileGroupSelected())
+                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_Stop_S_Terminate));
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
             }
+            else
+            {
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_New));
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
+                m_pToolBar->addSeparator();
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+                if (isLocalMachineItemSelected())
+                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+                else if (isCloudMachineItemSelected())
+                    m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop_S_Terminate));
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+            }
+            break;
+        }
+        case UIToolType_Snapshots:
+        {
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Take));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Delete));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Restore));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_T_Properties));
+            if (gEDataManager->isSettingsInExpertMode())
+                m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Clone));
+            m_pToolBar->addSeparator();
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+            break;
+        }
+        case UIToolType_Logs:
+        {
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Save));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Find));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Filter));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Bookmark));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_T_Preferences));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Refresh));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Log_S_Reload));
+            m_pToolBar->addSeparator();
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+            break;
+        }
+        case UIToolType_VMActivity:
+        {
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_S_Export));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_S_ToVMActivityOverview));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_Activity_T_Preferences));
+            m_pToolBar->addSeparator();
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+            break;
+        }
+        case UIToolType_FileManager:
+        {
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Preferences));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Operations));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndex_M_FileManager_T_Log));
+            m_pToolBar->addSeparator();
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+            break;
+        }
+        case UIToolType_Error:
+        {
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_New));
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
+            m_pToolBar->addSeparator();
+            m_pToolBar->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
             break;
         }
         case UIToolType_Extensions:

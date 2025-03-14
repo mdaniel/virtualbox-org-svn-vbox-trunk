@@ -35,6 +35,7 @@
 #include "UIExtraDataManager.h"
 #include "UIGlobalToolsWidget.h"
 #include "UIMachineToolsWidget.h"
+#include "UIManagementToolsWidget.h"
 #include "UIToolPane.h"
 #include "UITools.h"
 #include "UIVirtualBoxEventHandler.h"
@@ -68,6 +69,11 @@ UIToolPane *UIGlobalToolsWidget::toolPane() const
 UIMachineToolsWidget *UIGlobalToolsWidget::machineToolsWidget() const
 {
     return toolPane()->machineToolsWidget();
+}
+
+UIManagementToolsWidget *UIGlobalToolsWidget::managementToolsWidget() const
+{
+    return toolPane()->managementToolsWidget();
 }
 
 UIToolType UIGlobalToolsWidget::menuToolType(UIToolClass enmClass) const
@@ -116,6 +122,7 @@ void UIGlobalToolsWidget::switchToolTo(UIToolType enmType)
     /* Notify corresponding tool-pane it's active: */
     toolPane()->setActive(enmType != UIToolType_Machines && enmType != UIToolType_Managers);
     toolPaneMachine()->setActive(enmType == UIToolType_Machines);
+    toolPaneManagement()->setActive(enmType == UIToolType_Managers);
 
     /* Special handling for Activities Global tool,
      * start unconditionally updating all cloud VMs: */
@@ -150,6 +157,11 @@ QString UIGlobalToolsWidget::currentHelpKeyword() const
     {
         AssertPtrReturn(machineToolsWidget(), QString());
         return machineToolsWidget()->currentHelpKeyword();
+    }
+    else if (toolType() == UIToolType_Managers)
+    {
+        AssertPtrReturn(managementToolsWidget(), QString());
+        return managementToolsWidget()->currentHelpKeyword();
     }
 
     AssertPtrReturn(toolPane(), QString());
@@ -256,6 +268,24 @@ void UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *p
         toolPaneMachine()->closeTool(enmRestrictedType);
 }
 
+void UIGlobalToolsWidget::sltHandleManagementToolMenuUpdate()
+{
+    /* Prepare tool restrictions: */
+    QSet<UIToolType> restrictedTypes;
+
+    /* Make sure no restricted tool is selected: */
+    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Management)))
+        setMenuToolType(UIToolType_Extensions);
+
+    /* Hide restricted tools in the menu: */
+    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
+    toolMenu()->setRestrictedToolTypes(UIToolClass_Management, restrictions);
+
+    /* Close all restricted tools: */
+    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
+        toolPaneManagement()->closeTool(enmRestrictedType);
+}
+
 void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
 {
     /* Determine tool class of passed tool type: */
@@ -276,7 +306,7 @@ void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
         machineToolsWidget()->switchToolTo(enmType);
     /* For Management tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Management)
-        switchToolTo(enmType);
+        managementToolsWidget()->switchToolTo(enmType);
 }
 
 void UIGlobalToolsWidget::sltSwitchToActivitiesTool()
@@ -361,6 +391,7 @@ void UIGlobalToolsWidget::loadSettings()
     /* Acquire & select tools currently chosen in the menu: */
     sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Global));
     sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Machine));
+    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Management));
 
     /* Update Global tools restrictions: */
     sltHandleGlobalToolMenuUpdate();
@@ -410,4 +441,9 @@ UIChooser *UIGlobalToolsWidget::chooser() const
 UIToolPane *UIGlobalToolsWidget::toolPaneMachine() const
 {
     return machineToolsWidget()->toolPane();
+}
+
+UIToolPane *UIGlobalToolsWidget::toolPaneManagement() const
+{
+    return managementToolsWidget()->toolPane();
 }

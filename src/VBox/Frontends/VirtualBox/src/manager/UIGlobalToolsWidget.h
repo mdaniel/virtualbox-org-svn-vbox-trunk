@@ -43,6 +43,7 @@ class QIToolBar;
 class UIActionPool;
 class UIChooser;
 class UIMachineToolsWidget;
+class UIManagementToolsWidget;
 class UIToolPane;
 class UITools;
 class UIVirtualMachineItem;
@@ -81,6 +82,8 @@ public:
         UIToolPane *toolPane() const;
         /** Returns Machine Tools Widget reference. */
         UIMachineToolsWidget *machineToolsWidget() const;
+        /** Returns Management Tools Widget reference. */
+        UIManagementToolsWidget *managementToolsWidget() const;
 
         /** Returns menu tool type for the @a enmClass specified. */
         UIToolType menuToolType(UIToolClass enmClass) const;
@@ -138,6 +141,8 @@ private slots:
         void sltHandleGlobalToolMenuUpdate();
         /** Handles request for Machine tools menu update for the @a pItem specified. */
         void sltHandleMachineToolMenuUpdate(UIVirtualMachineItem *pItem);
+        /** Handles request for Management tools menu update for the @a pItem specified. */
+        void sltHandleManagementToolMenuUpdate();
 
         /** Handles signal about Tools-menu index change.
           * @param  enmType  Brings current tool type. */
@@ -178,6 +183,8 @@ private:
         UIChooser *chooser() const;
         /** Returns Machine Tools Widget's tool-pane instance. */
         UIToolPane *toolPaneMachine() const;
+        /** Returns Management Tools Widget's tool-pane instance. */
+        UIToolPane *toolPaneManagement() const;
     /** @} */
 
     /** Holds the action-pool reference. */

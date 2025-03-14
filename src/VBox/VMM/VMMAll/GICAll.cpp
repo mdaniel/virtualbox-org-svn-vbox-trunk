@@ -3102,7 +3102,8 @@ static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
                       | ARMV8_ICC_CTLR_EL1_AARCH64_PRIBITS_SET(4)
                       | ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_SET(ARMV8_ICC_CTLR_EL1_AARCH64_IDBITS_16BITS)
                       | (pGicDev->fRangeSel   ? ARMV8_ICC_CTLR_EL1_AARCH64_RSS : 0)
-                      | (pGicDev->fAff3Levels ? ARMV8_ICC_CTLR_EL1_AARCH64_A3V : 0);
+                      | (pGicDev->fAff3Levels ? ARMV8_ICC_CTLR_EL1_AARCH64_A3V : 0)
+                      | (pGicDev->fExtPpi || pGicDev->fExtSpi ? ARMV8_ICC_CTLR_EL1_AARCH64_EXTRANGE : 0);
 
     pGicCpu->bIntrPriorityMask  = 0; /* Means no interrupt gets through to the PE. */
     pGicCpu->idxRunningPriority = 0;

@@ -388,6 +388,36 @@ RTDECL(int) RTAcpiTblBufferAppendRawData(RTACPITBL hAcpiTbl, const void *pvBuf, 
 RTDECL(int) RTAcpiTblMethodStart(RTACPITBL hAcpiTbl, const char *pszName, uint8_t cArgs, uint32_t fFlags, uint8_t uSyncLvl);
 
 
+/**
+ * Starts a new method object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   fFlags              AML method flags, see RTACPI_METHOD_F_XXX.
+ * @param   cArgs               Number of arguments this method takes.
+ * @param   uSyncLvl            The sync level.
+ * @param   pszNameFmt          The method name format string.
+ * @param   ...                 Format string arguments.
+ */
+RTDECL(int) RTAcpiTblMethodStartF(RTACPITBL hAcpiTbl, uint8_t cArgs, uint32_t fFlags, uint8_t uSyncLvl,
+                                  const char *pszNameFmt, ...) RT_IPRT_FORMAT_ATTR(5, 6);
+
+
+/**
+ * Starts a new method object for the given ACPI table in the current scope.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiTbl            The ACPI table handle.
+ * @param   fFlags              AML method flags, see RTACPI_METHOD_F_XXX.
+ * @param   cArgs               Number of arguments this method takes.
+ * @param   uSyncLvl            The sync level.
+ * @param   pszNameFmt          The method name format string.
+ * @param   va                  Format string arguments.
+ */
+RTDECL(int) RTAcpiTblMethodStartV(RTACPITBL hAcpiTbl, uint8_t cArgs, uint32_t fFlags, uint8_t uSyncLvl,
+                                  const char *pszNameFmt, va_list va) RT_IPRT_FORMAT_ATTR(5, 0);
+
+
 /** ACPI method is not serialized. */
 #define RTACPI_METHOD_F_NOT_SERIALIZED 0
 /** ACPI method call needs to be serialized in the ACPI interpreter. */
@@ -1418,6 +1448,92 @@ typedef enum RTACPIRESDMATRANSFERTYPE
  */
 RTDECL(int) RTAcpiResourceAddDma(RTACPIRES hAcpiRes, RTACPIRESDMACHANSPEED enmChanSpeed, bool fBusMaster,
                                  RTACPIRESDMATRANSFERTYPE enmTransferType, uint8_t bmChannels);
+
+
+/**
+ * GPIO Interrupt type.
+ */
+typedef enum RTACPIRESGPIOMOD
+{
+    /** Invalid type. */
+    kAcpiResGpioMod_Invalid = 0,
+    /** Edge interrupt type. */
+    kAcpiResGpioMod_Edge,
+    /** Level interrupt type. */
+    kAcpiResGpioMod_Level,
+    /** 32-bit blowup hack. */
+    kAcpiResGpioMod_32Bit_Hack = 0x7fffffff
+} RTACPIRESGPIOMOD;
+
+
+/**
+ * GPIO polarity config.
+ */
+typedef enum RTACPIRESGPIOPOL
+{
+    /** Invalid type. */
+    kAcpiResGpioPol_Invalid = 0,
+    /** Active if input is high. */
+    kAcpiResGpioPol_ActiveHigh,
+    /** Active if input is low. */
+    kAcpiResGpioPol_ActiveLow,
+    /** Active on both (only supported if interrupt type is Edge). */
+    kAcpiResGpioPol_ActiveBoth,
+    /** 32-bit blowup hack. */
+    kAcpiResGpioPol_32Bit_Hack = 0x7fffffff
+} RTACPIRESGPIOPOL;
+
+
+/**
+ * GPIO shared/exclusive config.
+ */
+typedef enum RTACPIRESGPIOSHR
+{
+    /** Invalid type. */
+    kAcpiResGpioShr_Invalid = 0,
+    /** GPIO pins are shared. */
+    kAcpiResGpioShr_Shared,
+    /** GPIO pins are exclusive. */
+    kAcpiResGpioShr_Exclusive,
+    /** GPIO pins are shared and capabale to wake the system. */
+    kAcpiResGpioShr_SharedAndWake,
+    /** GPIO pins are exclusive and capabale to wake the system. */
+    kAcpiResGpioShr_ExclusiveAndWake,
+    /** 32-bit blowup hack. */
+    kAcpiResGpioShr_32Bit_Hack = 0x7fffffff
+} RTACPIRESGPIOSHR;
+
+
+/**
+ * GPIO pin config.
+ */
+typedef enum RTACPIRESGPIOPPI
+{
+    /** Invalid config. */
+    kAcpiResGpioPpi_Invalid = 0,
+    /** Default pull up/down config. */
+    kAcpiResGpioPpi_PullDefault,
+    /** Pin is pulled up. */
+    kAcpiResGpioPpi_PullUp,
+    /** Pin is pulled down. */
+    kAcpiResGpioPpi_PullDown,
+    /** Pin has no pull up/down resistor attached and is floating. */
+    kAcpiResGpioPpi_PullNone,
+    /** 32-bit blowup hack. */
+    kAcpiResGpioPpi_32Bit_Hack = 0x7fffffff
+} RTACPIRESGPIOPPI;
+
+
+/**
+ * Adds a GPIO connection descriptor suitable for GPIO input pins with interrupt support
+ * with the given configuration to the given ACPI resource.
+ *
+ * @returns IPRT status code.
+ * @param   hAcpiRes            The ACPI resource handle.
+ */
+RTDECL(int) RTAcpiResourceAddGpioInt(RTACPIRES hAcpiRes, RTACPIRESGPIOMOD enmMod, RTACPIRESGPIOPOL enmPol, RTACPIRESGPIOSHR enmShr,
+                                     RTACPIRESGPIOPPI enmPpi, uint16_t u16DebounceWait, const char *pszRsrcSrc,
+                                     uint16_t *pau16Pins, uint16_t cPins);
 
 /** @} */
 

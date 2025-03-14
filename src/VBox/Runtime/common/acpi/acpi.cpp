@@ -941,6 +941,27 @@ RTDECL(int) RTAcpiTblMethodStart(RTACPITBL hAcpiTbl, const char *pszName, uint8_
 }
 
 
+RTDECL(int) RTAcpiTblMethodStartF(RTACPITBL hAcpiTbl, uint8_t cArgs, uint32_t fFlags, uint8_t uSyncLvl, const char *pszNameFmt, ...)
+{
+    va_list va;
+    va_start(va, pszNameFmt);
+    int rc = RTAcpiTblMethodStartV(hAcpiTbl, cArgs, fFlags, uSyncLvl, pszNameFmt, va);
+    va_end(va);
+    return rc;
+}
+
+
+RTDECL(int) RTAcpiTblMethodStartV(RTACPITBL hAcpiTbl, uint8_t cArgs, uint32_t fFlags, uint8_t uSyncLvl, const char *pszNameFmt, va_list va)
+{
+    char szName[128];
+    ssize_t cch = RTStrPrintf2V(&szName[0], sizeof(szName), pszNameFmt, va);
+    if (cch <= 0)
+        return VERR_BUFFER_OVERFLOW;
+
+    return RTAcpiTblMethodStart(hAcpiTbl, &szName[0], cArgs, fFlags, uSyncLvl);
+}
+
+
 RTDECL(int) RTAcpiTblMethodFinalize(RTACPITBL hAcpiTbl)
 {
     PRTACPITBLINT pThis = hAcpiTbl;
@@ -2321,5 +2342,127 @@ RTDECL(int) RTAcpiResourceAddDma(RTACPIRES hAcpiRes, RTACPIRESDMACHANSPEED enmCh
             | (fBusMaster ? RT_BIT(2) : 0)
             | fTransferType;
 
+    return VINF_SUCCESS;
+}
+
+
+RTDECL(int) RTAcpiResourceAddGpioInt(RTACPIRES hAcpiRes, RTACPIRESGPIOMOD enmMod, RTACPIRESGPIOPOL enmPol, RTACPIRESGPIOSHR enmShr,
+                                     RTACPIRESGPIOPPI enmPpi, uint16_t u16DebounceWait, const char *pszRsrcSrc,
+                                     uint16_t *pau16Pins, uint16_t cPins)
+{
+    PRTACPIRESINT pThis = hAcpiRes;
+    AssertPtrReturn(pThis, VERR_INVALID_HANDLE);
+    AssertReturn(enmMod != kAcpiResGpioMod_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmPol != kAcpiResGpioPol_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmShr != kAcpiResGpioShr_Invalid, VERR_INVALID_PARAMETER);
+    AssertReturn(enmPpi != kAcpiResGpioPpi_Invalid, VERR_INVALID_PARAMETER);
+    AssertPtrReturn(pszRsrcSrc, VERR_INVALID_PARAMETER);
+    AssertReturn(!pThis->fSealed, VERR_INVALID_STATE);
+    AssertRCReturn(pThis->rcErr, pThis->rcErr);
+
+    uint32_t cchRsrcSrc = (uint32_t)strlen(pszRsrcSrc) + 1;
+    uint8_t *pb = rtAcpiResBufEnsureSpace(pThis, 23 + cchRsrcSrc + cPins * sizeof(*pau16Pins));
+    if (!pb)
+        return VERR_NO_MEMORY;
+
+    uint8_t bFlags;
+    switch (enmMod)
+    {
+        case kAcpiResGpioMod_Edge:
+            bFlags = 0x01;
+            break;
+        case kAcpiResGpioMod_Level:
+            bFlags = 0x00;
+            break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    switch (enmPol)
+    {
+        case kAcpiResGpioPol_ActiveHigh:
+            bFlags |= 0x00 << 1;
+            break;
+        case kAcpiResGpioPol_ActiveLow:
+            bFlags |= 0x01 << 1;
+            break;
+        case kAcpiResGpioPol_ActiveBoth:
+            bFlags |= 0x02 << 1;
+            break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    switch (enmShr)
+    {
+        case kAcpiResGpioShr_Shared:
+            bFlags |= RT_BIT(3);
+            break;
+        case kAcpiResGpioShr_Exclusive:
+            bFlags |= 0;
+            break;
+        case kAcpiResGpioShr_SharedAndWake:
+            bFlags |= RT_BIT(3) | RT_BIT(4);
+            break;
+        case kAcpiResGpioShr_ExclusiveAndWake:
+            bFlags |= RT_BIT(4);
+            break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    uint8_t bPinCfg;
+    switch (enmPpi)
+    {
+        case kAcpiResGpioPpi_PullDefault:
+            bPinCfg = 0;
+            break;
+        case kAcpiResGpioPpi_PullUp:
+            bPinCfg = 1;
+            break;
+        case kAcpiResGpioPpi_PullDown:
+            bPinCfg = 2;
+            break;
+        case kAcpiResGpioPpi_PullNone:
+            bPinCfg = 3;
+            break;
+        default:
+            AssertFailedReturn(VERR_INVALID_PARAMETER);
+    }
+
+    pb[0]  = ACPI_RSRCS_LARGE_TYPE | ACPI_RSRCS_ITEM_GPIO_CONNECTION;         /* Tag */
+    pb[1]  = 22 + cchRsrcSrc;                                                 /* Length[7:0]  */
+    pb[2]  = 0;                                                               /* Length[15:8] */
+    pb[3]  = 1;                                                               /* Revision ID */
+    pb[4]  = 0;                                                               /* GPIO COnnection Type: Interrupt */
+    pb[5]  = 0;                                                               /* General Flags[7:0]: ProducerConsumer */
+    pb[6]  = 0;                                                               /* General Flags[15:8] */
+    pb[7]  = bFlags;                                                          /* Interrupt and IO Flags[7:0] */
+    pb[8]  = 0;                                                               /* Interrupt and IO Flags[15:8] */
+    pb[9]  = bPinCfg;                                                         /* Pin configuration */
+    pb[10] = 0;                                                               /* Output Drive Strength[7:0] */
+    pb[11] = 0;                                                               /* Output Drive Strength[15:8] */
+    pb[12] = (uint8_t)(u16DebounceWait & 0xff);                               /* Debounce timeout[7:0]  */
+    pb[13] = (uint8_t)(u16DebounceWait >> 8);                                 /* Debounce timeout[15:8] */
+    pb[14] = 23;                                                              /* Pin table offset[7:0]  */
+    pb[15] = 0;                                                               /* Pin table offset[15:8] */
+    pb[16] = 0;                                                               /* Resource Source Index  */
+    pb[17] = 23 + cPins * sizeof(*pau16Pins);                                 /* Resource Source Name Offset[7:0]  */
+    pb[18] = 0;                                                               /* Resource Source Name Offset[15:8] */
+    pb[19] = 0;                                                               /* Vendor Data Offset[7:0]           */
+    pb[20] = 0;                                                               /* Vendor Data Offset[15:8]          */
+    pb[21] = 0;                                                               /* Vendor Data Length[7:0]           */
+    pb[22] = 0;                                                               /* Vendor Data Length[15:8]          */
+
+    /* Pin array. */
+    uint8_t *pbPin = &pb[23];
+    for (uint16_t i = 0; i < cPins; i++)
+    {
+        *pbPin++ = (uint8_t)(pau16Pins[i] & 0xff);
+        *pbPin++ = (uint8_t)(pau16Pins[i] >> 8);
+    }
+
+    /* Resource name */
+    memcpy(pbPin, pszRsrcSrc, cchRsrcSrc + 1);
     return VINF_SUCCESS;
 }

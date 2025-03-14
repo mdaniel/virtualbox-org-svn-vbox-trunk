@@ -1215,7 +1215,7 @@ int SystemTableBuilderAcpi::configureGpioDevice(const char *pszVBoxName, uint32_
     int vrc = systemTableAcpiMmioDevResource(m_hAcpiDsdt, m_hAcpiRes, GCPhysMmio, cbMmio, u32Irq + GIC_INTID_RANGE_SPI_START);
     AssertRCReturn(vrc, vrc);
 
-#if 1 /* Works fine with Linux, doesn't with Windows (talk about "standards"). */
+#if 0 /* Works fine with Linux (also older ones), doesn't with Windows (talk about "standards"). */
     /* Construct the _AEI containing the GPIO configuration. */
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_AEI");
 
@@ -1272,8 +1272,63 @@ int SystemTableBuilderAcpi::configureGpioDevice(const char *pszVBoxName, uint32_
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
 
     return RTAcpiTblDeviceFinalize(m_hAcpiDsdt);
-#else /* Doesn't work currently, neither Linux nor Windows... */
+#else /* Works on new Linux guests but not Windows so far... */
     /* Use the approach from https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/acpi-button-device . */
+
+        /* Device specific method. */
+        RTAcpiTblMethodStart(m_hAcpiDsdt, "_DSM", 4, RTACPI_METHOD_F_SERIALIZED, 0 /*uSyncLvl*/);
+
+        RTAcpiTblIfStart(m_hAcpiDsdt);
+
+        /* Predicate (LEqual(Arg0, ToUUID("4f248f40-d5e2-499f-834c-27758ea1cd3f")))*/
+        RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+        RTAcpiTblArgOpAppend(m_hAcpiDsdt, 0);
+        RTAcpiTblUuidAppendFromStr(m_hAcpiDsdt, "4f248f40-d5e2-499f-834c-27758ea1cd3f");
+
+            /* Standard _DSM query function. */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                /* LEqual(Arg2, Zero). */
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                uint8_t bBuf = 0x03;
+                RTAcpiTblBufferAppend(m_hAcpiDsdt, &bBuf, sizeof(bBuf));
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* Mark the pin for the power button as ActiveHigh. */
+            RTAcpiTblIfStart(m_hAcpiDsdt);
+
+                /* LEqual(Arg2, One). */
+                RTAcpiTblBinaryOpAppend(m_hAcpiDsdt, kAcpiBinaryOp_LEqual);
+                RTAcpiTblArgOpAppend(m_hAcpiDsdt, 2);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);
+
+                RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+                RTAcpiTblPackageStart(m_hAcpiDsdt, 2 /*cElements*/);
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, u16PinShutdown);
+                    RTAcpiTblIntegerAppend(m_hAcpiDsdt, u16PinSuspend);
+                RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+            /* Return Unknown function. */
+            uint8_t bUnkFunc = 0x00;
+            RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+            RTAcpiTblBufferAppend(m_hAcpiDsdt, &bUnkFunc, sizeof(bUnkFunc));
+
+        RTAcpiTblIfFinalize(m_hAcpiDsdt);
+
+        /* Return Unknown function. */
+        bUnkFunc = 0x00;
+        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+        RTAcpiTblBufferAppend(m_hAcpiDsdt, &bUnkFunc, sizeof(bUnkFunc));
+
+        RTAcpiTblMethodFinalize(m_hAcpiDsdt);
+
     RTAcpiTblDeviceFinalize(m_hAcpiDsdt); /* Finish the GPI0 GPIO device. */
 
     RTAcpiTblDeviceStart(m_hAcpiDsdt, "BTNS");
@@ -1284,15 +1339,20 @@ int SystemTableBuilderAcpi::configureGpioDevice(const char *pszVBoxName, uint32_
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
     RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
 
+    RTAcpiTblMethodStart(m_hAcpiDsdt, "_STA", 0, RTACPI_METHOD_F_NOT_SERIALIZED, 0 /*uSyncLvl*/);
+    RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Return);
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x0f);
+    RTAcpiTblMethodFinalize(m_hAcpiDsdt);
+
     /* Build the resource template. */
     RTAcpiTblNameAppend(m_hAcpiDsdt, "_CRS");
     RTAcpiResourceReset(m_hAcpiRes);
-    vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
-                                   kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+    vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Edge, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
+                                   kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "\\_SB.GPI0",
                                    &u16PinShutdown, 1 /* cPins */);
     if (RT_SUCCESS(vrc))
-        vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
-                                       kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+        vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Edge, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
+                                       kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "\\_SB.GPI0",
                                        &u16PinSuspend, 1 /* cPins */);
     if (RT_SUCCESS(vrc))
     {

@@ -1196,6 +1196,148 @@ int SystemTableBuilderAcpi::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, R
 }
 
 
+int SystemTableBuilderAcpi::configureGpioDevice(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio, uint32_t u32Irq,
+                                                uint16_t u16PinShutdown, uint16_t u16PinSuspend)
+{
+    PCSYSTEMTABLEDEVICE pSysTblDev = systemTableVBoxDevName2SysTblDevice(pszVBoxName);
+    AssertPtrReturn(pSysTblDev, VERR_NOT_FOUND);
+
+    RTAcpiTblDeviceStartF(m_hAcpiDsdt, "%s%RX32", pSysTblDev->pszAcpiName, uInstance);
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
+    RTAcpiTblStringAppend(m_hAcpiDsdt, pSysTblDev->pszAcpiHid);
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, uInstance);
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_CRS");
+
+    int vrc = systemTableAcpiMmioDevResource(m_hAcpiDsdt, m_hAcpiRes, GCPhysMmio, cbMmio, u32Irq + GIC_INTID_RANGE_SPI_START);
+    AssertRCReturn(vrc, vrc);
+
+#if 1 /* Works fine with Linux, doesn't with Windows (talk about "standards"). */
+    /* Construct the _AEI containing the GPIO configuration. */
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_AEI");
+
+    RTAcpiResourceReset(m_hAcpiRes);
+    vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveHigh, kAcpiResGpioShr_Exclusive,
+                                   kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+                                   &u16PinShutdown, 1 /* cPins */);
+    if (RT_SUCCESS(vrc))
+        vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveHigh, kAcpiResGpioShr_Exclusive,
+                                       kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+                                       &u16PinSuspend, 1 /* cPins */);
+    if (RT_SUCCESS(vrc))
+    {
+        vrc = RTAcpiResourceSeal(m_hAcpiRes);
+        if (RT_SUCCESS(vrc))
+            vrc = RTAcpiTblResourceAppend(m_hAcpiDsdt, m_hAcpiRes);
+    }
+    AssertRCReturn(vrc, vrc);
+
+    /* The interrupt methods for the pins. */
+    RTAcpiTblMethodStartF(m_hAcpiDsdt, 0 /*cArgs*/, RTACPI_METHOD_F_NOT_SERIALIZED, 0 /*uSyncLvl*/,
+                          "_L%02RX16", u16PinShutdown);
+        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Notify);
+            RTAcpiTblNameStringAppend(m_hAcpiDsdt, "PBTN");
+            RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x80);
+    RTAcpiTblMethodFinalize(m_hAcpiDsdt);
+
+    RTAcpiTblMethodStartF(m_hAcpiDsdt, 0 /*cArgs*/, RTACPI_METHOD_F_NOT_SERIALIZED, 0 /*uSyncLvl*/,
+                          "_L%02RX16", u16PinSuspend);
+        RTAcpiTblStmtSimpleAppend(m_hAcpiDsdt, kAcpiStmt_Notify);
+            RTAcpiTblNameStringAppend(m_hAcpiDsdt, "SBTN");
+            RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x80);
+    RTAcpiTblMethodFinalize(m_hAcpiDsdt);
+
+    RTAcpiTblDeviceFinalize(m_hAcpiDsdt);
+
+    /* Now create the shutdown and suspend button devices. */
+    RTAcpiTblDeviceStart(m_hAcpiDsdt, "PBTN");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
+    RTAcpiTblEisaIdAppend(m_hAcpiDsdt, "PNP0C0C");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+    RTAcpiTblDeviceFinalize(m_hAcpiDsdt);
+
+    RTAcpiTblDeviceStart(m_hAcpiDsdt, "SBTN");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
+    RTAcpiTblEisaIdAppend(m_hAcpiDsdt, "PNP0C0E");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+    return RTAcpiTblDeviceFinalize(m_hAcpiDsdt);
+#else /* Doesn't work currently, neither Linux nor Windows... */
+    /* Use the approach from https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/acpi-button-device . */
+    RTAcpiTblDeviceFinalize(m_hAcpiDsdt); /* Finish the GPI0 GPIO device. */
+
+    RTAcpiTblDeviceStart(m_hAcpiDsdt, "BTNS");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_HID");
+    RTAcpiTblStringAppend(m_hAcpiDsdt, "ACPI0011");
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_UID");
+    RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);
+
+    /* Build the resource template. */
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_CRS");
+    RTAcpiResourceReset(m_hAcpiRes);
+    vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
+                                   kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+                                   &u16PinShutdown, 1 /* cPins */);
+    if (RT_SUCCESS(vrc))
+        vrc = RTAcpiResourceAddGpioInt(m_hAcpiRes, kAcpiResGpioMod_Level, kAcpiResGpioPol_ActiveBoth, kAcpiResGpioShr_Exclusive,
+                                       kAcpiResGpioPpi_PullDown, 0 /*u16DebounceWait*/, "GPI0",
+                                       &u16PinSuspend, 1 /* cPins */);
+    if (RT_SUCCESS(vrc))
+    {
+        vrc = RTAcpiResourceSeal(m_hAcpiRes);
+        if (RT_SUCCESS(vrc))
+            vrc = RTAcpiTblResourceAppend(m_hAcpiDsdt, m_hAcpiRes);
+    }
+    AssertRCReturn(vrc, vrc);
+
+    RTAcpiTblNameAppend(m_hAcpiDsdt, "_DSD");
+    RTAcpiTblPackageStart(m_hAcpiDsdt, 2 /*cElements*/);
+        RTAcpiTblUuidAppendFromStr(m_hAcpiDsdt, "fa6bd625-9ce8-470d-a2c7-b3ca36c4282e");
+        RTAcpiTblPackageStart(m_hAcpiDsdt, 3 /*cElements*/);
+            RTAcpiTblPackageStart(m_hAcpiDsdt, 5 /*cElements*/);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);    /* Collection */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Unique collection ID */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);    /* Top-Level collection */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x01); /* Usage Page ("Generic Desktop Page") */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x0d); /* Usage ("Portable Device Control") */
+            RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblPackageStart(m_hAcpiDsdt, 5 /*cElements*/);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Control */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0);    /* Interrupt index in _CRS for power button */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Unique ID of parent collection */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x01); /* Usage Page ("Generic Desktop Page") */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x81); /* Usage ("System Power Down") */
+            RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+            RTAcpiTblPackageStart(m_hAcpiDsdt, 5 /*cElements*/);
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Control */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Interrupt index in _CRS for power button */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 1);    /* Unique ID of parent collection */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x01); /* Usage Page ("Generic Desktop Page") */
+                RTAcpiTblIntegerAppend(m_hAcpiDsdt, 0x82); /* Usage ("System Sleep") */
+            RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+        RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+    RTAcpiTblPackageFinalize(m_hAcpiDsdt);
+
+    return RTAcpiTblDeviceFinalize(m_hAcpiDsdt);
+#endif
+}
+
+
 int SystemTableBuilder::initInstance(void)
 {
     return VERR_NOT_IMPLEMENTED;
@@ -1264,6 +1406,14 @@ int SystemTableBuilder::configurePcieRootBus(const char *pszVBoxName, uint32_t a
 int SystemTableBuilder::configureTpm2(bool fCrb, RTGCPHYS GCPhysMmioStart, RTGCPHYS cbMmio, uint32_t u32Irq)
 {
     RT_NOREF(fCrb, GCPhysMmioStart, cbMmio, u32Irq);
+    return VERR_NOT_IMPLEMENTED;
+}
+
+
+int SystemTableBuilder::configureGpioDevice(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio, uint32_t u32Irq,
+                                            uint16_t u16PinShutdown, uint16_t u16PinSuspend)
+{
+    RT_NOREF(pszVBoxName, uInstance, GCPhysMmio, cbMmio, u32Irq, u16PinShutdown, u16PinSuspend);
     return VERR_NOT_IMPLEMENTED;
 }
 

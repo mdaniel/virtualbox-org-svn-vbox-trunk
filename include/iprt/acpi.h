@@ -1530,6 +1530,14 @@ typedef enum RTACPIRESGPIOPPI
  *
  * @returns IPRT status code.
  * @param   hAcpiRes            The ACPI resource handle.
+ * @param   enmMod              Interrupt configuration.
+ * @param   enmPol              Polarity config.
+ * @param   enmShr              Shared/Exclusive config.
+ * @param   enmPpi              The pin pull up/down config.
+ * @param   u16DebounceWait     Debounce wait time in 100ms steps.
+ * @param   pszRsrcSrc          The GPIO controller resource name these GPIO pins are part of.
+ * @param   pau16Pins           Array of pin numbers.
+ * @param   cPins               Number of entries in the array.
  */
 RTDECL(int) RTAcpiResourceAddGpioInt(RTACPIRES hAcpiRes, RTACPIRESGPIOMOD enmMod, RTACPIRESGPIOPOL enmPol, RTACPIRESGPIOSHR enmShr,
                                      RTACPIRESGPIOPPI enmPpi, uint16_t u16DebounceWait, const char *pszRsrcSrc,

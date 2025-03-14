@@ -185,11 +185,10 @@ private:
 *   Class UIToolsItem implementation.                                                                                            *
 *********************************************************************************************************************************/
 
-UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                         UIToolClass enmClass, UIToolType enmType)
+UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon, UIToolType enmType)
     : m_pScene(pScene)
     , m_icon(icon)
-    , m_enmClass(enmClass)
+    , m_enmClass(UIToolStuff::castTypeToClass(enmType))
     , m_enmType(enmType)
     , m_enmReason(HidingReason_Null)
     , m_fHovered(false)

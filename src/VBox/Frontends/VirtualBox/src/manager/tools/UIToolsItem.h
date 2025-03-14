@@ -93,10 +93,8 @@ public:
     /** Constructs item on the basis of passed arguments.
       * @param  pScene        Brings the scene reference to add item to.
       * @param  icon          Brings the item icon.
-      * @param  enmClass      Brings the item class.
       * @param  enmType       Brings the item type. */
-    UIToolsItem(QGraphicsScene *pScene, const QIcon &icon,
-                UIToolClass enmClass, UIToolType enmType);
+    UIToolsItem(QGraphicsScene *pScene, const QIcon &icon, UIToolType enmType);
     /** Destructs item. */
     virtual ~UIToolsItem() RT_OVERRIDE;
 

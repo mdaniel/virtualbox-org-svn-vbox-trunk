@@ -35,6 +35,7 @@
 #include "UIBaseMemoryEditor.h"
 #include "UIFilePathSelector.h"
 #include "UIHostnameDomainNameEditor.h"
+#include "UIMediumSizeEditor.h"
 #include "UIMediumTools.h"
 #include "UITranslationEventListener.h"
 #include "UIUserNamePasswordEditor.h"
@@ -322,11 +323,13 @@ bool UIAdditionalUnattendedOptions::hasProductKeyAcceptableInput() const
 *   UINewVMHardwareContainer implementation.                                                                                *
 *********************************************************************************************************************************/
 
-UINewVMHardwareContainer::UINewVMHardwareContainer(QWidget *pParent /* = 0 */)
+UINewVMHardwareContainer::UINewVMHardwareContainer(QWidget *pParent, bool fWithMediumSizeEditor)
     : QWidget(pParent)
     , m_pBaseMemoryEditor(0)
     , m_pVirtualCPUEditor(0)
     , m_pEFICheckBox(0)
+    , m_pMediumSizeEditor(0)
+    , m_fWithMediumSizeEditor(fWithMediumSizeEditor)
 {
     prepare();
 }
@@ -349,6 +352,12 @@ void UINewVMHardwareContainer::setEFIEnabled(bool fEnabled)
         m_pEFICheckBox->setChecked(fEnabled);
 }
 
+void UINewVMHardwareContainer::setMediumSize(qulonglong uSize)
+{
+    if (m_pMediumSizeEditor)
+        m_pMediumSizeEditor->setMediumSize(uSize);
+}
+
 void UINewVMHardwareContainer::prepare()
 {
     QGridLayout *pHardwareLayout = new QGridLayout(this);
@@ -356,10 +365,18 @@ void UINewVMHardwareContainer::prepare()
 
     m_pBaseMemoryEditor = new UIBaseMemoryEditor;
     m_pVirtualCPUEditor = new UIVirtualCPUEditor;
+    if (m_fWithMediumSizeEditor)
+        m_pMediumSizeEditor = new UIMediumSizeEditor;
     m_pEFICheckBox      = new QCheckBox;
     pHardwareLayout->addWidget(m_pBaseMemoryEditor, 0, 0, 1, 4);
     pHardwareLayout->addWidget(m_pVirtualCPUEditor, 1, 0, 1, 4);
-    pHardwareLayout->addWidget(m_pEFICheckBox, 2, 0, 1, 1);
+    if (m_pMediumSizeEditor)
+    {
+        pHardwareLayout->addWidget(m_pMediumSizeEditor, 2, 0, 1, 4);
+        pHardwareLayout->addWidget(m_pEFICheckBox, 3, 0, 1, 1);
+    }
+    else
+        pHardwareLayout->addWidget(m_pEFICheckBox, 2, 0, 1, 1);
 
 
     if (m_pBaseMemoryEditor)
@@ -371,6 +388,9 @@ void UINewVMHardwareContainer::prepare()
     if (m_pEFICheckBox)
         connect(m_pEFICheckBox, &QCheckBox::toggled,
                 this, &UINewVMHardwareContainer::sigEFIEnabledChanged);
+    if (m_pMediumSizeEditor)
+        connect(m_pMediumSizeEditor, &UIMediumSizeEditor::sigSizeChanged,
+                this, &UINewVMHardwareContainer::sigSizeChanged);
 
     sltRetranslateUI();
     connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,

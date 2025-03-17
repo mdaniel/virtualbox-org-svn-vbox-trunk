@@ -31,6 +31,7 @@
 /* GUI includes: */
 #include "QIRichTextLabel.h"
 #include "UIBaseMemoryEditor.h"
+#include "UIWizardDiskEditors.h"
 #include "UIGlobalSession.h"
 #include "UIGuestOSType.h"
 #include "UIVirtualCPUEditor.h"
@@ -38,11 +39,16 @@
 #include "UIWizardNewVMEditors.h"
 #include "UIWizardNewVMHardwarePage.h"
 
+/* COM includes: */
+#include "CSystemProperties.h"
 
 UIWizardNewVMHardwarePage::UIWizardNewVMHardwarePage(const QString strHelpKeyword /* = QString() */)
     : UINativeWizardPage(strHelpKeyword)
     , m_pLabel(0)
     , m_pHardwareWidgetContainer(0)
+    , m_fVDIFormatFound(false)
+    , m_uMediumSizeMin(_4M)
+    , m_uMediumSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
 {
     prepare();
     qRegisterMetaType<CMedium>();
@@ -54,7 +60,7 @@ void UIWizardNewVMHardwarePage::prepare()
 
     m_pLabel = new QIRichTextLabel(this);
     pMainLayout->addWidget(m_pLabel);
-    m_pHardwareWidgetContainer = new UINewVMHardwareContainer;
+    m_pHardwareWidgetContainer = new UINewVMHardwareContainer(this, true /* with medium size editor */);
     AssertReturnVoid(m_pHardwareWidgetContainer);
     pMainLayout->addWidget(m_pHardwareWidgetContainer);
 
@@ -72,6 +78,8 @@ void UIWizardNewVMHardwarePage::createConnections()
                 this, &UIWizardNewVMHardwarePage::sltCPUCountChanged);
         connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigEFIEnabledChanged,
                 this, &UIWizardNewVMHardwarePage::sltEFIEnabledChanged);
+        connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigSizeChanged,
+                this, &UIWizardNewVMHardwarePage::sltHandleSizeEditorChange);
     }
 }
 
@@ -113,11 +121,78 @@ void UIWizardNewVMHardwarePage::initializePage()
         }
         m_pHardwareWidgetContainer->blockSignals(false);
     }
+    initializeVirtualHardDiskParameters();
+}
+
+void UIWizardNewVMHardwarePage::initializeVirtualHardDiskParameters()
+{
+    UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+    AssertReturnVoid(pWizard);
+
+    LONG64 iRecommendedSize = 0;
+
+    if (!m_userModifiedParameters.contains("SelectedDiskSource"))
+    {
+        iRecommendedSize = gpGlobalSession->guestOSTypeManager().getRecommendedHDD(pWizard->guestOSTypeId());
+        if (iRecommendedSize != 0)
+        {
+            pWizard->setDiskSource(SelectedDiskSource_New);
+            pWizard->setEmptyDiskRecommended(false);
+        }
+        else
+        {
+            pWizard->setDiskSource(SelectedDiskSource_Empty);
+            pWizard->setEmptyDiskRecommended(true);
+        }
+    }
+
+    if (!m_fVDIFormatFound)
+    {
+        /* We do not have any UI elements for HDD format selection since we default to VDI in case of guided wizard mode: */
+        CSystemProperties properties = gpGlobalSession->virtualBox().GetSystemProperties();
+        const QVector<CMediumFormat> &formats = properties.GetMediumFormats();
+        foreach (const CMediumFormat &format, formats)
+        {
+            if (format.GetName() == "VDI")
+            {
+                pWizard->setMediumFormat(format);
+                m_fVDIFormatFound = true;
+            }
+        }
+        if (!m_fVDIFormatFound)
+            AssertMsgFailed(("No medium format corresponding to VDI could be found!"));
+    }
+    QString strDefaultExtension =  UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), KDeviceType_HardDisk);
+
+    /* We set the medium name and path according to machine name/path and do not allow user change these in the guided mode: */
+    QString strDefaultName = pWizard->machineFileName().isEmpty() ? QString("NewVirtualDisk1") : pWizard->machineFileName();
+    const QString &strMachineFolder = pWizard->machineFolder();
+    QString strMediumPath =
+        UIWizardDiskEditors::constructMediumFilePath(UIWizardDiskEditors::appendExtension(strDefaultName,
+                                                                                          strDefaultExtension), strMachineFolder);
+    pWizard->setMediumPath(strMediumPath);
+
+    /* Set the recommended disk size if user has already not done so: */
+    if (m_pHardwareWidgetContainer && !m_userModifiedParameters.contains("MediumSize"))
+    {
+        m_pHardwareWidgetContainer->blockSignals(true);
+        m_pHardwareWidgetContainer->setMediumSize(iRecommendedSize);
+        m_pHardwareWidgetContainer->blockSignals(false);
+        pWizard->setMediumSize(iRecommendedSize);
+    }
+
+    pWizard->setMediumVariant((qulonglong)KMediumVariant_Standard);
 }
 
 bool UIWizardNewVMHardwarePage::isComplete() const
 {
-    return true;
+   UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
+   AssertReturn(pWizard, false);
+
+   const qulonglong uSize = pWizard->mediumSize();
+   if (pWizard->diskSource() == SelectedDiskSource_New)
+       return uSize >= m_uMediumSizeMin && uSize <= m_uMediumSizeMax;
+   return true;
 }
 
 void UIWizardNewVMHardwarePage::sltMemorySizeChanged(int iValue)
@@ -139,4 +214,12 @@ void UIWizardNewVMHardwarePage::sltEFIEnabledChanged(bool fEnabled)
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     wizardWindow<UIWizardNewVM>()->setEFIEnabled(fEnabled);
     m_userModifiedParameters << "EFIEnabled";
+}
+
+void UIWizardNewVMHardwarePage::sltHandleSizeEditorChange(qulonglong uSize)
+{
+    AssertReturnVoid(wizardWindow<UIWizardNewVM>());
+    wizardWindow<UIWizardNewVM>()->setMediumSize(uSize);
+    m_userModifiedParameters << "MediumSize";
+    emit completeChanged();
 }

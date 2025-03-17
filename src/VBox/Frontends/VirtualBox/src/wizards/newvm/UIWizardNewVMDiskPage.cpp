@@ -200,11 +200,7 @@ void UIWizardNewVMDiskPage::initializePage()
         pWizard->setMediumSize(iRecommendedSize);
     }
 
-    /* Initialize medium variant parameter of the wizard (only if user has not touched the checkbox yet): */
-    if (!m_userModifiedParameters.contains("MediumVariant"))
-    {
-        pWizard->setMediumVariant((qulonglong)KMediumVariant_Standard);
-    }
+    pWizard->setMediumVariant((qulonglong)KMediumVariant_Standard);
 }
 
 bool UIWizardNewVMDiskPage::isComplete() const

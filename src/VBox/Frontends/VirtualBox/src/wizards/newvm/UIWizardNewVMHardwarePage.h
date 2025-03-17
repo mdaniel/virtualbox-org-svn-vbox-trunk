@@ -54,6 +54,7 @@ private slots:
     void sltMemorySizeChanged(int iValue);
     void sltCPUCountChanged(int iCount);
     void sltEFIEnabledChanged(bool fEnabled);
+    void sltHandleSizeEditorChange(qulonglong uSize);
     virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
@@ -63,12 +64,15 @@ private:
     void createConnections();
     virtual void initializePage() RT_OVERRIDE RT_FINAL;
     virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
-
+    void initializeVirtualHardDiskParameters();
     /** @name Widgets
       * @{ */
         QIRichTextLabel    *m_pLabel;
         UINewVMHardwareContainer *m_pHardwareWidgetContainer;
     /** @} */
+    bool m_fVDIFormatFound;
+    qulonglong m_uMediumSizeMin;
+    qulonglong m_uMediumSizeMax;
     /** This set is used to decide if we have to set wizard's parameters
       * some default values or not. When user modifies a value through a widget we
       * no longer touch user set value during page initilization. see initializePage. */

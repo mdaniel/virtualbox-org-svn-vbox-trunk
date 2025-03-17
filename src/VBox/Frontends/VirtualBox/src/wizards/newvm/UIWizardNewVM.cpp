@@ -113,7 +113,6 @@ void UIWizardNewVM::populatePages()
             m_iUnattendedInstallPageIndex = addPage(new UIWizardNewVMUnattendedPage("create-vm-wizard-unattended-install"));
             setUnattendedPageVisible(false);
             addPage(new UIWizardNewVMHardwarePage("create-vm-wizard-hardware" /* help keyword*/));
-            addPage(new UIWizardNewVMDiskPage(m_pActionPool, "create-vm-wizard-virtual-hard-disk" /* help keyword*/));
             addPage(new UIWizardNewVMSummaryPage);
             break;
         }

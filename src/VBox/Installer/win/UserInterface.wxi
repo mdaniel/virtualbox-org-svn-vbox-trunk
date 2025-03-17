@@ -243,11 +243,10 @@
                 <Text Value="!(loc.CustomizeDlg_IconTree)" />
             </Control>
             <Control Id="Tree" Type="SelectionTree" X="25" Y="85" Width="175" Height="95" Property="VBOX_TARGET_DIR" Sunken="yes" TabSkip="no" Text="Tree of selections" />
-            <Control Id="Browse" Type="PushButton" X="304" Y="200" Width="56" Height="17" Text="!(loc.ButtonText_Browse)" HideCondition="Installed">
+            <Control Id="Browse" Type="PushButton" X="304" Y="190" Width="56" Height="17" Text="!(loc.ButtonText_Browse)" HideCondition="Installed">
                 <Publish Event="SelectionBrowse" Value="VBoxBrowseDlg" />
-
             </Control>
-            <Control Id="DiskCost" Type="PushButton" X="111" Y="243" Width="56" Height="17">
+            <Control Id="DiskCost" Type="PushButton" X="25" Y="205" Width="80" Height="17">
                 <Text Value="!(loc.CustomizeDlg_DiskUsage)" />
                 <Publish Event="SpawnDialog" Value="VBoxDiskCostDlg" />
                 <Subscribe Event="SelectionNoItems" Attribute="Enabled" />
@@ -261,17 +260,14 @@
                 <Text Value="!(loc.CustomizeDlg_SelItemSize)" />
                 <Subscribe Event="SelectionSize" Attribute="Text" />
             </Control>
-            <Control Id="Location" Type="Text" X="75" Y="200" Width="215" Height="20" HideCondition="Installed">
+            <Control Id="LocationLabel" Type="Text" X="25" Y="190" Width="100" Height="10" Text="!(loc.CustomizeDlg_Location)" HideCondition="Installed">
+                <Subscribe Event="SelectionPathOn" Attribute="Visible" />
+            </Control>
+            <Control Id="Location" Type="Text" X="130" Y="190" Width="150" Height="20" HideCondition="Installed">
                 <Text Value="!(loc.CustomizeDlg_SelItemPath)" />
                 <Subscribe Event="SelectionPath" Attribute="Text" />
                 <Subscribe Event="SelectionPathOn" Attribute="Visible" />
-
             </Control>
-            <Control Id="LocationLabel" Type="Text" X="25" Y="200" Width="50" Height="10" Text="!(loc.CustomizeDlg_Location)" HideCondition="Installed">
-                <Subscribe Event="SelectionPathOn" Attribute="Visible" />
-
-            </Control>
-
             <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.ButtonText_Back)" />
             <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Next)">
                 <Subscribe Event="SelectionNoItems" Attribute="Enabled" />
@@ -347,10 +343,6 @@
                 <Text Value="!(loc.WarnDisconNetIfacesDlg_Desc)" />
             </Control>
 
-            <Control Id="Description2" Type="Text" X="135" Y="115" Width="220" Height="130" Transparent="yes" NoPrefix="yes">
-                <Text Value="!(loc.WarnDisconNetIfacesDlg_Question)" />
-            </Control>
-
             <!-- And a line for looking nice... -->
             <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
 
@@ -376,10 +368,6 @@
                 <Text Value="{\DlgWarnPython}!(loc.WarnPythonDlg_Title)" />
             </Control>
 
-            <Control Id="Title2" Type="Text" X="135" Y="40" Width="220" Height="60" Transparent="yes" NoPrefix="yes">
-                <Text Value="{\DlgWarnPython}!(loc.WarnPythonDlg_Title2)" />
-            </Control>
-
             <!-- Text saying what we gonna do -->
             <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="130" Transparent="yes" NoPrefix="yes">
                 <Text Value="!(loc.WarnPythonDlg_Desc)" />
@@ -387,10 +375,6 @@
 
             <Control Id="Description2" Type="Text" X="135" Y="115" Width="220" Height="130" Transparent="yes" NoPrefix="yes">
                 <Text Value="!(loc.WarnPythonDlg_Desc2)" />
-            </Control>
-
-            <Control Id="Description3" Type="Text" X="135" Y="160" Width="220" Height="130" Transparent="yes" NoPrefix="yes">
-                <Text Value="!(loc.WarnPythonDlg_Question)" />
             </Control>
 
             <!-- And a line for looking nice... -->
@@ -469,9 +453,6 @@
             <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
             <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes">
                 <Text Value="[DlgTitleFont]!(loc.VerifyReadyDlg_ReadyToInstall)" />
-            </Control>
-            <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes">
-                <Text Value="!(loc.VerifyReadyDlg_ReadyToBegin)" />
             </Control>
             <Control Id="Text" Type="Text" X="25" Y="70" Width="320" Height="80">
                 <Text Value="!(loc.VerifyReadyDlg_ClickInstall)" />

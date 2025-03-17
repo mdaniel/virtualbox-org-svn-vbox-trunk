@@ -30,9 +30,9 @@
     <String Id="ButtonText_No" Value="&amp;No" />
     <String Id="ButtonText_Yes" Value="&amp;Yes" />
     <String Id="ButtonText_Cancel" Value="&amp;Cancel" />
-    <String Id="ButtonText_Next" Value="&amp;Next &gt;" />
-    <String Id="ButtonText_Back" Value="&lt; &amp;Back" />
-    <String Id="ButtonText_Browse" Value="Br&amp;owse" />
+    <String Id="ButtonText_Next" Value="&amp;Next" />
+    <String Id="ButtonText_Back" Value="&amp;Previous" />
+    <String Id="ButtonText_Browse" Value="&amp;Change" />
     <String Id="ButtonText_OK" Value="O&amp;K" />
     <String Id="ButtonText_Check" Value="&amp;Check" />
     <String Id="ButtonText_Install" Value="&amp;Install" />
@@ -45,7 +45,7 @@
     <String Id="ButtonText_Exit" Value="E&amp;xit" />
 
     <String Id="InstallModeCustom" Value="Custom" />
-    <String Id="Setup" Value="Setup" />
+    <String Id="Setup" Value="Installer" />
 
     <!---->
 
@@ -64,12 +64,12 @@
     <!---->
 
     <String Id="UsedByOtherApp" Value="It was detected an application which has been using currently installed VirtualBox version. You must remove this application before continuing installation. See the file dependency.dep in the VirtualBox installation directory for details." />
-    <String Id="NeedAdmin" Value="You need to have administrator rights to (un)install [ProductName]! This setup will abort now." />
+    <String Id="NeedAdmin" Value="You need to have administrator rights to (un)install [ProductName]! This installer will close now." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
     <String Id="WrongOS" Value="[ProductName] only runs on Windows 10 or above." />
     <String Id="Only64Bit" Value="[ProductName] only runs on 64-bit Windows systems." />
-	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-	<String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
+    <String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
+    <String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
     <String Id="InnotekFound" Value="An old innotek VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 
@@ -79,15 +79,15 @@
 
     <!---->
 
-    <String Id="WelcomeDlg_Header" Value="Welcome to the [ProductName] Setup Wizard" />
-    <String Id="WelcomeDlg_Body" Value="The Setup Wizard will install [ProductName] on your computer. Click Next to continue or Cancel to exit the Setup Wizard." />
+    <String Id="WelcomeDlg_Header" Value="Welcome to the [ProductName] Installer" />
+    <String Id="WelcomeDlg_Body" Value="The Installer will install [ProductName] on your computer. Click Next to continue or Cancel to exit the Installer." />
 
     <!---->
 
     <String Id="LicenseAgreementDlg_Header" Value="End-User License Agreement" />
-    <String Id="LicenseAgreementDlg_Body" Value="Please read the following license agreement carefully." />
-    <String Id="LicenseAgreementDlg_Accept" Value="I &amp;accept the terms in the License Agreement" />
-    <String Id="LicenseAgreementDlg_Decline" Value="I &amp;do not accept the terms in the License Agreement" />
+    <String Id="LicenseAgreementDlg_Body" Value="Read the following license agreement carefully." />
+    <String Id="LicenseAgreementDlg_Accept" Value="I &amp;accept the terms of the license agreement" />
+    <String Id="LicenseAgreementDlg_Decline" Value="I &amp;do not accept the terms of the license agreement" />
 
     <!---->
 
@@ -125,9 +125,9 @@
 
     <!---->
 
-    <String Id="CustomizeDlg_Location" Value="Location:" />
-    <String Id="CustomizeDlg_DiskUsage" Value="Disk &amp;Usage" />
-    <String Id="CustomizeDlg_SelFeatures" Value="Select the way you want features to be installed." />
+    <String Id="CustomizeDlg_Location" Value="Installation Location:" />
+    <String Id="CustomizeDlg_DiskUsage" Value="Check Disk Space" />
+    <String Id="CustomizeDlg_SelFeatures" Value="Select the features to install" />
     <String Id="CustomizeDlg_IconTree" Value="Click on the icons in the tree below to change the way features will be installed." />
     <String Id="CustomizeDlg_CustomSetup" Value="Custom Setup" />
     <String Id="CustomizeDlg_SelItemDesc" Value="CustomizeDlgItemDescription-CustomizeDlgItemDescription" />
@@ -137,31 +137,29 @@
     <!---->
 
     <String Id="Customize2Dlg_Header" Value="Customize" />
-    <String Id="Customize2Dlg_Desc" Value="Please choose from the options below:" />
-    <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Create start menu entries" />
-    <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Create a shortcut on the desktop" />
-    <String Id="Customize2Dlg_RegisterFileExtensions" Value="Register file associations" />
+    <String Id="Customize2Dlg_Desc" Value="Select one or more startup options" />
+    <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Add to Start menu" />
+    <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Create a desktop shortcut" />
+    <String Id="Customize2Dlg_RegisterFileExtensions" Value="Start by default when opening .ova or .ovf files" />
 
     <!---->
 
-    <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Please choose which type of network drivers you will use:" />
+    <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Choose the type of network drivers you will use:" />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="NDIS6 network drivers.&#xA;This is default for newer versions of Windows (Vista and newer)." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Use NDIS6 network drivers." />
 
     <!---->
 
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Warning:" />
-    <String Id="WarnDisconNetIfacesDlg_Title2" Value="Network Interfaces" />
-    <String Id="WarnDisconNetIfacesDlg_Desc" Value="Installing the [ProductName] Networking feature will reset your network connection and temporarily disconnect you from the network." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Proceed with installation now?" />
+    <String Id="WarnDisconNetIfacesDlg_Title2" Value="Network Disconnection" />
+    <String Id="WarnDisconNetIfacesDlg_Desc" Value="During the installation of [ProductName] Networking, your network will be disconnected. Ensure any operations requiring network connection are complete before continuing." />
 
     <!---->
 
     <String Id="WarnPythonDlg_Title" Value="Missing Dependencies" />
-    <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
-    <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
-    <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
-    <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
+    <String Id="WarnPythonDlg_Title2" Value="Python Core and win32api" />
+    <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed." />
+    <String Id="WarnPythonDlg_Desc2" Value="You can install and configure these later. For instructions, refer to the [ProductName] SDK Programming Guide. Alternatively, install them before continuing with the Oracle VirtualBox installation." />
 
     <!---->
 
@@ -181,19 +179,18 @@
 
     <!---->
 
-    <String Id="VerifyReadyDlg_ReadyToBegin" Value="The Setup Wizard is ready to begin the [InstallMode] installation." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Click Install to begin the installation. If you want to review or change any of your installation settings, click Back. Click Cancel to exit the wizard." />
+    <String Id="VerifyReadyDlg_ClickInstall" Value="The installation process will take several minutes" />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Ready to Install" />
 
     <!---->
 
-    <String Id="ExitDlg_ClickFinish" Value="Click the Finish button to exit the Setup Wizard." />
-    <String Id="ExitDlg_InstComplete" Value="[ProductName] installation is complete." />
-    <String Id="ExitDlg_StartVBox" Value="Start [ProductName] after installation" />
+    <String Id="ExitDlg_ClickFinish" Value="You may also need the VirtualBox Extension Pack. Refer to the VirtualBox User Guide for more information." />
+    <String Id="ExitDlg_InstComplete" Value="[ProductName] has been installed." />
+    <String Id="ExitDlg_StartVBox" Value="Start [ProductName]?" />
 
     <!---->
 
-    <String Id="FatalErrorDlg_Title" Value="[ProductName] Setup Wizard ended prematurely" />
+    <String Id="FatalErrorDlg_Title" Value="[ProductName] Installer ended prematurely" />
     <String Id="FatalErrorDlg_Description1" Value="Please reboot and try again by re-running the (un)installation." />
     <String Id="FatalErrorDlg_Description2" Value="Alternatively, consult the forums or the documentation of [ProductName]." />
     <String Id="FatalErrorDlg_DescLogOpen" Value="Open Log File" />
@@ -207,18 +204,18 @@
 
     <!---->
 
-    <String Id="UserExitDlg_Header" Value="[ProductName] Setup Wizard was interrupted" />
-    <String Id="UserExitDlg_Desc" Value="[ProductName] setup was interrupted. Your system has not been modified. To install this program at a later time, please run the installation again." />
-    <String Id="UserExitDlg_Footer" Value="Click the Finish button to exit the Setup Wizard." />
+    <String Id="UserExitDlg_Header" Value="[ProductName] Installer was interrupted" />
+    <String Id="UserExitDlg_Desc" Value="[ProductName] installation was interrupted. Your system has not been modified. To install this program at a later time, please run the installation again." />
+    <String Id="UserExitDlg_Footer" Value="Click the Finish button to exit the Installer." />
 
     <!---->
 
-    <String Id="ProgressDlg_PleaseWait" Value="Please wait while the Setup Wizard installs [ProductName]. This may take several minutes." />
+    <String Id="ProgressDlg_PleaseWait" Value="The installation process will take several minutes" />
 
     <!---->
 
-    <String Id="ResumeDlg_Header" Value="Resuming the [ProductName] Setup Wizard" />
-    <String Id="ResumeDlg_Desc" Value="The Setup Wizard will complete the installation of [ProductName] on your computer. Click Install to continue or Cancel to exit the Setup Wizard." />
+    <String Id="ResumeDlg_Header" Value="Resuming the [ProductName] Installer" />
+    <String Id="ResumeDlg_Desc" Value="The Installer will complete the installation of [ProductName] on your computer. Click Install to continue or Cancel to exit the Installer." />
 
     <!---->
 
@@ -237,8 +234,8 @@
 
     <!---->
 
-    <String Id="MaintenanceWelcomeDlg_Header" Value="Welcome to the [ProductName] Setup Wizard" />
-    <String Id="MaintenanceWelcomeDlg_Desc" Value="The Setup Wizard will allow you to repair your current installation or remove [ProductName] from your computer. Click Next to continue or Cancel to exit the Setup Wizard." />
+    <String Id="MaintenanceWelcomeDlg_Header" Value="Welcome to the [ProductName] Installer" />
+    <String Id="MaintenanceWelcomeDlg_Desc" Value="The Installer will allow you to repair your current installation or remove [ProductName] from your computer. Click Next to continue or Cancel to exit the Installer." />
 
     <!---->
 
@@ -249,7 +246,7 @@
     <!---->
 
     <String Id="OutOfRbDiskDlg_InstallationExceeds" Value="Disk space required for the installation exceeds available disk space." />
-    <String Id="OutOfRbDiskDlg_NotEnoughDiskSpace" Value="The highlighted volumes do not have enough disk space available for the currently selected features. You can either remove some files from the highlighted volumes, or choose to install less features onto local drive(s), or select different destination drive(s)." />
+    <String Id="OutOfRbDiskDlg_NotEnoughDiskSpace" Value="The highlighted volumes do not have enough disk space available for the currently selected features. You can either remove some files from the highlighted volumes, or choose to install fewer features onto local drive(s), or select different destination drive(s)." />
     <String Id="OutOfRbDiskDlg_OutOfDiskSpace" Value="Out of Disk Space" />
     <String Id="OutOfRbDiskDlg_Desc" Value="Alternatively, you may choose to disable the installer's rollback functionality. This allows the installer to restore your computer's original state should the installation be interrupted in any way. Click Yes if you wish to take the risk to disable rollback." />
 
@@ -262,7 +259,7 @@
     <!---->
 
     <String Id="VerifyRepairDlg_Header" Value="Repair [ProductName]" />
-    <String Id="VerifyRepairDlg_ReadyToBegin" Value="The Setup Wizard is ready to begin the repair of [ProductName]." />
+    <String Id="VerifyRepairDlg_ReadyToBegin" Value="The Installer is ready to begin the repair of [ProductName]." />
     <String Id="VerifyRepairDlg_ClickRepair" Value="Click Repair to repair the installation of [ProductName]. If you want to review or change any of your installation settings, click Back. Click Cancel to exit the wizard." />
 
     <!---->
@@ -271,7 +268,7 @@
 
     <!---->
 
-    <String Id="MsiRMFilesInUse_Text" Value="The following applications are using files that need to be updated by this setup. You can let Setup Wizard close them and attempt to restart them or reboot the machine later." />
+    <String Id="MsiRMFilesInUse_Text" Value="The following applications are using files that need to be updated by this setup. You can let Installer close them and attempt to restart them or reboot the machine later." />
     <String Id="MsiRMFilesInUse_Description" Value="Some files that need to be updated are currently in use." />
     <String Id="MsiRMFilesInUse_Title" Value="Files in Use" />
     <String Id="MsiRMFilesInUse_UseRM" Value="&amp;Close the applications and attempt to restart them." />
@@ -281,10 +278,10 @@
     <String Id="Error0" Value="{{Fatal error: }}" />
     <String Id="Error1" Value="{{Error [1]. }}" />
     <String Id="Error2" Value="Warning [1]." />
-    <String Id="Error3" />
+    <String Id="Error3" Value="Error [1]." />
     <String Id="Error4" Value="Info [1]." />
     <String Id="Error5" Value="The installer has encountered an unexpected error installing this package. This may indicate a problem with this package. The error code is [1]. {{The arguments are: [2], [3], [4]}}" />
-    <String Id="Error6" />
+    <String Id="Error6" Value="" />
     <String Id="Error7" Value="{{Disk full: }}" />
     <String Id="Error8" Value="Action [Time]: [1]. [2]" />
     <String Id="Error9" Value="[ProductName]" />
@@ -302,8 +299,8 @@
     <String Id="Error21" Value="Gathering required information..." />
     <String Id="Error22" Value="Removing older versions of this application..." />
     <String Id="Error23" Value="Preparing to remove older versions of this application..." />
-    <String Id="Error32" Value="{[ProductName] }Setup completed successfully." />
-    <String Id="Error33" Value="{[ProductName] }Setup failed." />
+    <String Id="Error32" Value="{[ProductName] }installation completed successfully." />
+    <String Id="Error33" Value="{[ProductName] }installation failed." />
     <String Id="Error1101" Value="Error reading from file: [2]. {{ System error [3].}}  Verify that the file exists and that you can access it." />
     <String Id="Error1301" Value="Cannot create the file '[2]'. A directory with this name already exists. Cancel the install and try installing to a different location." />
     <String Id="Error1302" Value="Please insert the disk: [2]" />
@@ -439,7 +436,6 @@
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="The application &quot;[2]&quot; needs to be closed for the installation to continue." />
-
     <String Id="ProgressTextInstallValidate" Value="Validating install" />
     <String Id="ProgressTextInstallFiles" Value="Copying new files" />
     <String Id="ProgressTextInstallFilesTemplate" Value="File: [1],  Directory: [9],  Size: [6]" />
@@ -593,7 +589,7 @@
     <String Id="UITextGB" Value="GB" />
     <String Id="UITextKB" Value="KB" />
     <String Id="UITextMB" Value="MB" />
-    <String Id="UITextMenuAbsent" Value="Entire feature will be unavailable" />
+    <String Id="UITextMenuAbsent" Value="Don't install" />
     <String Id="UITextMenuAdvertise" Value="Feature will be installed when required" />
     <String Id="UITextMenuAllCD" Value="Entire feature will be installed to run from CD" />
     <String Id="UITextMenuAllLocal" Value="Entire feature will be installed on local hard drive" />

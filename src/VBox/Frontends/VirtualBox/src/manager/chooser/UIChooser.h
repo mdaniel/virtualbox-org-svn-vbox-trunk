@@ -136,6 +136,12 @@ public:
         QList<UIVirtualMachineItemCloud*> cloudMachineItems() const;
     /** @} */
 
+    /** @name Navigation stuff.
+      * @{ */
+        /** Returns whether navigation list empty. */
+        bool isNavigationListEmpty() const;
+    /** @} */
+
     /** @name Current-item stuff.
       * @{ */
         /** Returns current-item. */

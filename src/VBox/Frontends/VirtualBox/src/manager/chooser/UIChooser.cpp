@@ -73,6 +73,12 @@ QList<UIVirtualMachineItemCloud*> UIChooser::cloudMachineItems() const
     return model()->cloudMachineItems();
 }
 
+bool UIChooser::isNavigationListEmpty() const
+{
+    AssertPtrReturn(model(), true);
+    return model()->isNavigationListEmpty();
+}
+
 UIVirtualMachineItem *UIChooser::currentItem() const
 {
     AssertPtrReturn(model(), 0);

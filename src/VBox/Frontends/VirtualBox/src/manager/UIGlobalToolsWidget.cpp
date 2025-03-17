@@ -216,7 +216,7 @@ void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
                         << UIToolType_Network;
 
     /* Make sure Machines tool is hidden for empty Chooser-pane: */
-    if (!chooser()->currentItem())
+    if (chooser()->isNavigationListEmpty())
         restrictedTypes << UIToolType_Machines;
 
     /* Make sure no restricted tool is selected: */

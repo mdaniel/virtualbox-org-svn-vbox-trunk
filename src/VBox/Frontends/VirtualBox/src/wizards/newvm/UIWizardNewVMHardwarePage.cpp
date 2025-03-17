@@ -111,6 +111,13 @@ void UIWizardNewVMHardwarePage::sltRetranslateUI()
 
     if (m_pLabel)
         m_pLabel->setText(UIWizardNewVM::tr("Specify the VM's hardware. Resources allocated to the VM will not be available to the host when the VM is running."));
+
+    if (m_pEFICheckBox)
+    {
+        m_pEFICheckBox->setText(UIWizardNewVM::tr("&Use EFI"));
+        m_pEFICheckBox->setToolTip(UIWizardNewVM::tr("Use Extended Firmware Interface (EFI). This is required to boot some OSs."));
+    }
+
     updateMinimumLayoutHint();
 }
 

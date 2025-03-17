@@ -24,7 +24,7 @@
 -->
 
 <WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="de_DE" Codepage="1252">
-    <String Id="LANG" Value="1033" />
+    <String Id="LANG" Value="1031" />
     <String Id="CODEPAGE" Value="1252" />
     <String Id="LangName" Value="Deutsch" />
 

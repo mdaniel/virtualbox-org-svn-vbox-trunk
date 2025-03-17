@@ -44,19 +44,26 @@
     <String Id="ButtonText_Retry" Value="&amp;دوباره" />
     <String Id="ButtonText_Ignore" Value="&amp;چشمپوشی" />
     <String Id="ButtonText_Exit" Value="خ&amp;روج" />
+
     <String Id="InstallModeCustom" Value="دستی" />
     <String Id="Setup" Value="نصب" />
+
     <!---->
+
     <String Id="StartMenu_License" Value="مجوز" />
     <String Id="StartMenu_UserManual" Value="راهنمای کاربر" />
+
     <!---->
+
     <String Id="VB_App" Value="برنامه [ProductName] ." />
     <String Id="VB_USBDriver" Value="درایور دستگاه یو اِس بی [ProductName] برای پشتیبانی از دستگاه یو اِس بی." />
     <String Id="VB_Network" Value="درایور دستگاه شبکه [ProductName] برای پشتیبانی از شبکه." />
     <String Id="VB_NetLwfDriver" Value="[ProductName] driver for NDIS6 Bridged Networking." />
     <String Id="VB_NetAdp6Driver" Value="[ProductName] virtual network adapter driver for NDIS6 Host-Only Networking." />
     <String Id="VB_Python" Value="پشتیبانی از پایتون برای ویرچوال باکس." />
+
     <!---->
+
     <String Id="UsedByOtherApp" Value="It was detected an application which has been using currently installed VirtualBox version. You must remove this application before continuing installation. See the file dependency.dep in the VirtualBox installation directory for details." />
     <String Id="NeedAdmin" Value="برای حذف [ProductName] شما نیاز به اجازه مدیر دارید! این راه انداز حالا لغو میشود." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
@@ -66,39 +73,59 @@
     <String Id="SunFound" Value="یک نصب قدیمی ویرچوال باکس روی این رایانه یافت شد. لطفا اول این بسته را حذف سپس [ProductName] را نصب کنید!" />
     <String Id="InnotekFound" Value="یک نسخه قدیمی نصب ویرچوال باکس در این ماشین یافت شد. لطفا اول این بسته را حذف و سپس [ProductName] را نصب کنید!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
+
     <!---->
+
     <String Id="CancelDlg_Question" Value="آیا میخواهید نصب [ProductName] را لغو کنید؟" />
+
     <!---->
+
     <String Id="WelcomeDlg_Header" Value="به برنامه نصب [ProductName] خوش آمدید" />
     <String Id="WelcomeDlg_Body" Value="این ویزارد [ProductName] را روی رایانه شما نصب میکند. روی بعدی برای ادامه  یا روی لغو برای خروج از این ویزارد کلیک کنید." />
+
     <!---->
+
     <String Id="LicenseAgreementDlg_Header" Value="توافقنامه مجوز کاربر نهایی" />
     <String Id="LicenseAgreementDlg_Body" Value="لطفا توافقنامه مجوز زیرا را بادقت بخوانید." />
     <String Id="LicenseAgreementDlg_Accept" Value="&amp;من ضوابط را در توافقنامه مجوز می پذیرم" />
     <String Id="LicenseAgreementDlg_Decline" Value="&amp;من ضوابط را در توافقنامه مجوز نمی پذیرم" />
+
     <!---->
+
     <String Id="InvalidTargetDirDlg_Header" Value="Invalid installation directory" />
     <String Id="InvalidTargetDirDlg_Desc1" Value="The chosen installation directory is invalid, as it does not meet the security requirements. Refer to the [ProductName] manual for more information." />
     <String Id="InvalidTargetDirDlg_Desc2" Value="Please choose another directory for installing [ProductName]." />
+
     <!---->
+
     <String Id="CheckSerialDlg_Header" Value="شماره سریال" />
     <String Id="CheckSerialDlg_Body" Value="لطفا شماره سریال را در فیلد زیر وارد کنید.آن را روی برچسب روی جلد سی دی ویرچوال باکس می یابید." />
     <String Id="CheckSerialDlg_Footer" Value="وقتی که وارد کردن شماره سریال انجام شد،دکمه &quot;بررسی&quot; را در زیر فشار دهید." />
+
     <!---->
+
     <String Id="WrongSerialDlg_Header" Value="شماره سریال وارد شده غیرمعتبر است!" />
     <String Id="WrongSerialDlg_Desc1" Value="لطفا برگردید و شماره سریال خود را دوباره وارد کنید." />
     <String Id="WrongSerialDlg_Desc2" Value="بخاطر داشته باشید که شماره سریال باید دقیقا همانطور که دریافت شده وارد شود." />
+
     <!---->
+
     <String Id="WarnSaveStatesDlg_Header" Value="هشدار:" />
     <String Id="WarnSaveStatesDlg_Header2" Value="وضعیت ذخیره شده ناسازگار!" />
     <String Id="WarnSaveStatesDlg_Desc" Value="هنگام ارتقاء [ProductName]، همه وضعیت های ذخیره شده ای که از قبل  برای ماشین ها وجود دارد کار نمیکند! بعد از نصب،باید آنها را دستی لغو کنید." />
     <String Id="WarnSaveStatesDlg_Proceed" Value="حالا با نصب اقدام کند؟" />
+
     <!---->
+
     <String Id="WarnTAPDevicesDlg_Header" Value="رابط های میزبان" />
     <String Id="WarnTAPDevicesDlg_Desc" Value="اگر در نسخه قبلی برخی رابط میزبان برای ماشین خود استفاده کرده اید،شما باید آنها را دستی بعد از این نصب مجددا ایجاد کنید." />
+
     <!---->
+
     <String Id="NetCfgLocked" Value="قبل از ادامه نصب برنامه زیر باید بسته شود: &quot;[2]&quot;" />
+
     <!---->
+
     <String Id="CustomizeDlg_Location" Value="مكان:" />
     <String Id="CustomizeDlg_DiskUsage" Value="&amp;مصرف دیسک" />
     <String Id="CustomizeDlg_SelFeatures" Value="روشی را که میخواهید ویژگی ها نصب شود انتخاب کنید." />
@@ -107,67 +134,95 @@
     <String Id="CustomizeDlg_SelItemDesc" Value="CustomizeDlgItemDescription-CustomizeDlgItemDescription" />
     <String Id="CustomizeDlg_SelItemSize" Value="CustomizeDlgItemSize-CustomizeDlgItemSize" />
     <String Id="CustomizeDlg_SelItemPath" Value="CustomizeDlgLocation-CustomizeDlgLocation" />
+
     <!---->
+
     <String Id="Customize2Dlg_Header" Value="سفارشی" />
     <String Id="Customize2Dlg_Desc" Value="لطفاً از گزینه های زیر انتخاب کنید:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Create start menu entries" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="ایجاد یک میانبر روی دسکتاپ" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="ثبت نام انجمن فایل" />
+
     <!---->
+
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Please choose which type of network drivers you will use:" />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="NDIS6 network drivers.&#xA;This is default for newer versions of Windows (Vista and newer)." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Use NDIS6 network drivers." />
+
     <!---->
+
     <String Id="WarnDisconNetIfacesDlg_Title" Value="هشدار:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="رابط های شبکه" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="نصب ویژگی شبکه [ProductName] ارتباط شبکه شما را ریست خواهد کرد و موقتا ارتباط شما قطع خواهد شد." />
     <String Id="WarnDisconNetIfacesDlg_Question" Value="حالا با نصب اقدام کند؟" />
+
     <!---->
+
     <String Id="WarnPythonDlg_Title" Value="Missing Dependencies" />
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
     <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
     <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
+
     <!---->
+
     <String Id="DiskCostDlg_SpaceRequired" Value="فضای دیسک موردنیاز برای نصب ویژگی های انتخاب شده." />
     <String Id="DiskCostDlg_NotEnoughSpace" Value="درایوهای برجسته شده(اگر وجود دارد) فضای دیسک کافی برای ویژگی های انتخاب شده ندارد.شما میتوانید تعدادی فایل از درایو برجسته شده حذف کنید، یا ویژگی های کمتری برای نصب در درایو محلی انتخاب کنید یا درایو مقصد متفاوتی انتخاب کنید." />
     <String Id="DiskCostDlg_SpaceRequirements" Value="فضای دیسک موردنیاز" />
     <String Id="DiskCostDlg_VolumeList" Value="{120}{70}{70}{70}{70}" />
+
     <!---->
+
     <String Id="BrowseDlg_BrowseDestFolder" Value="پوشه مقصد را انتخاب کنید" />
     <String Id="BrowseDlg_ChangeCurFolder" Value="تغییر پوشه نصب فعلی" />
     <String Id="BrowseDlg_UpOneLevelTooltip" Value="یک مرحله قبل" />
     <String Id="BrowseDlg_CreateNewFolderTooltip" Value="ایجاد یک پوشه جدید" />
     <String Id="BrowseDlg_LookIn" Value="&amp;نصب در:" />
     <String Id="BrowseDlg_FolderName" Value="&amp;نام پوشه:" />
+
     <!---->
+
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="برنامه راه انداز آماده شروع نصب [InstallMode] هست." />
     <String Id="VerifyReadyDlg_ClickInstall" Value="برای شروع &quot;نصب&quot; را کلیک کنید.  اگر میخواهید هرگونه از تنظیمات نصب را بازبینی یا تغییر دهید، روی &quot;قبلی&quot; کلیک کنید.  روی &quot;لغو&quot; برای خروج از ویزارد کلیک کنید" />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="آماده براي نصب" />
+
     <!---->
+
     <String Id="ExitDlg_ClickFinish" Value="روی دکمه پایان برای خروج از ویزارد نصب کلیک کنید." />
     <String Id="ExitDlg_InstComplete" Value="نصب [ProductName] کامل شد." />
     <String Id="ExitDlg_StartVBox" Value="بعداز نصب، [ProductName] اِجرا شود" />
+
     <!---->
+
     <String Id="FatalErrorDlg_Title" Value="[ProductName] Setup Wizard ended prematurely" />
     <String Id="FatalErrorDlg_Description1" Value="Please reboot and try again by re-running the (un)installation." />
     <String Id="FatalErrorDlg_Description2" Value="Alternatively, consult the forums or the documentation of [ProductName]." />
     <String Id="FatalErrorDlg_DescLogOpen" Value="Open Log File" />
     <String Id="FatalErrorDlg_DescLogPath" Value="The log file was written to:" />
+
     <!---->
+
     <String Id="FilesInUse_Text" Value="برنامه های زیر از فایل هایی که نیاز به بروزرسانی دارند استفاده میکنند. شما میتوانید برنامه را ببندید و روی &quot;دوباره&quot; کلیک کنید، با روی &quot;لغو&quot; برای خروج از آن کلیک کنید." />
     <String Id="FilesInUse_Description" Value="بعضی از فایل هایی که نیاز به بروزرسانی دارند اکنون درحال استفاده است." />
     <String Id="FilesInUse_Title" Value="فایل در حال استفاده" />
+
     <!---->
+
     <String Id="UserExitDlg_Header" Value="نصب [ProductName] قطع شده است" />
     <String Id="UserExitDlg_Desc" Value="نصب [ProductName] قطع شده است.  سیستم شما تغییرنیافته است.  برای نصب دوباره این برنامه،لطفا فایل راه اندازی را دوباره اجرا کنید." />
     <String Id="UserExitDlg_Footer" Value="روی دکمه پایان برای خروج از ویزارد نصب کلیک کنید." />
+
     <!---->
+
     <String Id="ProgressDlg_PleaseWait" Value="لطفا تا زمانیکه [ProductName]  نصب میشود،منتظر بمانید. شاید چنددقیقه طول بکشد." />
+
     <!---->
+
     <String Id="ResumeDlg_Header" Value="ادامه ویزارد نصب [ProductName]" />
     <String Id="ResumeDlg_Desc" Value="ویزارد، نصب [ProductName] را در رایانه شما کامل خواهد کرد.  روی نصب برای ادامه یا روی لغو برای خروج از ویزارد کلیک کنید." />
+
     <!---->
+
     <String Id="MaintenanceTypeDlg_Header" Value="تغییر، تعمیر یا حذف نصب" />
     <String Id="MaintenanceTypeDlg_SelOption" Value="عملکردی را که میخواهید اجرا کنید انتخاب کنید." />
     <String Id="MaintenanceTypeDlg_Repair" Value="&amp;تعمیر" />
@@ -180,34 +235,49 @@
     <String Id="MaintenanceTypeDlg_RemoveTooltip" Value="حذف نصب" />
     <String Id="MaintenanceTypeDlg_RemoveProgress1" Value="حذف" />
     <String Id="MaintenanceTypeDlg_RemoveProgress2" Value="حذف" />
+
     <!---->
+
     <String Id="MaintenanceWelcomeDlg_Header" Value="به برنامه نصب [ProductName] خوش آمدید" />
     <String Id="MaintenanceWelcomeDlg_Desc" Value="ویزارد راه انداز به شما اجازه تعمیر نصب فعلی یا حذف [ProductName] را از رایانه میدهد. روی بعدی برای ادامه یا روی لغو برای خروج از ویزارد راه انداز کلیک کنید." />
+
     <!---->
+
     <String Id="OutOfDiskDlg_InstallationExceeds" Value="فضای دیسک موردنیاز برای نصب از فضای دیسک موجود تجاوز کرده است." />
     <String Id="OutOfDiskDlg_NotEnoughDiskSpace" Value="درایوهای برجسته شده فضای دیسک کافی برای ویژگی های انتخاب شده ندارد.شما میتوانید تعدادی فایل از درایو برجسته شده حذف کنید، یا ویژگی های کمتری برای نصب در درایو محلی انتخاب کنید یا درایو مقصد متفاوتی انتخاب کنید." />
     <String Id="OutOfDiskDlg_OutOfDiskSpace" Value="فضای دیسک کم است" />
+
     <!---->
+
     <String Id="OutOfRbDiskDlg_InstallationExceeds" Value="فضای دیسک موردنیاز برای نصب از فضای دیسک موجود تجاوز کرده است." />
     <String Id="OutOfRbDiskDlg_NotEnoughDiskSpace" Value="درایوهای برجسته شده فضای دیسک کافی برای ویژگی های انتخاب شده ندارد.شما میتوانید تعدادی فایل از درایو برجسته شده حذف کنید، یا ویژگی های کمتری برای نصب در درایو محلی انتخاب کنید یا درایو مقصد متفاوتی انتخاب کنید." />
     <String Id="OutOfRbDiskDlg_OutOfDiskSpace" Value="فضای دیسک کم است" />
     <String Id="OutOfRbDiskDlg_Desc" Value="متناوبا، شما میتوانید قابلیت بازگشت به عقب ایستالر را غیر فعال کنید.  این به شما اجازه بازگرداندن رایانه به حالت اصلی در هر جا که نصب قطع شده را میدهد.  اگر این ریسک را قبول میکنید روی بله کلیک کنید." />
+
     <!---->
+
     <String Id="VerifyRemoveDlg_Header" Value="حذف [ProductName]" />
     <String Id="VerifyRemoveDlg_Desc" Value="شما حذف برنامه از رایانه را انتخاب کرده اید." />
     <String Id="VerifyRemoveDlg_ClickRemove" Value="روی &quot;حذف&quot; برای حذف [ProductName] از رایانه کلیک کنید.  اگر میخواهید هرگونه از تنظیمات نصب را بازبینی یا تغییر دهید، روی &quot;قبلی&quot; کلیک کنید.  روی &quot;لغو&quot; برای خروج از ویزارد کلیک کنید." />
+
     <!---->
+
     <String Id="VerifyRepairDlg_Header" Value="تعمیر [ProductName]" />
     <String Id="VerifyRepairDlg_ReadyToBegin" Value="ویزارد آماده شروع تعمیر [ProductName] هست." />
     <String Id="VerifyRepairDlg_ClickRepair" Value="روی &quot;تعمیر&quot; برای تعمیر نصب [ProductName] کلیک کنید.  اگر میخواهید هرگونه از تنظیمات نصب را بازبینی یا تغییر دهید، روی &quot;قبلی&quot; کلیک کنید.  روی &quot;لغو&quot; برای خروج از ویزارد کلیک کنید." />
+
     <!---->
+
     <String Id="WaitForCostingDlg_PleaseWait" Value="لطفا تا زمانیکه اینستالر فضای دیسک موردنیاز را تشخیص دهد منتظر بمانید." />
+
     <!---->
+
     <String Id="MsiRMFilesInUse_Text" Value="برنامه های زیر از فایل هایی که نیاز به بروزرسانی دارند استفاده میکنند. شما میتوانید بگذارید برنامه آنها را ببندد و سعی کند آنها را ریستارت کند یا این ماشین را در بعد ریستارت کند." />
     <String Id="MsiRMFilesInUse_Description" Value="بعضی از فایل هایی که نیاز به بروزرسانی دارند اکنون درحال استفاده است." />
     <String Id="MsiRMFilesInUse_Title" Value="فایل در حال استفاده" />
     <String Id="MsiRMFilesInUse_UseRM" Value="&amp;برنامه ها را ببندید و سعی کنید آنها را ریستارت کنید" />
     <String Id="MsiRMFilesInUse_DontUseRM" Value="&amp;برنامه ها را نبندید.یک ریستارت نیاز است." />
+
     <!-- The following strings are internally used by WiX and MSI -->
     <String Id="Error0" Value="{{خطای مهلک: }}" />
     <String Id="Error1" Value="{{خطا [1]. }}" />
@@ -367,6 +437,7 @@
     <String Id="Error1933" Value="سرویس ویندوز اینستالر نمیتواند یک یا تعداد بیشتری از فایل های حافظت شده را بروزرسانی کند. {{SFP استرینگ: [2].  لیست فایل های حافظت شده:\r\n[3]}}" />
     <String Id="Error1934" Value="نصب کاربر در این ماشین توسط سیاست غیرفعال شده است." />
     <String Id="Error1935" Value="یک خطا حین نصب مولفه اسمبلی [2] رخ داد. HRESULT: [3]. {{رابط اسمبلی: [4], تابع: [5], نام اسمبلی: [6]}}" />
+
     <!-- Own / special errors -->
     <String Id="Error25001" Value="برنامه &quot;[2]&quot; برای ادامه نصب باید بسته شود." />
     <String Id="ProgressTextInstallValidate" Value="معتبرسازی نصب" />

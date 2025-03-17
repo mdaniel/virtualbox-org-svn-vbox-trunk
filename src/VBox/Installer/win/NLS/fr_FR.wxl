@@ -70,7 +70,6 @@
     <String Id="WrongOS" Value="[ProductName] nécéssite Windows 10 ou plus récent." />
     <String Id="Only64Bit" Value="[ProductName] ne marche que sur des systèmes Windows 64-bit." />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-	<String Id="InnotekFound" Value="Vous avez une ancienne installation de innotek VirtualBox sur cette machine. Il vous faudra la désinstaller avant de pouvoir installer [ProductName]." />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 
     <!---->
@@ -121,6 +120,10 @@
 
     <!---->
 
+    <String Id="NetCfgLocked" Value="The following application should be closed before continuing the install: &quot;[2]&quot;" />
+
+    <!---->
+
     <String Id="CustomizeDlg_Location" Value="Location:" />
     <String Id="CustomizeDlg_DiskUsage" Value="&amp;Espace disque" />
     <String Id="CustomizeDlg_SelFeatures" Value="Choisissez les fonctionnalités que vous souhaiter installer." />
@@ -149,7 +152,6 @@
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Avertissement" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="Interfaces réseau" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="L'installation de la fonctionnalité réseau de [ProductName] réinitialisera votre connection réseau et vous déconnectera temporairement du réseau." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Désirez-vous poursuivre l'installation maintenant?" />
 
     <!---->
 
@@ -157,7 +159,6 @@
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
     <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
-    <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
 
     <!---->
 
@@ -178,7 +179,6 @@
     <!---->
 
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="L'assistant est prêt à commencer l'installation [InstallMode]." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Appuyez sur Installer pour commencer l'installation. Si vous désirez revoir ou modifier vos paramètres d'installation, appuyez sur Précédent. Appuyez sur Annuler pour abondoner l'installation." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Prêt à installer" />
 
     <!---->
@@ -277,8 +277,10 @@
     <String Id="Error0" Value="{{Erreur irrécupérable : }}" />
     <String Id="Error1" Value="{{Erreur [1]. }}" />
     <String Id="Error2" Value="Avertissement [1]." />
+    <String Id="Error3" Value="Error [1]." />
     <String Id="Error4" Value="Informations [1]." />
     <String Id="Error5" Value="Le programme d'installation a rencontré une erreur inattendue lors de l'installation de ce package. Il s'agit peut-être d'un problème lié au package. Le code d'erreur est [1]. {{Les arguments sont : [2], [3], [4]}}" />
+    <String Id="Error6" Value="" />
     <String Id="Error7" Value="{{Disque plein : }}" />
     <String Id="Error8" Value="Action [Time] : [1]. [2]" />
     <String Id="Error9" Value="[ProductName]" />
@@ -388,8 +390,6 @@
     <String Id="Error1728" Value="Configuration effectuée." />
     <String Id="Error1729" Value="Échec de la configuration." />
     <String Id="Error1730" Value="Vous devez être administrateur pour supprimer cette application. Pour la supprimer, ouvrez une session en tant qu'administrateur ou contactez votre service de support technique pour assistance." />
-    <String Id="Error1731" Value="Le package d'installation source pour le produit [2] n'est pas synchronisé avec le package client. Réessayez l'installation en utilisant une copie valide du package d'installation '[3]'." />
-    <String Id="Error1732" Value="Vous devez redémarrer l'ordinateur afin de terminer l'installation du produit [2]. D'autres utilisateurs sont actuellement connectés à cet ordinateur et le redémarrer pourrait causer la perte de leurs données. Voulez-vous redémarrer maintenant ?" />
     <String Id="Error1801" Value="Le chemin d'accès [2] n'est pas valide. Spécifiez un chemin d'accès valide." />
     <String Id="Error1802" Value="Mémoire insuffisante. Fermez les autres applications avant de recommencer." />
     <String Id="Error1803" Value="Le lecteur [2] est vide. Insérez un disque et cliquez sur Réessayer, ou cliquez sur Annuler pour revenir au volume sélectionné précédemment." />
@@ -432,9 +432,6 @@
     <String Id="Error1933" Value="Le service Windows Installer ne peut pas mettre à jour certains fichiers Windows protégés. {{Erreur SFP : [2]. Liste des fichiers protégés :\r\n[3]}}" />
     <String Id="Error1934" Value="Les installations utilisateurs sont désactivées par la stratégie en vigueur sur cet ordinateur." />
     <String Id="Error1935" Value="Une erreur s'est produite lors de l'installation de l'assembly '[6]'. Reportez-vous à l'aide et au support pour plus d'informations. HRESULT : [3]. {{interface d'assembly : [4], fonction : [5], composant : [2]}}" />
-    <String Id="Error1936" Value="Une erreur s'est produite lors de l'installation de l'assembly '[6]'. L'assembly n'a pas un nom fort et n'est pas signé avec une longueur de clé minimale. HRESULT : [3]. {{interface de l'assembly : [4], fonction : [5], composant: [2]}}" />
-    <String Id="Error1937" Value="Une erreur s'est produite lors de l'installation de l'assembly '[6]'. La signature ou le catalogue n'a pas pu être vérifié ou n'est pas valide. HRESULT : [3]. {{interface d'assembly : [4], fonction : [5], composant : [2]}}" />
-    <String Id="Error1938" Value="Une erreur s'est produite lors de l'installation de l'assembly '[6]'. Un ou plusieurs des modules de l'assembly sont introuvables. HRESULT : [3]. {{interface d'assembly : [4], fonction : [5], composant : [2]}}" />
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="L'application &quot;[2]&quot; doit être fermée pour que l'installation puisse continuer." />

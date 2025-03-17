@@ -70,8 +70,6 @@
     <String Id="WrongOS" Value="[ProductName] τρέχει μόνο σε Windows 10 ή παραπάνω." />
     <String Id="Only64Bit" Value="[ProductName] τρέχει μόνο σε συστήματα Windows 64 bit." />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-    <String Id="SunFound" Value="Βρέθηκε μία παλιότερη εγκατάσταση του Sun VirtualBox στον υπολογιστή. Καταργήστε πρώτα την εγκατάσταση αυτού του πακέτου και μετά εγκαταστήστε το [ProductName]!" />
-    <String Id="InnotekFound" Value="Βρέθηκε μία παλιότερη εγκατάσταση του innotek VirtualBox στον υπολογιστή. Καταργήστε πρώτα την εγκατάσταση αυτού του πακέτου και μετά εγκαταστήστε το [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]." />
 
     <!---->
@@ -154,7 +152,6 @@
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Προειδοποίηση:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="Κάρτες Δικτύου" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="Η εγκατάσταση των χαρακτηριστικών δικτύου [ProductName] θα επαναφέρει τη σύνδεση δικτύου σας και θα σας αποσυνδέσει προσωρινά από το δίκτυο." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Συνέχιση της εγκατάστασης;" />
 
     <!---->
 
@@ -162,7 +159,6 @@
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
     <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
-    <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
 
     <!---->
 
@@ -183,7 +179,6 @@
     <!---->
 
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="Ο Οδηγός Εγκατάστασης είναι έτοιμος να ξεκινήσει την [InstallMode] εγκατάσταση." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Κάντε κλικ στο κουμπί &quot;Εγκατάσταση&quot; για να ξεκινήσετε την εγκατάσταση. Αν θέλετε να αναθεωρήσετε ή να αλλάξετε κάποια από τις ρυθμίσεις εγκατάστασης, κάντε κλικ στο κουμπί &quot;Πίσω&quot;. Κάντε κλικ στο κουμπί &quot;Άκυρο&quot; για έξοδο από τον οδηγό." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Έτοιμο για εγκατάσταση" />
 
     <!---->
@@ -395,8 +390,6 @@
     <String Id="Error1728" Value="Η ρύθμιση παραμέτρων ολοκληρώθηκε με επιτυχία." />
     <String Id="Error1729" Value="Η ρύθμιση παραμέτρων απέτυχε." />
     <String Id="Error1730" Value="Πρέπει να είστε διαχειριστής, για να καταργήσετε αυτή την εφαρμογή. Για την κατάργησή της θα πρέπει να συνδεθείτε στον υπολογιστή ως διαχειριστής ή να ζητήσετε βοήθεια από την ομάδα τεχνικής υποστήριξης." />
-    <String Id="Error1731" Value="Το πακέτο εγκατάστασης του αρχείου προέλευσης για το προϊόν [2] είναι εκτός συγχρονισμού με το πακέτο του προγράμματος-πελάτη. Επιχειρήστε εκ νέου εγκατάσταση χρησιμοποιώντας ένα έγκυρο αντίγραφο του πακέτου εγκατάστασης '[3]'." />
-    <String Id="Error1732" Value="Για να ολοκληρωθεί η εγκατάσταση του [2], πρέπει να κάνετε επανεκκίνηση του υπολογιστή. Αυτήν τη στιγμή είναι συνδεδεμένοι άλλοι χρήστες σε αυτόν τον υπολογιστή και με την επανεκκίνηση μπορεί να χάσουν τις εργασίες τους. Θέλετε να κάνετε επανεκκίνηση τώρα;" />
     <String Id="Error1801" Value="Η διαδρομή [2] δεν είναι έγκυρη.  Καθορίστε μια έγκυρη διαδρομή." />
     <String Id="Error1802" Value="Η μνήμη δεν επαρκεί. Τερματίστε τις άλλες εφαρμογές προτού προσπαθήσετε ξανά." />
     <String Id="Error1803" Value="Δεν υπάρχει δίσκος στη μονάδα δίσκου [2]. Τοποθετήστε ένα δίσκο και κάντε κλικ στο κουμπί &quot;Επανάληψη&quot; ή στο κουμπί &quot;Άκυρο&quot; για να επιστρέψετε στον τόμο που είχε επιλεγεί προηγουμένως." />
@@ -439,9 +432,6 @@
     <String Id="Error1933" Value="Η υπηρεσία Windows Installer δεν μπορεί να ενημερώσει ένα ή περισσότερα προστατευμένα αρχεία των Windows. {{Σφάλμα SFP: [2]. Λίστα προστατευμένων αρχείων:\r\n[3]}}" />
     <String Id="Error1934" Value="Οι εγκαταστάσεις χρηστών είναι απενεργοποιημένες μέσω πολιτικής στον υπολογιστή." />
     <String Id="Error1935" Value="Παρουσιάστηκε σφάλμα κατά την εγκατάσταση της συγκρότησης &quot;[6]&quot;. Ανατρέξτε στη Βοήθεια και Υποστήριξη για περισσότερες πληροφορίες. HRESULT: [3]. {{διασύνδεση συγκρότησης: [4], λειτουργία: [5], στοιχείο: [2]}}" />
-    <String Id="Error1936" Value="Παρουσιάστηκε σφάλμα κατά την εγκατάσταση της συγκρότησης &quot;[6]&quot;. Η συγκρότηση δεν έχει ισχυρό όνομα ή δεν διαθέτει υπογραφή με το ελάχιστο μήκος κλειδιού. HRESULT: [3]. {{διασύνδεση συγκρότησης: [4], λειτουργία: [5], στοιχείο: [2]}}" />
-    <String Id="Error1937" Value="Παρουσιάστηκε σφάλμα κατά την εγκατάσταση της συγκρότησης &quot;[6]&quot;. Η υπογραφή ή ο κατάλογος δεν ήταν δυνατό να επαληθευτούν ή δεν είναι έγκυρα. HRESULT: [3]. {{διασύνδεση συγκρότησης: [4], λειτουργία: [5], στοιχείο: [2]}}" />
-    <String Id="Error1938" Value="Παρουσιάστηκε σφάλμα κατά την εγκατάσταση της συγκρότησης &quot;[6]&quot;. Μία ή περισσότερες λειτουργικές μονάδες της συγκρότησης δεν ήταν δυνατό να βρεθούν. HRESULT: [3]. {{διασύνδεση συγκρότησης: [4], λειτουργία: [5], στοιχείο: [2]}}" />
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="Η εφαρμογή &quot;[2]&quot; πρέπει να κλείσει για να συνεχιστεί η εγκατάσταση." />
@@ -644,4 +634,5 @@
     <String Id="UITextVolumeCostRequired" Value="Απαιτούμενο" />
     <String Id="UITextVolumeCostSize" Value="Μέγεθος δίσκου" />
     <String Id="UITextVolumeCostVolume" Value="Τόμος" />
+
 </WixLocalization>

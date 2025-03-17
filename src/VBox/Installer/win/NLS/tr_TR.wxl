@@ -23,7 +23,7 @@
     SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Codepage="1254" Culture="tr_TR">
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="tr_TR" Codepage="1254">
     <String Id="LANG" Value="1055" />
     <String Id="CODEPAGE" Value="1254" />
     <String Id="LangName" Value="Türkçe" />
@@ -70,8 +70,6 @@
     <String Id="WrongOS" Value="[ProductName] yalnızca Windows 10 veya üzerinde çalışır." />
     <String Id="Only64Bit" Value="[ProductName] yalnızca 64-bit Windows sistemlerinde çalışır." />
 	<String Id="WrongPlatformArch" Value="[ProductName] uygulamasının bu sürümü farklı bir platform mimarisi için geliştirilmiştir ve bu nedenle yüklenemez. Lütfen [ProductName] uygulamasının eşleşen bir sürümünü yükleyin!" />
-	<String Id="SunFound" Value="Bu makinede eski bir Sun VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve ardından [ProductName] uygulamasını yükleyin!" />
-    <String Id="InnotekFound" Value="Bu makinede eski bir innotek VirtualBox kurulumu bulundu. Lütfen önce bu paketi kaldırın ve ardından [ProductName] uygulamasını yükleyin!" />
     <String Id="InvalidTargetDir" Value="Geçersiz kurulum dizini belirtildi! [ProductName] uygulamasını yüklemek için lütfen başka bir kurulum dizini kullanın. Daha fazla bilgi için [ProductName] kılavuzuna bakın." />
 
     <!---->
@@ -154,7 +152,6 @@
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Uyarı:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="Ağ Arayüzleri" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="[ProductName] Ağ Oluşturma özelliğini yüklemek ağ bağlantınızı sıfırlayacak ve geçici olarak ağdan bağlantınızı kesecektir." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Şimdi kuruluma devam edilsin mi?" />
 
     <!---->
 
@@ -162,7 +159,6 @@
     <String Id="WarnPythonDlg_Title2" Value="Python Çekirdeği / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="[ProductName] Python bağlamalarının yüklenmesi, önce Python Çekirdek paketinin ve win32api bağlamalarının yüklenmesini gerektirir." />
     <String Id="WarnPythonDlg_Desc2" Value="[ProductName] Python bağlamalarının kurulumuna şimdi devam ederken, bunların daha sonra el ile ayarlanması gerekir. Daha fazla bilgi için [ProductName] SDK kılavuzuna bakın." />
-    <String Id="WarnPythonDlg_Question" Value="Kuruluma şimdi devam edilsin mi?" />
 
     <!---->
 
@@ -183,7 +179,6 @@
     <!---->
 
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="Kur Sihirbazı, [InstallMode] kurulumuna başlamak için hazır." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Kuruluma başlamak için Yükle'ye tıklayın. Eğer herhangi bir kurulum ayarınızı gözden geçirmek veya değiştirmek istiyorsanız, Geri'ye tıklayın. Sihirbazdan çıkmak için İptal'e tıklayın." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Yüklemek için hazır" />
 
     <!---->

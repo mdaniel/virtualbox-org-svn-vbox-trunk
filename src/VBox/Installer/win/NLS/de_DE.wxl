@@ -70,8 +70,6 @@
     <String Id="WrongOS" Value="[ProductName] läuft nur auf Windows 10 oder höher!" />
     <String Id="Only64Bit" Value="[ProductName] läuft nur auf 64-bit Windows-Systemen." />
 	<String Id="WrongPlatformArch" Value="Diese Version von [ProductName] wurde für eine andere Plattform-Architektur entwickelt und kann daher nicht installiert werden. Bitte die passende Version für [ProductName] installieren!" />
-    <String Id="SunFound" Value="Eine alte Sun Version von VirtualBox wurde auf diesem Computer gefunden. Bitte deinstallieren Sie diese Version zuerst. Danach können Sie [ProductName] installieren!" />
-    <String Id="InnotekFound" Value="Eine alte innotek Version von VirtualBox wurde auf diesem Computer gefunden. Bitte deinstallieren Sie diese Version zuerst. Danach können Sie [ProductName] installieren!" />
     <String Id="InvalidTargetDir" Value="Ungültiges Installationsverzeichnis angegeben. Bitte ein anderes Installationsverzeichnis wählen, um [ProductName] zu installieren. Für mehr Informationen bitte im [ProductName] Handbuch nachschlagen." />
 
     <!---->
@@ -122,6 +120,10 @@
 
     <!---->
 
+    <String Id="NetCfgLocked" Value="La seguente applicazione dovrebbe essere chiusa prima di procedere con l'installazione: &quot;[2]&quot;" />
+
+    <!---->
+
     <String Id="CustomizeDlg_Location" Value="Ort:" />
     <String Id="CustomizeDlg_DiskUsage" Value="Speicherplatz" />
     <String Id="CustomizeDlg_SelFeatures" Value="Wählen Sie die Installationsart der Features aus." />
@@ -150,7 +152,6 @@
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Warnung:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="Netzwerkschnittstellen" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="Beim Installieren des [ProductName] Netzwerk-Features wird die Netzwerkverbindung unterbrochen und der Computer somit temporär vom Netzwerk getrennt." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Jetzt mit der Installation fortfahren?" />
 
     <!---->
 
@@ -158,7 +159,6 @@
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Um die [ProductName] Python-Unterstützung zu installieren, werden Python Core als auch das win32api-Paket benötigt." />
     <String Id="WarnPythonDlg_Desc2" Value="Wenn nun mit der Installation der [ProductName] Python-Unterstützung fortgefahren wird, muss diese später manuell eingerichtet werden. Bitte dazu im SDK-Handbuch für mehr Informationen nachschlagen." />
-    <String Id="WarnPythonDlg_Question" Value="Jetzt mit der Installation fortfahren?" />
 
     <!---->
 
@@ -179,7 +179,6 @@
     <!---->
 
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="Der Assistent ist nun bereit die Installationsart &quot;[InstallMode]&quot; zu installieren." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Klicken Sie auf &quot;Installieren&quot;, um mit der Installation zu beginnen. Klicken Sie auf &quot;Zurück&quot;, um die Installationseinstellungen zu überprüfen oder zu ändern." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Bereit zum Installieren" />
 
     <!---->
@@ -278,8 +277,10 @@
     <String Id="Error0" Value="{{Schwerwiegender Fehler: }}" />
     <String Id="Error1" Value="{{Fehler [1]. }}" />
     <String Id="Error2" Value="Warnung [1]." />
+    <String Id="Error3" />
     <String Id="Error4" Value="Information [1]." />
     <String Id="Error5" Value="Bei der Installation dieses Pakets ist ein unerwarteter Fehler aufgetreten. Es liegt eventuell ein das Paket betreffendes Problem vor. Der Fehlercode ist [1]. {{Argumente: [2], [3], [4]}}" />
+    <String Id="Error6" />
     <String Id="Error7" Value="{{Datenträger voll: }}" />
     <String Id="Error8" Value="Aktion [Time]: [1]. [2]" />
     <String Id="Error9" Value="[ProductName]" />
@@ -389,8 +390,6 @@
     <String Id="Error1728" Value="Die Konfiguration wurde erfolgreich abgeschlossen." />
     <String Id="Error1729" Value="Die Konfiguration ist fehlgeschlagen." />
     <String Id="Error1730" Value="Sie müssen über Administratorrechte verfügen, um diese Anwendung entfernen zu können. Melden Sie sich als Administrator an, oder wenden Sie sich an den technischen Support, um Unterstützung zu erhalten." />
-    <String Id="Error1731" Value="Das Quellinstallationspaket für das Produkt [2] stimmt nicht mehr mit dem Clientpaket überein. Wiederholen Sie die Installation mit einer gültigen Kopie des Installationspakets &quot;[3]&quot;." />
-    <String Id="Error1732" Value="Sie müssen den Computer neu starten, um die Installation von [2] abzuschließen. Andere Benutzer sind momentan an diesem Computer angemeldet, und ein Neustart könnte unter Umständen dazu führen, dass Änderungen nicht gespeichert werden. Möchten Sie den Computer jetzt neu starten?" />
     <String Id="Error1801" Value="Der Pfad [2] ist ungültig. Geben Sie einen gültigen Pfad an." />
     <String Id="Error1802" Value="Nicht genügend Arbeitsspeicher. Beenden Sie andere Anwendungen, und wiederholen Sie den Vorgang." />
     <String Id="Error1803" Value="In Laufwerk [2] ist kein Datenträger eingelegt. Legen Sie einen Datenträger ein und klicken Sie auf &quot;Wiederholen&quot;, oder klicken Sie auf &quot;Abbrechen&quot;, um zu dem zuvor ausgewählten Volume zurückzukehren." />
@@ -433,9 +432,6 @@
     <String Id="Error1933" Value="Eine oder mehrere geschützte Windows-Dateien konnten nicht aktualisiert werden {{SFP-Fehler: [2]. Liste der geschützten Dateien:\r\n[3]}}" />
     <String Id="Error1934" Value="Benutzerinstallationen sind über die Computerrichtlinie deaktiviert." />
     <String Id="Error1935" Value="Fehler während der Installation von Assembly &quot;[6]&quot;. Rufen Sie die Hilfe auf, oder wenden Sie sich an den Support. HRESULT: [3]. {{Assemblyschnittstelle: [4], Funktion: [5], Komponente: [2]}}" />
-    <String Id="Error1936" Value="Fehler während der Installation von Assembly &quot;[6]&quot;. Die Assembly hat entweder keinen sicheren Namen, oder sie wurde nicht mit der Mindestschlüssellänge signiert. HRESULT: [3]. {{Assemblyschnittstelle: [4], Funktion: [5], Komponente: [2]}}" />
-    <String Id="Error1937" Value="Fehler während der Installation von Assembly &quot;[6]&quot;. Die Signatur oder der Katalog konnten nicht überprüft werden oder sind ungültig. HRESULT: [3]. {{Assemblyschnittstelle: [4], Funktion: [5], Komponente: [2]}}" />
-    <String Id="Error1938" Value="Fehler während der Installation der Assembly &quot;[6]&quot;. Ein oder mehrere Module der Assembly wurden nicht gefunden. HRESULT: [3]. {{Assemblyschnittstelle: [4], Funktion: [5], Komponente: [2]}}" />
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="Die Applikation &quot;[2]&quot; muss geschlossen werden um die Installation fortsetzen zu können." />

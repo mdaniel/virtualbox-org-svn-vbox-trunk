@@ -23,8 +23,9 @@
     SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Codepage="1252" Culture="en_US">
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en_US" Codepage="1252">
     <String Id="LANG" Value="1033" />
+    <String Id="CODEPAGE" Value="1252" />
     <String Id="LangName" Value="English" />
 
     <String Id="ButtonText_No" Value="&amp;No" />
@@ -69,8 +70,6 @@
     <String Id="WrongOS" Value="[ProductName] only runs on Windows 10 or above." />
     <String Id="Only64Bit" Value="[ProductName] only runs on 64-bit Windows systems." />
     <String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-    <String Id="SunFound" Value="An old Sun VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
-    <String Id="InnotekFound" Value="An old innotek VirtualBox installation has been found on this machine. Please uninstall this package first and then install [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 
     <!---->
@@ -179,7 +178,7 @@
 
     <!---->
 
-    <String Id="VerifyReadyDlg_ClickInstall" Value="The installation process will take several minutes" />
+    <String Id="VerifyReadyDlg_ReadyToBegin" Value="Ready to install the installation type &quot;[InstallMode]&quot;." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Ready to Install" />
 
     <!---->
@@ -436,6 +435,7 @@
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="The application &quot;[2]&quot; needs to be closed for the installation to continue." />
+
     <String Id="ProgressTextInstallValidate" Value="Validating install" />
     <String Id="ProgressTextInstallFiles" Value="Copying new files" />
     <String Id="ProgressTextInstallFilesTemplate" Value="File: [1],  Directory: [9],  Size: [6]" />

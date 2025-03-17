@@ -70,8 +70,6 @@
     <String Id="WrongOS" Value="این برنامه فقط در ویندوز ایکس پی یا بالاتر اِجرا میشود." />
     <String Id="Only64Bit" Value="این برنامه فقط روی ویندوز 64 بیتی اِجرا میشود. لطفا نسخه 32 بیتی [ProductName] را نصب کنید!" />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-    <String Id="SunFound" Value="یک نصب قدیمی ویرچوال باکس روی این رایانه یافت شد. لطفا اول این بسته را حذف سپس [ProductName] را نصب کنید!" />
-    <String Id="InnotekFound" Value="یک نسخه قدیمی نصب ویرچوال باکس در این ماشین یافت شد. لطفا اول این بسته را حذف و سپس [ProductName] را نصب کنید!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
 
     <!---->
@@ -154,7 +152,6 @@
     <String Id="WarnDisconNetIfacesDlg_Title" Value="هشدار:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="رابط های شبکه" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="نصب ویژگی شبکه [ProductName] ارتباط شبکه شما را ریست خواهد کرد و موقتا ارتباط شما قطع خواهد شد." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="حالا با نصب اقدام کند؟" />
 
     <!---->
 
@@ -162,7 +159,6 @@
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
     <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
-    <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
 
     <!---->
 
@@ -183,7 +179,6 @@
     <!---->
 
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="برنامه راه انداز آماده شروع نصب [InstallMode] هست." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="برای شروع &quot;نصب&quot; را کلیک کنید.  اگر میخواهید هرگونه از تنظیمات نصب را بازبینی یا تغییر دهید، روی &quot;قبلی&quot; کلیک کنید.  روی &quot;لغو&quot; برای خروج از ویزارد کلیک کنید" />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="آماده براي نصب" />
 
     <!---->
@@ -440,6 +435,7 @@
 
     <!-- Own / special errors -->
     <String Id="Error25001" Value="برنامه &quot;[2]&quot; برای ادامه نصب باید بسته شود." />
+
     <String Id="ProgressTextInstallValidate" Value="معتبرسازی نصب" />
     <String Id="ProgressTextInstallFiles" Value="کپی فایل های جدید" />
     <String Id="ProgressTextInstallFilesTemplate" Value="فایل: [1],  دایرکتوری: [9],  حجم: [6]" />
@@ -638,4 +634,5 @@
     <String Id="UITextVolumeCostRequired" Value="موردنیاز" />
     <String Id="UITextVolumeCostSize" Value="حجم دیسک" />
     <String Id="UITextVolumeCostVolume" Value="درایو" />
+
 </WixLocalization>

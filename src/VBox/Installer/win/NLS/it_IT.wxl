@@ -44,61 +44,86 @@
     <String Id="ButtonText_Retry" Value="Ri&amp;prova" />
     <String Id="ButtonText_Ignore" Value="I&amp;gnora" />
     <String Id="ButtonText_Exit" Value="E&amp;sci" />
+
     <String Id="InstallModeCustom" Value="Personalizzato" />
     <String Id="Setup" Value="Installazione" />
+
     <!---->
+
     <String Id="StartMenu_License" Value="Licenza" />
     <String Id="StartMenu_UserManual" Value="Manuale utente" />
+
     <!---->
+
     <String Id="VB_App" Value="Applicazione [ProductName]." />
     <String Id="VB_USBDriver" Value="Driver di [ProductName] per il supporto di dispositivi USB." />
     <String Id="VB_Network" Value="Driver di [ProductName] per il supporto di rete." />
     <String Id="VB_NetLwfDriver" Value="Driver di [ProductName] per la rete con bridge NDIS6." />
     <String Id="VB_NetAdp6Driver" Value="Driver di [ProductName] per la scheda di rete virtuale per la rete solo host NDIS6." />
     <String Id="VB_Python" Value="Supporto Python per VirtualBox." />
+
     <!---->
+
     <String Id="UsedByOtherApp" Value="È stata rilevata un'applicazione che ha utilizzato la versione di VirtualBox attualmente installata. È necessario rimuovere questa applicazione prima di continuare l'installazione. Per i dettagli, consultare il file dependency.dep nella directory di installazione di VirtualBox." />
     <String Id="NeedAdmin" Value="Devi avere diritti di amministrazione per (dis)installare [ProductName]! L'installazione sarà interrotta immediatamente." />
     <String Id="NeedMSCRT" Value="[ProductName] needs the Microsoft Visual C++ 2019 Redistributable Package being installed first. Please install and restart the installation of [ProductName]." />
     <String Id="WrongOS" Value="Questa applicazione può essere eseguita solo su Windows 10 o superiori." />
     <String Id="Only64Bit" Value="Questa applicazione può essere eseguita solo su sistemi Windows a 64 bit. Installa la versione a 32 bit di [ProductName]!" />
 	<String Id="WrongPlatformArch" Value="This version of [ProductName] was developed for a different platform architecture and therefore cannot be installed. Please install a matching version of [ProductName]!" />
-	<String Id="SunFound" Value="Una vecchia installazione di Sun VirtualBox è stata trovata su questa macchina. Disinstalla prima questo pacchetto e poi installa [ProductName]!" />
-    <String Id="InnotekFound" Value="Una vecchia installazione di innotek VirtualBox è stata trovata su questa macchina. Disinstalla prima questo pacchetto e poi installa [ProductName]!" />
     <String Id="InvalidTargetDir" Value="Invalid installation directory specified! Please use another installation directory to install [ProductName]. Refer to the [ProductName] manual for more information." />
+
     <!---->
+
     <String Id="CancelDlg_Question" Value="Sei sicuro di voler annullare l'installazione di [ProductName]?" />
+
     <!---->
+
     <String Id="WelcomeDlg_Header" Value="Benvenuti nella procedura guidata di installazione di [ProductName]" />
     <String Id="WelcomeDlg_Body" Value="La procedura guidata installerà [ProductName] sul tuo computer. Fai clic su Avanti per continuare o su Annulla per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="LicenseAgreementDlg_Header" Value="Accordo di licenza con l'utente finale" />
     <String Id="LicenseAgreementDlg_Body" Value="Leggi attentamente il seguente accordo di licenza." />
     <String Id="LicenseAgreementDlg_Accept" Value="&amp;Accetto i termini dell'accordo di licenza" />
     <String Id="LicenseAgreementDlg_Decline" Value="&amp;Non accetto i termini dell'accordo di licenza" />
+
     <!---->
+
     <String Id="InvalidTargetDirDlg_Header" Value="Invalid installation directory" />
     <String Id="InvalidTargetDirDlg_Desc1" Value="The chosen installation directory is invalid, as it does not meet the security requirements. Refer to the [ProductName] manual for more information." />
     <String Id="InvalidTargetDirDlg_Desc2" Value="Please choose another directory for installing [ProductName]." />
+
     <!---->
+
     <String Id="CheckSerialDlg_Header" Value="Numero di serie" />
     <String Id="CheckSerialDlg_Body" Value="Digita il numero di serie nel campo seguente. Troverai il numero sull'adesivo all'interno della custodia del CD di VirtualBox." />
     <String Id="CheckSerialDlg_Footer" Value="Una volta digitato il numero di serie, premi il pulsante &quot;Controlla&quot; in basso." />
+
     <!---->
+
     <String Id="WrongSerialDlg_Header" Value="Il numero di serie digitato non era valido!" />
     <String Id="WrongSerialDlg_Desc1" Value="Torna indietro per digitare nuovamente il numero di serie." />
     <String Id="WrongSerialDlg_Desc2" Value="Ricorda che il numero seriale deve essere scritto esattamente come è stampato sull'adesivo." />
+
     <!---->
+
     <String Id="WarnSaveStatesDlg_Header" Value="Avviso:" />
     <String Id="WarnSaveStatesDlg_Header2" Value="Stati salvati non compatibili!" />
     <String Id="WarnSaveStatesDlg_Desc" Value="Quando aggiorni [ProductName], tutti gli stati salvati dalle macchine già esistenti non funzioneranno più! Dopo l'installazione, dovrai scartarli manualmente." />
     <String Id="WarnSaveStatesDlg_Proceed" Value="Procedere subito con l'installazione?" />
+
     <!---->
+
     <String Id="WarnTAPDevicesDlg_Header" Value="Interfacce host" />
     <String Id="WarnTAPDevicesDlg_Desc" Value="Se hai utilizzato interfacce host per le tue macchine nella versione precedente, devi ricrearle manualmente dopo questa installazione." />
+
     <!---->
+
     <String Id="NetCfgLocked" Value="La seguente applicazione dovrebbe essere chiusa prima di procedere con l'installazione: &quot;[2]&quot;" />
+
     <!---->
+
     <String Id="CustomizeDlg_Location" Value="Posizione:" />
     <String Id="CustomizeDlg_DiskUsage" Value="&amp;Utilizzo del disco" />
     <String Id="CustomizeDlg_SelFeatures" Value="Seleziona la modalità di installazione delle funzionalità." />
@@ -107,67 +132,92 @@
     <String Id="CustomizeDlg_SelItemDesc" Value="CustomizeDlgItemDescription-CustomizeDlgItemDescription" />
     <String Id="CustomizeDlg_SelItemSize" Value="CustomizeDlgItemSize-CustomizeDlgItemSize" />
     <String Id="CustomizeDlg_SelItemPath" Value="CustomizeDlgLocation-CustomizeDlgLocation" />
+
     <!---->
+
     <String Id="Customize2Dlg_Header" Value="Personalizza" />
     <String Id="Customize2Dlg_Desc" Value="Scegli dalle opzioni seguenti:" />
     <String Id="Customize2Dlg_CreateStartMenuEntries" Value="Crea voci del menu di avvio" />
     <String Id="Customize2Dlg_CreateDesktopShortcut" Value="Crea una scorciatoia sul desktop" />
     <String Id="Customize2Dlg_RegisterFileExtensions" Value="Registrati associazioni di file" />
+
     <!---->
+
     <String Id="SelectionNetworkTypeDlg_CommonDescription" Value="Scegli quale tipo di driver di rete utilizzerai:" />
     <String Id="SelectionNetworkTypeDlg_DescriptionNDIS6" Value="Driver di rete NDIS6.&#xA;Questo è il tipo predefinito per le nuove versioni di Windows (Vista e successivi)." />
     <String Id="SelectionNetworkTypeDlg_RadioButtonNDIS6" Value="Usa driver di rete NDIS6." />
+
     <!---->
+
     <String Id="WarnDisconNetIfacesDlg_Title" Value="Avviso:" />
     <String Id="WarnDisconNetIfacesDlg_Title2" Value="Interfacce di rete" />
     <String Id="WarnDisconNetIfacesDlg_Desc" Value="L'installazione delle funzionalità di rete di [ProductName] ripristinerà la connessione di rete causando una disconnessione temporanea dalla rete." />
-    <String Id="WarnDisconNetIfacesDlg_Question" Value="Vuoi procedere subito con l'installazione?" />
+
     <!---->
+
     <String Id="WarnPythonDlg_Title" Value="Missing Dependencies" />
     <String Id="WarnPythonDlg_Title2" Value="Python Core / win32api" />
     <String Id="WarnPythonDlg_Desc" Value="Installing the [ProductName] Python bindings requires the Python Core package and the win32api bindings to be installed first." />
     <String Id="WarnPythonDlg_Desc2" Value="When continuing the installation of the [ProductName] Python bindings now, those need to be set up manually later. Refer to the [ProductName] SDK manual for more information." />
-    <String Id="WarnPythonDlg_Question" Value="Proceed with installation now?" />
+
     <!---->
+
     <String Id="DiskCostDlg_SpaceRequired" Value="Lo spazio su disco richiesto per l'installazione delle funzionalità selezionate." />
     <String Id="DiskCostDlg_NotEnoughSpace" Value="I volumi evidenziati non hanno spazio disponibile sufficiente per le funzionalità attualmente selezionate. Puoi rimuovere alcuni file dai volumi evidenziati, scegliere di installare meno funzionalità sul disco locale o selezionare un disco di destinazione diverso." />
     <String Id="DiskCostDlg_SpaceRequirements" Value="Requisiti di spazio disco" />
     <String Id="DiskCostDlg_VolumeList" Value="{120}{70}{70}{70}{70}" />
+
     <!---->
+
     <String Id="BrowseDlg_BrowseDestFolder" Value="Spostati nella cartella di destinazione" />
     <String Id="BrowseDlg_ChangeCurFolder" Value="Cambia la cartella di destinazione attuale" />
     <String Id="BrowseDlg_UpOneLevelTooltip" Value="Livello superiore" />
     <String Id="BrowseDlg_CreateNewFolderTooltip" Value="Crea una nuova cartella" />
     <String Id="BrowseDlg_LookIn" Value="&amp;Cerca in:" />
     <String Id="BrowseDlg_FolderName" Value="&amp;Nome della cartella:" />
+
     <!---->
+
     <String Id="VerifyReadyDlg_ReadyToBegin" Value="La procedura guidata è pronta per iniziare l'installazione di [InstallMode]." />
-    <String Id="VerifyReadyDlg_ClickInstall" Value="Fai clic su Installa per iniziare l'installazione. Se vuoi rivedere o cambiare una qualsiasi impostazione di installazione, fai clic su Indietro. Fai clic su Annulla per uscire dalla procedura guidata." />
     <String Id="VerifyReadyDlg_ReadyToInstall" Value="Pronto per l'installazione" />
+
     <!---->
+
     <String Id="ExitDlg_ClickFinish" Value="Fai clic sul pulsante Fine per uscire dalla procedura guidata." />
     <String Id="ExitDlg_InstComplete" Value="L'installazione di [ProductName] è completa." />
     <String Id="ExitDlg_StartVBox" Value="Avvia [ProductName] dopo l'installazione" />
+
     <!---->
+
     <String Id="FatalErrorDlg_Title" Value="[ProductName] L'installazione guidata si è conclusa prematuramente." />
     <String Id="FatalErrorDlg_Description1" Value="Riavviare e riprovare eseguendo nuovamente la (dis)installazione." />
     <String Id="FatalErrorDlg_Description2" Value="In alternativa, consultare i forum o la documentazione di [ProductName]." />
     <String Id="FatalErrorDlg_DescLogOpen" Value="Aprire il file di registro" />
     <String Id="FatalErrorDlg_DescLogPath" Value="Il file di registro è stato scritto in:" />
+
     <!---->
+
     <String Id="FilesInUse_Text" Value="Le seguenti applicazioni stanno utilizzando file che devono essere aggiornati da questa installazione. Chiudi queste applicazioni e poi fai clic su &amp;Riprova per continuare l'installazione o Esci per abbandonarla." />
     <String Id="FilesInUse_Description" Value="Alcuni file che devono essere aggiornati sono attualmente utilizzati." />
     <String Id="FilesInUse_Title" Value="File in uso" />
+
     <!---->
+
     <String Id="UserExitDlg_Header" Value="La procedura guidata di [ProductName] è stata interrotta" />
     <String Id="UserExitDlg_Desc" Value="L'installazione di [ProductName] è stata interrotta. Il sistema non è stato modificato. Per installare questo programma successivamente, esegui nuovamente questa installazione." />
     <String Id="UserExitDlg_Footer" Value="Fai clic sul pulsante Fine per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="ProgressDlg_PleaseWait" Value="Attendi che la procedura guidata installi [ProductName]. Potrebbe richiedere qualche minuto." />
+
     <!---->
+
     <String Id="ResumeDlg_Header" Value="Ripristino della procedura guidata di installazione di [ProductName]" />
     <String Id="ResumeDlg_Desc" Value="La procedura guidata completerà l'installazione di [ProductName] sul tuo computer. Fai clic su Installa per continuare o Annulla per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="MaintenanceTypeDlg_Header" Value="Modifica, ripara o rimuovi l'installazione" />
     <String Id="MaintenanceTypeDlg_SelOption" Value="Seleziona l'operazione che desideri eseguire." />
     <String Id="MaintenanceTypeDlg_Repair" Value="Ri&amp;para" />
@@ -180,34 +230,49 @@
     <String Id="MaintenanceTypeDlg_RemoveTooltip" Value="Rimuovi l'installazione" />
     <String Id="MaintenanceTypeDlg_RemoveProgress1" Value="Rimozione" />
     <String Id="MaintenanceTypeDlg_RemoveProgress2" Value="rimuove" />
+
     <!---->
+
     <String Id="MaintenanceWelcomeDlg_Header" Value="Benvenuti nella procedura guidata di installazione di [ProductName]" />
     <String Id="MaintenanceWelcomeDlg_Desc" Value="La procedura guidata di installazione ti consentirà di riparare la tua installazione attuale o rimuovere [ProductName] dal tuo computer. Fai clic su Avanti per continuare o Annulla per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="OutOfDiskDlg_InstallationExceeds" Value="Lo spazio su disco richiesto per l'installazione supera lo spazio disponibile." />
     <String Id="OutOfDiskDlg_NotEnoughDiskSpace" Value="I volumi evidenziati non hanno spazio disco sufficiente per le funzionalità attualmente selezionate. Puoi rimuovere alcuni file dai volumi evidenziati, scegliere di installare meno funzionalità sul disco locale o seleziona un disco di destinazione diverso." />
     <String Id="OutOfDiskDlg_OutOfDiskSpace" Value="Spazio su disco insufficiente" />
+
     <!---->
+
     <String Id="OutOfRbDiskDlg_InstallationExceeds" Value="Lo spazio su disco richiesto per l'installazione supera lo spazio disponibile." />
     <String Id="OutOfRbDiskDlg_NotEnoughDiskSpace" Value="I volumi evidenziati non hanno spazio disco sufficiente per le funzionalità attualmente selezionate. Puoi rimuovere alcuni file dai volumi evidenziati, scegliere di installare meno funzionalità sul disco locale o seleziona un disco di destinazione diverso." />
     <String Id="OutOfRbDiskDlg_OutOfDiskSpace" Value="Spazio su disco insufficiente" />
     <String Id="OutOfRbDiskDlg_Desc" Value="In alternativa, puoi scegliere di disabilitare la funzionalità di rollback dell'installatore. Questo consente all'installatore di ripristinare lo stato originale del tuo computer qualore l'installazione venisse interrotta in qualsiasi modo. Fai clic su Sì se desideri rischiare di disabilitare il rollback." />
+
     <!---->
+
     <String Id="VerifyRemoveDlg_Header" Value="Rimuovi [ProductName]" />
     <String Id="VerifyRemoveDlg_Desc" Value="Hai scelto di rimuovere il programma dal tuo computer." />
     <String Id="VerifyRemoveDlg_ClickRemove" Value="Fai clic su Rimuovi per rimuovere [ProductName] dal tuo computer. Se vuoi rivedere o cambiare una qualsiasi impostazione di installazione, fai clic su Indietro. Fai clic su Annulla per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="VerifyRepairDlg_Header" Value="Ripara [ProductName]" />
     <String Id="VerifyRepairDlg_ReadyToBegin" Value="La procedura guidata di installazione è pronta per iniziare la riparazione di [ProductName]." />
     <String Id="VerifyRepairDlg_ClickRepair" Value="Fai clic su Ripara per riparare l'installazione di [ProductName]. Se vuoi rivedere o cambiare le impostazioni di installazione, fai clic su Indietro. Fai clic su Annulla per uscire dalla procedura guidata." />
+
     <!---->
+
     <String Id="WaitForCostingDlg_PleaseWait" Value="Attendi che l'installatore termini il calcolo dei requisiti di spazio sul disco." />
+
     <!---->
+
     <String Id="MsiRMFilesInUse_Text" Value="Le seguenti applicazioni stanno utilizzando file che devono essere aggiornati da questa installazione. Puoi permette alla procedura guidata di chiuderle e tentare di riavviarle o riavviare successivamente la macchina." />
     <String Id="MsiRMFilesInUse_Description" Value="Alcuni file che devono essere aggiornati sono attualmente utilizzati." />
     <String Id="MsiRMFilesInUse_Title" Value="File in uso" />
     <String Id="MsiRMFilesInUse_UseRM" Value="&amp;Chiudi le applicazioni e prova a riavviarle." />
     <String Id="MsiRMFilesInUse_DontUseRM" Value="&amp;Non chiudere le applicazioni. Sarà necessario un riavvio." />
+
     <!-- The following strings are internally used by WiX and MSI -->
     <String Id="Error0" Value="{{Errore grave: }}" />
     <String Id="Error1" Value="{{Errore [1]. }}" />
@@ -367,8 +432,10 @@
     <String Id="Error1933" Value="Il servizio Windows Installer non può aggiornare uno o più file protetti di Windows. {{Stringa SFP: [2]. Elenco dei file protetti:\r\n[3]}}" />
     <String Id="Error1934" Value="Le installazioni utente sono disabilitate tramite policy sulla macchina." />
     <String Id="Error1935" Value="Si è verificato un errore durante l'installazione del componente assembly [2]. HRESULT: [3]. {{interfaccia assembly: [4], funzione: [5], nome assembly: [6]}}" />
+
     <!-- Own / special errors -->
     <String Id="Error25001" Value="L'applicazione &quot;[2]&quot; deve essere chiusa affinché l'installazione possa continuare." />
+
     <String Id="ProgressTextInstallValidate" Value="Convalida dell'installazione" />
     <String Id="ProgressTextInstallFiles" Value="Copia dei nuovi file" />
     <String Id="ProgressTextInstallFilesTemplate" Value="File: [1],  Cartella: [9],  Dimensione: [6]" />
@@ -567,4 +634,5 @@
     <String Id="UITextVolumeCostRequired" Value="Richiesto" />
     <String Id="UITextVolumeCostSize" Value="Dimensione disco" />
     <String Id="UITextVolumeCostVolume" Value="Volume" />
+
 </WixLocalization>

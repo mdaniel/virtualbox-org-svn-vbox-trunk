@@ -42,36 +42,69 @@
       Update (from a former Version of VirtualBox).
       -->
 
-    <!-- Stop the host-only interfaces on update only. Driver still has to be
-         uninstalled, and the creation of interfaces in the new installer will
-         do the actual upgrading, preserving the interfaces. -->
-    <Custom Action="ca_StopHostOnlyInterfacesNetAdp" Before="ca_VBoxSupDrvInst"
-            Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+    <!-- Merge modules need to be independent from other modules, so this module can't use any action from other modules. -->
+    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
+        <!-- Stop the host-only interfaces on update only. Driver still has to be
+             uninstalled, and the creation of interfaces in the new installer will
+             do the actual upgrading, preserving the interfaces. -->
+        <Custom Action="ca_StopHostOnlyInterfacesNetAdp" Before="InstallInitialize"
+                Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
 
-    <!-- Uninstall the driver only on package upgrade, as for uninstall it is
-         included in ca_RemoveHostOnlyInterfaces.
-         @todo r=klaus Clean up this inconsistency by changing what the
-         install helper DLL does. It's very surprising behavior and needs
-         digging through a lot of code to understand the where and why. -->
-    <Custom Action="ca_UninstallNetAdpArgs" Before="ca_UninstallNetAdp"
-            Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+        <!-- Uninstall the driver only on package upgrade, as for uninstall it is
+             included in ca_RemoveHostOnlyInterfaces.
+             @todo r=klaus Clean up this inconsistency by changing what the
+             install helper DLL does. It's very surprising behavior and needs
+             digging through a lot of code to understand the where and why. -->
+        <Custom Action="ca_UninstallNetAdpArgs" Before="ca_UninstallNetAdp"
+                Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
 
-    <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
-    <Custom Action="ca_UninstallNetAdp" Before="ca_VBoxSupDrvUninst"
+        <!-- Needs to be uninstalled after it has been stopped. -->
+        <Custom Action="ca_UninstallNetAdp" After="ca_StopHostOnlyInterfacesNetAdp"
             Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+    <?else?>
+        <!-- Stop the host-only interfaces on update only. Driver still has to be
+             uninstalled, and the creation of interfaces in the new installer will
+             do the actual upgrading, preserving the interfaces. -->
+        <Custom Action="ca_StopHostOnlyInterfacesNetAdp" Before="ca_VBoxSupDrvInst"
+                Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+
+        <!-- Uninstall the driver only on package upgrade, as for uninstall it is
+             included in ca_RemoveHostOnlyInterfaces.
+             @todo r=klaus Clean up this inconsistency by changing what the
+             install helper DLL does. It's very surprising behavior and needs
+             digging through a lot of code to understand the where and why. -->
+        <Custom Action="ca_UninstallNetAdpArgs" Before="ca_UninstallNetAdp"
+                Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+
+        <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
+        <Custom Action="ca_UninstallNetAdp" Before="ca_VBoxSupDrvUninst"
+            Condition="(UPGRADINGPRODUCTCODE) AND (REMOVE=&quot;ALL&quot;)" />
+    <?endif?>
 
     <!--
       Uninstallation
       -->
 
-    <!-- Remove the host-only interfaces on uninstall only. Includes
-         VBoxNetAdp6 driver uninstall.
-         @todo r=klaus Clean up this inconsistency by changing what the
-         install helper DLL does. It's very surprising behavior and needs
-         digging through a lot of code to understand the where and why. -->
-    <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
-    <Custom Action="ca_RemoveHostOnlyInterfacesNetAdp" Before="ca_VBoxSupDrvUninst"
-            Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
+    <!-- Merge modules need to be independent from other modules, so this module can't use any action from other modules. -->
+    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
+        <!-- Remove the host-only interfaces on uninstall only. Includes
+             VBoxNetAdp6 driver uninstall.
+             @todo r=klaus Clean up this inconsistency by changing what the
+             install helper DLL does. It's very surprising behavior and needs
+             digging through a lot of code to understand the where and why. -->
+        <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
+        <Custom Action="ca_RemoveHostOnlyInterfacesNetAdp" Before="InstallFinalize"
+                Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
+    <?else?>
+        <!-- Remove the host-only interfaces on uninstall only. Includes
+             VBoxNetAdp6 driver uninstall.
+             @todo r=klaus Clean up this inconsistency by changing what the
+             install helper DLL does. It's very surprising behavior and needs
+             digging through a lot of code to understand the where and why. -->
+        <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
+        <Custom Action="ca_RemoveHostOnlyInterfacesNetAdp" Before="ca_VBoxSupDrvUninst"
+                Condition="NOT (UPGRADINGPRODUCTCODE) AND (Installed) AND (REMOVE=&quot;ALL&quot;)" />
+    <?endif?>
 
 <?endif?>
 

@@ -61,9 +61,16 @@
     <Custom Action="ca_UninstallNetLwfArgs" Before="ca_UninstallNetLwf"
             Condition="(UPGRADINGPRODUCTCODE) OR (REMOVE=&quot;ALL&quot;)" />
 
-    <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
-    <Custom Action="ca_UninstallNetLwf" Before="ca_VBoxSupDrvUninst"
-            Condition="(UPGRADINGPRODUCTCODE) OR (REMOVE=&quot;ALL&quot;)" />
+    <!-- Merge modules need to be independent from other modules, so this module can't use any action from other modules. -->
+    <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
+        <!-- Needs to be uninstalled before finalizing the installation. -->
+        <Custom Action="ca_UninstallNetLwf" Before="InstallFinalize"
+                Condition="(UPGRADINGPRODUCTCODE) OR (REMOVE=&quot;ALL&quot;)" />
+    <?else?>
+        <!-- Needs to be uninstalled before VBoxSUP gets removed. -->
+        <Custom Action="ca_UninstallNetLwf" Before="ca_VBoxSupDrvUninst"
+                Condition="(UPGRADINGPRODUCTCODE) OR (REMOVE=&quot;ALL&quot;)" />
+    <?endif?>
 
 <?endif?> <!-- VBOX_WITH_NETFLT -->
 

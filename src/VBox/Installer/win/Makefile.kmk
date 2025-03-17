@@ -536,9 +536,6 @@ VBOX_WIN_INST_ENV := \
 	-E 'VBOX_WITH_MIDL_PROXY_STUB=$(if $(VBOX_WITH_MIDL_PROXY_STUB),yes,no)' \
 	-E 'VBOX_WITH_MINIMAL_R0=$(if $(VBOX_WITH_MINIMAL_R0),yes,no)' \
 	-E 'VBOX_WITH_MSM_INSTALL=$(if-expr defined(VBOX_WITH_MSM_INSTALL),yes,no)' \
-	$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
-	$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
-		-E 'VBOX_WIN_INST_MERGE_$(toupper $(module))=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm')),) \
 	-E 'VBOX_WITH_NETADP=$(if $(VBOX_WITH_NETADP),yes,no)' \
 	-E 'VBOX_WITH_NETFLT=$(if $(VBOX_WITH_NETFLT),yes,no)' \
 	-E 'VBOX_WITH_ORACLE_QT=$(if $(VBOX_WITH_ORACLE_QT),yes,no)' \
@@ -784,6 +781,9 @@ $(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib \
 	$(QUIET)$(RM) -f -- "$@"  "$(VBOX_WIN_INST_OUT_DIR)/VirtualBox_en_US.wixlib" "$(VBOX_WIN_INST_REPACK_DIR)/VirtualBox_en_US.wixlib"
 	$(REDIRECT) \
 		$(VBOX_WIN_INST_ENV) \
+		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
+		$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
+			-E 'VBOX_WIN_INST_MERGE_$(toupper $(module))=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_en_US_$(KBUILD_TARGET_ARCH).msm')),) \
 		-- \
 		$(VBOX_TOOLS_WIN_WIX_BIN) build $(filter-out $(VBOX_VERSION_STAMP),$<) \
 			-arch "$(VBOX_INS_PROD_ARCH)" \
@@ -827,6 +827,9 @@ define def_vbox_build_msm_wixlib
 	$(QUIET)$(RM) -f -- "$$@" "$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang).wix" "$(VBOX_WIN_INST_REPACK_DIR)/VBoxMerge$(module)_$(lang).wix"
 	$(REDIRECT) \
 		$(VBOX_WIN_INST_ENV) \
+		$(if-expr defined(VBOX_WITH_MSM_INSTALL), \
+		$(foreach module,$(VBOX_INSTALLER_MERGE_MODULES), \
+			-E 'VBOX_WIN_INST_MERGE_$(toupper $(module))=$(subst /,\,$(VBOX_WIN_INST_OUT_DIR)/VBoxMerge$(module)_$(lang)_$(KBUILD_TARGET_ARCH).msm')),) \
 		-- \
 		$(VBOX_TOOLS_WIN_WIX_BIN) build $(filter-out $(VBOX_VERSION_STAMP),$$<) \
 			-arch "$(VBOX_INS_PROD_ARCH)" \

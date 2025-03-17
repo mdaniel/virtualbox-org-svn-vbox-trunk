@@ -44,7 +44,7 @@
 <?endif?>
 
         <!-- Here comes the file/directory list -->
-         <!-- TARGETDIR -->
+        <!-- TARGETDIR -->
 
         <!-- Custom actions -->
         <Binary Id="VBoxInstallHelper" SourceFile="$(env.PATH_OUT)\bin\VBoxInstallHelper.dll" />
@@ -53,7 +53,6 @@
         <InstallExecuteSequence>
 <?if $(env.VBOX_WITH_MSM_INSTALL) = "yes" ?>
             <Custom Action="setNetworkTypeADP6" After="CostInitialize" />
-            <Custom Action="correctNetworkTypeADP6" After="setNetworkTypeADP6" />
 <?endif?>
             <?include VBoxMergeNetAdp6Seq.wxi ?>
         </InstallExecuteSequence>

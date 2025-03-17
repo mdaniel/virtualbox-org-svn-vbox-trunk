@@ -38,8 +38,11 @@
 #include "UINativeWizardPage.h"
 
 /* Forward declarations: */
+class QCheckBox;
 class QIRichTextLabel;
-class UINewVMHardwareContainer;
+class UIBaseMemoryEditor;
+class UIVirtualCPUEditor;
+class UIMediumSizeEditor;
 
 class UIWizardNewVMHardwarePage : public UINativeWizardPage
 {
@@ -68,7 +71,10 @@ private:
     /** @name Widgets
       * @{ */
         QIRichTextLabel    *m_pLabel;
-        UINewVMHardwareContainer *m_pHardwareWidgetContainer;
+        UIBaseMemoryEditor *m_pBaseMemoryEditor;
+        UIVirtualCPUEditor *m_pVirtualCPUEditor;
+        QCheckBox          *m_pEFICheckBox;
+        UIMediumSizeEditor *m_pMediumSizeEditor;
     /** @} */
     bool m_fVDIFormatFound;
     qulonglong m_uMediumSizeMin;

@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QCheckBox>
 #include <QVBoxLayout>
 
 /* GUI includes: */
@@ -34,9 +35,10 @@
 #include "UIWizardDiskEditors.h"
 #include "UIGlobalSession.h"
 #include "UIGuestOSType.h"
+#include "UIMediumSizeEditor.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualCPUEditor.h"
 #include "UIWizardNewVM.h"
-#include "UIWizardNewVMEditors.h"
 #include "UIWizardNewVMHardwarePage.h"
 
 /* COM includes: */
@@ -45,7 +47,10 @@
 UIWizardNewVMHardwarePage::UIWizardNewVMHardwarePage(const QString strHelpKeyword /* = QString() */)
     : UINativeWizardPage(strHelpKeyword)
     , m_pLabel(0)
-    , m_pHardwareWidgetContainer(0)
+    , m_pBaseMemoryEditor(0)
+    , m_pVirtualCPUEditor(0)
+    , m_pEFICheckBox(0)
+    , m_pMediumSizeEditor(0)
     , m_fVDIFormatFound(false)
     , m_uMediumSizeMin(_4M)
     , m_uMediumSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
@@ -60,9 +65,22 @@ void UIWizardNewVMHardwarePage::prepare()
 
     m_pLabel = new QIRichTextLabel(this);
     pMainLayout->addWidget(m_pLabel);
-    m_pHardwareWidgetContainer = new UINewVMHardwareContainer(this, true /* with medium size editor */);
-    AssertReturnVoid(m_pHardwareWidgetContainer);
-    pMainLayout->addWidget(m_pHardwareWidgetContainer);
+    QWidget *pHardwareWidgetContainer = new QWidget(this);
+    AssertReturnVoid(pHardwareWidgetContainer);
+
+    QGridLayout *pContainerLayout = new QGridLayout(pHardwareWidgetContainer);
+    pContainerLayout->setContentsMargins(0, 0, 0, 0);
+
+    m_pBaseMemoryEditor = new UIBaseMemoryEditor;
+    m_pVirtualCPUEditor = new UIVirtualCPUEditor;
+    m_pMediumSizeEditor = new UIMediumSizeEditor;
+    m_pEFICheckBox      = new QCheckBox;
+    pContainerLayout->addWidget(m_pBaseMemoryEditor, 0, 0, 1, 4);
+    pContainerLayout->addWidget(m_pVirtualCPUEditor, 1, 0, 1, 4);
+    pContainerLayout->addWidget(m_pMediumSizeEditor, 2, 0, 1, 4);
+    pContainerLayout->addWidget(m_pEFICheckBox, 3, 0, 1, 1);
+
+    pMainLayout->addWidget(pHardwareWidgetContainer);
 
     pMainLayout->addStretch();
     createConnections();
@@ -70,17 +88,21 @@ void UIWizardNewVMHardwarePage::prepare()
 
 void UIWizardNewVMHardwarePage::createConnections()
 {
-    if (m_pHardwareWidgetContainer)
-    {
-        connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigMemorySizeChanged,
+    if (m_pBaseMemoryEditor)
+        connect(m_pBaseMemoryEditor, &UIBaseMemoryEditor::sigValueChanged,
                 this, &UIWizardNewVMHardwarePage::sltMemorySizeChanged);
-        connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigCPUCountChanged,
+    if (m_pVirtualCPUEditor)
+        connect(m_pVirtualCPUEditor, &UIVirtualCPUEditor::sigValueChanged,
                 this, &UIWizardNewVMHardwarePage::sltCPUCountChanged);
-        connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigEFIEnabledChanged,
+    if (m_pEFICheckBox)
+        connect(m_pEFICheckBox, &QCheckBox::toggled,
                 this, &UIWizardNewVMHardwarePage::sltEFIEnabledChanged);
-        connect(m_pHardwareWidgetContainer, &UINewVMHardwareContainer::sigSizeChanged,
+    if (m_pMediumSizeEditor)
+        connect(m_pMediumSizeEditor, &UIMediumSizeEditor::sigSizeChanged,
                 this, &UIWizardNewVMHardwarePage::sltHandleSizeEditorChange);
-    }
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIWizardNewVMHardwarePage::sltRetranslateUI);
 }
 
 void UIWizardNewVMHardwarePage::sltRetranslateUI()
@@ -96,31 +118,33 @@ void UIWizardNewVMHardwarePage::initializePage()
     sltRetranslateUI();
 
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
-    if (pWizard && m_pHardwareWidgetContainer)
-    {
-        const QString &strTypeId = pWizard->guestOSTypeId();
+    const QString &strTypeId = pWizard->guestOSTypeId();
 
-        m_pHardwareWidgetContainer->blockSignals(true);
-        if (!m_userModifiedParameters.contains("MemorySize"))
-        {
-            ULONG recommendedRam = gpGlobalSession->guestOSTypeManager().getRecommendedRAM(strTypeId);
-            m_pHardwareWidgetContainer->setMemorySize(recommendedRam);
-            pWizard->setMemorySize(recommendedRam);
-        }
-        if (!m_userModifiedParameters.contains("CPUCount"))
-        {
-            ULONG recommendedCPUs = gpGlobalSession->guestOSTypeManager().getRecommendedCPUCount(strTypeId);
-            m_pHardwareWidgetContainer->setCPUCount(recommendedCPUs);
-            pWizard->setCPUCount(recommendedCPUs);
-        }
-        if (!m_userModifiedParameters.contains("EFIEnabled"))
-        {
-            KFirmwareType fwType = gpGlobalSession->guestOSTypeManager().getRecommendedFirmware(strTypeId);
-            m_pHardwareWidgetContainer->setEFIEnabled(fwType != KFirmwareType_BIOS);
-            pWizard->setEFIEnabled(fwType != KFirmwareType_BIOS);
-        }
-        m_pHardwareWidgetContainer->blockSignals(false);
+    if (m_pBaseMemoryEditor && !m_userModifiedParameters.contains("MemorySize"))
+    {
+        m_pBaseMemoryEditor->blockSignals(true);
+        ULONG recommendedRam = gpGlobalSession->guestOSTypeManager().getRecommendedRAM(strTypeId);
+        m_pBaseMemoryEditor->setValue(recommendedRam);
+        pWizard->setMemorySize(recommendedRam);
+        m_pBaseMemoryEditor->blockSignals(false);
     }
+    if (m_pVirtualCPUEditor && !m_userModifiedParameters.contains("CPUCount"))
+    {
+        m_pVirtualCPUEditor->blockSignals(true);
+        ULONG recommendedCPUs = gpGlobalSession->guestOSTypeManager().getRecommendedCPUCount(strTypeId);
+        m_pVirtualCPUEditor->setValue(recommendedCPUs);
+        pWizard->setCPUCount(recommendedCPUs);
+        m_pVirtualCPUEditor->blockSignals(false);
+    }
+    if (m_pEFICheckBox && !m_userModifiedParameters.contains("EFIEnabled"))
+    {
+        m_pEFICheckBox->blockSignals(true);
+        KFirmwareType fwType = gpGlobalSession->guestOSTypeManager().getRecommendedFirmware(strTypeId);
+        m_pEFICheckBox->setChecked(fwType != KFirmwareType_BIOS);
+        pWizard->setEFIEnabled(fwType != KFirmwareType_BIOS);
+        m_pEFICheckBox->blockSignals(false);
+    }
+
     initializeVirtualHardDiskParameters();
 }
 
@@ -173,11 +197,11 @@ void UIWizardNewVMHardwarePage::initializeVirtualHardDiskParameters()
     pWizard->setMediumPath(strMediumPath);
 
     /* Set the recommended disk size if user has already not done so: */
-    if (m_pHardwareWidgetContainer && !m_userModifiedParameters.contains("MediumSize"))
+    if (m_pMediumSizeEditor && !m_userModifiedParameters.contains("MediumSize"))
     {
-        m_pHardwareWidgetContainer->blockSignals(true);
-        m_pHardwareWidgetContainer->setMediumSize(iRecommendedSize);
-        m_pHardwareWidgetContainer->blockSignals(false);
+        m_pMediumSizeEditor->blockSignals(true);
+        m_pMediumSizeEditor->setMediumSize(iRecommendedSize);
+        m_pMediumSizeEditor->blockSignals(false);
         pWizard->setMediumSize(iRecommendedSize);
     }
 

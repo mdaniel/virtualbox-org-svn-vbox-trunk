@@ -469,6 +469,11 @@ const QList<UIChooserItem*> &UIChooserModel::navigationItems() const
     return m_navigationItems;
 }
 
+bool UIChooserModel::isNavigationListEmpty() const
+{
+    return m_navigationItems.isEmpty();
+}
+
 void UIChooserModel::removeFromNavigationItems(UIChooserItem *pItem)
 {
     AssertMsg(pItem, ("Passed item is invalid!"));

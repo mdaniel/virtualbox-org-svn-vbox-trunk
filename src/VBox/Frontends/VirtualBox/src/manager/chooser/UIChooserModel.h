@@ -188,6 +188,8 @@ public:
       * @{ */
         /** Returns a list of navigation-items. */
         const QList<UIChooserItem*> &navigationItems() const;
+        /** Returns whether navigation list empty. */
+        bool isNavigationListEmpty() const;
         /** Removes @a pItem from navigation list. */
         void removeFromNavigationItems(UIChooserItem *pItem);
         /** Updates navigation list. */

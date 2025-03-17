@@ -68,6 +68,7 @@ private:
     virtual void initializePage() RT_OVERRIDE RT_FINAL;
     virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
     void initializeVirtualHardDiskParameters();
+    void updateMinimumLayoutHint();
     /** @name Widgets
       * @{ */
         QIRichTextLabel    *m_pLabel;

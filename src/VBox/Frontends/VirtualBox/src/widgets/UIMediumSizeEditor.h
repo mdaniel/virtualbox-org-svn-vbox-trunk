@@ -40,6 +40,7 @@
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
+class QGridLayout;
 class QLabel;
 class QString;
 class QWidget;
@@ -122,6 +123,9 @@ public:
     /** Sets the initial medium size as the widget is created. */
     void setMediumSize(qulonglong uSize);
 
+    int minimumLabelHorizontalHint() const;
+    void setMinimumLayoutIndent(int iIndent);
+
 private slots:
 
     /** Handles translation event. */
@@ -161,6 +165,9 @@ private:
     QLabel             *m_pLabelMaxSize;
     /** Holds the size editor. */
     QILineEdit         *m_pEditor;
+    /** Holds the editor label. */
+    QLabel             *m_pLabel;
+    QGridLayout        *m_pLayout;
 
     /* A regular expression used to remove any character from a QString which is neither a digit nor decimal separator. */
     QRegularExpression m_regExNonDigitOrSeparator;

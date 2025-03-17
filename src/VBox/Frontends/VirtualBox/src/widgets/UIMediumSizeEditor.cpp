@@ -252,6 +252,8 @@ UIMediumSizeEditor::UIMediumSizeEditor(QWidget *pParent, qulonglong uMinimumSize
     , m_pLabelMinSize(0)
     , m_pLabelMaxSize(0)
     , m_pEditor(0)
+    , m_pLabel(0)
+    , m_pLayout(0)
 {
     prepare();
 }
@@ -270,6 +272,19 @@ void UIMediumSizeEditor::setMediumSize(qulonglong uSize)
     m_strSizeSuffix = gpConverter->toString(UITranslator::parseSizeSuffix(m_pEditor->text()));
     m_pEditor->blockSignals(false);
     updateSizeToolTips(m_uSize);
+}
+
+int UIMediumSizeEditor::minimumLabelHorizontalHint() const
+{
+    if (m_pLabel)
+        return m_pLabel->minimumSizeHint().width();
+    return 0;
+}
+
+void UIMediumSizeEditor::setMinimumLayoutIndent(int iIndent)
+{
+    if (m_pLayout)
+        m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
 void UIMediumSizeEditor::sltRetranslateUI()
@@ -327,14 +342,14 @@ void UIMediumSizeEditor::prepare()
     m_regExNonDigitOrSeparator = QRegularExpression(QString("[^\\d%1]").arg(UITranslator::decimalSep()));
 
     /* Create layout: */
-    QGridLayout *pLayout = new QGridLayout(this);
-    if (pLayout)
+    m_pLayout = new QGridLayout(this);
+    if (m_pLayout)
     {
         /* Configure layout: */
-        pLayout->setContentsMargins(0, 0, 0, 0);
-        pLayout->setColumnStretch(0, 1);
-        pLayout->setColumnStretch(1, 1);
-        pLayout->setColumnStretch(2, 0);
+        m_pLayout->setContentsMargins(0, 0, 0, 0);
+        m_pLayout->setColumnStretch(0, 1);
+        m_pLayout->setColumnStretch(1, 1);
+        m_pLayout->setColumnStretch(2, 0);
 
         /* Create size slider: */
         m_pSlider = new UIMediumSizeSlider(m_uSizeMax, this);
@@ -347,7 +362,7 @@ void UIMediumSizeEditor::prepare()
                     this, &UIMediumSizeEditor::sltSizeSliderChanged);
 
             /* Add into layout: */
-            pLayout->addWidget(m_pSlider, 0, 0, 1, 2, Qt::AlignTop);
+            m_pLayout->addWidget(m_pSlider, 0, 0, 1, 2, Qt::AlignTop);
         }
 
         /* Create minimum size label: */
@@ -358,7 +373,7 @@ void UIMediumSizeEditor::prepare()
             m_pLabelMinSize->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
             /* Add into layout: */
-            pLayout->addWidget(m_pLabelMinSize, 1, 0);
+            m_pLayout->addWidget(m_pLabelMinSize, 1, 0);
         }
 
         /* Create maximum size label: */
@@ -369,7 +384,7 @@ void UIMediumSizeEditor::prepare()
             m_pLabelMaxSize->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
             /* Add into layout: */
-            pLayout->addWidget(m_pLabelMaxSize, 1, 1);
+            m_pLayout->addWidget(m_pLabelMaxSize, 1, 1);
         }
 
         /* Create size editor: */
@@ -386,7 +401,7 @@ void UIMediumSizeEditor::prepare()
                     this, &UIMediumSizeEditor::sltSizeEditorTextChanged);
 
             /* Add into layout: */
-            pLayout->addWidget(m_pEditor, 0, 2, Qt::AlignTop);
+            m_pLayout->addWidget(m_pEditor, 0, 2, Qt::AlignTop);
         }
     }
 

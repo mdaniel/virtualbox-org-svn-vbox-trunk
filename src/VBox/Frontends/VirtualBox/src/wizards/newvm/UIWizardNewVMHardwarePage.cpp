@@ -111,6 +111,7 @@ void UIWizardNewVMHardwarePage::sltRetranslateUI()
 
     if (m_pLabel)
         m_pLabel->setText(UIWizardNewVM::tr("Specify the VM's hardware. Resources allocated to the VM will not be available to the host when the VM is running."));
+    updateMinimumLayoutHint();
 }
 
 void UIWizardNewVMHardwarePage::initializePage()
@@ -246,4 +247,22 @@ void UIWizardNewVMHardwarePage::sltHandleSizeEditorChange(qulonglong uSize)
     wizardWindow<UIWizardNewVM>()->setMediumSize(uSize);
     m_userModifiedParameters << "MediumSize";
     emit completeChanged();
+}
+
+void UIWizardNewVMHardwarePage::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pBaseMemoryEditor && !m_pBaseMemoryEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pBaseMemoryEditor->minimumLabelHorizontalHint());
+    if (m_pVirtualCPUEditor && !m_pVirtualCPUEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pVirtualCPUEditor->minimumLabelHorizontalHint());
+    if (m_pMediumSizeEditor && !m_pMediumSizeEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pMediumSizeEditor->minimumLabelHorizontalHint());
+    if (m_pBaseMemoryEditor)
+        m_pBaseMemoryEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pVirtualCPUEditor)
+        m_pVirtualCPUEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pMediumSizeEditor)
+        m_pMediumSizeEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

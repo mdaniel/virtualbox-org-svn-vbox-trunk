@@ -23,7 +23,7 @@
     SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="de_DE" Codepage="1252" >
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="de_DE" Codepage="1252">
     <String Id="LANG" Value="1033" />
     <String Id="CODEPAGE" Value="1252" />
     <String Id="LangName" Value="Deutsch" />
@@ -91,6 +91,7 @@
     <String Id="LicenseAgreementDlg_Decline" Value="Ich akzeptiere die Bedingungen des Lizenzvertrags &amp;nicht." />
 
     <!---->
+
     <String Id="InvalidTargetDirDlg_Header" Value="Ungültiges Installationsverzeichnis" />
     <String Id="InvalidTargetDirDlg_Desc1" Value="Das gewählte Installationsverzeichnis is ungültig, da dieses nicht den Sicherheitsrichtlinien entspricht. Für mehr Informationen bitte im [ProductName] Handbuch nachschlagen." />
     <String Id="InvalidTargetDirDlg_Desc2" Value="Bitte ein anderes Installationsverzeichnis wählen um [ProductName] zu installieren." />

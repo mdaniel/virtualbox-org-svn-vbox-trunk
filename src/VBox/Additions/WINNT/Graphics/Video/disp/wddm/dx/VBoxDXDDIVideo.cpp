@@ -132,8 +132,10 @@ static VOID APIENTRY ddi11_1GetVideoDecoderBufferInfo(
 {
     PVBOXDX_DEVICE pDevice = (PVBOXDX_DEVICE)hDevice.pDrvPrivate;
     //DEBUG_BREAKPOINT_TEST();
-    RT_NOREF(pDevice, pDecodeDesc);
+    RT_NOREF(pDevice);
     *pInfo = g_aBufferInfo[Index];
+    if (pInfo->Type == D3D11_1DDI_VIDEO_DECODER_BUFFER_BITSTREAM)
+       pInfo->Size = RT_ALIGN_32(pDecodeDesc->SampleWidth * pDecodeDesc->SampleHeight, 1024 * 1024);
 }
 
 static SIZE_T APIENTRY ddi11_1CalcPrivateVideoDecoderSize(

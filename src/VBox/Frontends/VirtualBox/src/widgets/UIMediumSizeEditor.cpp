@@ -292,6 +292,8 @@ void UIMediumSizeEditor::sltRetranslateUI()
     /* Translate labels: */
     m_pLabelMinSize->setText(UITranslator::formatSize(m_uSizeMin));
     m_pLabelMaxSize->setText(UITranslator::formatSize(m_uSizeMax));
+    if (m_pEditorLabel)
+        m_pEditorLabel->setText(tr("D&isk Size"));
 
     /* Translate fields: */
     m_pSlider->setToolTip(tr("Medium size"));
@@ -341,20 +343,11 @@ void UIMediumSizeEditor::prepare(bool fEnableEditorLabel)
     /* Configure reg-exp: */
     m_regExNonDigitOrSeparator = QRegularExpression(QString("[^\\d%1]").arg(UITranslator::decimalSep()));
 
-    /* Create layout: */
-    m_pLayout = new QGridLayout(this);
-    AssertPtrReturnVoid(m_pLayout);
-
-    /* Configure layout: */
-    m_pLayout->setContentsMargins(0, 0, 0, 0);
-    m_pLayout->setColumnStretch(0, 1);
-    m_pLayout->setColumnStretch(1, 1);
-    m_pLayout->setColumnStretch(2, 0);
-
     /* Create editor label: */
     if (fEnableEditorLabel)
     {
         m_pEditorLabel = new QLabel(this);
+        m_pEditorLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         AssertReturnVoid(m_pEditorLabel);
     }
 
@@ -367,30 +360,24 @@ void UIMediumSizeEditor::prepare(bool fEnableEditorLabel)
     connect(m_pSlider, &UIMediumSizeSlider::sigScaledValueChanged,
             this, &UIMediumSizeEditor::sltSizeSliderChanged);
 
-    /* Add into layout: */
-    m_pLayout->addWidget(m_pSlider, 0, 0, 1, 2, Qt::AlignTop);
-
-
     /* Create minimum size label: */
     m_pLabelMinSize = new QLabel;
     AssertPtrReturnVoid(m_pLabelMinSize);
     /* Configure label: */
     m_pLabelMinSize->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    /* Add into layout: */
-    m_pLayout->addWidget(m_pLabelMinSize, 1, 0);
-
     /* Create maximum size label: */
     m_pLabelMaxSize = new QLabel;
     AssertPtrReturnVoid(m_pLabelMaxSize);
     /* Configure label: */
     m_pLabelMaxSize->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    /* Add into layout: */
-    m_pLayout->addWidget(m_pLabelMaxSize, 1, 1);
+
 
     /* Create size editor: */
     m_pEditor = new QILineEdit;
     AssertPtrReturnVoid(m_pEditor);
+    if (m_pEditorLabel)
+        m_pEditorLabel->setBuddy(m_pEditorLabel);
 
     /* Configure editor: */
     m_pEditor->installEventFilter(this);
@@ -401,8 +388,35 @@ void UIMediumSizeEditor::prepare(bool fEnableEditorLabel)
     connect(m_pEditor, &QILineEdit::textChanged,
             this, &UIMediumSizeEditor::sltSizeEditorTextChanged);
 
-    /* Add into layout: */
-    m_pLayout->addWidget(m_pEditor, 0, 2, Qt::AlignTop);
+    /* Create layout: */
+    m_pLayout = new QGridLayout(this);
+    AssertPtrReturnVoid(m_pLayout);
+
+    /* Configure layout: */
+    m_pLayout->setContentsMargins(0, 0, 0, 0);
+    if (m_pEditorLabel)
+    {
+        m_pLayout->setColumnStretch(1, 1);
+        m_pLayout->setColumnStretch(2, 1);
+        m_pLayout->setColumnStretch(3, 0);
+
+        m_pLayout->addWidget(m_pEditorLabel,  0, 0, 1, 1);
+        m_pLayout->addWidget(m_pSlider,       0, 1, 1, 2, Qt::AlignTop);
+        m_pLayout->addWidget(m_pLabelMinSize, 1, 1);
+        m_pLayout->addWidget(m_pLabelMaxSize, 1, 2);
+        m_pLayout->addWidget(m_pEditor,       0, 3, Qt::AlignTop);
+    }
+    else
+    {
+        m_pLayout->setColumnStretch(0, 1);
+        m_pLayout->setColumnStretch(1, 1);
+        m_pLayout->setColumnStretch(2, 0);
+
+        m_pLayout->addWidget(m_pSlider, 0, 0, 1, 2, Qt::AlignTop);
+        m_pLayout->addWidget(m_pLabelMinSize, 1, 0);
+        m_pLayout->addWidget(m_pLabelMaxSize, 1, 1);
+        m_pLayout->addWidget(m_pEditor, 0, 2, Qt::AlignTop);
+    }
 
     /* Apply language settings: */
     sltRetranslateUI();

@@ -37,6 +37,7 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
+#include "QIFileDialog.h"
 #include "QILineEdit.h"
 #include "QIToolButton.h"
 #include "QIRichTextLabel.h"
@@ -49,13 +50,12 @@
 #include "UITranslationEventListener.h"
 #include "UIUserNamePasswordEditor.h"
 #include "UIWizardDiskEditors.h"
-#include "UIWizardNewVMDiskPage.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 #include "iprt/fs.h"
 #include "CSystemProperties.h"
-
+#include "KMediumVariant.h"
 
 /*********************************************************************************************************************************
 *   UIWizardDiskEditors implementation.                                                                                   *

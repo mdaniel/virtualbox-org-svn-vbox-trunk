@@ -28,6 +28,7 @@
 /* Qt includes: */
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QDir>
 #include <QRadioButton>
 #include <QVBoxLayout>
 
@@ -38,18 +39,36 @@
 #include "UIMediaComboBox.h"
 #include "UIMedium.h"
 #include "UIMediumEnumerator.h"
+#include "UIMediumSelector.h"
 #include "UINameAndSystemEditor.h"
 #include "UINotificationCenter.h"
 #include "UIToolBox.h"
 #include "UIWizardNewVM.h"
 #include "UIWizardDiskEditors.h"
-#include "UIWizardNewVMDiskPage.h"
 #include "UIWizardNewVMEditors.h"
 #include "UIWizardNewVMExpertPage.h"
 #include "UIWizardNewVMNameOSTypePage.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
+
+QUuid getWithFileOpenDialog(const QString &strOSTypeID,
+                            const QString &strMachineFolder,
+                            QWidget *pCaller, UIActionPool *pActionPool)
+{
+    QUuid uMediumId;
+    int returnCode = UIMediumSelector::openMediumSelectorDialog(pCaller, UIMediumDeviceType_HardDisk,
+                                                         QUuid() /* current medium id */,
+                                                         uMediumId,
+                                                         strMachineFolder,
+                                                         QString() /* strMachineName */,
+                                                         strOSTypeID,
+                                                         false /* don't show/enable the create action: */,
+                                                         QUuid() /* Machinie Id */, pActionPool);
+    if (returnCode != static_cast<int>(UIMediumSelector::ReturnCode_Accepted))
+        return QUuid();
+    return uMediumId;
+}
 
 UIWizardNewVMExpertPage::UIWizardNewVMExpertPage(UIActionPool *pActionPool)
     : m_pToolBox(0)
@@ -149,9 +168,9 @@ void UIWizardNewVMExpertPage::sltGetWithFileOpenDialog()
 {
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
-    QUuid uMediumId = UIWizardNewVMDiskCommon::getWithFileOpenDialog(pWizard->guestOSTypeId(),
-                                                                     pWizard->machineFolder(),
-                                                                     this, m_pActionPool);
+    QUuid uMediumId = getWithFileOpenDialog(pWizard->guestOSTypeId(),
+                                            pWizard->machineFolder(),
+                                            this, m_pActionPool);
     if (!uMediumId.isNull())
     {
         m_pDiskSelector->setCurrentItem(uMediumId);

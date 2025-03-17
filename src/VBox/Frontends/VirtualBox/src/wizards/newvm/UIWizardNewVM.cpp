@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QAbstractButton>
+#include <QDir>
 #include <QLayout>
 
 /* GUI includes: */
@@ -40,7 +41,6 @@
 #include "UIWizardNewVMNameOSTypePage.h"
 #include "UIWizardNewVMUnattendedPage.h"
 #include "UIWizardNewVMHardwarePage.h"
-#include "UIWizardNewVMDiskPage.h"
 #include "UIWizardNewVMExpertPage.h"
 #include "UIWizardNewVMSummaryPage.h"
 

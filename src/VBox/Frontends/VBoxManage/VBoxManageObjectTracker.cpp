@@ -45,9 +45,6 @@ enum supIfaces_T
 
 std::map <com::Utf8Str, supIfaces_T> mapInterfaceNameToEnum = {
     {"IProgress", kProgress},
-    {"ISession", kSession},
-    {"IMedium", kMedium},
-    {"IMachine", kMachine}
 };
 
 static void printProgressObjectInfo(const ComPtr<IProgress>& pObj);

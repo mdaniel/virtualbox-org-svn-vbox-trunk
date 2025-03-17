@@ -102,8 +102,6 @@ HRESULT Session::init()
 
     mClientTokenHolder = NULL;
 
-    setTracked(18000, 60);//5 hours, 1 hour
-
     /* Confirm a successful initialization when it's the case */
     autoInitSpan.setSucceeded();
 

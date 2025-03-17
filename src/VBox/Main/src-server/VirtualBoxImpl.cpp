@@ -6617,7 +6617,7 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
     if (!aId.isValid())
         return setError(E_INVALIDARG, tr("The provided progress object GUID is invalid"));
 
-#if 0 /** @todo def VBOX_WITH_MAIN_OBJECT_TRACKER - never used */
+#ifdef VBOX_WITH_MAIN_OBJECT_TRACKER //0 /** @todo def VBOX_WITH_MAIN_OBJECT_TRACKER - never used */
     std::vector<com::Utf8Str> lObjIdMap;
     gTrackedObjectsCollector.getObjIdsByClassIID(IID_IProgress, lObjIdMap);
 
@@ -6635,7 +6635,7 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
             {
                 com::Bstr reqId(aId.toString());
                 Bstr foundId;
-                hrc = pProgress->COMGETTER(Id)(foundId.asOutParam());
+                pProgress->COMGETTER(Id)(foundId.asOutParam());
                 if (reqId == foundId)
                 {
                     BOOL aCompleted;
@@ -6643,7 +6643,7 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
 
                     BOOL aCanceled;
                     pProgress->COMGETTER(Canceled)(&aCanceled);
-                    LogRel(("Requested progress was found:\n  id %s\n  completed %s\n  canceled %s\n",
+                    Log2(("Requested progress was found:\n  id %s\n  completed %s\n  canceled %s\n",
                             aId.toString().c_str(),
                             aCompleted ? "True" : "False",
                             aCanceled ? "True" : "False"));
@@ -6671,6 +6671,18 @@ HRESULT VirtualBox::findProgressById(const com::Guid &aId,
     return setError(E_INVALIDARG, tr("The progress object with the given GUID could not be found"));
 }
 
+/**
+ * Get the tracked object by the Id.
+ *
+ * @param aTrObjId  tracked object Id
+ * @param aPIface  returns the ComPtr<IUnknown> if the object is found
+ * @param aState  returns TrackedObjectState_T - the actual state of the found
+ *                object
+ * @param aCreationTime  returns the creation time of the object
+ * @param aDeletionTime  returns the deletion time of the object
+ *
+ * @return HRESULT
+ */
 HRESULT VirtualBox::getTrackedObject(const com::Utf8Str &aTrObjId,
                                      ComPtr<IUnknown> &aPIface,
                                      TrackedObjectState_T *aState,
@@ -6691,7 +6703,9 @@ HRESULT VirtualBox::getTrackedObject(const com::Utf8Str &aTrObjId,
             time = trObjData.deletionTime();
             *aDeletionTime = RTTimeSpecGetMilli(&time);
         }
-        /** @todo aDeletionTime isn't set */
+        else
+            /* aDeletionTime is set to 0 */
+            *aDeletionTime = 0;
     }
 
     return hrc;
@@ -6706,9 +6720,6 @@ HRESULT VirtualBox::getTrackedObject(const com::Utf8Str &aTrObjId,
 #ifdef VBOX_WITH_MAIN_OBJECT_TRACKER
 static std::map<com::Utf8Str, com::Utf8Str> const g_lMapInterfaceNameToIID = {
     {"IProgress", Guid(IID_IProgress).toString()},
-    {"ISession", Guid(IID_ISession).toString()},
-    {"IMedium", Guid(IID_IMedium).toString()},
-    {"IMachine", Guid(IID_IMachine).toString()}
 };
 #endif
 

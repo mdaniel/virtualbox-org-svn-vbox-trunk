@@ -73,7 +73,7 @@ void UIWizardNewVMHardwarePage::prepare()
 
     m_pBaseMemoryEditor = new UIBaseMemoryEditor;
     m_pVirtualCPUEditor = new UIVirtualCPUEditor;
-    m_pMediumSizeEditor = new UIMediumSizeEditor;
+    m_pMediumSizeEditor = new UIMediumSizeEditor(this, true /* with editor label */);
     m_pEFICheckBox      = new QCheckBox;
     pContainerLayout->addWidget(m_pBaseMemoryEditor, 0, 0, 1, 4);
     pContainerLayout->addWidget(m_pVirtualCPUEditor, 1, 0, 1, 4);

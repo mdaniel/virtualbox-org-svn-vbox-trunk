@@ -166,18 +166,16 @@ signals:
     void sigMemorySizeChanged(int iSize);
     void sigCPUCountChanged(int iCount);
     void sigEFIEnabledChanged(bool fEnabled);
-    void sigSizeChanged(qulonglong uSize);
 
 public:
 
-    UINewVMHardwareContainer(QWidget *pParent, bool fWithMediumSizeEditor);
+    UINewVMHardwareContainer(QWidget *pParent);
 
     /** @name Wrappers for members
       * @{ */
         void setMemorySize(int iSize);
         void setCPUCount(int iCount);
         void setEFIEnabled(bool fEnabled);
-        void setMediumSize(qulonglong uSize);
     /** @} */
 
 private slots:
@@ -194,8 +192,6 @@ private:
     UIBaseMemoryEditor *m_pBaseMemoryEditor;
     UIVirtualCPUEditor *m_pVirtualCPUEditor;
     QCheckBox *m_pEFICheckBox;
-    UIMediumSizeEditor *m_pMediumSizeEditor;
-    bool m_fWithMediumSizeEditor;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_editors_UIWizardNewVMEditors_h */

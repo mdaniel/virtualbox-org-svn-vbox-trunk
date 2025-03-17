@@ -116,7 +116,7 @@ public:
     static const qulonglong  s_uSectorSize;
 
     /** Constructs medium size editor passing @a pParent to the base-class. */
-    UIMediumSizeEditor(QWidget *pParent = 0, qulonglong uMinimumSize = _4M);
+    UIMediumSizeEditor(QWidget *pParent, bool fEnableEditorLabel, qulonglong uMinimumSize = _4M);
 
     /** Returns the medium size. */
     qulonglong mediumSize() const { return m_uSize; }
@@ -139,7 +139,7 @@ private slots:
 private:
 
     /** Prepares all. */
-    void prepare();
+    void prepare(bool fEnableEditorLabel);
 
     /** Updates slider/editor tool-tips. */
     void updateSizeToolTips(qulonglong uSize);
@@ -166,7 +166,7 @@ private:
     /** Holds the size editor. */
     QILineEdit         *m_pEditor;
     /** Holds the editor label. */
-    QLabel             *m_pLabel;
+    QLabel             *m_pEditorLabel;
     QGridLayout        *m_pLayout;
 
     /* A regular expression used to remove any character from a QString which is neither a digit nor decimal separator. */

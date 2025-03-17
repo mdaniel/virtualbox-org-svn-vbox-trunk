@@ -113,7 +113,7 @@ QWidget *UIWizardNewVMDiskPage::createNewDiskWidgets()
                     pSizeLayout->addWidget(m_pMediumSizeEditorLabel, 0, 0, Qt::AlignBottom);
                 }
                 /* Prepare Hard disk size editor: */
-                m_pMediumSizeEditor = new UIMediumSizeEditor(pWidget);
+                m_pMediumSizeEditor = new UIMediumSizeEditor(pWidget, true /* with editor label */);
                 if (m_pMediumSizeEditor)
                 {
                     m_pMediumSizeEditorLabel->setBuddy(m_pMediumSizeEditor);

@@ -471,7 +471,7 @@ void UIMediumDetailsWidget::prepareTabOptions()
 #endif
 
                 /* Create size editor: */
-                m_pEditorSize = new UIMediumSizeEditor(0 /* parent */);
+                m_pEditorSize = new UIMediumSizeEditor(0 /* parent */, false /* no label*/);
                 AssertPtrReturnVoid(m_pEditorSize);
                 {
                     /* Configure editor: */

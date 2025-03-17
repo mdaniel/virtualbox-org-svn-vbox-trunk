@@ -46,6 +46,7 @@ namespace dxvk {
     union {
       VkVideoDecodeH264ProfileInfoKHR     h264ProfileInfo;
       VkVideoDecodeH265ProfileInfoKHR     h265ProfileInfo;
+      VkVideoDecodeAV1ProfileInfoKHR      av1ProfileInfo;
     };
     /* Vulkan profile info. */
     VkVideoProfileInfoKHR                 profileInfo;
@@ -53,6 +54,7 @@ namespace dxvk {
     union {
       VkVideoDecodeH264CapabilitiesKHR    decodeH264Capabilities;
       VkVideoDecodeH265CapabilitiesKHR    decodeH265Capabilities;
+      VkVideoDecodeAV1CapabilitiesKHR     decodeAV1Capabilities;
     };
     VkVideoDecodeCapabilitiesKHR          decodeCapabilities;
     VkVideoCapabilitiesKHR                videoCapabilities;
@@ -64,12 +66,23 @@ namespace dxvk {
 
 
   struct DxvkRefFrameInfo {
-    uint8_t  idSurface;
-    uint8_t  longTermReference : 1;
-    uint8_t  usedForReference : 2;
-    uint8_t  nonExistingFrame : 1;
-    uint16_t frame_num;
-    int32_t  PicOrderCnt[2];
+    uint8_t      idSurface;
+    union {
+      struct {
+        uint8_t  longTermReference : 1;
+        uint8_t  usedForReference : 2;
+        uint8_t  nonExistingFrame : 1;
+        uint16_t frame_num;
+        int32_t  PicOrderCnt[2];
+      } h264;
+      struct {
+        uint8_t  longTermReference : 1;
+        int32_t  PicOrderCntVal;
+      } h265;
+      struct {
+        uint8_t  frame_name;
+      } av1;
+    };
   };
 
 
@@ -84,24 +97,50 @@ namespace dxvk {
 
         StdVideoDecodeH264PictureInfo    stdH264PictureInfo;
         StdVideoDecodeH264ReferenceInfo  stdH264ReferenceInfo;
+
+        uint8_t                          nal_unit_type;
       } h264;
       struct {
         StdVideoH265VideoParameterSet    vps;
         StdVideoH265ProfileTierLevel     vpsProfileTierLevel;
         StdVideoH265SequenceParameterSet sps;
+        StdVideoH265DecPicBufMgr         spsDecPicBufMgr;
         StdVideoH265PictureParameterSet  pps;
         StdVideoH265ScalingLists         ppsScalingLists;
 
         StdVideoDecodeH265PictureInfo    stdPictureInfo;
         StdVideoDecodeH265ReferenceInfo  stdReferenceInfo;
-
-        uint8_t                          sps_max_dec_pic_buffering;
       } h265;
+      struct {
+        StdVideoAV1SequenceHeader        stdSequenceHeader;
+        StdVideoAV1ColorConfig           stdColorConfig;
+
+        StdVideoDecodeAV1PictureInfo     stdPictureInfo;
+        StdVideoAV1TileInfo              stdTileInfo;
+        uint16_t                         MiColStarts[64];
+        uint16_t                         MiRowStarts[64];
+        uint16_t                         WidthInSbsMinus1[64];
+        uint16_t                         HeightInSbsMinus1[64];
+        StdVideoAV1Quantization          stdQuantization;
+        StdVideoAV1Segmentation          stdSegmentation;
+        StdVideoAV1LoopFilter            stdLoopFilter;
+        StdVideoAV1CDEF                  stdCDEF;
+        StdVideoAV1LoopRestoration       stdLoopRestoration;
+        StdVideoAV1GlobalMotion          stdGlobalMotion;
+        StdVideoAV1FilmGrain             stdFilmGrain;
+
+        uint32_t                         tileCount;
+
+        StdVideoDecodeAV1ReferenceInfo   stdReferenceInfo;
+
+        uint8_t                          RefFrameMapTextureIndex[8];
+
+        bool                             reference_frame_update;
+      } av1;
     };
 
-    uint8_t                            nal_unit_type;
-
-    std::vector<uint32_t>              sliceOffsets;
+    std::vector<uint32_t>              sliceOrTileOffsets;
+    std::vector<uint32_t>              sliceOrTileSizes;
 
     uint8_t                            idSurface;
     uint32_t                           refFramesCount;
@@ -281,23 +320,34 @@ namespace dxvk {
      * Contains reconstructed pictures including the currently decoded frame.
      */
     struct DxvkDPBSlot {
+      /* These fields will be assigned during video decoder initialization. */
       Rc<DxvkImage>                     image = nullptr;
       Rc<DxvkImageView>                 imageView = nullptr;
       uint32_t                          baseArrayLayer = 0;
-      bool                              isActive = false;
-      struct {
-        StdVideoDecodeH264ReferenceInfo   stdRefInfo = {};
-      } h264;
-      struct {
-        StdVideoDecodeH265ReferenceInfo   stdRefInfo = {};
-      } h265;
-      uint8_t                           idSurface = DXVK_VIDEO_DECODER_SURFACE_INVALID;
+
+      /* These fields are updated during decoding process. */
+      bool                              isActive;
+      union {
+        struct {
+          StdVideoDecodeH264ReferenceInfo stdRefInfo;
+        } h264;
+        struct {
+          StdVideoDecodeH265ReferenceInfo stdRefInfo;
+        } h265;
+        struct {
+          StdVideoDecodeAV1ReferenceInfo  stdRefInfo;
+        } av1;
+        uint8_t                           stdRefInfoData[
+          std::max(sizeof(StdVideoDecodeH264ReferenceInfo),
+          std::max(sizeof(StdVideoDecodeH265ReferenceInfo),
+                   sizeof(StdVideoDecodeAV1ReferenceInfo)))];
+      };
+      uint8_t                           idSurface;
 
       void deactivate() {
-        this->isActive           = false;
-        this->h264.stdRefInfo    = {};
-        this->h265.stdRefInfo    = {};
-        this->idSurface          = DXVK_VIDEO_DECODER_SURFACE_INVALID;
+        this->isActive = false;
+        memset(this->stdRefInfoData, 0, sizeof(this->stdRefInfoData));
+        this->idSurface = DXVK_VIDEO_DECODER_SURFACE_INVALID;
       }
     };
 
@@ -310,6 +360,10 @@ namespace dxvk {
     struct DxvkDPB {
       std::vector<DxvkDPBSlot>          slots;
       int                               idxCurrentDPBSlot = 0;
+      bool                              fOverflow = false;
+
+      /* Size of DPB images. */
+      VkExtent3D                        decodedPictureExtent = { 0, 0, 1 };
 
       /* Uncompressed surface id (idSurface) -> frame information. */
       std::map<uint8_t, DxvkRefFrame>   refFrames;
@@ -318,6 +372,7 @@ namespace dxvk {
         for (auto &slot: this->slots)
           slot.deactivate();
         this->idxCurrentDPBSlot = 0;
+        this->fOverflow = false;
         this->refFrames.clear();
       }
     };
@@ -343,6 +398,9 @@ namespace dxvk {
         std::array<StdVideoH265SequenceParameterSet, 32>  sps;
         std::array<StdVideoH265PictureParameterSet, 256>  pps;
       } h265;
+      struct {
+        StdVideoAV1SequenceHeader                         stdSequenceHeader;
+      } av1;
     };
     DxvkParameterSetCache               m_parameterSetCache;
 
@@ -356,6 +414,9 @@ namespace dxvk {
       DxvkVideoDecodeInputParameters *pParms);
 
     VkResult UpdateSessionParametersH265(
+      DxvkVideoDecodeInputParameters *pParms);
+
+    VkResult UpdateSessionParametersAV1(
       DxvkVideoDecodeInputParameters *pParms);
 
     void TransferImageQueueOwnership(

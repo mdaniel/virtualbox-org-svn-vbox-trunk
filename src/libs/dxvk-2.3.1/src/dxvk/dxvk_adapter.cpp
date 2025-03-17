@@ -1061,6 +1061,7 @@ namespace dxvk {
       &devExtensions.khrVideoDecodeQueue,
       &devExtensions.khrVideoDecodeH264,
       &devExtensions.khrVideoDecodeH265,
+      &devExtensions.khrVideoDecodeAV1,
 #endif
     }};
   }

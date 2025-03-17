@@ -38,8 +38,9 @@ namespace dxvk {
 
 
   DxvkVideoSessionHandle::~DxvkVideoSessionHandle() {
-    m_device->vkd()->vkDestroyVideoSessionKHR(m_device->handle(), m_videoSession, nullptr);
-    m_videoSession = VK_NULL_HANDLE;
+    if (m_videoSession != VK_NULL_HANDLE) {
+      m_device->vkd()->vkDestroyVideoSessionKHR(m_device->handle(), m_videoSession, nullptr);
+    }
   }
 
 
@@ -59,8 +60,9 @@ namespace dxvk {
 
 
   DxvkVideoSessionParametersHandle::~DxvkVideoSessionParametersHandle() {
-    m_device->vkd()->vkDestroyVideoSessionParametersKHR(m_device->handle(), m_videoSessionParameters, nullptr);
-    m_videoSessionParameters = VK_NULL_HANDLE;
+    if (m_videoSessionParameters != VK_NULL_HANDLE) {
+      m_device->vkd()->vkDestroyVideoSessionParametersKHR(m_device->handle(), m_videoSessionParameters, nullptr);
+    }
   }
 
 
@@ -86,12 +88,14 @@ namespace dxvk {
     const Rc<DxvkDevice>& device,
     DxvkMemoryAllocator& memAlloc)
   : m_device(device),
-    m_memAlloc(memAlloc){
+    m_memAlloc(memAlloc) {
   }
 
 
   DxvkVideoBitstreamBuffer::~DxvkVideoBitstreamBuffer() {
-    m_device->vkd()->vkDestroyBuffer(m_device->vkd()->device(), m_buffer.buffer, nullptr);
+    if (m_buffer.buffer != VK_NULL_HANDLE) {
+      m_device->vkd()->vkDestroyBuffer(m_device->vkd()->device(), m_buffer.buffer, nullptr);
+    }
   }
 
 
@@ -162,7 +166,7 @@ namespace dxvk {
 
     /* Fetch data for quicker access. */
     m_mapPtr = (uint8_t *)m_buffer.memory.mapPtr(0);
-    m_length = m_buffer.memory.length();
+    m_length = bufferCreateInfo.size;
   }
 
 
@@ -195,20 +199,45 @@ namespace dxvk {
       m_profile.profileInfo.pNext        = &m_profile.h265ProfileInfo;
       m_profile.decodeCapabilities.pNext = &m_profile.decodeH265Capabilities;
     }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      m_profile.profileInfo.pNext        = &m_profile.av1ProfileInfo;
+      m_profile.decodeCapabilities.pNext = &m_profile.decodeAV1Capabilities;
+    }
     else {
       throw DxvkError(str::format("DxvkVideoDecoder: videoCodecOperation ", m_profile.profileInfo.videoCodecOperation,
         " is not supported"));
     }
     m_profile.videoCapabilities.pNext    = &m_profile.decodeCapabilities;
 
+    /* Size of DPB and decode destination images. */
+    m_DPB.decodedPictureExtent = { m_sampleWidth, m_sampleHeight, 1 };
+
+    /* Align the decoder picture size to the macroblock/codingblock/superblock granularity. */
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      /* To the macroblock */
+      m_DPB.decodedPictureExtent.width = align(m_DPB.decodedPictureExtent.width, 16);
+      m_DPB.decodedPictureExtent.height = align(m_DPB.decodedPictureExtent.height, 16);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      /* To the max coding block size */
+      m_DPB.decodedPictureExtent.width = align(m_DPB.decodedPictureExtent.width, 64);
+      m_DPB.decodedPictureExtent.height = align(m_DPB.decodedPictureExtent.height, 64);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      /* To the largest superblock granularity */
+      m_DPB.decodedPictureExtent.width = align(m_DPB.decodedPictureExtent.width, 128);
+      m_DPB.decodedPictureExtent.height = align(m_DPB.decodedPictureExtent.height, 128);
+    }
+
     /*
      * Assess capabilities.
      */
     /* Check that video resolution is supported. */
-    if (m_sampleWidth > m_profile.videoCapabilities.maxCodedExtent.width
-     || m_sampleHeight > m_profile.videoCapabilities.maxCodedExtent.height)
+    if (m_DPB.decodedPictureExtent.width > m_profile.videoCapabilities.maxCodedExtent.width
+     || m_DPB.decodedPictureExtent.height > m_profile.videoCapabilities.maxCodedExtent.height)
       throw DxvkError(str::format("DxvkVideoDecoder: requested resolution exceeds maximum: ",
-        m_sampleWidth, "x", m_sampleHeight, " > ",
+        m_DPB.decodedPictureExtent.width, "x", m_DPB.decodedPictureExtent.height, " (",
+        m_sampleWidth, "x", m_sampleHeight, ") > ",
         m_profile.videoCapabilities.maxCodedExtent.width, "x", m_profile.videoCapabilities.maxCodedExtent.height));
 
     if ((m_profile.videoCapabilities.flags & VK_VIDEO_CAPABILITY_SEPARATE_REFERENCE_IMAGES_BIT_KHR) == 0) {
@@ -239,9 +268,19 @@ namespace dxvk {
 
     m_bitstreamBuffer->create(profileListInfo, bitstreamBufferSize);
 
-    /* Decoded Picture Buffer (DPB), i.e. array of decoded frames. */
-    const uint32_t cMaxDPBSlots = std::max(
-      m_profile.videoCapabilities.maxActiveReferencePictures, m_profile.videoCapabilities.maxDpbSlots);
+    /* Decoded Picture Buffer (DPB), i.e. array of decoded frames.
+     * AMD mesa/vulkan driver asserts if the number of slots is greater than the spec requirement.
+     */
+    uint32_t cMaxDPBSlots = m_profile.videoCapabilities.maxDpbSlots;
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
+      cMaxDPBSlots = std::min(cMaxDPBSlots, (uint32_t)16);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
+      cMaxDPBSlots = std::min(cMaxDPBSlots, (uint32_t)STD_VIDEO_H265_MAX_DPB_SIZE);
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      cMaxDPBSlots = std::min(cMaxDPBSlots, (uint32_t)(STD_VIDEO_AV1_TOTAL_REFS_PER_FRAME + 1));
+    }
     m_DPB.slots.resize(cMaxDPBSlots);
 
     for (auto &slot: m_DPB.slots) {
@@ -256,7 +295,7 @@ namespace dxvk {
       imgInfo.format      = m_outputFormat;
       imgInfo.flags       = 0;
       imgInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-      imgInfo.extent      = { m_sampleWidth, m_sampleHeight, 1 };
+      imgInfo.extent      = m_DPB.decodedPictureExtent;
       imgInfo.numLayers   = 1;
       imgInfo.mipLevels   = 1;
       if (m_caps.distinctOutputImage) {
@@ -293,17 +332,20 @@ namespace dxvk {
       viewInfo.numLayers  = 1;
 
       slot.imageView = m_device->createImageView(slot.image, viewInfo);
+
+      slot.deactivate();
     }
 
-    if (m_caps.distinctOutputImage) {
-      /* Create an additional output image. */
+    if (m_caps.distinctOutputImage
+     || m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      /* Create an additional output image. Also for a possible usage of AV1 film grain feature. */
       DxvkImageCreateInfo imgInfo = {};
       imgInfo.pNext       = &profileListInfo;
       imgInfo.type        = VK_IMAGE_TYPE_2D;
       imgInfo.format      = m_outputFormat;
       imgInfo.flags       = 0;
       imgInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-      imgInfo.extent      = { m_sampleWidth, m_sampleHeight, 1 };
+      imgInfo.extent      = m_DPB.decodedPictureExtent;
       imgInfo.numLayers   = 1;
       imgInfo.mipLevels   = 1;
       imgInfo.usage       = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
@@ -343,8 +385,7 @@ namespace dxvk {
     sessionCreateInfo.flags                      = 0;
     sessionCreateInfo.pVideoProfile              = &m_profile.profileInfo;
     sessionCreateInfo.pictureFormat              = m_outputFormat;
-    sessionCreateInfo.maxCodedExtent.width       = m_sampleWidth;
-    sessionCreateInfo.maxCodedExtent.height      = m_sampleHeight;
+    sessionCreateInfo.maxCodedExtent             = m_profile.videoCapabilities.maxCodedExtent;
     sessionCreateInfo.referencePictureFormat     = m_outputFormat;
     sessionCreateInfo.maxDpbSlots                = m_DPB.slots.size();
     sessionCreateInfo.maxActiveReferencePictures = m_DPB.slots.size() - 1;
@@ -422,6 +463,13 @@ namespace dxvk {
 
       m_videoSessionParameters->create(m_videoSession, &h265SessionParametersCreateInfo);
     }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      /* Session parameter will be (re-)created in Decode because "video session parameters objects cannot be
+       * updated using the vkUpdateVideoSessionParametersKHR command. When a new AV1 sequence header is decoded
+       * from the input video bitstream the application needs to create a new video session parameters object
+       * to store it.".
+       */
+    }
     else {
       throw DxvkError(str::format("DxvkVideoDecoder: videoCodecOperation ", m_profile.profileInfo.videoCodecOperation,
         " is not supported"));
@@ -494,7 +542,6 @@ namespace dxvk {
   void DxvkVideoDecoder::BeginFrame(
     DxvkContext* ctx,
     const Rc<DxvkImageView>& imageView) {
-    Logger::info(str::format("VDec: BeginFrame"));
 
     m_outputImageView = imageView;
 
@@ -517,7 +564,6 @@ namespace dxvk {
 
   void DxvkVideoDecoder::EndFrame(
     DxvkContext* ctx) {
-    Logger::info(str::format("VDec: EndFrame"));
 
     if (m_profile.videoQueueHasTransfer) {
       /* Return ownership of the image back to the graphics queue. */
@@ -563,6 +609,42 @@ namespace dxvk {
     DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->flags.general_frame_only_constraint_flag);
     DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->general_profile_idc);
     DXVK_VD_CMP_FIELD(vps, pProfileTierLevel->general_level_idc);
+    return true;
+  }
+
+
+  static bool IsAV1SequenceHeaderEqual(
+    const StdVideoAV1SequenceHeader &sh1,
+    const StdVideoAV1SequenceHeader &sh2) {
+    DXVK_VD_CMP_FIELD(sh, flags.still_picture);
+    DXVK_VD_CMP_FIELD(sh, flags.reduced_still_picture_header);
+    DXVK_VD_CMP_FIELD(sh, flags.use_128x128_superblock);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_filter_intra);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_intra_edge_filter);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_interintra_compound);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_masked_compound);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_warped_motion);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_dual_filter);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_order_hint);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_jnt_comp);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_ref_frame_mvs);
+    DXVK_VD_CMP_FIELD(sh, flags.frame_id_numbers_present_flag);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_superres);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_cdef);
+    DXVK_VD_CMP_FIELD(sh, flags.enable_restoration);
+    DXVK_VD_CMP_FIELD(sh, flags.film_grain_params_present);
+    DXVK_VD_CMP_FIELD(sh, flags.timing_info_present_flag);
+    DXVK_VD_CMP_FIELD(sh, flags.initial_display_delay_present_flag);
+    DXVK_VD_CMP_FIELD(sh, seq_profile);
+    DXVK_VD_CMP_FIELD(sh, frame_width_bits_minus_1);
+    DXVK_VD_CMP_FIELD(sh, frame_height_bits_minus_1);
+    DXVK_VD_CMP_FIELD(sh, max_frame_width_minus_1);
+    DXVK_VD_CMP_FIELD(sh, max_frame_height_minus_1);
+    DXVK_VD_CMP_FIELD(sh, delta_frame_id_length_minus_2);
+    DXVK_VD_CMP_FIELD(sh, additional_frame_id_length_minus_1);
+    DXVK_VD_CMP_FIELD(sh, order_hint_bits_minus_1);
+    DXVK_VD_CMP_FIELD(sh, seq_force_integer_mv);
+    DXVK_VD_CMP_FIELD(sh, seq_force_screen_content_tools);
     return true;
   }
 
@@ -792,7 +874,7 @@ namespace dxvk {
     DxvkVideoDecodeInputParameters *pParms) {
     /* Update internal pointer(s). */
     pParms->h264.sps.pOffsetForRefFrame = &pParms->h264.spsOffsetForRefFrame;
-    pParms->h264.pps.pScalingLists = &pParms->h264.ppsScalingLists;
+    pParms->h264.pps.pScalingLists      = &pParms->h264.ppsScalingLists;
 
     /* Information about a possible update of session parameters. */
     VkVideoDecodeH264SessionParametersAddInfoKHR h264AddInfo =
@@ -862,7 +944,8 @@ namespace dxvk {
     /* Update internal pointer(s). */
     pParms->h265.vps.pProfileTierLevel = &pParms->h265.vpsProfileTierLevel;
     pParms->h265.sps.pProfileTierLevel = &pParms->h265.vpsProfileTierLevel;
-    pParms->h265.pps.pScalingLists = &pParms->h265.ppsScalingLists;
+    pParms->h265.sps.pDecPicBufMgr     = &pParms->h265.spsDecPicBufMgr;
+    pParms->h265.pps.pScalingLists     = &pParms->h265.ppsScalingLists;
 
     /* Information about a possible update of session parameters. */
     VkVideoDecodeH265SessionParametersAddInfoKHR addInfo =
@@ -993,6 +1076,148 @@ namespace dxvk {
   }
 
 
+  VkResult DxvkVideoDecoder::UpdateSessionParametersAV1(
+    DxvkVideoDecodeInputParameters *pParms) {
+    /* Update internal pointer(s). */
+    pParms->av1.stdSequenceHeader.pColorConfig  = &pParms->av1.stdColorConfig;
+    pParms->av1.stdPictureInfo.pTileInfo        = &pParms->av1.stdTileInfo;
+    pParms->av1.stdPictureInfo.pQuantization    = &pParms->av1.stdQuantization;
+    pParms->av1.stdPictureInfo.pSegmentation    = &pParms->av1.stdSegmentation;
+    pParms->av1.stdPictureInfo.pLoopFilter      = &pParms->av1.stdLoopFilter;
+    pParms->av1.stdPictureInfo.pCDEF            = &pParms->av1.stdCDEF;
+    pParms->av1.stdPictureInfo.pLoopRestoration = &pParms->av1.stdLoopRestoration;
+    pParms->av1.stdPictureInfo.pGlobalMotion    = &pParms->av1.stdGlobalMotion;
+    pParms->av1.stdPictureInfo.pFilmGrain       = pParms->av1.stdPictureInfo.flags.apply_grain
+                                                ? &pParms->av1.stdFilmGrain
+                                                : nullptr;
+    pParms->av1.stdTileInfo.pMiColStarts        = &pParms->av1.MiColStarts[0];
+    pParms->av1.stdTileInfo.pWidthInSbsMinus1   = &pParms->av1.WidthInSbsMinus1[0];
+    pParms->av1.stdTileInfo.pMiRowStarts        = &pParms->av1.MiRowStarts[0];
+    pParms->av1.stdTileInfo.pHeightInSbsMinus1  = &pParms->av1.HeightInSbsMinus1[0];
+
+    if (m_videoSessionParameters->handle() != VK_NULL_HANDLE
+     && IsAV1SequenceHeaderEqual(pParms->av1.stdSequenceHeader, m_parameterSetCache.av1.stdSequenceHeader))
+      return VK_SUCCESS;
+
+    m_parameterSetCache.av1.stdSequenceHeader = pParms->av1.stdSequenceHeader;
+
+    /* Create videoSessionParameters with the new info. */
+    m_videoSessionParameters = new DxvkVideoSessionParametersHandle(m_device);
+
+    VkVideoDecodeAV1SessionParametersCreateInfoKHR av1SessionParametersCreateInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_SESSION_PARAMETERS_CREATE_INFO_KHR };
+    av1SessionParametersCreateInfo.pStdSequenceHeader = &pParms->av1.stdSequenceHeader;
+
+    m_videoSessionParameters->create(m_videoSession, &av1SessionParametersCreateInfo);
+
+    return VK_SUCCESS;
+  }
+
+
+  static int8_t av1_get_relative_dist(const DxvkVideoDecodeInputParameters &parms,
+    uint8_t a, uint8_t b) {
+    /* AV1 spec 5.9.3. Get relative distance function */
+    int8_t diff = a - b;
+    const uint8_t m = 1 << parms.av1.stdSequenceHeader.order_hint_bits_minus_1;
+    diff = (diff & (m - 1)) - (diff & m);
+    return diff;
+  }
+
+
+  static void av1_RefFrameSignBias(DxvkVideoDecodeInputParameters &parms) {
+    if (parms.av1.stdSequenceHeader.flags.enable_order_hint) {
+      for (uint8_t i = 0; i < STD_VIDEO_AV1_REFS_PER_FRAME; ++i) {
+        const uint8_t refFrameName = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME + i;
+        const int8_t relativeDistance = av1_get_relative_dist(parms,
+          parms.av1.stdPictureInfo.OrderHints[refFrameName], parms.av1.stdPictureInfo.OrderHint);
+
+        /* Vulkan uses bit mask as array. */
+        parms.av1.stdReferenceInfo.RefFrameSignBias |= (relativeDistance > 0) << refFrameName;
+      }
+    }
+  }
+
+
+  static void av1_skip_mode_params(DxvkVideoDecodeInputParameters &parms) {
+    if (parms.av1.stdPictureInfo.frame_type == STD_VIDEO_AV1_FRAME_TYPE_KEY
+     || parms.av1.stdPictureInfo.frame_type == STD_VIDEO_AV1_FRAME_TYPE_INTRA_ONLY
+     || !parms.av1.stdPictureInfo.flags.reference_select
+     || !parms.av1.stdSequenceHeader.flags.enable_order_hint) {
+       return;
+    }
+
+    int8_t forwardIdx = -1;
+    int8_t backwardIdx = -1;
+    uint8_t forwardHint;
+    uint8_t backwardHint;
+
+    for (uint8_t i = 0; i < STD_VIDEO_AV1_REFS_PER_FRAME; ++i) {
+      const uint8_t refFrameName = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME + i;
+      const uint8_t refHint = parms.av1.stdPictureInfo.OrderHints[refFrameName];
+
+      if (av1_get_relative_dist(parms, refHint, parms.av1.stdPictureInfo.OrderHint) < 0) {
+        if (forwardIdx < 0
+         || av1_get_relative_dist(parms, refHint, forwardHint) > 0) {
+          forwardIdx = i;
+          forwardHint = refHint;
+        }
+      } else if (av1_get_relative_dist(parms, refHint, parms.av1.stdPictureInfo.OrderHint) > 0) {
+        if (backwardIdx < 0
+         || av1_get_relative_dist(parms, refHint, backwardHint) < 0 ) {
+          backwardIdx = i;
+          backwardHint = refHint;
+        }
+      }
+    }
+
+    if (forwardIdx < 0) {
+      return;
+    }
+
+    if (backwardIdx >= 0) {
+      parms.av1.stdPictureInfo.SkipModeFrame[0] = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME
+        + std::min(forwardIdx, backwardIdx);
+      parms.av1.stdPictureInfo.SkipModeFrame[1] = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME
+        + std::max(forwardIdx, backwardIdx);
+    }
+    else {
+      int8_t secondForwardIdx = -1;
+      uint8_t secondForwardHint;
+
+      for (uint8_t i = 0; i < STD_VIDEO_AV1_REFS_PER_FRAME; ++i) {
+        const uint8_t refFrameName = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME + i;
+        const uint8_t refHint = parms.av1.stdPictureInfo.OrderHints[refFrameName];
+
+        if (av1_get_relative_dist(parms, refHint, forwardHint) < 0) {
+          if (secondForwardIdx < 0
+           || av1_get_relative_dist(parms, refHint, secondForwardHint) > 0) {
+            secondForwardIdx = i;
+            secondForwardHint = refHint;
+          }
+        }
+      }
+
+      if (secondForwardIdx >= 0) {
+        parms.av1.stdPictureInfo.SkipModeFrame[0] = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME
+          + std::min(forwardIdx, secondForwardIdx);
+        parms.av1.stdPictureInfo.SkipModeFrame[1] = STD_VIDEO_AV1_REFERENCE_NAME_LAST_FRAME
+          + std::max(forwardIdx, secondForwardIdx);
+      }
+    }
+  }
+
+
+  static void av1ComputeParams(DxvkVideoDecodeInputParameters &parms) {
+    /* Update various parameters as described in AV1 spec. */
+
+    /* AV1 spec 5.9.2. Uncompressed header syntax */
+    av1_RefFrameSignBias(parms);
+
+    /* AV1 spec 5.9.22. Skip mode params syntax */
+    av1_skip_mode_params(parms);
+  }
+
+
   void DxvkVideoDecoder::Decode(
     DxvkContext* ctx,
     DxvkVideoDecodeInputParameters parms)
@@ -1006,8 +1231,28 @@ namespace dxvk {
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
       vr = this->UpdateSessionParametersH265(&parms);
     }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      vr = this->UpdateSessionParametersAV1(&parms);
+    }
     if (vr != VK_SUCCESS)
       return;
+
+    const bool fUseDistinctOutputImage = m_caps.distinctOutputImage
+      || (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR
+       && parms.av1.stdPictureInfo.flags.apply_grain);
+
+    VkExtent2D codedExtent = { m_sampleWidth, m_sampleHeight };
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      codedExtent.width = parms.av1.stdSequenceHeader.max_frame_width_minus_1 + 1;
+      codedExtent.height = parms.av1.stdSequenceHeader.max_frame_height_minus_1 + 1;
+    }
+
+    if (codedExtent.width > m_DPB.decodedPictureExtent.width
+     || codedExtent.height > m_DPB.decodedPictureExtent.height) {
+      Logger::err(str::format("DxvkVideoDecoder: frame size (", codedExtent.width, "x", codedExtent.height, ")",
+        " exceeds DPB image size (", m_DPB.decodedPictureExtent.width, "x", m_DPB.decodedPictureExtent.height, ")"));
+      return;
+    }
 
     /*
      * Allocate space in the GPU buffer and copy encoded frame into it.
@@ -1044,13 +1289,19 @@ namespace dxvk {
      */
     bool doIDR = false;
     if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
-      doIDR = parms.nal_unit_type == 5;
+      doIDR = parms.h264.nal_unit_type == 5;
     }
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
       doIDR = parms.h265.stdPictureInfo.flags.IdrPicFlag;
     }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      doIDR = parms.av1.stdPictureInfo.frame_type == STD_VIDEO_AV1_FRAME_TYPE_KEY;
+    }
     if (doIDR) /* IDR, immediate decoder reset. */
       m_DPB.reset();
+
+    if (m_DPB.fOverflow)
+      return;
 
     /*
      * Update information about decoded reference frames.
@@ -1069,19 +1320,27 @@ namespace dxvk {
         /* Update stdRefInfo with now known values from DxvkRefFrameInfo */
         if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
           StdVideoDecodeH264ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].h264.stdRefInfo;
-          stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
-          stdRefInfo.flags.is_non_existing              = r.nonExistingFrame;
-          stdRefInfo.FrameNum                           = r.frame_num;
-          stdRefInfo.PicOrderCnt[0]                     = r.PicOrderCnt[0];
-          stdRefInfo.PicOrderCnt[1]                     = r.PicOrderCnt[1];
+          stdRefInfo.flags.used_for_long_term_reference = r.h264.longTermReference;
+          stdRefInfo.flags.is_non_existing              = r.h264.nonExistingFrame;
+          stdRefInfo.FrameNum                           = r.h264.frame_num;
+          stdRefInfo.PicOrderCnt[0]                     = r.h264.PicOrderCnt[0];
+          stdRefInfo.PicOrderCnt[1]                     = r.h264.PicOrderCnt[1];
         }
         else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
           StdVideoDecodeH265ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].h265.stdRefInfo;
-          stdRefInfo.flags.used_for_long_term_reference = r.longTermReference;
+          stdRefInfo.flags.used_for_long_term_reference = r.h265.longTermReference;
           stdRefInfo.flags.unused_for_reference         = 0; /* It is a ref frame. */
-          stdRefInfo.PicOrderCntVal                     = r.PicOrderCnt[0];
+          stdRefInfo.PicOrderCntVal                     = r.h265.PicOrderCntVal;
+        }
+        else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+          StdVideoDecodeAV1ReferenceInfo& stdRefInfo = m_DPB.slots[refFrame.dpbSlotIndex].av1.stdRefInfo;
+          parms.av1.stdPictureInfo.OrderHints[r.av1.frame_name] = stdRefInfo.OrderHint;
         }
       }
+    }
+
+    if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      av1ComputeParams(parms);
     }
 
     /*
@@ -1104,15 +1363,31 @@ namespace dxvk {
     /* Scan DPB slots for a free slot or a short term reference. */
     for (uint32_t i = 0; i < m_DPB.slots.size(); ++i) {
       DxvkDPBSlot& slot = m_DPB.slots[m_DPB.idxCurrentDPBSlot];
-      bool isLongReference = false;
+      bool keepSlot = false;
       if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
-        isLongReference = slot.h264.stdRefInfo.flags.used_for_long_term_reference != 0;
+        keepSlot = slot.h264.stdRefInfo.flags.used_for_long_term_reference != 0;
+        for (uint32_t i = 0; i < parms.refFramesCount && !keepSlot; ++i) {
+          const DxvkRefFrameInfo& r = parms.refFrames[i];
+          keepSlot = r.idSurface == slot.idSurface;
+        }
       }
       else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
-        isLongReference = slot.h265.stdRefInfo.flags.used_for_long_term_reference != 0;
+        keepSlot = slot.h265.stdRefInfo.flags.used_for_long_term_reference != 0;
+        for (uint32_t i = 0; i < parms.refFramesCount && !keepSlot; ++i) {
+          const DxvkRefFrameInfo& r = parms.refFrames[i];
+          keepSlot = r.idSurface == slot.idSurface;
+        }
+      }
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+        /* Keep frames those are included in RefFrameMapTextureIndex */
+        for (uint32_t i = 0; i < 8 && !keepSlot; ++i) {
+          if (slot.idSurface == parms.av1.RefFrameMapTextureIndex[i]) {
+            keepSlot = true;
+          }
+        }
       }
       if (slot.isActive
-       && isLongReference) {
+       && keepSlot) {
         m_DPB.idxCurrentDPBSlot = (m_DPB.idxCurrentDPBSlot + 1) % m_DPB.slots.size();
         continue;
       }
@@ -1134,10 +1409,10 @@ namespace dxvk {
     if (dstSlotIndex == -1) {
       /* No free slots. This can happen only if entire DPB is occupied by long-term references,
        * which is probably due to an invalid video stream.
-       * Try to recover by resetting the DPB.
+       * Skip frames until the next IDR frame.
        */
-      m_DPB.reset();
-      dstSlotIndex = 0;
+      m_DPB.fOverflow = true;
+      return;
     }
 
     /* Init the target DPB slot, i.e. the slot where the reconstructed picture will be placed. */
@@ -1148,6 +1423,10 @@ namespace dxvk {
     }
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
       dstDPBSlot.h265.stdRefInfo  = parms.h265.stdReferenceInfo;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      dstDPBSlot.av1.stdRefInfo   = parms.av1.stdReferenceInfo;
+      /* dstDPBSlot.av1.stdRefInfo.SavedOrderHints are updated after decoding of the frame. */
     }
     dstDPBSlot.idSurface          = DXVK_VIDEO_DECODER_SURFACE_INVALID; /* Reference picture will be associated later. */
 
@@ -1180,7 +1459,7 @@ namespace dxvk {
 
     ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
 
-    if (m_caps.distinctOutputImage) {
+    if (fUseDistinctOutputImage) {
       /*
        * Prepare decode destination layout.
        */
@@ -1210,13 +1489,17 @@ namespace dxvk {
       maxRefFrames = parms.h264.sps.max_num_ref_frames;
     }
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
-      maxRefFrames = parms.h265.sps_max_dec_pic_buffering;
+      maxRefFrames = parms.h265.spsDecPicBufMgr.max_dec_pic_buffering_minus1[0] + 1;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      maxRefFrames = STD_VIDEO_AV1_REFS_PER_FRAME;
     }
     const uint32_t maxRefSlotsCount = std::min(parms.refFramesCount, maxRefFrames);
 
     /* Reference pictures and the destination slot to be bound for video decoding. */
     std::vector<VkVideoDecodeH264DpbSlotInfoKHR> h264DpbSlotInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoDecodeH265DpbSlotInfoKHR> h265DpbSlotInfo(maxRefSlotsCount + 1);
+    std::vector<VkVideoDecodeAV1DpbSlotInfoKHR> av1DpbSlotInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoPictureResourceInfoKHR> pictureResourceInfo(maxRefSlotsCount + 1);
     std::vector<VkVideoReferenceSlotInfoKHR> referenceSlotsInfo(maxRefSlotsCount + 1);
 
@@ -1238,6 +1521,18 @@ namespace dxvk {
         continue;
       }
 
+      /* Skip if the frame id has been already added to referenceSlotsInfo. */
+      uint32_t j = 0;
+      for (; j < refSlotsCount; ++j) {
+        if (referenceSlotsInfo[j].slotIndex == dpbSlotIndex) {
+          Logger::debug(str::format("DPBM: DPB[", dpbSlotIndex, "]: reference picture [", i, "]",
+            " (added at ", refSlotsCount, ") already exists at ", j));
+          break;
+        }
+      }
+      if (j < refSlotsCount)
+        continue;
+
       if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
         h264DpbSlotInfo[refSlotsCount] =
           { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_DPB_SLOT_INFO_KHR };
@@ -1250,11 +1545,20 @@ namespace dxvk {
         h265DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].h265.stdRefInfo;
         pNext = &h265DpbSlotInfo[refSlotsCount];
       }
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+        av1DpbSlotInfo[refSlotsCount] =
+          { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_DPB_SLOT_INFO_KHR };
+        av1DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &m_DPB.slots[dpbSlotIndex].av1.stdRefInfo;
+        pNext = &av1DpbSlotInfo[refSlotsCount];
+      }
+      else {
+        pNext = nullptr;
+      }
 
       pictureResourceInfo[refSlotsCount] =
         { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
       pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
-      pictureResourceInfo[refSlotsCount].codedExtent      = { m_sampleWidth, m_sampleHeight };
+      pictureResourceInfo[refSlotsCount].codedExtent      = codedExtent;
       pictureResourceInfo[refSlotsCount].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
       pictureResourceInfo[refSlotsCount].imageViewBinding = m_DPB.slots[dpbSlotIndex].imageView->handle();
 
@@ -1280,11 +1584,17 @@ namespace dxvk {
       h265DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.h265.stdRefInfo;
       pNext = &h265DpbSlotInfo[refSlotsCount];
     }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      av1DpbSlotInfo[refSlotsCount] =
+        { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_DPB_SLOT_INFO_KHR };
+      av1DpbSlotInfo[refSlotsCount].pStdReferenceInfo = &dstDPBSlot.av1.stdRefInfo;
+      pNext = &av1DpbSlotInfo[refSlotsCount];
+    }
 
     pictureResourceInfo[refSlotsCount] =
       { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
     pictureResourceInfo[refSlotsCount].codedOffset      = { 0, 0 };
-    pictureResourceInfo[refSlotsCount].codedExtent      = { m_sampleWidth, m_sampleHeight };
+    pictureResourceInfo[refSlotsCount].codedExtent      = codedExtent;
     pictureResourceInfo[refSlotsCount].baseArrayLayer   = 0; /* "relative to the image subresource range" of the view */
     pictureResourceInfo[refSlotsCount].imageViewBinding = dstDPBSlot.imageView->handle();
 
@@ -1304,15 +1614,19 @@ namespace dxvk {
 
 #ifdef DEBUG
     Logger::debug(str::format("VREF: beginVideoCoding: dstSlotIndex=", dstSlotIndex,
-      " ", m_sampleWidth, "x", m_sampleHeight));
+      " ", codedExtent.width, "x", codedExtent.height));
     for (uint32_t i = 0; i < beginCodingInfo.referenceSlotCount; ++i) {
       auto &s = beginCodingInfo.pReferenceSlots[i];
       const DxvkDPBSlot& dpbSlot = m_DPB.slots[s.slotIndex == -1 ? dstSlotIndex : s.slotIndex];
-      int32_t FrameNum = 0;
+
+      int32_t FrameNum = -1;
       if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR)
         FrameNum = dpbSlot.h264.stdRefInfo.FrameNum;
       else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
         FrameNum = dpbSlot.h265.stdRefInfo.PicOrderCntVal;
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR)
+        FrameNum = dpbSlot.av1.stdRefInfo.OrderHint;
+
       Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
         ", FrameNum=", FrameNum,
         ", image=", dpbSlot.imageView->imageHandle(),
@@ -1349,18 +1663,50 @@ namespace dxvk {
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_H264_PICTURE_INFO_KHR };
     VkVideoDecodeH265PictureInfoKHR h265PictureInfo =
       { VK_STRUCTURE_TYPE_VIDEO_DECODE_H265_PICTURE_INFO_KHR };
+    VkVideoDecodeAV1PictureInfoKHR av1PictureInfo =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_PICTURE_INFO_KHR };
 
     if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
       h264PictureInfo.pStdPictureInfo = &parms.h264.stdH264PictureInfo;
-      h264PictureInfo.sliceCount      = parms.sliceOffsets.size();
-      h264PictureInfo.pSliceOffsets   = parms.sliceOffsets.data();
+      h264PictureInfo.sliceCount      = parms.sliceOrTileOffsets.size();
+      h264PictureInfo.pSliceOffsets   = parms.sliceOrTileOffsets.data();
       pNext = &h264PictureInfo;
     }
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
       h265PictureInfo.pStdPictureInfo      = &parms.h265.stdPictureInfo;
-      h265PictureInfo.sliceSegmentCount    = parms.sliceOffsets.size();
-      h265PictureInfo.pSliceSegmentOffsets = parms.sliceOffsets.data();
+      h265PictureInfo.sliceSegmentCount    = parms.sliceOrTileOffsets.size();
+      h265PictureInfo.pSliceSegmentOffsets = parms.sliceOrTileOffsets.data();
       pNext = &h265PictureInfo;
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      av1PictureInfo.pStdPictureInfo               = &parms.av1.stdPictureInfo;
+      for (uint32_t i = 0; i < VK_MAX_VIDEO_AV1_REFERENCES_PER_FRAME_KHR; ++i) {
+        av1PictureInfo.referenceNameSlotIndices[i] = -1;
+        if (i >= parms.refFramesCount)
+          continue;
+
+        const DxvkRefFrameInfo& r = parms.refFrames[i];
+
+        itRefFrame = m_DPB.refFrames.find(r.idSurface);
+        if (itRefFrame == m_DPB.refFrames.end()) {
+          /* Skip invalid reference frame. */
+          continue;
+        }
+
+        const int32_t dpbSlotIndex = itRefFrame->second.dpbSlotIndex;
+        if (dpbSlotIndex == -1) {
+          /* Skip invalid reference frame. */
+          continue;
+        }
+
+        av1PictureInfo.referenceNameSlotIndices[i] = dpbSlotIndex;
+      }
+
+      av1PictureInfo.frameHeaderOffset             = 0;
+      av1PictureInfo.tileCount                     = parms.av1.tileCount;
+      av1PictureInfo.pTileOffsets                  = parms.sliceOrTileOffsets.data();
+      av1PictureInfo.pTileSizes                    = parms.sliceOrTileSizes.data();
+      pNext = &av1PictureInfo;
     }
 
     VkVideoDecodeInfoKHR decodeInfo =
@@ -1372,12 +1718,12 @@ namespace dxvk {
     decodeInfo.dstPictureResource  =
       { VK_STRUCTURE_TYPE_VIDEO_PICTURE_RESOURCE_INFO_KHR };
     decodeInfo.dstPictureResource.codedOffset      = { 0, 0 };
-    decodeInfo.dstPictureResource.codedExtent      = { m_sampleWidth, m_sampleHeight };
+    decodeInfo.dstPictureResource.codedExtent      = codedExtent;
     /* "baseArrayLayer relative to the image subresource range the image view specified in
      * imageViewBinding was created with."
      */
     decodeInfo.dstPictureResource.baseArrayLayer   = 0;
-    if (m_caps.distinctOutputImage) {
+    if (fUseDistinctOutputImage) {
       decodeInfo.dstPictureResource.imageViewBinding = m_imageViewDecodeDst->handle();
     }
     else {
@@ -1392,11 +1738,15 @@ namespace dxvk {
     for (uint32_t i = 0; i < decodeInfo.referenceSlotCount; ++i) {
       auto &s = decodeInfo.pReferenceSlots[i];
       const DxvkDPBSlot& dpbSlot = m_DPB.slots[s.slotIndex];
-      int32_t FrameNum = 0;
+
+      int32_t FrameNum = -1;
       if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR)
         FrameNum = dpbSlot.h264.stdRefInfo.FrameNum;
       else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
         FrameNum = dpbSlot.h265.stdRefInfo.PicOrderCntVal;
+      else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR)
+        FrameNum = dpbSlot.av1.stdRefInfo.OrderHint;
+
       Logger::debug(str::format("VREF:  RefSlot[", i, "]: slotIndex=", s.slotIndex,
         ", FrameNum=", FrameNum,
         ", view=", s.pPictureResource->imageViewBinding));
@@ -1406,9 +1756,13 @@ namespace dxvk {
                    ? dstDPBSlot.h264.stdRefInfo.FrameNum
                    : (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR)
                    ? dstDPBSlot.h265.stdRefInfo.PicOrderCntVal
+                   : (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR)
+                   ? dstDPBSlot.av1.stdRefInfo.OrderHint
                    : -1),
       ", is_ref=", (uint32_t)(m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR
                    ? parms.h264.stdH264PictureInfo.flags.is_reference
+                   : (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR)
+                   ? parms.av1.reference_frame_update
                    : 0),
       ", view=", dstDPBSlot.imageView->handle()));
 #endif
@@ -1429,7 +1783,7 @@ namespace dxvk {
     Rc<DxvkImage> decodedPicture;
     uint32_t decodedArrayLayer;
     VkImageLayout decodedPictureLayout;
-    if (m_caps.distinctOutputImage) {
+    if (fUseDistinctOutputImage) {
       decodedPicture       = m_imageDecodeDst;
       decodedArrayLayer    = 0;
       decodedPictureLayout = VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR;
@@ -1439,6 +1793,51 @@ namespace dxvk {
       decodedArrayLayer    = dstDPBSlot.baseArrayLayer;
       decodedPictureLayout = VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR;
     }
+
+    /* Prepare parameters for copying decoded image to the output view. */
+    VkExtent3D outputExtent = m_outputImageView->imageInfo().extent;
+    VkExtent3D copyExtent = {
+      std::min(outputExtent.width, m_DPB.decodedPictureExtent.width),
+      std::min(outputExtent.height, m_DPB.decodedPictureExtent.height),
+      1 };
+
+    std::array<VkImageCopy2, 2> regions{{
+      { VK_STRUCTURE_TYPE_IMAGE_COPY_2 },
+      { VK_STRUCTURE_TYPE_IMAGE_COPY_2 }}};
+    /* Y plane. */
+    regions[0].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
+    //regions[0].srcSubresource.mipLevel       = 0;
+    regions[0].srcSubresource.baseArrayLayer   = decodedArrayLayer;
+    regions[0].srcSubresource.layerCount       = 1;
+    //regions[0].srcOffset                     = { 0, 0, 0 };
+    regions[0].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
+    //regions[0].dstSubresource.mipLevel       = 0;
+    regions[0].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
+    regions[0].dstSubresource.layerCount       = 1;
+    //regions[0].dstOffset                     = { 0, 0, 0 };
+    regions[0].extent                          = copyExtent;
+
+    /* CbCr plane at half resolution. */
+    regions[1].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
+    //regions[1].srcSubresource.mipLevel       = 0;
+    regions[1].srcSubresource.baseArrayLayer   = decodedArrayLayer;
+    regions[1].srcSubresource.layerCount       = 1;
+    //regions[1].srcOffset                     = { 0, 0, 0 };
+    regions[1].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
+    //regions[1].dstSubresource.mipLevel       = 0;
+    regions[1].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
+    regions[1].dstSubresource.layerCount       = 1;
+    //regions[1].dstOffset                     = { 0, 0, 0 };
+    regions[1].extent                          = { copyExtent.width / 2, copyExtent.height / 2, 1 };
+
+    VkCopyImageInfo2 copyImageInfo =
+      { VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2 };
+    copyImageInfo.srcImage       = decodedPicture->handle();
+    copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    copyImageInfo.dstImage       = m_outputImageView->imageHandle();
+    copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    copyImageInfo.regionCount    = 2;
+    copyImageInfo.pRegions       = regions.data();
 
     if (m_profile.videoQueueHasTransfer) {
       /* Wait for the decoded image to be available as a transfer source. */
@@ -1466,44 +1865,7 @@ namespace dxvk {
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::VDecBuffer, &dependencyInfo);
 
-      /* Copy decoded image -> output image. Y plane. */
-      std::array<VkImageCopy2, 2> regions{{
-        { VK_STRUCTURE_TYPE_IMAGE_COPY_2 },
-        { VK_STRUCTURE_TYPE_IMAGE_COPY_2 }}};
-      regions[0].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      //regions[0].srcSubresource.mipLevel       = 0;
-      regions[0].srcSubresource.baseArrayLayer   = decodedArrayLayer;
-      regions[0].srcSubresource.layerCount       = 1;
-      //regions[0].srcOffset                     = { 0, 0, 0 };
-      regions[0].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      //regions[0].dstSubresource.mipLevel       = 0;
-      regions[0].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
-      regions[0].dstSubresource.layerCount       = 1;
-      //regions[0].dstOffset                     = { 0, 0, 0 };
-      regions[0].extent                          = { m_sampleWidth, m_sampleHeight, 1 };
-
-      /* CbCr plane at half resolution. */
-      regions[1].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
-      //regions[1].srcSubresource.mipLevel       = 0;
-      regions[1].srcSubresource.baseArrayLayer   = decodedArrayLayer;
-      regions[1].srcSubresource.layerCount       = 1;
-      //regions[1].srcOffset                     = { 0, 0, 0 };
-      regions[1].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
-      //regions[1].dstSubresource.mipLevel       = 0;
-      regions[1].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
-      regions[1].dstSubresource.layerCount       = 1;
-      //regions[1].dstOffset                     = { 0, 0, 0 };
-      regions[1].extent                          = { m_sampleWidth / 2, m_sampleHeight / 2, 1 };
-
-      VkCopyImageInfo2 copyImageInfo =
-        { VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2 };
-      copyImageInfo.srcImage       = decodedPicture->handle();
-      copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-      copyImageInfo.dstImage       = m_outputImageView->imageHandle();
-      copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-      copyImageInfo.regionCount    = 2;
-      copyImageInfo.pRegions       = regions.data();
-
+      /* Copy decoded image -> output image. */
       ctx->emitCopyImage(DxvkCmdBuffer::VDecBuffer, &copyImageInfo);
 
       /* Restore layout of the decoded image. */
@@ -1572,44 +1934,7 @@ namespace dxvk {
 
       ctx->emitPipelineBarrier(DxvkCmdBuffer::InitBuffer, &dependencyInfo);
 
-      /* Copy decoded image -> output image. Y plane. */
-      std::array<VkImageCopy2, 2> regions{{
-        { VK_STRUCTURE_TYPE_IMAGE_COPY_2 },
-        { VK_STRUCTURE_TYPE_IMAGE_COPY_2 }}};
-      regions[0].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      //regions[0].srcSubresource.mipLevel       = 0;
-      regions[0].srcSubresource.baseArrayLayer   = decodedArrayLayer;
-      regions[0].srcSubresource.layerCount       = 1;
-      //regions[0].srcOffset                     = { 0, 0, 0 };
-      regions[0].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      //regions[0].dstSubresource.mipLevel       = 0;
-      regions[0].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
-      regions[0].dstSubresource.layerCount       = 1;
-      //regions[0].dstOffset                     = { 0, 0, 0 };
-      regions[0].extent                          = { m_sampleWidth, m_sampleHeight, 1 };
-
-      /* CbCr plane at half resolution. */
-      regions[1].srcSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
-      //regions[1].srcSubresource.mipLevel       = 0;
-      regions[1].srcSubresource.baseArrayLayer   = decodedArrayLayer;
-      regions[1].srcSubresource.layerCount       = 1;
-      //regions[1].srcOffset                     = { 0, 0, 0 };
-      regions[1].dstSubresource.aspectMask       = VK_IMAGE_ASPECT_PLANE_1_BIT;
-      //regions[1].dstSubresource.mipLevel       = 0;
-      regions[1].dstSubresource.baseArrayLayer   = m_outputImageView->info().minLayer;
-      regions[1].dstSubresource.layerCount       = 1;
-      //regions[1].dstOffset                     = { 0, 0, 0 };
-      regions[1].extent                          = { m_sampleWidth / 2, m_sampleHeight / 2, 1 };
-
-      VkCopyImageInfo2 copyImageInfo =
-        { VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2 };
-      copyImageInfo.srcImage       = decodedPicture->handle();
-      copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-      copyImageInfo.dstImage       = m_outputImageView->imageHandle();
-      copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-      copyImageInfo.regionCount    = 2;
-      copyImageInfo.pRegions       = regions.data();
-
+      /* Copy decoded image -> output image. */
       ctx->emitCopyImage(DxvkCmdBuffer::InitBuffer, &copyImageInfo);
 
       /* Restore layout of the output image. */
@@ -1661,12 +1986,12 @@ namespace dxvk {
     }
     else
       ctx->trackResource(DxvkAccess::Write, dstDPBSlot.image); /* Same image in every slot. */
-    if (m_caps.distinctOutputImage)
+    if (fUseDistinctOutputImage)
       ctx->trackResource(DxvkAccess::Write, m_imageDecodeDst);
     ctx->trackResource(DxvkAccess::Read, m_bitstreamBuffer);
 
     /*
-     * Keep reference picture.
+     * Keep reference picture and update its information if necessary.
      */
     bool activateSlot = false;
     if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H264_BIT_KHR) {
@@ -1674,6 +1999,13 @@ namespace dxvk {
     }
     else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR) {
       activateSlot = true; /* It is not known yet if the picture is a reference. */
+    }
+    else if (m_profile.profileInfo.videoCodecOperation == VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR) {
+      activateSlot = parms.av1.reference_frame_update;
+      if (activateSlot) {
+        for (uint32_t i = 0; i < STD_VIDEO_AV1_NUM_REF_FRAMES; ++i)
+          dstDPBSlot.av1.stdRefInfo.SavedOrderHints[i] = parms.av1.stdPictureInfo.OrderHints[i];
+      }
     }
     if (activateSlot) {
       dstDPBSlot.isActive = true;

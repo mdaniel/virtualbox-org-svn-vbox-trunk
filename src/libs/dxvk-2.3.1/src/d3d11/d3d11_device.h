@@ -702,7 +702,7 @@ namespace dxvk {
     };
 
     /* Vulkan video profiles, supported by DxvkVideoDecoder. Not necessarily supported by hardware. */
-    std::array<DxvkVideoDecodeProfileInfo, 2> m_vulkanDecodeProfiles;
+    std::array<DxvkVideoDecodeProfileInfo, 3> m_vulkanDecodeProfiles;
 
     /* Supported D3D11 profiles with a reference to the underlaying Vulkan profile (m_vulkanDecodeProfiles).
      * This is what the D3D11 methods expose to applications.

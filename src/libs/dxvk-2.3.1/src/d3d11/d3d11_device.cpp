@@ -3114,6 +3114,25 @@ namespace dxvk {
      || dxvkDevice->queues().videoDecode.queueHandle == VK_NULL_HANDLE)
       return;
 
+    /* Filter out profiles that do not work well. */
+    std::vector<VkVideoCodecOperationFlagBitsKHR> vulkanVideoDecodeBlacklist;
+
+    if (dxvkDevice->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA, 0, 0)) {
+      /* H265: decoded picture consists of multiple small tiles with garbled content. */
+      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR);
+
+      /* AV1: crash. VideoSessionMemory is allocated from DEVICE_LOCAL memory type, but
+       * anv_init_av1_cdf_tables maps ANV_VID_MEM_AV1_CDF_DEFAULTS_* buffers in order to
+       * initialize them. The mapped pointer is inaccessible.
+       * Tested on Intel Arc B570 discrete GPU.
+       */
+      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR);
+    }
+    else if (dxvkDevice->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS, 0, 0)) {
+      /* H265: same as VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA. */
+      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR);
+    }
+
     /*
      * Create a list of D3D11 profiles descriptions (m_decoderProfiles) with backlinks to
      * supported Vulkan video profiles.
@@ -3204,6 +3223,34 @@ namespace dxvk {
       }
     };
 
+    const struct D3D11VideoDecoderProfile profile_ModeAV1_VLD_Profile0 = {
+      /* .guid = */ DXVA_ModeAV1_VLD_Profile0,  /* D3D11_DECODER_PROFILE_AV1_VLD_PROFILE0 */
+      /* .decoderConfigs = */ std::vector<D3D11_VIDEO_DECODER_CONFIG> {
+        {
+          /* .guidConfigBitstreamEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigMBcontrolEncryption = */ DXVA2_NoEncrypt,
+          /* .guidConfigResidDiffEncryption = */ DXVA2_NoEncrypt,
+          /* .ConfigBitstreamRaw = */ 1,
+          /* .ConfigMBcontrolRasterOrder = */ 0,
+          /* .ConfigResidDiffHost = */ 0,
+          /* .ConfigSpatialResid8 = */ 0,
+          /* .ConfigResid8Subtraction = */ 0,
+          /* .ConfigSpatialHost8or9Clipping = */ 0,
+          /* .ConfigSpatialResidInterleaved = */ 0,
+          /* .ConfigIntraResidUnsigned = */ 0,
+          /* .ConfigResidDiffAccelerator = */ 0,
+          /* .ConfigHostInverseScan = */ 0,
+          /* .ConfigSpecificIDCT = */ 0,
+          /* .Config4GroupedCoefs = */ 0,
+          /* .ConfigMinRenderTargetBuffCount = */ 3,
+          /* .ConfigDecoderSpecific = */ 0
+        }
+      },
+      /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
+          DXGI_FORMAT_NV12
+      }
+    };
+
     /*
      * Add desired Vulkan profile descriptions to the 'mappings'.
      */
@@ -3236,7 +3283,7 @@ namespace dxvk {
         STD_VIDEO_H265_PROFILE_IDC_MAIN
       };
     m_vulkanDecodeProfiles[1].profileInfo            =
-      { VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR, &m_vulkanDecodeProfiles[1].h264ProfileInfo,
+      { VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR, &m_vulkanDecodeProfiles[1].h265ProfileInfo,
         VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR,
         VK_VIDEO_CHROMA_SUBSAMPLING_420_BIT_KHR,
         VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR,
@@ -3252,7 +3299,28 @@ namespace dxvk {
     mappings.push_back({ m_vulkanDecodeProfiles[1] });
     mappings.back().d3dProfiles.push_back(profile_ModeHEVC_VLD_Main);
 
-    /// @todo More Vulkan profiles: AV1
+    m_vulkanDecodeProfiles[2].profileName            = "AV1";
+    m_vulkanDecodeProfiles[2].av1ProfileInfo         =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_PROFILE_INFO_KHR, nullptr,
+        STD_VIDEO_AV1_PROFILE_MAIN,
+        VK_TRUE /* filmGrainSupport */
+      };
+    m_vulkanDecodeProfiles[2].profileInfo            =
+      { VK_STRUCTURE_TYPE_VIDEO_PROFILE_INFO_KHR, &m_vulkanDecodeProfiles[2].av1ProfileInfo,
+        VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR,
+        VK_VIDEO_CHROMA_SUBSAMPLING_420_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR,
+        VK_VIDEO_COMPONENT_BIT_DEPTH_8_BIT_KHR
+      };
+    m_vulkanDecodeProfiles[2].decodeAV1Capabilities =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_AV1_CAPABILITIES_KHR };
+    m_vulkanDecodeProfiles[2].decodeCapabilities     =
+      { VK_STRUCTURE_TYPE_VIDEO_DECODE_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[2].decodeAV1Capabilities };
+    m_vulkanDecodeProfiles[2].videoCapabilities      =
+      { VK_STRUCTURE_TYPE_VIDEO_CAPABILITIES_KHR, &m_vulkanDecodeProfiles[2].decodeCapabilities };
+
+    mappings.push_back({ m_vulkanDecodeProfiles[2] });
+    mappings.back().d3dProfiles.push_back(profile_ModeAV1_VLD_Profile0);
 
     /*
      * Query caps of every Vulkan profile and add supported profiles to the m_decoderProfiles list.
@@ -3261,6 +3329,12 @@ namespace dxvk {
     auto physicalDevice = dxvkDevice->adapter()->handle();
 
     for (auto& m: mappings) {
+      const auto it = std::find_if(vulkanVideoDecodeBlacklist.begin(), vulkanVideoDecodeBlacklist.end(),
+        [ op = m.dxvkProfile.profileInfo.videoCodecOperation ](VkVideoCodecOperationFlagBitsKHR v) -> bool
+          { return v == op; });
+      if (it != vulkanVideoDecodeBlacklist.end())
+        continue;
+
       VkResult vr = vki->vkGetPhysicalDeviceVideoCapabilitiesKHR(physicalDevice,
         &m.dxvkProfile.profileInfo, &m.dxvkProfile.videoCapabilities);
       if (vr != VK_SUCCESS)

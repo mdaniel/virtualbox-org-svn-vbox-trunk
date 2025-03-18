@@ -385,7 +385,6 @@ void UIWizardNewVMSummaryModel::populateData(UIWizardNewVM *pWizard)
             pUnattendedRoot->addChild(UIWizardNewVM::tr("Guest Additions ISO Image"), pWizard->guestAdditionsISOPath());
     }
 
-
     UIWizardNewVMSummaryItem *pHardwareRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Virtual Hardware"), QVariant(),
                                                                     UIIconPool::iconSet(":/cpu_16px.png"));
     pHardwareRoot->setIsSectionTitle(true);
@@ -394,23 +393,12 @@ void UIWizardNewVMSummaryModel::populateData(UIWizardNewVM *pWizard)
     pHardwareRoot->addChild(UIWizardNewVM::tr("Use EFI"), pWizard->EFIEnabled());
 
     /* Disk related info: */
-    UIWizardNewVMSummaryItem *pDiskRoot = m_pRootItem->addChild(UIWizardNewVM::tr("Virtual Hard Disk"), QVariant(),
-                                                                UIIconPool::iconSet(":/hd_16px.png"));
-    pDiskRoot->setIsSectionTitle(true);
     if (pWizard->diskSource() == SelectedDiskSource_New)
-    {
-        pDiskRoot->addChild(UIWizardNewVM::tr("Disk Size"), UITranslator::formatSize(pWizard->mediumSize()));
-        const QVector<KMediumVariant> &mediumVariants = pWizard->mediumVariants();
-        pDiskRoot->addChild(UIWizardNewVM::tr("Pre-allocate Full Size"),
-                            (mediumVariants.contains(KMediumVariant_Fixed) ? true : false));
-    }
+        pHardwareRoot->addChild(UIWizardNewVM::tr("Hard Disk Size"), UITranslator::formatSize(pWizard->mediumSize()));
     else if (pWizard->diskSource() == SelectedDiskSource_Existing)
-        pDiskRoot->addChild(UIWizardNewVM::tr("Attached Disk"), pWizard->mediumPath());
+        pHardwareRoot->addChild(UIWizardNewVM::tr("Attached Disk"), pWizard->mediumPath());
     else if (pWizard->diskSource() == SelectedDiskSource_Empty)
-        pDiskRoot->addChild(UIWizardNewVM::tr("Attached Disk"), UIWizardNewVM::tr("None"));
-
-    Q_UNUSED(pDiskRoot);
-
+        pHardwareRoot->addChild(UIWizardNewVM::tr("Attached Disk"), UIWizardNewVM::tr("None"));
 }
 
 

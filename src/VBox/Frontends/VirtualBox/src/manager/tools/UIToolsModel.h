@@ -45,12 +45,15 @@ class QGraphicsItem;
 class QGraphicsScene;
 class QPaintDevice;
 class UIActionPool;
+class UIToolsAnimationEngine;
 class UIToolsView;
 
 /** QObject extension used as VM Tools-pane model: */
 class UIToolsModel : public QObject
 {
     Q_OBJECT;
+    Q_PROPERTY(int animatedShiftMachines READ animatedShiftMachines WRITE setAnimatedShiftMachines);
+    Q_PROPERTY(int animatedShiftManagers READ animatedShiftManagers WRITE setAnimatedShiftManagers);
 
 signals:
 
@@ -169,6 +172,18 @@ public:
         void updateLayout();
     /** @} */
 
+    /** @name Animation stuff.
+     * @{ */
+        /** Returns the Machines animated shift. */
+        int animatedShiftMachines() const { return m_iAnimatedShiftMachines; }
+        /** Returns the Managers animated shift. */
+        int animatedShiftManagers() const { return m_iAnimatedShiftManagers; }
+        /** Defines the Machines animated @a iShift. */
+        void setAnimatedShiftMachines(int iShift);
+        /** Defines the Managers animated @a iShift. */
+        void setAnimatedShiftManagers(int iShift);
+    /** @} */
+
 public slots:
 
     /** @name Children stuff.
@@ -208,6 +223,8 @@ private:
         void prepareScene();
         /** Prepares items. */
         void prepareItems();
+        /** Prepares animation engine. */
+        void prepareAnimationEngine();
         /** Prepare connections. */
         void prepareConnections();
 
@@ -264,6 +281,17 @@ private:
       * @{ */
         /** Holds the selected item map reference. */
         QMap<UIToolClass, QPointer<UIToolsItem> >  m_mapCurrentItems;
+    /** @} */
+
+    /** @name Animation stuff.
+     * @{ */
+        /** Holds the animation engine instance. */
+        UIToolsAnimationEngine *m_pAnimationEngine;
+
+        /** Holds the Machines animated shift. */
+        int  m_iAnimatedShiftMachines;
+        /** Holds the Managers animated shift. */
+        int  m_iAnimatedShiftManagers;
     /** @} */
 };
 

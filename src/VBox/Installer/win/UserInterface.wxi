@@ -454,9 +454,6 @@
             <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes">
                 <Text Value="[DlgTitleFont]!(loc.VerifyReadyDlg_ReadyToInstall)" />
             </Control>
-            <Control Id="Text" Type="Text" X="25" Y="70" Width="320" Height="80">
-                <Text Value="!(loc.VerifyReadyDlg_ClickInstall)" />
-            </Control>
             <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
             <Control Id="Install" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.ButtonText_Install)">
                 <Publish Event="EndDialog" Value="Return" Condition="OutOfDiskSpace &lt;&gt; 1" />

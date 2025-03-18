@@ -92,14 +92,6 @@
          Thight might be handed-in via command line (MSI properties) or through a customized merge module. See @bugref{10616} -->
     <Launch Condition="Installed OR (VBox_Target_Dir_Is_Valid=&quot;1&quot;)" Message="!(loc.InvalidTargetDir)" />
 
-    <!-- Detect old innotek installation -->
-    <!-- Force a manual uninstall of an already installed innotek VirtualBox version first -->
-    <Property Id="VBOXINNOTEK">
-        <RegistrySearch Id="RegSearchInnotekVersion" Root="HKLM" Key="SOFTWARE\Innotek\VirtualBox" Name="Version" Type="raw" Bitness="$(var.Property_Bitness)" />
-    </Property>
-    <Launch Condition="NOT VBOXINNOTEK" Message="!(loc.InnotekFound)" />
-
-
     <!-- *************************** Upgrade packages only ******************************* -->
     <!-- Minimum and Maximum specify the range of versions we are supposed to update with this upgrade.
          IncludeMaximum and IncludeMinimum specify whether the bound value is actually included in the range or not

@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="create-vm-unattended-install">
+  <title>Configure Unattended Installation of Guest OS</title>
+  <body>
+    <p>If you chose Unattended Installation, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> you must supply certain configuration options to be used in the installation.</p>
+    <p>See also <xref href="unattended-guest-install-example.dita#unattended-guest-install-example"/> for details of how to configure unattended installation from the command line.</p>
+    <ol id="ol_ox5_xtw_4bc">
+      <li>Enter the <uicontrol>User Name</uicontrol> and <uicontrol>Password</uicontrol> for a default user on the guest OS. On Windows, this will be an administrator. On Linux, the <cmdname>root</cmdname> user will also be created with the same password.</li>
+      <li>
+        <p>For Windows guests, enter the <uicontrol>Product Key</uicontrol> supplied with Windows.</p>
+      </li>
+      <li>
+        <p>Enter the <uicontrol>Host Name</uicontrol> for the VM. By default, this is the same as the VM name.</p>
+      </li>
+      <li>
+        <p>Enter the <uicontrol>Domain Name</uicontrol> for the VM.</p>
+      </li>
+      <li>Select <uicontrol>Install in Background</uicontrol> if you want to create the VM without a GUI.</li>
+      <li>Unattended Guest Additions installation is available for some guests. Select <uicontrol>Install Guest Additions</uicontrol> if you would like <ph conkeyref="vbox-conkeyref-phrases/product-name"/> to install the Guest Additions after the OS. Specify the ISO to use, usually the default file that is part of the VirtualBox installation on the host machine.</li>
+    </ol>
+  </body>
+</topic>

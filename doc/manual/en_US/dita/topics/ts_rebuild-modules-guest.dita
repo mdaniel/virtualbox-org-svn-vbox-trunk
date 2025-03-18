@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-rebuild-modules-guest">
+    <title>Repeated Rebuild of Kernel Modules on Reboot of Guest</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>Some Linux distributions, for example Debian, do not provide tools that VirtualBox Guest Additions uses to verify kernel module signatures. If VirtualBox Guest Additions can't verify a module's signature, they will attempt to rebuild the kernel module on system boot. This can cause boot delays and the need to re-sign modules every time the VM is rebooted.</p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>On the VM, create a file <filepath>/etc/virtualbox-guest-additions.conf</filepath>, with the content <codeblock>VBOX_BYPASS_MODULES_SIGNATURE_CHECK=1</codeblock></p>
+                    <p>This tells VirtualBox Guest Additions not to check signatures on boot, but to load the modules and leave it to the kernel to check module signatures.</p>
+                    <p>If you set the variable to any value other than 1, it has no effect.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

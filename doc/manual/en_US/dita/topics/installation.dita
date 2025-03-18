@@ -5,5 +5,6 @@
   
   <body>
     <p>Installation of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> varies depending on your host operating system. Choose the instructions you require for Windows, macOS, Linux, or Oracle Solaris.</p>
+    <p>You may also require an extension package. For more information see <xref href="vbox-components.dita"/> and <xref href="extensions.dita"/>.</p>
   </body>
 </topic>

@@ -4,12 +4,8 @@
 <topic xml:lang="en-us" id="vm-activity-overview">
                <title>VM Activity Overview</title>
                <body>
-                  <p>The VM Activity Overview tool displays several performance metrics for all running virtual machines
-      and cloud VM instances, and for the host system. This provides an overview of system resources used by individual
-      virtual machines and the host system. </p>
-                  <p>To display the VM Activity Overview tool, open the global <b outputclass="bold">Tools</b> menu and
-      click <b outputclass="bold">Activities</b>. The <b outputclass="bold">VM Activity Overview</b> window is
-      shown.</p>
+                  <p>The VM Activity Overview tool displays several performance metrics for all running virtual machines and cloud VM instances, and for the host system. This provides an overview of system resources used by individual virtual machines and the host system.</p>
+                  <p>To display the VM Activity Overview tool, in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> click <b outputclass="bold">Activities</b>. The <b outputclass="bold">VM Activity Overview</b> window is shown.</p>
     <ul id="ul_hqh_5hg_ccc">
       <li>To show metrics for <i>all</i> virtual machines, including those that are not running, right-click the list of
         virtual machines and select <b outputclass="bold">List All Virtual Machines</b>. </li>

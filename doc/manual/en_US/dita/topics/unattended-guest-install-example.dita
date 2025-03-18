@@ -2,110 +2,79 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="unattended-guest-install-example">
-               <title>Using VBoxManage Commands for Unattended Guest Installation</title>            
+               <title>Creating a New Virtual Machine Using VBoxManage</title>            
                <body>
-                  <p>The following example shows how to perform an unattended guest installation for an Oracle Linux VM.
-      The example uses various <userinput>VBoxManage</userinput> commands to prepare the guest VM. The
-        <userinput>VBoxManage unattended install</userinput> command is then used to install and configure the guest OS. </p>
+      <p>You can create a VM on the command line using VBoxManage. See also <xref href="../cli_topics/man_VBoxManage-createvm.ditamap" format="ditamap"/>.</p>
+                  <p>The following example uses various <userinput>VBoxManage</userinput> commands to specify the VM and configure an unattended guest installation for an Oracle Linux VM on a Linux host.</p>
+      <p>It then shows the use of the <userinput>VBoxManage unattended install</userinput> command to install and configure the guest OS.</p>
                   <ol>
+         <li>
+            <p>Set a variable for the name of the OS.<pre xml:space="preserve"># VM="ol8-autoinstall"
+</pre></p>
+         </li>
+         <li>
+            <p>List the available guest OS types and note the exact name of the one you need. This is required in <userinput>VBoxManage</userinput> commands.<pre xml:space="preserve"># VBoxManage list ostypes</pre></p>
+         </li>
                      <li>
-                        <p>Create the virtual machine. </p>
-                        <pre xml:space="preserve"># VM="ol7-autoinstall"
-# VBoxManage list ostypes
-# VBoxManage createvm --name $VM --ostype "Oracle_64" --register</pre>
-                        <p>Note the following: </p>
-                        <ul>
-                           <li>
-                              <p>The $VM variable represents the name of the VM. </p>
-                           </li>
-                           <li>
-                              <p>The <userinput>VBoxManage list ostypes</userinput> command lists the guest OSes
-              supported by <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, including the name used for each OS in
-              the <userinput>VBoxManage</userinput> commands. </p>
-                           </li>
-                           <li>
-                              <p>A 64-bit Oracle Linux 7 VM is created and registered with <ph
-                conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
-                           </li>
-                           <li>
-                              <p>The VM has a unique UUID. </p>
-                           </li>
-                           <li>
-                              <p>An XML settings file is generated. </p>
-                           </li>
-                        </ul>
+                        <p>Create the virtual machine.<pre xml:space="preserve"># VBoxManage createvm --name $VM --ostype "Oracle_64" --register</pre></p>
+            <p>The VM has a unique UUID.</p>
+            <p>An XML settings file is generated.</p>
                      </li>
                      <li>
-                        <p>Create a virtual hard disk and storage devices for the VM. </p>
-                        <pre xml:space="preserve"># VBoxManage createhd --filename /VirtualBox/$VM/$VM.vdi --size 32768
-# VBoxManage storagectl $VM --name "SATA Controller" --add sata --controller IntelAHCI
+                        <p>Create a 32768 MB virtual hard disk for the VM.<pre xml:space="preserve"># VBoxManage createhd --filename /VirtualBox/$VM/$VM.vdi --size 32768</pre></p>
+                     </li>
+         <li>
+            <p>Create storage devices for the VM.</p>
+            <ul>
+               <li>
+                  <p>Create a SATA storage controller and attach the virtual hard disk. <pre xml:space="preserve"># VBoxManage storagectl $VM --name "SATA Controller" --add sata --controller IntelAHCI
 # VBoxManage storageattach $VM --storagectl "SATA Controller" --port 0 --device 0 \
---type hdd --medium /VirtualBox/$VM/$VM.vdi
-# VBoxManage storagectl $VM --name "IDE Controller" --add ide
+--type hdd --medium /VirtualBox/$VM/$VM.vdi</pre></p>
+               </li>
+               <li>
+                  <p>Create an IDE storage controller for a virtual DVD drive and attach an Oracle Linux installation ISO. <pre xml:space="preserve"># VBoxManage storagectl $VM --name "IDE Controller" --add ide
 # VBoxManage storageattach $VM --storagectl "IDE Controller" --port 0 --device 0 \
---type dvddrive --medium /u01/Software/OL/OracleLinux-R7-U6-Server-x86_64-dvd.iso</pre>
-                        <p>The previous commands do the following: </p>
-                        <ul>
-                           <li>
-                              <p>Create a 32768 MB virtual hard disk. </p>
-                           </li>
-                           <li>
-                              <p>Create a SATA storage controller and attach the virtual hard disk. </p>
-                           </li>
-                           <li>
-                              <p>Create an IDE storage controller for a virtual DVD drive and attach an Oracle Linux
-              installation ISO. </p>
-                           </li>
-                        </ul>
-                     </li>
+--type dvddrive --medium /u01/Software/OL/OracleLinux-R7-U6-Server-x86_64-dvd.iso</pre></p>
+               </li>
+            </ul>
+         </li>
                      <li>
                         <p>(Optional) Configure some settings for the VM. </p>
-                        <pre xml:space="preserve"># VBoxManage modifyvm $VM --ioapic on
-# VBoxManage modifyvm $VM --boot1 dvd --boot2 disk --boot3 none --boot4 none
-# VBoxManage modifyvm $VM --memory 8192 --vram 128</pre>
-                        <p>The previous commands do the following: </p>
-                        <ul>
-                           <li>
-                              <p>Enable I/O APIC for the motherboard of the VM. </p>
-                           </li>
-                           <li>
-                              <p>Configure the boot device order for the VM. </p>
-                           </li>
-                           <li>
-                              <p>Allocate 8192 MB of RAM and 128 MB of video RAM to the VM. </p>
-                           </li>
-                        </ul>
+            <ul>
+               <li>
+                  <p>Enable I/O APIC for the motherboard of the VM. <pre xml:space="preserve"># VBoxManage modifyvm $VM --ioapic on</pre></p>
+               </li>
+               <li>
+                  <p>Configure the boot device order for the VM. <pre xml:space="preserve"># VBoxManage modifyvm $VM --boot1 dvd --boot2 disk --boot3 none --boot4 none</pre></p>
+               </li>
+               <li>
+                  <p>Allocate 8192 MB of RAM and 128 MB of video RAM to the VM. <pre xml:space="preserve"># VBoxManage modifyvm $VM --memory 8192 --vram 128</pre></p>
+               </li>
+            </ul>
                      </li>
                      <li>
-                        <p>Perform an unattended install of the OS. </p>
-                        <pre xml:space="preserve"># VBoxManage unattended install $VM \
---iso=/u01/Software/OL/OracleLinux-R7-U6-Server-x86_64-dvd.iso \
---user=<varname>login</varname> --full-user-name=<varname>name</varname> --user-password <varname>password</varname> \
---install-additions --time-zone=CET</pre>
-                        <p>The previous command does the following: </p>
-                        <ul>
-                           <li>
-                              <p>Specifies an Oracle Linux ISO as the installation ISO. </p>
-                           </li>
-                           <li>
-                              <p>Specifies a login name, full name, and login password for a default user on the guest
-              OS. </p>
-                              <p>Note that the specified password is also used for the root user account on the guest. </p>
-                           </li>
-                           <li>
-                              <p>Installs the Guest Additions on the VM. </p>
-                           </li>
-                           <li>
-                              <p>Sets the time zone for the guest OS to Central European Time (CET). </p>
-                           </li>
-                        </ul>
+                        <p>Specify the Unattended Installation parameters, and then install the OS.</p>
+            <ul>
+               <li>
+                  <p>Specify an Oracle Linux ISO as the installation ISO.<pre xml:space="preserve"># VBoxManage unattended install $VM \
+--iso=/u01/Software/OL/OracleLinux-R7-U6-Server-x86_64-dvd.iso \</pre></p>
+               </li>
+               <li>
+                  <p>Specifiy a user name, full name, and password for a default user on the guest OS.<pre xml:space="preserve">--user=<varname>login</varname> --full-user-name=<varname>name</varname> --user-password <varname>password</varname> \</pre></p>
+                  <p>Note that the specified password is also used for the root user account on the guest.</p>
+               </li>
+               <li>
+                  <p>Specify that you want to install the VirtualBox Guest Additions on the VM.<pre xml:space="preserve">--install-additions \</pre></p>
+               </li>
+               <li>
+                  <p>Sets the time zone for the guest OS to Central European Time (CET). <pre xml:space="preserve">--time-zone=CET</pre></p>
+               </li>
+            </ul>
                      </li>
                      <li>
-                        <p>Start the virtual machine. </p>
-                        <p>This step completes the unattended installation process. </p>
+                        <p>Start the virtual machine.</p>
                         <pre xml:space="preserve"># VBoxManage startvm $VM --type headless</pre>
-                        <p>The VM starts in headless mode, which means that the <ph
-            conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> window does not open. </p>
+                        <p>The VM starts in headless mode, which means that it does not have a GUI.</p>
                      </li>
                   </ol>
                </body>              

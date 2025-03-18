@@ -8,7 +8,7 @@
                 
                 
                 <li>If you want to create a completely new VM, click <uicontrol>New</uicontrol> and follow the steps in
-                        <xref href="create-vm-wizard.dita"/>.</li>
+                        <xref href="create-vm.dita"/>.</li>
                 <li>If you already have a VM saved on your machine, you can add it to the machine list by clicking
                         <uicontrol>Add</uicontrol>.</li>
                 <li>If you have a VM on a different machine, you can import it by clicking <uicontrol>Import

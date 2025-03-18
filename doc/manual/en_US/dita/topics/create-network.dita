@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="create-network">
+  <title>Create a Network</title>
+  <body>
+    <ol>
+      <li>Open the <uicontrol>Network</uicontrol> tool, or from the <uicontrol>File</uicontrol> menu select <uicontrol>Tools</uicontrol> and then click <uicontrol>Network Manager</uicontrol>.</li>
+      <li>Click the tab corresponding to the type of network you need to create.</li>
+      <li>Click <uicontrol>Create</uicontrol>. A new network adapter will be created with default properties, and shown in the list.</li>
+      <li>Click <uicontrol>Properties</uicontrol> and configure the network as required. For more information, see <xref href="edit-network.dita"/>.</li>
+    </ol>
+  </body>
+</topic>

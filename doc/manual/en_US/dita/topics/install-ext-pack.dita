@@ -1,22 +1,21 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="install-ext-pack">
-  <title>Installing an Extension Pack</title>
+  <title>Install the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/></title>
   
   <body>
-    <p>Extension packs provide extra functionality to the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> base package, such as extended USB device support and cloud integration features. See <xref href="vbox-components.dita"/>. </p>
-    <p>To install an <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>, do the following: </p>
     <ol>
       <li>
-        <p>Double-click the extension package file name. </p>
-        <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> extension packs have a
-            <filepath>.vbox-extpack</filepath> file name extension. </p>
+        <p>Download the latest <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/> from <xref href="https://www.virtualbox.org/wiki/Downloads" format="html" scope="external"/> and save it on the host machine.</p>
       </li>
       <li>
-        <p>Follow the on-screen instructions to install the extension pack. </p>
+        <p>In <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, Click <uicontrol>Extensions</uicontrol>.</p>
+      </li>
+      <li>
+        <p>Click <uicontrol>Install</uicontrol> and select the extension package file. Follow the on-screen instructions.</p>
+        <p>The extension pack is installed on the host and displayed in the extensions list.</p>
       </li>
     </ol>
-    <p>You can also use the Extension Pack Manager tool to install an extension pack. See <xref
-        href="install-ext-pack-manager.dita#install-ext-pack-manager"/>. </p>
+    <p>Alternatively, in VBoxManage, use <xref href="../cli_topics/vboxmanage-extpack-install.dita"/> to install the extension pack.</p>
   </body>
 </topic>

@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="extensions">
+  <title>Managing <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Extensions</title>
+  <body>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> extension packs (file extension <filepath>.vbox-extpack</filepath>) extend the features of <ph conkeyref="vbox-conkeyref-phrases/product-name"/> on the host machine. For more information on the <ph conkeyref="vbox-conkeyref-phrases/vbox-ext"/>, see <xref href="vbox-components.dita"/></p>
+    <p>Extension packs can be installed and managed using the <uicontrol>Extensions</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>.</p>
+    <p>Alternatively, you can use the <userinput>VBoxManage</userinput> command line to install and manage extension packs. See <xref href="../cli_topics/vboxmanage-extpack.dita"/>.</p>
+  </body>
+</topic>

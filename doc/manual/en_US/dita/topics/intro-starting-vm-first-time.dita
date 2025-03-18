@@ -4,8 +4,10 @@
   <title>Starting a New VM for the First Time</title>
   
   <body>
-    <p>When you start a VM for the first time the OS installation process is started automatically, using the ISO image file specified in the <b outputclass="bold">Create Virtual Machine</b> workflow. </p>
-    <p>Follow the onscreen instructions to install your OS. </p>
+    <p>When you start a VM for the first time the Unattended Installation process is started automatically, using the ISO image file specified. See <xref href="create-vm.dita"/>.</p>
+    <p>Follow the onscreen instructions to install your OS.</p>
+    <p>The installation operation changes the boot device order to boot the virtual hard disk first and then the virtual DVD drive. If the virtual hard disk is empty prior to the automatic installation, the VM boots from the virtual DVD drive and begins the installation.</p>
+    <p>If the virtual hard disk contains a bootable OS, the installation operation exits. In this case, change the boot device order manually by pressing F12 during the BIOS splash screen.</p>
   </body>
   
 </topic>

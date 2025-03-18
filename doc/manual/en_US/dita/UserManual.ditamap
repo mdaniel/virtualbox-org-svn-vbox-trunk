@@ -3,14 +3,15 @@
 <!-- The bookmap ID is imperative and matched the Jarvis GUID required to build and pretty much do anything -->
 <bookmap id="EN-VBOX-7-2-USER" xml:lang="en-US">
    <booktitle>
-      <mainbooktitle>Oracle VirtualBox: User Guide for Release 7.1</mainbooktitle>
+    <booklibrary>Oracle VirtualBox</booklibrary>
+    <mainbooktitle>User Guide for Release 7.2</mainbooktitle>
    </booktitle>
    <bookmeta>
       <publisherinformation>
          <published>
             <completed>
-          <month>December</month>
-          <year>2024</year>
+          <month>March</month>
+          <year>2025</year>
         </completed>
       </published>
     </publisherinformation>
@@ -87,24 +88,22 @@
             <topicref href="topics/install-solaris-unattended.dita"/>
             <topicref href="topics/solaris-zones.dita"/>
          </topicref>
-         <topicref href="topics/install-ext-pack.dita">
-            <topicref href="topics/install-ext-pack-manager.dita"/>
-         </topicref>
     <topicref href="topics/intro-starting.dita"/>
   </chapter>
   <chapter href="topics/configuring-virtualbox.dita" chunk="to-content">
+    <topicref href="topics/extensions.dita">
+      <topicref href="topics/install-ext-pack.dita"/>
+      <topicref href="topics/uninstall-ext-pack.dita"/>
+    </topicref>
     <topicref href="topics/preferences.dita"/>
     <topicref href="topics/ui-experience-level.dita"/>
-    <topicref href="topics/gui-tools-global.dita"/>
       </chapter>
-  <chapter href="topics/create-vm-wizard.dita" chunk="to-content">
-    <topicref href="topics/create-vm-wizard-name-os.dita"/>
-    <topicref href="topics/create-vm-wizard-unattended-install.dita"/>
-    <topicref href="topics/create-vm-wizard-hardware.dita"/>
-    <topicref href="topics/create-vm-wizard-virtual-hard-disk.dita"/>
-         <topicref href="topics/basic-unattended.dita">
+  <chapter href="topics/create-vm.dita" chunk="to-content">
+    <topicref href="topics/create-vm-name-os.dita"/>
+    <topicref href="topics/create-vm-unattended-install.dita"/>
+    <topicref href="topics/create-vm-hardware.dita"/>
+    <topicref href="topics/create-vm-virtual-hard-disk.dita"/>
             <topicref href="topics/unattended-guest-install-example.dita"/>
-         </topicref>
   </chapter>
   <chapter href="topics/BasicConcepts.dita" chunk="to-content">
     <topicref href="topics/intro-running.dita">
@@ -277,6 +276,11 @@
          </topicref>
       </chapter>
       <chapter href="topics/networkingdetails.dita" chunk="to-content">
+    <topicref href="topics/config-network.dita">
+      <topicref href="topics/create-network.dita"/>
+      <topicref href="topics/remove-network.dita"/>
+      <topicref href="topics/edit-network.dita"/>
+    </topicref>
          <topicref href="topics/nichardware.dita"/>
          <topicref href="topics/networkingmodes.dita"/>
          <topicref href="topics/network_nat.dita">
@@ -285,17 +289,21 @@
             <topicref href="topics/nat-limitations.dita"/>
          </topicref>
          <topicref href="topics/network_nat_service.dita"/>
+    <topicref href="topics/changenat.dita">
+      <topicref href="topics/nat-address-config.dita"/>
+      <topicref href="topics/nat-adv-tftp.dita"/>
+      <topicref href="topics/nat-adv-dns.dita"/>
+      <topicref href="topics/nat_host_resolver_proxy.dita">
+        <topicref href="topics/nat_host_resolver_name_intercepting.dita"/>
+      </topicref>
+      <topicref href="topics/nat-adv-alias.dita"/>
+    </topicref>
          <topicref href="topics/network_bridged.dita"/>
          <topicref href="topics/network_internal.dita"/>
          <topicref href="topics/network_hostonly.dita"/>
          <topicref href="topics/network_udp_tunnel.dita"/>
          <topicref href="topics/network_vde.dita"/>
          <topicref href="topics/network_cloud.dita"/>
-         <topicref href="topics/network-manager.dita">
-            <topicref href="topics/network-manager-host-only-tab.dita"/>
-            <topicref href="topics/network-manager-nat-network-tab.dita"/>
-            <topicref href="topics/network-manager-cloud-network-tab.dita"/>
-         </topicref>
          <topicref href="topics/network_bandwidth_limit.dita"/>
          <topicref href="topics/network_performance.dita"/>
       </chapter>
@@ -355,8 +363,6 @@
       <topicref href="topics/changenat.dita">
          <topicref href="topics/nat-address-config.dita"/>
          <topicref href="topics/nat-adv-tftp.dita"/>
-         <topicref href="topics/nat-adv-settings.dita"/>
-         <topicref href="topics/nat-bind-sockets.dita"/>
          <topicref href="topics/nat-adv-dns.dita"/>
          <topicref href="topics/nat_host_resolver_proxy.dita">
             <topicref href="topics/nat_host_resolver_name_intercepting.dita"/>
@@ -497,6 +503,7 @@
         <topicref href="topics/ts_slow-transmission-win-xp-guests.dita"/>
       </topicref>
       <topicref href="topics/ts_lin-x11-guests.dita">
+        <topicref href="topics/ts_rebuild-modules-guest.dita"/>
         <topicref href="topics/guestadd-resizing-linux-limitations.dita"/>
       </topicref>
       <topicref href="topics/ts_arm-guests.dita">
@@ -511,6 +518,7 @@
         <topicref href="topics/ts_hyperv.dita"/>
       </topicref>
       <topicref href="topics/ts_lin-hosts.dita">
+        <topicref href="topics/ts_rebuild-modules-host.dita"/>
          <topicref href="topics/ts_linux-kernelmodule-fails-to-load.dita"/>
          <topicref href="topics/ts_linux-host-cd-dvd-not-found.dita"/>
          <topicref href="topics/ts_linux-host-ide-messages.dita"/>

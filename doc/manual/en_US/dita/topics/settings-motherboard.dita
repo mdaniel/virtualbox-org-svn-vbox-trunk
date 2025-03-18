@@ -8,16 +8,7 @@
       the motherboard of a real computer. </p>
     <ul>
       <li>
-        <p><b outputclass="bold">Base Memory:</b> Sets the
-            amount of RAM that is allocated and given to the VM when it
-            is running. The specified amount of memory will be requested
-            from the host OS, so it must be available or made available
-            as free memory on the host when attempting to start the VM
-            and will not be available to the host while the VM is
-            running. This is the same setting that was specified in the
-            <b outputclass="bold">New Virtual Machine</b> wizard,
-            as described in <xref href="create-vm-wizard.dita#create-vm-wizard"/>.
-          </p>
+        <p><b outputclass="bold">Base Memory:</b> Sets the amount of RAM that is allocated and given to the VM when it is running. The specified amount of memory will be requested from the host OS, so it must be available or made available as free memory on the host when attempting to start the VM and will not be available to the host while the VM is running. This is the same setting that was specified in the <b outputclass="bold">New Virtual Machine</b> wizard, as described in <xref href="create-vm.dita"/>. </p>
         <p>Generally, it is possible to change the memory size after installing the guest OS. But you must not reduce
           the memory to an amount where the OS would no longer boot. </p>
       </li>

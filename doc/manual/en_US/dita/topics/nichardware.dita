@@ -14,16 +14,19 @@
         <p>AMD PCNet FAST III (Am79C973), the default setting on x86 guests. Not available on Arm guests.</p>
       </li>
       <li>
-        <p>Intel PRO/1000 MT Desktop (82540EM) </p>
+        <p>Intel PRO/1000 MT Desktop (82540EM)</p>
       </li>
       <li>
-        <p>Intel PRO/1000 T Server (82543GC) </p>
+        <p>Intel PRO/1000 T Server (82543GC)</p>
       </li>
       <li>
-        <p>Intel PRO/1000 MT Server (82545EM) </p>
+        <p>Intel PRO/1000 MT Server (82545EM)</p>
       </li>
       <li>
-        <p>Paravirtualized network adapter (virtio-net) </p>
+        <p>Paravirtualized network adapter (virtio-net)</p>
+      </li>
+      <li>
+        <p>Ethernet over USB network adapter (usbnet)</p>
       </li>
     </ul>
     <p>The PCNet FAST III is the default because it is supported by nearly all operating systems, as well as by the GNU

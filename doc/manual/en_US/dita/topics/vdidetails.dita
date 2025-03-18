@@ -34,9 +34,7 @@
           You can however convert such image files to version 2 format using tools provided by Parallels. </p>
                   </li>
                </ul>
-               <p>Irrespective of the disk capacity and format, as mentioned in <xref
-        href="create-vm-wizard.dita#create-vm-wizard"/>, there are two options for creating a disk image: fixed-size or
-      dynamically allocated. </p>
+               <p>Irrespective of the disk capacity and format, as mentioned in <xref href="create-vm.dita"/>, there are two options for creating a disk image: fixed-size or dynamically allocated. </p>
                <ul>
                   <li>
                      <p><b outputclass="bold">Fixed-size.</b> If you create a fixed-size image, an image file will be

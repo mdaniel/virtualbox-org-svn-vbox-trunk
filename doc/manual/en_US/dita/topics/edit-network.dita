@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="edit-network">
+  <title>Edit a Network</title>
+  <body>
+    <ol>
+      <li>Open the <uicontrol>Network</uicontrol> tool, or from the <uicontrol>File</uicontrol> menu select <uicontrol>Tools</uicontrol> and then click <uicontrol>Network Manager</uicontrol>.</li>
+      <li>Click the tab corresponding to the type of network you need to edit.</li>
+      <li>Select the network you need to edit.</li>
+      <li>Click <uicontrol>Properties</uicontrol> and configure the network as required. <p><uicontrol>Cloud Networks</uicontrol> have the following properties.</p><ul>
+          <li>
+            <p><uicontrol>Name</uicontrol>. The name used for the cloud network.</p>
+          </li>
+          <li>
+            <p><uicontrol>Provider</uicontrol>. The cloud service provider, such as <ph conkeyref="vbox-conkeyref-phrases/oci"/>.</p>
+          </li>
+          <li>
+            <p><uicontrol>Profile</uicontrol>. The cloud profile used to connect to the cloud network. See <xref href="cloud-create-cloud-profile.dita"/>.</p>
+          </li>
+          <li>
+            <p><uicontrol>ID</uicontrol>. The OCID for the cloud tunneling network. Click <uicontrol>Network</uicontrol>to view the subnets on <ph conkeyref="vbox-conkeyref-phrases/oci"/> that are available for tunneling traffic.</p>
+          </li>
+        </ul><p><uicontrol>Host-only Networks</uicontrol> have the following properties.</p><ul>
+          <li>
+            <p><uicontrol>Adapter</uicontrol>. The the network adapter for the host-only network.</p>
+          </li>
+          <li>
+            <p><uicontrol>DHCP Server</uicontrol>. Settings for the DHCP server used by the host-only network. The DHCP server is built into <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and manages IP addresses for the network automatically.</p>
+          </li>
+        </ul><p><uicontrol>NAT Networks</uicontrol> have the following properties.</p><ul>
+          <li>
+            <p><uicontrol>General Options</uicontrol>. Network settings used by the NAT network including the network address and mask of the NAT service interface.</p>
+          </li>
+          <li>
+            <p><uicontrol>Port Forwarding</uicontrol>. Port forwarding rules used by the NAT network.</p>
+          </li>
+        </ul></li>
+    </ol>
+  </body>
+</topic>

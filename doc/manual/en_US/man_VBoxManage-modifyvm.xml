@@ -772,7 +772,7 @@ it unless this changes. -->
           <listitem><para>
               Specifies the amount of host system RAM to allocate to the
               VM. The size is in MB. See
-              <xref linkend="create-vm-wizard" />.
+              <xref linkend="create-vm" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1729,7 +1729,7 @@ it unless this changes. -->
           <term><option>--nat-bind-ip<replaceable>N</replaceable>=<replaceable>IP-address</replaceable></option></term>
           <listitem><para>
               Specifies an alternate IP address to which the NAT engine
-              binds. See <xref linkend="nat-adv-settings" />. By
+              binds. See <xref linkend="changenat" />. By
               default, &product-name;'s NAT engine routes TCP/IP packets
               through the default interface assigned by the host's
               TCP/IP stack.
@@ -1769,7 +1769,7 @@ it unless this changes. -->
           <term><option>--nat-settings<replaceable>N</replaceable>=[<replaceable>mtu</replaceable>],[<replaceable>socksnd</replaceable>],[<replaceable>sockrcv</replaceable>],[<replaceable>tcpsnd</replaceable>],[<replaceable>tcprcv</replaceable>]</option></term>
           <listitem><para>
               Specifies values for tuning NAT performance. See
-              <xref linkend="nat-adv-settings" />.
+              <xref linkend="changenat" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>

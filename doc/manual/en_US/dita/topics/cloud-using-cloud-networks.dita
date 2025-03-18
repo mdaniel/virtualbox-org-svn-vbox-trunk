@@ -28,7 +28,7 @@
       <li>
         <p>Register the new cloud network with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
         <p>Use the <b outputclass="bold">Cloud Networks</b> tab in the <b outputclass="bold">Network Manager</b> tool.
-          See <xref href="network-manager-cloud-network-tab.dita#network-manager-cloud-network-tab"/>. </p>
+          See <xref href="edit-network.dita#network-manager-cloud-network-tab"/>. </p>
       </li>
       <li>
         <p>Add cloud network adaptors to the local VMs that will use the cloud network. See <xref

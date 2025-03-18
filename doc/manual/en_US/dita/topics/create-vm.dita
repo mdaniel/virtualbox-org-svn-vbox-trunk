@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="create-vm">
+  <title>Creating a New Virtual Machine</title>
+  <body>
+    <p>To create a Virtual Machine (VM) using the GUI, follow the steps below. To use VBoxManage, see <xref href="unattended-guest-install-example.dita"/>.</p>
+    <ul>
+      <li>
+        <p>In the VirtualBox Manager window, click <b outputclass="bold">New</b> and follow the workflow.</p>
+        <p>If you don't see the <uicontrol>New Virtual Machine</uicontrol> workflow, change the experience level to <b>Basic</b>. See <xref href="ui-experience-level.dita"/>.</p>
+        <p>The exact settings on each page depend on the architecture of the host platform.</p>
+      </li>
+    </ul>
+    <p>Once created, the virtual machine is displayed in the <uicontrol>Machines</uicontrol> list in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>, with the name that you specify. You can make changes later, in the <uicontrol>Settings</uicontrol> for the VM.</p>
+    <p>You must supply an operating system image, in ISO format, for the operating system you intend to install on the VM. <ph conkeyref="vbox-conkeyref-phrases/product-name"/> does not supply the OS or any license required to use it.</p>
+  </body>
+</topic>

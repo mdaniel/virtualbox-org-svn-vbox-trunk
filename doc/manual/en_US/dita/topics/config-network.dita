@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="config-network">
+    <title>Configure Networking</title>
+    <body>
+        <p>Use the <uicontrol>Network</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/> to create and manage the networks used by <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VMs to communicate each other, the host machine, and external resources.</p>
+        <note>You also need to enable the virtual networks to use with each VM you create. See <xref href="settings-network.dita"/>.</note>
+        <p>The network types available are:<ul>
+                <li><uicontrol>Host-only</uicontrol>. A network for VMs to communicate internally on this machine, but not with external networks.</li>
+                <li><uicontrol>NAT</uicontrol>. The default network used by VirtualBox, suitable for most communication between VMs and external networks.</li>
+                <li><uicontrol>Cloud</uicontrol>. A network used to connect to Oracle Cloud Infrastructure.</li>
+            </ul></p>
+    </body>
+</topic>

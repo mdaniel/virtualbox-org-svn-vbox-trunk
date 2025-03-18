@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic xml:lang="en-us" id="create-vm-virtual-hard-disk">
+  <title>Specify a Virtual Hard Disk</title>
+  <body>
+    <p>There are a few ways in which <ph conkeyref="vbox-conkeyref-phrases/product-name"/> can provide hard disk space to a VM, see <xref href="storage.dita#storage"/>. In most cases you will use a virtual hard disk, and usually you create a new virtual hard disk when you create a VM.</p>
+    <p>A virtual hard disk is a large image file on your physical hard disk, whose contents <ph conkeyref="vbox-conkeyref-phrases/product-name"/> presents to your VM as if it were a complete hard disk. You can copy this file to another host, and use it with another <ph conkeyref="vbox-conkeyref-phrases/product-name"/> VM if it is no longer in use.</p>
+    <p>To prevent your physical hard disk on the host OS from filling up, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> limits the size of the image file. But the image file must be large enough to hold the contents of the guest OS and the applications you want to install. For a Windows or Linux guest, you will probably need several gigabytes for any serious use. The size limit of the image file can be changed later, see <xref href="../cli_topics/vboxmanage-modifymedium.dita"/>.</p>
+    <section id="section_wql_21r_pbc">
+      <title>Create a New Virtual Hard Disk</title>
+    </section>
+    <p>
+      <ol id="ol_z2h_q5q_pbc">
+        <li>
+          <p>Select <uicontrol>Create a New Virtual Hard Disk</uicontrol>. This creates a new, empty virtual hard disk image, located in the VM folder.</p>
+        </li>
+        <li>
+          <p>Enter the following settings</p>
+          <ul id="ul_i3n_y1r_pbc">
+            <li>
+              <p><uicontrol>Disk Size</uicontrol>. Use the slider to select a maximum size for the hard disk in the new VM.</p>
+            </li>
+            <li>
+              <p><uicontrol>Pre-allocate Full Size</uicontrol>. This setting determines the type of image file used for the disk image. Select this setting to use a <i>fixed-size file</i> for the disk image. Otherwise, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will use a <i>dynamically allocated file</i> for the disk image.</p>
+              <p>The different types of image file behave as follows.</p>
+              <p><ul id="ul_j3n_y1r_pbc">
+                  <li>
+                    <p><b outputclass="bold">Dynamically allocated file.</b> This type of image file only grows in size when the guest actually stores data on its virtual hard disk. Therefore, this file is small initially. As the drive is filled with data, the file grows to the specified size.</p>
+                  </li>
+                  <li>
+                    <p><b outputclass="bold">Fixed-size file.</b> This type of image file immediately occupies the file specified, even if only a fraction of that virtual hard disk space is actually in use. </p>
+                  </li>
+                </ul>While occupying much more space, a fixed-size file incurs less overhead and is therefore slightly faster than a dynamically allocated file.</p>
+              <p>For more details about the differences, see <xref href="vdidetails.dita#vdidetails"/>. </p>
+            </li>
+          </ul>
+        </li>
+      </ol>
+    </p>
+    <section id="section_bdq_h1r_pbc">
+      <title>Use an Existing Virtual Hard Disk File</title>
+    </section>
+    <p>
+      <note id="note_fzl_3tw_hcc" type="caution">Data on the disk image may be deleted.</note>
+      <ol id="ol_txk_str_pbc">
+        <li>
+          <p>Ensure the image file is in a suitable location (usually the machine folder) and not in use by other VMs.</p>
+        </li>
+        <li>
+          <p>Select <uicontrol>Use an Existing Virtual Hard Disk File</uicontrol></p>
+        </li>
+        <li>
+          <p>Select the image file to use with the new VM, and then click <b outputclass="bold">Add</b>.</p>
+        </li>
+      </ol>
+    </p>
+    <section>
+      <title>Create Virtual Machine Without a Virtual Hard Disk</title>
+      <p>To install a guest operating system you need a virtual hard disk.</p>
+      <p>If you have a specific use case that does not require a hard disk, choose the option <uicontrol>Create Virtual Machine Without a Virtual Hard Disk</uicontrol>. </p>
+    </section>
+  </body>
+</topic>

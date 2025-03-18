@@ -28,8 +28,8 @@
  */
 
 
-#ifndef VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllTlbInline_x86_h
-#define VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllTlbInline_x86_h
+#ifndef VMM_INCLUDED_SRC_VMMAll_target_armv8_IEMAllTlbInline_armv8_h
+#define VMM_INCLUDED_SRC_VMMAll_target_armv8_IEMAllTlbInline_armv8_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
@@ -461,4 +461,4 @@ DECLINLINE(void) iemTlbInvalidatePageWorker(PVMCPUCC pVCpu, IEMTLB *pTlb, RTGCPT
 
 #endif /* defined(IEM_WITH_CODE_TLB) || defined(IEM_WITH_DATA_TLB) */
 
-#endif /* !VMM_INCLUDED_SRC_VMMAll_target_x86_IEMAllTlbInline_x86_h */
+#endif /* !VMM_INCLUDED_SRC_VMMAll_target_armv8_IEMAllTlbInline_armv8_h */

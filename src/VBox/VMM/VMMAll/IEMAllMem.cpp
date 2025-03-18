@@ -49,7 +49,6 @@
 
 #include "IEMInline.h"
 #ifdef VBOX_VMM_TARGET_X86
-# include "target-x86/IEMInline-x86.h" /* not really required. sigh. */
 # include "target-x86/IEMAllTlbInline-x86.h"
 #endif
 
@@ -339,10 +338,16 @@ VBOXSTRICTRC iemMemBounceBufferMapCrossPage(PVMCPUCC pVCpu, int iMemMap, void **
         uint32_t fDataBps = iemMemCheckDataBreakpoint(pVM, pVCpu, GCPtrFirst, cbFirstPage, fAccess);
         fDataBps         |= iemMemCheckDataBreakpoint(pVM, pVCpu, (GCPtrFirst + (cbMem - 1)) & ~(RTGCPTR)GUEST_PAGE_OFFSET_MASK,
                                                       cbSecondPage, fAccess);
+#ifdef VBOX_VMM_TARGET_X86
         pVCpu->cpum.GstCtx.eflags.uBoth |= fDataBps & (CPUMCTX_DBG_HIT_DRX_MASK | CPUMCTX_DBG_DBGF_MASK);
         if (fDataBps > 1)
             LogEx(LOG_GROUP_IEM, ("iemMemBounceBufferMapCrossPage: Data breakpoint: fDataBps=%#x for %RGv LB %zx; fAccess=%#x cs:rip=%04x:%08RX64\n",
                                   fDataBps, GCPtrFirst, cbMem, fAccess, pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.rip));
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        AssertFailed(); RT_NOREF(fDataBps); /** @todo ARMv8/IEM: implement data breakpoints. */
+#else
+# error "port me"
+#endif
     }
 
     /*

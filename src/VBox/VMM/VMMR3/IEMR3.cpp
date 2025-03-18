@@ -1239,7 +1239,9 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
     char           szTmp[128];
     if (fFlags & IEMR3INFOTLB_F_CHECK)
     {
+#ifdef VBOX_VMM_TARGET_X86
         uint32_t const fInvSlotG = (uint32_t)!(uSlot & 1) << X86_PTE_BIT_G;
+#endif
         PGMPTWALKFAST  WalkFast;
         int rc = PGMGstQueryPageFast(pVCpu, GCPtr, 0 /*fFlags - don't check or modify anything */, &WalkFast);
         pszValid = szTmp;
@@ -1247,6 +1249,7 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
             switch (rc)
             {
                 case VERR_PAGE_TABLE_NOT_PRESENT:
+#ifdef VBOX_VMM_TARGET_X86
                     switch ((WalkFast.fFailed & PGM_WALKFAIL_LEVEL_MASK) >> PGM_WALKFAIL_LEVEL_SHIFT)
                     {
                         case 1:  pszValid = " stale(page-not-present)"; break;
@@ -1257,10 +1260,14 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
                         default: pszValid = " stale(VERR_PAGE_TABLE_NOT_PRESENT)"; break;
                     }
                     break;
+#else
+                    RT_FALL_THRU(); /** @todo  */
+#endif
                 default: RTStrPrintf(szTmp, sizeof(szTmp), " stale(rc=%d)", rc); break;
             }
         else if (WalkFast.GCPhys != pTlbe->GCPhys)
             RTStrPrintf(szTmp, sizeof(szTmp), " stale(GCPhys=%RGp)", WalkFast.GCPhys);
+#ifdef VBOX_VMM_TARGET_X86
         else if (   (~WalkFast.fEffective       & (X86_PTE_RW | X86_PTE_US | X86_PTE_G | X86_PTE_A | X86_PTE_D))
                  == (  (pTlbe->fFlagsAndPhysRev & (  IEMTLBE_F_PT_NO_WRITE | IEMTLBE_F_PT_NO_USER
                                                    | IEMTLBE_F_PT_NO_DIRTY | IEMTLBE_F_PT_NO_ACCESSED))
@@ -1298,11 +1305,18 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
                         : WalkFast.fEffective & X86_PTE_D  ? " dirty-now"    : " dirty-no-more",
                         (~WalkFast.fEffective & X86_PTE_A)  == (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_ACCESSED) ? ""
                         : WalkFast.fEffective & X86_PTE_A  ? " accessed-now" : " accessed-no-more");
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        else
+            RTStrPrintf(szTmp, sizeof(szTmp), " stale(todo)");
+#else
+# error "port me"
+#endif
     }
 #else
     RT_NOREF(pVCpu);
 #endif
 
+#ifdef VBOX_VMM_TARGET_X86
     pHlp->pfnPrintf(pHlp, IEMTLB_SLOT_FMT ": %s %#018RX64 -> %RGp / %p / %#05x %s%s%s%s%s%s%s/%s%s%s%s/%s %s%s\n",
                     uSlot,
                     (pTlbe->uTag & IEMTLB_REVISION_MASK) == uTlbRevision ? "valid  "
@@ -1330,6 +1344,66 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
                     (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == pTlb->uTlbPhysRev ? "phys-valid"
                     : (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == 0 ? "phys-empty" : "phys-expired",
                     pszValid);
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    static const char * const s_apszLimAndTopLevelX[] =
+    {   /*0bxyz: z=IEMTLBE_F_S2_NO_LIM_WRITE  y=IEMTLBE_F_S2_TL0  x=IEMTLBE_F_S2_TL1 */
+        /*0b000:*/ "Lw",
+        /*0b001:*/ "",
+        /*0b010:*/ "LwTL0",
+        /*0b011:*/ "!TL0!",
+        /*0b100:*/ "LwTL1",
+        /*0b101:*/ "!TL1!",
+        /*0b110:*/ "LwTL01", /* See MRO-TL01 */
+        /*0b111:*/ "!TL01!",
+    };
+    static const char * const s_apszSizes[] = { "L3", "L2", "L1", "L0" };
+    AssertCompile(((IEMTLBE_F_S2_NO_LIM_WRITE | IEMTLBE_F_S2_TL0 | IEMTLBE_F_S2_TL1) >> IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT) == 7);
+    pHlp->pfnPrintf(pHlp, IEMTLB_SLOT_FMT
+                    ": %s %#018RX64 -> %RGp / %p / %#05x U%c%c%c%cP%c%c%c%c%c%c/%c%c%c/%s/%c%c%c%c/%c as:%x vm:%x/%s %s%s\n",
+                    uSlot,
+                    (pTlbe->uTag & IEMTLB_REVISION_MASK) == uTlbRevision ? "valid  "
+                    : (pTlbe->uTag & IEMTLB_REVISION_MASK) == 0          ? "empty  "
+                                                                         : "expired",
+                    GCPtr, /* -> */
+                    pTlbe->GCPhys, /* / */ pTlbe->pbMappingR3,
+                    /* / */
+                    (uint32_t)(pTlbe->fFlagsAndPhysRev & ~(IEMTLBE_F_PHYS_REV | IEMTLBE_F_S1_ASID | IEMTLBE_F_S2_VMID)),
+                    /* */
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_U_NO_READ    ? '-' : 'r',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_U_NO_WRITE   ? '-' : 'w',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_U_NO_EXEC    ? '-' : 'x',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_U_NO_GCS     ? '-' : 's',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_P_NO_READ    ? '-' : 'r',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_P_NO_WRITE   ? '-' : 'w',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_P_NO_EXEC    ? '-' : 'x',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_P_NO_GCS     ? '-' : 's',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_NO_DIRTY     ? '-' : 'D',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_AMEC         ? 'A' : '-',
+                    /* / */
+                    !(uSlot & 1)                                         ? '-' : 'G',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S1_NS            ? '-' : 'S',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S1_NSE           ? '-' : 'E',
+                    /* / */
+                    s_apszLimAndTopLevelX[(pTlbe->fFlagsAndPhysRev >> IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT) & 7],
+                    /* / */
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_NO_READ       ? '-'  : 'r',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_NO_WRITE      ? '-'  : 'w',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_UNASSIGNED    ? 'u'  : '-',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_CODE_PAGE     ? 'c'  : '-',
+                    /* / */
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_NO_MAPPINGR3     ? 'N'  : 'M',
+                    /* */
+                    (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S1_ASID) >> IEMTLBE_F_S1_ASID_SHIFT,
+                    /* */
+                    (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S2_VMID) >> IEMTLBE_F_S2_VMID_SHIFT,
+                    s_apszSizes[(pTlbe->fFlagsAndPhysRev >> IEMTLBE_F_EFF_SIZE_SHIFT) & 3],
+                    /* */
+                    (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == pTlb->uTlbPhysRev ? "phys-valid"
+                    : (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == 0 ? "phys-empty" : "phys-expired",
+                    pszValid);
+#else
+# error "port me"
+#endif
 }
 
 

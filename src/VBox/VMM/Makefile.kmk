@@ -559,7 +559,9 @@ ifdef VBOX_WITH_VIRT_ARMV8
  endif
  ifdef VBOX_WITH_IEM_TARGETING_ARM
   VBoxVMMArm_SOURCES += \
-  	VMMAll/IEMAll.cpp
+  	VMMAll/IEMAll.cpp \
+  	VMMAll/IEMAllMem.cpp \
+  	VMMAll/IEMAllTlb.cpp
  else
   VBoxVMMArm_SOURCES += VMMAll/IEMAllStub.cpp
  endif

@@ -45,9 +45,10 @@
 #include <iprt/string.h>
 #include <iprt/x86.h>
 
-//#include "IEMInline.h"
 #ifdef VBOX_VMM_TARGET_X86
 # include "target-x86/IEMAllTlbInline-x86.h"
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# include "target-armv8/IEMAllTlbInline-armv8.h"
 #endif
 
 

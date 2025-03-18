@@ -425,10 +425,14 @@ typedef struct IEMTLBENTRY
      *          fFlagsAndPhysRev member then, 57 bit wide VAs means we'll only have
      *          19 bits left (64 - 57 + 12 = 19) and they'll almost entire be
      *          consumed by PCID and ASID (12 + 6 = 18).
+     *          Update: Put the PCID + ASID in fFlagsAndPhysRev; that doesn't solve
+     *          the 57-bit problem, though.
      */
     uint64_t                uTag;
     /** Access flags and physical TLB revision.
      *
+     * @x86
+     * @parblock
      * - Bit  0 - page tables   - not executable (X86_PTE_PAE_NX).
      * - Bit  1 - page tables   - not writable (complemented X86_PTE_RW).
      * - Bit  2 - page tables   - not user (complemented X86_PTE_US).
@@ -436,8 +440,11 @@ typedef struct IEMTLBENTRY
      * - Bit  4 - pgm phys page - not directly readable.
      * - Bit  5 - page tables   - not accessed (complemented X86_PTE_A).
      * - Bit  6 - page tables   - not dirty (complemented X86_PTE_D).
-     * - Bit  7 - tlb entry     - pMappingR3 member not valid.
-     * - Bits 63 thru 8 are used for the physical TLB revision number.
+     * - Bit  7 - page tables   - large page.
+     * - Bit  8 - tlb entry     - pMappingR3 member not valid.
+     * - Bit  9 - phys          - Unassigned memory.
+     * - Bit 10 - phys          - Code page.
+     * - Bits 63:11 - phys      - Physical TLB revision number.
      *
      * We're using complemented bit meanings here because it makes it easy to check
      * whether special action is required.  For instance a user mode write access
@@ -446,6 +453,44 @@ typedef struct IEMTLBENTRY
      * writable, or it wasn't user, or the page wasn't dirty.  A user mode read
      * access would do "TEST fFlags, X86_PTE_US"; and a kernel mode read wouldn't
      * need to check any PTE flag.
+     * @endparblock
+     *
+     * @arm
+     * @parblock
+     * - Bit  0 - stage 1+2       - not unprivileged read accessible.
+     * - Bit  1 - stage 1+2       - not unprivileged write accessible.
+     * - Bit  2 - stage 1+2       - not unprivileged execute accessible.
+     * - Bit  3 - stage 1+2       - not unprivileged guarded control stack accessible.
+     * - Bit  4 - stage 1+2       - not privileged readable accessible.
+     * - Bit  5 - stage 1+2       - not privileged writable accessible.
+     * - Bit  6 - stage 1+2       - not privileged executable accessible.
+     * - Bit  7 - stage 1+2       - not privileged guarded control stack accessible.
+     * - Bit  8 - stage 2         - no limited write access (?).
+     * - Bit  9 - stage 2         - TopLevel0 (?)
+     * - Bit 10 - stage 2         - TopLevel1 (?)
+     * - Bit 11 - stage 1+2 leaf  - not dirty.
+     * - Bit 12 - stage 1+2 leaf  - alternate MECID (AMEC).
+     * - Bit 13 - pgm phys page   - not directly readable.
+     * - Bit 14 - pgm phys/virt   - not directly writable.
+     * - Bit 15 - tlb entry       - pMappingR3 member not valid.
+     * - Bit 16 - phys            - Unassigned memory.
+     * - Bit 17 - phys            - Code page.
+     * - Bit 18 - stage 1 leaf    - NS (not-secure).
+     * - Bit 19 - stage 1 leaf    - NSE (root).
+     * - Bits 20:21 - stage 1+2   - Page size.
+     * - Bits 37:22 - stage 1 reg - Address space ID (ASID).
+     * - Bits 53:38 - stage 2 reg - Virtual Machine ID (VMID).
+     * - Bits 63:54 - tlb entry   - physical TLB revision number.
+     *
+     * The ASIDs and VMIDs are kept with the physical TLB revision number, so
+     * there is no extra overhead there.  How the NSE:NS stuff will be handled
+     * is a question for later.
+     *
+     * The above is a preliminary sketch...
+     * @endparblock
+     *
+     * @todo arm64: Not sure if we can combine the stage 1 and 2 AMEC bits,
+     *       but hope so... Doubt we'll be needing this any time soon.
      */
     uint64_t                fFlagsAndPhysRev;
     /** The guest physical page address. */
@@ -464,25 +509,57 @@ typedef IEMTLBENTRY const *PCIEMTLBENTRY;
 
 /** @name IEMTLBE_F_XXX - TLB entry flags (IEMTLBENTRY::fFlagsAndPhysRev)
  * @{  */
-#define IEMTLBE_F_PT_NO_EXEC        RT_BIT_64(0)  /**< Page tables: Not executable. */
-#define IEMTLBE_F_PT_NO_WRITE       RT_BIT_64(1)  /**< Page tables: Not writable. */
-#define IEMTLBE_F_PT_NO_USER        RT_BIT_64(2)  /**< Page tables: Not user accessible (supervisor only). */
-#define IEMTLBE_F_PG_NO_WRITE       RT_BIT_64(3)  /**< Phys page:   Not writable (access handler, ROM, whatever). */
-#define IEMTLBE_F_PG_NO_READ        RT_BIT_64(4)  /**< Phys page:   Not readable (MMIO / access handler, ROM) */
-#define IEMTLBE_F_PT_NO_ACCESSED    RT_BIT_64(5)  /**< Phys tables: Not accessed (need to be marked accessed). */
-#define IEMTLBE_F_PT_NO_DIRTY       RT_BIT_64(6)  /**< Page tables: Not dirty (needs to be made dirty on write). */
-#define IEMTLBE_F_PT_LARGE_PAGE     RT_BIT_64(7)  /**< Page tables: Large 2 or 4 MiB page (for flushing). */
-#define IEMTLBE_F_NO_MAPPINGR3      RT_BIT_64(8)  /**< TLB entry:   The IEMTLBENTRY::pMappingR3 member is invalid. */
-#define IEMTLBE_F_PG_UNASSIGNED     RT_BIT_64(9)  /**< Phys page:   Unassigned memory (not RAM, ROM, MMIO2 or MMIO). */
-#define IEMTLBE_F_PG_CODE_PAGE      RT_BIT_64(10) /**< Phys page:   Code page. */
-#define IEMTLBE_F_PHYS_REV          UINT64_C(0xfffffffffffff800) /**< Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEMTLBE_F_PT_NO_EXEC       RT_BIT_64(0)  /**< Page tables: Not executable. */
+# define IEMTLBE_F_PT_NO_WRITE      RT_BIT_64(1)  /**< Page tables: Not writable. */
+# define IEMTLBE_F_PT_NO_USER       RT_BIT_64(2)  /**< Page tables: Not user accessible (supervisor only). */
+# define IEMTLBE_F_PG_NO_WRITE      RT_BIT_64(3)  /**< Phys page:   Not writable (access handler, ROM, whatever). */
+# define IEMTLBE_F_PG_NO_READ       RT_BIT_64(4)  /**< Phys page:   Not readable (MMIO / access handler, ROM) */
+# define IEMTLBE_F_PT_NO_ACCESSED   RT_BIT_64(5)  /**< Phys tables: Not accessed (need to be marked accessed). */
+# define IEMTLBE_F_PT_NO_DIRTY      RT_BIT_64(6)  /**< Page tables: Not dirty (needs to be made dirty on write). */
+# define IEMTLBE_F_PT_LARGE_PAGE    RT_BIT_64(7)  /**< Page tables: Large 2 or 4 MiB page (for flushing). */
+# define IEMTLBE_F_NO_MAPPINGR3     RT_BIT_64(8)  /**< TLB entry:   The IEMTLBENTRY::pMappingR3 member is invalid. */
+# define IEMTLBE_F_PG_UNASSIGNED    RT_BIT_64(9)  /**< Phys page:   Unassigned memory (not RAM, ROM, MMIO2 or MMIO). */
+# define IEMTLBE_F_PG_CODE_PAGE     RT_BIT_64(10) /**< Phys page:   Code page. */
+# define IEMTLBE_F_PHYS_REV         UINT64_C(0xfffffffffffff800) /**< Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
+#endif
+#if defined(VBOX_VMM_TARGET_ARMV8) || defined(DOXYGEN_RUNNING)
+# define IEMTLBE_F_EFF_U_NO_READ      RT_BIT_64(0)  /**< Stage 1+2: No unprivileged read access. */
+# define IEMTLBE_F_EFF_U_NO_WRITE     RT_BIT_64(1)  /**< Stage 1+2: No unprivileged write access. */
+# define IEMTLBE_F_EFF_U_NO_EXEC      RT_BIT_64(2)  /**< Stage 1+2: No unprivileged execute access. */
+# define IEMTLBE_F_EFF_U_NO_GCS       RT_BIT_64(3)  /**< Stage 1+2: No unprivileged guard control stack access. */
+# define IEMTLBE_F_EFF_P_NO_READ      RT_BIT_64(4)  /**< Stage 1+2: No privileged read access. */
+# define IEMTLBE_F_EFF_P_NO_WRITE     RT_BIT_64(5)  /**< Stage 1+2: No privileged write access. */
+# define IEMTLBE_F_EFF_P_NO_EXEC      RT_BIT_64(6)  /**< Stage 1+2: No privileged execute access. */
+# define IEMTLBE_F_EFF_P_NO_GCS       RT_BIT_64(7)  /**< Stage 1+2: No privileged guard control stack access. */
+# define IEMTLBE_F_S2_NO_LIM_WRITE    RT_BIT_64(8)  /**< Stage 2:   No limited write access. */
+# define IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT        8   /**< @see IEMTLBE_F_S2_NO_LIM_WRITE */
+# define IEMTLBE_F_S2_TL0             RT_BIT_64(9)  /**< Stage 2:   TopLevel0. */
+# define IEMTLBE_F_S2_TL1             RT_BIT_64(10) /**< Stage 2:   TopLevel1. */
+# define IEMTLBE_F_EFF_NO_DIRTY       RT_BIT_64(11) /**< Stage 1+2: Not dirty. */
+# define IEMTLBE_F_EFF_AMEC           RT_BIT_64(12) /**< Stage 1+2: Alternative MECID. */
+# define IEMTLBE_F_PG_NO_READ         RT_BIT_64(13) /**< Phys page: Not readable (MMIO / access handler, ROM) */
+# define IEMTLBE_F_PG_NO_WRITE        RT_BIT_64(14) /**< Phys page: Not writable (access handler, ROM, whatever). */
+# define IEMTLBE_F_NO_MAPPINGR3       RT_BIT_64(15) /**< TLB entry: The IEMTLBENTRY::pMappingR3 member is invalid. */
+# define IEMTLBE_F_PG_UNASSIGNED      RT_BIT_64(16) /**< Phys page: Unassigned memory (not RAM, ROM, MMIO2 or MMIO). */
+# define IEMTLBE_F_PG_CODE_PAGE       RT_BIT_64(17) /**< Phys page: Code page. */
+# define IEMTLBE_F_S1_NS              RT_BIT_64(18) /**< Stage 1:   Non-secure bit. */
+# define IEMTLBE_F_S1_NSE             RT_BIT_64(19) /**< Stage 1:   Non-secure extension/whatever bit. */
+# define IEMTLBE_F_EFF_SIZE_MASK   UINT64(0x300000) /**< Stage 1+2: Page size. @todo may need separate bits for each stage since they may use different page sizes. Or perhaps a single bit suffices? */
+# define IEMTLBE_F_EFF_SIZE_L3     UINT64(0x000000) /**< Stage 1+2: Smallest page size. */
+# define IEMTLBE_F_EFF_SIZE_L2     UINT64(0x100000) /**< Stage 1+2: Level 2 block. */
+# define IEMTLBE_F_EFF_SIZE_L1     UINT64(0x200000) /**< Stage 1+2: Level 1 block. */
+# define IEMTLBE_F_EFF_SIZE_L0     UINT64(0x300000) /**< Stage 1+2: Level 0 block. */
+# define IEMTLBE_F_EFF_SIZE_SHIFT             20    /**< @see IEMTLBE_F_EFF_SIZE_MASK */
+# define IEMTLBE_F_S1_ASID (UINT64_C(0xffff) << 22) /**< Stage 1:   Address space ID (from stage 1 root register). */
+# define IEMTLBE_F_S1_ASID_SHIFT                22  /**< @see IEMTLBE_F_S1_ASID */
+# define IEMTLBE_F_S2_VMID (UINT64_C(0xffff) << 38) /**< Stage 2:   Virtual machine ID (from stage 2 root register). */
+# define IEMTLBE_F_S2_VMID_SHIFT                38  /**< @see IEMTLBE_F_S2_VMID */
+# ifndef DOXYGEN_RUNNING
+#  define IEMTLBE_F_PHYS_REV        UINT64_C(0xffc0000000000000) /**< Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
+# endif
+#endif
 /** @} */
-AssertCompile(PGMIEMGCPHYS2PTR_F_NO_WRITE     == IEMTLBE_F_PG_NO_WRITE);
-AssertCompile(PGMIEMGCPHYS2PTR_F_NO_READ      == IEMTLBE_F_PG_NO_READ);
-AssertCompile(PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 == IEMTLBE_F_NO_MAPPINGR3);
-AssertCompile(PGMIEMGCPHYS2PTR_F_UNASSIGNED   == IEMTLBE_F_PG_UNASSIGNED);
-AssertCompile(PGMIEMGCPHYS2PTR_F_CODE_PAGE    == IEMTLBE_F_PG_CODE_PAGE);
-AssertCompile(PGM_WALKINFO_BIG_PAGE           == IEMTLBE_F_PT_LARGE_PAGE);
 /** The bits set by PGMPhysIemGCPhys2PtrNoLock. */
 #define IEMTLBE_GCPHYS2PTR_MASK     (  PGMIEMGCPHYS2PTR_F_NO_WRITE \
                                      | PGMIEMGCPHYS2PTR_F_NO_READ \
@@ -490,6 +567,16 @@ AssertCompile(PGM_WALKINFO_BIG_PAGE           == IEMTLBE_F_PT_LARGE_PAGE);
                                      | PGMIEMGCPHYS2PTR_F_UNASSIGNED \
                                      | PGMIEMGCPHYS2PTR_F_CODE_PAGE \
                                      | IEMTLBE_F_PHYS_REV )
+#if defined(VBOX_VMM_TARGET_X86) /// @todo || defined(VBOX_VMM_TARGET_ARMV8)
+AssertCompile(PGMIEMGCPHYS2PTR_F_NO_WRITE     == IEMTLBE_F_PG_NO_WRITE);
+AssertCompile(PGMIEMGCPHYS2PTR_F_NO_READ      == IEMTLBE_F_PG_NO_READ);
+AssertCompile(PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 == IEMTLBE_F_NO_MAPPINGR3);
+AssertCompile(PGMIEMGCPHYS2PTR_F_UNASSIGNED   == IEMTLBE_F_PG_UNASSIGNED);
+AssertCompile(PGMIEMGCPHYS2PTR_F_CODE_PAGE    == IEMTLBE_F_PG_CODE_PAGE);
+# ifdef VBOX_VMM_TARGET_X86
+AssertCompile(PGM_WALKINFO_BIG_PAGE           == IEMTLBE_F_PT_LARGE_PAGE);
+# endif
+#endif
 
 
 /** The TLB size (power of two).
@@ -675,8 +762,14 @@ AssertCompile(IEMTLB_ENTRY_COUNT >= 32 /* bmLargePage ASSUMPTION */);
 
 /** IEMTLB::uTlbPhysRev increment.
  * @sa IEMTLBE_F_PHYS_REV */
-#define IEMTLB_PHYS_REV_INCR    RT_BIT_64(11)
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define IEMTLB_PHYS_REV_INCR   RT_BIT_64(11)
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define IEMTLB_PHYS_REV_INCR   RT_BIT_64(54)
+#endif
+#ifdef IEMTLBE_F_PHYS_REV
 AssertCompile(IEMTLBE_F_PHYS_REV == ~(IEMTLB_PHYS_REV_INCR - 1U));
+#endif
 
 /**
  * Calculates the TLB tag for a virtual address but without TLB revision.
@@ -3247,6 +3340,9 @@ void            iemMemCommitAndUnmapAtSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo
 void            iemMemCommitAndUnmapWoSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemCommitAndUnmapRoSafeJmp(PVMCPUCC pVCpu, uint8_t bUnmapInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 void            iemMemRollbackAndUnmapWoSafe(PVMCPUCC pVCpu, uint8_t bUnmapInfo) RT_NOEXCEPT;
+
+VBOXSTRICTRC    iemMemPageTranslateAndCheckAccess(PVMCPUCC pVCpu, RTGCPTR GCPtrMem, uint32_t cbAccess, uint32_t fAccess,
+                                                  PRTGCPHYS pGCPhysMem) RT_NOEXCEPT;
 
 void            iemTlbInvalidateAllPhysicalSlow(PVMCPUCC pVCpu) RT_NOEXCEPT;
 /** @} */

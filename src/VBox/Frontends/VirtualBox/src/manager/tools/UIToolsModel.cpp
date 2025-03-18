@@ -170,6 +170,25 @@ void UIToolsModel::setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable
     }
 }
 
+void UIToolsModel::setAnimatedToolClass(UIToolClass enmClass, bool fAnimated)
+{
+    if (m_mapAnimatedToolClasses.value(enmClass) != fAnimated)
+    {
+        m_mapAnimatedToolClasses[enmClass] = fAnimated;
+        foreach (UIToolsItem *pItem, items())
+        {
+            if (pItem->itemClass() != enmClass)
+                continue;
+            pItem->setHiddenByReason(fAnimated, UIToolsItem::HidingReason_Animated);
+        }
+
+        /* Update linked values: */
+        updateLayout();
+        sltItemMinimumWidthHintChanged();
+        sltItemMinimumHeightHintChanged();
+    }
+}
+
 QList<UIToolType> UIToolsModel::restrictedToolTypes(UIToolClass enmClass) const
 {
     return m_mapRestrictedToolTypes.value(enmClass);

@@ -88,6 +88,7 @@ public:
         HidingReason_Null       = 0,
         HidingReason_Restricted = RT_BIT(0),
         HidingReason_Unsuitable = RT_BIT(1),
+        HidingReason_Animated   = RT_BIT(2),
     };
 
     /** Constructs item on the basis of passed arguments.

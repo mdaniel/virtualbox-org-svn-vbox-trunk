@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -77,6 +77,14 @@ signals:
 
 public:
 
+    /** Data field types. */
+    enum ToolsModelData
+    {
+        /* Layout hints: */
+        ToolsModelData_Margin,
+        ToolsModelData_Spacing,
+    };
+
     /** Constructs Tools-model passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.
       * @param  enmClass     Brings the tools class, it will be const one.
@@ -122,6 +130,9 @@ public:
         void setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types);
         /** Defines whether the @a enmClass specified is @a fUnsuitable. */
         void setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable);
+
+        /** Returns abstractly stored data value for certain @a iKey. */
+        QVariant data(int iKey) const;
 
         /** Asks parent to close. */
         void close();
@@ -184,14 +195,6 @@ private slots:
 
 private:
 
-    /** Data field types. */
-    enum ToolsModelData
-    {
-        /* Layout hints: */
-        ToolsModelData_Margin,
-        ToolsModelData_Spacing,
-    };
-
     /** @name Prepare/Cleanup cascade.
       * @{ */
         /** Prepares all. */
@@ -214,12 +217,6 @@ private:
         void cleanupScene();
         /** Cleanups all. */
         void cleanup();
-    /** @} */
-
-    /** @name General stuff.
-      * @{ */
-        /** Returns abstractly stored data value for certain @a iKey. */
-        QVariant data(int iKey) const;
     /** @} */
 
     /** @name General stuff.

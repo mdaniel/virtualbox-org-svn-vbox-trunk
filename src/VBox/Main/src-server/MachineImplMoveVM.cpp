@@ -1265,7 +1265,9 @@ void MachineMoveVM::updatePathsToNVRAMFiles(const Utf8Str &sourcePath, const Utf
                                       targetPath.c_str());
     ComObjPtr<NvramStore> pNvramStore(m_pMachine->mNvramStore);
     const Utf8Str NVRAMFile(pNvramStore->i_getNonVolatileStorageFile());
-    if (NVRAMFile.isNotEmpty())
+    if (   NVRAMFile.isNotEmpty()
+        && RTFileExists(NVRAMFile.c_str())
+        && m_pMachine->i_getFirmwareType() != FirmwareType_BIOS)
     {
         Utf8Str newNVRAMFile;
         if (RTPathStartsWith(NVRAMFile.c_str(), sourcePath.c_str()))

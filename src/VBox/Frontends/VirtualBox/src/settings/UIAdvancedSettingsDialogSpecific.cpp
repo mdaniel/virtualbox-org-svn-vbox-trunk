@@ -197,7 +197,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsGeneral;
                     addItem(":/machine_32px.png", ":/machine_24px.png", ":/machine_16px.png",
                             iPageIndex, "#general", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
                 /* Input page: */
@@ -206,7 +206,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsInput;
                     addItem(":/keyboard_32px.png", ":/keyboard_24px.png", ":/keyboard_16px.png",
                             iPageIndex, "#input", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
@@ -216,7 +216,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsUpdate;
                     addItem(":/refresh_32px.png", ":/refresh_24px.png", ":/refresh_16px.png",
                             iPageIndex, "#update", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
@@ -226,7 +226,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsLanguage;
                     addItem(":/site_32px.png", ":/site_24px.png", ":/site_16px.png",
                             iPageIndex, "#language", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
                 /* Display page: */
@@ -235,7 +235,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsDisplay;
                     addItem(":/vrdp_32px.png", ":/vrdp_24px.png", ":/vrdp_16px.png",
                             iPageIndex, "#display", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
@@ -245,7 +245,7 @@ void UIAdvancedSettingsDialogGlobal::prepare()
                     pSettingsPage = new UIGlobalSettingsProxy;
                     addItem(":/proxy_32px.png", ":/proxy_24px.png", ":/proxy_16px.png",
                             iPageIndex, "#proxy", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "preferences");
+                    addPageHelpKeyword(iPageIndex, "preferences" /* help keyword */);
                     break;
                 }
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
@@ -630,7 +630,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsGeneral;
                     addItem(":/machine_32px.png", ":/machine_24px.png", ":/machine_16px.png",
                             iPageIndex, "#general", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "generalsettings");
+                    addPageHelpKeyword(iPageIndex, "generalsettings" /* help keyword */);
                     break;
                 }
                 /* System page: */
@@ -639,7 +639,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsSystem;
                     addItem(":/chipset_32px.png", ":/chipset_24px.png", ":/chipset_16px.png",
                             iPageIndex, "#system", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "settings-system");
+                    addPageHelpKeyword(iPageIndex, "settings-system" /* help keyword */);
                     break;
                 }
                 /* Display page: */
@@ -648,7 +648,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsDisplay;
                     addItem(":/vrdp_32px.png", ":/vrdp_24px.png", ":/vrdp_16px.png",
                             iPageIndex, "#display", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "settings-display");
+                    addPageHelpKeyword(iPageIndex, "settings-display" /* help keyword */);
                     break;
                 }
                 /* Storage page: */
@@ -657,7 +657,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsStorage(m_pActionPool);
                     addItem(":/hd_32px.png", ":/hd_24px.png", ":/hd_16px.png",
                             iPageIndex, "#storage", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "settings-storage");
+                    addPageHelpKeyword(iPageIndex, "settings-storage" /* help keyword */);
                     break;
                 }
                 /* Audio page: */
@@ -666,7 +666,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsAudio;
                     addItem(":/sound_32px.png", ":/sound_24px.png", ":/sound_16px.png",
                             iPageIndex, "#audio", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "settings-audio");
+                    addPageHelpKeyword(iPageIndex, "settings-audio" /* help keyword */);
                     break;
                 }
                 /* Network page: */
@@ -675,7 +675,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsNetwork;
                     addItem(":/nw_32px.png", ":/nw_24px.png", ":/nw_16px.png",
                             iPageIndex, "#network", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "settings-network");
+                    addPageHelpKeyword(iPageIndex, "settings-network" /* help keyword */);
                     break;
                 }
                 /* Serial page: */
@@ -684,7 +684,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsSerial;
                     addItem(":/serial_port_32px.png", ":/serial_port_24px.png", ":/serial_port_16px.png",
                             iPageIndex, "#serialPorts", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "serialports");
+                    addPageHelpKeyword(iPageIndex, "serialports" /* help keyword */);
                     break;
                 }
                 /* USB page: */
@@ -693,7 +693,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsUSB;
                     addItem(":/usb_32px.png", ":/usb_24px.png", ":/usb_16px.png",
                             iPageIndex, "#usb", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "usb-support");
+                    addPageHelpKeyword(iPageIndex, "usb-support" /* help keyword */);
                     break;
                 }
                 /* Shared Folders page: */
@@ -702,7 +702,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsSF;
                     addItem(":/sf_32px.png", ":/sf_24px.png", ":/sf_16px.png",
                             iPageIndex, "#sharedFolders", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "shared-folders");
+                    addPageHelpKeyword(iPageIndex, "shared-folders" /* help keyword */);
                     break;
                 }
                 /* Interface page: */
@@ -711,7 +711,7 @@ void UIAdvancedSettingsDialogMachine::prepare()
                     pSettingsPage = new UIMachineSettingsInterface(m_machine.GetId());
                     addItem(":/interface_32px.png", ":/interface_24px.png", ":/interface_16px.png",
                             iPageIndex, "#userInterface", pSettingsPage);
-                    addPageHelpKeyword(iPageIndex, "user-interface");
+                    addPageHelpKeyword(iPageIndex, "user-interface" /* help keyword */);
                     break;
                 }
                 default:

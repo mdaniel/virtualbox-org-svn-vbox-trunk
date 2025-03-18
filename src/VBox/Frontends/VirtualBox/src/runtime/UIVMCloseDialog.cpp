@@ -523,7 +523,7 @@ void UIVMCloseDialog::prepareButtonBox()
                                        | QDialogButtonBox::Ok);
         connect(pButtonBox, &QIDialogButtonBox::accepted, this, &UIVMCloseDialog::accept);
         connect(pButtonBox, &QIDialogButtonBox::rejected, this, &UIVMCloseDialog::reject);
-        uiCommon().setHelpKeyword(pButtonBox->button(QIDialogButtonBox::Help), "intro-save-machine-state");
+        uiCommon().setHelpKeyword(pButtonBox->button(QIDialogButtonBox::Help), "intro-save-machine-state" /* help keyword */);
         connect(pButtonBox->button(QIDialogButtonBox::Help), &QPushButton::pressed,
                 pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
         pButtonBox->button(QIDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));

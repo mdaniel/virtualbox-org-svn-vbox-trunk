@@ -535,8 +535,8 @@
 
 <?if $(env.VBOX_WITH_QTGUI) = "yes" ?>
     <!-- Start menu entries -->
-    <Directory Id="ProgramMenuFolder">
-        <Directory Id="StartMenuFolder">
+    <StandardDirectory Id="ProgramMenuFolder">
+        <StandardDirectory Id="StartMenuFolder">
             <Directory Id="dir_StartMenuVBox" Name="$(env.VBOX_PRODUCT)">
                 <Component Id="cp_StartMenuVBox" Guid="C2DC321A-CE63-40EE-8A98-724DF8BD12FB" Condition="VBOX_INSTALLSTARTMENUENTRIES" Bitness="$(var.Property_Bitness)">
                     <Shortcut Id="sc_StartMenuVBox" Directory="dir_StartMenuVBox" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
@@ -545,17 +545,17 @@
                     <RemoveFolder Id="rmf_ShortcutStartMenu" On="uninstall" />
                 </Component>
             </Directory>
-        </Directory>
-    </Directory>
+        </StandardDirectory>
+    </StandardDirectory>
 
     <!-- Desktop shortcut -->
-    <Directory Id="DesktopFolder" Name="Desktop">
+    <StandardDirectory Id="DesktopFolder" Name="Desktop">
         <Component Id="cp_DesktopShortcut" Guid="668F8A1A-F5CE-48B3-BB1A-3042EE27B279" Condition="VBOX_INSTALLDESKTOPSHORTCUT" Bitness="$(var.Property_Bitness)">
             <Shortcut Id="sc_DesktopVBox" Directory="DesktopFolder" Name="$(env.VBOX_PRODUCT)" Description="$(env.VBOX_PRODUCT)" Target="[INSTALLDIR]VirtualBox.exe" WorkingDirectory="INSTALLDIR" />
             <RegistryValue Root="HKCU" Key="$(var.Property_RegKeyInstall)" Type="string" Value="installed" KeyPath="yes" />
             <RemoveFolder Id="rmf_ShortcutDesktop" On="uninstall" />
         </Component>
-    </Directory>
+    </StandardDirectory>
 <?endif?> <!-- $(env.VBOX_WITH_QTGUI) = "yes" -->
 
 </Package>

@@ -131,6 +131,9 @@ public:
         /** Defines whether the @a enmClass specified is @a fUnsuitable. */
         void setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable);
 
+        /** Returns restricted tool types for the @a enmClass specified. */
+        QList<UIToolType> restrictedToolTypes(UIToolClass enmClass) const;
+
         /** Returns abstractly stored data value for certain @a iKey. */
         QVariant data(int iKey) const;
 

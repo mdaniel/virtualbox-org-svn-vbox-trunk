@@ -170,6 +170,11 @@ void UIToolsModel::setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable
     }
 }
 
+QList<UIToolType> UIToolsModel::restrictedToolTypes(UIToolClass enmClass) const
+{
+    return m_mapRestrictedToolTypes.value(enmClass);
+}
+
 QVariant UIToolsModel::data(int iKey) const
 {
     /* Provide other members with required data: */

@@ -731,7 +731,7 @@ it unless this changes. -->
           <term><option>--memory=<replaceable>размер</replaceable></option></term>
           <listitem><para>
               Задает количество оперативной памяти хоста, выделенной ВМ.
-              Размер в МБ. Смотрите <xref linkend="create-vm-wizard" />.
+              Размер в МБ. Смотрите <xref linkend="create-vm" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1669,7 +1669,7 @@ it unless this changes. -->
           <term><option>--nat-bind-ip<replaceable>N</replaceable>=<replaceable>IP-адрес</replaceable></option></term>
           <listitem><para>
               Задает альтернативный IP адрес, на который привязывается
-              движок NAT. Смотрите <xref linkend="nat-adv-settings" />.
+              движок NAT. Смотрите <xref linkend="changenat" />.
               По умолчанию, движок NAT &product-name; перенаправляет пакеты TCP/IP
               через интерфейс по умолчанию, назначенный TCP/IP стеком хоста.
             </para></listitem>
@@ -1708,7 +1708,7 @@ it unless this changes. -->
           <term><option>--nat-settings<replaceable>N</replaceable>=[<replaceable>mtu</replaceable>],[<replaceable>отправка-сокет</replaceable>],[<replaceable>прием-сокет</replaceable>],[<replaceable>отправка-tcp</replaceable>],[<replaceable>прием-tcp</replaceable>]</option></term>
           <listitem><para>
               Задает значения для настройки производительности NAT.
-              Смотрите <xref linkend="nat-adv-settings" />.
+              Смотрите <xref linkend="changenat" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>

@@ -1073,7 +1073,7 @@ void UIToolsModel::saveCurrentItems()
         || m_enmClass == UIToolClass_Invalid)
     {
         if (UIToolsItem *pItem = currentItem(UIToolClass_Management))
-            enmTypeMachine = pItem->itemType();
+            enmTypeManagment = pItem->itemType();
     }
 
     /* Save selected items data: */

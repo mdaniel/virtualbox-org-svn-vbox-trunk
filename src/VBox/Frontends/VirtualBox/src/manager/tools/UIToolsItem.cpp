@@ -750,22 +750,8 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
 #endif
             QColor selectionColor1 = selectionColor;
             QColor selectionColor2 = selectionColor;
-            if (model()->showItemNames())
-            {
-                selectionColor1.setAlpha(0);
-                selectionColor2.setAlpha(255);
-            }
-            else
-            {
-                selectionColor1.setAlpha(100);
-                selectionColor2.setAlpha(110);
-            }
-
-            /* Draw gradient token: */
-            QLinearGradient hlGrad(rectangle.topLeft(), rectangle.topRight());
-            hlGrad.setColorAt(0, selectionColor1);
-            hlGrad.setColorAt(1, selectionColor2);
-            pPainter->fillRect(rectangle, hlGrad);
+            selectionColor1.setAlpha(100);
+            selectionColor2.setAlpha(110);
 
             /* Acquire token color: */
             const QColor highlightColor = isEnabled()
@@ -783,23 +769,32 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
             {
                 case UIToolClass_Global:
                 {
-                    /* Prepare token sub-rect: */
-                    QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
+                    /* Draw gradient background: */
+                    QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
+                    bgGrad.setColorAt(0, selectionColor1);
+                    bgGrad.setColorAt(1, selectionColor2);
+                    pPainter->fillRect(rectangle, bgGrad);
 
                     /* Draw gradient token: */
-                    QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
-                    hlGrad.setColorAt(0, highlightColor1);
-                    hlGrad.setColorAt(1, highlightColor2);
-                    pPainter->fillRect(tokenRect, hlGrad);
+                    QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
+                    QLinearGradient tkGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                    tkGrad.setColorAt(0, highlightColor1);
+                    tkGrad.setColorAt(1, highlightColor2);
+                    pPainter->fillRect(tokenRect, tkGrad);
                     break;
                 }
                 case UIToolClass_Machine:
                 case UIToolClass_Management:
                 {
-                    /* Prepare token sub-rect: */
-                    QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
+                    /* Draw gradient background: */
+                    QRect backgroundRect(rectangle.topLeft() + QPoint(5, 0), QSize(rectangle.width() - 5, rectangle.height()));
+                    QLinearGradient bgGrad(backgroundRect.topLeft(), backgroundRect.topRight());
+                    bgGrad.setColorAt(0, selectionColor1);
+                    bgGrad.setColorAt(1, selectionColor2);
+                    pPainter->fillRect(backgroundRect, bgGrad);
 
                     /* Draw gradient token: */
+                    QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
                     QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
                     hlGrad.setColorAt(0, highlightColor1);
                     hlGrad.setColorAt(1, highlightColor2);

@@ -52,18 +52,18 @@
 typedef QSet<QString> UIStringSet;
 
 
-/** QPropertyAnimation extension used as tool-item class-sliding animation. */
-class UIAnmClassSliding : public QPropertyAnimation
+/** QPropertyAnimation extension used as tool-item animation. */
+class UIToolItemAnimation : public QPropertyAnimation
 {
     Q_OBJECT;
 
 public:
 
-    /** Constructs tool-item selection animation passing @a pParent to the base-class.
+    /** Constructs tool-item animation passing @a pParent to the base-class.
       * @param  pTarget       Brings the object animation alters property for.
       * @param  propertyName  Brings the name of property inside the @a pTarget.
       * @param  fForward      Brings whether animation goes to iValue or from it. */
-    UIAnmClassSliding(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward);
+    UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward);
 
     /** Defines the animation value. */
     void setValue(int iValue);
@@ -91,45 +91,45 @@ signals:
 
 public:
 
-    /** Class-sliding animation states. */
-    enum ClassSlidingState { State_Animated, State_Home, State_Machines, State_Managers };
+    /** Animation states. */
+    enum State { State_Animated, State_Home, State_Machines, State_Managers };
 
-    /** Constructs tool-item selection animation passing @a pParent to the base-class. */
+    /** Constructs animation engine passing @a pParent to the base-class. */
     UIToolsAnimationEngine(UIToolsModel *pParent);
 
     /** Performs animation engine initialization. */
     void init();
 
-    /** Returns class-sliding animation state. */
-    ClassSlidingState classSlidingState() const { return m_enmState; }
+    /** Returns animation state. */
+    State state() const { return m_enmState; }
 
-    /** Fetches class-sliding animation limits. */
-    void fetchClassSlidingLimits();
+    /** Fetches animation limits. */
+    void fetchAnimationLimits();
 
 private slots:
 
     /** Handles signal about tool @a enmType change. */
     void sltHandleSelectionChanged(UIToolType enmType);
 
-    /** Handles selection animation start. */
-    void sltHandleSelectionAnimationStarted();
-    /** Handles selection animation finish. */
-    void sltHandleSelectionAnimationFinished();
+    /** Handles animation start. */
+    void sltHandleAnimationStarted();
+    /** Handles animation finish. */
+    void sltHandleAnimationFinished();
 
 private:
 
     /** Prepares everything. */
     void prepare();
-    /** Prepares class-sliding animation. */
-    void prepareClassSlidingAnimation();
+    /** Prepares machine. */
+    void prepareMachine();
     /** Prepares connections. */
     void prepareConnections();
 
     /** Holds the parent model reference. */
     UIToolsModel *m_pParent;
 
-    /** Holds the class-sliding machine instance. */
-    QStateMachine *m_pMachineClassSliding;
+    /** Holds the state-machine instance. */
+    QStateMachine *m_pMachine;
 
     /** Holds the Home state instance. */
     QState *m_pStateHome;
@@ -139,37 +139,37 @@ private:
     QState *m_pStateMana;
 
     /** Holds the instance of animation from Home to Machines. */
-    UIAnmClassSliding *m_pAnmHomeMach;
+    UIToolItemAnimation *m_pAnmHomeMach;
     /** Holds the instance of animation from Home to Managers. */
-    UIAnmClassSliding *m_pAnmHomeMana;
+    UIToolItemAnimation *m_pAnmHomeMana;
     /** Holds the instance of animation from Machines to Home. */
-    UIAnmClassSliding *m_pAnmMachHome;
+    UIToolItemAnimation *m_pAnmMachHome;
     /** Holds the instance of 1st animation from Machines to Managers. */
-    UIAnmClassSliding *m_pAnmMachMana1;
+    UIToolItemAnimation *m_pAnmMachMana1;
     /** Holds the instance of 2nd animation from Machines to Managers. */
-    UIAnmClassSliding *m_pAnmMachMana2;
+    UIToolItemAnimation *m_pAnmMachMana2;
     /** Holds the instance of animation from Managers to Home. */
-    UIAnmClassSliding *m_pAnmManaHome;
+    UIToolItemAnimation *m_pAnmManaHome;
     /** Holds the instance of 1st animation from Managers to Machines. */
-    UIAnmClassSliding *m_pAnmManaMach1;
+    UIToolItemAnimation *m_pAnmManaMach1;
     /** Holds the instance of 2nd animation from Managers to Machines. */
-    UIAnmClassSliding *m_pAnmManaMach2;
+    UIToolItemAnimation *m_pAnmManaMach2;
 
     /** Holds the vertical Machines tool hint. */
     int  m_iVerticalHintMach;
     /** Holds the vertical Managers tool hint. */
     int  m_iVerticalHintMana;
 
-    /** Holds the class-sliding animation state. */
-    ClassSlidingState  m_enmState;
+    /** Holds the animation state. */
+    State  m_enmState;
 };
 
 
 /*********************************************************************************************************************************
-*   Class UIAnmClassSliding implementation.                                                                                      *
+*   Class UIToolItemAnimation implementation.                                                                                    *
 *********************************************************************************************************************************/
 
-UIAnmClassSliding::UIAnmClassSliding(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward)
+UIToolItemAnimation::UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward)
     : QPropertyAnimation(pTarget, propertyName, pParent)
     , m_fForward(fForward)
 {
@@ -177,7 +177,7 @@ UIAnmClassSliding::UIAnmClassSliding(QObject *pTarget, const QByteArray &propert
     setDuration(200);
 }
 
-void UIAnmClassSliding::setValue(int iValue)
+void UIToolItemAnimation::setValue(int iValue)
 {
     setStartValue(m_fForward ? 0 : iValue);
     setEndValue(m_fForward ? iValue : 0);
@@ -191,7 +191,7 @@ void UIAnmClassSliding::setValue(int iValue)
 UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
     : QObject(pParent)
     , m_pParent(pParent)
-    , m_pMachineClassSliding(0)
+    , m_pMachine(0)
     , m_pStateHome(0)
     , m_pStateMach(0)
     , m_pStateMana(0)
@@ -212,7 +212,7 @@ UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
 
 void UIToolsAnimationEngine::init()
 {
-    /* Define initial state for class-sliding stuff: */
+    /* Define initial animation state: */
     QState *pInitialState = m_pStateHome;
     switch (m_pParent->toolsType(UIToolClass_Global))
     {
@@ -220,8 +220,8 @@ void UIToolsAnimationEngine::init()
         case UIToolType_Managers: pInitialState = m_pStateMana; break;
         default: break;
     }
-    m_pMachineClassSliding->setInitialState(pInitialState);
-    m_pMachineClassSliding->start();
+    m_pMachine->setInitialState(pInitialState);
+    m_pMachine->start();
 }
 
 void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
@@ -243,7 +243,7 @@ void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
     }
 }
 
-void UIToolsAnimationEngine::sltHandleSelectionAnimationStarted()
+void UIToolsAnimationEngine::sltHandleAnimationStarted()
 {
     /* Make animated items hidden initially: */
     m_pParent->setAnimatedToolClass(UIToolClass_Machine, true);
@@ -253,7 +253,7 @@ void UIToolsAnimationEngine::sltHandleSelectionAnimationStarted()
     m_enmState = State_Animated;
 }
 
-void UIToolsAnimationEngine::sltHandleSelectionAnimationFinished()
+void UIToolsAnimationEngine::sltHandleAnimationFinished()
 {
     /* Make animated items visible again: */
     m_pParent->setAnimatedToolClass(UIToolClass_Machine, false);
@@ -261,9 +261,9 @@ void UIToolsAnimationEngine::sltHandleSelectionAnimationFinished()
 
     /* Recalculate effective state: */
     m_enmState = State_Home;
-    if (m_pMachineClassSliding->configuration().contains(m_pStateMach))
+    if (m_pMachine->configuration().contains(m_pStateMach))
         m_enmState = State_Machines;
-    else if (m_pMachineClassSliding->configuration().contains(m_pStateMana))
+    else if (m_pMachine->configuration().contains(m_pStateMana))
         m_enmState = State_Managers;
 
     /* Update layout one more final time: */
@@ -272,20 +272,20 @@ void UIToolsAnimationEngine::sltHandleSelectionAnimationFinished()
 
 void UIToolsAnimationEngine::prepare()
 {
-    prepareClassSlidingAnimation();
+    prepareMachine();
     prepareConnections();
 }
 
-void UIToolsAnimationEngine::prepareClassSlidingAnimation()
+void UIToolsAnimationEngine::prepareMachine()
 {
-    /* Prepare selection animation machine: */
-    m_pMachineClassSliding = new QStateMachine(this);
-    if (m_pMachineClassSliding)
+    /* Prepare animation machine: */
+    m_pMachine = new QStateMachine(this);
+    if (m_pMachine)
     {
         /* Create states: */
-        m_pStateHome = new QState(m_pMachineClassSliding);
-        m_pStateMach = new QState(m_pMachineClassSliding);
-        m_pStateMana = new QState(m_pMachineClassSliding);
+        m_pStateHome = new QState(m_pMachine);
+        m_pStateMach = new QState(m_pMachine);
+        m_pStateMana = new QState(m_pMachine);
 
         /* Configure Home state: */
         if (m_pStateHome)
@@ -299,7 +299,7 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pHomeToMachines)
             {
                 /* Create animation for animatedShiftMachines: */
-                m_pAnmHomeMach = new UIAnmClassSliding(m_pParent, "animatedShiftMachines", this, true);
+                m_pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
                 pHomeToMachines->addAnimation(m_pAnmHomeMach);
             }
 
@@ -308,7 +308,7 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pHomeToManagers)
             {
                 /* Create animation for animatedShiftManagers: */
-                m_pAnmHomeMana = new UIAnmClassSliding(m_pParent, "animatedShiftManagers", this, true);
+                m_pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
                 pHomeToManagers->addAnimation(m_pAnmHomeMana);
             }
         }
@@ -325,7 +325,7 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pMachinesToHome)
             {
                 /* Create animation for animatedShiftMachines: */
-                m_pAnmMachHome = new UIAnmClassSliding(m_pParent, "animatedShiftMachines", this, false);
+                m_pAnmMachHome = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
                 pMachinesToHome->addAnimation(m_pAnmMachHome);
             }
 
@@ -334,11 +334,11 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pMachinesToManagers)
             {
                 /* Create animation for animatedShiftMachines: */
-                m_pAnmMachMana1 = new UIAnmClassSliding(m_pParent, "animatedShiftMachines", this, false);
+                m_pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
                 pMachinesToManagers->addAnimation(m_pAnmMachMana1);
 
                 /* Create animation for animatedShiftManagers: */
-                m_pAnmMachMana2 = new UIAnmClassSliding(m_pParent, "animatedShiftManagers", this, true);
+                m_pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
                 pMachinesToManagers->addAnimation(m_pAnmMachMana2);
             }
         }
@@ -355,7 +355,7 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pManagersToHome)
             {
                 /* Create animation for animatedShiftManagers: */
-                m_pAnmManaHome = new UIAnmClassSliding(m_pParent, "animatedShiftManagers", this, false);
+                m_pAnmManaHome = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
                 pManagersToHome->addAnimation(m_pAnmManaHome);
             }
 
@@ -364,33 +364,32 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
             if (pManagersToMachines)
             {
                 /* Create animation for animatedShiftMachines: */
-                m_pAnmManaMach1 = new UIAnmClassSliding(m_pParent, "animatedShiftMachines", this, true);
+                m_pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
                 pManagersToMachines->addAnimation(m_pAnmManaMach1);
 
                 /* Create animation for animatedShiftManagers: */
-                m_pAnmManaMach2 = new UIAnmClassSliding(m_pParent, "animatedShiftManagers", this, false);
+                m_pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
                 pManagersToMachines->addAnimation(m_pAnmManaMach2);
             }
         }
     }
 
-    /* Fetch class-sliding animation limits: */
-    fetchClassSlidingLimits();
+    /* Fetch animation limits: */
+    fetchAnimationLimits();
 }
 
 void UIToolsAnimationEngine::prepareConnections()
 {
-    /* Class-sliding animation: */
     connect(m_pParent, &UIToolsModel::sigSelectionChanged, this, &UIToolsAnimationEngine::sltHandleSelectionChanged);
-    connect(this, &UIToolsAnimationEngine::sigSelectedHome, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationStarted);
-    connect(this, &UIToolsAnimationEngine::sigSelectedMach, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationStarted);
-    connect(this, &UIToolsAnimationEngine::sigSelectedMana, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationStarted);
-    connect(m_pStateHome, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationFinished);
-    connect(m_pStateMach, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationFinished);
-    connect(m_pStateMana, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationFinished);
+    connect(this, &UIToolsAnimationEngine::sigSelectedHome, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
+    connect(this, &UIToolsAnimationEngine::sigSelectedMach, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
+    connect(this, &UIToolsAnimationEngine::sigSelectedMana, this, &UIToolsAnimationEngine::sltHandleAnimationStarted);
+    connect(m_pStateHome, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
+    connect(m_pStateMach, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
+    connect(m_pStateMana, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
 }
 
-void UIToolsAnimationEngine::fetchClassSlidingLimits()
+void UIToolsAnimationEngine::fetchAnimationLimits()
 {
     /* Acquire limits from parent class: */
     const int iVerticalHintMach = m_pParent->overallShiftMachines();
@@ -520,7 +519,7 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
         /* Update linked values: */
         recalculateOverallShifts(enmClass);
         if (m_pAnimationEngine)
-            m_pAnimationEngine->fetchClassSlidingLimits();
+            m_pAnimationEngine->fetchAnimationLimits();
         updateLayout();
         sltItemMinimumWidthHintChanged();
         sltItemMinimumHeightHintChanged();
@@ -690,9 +689,9 @@ void UIToolsModel::updateLayout()
         /* Advance vertical indent: */
         iVerticalIndent += (pItem->minimumHeightHint() + iSpacing);
 
-        /* If we are in class-sliding state: */
+        /* If we are in animated state: */
         if (   m_pAnimationEngine
-            && m_pAnimationEngine->classSlidingState() == UIToolsAnimationEngine::State_Animated)
+            && m_pAnimationEngine->state() == UIToolsAnimationEngine::State_Animated)
         {
             /* Append some animated indentation after items of certain types: */
             switch (pItem->itemType())

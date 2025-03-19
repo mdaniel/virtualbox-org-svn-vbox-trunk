@@ -1,4 +1,4 @@
-/* $Id$ */
+﻿/* $Id$ */
 /** @file
  * VBox Qt GUI - UIToolsModel class implementation.
  */
@@ -103,9 +103,8 @@ public:
     /** Returns class-sliding animation state. */
     ClassSlidingState classSlidingState() const { return m_enmState; }
 
-    /** Recalculates class-sliding animation limits.
-      * @param  enmClass  Brings tool-class for which limit should be updated. */
-    void recalculateClassSlidingLimits(UIToolClass enmClass = UIToolClass_Invalid);
+    /** Fetches class-sliding animation limits. */
+    void fetchClassSlidingLimits();
 
 private slots:
 
@@ -375,8 +374,8 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
         }
     }
 
-    /* Calculate class-sliding limits: */
-    recalculateClassSlidingLimits();
+    /* Fetch class-sliding animation limits: */
+    fetchClassSlidingLimits();
 }
 
 void UIToolsAnimationEngine::prepareConnections()
@@ -391,50 +390,21 @@ void UIToolsAnimationEngine::prepareConnections()
     connect(m_pStateMana, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleSelectionAnimationFinished);
 }
 
-void UIToolsAnimationEngine::recalculateClassSlidingLimits(UIToolClass enmClass /* = UIToolClass_Invalid */)
+void UIToolsAnimationEngine::fetchClassSlidingLimits()
 {
-    /* Some geometry stuff: */
-    const int iSpacing = m_pParent->data(UIToolsModel::ToolsModelData_Spacing).toInt();
-
-    /* Recalculate minimum vertical hint for items of Machine class: */
-    if (   enmClass == UIToolClass_Invalid
-        || enmClass == UIToolClass_Machine)
-    {
-        const QList<UIToolType> types = m_pParent->restrictedToolTypes(UIToolClass_Machine);
-        m_iVerticalHintMach = 0;
-        AssertReturnVoid(!m_pParent->items().isEmpty());
-        foreach (UIToolsItem *pItem, m_pParent->items())
-            if (   !types.contains(pItem->itemType())
-                && pItem->itemClass() == UIToolClass_Machine)
-                m_iVerticalHintMach += pItem->minimumHeightHint() + iSpacing;
-        if (m_iVerticalHintMach)
-            m_iVerticalHintMach -= iSpacing;
-    }
-
-    /* Recalculate minimum vertical hint for items of Management class: */
-    if (   enmClass == UIToolClass_Invalid
-        || enmClass == UIToolClass_Management)
-    {
-        const QList<UIToolType> types = m_pParent->restrictedToolTypes(UIToolClass_Management);
-        m_iVerticalHintMana = 0;
-        AssertReturnVoid(!m_pParent->items().isEmpty());
-        foreach (UIToolsItem *pItem, m_pParent->items())
-            if (   !types.contains(pItem->itemType())
-                && pItem->itemClass() == UIToolClass_Management)
-                m_iVerticalHintMana += pItem->minimumHeightHint() + iSpacing;
-        if (m_iVerticalHintMana)
-            m_iVerticalHintMana -= iSpacing;
-    }
-
+    /* Acquire limits from parent class: */
+    const int iVerticalHintMach = m_pParent->overallShiftMachines();
+    const int iVerticalHintMana = m_pParent->overallShiftManagers();
+    
     /* Update animation values: */
-    m_pAnmHomeMach->setValue(m_iVerticalHintMach);
-    m_pAnmHomeMana->setValue(m_iVerticalHintMana);
-    m_pAnmMachHome->setValue(m_iVerticalHintMach);
-    m_pAnmMachMana1->setValue(m_iVerticalHintMach);
-    m_pAnmMachMana2->setValue(m_iVerticalHintMana);
-    m_pAnmManaHome->setValue(m_iVerticalHintMana);
-    m_pAnmManaMach1->setValue(m_iVerticalHintMach);
-    m_pAnmManaMach2->setValue(m_iVerticalHintMana);
+    m_pAnmHomeMach->setValue(iVerticalHintMach);
+    m_pAnmHomeMana->setValue(iVerticalHintMana);
+    m_pAnmMachHome->setValue(iVerticalHintMach);
+    m_pAnmMachMana1->setValue(iVerticalHintMach);
+    m_pAnmMachMana2->setValue(iVerticalHintMana);
+    m_pAnmManaHome->setValue(iVerticalHintMana);
+    m_pAnmManaMach1->setValue(iVerticalHintMach);
+    m_pAnmManaMach2->setValue(iVerticalHintMana);
 }
 
 
@@ -452,6 +422,8 @@ UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolCl
     , m_fItemsEnabled(true)
     , m_fShowItemNames(gEDataManager->isToolTextVisible())
     , m_pAnimationEngine(0)
+    , m_iOverallShiftMachines(0)
+    , m_iOverallShiftManagers(0)
     , m_iAnimatedShiftMachines(0)
     , m_iAnimatedShiftManagers(0)
 {
@@ -546,8 +518,9 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
         }
 
         /* Update linked values: */
+        recalculateOverallShifts(enmClass);
         if (m_pAnimationEngine)
-            m_pAnimationEngine->recalculateClassSlidingLimits(enmClass);
+            m_pAnimationEngine->fetchClassSlidingLimits();
         updateLayout();
         sltItemMinimumWidthHintChanged();
         sltItemMinimumHeightHintChanged();
@@ -1012,6 +985,9 @@ void UIToolsModel::prepareItems()
                                                                 ":/tools_menu_24px.png"),
                                    UIToolType_Toggle);
     }
+
+    /* Calculate overall shifts: */
+    recalculateOverallShifts();
 }
 
 void UIToolsModel::prepareAnimationEngine()
@@ -1116,6 +1092,42 @@ void UIToolsModel::cleanup()
     /* Cleanup everything: */
     cleanupItems();
     cleanupScene();
+}
+
+void UIToolsModel::recalculateOverallShifts(UIToolClass enmClass /* = UIToolClass_Invalid */)
+{
+    /* Some geometry stuff: */
+    const int iSpacing = data(UIToolsModel::ToolsModelData_Spacing).toInt();
+
+    /* Recalculate minimum vertical hint for items of Machine class: */
+    if (   enmClass == UIToolClass_Invalid
+        || enmClass == UIToolClass_Machine)
+    {
+        const QList<UIToolType> types = restrictedToolTypes(UIToolClass_Machine);
+        m_iOverallShiftMachines = 0;
+        AssertReturnVoid(!items().isEmpty());
+        foreach (UIToolsItem *pItem, items())
+            if (   !types.contains(pItem->itemType())
+                && pItem->itemClass() == UIToolClass_Machine)
+                m_iOverallShiftMachines += pItem->minimumHeightHint() + iSpacing;
+        if (m_iOverallShiftMachines)
+            m_iOverallShiftMachines -= iSpacing;
+    }
+
+    /* Recalculate minimum vertical hint for items of Management class: */
+    if (   enmClass == UIToolClass_Invalid
+        || enmClass == UIToolClass_Management)
+    {
+        const QList<UIToolType> types = restrictedToolTypes(UIToolClass_Management);
+        m_iOverallShiftManagers = 0;
+        AssertReturnVoid(!items().isEmpty());
+        foreach (UIToolsItem *pItem, items())
+            if (   !types.contains(pItem->itemType())
+                && pItem->itemClass() == UIToolClass_Management)
+                m_iOverallShiftManagers += pItem->minimumHeightHint() + iSpacing;
+        if (m_iOverallShiftManagers)
+            m_iOverallShiftManagers -= iSpacing;
+    }
 }
 
 void UIToolsModel::setAnimatedShiftMachines(int iAnimatedValue)

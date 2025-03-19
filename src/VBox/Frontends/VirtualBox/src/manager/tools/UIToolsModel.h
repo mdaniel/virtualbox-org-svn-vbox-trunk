@@ -170,6 +170,11 @@ public:
       * @{ */
         /** Updates layout. */
         void updateLayout();
+
+        /** Returns the Machines overall shift. */
+        int overallShiftMachines() const { return m_iOverallShiftMachines; }
+        /** Returns the Managers overall shift. */
+        int overallShiftManagers() const { return m_iOverallShiftManagers; }
     /** @} */
 
 public slots:
@@ -231,6 +236,10 @@ private:
 
     /** @name Animation stuff.
      * @{ */
+        /** Recalculates overall shifts.
+          * @param  enmClass  Brings tool-class for which shift should be recalculated. */
+        void recalculateOverallShifts(UIToolClass enmClass = UIToolClass_Invalid);
+
         /** Returns the Machines animated shift. */
         int animatedShiftMachines() const { return m_iAnimatedShiftMachines; }
         /** Returns the Managers animated shift. */
@@ -287,6 +296,11 @@ private:
      * @{ */
         /** Holds the animation engine instance. */
         UIToolsAnimationEngine *m_pAnimationEngine;
+
+        /** Holds the Machines overall shift. */
+        int  m_iOverallShiftMachines;
+        /** Holds the Managers overall shift. */
+        int  m_iOverallShiftManagers;
 
         /** Holds the Machines animated shift. */
         int  m_iAnimatedShiftMachines;

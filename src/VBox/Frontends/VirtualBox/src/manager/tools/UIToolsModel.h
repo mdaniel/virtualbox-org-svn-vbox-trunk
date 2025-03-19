@@ -52,8 +52,8 @@ class UIToolsView;
 class UIToolsModel : public QObject
 {
     Q_OBJECT;
-    Q_PROPERTY(int animatedShiftMachines READ animatedShiftMachines WRITE setAnimatedShiftMachines);
-    Q_PROPERTY(int animatedShiftManagers READ animatedShiftManagers WRITE setAnimatedShiftManagers);
+    Q_PROPERTY(int animationProgressMachines READ animationProgressMachines WRITE setAnimationProgressMachines);
+    Q_PROPERTY(int animationProgressManagers READ animationProgressManagers WRITE setAnimationProgressManagers);
 
 signals:
 
@@ -170,11 +170,6 @@ public:
       * @{ */
         /** Updates layout. */
         void updateLayout();
-
-        /** Returns the Machines overall shift. */
-        int overallShiftMachines() const { return m_iOverallShiftMachines; }
-        /** Returns the Managers overall shift. */
-        int overallShiftManagers() const { return m_iOverallShiftManagers; }
     /** @} */
 
 public slots:
@@ -236,18 +231,22 @@ private:
 
     /** @name Animation stuff.
      * @{ */
+        /** Returns Machines overall shift. */
+        int overallShiftMachines() const { return m_iOverallShiftMachines; }
+        /** Returns Managers overall shift. */
+        int overallShiftManagers() const { return m_iOverallShiftManagers; }
         /** Recalculates overall shifts.
           * @param  enmClass  Brings tool-class for which shift should be recalculated. */
         void recalculateOverallShifts(UIToolClass enmClass = UIToolClass_Invalid);
 
-        /** Returns the Machines animated shift. */
-        int animatedShiftMachines() const { return m_iAnimatedShiftMachines; }
-        /** Returns the Managers animated shift. */
-        int animatedShiftManagers() const { return m_iAnimatedShiftManagers; }
-        /** Defines the Machines animated @a iShift. */
-        void setAnimatedShiftMachines(int iShift);
-        /** Defines the Managers animated @a iShift. */
-        void setAnimatedShiftManagers(int iShift);
+        /** Returns Machines animation progress. */
+        int animationProgressMachines() const { return m_iAnimatedShiftMachines; }
+        /** Returns Managers animation progress. */
+        int animationProgressManagers() const { return m_iAnimatedShiftManagers; }
+        /** Defines Machines animation @a iProgress. */
+        void setAnimationProgressMachines(int iProgress);
+        /** Defines Managers animation @a iProgress. */
+        void setAnimationProgressManagers(int iProgress);
     /** @} */
 
     /** @name General stuff.

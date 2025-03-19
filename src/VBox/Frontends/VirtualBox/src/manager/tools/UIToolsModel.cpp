@@ -64,14 +64,6 @@ public:
       * @param  propertyName  Brings the name of property inside the @a pTarget.
       * @param  fForward      Brings whether animation goes to iValue or from it. */
     UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward);
-
-    /** Defines the animation value. */
-    void setValue(int iValue);
-
-private:
-
-    /** Holds whether animation goes to value or from it. */
-    bool  m_fForward;
 };
 
 
@@ -102,9 +94,6 @@ public:
 
     /** Returns animation state. */
     State state() const { return m_enmState; }
-
-    /** Fetches animation limits. */
-    void fetchAnimationLimits();
 
 private slots:
 
@@ -144,28 +133,6 @@ private:
     /** Holds the Managers state instance. */
     QState *m_pStateMana;
 
-    /** Holds the instance of animation from Home to Machines. */
-    UIToolItemAnimation *m_pAnmHomeMach;
-    /** Holds the instance of animation from Home to Managers. */
-    UIToolItemAnimation *m_pAnmHomeMana;
-    /** Holds the instance of animation from Machines to Home. */
-    UIToolItemAnimation *m_pAnmMachHome;
-    /** Holds the instance of 1st animation from Machines to Managers. */
-    UIToolItemAnimation *m_pAnmMachMana1;
-    /** Holds the instance of 2nd animation from Machines to Managers. */
-    UIToolItemAnimation *m_pAnmMachMana2;
-    /** Holds the instance of animation from Managers to Home. */
-    UIToolItemAnimation *m_pAnmManaHome;
-    /** Holds the instance of 1st animation from Managers to Machines. */
-    UIToolItemAnimation *m_pAnmManaMach1;
-    /** Holds the instance of 2nd animation from Managers to Machines. */
-    UIToolItemAnimation *m_pAnmManaMach2;
-
-    /** Holds the vertical Machines tool hint. */
-    int  m_iVerticalHintMach;
-    /** Holds the vertical Managers tool hint. */
-    int  m_iVerticalHintMana;
-
     /** Holds the animation state. */
     State  m_enmState;
 };
@@ -177,16 +144,11 @@ private:
 
 UIToolItemAnimation::UIToolItemAnimation(QObject *pTarget, const QByteArray &propertyName, QObject *pParent, bool fForward)
     : QPropertyAnimation(pTarget, propertyName, pParent)
-    , m_fForward(fForward)
 {
     setEasingCurve(QEasingCurve(QEasingCurve::OutQuart));
+    setStartValue(fForward ? 0 : 100);
+    setEndValue(fForward ? 100 : 0);
     setDuration(200);
-}
-
-void UIToolItemAnimation::setValue(int iValue)
-{
-    setStartValue(m_fForward ? 0 : iValue);
-    setEndValue(m_fForward ? iValue : 0);
 }
 
 
@@ -201,16 +163,6 @@ UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
     , m_pStateHome(0)
     , m_pStateMach(0)
     , m_pStateMana(0)
-    , m_pAnmHomeMach(0)
-    , m_pAnmHomeMana(0)
-    , m_pAnmMachHome(0)
-    , m_pAnmMachMana1(0)
-    , m_pAnmMachMana2(0)
-    , m_pAnmManaHome(0)
-    , m_pAnmManaMach1(0)
-    , m_pAnmManaMach2(0)
-    , m_iVerticalHintMach(0)
-    , m_iVerticalHintMana(0)
     , m_enmState(State_Home)
 {
     prepare();
@@ -296,9 +248,6 @@ void UIToolsAnimationEngine::prepareMachine()
         prepareStateMachines();
         prepareStateManagers();
     }
-
-    /* Fetch animation limits: */
-    fetchAnimationLimits();
 }
 
 void UIToolsAnimationEngine::prepareStateHome()
@@ -306,26 +255,25 @@ void UIToolsAnimationEngine::prepareStateHome()
     /* Configure Home state: */
     if (m_pStateHome)
     {
-        /* When we entering Home state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to 0: */
-        m_pStateHome->assignProperty(m_pParent, "animatedShiftMachines", 0);
-        m_pStateHome->assignProperty(m_pParent, "animatedShiftManagers", 0);
+        m_pStateHome->assignProperty(m_pParent, "animationProgressMachines", 0);
+        m_pStateHome->assignProperty(m_pParent, "animationProgressManagers", 0);
 
         /* Add Home=>Machines state transition: */
         QSignalTransition *pHomeToMachines = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
         if (pHomeToMachines)
         {
-            /* Create animation for animatedShiftMachines: */
-            m_pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
-            pHomeToMachines->addAnimation(m_pAnmHomeMach);
+            /* Create animation for animationProgressMachines: */
+            UIToolItemAnimation *pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, true);
+            pHomeToMachines->addAnimation(pAnmHomeMach);
         }
 
         /* Add Home=>Managers state transition: */
         QSignalTransition *pHomeToManagers = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
         if (pHomeToManagers)
         {
-            /* Create animation for animatedShiftManagers: */
-            m_pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
-            pHomeToManagers->addAnimation(m_pAnmHomeMana);
+            /* Create animation for animationProgressManagers: */
+            UIToolItemAnimation *pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, true);
+            pHomeToManagers->addAnimation(pAnmHomeMana);
         }
     }
 }
@@ -335,30 +283,29 @@ void UIToolsAnimationEngine::prepareStateMachines()
     /* Configure Machines state: */
     if (m_pStateMach)
     {
-        /* When we entering Machines state => we assigning animatedShiftMachines to m_iVerticalHintMach and animatedShiftManagers to 0: */
-        m_pStateMach->assignProperty(m_pParent, "animatedShiftMachines", m_iVerticalHintMach);
-        m_pStateMach->assignProperty(m_pParent, "animatedShiftManagers", 0);
+        m_pStateMach->assignProperty(m_pParent, "animationProgressMachines", 100);
+        m_pStateMach->assignProperty(m_pParent, "animationProgressManagers", 0);
 
         /* Add Machines=>Home state transition: */
         QSignalTransition *pMachinesToHome = m_pStateMach->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
         if (pMachinesToHome)
         {
-            /* Create animation for animatedShiftMachines: */
-            m_pAnmMachHome = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
-            pMachinesToHome->addAnimation(m_pAnmMachHome);
+            /* Create animation for animationProgressMachines: */
+            UIToolItemAnimation *pAnmMachHome = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, false);
+            pMachinesToHome->addAnimation(pAnmMachHome);
         }
 
         /* Add Machines=>Managers state transition: */
         QSignalTransition *pMachinesToManagers = m_pStateMach->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
         if (pMachinesToManagers)
         {
-            /* Create animation for animatedShiftMachines: */
-            m_pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
-            pMachinesToManagers->addAnimation(m_pAnmMachMana1);
+            /* Create animation for animationProgressMachines: */
+            UIToolItemAnimation *pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, false);
+            pMachinesToManagers->addAnimation(pAnmMachMana1);
 
-            /* Create animation for animatedShiftManagers: */
-            m_pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
-            pMachinesToManagers->addAnimation(m_pAnmMachMana2);
+            /* Create animation for animationProgressManagers: */
+            UIToolItemAnimation *pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, true);
+            pMachinesToManagers->addAnimation(pAnmMachMana2);
         }
     }
 }
@@ -368,30 +315,29 @@ void UIToolsAnimationEngine::prepareStateManagers()
     /* Configure Managers state: */
     if (m_pStateMana)
     {
-        /* When we entering Managers state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to m_iVerticalHintMana: */
-        m_pStateMana->assignProperty(m_pParent, "animatedShiftMachines", 0);
-        m_pStateMana->assignProperty(m_pParent, "animatedShiftManagers", m_iVerticalHintMana);
+        m_pStateMana->assignProperty(m_pParent, "animationProgressMachines", 0);
+        m_pStateMana->assignProperty(m_pParent, "animationProgressManagers", 100);
 
         /* Add Managers=>Home state transition: */
         QSignalTransition *pManagersToHome = m_pStateMana->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
         if (pManagersToHome)
         {
-            /* Create animation for animatedShiftManagers: */
-            m_pAnmManaHome = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
-            pManagersToHome->addAnimation(m_pAnmManaHome);
+            /* Create animation for animationProgressManagers: */
+            UIToolItemAnimation *pAnmManaHome = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, false);
+            pManagersToHome->addAnimation(pAnmManaHome);
         }
 
         /* Add Managers=>Machines state transition: */
         QSignalTransition *pManagersToMachines = m_pStateMana->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
         if (pManagersToMachines)
         {
-            /* Create animation for animatedShiftMachines: */
-            m_pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
-            pManagersToMachines->addAnimation(m_pAnmManaMach1);
+            /* Create animation for animationProgressMachines: */
+            UIToolItemAnimation *pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animationProgressMachines", this, true);
+            pManagersToMachines->addAnimation(pAnmManaMach1);
 
-            /* Create animation for animatedShiftManagers: */
-            m_pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
-            pManagersToMachines->addAnimation(m_pAnmManaMach2);
+            /* Create animation for animationProgressManagers: */
+            UIToolItemAnimation *pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animationProgressManagers", this, false);
+            pManagersToMachines->addAnimation(pAnmManaMach2);
         }
     }
 }
@@ -405,23 +351,6 @@ void UIToolsAnimationEngine::prepareConnections()
     connect(m_pStateHome, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
     connect(m_pStateMach, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
     connect(m_pStateMana, &QState::propertiesAssigned, this, &UIToolsAnimationEngine::sltHandleAnimationFinished);
-}
-
-void UIToolsAnimationEngine::fetchAnimationLimits()
-{
-    /* Acquire limits from parent class: */
-    const int iVerticalHintMach = m_pParent->overallShiftMachines();
-    const int iVerticalHintMana = m_pParent->overallShiftManagers();
-
-    /* Update animation values: */
-    m_pAnmHomeMach->setValue(iVerticalHintMach);
-    m_pAnmHomeMana->setValue(iVerticalHintMana);
-    m_pAnmMachHome->setValue(iVerticalHintMach);
-    m_pAnmMachMana1->setValue(iVerticalHintMach);
-    m_pAnmMachMana2->setValue(iVerticalHintMana);
-    m_pAnmManaHome->setValue(iVerticalHintMana);
-    m_pAnmManaMach1->setValue(iVerticalHintMach);
-    m_pAnmManaMach2->setValue(iVerticalHintMana);
 }
 
 
@@ -536,8 +465,6 @@ void UIToolsModel::setRestrictedToolTypes(UIToolClass enmClass, const QList<UITo
 
         /* Update linked values: */
         recalculateOverallShifts(enmClass);
-        if (m_pAnimationEngine)
-            m_pAnimationEngine->fetchAnimationLimits();
         updateLayout();
         sltItemMinimumWidthHintChanged();
         sltItemMinimumHeightHintChanged();
@@ -714,9 +641,20 @@ void UIToolsModel::updateLayout()
             /* Append some animated indentation after items of certain types: */
             switch (pItem->itemType())
             {
-                case UIToolType_Machines: iVerticalIndent += animatedShiftMachines(); break;
-                case UIToolType_Managers: iVerticalIndent += animatedShiftManagers(); break;
-                default: break;
+                case UIToolType_Machines:
+                {
+                    const double fRatio = (double)animationProgressMachines() / 100;
+                    iVerticalIndent += fRatio * overallShiftMachines();
+                    break;
+                }
+                case UIToolType_Managers:
+                {
+                    const double fRatio = (double)animationProgressManagers() / 100;
+                    iVerticalIndent += fRatio * overallShiftManagers();
+                    break;
+                }
+                default:
+                    break;
             }
         }
     }
@@ -1147,13 +1085,13 @@ void UIToolsModel::recalculateOverallShifts(UIToolClass enmClass /* = UIToolClas
     }
 }
 
-void UIToolsModel::setAnimatedShiftMachines(int iAnimatedValue)
+void UIToolsModel::setAnimationProgressMachines(int iAnimatedValue)
 {
     m_iAnimatedShiftMachines = iAnimatedValue;
     updateLayout();
 }
 
-void UIToolsModel::setAnimatedShiftManagers(int iAnimatedValue)
+void UIToolsModel::setAnimationProgressManagers(int iAnimatedValue)
 {
     m_iAnimatedShiftManagers = iAnimatedValue;
     updateLayout();

@@ -84,7 +84,6 @@ public:
     HRESULT i_applyDefaults(GuestOSType *aOSType);
 #endif
 
-    int i_getNonVolatileStorageFile(com::Utf8Str &aNonVolatileStorageFile);
     com::Utf8Str i_getNonVolatileStorageFile();
     void i_updateNonVolatileStorageFile(const com::Utf8Str &aNonVolatileStorageFile);
 

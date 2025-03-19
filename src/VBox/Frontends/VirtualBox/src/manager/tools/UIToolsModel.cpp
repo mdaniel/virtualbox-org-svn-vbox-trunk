@@ -97,6 +97,9 @@ public:
     /** Constructs tool-item selection animation passing @a pParent to the base-class. */
     UIToolsAnimationEngine(UIToolsModel *pParent);
 
+    /** Performs animation engine initialization. */
+    void init();
+
     /** Returns class-sliding animation state. */
     ClassSlidingState classSlidingState() const { return m_enmState; }
 
@@ -206,6 +209,20 @@ UIToolsAnimationEngine::UIToolsAnimationEngine(UIToolsModel *pParent)
     , m_enmState(State_Home)
 {
     prepare();
+}
+
+void UIToolsAnimationEngine::init()
+{
+    /* Define initial state for class-sliding stuff: */
+    QState *pInitialState = m_pStateHome;
+    switch (m_pParent->toolsType(UIToolClass_Global))
+    {
+        case UIToolType_Machines: pInitialState = m_pStateMach; break;
+        case UIToolType_Managers: pInitialState = m_pStateMana; break;
+        default: break;
+    }
+    m_pMachineClassSliding->setInitialState(pInitialState);
+    m_pMachineClassSliding->start();
 }
 
 void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
@@ -356,11 +373,6 @@ void UIToolsAnimationEngine::prepareClassSlidingAnimation()
                 pManagersToMachines->addAnimation(m_pAnmManaMach2);
             }
         }
-
-        /* Initial state is Home: */
-        m_pMachineClassSliding->setInitialState(m_pStateHome);
-        /* Start state-machine: */
-        m_pMachineClassSliding->start();
     }
 
     /* Calculate class-sliding limits: */
@@ -458,8 +470,12 @@ void UIToolsModel::init()
     sltItemMinimumWidthHintChanged();
     sltItemMinimumHeightHintChanged();
 
-    /* Load current items finally: */
+    /* Load current items: */
     loadCurrentItems();
+
+    /* Init animation engine: */
+    if (m_pAnimationEngine)
+        m_pAnimationEngine->init();
 }
 
 QGraphicsScene *UIToolsModel::scene() const

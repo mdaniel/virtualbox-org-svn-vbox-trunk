@@ -303,97 +303,97 @@ void UIToolsAnimationEngine::prepareMachine()
 
 void UIToolsAnimationEngine::prepareStateHome()
 {
-        /* Configure Home state: */
-        if (m_pStateHome)
+    /* Configure Home state: */
+    if (m_pStateHome)
+    {
+        /* When we entering Home state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to 0: */
+        m_pStateHome->assignProperty(m_pParent, "animatedShiftMachines", 0);
+        m_pStateHome->assignProperty(m_pParent, "animatedShiftManagers", 0);
+
+        /* Add Home=>Machines state transition: */
+        QSignalTransition *pHomeToMachines = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
+        if (pHomeToMachines)
         {
-            /* When we entering Home state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to 0: */
-            m_pStateHome->assignProperty(m_pParent, "animatedShiftMachines", 0);
-            m_pStateHome->assignProperty(m_pParent, "animatedShiftManagers", 0);
-
-            /* Add Home=>Machines state transition: */
-            QSignalTransition *pHomeToMachines = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
-            if (pHomeToMachines)
-            {
-                /* Create animation for animatedShiftMachines: */
-                m_pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
-                pHomeToMachines->addAnimation(m_pAnmHomeMach);
-            }
-
-            /* Add Home=>Managers state transition: */
-            QSignalTransition *pHomeToManagers = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
-            if (pHomeToManagers)
-            {
-                /* Create animation for animatedShiftManagers: */
-                m_pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
-                pHomeToManagers->addAnimation(m_pAnmHomeMana);
-            }
+            /* Create animation for animatedShiftMachines: */
+            m_pAnmHomeMach = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
+            pHomeToMachines->addAnimation(m_pAnmHomeMach);
         }
+
+        /* Add Home=>Managers state transition: */
+        QSignalTransition *pHomeToManagers = m_pStateHome->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
+        if (pHomeToManagers)
+        {
+            /* Create animation for animatedShiftManagers: */
+            m_pAnmHomeMana = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
+            pHomeToManagers->addAnimation(m_pAnmHomeMana);
+        }
+    }
 }
 
 void UIToolsAnimationEngine::prepareStateMachines()
 {
-        /* Configure Machines state: */
-        if (m_pStateMach)
+    /* Configure Machines state: */
+    if (m_pStateMach)
+    {
+        /* When we entering Machines state => we assigning animatedShiftMachines to m_iVerticalHintMach and animatedShiftManagers to 0: */
+        m_pStateMach->assignProperty(m_pParent, "animatedShiftMachines", m_iVerticalHintMach);
+        m_pStateMach->assignProperty(m_pParent, "animatedShiftManagers", 0);
+
+        /* Add Machines=>Home state transition: */
+        QSignalTransition *pMachinesToHome = m_pStateMach->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
+        if (pMachinesToHome)
         {
-            /* When we entering Machines state => we assigning animatedShiftMachines to m_iVerticalHintMach and animatedShiftManagers to 0: */
-            m_pStateMach->assignProperty(m_pParent, "animatedShiftMachines", m_iVerticalHintMach);
-            m_pStateMach->assignProperty(m_pParent, "animatedShiftManagers", 0);
-
-            /* Add Machines=>Home state transition: */
-            QSignalTransition *pMachinesToHome = m_pStateMach->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
-            if (pMachinesToHome)
-            {
-                /* Create animation for animatedShiftMachines: */
-                m_pAnmMachHome = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
-                pMachinesToHome->addAnimation(m_pAnmMachHome);
-            }
-
-            /* Add Machines=>Managers state transition: */
-            QSignalTransition *pMachinesToManagers = m_pStateMach->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
-            if (pMachinesToManagers)
-            {
-                /* Create animation for animatedShiftMachines: */
-                m_pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
-                pMachinesToManagers->addAnimation(m_pAnmMachMana1);
-
-                /* Create animation for animatedShiftManagers: */
-                m_pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
-                pMachinesToManagers->addAnimation(m_pAnmMachMana2);
-            }
+            /* Create animation for animatedShiftMachines: */
+            m_pAnmMachHome = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
+            pMachinesToHome->addAnimation(m_pAnmMachHome);
         }
+
+        /* Add Machines=>Managers state transition: */
+        QSignalTransition *pMachinesToManagers = m_pStateMach->addTransition(this, SIGNAL(sigSelectedMana()), m_pStateMana);
+        if (pMachinesToManagers)
+        {
+            /* Create animation for animatedShiftMachines: */
+            m_pAnmMachMana1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, false);
+            pMachinesToManagers->addAnimation(m_pAnmMachMana1);
+
+            /* Create animation for animatedShiftManagers: */
+            m_pAnmMachMana2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, true);
+            pMachinesToManagers->addAnimation(m_pAnmMachMana2);
+        }
+    }
 }
 
 void UIToolsAnimationEngine::prepareStateManagers()
 {
-        /* Configure Managers state: */
-        if (m_pStateMana)
+    /* Configure Managers state: */
+    if (m_pStateMana)
+    {
+        /* When we entering Managers state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to m_iVerticalHintMana: */
+        m_pStateMana->assignProperty(m_pParent, "animatedShiftMachines", 0);
+        m_pStateMana->assignProperty(m_pParent, "animatedShiftManagers", m_iVerticalHintMana);
+
+        /* Add Managers=>Home state transition: */
+        QSignalTransition *pManagersToHome = m_pStateMana->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
+        if (pManagersToHome)
         {
-            /* When we entering Managers state => we assigning animatedShiftMachines to 0 and animatedShiftManagers to m_iVerticalHintMana: */
-            m_pStateMana->assignProperty(m_pParent, "animatedShiftMachines", 0);
-            m_pStateMana->assignProperty(m_pParent, "animatedShiftManagers", m_iVerticalHintMana);
-
-            /* Add Managers=>Home state transition: */
-            QSignalTransition *pManagersToHome = m_pStateMana->addTransition(this, SIGNAL(sigSelectedHome()), m_pStateHome);
-            if (pManagersToHome)
-            {
-                /* Create animation for animatedShiftManagers: */
-                m_pAnmManaHome = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
-                pManagersToHome->addAnimation(m_pAnmManaHome);
-            }
-
-            /* Add Managers=>Machines state transition: */
-            QSignalTransition *pManagersToMachines = m_pStateMana->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
-            if (pManagersToMachines)
-            {
-                /* Create animation for animatedShiftMachines: */
-                m_pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
-                pManagersToMachines->addAnimation(m_pAnmManaMach1);
-
-                /* Create animation for animatedShiftManagers: */
-                m_pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
-                pManagersToMachines->addAnimation(m_pAnmManaMach2);
-            }
+            /* Create animation for animatedShiftManagers: */
+            m_pAnmManaHome = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
+            pManagersToHome->addAnimation(m_pAnmManaHome);
         }
+
+        /* Add Managers=>Machines state transition: */
+        QSignalTransition *pManagersToMachines = m_pStateMana->addTransition(this, SIGNAL(sigSelectedMach()), m_pStateMach);
+        if (pManagersToMachines)
+        {
+            /* Create animation for animatedShiftMachines: */
+            m_pAnmManaMach1 = new UIToolItemAnimation(m_pParent, "animatedShiftMachines", this, true);
+            pManagersToMachines->addAnimation(m_pAnmManaMach1);
+
+            /* Create animation for animatedShiftManagers: */
+            m_pAnmManaMach2 = new UIToolItemAnimation(m_pParent, "animatedShiftManagers", this, false);
+            pManagersToMachines->addAnimation(m_pAnmManaMach2);
+        }
+    }
 }
 
 void UIToolsAnimationEngine::prepareConnections()

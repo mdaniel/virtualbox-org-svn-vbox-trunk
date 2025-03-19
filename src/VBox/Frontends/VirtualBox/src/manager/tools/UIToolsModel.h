@@ -133,8 +133,6 @@ public:
         void setRestrictedToolTypes(UIToolClass enmClass, const QList<UIToolType> &types);
         /** Defines whether the @a enmClass specified is @a fUnsuitable. */
         void setUnsuitableToolClass(UIToolClass enmClass, bool fUnsuitable);
-        /** Defines whether the @a enmClass specified is @a fAnimated. */
-        void setAnimatedToolClass(UIToolClass enmClass, bool fAnimated);
 
         /** Returns restricted tool types for the @a enmClass specified. */
         QList<UIToolType> restrictedToolTypes(UIToolClass enmClass) const;

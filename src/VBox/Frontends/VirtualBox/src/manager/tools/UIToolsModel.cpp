@@ -412,7 +412,7 @@ void UIToolsAnimationEngine::fetchAnimationLimits()
     /* Acquire limits from parent class: */
     const int iVerticalHintMach = m_pParent->overallShiftMachines();
     const int iVerticalHintMana = m_pParent->overallShiftManagers();
-    
+
     /* Update animation values: */
     m_pAnmHomeMach->setValue(iVerticalHintMach);
     m_pAnmHomeMana->setValue(iVerticalHintMana);

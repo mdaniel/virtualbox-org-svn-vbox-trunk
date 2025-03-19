@@ -612,55 +612,80 @@ void UIToolsModel::updateLayout()
     const int iViewportHeight = viewportSize.height();
 
     /* Start from above: */
-    int iVerticalIndent = iMargin;
+    int iVerticalIndentGlobal = iMargin;
+    int iVerticalIndentRest = iMargin;
 
     /* Layout normal children: */
     foreach (UIToolsItem *pItem, items())
     {
         /* Skip aux children: */
-        if (pItem->itemClass() == UIToolClass_Aux)
+        const UIToolClass enmClass = pItem->itemClass();
+        if (enmClass == UIToolClass_Aux)
             continue;
 
         /* Make sure item visible: */
         if (!pItem->isVisible())
             continue;
 
-        /* Set item position: */
-        pItem->setPos(iMargin, iVerticalIndent);
-        /* Set root-item size: */
-        pItem->resize(iViewportWidth, pItem->minimumHeightHint());
-        /* Make sure item is shown: */
-        pItem->show();
-        /* Advance vertical indent: */
-        iVerticalIndent += (pItem->minimumHeightHint() + iSpacing);
-
-        /* If we are in animated state: */
-        if (   m_pAnimationEngine
-            && m_pAnimationEngine->state() == UIToolsAnimationEngine::State_Animated)
+        /* Separate procedures for different classes: */
+        switch (enmClass)
         {
-            /* Append some animated indentation after items of certain types: */
-            switch (pItem->itemType())
+            case UIToolClass_Global:
             {
-                case UIToolType_Machines:
+                /* Set item position: */
+                pItem->setPos(iMargin, iVerticalIndentGlobal);
+                /* Set root-item size: */
+                pItem->resize(iViewportWidth, pItem->minimumHeightHint());
+                /* Make sure item is shown: */
+                pItem->show();
+                /* Advance vertical indent: */
+                iVerticalIndentGlobal += (pItem->minimumHeightHint() + iSpacing);
+                iVerticalIndentRest += (pItem->minimumHeightHint() + iSpacing);
+
+                /* If we are in animated state: */
+                if (m_pAnimationEngine)
                 {
-                    const double fRatio = (double)animationProgressMachines() / 100;
-                    iVerticalIndent += fRatio * overallShiftMachines();
-                    break;
+                    /* Append some animated indentation after items of certain types: */
+                    switch (pItem->itemType())
+                    {
+                        case UIToolType_Machines:
+                        {
+                            const double fRatio = (double)animationProgressMachines() / 100;
+                            iVerticalIndentGlobal += fRatio * overallShiftMachines();
+                            break;
+                        }
+                        case UIToolType_Managers:
+                        {
+                            const double fRatio = (double)animationProgressManagers() / 100;
+                            iVerticalIndentGlobal += fRatio * overallShiftManagers();
+                            break;
+                        }
+                        default:
+                            break;
+                    }
                 }
-                case UIToolType_Managers:
-                {
-                    const double fRatio = (double)animationProgressManagers() / 100;
-                    iVerticalIndent += fRatio * overallShiftManagers();
-                    break;
-                }
-                default:
-                    break;
+
+                break;
+            }
+            case UIToolClass_Machine:
+            case UIToolClass_Management:
+            {
+                /* Set item position: */
+                pItem->setPos(iMargin, iVerticalIndentRest);
+                /* Set root-item size: */
+                pItem->resize(iViewportWidth, pItem->minimumHeightHint());
+                /* Make sure item is shown: */
+                pItem->show();
+                /* Advance vertical indent: */
+                iVerticalIndentRest += (pItem->minimumHeightHint() + iSpacing);
+
+                break;
             }
         }
     }
 
     /* Start from bottom: */
-    iVerticalIndent = iViewportHeight - iMargin;
+    int iVerticalIndentAux = iViewportHeight - iMargin;
 
     /* Layout aux children: */
     foreach (UIToolsItem *pItem, items())
@@ -670,13 +695,13 @@ void UIToolsModel::updateLayout()
             continue;
 
         /* Set item position: */
-        pItem->setPos(iMargin, iVerticalIndent - pItem->minimumHeightHint());
+        pItem->setPos(iMargin, iVerticalIndentAux - pItem->minimumHeightHint());
         /* Set root-item size: */
         pItem->resize(iViewportWidth, pItem->minimumHeightHint());
         /* Make sure item is shown: */
         pItem->show();
         /* Decrease vertical indent: */
-        iVerticalIndent -= (pItem->minimumHeightHint() + iSpacing);
+        iVerticalIndentAux -= (pItem->minimumHeightHint() + iSpacing);
     }
 }
 

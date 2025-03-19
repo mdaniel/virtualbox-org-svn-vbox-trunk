@@ -148,7 +148,7 @@ UIToolItemAnimation::UIToolItemAnimation(QObject *pTarget, const QByteArray &pro
     setEasingCurve(QEasingCurve(QEasingCurve::OutQuart));
     setStartValue(fForward ? 0 : 100);
     setEndValue(fForward ? 100 : 0);
-    setDuration(200);
+    setDuration(1000);
 }
 
 
@@ -203,20 +203,12 @@ void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
 
 void UIToolsAnimationEngine::sltHandleAnimationStarted()
 {
-    /* Make animated items hidden initially: */
-    m_pParent->setAnimatedToolClass(UIToolClass_Machine, true);
-    m_pParent->setAnimatedToolClass(UIToolClass_Management, true);
-
     /* Mark state Animated: */
     m_enmState = State_Animated;
 }
 
 void UIToolsAnimationEngine::sltHandleAnimationFinished()
 {
-    /* Make animated items visible again: */
-    m_pParent->setAnimatedToolClass(UIToolClass_Machine, false);
-    m_pParent->setAnimatedToolClass(UIToolClass_Management, false);
-
     /* Recalculate effective state: */
     m_enmState = State_Home;
     if (m_pMachine->configuration().contains(m_pStateMach))
@@ -614,6 +606,7 @@ void UIToolsModel::updateLayout()
     /* Start from above: */
     int iVerticalIndentGlobal = iMargin;
     int iVerticalIndentRest = iMargin;
+    int iVerticalIndentSub = 0;
 
     /* Layout normal children: */
     foreach (UIToolsItem *pItem, items())
@@ -673,14 +666,48 @@ void UIToolsModel::updateLayout()
             case UIToolClass_Machine:
             case UIToolClass_Management:
             {
+                /* Acquire item properties: */
+                const int iItemHeight = pItem->minimumHeightHint();
+                int iPos = iMargin;
+
+                /* Do we have animation engine? */
+                if (m_pAnimationEngine)
+                {
+                    /* Append some animated indentation to items of certain classes: */
+                    switch (pItem->itemClass())
+                    {
+                        case UIToolClass_Machine:
+                        {
+                            const double fRatio = (double)animationProgressMachines() / 25 /* make it from 0.0 to 4.0 */;
+                            iPos = iPos
+                                 + (4.0 - fRatio) * iViewportWidth /* move item from off-screen space */
+                                 + iVerticalIndentSub - fRatio / 4 * overallShiftMachines() /* desync item movement */;
+                            break;
+                        }
+                        case UIToolClass_Management:
+                        {
+                            const double fRatio = (double)animationProgressManagers() / 25 /* make it from 0.0 to 4.0 */;
+                            iPos = iPos
+                                 + (4.0 - fRatio) * iViewportWidth /* move item from off-screen space */
+                                 + iVerticalIndentSub - fRatio / 4 * overallShiftManagers() /* desync item movement */;
+                            break;
+                        }
+                        default: break;
+                    }
+
+                    /* Restrain origin: */
+                    iPos = qMax(iMargin, iPos);
+                }
+
                 /* Set item position: */
-                pItem->setPos(iMargin, iVerticalIndentRest);
+                pItem->setPos(iPos, iVerticalIndentRest);
                 /* Set root-item size: */
                 pItem->resize(iViewportWidth, iItemHeight);
                 /* Make sure item is shown: */
                 pItem->show();
                 /* Advance vertical indent: */
                 iVerticalIndentRest += (iItemHeight + iSpacing);
+                iVerticalIndentSub += (iItemHeight + iSpacing);
 
                 break;
             }

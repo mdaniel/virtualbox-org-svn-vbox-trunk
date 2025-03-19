@@ -172,18 +172,6 @@ public:
         void updateLayout();
     /** @} */
 
-    /** @name Animation stuff.
-     * @{ */
-        /** Returns the Machines animated shift. */
-        int animatedShiftMachines() const { return m_iAnimatedShiftMachines; }
-        /** Returns the Managers animated shift. */
-        int animatedShiftManagers() const { return m_iAnimatedShiftManagers; }
-        /** Defines the Machines animated @a iShift. */
-        void setAnimatedShiftMachines(int iShift);
-        /** Defines the Managers animated @a iShift. */
-        void setAnimatedShiftManagers(int iShift);
-    /** @} */
-
 public slots:
 
     /** @name Children stuff.
@@ -239,6 +227,18 @@ private:
         void cleanupScene();
         /** Cleanups all. */
         void cleanup();
+    /** @} */
+
+    /** @name Animation stuff.
+     * @{ */
+        /** Returns the Machines animated shift. */
+        int animatedShiftMachines() const { return m_iAnimatedShiftMachines; }
+        /** Returns the Managers animated shift. */
+        int animatedShiftManagers() const { return m_iAnimatedShiftManagers; }
+        /** Defines the Machines animated @a iShift. */
+        void setAnimatedShiftMachines(int iShift);
+        /** Defines the Managers animated @a iShift. */
+        void setAnimatedShiftManagers(int iShift);
     /** @} */
 
     /** @name General stuff.

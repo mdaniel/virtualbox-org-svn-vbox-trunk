@@ -122,6 +122,12 @@ private:
     void prepare();
     /** Prepares machine. */
     void prepareMachine();
+    /** Prepares Home state. */
+    void prepareStateHome();
+    /** Prepares Machines state. */
+    void prepareStateMachines();
+    /** Prepares Managers state. */
+    void prepareStateManagers();
     /** Prepares connections. */
     void prepareConnections();
 
@@ -282,11 +288,21 @@ void UIToolsAnimationEngine::prepareMachine()
     m_pMachine = new QStateMachine(this);
     if (m_pMachine)
     {
-        /* Create states: */
+        /* Prepare states: */
         m_pStateHome = new QState(m_pMachine);
         m_pStateMach = new QState(m_pMachine);
         m_pStateMana = new QState(m_pMachine);
+        prepareStateHome();
+        prepareStateMachines();
+        prepareStateManagers();
+    }
 
+    /* Fetch animation limits: */
+    fetchAnimationLimits();
+}
+
+void UIToolsAnimationEngine::prepareStateHome()
+{
         /* Configure Home state: */
         if (m_pStateHome)
         {
@@ -312,7 +328,10 @@ void UIToolsAnimationEngine::prepareMachine()
                 pHomeToManagers->addAnimation(m_pAnmHomeMana);
             }
         }
+}
 
+void UIToolsAnimationEngine::prepareStateMachines()
+{
         /* Configure Machines state: */
         if (m_pStateMach)
         {
@@ -342,7 +361,10 @@ void UIToolsAnimationEngine::prepareMachine()
                 pMachinesToManagers->addAnimation(m_pAnmMachMana2);
             }
         }
+}
 
+void UIToolsAnimationEngine::prepareStateManagers()
+{
         /* Configure Managers state: */
         if (m_pStateMana)
         {
@@ -372,10 +394,6 @@ void UIToolsAnimationEngine::prepareMachine()
                 pManagersToMachines->addAnimation(m_pAnmManaMach2);
             }
         }
-    }
-
-    /* Fetch animation limits: */
-    fetchAnimationLimits();
 }
 
 void UIToolsAnimationEngine::prepareConnections()

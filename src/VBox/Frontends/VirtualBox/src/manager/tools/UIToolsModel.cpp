@@ -84,7 +84,15 @@ signals:
 public:
 
     /** Animation states. */
-    enum State { State_Animated, State_Home, State_Machines, State_Managers };
+    enum State
+    {
+        State_Home,
+        State_Machines,
+        State_Managers,
+        State_LeavingHome,
+        State_LeavingMachines,
+        State_LeavingManagers
+    };
 
     /** Constructs animation engine passing @a pParent to the base-class. */
     UIToolsAnimationEngine(UIToolsModel *pParent);
@@ -203,8 +211,12 @@ void UIToolsAnimationEngine::sltHandleSelectionChanged(UIToolType enmType)
 
 void UIToolsAnimationEngine::sltHandleAnimationStarted()
 {
-    /* Mark state Animated: */
-    m_enmState = State_Animated;
+    /* Recalculate effective state: */
+    m_enmState = State_LeavingHome;
+    if (m_pMachine->configuration().contains(m_pStateMach))
+        m_enmState = State_LeavingMachines;
+    else if (m_pMachine->configuration().contains(m_pStateMana))
+        m_enmState = State_LeavingManagers;
 }
 
 void UIToolsAnimationEngine::sltHandleAnimationFinished()
@@ -646,14 +658,40 @@ void UIToolsModel::updateLayout()
                     {
                         case UIToolType_Machines:
                         {
-                            const double fRatio = (double)animationProgressMachines() / 100;
-                            iVerticalIndentGlobal += fRatio * overallShiftMachines();
+                            const double fRatio = (double)animationProgressMachines() / 50 /* make it from 0.0 to 2.0 */;
+                            int iShift = 0;
+                            if (m_pAnimationEngine->state() == UIToolsAnimationEngine::State_LeavingMachines)
+                            {
+                                /* Leaving animation uses fRatio from 2.0 to 1.0: */
+                                iShift = overallShiftMachines() * (fRatio - 1);
+                                iShift = qMax(iShift, 0);
+                            }
+                            else
+                            {
+                                /* Entering animation uses fRatio from 0.0 to 1.0: */
+                                iShift = overallShiftMachines() * fRatio;
+                                iShift = qMin(iShift, overallShiftMachines());
+                            }
+                            iVerticalIndentGlobal += iShift;
                             break;
                         }
                         case UIToolType_Managers:
                         {
-                            const double fRatio = (double)animationProgressManagers() / 100;
-                            iVerticalIndentGlobal += fRatio * overallShiftManagers();
+                            const double fRatio = (double)animationProgressManagers() / 50 /* make it from 0.0 to 2.0 */;
+                            int iShift = 0;
+                            if (m_pAnimationEngine->state() == UIToolsAnimationEngine::State_LeavingManagers)
+                            {
+                                /* Leaving animation uses fRatio from 2.0 to 1.0: */
+                                iShift = overallShiftManagers() * (fRatio - 1);
+                                iShift = qMax(iShift, 0);
+                            }
+                            else
+                            {
+                                /* Entering animation uses fRatio from 0.0 to 1.0: */
+                                iShift = overallShiftManagers() * fRatio;
+                                iShift = qMin(iShift, overallShiftManagers());
+                            }
+                            iVerticalIndentGlobal += iShift;
                             break;
                         }
                         default:

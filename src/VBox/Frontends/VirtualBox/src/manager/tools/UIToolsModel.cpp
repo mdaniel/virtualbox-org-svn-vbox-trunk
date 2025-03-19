@@ -684,6 +684,8 @@ void UIToolsModel::updateLayout()
 
                 break;
             }
+            default:
+                break;
         }
     }
 

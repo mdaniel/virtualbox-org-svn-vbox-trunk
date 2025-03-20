@@ -91,7 +91,7 @@ int VBClStartVTMonitor()
     return VINF_SUCCESS;
 }
 
-int VbglR3SeamlessSendRects(uint32_t cRects, PRTRECT pRects)
+VBGLR3DECL(int) VbglR3SeamlessSendRects(uint32_t cRects, PRTRECT pRects)
 {
     RTPrintf("Received rectangle update (%u rectangles):\n", cRects);
     for (unsigned i = 0; i < cRects; ++i)
@@ -103,21 +103,21 @@ int VbglR3SeamlessSendRects(uint32_t cRects, PRTRECT pRects)
     return VINF_SUCCESS;
 }
 
-int VbglR3SeamlessSetCap(bool bState)
+VBGLR3DECL(int) VbglR3SeamlessSetCap(bool bState)
 {
     RTPrintf("%s\n", bState ? "Seamless capability set"
                             : "Seamless capability unset");
     return VINF_SUCCESS;
 }
 
-int VbglR3CtlFilterMask(uint32_t u32OrMask, uint32_t u32NotMask)
+VBGLR3DECL(int) VbglR3CtlFilterMask(uint32_t u32OrMask, uint32_t u32NotMask)
 {
     RTPrintf("IRQ filter mask changed.  Or mask: 0x%x.  Not mask: 0x%x\n",
              u32OrMask, u32NotMask);
     return VINF_SUCCESS;
 }
 
-int VbglR3SeamlessWaitEvent(VMMDevSeamlessMode *pMode)
+VBGLR3DECL(int) VbglR3SeamlessWaitEvent(VMMDevSeamlessMode *pMode)
 {
     static bool active = false;
 

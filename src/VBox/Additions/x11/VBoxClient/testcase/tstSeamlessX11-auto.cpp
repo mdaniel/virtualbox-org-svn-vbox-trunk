@@ -382,21 +382,21 @@ void VBClSeamlessSendRegionUpdate(RTRECT *pRects, size_t cRects)
     g_fNotified = true;
 }
 
-int VbglR3SeamlessSetCap(bool bState)
+VBGLR3DECL(int) VbglR3SeamlessSetCap(bool bState)
 {
     RTPrintf("%s\n", bState ? "Seamless capability set"
                             : "Seamless capability unset");
     return VINF_SUCCESS;
 }
 
-int VbglR3CtlFilterMask(uint32_t u32OrMask, uint32_t u32NotMask)
+VBGLR3DECL(int) VbglR3CtlFilterMask(uint32_t u32OrMask, uint32_t u32NotMask)
 {
     RTPrintf("IRQ filter mask changed.  Or mask: 0x%x.  Not mask: 0x%x\n",
              u32OrMask, u32NotMask);
     return VINF_SUCCESS;
 }
 
-int VbglR3SeamlessWaitEvent(VMMDevSeamlessMode *pMode)
+VBGLR3DECL(int) VbglR3SeamlessWaitEvent(VMMDevSeamlessMode *pMode)
 {
     RT_NOREF(pMode);
     return VINF_SUCCESS;

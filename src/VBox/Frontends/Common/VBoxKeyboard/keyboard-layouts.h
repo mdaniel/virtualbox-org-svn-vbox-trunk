@@ -58,6 +58,12 @@
    The layout-switching keys on Japanese and Korean keyboards are
    dealt with elsewhere. */
 
+/** @todo r=aeichner Someone needs to check whether the warnings are indeed valid. */
+#ifdef __clang__
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wstring-concatenation"
+#endif
+
 /* U.S. English */
 static const char main_key_us[MAIN_LEN][2] =
 {
@@ -2083,3 +2089,7 @@ static const char main_key_ng_hausa[MAIN_LEN][2] =
 "r\x9d","xX","cC","vV","bB","nN","\xf1\xd1",",<","\xe7\xc7","\xba\xaa","<>","\x0\x0","\x0\x0"
 };
 
+
+#ifdef __clang__
+# pragma clang diagnostic pop
+#endif

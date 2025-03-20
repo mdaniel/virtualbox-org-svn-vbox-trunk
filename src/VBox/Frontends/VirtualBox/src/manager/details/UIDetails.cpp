@@ -61,7 +61,7 @@ void UIDetails::prepare()
     prepareConnections();
 
     /* Configure context-sensitive help: */
-    uiCommon().setHelpKeyword(this, "vm-details-tool" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "settings-window" /* help keyword */);
 
     /* Init model finally: */
     initModel();

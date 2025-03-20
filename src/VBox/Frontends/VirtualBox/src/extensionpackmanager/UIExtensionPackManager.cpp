@@ -373,7 +373,7 @@ void UIExtensionPackManagerWidget::sltHandleExtensionPackUninstalled(const QStri
 void UIExtensionPackManagerWidget::prepare()
 {
     /* Prepare self: */
-    uiCommon().setHelpKeyword(this, "ext-pack-manager" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "extensions" /* help keyword */);
 
     /* Prepare stuff: */
     prepareActions();

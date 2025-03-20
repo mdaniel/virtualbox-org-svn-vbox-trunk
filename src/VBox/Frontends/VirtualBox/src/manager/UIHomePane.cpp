@@ -225,7 +225,7 @@ void UIHomePane::prepare()
     }
 
     /* Assign Help keyword: */
-    uiCommon().setHelpKeyword(this, "intro-starting" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "Introduction" /* help keyword */);
 
     /* Translate finally: */
     sltRetranslateUI();

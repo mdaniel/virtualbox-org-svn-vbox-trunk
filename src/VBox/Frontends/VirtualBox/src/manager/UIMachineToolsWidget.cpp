@@ -38,7 +38,6 @@
 #include "UIGlobalSession.h"
 #include "UIMachineToolsWidget.h"
 #include "UIToolPane.h"
-#include "UITools.h"
 #include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualMachineItemLocal.h"
@@ -51,7 +50,6 @@ UIMachineToolsWidget::UIMachineToolsWidget(UIToolPane *pParent, UIActionPool *pA
     , m_pSplitter(0)
     , m_pPaneChooser(0)
     , m_pPaneTools(0)
-    , m_pMenuTools(0)
     , m_enmSelectionType(SelectionType_Invalid)
     , m_fSelectedMachineItemAccessible(false)
     , m_pSplitterSettingsSaveTimer(0)
@@ -132,23 +130,6 @@ UIMachineToolsWidget::SelectionType UIMachineToolsWidget::selectionType() const
 UIToolPane *UIMachineToolsWidget::toolPane() const
 {
     return m_pPaneTools;
-}
-
-UIToolType UIMachineToolsWidget::menuToolType() const
-{
-    AssertPtrReturn(toolMenu(), UIToolType_Invalid);
-    return toolMenu()->toolsType(UIToolClass_Machine);
-}
-
-void UIMachineToolsWidget::setMenuToolType(UIToolType enmType)
-{
-    /* Sanity check: */
-    AssertReturnVoid(enmType != UIToolType_Invalid);
-    /* Make sure new tool type is of Machine class: */
-    AssertReturnVoid(UIToolStuff::isTypeOfClass(enmType, UIToolClass_Machine));
-
-    AssertPtrReturnVoid(toolMenu());
-    toolMenu()->setToolsType(enmType);
 }
 
 UIToolType UIMachineToolsWidget::toolType() const
@@ -306,9 +287,9 @@ void UIMachineToolsWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
     /* If current item is Ok: */
     if (fCurrentItemIsOk)
     {
-        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
+        /* If Error-pane is chosen currently => switch to Details: */
         if (toolPane()->currentTool() == UIToolType_Error)
-            switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
+            switchToolTo(UIToolType_Details);
 
         /* If we still have same item selected: */
         if (pItem && pItem->id() == uId)
@@ -335,74 +316,6 @@ void UIMachineToolsWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
 
     /* Pass the signal further: */
     emit sigCloudMachineStateChange(uId);
-}
-
-void UIMachineToolsWidget::sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem)
-{
-    /* Prepare tool restrictions: */
-    QSet<UIToolType> restrictedTypes;
-
-    /* Restrict some types for Basic mode: */
-    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
-    if (!fExpertMode)
-        restrictedTypes << UIToolType_FileManager;
-
-    /* Make sure local VM tools are hidden for cloud VMs: */
-    if (pItem && pItem->itemType() != UIVirtualMachineItemType_Local)
-        restrictedTypes << UIToolType_Snapshots
-                        << UIToolType_Logs
-                        << UIToolType_FileManager;
-
-    /* Make sure no restricted tool is selected: */
-    if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Machine)))
-        setMenuToolType(UIToolType_Details);
-
-    /* Hide restricted tools in the menu: */
-    const QList restrictions(restrictedTypes.begin(), restrictedTypes.end());
-    toolMenu()->setRestrictedToolTypes(UIToolClass_Machine, restrictions);
-
-    /* Disable even unrestricted tools for inacccessible VMs: */
-    const bool fCurrentItemIsOk = isItemAccessible(pItem);
-    toolMenu()->setItemsEnabled(fCurrentItemIsOk);
-
-    /* Close all restricted tools: */
-    foreach (const UIToolType &enmRestrictedType, restrictedTypes)
-        toolPane()->closeTool(enmRestrictedType);
-}
-
-void UIMachineToolsWidget::sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
-{
-    /* Update tools restrictions for item specified: */
-    AssertPtrReturnVoid(pItem);
-    if (pItem)
-        emit sigToolMenuUpdate(pItem);
-
-    /* Compose popup-menu geometry first of all: */
-    QRect ourGeo = QRect(position, toolMenu()->minimumSizeHint());
-    /* Adjust location only to properly fit into available geometry space: */
-    const QRect availableGeo = gpDesktop->availableGeometry(position);
-    ourGeo = gpDesktop->normalizeGeometry(ourGeo, availableGeo, false /* resize? */);
-
-    /* Move, resize and show: */
-    toolMenu()->move(ourGeo.topLeft());
-    toolMenu()->show();
-    // WORKAROUND:
-    // Don't want even to think why, but for Qt::Popup resize to
-    // smaller size often being ignored until it is actually shown.
-    toolMenu()->resize(ourGeo.size());
-}
-
-void UIMachineToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
-{
-    switchToolTo(enmType);
-}
-
-void UIMachineToolsWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
-{
-    AssertPtrReturnVoid(chooser());
-    AssertPtrReturnVoid(toolMenu());
-    chooser()->setCurrentMachine(uMachineId);
-    toolMenu()->setToolsType(UIToolType_VMActivity);
 }
 
 void UIMachineToolsWidget::prepare()
@@ -460,9 +373,6 @@ void UIMachineToolsWidget::prepareWidgets()
             /* Add into layout: */
             pLayout->addWidget(m_pSplitter);
         }
-
-        /* Create tools-menu: */
-        m_pMenuTools = new UITools(this, UIToolClass_Machine, actionPool());
     }
 
     /* Bring the VM list to the focus: */
@@ -481,10 +391,6 @@ void UIMachineToolsWidget::prepareConnections()
     connect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
             this, &UIMachineToolsWidget::sltHandleSettingsExpertModeChange);
 
-    /* Parent connections: */
-    connect(m_pParent, &UIToolPane::sigSwitchToMachineActivityPane,
-            this, &UIMachineToolsWidget::sltSwitchToVMActivityTool);
-
     /* Splitter connections: */
     connect(m_pSplitter, &QISplitter::splitterMoved,
             this, &UIMachineToolsWidget::sltHandleSplitterMove);
@@ -494,20 +400,12 @@ void UIMachineToolsWidget::prepareConnections()
             this, &UIMachineToolsWidget::sltHandleChooserPaneIndexChange);
     connect(chooser(), &UIChooser::sigSelectionInvalidated,
             this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
-    connect(chooser(), &UIChooser::sigToolMenuRequested,
-            this, &UIMachineToolsWidget::sltHandleToolMenuRequested);
     connect(chooser(), &UIChooser::sigCloudMachineStateChange,
             this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     connect(chooser(), &UIChooser::sigToggleStarted,
             toolPane(), &UIToolPane::sigToggleStarted);
     connect(chooser(), &UIChooser::sigToggleFinished,
             toolPane(), &UIToolPane::sigToggleFinished);
-
-    /* Tools-menu connections: */
-    connect(this, &UIMachineToolsWidget::sigToolMenuUpdate,
-            this, &UIMachineToolsWidget::sltHandleToolMenuUpdate);
-    connect(toolMenu(), &UITools::sigSelectionChanged,
-            this, &UIMachineToolsWidget::sltHandleToolsMenuIndexChange);
 }
 
 void UIMachineToolsWidget::loadSettings()
@@ -523,9 +421,6 @@ void UIMachineToolsWidget::loadSettings()
         }
         m_pSplitter->setSizes(sizes);
     }
-
-    /* Acquire & select tool currently chosen in the menu: */
-    sltHandleToolsMenuIndexChange(toolMenu()->toolsType(UIToolClass_Machine));
 }
 
 void UIMachineToolsWidget::cleanupConnections()
@@ -536,10 +431,6 @@ void UIMachineToolsWidget::cleanupConnections()
     disconnect(gEDataManager, &UIExtraDataManager::sigSettingsExpertModeChange,
                this, &UIMachineToolsWidget::sltHandleSettingsExpertModeChange);
 
-    /* Parent connections: */
-    disconnect(m_pParent, &UIToolPane::sigSwitchToMachineActivityPane,
-               this, &UIMachineToolsWidget::sltSwitchToVMActivityTool);
-
     /* Splitter connections: */
     disconnect(m_pSplitter, &QISplitter::splitterMoved,
                this, &UIMachineToolsWidget::sltHandleSplitterMove);
@@ -549,25 +440,12 @@ void UIMachineToolsWidget::cleanupConnections()
                this, &UIMachineToolsWidget::sltHandleChooserPaneIndexChange);
     disconnect(chooser(), &UIChooser::sigSelectionInvalidated,
                this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
-    disconnect(chooser(), &UIChooser::sigToolMenuRequested,
-               this, &UIMachineToolsWidget::sltHandleToolMenuRequested);
     disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,
                this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     disconnect(chooser(), &UIChooser::sigToggleStarted,
                toolPane(), &UIToolPane::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,
                toolPane(), &UIToolPane::sigToggleFinished);
-
-    /* Tools-menu connections: */
-    disconnect(this, &UIMachineToolsWidget::sigToolMenuUpdate,
-               this, &UIMachineToolsWidget::sltHandleToolMenuUpdate);
-    disconnect(toolMenu(), &UITools::sigSelectionChanged,
-               this, &UIMachineToolsWidget::sltHandleToolsMenuIndexChange);
-}
-
-UITools *UIMachineToolsWidget::toolMenu() const
-{
-    return m_pMenuTools;
 }
 
 void UIMachineToolsWidget::recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane /* = false */)
@@ -583,9 +461,9 @@ void UIMachineToolsWidget::recacheCurrentMachineItemInformation(bool fDontRaiseE
     /* If current item is Ok: */
     if (fCurrentItemIsOk)
     {
-        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
+        /* If Error-pane is chosen currently => switch to Details: */
         if (toolPane()->currentTool() == UIToolType_Error)
-            switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
+            switchToolTo(UIToolType_Details);
 
         /* Propagate current items to the Tools pane: */
         toolPane()->setItems(currentItems());

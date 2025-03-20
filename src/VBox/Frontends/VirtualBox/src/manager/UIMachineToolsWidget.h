@@ -44,7 +44,6 @@ class QISplitter;
 class UIActionPool;
 class UIChooser;
 class UIToolPane;
-class UITools;
 class UIVirtualMachineItem;
 
 /** QWidget extension used as Machine Tools Widget instance. */
@@ -128,11 +127,6 @@ public:
         /** Returns tool-pane instance. */
         UIToolPane *toolPane() const;
 
-        /** Returns menu tool type. */
-        UIToolType menuToolType() const;
-        /** Defines menu tool @a enmType. */
-        void setMenuToolType(UIToolType enmType);
-
         /** Returns pane tool type. */
         UIToolType toolType() const;
         /** Returns whether pane has tool of passed @a enmType. */
@@ -192,22 +186,6 @@ private slots:
         void sltHandleCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
-    /** @name Tools pane stuff.
-      * @{ */
-        /** Handles request for tools menu update for the @a pItem specified. */
-        void sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem);
-
-        /** Handles tool popup-menu request. */
-        void sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
-
-        /** Handles signal about Tools-menu index change.
-          * @param  enmType  Brings current tool type. */
-        void sltHandleToolsMenuIndexChange(UIToolType enmType);
-
-        /** Handles signal requesting switch to VM Activity tool. */
-        void sltSwitchToVMActivityTool(const QUuid &uMachineId);
-    /** @} */
-
 private:
 
     /** @name Prepare/Cleanup cascade.
@@ -233,9 +211,6 @@ private:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Returns tool-menu instance. */
-        UITools *toolMenu() const;
-
         /** Recaches current machine item information.
           * @param  fDontRaiseErrorPane  Brings whether we should not raise error-pane. */
         void recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane = false);
@@ -252,8 +227,6 @@ private:
     UIChooser  *m_pPaneChooser;
     /** Holds the Tools-pane instance. */
     UIToolPane *m_pPaneTools;
-    /** Holds the Tools-menu instance. */
-    UITools    *m_pMenuTools;
 
     /** Holds the last selection type. */
     SelectionType  m_enmSelectionType;

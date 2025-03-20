@@ -1096,14 +1096,14 @@ void UIChooserItemMachine::paintFrame(QPainter *pPainter, const QRect &rectangle
 void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rectangle)
 {
     /* Prepare variables: */
-    const int iFullWidth = rectangle.width();
+    // const int iFullWidth = rectangle.width();
     const int iFullHeight = rectangle.height();
     const int iMarginHL = data(MachineItemData_MarginHL).toInt();
-    const int iMarginHR = data(MachineItemData_MarginHR).toInt();
+    // const int iMarginHR = data(MachineItemData_MarginHR).toInt();
     const int iMajorSpacing = data(MachineItemData_MajorSpacing).toInt();
     const int iMinorSpacing = data(MachineItemData_MinorSpacing).toInt();
     const int iMachineItemTextSpacing = data(MachineItemData_TextSpacing).toInt();
-    const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
+    // const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
 
     /* Selected or hovered item foreground: */
     if (model()->selectedItems().contains(this) || isHovered())
@@ -1243,6 +1243,7 @@ void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rec
         }
     }
 
+#if 0
     /* Calculate indents: */
     QGraphicsView *pView = model()->scene()->views().first();
     const QPointF sceneCursorPosition = pView->mapToScene(pView->mapFromGlobal(QCursor::pos()));
@@ -1280,6 +1281,7 @@ void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rec
                     /* Pixmap to paint: */
                     m_toolPixmap);
     }
+#endif
 }
 
 /* static */

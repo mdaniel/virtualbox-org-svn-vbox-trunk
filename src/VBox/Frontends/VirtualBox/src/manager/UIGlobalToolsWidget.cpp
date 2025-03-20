@@ -124,18 +124,6 @@ void UIGlobalToolsWidget::switchToolTo(UIToolType enmType)
     toolPaneMachine()->setActive(enmType == UIToolType_Machines);
     toolPaneManagement()->setActive(enmType == UIToolType_Managers);
 
-    /* Special handling for Activities Global tool,
-     * start unconditionally updating all cloud VMs: */
-    if (enmType == UIToolType_Activities)
-    {
-        chooser()->setKeepCloudNodesUpdated(true);
-        toolPane()->setCloudMachineItems(chooser()->cloudMachineItems());
-    }
-    /* Otherwise, stop unconditionally updating all cloud VMs,
-     * (tho they will still be updated if selected) */
-    else
-        chooser()->setKeepCloudNodesUpdated(false);
-
     /* Let the parent know: */
     emit sigToolTypeChange();
 }
@@ -195,12 +183,12 @@ void UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange()
 
 void UIGlobalToolsWidget::sltHandleCloudProfileStateChange(const QString &, const QString &)
 {
-    /* If Global Activities tool is currently chosen: */
-    AssertPtrReturnVoid(toolPane());
-    if (toolType() == UIToolType_Activities)
+    /* If Management Activities tool is currently chosen: */
+    AssertPtrReturnVoid(toolPaneManagement());
+    if (toolPaneManagement()->currentTool() == UIToolType_Activities)
     {
-        /* Propagate a set of cloud machine items to Global tool-pane: */
-        toolPane()->setCloudMachineItems(chooser()->cloudMachineItems());
+        /* Propagate a set of cloud machine items to Management tool-pane: */
+        toolPaneManagement()->setCloudMachineItems(chooser()->cloudMachineItems());
     }
 }
 
@@ -208,12 +196,6 @@ void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
 {
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
-
-    /* Restrict some types for Basic mode: */
-    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
-    if (!fExpertMode)
-        restrictedTypes << UIToolType_Media
-                        << UIToolType_Network;
 
     /* Make sure Machines tool is hidden for empty Chooser-pane: */
     if (chooser()->isNavigationListEmpty())
@@ -273,6 +255,12 @@ void UIGlobalToolsWidget::sltHandleManagementToolMenuUpdate()
     /* Prepare tool restrictions: */
     QSet<UIToolType> restrictedTypes;
 
+    /* Restrict some types for Basic mode: */
+    const bool fExpertMode = gEDataManager->isSettingsInExpertMode();
+    if (!fExpertMode)
+        restrictedTypes << UIToolType_Media
+                        << UIToolType_Network;
+
     /* Make sure no restricted tool is selected: */
     if (restrictedTypes.contains(toolMenu()->toolsType(UIToolClass_Management)))
         setMenuToolType(UIToolType_Extensions);
@@ -304,9 +292,31 @@ void UIGlobalToolsWidget::sltHandleToolsMenuIndexChange(UIToolType enmType)
     /* For Machine tool class => switch tool-pane accordingly: */
     else if (enmClass == UIToolClass_Machine)
         machineToolsWidget()->switchToolTo(enmType);
-    /* For Management tool class => switch tool-pane accordingly: */
+    /* For Management tool class: */
     else if (enmClass == UIToolClass_Management)
+    {
+        /* Switch tool-pane accordingly: */
         managementToolsWidget()->switchToolTo(enmType);
+
+        /* Special handling for Activities Management tool,
+         * start unconditionally updating all cloud VMs: */
+        if (enmType == UIToolType_Activities)
+        {
+            chooser()->setKeepCloudNodesUpdated(true);
+            toolPaneManagement()->setCloudMachineItems(chooser()->cloudMachineItems());
+        }
+        /* Otherwise, stop unconditionally updating all cloud VMs,
+         * (tho they will still be updated if selected) */
+        else
+            chooser()->setKeepCloudNodesUpdated(false);
+    }
+}
+
+void UIGlobalToolsWidget::sltSwitchToVMActivityTool(const QUuid &uMachineId)
+{
+    AssertPtrReturnVoid(chooser());
+    chooser()->setCurrentMachine(uMachineId);
+    setMenuToolType(UIToolType_VMActivity);
 }
 
 void UIGlobalToolsWidget::sltSwitchToActivitiesTool()
@@ -335,7 +345,7 @@ void UIGlobalToolsWidget::prepareWidgets()
         m_pLayout->setSpacing(0);
 
         /* Create tool-menu: */
-        m_pMenu = new UITools(this, UIToolClass_Global, actionPool(), Qt::Widget);
+        m_pMenu = new UITools(this, UIToolClass_Invalid, actionPool(), Qt::Widget);
         if (toolMenu())
         {
             /* Add into layout: */
@@ -379,6 +389,8 @@ void UIGlobalToolsWidget::prepareConnections()
             this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
     connect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
             this, &UIGlobalToolsWidget::sltHandleManagementToolMenuUpdate);
+    connect(toolPane(), &UIToolPane::sigSwitchToMachineActivityPane,
+            this, &UIGlobalToolsWidget::sltSwitchToVMActivityTool);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
             this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     connect(toolPaneMachine(), &UIToolPane::sigSwitchToActivityOverviewPane,
@@ -425,6 +437,8 @@ void UIGlobalToolsWidget::cleanupConnections()
                this, &UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate);
     disconnect(this, &UIGlobalToolsWidget::sigToolMenuUpdate,
                this, &UIGlobalToolsWidget::sltHandleManagementToolMenuUpdate);
+    disconnect(toolPane(), &UIToolPane::sigSwitchToMachineActivityPane,
+               this, &UIGlobalToolsWidget::sltSwitchToVMActivityTool);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigToolMenuUpdate,
                this, &UIGlobalToolsWidget::sltHandleMachineToolMenuUpdate);
     disconnect(toolPaneMachine(), &UIToolPane::sigSwitchToActivityOverviewPane,

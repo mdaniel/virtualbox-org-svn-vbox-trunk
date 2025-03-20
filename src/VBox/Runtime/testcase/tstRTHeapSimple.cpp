@@ -47,6 +47,7 @@
 #include <iprt/assert.h>
 #include <iprt/log.h>
 #include <iprt/test.h>
+#include <iprt/system.h>
 
 
 int main(int argc, char **argv)
@@ -75,6 +76,7 @@ int main(int argc, char **argv)
     /*
      * Try allocate.
      */
+    uint32_t const cbPageSize = (uint32_t)RTSystemGetPageSize();
     static struct TstHeapSimpleOps
     {
         size_t      cb;
@@ -93,10 +95,10 @@ int main(int argc, char **argv)
         {      1024,          0,    NULL,  8 },
         {      1024,         32,    NULL, 10 },
         {      1024,         32,    NULL, 12 },
-        { PAGE_SIZE,  PAGE_SIZE,    NULL, 13 },  // 10
+        { cbPageSize, cbPageSize,   NULL, 13 },  // 10
         {      1024,         32,    NULL,  9 },
-        { PAGE_SIZE,         32,    NULL, 11 },
-        { PAGE_SIZE,  PAGE_SIZE,    NULL, 14 },
+        { cbPageSize,        32,    NULL, 11 },
+        { cbPageSize, cbPageSize,   NULL, 14 },
         {        16,          0,    NULL, 15 },
         {        9,           0,    NULL,  7 },  // 15
         {        16,          0,    NULL,  7 },

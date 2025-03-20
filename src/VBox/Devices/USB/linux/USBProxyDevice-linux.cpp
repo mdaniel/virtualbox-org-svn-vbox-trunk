@@ -109,13 +109,18 @@ typedef struct USBPROXYURBLNX
     /** Size to transfer in remaining fragments of a split URB */
     uint32_t                        cbSplitRemaining;
 
-#if RT_GNUC_PREREQ(6, 0) /* gcc 6.2 complains about the [] member of KUrb */
+#if RT_CLANG_PREREQ(3, 4)
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wpedantic"
+#elif RT_GNUC_PREREQ(6, 0) /* gcc 6.2 complains about the [] member of KUrb */
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wpedantic"
 #endif
     /** The kernel URB data (variable size array included). */
     struct usbdevfs_urb             KUrb;
-#if RT_GNUC_PREREQ(6, 0)
+#if RT_CLANG_PREREQ(3, 4)
+# pragma clang diagnostic pop
+#elif RT_GNUC_PREREQ(6, 0)
 # pragma GCC diagnostic pop
 #endif
 } USBPROXYURBLNX, *PUSBPROXYURBLNX;

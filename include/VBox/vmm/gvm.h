@@ -155,10 +155,15 @@ typedef struct GVMCPU
 #endif
 } GVMCPU;
 #ifndef IN_TSTVMSTRUCT
-# if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
+# if RT_CLANG_PREREQ(3, 4) && defined(__cplusplus)
+#  pragma clang diagnostic push
+# elif RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
 #  pragma GCC diagnostic push
 # endif
-# if RT_GNUC_PREREQ(4, 3) && defined(__cplusplus)
+
+# if RT_CLANG_PREREQ(3, 4) && defined(__cplusplus)
+#  pragma clang diagnostic ignored "-Winvalid-offsetof"
+# elif RT_GNUC_PREREQ(4, 3) && defined(__cplusplus)
 #  pragma GCC diagnostic ignored "-Winvalid-offsetof"
 # endif
 AssertCompileMemberAlignment(GVMCPU, idCpu,  16384);
@@ -169,7 +174,9 @@ AssertCompileMemberAlignment(GVMCPU, nemr0,  64);
 #  endif
 # endif
 AssertCompileSizeAlignment(GVMCPU,           16384);
-# if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
+# if RT_CLANG_PREREQ(3, 4) && defined(__cplusplus)
+#  pragma clang diagnostic pop
+# elif RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
 #  pragma GCC diagnostic pop
 # endif
 #endif

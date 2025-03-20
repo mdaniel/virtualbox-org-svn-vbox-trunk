@@ -116,7 +116,7 @@ int main(int argc, char **argv)
             RTTestIPrintf(RTTESTLVL_DEBUG, "i=%d: pvAligned=%p pv=%p:\n", i, aPinnings[i].pvAligned, aPinnings[i].pv);
             memset(aPinnings[i].pv, 0xfa, 0x10000);
             unsigned c4GPluss = 0;
-            for (unsigned j = 0; j < (0xf000 >> cPageShift); j++)
+            for (unsigned j = 0; j < (UINT32_C(0xf000) >> cPageShift); j++)
                 if (aPinnings[i].aPages[j].Phys >= _4G)
                 {
                     RTTestIPrintf(RTTESTLVL_DEBUG, "%2d: vrt=%p phys=%RHp\n", j, (char *)aPinnings[i].pvAligned + (j << cPageShift), aPinnings[i].aPages[j].Phys);

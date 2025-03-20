@@ -980,24 +980,22 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     rc = MMR3ReserveHandyPages(pVM, RT_ELEMENTS(pVM->pgm.s.aHandyPages)); /** @todo this should be changed to PGM_HANDY_PAGES_MIN but this needs proper testing... */
     AssertRCReturn(rc, rc);
 
+#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*
      * Setup the zero page (HCPHysZeroPg is set by ring-0).
      */
     RT_ZERO(pVM->pgm.s.abZeroPg); /* paranoia */
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysZeroPg = _4G - GUEST_PAGE_SIZE * 2 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != 0);
     Log(("HCPhysZeroPg=%RHp abZeroPg=%p\n", pVM->pgm.s.HCPhysZeroPg, pVM->pgm.s.abZeroPg));
-#endif
 
     /*
      * Setup the invalid MMIO page (HCPhysMmioPg is set by ring-0).
      * (The invalid bits in HCPhysInvMmioPg are set later on init complete.)
      */
     ASMMemFill32(pVM->pgm.s.abMmioPg, sizeof(pVM->pgm.s.abMmioPg), 0xfeedface);
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     if (fDriverless)
         pVM->pgm.s.HCPhysMmioPg = _4G - GUEST_PAGE_SIZE * 3 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != NIL_RTHCPHYS);

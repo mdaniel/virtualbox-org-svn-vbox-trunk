@@ -51,6 +51,9 @@
 #include <VBox/log.h>
 #ifdef IN_RING3
 # include <iprt/thread.h>
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE
+#  include <iprt/zero.h>
+# endif
 #elif defined(IN_RING0)
 # include <iprt/mem.h>
 # include <iprt/memobj.h>
@@ -3002,11 +3005,17 @@ int pgmPhysPageLoadIntoTlbWithPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCPhys)
     {
 #ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
         AssertMsg(PGM_PAGE_GET_HCPHYS(pPage) == pVM->pgm.s.HCPhysZeroPg, ("%RGp/%R[pgmpage]\n", GCPhys, pPage));
-#endif
 #ifndef IN_RING0
         pTlbe->pMap = NULL;
 #endif
         pTlbe->pv = pVM->pgm.s.abZeroPg;
+#else
+        /*
+         * Should not ever be used, as we don't implement zero pages for NEM mode currently and
+         * MMIO accesses are not handled through the TLB.
+         */
+        pTlbe->pv = (void *)&g_abRTZero64K[0]; /* Maximum granule size on ARM. */
+#endif
     }
 #ifdef PGM_WITH_PHYS_TLB
     if (    PGM_PAGE_GET_TYPE(pPage) < PGMPAGETYPE_ROM_SHADOW

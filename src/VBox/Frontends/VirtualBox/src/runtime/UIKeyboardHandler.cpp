@@ -87,10 +87,6 @@
 # include <X11/XKBlib.h>
 # include <X11/keysym.h>
 # ifdef KeyPress
-const int XFocusIn = FocusIn;
-const int XFocusOut = FocusOut;
-const int XKeyPress = KeyPress;
-const int XKeyRelease = KeyRelease;
 #  undef KeyRelease
 #  undef KeyPress
 #  undef FocusOut

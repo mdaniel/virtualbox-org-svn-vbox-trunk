@@ -312,6 +312,7 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
         CAP_ENTRY__L(KVM_CAP_X86_MSR_FILTER),
 #endif
         CAP_ENTRY__L(KVM_CAP_ENFORCE_PV_FEATURE_CPUID),      /* 190 */
+#ifndef RT_ARCH_ARM64 /* Buildroot is too old. */
         CAP_ENTRY__L(KVM_CAP_SYS_HYPERV_CPUID),
         CAP_ENTRY__L(KVM_CAP_DIRTY_LOG_RING),
         CAP_ENTRY__L(KVM_CAP_X86_BUS_LOCK_EXIT),
@@ -320,6 +321,16 @@ static int nemR3LnxInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
         CAP_ENTRY__L(KVM_CAP_SGX_ATTRIBUTE),
         CAP_ENTRY__L(KVM_CAP_VM_COPY_ENC_CONTEXT_FROM),
         CAP_ENTRY__L(KVM_CAP_PTP_KVM),
+#else
+        CAP_ENTRY__U(191),
+        CAP_ENTRY__U(192),
+        CAP_ENTRY__U(193),
+        CAP_ENTRY__U(194),
+        CAP_ENTRY__U(195),
+        CAP_ENTRY__U(196),
+        CAP_ENTRY__U(197),
+        CAP_ENTRY__U(198),
+#endif
         CAP_ENTRY__U(199),
         CAP_ENTRY__U(200),
         CAP_ENTRY__U(201),

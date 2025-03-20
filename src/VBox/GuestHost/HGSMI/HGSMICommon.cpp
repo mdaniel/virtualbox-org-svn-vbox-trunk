@@ -129,7 +129,7 @@ int HGSMIAreaInitialize(HGSMIAREA *pArea, void *pvBase, HGSMISIZE cbArea, HGSMIO
 
     if (  !pArea                                   /* Check that the area: */
         || cbArea < HGSMIBufferMinimumSize()       /* large enough; */
-        || pu8Base + cbArea < pu8Base              /* no address space wrap; */
+        || (pu8Base + cbArea) < pu8Base            /* no address space wrap; */
         || offBase > UINT32_C(0xFFFFFFFF) - cbArea /* area within the 32 bit space: offBase + cbMem <= 0xFFFFFFFF. */
        )
     {

@@ -81,19 +81,19 @@ static struct
     /*
      * Files.
      */
-    RTFS_TYPE_FILE, "file1.txt",                          "file1.txt",                  _64K,       VINF_SUCCESS,
+    { RTFS_TYPE_FILE, "file1.txt",                          "file1.txt",                  _64K,       VINF_SUCCESS },
     /* Note: For RTHttpGetFile() the URL needs to be percent-encoded. */
-    RTFS_TYPE_FILE, "file2 with spaces.txt",              "file2%20with%20spaces.txt",  _64K,       VINF_SUCCESS,
-    RTFS_TYPE_FILE, "bigfile.bin",                        "bigfile.bin",                _512M,      VINF_SUCCESS,
-    RTFS_TYPE_FILE, "zerobytes",                          "zerobytes",                  0,          VINF_SUCCESS,
-    RTFS_TYPE_FILE, "file\\with\\slashes",                "file%5Cwith%5Cslashes",      42,         VINF_SUCCESS,
+    { RTFS_TYPE_FILE, "file2 with spaces.txt",              "file2%20with%20spaces.txt",  _64K,       VINF_SUCCESS },
+    { RTFS_TYPE_FILE, "bigfile.bin",                        "bigfile.bin",                _512M,      VINF_SUCCESS },
+    { RTFS_TYPE_FILE, "zerobytes",                          "zerobytes",                  0,          VINF_SUCCESS },
+    { RTFS_TYPE_FILE, "file\\with\\slashes",                "file%5Cwith%5Cslashes",      42,         VINF_SUCCESS },
     /* Korean encoding. */
-    RTFS_TYPE_FILE, "VirtualBox가 크게 성공했습니다!",         "VirtualBox%EA%B0%80%20%ED%81%AC%EA%B2%8C%20%EC%84%B1%EA%B3%B5%ED%96%88%EC%8A%B5%EB%8B%88%EB%8B%A4%21", 42, VINF_SUCCESS,
+    { RTFS_TYPE_FILE, "VirtualBox가 크게 성공했습니다!",         "VirtualBox%EA%B0%80%20%ED%81%AC%EA%B2%8C%20%EC%84%B1%EA%B3%B5%ED%96%88%EC%8A%B5%EB%8B%88%EB%8B%A4%21", 42, VINF_SUCCESS },
     /*
      * Other stuff (not supported).
      */
-    RTFS_TYPE_DIRECTORY, "test-directory",                "test-directory",             0,          VERR_HTTP_NOT_SUPPORTED,
-    RTFS_TYPE_SYMLINK,   "test-symlink",                  "test-symlink",               0,          VERR_HTTP_NOT_SUPPORTED
+    { RTFS_TYPE_DIRECTORY, "test-directory",                "test-directory",             0,          VERR_HTTP_NOT_SUPPORTED },
+    { RTFS_TYPE_SYMLINK,   "test-symlink",                  "test-symlink",               0,          VERR_HTTP_NOT_SUPPORTED }
 };
 
 

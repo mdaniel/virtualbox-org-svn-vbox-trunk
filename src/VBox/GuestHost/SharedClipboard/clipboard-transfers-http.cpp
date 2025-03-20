@@ -146,6 +146,7 @@ DECLINLINE(void) shClTransferHttpServerUnlock(PSHCLHTTPSERVER pSrv)
     AssertRC(rc2);
 }
 
+#if 0 /* unused */
 /**
  * Locks an HTTP transfer.
  *
@@ -167,6 +168,7 @@ DECLINLINE(void) shClHttpTransferUnlock(PSHCLHTTPSERVERTRANSFER pSrvTx)
     int rc2 = RTCritSectLeave(&pSrvTx->CritSect);
     AssertRC(rc2);
 }
+#endif
 
 /**
  * Creates an URL from a given path, extended version.
@@ -273,6 +275,7 @@ DECLINLINE(PSHCLHTTPSERVERTRANSFER) shClTransferHttpGetTransferFromUrl(PSHCLHTTP
     return pSrvTx;
 }
 
+#if 0 /* unused */
 /**
  * Returns a HTTP server transfer from an internal HTTP handle.
  *
@@ -298,6 +301,7 @@ DECLINLINE(PSHCLHTTPSERVERTRANSFER) shClTransferHttpGetTransferFromHandle(PSHCLH
 
     return NULL;
 }
+#endif
 
 
 /*********************************************************************************************************************************

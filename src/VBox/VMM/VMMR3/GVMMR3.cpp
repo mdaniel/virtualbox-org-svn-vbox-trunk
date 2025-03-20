@@ -38,6 +38,7 @@
 #include <VBox/err.h>
 
 #include <iprt/mem.h>
+#include <iprt/system.h>
 
 
 /**
@@ -57,8 +58,8 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
 {
     AssertReturn(cCpus >= VMM_MIN_CPU_COUNT && cCpus <= VMM_MAX_CPU_COUNT, VERR_INVALID_PARAMETER);
     AssertReturn(enmTarget == VMTARGET_X86 || enmTarget == VMTARGET_ARMV8, VERR_INVALID_PARAMETER);
-    AssertCompile((sizeof(VM)    & HOST_PAGE_OFFSET_MASK) == 0);
-    AssertCompile((sizeof(VMCPU) & HOST_PAGE_OFFSET_MASK) == 0);
+    AssertReturn((sizeof(VM)    & RTSystemGetPageOffsetMask()) == 0, VERR_UNSUPPORTED_ALIGNMENT);
+    AssertReturn((sizeof(VMCPU) & RTSystemGetPageOffsetMask()) == 0, VERR_UNSUPPORTED_ALIGNMENT);
 
     int rc;
     if (!SUPR3IsDriverless())
@@ -89,15 +90,16 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
          * Driverless.
          */
         /* Allocate the VM structure: */
+        size_t const cbPageSize = RTSystemGetPageSize();
         size_t const cbVM = sizeof(VM) + sizeof(VMCPU) * cCpus;
-        PVM          pVM  = (PVM)RTMemPageAlloc(cbVM + HOST_PAGE_SIZE * (1 + 2 * cCpus));
+        PVM          pVM  = (PVM)RTMemPageAlloc(cbVM + cbPageSize * (1 + 2 * cCpus));
         if (!pVM)
             return VERR_NO_PAGE_MEMORY;
 
         /* Set up guard pages: */
-        RTMemProtect(pVM, HOST_PAGE_SIZE, RTMEM_PROT_NONE);
-        pVM = (PVM)((uintptr_t)pVM + HOST_PAGE_SIZE);
-        RTMemProtect(pVM + 1, HOST_PAGE_SIZE, RTMEM_PROT_NONE);
+        RTMemProtect(pVM, cbPageSize, RTMEM_PROT_NONE);
+        pVM = (PVM)((uintptr_t)pVM + cbPageSize);
+        RTMemProtect(pVM + 1, cbPageSize, RTMEM_PROT_NONE);
 
         /* VM: */
         pVM->enmVMState           = VMSTATE_CREATING;
@@ -112,7 +114,7 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
         pVM->enmTarget            = enmTarget;
 
         /* CPUs: */
-        PVMCPU pVCpu = (PVMCPU)((uintptr_t)pVM + sizeof(VM) + HOST_PAGE_SIZE);
+        PVMCPU pVCpu = (PVMCPU)((uintptr_t)pVM + sizeof(VM) + cbPageSize);
         for (VMCPUID idxCpu = 0; idxCpu < cCpus; idxCpu++)
         {
             pVM->apCpusR3[idxCpu] = pVCpu;
@@ -124,8 +126,8 @@ VMMR3_INT_DECL(int) GVMMR3CreateVM(PUVM pUVM, VMTARGET enmTarget, uint32_t cCpus
             pVCpu->hThread         = NIL_RTTHREAD;
             pVCpu->idCpu           = idxCpu;
 
-            RTMemProtect(pVCpu + 1, HOST_PAGE_SIZE, RTMEM_PROT_NONE);
-            pVCpu = (PVMCPU)((uintptr_t)pVCpu + sizeof(VMCPU) + HOST_PAGE_SIZE);
+            RTMemProtect(pVCpu + 1, cbPageSize, RTMEM_PROT_NONE);
+            pVCpu = (PVMCPU)((uintptr_t)pVCpu + sizeof(VMCPU) + cbPageSize);
         }
 
         *ppVM   = pVM;

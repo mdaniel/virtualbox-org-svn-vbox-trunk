@@ -52,6 +52,7 @@
 #include <iprt/test.h>
 #include <iprt/time.h>
 #include <iprt/thread.h>
+#include <iprt/system.h>
 
 
 /*********************************************************************************************************************************
@@ -87,7 +88,9 @@ static void tst1(void)
     RTTestISub("Basics");
 
     /* Create one without constructor or destructor. */
-    uint32_t const cObjects = PAGE_SIZE * 2 / 256;
+    uint32_t const cObjectsMax = _64K * 2 / 256;
+    uint32_t const cObjects = RTSystemGetPageSize() * 2 / 256;
+    AssertRelease(cObjectsMax >= cObjects);
     RTMEMCACHE hMemCache;
     RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&hMemCache, 256, 32 /*cbAlignment*/, cObjects, NULL, NULL, NULL, 0 /*fFlags*/), VINF_SUCCESS);
     RTTESTI_CHECK_RETV(hMemCache != NIL_RTMEMCACHE);
@@ -106,7 +109,7 @@ static void tst1(void)
     for (uint32_t iLoop = 0; iLoop < 20; iLoop++)
     {
         /* Allocate everything. */
-        void *apv[cObjects];
+        void *apv[cObjectsMax];
         for (uint32_t i = 0; i < cObjects; i++)
         {
             apv[i] = NULL;
@@ -170,8 +173,10 @@ static void tst2(void)
     RTTestISub("Ctor/Dtor");
 
     /* Create one without constructor or destructor. */
-    bool            fFail    = false;
-    uint32_t const  cObjects = PAGE_SIZE * 2 / 256;
+    bool            fFail       = false;
+    uint32_t const  cObjectsMax = _64K * 2 / 256;
+    uint32_t const  cObjects    = RTSystemGetPageSize() * 2 / 256;
+    AssertRelease(cObjectsMax >= cObjects);
     RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&g_hMemCache, 256, 32 /*cbAlignemnt*/, cObjects, tst2Ctor, tst2Dtor, &fFail, 0 /*fFlags*/), VINF_SUCCESS);
 
     /* A failure run first. */
@@ -184,7 +189,7 @@ static void tst2(void)
     /* To two rounds where we allocate all the objects and free them again. */
     for (uint32_t iLoop = 0; iLoop < 2; iLoop++)
     {
-        void *apv[cObjects];
+        void *apv[cObjectsMax];
         for (uint32_t i = 0; i < cObjects; i++)
         {
             apv[i] = NULL;

@@ -43,7 +43,15 @@
 
 #include <map>
 #include <vector>
+
+#if RT_CLANG_PREREQ(3, 4) /* complains about deprecated get_temporary_buffer() during instantiation of stable_sort(). */
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <algorithm>
+#if RT_CLANG_PREREQ(3, 4)
+# pragma clang diagnostic pop
+#endif
 
 
 /*********************************************************************************************************************************

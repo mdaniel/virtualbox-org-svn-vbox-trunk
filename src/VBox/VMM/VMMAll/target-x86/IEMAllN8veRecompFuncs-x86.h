@@ -7404,7 +7404,8 @@ iemNativeEmitMemFetchStoreDataCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off
     /* Save variables in volatile registers. */
     uint32_t const fHstGprsNotToSave = TlbState.getRegsNotToSave()
                                      | (idxRegMemResult  < 32                    ? RT_BIT_32(idxRegMemResult)        : 0)
-#ifdef _MSC_VER /* Workaround for stupid compiler (2019). */
+#if    defined(_MSC_VER) /* Workaround for stupid compiler (2019). */ \
+    || (defined(__clang__) && defined(RT_OS_LINUX))
                                      | (idxRegValueFetch < 32 && !fSimdRegValues ? RT_BIT_32(idxRegValueFetch & 0x1f) : 0);
 #else
                                      | (idxRegValueFetch < 32 && !fSimdRegValues ? RT_BIT_32(idxRegValueFetch)        : 0);

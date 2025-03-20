@@ -798,7 +798,11 @@ interface ID3D11VideoProcessorInputView;
 
 #endif
 #if !defined(D3D11_NO_HELPERS) && defined(__cplusplus)
+#ifndef VBOX
 struct CD3D11_DEFAULT {};
+#else
+struct CD3D11_DEFAULT { uint8_t bDummy; };
+#endif
 extern const DECLSPEC_SELECTANY CD3D11_DEFAULT D3D11_DEFAULT;
 #endif
 typedef enum D3D11_BLEND {

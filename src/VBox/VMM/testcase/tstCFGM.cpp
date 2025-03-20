@@ -43,6 +43,7 @@
 #include <iprt/stream.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 
 #include <iprt/test.h>
 
@@ -112,7 +113,7 @@ static void doInVmmTests(RTTEST hTest)
     }
 
     PVM pVM;
-    RTTESTI_CHECK_RC_RETV(SUPR3PageAlloc(RT_ALIGN_Z(sizeof(*pVM), HOST_PAGE_SIZE) >> HOST_PAGE_SHIFT, 0, (void **)&pVM),
+    RTTESTI_CHECK_RC_RETV(SUPR3PageAlloc(RT_ALIGN_Z(sizeof(*pVM), RTSystemGetPageSize()) >> RTSystemGetPageShift(), 0, (void **)&pVM),
                           VINF_SUCCESS);
 
 

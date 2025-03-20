@@ -176,6 +176,7 @@
 # define PAGE(a_Symbol) a_Symbol ## @PAGE
 #elif defined(ASM_FORMAT_ELF)
 # define PAGE(a_Symbol) a_Symbol
+# define PAGE_GOT(a_Symbol) :got: ## a_Symbol
 #else
 # error "Port me!"
 #endif
@@ -190,6 +191,7 @@
 # define PAGEOFF(a_Symbol) a_Symbol ## @PAGEOFF
 #elif defined(ASM_FORMAT_ELF)
 # define PAGEOFF(a_Symbol) :lo12: ## a_Symbol
+# define PAGEOFF_GOT(a_Symbol) :got_lo12: ## a_Symbol
 #else
 # error "Port me!"
 #endif

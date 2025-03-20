@@ -1131,22 +1131,36 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     ".p2align 3\n"
                     ".globl NAME(%s)\n"
                     "NAME(%s):\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x9, PAGE_GOT(NAME(g_pfn%s))\n"
+                    "    ldr     x9, [x9, PAGEOFF_GOT(NAME(g_pfn%s))]\n"
+                    "#else\n"
                     "    adrp    x9, PAGE(NAME(g_pfn%s))\n"
                     "    ldr     x9, [x9, PAGEOFF(NAME(g_pfn%s))]\n"
+                    "#endif\n"
                     "    br      x9\n",
-                    pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm);
+                    pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm,
+                    pExp->pszExportedNm, pExp->pszExportedNm);
         else
             fprintf(pOutput,
                     ".p2align 3\n"
                     ".globl NAME(LazyGetPtr_%s)\n"
                     "NAME(LazyGetPtr_%s):\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x9, PAGE_GOT(NAME(g_LazyPtr_%s))\n"
+                    "    ldr     x9, [x9, PAGEOFF_GOT(NAME(g_LazyPtr_%s))]\n"
+                    "#else\n"
                     "    adrp    x9, PAGE(NAME(g_LazyPtr_%s))\n"
                     "    ldr     x9, [x9, PAGEOFF(NAME(g_LazyPtr_%s))]\n"
+                    "#endif\n"
                     "    cmp     x9, #0\n"
                     "    b.eq    ___LazyLoad___%s\n"
                     "    mov     x0, x9\n"
                     "    ret\n",
-                    pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm, pExp->pszExportedNm);
+                    pExp->pszExportedNm, pExp->pszExportedNm,
+                    pExp->pszExportedNm, pExp->pszExportedNm,
+                    pExp->pszExportedNm, pExp->pszExportedNm,
+                    pExp->pszExportedNm);
     fprintf(pOutput,
             "ENDCODE\n"
             "\n"
@@ -1226,32 +1240,56 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
             " */\n"
             "BEGINCODE\n"
             ".p2align 3\n");
+
     for (PMYEXPORT pExp = g_pExpHead; pExp; pExp = pExp->pNext)
     {
+        const char *pszPrefix = !pExp->fData ? "g_pfn" : "g_LazyPtr_";
+
         if (!pExp->fNoName)
             fprintf(pOutput,
                     "___LazyLoad___%s:\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x9, PAGE_GOT(g_sz%s)\n"
+                    "    ldr     x9, [x9, PAGEOFF_GOT(g_sz%s)]\n"
+                    "    adrp    x10, PAGE_GOT(NAME(%s%s))\n"
+                    "    ldr     x10, [x10, PAGEOFF_GOT(NAME(%s%s))]\n"
+                    "#else\n"
                     "    adrp    x9, PAGE(g_sz%s)\n"
                     "    add     x9, x9, PAGEOFF(g_sz%s)\n"
                     "    adrp    x10, PAGE(NAME(%s%s))\n"
                     "    add     x10, x10, PAGEOFF(NAME(%s%s))\n"
+                    "#endif\n"
                     "    mov     x16, x30\n"
                     "    bl      LazyLoadResolver\n"
                     "    mov     x30, x16\n"
                     , pExp->pszExportedNm,
+                    /* #if defined(ASM_FORMAT_ELF) && defined(PIC) */
                     pExp->pszExportedNm, pExp->pszExportedNm,
-                    !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm,
-                    !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm);
+                    pszPrefix, pExp->pszExportedNm,
+                    pszPrefix, pExp->pszExportedNm,
+                    /* #else */
+                    pExp->pszExportedNm, pExp->pszExportedNm,
+                    pszPrefix, pExp->pszExportedNm,
+                    pszPrefix, pExp->pszExportedNm);
         else
             fprintf(pOutput,
                     "___LazyLoad___%s:\n"
                     "    movk    w9, #%u\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x10, PAGE_GOT(NAME(%s%s))\n"
+                    "    ldr     x10, [x10, PAGEOFF_GOT(NAME(%s%s))]\n"
+                    "#else\n"
                     "    adrp    x10, PAGE(NAME(%s%s))\n"
                     "    add     x10, x10, PAGEOFF(NAME(%s%s))\n"
+                    "#endif\n"
                     , pExp->pszExportedNm,
                     pExp->uOrdinal,
-                    !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm,
-                    !pExp->fData ? "g_pfn" : "g_LazyPtr_", pExp->pszExportedNm);
+                    /* #if defined(ASM_FORMAT_ELF) && defined(PIC) */
+                    pszPrefix, pExp->pszExportedNm,
+                    pszPrefix, pExp->pszExportedNm,
+                    /* #else */
+                    pszPrefix, pExp->pszExportedNm,
+                    pszPrefix, pExp->pszExportedNm);
         if (!pExp->fData)
             fprintf(pOutput, "    b       NAME(%s)\n", pExp->pszExportedNm);
         else
@@ -1330,8 +1368,13 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
             "    mov     x20, x10\n"
             "\n"
             "    /* Get the module handle and call RTLdrGetSymbol(RTLDRMOD hLdrMod, const char *pszSymbol, void **ppvValue) */\n"
+            "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+            "    adrp    x0, PAGE_GOT(g_hMod)\n"
+            "    ldr     x0, [x0, PAGEOFF_GOT(g_hMod)]\n"
+            "#else\n"
             "    adrp    x0, PAGE(g_hMod)\n"
             "    ldr     x0, [x0, PAGEOFF(g_hMod)]\n"
+            "#endif\n"
             "    cmp     x0, #0\n"
             "    b.ne    Lloaded\n"
             "    bl      LazyLoading\n"
@@ -1345,11 +1388,21 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
             "\n"
             "Lbadsym: /* Call sRTAssertMsg2Weak. Variadic (...) arguments are passed on the stack it seems. */\n"
             "    mov     x3, x0\n"
+            "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+            "    adrp    x2, PAGE_GOT(g_szLibrary)\n"
+            "    ldr     x2, [x2, PAGEOFF_GOT(g_szLibrary)]\n"
+            "#else\n"
             "    adrp    x2, PAGE(g_szLibrary)\n"
             "    add     x2, x2, PAGEOFF(g_szLibrary)\n"
+            "#endif\n"
             "    mov     x1, x19\n"
+            "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+            "    adrp    x0, PAGE_GOT(g_szFailLoadFmt)\n"
+            "    ldr     x0, [x0, PAGEOFF_GOT(g_szFailLoadFmt)]\n"
+            "#else\n"
             "    adrp    x0, PAGE(g_szFailLoadFmt)\n"
             "    add     x0, x0, PAGEOFF(g_szFailLoadFmt)\n"
+            "#endif\n"
             "    stp     x1, x2, [sp]\n"
             "    str     x3,     [sp, #16]\n"
             "    bl      NAME(RTAssertMsg2Weak)\n"
@@ -1416,19 +1469,36 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                 "    /* Call SUPR3HardenedLdrLoadAppPriv(const char *pszFilename, PRTLDRMOD phLdrMod, uint32_t fFlags, PRTERRINFO pErrInfo); */\n"
                 "    mov     x3, #0\n"
                 "    mov     x2, #0\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp    x1, PAGE_GOT(g_hMod)\n"
+                "    ldr     x1, [x1, PAGEOFF_GOT(g_hMod)]\n"
+                "    adrp    x0, PAGE_GOT(g_szLibrary)\n"
+                "    ldr     x0, [x0, PAGEOFF_GOT(g_szLibrary)]\n"
+                "#else\n"
                 "    adrp    x1, PAGE(g_hMod)\n"
                 "    add     x1, x1, PAGEOFF(g_hMod)\n"
                 "    adrp    x0, PAGE(g_szLibrary)\n"
                 "    add     x0, x0, PAGEOFF(g_szLibrary)\n"
+                "#endif\n"
                 "    bl      NAME(SUPR3HardenedLdrLoadAppPriv)\n");
     else
         fprintf(pOutput,
                 "    /* Call RTLdrLoadSystem(const char *pszFilename, bool fNoUnload, PRTLDRMOD phLdrMod); */\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp    x2, PAGE_GOT(g_hMod)\n"
+                "    ldr     x2, [x2, PAGEOFF_GOT(g_hMod)]\n"
+                "#else\n"
                 "    adrp    x2, PAGE(g_hMod)\n"
                 "    add     x2, x2, PAGEOFF(g_hMod)\n"
+                "#endif\n"
                 "    mov     x1, #1\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp    x0, PAGE_GOT(g_szLibrary)\n"
+                "    ldr     x0, [x0, PAGEOFF_GOT(g_szLibrary)]\n"
+                "#else\n"
                 "    adrp    x0, PAGE(g_szLibrary)\n"
                 "    add     x0, x0, PAGEOFF(g_szLibrary)\n"
+                "#endif\n"
                 "    bl      NAME(RTLdrLoadSystem)\n");
 
     fprintf(pOutput,
@@ -1437,10 +1507,17 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
             "\n"
             "Lbadload: /* Call sRTAssertMsg2Weak. Variadic (...) arguments are passed on the stack it seems. */\n"
             "    mov     x2, x0\n"
+            "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+            "    adrp    x1, PAGE_GOT(g_szLibrary)\n"
+            "    ldr     x1, [x1, PAGEOFF_GOT(g_szLibrary)]\n"
+            "    adrp    x0, PAGE_GOT(g_szFailResolveFmt)\n"
+            "    ldr     x0, [x0, PAGEOFF_GOT(g_szFailResolveFmt)]\n"
+            "#else\n"
             "    adrp    x1, PAGE(g_szLibrary)\n"
             "    add     x1, x1, PAGEOFF(g_szLibrary)\n"
             "    adrp    x0, PAGE(g_szFailResolveFmt)\n"
             "    add     x0, x0, PAGEOFF(g_szFailResolveFmt)\n"
+            "#endif\n"
             "    stp     x1, x2, [sp]\n"
             "    bl      NAME(RTAssertMsg2Weak)\n"
             "Lbadloadloop:\n"
@@ -1497,8 +1574,13 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                 "    /*\n"
                 "     * Is the module already loaded?\n"
                 "     */\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp    x0, PAGE_GOT(g_hMod)\n"
+                "    ldr     x0, [x0, PAGEOFF_GOT(g_hMod)]\n"
+                "#else\n"
                 "    adrp    x0, PAGE(g_hMod)\n"
                 "    ldr     x0, [x0, PAGEOFF(g_hMod)]\n"
+                "#endif\n"
                 "    cmp     x0, #0\n"
                 "    b.ne    Lexplicit_loaded_module\n"
                 "\n"
@@ -1513,19 +1595,36 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                     "    /* Call SUPR3HardenedLdrLoadAppPriv(const char *pszFilename, PRTLDRMOD phLdrMod, uint32_t fFlags, PRTERRINFO pErrInfo); */\n"
                     "    mov     x3, x21\n"
                     "    mov     x2, #0\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x1, PAGE_GOT(g_hMod)\n"
+                    "    ldr     x1, [x1, PAGEOFF_GOT(g_hMod)]\n"
+                    "    adrp    x0, PAGE_GOT(g_szLibrary)\n"
+                    "    ldr     x0, [x0, PAGEOFF_GOT(g_szLibrary)]\n"
+                    "#else\n"
                     "    adrp    x1, PAGE(g_hMod)\n"
                     "    add     x1, x1, PAGEOFF(g_hMod)\n"
                     "    adrp    x0, PAGE(g_szLibrary)\n"
                     "    add     x0, x0, PAGEOFF(g_szLibrary)\n"
+                    "#endif\n"
                     "    bl      NAME(SUPR3HardenedLdrLoadAppPriv)\n");
         else
             fprintf(pOutput,
                     "    /* Call RTLdrLoadSystem(const char *pszFilename, bool fNoUnload, PRTLDRMOD phLdrMod); */\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x2, PAGE_GOT(g_hMod)\n"
+                    "    ldr     x2, [x2, PAGEOFF_GOT(g_hMod)]\n"
+                    "#else\n"
                     "    adrp    x2, PAGE(g_hMod)\n"
                     "    add     x2, x2, PAGEOFF(g_hMod)\n"
+                    "#endif\n"
                     "    mov     x1, #1\n"
+                    "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                    "    adrp    x0, PAGE_GOT(g_szLibrary)\n"
+                    "    ldr     x0, [x0, PAGEOFF_GOT(g_szLibrary)]\n"
+                    "#else\n"
                     "    adrp    x0, PAGE(g_szLibrary)\n"
                     "    add     x0, x0, PAGEOFF(g_szLibrary)\n"
+                    "#endif\n"
                     "    bl      NAME(RTLdrLoadSystem)\n");
         fprintf(pOutput,
                 "    cmp     x0, #0\n"
@@ -1540,18 +1639,30 @@ static RTEXITCODE generateOutputInnerArm64(FILE *pOutput)
                 "    cmp     w20, #0\n"
                 "    b.eq    Lexplicit_load_return\n"
                 "\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp     x22, PAGE_GOT(g_szzNames)\n"
+                "    ldr      x22, [x22, PAGEOFF_GOT(g_szzNames)]\n"
+                "    adrp     x23, PAGE_GOT(g_apfnImports)\n"
+                "    ldr      x23, [x23, PAGEOFF_GOT(g_apfnImports)]\n"
+                "#else\n"
                 "    adrp     x22, PAGE(g_szzNames)\n"
                 "    add      x22, x22, PAGEOFF(g_szzNames)\n"
                 "    adrp     x23, PAGE(g_apfnImports)\n"
                 "    add      x23, x23, PAGEOFF(g_apfnImports)\n"
+                "#endif\n"
                 "Lexplicit_load_next_import:\n"
                 "    ldr     x0, [x23]\n"
                 "    cmp     x0, #0\n"
                 "    b.eq    Lexplicit_load_return\n"
                 "\n"
                 "    /* Get the module handle and call RTLdrGetSymbol(RTLDRMOD hLdrMod, const char *pszSymbol, void **ppvValue) */\n"
+                "#if defined(ASM_FORMAT_ELF) && defined(PIC)\n"
+                "    adrp    x0, PAGE_GOT(g_hMod)\n"
+                "    ldr     x0, [x0, PAGEOFF_GOT(g_hMod)]\n"
+                "#else\n"
                 "    adrp    x0, PAGE(g_hMod)\n"
                 "    ldr     x0, [x0, PAGEOFF(g_hMod)]\n"
+                "#endif\n"
                 "    mov     x1, x22\n"
                 "    mov     x2, x23\n"
                 "    bl      NAME(RTLdrGetSymbol)\n"

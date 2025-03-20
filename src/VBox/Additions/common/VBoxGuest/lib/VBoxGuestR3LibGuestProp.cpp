@@ -75,6 +75,7 @@ extern "C" void* xf86memset(const void*,int,xf86size_t);
 # undef RTStrEnd
 # define RTStrEnd xf86RTStrEnd
 
+#if 0 /* unused */
 DECLINLINE(char const *) RTStrEnd(char const *pszString, size_t cchMax)
 {
     /* Avoid potential issues with memchr seen in glibc.
@@ -89,6 +90,7 @@ DECLINLINE(char const *) RTStrEnd(char const *pszString, size_t cchMax)
     }
     return (char const *)memchr(pszString, '\0', cchMax);
 }
+#endif
 
 DECLINLINE(char *) RTStrEnd(char *pszString, size_t cchMax)
 {

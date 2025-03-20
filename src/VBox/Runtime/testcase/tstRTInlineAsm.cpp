@@ -68,6 +68,7 @@
 #include <iprt/thread.h>
 #include <iprt/test.h>
 #include <iprt/time.h>
+#include <iprt/system.h>
 
 
 
@@ -2498,60 +2499,61 @@ static void tstASMMemFirstMismatchingU8(RTTEST hTest)
 {
     RTTestSub(hTest, "ASMMemFirstMismatchingU8");
 
-    uint8_t *pbPage1 = (uint8_t *)RTTestGuardedAllocHead(hTest, PAGE_SIZE);
-    uint8_t *pbPage2 = (uint8_t *)RTTestGuardedAllocTail(hTest, PAGE_SIZE);
+    size_t const cbPageSize = RTSystemGetPageSize();
+    uint8_t *pbPage1 = (uint8_t *)RTTestGuardedAllocHead(hTest, cbPageSize);
+    uint8_t *pbPage2 = (uint8_t *)RTTestGuardedAllocTail(hTest, cbPageSize);
     RTTESTI_CHECK_RETV(pbPage1 && pbPage2);
 
-    memset(pbPage1, 0, PAGE_SIZE);
-    memset(pbPage2, 0, PAGE_SIZE);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, PAGE_SIZE, 0) == NULL);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, PAGE_SIZE, 0) == NULL);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, PAGE_SIZE, 1) == pbPage1);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, PAGE_SIZE, 1) == pbPage2);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, PAGE_SIZE, 0x87) == pbPage1);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, PAGE_SIZE, 0x87) == pbPage2);
-    RTTESTI_CHECK(ASMMemIsZero(pbPage1, PAGE_SIZE));
-    RTTESTI_CHECK(ASMMemIsZero(pbPage2, PAGE_SIZE));
-    RTTESTI_CHECK(ASMMemIsAllU8(pbPage1, PAGE_SIZE, 0));
-    RTTESTI_CHECK(ASMMemIsAllU8(pbPage2, PAGE_SIZE, 0));
-    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage1, PAGE_SIZE, 0x34));
-    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage2, PAGE_SIZE, 0x88));
+    memset(pbPage1, 0, cbPageSize);
+    memset(pbPage2, 0, cbPageSize);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbPageSize, 0) == NULL);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbPageSize, 0) == NULL);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbPageSize, 1) == pbPage1);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbPageSize, 1) == pbPage2);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbPageSize, 0x87) == pbPage1);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbPageSize, 0x87) == pbPage2);
+    RTTESTI_CHECK(ASMMemIsZero(pbPage1, cbPageSize));
+    RTTESTI_CHECK(ASMMemIsZero(pbPage2, cbPageSize));
+    RTTESTI_CHECK(ASMMemIsAllU8(pbPage1, cbPageSize, 0));
+    RTTESTI_CHECK(ASMMemIsAllU8(pbPage2, cbPageSize, 0));
+    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage1, cbPageSize, 0x34));
+    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage2, cbPageSize, 0x88));
     unsigned cbSub = 32;
     while (cbSub-- > 0)
     {
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[PAGE_SIZE - cbSub], cbSub, 0) == NULL);
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[PAGE_SIZE - cbSub], cbSub, 0) == NULL);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[cbPageSize - cbSub], cbSub, 0) == NULL);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[cbPageSize - cbSub], cbSub, 0) == NULL);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbSub, 0) == NULL);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbSub, 0) == NULL);
 
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[PAGE_SIZE - cbSub], cbSub, 0x34) == &pbPage1[PAGE_SIZE - cbSub] || !cbSub);
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[PAGE_SIZE - cbSub], cbSub, 0x99) == &pbPage2[PAGE_SIZE - cbSub] || !cbSub);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[cbPageSize - cbSub], cbSub, 0x34) == &pbPage1[cbPageSize - cbSub] || !cbSub);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[cbPageSize - cbSub], cbSub, 0x99) == &pbPage2[cbPageSize - cbSub] || !cbSub);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbSub, 0x42) == pbPage1 || !cbSub);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbSub, 0x88) == pbPage2 || !cbSub);
     }
 
-    memset(pbPage1, 0xff, PAGE_SIZE);
-    memset(pbPage2, 0xff, PAGE_SIZE);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, PAGE_SIZE, 0xff) == NULL);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, PAGE_SIZE, 0xff) == NULL);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, PAGE_SIZE, 0xfe) == pbPage1);
-    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, PAGE_SIZE, 0xfe) == pbPage2);
-    RTTESTI_CHECK(!ASMMemIsZero(pbPage1, PAGE_SIZE));
-    RTTESTI_CHECK(!ASMMemIsZero(pbPage2, PAGE_SIZE));
-    RTTESTI_CHECK(ASMMemIsAllU8(pbPage1, PAGE_SIZE, 0xff));
-    RTTESTI_CHECK(ASMMemIsAllU8(pbPage2, PAGE_SIZE, 0xff));
-    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage1, PAGE_SIZE, 0));
-    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage2, PAGE_SIZE, 0));
+    memset(pbPage1, 0xff, cbPageSize);
+    memset(pbPage2, 0xff, cbPageSize);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbPageSize, 0xff) == NULL);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbPageSize, 0xff) == NULL);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbPageSize, 0xfe) == pbPage1);
+    RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbPageSize, 0xfe) == pbPage2);
+    RTTESTI_CHECK(!ASMMemIsZero(pbPage1, cbPageSize));
+    RTTESTI_CHECK(!ASMMemIsZero(pbPage2, cbPageSize));
+    RTTESTI_CHECK(ASMMemIsAllU8(pbPage1, cbPageSize, 0xff));
+    RTTESTI_CHECK(ASMMemIsAllU8(pbPage2, cbPageSize, 0xff));
+    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage1, cbPageSize, 0));
+    RTTESTI_CHECK(!ASMMemIsAllU8(pbPage2, cbPageSize, 0));
     cbSub = 32;
     while (cbSub-- > 0)
     {
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[PAGE_SIZE - cbSub], cbSub, 0xff) == NULL);
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[PAGE_SIZE - cbSub], cbSub, 0xff) == NULL);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[cbPageSize - cbSub], cbSub, 0xff) == NULL);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[cbPageSize - cbSub], cbSub, 0xff) == NULL);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbSub, 0xff) == NULL);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbSub, 0xff) == NULL);
 
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[PAGE_SIZE - cbSub], cbSub, 0xfe) == &pbPage1[PAGE_SIZE - cbSub] || !cbSub);
-        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[PAGE_SIZE - cbSub], cbSub, 0xfe) == &pbPage2[PAGE_SIZE - cbSub] || !cbSub);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage1[cbPageSize - cbSub], cbSub, 0xfe) == &pbPage1[cbPageSize - cbSub] || !cbSub);
+        RTTESTI_CHECK(ASMMemFirstMismatchingU8(&pbPage2[cbPageSize - cbSub], cbSub, 0xfe) == &pbPage2[cbPageSize - cbSub] || !cbSub);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage1, cbSub, 0xfe) == pbPage1 || !cbSub);
         RTTESTI_CHECK(ASMMemFirstMismatchingU8(pbPage2, cbSub, 0xfe) == pbPage2 || !cbSub);
     }
@@ -2564,9 +2566,9 @@ static void tstASMMemFirstMismatchingU8(RTTEST hTest)
     uint8_t const  bFiller2 = 0xf6;
     size_t const   cbBuf    = 128;
     uint8_t       *pbBuf1   = pbPage1;
-    uint8_t       *pbBuf2   = &pbPage2[PAGE_SIZE - cbBuf]; /* Put it up against the tail guard */
-    memset(pbPage1, (uint8_t)~bFiller1, PAGE_SIZE);
-    memset(pbPage2, (uint8_t)~bFiller2, PAGE_SIZE);
+    uint8_t       *pbBuf2   = &pbPage2[cbPageSize - cbBuf]; /* Put it up against the tail guard */
+    memset(pbPage1, (uint8_t)~bFiller1, cbPageSize);
+    memset(pbPage2, (uint8_t)~bFiller2, cbPageSize);
     memset(pbBuf1, bFiller1, cbBuf);
     memset(pbBuf2, bFiller2, cbBuf);
     for (size_t offNonZero = 0; offNonZero < cbBuf; offNonZero++)
@@ -2582,7 +2584,7 @@ static void tstASMMemFirstMismatchingU8(RTTEST hTest)
             {
                 size_t const offEnd = offStart + cb;
                 uint8_t bSaved1, bSaved2;
-                if (offEnd < PAGE_SIZE)
+                if (offEnd < cbPageSize)
                 {
                     bSaved1 = pbBuf1[offEnd];
                     bSaved2 = pbBuf2[offEnd];
@@ -2600,7 +2602,7 @@ static void tstASMMemFirstMismatchingU8(RTTEST hTest)
                 pbRet = (uint8_t *)ASMMemFirstMismatchingU8(pbBuf2 + offStart, cb, bFiller2);
                 RTTESTI_CHECK(offNonZero - offStart < cb ? pbRet == &pbBuf2[offNonZero] : pbRet == NULL);
 
-                if (offEnd < PAGE_SIZE)
+                if (offEnd < cbPageSize)
                 {
                     pbBuf1[offEnd] = bSaved1;
                     pbBuf2[offEnd] = bSaved2;
@@ -2648,7 +2650,7 @@ static void tstASMMemZero32(void)
     struct
     {
         uint64_t    u64Magic1;
-        uint8_t     abPage[PAGE_SIZE - 32];
+        uint8_t     abPage[_4K - 32];
         uint64_t    u64Magic2;
     } Buf1, Buf2, Buf3;
 
@@ -2712,19 +2714,19 @@ static void tstASMMemFill32(void)
     struct
     {
         uint64_t    u64Magic1;
-        uint32_t    au32Page[PAGE_SIZE / 4];
+        uint32_t    au32Page[_4K / 4];
         uint64_t    u64Magic2;
     } Buf1;
     struct
     {
         uint64_t    u64Magic1;
-        uint32_t    au32Page[(PAGE_SIZE / 4) - 3];
+        uint32_t    au32Page[(_4K / 4) - 3];
         uint64_t    u64Magic2;
     } Buf2;
     struct
     {
         uint64_t    u64Magic1;
-        uint32_t    au32Page[(PAGE_SIZE / 4) - 1];
+        uint32_t    au32Page[(_4K / 4) - 1];
         uint64_t    u64Magic2;
     } Buf3;
 
@@ -2768,17 +2770,18 @@ static void tstASMProbe(RTTEST hTest)
     uint8_t b = 42;
     RTTESTI_CHECK(ASMProbeReadByte(&b) == 42);
 
+    size_t const cbPageSize = RTSystemGetPageSize();
     for (uint32_t cPages = 1; cPages < 16; cPages++)
     {
-        uint8_t *pbBuf1 = (uint8_t *)RTTestGuardedAllocHead(hTest, cPages * PAGE_SIZE);
-        uint8_t *pbBuf2 = (uint8_t *)RTTestGuardedAllocTail(hTest, cPages * PAGE_SIZE);
+        uint8_t *pbBuf1 = (uint8_t *)RTTestGuardedAllocHead(hTest, cPages * cbPageSize);
+        uint8_t *pbBuf2 = (uint8_t *)RTTestGuardedAllocTail(hTest, cPages * cbPageSize);
         RTTESTI_CHECK_RETV(pbBuf1 && pbBuf2);
 
-        memset(pbBuf1, 0xf6, cPages * PAGE_SIZE);
-        memset(pbBuf2, 0x42, cPages * PAGE_SIZE);
+        memset(pbBuf1, 0xf6, cPages * cbPageSize);
+        memset(pbBuf2, 0x42, cPages * cbPageSize);
 
-        RTTESTI_CHECK(ASMProbeReadByte(&pbBuf1[cPages * PAGE_SIZE - 1]) == 0xf6);
-        RTTESTI_CHECK(ASMProbeReadByte(&pbBuf2[cPages * PAGE_SIZE - 1]) == 0x42);
+        RTTESTI_CHECK(ASMProbeReadByte(&pbBuf1[cPages * cbPageSize - 1]) == 0xf6);
+        RTTESTI_CHECK(ASMProbeReadByte(&pbBuf2[cPages * cbPageSize - 1]) == 0x42);
         RTTESTI_CHECK(ASMProbeReadByte(&pbBuf1[0]) == 0xf6);
         RTTESTI_CHECK(ASMProbeReadByte(&pbBuf2[0]) == 0x42);
     }

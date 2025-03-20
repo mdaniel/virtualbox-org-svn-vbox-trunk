@@ -337,7 +337,7 @@ int USBProxyBackendLinux::waitUsbfs(RTMSINTERVAL aMillies)
     PollFds[1].fd        = (int)RTPipeToNative(mhWakeupPipeR);
     PollFds[1].events    = POLLIN | POLLERR | POLLHUP;
 
-    int iRc = poll(&PollFds[0], 2, aMillies);
+    int iRc = poll(&PollFds[0], 2, (int)aMillies);
     if (iRc == 0)
         return VERR_TIMEOUT;
     if (iRc > 0)

@@ -224,8 +224,8 @@ static void floppyCreateDeviceStrings(const floppy_drive_name pcszName, unsigned
  */
 static bool isCdromDevNum(dev_t Number) RT_NOTHROW_DEF
 {
-    int major = major(Number);
-    int minor = minor(Number);
+    unsigned major = major(Number);
+    unsigned minor = minor(Number);
     if (major == IDE0_MAJOR && !(minor & 0x3f))
         return true;
     if (major == SCSI_CDROM_MAJOR)
@@ -946,14 +946,19 @@ static int readFilePathsFromDir(const char *pcszPath, DIR *pDir, VECTOR_PTR(char
     struct dirent entry, *pResult;
     int err;
 
-#if RT_GNUC_PREREQ(4, 6)
+#if RT_CLANG_PREREQ(3, 4) /* Needs to come first because clang also triggers on RT_GNUC_PREREQ() but doesn't work there. */
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif RT_GNUC_PREREQ(4, 6)
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
     for (err = readdir_r(pDir, &entry, &pResult);
          pResult != NULL && err == 0;
          err = readdir_r(pDir, &entry, &pResult))
-#if RT_GNUC_PREREQ(4, 6)
+#if RT_CLANG_PREREQ(3, 4)
+# pragma clang diagnostic pop
+#elif RT_GNUC_PREREQ(4, 6)
 # pragma GCC diagnostic pop
 #endif
     {
@@ -1270,7 +1275,7 @@ int hotplugInotifyImpl::Wait(RTMSINTERVAL aMillies)
             pollFD[INOTIFY_ID].fd     = iwGetFD(&mWatches);
             pollFD[INOTIFY_ID].events = POLLIN | POLLERR | POLLHUP;
             errno = 0;
-            int cPolled = poll(pollFD, RT_ELEMENTS(pollFD), aMillies);
+            int cPolled = poll(pollFD, RT_ELEMENTS(pollFD), (int)aMillies);
             if (cPolled < 0)
             {
                 Assert(errno > 0);

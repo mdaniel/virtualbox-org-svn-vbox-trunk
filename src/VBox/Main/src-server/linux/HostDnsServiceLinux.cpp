@@ -161,7 +161,7 @@ static int monitorSymlinkedDir(int iInotifyFd, char szRealResolvConf[PATH_MAX], 
             && strchr(szRealResolvConf, '/'))
         {
             /* Cut of the filename part. We only need that for deletion checks and such. */
-            size_t const offFilename = strrchr(szRealResolvConf, '/') - &szRealResolvConf[0];
+            size_t const offFilename = (size_t)(strrchr(szRealResolvConf, '/') - &szRealResolvConf[0]);
             *poffFilename = offFilename + 1;
             szRealResolvConf[offFilename] = '\0';
 

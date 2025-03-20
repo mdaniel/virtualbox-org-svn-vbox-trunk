@@ -264,7 +264,7 @@ int CollectorLinux::getHostDiskSize(const char *pszFile, uint64_t *size)
         int64_t cSize = 0;
         vrc = RTLinuxSysFsReadIntFile(0, &cSize, pszPath);
         if (RT_SUCCESS(vrc))
-            *size = cSize * 512;
+            *size = (uint64_t)cSize * 512;
     }
     RTStrFree(pszPath);
     return vrc;
@@ -279,7 +279,7 @@ int CollectorLinux::getProcessMemoryUsage(RTPROCESS process, ULONG *used)
         Log (("No stats pre-collected for process %x\n", process));
         return VERR_INTERNAL_ERROR;
     }
-    *used = it->second.pagesUsed * (PAGE_SIZE / 1024);
+    *used = it->second.pagesUsed * (RTSystemGetPageSize() / 1024);
     return VINF_SUCCESS;
 }
 
@@ -337,7 +337,7 @@ int CollectorLinux::getRawHostNetworkLoad(const char *pszFile, uint64_t *rx, uin
     if (RT_FAILURE(vrc))
         return vrc;
 
-    *rx = cSize;
+    *rx = (uint64_t)cSize;
 
     RTStrPrintf(szIfName, sizeof(szIfName), "/sys/class/net/%s/statistics/tx_bytes", pszFile);
     if (!RTLinuxSysFsExists(szIfName))
@@ -347,7 +347,7 @@ int CollectorLinux::getRawHostNetworkLoad(const char *pszFile, uint64_t *rx, uin
     if (RT_FAILURE(vrc))
         return vrc;
 
-    *tx = cSize;
+    *tx = (uint64_t)cSize;
     return VINF_SUCCESS;
 }
 

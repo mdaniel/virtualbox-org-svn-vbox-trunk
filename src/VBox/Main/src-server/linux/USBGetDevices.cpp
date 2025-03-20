@@ -349,7 +349,7 @@ static int usbfsReadBCD(const char *pszValue, unsigned uBase, uint16_t *pu16, ch
             AssertMsgFailed(("pszValue=%s\n", pszValue));
             return VERR_NO_DATA;
         }
-        if (u32Int & ~0xff)
+        if (u32Int & ~UINT32_C(0xff))
         {
             AssertMsgFailed(("pszValue=%s u32Int=%#x (int)\n", pszValue, u32Int));
             return VERR_OUT_OF_RANGE;
@@ -369,7 +369,7 @@ static int usbfsReadBCD(const char *pszValue, unsigned uBase, uint16_t *pu16, ch
             AssertMsgFailed(("pszValue=%s\n", pszValue));
             return VERR_NO_DATA;
         }
-        if (u32Dec & ~0xff)
+        if (u32Dec & ~UINT32_C(0xff))
         {
             AssertMsgFailed(("pszValue=%s u32Dec=%#x\n", pszValue, u32Dec));
             return VERR_OUT_OF_RANGE;
@@ -867,7 +867,7 @@ static unsigned usbsysfsGetBusFromPath(const char *pszPath)
 static dev_t usbsysfsMakeDevNum(unsigned bus, unsigned device)
 {
     AssertReturn(bus > 0, 0);
-    AssertReturn(((device - 1) & ~127) == 0, 0);
+    AssertReturn(((device - 1) & ~UINT32_C(127)) == 0, 0);
     AssertReturn(device > 0, 0);
     return makedev(USBDEVICE_MAJOR, ((bus - 1) << 7) + device - 1);
 }
@@ -894,7 +894,7 @@ static int usbsysfsAddIfDevice(const char *pszDevicesRoot, const char *pszNode, 
     if (RT_FAILURE(vrc))
         return VINF_SUCCESS;
 
-    dev_t devnum = usbsysfsMakeDevNum(bus, (int)device);
+    dev_t devnum = usbsysfsMakeDevNum(bus, (unsigned)device);
     if (!devnum)
         return VINF_SUCCESS;
 
@@ -1008,13 +1008,18 @@ static int usbsysfsReadFilePathsFromDir(const char *pszPath, DIR *pDir, VECTOR_P
     struct dirent entry, *pResult;
     int err;
 
-#if RT_GNUC_PREREQ(4, 6)
+#if RT_CLANG_PREREQ(3, 4) /* Needs to come first because clang also triggers on RT_GNUC_PREREQ() but doesn't work there. */
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif RT_GNUC_PREREQ(4, 6)
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
     for (err = readdir_r(pDir, &entry, &pResult); pResult;
          err = readdir_r(pDir, &entry, &pResult))
-#if RT_GNUC_PREREQ(4, 6)
+#if RT_CLANG_PREREQ(3, 4)
+# pragma clang diagnostic pop
+#elif RT_GNUC_PREREQ(4, 6)
 # pragma GCC diagnostic pop
 #endif
     {

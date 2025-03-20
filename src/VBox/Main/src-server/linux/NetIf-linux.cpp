@@ -230,7 +230,7 @@ static int getInterfaceInfo(int iSocket, const char *pszName, PNETIFINFO pInfo)
                     pInfo->IPv6Address.au32[1] = htonl(IPv6Address.au32[1]);
                     pInfo->IPv6Address.au32[2] = htonl(IPv6Address.au32[2]);
                     pInfo->IPv6Address.au32[3] = htonl(IPv6Address.au32[3]);
-                    RTNetPrefixToMaskIPv6(uLength, &pInfo->IPv6NetMask);
+                    RTNetPrefixToMaskIPv6((int)uLength, &pInfo->IPv6NetMask);
                 }
             }
             fclose(fp);

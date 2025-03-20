@@ -80,7 +80,6 @@ private:
     HRESULT getRecommendedRAM(ULONG *RAMSize);
     HRESULT getRecommendedGraphicsController(GraphicsControllerType_T *aRecommendedGraphicsController);
     HRESULT getRecommendedVRAM(ULONG *aVRAMSize);
-    HRESULT getRecommended2DVideoAcceleration(BOOL *aRecommended2DVideoAcceleration);
     HRESULT getRecommended3DAcceleration(BOOL *aRecommended3DAcceleration);
     HRESULT getRecommendedHDD(LONG64 *aHDDSize);
     HRESULT getAdapterType(NetworkAdapterType_T *aNetworkAdapterType);

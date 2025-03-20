@@ -259,15 +259,6 @@ HRESULT GuestOSType::getRecommendedVRAM(ULONG *aVRAMSize)
 }
 
 
-HRESULT GuestOSType::getRecommended2DVideoAcceleration(BOOL *aRecommended2DVideoAcceleration)
-{
-    /* Constant during life time, no need to lock */
-    *aRecommended2DVideoAcceleration = !!(mOSHint & VBOXOSHINT_ACCEL2D);
-
-    return S_OK;
-}
-
-
 HRESULT GuestOSType::getRecommended3DAcceleration(BOOL *aRecommended3DAcceleration)
 {
     /* Constant during life time, no need to lock */

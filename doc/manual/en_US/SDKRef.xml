@@ -4813,12 +4813,23 @@ AuthResult AUTHCALL AuthEntry(
     existing client code.</para>
 
     <sect1>
+      <title>Incompatible API changes with version 7.2</title>
+
+      <itemizedlist>
+
+        <listitem><para>The attribute GraphicsFeature::Acceleration2DVideo has been removed.</para></listitem>
+        <listitem><para>The attribute GuestOSType::recommended2DVideoAcceleration has been removed.</para></listitem>
+
+      </itemizedlist>
+    </sect1>
+
+    <sect1>
       <title>Incompatible API changes with version 7.1</title>
 
       <itemizedlist>
 
         <listitem><para>Review the Main API changes made for the ARM64 CPU architecture <link linkend="vboxarm">here</link>
-        for incompatible changes to interfaces, methods, and attributes.</para>
+          for incompatible changes to interfaces, methods, and attributes.</para>
         </listitem>
 
         <listitem><para>The Python API bindings for Python 2.x is now marked as being deprecated and will

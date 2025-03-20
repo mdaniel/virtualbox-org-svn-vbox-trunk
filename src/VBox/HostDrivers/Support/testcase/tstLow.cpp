@@ -44,6 +44,7 @@
 #include <iprt/initterm.h>
 #include <iprt/stream.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 
 
 int main(int argc, char **argv)
@@ -57,6 +58,9 @@ int main(int argc, char **argv)
     rc = SUPR3Init(NULL);
     if (RT_SUCCESS(rc))
     {
+        uint32_t  const cbPage      = RTSystemGetPageSize();
+        uintptr_t const offPageMask = RTSystemGetPageOffsetMask();
+
         /*
          * Allocate a bit of contiguous memory.
          */
@@ -76,7 +80,7 @@ int main(int argc, char **argv)
                     RTPrintf("tstLow: error: aPages0[%d].uReserved=%#x expected 0!\n", iPage, aPages0[iPage].uReserved);
                 }
                 if (    aPages0[iPage].Phys >= _4G
-                    ||  (aPages0[iPage].Phys & PAGE_OFFSET_MASK))
+                    ||  (aPages0[iPage].Phys & offPageMask))
                 {
                     rcRet++;
                     RTPrintf("tstLow: error: aPages0[%d].Phys=%RHp!\n", iPage, aPages0[iPage].Phys);
@@ -85,13 +89,13 @@ int main(int argc, char **argv)
             if (!rcRet)
             {
                 for (unsigned iPage = 0; iPage < RT_ELEMENTS(aPages0); iPage++)
-                    memset((char *)pvPages0 + iPage * PAGE_SIZE, iPage, PAGE_SIZE);
+                    memset((char *)pvPages0 + iPage * cbPage, iPage, cbPage);
                 for (unsigned iPage = 0; iPage < RT_ELEMENTS(aPages0); iPage++)
-                    for (uint8_t *pu8 = (uint8_t *)pvPages0 + iPage * PAGE_SIZE, *pu8End = pu8 + PAGE_SIZE; pu8 < pu8End; pu8++)
+                    for (uint8_t *pu8 = (uint8_t *)pvPages0 + iPage * cbPage, *pu8End = pu8 + cbPage; pu8 < pu8End; pu8++)
                         if (*pu8 != (uint8_t)iPage)
                         {
                             RTPrintf("tstLow: error: invalid page content %02x != %02x. iPage=%u off=%#x\n",
-                                     *pu8, (uint8_t)iPage, iPage, (uintptr_t)pu8 & PAGE_OFFSET_MASK);
+                                     *pu8, (uint8_t)iPage, iPage, (uintptr_t)pu8 & offPageMask);
                             rcRet++;
                         }
             }
@@ -124,7 +128,7 @@ int main(int argc, char **argv)
                         RTPrintf("tstLow: error: aPages1[%d].uReserved=%#x expected 0!\n", iPage, aPages1[iPage].uReserved);
                     }
                     if (    aPages1[iPage].Phys >= _4G
-                        ||  (aPages1[iPage].Phys & PAGE_OFFSET_MASK))
+                        ||  (aPages1[iPage].Phys & offPageMask))
                     {
                         rcRet++;
                         RTPrintf("tstLow: error: aPages1[%d].Phys=%RHp!\n", iPage, aPages1[iPage].Phys);
@@ -133,13 +137,13 @@ int main(int argc, char **argv)
                 if (!rcRet)
                 {
                     for (unsigned iPage = 0; iPage < cPages; iPage++)
-                        memset((char *)pvPages1 + iPage * PAGE_SIZE, iPage, PAGE_SIZE);
+                        memset((char *)pvPages1 + iPage * cbPage, iPage, cbPage);
                     for (unsigned iPage = 0; iPage < cPages; iPage++)
-                        for (uint8_t *pu8 = (uint8_t *)pvPages1 + iPage * PAGE_SIZE, *pu8End = pu8 + PAGE_SIZE; pu8 < pu8End; pu8++)
+                        for (uint8_t *pu8 = (uint8_t *)pvPages1 + iPage * cbPage, *pu8End = pu8 + cbPage; pu8 < pu8End; pu8++)
                             if (*pu8 != (uint8_t)iPage)
                             {
                                 RTPrintf("tstLow: error: invalid page content %02x != %02x. iPage=%p off=%#x\n",
-                                         *pu8, (uint8_t)iPage, iPage, (uintptr_t)pu8 & PAGE_OFFSET_MASK);
+                                         *pu8, (uint8_t)iPage, iPage, (uintptr_t)pu8 & offPageMask);
                                 rcRet++;
                             }
                 }

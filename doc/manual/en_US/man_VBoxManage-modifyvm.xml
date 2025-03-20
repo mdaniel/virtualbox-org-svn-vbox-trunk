@@ -976,8 +976,7 @@ it unless this changes. -->
           <listitem><para>
               Enables or disables the use of hardware virtualization
               extensions in the processor of the host system. Such
-              extensions are Intel VT-x or AMD-V. See
-              <xref linkend="hwvirt" />.
+              extensions are Intel VT-x or AMD-V.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1061,7 +1060,6 @@ it unless this changes. -->
               Enables or disables the nested paging feature in the
               processor of the host system. This option is available
               only when hardware virtualization is enabled. See
-              <xref linkend="hwvirt" /> and
               <xref linkend="sec-rec-cve-2018-3646" />.
             </para></listitem>
         </varlistentry>
@@ -1079,9 +1077,9 @@ it unless this changes. -->
           <term><option>--x86-vtx-vpid=on | off</option></term>
           <listitem><para>
               Enables or disables the use of the tagged TLB (VPID)
-              feature in the processor of your host system. See
-              <xref linkend="hwvirt" />. This option is available only
-              when hardware virtualization is enabled on Intel VT-x.
+              feature in the processor of your host system. This
+              option is available only when hardware virtualization
+              is enabled on Intel VT-x.
             </para></listitem>
         </varlistentry>
         <varlistentry>

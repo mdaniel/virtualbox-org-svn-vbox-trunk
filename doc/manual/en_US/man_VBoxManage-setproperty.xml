@@ -89,7 +89,7 @@
         <listitem><para>
             Specifies whether &product-name; makes exclusive use of the
             Intel VT-x or AMD-V hardware virtualization extensions of
-            the host system's processor. See <xref linkend="hwvirt" />.
+            the host system's processor.
           </para><para>
             Valid values are as follows:
           </para><itemizedlist>

@@ -928,7 +928,6 @@ it unless this changes. -->
               Включает или отключает использования расширение
               виртуализации оборудования в процессоре хост-системы.
               Такими расширениями являются Intel VT-x или AMD-V.
-              Смотрите <xref linkend="hwvirt" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -1013,7 +1012,6 @@ it unless this changes. -->
               Включает или отключает функцию вложенных страниц в
               процессоре хост-системы. Эта опция доступна только
               если аппаратная виртуализация включена. Смотрите
-              <xref linkend="hwvirt" /> и
               <xref linkend="sec-rec-cve-2018-3646" />.
             </para></listitem>
         </varlistentry>
@@ -1032,8 +1030,7 @@ it unless this changes. -->
           <term><option>--x86-vtx-vpid=on | off</option></term>
           <listitem><para>
               Включает или отключает использование функцию TLB c метками
-              (VPID) в процессоре вашей хост-системы. Смотрите
-              <xref linkend="hwvirt" />. Эта опция доступна только
+              (VPID) в процессоре вашей хост-системы. Эта опция доступна только
               если аппаратная виртуализация включена на Intel VT-x.
             </para></listitem>
         </varlistentry>

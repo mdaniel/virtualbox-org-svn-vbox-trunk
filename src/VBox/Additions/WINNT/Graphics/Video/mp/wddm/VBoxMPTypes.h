@@ -109,14 +109,6 @@ typedef struct _VBOXWDDM_GLOBAL_POINTER_INFO
     uint32_t iLastReportedScreen;
 } VBOXWDDM_GLOBAL_POINTER_INFO, *PVBOXWDDM_GLOBAL_POINTER_INFO;
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-typedef struct VBOXWDDM_VHWA
-{
-    VBOXVHWA_INFO Settings;
-    volatile uint32_t cOverlaysCreated;
-} VBOXWDDM_VHWA;
-#endif
-
 typedef struct VBOXWDDM_ADDR
 {
     /* if SegmentId == NULL - the sysmem data is presented with pvMem */
@@ -152,14 +144,6 @@ typedef struct VBOXWDDM_SOURCE
     BOOLEAN bVisible;
     BOOLEAN bBlankedByPowerOff;
     VBOXVBVAINFO Vbva;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    /* @todo: in our case this seems more like a target property,
-     * but keep it here for now */
-    VBOXWDDM_VHWA Vhwa;
-    volatile uint32_t cOverlays;
-    LIST_ENTRY OverlayList;
-    KSPIN_LOCK OverlayListLock;
-#endif
     KSPIN_LOCK AllocationLock;
     POINT VScreenPos;
     VBOXWDDM_POINTER_INFO PointerInfo;
@@ -190,9 +174,6 @@ typedef struct VBOXWDDM_ALLOCATION
 {
     VBOXWDDM_ALLOC_TYPE enmType;
     D3DDDI_RESOURCEFLAGS fRcFlags;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    VBOXVHWA_SURFHANDLE hHostHandle;
-#endif
     BOOLEAN fDeleted;
     BOOLEAN bVisible;
     BOOLEAN bAssigned;

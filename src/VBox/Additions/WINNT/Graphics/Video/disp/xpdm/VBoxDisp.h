@@ -143,10 +143,6 @@ typedef struct _VBOXDISPDEV
     VBOXDDLOCKINFO ddpsLock;                 /* Primary surface DirectDraw lock information */
 #endif
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    VBOXDISPVHWAINFO  vhwa;                  /* VHWA Info */
-#endif
-
     BOOL bBitmapCacheDisabled;
 } VBOXDISPDEV, *PVBOXDISPDEV;
 

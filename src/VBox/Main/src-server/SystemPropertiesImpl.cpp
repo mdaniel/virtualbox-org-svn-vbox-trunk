@@ -1155,9 +1155,6 @@ HRESULT SystemProperties::getSupportedGraphicsFeatures(std::vector<GraphicsFeatu
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
     static const GraphicsFeature_T s_aGraphicsFeatures[] =
     {
-# ifdef VBOX_WITH_VIDEOHWACCEL
-        GraphicsFeature_Acceleration2DVideo,
-# endif
 # ifdef VBOX_WITH_3D_ACCELERATION
         GraphicsFeature_Acceleration3D
 # endif

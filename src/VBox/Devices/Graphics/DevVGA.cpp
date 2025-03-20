@@ -3318,7 +3318,7 @@ vgaR3IOPortHgsmiWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32
         {
             case VGA_PORT_HGSMI_HOST: /* Host */
             {
-# if defined(VBOX_WITH_VIDEOHWACCEL) || defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM)
+# if defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM)
                 if (u32 == HGSMIOFFSET_VOID)
                 {
                     int const rcLock = PDMDevHlpCritSectEnter(pDevIns, &pThis->CritSectIRQ, VERR_SEM_BUSY);
@@ -4773,9 +4773,7 @@ static DECLCALLBACK(void *) vgaR3PortQueryInterface(PPDMIBASE pInterface, const 
     PVGASTATECC pThisCC = RT_FROM_MEMBER(pInterface, VGASTATECC, IBase);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMIBASE, &pThisCC->IBase);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMIDISPLAYPORT, &pThisCC->IPort);
-# if defined(VBOX_WITH_HGSMI) && defined(VBOX_WITH_VIDEOHWACCEL)
-    PDMIBASE_RETURN_INTERFACE(pszIID, PDMIDISPLAYVBVACALLBACKS, &pThisCC->IVBVACallbacks);
-# endif
+    /* pThisCC->IVBVACallbacks not used currently. */
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMILEDPORTS, &pThisCC->ILeds);
     return NULL;
 }
@@ -5569,10 +5567,6 @@ static DECLCALLBACK(void) vgaR3TimerRefresh(PPDMDEVINS pDevIns, TMTIMERHANDLE hT
     if (pThis->cMilliesRefreshInterval)
         PDMDevHlpTimerSetMillies(pDevIns, hTimer, pThis->cMilliesRefreshInterval);
 
-# ifdef VBOX_WITH_VIDEOHWACCEL
-    vbvaTimerCb(pDevIns, pThis, pThisCC);
-# endif
-
 # ifdef VBOX_WITH_VMSVGA
     /*
      * Call the VMSVGA FIFO poller/watchdog so we can wake up the thread if
@@ -5826,13 +5820,8 @@ static DECLCALLBACK(int) vgaR3LiveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
  */
 static DECLCALLBACK(int) vgaR3SavePrep(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 {
-# ifdef VBOX_WITH_VIDEOHWACCEL
-    RT_NOREF(pSSM);
-    return vboxVBVASaveStatePrep(pDevIns);
-# else
     RT_NOREF(pDevIns, pSSM);
     return VINF_SUCCESS;
-# endif
 }
 
 
@@ -5841,13 +5830,8 @@ static DECLCALLBACK(int) vgaR3SavePrep(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
  */
 static DECLCALLBACK(int) vgaR3SaveDone(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 {
-# ifdef VBOX_WITH_VIDEOHWACCEL
-    RT_NOREF(pSSM);
-    return vboxVBVASaveStateDone(pDevIns);
-# else
     RT_NOREF(pDevIns, pSSM);
     return VINF_SUCCESS;
-# endif
 }
 
 
@@ -6257,14 +6241,6 @@ static DECLCALLBACK(int)  vgaAttach(PPDMDEVINS pDevIns, unsigned iLUN, uint32_t 
                         pThisCC->pDrvBase = NULL;
                         rc = VERR_INTERNAL_ERROR;
                     }
-# ifdef VBOX_WITH_VIDEOHWACCEL
-                    if(rc == VINF_SUCCESS)
-                    {
-                        rc = vbvaVHWAConstruct(pDevIns, pThis, pThisCC);
-                        if (rc != VERR_NOT_IMPLEMENTED)
-                            AssertRC(rc);
-                    }
-# endif
                 }
                 else
                 {
@@ -6375,7 +6351,7 @@ static DECLCALLBACK(int) vgaR3Destruct(PPDMDEVINS pDevIns)
         pThisCC->pbLogo = NULL;
     }
 
-# if defined(VBOX_WITH_VIDEOHWACCEL) || defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM)
+# if defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM)
     PDMDevHlpCritSectDelete(pDevIns, &pThis->CritSectIRQ);
 # endif
     PDMDevHlpCritSectDelete(pDevIns, &pThis->CritSect);
@@ -6628,7 +6604,7 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     PDMPciDevSetClassSub(pPciDev,               0x00);   /* VGA controller */
     PDMPciDevSetClassBase(pPciDev,              0x03);
     PDMPciDevSetHeaderType(pPciDev,             0x00);
-# if defined(VBOX_WITH_HGSMI) && (defined(VBOX_WITH_VIDEOHWACCEL) || defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM))
+# if defined(VBOX_WITH_HGSMI) && (defined(VBOX_WITH_VDMA) || defined(VBOX_WITH_WDDM))
     PDMPciDevSetInterruptPin(pPciDev,           1);
 # endif
 
@@ -6657,10 +6633,6 @@ static DECLCALLBACK(int)   vgaR3Construct(PPDMDEVINS pDevIns, int iInstance, PCF
     pThisCC->IPort.pfnSendModeHint      = vbvaR3PortSendModeHint;
     pThisCC->IPort.pfnReportHostCursorCapabilities = vgaR3PortReportHostCursorCapabilities;
     pThisCC->IPort.pfnReportHostCursorPosition = vgaR3PortReportHostCursorPosition;
-
-# if defined(VBOX_WITH_HGSMI) && defined(VBOX_WITH_VIDEOHWACCEL)
-    pThisCC->IVBVACallbacks.pfnVHWACommandCompleteAsync = vbvaR3VHWACommandCompleteAsync;
-# endif
 
     pThisCC->ILeds.pfnQueryStatusLed    = vgaR3PortQueryStatusLed;
     pThis->Led3D.u32Magic               = PDMLED_MAGIC;

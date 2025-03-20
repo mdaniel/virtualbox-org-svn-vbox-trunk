@@ -636,10 +636,6 @@ HSURF APIENTRY VBoxDispDrvEnableSurface(DHPDEV dhpdev)
                                     (uint16_t)pDev->mode.ulBitsPerPel, VBVA_SCREEN_F_ACTIVE);
     }
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    VBoxDispVHWAEnable(pDev);
-#endif
-
     /* Set device palette if needed */
     if (pDev->mode.ulBitsPerPel == 8)
     {
@@ -808,12 +804,6 @@ BOOL APIENTRY VBoxDispDrvAssertMode(DHPDEV dhpdev, BOOL bEnable)
     if (!bEnable)
     {
         LOGF(("!bEnable"));
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        /* tells we can not process host commands any more and ensures that
-         * we've completed processing of the host VHWA commands
-         */
-        VBoxDispVHWADisable(pDev);
-#endif
 
         /* disable VBVA */
         if (pDev->hgsmi.bSupported)
@@ -851,11 +841,6 @@ BOOL APIENTRY VBoxDispDrvAssertMode(DHPDEV dhpdev, BOOL bEnable)
                                         0, abs(pDev->mode.lScanlineStride), pDev->mode.ulWidth, pDev->mode.ulHeight,
                                         (uint16_t)pDev->mode.ulBitsPerPel, VBVA_SCREEN_F_ACTIVE);
         }
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        /* tells we can process host commands */
-       VBoxDispVHWAEnable(pDev);
-#endif
 
         /* Associate back GDI bitmap residing in our framebuffer memory with GDI's handle to our device */
         if (!EngAssociateSurface((HSURF)pDev->surface.hBitmap, pDev->hDevGDI, 0))

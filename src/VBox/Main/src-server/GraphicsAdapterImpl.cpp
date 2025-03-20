@@ -308,10 +308,6 @@ HRESULT GraphicsAdapter::isFeatureEnabled(GraphicsFeature_T aFeature, BOOL *aEna
     {
         switch (aFeature)
         {
-            case GraphicsFeature_Acceleration2DVideo:
-                pfSetting = &mData->fAccelerate2DVideo;
-                break;
-
             case GraphicsFeature_Acceleration3D:
                 pfSetting = &mData->fAccelerate3D;
                 break;
@@ -481,8 +477,7 @@ bool *GraphicsAdapter::i_getFeatureMemberBool(GraphicsFeature_T aFeature)
 {
     switch (aFeature)
     {
-        case GraphicsFeature_Acceleration2DVideo: return &mData->fAccelerate2DVideo;
-        case GraphicsFeature_Acceleration3D:      return &mData->fAccelerate3D;
+        case GraphicsFeature_Acceleration3D: return &mData->fAccelerate3D;
         default:
             break;
     }
@@ -505,8 +500,7 @@ void GraphicsAdapter::i_updateFeatures()
 
     FEATUREMEMBER2ENUM aFeatures[] =
     {
-        { &mData->fAccelerate2DVideo, GraphicsFeature_Acceleration2DVideo },
-        { &mData->fAccelerate3D,      GraphicsFeature_Acceleration3D },
+        { &mData->fAccelerate3D, GraphicsFeature_Acceleration3D }
     };
 
     for (size_t i = 0; i < RT_ELEMENTS(aFeatures); i++)

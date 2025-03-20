@@ -311,9 +311,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
  ifdef VBOXWDDM_WITH_VBVA
   VBoxDD_DEFS           += VBOXWDDM_WITH_VBVA
  endif
- ifdef VBOX_WITH_VIDEOHWACCEL
-  VBoxDD_DEFS           += VBOX_WITH_VIDEOHWACCEL
- endif
 
  ifdef VBOX_WITH_HGSMI
   VBoxDD_DEFS           += VBOX_WITH_HGSMI
@@ -1119,10 +1116,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
    endif
   endif
 
-  ifdef VBOX_WITH_VIDEOHWACCEL
-   VBoxDDRC_DEFS        += VBOX_WITH_VIDEOHWACCEL
-  endif
-
   ifdef VBOX_WITH_AHCI
    VBoxDDRC_DEFS        += VBOX_WITH_AHCI IN_AHCI_GC
    VBoxDDRC_SOURCES     += \
@@ -1384,9 +1377,6 @@ if !defined(VBOX_ONLY_EXTPACKS) && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SU
 
  ifdef VBOX_WITH_HGSMI
   VBoxDDR0_DEFS         += VBOX_WITH_HGSMI
- endif
- ifdef VBOX_WITH_VIDEOHWACCEL
-  VBoxDDR0_DEFS         += VBOX_WITH_VIDEOHWACCEL
  endif
 
  if1of ($(VBOX_LDR_FMT), pe lx)

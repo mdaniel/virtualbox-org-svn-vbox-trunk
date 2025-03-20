@@ -82,9 +82,7 @@ enum
     MODIFYVM_GRAPHICSCONTROLLER,
     MODIFYVM_MONITORCOUNT,
     MODIFYVM_ACCELERATE3D,
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    MODIFYVM_ACCELERATE2DVIDEO,
-#endif
+    MODIFYVM_ACCELERATE2DVIDEO,  // deprecated
     /*
      * Firmware-specific stuff.
      */
@@ -310,9 +308,9 @@ static const RTGETOPTDEF g_aModifyVMOptions[] =
     OPT2("--graphicscontroller",            "--graphicscontroller",     MODIFYVM_GRAPHICSCONTROLLER,        RTGETOPT_REQ_STRING),
     OPT2("--monitor-count",                 "--monitorcount",           MODIFYVM_MONITORCOUNT,              RTGETOPT_REQ_UINT32),
     OPT2("--accelerate-3d",                 "--accelerate3d",           MODIFYVM_ACCELERATE3D,              RTGETOPT_REQ_BOOL_ONOFF),
-#ifdef VBOX_WITH_VIDEOHWACCEL
+    /* { Kept for backwards-compatibility*/
     OPT2("--accelerate-2d-video",           "--accelerate2dvideo",      MODIFYVM_ACCELERATE2DVIDEO,         RTGETOPT_REQ_BOOL_ONOFF),
-#endif
+    /* } */
     OPT1("--firmware-logo-fade-in",                                     MODIFYVM_FWLOGOFADEIN,              RTGETOPT_REQ_BOOL_ONOFF),
     OPT1("--firmware-logo-fade-out",                                    MODIFYVM_FWLOGOFADEOUT,             RTGETOPT_REQ_BOOL_ONOFF),
     OPT1("--firmware-logo-image-path",                                  MODIFYVM_FWLOGOIMAGEPATH,           RTGETOPT_REQ_STRING),
@@ -1147,13 +1145,13 @@ RTEXITCODE handleModifyVM(HandlerArg *a)
                 break;
             }
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
+            /* Kept for backwards-compatibility. */
             case MODIFYVM_ACCELERATE2DVIDEO:
             {
-                CHECK_ERROR(pGraphicsAdapter, SetFeature(GraphicsFeature_Acceleration2DVideo, ValueUnion.f));
+                RTStrmPrintf(g_pStdErr, ModifyVM::tr("Warning: '--accelerate-2d-video' is deprecated and will be removed in a future version\n"));
                 break;
             }
-#endif
+
             case MODIFYVM_FWLOGOFADEIN:
             {
                 CHECK_ERROR(firmwareSettings, COMSETTER(LogoFadeIn)(ValueUnion.f));

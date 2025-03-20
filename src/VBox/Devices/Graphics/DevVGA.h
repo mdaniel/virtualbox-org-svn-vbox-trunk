@@ -280,17 +280,6 @@ typedef void FNCURSORDRAWLINE(struct VGAState *s, uint8_t *d, int y);
 typedef struct VBOXVDMAHOST *PVBOXVDMAHOST;
 #endif
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-#define VBOX_VHWA_MAX_PENDING_COMMANDS 1000
-
-typedef struct _VBOX_VHWA_PENDINGCMD
-{
-    RTLISTNODE Node;
-    VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCommand;
-} VBOX_VHWA_PENDINGCMD;
-#endif
-
-
 /**
  * The shared VGA state data.
  */
@@ -576,10 +565,6 @@ typedef struct VGASTATER3
     PDMIBASE                    IBase;
     /** LUN\#0: The display port interface. */
     PDMIDISPLAYPORT             IPort;
-#ifdef VBOX_WITH_HGSMI
-    /** LUN\#0: VBVA callbacks interface */
-    PDMIDISPLAYVBVACALLBACKS    IVBVACallbacks;
-#endif
     /** Status LUN: Leds interface. */
     PDMILEDPORTS                ILeds;
 
@@ -726,17 +711,6 @@ int     VBVAInfoScreen(PVGASTATE pThis, const VBVAINFOSCREEN RT_UNTRUSTED_VOLATI
 int     VBVAGetInfoViewAndScreen(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t u32ViewIndex,
                                  VBVAINFOVIEW *pView, VBVAINFOSCREEN *pScreen);
 #endif
-
-# ifdef VBOX_WITH_VIDEOHWACCEL
-DECLCALLBACK(int) vbvaR3VHWACommandCompleteAsync(PPDMIDISPLAYVBVACALLBACKS pInterface,
-                                                 VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCmd);
-int vbvaVHWAConstruct(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC);
-
-void vbvaTimerCb(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC);
-
-int vboxVBVASaveStatePrep(PPDMDEVINS pDevIns);
-int vboxVBVASaveStateDone(PPDMDEVINS pDevIns);
-# endif
 
 int vboxVBVASaveStateExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM);
 int vboxVBVALoadStateExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t u32Version);

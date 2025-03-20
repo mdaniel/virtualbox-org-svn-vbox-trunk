@@ -363,13 +363,6 @@ int VBoxDispVBVAInit(PVBOXDISPDEV pDev)
         DWORD dwrc = EngDeviceIoControl(pDev->hDriver, IOCTL_VIDEO_HGSMI_HANDLER_ENABLE, &HandlerReg, sizeof(HandlerReg),
                                         0, NULL, &cbReturned);
         VBOX_WARN_WINERR(dwrc);
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        if (NO_ERROR == dwrc)
-        {
-            VBoxDispVHWAInit(pDev);
-        }
-#endif
     }
 
     /* Check if we have enough VRAM and update layout info.

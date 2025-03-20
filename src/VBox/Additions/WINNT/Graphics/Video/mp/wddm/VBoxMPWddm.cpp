@@ -28,9 +28,6 @@
 #include "VBoxMPWddm.h"
 #include "common/VBoxMPCommon.h"
 #include "common/VBoxMPHGSMI.h"
-#ifdef VBOX_WITH_VIDEOHWACCEL
-# include "VBoxMPVhwa.h"
-#endif
 #include "VBoxMPVidPn.h"
 #include "VBoxMPLegacy.h"
 
@@ -1089,10 +1086,6 @@ NTSTATUS DxgkDdiStartDevice(
 #if 0
                     vboxShRcTreeInit(pDevExt);
 #endif
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                    vboxVhwaInit(pDevExt);
-#endif
                     VBoxWddmSlInit(pDevExt);
 
                     for (UINT i = 0; i < (UINT)VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
@@ -1275,9 +1268,6 @@ NTSTATUS DxgkDdiStopDevice(
     vboxVideoCmTerm(&pDevExt->SeamlessCtxMgr);
 
     /* do everything we did on DxgkDdiStartDevice in the reverse order */
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    vboxVhwaFree(pDevExt);
-#endif
 #if 0
     vboxShRcTreeTerm(pDevExt);
 #endif
@@ -1686,13 +1676,6 @@ NTSTATUS APIENTRY DxgkDdiQueryAdapterInfo(
                 pCaps->InterruptMessageNumber = 0;
                 pCaps->NumberOfSwizzlingRanges = 0;
                 pCaps->MaxOverlays = 0;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                for (int i = 0; i < VBoxCommonFromDeviceExt(pDevExt)->cDisplays; ++i)
-                {
-                    if ( pDevExt->aSources[i].Vhwa.Settings.fFlags & VBOXVHWA_F_ENABLED)
-                        pCaps->MaxOverlays += pDevExt->aSources[i].Vhwa.Settings.cOverlaysSupported;
-                }
-#endif
                 pCaps->GammaRampCaps.Value = 0;
                 pCaps->PresentationCaps.Value = 0;
                 pCaps->PresentationCaps.NoScreenToScreenBlt = 1;
@@ -1859,14 +1842,6 @@ NTSTATUS APIENTRY DxgkDdiQueryAdapterInfo(
 #ifdef VBOX_WITH_VMSVGA
                     else if (pDevExt->enmHwType == VBOXVIDEO_HWTYPE_VMSVGA)
                         GaQueryInfo(pDevExt->pGa, pDevExt->enmHwType, &pQAI->u.vmsvga.HWInfo);
-#endif
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                    pQAI->cInfos = VBoxCommonFromDeviceExt(pDevExt)->cDisplays;
-                    for (uint32_t i = 0; i < pQAI->cInfos; ++i)
-                    {
-                        pQAI->aInfos[i] = pDevExt->aSources[i].Vhwa.Settings;
-                    }
 #endif
                 }
                 else
@@ -2176,68 +2151,46 @@ NTSTATUS vboxWddmAllocationCreate(PVBOXMP_DEVEXT pDevExt, PVBOXWDDM_RESOURCE pRe
                             }
                             break;
                         case VBOXWDDM_ALLOC_TYPE_UMD_RC_GENERIC:
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                            if (pAllocInfo->fFlags.Overlay)
-                            {
-                                /* actually we can not "properly" issue create overlay commands to the host here
-                                 * because we do not know source VidPn id here, i.e.
-                                 * the primary which is supposed to be overlayed,
-                                 * however we need to get some info like pitch & size from the host here */
-                                int rc = vboxVhwaHlpGetSurfInfo(pDevExt, pAllocation);
-                                AssertRC(rc);
-                                if (RT_SUCCESS(rc))
-                                {
-                                    pAllocationInfo->Flags.Overlay = 1;
-                                    pAllocationInfo->Flags.CpuVisible = 1;
-                                    pAllocationInfo->Size = pAllocation->AllocData.SurfDesc.cbSize;
+                        {
+                            RT_NOREF(pDevExt);
 
-                                    pAllocationInfo->AllocationPriority = D3DDDI_ALLOCATIONPRIORITY_HIGH;
+                            Assert(pAllocation->AllocData.SurfDesc.bpp);
+                            Assert(pAllocation->AllocData.SurfDesc.pitch);
+                            Assert(pAllocation->AllocData.SurfDesc.cbSize);
+
+                            /*
+                             * Mark the allocation as visible to the CPU so we can
+                             * lock it in the user mode driver for SYSTEM pool allocations.
+                             * See @bugref{8040} for further information.
+                             */
+                            if (!pAllocInfo->fFlags.SharedResource && !pAllocInfo->hostID)
+                                pAllocationInfo->Flags.CpuVisible = 1;
+
+                            if (pAllocInfo->fFlags.SharedResource)
+                            {
+                                pAllocation->hSharedHandle = (HANDLE)pAllocInfo->hSharedHandle;
+#if 0
+                                if (pAllocation->hSharedHandle)
+                                {
+                                    vboxShRcTreePut(pDevExt, pAllocation);
                                 }
-                                else
-                                    Status = STATUS_UNSUCCESSFUL;
+#endif
                             }
-                            else
-#endif
-                            {
-                                RT_NOREF(pDevExt);
-
-                                Assert(pAllocation->AllocData.SurfDesc.bpp);
-                                Assert(pAllocation->AllocData.SurfDesc.pitch);
-                                Assert(pAllocation->AllocData.SurfDesc.cbSize);
-
-                                /*
-                                 * Mark the allocation as visible to the CPU so we can
-                                 * lock it in the user mode driver for SYSTEM pool allocations.
-                                 * See @bugref{8040} for further information.
-                                 */
-                                if (!pAllocInfo->fFlags.SharedResource && !pAllocInfo->hostID)
-                                    pAllocationInfo->Flags.CpuVisible = 1;
-
-                                if (pAllocInfo->fFlags.SharedResource)
-                                {
-                                    pAllocation->hSharedHandle = (HANDLE)pAllocInfo->hSharedHandle;
-#if 0
-                                    if (pAllocation->hSharedHandle)
-                                    {
-                                        vboxShRcTreePut(pDevExt, pAllocation);
-                                    }
-#endif
-                                }
 
 #if 0
-                                /* Allocation from the CPU invisible second segment does not
-                                 * work apparently and actually fails on Vista.
-                                 *
-                                 * @todo Find out what exactly is wrong.
-                                 */
+                            /* Allocation from the CPU invisible second segment does not
+                             * work apparently and actually fails on Vista.
+                             *
+                             * @todo Find out what exactly is wrong.
+                             */
 //                                if (pAllocInfo->hostID)
-                                {
-                                    pAllocationInfo->SupportedReadSegmentSet = 2;
-                                    pAllocationInfo->SupportedWriteSegmentSet = 2;
-                                }
-#endif
+                            {
+                                pAllocationInfo->SupportedReadSegmentSet = 2;
+                                pAllocationInfo->SupportedWriteSegmentSet = 2;
                             }
+#endif
                             break;
+                        }
                         case VBOXWDDM_ALLOC_TYPE_STD_SHADOWSURFACE:
                         case VBOXWDDM_ALLOC_TYPE_STD_STAGINGSURFACE:
                             if (SvgaIsDXSupported(pDevExt))
@@ -2677,7 +2630,6 @@ static BOOLEAN vboxWddmCallIsrCb(PVOID Context)
     if (pDevExt->fCmdVbvaEnabled)
     {
 #ifdef DEBUG_sunlover
-        /** @todo Remove VBOX_WITH_VIDEOHWACCEL code, because the host does not support it anymore. */
         AssertFailed(); /* Should not be here, because this is not used with 3D gallium driver. */
 #endif
         return FALSE;
@@ -4331,37 +4283,8 @@ DxgkDdiCreateOverlay(
     CONST HANDLE  hAdapter,
     DXGKARG_CREATEOVERLAY  *pCreateOverlay)
 {
-    LOGF(("ENTER, hAdapter(0x%p)", hAdapter));
-
-    NTSTATUS Status = STATUS_SUCCESS;
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    PVBOXMP_DEVEXT pDevExt = (PVBOXMP_DEVEXT)hAdapter;
-    PVBOXWDDM_OVERLAY pOverlay = (PVBOXWDDM_OVERLAY)vboxWddmMemAllocZero(sizeof (VBOXWDDM_OVERLAY));
-    Assert(pOverlay);
-    if (pOverlay)
-    {
-        int rc = vboxVhwaHlpOverlayCreate(pDevExt, pCreateOverlay->VidPnSourceId, &pCreateOverlay->OverlayInfo, pOverlay);
-        AssertRC(rc);
-        if (RT_SUCCESS(rc))
-        {
-            pCreateOverlay->hOverlay = pOverlay;
-        }
-        else
-        {
-            vboxWddmMemFree(pOverlay);
-            Status = STATUS_UNSUCCESSFUL;
-        }
-    }
-    else
-        Status = STATUS_NO_MEMORY;
-#else
     RT_NOREF(hAdapter, pCreateOverlay);
-#endif
-
-    LOGF(("LEAVE, hAdapter(0x%p)", hAdapter));
-
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
@@ -4464,18 +4387,6 @@ DxgkDdiOpenAllocation(
                     Status = STATUS_INVALID_PARAMETER;
                     break;
                 }
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                PVBOXWDDM_ALLOCINFO pAllocInfo = (PVBOXWDDM_ALLOCINFO)pInfo->pPrivateDriverData;
-
-                if (pRcInfo->RcDesc.fFlags.Overlay)
-                {
-                    /* we have queried host for some surface info, like pitch & size,
-                     * need to return it back to the UMD (User Mode Drive) */
-                    pAllocInfo->SurfDesc = pAllocation->AllocData.SurfDesc;
-                    /* success, just continue */
-                }
-#endif
             }
 
             KIRQL OldIrql;
@@ -4583,23 +4494,8 @@ DxgkDdiUpdateOverlay(
     CONST HANDLE  hOverlay,
     CONST DXGKARG_UPDATEOVERLAY  *pUpdateOverlay)
 {
-    LOGF(("ENTER, hOverlay(0x%p)", hOverlay));
-
-    NTSTATUS Status = STATUS_SUCCESS;
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    PVBOXWDDM_OVERLAY pOverlay = (PVBOXWDDM_OVERLAY)hOverlay;
-    AssertPtr(pOverlay);
-    int rc = vboxVhwaHlpOverlayUpdate(pOverlay, &pUpdateOverlay->OverlayInfo);
-    AssertRC(rc);
-    if (RT_FAILURE(rc))
-        Status = STATUS_UNSUCCESSFUL;
-#else
     RT_NOREF(hOverlay, pUpdateOverlay);
-#endif
-
-    LOGF(("LEAVE, hOverlay(0x%p)", hOverlay));
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
@@ -4608,24 +4504,8 @@ DxgkDdiFlipOverlay(
     CONST HANDLE  hOverlay,
     CONST DXGKARG_FLIPOVERLAY  *pFlipOverlay)
 {
-    LOGF(("ENTER, hOverlay(0x%p)", hOverlay));
-
-    NTSTATUS Status = STATUS_SUCCESS;
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    PVBOXWDDM_OVERLAY pOverlay = (PVBOXWDDM_OVERLAY)hOverlay;
-    AssertPtr(pOverlay);
-    int rc = vboxVhwaHlpOverlayFlip(pOverlay, pFlipOverlay);
-    AssertRC(rc);
-    if (RT_FAILURE(rc))
-        Status = STATUS_UNSUCCESSFUL;
-#else
     RT_NOREF(hOverlay, pFlipOverlay);
-#endif
-
-    LOGF(("LEAVE, hOverlay(0x%p)", hOverlay));
-
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
@@ -4633,26 +4513,8 @@ APIENTRY
 DxgkDdiDestroyOverlay(
     CONST HANDLE  hOverlay)
 {
-    LOGF(("ENTER, hOverlay(0x%p)", hOverlay));
-
-    NTSTATUS Status = STATUS_SUCCESS;
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    PVBOXWDDM_OVERLAY pOverlay = (PVBOXWDDM_OVERLAY)hOverlay;
-    AssertPtr(pOverlay);
-    int rc = vboxVhwaHlpOverlayDestroy(pOverlay);
-    AssertRC(rc);
-    if (RT_SUCCESS(rc))
-        vboxWddmMemFree(pOverlay);
-    else
-        Status = STATUS_UNSUCCESSFUL;
-#else
     RT_NOREF(hOverlay);
-#endif
-
-    LOGF(("LEAVE, hOverlay(0x%p)", hOverlay));
-
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 /**

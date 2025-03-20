@@ -55,22 +55,6 @@
 
 #define VBOXWDDMDISP_IS_TEXTURE(_f) ((_f).Texture || (_f).Value == 0)
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-typedef struct VBOXDISPVHWA_INFO
-{
-    VBOXVHWA_INFO Settings;
-}VBOXDISPVHWA_INFO;
-
-/* represents settings secific to
- * display device (head) on the multiple-head graphics card
- * currently used for 2D (overlay) only since in theory its settings
- * can differ per each frontend's framebuffer. */
-typedef struct VBOXWDDMDISP_HEAD
-{
-    VBOXDISPVHWA_INFO Vhwa;
-} VBOXWDDMDISP_HEAD;
-#endif
-
 typedef struct VBOXWDDMDISP_ADAPTER
 {
     HANDLE hAdapter;
@@ -88,10 +72,6 @@ typedef struct VBOXWDDMDISP_ADAPTER
 
     VBOXWDDM_QAI AdapterInfo;
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    uint32_t cHeads;
-    VBOXWDDMDISP_HEAD aHeads[1];
-#endif
 } VBOXWDDMDISP_ADAPTER, *PVBOXWDDMDISP_ADAPTER;
 
 typedef struct VBOXWDDMDISP_CONTEXT

@@ -40,9 +40,6 @@ ifdef VBOX_WITH_XPDM
  VBoxVideo_DEFS          = VBOX_XPDM_MINIPORT VBOX_WITH_8BPP_MODES VBOX_USING_$(VBOX_WINDDK_GST_NT4)
  VBoxVideo_DEFS         += LOG_TO_BACKDOOR #LOG_ENABLED
  VBoxVideo_DEFS         += VBOX_SVN_REV=$(VBOX_SVN_REV)
- ifdef VBOX_WITH_VIDEOHWACCEL
-  VBoxVideo_DEFS        += VBOX_WITH_VIDEOHWACCEL
- endif
  VBoxVideo_INCS          = \
  	../../../include \
  	.. \
@@ -94,9 +91,6 @@ ifdef VBOX_WITH_WDDM
  # WIN9X_COMPAT_SPINLOCK inlines KeInitializeSpinLock in W8 DDK (Windows 7 or older ntoskrnl does not export it).
  VBoxWddm_DEFS            += WIN9X_COMPAT_SPINLOCK
  VBoxWddm_DEFS            += VBOX_WITH_8BPP_MODES
- ifdef VBOX_WITH_VIDEOHWACCEL
-  VBoxWddm_DEFS           += VBOX_WITH_VIDEOHWACCEL
- endif
  ifdef VBOXWDDM_WITH_VBVA
   VBoxWddm_DEFS           += VBOXWDDM_WITH_VBVA
   VBoxWddm_DEFS           += VBOXWDDM_RENDER_FROM_SHADOW
@@ -140,10 +134,6 @@ ifdef VBOX_WITH_WDDM
  ifdef VBOXWDDM_WITH_VBVA
   VBoxWddm_SOURCES        += \
   	wddm/VBoxMPVbva.cpp
- endif
- ifdef VBOX_WITH_VIDEOHWACCEL
-  VBoxWddm_SOURCES        += \
-  	wddm/VBoxMPVhwa.cpp
  endif
 
  VBoxWddm_LIBS             = \

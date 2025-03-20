@@ -802,8 +802,6 @@ typedef struct PDMIDISPLAYPORT
 
 /** Pointer to a 3D graphics notification. */
 typedef struct VBOX3DNOTIFY VBOX3DNOTIFY;
-/** Pointer to a 2D graphics acceleration command. */
-typedef struct VBOXVHWACMD VBOXVHWACMD;
 /** Pointer to a VBVA command header. */
 typedef struct VBVACMDHDR *PVBVACMDHDR;
 /** Pointer to a const VBVA command header. */
@@ -919,25 +917,6 @@ typedef struct PDMIDISPLAYCONNECTOR
      * @thread  The emulation thread.
      */
     DECLR3CALLBACKMEMBER(void, pfnProcessDisplayData,(PPDMIDISPLAYCONNECTOR pInterface, void *pvVRAM, unsigned uScreenId));
-
-    /**
-     * Process the guest Video HW Acceleration command.
-     *
-     * @param   pInterface          Pointer to this interface.
-     * @param   enmCmd              The command type (don't re-read from pCmd).
-     * @param   fGuestCmd           Set if the command origins with the guest and
-     *                              pCmd must be considered volatile.
-     * @param   pCmd                Video HW Acceleration Command to be processed.
-     * @retval  VINF_SUCCESS - command is completed,
-     * @retval  VINF_CALLBACK_RETURN if command will by asynchronously completed via
-     *          complete callback.
-     * @retval  VERR_INVALID_STATE if the command could not be processed (most
-     *          likely because the framebuffer was disconnected) - the post should
-     *          be retried later.
-     * @thread  EMT
-     */
-    DECLR3CALLBACKMEMBER(int, pfnVHWACommandProcess,(PPDMIDISPLAYCONNECTOR pInterface, int enmCmd, bool fGuestCmd,
-                                                     VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCmd));
 
     /**
      * The specified screen enters VBVA mode.
@@ -2287,30 +2266,6 @@ typedef struct PDMIHGCMCONNECTOR
 # define PDMIHGCMCONNECTOR_IID                  "33cb5c91-6a4a-4ad9-3fec-d1f7d413c4a5"
 
 #endif /* VBOX_WITH_HGCM */
-
-
-/** Pointer to a display VBVA callbacks interface. */
-typedef struct PDMIDISPLAYVBVACALLBACKS *PPDMIDISPLAYVBVACALLBACKS;
-/**
- * Display VBVA callbacks interface (up).
- */
-typedef struct PDMIDISPLAYVBVACALLBACKS
-{
-
-    /**
-     * Informs guest about completion of processing the given Video HW Acceleration
-     * command, does not wait for the guest to process the command.
-     *
-     * @returns ???
-     * @param   pInterface          Pointer to this interface.
-     * @param   pCmd                The Video HW Acceleration Command that was
-     *                              completed.
-     */
-    DECLR3CALLBACKMEMBER(int, pfnVHWACommandCompleteAsync,(PPDMIDISPLAYVBVACALLBACKS pInterface,
-                                                           VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCmd));
-} PDMIDISPLAYVBVACALLBACKS;
-/** PDMIDISPLAYVBVACALLBACKS  */
-#define PDMIDISPLAYVBVACALLBACKS_IID            "37f34c9c-0491-47dc-a0b3-81697c44a416"
 
 /** Pointer to a PCI raw connector interface. */
 typedef struct PDMIPCIRAWCONNECTOR *PPDMIPCIRAWCONNECTOR;

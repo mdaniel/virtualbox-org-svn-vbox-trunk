@@ -2373,8 +2373,9 @@ class TestDriver(base.TestDriver):                                              
             if self.fpApiVer >= 7.1 and hasattr(oVM.graphicsAdapter, 'isFeatureEnabled'):
                 fAccelerate3DEnabled = \
                     oVM.graphicsAdapter.isFeatureEnabled(vboxcon.GraphicsFeature_Acceleration3D);
-                fAccelerate2DVideoEnabled = \
-                    oVM.graphicsAdapter.isFeatureEnabled(vboxcon.GraphicsFeature_Acceleration2DVideo);
+                if self.fpApiVer < 7.2: # 2D video acceleration was removed with 7.2.
+                    fAccelerate2DVideoEnabled = \
+                        oVM.graphicsAdapter.isFeatureEnabled(vboxcon.GraphicsFeature_Acceleration2DVideo);
             else:
                 fAccelerate3DEnabled      = oVM.graphicsAdapter.accelerate3DEnabled;
                 fAccelerate2DVideoEnabled = oVM.graphicsAdapter.accelerate2DVideoEnabled;
@@ -2382,7 +2383,8 @@ class TestDriver(base.TestDriver):                                              
             fAccelerate3DEnabled      = oVM.accelerate3DEnabled;
             fAccelerate2DVideoEnabled = oVM.accelerate2DVideoEnabled;
         reporter.log("  3D acceleration:    %s" % (fAccelerate3DEnabled,));
-        reporter.log("  2D acceleration:    %s" % (fAccelerate2DVideoEnabled,));
+        if self.fpApiVer < 7.2:
+            reporter.log("  2D acceleration:    %s" % (fAccelerate2DVideoEnabled,));
         reporter.log("  TeleporterEnabled:  %s" % (oVM.teleporterEnabled,));
         reporter.log("  TeleporterPort:     %s" % (oVM.teleporterPort,));
         reporter.log("  TeleporterAddress:  %s" % (oVM.teleporterAddress,));

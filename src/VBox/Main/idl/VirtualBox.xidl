@@ -6918,15 +6918,13 @@
 
   <enum
     name="GraphicsFeature"
-    uuid="5cd900a5-ec77-4a08-8f8d-c0a36f462a7c"
+    uuid="1BC430F8-D061-45FB-8830-155058FF3F66"
     >
     <desc>Graphics features.</desc>
     <const name="None"          value="0">
       <desc>No feature specified, invalid.</desc>
     </const>
-    <const name="Acceleration2DVideo" value="1">
-      <desc>2D video acceleration.</desc>
-    </const>
+    <!-- Value 1 was Acceleration2DVideo which was removed in VBox 7.2. -->
     <const name="Acceleration3D" value="2">
       <desc>3D acceleration.</desc>
     </const>
@@ -13942,7 +13940,7 @@
 
   <interface
     name="IGuestOSType" extends="$unknown"
-    uuid="ceb482fc-41b9-42a8-8538-9835ea33b6f2"
+    uuid="c6e30023-751e-487d-9bd1-595c22b104ba"
     wsmap="struct"
     rest="managed"
     reservedAttributes="16"
@@ -13997,10 +13995,6 @@
 
     <attribute name="recommendedVRAM" type="unsigned long" readonly="yes">
       <desc>Recommended video RAM size in Megabytes.</desc>
-    </attribute>
-
-    <attribute name="recommended2DVideoAcceleration" type="boolean" readonly="yes">
-      <desc>Returns @c true if 2D video acceleration is recommended for this OS type.</desc>
     </attribute>
 
     <attribute name="recommended3DAcceleration" type="boolean" readonly="yes">
@@ -21889,7 +21883,7 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
 
   <interface
     name="IDisplay" extends="$unknown"
-    uuid="4680b2de-8690-11e9-b83d-5719e53cf1de"
+    uuid="14fd6676-ee6b-441a-988b-c83025ab693a"
     wsmap="managed"
     wrap-hint-server-addinterfaces="IEventListener"
     reservedMethods="8" reservedAttributes="16"
@@ -22229,16 +22223,6 @@ Snapshot 1 (B.vdi)            Snapshot 1 (B.vdi)
         <desc>
           The guest screen to redraw.
         </desc>
-      </param>
-    </method>
-
-    <method name="completeVHWACommand">
-      <desc>
-        Signals that the Video HW Acceleration command has completed.
-      </desc>
-
-      <param name="command" type="octet" mod="ptr" dir="in">
-        <desc>Pointer to VBOXVHWACMD containing the completed command.</desc>
       </param>
     </method>
 

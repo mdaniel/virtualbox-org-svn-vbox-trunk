@@ -54,10 +54,6 @@
 
 typedef struct _VBOXDISPDEV *PVBOXDISPDEV;
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-# include "VBoxDispVHWA.h"
-#endif
-
 /* 4bytes tag passed to EngAllocMem.
  * Note: chars are reverse order.
  */

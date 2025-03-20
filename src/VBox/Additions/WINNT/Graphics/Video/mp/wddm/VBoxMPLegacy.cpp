@@ -29,9 +29,6 @@
 #include "VBoxMPWddm.h"
 #include "common/VBoxMPCommon.h"
 #include "common/VBoxMPHGSMI.h"
-#ifdef VBOX_WITH_VIDEOHWACCEL
-# include "VBoxMPVhwa.h"
-#endif
 #include "VBoxMPVidPn.h"
 #include "VBoxMPLegacy.h"
 
@@ -1536,11 +1533,6 @@ BOOLEAN DxgkDdiInterruptRoutineLegacy(
         VBOXVTLIST CtlList;
         vboxVtListInit(&CtlList);
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        VBOXVTLIST VhwaCmdList;
-        vboxVtListInit(&VhwaCmdList);
-#endif
-
         uint32_t flags = VBoxCommonFromDeviceExt(pDevExt)->hostCtx.pfHostFlags->u32HostFlags;
         bOur = (flags & HGSMIHOSTFLAGS_IRQ);
 
@@ -1582,13 +1574,6 @@ BOOLEAN DxgkDdiInterruptRoutineLegacy(
                         {
                             switch (chInfo)
                             {
-#ifdef VBOX_WITH_VIDEOHWACCEL
-                                case VBVA_VHWA_CMD:
-                                {
-                                    vboxVhwaPutList(&VhwaCmdList, (VBOXVHWACMD*)pvCmd);
-                                    break;
-                                }
-#endif /* # ifdef VBOX_WITH_VIDEOHWACCEL */
                                 default:
                                     AssertBreakpoint();
                             }
@@ -1612,13 +1597,6 @@ BOOLEAN DxgkDdiInterruptRoutineLegacy(
             vboxVtListCat(&pDevExt->CtlList, &CtlList);
             bNeedDpc = TRUE;
         }
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        if (!vboxVtListIsEmpty(&VhwaCmdList))
-        {
-            vboxVtListCat(&pDevExt->VhwaCmdList, &VhwaCmdList);
-            bNeedDpc = TRUE;
-        }
-#endif
 
         if (pDevExt->bNotifyDxDpc)
         {
@@ -1674,9 +1652,6 @@ BOOLEAN DxgkDdiInterruptRoutineLegacy(
 typedef struct VBOXWDDM_DPCDATA
 {
     VBOXVTLIST CtlList;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    VBOXVTLIST VhwaCmdList;
-#endif
     LIST_ENTRY CompletedDdiCmdQueue;
     BOOL bNotifyDpc;
 } VBOXWDDM_DPCDATA, *PVBOXWDDM_DPCDATA;
@@ -1692,9 +1667,6 @@ BOOLEAN vboxWddmGetDPCDataCallback(PVOID Context)
     PVBOXWDDM_GETDPCDATA_CONTEXT pdc = (PVBOXWDDM_GETDPCDATA_CONTEXT)Context;
     PVBOXMP_DEVEXT pDevExt = pdc->pDevExt;
     vboxVtListDetach2List(&pDevExt->CtlList, &pdc->data.CtlList);
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    vboxVtListDetach2List(&pDevExt->VhwaCmdList, &pdc->data.VhwaCmdList);
-#endif
 
     pdc->data.bNotifyDpc = pDevExt->bNotifyDxDpc;
     pDevExt->bNotifyDxDpc = FALSE;
@@ -1733,12 +1705,6 @@ VOID DxgkDdiDpcRoutineLegacy(
         int rc = VBoxSHGSMICommandPostprocessCompletion (&VBoxCommonFromDeviceExt(pDevExt)->guestCtx.heapCtx, &context.data.CtlList);
         AssertRC(rc);
     }
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    if (!vboxVtListIsEmpty(&context.data.VhwaCmdList))
-    {
-        vboxVhwaCompletionListProcess(pDevExt, &context.data.VhwaCmdList);
-    }
-#endif
 
 //    LOGF(("LEAVE, context(0x%p)", MiniportDeviceContext));
 }

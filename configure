@@ -2928,7 +2928,6 @@ fi
 if [ $WITH_OPENGL -eq 0 ]; then
   cnf_append "VBOX_WITH_VMSVGA3D" ""
   cnf_append "VBOX_WITH_3D_ACCELERATION" ""
-  cnf_append "VBOX_WITH_VIDEOHWACCEL" ""
   cnf_append "VBOX_GUI_USE_QGL" ""
 fi
 [ $WITH_XPCOM     -eq 0 ] && cnf_append "VBOX_WITH_MAIN" ""

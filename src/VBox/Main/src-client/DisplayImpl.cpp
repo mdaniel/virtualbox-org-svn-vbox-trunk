@@ -51,9 +51,6 @@
 #include <VBox/vmm/vmmr3vtable.h>
 #include <VBox/vmm/pdmdrv.h>
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-# include <VBoxVideo.h>
-#endif
 #include <VBoxVideo3D.h>
 
 #include <VBox/com/array.h>
@@ -82,10 +79,6 @@ typedef struct DRVMAINDISPLAY
     PPDMIDISPLAYPORT            pUpPort;
     /** Our display connector interface. */
     PDMIDISPLAYCONNECTOR        IConnector;
-#if defined(VBOX_WITH_VIDEOHWACCEL)
-    /** VBVA callbacks */
-    PPDMIDISPLAYVBVACALLBACKS   pVBVACallbacks;
-#endif
 } DRVMAINDISPLAY, *PDRVMAINDISPLAY;
 
 /** Converts PDMIDISPLAYCONNECTOR pointer to a DRVMAINDISPLAY pointer. */
@@ -2708,18 +2701,6 @@ HRESULT Display::invalidateAndUpdateScreen(ULONG aScreenId)
     return hrc;
 }
 
-HRESULT Display::completeVHWACommand(BYTE *aCommand)
-{
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    AssertPtr(mpDrv->pVBVACallbacks);
-    mpDrv->pVBVACallbacks->pfnVHWACommandCompleteAsync(mpDrv->pVBVACallbacks, (VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *)aCommand);
-    return S_OK;
-#else
-    RT_NOREF(aCommand);
-    return E_NOTIMPL;
-#endif
-}
-
 HRESULT Display::viewportChanged(ULONG aScreenId, ULONG aX, ULONG aY, ULONG aWidth, ULONG aHeight)
 {
     AssertMsgReturn(aScreenId < mcMonitors, ("aScreendId=%d mcMonitors=%d\n", aScreenId, mcMonitors), E_INVALIDARG);
@@ -3278,51 +3259,6 @@ DECLCALLBACK(void) Display::i_displayProcessDisplayDataCallback(PPDMIDISPLAYCONN
     pDrv->pDisplay->processDisplayData(pvVRAM, uScreenId);
 }
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-
-int Display::i_handleVHWACommandProcess(int enmCmd, bool fGuestCmd, VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCommand)
-{
-    /* bugref:9691 Disable the legacy VHWA interface.
-     * Keep the host commands enabled because they are needed when an old saved state is loaded.
-     */
-    if (fGuestCmd)
-        return VERR_NOT_IMPLEMENTED;
-
-    unsigned id = (unsigned)pCommand->iDisplay;
-    if (id >= mcMonitors)
-        return VERR_INVALID_PARAMETER;
-
-    ComPtr<IFramebuffer> pFramebuffer;
-    AutoReadLock arlock(this COMMA_LOCKVAL_SRC_POS);
-    pFramebuffer = maFramebuffers[id].pFramebuffer;
-    bool fVHWASupported = RT_BOOL(maFramebuffers[id].u32Caps & FramebufferCapabilities_VHWA);
-    arlock.release();
-
-    if (pFramebuffer == NULL || !fVHWASupported)
-        return VERR_NOT_IMPLEMENTED; /* Implementation is not available. */
-
-    HRESULT hr = pFramebuffer->ProcessVHWACommand((BYTE *)pCommand, enmCmd, fGuestCmd);
-    if (hr == S_FALSE)
-        return VINF_SUCCESS;
-    if (SUCCEEDED(hr))
-        return VINF_CALLBACK_RETURN;
-    if (hr == E_ACCESSDENIED)
-        return VERR_INVALID_STATE; /* notify we can not handle request atm */
-    if (hr == E_NOTIMPL)
-        return VERR_NOT_IMPLEMENTED;
-    return VERR_GENERAL_FAILURE;
-}
-
-DECLCALLBACK(int) Display::i_displayVHWACommandProcess(PPDMIDISPLAYCONNECTOR pInterface, int enmCmd, bool fGuestCmd,
-                                                       VBOXVHWACMD RT_UNTRUSTED_VOLATILE_GUEST *pCommand)
-{
-    PDRVMAINDISPLAY pDrv = PDMIDISPLAYCONNECTOR_2_MAINDISPLAY(pInterface);
-
-    return pDrv->pDisplay->i_handleVHWACommandProcess(enmCmd, fGuestCmd, pCommand);
-}
-
-#endif /* VBOX_WITH_VIDEOHWACCEL */
-
 int Display::i_handle3DNotifyProcess(VBOX3DNOTIFY *p3DNotify)
 {
     unsigned const id = (unsigned)p3DNotify->iDisplay;
@@ -3854,9 +3790,6 @@ DECLCALLBACK(void) Display::i_drvPowerOff(PPDMDRVINS pDrvIns)
 #ifdef VBOX_WITH_RECORDING
         pThis->pDisplay->mParent->i_recordingStop();
 #endif
-#if defined(VBOX_WITH_VIDEOHWACCEL)
-        pThis->pVBVACallbacks = NULL;
-#endif
     }
 }
 
@@ -3891,16 +3824,9 @@ DECLCALLBACK(void) Display::i_drvDestruct(PPDMDRVINS pDrvIns)
 #ifdef VBOX_WITH_RECORDING
         pThis->pDisplay->mParent->i_recordingStop();
 #endif
-#if defined(VBOX_WITH_VIDEOHWACCEL)
-        pThis->pVBVACallbacks = NULL;
-#endif
-
         pThis->pDisplay->mpDrv = NULL;
         pThis->pDisplay = NULL;
     }
-#if defined(VBOX_WITH_VIDEOHWACCEL)
-    pThis->pVBVACallbacks = NULL;
-#endif
 }
 
 
@@ -3936,9 +3862,6 @@ DECLCALLBACK(int) Display::i_drvConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, ui
     pThis->IConnector.pfnLFBModeChange         = Display::i_displayLFBModeChangeCallback;
     pThis->IConnector.pfnProcessAdapterData    = Display::i_displayProcessAdapterDataCallback;
     pThis->IConnector.pfnProcessDisplayData    = Display::i_displayProcessDisplayDataCallback;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    pThis->IConnector.pfnVHWACommandProcess    = Display::i_displayVHWACommandProcess;
-#endif
 #ifdef VBOX_WITH_HGSMI
     pThis->IConnector.pfnVBVAEnable            = Display::i_displayVBVAEnable;
     pThis->IConnector.pfnVBVADisable           = Display::i_displayVBVADisable;
@@ -3962,9 +3885,7 @@ DECLCALLBACK(int) Display::i_drvConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, ui
         AssertMsgFailed(("Configuration error: No display port interface above!\n"));
         return VERR_PDM_MISSING_INTERFACE_ABOVE;
     }
-#if defined(VBOX_WITH_VIDEOHWACCEL)
-    pThis->pVBVACallbacks = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMIDISPLAYVBVACALLBACKS);
-#endif
+
     /*
      * Get the Display object pointer and update the mpDrv member.
      */

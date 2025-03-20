@@ -556,17 +556,6 @@ VBoxDrvStartIO(PVOID HwDeviceExtension, PVIDEO_REQUEST_PACKET RequestPacket)
             break;
         }
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        /* Returns framebuffer offset. */
-        case IOCTL_VIDEO_VHWA_QUERY_INFO:
-        {
-            STARTIO_OUT(VHWAQUERYINFO, pInfo);
-
-            bResult = VBoxMPVhwaQueryInfo(pExt, pInfo, pStatus);
-            break;
-        }
-#endif
-
         case IOCTL_VIDEO_VBOX_ISANYX:
         {
             STARTIO_OUT(uint32_t, pu32AnyX);
@@ -704,48 +693,6 @@ VBoxDrvResetHW(PVOID HwDeviceExtension, ULONG Columns, ULONG Rows)
     return FALSE;
 }
 
-#ifdef VBOX_WITH_VIDEOHWACCEL
-static VOID VBoxMPHGSMIDpc(IN PVOID  HwDeviceExtension, IN PVOID  Context)
-{
-    NOREF(Context);
-    PVBOXMP_DEVEXT pExt = (PVBOXMP_DEVEXT) HwDeviceExtension;
-
-    VBoxHGSMIProcessHostQueue(&VBoxCommonFromDeviceExt(pExt)->hostCtx);
-}
-
-static BOOLEAN
-VBoxDrvInterrupt(PVOID  HwDeviceExtension)
-{
-    PVBOXMP_DEVEXT pExt = (PVBOXMP_DEVEXT) HwDeviceExtension;
-
-    //LOGF_ENTER();
-
-    /* Check if it could be our IRQ*/
-    if (VBoxCommonFromDeviceExt(pExt)->hostCtx.pfHostFlags)
-    {
-        uint32_t flags = VBoxCommonFromDeviceExt(pExt)->hostCtx.pfHostFlags->u32HostFlags;
-        if ((flags & HGSMIHOSTFLAGS_IRQ) != 0)
-        {
-            /* queue a DPC*/
-            BOOLEAN bResult = pExt->pPrimary->u.primary.VideoPortProcs.pfnQueueDpc(pExt->pPrimary, VBoxMPHGSMIDpc, NULL);
-
-            if (!bResult)
-            {
-                LOG(("VideoPortQueueDpc failed!"));
-            }
-
-            /* clear the IRQ */
-            VBoxHGSMIClearIrq(&VBoxCommonFromDeviceExt(pExt)->hostCtx);
-            //LOGF_LEAVE();
-            return TRUE;
-        }
-    }
-
-    //LOGF_LEAVE();
-    return FALSE;
-}
-#endif
-
 /* Video Miniport Driver entry point */
 ULONG DriverEntry(IN PVOID Context1, IN PVOID Context2)
 {
@@ -779,9 +726,6 @@ ULONG DriverEntry(IN PVOID Context1, IN PVOID Context2)
 
     /*Optional callbacks*/
     vhwData.HwResetHw     = VBoxDrvResetHW;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    vhwData.HwInterrupt   = VBoxDrvInterrupt;
-#endif
 
     /*Our private storage space*/
     vhwData.HwDeviceExtensionSize = sizeof(VBOXMP_DEVEXT);

@@ -74,30 +74,12 @@ BOOL APIENTRY
 VBoxDispDrvGetDirectDrawInfo(DHPDEV dhpdev, DD_HALINFO *pHalInfo, DWORD *pdwNumHeaps,
                              VIDEOMEMORY *pvmList, DWORD *pdwNumFourCCCodes, DWORD *pdwFourCC)
 {
+    RT_NOREF(pdwFourCC);
+
     PVBOXDISPDEV pDev = (PVBOXDISPDEV)dhpdev;
     LOGF_ENTER();
 
     VBoxDispGetDDHalInfo(pDev, pHalInfo);
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    int rc;
-
-    if (!pvmList && !pdwFourCC) /* first call */
-    {
-        rc = VBoxDispVHWAInitHostInfo1(pDev);
-        VBOX_WARNRC_NOBP(rc);
-    }
-
-    if (pDev->vhwa.bEnabled)
-    {
-        rc = VBoxDispVHWAUpdateDDHalInfo(pDev, pHalInfo);
-        VBOX_WARNRC(rc);
-
-        pDev->vhwa.bEnabled = RT_SUCCESS(rc);
-    }
-#else
-    RT_NOREF(pdwFourCC);
-#endif
 
     /* we could only have 1 heap, so it's not really a list */
     if (pvmList && pDev->layout.cbDDrawHeap>0)
@@ -105,45 +87,14 @@ VBoxDispDrvGetDirectDrawInfo(DHPDEV dhpdev, DD_HALINFO *pHalInfo, DWORD *pdwNumH
         pvmList->dwFlags = VIDMEM_ISLINEAR;
         pvmList->fpStart = pDev->layout.offDDrawHeap;
         pvmList->fpEnd   = pDev->layout.offDDrawHeap + pDev->layout.cbDDrawHeap - 1;
-#ifdef VBOX_WITH_VIDEOHWACCEL
-        if (pDev->vhwa.bEnabled)
-        {
-            pvmList->ddsCaps.dwCaps = 0;
-        }
-        else
-#endif
-        {
-            pvmList->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-        }
+        pvmList->ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
         pvmList->ddsCapsAlt.dwCaps = 0;
-
     }
 
     /* Always report number of heaps and supported FourCC's*/
     *pdwNumHeaps = (pDev->layout.cbDDrawHeap>0) ? 1:0;
 
-#ifndef VBOX_WITH_VIDEOHWACCEL
     *pdwNumFourCCCodes = 0;
-#else
-    if (pDev->vhwa.bEnabled)
-    {
-        *pdwNumFourCCCodes = pDev->vhwa.numFourCC;
-        if (pdwFourCC && pDev->vhwa.numFourCC)
-        {
-            rc = VBoxDispVHWAInitHostInfo2(pDev, pdwFourCC);
-            VBOX_WARNRC(rc);
-
-            if (RT_FAILURE(rc))
-            {
-                *pdwNumFourCCCodes = 0;
-                pDev->vhwa.numFourCC = 0;
-            }
-        }
-
-        pHalInfo->GetDriverInfo = VBoxDispDDGetDriverInfo;
-        pHalInfo->dwFlags |= DDHALINFO_GETDRIVERINFOSET;
-    }
-#endif
 
     LOGF_LEAVE();
     return TRUE;
@@ -153,6 +104,8 @@ BOOL APIENTRY
 VBoxDispDrvEnableDirectDraw(DHPDEV dhpdev, DD_CALLBACKS *pCallBacks, DD_SURFACECALLBACKS *pSurfaceCallBacks,
                             DD_PALETTECALLBACKS *pPaletteCallBacks)
 {
+    RT_NOREF(dhpdev);
+
     LOGF_ENTER();
 
     pCallBacks->dwSize                = sizeof(DD_CALLBACKS);
@@ -168,33 +121,6 @@ VBoxDispDrvEnableDirectDraw(DHPDEV dhpdev, DD_CALLBACKS *pCallBacks, DD_SURFACEC
 
     pPaletteCallBacks->dwSize           = sizeof(DD_PALETTECALLBACKS);
     pPaletteCallBacks->dwFlags          = 0;
-
-#ifdef VBOX_WITH_VIDEOHWACCEL
-    PVBOXDISPDEV pDev = (PVBOXDISPDEV)dhpdev;
-
-    if (pDev->vhwa.bEnabled)
-    {
-        pSurfaceCallBacks->DestroySurface = VBoxDispDDDestroySurface;
-        pSurfaceCallBacks->Flip = VBoxDispDDFlip;
-        pSurfaceCallBacks->GetFlipStatus = VBoxDispDDGetFlipStatus;
-        pSurfaceCallBacks->Blt = VBoxDispDDBlt;
-        pSurfaceCallBacks->GetBltStatus = VBoxDispDDGetBltStatus;
-        pSurfaceCallBacks->SetColorKey = VBoxDispDDSetColorKey;
-        pSurfaceCallBacks->dwFlags |= DDHAL_SURFCB32_DESTROYSURFACE|
-                                      DDHAL_SURFCB32_FLIP|DDHAL_SURFCB32_GETFLIPSTATUS|
-                                      DDHAL_SURFCB32_BLT|DDHAL_SURFCB32_GETBLTSTATUS|
-                                      DDHAL_SURFCB32_SETCOLORKEY;
-
-        if(pDev->vhwa.caps & VBOXVHWA_CAPS_OVERLAY)
-        {
-            pSurfaceCallBacks->UpdateOverlay = VBoxDispDDUpdateOverlay;
-            pSurfaceCallBacks->SetOverlayPosition = VBoxDispDDSetOverlayPosition;
-            pSurfaceCallBacks->dwFlags |= DDHAL_SURFCB32_UPDATEOVERLAY|DDHAL_SURFCB32_SETOVERLAYPOSITION;
-        }
-    }
-#else
-    RT_NOREF(dhpdev);
-#endif
 
     LOGF_LEAVE();
     return TRUE;

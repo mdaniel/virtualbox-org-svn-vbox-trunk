@@ -45,6 +45,7 @@
 #include <iprt/string.h>
 #include <iprt/test.h>
 #include <iprt/thread.h>
+#include <iprt/system.h>
 
 
 #include "../SUPLibInternal.h"
@@ -101,21 +102,24 @@ int main(int argc, char **argv)
         SUPPAGE     aPages[16];
     } aPinnings[500];
 
+    uint32_t const cPageShift = RTSystemGetPageShift();
+    uint32_t const cbPage     = RTSystemGetPageSize();
+
     for (unsigned i = 0; i < RT_ELEMENTS(aPinnings); i++)
     {
         aPinnings[i].pv = NULL;
-        SUPR3PageAlloc(0x10000 >> PAGE_SHIFT, 0, &aPinnings[i].pv);
-        aPinnings[i].pvAligned = RT_ALIGN_P(aPinnings[i].pv, PAGE_SIZE);
-        rc = supR3PageLock(aPinnings[i].pvAligned, 0xf000 >> PAGE_SHIFT, &aPinnings[i].aPages[0]);
+        SUPR3PageAlloc(0x10000 >> cPageShift, 0, &aPinnings[i].pv);
+        aPinnings[i].pvAligned = RT_ALIGN_P(aPinnings[i].pv, cbPage);
+        rc = supR3PageLock(aPinnings[i].pvAligned, 0xf000 >> cPageShift, &aPinnings[i].aPages[0]);
         if (RT_SUCCESS(rc))
         {
             RTTestIPrintf(RTTESTLVL_DEBUG, "i=%d: pvAligned=%p pv=%p:\n", i, aPinnings[i].pvAligned, aPinnings[i].pv);
             memset(aPinnings[i].pv, 0xfa, 0x10000);
             unsigned c4GPluss = 0;
-            for (unsigned j = 0; j < (0xf000 >> PAGE_SHIFT); j++)
+            for (unsigned j = 0; j < (0xf000 >> cPageShift); j++)
                 if (aPinnings[i].aPages[j].Phys >= _4G)
                 {
-                    RTTestIPrintf(RTTESTLVL_DEBUG, "%2d: vrt=%p phys=%RHp\n", j, (char *)aPinnings[i].pvAligned + (j << PAGE_SHIFT), aPinnings[i].aPages[j].Phys);
+                    RTTestIPrintf(RTTESTLVL_DEBUG, "%2d: vrt=%p phys=%RHp\n", j, (char *)aPinnings[i].pvAligned + (j << cPageShift), aPinnings[i].aPages[j].Phys);
                     c4GPluss++;
                 }
             RTTestIPrintf(RTTESTLVL_DEBUG, "i=%d: c4GPluss=%d\n", i, c4GPluss);
@@ -123,7 +127,7 @@ int main(int argc, char **argv)
         else
         {
             RTTestIFailed("SUPPageLock() failed with rc=%Rrc\n", rc);
-            SUPR3PageFree(aPinnings[i].pv, 0x10000 >> PAGE_SHIFT);
+            SUPR3PageFree(aPinnings[i].pv, 0x10000 >> cPageShift);
             aPinnings[i].pv = aPinnings[i].pvAligned = NULL;
             break;
         }
@@ -144,7 +148,7 @@ int main(int argc, char **argv)
         if (aPinnings[i].pv)
         {
             memset(aPinnings[i].pv, 0xcc, 0x10000);
-            SUPR3PageFree(aPinnings[i].pv, 0x10000 >> PAGE_SHIFT);
+            SUPR3PageFree(aPinnings[i].pv, 0x10000 >> cPageShift);
             aPinnings[i].pv = NULL;
         }
     }
@@ -159,7 +163,7 @@ int main(int argc, char **argv)
      */
     RTTestISub("Contiguous memory");
 
-    size_t cPages = RT_ALIGN_Z(15003, PAGE_SIZE) >> PAGE_SHIFT;
+    size_t cPages = RT_ALIGN_Z(15003, cbPage) >> cPageShift;
 
     pv = SUPR3ContAlloc(cPages, NULL, &HCPhys);
     if (pv && HCPhys)
@@ -167,12 +171,12 @@ int main(int argc, char **argv)
         RTTestIPrintf(RTTESTLVL_DEBUG, "SUPR3ContAlloc(15003) -> HCPhys=%llx pv=%p\n", HCPhys, pv);
         void *pv0 = pv;
         memset(pv0, 0xaf, 15003);
-        pv = SUPR3ContAlloc(RT_ALIGN_Z(12999, PAGE_SIZE) >> PAGE_SHIFT, NULL, &HCPhys);
+        pv = SUPR3ContAlloc(RT_ALIGN_Z(12999, cbPage) >> cPageShift, NULL, &HCPhys);
         if (pv && HCPhys)
         {
             RTTestIPrintf(RTTESTLVL_DEBUG, "SUPR3ContAlloc(12999) -> HCPhys=%llx pv=%p\n", HCPhys, pv);
             memset(pv, 0xbf, 12999);
-            rc = SUPR3ContFree(pv, RT_ALIGN_Z(12999, PAGE_SIZE) >> PAGE_SHIFT);
+            rc = SUPR3ContFree(pv, RT_ALIGN_Z(12999, cbPage) >> cPageShift);
             if (RT_FAILURE(rc))
                 RTTestIPrintf(RTTESTLVL_DEBUG, "SUPR3ContFree failed! rc=%Rrc\n", rc);
         }
@@ -193,28 +197,28 @@ int main(int argc, char **argv)
     RTTestISub("Big chunk");
 
     #define BIG_SIZE    72*1024*1024
-    #define BIG_SIZEPP  (BIG_SIZE + PAGE_SIZE)
+    #define BIG_SIZEPP  (BIG_SIZE + cbPage)
 #if defined(RT_OS_SOLARIS)
-    size_t cPages = RT_ALIGN_Z(15003, PAGE_SIZE) >> PAGE_SHIFT;
+    size_t cPages = RT_ALIGN_Z(15003, cbPage) >> cPageShift;
 #endif
     pv     = NULL;
-    cPages = BIG_SIZEPP >> PAGE_SHIFT;
+    cPages = BIG_SIZEPP >> cPageShift;
     rc = SUPR3PageAlloc(cPages, 0, &pv);
     if (RT_SUCCESS(rc))
     {
         AssertPtr(pv);
 
-        static SUPPAGE s_aPages[BIG_SIZE >> PAGE_SHIFT];
-        void *pvAligned = RT_ALIGN_P(pv, PAGE_SIZE);
-        rc = supR3PageLock(pvAligned, BIG_SIZE >> PAGE_SHIFT, &s_aPages[0]);
+        static SUPPAGE s_aPages[18432 + 1]; /* Smallest page size is _4K, so BIG_SIZE will require BIG_SIZE / _4K pages (+ 1 for BIG_SIZEPP). */
+        void *pvAligned = RT_ALIGN_P(pv, cbPage);
+        rc = supR3PageLock(pvAligned, BIG_SIZE >> cPageShift, &s_aPages[0]);
         if (RT_SUCCESS(rc))
         {
             /* dump */
             RTTestIPrintf(RTTESTLVL_DEBUG, "SUPPageLock(%p,%d,) succeeded!\n", pvAligned, BIG_SIZE);
             memset(pv, 0x42, BIG_SIZEPP);
             #if 0
-            for (unsigned j = 0; j < (BIG_SIZE >> PAGE_SHIFT); j++)
-                RTTestIPrintf(RTTESTLVL_DEBUG, "%2d: vrt=%p phys=%08x\n", j, (char *)pvAligned + (j << PAGE_SHIFT), (uintptr_t)s_aPages[j].pvPhys);
+            for (unsigned j = 0; j < (BIG_SIZE >> cPageShift); j++)
+                RTTestIPrintf(RTTESTLVL_DEBUG, "%2d: vrt=%p phys=%08x\n", j, (char *)pvAligned + (j << cPageShift), (uintptr_t)s_aPages[j].pvPhys);
             #endif
 
             /* unlock */

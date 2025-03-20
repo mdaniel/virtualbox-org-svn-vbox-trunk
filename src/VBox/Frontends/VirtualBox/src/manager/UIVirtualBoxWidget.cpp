@@ -460,8 +460,6 @@ void UIVirtualBoxWidget::prepareConnections()
             this, &UIVirtualBoxWidget::sltUpdateToolbar);
     connect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
             this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
-    connect(globalToolsWidget(), &UIGlobalToolsWidget::sigCloudMachineStateChange,
-            this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Global Tool Pane connections: */
     connect(globalToolPane(), &UIToolPane::sigCreateMedium,
             this, &UIVirtualBoxWidget::sigCreateMedium);
@@ -477,6 +475,8 @@ void UIVirtualBoxWidget::prepareConnections()
             this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
     connect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
             this, &UIVirtualBoxWidget::sltUpdateToolbar);
+    connect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
+            this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     connect(machineToolPane(), &UIToolPane::sigLinkClicked,
             this, &UIVirtualBoxWidget::sigMachineSettingsLinkClicked);
@@ -717,8 +717,6 @@ void UIVirtualBoxWidget::cleanupConnections()
                this, &UIVirtualBoxWidget::sltUpdateToolbar);
     disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigToolTypeChange,
                this, &UIVirtualBoxWidget::sigToolTypeChangeGlobal);
-    disconnect(globalToolsWidget(), &UIGlobalToolsWidget::sigCloudMachineStateChange,
-               this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Global Tool Pane connections: */
     disconnect(globalToolPane(), &UIToolPane::sigCreateMedium,
                this, &UIVirtualBoxWidget::sigCreateMedium);
@@ -734,6 +732,8 @@ void UIVirtualBoxWidget::cleanupConnections()
                this, &UIVirtualBoxWidget::sigChooserPaneIndexChange);
     disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigChooserPaneSelectionChange,
                this, &UIVirtualBoxWidget::sltUpdateToolbar);
+    disconnect(machineToolsWidget(), &UIMachineToolsWidget::sigCloudMachineStateChange,
+               this, &UIVirtualBoxWidget::sigCloudMachineStateChange);
     /* Machine Tool Pane connections: */
     disconnect(machineToolPane(), &UIToolPane::sigLinkClicked,
                this, &UIVirtualBoxWidget::sigMachineSettingsLinkClicked);

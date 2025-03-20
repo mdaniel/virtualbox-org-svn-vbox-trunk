@@ -64,6 +64,12 @@ signals:
         void sigToolTypeChange();
     /** @} */
 
+    /** @name Chooser pane stuff.
+      * @{ */
+        /** Notifies about state change for cloud machine with certain @a uId. */
+        void sigCloudMachineStateChange(const QUuid &uId);
+    /** @} */
+
 public:
 
     /** Constructs Global Tools Widget passing @a pParent to the base-class.
@@ -133,6 +139,9 @@ private slots:
         /** Handles state change for cloud profile with certain @a strProviderShortName and @a strProfileName. */
         void sltHandleCloudProfileStateChange(const QString &strProviderShortName,
                                               const QString &strProfileName);
+
+        /** Handles state change for cloud machine with certain @a uId. */
+        void sltHandleCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
     /** @name Tools pane stuff.

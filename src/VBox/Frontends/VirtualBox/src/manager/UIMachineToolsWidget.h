@@ -70,9 +70,6 @@ signals:
         void sigChooserPaneIndexChange();
         /** Notifies about Chooser-pane selection change. */
         void sigChooserPaneSelectionChange();
-
-        /** Notifies about state change for cloud machine with certain @a uId. */
-        void sigCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
     /** @name Tools pane stuff.
@@ -187,9 +184,6 @@ private slots:
 
         /** Handles signal about Chooser-pane selection invalidated. */
         void sltHandleChooserPaneSelectionInvalidated();
-
-        /** Handles state change for cloud machine with certain @a uId. */
-        void sltHandleCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
     /** @name Tools pane stuff.

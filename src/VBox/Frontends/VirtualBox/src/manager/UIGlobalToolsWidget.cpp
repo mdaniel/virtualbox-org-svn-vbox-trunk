@@ -204,6 +204,46 @@ void UIGlobalToolsWidget::sltHandleCloudProfileStateChange(const QString &, cons
     }
 }
 
+void UIGlobalToolsWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
+{
+    /* Acquire current item: */
+    UIVirtualMachineItem *pItem = machineToolsWidget()->currentItem();
+    const bool fCurrentItemIsOk = machineToolsWidget()->isItemAccessible(pItem);
+
+    /* If current item is Ok: */
+    if (fCurrentItemIsOk)
+    {
+        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
+        if (toolPaneMachine()->currentTool() == UIToolType_Error)
+            machineToolsWidget()->switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
+
+        /* If we still have same item selected: */
+        if (pItem && pItem->id() == uId)
+        {
+            /* Propagate current items to update the Details-pane: */
+            toolPaneMachine()->setItems(machineToolsWidget()->currentItems());
+        }
+    }
+    else
+    {
+        /* Make sure Error pane raised: */
+        if (toolPaneMachine()->currentTool() != UIToolType_Error)
+            toolPaneMachine()->openTool(UIToolType_Error);
+
+        /* If we still have same item selected: */
+        if (pItem && pItem->id() == uId)
+        {
+            /* Propagate current items to update the Details-pane (in any case): */
+            toolPaneMachine()->setItems(machineToolsWidget()->currentItems());
+            /* Propagate last access error to update the Error-pane (if machine selected but inaccessible): */
+            toolPaneMachine()->setErrorDetails(pItem->accessError());
+        }
+    }
+
+    /* Pass the signal further: */
+    emit sigCloudMachineStateChange(uId);
+}
+
 void UIGlobalToolsWidget::sltHandleGlobalToolMenuUpdate()
 {
     /* Prepare tool restrictions: */
@@ -369,6 +409,8 @@ void UIGlobalToolsWidget::prepareConnections()
             this, &UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange);
     connect(chooser(), &UIChooser::sigCloudProfileStateChange,
             this, &UIGlobalToolsWidget::sltHandleCloudProfileStateChange);
+    connect(chooser(), &UIChooser::sigCloudMachineStateChange,
+            this, &UIGlobalToolsWidget::sltHandleCloudMachineStateChange);
 
     /* Tools-menu connections: */
     connect(toolMenu(), &UITools::sigSelectionChanged,
@@ -415,6 +457,8 @@ void UIGlobalToolsWidget::cleanupConnections()
                this, &UIGlobalToolsWidget::sltHandleChooserPaneSelectionChange);
     disconnect(chooser(), &UIChooser::sigCloudProfileStateChange,
                this, &UIGlobalToolsWidget::sltHandleCloudProfileStateChange);
+    disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,
+               this, &UIGlobalToolsWidget::sltHandleCloudMachineStateChange);
 
     /* Tools-menu connections: */
     disconnect(toolMenu(), &UITools::sigSelectionChanged,

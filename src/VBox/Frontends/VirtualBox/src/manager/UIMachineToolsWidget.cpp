@@ -297,46 +297,6 @@ void UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated()
     recacheCurrentMachineItemInformation(true /* fDontRaiseErrorPane */);
 }
 
-void UIMachineToolsWidget::sltHandleCloudMachineStateChange(const QUuid &uId)
-{
-    /* Acquire current item: */
-    UIVirtualMachineItem *pItem = currentItem();
-    const bool fCurrentItemIsOk = isItemAccessible(pItem);
-
-    /* If current item is Ok: */
-    if (fCurrentItemIsOk)
-    {
-        /* If Error-pane is chosen currently => switch to tool currently chosen in tools-menu: */
-        if (toolPane()->currentTool() == UIToolType_Error)
-            switchToolTo(toolMenu()->toolsType(UIToolClass_Machine));
-
-        /* If we still have same item selected: */
-        if (pItem && pItem->id() == uId)
-        {
-            /* Propagate current items to update the Details-pane: */
-            toolPane()->setItems(currentItems());
-        }
-    }
-    else
-    {
-        /* Make sure Error pane raised: */
-        if (toolPane()->currentTool() != UIToolType_Error)
-            toolPane()->openTool(UIToolType_Error);
-
-        /* If we still have same item selected: */
-        if (pItem && pItem->id() == uId)
-        {
-            /* Propagate current items to update the Details-pane (in any case): */
-            toolPane()->setItems(currentItems());
-            /* Propagate last access error to update the Error-pane (if machine selected but inaccessible): */
-            toolPane()->setErrorDetails(pItem->accessError());
-        }
-    }
-
-    /* Pass the signal further: */
-    emit sigCloudMachineStateChange(uId);
-}
-
 void UIMachineToolsWidget::sltHandleToolMenuUpdate(UIVirtualMachineItem *pItem)
 {
     /* Prepare tool restrictions: */
@@ -496,8 +456,6 @@ void UIMachineToolsWidget::prepareConnections()
             this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
     connect(chooser(), &UIChooser::sigToolMenuRequested,
             this, &UIMachineToolsWidget::sltHandleToolMenuRequested);
-    connect(chooser(), &UIChooser::sigCloudMachineStateChange,
-            this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     connect(chooser(), &UIChooser::sigToggleStarted,
             toolPane(), &UIToolPane::sigToggleStarted);
     connect(chooser(), &UIChooser::sigToggleFinished,
@@ -551,8 +509,6 @@ void UIMachineToolsWidget::cleanupConnections()
                this, &UIMachineToolsWidget::sltHandleChooserPaneSelectionInvalidated);
     disconnect(chooser(), &UIChooser::sigToolMenuRequested,
                this, &UIMachineToolsWidget::sltHandleToolMenuRequested);
-    disconnect(chooser(), &UIChooser::sigCloudMachineStateChange,
-               this, &UIMachineToolsWidget::sltHandleCloudMachineStateChange);
     disconnect(chooser(), &UIChooser::sigToggleStarted,
                toolPane(), &UIToolPane::sigToggleStarted);
     disconnect(chooser(), &UIChooser::sigToggleFinished,

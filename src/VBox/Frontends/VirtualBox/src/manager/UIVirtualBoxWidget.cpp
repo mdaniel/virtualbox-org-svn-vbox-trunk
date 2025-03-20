@@ -216,7 +216,7 @@ void UIVirtualBoxWidget::setMachineSearchWidgetVisibility(bool fVisible)
     chooser()->setMachineSearchWidgetVisibility(fVisible);
 }
 
-void UIVirtualBoxWidget::setToolsTypeGlobal(UIToolType enmType, bool)
+void UIVirtualBoxWidget::setToolsTypeGlobal(UIToolType enmType)
 {
     AssertPtrReturnVoid(globalToolsWidget());
     globalToolsWidget()->setMenuToolType(enmType);

@@ -200,8 +200,8 @@ private slots:
         /** Handles call to close Preferences dialog. */
         void sltClosePreferencesDialog();
 
-        /** Handles call to switch to global tool corresponding to passed @a pAction. */
-        void sltPerformSwitchToGlobalTool(QAction *pAction);
+        /** Handles call to switch to tool corresponding to passed @a pAction. */
+        void sltPerformSwitchToTool(QAction *pAction);
 
         /** Handles call to exit application. */
         void sltPerformExit();

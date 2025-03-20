@@ -226,7 +226,7 @@ void initMappedX11Keyboard(Display *pDisplay, const QString &remapScancodes)
     initXKeyboard(pDisplay, scancodes);
 
     if (scancodes)
-        delete scancodes;
+        delete[] scancodes;
 }
 
 unsigned handleXKeyEvent(Display *pDisplay, unsigned int iDetail)

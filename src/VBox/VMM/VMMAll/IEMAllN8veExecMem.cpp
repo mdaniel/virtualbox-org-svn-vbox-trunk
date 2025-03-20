@@ -1178,10 +1178,10 @@ DECLHIDDEN(void) iemExecMemAllocatorReadyForUse(PVMCPUCC pVCpu, void *pv, size_t
     RT_NOREF(pVCpu);
 
     /* There is __builtin___clear_cache() but it flushes both the instruction and data cache, so do it manually. */
-    static uint32_t s_u32CtrEl0 = 0;
-    if (!s_u32CtrEl0)
-        asm volatile ("mrs %0, ctr_el0":"=r" (s_u32CtrEl0));
-    uintptr_t cbICacheLine = (uintptr_t)4 << (s_u32CtrEl0 & 0xf);
+    static uint64_t s_u64CtrEl0 = 0;
+    if (!s_u64CtrEl0)
+        asm volatile ("mrs %0, ctr_el0":"=r" (s_u64CtrEl0));
+    uintptr_t cbICacheLine = (uintptr_t)4 << (s_u64CtrEl0 & 0xf);
 
     uintptr_t pb = (uintptr_t)pv & ~(cbICacheLine - 1);
     for (; pb < (uintptr_t)pv + cb; pb += cbICacheLine)

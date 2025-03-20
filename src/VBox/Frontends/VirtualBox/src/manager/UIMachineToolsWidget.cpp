@@ -449,9 +449,6 @@ void UIMachineToolsWidget::prepareWidgets()
             m_pPaneTools = new UIToolPane(this, UIToolClass_Machine, actionPool());
             if (toolPane())
             {
-                /// @todo make sure it's used properly
-                toolPane()->setActive(true);
-
                 /* Add into splitter: */
                 m_pSplitter->addWidget(toolPane());
             }

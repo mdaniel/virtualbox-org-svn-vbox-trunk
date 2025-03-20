@@ -118,9 +118,6 @@ void UIManagementToolsWidget::prepareWidgets()
         m_pPane = new UIToolPane(this, UIToolClass_Management, actionPool());
         if (toolPane())
         {
-            /// @todo make sure it's used properly
-            toolPane()->setActive(true);
-
             /* Add into layout: */
             pLayout->addWidget(toolPane());
         }

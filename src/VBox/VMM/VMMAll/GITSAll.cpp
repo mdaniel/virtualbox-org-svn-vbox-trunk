@@ -33,7 +33,7 @@
 #include "GITSInternal.h"
 
 #include <VBox/log.h>
-#include <iprt/err.h>           /* VINF_SUCCESS */
+#include <iprt/errcore.h>       /* VINF_SUCCESS */
 #include <iprt/string.h>        /* RT_ZERO */
 
 

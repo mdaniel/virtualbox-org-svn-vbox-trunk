@@ -46,7 +46,7 @@ if1of ($(KBUILD_TARGET_ARCH), x86 amd64) # don't care for this on arm64
  VBoxStub_BLD_TRG_ARCH := x86
  VBoxStub_DEFS         := IN_RT_R3 _WIN32_WINNT=0x0501
 else
- VBoxStub_DEFS         := IN_RT_R3 
+ VBoxStub_DEFS         := IN_RT_R3
 endif
 
 VBoxStub_SOURCES = \

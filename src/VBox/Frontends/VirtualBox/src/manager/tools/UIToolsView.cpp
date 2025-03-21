@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -114,10 +114,9 @@ private:
 };
 
 
-UIToolsView::UIToolsView(QWidget *pParent, UIToolsModel *pModel, bool fPopup)
+UIToolsView::UIToolsView(QWidget *pParent, UIToolsModel *pModel)
     : QIGraphicsView(pParent)
     , m_pModel(pModel)
-    , m_fPopup(fPopup)
     , m_iMinimumWidthHint(0)
     , m_iMinimumHeightHint(0)
 {
@@ -198,9 +197,8 @@ void UIToolsView::prepareThis()
     setScene(model()->scene());
     model()->setView(this);
 
-    /* No minimum size-hint for widget mode: */
-    if (!isPopup())
-        setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    /* No minimum size-hint: */
+    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
     /* Setup frame: */
     setFrameShape(QFrame::NoFrame);
@@ -222,49 +220,26 @@ void UIToolsView::preparePalette()
      * making them a bit darker/lighter according to theme: */
     QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
     QColor backgroundColorInactive = pal.color(QPalette::Inactive, QPalette::Window);
-    if (!isPopup())
-    {
-        backgroundColorActive = uiCommon().isInDarkMode()
-                              ? backgroundColorActive.lighter(120)
-                              : backgroundColorActive.darker(108);
-        backgroundColorInactive = uiCommon().isInDarkMode()
-                                ? backgroundColorInactive.lighter(120)
-                                : backgroundColorInactive.darker(108);
-    }
+    backgroundColorActive = uiCommon().isInDarkMode()
+                          ? backgroundColorActive.lighter(120)
+                          : backgroundColorActive.darker(108);
+    backgroundColorInactive = uiCommon().isInDarkMode()
+                            ? backgroundColorInactive.lighter(120)
+                            : backgroundColorInactive.darker(108);
     pal.setColor(QPalette::Active, QPalette::Base, backgroundColorActive);
     pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColorInactive);
 
 #else /* !VBOX_WS_MAC */
 
-    if (isPopup())
-    {
-        /* Same as on macOS for now, will go away soon: */
-        QColor backgroundColorActive = pal.color(QPalette::Active, QPalette::Window);
-        QColor backgroundColorInactive = pal.color(QPalette::Inactive, QPalette::Window);
-        if (!isPopup())
-        {
-            backgroundColorActive = uiCommon().isInDarkMode()
-                                  ? backgroundColorActive.lighter(120)
-                                  : backgroundColorActive.darker(108);
-            backgroundColorInactive = uiCommon().isInDarkMode()
-                                    ? backgroundColorInactive.lighter(120)
-                                    : backgroundColorInactive.darker(108);
-        }
-        pal.setColor(QPalette::Active, QPalette::Base, backgroundColorActive);
-        pal.setColor(QPalette::Inactive, QPalette::Base, backgroundColorInactive);
-    }
-    else
-    {
-        /* Blending Window color to 10% of Accent color: */
-        const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
-        const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
-        const int iRed = iShift10(backgroundColor.red(), accentColor.red());
-        const int iGreen = iShift10(backgroundColor.green(), accentColor.green());
-        const int iBlue = iShift10(backgroundColor.blue(), accentColor.blue());
-        const QColor blendColor = QColor(qRgb(iRed, iGreen, iBlue));
-        pal.setColor(QPalette::Active, QPalette::Base, blendColor);
-        pal.setColor(QPalette::Inactive, QPalette::Base, blendColor);
-    }
+    /* Blending Window color to 10% of Accent color: */
+    const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+    const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
+    const int iRed = iShift10(backgroundColor.red(), accentColor.red());
+    const int iGreen = iShift10(backgroundColor.green(), accentColor.green());
+    const int iBlue = iShift10(backgroundColor.blue(), accentColor.blue());
+    const QColor blendColor = QColor(qRgb(iRed, iGreen, iBlue));
+    pal.setColor(QPalette::Active, QPalette::Base, blendColor);
+    pal.setColor(QPalette::Inactive, QPalette::Base, blendColor);
 
 #endif /* !VBOX_WS_MAC */
 

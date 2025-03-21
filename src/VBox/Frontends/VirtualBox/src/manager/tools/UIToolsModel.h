@@ -57,12 +57,6 @@ class UIToolsModel : public QObject
 
 signals:
 
-    /** @name General stuff.
-      * @{ */
-        /** Notifies about closing request. */
-        void sigClose();
-    /** @} */
-
     /** @name Selection stuff.
       * @{ */
         /** Notifies about selection changed.
@@ -90,9 +84,8 @@ public:
 
     /** Constructs Tools-model passing @a pParent to the base-class.
       * @param  pActionPool  Brings the action-pool reference.
-      * @param  enmClass     Brings the tools class, it will be const one.
-      * @param  fPopup       Brings whether tools represented as popup. */
-    UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass, bool fPopup);
+      * @param  enmClass     Brings the tools class, it will be const one. */
+    UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -103,8 +96,6 @@ public:
 
         /** Returns the action-pool reference. */
         UIActionPool *actionPool() const { return m_pActionPool; }
-        /** Returns whether tools represented as popup. */
-        bool isPopup() const { return m_fPopup; }
 
         /** Returns the scene reference. */
         QGraphicsScene *scene() const;
@@ -139,9 +130,6 @@ public:
 
         /** Returns abstractly stored data value for certain @a iKey. */
         QVariant data(int iKey) const;
-
-        /** Asks parent to close. */
-        void close();
     /** @} */
 
     /** @name Children stuff.
@@ -254,9 +242,6 @@ private:
 
         /** Holds the tools class. */
         const UIToolClass  m_enmClass;
-
-        /** Holds whether tools represented as popup. */
-        const bool  m_fPopup;
 
         /** Holds the view reference. */
         UIToolsView    *m_pView;

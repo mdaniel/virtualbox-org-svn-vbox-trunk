@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,9 +33,7 @@
 
 /* Qt includes: */
 #include <QIcon>
-#include <QMimeData>
 #include <QPixmap>
-#include <QRectF>
 #include <QString>
 
 /* GUI includes: */
@@ -43,16 +41,8 @@
 #include "UITools.h"
 
 /* Forward declaration: */
-class QPropertyAnimation;
 class QGraphicsScene;
-class QGraphicsSceneDragDropEvent;
 class QGraphicsSceneHoverEvent;
-class QGraphicsSceneMouseEvent;
-class QStateMachine;
-class UIActionPool;
-class UIToolsItemGroup;
-class UIToolsItemGlobal;
-class UIToolsItemMachine;
 class UIToolsModel;
 
 /** QIGraphicsWidget extension used as interface
@@ -60,17 +50,8 @@ class UIToolsModel;
 class UIToolsItem : public QIGraphicsWidget
 {
     Q_OBJECT;
-    Q_PROPERTY(int animatedValue READ animatedValue WRITE setAnimatedValue);
 
 signals:
-
-    /** @name Item stuff.
-      * @{ */
-        /** Notifies listeners about hover enter. */
-        void sigHoverEnter();
-        /** Notifies listeners about hover leave. */
-        void sigHoverLeave();
-    /** @} */
 
     /** @name Layout stuff.
       * @{ */
@@ -121,11 +102,6 @@ public:
 
         /** Defines whether item is @a fHidden by the @a enmReason. */
         void setHiddenByReason(bool fHidden, HidingReason enmReason);
-
-        /** Returns whether item is hovered. */
-        bool isHovered() const { return m_fHovered; }
-        /** Defines whether item is @a fHovered. */
-        void setHovered(bool fHovered);
     /** @} */
 
     /** @name Layout stuff.
@@ -183,8 +159,6 @@ private:
       * @{ */
         /** Prepares all. */
         void prepare();
-        /** Prepares hover animation. */
-        void prepareHoverAnimation();
         /** Prepares connections. */
         void prepareConnections();
 
@@ -196,21 +170,6 @@ private:
       * @{ */
         /** Returns abstractly stored data value for certain @a iKey. */
         QVariant data(int iKey) const;
-
-        /** Defines item's default animation @a iValue. */
-        void setDefaultValue(int iValue) { m_iDefaultValue = iValue; update(); }
-        /** Returns item's default animation value. */
-        int defaultValue() const { return m_iDefaultValue; }
-
-        /** Defines item's hovered animation @a iValue. */
-        void setHoveredValue(int iValue) { m_iHoveredValue = iValue; update(); }
-        /** Returns item's hovered animation value. */
-        int hoveredValue() const { return m_iHoveredValue; }
-
-        /** Defines item's animated @a iValue. */
-        void setAnimatedValue(int iValue) { m_iAnimatedValue = iValue; update(); }
-        /** Returns item's animated value. */
-        int animatedValue() const { return m_iAnimatedValue; }
     /** @} */
 
     /** @name Layout stuff.
@@ -226,9 +185,6 @@ private:
         /** Paints background using specified @a pPainter.
           * @param  rectangle  Brings the rectangle to fill with background. */
         void paintBackground(QPainter *pPainter, const QRect &rectangle) const;
-        /** Paints frame using using passed @a pPainter.
-          * @param  rectangle  Brings the rectangle to stroke with frame. */
-        void paintFrame(QPainter *pPainter, const QRect &rectangle) const;
         /** Paints tool info using using passed @a pPainter.
           * @param  rectangle  Brings the rectangle to limit painting with. */
         void paintToolInfo(QPainter *pPainter, const QRect &rectangle) const;
@@ -240,12 +196,10 @@ private:
         /** Paints @a strText using passed @a pPainter.
           * @param  point         Brings upper-left corner pixmap should be mapped to.
           * @param  font          Brings the text font.
-          * @param  pPaintDevice  Brings the paint-device reference to initilize painting from.
-          * @param  fPopup        Brings whether it's a text for popup mode, widget mode otherwise. */
+          * @param  pPaintDevice  Brings the paint-device reference to initilize painting from. */
         static void paintText(QPainter *pPainter, QPoint point,
                               const QFont &font, QPaintDevice *pPaintDevice,
-                              const QString &strText,
-                              bool fPopup);
+                              const QString &strText);
 
 #ifndef VBOX_WS_MAC
         /** Returns a number shifter per 10% from @a i1 to @a i2. */
@@ -273,34 +227,7 @@ private:
         HidingReason  m_enmReason;
 
         /** Holds whether item is hovered. */
-        bool                m_fHovered;
-        /** Holds the hovering animation machine instance. */
-        QStateMachine      *m_pHoveringMachine;
-        /** Holds the forward hovering animation instance. */
-        QPropertyAnimation *m_pHoveringAnimationForward;
-        /** Holds the backward hovering animation instance. */
-        QPropertyAnimation *m_pHoveringAnimationBackward;
-        /** Holds the animation duration. */
-        int                 m_iAnimationDuration;
-        /** Holds the default animation value. */
-        int                 m_iDefaultValue;
-        /** Holds the hovered animation value. */
-        int                 m_iHoveredValue;
-        /** Holds the animated value. */
-        int                 m_iAnimatedValue;
-
-        /** Holds start default lightness tone. */
-        int  m_iDefaultLightnessStart;
-        /** Holds final default lightness tone. */
-        int  m_iDefaultLightnessFinal;
-        /** Holds start hover lightness tone. */
-        int  m_iHoverLightnessStart;
-        /** Holds final hover lightness tone. */
-        int  m_iHoverLightnessFinal;
-        /** Holds start highlight lightness tone. */
-        int  m_iHighlightLightnessStart;
-        /** Holds final highlight lightness tone. */
-        int  m_iHighlightLightnessFinal;
+        bool  m_fHovered;
     /** @} */
 
     /** @name Layout stuff.

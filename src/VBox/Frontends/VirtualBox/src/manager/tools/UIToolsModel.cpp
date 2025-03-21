@@ -362,11 +362,10 @@ void UIToolsAnimationEngine::prepareConnections()
 *   Class UIToolsModel implementation.                                                                                           *
 *********************************************************************************************************************************/
 
-UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass, bool fPopup)
+UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass)
     : QObject(pParent)
     , m_pActionPool(pActionPool)
     , m_enmClass(enmClass)
-    , m_fPopup(fPopup)
     , m_pView(0)
     , m_pScene(0)
     , m_fItemsEnabled(true)
@@ -512,11 +511,6 @@ QVariant UIToolsModel::data(int iKey) const
         default: break;
     }
     return QVariant();
-}
-
-void UIToolsModel::close()
-{
-    emit sigClose();
 }
 
 void UIToolsModel::setCurrentItem(UIToolsItem *pItem)
@@ -845,9 +839,6 @@ bool UIToolsModel::eventFilter(QObject *pWatched, QEvent *pEvent)
                             if (pClickedItem->isEnabled())
                             {
                                 setCurrentItem(pClickedItem);
-                                /* Close the widget in popup mode only: */
-                                if (isPopup())
-                                    close();
                                 return true;
                             }
                             break;
@@ -1023,7 +1014,7 @@ void UIToolsModel::prepareItems()
 
 void UIToolsModel::prepareAnimationEngine()
 {
-    if (!isPopup() && m_enmClass == UIToolClass_Invalid)
+    if (m_enmClass == UIToolClass_Invalid)
         m_pAnimationEngine = new UIToolsAnimationEngine(this);
 }
 

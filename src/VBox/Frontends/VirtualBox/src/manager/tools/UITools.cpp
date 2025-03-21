@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,12 +39,10 @@
 
 UITools::UITools(QWidget *pParent,
                  UIToolClass enmClass,
-                 UIActionPool *pActionPool,
-                 Qt::WindowFlags theFlags /* = Qt::Popup */)
-    : QWidget(pParent, theFlags)
+                 UIActionPool *pActionPool)
+    : QWidget(pParent, Qt::Widget)
     , m_enmClass(enmClass)
     , m_pActionPool(pActionPool)
-    , m_fPopup(theFlags == Qt::Popup)
     , m_pMainLayout(0)
     , m_pToolsModel(0)
     , m_pToolsView(0)
@@ -117,7 +115,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(this, m_pActionPool, m_enmClass, m_fPopup);
+    m_pToolsModel = new UIToolsModel(this, m_pActionPool, m_enmClass);
     if (m_pToolsModel)
         prepareView();
 }
@@ -128,7 +126,7 @@ void UITools::prepareView()
     AssertPtrReturnVoid(m_pMainLayout);
 
     /* Prepare view: */
-    m_pToolsView = new UIToolsView(this, m_pToolsModel, m_fPopup);
+    m_pToolsView = new UIToolsView(this, m_pToolsModel);
     if (m_pToolsView)
     {
         m_pToolsView->show();
@@ -142,8 +140,6 @@ void UITools::prepareView()
 void UITools::prepareConnections()
 {
     /* Model connections: */
-    connect(m_pToolsModel, &UIToolsModel::sigClose,
-            this, &UITools::close);
     connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
             this, &UITools::sigSelectionChanged);
 }
@@ -156,8 +152,6 @@ void UITools::initModel()
 void UITools::cleanupConnections()
 {
     /* Model connections: */
-    disconnect(m_pToolsModel, &UIToolsModel::sigClose,
-               this, &UITools::close);
     disconnect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
                this, &UITools::sigSelectionChanged);
 }

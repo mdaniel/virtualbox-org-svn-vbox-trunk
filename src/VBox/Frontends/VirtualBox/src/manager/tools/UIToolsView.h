@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,9 +45,8 @@ class UIToolsView : public QIGraphicsView
 public:
 
     /** Constructs a Tools-view passing @a pParent to the base-class.
-      * @param  pModel  Brings the tools model reference.
-      * @param  fPopup  Brings whether tools represented as popup. */
-    UIToolsView(QWidget *pParent, UIToolsModel *pModel, bool fPopup);
+      * @param  pModel  Brings the tools model reference. */
+    UIToolsView(QWidget *pParent, UIToolsModel *pModel);
     /** Destructs a Tools-view. */
     virtual ~UIToolsView();
 
@@ -102,9 +101,6 @@ private:
 
     /** @name General stuff.
       * @{ */
-        /** Returns whether tools represented as popup. */
-        bool isPopup() const { return m_fPopup; }
-
         /** Updates scene rectangle. */
         void updateSceneRect();
 
@@ -118,9 +114,6 @@ private:
       * @{ */
         /** Holds the tools model reference. */
         UIToolsModel *m_pModel;
-
-        /** Holds whether tools represented as popup. */
-        const bool  m_fPopup;
     /** @} */
 
     /** @name Layout stuff.

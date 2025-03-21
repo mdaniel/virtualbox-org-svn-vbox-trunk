@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,9 +30,6 @@
 #include <QApplication>
 #include <QGraphicsScene>
 #include <QPainter>
-#include <QPropertyAnimation>
-#include <QSignalTransition>
-#include <QStateMachine>
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 #include <QToolTip>
@@ -40,8 +37,6 @@
 
 /* GUI includes: */
 #include "UICommon.h"
-#include "UIImageTools.h"
-#include "UITools.h"
 #include "UIToolsItem.h"
 #include "UIToolsModel.h"
 #include "UIToolsView.h"
@@ -192,19 +187,6 @@ UIToolsItem::UIToolsItem(QGraphicsScene *pScene, const QIcon &icon, UIToolType e
     , m_enmType(enmType)
     , m_enmReason(HidingReason_Null)
     , m_fHovered(false)
-    , m_pHoveringMachine(0)
-    , m_pHoveringAnimationForward(0)
-    , m_pHoveringAnimationBackward(0)
-    , m_iAnimationDuration(400)
-    , m_iDefaultValue(0)
-    , m_iHoveredValue(100)
-    , m_iAnimatedValue(m_iDefaultValue)
-    , m_iDefaultLightnessStart(0)
-    , m_iDefaultLightnessFinal(0)
-    , m_iHoverLightnessStart(0)
-    , m_iHoverLightnessFinal(0)
-    , m_iHighlightLightnessStart(0)
-    , m_iHighlightLightnessFinal(0)
     , m_iPreviousMinimumWidthHint(0)
     , m_iPreviousMinimumHeightHint(0)
 {
@@ -252,15 +234,6 @@ void UIToolsItem::setHiddenByReason(bool fHidden, HidingReason enmReason)
     setVisible(m_enmReason == HidingReason_Null);
 }
 
-void UIToolsItem::setHovered(bool fHovered)
-{
-    m_fHovered = fHovered;
-    if (m_fHovered)
-        emit sigHoverEnter();
-    else
-        emit sigHoverLeave();
-}
-
 void UIToolsItem::updateGeometry()
 {
     /* Call to base-class: */
@@ -296,31 +269,26 @@ int UIToolsItem::minimumWidthHint() const
     /* Add 2 margins by default: */
     iProposedWidth += 2 * iMargin;
 #ifdef VBOX_WS_MAC
-    /* Additional 2 margins for widget mode: */
-    if (!model()->isPopup())
-        iProposedWidth += 2 * iMargin;
+    /* Additional 2 margins: */
+    iProposedWidth += 2 * iMargin;
 #else
-    /* Additional 1 margin for widget mode: */
-    if (!model()->isPopup())
-        iProposedWidth += iMargin;
+    /* Additional 1 margin: */
+    iProposedWidth += iMargin;
 #endif
 
     /* Add pixmap size by default: */
     iProposedWidth += m_pixmapSize.width();
 
-    /* Add text size for non-Aux tools in popup mode
-     * or if it is requested for widget mode: */
+    /* Add text size for non-Aux tools if it is requested: */
     if (   m_enmClass != UIToolClass_Aux
-        && (   model()->isPopup()
-            || model()->showItemNames()))
+        && model()->showItemNames())
     {
         iProposedWidth += m_nameSize.width();
 
         /* Add 1 spacing by default: */
         iProposedWidth += iSpacing;
-        /* Additional 1 spacing for widget mode: */
-        if (!model()->isPopup())
-            iProposedWidth += iSpacing;
+        /* Additional 1 spacing: */
+        iProposedWidth += iSpacing;
     }
 
     /* Return result: */
@@ -369,12 +337,10 @@ void UIToolsItem::hoverMoveEvent(QGraphicsSceneHoverEvent *)
     if (!m_fHovered)
     {
         m_fHovered = true;
-        emit sigHoverEnter();
         update();
 
-        /* Show tooltip at the right of item for widget mode: */
-        if (   !model()->isPopup()
-            && !model()->showItemNames())
+        /* Show tooltip if there is no name: */
+        if (!model()->showItemNames())
         {
             const QPointF posAtScene = mapToScene(rect().topRight() + QPoint(3, -3));
             const QPoint posAtScreen = model()->view()->parentWidget()->mapToGlobal(posAtScene.toPoint());
@@ -388,12 +354,10 @@ void UIToolsItem::hoverLeaveEvent(QGraphicsSceneHoverEvent *)
     if (m_fHovered)
     {
         m_fHovered = false;
-        emit sigHoverLeave();
         update();
 
         /* Hide tooltip for good: */
-        if (!model()->isPopup())
-            QToolTip::hideText();
+        QToolTip::hideText();
     }
 }
 
@@ -404,9 +368,6 @@ void UIToolsItem::paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOpt
 
     /* Paint background: */
     paintBackground(pPainter, rectangle);
-    /* Paint frame for popup only: */
-    if (model()->isPopup())
-        paintFrame(pPainter, rectangle);
     /* Paint tool info: */
     paintToolInfo(pPainter, rectangle);
 }
@@ -426,111 +387,18 @@ void UIToolsItem::prepare()
     /* Install Tools-view item accessibility interface factory: */
     QAccessible::installFactory(UIAccessibilityInterfaceForUIToolsItem::pFactory);
 
-    /* Prepare color tones: */
-#if defined(VBOX_WS_MAC)
-    m_iDefaultLightnessStart = 120;
-    m_iDefaultLightnessFinal = 110;
-    m_iHoverLightnessStart = 125;
-    m_iHoverLightnessFinal = 115;
-    m_iHighlightLightnessStart = 115;
-    m_iHighlightLightnessFinal = 105;
-#elif defined(VBOX_WS_WIN)
-    m_iDefaultLightnessStart = 120;
-    m_iDefaultLightnessFinal = 110;
-    m_iHoverLightnessStart = 220;
-    m_iHoverLightnessFinal = 210;
-    m_iHighlightLightnessStart = 190;
-    m_iHighlightLightnessFinal = 180;
-#else /* !VBOX_WS_MAC && !VBOX_WS_WIN */
-    m_iDefaultLightnessStart = 110;
-    m_iDefaultLightnessFinal = 100;
-    m_iHoverLightnessStart = 125;
-    m_iHoverLightnessFinal = 115;
-    m_iHighlightLightnessStart = 110;
-    m_iHighlightLightnessFinal = 100;
-#endif /* !VBOX_WS_MAC && !VBOX_WS_WIN */
-
     /* Configure item options: */
     setOwnedByLayout(false);
     setAcceptHoverEvents(true);
     setFocusPolicy(Qt::NoFocus);
     setFlag(QGraphicsItem::ItemIsSelectable, false);
 
-    /* Prepare hover animation for popup mode only: */
-    if (model()->isPopup())
-        prepareHoverAnimation();
     /* Prepare connections: */
     prepareConnections();
 
     /* Init: */
     updatePixmap();
     updateNameSize();
-}
-
-void UIToolsItem::prepareHoverAnimation()
-{
-    /* Create hovering animation machine: */
-    m_pHoveringMachine = new QStateMachine(this);
-    if (m_pHoveringMachine)
-    {
-        /* Create 'default' state: */
-        QState *pStateDefault = new QState(m_pHoveringMachine);
-        /* Create 'hovered' state: */
-        QState *pStateHovered = new QState(m_pHoveringMachine);
-
-        /* Configure 'default' state: */
-        if (pStateDefault)
-        {
-            /* When we entering default state => we assigning animatedValue to m_iDefaultValue: */
-            pStateDefault->assignProperty(this, "animatedValue", m_iDefaultValue);
-
-            /* Add state transitions: */
-            QSignalTransition *pDefaultToHovered = pStateDefault->addTransition(this, SIGNAL(sigHoverEnter()), pStateHovered);
-            if (pDefaultToHovered)
-            {
-                /* Create forward animation: */
-                m_pHoveringAnimationForward = new QPropertyAnimation(this, "animatedValue", this);
-                if (m_pHoveringAnimationForward)
-                {
-                    m_pHoveringAnimationForward->setDuration(m_iAnimationDuration);
-                    m_pHoveringAnimationForward->setStartValue(m_iDefaultValue);
-                    m_pHoveringAnimationForward->setEndValue(m_iHoveredValue);
-
-                    /* Add to transition: */
-                    pDefaultToHovered->addAnimation(m_pHoveringAnimationForward);
-                }
-            }
-        }
-
-        /* Configure 'hovered' state: */
-        if (pStateHovered)
-        {
-            /* When we entering hovered state => we assigning animatedValue to m_iHoveredValue: */
-            pStateHovered->assignProperty(this, "animatedValue", m_iHoveredValue);
-
-            /* Add state transitions: */
-            QSignalTransition *pHoveredToDefault = pStateHovered->addTransition(this, SIGNAL(sigHoverLeave()), pStateDefault);
-            if (pHoveredToDefault)
-            {
-                /* Create backward animation: */
-                m_pHoveringAnimationBackward = new QPropertyAnimation(this, "animatedValue", this);
-                if (m_pHoveringAnimationBackward)
-                {
-                    m_pHoveringAnimationBackward->setDuration(m_iAnimationDuration);
-                    m_pHoveringAnimationBackward->setStartValue(m_iHoveredValue);
-                    m_pHoveringAnimationBackward->setEndValue(m_iDefaultValue);
-
-                    /* Add to transition: */
-                    pHoveredToDefault->addAnimation(m_pHoveringAnimationBackward);
-                }
-            }
-        }
-
-        /* Initial state is 'default': */
-        m_pHoveringMachine->setInitialState(pStateDefault);
-        /* Start state-machine: */
-        m_pHoveringMachine->start();
-    }
 }
 
 void UIToolsItem::prepareConnections()
@@ -573,10 +441,9 @@ QVariant UIToolsItem::data(int iKey) const
             QFont fnt = font();
             fnt.setWeight(QFont::Bold);
 
-            /* Make Machine & Management tool font smaller for widget mode: */
-            if (   !model()->isPopup()
-                && (   itemClass() == UIToolClass_Machine
-                    || itemClass() == UIToolClass_Management))
+            /* Make Machine & Management tool font smaller: */
+            if (   itemClass() == UIToolClass_Machine
+                || itemClass() == UIToolClass_Management)
                 fnt.setPointSize(fnt.pointSize() - 1);
 
             /* Return font: */
@@ -591,10 +458,9 @@ QVariant UIToolsItem::data(int iKey) const
 
 void UIToolsItem::updatePixmap()
 {
-    /* Smaller Machine & Management tool icons in widget mode: */
-    const int iIconMetric =    !model()->isPopup()
-                            && (   itemClass() == UIToolClass_Machine
-                                || itemClass() == UIToolClass_Management)
+    /* Smaller Machine & Management tool icons: */
+    const int iIconMetric =    itemClass() == UIToolClass_Machine
+                            || itemClass() == UIToolClass_Management
                           ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize)
                           : QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * 1.5;
 
@@ -637,277 +503,140 @@ void UIToolsItem::paintBackground(QPainter *pPainter, const QRect &rectangle) co
     /* Prepare variables: */
     const QPalette pal = QApplication::palette();
 
-    /* For popup: */
-    if (model()->isPopup())
-    {
-        /* Selection background: */
-        if (model()->currentItem(itemClass()) == this)
-        {
-            /* Prepare color: */
-            const QColor backgroundColor = isEnabled()
-                                         ? pal.color(QPalette::Active, QPalette::Highlight)
-                                         : pal.color(QPalette::Disabled, QPalette::Window);
-            /* Draw gradient: */
-            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-            bgGrad.setColorAt(0, backgroundColor.lighter(m_iHighlightLightnessStart));
-            bgGrad.setColorAt(1, backgroundColor.lighter(m_iHighlightLightnessFinal));
-            pPainter->fillRect(rectangle, bgGrad);
-
-            if (isEnabled() && isHovered())
-            {
-                /* Prepare color: */
-                QColor animationColor1 = QColor(Qt::white);
-                QColor animationColor2 = QColor(Qt::white);
-#ifdef VBOX_WS_MAC
-                animationColor1.setAlpha(90);
-#else
-                animationColor1.setAlpha(30);
-#endif
-                animationColor2.setAlpha(0);
-                /* Draw hovering animated gradient: */
-                QRect animatedRect = rectangle;
-                animatedRect.setWidth(animatedRect.height());
-                const int iLength = 2 * animatedRect.width() + rectangle.width();
-                const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
-                animatedRect.moveLeft(iShift);
-                QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
-                bgAnimatedGrad.setColorAt(0,   animationColor2);
-                bgAnimatedGrad.setColorAt(0.1, animationColor2);
-                bgAnimatedGrad.setColorAt(0.5, animationColor1);
-                bgAnimatedGrad.setColorAt(0.9, animationColor2);
-                bgAnimatedGrad.setColorAt(1,   animationColor2);
-                pPainter->fillRect(rectangle, bgAnimatedGrad);
-            }
-        }
-        /* Hovering background: */
-        else if (isHovered())
-        {
-            /* Prepare color: */
-            const QColor backgroundColor = isEnabled()
-                                         ? pal.color(QPalette::Active, QPalette::Highlight)
-                                         : pal.color(QPalette::Disabled, QPalette::Window);
-            /* Draw gradient: */
-            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-            bgGrad.setColorAt(0, backgroundColor.lighter(m_iHoverLightnessStart));
-            bgGrad.setColorAt(1, backgroundColor.lighter(m_iHoverLightnessFinal));
-            pPainter->fillRect(rectangle, bgGrad);
-
-            if (isEnabled())
-            {
-                /* Prepare color: */
-                QColor animationColor1 = QColor(Qt::white);
-                QColor animationColor2 = QColor(Qt::white);
-#ifdef VBOX_WS_MAC
-                animationColor1.setAlpha(120);
-#else
-                animationColor1.setAlpha(50);
-#endif
-                animationColor2.setAlpha(0);
-                /* Draw hovering animated gradient: */
-                QRect animatedRect = rectangle;
-                animatedRect.setWidth(animatedRect.height());
-                const int iLength = 2 * animatedRect.width() + rectangle.width();
-                const int iShift = - animatedRect.width() + iLength * animatedValue() / 100;
-                animatedRect.moveLeft(iShift);
-                QLinearGradient bgAnimatedGrad(animatedRect.topLeft(), animatedRect.bottomRight());
-                bgAnimatedGrad.setColorAt(0,   animationColor2);
-                bgAnimatedGrad.setColorAt(0.1, animationColor2);
-                bgAnimatedGrad.setColorAt(0.5, animationColor1);
-                bgAnimatedGrad.setColorAt(0.9, animationColor2);
-                bgAnimatedGrad.setColorAt(1,   animationColor2);
-                pPainter->fillRect(rectangle, bgAnimatedGrad);
-            }
-        }
-        /* Default background: */
-        else
-        {
-            /* Prepare color: */
-            const QColor backgroundColor = isEnabled()
-                                         ? pal.color(QPalette::Active, QPalette::Window)
-                                         : pal.color(QPalette::Disabled, QPalette::Window);
-            /* Draw gradient: */
-            QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-            bgGrad.setColorAt(0, backgroundColor.lighter(m_iDefaultLightnessStart));
-            bgGrad.setColorAt(1, backgroundColor.lighter(m_iDefaultLightnessFinal));
-            pPainter->fillRect(rectangle, bgGrad);
-        }
-    }
-    /* For widget: */
-    else
-    {
-        /* Selection background: */
-        if (model()->currentItem(itemClass()) == this)
-        {
-            /* Acquire background color: */
-#ifdef VBOX_WS_MAC
-            const QColor selectionColor = uiCommon().isInDarkMode()
-                                        ? pal.color(QPalette::Active, QPalette::Button).lighter(150)
-                                        : pal.color(QPalette::Active, QPalette::Button).darker(150);
-#else
-            const QColor selectionColor = uiCommon().isInDarkMode()
-                                        ? pal.color(QPalette::Active, QPalette::Accent)
-                                        : pal.color(QPalette::Active, QPalette::Accent);
-#endif
-            QColor selectionColor1 = selectionColor;
-            QColor selectionColor2 = selectionColor;
-            selectionColor1.setAlpha(100);
-            selectionColor2.setAlpha(110);
-
-            /* Acquire token color: */
-            const QColor highlightColor = isEnabled()
-                                        ? pal.color(QPalette::Active, QPalette::Highlight)
-                                        : pal.color(QPalette::Disabled, QPalette::Highlight);
-            const QColor highlightColor1 = uiCommon().isInDarkMode()
-                                         ? highlightColor.lighter(160)
-                                         : highlightColor.darker(160);
-            const QColor highlightColor2 = uiCommon().isInDarkMode()
-                                         ? highlightColor.lighter(140)
-                                         : highlightColor.darker(140);
-
-            /* Depending on item class: */
-            switch (itemClass())
-            {
-                case UIToolClass_Global:
-                {
-                    /* Draw gradient background: */
-                    QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
-                    bgGrad.setColorAt(0, selectionColor1);
-                    bgGrad.setColorAt(1, selectionColor2);
-                    pPainter->fillRect(rectangle, bgGrad);
-
-                    /* Draw gradient token: */
-                    QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
-                    QLinearGradient tkGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
-                    tkGrad.setColorAt(0, highlightColor1);
-                    tkGrad.setColorAt(1, highlightColor2);
-                    pPainter->fillRect(tokenRect, tkGrad);
-                    break;
-                }
-                case UIToolClass_Machine:
-                case UIToolClass_Management:
-                {
-                    /* Draw gradient background: */
-                    QRect backgroundRect(rectangle.topLeft() + QPoint(5, 0), QSize(rectangle.width() - 5, rectangle.height()));
-                    QLinearGradient bgGrad(backgroundRect.topLeft(), backgroundRect.topRight());
-                    bgGrad.setColorAt(0, selectionColor1);
-                    bgGrad.setColorAt(1, selectionColor2);
-                    pPainter->fillRect(backgroundRect, bgGrad);
-
-                    /* Draw gradient token: */
-                    QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
-                    QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
-                    hlGrad.setColorAt(0, highlightColor1);
-                    hlGrad.setColorAt(1, highlightColor2);
-                    pPainter->fillRect(tokenRect, hlGrad);
-                    break;
-                }
-                default:
-                    break;
-            }
-        }
-
-        /* Hovering background for widget: */
-        else if (isHovered())
-        {
-            /* Prepare variables: */
-            const int iMargin = data(ToolsItemData_Margin).toInt();
-            const int iPadding = data(ToolsItemData_Padding).toInt();
-
-            /* Configure painter: */
-            pPainter->setRenderHint(QPainter::Antialiasing, true);
-            /* Acquire background color: */
-#ifdef VBOX_WS_MAC
-            const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
-#else /* !VBOX_WS_MAC */
-            const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
-            const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
-            const int iRed = iShift30(windowColor.red(), accentColor.red());
-            const int iGreen = iShift30(windowColor.green(), accentColor.green());
-            const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
-            const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
-#endif /* !VBOX_WS_MAC */
-
-            /* A bit of indentation for Machine & Management tools in widget mode: */
-            const int iIndent = itemClass() == UIToolClass_Machine || itemClass() == UIToolClass_Management
-                              ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5 : 0;
-
-            /* Prepare icon sub-rect: */
-            QRect subRect;
-            subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
-            subRect.setWidth(subRect.height());
-#ifdef VBOX_WS_MAC
-            subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 2 * iMargin - iPadding, iMargin - iPadding));
-#else
-            subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 1.5 * iMargin - iPadding, iMargin - iPadding));
-#endif
-
-            /* Paint icon frame: */
-            QPainterPath painterPath;
-            painterPath.addRoundedRect(subRect, iPadding, iPadding);
-#ifdef VBOX_WS_MAC
-            const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(220)
-                                          : backgroundColor.darker(140);
-#else /* !VBOX_WS_MAC */
-            const QColor backgroundColor1 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(140)
-                                          : backgroundColor.darker(120);
-#endif /* !VBOX_WS_MAC */
-            pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
-            pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
-
-            /* Fill icon body: */
-            pPainter->setClipPath(painterPath);
-#ifdef VBOX_WS_MAC
-            const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(160)
-                                          : backgroundColor.darker(120);
-#else /* !VBOX_WS_MAC */
-            const QColor backgroundColor2 = uiCommon().isInDarkMode()
-                                          ? backgroundColor.lighter(105)
-                                          : backgroundColor.darker(105);
-#endif /* !VBOX_WS_MAC */
-            pPainter->fillRect(subRect, backgroundColor2);
-        }
-    }
-
-    /* Restore painter: */
-    pPainter->restore();
-}
-
-void UIToolsItem::paintFrame(QPainter *pPainter, const QRect &rectangle) const
-{
-    /* Don't paint frame for disabled items: */
-    if (!isEnabled())
-        return;
-
-    /* Save painter: */
-    pPainter->save();
-
-    /* Prepare colors: */
-    const QPalette pal = QApplication::palette();
-    QColor strokeColor;
-
-    /* Selection frame: */
+    /* Selection background: */
     if (model()->currentItem(itemClass()) == this)
-        strokeColor = pal.color(QPalette::Active, QPalette::Highlight).lighter(m_iHighlightLightnessStart - 40);
-    /* Hovering frame: */
-    else if (isHovered())
-        strokeColor = pal.color(QPalette::Active, QPalette::Highlight).lighter(m_iHoverLightnessStart - 40);
-    /* Default frame: */
-    else
-        strokeColor = pal.color(QPalette::Active, QPalette::Window).lighter(m_iDefaultLightnessStart);
+    {
+        /* Acquire background color: */
+#ifdef VBOX_WS_MAC
+        const QColor selectionColor = uiCommon().isInDarkMode()
+                                    ? pal.color(QPalette::Active, QPalette::Button).lighter(150)
+                                    : pal.color(QPalette::Active, QPalette::Button).darker(150);
+#else
+        const QColor selectionColor = uiCommon().isInDarkMode()
+                                    ? pal.color(QPalette::Active, QPalette::Accent)
+                                    : pal.color(QPalette::Active, QPalette::Accent);
+#endif
+        QColor selectionColor1 = selectionColor;
+        QColor selectionColor2 = selectionColor;
+        selectionColor1.setAlpha(100);
+        selectionColor2.setAlpha(110);
 
-    /* Create/assign pen: */
-    QPen pen(strokeColor);
-    pen.setWidth(0);
-    pPainter->setPen(pen);
+        /* Acquire token color: */
+        const QColor highlightColor = isEnabled()
+                                    ? pal.color(QPalette::Active, QPalette::Highlight)
+                                    : pal.color(QPalette::Disabled, QPalette::Highlight);
+        const QColor highlightColor1 = uiCommon().isInDarkMode()
+                                     ? highlightColor.lighter(160)
+                                     : highlightColor.darker(160);
+        const QColor highlightColor2 = uiCommon().isInDarkMode()
+                                     ? highlightColor.lighter(140)
+                                     : highlightColor.darker(140);
 
-    /* Draw borders: */
-    pPainter->drawLine(rectangle.topLeft(),    rectangle.topRight());
-    pPainter->drawLine(rectangle.bottomLeft(), rectangle.bottomRight());
-    pPainter->drawLine(rectangle.topLeft(),    rectangle.bottomLeft());
-    pPainter->drawLine(rectangle.topRight(),   rectangle.bottomRight());
+        /* Depending on item class: */
+        switch (itemClass())
+        {
+            case UIToolClass_Global:
+            {
+                /* Draw gradient background: */
+                QLinearGradient bgGrad(rectangle.topLeft(), rectangle.topRight());
+                bgGrad.setColorAt(0, selectionColor1);
+                bgGrad.setColorAt(1, selectionColor2);
+                pPainter->fillRect(rectangle, bgGrad);
+
+                /* Draw gradient token: */
+                QRect tokenRect(rectangle.topLeft(), QSize(5, rectangle.height()));
+                QLinearGradient tkGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                tkGrad.setColorAt(0, highlightColor1);
+                tkGrad.setColorAt(1, highlightColor2);
+                pPainter->fillRect(tokenRect, tkGrad);
+                break;
+            }
+            case UIToolClass_Machine:
+            case UIToolClass_Management:
+            {
+                /* Draw gradient background: */
+                QRect backgroundRect(rectangle.topLeft() + QPoint(5, 0), QSize(rectangle.width() - 5, rectangle.height()));
+                QLinearGradient bgGrad(backgroundRect.topLeft(), backgroundRect.topRight());
+                bgGrad.setColorAt(0, selectionColor1);
+                bgGrad.setColorAt(1, selectionColor2);
+                pPainter->fillRect(backgroundRect, bgGrad);
+
+                /* Draw gradient token: */
+                QRect tokenRect(rectangle.topRight() - QPoint(5, 0), QSize(5, rectangle.height()));
+                QLinearGradient hlGrad(tokenRect.topLeft(), tokenRect.bottomLeft());
+                hlGrad.setColorAt(0, highlightColor1);
+                hlGrad.setColorAt(1, highlightColor2);
+                pPainter->fillRect(tokenRect, hlGrad);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    /* Hovering background for widget: */
+    else if (m_fHovered)
+    {
+        /* Prepare variables: */
+        const int iMargin = data(ToolsItemData_Margin).toInt();
+        const int iPadding = data(ToolsItemData_Padding).toInt();
+
+        /* Configure painter: */
+        pPainter->setRenderHint(QPainter::Antialiasing, true);
+        /* Acquire background color: */
+#ifdef VBOX_WS_MAC
+        const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
+#else /* !VBOX_WS_MAC */
+        const QColor windowColor = pal.color(QPalette::Active, QPalette::Window);
+        const QColor accentColor = pal.color(QPalette::Active, QPalette::Accent);
+        const int iRed = iShift30(windowColor.red(), accentColor.red());
+        const int iGreen = iShift30(windowColor.green(), accentColor.green());
+        const int iBlue = iShift30(windowColor.blue(), accentColor.blue());
+        const QColor backgroundColor = QColor(qRgb(iRed, iGreen, iBlue));
+#endif /* !VBOX_WS_MAC */
+
+        /* A bit of indentation for Machine & Management tools in widget mode: */
+        const int iIndent = itemClass() == UIToolClass_Machine || itemClass() == UIToolClass_Management
+                          ? QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5 : 0;
+
+        /* Prepare icon sub-rect: */
+        QRect subRect;
+        subRect.setHeight(m_pixmap.height() / m_pixmap.devicePixelRatio() + iPadding * 2);
+        subRect.setWidth(subRect.height());
+#ifdef VBOX_WS_MAC
+        subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 2 * iMargin - iPadding, iMargin - iPadding));
+#else
+        subRect.moveTopLeft(rectangle.topLeft() + QPoint(iIndent + 1.5 * iMargin - iPadding, iMargin - iPadding));
+#endif
+
+        /* Paint icon frame: */
+        QPainterPath painterPath;
+        painterPath.addRoundedRect(subRect, iPadding, iPadding);
+#ifdef VBOX_WS_MAC
+        const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                      ? backgroundColor.lighter(220)
+                                      : backgroundColor.darker(140);
+#else /* !VBOX_WS_MAC */
+        const QColor backgroundColor1 = uiCommon().isInDarkMode()
+                                      ? backgroundColor.lighter(140)
+                                      : backgroundColor.darker(120);
+#endif /* !VBOX_WS_MAC */
+        pPainter->setPen(QPen(backgroundColor1, 2, Qt::SolidLine, Qt::RoundCap));
+        pPainter->drawPath(QPainterPathStroker().createStroke(painterPath));
+
+        /* Fill icon body: */
+        pPainter->setClipPath(painterPath);
+#ifdef VBOX_WS_MAC
+        const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                      ? backgroundColor.lighter(160)
+                                      : backgroundColor.darker(120);
+#else /* !VBOX_WS_MAC */
+        const QColor backgroundColor2 = uiCommon().isInDarkMode()
+                                      ? backgroundColor.lighter(105)
+                                      : backgroundColor.darker(105);
+#endif /* !VBOX_WS_MAC */
+        pPainter->fillRect(subRect, backgroundColor2);
+    }
 
     /* Restore painter: */
     pPainter->restore();
@@ -921,42 +650,24 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     const int iSpacing = data(ToolsItemData_Spacing).toInt();
     const QPalette pal = QApplication::palette();
 
-    /* Selected or hovered item foreground for popup mode: */
-    if (   model()->isPopup()
-        && (model()->currentItem(itemClass()) == this || isHovered()))
-    {
-        /* Get background color: */
-        const QColor highlight = pal.color(QPalette::Active, QPalette::Highlight);
-        const QColor background = model()->currentItem(itemClass()) == this
-                                ? highlight.lighter(m_iHighlightLightnessStart)
-                                : highlight.lighter(m_iHoverLightnessStart);
-
-        /* Gather foreground color for background one: */
-        const QColor foreground = suitableForegroundColor(pal, background);
-        pPainter->setPen(foreground);
-    }
     /* Default item foreground: */
-    else
-    {
-        const QColor foreground = isEnabled()
-                                ? pal.color(QPalette::Active, QPalette::Text)
-                                : pal.color(QPalette::Disabled, QPalette::Text);
-        pPainter->setPen(foreground);
-    }
+    const QColor foreground = isEnabled()
+                            ? pal.color(QPalette::Active, QPalette::Text)
+                            : pal.color(QPalette::Disabled, QPalette::Text);
+    pPainter->setPen(foreground);
 
     /* Paint left column: */
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        int iPixmapX = model()->isPopup() ? iMargin : 2 * iMargin;
+        int iPixmapX = 2 * iMargin;
 #else
-        int iPixmapX = model()->isPopup() ? iMargin : 1.5 * iMargin;
+        int iPixmapX = 1.5 * iMargin;
 #endif
 
-        /* A bit of indentation for Machine & Management tools in widget mode: */
-        if (   !model()->isPopup()
-            && (   itemClass() == UIToolClass_Machine
-                || itemClass() == UIToolClass_Management))
+        /* A bit of indentation for Machine & Management tools: */
+        if (   itemClass() == UIToolClass_Machine
+            || itemClass() == UIToolClass_Management)
             iPixmapX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
 
         const int iPixmapY = (iFullHeight - m_pixmap.height() / m_pixmap.devicePixelRatio()) / 2;
@@ -974,23 +685,19 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
     {
         /* Prepare variables: */
 #ifdef VBOX_WS_MAC
-        int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
-                                        : 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        int iNameX = 2 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #else
-        int iNameX = model()->isPopup() ? iMargin + m_pixmapSize.width() + iSpacing
-                                        : 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
+        int iNameX = 1.5 * iMargin + m_pixmapSize.width() + 2 * iSpacing;
 #endif
 
-        /* A bit of indentation for Machine & Management tools in widget mode: */
-        if (   !model()->isPopup()
-            && (   itemClass() == UIToolClass_Machine
-                || itemClass() == UIToolClass_Management))
+        /* A bit of indentation for Machine & Management tools: */
+        if (   itemClass() == UIToolClass_Machine
+            || itemClass() == UIToolClass_Management)
             iNameX += QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .5;
 
         const int iNameY = (iFullHeight - m_nameSize.height()) / 2;
-        /* Paint name (always for popup mode, if requested otherwise): */
-        if (   model()->isPopup()
-            || model()->showItemNames())
+        /* Paint name if requested: */
+        if (model()->showItemNames())
             paintText(/* Painter: */
                       pPainter,
                       /* Point to paint in: */
@@ -1000,9 +707,7 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                       /* Paint device: */
                       model()->paintDevice(),
                       /* Text to paint: */
-                      m_strName,
-                      /* Text for popup mode? */
-                      model()->isPopup());
+                      m_strName);
     }
 }
 
@@ -1017,8 +722,7 @@ void UIToolsItem::paintPixmap(QPainter *pPainter, const QPoint &point,
 /* static */
 void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
                             const QFont &font, QPaintDevice *pPaintDevice,
-                            const QString &strText,
-                            bool fPopup)
+                            const QString &strText)
 {
     /* Save painter: */
     pPainter->save();
@@ -1031,20 +735,15 @@ void UIToolsItem::paintText(QPainter *pPainter, QPoint point,
     point += QPoint(0, fm.ascent());
 
     /* Draw text: */
-    if (fPopup)
-        pPainter->drawText(point, strText);
-    else
-    {
-        QPainterPath textPath;
-        textPath.addText(0, 0, font, strText);
-        textPath.translate(point);
-        pPainter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-        pPainter->setPen(QPen(uiCommon().isInDarkMode() ? Qt::black : Qt::white, 2, Qt::SolidLine, Qt::RoundCap));
-        pPainter->drawPath(QPainterPathStroker().createStroke(textPath));
-        pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
-        pPainter->setPen(Qt::NoPen);
-        pPainter->drawPath(textPath);
-    }
+    QPainterPath textPath;
+    textPath.addText(0, 0, font, strText);
+    textPath.translate(point);
+    pPainter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+    pPainter->setPen(QPen(uiCommon().isInDarkMode() ? Qt::black : Qt::white, 2, Qt::SolidLine, Qt::RoundCap));
+    pPainter->drawPath(QPainterPathStroker().createStroke(textPath));
+    pPainter->setBrush(uiCommon().isInDarkMode() ? Qt::white: Qt::black);
+    pPainter->setPen(Qt::NoPen);
+    pPainter->drawPath(textPath);
 
     /* Restore painter: */
     pPainter->restore();

@@ -372,7 +372,7 @@ static struct drm_driver driver = {
 	.load = vbox_driver_load,
 	.unload = vbox_driver_unload,
 #endif
-#if RTLNX_VER_MAX(6,12,0)
+#if RTLNX_VER_MAX(6,12,0) && !RTLNX_RHEL_RANGE(9,7, 9,99)
 	.lastclose = vbox_driver_lastclose,
 #endif
 	.master_set = vbox_master_set,

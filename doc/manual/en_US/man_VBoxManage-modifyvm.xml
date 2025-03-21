@@ -180,10 +180,6 @@
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--accelerate-2d-video=<group choice="plain">
-          <arg choice="plain">on</arg>
-          <arg choice="plain">off</arg>
-        </group></arg>
       <arg>--chipset=<group choice="plain">
           <arg choice="plain">ich9</arg>
           <arg choice="plain">piix3</arg>
@@ -1118,13 +1114,6 @@ it unless this changes. -->
               graphics adapter variants which support it. This option
               has an effect only when the Guest Additions are installed.
               See <xref linkend="guestadd-video" />.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>--accelerate-2d-video=on | off</option></term>
-          <listitem><para>
-              Enables or disables 2D video acceleration for the graphics
-              adapter variants which support it.
             </para></listitem>
         </varlistentry>
         <varlistentry>

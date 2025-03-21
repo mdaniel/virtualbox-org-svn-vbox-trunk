@@ -180,10 +180,6 @@
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--accelerate-2d-video=<group choice="plain">
-          <arg choice="plain">on</arg>
-          <arg choice="plain">off</arg>
-        </group></arg>
       <arg>--chipset=<group choice="plain">
           <arg choice="plain">ich9</arg>
           <arg choice="plain">piix3</arg>
@@ -1071,13 +1067,6 @@ it unless this changes. -->
               графических адаптеров, поддерживающих это. Эта опция
               работает только при установленных Дополнений Гостевой ОС.
               Смотрите <xref linkend="guestadd-video" />.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>--accelerate-2d-video=on | off</option></term>
-          <listitem><para>
-              Включает или отключает 2D видео ускорение для графических
-              адаптеров, поддерживающих это.
             </para></listitem>
         </varlistentry>
         <varlistentry>

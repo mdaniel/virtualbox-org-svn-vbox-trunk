@@ -55,7 +55,7 @@ static DECLCALLBACK(int) disReadBytesDefault(PDISSTATE pDis, uint8_t offInstr, u
 #ifdef IN_RING0
     size_t  const   cbLeftOnPage = (uintptr_t)pbSrc & PAGE_OFFSET_MASK;
 #else
-    size_t  const   cbLeftOnPage = (uintptr_t)pbSrc & (_4K - 1); /* Minimum page size for safety. */
+    size_t  const   cbLeftOnPage = (uintptr_t)pbSrc & (uintptr_t)(_4K - 1); /* Minimum page size for safety. */
 #endif
     uint8_t         cbToRead     = cbLeftOnPage >= cbMaxRead
                                  ? cbMaxRead

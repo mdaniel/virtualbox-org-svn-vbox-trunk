@@ -1359,8 +1359,6 @@ ifeq ($(KBUILD_TARGET),darwin)
  VBOX_WITH_VBOXSDL =
 
  ifeq ($(KBUILD_TARGET_ARCH),arm64)
-  # Skip the webservice for now
-  VBOX_WITH_WEBSERVICES :=
   # Skip JWS bindings as those are tedious to build.
   VBOX_WITH_JWS :=
   # Ditto for the java<->XPCOM bridge.

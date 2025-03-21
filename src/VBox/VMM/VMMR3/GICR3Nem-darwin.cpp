@@ -240,6 +240,7 @@ const PDMGICBACKEND g_GicHvfBackend =
     /* .pfnWriteSysReg = */ NULL,
     /* .pfnSetSpi = */      gicR3HvfSetSpi,
     /* .pfnSetPpi = */      gicR3HvfSetPpi,
+    /* .pfnSendMsi = */     NULL,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

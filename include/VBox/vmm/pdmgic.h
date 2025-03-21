@@ -118,9 +118,20 @@ typedef struct PDMGICBACKENDR3
      */
     DECLR3CALLBACKMEMBER(int, pfnSetPpi, (PVMCPUCC pVCpu, uint32_t uPpiIntId, bool fAsserted));
 
+    /**
+     * Sends an MSI to the GIC ITS.
+     *
+     * @returns VBox status code.
+     * @param   pVM         The cross context virtual machine structure.
+     * @param   uBusDevFn   The bus:device:function of the device initiating the MSI.
+     *                      Cannot be NIL_PCIBDF.
+     * @param   pMsi        The MSI to send.
+     * @param   uTagSrc     The IRQ tag and source (for tracing).
+     */
+    DECLR3CALLBACKMEMBER(int, pfnSendMsi, (PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc));
+
     /** @name Reserved for future (MBZ).
      * @{ */
-    DECLR3CALLBACKMEMBER(int, pfnReserved4, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved5, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved6, (void));
     DECLR3CALLBACKMEMBER(int, pfnReserved7, (void));

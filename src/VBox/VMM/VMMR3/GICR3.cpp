@@ -81,7 +81,7 @@ static CPUMSYSREGRANGE const g_aSysRegRanges_GIC[] =
  * @param   pHlp        The info helpers.
  * @param   pszArgs     Arguments, ignored.
  */
-static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
+static DECLCALLBACK(void) gicR3DbgInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     RT_NOREF(pszArgs);
     PCGIC      pGic    = VM_TO_GIC(pVM);
@@ -111,7 +111,7 @@ static DECLCALLBACK(void) gicR3Info(PVM pVM, PCDBGFINFOHLP pHlp, const char *psz
  * @param   pHlp        The info helpers.
  * @param   pszArgs     Arguments, ignored.
  */
-static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
+static DECLCALLBACK(void) gicR3DbgInfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     RT_NOREF(pszArgs);
 
@@ -190,7 +190,7 @@ static DECLCALLBACK(void) gicR3InfoDist(PVM pVM, PCDBGFINFOHLP pHlp, const char 
  * @param   pHlp        The info helpers.
  * @param   pszArgs     Arguments, ignored.
  */
-static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
+static DECLCALLBACK(void) gicR3DbgInfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     NOREF(pszArgs);
     PVMCPU pVCpu = VMMGetCpu(pVM);
@@ -268,6 +268,28 @@ static DECLCALLBACK(void) gicR3InfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     pHlp->pfnPrintf(pHlp, "    [0..3] = %#010x %#010x %#010x %#010x\n",
                                pGicCpu->bmActivePriorityGroup1[0], pGicCpu->bmActivePriorityGroup1[1],
                                pGicCpu->bmActivePriorityGroup1[2], pGicCpu->bmActivePriorityGroup1[3]);
+}
+
+
+/**
+ * Dumps the GIC ITS information.
+ *
+ * @param   pVM         The cross context VM structure.
+ * @param   pHlp        The info helpers.
+ * @param   pszArgs     Arguments, ignored.
+ */
+static DECLCALLBACK(void) gicR3DbgInfoIts(PVM pVM, PCDBGFINFOHLP pHlp, const char *pszArgs)
+{
+    PGIC pGic = VM_TO_GIC(pVM);
+    PPDMDEVINS pDevIns  = pGic->CTX_SUFF(pDevIns);
+    PCGICDEV   pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    if (pGicDev->hMmioGits != NIL_IOMMMIOHANDLE)
+    {
+        PCGITSDEV  pGitsDev = &pGicDev->Gits;
+        gitsR3DbgInfo(pGitsDev, pHlp, pszArgs);
+    }
+    else
+        pHlp->pfnPrintf(pHlp, "GIC ITS is not mapped/configured for the VM\n");
 }
 
 
@@ -659,26 +681,51 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /*
      * Register the MMIO ranges.
      */
-    RTGCPHYS GCPhysMmioBase = 0;
-    rc = pHlp->pfnCFGMQueryU64(pCfg, "DistributorMmioBase", &GCPhysMmioBase);
-    if (RT_FAILURE(rc))
-        return PDMDEV_SET_ERROR(pDevIns, rc,
-                                N_("Configuration error: Failed to get the \"DistributorMmioBase\" value"));
+    /* Distributor. */
+    {
+        RTGCPHYS GCPhysMmioBase = 0;
+        rc = pHlp->pfnCFGMQueryU64(pCfg, "DistributorMmioBase", &GCPhysMmioBase);
+        if (RT_FAILURE(rc))
+            return PDMDEV_SET_ERROR(pDevIns, rc,
+                                    N_("Configuration error: Failed to get the \"DistributorMmioBase\" value"));
 
-    rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, GIC_DIST_REG_FRAME_SIZE, gicDistMmioWrite, gicDistMmioRead,
-                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC_Dist", &pGicDev->hMmioDist);
-    AssertRCReturn(rc, rc);
+        rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, GIC_DIST_REG_FRAME_SIZE, gicDistMmioWrite, gicDistMmioRead,
+                                       IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC Distributor",
+                                       &pGicDev->hMmioDist);
+        AssertRCReturn(rc, rc);
+    }
 
-    rc = pHlp->pfnCFGMQueryU64(pCfg, "RedistributorMmioBase", &GCPhysMmioBase);
-    if (RT_FAILURE(rc))
-        return PDMDEV_SET_ERROR(pDevIns, rc,
-                                N_("Configuration error: Failed to get the \"RedistributorMmioBase\" value"));
+    /* Redistributor. */
+    {
+        RTGCPHYS GCPhysMmioBase = 0;
+        rc = pHlp->pfnCFGMQueryU64(pCfg, "RedistributorMmioBase", &GCPhysMmioBase);
+        if (RT_FAILURE(rc))
+            return PDMDEV_SET_ERROR(pDevIns, rc,
+                                    N_("Configuration error: Failed to get the \"RedistributorMmioBase\" value"));
 
-    RTGCPHYS const cbRegion = (RTGCPHYS)pVM->cCpus
-                            * (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE); /* Adjacent and per vCPU. */
-    rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicReDistMmioWrite, gicReDistMmioRead,
-                                   IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC_ReDist", &pGicDev->hMmioReDist);
-    AssertRCReturn(rc, rc);
+        RTGCPHYS const cbRegion = (RTGCPHYS)pVM->cCpus
+                                * (GIC_REDIST_REG_FRAME_SIZE + GIC_REDIST_SGI_PPI_REG_FRAME_SIZE); /* Adjacent and per vCPU. */
+        rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicReDistMmioWrite, gicReDistMmioRead,
+                                       IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC Redistributor",
+                                       &pGicDev->hMmioReDist);
+        AssertRCReturn(rc, rc);
+    }
+
+    /* ITS. */
+    {
+        RTGCPHYS GCPhysMmioBase = 0;
+        rc = pHlp->pfnCFGMQueryU64(pCfg, "ItsMmioBase", &GCPhysMmioBase);
+        if (RT_SUCCESS(rc))
+        {
+            RTGCPHYS const cbRegion = 2 * GITS_REG_FRAME_SIZE;  /* 2 frames for GICv3. */
+            rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicItsMmioWrite, gicItsMmioRead,
+                                           IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC ITS",
+                                           &pGicDev->hMmioGits);
+            AssertRCReturn(rc, rc);
+        }
+        else
+            pGicDev->hMmioGits = NIL_IOMMMIOHANDLE;
+    }
 
     /*
      * Register saved state callbacks.
@@ -693,9 +740,10 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * dumped in an automated fashion while collecting crash diagnostics and
      * not just used during live debugging via the VM debugger.
      */
-    DBGFR3InfoRegisterInternalEx(pVM, "gic",       "Dumps GIC basic information.",         gicR3Info,       DBGFINFO_FLAGS_ALL_EMTS);
-    DBGFR3InfoRegisterInternalEx(pVM, "gicdist",   "Dumps GIC distributor information.",   gicR3InfoDist,   DBGFINFO_FLAGS_ALL_EMTS);
-    DBGFR3InfoRegisterInternalEx(pVM, "gicredist", "Dumps GIC redistributor information.", gicR3InfoReDist, DBGFINFO_FLAGS_ALL_EMTS);
+    DBGFR3InfoRegisterInternalEx(pVM, "gic",       "Dumps GIC basic information.",         gicR3DbgInfo,       DBGFINFO_FLAGS_ALL_EMTS);
+    DBGFR3InfoRegisterInternalEx(pVM, "gicdist",   "Dumps GIC distributor information.",   gicR3DbgInfoDist,   DBGFINFO_FLAGS_ALL_EMTS);
+    DBGFR3InfoRegisterInternalEx(pVM, "gicredist", "Dumps GIC redistributor information.", gicR3DbgInfoReDist, DBGFINFO_FLAGS_ALL_EMTS);
+    DBGFR3InfoRegisterInternalEx(pVM, "gicits",    "Dumps GIC ITS information.",           gicR3DbgInfoIts,    DBGFINFO_FLAGS_ALL_EMTS);
 
     /*
      * Statistics.

@@ -25,6 +25,36 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/** @page pg_gic    GIC - Generic Interrupt Controller
+ *
+ * The GIC is an interrupt controller device that lives in VMM but also registers
+ * itself with PDM similar to the APIC. The reason for this is needs to access
+ * per-VCPU data and is an integral part of any ARMv8 VM.
+ *
+ * The GIC is made up of 3 main components:
+ *      - Distributor
+ *      - Redistributor
+ *      - Interrupt Translation Service (ITS)
+ *
+ * The distributor is per-VM while the redistributors are per-VCPU. PEs (Processing
+ * Elements) and CIs (CPU Interfaces) correspond to VCPUs. The distributor and
+ * redistributor each have their memory mapped I/O regions. The redistributor is
+ * accessible via CPU system registers as well. The distributor and redistributor
+ * code lives in GICAll.cpp and GICR3.cpp.
+ *
+ * The ITS is the interrupt translation service component of the GIC and its
+ * presence is optional. It provides MSI support along with routing interrupt
+ * sources to specific PEs. The ITS is only accessible via its memory mapped I/O
+ * region. When the MMIO handle for the its region is NIL_IOMMMIOHANDLE it's
+ * considered to be disabled for the VM. The ITS code lives in GITSAll.cpp.
+ *
+ * This implementation only targets GICv3. This implementation does not support
+ * dual security states, nor does it support exception levels (EL2, EL3). Earlier
+ * versions are considered legacy and not important enough to be emulated.
+ * GICv4 primarily adds support for virtualizing the GIC and its necessity will be
+ * evaluated in the future if/when there is support for nested virtualization on
+ * ARMv8 hosts.
+ */
 
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
@@ -37,9 +67,6 @@
 #include <VBox/vmm/vmcc.h>
 #include <VBox/vmm/vmm.h>
 #include <VBox/vmm/vmcpuset.h>
-#ifdef IN_RING0
-# include <VBox/vmm/gvmm.h>
-#endif
 
 
 /*********************************************************************************************************************************
@@ -2304,8 +2331,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
             *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(pGicDev->uArchRev);
             break;
+        case GIC_REDIST_REG_CTLR_OFF:
+            *puValue = GIC_REDIST_REG_CTLR_CES_SET(1) | RT_BIT_32(2);
+            break;
         default:
             *puValue = 0;
+            break;
     }
     return VINF_SUCCESS;
 }
@@ -2424,32 +2455,8 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (offReg)
     {
-        case GIC_REDIST_REG_STATUSR_OFF:
-            AssertReleaseFailed();
-            break;
         case GIC_REDIST_REG_WAKER_OFF:
             Assert(uValue == 0);
-            break;
-        case GIC_REDIST_REG_PARTIDR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_SETLPIR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_CLRLPIR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_PROPBASER_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_PENDBASER_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_INVLPIR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_REDIST_REG_INVALLR_OFF:
-            AssertReleaseFailed();
             break;
         default:
             AssertReleaseFailed();
@@ -3126,7 +3133,11 @@ static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 DECLHIDDEN(void) gicReset(PPDMDEVINS pDevIns)
 {
     LogFlowFunc(("\n"));
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+
     gicInit(pDevIns);
+    gitsInit(pGitsDev);
 }
 
 
@@ -3266,6 +3277,83 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioWrite(PPDMDEVINS pDevIns, void *
 }
 
 
+/**
+ * @callback_method_impl{FNIOMMMIONEWREAD}
+ */
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb)
+{
+    RT_NOREF_PV(pvUser);
+    Assert(!(off & 0x3));
+    Assert(cb == 4); RT_NOREF_PV(cb);
+
+    AssertReleaseFailed();
+
+    PCGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
+    PCGITSDEV pGitsDev = &pGicDev->Gits;
+
+    VBOXSTRICTRC rcStrict;
+    if (off < GITS_REG_FRAME_SIZE)
+    {
+        /* Control registers space. */
+        uint16_t const offReg = off & 0xfffc;
+        uint32_t       uValue = 0;
+        rcStrict = gitsMmioReadCtrl(pGitsDev, offReg, &uValue);
+        *(uint32_t *)pv = uValue;
+        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+    }
+    else
+    {
+        /* Translation registers space. */
+        off -= GITS_REG_FRAME_SIZE;
+        uint16_t const offReg = off & 0xfffc;
+        uint32_t       uValue = 0;
+        rcStrict = gitsMmioReadTranslate(pGitsDev, offReg, &uValue);
+        *(uint32_t *)pv = uValue;
+        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX32\n", offReg, gitsGetTranslationRegDescription(offReg), uValue));
+    }
+    return rcStrict;
+}
+
+
+/**
+ * @callback_method_impl{FNIOMMMIONEWWRITE}
+ */
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb)
+{
+    RT_NOREF_PV(pvUser);
+    Assert(!(off & 0x3));
+    Assert(cb == 4); RT_NOREF_PV(cb);
+
+    AssertReleaseFailed();
+
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+
+    VBOXSTRICTRC rcStrict;
+    if (off < GITS_REG_FRAME_SIZE)
+    {
+        /* Control registers space. */
+        uint16_t const offReg = off & 0xfffc;
+        uint32_t const uValue = *(uint32_t *)pv;
+        rcStrict = gitsMmioWriteCtrl(pGitsDev, offReg, uValue);
+        *(uint32_t *)pv = uValue;
+        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+    }
+    else
+    {
+        /* Translation registers space. */
+        off -= GITS_REG_FRAME_SIZE;
+        uint16_t const offReg = off & 0xfffc;
+        uint32_t const uValue = *(uint32_t *)pv;
+        rcStrict = gitsMmioWriteTranslate(pGitsDev, offReg, uValue);
+        *(uint32_t *)pv = uValue;
+        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX32\n", offReg, gitsGetTranslationRegDescription(offReg), uValue));
+    }
+    return rcStrict;
+}
+
+
+
 #ifndef IN_RING3
 /**
  * @callback_method_impl{PDMDEVREGR0,pfnConstruct}
@@ -3362,5 +3450,6 @@ const PDMGICBACKEND g_GicBackend =
     /* .pfnWriteSysReg = */ gicWriteSysReg,
     /* .pfnSetSpi = */      gicSetSpi,
     /* .pfnSetPpi = */      gicSetPpi,
+    /* .pfnSendMsi = */     gitsSendMsi,
 };
 

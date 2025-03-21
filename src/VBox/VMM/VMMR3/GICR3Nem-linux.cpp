@@ -415,6 +415,7 @@ const PDMGICBACKEND g_GicKvmBackend =
     /* .pfnWriteSysReg = */ NULL,
     /* .pfnSetSpi = */      gicR3KvmSetSpi,
     /* .pfnSetPpi = */      gicR3KvmSetPpi,
+    /* .pfnSendMsi = */     NULL,
 };
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */

@@ -36,6 +36,7 @@
 #include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/stam.h>
 
+#include "GITSInternal.h"
 
 /** @defgroup grp_gic_int       Internal
  * @ingroup grp_gic
@@ -61,41 +62,11 @@ extern const PDMGICBACKEND g_GicKvmBackend;
 #define VMCPU_TO_GICCPU(a_pVCpu)            (&(a_pVCpu)->gic.s)
 #define VM_TO_GIC(a_pVM)                    (&(a_pVM)->gic.s)
 #define VM_TO_GICDEV(a_pVM)                 CTX_SUFF(VM_TO_GIC(a_pVM)->pGicDev)
+#define GICDEV_TO_GITSDEV(a_GicDev)         (&(a_GicDev)->Gits)
 #ifdef IN_RING3
 # define VMCPU_TO_DEVINS(a_pVCpu)           ((a_pVCpu)->pVMR3->gic.s.pDevInsR3)
 #elif defined(IN_RING0)
 # error "Not implemented!"
-#endif
-
-#if 0
-/** Maximum number of SPI interrupts. */
-#define GIC_SPI_MAX                         32
-#endif
-
-#if 0
-/** @def GIC_CACHE_LINE_SIZE
- * Padding (in bytes) for aligning data in different cache lines. The ARMv8 cache
- * line size is 64 bytes.
- *
- * See ARM spec "Cache Size ID Register, CCSIDR_EL1".
- */
-#define GIC_CACHE_LINE_SIZE                64
-
-/**
- * GIC Interrupt-Delivery Bitmap (IDB).
- */
-typedef struct GICIDB
-{
-    uint64_t volatile   au64IntIdBitmap[33];
-    uint32_t volatile   fOutstandingNotification;
-    uint8_t             abAlignment[52];
-} GICIDB;
-AssertCompileMemberOffset(GICIDB, fOutstandingNotification, 264);
-AssertCompileSizeAlignment(GICIDB, GIC_CACHE_LINE_SIZE);
-/** Pointer to a pending-interrupt bitmap. */
-typedef GICIDB *PGICIDB;
-/** Pointer to a const pending-interrupt bitmap. */
-typedef const GICIDB *PCGICIDB;
 #endif
 
 /**
@@ -103,15 +74,9 @@ typedef const GICIDB *PCGICIDB;
  */
 typedef struct GICDEV
 {
-    /** The distributor MMIO handle. */
-    IOMMMIOHANDLE               hMmioDist;
-    /** The redistributor MMIO handle. */
-    IOMMMIOHANDLE               hMmioReDist;
-
     /** @name Distributor register state.
      * @{
      */
-#if 1
     /** Interrupt group bitmap. */
     uint32_t                    bmIntrGroup[64];
     /** Interrupt config bitmap (edge-triggered vs level-sensitive). */
@@ -128,7 +93,6 @@ typedef struct GICDEV
     uint32_t                    au32IntrRouting[2048];
     /** Interrupt routine mode bitmap. */
     uint32_t                    bmIntrRoutingMode[64];
-
     /** Flag whether group 0 interrupts are enabled. */
     bool                        fIntrGroup0Enabled;
     /** Flag whether group 1 interrupts are enabled. */
@@ -138,32 +102,6 @@ typedef struct GICDEV
     /** Alignment. */
     bool                        fAlignment0;
     /** @} */
-#else
-    /** @name SPI distributor register state.
-     * @{ */
-    /** Interrupt Group 0 Register. */
-    volatile uint32_t           u32RegIGrp0;
-    /** Interrupt Configuration Register 0. */
-    volatile uint32_t           u32RegICfg0;
-    /** Interrupt Configuration Register 1. */
-    volatile uint32_t           u32RegICfg1;
-    /** Interrupt enabled bitmap. */
-    volatile uint32_t           bmIntEnabled;
-    /** Current interrupt pending state. */
-    volatile uint32_t           bmIntPending;
-    /** The current interrupt active state. */
-    volatile uint32_t           bmIntActive;
-    /** The interrupt priority for each of the SGI/PPIs */
-    volatile uint8_t            abIntPriority[GIC_SPI_MAX];
-    /** The interrupt routing information. */
-    volatile uint32_t           au32IntRouting[GIC_SPI_MAX];
-
-    /** Flag whether group 0 interrupts are currently enabled. */
-    volatile bool               fIrqGrp0Enabled;
-    /** Flag whether group 1 interrupts are currently enabled. */
-    volatile bool               fIrqGrp1Enabled;
-    /** @} */
-#endif
 
     /** @name Configurables.
      * @{ */
@@ -191,11 +129,28 @@ typedef struct GICDEV
     /** Alignment. */
     bool                        afPadding[2];
     /** @} */
+
+    /** @name GITS device data and LPIs.
+     * @{ */
+    GITSDEV                     Gits;
+    uint8_t                     abLpiPriority[8192];
+    /** @} */
+
+    /** @name MMIO data.
+     * @{ */
+    /** The distributor MMIO handle. */
+    IOMMMIOHANDLE               hMmioDist;
+    /** The redistributor MMIO handle. */
+    IOMMMIOHANDLE               hMmioReDist;
+    /** The interrupt translation service MMIO handle. */
+    IOMMMIOHANDLE               hMmioGits;
+    /** @} */
 } GICDEV;
 /** Pointer to a GIC device. */
 typedef GICDEV *PGICDEV;
 /** Pointer to a const GIC device. */
 typedef GICDEV const *PCGICDEV;
+AssertCompileMemberSizeAlignment(GICDEV, Gits, 8);
 
 /**
  * GIC VM Instance data.
@@ -218,7 +173,6 @@ typedef struct GICCPU
 {
     /** @name Redistributor register state.
      * @{ */
-#if 1
     /** Interrupt group bitmap. */
     uint32_t                    bmIntrGroup[3];
     /** Interrupt config bitmap (edge-triggered vs level-sensitive). */
@@ -231,22 +185,6 @@ typedef struct GICCPU
     uint32_t                    bmIntrActive[3];
     /** Interrupt priorities. */
     uint8_t                     abIntrPriority[96];
-#else
-    /** Interrupt Group 0 Register. */
-    volatile uint32_t           u32RegIGrp0;
-    /** Interrupt Configuration Register 0. */
-    volatile uint32_t           u32RegICfg0;
-    /** Interrupt Configuration Register 1. */
-    volatile uint32_t           u32RegICfg1;
-    /** Interrupt enabled bitmap. */
-    volatile uint32_t           bmIntEnabled;
-    /** Current interrupt pending state. */
-    volatile uint32_t           bmIntPending;
-    /** The current interrupt active state. */
-    volatile uint32_t           bmIntActive;
-    /** The interrupt priority for each of the SGI/PPIs */
-    volatile uint8_t            abIntPriority[GIC_INTID_RANGE_PPI_LAST + 1];
-#endif
     /** @} */
 
     /** @name ICC system register state.
@@ -299,17 +237,6 @@ typedef struct GICCPU
     STAMPROFILE                 StatProfSetPpiR3;
     /** Profiling of set SGI function. */
     STAMPROFILE                 StatProfSetSgiR3;
-
-# if 0 /* No R0 for now. */
-    /** Number of MMIO reads in RZ. */
-    STAMCOUNTER                 StatMmioReadRZ;
-    /** Number of MMIO writes in RZ. */
-    STAMCOUNTER                 StatMmioWriteRZ;
-    /** Number of MSR reads in RZ. */
-    STAMCOUNTER                 StatSysRegReadRZ;
-    /** Number of MSR writes in RZ. */
-    STAMCOUNTER                 StatSysRegWriteRZ;
-# endif
 #endif
     /** @} */
 } GICCPU;
@@ -322,6 +249,8 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioRead(PPDMDEVINS pDevIns, void *pvU
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicReDistMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void const *pv, unsigned cb);
+DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioRead(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void *pv, unsigned cb);
 
 DECLHIDDEN(void)                   gicResetCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu);
 DECLHIDDEN(void)                   gicReset(PPDMDEVINS pDevIns);

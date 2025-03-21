@@ -406,7 +406,8 @@ Function W2K_CopyFiles
   FILE "$%PATH_OUT%\bin\additions\VBoxTray.exe"
   FILE "$%PATH_OUT%\bin\additions\VBoxControl.exe"
 
-  ; Misc
+  ; Tools
+  SetOutPath "$INSTDIR\Tools"
 !ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
   FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
 !endif

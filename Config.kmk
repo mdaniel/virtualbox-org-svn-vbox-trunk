@@ -1359,15 +1359,8 @@ ifeq ($(KBUILD_TARGET),darwin)
  VBOX_WITH_VBOXSDL =
 
  ifeq ($(KBUILD_TARGET_ARCH),arm64)
-  # No Qt yet, so no GUI, NLS or qhelp.
-  VBOX_WITH_NLS :=
-  VBOX_WITH_MAIN_NLS :=
-  VBOX_WITH_PUEL_NLS :=
-  VBOX_WITH_VBOXMANAGE_NLS :=
-  VBOX_WITH_DOCS_QHELP :=
-  VBOX_WITH_DOCS_QHELP_PACKING :=
-  # Skip webservices as those are tedious to build.
-  VBOX_WITH_WEBSERVICES :=
+  # Skip JWS bindings as those are tedious to build.
+  VBOX_WITH_JWS :=
   # Ditto for the java<->XPCOM bridge.
   VBOX_WITH_JXPCOM :=
  endif

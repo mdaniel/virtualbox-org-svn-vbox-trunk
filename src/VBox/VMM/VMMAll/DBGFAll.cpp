@@ -170,6 +170,7 @@ VMM_INT_DECL(bool) DBGFBpIsInt3Armed(PVM pVM)
     return pVM->dbgf.s.cEnabledSwBreakpoints > 0;
 }
 
+#endif /* !VBOX_VMM_TARGET_ARMV8 */
 
 /**
  * Checks instruction boundrary for guest or hypervisor hardware breakpoints.
@@ -188,7 +189,9 @@ VMM_INT_DECL(bool) DBGFBpIsInt3Armed(PVM pVM)
  */
 VMM_INT_DECL(VBOXSTRICTRC)  DBGFBpCheckInstruction(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrPC, bool fCheckGuest)
 {
+#ifdef VBOX_VMM_TARGET_X86
     CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_DR7);
+#endif
 
     /*
      * Check hyper breakpoints first as the VMM debugger has priority over
@@ -210,8 +213,12 @@ VMM_INT_DECL(VBOXSTRICTRC)  DBGFBpCheckInstruction(PVMCC pVM, PVMCPUCC pVCpu, RT
                 pVCpu->dbgf.s.hBpActive = pVM->dbgf.s.aHwBreakpoints[iBp].hBp;
                 pVCpu->dbgf.s.fSingleSteppingRaw = false;
 
+#ifdef VBOX_VMM_TARGET_X86
                 LogFlow(("DBGFBpCheckInstruction: hit hw breakpoint %u at %04x:%RGv (%RGv)\n",
                          iBp, pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.rip, GCPtrPC));
+#else
+                LogFlow(("DBGFBpCheckInstruction: hit hw breakpoint %u at %RGv\n", iBp, GCPtrPC));
+#endif
                 return VINF_EM_DBG_BREAKPOINT;
             }
         }
@@ -221,6 +228,7 @@ VMM_INT_DECL(VBOXSTRICTRC)  DBGFBpCheckInstruction(PVMCC pVM, PVMCPUCC pVCpu, RT
      */
     if (fCheckGuest)
     {
+#ifdef VBOX_VMM_TARGET_X86
         uint32_t const fDr7 = (uint32_t)pVCpu->cpum.GstCtx.dr[7];
         if (X86_DR7_ANY_EO_ENABLED(fDr7) && !pVCpu->cpum.GstCtx.eflags.Bits.u1RF)
         {
@@ -268,6 +276,9 @@ VMM_INT_DECL(VBOXSTRICTRC)  DBGFBpCheckInstruction(PVMCC pVM, PVMCPUCC pVCpu, RT
                 return VINF_EM_RAW_GUEST_TRAP;
             }
         }
+#else
+        /** @todo ARMv8: port me! */
+#endif
     }
     return VINF_SUCCESS;
 }
@@ -279,8 +290,10 @@ VMM_INT_DECL(VBOXSTRICTRC)  DBGFBpCheckInstruction(PVMCC pVM, PVMCPUCC pVCpu, RT
 template<bool const a_fRead>
 DECL_FORCE_INLINE(uint32_t) dbgfBpCheckData(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrAccess, uint32_t cbAccess, bool fSysAccess)
 {
+#ifdef VBOX_VMM_TARGET_X86
     AssertCompile((X86_DR7_RW_RW & 1) && (X86_DR7_RW_WO & 1));
     CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_DR7);
+#endif
 
     uint32_t      fRet           = 0;
     RTGCPTR const GCPtrAccessPfn = GCPtrAccess >> GUEST_PAGE_SHIFT;
@@ -304,7 +317,9 @@ DECL_FORCE_INLINE(uint32_t) dbgfBpCheckData(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR G
             else
             {
                 /* The page is of interest. */
+#ifdef VBOX_VMM_TARGET_X86  /** @todo ARMv8: port me */
                 AssertCompile(!((CPUMCTX_DBG_HIT_DRX_MASK | CPUMCTX_DBG_DBGF_MASK) & UINT32_C(1)));
+#endif
                 fRet |= UINT32_C(1);
 
                 /* If the access overlapping the breakpoint area, we have a hit. */
@@ -315,7 +330,9 @@ DECL_FORCE_INLINE(uint32_t) dbgfBpCheckData(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR G
                     pVCpu->dbgf.s.fSingleSteppingRaw = false;
                     LogFlow(("DBGFBpCheckData%s: hit hw breakpoint %u when accessing %RGv LB %#x\n",
                              a_fRead ? "Read" : "Write", iBp, GCPtrAccess, cbAccess));
+#ifdef VBOX_VMM_TARGET_X86  /** @todo ARMv8: port me */
                     fRet |= CPUMCTX_DBG_DBGF_BP;
+#endif
                 }
             }
         }
@@ -323,6 +340,7 @@ DECL_FORCE_INLINE(uint32_t) dbgfBpCheckData(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR G
     /*
      * Check the guest.
      */
+#ifdef VBOX_VMM_TARGET_X86
     uint32_t const fDr7 = (uint32_t)pVCpu->cpum.GstCtx.dr[7];
     if (    (a_fRead ? X86_DR7_ANY_RW_ENABLED(fDr7) : X86_DR7_ANY_W_ENABLED(fDr7))
         && !pVCpu->cpum.GstCtx.eflags.Bits.u1RF)
@@ -369,7 +387,11 @@ DECL_FORCE_INLINE(uint32_t) dbgfBpCheckData(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR G
                      a_fRead ? "Read" : "Write", fMatched, fRet, GCPtrAccess, cbAccess));
         }
     }
+#else
+    /** @todo ARMv8: port me! */
+#endif
 
+    RT_NOREF(fSysAccess);
     return fRet;
 }
 
@@ -414,6 +436,7 @@ VMM_INT_DECL(uint32_t) DBGFBpCheckDataWrite(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR G
     return dbgfBpCheckData<false /*a_fRead*/>(pVM, pVCpu, GCPtrAccess, cbAccess, fSysAccess);
 }
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 
 /**
  * Checks I/O access for guest or hypervisor hardware breakpoints.

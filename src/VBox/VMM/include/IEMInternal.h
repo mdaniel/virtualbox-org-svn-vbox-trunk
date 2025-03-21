@@ -1089,8 +1089,9 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
  * @{ */
 /** Mode: The block target mode mask.
  * X86: CPUMODE plus protected, v86 and pre-386 indicators.
- * ARM: PSTATE.nRW | PSTATE.T | PSTATE.EL.  This doesn't quite overlap with
- *      SPSR_ELx when in AARCH32 mode, but that's life. */
+ * ARM: PSTATE.nRW | PSTATE.T | PSTATE.EL.
+ *      This doesn't quite overlap with SPSR_ELx when in AARCH32 mode,
+ *      but that's life. */
 #if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
 # define IEM_F_MODE_MASK                    UINT32_C(0x0000001f)
 #elif defined(VBOX_VMM_TARGET_ARMV8)
@@ -1189,6 +1190,16 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 
 /** ARM Mode: Get the exception (privilege) level. */
 # define IEM_F_MODE_ARM_GET_EL(a_fExec)     (((a_fExec) >> IEM_F_MODE_ARM_EL_SHIFT) & IEM_F_MODE_ARM_EL_SMASK)
+
+/** ARM: The stack pointer index - not part of mode */
+# define IEM_F_ARM_SP_IDX                   UINT32_C(0x00000003)
+/** ARM: Get the SP register index. */
+# define IEM_F_ARM_GET_SP_IDX(a_fExec)      ((a_fExec) & IEM_F_ARM_SP_IDX)
+
+/** ARM: Normal alignment checks enabled (SCTRL_ELx.A). */
+# define IEM_F_ARM_A                        UINT32_C(0x00004000)
+/** ARM: LSE2 alignment checks enabled (~SCTRL_ELx.nAA). */
+# define IEM_F_ARM_AA                       UINT32_C(0x00080000)
 #endif /* ARM || doxygen  */
 
 /** Bypass access handlers when set. */
@@ -1202,6 +1213,10 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 #define IEM_F_PENDING_BRK_X86_IO            UINT32_C(0x00000400)
 /** X86: Disregard the lock prefix (implied or not) when set. */
 #define IEM_F_X86_DISREGARD_LOCK            UINT32_C(0x00000800)
+
+/** ARM: Software step (single step).
+ * @todo make generic? */
+#define IEM_F_ARM_SOFTWARE_STEP             UINT32_C(0x00000400)
 
 /** Pending breakpoint mask (what iemCalcExecDbgFlags works out). */
 #if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)

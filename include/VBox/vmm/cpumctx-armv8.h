@@ -168,13 +168,13 @@ AssertCompileSize(CPUMCTXSYSREGPAKEY, 16);
  */
 typedef struct CPUMCTX
 {
-    uint64_t            uPadding0;
     /** The general purpose register array view. */
     CPUMCTXGREG         aGRegs[31];
+    CPUMCTXGREG         uPadding0;
     /** The NEON SIMD & FP register array view. */
     CPUMCTXVREG         aVRegs[32];
     /** The stack registers (EL0, EL1). */
-    CPUMCTXSYSREG       aSpReg[2];
+    CPUMCTXSYSREG       aSpReg[2]; /**< @todo extend to 4 entries! */
     /** The program counter. */
     CPUMCTXSYSREG       Pc;
     /** The SPSR (Saved Program Status Register) (EL1 only). */
@@ -233,7 +233,7 @@ typedef struct CPUMCTX
     /** The TPIDRRO_EL0 register. */
     CPUMCTXSYSREG       TpIdrRoEl0;
     /** The TPIDR_ELn registers. */
-    CPUMCTXSYSREG       aTpIdr[2];
+    CPUMCTXSYSREG       aTpIdr[2]; /**< @todo extend to 4 entries. */
     /** TheMDCCINT_EL1 register. */
     CPUMCTXSYSREG       MDccInt;
 

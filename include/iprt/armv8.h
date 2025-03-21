@@ -1427,8 +1427,59 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** @name MDSCR_EL1 - MOnitor Debug System Control Register (EL1).
  * @{ */
 /** Bit 0 - SS - Software step control bit. */
-#define ARMV8_MDSCR_EL1_AARCH64_SS                              RT_BIT_64(0)
+#define ARMV8_MDSCR_EL1_AARCH64_SS                              RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_SS_BIT)
 #define ARMV8_MDSCR_EL1_AARCH64_SS_BIT                          0
+/** Bit 6 - ERR. */
+#define ARMV8_MDSCR_EL1_AARCH64_ERR                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_ERR_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_ERR_BIT                         6
+/** Bit 12 - TDCC. */
+#define ARMV8_MDSCR_EL1_AARCH64_TDCC                            RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TDCC_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TDCC_BIT                        12
+/** Bit 13 - KDE - Kernel Debugging Enabled. */
+#define ARMV8_MDSCR_EL1_AARCH64_KDE                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_KDE_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_KDE_BIT                         13
+/** Bit 14 - HDE. */
+#define ARMV8_MDSCR_EL1_AARCH64_HDE                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_HDE_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_HDE_BIT                         14
+/** Bit 15 - MDE. */
+#define ARMV8_MDSCR_EL1_AARCH64_MDE                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_MDE_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_MDE_BIT                         15
+/** Bit 19 - SC2. */
+#define ARMV8_MDSCR_EL1_AARCH64_SC2                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_SC2_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_SC2_BIT                         19
+/** Bit 21 - TDA. */
+#define ARMV8_MDSCR_EL1_AARCH64_TDA                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TDA_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TDA_BIT                         21
+/** Bits 23:22 - INTdis. */
+#define ARMV8_MDSCR_EL1_AARCH64_INTDIS_MASK                     UINT64_C(0x00c00000)
+#define ARMV8_MDSCR_EL1_AARCH64_INTDIS_SHIFT                    22
+/** Bit 26 - TXU. */
+#define ARMV8_MDSCR_EL1_AARCH64_TXU                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TXU_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TXU_BIT                         26
+/** Bit 29 - TXfull. */
+#define ARMV8_MDSCR_EL1_AARCH64_TXFULL                          RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TXFULL_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TXFULL_BIT                      29
+/** Bit 30 - RXfull. */
+#define ARMV8_MDSCR_EL1_AARCH64_RXFULL                          RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_RXFULL_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_RXFULL_BIT                      30
+/** Bit 31 - TFO. */
+#define ARMV8_MDSCR_EL1_AARCH64_TFO                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TFO_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TFO_BIT                         31
+/** Bit 32 - EMBWE. */
+#define ARMV8_MDSCR_EL1_AARCH64_EMBWE                           RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_EMBWE_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_EMBWE_BIT                       32
+/** Bit 33 - TTA. */
+#define ARMV8_MDSCR_EL1_AARCH64_TTA                             RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_TTA_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_TTA_BIT                         33
+/** Bit 34 - EnSPM. */
+#define ARMV8_MDSCR_EL1_AARCH64_ENSPM                           RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_ENSPM_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_ENSPM_BIT                       34
+/** Bit 35 - EHBWE. */
+#define ARMV8_MDSCR_EL1_AARCH64_EHBWE                           RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_EHBWE_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_EHBWE_BIT                       35
+/** Bit 50 - EnSTEPOP. */
+#define ARMV8_MDSCR_EL1_AARCH64_ENSTEPOP                        RT_BIT_64(ARMV8_MDSCR_EL1_AARCH64_ENSTEPOP_BIT)
+#define ARMV8_MDSCR_EL1_AARCH64_ENSTEPOP_BIT                    50
 /** @} */
 
 
@@ -2708,6 +2759,7 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** Bit 5 - System instruction memory barrier enable from AArch32 EL0. */
 #define ARMV8_SCTLR_EL1_CP15BEN                                 RT_BIT_64(5)
 /** Bit 6 - Non-aligned access enable. */
+#define ARMV8_SCTLR_EL1_NAA                                     RT_BIT_64(6)
 #define ARMV8_SCTLR_EL1_nAA                                     RT_BIT_64(6)
 /** Bit 7 - IT disable, disables some uses of IT instructions at EL0 using AArch32. */
 #define ARMV8_SCTLR_EL1_ITD                                     RT_BIT_64(7)
@@ -2716,7 +2768,8 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** Bit 9 - User Mask Access. Traps EL0 execution of MSR and MRS instructions that access the PSTATE.{D,A,I,F} masks to EL1. */
 #define ARMV8_SCTLR_EL1_UMA                                     RT_BIT_64(9)
 /** Bit 10 - Enable EL0 acccess to the CFP*, DVP* and CPP* instructions if FEAT_SPECRES is supported. */
-#define ARMV8_SCTLR_EL1_EnRCTX                                  RT_BIT_64(10)
+#define ARMV8_SCTLR_EL1_ENRCTX                                  RT_BIT_64(10)
+#define ARMV8_SCTLR_EL1_EnRCTX                                  ARMV8_SCTLR_EL1_ENRCTX
 /** Bit 11 - Exception Exit is Context Synchronizing (FEAT_ExS required). */
 #define ARMV8_SCTLR_EL1_EOS                                     RT_BIT_64(11)
 /** Bit 12 - Stage 1 instruction access cacheability control, for access at EL0 and EL1. */
@@ -2725,7 +2778,7 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** @} */
 
 
-/** @name SCTLR_EL2 - AArch64 System Control Register (EL2) - 32-bit.
+/** @name SCTLR_EL2 - AArch64 System Control Register (EL2).
  * @{ */
 /** Bit 0 - MMU enable for EL2. */
 #define ARMV8_SCTLR_EL2_M                                       RT_BIT_64(0)
@@ -2735,16 +2788,151 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 #define ARMV8_SCTLR_EL2_C                                       RT_BIT_64(2)
 /** Bit 3 - SP alignment check enable. */
 #define ARMV8_SCTLR_EL2_SA                                      RT_BIT_64(3)
-/* Bit 4 - 11 - Reserved. */
+/** Bit 4 - SA0. */
+#define ARMV8_SCTLR_EL2_SA0                                     RT_BIT_64(4)
+/** Bit 5 - CP15BEN. */
+#define ARMV8_SCTLR_EL2_CP15BEN                                 RT_BIT_64(5)
+/** Bit 6 - nAA. */
+#define ARMV8_SCTLR_EL2_NAA                                     RT_BIT_64(6)
+/** Bit 7 - IDT. */
+#define ARMV8_SCTLR_EL2_IDT                                     RT_BIT_64(7)
+/** Bit 8 - SED. */
+#define ARMV8_SCTLR_EL2_SED                                     RT_BIT_64(8)
+/*  Bit 9 - RES0 (2024-12). */
+/** Bit 10 - EnRCTX. */
+#define ARMV8_SCTLR_EL2_ENRCTX                                  RT_BIT_64(10)
+/** Bit 11 - EOS. */
+#define ARMV8_SCTLR_EL2_EOS                                     RT_BIT_64(11)
 /** Bit 12 - Instruction cache enable. */
 #define ARMV8_SCTLR_EL2_I                                       RT_BIT_64(12)
-/* Bit 13 - 18 - Reserved. */
+/** Bit 13 - EnDB. */
+#define ARMV8_SCTLR_EL2_ENDB                                    RT_BIT_64(13)
+/** Bit 14 - DZE. */
+#define ARMV8_SCTLR_EL2_DZE                                     RT_BIT_64(14)
+/** Bit 15 - UCT. */
+#define ARMV8_SCTLR_EL2_UCT                                     RT_BIT_64(15)
+/** Bit 16 - nTWI. */
+#define ARMV8_SCTLR_EL2_NTWI                                    RT_BIT_64(16)
+/*  Bit 17 - RES0 (2024-12). */
+/** Bit 18 - nTWE. */
+#define ARMV8_SCTLR_EL2_NTWE                                    RT_BIT_64(18)
 /** Bit 19 - Force treatment of all memory regions with write permissions as XN. */
 #define ARMV8_SCTLR_EL2_WXN                                     RT_BIT_64(19)
-/* Bit 20 - 24 - Reserved. */
+/** Bit 20 - TSCXT. */
+#define ARMV8_SCTLR_EL2_TSCXT                                   RT_BIT_64(20)
+/** Bit 21 - IESB. */
+#define ARMV8_SCTLR_EL2_IESB                                    RT_BIT_64(21)
+/** Bit 22 - EIS. */
+#define ARMV8_SCTLR_EL2_EIS                                     RT_BIT_64(22)
+/** Bit 23 - SPAN. */
+#define ARMV8_SCTLR_EL2_SPAN                                    RT_BIT_64(23)
+/** Bit 24 - E0E. */
+#define ARMV8_SCTLR_EL2_E0E                                     RT_BIT_64(24)
 /** Bit 25 - Exception endianess - set means big endian, clear little endian. */
 #define ARMV8_SCTLR_EL2_EE                                      RT_BIT_64(25)
-/* Bit 26 - 31 - Reserved. */
+/** @todo Finish (lazy developer). */
+/** @} */
+
+
+/** @name HCR_EL2 - AArch64 Hypervisor Configuration Register (EL2).
+ * @{ */
+#define ARMV8_HCR_EL2_VM                                        RT_BIT_64(0)
+#define ARMV8_HCR_EL2_SWIO                                      RT_BIT_64(1)
+#define ARMV8_HCR_EL2_PTW                                       RT_BIT_64(2)
+#define ARMV8_HCR_EL2_FMO                                       RT_BIT_64(3)
+#define ARMV8_HCR_EL2_IMO                                       RT_BIT_64(4)
+#define ARMV8_HCR_EL2_AMO                                       RT_BIT_64(5)
+#define ARMV8_HCR_EL2_VF                                        RT_BIT_64(6)
+#define ARMV8_HCR_EL2_VI                                        RT_BIT_64(7)
+#define ARMV8_HCR_EL2_VSE                                       RT_BIT_64(8)
+#define ARMV8_HCR_EL2_FB                                        RT_BIT_64(9)
+#define ARMV8_HCR_EL2_BSU_MASK                                  (RT_BIT_64(10) | RT_BIT_64(11))
+#define ARMV8_HCR_EL2_DC                                        RT_BIT_64(12)
+#define ARMV8_HCR_EL2_TWI                                       RT_BIT_64(13)
+#define ARMV8_HCR_EL2_TWE                                       RT_BIT_64(14)
+#define ARMV8_HCR_EL2_TID0                                      RT_BIT_64(15)
+#define ARMV8_HCR_EL2_TID1                                      RT_BIT_64(16)
+#define ARMV8_HCR_EL2_TID2                                      RT_BIT_64(17)
+#define ARMV8_HCR_EL2_TID3                                      RT_BIT_64(18)
+#define ARMV8_HCR_EL2_TSC                                       RT_BIT_64(19)
+#define ARMV8_HCR_EL2_TIDCP                                     RT_BIT_64(20)
+#define ARMV8_HCR_EL2_TACR                                      RT_BIT_64(21)
+#define ARMV8_HCR_EL2_TSW                                       RT_BIT_64(22)
+#define ARMV8_HCR_EL2_TDCP                                      RT_BIT_64(23)
+#define ARMV8_HCR_EL2_TPU                                       RT_BIT_64(24)
+#define ARMV8_HCR_EL2_TTLB                                      RT_BIT_64(25)
+#define ARMV8_HCR_EL2_TVM                                       RT_BIT_64(26)
+#define ARMV8_HCR_EL2_TGE                                       RT_BIT_64(27)
+#define ARMV8_HCR_EL2_TDZ                                       RT_BIT_64(28)
+#define ARMV8_HCR_EL2_HCD                                       RT_BIT_64(29)
+#define ARMV8_HCR_EL2_TRVM                                      RT_BIT_64(30)
+#define ARMV8_HCR_EL2_RW                                        RT_BIT_64(31)
+#define ARMV8_HCR_EL2_CD                                        RT_BIT_64(32)
+#define ARMV8_HCR_EL2_IC                                        RT_BIT_64(33)
+#define ARMV8_HCR_EL2_E2H                                       RT_BIT_64(34)
+#define ARMV8_HCR_EL2_TLOR                                      RT_BIT_64(35)
+#define ARMV8_HCR_EL2_TERR                                      RT_BIT_64(36)
+#define ARMV8_HCR_EL2_TEA                                       RT_BIT_64(37)
+#define ARMV8_HCR_EL2_MIOCNCE                                   RT_BIT_64(38)
+#define ARMV8_HCR_EL2_TME                                       RT_BIT_64(39)
+#define ARMV8_HCR_EL2_APK                                       RT_BIT_64(40)
+#define ARMV8_HCR_EL2_API                                       RT_BIT_64(41)
+#define ARMV8_HCR_EL2_NV                                        RT_BIT_64(42)
+#define ARMV8_HCR_EL2_NV1                                       RT_BIT_64(43)
+#define ARMV8_HCR_EL2_AT                                        RT_BIT_64(44)
+#define ARMV8_HCR_EL2_NV2                                       RT_BIT_64(45)
+#define ARMV8_HCR_EL2_FWB                                       RT_BIT_64(46)
+#define ARMV8_HCR_EL2_FIEN                                      RT_BIT_64(47)
+#define ARMV8_HCR_EL2_GPF                                       RT_BIT_64(48)
+#define ARMV8_HCR_EL2_TID4                                      RT_BIT_64(49)
+#define ARMV8_HCR_EL2_TICAB                                     RT_BIT_64(50)
+#define ARMV8_HCR_EL2_AMVOFFEN                                  RT_BIT_64(51)
+#define ARMV8_HCR_EL2_TOCU                                      RT_BIT_64(52)
+#define ARMV8_HCR_EL2_ENSCXT                                    RT_BIT_64(53)
+#define ARMV8_HCR_EL2_TTLBIS                                    RT_BIT_64(54)
+#define ARMV8_HCR_EL2_TTLBOS                                    RT_BIT_64(55)
+#define ARMV8_HCR_EL2_ATA                                       RT_BIT_64(56)
+#define ARMV8_HCR_EL2_DCT                                       RT_BIT_64(57)
+#define ARMV8_HCR_EL2_TID5                                      RT_BIT_64(58)
+#define ARMV8_HCR_EL2_TWEDEN                                    RT_BIT_64(59)
+#define ARMV8_HCR_EL2_TWEDL_MASK                                UINT64_C(0xf000000000000000)
+/** @} */
+
+
+/** @name MDCR_EL2 - AArch64 Monitor Debug Configuration Register (EL2).
+ * @{ */
+#define ARMV8_MDCR_EL2_HPMN_MASK                                UINT64_C(0x1f)
+#define ARMV8_MDCR_EL2_TPMCR                                    RT_BIT_64(5)
+#define ARMV8_MDCR_EL2_TPM                                      RT_BIT_64(6)
+#define ARMV8_MDCR_EL2_HPME                                     RT_BIT_64(7)
+#define ARMV8_MDCR_EL2_TDE                                      RT_BIT_64(8)
+#define ARMV8_MDCR_EL2_TDA                                      RT_BIT_64(9)
+#define ARMV8_MDCR_EL2_TDOSA                                    RT_BIT_64(10)
+#define ARMV8_MDCR_EL2_TDRA                                     RT_BIT_64(11)
+#define ARMV8_MDCR_EL2_E2PB_MASK                                (RT_BIT_64(12) | RT_BIT_64(13))
+#define ARMV8_MDCR_EL2_TPMS                                     RT_BIT_64(14)
+#define ARMV8_MDCR_EL2_ENSPM                                    RT_BIT_64(15)
+/*  Bit 16 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_HPMD                                     RT_BIT_64(17)
+/*  Bit 18 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_TTRF                                     RT_BIT_64(19)
+/*  Bits 22:20 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_HCCD                                     RT_BIT_64(23)
+#define ARMV8_MDCR_EL2_E2TB_MASK                                (RT_BIT_64(24) | RT_BIT_64(25))
+#define ARMV8_MDCR_EL2_HLP                                      RT_BIT_64(26)
+#define ARMV8_MDCR_EL2_TDCC                                     RT_BIT_64(27)
+#define ARMV8_MDCR_EL2_MTPME                                    RT_BIT_64(28)
+#define ARMV8_MDCR_EL2_HPMFZO                                   RT_BIT_64(29)
+#define ARMV8_MDCR_EL2_PMSSE_MASK                               (RT_BIT_64(30) | RT_BIT_64(31))
+/*  Bits 35:32 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_HPMFZS                                   RT_BIT_64(36)
+/*  Bits 39:37 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_PMEE_MASK                                (RT_BIT_64(40) | RT_BIT_64(41))
+/*  Bit 42 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_EBWE                                     RT_BIT_64(43)
+/*  Bits 49:44 - RES0 (2024-12) */
+#define ARMV8_MDCR_EL2_ENSTEPOP                                 RT_BIT_64(50)
+/*  Bits 63:51 - RES0 (2024-12) */
 /** @} */
 
 

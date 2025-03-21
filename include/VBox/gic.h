@@ -406,8 +406,35 @@
  * @{ */
 /** Size of the redistributor register frame. */
 #define GIC_REDIST_REG_FRAME_SIZE                       _64K
+
 /** Redistributor Control Register - RW. */
 #define GIC_REDIST_REG_CTLR_OFF                         0x0000
+/** Bit 0 - Enable LPIs. */
+#define GIC_DIST_REG_CTLR_ENABLE_LPI_BIT                0
+#define GIC_DIST_REG_CTLR_ENABLE_LPI                    RT_BIT_32(0)
+/** Bit 1 - Clear Enable Support. */
+#define GIC_DIST_REG_CTLR_CES_BIT                       1
+#define GIC_DIST_REG_CTLR_CES                           RT_BIT_32(1)
+#define GIC_REDIST_REG_CTLR_CES_SET(a_Ces)              (((a_Ces) << GIC_DIST_REG_CTLR_CES_BIT) & GIC_DIST_REG_CTLR_CES)
+/** Bit 2 - LPI invalidate registers supported. */
+#define GIC_DIST_REG_CTLR_IR_BIT                        2
+#define GIC_DIST_REG_CTLR_IR                            RT_BIT_32(2)
+/** Bit 3 - Register Write Pending. */
+#define GIC_DIST_REG_CTLR_RWP_BIT                       3
+#define GIC_DIST_REG_CTLR_RWP                           RT_BIT_32(3)
+/** Bit 24 - Disable Processor selection for Group 0 interrupt. */
+#define GIC_DIST_REG_CTLR_DPG0_BIT                      24
+#define GIC_DIST_REG_CTLR_DPG0                          RT_BIT_32(24)
+/** Bit 25 - Disable Processor selection for Group 1 non-secure interrupt. */
+#define GIC_DIST_REG_CTLR_DPG1NS_BIT                    25
+#define GIC_DIST_REG_CTLR_DPG1NS                        RT_BIT_32(25)
+/** Bit 26 - Disable Processor selection for Group 1 secure interrupt. */
+#define GIC_DIST_REG_CTLR_DPG1S_BIT                     26
+#define GIC_DIST_REG_CTLR_DPG1S                         RT_BIT_32(26)
+/** Bit 31 - Upstream Write Pending. */
+#define GIC_DIST_REG_CTLR_UWP_BIT                       31
+#define GIC_DIST_REG_CTLR_UWP                           RT_BIT_32(31)
+
 /** Implementer Identification Register - RO. */
 #define GIC_REDIST_REG_IIDR_OFF                         0x0004
 

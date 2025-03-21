@@ -51,15 +51,12 @@
  */
 static DECLCALLBACK(int) disReadBytesDefault(PDISSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
 {
-#if 0 /*def IN_RING0 - why? */
-    RT_NOREF_PV(cbMinRead);
-    AssertMsgFailed(("disReadWord with no read callback in ring 0!!\n"));
-    RT_BZERO(&pDis->Instr.ab[offInstr], cbMaxRead);
-    pDis->cbCachedInstr = offInstr + cbMaxRead;
-    return VERR_DIS_NO_READ_CALLBACK;
-#else
     uint8_t const  *pbSrc        = (uint8_t const *)(uintptr_t)pDis->uInstrAddr + offInstr;
-    size_t          cbLeftOnPage = (uintptr_t)pbSrc & PAGE_OFFSET_MASK;
+#ifdef IN_RING0
+    size_t  const   cbLeftOnPage = (uintptr_t)pbSrc & PAGE_OFFSET_MASK;
+#else
+    size_t  const   cbLeftOnPage = (uintptr_t)pbSrc & (_4K - 1); /* Minimum page size for safety. */
+#endif
     uint8_t         cbToRead     = cbLeftOnPage >= cbMaxRead
                                  ? cbMaxRead
                                  : cbLeftOnPage <= cbMinRead
@@ -68,7 +65,6 @@ static DECLCALLBACK(int) disReadBytesDefault(PDISSTATE pDis, uint8_t offInstr, u
     memcpy(&pDis->Instr.ab[offInstr], pbSrc, cbToRead);
     pDis->cbCachedInstr = offInstr + cbToRead;
     return VINF_SUCCESS;
-#endif
 }
 
 

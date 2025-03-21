@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -78,19 +78,7 @@ bool UIChooserHandlerMouse::handleMousePress(QGraphicsSceneMouseEvent *pEvent) c
                     pClickedItem = pGroupItem;
                 /* Or a machine one? */
                 else if (UIChooserItemMachine *pMachineItem = qgraphicsitem_cast<UIChooserItemMachine*>(pItemUnderMouse))
-                {
-                    const QPoint itemCursorPos = pMachineItem->mapFromScene(scenePos).toPoint();
-                    if (   pMachineItem->isToolButtonArea(itemCursorPos)
-                        && (   model()->firstSelectedItem() == pMachineItem
-                            || pMachineItem->isHovered()))
-                    {
-                        model()->handleToolButtonClick(pMachineItem);
-                        if (model()->firstSelectedItem() != pMachineItem)
-                            pClickedItem = pMachineItem;
-                    }
-                    else
-                        pClickedItem = pMachineItem;
-                }
+                    pClickedItem = pMachineItem;
                 /* If we had clicked one of required item types: */
                 if (pClickedItem && !pClickedItem->isRoot())
                 {

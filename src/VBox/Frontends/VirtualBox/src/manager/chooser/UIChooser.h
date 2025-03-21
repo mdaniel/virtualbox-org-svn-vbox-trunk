@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,12 +70,6 @@ signals:
 
         /** Notifies listeners about cloud update state change. */
         void sigCloudUpdateStateChanged();
-    /** @} */
-
-    /** @name Tool stuff.
-      * @{ */
-        /** Notifies listeners about tool popup-menu request for certain @a position and optionally machine @a pItem. */
-        void sigToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
     /** @} */
 
     /** @name Selection stuff.
@@ -195,14 +189,6 @@ public:
         void setMachineSearchWidgetVisibility(bool fVisible);
         /** Changes current machine to the one with certain @a uId. */
         void setCurrentMachine(const QUuid &uId);
-    /** @} */
-
-private slots:
-
-    /** @name General stuff.
-      * @{ */
-        /** Handles signal about tool popup-menu request for certain @a position and optionally machine @a pItem. */
-        void sltToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
     /** @} */
 
 private:

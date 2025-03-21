@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2024 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2025 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -114,23 +114,6 @@ bool UIChooserItemMachine::isLockedMachine() const
            && enmState != KMachineState_Teleported
            && enmState != KMachineState_Aborted
            && enmState != KMachineState_AbortedSaved;
-}
-
-bool UIChooserItemMachine::isToolButtonArea(const QPoint &position, int iMarginMultiplier /* = 1 */) const
-{
-    const int iFullWidth = geometry().width();
-    const int iFullHeight = geometry().height();
-    const int iMarginHR = data(MachineItemData_MarginHR).toInt();
-    const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
-    const int iToolPixmapX = iFullWidth - iMarginHR - 1 - m_toolPixmap.width() / m_toolPixmap.devicePixelRatio();
-    const int iToolPixmapY = (iFullHeight - m_toolPixmap.height() / m_toolPixmap.devicePixelRatio()) / 2;
-    QRect rect = QRect(iToolPixmapX,
-                       iToolPixmapY,
-                       m_toolPixmap.width() / m_toolPixmap.devicePixelRatio(),
-                       m_toolPixmap.height() / m_toolPixmap.devicePixelRatio());
-    rect.adjust(-iMarginMultiplier * iButtonMargin, -iMarginMultiplier * iButtonMargin,
-                 iMarginMultiplier * iButtonMargin,  iMarginMultiplier * iButtonMargin);
-    return rect.contains(position);
 }
 
 /* static */
@@ -342,7 +325,6 @@ int UIChooserItemMachine::minimumWidthHint() const
     const int iMarginHR = data(MachineItemData_MarginHR).toInt();
     const int iMajorSpacing = data(MachineItemData_MajorSpacing).toInt();
     const int iMinorSpacing = data(MachineItemData_MinorSpacing).toInt();
-    const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
 
     /* Calculating proposed width: */
     int iProposedWidth = 0;
@@ -362,9 +344,7 @@ int UIChooserItemMachine::minimumWidthHint() const
     int iMiddleColumnWidth = qMax(iTopLineWidth, iBottomLineWidth);
     int iMachineItemWidth = m_pixmapSize.width() +
                             iMajorSpacing +
-                            iMiddleColumnWidth +
-                            iMajorSpacing +
-                            m_toolPixmapSize.width() + 2 * iButtonMargin;
+                            iMiddleColumnWidth;
     iProposedWidth += iMachineItemWidth;
 
     /* Return result: */
@@ -376,7 +356,6 @@ int UIChooserItemMachine::minimumHeightHint() const
     /* Prepare variables: */
     const int iMarginV = data(MachineItemData_MarginV).toInt();
     const int iMachineItemTextSpacing = data(MachineItemData_TextSpacing).toInt();
-    const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
 
     /* Calculating proposed height: */
     int iProposedHeight = 0;
@@ -390,7 +369,7 @@ int UIChooserItemMachine::minimumHeightHint() const
                               iMachineItemTextSpacing +
                               iBottomLineHeight;
     QList<int> heights;
-    heights << m_pixmapSize.height() << iMiddleColumnHeight << m_toolPixmapSize.height() + 2 * iButtonMargin;
+    heights << m_pixmapSize.height() << iMiddleColumnHeight;
     int iMaxHeight = 0;
     foreach (int iHeight, heights)
         iMaxHeight = qMax(iMaxHeight, iHeight);
@@ -655,7 +634,6 @@ QVariant UIChooserItemMachine::data(int iKey) const
         case MachineItemData_MajorSpacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 2;
         case MachineItemData_MinorSpacing: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 4;
         case MachineItemData_TextSpacing:  return 0;
-        case MachineItemData_ButtonMargin: return QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 4;
 
         /* Default: */
         default: break;
@@ -746,19 +724,12 @@ void UIChooserItemMachine::updateFirstRowMaximumWidth()
     const int iMarginHL = data(MachineItemData_MarginHL).toInt();
     const int iMarginHR = data(MachineItemData_MarginHR).toInt();
     const int iMajorSpacing = data(MachineItemData_MajorSpacing).toInt();
-    const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
 
     /* Calculate new maximum width for the first row: */
     int iFirstRowMaximumWidth = (int)geometry().width();
     iFirstRowMaximumWidth -= iMarginHL; /* left margin */
     iFirstRowMaximumWidth -= m_pixmapSize.width(); /* left pixmap width */
     iFirstRowMaximumWidth -= iMajorSpacing; /* spacing between left pixmap and name(s) */
-    if (   model()->firstSelectedItem() == this
-        || isHovered())
-    {
-        iFirstRowMaximumWidth -= iMajorSpacing; /* spacing between name(s) and right pixmap */
-        iFirstRowMaximumWidth -= m_toolPixmapSize.width() + 2 * iButtonMargin; /* right pixmap width */
-    }
     iFirstRowMaximumWidth -= iMarginHR; /* right margin */
 
     /* Is there something changed? */
@@ -1096,14 +1067,11 @@ void UIChooserItemMachine::paintFrame(QPainter *pPainter, const QRect &rectangle
 void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rectangle)
 {
     /* Prepare variables: */
-    // const int iFullWidth = rectangle.width();
     const int iFullHeight = rectangle.height();
     const int iMarginHL = data(MachineItemData_MarginHL).toInt();
-    // const int iMarginHR = data(MachineItemData_MarginHR).toInt();
     const int iMajorSpacing = data(MachineItemData_MajorSpacing).toInt();
     const int iMinorSpacing = data(MachineItemData_MinorSpacing).toInt();
     const int iMachineItemTextSpacing = data(MachineItemData_TextSpacing).toInt();
-    // const int iButtonMargin = data(MachineItemData_ButtonMargin).toInt();
 
     /* Selected or hovered item foreground: */
     if (model()->selectedItems().contains(this) || isHovered())
@@ -1242,46 +1210,6 @@ void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rec
             }
         }
     }
-
-#if 0
-    /* Calculate indents: */
-    QGraphicsView *pView = model()->scene()->views().first();
-    const QPointF sceneCursorPosition = pView->mapToScene(pView->mapFromGlobal(QCursor::pos()));
-    const QPoint itemCursorPosition = mapFromScene(sceneCursorPosition).toPoint();
-    int iRightColumnIndent = iFullWidth - iMarginHR - 1 - m_toolPixmap.width() / m_toolPixmap.devicePixelRatio();
-
-    /* Paint right column: */
-    if (   model()->firstSelectedItem() == this
-        || isHovered())
-    {
-        /* Prepare variables: */
-        const int iToolPixmapX = iRightColumnIndent;
-        const int iToolPixmapY = (iFullHeight - m_toolPixmap.height() / m_toolPixmap.devicePixelRatio()) / 2;
-        QRect toolButtonRectangle = QRect(iToolPixmapX,
-                                          iToolPixmapY,
-                                          m_toolPixmap.width() / m_toolPixmap.devicePixelRatio(),
-                                          m_toolPixmap.height() / m_toolPixmap.devicePixelRatio());
-        toolButtonRectangle.adjust(- iButtonMargin, -iButtonMargin, iButtonMargin, iButtonMargin);
-
-        /* Paint tool button: */
-        if (   isHovered()
-            && isToolButtonArea(itemCursorPosition, 4))
-            paintFlatButton(/* Painter: */
-                            pPainter,
-                            /* Button rectangle: */
-                            toolButtonRectangle,
-                            /* Cursor position: */
-                            itemCursorPosition);
-
-        /* Paint pixmap: */
-        paintPixmap(/* Painter: */
-                    pPainter,
-                    /* Point to paint in: */
-                    QPoint(iToolPixmapX, iToolPixmapY),
-                    /* Pixmap to paint: */
-                    m_toolPixmap);
-    }
-#endif
 }
 
 /* static */

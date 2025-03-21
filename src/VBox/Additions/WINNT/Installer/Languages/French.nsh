@@ -30,8 +30,8 @@ LangString VBOX_TEST ${LANG_FRENCH}                                 "Ceci est un
 LangString VBOX_NOADMIN ${LANG_FRENCH}                              "Vous avez besoin de droits d'administrateur pour (dés)installer $(^Name)!$\r$\nCe programme d'installation se terminera maintenant."
 
 ;; @todo win.arm64: check spelling of the next three messages.
-LangString VBOX_NOTICE_ARCH_X86 ${LANG_FRENCH}                      "Cette application peut seulement être executée sur des systèmes Windows 32-bit. Veuillez installer la version correspondante de $(^Name)!"
-LangString VBOX_NOTICE_ARCH_AMD64 ${LANG_FRENCH}                    "Cette application peut seulement être executée sur des systèmes Windows 64-bit. Veuillez installer la version correspondante de $(^Name)!"
+LangString VBOX_NOTICE_ARCH_X86 ${LANG_FRENCH}                      "Cette application peut seulement être executée sur des systèmes Windows 32-bit x86. Veuillez installer la version correspondante de $(^Name)!"
+LangString VBOX_NOTICE_ARCH_AMD64 ${LANG_FRENCH}                    "Cette application peut seulement être executée sur des systèmes Windows 64-bit x86. Veuillez installer la version correspondante de $(^Name)!"
 LangString VBOX_NOTICE_ARCH_ARM64 ${LANG_FRENCH}                    "Cette application peut seulement être executée sur des systèmes Windows ARM64. Veuillez installer la version correspondante de $(^Name)!"
 LangString VBOX_NT4_NO_SP6 ${LANG_FRENCH}                           "Le programme d'installation a détécté que vous utilisez Windows NT4 sans Service Pack 6.$\r$\nNous vous conseillons d'installer ce Service Pack avant de continuer. Désirez vous cependant continuer?"
 

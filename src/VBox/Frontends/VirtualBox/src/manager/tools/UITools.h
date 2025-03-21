@@ -60,10 +60,8 @@ signals:
 public:
 
     /** Constructs Tools-pane passing @a pParent to the base-class.
-      * @param  enmClass     Brings the tools class, it will be fixed one.
       * @param  pActionPool  Brings the action-pool reference. */
     UITools(QWidget *pParent,
-            UIToolClass enmClass,
             UIActionPool *pActionPool);
     /** Destructs Tools-pane. */
     virtual ~UITools();
@@ -115,9 +113,6 @@ private:
 
     /** @name General stuff.
       * @{ */
-        /** Holds the tools class. */
-        const UIToolClass  m_enmClass;
-
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
 

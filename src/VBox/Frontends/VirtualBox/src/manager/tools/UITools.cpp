@@ -38,10 +38,8 @@
 
 
 UITools::UITools(QWidget *pParent,
-                 UIToolClass enmClass,
                  UIActionPool *pActionPool)
     : QWidget(pParent, Qt::Widget)
-    , m_enmClass(enmClass)
     , m_pActionPool(pActionPool)
     , m_pMainLayout(0)
     , m_pToolsModel(0)
@@ -115,7 +113,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(this, m_pActionPool, m_enmClass);
+    m_pToolsModel = new UIToolsModel(this, m_pActionPool);
     if (m_pToolsModel)
         prepareView();
 }

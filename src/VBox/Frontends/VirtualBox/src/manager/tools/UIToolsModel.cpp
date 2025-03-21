@@ -362,10 +362,9 @@ void UIToolsAnimationEngine::prepareConnections()
 *   Class UIToolsModel implementation.                                                                                           *
 *********************************************************************************************************************************/
 
-UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass)
+UIToolsModel::UIToolsModel(QObject *pParent, UIActionPool *pActionPool)
     : QObject(pParent)
     , m_pActionPool(pActionPool)
-    , m_enmClass(enmClass)
     , m_pView(0)
     , m_pScene(0)
     , m_fItemsEnabled(true)
@@ -914,26 +913,16 @@ void UIToolsModel::prepareScene()
 
 void UIToolsModel::prepareItems()
 {
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        /* Home: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
-                                                                ":/welcome_screen_24px.png"),
-                                   UIToolType_Home);
-    }
+    /* Home: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/welcome_screen_24px.png",
+                                                            ":/welcome_screen_24px.png"),
+                               UIToolType_Home);
 
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        /* Machines: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
-                                                                ":/machine_details_manager_disabled_24px.png"),
-                                   UIToolType_Machines);
-    }
+    /* Machines: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
+                                                            ":/machine_details_manager_disabled_24px.png"),
+                               UIToolType_Machines);
 
-    if (   m_enmClass == UIToolClass_Machine
-        || m_enmClass == UIToolClass_Invalid)
     {
         /* Details: */
         m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/machine_details_manager_24px.png",
@@ -961,17 +950,11 @@ void UIToolsModel::prepareItems()
                                    UIToolType_FileManager);
     }
 
-    if (   m_enmClass == UIToolClass_Management
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        /* Management: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
-                                                                ":/extension_pack_manager_disabled_24px.png"),
-                                   UIToolType_Managers);
-    }
+    /* Management: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
+                                                            ":/extension_pack_manager_disabled_24px.png"),
+                               UIToolType_Managers);
 
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
     {
         /* Extensions: */
         m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/extension_pack_manager_24px.png",
@@ -999,14 +982,10 @@ void UIToolsModel::prepareItems()
                                    UIToolType_Activities);
     }
 
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        /* Toggle: */
-        m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
-                                                                ":/tools_menu_24px.png"),
-                                   UIToolType_Toggle);
-    }
+    /* Toggle: */
+    m_items << new UIToolsItem(scene(), UIIconPool::iconSet(":/tools_menu_24px.png",
+                                                            ":/tools_menu_24px.png"),
+                               UIToolType_Toggle);
 
     /* Calculate overall shifts: */
     recalculateOverallShifts();
@@ -1014,8 +993,7 @@ void UIToolsModel::prepareItems()
 
 void UIToolsModel::prepareAnimationEngine()
 {
-    if (m_enmClass == UIToolClass_Invalid)
-        m_pAnimationEngine = new UIToolsAnimationEngine(this);
+    m_pAnimationEngine = new UIToolsAnimationEngine(this);
 }
 
 void UIToolsModel::prepareConnections()
@@ -1036,32 +1014,25 @@ void UIToolsModel::loadCurrentItems()
     gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine, enmTypeManagment);
     LogRel2(("GUI: UIToolsModel: Restoring tool items as: Global=%d, Machine=%d, Management=%d\n",
              (int)enmTypeGlobal, (int)enmTypeMachine, (int)enmTypeManagment));
+    UIToolsItem *pItem = 0;
 
-    /* Assign values depending on model class: */
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        UIToolsItem *pItem = item(enmTypeGlobal);
-        if (!pItem)
-            pItem = item(UIToolType_Home);
-        setCurrentItem(pItem);
-    }
-    if (   m_enmClass == UIToolClass_Machine
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        UIToolsItem *pItem = item(enmTypeMachine);
-        if (!pItem)
-            pItem = item(UIToolType_Details);
-        setCurrentItem(pItem);
-    }
-    if (   m_enmClass == UIToolClass_Management
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        UIToolsItem *pItem = item(enmTypeManagment);
-        if (!pItem)
-            pItem = item(UIToolType_Extensions);
-        setCurrentItem(pItem);
-    }
+    /* Global: */
+    pItem = item(enmTypeGlobal);
+    if (!pItem)
+        pItem = item(UIToolType_Home);
+    setCurrentItem(pItem);
+
+    /* Machine: */
+    pItem = item(enmTypeMachine);
+    if (!pItem)
+        pItem = item(UIToolType_Details);
+    setCurrentItem(pItem);
+
+    /* Management: */
+    pItem = item(enmTypeManagment);
+    if (!pItem)
+        pItem = item(UIToolType_Extensions);
+    setCurrentItem(pItem);
 }
 
 void UIToolsModel::saveCurrentItems()
@@ -1070,25 +1041,13 @@ void UIToolsModel::saveCurrentItems()
     UIToolType enmTypeGlobal, enmTypeMachine, enmTypeManagment;
     gEDataManager->toolsPaneLastItemsChosen(enmTypeGlobal, enmTypeMachine, enmTypeManagment);
 
-    /* Update values depending on model class: */
-    if (   m_enmClass == UIToolClass_Global
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
-            enmTypeGlobal = pItem->itemType();
-    }
-    if (   m_enmClass == UIToolClass_Machine
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
-            enmTypeMachine = pItem->itemType();
-    }
-    if (   m_enmClass == UIToolClass_Management
-        || m_enmClass == UIToolClass_Invalid)
-    {
-        if (UIToolsItem *pItem = currentItem(UIToolClass_Management))
-            enmTypeManagment = pItem->itemType();
-    }
+    /* Gather actual values, we are going to save them: */
+    if (UIToolsItem *pItem = currentItem(UIToolClass_Global))
+        enmTypeGlobal = pItem->itemType();
+    if (UIToolsItem *pItem = currentItem(UIToolClass_Machine))
+        enmTypeMachine = pItem->itemType();
+    if (UIToolsItem *pItem = currentItem(UIToolClass_Management))
+        enmTypeManagment = pItem->itemType();
 
     /* Save selected items data: */
     LogRel2(("GUI: UIToolsModel: Saving tool items as: Global=%d, Machine=%d, Management=%d\n",

@@ -83,9 +83,8 @@ public:
     };
 
     /** Constructs Tools-model passing @a pParent to the base-class.
-      * @param  pActionPool  Brings the action-pool reference.
-      * @param  enmClass     Brings the tools class, it will be const one. */
-    UIToolsModel(QObject *pParent, UIActionPool *pActionPool, UIToolClass enmClass);
+      * @param  pActionPool  Brings the action-pool reference. */
+    UIToolsModel(QObject *pParent, UIActionPool *pActionPool);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -239,9 +238,6 @@ private:
       * @{ */
         /** Holds the action-pool reference. */
         UIActionPool *m_pActionPool;
-
-        /** Holds the tools class. */
-        const UIToolClass  m_enmClass;
 
         /** Holds the view reference. */
         UIToolsView    *m_pView;

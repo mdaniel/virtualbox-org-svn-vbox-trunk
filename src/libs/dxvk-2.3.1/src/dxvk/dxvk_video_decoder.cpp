@@ -962,7 +962,10 @@ namespace dxvk {
         return VK_ERROR_TOO_MANY_OBJECTS;
       }
 
-      *itVPS = pParms->h265.vps;
+      const uint32_t idxVPS = std::distance(m_parameterSetCache.h265.vps.begin(), itVPS);
+      m_parameterSetCache.h265.vps[idxVPS] = pParms->h265.vps;
+      m_parameterSetCache.h265.vpsProfileTierLevel[idxVPS] = *pParms->h265.vps.pProfileTierLevel;
+      m_parameterSetCache.h265.vps[idxVPS].pProfileTierLevel = &m_parameterSetCache.h265.vpsProfileTierLevel[idxVPS];
       ++m_parameterSetCache.vpsCount;
 
       addInfo.stdVPSCount = 1;
@@ -1005,7 +1008,7 @@ namespace dxvk {
       addInfo.pStdPPSs = &pParms->h265.pps;
     }
 
-    const uint32_t vpsId = 0; /// @todo
+    const uint32_t vpsId = std::distance(m_parameterSetCache.h265.vps.begin(), itVPS);
     const uint32_t spsId = std::distance(m_parameterSetCache.h265.sps.begin(), itSPS);
     const uint32_t ppsId = std::distance(m_parameterSetCache.h265.pps.begin(), itPPS);
 

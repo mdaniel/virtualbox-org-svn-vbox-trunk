@@ -440,7 +440,7 @@ namespace dxvk {
     p.h265.sps.flags.persistent_rice_adaptation_enabled_flag  = 0; /* Unused */
     p.h265.sps.flags.cabac_bypass_alignment_enabled_flag      = 0; /* Unused */
     p.h265.sps.flags.sps_scc_extension_flag                   = 0; /* Unused */
-    p.h265.sps.flags.sps_curr_pic_ref_enabled_flag            = 1; /* Unknown. */
+    p.h265.sps.flags.sps_curr_pic_ref_enabled_flag            = 0; /* Unused. */
     p.h265.sps.flags.palette_mode_enabled_flag                = 0; /* Unused */
     p.h265.sps.flags.sps_palette_predictor_initializers_present_flag = 0; /* Unused */
     p.h265.sps.flags.intra_boundary_filtering_disabled_flag   = 0; /* Unused */
@@ -470,7 +470,7 @@ namespace dxvk {
     p.h265.sps.palette_max_size                               = 0; /* Unused */
     p.h265.sps.delta_palette_max_predictor_size               = 0; /* Unused */
     p.h265.sps.motion_vector_resolution_control_idc           = 0; /* Unused */
-    p.h265.sps.sps_num_palette_predictor_initializers_minus1  = 0; /* Unused */
+    p.h265.sps.sps_num_palette_predictor_initializers_minus1  = 255; /* Unused */
     p.h265.sps.conf_win_left_offset                           = 0; /* Unused */
     p.h265.sps.conf_win_right_offset                          = 0; /* Unused */
     p.h265.sps.conf_win_top_offset                            = 0; /* Unused */
@@ -510,7 +510,7 @@ namespace dxvk {
     p.h265.pps.flags.uniform_spacing_flag                     = pPicParams->uniform_spacing_flag;
     p.h265.pps.flags.loop_filter_across_tiles_enabled_flag    = pPicParams->loop_filter_across_tiles_enabled_flag;
     p.h265.pps.flags.pps_loop_filter_across_slices_enabled_flag = pPicParams->pps_loop_filter_across_slices_enabled_flag;
-    p.h265.pps.flags.deblocking_filter_control_present_flag    = 1; /* Present */
+    p.h265.pps.flags.deblocking_filter_control_present_flag   = 1; /* Present */
     p.h265.pps.flags.deblocking_filter_override_enabled_flag  = pPicParams->deblocking_filter_override_enabled_flag;
     p.h265.pps.flags.pps_deblocking_filter_disabled_flag      = pPicParams->pps_deblocking_filter_disabled_flag;
     p.h265.pps.flags.pps_scaling_list_data_present_flag       = pQmatrix != nullptr ? 1 : 0;
@@ -519,7 +519,7 @@ namespace dxvk {
     p.h265.pps.flags.pps_extension_present_flag               = 0; /* Unused */
     p.h265.pps.flags.cross_component_prediction_enabled_flag  = 0; /* Unused */
     p.h265.pps.flags.chroma_qp_offset_list_enabled_flag       = 0; /* Unused */
-    p.h265.pps.flags.pps_curr_pic_ref_enabled_flag            = 1; /* Unknown */
+    p.h265.pps.flags.pps_curr_pic_ref_enabled_flag            = 0; /* Unused */
     p.h265.pps.flags.residual_adaptive_colour_transform_enabled_flag = 0; /* Unused */
     p.h265.pps.flags.pps_slice_act_qp_offsets_present_flag    = 0; /* Unused */
     p.h265.pps.flags.pps_palette_predictor_initializers_present_flag = 0; /* Unused */
@@ -538,8 +538,7 @@ namespace dxvk {
     p.h265.pps.pps_beta_offset_div2                           = pPicParams->pps_beta_offset_div2;
     p.h265.pps.pps_tc_offset_div2                             = pPicParams->pps_tc_offset_div2;
     p.h265.pps.log2_parallel_merge_level_minus2               = pPicParams->log2_parallel_merge_level_minus2;
-    p.h265.pps.log2_max_transform_skip_block_size_minus2      = pPicParams->log2_min_transform_block_size_minus2
-                                                              + pPicParams->log2_diff_max_min_transform_block_size;
+    p.h265.pps.log2_max_transform_skip_block_size_minus2      = 0;
     p.h265.pps.diff_cu_chroma_qp_offset_depth                 = 0; /* Unused */
     p.h265.pps.chroma_qp_offset_list_len_minus1               = 0; /* Unused */
     for (uint32_t i = 0; i < STD_VIDEO_H265_CHROMA_QP_OFFSET_LIST_SIZE; ++i) {

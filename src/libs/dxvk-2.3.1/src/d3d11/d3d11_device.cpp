@@ -3115,22 +3115,18 @@ namespace dxvk {
       return;
 
     /* Filter out profiles that do not work well. */
-    std::vector<VkVideoCodecOperationFlagBitsKHR> vulkanVideoDecodeBlacklist;
+    std::vector<VkVideoCodecOperationFlagBitsKHR> disabledCodecs;
 
     if (dxvkDevice->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA, 0, 0)) {
       /* H265: decoded picture consists of multiple small tiles with garbled content. */
-      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR);
+      disabledCodecs.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR);
 
       /* AV1: crash. VideoSessionMemory is allocated from DEVICE_LOCAL memory type, but
        * anv_init_av1_cdf_tables maps ANV_VID_MEM_AV1_CDF_DEFAULTS_* buffers in order to
        * initialize them. The mapped pointer is inaccessible.
        * Tested on Intel Arc B570 discrete GPU.
        */
-      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR);
-    }
-    else if (dxvkDevice->adapter()->matchesDriver(VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS, 0, 0)) {
-      /* H265: same as VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA. */
-      vulkanVideoDecodeBlacklist.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_H265_BIT_KHR);
+      disabledCodecs.push_back(VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR);
     }
 
     /*
@@ -3168,7 +3164,7 @@ namespace dxvk {
           /* .ConfigSpecificIDCT = */ 2,
           /* .Config4GroupedCoefs = */ 0,
           /* .ConfigMinRenderTargetBuffCount = */ 3,
-          /* .ConfigDecoderSpecific = */ 0
+          /* .ConfigDecoderSpecific = */ 0x4000
         },
         {
           /* .guidConfigBitstreamEncryption = */ DXVA2_NoEncrypt,
@@ -3187,7 +3183,7 @@ namespace dxvk {
           /* .ConfigSpecificIDCT = */ 2,
           /* .Config4GroupedCoefs = */ 0,
           /* .ConfigMinRenderTargetBuffCount = */ 3,
-          /* .ConfigDecoderSpecific = */ 0
+          /* .ConfigDecoderSpecific = */ 0x4000
         }
       },
       /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
@@ -3215,7 +3211,7 @@ namespace dxvk {
           /* .ConfigSpecificIDCT = */ 0,
           /* .Config4GroupedCoefs = */ 0,
           /* .ConfigMinRenderTargetBuffCount = */ 3,
-          /* .ConfigDecoderSpecific = */ 0
+          /* .ConfigDecoderSpecific = */ 0x4000
         }
       },
       /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
@@ -3243,7 +3239,7 @@ namespace dxvk {
           /* .ConfigSpecificIDCT = */ 0,
           /* .Config4GroupedCoefs = */ 0,
           /* .ConfigMinRenderTargetBuffCount = */ 3,
-          /* .ConfigDecoderSpecific = */ 0
+          /* .ConfigDecoderSpecific = */ 0x4000
         }
       },
       /* .supportedFormats = */ std::vector<DXGI_FORMAT> {
@@ -3322,6 +3318,38 @@ namespace dxvk {
     mappings.push_back({ m_vulkanDecodeProfiles[2] });
     mappings.back().d3dProfiles.push_back(profile_ModeAV1_VLD_Profile0);
 
+    /* Check whether the format(s) support arrays and adjust ConfigDecoderSpecific caps accordingly. */
+    for (auto& m: mappings) {
+      for (auto &p: m.d3dProfiles) {
+        bool fUseTextureArrays = true; /* Assume that the formats support arrays. */
+
+        for (auto dxgiFormat: p.supportedFormats) {
+          DXGI_VK_FORMAT_INFO formatInfo = m_device->LookupFormat(
+            dxgiFormat, DXGI_VK_FORMAT_MODE_COLOR);
+          if (formatInfo.Format == VK_FORMAT_UNDEFINED)
+            continue;
+
+          DxvkFormatQuery formatQuery = { };
+          formatQuery.format = formatInfo.Format;
+          formatQuery.type   = VK_IMAGE_TYPE_2D;
+          formatQuery.tiling = VK_IMAGE_TILING_OPTIMAL;
+          formatQuery.usage  = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+                             | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+          auto properties = dxvkDevice->getFormatLimits(formatQuery);
+          fUseTextureArrays = properties && properties->maxArrayLayers > 1;
+          if (!fUseTextureArrays)
+            break; /* One of formats does not support texture arrays. */
+        }
+
+        if (fUseTextureArrays) {
+          for (auto& config: p.decoderConfigs) {
+            config.ConfigDecoderSpecific &= ~0x4000;
+          }
+        }
+      }
+    }
+
     /*
      * Query caps of every Vulkan profile and add supported profiles to the m_decoderProfiles list.
      */
@@ -3329,10 +3357,10 @@ namespace dxvk {
     auto physicalDevice = dxvkDevice->adapter()->handle();
 
     for (auto& m: mappings) {
-      const auto it = std::find_if(vulkanVideoDecodeBlacklist.begin(), vulkanVideoDecodeBlacklist.end(),
+      const auto it = std::find_if(disabledCodecs.begin(), disabledCodecs.end(),
         [ op = m.dxvkProfile.profileInfo.videoCodecOperation ](VkVideoCodecOperationFlagBitsKHR v) -> bool
           { return v == op; });
-      if (it != vulkanVideoDecodeBlacklist.end())
+      if (it != disabledCodecs.end())
         continue;
 
       VkResult vr = vki->vkGetPhysicalDeviceVideoCapabilitiesKHR(physicalDevice,

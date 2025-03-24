@@ -829,6 +829,9 @@ WriteSections32 (
           case R_ARM_TLS_GD32:
           case R_ARM_TLS_LDM32:
           case R_ARM_TLS_IE32:
+#ifdef VBOX
+          case R_ARM_PC13: /* Produced by clang/llvm (actually R_ARM_LDR_PC_G0) */
+#endif
             // Thease are all PC-relative relocations and don't require modification
             // GCC does not seem to have the concept of a application that just needs to get relocated.
             break;
@@ -955,6 +958,9 @@ WriteRelocations32 (
             case R_ARM_TLS_GD32:
             case R_ARM_TLS_LDM32:
             case R_ARM_TLS_IE32:
+#ifdef VBOX
+            case R_ARM_PC13: /* Produced by clang/llvm (actually R_ARM_LDR_PC_G0) */
+#endif
               // Thease are all PC-relative relocations and don't require modification
               break;
 

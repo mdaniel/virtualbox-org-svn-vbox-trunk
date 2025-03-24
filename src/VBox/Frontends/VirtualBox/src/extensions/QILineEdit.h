@@ -70,6 +70,7 @@ protected:
 
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
+    virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
@@ -95,7 +96,7 @@ private:
     /** Holds whether line-edit is markable. */
     bool     m_fMarkable;
     /** Holds whether line-edit is marked for error. */
-    bool     m_fMarkForError;
+    bool     m_fMarkedForError;
     /** Holds the icon label instance. */
     QLabel  *m_pLabelIcon;
     /** Holds last error message. */

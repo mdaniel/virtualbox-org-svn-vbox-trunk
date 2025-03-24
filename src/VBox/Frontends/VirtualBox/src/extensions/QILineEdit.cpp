@@ -31,6 +31,7 @@
 #include <QContextMenuEvent>
 #include <QLabel>
 #include <QMenu>
+#include <QPainter>
 #include <QStyleOptionFrame>
 
 /* GUI includes: */
@@ -44,7 +45,7 @@ QILineEdit::QILineEdit(QWidget *pParent /* = 0 */)
     , m_fAllowToCopyContentsWhenDisabled(false)
     , m_pCopyAction(0)
     , m_fMarkable(false)
-    , m_fMarkForError(false)
+    , m_fMarkedForError(false)
     , m_pLabelIcon(0)
     , m_iIconMargin(0)
 {
@@ -56,7 +57,7 @@ QILineEdit::QILineEdit(const QString &strText, QWidget *pParent /* = 0 */)
     , m_fAllowToCopyContentsWhenDisabled(false)
     , m_pCopyAction(0)
     , m_fMarkable(false)
-    , m_fMarkForError(false)
+    , m_fMarkedForError(false)
     , m_pLabelIcon(0)
     , m_iIconMargin(0)
 {
@@ -99,7 +100,7 @@ void QILineEdit::mark(bool fError, const QString &strErrorMessage, const QString
     if (   !m_pLabelIcon
         || !m_fMarkable)
         return;
-
+    m_fMarkedForError = fError;
     /* Assign corresponding icon: */
     const QIcon icon = fError ? UIIconPool::iconSet(":/status_error_16px.png") : UIIconPool::iconSet(":/status_check_16px.png");
     const int iIconMetric = qMin((int)(QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .625), height());
@@ -148,6 +149,20 @@ bool QILineEdit::event(QEvent *pEvent)
 
     /* Call to base-class: */
     return QLineEdit::event(pEvent);
+}
+
+void QILineEdit::paintEvent(QPaintEvent *pEvent)
+{
+    QLineEdit::paintEvent(pEvent);
+    if (m_fMarkedForError)
+    {
+        QStyleOptionFrame option;
+        option.initFrom(this);
+        int iThickness = style()->pixelMetric(QStyle::PM_DefaultFrameWidth, &option, this);
+        QPainter painter(this);
+        painter.setPen(QPen(Qt::red, iThickness));
+        painter.drawRect(rect().adjusted(iThickness, iThickness, -2 * iThickness, -2 * iThickness));
+    }
 }
 
 void QILineEdit::copy()

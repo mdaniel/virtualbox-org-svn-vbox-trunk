@@ -36,9 +36,6 @@ include $(KBUILD_PATH)/subheader.kmk
 #  include $(PATH_SUB_CURRENT)/testcase/Makefile.kmk
 # endif
 
-ifneq ($(KBUILD_HOST),linux)
- $(error "The Linux installer can only be built on Linux!")
-endif
 
 #
 # Globals and targets.
@@ -461,11 +458,11 @@ $(VBOX_LNX_INST_STAGE_DIR)/VirtualBox.tar.bz2: $(VBOX_LNX_INST_ARCH_DEPS)
 	$(QUIET)$(RM) -f -- $@ $(patsubst %.bz2,%,$@)
 	$(QUIET)$(MKDIR) -p $(@D)
 ifdef VBOX_USE_PBZIP2
-	$(QUIET)tar --dereference --owner 0 --group 0 \
+	$(QUIET)$(VBOX_GTAR) --dereference --owner 0 --group 0 \
 		-cRhf $(patsubst %.bz2,%,$@) -C $(VBOX_LNX_INST_OUT_DIR)/archive $(VBOX_LNX_ARCH_FILES)
 	$(QUIET)pbzip2 $(patsubst %.bz2,%,$@)
 else
-	$(QUIET)tar --dereference --owner 0 --group 0 \
+	$(QUIET)$(VBOX_GTAR) --dereference --owner 0 --group 0 \
 		-cjRhf $@ -C $(VBOX_LNX_INST_OUT_DIR)/archive $(VBOX_LNX_ARCH_FILES)
 endif
 	$(QUIET)$(CHMOD) 0644 $@
@@ -477,7 +474,7 @@ $(PATH_STAGE_BIN)/VirtualBox.tar: $(VBOX_LNX_INST_ARCH_DEPS)
 	$(call MSG_L1,Packing $@)
 	$(QUIET)$(RM) -f -- $(VBOX_LNX_INST_OUT_DIR)/VirtualBox-$(VBOX_VERSION_STRING) $@ $(patsubst %.bz2,%,$@)
 	$(QUIET)$(LN_SYMLINK) $(VBOX_LNX_INST_OUT_DIR)/archive/ $(VBOX_LNX_INST_OUT_DIR)/VirtualBox-$(VBOX_VERSION_STRING)
-	$(QUIET)tar --dereference --owner 0 --group 0 \
+	$(QUIET)$(VBOX_GTAR) --dereference --owner 0 --group 0 \
 		-cRhf $@ -C $(VBOX_LNX_INST_OUT_DIR) \
 		$(addprefix VirtualBox-$(VBOX_VERSION_STRING)/,$(VBOX_LNX_ARCH_FILES))
 	$(QUIET)$(RM) -f -- $(VBOX_LNX_INST_OUT_DIR)/VirtualBox-$(VBOX_VERSION_STRING)
@@ -491,7 +488,7 @@ $(addprefix $(VBOX_LNX_INST_OUT_DIR)/archive/,$(VBOX_LNX_STRIP_BIN)): \
 		| $$(dir $$@)
 	$(call MSG_INST_FILE,$<,$@)
 	$(QUIET)$(INSTALL) -m 0755 $(if $(VBOX_DO_STRIP),-s,) $< $@
-	$(QUIET)$(if $(VBOX_NO_LINUX_RUN_INSTALLER),,objcopy --add-gnu-debuglink=$(subst $(VBOX_LNX_INST_OUT_DIR)/archive,$(VBOX_LNX_INST_OUT_DIR)/archive-dbg/$(VBOX_LNX_DBG_PATH),$@) $@)
+	$(QUIET)$(if $(VBOX_NO_LINUX_RUN_INSTALLER),,$(VBOX_OBJCOPY) --add-gnu-debuglink=$(subst $(VBOX_LNX_INST_OUT_DIR)/archive,$(VBOX_LNX_INST_OUT_DIR)/archive-dbg/$(VBOX_LNX_DBG_PATH),$@) $@)
 
 # pattern rule for copying VBOX_LNX_DBG_BIN files to archive-dbg/
 $(addprefix $(VBOX_LNX_INST_OUT_DIR)/archive-dbg/$(VBOX_LNX_DBG_PATH)/,$(VBOX_LNX_DBG_BIN)): \
@@ -506,7 +503,7 @@ $(addprefix $(VBOX_LNX_INST_OUT_DIR)/archive/,$(VBOX_LNX_STRIP_OBJ)): \
 ifeq ($(VBOX_DO_STRIP),)
 	$(QUIET)$(INSTALL) -m 0644 $< $@
 else # strip to temp file because of umask.
-	$(QUIET)objcopy --strip-unneeded -R .comment $< $@.tmp
+	$(QUIET)$(VBOX_OBJCOPY) --strip-unneeded -R .comment $< $@.tmp
 	$(QUIET)$(INSTALL) -m 0644 $@.tmp $@
 	$(QUIET)$(RM) -f -- $@.tmp
 endif
@@ -574,12 +571,12 @@ $(PATH_STAGE_BIN)/VirtualBox-dbg.tar.bz2: \
 	$(call MSG_L1,Packing $@)
 	$(QUIET)$(RM) -f -- $@ $(patsubst %.bz2,%,$@)
 ifdef VBOX_USE_PBZIP2
-	$(QUIET)tar --dereference --owner 0 --group 0 \
+	$(QUIET)$(VBOX_GTAR) --dereference --owner 0 --group 0 \
 		-cRhf $(patsubst %.bz2,%,$@) -C $(VBOX_LNX_INST_OUT_DIR)/archive-dbg \
 		$(addprefix $(VBOX_LNX_DBG_PATH)/,$(VBOX_LNX_STRIP_BIN) $(VBOX_LNX_DBG_BIN))
 	$(QUIET)pbzip2 $(patsubst %.bz2,%,$@)
 else
-	$(QUIET)tar --dereference --owner 0 --group 0 \
+	$(QUIET)$(VBOX_GTAR) --dereference --owner 0 --group 0 \
 		-cjRhf $@ -C $(VBOX_LNX_INST_OUT_DIR)/archive-dbg \
 		$(addprefix $(VBOX_LNX_DBG_PATH)/,$(VBOX_LNX_STRIP_BIN) $(VBOX_LNX_DBG_BIN))
 endif
@@ -588,7 +585,7 @@ endif
 $(addprefix $(VBOX_LNX_INST_OUT_DIR)/archive-dbg/$(VBOX_LNX_DBG_PATH)/,$(VBOX_LNX_STRIP_BIN)): \
 		$(VBOX_LNX_INST_OUT_DIR)/archive-dbg/$(VBOX_LNX_DBG_PATH)/% : $(PATH_STAGE_BIN)/% | $$(dir $$@)
 	$(call MSG_TOOL,copydbg,$<,$@)
-	$(QUIET)objcopy --only-keep-debug $< $@
+	$(QUIET)$(VBOX_OBJCOPY) --only-keep-debug $< $@
 
 # rules for creating directories in archive-dbg (the pattern rules depends on these).
 BLDDIRS += $(foreach d, \

@@ -982,20 +982,7 @@ int vboxVBVASaveStateExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     PVGASTATECC     pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PVGASTATECC);
     PCPDMDEVHLPR3   pHlp    = pDevIns->pHlpR3;
 
-    int rc = vboxVBVASaveDevStateExec(pHlp, pThis, pThisCC, pSSM);
-    if (RT_SUCCESS(rc))
-    {
-        for (uint32_t i = 0; i < pThis->cMonitors; ++i)
-        {
-            rc = pHlp->pfnSSMPutU32(pSSM, VBOXVBVASAVEDSTATE_VHWAUNAVAILABLE_MAGIC);
-            AssertRCReturn(rc, rc);
-        }
-    }
-
-    /* no pending commands */
-    pHlp->pfnSSMPutU32(pSSM, 0);
-
-    return rc;
+    return vboxVBVASaveDevStateExec(pHlp, pThis, pThisCC, pSSM);
 }
 
 int vboxVBVALoadStateExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uVersion)

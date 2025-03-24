@@ -3108,7 +3108,8 @@ static void tstASMBench(void)
     static uint64_t volatile s_u64;
     static int64_t  volatile s_i64;
 #if defined(RTASM_HAVE_CMP_WRITE_U128) || defined(RTASM_HAVE_CMP_XCHG_U128)
-    static RTUINT128U volatile s_u128;
+     /* Some clang versions fail to align it automatically causing a crash in ASMAtomicCmpXchgU128v2() called through ASMAtomicUoReadU128() on darwin.amd64 */
+    RT_ALIGNAS_VAR(16) static RTUINT128U volatile s_u128;
 #endif
     static uint8_t  s_u8Old;
     static int8_t   s_i8Old;

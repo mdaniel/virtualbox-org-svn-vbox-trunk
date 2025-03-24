@@ -156,8 +156,8 @@ VMMR3_INT_DECL(int) GVMMR3DestroyVM(PUVM pUVM, PVM pVM)
         rc = SUPR3CallVMMR0Ex(pVM->pVMR0ForCall, 0 /*idCpu*/, VMMR0_DO_GVMM_DESTROY_VM, 0, NULL);
     else
     {
-        RTMemPageFree((uint8_t *)pVM - HOST_PAGE_SIZE,
-                      sizeof(VM) + sizeof(VMCPU) * pVM->cCpus + HOST_PAGE_SIZE * (1 + 2 * pVM->cCpus));
+        RTMemPageFree((uint8_t *)pVM - HOST_PAGE_SIZE_DYNAMIC,
+                      sizeof(VM) + sizeof(VMCPU) * pVM->cCpus + HOST_PAGE_SIZE_DYNAMIC * (1 + 2 * pVM->cCpus));
         rc = VINF_SUCCESS;
     }
     return rc;

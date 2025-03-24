@@ -43,6 +43,9 @@
 
 #include <iprt/param.h>
 #include <iprt/cdefs.h>
+#ifdef VMM_HOST_PAGE_SIZE_DYNAMIC
+# include <iprt/system.h>
+#endif
 
 
 /** @defgroup   grp_vbox_param  VBox Parameter Definition
@@ -66,12 +69,31 @@
 #define HOST_PAGE_SHIFT             PAGE_SHIFT
 
 
+/** The host page size which can be dynamic on certain hosts, linux.arm64 for instance */
+#ifdef VMM_HOST_PAGE_SIZE_DYNAMIC
+# define HOST_PAGE_SIZE_DYNAMIC     RTSystemGetPageSize()
+#else
+# define HOST_PAGE_SIZE_DYNAMIC     HOST_PAGE_SIZE
+#endif
+/** The host page shift which can be dynamic on certain hosts, linux.arm64 for instance */
+#ifdef VMM_HOST_PAGE_SIZE_DYNAMIC
+# define HOST_PAGE_SHIFT_DYNAMIC     RTSystemGetPageShift()
+#else
+# define HOST_PAGE_SHIFT_DYNAMIC     HOST_PAGE_SHIFT
+#endif
+
+
+/** The maximum memory size that can be allocated and mapped
+ * by various MM, PGM and SUP APIs. */
+#define VBOX_MAX_ALLOC_SIZE          _512M
+
+
 /** The maximum number of pages that can be allocated and mapped
  * by various MM, PGM and SUP APIs. */
 #if ARCH_BITS == 64
-# define VBOX_MAX_ALLOC_PAGE_COUNT   (_512M / PAGE_SIZE)
+# define VBOX_MAX_ALLOC_PAGE_COUNT   (VBOX_MAX_ALLOC_SIZE / PAGE_SIZE)
 #else
-# define VBOX_MAX_ALLOC_PAGE_COUNT   (_256M / PAGE_SIZE)
+# define VBOX_MAX_ALLOC_PAGE_COUNT   (_256M / PAGE_SIZE) /** @todo r=aeichner Remove? */
 #endif
 
 /** @def VBOX_WITH_PAGE_SHARING

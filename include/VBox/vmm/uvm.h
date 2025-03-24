@@ -39,6 +39,7 @@
 # pragma once
 #endif
 
+#include <VBox/param.h>
 #include <VBox/types.h>
 #include <iprt/assert.h>
 
@@ -176,19 +177,19 @@ AssertCompileMemberAlignment(UVM, aCpus, 32);
  * Asserts a user mode VM handle is valid for external access.
  */
 #define UVM_ASSERT_VALID_EXT_RETURN(a_pUVM, a_rc) \
-        AssertMsgReturn(    RT_VALID_ALIGNED_PTR(a_pUVM, PAGE_SIZE) \
+        AssertMsgReturn(    RT_VALID_ALIGNED_PTR(a_pUVM, HOST_PAGE_SIZE_DYNAMIC) \
                         &&  (a_pUVM)->u32Magic == UVM_MAGIC, \
                         ("a_pUVM=%p u32Magic=%#x\n", (a_pUVM), \
-                         RT_VALID_ALIGNED_PTR(a_pUVM, PAGE_SIZE) ? (a_pUVM)->u32Magic : 0), \
+                         RT_VALID_ALIGNED_PTR(a_pUVM, HOST_PAGE_SIZE_DYNAMIC) ? (a_pUVM)->u32Magic : 0), \
                         (a_rc))
 /** @def UVM_ASSERT_VALID_EXT_RETURN
  * Asserts a user mode VM handle is valid for external access.
  */
 #define UVM_ASSERT_VALID_EXT_RETURN_VOID(a_pUVM) \
-        AssertMsgReturnVoid(    RT_VALID_ALIGNED_PTR(a_pUVM, PAGE_SIZE) \
+        AssertMsgReturnVoid(    RT_VALID_ALIGNED_PTR(a_pUVM, HOST_PAGE_SIZE_DYNAMIC) \
                             &&  (a_pUVM)->u32Magic == UVM_MAGIC, \
                             ("a_pUVM=%p u32Magic=%#x\n", (a_pUVM), \
-                             RT_VALID_ALIGNED_PTR(a_pUVM, PAGE_SIZE) ? (a_pUVM)->u32Magic : 0))
+                             RT_VALID_ALIGNED_PTR(a_pUVM, HOST_PAGE_SIZE_DYNAMIC) ? (a_pUVM)->u32Magic : 0))
 
 /** @} */
 #endif /* !VBOX_INCLUDED_vmm_uvm_h */

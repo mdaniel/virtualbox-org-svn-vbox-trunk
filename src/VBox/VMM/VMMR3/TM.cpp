@@ -1646,7 +1646,7 @@ static int tmR3TimerQueueGrow(PVM pVM, PTMTIMERQUEUE pQueue, uint32_t cNewTimers
          * Round up the request to the nearest page and do the allocation.
          */
         size_t cbNew = sizeof(TMTIMER) * cNewTimers;
-        cbNew = RT_ALIGN_Z(cbNew, HOST_PAGE_SIZE);
+        cbNew = RT_ALIGN_Z(cbNew, HOST_PAGE_SIZE_DYNAMIC);
         cNewTimers = (uint32_t)(cbNew / sizeof(TMTIMER));
 
         PTMTIMER paTimers = (PTMTIMER)RTMemPageAllocZ(cbNew);
@@ -1663,7 +1663,7 @@ static int tmR3TimerQueueGrow(PVM pVM, PTMTIMERQUEUE pQueue, uint32_t cNewTimers
             pQueue->cTimersAlloc  = cNewTimers;
             pQueue->cTimersFree  += cNewTimers - (cOldEntries ? cOldEntries : 1);
 
-            RTMemPageFree(paOldTimers, RT_ALIGN_Z(sizeof(TMTIMER) * cOldEntries, HOST_PAGE_SIZE));
+            RTMemPageFree(paOldTimers, RT_ALIGN_Z(sizeof(TMTIMER) * cOldEntries, HOST_PAGE_SIZE_DYNAMIC));
             rc = VINF_SUCCESS;
         }
         else

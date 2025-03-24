@@ -1907,7 +1907,7 @@ static int pgmR3PhysInitAndLinkRamRange(PVM pVM, PPGMRAMRANGE pNew, RTGCPHYS GCP
 #ifdef VBOX_WITH_PGM_NEM_MODE
     if (PGM_IS_IN_NEM_MODE(pVM))
     {
-        int rc = SUPR3PageAlloc(RT_ALIGN_Z(pNew->cb, HOST_PAGE_SIZE) >> HOST_PAGE_SHIFT,
+        int rc = SUPR3PageAlloc(RT_ALIGN_Z(pNew->cb, HOST_PAGE_SIZE_DYNAMIC) >> HOST_PAGE_SHIFT_DYNAMIC,
                                 pVM->pgm.s.fUseLargePages ? SUP_PAGE_ALLOC_F_LARGE_PAGES : 0, (void **)&pNew->pbR3);
         if (RT_FAILURE(rc))
             return rc;
@@ -4603,7 +4603,7 @@ static int pgmR3PhysRomRegisterLocked(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPh
     AssertReturn(cGuestPages <= PGM_MAX_PAGES_PER_ROM_RANGE, VERR_OUT_OF_RANGE);
 
 #ifdef VBOX_WITH_PGM_NEM_MODE
-    const uint32_t cHostPages  = RT_ALIGN_T(cb, HOST_PAGE_SIZE, RTGCPHYS) >> HOST_PAGE_SHIFT;
+    const uint32_t cHostPages  = RT_ALIGN_T(cb, HOST_PAGE_SIZE_DYNAMIC, RTGCPHYS) >> HOST_PAGE_SHIFT_DYNAMIC;
 #endif
 
     /*

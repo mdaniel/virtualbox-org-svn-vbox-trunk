@@ -1200,7 +1200,7 @@ static void apicR3TermState(PVM pVM)
     /* Unmap and free the PIB. */
     if (pApic->pvApicPibR3 != NIL_RTR3PTR)
     {
-        size_t const cPages = pApic->cbApicPib >> HOST_PAGE_SHIFT;
+        size_t const cPages = pApic->cbApicPib >> HOST_PAGE_SHIFT_DYNAMIC;
         if (cPages == 1)
             SUPR3PageFreeEx(pApic->pvApicPibR3, cPages);
         else
@@ -1247,8 +1247,8 @@ static int apicR3InitState(PVM pVM)
      */
     Assert(pApic->pvApicPibR3 == NIL_RTR3PTR);
     Assert(pApic->pvApicPibR0 == NIL_RTR0PTR);
-    pApic->cbApicPib        = RT_ALIGN_Z(pVM->cCpus * sizeof(APICPIB), HOST_PAGE_SIZE);
-    size_t const cHostPages = pApic->cbApicPib >> HOST_PAGE_SHIFT;
+    pApic->cbApicPib        = RT_ALIGN_Z(pVM->cCpus * sizeof(APICPIB), HOST_PAGE_SIZE_DYNAMIC);
+    size_t const cHostPages = pApic->cbApicPib >> HOST_PAGE_SHIFT_DYNAMIC;
     if (cHostPages == 1)
     {
         SUPPAGE SupApicPib;
@@ -1293,7 +1293,9 @@ static int apicR3InitState(PVM pVM)
             Assert(pVCpu->idCpu == idCpu);
             Assert(pApicCpu->pvApicPageR3 == NIL_RTR3PTR);
             Assert(pApicCpu->pvApicPageR0 == NIL_RTR0PTR);
+#ifndef VMM_HOST_PAGE_SIZE_DYNAMIC
             AssertCompile(sizeof(XAPICPAGE) <= HOST_PAGE_SIZE);
+#endif
             pApicCpu->cbApicPage = sizeof(XAPICPAGE);
             int rc = SUPR3PageAllocEx(1 /* cHostPages */, 0 /* fFlags */, &pApicCpu->pvApicPageR3, &pApicCpu->pvApicPageR0,
                                       &SupApicPage);

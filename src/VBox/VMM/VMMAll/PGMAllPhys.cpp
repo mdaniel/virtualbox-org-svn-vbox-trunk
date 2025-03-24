@@ -164,7 +164,7 @@ uint32_t pgmHandlerPhysicalCalcTableSizes(uint32_t *pcEntries, uint32_t *pcbTree
     /*
      * Align the total and try use up extra space from that.
      */
-    uint32_t cbTotalAligned = RT_ALIGN_32(cbTotal, RT_MAX(HOST_PAGE_SIZE, _16K));
+    uint32_t cbTotalAligned = RT_ALIGN_32(cbTotal, RT_MAX(HOST_PAGE_SIZE_DYNAMIC, _16K));
     uint32_t cAvail         = cbTotalAligned - cbTotal;
     cAvail /= sizeof(PGMPHYSHANDLER);
     if (cAvail >= 1)
@@ -998,13 +998,13 @@ DECLHIDDEN(int) pgmPhysRamRangeAllocCommon(PVMCC pVM, uint32_t cPages, uint32_t 
     /*
      * Allocate the RAM range structure and map it into ring-3.
      */
-    size_t const cbRamRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMRAMRANGE, aPages[cPages]), HOST_PAGE_SIZE);
+    size_t const cbRamRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMRAMRANGE, aPages[cPages]), HOST_PAGE_SIZE_DYNAMIC);
 #ifdef IN_RING0
     RTR0MEMOBJ   hMemObj    = NIL_RTR0MEMOBJ;
     int rc = RTR0MemObjAllocPage(&hMemObj, cbRamRange, false /*fExecutable*/);
 #else
     PPGMRAMRANGE pRamRange;
-    int rc = SUPR3PageAlloc(cbRamRange >> HOST_PAGE_SHIFT, 0 /*fFlags*/, (void **)&pRamRange);
+    int rc = SUPR3PageAlloc(cbRamRange >> HOST_PAGE_SHIFT_DYNAMIC, 0 /*fFlags*/, (void **)&pRamRange);
 #endif
     if (RT_SUCCESS(rc))
     {
@@ -1089,7 +1089,7 @@ DECLHIDDEN(int) pgmPhysRamRangeAllocCommon(PVMCC pVM, uint32_t cPages, uint32_t 
 #ifdef IN_RING0
         RTR0MemObjFree(hMemObj, true /*fFreeMappings*/);
 #else
-        SUPR3PageFree(pRamRange, cbRamRange >> HOST_PAGE_SHIFT);
+        SUPR3PageFree(pRamRange, cbRamRange >> HOST_PAGE_SHIFT_DYNAMIC);
 #endif
     }
     *pidNewRange = UINT32_MAX;
@@ -1199,8 +1199,8 @@ static int pgmPhysRamRangeFree(PVMCC pVM, PPGMRAMRANGE pRamRange)
             pVM->pgmr0.s.ahRamRangeMemObjs[idRamRange] = NIL_RTR0MEMOBJ;
     }
 #else
-    size_t const cbRamRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMRAMRANGE, aPages[cPages]), HOST_PAGE_SIZE);
-    int rc = SUPR3PageFree(pRamRange, cbRamRange >> HOST_PAGE_SHIFT);
+    size_t const cbRamRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMRAMRANGE, aPages[cPages]), HOST_PAGE_SIZE_DYNAMIC);
+    int rc = SUPR3PageFree(pRamRange, cbRamRange >> HOST_PAGE_SHIFT_DYNAMIC);
 #endif
 
     /*
@@ -1287,8 +1287,8 @@ DECLHIDDEN(int) pgmPhysMmio2RegisterWorker(PVMCC pVM, uint32_t const cGuestPages
      * backing the whole range.
      */
     RTGCPHYS const          cbMmio2Backing   = (RTGCPHYS)cGuestPages << GUEST_PAGE_SHIFT;
-    uint32_t const          cHostPages       = (cbMmio2Backing + HOST_PAGE_SIZE - 1U) >> HOST_PAGE_SHIFT;
-    size_t const            cbMmio2Aligned   = cHostPages << HOST_PAGE_SHIFT;
+    uint32_t const          cHostPages       = (cbMmio2Backing + HOST_PAGE_SIZE_DYNAMIC - 1U) >> HOST_PAGE_SHIFT_DYNAMIC;
+    size_t const            cbMmio2Aligned   = cHostPages << HOST_PAGE_SHIFT_DYNAMIC;
     R3PTRTYPE(uint8_t *)    pbMmio2BackingR3 = NIL_RTR3PTR;
 #ifdef IN_RING0
     RTR0MEMOBJ              hMemObj          = NIL_RTR0MEMOBJ;
@@ -1497,7 +1497,7 @@ VMMR0_INT_DECL(int) PGMR0PhysMmio2RegisterReq(PGVM pGVM, PPGMPHYSMMIO2REGISTERRE
     VM_ASSERT_EMT0_RETURN(pGVM, VERR_VM_THREAD_NOT_EMT);
 
     AssertReturn(pReq->cbGuestPage == GUEST_PAGE_SIZE, VERR_INCOMPATIBLE_CONFIG);
-    AssertReturn(GUEST_PAGE_SIZE == HOST_PAGE_SIZE, VERR_INCOMPATIBLE_CONFIG);
+    AssertReturn(GUEST_PAGE_SIZE == HOST_PAGE_SIZE_DYNAMIC, VERR_INCOMPATIBLE_CONFIG);
 
     AssertReturn(pReq->cGuestPages > 0, VERR_OUT_OF_RANGE);
     AssertReturn(pReq->cGuestPages <= PGM_MAX_PAGES_PER_MMIO2_REGION, VERR_OUT_OF_RANGE);
@@ -1594,7 +1594,7 @@ DECLHIDDEN(int) pgmPhysMmio2DeregisterWorker(PVMCC pVM, uint8_t idMmio2, uint8_t
      */
 #ifdef IN_RING3
     uint8_t * const pbMmio2Backing = pVM->pgm.s.aMmio2Ranges[idxFirst].pbR3;
-    RTGCPHYS const  cbMmio2Backing = RT_ALIGN_T((RTGCPHYS)cGuestPages << GUEST_PAGE_SHIFT, HOST_PAGE_SIZE, RTGCPHYS);
+    RTGCPHYS const  cbMmio2Backing = RT_ALIGN_T((RTGCPHYS)cGuestPages << GUEST_PAGE_SHIFT, HOST_PAGE_SIZE_DYNAMIC, RTGCPHYS);
 #endif
 
     int      rc     = VINF_SUCCESS;
@@ -1633,7 +1633,7 @@ DECLHIDDEN(int) pgmPhysMmio2DeregisterWorker(PVMCC pVM, uint8_t idMmio2, uint8_t
      * Final removal frees up the backing memory.
      */
 #ifdef IN_RING3
-    int const rcBacking = SUPR3PageFree(pbMmio2Backing, cbMmio2Backing >> HOST_PAGE_SHIFT);
+    int const rcBacking = SUPR3PageFree(pbMmio2Backing, cbMmio2Backing >> HOST_PAGE_SHIFT_DYNAMIC);
     AssertLogRelMsgStmt(RT_SUCCESS(rcBacking), ("rc=%Rrc %p LB %#zx\n", rcBacking, pbMmio2Backing, cbMmio2Backing),
                         rc = RT_SUCCESS(rc) ? rcBacking : rc);
 #else
@@ -1765,13 +1765,13 @@ DECLHIDDEN(int) pgmPhysRomRangeAllocCommon(PVMCC pVM, uint32_t cPages, uint8_t i
     /*
      * Allocate the ROM range structure and map it into ring-3.
      */
-    size_t const cbRomRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMROMRANGE, aPages[cPages]), HOST_PAGE_SIZE);
+    size_t const cbRomRange = RT_ALIGN_Z(RT_UOFFSETOF_DYN(PGMROMRANGE, aPages[cPages]), HOST_PAGE_SIZE_DYNAMIC);
 #ifdef IN_RING0
     RTR0MEMOBJ   hMemObj    = NIL_RTR0MEMOBJ;
     int rc = RTR0MemObjAllocPage(&hMemObj, cbRomRange, false /*fExecutable*/);
 #else
     PPGMROMRANGE pRomRange;
-    int rc = SUPR3PageAlloc(cbRomRange >> HOST_PAGE_SHIFT, 0 /*fFlags*/, (void **)&pRomRange);
+    int rc = SUPR3PageAlloc(cbRomRange >> HOST_PAGE_SHIFT_DYNAMIC, 0 /*fFlags*/, (void **)&pRomRange);
 #endif
     if (RT_SUCCESS(rc))
     {
@@ -1856,7 +1856,7 @@ DECLHIDDEN(int) pgmPhysRomRangeAllocCommon(PVMCC pVM, uint32_t cPages, uint8_t i
 #ifdef IN_RING0
         RTR0MemObjFree(hMemObj, true /*fFreeMappings*/);
 #else
-        SUPR3PageFree(pRomRange, cbRomRange >> HOST_PAGE_SHIFT);
+        SUPR3PageFree(pRomRange, cbRomRange >> HOST_PAGE_SHIFT_DYNAMIC);
 #endif
     }
     return rc;

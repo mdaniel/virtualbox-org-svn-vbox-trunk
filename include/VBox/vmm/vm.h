@@ -50,6 +50,7 @@
 # include <VBox/vmm/stam.h>
 # include <VBox/vmm/vmapi.h>
 # include <VBox/vmm/vmm.h>
+# include <VBox/param.h>
 # include <VBox/sup.h>
 #else
 # pragma D depends_on library vbox-types.d
@@ -1168,14 +1169,14 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
  * or terminated and matching the target platform architecture (ring-3). */
 #ifdef VMTARGET_DEFAULT
 # define VM_IS_VALID_EXT(pVM) \
-        (   RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+        (   RT_VALID_ALIGNED_PTR(pVM, HOST_PAGE_SIZE_DYNAMIC) \
          && (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
              || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
                  && VM_IS_EMT(pVM))) \
          && (pVM)->enmTarget == VMTARGET_DEFAULT)
 #else
 # define VM_IS_VALID_EXT(pVM) \
-        (   RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+        (   RT_VALID_ALIGNED_PTR(pVM, HOST_PAGE_SIZE_DYNAMIC) \
          && (   (unsigned)(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
              || (   (unsigned)(pVM)->enmVMState == (unsigned)VMSTATE_DESTROYING \
                  && VM_IS_EMT(pVM))) )
@@ -1187,7 +1188,7 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
  */
 #define VM_ASSERT_VALID_EXT_RETURN(pVM, rc) \
         AssertMsgReturn(VM_IS_VALID_EXT(pVM), \
-                        ("pVM=%p state %s enmTarget=%#x\n", (pVM), RT_VALID_ALIGNED_PTR(pVM, PAGE_SIZE) \
+                        ("pVM=%p state %s enmTarget=%#x\n", (pVM), RT_VALID_ALIGNED_PTR(pVM, HOST_PAGE_SIZE_DYNAMIC) \
                          ? VMGetStateName(pVM->enmVMState) : "", (pVM)->enmTarget), \
                         (rc))
 
@@ -1197,13 +1198,13 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
 #ifdef VMTARGET_DEFAULT
 # define VMCPU_IS_VALID_EXT(a_pVCpu) \
         (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \
-         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
+         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), HOST_PAGE_SIZE_DYNAMIC) \
          && (unsigned)(a_pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING \
          && (pVM)->enmTarget == VMTARGET_DEFAULT)
 #else
 # define VMCPU_IS_VALID_EXT(a_pVCpu) \
         (   RT_VALID_ALIGNED_PTR(a_pVCpu, 64) \
-         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
+         && RT_VALID_ALIGNED_PTR((a_pVCpu)->CTX_SUFF(pVM), HOST_PAGE_SIZE_DYNAMIC) \
          && (unsigned)(a_pVCpu)->CTX_SUFF(pVM)->enmVMState < (unsigned)VMSTATE_DESTROYING)
 #endif
 
@@ -1215,7 +1216,7 @@ AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY
         AssertMsgReturn(VMCPU_IS_VALID_EXT(pVCpu), \
                         ("pVCpu=%p pVM=%p state %s enmTarget=%#x\n", (pVCpu), \
                         RT_VALID_ALIGNED_PTR(pVCpu, 64) ? (pVCpu)->CTX_SUFF(pVM) : NULL, \
-                         RT_VALID_ALIGNED_PTR(pVCpu, 64) && RT_VALID_ALIGNED_PTR((pVCpu)->CTX_SUFF(pVM), PAGE_SIZE) \
+                         RT_VALID_ALIGNED_PTR(pVCpu, 64) && RT_VALID_ALIGNED_PTR((pVCpu)->CTX_SUFF(pVM), HOST_PAGE_SIZE_DYNAMIC) \
                          ? VMGetStateName((pVCpu)->pVMR3->enmVMState) : "", (pVCpu)->enmTarget), \
                         (rc))
 

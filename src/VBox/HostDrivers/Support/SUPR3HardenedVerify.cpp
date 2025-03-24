@@ -130,8 +130,10 @@ static SUPINSTFILE const    g_aSupInstallFiles[] =
 {
     /*  type,         dir,                       fOpt, "pszFile"              */
     /* ---------------------------------------------------------------------- */
+#ifdef VBOX_WITH_R0_MODULES
     {   kSupIFT_Dll,  kSupID_AppPrivArch,       false, "VMMR0.r0" },
     {   kSupIFT_Dll,  kSupID_AppPrivArch,       false, "VBoxDDR0.r0" },
+#endif
 
 #ifdef VBOX_WITH_RAW_MODE
     {   kSupIFT_Rc,   kSupID_AppPrivArch,       false, "VMMRC.rc" },

@@ -2596,9 +2596,9 @@ VBOX_EDIT_COFF_LIB ?= $(PATH_OBJ)/VBoxEditCoffLib/VBoxEditCoffLib$(HOSTSUFF_EXE)
 VBOX_EDIT_ELF      ?= $(PATH_OBJ)/VBoxEditElf/VBoxEditElf$(HOSTSUFF_EXE)
 
 # GNU tar if present.
-if1of ($(KBUILD_TARGET), linux os2 win)
+if1of ($(KBUILD_HOST), linux os2 win)
  VBOX_GTAR ?= tar
-else if1of ($(KBUILD_TARGET), freebsd netbsd solaris)
+else if1of ($(KBUILD_HOST), freebsd netbsd solaris darwin)
  VBOX_GTAR ?= gtar
 endif
 
@@ -2611,6 +2611,9 @@ ifeq ($(KBUILD_HOST),darwin) # Xcode 7.3.1 nm doesn't like -t, and -x behaves ve
 else
  VBOX_NM ?= nm -p -t x
 endif
+
+# objcopy tool
+VBOX_OBJCOPY   ?= $(TOOL_$(VBOX_GCC_TOOL)_OBJCOPY)
 
 # Makeself for the linux installers.
 VBOX_MAKESELF  ?= $(KBUILD_DEVTOOLS)/common/makeself/v2.5.0-r2/makeself.sh
@@ -3280,7 +3283,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
  		-e 's|^ *pylint *\([0-9][0-9]*\).\([0-9][0-9]*\)\.\([0-9][0-9]*\).*$(DOLLAR)|$$(expr \1 * 10000 + \2 * 100 + \3)|p' )
 
  # Java stuff.
- ifeq ($(KBUILD_TARGET),darwin)
+ ifeq ($(KBUILD_HOST),darwin)
   VBOX_JAVA_BIN_PATH = $(firstword $(wildcard \
   			/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Commands \
   			/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Commands \
@@ -3304,7 +3307,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
 
  else # !darwin
 
-  ifeq ($(KBUILD_TARGET),linux)
+  ifeq ($(KBUILD_HOST),linux)
    ifeq ($(origin VBOX_JAVA_HOME),undefined)
     # Add correct detection for you distro after the /usr/../java-6-sun line.
     VBOX_JAVA_HOME := $(firstword $(wildcard \
@@ -3324,7 +3327,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
    endif
   endif
 
-  ifeq ($(KBUILD_TARGET),solaris)
+  ifeq ($(KBUILD_HOST),solaris)
    # VBOX_JAVA_HOME ?= /usr/jdk/jdk1.6.0
    VBOX_JAVA_HOME ?= $(firstword $(abspath $(wildcard \
    				/usr/jdk/latest/include/.. \
@@ -3334,7 +3337,7 @@ ifndef VBOX_NOINC_DYNAMIC_CONFIG_KMK
    				)) /usr/java)
   endif
 
-  ifeq ($(KBUILD_TARGET),win)
+  ifeq ($(KBUILD_HOST),win)
    VBOX_JAVA_HOME ?= c:/jdk
   endif
 

@@ -334,11 +334,8 @@ ifeq ($(KBUILD_HOST),win)
 endif
 
 if1of ($(KBUILD_HOST), darwin linux)
- ifndef TOOL_VBoxXGccArm64Elf
-  include $(KBUILD_TOOL_PATHS)/VBoxXGccArm64Elf.kmk
- endif
- ifndef TOOL_VBoxXGccArmNoneEabi
-  include $(KBUILD_TOOL_PATHS)/VBoxXGccArmNoneEabi.kmk
+ ifndef TOOL_VBoxXClang
+  include $(KBUILD_TOOL_PATHS)/VBoxXClang.kmk
  endif
 endif
 
@@ -358,8 +355,6 @@ $(VBoxEfiFirmware_0_OUTDIR)/arm64/Conf/tools_def.txt: \
                \
 		-e 's,@VBOX_PATH_PREFIX_GCC32@,$(PATH_TOOL_$(VBOX_GCC_TOOL)),' \
 		-e 's,@VBOX_PATH_PREFIX_GCC64@,$(PATH_TOOL_$(VBOX_GCC_TOOL)),' \
-		-e 's,@VBOX_PATH_PREFIX_GCC_AARCH64@,$(PATH_TOOL_VBoxXGccArm64Elf)/$(TOOL_VBoxXGccArm64Elf_PREFIX),' \
-		-e 's,@VBOX_PATH_PREFIX_GCC_ARM@,$(PATH_TOOL_VBoxXGccArmNoneEabi)/$(TOOL_VBoxXGccArmNoneEabi_PREFIX),' \
                \
 		-e 's,@PATH_VS2017_BIN_HOST@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)AMD64_BIN),' \
 		-e 's,@PATH_VS2017_AMD64_BIN@,$(PATH_TOOL_$(VBOX_VCC_TOOL_STEM)AMD64_BIN),' \
@@ -374,6 +369,9 @@ $(VBoxEfiFirmware_0_OUTDIR)/arm64/Conf/tools_def.txt: \
 		\
 		$(if-expr "$(TOOL_$(VBOX_VCC_TOOL_STEM)-CLANGXX)" == "",,-e 's,@VBOX_VCC143-CLANGXX_PREFIX@,$(TOOL_VCC143-CLANGXX_PREFIX),') \
 		$(if-expr "$(TOOL_$(VBOX_VCC_TOOL_STEM)-CLANGXX)" == "",,-e 's,@VBOX_VCC143-CLANGXX_PREFIX2@,$(TOOL_VCC143-CLANGXX_PREFIX2),') \
+		\
+		$(if-expr "$(TOOL_VBoxXClang)" == "",,-e 's,@VBOX_VCC143-CLANGXX_PREFIX@,$(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX),') \
+		$(if-expr "$(TOOL_VBoxXClang)" == "",,-e 's,@VBOX_VCC143-CLANGXX_PREFIX2@,$(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX2),') \
 		\
 		--output $@ $<
 

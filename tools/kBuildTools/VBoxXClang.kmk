@@ -1,0 +1,383 @@
+# $Id$
+## @file
+# kBuild Tool Config - clang 20.x cross compiler, for various targets.
+#
+
+#
+# Copyright (C) 2025 Oracle and/or its affiliates.
+#
+# This file is part of VirtualBox base platform packages, as
+# available from https://www.virtualbox.org.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, in version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses>.
+#
+# SPDX-License-Identifier: GPL-3.0-only
+#
+
+TOOL_VBoxXClang := Generic clang build supporting C/C++ and ld.lld.
+
+
+#
+# Tool Specific Properties
+#
+ifndef PATH_TOOL_VBoxXClang
+ PATH_TOOL_VBoxXClang := $(firstfile $(rversortfiles $(qwildcard ,$(KBUILD_DEVTOOLS_HST)/clang/v20.*/bin)))
+ ifeq ($(PATH_TOOL_VBoxXClang),)
+  PATH_TOOL_VBoxXClang := $(PATH_TOOL_VBoxXClang)
+ endif
+ ifeq ($(PATH_TOOL_VBoxXClang),)
+  $(error kBuild: PATH_TOOL_VBoxXClang cannot be determined!)
+ endif
+else
+ # Resolve any fancy stuff once and for all.
+ PATH_TOOL_VBoxXClang := $(PATH_TOOL_VBoxXClang)
+endif
+
+
+# Tool Specific Properties
+ifndef TOOL_VBoxXClang_PREFIX
+ TOOL_VBoxXClang_PREFIX :=
+endif
+ifndef TOOL_VBoxXClang_SUFFIX
+ TOOL_VBoxXClang_SUFFIX := $(HOSTSUFF_EXE)
+endif
+
+TOOL_VBoxXClang_PREFIX2   ?= $(TOOL_VBoxXClang_PREFIX)llvm-
+TOOL_VBoxXClang_CC        ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)clang$(TOOL_VBoxXClang_SUFFIX)
+TOOL_VBoxXClang_CXX       ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)clang++$(TOOL_VBoxXClang_SUFFIX)
+TOOL_VBoxXClang_PCH       ?= $(TOOL_VBoxXClang_CXX)
+TOOL_VBoxXClang_AS        ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)clang$(TOOL_VBoxXClang_SUFFIX)
+TOOL_VBoxXClang_AR        ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)llvm-ar$(TOOL_VBoxXClang_SUFFIX)
+TOOL_VBoxXClang_AR_IMP    ?= $(ECHO) not supported!
+TOOL_VBoxXClang_LD        ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)clang++$(TOOL_VBoxXClang_SUFFIX)
+TOOL_VBoxXClang_LD_SYSMOD ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)lld$(TOOL_VBoxXClang_SUFFIX)
+ifndef TOOL_VBoxXClang_LDFLAGS.$(KBUILD_TARGET)
+ TOOL_VBoxXClang_LDFLAGS.dll   ?= -shared
+else
+ TOOL_VBoxXClang_LDFLAGS.dll   ?= $(TOOL_VBoxXClang_LDFLAGS.$(KBUILD_TARGET))
+endif
+TOOL_VBoxXClang_LDFLAGS.sysmod ?= -r
+TOOL_VBoxXClang_LD_SONAME      ?= -Wl,-soname=$(firstword $($(1)_SONAME.$(KBUILD_TARGET).$(KBUILD_TYPE)) $($(1)_SONAME.$(KBUILD_TARGET)) $($(1)_SONAME.$(KBUILD_TYPE)) $($(1)_SONAME) $(notdir $(2)))
+ifeq ($(KBUILD_TARGET),os2)
+ TOOL_VBoxXClang_LD_MAP        ?= -Zmap=$(1)
+ TOOL_VBoxXClang_LD_SYSMOD_MAP ?= -Zmap=$(1)
+else
+ TOOL_VBoxXClang_LD_MAP        ?=
+ TOOL_VBoxXClang_LD_SYSMOD_MAP ?=
+endif
+TOOL_VBoxXClang_OBJCOPY ?= $(PATH_TOOL_VBoxXClang)/$(TOOL_VBoxXClang_PREFIX)llvm-objcopy$(TOOL_VBoxXClang_SUFFIX)
+
+# General Properties used by kBuild
+TOOL_VBoxXClang_COBJSUFF         ?= .o
+TOOL_VBoxXClang_CFLAGS           ?=
+TOOL_VBoxXClang_CFLAGS.debug     ?= -g
+TOOL_VBoxXClang_CFLAGS.profile   ?= -O2 #-g -pg
+TOOL_VBoxXClang_CFLAGS.release   ?= -O2
+TOOL_VBoxXClang_CINCS            ?=
+TOOL_VBoxXClang_CDEFS            ?=
+
+TOOL_VBoxXClang_CXXOBJSUFF       ?= .o
+TOOL_VBoxXClang_CXXFLAGS         ?=
+TOOL_VBoxXClang_CXXFLAGS.debug   ?= -g
+TOOL_VBoxXClang_CXXFLAGS.profile ?= -O2 #-g -pg
+TOOL_VBoxXClang_CXXFLAGS.release ?= -O2
+TOOL_VBoxXClang_CXXINCS          ?=
+TOOL_VBoxXClang_CXXDEFS          ?=
+
+TOOL_VBoxXClang_PCHOBJSUFF       ?= .h.gch
+TOOL_VBoxXClang_PCHFLAGS         ?= $(TOOL_VBoxXClang_CXXFLAGS)
+TOOL_VBoxXClang_PCHFLAGS.debug   ?= $(TOOL_VBoxXClang_CXXFLAGS.debug)
+TOOL_VBoxXClang_PCHFLAGS.profile ?= $(TOOL_VBoxXClang_CXXFLAGS.profile)
+TOOL_VBoxXClang_PCHFLAGS.release ?= $(TOOL_VBoxXClang_CXXFLAGS.release)
+TOOL_VBoxXClang_PCHINCS          ?= $(TOOL_VBoxXClang_CXXINCS)
+TOOL_VBoxXClang_PCHDEFS          ?= $(TOOL_VBoxXClang_CXXDEFS)
+
+TOOL_VBoxXClang_ASFLAGS          ?=
+TOOL_VBoxXClang_ASFLAGS.debug    ?= -g
+TOOL_VBoxXClang_ASFLAGS.profile  ?= -g
+TOOL_VBoxXClang_ASOBJSUFF        ?= .o
+
+TOOL_VBoxXClang_ARFLAGS          ?= cr
+TOOL_VBoxXClang_ARLIBSUFF        ?= .a
+
+TOOL_VBoxXClang_LDFLAGS          ?=
+TOOL_VBoxXClang_LDFLAGS.debug    ?= -g
+TOOL_VBoxXClang_LDFLAGS.profile  ?= -g
+
+
+## Compile C source.
+# @param    $(target)   Normalized main target name.
+# @param    $(source)   Source filename (relative).
+# @param    $(obj)      Object file name. This shall be (re)created by the compilation.
+# @param    $(dep)	    Dependcy file. This shall be (re)created by the compilation.
+# @param    $(flags)    Flags.
+# @param    $(defs)     Definitions. No -D or something.
+# @param    $(incs)     Includes. No -I or something.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)		Other dependencies.
+#
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+# @param    $(objsuff)  Object suffix.
+TOOL_VBoxXClang_COMPILE_C_DEPEND =
+TOOL_VBoxXClang_COMPILE_C_DEPORD =
+TOOL_VBoxXClang_COMPILE_C_OUTPUT         = $(if-expr "$(use_objcache)" != "",$(outbase).i,)
+TOOL_VBoxXClang_COMPILE_C_USES_KOBJCACHE = $(if-expr "$(use_objcache)" != "",1,)
+define TOOL_VBoxXClang_COMPILE_C_CMDS
+ if "$(use_objcache)" != ""
+	$(QUIET)$(KOBJCACHE) -f $(outbase).koc -d $(PATH_OBJCACHE) -t $(bld_trg).$(bld_trg_arch) -p\
+		--kObjCache-cpp $(outbase).i\
+		$(TOOL_VBoxXClang_CC) -E -o -\
+		$(flags) $(qaddprefix sh,-I, $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		$(abspath $(source))\
+		--kObjCache-cc $(obj)\
+		$(TOOL_VBoxXClang_CC) -c\
+		$(flags) -fpreprocessed -x c\
+		-o $(obj)\
+		-
+ else
+	$(QUIET)$(TOOL_VBoxXClang_CC) -c\
+		$(flags) $(qaddprefix sh,-I, $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		-o $(obj)\
+		$(abspath $(source))
+ endif
+	$(QUIET)$(APPEND) -n "$(dep)" "" "$(source):" ""
+endef
+
+
+## Compile C++ source.
+# @param    $(target)   Normalized main target name.
+# @param    $(source)   Source filename (relative).
+# @param    $(obj)      Object file name. This shall be (re)created by the compilation.
+# @param    $(dep)      Dependcy file. This shall be (re)created by the compilation.
+# @param    $(flags)    Flags.
+# @param    $(defs)     Definitions. No -D or something.
+# @param    $(incs)     Includes. No -I or something.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)     Other dependencies.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+# @param    $(objsuff)  Object suffix.
+TOOL_VBoxXClang_COMPILE_CXX_OUTPUT         = $(if-expr "$(use_objcache)" != "",$(outbase).ii,)
+TOOL_VBoxXClang_COMPILE_CXX_DEPEND         = $($(target)_1_GCC_PCH_FILE)
+TOOL_VBoxXClang_COMPILE_CXX_DEPORD         =
+TOOL_VBoxXClang_COMPILE_CXX_USES_KOBJCACHE = $(if-expr "$(use_objcache)" != "",1,)
+define TOOL_VBoxXClang_COMPILE_CXX_CMDS
+ if "$(use_objcache)" != ""
+	$(QUIET)$(KOBJCACHE) -f $(outbase).koc -d $(PATH_OBJCACHE) -t $(bld_trg).$(bld_trg_arch) -p\
+		--kObjCache-cpp $(outbase).ii\
+		$(TOOL_VBoxXClang_CXX) -E -o - $(if-expr defined($(target)_PCH_HDR)\
+		,-fpch-preprocess -Winvalid-pch -I$($(target)_1_GCC_PCH_DIR) -include $(basename $($(target)_1_GCC_PCH_FILE)),)\
+		$(flags) $(qaddprefix sh,-I, $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		$(abspath $(source))\
+		--kObjCache-cc $(obj)\
+		$(TOOL_VBoxXClang_CXX) -c\
+		$(flags) -fpreprocessed $(if-expr defined($(target)_PCH_HDR),-fpch-preprocess,) -x c++\
+		-o $(obj)\
+		-
+ else
+	$(QUIET)$(TOOL_VBoxXClang_CXX) -c\
+		$(flags) $(qaddprefix sh,-I, $($(target)_1_GCC_PCH_DIR) $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		-o $(obj) $(if-expr defined($(target)_PCH_HDR) \
+		,-Winvalid-pch -include $(basename $($(target)_1_GCC_PCH_FILE)),) \
+		$(abspath $(source))
+ endif
+	$(QUIET)$(APPEND) -n "$(dep)" "" "$(source):" ""
+endef
+
+
+## Precompile C++ header.
+# @param    $(target)   Normalized main target name.
+# @param    $(source)   Source filename (relative).
+# @param    $(obj)      Object file name. This shall be (re)created by the compilation.
+# @param    $(dep)	    Dependcy file. This shall be (re)created by the compilation.
+# @param    $(flags)    Flags.
+# @param    $(defs)     Definitions. No -D or something.
+# @param    $(incs)     Includes. No -I or something.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)		Other dependencies.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+# @param    $(objsuff)  Object suffix.
+TOOL_VBoxXClang_COMPILE_PCH_OUTPUT = $($(target)_1_GCC_PCH_FILE)
+TOOL_VBoxXClang_COMPILE_PCH_DEPEND =
+TOOL_VBoxXClang_COMPILE_PCH_DEPORD = $($(target)_1_GCC_PCH_DIR)
+define TOOL_VBoxXClang_COMPILE_PCH_CMDS
+	$(QUIET)$(TOOL_VBoxXClang_PCH) -c\
+		$(flags) $(qaddprefix sh,-I, $($(target)_1_GCC_PCH_DIR) $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		-o $(obj)\
+		$(abspath $(source))
+	$(INSTALL) --hard-link-files-when-possible -m 0644 -- "$(obj)" "$($(target)_1_GCC_PCH_FILE)"
+	$(QUIET)$(APPEND) -n "$(dep)" "" "$(source):" ""
+endef
+
+
+## Compile Assembly source.
+# @param    $(target)   Normalized main target name.
+# @param    $(source)   Source filename (relative).
+# @param    $(obj)      Object file name. This shall be (re)created by the compilation.
+# @param    $(dep)      Dependcy file. This shall be (re)created by the compilation.
+# @param    $(flags)    Flags.
+# @param    $(defs)     Definitions. No -D or something.
+# @param    $(incs)     Includes. No -I or something.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)     Other dependencies.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+# @param    $(objsuff)  Object suffix.
+#
+TOOL_VBoxXClang_COMPILE_AS_OUTPUT =
+TOOL_VBoxXClang_COMPILE_AS_DEPEND =
+TOOL_VBoxXClang_COMPILE_AS_DEPORD =
+define TOOL_VBoxXClang_COMPILE_AS_CMDS
+	$(QUIET)$(TOOL_VBoxXClang_AS) -c\
+		$(flags) $(qaddprefix sh,-I, $(incs)) $(qaddprefix sh,-D, $(defs))\
+		-Wp,-MD,$(dep) -Wp,-MT,$(obj) -Wp,-MP\
+		-o $(obj)\
+		$(abspath $(source))
+	$(QUIET)$(APPEND) -n "$(dep)" "" "$(source):" ""
+endef
+
+
+## Link library
+# @param    $(target)   Normalized main target name.
+# @param    $(out)      Library name.
+# @param    $(objs)     Object files to put in the library.
+# @param    $(flags)    Flags.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)     Other dependencies.
+# @param    $(othersrc) Unhandled sources.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+TOOL_VBoxXClang_LINK_LIBRARY_OUTPUT = $(out).ar-script
+TOOL_VBoxXClang_LINK_LIBRARY_OUTPUT_MAYBE = $(outbase).imp.a
+TOOL_VBoxXClang_LINK_LIBRARY_DEPEND = $(othersrc)
+TOOL_VBoxXClang_LINK_LIBRARY_DEPORD =
+define TOOL_VBoxXClang_LINK_LIBRARY_CMDS
+	$(QUIET)$(APPEND) $(out).ar-script 'CREATE $(out)'
+	$(QUIET)$(APPEND) -n $(out).ar-script \
+		$(foreach o,$(filter-out %.h.gch,$(objs)), 'ADDMOD $(o)') \
+		$(foreach o,$(filter-out %.def %.imp %.dll,$(othersrc)), 'ADDLIB $(o)')
+	$(if $(filter %.def %.imp %.dll,$(othersrc))\
+		,$(TOOL_VBoxXClang_AR_IMP) -o $(outbase).imp.a $(filter %.def %.imp %.dll,$(othersrc))\
+		 $(NL)$(TAB)$(QUIET)$(APPEND) $(out).ar-script 'ADDLIB $(outbase).imp.a')
+	$(QUIET)$(APPEND) $(out).ar-script 'SAVE'
+	$(QUIET)$(APPEND) $(out).ar-script 'END'
+	$(QUIET)$(REDIRECT) -rti $(out).ar-script -- $(TOOL_VBoxXClang_AR) -M
+endef
+
+
+## Link program
+# @param    $(target)   Normalized main target name.
+# @param    $(out)		Program name.
+# @param    $(objs)     Object files to link together.
+# @param    $(libs)     Libraries to search.
+# @param    $(libpath)  Library search paths.
+# @param    $(flags)    Flags.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)		Other dependencies.
+# @param    $(othersrc) Unhandled sources.
+# @param    $(custom_pre)   Custom step invoked before linking.
+# @param    $(custom_post)  Custom step invoked after linking.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+TOOL_VBoxXClang_LINK_PROGRAM_OUTPUT =
+TOOL_VBoxXClang_LINK_PROGRAM_OUTPUT_MAYBE = $(outbase).map
+TOOL_VBoxXClang_LINK_PROGRAM_OUTPUT_DEBUG = $(outbase).debug
+TOOL_VBoxXClang_LINK_PROGRAM_DEBUG_INSTALL_FN = $(2).debug=>$(basename $(3)).debug
+TOOL_VBoxXClang_LINK_PROGRAM_DEPEND = $(foreach lib,$(libs),$(if $(findstring $(lib),$(subst /,x,$(lib))),, $(lib))) \
+	$(filter %.def, $(othersrc))
+TOOL_VBoxXClang_LINK_PROGRAM_DEPORD =
+define TOOL_VBoxXClang_LINK_PROGRAM_CMDS
+	$(QUIET)$(TOOL_VBoxXClang_LD) $(flags) -o $(out) $(filter-out %.h.gch,$(objs))\
+		$(filter %.def, $(othersrc))\
+		$(foreach p,$(libpath), -L$(p))\
+		$(foreach lib,$(libs), $(if $(findstring $(lib),$(subst /,x,$(lib))), -l$(patsubst lib%,%,$(lib)), $(lib))) \
+		$(call TOOL_VBoxXClang_LD_MAP,$(outbase).map)
+ ifeq ($(ld_debug),split)
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --only-keep-debug $(out) $(outbase).debug
+	$(QUIET)$(CHMOD) a-x $(outbase).debug
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --strip-debug --strip-unneeded --add-gnu-debuglink=$(outbase).debug $(out)
+ endif
+endef
+
+
+## Link DLL
+# @param    $(target)   Normalized main target name.
+# @param    $(out)		Program name.
+# @param    $(objs)     Object files to link together.
+# @param    $(libs)     Libraries to search.
+# @param    $(libpath)  Library search paths.
+# @param    $(flags)    Flags.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)		Other dependencies.
+# @param    $(othersrc) Unhandled sources.
+# @param    $(custom_pre)   Custom step invoked before linking.
+# @param    $(custom_post)  Custom step invoked after linking.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+TOOL_VBoxXClang_LINK_DLL_OUTPUT =
+TOOL_VBoxXClang_LINK_DLL_OUTPUT_MAYBE = $(outbase).map
+TOOL_VBoxXClang_LINK_DLL_OUTPUT_DEBUG = $(outbase).debug
+TOOL_VBoxXClang_LINK_DLL_DEBUG_INSTALL_FN = $(2).debug=>$(basename $(3)).debug
+TOOL_VBoxXClang_LINK_DLL_DEPEND = $(foreach lib,$(libs),$(if $(findstring $(lib),$(subst /,x,$(lib))),, $(lib))) \
+	$(filter %.def, $(othersrc))
+TOOL_VBoxXClang_LINK_DLL_DEPORD =
+define TOOL_VBoxXClang_LINK_DLL_CMDS
+	$(QUIET)$(TOOL_VBoxXClang_LD) $(TOOL_VBoxXClang_LDFLAGS.dll) $(flags) -o $(out)\
+		$(if $(filter-out win os2, $(KBUILD_TARGET)),$(call TOOL_VBoxXClang_LD_SONAME,$(target),$(out)))\
+		$(filter-out %.h.gch,$(objs))\
+		$(filter %.def, $(othersrc))\
+		$(foreach p,$(libpath), -L$(p))\
+		$(foreach lib,$(libs), $(if $(findstring $(lib),$(subst /,x,$(lib))), -l$(patsubst lib%,%,$(lib)), $(lib))) \
+		$(call TOOL_VBoxXClang_LD_MAP,$(outbase).map)
+ ifeq ($(ld_debug),split)
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --only-keep-debug $(out) $(outbase).debug
+	$(QUIET)$(CHMOD) a-x $(outbase).debug
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --strip-debug --strip-unneeded --add-gnu-debuglink=$(outbase).debug $(out)
+ endif
+endef
+
+
+## Link system module (windows aka driver, linux aka kernel module)
+# @param    $(target)   Normalized main target name.
+# @param    $(out)		System module name.
+# @param    $(objs)     Object files to link together.
+# @param    $(libs)     Libraries to search.
+# @param    $(libpath)  Library search paths.
+# @param    $(flags)    Flags.
+# @param    $(dirdep)   Directory creation dependency.
+# @param    $(deps)		Other dependencies.
+# @param    $(othersrc) Unhandled sources.
+# @param    $(custom_pre)   Custom step invoked before linking.
+# @param    $(custom_post)  Custom step invoked after linking.
+# @param    $(outbase)  Output basename (full). Use this for list files and such.
+TOOL_VBoxXClang_LINK_SYSMOD_OUTPUT =
+TOOL_VBoxXClang_LINK_SYSMOD_OUTPUT_MAYBE = $(outbase).map
+TOOL_VBoxXClang_LINK_SYSMOD_OUTPUT_DEBUG = $(outbase).debug
+TOOL_VBoxXClang_LINK_SYSMOD_DEBUG_INSTALL_FN = $(2).debug=>$(basename $(3)).debug
+TOOL_VBoxXClang_LINK_SYSMOD_DEPEND = $(foreach lib,$(libs),$(if $(findstring $(lib),$(subst /,x,$(lib))),, $(lib))) \
+	$(filter %.def, $(othersrc))
+TOOL_VBoxXClang_LINK_SYSMOD_DEPORD =
+define TOOL_VBoxXClang_LINK_SYSMOD_CMDS
+	$(QUIET)$(TOOL_VBoxXClang_LD_SYSMOD) $(TOOL_VBoxXClang_LDFLAGS.sysmod) $(flags) -o $(out) $(filter-out %.h.gch,$(objs)) \
+		$(filter %.def, $(othersrc))\
+		$(foreach p,$(libpath), -L$(p))\
+		$(foreach lib,$(libs), $(if $(findstring $(lib),$(subst /,x,$(lib))), -l$(patsubst lib%,%,$(lib)), $(lib)))\
+		$(call TOOL_VBoxXClang_LD_SYSMOD_MAP,$(outbase).map)
+ ifeq ($(ld_debug),split)
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --only-keep-debug $(out) $(outbase).debug
+	$(QUIET)$(CHMOD) a-x $(outbase).debug
+	$(QUIET)$(TOOL_VBoxXClang_OBJCOPY) --strip-debug --strip-unneeded --add-gnu-debuglink=$(outbase).debug $(out)
+ endif
+endef
+

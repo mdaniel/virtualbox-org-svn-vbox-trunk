@@ -568,7 +568,8 @@ ifdef VBOX_WITH_VIRT_ARMV8
   VBoxVMMArm_SOURCES += \
   	VMMAll/IEMAll.cpp \
   	VMMAll/IEMAllMem.cpp \
-  	VMMAll/IEMAllTlb.cpp
+  	VMMAll/IEMAllTlb.cpp \
+  	VMMAll/target-armv8/IEMAll-armv8.cpp
  else
   VBoxVMMArm_SOURCES += VMMAll/IEMAllStub.cpp
  endif

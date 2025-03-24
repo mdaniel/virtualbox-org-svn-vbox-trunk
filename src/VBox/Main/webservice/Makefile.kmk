@@ -120,7 +120,12 @@ else
 endif
 VBOX_PATH_GSOAP_BIN    := $(strip $(VBOX_PATH_GSOAP_BIN))
 if "$(VBOX_PATH_GSOAP_BIN)" == ""
- VBOX_PATH_GSOAP_BIN  := $(VBOX_PATH_GSOAP)/bin/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)
+ if "$(KBUILD_HOST).$(KBUILD_HOST_ARCH)" == "win.arm64"
+  # Reuse amd64 binaries
+  VBOX_PATH_GSOAP_BIN  := $(VBOX_PATH_GSOAP)/bin/win.amd64
+ else
+  VBOX_PATH_GSOAP_BIN  := $(VBOX_PATH_GSOAP)/bin/$(KBUILD_HOST).$(KBUILD_HOST_ARCH)
+ endif
  if !exists($(VBOX_PATH_GSOAP_BIN))
   VBOX_PATH_GSOAP_BIN  := $(VBOX_PATH_GSOAP)/bin
  endif

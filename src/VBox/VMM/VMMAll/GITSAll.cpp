@@ -134,7 +134,6 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uin
 DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
 {
     Log4Func(("\n"));
-
     pGitsDev->fEnabled              = false;
     pGitsDev->fUnmappedMsiReporting = false;
     pGitsDev->fQuiescent            = true;
@@ -146,6 +145,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
 DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp, const char *pszArgs)
 {
     RT_NOREF(pGitsDev, pHlp, pszArgs);
+    /** @todo Debug info dump. */
 }
 #endif /* IN_RING3 */
 

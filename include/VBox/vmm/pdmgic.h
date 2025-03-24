@@ -126,7 +126,7 @@ typedef struct PDMGICBACKENDR3
      * @param   uBusDevFn   The bus:device:function of the device initiating the MSI.
      *                      Cannot be NIL_PCIBDF.
      * @param   pMsi        The MSI to send.
-     * @param   uEventId    TODO
+     * @param   uEventId    The event ID specified by the device.
      * @param   uTagSrc     The IRQ tag and source (for tracing).
      */
     DECLR3CALLBACKMEMBER(int, pfnSendMsi, (PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc));

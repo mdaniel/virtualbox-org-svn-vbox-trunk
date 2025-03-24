@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     6
+#define GIC_SAVED_STATE_VERSION                     7
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -101,6 +101,7 @@ static DECLCALLBACK(void) gicR3DbgInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *
     pHlp->pfnPrintf(pHlp, "  fNmi             = %RTbool\n", pGicDev->fNmi);
     pHlp->pfnPrintf(pHlp, "  fMbi             = %RTbool\n", pGicDev->fMbi);
     pHlp->pfnPrintf(pHlp, "  fAff3Levels      = %RTbool\n", pGicDev->fAff3Levels);
+    pHlp->pfnPrintf(pHlp, "  fLpi             = %RTbool\n", pGicDev->fLpi);
 }
 
 
@@ -318,6 +319,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fNmi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fMbi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fAff3Levels);
+    pHlp->pfnSSMPutBool(pSSM, pGicDev->fLpi);
 
     /* Distributor state. */
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fIntrGroup0Enabled);
@@ -331,6 +333,14 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
     pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
+
+    /* We store the size followed by the data because we currently do not support the full LPI range. */
+    pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->abLpiConfig));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->abLpiConfig[0],       sizeof(pGicDev->abLpiConfig));
+    pHlp->pfnSSMPutU32(pSSM,  sizeof(pGicDev->bmLpiPending));
+    pHlp->pfnSSMPutMem(pSSM,  &pGicDev->bmLpiPending[0],      sizeof(pGicDev->bmLpiPending));
+
+    /** @todo GITS data. */
 
     /*
      * Save per-VCPU data.
@@ -402,6 +412,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fNmi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fMbi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fAff3Levels);
+    pHlp->pfnSSMGetBool(pSSM, &pGicDev->fLpi);
 
     /* Distributor state. */
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fIntrGroup0Enabled);
@@ -415,6 +426,31 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     pHlp->pfnSSMGetMem(pSSM,  &pGicDev->abIntrPriority[0],    sizeof(pGicDev->abIntrPriority));
     pHlp->pfnSSMGetMem(pSSM,  &pGicDev->au32IntrRouting[0],   sizeof(pGicDev->au32IntrRouting));
     pHlp->pfnSSMGetMem(pSSM,  &pGicDev->bmIntrRoutingMode[0], sizeof(pGicDev->bmIntrRoutingMode));
+
+    /* LPI config. */
+    {
+        uint32_t cbData = 0;
+        int const rc = pHlp->pfnSSMGetU32(pSSM, &cbData);
+        AssertRCReturn(rc, rc);
+        if (cbData <= sizeof(pGicDev->abLpiConfig))
+            pHlp->pfnSSMGetMem(pSSM, &pGicDev->abLpiConfig[0], cbData);
+        else
+            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI config table size: got=%u expected=%u"),
+                                           cbData, sizeof(pGicDev->abLpiConfig));
+    }
+    /* LPI pending. */
+    {
+        uint32_t cbData = 0;
+        int const rc = pHlp->pfnSSMGetU32(pSSM, &cbData);
+        AssertRCReturn(rc, rc);
+        if (cbData <= sizeof(pGicDev->bmLpiPending))
+            pHlp->pfnSSMGetMem(pSSM, &pGicDev->bmLpiPending[0], cbData);
+        else
+            return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPI pending bitmap size: got=%u expected=%u"),
+                                           cbData, sizeof(pGicDev->bmLpiPending));
+    }
+
+    /** @todo GITS data. */
 
     /*
      * Load per-VCPU data.
@@ -480,6 +516,12 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     { /* likely */ }
     else
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid MaxExtPpi, got %u expected range [1,2]"), pGicDev->uMaxExtPpi);
+    bool const fIsGitsEnabled = RT_BOOL(pGicDev->hMmioGits != NIL_IOMMMIOHANDLE);
+    if (fIsGitsEnabled == pGicDev->fLpi)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Config mismatch: LPIs are %s when ITS is %s"),
+                                       fIsGitsEnabled ? "enabled" : "disabled", pGicDev->fLpi ? "enabled" : "disabled");
     return rc;
 }
 
@@ -586,6 +628,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * are not supported. We don't allow configuring this value as it's expected that
      * most guests would assume support for SPIs. */
     AssertCompile(GIC_DIST_REG_TYPER_NUM_ITLINES == 31);
+    /** @todo This currently isn't implemented and the full range is always
+     *        supported. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 31 /* Upto and incl. IntId 1023 */);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxSpi - 1 < 31)
@@ -608,6 +652,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * [4127,5119]. This is ignored (set to 0 in the register) when extended SPIs are
      * disabled. */
     AssertCompile(GIC_DIST_REG_TYPER_ESPI_RANGE >> GIC_DIST_REG_TYPER_ESPI_RANGE_BIT == 31);
+    /** @todo This currently isn't implemented and the full range is always
+     *        supported. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtSpi", &pGicDev->uMaxExtSpi, 31);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxExtSpi <= 31)
@@ -627,6 +673,8 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * For the extended PPI range [1056,5119], configures the maximum extended PPI
      * supported. Valid values are [1,2] which equates to extended PPI IntIds
      * [1087,1119]. This is unused when extended PPIs are disabled. */
+    /** @todo This currently isn't implemented and the full range is always
+     *        supported. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtPpi", &pGicDev->uMaxExtPpi, 2);
     AssertLogRelRCReturn(rc, rc);
     if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087
@@ -656,9 +704,35 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
 
     /** @devcfgm{gic, Aff3Levels, bool, true}
      * Configures whether non-zero affinity 3 levels (A3V) are supported
-     * (GICD_TYPER.A3V) and (ICC_CTLR.A3V). */
+     * (GICD_TYPER.A3V and ICC_CTLR.A3V). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Aff3Levels", &pGicDev->fAff3Levels, true);
     AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, Lpi, bool, true}
+     * Configures whether physical LPIs are supported (GICD_TYPER.LPIS and
+     * GICR_TYPER.PLPIS). */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Lpi", &pGicDev->fLpi, true);
+    AssertLogRelRCReturn(rc, rc);
+
+    /** @devcfgm{gic, MaxLpi, uint8_t, 14}
+     * Configures GICD_TYPER.num_LPIs.
+     *
+     * For the physical LPI range [8192,65535], configures the number of physical LPI
+     * supported. Valid values are [3,14] which equates to LPI IntIds 8192 to
+     * [8207,40959]. A value of 15 or higher would exceed the maximum INTID size of
+     * 16-bits since 8192 + 2^(NumLpi+1) is >= 73727. A value of 2 or lower support
+     * fewer than 15 LPIs which seem pointless and is hence disallowed. This value is
+     * ignored (set to 0 in the register) when LPIs are disabled. */
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxLpi", &pGicDev->uMaxLpi, 10);
+    AssertLogRelRCReturn(rc, rc);
+
+    /* We currently support 2048 LPIs until we need to support more. */
+    if (pGicDev->uMaxLpi == 10)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"MaxLpi\" must be in the range [3,14]"));
+    AssertRelease(UINT32_C(2) << pGicDev->uMaxLpi <= RT_ELEMENTS(pGicDev->abLpiConfig));
 
     /*
      * Register the GIC with PDM.
@@ -722,6 +796,11 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                            IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC ITS",
                                            &pGicDev->hMmioGits);
             AssertRCReturn(rc, rc);
+
+            /* When the ITS is enabled we must support LPIs. */
+            if (!pGicDev->fLpi)
+                return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                           N_("Configuration error: \"Lpi\" must be enabled when ITS is enabled\n"));
         }
         else
             pGicDev->hMmioGits = NIL_IOMMMIOHANDLE;
@@ -793,9 +872,10 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     bool const fNmi            = pGicDev->fNmi;
     bool const fMbi            = pGicDev->fMbi;
     bool const fAff3Levels     = pGicDev->fAff3Levels;
+    bool const fLpi            = pGicDev->fLpi;
     uint16_t const uExtPpiLast = uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST;
-    LogRel(("GIC: ArchRev=%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool\n",
-            uArchRev, fRangeSel, fNmi, fMbi, fAff3Levels));
+    LogRel(("GIC: ArchRev=%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool Lpi=%RTbool\n",
+            uArchRev, fRangeSel, fNmi, fMbi, fAff3Levels, fLpi));
     LogRel(("GIC: SPIs=true (%u:32..%u) ExtSPIs=%RTbool (%u:4095..%u) ExtPPIs=%RTbool (%u:1056..%u)\n",
             uMaxSpi, 32 * (uMaxSpi + 1),
             fExtSpi, uMaxExtSpi, GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (uMaxExtSpi + 1),

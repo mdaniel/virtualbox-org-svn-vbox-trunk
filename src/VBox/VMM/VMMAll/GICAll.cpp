@@ -2011,17 +2011,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             Assert(pGicDev->uMaxSpi > 0 && pGicDev->uMaxSpi <= GIC_DIST_REG_TYPER_NUM_ITLINES);
             Assert(pGicDev->fAffRoutingEnabled);
             *puValue = GIC_DIST_REG_TYPER_NUM_ITLINES_SET(pGicDev->uMaxSpi)
-                     | GIC_DIST_REG_TYPER_NUM_PES_SET(0)      /* Affinity routing is always enabled, hence this MBZ. */
-                     /*| GIC_DIST_REG_TYPER_NMI*/             /** @todo Support non-maskable interrupts */
-                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN*/   /** @todo Support dual security states. */
+                     | GIC_DIST_REG_TYPER_NUM_PES_SET(0)             /* Affinity routing is always enabled, hence this MBZ. */
+                     /*| GIC_DIST_REG_TYPER_NMI*/                    /** @todo Support non-maskable interrupts */
+                     /*| GIC_DIST_REG_TYPER_SECURITY_EXTN*/          /** @todo Support dual security states. */
                      | (pGicDev->fMbi ? GIC_DIST_REG_TYPER_MBIS : 0)
-                     /*| GIC_DIST_REG_TYPER_LPIS*/            /** @todo Support LPIs */
                      | (pGicDev->fRangeSel ? GIC_DIST_REG_TYPER_RSS : 0)
-                     | GIC_DIST_REG_TYPER_IDBITS_SET(16)      /* We only support 16-bit interrupt IDs. */
+                     | GIC_DIST_REG_TYPER_IDBITS_SET(16)             /* We only support 16-bit interrupt IDs. */
                      | (pGicDev->fAff3Levels ? GIC_DIST_REG_TYPER_A3V : 0);
             if (pGicDev->fExtSpi)
                 *puValue |= GIC_DIST_REG_TYPER_ESPI
                          |  GIC_DIST_REG_TYPER_ESPI_RANGE_SET(pGicDev->uMaxExtSpi);
+            if (pGicDev->fLpi)
+            {
+                Assert(pGicDev->uMaxLpi - 2 < 13);
+                Assert(GIC_INTID_RANGE_LPI_START + (UINT32_C(2) << pGicDev->uMaxLpi) <= UINT16_MAX);
+                *puValue |= GIC_DIST_REG_TYPER_LPIS
+                         |  GIC_DIST_REG_TYPER_NUM_LPIS_SET(pGicDev->uMaxLpi);
+            }
             break;
         }
         case GIC_DIST_REG_STATUSR_OFF:
@@ -2318,7 +2324,8 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = (pVCpu->idCpu == pVM->cCpus - 1 ? GIC_REDIST_REG_TYPER_LAST : 0)
                      | GIC_REDIST_REG_TYPER_CPU_NUMBER_SET(idRedist)
                      | GIC_REDIST_REG_TYPER_CMN_LPI_AFF_SET(GIC_REDIST_REG_TYPER_CMN_LPI_AFF_ALL)
-                     | (pGicDev->fExtPpi ? GIC_REDIST_REG_TYPER_PPI_NUM_SET(pGicDev->uMaxExtPpi) : 0);
+                     | (pGicDev->fExtPpi ? GIC_REDIST_REG_TYPER_PPI_NUM_SET(pGicDev->uMaxExtPpi) : 0)
+                     | (pGicDev->fLpi    ? GIC_REDIST_REG_TYPER_PLPIS : 0);
             Assert(!pGicDev->fExtPpi || pGicDev->uMaxExtPpi > 0);
             break;
         }
@@ -3070,7 +3077,9 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
 static void gicInit(PPDMDEVINS pDevIns)
 {
     LogFlowFunc(("\n"));
-    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+
     RT_ZERO(pGicDev->bmIntrGroup);
     RT_ZERO(pGicDev->bmIntrConfig);
     RT_ZERO(pGicDev->bmIntrEnabled);
@@ -3082,6 +3091,9 @@ static void gicInit(PPDMDEVINS pDevIns)
     pGicDev->fIntrGroup0Enabled = false;
     pGicDev->fIntrGroup1Enabled = false;
     pGicDev->fAffRoutingEnabled = true; /* GICv2 backwards compatibility is not implemented, so this is RA1/WI. */
+    RT_ZERO(pGicDev->bmLpiPending);
+    RT_ZERO(pGicDev->abLpiConfig);
+    gitsInit(pGitsDev);
 }
 
 
@@ -3134,11 +3146,7 @@ static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 DECLHIDDEN(void) gicReset(PPDMDEVINS pDevIns)
 {
     LogFlowFunc(("\n"));
-    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    PGITSDEV pGitsDev = &pGicDev->Gits;
-
     gicInit(pDevIns);
-    gitsInit(pGitsDev);
 }
 
 

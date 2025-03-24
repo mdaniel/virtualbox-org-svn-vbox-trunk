@@ -412,13 +412,16 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
      * However, if the new segment and old segment share a page, this becomes
      * a little more complicated...
      */
+    uint32_t  const cbPage      = SUP_PAGE_SIZE;
+    uint32_t  const cPageShift  = SUP_PAGE_SHIFT;
+    uintptr_t const offPageMask = SUP_PAGE_OFFSET_MASK;
     if (pArgs->uStartRva < pArgs->uEndRva)
     {
-        if (((pArgs->uEndRva - 1) >> PAGE_SHIFT) != (uRvaSeg >> PAGE_SHIFT))
+        if (((pArgs->uEndRva - 1) >> cPageShift) != (uRvaSeg >> cPageShift))
         {
             /* No common page, so make the new segment start on a page boundrary. */
-            cbMapped += uRvaSeg & PAGE_OFFSET_MASK;
-            uRvaSeg &= ~(uint32_t)PAGE_OFFSET_MASK;
+            cbMapped += uRvaSeg & offPageMask;
+            uRvaSeg &= ~(uint32_t)offPageMask;
             Assert(pArgs->uEndRva <= uRvaSeg);
             Log2(("supLoadModuleCompileSegmentsCB: -> new, no common\n"));
         }
@@ -426,7 +429,7 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
         {
             /* The current segment includes the memory protections of the
                previous, so include the common page in it: */
-            uint32_t const cbCommon = PAGE_SIZE - (uRvaSeg & PAGE_OFFSET_MASK);
+            uint32_t const cbCommon = cbPage - (uRvaSeg & offPageMask);
             if (cbCommon >= cbMapped)
             {
                 pArgs->uEndRva = uRvaSeg + cbMapped;
@@ -443,8 +446,8 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
         {
             /* The new segment includes the memory protections of the
                previous, so include the common page in it: */
-            cbMapped += uRvaSeg & PAGE_OFFSET_MASK;
-            uRvaSeg &= ~(uint32_t)PAGE_OFFSET_MASK;
+            cbMapped += uRvaSeg & offPageMask;
+            uRvaSeg &= ~(uint32_t)offPageMask;
             if (uRvaSeg == pArgs->uStartRva)
             {
                 pArgs->fProt   = fProt;
@@ -452,13 +455,13 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
                 Log2(("supLoadModuleCompileSegmentsCB: -> upgrade current protection, end %#x\n", pArgs->uEndRva));
                 return VINF_SUCCESS; /* Current segment was smaller than a page. */
             }
-            Log2(("supLoadModuleCompileSegmentsCB: -> new, %#x common into new\n", (uint32_t)(pSeg->RVA & PAGE_OFFSET_MASK)));
+            Log2(("supLoadModuleCompileSegmentsCB: -> new, %#x common into new\n", (uint32_t)(pSeg->RVA & offPageMask)));
         }
         else
         {
             /* Create a new segment for the common page with the combined protection. */
             Log2(("supLoadModuleCompileSegmentsCB: -> it's complicated...\n"));
-            pArgs->uEndRva &= ~(uint32_t)PAGE_OFFSET_MASK;
+            pArgs->uEndRva &= ~(uint32_t)offPageMask;
             if (pArgs->uEndRva > pArgs->uStartRva)
             {
                 Log2(("supLoadModuleCompileSegmentsCB: SUP Seg #%u: %#x LB %#x prot %#x\n",
@@ -476,7 +479,7 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
             }
             pArgs->fProt |= fProt;
 
-            uint32_t const cbCommon = PAGE_SIZE - (uRvaSeg & PAGE_OFFSET_MASK);
+            uint32_t const cbCommon = cbPage - (uRvaSeg & offPageMask);
             if (cbCommon >= cbMapped)
             {
                 pArgs->uEndRva = uRvaSeg + cbMapped;
@@ -484,7 +487,7 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
             }
             cbMapped -= cbCommon;
             uRvaSeg  += cbCommon;
-            Assert(uRvaSeg - pArgs->uStartRva == PAGE_SIZE);
+            Assert(uRvaSeg - pArgs->uStartRva == cbPage);
         }
 
         /* The current segment should end where the new one starts, no gaps. */
@@ -506,7 +509,7 @@ static DECLCALLBACK(int) supLoadModuleCompileSegmentsCB(RTLDRMOD hLdrMod, PCRTLD
     /* else: current segment is empty */
 
     /* Start the new segment. */
-    Assert(!(uRvaSeg & PAGE_OFFSET_MASK));
+    Assert(!(uRvaSeg & offPageMask));
     pArgs->fProt     = fProt;
     pArgs->uStartRva = uRvaSeg;
     pArgs->uEndRva   = uRvaSeg + cbMapped;

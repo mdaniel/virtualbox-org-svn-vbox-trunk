@@ -43,6 +43,9 @@
 #include <VBox/cdefs.h>
 #include <VBox/types.h>
 #include <iprt/stdarg.h>
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+# include <iprt/system.h>
+#endif
 
 
 /*******************************************************************************
@@ -82,6 +85,37 @@
 #else
 # undef  SUP_HARDENED_SUID
 #endif
+
+/** @def SUP_PAGE_SIZE
+ * Page size of the host, can evaluate to a function call on certain hosts where
+ * the page size is not known during compile time.
+ */
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+# define SUP_PAGE_SIZE RTSystemGetPageSize()
+#else
+# define SUP_PAGE_SIZE HOST_PAGE_SIZE
+#endif
+
+/** @def SUP_PAGE_SHIFT
+ * Page shift of the host, can evaluate to a function call on certain hosts where
+ * the page size is not known during compile time.
+ */
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+# define SUP_PAGE_SHIFT RTSystemGetPageShift()
+#else
+# define SUP_PAGE_SHIFT HOST_PAGE_SHIFT
+#endif
+
+/** @def SUP_PAGE_OFFSET_MASK
+ * Page shift of the host, can evaluate to a function call on certain hosts where
+ * the page size is not known during compile time.
+ */
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+# define SUP_PAGE_OFFSET_MASK RTSystemGetPageOffsetMask()
+#else
+# define SUP_PAGE_OFFSET_MASK HOST_PAGE_OFFSET_MASK
+#endif
+
 
 #ifdef IN_SUP_HARDENED_R3
 /** @name Make the symbols in SUPR3HardenedStatic different from the VBoxRT ones.

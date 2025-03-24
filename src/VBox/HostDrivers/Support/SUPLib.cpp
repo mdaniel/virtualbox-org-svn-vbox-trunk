@@ -74,6 +74,7 @@
 #include <iprt/process.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 #include <iprt/env.h>
 #include <iprt/rand.h>
 #include <iprt/x86.h>
@@ -550,11 +551,11 @@ static int supInitFake(PSUPDRVSESSION *ppSession)
             *ppSession = g_pSession;
 
         /* fake the GIP. */
-        g_pSUPGlobalInfoPage = (PSUPGLOBALINFOPAGE)RTMemPageAllocZ(PAGE_SIZE);
+        g_pSUPGlobalInfoPage = (PSUPGLOBALINFOPAGE)RTMemPageAllocZ(SUP_PAGE_SIZE);
         if (g_pSUPGlobalInfoPage)
         {
             g_pSUPGlobalInfoPageR0 = g_pSUPGlobalInfoPage;
-            g_HCPhysSUPGlobalInfoPage = NIL_RTHCPHYS & ~(RTHCPHYS)PAGE_OFFSET_MASK;
+            g_HCPhysSUPGlobalInfoPage = NIL_RTHCPHYS & ~(RTHCPHYS)SUP_PAGE_OFFSET_MASK;
             /* the page is supposed to be invalid, so don't set the magic. */
             return VINF_SUCCESS;
         }
@@ -1001,20 +1002,22 @@ SUPR3DECL(int) SUPR3PageFree(void *pvPages, size_t cPages)
  */
 SUPR3DECL(int) supR3PageLock(void *pvStart, size_t cPages, PSUPPAGE paPages)
 {
+    uint32_t  const cbPage = SUP_PAGE_SIZE;
+
     /*
      * Validate.
      */
     AssertPtr(pvStart);
-    AssertMsg(RT_ALIGN_P(pvStart, PAGE_SIZE) == pvStart, ("pvStart (%p) must be page aligned\n", pvStart));
+    AssertMsg(RT_ALIGN_P(pvStart, cbPage) == pvStart, ("pvStart (%p) must be page aligned\n", pvStart));
     AssertPtr(paPages);
 
     /* fake */
     if (RT_UNLIKELY(g_uSupFakeMode))
     {
-        RTHCPHYS    Phys = (uintptr_t)pvStart + PAGE_SIZE * 1024;
+        RTHCPHYS    Phys = (uintptr_t)pvStart + cbPage * 1024;
         size_t      iPage = cPages;
         while (iPage-- > 0)
-            paPages[iPage].Phys = Phys + (iPage << PAGE_SHIFT);
+            paPages[iPage].Phys = Phys + (iPage << SUP_PAGE_SHIFT);
         return VINF_SUCCESS;
     }
 
@@ -1067,7 +1070,7 @@ SUPR3DECL(int) supR3PageUnlock(void *pvStart)
      * Validate.
      */
     AssertPtr(pvStart);
-    AssertMsg(RT_ALIGN_P(pvStart, PAGE_SIZE) == pvStart, ("pvStart (%p) must be page aligned\n", pvStart));
+    AssertMsg(RT_ALIGN_P(pvStart, SUP_PAGE_SIZE) == pvStart, ("pvStart (%p) must be page aligned\n", pvStart));
 
     /* fake */
     if (RT_UNLIKELY(g_uSupFakeMode))
@@ -1116,6 +1119,7 @@ SUPR3DECL(int) SUPR3LockDownLoader(PRTERRINFO pErrInfo)
 }
 
 
+#ifdef VBOX_WITH_R0_MODULES
 /**
  * Fallback for SUPR3PageAllocEx on systems where RTR0MemObjPhysAllocNC isn't
  * supported.
@@ -1134,6 +1138,7 @@ static int supPagePageAllocNoKernelFallback(size_t cPages, void **ppvPages, PSUP
     }
     return rc;
 }
+#endif /* VBOX_WITH_R0_MODULES */
 
 
 SUPR3DECL(int) SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages, PRTR0PTR pR0Ptr, PSUPPAGE paPages)
@@ -1147,7 +1152,7 @@ SUPR3DECL(int) SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages,
     if (pR0Ptr)
         *pR0Ptr = NIL_RTR0PTR;
     AssertPtrNullReturn(paPages, VERR_INVALID_POINTER);
-    AssertMsgReturn(cPages > 0 && cPages <= VBOX_MAX_ALLOC_PAGE_COUNT, ("cPages=%zu\n", cPages), VERR_PAGE_COUNT_OUT_OF_RANGE);
+    AssertMsgReturn(cPages > 0 && cPages <= VBOX_MAX_ALLOC_SIZE / SUP_PAGE_SIZE, ("cPages=%zu\n", cPages), VERR_PAGE_COUNT_OUT_OF_RANGE);
     AssertReturn(!fFlags, VERR_INVALID_FLAGS);
 
     /*
@@ -1156,7 +1161,7 @@ SUPR3DECL(int) SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages,
     if (g_supLibData.fDriverless)
     {
         int rc = SUPR3PageAlloc(cPages, 0 /*fFlags*/, ppvPages);
-        Assert(RT_FAILURE(rc) || ASMMemIsZero(*ppvPages, cPages << PAGE_SHIFT));
+        Assert(RT_FAILURE(rc) || ASMMemIsZero(*ppvPages, cPages << SUP_PAGE_SHIFT));
         if (pR0Ptr)
             *pR0Ptr = NIL_RTR0PTR;
         if (paPages)
@@ -1175,6 +1180,7 @@ SUPR3DECL(int) SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages,
     else
         return VERR_WRONG_ORDER;
 
+#ifdef VBOX_WITH_R0_MODULES
     /*
      * Use fallback for non-R0 mapping?
      */
@@ -1239,10 +1245,13 @@ SUPR3DECL(int) SUPR3PageAllocEx(size_t cPages, uint32_t fFlags, void **ppvPages,
     else
         rc = VERR_NO_TMP_MEMORY;
     return rc;
-
+#else
+    AssertFailedReturn(VERR_NOT_SUPPORTED);
+#endif /* VBOX_WITH_R0_MODULES */
 }
 
 
+#ifdef VBOX_WITH_R0_MODULES
 SUPR3DECL(int) SUPR3PageMapKernel(void *pvR3, uint32_t off, uint32_t cb, uint32_t fFlags, PRTR0PTR pR0Ptr)
 {
     /*
@@ -1281,6 +1290,7 @@ SUPR3DECL(int) SUPR3PageMapKernel(void *pvR3, uint32_t off, uint32_t cb, uint32_
         *pR0Ptr = Req.u.Out.pvR0;
     return rc;
 }
+#endif
 
 
 SUPR3DECL(int) SUPR3PageProtect(void *pvR3, RTR0PTR R0Ptr, uint32_t off, uint32_t cb, uint32_t fProt)
@@ -1289,8 +1299,8 @@ SUPR3DECL(int) SUPR3PageProtect(void *pvR3, RTR0PTR R0Ptr, uint32_t off, uint32_
      * Validate.
      */
     AssertPtrReturn(pvR3, VERR_INVALID_POINTER);
-    Assert(!(off & PAGE_OFFSET_MASK));
-    Assert(!(cb & PAGE_OFFSET_MASK) && cb);
+    Assert(!(off & SUP_PAGE_OFFSET_MASK));
+    Assert(!(cb & SUP_PAGE_OFFSET_MASK) && cb);
     AssertReturn(!(fProt & ~(RTMEM_PROT_NONE | RTMEM_PROT_READ | RTMEM_PROT_WRITE | RTMEM_PROT_EXEC)), VERR_INVALID_PARAMETER);
 
     /*
@@ -1475,15 +1485,15 @@ SUPR3DECL(int) SUPR3LowAlloc(size_t cPages, void **ppvPages, PRTR0PTR ppvPagesR0
     /* fake */
     if (RT_UNLIKELY(g_uSupFakeMode))
     {
-        *ppvPages = RTMemPageAllocZ((size_t)cPages * PAGE_SIZE);
+        *ppvPages = RTMemPageAllocZ((size_t)cPages * SUP_PAGE_SIZE);
         if (!*ppvPages)
             return VERR_NO_LOW_MEMORY;
 
         /* fake physical addresses. */
-        RTHCPHYS    Phys = (uintptr_t)*ppvPages + PAGE_SIZE * 1024;
+        RTHCPHYS    Phys = (uintptr_t)*ppvPages + SUP_PAGE_SIZE * 1024;
         size_t      iPage = cPages;
         while (iPage-- > 0)
-            paPages[iPage].Phys = Phys + (iPage << PAGE_SHIFT);
+            paPages[iPage].Phys = Phys + (iPage << SUP_PAGE_SHIFT);
         return VINF_SUCCESS;
     }
 
@@ -1543,7 +1553,7 @@ SUPR3DECL(int) SUPR3LowFree(void *pv, size_t cPages)
     /* fake */
     if (RT_UNLIKELY(g_uSupFakeMode))
     {
-        RTMemPageFree(pv, cPages * PAGE_SIZE);
+        RTMemPageFree(pv, cPages * SUP_PAGE_SIZE);
         return VINF_SUCCESS;
     }
 

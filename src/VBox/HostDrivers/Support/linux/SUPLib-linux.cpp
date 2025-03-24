@@ -63,6 +63,7 @@
 #include <iprt/assert.h>
 #include <VBox/types.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 #include <VBox/err.h>
 #include <VBox/param.h>
 #include "../SUPLibInternal.h"

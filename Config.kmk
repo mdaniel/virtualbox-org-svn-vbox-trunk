@@ -660,6 +660,10 @@ ifdef VBOX_WITH_VMSVGA3D
   VBOX_WITH_DXVK = 1
  endif
 endif
+# Enable video decoding in DXVK library
+ifdef VBOX_WITH_DXVK
+ VBOX_WITH_DXVK_VIDEO = 1
+endif
 # Enable the generic 3D settings support if at least one 3D capable solution is enabled
 ifdef VBOX_WITH_VMSVGA3D
  VBOX_WITH_3D_ACCELERATION = 1

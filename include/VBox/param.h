@@ -52,6 +52,40 @@
  * @{
  */
 
+/** @def GUEST_MIN_PAGE_SIZE
+ * Minimum guest page size.   */
+#define GUEST_MIN_PAGE_SIZE         0x1000
+/** @def GUEST_MIN_PAGE_OFFSET_MASK
+ * Minimum guest page size.
+ * @note If one-complementing this, always put a typecast after the operator! */
+#define GUEST_MIN_PAGE_OFFSET_MASK  0xfff
+/** @def GUEST_MIN_PAGE_SHIFT
+ * Minimum guest page size.   */
+#define GUEST_MIN_PAGE_SHIFT        12
+
+/** @def GUEST_MAX_PAGE_SIZE
+ * Maximum guest page size.   */
+#ifdef VBOX_VMM_TARGET_ARMV8
+# define GUEST_MAX_PAGE_SIZE        0x10000
+#elif defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define GUEST_MAX_PAGE_SIZE        0x1000
+#endif
+/** @def GUEST_MAX_PAGE_OFFSET_MASK
+ * Maximum guest page size.
+ * @note If one-complementing this, always put a typecast after the operator! */
+#ifdef VBOX_VMM_TARGET_ARMV8
+# define GUEST_MAX_PAGE_OFFSET_MASK 0xffff
+#elif defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define GUEST_MAX_PAGE_OFFSET_MASK 0xfff
+#endif
+/** @def GUEST_MAX_PAGE_SHIFT
+ * Maximum guest page size.   */
+#ifdef VBOX_VMM_TARGET_ARMV8
+# define GUEST_MAX_PAGE_SHIFT       16
+#elif defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define GUEST_MAX_PAGE_SHIFT       12
+#endif
+
 /** The guest page size (x86). */
 #define GUEST_PAGE_SIZE             0x1000
 /** The guest page offset mask (x86).
@@ -59,6 +93,7 @@
 #define GUEST_PAGE_OFFSET_MASK      0xfff
 /** The guest page shift (x86). */
 #define GUEST_PAGE_SHIFT            12
+
 
 /** Host page size. */
 #define HOST_PAGE_SIZE              PAGE_SIZE

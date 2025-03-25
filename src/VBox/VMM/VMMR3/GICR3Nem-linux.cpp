@@ -352,7 +352,7 @@ DECLCALLBACK(int) gicR3KvmConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
                                  "VGIC init");
     AssertRCReturn(rc, rc);
 
-    gicR3Reset(pDevIns);
+    gicR3KvmReset(pDevIns);
     return VINF_SUCCESS;
 }
 

@@ -532,6 +532,10 @@ void UINotificationCenter::sltHandleProgressFinished()
 
 void UINotificationCenter::prepare()
 {
+    /* Make sure notification-center and it's children always have cursor,
+     * even if parent (like VM view) set it to Qt::BlankCursor intentionally. */
+    setCursor(Qt::ArrowCursor);
+
     /* Hide initially: */
     setHidden(true);
 

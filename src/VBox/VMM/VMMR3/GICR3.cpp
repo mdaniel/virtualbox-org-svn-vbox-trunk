@@ -629,7 +629,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * most guests would assume support for SPIs. */
     AssertCompile(GIC_DIST_REG_TYPER_NUM_ITLINES == 31);
     /** @todo This currently isn't implemented and the full range is always
-     *        supported. */
+     *        reported to the guest. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxSpi", &pGicDev->uMaxSpi, 31 /* Upto and incl. IntId 1023 */);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxSpi - 1 < 31)
@@ -653,7 +653,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * disabled. */
     AssertCompile(GIC_DIST_REG_TYPER_ESPI_RANGE >> GIC_DIST_REG_TYPER_ESPI_RANGE_BIT == 31);
     /** @todo This currently isn't implemented and the full range is always
-     *        supported. */
+     *        reported to the guest. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtSpi", &pGicDev->uMaxExtSpi, 31);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uMaxExtSpi <= 31)
@@ -674,7 +674,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * supported. Valid values are [1,2] which equates to extended PPI IntIds
      * [1087,1119]. This is unused when extended PPIs are disabled. */
     /** @todo This currently isn't implemented and the full range is always
-     *        supported. */
+     *        reported to the guest. */
     rc = pHlp->pfnCFGMQueryU8Def(pCfg, "MaxExtPpi", &pGicDev->uMaxExtPpi, 2);
     AssertLogRelRCReturn(rc, rc);
     if (   pGicDev->uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087

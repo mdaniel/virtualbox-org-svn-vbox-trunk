@@ -41,7 +41,7 @@ enum VBoxFolder_t
 {
     VBox_UnknownFolderType = 0,
     VBox_OutsideVMfolder,
-    VBox_SettingFolder,
+    VBox_MachineFolder,
     VBox_LogFolder,
     VBox_StateFolder,
     VBox_SnapshotFolder

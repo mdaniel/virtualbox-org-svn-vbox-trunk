@@ -4847,7 +4847,11 @@ static int pgmR3PhysRomRegisterLocked(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPh
                 Assert(pvRam == NULL); Assert(pReq == NULL);
                 for (uint32_t iPage = 0; iPage < cGuestPages; iPage++, pRamPage++, pRomPage++)
                 {
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE /* gcc will complain that the first part of the assertion is always false otherwise */
+                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
+# else
                     Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000) || PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
+# endif
                     Assert(PGM_PAGE_GET_PAGEID(pRamPage) == NIL_GMM_PAGEID);
                     Assert(PGM_PAGE_GET_STATE(pRamPage) == PGM_PAGE_STATE_ALLOCATED);
                     PGM_PAGE_SET_TYPE(pVM, pRamPage, PGMPAGETYPE_ROM);
@@ -5033,7 +5037,11 @@ static int pgmR3PhysRomRegisterLocked(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS GCPh
                 Assert(pvRam == NULL); Assert(pReq == NULL);
                 for (uint32_t iPage = 0; iPage < cGuestPages; iPage++, pRamPage++, pRomPage++)
                 {
+# ifdef VBOX_WITH_ONLY_PGM_NEM_MODE /* gcc will complain that the first part of the assertion is always false otherwise */
+                    Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
+# else
                     Assert(PGM_PAGE_GET_HCPHYS(pRamPage) == UINT64_C(0x0000fffffffff000) || PGM_PAGE_GET_HCPHYS(pRamPage) == 0);
+# endif
                     Assert(PGM_PAGE_GET_PAGEID(pRamPage) == NIL_GMM_PAGEID);
                     Assert(PGM_PAGE_GET_STATE(pRamPage) == PGM_PAGE_STATE_ALLOCATED);
                     PGM_PAGE_SET_TYPE(pVM, pRamPage, PGMPAGETYPE_RAM);

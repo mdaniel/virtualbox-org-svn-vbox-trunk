@@ -1730,22 +1730,6 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--nat-dns-proxy<replaceable>N</replaceable>=on | off</option></term>
-          <listitem><para>
-              Specifies whether the NAT engine is the proxy for all
-              guest DNS requests to the host system's DNS servers. See
-              <xref linkend="nat-adv-dns" />.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>--nat-dns-host-resolver<replaceable>N</replaceable>=on | off</option></term>
-          <listitem><para>
-              Specifies whether the NAT engine uses the host system's
-              resolver mechanisms to handle DNS requests. See
-              <xref linkend="nat-adv-dns" />.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
           <term><option>--nat-localhostreachable<replaceable>N</replaceable>=on | off</option></term>
           <listitem><para>
               Specifies whether the NAT engine allows traffic from the guest directed to
@@ -1753,35 +1737,10 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--nat-settings<replaceable>N</replaceable>=[<replaceable>mtu</replaceable>],[<replaceable>socksnd</replaceable>],[<replaceable>sockrcv</replaceable>],[<replaceable>tcpsnd</replaceable>],[<replaceable>tcprcv</replaceable>]</option></term>
+          <term><option>--nat-settings<replaceable>N</replaceable>=[<replaceable>mtu</replaceable>]</option></term>
           <listitem><para>
               Specifies values for tuning NAT performance. See
               <xref linkend="changenat" />.
-            </para></listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>--nat-alias-mode<replaceable>N</replaceable>=default | [log],[proxyonly],[sameports]</option></term>
-          <listitem><para>
-              Specifies the behavior of the NAT engine core as follows:
-            </para><itemizedlist>
-              <listitem><para>
-                  <literal>log</literal> enables logging
-                </para></listitem>
-              <listitem><para>
-                  <literal>proxyonly</literal> switches off aliasing
-                  mode and makes NAT transparent
-                </para></listitem>
-              <listitem><para>
-                  <literal>sameports</literal> enforces that the NAT
-                  engine sends packets through the same port on which
-                  they originated
-                </para></listitem>
-              <listitem><para>
-                  <literal>default</literal> disables all aliasing modes
-                </para></listitem>
-            </itemizedlist><para>
-              For more information, see
-              <xref linkend="nat-adv-alias" />.
             </para></listitem>
         </varlistentry>
       </variablelist>

@@ -59,7 +59,7 @@
 #ifdef LOG_ENABLED
 DECL_HIDDEN_CALLBACK(const char *) gitsGetCtrlRegDescription(uint16_t offReg)
 {
-    if (offReg - GITS_CTRL_REG_BASER_OFF_FIRST < GITS_CTRL_REG_BASER_RANGE_SIZE)
+    if ((uint32_t)offReg - GITS_CTRL_REG_BASER_OFF_FIRST < GITS_CTRL_REG_BASER_RANGE_SIZE)
         return "GITS_BASER<n>";
     switch (offReg)
     {

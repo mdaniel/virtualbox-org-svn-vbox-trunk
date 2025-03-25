@@ -696,7 +696,9 @@ static void vboxwl_check(void)
 
         /* Try to detect Plasma. */
         const char *pcszDesktopSession = RTEnvGet(VBGH_ENV_DESKTOP_SESSION);
-        if (RT_VALID_PTR(pcszDesktopSession) && RTStrIStr(pcszDesktopSession, "plasmawayland"))
+        if (   RT_VALID_PTR(pcszDesktopSession)
+            && (   RTStrIStr(pcszDesktopSession, "plasmawayland")
+                || RTStrIStr(pcszDesktopSession, "plasma")))
             fWayland = true;
     }
 

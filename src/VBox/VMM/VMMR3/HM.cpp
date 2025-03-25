@@ -1107,7 +1107,6 @@ VMMR3_INT_DECL(int) HMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
             return hmR3InitFinalizeR0(pVM);
 #else
         case VMINITCOMPLETED_RING0:
-            AssertFailedReturn(VERR_NOT_SUPPORTED);
 #endif
         default:
             return VINF_SUCCESS;

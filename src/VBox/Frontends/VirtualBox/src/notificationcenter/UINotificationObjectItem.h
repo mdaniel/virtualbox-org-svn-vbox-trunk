@@ -41,6 +41,7 @@
 class QHBoxLayout;
 class QLabel;
 class QProgressBar;
+class QPushButton;
 class QVBoxLayout;
 class QIRichTextLabel;
 class QIToolButton;
@@ -81,7 +82,7 @@ protected:
     /** Holds the help button instance. */
     QIToolButton    *m_pButtonHelp;
     /** Holds the forget button instance. */
-    QIToolButton    *m_pButtonForget;
+    QPushButton     *m_pButtonForget;
     /** Holds the close button instance. */
     QIToolButton    *m_pButtonClose;
     /** Holds the details label instance. */
@@ -93,6 +94,9 @@ protected:
     bool  m_fToggled;
 
 private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
     /** Handles help request. */
     void sltHandleHelpRequest();

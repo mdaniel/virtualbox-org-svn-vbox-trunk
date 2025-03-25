@@ -1768,7 +1768,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
             /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
-            AssertRelease(2 * idxIntr + 1 < sizeof(pGicCpu->bmIntrConfig) * 8);
+            AssertRelease(UINT32_C(2) * idxIntr + 1 < sizeof(pGicCpu->bmIntrConfig) * 8);
             bool const fEdgeTriggered = ASMBitTest(&pGicCpu->bmIntrConfig[0], 2 * idxIntr + 1);
             if (fEdgeTriggered)
                 ASMBitClear(&pGicCpu->bmIntrPending[0], idxIntr);
@@ -1810,7 +1810,7 @@ static uint16_t gicAckHighestPriorityPendingIntr(PGICDEV pGicDev, PVMCPUCC pVCpu
             /** @todo Duplicate block Id=E5ED12D2-088D-4525-9609-8325C02846C3 (end). */
 
             /* If it is an edge-triggered interrupt, mark it as no longer pending. */
-            AssertRelease(2 * idxIntr + 1 < sizeof(pGicDev->bmIntrConfig) * 8);
+            AssertRelease(UINT32_C(2) * idxIntr + 1 < sizeof(pGicDev->bmIntrConfig) * 8);
             bool const fEdgeTriggered = ASMBitTest(&pGicDev->bmIntrConfig[0], 2 * idxIntr + 1);
             if (fEdgeTriggered)
                 ASMBitClear(&pGicDev->bmIntrPending[0], idxIntr);
@@ -1850,14 +1850,14 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
          * GICD_IROUTER<n> and GICD_IROUTER<n>E.
          */
         uint16_t const cbReg = sizeof(uint64_t);
-        if (offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
         {
             /* Hardware does not map the first 32 registers (corresponding to SGIs and PPIs). */
             uint16_t const idxExt = GIC_INTID_RANGE_SPI_START;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / cbReg;
             return gicDistReadIntrRoutingReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->au32IntrRouting) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / cbReg;
@@ -1873,12 +1873,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
          * GICD_IGROUPR<n> and GICD_IGROUPR<n>E.
          */
         uint16_t const cbReg = sizeof(uint32_t);
-        if (offReg - GIC_DIST_REG_IGROUPRn_OFF_START < GIC_DIST_REG_IGROUPRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IGROUPRn_OFF_START < GIC_DIST_REG_IGROUPRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_IGROUPRn_OFF_START) / cbReg;
             return gicDistReadIntrGroupReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_IGROUPRnE_OFF_START < GIC_DIST_REG_IGROUPRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IGROUPRnE_OFF_START < GIC_DIST_REG_IGROUPRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrGroup) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IGROUPRnE_OFF_START) / cbReg;
@@ -1889,23 +1889,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
          * GICD_ISENABLER<n> and GICD_ISENABLER<n>E.
          * GICD_ICENABLER<n> and GICD_ICENABLER<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISENABLERn_OFF_START  < GIC_DIST_REG_ISENABLERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISENABLERn_OFF_START  < GIC_DIST_REG_ISENABLERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISENABLERn_OFF_START) / cbReg;
             return gicDistReadIntrEnableReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ISENABLERnE_OFF_START < GIC_DIST_REG_ISENABLERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISENABLERnE_OFF_START < GIC_DIST_REG_ISENABLERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrEnabled) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISENABLERnE_OFF_START) / cbReg;
             return gicDistReadIntrEnableReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICENABLERn_OFF_START  < GIC_DIST_REG_ICENABLERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICENABLERn_OFF_START  < GIC_DIST_REG_ICENABLERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICENABLERn_OFF_START) / cbReg;
             return gicDistReadIntrEnableReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICENABLERnE_OFF_START < GIC_DIST_REG_ICENABLERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICENABLERnE_OFF_START < GIC_DIST_REG_ICENABLERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrEnabled) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICENABLERnE_OFF_START) / cbReg;
@@ -1916,23 +1916,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
          * GICD_ISACTIVER<n> and GICD_ISACTIVER<n>E.
          * GICD_ICACTIVER<n> and GICD_ICACTIVER<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISACTIVERn_OFF_START < GIC_DIST_REG_ISACTIVERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISACTIVERn_OFF_START < GIC_DIST_REG_ISACTIVERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISACTIVERn_OFF_START) / cbReg;
             return gicDistReadIntrActiveReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START < GIC_DIST_REG_ISACTIVERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START < GIC_DIST_REG_ISACTIVERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrActive) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START) / cbReg;
             return gicDistReadIntrActiveReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICACTIVERn_OFF_START < GIC_DIST_REG_ICACTIVERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICACTIVERn_OFF_START < GIC_DIST_REG_ICACTIVERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICENABLERn_OFF_START) / cbReg;
             return gicDistReadIntrActiveReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START < GIC_DIST_REG_ICACTIVERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START < GIC_DIST_REG_ICACTIVERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrActive) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START) / cbReg;
@@ -1942,12 +1942,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         /*
          * GICD_IPRIORITYR<n> and GICD_IPRIORITYR<n>E.
          */
-        if (offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START < GIC_DIST_REG_IPRIORITYRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START < GIC_DIST_REG_IPRIORITYRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START) / cbReg;
             return gicDistReadIntrPriorityReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START < GIC_DIST_REG_IPRIORITYRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START < GIC_DIST_REG_IPRIORITYRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->abIntrPriority) / (2 * sizeof(uint32_t));
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START) / cbReg;
@@ -1958,23 +1958,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
          * GICD_ISPENDR<n> and GICD_ISPENDR<n>E.
          * GICD_ICPENDR<n> and GICD_ICPENDR<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISPENDRn_OFF_START < GIC_DIST_REG_ISPENDRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISPENDRn_OFF_START < GIC_DIST_REG_ISPENDRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISPENDRn_OFF_START) / cbReg;
             return gicDistReadIntrPendingReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ISPENDRnE_OFF_START < GIC_DIST_REG_ISPENDRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISPENDRnE_OFF_START < GIC_DIST_REG_ISPENDRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrPending) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISPENDRnE_OFF_START) / cbReg;
             return gicDistReadIntrPendingReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICPENDRn_OFF_START < GIC_DIST_REG_ICPENDRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICPENDRn_OFF_START < GIC_DIST_REG_ICPENDRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICPENDRn_OFF_START) / cbReg;
             return gicDistReadIntrPendingReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICPENDRnE_OFF_START < GIC_DIST_REG_ICPENDRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICPENDRnE_OFF_START < GIC_DIST_REG_ICPENDRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrPending) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICPENDRnE_OFF_START) / cbReg;
@@ -1984,12 +1984,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
         /*
          * GICD_ICFGR<n> and GICD_ICFGR<n>E.
          */
-        if (offReg - GIC_DIST_REG_ICFGRn_OFF_START < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICFGRn_OFF_START < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICFGRn_OFF_START) / cbReg;
             return gicDistReadIntrConfigReg(pGicDev, idxReg, puValue);
         }
-        if (offReg - GIC_DIST_REG_ICFGRnE_OFF_START < GIC_DIST_REG_ICFGRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICFGRnE_OFF_START < GIC_DIST_REG_ICFGRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrConfig) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICFGRnE_OFF_START) / cbReg;
@@ -2094,14 +2094,14 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
          * GICD_IROUTER<n> and GICD_IROUTER<n>E.
          */
         uint16_t const cbReg = sizeof(uint64_t);
-        if (offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IROUTERn_OFF_START < GIC_DIST_REG_IROUTERn_RANGE_SIZE)
         {
             /* Hardware does not map the first 32 registers (corresponding to SGIs and PPIs). */
             uint16_t const idxExt = GIC_INTID_RANGE_SPI_START;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERn_OFF_START) / cbReg;
             return gicDistWriteIntrRoutingReg(pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IROUTERnE_OFF_START < GIC_DIST_REG_IROUTERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->au32IntrRouting) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IROUTERnE_OFF_START) / cbReg;
@@ -2118,12 +2118,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
          * GICD_IGROUPR<n> and GICD_IGROUPR<n>E.
          */
         uint16_t const cbReg = sizeof(uint32_t);
-        if (offReg - GIC_DIST_REG_IGROUPRn_OFF_START < GIC_DIST_REG_IGROUPRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IGROUPRn_OFF_START < GIC_DIST_REG_IGROUPRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_IGROUPRn_OFF_START) / cbReg;
             return gicDistWriteIntrGroupReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_IGROUPRnE_OFF_START < GIC_DIST_REG_IGROUPRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IGROUPRnE_OFF_START < GIC_DIST_REG_IGROUPRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrGroup) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IGROUPRnE_OFF_START) / cbReg;
@@ -2134,23 +2134,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
          * GICD_ISENABLER<n> and GICD_ISENABLER<n>E.
          * GICD_ICENABLER<n> and GICD_ICENABLER<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISENABLERn_OFF_START  < GIC_DIST_REG_ISENABLERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISENABLERn_OFF_START  < GIC_DIST_REG_ISENABLERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISENABLERn_OFF_START) / cbReg;
             return gicDistWriteIntrSetEnableReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ISENABLERnE_OFF_START < GIC_DIST_REG_ISENABLERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISENABLERnE_OFF_START < GIC_DIST_REG_ISENABLERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrEnabled) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISENABLERnE_OFF_START) / cbReg;
             return gicDistWriteIntrSetEnableReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICENABLERn_OFF_START  < GIC_DIST_REG_ICENABLERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICENABLERn_OFF_START  < GIC_DIST_REG_ICENABLERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICENABLERn_OFF_START) / cbReg;
             return gicDistWriteIntrClearEnableReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICENABLERnE_OFF_START < GIC_DIST_REG_ICENABLERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICENABLERnE_OFF_START < GIC_DIST_REG_ICENABLERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrEnabled) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICENABLERnE_OFF_START) / cbReg;
@@ -2161,23 +2161,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
          * GICD_ISACTIVER<n> and GICD_ISACTIVER<n>E.
          * GICD_ICACTIVER<n> and GICD_ICACTIVER<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISACTIVERn_OFF_START < GIC_DIST_REG_ISACTIVERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISACTIVERn_OFF_START < GIC_DIST_REG_ISACTIVERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISACTIVERn_OFF_START) / cbReg;
             return gicDistWriteIntrSetActiveReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START < GIC_DIST_REG_ISACTIVERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START < GIC_DIST_REG_ISACTIVERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrActive) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISACTIVERnE_OFF_START) / cbReg;
             return gicDistWriteIntrSetActiveReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICACTIVERn_OFF_START < GIC_DIST_REG_ICACTIVERn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICACTIVERn_OFF_START < GIC_DIST_REG_ICACTIVERn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICACTIVERn_OFF_START) / cbReg;
             return gicDistWriteIntrClearActiveReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START < GIC_DIST_REG_ICACTIVERnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START < GIC_DIST_REG_ICACTIVERnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrActive) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICACTIVERnE_OFF_START) / cbReg;
@@ -2187,12 +2187,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
         /*
          * GICD_IPRIORITYR<n> and GICD_IPRIORITYR<n>E.
          */
-        if (offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START < GIC_DIST_REG_IPRIORITYRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START < GIC_DIST_REG_IPRIORITYRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_IPRIORITYRn_OFF_START) / cbReg;
             return gicDistWriteIntrPriorityReg(pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START < GIC_DIST_REG_IPRIORITYRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START < GIC_DIST_REG_IPRIORITYRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->abIntrPriority) / (2 * sizeof(uint32_t));
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_IPRIORITYRnE_OFF_START) / cbReg;
@@ -2203,23 +2203,23 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
          * GICD_ISPENDR<n> and GICD_ISPENDR<n>E.
          * GICD_ICPENDR<n> and GICD_ICPENDR<n>E.
          */
-        if (offReg - GIC_DIST_REG_ISPENDRn_OFF_START < GIC_DIST_REG_ISPENDRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISPENDRn_OFF_START < GIC_DIST_REG_ISPENDRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ISPENDRn_OFF_START) / cbReg;
             return gicDistWriteIntrSetPendingReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ISPENDRnE_OFF_START < GIC_DIST_REG_ISPENDRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ISPENDRnE_OFF_START < GIC_DIST_REG_ISPENDRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrPending) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ISPENDRnE_OFF_START) / cbReg;
             return gicDistWriteIntrSetPendingReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICPENDRn_OFF_START < GIC_DIST_REG_ICPENDRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICPENDRn_OFF_START < GIC_DIST_REG_ICPENDRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICPENDRn_OFF_START) / cbReg;
             return gicDistWriteIntrClearPendingReg(pVM, pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICPENDRnE_OFF_START < GIC_DIST_REG_ICPENDRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICPENDRnE_OFF_START < GIC_DIST_REG_ICPENDRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrPending) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICPENDRnE_OFF_START) / cbReg;
@@ -2229,12 +2229,12 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
         /*
          * GICD_ICFGR<n> and GICD_ICFGR<n>E.
          */
-        if (offReg - GIC_DIST_REG_ICFGRn_OFF_START < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICFGRn_OFF_START < GIC_DIST_REG_ICFGRn_RANGE_SIZE)
         {
             uint16_t const idxReg = (offReg - GIC_DIST_REG_ICFGRn_OFF_START) / cbReg;
             return gicDistWriteIntrConfigReg(pGicDev, idxReg, uValue);
         }
-        if (offReg - GIC_DIST_REG_ICFGRnE_OFF_START < GIC_DIST_REG_ICFGRnE_RANGE_SIZE)
+        if ((uint32_t)offReg - GIC_DIST_REG_ICFGRnE_OFF_START < GIC_DIST_REG_ICFGRnE_RANGE_SIZE)
         {
             uint16_t const idxExt = RT_ELEMENTS(pGicDev->bmIntrConfig) / 2;
             uint16_t const idxReg = idxExt + (offReg - GIC_DIST_REG_ICFGRnE_OFF_START) / cbReg;
@@ -2371,7 +2371,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
     /*
      * GICR_IGROUPR0 and GICR_IGROUPR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF < GIC_REDIST_SGI_PPI_REG_IGROUPRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF < GIC_REDIST_SGI_PPI_REG_IGROUPRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF) / cbReg;
         return gicReDistReadIntrGroupReg(pGicDev, pGicCpu, idxReg, puValue);
@@ -2381,12 +2381,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
      * GICR_ISENABLER0 and GICR_ISENABLER<n>E.
      * GICR_ICENABLER0 and GICR_ICENABLER<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ISENABLERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ISENABLERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF) / cbReg;
         return gicReDistReadIntrEnableReg(pGicDev, pGicCpu, idxReg, puValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ICENABLERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ICENABLERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICENABLERnE_OFF_START) / cbReg;
         return gicReDistReadIntrEnableReg(pGicDev, pGicCpu, idxReg, puValue);
@@ -2396,12 +2396,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
      * GICR_ISACTIVER0 and GICR_ISACTIVER<n>E.
      * GICR_ICACTIVER0 and GICR_ICACTIVER<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ISACTIVERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ISACTIVERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF) / cbReg;
         return gicReDistReadIntrActiveReg(pGicCpu, idxReg, puValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ICACTIVERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ICACTIVERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF) / cbReg;
         return gicReDistReadIntrActiveReg(pGicCpu, idxReg, puValue);
@@ -2411,12 +2411,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
      * GICR_ISPENDR0 and GICR_ISPENDR<n>E.
      * GICR_ICPENDR0 and GICR_ICPENDR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ISPENDRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ISPENDRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF) / cbReg;
         return gicReDistReadIntrPendingReg(pGicDev, pGicCpu, idxReg, puValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ICPENDRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ICPENDRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF) / cbReg;
         return gicReDistReadIntrPendingReg(pGicDev, pGicCpu, idxReg, puValue);
@@ -2425,7 +2425,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
     /*
      * GICR_IPRIORITYR<n> and GICR_IPRIORITYR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START < GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START < GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START) / cbReg;
         return gicReDistReadIntrPriorityReg(pGicDev, pGicCpu, idxReg, puValue);
@@ -2434,7 +2434,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
     /*
      * GICR_ICFGR0, GICR_ICFGR1 and GICR_ICFGR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF < GIC_REDIST_SGI_PPI_REG_ICFGRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF < GIC_REDIST_SGI_PPI_REG_ICFGRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF) / cbReg;
         return gicReDistReadIntrConfigReg(pGicDev, pGicCpu, idxReg, puValue);
@@ -2493,7 +2493,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
     /*
      * GICR_IGROUPR0 and GICR_IGROUPR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF < GIC_REDIST_SGI_PPI_REG_IGROUPRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF < GIC_REDIST_SGI_PPI_REG_IGROUPRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF) / cbReg;
         return gicReDistWriteIntrGroupReg(pGicDev, pVCpu, idxReg, uValue);
@@ -2503,12 +2503,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
      * GICR_ISENABLER0 and GICR_ISENABLER<n>E.
      * GICR_ICENABLER0 and GICR_ICENABLER<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ISENABLERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ISENABLERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF) / cbReg;
         return gicReDistWriteIntrSetEnableReg(pGicDev, pVCpu, idxReg, uValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ICENABLERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF < GIC_REDIST_SGI_PPI_REG_ICENABLERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF) / cbReg;
         return gicReDistWriteIntrClearEnableReg(pGicDev, pVCpu, idxReg, uValue);
@@ -2518,12 +2518,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
      * GICR_ISACTIVER0 and GICR_ISACTIVER<n>E.
      * GICR_ICACTIVER0 and GICR_ICACTIVER<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ISACTIVERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ISACTIVERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISACTIVER0_OFF) / cbReg;
         return gicReDistWriteIntrSetActiveReg(pGicDev, pVCpu, idxReg, uValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ICACTIVERnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF < GIC_REDIST_SGI_PPI_REG_ICACTIVERnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICACTIVER0_OFF) / cbReg;
         return gicReDistWriteIntrClearActiveReg(pGicDev, pVCpu, idxReg, uValue);
@@ -2533,12 +2533,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
      * GICR_ISPENDR0 and GICR_ISPENDR<n>E.
      * GICR_ICPENDR0 and GICR_ICPENDR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ISPENDRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ISPENDRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ISPENDR0_OFF) / cbReg;
         return gicReDistWriteIntrSetPendingReg(pGicDev, pVCpu, idxReg, uValue);
     }
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ICPENDRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF < GIC_REDIST_SGI_PPI_REG_ICPENDRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF) / cbReg;
         return gicReDistWriteIntrClearPendingReg(pGicDev, pVCpu, idxReg, uValue);
@@ -2547,7 +2547,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
     /*
      * GICR_IPRIORITYR<n> and GICR_IPRIORITYR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START < GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START < GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START) / cbReg;
         return gicReDistWriteIntrPriorityReg(pGicDev, pVCpu, idxReg, uValue);
@@ -2556,7 +2556,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
     /*
      * GICR_ICFGR0, GIC_ICFGR1 and GICR_ICFGR<n>E.
      */
-    if (offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF < GIC_REDIST_SGI_PPI_REG_ICFGRnE_RANGE_SIZE)
+    if ((uint32_t)offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF < GIC_REDIST_SGI_PPI_REG_ICFGRnE_RANGE_SIZE)
     {
         uint16_t const idxReg = (offReg - GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF) / cbReg;
         return gicReDistWriteIntrConfigReg(pGicDev, pVCpu, idxReg, uValue);

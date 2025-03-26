@@ -534,6 +534,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         {
             InsertConfigInteger(pCfg, "ItsMmioBase", GCPhysIntcIts);
             InsertConfigInteger(pCfg, "Lpi",         1);
+            InsertConfigInteger(pCfg, "Mbi",         1);
         }
         else
             GCPhysIntcIts = cbMmioIntcIts = 0;

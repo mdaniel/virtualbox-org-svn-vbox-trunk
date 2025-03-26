@@ -1401,7 +1401,7 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
         cursorPixmap.setDevicePixelRatio(devicePixelRatio());
 
         /* Draw sub-pixmap: */
-        painter.drawPixmap(m_cursorRectangle.topLeft(), cursorPixmap);
+        painter.drawPixmap(m_cursorRectangle, cursorPixmap);
     }
 }
 

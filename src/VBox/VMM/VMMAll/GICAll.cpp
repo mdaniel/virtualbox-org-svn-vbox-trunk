@@ -2066,7 +2066,9 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             *puValue = 0;
             break;
         default:
+            AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
             *puValue = 0;
+            break;
     }
     return VINF_SUCCESS;
 }

@@ -415,6 +415,15 @@ static const SSMFIELD g_aCpumCtxFields[] =
     SSMFIELD_ENTRY_TERM()
 };
 
+/**
+ * Additional fields for v2
+ */
+static const SSMFIELD g_aCpumCtxFieldsV2[] =
+{
+    SSMFIELD_ENTRY(         CPUMCTX, Actlr.u64),
+    SSMFIELD_ENTRY_TERM()
+};
+
 
 /**
  * Initializes the guest system register states.
@@ -640,6 +649,7 @@ static DECLCALLBACK(int) cpumR3SaveExec(PVM pVM, PSSMHANDLE pSSM)
         PCPUMCTX const pGstCtx = &pVCpu->cpum.s.Guest;
 
         SSMR3PutStructEx(pSSM, pGstCtx, sizeof(*pGstCtx), 0, g_aCpumCtxFields, NULL);
+        SSMR3PutStructEx(pSSM, pGstCtx, sizeof(*pGstCtx), 0, g_aCpumCtxFieldsV2, NULL);
 
         SSMR3PutU32(pSSM, pVCpu->cpum.s.fChanged);
     }
@@ -668,7 +678,8 @@ static DECLCALLBACK(int) cpumR3LoadExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uVers
     /*
      * Validate version.
      */
-    if (uVersion != CPUM_SAVED_STATE_VERSION)
+    if (   uVersion != CPUM_SAVED_STATE_VERSION
+        && uVersion != CPUM_SAVED_STATE_VERSION_ARMV8_V1)
     {
         AssertMsgFailed(("cpumR3LoadExec: Invalid version uVersion=%d!\n", uVersion));
         return VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION;
@@ -694,6 +705,12 @@ static DECLCALLBACK(int) cpumR3LoadExec(PVM pVM, PSSMHANDLE pSSM, uint32_t uVers
              */
             rc = SSMR3GetStructEx(pSSM, pGstCtx, sizeof(*pGstCtx), 0, g_aCpumCtxFields, NULL);
             AssertRCReturn(rc, rc);
+
+            if (uVersion == CPUM_SAVED_STATE_VERSION_ARMV8_V2)
+            {
+                rc = SSMR3GetStructEx(pSSM, pGstCtx, sizeof(*pGstCtx), 0, g_aCpumCtxFieldsV2, NULL);
+                AssertRCReturn(rc, rc);
+            }
 
             /*
              * Restore a couple of flags.

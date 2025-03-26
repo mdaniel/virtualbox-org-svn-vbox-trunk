@@ -142,6 +142,8 @@ typedef enum hv_gic_intid_t : uint16_t
     HV_GIC_INT_PERFORMANCE_MONITOR = 30
 } hv_gic_intid_t;
 
+# define HV_SYS_REG_ACTLR_EL1   (hv_sys_reg_t)0xc081
+
 #else
 # define HV_GIC_ICC_REG_INVALID (hv_gic_icc_reg_t)UINT16_MAX
 #endif
@@ -533,6 +535,16 @@ static const struct
     { HV_SYS_REG_MDCCINT_EL1,       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, MDccInt.u64)      }
 
 };
+/** Additional System registers to sync when on at least macOS Sequioa 15.0. */
+static const struct
+{
+    hv_sys_reg_t    enmHvReg;
+    uint32_t        fCpumExtrn;
+    uint32_t        offCpumCtx;
+} s_aCpumSysRegsSequioa[] =
+{
+    { HV_SYS_REG_ACTLR_EL1,         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Actlr.u64)        }
+};
 /** EL2 support system registers. */
 static const struct
 {
@@ -904,7 +916,7 @@ static void nemR3DarwinLogState(PVMCC pVM, PVMCPUCC pVCpu)
                         "sp_el0=%016VR{sp_el0} sp_el1=%016VR{sp_el1} elr_el1=%016VR{elr_el1}\n"
                         "sctlr_el1=%016VR{sctlr_el1} tcr_el1=%016VR{tcr_el1}\n"
                         "ttbr0_el1=%016VR{ttbr0_el1} ttbr1_el1=%016VR{ttbr1_el1}\n"
-                        "vbar_el1=%016VR{vbar_el1}\n"
+                        "vbar_el1=%016VR{vbar_el1} actlr_el1=%016VR{actlr_el1}\n"
                         );
         if (pVM->nem.s.fEl2Enabled)
         {
@@ -994,6 +1006,24 @@ static int nemR3DarwinCopyStateFromHv(PVMCC pVM, PVMCPUCC pVCpu, uint64_t fWhat)
                 uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
                 hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, s_aCpumSysRegs[i].enmHvReg, pu64);
             }
+        }
+    }
+
+    if (   pVM->nem.s.fMacOsSequia
+        && (fWhat & CPUMCTX_EXTRN_SYSREG_MISC))
+    {
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsSequioa); i++)
+        {
+            uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegsSequioa[i].offCpumCtx);
+            hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, s_aCpumSysRegsSequioa[i].enmHvReg, pu64);
+
+            /* Make sure only the TOS bit is kept as this seems to return 0x0000000000000c00 which fails during writes. */
+            /** @todo r=aeichner Need to find out where the value comes from, some bits were reverse engineered here
+             * https://github.com/AsahiLinux/docs/blob/main/docs/hw/cpu/system-registers.md#actlr_el1-arm-standard-not-standard
+             * But the ones being set are not documented. Maybe they are always set by the Hypervisor...
+             */
+            if (s_aCpumSysRegsSequioa[i].enmHvReg == HV_SYS_REG_ACTLR_EL1)
+                *pu64 &= RT_BIT_64(1);
         }
     }
 
@@ -1097,6 +1127,17 @@ static int nemR3DarwinExportGuestState(PVMCC pVM, PVMCPUCC pVCpu)
                 uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
                 hrc |= hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, s_aCpumSysRegs[i].enmHvReg, *pu64);
             }
+        }
+    }
+
+    if (   pVM->nem.s.fMacOsSequia
+        && !(pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_SYSREG_MISC))
+    {
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsSequioa); i++)
+        {
+            uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegsSequioa[i].offCpumCtx);
+            hrc |= hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, s_aCpumSysRegsSequioa[i].enmHvReg, *pu64);
+            Assert(hrc == HV_SUCCESS);
         }
     }
 
@@ -1287,6 +1328,8 @@ int nemR3NativeInit(PVM pVM, bool fFallback, bool fForced)
     if (   hv_vm_config_create
         && hv_vm_config_get_el2_supported)
     {
+        pVM->nem.s.fMacOsSequia = true; /* hv_vm_config_get_el2_supported is only available on Sequioa 15.0. */
+
         hVmCfg = hv_vm_config_create();
 
         bool fHvEl2Supported = false;

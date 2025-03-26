@@ -236,6 +236,8 @@ typedef struct CPUMCTX
     CPUMCTXSYSREG       aTpIdr[2]; /**< @todo extend to 4 entries. */
     /** TheMDCCINT_EL1 register. */
     CPUMCTXSYSREG       MDccInt;
+    /** The ACTLR_EL1 register. */
+    CPUMCTXSYSREG       Actlr;
 
     /** @name Hypervisor (EL2) support.
      * @{ */
@@ -311,7 +313,7 @@ typedef struct CPUMCTX
     /** The CNTV_CVAL_EL0 register, always synced during VM-exit. */
     uint64_t            CntvCValEl0;
 
-    uint64_t            au64Padding2[3];
+    uint64_t            au64Padding2[2];
 } CPUMCTX;
 
 

@@ -1411,6 +1411,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
         ADD_SYSREG64(WHvArm64RegisterTpidrroEl0,    pVCpu->cpum.GstCtx.TpIdrRoEl0);
         ADD_SYSREG64(WHvArm64RegisterTpidrEl0,      pVCpu->cpum.GstCtx.aTpIdr[0]);
         ADD_SYSREG64(WHvArm64RegisterTpidrEl1,      pVCpu->cpum.GstCtx.aTpIdr[1]);
+        ADD_SYSREG64(WHvArm64RegisterActlrEl1,      pVCpu->cpum.GstCtx.Actlr);
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)
@@ -1600,6 +1601,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         aenmNames[iReg++] = WHvArm64RegisterTpidrroEl0;
         aenmNames[iReg++] = WHvArm64RegisterTpidrEl0;
         aenmNames[iReg++] = WHvArm64RegisterTpidrEl1;
+        aenmNames[iReg++] = WHvArm64RegisterActlrEl1;
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)
@@ -1797,6 +1799,7 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         GET_SYSREG64(pVCpu->cpum.GstCtx.TpIdrRoEl0, WHvArm64RegisterTpidrroEl0);
         GET_SYSREG64(pVCpu->cpum.GstCtx.aTpIdr[0],  WHvArm64RegisterTpidrEl0);
         GET_SYSREG64(pVCpu->cpum.GstCtx.aTpIdr[1],  WHvArm64RegisterTpidrEl1);
+        GET_SYSREG64(pVCpu->cpum.GstCtx.Actlr,      WHvArm64RegisterActlrEl1);
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)

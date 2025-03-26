@@ -3503,8 +3503,8 @@ protected:
     {
         setName(QApplication::translate("UIActionPool", "VM Activity"));
         setShortcutScope(QApplication::translate("UIActionPool", "VM Activity Overview"));
-        setStatusTip(QApplication::translate("UIActionPool", "Switch to selected virtual machine's activity monitor pane"));
-        setToolTip(  QApplication::translate("UIActionPool", "Switch to selected virtual machine's activity monitor pane")
+        setStatusTip(QApplication::translate("UIActionPool", "View activity for selected virtual machine"));
+        setToolTip(  QApplication::translate("UIActionPool", "View activity for selected virtual machine")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };

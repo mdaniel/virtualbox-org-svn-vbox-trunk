@@ -27,12 +27,10 @@
       </li>
       <li>
         <p>Register the new cloud network with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
-        <p>Use the <b outputclass="bold">Cloud Networks</b> tab in the <b outputclass="bold">Network Manager</b> tool.
-          See <xref href="edit-network.dita#network-manager-cloud-network-tab"/>. </p>
+        <p>Use the <uicontrol>Network</uicontrol> tool. See <xref href="config-network.dita"/>.</p>
       </li>
       <li>
-        <p>Add cloud network adaptors to the local VMs that will use the cloud network. See <xref
-            href="network_cloud.dita#network_cloud"/>. </p>
+        <p>Add cloud network adaptors to the local VMs that will use the cloud network. See <xref href="network_cloud.dita#network_cloud"/>.</p>
       </li>
     </ol>
   </body>

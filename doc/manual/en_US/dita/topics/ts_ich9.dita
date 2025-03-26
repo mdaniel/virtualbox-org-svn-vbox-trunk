@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="ts-ich9">
+    <title>Guest OS Won't Run Using ICH9</title>
+    <body>
+        <dl>
+            <dlentry>
+                <dt>Details</dt>
+                <dd>
+                    <p>VMs using the ICH9 chipset will not run if they are running very old OSs that have no IO-APIC support, or any VM with IO-APIC disabled in the config. This is because interrupts coming from PCI devices can't be delivered. </p>
+                    <p>The interrupt delivery to the legacy PIC interrupt controller is not implemented for ICH9, just the delivery to IO-APIC.</p>
+                </dd>
+            </dlentry>
+            <dlentry>
+                <dt>Workaround</dt>
+                <dd>
+                    <p>Use the PIIX3 chipset for the VM.</p>
+                </dd>
+            </dlentry>
+        </dl>
+    </body>
+</topic>

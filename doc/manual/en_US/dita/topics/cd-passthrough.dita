@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="cd-passthrough">
+    <title>CD/DVD Passthrough</title>
+    <body>
+        <p>The standard CD/DVD emulation enables reading of standard data CD and DVD formats only. As an experimental feature, for additional capabilities, it is possible to give the guest direct access to the CD/DVD host drive by enabling <i>passthrough</i> mode. Depending on the host hardware, this may potentially enable the following things to work:</p>
+        <ul>
+            <li>
+                <p>CD/DVD writing from within the guest, if the host DVD drive is a CD/DVD writer</p>
+            </li>
+            <li>
+                <p>Playing audio CDs</p>
+            </li>
+            <li>
+                <p>Playing encrypted DVDs</p>
+            </li>
+        </ul>
+        <p>To enable host drive passthrough you can use the <codeph>--passthrough</codeph> option of the <userinput>VBoxManage storageattach</userinput> command. See <xref href="../cli_topics/vboxmanage-storageattach.dita"/>.</p>
+        <p>Even if passthrough is enabled, unsafe commands, such as updating the drive firmware, will be blocked. Video CD formats are never supported, not even in passthrough mode, and cannot be played from a virtual machine.</p>
+        <p>On Oracle Solaris hosts, passthrough requires running <ph conkeyref="vbox-conkeyref-phrases/product-name"/> with real root permissions due to security measures enforced by the host.</p>
+    </body>
+</topic>

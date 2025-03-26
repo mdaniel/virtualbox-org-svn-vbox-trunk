@@ -102,7 +102,6 @@
     <topicref href="topics/create-vm-name-os.dita"/>
     <topicref href="topics/create-vm-unattended-install.dita"/>
     <topicref href="topics/create-vm-hardware.dita"/>
-    <topicref href="topics/create-vm-virtual-hard-disk.dita"/>
             <topicref href="topics/unattended-guest-install-example.dita"/>
   </chapter>
   <chapter href="topics/BasicConcepts.dita" chunk="to-content">
@@ -358,7 +357,6 @@
             <topicref href="topics/rawdisk-access-disk-partitions.dita"/>
          </topicref>
          <topicref href="topics/changevpd.dita"/>
-         <topicref href="topics/iscsi-intnet.dita"/>
       </topicref>
       <topicref href="topics/changenat.dita">
          <topicref href="topics/nat-address-config.dita"/>
@@ -439,16 +437,13 @@
             <topicref href="topics/gimdebughyperv-windows-setup.dita"/>
          </topicref>
       </topicref>
-      <topicref href="topics/pcspeaker_passthrough.dita"/>
       <topicref href="topics/usbip.dita">
          <topicref href="topics/usbip-setup-server.dita"/>
          <topicref href="topics/usbip-security.dita"/>
       </topicref>
       <topicref href="topics/hyperv-support.dita"/>
       <topicref href="topics/nested-virt.dita"/>
-      <topicref href="topics/vboxsvc-session-0.dita">
-         <topicref href="topics/vboxsvc-session-0-known-issues.dita"/>
-      </topicref>
+    <topicref href="topics/vboxsvc-session-0.dita"/>
       <topicref format="ditamap" href="cli_topics/user_isomakercmd-man.ditamap"/>
    </chapter>
   <chapter href="topics/customizing-vbox.dita" chunk="to-content">
@@ -493,6 +488,7 @@
         <topicref href="topics/ts_virtual-disk-compacting.dita"/>
         <topicref href="topics/ts_scale-mode.dita"/>
         <topicref href="topics/guestadd-dnd-limitations.dita"/>
+        <topicref href="topics/ts_ich9.dita"/>
       </topicref>
       <topicref href="topics/ts_win-guests.dita">
          <topicref href="topics/ts_win-guest-bluescreen-record-info.dita"/>
@@ -511,6 +507,7 @@
       </topicref>
       <topicref href="topics/ts_win-hosts.dita">
          <topicref href="topics/ts_win-host-cd-dvd-changes.dita"/>
+        <topicref href="topics/vboxsvc-session-0-known-issues.dita"/>
          <topicref href="topics/ts_win-host-rdp-client.dita"/>
          <topicref href="topics/ts_win-host-iscsi.dita"/>
          <topicref href="topics/ts_win-host-bridged-network-adapters.dita"/>
@@ -634,9 +631,10 @@
   <chapter href="topics/reference.dita" chunk="to-content">
     <topicref href="topics/ExperimentalFeatures.dita">
       <topicref href="topics/macosxguests.dita"/>
-    </topicref>
-    <topicref href="topics/hwvirt.dita">
-      <topicref href="topics/hwvirt-details.dita"/>
+      <topicref href="topics/cd-passthrough.dita"/>
+      <topicref href="topics/pcspeaker_passthrough.dita"/>
+      <topicref href="topics/virtio-scsi.dita"/>
+      <topicref href="topics/iscsi-intnet.dita"/>
     </topicref>
     <topicref href="topics/privacy.dita"/>
    <!-- Change Log -->

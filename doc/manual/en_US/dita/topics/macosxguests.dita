@@ -1,42 +1,39 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="macosxguests">
-  <title><?oxy_comment_start author="Mhari Duncan" timestamp="20241217T143119+0000" comment="Tidy up this topic"?>macOS Guests<?oxy_comment_end?></title>
+  <title>macOS Guests</title>
   <body>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to install and execute unmodified versions of macOS and OS X guests on supported host hardware. This feature is experimental and thus unsupported. </p>
-    <p>Be aware of the following important issues before you try to install a macOS guest: </p>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> enables you to install and execute unmodified versions of macOS and Mac OS X guests on supported host hardware. This feature is experimental and thus unsupported.</p>
+    <p>Be aware of the following important issues before you try to install a macOS guest:</p>
     <ul>
       <li>
-        <p>macOS is commercial, licensed software and contains <b outputclass="bold">both license and technical restrictions</b> that limit its use to certain hardware and usage scenarios. You must understand and comply with these restrictions. </p>
-        <p>In particular, Apple prohibits the installation of most versions of macOS on non-Apple hardware. </p>
-        <p>These license restrictions are also enforced on a technical level. macOS verifies that it is running on Apple hardware. Most DVDs that accompany Apple hardware check for the exact model. These restrictions are <i>not</i> circumvented by <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and continue to apply. </p>
+        <p>macOS is commercial, licensed software and contains <b outputclass="bold">both license and technical restrictions</b> that limit its use to certain hardware and usage scenarios. You must understand and comply with these restrictions.</p>
+        <p>In particular, Apple prohibits the installation of most versions of macOS on non-Apple hardware.</p>
+        <p>These license restrictions are also enforced on a technical level. macOS verifies that it is running on Apple hardware. Most DVDs that accompany Apple hardware check for the exact model. These restrictions are <i>not</i> circumvented by <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and continue to apply.</p>
       </li>
       <li>
-        <p>Only <b outputclass="bold">CPUs</b> that are known and tested by Apple are supported. As a result, if your Intel CPU is newer than the macOS build, or if you have a non-Intel CPU, you will likely encounter a panic during bootup with an "Unsupported CPU" exception. </p>
-        <p>Ensure that you use the macOS DVD that comes with your Apple hardware. </p>
+        <p>Only CPUs that are known and tested by Apple are supported. As a result, if your Intel CPU is newer than the macOS build, or if you have a non-Intel CPU, you will likely encounter a panic during bootup with an <uicontrol>Unsupported CPU</uicontrol> exception.</p>
+        <p>Ensure that you use the macOS DVD that comes with your Apple hardware.</p>
       </li>
       <li>
-        <p>The macOS installer expects the hard disk to be <i>partitioned</i>. So, the installer will not offer a partition selection to you. Before you can install the software successfully, start the Disk Utility from the Tools menu and partition the hard disk. Close the Disk Utility and proceed with the installation. </p>
+        <p>The macOS installer expects the hard disk to be <i>partitioned</i>. So, the installer will not offer a partition selection to you. Before you can install the software successfully, start the <uicontrol>Disk Utility</uicontrol> from the <uicontrol>Tools</uicontrol> menu and partition the hard disk. Close the Disk Utility and proceed with the installation.</p>
       </li>
     </ul>
     <p>Limitations<ul>
         <li>
-          <p>Mac OS X guests can only run on a certain host hardware. For details about license and host hardware limitations. See <xref href="macosxguests.dita">Mac OS X Guests</xref> and check the Apple software license conditions.</p>
+          <p>The graphics resolution currently defaults to 1024x768 as macOS falls back to the built-in EFI display support. See <xref href="efividmode.dita">Video Modes in EFI</xref> for more information on how to change EFI video modes.</p>
         </li>
         <li>
-          <p>The graphics resolution currently defaults to 1024x768 as Mac OS X falls back to the built-in EFI display support. See <xref href="efividmode.dita">Video Modes in EFI</xref> for more information on how to change EFI video modes.</p>
+          <p>Depending on your system and version of macOS, you might experience guest hangs after some time. This can be fixed by turning off energy saving. Set the timeout to <uicontrol>Never </uicontrol>in the system preferences.</p>
         </li>
         <li>
-          <p>Depending on your system and version of Mac OS X, you might experience guest hangs after some time. This can be fixed by turning off energy saving. Set the timeout to "Never" in the system preferences.</p>
-        </li>
-        <li>
-          <p>By default, the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> EFI enables debug output of the Mac OS X kernel to help you diagnose boot problems. Note that there is a lot of output and not all errors are fatal. They would also show when using a physical Apple Macintosh computer. You can turn off these messages by using the following command:</p>
+          <p>By default, the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> EFI enables debug output of the macOS kernel to help you diagnose boot problems. Note that there is a lot of output and not all errors are fatal. They would also show when using a physical Apple computer. You can turn off these messages by using the following command:</p>
           <pre xml:space="preserve">$ VBoxManage setextradata <varname>VM-name</varname> "VBoxInternal2/EfiBootArgs" "  "</pre>
-          <p> To revert to the previous behavior, use the following command: </p>
+          <p> To revert to the previous behavior, use the following command:</p>
           <pre xml:space="preserve">$ VBoxManage setextradata <varname>VM-name</varname> "VBoxInternal2/EfiBootArgs" ""</pre>
         </li>
         <li>
-          <p>It is currently not possible to start a Mac OS X guest in safe mode by specifying the <codeph>-x</codeph> option in <codeph>VBoxInternal2/EfiBootArgs</codeph> extradata. </p>
+          <p>It is currently not possible to start a macOS guest in safe mode by specifying the <codeph>-x</codeph> option in <codeph>VBoxInternal2/EfiBootArgs</codeph> extradata.</p>
         </li>
       </ul></p>
   </body>

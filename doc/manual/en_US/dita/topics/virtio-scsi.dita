@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="virtio-scsi">
+    <title>Virtual I/O Device SCSI Hard Disk Controller</title>
+    <body>
+        <p>The use of hard disk controllers is described at <xref href="harddiskcontrollers.dita"/>. In addition to those listed, virtio-scsi is an experimental feature.</p>
+        <p><b outputclass="bold">Virtual I/O Device SCSI</b> is a standard to connect virtual storage devices like hard disks or optical drives to a VM. Recent Linux and Windows versions support these devices, but Windows needs additional drivers. Drivers are available from Oracle Support.</p>
+        <note>
+            <p>The virtio-scsi controller will only be seen by OSes with device support for it. In particular, <i>there is no built-in support in Windows</i>. So Windows will not see such disks unless you install additional drivers.</p>
+        </note>
+        <p>Up to 256 slots can be attached to the virtio-scsi controller, if enabled and supported by the guest OS.</p>
+    </body>
+</topic>

@@ -4,15 +4,9 @@
   <title>Using Hyper-V with <ph conkeyref="vbox-conkeyref-phrases/product-name"/></title>
   
   <body>
-    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> can be used on a Windows host where Hyper-V is running.
-      This is an experimental feature. </p>
-    <p>No configuration is required. <ph conkeyref="vbox-conkeyref-phrases/product-name"/> detects Hyper-V automatically
-      and uses Hyper-V as the virtualization engine for the host system. The CPU icon in the VM window status bar
-      indicates that Hyper-V is being used. </p>
-    <note>
-      <p>When using this feature, some host systems might experience significant <ph
-          conkeyref="vbox-conkeyref-phrases/product-name"/> performance degradation. </p>
-    </note>
+    <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> can be used on a Windows host where Hyper-V is running but host systems might experience significant <ph conkeyref="vbox-conkeyref-phrases/product-name"/> performance degradation.</p>
+    <p>Assuming Windows Hypervisor Platform is running, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> detects Hyper-V automatically and uses Hyper-V as the virtualization engine for the host system. The CPU icon in the VM window status bar indicates that Hyper-V is being used.</p>
+    <note>In Windows, <b>Windows Hypervisor Platform</b> must be enabled in addition to <b>Hyper-V</b>.</note>
   </body>
   
 </topic>

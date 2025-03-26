@@ -4,11 +4,22 @@
   <title>Specify Virtual Hardware</title>
   <body>
     <ol id="ol_ndb_dbx_4bc">
-      <li>Based on the OS you have chosen, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> suggests a suitable default size for <uicontrol>Base Memory</uicontrol>. This is the amount of RAM that <ph conkeyref="vbox-conkeyref-phrases/product-name"/> should allocate to the virtual machine (VM) every time it is started. The guest OS will report this size as the VM's installed RAM. <note type="caution" id="note_pjs_x1x_4bc">
+      <li>
+        <p>Based on the OS you have chosen, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> suggests a suitable default size for <uicontrol>Base Memory</uicontrol>. This is the amount of RAM that <ph conkeyref="vbox-conkeyref-phrases/product-name"/> should allocate to the virtual machine (VM) every time it is started. The guest OS will report this size as the VM's installed RAM. </p>
+        <note type="caution" id="note_pjs_x1x_4bc">
           <p>Choose this setting carefully. The memory you give to the VM will not be available to your host OS while the VM is running.</p>
-        </note><p>Do not specify more than you can spare, whilst ensuring you allocate enough for your guest OS and applications to run properly. For example, if your host machine has 4 GB of RAM and you enter 2048 MB as the base memory for a VM, you will have 2 GB left for all the other software on your host while that VM is running.</p><p>A guest OS may require at least 1 or 2 GB of memory to install and boot up. If you intend to run more than one VM at a time, plan accordingly. A VM will not start if it does not have enough RAM to boot.</p><p>Always ensure that the host OS has enough RAM remaining. If insufficient RAM remains, the system might excessively swap memory to the hard disk, which will effectively bring the host system to a standstill. </p></li>
-      <li>For <uicontrol>Processors</uicontrol>, select the number of virtual processors to assign to the VM. Do not assign more than half of the total processor threads from the host machine.</li>
-      <li>Select <uicontrol>Use EFI</uicontrol> to boot the guest OS using Extended Firmware Interface (EFI).</li>
+        </note>
+        <p>Do not specify more than you can spare, whilst ensuring you allocate enough for your guest OS and applications to run properly. For example, if your host machine has 4 GB of RAM and you enter 2048 MB as the base memory for a VM, you will have 2 GB left for all the other software on your host while that VM is running.</p>
+        <p>A guest OS may require at least 1 or 2 GB of memory to install and boot up. If you intend to run more than one VM at a time, plan accordingly. A VM will not start if it does not have enough RAM to boot.</p>
+        <p>Always ensure that the host OS has enough RAM remaining. If insufficient RAM remains, the system might excessively swap memory to the hard disk, which will effectively bring the host system to a standstill.</p>
+      </li>
+      <li>
+        <p>For <uicontrol>Processors</uicontrol>, select the number of virtual processors to assign to the VM. Do not assign more than half of the total processor threads from the host machine.</p>
+      </li>
+      <li><p>Choose the <uicontrol>Disk Size</uicontrol> for a new, dynamically allocated, virtual hard disk image to be created in the VM folder.</p> For other options when allocating virtual storage, see <xref href="storage.dita"/>.</li>
+      <li>
+        <p>Select <uicontrol>Use EFI</uicontrol> to boot the guest OS using Extended Firmware Interface (EFI).</p>
+      </li>
     </ol>
   </body>
 </topic>

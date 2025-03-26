@@ -4,10 +4,7 @@
   <title>Cloud Networks</title>
   
   <body>
-    <p>Cloud networks can be used for connections from a local VM to a subnet on a remote <ph
-        conkeyref="vbox-conkeyref-phrases/oci"/> instance. See <xref
-        href="edit-network.dita#network-manager-cloud-network-tab"/> for details of how to create
-      and configure a cloud network using the Network Manager tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>. </p>
+    <p>Cloud networks can be used for connections from a local VM to a subnet on a remote <ph conkeyref="vbox-conkeyref-phrases/oci"/> instance. See <xref href="config-network.dita"/> for details of how to create and configure a cloud network using the <uicontrol>Network</uicontrol> tool in <ph conkeyref="vbox-conkeyref-phrases/vbox-mgr"/>.</p>
     <p>To enable a cloud network interface for a virtual machine, do either of the following: </p>
     <ul>
       <li>

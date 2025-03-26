@@ -1406,8 +1406,13 @@ static int vbsvcAutomounterMountIt(PVBSVCAUTOMOUNTERENTRY pEntry)
                      pEntry->pszName, pEntry->pszActualMountPoint);
         return VINF_SUCCESS;
     }
-    VGSvcError("vbsvcAutomounterMountIt: Failed to attach '%s' to '%s': %Rrc (%u)\n",
-               pEntry->pszName, pEntry->pszActualMountPoint, RTErrConvertFromWin32(dwErr), dwErr);
+    else if (dwErr == ERROR_BAD_PROVIDER)
+        VGSvcError("vbsvcAutomounterMountIt: Failed to attach '%s' to '%s': VirtualBox Shared Folders provider not or " \
+                   "incorrectly installed, can't continue\n",
+                   pEntry->pszName, pEntry->pszActualMountPoint);
+    else
+        VGSvcError("vbsvcAutomounterMountIt: Failed to attach '%s' to '%s': %Rrc (%u)\n",
+                   pEntry->pszName, pEntry->pszActualMountPoint, RTErrConvertFromWin32(dwErr), dwErr);
     return VERR_OPEN_FAILED;
 
 #elif defined(RT_OS_OS2)

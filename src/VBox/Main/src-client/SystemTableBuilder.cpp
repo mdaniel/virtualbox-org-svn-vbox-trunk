@@ -344,13 +344,15 @@ int SystemTableBuilderAcpi::addMmioDevice(const char *pszVBoxName, uint32_t uIns
 
 
 int SystemTableBuilderAcpi::configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist,
-                                         RTGCPHYS cbMmioIntcReDist)
+                                         RTGCPHYS cbMmioIntcReDist, RTGCPHYS GCPhysIntcIts, RTGCPHYS cbMmioIntcIts)
 {
     m_cCpus            = cCpus;
     m_GCPhysIntcDist   = GCPhysIntcDist;
     m_cbMmioIntcDist   = cbMmioIntcDist;
     m_GCPhysIntcReDist = GCPhysIntcReDist;
     m_cbMmioIntcReDist = cbMmioIntcReDist;
+    m_GCPhysIntcIts    = GCPhysIntcIts;
+    m_cbMmioIntcIts    = cbMmioIntcIts;
     return VINF_SUCCESS;
 }
 
@@ -521,6 +523,15 @@ int SystemTableBuilderAcpi::buildMadt(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt)
     pGicr->cbGicrRange              = m_cbMmioIntcReDist;
 
     cbMadt += sizeof(*pGicr);
+
+    /* Build the GITS. */
+    PACPIMADTGICITS pGits = (PACPIMADTGICITS)(pGicr + 1);
+    pGits->bType                    = ACPI_MADT_INTR_CTRL_TYPE_GIC_ITS;
+    pGits->cbThis                   = sizeof(*pGits);
+    pGits->u64PhysAddrBase          = m_GCPhysIntcIts;
+    pGits->u32GicItsId              = 0;
+
+    cbMadt += sizeof(*pGits);
 
     /* Finalize the MADT. */
     pMadt->Hdr.u32Signature       = ACPI_TABLE_HDR_SIGNATURE_APIC;
@@ -1441,9 +1452,9 @@ int SystemTableBuilder::addMmioDevice(const char *pszVBoxName, uint32_t uInstanc
 
 
 int SystemTableBuilder::configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist,
-                                     RTGCPHYS cbMmioIntcReDist)
+                                     RTGCPHYS cbMmioIntcReDist, RTGCPHYS GCPhysIntcIts, RTGCPHYS cbMmioIntcIts)
 {
-    RT_NOREF(cCpus, GCPhysIntcDist, cbMmioIntcDist, GCPhysIntcReDist, cbMmioIntcReDist);
+    RT_NOREF(cCpus, GCPhysIntcDist, cbMmioIntcDist, GCPhysIntcReDist, cbMmioIntcReDist, GCPhysIntcIts, cbMmioIntcIts);
     return VERR_NOT_IMPLEMENTED;
 }
 

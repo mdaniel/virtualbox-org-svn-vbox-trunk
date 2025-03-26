@@ -60,7 +60,8 @@ public:
     virtual int addMemory(RTGCPHYS GCPhysStart, RTGCPHYS cbMem);
     virtual int addMmioDeviceNoIrq(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio);
     virtual int addMmioDevice(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio, uint32_t u32Irq);
-    virtual int configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist, RTGCPHYS cbMmioIntcReDist);
+    virtual int configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist,
+                             RTGCPHYS cbMmioIntcReDist, RTGCPHYS GCPhysIntcIts, RTGCPHYS cbMmioIntcIts);
     virtual int configureClock(void);
     virtual int configurePcieRootBus(const char *pszVBoxName, uint32_t aPinIrqs[4], RTGCPHYS GCPhysMmioPio, RTGCPHYS GCPhysMmioEcam, size_t cbPciMmioEcam,
                                      RTGCPHYS GCPhysPciMmioBase, RTGCPHYS cbPciMmio, RTGCPHYS GCPhysPciMmio32Base, RTGCPHYS cbPciMmio32);
@@ -85,7 +86,8 @@ public:
     int addMemory(RTGCPHYS GCPhysStart, RTGCPHYS cbMem);
     int addMmioDeviceNoIrq(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio);
     int addMmioDevice(const char *pszVBoxName, uint32_t uInstance, RTGCPHYS GCPhysMmio, RTGCPHYS cbMmio, uint32_t u32Irq);
-    int configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist, RTGCPHYS cbMmioIntcReDist);
+    int configureGic(uint32_t cCpus, RTGCPHYS GCPhysIntcDist, RTGCPHYS cbMmioIntcDist, RTGCPHYS GCPhysIntcReDist,
+                     RTGCPHYS cbMmioIntcReDist, RTGCPHYS GCPhysIntcIts, RTGCPHYS cbMmioIntcIts);
     int configureClock(void);
     int configurePcieRootBus(const char *pszVBoxName, uint32_t aPinIrqs[4], RTGCPHYS GCPhysMmioPio, RTGCPHYS GCPhysMmioEcam, size_t cbPciMmioEcam,
                              RTGCPHYS GCPhysPciMmioBase, RTGCPHYS cbPciMmio, RTGCPHYS GCPhysPciMmio32Base, RTGCPHYS cbPciMmio32);
@@ -110,6 +112,8 @@ private:
     RTGCPHYS m_cbMmioIntcDist;
     RTGCPHYS m_GCPhysIntcReDist;
     RTGCPHYS m_cbMmioIntcReDist;
+    RTGCPHYS m_GCPhysIntcIts;
+    RTGCPHYS m_cbMmioIntcIts;
 
     RTGCPHYS m_GCPhysPciMmioEcam;
     uint8_t  m_bPciBusMax;

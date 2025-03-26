@@ -506,12 +506,17 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         RTGCPHYS GCPhysIntcReDist;
         RTGCPHYS cbMmioIntcReDist;
 
+        /** @todo Add API for configuring a GIC ITS for the VM and init this value from
+         *        there. */
+        BOOL fGicIts = FALSE;
+
         /* Allow for up to 256 vCPUs in the future without changing the address space layout. */
         hrc = pResMgr->assignMmioRegion("gic", _64K + 256 * _128K, &GCPhysIntcDist, &cbMmioIntcDist);     H();
         GCPhysIntcReDist = GCPhysIntcDist + _64K;
         cbMmioIntcReDist = 256 * _128K;
         cbMmioIntcDist = _64K;
 
+        /* Reserve an MMIO region for the GIC ITS even if it might not be configured for the VM. */
         hrc = pResMgr->assignMmioRegion("gic-its", 2 * _64K, &GCPhysIntcIts, &cbMmioIntcIts);             H();
 
 #ifdef RT_OS_DARWIN
@@ -525,7 +530,8 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         InsertConfigNode(pInst,    "Config",                &pCfg);
         InsertConfigInteger(pCfg,  "DistributorMmioBase",   GCPhysIntcDist);
         InsertConfigInteger(pCfg,  "RedistributorMmioBase", GCPhysIntcReDist);
-        InsertConfigInteger(pCfg,  "ItsMmioBase",           GCPhysIntcIts);
+        if (fGicIts == TRUE)
+            InsertConfigInteger(pCfg, "ItsMmioBase", GCPhysIntcIts);
 
         vrc = RTFdtNodeAddF(hFdt, "intc@%RGp", GCPhysIntcDist);                                         VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "phandle",          idPHandleIntCtrl);                 VRC();
@@ -543,7 +549,7 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
         if (pSysTblsBldAcpi)
         {
             vrc = pSysTblsBldAcpi->configureGic(cCpus, GCPhysIntcDist, cbMmioIntcDist,
-                                                GCPhysIntcReDist, cbMmioIntcReDist);
+                                                GCPhysIntcReDist, cbMmioIntcReDist, GCPhysIntcIts, cbMmioIntcIts);
             VRC();
         }
 

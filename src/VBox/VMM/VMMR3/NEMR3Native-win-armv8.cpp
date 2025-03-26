@@ -655,9 +655,10 @@ static int nemR3WinGicCreate(PVM pVM)
 
     RTGCPHYS GCPhysMmioBaseIts = 0;
     rc = CFGMR3QueryU64(pGicCfg, "ItsMmioBase", &GCPhysMmioBaseIts);
-    if (RT_FAILURE(rc))
+    if (RT_FAILURE(rc) && rc != VERR_CFGM_VALUE_NOT_FOUND)
         return VMSetError(pVM, rc, RT_SRC_POS,
                           "Configuration error: Failed to get the \"ItsMmioBase\" value\n");
+    rc = VINF_SUCCESS;
 
     /*
      * One can only set the GIC distributor base. The re-distributor regions for the individual

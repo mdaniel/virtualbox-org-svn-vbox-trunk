@@ -80,7 +80,8 @@ typedef GICHVDEV const *PCGICHVDEV;
 
 /*
  * The following definitions appeared in build 27744 allow interacting with the GIC controller,
- * (there is no official SDK for this yet).
+ * since 27813 the API is public with some changes and available under:
+ *      https://github.com/MicrosoftDocs/Virtualization-Documentation/blob/main/virtualization/api/hypervisor-platform/headers/WinHvPlatformDefs.h .
  */
 /** @todo Better way of defining these which doesn't require casting later on when calling APIs. */
 #define MY_WHV_ARM64_IINTERRUPT_TYPE_FIXED UINT32_C(0)
@@ -176,8 +177,11 @@ AssertCompileSize(MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE, 7 * sizeof(uint64_t) 
 
 #define MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE_VERSION 1
 
-#define MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_LOCAL_INTERRUPT_CTRL  (WHV_VIRTUAL_PROCESSOR_STATE_TYPE)0x00001000
-#define MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_GLOBAL_INTERRUPT_CTRL (WHV_VIRTUAL_PROCESSOR_STATE_TYPE)0x00001003
+#define WHV_VIRTUAL_PROCESSOR_STATE_TYPE_PFN    RT_BIT_32(31)
+#define WHV_VIRTUAL_PROCESSOR_STATE_TYPE_ANY_VP RT_BIT_32(30)
+
+#define WHvVirtualProcessorStateTypeInterruptControllerState  (WHV_VIRTUAL_PROCESSOR_STATE_TYPE)(0 | WHV_VIRTUAL_PROCESSOR_STATE_TYPE_PFN)
+#define WHvVirtualProcessorStateTypeGlobalInterruptState      (WHV_VIRTUAL_PROCESSOR_STATE_TYPE)(6 | WHV_VIRTUAL_PROCESSOR_STATE_TYPE_PFN | WHV_VIRTUAL_PROCESSOR_STATE_TYPE_ANY_VP)
 
 
 /*********************************************************************************************************************************
@@ -371,7 +375,7 @@ static DECLCALLBACK(int) gicR3HvSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
      *        a compatible saved state format between all possible GIC variants (no idea whether this is feasible).
      */
     uint32_t cbWritten = 0;
-    HRESULT hrc = WHvGetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_GLOBAL_INTERRUPT_CTRL,
+    HRESULT hrc = WHvGetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,
                                               NULL, 0, &cbWritten);
     AssertLogRelMsgReturn(hrc == WHV_E_INSUFFICIENT_BUFFER,
                           ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,) -> %Rhrc (Last=%#x/%u)\n",
@@ -384,7 +388,7 @@ static DECLCALLBACK(int) gicR3HvSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     AssertLogRelMsgReturn(pState, ("Allocating %u bytes of memory for the global interrupt state buffer failed\n", cbState),
                           VERR_NO_MEMORY);
 
-    hrc = WHvGetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_GLOBAL_INTERRUPT_CTRL,
+    hrc = WHvGetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,
                                       pState, cbState, &cbWritten);
     AssertLogRelMsg(SUCCEEDED(hrc),
                     ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState, %p, %u) -> %Rhrc (Last=%#x/%u)\n",
@@ -416,7 +420,7 @@ static DECLCALLBACK(int) gicR3HvSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
     {
         MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE LocalState;
 
-        hrc = WHvGetVirtualProcessorState(pThis->hPartition, idCpu, MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_LOCAL_INTERRUPT_CTRL,
+        hrc = WHvGetVirtualProcessorState(pThis->hPartition, idCpu, WHvVirtualProcessorStateTypeInterruptControllerState,
                                           &LocalState, sizeof(LocalState), &cbWritten);
         AssertLogRelMsgReturn(SUCCEEDED(hrc),
                               ("WHvGetVirtualProcessorState(%p, WHV_ANY_VP, WHvVirtualProcessorStateTypeInterruptControllerState2,) -> %Rhrc (Last=%#x/%u)\n",
@@ -493,7 +497,7 @@ static DECLCALLBACK(int) gicR3HvLoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, ui
     }
     AssertRCReturnStmt(rc, RTMemTmpFree(pState), rc);
 
-    HRESULT hrc = WHvSetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_GLOBAL_INTERRUPT_CTRL,
+    HRESULT hrc = WHvSetVirtualProcessorState(pThis->hPartition, WHV_ANY_VP, WHvVirtualProcessorStateTypeGlobalInterruptState,
                                               pState, cbState);
     RTMemTmpFree(pState);
     pState = NULL;
@@ -516,7 +520,7 @@ static DECLCALLBACK(int) gicR3HvLoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, ui
 
         LocalState.bVersion = MY_WHV_LOCAL_INTERRUPT_CONTROLLER_STATE_VERSION;
 
-        hrc = WHvSetVirtualProcessorState(pThis->hPartition, idCpu, MY_WHV_VIRTUAL_PROCESSOR_STATE_TYPE_LOCAL_INTERRUPT_CTRL,
+        hrc = WHvSetVirtualProcessorState(pThis->hPartition, idCpu, WHvVirtualProcessorStateTypeInterruptControllerState,
                                           &LocalState, sizeof(LocalState));
         AssertLogRelMsgReturn(SUCCEEDED(hrc),
                               ("WHvSetVirtualProcessorState(%p, %u, WHvVirtualProcessorStateTypeInterruptControllerState2,) -> %Rhrc (Last=%#x/%u)\n",

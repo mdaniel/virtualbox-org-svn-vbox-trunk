@@ -498,11 +498,11 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     /*
      * Finally, perform sanity checks.
      */
-    if (pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4)
+    if (pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCHREV_GICV4)
     { /* likely */ }
     else
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid uArchRev, got %u expected range [1,31]"), pGicDev->uArchRev,
-                                       GIC_DIST_REG_PIDR2_ARCH_REV_GICV1, GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
+                                       GIC_DIST_REG_PIDR2_ARCHREV_GICV1, GIC_DIST_REG_PIDR2_ARCHREV_GICV4);
     if (pGicDev->uMaxSpi - 1 < 31)
     { /* likely */ }
     else
@@ -610,14 +610,15 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
 #endif
 
     /** @devcfgm{gic, ArchRev, uint8_t, 3}
-     * Configures the GIC architecture revision (GICD_PIDR2.ArchRev and
-     * GICR_PIDR2.ArchRev).
+     * Configures the GIC architecture revision (GICD_PIDR2.ArchRev, GICR_PIDR2.ArchRev
+     * and GITS_PIDR2.ArchRev).
      *
-     * Currently we only support GICv3. */
+     * Currently we only support GICv3 and the architecture revision reported is the
+     * same for both the GIC and the ITS. */
     int rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRev", &pGicDev->uArchRev, 3);
     AssertLogRelRCReturn(rc, rc);
     if (pGicDev->uArchRev == 3)
-    { /* likely */ }
+        pGicDev->Gits.uArchRev = pGicDev->uArchRev;
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Configuration error: \"ArchRev\" value %u is not supported"), pGicDev->uArchRev);
@@ -695,13 +696,16 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /** @devcfgm{gic, Nmi, bool, false}
      * Configures whether non-maskable interrupts (NMIs) are supported
      * (GICD_TYPER.NMI). */
+    /** @todo NMIs are currently not implemented. */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Nmi", &pGicDev->fNmi, false);
     AssertLogRelRCReturn(rc, rc);
 
-    /** @devcfgm{gic, Mbi, bool, true}
+    /** @devcfgm{gic, Mbi, bool, false}
      * Configures whether message-based interrupts (MBIs) are supported
-     * (GICD_TYPER.MBIS). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, true);
+     * (GICD_TYPER.MBIS).
+     *
+     * Guests typically can't use MBIs without an ITS. */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Mbi", &pGicDev->fMbi, false);
     AssertLogRelRCReturn(rc, rc);
 
     /** @devcfgm{gic, Aff3Levels, bool, true}
@@ -710,10 +714,13 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Aff3Levels", &pGicDev->fAff3Levels, true);
     AssertLogRelRCReturn(rc, rc);
 
-    /** @devcfgm{gic, Lpi, bool, true}
+    /** @devcfgm{gic, Lpi, bool, false}
      * Configures whether physical LPIs are supported (GICD_TYPER.LPIS and
-     * GICR_TYPER.PLPIS). */
-    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Lpi", &pGicDev->fLpi, true);
+     * GICR_TYPER.PLPIS).
+     *
+     * This currently requires an ITS as we do not support direction injection of
+     * LPIs as most guests do not use them anyway. */
+    rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "Lpi", &pGicDev->fLpi, false);
     AssertLogRelRCReturn(rc, rc);
 
     /** @devcfgm{gic, MaxLpi, uint8_t, 14}

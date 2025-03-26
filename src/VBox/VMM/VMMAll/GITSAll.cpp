@@ -33,6 +33,7 @@
 #include "GITSInternal.h"
 
 #include <VBox/log.h>
+#include <VBox/gic.h>
 #include <iprt/errcore.h>       /* VINF_SUCCESS */
 #include <iprt/string.h>        /* RT_ZERO */
 
@@ -103,8 +104,18 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
         case GITS_CTRL_REG_CTLR_OFF:
             *puValue = pGitsDev->fUnmappedMsiReporting;
             break;
+        case GITS_CTRL_REG_PIDR2_OFF:
+        {
+            Assert(pGitsDev->uArchRev <= GITS_CTRL_REG_PIDR2_ARCHREV_GICV4);
+            uint8_t const uIdCodeDes1 = GIC_JEDEC_JEP10_DES_1(GIC_JEDEC_JEP106_IDENTIFICATION_CODE);
+            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_DES_1,   uIdCodeDes1)
+                     | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_JEDEC,   1)
+                     | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_ARCHREV, pGitsDev->uArchRev);
+            break;
+        }
         default:
-            AssertReleaseFailed();
+            AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
+            break;
     }
 
     return rcStrict;
@@ -114,6 +125,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_t offReg, uint32_t *puValue)
 {
     RT_NOREF(pGitsDev, offReg, puValue);
+    AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
     return VERR_NOT_IMPLEMENTED;
 }
 
@@ -121,6 +133,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uin
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint32_t uValue)
 {
     RT_NOREF(pGitsDev, offReg, uValue);
+    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
     return VERR_NOT_IMPLEMENTED;
 }
 
@@ -128,6 +141,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t offReg, uint32_t uValue)
 {
     RT_NOREF(pGitsDev, offReg, uValue);
+    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
     return VERR_NOT_IMPLEMENTED;
 }
 

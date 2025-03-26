@@ -203,6 +203,33 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PARTIDR_, UINT32_C(0), UINT32_MAX, 
 #define GITS_CTRL_REG_BASER_OFF_LAST                            0x0138
 #define GITS_CTRL_REG_BASER_RANGE_SIZE                          (GITS_CTRL_REG_BASER_OFF_LAST + sizeof(uint64_t) - GITS_CTRL_REG_BASER_OFF_FIRST)
 
+/** GITS_PIDR2: ITS Peripheral ID2 register - RO. */
+#define GITS_CTRL_REG_PIDR2_OFF                                 0xffe8
+/** GITS_PIDR2: JEDEC - JEP code. */
+#define GITS_BF_CTRL_REG_PIDR2_JEDEC_SHIFT                      0
+#define GITS_BF_CTRL_REG_PIDR2_JEDEC_MASK                       UINT32_C(0x00000007)
+/** GITS_PIDR2: DES_1 - JEP106 identification code (bits 6:4).  */
+#define GITS_BF_CTRL_REG_PIDR2_DES_1_SHIFT                      3
+#define GITS_BF_CTRL_REG_PIDR2_DES_1_MASK                       UINT32_C(0x00000008)
+/** GITS_PIDR2: Architecture revision . */
+#define GITS_BF_CTRL_REG_PIDR2_ARCHREV_SHIFT                    4
+#define GITS_BF_CTRL_REG_PIDR2_ARCHREV_MASK                     UINT32_C(0x000000f0)
+/** GITS_PIDR2: Reserved (bits 31:8). */
+#define GITS_BF_CTRL_REG_PIDR2_RSVD_31_8_SHIFT                  8
+#define GITS_BF_CTRL_REG_PIDR2_RSVD_31_8_MASK                   UINT32_C(0xffffff00)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PIDR2_, UINT32_C(0), UINT32_MAX,
+                            (JEDEC, DES_1, ARCHREV, RSVD_31_8));
+
+/** GITS_PIDR2: GICv1 architecture revision. */
+#define GITS_CTRL_REG_PIDR2_ARCHREV_GICV1                       0x1
+/** GITS_PIDR2: GICv2 architecture revision. */
+#define GITS_CTRL_REG_PIDR2_ARCHREV_GICV2                       0x2
+/** GITS_PIDR2: GICv3 architecture revision. */
+#define GITS_CTRL_REG_PIDR2_ARCHREV_GICV3                       0x3
+/** GITS_PIDR2: GICv4 architecture revision. */
+#define GITS_CTRL_REG_PIDR2_ARCHREV_GICV4                       0x4
+
+/** GITS_TRANSLATER register. */
 #define GITS_TRANSLATION_REG_TRANSLATER                         0x0040
 
 /**

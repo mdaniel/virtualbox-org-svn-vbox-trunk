@@ -388,17 +388,16 @@
 /** Distributor Peripheral ID2 Register - RO. */
 #define GIC_DIST_REG_PIDR2_OFF                          0xffe8
 /** Bit 4 - 7 - GIC architecture revision */
-# define GIC_DIST_REG_PIDR2_ARCH_REV                    (  RT_BIT_32(4) | RT_BIT_32(5) | RT_BIT_32(6) \
-                                                         | RT_BIT_32(7))
-# define GIC_DIST_REG_PIDR2_ARCH_REV_SET(a_ArchRev)     (((a_ArchRev) << 4) & GIC_DIST_REG_PIDR2_ARCH_REV)
+# define GIC_DIST_REG_PIDR2_ARCHREV                     (RT_BIT_32(4) | RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7))
+# define GIC_DIST_REG_PIDR2_ARCHREV_SET(a_ArchRev)      (((a_ArchRev) << 4) & GIC_DIST_REG_PIDR2_ARCHREV)
 /** GICv1 architecture revision. */
-#  define GIC_DIST_REG_PIDR2_ARCH_REV_GICV1             0x1
+#  define GIC_DIST_REG_PIDR2_ARCHREV_GICV1              0x1
 /** GICv2 architecture revision. */
-#  define GIC_DIST_REG_PIDR2_ARCH_REV_GICV2             0x2
+#  define GIC_DIST_REG_PIDR2_ARCHREV_GICV2              0x2
 /** GICv3 architecture revision. */
-#  define GIC_DIST_REG_PIDR2_ARCH_REV_GICV3             0x3
+#  define GIC_DIST_REG_PIDR2_ARCHREV_GICV3              0x3
 /** GICv4 architecture revision. */
-#  define GIC_DIST_REG_PIDR2_ARCH_REV_GICV4             0x4
+#  define GIC_DIST_REG_PIDR2_ARCHREV_GICV4              0x4
 /** @} */
 
 
@@ -526,17 +525,16 @@
 /** Redistributor Peripheral ID2 Register - RO. */
 #define GIC_REDIST_REG_PIDR2_OFF                        0xffe8
 /** Bit 4 - 7 - GIC architecture revision */
-# define GIC_REDIST_REG_PIDR2_ARCH_REV                  (  RT_BIT_32(4) | RT_BIT_32(5) | RT_BIT_32(6) \
-                                                         | RT_BIT_32(7))
-# define GIC_REDIST_REG_PIDR2_ARCH_REV_SET(a_ArchRev)   (((a_ArchRev) << 4) & GIC_DIST_REG_PIDR2_ARCH_REV)
+# define GIC_REDIST_REG_PIDR2_ARCHREV                   (RT_BIT_32(4) | RT_BIT_32(5) | RT_BIT_32(6) | RT_BIT_32(7))
+# define GIC_REDIST_REG_PIDR2_ARCHREV_SET(a_ArchRev)    (((a_ArchRev) << 4) & GIC_REDIST_REG_PIDR2_ARCHREV)
 /** GICv1 architecture revision. */
-#  define GIC_REDIST_REG_PIDR2_ARCH_REV_GICV1           0x1
+#  define GIC_REDIST_REG_PIDR2_ARCHREV_GICV1            0x1
 /** GICv2 architecture revision. */
-#  define GIC_REDIST_REG_PIDR2_ARCH_REV_GICV2           0x2
+#  define GIC_REDIST_REG_PIDR2_ARCHREV_GICV2            0x2
 /** GICv3 architecture revision. */
-#  define GIC_REDIST_REG_PIDR2_ARCH_REV_GICV3           0x3
+#  define GIC_REDIST_REG_PIDR2_ARCHREV_GICV3            0x3
 /** GICv4 architecture revision. */
-#  define GIC_REDIST_REG_PIDR2_ARCH_REV_GICV4           0x4
+#  define GIC_REDIST_REG_PIDR2_ARCHREV_GICV4            0x4
 /** @} */
 
 
@@ -639,6 +637,19 @@
 #define GIC_REDIST_SGI_PPI_REG_INMIRnE_OFF_LAST         0x0ffc
 /** @} */
 
+
+/** @name JEDEC codes for ARM.
+ * @{ */
+/** JEP106 identification code. */
+#define GIC_JEDEC_JEP106_IDENTIFICATION_CODE            0x3b
+/** JEP106 continuation code. */
+#define GIC_JEDEC_JEP106_CONTINUATION_CODE              0x4
+
+/** DES_0 - JEP106 identification code bits (3:0). */
+#define GIC_JEDEC_JEP10_DES_0(a_JepIdCode)              ((a_JepIdCode) & 0xf)
+/** DES_1 - JEP106 identification code bits (6:4). */
+#define GIC_JEDEC_JEP10_DES_1(a_JepIdCode)              (((a_JepIdCode) >> 4) & 0x70)
+/** @} */
 
 #endif /* !VBOX_INCLUDED_gic_h */
 

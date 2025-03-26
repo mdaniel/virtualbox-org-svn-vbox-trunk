@@ -83,6 +83,14 @@ typedef struct GITSDEV
     /** @name Interrupt translation space.
      * @{ */
     /** @} */
+
+    /** @name Configurables.
+     * @{ */
+    /** The ITS architecture (GITS_PIDR2.ArchRev). */
+    uint8_t                 uArchRev;
+    /** Padding. */
+    uint8_t                 afPadding0[7];
+    /** @} */
 } GITSDEV;
 /** Pointer to a GITS device. */
 typedef GITSDEV *PGITSDEV;

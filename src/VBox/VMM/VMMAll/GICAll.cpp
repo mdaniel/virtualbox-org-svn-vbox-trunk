@@ -2032,8 +2032,8 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             break;
         }
         case GIC_DIST_REG_PIDR2_OFF:
-            Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
-            *puValue = GIC_DIST_REG_PIDR2_ARCH_REV_SET(pGicDev->uArchRev);
+            Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCHREV_GICV4);
+            *puValue = GIC_DIST_REG_PIDR2_ARCHREV_SET(pGicDev->uArchRev);
             break;
         case GIC_DIST_REG_IIDR_OFF:
             *puValue = 0x43b;   /* JEP106 code 0x43b is an ARM implementation. */
@@ -2282,8 +2282,8 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = idRedist;
             break;
         case GIC_REDIST_REG_PIDR2_OFF:
-            Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
-            *puValue = GIC_REDIST_REG_PIDR2_ARCH_REV_SET(pGicDev->uArchRev);
+            Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCHREV_GICV4);
+            *puValue = GIC_REDIST_REG_PIDR2_ARCHREV_SET(pGicDev->uArchRev);
             break;
         case GIC_REDIST_REG_CTLR_OFF:
             *puValue = GIC_REDIST_REG_CTLR_CES_SET(1);
@@ -3025,7 +3025,6 @@ static void gicInit(PPDMDEVINS pDevIns)
 {
     LogFlowFunc(("\n"));
     PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    PGITSDEV pGitsDev = &pGicDev->Gits;
 
     RT_ZERO(pGicDev->bmIntrGroup);
     RT_ZERO(pGicDev->bmIntrConfig);
@@ -3040,6 +3039,8 @@ static void gicInit(PPDMDEVINS pDevIns)
     pGicDev->fAffRoutingEnabled = true; /* GICv2 backwards compatibility is not implemented, so this is RA1/WI. */
     RT_ZERO(pGicDev->bmLpiPending);
     RT_ZERO(pGicDev->abLpiConfig);
+
+    PGITSDEV pGitsDev = &pGicDev->Gits;
     gitsInit(pGitsDev);
 }
 
@@ -3241,8 +3242,6 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioRead(PPDMDEVINS pDevIns, void *pvUs
     RT_NOREF_PV(pvUser);
     Assert(!(off & 0x3));
     Assert(cb == 4); RT_NOREF_PV(cb);
-
-    AssertReleaseFailed();
 
     PCGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     PCGITSDEV pGitsDev = &pGicDev->Gits;

@@ -2031,30 +2031,6 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             }
             break;
         }
-        case GIC_DIST_REG_STATUSR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_ITARGETSRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_IGRPMODRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_NSACRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SGIR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_CPENDSGIRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SPENDSGIRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_INMIn_OFF_START:
-            AssertReleaseFailed();
-            break;
         case GIC_DIST_REG_PIDR2_OFF:
             Assert(pGicDev->uArchRev <= GIC_DIST_REG_PIDR2_ARCH_REV_GICV4);
             *puValue = GIC_DIST_REG_PIDR2_ARCH_REV_SET(pGicDev->uArchRev);
@@ -2254,42 +2230,6 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
             pGicDev->fIntrGroup1Enabled = RT_BOOL(uValue & GIC_DIST_REG_CTRL_ENABLE_GRP1_NS);
             rcStrict = gicDistUpdateIrqState(pVM, pGicDev);
             break;
-        case GIC_DIST_REG_STATUSR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SETSPI_NSR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_CLRSPI_NSR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SETSPI_SR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_CLRSPI_SR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_ITARGETSRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_IGRPMODRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_NSACRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SGIR_OFF:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_CPENDSGIRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_SPENDSGIRn_OFF_START:
-            AssertReleaseFailed();
-            break;
-        case GIC_DIST_REG_INMIn_OFF_START:
-            AssertReleaseFailed();
-            break;
         default:
         {
             /* Windows 11 arm64 (24H2) writes zeroes into these reserved registers. We ignore them. */
@@ -2332,6 +2272,9 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             Assert(!pGicDev->fExtPpi || pGicDev->uMaxExtPpi > 0);
             break;
         }
+        case GIC_REDIST_REG_WAKER_OFF:
+            *puValue = 0;
+            break;
         case GIC_REDIST_REG_IIDR_OFF:
             *puValue = 0x43b;    /* JEP106 code 0x43b is an ARM implementation. */
             break;
@@ -2346,6 +2289,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = GIC_REDIST_REG_CTLR_CES_SET(1);
             break;
         default:
+            AssertReleaseMsgFailed(("offReg=%#x\n",  offReg));
             *puValue = 0;
             break;
     }
@@ -2443,7 +2387,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
         return gicReDistReadIntrConfigReg(pGicDev, pGicCpu, idxReg, puValue);
     }
 
-    AssertReleaseFailed();
+    AssertReleaseMsgFailed(("offReg=%#x\n",  offReg));
     *puValue = 0;
     return VINF_SUCCESS;
 }
@@ -2470,7 +2414,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
             Assert(uValue == 0);
             break;
         default:
-            AssertReleaseFailed();
+            AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
             break;
     }
 

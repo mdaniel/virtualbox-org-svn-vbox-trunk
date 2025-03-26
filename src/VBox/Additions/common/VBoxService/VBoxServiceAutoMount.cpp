@@ -209,8 +209,11 @@ static DECLCALLBACK(int) vbsvcAutomounterInit(void)
     {
         /* If the service was not found, we disable this service without
            causing VBoxService to fail. */
-        if (   rc == VERR_HGCM_SERVICE_NOT_FOUND                          /* Host service is not available. */
-            || RTSystemGetNtVersion() <= RTSYSTEM_MAKE_NT_VERSION(4,0,0)) /* On <= NT4 guests no Shared Folders are available. */
+        if (   rc == VERR_HGCM_SERVICE_NOT_FOUND                         /* Host service is not available. */
+#ifdef RT_OS_WINDOWS
+            || RTSystemGetNtVersion() <= RTSYSTEM_MAKE_NT_VERSION(4,0,0) /* On <= NT4 guests no Shared Folders are available. */
+#endif
+           )
         {
             VGSvcVerbose(0, "vbsvcAutomounterInit: Shared Folders service is not available\n");
             rc = VERR_SERVICE_DISABLED;

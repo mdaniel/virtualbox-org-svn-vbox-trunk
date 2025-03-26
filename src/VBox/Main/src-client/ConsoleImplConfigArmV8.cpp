@@ -535,6 +535,8 @@ int Console::i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, Au
             InsertConfigInteger(pCfg, "ItsMmioBase", GCPhysIntcIts);
             InsertConfigInteger(pCfg, "Lpi",         1);
         }
+        else
+            GCPhysIntcIts = cbMmioIntcIts = 0;
 
         vrc = RTFdtNodeAddF(hFdt, "intc@%RGp", GCPhysIntcDist);                                         VRC();
         vrc = RTFdtNodePropertyAddU32(     hFdt, "phandle",          idPHandleIntCtrl);                 VRC();

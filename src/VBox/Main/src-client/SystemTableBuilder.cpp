@@ -524,14 +524,19 @@ int SystemTableBuilderAcpi::buildMadt(RTVFSIOSTREAM hVfsIos, size_t *pcbMadt)
 
     cbMadt += sizeof(*pGicr);
 
-    /* Build the GITS. */
-    PACPIMADTGICITS pGits = (PACPIMADTGICITS)(pGicr + 1);
-    pGits->bType                    = ACPI_MADT_INTR_CTRL_TYPE_GIC_ITS;
-    pGits->cbThis                   = sizeof(*pGits);
-    pGits->u64PhysAddrBase          = m_GCPhysIntcIts;
-    pGits->u32GicItsId              = 0;
+    /* Build the GITS only if it's enabled for the VM. */
+    if (m_GCPhysIntcIts)
+    {
+        Assert(m_cbMmioIntcIts > 0);
+        Assert(m_GCPhysIntcIts != NIL_RTGCPHYS);
+        PACPIMADTGICITS pGits = (PACPIMADTGICITS)(pGicr + 1);
+        pGits->bType           = ACPI_MADT_INTR_CTRL_TYPE_GIC_ITS;
+        pGits->cbThis          = sizeof(*pGits);
+        pGits->u64PhysAddrBase = m_GCPhysIntcIts;
+        pGits->u32GicItsId     = 0;
 
-    cbMadt += sizeof(*pGits);
+        cbMadt += sizeof(*pGits);
+    }
 
     /* Finalize the MADT. */
     pMadt->Hdr.u32Signature       = ACPI_TABLE_HDR_SIGNATURE_APIC;

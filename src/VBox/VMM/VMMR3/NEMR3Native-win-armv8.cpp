@@ -76,6 +76,9 @@ HRESULT WINAPI WHvQueryGpaRangeDirtyBitmap(WHV_PARTITION_HANDLE, WHV_GUEST_PHYSI
 # define WHvMapGpaRangeFlagTrackDirtyPages      ((WHV_MAP_GPA_RANGE_FLAGS)0x00000008)
 #endif
 
+/** Our saved state version for Hyper-V specific things. */
+#define NEM_HV_SAVED_STATE_VERSION 1
+
 
 /*
  * The following definitions appeared in build 27744 allow configuring the base address of the GICv3 controller,
@@ -1086,10 +1089,113 @@ int nemR3NativeInitAfterCPUM(PVM pVM)
 }
 
 
+/**
+ * Execute state save operation.
+ *
+ * @returns VBox status code.
+ * @param   pVM             The cross context VM structure.
+ * @param   pSSM            SSM operation handle.
+ */
+static DECLCALLBACK(int) nemR3Save(PVM pVM, PSSMHANDLE pSSM)
+{
+    /*
+     * Save the Hyper-V activity state for all CPUs.
+     */
+    for (VMCPUID i = 0; i < pVM->cCpus; i++)
+    {
+        PVMCPUCC pVCpu = pVM->apCpusR3[i];
+
+        static const WHV_REGISTER_NAME s_Name = WHvRegisterInternalActivityState;
+        WHV_REGISTER_VALUE Reg;
+
+        HRESULT hrc = WHvGetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, &s_Name, 1, &Reg);
+        AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                              ("WHvSetVirtualProcessorRegisters(%p, 0,{WHvRegisterInternalActivityState}, 1,) -> %Rhrc (Last=%#x/%u)\n",
+                               pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                              , VERR_NEM_IPE_9);
+
+        SSMR3PutU64(pSSM, Reg.Reg64);
+    }
+
+    return SSMR3PutU32(pSSM, UINT32_MAX); /* terminator */
+}
+
+
+/**
+ * Execute state load operation.
+ *
+ * @returns VBox status code.
+ * @param   pVM             The cross context VM structure.
+ * @param   pSSM            SSM operation handle.
+ * @param   uVersion        Data layout version.
+ * @param   uPass           The data pass.
+ */
+static DECLCALLBACK(int) nemR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass)
+{
+    Assert(uPass == SSM_PASS_FINAL); NOREF(uPass);
+
+    /*
+     * Validate version.
+     */
+    if (uVersion != 1)
+    {
+        AssertMsgFailed(("nemR3Load: Invalid version uVersion=%u!\n", uVersion));
+        return VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION;
+    }
+
+    /*
+     * Restore the Hyper-V activity states for all vCPUs.
+     */
+    VMCPU_SET_STATE(pVM->apCpusR3[0], VMCPUSTATE_STARTED);
+    for (VMCPUID i = 0; i < pVM->cCpus; i++)
+    {
+        PVMCPUCC pVCpu = pVM->apCpusR3[i];
+
+        static const WHV_REGISTER_NAME s_Name = WHvRegisterInternalActivityState;
+        WHV_REGISTER_VALUE Reg;
+        int rc = SSMR3GetU64(pSSM, &Reg.Reg64);
+        if (RT_FAILURE(rc))
+            return rc;
+
+        HRESULT hrc = WHvSetVirtualProcessorRegisters(pVM->nem.s.hPartition, pVCpu->idCpu, &s_Name, 1, &Reg);
+        AssertLogRelMsgReturn(SUCCEEDED(hrc),
+                              ("WHvSetVirtualProcessorRegisters(%p, 0,{WHvRegisterInternalActivityState}, 1,) -> %Rhrc (Last=%#x/%u)\n",
+                               pVM->nem.s.hPartition, pVCpu->idCpu, hrc, RTNtLastStatusValue(), RTNtLastErrorValue())
+                              , VERR_NEM_IPE_9);
+    }
+
+    /* terminator */
+    uint32_t u32;
+    int rc = SSMR3GetU32(pSSM, &u32);
+    if (RT_FAILURE(rc))
+        return rc;
+    if (u32 != UINT32_MAX)
+    {
+        AssertMsgFailed(("u32=%#x\n", u32));
+        return VERR_SSM_DATA_UNIT_FORMAT_CHANGED;
+    }
+    return VINF_SUCCESS;
+}
+
+
 int nemR3NativeInitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 {
     //BOOL fRet = SetThreadPriority(GetCurrentThread(), 0);
     //AssertLogRel(fRet);
+
+    if (enmWhat == VMINITCOMPLETED_RING3)
+    {
+        /*
+         * Register the saved state data unit.
+         */
+        int rc = SSMR3RegisterInternal(pVM, "nem-win", 1, NEM_HV_SAVED_STATE_VERSION,
+                                       sizeof(uint64_t),
+                                       NULL, NULL, NULL,
+                                       NULL, nemR3Save, NULL,
+                                       NULL, nemR3Load, NULL);
+        if (RT_FAILURE(rc))
+            return rc;
+    }
 
     NOREF(pVM); NOREF(enmWhat);
     return VINF_SUCCESS;

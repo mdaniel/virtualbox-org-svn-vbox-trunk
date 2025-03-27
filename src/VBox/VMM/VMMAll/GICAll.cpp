@@ -208,6 +208,7 @@ static const char *gicReDistGetRegDescription(uint16_t offReg)
             return "<UNKNOWN>";
     }
 }
+#endif /* LOG_ENABLED */
 
 
 /**
@@ -239,7 +240,6 @@ static const char *gicReDistGetSgiPpiRegDescription(uint16_t offReg)
             return "<UNKNOWN>";
     }
 }
-#endif /* LOG_ENABLED */
 
 
 /**

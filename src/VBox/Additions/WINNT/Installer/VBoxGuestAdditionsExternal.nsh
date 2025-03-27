@@ -25,6 +25,7 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
+
 ;;
 ; Macro for executing external applications.
 ;

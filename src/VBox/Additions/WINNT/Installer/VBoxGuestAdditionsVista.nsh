@@ -25,108 +25,123 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
-Function Vista_CheckForRequirements
 
-  Push $0
+;;
+; Callback function installation preparation for Windows >= Vista guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function Vista_CallbackPrepare
 
-  ${LogVerbose} "Checking for installation requirements for Vista / Windows 7 / Windows 8 ..."
-
-  ; Nothing to do here right now.
-
-  Pop $0
-
-FunctionEnd
-
-Function Vista_Prepare
+  ${LogVerbose} "Preparing for >= Vista ..."
 
   ; Try to restore the original Direct3D files in case we're coming from an old(er) Guest Additions
   ; installation, which formerly replaced those system files with our own stubs.
   ; This no longer is needed and thus needs to be reverted in any case.
   Call RestoreFilesDirect3D
   ; Ignore the result in case we had trouble restoring. The system would be in an inconsistent state anyway.
-
   Call VBoxMMR_Uninstall
 
 FunctionEnd
 
-Function Vista_CopyFiles
 
-  SetOutPath "$INSTDIR"
-  SetOverwrite on
+;;
+; Callback function for extracting files for Windows >= Vista guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function Vista_CallbackExtractFiles
 
-  ; The files are for Vista only, they go into the application directory
-
-  ; VBoxNET drivers are not tested yet - commented out until officially supported and released
-  ;FILE "$%PATH_OUT%\bin\additions\VBoxNET.inf"
-  ;FILE "$%PATH_OUT%\bin\additions\VBoxNET.sys"
-
-FunctionEnd
-
-Function Vista_InstallFiles
-
-  ${LogVerbose} "Installing drivers for Vista / Windows 7 / Windows 8 ..."
-
-  SetOutPath "$INSTDIR"
-  ; Nothing here yet
-
-!ifdef UNUSED_CODE
-  Goto done
-
-error:
-
-  Abort "ERROR: Could not install files! Installation aborted."
-
-done:
-!endif ; UNUSED_CODE
+  ${LogVerbose} "Extracting for >= Vista ..."
+  ; Nothing to do here yet.
 
 FunctionEnd
 
-Function Vista_Main
 
-  Call Vista_Prepare
-  Call Vista_CopyFiles
-  Call Vista_InstallFiles
+;;
+; Callback function for installation for Windows >= Vista guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function Vista_CallbackInstall
+
+  ${LogVerbose} "Installing for >= Vista ..."
+  ; Nothing to do here yet.
 
 FunctionEnd
 
-!macro Vista_UninstallInstDir un
-Function ${un}Vista_UninstallInstDir
 
-!if $%KBUILD_TARGET_ARCH% == "x86"       ; 32-bit
-  Delete /REBOOTOK "$INSTDIR\netamd.inf"
-  Delete /REBOOTOK "$INSTDIR\pcntpci5.cat"
-  Delete /REBOOTOK "$INSTDIR\PCNTPCI5.sys"
-!endif
+!macro Vista_CallbackDeleteFiles un
+;;
+; Callback function for deleting files for Windows >= Vista guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}Vista_CallbackDeleteFiles
+
+  ${LogVerbose} "Deleting files for >= Vista ..."
+  ; Nothing to do here.
 
 FunctionEnd
 !macroend
-;!insertmacro Vista_UninstallInstDir "" - only .un version used
-!insertmacro Vista_UninstallInstDir "un."
+!insertmacro Vista_CallbackDeleteFiles "un."
 
-!macro Vista_Uninstall un
-Function ${un}Vista_Uninstall
 
-   ; Remove credential provider
-   ${LogVerbose} "Removing auto-logon support ..."
-   DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}"
-   DeleteRegKey HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}"
-   Delete /REBOOTOK "$g_strSystemDir\VBoxCredProv.dll"
+!macro Vista_CallbackUninstall un
+;;
+; Callback function for uninstallation for Windows >= Vista guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}Vista_CallbackUninstall
 
-   Call ${un}VBoxMMR_Uninstall
+  ${LogVerbose} "Uninstalling for >= Vista ..."
+
+  ; Remove credential provider
+  ${LogVerbose} "Removing auto-logon support ..."
+  DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}"
+  DeleteRegKey HKCR "CLSID\{275D3BCC-22BB-4948-A7F6-3A3054EBA92B}"
+  Delete /REBOOTOK "$g_strSystemDir\VBoxCredProv.dll"
+
+  Call ${un}VBoxMMR_Uninstall
 
 FunctionEnd
 !macroend
 !ifndef UNINSTALLER_ONLY
-  !insertmacro Vista_Uninstall ""
+  !insertmacro Vista_CallbackUninstall ""
 !endif
-!insertmacro Vista_Uninstall "un."
+!insertmacro Vista_CallbackUninstall "un."
+
 
 !macro VBoxMMR_Uninstall un
+;;
+; Function for uninstalling the MMR driver.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
 Function ${un}VBoxMMR_Uninstall
 
   ; Remove VBoxMMR always
 
-  DetailPrint "Uninstalling VBoxMMR."
+  DetailPrint "Uninstalling VBoxMMR ..."
   Call ${un}StopVBoxMMR
 
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxMMR"

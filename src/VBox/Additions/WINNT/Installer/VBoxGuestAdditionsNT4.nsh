@@ -25,9 +25,18 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
+
+;;
+; Sets the video resolution specified by $g_iScreenX, $g_iScreenY and $g_iScreenBpp.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
 Function NT4_SetVideoResolution
 
-  ; Check for all required parameters
+  ; Check for all required parameters.
   StrCmp $g_iScreenX "0" missingParms
   StrCmp $g_iScreenY "0" missingParms
   StrCmp $g_iScreenBpp "0" missingParms
@@ -37,11 +46,11 @@ missingParms:
 
   ${LogVerbose} "Missing display parameters for NT4, setting default (640x480, 8 BPP) ..."
 
-  StrCpy $g_iScreenX '640'   ; Default value
-  StrCpy $g_iScreenY '480'   ; Default value
-  StrCpy $g_iScreenBpp '8'   ; Default value
+  StrCpy $g_iScreenX '640'
+  StrCpy $g_iScreenY '480'
+  StrCpy $g_iScreenBpp '8'
 
-  ; Write setting into registry to show the desktop applet on next boot
+  ; Write setting into registry to show the desktop applet on next boot.
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Control\GraphicsDrivers\NewDisplay" "" ""
 
 haveParms:
@@ -58,6 +67,7 @@ haveParms:
 
 FunctionEnd
 
+
 Function NT4_SaveMouseDriverInfo
 
   Push $0
@@ -68,18 +78,18 @@ Function NT4_SaveMouseDriverInfo
   ; value to the current installer's "uninstall" directory in both mentioned
   ; functions above, otherwise NT4 will be screwed because it then would store
   ; "VBoxMouseNT.sys" as the original i8042prt driver which obviously isn't there
-  ; after uninstallation anymore
+  ; after uninstallation anymore.
   ; !!! NOTE !!!
 
   ; Save current mouse driver info so we may restore it on uninstallation
   ; But first check if we already installed the additions otherwise we will
-  ; overwrite it with the VBoxMouseNT.sys
-  ReadRegStr $0 HKLM "${PRODUCT_UNINST_KEY}" ${ORG_MOUSE_PATH}
+  ; overwrite it with the VBoxMouseNT.sys.
+  ReadRegStr $0 HKLM "${REGISTRY_KEY_UNINST_PRODUCT}" "${REGISTRY_VAL_ORG_MOUSE_PATH}"
   StrCmp $0 "" 0 exists
 
   ${LogVerbose} "Saving mouse driver info ..."
   ReadRegStr $0 HKLM "SYSTEM\CurrentControlSet\Services\i8042prt" "ImagePath"
-  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" ${ORG_MOUSE_PATH} $0
+  WriteRegStr HKLM "${REGISTRY_KEY_UNINST_PRODUCT}" "${REGISTRY_VAL_ORG_MOUSE_PATH}" $0
   Goto exit
 
 exists:
@@ -97,38 +107,72 @@ exit:
 
 FunctionEnd
 
-Function NT4_Prepare
 
-  ${If} $g_bNoVBoxServiceExit == "false"
-    ; Stop / kill VBoxService
-    Call StopVBoxService
+;;
+; Callback function installation preparation for Windows NT4 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function NT4_CallbackPrepare
+
+  ${LogVerbose} "Preparing for NT4 ..."
+
+  ${If} $g_strAddVerMaj != "" ; Guest Additions installed?
+    ${If} $g_bNoVBoxServiceExit == "false"
+      ; Stop / kill VBoxService.
+      Call StopVBoxService
+    ${EndIf}
+
+    ${If} $g_bNoVBoxTrayExit == "false"
+      ; Stop / kill VBoxTray.
+      Call StopVBoxTray
+    ${EndIf}
   ${EndIf}
 
-  ${If} $g_bNoVBoxTrayExit == "false"
-    ; Stop / kill VBoxTray
-    Call StopVBoxTray
-  ${EndIf}
-
-  ; Delete VBoxService from registry
+  ; Delete VBoxService from registry.
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxService"
-
-  ; Delete old VBoxService.exe from install directory (replaced by VBoxTray.exe)
-  Delete /REBOOTOK "$INSTDIR\VBoxService.exe"
 
 FunctionEnd
 
-Function NT4_CopyFiles
 
-  ${LogVerbose} "Copying files for NT4 ..."
+!ifndef UNINSTALLER_ONLY
+;;
+; Callback function for extracting files for NT4 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function NT4_CallbackExtractFiles
+
+  ${LogVerbose} "Extracting for NT4 ..."
+  ; Nothing to do here.
+
+FunctionEnd
+!endif ; !UNINSTALLER_ONLY
+
+
+;;
+; Callback function for installation for Windows NT4 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function NT4_CallbackInstall
 
   SetOutPath "$INSTDIR"
-  FILE "$%PATH_OUT%\bin\additions\VBoxGuestInstallHelper.exe"
-  AccessControl::SetOnFile "$INSTDIR\VBoxGuestInstallHelper.exe" "(BU)" "GenericRead"
-!ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
-  FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
-!endif
 
-  ; The files to install for NT 4, they go into the system directories
+  Call NT4_SaveMouseDriverInfo
+
+  ${LogVerbose} "Installing for NT4 ..."
+
+  ; The files to install for NT 4, they go into the system directories.
   SetOutPath "$SYSDIR"
   FILE "$%PATH_OUT%\bin\additions\VBoxDisp.dll"
   AccessControl::SetOnFile "$SYSDIR\VBoxDisp.dll" "(BU)" "GenericRead"
@@ -138,12 +182,10 @@ Function NT4_CopyFiles
   AccessControl::SetOnFile "$SYSDIR\VBoxHook.dll" "(BU)" "GenericRead"
   FILE "$%PATH_OUT%\bin\additions\VBoxControl.exe"
   AccessControl::SetOnFile "$SYSDIR\VBoxControl.exe" "(BU)" "GenericRead"
-
-  ; VBoxService
   FILE "$%PATH_OUT%\bin\additions\VBoxService.exe"
   AccessControl::SetOnFile "$SYSDIR\VBoxService.exe" "(BU)" "GenericRead"
 
-  ; The drivers into the "drivers" directory
+  ; The drivers into the "drivers" directory.
   SetOutPath "$SYSDIR\drivers"
   FILE "$%PATH_OUT%\bin\additions\VBoxVideo.sys"
   AccessControl::SetOnFile "$SYSDIR\drivers\VBoxVideo.sys" "(BU)" "GenericRead"
@@ -151,119 +193,108 @@ Function NT4_CopyFiles
   AccessControl::SetOnFile "$SYSDIR\drivers\VBoxMouseNT.sys" "(BU)" "GenericRead"
   FILE "$%PATH_OUT%\bin\additions\VBoxGuest.sys"
   AccessControl::SetOnFile "$SYSDIR\drivers\VBoxGuest.sys" "(BU)" "GenericRead"
-  ;FILE "$%PATH_OUT%\bin\additions\VBoxSFNT.sys" ; Shared Folders not available on NT4!
-  ;AccessControl::SetOnFile "$SYSDIR\drivers\VBoxSFNT.sys" "(BU)" "GenericRead"
 
-FunctionEnd
+  ; Note: Shared Folders not available on NT4!
 
-Function NT4_InstallFiles
-
-  ${LogVerbose} "Installing drivers for NT4 ..."
-
-  ; Install guest driver
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service create $\"VBoxGuest$\" $\"VBoxGuest Support Driver$\" 1 1 $\"$SYSDIR\drivers\VBoxGuest.sys$\" $\"Base$\"" 'non-zero-exitcode=abort'
+  ; Install guest driver.
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service create \
+                 $\"VBoxGuest$\" $\"VBoxGuest Support Driver$\" 1 1 $\"$SYSDIR\drivers\VBoxGuest.sys$\" $\"Base$\"" 'non-zero-exitcode=abort'
 
   ; Bugfix: Set "Start" to 1, otherwise, VBoxGuest won't start on boot-up!
   ; Bugfix: Correct invalid "ImagePath" (\??\C:\WINNT\...)
   WriteRegDWORD HKLM "SYSTEM\CurrentControlSet\Services\VBoxGuest" "Start" 1
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxGuest" "ImagePath" "\SystemRoot\System32\DRIVERS\VBoxGuest.sys"
 
-  ; Run VBoxTray when Windows NT starts
+  ; Run VBoxTray when Windows NT starts.
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray" '"$SYSDIR\VBoxTray.exe"'
 
   ; Video driver
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" driver nt4-install-video" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" driver nt4-install-video $\"$INSTDIR\VBoxVideo$\"" 'non-zero-exitcode=abort'
 
-  ; Create the VBoxService service
+  ; Create the VBoxService service.
   ; No need to stop/remove the service here! Do this only on uninstallation!
   ${LogVerbose} "Installing VirtualBox service ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service create $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\system32\VBoxService.exe$\" $\"Base$\"" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service create \
+                 $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\system32\VBoxService.exe$\" $\"Base$\"" 'non-zero-exitcode=abort'
 
-   ; Create the Shared Folders service ...
-  ;nsSCM::Install /NOUNLOAD "VBoxSF" "VirtualBox Shared Folders" 1 1 "$SYSDIR\drivers\VBoxSFNT.sys" "Network" "" "" ""
-  ;Pop $0                      ; Ret value
+  ; Note: Shared Folders not available on NT4!
 
-!ifdef _DEBUG
-  ;${LogVerbose} "SCM::Install VBoxSFNT.sys: $0"
-!endif
-
-  ;IntCmp $0 0 +1 error error  ; Check ret value (0=OK, 1=Error)
-
-  ; ... and the link to the network provider
-  ;WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxSF\NetworkProvider" "DeviceName" "\Device\VBoxMiniRdr"
-  ;WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxSF\NetworkProvider" "Name" "VirtualBox Shared Folders"
-  ;WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxSF\NetworkProvider" "ProviderPath" "$SYSDIR\VBoxMRXNP.dll"
-
-  ; Add the shared folders network provider
-  ;${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider add VBoxSF" 'non-zero-exitcode=abort'
-
-FunctionEnd
-
-Function NT4_Main
-
-  SetOutPath "$INSTDIR"
-
-  Call NT4_Prepare
-  Call NT4_CopyFiles
-
-  ; This removes the flag "new display driver installed on the next bootup
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce" "VBoxGuestInst" '"$INSTDIR\VBoxGuestInstallHelper.exe" nt4 installcleanup'
-
-  Call NT4_SaveMouseDriverInfo
-  Call NT4_InstallFiles
   Call NT4_SetVideoResolution
 
-  ; Write mouse driver name to registry overwriting the default name
+  ; Write mouse driver name to registry overwriting the default name.
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\i8042prt" "ImagePath" "\SystemRoot\System32\DRIVERS\VBoxMouseNT.sys"
+
+  ; This removes the flag "new display driver installed on the next bootup.
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce" "VBoxGuestPostInstCleanup" '"$INSTDIR\Tools\VBoxGuestInstallHelper.exe" nt4 installcleanup'
 
 FunctionEnd
 
-!macro NT4_UninstallInstDir un
-Function ${un}NT4_UninstallInstDir
+
+!macro NT4_CallbackDeleteFiles un
+;;
+; Callback function for deleting files for Windows NT4 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}NT4_CallbackDeleteFiles
 
   ; Nothing to do here.
+  ${LogVerbose} "Deleting files for NT4 ..."
 
 FunctionEnd
 !macroend
-;!insertmacro NT4_UninstallInstDir "" - only .un version used
-!insertmacro NT4_UninstallInstDir "un."
+!insertmacro NT4_CallbackDeleteFiles "un."
 
-!macro NT4_Uninstall un
-Function ${un}NT4_Uninstall
+
+!macro NT4_CallbackUninstall un
+;;
+; Callback function for uninstallation for Windows NT4 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}NT4_CallbackUninstall
 
   Push $0
 
-  ; Remove the guest driver service
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxGuest" 'non-zero-exitcode=log'
+  ${LogVerbose} "Uninstalling for NT4 ..."
+
+  ; Remove the guest driver service.
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxGuest" 'non-zero-exitcode=log'
   Delete /REBOOTOK "$SYSDIR\drivers\VBoxGuest.sys"
 
-  ; Delete the VBoxService service
+  ; Delete the VBoxService service.
   Call ${un}StopVBoxService
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxService" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxService" 'non-zero-exitcode=log'
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxService"
   Delete /REBOOTOK "$SYSDIR\VBoxService.exe"
 
-  ; Delete the VBoxTray app
+  ; Delete the VBoxTray app.
   Call ${un}StopVBoxTray
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce" "VBoxTrayDel" "$SYSDIR\cmd.exe /c del /F /Q $SYSDIR\VBoxTray.exe"
   Delete /REBOOTOK "$SYSDIR\VBoxTray.exe" ; If it can't be removed cause it's running, try next boot with "RunOnce" key above!
   Delete /REBOOTOK "$SYSDIR\VBoxHook.dll"
 
-  ; Delete the VBoxControl utility
+  ; Delete the VBoxControl utility.
   Delete /REBOOTOK "$SYSDIR\VBoxControl.exe"
 
-  ; Delete the VBoxVideo service
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxVideo" 'non-zero-exitcode=log'
+  ; Delete the VBoxVideo service.
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxVideo" 'non-zero-exitcode=log'
 
-  ; Delete the VBox video driver files
+  ; Delete the VBox video driver files.
   Delete /REBOOTOK "$SYSDIR\drivers\VBoxVideo.sys"
   Delete /REBOOTOK "$SYSDIR\VBoxDisp.dll"
 
-  ; Get original mouse driver info and restore it
-  ReadRegStr $0 ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" ${ORG_MOUSE_PATH}
+  ; Get original mouse driver info and restore it.
+  ReadRegStr $0 "${REGISTRY_KEY_UNINST_ROOT}" "${REGISTRY_KEY_UNINST_PRODUCT}" ${REGISTRY_VAL_ORG_MOUSE_PATH}
   ; If we still got our driver stored in $0 then this will *never* work, so
-  ; warn the user and set it to the default driver to not screw up NT4 here
+  ; warn the user and set it to the default driver to not screw up NT4 here.
   ${If} $0 == "System32\DRIVERS\VBoxMouseNT.sys"
     WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\i8042prt" "ImagePath" "\SystemRoot\System32\DRIVERS\i8042prt.sys"
     ${LogVerbose} "Old mouse driver is set to VBoxMouseNT.sys, defaulting to i8042prt.sys ..."
@@ -272,11 +303,14 @@ Function ${un}NT4_Uninstall
   ${EndIf}
   Delete /REBOOTOK "$SYSDIR\drivers\VBoxMouseNT.sys"
 
+  ; Remove any pending post-installation steps from the registy.
+  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\RunOnce\VBoxGuestPostInstCleanup"
+
   Pop $0
 
 FunctionEnd
 !macroend
 !ifndef UNINSTALLER_ONLY
-  !insertmacro NT4_Uninstall ""
+  !insertmacro NT4_CallbackUninstall ""
 !endif
-!insertmacro NT4_Uninstall "un."
+!insertmacro NT4_CallbackUninstall "un."

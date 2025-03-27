@@ -25,8 +25,10 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
+
 ;
-; Macro for enable/disable logging
+; Macro for enable/disable logging.
+;
 ; @param   "true" to enable logging, "false" to disable.
 ;
 !macro _logEnable enable
@@ -42,8 +44,10 @@
 !macroend
 !define LogEnable "!insertmacro _logEnable"
 
+
 ;
-; Macro for (verbose) logging
+; Macro for (verbose) logging.
+;
 ; @param   Text to log.
 ;
 !macro _logVerbose text
@@ -54,6 +58,7 @@
 
 !macroend
 !define LogVerbose "!insertmacro _logVerbose"
+
 
 ;
 ; Sends a logging text to the running instance of VBoxTray

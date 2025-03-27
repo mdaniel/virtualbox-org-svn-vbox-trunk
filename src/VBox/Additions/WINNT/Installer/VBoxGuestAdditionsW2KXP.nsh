@@ -25,9 +25,18 @@
 ; SPDX-License-Identifier: GPL-3.0-only
 ;
 
+
+;;
+; Sets the video resolution specified by $g_iScreenX, $g_iScreenY and $g_iScreenBpp.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
 Function W2K_SetVideoResolution
 
-  ; NSIS only supports global vars, even in functions -- great
+  ; NSIS only supports global vars, even in functions -- great.
   Var /GLOBAL i
   Var /GLOBAL tmp
   Var /GLOBAL tmppath
@@ -41,13 +50,13 @@ Function W2K_SetVideoResolution
 
   ${LogVerbose} "Setting display parameters ($g_iScreenXx$g_iScreenY, $g_iScreenBpp BPP) ..."
 
-  ; Enumerate all video devices (up to 32 at the moment, use key "MaxObjectNumber" key later)
+  ; Enumerate all video devices (up to 32 at the moment, use key "MaxObjectNumber" key later).
   ${For} $i 0 32
 
     ReadRegStr $tmp HKLM "HARDWARE\DEVICEMAP\VIDEO" "\Device\Video$i"
     StrCmp $tmp "" dev_not_found
 
-    ; Extract path to video settings
+    ; Extract path to video settings.
     ; Ex: \Registry\Machine\System\CurrentControlSet\Control\Video\{28B74D2B-F0A9-48E0-8028-D76F6BB1AE65}\0000
     ; Or: \Registry\Machine\System\CurrentControlSet\Control\Video\vboxvideo\Device0
     ; Result: Machine\System\CurrentControlSet\Control\Video\{28B74D2B-F0A9-48E0-8028-D76F6BB1AE65}\0000
@@ -87,24 +96,24 @@ dev_found:
 
 dev_found_detect_id:
 
-  StrCpy $i 0 ; Start at index 0
+  StrCpy $i 0 ; Start at index 0.
   ${LogVerbose} "Detecting device ID ..."
 
 dev_found_detect_id_loop:
 
-  ; Resolve real path to hardware instance "{GUID}"
+  ; Resolve real path to hardware instance "{GUID}".
   EnumRegKey $dev_id HKLM "SYSTEM\CurrentControlSet\Control\Video" $i
-  StrCmp $dev_id "" dev_not_found ; No more entries? Jump out
+  StrCmp $dev_id "" dev_not_found ; No more entries? Jump out.
 !ifdef _DEBUG
   ${LogVerbose} "Got device ID: $dev_id"
 !endif
-  ReadRegStr $dev_desc HKLM "SYSTEM\CurrentControlSet\Control\Video\$dev_id\0000" "Device Description" ; Try to read device name
+  ReadRegStr $dev_desc HKLM "SYSTEM\CurrentControlSet\Control\Video\$dev_id\0000" "Device Description" ; Try to read device name.
   ${If} $dev_desc == "VirtualBox Graphics Adapter"
     ${LogVerbose} "Device ID of $dev_desc: $dev_id"
     Goto change_res
   ${EndIf}
 
-  IntOp $i $i + 1 ; Increment index
+  IntOp $i $i + 1 ; Increment index.
   goto dev_found_detect_id_loop
 
 dev_not_found:
@@ -124,7 +133,7 @@ change_res:
 
   ${LogVerbose} "Custom mode set: Platform is Windows $g_strWinVersion"
   ${If} $g_strWinVersion == "2000"
-  ${OrIf} $g_strWinVersion == "Vista"
+  ${OrIf} $g_strWinVersion == "2000, XP and W2K3 "
     StrCpy $reg_path_device "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0"
     StrCpy $reg_path_monitor "SYSTEM\CurrentControlSet\SERVICES\VBoxVideo\Device0\Mon00000001"
   ${ElseIf} $g_strWinVersion == "XP"
@@ -139,10 +148,10 @@ change_res:
     Goto exit
   ${EndIf}
 
-  ; Write the new value in the adapter config (VBoxVideo.sys) using hex values in binary format
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomXRes REG_BIN $g_iScreenX DWORD"  'non-zero-exitcode=abort'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomYRes REG_BIN $g_iScreenY DWORD"  'non-zero-exitcode=abort'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomBPP REG_BIN $g_iScreenBpp DWORD" 'non-zero-exitcode=abort'
+  ; Write the new value in the adapter config (VBoxVideo.sys) using hex values in binary format.
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomXRes REG_BIN $g_iScreenX DWORD"  'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomYRes REG_BIN $g_iScreenY DWORD"  'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" registry write HKLM $reg_path_device CustomBPP REG_BIN $g_iScreenBpp DWORD" 'non-zero-exitcode=abort'
 
   ; ... and tell Windows to use that mode on next start!
   WriteRegDWORD HKCC $reg_path_device "DefaultSettings.XResolution" "$g_iScreenX"
@@ -156,66 +165,57 @@ change_res:
   ${LogVerbose} "Custom mode set to $g_iScreenXx$g_iScreenY, $g_iScreenBpp BPP on next restart."
 
 exit:
-
 FunctionEnd
 
-!macro W2K_CleanupCerts un
+
+!ifdef  VBOX_SIGN_ADDITIONS
 ;;
-; Removes certificates and the certificate utility.
+; Extracts certificates into $INSTDIR.
 ;
-; Since the certificate collection depends on the build config and have
-; changed over time, we always clean it up before installation.
+; Input:
+;   None
+; Output:
+;   None
 ;
-Function ${un}W2K_CleanupCerts
-  Delete /REBOOTOK "$INSTDIR\cert\vbox.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-timestamp-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha1.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha1-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha1-timestamp-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256-timestamp-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256-r3.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256-r3-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-sha256-r3-timestamp-root.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\vbox-legacy-timestamp-ca.cer"
-  Delete /REBOOTOK "$INSTDIR\cert\root-versign-pca3-g5.cer"             ; only for a while during 7.0 beta phase
-  Delete /REBOOTOK "$INSTDIR\cert\root-digicert-assured-id.cer"         ; ditto
-  Delete /REBOOTOK "$INSTDIR\cert\root-digicert-high-assurance-ev.cer"  ; ditto
-  Delete /REBOOTOK "$INSTDIR\cert\VBoxCertUtil.exe"
-  RMDir  /REBOOTOK "$INSTDIR\cert"
-FunctionEnd
-!macroend
-!insertmacro W2K_CleanupCerts ""
-!insertmacro W2K_CleanupCerts "un."
+Function W2K_ExtractCerts
 
+  ${LogVerbose} "Extracting certificates ..."
 
-!macro W2K_CleanupObsoleteFiles un
-;;
-; Removes files we're no longer shipping.
-;
-; During installation this step should be taken before copy files over in case
-; the list gets out of sync and we start shipping files on it.  That way it
-; doesn't much matter as the file will be restore afterwards.
-;
-Function ${un}W2K_CleanupObsoleteFiles
-  Delete /REBOOTOK "$INSTDIR\VBoxWHQLFake.exe"  ; Removed in r152293 (runup to 7.0).
-  Delete /REBOOTOK "$INSTDIR\VBoxICD.dll"       ; Removed in r151892 (runup to 7.0).
+  SetOutPath "$INSTDIR\Cert"
+
+  !if  "$%VBOX_GA_CERT_ROOT_SHA1%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA1%"
+  !endif
+  !if  "$%VBOX_GA_CERT_ROOT_SHA1_TS%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA1_TS%"
+  !endif
+  !if  "$%VBOX_GA_CERT_ROOT_SHA2%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2%"
+  !endif
+  !if  "$%VBOX_GA_CERT_ROOT_SHA2_TS%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_TS%"
+  !endif
+  !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_R3%"
+  !endif
+  !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%" != "none"
+    FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%"
+  !endif
+
 FunctionEnd
-!macroend
-!insertmacro W2K_CleanupObsoleteFiles ""
-!insertmacro W2K_CleanupObsoleteFiles "un."
 
 
 !ifdef VBOX_SIGN_ADDITIONS
 ;;
-; Run VBoxCertUtil to install the given certificate if absent on the system.
+; Installs the given certificate (if missing) as root CA into the system certificate store.
 ;
-; @param    pop1    The certificate file.
-; @param    pop2    Short description.
+; Input:
+;   Stack[0]: The certificate file.
+;   Stack[1]: Short description.
+; Output:
+;   None
 ;
-Function   W2K_InstallRootCert
+Function W2K_InstallRootCert
   ; Prolog: Save $0 & $1 and move the parameters into them.
   Push    $0
   Exch    2
@@ -226,76 +226,70 @@ Function   W2K_InstallRootCert
 
   ; Do the work.
   ${LogVerbose} "Installing $1 ('$0') if missing ..."
-  ${CmdExecute} "$\"$INSTDIR\cert\VBoxCertUtil.exe$\" add-root --add-if-new $\"$INSTDIR\cert\$0$\"" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Cert\VBoxCertUtil.exe$\" add-root --add-if-new $\"$INSTDIR\Cert\$0$\"" 'non-zero-exitcode=abort'
 
   ; Epilog: Restore $0 & $1 (we return nothing).
   Pop     $2
   Pop     $1
   Pop     $0
 FunctionEnd
-!endif
 
-Function W2K_Prepare
-  ; Save registers
-  Push  $R0
-  Push  $R1
-  Push  $R2
-  Push  $R3
-  Push  $R4
 
-  ${If} $g_bNoVBoxServiceExit == "false"
-    ; Stop / kill VBoxService
-    Call StopVBoxService
-  ${EndIf}
+;;
+; Uninstalls the given root certificate from the system certificate store.
+;
+; Input:
+;   Stack[0]: The certificate file to remove from the certificate store.
+;   Stack[1]: Short description.
+; Output:
+;   None
+;
+!macro W2K_UninstallRootCert un
+Function ${un}W2K_UninstallRootCert
+  ; Prolog: Save $0 & $1 and move the parameters into them.
+  Push    $0
+  Exch    2
+  Push    $1
+  Exch    2
+  Pop     $0                                ; Filename
+  Pop     $1                                ; Description.
 
-  ${If} $g_bNoVBoxTrayExit == "false"
-    ; Stop / kill VBoxTray
-    Call StopVBoxTray
-  ${EndIf}
+  ; Do the work.
+  ${LogVerbose} "Uninstalling $1 ('$0') ..."
+  ${CmdExecute} "$\"$INSTDIR\Cert\VBoxCertUtil.exe$\" remove-root $\"$INSTDIR\Cert\$0$\"" 'non-zero-exitcode=abort'
 
-  ; Delete VBoxService from registry
-  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxService"
-
-  ; Delete old VBoxService.exe from install directory (replaced by VBoxTray.exe)
-  Delete /REBOOTOK "$INSTDIR\VBoxService.exe"
-
-  ; Ditch old certificates and stuff to avoid confusion if we now ship fewer / different files.
-  Call W2K_CleanupCerts
-
-!ifdef VBOX_SIGN_ADDITIONS
-  ;
-  ; When installing signed GAs, we need to make sure that the associated root
-  ; certs are present, we use VBoxCertUtil for this task.
-  ;
-  ${LogVerbose} "Installing VBoxCertUtil.exe ..."
-  SetOutPath "$INSTDIR\cert"
-  FILE "$%PATH_OUT%\bin\additions\VBoxCertUtil.exe"
-  !if  "$%VBOX_GA_CERT_ROOT_SHA1%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA1%"
+  ; Epilog: Restore $0 & $1 (we return nothing).
+  Pop     $2
+  Pop     $1
+  Pop     $0
+FunctionEnd
+!macroend
+  !ifndef UNINSTALLER_ONLY
+    !insertmacro W2K_UninstallRootCert ""
   !endif
-  !if  "$%VBOX_GA_CERT_ROOT_SHA1_TS%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA1_TS%"
-  !endif
-  !if  "$%VBOX_GA_CERT_ROOT_SHA2%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2%"
-  !endif
-  !if  "$%VBOX_GA_CERT_ROOT_SHA2_TS%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_TS%"
-  !endif
-  !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_R3%"
-  !endif
-  !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%" != "none"
-  FILE "$%PATH_OUT%\bin\additions\$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%"
-  !endif
+!insertmacro     W2K_UninstallRootCert "un."
+!endif ; VBOX_SIGN_ADDITIONS
 
+
+;;
+; Installs certificates into the certificate store using VBoxCertUtil.exe.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+!macro W2K_InstallOrUninstallCerts un fn
+Function ${un}W2K_${fn}Certs
+
+  ${LogVerbose} "${fn}ing certificates ..."
   ;
   ; Install the certificates if missing.
   ;
   !if  "$%VBOX_GA_CERT_ROOT_SHA1%" != "none"
-  Push "SHA-1 root"
-  Push "$%VBOX_GA_CERT_ROOT_SHA1%"
-  Call W2K_InstallRootCert
+    Push "SHA-1 root"
+    Push "$%VBOX_GA_CERT_ROOT_SHA1%"
+    Call ${un}W2K_${fn}RootCert
   !endif
   !if  "$%VBOX_GA_CERT_ROOT_SHA1_TS%" != "none"
     !ifdef VBOX_WITH_VBOX_LEGACY_TS_CA
@@ -309,12 +303,12 @@ Function W2K_Prepare
   ${If} $g_bInstallTimestampCA == "true"
     Push "SHA-1 timestamp root"
     Push "$%VBOX_GA_CERT_ROOT_SHA1_TS%"
-    Call W2K_InstallRootCert
+    Call ${un}W2K_${fn}RootCert
   ${EndIf}
     !else
   Push "SHA-1 timestamp root"
   Push "$%VBOX_GA_CERT_ROOT_SHA1_TS%"
-  Call W2K_InstallRootCert
+  Call ${un}W2K_InstallRootCert
     !endif ; VBOX_WITH_VBOX_LEGACY_TS_CA
   !endif
 
@@ -325,25 +319,106 @@ Function W2K_Prepare
   !if  "$%VBOX_GA_CERT_ROOT_SHA2%" != "none"
     Push "SHA-2 root"
     Push "$%VBOX_GA_CERT_ROOT_SHA2%"
-    Call W2K_InstallRootCert
+    Call ${un}W2K_${fn}RootCert
   !endif
   !if  "$%VBOX_GA_CERT_ROOT_SHA2_TS%" != "none"
     Push "SHA-2 timestamp root"
     Push "$%VBOX_GA_CERT_ROOT_SHA2_TS%"
-    Call W2K_InstallRootCert
+    Call ${un}W2K_${fn}RootCert
   !endif
   !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3%" != "none"
     Push "SHA-2 ring-3 root"
     Push "$%VBOX_GA_CERT_ROOT_SHA2_R3%"
-    Call W2K_InstallRootCert
+    Call ${un}W2K_${fn}RootCert
   !endif
   !if  "$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%" != "none"
     Push "SHA-2 ring-3 timestamp root"
     Push "$%VBOX_GA_CERT_ROOT_SHA2_R3_TS%"
-    Call W2K_InstallRootCert
+    Call ${un}W2K_${fn}RootCert
   !endif
   ${EndIf}
+
+FunctionEnd
+!macroend
+!insertmacro   W2K_InstallOrUninstallCerts ""    "Install"
+!ifndef UNINSTALLER_ONLY
+  !insertmacro W2K_InstallOrUninstallCerts ""    "Uninstall"
+!endif
+!insertmacro   W2K_InstallOrUninstallCerts "un." "Uninstall"
 !endif ; VBOX_SIGN_ADDITIONS
+
+
+!macro W2K_DeleteCerts un
+;;
+; Deletes certificate files from $INSTDIR.
+;
+; Since the certificate collection depends on the build config and have
+; changed over time, we always clean it up before installation.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}W2K_DeleteCerts
+
+  ${LogVerbose} "Deleting certificates ..."
+
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-timestamp-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha1.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha1-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha1-timestamp-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256-timestamp-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256-r3.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256-r3-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-sha256-r3-timestamp-root.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\vbox-legacy-timestamp-ca.cer"
+  Delete /REBOOTOK "$INSTDIR\Cert\root-versign-pca3-g5.cer"            ; Only for a while during 7.0 beta phase.
+  Delete /REBOOTOK "$INSTDIR\Cert\root-digicert-assured-id.cer"        ; Ditto.
+  Delete /REBOOTOK "$INSTDIR\Cert\root-digicert-high-assurance-ev.cer" ; Ditto.
+  RMDir  /REBOOTOK "$INSTDIR\Cert"
+FunctionEnd
+!macroend
+!insertmacro W2K_DeleteCerts ""
+!insertmacro W2K_DeleteCerts "un."
+
+
+;;
+; Callback function installation preparation for >= Windows 2000, XP and W2K3 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function W2K_CallbackPrepare
+  ; Save registers
+  Push  $R0
+  Push  $R1
+  Push  $R2
+  Push  $R3
+  Push  $R4
+
+  ${LogVerbose} "Preparing for >= W2K ..."
+
+  ${If} $g_strAddVerMaj != "" ; Guest Additions installed?
+    ${If} $g_bNoVBoxServiceExit == "false"
+      ; Stop / kill VBoxService
+      Call StopVBoxService
+    ${EndIf}
+
+    ${If} $g_bNoVBoxTrayExit == "false"
+      ; Stop / kill VBoxTray
+      Call StopVBoxTray
+    ${EndIf}
+  ${EndIf}
+
+  ; Ditch old certificates and stuff to avoid confusion if we now ship fewer / different files.
+  Call W2K_DeleteCerts
 
   ; Restore registers
   Pop $R4
@@ -353,75 +428,37 @@ Function W2K_Prepare
   Pop $R0
 FunctionEnd
 
-Function W2K_CopyFiles
+
+;;
+; Callback function for extracting files for >= Windows 2000, XP and W2K3 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function W2K_CallbackExtractFiles
+
+  ${LogVerbose} "Extracting files for >= W2K ..."
 
   Push $0
-  SetOutPath "$INSTDIR"
 
-!if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
-  ; Video driver
-  FILE "$%PATH_OUT%\bin\additions\VBoxVideo.sys"
-  FILE "$%PATH_OUT%\bin\additions\VBoxDisp.dll"
-!endif ; $%KBUILD_TARGET_ARCH% != "arm64"
-
-  ; Mouse driver
-  FILE "$%PATH_OUT%\bin\additions\VBoxMouse.sys"
-  FILE "$%PATH_OUT%\bin\additions\VBoxMouse.inf"
 !ifdef VBOX_SIGN_ADDITIONS
-  !if $%KBUILD_TARGET_ARCH% == "arm64"
-    FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
-  !else
-  ${If} $g_strWinVersion == "10"
-    FILE "$%PATH_OUT%\bin\additions\VBoxMouse.cat"
-  ${Else}
-    FILE "/oname=VBoxMouse.cat" "$%PATH_OUT%\bin\additions\VBoxMouse-PreW10.cat"
-  ${EndIf}
-  !endif
+  ; Certificates
+  Call W2K_ExtractCerts
 !endif
 
-  ; Guest driver
-  FILE "$%PATH_OUT%\bin\additions\VBoxGuest.sys"
-  FILE "$%PATH_OUT%\bin\additions\VBoxGuest.inf"
-!if $%KBUILD_TARGET_ARCH% == "x86"
-  ${If} $g_strEarlyNTDrvInfix != ""
-    FILE "$%PATH_OUT%\bin\additions\VBoxGuestEarlyNT.inf"
-  !ifdef VBOX_SIGN_ADDITIONS
-    FILE "$%PATH_OUT%\bin\additions\VBoxGuestEarlyNT.cat"
-  !endif
-  ${EndIf}
-!endif
-!ifdef VBOX_SIGN_ADDITIONS
-  !if $%KBUILD_TARGET_ARCH% == "arm64"
-    FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
-  !else
-  ${If} $g_strWinVersion == "10"
-    FILE "$%PATH_OUT%\bin\additions\VBoxGuest.cat"
-  ${Else}
-    FILE "/oname=VBoxGuest.cat" "$%PATH_OUT%\bin\additions\VBoxGuest-PreW10.cat"
-  ${EndIf}
-  !endif
-!endif
+  SetOutPath "$g_strSystemDir"
 
-  ; Guest driver files
-  FILE "$%PATH_OUT%\bin\additions\VBoxTray.exe"
-  FILE "$%PATH_OUT%\bin\additions\VBoxControl.exe"
-
-  ; Tools
-  SetOutPath "$INSTDIR\Tools"
-!ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
-  FILE "$%PATH_OUT%\bin\additions\VBoxAudioTest.exe"
-!endif
-
-  SetOutPath $g_strSystemDir
-
+  ;
   ; VBoxService
+  ;
   ${If} $g_bNoVBoxServiceExit == "false"
-    ; VBoxService has been terminated before, so just install the file
-    ; in the regular way
+    ; VBoxService has been terminated before, so just install the file in the regular way.
     FILE "$%PATH_OUT%\bin\additions\VBoxService.exe"
   ${Else}
     ; VBoxService is in use and wasn't terminated intentionally. So extract the
-    ; new version into a temporary location and install it on next reboot
+    ; new version into a temporary location and install it on next reboot.
     Push $0
     ClearErrors
     GetTempFileName $0
@@ -438,106 +475,66 @@ Function W2K_CopyFiles
     Pop $0
   ${EndIf}
 
-!if $%VBOX_WITH_WDDM% == "1"
-  ${If} $g_bWithWDDM == "true"
-    ; WDDM Video driver
-    SetOutPath "$INSTDIR"
-
-    !ifdef VBOX_SIGN_ADDITIONS
-      !if $%KBUILD_TARGET_ARCH% == "arm64"
-        FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
-      !else
-      ${If} $g_strWinVersion == "10"
-        FILE "$%PATH_OUT%\bin\additions\VBoxWddm.cat"
-      ${Else}
-        FILE "/oname=VBoxWddm.cat" "$%PATH_OUT%\bin\additions\VBoxWddm-PreW10.cat"
-      ${EndIf}
-      !endif
-    !endif
-    FILE "$%PATH_OUT%\bin\additions\VBoxWddm.sys"
-    FILE "$%PATH_OUT%\bin\additions\VBoxWddm.inf"
-
-    FILE "$%PATH_OUT%\bin\additions\VBoxDispD3D.dll"
-    !if $%VBOX_WITH_WDDM_DX% == "1"
-      FILE "$%PATH_OUT%\bin\additions\VBoxDX.dll"
-    !endif
-    !if $%VBOX_WITH_MESA3D% == "1"
-      FILE "$%PATH_OUT%\bin\additions\VBoxNine.dll"
-      FILE "$%PATH_OUT%\bin\additions\VBoxSVGA.dll"
-      FILE "$%PATH_OUT%\bin\additions\VBoxGL.dll"
-    !endif
-
-    !if $%KBUILD_TARGET_ARCH% == "amd64"
-      FILE "$%PATH_OUT%\bin\additions\VBoxDispD3D-x86.dll"
-      !if $%VBOX_WITH_WDDM_DX% == "1"
-        FILE "$%PATH_OUT%\bin\additions\VBoxDX-x86.dll"
-      !endif
-      !if $%VBOX_WITH_MESA3D% == "1"
-        FILE "$%PATH_OUT%\bin\additions\VBoxNine-x86.dll"
-        FILE "$%PATH_OUT%\bin\additions\VBoxSVGA-x86.dll"
-        FILE "$%PATH_OUT%\bin\additions\VBoxGL-x86.dll"
-      !endif
-    !endif ; $%KBUILD_TARGET_ARCH% == "amd64"
-
-  ${EndIf}
-!endif ; $%VBOX_WITH_WDDM% == "1"
-
   Pop $0
 
 FunctionEnd
 
 
-Function W2K_InstallFiles
+;;
+; Callback function for installation for Windows >= 2000, XP and W2K3 guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function W2K_CallbackInstall
 
-  ; The Shared Folder IFS goes to the system directory
-  !if $%BUILD_TARGET_ARCH% == "x86"
-    ; On x86 we have to use a different shared folder driver linked against an older RDBSS for Windows 7 and older.
-    ${If} $g_strWinVersion == "2000"
-    ${OrIf} $g_strWinVersion == "XP"
-    ${OrIf} $g_strWinVersion == "2003"
-    ${OrIf} $g_strWinVersion == "Vista"
-    ${OrIf} $g_strWinVersion == "7"
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
-    ${Else}
-      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
-    ${EndIf}
-  !else
-    !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
-  !endif
+  ${LogVerbose} "Installing for >= W2K ..."
 
-  !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll" "$g_strSystemDir\VBoxMRXNP.dll" "$INSTDIR"
-  AccessControl::GrantOnFile "$g_strSystemDir\VBoxMRXNP.dll" "(BU)" "GenericRead"
-  !if $%KBUILD_TARGET_ARCH% == "amd64"
-    ; Only 64-bit installer: Copy the 32-bit DLL for 32 bit applications.
-    !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll" "$g_strSysWow64\VBoxMRXNP.dll" "$INSTDIR"
-    AccessControl::GrantOnFile "$g_strSysWow64\VBoxMRXNP.dll" "(BU)" "GenericRead"
-  !endif
+  SetOutPath "$INSTDIR"
+  SetOverwrite on
 
-  ; The VBoxTray hook DLL also goes to the system directory; it might be locked
+!ifdef VBOX_SIGN_ADDITIONS
+  ; Make sure that we install the required certificates into the certificate store first.
+  Call W2K_InstallCerts
+!endif
+
+  ; The VBoxTray hook DLL also goes to the system directory; it might be locked.
   !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxHook.dll" "$g_strSystemDir\VBoxHook.dll" "$INSTDIR"
   AccessControl::GrantOnFile "$g_strSystemDir\VBoxHook.dll" "(BU)" "GenericRead"
 
   ${LogVerbose} "Installing drivers ..."
 
-  Push $0 ; For fetching results
+  Push $0 ; For fetching results.
 
-  SetOutPath "$INSTDIR"
-
+  ;
+  ; Guest driver.
+  ;
   ${If} $g_bNoGuestDrv == "false"
     ${LogVerbose} "Installing guest driver ..."
-    ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" install --inf-file $\"$INSTDIR\VBoxGuest$g_strEarlyNTDrvInfix.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
+    SetOutPath "$INSTDIR\VBoxGuest"
+    ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" \
+                  install --inf-file $\"$INSTDIR\VBoxGuest\VBoxGuest$g_strEarlyNTDrvInfix.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
   ${Else}
     ${LogVerbose} "Guest driver installation skipped!"
   ${EndIf}
 
+;
+; WDDM driver.
+;
 !if $%KBUILD_TARGET_ARCH% != "arm64" ;; @todo win.arm64: Make VBoxVideo and friends build on arm.
   ${If} $g_bNoVideoDrv == "false"
     ${If} $g_bWithWDDM == "true"
       ${LogVerbose} "Installing WDDM video driver..."
-      ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" install --inf-file $\"$INSTDIR\VBoxWddm.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
+      SetOutPath "$INSTDIR\VBoxWddm"
+      ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" \
+                    install --inf-file $\"$INSTDIR\VBoxWddm\VBoxWddm.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
     ${Else}
       ${LogVerbose} "Installing video driver ..."
-      ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" install --inf-file $\"$INSTDIR\VBoxVideo$g_strEarlyNTDrvInfix.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
+      SetOutPath "$INSTDIR\VBoxVideo"
+      ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" \
+                    install --inf-file $\"$INSTDIR\VBoxVideo\VBoxVideo$g_strEarlyNTDrvInfix.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
     ${EndIf}
   ${Else}
     ${LogVerbose} "Video driver installation skipped!"
@@ -549,30 +546,56 @@ Function W2K_InstallFiles
   ;
   ${If} $g_bNoMouseDrv == "false"
     ${LogVerbose} "Installing mouse driver ..."
-    ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" install --inf-file $\"$INSTDIR\VBoxMouse.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
+    SetOutPath "$INSTDIR\VBoxMouse"
+    ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$INSTDIR\install_drivers.log$\" \
+                  install --inf-file $\"$INSTDIR\VBoxMouse\VBoxMouse.inf$\" --ignore-reboot" 'non-zero-exitcode=abort'
   ${Else}
     ${LogVerbose} "Mouse driver installation skipped!"
   ${EndIf}
 
   ;
-  ; Create the VBoxService service
-  ; No need to stop/remove the service here! Do this only on uninstallation!
+  ; VBoxService.
   ;
-  ${LogVerbose} "Installing VirtualBox service ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service create $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\System32\VBoxService.exe$\" $\"Base$\"" 'non-zero-exitcode=abort'
-
-  ; Set service description
+  ${LogVerbose} "Installing VBoxService ..."
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service create $\"VBoxService$\" $\"VirtualBox Guest Additions Service$\" 16 2 $\"%SystemRoot%\System32\VBoxService.exe$\" $\"Base$\"" 'non-zero-exitcode=abort'
+  SetOutPath "$g_strSystemDir"
+  FILE "$%PATH_OUT%\bin\additions\VBoxService.exe"
+  AccessControl::GrantOnFile "$g_strSystemDir\VBoxService.exe" "(BU)" "GenericRead"
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxService" "Description" "Manages VM runtime information, time synchronization, remote sysprep execution and miscellaneous utilities for guest operating systems."
-
 
   ;
   ; Shared folders.
   ;
-  ${LogVerbose} "Installing Shared Folders service ..."
+  ${LogVerbose} "Installing Shared Folders driver ..."
+
+  ; The Shared Folder IFS goes to the system directory.
+  !if $%BUILD_TARGET_ARCH% == "x86"
+    ; On x86 we have to use a different shared folder driver linked against an older RDBSS for Windows 7 and older.
+    ${If} $g_strWinVersion == "2000"
+    ${OrIf} $g_strWinVersion == "XP"
+    ${OrIf} $g_strWinVersion == "2003"
+    ${OrIf} $g_strWinVersion == "2000, XP and W2K3 "
+    ${OrIf} $g_strWinVersion == "7"
+      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSFW2K.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+    ${Else}
+      !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+    ${EndIf}
+  !else
+    !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxSF.sys" "$g_strSystemDir\drivers\VBoxSF.sys" "$INSTDIR"
+  !endif
+  AccessControl::GrantOnFile "$g_strSystemDir\drivers\VBoxSF.dll" "(BU)" "GenericRead"
+
+  !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll" "$g_strSystemDir\VBoxMRXNP.dll" "$INSTDIR"
+  AccessControl::GrantOnFile "$g_strSystemDir\VBoxMRXNP.dll" "(BU)" "GenericRead"
+  !if $%KBUILD_TARGET_ARCH% == "amd64"
+    ; Only 64-bit installer: Copy the 32-bit DLL for 32 bit applications.
+    !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll" "$g_strSysWow64\VBoxMRXNP.dll" "$INSTDIR"
+    AccessControl::GrantOnFile "$g_strSysWow64\VBoxMRXNP.dll" "(BU)" "GenericRead"
+  !endif
 
   ; Create the Shared Folders service ...
   ; No need to stop/remove the service here! Do this only on uninstallation!
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service create $\"VBoxSF$\" $\"VirtualBox Shared Folders$\" 2 1 $\"\SystemRoot\System32\drivers\VBoxSF.sys$\" $\"NetworkProvider$\"" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service create $\"VBoxSF$\" $\"VirtualBox Shared Folders$\" 2 1 $\"\SystemRoot\System32\drivers\VBoxSF.sys$\" $\"NetworkProvider$\"" 'non-zero-exitcode=abort'
 
   ; ... and the link to the network provider
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxSF\NetworkProvider" "DeviceName" "\Device\VBoxMiniRdr"
@@ -580,153 +603,92 @@ Function W2K_InstallFiles
   WriteRegStr HKLM "SYSTEM\CurrentControlSet\Services\VBoxSF\NetworkProvider" "ProviderPath" "$SYSDIR\VBoxMRXNP.dll"
 
   ; Add default network providers (if not present or corrupted)
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider add WebClient"         'non-zero-exitcode=abort'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider add LanmanWorkstation" 'non-zero-exitcode=abort'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider add RDPNP"             'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" netprovider add WebClient"         'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" netprovider add LanmanWorkstation" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" netprovider add RDPNP"             'non-zero-exitcode=abort'
 
   ; Add the shared folders network provider
   ${LogVerbose} "Adding network provider (Order = $g_iSfOrder) ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider add VBoxSF $g_iSfOrder" 'non-zero-exitcode=abort'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" netprovider add VBoxSF $g_iSfOrder" 'non-zero-exitcode=abort'
 
-
-  Pop $0
-
-FunctionEnd
-
-Function W2K_Main
-
-  SetOutPath "$INSTDIR"
-  SetOverwrite on
-
-  Call W2K_Prepare
-  Call W2K_CleanupObsoleteFiles
-  Call W2K_CopyFiles
-  Call W2K_InstallFiles
+  ;
+  ; Set video resolution to be used after next reboot.
+  ;
   Call W2K_SetVideoResolution
 
+  Pop $0 ; Used for fetching results.
+
 FunctionEnd
 
-!macro W2K_UninstallInstDir un
-Function ${un}W2K_UninstallInstDir
 
-  Delete /REBOOTOK "$INSTDIR\VBoxVideo.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideo.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideo.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoEarlyNT.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoEarlyNT.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxDisp.dll"
+!macro W2K_CallbackDeleteFiles un
+;;
+; Callback function for deleting files for Windows >= 2000, XP and W2K3  guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}W2K_CallbackDeleteFiles
 
-  Delete /REBOOTOK "$INSTDIR\VBoxMouse.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxMouse.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxMouse.cat"
+  ${LogVerbose} "Deleting files for >= W2K ..."
 
-  Delete /REBOOTOK "$INSTDIR\VBoxTray.exe"
-
-  Delete /REBOOTOK "$INSTDIR\VBoxGuest.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxGuest.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxGuest.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxGuestEarlyNT.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxGuestEarlyNT.cat"
-
-  Delete /REBOOTOK "$INSTDIR\VBCoInst.dll" ; Deprecated, does not get installed anymore
-  Delete /REBOOTOK "$INSTDIR\VBoxControl.exe"
-  Delete /REBOOTOK "$INSTDIR\VBoxService.exe" ; Deprecated, does not get installed anymore
-
-!if $%VBOX_WITH_WDDM% == "1"
-  Delete /REBOOTOK "$INSTDIR\VBoxWddm.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxWddm.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxWddm.inf"
-  ; Obsolete files begin
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoWddm.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoWddm.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoWddm.inf"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoW8.cat"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoW8.sys"
-  Delete /REBOOTOK "$INSTDIR\VBoxVideoW8.inf"
-  ; Obsolete files end
-  Delete /REBOOTOK "$INSTDIR\VBoxDispD3D.dll"
-  !if $%VBOX_WITH_WDDM_DX% == "1"
-    Delete /REBOOTOK "$INSTDIR\VBoxDX.dll"
-  !endif
-  !if $%VBOX_WITH_MESA3D% == "1"
-    Delete /REBOOTOK "$INSTDIR\VBoxNine.dll"
-    Delete /REBOOTOK "$INSTDIR\VBoxSVGA.dll"
-    Delete /REBOOTOK "$INSTDIR\VBoxICD.dll"
-    Delete /REBOOTOK "$INSTDIR\VBoxGL.dll"
-  !endif
-
-    Delete /REBOOTOK "$INSTDIR\VBoxD3D9wddm.dll"
-    Delete /REBOOTOK "$INSTDIR\wined3dwddm.dll"
-    ; Try to delete libWine in case it is there from old installation
-    Delete /REBOOTOK "$INSTDIR\libWine.dll"
-
-  !if $%KBUILD_TARGET_ARCH% == "amd64"
-    Delete /REBOOTOK "$INSTDIR\VBoxDispD3D-x86.dll"
-    !if $%VBOX_WITH_WDDM_DX% == "1"
-      Delete /REBOOTOK "$INSTDIR\VBoxDX-x86.dll"
-    !endif
-    !if $%VBOX_WITH_MESA3D% == "1"
-      Delete /REBOOTOK "$INSTDIR\VBoxNine-x86.dll"
-      Delete /REBOOTOK "$INSTDIR\VBoxSVGA-x86.dll"
-      Delete /REBOOTOK "$INSTDIR\VBoxICD-x86.dll"
-      Delete /REBOOTOK "$INSTDIR\VBoxGL-x86.dll"
-    !endif
-
-      Delete /REBOOTOK "$INSTDIR\VBoxD3D9wddm-x86.dll"
-      Delete /REBOOTOK "$INSTDIR\wined3dwddm-x86.dll"
-  !endif ; $%KBUILD_TARGET_ARCH% == "amd64"
-!endif ; $%VBOX_WITH_WDDM% == "1"
-
-  ; Certificates, utility and directory.
-  Call ${un}W2K_CleanupCerts
-
-  ; Log files
-  Delete /REBOOTOK "$INSTDIR\install.log"
-  Delete /REBOOTOK "$INSTDIR\install_ui.log"
-  Delete /REBOOTOK "$INSTDIR\install_drivers.log"
-
-  ; Obsolete stuff.
-  Call ${un}W2K_CleanupObsoleteFiles
+  Call ${un}W2K_DeleteCerts
 
 FunctionEnd
 !macroend
-;!insertmacro W2K_UninstallInstDir "" - only .un version used
-!insertmacro W2K_UninstallInstDir "un."
+!insertmacro W2K_CallbackDeleteFiles "un."
 
-!macro W2K_Uninstall un
-Function ${un}W2K_Uninstall
+
+!macro W2K_CallbackUninstall un
+;;
+; Callback function for uninstallation for Windows >= 2000, XP and W2K3  guests.
+;
+; Input:
+;   None
+; Output:
+;   None
+;
+Function ${un}W2K_CallbackUninstall
+
+  ${LogVerbose} "Uninstalling for >= W2K ..."
 
   Push $0
 
-  ; Remove VirtualBox video driver
+   ;
+   ; Video driver.
+   ;
   ${LogVerbose} "Uninstalling video driver ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideo*$\" --ignore-reboot" 'non-zero-exitcode=log'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxVideo" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideo*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxVideo" 'non-zero-exitcode=log'
   Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxVideo.sys"
   Delete /REBOOTOK "$g_strSystemDir\VBoxDisp.dll"
 
-  ; Remove video driver
+   ;
+   ; WDDM driver.
+   ;
 !if $%VBOX_WITH_WDDM% == "1"
 
   ${LogVerbose} "Uninstalling WDDM video driver..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxWddm*$\" --ignore-reboot" 'non-zero-exitcode=log'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxWddm" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxWddm*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxWddm" 'non-zero-exitcode=log'
   ;misha> @todo driver file removal (as well as service removal) should be done as driver package uninstall
   ;       could be done with "VBoxGuestInstallHelper.exe /u", e.g. by passing additional arg to it denoting that driver package is to be uninstalled
   Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxWddm.sys"
 
   ; Obsolete files begin
   ${LogVerbose} "Uninstalling WDDM video driver for Windows 8..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideoW8*$\" --ignore-reboot" 'non-zero-exitcode=log'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxVideoW8" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideoW8*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxVideoW8" 'non-zero-exitcode=log'
   ;misha> @todo driver file removal (as well as service removal) should be done as driver package uninstall
   ;       could be done with "VBoxGuestInstallHelper.exe /u", e.g. by passing additional arg to it denoting that driver package is to be uninstalled
   Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxVideoW8.sys"
 
-  ${LogVerbose} "Uninstalling WDDM video driver for Windows Vista and 7..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideoWddm*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${LogVerbose} "Uninstalling WDDM video driver for Windows 2000, XP and W2K3  and 7..."
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxVideoWddm*$\" --ignore-reboot" 'non-zero-exitcode=log'
   ; Always try to remove both VBoxVideoWddm & VBoxVideo services no matter what is installed currently
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxVideoWddm" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxVideoWddm" 'non-zero-exitcode=log'
   ;misha> @todo driver file removal (as well as service removal) should be done as driver package uninstall
   ;       could be done with "VBoxGuestInstallHelper.exe /u", e.g. by passing additional arg to it denoting that driver package is to be uninstalled
   Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxVideoWddm.sys"
@@ -759,19 +721,25 @@ Function ${un}W2K_Uninstall
   !endif
 !endif ; $%VBOX_WITH_WDDM% == "1"
 
-  ; Remove mouse driver
+  ;
+  ; Mouse driver.
+  ;
   ${LogVerbose} "Removing mouse driver ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxMouse*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxMouse*$\" --ignore-reboot" 'non-zero-exitcode=log'
   ; @todo Fix VBoxMouse.inf to also take care of the next line!
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" registry delmultisz $\"SYSTEM\CurrentControlSet\Control\Class\{4D36E96F-E325-11CE-BFC1-08002BE10318}$\" $\"UpperFilters$\" $\"VBoxMouse$\"" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" registry delmultisz $\"SYSTEM\CurrentControlSet\Control\Class\{4D36E96F-E325-11CE-BFC1-08002BE10318}$\" $\"UpperFilters$\" $\"VBoxMouse$\"" 'non-zero-exitcode=log'
 
-  ; Delete the VBoxService service
+  ;
+  ; VBoxService.
+  ;
   Call ${un}StopVBoxService
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxService" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxService" 'non-zero-exitcode=log'
   DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxService"
   Delete /REBOOTOK "$g_strSystemDir\VBoxService.exe"
 
-  ; VBoxGINA
+  ;
+  ; VBoxGINA.
+  ;
   Delete /REBOOTOK "$g_strSystemDir\VBoxGINA.dll"
   ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon" "GinaDLL"
   ${If} $0 == "VBoxGINA.dll"
@@ -780,38 +748,42 @@ Function ${un}W2K_Uninstall
   ${EndIf}
   DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\WinLogon\Notify\VBoxGINA"
 
-  ; Delete VBoxTray
-  Call ${un}StopVBoxTray
-  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray"
-
-  ; Remove guest driver. Needs to be done last.
-  ${LogVerbose} "Removing guest driver ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxGuest*$\" --ignore-reboot" 'non-zero-exitcode=log'
-
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxGuest" 'non-zero-exitcode=log'
-  Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxGuest.sys"
-  Delete /REBOOTOK "$g_strSystemDir\VBCoInst.dll" ; Deprecated, does not get installed anymore
-  Delete /REBOOTOK "$g_strSystemDir\VBoxTray.exe"
-  Delete /REBOOTOK "$g_strSystemDir\VBoxHook.dll"
-  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray" ; Remove VBoxTray autorun
-  Delete /REBOOTOK "$g_strSystemDir\VBoxControl.exe"
-
-  ; Remove shared folders driver
+  ;
+  ; Shared Folders.
+  ;
   ${LogVerbose} "Removing shared folders driver ..."
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" netprovider remove VBoxSF" 'non-zero-exitcode=log'
-  ${CmdExecute} "$\"$INSTDIR\VBoxGuestInstallHelper.exe$\" service delete VBoxSF" 'non-zero-exitcode=log'
-  Delete /REBOOTOK "$g_strSystemDir\VBoxMRXNP.dll" ; The network provider DLL will be locked
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" netprovider remove VBoxSF" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxSF" 'non-zero-exitcode=log'
+  Delete /REBOOTOK "$g_strSystemDir\VBoxMRXNP.dll" ; The network provider DLL will be locked.
   !if $%KBUILD_TARGET_ARCH% == "amd64"
-    ; Only 64-bit installer: Also remove 32-bit DLLs on 64-bit target arch in Wow64 node
+    ; Only 64-bit installer: Also remove 32-bit DLLs on 64-bit target arch in Wow64 node.
     Delete /REBOOTOK "$g_strSysWow64\VBoxMRXNP.dll"
   !endif ; amd64
   Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxSF.sys"
+
+  ;
+  ; Guest driver. Needs to be done last.
+  ;
+  ${LogVerbose} "Removing guest driver ..."
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxDrvInst.exe$\" --logfile $\"$TEMP\${PRODUCT_NAME}\uninstall_drivers.log$\" uninstall --model $\"VBoxGuest*$\" --ignore-reboot" 'non-zero-exitcode=log'
+  ${CmdExecute} "$\"$INSTDIR\Tools\VBoxGuestInstallHelper.exe$\" service delete VBoxGuest" 'non-zero-exitcode=log'
+  Delete /REBOOTOK "$g_strSystemDir\drivers\VBoxGuest.sys"
+  Call ${un}StopVBoxTray
+  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "VBoxTray" ; Remove VBoxTray autorun.
+  Delete /REBOOTOK "$g_strSystemDir\VBoxTray.exe"
+  Delete /REBOOTOK "$g_strSystemDir\VBoxHook.dll"
+  Delete /REBOOTOK "$g_strSystemDir\VBoxControl.exe"
+
+  ;
+  ; Uninstall certificates from driver store.
+  ;
+  Call ${un}W2K_UninstallCerts
 
   Pop $0
 
 FunctionEnd
 !macroend
 !ifndef UNINSTALLER_ONLY
-  !insertmacro W2K_Uninstall ""
+  !insertmacro W2K_CallbackUninstall ""
 !endif
-!insertmacro W2K_Uninstall "un."
+!insertmacro W2K_CallbackUninstall "un."

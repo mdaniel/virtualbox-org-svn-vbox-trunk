@@ -87,6 +87,12 @@ typedef struct GITSDEV
     bool                    fPadding0;
     /** The ITS table descriptor registers. */
     RTUINT64U               aItsTableRegs[8];
+    /** The ITS command queue base registers. */
+    RTUINT64U               uCmdBaseReg;
+    /** The ITS command write register. */
+    uint32_t                uCmdWriteReg;
+    /** The ITS command read register. */
+    uint32_t                uCmdReadReg;
     /** @} */
 
     /** @name Interrupt translation space.
@@ -106,6 +112,7 @@ typedef GITSDEV *PGITSDEV;
 /** Pointer to a const GITS device. */
 typedef GITSDEV const *PCGITSDEV;
 AssertCompileSizeAlignment(GITSDEV, 8);
+AssertCompileMemberAlignment(GITSDEV, uArchRev, 8);
 
 DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);
 DECL_HIDDEN_CALLBACK(int)          gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc);

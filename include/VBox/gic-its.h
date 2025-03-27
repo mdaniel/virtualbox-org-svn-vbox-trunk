@@ -201,8 +201,53 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PARTIDR_, UINT32_C(0), UINT32_MAX, 
 #define GITS_CTRL_REG_MPIDR_OFF                                 0x0018
 #define GITS_CTRL_REG_STATUSR_OFF                               0x0040
 #define GITS_CTRL_REG_UMSIR_OFF                                 0x0048
+
+/** GITS_CBASER: ITS command queue base register - RW. */
 #define GITS_CTRL_REG_CBASER_OFF                                0x0080
+#define GITS_BF_CTRL_REG_CBASER_SIZE_SHIFT                      0
+#define GITS_BF_CTRL_REG_CBASER_SIZE_MASK                       UINT64_C(0x00000000000000ff)
+#define GITS_BF_CTRL_REG_CBASER_RSVD_9_8_SHIFT                  8
+#define GITS_BF_CTRL_REG_CBASER_RSVD_9_8_MASK                   UINT64_C(0x0000000000000300)
+#define GITS_BF_CTRL_REG_CBASER_SHAREABILITY_SHIFT              10
+#define GITS_BF_CTRL_REG_CBASER_SHAREABILITY_MASK               UINT64_C(0x0000000000000c00)
+#define GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_SHIFT                 12
+#define GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK                  UINT64_C(0x000ffffffffff000)
+#define GITS_BF_CTRL_REG_CBASER_RSVD_52_SHIFT                   52
+#define GITS_BF_CTRL_REG_CBASER_RSVD_52_MASK                    UINT64_C(0x0010000000000000)
+#define GITS_BF_CTRL_REG_CBASER_OUTER_CACHE_SHIFT               53
+#define GITS_BF_CTRL_REG_CBASER_OUTER_CACHE_MASK                UINT64_C(0x00e0000000000000)
+#define GITS_BF_CTRL_REG_CBASER_RSVD_58_56_SHIFT                56
+#define GITS_BF_CTRL_REG_CBASER_RSVD_58_56_MASK                 UINT64_C(0x0700000000000000)
+#define GITS_BF_CTRL_REG_CBASER_INNER_CACHE_SHIFT               59
+#define GITS_BF_CTRL_REG_CBASER_INNER_CACHE_MASK                UINT64_C(0x3800000000000000)
+#define GITS_BF_CTRL_REG_CBASER_RSVD_62_SHIFT                   62
+#define GITS_BF_CTRL_REG_CBASER_RSVD_62_MASK                    UINT64_C(0x4000000000000000)
+#define GITS_BF_CTRL_REG_CBASER_VALID_SHIFT                     63
+#define GITS_BF_CTRL_REG_CBASER_VALID_MASK                      UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CBASER_, UINT64_C(0), UINT64_MAX,
+                            (SIZE, RSVD_9_8, SHAREABILITY, PHYS_ADDR, RSVD_52, OUTER_CACHE, RSVD_58_56, INNER_CACHE, RSVD_62,
+                             VALID));
+/** GITS_CBASER: Mask of valid read-write bits. */
+#define GITS_CTRL_REG_CBASER_RW_MASK                            (UINT64_MAX & ~(GITS_BF_CTRL_REG_CBASER_RSVD_9_8_MASK   | \
+                                                                                GITS_BF_CTRL_REG_CBASER_RSVD_52_MASK    | \
+                                                                                GITS_BF_CTRL_REG_CBASER_RSVD_58_56_MASK | \
+                                                                                GITS_BF_CTRL_REG_CBASER_RSVD_62_MASK))
+
+/** GITS_CWRITER: ITS command queue write register - RW. */
 #define GITS_CTRL_REG_CWRITER_OFF                               0x0088
+#define GITS_BF_CTRL_REG_CWRITER_RETRY_SHIFT                    0
+#define GITS_BF_CTRL_REG_CWRITER_RETRY_MASK                     UINT64_C(0x0000000000000001)
+#define GITS_BF_CTRL_REG_CWRITER_RSVD_4_1_SHIFT                 1
+#define GITS_BF_CTRL_REG_CWRITER_RSVD_4_1_MASK                  UINT64_C(0x000000000000001e)
+#define GITS_BF_CTRL_REG_CWRITER_OFFSET_SHIFT                   5
+#define GITS_BF_CTRL_REG_CWRITER_OFFSET_MASK                    UINT64_C(0x00000000000fffe0)
+#define GITS_BF_CTRL_REG_CWRITER_RSVD_63_20_SHIFT               20
+#define GITS_BF_CTRL_REG_CWRITER_RSVD_63_20_MASK                UINT64_C(0xfffffffffff00000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CWRITER_, UINT64_C(0), UINT64_MAX,
+                            (RETRY, RSVD_4_1, OFFSET, RSVD_63_20));
+#define GITS_CTRL_REG_CWRITER_RW_MASK                           (UINT64_MAX & ~(GITS_BF_CTRL_REG_CWRITER_RSVD_4_1_MASK | \
+                                                                                GITS_BF_CTRL_REG_CWRITER_RSVD_63_20_MASK))
+
 #define GITS_CTRL_REG_CREADR_OFF                                0x0090
 
 /** GITS_BASER: ITS Table Descriptors - RW. */

@@ -186,6 +186,39 @@ static const char *gicDistGetRegDescription(uint16_t offReg)
  */
 static const char *gicReDistGetRegDescription(uint16_t offReg)
 {
+    switch (offReg)
+    {
+        case GIC_REDIST_REG_CTLR_OFF:           return "GICR_CTLR";
+        case GIC_REDIST_REG_IIDR_OFF:           return "GICR_IIDR";
+        case GIC_REDIST_REG_TYPER_OFF:          return "GICR_TYPER";
+        case GIC_REDIST_REG_TYPER_AFFINITY_OFF: return "GICR_TYPER_AFF";
+        case GIC_REDIST_REG_STATUSR_OFF:        return "GICR_STATUSR";
+        case GIC_REDIST_REG_WAKER_OFF:          return "GICR_WAKER";
+        case GIC_REDIST_REG_MPAMIDR_OFF:        return "GICR_MPAMIDR";
+        case GIC_REDIST_REG_PARTIDR_OFF:        return "GICR_PARTIDR";
+        case GIC_REDIST_REG_SETLPIR_OFF:        return "GICR_SETLPIR";
+        case GIC_REDIST_REG_CLRLPIR_OFF:        return "GICR_CLRLPIR";
+        case GIC_REDIST_REG_PROPBASER_OFF:      return "GICR_PROPBASER";
+        case GIC_REDIST_REG_PENDBASER_OFF:      return "GICR_PENDBASER";
+        case GIC_REDIST_REG_INVLPIR_OFF:        return "GICR_INVLPIR";
+        case GIC_REDIST_REG_INVALLR_OFF:        return "GICR_INVALLR";
+        case GIC_REDIST_REG_SYNCR_OFF:          return "GICR_SYNCR";
+        case GIC_REDIST_REG_PIDR2_OFF:          return "GICR_PIDR2";
+        default:
+            return "<UNKNOWN>";
+    }
+}
+
+
+/**
+ * Gets the description of an SGI/PPI redistributor register given it's register
+ * offset.
+ *
+ * @returns The register description.
+ * @param   offReg  The redistributor register offset.
+ */
+static const char *gicReDistGetSgiPpiRegDescription(uint16_t offReg)
+{
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_IGROUPR0_OFF,          GIC_REDIST_SGI_PPI_REG_IGROUPRnE_RANGE_SIZE))    return "GICR_IGROUPn";
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_ISENABLER0_OFF,        GIC_REDIST_SGI_PPI_REG_ISENABLERnE_RANGE_SIZE))  return "GICR_ISENABLERn";
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_ICENABLER0_OFF,        GIC_REDIST_SGI_PPI_REG_ICENABLERnE_RANGE_SIZE))  return "GICR_ICENABLERn";
@@ -195,19 +228,18 @@ static const char *gicReDistGetRegDescription(uint16_t offReg)
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_ICPENDR0_OFF,          GIC_REDIST_SGI_PPI_REG_ICPENDRnE_RANGE_SIZE))    return "GICR_ICPENDRn";
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_IPRIORITYRn_OFF_START, GIC_REDIST_SGI_PPI_REG_IPRIORITYRnE_RANGE_SIZE)) return "GICR_IPREIORITYn";
     if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_ICFGR0_OFF,            GIC_REDIST_SGI_PPI_REG_ICFGRnE_RANGE_SIZE))      return "GICR_ICFGRn";
+    if (GIC_IS_REG_IN_RANGE(offReg, GIC_REDIST_SGI_PPI_REG_INMIR0_OFF,            GIC_REDIST_SGI_PPI_REG_INMIRnE_RANGE_SIZE))      return "GICR_INMIRn";
     switch (offReg)
     {
-        case GIC_REDIST_REG_CTLR_OFF:           return "GICR_CTLR";
-        case GIC_REDIST_REG_IIDR_OFF:           return "GICR_IIDR";
-        case GIC_REDIST_REG_TYPER_OFF:          return "GICR_TYPER";
-        case GIC_REDIST_REG_TYPER_AFFINITY_OFF: return "GICR_TYPER_AFF";
-        case GIC_REDIST_REG_STATUSR_OFF:        return "GICR_STATUSR";
-        case GIC_REDIST_REG_PIDR2_OFF:          return "GICR_PIDR2";
+        case GIC_REDIST_SGI_PPI_REG_NSACR_OFF:      return "GICR_NSACR";
+        case GIC_REDIST_SGI_PPI_REG_IGRPMODR0_OFF:  return "GICR_IGRPMODR0";
+        case GIC_REDIST_SGI_PPI_REG_IGRPMODR1E_OFF: return "GICR_IGRPMODR1E";
+        case GIC_REDIST_SGI_PPI_REG_IGRPMODR2E_OFF: return "GICR_IGRPMODR2E";
         default:
             return "<UNKNOWN>";
     }
 }
-#endif
+#endif /* LOG_ENABLED */
 
 
 /**
@@ -2387,7 +2419,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
         return gicReDistReadIntrConfigReg(pGicDev, pGicCpu, idxReg, puValue);
     }
 
-    AssertReleaseMsgFailed(("offReg=%#x\n",  offReg));
+    AssertReleaseMsgFailed(("offReg=%#x (%s)\n", offReg, gicReDistGetSgiPpiRegDescription(offReg)));
     *puValue = 0;
     return VINF_SUCCESS;
 }
@@ -2414,7 +2446,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
             Assert(uValue == 0);
             break;
         default:
-            AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
+            AssertReleaseMsgFailed(("offReg=%#x (%s) uValue=%#RX32\n", offReg, gicReDistGetRegDescription(offReg), uValue));
             break;
     }
 
@@ -2509,7 +2541,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPU
         return gicReDistWriteIntrConfigReg(pGicDev, pVCpu, idxReg, uValue);
     }
 
-    AssertReleaseMsgFailed(("offReg=%#RX16\n", offReg));
+    AssertReleaseMsgFailed(("offReg=%#RX16 (%s)\n", offReg, gicReDistGetSgiPpiRegDescription(offReg)));
     return VERR_INTERNAL_ERROR_2;
 }
 
@@ -3020,6 +3052,8 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
  * Initializes the GIC distributor state.
  *
  * @param   pDevIns     The device instance.
+ * @remarks This is also called during VM reset, so do NOT remove values that are
+ *          cleared to zero!
  */
 static void gicInit(PPDMDEVINS pDevIns)
 {
@@ -3050,6 +3084,8 @@ static void gicInit(PPDMDEVINS pDevIns)
  *
  * @param   pDevIns     The device instance.
  * @param   pVCpu       The cross context virtual CPU structure.
+ * @remarks This is also called during VM reset, so do NOT remove values that are
+ *          cleared to zero!
  */
 static void gicInitCpu(PPDMDEVINS pDevIns, PVMCPUCC pVCpu)
 {

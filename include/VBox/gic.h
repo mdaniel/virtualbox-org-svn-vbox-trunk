@@ -651,6 +651,8 @@
 #define GIC_REDIST_SGI_PPI_REG_INMIRnE_OFF_START        0x0f84
 /** Non maskable Interrupt Register for Extended PPIs, last offset - RW. */
 #define GIC_REDIST_SGI_PPI_REG_INMIRnE_OFF_LAST         0x0ffc
+/** Non maskable Interrupt Register for Extended PPIs, range in bytes. */
+#define GIC_REDIST_SGI_PPI_REG_INMIRnE_RANGE_SIZE       (GIC_REDIST_SGI_PPI_REG_INMIRnE_OFF_LAST + sizeof(uint32_t) - GIC_REDIST_SGI_PPI_REG_INMIR0_OFF)
 /** @} */
 
 

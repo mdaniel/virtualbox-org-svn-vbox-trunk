@@ -2036,7 +2036,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu,
             *puValue = GIC_DIST_REG_PIDR2_ARCHREV_SET(pGicDev->uArchRev);
             break;
         case GIC_DIST_REG_IIDR_OFF:
-            *puValue = 0x43b;   /* JEP106 code 0x43b is an ARM implementation. */
+            *puValue = GIC_DIST_REG_IIDR_IMPL_SET(GIC_JEDEC_JEP106_IDENTIFICATION_CODE, GIC_JEDEC_JEP106_CONTINUATION_CODE);
             break;
         case GIC_DIST_REG_TYPER2_OFF:
             *puValue = 0;
@@ -2276,7 +2276,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = 0;
             break;
         case GIC_REDIST_REG_IIDR_OFF:
-            *puValue = 0x43b;    /* JEP106 code 0x43b is an ARM implementation. */
+            *puValue = GIC_REDIST_REG_IIDR_IMPL_SET(GIC_JEDEC_JEP106_IDENTIFICATION_CODE, GIC_JEDEC_JEP106_CONTINUATION_CODE);
             break;
         case GIC_REDIST_REG_TYPER_AFFINITY_OFF:
             *puValue = idRedist;

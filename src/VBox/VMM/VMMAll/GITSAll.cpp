@@ -124,6 +124,11 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
             break;
         }
 
+        case GITS_CTRL_REG_IIDR_OFF:
+            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_ID_CODE,   GIC_JEDEC_JEP106_IDENTIFICATION_CODE)
+                     | RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_CONT_CODE, GIC_JEDEC_JEP106_CONTINUATION_CODE);
+            break;
+
         case GITS_CTRL_REG_TYPER_OFF:
         {
             uint64_t uLo = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,       1)               /* Physical LPIs supported. */
@@ -153,7 +158,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,     0) */   /** @todo Support reporting receipt of unmapped MSIs. */
                        /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ, 0) */   /** @todo Support generating interrupt on unmapped MSI. */
                          | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,      1);     /* ITS caches are invalidated when clearing
-                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
+                                                                                  GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
             *puValue = RT_HI_U32(uHi);
             break;
         }

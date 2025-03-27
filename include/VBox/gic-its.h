@@ -73,9 +73,15 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CTLR_, UINT32_C(0), UINT32_MAX,
 
 /** GITS_IIDR: Implementer and revision register - RO. */
 #define GITS_CTRL_REG_IIDR_OFF                                  0x0004
-/** GITS_IIDR: Implementer. */
-#define GITS_BF_CTRL_REG_IIDR_IMPLEMENTER_SHIFT                 0
-#define GITS_BF_CTRL_REG_IIDR_IMPLEMENTER_MASK                  UINT32_C(0x00000fff)
+/** GITS_IIDR: Implementer - JEP106 identification code. */
+#define GITS_BF_CTRL_REG_IIDR_IMPL_ID_CODE_SHIFT                0
+#define GITS_BF_CTRL_REG_IIDR_IMPL_ID_CODE_MASK                 UINT32_C(0x0000007f)
+/** GITS_IIDR: Implementer - Reserved (bit 7). */
+#define GITS_BF_CTRL_REG_IIDR_IMPL_ZERO_7_SHIFT                 7
+#define GITS_BF_CTRL_REG_IIDR_IMPL_ZERO_7_MASK                  UINT32_C(0x00000080)
+/** GITS_IIDR: Implementer - JEP106 continuation code. */
+#define GITS_BF_CTRL_REG_IIDR_IMPL_CONT_CODE_SHIFT              8
+#define GITS_BF_CTRL_REG_IIDR_IMPL_CONT_CODE_MASK               UINT32_C(0x00000f00)
 /** GITS_IIDR: Revision. */
 #define GITS_BF_CTRL_REG_IIDR_REVISION_SHIFT                    12
 #define GITS_BF_CTRL_REG_IIDR_REVISION_MASK                     UINT32_C(0x0000f000)
@@ -89,7 +95,7 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CTLR_, UINT32_C(0), UINT32_MAX,
 #define GITS_BF_CTRL_REG_IIDR_PRODUCT_ID_SHIFT                  24
 #define GITS_BF_CTRL_REG_IIDR_PRODUCT_ID_MASK                   UINT32_C(0xff000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_IIDR_, UINT32_C(0), UINT32_MAX,
-                            (IMPLEMENTER, REVISION, VARIANT, RSVD_23_20, PRODUCT_ID));
+                            (IMPL_ID_CODE, IMPL_ZERO_7, IMPL_CONT_CODE, REVISION, VARIANT, RSVD_23_20, PRODUCT_ID));
 
 /** GITS_TYPER: Feature register - RO. */
 #define GITS_CTRL_REG_TYPER_OFF                                 0x0008

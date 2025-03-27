@@ -178,6 +178,15 @@
 
 /** Distributor Implementer Identification Register - RO. */
 #define GIC_DIST_REG_IIDR_OFF                           0x0008
+/** Bits 0 - 6 - Implementer ID code. */
+# define GIC_DIST_REG_IIDR_IMPL_ID                      UINT32_C(0x0000007f)
+# define GIC_DIST_REG_IIDR_IMPL_ID_BIT                  0
+/** Bits 0 - 6 - Implementer continuation code. */
+# define GIC_DIST_REG_IIDR_IMPL_CONT                    UINT32_C(0x00000f00)
+# define GIC_DIST_REG_IIDR_IMPL_CONT_BIT                8
+# define GIC_DIST_REG_IIDR_IMPL_SET(a_Id, a_Cont)       ((a_Id) | \
+                                                        (((a_Cont) << GIC_DIST_REG_IIDR_IMPL_CONT_BIT) & GIC_DIST_REG_IIDR_IMPL_CONT))
+
 /** Interrupt Controller Type Register 2 - RO. */
 #define GIC_DIST_REG_TYPER2_OFF                         0x000c
 /** Error Reporting Status Register (optional) - RW. */
@@ -436,6 +445,13 @@
 
 /** Implementer Identification Register - RO. */
 #define GIC_REDIST_REG_IIDR_OFF                         0x0004
+/** Bits 0 - 6 - Implementer ID code. */
+# define GIC_REDIST_REG_IIDR_IMPL_ID                    GIC_DIST_REG_IIDR_IMPL_ID
+# define GIC_REDIST_REG_IIDR_IMPL_ID_BIT                GIC_DIST_REG_IIDR_IMPL_ID_BIT
+/** Bits 0 - 6 - Implementer continuation code. */
+# define GIC_REDIST_REG_IIDR_IMPL_CONT                  GIC_DIST_REG_IIDR_IMPL_CONT
+# define GIC_REDIST_REG_IIDR_IMPL_CONT_BIT              GIC_DIST_REG_IIDR_IMPL_CONT_BIT
+# define GIC_REDIST_REG_IIDR_IMPL_SET(a_Id, a_Cont)     GIC_DIST_REG_IIDR_IMPL_SET(a_Id, a_Cont)
 
 /** Redistributor Type Register - RO. */
 #define GIC_REDIST_REG_TYPER_OFF                        0x0008

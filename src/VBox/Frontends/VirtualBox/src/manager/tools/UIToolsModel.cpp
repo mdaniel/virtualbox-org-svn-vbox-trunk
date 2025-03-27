@@ -873,8 +873,8 @@ void UIToolsModel::sltRetranslateUI()
             case UIToolType_Toggle:      pItem->setName(tr("Show text")); break;
             // Global
             case UIToolType_Home:        pItem->setName(tr("Home")); break;
-            case UIToolType_Machines:    pItem->setName(tr("Machines")); break;
-            case UIToolType_Managers:    pItem->setName(tr("Management")); break;
+            case UIToolType_Machines:    pItem->setName(tr("VMs")); break;
+            case UIToolType_Managers:    pItem->setName(tr("Tools")); break;
             // Machine
             case UIToolType_Details:     pItem->setName(tr("Details")); break;
             case UIToolType_Snapshots:   pItem->setName(tr("Snapshots")); break;

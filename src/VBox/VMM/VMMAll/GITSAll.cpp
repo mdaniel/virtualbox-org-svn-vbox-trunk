@@ -69,7 +69,6 @@ AssertCompileSize(GITSITE, 8);
 
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE
 
-#ifdef LOG_ENABLED
 DECL_HIDDEN_CALLBACK(const char *) gitsGetCtrlRegDescription(uint16_t offReg)
 {
     if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
@@ -92,6 +91,7 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetCtrlRegDescription(uint16_t offReg)
     }
 }
 
+#ifdef LOG_ENABLED
 DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t offReg)
 {
     switch (offReg)

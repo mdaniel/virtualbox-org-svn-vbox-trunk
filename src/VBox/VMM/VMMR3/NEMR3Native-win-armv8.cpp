@@ -277,6 +277,152 @@ static const struct
 #endif
 
 
+#define WHV_REGNM(a_Suffix) WHvArm64Register ## a_Suffix
+/** The general registers. */
+static const struct
+{
+    WHV_REGISTER_NAME    enmWHvReg;
+    uint32_t             fCpumExtrn;
+    uintptr_t            offCpumCtx;
+} s_aCpumRegs[] =
+{
+#define CPUM_GREG_EMIT_X0_X3(a_Idx)  { WHV_REGNM(X ## a_Idx), CPUMCTX_EXTRN_X ## a_Idx, RT_UOFFSETOF(CPUMCTX, aGRegs[a_Idx].x) }
+#define CPUM_GREG_EMIT_X4_X28(a_Idx) { WHV_REGNM(X ## a_Idx), CPUMCTX_EXTRN_X4_X28,     RT_UOFFSETOF(CPUMCTX, aGRegs[a_Idx].x) }
+    CPUM_GREG_EMIT_X0_X3(0),
+    CPUM_GREG_EMIT_X0_X3(1),
+    CPUM_GREG_EMIT_X0_X3(2),
+    CPUM_GREG_EMIT_X0_X3(3),
+    CPUM_GREG_EMIT_X4_X28(4),
+    CPUM_GREG_EMIT_X4_X28(5),
+    CPUM_GREG_EMIT_X4_X28(6),
+    CPUM_GREG_EMIT_X4_X28(7),
+    CPUM_GREG_EMIT_X4_X28(8),
+    CPUM_GREG_EMIT_X4_X28(9),
+    CPUM_GREG_EMIT_X4_X28(10),
+    CPUM_GREG_EMIT_X4_X28(11),
+    CPUM_GREG_EMIT_X4_X28(12),
+    CPUM_GREG_EMIT_X4_X28(13),
+    CPUM_GREG_EMIT_X4_X28(14),
+    CPUM_GREG_EMIT_X4_X28(15),
+    CPUM_GREG_EMIT_X4_X28(16),
+    CPUM_GREG_EMIT_X4_X28(17),
+    CPUM_GREG_EMIT_X4_X28(18),
+    CPUM_GREG_EMIT_X4_X28(19),
+    CPUM_GREG_EMIT_X4_X28(20),
+    CPUM_GREG_EMIT_X4_X28(21),
+    CPUM_GREG_EMIT_X4_X28(22),
+    CPUM_GREG_EMIT_X4_X28(23),
+    CPUM_GREG_EMIT_X4_X28(24),
+    CPUM_GREG_EMIT_X4_X28(25),
+    CPUM_GREG_EMIT_X4_X28(26),
+    CPUM_GREG_EMIT_X4_X28(27),
+    CPUM_GREG_EMIT_X4_X28(28),
+    { WHV_REGNM(Fp),   CPUMCTX_EXTRN_FP,   RT_UOFFSETOF(CPUMCTX, aGRegs[29].x) },
+    { WHV_REGNM(Lr),   CPUMCTX_EXTRN_LR,   RT_UOFFSETOF(CPUMCTX, aGRegs[30].x) },
+    { WHV_REGNM(Pc),   CPUMCTX_EXTRN_PC,   RT_UOFFSETOF(CPUMCTX, Pc.u64)       },
+    { WHV_REGNM(Fpcr), CPUMCTX_EXTRN_FPCR, RT_UOFFSETOF(CPUMCTX, fpcr)         },
+    { WHV_REGNM(Fpsr), CPUMCTX_EXTRN_FPSR, RT_UOFFSETOF(CPUMCTX, fpsr)         }
+#undef CPUM_GREG_EMIT_X0_X3
+#undef CPUM_GREG_EMIT_X4_X28
+};
+/** SIMD/FP registers. */
+static const struct
+{
+    WHV_REGISTER_NAME   enmWHvReg;
+    uintptr_t           offCpumCtx;
+} s_aCpumFpRegs[] =
+{
+#define CPUM_VREG_EMIT(a_Idx)  {  WHV_REGNM(Q ## a_Idx), RT_UOFFSETOF(CPUMCTX, aVRegs[a_Idx].v) }
+    CPUM_VREG_EMIT(0),
+    CPUM_VREG_EMIT(1),
+    CPUM_VREG_EMIT(2),
+    CPUM_VREG_EMIT(3),
+    CPUM_VREG_EMIT(4),
+    CPUM_VREG_EMIT(5),
+    CPUM_VREG_EMIT(6),
+    CPUM_VREG_EMIT(7),
+    CPUM_VREG_EMIT(8),
+    CPUM_VREG_EMIT(9),
+    CPUM_VREG_EMIT(10),
+    CPUM_VREG_EMIT(11),
+    CPUM_VREG_EMIT(12),
+    CPUM_VREG_EMIT(13),
+    CPUM_VREG_EMIT(14),
+    CPUM_VREG_EMIT(15),
+    CPUM_VREG_EMIT(16),
+    CPUM_VREG_EMIT(17),
+    CPUM_VREG_EMIT(18),
+    CPUM_VREG_EMIT(19),
+    CPUM_VREG_EMIT(20),
+    CPUM_VREG_EMIT(21),
+    CPUM_VREG_EMIT(22),
+    CPUM_VREG_EMIT(23),
+    CPUM_VREG_EMIT(24),
+    CPUM_VREG_EMIT(25),
+    CPUM_VREG_EMIT(26),
+    CPUM_VREG_EMIT(27),
+    CPUM_VREG_EMIT(28),
+    CPUM_VREG_EMIT(29),
+    CPUM_VREG_EMIT(30),
+    CPUM_VREG_EMIT(31)
+#undef CPUM_VREG_EMIT
+};
+/** PAuth key system registers. */
+static const struct
+{
+    WHV_REGISTER_NAME   enmWHvReg;
+    uintptr_t           offCpumCtx;
+} s_aCpumPAuthKeyRegs[] =
+{
+    { WHV_REGNM(ApdAKeyLoEl1), RT_UOFFSETOF(CPUMCTX, Apda.Low.u64)  },
+    { WHV_REGNM(ApdAKeyHiEl1), RT_UOFFSETOF(CPUMCTX, Apda.High.u64) },
+    { WHV_REGNM(ApdBKeyLoEl1), RT_UOFFSETOF(CPUMCTX, Apdb.Low.u64)  },
+    { WHV_REGNM(ApdBKeyHiEl1), RT_UOFFSETOF(CPUMCTX, Apdb.High.u64) },
+    { WHV_REGNM(ApgAKeyLoEl1), RT_UOFFSETOF(CPUMCTX, Apga.Low.u64)  },
+    { WHV_REGNM(ApgAKeyHiEl1), RT_UOFFSETOF(CPUMCTX, Apga.High.u64) },
+    { WHV_REGNM(ApiAKeyLoEl1), RT_UOFFSETOF(CPUMCTX, Apia.Low.u64)  },
+    { WHV_REGNM(ApiAKeyHiEl1), RT_UOFFSETOF(CPUMCTX, Apia.High.u64) },
+    { WHV_REGNM(ApiBKeyLoEl1), RT_UOFFSETOF(CPUMCTX, Apib.Low.u64)  },
+    { WHV_REGNM(ApiBKeyHiEl1), RT_UOFFSETOF(CPUMCTX, Apib.High.u64) }
+};
+/** System registers. */
+static const struct
+{
+    WHV_REGISTER_NAME   enmWHvReg;
+    uint32_t            fCpumExtrn;
+    uintptr_t           offCpumCtx;
+} s_aCpumSysRegs[] =
+{
+    { WHV_REGNM(SpEl0),            CPUMCTX_EXTRN_SP,               RT_UOFFSETOF(CPUMCTX, aSpReg[0].u64)    },
+    { WHV_REGNM(SpEl1),            CPUMCTX_EXTRN_SP,               RT_UOFFSETOF(CPUMCTX, aSpReg[1].u64)    },
+    { WHV_REGNM(SpsrEl1),          CPUMCTX_EXTRN_SPSR,             RT_UOFFSETOF(CPUMCTX, Spsr.u64)         },
+    { WHV_REGNM(ElrEl1),           CPUMCTX_EXTRN_ELR,              RT_UOFFSETOF(CPUMCTX, Elr.u64)          },
+    { WHV_REGNM(SctlrEl1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Sctlr.u64)        },
+    { WHV_REGNM(TcrEl1),           CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Tcr.u64)          },
+    { WHV_REGNM(Ttbr0El1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr0.u64)        },
+    { WHV_REGNM(Ttbr1El1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr1.u64)        },
+    { WHV_REGNM(VbarEl1),          CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, VBar.u64)         },
+    { WHV_REGNM(CntkctlEl1),       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, CntKCtl.u64)      },
+    { WHV_REGNM(ContextidrEl1),    CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, ContextIdr.u64)   },
+    { WHV_REGNM(CpacrEl1),         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Cpacr.u64)        },
+    { WHV_REGNM(CsselrEl1),        CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Csselr.u64)       },
+    { WHV_REGNM(EsrEl1),           CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Esr.u64)          },
+    { WHV_REGNM(FarEl1),           CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Far.u64)          },
+    { WHV_REGNM(MairEl1),          CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Mair.u64)         },
+    { WHV_REGNM(ParEl1),           CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Par.u64)          },
+    { WHV_REGNM(TpidrroEl0),       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, TpIdrRoEl0.u64)   },
+    { WHV_REGNM(TpidrEl0),         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, aTpIdr[0].u64)    },
+    { WHV_REGNM(TpidrEl1),         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, aTpIdr[1].u64)    },
+    { My_WHvArm64RegisterActlrEl1, CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Actlr.u64)        }
+#if 0 /* Not available in Hyper-V */
+    { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr0.u64)        },
+    { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr1.u64)        },
+    { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Amair.u64)        },
+    { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, MDccInt.u64)      }
+#endif
+};
+
+
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
@@ -400,22 +546,6 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
 #define NEM_LOG_REL_CAP_SUB_EX(a_szField, a_szFmt, a_Value) LogRel(("NEM:   %36s: " a_szFmt "\n", a_szField, a_Value))
 #define NEM_LOG_REL_CAP_SUB(a_szField, a_Value)             NEM_LOG_REL_CAP_SUB_EX(a_szField, "%d", a_Value)
 
-    /*
-     * Is the hypervisor present with the desired capability?
-     *
-     * In build 17083 this translates into:
-     *      - CPUID[0x00000001].HVP is set
-     *      - CPUID[0x40000000] == "Microsoft Hv"
-     *      - CPUID[0x40000001].eax == "Hv#1"
-     *      - CPUID[0x40000003].ebx[12] is set.
-     *      - VidGetExoPartitionProperty(INVALID_HANDLE_VALUE, 0x60000, &Ignored) returns
-     *        a non-zero value.
-     */
-    /**
-     * @todo Someone at Microsoft please explain weird API design:
-     *   1. Pointless CapabilityCode duplication int the output;
-     *   2. No output size.
-     */
     WHV_CAPABILITY Caps;
     RT_ZERO(Caps);
     SetLastError(0);
@@ -1275,131 +1405,27 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
             iReg++; \
         } while (0)
 
-    /* GPRs */
-    if (fWhat & CPUMCTX_EXTRN_GPRS_MASK)
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
+        !=                              (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
     {
-        if (fWhat & CPUMCTX_EXTRN_X0)
-            ADD_REG64(WHvArm64RegisterX0, pVCpu->cpum.GstCtx.aGRegs[0]);
-        if (fWhat & CPUMCTX_EXTRN_X1)
-            ADD_REG64(WHvArm64RegisterX1, pVCpu->cpum.GstCtx.aGRegs[1]);
-        if (fWhat & CPUMCTX_EXTRN_X2)
-            ADD_REG64(WHvArm64RegisterX2, pVCpu->cpum.GstCtx.aGRegs[2]);
-        if (fWhat & CPUMCTX_EXTRN_X3)
-            ADD_REG64(WHvArm64RegisterX3, pVCpu->cpum.GstCtx.aGRegs[3]);
-        if (fWhat & CPUMCTX_EXTRN_X4_X28)
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumRegs); i++)
         {
-            ADD_REG64(WHvArm64RegisterX4,  pVCpu->cpum.GstCtx.aGRegs[4]);
-            ADD_REG64(WHvArm64RegisterX5,  pVCpu->cpum.GstCtx.aGRegs[5]);
-            ADD_REG64(WHvArm64RegisterX6,  pVCpu->cpum.GstCtx.aGRegs[6]);
-            ADD_REG64(WHvArm64RegisterX7,  pVCpu->cpum.GstCtx.aGRegs[7]);
-            ADD_REG64(WHvArm64RegisterX8,  pVCpu->cpum.GstCtx.aGRegs[8]);
-            ADD_REG64(WHvArm64RegisterX9,  pVCpu->cpum.GstCtx.aGRegs[9]);
-            ADD_REG64(WHvArm64RegisterX10, pVCpu->cpum.GstCtx.aGRegs[10]);
-            ADD_REG64(WHvArm64RegisterX11, pVCpu->cpum.GstCtx.aGRegs[11]);
-            ADD_REG64(WHvArm64RegisterX12, pVCpu->cpum.GstCtx.aGRegs[12]);
-            ADD_REG64(WHvArm64RegisterX13, pVCpu->cpum.GstCtx.aGRegs[13]);
-            ADD_REG64(WHvArm64RegisterX14, pVCpu->cpum.GstCtx.aGRegs[14]);
-            ADD_REG64(WHvArm64RegisterX15, pVCpu->cpum.GstCtx.aGRegs[15]);
-            ADD_REG64(WHvArm64RegisterX16, pVCpu->cpum.GstCtx.aGRegs[16]);
-            ADD_REG64(WHvArm64RegisterX17, pVCpu->cpum.GstCtx.aGRegs[17]);
-            ADD_REG64(WHvArm64RegisterX18, pVCpu->cpum.GstCtx.aGRegs[18]);
-            ADD_REG64(WHvArm64RegisterX19, pVCpu->cpum.GstCtx.aGRegs[19]);
-            ADD_REG64(WHvArm64RegisterX20, pVCpu->cpum.GstCtx.aGRegs[20]);
-            ADD_REG64(WHvArm64RegisterX21, pVCpu->cpum.GstCtx.aGRegs[21]);
-            ADD_REG64(WHvArm64RegisterX22, pVCpu->cpum.GstCtx.aGRegs[22]);
-            ADD_REG64(WHvArm64RegisterX23, pVCpu->cpum.GstCtx.aGRegs[23]);
-            ADD_REG64(WHvArm64RegisterX24, pVCpu->cpum.GstCtx.aGRegs[24]);
-            ADD_REG64(WHvArm64RegisterX25, pVCpu->cpum.GstCtx.aGRegs[25]);
-            ADD_REG64(WHvArm64RegisterX26, pVCpu->cpum.GstCtx.aGRegs[26]);
-            ADD_REG64(WHvArm64RegisterX27, pVCpu->cpum.GstCtx.aGRegs[27]);
-            ADD_REG64(WHvArm64RegisterX28, pVCpu->cpum.GstCtx.aGRegs[28]);
+            if (!(s_aCpumRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+            {
+                const CPUMCTXGREG *pReg = (const CPUMCTXGREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumRegs[i].offCpumCtx);
+                ADD_REG64(s_aCpumRegs[i].enmWHvReg, *pReg);
+            }
         }
-        if (fWhat & CPUMCTX_EXTRN_LR)
-            ADD_REG64(WHvArm64RegisterLr, pVCpu->cpum.GstCtx.aGRegs[30]);
-        if (fWhat & CPUMCTX_EXTRN_FP)
-            ADD_REG64(WHvArm64RegisterFp, pVCpu->cpum.GstCtx.aGRegs[29]);
     }
 
-    /* RIP & Flags */
-    if (fWhat & CPUMCTX_EXTRN_PC)
-        ADD_SYSREG64(WHvArm64RegisterPc, pVCpu->cpum.GstCtx.Pc);
-    if (fWhat & CPUMCTX_EXTRN_PSTATE)
-        ADD_REG64_RAW(WHvArm64RegisterPstate, pVCpu->cpum.GstCtx.fPState);
-    if (fWhat & CPUMCTX_EXTRN_SPSR)
-        ADD_SYSREG64(WHvArm64RegisterSpsrEl1, pVCpu->cpum.GstCtx.Spsr);
-    if (fWhat & CPUMCTX_EXTRN_ELR)
-        ADD_SYSREG64(WHvArm64RegisterElrEl1, pVCpu->cpum.GstCtx.Elr);
-    if (fWhat & CPUMCTX_EXTRN_SP)
-    {
-        ADD_SYSREG64(WHvArm64RegisterSpEl0, pVCpu->cpum.GstCtx.aSpReg[0]);
-        ADD_SYSREG64(WHvArm64RegisterSpEl1, pVCpu->cpum.GstCtx.aSpReg[1]);
-    }
-    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
-    {
-        ADD_SYSREG64(WHvArm64RegisterSctlrEl1, pVCpu->cpum.GstCtx.Sctlr);
-        ADD_SYSREG64(WHvArm64RegisterTcrEl1,   pVCpu->cpum.GstCtx.Tcr);
-        ADD_SYSREG64(WHvArm64RegisterTtbr0El1, pVCpu->cpum.GstCtx.Ttbr0);
-        ADD_SYSREG64(WHvArm64RegisterTtbr1El1, pVCpu->cpum.GstCtx.Ttbr1);
-    }
-
-    /* Vector state. */
     if (fWhat & CPUMCTX_EXTRN_V0_V31)
     {
-        ADD_REG128(WHvArm64RegisterQ0,  pVCpu->cpum.GstCtx.aVRegs[0]);
-        ADD_REG128(WHvArm64RegisterQ1,  pVCpu->cpum.GstCtx.aVRegs[1]);
-        ADD_REG128(WHvArm64RegisterQ2,  pVCpu->cpum.GstCtx.aVRegs[2]);
-        ADD_REG128(WHvArm64RegisterQ3,  pVCpu->cpum.GstCtx.aVRegs[3]);
-        ADD_REG128(WHvArm64RegisterQ4,  pVCpu->cpum.GstCtx.aVRegs[4]);
-        ADD_REG128(WHvArm64RegisterQ5,  pVCpu->cpum.GstCtx.aVRegs[5]);
-        ADD_REG128(WHvArm64RegisterQ6,  pVCpu->cpum.GstCtx.aVRegs[6]);
-        ADD_REG128(WHvArm64RegisterQ7,  pVCpu->cpum.GstCtx.aVRegs[7]);
-        ADD_REG128(WHvArm64RegisterQ8,  pVCpu->cpum.GstCtx.aVRegs[8]);
-        ADD_REG128(WHvArm64RegisterQ9,  pVCpu->cpum.GstCtx.aVRegs[9]);
-        ADD_REG128(WHvArm64RegisterQ10, pVCpu->cpum.GstCtx.aVRegs[10]);
-        ADD_REG128(WHvArm64RegisterQ11, pVCpu->cpum.GstCtx.aVRegs[11]);
-        ADD_REG128(WHvArm64RegisterQ12, pVCpu->cpum.GstCtx.aVRegs[12]);
-        ADD_REG128(WHvArm64RegisterQ13, pVCpu->cpum.GstCtx.aVRegs[13]);
-        ADD_REG128(WHvArm64RegisterQ14, pVCpu->cpum.GstCtx.aVRegs[14]);
-        ADD_REG128(WHvArm64RegisterQ15, pVCpu->cpum.GstCtx.aVRegs[15]);
-        ADD_REG128(WHvArm64RegisterQ16, pVCpu->cpum.GstCtx.aVRegs[16]);
-        ADD_REG128(WHvArm64RegisterQ17, pVCpu->cpum.GstCtx.aVRegs[17]);
-        ADD_REG128(WHvArm64RegisterQ18, pVCpu->cpum.GstCtx.aVRegs[18]);
-        ADD_REG128(WHvArm64RegisterQ19, pVCpu->cpum.GstCtx.aVRegs[19]);
-        ADD_REG128(WHvArm64RegisterQ20, pVCpu->cpum.GstCtx.aVRegs[20]);
-        ADD_REG128(WHvArm64RegisterQ21, pVCpu->cpum.GstCtx.aVRegs[21]);
-        ADD_REG128(WHvArm64RegisterQ22, pVCpu->cpum.GstCtx.aVRegs[22]);
-        ADD_REG128(WHvArm64RegisterQ23, pVCpu->cpum.GstCtx.aVRegs[23]);
-        ADD_REG128(WHvArm64RegisterQ24, pVCpu->cpum.GstCtx.aVRegs[24]);
-        ADD_REG128(WHvArm64RegisterQ25, pVCpu->cpum.GstCtx.aVRegs[25]);
-        ADD_REG128(WHvArm64RegisterQ26, pVCpu->cpum.GstCtx.aVRegs[26]);
-        ADD_REG128(WHvArm64RegisterQ27, pVCpu->cpum.GstCtx.aVRegs[27]);
-        ADD_REG128(WHvArm64RegisterQ28, pVCpu->cpum.GstCtx.aVRegs[28]);
-        ADD_REG128(WHvArm64RegisterQ29, pVCpu->cpum.GstCtx.aVRegs[29]);
-        ADD_REG128(WHvArm64RegisterQ30, pVCpu->cpum.GstCtx.aVRegs[30]);
-        ADD_REG128(WHvArm64RegisterQ31, pVCpu->cpum.GstCtx.aVRegs[31]);
-    }
-
-    if (fWhat & CPUMCTX_EXTRN_FPCR)
-        ADD_REG64_RAW(WHvArm64RegisterFpcr, pVCpu->cpum.GstCtx.fpcr);
-    if (fWhat & CPUMCTX_EXTRN_FPSR)
-        ADD_REG64_RAW(WHvArm64RegisterFpsr, pVCpu->cpum.GstCtx.fpsr);
-
-    /* System registers. */
-    if (fWhat & CPUMCTX_EXTRN_SYSREG_MISC)
-    {
-        ADD_SYSREG64(WHvArm64RegisterVbarEl1,       pVCpu->cpum.GstCtx.VBar);
-        ADD_SYSREG64(WHvArm64RegisterEsrEl1,        pVCpu->cpum.GstCtx.Esr);
-        ADD_SYSREG64(WHvArm64RegisterFarEl1,        pVCpu->cpum.GstCtx.Far);
-        ADD_SYSREG64(WHvArm64RegisterCntkctlEl1,    pVCpu->cpum.GstCtx.CntKCtl);
-        ADD_SYSREG64(WHvArm64RegisterContextidrEl1, pVCpu->cpum.GstCtx.ContextIdr);
-        ADD_SYSREG64(WHvArm64RegisterCpacrEl1,      pVCpu->cpum.GstCtx.Cpacr);
-        ADD_SYSREG64(WHvArm64RegisterCsselrEl1,     pVCpu->cpum.GstCtx.Csselr);
-        ADD_SYSREG64(WHvArm64RegisterMairEl1,       pVCpu->cpum.GstCtx.Mair);
-        ADD_SYSREG64(WHvArm64RegisterParEl1,        pVCpu->cpum.GstCtx.Par);
-        ADD_SYSREG64(WHvArm64RegisterTpidrroEl0,    pVCpu->cpum.GstCtx.TpIdrRoEl0);
-        ADD_SYSREG64(WHvArm64RegisterTpidrEl0,      pVCpu->cpum.GstCtx.aTpIdr[0]);
-        ADD_SYSREG64(WHvArm64RegisterTpidrEl1,      pVCpu->cpum.GstCtx.aTpIdr[1]);
-        ADD_SYSREG64(My_WHvArm64RegisterActlrEl1,   pVCpu->cpum.GstCtx.Actlr);
+        /* SIMD/FP registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumFpRegs); i++)
+        {
+            PCCPUMCTXVREG pVReg = (PCCPUMCTXVREG)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumFpRegs[i].offCpumCtx);
+            ADD_REG128(s_aCpumFpRegs[i].enmWHvReg, *pVReg);
+        }
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)
@@ -1421,17 +1447,30 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_PAUTH_KEYS)
     {
-        ADD_SYSREG64(WHvArm64RegisterApdAKeyHiEl1, pVCpu->cpum.GstCtx.Apda.High);
-        ADD_SYSREG64(WHvArm64RegisterApdAKeyLoEl1, pVCpu->cpum.GstCtx.Apda.Low);
-        ADD_SYSREG64(WHvArm64RegisterApdBKeyHiEl1, pVCpu->cpum.GstCtx.Apdb.High);
-        ADD_SYSREG64(WHvArm64RegisterApdBKeyLoEl1, pVCpu->cpum.GstCtx.Apdb.Low);
-        ADD_SYSREG64(WHvArm64RegisterApgAKeyHiEl1, pVCpu->cpum.GstCtx.Apga.High);
-        ADD_SYSREG64(WHvArm64RegisterApgAKeyLoEl1, pVCpu->cpum.GstCtx.Apga.Low);
-        ADD_SYSREG64(WHvArm64RegisterApiAKeyHiEl1, pVCpu->cpum.GstCtx.Apia.High);
-        ADD_SYSREG64(WHvArm64RegisterApiAKeyLoEl1, pVCpu->cpum.GstCtx.Apia.Low);
-        ADD_SYSREG64(WHvArm64RegisterApiBKeyHiEl1, pVCpu->cpum.GstCtx.Apib.High);
-        ADD_SYSREG64(WHvArm64RegisterApiBKeyLoEl1, pVCpu->cpum.GstCtx.Apib.Low);
+        /* PAuth registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumPAuthKeyRegs); i++)
+        {
+            const CPUMCTXSYSREG *pReg = (const CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumPAuthKeyRegs[i].offCpumCtx);
+            ADD_SYSREG64(s_aCpumPAuthKeyRegs[i].enmWHvReg, *pReg);
+        }
     }
+
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    {
+        /* System registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
+        {
+            if (!(s_aCpumSysRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+            {
+                const CPUMCTXSYSREG *pReg = (const CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
+                ADD_SYSREG64(s_aCpumSysRegs[i].enmWHvReg, *pReg);
+            }
+        }
+    }
+
+    if (fWhat & CPUMCTX_EXTRN_PSTATE)
+        ADD_REG64_RAW(WHvArm64RegisterPstate, pVCpu->cpum.GstCtx.fPState);
 
 #undef ADD_REG64
 #undef ADD_REG64_RAW
@@ -1465,136 +1504,27 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
 
     uintptr_t iReg = 0;
 
-    /* GPRs */
-    if (fWhat & CPUMCTX_EXTRN_GPRS_MASK)
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
+        !=                              (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
     {
-        if (fWhat & CPUMCTX_EXTRN_X0)
-            aenmNames[iReg++] = WHvArm64RegisterX0;
-        if (fWhat & CPUMCTX_EXTRN_X1)
-            aenmNames[iReg++] = WHvArm64RegisterX1;
-        if (fWhat & CPUMCTX_EXTRN_X2)
-            aenmNames[iReg++] = WHvArm64RegisterX2;
-        if (fWhat & CPUMCTX_EXTRN_X3)
-            aenmNames[iReg++] = WHvArm64RegisterX3;
-        if (fWhat & CPUMCTX_EXTRN_X4_X28)
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumRegs); i++)
         {
-            aenmNames[iReg++] = WHvArm64RegisterX4;
-            aenmNames[iReg++] = WHvArm64RegisterX5;
-            aenmNames[iReg++] = WHvArm64RegisterX6;
-            aenmNames[iReg++] = WHvArm64RegisterX7;
-            aenmNames[iReg++] = WHvArm64RegisterX8;
-            aenmNames[iReg++] = WHvArm64RegisterX9;
-            aenmNames[iReg++] = WHvArm64RegisterX10;
-            aenmNames[iReg++] = WHvArm64RegisterX11;
-            aenmNames[iReg++] = WHvArm64RegisterX12;
-            aenmNames[iReg++] = WHvArm64RegisterX13;
-            aenmNames[iReg++] = WHvArm64RegisterX14;
-            aenmNames[iReg++] = WHvArm64RegisterX15;
-            aenmNames[iReg++] = WHvArm64RegisterX16;
-            aenmNames[iReg++] = WHvArm64RegisterX17;
-            aenmNames[iReg++] = WHvArm64RegisterX18;
-            aenmNames[iReg++] = WHvArm64RegisterX19;
-            aenmNames[iReg++] = WHvArm64RegisterX20;
-            aenmNames[iReg++] = WHvArm64RegisterX21;
-            aenmNames[iReg++] = WHvArm64RegisterX22;
-            aenmNames[iReg++] = WHvArm64RegisterX23;
-            aenmNames[iReg++] = WHvArm64RegisterX24;
-            aenmNames[iReg++] = WHvArm64RegisterX25;
-            aenmNames[iReg++] = WHvArm64RegisterX26;
-            aenmNames[iReg++] = WHvArm64RegisterX27;
-            aenmNames[iReg++] = WHvArm64RegisterX28;
+            if (!(s_aCpumRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+                aenmNames[iReg++] = s_aCpumRegs[i].enmWHvReg;
         }
-        if (fWhat & CPUMCTX_EXTRN_LR)
-            aenmNames[iReg++] = WHvArm64RegisterLr;
-        if (fWhat & CPUMCTX_EXTRN_FP)
-            aenmNames[iReg++] = WHvArm64RegisterFp;
     }
 
-    /* PC & Flags */
-    if (fWhat & CPUMCTX_EXTRN_PC)
-        aenmNames[iReg++] = WHvArm64RegisterPc;
-    if (fWhat & CPUMCTX_EXTRN_PSTATE)
-        aenmNames[iReg++] = WHvArm64RegisterPstate;
-    if (fWhat & CPUMCTX_EXTRN_SPSR)
-        aenmNames[iReg++] = WHvArm64RegisterSpsrEl1;
-    if (fWhat & CPUMCTX_EXTRN_ELR)
-        aenmNames[iReg++] = WHvArm64RegisterElrEl1;
-    if (fWhat & CPUMCTX_EXTRN_SP)
-    {
-        aenmNames[iReg++] = WHvArm64RegisterSpEl0;
-        aenmNames[iReg++] = WHvArm64RegisterSpEl1;
-    }
-    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
-    {
-        aenmNames[iReg++] = WHvArm64RegisterSctlrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterTcrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterTtbr0El1;
-        aenmNames[iReg++] = WHvArm64RegisterTtbr1El1;
-    }
-
-    /* Vector state. */
     if (fWhat & CPUMCTX_EXTRN_V0_V31)
     {
-        aenmNames[iReg++] = WHvArm64RegisterQ0;
-        aenmNames[iReg++] = WHvArm64RegisterQ1;
-        aenmNames[iReg++] = WHvArm64RegisterQ2;
-        aenmNames[iReg++] = WHvArm64RegisterQ3;
-        aenmNames[iReg++] = WHvArm64RegisterQ4;
-        aenmNames[iReg++] = WHvArm64RegisterQ5;
-        aenmNames[iReg++] = WHvArm64RegisterQ6;
-        aenmNames[iReg++] = WHvArm64RegisterQ7;
-        aenmNames[iReg++] = WHvArm64RegisterQ8;
-        aenmNames[iReg++] = WHvArm64RegisterQ9;
-        aenmNames[iReg++] = WHvArm64RegisterQ10;
-        aenmNames[iReg++] = WHvArm64RegisterQ11;
-        aenmNames[iReg++] = WHvArm64RegisterQ12;
-        aenmNames[iReg++] = WHvArm64RegisterQ13;
-        aenmNames[iReg++] = WHvArm64RegisterQ14;
-        aenmNames[iReg++] = WHvArm64RegisterQ15;
-
-        aenmNames[iReg++] = WHvArm64RegisterQ16;
-        aenmNames[iReg++] = WHvArm64RegisterQ17;
-        aenmNames[iReg++] = WHvArm64RegisterQ18;
-        aenmNames[iReg++] = WHvArm64RegisterQ19;
-        aenmNames[iReg++] = WHvArm64RegisterQ20;
-        aenmNames[iReg++] = WHvArm64RegisterQ21;
-        aenmNames[iReg++] = WHvArm64RegisterQ22;
-        aenmNames[iReg++] = WHvArm64RegisterQ23;
-        aenmNames[iReg++] = WHvArm64RegisterQ24;
-        aenmNames[iReg++] = WHvArm64RegisterQ25;
-        aenmNames[iReg++] = WHvArm64RegisterQ26;
-        aenmNames[iReg++] = WHvArm64RegisterQ27;
-        aenmNames[iReg++] = WHvArm64RegisterQ28;
-        aenmNames[iReg++] = WHvArm64RegisterQ29;
-        aenmNames[iReg++] = WHvArm64RegisterQ30;
-        aenmNames[iReg++] = WHvArm64RegisterQ31;
-    }
-    if (fWhat & CPUMCTX_EXTRN_FPCR)
-        aenmNames[iReg++] = WHvArm64RegisterFpcr;
-    if (fWhat & CPUMCTX_EXTRN_FPSR)
-        aenmNames[iReg++] = WHvArm64RegisterFpsr;
-
-    /* System registers. */
-    if (fWhat & CPUMCTX_EXTRN_SYSREG_MISC)
-    {
-        aenmNames[iReg++] = WHvArm64RegisterVbarEl1;
-        aenmNames[iReg++] = WHvArm64RegisterEsrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterFarEl1;
-        aenmNames[iReg++] = WHvArm64RegisterCntkctlEl1;
-        aenmNames[iReg++] = WHvArm64RegisterContextidrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterCpacrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterCsselrEl1;
-        aenmNames[iReg++] = WHvArm64RegisterMairEl1;
-        aenmNames[iReg++] = WHvArm64RegisterParEl1;
-        aenmNames[iReg++] = WHvArm64RegisterTpidrroEl0;
-        aenmNames[iReg++] = WHvArm64RegisterTpidrEl0;
-        aenmNames[iReg++] = WHvArm64RegisterTpidrEl1;
-        aenmNames[iReg++] = My_WHvArm64RegisterActlrEl1;
+        /* SIMD/FP registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumFpRegs); i++)
+        {
+            aenmNames[iReg++] = s_aCpumFpRegs[i].enmWHvReg;
+        }
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)
     {
-        /* Hyper-V doesn't allow syncing debug break-/watchpoint registers which aren't there. */
         for (uint32_t i = 0; i < pVM->nem.s.cBreakpoints; i++)
         {
             aenmNames[iReg++] = (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgbcr0El1 + i);
@@ -1612,17 +1542,26 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_PAUTH_KEYS)
     {
-        aenmNames[iReg++] = WHvArm64RegisterApdAKeyHiEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApdAKeyLoEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApdBKeyHiEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApdBKeyLoEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApgAKeyHiEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApgAKeyLoEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApiAKeyHiEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApiAKeyLoEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApiBKeyHiEl1;
-        aenmNames[iReg++] = WHvArm64RegisterApiBKeyLoEl1;
+        /* PAuth registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumPAuthKeyRegs); i++)
+        {
+            aenmNames[iReg++] = s_aCpumPAuthKeyRegs[i].enmWHvReg;
+        }
     }
+
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    {
+        /* System registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
+        {
+            if (!(s_aCpumSysRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+                aenmNames[iReg++] = s_aCpumSysRegs[i].enmWHvReg;
+        }
+    }
+
+    if (fWhat & CPUMCTX_EXTRN_PSTATE)
+        aenmNames[iReg++] = WHvArm64RegisterPstate;
 
     size_t const cRegs = iReg;
     Assert(cRegs < RT_ELEMENTS(aenmNames));
@@ -1643,183 +1582,92 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
     iReg = 0;
 #define GET_REG64(a_DstVar, a_enmName) do { \
             Assert(aenmNames[iReg] == (a_enmName)); \
-            (a_DstVar).x = aValues[iReg].Reg64; \
+            (a_DstVar)->x = aValues[iReg].Reg64; \
             iReg++; \
         } while (0)
 #define GET_REG64_RAW(a_DstVar, a_enmName) do { \
             Assert(aenmNames[iReg] == (a_enmName)); \
-            (a_DstVar) = aValues[iReg].Reg64; \
+            *(a_DstVar) = aValues[iReg].Reg64; \
             iReg++; \
         } while (0)
 #define GET_SYSREG64(a_DstVar, a_enmName) do { \
             Assert(aenmNames[iReg] == (a_enmName)); \
-            (a_DstVar).u64 = aValues[iReg].Reg64; \
+            (a_DstVar)->u64 = aValues[iReg].Reg64; \
             iReg++; \
         } while (0)
 #define GET_REG128(a_DstVar, a_enmName) do { \
             Assert(aenmNames[iReg] == a_enmName); \
-            (a_DstVar).au64[0] = aValues[iReg].Reg128.Low64; \
-            (a_DstVar).au64[1] = aValues[iReg].Reg128.High64; \
+            (a_DstVar)->au64[0] = aValues[iReg].Reg128.Low64; \
+            (a_DstVar)->au64[1] = aValues[iReg].Reg128.High64; \
             iReg++; \
         } while (0)
 
-    /* GPRs */
-    if (fWhat & CPUMCTX_EXTRN_GPRS_MASK)
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
+        !=                              (CPUMCTX_EXTRN_GPRS_MASK | CPUMCTX_EXTRN_PC | CPUMCTX_EXTRN_FPCR | CPUMCTX_EXTRN_FPSR))
     {
-        if (fWhat & CPUMCTX_EXTRN_X0)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[0], WHvArm64RegisterX0);
-        if (fWhat & CPUMCTX_EXTRN_X1)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[1], WHvArm64RegisterX1);
-        if (fWhat & CPUMCTX_EXTRN_X2)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[2], WHvArm64RegisterX2);
-        if (fWhat & CPUMCTX_EXTRN_X3)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[3], WHvArm64RegisterX3);
-        if (fWhat & CPUMCTX_EXTRN_X4_X28)
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumRegs); i++)
         {
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[4],  WHvArm64RegisterX4);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[5],  WHvArm64RegisterX5);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[6],  WHvArm64RegisterX6);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[7],  WHvArm64RegisterX7);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[8],  WHvArm64RegisterX8);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[9],  WHvArm64RegisterX9);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[10], WHvArm64RegisterX10);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[11], WHvArm64RegisterX11);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[12], WHvArm64RegisterX12);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[13], WHvArm64RegisterX13);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[14], WHvArm64RegisterX14);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[15], WHvArm64RegisterX15);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[16], WHvArm64RegisterX16);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[17], WHvArm64RegisterX17);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[18], WHvArm64RegisterX18);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[19], WHvArm64RegisterX19);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[20], WHvArm64RegisterX20);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[21], WHvArm64RegisterX21);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[22], WHvArm64RegisterX22);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[23], WHvArm64RegisterX23);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[24], WHvArm64RegisterX24);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[25], WHvArm64RegisterX25);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[26], WHvArm64RegisterX26);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[27], WHvArm64RegisterX27);
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[28], WHvArm64RegisterX28);
+            if (!(s_aCpumRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+            {
+                CPUMCTXGREG *pReg = (CPUMCTXGREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumRegs[i].offCpumCtx);
+                GET_REG64(pReg, s_aCpumRegs[i].enmWHvReg);
+            }
         }
-        if (fWhat & CPUMCTX_EXTRN_LR)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[30], WHvArm64RegisterLr);
-        if (fWhat & CPUMCTX_EXTRN_FP)
-            GET_REG64(pVCpu->cpum.GstCtx.aGRegs[29], WHvArm64RegisterFp);
     }
 
-    /* RIP & Flags */
-    if (fWhat & CPUMCTX_EXTRN_PC)
-        GET_REG64_RAW(pVCpu->cpum.GstCtx.Pc.u64, WHvArm64RegisterPc);
-    if (fWhat & CPUMCTX_EXTRN_PSTATE)
-        GET_REG64_RAW(pVCpu->cpum.GstCtx.fPState, WHvArm64RegisterPstate);
-    if (fWhat & CPUMCTX_EXTRN_SPSR)
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Spsr, WHvArm64RegisterSpsrEl1);
-    if (fWhat & CPUMCTX_EXTRN_ELR)
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Elr, WHvArm64RegisterElrEl1);
-    if (fWhat & CPUMCTX_EXTRN_SP)
-    {
-        GET_SYSREG64(pVCpu->cpum.GstCtx.aSpReg[0], WHvArm64RegisterSpEl0);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.aSpReg[1], WHvArm64RegisterSpEl1);
-    }
-    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
-    {
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Sctlr, WHvArm64RegisterSctlrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Tcr, WHvArm64RegisterTcrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Ttbr0, WHvArm64RegisterTtbr0El1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Ttbr1, WHvArm64RegisterTtbr1El1);
-    }
-
-    /* Vector state. */
     if (fWhat & CPUMCTX_EXTRN_V0_V31)
     {
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[0],  WHvArm64RegisterQ0);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[1],  WHvArm64RegisterQ1);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[2],  WHvArm64RegisterQ2);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[3],  WHvArm64RegisterQ3);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[4],  WHvArm64RegisterQ4);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[5],  WHvArm64RegisterQ5);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[6],  WHvArm64RegisterQ6);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[7],  WHvArm64RegisterQ7);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[8],  WHvArm64RegisterQ8);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[9],  WHvArm64RegisterQ9);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[10], WHvArm64RegisterQ10);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[11], WHvArm64RegisterQ11);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[12], WHvArm64RegisterQ12);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[13], WHvArm64RegisterQ13);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[14], WHvArm64RegisterQ14);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[15], WHvArm64RegisterQ15);
-
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[16], WHvArm64RegisterQ16);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[17], WHvArm64RegisterQ17);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[18], WHvArm64RegisterQ18);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[19], WHvArm64RegisterQ19);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[20], WHvArm64RegisterQ20);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[21], WHvArm64RegisterQ21);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[22], WHvArm64RegisterQ22);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[23], WHvArm64RegisterQ23);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[24], WHvArm64RegisterQ24);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[25], WHvArm64RegisterQ25);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[26], WHvArm64RegisterQ26);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[27], WHvArm64RegisterQ27);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[28], WHvArm64RegisterQ28);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[29], WHvArm64RegisterQ29);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[30], WHvArm64RegisterQ30);
-        GET_REG128(pVCpu->cpum.GstCtx.aVRegs[31], WHvArm64RegisterQ31);
-    }
-    if (fWhat & CPUMCTX_EXTRN_FPCR)
-        GET_REG64_RAW(pVCpu->cpum.GstCtx.fpcr, WHvArm64RegisterFpcr);
-    if (fWhat & CPUMCTX_EXTRN_FPSR)
-        GET_REG64_RAW(pVCpu->cpum.GstCtx.fpsr, WHvArm64RegisterFpsr);
-
-    /* System registers. */
-    if (fWhat & CPUMCTX_EXTRN_SYSREG_MISC)
-    {
-        GET_SYSREG64(pVCpu->cpum.GstCtx.VBar,       WHvArm64RegisterVbarEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Esr,        WHvArm64RegisterEsrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Far,        WHvArm64RegisterFarEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.CntKCtl,    WHvArm64RegisterCntkctlEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.ContextIdr, WHvArm64RegisterContextidrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Cpacr,      WHvArm64RegisterCpacrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Csselr,     WHvArm64RegisterCsselrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Mair,       WHvArm64RegisterMairEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Par,        WHvArm64RegisterParEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.TpIdrRoEl0, WHvArm64RegisterTpidrroEl0);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.aTpIdr[0],  WHvArm64RegisterTpidrEl0);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.aTpIdr[1],  WHvArm64RegisterTpidrEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Actlr,      My_WHvArm64RegisterActlrEl1);
+        /* SIMD/FP registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumFpRegs); i++)
+        {
+            PCPUMCTXVREG pVReg = (PCPUMCTXVREG)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumFpRegs[i].offCpumCtx);
+            GET_REG128(pVReg, s_aCpumFpRegs[i].enmWHvReg);
+        }
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_DEBUG)
     {
         for (uint32_t i = 0; i < pVM->nem.s.cBreakpoints; i++)
         {
-            GET_SYSREG64(pVCpu->cpum.GstCtx.aBp[i].Ctrl, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgbcr0El1 + i));
-            GET_SYSREG64(pVCpu->cpum.GstCtx.aBp[i].Value, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgbvr0El1 + i));
+            GET_SYSREG64(&pVCpu->cpum.GstCtx.aBp[i].Ctrl,  (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgbcr0El1 + i));
+            GET_SYSREG64(&pVCpu->cpum.GstCtx.aBp[i].Value, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgbvr0El1 + i));
         }
 
         for (uint32_t i = 0; i < pVM->nem.s.cWatchpoints; i++)
         {
-            GET_SYSREG64(pVCpu->cpum.GstCtx.aWp[i].Ctrl, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgwcr0El1 + i));
-            GET_SYSREG64(pVCpu->cpum.GstCtx.aWp[i].Value, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgwvr0El1 + i));
+            GET_SYSREG64(&pVCpu->cpum.GstCtx.aWp[i].Ctrl,  (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgwcr0El1 + i));
+            GET_SYSREG64(&pVCpu->cpum.GstCtx.aWp[i].Value, (WHV_REGISTER_NAME)((uint32_t)WHvArm64RegisterDbgwvr0El1 + i));
         }
 
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Mdscr, WHvArm64RegisterMdscrEl1);
+        GET_SYSREG64(&pVCpu->cpum.GstCtx.Mdscr, WHvArm64RegisterMdscrEl1);
     }
 
     if (fWhat & CPUMCTX_EXTRN_SYSREG_PAUTH_KEYS)
     {
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apda.High, WHvArm64RegisterApdAKeyHiEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apda.Low,  WHvArm64RegisterApdAKeyLoEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apdb.High, WHvArm64RegisterApdBKeyHiEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apdb.Low,  WHvArm64RegisterApdBKeyLoEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apga.High, WHvArm64RegisterApgAKeyHiEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apga.Low,  WHvArm64RegisterApgAKeyLoEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apia.High, WHvArm64RegisterApiAKeyHiEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apia.Low,  WHvArm64RegisterApiAKeyLoEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apib.High, WHvArm64RegisterApiBKeyHiEl1);
-        GET_SYSREG64(pVCpu->cpum.GstCtx.Apib.Low,  WHvArm64RegisterApiBKeyLoEl1);
+        /* PAuth registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumPAuthKeyRegs); i++)
+        {
+            CPUMCTXSYSREG *pReg = (CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumPAuthKeyRegs[i].offCpumCtx);
+            GET_SYSREG64(pReg, s_aCpumPAuthKeyRegs[i].enmWHvReg);
+        }
     }
+
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    {
+        /* System registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
+        {
+            if (!(s_aCpumSysRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
+            {
+                CPUMCTXSYSREG *pReg = (CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
+                GET_SYSREG64(pReg, s_aCpumSysRegs[i].enmWHvReg);
+            }
+        }
+    }
+
+    if (fWhat & CPUMCTX_EXTRN_PSTATE)
+        GET_REG64_RAW(&pVCpu->cpum.GstCtx.fPState, WHvArm64RegisterPstate);
 
     /* Almost done, just update extrn flags. */
     pVCpu->cpum.GstCtx.fExtrn &= ~fWhat;

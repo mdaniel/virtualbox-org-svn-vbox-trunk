@@ -1106,13 +1106,13 @@ void UIVMActivityMonitor::sltRetranslateUI()
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelFree.length());
     m_strRAMInfoLabelUsed = QApplication::translate("UIVMInformationDialog", "Used");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelUsed.length());
-    m_strNetworkInfoLabelReceived = QApplication::translate("UIVMInformationDialog", "Receive Rate");
+    m_strNetworkInfoLabelReceived = QApplication::translate("UIVMInformationDialog", "Download Rate");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceived.length());
-    m_strNetworkInfoLabelTransmitted = QApplication::translate("UIVMInformationDialog", "Transmit Rate");
+    m_strNetworkInfoLabelTransmitted = QApplication::translate("UIVMInformationDialog", "Upload Rate");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelTransmitted.length());
-    m_strNetworkInfoLabelReceivedTotal = QApplication::translate("UIVMInformationDialog", "Total Received");
+    m_strNetworkInfoLabelReceivedTotal = QApplication::translate("UIVMInformationDialog", "Total Downloaded");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceivedTotal.length());
-    m_strNetworkInfoLabelTransmittedTotal = QApplication::translate("UIVMInformationDialog", "Total Transmitted");
+    m_strNetworkInfoLabelTransmittedTotal = QApplication::translate("UIVMInformationDialog", "Total Uploaded");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceivedTotal.length());
     m_strDiskIOInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Disk IO");
     m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelTitle.length());
@@ -1580,8 +1580,8 @@ void UIVMActivityMonitorLocal::prepareMetrics()
 
     /* Network metric: */
     UIMetric networkMetric("B", m_iMaximumQueueSize);
-    networkMetric.setDataSeriesName(0, "Receive Rate");
-    networkMetric.setDataSeriesName(1, "Transmit Rate");
+    networkMetric.setDataSeriesName(0, "Download Rate");
+    networkMetric.setDataSeriesName(1, "Upload Rate");
     networkMetric.setAutoUpdateMaximum(true);
     m_metrics.insert(Metric_Type_Network_InOut, networkMetric);
 
@@ -2281,13 +2281,13 @@ void UIVMActivityMonitorCloud::prepareMetrics()
 
     /* Network in metric: */
     UIMetric networkInMetric("B", m_iMaximumQueueSize);
-    networkInMetric.setDataSeriesName(0, "Receive Rate");
+    networkInMetric.setDataSeriesName(0, "Download Rate");
     networkInMetric.setAutoUpdateMaximum(true);
     m_metrics.insert(Metric_Type_Network_In, networkInMetric);
 
     /* Network out metric: */
     UIMetric networkOutMetric("B", m_iMaximumQueueSize);
-    networkOutMetric.setDataSeriesName(0, "Transmit Rate");
+    networkOutMetric.setDataSeriesName(0, "Upload Rate");
     networkOutMetric.setAutoUpdateMaximum(true);
     m_metrics.insert(Metric_Type_Network_Out, networkOutMetric);
 

@@ -1057,10 +1057,10 @@ void UIVMActivityOverviewWidget::sltRetranslateUI()
     m_columnTitles[VMActivityOverviewColumn_CPUVMMLoad] = UIVMActivityOverviewWidget::tr("CPU VMM");
     m_columnTitles[VMActivityOverviewColumn_RAMUsedAndTotal] = UIVMActivityOverviewWidget::tr("RAM Used/Total");
     m_columnTitles[VMActivityOverviewColumn_RAMUsedPercentage] = UIVMActivityOverviewWidget::tr("RAM %");
-    m_columnTitles[VMActivityOverviewColumn_NetworkUpRate] = UIVMActivityOverviewWidget::tr("Network Up Rate");
-    m_columnTitles[VMActivityOverviewColumn_NetworkDownRate] = UIVMActivityOverviewWidget::tr("Network Down Rate");
-    m_columnTitles[VMActivityOverviewColumn_NetworkUpTotal] = UIVMActivityOverviewWidget::tr("Network Up Total");
-    m_columnTitles[VMActivityOverviewColumn_NetworkDownTotal] = UIVMActivityOverviewWidget::tr("Network Down Total");
+    m_columnTitles[VMActivityOverviewColumn_NetworkUpRate] = UIVMActivityOverviewWidget::tr("Network Upload Rate");
+    m_columnTitles[VMActivityOverviewColumn_NetworkDownRate] = UIVMActivityOverviewWidget::tr("Network Download Rate");
+    m_columnTitles[VMActivityOverviewColumn_NetworkUpTotal] = UIVMActivityOverviewWidget::tr("Network Upload Total");
+    m_columnTitles[VMActivityOverviewColumn_NetworkDownTotal] = UIVMActivityOverviewWidget::tr("Network Download Total");
     m_columnTitles[VMActivityOverviewColumn_DiskIOReadRate] = UIVMActivityOverviewWidget::tr("Disk Read Rate");
     m_columnTitles[VMActivityOverviewColumn_DiskIOWriteRate] = UIVMActivityOverviewWidget::tr("Disk Write Rate");
     m_columnTitles[VMActivityOverviewColumn_DiskIOReadTotal] = UIVMActivityOverviewWidget::tr("Disk Read Total");

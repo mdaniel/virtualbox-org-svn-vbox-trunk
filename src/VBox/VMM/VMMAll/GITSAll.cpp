@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * GITS - Generic Interrupt Controller Interrupt Translation Service (ITS) - All Contexts.
+ * GITS - GIC Interrupt Translation Service (ITS) - All Contexts.
  */
 
 /*
@@ -49,6 +49,17 @@
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
 *********************************************************************************************************************************/
+/**
+ * Interrupt Table Entry (ITE).
+ */
+typedef struct GITSITE
+{
+    bool        fValid;
+    uint8_t     uType;
+    uint16_t    uIntrCollectId;
+    VMCPUID     idTargetCpu;
+} GITSITE;
+AssertCompileSize(GITSITE, 8);
 
 
 /*********************************************************************************************************************************
@@ -90,20 +101,19 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
             return "<UNKNOWN>";
     }
 }
-
-#endif
+#endif /* LOG_ENABLED */
 
 
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, uint32_t *puValue)
 {
-    Log4Func(("offReg=%#RX16\n",  offReg));
-
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (offReg)
     {
         case GITS_CTRL_REG_CTLR_OFF:
-            *puValue = pGitsDev->fUnmappedMsiReporting;
+            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_ENABLED,   pGitsDev->fEnabled)
+                     | RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, pGitsDev->fQuiescent);
             break;
+
         case GITS_CTRL_REG_PIDR2_OFF:
         {
             Assert(pGitsDev->uArchRev <= GITS_CTRL_REG_PIDR2_ARCHREV_GICV4);
@@ -113,11 +123,47 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
                      | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_ARCHREV, pGitsDev->uArchRev);
             break;
         }
+
+        case GITS_CTRL_REG_TYPER_OFF:
+        {
+            uint64_t uLo = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,       1)               /* Physical LPIs supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,        0) */            /* Virtual LPIs not supported. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,            0)               /* Collections in memory not supported. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,        31)              /* 32-bit event IDs. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,       31)              /* 32-bit device IDs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,           0) */            /** @todo SEI support. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,            0) */            /* Target is VCPU ID not address. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,            255);            /* Collection count. */
+            *puValue = RT_LO_U32(uLo);
+            break;
+        }
+
+        case GITS_CTRL_REG_TYPER_OFF + 4:
+        {
+            uint64_t uHi = 0
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS, 0) */   /* CIL specifies collection ID size. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,      0) */   /* 16-bit collection IDs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,    0) */   /* VMOVP not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,     0) */   /* MPAM no supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,     0) */   /* VSGI not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMAPP,    0) */   /* VMAPP not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SVPET,    0) */   /* SVPET not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_NID,      0) */   /* NID (doorbell) not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,     0) */   /** @todo Support reporting receipt of unmapped MSIs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ, 0) */   /** @todo Support generating interrupt on unmapped MSI. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,      1);     /* ITS caches are invalidated when clearing
+                                                                                   GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
+            *puValue = RT_HI_U32(uHi);
+            break;
+        }
+
         default:
             AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
             break;
     }
 
+    Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), *puValue));
     return rcStrict;
 }
 
@@ -132,9 +178,34 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uin
 
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint32_t uValue)
 {
-    RT_NOREF(pGitsDev, offReg, uValue);
-    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
-    return VERR_NOT_IMPLEMENTED;
+    /*
+     * GITS_BASER<n>.
+     */
+    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST,  GITS_CTRL_REG_BASER_RANGE_SIZE))
+    {
+        uint16_t const cbReg  = sizeof(uint64_t);
+        uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
+        if (!(offReg & 7))
+            pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue;
+        else
+            pGitsDev->aItsTableRegs[idxReg].s.Hi = uValue;
+        return VINF_SUCCESS;
+    }
+
+    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
+    switch (offReg)
+    {
+        case GITS_CTRL_REG_CTLR_OFF:
+            pGitsDev->fEnabled = RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED);
+            break;
+
+        default:
+            AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
+            break;
+    }
+
+    Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+    return rcStrict;
 }
 
 
@@ -152,7 +223,7 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     pGitsDev->fEnabled              = false;
     pGitsDev->fUnmappedMsiReporting = false;
     pGitsDev->fQuiescent            = true;
-    RT_ZERO(pGitsDev->aBases);
+    RT_ZERO(pGitsDev->aItsTableRegs);
 }
 
 

@@ -3279,8 +3279,6 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvU
     Assert(!(off & 0x3));
     Assert(cb == 4); RT_NOREF_PV(cb);
 
-    AssertReleaseFailed();
-
     PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     PGITSDEV pGitsDev = &pGicDev->Gits;
 

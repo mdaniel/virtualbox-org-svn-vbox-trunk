@@ -40,6 +40,7 @@
  * @{
  */
 
+#if 0
 /**
  * Interrupt Translation Table Base.
  */
@@ -47,19 +48,27 @@ typedef struct GITSITSBASE
 {
     /** The physical address of the table. */
     RTGCPHYS                GCPhys;
-    /** Number of pages of memory allocated to this table. */
+    /** Size of every allocated page in bytes. */
+    uint32_t                cbPageSize;
+    /** Number of pages allocated. */
     uint8_t                 cPages;
-    /** Size of each page allocated. */
-    uint8_t                 cPageSize;
-    /** Size of each entry in the table in bytes. */
+    /** Size of each entry in bytes. */
     uint8_t                 cbEntry;
-    /** Whether this is a two-level table or not. */
+    /** Whether this is a two-level or flat table. */
     bool                    fTwoLevel;
+    /** Whether software has memory allocated for the table. */
+    bool                    fValid;
     /** Memory shareability attributes. */
     GITSATTRSHARE           AttrShare;
-    /** Memory cacheability attributes. */
-    GITSATTRMEM             AttrMem;
+    /** Memory cacheability attributes (Inner). */
+    GITSATTRMEM             AttrMemInner;
+    /** Memory cacheability attributes (Outer). */
+    GITSATTRMEM             AttrMemOuter;
 } GITSITSBASE;
+AssertCompileSizeAlignment(GITSITSBASE, 8);
+AssertCompileMemberAlignment(GITSITSBASE, AttrShare, 8);
+#endif
+
 
 /**
  * The GIC Interrupt Translation Service device state.
@@ -77,7 +86,7 @@ typedef struct GITSDEV
     /** Padding. */
     bool                    fPadding0;
     /** The ITS table descriptor registers. */
-    GITSITSBASE             aBases[8];
+    RTUINT64U               aItsTableRegs[8];
     /** @} */
 
     /** @name Interrupt translation space.

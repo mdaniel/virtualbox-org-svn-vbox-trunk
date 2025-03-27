@@ -1,5 +1,5 @@
 /** @file
- * ARMv8 Generic Interrupt Controller (GIC) Interrupt Translation Service (ITS) definitions.
+ * ARMv8 GIC Interrupt Translation Service (ITS) definitions.
  */
 
 /*
@@ -40,7 +40,7 @@
 #endif
 
 #include <iprt/types.h>
-#include <iprt/armv8.h>
+#include <iprt/assertcompile.h>
 
 /** Size of the ITS register frame. */
 #define GITS_REG_FRAME_SIZE                                     _64K
@@ -199,7 +199,43 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PARTIDR_, UINT32_C(0), UINT32_MAX, 
 #define GITS_CTRL_REG_CWRITER_OFF                               0x0088
 #define GITS_CTRL_REG_CREADR_OFF                                0x0090
 
+/** GITS_BASER: ITS Table Descriptors - RW. */
 #define GITS_CTRL_REG_BASER_OFF_FIRST                           0x0100
+/** GITS_BASER: Size - Number of pages allocated to the table minus one. */
+#define GITS_BF_CTRL_REG_BASER_SIZE_SHIFT                       0
+#define GITS_BF_CTRL_REG_BASER_SIZE_MASK                        UINT64_C(0x00000000000000ff)
+/** GITS_BASER: Page_Size - Size of the page that the table uses. */
+#define GITS_BF_CTRL_REG_BASER_PAGESIZE_SHIFT                   8
+#define GITS_BF_CTRL_REG_BASER_PAGESIZE_MASK                    UINT64_C(0x0000000000000300)
+/** GITS_BASER: Shareability attributes of the table. */
+#define GITS_BF_CTRL_REG_BASER_SHAREABILITY_SHIFT               10
+#define GITS_BF_CTRL_REG_BASER_SHAREABILITY_MASK                UINT64_C(0x0000000000000c00)
+/** GITS_BASER: Physical_Address - Physical address of the table. */
+#define GITS_BF_CTRL_REG_BASER_PHYS_ADDR_SHIFT                  12
+#define GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK                   UINT64_C(0x0000fffffffff000)
+/** GITS_BASER: Entry_Size - Size of each table entry minus one in bytes.   */
+#define GITS_BF_CTRL_REG_BASER_ENTRY_SIZE_SHIFT                 48
+#define GITS_BF_CTRL_REG_BASER_ENTRY_SIZE_MASK                  UINT64_C(0x001f000000000000)
+/** GITS_BASER: OuterCache - Outer cacheability attributes of the table. */
+#define GITS_BF_CTRL_REG_BASER_OUTER_CACHE_SHIFT                53
+#define GITS_BF_CTRL_REG_BASER_OUTER_CACHE_MASK                 UINT64_C(0x00e0000000000000)
+/** GITS_BASER: Type - The type of entity. */
+#define GITS_BF_CTRL_REG_BASER_TYPE_SHIFT                       56
+#define GITS_BF_CTRL_REG_BASER_TYPE_MASK                        UINT64_C(0x0700000000000000)
+/** GITS_BASER: InnerCache - Inner cacheability attribtues of the table. */
+#define GITS_BF_CTRL_REG_BASER_INNER_CACHE_SHIFT                59
+#define GITS_BF_CTRL_REG_BASER_INNER_CACHE_MASK                 UINT64_C(0x3800000000000000)
+/** GITS_BASER: Indirect - Whether this is a single or two-level table. */
+#define GITS_BF_CTRL_REG_BASER_INDIRECT_SHIFT                   62
+#define GITS_BF_CTRL_REG_BASER_INDIRECT_MASK                    UINT64_C(0x4000000000000000)
+/** GITS_BASER: Valid - Whether memory has been allocated for the table. */
+#define GITS_BF_CTRL_REG_BASER_VALID_SHIFT                      63
+#define GITS_BF_CTRL_REG_BASER_VALID_MASK                       UINT64_C(0x8000000000000000)
+/*  Sigh C macros... "PAGE_SIZE" is already defined here, just use "PAGESIZE" instead of temporarily undef, redef. */
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_BASER_, UINT64_C(0), UINT64_MAX,
+                            (SIZE, PAGESIZE, SHAREABILITY, PHYS_ADDR, ENTRY_SIZE, OUTER_CACHE, TYPE, INNER_CACHE, INDIRECT,
+                             VALID));
+
 #define GITS_CTRL_REG_BASER_OFF_LAST                            0x0138
 #define GITS_CTRL_REG_BASER_RANGE_SIZE                          (GITS_CTRL_REG_BASER_OFF_LAST + sizeof(uint64_t) - GITS_CTRL_REG_BASER_OFF_FIRST)
 

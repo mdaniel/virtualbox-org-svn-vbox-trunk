@@ -168,7 +168,7 @@ exit:
 FunctionEnd
 
 
-!ifdef  VBOX_SIGN_ADDITIONS
+!ifdef VBOX_SIGN_ADDITIONS
 ;;
 ; Extracts certificates into $INSTDIR.
 ;
@@ -205,7 +205,6 @@ Function W2K_ExtractCerts
 FunctionEnd
 
 
-!ifdef VBOX_SIGN_ADDITIONS
 ;;
 ; Installs the given certificate (if missing) as root CA into the system certificate store.
 ;
@@ -233,6 +232,7 @@ Function W2K_InstallRootCert
   Pop     $1
   Pop     $0
 FunctionEnd
+!endif ; VBOX_SIGN_ADDITIONS
 
 
 ;;
@@ -268,7 +268,6 @@ FunctionEnd
     !insertmacro W2K_UninstallRootCert ""
   !endif
 !insertmacro     W2K_UninstallRootCert "un."
-!endif ; VBOX_SIGN_ADDITIONS
 
 
 ;;
@@ -345,7 +344,6 @@ FunctionEnd
   !insertmacro W2K_InstallOrUninstallCerts ""    "Uninstall"
 !endif
 !insertmacro   W2K_InstallOrUninstallCerts "un." "Uninstall"
-!endif ; VBOX_SIGN_ADDITIONS
 
 
 !macro W2K_DeleteCerts un

@@ -106,6 +106,20 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 
 DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, uint32_t *puValue)
 {
+    /*
+     * GITS_BASER<n>.
+     */
+    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST,  GITS_CTRL_REG_BASER_RANGE_SIZE))
+    {
+        uint16_t const cbReg  = sizeof(uint64_t);
+        uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
+        if (!(offReg & 7))
+            *puValue = pGitsDev->aItsTableRegs[idxReg].s.Lo;
+        else
+            *puValue = pGitsDev->aItsTableRegs[idxReg].s.Hi;
+        return VINF_SUCCESS;
+    }
+
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (offReg)
     {
@@ -164,7 +178,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t
         }
 
         default:
-            AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
+            AssertReleaseMsgFailed(("offReg=%#x (%s)\n", offReg, gitsGetCtrlRegDescription(offReg)));
             break;
     }
 
@@ -205,7 +219,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t
             break;
 
         default:
-            AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
+            AssertReleaseMsgFailed(("offReg=%#x (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
             break;
     }
 

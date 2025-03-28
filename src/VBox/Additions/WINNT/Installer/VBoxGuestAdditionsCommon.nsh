@@ -587,7 +587,8 @@ FunctionEnd
 
 
 ;;
-; Switches (back) the path + registry view to 32-bit mode (SysWOW64) on 64-bit guests.
+; Switches (back) the path + registry view to 32-bit mode (SysWOW64)
+; for 64-bit Intel + ARM guests.
 ;
 ; Input:
 ;   None
@@ -596,7 +597,8 @@ FunctionEnd
 ;
 !macro SetAppMode32 un
 Function ${un}SetAppMode32
-  !if $%KBUILD_TARGET_ARCH% == "amd64"
+  !if $%KBUILD_TARGET_ARCH% != "x86" ; amd64 + arm64
+    ${LogVerbose} "Setting application mode to 32-bit"
     ${EnableX64FSRedirection}
     SetRegView 32
   !endif
@@ -611,8 +613,8 @@ FunctionEnd
 ;;
 ; Sets the installer's application mode.
 ;
-; Because this NSIS installer is always built in 32-bit mode, we have to
-; do some tricks for the Windows paths + registry on 64-bit guests.
+; Because this NSIS installer is always built for x86 (32-bit), we have to
+; do some tricks for the Windows paths + registry on Intel + ARM 64-bit guests.
 ;
 ; Input:
 ;   None
@@ -621,7 +623,8 @@ FunctionEnd
 ;
 !macro SetAppMode64 un
 Function ${un}SetAppMode64
-  !if $%KBUILD_TARGET_ARCH% == "amd64"
+  !if $%KBUILD_TARGET_ARCH% != "x86" ; amd64 + arm64
+    ${LogVerbose} "Setting application mode to 64-bit"
     ${DisableX64FSRedirection}
     SetRegView 64
   !endif

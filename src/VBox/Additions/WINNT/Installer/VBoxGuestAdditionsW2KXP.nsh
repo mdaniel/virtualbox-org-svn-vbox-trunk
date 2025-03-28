@@ -585,8 +585,8 @@ Function W2K_CallbackInstall
 
   !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP.dll" "$g_strSystemDir\VBoxMRXNP.dll" "$INSTDIR"
   AccessControl::GrantOnFile "$g_strSystemDir\VBoxMRXNP.dll" "(BU)" "GenericRead"
-  !if $%KBUILD_TARGET_ARCH% == "amd64"
-    ; Only 64-bit installer: Copy the 32-bit DLL for 32 bit applications.
+  !if $%KBUILD_TARGET_ARCH% == "amd64" ; Note: Does not exist for arm64.
+    ; Only amd64 installer: Copy the x86 DLL for 32 bit applications.
     !insertmacro ReplaceDLL "$%PATH_OUT%\bin\additions\VBoxMRXNP-x86.dll" "$g_strSysWow64\VBoxMRXNP.dll" "$INSTDIR"
     AccessControl::GrantOnFile "$g_strSysWow64\VBoxMRXNP.dll" "(BU)" "GenericRead"
   !endif

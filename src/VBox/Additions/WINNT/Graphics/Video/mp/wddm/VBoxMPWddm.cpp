@@ -5216,7 +5216,6 @@ DriverEntry(
 
     ULONG major, minor, build;
     BOOLEAN fCheckedBuild = PsGetVersion(&major, &minor, &build, NULL); NOREF(fCheckedBuild);
-    BOOLEAN f3DRequired = FALSE;
 
     LOGREL(("OsVersion(%d, %d, %d)", major, minor, build));
 
@@ -5225,32 +5224,6 @@ DriverEntry(
     int rc = VbglR0InitClient();
     if (RT_SUCCESS(rc))
     {
-        /* Check whether 3D is required by the guest. */
-        if (major > 6)
-        {
-            /* Windows 10 and newer. */
-            f3DRequired = TRUE;
-        }
-        else if (major == 6)
-        {
-            if (minor >= 2)
-            {
-                /* Windows 8, 8.1 and 10 preview. */
-                f3DRequired = TRUE;
-            }
-            else
-            {
-                f3DRequired = FALSE;
-            }
-        }
-        else
-        {
-            WARN(("Unsupported OLDER win version, ignore and assume 3D is NOT required"));
-            f3DRequired = FALSE;
-        }
-
-        LOG(("3D is %srequired!", f3DRequired? "": "NOT "));
-
         /* Check whether 3D is provided by the host. */
         VBOXVIDEO_HWTYPE enmHwType = VBOXVIDEO_HWTYPE_VBOX;
         BOOL f3DSupported = FALSE;
@@ -5326,13 +5299,7 @@ DriverEntry(
                 }
                 else
                 {
-                    if (f3DRequired)
-                    {
-                        LOGREL(("3D is NOT supported by the host, but is required for the current guest version using this driver.."));
-                        Status = STATUS_UNSUCCESSFUL;
-                    }
-                    else
-                        LOGREL(("3D is NOT supported by the host, but is NOT required for the current guest version using this driver, continuing with Disabled 3D.."));
+                    LOGREL(("3D is NOT supported by the host, but it is NOT required for Windows Vista/7 guests, continue with disabled 3D."));
                 }
             }
         }

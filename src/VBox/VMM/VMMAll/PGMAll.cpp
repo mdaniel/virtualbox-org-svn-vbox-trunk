@@ -2026,7 +2026,6 @@ VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
 }
 
 
-#ifdef VBOX_VMM_TARGET_X86 /** @todo Implement PGMGstQueryPageFast for ARMv8! */
 /**
  * Gets effective Guest OS page information.
  *
@@ -2044,12 +2043,16 @@ VMM_INT_DECL(int) PGMGstQueryPageFast(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fF
     Assert(pWalk);
     Assert(!(fFlags & ~(PGMQPAGE_F_VALID_MASK)));
     Assert(!(fFlags & PGMQPAGE_F_EXECUTE) || !(fFlags & PGMQPAGE_F_WRITE));
+#ifdef VBOX_VMM_TARGET_X86 /** @todo Implement PGMGstQueryPageFast for ARMv8! */
     uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
     AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
     AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
     return g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, pWalk);
+#else  /* !VBOX_VMM_TARGET_X86 */
+    RT_NOREF(pVCpu, GCPtr, fFlags, pWalk);
+    AssertFailedReturn(VERR_NOT_IMPLEMENTED);
+#endif /* !VBOX_VMM_TARGET_X86 */
 }
-#endif /* VBOX_VMM_TARGET_X86 */
 
 
 /**

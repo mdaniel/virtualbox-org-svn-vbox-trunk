@@ -62,11 +62,14 @@
 
 /** IPC server socket name prefixes. */
 #define VBOXWL_SRV_NAME_PREFIX_CLIP     "clip"
+#define VBOXWL_SRV_NAME_PREFIX_DND      "dnd"
 
 /** Arguments to vboxwl tool. */
 #define VBOXWL_ARG_CLIP_HG_COPY         "--clip-hg-copy"
 #define VBOXWL_ARG_CLIP_GH_ANNOUNCE     "--clip-gh-announce"
 #define VBOXWL_ARG_CLIP_GH_COPY         "--clip-gh-copy"
+#define VBOXWL_ARG_DND_GH               "--dnd-gh"
+#define VBOXWL_ARG_DND_HG               "--dnd-hg"
 #define VBOXWL_ARG_SESSION_ID           "--session-id"
 
 /** Time in milliseconds to wait for IPC socket events. */
@@ -146,10 +149,11 @@ namespace vbcl
          *          is validated and its fields, such as packet size, can be trusted.
          * @param   uSessionId      IPC session ID.
          * @param   hSession        IPC session handle.
+         * @param   mcTimeout       Read operation timeout in milliseconds.
          * @param   ppvData         Output buffer structured as validated
          *                          IPC packet (contains size inside).
          */
-        int packet_read(uint32_t uSessionId, RTLOCALIPCSESSION hSession, void **ppvData);
+        int packet_read(uint32_t uSessionId, RTLOCALIPCSESSION hSession, uint32_t msTimeout, void **ppvData);
 
         /**
          * Write entire IPC packet into IPC socket.
@@ -194,7 +198,7 @@ namespace vbcl
              * IPC session is aborted.
              */
 
-            /** IPC flow description: Copy clipboard from host to guest. */
+            /** IPC flow description (clipboard): Copy clipboard from host to guest. */
             const flow_t HGCopyFlow[4] =
             {
                 { VBOX_FORMATS, FLOW_DIRECTION_CLIENT },
@@ -203,7 +207,7 @@ namespace vbcl
                 { CMD_MAX,      false }
             };
 
-            /** IPC flow description: Copy clipboard from guest to host. */
+            /** IPC flow description (clipboard): Copy clipboard from guest to host. */
             const flow_t GHCopyFlow[3] =
             {
                 { VBOX_FORMAT,  FLOW_DIRECTION_CLIENT },
@@ -211,13 +215,37 @@ namespace vbcl
                 { CMD_MAX,      false }
             };
 
-            /** IPC flow description: Announce guest's clipboard to the host
+            /** IPC flow description (clipboard): Announce guest's clipboard to the host
              *  and copy it to the host in format selected by host. */
             const flow_t GHAnnounceAndCopyFlow[4] =
             {
                 { VBOX_FORMATS, FLOW_DIRECTION_SERVER },
                 { VBOX_FORMAT,  FLOW_DIRECTION_CLIENT },
                 { VBOX_DATA,    FLOW_DIRECTION_SERVER },
+                { CMD_MAX,      false }
+            };
+
+            /** IPC flow description (DnD): DnD operation started inside guest and
+             *  guest reports DnD content mime-type list. Host side picks up one
+             *  of the formats and requests data in this format. Guest sends
+             *  data in requested format. */
+            const flow_t GHDragFlow[4] =
+            {
+                { VBOX_FORMATS, FLOW_DIRECTION_SERVER },
+                { VBOX_FORMAT,  FLOW_DIRECTION_CLIENT },
+                { VBOX_DATA,    FLOW_DIRECTION_SERVER },
+                { CMD_MAX,      false }
+            };
+
+            /** IPC flow description (DnD): DnD operation started on host and
+             *  host reports DnD content mime-type list. Guest side picks up one
+             *  of the formats and requests data in this format. Host sends
+             *  data in requested format. */
+            const flow_t HGDragFlow[4] =
+            {
+                { VBOX_FORMATS, FLOW_DIRECTION_CLIENT },
+                { VBOX_FORMAT,  FLOW_DIRECTION_SERVER },
+                { VBOX_DATA,    FLOW_DIRECTION_CLIENT },
                 { CMD_MAX,      false }
             };
 

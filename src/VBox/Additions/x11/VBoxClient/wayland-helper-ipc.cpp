@@ -152,7 +152,7 @@ bool vbcl::ipc::packet_verify(vbcl::ipc::packet_t *pPacket, size_t cbPacket)
     return fResult;
 }
 
-int vbcl::ipc::packet_read(uint32_t uSessionId, RTLOCALIPCSESSION hSession, void **ppvData)
+int vbcl::ipc::packet_read(uint32_t uSessionId, RTLOCALIPCSESSION hSession, uint32_t msTimeout, void **ppvData)
 {
     int rc;
 
@@ -160,7 +160,7 @@ int vbcl::ipc::packet_read(uint32_t uSessionId, RTLOCALIPCSESSION hSession, void
 
     AssertPtrReturn(ppvData, VERR_INVALID_PARAMETER);
 
-    rc = RTLocalIpcSessionWaitForData(hSession, VBOX_GTKIPC_RX_TIMEOUT_MS);
+    rc = RTLocalIpcSessionWaitForData(hSession, msTimeout);
     if (RT_SUCCESS(rc))
     {
         /* Read IPC message header. */
@@ -284,7 +284,7 @@ int vbcl::ipc::data::DataIpc::recv_formats(uint32_t uSessionId, RTLOCALIPCSESSIO
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     SHCLFORMATS fFormats = VBOX_SHCL_FMT_NONE;
 
-    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
+    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, m_fFmts.timeout(), (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
         if (   pPacket->Hdr.idCmd == VBOX_FORMATS
@@ -341,7 +341,7 @@ int vbcl::ipc::data::DataIpc::recv_format(uint32_t uSessionId, RTLOCALIPCSESSION
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     SHCLFORMATS uFormat = VBOX_SHCL_FMT_NONE;
 
-    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
+    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, m_uFmt.timeout(), (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
         if (   pPacket->Hdr.idCmd == VBOX_FORMAT
@@ -408,7 +408,7 @@ int vbcl::ipc::data::DataIpc::recv_data(uint32_t uSessionId, RTLOCALIPCSESSION h
     vbcl::ipc::command_t idCmd = CMD_UNKNOWN;
     uint32_t cbData = 0;
 
-    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, (void **)&pPacket);
+    rc = vbcl::ipc::packet_read(uSessionId, hIpcSession, m_pvDataBuf.timeout(), (void **)&pPacket);
     if (RT_SUCCESS(rc))
     {
         if (   pPacket->Hdr.idCmd == VBOX_DATA

@@ -104,133 +104,158 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 #endif /* LOG_ENABLED */
 
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, uint32_t *puValue)
+DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb)
 {
+    Assert(cb == 4 || cb == 8);
+
     /*
      * GITS_BASER<n>.
      */
+    uint64_t uReg;
     if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST,  GITS_CTRL_REG_BASER_RANGE_SIZE))
     {
         uint16_t const cbReg  = sizeof(uint64_t);
         uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
         if (!(offReg & 7))
-            *puValue = pGitsDev->aItsTableRegs[idxReg].s.Lo;
+        {
+            if (cb == 8)
+                uReg = pGitsDev->aItsTableRegs[idxReg].u;
+            else
+                uReg = pGitsDev->aItsTableRegs[idxReg].s.Lo;
+        }
         else
-            *puValue = pGitsDev->aItsTableRegs[idxReg].s.Hi;
-        return VINF_SUCCESS;
+        {
+            Assert(cb == 4);
+            uReg = pGitsDev->aItsTableRegs[idxReg].s.Hi;
+        }
+        return uReg;
     }
 
-    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (offReg)
     {
         case GITS_CTRL_REG_CTLR_OFF:
-            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_ENABLED,   pGitsDev->fEnabled)
-                     | RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, pGitsDev->fQuiescent);
+            Assert(cb == 4);
+            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_ENABLED,   pGitsDev->fEnabled)
+                 | RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, pGitsDev->fQuiescent);
             break;
 
         case GITS_CTRL_REG_PIDR2_OFF:
         {
+            Assert(cb == 4);
             Assert(pGitsDev->uArchRev <= GITS_CTRL_REG_PIDR2_ARCHREV_GICV4);
             uint8_t const uIdCodeDes1 = GIC_JEDEC_JEP10_DES_1(GIC_JEDEC_JEP106_IDENTIFICATION_CODE);
-            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_DES_1,   uIdCodeDes1)
-                     | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_JEDEC,   1)
-                     | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_ARCHREV, pGitsDev->uArchRev);
+            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_DES_1,   uIdCodeDes1)
+                 | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_JEDEC,   1)
+                 | RT_BF_MAKE(GITS_BF_CTRL_REG_PIDR2_ARCHREV, pGitsDev->uArchRev);
             break;
         }
 
         case GITS_CTRL_REG_IIDR_OFF:
-            *puValue = RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_ID_CODE,   GIC_JEDEC_JEP106_IDENTIFICATION_CODE)
-                     | RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_CONT_CODE, GIC_JEDEC_JEP106_CONTINUATION_CODE);
+            Assert(cb == 4);
+            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_ID_CODE,   GIC_JEDEC_JEP106_IDENTIFICATION_CODE)
+                 | RT_BF_MAKE(GITS_BF_CTRL_REG_IIDR_IMPL_CONT_CODE, GIC_JEDEC_JEP106_CONTINUATION_CODE);
             break;
 
         case GITS_CTRL_REG_TYPER_OFF:
-        {
-            uint64_t uLo = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,       1)               /* Physical LPIs supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,        0) */            /* Virtual LPIs not supported. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,            0)               /* Collections in memory not supported. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,        31)              /* 32-bit event IDs. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,       31)              /* 32-bit device IDs. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,           0) */            /** @todo SEI support. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,            0) */            /* Target is VCPU ID not address. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,            255);            /* Collection count. */
-            *puValue = RT_LO_U32(uLo);
-            break;
-        }
-
         case GITS_CTRL_REG_TYPER_OFF + 4:
         {
-            uint64_t uHi = 0
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS, 0) */   /* CIL specifies collection ID size. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,      0) */   /* 16-bit collection IDs. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,    0) */   /* VMOVP not supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,     0) */   /* MPAM no supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,     0) */   /* VSGI not supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMAPP,    0) */   /* VMAPP not supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SVPET,    0) */   /* SVPET not supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_NID,      0) */   /* NID (doorbell) not supported. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,     0) */   /** @todo Support reporting receipt of unmapped MSIs. */
-                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ, 0) */   /** @todo Support generating interrupt on unmapped MSI. */
-                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,      1);     /* ITS caches are invalidated when clearing
-                                                                                  GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
-            *puValue = RT_HI_U32(uHi);
+            uint64_t const uVal = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)      /* Physical LPIs supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,   0) */   /* Virtual LPIs not supported. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,       0)      /* Collections in memory not supported. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,   31)     /* 32-bit event IDs. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,  31)     /* 32-bit device IDs. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */   /** @todo SEI support. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,       0) */   /* Target is VCPU ID not address. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,       255)    /* Collection count. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  0) */   /* CIL specifies collection ID size. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       0) */   /* 16-bit collection IDs. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,     0) */   /* VMOVP not supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,      0) */   /* MPAM no supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,      0) */   /* VSGI not supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMAPP,     0) */   /* VMAPP not supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SVPET,     0) */   /* SVPET not supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_NID,       0) */   /* NID (doorbell) not supported. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,      0) */   /** @todo Reporting receipt of unmapped MSIs. */
+                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ,  0) */   /** @todo Generating interrupt on unmapped MSI. */
+                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);     /* ITS caches invalidated when clearing
+                                                                                          GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
+            uReg = uVal >> ((offReg & 7) << 3 /* to bits */);
             break;
         }
 
         case GITS_CTRL_REG_CBASER_OFF:
-            *puValue = pGitsDev->uCmdBaseReg.s.Lo;
+            uReg = pGitsDev->uCmdBaseReg.u;
             break;
 
         case GITS_CTRL_REG_CBASER_OFF + 4:
-            *puValue = pGitsDev->uCmdBaseReg.s.Hi;
+            Assert(cb == 4);
+            uReg = pGitsDev->uCmdBaseReg.s.Hi;
             break;
 
         default:
             AssertReleaseMsgFailed(("offReg=%#x (%s)\n", offReg, gitsGetCtrlRegDescription(offReg)));
+            uReg = 0;
             break;
     }
 
-    Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), *puValue));
-    return rcStrict;
+    Log4Func(("offReg=%#RX16 (%s) uReg=%#RX64\n", offReg, gitsGetCtrlRegDescription(offReg), uReg));
+    return uReg;
 }
 
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_t offReg, uint32_t *puValue)
+DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb)
 {
-    RT_NOREF(pGitsDev, offReg, puValue);
-    AssertReleaseMsgFailed(("offReg=%#x\n", offReg));
-    return VERR_NOT_IMPLEMENTED;
+    Assert(cb == 8 || cb == 4);
+    RT_NOREF(pGitsDev, cb);
+
+    uint64_t uReg = 0;
+    AssertReleaseMsgFailed(("offReg=%#x (%s) uReg=%#RX64\n", offReg,  gitsGetTranslationRegDescription(offReg), uReg));
+    return uReg;
 }
 
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint32_t uValue)
+DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
 {
     /*
      * GITS_BASER<n>.
      */
-    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST,  GITS_CTRL_REG_BASER_RANGE_SIZE))
+    if (GITS_IS_REG_IN_RANGE(offReg, GITS_CTRL_REG_BASER_OFF_FIRST, GITS_CTRL_REG_BASER_RANGE_SIZE))
     {
         uint16_t const cbReg  = sizeof(uint64_t);
         uint16_t const idxReg = (offReg - GITS_CTRL_REG_BASER_OFF_FIRST) / cbReg;
         if (!(offReg & 7))
-            pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue;
+        {
+            if (cb == 8)
+                pGitsDev->aItsTableRegs[idxReg].u = uValue;
+            else
+                pGitsDev->aItsTableRegs[idxReg].s.Lo = uValue;
+        }
         else
+        {
+            Assert(cb == 4);
             pGitsDev->aItsTableRegs[idxReg].s.Hi = uValue;
-        return VINF_SUCCESS;
+        }
+        return;
     }
 
-    VBOXSTRICTRC rcStrict = VINF_SUCCESS;
     switch (offReg)
     {
         case GITS_CTRL_REG_CTLR_OFF:
+            Assert(cb == 4);
             pGitsDev->fEnabled = RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF:
-            pGitsDev->uCmdBaseReg.s.Lo = uValue & RT_LO_U32(GITS_CTRL_REG_CBASER_RW_MASK);
+            uValue &= GITS_CTRL_REG_CBASER_RW_MASK;
+            if (cb == 8)
+                pGitsDev->uCmdBaseReg.u = uValue;
+            else
+                pGitsDev->uCmdBaseReg.s.Lo = (uint32_t)uValue;
             break;
 
         case GITS_CTRL_REG_CBASER_OFF + 4:
+            Assert(cb == 4);
             pGitsDev->uCmdBaseReg.s.Hi = uValue & RT_HI_U32(GITS_CTRL_REG_CBASER_RW_MASK);
             break;
 
@@ -239,7 +264,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t
             break;
 
         case GITS_CTRL_REG_CWRITER_OFF + 4:
-            /* Upper 32-bits are all reserved, ignore write. Fedora 40 arm64 writes does this and probably other guests. */
+            /* Upper 32-bits are all reserved, ignore write. Fedora 40 arm64 guests (and probably others) do this. */
             Assert(uValue == 0);
             break;
 
@@ -249,15 +274,13 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t
     }
 
     Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
-    return rcStrict;
 }
 
 
-DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t offReg, uint32_t uValue)
+DECL_HIDDEN_CALLBACK(void) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
 {
-    RT_NOREF(pGitsDev, offReg, uValue);
-    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX32\n", offReg, uValue));
-    return VERR_NOT_IMPLEMENTED;
+    RT_NOREF(pGitsDev);
+    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX64 [%-bit]\n", offReg, uValue, cb == 8 ? "64" : "32"));
 }
 
 
@@ -269,6 +292,8 @@ DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
     pGitsDev->fQuiescent            = true;
     RT_ZERO(pGitsDev->aItsTableRegs);
     pGitsDev->uCmdBaseReg.u         = 0;
+    pGitsDev->uCmdReadReg           = 0;
+    pGitsDev->uCmdWriteReg          = 0;
 }
 
 

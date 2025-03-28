@@ -802,8 +802,11 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         {
             RTGCPHYS const cbRegion = 2 * GITS_REG_FRAME_SIZE;  /* 2 frames for GICv3. */
             rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicItsMmioWrite, gicItsMmioRead,
-                                           IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED, "GIC ITS",
-                                           &pGicDev->hMmioGits);
+                                             IOMMMIO_FLAGS_READ_DWORD_QWORD
+                                           | IOMMMIO_FLAGS_WRITE_DWORD_QWORD_ZEROED
+                                           | IOMMMIO_FLAGS_DBGSTOP_ON_COMPLICATED_READ
+                                           | IOMMMIO_FLAGS_DBGSTOP_ON_COMPLICATED_WRITE,
+                                           "GIC ITS", &pGicDev->hMmioGits);
             AssertRCReturn(rc, rc);
 
             /* When the ITS is enabled we must support LPIs. */

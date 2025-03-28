@@ -3277,32 +3277,31 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioRead(PPDMDEVINS pDevIns, void *pvUs
 {
     RT_NOREF_PV(pvUser);
     Assert(!(off & 0x3));
-    Assert(cb == 4); RT_NOREF_PV(cb);
+    Assert(cb == 8 || cb == 4);
 
     PCGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     PCGITSDEV pGitsDev = &pGicDev->Gits;
-
-    VBOXSTRICTRC rcStrict;
+    uint64_t  uReg;
     if (off < GITS_REG_FRAME_SIZE)
     {
         /* Control registers space. */
         uint16_t const offReg = off & 0xfffc;
-        uint32_t       uValue = 0;
-        rcStrict = gitsMmioReadCtrl(pGitsDev, offReg, &uValue);
-        *(uint32_t *)pv = uValue;
-        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+        uReg = gitsMmioReadCtrl(pGitsDev, offReg, cb);
+        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX64\n", offReg, gitsGetCtrlRegDescription(offReg), uReg));
     }
     else
     {
         /* Translation registers space. */
-        off -= GITS_REG_FRAME_SIZE;
-        uint16_t const offReg = off & 0xfffc;
-        uint32_t       uValue = 0;
-        rcStrict = gitsMmioReadTranslate(pGitsDev, offReg, &uValue);
-        *(uint32_t *)pv = uValue;
-        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX32\n", offReg, gitsGetTranslationRegDescription(offReg), uValue));
+        uint16_t const offReg = (off - GITS_REG_FRAME_SIZE) & 0xfffc;
+        uReg = gitsMmioReadTranslate(pGitsDev, offReg, cb);
+        LogFlowFunc(("offReg=%#RX16 (%s) read %#RX64\n", offReg, gitsGetTranslationRegDescription(offReg), uReg));
     }
-    return rcStrict;
+
+    if (cb == 8)
+        *(uint64_t *)pv = uReg;
+    else
+        *(uint32_t *)pv = uReg;
+    return VINF_SUCCESS;
 }
 
 
@@ -3313,32 +3312,27 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvU
 {
     RT_NOREF_PV(pvUser);
     Assert(!(off & 0x3));
-    Assert(cb == 4); RT_NOREF_PV(cb);
+    Assert(cb == 8 || cb == 4);
 
     PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     PGITSDEV pGitsDev = &pGicDev->Gits;
 
-    VBOXSTRICTRC rcStrict;
+    uint64_t const uValue = cb == 8 ? *(uint64_t *)pv : *(uint32_t *)pv;
     if (off < GITS_REG_FRAME_SIZE)
     {
         /* Control registers space. */
         uint16_t const offReg = off & 0xfffc;
-        uint32_t const uValue = *(uint32_t *)pv;
-        rcStrict = gitsMmioWriteCtrl(pGitsDev, offReg, uValue);
-        *(uint32_t *)pv = uValue;
-        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+        gitsMmioWriteCtrl(pGitsDev, offReg, uValue, cb);
+        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX64\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
     }
     else
     {
         /* Translation registers space. */
-        off -= GITS_REG_FRAME_SIZE;
-        uint16_t const offReg = off & 0xfffc;
-        uint32_t const uValue = *(uint32_t *)pv;
-        rcStrict = gitsMmioWriteTranslate(pGitsDev, offReg, uValue);
-        *(uint32_t *)pv = uValue;
-        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX32\n", offReg, gitsGetTranslationRegDescription(offReg), uValue));
+        uint16_t const offReg = (off - GITS_REG_FRAME_SIZE) & 0xfffc;
+        gitsMmioWriteTranslate(pGitsDev, offReg, uValue, cb);
+        LogFlowFunc(("offReg=%#RX16 (%s) written %#RX64\n", offReg, gitsGetTranslationRegDescription(offReg), uValue));
     }
-    return rcStrict;
+    return VINF_SUCCESS;
 }
 
 

@@ -149,7 +149,7 @@ namespace vbcl
          *          is validated and its fields, such as packet size, can be trusted.
          * @param   uSessionId      IPC session ID.
          * @param   hSession        IPC session handle.
-         * @param   mcTimeout       Read operation timeout in milliseconds.
+         * @param   msTimeout       Read operation timeout in milliseconds.
          * @param   ppvData         Output buffer structured as validated
          *                          IPC packet (contains size inside).
          */

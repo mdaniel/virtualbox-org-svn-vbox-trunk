@@ -54,7 +54,7 @@ DECL_FORCE_INLINE(void) iemTlbLoadedLargePage(PVMCPUCC pVCpu, IEMTLB *pTlb, RTGC
     ASMBitSet(pTlb->bmLargePage, idxBit);
 # endif
 
-    AssertCompile(IEMTLB_CALC_TAG_NO_REV((RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
+    AssertCompile(IEMTLB_CALC_TAG_NO_REV(pVCpu, (RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
     uint32_t const                 fMask = (f2MbLargePages ? _2M - 1U : _4M - 1U) >> GUEST_PAGE_SHIFT;
     IEMTLB::LARGEPAGERANGE * const pRange = a_fGlobal
                                           ? &pTlb->GlobalLargePageRange
@@ -164,7 +164,7 @@ DECLINLINE(void) iemTlbInvalidateLargePageWorkerInner(PVMCPUCC pVCpu, IEMTLB *pT
      * Set cbInstrBufTotal to zero if GCPtrInstrBufPcTag is within any of the tag ranges.
      * We make ASSUMPTIONS about IEMTLB_CALC_TAG_NO_REV here.
      */
-    AssertCompile(IEMTLB_CALC_TAG_NO_REV((RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
+    AssertCompile(IEMTLB_CALC_TAG_NO_REV(p V C p u - not true, (RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
     if (   !a_fDataTlb
         && GCPtrInstrBufPcTag - GCPtrTag < (a_f2MbLargePage ? 512U : 1024U))
         pVCpu->iem.s.cbInstrBufTotal = 0;
@@ -391,7 +391,7 @@ template<bool const a_fDataTlb, bool const a_f2MbLargePage>
 DECLINLINE(void) iemTlbInvalidateLargePageWorker(PVMCPUCC pVCpu, IEMTLB *pTlb, RTGCPTR GCPtrTag,
                                                  RTGCPTR GCPtrInstrBufPcTag) RT_NOEXCEPT
 {
-    AssertCompile(IEMTLB_CALC_TAG_NO_REV((RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
+    AssertCompile(IEMTLB_CALC_TAG_NO_REV(p V C p u - not true, (RTGCPTR)0x8731U << GUEST_PAGE_SHIFT) == 0x8731U);
 
     GCPtrTag &= ~(RTGCPTR)(RT_BIT_64((a_f2MbLargePage ? 21 : 22) - GUEST_PAGE_SHIFT) - 1U);
     if (   GCPtrTag >= pTlb->GlobalLargePageRange.uFirstTag
@@ -427,14 +427,14 @@ DECLINLINE(void) iemTlbInvalidatePageWorker(PVMCPUCC pVCpu, IEMTLB *pTlb, RTGCPT
     {
         IEMTLBTRACE_EVICT_SLOT(pVCpu, GCPtrTag, pTlb->aEntries[idxEven].GCPhys, idxEven, a_fDataTlb);
         pTlb->aEntries[idxEven].uTag = 0;
-        if (!a_fDataTlb && GCPtrTag == IEMTLB_CALC_TAG_NO_REV(pVCpu->iem.s.uInstrBufPc))
+        if (!a_fDataTlb && GCPtrTag == IEMTLB_CALC_TAG_NO_REV(pVCpu, pVCpu->iem.s.uInstrBufPc))
             pVCpu->iem.s.cbInstrBufTotal = 0;
     }
     if (pTlb->aEntries[idxEven + 1].uTag == (GCPtrTag | pTlb->uTlbRevisionGlobal))
     {
         IEMTLBTRACE_EVICT_SLOT(pVCpu, GCPtrTag, pTlb->aEntries[idxEven + 1].GCPhys, idxEven + 1, a_fDataTlb);
         pTlb->aEntries[idxEven + 1].uTag = 0;
-        if (!a_fDataTlb && GCPtrTag == IEMTLB_CALC_TAG_NO_REV(pVCpu->iem.s.uInstrBufPc))
+        if (!a_fDataTlb && GCPtrTag == IEMTLB_CALC_TAG_NO_REV(pVCpu, pVCpu->iem.s.uInstrBufPc))
             pVCpu->iem.s.cbInstrBufTotal = 0;
     }
 
@@ -450,7 +450,7 @@ DECLINLINE(void) iemTlbInvalidatePageWorker(PVMCPUCC pVCpu, IEMTLB *pTlb, RTGCPT
     if (pTlb->GlobalLargePageRange.uLastTag || pTlb->NonGlobalLargePageRange.uLastTag)
 # endif
     {
-        RTGCPTR const GCPtrInstrBufPcTag = a_fDataTlb ? 0 : IEMTLB_CALC_TAG_NO_REV(pVCpu->iem.s.uInstrBufPc);
+        RTGCPTR const GCPtrInstrBufPcTag = a_fDataTlb ? 0 : IEMTLB_CALC_TAG_NO_REV(pVCpu, pVCpu->iem.s.uInstrBufPc);
         if (pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE)
             iemTlbInvalidateLargePageWorker<a_fDataTlb, true>(pVCpu, pTlb, GCPtrTag, GCPtrInstrBufPcTag);
         else

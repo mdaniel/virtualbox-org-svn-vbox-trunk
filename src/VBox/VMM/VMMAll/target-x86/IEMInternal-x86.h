@@ -2895,9 +2895,9 @@ DECL_NO_RETURN(void)    iemRaiseSimdFpExceptionJmp(PVMCPUCC pVCpu) IEM_NOEXCEPT_
 void                    iemLogSyscallRealModeInt(PVMCPUCC pVCpu, uint8_t u8Vector, uint8_t cbInstr);
 void                    iemLogSyscallProtModeInt(PVMCPUCC pVCpu, uint8_t u8Vector, uint8_t cbInstr);
 
-IEM_CIMPL_DEF_0(iemCImplRaiseDivideError);
-IEM_CIMPL_DEF_0(iemCImplRaiseInvalidLockPrefix);
-IEM_CIMPL_DEF_0(iemCImplRaiseInvalidOpcode);
+IEM_CIMPL_PROTO_0(iemCImplRaiseDivideError);
+IEM_CIMPL_PROTO_0(iemCImplRaiseInvalidLockPrefix);
+IEM_CIMPL_PROTO_0(iemCImplRaiseInvalidOpcode);
 
 /**
  * Macro for calling iemCImplRaiseDivideError().

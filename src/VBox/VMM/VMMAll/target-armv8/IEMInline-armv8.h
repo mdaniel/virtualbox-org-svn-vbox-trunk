@@ -45,7 +45,7 @@
  */
 DECL_FORCE_INLINE(uint32_t) iemCalcExecAcFlag(PVMCPUCC pVCpu, uint32_t fExecMode) RT_NOEXCEPT
 {
-    IEM_CTX_ASSERT(pVCpu, CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_PSTATE);
+    IEM_CTX_ASSERT(pVCpu, CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_EL2 | CPUMCTX_EXTRN_PSTATE);
     uint64_t const fSctlr =    IEM_F_MODE_ARM_GET_EL(fExecMode) == 1
                             || (   IEM_F_MODE_ARM_GET_EL(fExecMode) == 0
                                 &&    (pVCpu->cpum.GstCtx.HcrEl2.u64 & (RT_BIT_64(34)/*E2H*/ | RT_BIT_64(27)/*TGE*/))
@@ -62,13 +62,59 @@ DECL_FORCE_INLINE(uint32_t) iemCalcExecAcFlag(PVMCPUCC pVCpu, uint32_t fExecMode
 
 
 /**
+ * Calculates the stage 1 page size.
+ *
+ * @returns IEM_F_ARM_S1_PAGE_MASK
+ * @param   pVCpu               The cross context virtual CPU structure of the
+ *                              calling thread.
+ * @param   fExecMode           The mode part of fExec.
+ */
+DECL_FORCE_INLINE(uint32_t) iemCalcExecStage1PageSize(PVMCPUCC pVCpu, uint32_t fExecMode) RT_NOEXCEPT
+{
+    IEM_CTX_ASSERT(pVCpu, CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_PSTATE);
+    uint64_t const fSCtlR = IEM_F_MODE_ARM_GET_EL(fExecMode) <= 1 ? pVCpu->cpum.GstCtx.Sctlr.u64
+#if 1 /** @todo armv8: EL3 & check up EL2 logic. */
+                          :                                         pVCpu->cpum.GstCtx.SctlrEl2.u64;
+#else
+                          : IEM_F_MODE_ARM_GET_EL(fExecMode) == 2 ? pVCpu->cpum.GstCtx.SctlrEl2.u64
+                          :                                         pVCpu->cpum.GstCtx.SctlrEl3.u64;
+#endif
+    if (fSCtlR & ARMV8_SCTLR_EL1_M)
+    {
+        uint64_t const fTcr = IEM_F_MODE_ARM_GET_EL(fExecMode) <= 1 ? pVCpu->cpum.GstCtx.Tcr.u64
+#if 1 /** @todo armv8: EL3 & check up EL2 logic. */
+                            :                                         pVCpu->cpum.GstCtx.TcrEl2.u64;
+#else
+                        : IEM_F_MODE_ARM_GET_EL(fExecMode) == 2 ? pVCpu->cpum.GstCtx.TcrEl2.u64
+                        :                                         pVCpu->cpum.GstCtx.TcrEl3.u64;
+#endif
+        switch (fTcr & ARMV8_TCR_EL1_AARCH64_TG0_MASK)
+        {
+            case ARMV8_TCR_EL1_AARCH64_TG0_4KB  << ARMV8_TCR_EL1_AARCH64_TG0_SHIFT:
+                return IEM_F_ARM_S1_PAGE_4K;
+            case ARMV8_TCR_EL1_AARCH64_TG0_16KB << ARMV8_TCR_EL1_AARCH64_TG0_SHIFT:
+                return IEM_F_ARM_S1_PAGE_16K;
+            case ARMV8_TCR_EL1_AARCH64_TG0_64KB << ARMV8_TCR_EL1_AARCH64_TG0_SHIFT:
+                return IEM_F_ARM_S1_PAGE_64K;
+            default:
+                AssertFailed();
+                return IEM_F_ARM_S1_PAGE_4K;
+        }
+    }
+    /* MMU is not enabled, use 4KB TLB entries for now. */
+    /** @todo check out 64KB for non-MMU mode. */
+    return IEM_F_ARM_S1_PAGE_4K; /** @todo Do we need a NO_MMU flag? */
+}
+
+
+/**
  * Calculates the IEM_F_MODE_XXX, IEM_F_ARM_A, IEM_F_ARM_AA and IEM_F_ARM_SP_IDX
  *
  * @returns IEM_F_MODE_XXX, IEM_F_ARM_A, IEM_F_ARM_AA, IEM_F_ARM_SP_IDX.
  * @param   pVCpu               The cross context virtual CPU structure of the
  *                              calling thread.
  */
-DECL_FORCE_INLINE(uint32_t) iemCalcExecModeAndSpIdxAndAcFlags(PVMCPUCC pVCpu) RT_NOEXCEPT
+DECL_FORCE_INLINE(uint32_t) iemCalcExecModeAndSpIdxAndAcFlagsAndS1PgSize(PVMCPUCC pVCpu) RT_NOEXCEPT
 {
     IEM_CTX_ASSERT(pVCpu, CPUMCTX_EXTRN_PSTATE);
 
@@ -121,6 +167,9 @@ DECL_FORCE_INLINE(uint32_t) iemCalcExecModeAndSpIdxAndAcFlags(PVMCPUCC pVCpu) RT
 
     /* Alignment checks: */
     fExec |= iemCalcExecAcFlag(pVCpu, fExec);
+
+    /* Page size. */
+    fExec |= iemCalcExecStage1PageSize(pVCpu, fExec);
     return fExec;
 }
 
@@ -152,7 +201,7 @@ DECL_FORCE_INLINE(uint32_t) iemCalcExecDbgFlags(PVMCPUCC pVCpu) RT_NOEXCEPT
 
 DECL_FORCE_INLINE(uint32_t) iemCalcExecFlags(PVMCPUCC pVCpu) RT_NOEXCEPT
 {
-    return iemCalcExecModeAndSpIdxAndAcFlags(pVCpu)
+    return iemCalcExecModeAndSpIdxAndAcFlagsAndS1PgSize(pVCpu)
          | iemCalcExecDbgFlags(pVCpu)
          ;
 }
@@ -168,7 +217,7 @@ DECL_FORCE_INLINE(uint32_t) iemCalcExecFlags(PVMCPUCC pVCpu) RT_NOEXCEPT
 DECL_FORCE_INLINE(void) iemRecalcExecModeAndSpIdxAndAcFlags(PVMCPUCC pVCpu)
 {
     pVCpu->iem.s.fExec = (pVCpu->iem.s.fExec & ~(IEM_F_MODE_MASK | IEM_F_ARM_A | IEM_F_ARM_AA))
-                       | iemCalcExecModeAndSpIdxAndAcFlags(pVCpu);
+                       | iemCalcExecModeAndSpIdxAndAcFlagsAndS1PgSize(pVCpu);
 }
 
 

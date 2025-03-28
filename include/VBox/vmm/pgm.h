@@ -579,9 +579,8 @@ AssertCompile(PGM_PTATTRS_EPT_X_USER_SHIFT     - PGM_PTATTRS_EPT_SHIFT == EPT_E_
  * The translation tables on ARMv8 are complicated by compressed and index
  * attributes as well as a myriade of feature dependent field interpretations.
  *
- * The stage 1 effective access attributes are placed in bits 47:32, with some
- * room reserved for new stuff. A set of leaf bits are copied raw, but NSE had
- * to be shifted down due to nG confusion.
+ * The stage 1 effective access attributes are placed in bits 41:32.  A set of
+ * leaf bits are copied raw, but NSE had to be shifted down due to nG confusion.
  *
  * The stage 2 effective access attributes are placed in bit 31:24.  Bits taken
  * directly from the leaf translation table entry are shifted down 7 bits to
@@ -640,6 +639,9 @@ AssertCompile(PGM_PTATTRS_EPT_X_USER_SHIFT     - PGM_PTATTRS_EPT_SHIFT == EPT_E_
 /** Stage 2: TopLevel1 - only used with PGM_PTATTRS_S2_W_LIM_MASK. */
 #define PGM_PTATTRS_S2_TL1_SHIFT                    30
 #define PGM_PTATTRS_S2_TL1_MASK                     RT_BIT_64(PGM_PTATTRS_S2_TL1_SHIFT)
+/** Stage 2: Device memory type. */
+#define PGM_PTATTRS_S2_DEVICE_SHIFT                 31
+#define PGM_PTATTRS_S2_DEVICE_MASK                  RT_BIT_64(PGM_PTATTRS_S2_DEVICE_SHIFT)
 
 /** Stage 1: Privileged read access. */
 #define PGM_PTATTRS_PR_SHIFT                        32
@@ -653,27 +655,29 @@ AssertCompile(PGM_PTATTRS_EPT_X_USER_SHIFT     - PGM_PTATTRS_EPT_SHIFT == EPT_E_
 /** Stage 1:  Privileged guarded control stack (GCS) access. */
 #define PGM_PTATTRS_PGCS_SHIFT                      35
 #define PGM_PTATTRS_PGCS_MASK                       RT_BIT_64(PGM_PTATTRS_PGCS_SHIFT)
-/** Stage 1:  Privileged write-implies-no-execute access.
- * @todo not sure if we need expose this bit.  */
-#define PGM_PTATTRS_PWXN_SHIFT                      36
-#define PGM_PTATTRS_PWXN_MASK                       RT_BIT_64(PGM_PTATTRS_PWXN_SHIFT)
-
 /** Stage 1:  Unprivileged read access. */
-#define PGM_PTATTRS_UR_SHIFT                        40
+#define PGM_PTATTRS_UR_SHIFT                        36
 #define PGM_PTATTRS_UR_MASK                         RT_BIT_64(PGM_PTATTRS_UR_SHIFT)
 /** Stage 1:  Unprivileged write access. */
-#define PGM_PTATTRS_UW_SHIFT                        41
+#define PGM_PTATTRS_UW_SHIFT                        37
 #define PGM_PTATTRS_UW_MASK                         RT_BIT_64(PGM_PTATTRS_UW_SHIFT)
 /** Stage 1:  Unprivileged execute access. */
-#define PGM_PTATTRS_UX_SHIFT                        42
+#define PGM_PTATTRS_UX_SHIFT                        38
 #define PGM_PTATTRS_UX_MASK                         RT_BIT_64(PGM_PTATTRS_UX_SHIFT)
 /** Stage 1:  Unprivileged guarded control stack (GCS) access. */
-#define PGM_PTATTRS_UGCS_SHIFT                      43
+#define PGM_PTATTRS_UGCS_SHIFT                      39
 #define PGM_PTATTRS_UGCS_MASK                       RT_BIT_64(PGM_PTATTRS_UGCS_SHIFT)
+/** Stage 1:  Privileged write-implies-no-execute access.
+ * @todo not sure if we need expose this bit.  */
+#define PGM_PTATTRS_PWXN_SHIFT                      40
+#define PGM_PTATTRS_PWXN_MASK                       RT_BIT_64(PGM_PTATTRS_PWXN_SHIFT)
 /** Stage 1:  Unprivileged write-implies-no-execute access.
  * @todo not sure if we need expose this bit. */
-#define PGM_PTATTRS_UWXN_SHIFT                      44
+#define PGM_PTATTRS_UWXN_SHIFT                      41
 #define PGM_PTATTRS_UWXN_MASK                       RT_BIT_64(PGM_PTATTRS_UWXN_SHIFT)
+/** Stage 1: Device memory type. */
+#define PGM_PTATTRS_DEVICE_SHIFT                    42
+#define PGM_PTATTRS_DEVICE_MASK                     RT_BIT_64(PGM_PTATTRS_DEVICE_SHIFT)
 
 /** Page/block level: Guarded page */
 #define PGM_PTATTRS_GP_SHIFT                        50
@@ -915,13 +919,20 @@ VMMDECL(int)        PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWal
 #define PGMQPAGE_F_EXECUTE      RT_BIT_32(2)
 /** The query is for a user mode access, so don't set leaf A or D bits
  * unless the effective access allows usermode access.
- * Assume supervisor access when not set. */
+ * Assume supervisor (priveleged) access when not set. */
 #define PGMQPAGE_F_USER_MODE    RT_BIT_32(3)
-/** Treat CR0.WP as zero when evalutating the access.
+#if defined( VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+/** X86: Treat CR0.WP as zero when evalutating the access.
  * @note Same value as X86_CR0_WP.  */
-#define PGMQPAGE_F_CR0_WP0      RT_BIT_32(16)
+# define PGMQPAGE_F_CR0_WP0     RT_BIT_32(16)
+#endif
+/** @todo ARM: security, s2, GCS, ++ */
 /** The valid flag mask.   */
-#define PGMQPAGE_F_VALID_MASK   UINT32_C(0x0001000f)
+#if defined( VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define PGMQPAGE_F_VALID_MASK  UINT32_C(0x0001000f)
+#else
+# define PGMQPAGE_F_VALID_MASK  UINT32_C(0x0000000f)
+#endif
 /** @} */
 VMM_INT_DECL(int)   PGMGstQueryPageFast(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fFlags, PPGMPTWALKFAST pWalkFast);
 VMMDECL(int)        PGMGstModifyPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, size_t cb, uint64_t fFlags, uint64_t fMask);
@@ -1191,11 +1202,29 @@ VMM_INT_DECL(int)   PGMPhysIemGCPhys2PtrNoLock(PVMCC pVM, PVMCPUCC pVCpu, RTGCPH
                                                R3R0PTRTYPE(uint8_t *) *ppb, uint64_t *pfTlb);
 /** @name Flags returned by PGMPhysIemGCPhys2PtrNoLock
  * @{ */
-#define PGMIEMGCPHYS2PTR_F_NO_WRITE     RT_BIT_32(3)    /**< Not writable (IEMTLBE_F_PG_NO_WRITE). */
-#define PGMIEMGCPHYS2PTR_F_NO_READ      RT_BIT_32(4)    /**< Not readable (IEMTLBE_F_PG_NO_READ). */
-#define PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 RT_BIT_32(8)    /**< No ring-3 mapping (IEMTLBE_F_NO_MAPPINGR3). */
-#define PGMIEMGCPHYS2PTR_F_UNASSIGNED   RT_BIT_32(9)    /**< Unassgined memory (IEMTLBE_F_PG_UNASSIGNED). */
-#define PGMIEMGCPHYS2PTR_F_CODE_PAGE    RT_BIT_32(10)    /**< Write monitored IEM code page (IEMTLBE_F_PG_CODE_PAGE). */
+/** @def PGMIEMGCPHYS2PTR_F_NO_WRITE
+ * Not writable (IEMTLBE_F_PG_NO_WRITE). */
+/** @def PGMIEMGCPHYS2PTR_F_NO_READ
+ * Not readable (IEMTLBE_F_PG_NO_READ). */
+/** @def PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3
+ * No ring-3 mapping (IEMTLBE_F_NO_MAPPINGR3). */
+/** @def PGMIEMGCPHYS2PTR_F_UNASSIGNED
+ * Unassigned memory (IEMTLBE_F_PG_UNASSIGNED). */
+/** @def PGMIEMGCPHYS2PTR_F_CODE_PAGE
+ * Write monitored IEM code page (IEMTLBE_F_PG_CODE_PAGE). */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
+# define PGMIEMGCPHYS2PTR_F_NO_WRITE     RT_BIT_32(3)
+# define PGMIEMGCPHYS2PTR_F_NO_READ      RT_BIT_32(4)
+# define PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 RT_BIT_32(8)
+# define PGMIEMGCPHYS2PTR_F_UNASSIGNED   RT_BIT_32(9)
+# define PGMIEMGCPHYS2PTR_F_CODE_PAGE    RT_BIT_32(10)
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define PGMIEMGCPHYS2PTR_F_NO_READ      RT_BIT_32(13)
+# define PGMIEMGCPHYS2PTR_F_NO_WRITE     RT_BIT_32(14)
+# define PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 RT_BIT_32(15)
+# define PGMIEMGCPHYS2PTR_F_UNASSIGNED   RT_BIT_32(16)
+# define PGMIEMGCPHYS2PTR_F_CODE_PAGE    RT_BIT_32(17)
+#endif
 /** @} */
 
 /** Information returned by PGMPhysNemQueryPageInfo. */

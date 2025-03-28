@@ -1357,9 +1357,9 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
         /*0b111:*/ "!TL01!",
     };
     static const char * const s_apszSizes[] = { "L3", "L2", "L1", "L0" };
-    AssertCompile(((IEMTLBE_F_S2_NO_LIM_WRITE | IEMTLBE_F_S2_TL0 | IEMTLBE_F_S2_TL1) >> IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT) == 7);
+    AssertCompile(((IEMTLBE_F_S2_NO_LIM_WRITE | IEMTLBE_F_S2_TL0 | IEMTLBE_F_S2_TL1) >> IEMTLBE_F_S2_NO_LIM_WRITE_BIT) == 7);
     pHlp->pfnPrintf(pHlp, IEMTLB_SLOT_FMT
-                    ": %s %#018RX64 -> %RGp / %p / %#05x U%c%c%c%cP%c%c%c%c%c%c/%c%c%c/%s/%c%c%c%c/%c as:%x vm:%x/%s %s%s\n",
+                    ": %s %#018RX64 -> %RGp / %p / %#05x U%c%c%c%cP%c%c%c%c%c%c%c/%c%c%c/%s/%c%c%c%c/%c as:%x vm:%x/%s %s%s\n",
                     uSlot,
                     (pTlbe->uTag & IEMTLB_REVISION_MASK) == uTlbRevision ? "valid  "
                     : (pTlbe->uTag & IEMTLB_REVISION_MASK) == 0          ? "empty  "
@@ -1379,12 +1379,13 @@ static void iemR3InfoTlbPrintSlot(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB const
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_P_NO_GCS     ? '-' : 's',
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_NO_DIRTY     ? '-' : 'D',
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_AMEC         ? 'A' : '-',
+                    pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_DEVICE       ? 'd' : '-',
                     /* / */
                     !(uSlot & 1)                                         ? '-' : 'G',
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S1_NS            ? '-' : 'S',
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_S1_NSE           ? '-' : 'E',
                     /* / */
-                    s_apszLimAndTopLevelX[(pTlbe->fFlagsAndPhysRev >> IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT) & 7],
+                    s_apszLimAndTopLevelX[(pTlbe->fFlagsAndPhysRev >> IEMTLBE_F_S2_NO_LIM_WRITE_BIT) & 7],
                     /* / */
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_NO_READ       ? '-'  : 'r',
                     pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_NO_WRITE      ? '-'  : 'w',
@@ -1440,7 +1441,7 @@ static void iemR3InfoTlbPrintAddress(PVMCPU pVCpu, PCDBGFINFOHLP pHlp, IEMTLB co
 {
     iemR3InfoTlbPrintHeader(pVCpu, pHlp, pTlb, pfHeader);
 
-    uint64_t const    uTag  = IEMTLB_CALC_TAG_NO_REV(uAddress);
+    uint64_t const    uTag  = IEMTLB_CALC_TAG_NO_REV(pVCpu, uAddress);
 #ifdef IEMTLB_TAG_TO_EVEN_INDEX
     uint32_t const    uSlot = IEMTLB_TAG_TO_EVEN_INDEX(uTag);
 #else
@@ -1785,7 +1786,7 @@ static DECLCALLBACK(void) iemR3InfoTlbTrace(PVM pVM, PCDBGFINFOHLP pHlp, int cAr
             {
                 case kIemTlbTraceType_InvlPg:
                     pHlp->pfnPrintf(pHlp, "%u: %016RX64 invlpg %RGv slot=" IEMTLB_SLOT_FMT "%s\n", idx, pCur->rip,
-                                    pCur->u64Param, (uint32_t)IEMTLB_ADDR_TO_EVEN_INDEX(pCur->u64Param), pszSymbol);
+                                    pCur->u64Param, (uint32_t)IEMTLB_ADDR_TO_EVEN_INDEX(pVCpu, pCur->u64Param), pszSymbol);
                     break;
                 case kIemTlbTraceType_EvictSlot:
                     pHlp->pfnPrintf(pHlp, "%u: %016RX64 evict %s slot=" IEMTLB_SLOT_FMT " %RGv (%#RX64) gcphys=%RGp%s\n",
@@ -1822,7 +1823,7 @@ static DECLCALLBACK(void) iemR3InfoTlbTrace(PVM pVM, PCDBGFINFOHLP pHlp, int cAr
                                     idx, pCur->rip,
                                     pCur->enmType == kIemTlbTraceType_LoadGlobal ? 'g' : 'l', s_apszTlbType[pCur->bParam & 1],
                                     pCur->u64Param,
-                                      (uint32_t)IEMTLB_ADDR_TO_EVEN_INDEX(pCur->u64Param)
+                                      (uint32_t)IEMTLB_ADDR_TO_EVEN_INDEX(pVCpu, pCur->u64Param)
                                     | (pCur->enmType == kIemTlbTraceType_LoadGlobal),
                                     (RTGCPTR)pCur->u64Param2, pCur->u32Param, pszSymbol);
                     break;

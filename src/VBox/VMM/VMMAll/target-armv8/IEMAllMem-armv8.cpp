@@ -1,6 +1,6 @@
 /* $Id$ */
 /** @file
- * IEM - Interpreted Execution Manager - x86 target, memory.
+ * IEM - Interpreted Execution Manager - ARMV8 target, memory.
  */
 
 /*
@@ -31,9 +31,6 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_IEM_MEM
 #define VMCPU_INCL_CPUM_GST_CTX
-#ifdef IN_RING0
-# define VBOX_VMM_TARGET_X86
-#endif
 #include <VBox/vmm/iem.h>
 #include <VBox/vmm/cpum.h>
 #include <VBox/vmm/pgm.h>
@@ -44,12 +41,12 @@
 #include <VBox/err.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
-#include <iprt/x86.h>
+#include <iprt/armv8.h>
 
 #include "IEMInline.h"
-#include "IEMInline-x86.h"
-#include "IEMInlineMem-x86.h"
-#include "IEMAllTlbInline-x86.h"
+#include "IEMInline-armv8.h"
+/// @todo #include "IEMInlineMem-armv8.h"
+#include "IEMAllTlbInline-armv8.h"
 
 
 /** @name   Memory access.
@@ -58,118 +55,19 @@
  */
 
 /**
- * Applies the segment limit, base and attributes.
- *
- * This may raise a \#GP or \#SS.
- *
- * @returns VBox strict status code.
- *
- * @param   pVCpu               The cross context virtual CPU structure of the calling thread.
- * @param   fAccess             The kind of access which is being performed.
- * @param   iSegReg             The index of the segment register to apply.
- *                              This is UINT8_MAX if none (for IDT, GDT, LDT,
- *                              TSS, ++).
- * @param   cbMem               The access size.
- * @param   pGCPtrMem           Pointer to the guest memory address to apply
- *                              segmentation to.  Input and output parameter.
+ * Converts IEM_ACCESS_XXX + fExec to PGMQPAGE_F_XXX.
  */
-VBOXSTRICTRC iemMemApplySegment(PVMCPUCC pVCpu, uint32_t fAccess, uint8_t iSegReg, size_t cbMem, PRTGCPTR pGCPtrMem) RT_NOEXCEPT
+DECL_FORCE_INLINE(uint32_t) iemMemArmAccessToQPage(PVMCPUCC pVCpu, uint32_t fAccess)
 {
-    if (iSegReg == UINT8_MAX)
-        return VINF_SUCCESS;
-
-    IEM_CTX_IMPORT_RET(pVCpu, CPUMCTX_EXTRN_SREG_FROM_IDX(iSegReg));
-    PCPUMSELREGHID pSel = iemSRegGetHid(pVCpu, iSegReg);
-    switch (IEM_GET_CPU_MODE(pVCpu))
-    {
-        case IEMMODE_16BIT:
-        case IEMMODE_32BIT:
-        {
-            RTGCPTR32 GCPtrFirst32 = (RTGCPTR32)*pGCPtrMem;
-            RTGCPTR32 GCPtrLast32  = GCPtrFirst32 + (uint32_t)cbMem - 1;
-
-            if (   pSel->Attr.n.u1Present
-                && !pSel->Attr.n.u1Unusable)
-            {
-                Assert(pSel->Attr.n.u1DescType);
-                if (!(pSel->Attr.n.u4Type & X86_SEL_TYPE_CODE))
-                {
-                    if (   (fAccess & IEM_ACCESS_TYPE_WRITE)
-                        && !(pSel->Attr.n.u4Type & X86_SEL_TYPE_WRITE) )
-                        return iemRaiseSelectorInvalidAccess(pVCpu, iSegReg, fAccess);
-
-                    if (!IEM_IS_REAL_OR_V86_MODE(pVCpu))
-                    {
-                        /** @todo CPL check. */
-                    }
-
-                    /*
-                     * There are two kinds of data selectors, normal and expand down.
-                     */
-                    if (!(pSel->Attr.n.u4Type & X86_SEL_TYPE_DOWN))
-                    {
-                        if (   GCPtrFirst32 > pSel->u32Limit
-                            || GCPtrLast32  > pSel->u32Limit) /* yes, in real mode too (since 80286). */
-                            return iemRaiseSelectorBounds(pVCpu, iSegReg, fAccess);
-                    }
-                    else
-                    {
-                       /*
-                        * The upper boundary is defined by the B bit, not the G bit!
-                        */
-                       if (   GCPtrFirst32 < pSel->u32Limit + UINT32_C(1)
-                           || GCPtrLast32  > (pSel->Attr.n.u1DefBig ? UINT32_MAX : UINT32_C(0xffff)))
-                          return iemRaiseSelectorBounds(pVCpu, iSegReg, fAccess);
-                    }
-                    *pGCPtrMem = GCPtrFirst32 += (uint32_t)pSel->u64Base;
-                }
-                else
-                {
-                    /*
-                     * Code selector and usually be used to read thru, writing is
-                     * only permitted in real and V8086 mode.
-                     */
-                    if (   (   (fAccess & IEM_ACCESS_TYPE_WRITE)
-                            || (   (fAccess & IEM_ACCESS_TYPE_READ)
-                               && !(pSel->Attr.n.u4Type & X86_SEL_TYPE_READ)) )
-                        && !IEM_IS_REAL_OR_V86_MODE(pVCpu) )
-                        return iemRaiseSelectorInvalidAccess(pVCpu, iSegReg, fAccess);
-
-                    if (   GCPtrFirst32 > pSel->u32Limit
-                        || GCPtrLast32  > pSel->u32Limit) /* yes, in real mode too (since 80286). */
-                        return iemRaiseSelectorBounds(pVCpu, iSegReg, fAccess);
-
-                    if (!IEM_IS_REAL_OR_V86_MODE(pVCpu))
-                    {
-                        /** @todo CPL check. */
-                    }
-
-                    *pGCPtrMem  = GCPtrFirst32 += (uint32_t)pSel->u64Base;
-                }
-            }
-            else
-                return iemRaiseGeneralProtectionFault0(pVCpu);
-            return VINF_SUCCESS;
-        }
-
-        case IEMMODE_64BIT:
-        {
-            RTGCPTR GCPtrMem = *pGCPtrMem;
-            if (iSegReg == X86_SREG_GS || iSegReg == X86_SREG_FS)
-                *pGCPtrMem = GCPtrMem + pSel->u64Base;
-
-            Assert(cbMem >= 1);
-            if (RT_LIKELY(X86_IS_CANONICAL(GCPtrMem) && X86_IS_CANONICAL(GCPtrMem + cbMem - 1)))
-                return VINF_SUCCESS;
-            /** @todo We should probably raise \#SS(0) here if segment is SS; see AMD spec.
-             *        4.12.2 "Data Limit Checks in 64-bit Mode". */
-            return iemRaiseGeneralProtectionFault0(pVCpu);
-        }
-
-        default:
-            AssertFailedReturn(VERR_IEM_IPE_7);
-    }
+    AssertCompile(IEM_ACCESS_TYPE_READ  == PGMQPAGE_F_READ);
+    AssertCompile(IEM_ACCESS_TYPE_WRITE == PGMQPAGE_F_WRITE);
+    AssertCompile(IEM_ACCESS_TYPE_EXEC  == PGMQPAGE_F_EXECUTE);
+    /** @todo IEMTLBE_F_EFF_U_NO_GCS / IEMTLBE_F_EFF_P_NO_GCS,
+     *  IEMTLBE_F_S1_NS/NSE, IEMTLBE_F_S2_NO_LIM_WRITE/TL0/TL1. */
+    return (fAccess & (PGMQPAGE_F_READ | IEM_ACCESS_TYPE_WRITE | PGMQPAGE_F_EXECUTE))
+         | (!(fAccess & IEM_ACCESS_WHAT_SYS) && IEM_F_MODE_ARM_GET_EL(pVCpu->iem.s.fExec) == 0 ? PGMQPAGE_F_USER_MODE : 0);
 }
+
 
 
 /**
@@ -186,28 +84,16 @@ VBOXSTRICTRC iemMemApplySegment(PVMCPUCC pVCpu, uint32_t fAccess, uint8_t iSegRe
 VBOXSTRICTRC iemMemPageTranslateAndCheckAccess(PVMCPUCC pVCpu, RTGCPTR GCPtrMem, uint32_t cbAccess,
                                                uint32_t fAccess, PRTGCPHYS pGCPhysMem) RT_NOEXCEPT
 {
-    /** @todo Need a different PGM interface here.  We're currently using
-     *        generic / REM interfaces. this won't cut it for R0. */
-    /** @todo If/when PGM handles paged real-mode, we can remove the hack in
-     *        iemSvmWorldSwitch/iemVmxWorldSwitch to work around raising a page-fault
-     *        here. */
     Assert(!(fAccess & IEM_ACCESS_TYPE_EXEC));
     PGMPTWALKFAST WalkFast;
-    AssertCompile(IEM_ACCESS_TYPE_READ  == PGMQPAGE_F_READ);
-    AssertCompile(IEM_ACCESS_TYPE_WRITE == PGMQPAGE_F_WRITE);
-    AssertCompile(IEM_ACCESS_TYPE_EXEC  == PGMQPAGE_F_EXECUTE);
-    AssertCompile(X86_CR0_WP            == PGMQPAGE_F_CR0_WP0);
-    uint32_t fQPage = (fAccess & (PGMQPAGE_F_READ | IEM_ACCESS_TYPE_WRITE | PGMQPAGE_F_EXECUTE))
-                    | (((uint32_t)pVCpu->cpum.GstCtx.cr0 & X86_CR0_WP) ^ X86_CR0_WP);
-    if (IEM_GET_CPL(pVCpu) == 3 && !(fAccess & IEM_ACCESS_WHAT_SYS))
-        fQPage |= PGMQPAGE_F_USER_MODE;
-    int rc = PGMGstQueryPageFast(pVCpu, GCPtrMem, fQPage, &WalkFast);
+    int rc = PGMGstQueryPageFast(pVCpu, GCPtrMem, iemMemArmAccessToQPage(pVCpu, fAccess), &WalkFast);
     if (RT_SUCCESS(rc))
     {
         Assert((WalkFast.fInfo & PGM_WALKINFO_SUCCEEDED) && WalkFast.fFailed == PGM_WALKFAIL_SUCCESS);
 
         /* If the page is writable and does not have the no-exec bit set, all
            access is allowed.  Otherwise we'll have to check more carefully... */
+#if 0 /** @todo rewrite to arm */
         Assert(   (WalkFast.fEffective & (X86_PTE_RW | X86_PTE_US | X86_PTE_PAE_NX)) == (X86_PTE_RW | X86_PTE_US)
                || (   (   !(fAccess & IEM_ACCESS_TYPE_WRITE)
                        || (WalkFast.fEffective & X86_PTE_RW)
@@ -226,6 +112,7 @@ VBOXSTRICTRC iemMemPageTranslateAndCheckAccess(PVMCPUCC pVCpu, RTGCPTR GCPtrMem,
         /* PGMGstQueryPageFast sets the A & D bits. */
         /** @todo testcase: check when A and D bits are actually set by the CPU.  */
         Assert(!(~WalkFast.fEffective & (fAccess & IEM_ACCESS_TYPE_WRITE ? X86_PTE_D | X86_PTE_A : X86_PTE_A)));
+#endif
 
         *pGCPhysMem = WalkFast.GCPhys;
         return VINF_SUCCESS;
@@ -238,7 +125,7 @@ VBOXSTRICTRC iemMemPageTranslateAndCheckAccess(PVMCPUCC pVCpu, RTGCPTR GCPtrMem,
         IEM_VMX_VMEXIT_EPT_RET(pVCpu, &WalkFast, fAccess, IEM_SLAT_FAIL_LINEAR_TO_PHYS_ADDR, 0 /* cbInstr */);
 #endif
     *pGCPhysMem = NIL_RTGCPHYS;
-    return iemRaisePageFault(pVCpu, GCPtrMem, cbAccess, fAccess, rc);
+    return iemRaiseDataAbortFromWalk(pVCpu, GCPtrMem, cbAccess, fAccess, rc, &WalkFast);
 }
 
 
@@ -251,7 +138,7 @@ VBOXSTRICTRC iemMemPageTranslateAndCheckAccess(PVMCPUCC pVCpu, RTGCPTR GCPtrMem,
 static unsigned iemMemMapFindFree(PVMCPUCC pVCpu)
 {
     /*
-     * The easy case.
+     * The typical case.
      */
     if (pVCpu->iem.s.cActiveMappings == 0)
     {
@@ -287,6 +174,54 @@ iemMemCheckDataBreakpoint(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrMem, size_t cb
 
 
 /**
+ * Converts PGM_PTATTRS_XXX to IEMTLBE_F_XXX.
+ */
+DECL_FORCE_INLINE(uint64_t) iemMemArmPtAttrsToTlbeFlags(uint64_t fPtAttrs)
+{
+    /** @todo stage 2 stuff, IEMTLBE_F_EFF_AMEC, PGM_PTATTRS_NT_SHIFT,
+     *        PGM_PTATTRS_GP_SHIFT */
+    AssertCompile(   PGM_PTATTRS_PR_SHIFT + 1 == PGM_PTATTRS_PW_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 2 == PGM_PTATTRS_PX_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 3 == PGM_PTATTRS_PGCS_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 4 == PGM_PTATTRS_UR_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 5 == PGM_PTATTRS_UW_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 6 == PGM_PTATTRS_UX_SHIFT
+                  && PGM_PTATTRS_PR_SHIFT + 7 == PGM_PTATTRS_UGCS_SHIFT);
+    AssertCompile(   IEMTLBE_F_EFF_P_NO_READ_BIT + 1 == IEMTLBE_F_EFF_P_NO_WRITE_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 2 == IEMTLBE_F_EFF_P_NO_EXEC_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 3 == IEMTLBE_F_EFF_P_NO_GCS_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 4 == IEMTLBE_F_EFF_U_NO_READ_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 5 == IEMTLBE_F_EFF_U_NO_WRITE_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 6 == IEMTLBE_F_EFF_U_NO_EXEC_BIT
+                  && IEMTLBE_F_EFF_P_NO_READ_BIT + 7 == IEMTLBE_F_EFF_U_NO_GCS_BIT);
+    AssertCompile(IEMTLBE_F_EFF_P_NO_WRITE_BIT < PGM_PTATTRS_PR_SHIFT);
+    uint64_t const fInv  = fPtAttrs;
+    uint64_t       fTlbe = (fInv >> (PGM_PTATTRS_PR_SHIFT - IEMTLBE_F_EFF_P_NO_WRITE_BIT))
+                         & (  IEMTLBE_F_EFF_P_NO_READ
+                            | IEMTLBE_F_EFF_P_NO_WRITE
+                            | IEMTLBE_F_EFF_P_NO_EXEC
+                            | IEMTLBE_F_EFF_P_NO_GCS
+                            | IEMTLBE_F_EFF_U_NO_READ
+                            | IEMTLBE_F_EFF_U_NO_WRITE
+                            | IEMTLBE_F_EFF_U_NO_EXEC
+                            | IEMTLBE_F_EFF_U_NO_GCS);
+
+    AssertCompile(IEMTLBE_F_EFF_NO_DIRTY_BIT > PGM_PTATTRS_ND_SHIFT);
+    fTlbe |= (fPtAttrs << (IEMTLBE_F_EFF_NO_DIRTY_BIT - PGM_PTATTRS_ND_SHIFT)) & IEMTLBE_F_EFF_NO_DIRTY;
+
+    AssertCompile(PGM_PTATTRS_NS_SHIFT + 1 == PGM_PTATTRS_NSE_SHIFT);
+    AssertCompile(IEMTLBE_F_S1_NS_BIT + 1  == IEMTLBE_F_S1_NSE_BIT);
+    AssertCompile(IEMTLBE_F_S1_NS_BIT > PGM_PTATTRS_NS_SHIFT);
+    fTlbe |= (fPtAttrs << (IEMTLBE_F_S1_NS_BIT - PGM_PTATTRS_NS_SHIFT)) & (IEMTLBE_F_S1_NS | IEMTLBE_F_S1_NSE);
+
+    if (fPtAttrs & (PGM_PTATTRS_DEVICE_MASK | PGM_PTATTRS_S2_DEVICE_MASK))
+        fTlbe |= IEMTLBE_F_EFF_DEVICE;
+
+    return fTlbe;
+}
+
+
+/**
  * Maps the specified guest memory for the given kind of access.
  *
  * This may be using bounce buffering of the memory if it's crossing a page
@@ -306,10 +241,6 @@ iemMemCheckDataBreakpoint(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrMem, size_t cb
  * @param   cbMem       The number of bytes to map.  This is usually 1, 2, 4, 6,
  *                      8, 12, 16, 32 or 512.  When used by string operations
  *                      it can be up to a page.
- * @param   iSegReg     The index of the segment register to use for this
- *                      access.  The base and limits are checked. Use UINT8_MAX
- *                      to indicate that no segmentation is required (for IDT,
- *                      GDT and LDT accesses).
  * @param   GCPtrMem    The address of the guest memory.
  * @param   fAccess     How the memory is being accessed.  The
  *                      IEM_ACCESS_TYPE_XXX part is used to figure out how to
@@ -324,7 +255,7 @@ iemMemCheckDataBreakpoint(PVMCC pVM, PVMCPUCC pVCpu, RTGCPTR GCPtrMem, size_t cb
  *                            IEM_MEMMAP_F_ALIGN_GP_OR_AC.
  *                      Pass zero to skip alignment.
  */
-VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size_t cbMem, uint8_t iSegReg, RTGCPTR GCPtrMem,
+VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size_t cbMem, RTGCPTR GCPtrMem,
                        uint32_t fAccess, uint32_t uAlignCtl) RT_NOEXCEPT
 {
     STAM_COUNTER_INC(&pVCpu->iem.s.StatMemMapNoJmp);
@@ -332,9 +263,8 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
     /*
      * Check the input and figure out which mapping entry to use.
      */
+    Assert(cbMem <= 64);
     Assert(cbMem <= sizeof(pVCpu->iem.s.aBounceBuffers[0]));
-    Assert(   cbMem <= 64 || cbMem == 512 || cbMem == 256 || cbMem == 108 || cbMem == 104 || cbMem == 102 || cbMem == 94
-           || (iSegReg == UINT8_MAX && uAlignCtl == 0 && fAccess == IEM_ACCESS_DATA_R /* for the CPUID logging interface */) );
     Assert(!(fAccess & ~(IEM_ACCESS_TYPE_MASK | IEM_ACCESS_WHAT_MASK | IEM_ACCESS_ATOMIC | IEM_ACCESS_PARTIAL_WRITE)));
     Assert(pVCpu->iem.s.cActiveMappings < RT_ELEMENTS(pVCpu->iem.s.aMemMappings));
 
@@ -354,24 +284,20 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
      * Map the memory, checking that we can actually access it.  If something
      * slightly complicated happens, fall back on bounce buffering.
      */
-    VBOXSTRICTRC rcStrict = iemMemApplySegment(pVCpu, fAccess, iSegReg, cbMem, &GCPtrMem);
-    if (rcStrict == VINF_SUCCESS)
+    if ((GCPtrMem & GUEST_MIN_PAGE_OFFSET_MASK) + cbMem <= GUEST_MIN_PAGE_SIZE) /* Crossing a possible page/tlb boundary? */
     { /* likely */ }
-    else
-        return rcStrict;
-
-    if ((GCPtrMem & GUEST_PAGE_OFFSET_MASK) + cbMem <= GUEST_PAGE_SIZE) /* Crossing a page boundary? */
-    { /* likely */ }
-    else
+    else if (  (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec)) + cbMem
+             > IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec))
         return iemMemBounceBufferMapCrossPage(pVCpu, iMemMap, ppvMem, pbUnmapInfo, cbMem, GCPtrMem, fAccess);
 
     /*
      * Alignment check.
      */
     if ( (GCPtrMem & (uAlignCtl & UINT16_MAX)) == 0 )
-    { /* likelyish */ }
+    { /* likely */ }
     else
     {
+#if 0 /** @todo ARM: Implement alignment checks as we implement instructions... */
         /* Misaligned access. */
         if ((fAccess & IEM_ACCESS_WHAT_MASK) != IEM_ACCESS_WHAT_SYS)
         {
@@ -396,6 +322,7 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
             else
                 return iemRaiseGeneralProtectionFault0(pVCpu);
         }
+#endif
 
 #if (defined(RT_ARCH_AMD64) && defined(RT_OS_LINUX)) || defined(RT_ARCH_ARM64)
         /* If the access is atomic there are host platform alignmnet restrictions
@@ -428,46 +355,34 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
      * We reload the TLB entry if we need to set the dirty bit (accessed
      * should in theory always be set).
      */
-    uint8_t           *pbMem     = NULL;
-    uint64_t const     uTagNoRev = IEMTLB_CALC_TAG_NO_REV(pVCpu, GCPtrMem);
-    PIEMTLBENTRY       pTlbe     = IEMTLB_TAG_TO_EVEN_ENTRY(&pVCpu->iem.s.DataTlb, uTagNoRev);
-    uint64_t const     fTlbeAD   = IEMTLBE_F_PT_NO_ACCESSED | (fAccess & IEM_ACCESS_TYPE_WRITE ? IEMTLBE_F_PT_NO_DIRTY : 0);
+    uint8_t           *pbMem       = NULL;
+    uint64_t const     uTagNoRev   = IEMTLB_CALC_TAG_NO_REV(pVCpu, GCPtrMem);
+    PIEMTLBENTRY       pTlbe       = IEMTLB_TAG_TO_EVEN_ENTRY(&pVCpu->iem.s.DataTlb, uTagNoRev);
+    bool const         fPrivileged = IEM_F_MODE_ARM_GET_EL(pVCpu->iem.s.fExec) > 0 || (fAccess & IEM_ACCESS_WHAT_SYS);
+    uint64_t const     fTlbeAcc    = fPrivileged
+                                   ?   (fAccess & IEM_ACCESS_TYPE_READ  ? IEMTLBE_F_EFF_P_NO_READ : 0)
+                                     | (fAccess & IEM_ACCESS_TYPE_WRITE ? IEMTLBE_F_EFF_P_NO_WRITE | IEMTLBE_F_EFF_NO_DIRTY : 0)
+                                   :   (fAccess & IEM_ACCESS_TYPE_READ  ? IEMTLBE_F_EFF_U_NO_READ : 0)
+                                     | (fAccess & IEM_ACCESS_TYPE_WRITE ? IEMTLBE_F_EFF_U_NO_WRITE | IEMTLBE_F_EFF_NO_DIRTY : 0);
+    /** @todo  IEMTLBE_F_EFF_U_NO_GCS / IEMTLBE_F_EFF_P_NO_GCS,
+     *  IEMTLBE_F_S1_NS/NSE, IEMTLBE_F_S2_NO_LIM_WRITE/TL0/TL1. */
+    /** @todo Make sure the TLB is flushed when changing the page size or
+     *        somehow deal with that as well here? */
+    /** @todo If the access incompatible, we currently trigger a PT walk,
+     *        which isn't necessarily correct... */
     if (   (   pTlbe->uTag               == (uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevision)
-            && !(pTlbe->fFlagsAndPhysRev & fTlbeAD) )
+            &&    (pTlbe->fFlagsAndPhysRev & (fTlbeAcc | IEMTLBE_F_S1_ASID | IEMTLBE_F_S2_VMID))
+               == (pVCpu->iem.s.DataTlb.uTlbPhysRev   & (IEMTLBE_F_S1_ASID | IEMTLBE_F_S2_VMID)) )
         || (   (pTlbe = pTlbe + 1)->uTag == (uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevisionGlobal)
-            && !(pTlbe->fFlagsAndPhysRev & fTlbeAD) ) )
+            &&    (pTlbe->fFlagsAndPhysRev & (fTlbeAcc | IEMTLBE_F_S2_VMID))
+               == (pVCpu->iem.s.DataTlb.uTlbPhysRev   & (IEMTLBE_F_S2_VMID)) ) )
     {
 # ifdef IEM_WITH_TLB_STATISTICS
         pVCpu->iem.s.DataTlb.cTlbCoreHits++;
 # endif
 
-        /* If the page is either supervisor only or non-writable, we need to do
-           more careful access checks. */
-        if (pTlbe->fFlagsAndPhysRev & (IEMTLBE_F_PT_NO_USER | IEMTLBE_F_PT_NO_WRITE))
-        {
-            /* Write to read only memory? */
-            if (   (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_WRITE)
-                && (fAccess & IEM_ACCESS_TYPE_WRITE)
-                && (   (    IEM_GET_CPL(pVCpu) == 3
-                        && !(fAccess & IEM_ACCESS_WHAT_SYS))
-                    || (pVCpu->cpum.GstCtx.cr0 & X86_CR0_WP)))
-            {
-                LogEx(LOG_GROUP_IEM, ("iemMemMap: GCPtrMem=%RGv - read-only page -> #PF\n", GCPtrMem));
-                return iemRaisePageFault(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess & ~IEM_ACCESS_TYPE_READ, VERR_ACCESS_DENIED);
-            }
-
-            /* Kernel memory accessed by userland? */
-            if (   (pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_USER)
-                && IEM_GET_CPL(pVCpu) == 3
-                && !(fAccess & IEM_ACCESS_WHAT_SYS))
-            {
-                LogEx(LOG_GROUP_IEM, ("iemMemMap: GCPtrMem=%RGv - user access to kernel page -> #PF\n", GCPtrMem));
-                return iemRaisePageFault(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess, VERR_ACCESS_DENIED);
-            }
-        }
-
         /* Look up the physical page info if necessary. */
-        if ((pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == pVCpu->iem.s.DataTlb.uTlbPhysRev)
+        if ((pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PHYS_REV) == (pVCpu->iem.s.DataTlb.uTlbPhysRev & IEMTLBE_F_PHYS_REV))
 # ifdef IN_RING3
             pbMem = pTlbe->pbMappingR3;
 # else
@@ -497,79 +412,72 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
            ASSUMES these are set when the address is translated rather than on commit... */
         /** @todo testcase: check when A bits are actually set by the CPU for code.  */
         PGMPTWALKFAST WalkFast;
-        AssertCompile(IEM_ACCESS_TYPE_READ  == PGMQPAGE_F_READ);
-        AssertCompile(IEM_ACCESS_TYPE_WRITE == PGMQPAGE_F_WRITE);
-        AssertCompile(IEM_ACCESS_TYPE_EXEC  == PGMQPAGE_F_EXECUTE);
-        AssertCompile(X86_CR0_WP            == PGMQPAGE_F_CR0_WP0);
-        uint32_t fQPage = (fAccess & (PGMQPAGE_F_READ | IEM_ACCESS_TYPE_WRITE | PGMQPAGE_F_EXECUTE))
-                        | (((uint32_t)pVCpu->cpum.GstCtx.cr0 & X86_CR0_WP) ^ X86_CR0_WP);
-        if (IEM_GET_CPL(pVCpu) == 3 && !(fAccess & IEM_ACCESS_WHAT_SYS))
-            fQPage |= PGMQPAGE_F_USER_MODE;
-        int rc = PGMGstQueryPageFast(pVCpu, GCPtrMem, fQPage, &WalkFast);
+        int rc = PGMGstQueryPageFast(pVCpu, GCPtrMem, iemMemArmAccessToQPage(pVCpu, fAccess), &WalkFast);
         if (RT_SUCCESS(rc))
             Assert((WalkFast.fInfo & PGM_WALKINFO_SUCCEEDED) && WalkFast.fFailed == PGM_WALKFAIL_SUCCESS);
         else
         {
             LogEx(LOG_GROUP_IEM, ("iemMemMap: GCPtrMem=%RGv - failed to fetch page -> #PF\n", GCPtrMem));
-# ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
-            if (WalkFast.fFailed & PGM_WALKFAIL_EPT)
-                IEM_VMX_VMEXIT_EPT_RET(pVCpu, &WalkFast, fAccess, IEM_SLAT_FAIL_LINEAR_TO_PHYS_ADDR, 0 /* cbInstr */);
-# endif
-            return iemRaisePageFault(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess, rc);
+            /** @todo stage 2 exceptions. */
+            return iemRaiseDataAbortFromWalk(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess, rc, &WalkFast);
         }
 
         uint32_t fDataBps;
         if (   RT_LIKELY(!(pVCpu->iem.s.fExec & IEM_F_PENDING_BRK_DATA))
             || RT_LIKELY(!(fDataBps = iemMemCheckDataBreakpoint(pVCpu->CTX_SUFF(pVM), pVCpu, GCPtrMem, cbMem, fAccess))))
         {
-            if (   !(WalkFast.fEffective & PGM_PTATTRS_G_MASK)
-                || IEM_GET_CPL(pVCpu) != 0) /* optimization: Only use the PTE.G=1 entries in ring-0. */
+            /** @todo arm: check out global pages on arm */
+            if (   (WalkFast.fEffective & PGM_PTATTRS_NG_MASK)
+                || !fPrivileged) /* optimization: Only use global pages privileged accesses. */
             {
                 pTlbe--;
-                pTlbe->uTag         = uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevision;
-                if (WalkFast.fInfo & PGM_WALKINFO_BIG_PAGE)
-                    iemTlbLoadedLargePage<false>(pVCpu, &pVCpu->iem.s.DataTlb, uTagNoRev, RT_BOOL(pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE));
+                Assert(!IEMTLBE_IS_GLOBAL(pTlbe));
+                pTlbe->uTag = uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevision;
+                /// @todo arm: large/giant page fun
+                //if (WalkFast.fInfo & PGM_WALKINFO_BIG_PAGE)
+                //    iemTlbLoadedLargePage<false>(pVCpu, &pVCpu->iem.s.DataTlb, uTagNoRev, RT_BOOL(pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE));
 # ifdef IEMTLB_WITH_LARGE_PAGE_BITMAP
-                else
+                //else
                     ASMBitClear(pVCpu->iem.s.DataTlb.bmLargePage, IEMTLB_TAG_TO_EVEN_INDEX(uTagNoRev));
 # endif
             }
             else
             {
+                Assert(IEMTLBE_IS_GLOBAL(pTlbe));
                 pVCpu->iem.s.DataTlb.cTlbCoreGlobalLoads++;
-                pTlbe->uTag         = uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevisionGlobal;
-                if (WalkFast.fInfo & PGM_WALKINFO_BIG_PAGE)
-                    iemTlbLoadedLargePage<true>(pVCpu, &pVCpu->iem.s.DataTlb, uTagNoRev, RT_BOOL(pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE));
+                pTlbe->uTag = uTagNoRev | pVCpu->iem.s.DataTlb.uTlbRevisionGlobal;
+                /// @todo arm: large/giant page fun
+                //if (WalkFast.fInfo & PGM_WALKINFO_BIG_PAGE)
+                //    iemTlbLoadedLargePage<true>(pVCpu, &pVCpu->iem.s.DataTlb, uTagNoRev, RT_BOOL(pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE));
 # ifdef IEMTLB_WITH_LARGE_PAGE_BITMAP
-                else
+                //else
                     ASMBitClear(pVCpu->iem.s.DataTlb.bmLargePage, IEMTLB_TAG_TO_EVEN_INDEX(uTagNoRev) + 1);
 # endif
             }
         }
-        else
+        else if (fDataBps == 1)
         {
-            /* If we hit a data breakpoint, we use a dummy TLBE to force all accesses
-               to the page with the data access breakpoint armed on it to pass thru here. */
-            if (fDataBps > 1)
-                LogEx(LOG_GROUP_IEM, ("iemMemMap: Data breakpoint: fDataBps=%#x for %RGv LB %zx; fAccess=%#x cs:rip=%04x:%08RX64\n",
-                                      fDataBps, GCPtrMem, cbMem, fAccess, pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.rip));
-            pVCpu->cpum.GstCtx.eflags.uBoth |= fDataBps & (CPUMCTX_DBG_HIT_DRX_MASK | CPUMCTX_DBG_DBGF_MASK);
+            /* There is one or more data breakpionts in the current page, so we use a dummy
+               TLBE to force all accesses to the page with the data access breakpoint armed
+               on it to pass thru here. */
             pTlbe = &pVCpu->iem.s.DataBreakpointTlbe;
             pTlbe->uTag = uTagNoRev;
         }
-        pTlbe->fFlagsAndPhysRev = (~WalkFast.fEffective & (X86_PTE_US | X86_PTE_RW | X86_PTE_D | X86_PTE_A) /* skipping NX */)
-                                | (WalkFast.fInfo & PGM_WALKINFO_BIG_PAGE);
-        RTGCPHYS const GCPhysPg = WalkFast.GCPhys & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK;
+        else
+        {
+            LogEx(LOG_GROUP_IEM, ("iemMemMap: Data breakpoint: fDataBps=%#x for %RGv LB %zx; fAccess=%#x PC=%016RX64\n",
+                                  fDataBps, GCPtrMem, cbMem, fAccess, pVCpu->cpum.GstCtx.Pc.u64));
+            return iemRaiseDebugDataAccessOrInvokeDbgf(pVCpu, fDataBps, GCPtrMem, cbMem, fAccess);
+        }
+        pTlbe->fFlagsAndPhysRev = iemMemArmPtAttrsToTlbeFlags(WalkFast.fEffective)
+                                | (  pVCpu->iem.s.DataTlb.uTlbPhysRev
+                                   & (!IEMTLBE_IS_GLOBAL(pTlbe) ? IEMTLBE_F_S2_VMID | IEMTLBE_F_S1_ASID : IEMTLBE_F_S2_VMID) );
+
+        /** @todo PGM_WALKINFO_BIG_PAGE++   */
+        RTGCPHYS const GCPhysPg = WalkFast.GCPhys & ~(RTGCPHYS)IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec);
         pTlbe->GCPhys           = GCPhysPg;
         pTlbe->pbMappingR3      = NULL;
-        Assert(!(pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_ACCESSED));
-        Assert(!(pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_DIRTY) || !(fAccess & IEM_ACCESS_TYPE_WRITE));
-        Assert(   !(pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_WRITE)
-               || !(fAccess & IEM_ACCESS_TYPE_WRITE)
-               || (fQPage & (PGMQPAGE_F_CR0_WP0 | PGMQPAGE_F_USER_MODE)) == PGMQPAGE_F_CR0_WP0);
-        Assert(   !(pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PT_NO_USER)
-               || IEM_GET_CPL(pVCpu) != 3
-               || (fAccess & IEM_ACCESS_WHAT_SYS));
+        Assert(!(pTlbe->fFlagsAndPhysRev & IEMTLBE_F_EFF_NO_DIRTY) || !(fAccess & IEM_ACCESS_TYPE_WRITE));
 
         if (pTlbe != &pVCpu->iem.s.DataBreakpointTlbe)
         {
@@ -598,7 +506,8 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
     { /* probably likely */ }
     else
         return iemMemBounceBufferMapPhys(pVCpu, iMemMap, ppvMem, pbUnmapInfo, cbMem,
-                                         pTlbe->GCPhys | (GCPtrMem & GUEST_PAGE_OFFSET_MASK), fAccess,
+                                         pTlbe->GCPhys | (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec)),
+                                         fAccess,
                                            pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_UNASSIGNED ? VERR_PGM_PHYS_TLB_UNASSIGNED
                                          : pTlbe->fFlagsAndPhysRev & IEMTLBE_F_PG_NO_READ    ? VERR_PGM_PHYS_TLB_CATCH_ALL
                                                                                              : VERR_PGM_PHYS_TLB_CATCH_WRITE);
@@ -606,15 +515,15 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
 
     if (pbMem)
     {
-        Assert(!((uintptr_t)pbMem & GUEST_PAGE_OFFSET_MASK));
-        pbMem    = pbMem + (GCPtrMem & GUEST_PAGE_OFFSET_MASK);
+        Assert(!((uintptr_t)pbMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec)));
+        pbMem    = pbMem + (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec));
         fAccess |= IEM_ACCESS_NOT_LOCKED;
     }
     else
     {
         Assert(!(fAccess & IEM_ACCESS_NOT_LOCKED));
-        RTGCPHYS const GCPhysFirst = pTlbe->GCPhys | (GCPtrMem & GUEST_PAGE_OFFSET_MASK);
-        rcStrict = iemMemPageMap(pVCpu, GCPhysFirst, fAccess, (void **)&pbMem, &pVCpu->iem.s.aMemMappingLocks[iMemMap].Lock);
+        RTGCPHYS const GCPhysFirst = pTlbe->GCPhys | (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec));
+        VBOXSTRICTRC rcStrict = iemMemPageMap(pVCpu, GCPhysFirst, fAccess, (void **)&pbMem, &pVCpu->iem.s.aMemMappingLocks[iMemMap].Lock);
         if (rcStrict != VINF_SUCCESS)
             return iemMemBounceBufferMapPhys(pVCpu, iMemMap, ppvMem, pbUnmapInfo, cbMem, GCPhysFirst, fAccess, rcStrict);
     }
@@ -622,14 +531,14 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
     void * const pvMem = pbMem;
 
     if (fAccess & IEM_ACCESS_TYPE_WRITE)
-        Log6(("IEM WR %RGv (%RGp) LB %#zx\n", GCPtrMem, pTlbe->GCPhys | (GCPtrMem & GUEST_PAGE_OFFSET_MASK), cbMem));
+        Log6(("IEM WR %RGv (%RGp) LB %#zx\n", GCPtrMem, pTlbe->GCPhys | (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec)), cbMem));
     if (fAccess & IEM_ACCESS_TYPE_READ)
-        Log2(("IEM RD %RGv (%RGp) LB %#zx\n", GCPtrMem, pTlbe->GCPhys | (GCPtrMem & GUEST_PAGE_OFFSET_MASK), cbMem));
+        Log2(("IEM RD %RGv (%RGp) LB %#zx\n", GCPtrMem, pTlbe->GCPhys | (GCPtrMem & IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(pVCpu->iem.s.fExec)), cbMem));
 
 #else  /* !IEM_WITH_DATA_TLB */
 
     RTGCPHYS GCPhysFirst;
-    rcStrict = iemMemPageTranslateAndCheckAccess(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess, &GCPhysFirst);
+    VBOXSTRICTRC rcStrict = iemMemPageTranslateAndCheckAccess(pVCpu, GCPtrMem, (uint32_t)cbMem, fAccess, &GCPhysFirst);
     if (rcStrict != VINF_SUCCESS)
         return rcStrict;
 
@@ -707,10 +616,20 @@ VBOXSTRICTRC iemMemMap(PVMCPUCC pVCpu, void **ppvMem, uint8_t *pbUnmapInfo, size
  *                      needs counting as such in the statistics.
  */
 template<bool a_fSafeCall = false>
-static void *iemMemMapJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, uint8_t iSegReg, RTGCPTR GCPtrMem,
+static void *iemMemMapJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, RTGCPTR GCPtrMem,
                           uint32_t fAccess, uint32_t uAlignCtl) IEM_NOEXCEPT_MAY_LONGJMP
 {
     STAM_COUNTER_INC(&pVCpu->iem.s.StatMemMapJmp);
+#if 1 /** @todo redo this according when iemMemMap() has been fully debugged. */
+    void        *pvMem    = NULL;
+    VBOXSTRICTRC rcStrict = iemMemMap(pVCpu, &pvMem, pbUnmapInfo, cbMem, GCPtrMem, fAccess, uAlignCtl);
+    if (rcStrict == VINF_SUCCESS)
+    { /* likely */ }
+    else
+        IEM_DO_LONGJMP(pVCpu, VBOXSTRICTRC_VAL(rcStrict));
+    return pvMem;
+
+#else /* later */
 
     /*
      * Check the input, check segment access and adjust address
@@ -1090,17 +1009,19 @@ static void *iemMemMapJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, ui
 
     *pbUnmapInfo = iMemMap | 0x08 | ((fAccess & IEM_ACCESS_TYPE_MASK) << 4);
     return pvMem;
+#endif /* later */
 }
 
 
 /** @see iemMemMapJmp */
-static void *iemMemMapSafeJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, uint8_t iSegReg, RTGCPTR GCPtrMem,
+static void *iemMemMapSafeJmp(PVMCPUCC pVCpu, uint8_t *pbUnmapInfo, size_t cbMem, RTGCPTR GCPtrMem,
                               uint32_t fAccess, uint32_t uAlignCtl) IEM_NOEXCEPT_MAY_LONGJMP
 {
-    return iemMemMapJmp<true /*a_fSafeCall*/>(pVCpu, pbUnmapInfo, cbMem, iSegReg, GCPtrMem, fAccess, uAlignCtl);
+    return iemMemMapJmp<true /*a_fSafeCall*/>(pVCpu, pbUnmapInfo, cbMem, GCPtrMem, fAccess, uAlignCtl);
 }
 
 
+#if 0 /** @todo ARM: more memory stuff... */
 
 /*
  * Instantiate R/W templates.
@@ -1870,4 +1791,6 @@ VBOXSTRICTRC iemMemMarkSelDescAccessed(PVMCPUCC pVCpu, uint16_t uSel) RT_NOEXCEP
 }
 
 /** @} */
+
+#endif /* work in progress */
 

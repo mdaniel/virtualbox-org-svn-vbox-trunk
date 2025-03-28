@@ -317,6 +317,7 @@ VMMDECL(void) CPUMDeactivateGuestDebugState(PVMCPU pVCpu)
 VMM_INT_DECL(uint8_t) CPUMGetGuestEL(PVMCPU pVCpu)
 {
     CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_PSTATE);
+    Assert(!(pVCpu->cpum.s.Guest.fPState & ARMV8_SPSR_EL2_AARCH64_M4)); /* ASSUMES aarch64 mode */
     return ARMV8_SPSR_EL2_AARCH64_GET_EL(pVCpu->cpum.s.Guest.fPState);
 }
 
@@ -329,6 +330,7 @@ VMM_INT_DECL(uint8_t) CPUMGetGuestEL(PVMCPU pVCpu)
 VMM_INT_DECL(bool) CPUMGetGuestMmuEnabled(PVMCPUCC pVCpu)
 {
     CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_PSTATE | CPUMCTX_EXTRN_SCTLR_TCR_TTBR);
+    Assert(!(pVCpu->cpum.s.Guest.fPState & ARMV8_SPSR_EL2_AARCH64_M4)); /* ASSUMES aarch64 mode */
     uint8_t bEl = ARMV8_SPSR_EL2_AARCH64_GET_EL(pVCpu->cpum.s.Guest.fPState);
     if (bEl == ARMV8_AARCH64_EL_2)
     {
@@ -351,6 +353,7 @@ VMM_INT_DECL(RTGCPHYS) CPUMGetEffectiveTtbr(PVMCPUCC pVCpu, RTGCPTR GCPtr)
 {
     CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_PSTATE | CPUMCTX_EXTRN_SCTLR_TCR_TTBR);
 
+    Assert(!(pVCpu->cpum.s.Guest.fPState & ARMV8_SPSR_EL2_AARCH64_M4)); /* ASSUMES aarch64 mode */
     uint8_t bEl = ARMV8_SPSR_EL2_AARCH64_GET_EL(pVCpu->cpum.s.Guest.fPState);
     if (bEl == ARMV8_AARCH64_EL_2)
     {

@@ -524,39 +524,96 @@ typedef IEMTLBENTRY const *PCIEMTLBENTRY;
 # define IEMTLBE_F_PHYS_REV         UINT64_C(0xfffffffffffff800) /**< Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
 #endif
 #if defined(VBOX_VMM_TARGET_ARMV8) || defined(DOXYGEN_RUNNING)
-# define IEMTLBE_F_EFF_U_NO_READ      RT_BIT_64(0)  /**< Stage 1+2: No unprivileged read access. */
-# define IEMTLBE_F_EFF_U_NO_WRITE     RT_BIT_64(1)  /**< Stage 1+2: No unprivileged write access. */
-# define IEMTLBE_F_EFF_U_NO_EXEC      RT_BIT_64(2)  /**< Stage 1+2: No unprivileged execute access. */
-# define IEMTLBE_F_EFF_U_NO_GCS       RT_BIT_64(3)  /**< Stage 1+2: No unprivileged guard control stack access. */
-# define IEMTLBE_F_EFF_P_NO_READ      RT_BIT_64(4)  /**< Stage 1+2: No privileged read access. */
-# define IEMTLBE_F_EFF_P_NO_WRITE     RT_BIT_64(5)  /**< Stage 1+2: No privileged write access. */
-# define IEMTLBE_F_EFF_P_NO_EXEC      RT_BIT_64(6)  /**< Stage 1+2: No privileged execute access. */
-# define IEMTLBE_F_EFF_P_NO_GCS       RT_BIT_64(7)  /**< Stage 1+2: No privileged guard control stack access. */
-# define IEMTLBE_F_S2_NO_LIM_WRITE    RT_BIT_64(8)  /**< Stage 2:   No limited write access. */
-# define IEMTLBE_F_S2_NO_LIM_WRITE_SHIFT        8   /**< @see IEMTLBE_F_S2_NO_LIM_WRITE */
-# define IEMTLBE_F_S2_TL0             RT_BIT_64(9)  /**< Stage 2:   TopLevel0. */
-# define IEMTLBE_F_S2_TL1             RT_BIT_64(10) /**< Stage 2:   TopLevel1. */
-# define IEMTLBE_F_EFF_NO_DIRTY       RT_BIT_64(11) /**< Stage 1+2: Not dirty. */
-# define IEMTLBE_F_EFF_AMEC           RT_BIT_64(12) /**< Stage 1+2: Alternative MECID. */
-# define IEMTLBE_F_PG_NO_READ         RT_BIT_64(13) /**< Phys page: Not readable (MMIO / access handler, ROM) */
-# define IEMTLBE_F_PG_NO_WRITE        RT_BIT_64(14) /**< Phys page: Not writable (access handler, ROM, whatever). */
-# define IEMTLBE_F_NO_MAPPINGR3       RT_BIT_64(15) /**< TLB entry: The IEMTLBENTRY::pMappingR3 member is invalid. */
-# define IEMTLBE_F_PG_UNASSIGNED      RT_BIT_64(16) /**< Phys page: Unassigned memory (not RAM, ROM, MMIO2 or MMIO). */
-# define IEMTLBE_F_PG_CODE_PAGE       RT_BIT_64(17) /**< Phys page: Code page. */
-# define IEMTLBE_F_S1_NS              RT_BIT_64(18) /**< Stage 1:   Non-secure bit. */
-# define IEMTLBE_F_S1_NSE             RT_BIT_64(19) /**< Stage 1:   Non-secure extension/whatever bit. */
-# define IEMTLBE_F_EFF_SIZE_MASK   UINT64(0x300000) /**< Stage 1+2: Page size. @todo may need separate bits for each stage since they may use different page sizes. Or perhaps a single bit suffices? */
-# define IEMTLBE_F_EFF_SIZE_L3     UINT64(0x000000) /**< Stage 1+2: Smallest page size. */
-# define IEMTLBE_F_EFF_SIZE_L2     UINT64(0x100000) /**< Stage 1+2: Level 2 block. */
-# define IEMTLBE_F_EFF_SIZE_L1     UINT64(0x200000) /**< Stage 1+2: Level 1 block. */
-# define IEMTLBE_F_EFF_SIZE_L0     UINT64(0x300000) /**< Stage 1+2: Level 0 block. */
-# define IEMTLBE_F_EFF_SIZE_SHIFT             20    /**< @see IEMTLBE_F_EFF_SIZE_MASK */
-# define IEMTLBE_F_S1_ASID (UINT64_C(0xffff) << 22) /**< Stage 1:   Address space ID (from stage 1 root register). */
-# define IEMTLBE_F_S1_ASID_SHIFT                22  /**< @see IEMTLBE_F_S1_ASID */
-# define IEMTLBE_F_S2_VMID (UINT64_C(0xffff) << 38) /**< Stage 2:   Virtual machine ID (from stage 2 root register). */
-# define IEMTLBE_F_S2_VMID_SHIFT                38  /**< @see IEMTLBE_F_S2_VMID */
+/** Stage 1+2: No unprivileged read access. */
+# define IEMTLBE_F_EFF_P_NO_READ_BIT        0
+# define IEMTLBE_F_EFF_P_NO_READ            RT_BIT_64(IEMTLBE_F_EFF_P_NO_READ_BIT)
+/** Stage 1+2: No privileged write access. */
+# define IEMTLBE_F_EFF_P_NO_WRITE_BIT       1
+# define IEMTLBE_F_EFF_P_NO_WRITE           RT_BIT_64(IEMTLBE_F_EFF_P_NO_WRITE_BIT)
+/** Stage 1+2: No privileged execute access. */
+# define IEMTLBE_F_EFF_P_NO_EXEC_BIT        2
+# define IEMTLBE_F_EFF_P_NO_EXEC            RT_BIT_64(IEMTLBE_F_EFF_P_NO_EXEC_BIT)
+/** Stage 1+2: No privileged guard control stack access. */
+# define IEMTLBE_F_EFF_P_NO_GCS_BIT         3
+# define IEMTLBE_F_EFF_P_NO_GCS             RT_BIT_64(IEMTLBE_F_EFF_P_NO_GCS_BIT)
+/** Stage 1+2: No unprivileged read access. */
+# define IEMTLBE_F_EFF_U_NO_READ_BIT        4
+# define IEMTLBE_F_EFF_U_NO_READ            RT_BIT_64(IEMTLBE_F_EFF_U_NO_READ_BIT)
+/** Stage 1+2: No unprivileged write access. */
+# define IEMTLBE_F_EFF_U_NO_WRITE_BIT       5
+# define IEMTLBE_F_EFF_U_NO_WRITE           RT_BIT_64(IEMTLBE_F_EFF_U_NO_WRITE_BIT)
+/** Stage 1+2: No unprivileged execute access. */
+# define IEMTLBE_F_EFF_U_NO_EXEC_BIT        6
+# define IEMTLBE_F_EFF_U_NO_EXEC            RT_BIT_64(IEMTLBE_F_EFF_U_NO_EXEC_BIT)
+/** Stage 1+2: No unprivileged guard control stack access. */
+# define IEMTLBE_F_EFF_U_NO_GCS_BIT         7
+# define IEMTLBE_F_EFF_U_NO_GCS             RT_BIT_64(IEMTLBE_F_EFF_U_NO_GCS_BIT)
+/** Stage 2:   No limited write access. */
+# define IEMTLBE_F_S2_NO_LIM_WRITE_BIT      8
+# define IEMTLBE_F_S2_NO_LIM_WRITE          RT_BIT_64(IEMTLBE_F_S2_NO_LIM_WRITE_BIT)
+/** Stage 2:   TopLevel0. */
+# define IEMTLBE_F_S2_TL0_BIT               9
+# define IEMTLBE_F_S2_TL0                   RT_BIT_64(IEMTLBE_F_S2_TL0_BIT)
+/** Stage 2:   TopLevel1. */
+# define IEMTLBE_F_S2_TL1_BIT               10
+# define IEMTLBE_F_S2_TL1                   RT_BIT_64(IEMTLBE_F_S2_TL1_BIT)
+/** Stage 1+2: Not dirty. */
+# define IEMTLBE_F_EFF_NO_DIRTY_BIT         11
+# define IEMTLBE_F_EFF_NO_DIRTY             RT_BIT_64(IEMTLBE_F_EFF_NO_DIRTY_BIT)
+/** Stage 1+2: Alternative MECID. */
+# define IEMTLBE_F_EFF_AMEC_BIT             12
+# define IEMTLBE_F_EFF_AMEC                 RT_BIT_64(IEMTLBE_F_EFF_AMEC_BIT)
+/** Phys page: Not readable (MMIO / access handler, ROM) */
+# define IEMTLBE_F_PG_NO_READ_BIT           13
+# define IEMTLBE_F_PG_NO_READ               RT_BIT_64(IEMTLBE_F_PG_NO_READ_BIT)
+/** Phys page: Not writable (access handler, ROM, whatever). */
+# define IEMTLBE_F_PG_NO_WRITE_BIT          14
+# define IEMTLBE_F_PG_NO_WRITE              RT_BIT_64(IEMTLBE_F_PG_NO_WRITE_BIT)
+/** TLB entry: The IEMTLBENTRY::pMappingR3 member is invalid. */
+# define IEMTLBE_F_NO_MAPPINGR3_BIT         15
+# define IEMTLBE_F_NO_MAPPINGR3             RT_BIT_64(IEMTLBE_F_NO_MAPPINGR3_BIT)
+/** Phys page: Unassigned memory (not RAM, ROM, MMIO2 or MMIO). */
+# define IEMTLBE_F_PG_UNASSIGNED_BIT        16
+# define IEMTLBE_F_PG_UNASSIGNED            RT_BIT_64(IEMTLBE_F_PG_UNASSIGNED_BIT)
+/** Phys page: Code page. */
+# define IEMTLBE_F_PG_CODE_PAGE_BIT         17
+# define IEMTLBE_F_PG_CODE_PAGE             RT_BIT_64(IEMTLBE_F_PG_CODE_PAGE_BIT)
+/** Stage 1:   Non-secure bit. */
+# define IEMTLBE_F_S1_NS_BIT                18
+# define IEMTLBE_F_S1_NS                    RT_BIT_64(IEMTLBE_F_S1_NS_BIT)
+/** Stage 1:   Non-secure extension/whatever bit. */
+# define IEMTLBE_F_S1_NSE_BIT               19
+# define IEMTLBE_F_S1_NSE                   RT_BIT_64(IEMTLBE_F_S1_NSE_BIT)
+/** Stage 1+2: Page size.
+ * @todo may need separate bits for each stage since they may use different
+ *       page sizes. Or perhaps a single bit suffices?  Also possible we
+ *       don't need any of this at all because of a very very rich invalidation
+ *       interface on arm. */
+# define IEMTLBE_F_EFF_SIZE_MASK            UINT64(0x300000)
+/** @see IEMTLBE_F_EFF_SIZE_MASK */
+# define IEMTLBE_F_EFF_SIZE_SHIFT           20
+/** Stage 1+2: Smallest page size. */
+# define IEMTLBE_F_EFF_SIZE_L3              UINT64(0x000000)
+/** Stage 1+2: Level 2 block. */
+# define IEMTLBE_F_EFF_SIZE_L2              UINT64(0x100000)
+/** Stage 1+2: Level 1 block. */
+# define IEMTLBE_F_EFF_SIZE_L1              UINT64(0x200000)
+/** Stage 1+2: Level 0 block. */
+# define IEMTLBE_F_EFF_SIZE_L0              UINT64(0x300000)
+/** Stage 1+2: Device memory type (clear if normal memory type). */
+# define IEMTLBE_F_EFF_DEVICE_BIT           22
+# define IEMTLBE_F_EFF_DEVICE               RT_BIT_64(IEMTLBE_F_EFF_DEVICE_BIT)
+/** Stage 1:   Address space ID (from stage 1 root register). */
+# define IEMTLBE_F_S1_ASID                  (UINT64_C(0xffff) << IEMTLBE_F_S1_ASID_SHIFT)
+/** @see IEMTLBE_F_S1_ASID */
+# define IEMTLBE_F_S1_ASID_SHIFT            23
+/** Stage 2:   Virtual machine ID (from stage 2 root register). */
+# define IEMTLBE_F_S2_VMID                  (UINT64_C(0xffff) << IEMTLBE_F_S2_VMID_SHIFT)
+/** @see IEMTLBE_F_S2_VMID */
+# define IEMTLBE_F_S2_VMID_SHIFT            39
 # ifndef DOXYGEN_RUNNING
-#  define IEMTLBE_F_PHYS_REV        UINT64_C(0xffc0000000000000) /**< Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
+/** Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
+#  define IEMTLBE_F_PHYS_REV                UINT64_C(0xff80000000000000)
 # endif
 #endif
 /** @} */
@@ -567,7 +624,7 @@ typedef IEMTLBENTRY const *PCIEMTLBENTRY;
                                      | PGMIEMGCPHYS2PTR_F_UNASSIGNED \
                                      | PGMIEMGCPHYS2PTR_F_CODE_PAGE \
                                      | IEMTLBE_F_PHYS_REV )
-#if defined(VBOX_VMM_TARGET_X86) /// @todo || defined(VBOX_VMM_TARGET_ARMV8)
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_ARMV8)
 AssertCompile(PGMIEMGCPHYS2PTR_F_NO_WRITE     == IEMTLBE_F_PG_NO_WRITE);
 AssertCompile(PGMIEMGCPHYS2PTR_F_NO_READ      == IEMTLBE_F_PG_NO_READ);
 AssertCompile(PGMIEMGCPHYS2PTR_F_NO_MAPPINGR3 == IEMTLBE_F_NO_MAPPINGR3);
@@ -577,6 +634,9 @@ AssertCompile(PGMIEMGCPHYS2PTR_F_CODE_PAGE    == IEMTLBE_F_PG_CODE_PAGE);
 AssertCompile(PGM_WALKINFO_BIG_PAGE           == IEMTLBE_F_PT_LARGE_PAGE);
 # endif
 #endif
+
+/** Tests if the TLB entry is global (odd). */
+#define IEMTLBE_IS_GLOBAL(a_pTlbe)      (((uintptr_t)(a_pTlbe) / sizeof(IEMTLBENTRY)) & 1)
 
 
 /** The TLB size (power of two).
@@ -630,19 +690,25 @@ typedef struct IEMTLB
      * the tags in the TLB must be zeroed and the revision set to RT_BIT_64(36).
      * (The revision zero indicates an invalid TLB entry.)
      *
-     * The initial value is choosen to cause an early wraparound. */
+     * The initial value is choosen to cause an early wraparound.
+     * @arm     This includes the ASID & VM ID. */
     uint64_t            uTlbRevision;
     /** The TLB physical address revision - shadow of PGM variable.
      *
-     * This is actually only 56 bits wide (see IEMTLBENTRY::fFlagsAndPhysRev) and is
-     * incremented by adding RT_BIT_64(8).  When it wraps around and becomes zero,
-     * a rendezvous is called and each CPU wipe the IEMTLBENTRY::pMappingR3 as well
-     * as IEMTLBENTRY::fFlagsAndPhysRev bits 63 thru 8, 4, and 3.
+     * The revision number is the top x bits (target dependent, see
+     * IEMTLBENTRY::fFlagsAndPhysRev) and is incremented by adding RT_BIT_64(x).
+     * When it wraps around and becomes zero, a rendezvous is called and each CPU
+     * wipe the IEMTLBENTRY::pMappingR3 as well as many of the
+     * IEMTLBENTRY::fFlagsAndPhysRev bits.
+     *
+     * @arm  This includes the current ASID & VMID values.
+     * @todo arm: implement ASID & VMID.
      *
      * The initial value is choosen to cause an early wraparound.
      *
      * @note This is placed between the two TLB revisions because we
-     *       load it in pair with one or the other on arm64. */
+     *       load it in pair with one or the other on arm64.
+     */
     uint64_t volatile   uTlbPhysRev;
     /** The global TLB revision.
      * Same as uTlbRevision, but only increased for global flushes. */
@@ -765,7 +831,7 @@ AssertCompile(IEMTLB_ENTRY_COUNT >= 32 /* bmLargePage ASSUMPTION */);
 #if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING)
 # define IEMTLB_PHYS_REV_INCR   RT_BIT_64(11)
 #elif defined(VBOX_VMM_TARGET_ARMV8)
-# define IEMTLB_PHYS_REV_INCR   RT_BIT_64(54)
+# define IEMTLB_PHYS_REV_INCR   RT_BIT_64(55)
 #endif
 #ifdef IEMTLBE_F_PHYS_REV
 AssertCompile(IEMTLBE_F_PHYS_REV == ~(IEMTLB_PHYS_REV_INCR - 1U));
@@ -774,11 +840,18 @@ AssertCompile(IEMTLBE_F_PHYS_REV == ~(IEMTLB_PHYS_REV_INCR - 1U));
 /**
  * Calculates the TLB tag for a virtual address but without TLB revision.
  * @returns Tag value for indexing and comparing with IEMTLB::uTag.
+ * @param   a_pVCpu     The CPU handle (for ARM targets to deal with
+ *                      configurable page size).
  * @param   a_GCPtr     The virtual address.  Must be RTGCPTR or same size or
  *                      the clearing of the top 16 bits won't work (if 32-bit
  *                      we'll end up with mostly zeros).
- */
-#define IEMTLB_CALC_TAG_NO_REV(a_GCPtr)     ( (((a_GCPtr) << 16) >> (GUEST_PAGE_SHIFT + 16)) )
+ * @todo ARM: Support 52-bit and 56-bit address space size (FEAT_LVA,
+ *       FEAT_LVA3) when we see hardware supporting such.  */
+#ifdef VBOX_VMM_TARGET_ARMV8
+# define IEMTLB_CALC_TAG_NO_REV(a_pVCpu, a_GCPtr)   ( (((a_GCPtr) << 16) >> (IEM_F_ARM_GET_TLB_PAGE_SHIFT(pVCpu->iem.s.fExec) + 16)) )
+#else
+# define IEMTLB_CALC_TAG_NO_REV(a_pVCpu, a_GCPtr)   ( (((a_GCPtr) << 16) >> (GUEST_PAGE_SHIFT + 16)) )
+#endif
 /**
  * Converts a TLB tag value into a even TLB index.
  * @returns Index into IEMTLB::aEntries.
@@ -800,7 +873,7 @@ AssertCompile(RT_IS_POWER_OF_TWO(IEMTLB_ENTRY_COUNT));
 #define IEMTLB_TAG_TO_EVEN_ENTRY(a_pTlb, a_uTag)    ( &(a_pTlb)->aEntries[IEMTLB_TAG_TO_EVEN_INDEX(a_uTag)] )
 
 /** Converts a GC address to an even TLB index. */
-#define IEMTLB_ADDR_TO_EVEN_INDEX(a_GCPtr)  IEMTLB_TAG_TO_EVEN_INDEX(IEMTLB_CALC_TAG_NO_REV(a_GCPtr))
+#define IEMTLB_ADDR_TO_EVEN_INDEX(a_pVCpu, a_GCPtr) IEMTLB_TAG_TO_EVEN_INDEX(IEMTLB_CALC_TAG_NO_REV(a_pVCpu, a_GCPtr))
 
 
 /** @def IEM_WITH_TLB_TRACE
@@ -1200,6 +1273,34 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 # define IEM_F_ARM_A                        UINT32_C(0x00004000)
 /** ARM: LSE2 alignment checks enabled (~SCTRL_ELx.nAA). */
 # define IEM_F_ARM_AA                       UINT32_C(0x00080000)
+
+/** ARM: 4K page (granule) size - stage 1. */
+# define IEM_F_ARM_S1_PAGE_4K               UINT32_C(0x00000000)
+/** ARM: 16K page (granule) size - stage 1. */
+# define IEM_F_ARM_S1_PAGE_16K              UINT32_C(0x00000200)
+/** ARM: 64K page (granule) size - stage 1. */
+# define IEM_F_ARM_S1_PAGE_64K              UINT32_C(0x00000400)
+/** ARM: Mask for the stage 1 page (granule) size encoding.
+ * This is the shift count - 12. */
+# define IEM_F_ARM_S1_PAGE_MASK             UINT32_C(0x00000700)
+/** ARM: The shift count for the tage 1 page (granule) size encoding value. */
+# define IEM_F_ARM_S1_PAGE_SHIFT            8
+/** Get the current stage 1 page (granule) shift count. */
+# define IEM_F_ARM_GET_S1_PAGE_SHIFT(a_fExec)       (12 + (((a_fExec) & IEM_F_ARM_S1_PAGE_MASK) >> IEM_F_ARM_S1_PAGE_SHIFT))
+/** Get the current stage 1 page (granule) size. */
+# define IEM_F_ARM_GET_S1_PAGE_SIZE(a_fExec)        (1 << IEM_F_ARM_GET_S1_PAGE_SHIFT(a_fExec))
+/** Get the current stage 1 page (granule) offset mask. */
+# define IEM_F_ARM_GET_S1_PAGE_OFFSET_MASK(a_fExec) (IEM_F_ARM_GET_S1_PAGE_SHIFT(a_fExec) - 1)
+
+/** Get the current TLB page (granule) shift count.
+ * The TLB page size is the smallest of S1 and S2 page sizes.
+ * @todo Implement stage 2 tables. */
+# define IEM_F_ARM_GET_TLB_PAGE_SHIFT(a_fExec)       IEM_F_ARM_GET_S1_PAGE_SHIFT(a_fExec)
+/** Get the current TLB page (granule) size. */
+# define IEM_F_ARM_GET_TLB_PAGE_SIZE(a_fExec)        IEM_F_ARM_GET_S1_PAGE_SIZE(a_fExec)
+/** Get the current TLB page (granule) offset mask. */
+# define IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(a_fExec) IEM_F_ARM_GET_S1_PAGE_OFFSET_MASK(a_fExec)
+
 #endif /* ARM || doxygen  */
 
 /** Bypass access handlers when set. */
@@ -1796,6 +1897,36 @@ typedef IEMTBCACHE *PIEMTBCACHE;
 /** @} */
 
 
+/** @def IEM_MAX_MEM_MAPPINGS
+ * Maximum number of concurrent memory needed by the target architecture.
+ * @x86     There are a few instructions with two memory operands (push/pop [mem],
+ *          string instructions).  We add another entry for safety.
+ * @arm     Except for the recently specified memcpy/move instructions,
+ *          ARM instruction takes at most one memory operand.  We use 1 and add
+ *          another entry for safety, ignoring the memcpy instructions for now. */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING) /* for now: */ || defined(VBOX_VMM_TARGET_AGNOSTIC)
+# define IEM_MAX_MEM_MAPPINGS       3
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define IEM_MAX_MEM_MAPPINGS       2
+#else
+# error "port me"
+#endif
+
+/** @def IEM_BOUNCE_BUFFER_SIZE
+ * The size of the bounce buffers.  This is dictated by the largest memory
+ * operand of the target architecture.
+ * @x86     fxsave/fxrstor takes a 512 byte operand. Whether we actually need a
+ *          512 byte bounce buffer for it is questionable...
+ * @arm     Currently we shouldn't need more than 64 bytes here (ld64b, ld4). */
+#if defined(VBOX_VMM_TARGET_X86) || defined(DOXYGEN_RUNNING) /* for now: */ || defined(VBOX_VMM_TARGET_AGNOSTIC)
+# define IEM_BOUNCE_BUFFER_SIZE     512
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define IEM_BOUNCE_BUFFER_SIZE     64
+#else
+# error "port me"
+#endif
+
+
 /**
  * The per-CPU IEM state.
  */
@@ -2010,14 +2141,14 @@ typedef struct IEMCPU
 #if HC_ARCH_BITS == 64
         uint32_t            u32Alignment4; /**< Alignment padding. */
 #endif
-    } aMemMappings[3];                                                                                      /* 0x50 LB 0x30 */
+    } aMemMappings[IEM_MAX_MEM_MAPPINGS];                                           /* arm: 0x50 LB 0x20  x86: 0x50 LB 0x30 */
 
     /** Locking records for the mapped memory. */
     union
     {
         PGMPAGEMAPLOCK      Lock;
         uint64_t            au64Padding[2];
-    } aMemMappingLocks[3];                                                                                  /* 0x80 LB 0x30 */
+    } aMemMappingLocks[IEM_MAX_MEM_MAPPINGS];                                       /* arm: 0x70 LB 0x20  x86: 0x80 LB 0x30 */
 
     /** Bounce buffer info.
      * This runs in parallel to aMemMappings. */
@@ -2035,29 +2166,29 @@ typedef struct IEMCPU
         bool                fUnassigned;
         /** Explicit alignment padding. */
         bool                afAlignment5[3];
-    } aMemBbMappings[3];                                                                                    /* 0xb0 LB 0x48 */
+    } aMemBbMappings[IEM_MAX_MEM_MAPPINGS];                                         /* arm: 0x90 LB 0x30  x86: 0xb0 LB 0x48 */
 
     /** The flags of the current exception / interrupt.
      * @note X86 specific? */
-    uint32_t                fCurXcpt;                                                                       /* 0xf8 */
+    uint32_t                fCurXcpt;                                               /* arm: 0xc0          x86: 0xf8 */
     /** The current exception / interrupt.
      *@note X86 specific? */
-    uint8_t                 uCurXcpt;                                                                       /* 0xfc */
+    uint8_t                 uCurXcpt;                                               /* arm: 0xc4          x86: 0xfc */
     /** Exception / interrupt recursion depth.
      *@note X86 specific? */
-    int8_t                  cXcptRecursions;                                                                /* 0xfb */
+    int8_t                  cXcptRecursions;                                        /* arm: 0xc5          x86: 0xfb */
 
     /** The next unused mapping index.
      * @todo try find room for this up with cActiveMappings. */
-    uint8_t                 iNextMapping;                                                                   /* 0xfd */
-    uint8_t                 abAlignment7[1];
+    uint8_t                 iNextMapping;                                           /* arm: 0xc6          x86: 0xfd */
+    uint8_t                 abAlignment7[IEM_MAX_MEM_MAPPINGS == 3 ? 1 : 0x39];
 
     /** Bounce buffer storage.
      * This runs in parallel to aMemMappings and aMemBbMappings. */
     struct
     {
-        uint8_t             ab[512];
-    } aBounceBuffers[3];                                                                                    /* 0x100 LB 0x600 */
+        uint8_t             ab[IEM_BOUNCE_BUFFER_SIZE];
+    } aBounceBuffers[IEM_MAX_MEM_MAPPINGS];                                        /* arm: 0x100 LB 0x80  x86: 0x100 LB 0x600 */
 
 
     /** Pointer set jump buffer - ring-3 context. */
@@ -3420,7 +3551,7 @@ DECLHIDDEN(int) iemNativeRecompileAttachExecMemChunkCtx(PVMCPU pVCpu, uint32_t i
 # ifdef VBOX_VMM_TARGET_X86
 #  include "VMMAll/target-x86/IEMInternal-x86.h"
 # elif defined(VBOX_VMM_TARGET_ARMV8)
-//#  include "VMMAll/target-armv8/IEMInternal-armv8.h"
+#  include "VMMAll/target-armv8/IEMInternal-armv8.h"
 # endif
 
 #endif /* !RT_IN_ASSEMBLER - ASM-NOINC-END */

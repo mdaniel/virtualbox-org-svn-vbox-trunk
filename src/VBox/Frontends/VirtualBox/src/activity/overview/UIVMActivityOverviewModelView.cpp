@@ -268,8 +268,15 @@ UIVMActivityOverviewRow::~UIVMActivityOverviewRow()
 
 void UIVMActivityOverviewRow::initCells()
 {
+    /* Hide VM exits in release builds: */
     for (int i = (int) VMActivityOverviewColumn_Name; i < (int) VMActivityOverviewColumn_Max; ++i)
+    {
+#ifndef DEBUG
+        if (i == (int) VMActivityOverviewColumn_VMExits)
+            continue;
+#endif
         m_cells[i] = new UIVMActivityOverviewCell(this);
+    }
     m_cells[VMActivityOverviewColumn_Name]->setText(m_strMachineName);
 }
 

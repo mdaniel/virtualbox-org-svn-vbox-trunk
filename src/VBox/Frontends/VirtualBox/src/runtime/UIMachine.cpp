@@ -2073,6 +2073,7 @@ void UIMachine::updateMousePointerShape()
     }
     else
     {
+#if 0 // disabled for public ticket
         if (isPointer1bpp(pSrcShapePtr, uWidth, uHeight))
         {
             // Incoming data consist of 32 bit BGR XOR mask and 1 bit AND mask.
@@ -2160,6 +2161,7 @@ void UIMachine::updateMousePointerShape()
             m_cursorMaskPixmap = QBitmap::fromImage(mask);
         }
         else
+#endif // disabled for public ticket
         {
             /* Assign alpha channel values according to the AND mask: 1 -> 0x00, 0 -> 0xFF: */
             QImage image(uCursorWidth, uCursorHeight, QImage::Format_ARGB32);
@@ -2178,7 +2180,15 @@ void UIMachine::updateMousePointerShape()
                     const uint8_t u8SrcMaskByte = pu8SrcAndScanline[x / 8];
 
                     if (u8SrcMaskByte & u8Bit)
-                        *pu32DstPixel++ = pu32SrcShapeScanline[x] & UINT32_C(0x00FFFFFF);
+                    {
+                        /* Inverse cannot be emulated by alpha mask, so make these pixels gray,
+                         * to make it visible on both black and white
+                         * (this is usually used for text select cursor). */
+                        if ((pu32SrcShapeScanline[x] & UINT32_C(0x00FFFFFF)) == UINT32_C(0x00FFFFFF))
+                            *pu32DstPixel++ = UINT32_C(0xFF7F7F7F);
+                        else
+                            *pu32DstPixel++ = pu32SrcShapeScanline[x] & UINT32_C(0x00FFFFFF);
+                    }
                     else
                         *pu32DstPixel++ = pu32SrcShapeScanline[x] | UINT32_C(0xFF000000);
                 }

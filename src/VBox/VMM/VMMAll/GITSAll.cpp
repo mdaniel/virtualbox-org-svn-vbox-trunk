@@ -91,7 +91,7 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetCtrlRegDescription(uint16_t offReg)
     }
 }
 
-#ifdef LOG_ENABLED
+
 DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t offReg)
 {
     switch (offReg)
@@ -101,7 +101,6 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
             return "<UNKNOWN>";
     }
 }
-#endif /* LOG_ENABLED */
 
 
 DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb)
@@ -314,7 +313,6 @@ DECL_HIDDEN_CALLBACK(int) gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi
     RT_NOREF(pVM, uBusDevFn, pMsi, uEventId, uTagSrc);
     return VERR_NOT_IMPLEMENTED;
 }
-
 
 #endif /* !VBOX_DEVICE_STRUCT_TESTCASE */
 

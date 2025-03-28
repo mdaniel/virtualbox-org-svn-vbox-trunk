@@ -789,10 +789,12 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
     {
         if (m_pNameAndSystemEditor->name().isEmpty())
             m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
-                                                   tr("Virtual machine name cannot be empty"), tr("Virtual machine name is valid"));
+                                                   UIWizardNewVM::tr("Virtual machine name cannot be empty"),
+                                                   UIWizardNewVM::tr("Virtual machine name is valid"));
         else
             m_pNameAndSystemEditor->markNameEditor(!isMachineFolderUnique(),
-                                                   tr("Virtual machine path is not unique"), tr("Virtual machine name is valid"));
+                                                   UIWizardNewVM::tr("Virtual machine path is not unique"),
+                                                   UIWizardNewVM::tr("Virtual machine name is valid"));
 
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor->ISOImagePath()),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),

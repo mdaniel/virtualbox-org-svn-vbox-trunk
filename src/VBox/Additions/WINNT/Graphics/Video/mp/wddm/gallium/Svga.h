@@ -289,6 +289,9 @@ typedef struct VBOXWDDM_EXT_VMSVGA
 
     /** Bitmap of used MOB ids. Bit 0 - context id 0, etc. */
     uint32_t au32MobBits[(SVGA3D_MAX_MOBS + 31) / 32];
+
+    /** Bitmap of used screen target ids. Bit 0 - stid 0, etc. */
+    uint32_t au32ScreenTargetBits[(64 + 31) / 32]; /// @todo VBOX_VIDEO_MAX_SCREENS
 } VBOXWDDM_EXT_VMSVGA;
 typedef struct VBOXWDDM_EXT_VMSVGA *PVBOXWDDM_EXT_VMSVGA;
 
@@ -405,6 +408,20 @@ NTSTATUS SvgaScreenDefine(PVBOXWDDM_EXT_VMSVGA pSvga,
                           bool fBlank);
 NTSTATUS SvgaScreenDestroy(PVBOXWDDM_EXT_VMSVGA pSvga,
                            uint32_t u32ScreenId);
+
+NTSTATUS Svga3dDefineGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                    uint32_t stid,
+                                    uint32_t width,
+                                    uint32_t height,
+                                    int32_t xRoot,
+                                    int32_t yRoot,
+                                    SVGAScreenTargetFlags flags,
+                                    uint32_t dpi);
+NTSTATUS Svga3dDestroyGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                     uint32_t stid);
+NTSTATUS Svga3dBindGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                  uint32_t stid,
+                                  uint32_t sid);
 
 NTSTATUS SvgaContextCreate(PVBOXWDDM_EXT_VMSVGA pSvga,
                            uint32_t u32Cid);
@@ -597,6 +614,12 @@ NTSTATUS SvgaMobIdAlloc(PVBOXWDDM_EXT_VMSVGA pSvga,
 
 NTSTATUS SvgaMobIdFree(PVBOXWDDM_EXT_VMSVGA pSvga,
                        uint32_t u32MobId);
+
+NTSTATUS SvgaScreenTargetIdAlloc(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                 uint32_t *pu32ScreenTargetId);
+
+NTSTATUS SvgaScreenTargetIdFree(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                uint32_t u32ScreenTargetId);
 
 NTSTATUS SvgaDXContextCreate(PVBOXWDDM_EXT_VMSVGA pSvga,
                              uint32_t u32Cid);

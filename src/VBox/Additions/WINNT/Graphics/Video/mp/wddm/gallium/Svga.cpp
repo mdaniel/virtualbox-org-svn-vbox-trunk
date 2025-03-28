@@ -572,6 +572,82 @@ NTSTATUS SvgaScreenDestroy(PVBOXWDDM_EXT_VMSVGA pSvga,
 }
 
 
+NTSTATUS Svga3dDefineGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                    uint32_t stid,
+                                    uint32_t width,
+                                    uint32_t height,
+                                    int32_t xRoot,
+                                    int32_t yRoot,
+                                    SVGAScreenTargetFlags flags,
+                                    uint32_t dpi)
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    const uint32_t cbSubmit =   sizeof(SVGA3dCmdHeader)
+                              + sizeof(SVGA3dCmdDefineGBScreenTarget);
+
+    void *pvCmd = SvgaReserve(pSvga, cbSubmit);
+    if (pvCmd)
+    {
+        Svga3dCmdDefineGBScreenTarget(pvCmd, stid, width, height, xRoot, yRoot, flags, dpi);
+        SvgaCommit(pSvga, cbSubmit);
+    }
+    else
+    {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    return Status;
+}
+
+
+NTSTATUS Svga3dDestroyGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                     uint32_t stid)
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    const uint32_t cbSubmit =   sizeof(SVGA3dCmdHeader)
+                              + sizeof(SVGA3dCmdDestroyGBScreenTarget);
+
+    void *pvCmd = SvgaReserve(pSvga, cbSubmit);
+    if (pvCmd)
+    {
+        Svga3dCmdDestroyGBScreenTarget(pvCmd, stid);
+        SvgaCommit(pSvga, cbSubmit);
+    }
+    else
+    {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    return Status;
+}
+
+
+NTSTATUS Svga3dBindGBScreenTarget(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                  uint32_t stid,
+                                  uint32_t sid)
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    const uint32_t cbSubmit =   sizeof(SVGA3dCmdHeader)
+                              + sizeof(SVGA3dCmdBindGBScreenTarget);
+
+    void *pvCmd = SvgaReserve(pSvga, cbSubmit);
+    if (pvCmd)
+    {
+        Svga3dCmdBindGBScreenTarget(pvCmd, stid, sid);
+        SvgaCommit(pSvga, cbSubmit);
+    }
+    else
+    {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    return Status;
+}
+
+
 DECLINLINE(NTSTATUS) svgaIdAlloc(PVBOXWDDM_EXT_VMSVGA pSvga,
                                  uint32_t *pu32Bits,
                                  uint32_t cbBits,
@@ -661,6 +737,20 @@ NTSTATUS SvgaMobIdFree(PVBOXWDDM_EXT_VMSVGA pSvga,
 {
     return svgaOTableIdFree(pSvga, pSvga->au32MobBits, sizeof(pSvga->au32MobBits),
                             SVGA_OTABLE_MOB, u32MobId);
+}
+
+NTSTATUS SvgaScreenTargetIdAlloc(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                 uint32_t *pu32ScreenTargetId)
+{
+    return svgaOTableIdAlloc(pSvga, pSvga->au32ScreenTargetBits, sizeof(pSvga->au32ScreenTargetBits),
+                             SVGA_OTABLE_SCREENTARGET, pu32ScreenTargetId);
+}
+
+NTSTATUS SvgaScreenTargetIdFree(PVBOXWDDM_EXT_VMSVGA pSvga,
+                                uint32_t u32ScreenTargetId)
+{
+    return svgaOTableIdFree(pSvga, pSvga->au32ScreenTargetBits, sizeof(pSvga->au32ScreenTargetBits),
+                            SVGA_OTABLE_SCREENTARGET, u32ScreenTargetId);
 }
 
 NTSTATUS SvgaContextIdAlloc(PVBOXWDDM_EXT_VMSVGA pSvga,

@@ -69,6 +69,61 @@ void SvgaCmdDestroyScreen(void *pvCmd, uint32_t u32Id)
     pCommand->screenId = u32Id;
 }
 
+void Svga3dCmdDefineGBScreenTarget(void *pvCmd,
+                                   uint32_t stid,
+                                   uint32_t width,
+                                   uint32_t height,
+                                   int32_t xRoot,
+                                   int32_t yRoot,
+                                   SVGAScreenTargetFlags flags,
+                                   uint32_t dpi)
+{
+    SVGA3dCmdHeader *pHeader = (SVGA3dCmdHeader *)pvCmd;
+    SVGA3dCmdDefineGBScreenTarget *pCommand = (SVGA3dCmdDefineGBScreenTarget *)&pHeader[1];
+
+    uint32_t cbCommand = sizeof(SVGA3dCmdDefineGBScreenTarget);
+    pHeader->id = SVGA_3D_CMD_DEFINE_GB_SCREENTARGET;
+    pHeader->size = cbCommand;
+
+    pCommand->stid = stid;
+    pCommand->width = width;
+    pCommand->height = height;
+    pCommand->xRoot = xRoot;
+    pCommand->yRoot = yRoot;
+    pCommand->flags = flags;
+    pCommand->dpi = dpi;
+}
+
+void Svga3dCmdDestroyGBScreenTarget(void *pvCmd,
+                                    uint32_t stid)
+{
+    SVGA3dCmdHeader *pHeader = (SVGA3dCmdHeader *)pvCmd;
+    SVGA3dCmdDestroyGBScreenTarget *pCommand = (SVGA3dCmdDestroyGBScreenTarget *)&pHeader[1];
+
+    uint32_t cbCommand = sizeof(SVGA3dCmdDestroyGBScreenTarget);
+    pHeader->id = SVGA_3D_CMD_DESTROY_GB_SCREENTARGET;
+    pHeader->size = cbCommand;
+
+    pCommand->stid = stid;
+}
+
+void Svga3dCmdBindGBScreenTarget(void *pvCmd,
+                                 uint32_t stid,
+                                 uint32_t sid)
+{
+    SVGA3dCmdHeader *pHeader = (SVGA3dCmdHeader *)pvCmd;
+    SVGA3dCmdBindGBScreenTarget *pCommand = (SVGA3dCmdBindGBScreenTarget *)&pHeader[1];
+
+    uint32_t cbCommand = sizeof(SVGA3dCmdBindGBScreenTarget);
+    pHeader->id = SVGA_3D_CMD_BIND_GB_SCREENTARGET;
+    pHeader->size = cbCommand;
+
+    pCommand->stid = stid;
+    pCommand->image.sid = sid;
+    pCommand->image.face = 0;
+    pCommand->image.mipmap = 0;
+}
+
 void SvgaCmdUpdate(void *pvCmd, uint32_t u32X, uint32_t u32Y, uint32_t u32Width, uint32_t u32Height)
 {
     uint32_t *pu32Id = (uint32_t *)pvCmd;

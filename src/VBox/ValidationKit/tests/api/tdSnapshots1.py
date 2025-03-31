@@ -53,16 +53,17 @@ sys.path.append(g_ksValidationKitDir)
 # Validation Kit imports.
 from testdriver import base
 from testdriver import reporter
+from testdriver import vbox
 from testdriver import vboxcon
 
 
-class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
+class SubTstDrvNestedLiveSnapshots1(base.SubTestDriverBase):
     """
     Sub-test driver for nested snapshot testing.
     """
     def __init__(self, oTstDrv):
-        base.SubTestDriverBase.__init__(self, oTstDrv, 'nested-snapshots', 'Nested Snapshot Testing');
-        self.sVmName = 'tst-nested-snapshots';
+        base.SubTestDriverBase.__init__(self, oTstDrv, 'nested-live-snapshots', 'Nested Live Snapshot Testing');
+        self.sVmName = 'tst-nested-live-snapshots';
         # Note that any VM can be used here as these tests simply involve taking
         # online snapshots and restoring them.  This OL6 image was chosen based purely
         # on its location being in the 7.1 directory.
@@ -77,24 +78,25 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
         """
         Execute the sub-testcases.
         """
-        return  self.testRestoreNestedSnapshot() \
-            and self.testDeleteSnapshots();
+        return  self.testRestoreNestedLiveSnapshot() \
+            and self.testDeleteNestedLiveSnapshot() \
+            and self.testDeleteLiveSnapshots();
 
     #
     # Test execution helpers.
     #
-    def testRestoreNestedSnapshot(self):
+    def testRestoreNestedLiveSnapshot(self):
         """
         The scenario being exercised here is referenced in xTracker 10252 Comment #9
-        where the sequence of restoring a nested snapshot and then booting that restored
+        where the sequence of restoring a nested live snapshot and then booting that restored
         VM would accidentally delete that snapshot's saved state file during boot.  So
         here we perform the following steps to exercise this functionality:
-          + Take two online snapshots of the VM: 'alpha', and 'beta' (IMachine::takeSnapshot())
+          + Take three online snapshots of the VM: 'alpha', 'beta' and 'gamma' (IMachine::takeSnapshot())
           + Restore snapshot 'beta' (IMachine::restoreSnapshot())
           + Boot and then poweroff the VM
           + Verify snapshot 'beta' still exists (IMachine::findSnapshot())
         """
-        reporter.testStart('testRestoreNestedSnapshot');
+        reporter.testStart('testRestoreNestedLiveSnapshot');
         reporter.log('Verify saved state file exists after nested snapshot restore');
 
         # Restoring an online snapshot requires an updated TXS (r157880 or later) for the
@@ -116,10 +118,13 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
         reporter.log('Guest VM \'%s\' successfully started. Connection to TXS service established.' % self.sVmName);
         self.oTstDrv.addTask(oTxsSession);
 
-        # Take two online snapshots.
-        reporter.log('Taking two online snapshots of test VM: \'%s\'' % self.sVmName);
+        # Take three online snapshots.
+        reporter.log('Taking three online snapshots of test VM: \'%s\'' % self.sVmName);
         fRc = oSession.takeSnapshot('alpha');
         fRc = fRc and oSession.takeSnapshot('beta');
+        fRc = fRc and oSession.takeSnapshot('gamma');
+        if not fRc:
+            return reporter.error('Failed to take online snapshot of test VM: \'%s\'' % self.sVmName);
 
         # Shutdown the VM and cleanup.
         self.oTstDrv.txsDisconnect(oSession, oTxsSession)
@@ -130,7 +135,7 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
         oSession = None;
         oTxsSession = None;
         if not fRc:
-            return reporter.error('Failed to take snapshot of test VM: \'%s\'' % self.sVmName);
+            return reporter.error('Failed to take online snapshot of test VM: \'%s\'' % self.sVmName);
 
         oVM = self.oTstDrv.getVmByName(self.sVmName);
         oSession = self.oTstDrv.openSession(oVM);
@@ -179,7 +184,7 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
         if not fRc:
             return reporter.testFailure('Failed to close session of test VM: \'%s\'' % self.sVmName);
 
-        reporter.log('Verifying nested snapshot \'beta\' still exists.');
+        reporter.log('Verifying nested online snapshot \'beta\' still exists.');
         oVM = self.oTstDrv.getVmByName(self.sVmName);
         oSession = self.oTstDrv.openSession(oVM);
         if oSession is None:
@@ -192,10 +197,58 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
         return reporter.testDone()[1] == 0;
 
 
-    def testDeleteSnapshots(self):
+    def testDeleteNestedLiveSnapshot(self):
+        """
+        The scenario being exercised here is to verify that removing a nested online
+        snapshot also removes its corresponding saved state ('.sav') file.  A regression
+        caused IMachine::deleteSnapshot() to remove a live snapshot from the VM's
+        settings but left the '.sav' file behind.  So here we perform the following steps to
+        exercise this functionality:
+          + Delete live snapshot 'gamma' (IMachine::deleteSnapshot())
+          + Check that the 'gamma' snapshot was removed
+          + Verify that the 'gamma' snapshot's '.sav' file was removed as well
+        """
+
+        reporter.testStart('testDeleteNestedLiveSnapshot');
+        reporter.log('Verify IMachine::deleteSnapshot() deletes a nested live snapshot along with its .sav file');
+        oVM = self.oTstDrv.getVmByName(self.sVmName);
+        oSession = self.oTstDrv.openSession(oVM);
+        if oSession is None:
+            return reporter.error('Failed to create session for test VM: \'%s\'' % self.sVmName);
+
+        oSnapshot = oSession.findSnapshot('gamma');
+        if oSnapshot is None:
+            return reporter.testFailure('Failed to find snapshot \'gamma\' of test VM: \'%s\'' % self.sVmName);
+
+        # Save the path to gamma's '.sav' file while the snapshot still exists for querying later.
+        strSaveFilePath = oSnapshot.machine.stateFilePath;
+        reporter.log('Calling IMachine::deleteSnapshot() to delete snapshot \'gamma\'');
+        # Call IMachine::deleteSnapshot() (or its historic equivalent) to remove the
+        # live snapshot named 'gamma'
+        fRc = oSession.deleteSnapshot(oSnapshot.id, cMsTimeout = 120 * 1000);
+        if not fRc:
+            return reporter.error('Failed to delete snapshot \'gamma\'');
+
+        # Verify that the snapshot was indeed removed as well as its corresponding saved
+        # state file.
+        reporter.log('Verifying snapshot \'gamma\' was deleted');
+        try:
+            oSnapshot = oSession.findSnapshot('gamma');
+        except vbox.ComException as oXcpt:
+            if vbox.ComError.notEqual(oXcpt, vbox.ComError.VBOX_E_OBJECT_NOT_FOUND):
+                return reporter.testFailure('Failed to delete snapshot \'gamma\' of test VM: \'%s\'' % self.sVmName);
+
+        reporter.log('Verifying that the \'gamma\' snapshot\'s \'.sav\' file was deleted');
+        if os.path.exists(strSaveFilePath):
+            return reporter.error('The saved state file of snapshot \'gamma\' was not deleted');
+
+        return reporter.testDone()[1] == 0;
+
+
+    def testDeleteLiveSnapshots(self):
         """
         The scenario being exercised here is also referenced in xTracker 10252 Comment #9
-        where unregistering and deleting a VM which contained one or more snapshots would
+        where unregistering and deleting a VM which contained one or more live snapshots would
         neglect to delete the snapshot(s).  So here we perform the following steps to
         exercise this functionality which conveniently also tidies up our test setup:
           + Unregister our test VM (IMachine::unregister())
@@ -203,7 +256,7 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
           + Check that the snapshots are truly gone.
         """
 
-        reporter.testStart('testDeleteSnapshots');
+        reporter.testStart('testDeleteLiveSnapshots');
         reporter.log('Verify IMachine::unregister()+IMachine::deleteConfig() deletes snapshots');
         oVM = self.oTstDrv.getVmByName(self.sVmName);
         # IMachine::stateFilePath() isn't implemented in the testdriver so we manually
@@ -254,4 +307,4 @@ class SubTstDrvNestedSnapshots1(base.SubTestDriverBase):
 if __name__ == '__main__':
     sys.path.append(os.path.dirname(os.path.abspath(__file__)));
     from tdApi1 import tdApi1;      # pylint: disable=relative-import
-    sys.exit(tdApi1([SubTstDrvNestedSnapshots1]).main(sys.argv))
+    sys.exit(tdApi1([SubTstDrvNestedLiveSnapshots1]).main(sys.argv))

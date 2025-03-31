@@ -781,7 +781,7 @@ bool Snapshot::i_sharesSavedStateFile(const Utf8Str &strPath,
         llSnapshotsTodo.pop_front();
         const Utf8Str &path = pSnapshot->m->pMachine->mSSData->strStateFilePath;
 
-        if ((!pSnapshotToIgnore || pSnapshotToIgnore != this) && path.isNotEmpty())
+        if ((!pSnapshotToIgnore || pSnapshotToIgnore != pSnapshot) && path.isNotEmpty())
             if (path == strPath)
                 return true;
 

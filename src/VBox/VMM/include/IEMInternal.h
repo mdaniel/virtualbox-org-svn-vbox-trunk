@@ -615,6 +615,8 @@ typedef IEMTLBENTRY const *PCIEMTLBENTRY;
 /** Physical revision mask. @sa IEMTLB_PHYS_REV_INCR */
 #  define IEMTLBE_F_PHYS_REV                UINT64_C(0xff80000000000000)
 # endif
+/** @todo ARM: We need to identify which EL the entry is from (EL1,
+ *        EL2 or EL3)! */
 #endif
 /** @} */
 /** The bits set by PGMPhysIemGCPhys2PtrNoLock. */
@@ -1300,6 +1302,8 @@ typedef IEMTLBTRACEENTRY const *PCIEMTLBTRACEENTRY;
 # define IEM_F_ARM_GET_TLB_PAGE_SIZE(a_fExec)        IEM_F_ARM_GET_S1_PAGE_SIZE(a_fExec)
 /** Get the current TLB page (granule) offset mask. */
 # define IEM_F_ARM_GET_TLB_PAGE_OFFSET_MASK(a_fExec) IEM_F_ARM_GET_S1_PAGE_OFFSET_MASK(a_fExec)
+
+/** @todo ARM: Need copy of TCR_ELx.EPD0 & TCR_ELx.EPD1. */
 
 #endif /* ARM || doxygen  */
 

@@ -691,6 +691,11 @@ static const char *efiDbgPointName(EFIDBGPOINT enmDbgPoint)
         case EFIDBGPOINT_SMI_EXIT:      return "SMI_EXIT";
         case EFIDBGPOINT_GRAPHICS:      return "GRAPHICS";
         case EFIDBGPOINT_DXE_AP:        return "DXE_AP";
+        case EFIDBGPOINT_PEI:           return "PEI";
+        case EFIDBGPOINT_DXE_LOAD:      return "DXE_LOAD";
+        case EFIDBGPOINT_DXE_UNLOAD:    return "DXE_UNLOAD";
+        case EFIDBGPOINT_REINITIALIZE:  return "REINITIALIZE";
+        case EFIDBGPOINT_DXE_CORE_LATE: return "DXE_CORE_LATE";
         default:
             AssertFailed();
             return "Unknown";

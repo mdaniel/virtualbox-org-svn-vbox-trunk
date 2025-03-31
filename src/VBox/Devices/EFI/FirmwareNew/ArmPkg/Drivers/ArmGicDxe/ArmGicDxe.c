@@ -18,6 +18,7 @@ Abstract:
 
 #include "ArmGicDxe.h"
 
+#ifndef VBOX
 STATIC
 BOOLEAN
 GicV3Supported (
@@ -53,6 +54,7 @@ GicV3Supported (
 
   return FALSE;
 }
+#endif
 
 /**
   Initialize the state information for the CPU Architectural Protocol
@@ -74,11 +76,16 @@ InterruptDxeInitialize (
 {
   EFI_STATUS  Status;
 
+#ifndef VBOX
   if (!GicV3Supported ()) {
     Status = GicV2DxeInitialize (ImageHandle, SystemTable);
   } else {
     Status = GicV3DxeInitialize (ImageHandle, SystemTable);
   }
+#else
+  /* We only support GICv3. */
+  Status = GicV3DxeInitialize (ImageHandle, SystemTable);
+#endif
 
   return Status;
 }

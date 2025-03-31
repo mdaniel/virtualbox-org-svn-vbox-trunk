@@ -7,21 +7,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #ifndef __GNUC__
-<<<<<<< .working
-# ifdef VBOX
-// RUNTIME_FUNCTION typedef conflicts; just use EFI headers
-# else
-||||||| .merge-left.r168232
-=======
 #define RUNTIME_FUNCTION  _WINNT_DUP_RUNTIME_FUNCTION
->>>>>>> .merge-right.r168232
 #include <windows.h>
-<<<<<<< .working
-#endif
-||||||| .merge-left.r168232
-=======
 #undef RUNTIME_FUNCTION
->>>>>>> .merge-right.r168232
 #include <io.h>
 #include <sys/types.h>
 #include <sys/stat.h>

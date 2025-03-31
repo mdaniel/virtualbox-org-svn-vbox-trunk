@@ -1,0 +1,289 @@
+# $Id$
+## @file
+# kBuild EFI module list shared with the root makefile.
+#
+
+#
+# Copyright (C) 2013-2024 Oracle and/or its affiliates.
+#
+# This file is part of VirtualBox base platform packages, as
+# available from https://www.virtualbox.org.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, in version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses>.
+#
+# The contents of this file may alternatively be used under the terms
+# of the Common Development and Distribution License Version 1.0
+# (CDDL), a copy of it is provided in the "COPYING.CDDL" file included
+# in the VirtualBox distribution, in which case the provisions of the
+# CDDL are applicable instead of those of the GPL.
+#
+# You may elect to license modified versions of this file under the
+# terms and conditions of either the GPL or the CDDL or both.
+#
+# SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
+#
+
+ifndef VBOX_EFI_FIRMWARE_EFI_MODULES_KMK_INCLUDED
+ VBOX_EFI_FIRMWARE_EFI_MODULES_KMK_INCLUDED = 1
+
+ #
+ # The name of the subdirectory which the .pdb, .efi and other output files ends
+ # up in, apparently.  In the generated makefiles, DEBUG_DIR points to them.
+ #
+ if 0 #1of ($(VBOX_EFI_TOOL_CHAIN.x86), VS2017 VS2019 VS2022)
+  VBOX_EFI_DEBUG_DIR.x86 = OUTPUT
+ else
+  VBOX_EFI_DEBUG_DIR.x86 = DEBUG
+ endif
+ if 0 #1of ($(VBOX_EFI_TOOL_CHAIN.amd64), VS2017 VS2019 VS2022)
+  VBOX_EFI_DEBUG_DIR.amd64 = OUTPUT
+ else
+  VBOX_EFI_DEBUG_DIR.amd64 = DEBUG
+ endif
+ if 0 #of ($(VBOX_EFI_TOOL_CHAIN.arm32), VS2017 VS2019 VS2022 CLANGPDB)
+  VBOX_EFI_DEBUG_DIR.arm32 = OUTPUT
+ else
+  VBOX_EFI_DEBUG_DIR.arm32 = DEBUG
+ endif
+ if 0 #of ($(VBOX_EFI_TOOL_CHAIN.arm64), VS2017 VS2019 VS2022 CLANGPDB)
+  VBOX_EFI_DEBUG_DIR.arm64 = OUTPUT
+ else
+  VBOX_EFI_DEBUG_DIR.arm64 = DEBUG
+ endif
+
+ #
+ # List of modules that ends up producing .efi, .debug and .pdb files.
+ #
+ VBOX_EFI_MODULES_CMN = \
+ 	MdeModulePkg/Universal/BdsDxe/BdsDxe/$(VBOX_EFI_DEBUG_DIR.$1)/BdsDxe
+
+ VBOX_EFI_MODULES.x86 = \
+ 	$(call VBOX_EFI_MODULES_CMN,x86) \
+ 	FatPkg/EnhancedFatDxe/Fat/$(VBOX_EFI_DEBUG_DIR.x86)/Fat \
+ 	MdeModulePkg/Application/UiApp/UiApp/$(VBOX_EFI_DEBUG_DIR.x86)/UiApp \
+ 	MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru/$(VBOX_EFI_DEBUG_DIR.x86)/AtaAtapiPassThruDxe \
+ 	MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe/$(VBOX_EFI_DEBUG_DIR.x86)/AtaBusDxe \
+ 	MdeModulePkg/Bus/Isa/Ps2KeyboardDxe/Ps2KeyboardDxe/$(VBOX_EFI_DEBUG_DIR.x86)/Ps2KeyboardDxe \
+ 	MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe/$(VBOX_EFI_DEBUG_DIR.x86)/EhciDxe \
+ 	MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe/$(VBOX_EFI_DEBUG_DIR.x86)/NvmExpressDxe \
+ 	MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe/$(VBOX_EFI_DEBUG_DIR.x86)/PciBusDxe \
+ 	MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/PciHostBridgeDxe \
+ 	MdeModulePkg/Bus/Pci/PciSioSerialDxe/PciSioSerialDxe/$(VBOX_EFI_DEBUG_DIR.x86)/PciSioSerialDxe \
+ 	MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SataController \
+ 	MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UhciDxe \
+ 	MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe/$(VBOX_EFI_DEBUG_DIR.x86)/XhciDxe \
+ 	MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ScsiBus \
+ 	MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ScsiDisk \
+ 	MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UsbBusDxe \
+ 	MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UsbKbDxe \
+ 	MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UsbMassStorageDxe \
+ 	MdeModulePkg/Core/Dxe/DxeMain/$(VBOX_EFI_DEBUG_DIR.x86)/DxeCore \
+ 	MdeModulePkg/Core/DxeIplPeim/DxeIpl/$(VBOX_EFI_DEBUG_DIR.x86)/DxeIpl \
+ 	MdeModulePkg/Core/Pei/PeiMain/$(VBOX_EFI_DEBUG_DIR.x86)/PeiCore \
+ 	MdeModulePkg/Core/RuntimeDxe/RuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/RuntimeDxe \
+ 	MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe/$(VBOX_EFI_DEBUG_DIR.x86)/AcpiPlatform \
+ 	MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe/$(VBOX_EFI_DEBUG_DIR.x86)/AcpiTableDxe \
+ 	MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe/$(VBOX_EFI_DEBUG_DIR.x86)/BootGraphicsResourceTableDxe \
+ 	MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/CapsuleRuntimeDxe \
+ 	MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ConPlatformDxe \
+ 	MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ConSplitterDxe \
+ 	MdeModulePkg/Universal/Console/GraphicsConsoleDxe/GraphicsConsoleDxe/$(VBOX_EFI_DEBUG_DIR.x86)/GraphicsConsoleDxe \
+ 	MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe/$(VBOX_EFI_DEBUG_DIR.x86)/TerminalDxe \
+ 	MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe/$(VBOX_EFI_DEBUG_DIR.x86)/DevicePathDxe \
+ 	MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe/$(VBOX_EFI_DEBUG_DIR.x86)/DisplayEngine \
+ 	MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe/$(VBOX_EFI_DEBUG_DIR.x86)/DiskIoDxe \
+ 	MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe/$(VBOX_EFI_DEBUG_DIR.x86)/PartitionDxe \
+ 	MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe/$(VBOX_EFI_DEBUG_DIR.x86)/RamDiskDxe \
+ 	MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UdfDxe \
+ 	MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe/$(VBOX_EFI_DEBUG_DIR.x86)/EnglishDxe \
+ 	MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe/$(VBOX_EFI_DEBUG_DIR.x86)/DriverHealthManagerDxe \
+ 	MdeModulePkg/Universal/EbcDxe/EbcDxe/$(VBOX_EFI_DEBUG_DIR.x86)/EbcDxe \
+ 	MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe/$(VBOX_EFI_DEBUG_DIR.x86)/FaultTolerantWriteDxe \
+ 	MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe/$(VBOX_EFI_DEBUG_DIR.x86)/HiiDatabase \
+ 	MdeModulePkg/Universal/Metronome/Metronome/$(VBOX_EFI_DEBUG_DIR.x86)/Metronome \
+ 	MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/MonotonicCounterRuntimeDxe \
+ 	MdeModulePkg/Universal/PCD/Dxe/Pcd/$(VBOX_EFI_DEBUG_DIR.x86)/PcdDxe \
+ 	MdeModulePkg/Universal/PCD/Pei/Pcd/$(VBOX_EFI_DEBUG_DIR.x86)/PcdPeim \
+ 	MdeModulePkg/Universal/ReportStatusCodeRouter/Pei/ReportStatusCodeRouterPei/$(VBOX_EFI_DEBUG_DIR.x86)/ReportStatusCodeRouterPei \
+ 	MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ReportStatusCodeRouterRuntimeDxe \
+ 	MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ResetSystemRuntimeDxe \
+ 	MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SecurityStubDxe \
+ 	MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SetupBrowser \
+ 	MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SmbiosDxe \
+ 	MdeModulePkg/Universal/StatusCodeHandler/Pei/StatusCodeHandlerPei/$(VBOX_EFI_DEBUG_DIR.x86)/StatusCodeHandlerPei \
+ 	MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/StatusCodeHandlerRuntimeDxe \
+ 	MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/VariableRuntimeDxe \
+ 	MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer/$(VBOX_EFI_DEBUG_DIR.x86)/WatchdogTimer \
+ 	NetworkPkg/ArpDxe/ArpDxe/$(VBOX_EFI_DEBUG_DIR.x86)/ArpDxe \
+ 	NetworkPkg/Dhcp4Dxe/Dhcp4Dxe/$(VBOX_EFI_DEBUG_DIR.x86)/Dhcp4Dxe \
+ 	NetworkPkg/DpcDxe/DpcDxe/$(VBOX_EFI_DEBUG_DIR.x86)/DpcDxe \
+ 	NetworkPkg/Ip4Dxe/Ip4Dxe/$(VBOX_EFI_DEBUG_DIR.x86)/Ip4Dxe \
+ 	NetworkPkg/MnpDxe/MnpDxe/$(VBOX_EFI_DEBUG_DIR.x86)/MnpDxe \
+ 	NetworkPkg/Mtftp4Dxe/Mtftp4Dxe/$(VBOX_EFI_DEBUG_DIR.x86)/Mtftp4Dxe \
+ 	NetworkPkg/SnpDxe/SnpDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SnpDxe \
+ 	NetworkPkg/TcpDxe/TcpDxe/$(VBOX_EFI_DEBUG_DIR.x86)/TcpDxe \
+ 	NetworkPkg/Udp4Dxe/Udp4Dxe/$(VBOX_EFI_DEBUG_DIR.x86)/Udp4Dxe \
+ 	NetworkPkg/UefiPxeBcDxe/UefiPxeBcDxe/$(VBOX_EFI_DEBUG_DIR.x86)/UefiPxeBcDxe \
+ 	NetworkPkg/VlanConfigDxe/VlanConfigDxe/$(VBOX_EFI_DEBUG_DIR.x86)/VlanConfigDxe \
+ 	OvmfPkg/EmuVariableFvbRuntimeDxe/Fvb/$(VBOX_EFI_DEBUG_DIR.x86)/EmuVariableFvbRuntimeDxe \
+ 	OvmfPkg/IncompatiblePciDeviceSupportDxe/IncompatiblePciDeviceSupport/$(VBOX_EFI_DEBUG_DIR.x86)/IncompatiblePciDeviceSupportDxe \
+ 	OvmfPkg/IoMmuDxe/IoMmuDxe/$(VBOX_EFI_DEBUG_DIR.x86)/IoMmuDxe \
+ 	OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit/$(VBOX_EFI_DEBUG_DIR.x86)/PciHotPlugInitDxe \
+ 	OvmfPkg/PlatformDxe/Platform/$(VBOX_EFI_DEBUG_DIR.x86)/PlatformDxe \
+ 	OvmfPkg/PlatformPei/PlatformPei/$(VBOX_EFI_DEBUG_DIR.x86)/PlatformPei \
+ 	OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/FvbServicesRuntimeDxe \
+ 	OvmfPkg/Sec/SecMain/$(VBOX_EFI_DEBUG_DIR.x86)/SecMain \
+ 	OvmfPkg/SioBusDxe/SioBusDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SioBusDxe \
+ 	OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe/$(VBOX_EFI_DEBUG_DIR.x86)/SmbiosPlatformDxe \
+ 	OvmfPkg/Virtio10Dxe/Virtio10/$(VBOX_EFI_DEBUG_DIR.x86)/Virtio10 \
+ 	OvmfPkg/VirtioNetDxe/VirtioNet/$(VBOX_EFI_DEBUG_DIR.x86)/VirtioNetDxe \
+ 	OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe/$(VBOX_EFI_DEBUG_DIR.x86)/VirtioPciDeviceDxe \
+ 	OvmfPkg/VirtioScsiDxe/VirtioScsi/$(VBOX_EFI_DEBUG_DIR.x86)/VirtioScsiDxe \
+ 	PcAtChipsetPkg/PcatRealTimeClockRuntimeDxe/PcatRealTimeClockRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.x86)/PcRtc \
+ 	ShellPkg/Application/Shell/Shell/$(VBOX_EFI_DEBUG_DIR.x86)/Shell \
+ 	ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand/$(VBOX_EFI_DEBUG_DIR.x86)/tftpDynamicCommand \
+ 	UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe/$(VBOX_EFI_DEBUG_DIR.x86)/CpuIo2Dxe \
+ 	UefiCpuPkg/Universal/Acpi/S3Resume2Pei/S3Resume2Pei/$(VBOX_EFI_DEBUG_DIR.x86)/S3Resume2Pei \
+ 	VBoxPkg/Logo/LogoDxe/$(VBOX_EFI_DEBUG_DIR.x86)/LogoDxe \
+ 	VBoxPkg/VBoxAppleSim/VBoxAppleSim/$(VBOX_EFI_DEBUG_DIR.x86)/VBoxAppleSim \
+ 	VBoxPkg/VBoxFsDxe/VBoxHfs/$(VBOX_EFI_DEBUG_DIR.x86)/VBoxHfs \
+ 	VBoxPkg/VBoxSysTables/VBoxSysTables/$(VBOX_EFI_DEBUG_DIR.x86)/VBoxSysTables \
+ 	VBoxPkg/VBoxVgaDxe/VBoxVgaDxe/$(VBOX_EFI_DEBUG_DIR.x86)/VBoxVgaDxe
+
+ VBOX_EFI_MODULES.amd64 = $(VBOX_EFI_MODULES.x86)
+
+ ## @todo complete VBOX_EFI_MODULES_ARM32 and VBOX_EFI_MODULES_AMD64.
+ VBOX_EFI_MODULES.arm32 = \
+ 	$(call VBOX_EFI_MODULES_CMN,arm32)
+
+ VBOX_EFI_MODULES.arm64 = \
+ 	$(call VBOX_EFI_MODULES_CMN,arm64) \
+ 	ArmPkg/Drivers/ArmGic/ArmGicDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ArmGicDxe \
+ 	ArmPkg/Drivers/CpuDxe/CpuDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ArmCpuDxe \
+ 	ArmPkg/Drivers/CpuPei/CpuPei/$(VBOX_EFI_DEBUG_DIR.arm64)/CpuPei \
+ 	ArmPkg/Drivers/TimerDxe/TimerDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ArmTimerDxe \
+ 	ArmPlatformPkg/PlatformPei/PlatformPeim/$(VBOX_EFI_DEBUG_DIR.arm64)/PlatformPei \
+ 	ArmPlatformPkg/PrePeiCore/PrePeiCoreUniCore/$(VBOX_EFI_DEBUG_DIR.arm64)/ArmPlatformPrePeiCore \
+ 	ArmVirtPkg/MemoryInitPei/MemoryInitPeim/$(VBOX_EFI_DEBUG_DIR.arm64)/MemoryInit \
+ 	EmbeddedPkg/Drivers/FdtClientDxe/FdtClientDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/FdtClientDxe \
+ 	EmbeddedPkg/MetronomeDxe/MetronomeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/MetronomeDxe \
+ 	EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/RealTimeClock \
+ 	FatPkg/EnhancedFatDxe/Fat/$(VBOX_EFI_DEBUG_DIR.arm64)/Fat \
+ 	MdeModulePkg/Application/UiApp/UiApp/$(VBOX_EFI_DEBUG_DIR.arm64)/UiApp \
+ 	MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru/$(VBOX_EFI_DEBUG_DIR.arm64)/AtaAtapiPassThruDxe \
+ 	MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/AtaBusDxe \
+ 	MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/EhciDxe \
+ 	MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/NvmExpressDxe \
+ 	MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/PciBusDxe \
+ 	MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/PciHostBridgeDxe \
+ 	MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SataController \
+ 	MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UhciDxe \
+ 	MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/XhciDxe \
+ 	MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ScsiBus \
+ 	MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ScsiDisk \
+ 	MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UsbBusDxe \
+ 	MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UsbKbDxe \
+ 	MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UsbMassStorageDxe \
+ 	MdeModulePkg/Core/Dxe/DxeMain/$(VBOX_EFI_DEBUG_DIR.arm64)/DxeCore \
+ 	MdeModulePkg/Core/DxeIplPeim/DxeIpl/$(VBOX_EFI_DEBUG_DIR.arm64)/DxeIpl \
+ 	MdeModulePkg/Core/Pei/PeiMain/$(VBOX_EFI_DEBUG_DIR.arm64)/PeiCore \
+ 	MdeModulePkg/Core/RuntimeDxe/RuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/RuntimeDxe \
+ 	MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/AcpiTableDxe \
+ 	MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/BootGraphicsResourceTableDxe \
+ 	MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/CapsuleRuntimeDxe \
+ 	MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ConPlatformDxe \
+ 	MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ConSplitterDxe \
+ 	MdeModulePkg/Universal/Console/GraphicsConsoleDxe/GraphicsConsoleDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/GraphicsConsoleDxe \
+ 	MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/TerminalDxe \
+ 	MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/DevicePathDxe \
+ 	MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/DiskIoDxe \
+ 	MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/PartitionDxe \
+ 	MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/RamDiskDxe \
+ 	MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UdfDxe \
+ 	MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/EnglishDxe \
+ 	MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/DisplayEngine \
+ 	MdeModulePkg/Universal/DriverHealthManagerDxe/DriverHealthManagerDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/DriverHealthManagerDxe \
+ 	MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/FaultTolerantWriteDxe \
+ 	MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/HiiDatabase \
+ 	MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/MonotonicCounterRuntimeDxe \
+ 	MdeModulePkg/Universal/PCD/Dxe/Pcd/$(VBOX_EFI_DEBUG_DIR.arm64)/PcdDxe \
+ 	MdeModulePkg/Universal/PCD/Pei/Pcd/$(VBOX_EFI_DEBUG_DIR.arm64)/PcdPeim \
+ 	MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ReportStatusCodeRouterRuntimeDxe \
+ 	MdeModulePkg/Universal/ResetSystemPei/ResetSystemPei/$(VBOX_EFI_DEBUG_DIR.arm64)/ResetSystemPei \
+ 	MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ResetSystemRuntimeDxe \
+ 	MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SecurityStubDxe \
+ 	MdeModulePkg/Universal/SerialDxe/SerialDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SerialDxe \
+ 	MdeModulePkg/Universal/SetupBrowserDxe/SetupBrowserDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SetupBrowser \
+ 	MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SmbiosDxe \
+ 	MdeModulePkg/Universal/Variable/RuntimeDxe/VariableRuntimeDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VariableRuntimeDxe \
+ 	MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer/$(VBOX_EFI_DEBUG_DIR.arm64)/WatchdogTimer \
+ 	NetworkPkg/ArpDxe/ArpDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/ArpDxe \
+ 	NetworkPkg/Dhcp4Dxe/Dhcp4Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Dhcp4Dxe \
+ 	NetworkPkg/Dhcp6Dxe/Dhcp6Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Dhcp6Dxe \
+ 	NetworkPkg/DpcDxe/DpcDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/DpcDxe \
+ 	NetworkPkg/Ip4Dxe/Ip4Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Ip4Dxe \
+ 	NetworkPkg/Ip6Dxe/Ip6Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Ip6Dxe \
+ 	NetworkPkg/IScsiDxe/IScsiDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/IScsiDxe \
+ 	NetworkPkg/MnpDxe/MnpDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/MnpDxe \
+ 	NetworkPkg/Mtftp4Dxe/Mtftp4Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Mtftp4Dxe \
+ 	NetworkPkg/Mtftp6Dxe/Mtftp6Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Mtftp6Dxe \
+ 	NetworkPkg/TcpDxe/TcpDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/TcpDxe \
+ 	NetworkPkg/Udp4Dxe/Udp4Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Udp4Dxe \
+ 	NetworkPkg/Udp6Dxe/Udp6Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Udp6Dxe \
+ 	NetworkPkg/UefiPxeBcDxe/UefiPxeBcDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/UefiPxeBcDxe \
+ 	NetworkPkg/VlanConfigDxe/VlanConfigDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VlanConfigDxe \
+ 	OvmfPkg/EnrollDefaultKeys/EnrollDefaultKeys/$(VBOX_EFI_DEBUG_DIR.arm64)/EnrollDefaultKeys \
+ 	OvmfPkg/Fdt/HighMemDxe/HighMemDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/HighMemDxe \
+ 	OvmfPkg/Fdt/VirtioFdtDxe/VirtioFdtDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioFdtDxe \
+ 	OvmfPkg/LinuxInitrdDynamicShellCommand/LinuxInitrdDynamicShellCommand/$(VBOX_EFI_DEBUG_DIR.arm64)/LinuxInitrdDynamicShellCommand \
+ 	OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit/$(VBOX_EFI_DEBUG_DIR.arm64)/PciHotPlugInitDxe \
+ 	OvmfPkg/PlatformDxe/Platform/$(VBOX_EFI_DEBUG_DIR.arm64)/PlatformDxe \
+ 	OvmfPkg/PlatformHasAcpiDtDxe/PlatformHasAcpiDtDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/PlatformHasAcpiDtDxe \
+ 	OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/QemuKernelLoaderFsDxe \
+ 	OvmfPkg/QemuRamfbDxe/QemuRamfbDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/QemuRamfbDxe \
+ 	OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SmbiosPlatformDxe \
+ 	OvmfPkg/Tcg/Tcg2Config/Tcg2ConfigPei/$(VBOX_EFI_DEBUG_DIR.arm64)/Tcg2ConfigPei \
+ 	OvmfPkg/Virtio10Dxe/Virtio10/$(VBOX_EFI_DEBUG_DIR.arm64)/Virtio10 \
+ 	OvmfPkg/VirtioBlkDxe/VirtioBlk/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioBlkDxe \
+ 	OvmfPkg/VirtioFsDxe/VirtioFsDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioFsDxe \
+ 	OvmfPkg/VirtioGpuDxe/VirtioGpu/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioGpuDxe \
+ 	OvmfPkg/VirtioNetDxe/VirtioNet/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioNetDxe \
+ 	OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioPciDeviceDxe \
+ 	OvmfPkg/VirtioRngDxe/VirtioRng/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioRngDxe \
+ 	OvmfPkg/VirtioScsiDxe/VirtioScsi/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioScsiDxe \
+ 	OvmfPkg/VirtioSerialDxe/VirtioSerial/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtioSerialDxe \
+ 	OvmfPkg/VirtNorFlashDxe/VirtNorFlashDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VirtNorFlashDxe \
+ 	SecurityPkg/Hash2DxeCrypto/Hash2DxeCrypto/$(VBOX_EFI_DEBUG_DIR.arm64)/Hash2DxeCrypto \
+ 	SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/RngDxe \
+ 	SecurityPkg/Tcg/Tcg2Config/Tcg2ConfigDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Tcg2ConfigDxe \
+ 	SecurityPkg/Tcg/Tcg2Dxe/Tcg2Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/Tcg2Dxe \
+ 	SecurityPkg/Tcg/Tcg2Pei/Tcg2Pei/$(VBOX_EFI_DEBUG_DIR.arm64)/Tcg2Pei \
+ 	SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/SecureBootConfigDxe \
+ 	ShellPkg/Application/Shell/Shell/$(VBOX_EFI_DEBUG_DIR.arm64)/Shell \
+ 	ShellPkg/DynamicCommand/HttpDynamicCommand/HttpDynamicCommand/$(VBOX_EFI_DEBUG_DIR.arm64)/httpDynamicCommand \
+ 	ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand/$(VBOX_EFI_DEBUG_DIR.arm64)/tftpDynamicCommand \
+ 	ShellPkg/DynamicCommand/VariablePolicyDynamicCommand/VariablePolicyDynamicCommand/$(VBOX_EFI_DEBUG_DIR.arm64)/VariablePolicyDynamicCommand \
+ 	UefiCpuPkg/CpuMmio2Dxe/CpuMmio2Dxe/$(VBOX_EFI_DEBUG_DIR.arm64)/CpuMmio2Dxe \
+ 	VBoxPkg/Logo/LogoDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/LogoDxe \
+ 	VBoxPkg/VBoxAcpiPlatformDxe/VBoxAcpiPlatformDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VBoxAcpiPlatformDxe \
+ 	VBoxPkg/VmwSvga3Dxe/VmwSvga3VideoDxe/$(VBOX_EFI_DEBUG_DIR.arm64)/VmwSvga3VideoDxe
+
+ # Version of VBOX_EFI_MODULES without directories.
+ VBOX_EFI_MODULES_FLAT.x86   = $(notdir $(VBOX_EFI_MODULES.x86))
+ VBOX_EFI_MODULES_FLAT.amd64 = $(notdir $(VBOX_EFI_MODULES.amd64))
+ VBOX_EFI_MODULES_FLAT.arm32 = $(notdir $(VBOX_EFI_MODULES.arm32))
+ VBOX_EFI_MODULES_FLAT.arm64 = $(notdir $(VBOX_EFI_MODULES.arm64))
+
+endif
+

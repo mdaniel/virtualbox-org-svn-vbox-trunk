@@ -962,6 +962,35 @@ AssertCompile(PGMMODE_NONE == 32);
 
 #elif defined(VBOX_VMM_TARGET_ARMV8)
 
+/*
+ *
+ * Mode criteria:
+ *      - MMU enabled/disabled.
+ *      - TCR_EL1.TG0 (granule size for TTBR0_EL1).
+ *      - TCR_EL1.TG1 (granule size for TTBR1_EL1).
+ *      - TCR_EL1.T0SZ (address space size for TTBR0_EL1).
+ *      - TCR_EL1.T1SZ (address space size for TTBR1_EL1).
+ *      - TCR_EL1.IPS (intermediate physical address size).
+ *      - TCR_EL1.TBI0 (ignore top address byte for TTBR0_EL1).
+ *      - TCR_EL1.TBI1 (ignore top address byte for TTBR1_EL1).
+ *      - TCR_EL1.HPD0 (hierarchical permisson disables for TTBR0_EL1).
+ *      - TCR_EL1.HPD1 (hierarchical permisson disables for TTBR1_EL1).
+ *      - More ?
+ *
+ * Other relevant modifiers:
+ *      - TCR_EL1.HA - hardware access bit.
+ *      - TCR_EL1.HD - hardware dirty bit.
+ *      - ++
+ *
+ * Each privilege EL (1,2,3) has their own TCR_ELx and TTBR[01]_ELx registers,
+ * so they should all have their own separate modes.  To make it simpler,
+ * why not do a separate mode for TTBR0_ELx and one for TTBR1_ELx.  Top-level
+ * functions determins which of the roots to use and call template (C++)
+ * functions that takes it from there.  Using the preprocessor function template
+ * approach is is _not_ desirable here.
+ *
+ */
+
 /** @todo  Proper ARMv8 guest support for PGM;  The idea is to cache the
  *         configuration register values and lazily reconfigure when they
  *         change. */

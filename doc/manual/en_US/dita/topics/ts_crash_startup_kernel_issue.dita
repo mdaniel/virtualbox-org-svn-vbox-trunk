@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="untitled1">
+    <title>Crash on Start Caused by Kernel Bugs</title>
+    <body>
+        <p> The version of the Linux kernel supplied by default in SUSE and openSUSE 10.2, Ubuntu 6.10 (all versions) and Ubuntu 6.06 (server edition) contains a bug that can cause it to crash during startup when it is run in a virtual machine.</p>
+    </body>
+</topic>

@@ -4,12 +4,7 @@
   <title>Updating the Oracle Solaris Guest Additions</title>
   
   <body>
-    <p>
-          The Guest Additions should be updated by first uninstalling
-          the existing Guest Additions and then installing the new ones.
-          Attempting to install new Guest Additions without removing the
-          existing ones is not possible.
-        </p>
+    <p>The Guest Additions should be updated by first uninstalling the existing Guest Additions and then installing the new ones. Attempting to install new Guest Additions without removing the existing ones is not possible.</p>
   </body>
   
 </topic>

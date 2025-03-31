@@ -22,7 +22,7 @@
                     </thead>
                     <tbody>
                         <row>
-                            <entry>x86-64 (for example Intel or AMD)</entry>
+                            <entry>x86_64 (for example Intel or AMD)</entry>
                             <entry>
                                 <p>Windows</p>
                                 <p>Windows Server</p>
@@ -30,7 +30,7 @@
                                 <p>Linux (various distributions)</p>
                                 <p>Oracle Solaris</p>
                             </entry>
-                            <entry>x86 and x86-64</entry>
+                            <entry>x86 and x86_64</entry>
                             <entry>
                                 <p>Windows</p>
                                 <p>Windows Server</p>

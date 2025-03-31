@@ -3,7 +3,7 @@
 <topic xml:lang="en-us" id="guestadd-video">
   <title>Hardware-Accelerated Graphics</title>
   <body>
-    <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions contain hardware 3D support for Windows, Linux, and Oracle Solaris guests.</p>
+    <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions contain hardware 3D support for Windows, Linux, and Oracle Solaris guests. Video decoding acceleration is also used if the host can use it.</p>
     <p>With this feature, if an application inside your virtual machine uses 3D features through the OpenGL or Direct3D programming interfaces, instead of emulating them in software, which would be slow, <ph conkeyref="vbox-conkeyref-phrases/product-name"/> will attempt to use your host's 3D hardware. This works for all supported host platforms, provided that your host operating system can make use of your accelerated 3D hardware in the first place. The Guest Additions must be installed on your VM.</p>
     <p>The 3D acceleration feature is only available for certain Windows, Linux, and Oracle Solaris guests:</p>
     <ul>
@@ -17,5 +17,14 @@
         <p>OpenGL on Oracle Solaris guests requires X.org server version 1.5 or later.</p>
       </li>
     </ul>
+    <p>The video decoding feature is available if the host is x86_64 running Windows or Linux, and the VM is x86_64 running Windows 10 or Windows 11. The VM can use video decoding of all media formats that are supported by the host, and CPU load is reduced during playback of these media formats.</p>
+    <p>On Linux hosts, you must have one of the following graphics drivers, with Vulkan 1.3 or later, to use video decoding:</p>
+    <ul>
+      <li>NVIDIA Linux Graphics Driver</li>
+      <li>Mesa 3D Driver, for AMD and Intel graphics hardware</li>
+    </ul>
+    <p>Video decoding capabilities are disabled by default in Mesa 3D drivers (AMD and Intel), so you must set the following environment variables on the host:</p>
+    <p>Intel: <codeph>export ANV_VIDEO_DECODE=1</codeph></p>
+    <p>AMD: <codeph>export RADV_PERFTEST=video_decode</codeph></p>
   </body>
 </topic>

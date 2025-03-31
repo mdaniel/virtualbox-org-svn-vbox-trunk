@@ -4,31 +4,16 @@
   <title>Guest Additions for Oracle Solaris</title>
   
   <body>
-    <p>
-        Like the Windows Guest Additions, the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest
-        Additions for Oracle Solaris take the form of a set of device
-        drivers and system applications which may be installed in the
-        guest operating system.
-      </p>
-    <p>
-        The following Oracle Solaris distributions are officially
-        supported:
-      </p>
+    <p>The <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions for Oracle Solaris take the form of a set of device drivers and system applications which may be installed in the guest operating system.</p>
+    <p>The Solaris Guest Additions will run on VMs running these versions of Solaris. See also <xref href="host-guest-matrix.dita"/>.</p>
     <ul>
       <li>
-        <p>
-            Oracle Solaris 11, including Oracle Solaris 11 Express
-          </p>
+        <p>Oracle Solaris 11, including Oracle Solaris 11 Express</p>
       </li>
       <li>
-        <p>
-            Oracle Solaris 10 4/08 and later
-          </p>
+        <p>Oracle Solaris 10 4/08 and later</p>
       </li>
     </ul>
-    <p>
-        Other distributions may work if they are based on comparable
-        software releases.
-      </p>
+    <p>The Guest Additions may work with other distributions that are based on comparable software releases.</p>
   </body>
 </topic>

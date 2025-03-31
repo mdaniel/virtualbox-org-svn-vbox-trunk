@@ -4,58 +4,28 @@
   <title>Installing Code Signing Certificates</title>
   
   <body>
-    <p>To avoid popups when performing an unattended installation of the <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions, the code signing certificates used to sign
-      the drivers needs to be installed in the correct certificate stores on the guest operating system. Failure to do
-      this will cause a typical Windows installation to display multiple dialogs asking whether you want to install a
-      particular driver. </p>
+    <p>To avoid popups when performing an unattended installation of the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions, the code signing certificates used to sign the drivers needs to be installed in the correct certificate stores on the guest operating system. If you do not do this, the installation will prompt you before the installation of each driver.</p>
+    <p>The certificates are stored for you if installing Guest Additions as part of the Windows unattended installation when creating a new VM. If you are automating the installation of Guest Additions yourself, you first need to install the code signing certificates on the VM.</p>
+    <p>Use the <filepath>VBoxCertUtil.exe</filepath> utility from the <filepath>cert</filepath> folder on the Guest Additions installation CD.</p>
     <note>
-      <p>On some legacy Windows versions, such as Windows 2000 and Windows XP, the user intervention popups mentioned
-        above are always displayed, even after importing the Oracle certificates. </p>
+      <p>On some legacy Windows versions, such as Windows 2000 and Windows XP, the user intervention popups mentioned above are always displayed, even after importing the Oracle certificates.</p>
     </note>
-    <p>Installing the code signing certificates on a Windows guest can be done automatically. Use the
-        <filepath>VBoxCertUtil.exe</filepath> utility from the <filepath>cert</filepath> folder on the Guest Additions
-      installation CD. </p>
-    <p>Use the following steps: </p>
     <ol>
       <li>
-        <p>
-                Log in as Administrator on the guest.
-              </p>
+        <p>Log in as Administrator on the guest.</p>
       </li>
       <li>
-        <p>
-                Mount the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions .ISO.
-              </p>
+        <p>Mount the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions ISO.</p>
       </li>
       <li>
-        <p>
-                Open a command line window on the guest and change to
-                the <filepath>cert</filepath> folder on the
-                <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions CD.
-              </p>
+        <p>Open a command line window on the guest and change to the <filepath>cert</filepath> folder on the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions CD.</p>
       </li>
       <li>
-        <p>
-                Run the following command:
-              </p>
+        <p>Run the following command:</p>
         <pre xml:space="preserve">VBoxCertUtil.exe add-trusted-publisher vbox*.cer --root vbox*.cer</pre>
-        <p>
-                This command installs the certificates to the
-                certificate store. When installing the same certificate
-                more than once, an appropriate error will be displayed.
-              </p>
+        <p>This command installs the certificates to the certificate store. When installing the same certificate more than once, an appropriate error will be displayed.</p>
       </li>
     </ol>
-    <p>To allow for completely unattended guest installations, you can specify a command line parameter to the install
-      launcher: </p>
-    <pre xml:space="preserve">VBoxWindowsAdditions.exe /S</pre>
-    <p>This automatically installs the right files and drivers for the corresponding platform, either 32-bit or 64-bit.</p>
-    <note>
-      <p>For Windows Aero to run correctly on a guest, the guest's VRAM size needs to be configured to at least 128 MB.</p>
-    </note>
-    <p>For more options regarding unattended guest installations, consult the command line help by using the command:</p>
-    <pre xml:space="preserve">VBoxWindowsAdditions.exe /?</pre>
   </body>
   
 </topic>

@@ -5,7 +5,7 @@
   
   <body>
     <p>You can run most operating systems (OSs) successfully on a virtual machine (VM) in <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. </p>
-    <p>However, to achieve near-native performance of the guest code on your machine, some optimizations that are specific to certain OSs had to be made. So while your favorite OS <i>may</i> run as a guest, Oracle provides guest additions and premier support only for selected OSs.</p>
+    <p>However, to achieve near-native performance of the guest code on your machine, some optimizations that are specific to certain OSs had to be made. So while your favorite OS <i>may</i> run as a guest, Oracle provides premier support only for selected OSs and guest additions.</p>
     <p>Other guest OSs can be used with <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, but only qualify for limited support. Therefore, resolution of customer issues for such guest OSs cannot be assured.</p>
     <p>The virtual hardware determines the choice of guest OSs available, as does the host machine. Ensure you take all aspects of VM configuration into consideration when creating a VM.</p>
   </body>

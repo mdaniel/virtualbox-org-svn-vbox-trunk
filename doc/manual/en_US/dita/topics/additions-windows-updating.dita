@@ -4,33 +4,17 @@
   <title>Updating the Windows Guest Additions</title>
   
   <body>
-    <p>
-          Windows Guest Additions can be updated by running the
-          installation program again. This replaces the previous
-          Additions drivers with updated versions.
-        </p>
-    <p>
-          Alternatively, you can also open the Windows Device Manager
-          and select <b outputclass="bold">Update Driver...</b>
-          for the following devices:
-        </p>
+    <p>Windows Guest Additions can be updated by running the installation program again. This replaces the previous Additions drivers with updated versions.</p>
+    <p>Alternatively, you can also open the Windows Device Manager and select <b outputclass="bold">Update Driver...</b> for the following devices:</p>
     <ul>
       <li>
-        <p>
-              <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Graphics Adapter
-            </p>
+        <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> Graphics Adapter</p>
       </li>
       <li>
-        <p>
-              <ph conkeyref="vbox-conkeyref-phrases/product-name"/> System Device
-            </p>
+        <p><ph conkeyref="vbox-conkeyref-phrases/product-name"/> System Device</p>
       </li>
     </ul>
-    <p>
-          For each, choose the option to provide your own driver, click
-          <b outputclass="bold">Have Disk</b> and navigate to the
-          CD-ROM drive with the Guest Additions.
-        </p>
+    <p>For each, choose the option to provide your own driver, click <b outputclass="bold">Have Disk</b> and navigate to the CD-ROM drive with the Guest Additions.</p>
   </body>
   
 </topic>

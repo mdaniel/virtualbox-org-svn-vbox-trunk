@@ -1,10 +1,61 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic xml:lang="en-us" id="guestadd-install">
-  <title>Installing and Maintaining Guest Additions</title>
+  <title>Installing Guest Additions</title>
   
   <body>
-    <p>Guest Additions are available for virtual machines running Windows, Linux, Oracle Solaris, or OS/2. The following
-      sections describe the specifics of each variant in detail. </p>
+    <p>These instructions apply to all OSs. For additional information, see <xref href="additions-windows.dita"/>, <xref href="additions-linux.dita"/>, <xref href="additions-solaris.dita"/>, or <xref href="additions-os2.dita"/>.</p>
+    <section>
+      <title>Mount the Guest Additions ISO</title>
+      <ol>
+        <li>
+          <p>Start the virtual machine. The OS must be installed.</p>
+        </li>
+        <li>
+          <p>From the <uicontrol>Devices</uicontrol> menu, choose <uicontrol>Insert Guest Additions CD Image</uicontrol>, which mounts the Guest Additions ISO file inside your VM.</p>
+        </li>
+        <li>
+          <p>If this option is not available, or if you prefer to mount the ISO manually:</p>
+          <ol>
+            <li>
+              <p>From the <uicontrol>Devices</uicontrol> menu, choose <uicontrol>Optical Drives</uicontrol>, and then<uicontrol> Choose/Create a Disk Image</uicontrol>. This displays the <xref href="virtual-media-manager.dita#virtual-media-manager"/>.</p>
+            </li>
+            <li>
+              <p>In the Virtual Media Manager, click <uicontrol>Add</uicontrol> and browse your host file system for the <filepath>VBoxGuestAdditions.iso</filepath> file.</p>
+              <ul>
+                <li>On a Windows host, this file is in the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> installation directory, usually in <filepath>C:\Program files\Oracle\VirtualBox</filepath>.</li>
+                <li>
+                  <p>On a Linux host, this file is in the <filepath>additions</filepath> folder where you installed <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, usually <filepath>/opt/VirtualBox/</filepath>.</p>
+                </li>
+                <li>
+                  <p>On Oracle Solaris hosts, this file is in the <filepath>additions</filepath> folder where you installed <ph conkeyref="vbox-conkeyref-phrases/product-name"/>, usually <filepath>/opt/VirtualBox</filepath>.</p>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <p>In the Virtual Media Manager, select the ISO file and click <uicontrol>Add</uicontrol>. This mounts the ISO file and presents it to your guest OS as a CD-ROM.</p>
+            </li>
+          </ol>
+        </li>
+      </ol>
+    </section>
+    <section>
+      <title>Run the Guest Additions Installer</title>
+      <ol>
+        <li>
+          <p>Mount the ISO as described in the previous task.</p>
+        </li>
+        <li>
+          <p>Unless you have the Autostart feature disabled, or it is not supported, the OS will now autostart the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions installer from the Guest Additions ISO.</p>
+          <p>If the Autostart feature has been turned off, choose <filepath>VBox&lt;OS>Additions.exe</filepath> from the CD/DVD drive inside the guest to start the installer, where <filepath>&lt;OS></filepath> is <filepath>Windows</filepath>, <filepath>Linux</filepath>, <filepath>OS2</filepath> or <filepath>Solaris</filepath>.</p>
+        </li>
+        <li>
+          <p>Follow the instructions in the installer.</p>
+        </li>
+        <li>
+          <p>Reboot the guest OS.</p>
+        </li>
+      </ol>
+    </section>
   </body>
 </topic>

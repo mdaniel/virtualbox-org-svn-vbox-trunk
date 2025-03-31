@@ -210,25 +210,26 @@
             <topicref href="topics/additions-windows.dita">
                <topicref href="topics/mountingadditionsiso.dita"/>
                <topicref href="topics/additions-windows-updating.dita"/>
-               <topicref href="topics/additions-windows-install-unattended.dita"/>
                <topicref href="topics/additions-windows-install-unattended-certs.dita"/>
+        <topicref href="topics/sysprep.dita"/>
                <topicref href="topics/windows-guest-file-extraction.dita"/>
             </topicref>
             <topicref href="topics/additions-linux.dita">
                <topicref href="topics/additions-linux-install.dita"/>
-               <topicref href="topics/additions-linux-install-unattended.dita"/>
-               <topicref href="topics/additions-linux-graphics-mouse.dita"/>
+        <topicref href="topics/linux-guest-manual-setup.dita"/>
                <topicref href="topics/additions-linux-updating.dita"/>
                <topicref href="topics/additions-linux-uninstall.dita"/>
             </topicref>
             <topicref href="topics/additions-solaris.dita">
                <topicref href="topics/additions-solaris-install.dita"/>
-               <topicref href="topics/additions-solaris-install-unattended.dita"/>
                <topicref href="topics/additions-solaris-uninstall.dita"/>
                <topicref href="topics/additions-solaris-updating.dita"/>
             </topicref>
             <topicref href="topics/additions-os2.dita"/>
          </topicref>
+    <topicref href="topics/additions-linux-graphics-mouse.dita">
+      <topicref href="topics/vboxdrmclient.dita"/>
+    </topicref>
          <topicref href="topics/sharedfolders.dita">
             <topicref href="topics/sf_mount_manual.dita"/>
             <topicref href="topics/sf_mount_auto.dita"/>
@@ -332,13 +333,6 @@
          <topicref href="topics/autologon_unix.dita">
             <topicref href="topics/autologon_unix_lightdm.dita"/>
          </topicref>
-      </topicref>
-      <topicref href="topics/adv-config-win-guest.dita">
-         <topicref href="topics/sysprep.dita"/>
-      </topicref>
-      <topicref href="topics/adv-config-linux-guest.dita">
-         <topicref href="topics/linux-guest-manual-setup.dita"/>
-         <topicref href="topics/guestxorgsetup.dita"/>
       </topicref>
       <topicref href="topics/cpuhotplug.dita"/>
       <topicref href="topics/webcam-passthrough.dita">
@@ -473,6 +467,7 @@
       <topicref href="topics/ts_win-guest-bluescreen.dita"/>
       <topicref href="topics/ts_config-periodic-flush.dita"/>
       <topicref href="topics/ts_linux-buggy.dita"/>
+      <topicref href="topics/ts_crash_startup_kernel_issue.dita"/>
       <topicref href="topics/ts_linux-guest-high-cpu.dita"/>
       <topicref href="topics/ts_solaris-10-guest-slow-boot-smp.dita"/>
       <topicref href="topics/ts_solaris-no-e1000-bm.dita"/>

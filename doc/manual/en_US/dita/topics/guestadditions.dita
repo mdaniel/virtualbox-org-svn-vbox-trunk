@@ -4,10 +4,8 @@
   <title>Guest Additions</title>
   
   <body>
-    <p>The previous chapter covered getting started with <ph conkeyref="vbox-conkeyref-phrases/product-name"/> and
-      installing operating systems in a virtual machine. For any serious and interactive use, the <ph
-        conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions will make your life much easier by providing
-      closer integration between host and guest and improving the interactive performance of guest systems. This chapter
-      describes the Guest Additions in detail. </p>
+    <p>The Guest Additions are designed to be installed <i>inside</i> a virtual machine after the guest operating system has been installed. They consist of device drivers and system applications that optimize the guest operating system for better performance and usability. See <xref href="guest-os.dita"/> for details on the guest operating systems that Oracle provides premier support for.</p>
+    <p>The available <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions are provided as a single CD-ROM image file called <filepath>VBoxGuestAdditions.iso</filepath>. This image file is located in the installation directory of <ph conkeyref="vbox-conkeyref-phrases/product-name"/>. To install the Guest Additions for a particular OS, you mount this ISO file in your VM as a virtual CD-ROM and install from there.</p>
+    <p>You can also configure unattended installation of the <ph conkeyref="vbox-conkeyref-phrases/product-name"/> Guest Additions when you create a new VM. See <xref href="create-vm-unattended-install.dita"/>.</p>
   </body>
 </topic>

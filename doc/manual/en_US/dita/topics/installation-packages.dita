@@ -13,16 +13,16 @@
             <p>Windows 11 with Arm processors</p>
           </li>
           <li>
-            <p>Windows 11 with x86-64 processors</p>
+            <p>Windows 11 with x86_64 processors</p>
           </li>
           <li>
-            <p>Windows 10 with x86-64 processors</p>
+            <p>Windows 10 with x86_64 processors</p>
           </li>
           <li>
-            <p>Windows Server 2025 with x86-64 processors</p>
+            <p>Windows Server 2025 with x86_64 processors</p>
           </li>
           <li>
-            <p>Windows Server 2022 with x86-64 processors</p>
+            <p>Windows Server 2022 with x86_64 processors</p>
           </li>
         </ul>
       </li>
@@ -31,16 +31,16 @@
           <b outputclass="bold"><?oxy_comment_start author="Mhari Duncan" timestamp="20241213T115547+0000" comment="Put limitations here, after list?"?>macOS / Intel hosts<?oxy_comment_end?></b>:</p>
         <ul>
           <li>
-            <p>14 (Sonoma) with Intel x86-64 processors</p>
+            <p>14 (Sonoma) with Intel x86_64 processors</p>
           </li>
           <li>
-            <p>13 (Ventura) with Intel x86-64 processors</p>
+            <p>13 (Ventura) with Intel x86_64 processors</p>
           </li>
           <li>
-            <p>12 (Monterey) with Intel x86-64 processors</p>
+            <p>12 (Monterey) with Intel x86_64 processors</p>
           </li>
           <li>
-            <p>11 (Big Sur) with Intel x86-64 processors</p>
+            <p>11 (Big Sur) with Intel x86_64 processors</p>
           </li>
         </ul>
       </li>
@@ -65,17 +65,17 @@
       <li>
         <p><b outputclass="bold">Linux Distributions</b>:</p>
         <ul>
-          <li><b>​Oracle Linux 9 / Red Hat Enterprise Linux 9</b> with x86-64 processors</li>
-          <li><b>​Oracle Linux 8 / Red Hat Enterprise Linux 8​</b> with x86-64 processors</li>
-          <li><b>Ubuntu 24.10</b>​ with x86-64 processors</li>
-          <li><b>Ubuntu 24.04</b>​ with x86-64 processors</li>
-          <li><b>Ubuntu 22.04</b> with x86-64 processors</li>
-          <li><b>​Ubuntu 20.04​</b> with x86-64 processors</li>
-          <li><b>Debian 12</b> - Debian GNU/Linux 12 (Bookworm)​ with x86-64 processors</li>
-          <li><b>Debian 11</b> - Debian GNU/Linux 11 (Bullseye) with x86-64 processors</li>
-          <li><b>​openSUSE 15.3 / 15.4 / 15.5 / 15.6</b> with x86-64 processors</li>
-          <li><b>Fedora 40 / 41</b> with x86-64 processors</li>
-          <li><b>​All distributions</b> with x86-64 processors - Built on EL6 and therefore not requiring recent system libraries. Not covered by Oracle Premier Support.</li>
+          <li><b>​Oracle Linux 9 / Red Hat Enterprise Linux 9</b> with x86_64 processors</li>
+          <li><b>​Oracle Linux 8 / Red Hat Enterprise Linux 8​</b> with x86_64 processors</li>
+          <li><b>Ubuntu 24.10</b>​ with x86_64 processors</li>
+          <li><b>Ubuntu 24.04</b>​ with x86_64 processors</li>
+          <li><b>Ubuntu 22.04</b> with x86_64 processors</li>
+          <li><b>​Ubuntu 20.04​</b> with x86_64 processors</li>
+          <li><b>Debian 12</b> - Debian GNU/Linux 12 (Bookworm)​ with x86_64 processors</li>
+          <li><b>Debian 11</b> - Debian GNU/Linux 11 (Bullseye) with x86_64 processors</li>
+          <li><b>​openSUSE 15.3 / 15.4 / 15.5 / 15.6</b> with x86_64 processors</li>
+          <li><b>Fedora 40 / 41</b> with x86_64 processors</li>
+          <li><b>​All distributions</b> with x86_64 processors - Built on EL6 and therefore not requiring recent system libraries. Not covered by Oracle Premier Support.</li>
         </ul>
       </li>
       <li>
@@ -86,7 +86,7 @@ Need to state restrictions somewhere"?> and<?oxy_comment_end?>
           <b outputclass="bold">Solaris 11 IPS hosts</b></p>
         <ul>
           <li>
-            <p> Oracle Solaris 11.4 </p>
+            <p> Oracle Solaris 11.4</p>
           </li>
         </ul>
       </li>

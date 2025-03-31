@@ -2,6 +2,7 @@
 # CI configuration for DynamicTablesPkg
 #
 # Copyright (c) 2020, Arm Limited. All rights reserved.<BR>
+# Copyright (C) 2024 - 2025 Advanced Micro Devices, Inc. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 {
@@ -104,6 +105,8 @@
            "CCIDX",
            "CCSIDR",
            "countof",
+           "deviceid",
+           "EArch",
            "edynamic",
            "EOBJECT",
            "invoc",
@@ -112,6 +115,7 @@
            "lgreater",
            "lless",
            "MPIDR",
+           "NAMESPACEID",
            "PASID",
            "PERIPHBASE",
            "phandle",
@@ -119,6 +123,7 @@
            "Rdword",
            "Roadmap",
            "ROOTNODEBASE",
+           "sapic",
            "ssdtcmn",
            "ssdtserialporttemplate",
            "SMMUV",
@@ -128,7 +133,8 @@
            "TABLEEX",
            "TNSID",
            "Vatos",
-           "WBINVD"
+           "WBINVD",
+           "xapic"
            ],           # words to extend to the dictionary for this package
         "IgnoreStandardPaths": [],   # Standard Plugin defined paths that
                                      # should be ignore

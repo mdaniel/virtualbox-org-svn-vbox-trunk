@@ -11,7 +11,7 @@
 
 #include <Uefi.h>
 #include <Pi/PiMultiPhase.h>
-#include <Chipset/AArch64.h>
+#include <AArch64/AArch64.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -23,6 +23,23 @@
 #include "ArmMmuLibInternal.h"
 
 STATIC  ARM_REPLACE_LIVE_TRANSLATION_ENTRY  mReplaceLiveEntryFunc = ArmReplaceLiveTranslationEntry;
+
+/**
+  Whether the current translation regime is either EL1&0 or EL2&0, and
+  therefore supports non-global, ASID-scoped memory mappings.
+ **/
+STATIC
+BOOLEAN
+TranslationRegimeIsDual (
+  VOID
+  )
+{
+  if (ArmReadCurrentEL () == AARCH64_EL2) {
+    return (ArmReadHcr () & ARM_HCR_E2H) != 0;
+  }
+
+  return TRUE;
+}
 
 STATIC
 UINT64
@@ -39,7 +56,7 @@ ArmMemoryAttributeToPageAttribute (
 
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_XP:
     case ARM_MEMORY_REGION_ATTRIBUTE_DEVICE:
-      if (ArmReadCurrentEL () == AARCH64_EL2) {
+      if (!TranslationRegimeIsDual ()) {
         Permissions = TT_XN_MASK;
       } else {
         Permissions = TT_UXN_MASK | TT_PXN_MASK;
@@ -53,7 +70,7 @@ ArmMemoryAttributeToPageAttribute (
 
   switch (Attributes) {
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_NONSHAREABLE:
-      return TT_ATTR_INDX_MEMORY_WRITE_BACK;
+      return TT_ATTR_INDX_MEMORY_WRITE_BACK | Permissions;
 
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK:
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_RO:
@@ -65,7 +82,7 @@ ArmMemoryAttributeToPageAttribute (
 
     // Uncached and device mappings are treated as outer shareable by default,
     case ARM_MEMORY_REGION_ATTRIBUTE_UNCACHED_UNBUFFERED:
-      return TT_ATTR_INDX_MEMORY_NON_CACHEABLE;
+      return TT_ATTR_INDX_MEMORY_NON_CACHEABLE | Permissions;
 
     default:
       ASSERT (0);
@@ -382,6 +399,13 @@ UpdateRegionMapping (
   UINTN  T0SZ;
 
   if (((RegionStart | RegionLength) & EFI_PAGE_MASK) != 0) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "%a RegionStart: 0x%llx or RegionLength: 0x%llx are not page aligned!\n",
+      __func__,
+      RegionStart,
+      RegionLength
+      ));
     return EFI_INVALID_PARAMETER;
   }
 
@@ -444,7 +468,7 @@ GcdAttributeToPageAttribute (
   if (((GcdAttributes & EFI_MEMORY_XP) != 0) ||
       ((GcdAttributes & EFI_MEMORY_CACHETYPE_MASK) == EFI_MEMORY_UC))
   {
-    if (ArmReadCurrentEL () == AARCH64_EL2) {
+    if (!TranslationRegimeIsDual ()) {
       PageAttributes |= TT_XN_MASK;
     } else {
       PageAttributes |= TT_UXN_MASK | TT_PXN_MASK;
@@ -561,6 +585,11 @@ ArmConfigureMmu (
   UINT64      TCR;
   EFI_STATUS  Status;
 
+  ASSERT (ArmReadCurrentEL () < AARCH64_EL3);
+  if (ArmReadCurrentEL () == AARCH64_EL3) {
+    return EFI_UNSUPPORTED;
+  }
+
   if (MemoryTable == NULL) {
     ASSERT (MemoryTable != NULL);
     return EFI_INVALID_PARAMETER;
@@ -582,9 +611,7 @@ ArmConfigureMmu (
   //
   // Set TCR that allows us to retrieve T0SZ in the subsequent functions
   //
-  // Ideally we will be running at EL2, but should support EL1 as well.
-  // UEFI should not run at EL3.
-  if (ArmReadCurrentEL () == AARCH64_EL2) {
+  if (!TranslationRegimeIsDual ()) {
     // Note: Bits 23 and 31 are reserved(RES1) bits in TCR_EL2
     TCR = T0SZ | (1UL << 31) | (1UL << 23) | TCR_TG0_4KB;
 
@@ -610,7 +637,7 @@ ArmConfigureMmu (
       ASSERT (0); // Bigger than 48-bit memory space are not supported
       return EFI_UNSUPPORTED;
     }
-  } else if (ArmReadCurrentEL () == AARCH64_EL1) {
+  } else {
     // Due to Cortex-A57 erratum #822227 we must set TG1[1] == 1, regardless of EPD1.
     TCR = T0SZ | TCR_TG0_4KB | TCR_TG1_4KB | TCR_EPD1;
 
@@ -636,9 +663,6 @@ ArmConfigureMmu (
       ASSERT (0); // Bigger than 48-bit memory space are not supported
       return EFI_UNSUPPORTED;
     }
-  } else {
-    ASSERT (0); // UEFI is only expected to run at EL2 and EL1, not EL3.
-    return EFI_UNSUPPORTED;
   }
 
   //

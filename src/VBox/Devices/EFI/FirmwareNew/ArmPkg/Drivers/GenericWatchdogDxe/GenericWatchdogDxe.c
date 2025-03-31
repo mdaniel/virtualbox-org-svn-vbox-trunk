@@ -375,7 +375,7 @@ GenericWatchdogEntry (
   // Install interrupt handler
   Status = mInterruptProtocol->RegisterInterruptSource (
                                  mInterruptProtocol,
-                                 FixedPcdGet32 (PcdGenericWatchdogEl2IntrNum),
+                                 PcdGet32 (PcdGenericWatchdogEl2IntrNum),
                                  WatchdogInterruptHandler
                                  );
   if (EFI_ERROR (Status)) {
@@ -384,12 +384,14 @@ GenericWatchdogEntry (
 
   Status = mInterruptProtocol->SetTriggerType (
                                  mInterruptProtocol,
-                                 FixedPcdGet32 (PcdGenericWatchdogEl2IntrNum),
+                                 PcdGet32 (PcdGenericWatchdogEl2IntrNum),
                                  EFI_HARDWARE_INTERRUPT2_TRIGGER_EDGE_RISING
                                  );
   if (EFI_ERROR (Status)) {
     goto UnregisterHandler;
   }
+
+  WatchdogDisable ();
 
   // Install the Timer Architectural Protocol onto a new handle
   Handle = NULL;
@@ -413,15 +415,13 @@ GenericWatchdogEntry (
                   );
   ASSERT_EFI_ERROR (Status);
 
-  WatchdogDisable ();
-
   return EFI_SUCCESS;
 
 UnregisterHandler:
   // Unregister the handler
   mInterruptProtocol->RegisterInterruptSource (
                         mInterruptProtocol,
-                        FixedPcdGet32 (PcdGenericWatchdogEl2IntrNum),
+                        PcdGet32 (PcdGenericWatchdogEl2IntrNum),
                         NULL
                         );
   return Status;

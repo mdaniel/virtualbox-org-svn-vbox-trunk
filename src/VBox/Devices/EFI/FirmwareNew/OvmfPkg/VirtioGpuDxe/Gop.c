@@ -265,14 +265,19 @@ GopInitialize (
   // query host for display resolution
   //
   GopNativeResolution (VgpuGop, &XRes, &YRes);
-  if ((XRes == 0) || (YRes == 0)) {
+  if ((XRes < 640) || (YRes < 480)) {
+    /* ignore hint, GraphicsConsoleDxe needs 640x480 or larger */
     return;
   }
 
   if (PcdGet8 (PcdVideoResolutionSource) == 0) {
     Status = PcdSet32S (PcdVideoHorizontalResolution, XRes);
     ASSERT_RETURN_ERROR (Status);
+    Status = PcdSet32S (PcdSetupVideoHorizontalResolution, XRes);
+    ASSERT_RETURN_ERROR (Status);
     Status = PcdSet32S (PcdVideoVerticalResolution, YRes);
+    ASSERT_RETURN_ERROR (Status);
+    Status = PcdSet32S (PcdSetupVideoVerticalResolution, YRes);
     ASSERT_RETURN_ERROR (Status);
     Status = PcdSet8S (PcdVideoResolutionSource, 2);
     ASSERT_RETURN_ERROR (Status);

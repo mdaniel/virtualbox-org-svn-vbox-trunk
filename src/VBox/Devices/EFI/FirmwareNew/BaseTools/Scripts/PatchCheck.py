@@ -234,8 +234,6 @@ class CommitMessageCheck:
     def check_misc_signatures(self):
         for sigtype in self.sig_types:
             sigs = self.find_signatures(sigtype)
-            if sigtype == 'Cc' and len(sigs) == 0:
-                self.error('No Cc: tags for maintainers/reviewers found!')
 
     cve_re = re.compile('CVE-[0-9]{4}-[0-9]{5}[^0-9]')
 
@@ -397,7 +395,6 @@ class GitDiffCheck:
                     self.force_notabs = False
                 if self.filename.endswith('.sh') or \
                     self.filename.startswith('BaseTools/BinWrappers/PosixLike/') or \
-                    self.filename.startswith('BaseTools/BinPipWrappers/PosixLike/') or \
                     self.filename == 'BaseTools/BuildEnv':
                     #
                     # Do not enforce CR/LF line endings for linux shell scripts.
@@ -686,8 +683,6 @@ class CheckGitCommits:
     def __init__(self, rev_spec, max_count):
         dec_files = self.read_dec_files_from_git()
         commits = self.read_commit_list_from_git(rev_spec, max_count)
-        if len(commits) == 1 and Verbose.level > Verbose.ONELINE:
-            commits = [ rev_spec ]
         self.ok = True
         blank_line = False
         for commit in commits:

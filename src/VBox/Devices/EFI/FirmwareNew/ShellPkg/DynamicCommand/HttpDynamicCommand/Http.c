@@ -1690,7 +1690,7 @@ GetResponse (
     if (!EFI_ERROR (gRT->GetTime (&EndTime, NULL))) {
       ElapsedSeconds = EfiTimeToEpoch (&EndTime) - EfiTimeToEpoch (&StartTime);
       Print (
-        L",%a%Lus\n",
+        L",%a%Lus",
         ElapsedSeconds ? " " : " < ",
         ElapsedSeconds > 1 ? (UINT64)ElapsedSeconds : 1
         );
@@ -1815,6 +1815,10 @@ DownloadFile (
                     Context->Uri,
                     StrLen (Context->Uri)
                     );
+    if (DownloadUrl == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+      goto ON_EXIT;
+    }
 
     PRINT_HII (STRING_TOKEN (STR_HTTP_DOWNLOADING), DownloadUrl);
 

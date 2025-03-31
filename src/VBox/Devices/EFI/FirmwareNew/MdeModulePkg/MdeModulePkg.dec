@@ -4,7 +4,7 @@
 # and libraries instances, which are used for those modules.
 #
 # Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
-# Copyright (c) 2007 - 2021, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2007 - 2024, Intel Corporation. All rights reserved.<BR>
 # Copyright (c) 2016, Linaro Ltd. All rights reserved.<BR>
 # (C) Copyright 2016 - 2019 Hewlett Packard Enterprise Development LP<BR>
 # Copyright (c) 2017, AMD Incorporated. All rights reserved.<BR>
@@ -173,6 +173,10 @@
   #                   control over the SPI hardware
   #
   SpiHcPlatformLib|Include/Library/SpiHcPlatformLib.h
+
+  ##  @libraryclass   Provides services to prints all HOB information.
+  #
+  HobPrintLib|Include/Library/HobPrintLib.h
 
 [Guids]
   ## MdeModule package token space guid
@@ -409,6 +413,13 @@
   ## Include/Guid/EndofS3Resume.h
   gEdkiiEndOfS3ResumeGuid = { 0x96f5296d, 0x05f7, 0x4f3c, {0x84, 0x67, 0xe4, 0x56, 0x89, 0x0e, 0x0c, 0xb5 } }
 
+  #
+  # Guids for NVMe Timeout Events
+  # {4754469d-6528-4dfc-84aa-8c8a03a2158b}
+  gNVMeEnableStartEventGroupGuid = { 0x4754469d, 0x6528, 0x4dfc, { 0x84, 0xaa, 0x8c, 0x8a, 0x03, 0xa2, 0x15, 0x8b } }
+  # {da383315-906b-486f-80db-847f268451e4}
+  gNVMeEnableCompleteEventGroupGuid = { 0xda383315, 0x906b, 0x486f, { 0x80, 0xdb, 0x84, 0x7f, 0x26, 0x84, 0x51, 0xe4 } }
+
   ## Used (similar to Variable Services) to communicate policies to the enforcement engine.
   # {DA1B0D11-D1A7-46C4-9DC9-F3714875C6EB}
   gVarCheckPolicyLibMmiHandlerGuid = { 0xda1b0d11, 0xd1a7, 0x46c4, { 0x9d, 0xc9, 0xf3, 0x71, 0x48, 0x75, 0xc6, 0xeb }}
@@ -465,6 +476,21 @@
   gEdk2JedecSfdpSpiDxeDriverGuid  = { 0xBE71701E, 0xB63C, 0x4574, { 0x9C, 0x5C, 0x36, 0x29, 0xE8, 0xEA, 0xC4, 0x14 }}
   gEdk2JedecSfdpSpiSmmDriverGuid  = { 0x95A1E915, 0x195C, 0x477C, { 0x92, 0x6F, 0x7E, 0x24, 0x67, 0xC1, 0xB3, 0x1F }}
 
+  ## This GUID will be used to save MTRR_SETTINGS at EndOfDxe by LockBox and restore at S3 boot PEI phase for s3 usage.
+  gEdkiiS3MtrrSettingGuid = { 0xd77baa84, 0xb332, 0x4463, { 0x9f, 0x1d, 0xce, 0x81, 0x00, 0xfe, 0x7f, 0x35 }}
+
+  ## Include/Guid/VariableRuntimeCacheInfo.h
+  gEdkiiVariableRuntimeCacheInfoHobGuid = { 0x0f472f7d, 0x6713, 0x4915, { 0x96, 0x14, 0x5d, 0xda, 0x28, 0x40, 0x10, 0x56 }}
+
+  ## HOB GUID to get ACPI table after FSP is done. The ACPI table that related SOC will be pass by this HOB.
+  gAcpiTableHobGuid = { 0xf9886b57, 0x8a35, 0x455e, { 0xbb, 0xb1, 0x14, 0x65, 0x5e, 0x7b, 0xe7, 0xec }}
+
+  ## Include/Guid/MmCommBuffer.h
+  gMmCommBufferHobGuid  = { 0x6c2a2520, 0x0131, 0x4aee, { 0xa7, 0x50, 0xcc, 0x38, 0x4a, 0xac, 0xe8, 0xc6 }}
+
+  ## Include/Guid/DelayedDispatch.h
+  gEfiDelayedDispatchTableGuid = { 0x4b733449, 0x8eff, 0x488c, { 0x92, 0x1a, 0x15, 0x4a, 0xda, 0x25, 0x18, 0x07 }}
+
 [Ppis]
   ## Include/Ppi/FirmwareVolumeShadowPpi.h
   gEdkiiPeiFirmwareVolumeShadowPpiGuid = { 0x7dfe756c, 0xed8d, 0x4d77, {0x9e, 0xc4, 0x39, 0x9a, 0x8a, 0x81, 0x51, 0x16 } }
@@ -504,6 +530,9 @@
 
   ## Include/Ppi/UfsHostController.h
   gEdkiiPeiUfsHostControllerPpiGuid  =  { 0xdc54b283, 0x1a77, 0x4cd6, { 0x83, 0xbb, 0xfd, 0xda, 0x46, 0x9a, 0x2e, 0xc6 }}
+
+  ## Include/Ppi/UfsHostControllerPlatformPpi.h
+  gEdkiiUfsHcPlatformPpiGuid =  { 0x9e2bde17, 0x7df0, 0x42ea, {0x98, 0xa3, 0xf6, 0x9a, 0xf3, 0xfb, 0x2b, 0xb9 }}
 
   ## Include/Ppi/IpmiPpi.h
   gPeiIpmiPpiGuid               =  { 0xa9731431, 0xd968, 0x4277, { 0xb7, 0x52, 0xa3, 0xa9, 0xa6, 0xae, 0x18, 0x98 }}
@@ -551,6 +580,9 @@
   ## Include/Ppi/MemoryAttribute.h
   gEdkiiMemoryAttributePpiGuid              = { 0x1be840de, 0x2d92, 0x41ec, { 0xb6, 0xd3, 0x19, 0x64, 0x13, 0x50, 0x51, 0xfb } }
 
+  ## Include/Ppi/MigrateTempRam.h
+  gEdkiiPeiMigrateTempRamPpiGuid            = { 0xc79dc53b, 0xafcd, 0x4a6a, { 0xad, 0x94, 0xa7, 0x6a, 0x3f, 0xa9, 0xe9, 0xc2 } }
+
 [Protocols]
   ## Load File protocol provides capability to load and unload EFI image into memory and execute it.
   #  Include/Protocol/LoadPe32Image.h
@@ -562,6 +594,10 @@
   # Include/Protocol/Print2.h
   gEfiPrint2ProtocolGuid          = { 0xf05976ef, 0x83f1, 0x4f3d, { 0x86, 0x19, 0xf7, 0x59, 0x5d, 0x41, 0xe5, 0x38 } }
   gEfiPrint2SProtocolGuid         = { 0xcc252d2, 0xc106, 0x4661, { 0xb5, 0xbd, 0x31, 0x47, 0xa4, 0xf8, 0x1f, 0x92 } }
+
+  ## This protocol defines the Media Clear and Sanitize operations defined by NIST
+  # Include/Protocol/MediaSanitize.h
+  gMediaSanitizeProtocolGuid = { 0x0d799a99, 0x25af, 0x429e, {0x92, 0x72, 0xd0, 0xb2, 0x7d, 0x6d, 0x5f, 0x14 } }
 
   ## This protocol defines the generic memory test interfaces in Dxe phase.
   # Include/Protocol/GenericMemoryTest.h
@@ -1011,6 +1047,14 @@
   # @ValidList  0x80000006 | 0x03058002
   gEfiMdeModulePkgTokenSpaceGuid.PcdErrorCodeSetVariable|0x03058002|UINT32|0x30001040
 
+  ## Delayed Dispatch Maximum Delay in us (microseconds)
+  # Maximum delay for any particular delay request - 5 seconds
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDelayedDispatchMaxDelayUs|5000000|UINT32|0x3000104A
+
+  ## Delayed Dispatch timeout in us (microseconds)
+  # Maximum delay when waiting for completion (ie EndOfPei) - 10 seconds
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDelayedDispatchCompletionTimeoutUs|10000000|UINT32|0x3000104B
+
   ## Mask to control the NULL address detection in code for different phases.
   #  If enabled, accessing NULL address in UEFI or SMM code can be caught.<BR><BR>
   #    BIT0    - Enable NULL pointer detection for UEFI.<BR>
@@ -1163,6 +1207,10 @@
   # Default is 2000, it represent delay is 2 ms.
   # @Prompt Delay access XHCI register after it issues HCRST (us)
   gEfiMdeModulePkgTokenSpaceGuid.PcdDelayXhciHCReset|2000|UINT16|0x30001060
+
+  ## Specifies the page count allocated for the MM communication buffer.
+  # @Prompt Defines the page allocation for the MM communication buffer; default is 128 pages (512KB).
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMmCommBufferPages|128|UINT32|0x30001061
 
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
@@ -1680,6 +1728,11 @@
   #
   # @Prompt SPI NOR Flash Operation Delay in Microseconds (16 us)
   gEfiMdeModulePkgTokenSpaceGuid.PcdSpiNorFlashOperationDelayMicroseconds|0x00000010|UINT32|0x00000035
+
+  ## Indicate the default timeout value for UFS device initial completetion in microseconds.
+  #
+  # @Prompt UFS device initial completion timoeout (us), default value is 600ms.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUfsInitialCompletionTimeout|600000|UINT32|0x00000036
 
 [PcdsPatchableInModule, PcdsDynamic, PcdsDynamicEx]
   ## This PCD defines the Console output row. The default value is 25 according to UEFI spec.

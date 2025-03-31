@@ -1,7 +1,7 @@
 ## @file  UefiCpuPkg.dec
 # This Package provides UEFI compatible CPU modules and libraries.
 #
-# Copyright (c) 2007 - 2023, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2007 - 2024, Intel Corporation. All rights reserved.<BR>
 # Copyright (C) 2023 - 2024, Advanced Micro Devices, Inc. All rights reserved.<BR>
 # Copyright (c) 2024, Loongson Technology Corporation Limited. All rights reserved.<BR>
 #
@@ -53,6 +53,9 @@
   ##  @libraryclass  Provides function to support CcExit processing.
   CcExitLib|Include/Library/CcExitLib.h
 
+  ## @libraryclass  Provides functions for Tdx Measurement processing
+  TdxMeasurementLib|Include/Library/TdxMeasurementLib.h
+
   ##  @libraryclass  Provides function to support AmdSvsm processing.
   AmdSvsmLib|Include/Library/AmdSvsmLib.h
 
@@ -75,6 +78,8 @@
   SmmRelocationLib|Include/Library/SmmRelocationLib.h
 
 [LibraryClasses.RISCV64]
+  ##  @libraryclass  Provides function to initialize the FPU.
+  RiscVFpuLib|Include/Library/BaseRiscVFpuLib.h
   ##  @libraryclass  Provides functions to manage MMU features on RISCV64 CPUs.
   ##
   RiscVMmuLib|Include/Library/BaseRiscVMmuLib.h
@@ -107,6 +112,18 @@
   #
   ## Include/Guid/GhcbApicIds.h
   gGhcbApicIdsGuid               = { 0xbc964338, 0xee39, 0x4fc8, { 0xa2, 0x24, 0x10, 0x10, 0x8b, 0x17, 0x80, 0x1b }}
+
+  ## Include/Guid/MmUnblockRegion.h
+  gMmUnblockRegionHobGuid        = { 0x7c316fb3, 0x849e, 0x4ee7, { 0x87, 0xfc, 0x16, 0x2d, 0x0b, 0x03, 0x42, 0xbf }}
+
+  ## Include/Guid/MmProfileData.h
+  gMmProfileDataHobGuid          = { 0x26ef081d, 0x19b0, 0x4c42, { 0xa2, 0x57, 0xa7, 0xf5, 0x9f, 0x8b, 0xd0, 0x38 }}
+
+  ## Include/Guid/MmCpuSyncConfig.h
+  gMmCpuSyncConfigHobGuid        = { 0x8b90bd26, 0xe4f9, 0x45c2, { 0x92, 0xa2, 0x9e, 0xac, 0xe6, 0x0e, 0x9d, 0xcc }}
+
+  # Include/Guid/MmAcpiS3Enable.h
+  gMmAcpiS3EnableHobGuid         = { 0xe7402821, 0x2654, 0x4c1b, { 0x99, 0x0e, 0x04, 0x8f, 0x8d, 0x82, 0xcf, 0x67 }}
 
 [Protocols]
   ## Include/Protocol/SmmCpuService.h
@@ -248,6 +265,14 @@
   # @Prompt BSP Broadcast Method for the first-time wakeup of APs
   gUefiCpuPkgTokenSpaceGuid.PcdFirstTimeWakeUpAPsBySipi|TRUE|BOOLEAN|0x30002007
 
+  ## The max mapping address in page table before Temp Ram Exit.
+  # After physical memory is initialized and before Temp Ram Exit, the physical memory is in UC state.
+  # The PCD controls the page table max mapping address in physical memory before Temp Ram Exit
+  # because creating a big page table in UC physical memory to cover the entire memory space
+  # is slow. The value of 0xFFFFFFFFFFFFFFFF, then firmware will map entire physical address space.
+  # @Prompt Configure max mapping address in page table before Temp Ram Exit.
+  gUefiCpuPkgTokenSpaceGuid.PcdMaxMappingAddressBeforeTempRamExit|0xFFFFFFFFFFFFFFFF|UINT64|0x30002008
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## This value is the CPU Local APIC base address, which aligns the address on a 4-KByte boundary.
   # @Prompt Configure base address of CPU Local APIC
@@ -269,7 +294,7 @@
 
   ## Specifies buffer size in bytes to save SMM profile data. The value should be a multiple of 4KB.
   # @Prompt SMM profile data buffer size.
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmProfileSize|0x200000|UINT32|0x32132107
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmProfileSize|0x600000|UINT32|0x32132107
 
   ## Specifies stack size in bytes for each processor in SMM.
   # @Prompt Processor stack size in SMM.
@@ -310,7 +335,7 @@
 
   ## Specifies if CPU features will be initialized during S3 resume.
   # @Prompt If CPU features will be initialized during S3 resume.
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuFeaturesInitOnS3Resume|FALSE|BOOLEAN|0x0000001D
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuFeaturesInitOnS3Resume|TRUE|BOOLEAN|0x0000001D
 
   ## Specifies CPUID Leaf 0x15 Time Stamp Counter and Nominal Core Crystal Clock Frequency.
   # TSC Frequency = ECX (core crystal clock frequency) * EBX/EAX.
@@ -366,9 +391,13 @@
   # @Prompt The specified AP target C-state for Mwait.
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApTargetCstate|0|UINT8|0x00000007
 
-  ## Specifies timeout value in microseconds for the BSP in SMM to wait for all APs to come into SMM.
-  # @Prompt AP synchronization timeout value in SMM.
+  ## Specifies the 1st timeout value in microseconds for the BSP/AP in SMM to wait for one another to enter SMM.
+  # @Prompt The 1st BSP/AP synchronization timeout value in SMM.
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmApSyncTimeout|1000000|UINT64|0x32132104
+
+  ## Specifies the 2nd timeout value in microseconds for the BSP/AP in SMM to wait for one another to enter SMM.
+  # @Prompt The 2nd BSP/AP synchronization timeout value in SMM.
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmApSyncTimeout2|1000000|UINT64|0x32132115
 
   ## Indicates the CPU synchronization method used when processing an SMI.
   #   0x00  - Traditional CPU synchronization method.<BR>

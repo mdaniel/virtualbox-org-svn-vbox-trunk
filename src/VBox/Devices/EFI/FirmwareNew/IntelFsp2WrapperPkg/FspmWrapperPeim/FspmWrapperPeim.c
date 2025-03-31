@@ -3,7 +3,7 @@
   register TemporaryRamDonePpi to call TempRamExit API, and register MemoryDiscoveredPpi
   notify to call FspSiliconInit API.
 
-  Copyright (c) 2014 - 2022, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2014 - 2024, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -38,6 +38,7 @@
 #include <FspStatusCode.h>
 #include <FspGlobalData.h>
 #include <Library/FspCommonLib.h>
+#include <Guid/MigratedFvInfo.h>
 
 extern EFI_GUID  gFspHobGuid;
 
@@ -124,6 +125,17 @@ PeiFspMemoryInit (
   Status                = CallFspMemoryInit (FspmUpdDataPtr, &FspHobListPtr);
 
   //
+  // FspHobList is not complete at this moment.
+  // Save FspHobList pointer to hob, so that it can be got later
+  //
+  HobData = BuildGuidHob (
+              &gFspHobGuid,
+              sizeof (VOID *)
+              );
+  ASSERT (HobData != NULL);
+  CopyMem (HobData, &FspHobListPtr, sizeof (FspHobListPtr));
+
+  //
   // Reset the system if FSP API returned FSP_STATUS_RESET_REQUIRED status
   //
   if ((Status >= FSP_STATUS_RESET_REQUIRED_COLD) && (Status <= FSP_STATUS_RESET_REQUIRED_8)) {
@@ -165,17 +177,6 @@ PeiFspMemoryInit (
   ASSERT (FspHobListPtr != NULL);
 
   PostFspmHobProcess (FspHobListPtr);
-
-  //
-  // FspHobList is not complete at this moment.
-  // Save FspHobList pointer to hob, so that it can be got later
-  //
-  HobData = BuildGuidHob (
-              &gFspHobGuid,
-              sizeof (VOID *)
-              );
-  ASSERT (HobData != NULL);
-  CopyMem (HobData, &FspHobListPtr, sizeof (FspHobListPtr));
 
   return Status;
 }
@@ -278,18 +279,41 @@ TcgPpiNotify (
   IN VOID                       *Ppi
   )
 {
-  UINT32  FspMeasureMask;
+  UINT32                  FspMeasureMask;
+  EFI_PHYSICAL_ADDRESS    FsptBaseAddress;
+  EFI_PHYSICAL_ADDRESS    FspmBaseAddress;
+  EDKII_MIGRATED_FV_INFO  *MigratedFvInfo;
+  EFI_PEI_HOB_POINTERS    Hob;
 
   DEBUG ((DEBUG_INFO, "TcgPpiNotify FSPM\n"));
 
-  FspMeasureMask = PcdGet32 (PcdFspMeasurementConfig);
+  FspMeasureMask  = PcdGet32 (PcdFspMeasurementConfig);
+  FsptBaseAddress = (EFI_PHYSICAL_ADDRESS)PcdGet32 (PcdFsptBaseAddress);
+  FspmBaseAddress = (EFI_PHYSICAL_ADDRESS)PcdGet32 (PcdFspmBaseAddress);
+  Hob.Raw         = GetFirstGuidHob (&gEdkiiMigratedFvInfoGuid);
+  while (Hob.Raw != NULL) {
+    MigratedFvInfo = GET_GUID_HOB_DATA (Hob);
+    if ((MigratedFvInfo->FvOrgBase == PcdGet32 (PcdFsptBaseAddress)) && (MigratedFvInfo->FvDataBase != 0)) {
+      //
+      // Found the migrated FspT raw data
+      //
+      FsptBaseAddress = MigratedFvInfo->FvDataBase;
+    }
+
+    if ((MigratedFvInfo->FvOrgBase == PcdGet32 (PcdFspmBaseAddress)) && (MigratedFvInfo->FvDataBase != 0)) {
+      FspmBaseAddress = MigratedFvInfo->FvDataBase;
+    }
+
+    Hob.Raw = GET_NEXT_HOB (Hob);
+    Hob.Raw = GetNextGuidHob (&gEdkiiMigratedFvInfoGuid, Hob.Raw);
+  }
 
   if ((FspMeasureMask & FSP_MEASURE_FSPT) != 0) {
     MeasureFspFirmwareBlob (
       0,
       "FSPT",
-      PcdGet32 (PcdFsptBaseAddress),
-      (UINT32)((EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)PcdGet32 (PcdFsptBaseAddress))->FvLength
+      FsptBaseAddress,
+      (UINT32)((EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)FsptBaseAddress)->FvLength
       );
   }
 
@@ -297,8 +321,8 @@ TcgPpiNotify (
     MeasureFspFirmwareBlob (
       0,
       "FSPM",
-      PcdGet32 (PcdFspmBaseAddress),
-      (UINT32)((EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)PcdGet32 (PcdFspmBaseAddress))->FvLength
+      FspmBaseAddress,
+      (UINT32)((EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)FspmBaseAddress)->FvLength
       );
   }
 

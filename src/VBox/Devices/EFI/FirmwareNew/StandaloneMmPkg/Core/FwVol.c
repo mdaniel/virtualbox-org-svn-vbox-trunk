@@ -11,17 +11,9 @@
 #include <Library/FvLib.h>
 #include <Library/ExtractGuidedSectionLib.h>
 
-//
-// List of file types supported by dispatcher
-//
-EFI_FV_FILETYPE  mMmFileTypes[] = {
-  EFI_FV_FILETYPE_MM,
-  0xE, // EFI_FV_FILETYPE_MM_STANDALONE,
-       //
-       // Note: DXE core will process the FV image file, so skip it in MM core
-       // EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE
-       //
-};
+#define MAX_MM_FV_COUNT  2
+
+EFI_FIRMWARE_VOLUME_HEADER  *mMmFv[MAX_MM_FV_COUNT];
 
 EFI_STATUS
 MmAddToDriverList (
@@ -72,12 +64,10 @@ MmCoreFfsFindMmDriver (
   EFI_STATUS                  Status;
   EFI_STATUS                  DepexStatus;
   EFI_FFS_FILE_HEADER         *FileHeader;
-  EFI_FV_FILETYPE             FileType;
   VOID                        *Pe32Data;
   UINTN                       Pe32DataSize;
   VOID                        *Depex;
   UINTN                       DepexSize;
-  UINTN                       Index;
   EFI_COMMON_SECTION_HEADER   *Section;
   VOID                        *SectionData;
   UINTN                       SectionDataSize;
@@ -224,22 +214,19 @@ MmCoreFfsFindMmDriver (
     }
   } while (TRUE);
 
-  for (Index = 0; Index < sizeof (mMmFileTypes) / sizeof (mMmFileTypes[0]); Index++) {
-    DEBUG ((DEBUG_INFO, "Check MmFileTypes - 0x%x\n", mMmFileTypes[Index]));
-    FileType   = mMmFileTypes[Index];
-    FileHeader = NULL;
-    do {
-      Status = FfsFindNextFile (FileType, FwVolHeader, &FileHeader);
-      if (!EFI_ERROR (Status)) {
-        Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, &Pe32Data, &Pe32DataSize);
-        DEBUG ((DEBUG_INFO, "Find PE data - 0x%x\n", Pe32Data));
-        DepexStatus = FfsFindSectionData (EFI_SECTION_MM_DEPEX, FileHeader, &Depex, &DepexSize);
-        if (!EFI_ERROR (DepexStatus)) {
-          MmAddToDriverList (FwVolHeader, Pe32Data, Pe32DataSize, Depex, DepexSize, &FileHeader->Name);
-        }
+  DEBUG ((DEBUG_INFO, "Check MmFileTypes - 0x%x\n", EFI_FV_FILETYPE_MM_STANDALONE));
+  FileHeader = NULL;
+  do {
+    Status = FfsFindNextFile (EFI_FV_FILETYPE_MM_STANDALONE, FwVolHeader, &FileHeader);
+    if (!EFI_ERROR (Status)) {
+      Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, &Pe32Data, &Pe32DataSize);
+      DEBUG ((DEBUG_INFO, "Find PE data - 0x%x\n", Pe32Data));
+      DepexStatus = FfsFindSectionData (EFI_SECTION_MM_DEPEX, FileHeader, &Depex, &DepexSize);
+      if (!EFI_ERROR (DepexStatus)) {
+        MmAddToDriverList (FwVolHeader, Pe32Data, Pe32DataSize, Depex, DepexSize, &FileHeader->Name);
       }
-    } while (!EFI_ERROR (Status));
-  }
+    }
+  } while (!EFI_ERROR (Status));
 
   return EFI_SUCCESS;
 
@@ -249,4 +236,102 @@ FreeDstBuffer:
   }
 
   return Status;
+}
+
+/**
+  Dispatch Standalone MM FVs.
+  The FVs will be shadowed into MMRAM, caller is responsible for calling
+  MmFreeShadowedFvs() to free the shadowed MM FVs.
+
+**/
+VOID
+MmDispatchFvs (
+  VOID
+  )
+{
+  UINTN                       Index;
+  EFI_PEI_HOB_POINTERS        FvHob;
+  EFI_FIRMWARE_VOLUME_HEADER  *Fv;
+
+  ZeroMem (mMmFv, sizeof (mMmFv));
+
+  Index     = 0;
+  FvHob.Raw = GetHobList ();
+  while ((FvHob.Raw = GetNextHob (EFI_HOB_TYPE_FV, FvHob.Raw)) != NULL) {
+    if (Index == ARRAY_SIZE (mMmFv)) {
+      DEBUG ((
+        DEBUG_INFO,
+        "%a: The number of FV Hobs exceed the max supported FVs (%d) in StandaloneMmCore\n",
+        __func__,
+        ARRAY_SIZE (mMmFv)
+        ));
+      return;
+    }
+
+    DEBUG ((DEBUG_INFO, "%a: FV[%d] address - 0x%x\n", __func__, Index, FvHob.FirmwareVolume->BaseAddress));
+    DEBUG ((DEBUG_INFO, "%a: FV[%d] size    - 0x%x\n", __func__, Index, FvHob.FirmwareVolume->Length));
+
+    if (FvHob.FirmwareVolume->Length == 0x00) {
+      DEBUG ((
+        DEBUG_INFO,
+        "%a: Skip invalid FV[%d]- 0x%x/0x%x\n",
+        __func__,
+        Index,
+        FvHob.FirmwareVolume->BaseAddress,
+        FvHob.FirmwareVolume->Length
+        ));
+      continue;
+    }
+
+    if (!FixedPcdGetBool (PcdShadowBfv)) {
+      Fv = (EFI_FIRMWARE_VOLUME_HEADER *)((UINTN)FvHob.FirmwareVolume->BaseAddress);
+    } else {
+      Fv = AllocatePool (FvHob.FirmwareVolume->Length);
+      if (Fv == NULL) {
+        DEBUG ((DEBUG_ERROR, "Fail to allocate memory for Fv\n"));
+        CpuDeadLoop ();
+        return;
+      }
+
+      CopyMem (
+        (VOID *)Fv,
+        (VOID *)(UINTN)FvHob.FirmwareVolume->BaseAddress,
+        FvHob.FirmwareVolume->Length
+        );
+    }
+
+    MmCoreFfsFindMmDriver (Fv, 0);
+    mMmFv[Index++] = Fv;
+
+    FvHob.Raw = GET_NEXT_HOB (FvHob);
+  }
+
+  if (Index == 0) {
+    DEBUG ((DEBUG_ERROR, "No FV hob is found\n"));
+    return;
+  }
+
+  MmDispatcher ();
+}
+
+/**
+  Free the shadowed MM FVs.
+
+**/
+VOID
+MmFreeShadowedFvs (
+  VOID
+  )
+{
+  UINTN  Index;
+
+  if (!FixedPcdGetBool (PcdShadowBfv)) {
+    return;
+  }
+
+  for (Index = 0; Index < ARRAY_SIZE (mMmFv); Index++) {
+    if (mMmFv[Index] != NULL) {
+      FreePool (mMmFv[Index]);
+    }
+  }
 }

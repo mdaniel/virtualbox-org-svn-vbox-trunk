@@ -55,6 +55,7 @@
   PeCoffLib
   PlatformSupportLib
   CpuLib
+  StackCheckLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid
@@ -96,3 +97,4 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy ## SOMETIMES_CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy       ## SOMETIMES_CONSUMES
 
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialClockRate             ## PRODUCES

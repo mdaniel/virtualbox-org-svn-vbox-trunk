@@ -1,7 +1,7 @@
 /** @file
   Common header file for MP Initialize Library.
 
-  Copyright (c) 2016 - 2023, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2016 - 2024, Intel Corporation. All rights reserved.<BR>
   Copyright (c) 2020 - 2024, AMD Inc. All rights reserved.<BR>
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -33,9 +33,11 @@
 #include <Library/HobLib.h>
 #include <Library/PcdLib.h>
 #include <Library/MicrocodeLib.h>
+#include <Library/CpuPageTableLib.h>
+#include <Library/SafeIntLib.h>
 #include <ConfidentialComputingGuestAttr.h>
 
-#include <Register/Amd/Fam17Msr.h>
+#include <Register/Amd/SevSnpMsr.h>
 #include <Register/Amd/Ghcb.h>
 
 #include <Guid/MicrocodePatchHob.h>
@@ -67,6 +69,8 @@
 // Default maximum number of entries to store the microcode patches information
 //
 #define DEFAULT_MAX_MICROCODE_PATCH_NUM  8
+
+#define PAGING_4K_ADDRESS_MASK_64  0x000FFFFFFFFFF000ull
 
 //
 // Data structure for microcode patch information
@@ -117,9 +121,8 @@ typedef enum {
 // AP initialization state during APs wakeup
 //
 typedef enum {
-  ApInitConfig   = 1,
-  ApInitReconfig = 2,
-  ApInitDone     = 3
+  ApInitConfig = 1,
+  ApInitDone   = 2
 } AP_INIT_STATE;
 
 //
@@ -248,11 +251,23 @@ typedef struct {
 // in assembly code.
 //
 struct _CPU_MP_DATA {
-  UINT64                           CpuInfoInHob;
-  UINT32                           CpuCount;
-  UINT32                           BspNumber;
-  SPIN_LOCK                        MpLock;
-  UINTN                            Buffer;
+  UINT64       CpuInfoInHob;
+  UINT32       CpuCount;
+  UINT32       BspNumber;
+  SPIN_LOCK    MpLock;
+  UINTN        Buffer;
+
+  //
+  // InitialBspApicMode stores the initial BSP APIC mode.
+  // It is used to synchronize the BSP APIC mode with APs
+  // in the first time APs wake up.
+  // Its value doesn't reflect the current APIC mode since there are
+  // two cases the APIC mode is changed:
+  // 1. MpLib explicitly switches to X2 APIC mode because number of threads is greater than 255,
+  //    or there are any logical processors reporting an initial APIC ID of 255 or greater.
+  // 2. Some code switches to X2 APIC mode in all threads through MP services PPI/Protocol.
+  //
+  UINTN                            InitialBspApicMode;
   UINTN                            CpuApStackSize;
   MP_ASSEMBLY_ADDRESS_MAP          AddressMap;
   UINTN                            WakeupBuffer;
@@ -286,7 +301,7 @@ struct _CPU_MP_DATA {
   CPU_AP_DATA                      *CpuData;
   volatile MP_CPU_EXCHANGE_INFO    *MpCpuExchangeInfo;
 
-  UINT32                           CurrentTimerCount;
+  UINT32                           InitTimerCount;
   UINTN                            DivideValue;
   UINT8                            Vector;
   BOOLEAN                          PeriodicMode;
@@ -357,7 +372,8 @@ typedef
   IN UINTN    StackStart
   );
 
-extern EFI_GUID  mCpuInitMpLibHobGuid;
+extern EFI_GUID         mCpuInitMpLibHobGuid;
+extern volatile UINT32  mNumberToFinish;
 
 /**
   Assembly code to place AP into safe loop mode.
@@ -931,6 +947,54 @@ CanUseSevSnpCreateAP (
 VOID
 AmdSevUpdateCpuMpData (
   IN CPU_MP_DATA  *CpuMpData
+  );
+
+/**
+  Prepare ApLoopCode.
+
+  @param[in] CpuMpData  Pointer to CpuMpData.
+**/
+VOID
+PrepareApLoopCode (
+  IN CPU_MP_DATA  *CpuMpData
+  );
+
+/**
+  Do sync on APs.
+
+  @param[in, out] Buffer  Pointer to private data buffer.
+**/
+VOID
+EFIAPI
+RelocateApLoop (
+  IN OUT VOID  *Buffer
+  );
+
+/**
+  Allocate buffer for ApLoopCode.
+
+  @param[in]      Pages    Number of pages to allocate.
+  @param[in, out] Address  Pointer to the allocated buffer.
+**/
+VOID
+AllocateApLoopCodeBuffer (
+  IN UINTN                     Pages,
+  IN OUT EFI_PHYSICAL_ADDRESS  *Address
+  );
+
+/**
+  Remove Nx protection for the range specific by BaseAddress and Length.
+
+  The PEI implementation uses CpuPageTableLib to change the attribute.
+  The DXE implementation uses gDS to change the attribute.
+
+  @param[in] BaseAddress  BaseAddress of the range.
+  @param[in] Length       Length of the range.
+**/
+VOID
+RemoveNxprotection (
+  IN EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN UINTN                 Length
   );
 
 #endif

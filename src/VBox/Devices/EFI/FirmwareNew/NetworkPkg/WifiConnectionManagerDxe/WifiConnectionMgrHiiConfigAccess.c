@@ -1351,7 +1351,6 @@ WifiMgrDxeHiiConfigAccessRouteConfig (
   @retval EFI_SUCCESS            The callback successfully handled the action.
   @retval EFI_OUT_OF_RESOURCES   Not enough storage is available to hold the
                                  variable and its data.
-  @retval EFI_DEVICE_ERROR       The variable could not be saved.
   @retval EFI_UNSUPPORTED        The specified Action is not supported by the
                                  callback.
 
@@ -1400,7 +1399,7 @@ WifiMgrDxeHiiConfigAccessCallback (
   Status  = EFI_SUCCESS;
   Private = WIFI_MGR_PRIVATE_DATA_FROM_CONFIG_ACCESS (This);
   if (Private->CurrentNic == NULL) {
-    return EFI_DEVICE_ERROR;
+    return EFI_UNSUPPORTED;
   }
 
   //
@@ -1490,6 +1489,7 @@ WifiMgrDxeHiiConfigAccessCallback (
   } else if (Action == EFI_BROWSER_ACTION_FORM_CLOSE) {
     switch (QuestionId) {
       case KEY_EAP_ENROLL_CERT_FROM_FILE:
+      case KEY_REFRESH_NETWORK_LIST:
 
         if (Private->CurrentNic->UserSelectedProfile == NULL) {
           break;
@@ -1910,39 +1910,6 @@ WifiMgrDxeHiiConfigAccessCallback (
               L"ERROR: Fail to operate this profile!",
               NULL
               );
-          }
-
-          if (Private->CurrentNic->UserSelectedProfile == NULL) {
-            break;
-          }
-
-          Profile = Private->CurrentNic->UserSelectedProfile;
-
-          //
-          // Enter the network connection configuration page
-          // Recovery from restored data
-          //
-          if (HiiSetString (Private->RegisteredHandle, STRING_TOKEN (STR_SSID), Profile->SSId, NULL) == 0) {
-            return EFI_OUT_OF_RESOURCES;
-          }
-
-          IfrNvData->SecurityType = Profile->SecurityType;
-          if (HiiSetString (
-                Private->RegisteredHandle,
-                STRING_TOKEN (STR_SECURITY_TYPE),
-                mSecurityType[IfrNvData->SecurityType],
-                NULL
-                ) == 0)
-          {
-            return EFI_OUT_OF_RESOURCES;
-          }
-
-          if (  (IfrNvData->SecurityType == SECURITY_TYPE_WPA2_ENTERPRISE)
-             || (IfrNvData->SecurityType == SECURITY_TYPE_WPA3_ENTERPRISE))
-          {
-            IfrNvData->EapAuthMethod       = Profile->EapAuthMethod;
-            IfrNvData->EapSecondAuthMethod = Profile->EapSecondAuthMethod;
-            StrCpyS (IfrNvData->EapIdentity, EAP_IDENTITY_SIZE, Profile->EapIdentity);
           }
         }
 

@@ -36,31 +36,35 @@
   Hash/CryptMd5.c
   Hash/CryptSha1.c
   Hash/CryptSha256.c
-  Hash/CryptSm3Null.c
   Hash/CryptSha512.c
   Hash/CryptParallelHashNull.c
+  Hash/CryptSm3.c
   Hmac/CryptHmac.c
   Kdf/CryptHkdf.c
   Cipher/CryptAes.c
   Cipher/CryptAeadAesGcmNull.c
   Pk/CryptRsaBasic.c
   Pk/CryptRsaExtNull.c
-  Pk/CryptRsaPss.c
-  Pk/CryptRsaPssSignNull.c
-  Bn/CryptBnNull.c
-  Pem/CryptPemNull.c
-  Pk/CryptDhNull.c
-  Pk/CryptEcNull.c
-  Pk/CryptPkcs1OaepNull.c
-  Pk/CryptPkcs5Pbkdf2Null.c
+  Pk/CryptPkcs1Oaep.c
+  Pk/CryptPkcs5Pbkdf2.c
   Pk/CryptPkcs7SignNull.c
-  Pk/CryptPkcs7VerifyNull.c
-  Pk/CryptPkcs7VerifyEkuNull.c
-  Pk/CryptX509Null.c
+  Pk/CryptPkcs7VerifyCommon.c
+  Pk/CryptPkcs7VerifyBase.c
+  Pk/CryptPkcs7VerifyEku.c
+  Pk/CryptDhNull.c
+  Pk/CryptX509.c
   Pk/CryptAuthenticodeNull.c
   Pk/CryptTsNull.c
-  Rand/CryptRandNull.c
+  Pk/CryptRsaPss.c
+  Pk/CryptRsaPssSignNull.c
+  Pk/CryptEcNull.c
+  Pem/CryptPem.c
+  Bn/CryptBnNull.c
+  Rand/CryptRand.c
+
   SysCall/CrtWrapper.c
+  SysCall/DummyOpensslSupport.c
+  SysCall/BaseMemAllocation.c
   SysCall/ConstantTimeClock.c
 
 [Packages]
@@ -72,21 +76,18 @@
   BaseMemoryLib
   MemoryAllocationLib
   MbedTlsLib
+  OpensslLib
   IntrinsicLib
   PrintLib
   MmServicesTableLib
+  RngLib
   SynchronizationLib
 
 #
 # Remove these [BuildOptions] after this library is cleaned up
 #
 [BuildOptions]
-  #
-  # suppress the following warnings so we do not break the build with warnings-as-errors:
-  #
-
   XCODE:*_*_*_CC_FLAGS = -mmmx -msse -std=c99
 
-  GCC:*_CLANG35_*_CC_FLAGS = -std=c99
-  GCC:*_CLANG38_*_CC_FLAGS = -std=c99
+  GCC:*_CLANGDWARF_*_CC_FLAGS = -std=gnu99
   GCC:*_CLANGPDB_*_CC_FLAGS = -std=c99 -Wno-error=incompatible-pointer-types

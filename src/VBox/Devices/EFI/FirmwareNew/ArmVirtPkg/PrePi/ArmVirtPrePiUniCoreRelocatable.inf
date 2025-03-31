@@ -46,7 +46,6 @@
   TimerLib
   SerialPortLib
   ExtractGuidedSectionLib
-  LzmaDecompressLib
   PeCoffLib
   PrePiLib
   MemoryAllocationLib
@@ -55,16 +54,13 @@
   PlatformPeiLib
   MemoryInitPeiLib
   CacheMaintenanceLib
-
-[Ppis]
-  gArmMpCoreInfoPpiGuid
+  StackCheckLib
 
 [Guids]
   gArmMpCoreInfoGuid
 
 [FeaturePcd]
   gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob
-  gArmPlatformTokenSpaceGuid.PcdSendSgiToBringUpSecondaryCores
 
 [FixedPcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString
@@ -75,7 +71,6 @@
   gArmTokenSpaceGuid.PcdFvSize
 
   gArmPlatformTokenSpaceGuid.PcdCPUCorePrimaryStackSize
-  gArmPlatformTokenSpaceGuid.PcdCPUCoreSecondaryStackSize
 
   gArmPlatformTokenSpaceGuid.PcdSystemMemoryUefiRegionSize
 

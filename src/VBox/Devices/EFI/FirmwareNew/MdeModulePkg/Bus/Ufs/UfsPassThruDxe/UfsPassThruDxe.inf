@@ -33,7 +33,6 @@
   UfsPassThru.c
   UfsPassThru.h
   UfsPassThruHci.c
-  UfsPassThruHci.h
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -48,6 +47,7 @@
   UefiDriverEntryPoint
   DebugLib
   DevicePathLib
+  PcdLib
   TimerLib
 
 [Protocols]
@@ -55,6 +55,9 @@
   gEfiUfsDeviceConfigProtocolGuid               ## BY_START
   gEdkiiUfsHostControllerProtocolGuid           ## TO_START
   gEdkiiUfsHcPlatformProtocolGuid               ## SOMETIMES_CONSUMES
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUfsInitialCompletionTimeout  ## CONSUMES
 
 [UserExtensions.TianoCore."ExtraFiles"]
   UfsPassThruExtra.uni

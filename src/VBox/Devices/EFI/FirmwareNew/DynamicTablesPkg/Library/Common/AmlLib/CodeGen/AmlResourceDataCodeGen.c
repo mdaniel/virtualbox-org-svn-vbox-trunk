@@ -1437,9 +1437,7 @@ AmlCodeGenRdRegister (
 
   // Cf. ACPI 6.4, s14.7 Referencing the PCC address space
   // The AccessSize represents the Subspace Id for the PCC address space.
-  if (((AddressSpace == EFI_ACPI_6_4_PLATFORM_COMMUNICATION_CHANNEL) &&
-       (AccessSize > 256)) ||
-      ((AddressSpace != EFI_ACPI_6_4_PLATFORM_COMMUNICATION_CHANNEL) &&
+  if (((AddressSpace != EFI_ACPI_6_4_PLATFORM_COMMUNICATION_CHANNEL) &&
        (AccessSize > EFI_ACPI_6_4_QWORD)) ||
       ((NameOpNode == NULL) && (NewRdNode == NULL)))
   {
@@ -1473,6 +1471,89 @@ AmlCodeGenRdRegister (
   }
 
   return LinkRdNode (RdNode, NameOpNode, NewRdNode);
+}
+
+/** Code generation for the "IO ()" ASL function.
+
+  The Resource Data effectively created is a IO Resource
+  Data. Cf ACPI 6.5:
+   - s19.6.65 IO (IO Resource Descriptor Macro)
+   - s6.4.2.5 I/O Port Descriptor
+
+  The created resource data node can be:
+   - appended to the list of resource data elements of the NameOpNode.
+     In such case NameOpNode must be defined by a the "Name ()" ASL statement
+     and initially contain a "ResourceTemplate ()".
+   - returned through the NewRdNode parameter.
+
+  @param [in]  IsDecoder16          Decoder parameter.
+                                    TRUE if 16-bit decoder.
+                                    FALSE if 10-bit decoder.
+  @param [in]  AddressMinimum       Minimum address.
+  @param [in]  AddressMaximum       Maximum address.
+  @param [in]  Alignment            Alignment.
+  @param [in]  RangeLength          Range length.
+  @param [in]  NameOpNode           NameOp object node defining a named object.
+                                    If provided, append the new resource data
+                                    node to the list of resource data elements
+                                    of this node.
+  @param [out] NewRdNode            If provided and success,
+                                    contain the created node.
+
+  @retval EFI_SUCCESS               The function completed successfully.
+  @retval EFI_INVALID_PARAMETER     Invalid parameter.
+**/
+EFI_STATUS
+EFIAPI
+AmlCodeGenRdIo (
+  IN  BOOLEAN IsDecoder16,
+  IN  UINT16 AddressMinimum,
+  IN  UINT16 AddressMaximum,
+  IN  UINT8 Alignment,
+  IN  UINT8 RangeLength,
+  IN  AML_OBJECT_NODE_HANDLE NameOpNode, OPTIONAL
+  OUT AML_DATA_NODE_HANDLE  *NewRdNode  OPTIONAL
+  )
+{
+  EFI_STATUS                   Status;
+  EFI_ACPI_IO_PORT_DESCRIPTOR  IoDesc;
+  AML_DATA_NODE                *IoNode;
+
+  if (AddressMinimum > AddressMaximum) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (Alignment != 0) {
+    /// check the alignment
+    if ((AddressMinimum % Alignment) != 0) {
+      return EFI_INVALID_PARAMETER;
+    }
+
+    if ((AddressMaximum % Alignment) != 0) {
+      return EFI_INVALID_PARAMETER;
+    }
+  }
+
+  IoDesc.Header.Byte = ACPI_IO_PORT_DESCRIPTOR;
+  IoDesc.Information = IsDecoder16 ? BIT0 : 0;
+
+  IoDesc.BaseAddressMin = AddressMinimum;
+  IoDesc.BaseAddressMax = AddressMaximum;
+  IoDesc.Alignment      = Alignment;
+  IoDesc.Length         = RangeLength;
+
+  Status = AmlCreateDataNode (
+             EAmlNodeDataTypeResourceData,
+             (UINT8 *)&IoDesc,
+             sizeof (IoDesc),
+             &IoNode
+             );
+  if (EFI_ERROR (Status)) {
+    ASSERT (0);
+    return Status;
+  }
+
+  return LinkRdNode (IoNode, NameOpNode, NewRdNode);
 }
 
 /** Code generation for the EndTag resource data.

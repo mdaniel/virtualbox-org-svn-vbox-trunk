@@ -14,7 +14,6 @@ ERROR_GENERAL_CHECK_NO_ASM = 1004
 ERROR_GENERAL_CHECK_NO_PROGMA = 1005
 ERROR_GENERAL_CHECK_CARRIAGE_RETURN = 1006
 ERROR_GENERAL_CHECK_FILE_EXISTENCE = 1007
-ERROR_GENERAL_CHECK_NON_ACSII = 1008
 ERROR_GENERAL_CHECK_UNI = 1009
 ERROR_GENERAL_CHECK_UNI_HELP_INFO = 1010
 ERROR_GENERAL_CHECK_INVALID_LINE_ENDING = 1011
@@ -113,7 +112,6 @@ gEccErrorMessage = {
     ERROR_GENERAL_CHECK_NO_PROGMA : """There should be no use of "#progma" in source file except "#pragma pack(#)\"""",
     ERROR_GENERAL_CHECK_CARRIAGE_RETURN : "There should be a carriage return at the end of the file",
     ERROR_GENERAL_CHECK_FILE_EXISTENCE : "File not found",
-    ERROR_GENERAL_CHECK_NON_ACSII : "File has invalid Non-ACSII char",
     ERROR_GENERAL_CHECK_UNI : "File is not a valid UTF-16 UNI file",
     ERROR_GENERAL_CHECK_UNI_HELP_INFO : "UNI file that is associated by INF or DEC file need define the prompt and help information.",
     ERROR_GENERAL_CHECK_INVALID_LINE_ENDING : "Only CRLF (Carriage Return Line Feed) is allowed to line ending.",
@@ -173,7 +171,7 @@ gEccErrorMessage = {
     ERROR_DOXYGEN_CHECK_FUNCTION_HEADER : "The function headers should follow Doxygen special documentation blocks in section 2.3.5",
     ERROR_DOXYGEN_CHECK_COMMENT_DESCRIPTION : """The first line of text in a comment block should be a brief description of the element being documented and the brief description must end with a period.""",
     ERROR_DOXYGEN_CHECK_COMMENT_FORMAT : "For comment line with '///< ... text ...' format, if it is used, it should be after the code section",
-    ERROR_DOXYGEN_CHECK_COMMAND : "Only Doxygen commands '@bug', '@todo', '@example', '@file', '@attention', '@param', '@post', '@pre', '@retval', '@return', '@sa', '@since', '@test', '@note', '@par', '@endcode', '@code', '@{', '@}' are allowed to mark the code",
+    ERROR_DOXYGEN_CHECK_COMMAND : "Only Doxygen commands '@bug', '@todo', '@example', '@file', '@attention', '@param', '@post', '@pre', '@retval', '@return', '@sa', '@since', '@test', '@note', '@par', '@endcode', '@code', '@endverbatim', '@verbatim', '@{', '@}' are allowed to mark the code",
 
     ERROR_META_DATA_FILE_CHECK_ALL : "",
     ERROR_META_DATA_FILE_CHECK_PATH_NAME : "The file defined in meta-data does not exist",

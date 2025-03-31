@@ -16,23 +16,13 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PrintLib.h>
+#include <Library/TimerLib.h>
 
 #define OPENSSLDIR  ""
 #define ENGINESDIR  ""
 #define MODULESDIR  ""
 
 #define MAX_STRING_SIZE  0x1000
-
-//
-// We already have "no-ui" in out Configure invocation.
-// but the code still fails to compile.
-// Ref:  https://github.com/openssl/openssl/issues/8904
-//
-// This is defined in CRT library(stdio.h).
-//
-#ifndef BUFSIZ
-#define BUFSIZ  8192
-#endif
 
 //
 // OpenSSL relies on explicit configuration for word size in crypto/bn,
@@ -108,6 +98,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 typedef UINTN   size_t;
 typedef UINTN   off_t;
 typedef UINTN   u_int;
+typedef UINTN   intptr_t;
 typedef INTN    ptrdiff_t;
 typedef INTN    ssize_t;
 typedef INT64   time_t;
@@ -146,6 +137,8 @@ struct timeval {
   long    tv_usec;  /* time value, in microseconds */
 };
 
+struct timezone;
+
 struct sockaddr {
   __uint8_t      sa_len;      /* total length */
   sa_family_t    sa_family;   /* address family */
@@ -157,6 +150,7 @@ struct sockaddr {
 //
 extern int   errno;
 extern FILE  *stderr;
+extern long  timezone;
 
 //
 // Function prototypes of CRT Library routines
@@ -334,6 +328,22 @@ gmtime     (
   const time_t *
   );
 
+unsigned int
+sleep (
+  unsigned int  seconds
+  );
+
+int
+gettimeofday (
+  struct timeval   *tv,
+  struct timezone  *tz
+  );
+
+time_t
+mktime (
+  struct tm  *t
+  );
+
 uid_t
 getuid      (
   void
@@ -403,25 +413,35 @@ strcpy (
   const char  *strSource
   );
 
+char *
+strncpy (
+  char        *strDest,
+  const char  *strSource,
+  size_t      count
+  );
+
+char *
+strcat (
+  char        *strDest,
+  const char  *strSource
+  );
+
 //
 // Macros that directly map functions to BaseLib, BaseMemoryLib, and DebugLib functions
 //
-#define memcpy(dest, source, count)         CopyMem(dest,source,(UINTN)(count))
-#define memset(dest, ch, count)             SetMem(dest,(UINTN)(count),(UINT8)(ch))
-#define memchr(buf, ch, count)              ScanMem8(buf,(UINTN)(count),(UINT8)ch)
-#define memcmp(buf1, buf2, count)           (int)(CompareMem(buf1,buf2,(UINTN)(count)))
-#define memmove(dest, source, count)        CopyMem(dest,source,(UINTN)(count))
-#define strlen(str)                         (size_t)(AsciiStrnLenS(str,MAX_STRING_SIZE))
-#define strncpy(strDest, strSource, count)  AsciiStrnCpyS(strDest,MAX_STRING_SIZE,strSource,(UINTN)count)
-#define strcat(strDest, strSource)          AsciiStrCatS(strDest,MAX_STRING_SIZE,strSource)
-#define strncmp(string1, string2, count)    (int)(AsciiStrnCmp(string1,string2,(UINTN)(count)))
-#define strcasecmp(str1, str2)              (int)AsciiStriCmp(str1,str2)
-#define strstr(s1, s2)                      AsciiStrStr(s1,s2)
-#define sprintf(buf, ...)                   AsciiSPrint(buf,MAX_STRING_SIZE,__VA_ARGS__)
-#define localtime(timer)                    NULL
+#define memcpy(dest, source, count)       CopyMem(dest,source,(UINTN)(count))
+#define memset(dest, ch, count)           SetMem(dest,(UINTN)(count),(UINT8)(ch))
+#define memchr(buf, ch, count)            ScanMem8(buf,(UINTN)(count),(UINT8)ch)
+#define memcmp(buf1, buf2, count)         (int)(CompareMem(buf1,buf2,(UINTN)(count)))
+#define memmove(dest, source, count)      CopyMem(dest,source,(UINTN)(count))
+#define strlen(str)                       (size_t)(AsciiStrnLenS(str,MAX_STRING_SIZE))
+#define strncmp(string1, string2, count)  (int)(AsciiStrnCmp(string1,string2,(UINTN)(count)))
+#define strcasecmp(str1, str2)            (int)AsciiStriCmp(str1,str2)
+#define strstr(s1, s2)                    AsciiStrStr(s1,s2)
+#define sprintf(buf, ...)                 AsciiSPrint(buf,MAX_STRING_SIZE,__VA_ARGS__)
+#define localtime(timer)                  NULL
 #define assert(expression)
 #define offsetof(type, member)  OFFSET_OF(type,member)
 #define atoi(nptr)              AsciiStrDecimalToUintn(nptr)
-#define gettimeofday(tvp, tz)   do { (tvp)->tv_sec = time(NULL); (tvp)->tv_usec = 0; } while (0)
 
 #endif

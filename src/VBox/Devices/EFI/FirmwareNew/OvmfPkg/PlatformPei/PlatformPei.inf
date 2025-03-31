@@ -31,6 +31,8 @@
   MemTypeInfo.c
   Platform.c
   Platform.h
+  PlatformId.c
+  PlatformId.h
   IntelTdx.c
   SmmRelocation.c
 
@@ -47,6 +49,7 @@
   gFdtHobGuid
   gUefiOvmfPkgPlatformInfoGuid
   gGhcbApicIdsGuid
+  gTcg800155PlatformIdEventHobGuid              ## SOMETIMES_PRODUCES
 
 [LibraryClasses]
   BaseLib
@@ -68,6 +71,7 @@
   CcExitLib
   PlatformInitLib
   SmmRelocationLib
+  TdxHelperLib
 
 [Pcd]
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfPeiMemFvBase
@@ -148,4 +152,3 @@
 
 [Depex]
   TRUE
-

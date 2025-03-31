@@ -28,7 +28,6 @@
   UfsBlockIoPei.c
   UfsBlockIoPei.h
   UfsHci.c
-  UfsHci.h
   UfsHcMem.c
   UfsHcMem.h
   DmaMem.c
@@ -41,6 +40,7 @@
   IoLib
   TimerLib
   BaseMemoryLib
+  PcdLib
   PeimEntryPoint
   PeiServicesLib
   DebugLib
@@ -51,10 +51,13 @@
   gEdkiiPeiUfsHostControllerPpiGuid             ## CONSUMES
   gEdkiiIoMmuPpiGuid                            ## CONSUMES
   gEfiEndOfPeiSignalPpiGuid                     ## CONSUMES
+  gEdkiiUfsHcPlatformPpiGuid                    ## SOMETIMES CONSUMES
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUfsInitialCompletionTimeout  ## CONSUMES
 
 [Depex]
   gEfiPeiMemoryDiscoveredPpiGuid AND gEdkiiPeiUfsHostControllerPpiGuid
 
 [UserExtensions.TianoCore."ExtraFiles"]
   UfsBlockIoPeiExtra.uni
-

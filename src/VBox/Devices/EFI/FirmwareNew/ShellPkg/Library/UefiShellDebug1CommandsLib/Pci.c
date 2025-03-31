@@ -4809,6 +4809,9 @@ ExplainPcieLinkCap (
     case 5:
       MaxLinkSpeed = L"32.0 GT/s";
       break;
+    case 6:
+      MaxLinkSpeed = L"64.0 GT/s";
+      break;
     default:
       MaxLinkSpeed = L"Reserved";
       break;
@@ -5014,6 +5017,9 @@ ExplainPcieLinkStatus (
       break;
     case 5:
       CurLinkSpeed = L"32.0 GT/s";
+      break;
+    case 6:
+      CurLinkSpeed = L"64.0 GT/s";
       break;
     default:
       CurLinkSpeed = L"Reserved";
@@ -5759,7 +5765,7 @@ PrintInterpretedExtendedCompatibilityDynamicPowerAllocation (
   )
 {
   CONST PCI_EXPRESS_EXTENDED_CAPABILITIES_DYNAMIC_POWER_ALLOCATION  *Header;
-  UINT8                                                             LinkCount;
+  UINT32                                                            LinkCount;
 
   Header = (PCI_EXPRESS_EXTENDED_CAPABILITIES_DYNAMIC_POWER_ALLOCATION *)HeaderAddress;
 
@@ -5774,7 +5780,7 @@ PrintInterpretedExtendedCompatibilityDynamicPowerAllocation (
     Header->DpaStatus,
     Header->DpaControl
     );
-  for (LinkCount = 0; LinkCount < PCI_EXPRESS_EXTENDED_CAPABILITY_DYNAMIC_POWER_ALLOCATION_GET_SUBSTATE_MAX (Header) + 1; LinkCount++) {
+  for (LinkCount = 0; LinkCount < PCI_EXPRESS_EXTENDED_CAPABILITY_DYNAMIC_POWER_ALLOCATION_GET_SUBSTATE_MAX (Header) + (UINT32)1; LinkCount++) {
     ShellPrintHiiEx (
       -1,
       -1,

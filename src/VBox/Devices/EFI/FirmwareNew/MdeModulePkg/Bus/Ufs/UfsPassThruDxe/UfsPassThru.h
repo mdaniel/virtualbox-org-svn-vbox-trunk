@@ -24,9 +24,11 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DevicePathLib.h>
+#include <Library/PcdLib.h>
 #include <Library/TimerLib.h>
 
-#include "UfsPassThruHci.h"
+#include <IndustryStandard/Ufs.h>
+#include <IndustryStandard/UfsHci.h>
 
 #define UFS_PASS_THRU_SIG  SIGNATURE_32 ('U', 'F', 'S', 'P')
 
@@ -38,9 +40,8 @@
 //  Lun 10: BOOT
 //  Lun 11: RPMB
 //
-#define UFS_MAX_LUNS                 12
-#define UFS_WLUN_PREFIX              0xC1
-#define UFS_INIT_COMPLETION_TIMEOUT  600000
+#define UFS_MAX_LUNS     12
+#define UFS_WLUN_PREFIX  0xC1
 
 typedef struct {
   UINT8     Lun[UFS_MAX_LUNS];

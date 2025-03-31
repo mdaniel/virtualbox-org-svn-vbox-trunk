@@ -133,12 +133,18 @@ GLOBAL_REMOVE_IF_UNREFERENCED VLAN_DEVICE_PATH  mNetVlanDevicePathTemplate = {
 // These represent UEFI SPEC defined algorithms that should be supported by
 // the RNG protocol and are generally considered secure.
 //
-// The order of the algorithms in this array is important. This order is the order
-// in which the algorithms will be tried by the RNG protocol.
-// If your platform needs to use a specific algorithm for the random number generator,
-// then you should place that algorithm first in the array.
+// Assuming that PcdEnforceSecureRngAlgorithms is TRUE (the default) then
+// only the algorithms defined here will be used by the network stack, and
+// none of these being available will result in an error condition (even if
+// some other RNG implementation is available).
 //
-GLOBAL_REMOVE_IF_UNREFERENCED EFI_GUID  *mSecureHashAlgorithms[] = {
+// If PcdEnforceSecureRngAlgorithms is FALSE this list is not consulted,
+// and the first available RNG algorithm is used.
+//
+// If your platform needs to use a specific algorithm for the random number
+// generator, then you should modify this array.
+//
+static EFI_GUID *CONST  mSecureHashAlgorithms[] = {
   &gEfiRngAlgorithmSp80090Ctr256Guid,  // SP800-90A DRBG CTR using AES-256
   &gEfiRngAlgorithmSp80090Hmac256Guid, // SP800-90A DRBG HMAC using SHA-256
   &gEfiRngAlgorithmSp80090Hash256Guid, // SP800-90A DRBG Hash using SHA-256
@@ -951,7 +957,7 @@ PseudoRandom (
         //
         // Secure Algorithm was not supported on this platform
         //
-        DEBUG ((DEBUG_ERROR, "Failed to generate random data using secure algorithm %d: %r\n", AlgorithmIndex, Status));
+        DEBUG ((DEBUG_VERBOSE, "Failed to generate random data using secure algorithm %d: %r\n", AlgorithmIndex, Status));
 
         //
         // Try the next secure algorithm
@@ -971,6 +977,7 @@ PseudoRandom (
     // If we get here, we failed to generate random data using any secure algorithm
     // Platform owner should ensure that at least one secure algorithm is supported
     //
+    DEBUG ((DEBUG_ERROR, "Failed to generate random data, no supported secure algorithm found\n"));
     ASSERT_EFI_ERROR (Status);
     return Status;
   }

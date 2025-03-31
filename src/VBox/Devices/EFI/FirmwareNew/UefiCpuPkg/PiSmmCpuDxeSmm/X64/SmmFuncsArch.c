@@ -1,12 +1,12 @@
 /** @file
   SMM CPU misc functions for x64 arch specific.
 
-Copyright (c) 2015 - 2023, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2015 - 2024, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include "PiSmmCpuDxeSmm.h"
+#include "PiSmmCpuCommon.h"
 
 EFI_PHYSICAL_ADDRESS  mGdtBuffer;
 UINTN                 mGdtBufferSize;
@@ -118,7 +118,7 @@ GetProtectedModeCS (
   AsmReadGdtr (&GdtrDesc);
   GdtEntryCount = (GdtrDesc.Limit + 1) / sizeof (IA32_SEGMENT_DESCRIPTOR);
   GdtEntry      = (IA32_SEGMENT_DESCRIPTOR *)GdtrDesc.Base;
-  for (Index = 0; Index < GdtEntryCount; Index++) {
+  for (Index = 0; (UINTN)Index < GdtEntryCount; Index++) {
     if (GdtEntry->Bits.L == 0) {
       if ((GdtEntry->Bits.Type > 8) && (GdtEntry->Bits.DB == 1)) {
         break;
@@ -130,34 +130,6 @@ GetProtectedModeCS (
 
   ASSERT (Index != GdtEntryCount);
   return Index * 8;
-}
-
-/**
-  Transfer AP to safe hlt-loop after it finished restore CPU features on S3 patch.
-
-  @param[in] ApHltLoopCode          The address of the safe hlt-loop function.
-  @param[in] TopOfStack             A pointer to the new stack to use for the ApHltLoopCode.
-  @param[in] NumberToFinishAddress  Address of Semaphore of APs finish count.
-
-**/
-VOID
-TransferApToSafeState (
-  IN UINTN  ApHltLoopCode,
-  IN UINTN  TopOfStack,
-  IN UINTN  NumberToFinishAddress
-  )
-{
-  AsmDisablePaging64 (
-    GetProtectedModeCS (),
-    (UINT32)ApHltLoopCode,
-    (UINT32)NumberToFinishAddress,
-    0,
-    (UINT32)TopOfStack
-    );
-  //
-  // It should never reach here
-  //
-  ASSERT (FALSE);
 }
 
 /**

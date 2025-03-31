@@ -23,7 +23,6 @@
 #include <Protocol/VariableWrite.h>
 #include <Protocol/Tcg2Protocol.h>
 #include <Protocol/TrEEProtocol.h>
-#include <Protocol/ResetNotification.h>
 #include <Protocol/AcpiTable.h>
 
 #include <Library/DebugLib.h>
@@ -45,15 +44,11 @@
 #include <Protocol/CcMeasurement.h>
 #include <Guid/CcEventHob.h>
 #include <Library/TdxLib.h>
+#include <Library/TdxMeasurementLib.h>
 
 #define PERF_ID_CC_TCG2_DXE  0x3130
 
 #define   CC_EVENT_LOG_AREA_COUNT_MAX  1
-#define   CC_MR_INDEX_0_MRTD           0
-#define   CC_MR_INDEX_1_RTMR0          1
-#define   CC_MR_INDEX_2_RTMR1          2
-#define   CC_MR_INDEX_3_RTMR2          3
-#define   CC_MR_INDEX_INVALID          4
 
 typedef struct {
   CHAR16      *VariableName;
@@ -933,51 +928,6 @@ TcgCommLogEvent (
   return EFI_SUCCESS;
 }
 
-/**
-  According to UEFI Spec 2.10 Section 38.4.1:
-    The following table shows the TPM PCR index mapping and CC event log measurement
-  register index interpretation for Intel TDX, where MRTD means Trust Domain Measurement
-   Register and RTMR means Runtime Measurement Register
-
-    // TPM PCR Index | CC Measurement Register Index | TDX-measurement register
-    //  ------------------------------------------------------------------------
-    // 0             |   0                           |   MRTD
-    // 1, 7          |   1                           |   RTMR[0]
-    // 2~6           |   2                           |   RTMR[1]
-    // 8~15          |   3                           |   RTMR[2]
-
-  @param[in] PCRIndex Index of the TPM PCR
-
-  @retval    UINT32               Index of the CC Event Log Measurement Register Index
-  @retval    CC_MR_INDEX_INVALID  Invalid MR Index
-**/
-UINT32
-EFIAPI
-MapPcrToMrIndex (
-  IN  UINT32  PCRIndex
-  )
-{
-  UINT32  MrIndex;
-
-  if (PCRIndex > 15) {
-    ASSERT (FALSE);
-    return CC_MR_INDEX_INVALID;
-  }
-
-  MrIndex = 0;
-  if (PCRIndex == 0) {
-    MrIndex = CC_MR_INDEX_0_MRTD;
-  } else if ((PCRIndex == 1) || (PCRIndex == 7)) {
-    MrIndex = CC_MR_INDEX_1_RTMR0;
-  } else if ((PCRIndex >= 2) && (PCRIndex <= 6)) {
-    MrIndex = CC_MR_INDEX_2_RTMR1;
-  } else if ((PCRIndex >= 8) && (PCRIndex <= 15)) {
-    MrIndex = CC_MR_INDEX_3_RTMR2;
-  }
-
-  return MrIndex;
-}
-
 EFI_STATUS
 EFIAPI
 TdMapPcrToMrIndex (
@@ -990,7 +940,7 @@ TdMapPcrToMrIndex (
     return EFI_INVALID_PARAMETER;
   }
 
-  *MrIndex = MapPcrToMrIndex (PCRIndex);
+  *MrIndex = TdxMeasurementMapPcrToMrIndex (PCRIndex);
 
   return *MrIndex == CC_MR_INDEX_INVALID ? EFI_INVALID_PARAMETER : EFI_SUCCESS;
 }
@@ -1657,7 +1607,7 @@ MeasureHandoffTables (
     Status = GetProcessorsCpuLocation (&ProcessorLocBuf, &ProcessorNum);
 
     if (!EFI_ERROR (Status)) {
-      CcEvent.MrIndex   = MapPcrToMrIndex (1);
+      CcEvent.MrIndex   = TdxMeasurementMapPcrToMrIndex (1);
       CcEvent.EventType = EV_TABLE_OF_DEVICES;
       CcEvent.EventSize = sizeof (HandoffTables);
 
@@ -1879,7 +1829,7 @@ ReadAndMeasureBootVariable (
   )
 {
   return ReadAndMeasureVariable (
-           MapPcrToMrIndex (1),
+           TdxMeasurementMapPcrToMrIndex (1),
            EV_EFI_VARIABLE_BOOT,
            VarName,
            VendorGuid,
@@ -1910,7 +1860,7 @@ ReadAndMeasureSecureVariable (
   )
 {
   return ReadAndMeasureVariable (
-           MapPcrToMrIndex (7),
+           TdxMeasurementMapPcrToMrIndex (7),
            EV_EFI_VARIABLE_DRIVER_CONFIG,
            VarName,
            VendorGuid,
@@ -2018,7 +1968,7 @@ MeasureAllSecureVariables (
   Status = GetVariable2 (EFI_IMAGE_SECURITY_DATABASE2, &gEfiImageSecurityDatabaseGuid, &Data, &DataSize);
   if (!EFI_ERROR (Status)) {
     Status = MeasureVariable (
-               MapPcrToMrIndex (7),
+               TdxMeasurementMapPcrToMrIndex (7),
                EV_EFI_VARIABLE_DRIVER_CONFIG,
                EFI_IMAGE_SECURITY_DATABASE2,
                &gEfiImageSecurityDatabaseGuid,
@@ -2048,7 +1998,7 @@ MeasureLaunchOfFirmwareDebugger (
 {
   CC_EVENT_HDR  CcEvent;
 
-  CcEvent.MrIndex   = MapPcrToMrIndex (7);
+  CcEvent.MrIndex   = TdxMeasurementMapPcrToMrIndex (7);
   CcEvent.EventType = EV_EFI_ACTION;
   CcEvent.EventSize = sizeof (FIRMWARE_DEBUGGER_EVENT_STRING) - 1;
   return TdxDxeHashLogExtendEvent (
@@ -2107,7 +2057,7 @@ MeasureSecureBootPolicy (
   // There might be a case that we need measure UEFI image from DriverOrder, besides BootOrder. So
   // the Authority measurement happen before ReadToBoot event.
   //
-  Status = MeasureSeparatorEvent (MapPcrToMrIndex (7));
+  Status = MeasureSeparatorEvent (TdxMeasurementMapPcrToMrIndex (7));
   DEBUG ((DEBUG_INFO, "MeasureSeparatorEvent - %r\n", Status));
   return;
 }
@@ -2152,7 +2102,7 @@ OnReadyToBoot (
     // 1. This is the first boot attempt.
     //
     Status = TdMeasureAction (
-               MapPcrToMrIndex (4),
+               TdxMeasurementMapPcrToMrIndex (4),
                EFI_CALLING_EFI_APPLICATION
                );
     if (EFI_ERROR (Status)) {
@@ -2161,11 +2111,17 @@ OnReadyToBoot (
 
     //
     // 2. Draw a line between pre-boot env and entering post-boot env.
-    // PCR[7] (is RTMR[0]) is already done.
     //
-    Status = MeasureSeparatorEvent (1);
+    // According to UEFI Spec 2.10 Section 38.4.1 the mapping between MrIndex and Intel
+    // TDX Measurement Register is:
+    //    MrIndex 0   <--> MRTD
+    //    MrIndex 1-3 <--> RTMR[0-2]
+    // RTMR[0] (i.e. MrIndex 1) is already done. So SepartorEvent shall be extended to
+    // RTMR[1] (i.e. MrIndex 2) as well.
+    //
+    Status = MeasureSeparatorEvent (CC_MR_INDEX_2_RTMR1);
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Separator Event not Measured. Error!\n"));
+      DEBUG ((DEBUG_ERROR, "Separator Event not Measured to RTMR[1]. Error!\n"));
     }
 
     //
@@ -2184,7 +2140,7 @@ OnReadyToBoot (
     // 6. Not first attempt, meaning a return from last attempt
     //
     Status = TdMeasureAction (
-               MapPcrToMrIndex (4),
+               TdxMeasurementMapPcrToMrIndex (4),
                EFI_RETURNING_FROM_EFI_APPLICATION
                );
     if (EFI_ERROR (Status)) {
@@ -2196,7 +2152,7 @@ OnReadyToBoot (
     // TCG PC Client PFP spec Section 2.4.4.5 Step 4
     //
     Status = TdMeasureAction (
-               MapPcrToMrIndex (4),
+               TdxMeasurementMapPcrToMrIndex (4),
                EFI_CALLING_EFI_APPLICATION
                );
     if (EFI_ERROR (Status)) {
@@ -2234,7 +2190,7 @@ OnExitBootServices (
   // Measure invocation of ExitBootServices,
   //
   Status = TdMeasureAction (
-             MapPcrToMrIndex (5),
+             TdxMeasurementMapPcrToMrIndex (5),
              EFI_EXIT_BOOT_SERVICES_INVOCATION
              );
   if (EFI_ERROR (Status)) {
@@ -2245,7 +2201,7 @@ OnExitBootServices (
   // Measure success of ExitBootServices
   //
   Status = TdMeasureAction (
-             MapPcrToMrIndex (5),
+             TdxMeasurementMapPcrToMrIndex (5),
              EFI_EXIT_BOOT_SERVICES_SUCCEEDED
              );
   if (EFI_ERROR (Status)) {
@@ -2275,7 +2231,7 @@ OnExitBootServicesFailed (
   // Measure Failure of ExitBootServices,
   //
   Status = TdMeasureAction (
-             MapPcrToMrIndex (5),
+             TdxMeasurementMapPcrToMrIndex (5),
              EFI_EXIT_BOOT_SERVICES_FAILED
              );
   if (EFI_ERROR (Status)) {
@@ -2355,7 +2311,6 @@ InstallAcpiTable (
   UINTN                    TableKey;
   EFI_STATUS               Status;
   EFI_ACPI_TABLE_PROTOCOL  *AcpiTable;
-  UINT64                   OemTableId;
 
   Status = gBS->LocateProtocol (&gEfiAcpiTableProtocolGuid, NULL, (VOID **)&AcpiTable);
   if (EFI_ERROR (Status)) {
@@ -2366,8 +2321,7 @@ InstallAcpiTable (
   mTdxEventlogAcpiTemplate.Laml = (UINT64)PcdGet32 (PcdCcEventlogAcpiTableLaml);
   mTdxEventlogAcpiTemplate.Lasa = PcdGet64 (PcdCcEventlogAcpiTableLasa);
   CopyMem (mTdxEventlogAcpiTemplate.Header.OemId, PcdGetPtr (PcdAcpiDefaultOemId), sizeof (mTdxEventlogAcpiTemplate.Header.OemId));
-  OemTableId = PcdGet64 (PcdAcpiDefaultOemTableId);
-  CopyMem (&mTdxEventlogAcpiTemplate.Header.OemTableId, &OemTableId, sizeof (UINT64));
+  mTdxEventlogAcpiTemplate.Header.OemTableId      = PcdGet64 (PcdAcpiDefaultOemTableId);
   mTdxEventlogAcpiTemplate.Header.OemRevision     = PcdGet32 (PcdAcpiDefaultOemRevision);
   mTdxEventlogAcpiTemplate.Header.CreatorId       = PcdGet32 (PcdAcpiDefaultCreatorId);
   mTdxEventlogAcpiTemplate.Header.CreatorRevision = PcdGet32 (PcdAcpiDefaultCreatorRevision);

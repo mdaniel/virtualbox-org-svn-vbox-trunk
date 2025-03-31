@@ -30,9 +30,12 @@
 #include <Library/QemuFwCfgS3Lib.h>
 #include <Library/QemuFwCfgSimpleParserLib.h>
 #include <Library/PciLib.h>
+#include <Library/LocalApicLib.h>
 #include <Guid/SystemNvDataGuid.h>
 #include <Guid/VariableFormat.h>
 #include <OvmfPlatforms.h>
+#include <Library/TdxLib.h>
+#include <Library/MemEncryptSevLib.h>
 
 #include <Library/PlatformInitLib.h>
 
@@ -377,6 +380,11 @@ PlatformNoexecDxeInitialization (
   IN OUT EFI_HOB_PLATFORM_INFO  *PlatformInfoHob
   )
 {
+  if (TdIsEnabled ()) {
+    PlatformInfoHob->PcdSetNxForStack = TRUE;
+    return EFI_SUCCESS;
+  }
+
   return QemuFwCfgParseBool ("opt/ovmf/PcdSetNxForStack", &PlatformInfoHob->PcdSetNxForStack);
 }
 
@@ -696,6 +704,20 @@ PlatformMaxCpuCountInitialization (
   UINT32  MaxCpuCount;
 
 #ifndef VBOX
+  if (TdIsEnabled ()) {
+    BootCpuCount = (UINT16)TdVCpuNum ();
+    MaxCpuCount  = TdMaxVCpuNum ();
+
+    if (BootCpuCount > MaxCpuCount) {
+      DEBUG ((DEBUG_ERROR, "%a: Failed with BootCpuCount (%d) more than MaxCpuCount(%u) \n", __func__, BootCpuCount, MaxCpuCount));
+      ASSERT (FALSE);
+    }
+
+    PlatformInfoHob->PcdCpuMaxLogicalProcessorNumber  = MaxCpuCount;
+    PlatformInfoHob->PcdCpuBootLogicalProcessorNumber = BootCpuCount;
+    return;
+  }
+
   //
   // Try to fetch the boot CPU count.
   //
@@ -841,6 +863,11 @@ PlatformMaxCpuCountInitialization (
     ));
   ASSERT (BootCpuCount <= MaxCpuCount);
 
+  if (MaxCpuCount > 255) {
+    DEBUG ((DEBUG_INFO, "%a: enable x2apic mode\n", __func__));
+    SetApicMode (LOCAL_APIC_MODE_X2APIC);
+  }
+
   PlatformInfoHob->PcdCpuMaxLogicalProcessorNumber  = MaxCpuCount;
   PlatformInfoHob->PcdCpuBootLogicalProcessorNumber = BootCpuCount;
 }
@@ -896,6 +923,8 @@ PlatformValidateNvVarStore (
   EFI_FIRMWARE_VOLUME_HEADER     *NvVarStoreFvHeader;
   VARIABLE_STORE_HEADER          *NvVarStoreHeader;
   AUTHENTICATED_VARIABLE_HEADER  *VariableHeader;
+  BOOLEAN                        Retry;
+  EFI_STATUS                     Status;
 
   static EFI_GUID  FvHdrGUID       = EFI_SYSTEM_NV_DATA_FV_GUID;
   static EFI_GUID  VarStoreHdrGUID = EFI_AUTHENTICATED_VARIABLE_GUID;
@@ -914,6 +943,15 @@ PlatformValidateNvVarStore (
   //
   NvVarStoreFvHeader = (EFI_FIRMWARE_VOLUME_HEADER *)NvVarStoreBase;
 
+  //
+  // SEV and SEV-ES can use separate flash devices for OVMF code and
+  // OVMF variables. In this case, the OVMF variables will need to be
+  // mapped unencrypted. If the initial validation fails, remap the
+  // NV variable store as unencrypted and retry the validation.
+  //
+  Retry = MemEncryptSevIsEnabled ();
+
+RETRY:
   if ((!IsZeroBuffer (NvVarStoreFvHeader->ZeroVector, 16)) ||
       (!CompareGuid (&FvHdrGUID, &NvVarStoreFvHeader->FileSystemGuid)) ||
       (NvVarStoreFvHeader->Signature != EFI_FVH_SIGNATURE) ||
@@ -923,8 +961,24 @@ PlatformValidateNvVarStore (
       (NvVarStoreFvHeader->FvLength != NvVarStoreSize)
       )
   {
-    DEBUG ((DEBUG_ERROR, "NvVarStore FV headers were invalid.\n"));
-    return FALSE;
+    if (!Retry) {
+      DEBUG ((DEBUG_ERROR, "NvVarStore FV headers were invalid.\n"));
+      return FALSE;
+    }
+
+    DEBUG ((DEBUG_INFO, "Remapping NvVarStore as shared\n"));
+    Status = MemEncryptSevClearMmioPageEncMask (
+               0,
+               (UINTN)NvVarStoreBase,
+               EFI_SIZE_TO_PAGES (NvVarStoreSize)
+               );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Failed to map NvVarStore as shared\n"));
+      return FALSE;
+    }
+
+    Retry = FALSE;
+    goto RETRY;
   }
 
   //

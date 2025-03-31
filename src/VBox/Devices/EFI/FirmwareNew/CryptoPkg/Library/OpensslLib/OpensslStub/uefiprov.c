@@ -141,6 +141,17 @@ static const OSSL_ALGORITHM_CAPABLE deflt_ciphers[] = {
     ALG(PROV_NAMES_AES_192_GCM, ossl_aes192gcm_functions),
     ALG(PROV_NAMES_AES_128_GCM, ossl_aes128gcm_functions),
 
+    ALGC (
+        PROV_NAMES_AES_128_CBC_HMAC_SHA256,
+        ossl_aes128cbc_hmac_sha256_functions,
+        ossl_cipher_capable_aes_cbc_hmac_sha256
+        ),
+    ALGC (
+        PROV_NAMES_AES_256_CBC_HMAC_SHA256,
+        ossl_aes256cbc_hmac_sha256_functions,
+        ossl_cipher_capable_aes_cbc_hmac_sha256
+        ),
+
     { { NULL, NULL, NULL }, NULL }
 };
 static OSSL_ALGORITHM exported_ciphers[OSSL_NELEM(deflt_ciphers)];
@@ -182,6 +193,7 @@ static const OSSL_ALGORITHM deflt_signature[] = {
 #ifndef OPENSSL_NO_EC
     { PROV_NAMES_ECDSA, "provider=default", ossl_ecdsa_signature_functions },
 #endif
+    { PROV_NAMES_HMAC, "provider=default", ossl_mac_legacy_hmac_signature_functions },
 
     { NULL, NULL, NULL }
 };
@@ -211,6 +223,8 @@ static const OSSL_ALGORITHM deflt_keymgmt[] = {
       PROV_DESCS_TLS1_PRF_SIGN },
     { PROV_NAMES_HKDF, "provider=default", ossl_kdf_keymgmt_functions,
       PROV_DESCS_HKDF_SIGN },
+    { PROV_NAMES_HMAC, "provider=default", ossl_mac_legacy_keymgmt_functions,
+      PROV_DESCS_HMAC_SIGN },
 
     { NULL, NULL, NULL }
 };

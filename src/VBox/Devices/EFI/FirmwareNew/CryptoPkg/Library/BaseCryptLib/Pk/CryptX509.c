@@ -102,7 +102,6 @@ X509ConstructCertificateStackV (
 
   STACK_OF (X509)  *CertStack;
   BOOLEAN  Status;
-  UINTN    Index;
 
   //
   // Check input parameters.
@@ -124,7 +123,7 @@ X509ConstructCertificateStackV (
     }
   }
 
-  for (Index = 0; ; Index++) {
+  while (TRUE) {
     //
     // If Cert is NULL, then it is the end of the list.
     //
@@ -839,17 +838,17 @@ X509GetTBSCert (
   Length = 0;
   Inf    = ASN1_get_object (&Temp, (long *)&Length, (int *)&Asn1Tag, (int *)&ObjClass, (long)CertSize);
 
-  if (((Inf & 0x80) == 0x00) && (Asn1Tag != V_ASN1_SEQUENCE)) {
+  if (((Inf & 0x80) == 0x80) || (Asn1Tag != V_ASN1_SEQUENCE)) {
     return FALSE;
   }
 
   *TBSCert = (UINT8 *)Temp;
 
-  ASN1_get_object (&Temp, (long *)&Length, (int *)&Asn1Tag, (int *)&ObjClass, (long)Length);
+  Inf = ASN1_get_object (&Temp, (long *)&Length, (int *)&Asn1Tag, (int *)&ObjClass, (long)Length);
   //
   // Verify the parsed TBSCertificate is one correct SEQUENCE data.
   //
-  if (((Inf & 0x80) == 0x00) && (Asn1Tag != V_ASN1_SEQUENCE)) {
+  if (((Inf & 0x80) == 0x80) || (Asn1Tag != V_ASN1_SEQUENCE)) {
     return FALSE;
   }
 
@@ -1057,7 +1056,7 @@ X509GetSerialNumber (
   }
 
   if (SerialNumber != NULL) {
-    CopyMem (SerialNumber, Asn1Integer->data, *SerialNumberSize);
+    CopyMem (SerialNumber, Asn1Integer->data, (UINTN)Asn1Integer->length);
     Status = TRUE;
   }
 
@@ -1391,7 +1390,7 @@ Cleanup:
   @param[in]      Cert             Pointer to the DER-encoded X509 certificate.
   @param[in]      CertSize         Size of the X509 certificate in bytes.
   @param[out]     Usage            Key Usage bytes.
-  @param[in, out] UsageSize        Key Usage buffer sizs in bytes.
+  @param[in, out] UsageSize        Key Usage buffer size in bytes.
 
   @retval TRUE                     The Usage bytes retrieve successfully.
   @retval FALSE                    If Cert is NULL.
@@ -1692,12 +1691,12 @@ _Exit:
   @param[in]      RootCertLength    Trusted Root Certificate buffer length
   @param[in]      CertChain         One or more ASN.1 DER-encoded X.509 certificates
                                     where the first certificate is signed by the Root
-                                    Certificate or is the Root Cerificate itself. and
-                                    subsequent cerificate is signed by the preceding
-                                    cerificate.
+                                    Certificate or is the Root Certificate itself. and
+                                    subsequent certificate is signed by the preceding
+                                    certificate.
   @param[in]      CertChainLength   Total length of the certificate chain, in bytes.
 
-  @retval  TRUE   All cerificates was issued by the first certificate in X509Certchain.
+  @retval  TRUE   All certificates was issued by the first certificate in X509Certchain.
   @retval  FALSE  Invalid certificate or the certificate was not issued by the given
                   trusted CA.
 **/
@@ -1775,9 +1774,9 @@ X509VerifyCertChain (
 
   @param[in]      CertChain         One or more ASN.1 DER-encoded X.509 certificates
                                     where the first certificate is signed by the Root
-                                    Certificate or is the Root Cerificate itself. and
-                                    subsequent cerificate is signed by the preceding
-                                    cerificate.
+                                    Certificate or is the Root Certificate itself. and
+                                    subsequent certificate is signed by the preceding
+                                    certificate.
   @param[in]      CertChainLength   Total length of the certificate chain, in bytes.
 
   @param[in]      CertIndex         Index of certificate.
@@ -1922,7 +1921,7 @@ Asn1GetTag (
   @param[in]      Cert                     Pointer to the DER-encoded X509 certificate.
   @param[in]      CertSize                 size of the X509 certificate in bytes.
   @param[out]     BasicConstraints         basic constraints bytes.
-  @param[in, out] BasicConstraintsSize     basic constraints buffer sizs in bytes.
+  @param[in, out] BasicConstraintsSize     basic constraints buffer size in bytes.
 
   @retval TRUE                     The basic constraints retrieve successfully.
   @retval FALSE                    If cert is NULL.

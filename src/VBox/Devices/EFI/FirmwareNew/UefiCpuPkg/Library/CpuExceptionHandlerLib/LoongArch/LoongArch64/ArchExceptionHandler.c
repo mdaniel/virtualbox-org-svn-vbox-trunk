@@ -27,7 +27,7 @@ GetExceptionType (
 {
   EFI_EXCEPTION_TYPE  ExceptionType;
 
-  ExceptionType = (SystemContext.SystemContextLoongArch64->ESTAT & CSR_ESTAT_EXC);
+  ExceptionType = (SystemContext.SystemContextLoongArch64->ESTAT & CSR_ESTAT_EXC) >> CSR_ESTAT_EXC_SHIFT;
   return ExceptionType;
 }
 
@@ -94,6 +94,17 @@ DumpCpuContext (
     ExceptionType,
     GetExceptionNameStr (ExceptionType)
     );
+
+  //
+  // Dump interrupt type if the exception type is INT.
+  //
+  if (ExceptionType == EXCEPT_LOONGARCH_INT) {
+    InternalPrintMessage (
+      "\n!!!! Unhandled interrupt Type - %02x(%a) !!!!\n",
+      GetInterruptType (SystemContext),
+      GetInterruptNameStr (GetInterruptType (SystemContext))
+      );
+  }
 
   //
   // Dump TLB refill ERA and BADV
@@ -260,7 +271,7 @@ IpiInterruptHandler (
     //
     // Set $a0 as APIC ID and $a1 as parameter value.
     //
-    SystemContext.SystemContextLoongArch64->R4 = CsrRead (LOONGARCH_CSR_CPUNUM);
+    SystemContext.SystemContextLoongArch64->R4 = CsrRead (LOONGARCH_CSR_CPUID);
     SystemContext.SystemContextLoongArch64->R5 = Parameter;
   }
 

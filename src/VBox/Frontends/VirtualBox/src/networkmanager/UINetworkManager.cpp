@@ -1719,7 +1719,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesCloudNetwork()
 void UINetworkManagerWidget::prepare()
 {
     /* Prepare self: */
-    uiCommon().setHelpKeyword(this, "network-manager" /* help keyword */);
+    uiCommon().setHelpKeyword(this, "config-network" /* help keyword */);
 
     /* Prepare stuff: */
     prepareActions();

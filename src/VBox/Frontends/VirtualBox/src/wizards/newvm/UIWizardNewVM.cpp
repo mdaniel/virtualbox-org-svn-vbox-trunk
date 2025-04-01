@@ -65,7 +65,7 @@ UIWizardNewVM::UIWizardNewVM(QWidget *pParent,
                              UIActionPool *pActionPool,
                              const QString &strMachineGroup,
                              const QString &strISOFilePath /* = QString() */)
-    : UINativeWizard(pParent, WizardType_NewVM, "create-vm-wizard" /* help keyword */)
+    : UINativeWizard(pParent, WizardType_NewVM, "create-vm" /* help keyword */)
     , m_strMachineGroup(strMachineGroup)
     , m_iIDECount(0)
     , m_iSATACount(0)
@@ -106,13 +106,13 @@ void UIWizardNewVM::populatePages()
     {
         case WizardMode_Basic:
         {
-            UIWizardNewVMNameOSTypePage *pNamePage = new UIWizardNewVMNameOSTypePage("create-vm-wizard-name-os" /* help keyword*/);
+            UIWizardNewVMNameOSTypePage *pNamePage = new UIWizardNewVMNameOSTypePage("create-vm-name-os" /* help keyword*/);
             addPage(pNamePage);
             if (!m_strInitialISOFilePath.isEmpty())
                 pNamePage->setISOFilePath(m_strInitialISOFilePath);
-            m_iUnattendedInstallPageIndex = addPage(new UIWizardNewVMUnattendedPage("create-vm-wizard-unattended-install" /* help keyword */));
+            m_iUnattendedInstallPageIndex = addPage(new UIWizardNewVMUnattendedPage("create-vm-unattended-install" /* help keyword */));
             setUnattendedPageVisible(false);
-            addPage(new UIWizardNewVMHardwarePage("create-vm-wizard-hardware" /* help keyword*/));
+            addPage(new UIWizardNewVMHardwarePage("create-vm-hardware" /* help keyword*/));
             addPage(new UIWizardNewVMSummaryPage);
             break;
         }

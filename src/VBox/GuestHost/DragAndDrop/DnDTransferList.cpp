@@ -768,48 +768,52 @@ int DnDTransferListAppendPathsFromArray(PDNDTRANSFERLIST pList,
     AssertPtrReturn(papcszPaths, VERR_INVALID_POINTER);
     AssertReturn(!(fFlags & ~DNDTRANSFERLIST_FLAGS_VALID_MASK), VERR_INVALID_FLAGS);
 
-    int rc = VINF_SUCCESS;
-
     if (!cPaths) /* Nothing to add? Bail out. */
         return VINF_SUCCESS;
 
-    char **papszPathsTmp = NULL;
+    char **papszPathsConverted = NULL;
 
-    /* If URI data is being handed in, extract the paths first. */
-    if (enmFmt == DNDTRANSFERLISTFMT_URI)
+    int rc = VINF_SUCCESS;
+
+    switch (enmFmt)
     {
-        papszPathsTmp = (char **)RTMemAlloc(sizeof(char *) * cPaths);
-        if (papszPathsTmp)
+        /* If URI data is being handed in, extract the paths first. */
+        case DNDTRANSFERLISTFMT_URI:
         {
+            papszPathsConverted = (char **)RTMemAllocZ(sizeof(char *) * cPaths);
+            AssertPtrReturn(papszPathsConverted, VERR_NO_MEMORY);
             for (size_t i = 0; i < cPaths; i++)
-                papszPathsTmp[i] = RTUriFilePath(papcszPaths[i]);
+            {
+                papszPathsConverted[i] = RTUriFilePath(papcszPaths[i]);
+                AssertPtrBreakStmt(papszPathsConverted[i], rc = VERR_INVALID_PARAMETER);
+            }
+
+            papcszPaths = papszPathsConverted;
+            break;
         }
-        else
-            rc = VERR_NO_MEMORY;
+
+        case DNDTRANSFERLISTFMT_NATIVE:
+            /* Use original paths handed-in. */
+            break;
+
+        default:
+            AssertFailedStmt(rc = VERR_NOT_SUPPORTED);
+            break;
     }
 
-    if (RT_FAILURE(rc))
-        return rc;
-
     /* If we don't have a root path set, try to find the common path of all handed-in paths. */
-    if (!pList->pszPathRootAbs)
+    if (   RT_SUCCESS(rc)
+        && !pList->pszPathRootAbs)
     {
-        /* Can we work on the unmodified, handed-in data or do we need to use our temporary paths? */
-        const char * const *papszPathTmp = enmFmt == DNDTRANSFERLISTFMT_NATIVE
-                                         ? papcszPaths : papszPathsTmp;
-
         size_t cchRootPath = 0; /* Length of root path in chars. */
         if (cPaths > 1)
-        {
-            cchRootPath = RTPathFindCommon(cPaths, papszPathTmp);
-        }
+            cchRootPath = RTPathFindCommon(cPaths, papcszPaths);
         else
-            cchRootPath = RTPathParentLength(papszPathTmp[0]);
-
+            cchRootPath = RTPathParentLength(papcszPaths[0]);
         if (cchRootPath)
         {
             /* Just use the first path in the array as the reference. */
-            char *pszRootPath = RTStrDupN(papszPathTmp[0], cchRootPath);
+            char *pszRootPath = RTStrDupN(papcszPaths[0], cchRootPath);
             if (pszRootPath)
             {
                 rc = dndTransferInitAndSetRoot(pList, pszRootPath);
@@ -825,27 +829,25 @@ int DnDTransferListAppendPathsFromArray(PDNDTRANSFERLIST pList,
     if (RT_SUCCESS(rc))
     {
         /*
-         * Add all paths to the list.
+         * Add all paths (as native paths) to the list.
          */
         for (size_t i = 0; i < cPaths; i++)
         {
-            const char *pcszPath = enmFmt == DNDTRANSFERLISTFMT_NATIVE
-                                 ? papcszPaths[i] : papszPathsTmp[i];
-            rc = DnDTransferListAppendPath(pList, DNDTRANSFERLISTFMT_NATIVE, pcszPath, fFlags);
+            rc = DnDTransferListAppendPath(pList, DNDTRANSFERLISTFMT_NATIVE, papcszPaths[i], fFlags);
             if (RT_FAILURE(rc))
             {
                 LogRel(("DnD: Adding path '%s' (format %#x, root '%s') to transfer list failed with %Rrc\n",
-                        pcszPath, enmFmt, pList->pszPathRootAbs ? pList->pszPathRootAbs : "<None>", rc));
+                        papcszPaths[i], enmFmt, pList->pszPathRootAbs ? pList->pszPathRootAbs : "<None>", rc));
                 break;
             }
         }
     }
 
-    if (papszPathsTmp)
+    if (papszPathsConverted)
     {
         for (size_t i = 0; i < cPaths; i++)
-            RTStrFree(papszPathsTmp[i]);
-        RTMemFree(papszPathsTmp);
+            RTStrFree(papszPathsConverted[i]);
+        RTMemFree(papszPathsConverted);
     }
 
     LogFlowFuncLeaveRC(rc);

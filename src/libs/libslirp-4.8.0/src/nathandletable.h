@@ -1,5 +1,6 @@
+/* $Id$ */
 /** @file
- * libslirp: NAT Hanlde Table Singleton Wrapper
+ * libslirp: NAT Handle Table Singleton Wrapper
  */
 
 /*
@@ -33,30 +34,28 @@
  * SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
  */
 
-#ifdef _WIN32
 #ifndef INCLUDED_nathandletable_h
+#define INCLUDED_nathandletable_h
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
 
-#include <iprt/assert.h>
-#include <iprt/err.h>
-#include <iprt/handletable.h>
-#include <iprt/mem.h>
+#ifdef _WIN32
+# include <iprt/assert.h>
+# include <iprt/err.h>
+# include <iprt/handletable.h>
+# include <iprt/mem.h>
 
 # ifndef LOG_GROUP
 #  define LOG_GROUP LOG_GROUP_DRV_NAT
 #  include <VBox/log.h>
 # endif
 
-#include <winsock2.h>
+# include <winsock2.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+RT_C_DECLS_BEGIN
 
-extern PRTHANDLETABLE pNATHandleTable;
+extern RTHANDLETABLE g_hNATHandleTable;
 
 /**
  * Looks up a SOCKET handle by the integer handle used by libslirp.
@@ -84,9 +83,8 @@ int libslirp_wrap_RTHandleTableAlloc(SOCKET s, uint32_t *h);
  */
 int libslirp_wrap_RTHandleTableFree(int fd);
 
-#ifdef __cplusplus
-}
-#endif
+RT_C_DECLS_END
 
-#endif
+# endif /* _WIN32*/
+
 #endif

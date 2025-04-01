@@ -201,16 +201,17 @@ int slirp_closesocket_wrap(int fd)
 
     if (ret == SOCKET_ERROR)
     {
-        int iError = WSAGetLastError();
+        errno = socket_error();
         LogFunc(("SOCKET CLOSE ERROR: Handle %d, discovered to be SOCKET %d, \
-                failed to close with error: %d\n", fd, s, iError));
+                failed to close with error: %d\n", fd, s, errno));
         return ret;
     }
 
-    ret = libslirp_wrap_RTHandleTableFree(fd);
-    if (!RT_SUCCESS(ret))
+    int iFreeRc = libslirp_wrap_RTHandleTableFree(fd);
+    if (!RT_SUCCESS(iFreeRc))
     {
-        Log3Func(("Handle free error: Handle %d which was really %d", fd, s));
+        Log3Func(("Handle free error: Handle %d which was really %d. Rc=%d\n", \
+                 fd, s, iFreeRc));
         return VERR_INVALID_PARAMETER;
     }
 #else

@@ -66,7 +66,7 @@ int libslirp_wrap_RTHandleTableAlloc(SOCKET hSock, uint32_t *pHandle)
     else
     {
         int rc = RTHandleTableCreate(&hHandleTable);
-        AssertLogRelRCReturn(rc, -1);
+        AssertLogRelRCReturn(rc, rc);
         /** @todo potential race here? iff so, use cmpxchg from asm.h   */
         g_hNATHandleTable = hHandleTable;
     }

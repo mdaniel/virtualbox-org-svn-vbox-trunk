@@ -246,7 +246,7 @@ $(VBOX_PATH_PACK_TMP)/DiskImage/VirtualBox.pkg: \
 		-e 's+@VBOX_C_YEAR@+$(VBOX_C_YEAR)+g' \
 		--output $(VBOX_PATH_PACK_TMP)/VirtualBox.dist.res/English.lproj/Localizable.strings \
 		$(VBOX_PATH_DI_SRC)/VirtualBox_mpkg/Localizable.strings
-	$(INSTALL) -m 0644 $(VBOX_BRAND_DARWIN_INSTALLER_BG)                                    $(VBOX_PATH_PACK_TMP)/VirtualBox.dist.res/background.tif
+	$(INSTALL) -m 0644 $(VBOX_BRAND_DARWIN_INSTALLER_BG)                                    $(VBOX_PATH_PACK_TMP)/VirtualBox.dist.res/background.tiff
 	$(foreach f,$(VBOX_INSTALLER_ADD_LANGUAGES), \
 		$(MKDIR) -p \
 			$(VBOX_PATH_PACK_TMP)/VirtualBox.dist.res/$(VBOX_INSTALLER_$(f)_DARWIN_TARGET).lproj$(NLTAB) \

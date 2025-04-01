@@ -50,7 +50,7 @@
     }
     /* js:pkmk:end */
     </script>
-    <background file="background.tif" alignment="topleft" scaling="none"/>
+    <background file="background.tiff" alignment="topleft" scaling="none"/>
     <welcome file="Welcome.rtf" mime-type="text/rtf" uti="public.rtf"/>
     <choices-outline>
         <line choice="choiceVBoxToolsAndServices"></line>

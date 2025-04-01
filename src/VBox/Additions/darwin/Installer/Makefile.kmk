@@ -167,7 +167,7 @@ $(VBOX_PATH_PACK_TMP)/VBoxGuestAdditions.pkg: \
 		-e 's+@VBOX_C_YEAR@+$(VBOX_C_YEAR)+g' \
 		--output $(VBOX_PATH_PACK_TMP)/VBoxDarwinAdditions.dist.res/English.lproj/Localizable.strings \
 		$(VBOX_ADD_PATH_DI_SRC)/VBoxGuestAdditions_mpkg/Localizable.strings
-	$(INSTALL) -m 0644 $(VBOX_BRAND_DARWIN_INSTALLER_BG)                          $(VBOX_PATH_PACK_TMP)/VBoxDarwinAdditions.dist.res/background.tif
+	$(INSTALL) -m 0644 $(VBOX_BRAND_DARWIN_INSTALLER_BG)                          $(VBOX_PATH_PACK_TMP)/VBoxDarwinAdditions.dist.res/background.tiff
 
 	$(foreach f,$(VBOX_INSTALLER_ADD_LANGUAGES), \
 		$(MKDIR) -p \

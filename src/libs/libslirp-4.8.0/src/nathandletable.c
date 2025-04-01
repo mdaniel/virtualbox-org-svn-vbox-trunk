@@ -48,8 +48,8 @@ SOCKET libslirp_wrap_RTHandleTableLookup(int fd)
         AssertRC(rc);
     }
 
-    Log6Func(("Looking up %d on %p\n", fd, (void *)pNATHandleTable));
     SOCKET s = (SOCKET)RTHandleTableLookup(*pNATHandleTable, fd);
+    Log6Func(("Looked up %d on %p and returned %d\n", fd, (void *)pNATHandleTable, s));
     return s;
 }
 
@@ -62,8 +62,22 @@ int libslirp_wrap_RTHandleTableAlloc(SOCKET uSocket, uint32_t *pHandle)
         AssertRC(rc);
     }
 
-    Log6Func(("Creating sock %llu on %p\n", uSocket, (void *)pNATHandleTable));
-    return RTHandleTableAlloc(*pNATHandleTable, (void *)uSocket, pHandle);
+    int ret = RTHandleTableAlloc(*pNATHandleTable, (void *)uSocket, pHandle);
+    Log6Func(("Creating sock %llu on %p with handle %d\n", uSocket, (void *)pNATHandleTable, *pHandle));
+    return ret;
+}
+
+int libslirp_wrap_RTHandleTableFree(int fd)
+{
+    if (pNATHandleTable == NULL)
+        return VERR_INVALID_PARAMETER;
+
+    void *ret = RTHandleTableFree(*pNATHandleTable, fd);
+    Log6Func(("Freeing sock %d on %p\n", fd, (void *)pNATHandleTable));
+    if (ret)
+        return VINF_SUCCESS;
+
+    return VERR_INVALID_PARAMETER;
 }
 
 #endif

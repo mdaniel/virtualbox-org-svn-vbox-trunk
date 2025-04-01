@@ -58,9 +58,31 @@ extern "C"
 
 extern PRTHANDLETABLE pNATHandleTable;
 
+/**
+ * Looks up a SOCKET handle by the integer handle used by libslirp.
+ *
+ * @returns actual SOCKET handle used by Windows
+ * @param   fd            Integer handle used internally by libslirp.
+ */
 SOCKET libslirp_wrap_RTHandleTableLookup(int fd);
 
-int libslirp_wrap_RTHandleTableAlloc(SOCKET, uint32_t *);
+/**
+ * Allocates an integer handle from a SOCKET handle for use libslirp.
+ *
+ * @returns VBox status code
+ * @param   s            SOCKET handle from Windows.
+ *                       Typically from a socket() call.
+ * @param   h            Return param. Integer handle from table.
+ */
+int libslirp_wrap_RTHandleTableAlloc(SOCKET s, uint32_t *h);
+
+/**
+ * Frees entry from lookup table.
+ *
+ * @returns VBox status code
+ * @param   fd            Integer handle used internally by libslirp.
+ */
+int libslirp_wrap_RTHandleTableFree(int fd);
 
 #ifdef __cplusplus
 }

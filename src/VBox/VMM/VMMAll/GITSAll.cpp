@@ -313,15 +313,17 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
     {
         static uint32_t const s_acbPageSize[] = { _4K, _16K, _64K, _64K };
         static const char* const s_apszType[] = { "UnImpl", "Devices", "vPEs", "Intr Collections" };
+
         uint64_t const uReg        = pGitsDev->aItsTableRegs[8].u;
-        uint16_t const cPages      = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SIZE) + 1;
+        uint16_t const uSize       = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SIZE);
+        uint16_t const cPages      = uSize > 0 ? uSize + 1 : 0;
         uint8_t const  idxPageSize = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_PAGESIZE);
         uint64_t const cbItsTable  = cPages * s_acbPageSize[idxPageSize];
         uint8_t const  uEntrySize  = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_ENTRY_SIZE);
         uint8_t const  idxType     = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_TYPE);
         const char *pszType        = s_apszType[idxType];
         pHlp->pfnPrintf(pHlp, "  aItsTableReg[%u]      = %#RX64\n", i, uReg);
-        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (%u page(s) of %.Rhcb each)\n", cPages - 1, cPages, cbItsTable);
+        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, cbItsTable);
         pHlp->pfnPrintf(pHlp, "    Page size             = %#x (%.Rhcb)\n", idxPageSize, s_acbPageSize[idxPageSize]);
         pHlp->pfnPrintf(pHlp, "    Shareability          = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SHAREABILITY));
         pHlp->pfnPrintf(pHlp, "    Phys addr             = %#RX64\n", uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK);
@@ -332,14 +334,14 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
         pHlp->pfnPrintf(pHlp, "    Indirect              = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INDIRECT)));
         pHlp->pfnPrintf(pHlp, "    Valid                 = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID)));
     }
-    pHlp->pfnPrintf(pHlp, "\n");
 
     /* GITS_CBASER. */
     {
-        uint64_t const uReg = pGitsDev->uCmdBaseReg.u;
-        uint8_t const uSize = RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SIZE);
+        uint64_t const uReg   = pGitsDev->uCmdBaseReg.u;
+        uint8_t const uSize   = RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SIZE);
+        uint16_t const cPages = uSize > 0 ? uSize + 1 : 0;
         pHlp->pfnPrintf(pHlp, "  uCmdBaseReg           = %#RX64\n", uReg);
-        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (%u %.Rhcb pages)\n", uSize, uSize + 1, _4K * (uSize + 1));
+        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, _4K * cPages);
         pHlp->pfnPrintf(pHlp, "    Shareability          = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SHAREABILITY));
         pHlp->pfnPrintf(pHlp, "    Phys addr             = %#RX64\n",   uReg & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK);
         pHlp->pfnPrintf(pHlp, "    Outer cache           = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_OUTER_CACHE));

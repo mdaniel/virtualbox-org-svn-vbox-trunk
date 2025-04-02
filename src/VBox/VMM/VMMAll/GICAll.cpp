@@ -271,7 +271,7 @@ DECLHIDDEN(uint16_t) gicDistGetIntIdFromIndex(uint16_t idxIntr)
     else
     {
         uIntId = 0;
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("idxIntr=%u\n", idxIntr));
     }
     Assert(   GIC_IS_INTR_SGI_OR_PPI(uIntId)
            || GIC_IS_INTR_SPI(uIntId)
@@ -301,7 +301,7 @@ static uint16_t gicDistGetIndexFromIntId(uint16_t uIntId)
     else
     {
         idxIntr = 0;
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("uIntId=%u\n", uIntId));
     }
     Assert(idxIntr < sizeof(GICDEV::bmIntrPending) * 8);
     return idxIntr;
@@ -337,7 +337,7 @@ DECLHIDDEN(uint16_t) gicReDistGetIntIdFromIndex(uint16_t idxIntr)
     else
     {
         uIntId = 0;
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("idxIntr=%u\n", idxIntr));
     }
     Assert(GIC_IS_INTR_SGI_OR_PPI(uIntId) || GIC_IS_INTR_EXT_PPI(uIntId));
     return uIntId;
@@ -364,7 +364,7 @@ static uint16_t gicReDistGetIndexFromIntId(uint16_t uIntId)
     else
     {
         idxIntr = 0;
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("uIntId=%u\n", uIntId));
     }
     Assert(idxIntr < sizeof(GICCPU::bmIntrPending) * 8);
     return idxIntr;
@@ -827,7 +827,7 @@ static VBOXSTRICTRC gicDistWriteIntrSetEnableReg(PVM pVM, PGICDEV pGicDev, uint1
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrEnabled[idxReg]));
     return VINF_SUCCESS;
 }
@@ -853,7 +853,7 @@ static VBOXSTRICTRC gicDistWriteIntrClearEnableReg(PVM pVM, PGICDEV pGicDev, uin
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrEnabled[idxReg]));
     return VINF_SUCCESS;
 }
@@ -898,7 +898,7 @@ static VBOXSTRICTRC gicDistWriteIntrSetActiveReg(PVM pVM, PGICDEV pGicDev, uint1
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrActive[idxReg]));
     return VINF_SUCCESS;
 }
@@ -924,7 +924,7 @@ static VBOXSTRICTRC gicDistWriteIntrClearActiveReg(PVM pVM, PGICDEV pGicDev, uin
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrActive[idxReg]));
     return VINF_SUCCESS;
 }
@@ -953,7 +953,7 @@ static VBOXSTRICTRC gicDistReadIntrPriorityReg(PGICDEV pGicDev, uint16_t idxReg,
     }
     else
     {
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) read to SGI/PPI register in distributor\n"));
         *puValue = 0;
     }
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
@@ -984,7 +984,7 @@ static VBOXSTRICTRC gicDistWriteIntrPriorityReg(PGICDEV pGicDev, uint16_t idxReg
         LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, *(uint32_t *)&pGicDev->abIntrPriority[idxPriority]));
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     return VINF_SUCCESS;
 }
 
@@ -1010,7 +1010,7 @@ static VBOXSTRICTRC gicDistReadIntrPendingReg(PGICDEV pGicDev, uint16_t idxReg, 
     }
     else
     {
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) read to SGI/PPI register in distributor\n"));
         *puValue = 0;
     }
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicDev->bmIntrPending[idxReg]));
@@ -1038,7 +1038,7 @@ static VBOXSTRICTRC gicDistWriteIntrSetPendingReg(PVMCC pVM, PGICDEV pGicDev, ui
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrPending[idxReg]));
     return VINF_SUCCESS;
 }
@@ -1064,7 +1064,7 @@ static VBOXSTRICTRC gicDistWriteIntrClearPendingReg(PVMCC pVM, PGICDEV pGicDev, 
         return gicDistUpdateIrqState(pVM, pGicDev);
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrPending[idxReg]));
     return VINF_SUCCESS;
 }
@@ -1088,7 +1088,7 @@ static VBOXSTRICTRC gicDistReadIntrConfigReg(PCGICDEV pGicDev, uint16_t idxReg, 
         *puValue = pGicDev->bmIntrConfig[idxReg];
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) read to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, pGicDev->bmIntrConfig[idxReg]));
     return VINF_SUCCESS;
 }
@@ -1112,7 +1112,7 @@ static VBOXSTRICTRC gicDistWriteIntrConfigReg(PGICDEV pGicDev, uint16_t idxReg, 
         pGicDev->bmIntrConfig[idxReg] = uValue & 0xaaaaaaaa;
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrConfig[idxReg]));
     return VINF_SUCCESS;
 }
@@ -1136,7 +1136,7 @@ static VBOXSTRICTRC gicDistReadIntrGroupReg(PGICDEV pGicDev, uint16_t idxReg, ui
         *puValue = pGicDev->bmIntrGroup[idxReg];
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) read to SGI/PPI register in distributor\n"));
     LogFlowFunc(("idxReg=%#x read %#x\n", idxReg, *puValue));
     return VINF_SUCCESS;
 }
@@ -1161,7 +1161,7 @@ static VBOXSTRICTRC gicDistWriteIntrGroupReg(PCVM pVM, PGICDEV pGicDev, uint16_t
         LogFlowFunc(("idxReg=%#x written %#x\n", idxReg, pGicDev->bmIntrGroup[idxReg]));
     }
     else
-        AssertReleaseFailed();
+        AssertReleaseMsgFailed(("Unexpected (but not illegal) write to SGI/PPI register in distributor\n"));
     return gicDistUpdateIrqState(pVM, pGicDev);
 }
 
@@ -2289,13 +2289,13 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
  */
 DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint32_t idRedist, uint16_t offReg, uint32_t *puValue)
 {
+    PCVMCC   pVM     = pVCpu->CTX_SUFF(pVM);
     PCGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    AssertRelease(idRedist == pVCpu->idCpu);
+    Assert(idRedist == pVCpu->idCpu);
+
     switch (offReg)
     {
         case GIC_REDIST_REG_TYPER_OFF:
-        {
-            PCVMCC pVM = pVCpu->CTX_SUFF(pVM);
             *puValue = (pVCpu->idCpu == pVM->cCpus - 1 ? GIC_REDIST_REG_TYPER_LAST : 0)
                      | GIC_REDIST_REG_TYPER_CPU_NUMBER_SET(idRedist)
                      | GIC_REDIST_REG_TYPER_CMN_LPI_AFF_SET(GIC_REDIST_REG_TYPER_CMN_LPI_AFF_ALL)
@@ -2303,7 +2303,6 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
                      | (pGicDev->fLpi    ? GIC_REDIST_REG_TYPER_PLPIS : 0);
             Assert(!pGicDev->fExtPpi || pGicDev->uMaxExtPpi > 0);
             break;
-        }
         case GIC_REDIST_REG_WAKER_OFF:
             *puValue = 0;
             break;
@@ -2743,7 +2742,7 @@ static VBOXSTRICTRC gicReDistWriteSgiReg(PCGICDEV pGicDev, PVMCPUCC pVCpu, uint6
                 if (RT_LIKELY(idCpuTarget < cCpus))
                     VMCPUSET_ADD(&DestCpuSet, idCpuTarget);
                 else
-                    AssertReleaseFailed();
+                    AssertReleaseMsgFailed(("VCPU ID out-of-bounds %RU32, must be < %u\n", idCpuTarget, cCpus));
             }
         }
     }
@@ -2878,7 +2877,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicReadSysReg(PVMCPUCC pVCpu, uint32_t u32Reg,
             *pu64Value = pGicCpu->fIntrGroup1Enabled ? ARMV8_ICC_IGRPEN1_EL1_AARCH64_ENABLE : 0;
             break;
         default:
-            AssertReleaseFailed();
+            AssertReleaseMsgFailed(("u32Reg=%#RX32\n", u32Reg));
             break;
     }
 
@@ -3068,7 +3067,7 @@ static DECLCALLBACK(VBOXSTRICTRC) gicWriteSysReg(PVMCPUCC pVCpu, uint32_t u32Reg
             pGicCpu->fIntrGroup1Enabled = RT_BOOL(u64Value & ARMV8_ICC_IGRPEN1_EL1_AARCH64_ENABLE);
             break;
         default:
-            AssertReleaseFailed();
+            AssertReleaseMsgFailed(("u32Reg=%#RX32\n", u32Reg));
             break;
     }
 

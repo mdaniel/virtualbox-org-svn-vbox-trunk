@@ -248,7 +248,18 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CWRITER_, UINT64_C(0), UINT64_MAX,
 #define GITS_CTRL_REG_CWRITER_RW_MASK                           (UINT64_MAX & ~(GITS_BF_CTRL_REG_CWRITER_RSVD_4_1_MASK | \
                                                                                 GITS_BF_CTRL_REG_CWRITER_RSVD_63_20_MASK))
 
+/** GITS_CREADR: Command read register - RO. */
 #define GITS_CTRL_REG_CREADR_OFF                                0x0090
+#define GITS_BF_CTRL_REG_CREADR_STALLED_SHIFT                   0
+#define GITS_BF_CTRL_REG_CREADR_STALLED_MASK                    UINT64_C(0x0000000000000001)
+#define GITS_BF_CTRL_REG_CREADR_RSVD_4_1_SHIFT                  1
+#define GITS_BF_CTRL_REG_CREADR_RSVD_4_1_MASK                   UINT64_C(0x000000000000001e)
+#define GITS_BF_CTRL_REG_CREADR_OFFSET_SHIFT                    5
+#define GITS_BF_CTRL_REG_CREADR_OFFSET_MASK                     UINT64_C(0x00000000000fffe0)
+#define GITS_BF_CTRL_REG_CREADR_RSVD_63_20_SHIFT                20
+#define GITS_BF_CTRL_REG_CREADR_RSVD_63_20_MASK                 UINT64_C(0xfffffffffff00000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CREADR_, UINT64_C(0), UINT64_MAX,
+                            (STALLED, RSVD_4_1, OFFSET, RSVD_63_20));
 
 /** GITS_BASER: ITS Table Descriptors - RW. */
 #define GITS_CTRL_REG_BASER_OFF_FIRST                           0x0100

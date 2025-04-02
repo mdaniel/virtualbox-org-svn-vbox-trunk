@@ -2289,7 +2289,7 @@ DECLINLINE(VBOXSTRICTRC) gicDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu
  */
 DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint32_t idRedist, uint16_t offReg, uint32_t *puValue)
 {
-    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PCGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     AssertRelease(idRedist == pVCpu->idCpu);
     switch (offReg)
     {
@@ -2318,7 +2318,7 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = GIC_REDIST_REG_PIDR2_ARCHREV_SET(pGicDev->uArchRev);
             break;
         case GIC_REDIST_REG_CTLR_OFF:
-            *puValue = pGicDev->fEnableLpis ? GIC_DIST_REG_CTLR_ENABLE_LPI : 0
+            *puValue = (pGicDev->fEnableLpis ? GIC_REDIST_REG_CTLR_ENABLE_LPI : 0)
                      | GIC_REDIST_REG_CTLR_CES_SET(1);
             break;
         case GIC_REDIST_REG_PROPBASER_OFF:
@@ -2326,6 +2326,12 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             break;
         case GIC_REDIST_REG_PROPBASER_OFF + 4:
             *puValue = pGicDev->uLpiConfigBaseReg.s.Hi;
+            break;
+        case GIC_REDIST_REG_PENDBASER_OFF:
+            *puValue = pGicDev->uLpiPendingBaseReg.s.Lo;
+            break;
+        case GIC_REDIST_REG_PENDBASER_OFF + 4:
+            *puValue = pGicDev->uLpiPendingBaseReg.s.Hi;
             break;
         default:
             AssertReleaseMsgFailed(("offReg=%#x\n",  offReg));
@@ -2453,11 +2459,20 @@ DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVC
         case GIC_REDIST_REG_WAKER_OFF:
             Assert(uValue == 0);
             break;
+        case GIC_REDIST_REG_CTLR_OFF:
+            pGicDev->fEnableLpis = RT_BOOL(uValue & GIC_REDIST_REG_CTLR_ENABLE_LPI);
+            break;
         case GIC_REDIST_REG_PROPBASER_OFF:
             pGicDev->uLpiConfigBaseReg.s.Lo = uValue & RT_LO_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);
             break;
         case GIC_REDIST_REG_PROPBASER_OFF + 4:
             pGicDev->uLpiConfigBaseReg.s.Hi = uValue & RT_HI_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);
+            break;
+        case GIC_REDIST_REG_PENDBASER_OFF:
+            pGicDev->uLpiPendingBaseReg.s.Lo = uValue & RT_LO_U32(GIC_REDIST_REG_PENDBASER_RW_MASK);
+            break;
+        case GIC_REDIST_REG_PENDBASER_OFF + 4:
+            pGicDev->uLpiPendingBaseReg.s.Hi = uValue & RT_HI_U32(GIC_REDIST_REG_PENDBASER_RW_MASK);
             break;
         default:
             AssertReleaseMsgFailed(("offReg=%#x (%s) uValue=%#RX32\n", offReg, gicReDistGetRegDescription(offReg), uValue));

@@ -418,30 +418,30 @@
 /** Redistributor Control Register - RW. */
 #define GIC_REDIST_REG_CTLR_OFF                         0x0000
 /** Bit 0 - Enable LPIs. */
-#define GIC_DIST_REG_CTLR_ENABLE_LPI_BIT                0
-#define GIC_DIST_REG_CTLR_ENABLE_LPI                    RT_BIT_32(0)
+#define GIC_REDIST_REG_CTLR_ENABLE_LPI_BIT              0
+#define GIC_REDIST_REG_CTLR_ENABLE_LPI                  RT_BIT_32(0)
 /** Bit 1 - Clear Enable Support. */
-#define GIC_DIST_REG_CTLR_CES_BIT                       1
-#define GIC_DIST_REG_CTLR_CES                           RT_BIT_32(1)
-#define GIC_REDIST_REG_CTLR_CES_SET(a_Ces)              (((a_Ces) << GIC_DIST_REG_CTLR_CES_BIT) & GIC_DIST_REG_CTLR_CES)
+#define GIC_REDIST_REG_CTLR_CES_BIT                     1
+#define GIC_REDIST_REG_CTLR_CES                         RT_BIT_32(1)
+#define GIC_REDIST_REG_CTLR_CES_SET(a_Ces)              (((a_Ces) << GIC_REDIST_REG_CTLR_CES_BIT) & GIC_REDIST_REG_CTLR_CES)
 /** Bit 2 - LPI invalidate registers supported. */
-#define GIC_DIST_REG_CTLR_IR_BIT                        2
-#define GIC_DIST_REG_CTLR_IR                            RT_BIT_32(2)
+#define GIC_REDIST_REG_CTLR_IR_BIT                      2
+#define GIC_REDIST_REG_CTLR_IR                          RT_BIT_32(2)
 /** Bit 3 - Register Write Pending. */
-#define GIC_DIST_REG_CTLR_RWP_BIT                       3
-#define GIC_DIST_REG_CTLR_RWP                           RT_BIT_32(3)
+#define GIC_REDIST_REG_CTLR_RWP_BIT                     3
+#define GIC_REDIST_REG_CTLR_RWP                         RT_BIT_32(3)
 /** Bit 24 - Disable Processor selection for Group 0 interrupt. */
-#define GIC_DIST_REG_CTLR_DPG0_BIT                      24
-#define GIC_DIST_REG_CTLR_DPG0                          RT_BIT_32(24)
+#define GIC_REDIST_REG_CTLR_DPG0_BIT                    24
+#define GIC_REDIST_REG_CTLR_DPG0                        RT_BIT_32(24)
 /** Bit 25 - Disable Processor selection for Group 1 non-secure interrupt. */
-#define GIC_DIST_REG_CTLR_DPG1NS_BIT                    25
-#define GIC_DIST_REG_CTLR_DPG1NS                        RT_BIT_32(25)
+#define GIC_REDIST_REG_CTLR_DPG1NS_BIT                  25
+#define GIC_REDIST_REG_CTLR_DPG1NS                      RT_BIT_32(25)
 /** Bit 26 - Disable Processor selection for Group 1 secure interrupt. */
-#define GIC_DIST_REG_CTLR_DPG1S_BIT                     26
-#define GIC_DIST_REG_CTLR_DPG1S                         RT_BIT_32(26)
+#define GIC_REDIST_REG_CTLR_DPG1S_BIT                   26
+#define GIC_REDIST_REG_CTLR_DPG1S                       RT_BIT_32(26)
 /** Bit 31 - Upstream Write Pending. */
-#define GIC_DIST_REG_CTLR_UWP_BIT                       31
-#define GIC_DIST_REG_CTLR_UWP                           RT_BIT_32(31)
+#define GIC_REDIST_REG_CTLR_UWP_BIT                     31
+#define GIC_REDIST_REG_CTLR_UWP                         RT_BIT_32(31)
 
 /** Implementer Identification Register - RO. */
 #define GIC_REDIST_REG_IIDR_OFF                         0x0004
@@ -554,6 +554,35 @@ RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_REDIST_REG_PROPBASER_, UINT64_C(0), UINT64_MA
 
 /** Redistributor LPI Pending Table Base Address Register - RW. */
 #define GIC_REDIST_REG_PENDBASER_OFF                    0x0078
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_6_0_SHIFT      0
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_6_0_MASK       UINT64_C(0x000000000000007f)
+#define GIC_BF_REDIST_REG_PENDBASER_INNER_CACHE_SHIFT   7
+#define GIC_BF_REDIST_REG_PENDBASER_INNER_CACHE_MASK    UINT64_C(0x0000000000000380)
+#define GIC_BF_REDIST_REG_PENDBASER_SHAREABILITY_SHIFT  10
+#define GIC_BF_REDIST_REG_PENDBASER_SHAREABILITY_MASK   UINT64_C(0x0000000000000c00)
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_15_12_SHIFT    12
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_15_12_MASK     UINT64_C(0x000000000000f000)
+#define GIC_BF_REDIST_REG_PENDBASER_PHYS_ADDR_SHIFT     16
+#define GIC_BF_REDIST_REG_PENDBASER_PHYS_ADDR_MASK      UINT64_C(0x000fffffffff0000)
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_55_52_SHIFT    52
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_55_52_MASK     UINT64_C(0x00f0000000000000)
+#define GIC_BF_REDIST_REG_PENDBASER_OUTER_CACHE_SHIFT   56
+#define GIC_BF_REDIST_REG_PENDBASER_OUTER_CACHE_MASK    UINT64_C(0x0700000000000000)
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_61_59_SHIFT    59
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_61_59_MASK     UINT64_C(0x3800000000000000)
+#define GIC_BF_REDIST_REG_PENDBASER_PTZ_SHIFT           62
+#define GIC_BF_REDIST_REG_PENDBASER_PTZ_MASK            UINT64_C(0x4000000000000000)
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_63_SHIFT       63
+#define GIC_BF_REDIST_REG_PENDBASER_RSVD_63_MASK        UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_REDIST_REG_PENDBASER_, UINT64_C(0), UINT64_MAX,
+                            (RSVD_6_0, INNER_CACHE, SHAREABILITY, RSVD_15_12, PHYS_ADDR, RSVD_55_52, OUTER_CACHE, RSVD_61_59,
+                             PTZ, RSVD_63));
+#define GIC_REDIST_REG_PENDBASER_RW_MASK                (UINT64_MAX & ~(  GIC_BF_REDIST_REG_PENDBASER_RSVD_6_0_MASK   \
+                                                                        | GIC_BF_REDIST_REG_PENDBASER_RSVD_15_12_MASK \
+                                                                        | GIC_BF_REDIST_REG_PENDBASER_RSVD_55_52_MASK \
+                                                                        | GIC_BF_REDIST_REG_PENDBASER_RSVD_61_59_MASK \
+                                                                        | GIC_BF_REDIST_REG_PENDBASER_RSVD_63_MASK))
+
 /** Redistributor Invalidate LPI Register - WO. */
 #define GIC_REDIST_REG_INVLPIR_OFF                      0x00a0
 /** Redistributor Invalidate All Register - WO. */

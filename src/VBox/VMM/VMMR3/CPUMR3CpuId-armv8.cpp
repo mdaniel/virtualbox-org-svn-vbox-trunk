@@ -37,6 +37,7 @@
 #include <VBox/vmm/ssm.h>
 #include "CPUMInternal-armv8.h"
 #include <VBox/vmm/vmcc.h>
+#include <VBox/gic.h>
 
 #include <VBox/err.h>
 #include <iprt/ctype.h>
@@ -107,8 +108,9 @@ typedef CPUMCPUIDCONFIG *PCPUMCPUIDCONFIG;
  * @param   pVM         The cross context VM structure (for cCpus).
  * @param   pCpum       The CPUM instance data.
  * @param   pConfig     The CPUID configuration we've read from CFGM.
+ * @param   pCpumCfg    The CPUM CFGM config.
  */
-static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
+static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig, PCFGMNODE pCpumCfg)
 {
 #define PORTABLE_CLEAR_BITS_WHEN(Lvl, a_pLeafReg, FeatNm, fMask, uValue) \
     if ( pCpum->u8PortableCpuIdLevel >= (Lvl) && ((a_pLeafReg) & (fMask)) == (uValue) ) \
@@ -167,6 +169,28 @@ static int cpumR3CpuIdSanitize(PVM pVM, PCPUM pCpum, PCPUMCPUIDCONFIG pConfig)
 
     /* Write ID_AA64ISAR0_EL1 register back. */
     pVM->cpum.s.GuestIdRegs.u64RegIdAa64Isar0El1 = u64IdReg;
+
+    /* ID_AA64PFR0_EL1 */
+    u64IdReg = pVM->cpum.s.GuestIdRegs.u64RegIdAa64Pfr0El1;
+
+    uint8_t uArchRev;
+    int rc = CFGMR3QueryU8(pCpumCfg, "GicArchRev", &uArchRev);
+    AssertRCReturn(rc, rc);
+    if (uArchRev == GIC_DIST_REG_PIDR2_ARCHREV_GICV3)
+        u64IdReg = RT_BF_SET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_GIC, ARMV8_ID_AA64PFR0_EL1_GIC_V3_V4); /* 3.0 */
+    else if (uArchRev == GIC_DIST_REG_PIDR2_ARCHREV_GICV4)
+    {
+        uint8_t uArchRevMinor = 0;
+        rc = CFGMR3QueryU8Def(pCpumCfg, "GicArchRevMinor", &uArchRevMinor, 0);
+        u64IdReg = uArchRevMinor == 0
+                 ? RT_BF_SET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_GIC, ARMV8_ID_AA64PFR0_EL1_GIC_V3_V4)  /* 4.0 */
+                 : RT_BF_SET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_GIC, ARMV8_ID_AA64PFR0_EL1_GIC_V4_1);  /* 4.1 */
+    }
+    else
+        Assert(RT_BF_GET(u64IdReg, ARMV8_ID_AA64PFR0_EL1_GIC) == ARMV8_ID_AA64PFR0_EL1_GIC_NOT_IMPL);
+
+    /* Write ID_AA64PFR0_EL1 register back. */
+    pVM->cpum.s.GuestIdRegs.u64RegIdAa64Pfr0El1 = u64IdReg;
 
     /** @todo Other ID and feature registers. */
 
@@ -423,7 +447,7 @@ VMMR3DECL(int) CPUMR3PopulateFeaturesByIdRegisters(PVM pVM, PCCPUMARMV8IDREGS pI
      * Sanitize the cpuid information passed on to the guest.
      */
     if (RT_SUCCESS(rc))
-        rc = cpumR3CpuIdSanitize(pVM, pCpum, &Config);
+        rc = cpumR3CpuIdSanitize(pVM, pCpum, &Config, pCpumCfg);
 
     return rc;
 }

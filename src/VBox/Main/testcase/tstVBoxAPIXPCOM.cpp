@@ -488,9 +488,10 @@ int main(int argc, char **argv)
         setenv("VBOX_XPCOM_HOME", RTPATH_APP_PRIVATE_ARCH, 1);
 # else
     char szTmp[8192];
+    memset(szTmp, 0, sizeof(szTmp));
     if (!getenv("VBOX_XPCOM_HOME"))
     {
-        strncpy(szTmp, argv[0], sizeof(szTmp));
+        strncpy(szTmp, argv[0], sizeof(szTmp) - 1);
         *strrchr(szTmp, '/') = '\0';
         strcat(szTmp, "/..");
         fprintf(stderr, "tstVBoxAPIXPCOM: VBOX_XPCOM_HOME is not set, using '%s' instead\n", szTmp);

@@ -2318,7 +2318,14 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCp
             *puValue = GIC_REDIST_REG_PIDR2_ARCHREV_SET(pGicDev->uArchRev);
             break;
         case GIC_REDIST_REG_CTLR_OFF:
-            *puValue = GIC_REDIST_REG_CTLR_CES_SET(1);
+            *puValue = pGicDev->fEnableLpis ? GIC_DIST_REG_CTLR_ENABLE_LPI : 0
+                     | GIC_REDIST_REG_CTLR_CES_SET(1);
+            break;
+        case GIC_REDIST_REG_PROPBASER_OFF:
+            *puValue = pGicDev->uLpiConfigBaseReg.s.Lo;
+            break;
+        case GIC_REDIST_REG_PROPBASER_OFF + 4:
+            *puValue = pGicDev->uLpiConfigBaseReg.s.Hi;
             break;
         default:
             AssertReleaseMsgFailed(("offReg=%#x\n",  offReg));
@@ -2437,13 +2444,20 @@ DECLINLINE(VBOXSTRICTRC) gicReDistReadSgiPpiRegister(PPDMDEVINS pDevIns, PVMCPUC
 DECLINLINE(VBOXSTRICTRC) gicReDistWriteRegister(PPDMDEVINS pDevIns, PVMCPUCC pVCpu, uint16_t offReg, uint32_t uValue)
 {
     VMCPU_ASSERT_EMT(pVCpu);
-    RT_NOREF(pDevIns, pVCpu, uValue);
+    RT_NOREF(pVCpu, uValue);
 
     VBOXSTRICTRC rcStrict = VINF_SUCCESS;
+    PGICDEV      pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     switch (offReg)
     {
         case GIC_REDIST_REG_WAKER_OFF:
             Assert(uValue == 0);
+            break;
+        case GIC_REDIST_REG_PROPBASER_OFF:
+            pGicDev->uLpiConfigBaseReg.s.Lo = uValue & RT_LO_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);
+            break;
+        case GIC_REDIST_REG_PROPBASER_OFF + 4:
+            pGicDev->uLpiConfigBaseReg.s.Hi = uValue & RT_HI_U32(GIC_REDIST_REG_PROPBASER_RW_MASK);
             break;
         default:
             AssertReleaseMsgFailed(("offReg=%#x (%s) uValue=%#RX32\n", offReg, gicReDistGetRegDescription(offReg), uValue));
@@ -3060,6 +3074,7 @@ static void gicInit(PPDMDEVINS pDevIns)
     LogFlowFunc(("\n"));
     PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
 
+    /* Distributor. */
     RT_ZERO(pGicDev->bmIntrGroup);
     RT_ZERO(pGicDev->bmIntrConfig);
     RT_ZERO(pGicDev->bmIntrEnabled);
@@ -3071,9 +3086,14 @@ static void gicInit(PPDMDEVINS pDevIns)
     pGicDev->fIntrGroup0Enabled = false;
     pGicDev->fIntrGroup1Enabled = false;
     pGicDev->fAffRoutingEnabled = true; /* GICv2 backwards compatibility is not implemented, so this is RA1/WI. */
+
+    /* LPIs. */
     RT_ZERO(pGicDev->bmLpiPending);
     RT_ZERO(pGicDev->abLpiConfig);
+    pGicDev->uLpiConfigBaseReg.u = 0;
+    pGicDev->fEnableLpis = false;
 
+    /* GITS. */
     PGITSDEV pGitsDev = &pGicDev->Gits;
     gitsInit(pGitsDev);
 }

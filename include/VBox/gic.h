@@ -548,6 +548,9 @@
 #define GIC_BF_REDIST_REG_PROPBASER_RSVD_63_59_MASK     UINT64_C(0xf800000000000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GIC_BF_REDIST_REG_PROPBASER_, UINT64_C(0), UINT64_MAX,
                             (ID_BITS, RSVD_6_5, INNER_CACHE, SHAREABILITY, PHYS_ADDR, RSVD_55_52, OUTER_CACHE, RSVD_63_59));
+#define GIC_REDIST_REG_PROPBASER_RW_MASK                (UINT64_MAX & ~(  GIC_BF_REDIST_REG_PROPBASER_RSVD_6_5_MASK   \
+                                                                        | GIC_BF_REDIST_REG_PROPBASER_RSVD_55_52_MASK \
+                                                                        | GIC_BF_REDIST_REG_PROPBASER_RSVD_63_59_MASK))
 
 /** Redistributor LPI Pending Table Base Address Register - RW. */
 #define GIC_REDIST_REG_PENDBASER_OFF                    0x0078

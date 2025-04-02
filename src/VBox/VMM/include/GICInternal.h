@@ -105,8 +105,10 @@ typedef struct GICDEV
 
     /** @name Configurables.
      * @{ */
-    /** The GIC architecture (GICD_PIDR2.ArchRev and GICR_PIDR2.ArchRev). */
+    /** The GIC architecture revision (GICD_PIDR2.ArchRev and GICR_PIDR2.ArchRev). */
     uint8_t                     uArchRev;
+    /** The GIC architecture minor revision (currently 1 as we only support GICv3.1). */
+    uint8_t                     uArchRevMinor;
     /** The maximum SPI supported (GICD_TYPER.ItLinesNumber). */
     uint8_t                     uMaxSpi;
     /** Whether extended SPIs are supported (GICD_ESPI). */
@@ -131,7 +133,7 @@ typedef struct GICDEV
     /** The maximum LPI supported (GICD_TYPER.num_LPI). */
     uint8_t                     uMaxLpi;
     /** Padding. */
-    bool                        afPadding[4];
+    bool                        afPadding[3];
     /** @} */
 
     /** @name GITS device data and LPIs.

@@ -50,7 +50,7 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** GIC saved state version. */
-#define GIC_SAVED_STATE_VERSION                     7
+#define GIC_SAVED_STATE_VERSION                     8
 
 # define GIC_SYSREGRANGE(a_uFirst, a_uLast, a_szName) \
     { (a_uFirst), (a_uLast), kCpumSysRegRdFn_GicIcc, kCpumSysRegWrFn_GicIcc, 0, 0, 0, 0, 0, 0, a_szName, { 0 }, { 0 }, { 0 }, { 0 } }
@@ -90,6 +90,7 @@ static DECLCALLBACK(void) gicR3DbgInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char *
 
     pHlp->pfnPrintf(pHlp, "GIC:\n");
     pHlp->pfnPrintf(pHlp, "  uArchRev         = %u\n",      pGicDev->uArchRev);
+    pHlp->pfnPrintf(pHlp, "  uArchRevMinor    = %u\n",      pGicDev->uArchRevMinor);
     pHlp->pfnPrintf(pHlp, "  uMaxSpi          = %u (upto IntId %u)\n", pGicDev->uMaxSpi, 32 * (pGicDev->uMaxSpi + 1));
     pHlp->pfnPrintf(pHlp, "  fExtSpi          = %RTbool\n", pGicDev->fExtSpi);
     pHlp->pfnPrintf(pHlp, "  uMaxExtSpi       = %u (upto IntId %u)\n", pGicDev->uMaxExtSpi,
@@ -310,6 +311,7 @@ static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
      */
     pHlp->pfnSSMPutU32(pSSM,  pVM->cCpus);
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uArchRev);
+    pHlp->pfnSSMPutU8(pSSM,   pGicDev->uArchRevMinor);
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxSpi);
     pHlp->pfnSSMPutBool(pSSM, pGicDev->fExtSpi);
     pHlp->pfnSSMPutU8(pSSM,   pGicDev->uMaxExtSpi);
@@ -403,6 +405,7 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
 
     PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uArchRev);
+    pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uArchRevMinor);
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxSpi);
     pHlp->pfnSSMGetBool(pSSM, &pGicDev->fExtSpi);
     pHlp->pfnSSMGetU8(pSSM,   &pGicDev->uMaxExtSpi);
@@ -503,6 +506,10 @@ static DECLCALLBACK(int) gicR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     else
         return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid uArchRev, got %u expected range [1,31]"), pGicDev->uArchRev,
                                        GIC_DIST_REG_PIDR2_ARCHREV_GICV1, GIC_DIST_REG_PIDR2_ARCHREV_GICV4);
+    if (pGicDev->uArchRevMinor == 1)
+    { /* likely */ }
+    else
+        return pHlp->pfnSSMSetCfgError(pSSM, RT_SRC_POS, N_("Invalid uArchRevMinor, got %u expected 1"), pGicDev->uArchRevMinor);
     if (pGicDev->uMaxSpi - 1 < 31)
     { /* likely */ }
     else
@@ -589,6 +596,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      */
     PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase"
                                            "|ArchRev"
+                                           "|ArchRevMinor"
                                            "|MaxSpi"
                                            "|ExtSpi"
                                            "|MaxExtSpi"
@@ -617,11 +625,25 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
      * same for both the GIC and the ITS. */
     int rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRev", &pGicDev->uArchRev, 3);
     AssertLogRelRCReturn(rc, rc);
-    if (pGicDev->uArchRev == 3)
+    if (pGicDev->uArchRev == GIC_DIST_REG_PIDR2_ARCHREV_GICV3)
         pGicDev->Gits.uArchRev = pGicDev->uArchRev;
     else
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
-                                   N_("Configuration error: \"ArchRev\" value %u is not supported"), pGicDev->uArchRev);
+                                   N_("Configuration error: \"ArchRev\" must be %u, other revisions not supported"),
+                                   GIC_DIST_REG_PIDR2_ARCHREV_GICV3);
+
+    /** @devcfgm{gic, ArchRevMinor, uint8_t, 1}
+     * Configures the GIC architecture revision minor version.
+     *
+     * Currently we support GICv3.1 only. GICv3.1's only addition to GICv3 is supported
+     * for extended INTID ranges which we currently always support. */
+    rc = pHlp->pfnCFGMQueryU8Def(pCfg, "ArchRevMinor", &pGicDev->uArchRevMinor, 1);
+    AssertLogRelRCReturn(rc, rc);
+    if (pGicDev->uArchRevMinor == 1)
+    { /* likely */ }
+    else
+        return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
+                                   N_("Configuration error: \"ArchRevMinor\" must be 1, other minor revisions not supported"));
 
     /** @devcfgm{gic, MaxSpi, uint8_t, 31}
      * Configures GICD_TYPER.ItLinesNumber.
@@ -687,7 +709,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Configuration error: \"MaxExtPpi\" must be in the range [0,2]"));
 
-    /** @devcfgm{gic, RangeSelSupport, bool, true}
+    /** @devcfgm{gic, RangeSel, bool, true}
      * Configures whether range-selector support is enabled (GICD_TYPER.RSS and
      * ICC_CTLR_EL1.RSS). */
     rc = pHlp->pfnCFGMQueryBoolDef(pCfg, "RangeSel", &pGicDev->fRangeSel, true);
@@ -881,20 +903,21 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     /*
      * Log features/config.
      */
-    uint8_t const uArchRev     = pGicDev->uArchRev;
-    uint8_t const uMaxSpi      = pGicDev->uMaxSpi;
-    bool const    fExtSpi      = pGicDev->fExtSpi;
-    uint8_t const uMaxExtSpi   = pGicDev->uMaxExtSpi;
-    bool const    fExtPpi      = pGicDev->fExtPpi;
-    uint8_t const uMaxExtPpi   = pGicDev->uMaxExtPpi;
-    bool const fRangeSel       = pGicDev->fRangeSel;
-    bool const fNmi            = pGicDev->fNmi;
-    bool const fMbi            = pGicDev->fMbi;
-    bool const fAff3Levels     = pGicDev->fAff3Levels;
-    bool const fLpi            = pGicDev->fLpi;
-    uint16_t const uExtPpiLast = uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST;
-    LogRel(("GIC: ArchRev=%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool Lpi=%RTbool\n",
-            uArchRev, fRangeSel, fNmi, fMbi, fAff3Levels, fLpi));
+    uint8_t const uArchRev      = pGicDev->uArchRev;
+    uint8_t const uArchRevMinor = pGicDev->uArchRevMinor;
+    uint8_t const uMaxSpi       = pGicDev->uMaxSpi;
+    bool const    fExtSpi       = pGicDev->fExtSpi;
+    uint8_t const uMaxExtSpi    = pGicDev->uMaxExtSpi;
+    bool const    fExtPpi       = pGicDev->fExtPpi;
+    uint8_t const uMaxExtPpi    = pGicDev->uMaxExtPpi;
+    bool const fRangeSel        = pGicDev->fRangeSel;
+    bool const fNmi             = pGicDev->fNmi;
+    bool const fMbi             = pGicDev->fMbi;
+    bool const fAff3Levels      = pGicDev->fAff3Levels;
+    bool const fLpi             = pGicDev->fLpi;
+    uint16_t const uExtPpiLast  = uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST;
+    LogRel(("GIC: ArchRev=%u.%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool Lpi=%RTbool\n",
+            uArchRev, uArchRevMinor, fRangeSel, fNmi, fMbi, fAff3Levels, fLpi));
     LogRel(("GIC: SPIs=true (%u:32..%u) ExtSPIs=%RTbool (%u:4095..%u) ExtPPIs=%RTbool (%u:1056..%u)\n",
             uMaxSpi, 32 * (uMaxSpi + 1),
             fExtSpi, uMaxExtSpi, GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (uMaxExtSpi + 1),

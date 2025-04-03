@@ -109,6 +109,7 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
 DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb)
 {
     Assert(cb == 4 || cb == 8);
+    Assert(!(offReg & 3));
     RT_NOREF(cb);
 
     /*
@@ -199,7 +200,7 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
             break;
     }
 
-    Log4Func(("offReg=%#RX16 (%s) uReg=%#RX64\n", offReg, gitsGetCtrlRegDescription(offReg), uReg));
+    Log4Func(("offReg=%#RX16 (%s) uReg=%#RX64 [%u-bit]\n", offReg, gitsGetCtrlRegDescription(offReg), uReg, cb << 3));
     return uReg;
 }
 
@@ -207,16 +208,20 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
 DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb)
 {
     Assert(cb == 8 || cb == 4);
+    Assert(!(offReg & 3));
     RT_NOREF(pGitsDev, cb);
 
     uint64_t uReg = 0;
-    AssertReleaseMsgFailed(("offReg=%#x (%s) uReg=%#RX64\n", offReg,  gitsGetTranslationRegDescription(offReg), uReg));
+    AssertReleaseMsgFailed(("offReg=%#x (%s) uReg=%#RX64 [%u-bit]\n", offReg, gitsGetTranslationRegDescription(offReg), uReg, cb << 3));
     return uReg;
 }
 
 
 DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
 {
+    Assert(cb == 8 || cb == 4);
+    Assert(!(offReg & 3));
+
     /*
      * GITS_BASER<n>.
      */
@@ -273,27 +278,29 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg,
             break;
     }
 
-    Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
+    Log4Func(("offReg=%#RX16 (%s) uValue=%#RX32 [%u-bit]\n", offReg, gitsGetCtrlRegDescription(offReg), uValue, cb << 3));
 }
 
 
 DECL_HIDDEN_CALLBACK(void) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
 {
     RT_NOREF(pGitsDev);
-    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX64 [%-bit]\n", offReg, uValue, cb == 8 ? "64" : "32"));
+    Assert(cb == 8 || cb == 4);
+    Assert(!(offReg & 3));
+    AssertReleaseMsgFailed(("offReg=%#x uValue=%#RX64 [%u-bit]\n", offReg, uValue, cb << 3));
 }
 
 
 DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
 {
     Log4Func(("\n"));
-    pGitsDev->fEnabled              = false;
-    pGitsDev->fUnmappedMsiReporting = false;
-    pGitsDev->fQuiescent            = true;
+    pGitsDev->fEnabled           = false;
+    pGitsDev->fUnmappedMsiReport = false;
+    pGitsDev->fQuiescent         = true;
     RT_ZERO(pGitsDev->aItsTableRegs);
-    pGitsDev->uCmdBaseReg.u         = 0;
-    pGitsDev->uCmdReadReg           = 0;
-    pGitsDev->uCmdWriteReg          = 0;
+    pGitsDev->uCmdBaseReg.u      = 0;
+    pGitsDev->uCmdReadReg        = 0;
+    pGitsDev->uCmdWriteReg       = 0;
 }
 
 
@@ -303,10 +310,10 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
     RT_NOREF(pszArgs);
 
     pHlp->pfnPrintf(pHlp, "GIC ITS:\n");
-    pHlp->pfnPrintf(pHlp, "  uArchRev              = %u\n",      pGitsDev->uArchRev);
-    pHlp->pfnPrintf(pHlp, "  fEnabled              = %RTbool\n", pGitsDev->fEnabled);
-    pHlp->pfnPrintf(pHlp, "  fUnmappedMsiReporting = %RTbool\n", pGitsDev->fUnmappedMsiReporting);
-    pHlp->pfnPrintf(pHlp, "  fQuiescent            = %RTbool\n", pGitsDev->fQuiescent);
+    pHlp->pfnPrintf(pHlp, "  uArchRev           = %u\n",      pGitsDev->uArchRev);
+    pHlp->pfnPrintf(pHlp, "  fEnabled           = %RTbool\n", pGitsDev->fEnabled);
+    pHlp->pfnPrintf(pHlp, "  fUnmappedMsiReport = %RTbool\n", pGitsDev->fUnmappedMsiReport);
+    pHlp->pfnPrintf(pHlp, "  fQuiescent         = %RTbool\n", pGitsDev->fQuiescent);
 
     /* GITS_BASER<n>. */
     for (unsigned i = 0; i < RT_ELEMENTS(pGitsDev->aItsTableRegs); i++)
@@ -322,17 +329,17 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
         uint8_t const  uEntrySize  = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_ENTRY_SIZE);
         uint8_t const  idxType     = RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_TYPE);
         const char *pszType        = s_apszType[idxType];
-        pHlp->pfnPrintf(pHlp, "  aItsTableReg[%u]      = %#RX64\n", i, uReg);
-        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, cbItsTable);
-        pHlp->pfnPrintf(pHlp, "    Page size             = %#x (%.Rhcb)\n", idxPageSize, s_acbPageSize[idxPageSize]);
-        pHlp->pfnPrintf(pHlp, "    Shareability          = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SHAREABILITY));
-        pHlp->pfnPrintf(pHlp, "    Phys addr             = %#RX64\n", uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK);
-        pHlp->pfnPrintf(pHlp, "    Entry size            = %#x (%u bytes)\n", uEntrySize, uEntrySize > 0 ? uEntrySize + 1 : 0);
-        pHlp->pfnPrintf(pHlp, "    Outer cache           = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_OUTER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Type                  = %#x %s\n", idxType, pszType);
-        pHlp->pfnPrintf(pHlp, "    Inner cache           = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INNER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Indirect              = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INDIRECT)));
-        pHlp->pfnPrintf(pHlp, "    Valid                 = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID)));
+        pHlp->pfnPrintf(pHlp, "  aItsTableReg[%u]    = %#RX64\n", i, uReg);
+        pHlp->pfnPrintf(pHlp, "    Size               = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, cbItsTable);
+        pHlp->pfnPrintf(pHlp, "    Page size          = %#x (%.Rhcb)\n", idxPageSize, s_acbPageSize[idxPageSize]);
+        pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_SHAREABILITY));
+        pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n", uReg & GITS_BF_CTRL_REG_BASER_PHYS_ADDR_MASK);
+        pHlp->pfnPrintf(pHlp, "    Entry size         = %#x (%u bytes)\n", uEntrySize, uEntrySize > 0 ? uEntrySize + 1 : 0);
+        pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_OUTER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Type               = %#x (%s)\n", idxType, pszType);
+        pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n", RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INNER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Indirect           = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_INDIRECT)));
+        pHlp->pfnPrintf(pHlp, "    Valid              = %RTbool\n", RT_BOOL(RT_BF_GET(uReg, GITS_BF_CTRL_REG_BASER_VALID)));
     }
 
     /* GITS_CBASER. */
@@ -340,26 +347,26 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
         uint64_t const uReg   = pGitsDev->uCmdBaseReg.u;
         uint8_t const uSize   = RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SIZE);
         uint16_t const cPages = uSize > 0 ? uSize + 1 : 0;
-        pHlp->pfnPrintf(pHlp, "  uCmdBaseReg           = %#RX64\n", uReg);
-        pHlp->pfnPrintf(pHlp, "    Size                  = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, _4K * cPages);
-        pHlp->pfnPrintf(pHlp, "    Shareability          = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SHAREABILITY));
-        pHlp->pfnPrintf(pHlp, "    Phys addr             = %#RX64\n",   uReg & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK);
-        pHlp->pfnPrintf(pHlp, "    Outer cache           = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_OUTER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Inner cache           = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_INNER_CACHE));
-        pHlp->pfnPrintf(pHlp, "    Valid                 = %RTbool\n",  RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_VALID));
+        pHlp->pfnPrintf(pHlp, "  uCmdBaseReg        = %#RX64\n", uReg);
+        pHlp->pfnPrintf(pHlp, "    Size               = %#x (pages=%u total=%.Rhcb)\n", uSize, cPages, _4K * cPages);
+        pHlp->pfnPrintf(pHlp, "    Shareability       = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_SHAREABILITY));
+        pHlp->pfnPrintf(pHlp, "    Phys addr          = %#RX64\n",   uReg & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK);
+        pHlp->pfnPrintf(pHlp, "    Outer cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_OUTER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Inner cache        = %#x\n",      RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_INNER_CACHE));
+        pHlp->pfnPrintf(pHlp, "    Valid              = %RTbool\n",  RT_BF_GET(uReg, GITS_BF_CTRL_REG_CBASER_VALID));
     }
 
     /* GITS_CREADR. */
     {
         uint32_t const uReg = pGitsDev->uCmdReadReg;
-        pHlp->pfnPrintf(pHlp, "  uCmdReadReg           = 0x%05RX32 (stalled=%RTbool offset=%RU32)\n", uReg,
+        pHlp->pfnPrintf(pHlp, "  uCmdReadReg        = 0x%05RX32 (stalled=%RTbool offset=%RU32)\n", uReg,
                         RT_BF_GET(uReg, GITS_BF_CTRL_REG_CREADR_STALLED), uReg & GITS_BF_CTRL_REG_CREADR_OFFSET_MASK);
     }
 
     /* GITS_CWRITER. */
     {
         uint32_t const uReg = pGitsDev->uCmdWriteReg;
-        pHlp->pfnPrintf(pHlp, "  uCmdWriteReg          = 0x%05RX32 (  retry=%RTbool offset=%RU32)\n", uReg,
+        pHlp->pfnPrintf(pHlp, "  uCmdWriteReg       = 0x%05RX32 (  retry=%RTbool offset=%RU32)\n", uReg,
                         RT_BF_GET(uReg, GITS_BF_CTRL_REG_CWRITER_RETRY), uReg & GITS_BF_CTRL_REG_CWRITER_OFFSET_MASK);
     }
 }

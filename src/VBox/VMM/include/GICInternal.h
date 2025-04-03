@@ -33,6 +33,7 @@
 
 #include <VBox/gic.h>
 #include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/pdmthread.h>
 #include <VBox/vmm/pdmgic.h>
 #include <VBox/vmm/stam.h>
 
@@ -152,6 +153,10 @@ typedef struct GICDEV
     bool                        fEnableLpis;
     /** Padding. */
     bool                        afPadding1[7];
+    /** The command-queue thread. */
+    R3PTRTYPE(PPDMTHREAD)       pCmdQueueThread;
+    /** The event semaphore the command-queue thread waits on. */
+    SUPSEMEVENT                 hEvtCmdQueue;
     /** @} */
 
     /** @name MMIO data.

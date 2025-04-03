@@ -296,6 +296,65 @@ static DECLCALLBACK(void) gicR3DbgInfoIts(PVM pVM, PCDBGFINFOHLP pHlp, const cha
 
 
 /**
+ * The GIC ITS command-queue thread.
+ *
+ * @returns VBox status code.
+ * @param   pDevIns     The device instance.
+ * @param   pThread     The command thread.
+ */
+static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
+{
+    if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
+        return VINF_SUCCESS;
+
+    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    AssertPtrReturn(pGicDev, VERR_INVALID_PARAMETER);
+    LogFlowFunc(("Command-queue thread spawned and initialized\n"));
+
+    while (pThread->enmState == PDMTHREADSTATE_RUNNING)
+    {
+        /*
+         * Sleep until we are woken up.
+         */
+        {
+            int const rc = PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pGicDev->hEvtCmdQueue, RT_INDEFINITE_WAIT);
+            AssertLogRelMsgReturn(RT_SUCCESS(rc) || rc == VERR_INTERRUPTED, ("%Rrc\n", rc), rc);
+            if (pThread->enmState != PDMTHREADSTATE_RUNNING)
+                break;
+        }
+
+        int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
+        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+
+        /** @todo Process commands.   */
+
+        PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    }
+
+    LogFlowFunc(("Command-queue thread terminating\n"));
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * Wakes up the command-queue thread so it can respond to a state change.
+ *
+ * @returns VBox status code.
+ * @param   pDevIns     The device instance.
+ * @param   pThread     The command-queue thread.
+ *
+ * @thread EMT.
+ */
+static DECLCALLBACK(int) gicItsR3CmdQueueThreadWakeUp(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
+{
+    RT_NOREF2(pDevIns, pThread);
+    LogFlowFunc(("\n"));
+    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    return PDMDevHlpSUPSemEventSignal(pDevIns, pGicDev->hEvtCmdQueue);
+}
+
+
+/**
  * @copydoc FNSSMDEVSAVEEXEC
  */
 static DECLCALLBACK(int) gicR3SaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
@@ -570,6 +629,13 @@ DECLCALLBACK(int) gicR3Destruct(PPDMDEVINS pDevIns)
     LogFlowFunc(("pDevIns=%p\n", pDevIns));
     PDMDEV_CHECK_VERSIONS_RETURN_QUIET(pDevIns);
 
+    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    if (pGicDev->hEvtCmdQueue != NIL_SUPSEMEVENT)
+    {
+        PDMDevHlpSUPSemEventClose(pDevIns, pGicDev->hEvtCmdQueue);
+        pGicDev->hEvtCmdQueue = NIL_SUPSEMEVENT;
+    }
+
     return VINF_SUCCESS;
 }
 
@@ -584,7 +650,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     PCPDMDEVHLPR3   pHlp     = pDevIns->pHlpR3;
     PVM             pVM      = PDMDevHlpGetVM(pDevIns);
     PGIC            pGic     = VM_TO_GIC(pVM);
-    Assert(iInstance == 0); NOREF(iInstance);
+    Assert(iInstance == 0);
 
     /*
      * Init the data.
@@ -825,6 +891,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
         rc = pHlp->pfnCFGMQueryU64(pCfg, "ItsMmioBase", &GCPhysMmioBase);
         if (RT_SUCCESS(rc))
         {
+            Assert(pGicDev->hMmioGits != NIL_IOMMMIOHANDLE);    /* paranoia */
             RTGCPHYS const cbRegion = 2 * GITS_REG_FRAME_SIZE;  /* 2 frames for GICv3. */
             rc = PDMDevHlpMmioCreateAndMap(pDevIns, GCPhysMmioBase, cbRegion, gicItsMmioWrite, gicItsMmioRead,
                                              IOMMMIO_FLAGS_READ_DWORD_QWORD
@@ -832,12 +899,23 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                            | IOMMMIO_FLAGS_DBGSTOP_ON_COMPLICATED_READ
                                            | IOMMMIO_FLAGS_DBGSTOP_ON_COMPLICATED_WRITE,
                                            "GIC ITS", &pGicDev->hMmioGits);
-            AssertRCReturn(rc, rc);
+            AssertLogRelRCReturn(rc, rc);
 
             /* When the ITS is enabled we must support LPIs. */
             if (!pGicDev->fLpi)
                 return PDMDevHlpVMSetError(pDevIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                            N_("Configuration error: \"Lpi\" must be enabled when ITS is enabled\n"));
+
+            /* Create ITS command-queue thread and semaphore. */
+            char szCmdQueueThread[32];
+            RT_ZERO(szCmdQueueThread);
+            RTStrPrintf(szCmdQueueThread, sizeof(szCmdQueueThread), "Gits-CmdQ-%u", iInstance);
+            rc = PDMDevHlpThreadCreate(pDevIns, &pGicDev->pCmdQueueThread, &pGicDev, gicItsR3CmdQueueThread,
+                                       gicItsR3CmdQueueThreadWakeUp, 0 /* cbStack */, RTTHREADTYPE_IO, szCmdQueueThread);
+            AssertLogRelRCReturn(rc, rc);
+
+            rc = PDMDevHlpSUPSemEventCreate(pDevIns, &pGicDev->hEvtCmdQueue);
+            AssertLogRelRCReturn(rc, rc);
         }
         else
         {
@@ -904,7 +982,7 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     gicR3Reset(pDevIns);
 
     /*
-     * Log features/config.
+     * Log some of the features exposed to software.
      */
     uint8_t const uArchRev      = pGicDev->uArchRev;
     uint8_t const uArchRevMinor = pGicDev->uArchRevMinor;
@@ -918,13 +996,17 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
     bool const fMbi             = pGicDev->fMbi;
     bool const fAff3Levels      = pGicDev->fAff3Levels;
     bool const fLpi             = pGicDev->fLpi;
+    uint32_t const uMaxLpi      = pGicDev->uMaxLpi;
     uint16_t const uExtPpiLast  = uMaxExtPpi == GIC_REDIST_REG_TYPER_PPI_NUM_MAX_1087 ? 1087 : GIC_INTID_RANGE_EXT_PPI_LAST;
-    LogRel(("GIC: ArchRev=%u.%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool Lpi=%RTbool\n",
-            uArchRev, uArchRevMinor, fRangeSel, fNmi, fMbi, fAff3Levels, fLpi));
+    LogRel(("GIC: ArchRev=%u.%u RangeSel=%RTbool Nmi=%RTbool Mbi=%RTbool Aff3Levels=%RTbool\n",
+            uArchRev, uArchRevMinor, fRangeSel, fNmi, fMbi, fAff3Levels));
     LogRel(("GIC: SPIs=true (%u:32..%u) ExtSPIs=%RTbool (%u:4095..%u) ExtPPIs=%RTbool (%u:1056..%u)\n",
             uMaxSpi, 32 * (uMaxSpi + 1),
             fExtSpi, uMaxExtSpi, GIC_INTID_RANGE_EXT_SPI_START - 1 + 32 * (uMaxExtSpi + 1),
             fExtPpi, uMaxExtPpi, uExtPpiLast));
+    LogRel(("GIC: ITS=%s LPIs=%RTbool (%u:%u..%u)\n",
+            pGicDev->hMmioGits != NIL_IOMMMIOHANDLE ? "enabled" : "disabled", fLpi,
+            uMaxLpi, GIC_INTID_RANGE_LPI_START, GIC_INTID_RANGE_LPI_START - 1 + (UINT32_C(2) << uMaxLpi)));
     return VINF_SUCCESS;
 }
 

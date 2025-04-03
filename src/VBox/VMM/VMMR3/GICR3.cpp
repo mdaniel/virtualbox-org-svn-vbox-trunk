@@ -206,10 +206,13 @@ static DECLCALLBACK(void) gicR3DbgInfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const 
     AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrEnabled) >= 3);
     AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrPending) >= 3);
     AssertCompile(RT_ELEMENTS(pGicCpu->bmIntrActive)  >= 3);
-    pHlp->pfnPrintf(pHlp, "  bmIntrGroup[0..2]   = %#010x %#010x %#010x\n", pGicCpu->bmIntrGroup[0],   pGicCpu->bmIntrGroup[1],   pGicCpu->bmIntrGroup[2]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrEnabled[0], pGicCpu->bmIntrEnabled[1], pGicCpu->bmIntrEnabled[2]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", pGicCpu->bmIntrPending[0], pGicCpu->bmIntrPending[1], pGicCpu->bmIntrPending[2]);
-    pHlp->pfnPrintf(pHlp, "  bmIntrActive[0..2]  = %#010x %#010x %#010x\n", pGicCpu->bmIntrActive[0],  pGicCpu->bmIntrActive[1],  pGicCpu->bmIntrActive[2]);
+
+#define GIC_DBGFINFO_REDIST_INTR_BITMAPS_3(a_bmIntr) pGicCpu->a_bmIntr[0], pGicCpu->a_bmIntr[1], pGicCpu->a_bmIntr[2]
+    pHlp->pfnPrintf(pHlp, "  bmIntrGroup[0..2]   = %#010x %#010x %#010x\n", GIC_DBGFINFO_REDIST_INTR_BITMAPS_3(bmIntrGroup));
+    pHlp->pfnPrintf(pHlp, "  bmIntrEnabled[0..2] = %#010x %#010x %#010x\n", GIC_DBGFINFO_REDIST_INTR_BITMAPS_3(bmIntrEnabled));
+    pHlp->pfnPrintf(pHlp, "  bmIntrPending[0..2] = %#010x %#010x %#010x\n", GIC_DBGFINFO_REDIST_INTR_BITMAPS_3(bmIntrPending));
+    pHlp->pfnPrintf(pHlp, "  bmIntrActive[0..2]  = %#010x %#010x %#010x\n", GIC_DBGFINFO_REDIST_INTR_BITMAPS_3(bmIntrActive));
+#undef GIC_DBGFINFO_REDIST_INTR_BITMAPS
 
     /* Interrupt priorities. */
     {
@@ -248,28 +251,28 @@ static DECLCALLBACK(void) gicR3DbgInfoReDist(PVM pVM, PCDBGFINFOHLP pHlp, const 
         for (uint32_t i = 0; i < cPriorities; i += 16)
             pHlp->pfnPrintf(pHlp, "    [%3u..%-3u] = %3u %3u %3u %3u %3u %3u %3u %3u"
                                   "    [%3u..%-3u] = %3u %3u %3u %3u %3u %3u %3u %3u\n",
-                                       i,                                    i + 7,
-                                       pGicCpu->abRunningPriorities[i],      pGicCpu->abRunningPriorities[i + 1],
-                                       pGicCpu->abRunningPriorities[i + 2],  pGicCpu->abRunningPriorities[i + 3],
-                                       pGicCpu->abRunningPriorities[i + 4],  pGicCpu->abRunningPriorities[i + 5],
-                                       pGicCpu->abRunningPriorities[i + 6],  pGicCpu->abRunningPriorities[i + 7],
-                                       i + 8,                                i + 15,
-                                       pGicCpu->abRunningPriorities[i + 8],  pGicCpu->abRunningPriorities[i + 9],
-                                       pGicCpu->abRunningPriorities[i + 10], pGicCpu->abRunningPriorities[i + 11],
-                                       pGicCpu->abRunningPriorities[i + 12], pGicCpu->abRunningPriorities[i + 13],
-                                       pGicCpu->abRunningPriorities[i + 14], pGicCpu->abRunningPriorities[i + 15]);
+                                  i,                                    i + 7,
+                                  pGicCpu->abRunningPriorities[i],      pGicCpu->abRunningPriorities[i + 1],
+                                  pGicCpu->abRunningPriorities[i + 2],  pGicCpu->abRunningPriorities[i + 3],
+                                  pGicCpu->abRunningPriorities[i + 4],  pGicCpu->abRunningPriorities[i + 5],
+                                  pGicCpu->abRunningPriorities[i + 6],  pGicCpu->abRunningPriorities[i + 7],
+                                  i + 8,                                i + 15,
+                                  pGicCpu->abRunningPriorities[i + 8],  pGicCpu->abRunningPriorities[i + 9],
+                                  pGicCpu->abRunningPriorities[i + 10], pGicCpu->abRunningPriorities[i + 11],
+                                  pGicCpu->abRunningPriorities[i + 12], pGicCpu->abRunningPriorities[i + 13],
+                                  pGicCpu->abRunningPriorities[i + 14], pGicCpu->abRunningPriorities[i + 15]);
     }
 
     AssertCompile(RT_ELEMENTS(pGicCpu->bmActivePriorityGroup0) >= 4);
     pHlp->pfnPrintf(pHlp, "  Active-interrupt priorities Group 0:\n");
     pHlp->pfnPrintf(pHlp, "    [0..3] = %#010x %#010x %#010x %#010x\n",
-                               pGicCpu->bmActivePriorityGroup0[0], pGicCpu->bmActivePriorityGroup0[1],
-                               pGicCpu->bmActivePriorityGroup0[2], pGicCpu->bmActivePriorityGroup0[3]);
+                          pGicCpu->bmActivePriorityGroup0[0], pGicCpu->bmActivePriorityGroup0[1],
+                          pGicCpu->bmActivePriorityGroup0[2], pGicCpu->bmActivePriorityGroup0[3]);
     AssertCompile(RT_ELEMENTS(pGicCpu->bmActivePriorityGroup1) >= 4);
     pHlp->pfnPrintf(pHlp, "  Active-interrupt priorities Group 1:\n");
     pHlp->pfnPrintf(pHlp, "    [0..3] = %#010x %#010x %#010x %#010x\n",
-                               pGicCpu->bmActivePriorityGroup1[0], pGicCpu->bmActivePriorityGroup1[1],
-                               pGicCpu->bmActivePriorityGroup1[2], pGicCpu->bmActivePriorityGroup1[3]);
+                          pGicCpu->bmActivePriorityGroup1[0], pGicCpu->bmActivePriorityGroup1[1],
+                          pGicCpu->bmActivePriorityGroup1[2], pGicCpu->bmActivePriorityGroup1[3]);
 }
 
 

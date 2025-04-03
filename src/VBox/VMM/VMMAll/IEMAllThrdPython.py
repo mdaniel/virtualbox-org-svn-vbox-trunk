@@ -2106,7 +2106,7 @@ class ThreadedFunction(object):
         sAnnotation = None;
         for oStmt in aoStmts:
             # Set IEM_IMPL_C_F_BRANCH_XXXX flags if we see any branching MCs.
-            if oStmt.sName.startswith('IEM_MC_SET_RIP'):
+            if oStmt.sName.startswith('IEM_MC_IND_JMP'):
                 assert not fSeenConditional;
                 self.dsCImplFlags['IEM_CIMPL_F_BRANCH_INDIRECT'] = True;
             elif oStmt.sName.startswith('IEM_MC_REL_JMP'):

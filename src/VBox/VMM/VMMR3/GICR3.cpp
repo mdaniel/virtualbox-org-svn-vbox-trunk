@@ -41,6 +41,7 @@
 #include <VBox/vmm/vm.h>
 
 #include <iprt/armv8.h>
+#include <iprt/mem.h>
 
 
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE
@@ -289,10 +290,7 @@ static DECLCALLBACK(void) gicR3DbgInfoIts(PVM pVM, PCDBGFINFOHLP pHlp, const cha
     PPDMDEVINS pDevIns  = pGic->CTX_SUFF(pDevIns);
     PCGICDEV   pGicDev  = PDMDEVINS_2_DATA(pDevIns, PCGICDEV);
     if (pGicDev->hMmioGits != NIL_IOMMMIOHANDLE)
-    {
-        PCGITSDEV  pGitsDev = &pGicDev->Gits;
-        gitsR3DbgInfo(pGitsDev, pHlp, pszArgs);
-    }
+        gitsR3DbgInfo(&pGicDev->Gits, pHlp, pszArgs);
     else
         pHlp->pfnPrintf(pHlp, "GIC ITS is not mapped/configured for the VM\n");
 }
@@ -314,6 +312,20 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
     AssertPtrReturn(pGicDev, VERR_INVALID_PARAMETER);
     LogFlowFunc(("Command-queue thread spawned and initialized\n"));
 
+    /*
+     * Pre-allocate the maximum size of the command queue allowed by the spec.
+     * This prevents trashing the heap as well as deal with out-of-memory situations
+     * up-front while starting the VM. It also simplifies the code from having to
+     * dynamically grow/shrink the allocation based on how software sizes the queue.
+     * Guests normally don't alter the queue size all the time, but that's not an
+     * assumption we can make.
+     */
+    uint16_t const cMaxPages  = GITS_BF_CTRL_REG_CBASER_SIZE_MASK + 1;
+    size_t const   cbCmdQueue = cMaxPages << GUEST_PAGE_SHIFT;
+    void *pvCommands = RTMemAllocZ(cbCmdQueue);
+    AssertLogRelMsgReturn(pvCommands, ("Failed to alloc %.Rhcb (%zu bytes) for GITS command queue\n", cbCmdQueue, cbCmdQueue),
+                          VERR_NO_MEMORY);
+
     while (pThread->enmState == PDMTHREADSTATE_RUNNING)
     {
         /*
@@ -321,7 +333,7 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
          */
         {
             int const rc = PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pGicDev->hEvtCmdQueue, RT_INDEFINITE_WAIT);
-            AssertLogRelMsgReturn(RT_SUCCESS(rc) || rc == VERR_INTERRUPTED, ("%Rrc\n", rc), rc);
+            AssertLogRelMsgReturnStmt(RT_SUCCESS(rc) || rc == VERR_INTERRUPTED, ("%Rrc\n", rc), RTMemFree(pvCommands), rc);
             if (pThread->enmState != PDMTHREADSTATE_RUNNING)
                 break;
         }
@@ -329,10 +341,12 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
         int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
         PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 
-        /** @todo Process commands.   */
+        /** @todo Process commands. */
 
         PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
     }
+
+    RTMemFree(pvCommands);
 
     LogFlowFunc(("Command-queue thread terminating\n"));
     return VINF_SUCCESS;
@@ -612,15 +626,6 @@ DECLCALLBACK(void) gicR3Reset(PPDMDEVINS pDevIns)
         PVMCPU pVCpuDest = pVM->apCpusR3[idCpu];
         gicResetCpu(pDevIns, pVCpuDest);
     }
-}
-
-
-/**
- * @interface_method_impl{PDMDEVREG,pfnRelocate}
- */
-DECLCALLBACK(void) gicR3Relocate(PPDMDEVINS pDevIns, RTGCINTPTR offDelta)
-{
-    RT_NOREF(pDevIns, offDelta);
 }
 
 

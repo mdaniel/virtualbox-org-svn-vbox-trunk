@@ -282,7 +282,6 @@ DECLHIDDEN(uint16_t)               gicDistGetIntIdFromIndex(uint16_t idxIntr);
 
 DECLCALLBACK(int)                  gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pCfg);
 DECLCALLBACK(int)                  gicR3Destruct(PPDMDEVINS pDevIns);
-DECLCALLBACK(void)                 gicR3Relocate(PPDMDEVINS pDevIns, RTGCINTPTR offDelta);
 DECLCALLBACK(void)                 gicR3Reset(PPDMDEVINS pDevIns);
 
 /** @} */

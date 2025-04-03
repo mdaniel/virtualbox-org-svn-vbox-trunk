@@ -263,6 +263,8 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CREADR_, UINT64_C(0), UINT64_MAX,
 
 /** GITS_BASER: ITS Table Descriptors - RW. */
 #define GITS_CTRL_REG_BASER_OFF_FIRST                           0x0100
+#define GITS_CTRL_REG_BASER_OFF_LAST                            0x0138
+#define GITS_CTRL_REG_BASER_RANGE_SIZE                          (GITS_CTRL_REG_BASER_OFF_LAST + sizeof(uint64_t) - GITS_CTRL_REG_BASER_OFF_FIRST)
 /** GITS_BASER: Size - Number of pages allocated to the table minus one. */
 #define GITS_BF_CTRL_REG_BASER_SIZE_SHIFT                       0
 #define GITS_BF_CTRL_REG_BASER_SIZE_MASK                        UINT64_C(0x00000000000000ff)
@@ -298,9 +300,6 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_BASER_, UINT64_C(0), UINT64_MAX,
                             (SIZE, PAGESIZE, SHAREABILITY, PHYS_ADDR, ENTRY_SIZE, OUTER_CACHE, TYPE, INNER_CACHE, INDIRECT,
                              VALID));
 
-#define GITS_CTRL_REG_BASER_OFF_LAST                            0x0138
-#define GITS_CTRL_REG_BASER_RANGE_SIZE                          (GITS_CTRL_REG_BASER_OFF_LAST + sizeof(uint64_t) - GITS_CTRL_REG_BASER_OFF_FIRST)
-
 /** GITS_PIDR2: ITS Peripheral ID2 register - RO. */
 #define GITS_CTRL_REG_PIDR2_OFF                                 0xffe8
 /** GITS_PIDR2: JEDEC - JEP code. */
@@ -329,6 +328,18 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PIDR2_, UINT32_C(0), UINT32_MAX,
 
 /** GITS_TRANSLATER register. */
 #define GITS_TRANSLATION_REG_TRANSLATER                         0x0040
+
+/** GITS Two-level (indirect) table entry. */
+#define GITS_BF_ITE_LVL2_RSVD_11_0_SHIFT                        0
+#define GITS_BF_ITE_LVL2_RSVD_11_0_MASK                         UINT64_C(0x0000000000000fff)
+#define GITS_BF_ITE_LVL2_PHYS_ADDR_SHIFT                        12
+#define GITS_BF_ITE_LVL2_PHYS_ADDR_MASK                         UINT64_C(0x000ffffffffff000)
+#define GITS_BF_ITE_LVL2_RSVD_62_52_SHIFT                       52
+#define GITS_BF_ITE_LVL2_RSVD_62_52_MASK                        UINT64_C(0x7ff0000000000000)
+#define GITS_BF_ITE_LVL2_VALID_SHIFT                            63
+#define GITS_BF_ITE_LVL2_VALID_MASK                             UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_ITE_LVL2_, UINT64_C(0), UINT64_MAX,
+                            (RSVD_11_0, PHYS_ADDR, RSVD_62_52, VALID));
 
 /**
  * Memory shareability attributes.

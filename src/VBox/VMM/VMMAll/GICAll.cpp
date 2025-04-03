@@ -46,7 +46,7 @@
  * presence is optional. It provides MSI support along with routing interrupt
  * sources to specific PEs. The ITS is only accessible via its memory mapped I/O
  * region. When the MMIO handle for the its region is NIL_IOMMMIOHANDLE it's
- * considered to be disabled for the VM. The ITS code lives in GITSAll.cpp.
+ * considered to be disabled for the VM. Most of the ITS code lives in GITSAll.cpp.
  *
  * This implementation only targets GICv3. This implementation does not support
  * dual security states, nor does it support exception levels (EL2, EL3). Earlier
@@ -3370,20 +3370,6 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvU
 }
 
 
-
-#ifndef IN_RING3
-/**
- * @callback_method_impl{PDMDEVREGR0,pfnConstruct}
- */
-static DECLCALLBACK(int) gicRZConstruct(PPDMDEVINS pDevIns)
-{
-    PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
-    AssertReleaseFailed();
-    return VINF_SUCCESS;
-}
-#endif /* !IN_RING3 */
-
-
 /**
  * GIC device registration structure.
  */
@@ -3407,7 +3393,7 @@ const PDMDEVREG g_DeviceGIC =
     /* .szR0Mod = */                "VMMR0.r0",
     /* .pfnConstruct = */           gicR3Construct,
     /* .pfnDestruct = */            gicR3Destruct,
-    /* .pfnRelocate = */            gicR3Relocate,
+    /* .pfnRelocate = */            NULL,
     /* .pfnMemSetup = */            NULL,
     /* .pfnPowerOn = */             NULL,
     /* .pfnReset = */               gicR3Reset,
@@ -3429,7 +3415,7 @@ const PDMDEVREG g_DeviceGIC =
     /* .pfnReserved7 = */           NULL,
 #elif defined(IN_RING0)
     /* .pfnEarlyConstruct = */      NULL,
-    /* .pfnConstruct = */           gicRZConstruct,
+    /* .pfnConstruct = */           NULL,
     /* .pfnDestruct = */            NULL,
     /* .pfnFinalDestruct = */       NULL,
     /* .pfnRequest = */             NULL,
@@ -3442,7 +3428,7 @@ const PDMDEVREG g_DeviceGIC =
     /* .pfnReserved6 = */           NULL,
     /* .pfnReserved7 = */           NULL,
 #elif defined(IN_RC)
-    /* .pfnConstruct = */           gicRZConstruct,
+    /* .pfnConstruct = */           NULL,
     /* .pfnReserved0 = */           NULL,
     /* .pfnReserved1 = */           NULL,
     /* .pfnReserved2 = */           NULL,

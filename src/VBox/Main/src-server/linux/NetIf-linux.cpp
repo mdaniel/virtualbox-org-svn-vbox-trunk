@@ -202,15 +202,15 @@ static int getInterfaceInfo(int iSocket, const char *pszName, PNETIFINFO pInfo)
         pInfo->fWireless = false;
 
         RTFILE hFile;
-        int rc = RTLinuxSysFsOpen(&hFile, "class/net/%s/uevent", pszName);
-        if (RT_SUCCESS(rc))
+        int vrc = RTLinuxSysFsOpen(&hFile, "class/net/%s/uevent", pszName);
+        if (RT_SUCCESS(vrc))
         {
             char szSysFsBuf[256];
             size_t cchRead = 0;
 
             RT_ZERO(szBuf);
-            rc = RTLinuxSysFsReadStr(hFile, szSysFsBuf, sizeof(szSysFsBuf) - 1, &cchRead);
-            if (RT_SUCCESS(rc))
+            vrc = RTLinuxSysFsReadStr(hFile, szSysFsBuf, sizeof(szSysFsBuf) - 1, &cchRead);
+            if (RT_SUCCESS(vrc))
                 pInfo->fWireless = RTStrStr(szSysFsBuf, "DEVTYPE=wlan") != NULL;
 
             RTFileClose(hFile);

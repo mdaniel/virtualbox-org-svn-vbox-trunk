@@ -88,6 +88,9 @@ ifndef VBOX_ONLY_EXTPACKS_USE_IMPLIBS
   if defined(VBOX_WITH_IEM_NATIVE_RECOMPILER) && defined(VBOX_WITH_IEM_RECOMPILER)
    PROGRAMS += tstIEMN8veProfiling
   endif
+  if defined(VBOX_WITH_VIRT_ARMV8)
+   PROGRAMS += tstPGMAllGst-armv8
+  endif
 
   if1of ($(KBUILD_TARGET_ARCH), amd64 x86)
    PROGRAMS += \
@@ -995,6 +998,17 @@ ifndef VBOX_ONLY_EXTPACKS
  tstSSM-2_SOURCES       = tstSSM-2.cpp
  tstSSM-2_LIBS          = $(PATH_STAGE_LIB)/SSMStandalone$(VBOX_SUFF_LIB)
 endif
+
+
+#
+# ARMv8 PGM guest page table walking testcase.
+#
+tstPGMAllGst-armv8_TEMPLATE         = VBoxR3TstExe
+tstPGMAllGst-armv8_INCS             = $(VBOX_PATH_VMM_SRC)/include
+tstPGMAllGst-armv8_DEFS             = VBOX_VMM_TARGET_ARMV8 $(VMM_COMMON_DEFS)
+tstPGMAllGst-armv8_SOURCES          = tstPGMAllGst-armv8.cpp
+tstPGMAllGst-armv8_LIBS             = $(LIB_RUNTIME)
+
 
 #
 # Generate VM structure tests.

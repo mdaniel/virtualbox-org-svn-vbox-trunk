@@ -1005,7 +1005,7 @@ endif
 #
 tstPGMAllGst-armv8_TEMPLATE         = VBoxR3TstExe
 tstPGMAllGst-armv8_INCS             = $(VBOX_PATH_VMM_SRC)/include
-tstPGMAllGst-armv8_DEFS             = VBOX_VMM_TARGET_ARMV8 $(VMM_COMMON_DEFS)
+tstPGMAllGst-armv8_DEFS             = IN_VMM_R3 VBOX_VMM_TARGET_ARMV8 $(VMM_COMMON_DEFS)
 tstPGMAllGst-armv8_SOURCES          = tstPGMAllGst-armv8.cpp
 tstPGMAllGst-armv8_LIBS             = $(LIB_RUNTIME)
 

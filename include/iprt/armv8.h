@@ -2944,7 +2944,7 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** @} */
 
 
-/** @defgrp grp_rt_armv8_vmsav864 VMSAv8-64 related definitions
+/** @defgroup grp_rt_armv8_vmsav864 VMSAv8-64 related definitions
  * @ingroup grp_rt_armv8
  * @{ */
 

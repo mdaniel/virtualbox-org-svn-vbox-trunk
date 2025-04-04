@@ -1213,8 +1213,10 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
  * @{
  */
 /** Bit 0 - 5 - Size offset of the memory region addressed by TTBR0_EL1 (2^(64-T0SZ)). */
-#define ARMV8_TCR_EL1_AARCH64_T0SZ                              (  RT_BIT_64(0) | RT_BIT_64(1) | RT_BIT_64(2) \
+#define ARMV8_TCR_EL1_AARCH64_T0SZ_MASK                         (  RT_BIT_64(0) | RT_BIT_64(1) | RT_BIT_64(2) \
                                                                  | RT_BIT_64(3) | RT_BIT_64(4) | RT_BIT_64(5))
+#define ARMV8_TCR_EL1_AARCH64_T0SZ_SHIFT                        0
+#define ARMV8_TCR_EL1_AARCH64_T0SZ                              ARMV8_TCR_EL1_AARCH64_T0SZ_MASK
 #define ARMV8_TCR_EL1_AARCH64_T0SZ_GET(a_Tcr)                   ((a_Tcr) & ARMV8_TCR_EL1_AARCH64_T1SZ)
 /** Bit 7 - Translation table walk disable for translations using TTBR0_EL1. */
 #define ARMV8_TCR_EL1_AARCH64_EPD0                              RT_BIT_64(7)
@@ -1266,9 +1268,11 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** 64KiB granule size (shifted down). */
 # define ARMV8_TCR_EL1_AARCH64_TG0_64KB                         3
 /** Bit 16 - 21 - Size offset of the memory region addressed by TTBR1_EL1 (2^(64-T1SZ)). */
-#define ARMV8_TCR_EL1_AARCH64_T1SZ                              (  RT_BIT_64(16) | RT_BIT_64(17) | RT_BIT_64(18) \
+#define ARMV8_TCR_EL1_AARCH64_T1SZ_MASK                         (  RT_BIT_64(16) | RT_BIT_64(17) | RT_BIT_64(18) \
                                                                  | RT_BIT_64(19) | RT_BIT_64(20) | RT_BIT_64(21))
-#define ARMV8_TCR_EL1_AARCH64_T1SZ_GET(a_Tcr)                   (((a_Tcr) & ARMV8_TCR_EL1_AARCH64_T1SZ) >> 16)
+#define ARMV8_TCR_EL1_AARCH64_T1SZ_SHIFT                        16
+#define ARMV8_TCR_EL1_AARCH64_T1SZ                              ARMV8_TCR_EL1_AARCH64_T1SZ_MASK
+#define ARMV8_TCR_EL1_AARCH64_T1SZ_GET(a_Tcr)                   (((a_Tcr) & ARMV8_TCR_EL1_AARCH64_T1SZ) >> ARMV8_TCR_EL1_AARCH64_T1SZ_SHIFT)
 /** Bit 22 - Selects whether TTBR0_EL1 (0) or TTBR1_EL1 (1) defines the ASID. */
 #define ARMV8_TCR_EL1_AARCH64_A1                                RT_BIT_64(22)
 #define ARMV8_TCR_EL1_AARCH64_A1_BIT                            22
@@ -1309,7 +1313,9 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** Inner Shareable. */
 # define ARMV8_TCR_EL1_AARCH64_SH1_INNER_SHAREABLE              3
 /** Bit 30 - 31 - Translation Granule Size for TTBR1_EL1. */
-#define ARMV8_TCR_EL1_AARCH64_TG1                               (RT_BIT_64(30) | RT_BIT_64(31))
+#define ARMV8_TCR_EL1_AARCH64_TG1_MASK                          (RT_BIT_64(30) | RT_BIT_64(31))
+#define ARMV8_TCR_EL1_AARCH64_TG1_SHIFT                         30
+#define ARMV8_TCR_EL1_AARCH64_TG1                               ARMV8_TCR_EL1_AARCH64_TG1_MASK
 #define ARMV8_TCR_EL1_AARCH64_TG1_GET(a_Tcr)                    (((a_Tcr) & ARMV8_TCR_EL1_AARCH64_TG1) >> 30)
 /** Invalid granule size. */
 # define ARMV8_TCR_EL1_AARCH64_TG1_INVALID                      0

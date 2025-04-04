@@ -1,6 +1,8 @@
 /* $Id$ */
 /** @file
- * VirtualBox Windows Guest Shared Folders - Network provider dll
+ * VirtualBox Windows Guest Shared Folders - Network provider DLL (ring-3).
+ *
+ * Communicates with the ring-0 VBoxSF.sys via IOCtls.
  */
 
 /*
@@ -483,17 +485,15 @@ DWORD APIENTRY NPGetConnection(LPWSTR pLocalName,
                                LPDWORD pBufferSize)
 {
     DWORD dwStatus = WN_NOT_CONNECTED;
-
     WCHAR RemoteName[128];
-    ULONG cbOut = 0;
 
-    Log(("VBOXNP: NPGetConnection: pLocalName = %ls\n",
-         pLocalName));
+    Log(("VBOXNP: NPGetConnection: pLocalName = %ls, *pBufferSize=%d\n", pLocalName, *pBufferSize));
 
     if (pLocalName && pLocalName[0] != 0)
     {
         if (pLocalName[1] == L':')
         {
+            ULONG cbOut = 0;
             WCHAR LocalName[3];
 
             cbOut = sizeof(RemoteName) - sizeof(WCHAR);
@@ -514,31 +514,31 @@ DWORD APIENTRY NPGetConnection(LPWSTR pLocalName,
                 /* The device specified by pLocalName is not redirected by this provider. */
                 dwStatus = WN_NOT_CONNECTED;
             }
-            else
+            else if (cbOut)
             {
+                Assert(cbOut % sizeof(WCHAR) == 0); /* Paranoia. */
                 RemoteName[cbOut / sizeof(WCHAR)] = 0;
-
-                if (cbOut == 0)
-                {
-                    dwStatus = WN_NO_NETWORK;
-                }
             }
+            else /* Buggy VBoxSF.sys code. */
+                AssertFailedStmt(dwStatus = WN_NO_NETWORK);
         }
     }
 
     if (dwStatus == WN_SUCCESS)
     {
-        ULONG cbRemoteName = (lstrlen(RemoteName) + 1) * sizeof (WCHAR); /* Including the trailing 0. */
+        ULONG const cbRemoteName = (  1 /* Including the leading '\' */
+                                    + lstrlen(RemoteName)
+                                    + 1 /* Include terminatior */)
+                                 * sizeof (WCHAR);
 
-        Log(("VBOXNP: NPGetConnection: RemoteName: %ls, cb %d\n",
+        Log(("VBOXNP: NPGetConnection: RemoteName: %ls -> cbRemoteName %d\n",
              RemoteName, cbRemoteName));
 
-        DWORD len = sizeof(WCHAR) + cbRemoteName; /* Including the leading '\'. */
-
-        if (*pBufferSize >= len)
+        /* Note: *pBufferSize is characters, not bytes! */
+        if (*pBufferSize * sizeof(WCHAR) >= cbRemoteName)
         {
             pRemoteName[0] = L'\\';
-            CopyMemory(&pRemoteName[1], RemoteName, cbRemoteName);
+            CopyMemory(&pRemoteName[1], RemoteName, cbRemoteName - sizeof(pRemoteName[0]) /* Skip leading '\' */);
 
             Log(("VBOXNP: NPGetConnection: returning pRemoteName: %ls\n",
                  pRemoteName));
@@ -548,22 +548,20 @@ DWORD APIENTRY NPGetConnection(LPWSTR pLocalName,
             if (*pBufferSize != 0)
             {
                 /* Log only real errors. Do not log a 0 bytes try. */
-                Log(("VBOXNP: NPGetConnection: Buffer overflow: *pBufferSize = %d, len = %d\n",
-                     *pBufferSize, len));
+                Log(("VBOXNP: NPGetConnection: Buffer overflow: *pBufferSize = %d < cbRemoteName = %d\n",
+                     *pBufferSize, cbRemoteName));
             }
 
             dwStatus = WN_MORE_DATA;
         }
 
-        *pBufferSize = len;
+        Assert(cbRemoteName % sizeof(WCHAR) == 0);
+        *pBufferSize = cbRemoteName / sizeof(WCHAR); /* Length in characters, not bytes! */
     }
 
-    if ((dwStatus != WN_SUCCESS) &&
-        (dwStatus != WN_MORE_DATA))
-    {
-        Log(("VBOXNP: NPGetConnection: Returned error 0x%08X\n",
-             dwStatus));
-    }
+    if (   (dwStatus != WN_SUCCESS)
+        && (dwStatus != WN_MORE_DATA))
+        Log(("VBOXNP: NPGetConnection: Returned error 0x%08X\n", dwStatus));
 
     return dwStatus;
 }

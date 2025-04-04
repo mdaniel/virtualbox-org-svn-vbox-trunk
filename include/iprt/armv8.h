@@ -2944,6 +2944,33 @@ typedef const ARMV8SPSREL2 *PCXARMV8SPSREL2;
 /** @} */
 
 
+/** @defgrp grp_rt_armv8_vmsav864 VMSAv8-64 related definitions
+ * @ingroup grp_rt_armv8
+ * @{ */
+
+#ifndef __ASSEMBLER__
+/** A VMSAv8-64 descriptor. */
+typedef uint64_t ARMV8VMSA64DESC;
+/** Pointer to a VMSAv8-64 descriptor. */
+typedef ARMV8VMSA64DESC *PARMV8VMSA64DESC;
+/** Pointer to a const VMSAv8-64 descriptor. */
+typedef const ARMV8VMSA64DESC *PCARMV8VMSA64DESC;
+#endif
+
+
+/** Bit 0 - Flag whether the table entry is valid. */
+#define ARMV8_VMSA64_TBL_ENTRY_F_VALID                          RT_BIT_64(0)
+#define ARMV8_VMSA64_TBL_ENTRY_F_VALID_BIT                      0
+/** Bit 1 - Indicates the descriptor type depending on the current lookup level. 
+ * Basically when set it indicates to continue the lookup at the next level, or at the last level
+ * that it is a page (not setting it at the last level is treated as an invalid descriptor).
+ * If clear and not at the last lookup level the result will either be a large or gigantic page,
+ * depending on the lookup level. */
+#define ARMV8_VMSA64_TBL_ENTRY_F_TBL_OR_PG                      RT_BIT_64(1)
+#define ARMV8_VMSA64_TBL_ENTRY_F_TBL_OR_PG_BIT                  1
+
+/** @} */
+
 #if (!defined(VBOX_FOR_DTRACE_LIB) && defined(__cplusplus) && !defined(ARMV8_WITHOUT_MK_INSTR)) || defined(DOXYGEN_RUNNING)
 /** @defgroup grp_rt_armv8_mkinstr   Instruction Encoding Helpers
  * @ingroup grp_rt_armv8

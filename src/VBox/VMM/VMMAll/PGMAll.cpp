@@ -58,6 +58,10 @@
 #include <VBox/param.h>
 #include <VBox/err.h>
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# include <iprt/armv8.h>
+#endif
+
 
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
@@ -987,7 +991,7 @@ AssertCompile(PGMMODE_NONE == 32);
  * why not do a separate mode for TTBR0_ELx and one for TTBR1_ELx.  Top-level
  * functions determins which of the roots to use and call template (C++)
  * functions that takes it from there.  Using the preprocessor function template
- * approach is is _not_ desirable here.
+ * approach is _not_ desirable here.
  *
  */
 
@@ -995,6 +999,71 @@ AssertCompile(PGMMODE_NONE == 32);
  *         configuration register values and lazily reconfigure when they
  *         change. */
 # include "PGMAllGst-armv8.cpp.h"
+
+/**
+ * Guest mode data array.
+ */
+PGMMODEDATAGST const g_aPgmGuestModeData[PGM_GUEST_MODE_DATA_ARRAY_SIZE] =
+{
+    { UINT32_MAX, NULL, NULL, NULL, NULL, NULL }, /* 0 */
+    {
+        PGM_TYPE_NONE,
+        PGM_CTX(pgm,GstNoneGetPage),
+        PGM_CTX(pgm,GstNoneQueryPageFast),
+        PGM_CTX(pgm,GstNoneModifyPage),
+        PGM_CTX(pgm,GstNoneWalk),
+        PGM_CTX(pgm,GstNoneEnter),
+        PGM_CTX(pgm,GstNoneExit),
+    },
+
+#define PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
+        (2 + (  (a_fEpd ? RT_BIT_32(6) : 0)     \
+              | (a_fTbi ? RT_BIT_32(5) : 0)     \
+              | (a_GranuleSz << 3)              \
+              | (a_InitialLookupLvl << 1)       \
+              | (a_fTtbr0 ? RT_BIT_32(0) : 0) ))
+
+#define PGM_MODE_CREATE_EX(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
+    { \
+        PGM_MODE_TYPE_CREATE(a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd), \
+        PGM_CTX(pgm,GstGetPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
+        PGM_CTX(pgm,GstQueryPageFast)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
+        PGM_CTX(pgm,GstModifyPage)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
+        PGM_CTX(pgm,GstWalk)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
+        PGM_CTX(pgm,GstEnter)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd>, \
+        PGM_CTX(pgm,GstExit)<a_fTtbr0, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd> \
+    }
+
+#define PGM_MODE_CREATE_TTBR(a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd) \
+    PGM_MODE_CREATE_EX(false, a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd), \
+    PGM_MODE_CREATE_EX(true,  a_InitialLookupLvl, a_GranuleSz, a_fTbi, a_fEpd)
+
+#define PGM_MODE_CREATE_LOOKUP_LVL(a_GranuleSz, a_fTbi, a_fEpd) \
+    PGM_MODE_CREATE_TTBR(0,  a_GranuleSz, a_fTbi, a_fEpd ), \
+    PGM_MODE_CREATE_TTBR(1,  a_GranuleSz, a_fTbi, a_fEpd ), \
+    PGM_MODE_CREATE_TTBR(2,  a_GranuleSz, a_fTbi, a_fEpd ), \
+    PGM_MODE_CREATE_TTBR(3,  a_GranuleSz, a_fTbi, a_fEpd ) /* Invalid */
+
+#define PGM_MODE_CREATE_GRANULE_SZ(a_fTbi, a_fEpd) \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_INVALID, a_fTbi, a_fEpd), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_16KB,    a_fTbi, a_fEpd), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_4KB,     a_fTbi, a_fEpd), \
+    PGM_MODE_CREATE_LOOKUP_LVL(ARMV8_TCR_EL1_AARCH64_TG1_64KB,    a_fTbi, a_fEpd)
+
+#define PGM_MODE_CREATE_TBI(a_fEpd) \
+    PGM_MODE_CREATE_GRANULE_SZ(false, a_fEpd), \
+    PGM_MODE_CREATE_GRANULE_SZ(true,  a_fEpd)
+
+    /* Recursive expansion for the win, this will blow up to 128 entries covering all possible modes. */
+    PGM_MODE_CREATE_TBI(false),
+    PGM_MODE_CREATE_TBI(true)
+
+#undef PGM_MODE_CREATE_TBI
+#undef PGM_MODE_CREATE_GRANULE_SZ
+#undef PGM_MODE_CREATE_LOOKUP_LVL
+#undef PGM_MODE_CREATE_TTBR
+#undef PGM_MODE_CREATE_EX
+};
 
 #else
 # error "port me"
@@ -2040,17 +2109,22 @@ VMMDECL(int) PGMGstGetPage(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk)
 {
     VMCPU_ASSERT_EMT(pVCpu);
     Assert(pWalk);
-#ifdef VBOX_VMM_TARGET_X86
+
+#if defined(VBOX_VMM_TARGET_X86)
     uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
     AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
     AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
     return g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, pWalk);
-
 #elif defined(VBOX_VMM_TARGET_ARMV8)
-    return pgmGstGetPageArmv8Hack(pVCpu, GCPtr, pWalk);
-
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
+    return g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, pWalk);
 #else
-# error "port me"
+# error "Port me"
 #endif
 }
 
@@ -2072,15 +2146,23 @@ VMM_INT_DECL(int) PGMGstQueryPageFast(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fF
     Assert(pWalk);
     Assert(!(fFlags & ~(PGMQPAGE_F_VALID_MASK)));
     Assert(!(fFlags & PGMQPAGE_F_EXECUTE) || !(fFlags & PGMQPAGE_F_WRITE));
-#ifdef VBOX_VMM_TARGET_X86 /** @todo Implement PGMGstQueryPageFast for ARMv8! */
+
+#if defined(VBOX_VMM_TARGET_X86)
     uintptr_t idx = pVCpu->pgm.s.idxGuestModeData;
     AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
     AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
     return g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, pWalk);
-#else  /* !VBOX_VMM_TARGET_X86 */
-    RT_NOREF(pVCpu, GCPtr, fFlags, pWalk);
-    AssertFailedReturn(VERR_NOT_IMPLEMENTED);
-#endif /* !VBOX_VMM_TARGET_X86 */
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
+    return g_aPgmGuestModeData[idx].pfnQueryPageFast(pVCpu, GCPtr, fFlags, pWalk);
+#else
+# error "Port me"
+#endif
 }
 
 
@@ -2138,10 +2220,13 @@ int pgmGstPtWalk(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST 
     }
 
 #elif defined(VBOX_VMM_TARGET_ARMV8)
-    /** @todo temporary hack.   */
-    RT_NOREF(pGstWalk);
-    return pgmGstGetPageArmv8Hack(pVCpu, GCPtr, pWalk);
-
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+    AssertReturn(idx < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idx].pfnGetPage, VERR_PGM_MODE_IPE);
+    return g_aPgmGuestModeData[idx].pfnWalk(pVCpu, GCPtr, pWalk, pGstWalk);
 #else
 # error "port me"
 #endif
@@ -2699,7 +2784,7 @@ static int pgmGstSlatTranslateCr3(PVMCPUCC pVCpu, uint64_t uCr3, PRTGCPHYS pGCPh
  * @param   cr3             The new cr3.
  * @param   fGlobal         Indicates whether this is a global flush or not.
  */
-VMMDECL(int) PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal)
+VMM_INT_DECL(int) PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal)
 {
     STAM_PROFILE_START(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,FlushTLB), a);
 
@@ -2816,7 +2901,7 @@ VMMDECL(int) PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal)
  * @param   pVCpu           The cross context virtual CPU structure.
  * @param   cr3             The new CR3.
  */
-VMMDECL(int) PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3)
+VMM_INT_DECL(int) PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3)
 {
     VMCPU_ASSERT_EMT(pVCpu);
 
@@ -2889,7 +2974,7 @@ VMMDECL(int) PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3)
  * @param   cr4         Guest context CR4 register
  * @param   fGlobal     Including global page directories or not
  */
-VMMDECL(int) PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal)
+VMM_INT_DECL(int) PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal)
 {
     VMCPU_ASSERT_EMT(pVCpu);
 
@@ -3295,7 +3380,7 @@ VMM_INT_DECL(int) PGMGstMapPaePdpesAtCr3(PVMCPUCC pVCpu, uint64_t cr3)
  * @param   efer        The new extended feature enable register.
  * @param   fForce      Whether to force a mode change.
  */
-VMMDECL(int) PGMChangeMode(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr4, uint64_t efer, bool fForce)
+VMM_INT_DECL(int) PGMChangeMode(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr4, uint64_t efer, bool fForce)
 {
     VMCPU_ASSERT_EMT(pVCpu);
 
@@ -3568,7 +3653,156 @@ static PGMMODE pgmCalcShadowMode(PVMCC pVM, PGMMODE enmGuestMode, SUPPAGINGMODE 
     return enmShadowMode;
 }
 
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+
+template<uint8_t a_offTsz, uint8_t a_offTg, uint8_t a_offTbi, uint8_t a_offEpd, bool a_fTtbr0>
+DECLINLINE(uintptr_t) pgmR3DeduceTypeFromTcr(uint64_t u64RegSctlr, uint64_t u64RegTcr, uint64_t *pfInitialLookupMask)
+{
+    uintptr_t idxNewGst = 0;
+
+    /*
+     * MMU enabled at all?
+     * Technically this is incorrect as we use ARMV8_SCTLR_EL1_M regardless of the EL but the bit is the same
+     * for all exception levels.
+     */
+    if (u64RegSctlr & ARMV8_SCTLR_EL1_M)
+    {
+        uint64_t const u64Tsz = (u64RegTcr >> a_offTsz) & 0x1f;
+        uint64_t const u64Tg  = (u64RegTcr >> a_offTg)  & 0x3;
+        bool     const fTbi   = RT_BOOL(u64RegTcr & RT_BIT_64(a_offTbi));
+        bool     const fEpd   = RT_BOOL(u64RegTcr & RT_BIT_64(a_offEpd));
+
+        /*
+         * From: https://github.com/codingbelief/arm-architecture-reference-manual-for-armv8-a/blob/master/en/chapter_d4/d42_2_controlling_address_translation_stages.md
+         * For all translation stages
+         * The maximum TxSZ value is 39. If TxSZ is programmed to a value larger than 39 then it is IMPLEMENTATION DEFINED whether:
+         *     - The implementation behaves as if the field is programmed to 39 for all purposes other than reading back the value of the field.
+         *     - Any use of the TxSZ value generates a Level 0 Translation fault for the stage of translation at which TxSZ is used.
+         *
+         * For a stage 1 translation
+         * The minimum TxSZ value is 16. If TxSZ is programmed to a value smaller than 16 then it is IMPLEMENTATION DEFINED whether:
+         *     - The implementation behaves as if the field were programmed to 16 for all purposes other than reading back the value of the field.
+         *     - Any use of the TxSZ value generates a stage 1 Level 0 Translation fault.
+         *
+         * We currently choose the former for both.
+         */
+        uint64_t uLookupLvl;
+        if (/*u64Tsz >= 16 &&*/ u64Tsz <= 24)
+        {
+            uLookupLvl = 0;
+            if (u64Tsz >= 16)
+                *pfInitialLookupMask = RT_BIT_64(24 - u64Tsz + 1) - 1;
+            else
+                *pfInitialLookupMask = RT_BIT_64(24 - 16 + 1) - 1;
+        }
+        else if (u64Tsz >= 25 && u64Tsz <= 33)
+        {
+            uLookupLvl = 1;
+            *pfInitialLookupMask = RT_BIT_64(33 - u64Tsz + 1) - 1;
+        }
+        else /*if (u64Tsz >= 34 && u64Tsz <= 39)*/
+        {
+            uLookupLvl = 2;
+            if (u64Tsz <= 39)
+                *pfInitialLookupMask = RT_BIT_64(39 - u64Tsz + 1) - 1;
+            else
+                *pfInitialLookupMask = RT_BIT_64(39 - 39 + 1) - 1;
+        }
+
+        /* Build the index into the PGM mode callback table for the given config. */
+        idxNewGst = PGM_MODE_TYPE_CREATE(a_fTtbr0, uLookupLvl, u64Tg, fTbi, fEpd);
+    }
+    else
+        idxNewGst = PGM_TYPE_NONE;
+
+    return idxNewGst;
+}
+
+
+VMM_INT_DECL(int) PGMChangeMode(PVMCPUCC pVCpu, uint8_t bEl, uint64_t u64RegSctlr, uint64_t u64RegTcr)
+{
+    VMCPU_ASSERT_EMT(pVCpu);
+    Assert(bEl > 0 && bEl < 4);
+
+    /* Only go through the setup when something has changed. */
+    int rc;
+    if (   u64RegSctlr != pVCpu->pgm.s.au64RegSctlrEl[bEl - 1]
+        || u64RegTcr   != pVCpu->pgm.s.au64RegTcrEl[bEl - 1])
+    {
+        /* guest */
+        uintptr_t const idxOldGst = pVCpu->pgm.s.aidxGuestModeDataTtbr0[bEl];
+        if (   idxOldGst < RT_ELEMENTS(g_aPgmGuestModeData)
+            && g_aPgmGuestModeData[idxOldGst].pfnExit)
+        {
+            rc = g_aPgmGuestModeData[idxOldGst].pfnExit(pVCpu);
+            AssertMsgReturn(RT_SUCCESS(rc), ("Exit failed for guest mode %d: %Rrc\n", idxOldGst, rc), rc);
+        }
+
+        uintptr_t const idxNewGstTtbr0 = pgmR3DeduceTypeFromTcr<ARMV8_TCR_EL1_AARCH64_T0SZ_SHIFT, ARMV8_TCR_EL1_AARCH64_TG0_SHIFT,
+                                                                ARMV8_TCR_EL1_AARCH64_TBI0_BIT, ARMV8_TCR_EL1_AARCH64_EPD0_BIT, false>
+                                                                (u64RegSctlr, u64RegTcr, &pVCpu->pgm.s.afLookupMaskTtbr0[bEl]);
+        uintptr_t const idxNewGstTtbr1 = pgmR3DeduceTypeFromTcr<ARMV8_TCR_EL1_AARCH64_T1SZ_SHIFT, ARMV8_TCR_EL1_AARCH64_TG1_SHIFT,
+                                                                ARMV8_TCR_EL1_AARCH64_TBI1_BIT, ARMV8_TCR_EL1_AARCH64_EPD1_BIT, true>
+                                                                (u64RegSctlr, u64RegTcr, &pVCpu->pgm.s.afLookupMaskTtbr1[bEl]);
+        Assert(idxNewGstTtbr0 != 0 && idxNewGstTtbr1 != 0);
+
+        /*
+         * Change the paging mode data indexes.
+         */
+        AssertReturn(idxNewGstTtbr0 < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+        AssertReturn(g_aPgmGuestModeData[idxNewGstTtbr0].uType == idxNewGstTtbr0, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnGetPage, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnModifyPage, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnExit, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnEnter, VERR_PGM_MODE_IPE);
+
+        AssertReturn(idxNewGstTtbr1 < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+        AssertReturn(g_aPgmGuestModeData[idxNewGstTtbr1].uType == idxNewGstTtbr1, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnGetPage, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnModifyPage, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnExit, VERR_PGM_MODE_IPE);
+        AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnEnter, VERR_PGM_MODE_IPE);
+
+            rc  = g_aPgmGuestModeData[idxNewGstTtbr0].pfnEnter(pVCpu);
+        int rc2 = g_aPgmGuestModeData[idxNewGstTtbr1].pfnEnter(pVCpu);
+
+        /* status codes. */
+        AssertRC(rc);
+        AssertRC(rc2);
+        if (RT_SUCCESS(rc))
+        {
+            rc = rc2;
+            if (RT_SUCCESS(rc)) /* no informational status codes. */
+                rc = VINF_SUCCESS;
+        }
+
+        pVCpu->pgm.s.aidxGuestModeDataTtbr0[bEl] = idxNewGstTtbr0;
+        pVCpu->pgm.s.aidxGuestModeDataTtbr1[bEl] = idxNewGstTtbr1;
+        if (bEl == 1)
+        {
+            /* Also set the value for EL0, saves us an if condition in the hot paths later on. */
+            pVCpu->pgm.s.aidxGuestModeDataTtbr0[0] = idxNewGstTtbr0;
+            pVCpu->pgm.s.aidxGuestModeDataTtbr1[0] = idxNewGstTtbr1;
+
+            pVCpu->pgm.s.afLookupMaskTtbr0[0] = pVCpu->pgm.s.afLookupMaskTtbr0[1];
+            pVCpu->pgm.s.afLookupMaskTtbr1[0] = pVCpu->pgm.s.afLookupMaskTtbr1[1];
+        }
+
+        pVCpu->pgm.s.aenmGuestMode[bEl] = (u64RegSctlr & ARMV8_SCTLR_EL1_M) ? PGMMODE_VMSA_V8_64 : PGMMODE_NONE;
+
+        /* Cache values. */
+        pVCpu->pgm.s.au64RegSctlrEl[bEl - 1] = u64RegSctlr;
+        pVCpu->pgm.s.au64RegTcrEl[bEl - 1]   = u64RegTcr;
+    }
+    else
+        rc = VINF_SUCCESS;
+
+    return rc;
+}
+#else
+# error "Port me"
 #endif /* VBOX_VMM_TARGET_X86 */
+
 
 /**
  * Performs the actual mode change.
@@ -3585,10 +3819,10 @@ static PGMMODE pgmCalcShadowMode(PVMCC pVM, PGMMODE enmGuestMode, SUPPAGINGMODE 
  */
 VMM_INT_DECL(int) PGMHCChangeMode(PVMCC pVM, PVMCPUCC pVCpu, PGMMODE enmGuestMode, bool fForce)
 {
+#ifdef VBOX_VMM_TARGET_X86
     Log(("PGMHCChangeMode: Guest mode: %s -> %s\n", PGMGetModeName(pVCpu->pgm.s.enmGuestMode), PGMGetModeName(enmGuestMode)));
     STAM_REL_COUNTER_INC(&pVCpu->pgm.s.cGuestModeChanges);
 
-#ifdef VBOX_VMM_TARGET_X86
     /*
      * Calc the shadow mode and switcher.
      */
@@ -3800,6 +4034,9 @@ VMM_INT_DECL(int) PGMHCChangeMode(PVMCC pVM, PVMCPUCC pVCpu, PGMMODE enmGuestMod
     return rc;
 
 #elif defined(VBOX_VMM_TARGET_ARMV8)
+    Log(("PGMHCChangeMode: Guest mode: %s -> %s\n", PGMGetModeName(pVCpu->pgm.s.aenmGuestMode[1]), PGMGetModeName(enmGuestMode)));
+    STAM_REL_COUNTER_INC(&pVCpu->pgm.s.cGuestModeChanges);
+
     //AssertReleaseFailed(); /** @todo Called by the PGM saved state code. */
     RT_NOREF(pVM, pVCpu, enmGuestMode, fForce);
     return VINF_SUCCESS;
@@ -3854,7 +4091,13 @@ VMMDECL(const char *) PGMGetModeName(PGMMODE enmMode)
  */
 VMMDECL(PGMMODE) PGMGetGuestMode(PVMCPU pVCpu)
 {
+#if defined(VBOX_VMM_TARGET_X86)
     return pVCpu->pgm.s.enmGuestMode;
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    return pVCpu->pgm.s.aenmGuestMode[1]; /** @todo Add parameter to select exception level. */
+#else
+# error "Port me"
+#endif
 }
 
 

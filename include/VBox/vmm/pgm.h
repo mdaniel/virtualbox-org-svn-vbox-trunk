@@ -941,11 +941,15 @@ VMM_INT_DECL(int)   PGMGstMapPaePdpes(PVMCPUCC pVCpu, PCX86PDPE paPaePdpes);
 VMM_INT_DECL(int)   PGMGstMapPaePdpesAtCr3(PVMCPUCC pVCpu, uint64_t cr3);
 
 VMMDECL(int)        PGMInvalidatePage(PVMCPUCC pVCpu, RTGCPTR GCPtrPage);
-VMMDECL(int)        PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal);
-VMMDECL(int)        PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal);
-VMMDECL(int)        PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3);
-VMMDECL(int)        PGMChangeMode(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr4, uint64_t efer, bool fForce);
+#if defined(VBOX_VMM_TARGET_X86)
+VMM_INT_DECL(int)   PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal);
+VMM_INT_DECL(int)   PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal);
+VMM_INT_DECL(int)   PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3);
+VMM_INT_DECL(int)   PGMChangeMode(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr4, uint64_t efer, bool fForce);
 VMM_INT_DECL(int)   PGMHCChangeMode(PVMCC pVM, PVMCPUCC pVCpu, PGMMODE enmGuestMode, bool fForce);
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+VMM_INT_DECL(int)   PGMChangeMode(PVMCPUCC pVCpu, uint8_t bEl, uint64_t u64RegSctlr, uint64_t u64RegTcr);
+#endif
 VMMDECL(void)       PGMCr0WpEnabled(PVMCPUCC pVCpu);
 VMMDECL(PGMMODE)    PGMGetGuestMode(PVMCPU pVCpu);
 VMMDECL(PGMMODE)    PGMGetShadowMode(PVMCPU pVCpu);

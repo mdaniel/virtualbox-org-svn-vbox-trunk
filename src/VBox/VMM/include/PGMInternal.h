@@ -235,30 +235,31 @@ AssertCompile(PGM_MAX_PAGES_PER_ROM_RANGE <= PGM_MAX_PAGES_PER_RAM_RANGE);
 #define PGM_PTFLAGS_TRACK_DIRTY         RT_BIT_64(9)
 /** @} */
 
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** @name Defines used to indicate the shadow and guest paging in the templates.
  * @{ */
-#define PGM_TYPE_REAL                   1
-#define PGM_TYPE_PROT                   2
-#define PGM_TYPE_32BIT                  3
-#define PGM_TYPE_PAE                    4
-#define PGM_TYPE_AMD64                  5
-#define PGM_TYPE_NESTED_32BIT           6
-#define PGM_TYPE_NESTED_PAE             7
-#define PGM_TYPE_NESTED_AMD64           8
-#define PGM_TYPE_EPT                    9
-#define PGM_TYPE_NONE                   10 /**< Dummy shadow paging mode for NEM. */
-#define PGM_TYPE_END                    (PGM_TYPE_NONE + 1)
-#define PGM_TYPE_FIRST_SHADOW           PGM_TYPE_32BIT /**< The first type used by shadow paging. */
+# define PGM_TYPE_REAL                  1
+# define PGM_TYPE_PROT                  2
+# define PGM_TYPE_32BIT                 3
+# define PGM_TYPE_PAE                   4
+# define PGM_TYPE_AMD64                 5
+# define PGM_TYPE_NESTED_32BIT          6
+# define PGM_TYPE_NESTED_PAE            7
+# define PGM_TYPE_NESTED_AMD64          8
+# define PGM_TYPE_EPT                   9
+# define PGM_TYPE_NONE                  10 /**< Dummy shadow paging mode for NEM. */
+# define PGM_TYPE_END                   (PGM_TYPE_NONE + 1)
+# define PGM_TYPE_FIRST_SHADOW          PGM_TYPE_32BIT /**< The first type used by shadow paging. */
 /** @} */
 
 /** @name Defines used to indicate the second-level
  * address translation (SLAT) modes in the templates.
  * @{ */
-#define PGM_SLAT_TYPE_DIRECT            (PGM_TYPE_END + 1)
-#define PGM_SLAT_TYPE_EPT               (PGM_TYPE_END + 2)
-#define PGM_SLAT_TYPE_32BIT             (PGM_TYPE_END + 3)
-#define PGM_SLAT_TYPE_PAE               (PGM_TYPE_END + 4)
-#define PGM_SLAT_TYPE_AMD64             (PGM_TYPE_END + 5)
+# define PGM_SLAT_TYPE_DIRECT           (PGM_TYPE_END + 1)
+# define PGM_SLAT_TYPE_EPT              (PGM_TYPE_END + 2)
+# define PGM_SLAT_TYPE_32BIT            (PGM_TYPE_END + 3)
+# define PGM_SLAT_TYPE_PAE              (PGM_TYPE_END + 4)
+# define PGM_SLAT_TYPE_AMD64            (PGM_TYPE_END + 5)
 /** @} */
 
 /** Macro for checking if the guest is using paging.
@@ -266,7 +267,7 @@ AssertCompile(PGM_MAX_PAGES_PER_ROM_RANGE <= PGM_MAX_PAGES_PER_RAM_RANGE);
  * @param   uShwType   PGM_TYPE_*
  * @remark  ASSUMES certain order of the PGM_TYPE_* values.
  */
-#define PGM_WITH_PAGING(uGstType, uShwType)  \
+# define PGM_WITH_PAGING(uGstType, uShwType)  \
     (   (uGstType) >= PGM_TYPE_32BIT \
      && (uShwType) < PGM_TYPE_NESTED_32BIT)
 
@@ -275,14 +276,14 @@ AssertCompile(PGM_MAX_PAGES_PER_ROM_RANGE <= PGM_MAX_PAGES_PER_RAM_RANGE);
  * @param   uShwType   PGM_TYPE_*
  * @remark  ASSUMES certain order of the PGM_TYPE_* values.
  */
-#define PGM_WITH_NX(uGstType, uShwType)  \
+# define PGM_WITH_NX(uGstType, uShwType)  \
     (   (uGstType) >= PGM_TYPE_PAE \
      && (uShwType) < PGM_TYPE_NESTED_32BIT)
 
 /** Macro for checking for nested.
  * @param   uType   PGM_TYPE_*
  */
-#define PGM_TYPE_IS_NESTED(uType) \
+# define PGM_TYPE_IS_NESTED(uType) \
      (   (uType) == PGM_TYPE_NESTED_32BIT \
       || (uType) == PGM_TYPE_NESTED_PAE \
       || (uType) == PGM_TYPE_NESTED_AMD64)
@@ -290,12 +291,22 @@ AssertCompile(PGM_MAX_PAGES_PER_ROM_RANGE <= PGM_MAX_PAGES_PER_RAM_RANGE);
 /** Macro for checking for nested or EPT.
  * @param   uType   PGM_TYPE_*
  */
-#define PGM_TYPE_IS_NESTED_OR_EPT(uType) \
+# define PGM_TYPE_IS_NESTED_OR_EPT(uType) \
       (   (uType) == PGM_TYPE_NESTED_32BIT \
        || (uType) == PGM_TYPE_NESTED_PAE \
        || (uType) == PGM_TYPE_NESTED_AMD64 \
        || (uType) == PGM_TYPE_EPT)
 
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+/** @name Defines used to indicate the guest paging in the templates.
+ * @{ */
+/** MMU disabled. */
+# define PGM_TYPE_NONE                  1
+/** @} */
+
+#else
+# error "Port me"
+#endif
 
 
 /** @def PGM_HCPHYS_2_PTR
@@ -2845,23 +2856,35 @@ typedef struct PGMMODEDATAGST
     DECLCALLBACKMEMBER(int, pfnGetPage,(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk));
     DECLCALLBACKMEMBER(int, pfnQueryPageFast,(PVMCPUCC pVCpu, RTGCPTR GCPtr, uint32_t fFlags, PPGMPTWALKFAST pWalk));
     DECLCALLBACKMEMBER(int, pfnModifyPage,(PVMCPUCC pVCpu, RTGCPTR GCPtr, size_t cbPages, uint64_t fFlags, uint64_t fMask));
+#if defined(VBOX_VMM_TARGET_X86)
     DECLCALLBACKMEMBER(int, pfnEnter,(PVMCPUCC pVCpu, RTGCPHYS GCPhysCR3));
+#else
+    DECLCALLBACKMEMBER(int, pfnWalk,(PVMCPUCC pVCpu, RTGCPTR GCPtr, PPGMPTWALK pWalk, PPGMPTWALKGST pGstWalk));
+    DECLCALLBACKMEMBER(int, pfnEnter,(PVMCPUCC pVCpu));
+#endif
     DECLCALLBACKMEMBER(int, pfnExit,(PVMCPUCC pVCpu));
-#ifdef IN_RING3
+#if defined(VBOX_VMM_TARGET_X86) && defined(IN_RING3)
     DECLCALLBACKMEMBER(int, pfnRelocate,(PVMCPUCC pVCpu, RTGCPTR offDelta)); /**< Only in ring-3. */
 #endif
 } PGMMODEDATAGST;
 
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 /** The length of g_aPgmGuestModeData. */
-#if VBOX_WITH_64_BITS_GUESTS
-# define PGM_GUEST_MODE_DATA_ARRAY_SIZE     (PGM_TYPE_AMD64 + 1)
+# if VBOX_WITH_64_BITS_GUESTS
+#  define PGM_GUEST_MODE_DATA_ARRAY_SIZE     (PGM_TYPE_AMD64 + 1)
+# else
+#  define PGM_GUEST_MODE_DATA_ARRAY_SIZE     (PGM_TYPE_PAE + 1)
+# endif
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+# define PGM_GUEST_MODE_DATA_ARRAY_SIZE      (128 + 2) /** @todo Find a better way to express that. */
 #else
-# define PGM_GUEST_MODE_DATA_ARRAY_SIZE     (PGM_TYPE_PAE + 1)
+# error "Port me"
 #endif
 /** The guest mode data array. */
 extern PGMMODEDATAGST const g_aPgmGuestModeData[PGM_GUEST_MODE_DATA_ARRAY_SIZE];
 
 
+#if defined(VBOX_VMM_TARGET_X86)
 /**
  * Function pointers for shadow paging.
  */
@@ -2916,6 +2939,7 @@ typedef struct PGMMODEDATABTH
 #define PGM_BOTH_MODE_DATA_ARRAY_SIZE       ((PGM_TYPE_END     - PGM_TYPE_FIRST_SHADOW) * PGM_TYPE_END)
 /** The guest+shadow mode data array. */
 extern PGMMODEDATABTH const g_aPgmBothModeData[PGM_BOTH_MODE_DATA_ARRAY_SIZE];
+#endif /* VBOX_VMM_TARGET_X86 */
 
 
 #ifdef VBOX_WITH_STATISTICS
@@ -3569,6 +3593,7 @@ typedef struct PGMCPUSTATS
  */
 typedef struct PGMCPU
 {
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
     /** A20 gate mask.
      * Our current approach to A20 emulation is to let REM do it and don't bother
      * anywhere else. The interesting Guests will be operating with it enabled anyway.
@@ -3734,12 +3759,12 @@ typedef struct PGMCPU
     uint64_t                        fGstEptShadowedPml4eMask;
     /** @} */
 
-#ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
+# ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /** Pointer to the page of the current active CR3 - R3 Ptr. */
     R3PTRTYPE(PPGMPOOLPAGE)         pShwPageCR3R3;
     /** Pointer to the page of the current active CR3 - R0 Ptr. */
     R0PTRTYPE(PPGMPOOLPAGE)         pShwPageCR3R0;
-#endif
+# endif
 
     /** For saving stack space, the disassembler state is allocated here instead of
      * on the stack. */
@@ -3747,6 +3772,27 @@ typedef struct PGMCPU
 
     /** Counts the number of times the netware WP0+RO+US hack has been applied. */
     uint64_t                        cNetwareWp0Hacks;
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    /** What needs syncing (PGM_SYNC_*).
+     * This is used to queue operations for PGMSyncCR3, PGMInvalidatePage,
+     * PGMFlushTLB, and PGMR3Load. */
+    uint32_t                        fSyncFlags;
+
+    /** The guest paging mode, indexed by the exception level (EL0 isn't used). */
+    PGMMODE                         aenmGuestMode[3]; /** @todo Really necessary? */
+    /** The cached SCTLR_ELx register (EL0 isn't used). */
+    uint64_t                        au64RegSctlrEl[3];
+    /** The cached TCR_ELx register (EL0 isn't used). */
+    uint64_t                        au64RegTcrEl[3];
+    /** Guest mode data table index for a page translation going through TTBR0_ELx (PGM_TYPE_XXX). */
+    uint8_t volatile                aidxGuestModeDataTtbr0[4];
+    /** Guest mode data table index for a page translation going through TTBR1_ELx (PGM_TYPE_XXX). */
+    uint8_t volatile                aidxGuestModeDataTtbr1[4];
+    /** The initial lookup mask for translations going through TTBR0_ELx. */
+    uint64_t                        afLookupMaskTtbr0[4];
+    /** The initial lookup mask for translations going through TTBR1_ELx. */
+    uint64_t                        afLookupMaskTtbr1[4];
+#endif
 
     /** Count the number of pgm pool access handler calls. */
     uint64_t                        cPoolAccessHandler;

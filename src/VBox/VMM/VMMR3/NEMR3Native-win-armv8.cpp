@@ -397,10 +397,6 @@ static const struct
     { WHV_REGNM(SpEl1),            CPUMCTX_EXTRN_SP,               RT_UOFFSETOF(CPUMCTX, aSpReg[1].u64)    },
     { WHV_REGNM(SpsrEl1),          CPUMCTX_EXTRN_SPSR,             RT_UOFFSETOF(CPUMCTX, Spsr.u64)         },
     { WHV_REGNM(ElrEl1),           CPUMCTX_EXTRN_ELR,              RT_UOFFSETOF(CPUMCTX, Elr.u64)          },
-    { WHV_REGNM(SctlrEl1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Sctlr.u64)        },
-    { WHV_REGNM(TcrEl1),           CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Tcr.u64)          },
-    { WHV_REGNM(Ttbr0El1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr0.u64)        },
-    { WHV_REGNM(Ttbr1El1),         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr1.u64)        },
     { WHV_REGNM(VbarEl1),          CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, VBar.u64)         },
     { WHV_REGNM(CntkctlEl1),       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, CntKCtl.u64)      },
     { WHV_REGNM(ContextidrEl1),    CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, ContextIdr.u64)   },
@@ -420,6 +416,18 @@ static const struct
     { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Amair.u64)        },
     { WHV_REGNM(),                 CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, MDccInt.u64)      }
 #endif
+};
+/** Paging registers (CPUMCTX_EXTRN_SCTLR_TCR_TTBR). */
+static const struct
+{
+    WHV_REGISTER_NAME   enmWHvReg;
+    uint32_t            offCpumCtx;
+} s_aCpumSysRegsPg[] =
+{
+    { WHV_REGNM(SctlrEl1),         RT_UOFFSETOF(CPUMCTX, Sctlr.u64) },
+    { WHV_REGNM(TcrEl1),           RT_UOFFSETOF(CPUMCTX, Tcr.u64)   },
+    { WHV_REGNM(Ttbr0El1),         RT_UOFFSETOF(CPUMCTX, Ttbr0.u64) },
+    { WHV_REGNM(Ttbr1El1),         RT_UOFFSETOF(CPUMCTX, Ttbr1.u64) },
 };
 
 
@@ -1455,8 +1463,8 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
         }
     }
 
-    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
-        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -1466,6 +1474,16 @@ NEM_TMPL_STATIC int nemHCWinCopyStateToHyperV(PVMCC pVM, PVMCPUCC pVCpu)
                 const CPUMCTXSYSREG *pReg = (const CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
                 ADD_SYSREG64(s_aCpumSysRegs[i].enmWHvReg, *pReg);
             }
+        }
+    }
+
+    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
+    {
+        /* Paging related system registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsPg); i++)
+        {
+            const CPUMCTXSYSREG *pReg = (const CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegsPg[i].offCpumCtx);
+            ADD_SYSREG64(s_aCpumSysRegsPg[i].enmWHvReg, *pReg);
         }
     }
 
@@ -1549,8 +1567,8 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         }
     }
 
-    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
-        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -1558,6 +1576,13 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
             if (!(s_aCpumSysRegs[i].fCpumExtrn & pVCpu->cpum.GstCtx.fExtrn))
                 aenmNames[iReg++] = s_aCpumSysRegs[i].enmWHvReg;
         }
+    }
+
+    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
+    {
+        /* Paging related system registers. */
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsPg); i++)
+            aenmNames[iReg++] = s_aCpumSysRegsPg[i].enmWHvReg;
     }
 
     if (fWhat & CPUMCTX_EXTRN_PSTATE)
@@ -1652,8 +1677,8 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
         }
     }
 
-    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
-        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+    if (   (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
+        !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -1663,6 +1688,25 @@ NEM_TMPL_STATIC int nemHCWinCopyStateFromHyperV(PVMCC pVM, PVMCPUCC pVCpu, uint6
                 CPUMCTXSYSREG *pReg = (CPUMCTXSYSREG *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
                 GET_SYSREG64(pReg, s_aCpumSysRegs[i].enmWHvReg);
             }
+        }
+    }
+
+    /* The paging related system registers need to be treated differently as they might invoke a PGM mode change. */
+    uint64_t u64RegSctlrEl1;
+    uint64_t u64RegTcrEl1;
+    if (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR)
+    {
+        GET_REG64_RAW(&u64RegSctlrEl1, WHvArm64RegisterSctlrEl1);
+        GET_REG64_RAW(&u64RegTcrEl1,   WHvArm64RegisterTcrEl1);
+        GET_SYSREG64(&pVCpu->cpum.GstCtx.Ttbr0, WHvArm64RegisterTtbr0El1);
+        GET_SYSREG64(&pVCpu->cpum.GstCtx.Ttbr1, WHvArm64RegisterTtbr1El1);
+        if (   u64RegSctlrEl1 != pVCpu->cpum.GstCtx.Sctlr.u64
+            || u64RegTcrEl1   != pVCpu->cpum.GstCtx.Tcr.u64)
+        {
+            pVCpu->cpum.GstCtx.Sctlr.u64 = u64RegSctlrEl1;
+            pVCpu->cpum.GstCtx.Tcr.u64   = u64RegTcrEl1;
+            int rc = PGMChangeMode(pVCpu, 1 /*bEl*/, u64RegSctlrEl1, u64RegTcrEl1);
+            AssertMsgReturn(rc == VINF_SUCCESS, ("rc=%Rrc\n", rc), RT_FAILURE_NP(rc) ? rc : VERR_NEM_IPE_1);
         }
     }
 

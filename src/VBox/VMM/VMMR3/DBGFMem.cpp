@@ -526,7 +526,7 @@ static uint32_t dbgfR3PagingDumpModeToFlags(PGMMODE enmMode)
         case PGMMODE_EPT:
             return DBGFPGDMP_FLAGS_EPT;
 
-# elif defined(VBOX_VMM_TARGET_ARM64)
+# elif defined(VBOX_VMM_TARGET_ARMV8)
        /** @todo arm64: dumping page tables. */
 # else
 #  error "port me"

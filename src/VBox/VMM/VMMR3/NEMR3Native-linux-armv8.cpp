@@ -216,10 +216,6 @@ static const struct
     { KVM_ARM64_REG_SP_EL1,                                          CPUMCTX_EXTRN_SP,               RT_UOFFSETOF(CPUMCTX, aSpReg[1].u64)    },
     { KVM_ARM64_REG_SPSR_EL1,                                        CPUMCTX_EXTRN_SPSR,             RT_UOFFSETOF(CPUMCTX, Spsr.u64)         },
     { KVM_ARM64_REG_ELR_EL1,                                         CPUMCTX_EXTRN_ELR,              RT_UOFFSETOF(CPUMCTX, Elr.u64)          },
-    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_SCTRL_EL1),      CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Sctlr.u64)        },
-    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TCR_EL1),        CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Tcr.u64)          },
-    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TTBR0_EL1),      CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr0.u64)        },
-    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TTBR1_EL1),      CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr1.u64)        },
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_VBAR_EL1),       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, VBar.u64)         },
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_AFSR0_EL1),      CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr0.u64)        },
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_AFSR1_EL1),      CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr1.u64)        },
@@ -236,6 +232,18 @@ static const struct
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TPIDR_EL0),      CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, aTpIdr[0].u64)    },
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TPIDR_EL1),      CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, aTpIdr[1].u64)    },
     { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_MDCCINT_EL1),    CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, MDccInt.u64)      }
+};
+/** Paging related system registers (CPUMCTX_EXTRN_SCTLR_TCR_TTBR). */
+static const struct
+{
+    uint64_t    idKvmReg;
+    uint32_t    offCpumCtx;
+} s_aCpumSysRegsPg[] =
+{
+    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_SCTRL_EL1), RT_UOFFSETOF(CPUMCTX, Sctlr.u64) },
+    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TCR_EL1),   RT_UOFFSETOF(CPUMCTX, Tcr.u64)   },
+    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TTBR0_EL1), RT_UOFFSETOF(CPUMCTX, Ttbr0.u64) },
+    { KVM_ARM64_REG_SYS_CREATE(ARMV8_AARCH64_SYSREG_TTBR1_EL1), RT_UOFFSETOF(CPUMCTX, Ttbr1.u64) }
 };
 /** Debug system registers. */
 static const struct
@@ -697,7 +705,7 @@ static int nemHCLnxImportState(PVMCPUCC pVCpu, uint64_t fWhat, PCPUMCTX pCtx)
     }
 
     if (   rc == VINF_SUCCESS
-        && (fWhat & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC)))
+        && (fWhat & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC)))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -710,6 +718,27 @@ static int nemHCLnxImportState(PVMCPUCC pVCpu, uint64_t fWhat, PCPUMCTX pCtx)
         }
     }
 
+    /* The paging related system registers need to be treated differently as they might invoke a PGM mode change. */
+    bool fPgModeChange = false;
+    uint64_t u64RegSctlrEl1;
+    uint64_t u64RegTcrEl1;
+    if (   rc == VINF_SUCCESS
+        && (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR))
+    {
+        rc |= nemR3LnxKvmQueryRegU64(pVCpu, ARMV8_AARCH64_SYSREG_SCTRL_EL1, &u64RegSctlrEl1);
+        rc |= nemR3LnxKvmQueryRegU64(pVCpu, ARMV8_AARCH64_SYSREG_TCR_EL1,   &u64RegTcrEl1);
+        rc |= nemR3LnxKvmQueryRegU64(pVCpu, ARMV8_AARCH64_SYSREG_TTBR0_EL1, &pVCpu->cpum.GstCtx.Ttbr0.u64);
+        rc |= nemR3LnxKvmQueryRegU64(pVCpu, ARMV8_AARCH64_SYSREG_TTBR1_EL1, &pVCpu->cpum.GstCtx.Ttbr1.u64);
+        if (   rc == VINF_SUCCESS
+            && (   u64RegSctlrEl1 != pVCpu->cpum.GstCtx.Sctlr.u64
+                || u64RegTcrEl1   != pVCpu->cpum.GstCtx.Tcr.u64))
+        {
+            pVCpu->cpum.GstCtx.Sctlr.u64 = u64RegSctlrEl1;
+            pVCpu->cpum.GstCtx.Tcr.u64   = u64RegTcrEl1;
+            fPgModeChange = true;
+        }
+    }
+
     if (   rc == VINF_SUCCESS
         && (fWhat & CPUMCTX_EXTRN_PSTATE))
     {
@@ -718,6 +747,12 @@ static int nemHCLnxImportState(PVMCPUCC pVCpu, uint64_t fWhat, PCPUMCTX pCtx)
         if (rc == VINF_SUCCESS)
             pVCpu->cpum.GstCtx.fPState = (uint32_t)u64Tmp;
 
+    }
+
+    if (fPgModeChange)
+    {
+        rc = PGMChangeMode(pVCpu, 1 /*bEl*/, u64RegSctlrEl1, u64RegTcrEl1);
+        AssertMsgReturn(rc == VINF_SUCCESS, ("rc=%Rrc\n", rc), RT_FAILURE_NP(rc) ? rc : VERR_NEM_IPE_1);
     }
 
     /*
@@ -828,6 +863,16 @@ static int nemHCLnxExportState(PVM pVM, PVMCPU pVCpu, PCPUMCTX pCtx)
                 uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegs[i].offCpumCtx);
                 rc |= nemR3LnxKvmSetRegU64(pVCpu, s_aCpumSysRegs[i].idKvmReg, pu64);
             }
+        }
+    }
+
+    if (   rc == VINF_SUCCESS
+        && !(pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_SCTLR_TCR_TTBR))
+    {
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsPg); i++)
+        {
+            uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegsPg[i].offCpumCtx);
+            rc |= nemR3LnxKvmSetRegU64(pVCpu, s_aCpumSysRegsPg[i].idKvmReg, pu64);
         }
     }
 
@@ -972,7 +1017,7 @@ static VBOXSTRICTRC nemHCLnxHandleInterruptFF(PVM pVM, PVMCPU pVCpu)
         pVCpu->nem.s.fIrqLastSeen = fIrq;
     }
 
-    if (fFiq != pVCpu->nem.s.fIrqLastSeen)
+    if (fFiq != pVCpu->nem.s.fFiqLastSeen)
     {
         int rc = nemR3LnxKvmUpdateIntrState(pVM, pVCpu, false /*fIrq*/, fFiq);
         AssertRCReturn(rc, VERR_NEM_IPE_9);

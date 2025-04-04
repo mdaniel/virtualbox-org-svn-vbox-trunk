@@ -872,7 +872,13 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         pPGM->GCPhysA20Mask    = ~((RTGCPHYS)!pPGM->fA20Enabled << 20);
 
 #elif defined(VBOX_VMM_TARGET_ARMV8)
-        RT_NOREF(pVCpu, pPGM);
+        /* Poison the cached register values to force an initial change. */
+        for (uint8_t idxEl = 0; idxEl < RT_ELEMENTS(pPGM->au64RegSctlrEl); idxEl++)
+        {
+            pPGM->au64RegSctlrEl[idxEl] = UINT64_MAX;
+            pPGM->au64RegTcrEl[idxEl]   = UINT64_MAX;
+            pPGM->aenmGuestMode[idxEl]  = PGMMODE_INVALID;
+        }
 #else
 # error "port me"
 #endif
@@ -1084,6 +1090,27 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
                 break;
         }
     }
+
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    for (VMCPUID i = 0; i < pVM->cCpus; i++)
+    {
+        PVMCPU pVCpu = pVM->apCpusR3[i];
+
+        /* This ASSUMES that SCTLR_ELx and TCR_ELx are reset to 0 in CPUM. */
+        rc = PGMChangeMode(pVCpu, 1 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        if (RT_FAILURE(rc))
+            break;
+        
+        rc = PGMChangeMode(pVCpu, 2 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        if (RT_FAILURE(rc))
+            break;
+        
+        rc = PGMChangeMode(pVCpu, 3 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        if (RT_FAILURE(rc))
+            break;
+    }
+#else
+# error "Port me"
 #endif /* VBOX_VMM_TARGET_X86 */
 
     if (RT_SUCCESS(rc))
@@ -1987,6 +2014,42 @@ VMMR3DECL(void) PGMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
     VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
     VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
 
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pVM);
+
+    for (uint8_t i = 0; i < RT_ELEMENTS(pVCpu->pgm.s.aidxGuestModeDataTtbr0); i++)
+    {
+        uintptr_t const idxGst = pVCpu->pgm.s.aidxGuestModeDataTtbr0[i];
+        if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
+            && g_aPgmGuestModeData[idxGst].pfnExit)
+        {
+            int rc = g_aPgmGuestModeData[idxGst].pfnExit(pVCpu);
+            AssertReleaseRC(rc);
+        }
+    }
+
+    for (uint8_t i = 0; i < RT_ELEMENTS(pVCpu->pgm.s.aidxGuestModeDataTtbr1); i++)
+    {
+        uintptr_t const idxGst = pVCpu->pgm.s.aidxGuestModeDataTtbr1[i];
+        if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
+            && g_aPgmGuestModeData[idxGst].pfnExit)
+        {
+            int rc = g_aPgmGuestModeData[idxGst].pfnExit(pVCpu);
+            AssertReleaseRC(rc);
+        }
+    }
+
+    /* This ASSUMES that SCTLR_EL1 and TCR_EL1 are reset to 0 in CPUM. */
+    int rc = PGMChangeMode(pVCpu, 1 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+    AssertReleaseRC(rc);
+
+    rc = PGMChangeMode(pVCpu, 2 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+    AssertReleaseRC(rc);
+
+    rc = PGMChangeMode(pVCpu, 3 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+    AssertReleaseRC(rc);
+
+    STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cGuestModeChanges);
 #else
     RT_NOREF(pVM, pVCpu);
 #endif
@@ -2008,7 +2071,6 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
 
     PGM_LOCK_VOID(pVM);
 
-#ifdef VBOX_VMM_TARGET_X86
     /*
      * Exit the guest paging mode before the pgm pool gets reset.
      * Important to clean up the amd64 case.
@@ -2016,6 +2078,8 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
     for (VMCPUID i = 0; i < pVM->cCpus; i++)
     {
         PVMCPU          pVCpu  = pVM->apCpusR3[i];
+
+#ifdef VBOX_VMM_TARGET_X86
         uintptr_t const idxGst = pVCpu->pgm.s.idxGuestModeData;
         if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
             && g_aPgmGuestModeData[idxGst].pfnExit)
@@ -2025,15 +2089,40 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         }
         pVCpu->pgm.s.GCPhysCR3 = NIL_RTGCPHYS;
         pVCpu->pgm.s.GCPhysNstGstCR3 = NIL_RTGCPHYS;
-    }
+
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        for (uint8_t iEl = 0; iEl < RT_ELEMENTS(pVCpu->pgm.s.aidxGuestModeDataTtbr0); iEl++)
+        {
+            uintptr_t const idxGst = pVCpu->pgm.s.aidxGuestModeDataTtbr0[iEl];
+            if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
+                && g_aPgmGuestModeData[idxGst].pfnExit)
+            {
+                int rc = g_aPgmGuestModeData[idxGst].pfnExit(pVCpu);
+                AssertReleaseRC(rc);
+            }
+        }
+
+        for (uint8_t iEl = 0; iEl < RT_ELEMENTS(pVCpu->pgm.s.aidxGuestModeDataTtbr1); iEl++)
+        {
+            uintptr_t const idxGst = pVCpu->pgm.s.aidxGuestModeDataTtbr1[iEl];
+            if (   idxGst < RT_ELEMENTS(g_aPgmGuestModeData)
+                && g_aPgmGuestModeData[idxGst].pfnExit)
+            {
+                int rc = g_aPgmGuestModeData[idxGst].pfnExit(pVCpu);
+                AssertReleaseRC(rc);
+            }
+        }
+
+#else
+        RT_NOREF(pVCpu);
 #endif
+    }
 
 #ifdef DEBUG
     DBGFR3_INFO_LOG_SAFE(pVM, "mappings", NULL);
     DBGFR3_INFO_LOG_SAFE(pVM, "handlers", "all nostat");
 #endif
 
-#ifdef VBOX_VMM_TARGET_X86
     /*
      * Switch mode back to real mode. (Before resetting the pgm pool!)
      */
@@ -2041,13 +2130,29 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
     {
         PVMCPU  pVCpu = pVM->apCpusR3[i];
 
+#ifdef VBOX_VMM_TARGET_X86
         int rc = PGMHCChangeMode(pVM, pVCpu, PGMMODE_REAL, false /* fForce */);
         AssertReleaseRC(rc);
 
-        STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cGuestModeChanges);
         STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cA20Changes);
-    }
+
+#elif defined(VBOX_VMM_TARGET_ARMV8)
+        /* This ASSUMES that SCTLR_EL1 and TCR_EL1 are reset to 0 in CPUM. */
+        int rc = PGMChangeMode(pVCpu, 1 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        AssertReleaseRC(rc);
+
+        rc = PGMChangeMode(pVCpu, 2 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        AssertReleaseRC(rc);
+
+        rc = PGMChangeMode(pVCpu, 3 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
+        AssertReleaseRC(rc);
+
+#else
+        RT_NOREF(pVCpu);
 #endif
+
+        STAM_REL_COUNTER_RESET(&pVCpu->pgm.s.cGuestModeChanges);
+    }
 
 #ifndef VBOX_WITH_ONLY_PGM_NEM_MODE
     /*

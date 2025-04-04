@@ -513,10 +513,6 @@ static const struct
     { HV_SYS_REG_SP_EL1,            CPUMCTX_EXTRN_SP,               RT_UOFFSETOF(CPUMCTX, aSpReg[1].u64)    },
     { HV_SYS_REG_SPSR_EL1,          CPUMCTX_EXTRN_SPSR,             RT_UOFFSETOF(CPUMCTX, Spsr.u64)         },
     { HV_SYS_REG_ELR_EL1,           CPUMCTX_EXTRN_ELR,              RT_UOFFSETOF(CPUMCTX, Elr.u64)          },
-    { HV_SYS_REG_SCTLR_EL1,         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Sctlr.u64)        },
-    { HV_SYS_REG_TCR_EL1,           CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Tcr.u64)          },
-    { HV_SYS_REG_TTBR0_EL1,         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr0.u64)        },
-    { HV_SYS_REG_TTBR1_EL1,         CPUMCTX_EXTRN_SCTLR_TCR_TTBR,   RT_UOFFSETOF(CPUMCTX, Ttbr1.u64)        },
     { HV_SYS_REG_VBAR_EL1,          CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, VBar.u64)         },
     { HV_SYS_REG_AFSR0_EL1,         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr0.u64)        },
     { HV_SYS_REG_AFSR1_EL1,         CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, Afsr1.u64)        },
@@ -535,6 +531,19 @@ static const struct
     { HV_SYS_REG_MDCCINT_EL1,       CPUMCTX_EXTRN_SYSREG_MISC,      RT_UOFFSETOF(CPUMCTX, MDccInt.u64)      }
 
 };
+/** Paging registers (CPUMCTX_EXTRN_SCTLR_TCR_TTBR). */
+static const struct
+{
+    hv_sys_reg_t    enmHvReg;
+    uint32_t        offCpumCtx;
+} s_aCpumSysRegsPg[] =
+{
+    { HV_SYS_REG_SCTLR_EL1,         RT_UOFFSETOF(CPUMCTX, Sctlr.u64)        },
+    { HV_SYS_REG_TCR_EL1,           RT_UOFFSETOF(CPUMCTX, Tcr.u64)          },
+    { HV_SYS_REG_TTBR0_EL1,         RT_UOFFSETOF(CPUMCTX, Ttbr0.u64)        },
+    { HV_SYS_REG_TTBR1_EL1,         RT_UOFFSETOF(CPUMCTX, Ttbr1.u64)        }
+};
+
 /** Additional System registers to sync when on at least macOS Sequioa 15.0. */
 static const struct
 {
@@ -996,7 +1005,7 @@ static int nemR3DarwinCopyStateFromHv(PVMCC pVM, PVMCPUCC pVCpu, uint64_t fWhat)
     }
 
     if (   hrc == HV_SUCCESS
-        && (fWhat & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC)))
+        && (fWhat & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC)))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -1009,7 +1018,29 @@ static int nemR3DarwinCopyStateFromHv(PVMCC pVM, PVMCPUCC pVCpu, uint64_t fWhat)
         }
     }
 
-    if (   pVM->nem.s.fMacOsSequia
+    /* The paging related system registers need to be treated differently as they might invoke a PGM mode change. */
+    bool fPgModeChange = false;
+    uint64_t u64RegSctlrEl1;
+    uint64_t u64RegTcrEl1;
+    if (   hrc == HV_SUCCESS
+        && (fWhat & CPUMCTX_EXTRN_SCTLR_TCR_TTBR))
+    {
+        hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_SCTLR_EL1, &u64RegSctlrEl1);
+        hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_TCR_EL1,   &u64RegTcrEl1);
+        hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_TTBR0_EL1, &pVCpu->cpum.GstCtx.Ttbr0.u64);
+        hrc |= hv_vcpu_get_sys_reg(pVCpu->nem.s.hVCpu, HV_SYS_REG_TTBR1_EL1, &pVCpu->cpum.GstCtx.Ttbr1.u64);
+        if (   hrc == HV_SUCCESS
+            && (   u64RegSctlrEl1 != pVCpu->cpum.GstCtx.Sctlr.u64
+                || u64RegTcrEl1   != pVCpu->cpum.GstCtx.Tcr.u64))
+        {
+            pVCpu->cpum.GstCtx.Sctlr.u64 = u64RegSctlrEl1;
+            pVCpu->cpum.GstCtx.Tcr.u64   = u64RegTcrEl1;
+            fPgModeChange = true;
+        }
+    }
+
+    if (   hrc == HV_SUCCESS
+        && pVM->nem.s.fMacOsSequia
         && (fWhat & CPUMCTX_EXTRN_SYSREG_MISC))
     {
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsSequioa); i++)
@@ -1045,6 +1076,12 @@ static int nemR3DarwinCopyStateFromHv(PVMCC pVM, PVMCPUCC pVCpu, uint64_t fWhat)
         hrc |= hv_vcpu_get_reg(pVCpu->nem.s.hVCpu, HV_REG_CPSR, &u64Tmp);
         if (hrc == HV_SUCCESS)
             pVCpu->cpum.GstCtx.fPState = (uint32_t)u64Tmp;
+    }
+
+    if (fPgModeChange)
+    {
+        int rc = PGMChangeMode(pVCpu, 1 /*bEl*/, u64RegSctlrEl1, u64RegTcrEl1);
+        AssertMsgReturn(rc == VINF_SUCCESS, ("rc=%Rrc\n", rc), RT_FAILURE_NP(rc) ? rc : VERR_NEM_IPE_1);
     }
 
     /* Almost done, just update extern flags. */
@@ -1116,8 +1153,8 @@ static int nemR3DarwinExportGuestState(PVMCC pVM, PVMCPUCC pVCpu)
     }
 
     if (   hrc == HV_SUCCESS
-        &&     (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
-            !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SCTLR_TCR_TTBR | CPUMCTX_EXTRN_SYSREG_MISC))
+        &&     (pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
+            !=                              (CPUMCTX_EXTRN_SPSR | CPUMCTX_EXTRN_ELR | CPUMCTX_EXTRN_SP | CPUMCTX_EXTRN_SYSREG_MISC))
     {
         /* System registers. */
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegs); i++)
@@ -1130,7 +1167,18 @@ static int nemR3DarwinExportGuestState(PVMCC pVM, PVMCPUCC pVCpu)
         }
     }
 
-    if (   pVM->nem.s.fMacOsSequia
+    if (   hrc == HV_SUCCESS
+        && !(pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_SCTLR_TCR_TTBR))
+    {
+        for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsPg); i++)
+        {
+            uint64_t *pu64 = (uint64_t *)((uint8_t *)&pVCpu->cpum.GstCtx + s_aCpumSysRegsPg[i].offCpumCtx);
+            hrc |= hv_vcpu_set_sys_reg(pVCpu->nem.s.hVCpu, s_aCpumSysRegsPg[i].enmHvReg, *pu64);
+        }
+    }
+
+    if (   hrc == HV_SUCCESS
+        && pVM->nem.s.fMacOsSequia
         && !(pVCpu->cpum.GstCtx.fExtrn & CPUMCTX_EXTRN_SYSREG_MISC))
     {
         for (uint32_t i = 0; i < RT_ELEMENTS(s_aCpumSysRegsSequioa); i++)

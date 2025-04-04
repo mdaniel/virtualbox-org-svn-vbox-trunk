@@ -1100,11 +1100,11 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         rc = PGMChangeMode(pVCpu, 1 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
         if (RT_FAILURE(rc))
             break;
-        
+
         rc = PGMChangeMode(pVCpu, 2 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
         if (RT_FAILURE(rc))
             break;
-        
+
         rc = PGMChangeMode(pVCpu, 3 /*bEl*/, 0 /* u64RegSctlr*/, 0 /* u64RegTcr*/);
         if (RT_FAILURE(rc))
             break;

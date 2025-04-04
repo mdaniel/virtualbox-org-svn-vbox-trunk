@@ -283,7 +283,8 @@ DECLCALLBACK(int) gicR3KvmConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE
      */
     PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "DistributorMmioBase|RedistributorMmioBase|ItsMmioBase"
                                            "|ArchRev"
-                                           "|ArchRevMinor", "");
+                                           "|Lpi"
+                                           "|Mbi", "");
 
     /*
      * Disable automatic PDM locking for this device.

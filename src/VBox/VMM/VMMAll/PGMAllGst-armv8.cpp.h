@@ -138,12 +138,6 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneWalk)(PVMCPUCC pVCpu, RTGCPTR GCPtr,
 }
 
 
-/**
- * Enters the guest mode.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure.
- */
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneEnter)(PVMCPUCC pVCpu)
 {
     /* Nothing to do. */
@@ -152,12 +146,6 @@ static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneEnter)(PVMCPUCC pVCpu)
 }
 
 
-/**
- * Exits the guest mode.
- *
- * @returns VBox status code.
- * @param   pVCpu       The cross context virtual CPU structure.
- */
 static PGM_CTX_DECL(int) PGM_CTX(pgm,GstNoneExit)(PVMCPUCC pVCpu)
 {
     /* Nothing to do. */

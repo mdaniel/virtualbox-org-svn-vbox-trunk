@@ -149,7 +149,7 @@ class ArmAstBase(object):
     @staticmethod
     def fromJson(oJson):
         """ Decodes an AST/Values expression. """
-        print('debug ast: %s' % oJson['_type'])
+        #print('debug ast: %s' % oJson['_type'])
         return ArmAstBase.kfnTypeMap[oJson['_type']](oJson);
 
 
@@ -177,6 +177,30 @@ class ArmAstBinaryOp(ArmAstBase):
         self.sOp    = sOp;
         self.oRight = oRight;
 
+        # Switch value == field non-sense (simplifies transferConditionsToEncoding and such):
+        if (    isinstance(oRight, ArmAstIdentifier)
+            and isinstance(oLeft, [ArmAstValue, ArmAstInteger])
+            and sOp in ['==', '!=']):
+            self.oLeft  = oRight;
+            self.oRight = oLeft;
+
+    @staticmethod
+    def needParentheses(oNode, sOp = '&&'):
+        if isinstance(oNode, ArmAstBinaryOp):
+            if sOp != '&&'  or  oNode.sOp in ('||', '+'):
+                return True;
+        return False;
+
+    def toString(self):
+        sLeft = self.oLeft.toString();
+        if ArmAstBinaryOp.needParentheses(self.oLeft, self.sOp):
+            sLeft = '(%s)' % (sLeft);
+
+        sRight = self.oRight.toString();
+        if ArmAstBinaryOp.needParentheses(self.oRight, self.sOp):
+            sRight = '(%s)' % (sRight);
+
+        return '%s %s %s' % (sLeft, self.sOp, sRight);
 
 class ArmAstUnaryOp(ArmAstBase):
     kOpTypeLogical      = 'log';
@@ -190,11 +214,18 @@ class ArmAstUnaryOp(ArmAstBase):
         self.sOp   = sOp;
         self.oExpr = oExpr;
 
+    def toString(self):
+        if ArmAstBinaryOp.needParentheses(self.oExpr):
+            return '%s(%s)' % (self.sOp, self.oExpr.toString(),);
+        return '%s%s' % (self.sOp, self.oExpr.toString(),);
 
 class ArmAstSquareOp(ArmAstBase):
     def __init__(self, aoValues):
         ArmAstBase.__init__(self, ArmAstBase.kTypeSquareOp);
         self.aoValues = aoValues;
+
+    def toString(self):
+        return '<%s>' % (','.join([oValue.toString() for oValue in self.aoValues]),);
 
 
 class ArmAstConcat(ArmAstBase):
@@ -202,6 +233,16 @@ class ArmAstConcat(ArmAstBase):
         ArmAstBase.__init__(self, ArmAstBase.kTypeConcat);
         self.aoValues = aoValues;
 
+    def toString(self):
+        sRet = '';
+        for oValue in self.aoValues:
+            if sRet:
+                sRet += ':'
+            if isinstance(oValue, ArmAstIdentifier):
+                sRet += oValue.sName;
+            else:
+                sRet += '(%s)' % (oValue.toString());
+        return sRet;
 
 class ArmAstFunction(ArmAstBase):
     s_oReValidName = re.compile('^[_A-Za-z][_A-Za-z0-9]+$');
@@ -209,9 +250,11 @@ class ArmAstFunction(ArmAstBase):
     def __init__(self, sName, aoArgs):
         ArmAstBase.__init__(self, ArmAstBase.kTypeFunction);
         assert self.s_oReValidName.match(sName), 'sName=%s' % (sName);
-        self.sName    = sName;
-        self.aoValues = aoArgs;
+        self.sName  = sName;
+        self.aoArgs = aoArgs;
 
+    def toString(self):
+        return '%s(%s)' % (self.sName, ','.join([oArg.toString() for oArg in self.aoArgs]),);
 
 class ArmAstIdentifier(ArmAstBase):
     s_oReValidName = re.compile('^[_A-Za-z][_A-Za-z0-9]*$');
@@ -221,6 +264,8 @@ class ArmAstIdentifier(ArmAstBase):
         assert self.s_oReValidName.match(sName), 'sName=%s' % (sName);
         self.sName = sName;
 
+    def toString(self):
+        return self.sName;
 
 class ArmAstBool(ArmAstBase):
     def __init__(self, fValue):
@@ -228,23 +273,33 @@ class ArmAstBool(ArmAstBase):
         assert fValue is True or fValue is False, '%s' % (fValue,);
         self.fValue = fValue;
 
+    def toString(self):
+        return 'true' if self.fValue is True else 'false';
+
 
 class ArmAstInteger(ArmAstBase):
     def __init__(self, iValue):
         ArmAstBase.__init__(self, ArmAstBase.kTypeInteger);
         self.iValue = int(iValue);
 
+    def toString(self):
+        return '%#x' % (self.iValue,);
 
 class ArmAstSet(ArmAstBase):
     def __init__(self, aoValues):
         ArmAstBase.__init__(self, ArmAstBase.kTypeSet);
         self.aoValues = aoValues;
 
+    def toString(self):
+        return '(%s)' % (', '.join([oValue.toString() for oValue in self.aoValues]),);
 
 class ArmAstValue(ArmAstBase):
     def __init__(self, sValue):
         ArmAstBase.__init__(self, ArmAstBase.kTypeValue);
         self.sValue = sValue;
+
+    def toString(self):
+        return self.sValue;
 
 
 #
@@ -283,16 +338,10 @@ class ArmEncodesetField(object):
         return ((1 << self.cBitsWidth) - 1) << self.iFirstBit;
 
     @staticmethod
-    def fromJson(oJson):
-        """ """
-        assert oJson['_type'] in ('Instruction.Encodeset.Field', 'Instruction.Encodeset.Bits'), oJson['_type'];
-
-        oRange = oJson['range'];
-        assert oRange['_type'] == 'Range';
-        iFirstBit  = int(oRange['start']);
-        cBitsWidth = int(oRange['width']);
-
-        sValue = oJson['value']['value'];
+    def parseValue(sValue, cBitsWidth):
+        """
+        Returns (fValue, fFixed) tuple on success, raises AssertionError otherwise.
+        """
         assert sValue[0] == '\'' and sValue[-1] == '\'', sValue;
         sValue = sValue[1:-1];
         assert len(sValue) == cBitsWidth, 'cBitsWidth=%s sValue=%s' % (cBitsWidth, sValue,);
@@ -306,8 +355,19 @@ class ArmEncodesetField(object):
                 fFixed |= 1;
                 if ch == '1':
                     fValue |= 1;
+        return (fValue, fFixed);
 
-        sName = oJson['name'] if oJson['_type'] == 'Instruction.Encodeset.Field' else None;
+    @staticmethod
+    def fromJson(oJson):
+        """ """
+        assert oJson['_type'] in ('Instruction.Encodeset.Field', 'Instruction.Encodeset.Bits'), oJson['_type'];
+
+        oRange = oJson['range'];
+        assert oRange['_type'] == 'Range';
+        iFirstBit        = int(oRange['start']);
+        cBitsWidth       = int(oRange['width']);
+        sName            = oJson['name'] if oJson['_type'] == 'Instruction.Encodeset.Field' else None;
+        (fValue, fFixed) = ArmEncodesetField.parseValue(oJson['value']['value'], cBitsWidth);
         return ArmEncodesetField(oJson, iFirstBit, cBitsWidth, fFixed, fValue, sName);
 
     @staticmethod
@@ -383,17 +443,163 @@ def parseInstructions(aoStack, aoJson):
         elif oJson['_type'] == "Instruction.InstructionGroup":
             parseInstructions([oJson,] + aoStack, oJson['children']);
         elif oJson['_type'] == "Instruction.Instruction":
+            sInstrNm = oJson['name'];
+
             (aoEncodesets, fCovered) = ArmEncodesetField.fromJsonEncodeset(oJson['encoding'], [], 0);
             for oParent in aoStack:
                 if 'encoding' in oParent:
                     (aoEncodesets, fCovered) = ArmEncodesetField.fromJsonEncodeset(oParent['encoding'], aoEncodesets, fCovered);
+
             oCondition = ArmAstBase.fromJson(oJson['condition']);
-            oInstr = ArmInstruction(oJson, oJson['name'], oJson['name'], aoEncodesets, oCondition);
+            print('debug transfer in:  %s' % (oCondition.toString()));
+            (oCondition, fMod) = transferConditionsToEncoding(oCondition, aoEncodesets, collections.defaultdict(list), sInstrNm);
+            if fMod:
+                print('debug transfer out: %s' % (oCondition.toString()));
+
+            oInstr = ArmInstruction(oJson, sInstrNm, sInstrNm, aoEncodesets, oCondition);
 
             g_aoAllArmInstructions.append(oInstr);
             assert oInstr.sName not in g_dAllArmInstructionsByName;
             g_dAllArmInstructionsByName[oInstr.sName] = oInstr;
     return True;
+
+def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstrNm, uDepth = 0, fMod = False):
+    """
+    This is for dealing with stuff like asr_z_p_zi_ and lsr_z_p_zi_ which has
+    the same fixed encoding fields in the specs, but differs in the value of
+    the named field 'U' as expressed in the conditions.
+
+    This function will recursively take 'Field == value/integer' expression out
+    of the condition tree and add them to the encodeset conditions when possible.
+
+    The dPendingNotEq stuff is a hack to deal with stuff like this:
+        sdot_z_zzz_:     U == '0' && size != '01' && size != '00'
+                     && (IsFeatureImplemented(FEAT_SVE) || IsFeatureImplemented(FEAT_SME))
+    The checks can be morphed into the 'size' field encoding criteria as '0b0x'.
+    """
+    def isBoolTrue(oNode):
+        return isinstance(oNode, ArmAstBool) and oNode.fValue is True;
+
+    if isinstance(oCondition, ArmAstBinaryOp):
+        if oCondition.sOp == '&&':
+            print('debug transfer: %s: recursion...' % (sInstrNm,));
+            # Recurse into each side of an AND expression.
+            (oCondition.oLeft, fMod)  = transferConditionsToEncoding(oCondition.oLeft,  aoEncodesets, dPendingNotEq,
+                                                                     sInstrNm, uDepth + 1, fMod);
+            (oCondition.oRight, fMod) = transferConditionsToEncoding(oCondition.oRight, aoEncodesets, dPendingNotEq,
+                                                                     sInstrNm, uDepth + 1, fMod);
+            if isBoolTrue(oCondition.oLeft):
+                return (oCondition.oRight, fMod);
+            if isBoolTrue(oCondition.oRight):
+                return (oCondition.oLeft, fMod);
+
+        elif oCondition.sOp in ('==', '!='):
+            # The pattern we're looking for is identifier (field) == fixed value.
+            print('debug transfer: %s: binaryop %s vs %s ...' % (sInstrNm, oCondition.oLeft.sType, oCondition.oRight.sType));
+            if (    isinstance(oCondition.oLeft, ArmAstIdentifier)
+                and isinstance(oCondition.oRight, (ArmAstValue, ArmAstInteger))):
+                sFieldName = oCondition.oLeft.sName;
+                oValue     = oCondition.oRight;
+                print('debug transfer: %s: binaryop step 2...' % (sInstrNm,));
+                for oField in aoEncodesets: # ArmEncodesetField
+                    if oField.sName and oField.sName == sFieldName:
+                        # ArmAstInteger (unlikely):
+                        if isinstance(oValue, ArmAstInteger):
+                            if oField.fFixed != 0:
+                                raise Exception('%s: Condition checks fixed field value: %s (%#x/%#x) %s %s'
+                                                % (sInstrNm, oField.sName, oField.fValue, oField.fFixed,
+                                                   oCondition.sOp, oValue.iValue,));
+                            assert oField.fValue == 0;
+                            if oValue.iValue.bit_length() > oField.cBitsWidth:
+                                raise Exception('%s: Condition field value check too wide: %s is %u bits, test value is %s (%u bits)'
+                                                % (sInstrNm, oField.sName, oField.cBitsWidth, oValue.iValue,
+                                                   oValue.iValue.bit_count(),));
+                            if oValue.iValue < 0:
+                                raise Exception('%s: Condition field checks against negative value: %s, test value is %s'
+                                                % (sInstrNm, oField.sName, oValue.iValue));
+                            fFixed = (1 << oField.cBitsWidth) - 1;
+                            if oCondition.sOp == '!=' and oField.cBitsWidth > 1:
+                                dPendingNotEq[oField.sName] += [(oField, oValue.iValue, fFixed, oCondition)];
+                                break;
+
+                            print('debug transfer: %s: integer binaryop -> encoding!' % (sInstrNm,));
+                            if oCondition.sOp == '==':
+                                oField.fValue = oValue.iValue;
+                            else:
+                                oField.fValue = ~oValue.iValue & fFixed;
+                            oField.fFixed = fFixed;
+                            return (ArmAstBool(True), True);
+
+                        # ArmAstValue.
+                        assert isinstance(oValue, ArmAstValue);
+                        (fValue, fFixed) = ArmEncodesetField.parseValue(oValue.sValue, oField.cBitsWidth);
+
+                        if oCondition.sOp == '!=' and oField.cBitsWidth > 1 and (fFixed & (fFixed - 1)) != 0:
+                            dPendingNotEq[oField.sName] += [(oField, fValue, fFixed, oCondition)];
+                            break;
+                        if fFixed & oField.fFixed:
+                            raise Exception('%s: Condition checks fixed field value: %s (%#x/%#x) %s %s (%#x/%#x)'
+                                            % (sInstrNm, oField.sName, oField.fValue, oField.fFixed, oCondition.sOp,
+                                               oValue.sValue, fValue, fFixed));
+                        print('debug transfer: %s: value binaryop -> encoding! %s %s %#x (fFixed=%#x)'
+                              % (sInstrNm, oField.sName, oCondition.sOp, fValue, fFixed,));
+                        if oCondition.sOp == '==':
+                            oField.fValue |= fValue;
+                        else:
+                            oField.fValue |= ~fValue & fFixed;
+                        oField.fFixed |= fFixed;
+                        return (ArmAstBool(True), True);
+
+    #
+    # Deal with pending '!=' optimizations for fields larger than a single bit.
+    # Currently we only deal with two bit fields.
+    #
+    if uDepth == 0 and dPendingNotEq:
+        for sFieldNm, atOccurences in dPendingNotEq.items():
+            # For a two bit field, we need at least two occurences to get any kind of fixed value.
+            oField = atOccurences[0][0];
+            if oField.cBitsWidth == 2 and len(atOccurences) >= 2:
+                dValues = {};
+                dFixed  = {};
+                for oCurField, fValue, fFixed, _ in atOccurences:
+                    assert oCurField is oField;
+                    dValues[fValue] = 1;
+                    dFixed[fFixed]  = 1;
+                if len(dValues) in (2, 3) and len(dFixed) == 1 and 3 in dFixed:
+                    afValues = list(dValues);
+                    if len(dValues) == 2:
+                        fFixed = 2 if (afValues[0] ^ afValues[1]) & 1 else 1; # One of the bits are fixed, the other ignored.
+                    else:
+                        fFixed = 3;                                           # Both bits are fixed.
+                    fValue = afValues[0] & fFixed;
+                    print('debug transfer: %s: %u binaryops -> encoding! %s != %#x/%#x'
+                          % (sInstrNm, len(atOccurences), oField.sName, fValue, fFixed,));
+
+                    # Remove the associated conditions (they'll be leaves).
+                    aoToRemove = [oCondition for _, _, _, oCondition in atOccurences];
+                    def recursiveRemove(oCondition):
+                        if isinstance(oCondition, ArmAstBinaryOp):
+                            if oCondition.sOp == '&&':
+                                oCondition.oLeft  = recursiveRemove(oCondition.oLeft);
+                                oCondition.oRight = recursiveRemove(oCondition.oLeft);
+                                if isBoolTrue(oCondition.oLeft):    return oCondition.oRight;
+                                if isBoolTrue(oCondition.oRight):   return oCondition.oLeft;
+                            elif oCondition in aoToRemove:
+                                assert isinstance(oCondition.oLeft, ArmAstIdentifier);
+                                assert isinstance(oCondition.oRight, (ArmAstValue, ArmAstInteger));
+                                assert oCondition.sOp == '!=';
+                                return ArmAstBool(True);
+                        return oCondition;
+                    oCondition = recursiveRemove(oCondition);
+                    fMod = True;
+                else:
+                    print('info: %s: transfer cond to enc failed for: %s dValues=%s dFixed=%s'
+                          % (sInstrNm, oField.sName, dValues, dFixed));
+            elif oField.cBitsWidth == 3 and len(atOccurences) >= 7:
+                print('info: %s: TODO: transfer cond to enc for 3 bit field: %s (%s)' % (sInstrNm, oField.sName, atOccurences,));
+
+    return (oCondition, fMod);
+
 
 #
 # Pass #2 - Assembly syntax formatting (for display purposes)

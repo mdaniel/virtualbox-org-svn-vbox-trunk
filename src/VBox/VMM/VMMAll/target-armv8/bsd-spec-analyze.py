@@ -1075,4 +1075,3 @@ if __name__ == '__main__':
                     oFrameSummary.locals[sKey] = sValue;
         oTB.print();
 
-

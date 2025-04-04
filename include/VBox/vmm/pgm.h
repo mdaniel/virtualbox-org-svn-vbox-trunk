@@ -941,7 +941,7 @@ VMM_INT_DECL(int)   PGMGstMapPaePdpes(PVMCPUCC pVCpu, PCX86PDPE paPaePdpes);
 VMM_INT_DECL(int)   PGMGstMapPaePdpesAtCr3(PVMCPUCC pVCpu, uint64_t cr3);
 
 VMMDECL(int)        PGMInvalidatePage(PVMCPUCC pVCpu, RTGCPTR GCPtrPage);
-#if defined(VBOX_VMM_TARGET_X86)
+#if defined(VBOX_VMM_TARGET_X86) || defined(VBOX_VMM_TARGET_AGNOSTIC)
 VMM_INT_DECL(int)   PGMFlushTLB(PVMCPUCC pVCpu, uint64_t cr3, bool fGlobal);
 VMM_INT_DECL(int)   PGMSyncCR3(PVMCPUCC pVCpu, uint64_t cr0, uint64_t cr3, uint64_t cr4, bool fGlobal);
 VMM_INT_DECL(int)   PGMUpdateCR3(PVMCPUCC pVCpu, uint64_t cr3);

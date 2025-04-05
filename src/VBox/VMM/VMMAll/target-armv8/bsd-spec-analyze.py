@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # $Id$
+# pylint: disable=invalid-name
 
 """
 ARM BSD specification analyser.
@@ -34,7 +35,6 @@ __version__ = "$Revision$"
 
 # Standard python imports.
 import argparse;
-import ast;
 import collections;
 import datetime;
 import json;
@@ -44,6 +44,7 @@ import re;
 import sys;
 import tarfile;
 import traceback;
+import cProfile;
 
 
 #
@@ -55,20 +56,21 @@ class ArmAstBase(object):
     ARM instruction AST base class.
     """
 
-    kTypeBinaryOp   = 'AST.BinaryOp';
-    kTypeBool       = 'AST.Bool';
-    kTypeConcat     = 'AST.Concat';
-    kTypeFunction   = 'AST.Function';
-    kTypeIdentifier = 'AST.Identifier';
-    kTypeInteger    = 'AST.Integer';
-    kTypeSet        = 'AST.Set';
-    kTypeSquareOp   = 'AST.SquareOp';
-    kTypeUnaryOp    = 'AST.UnaryOp';
-    kTypeValue      = 'Values.Value';
+    ksTypeBinaryOp   = 'AST.BinaryOp';
+    ksTypeBool       = 'AST.Bool';
+    ksTypeConcat     = 'AST.Concat';
+    ksTypeFunction   = 'AST.Function';
+    ksTypeIdentifier = 'AST.Identifier';
+    ksTypeInteger    = 'AST.Integer';
+    ksTypeSet        = 'AST.Set';
+    ksTypeSquareOp   = 'AST.SquareOp';
+    ksTypeUnaryOp    = 'AST.UnaryOp';
+    ksTypeValue      = 'Values.Value';
 
     def __init__(self, sType):
         self.sType = sType;
 
+    @staticmethod
     def assertAttribsInSet(oJson, oAttribSet):
         """ Checks that the JSON element has all the attributes in the set and nothing else. """
         assert set(oJson) == oAttribSet, '%s - %s' % (set(oJson) ^ oAttribSet, oJson,);
@@ -134,16 +136,16 @@ class ArmAstBase(object):
         return ArmAstValue(oJson['value']);
 
     kfnTypeMap = {
-        kTypeBinaryOp:      fromJsonBinaryOp,
-        kTypeUnaryOp:       fromJsonUnaryOp,
-        kTypeSquareOp:      fromJsonSquareOp,
-        kTypeConcat:        fromJsonConcat,
-        kTypeFunction:      fromJsonFunction,
-        kTypeIdentifier:    fromJsonIdentifier,
-        kTypeBool:          fromJsonBool,
-        kTypeInteger:       fromJsonInteger,
-        kTypeSet:           fromJsonSet,
-        kTypeValue:         fromJsonValue,
+        ksTypeBinaryOp:     fromJsonBinaryOp,
+        ksTypeUnaryOp:      fromJsonUnaryOp,
+        ksTypeSquareOp:     fromJsonSquareOp,
+        ksTypeConcat:       fromJsonConcat,
+        ksTypeFunction:     fromJsonFunction,
+        ksTypeIdentifier:   fromJsonIdentifier,
+        ksTypeBool:         fromJsonBool,
+        ksTypeInteger:      fromJsonInteger,
+        ksTypeSet:          fromJsonSet,
+        ksTypeValue:        fromJsonValue,
     };
 
     @staticmethod
@@ -151,6 +153,13 @@ class ArmAstBase(object):
         """ Decodes an AST/Values expression. """
         #print('debug ast: %s' % oJson['_type'])
         return ArmAstBase.kfnTypeMap[oJson['_type']](oJson);
+
+    def isBoolAndTrue(self):
+        """ Check if this is a boolean with the value True. """
+        #return isinstance(self, ArmAstBool) and self.fValue is True;
+        if isinstance(self, ArmAstBool):
+            return self.fValue is True;
+        return False;
 
 
 class ArmAstBinaryOp(ArmAstBase):
@@ -171,7 +180,7 @@ class ArmAstBinaryOp(ArmAstBase):
     };
 
     def __init__(self, oLeft, sOp, oRight):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeBinaryOp);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeBinaryOp);
         assert sOp in ArmAstBinaryOp.kdOps, 'sOp="%s"' % (sOp,);
         self.oLeft  = oLeft;
         self.sOp    = sOp;
@@ -179,7 +188,7 @@ class ArmAstBinaryOp(ArmAstBase):
 
         # Switch value == field non-sense (simplifies transferConditionsToEncoding and such):
         if (    isinstance(oRight, ArmAstIdentifier)
-            and isinstance(oLeft, [ArmAstValue, ArmAstInteger])
+            and isinstance(oLeft, (ArmAstValue, ArmAstInteger))
             and sOp in ['==', '!=']):
             self.oLeft  = oRight;
             self.oRight = oLeft;
@@ -209,7 +218,7 @@ class ArmAstUnaryOp(ArmAstBase):
     };
 
     def __init__(self, sOp, oExpr):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeUnaryOp);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeUnaryOp);
         assert sOp in ArmAstUnaryOp.kdOps, 'sOp=%s' % (sOp,);
         self.sOp   = sOp;
         self.oExpr = oExpr;
@@ -220,17 +229,18 @@ class ArmAstUnaryOp(ArmAstBase):
         return '%s%s' % (self.sOp, self.oExpr.toString(),);
 
 class ArmAstSquareOp(ArmAstBase):
-    def __init__(self, aoValues):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeSquareOp);
+    def __init__(self, oVar, aoValues):
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeSquareOp);
+        self.oVar     = oVar;
         self.aoValues = aoValues;
 
     def toString(self):
-        return '<%s>' % (','.join([oValue.toString() for oValue in self.aoValues]),);
+        return '%s<%s>' % (self.oVar.toString(), ','.join([oValue.toString() for oValue in self.aoValues]),);
 
 
 class ArmAstConcat(ArmAstBase):
     def __init__(self, aoValues):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeConcat);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeConcat);
         self.aoValues = aoValues;
 
     def toString(self):
@@ -248,7 +258,7 @@ class ArmAstFunction(ArmAstBase):
     s_oReValidName = re.compile('^[_A-Za-z][_A-Za-z0-9]+$');
 
     def __init__(self, sName, aoArgs):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeFunction);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeFunction);
         assert self.s_oReValidName.match(sName), 'sName=%s' % (sName);
         self.sName  = sName;
         self.aoArgs = aoArgs;
@@ -260,7 +270,7 @@ class ArmAstIdentifier(ArmAstBase):
     s_oReValidName = re.compile('^[_A-Za-z][_A-Za-z0-9]*$');
 
     def __init__(self, sName):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeIdentifier);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeIdentifier);
         assert self.s_oReValidName.match(sName), 'sName=%s' % (sName);
         self.sName = sName;
 
@@ -269,7 +279,7 @@ class ArmAstIdentifier(ArmAstBase):
 
 class ArmAstBool(ArmAstBase):
     def __init__(self, fValue):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeBool);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeBool);
         assert fValue is True or fValue is False, '%s' % (fValue,);
         self.fValue = fValue;
 
@@ -279,23 +289,25 @@ class ArmAstBool(ArmAstBase):
 
 class ArmAstInteger(ArmAstBase):
     def __init__(self, iValue):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeInteger);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeInteger);
         self.iValue = int(iValue);
 
     def toString(self):
         return '%#x' % (self.iValue,);
 
+
 class ArmAstSet(ArmAstBase):
     def __init__(self, aoValues):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeSet);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeSet);
         self.aoValues = aoValues;
 
     def toString(self):
         return '(%s)' % (', '.join([oValue.toString() for oValue in self.aoValues]),);
 
+
 class ArmAstValue(ArmAstBase):
     def __init__(self, sValue):
-        ArmAstBase.__init__(self, ArmAstBase.kTypeValue);
+        ArmAstBase.__init__(self, ArmAstBase.ksTypeValue);
         self.sValue = sValue;
 
     def toString(self):
@@ -359,7 +371,6 @@ class ArmEncodesetField(object):
 
     @staticmethod
     def fromJson(oJson):
-        """ """
         assert oJson['_type'] in ('Instruction.Encodeset.Field', 'Instruction.Encodeset.Bits'), oJson['_type'];
 
         oRange = oJson['range'];
@@ -372,7 +383,6 @@ class ArmEncodesetField(object):
 
     @staticmethod
     def fromJsonEncodeset(oJson, aoSet, fCovered):
-        """ """
         assert oJson['_type'] == 'Instruction.Encodeset.Encodeset', oJson['_type'];
         for oJsonValue in oJson['values']:
             oNewField = ArmEncodesetField.fromJson(oJsonValue);
@@ -451,10 +461,12 @@ def parseInstructions(aoStack, aoJson):
                     (aoEncodesets, fCovered) = ArmEncodesetField.fromJsonEncodeset(oParent['encoding'], aoEncodesets, fCovered);
 
             oCondition = ArmAstBase.fromJson(oJson['condition']);
-            print('debug transfer in:  %s' % (oCondition.toString()));
+            #sCondBefore = oCondition.toString();
+            #print('debug transfer: %s: org:  %s' % (sInstrNm, sCondBefore));
             (oCondition, fMod) = transferConditionsToEncoding(oCondition, aoEncodesets, collections.defaultdict(list), sInstrNm);
-            if fMod:
-                print('debug transfer out: %s' % (oCondition.toString()));
+            #if fMod:
+            #    print('debug transfer: %s: %s  ---->  %s' % (sInstrNm, sCondBefore, oCondition.toString()));
+            _ = fMod;
 
             oInstr = ArmInstruction(oJson, sInstrNm, sInstrNm, aoEncodesets, oCondition);
 
@@ -477,30 +489,27 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
                      && (IsFeatureImplemented(FEAT_SVE) || IsFeatureImplemented(FEAT_SME))
     The checks can be morphed into the 'size' field encoding criteria as '0b0x'.
     """
-    def isBoolTrue(oNode):
-        return isinstance(oNode, ArmAstBool) and oNode.fValue is True;
-
     if isinstance(oCondition, ArmAstBinaryOp):
         if oCondition.sOp == '&&':
-            print('debug transfer: %s: recursion...' % (sInstrNm,));
             # Recurse into each side of an AND expression.
+            #print('debug transfer: %s: recursion...' % (sInstrNm,));
             (oCondition.oLeft, fMod)  = transferConditionsToEncoding(oCondition.oLeft,  aoEncodesets, dPendingNotEq,
                                                                      sInstrNm, uDepth + 1, fMod);
             (oCondition.oRight, fMod) = transferConditionsToEncoding(oCondition.oRight, aoEncodesets, dPendingNotEq,
                                                                      sInstrNm, uDepth + 1, fMod);
-            if isBoolTrue(oCondition.oLeft):
+            if oCondition.oLeft.isBoolAndTrue():
                 return (oCondition.oRight, fMod);
-            if isBoolTrue(oCondition.oRight):
+            if oCondition.oRight.isBoolAndTrue():
                 return (oCondition.oLeft, fMod);
 
         elif oCondition.sOp in ('==', '!='):
             # The pattern we're looking for is identifier (field) == fixed value.
-            print('debug transfer: %s: binaryop %s vs %s ...' % (sInstrNm, oCondition.oLeft.sType, oCondition.oRight.sType));
+            #print('debug transfer: %s: binaryop %s vs %s ...' % (sInstrNm, oCondition.oLeft.sType, oCondition.oRight.sType));
             if (    isinstance(oCondition.oLeft, ArmAstIdentifier)
                 and isinstance(oCondition.oRight, (ArmAstValue, ArmAstInteger))):
                 sFieldName = oCondition.oLeft.sName;
                 oValue     = oCondition.oRight;
-                print('debug transfer: %s: binaryop step 2...' % (sInstrNm,));
+                #print('debug transfer: %s: binaryop step 2...' % (sInstrNm,));
                 for oField in aoEncodesets: # ArmEncodesetField
                     if oField.sName and oField.sName == sFieldName:
                         # ArmAstInteger (unlikely):
@@ -511,7 +520,7 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
                                                    oCondition.sOp, oValue.iValue,));
                             assert oField.fValue == 0;
                             if oValue.iValue.bit_length() > oField.cBitsWidth:
-                                raise Exception('%s: Condition field value check too wide: %s is %u bits, test value is %s (%u bits)'
+                                raise Exception('%s: Condition field value check too wide: %s is %u bits, test value %s (%u bits)'
                                                 % (sInstrNm, oField.sName, oField.cBitsWidth, oValue.iValue,
                                                    oValue.iValue.bit_count(),));
                             if oValue.iValue < 0:
@@ -522,7 +531,8 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
                                 dPendingNotEq[oField.sName] += [(oField, oValue.iValue, fFixed, oCondition)];
                                 break;
 
-                            print('debug transfer: %s: integer binaryop -> encoding!' % (sInstrNm,));
+                            #print('debug transfer: %s: integer binaryop -> encoding: %s %s %#x/%#x'
+                            #      % (sInstrNm, oField.sName, oCondition.sOp, oValue.iValue, fFixed));
                             if oCondition.sOp == '==':
                                 oField.fValue = oValue.iValue;
                             else:
@@ -541,8 +551,8 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
                             raise Exception('%s: Condition checks fixed field value: %s (%#x/%#x) %s %s (%#x/%#x)'
                                             % (sInstrNm, oField.sName, oField.fValue, oField.fFixed, oCondition.sOp,
                                                oValue.sValue, fValue, fFixed));
-                        print('debug transfer: %s: value binaryop -> encoding! %s %s %#x (fFixed=%#x)'
-                              % (sInstrNm, oField.sName, oCondition.sOp, fValue, fFixed,));
+                        #print('debug transfer: %s: value binaryop -> encoding: %s %s %#x (fFixed=%#x)'
+                        #      % (sInstrNm, oField.sName, oCondition.sOp, fValue, fFixed,));
                         if oCondition.sOp == '==':
                             oField.fValue |= fValue;
                         else:
@@ -555,6 +565,20 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
     # Currently we only deal with two bit fields.
     #
     if uDepth == 0 and dPendingNotEq:
+        def recursiveRemove(oCondition, aoToRemove):
+            if isinstance(oCondition, ArmAstBinaryOp):
+                if oCondition.sOp == '&&':
+                    oCondition.oLeft  = recursiveRemove(oCondition.oLeft, aoToRemove);
+                    oCondition.oRight = recursiveRemove(oCondition.oLeft, aoToRemove);
+                    if oCondition.oLeft.isBoolAndTrue():    return oCondition.oRight;
+                    if oCondition.oRight.isBoolAndTrue():   return oCondition.oLeft;
+                elif oCondition in aoToRemove:
+                    assert isinstance(oCondition.oLeft, ArmAstIdentifier);
+                    assert isinstance(oCondition.oRight, (ArmAstValue, ArmAstInteger));
+                    assert oCondition.sOp == '!=';
+                    return ArmAstBool(True);
+            return oCondition;
+
         for sFieldNm, atOccurences in dPendingNotEq.items():
             # For a two bit field, we need at least two occurences to get any kind of fixed value.
             oField = atOccurences[0][0];
@@ -572,31 +596,20 @@ def transferConditionsToEncoding(oCondition, aoEncodesets, dPendingNotEq, sInstr
                     else:
                         fFixed = 3;                                           # Both bits are fixed.
                     fValue = afValues[0] & fFixed;
-                    print('debug transfer: %s: %u binaryops -> encoding! %s != %#x/%#x'
-                          % (sInstrNm, len(atOccurences), oField.sName, fValue, fFixed,));
+                    print('debug transfer: %s: %u binaryops -> encoding: %s == %#x/%#x'
+                          % (sInstrNm, len(atOccurences), sFieldNm, ~fValue & fFixed, fFixed,));
+                    oField.fValue |= ~fValue & fFixed;
+                    oField.fFixed |= fFixed;
+
 
                     # Remove the associated conditions (they'll be leaves).
-                    aoToRemove = [oCondition for _, _, _, oCondition in atOccurences];
-                    def recursiveRemove(oCondition):
-                        if isinstance(oCondition, ArmAstBinaryOp):
-                            if oCondition.sOp == '&&':
-                                oCondition.oLeft  = recursiveRemove(oCondition.oLeft);
-                                oCondition.oRight = recursiveRemove(oCondition.oLeft);
-                                if isBoolTrue(oCondition.oLeft):    return oCondition.oRight;
-                                if isBoolTrue(oCondition.oRight):   return oCondition.oLeft;
-                            elif oCondition in aoToRemove:
-                                assert isinstance(oCondition.oLeft, ArmAstIdentifier);
-                                assert isinstance(oCondition.oRight, (ArmAstValue, ArmAstInteger));
-                                assert oCondition.sOp == '!=';
-                                return ArmAstBool(True);
-                        return oCondition;
-                    oCondition = recursiveRemove(oCondition);
+                    oCondition = recursiveRemove(oCondition, [oCondition for _, _, _, oCondition in atOccurences]);
                     fMod = True;
                 else:
                     print('info: %s: transfer cond to enc failed for: %s dValues=%s dFixed=%s'
-                          % (sInstrNm, oField.sName, dValues, dFixed));
+                          % (sInstrNm, sFieldNm, dValues, dFixed));
             elif oField.cBitsWidth == 3 and len(atOccurences) >= 7:
-                print('info: %s: TODO: transfer cond to enc for 3 bit field: %s (%s)' % (sInstrNm, oField.sName, atOccurences,));
+                print('info: %s: TODO: transfer cond to enc for 3 bit field: %s (%s)' % (sInstrNm, sFieldNm, atOccurences,));
 
     return (oCondition, fMod);
 
@@ -728,12 +741,12 @@ def LoadArmOpenSourceSpecification(oOptions):
     #oBrk = g_dAllArmInstructionsByName['BRK_EX_exception'];
     #print("oBrk=%s" % (oBrk,))
 
-    if True:
+    if oOptions.fPrintInstructions:
         for oInstr in g_aoAllArmInstructions:
             print('%08x/%08x %s %s' % (oInstr.fFixedMask, oInstr.fFixedValue, oInstr.getCName(), oInstr.sAsmDisplay));
 
     # Gather stats on fixed bits:
-    if True:
+    if oOptions.fPrintFixedMaskStats:
         dCounts = collections.Counter();
         for oInstr in g_aoAllArmInstructions:
             cPopCount = bin(oInstr.fFixedMask).count('1');
@@ -746,7 +759,7 @@ def LoadArmOpenSourceSpecification(oOptions):
                 print('  %2u: %u' % (i, dCounts[i]));
 
     # Top 10 fixed masks.
-    if True:
+    if oOptions.fPrintFixedMaskTop10:
         dCounts = collections.Counter();
         for oInstr in g_aoAllArmInstructions:
             dCounts[oInstr.fFixedMask] += 1;
@@ -763,7 +776,7 @@ def LoadArmOpenSourceSpecification(oOptions):
 # Decoder structure helpers.
 #
 
-class MaskIterator(object):
+class MaskIterator1(object):
     """ Helper class for DecoderNode.constructNextLevel(). """
 
     ## Maximum number of mask sub-parts.
@@ -789,7 +802,7 @@ class MaskIterator(object):
             aiRet = [];
         elif len(dBits) > 0:
             aaiMaskAlgo = DecoderNode.compactMaskAsList(list(dBits));
-            if len(aaiMaskAlgo) <= MaskIterator.kcMaxMaskParts:
+            if len(aaiMaskAlgo) <= MaskIterator1.kcMaxMaskParts:
                 dDictDoneAlready[fMask] = 1;
                 aiRet = [(fMask, list(dBits), aaiMaskAlgo)];
             else:
@@ -801,7 +814,7 @@ class MaskIterator(object):
             if len(dBits) > 0 and fMask not in dDictDoneAlready:
                 if len(dBits) <= cMaxTableSizeInBits:
                     aaiMaskAlgo = DecoderNode.compactMaskAsList(list(dBits));
-                    if len(aaiMaskAlgo) <= MaskIterator.kcMaxMaskParts:
+                    if len(aaiMaskAlgo) <= MaskIterator1.kcMaxMaskParts:
                         dDictDoneAlready[fMask] = 1;
                         aiRet.append((fMask, list(dBits), aaiMaskAlgo));
                 if len(dBits) > 1:
@@ -816,8 +829,209 @@ class MaskIterator(object):
                 del dChildBits[iBit];
                 recursive(fMask & ~(1 << iBit), dChildBits)
 
-        print("debug: fMask=%#x len(aiRet)=%d" % (fMask, len(aiRet),));
+        print("debug: fMask=%#x len(aiRet)=%d dDictDoneAlready=%d" % (fMask, len(aiRet), len(dDictDoneAlready)));
         return aiRet;
+
+class MaskIterator2(object):
+    """ Helper class for DecoderNode.constructNextLevel(). """
+
+    ## Maximum number of mask sub-parts.
+    # Lower number means fewer instructions required to convert it into an index.
+    kcMaxMaskParts = 3
+
+    class StackEntry(object):
+        def __init__(self, fMask, aiBits):
+            self.fMask  = fMask;
+            self.aiBits = aiBits;
+            self.iCur   = -1;
+            #fTmp = 0;
+            #for iBit in aiBits:
+            #    fTmp |= 1 << iBit;
+            #assert fTmp == fMask, 'fTmp=%#x fMask=%#x aiBits=%s' % (fTmp, fMask, aiBits);
+
+    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready):
+        self.fMask               = fMask;
+        self.cMaxTableSizeInBits = cMaxTableSizeInBits;
+        self.dDictDoneAlready    = dDictDoneAlready;
+        self.cReturned           = 0;
+        self.cLoops              = 0;
+
+        dBits = collections.OrderedDict();
+        for iBit in range(32):
+            if fMask & (1 << iBit):
+                dBits[iBit] = 1;
+        self.oTop                = self.StackEntry(fMask, list(dBits));
+        self.aoStack             = [];
+
+    def __iter__(self):
+        return self;
+
+    def __next__(self):
+        oTop = self.oTop;
+        while oTop:
+            self.cLoops += 1
+            iCur     = oTop.iCur;
+            cCurBits = len(oTop.aiBits);
+            if iCur < 0:
+                # Return self if appropriate
+                if (    0 < cCurBits < self.cMaxTableSizeInBits
+                    and oTop.fMask not in self.dDictDoneAlready):
+                    aaiMaskAlgo = []#DecoderNode.compactMaskAsList(oTop.aiBits);
+                    if len(aaiMaskAlgo) <= MaskIterator2.kcMaxMaskParts:
+                        oTop.iCur = 0;
+                        self.dDictDoneAlready[oTop.fMask] = 1;
+                        self.cReturned += 1;
+                        #return (oTop.fMask, oTop.aiBits, aaiMaskAlgo);
+                iCur = 0;
+
+            if iCur < cCurBits and cCurBits > 1:
+                # push
+                oTop.iCur = iCur + 1;
+                self.aoStack.append(oTop);
+                oTop = self.StackEntry(oTop.fMask & ~(1 << oTop.aiBits[iCur]), oTop.aiBits[:iCur] + oTop.aiBits[iCur + 1:]);
+                self.oTop = oTop;
+            else:
+                # pop.
+                oTop.iCur = 0xff;
+                oTop = self.aoStack.pop() if self.aoStack else None;
+                self.oTop = oTop;
+        # Done;
+        print('MaskIterator2: fMask=%#x -> %u items returned; %u loops' % (self.fMask, self.cReturned, self.cLoops));
+        raise StopIteration;
+
+class MaskIterator(object):
+    """ Helper class for DecoderNode.constructNextLevel(). """
+
+    ## Maximum number of mask sub-parts.
+    # Lower number means fewer instructions required to convert it into an index.
+    # This is implied by the code in compileMaskCompactorLimited.
+    kcMaxMaskParts = 3
+
+    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready):
+        self.fMask               = fMask;
+        self.aaiAlgo             = MaskIterator.compileMaskCompactor(fMask);
+        self.fCompactMask        = DecoderNode.toIndexByMask(fMask, self.aaiAlgo);
+        #print('debug: fMask=%#x -> fCompactMask=%#x aaiAlgo=%s' % (fMask, self.fCompactMask, self.aaiAlgo));
+        self.fnExpandMask        = DecoderNode.compactDictAlgoToLambdaRev(self.aaiAlgo);
+        self.cMaxTableSizeInBits = cMaxTableSizeInBits;
+        self.dDictDoneAlready    = dDictDoneAlready;
+        self.cReturned           = 0;
+
+    @staticmethod
+    def compileMaskCompactor(fMask):
+        """
+        Returns an with instructions for extracting the bits from the mask into
+        a compacted form. Each array entry is an array/tuple of source bit [0],
+        destination bit [1], and bit counts [2].
+        """
+        aaiAlgo   = [];
+        iSrcBit   = 0;
+        iDstBit   = 0;
+        while fMask > 0:
+            # Skip leading zeros.
+            cSkip    = (fMask & -fMask).bit_length() - 1;
+            #assert (fMask & ((1 << cSkip) - 1)) == 0 and ((fMask >> cSkip) & 1), 'fMask=%#x cSkip=%d' % (fMask, cSkip)
+            iSrcBit += cSkip;
+            fMask  >>= cSkip;
+
+            # Calculate leading ones the same way.
+            cCount = (~fMask & -~fMask).bit_length() - 1;
+            #assert (fMask & ((1 << cCount) - 1)) == ((1 << cCount) - 1) and (fMask & (1 << cCount)) == 0
+
+            # Append to algo list.
+            aaiAlgo.append((iSrcBit, iDstBit, (1 << cCount) - 1));
+
+            # Advance.
+            iDstBit += cCount;
+            iSrcBit += cCount;
+            fMask  >>= cCount;
+        return aaiAlgo;
+
+    @staticmethod
+    def compileMaskCompactorLimited(fMask):
+        """
+        Version of compileMaskCompactor that returns an empty list if there are
+        more than three sections.
+        """
+        assert fMask;
+
+        #
+        # Chunk 0:
+        #
+
+        # Skip leading zeros.
+        iSrcBit0 = (fMask & -fMask).bit_length() - 1;
+        fMask  >>= iSrcBit0;
+        # Calculate leading ones the same way.
+        cCount0  = (~fMask & -~fMask).bit_length() - 1;
+        fMask  >>= cCount0;
+        if not fMask:
+            return [(iSrcBit0, 0, (1 << cCount0) - 1)];
+
+        #
+        # Chunk 1:
+        #
+
+        # Skip leading zeros.
+        cSrcGap1 = (fMask & -fMask).bit_length() - 1;
+        fMask  >>= cSrcGap1;
+        # Calculate leading ones the same way.
+        cCount1  = (~fMask & -~fMask).bit_length() - 1;
+        fMask  >>= cCount1;
+        if not fMask:
+            return [ (iSrcBit0, 0, (1 << cCount0) - 1),
+                     (iSrcBit0 + cCount0 + cSrcGap1, cCount0, (1 << cCount1) - 1)];
+
+        #
+        # Chunk 2:
+        #
+
+        # Skip leading zeros.
+        cSrcGap2 = (fMask & -fMask).bit_length() - 1;
+        fMask  >>= cSrcGap2;
+        # Calculate leading ones the same way.
+        cCount2  = (~fMask & -~fMask).bit_length() - 1;
+        fMask  >>= cCount2;
+        if not fMask:
+            iSrcBit1 = iSrcBit0 + cCount0 + cSrcGap1;
+            return [ (iSrcBit0, 0, (1 << cCount0) - 1),
+                     (iSrcBit1, cCount0, (1 << cCount1) - 1),
+                     (iSrcBit1 + cCount1 + cSrcGap2, cCount0 + cCount1, (1 << cCount2) - 1), ];
+
+        # Too many fragments.
+        return [];
+
+    @staticmethod
+    def maskCompactorAlgoToBitList(aaiAlgo):
+        aiRet = [];
+        for iSrcBit, _, fMask in aaiAlgo:
+            cCount = fMask.bit_count();
+            aiRet += [iSrcBit + i for i in range(cCount)];
+        return aiRet;
+
+    def __iter__(self):
+        return self;
+
+    def __next__(self):
+        fCompactMask = self.fCompactMask;
+        while fCompactMask != 0:
+            cCurBits = fCompactMask.bit_count();
+            if cCurBits <= self.cMaxTableSizeInBits:
+                fMask = self.fnExpandMask(fCompactMask);
+                if fMask not in self.dDictDoneAlready:
+                    aaiMaskAlgo = MaskIterator.compileMaskCompactorLimited(fMask);
+                    if aaiMaskAlgo:
+                        #assert aaiMaskAlgo == MaskIterator.compileMaskCompactor(fMask), \
+                        #    '%s vs %s' % (aaiMaskAlgo, MaskIterator.compileMaskCompactor(fMask));
+                        self.dDictDoneAlready[fMask] = 1;
+                        self.fCompactMask = fCompactMask - 1;
+                        self.cReturned += 1;
+                        return (fMask, MaskIterator.maskCompactorAlgoToBitList(aaiMaskAlgo), aaiMaskAlgo);
+            fCompactMask -= 1;
+        self.fCompactMask = 0;
+        #print('MaskIterator: fMask=%#x -> %u items returned' % (self.fMask, self.cReturned));
+        raise StopIteration;
+
 
 class DecoderNode(object):
 
@@ -840,15 +1054,17 @@ class DecoderNode(object):
         15,     # [2^14 =16384] => 32768
     );
 
-    def __init__(self, aoInstructions: list[ArmInstruction], fCheckedMask: int, fCheckedValue: int, uDepth: int):
+    def __init__(self, aoInstructions, fCheckedMask, fCheckedValue, uDepth):
         assert (~fCheckedMask & fCheckedValue) == 0;
         for idxInstr, oInstr in enumerate(aoInstructions):
             assert ((oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask) == 0, \
-                    '%s: fFixedValue=%#x fFixedMask=%#x fCheckedValue=%#x fCheckedMask=%#x -> %#x\n %s' \
+                    '%s: fFixedValue=%#x fFixedMask=%#x fCheckedValue=%#x fCheckedMask=%#x -> %#x\naoInstructions: len=%s\n %s' \
                     % (idxInstr, oInstr.fFixedValue, oInstr.fFixedMask, fCheckedValue, fCheckedMask,
                        (oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask,
-                       '\n '.join(['%s: %#010x/%#010x %s' % (i, oInstr2.fFixedValue, oInstr2.fFixedMask, oInstr2.sName)
-                                     for i, oInstr2 in enumerate(aoInstructions[:idxInstr+2])]));
+                       len(aoInstructions),
+                       '\n '.join(['%s%s: %#010x/%#010x %s' % ('*' if i == idxInstr else ' ', i,
+                                                               oInstr2.fFixedValue, oInstr2.fFixedMask, oInstr2.sName)
+                                   for i, oInstr2 in enumerate(aoInstructions[:idxInstr+8])]));
 
         self.aoInstructions     = aoInstructions;   ##< The instructions at this level.
         self.fCheckedMask       = fCheckedMask;     ##< The opcode bit mask covered thus far.
@@ -870,21 +1086,27 @@ class DecoderNode(object):
         iSrcBit   = 0;
         iDstBit   = 0;
         while fMask > 0:
-            if fMask & 1:
-                cCount = 1
+            # Skip leading zeros.
+            cSkip    = (fMask & -fMask).bit_length() - 1;
+            assert (fMask & ((1 << cSkip) - 1)) == 0 and ((fMask >> cSkip) & 1), 'fMask=%#x cSkip=%d' % (fMask, cSkip)
+            iSrcBit += cSkip;
+            fMask  >>= cSkip;
+
+            # Calculate leading ones the same way.
+            cCount1 = (~fMask & -~fMask).bit_length() - 1;
+            cCount = 1
+            fMask >>= 1;
+            while fMask & 1:
                 fMask >>= 1;
-                while fMask & 1:
-                    fMask >>= 1;
-                    cCount += 1
-                aaiAlgo.append([iSrcBit, iDstBit, cCount])
-                iSrcBit   += cCount;
-                iDstBit   += cCount;
-            else:
-                iSrcBit += 1;
+                cCount += 1
+            assert cCount1 == cCount;
+            aaiAlgo.append([iSrcBit, iDstBit, (1 << cCount) - 1])
+            iSrcBit   += cCount;
+            iDstBit   += cCount;
         return aaiAlgo;
 
     @staticmethod
-    def compactMaskAsList(dOrderedDict):
+    def compactMaskAsList(aiOrderedBits):
         """
         Returns an with instructions for extracting the bits from the mask into
         a compacted form. Each array entry is an array/tuple of source bit [0],
@@ -893,11 +1115,11 @@ class DecoderNode(object):
         aaiAlgo = [];
         iDstBit = 0;
         i       = 0;
-        while i < len(dOrderedDict):
-            iSrcBit = dOrderedDict[i];
+        while i < len(aiOrderedBits):
+            iSrcBit = aiOrderedBits[i];
             cCount  = 1;
             i      += 1;
-            while i < len(dOrderedDict) and dOrderedDict[i] == iSrcBit + cCount:
+            while i < len(aiOrderedBits) and aiOrderedBits[i] == iSrcBit + cCount:
                 cCount += 1;
                 i      += 1;
             aaiAlgo.append([iSrcBit, iDstBit, (1 << cCount) - 1])
@@ -906,7 +1128,7 @@ class DecoderNode(object):
 
     @staticmethod
     def compactDictAlgoToLambda(aaiAlgo):
-        assert(aaiAlgo)
+        assert aaiAlgo;
         sBody = '';
         for iSrcBit, iDstBit, fMask in aaiAlgo:
             if sBody:
@@ -923,7 +1145,7 @@ class DecoderNode(object):
 
     @staticmethod
     def compactDictAlgoToLambdaRev(aaiAlgo):
-        assert(aaiAlgo)
+        assert aaiAlgo;
         sBody = '';
         for iSrcBit, iDstBit, fMask in aaiAlgo:
             if sBody:
@@ -956,61 +1178,79 @@ class DecoderNode(object):
         """
         Recursively constructs the
         """
+        #
         # Special case: leaf.
+        #
         if len(self.aoInstructions) <= 1:
             assert len(self.aoChildren) == 0;
             return 16 if self.fLeafCheckNeeded else 0;
+        sDbgPrefix = 'debug/%u: %s' % (self.uDepth, '  ' * self.uDepth);
 
+        #
         # Do an inventory of the fixed masks used by the instructions.
+        #
         dMaskCounts = collections.Counter();
         for oInstr in self.aoInstructions:
             dMaskCounts[oInstr.fFixedMask & ~self.fCheckedMask] += 1;
         assert 0 not in dMaskCounts or dMaskCounts[0] <= 1, \
                 'dMaskCounts=%s len(self.aoInstructions)=%s\n%s' % (dMaskCounts, len(self.aoInstructions),self.aoInstructions);
 
-        # Determine the max table size for the number of instructions we have.
-        cInstructionsAsShift = 1;
-        while (1 << cInstructionsAsShift) < len(self.aoInstructions):
-            cInstructionsAsShift += 1;
+        ## Determine the max table size for the number of instructions we have.
+        #cInstructionsAsShift = 1;
+        #while (1 << cInstructionsAsShift) < len(self.aoInstructions):
+        #    cInstructionsAsShift += 1;
         #cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cInstructionsAsShift];
 
-        # Work thru the possible masks and test out the possible variations (brute force style).
+        #
+        # Work thru the possible masks and test out the variations (brute force style).
+        #
         uCostBest        = 0x7fffffffffffffff;
         fChildrenBest    = 0;
-        aoChildrenBest   = None;
-        dDictDoneAlready = {}
+        aoChildrenBest   = [];
+
+        dDictDoneAlready = {};
         for fOrgMask, cOccurences in dMaskCounts.most_common(8):
             cOccurencesAsShift = 1;
             while (1 << cOccurencesAsShift) < cOccurences:
                 cOccurencesAsShift += 1;
             cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cOccurencesAsShift]; # Not quite sure about this...
-            print('debug: %#010x (%u) - %u instructions - max tab size %u'
-                  % (fOrgMask, self.popCount(fOrgMask), cOccurences, cMaxTableSizeInBits,));
+            if self.uDepth <= 1:
+                print('%s===== Start: %#010x (%u) - %u instructions - max tab size %u ====='
+                      % (sDbgPrefix, fOrgMask, self.popCount(fOrgMask), cOccurences, cMaxTableSizeInBits,));
 
             # Skip pointless stuff.
             if cOccurences >= 2 and fOrgMask > 0 and fOrgMask != 0xffffffff:
-
-                # Brute force all the mask variations (minus those which are too wide).
+                #
+                # Brute force relevant mask variations.
+                # (The MaskIterator skips masks that are too wide and too fragmented.)
+                #
                 for fMask, dOrderedDictMask, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMaxTableSizeInBits, dDictDoneAlready):
-                    print('debug: >>> fMask=%#010x...' % (fMask,));
+                    #print('%s>>> fMask=%#010x dOrderedDictMask=%s aaiMaskToIdxAlgo=%s)...'
+                    #      % (sDbgPrefix, fMask, dOrderedDictMask, aaiMaskToIdxAlgo));
                     assert len(dOrderedDictMask) <= cMaxTableSizeInBits;
+
+                    # Compile the indexing/unindexing functions.
                     fnToIndex   = self.compactDictAlgoToLambda(aaiMaskToIdxAlgo);
                     fnFromIndex = self.compactDictAlgoToLambdaRev(aaiMaskToIdxAlgo);
 
+                    # Create an temporary table empty with empty lists as entries.
+                    ## @todo is there a better way for doing this? collections.defaultdict?
                     aaoTmp = [];
-                    for i in range(1 << len(dOrderedDictMask)):
-                        aaoTmp.append(list());
+                    for _ in range(1 << len(dOrderedDictMask)):
+                        aaoTmp.append([]);
 
+                    # Insert the instructions into the temporary table.
                     for oInstr in self.aoInstructions:
                         idx = fnToIndex(oInstr.fFixedValue);
-                        #idx = self.toIndexByMask(oInstr.fFixedValue, aaiMaskToIdxAlgo)
-                        assert idx == self.toIndexByMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
-                        print('debug: %#010x -> %#05x %s' % (oInstr.fFixedValue, idx, oInstr.sName));
+                        #assert idx == self.toIndexByMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
+                        #assert idx == fnToIndex(fnFromIndex(idx));
+                        #print('%s%#010x -> %#05x %s' % (sDbgPrefix, oInstr.fFixedValue, idx, oInstr.sName));
                         aoList = aaoTmp[idx];
                         aoList.append(oInstr);
 
+                    # Construct decoder nodes from the aaoTmp lists, construct sub-levels and calculate costs.
+                    uCostTmp      = 0; ## @todo calc base cost from table size and depth.
                     aoChildrenTmp = [];
-                    uCostTmp      = 0;
                     for idx, aoInstrs in enumerate(aaoTmp):
                         oChild = DecoderNode(aoInstrs,
                                              self.fCheckedMask  | fMask,
@@ -1019,21 +1259,27 @@ class DecoderNode(object):
                         aoChildrenTmp.append(oChild);
                         uCostTmp += oChild.constructNextLevel();
 
+                    # Is this mask better than the previous?
                     if uCostTmp < uCostBest:
+                        if self.uDepth <= 1:
+                            print('%s~~~ New best! fMask=%#010x uCost=%#x (previous %#010x / %#x) ...'
+                                  % (sDbgPrefix, fMask, uCostTmp, fChildrenBest, uCostBest, ));
                         uCostBest      = uCostTmp;
                         fChildrenBest  = fMask;
                         aoChildrenBest = aoChildrenTmp;
 
+        if self.uDepth <= 1:
+            print('%s===== Final: fMask=%#010x uCost=%#x TabSize=%#x Instructions=%u...'
+                  % (sDbgPrefix, fChildrenBest, uCostBest, len(aoChildrenBest), len(self.aoInstructions)));
         if aoChildrenBest is None:
             pass; ## @todo
+
+        # Done.
+        self.fChildMask = fChildrenBest;
+        self.aoChildren = aoChildrenBest;
+        self.uCost      = uCostBest;
+
         return uCostBest;
-
-
-
-
-
-
-
 
 
 #
@@ -1050,7 +1296,6 @@ class IEMArmGenerator(object):
         """
         Creates the decoder to the best our abilities.
         """
-        global g_aoAllArmInstructions;
         self.oDecoderRoot = DecoderNode(g_aoAllArmInstructions, 0, 0, 0);
         self.oDecoderRoot.constructNextLevel();
 
@@ -1174,6 +1419,10 @@ class IEMArmGenerator(object):
     def main(self, asArgs):
         """ Main function. """
 
+        #for _ in MaskIterator(0xffc0ff00, 12, {}):
+        #    pass;
+        #return 2;
+
         #
         # Parse arguments.
         #
@@ -1214,6 +1463,23 @@ class IEMArmGenerator(object):
                                 action  = 'store',
                                 default = '-',
                                 help    = 'The output C++ file for the decoder.');
+        # debug:
+        oArgParser.add_argument('--print-instructions',
+                                dest    = 'fPrintInstructions',
+                                action  = 'store_true',
+                                default = False,
+                                help    = 'List the instructions after loading.');
+        oArgParser.add_argument('--print-fixed-mask-stats',
+                                dest    = 'fPrintFixedMaskStats',
+                                action  = 'store_true',
+                                default = False,
+                                help    = 'List statistics on fixed bit masks.');
+        oArgParser.add_argument('--print-fixed-mask-top-10',
+                                dest    = 'fPrintFixedMaskTop10',
+                                action  = 'store_true',
+                                default = False,
+                                help    = 'List the 10 top fixed bit masks.');
+        # Do it!
         oOptions = oArgParser.parse_args(asArgs[1:]);
 
         #
@@ -1253,31 +1519,62 @@ class IEMArmGenerator(object):
 
         return 1;
 
+def printException(oXcpt):
+    print('----- Exception Caught! -----', flush = True);
+    cMaxLines = 1;
+    try:    cchMaxLen = os.get_terminal_size()[0] * cMaxLines;
+    except: cchMaxLen = 80 * cMaxLines;
+    cchMaxLen -= len('     =  ...');
+
+    oTB = traceback.TracebackException.from_exception(oXcpt, limit = None, capture_locals = True);
+    # No locals for the outer frame.
+    oTB.stack[0].locals = {};
+    # Suppress insanely long variable values.
+    for oFrameSummary in oTB.stack:
+        if oFrameSummary.locals:
+            #for sToDelete in ['ddAsmRules', 'aoInstructions',]:
+            #    if sToDelete in oFrameSummary.locals:
+            #        del oFrameSummary.locals[sToDelete];
+            for sKey, sValue in oFrameSummary.locals.items():
+                if len(sValue) > cchMaxLen - len(sKey):
+                    sValue = sValue[:cchMaxLen - len(sKey)] + ' ...';
+                if '\n' in sValue:
+                    sValue = sValue.split('\n')[0] + ' ...';
+                oFrameSummary.locals[sKey] = sValue;
+    idxFrame = 0;
+    asFormatted = [];
+    oReFirstFrameLine = re.compile(r'^  File ".*", line \d+, in ')
+    for sLine in oTB.format():
+        if oReFirstFrameLine.match(sLine):
+            idxFrame += 1;
+        asFormatted.append(sLine);
+    for sLine in asFormatted:
+        if oReFirstFrameLine.match(sLine):
+            idxFrame -= 1;
+            sLine = '#%u %s' % (idxFrame, sLine.lstrip());
+        print(sLine);
+    print('----', flush = True);
 
 if __name__ == '__main__':
+    #for fOrgMask in (1, 3, 7, 15, 31):
+    #    print('Test %#x:' % (fOrgMask,));
+    #    for x in MaskIterator(fOrgMask, 16, {}):
+    #        print('MaskIterator: fMask=%#04x aiBits=%20s aaiAlgo=%s' % (x[0],x[1],x[2]));
+    fProfileIt = True;
+    oProfiler = cProfile.Profile() if fProfileIt else None;
     try:
-        sys.exit(IEMArmGenerator().main(sys.argv));
-    except Exception as oXcpt:
-        print('Exception Caught!', flush = True);
-        cMaxLines = 1;
-        try:    cchMaxLen = os.get_terminal_size()[0] * cMaxLines;
-        except: cchMaxLen = 80 * cMaxLines;
-        cchMaxLen -= len('     =  ...');
+        if not oProfiler:
+            rcExit = IEMArmGenerator().main(sys.argv);
+        else:
+            rcExit = oProfiler.runcall(IEMArmGenerator().main, sys.argv);
+    except Exception as oXcptOuter:
+        printException(oXcptOuter);
+        rcExit = 2;
+    except KeyboardInterrupt as oXcptOuter:
+        printException(oXcptOuter);
+        rcExit = 2;
+    if oProfiler:
+        oProfiler.print_stats(sort='tottime');
+    sys.exit(rcExit);
 
-        oTB = traceback.TracebackException.from_exception(oXcpt, limit = None, capture_locals = True);
-        # No locals for the outer frame.
-        oTB.stack[0].locals = {};
-        # Suppress insanely long variable values.
-        for oFrameSummary in oTB.stack:
-            if oFrameSummary.locals:
-                #for sToDelete in ['ddAsmRules', 'aoInstructions',]:
-                #    if sToDelete in oFrameSummary.locals:
-                #        del oFrameSummary.locals[sToDelete];
-                for sKey, sValue in oFrameSummary.locals.items():
-                    if len(sValue) > cchMaxLen - len(sKey):
-                        sValue = sValue[:cchMaxLen - len(sKey)] + ' ...';
-                    if '\n' in sValue:
-                        sValue = sValue.split('\n')[0] + ' ...';
-                    oFrameSummary.locals[sKey] = sValue;
-        oTB.print();
 

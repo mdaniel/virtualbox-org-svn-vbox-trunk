@@ -37,6 +37,7 @@ __version__ = "$Revision$"
 import argparse;
 import collections;
 import datetime;
+import io;
 import json;
 import operator;
 import os;
@@ -44,7 +45,9 @@ import re;
 import sys;
 import tarfile;
 import traceback;
+# profiling:
 import cProfile;
+import pstats
 
 
 #
@@ -776,149 +779,17 @@ def LoadArmOpenSourceSpecification(oOptions):
 # Decoder structure helpers.
 #
 
-class MaskIterator1(object):
-    """ Helper class for DecoderNode.constructNextLevel(). """
+class MaskZipper(object):
+    """
+    This is mainly a class for putting static methods relating to mask
+    packing and unpack.
+    """
 
-    ## Maximum number of mask sub-parts.
-    # Lower number means fewer instructions required to convert it into an index.
-    kcMaxMaskParts = 3
-
-    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready):
-        self.fMask = fMask;
-        self.afVariations = self.variationsForMask(fMask, cMaxTableSizeInBits, dDictDoneAlready);
-
-    def __iter__(self):
-        ## @todo make this more dynamic...
-        return iter(self.afVariations);
+    def __init__(self):
+        pass;
 
     @staticmethod
-    def variationsForMask(fMask, cMaxTableSizeInBits, dDictDoneAlready):
-        dBits = collections.OrderedDict();
-        for iBit in range(32):
-            if fMask & (1 << iBit):
-                dBits[iBit] = 1;
-
-        if len(dBits) > cMaxTableSizeInBits or fMask in dDictDoneAlready:
-            aiRet = [];
-        elif len(dBits) > 0:
-            aaiMaskAlgo = DecoderNode.compactMaskAsList(list(dBits));
-            if len(aaiMaskAlgo) <= MaskIterator1.kcMaxMaskParts:
-                dDictDoneAlready[fMask] = 1;
-                aiRet = [(fMask, list(dBits), aaiMaskAlgo)];
-            else:
-                aiRet = [];
-        else:
-            return [];
-
-        def recursive(fMask, dBits):
-            if len(dBits) > 0 and fMask not in dDictDoneAlready:
-                if len(dBits) <= cMaxTableSizeInBits:
-                    aaiMaskAlgo = DecoderNode.compactMaskAsList(list(dBits));
-                    if len(aaiMaskAlgo) <= MaskIterator1.kcMaxMaskParts:
-                        dDictDoneAlready[fMask] = 1;
-                        aiRet.append((fMask, list(dBits), aaiMaskAlgo));
-                if len(dBits) > 1:
-                    dChildBits = collections.OrderedDict(dBits);
-                    for iBit in dBits.keys():
-                        del dChildBits[iBit];
-                        recursive(fMask & ~(1 << iBit), dChildBits)
-
-        if len(dBits) > 1:
-            dChildBits = collections.OrderedDict(dBits);
-            for iBit in dBits.keys():
-                del dChildBits[iBit];
-                recursive(fMask & ~(1 << iBit), dChildBits)
-
-        print("debug: fMask=%#x len(aiRet)=%d dDictDoneAlready=%d" % (fMask, len(aiRet), len(dDictDoneAlready)));
-        return aiRet;
-
-class MaskIterator2(object):
-    """ Helper class for DecoderNode.constructNextLevel(). """
-
-    ## Maximum number of mask sub-parts.
-    # Lower number means fewer instructions required to convert it into an index.
-    kcMaxMaskParts = 3
-
-    class StackEntry(object):
-        def __init__(self, fMask, aiBits):
-            self.fMask  = fMask;
-            self.aiBits = aiBits;
-            self.iCur   = -1;
-            #fTmp = 0;
-            #for iBit in aiBits:
-            #    fTmp |= 1 << iBit;
-            #assert fTmp == fMask, 'fTmp=%#x fMask=%#x aiBits=%s' % (fTmp, fMask, aiBits);
-
-    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready):
-        self.fMask               = fMask;
-        self.cMaxTableSizeInBits = cMaxTableSizeInBits;
-        self.dDictDoneAlready    = dDictDoneAlready;
-        self.cReturned           = 0;
-        self.cLoops              = 0;
-
-        dBits = collections.OrderedDict();
-        for iBit in range(32):
-            if fMask & (1 << iBit):
-                dBits[iBit] = 1;
-        self.oTop                = self.StackEntry(fMask, list(dBits));
-        self.aoStack             = [];
-
-    def __iter__(self):
-        return self;
-
-    def __next__(self):
-        oTop = self.oTop;
-        while oTop:
-            self.cLoops += 1
-            iCur     = oTop.iCur;
-            cCurBits = len(oTop.aiBits);
-            if iCur < 0:
-                # Return self if appropriate
-                if (    0 < cCurBits < self.cMaxTableSizeInBits
-                    and oTop.fMask not in self.dDictDoneAlready):
-                    aaiMaskAlgo = []#DecoderNode.compactMaskAsList(oTop.aiBits);
-                    if len(aaiMaskAlgo) <= MaskIterator2.kcMaxMaskParts:
-                        oTop.iCur = 0;
-                        self.dDictDoneAlready[oTop.fMask] = 1;
-                        self.cReturned += 1;
-                        #return (oTop.fMask, oTop.aiBits, aaiMaskAlgo);
-                iCur = 0;
-
-            if iCur < cCurBits and cCurBits > 1:
-                # push
-                oTop.iCur = iCur + 1;
-                self.aoStack.append(oTop);
-                oTop = self.StackEntry(oTop.fMask & ~(1 << oTop.aiBits[iCur]), oTop.aiBits[:iCur] + oTop.aiBits[iCur + 1:]);
-                self.oTop = oTop;
-            else:
-                # pop.
-                oTop.iCur = 0xff;
-                oTop = self.aoStack.pop() if self.aoStack else None;
-                self.oTop = oTop;
-        # Done;
-        print('MaskIterator2: fMask=%#x -> %u items returned; %u loops' % (self.fMask, self.cReturned, self.cLoops));
-        raise StopIteration;
-
-class MaskIterator(object):
-    """ Helper class for DecoderNode.constructNextLevel(). """
-
-    ## Maximum number of mask sub-parts.
-    # Lower number means fewer instructions required to convert it into an index.
-    # This is implied by the code in compileMaskCompactorLimited.
-    kcMaxMaskParts = 3
-
-    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready):
-        self.fMask               = fMask;
-        self.aaiAlgo             = MaskIterator.compileMaskCompactor(fMask);
-        self.fCompactMask        = DecoderNode.toIndexByMask(fMask, self.aaiAlgo);
-        #print('debug: fMask=%#x -> fCompactMask=%#x aaiAlgo=%s' % (fMask, self.fCompactMask, self.aaiAlgo));
-        self.fnExpandMask        = DecoderNode.compactDictAlgoToLambdaRev(self.aaiAlgo);
-        self.cMaxTableSizeInBits = cMaxTableSizeInBits;
-        self.dDictDoneAlready    = dDictDoneAlready;
-        self.cReturned           = 0;
-
-    @staticmethod
-    def compileMaskCompactor(fMask):
+    def compileAlgo(fMask):
         """
         Returns an with instructions for extracting the bits from the mask into
         a compacted form. Each array entry is an array/tuple of source bit [0],
@@ -948,9 +819,9 @@ class MaskIterator(object):
         return aaiAlgo;
 
     @staticmethod
-    def compileMaskCompactorLimited(fMask):
+    def compileAlgoLimited(fMask):
         """
-        Version of compileMaskCompactor that returns an empty list if there are
+        Version of compileAlgo that returns an empty list if there are
         more than three sections.
         """
         assert fMask;
@@ -1002,12 +873,163 @@ class MaskIterator(object):
         return [];
 
     @staticmethod
-    def maskCompactorAlgoToBitList(aaiAlgo):
+    def compileAlgoFromList(aiOrderedBits):
+        """
+        Returns an with instructions for extracting the bits from the mask into
+        a compacted form. Each array entry is an array/tuple of source bit [0],
+        destination bit [1], and mask (shifted to pos 0) [2].
+        """
+        aaiAlgo = [];
+        iDstBit = 0;
+        i       = 0;
+        while i < len(aiOrderedBits):
+            iSrcBit = aiOrderedBits[i];
+            cCount  = 1;
+            i      += 1;
+            while i < len(aiOrderedBits) and aiOrderedBits[i] == iSrcBit + cCount:
+                cCount += 1;
+                i      += 1;
+            aaiAlgo.append([iSrcBit, iDstBit, (1 << cCount) - 1])
+            iDstBit += cCount;
+        return aaiAlgo;
+
+    @staticmethod
+    def algoToBitList(aaiAlgo):
         aiRet = [];
         for iSrcBit, _, fMask in aaiAlgo:
             cCount = fMask.bit_count();
             aiRet += [iSrcBit + i for i in range(cCount)];
         return aiRet;
+
+    @staticmethod
+    def zipMask(uValue, aaiAlgo):
+        idxRet = 0;
+        for iSrcBit, iDstBit, fMask in aaiAlgo:
+            idxRet |= ((uValue >> iSrcBit) & fMask) << iDstBit;
+        return idxRet;
+
+    @staticmethod
+    def __zipMask1(uValue, aaiAlgo):
+        iSrcBit, _, fMask = aaiAlgo[0];
+        return (uValue >> iSrcBit) & fMask;
+
+    @staticmethod
+    def __zipMask2(uValue, aaiAlgo):
+        iSrcBit0, _,        fMask0 = aaiAlgo[0];
+        iSrcBit1, iDstBit1, fMask1 = aaiAlgo[1];
+        return ((uValue >> iSrcBit0) & fMask0) | (((uValue >> iSrcBit1) & fMask1) << iDstBit1);
+
+    @staticmethod
+    def __zipMask3(uValue, aaiAlgo):
+        iSrcBit0, _,        fMask0 = aaiAlgo[0];
+        iSrcBit1, iDstBit1, fMask1 = aaiAlgo[1];
+        iSrcBit2, iDstBit2, fMask2 = aaiAlgo[2];
+        return ((uValue >> iSrcBit0) & fMask0) \
+             | (((uValue >> iSrcBit1) & fMask1) << iDstBit1) \
+             | (((uValue >> iSrcBit2) & fMask2) << iDstBit2);
+
+    @staticmethod
+    def algoToZipLambda(aaiAlgo, fAlgoMask, fCompileIt = True):
+        assert aaiAlgo;
+        if not fCompileIt:
+            if len(aaiAlgo) == 1: return MaskZipper.__zipMask1;
+            if len(aaiAlgo) == 2: return MaskZipper.__zipMask2;
+            if len(aaiAlgo) == 3: return MaskZipper.__zipMask3;
+            return MaskZipper.zipMask;
+        # Compile it:
+        sBody = '';
+        for iSrcBit, iDstBit, fMask in aaiAlgo:
+            if sBody:
+                sBody += ' | ';
+            assert iSrcBit >= iDstBit;
+            if iDstBit == 0:
+                if iSrcBit == 0:
+                    sBody += '(uValue & %#x)' % (fMask,);
+                else:
+                    sBody += '((uValue >> %u) & %#x)' % (iSrcBit, fMask);
+            else:
+                sBody += '((uValue >> %u) & %#x)' % (iSrcBit - iDstBit, fMask << iDstBit);
+        _ = fAlgoMask
+        #sFn = 'zipMaskCompiled_%#010x' % (fAlgoMask,);
+        #sFn = 'zipMaskCompiled';
+        #dTmp = {};
+        #exec('def %s(uValue,_): return %s' % (sFn, sBody), globals(), dTmp);
+        #return dTmp[sFn];
+        return eval('lambda uValue,_: ' + sBody);
+
+    @staticmethod
+    def unzipMask(uValue, aaiAlgo):
+        fRet = 0;
+        for iSrcBit, iDstBit, fMask in aaiAlgo:
+            fRet |= ((uValue >> iDstBit) & fMask) << iSrcBit;
+        return fRet;
+
+    @staticmethod
+    def __unzipMask1(uValue, aaiAlgo):
+        return uValue << aaiAlgo[0][0];
+
+    @staticmethod
+    def __unzipMask2(uValue, aaiAlgo):
+        iSrcBit0, _,        fMask0 = aaiAlgo[0];
+        iSrcBit1, iDstBit1, fMask1 = aaiAlgo[1];
+        return ((uValue & fMask0) << iSrcBit0) | (((uValue >> iDstBit1) & fMask1) << iSrcBit1);
+
+    @staticmethod
+    def __unzipMask3(uValue, aaiAlgo):
+        iSrcBit0, _,        fMask0 = aaiAlgo[0];
+        iSrcBit1, iDstBit1, fMask1 = aaiAlgo[1];
+        iSrcBit2, iDstBit2, fMask2 = aaiAlgo[2];
+        return ((uValue & fMask0) << iSrcBit0) \
+             | (((uValue >> iDstBit1) & fMask1) << iSrcBit1) \
+             | (((uValue >> iDstBit2) & fMask2) << iSrcBit2);
+
+    @staticmethod
+    def algoToUnzipLambda(aaiAlgo, fAlgoMask, fCompileIt = True):
+        assert aaiAlgo;
+        if not fCompileIt:
+            if len(aaiAlgo) == 1: return MaskZipper.__unzipMask1;
+            if len(aaiAlgo) == 2: return MaskZipper.__unzipMask2;
+            if len(aaiAlgo) == 3: return MaskZipper.__unzipMask3;
+            return MaskZipper.unzipMask;
+        # Compile it:
+        sBody = '';
+        for iSrcBit, iDstBit, fMask in aaiAlgo:
+            if sBody:
+                sBody += ' | ';
+            if iDstBit == 0:
+                if iSrcBit == 0:
+                    sBody += '(uIdx & %#x)' % (fMask,);
+                else:
+                    sBody += '((uIdx & %#x) << %u)' % (fMask, iSrcBit);
+            else:
+                sBody += '((uIdx << %u) & %#x)' % (iSrcBit - iDstBit, fMask << iSrcBit);
+
+        _ = fAlgoMask
+        #dTmp = {};
+        #sFn = 'unzipMaskCompiled';
+        #sFn = 'unzipMaskCompiled_%#010x' % (fAlgoMask,);
+        #exec('def %s(uIdx,_): return %s' % (sFn, sBody), globals(), dTmp);
+        #return dTmp[sFn];
+        return eval('lambda uIdx,_: ' + sBody);
+
+
+class MaskIterator(object):
+    """ Helper class for DecoderNode.constructNextLevel(). """
+
+    ## Maximum number of mask sub-parts.
+    # Lower number means fewer instructions required to convert it into an index.
+    # This is implied by the code in MaskZipper.compileAlgoLimited.
+    kcMaxMaskParts = 3
+
+    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready, fCompileIt = False):
+        self.fMask               = fMask;
+        self.aaiAlgo             = MaskZipper.compileAlgo(fMask);
+        self.fCompactMask        = MaskZipper.zipMask(fMask, self.aaiAlgo);
+        #print('debug: fMask=%#x -> fCompactMask=%#x aaiAlgo=%s' % (fMask, self.fCompactMask, self.aaiAlgo));
+        self.fnExpandMask        = MaskZipper.algoToUnzipLambda(self.aaiAlgo, fMask, fCompileIt);
+        self.cMaxTableSizeInBits = cMaxTableSizeInBits;
+        self.dDictDoneAlready    = dDictDoneAlready;
+        self.cReturned           = 0;
 
     def __iter__(self):
         return self;
@@ -1017,16 +1039,16 @@ class MaskIterator(object):
         while fCompactMask != 0:
             cCurBits = fCompactMask.bit_count();
             if cCurBits <= self.cMaxTableSizeInBits:
-                fMask = self.fnExpandMask(fCompactMask);
+                fMask = self.fnExpandMask(fCompactMask, self.aaiAlgo);
                 if fMask not in self.dDictDoneAlready:
-                    aaiMaskAlgo = MaskIterator.compileMaskCompactorLimited(fMask);
+                    aaiMaskAlgo = MaskZipper.compileAlgoLimited(fMask);
                     if aaiMaskAlgo:
-                        #assert aaiMaskAlgo == MaskIterator.compileMaskCompactor(fMask), \
-                        #    '%s vs %s' % (aaiMaskAlgo, MaskIterator.compileMaskCompactor(fMask));
+                        #assert aaiMaskAlgo == MaskZipper.compileAlgo(fMask), \
+                        #    '%s vs %s' % (aaiMaskAlgo, MaskZipper.compileAlgo(fMask));
                         self.dDictDoneAlready[fMask] = 1;
                         self.fCompactMask = fCompactMask - 1;
                         self.cReturned += 1;
-                        return (fMask, MaskIterator.maskCompactorAlgoToBitList(aaiMaskAlgo), aaiMaskAlgo);
+                        return (fMask, MaskZipper.algoToBitList(aaiMaskAlgo), aaiMaskAlgo);
             fCompactMask -= 1;
         self.fCompactMask = 0;
         #print('MaskIterator: fMask=%#x -> %u items returned' % (self.fMask, self.cReturned));
@@ -1076,97 +1098,6 @@ class DecoderNode(object):
         self.aoChildren         = [];               ##< Children, populated by constructNextLevel().
 
     @staticmethod
-    def compactMask(fMask):
-        """
-        Returns an with instructions for extracting the bits from the mask into
-        a compacted form. Each array entry is an array/tuple of source bit [0],
-        destination bit [1], and bit counts [2].
-        """
-        aaiAlgo   = [];
-        iSrcBit   = 0;
-        iDstBit   = 0;
-        while fMask > 0:
-            # Skip leading zeros.
-            cSkip    = (fMask & -fMask).bit_length() - 1;
-            assert (fMask & ((1 << cSkip) - 1)) == 0 and ((fMask >> cSkip) & 1), 'fMask=%#x cSkip=%d' % (fMask, cSkip)
-            iSrcBit += cSkip;
-            fMask  >>= cSkip;
-
-            # Calculate leading ones the same way.
-            cCount1 = (~fMask & -~fMask).bit_length() - 1;
-            cCount = 1
-            fMask >>= 1;
-            while fMask & 1:
-                fMask >>= 1;
-                cCount += 1
-            assert cCount1 == cCount;
-            aaiAlgo.append([iSrcBit, iDstBit, (1 << cCount) - 1])
-            iSrcBit   += cCount;
-            iDstBit   += cCount;
-        return aaiAlgo;
-
-    @staticmethod
-    def compactMaskAsList(aiOrderedBits):
-        """
-        Returns an with instructions for extracting the bits from the mask into
-        a compacted form. Each array entry is an array/tuple of source bit [0],
-        destination bit [1], and mask (shifted to pos 0) [2].
-        """
-        aaiAlgo = [];
-        iDstBit = 0;
-        i       = 0;
-        while i < len(aiOrderedBits):
-            iSrcBit = aiOrderedBits[i];
-            cCount  = 1;
-            i      += 1;
-            while i < len(aiOrderedBits) and aiOrderedBits[i] == iSrcBit + cCount:
-                cCount += 1;
-                i      += 1;
-            aaiAlgo.append([iSrcBit, iDstBit, (1 << cCount) - 1])
-            iDstBit += cCount;
-        return aaiAlgo;
-
-    @staticmethod
-    def compactDictAlgoToLambda(aaiAlgo):
-        assert aaiAlgo;
-        sBody = '';
-        for iSrcBit, iDstBit, fMask in aaiAlgo:
-            if sBody:
-                sBody += ' | ';
-            assert iSrcBit >= iDstBit;
-            if iDstBit == 0:
-                if iSrcBit == 0:
-                    sBody += '(uValue & %#x)' % (fMask,);
-                else:
-                    sBody += '((uValue >> %u) & %#x)' % (iSrcBit, fMask);
-            else:
-                sBody += '((uValue >> %u) & %#x)' % (iSrcBit - iDstBit, fMask << iDstBit);
-        return eval('lambda uValue: ' + sBody);
-
-    @staticmethod
-    def compactDictAlgoToLambdaRev(aaiAlgo):
-        assert aaiAlgo;
-        sBody = '';
-        for iSrcBit, iDstBit, fMask in aaiAlgo:
-            if sBody:
-                sBody += ' | ';
-            if iDstBit == 0:
-                if iSrcBit == 0:
-                    sBody += '(uIdx & %#x)' % (fMask,);
-                else:
-                    sBody += '((uIdx & %#x) << %u)' % (fMask, iSrcBit);
-            else:
-                sBody += '((uIdx << %u) & %#x)' % (iSrcBit - iDstBit, fMask << iSrcBit);
-        return eval('lambda uIdx: ' + sBody);
-
-    @staticmethod
-    def toIndexByMask(uValue, aaiAlgo):
-        idxRet = 0;
-        for iSrcBit, iDstBit, fMask in aaiAlgo:
-            idxRet |= ((uValue >> iSrcBit) & fMask) << iDstBit;
-        return idxRet;
-
-    @staticmethod
     def popCount(uValue):
         cBits = 0;
         while uValue:
@@ -1193,13 +1124,22 @@ class DecoderNode(object):
         for oInstr in self.aoInstructions:
             dMaskCounts[oInstr.fFixedMask & ~self.fCheckedMask] += 1;
         assert 0 not in dMaskCounts or dMaskCounts[0] <= 1, \
-                'dMaskCounts=%s len(self.aoInstructions)=%s\n%s' % (dMaskCounts, len(self.aoInstructions),self.aoInstructions);
+                'dMaskCounts=%s len(self.aoInstructions)=%s\n%s' % (dMaskCounts, len(self.aoInstructions), self.aoInstructions);
 
         ## Determine the max table size for the number of instructions we have.
         #cInstructionsAsShift = 1;
         #while (1 << cInstructionsAsShift) < len(self.aoInstructions):
         #    cInstructionsAsShift += 1;
         #cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cInstructionsAsShift];
+
+        #
+        # Whether to bother compiling the mask zip/unzip functions.
+        #
+        # The goal here is to keep the {built-in method builtins.eval} line far
+        # away from top of the profiler stats, while at the same time keeping the
+        # __zipMaskN and __unzipMaskN methods from taking up too much time.
+        #
+        fCompileMaskZipUnzip = len(self.aoInstructions) >= 12;
 
         #
         # Work thru the possible masks and test out the variations (brute force style).
@@ -1224,14 +1164,15 @@ class DecoderNode(object):
                 # Brute force relevant mask variations.
                 # (The MaskIterator skips masks that are too wide and too fragmented.)
                 #
-                for fMask, dOrderedDictMask, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMaxTableSizeInBits, dDictDoneAlready):
+                for fMask, dOrderedDictMask, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMaxTableSizeInBits,
+                                                                              dDictDoneAlready, fCompileMaskZipUnzip):
                     #print('%s>>> fMask=%#010x dOrderedDictMask=%s aaiMaskToIdxAlgo=%s)...'
                     #      % (sDbgPrefix, fMask, dOrderedDictMask, aaiMaskToIdxAlgo));
                     assert len(dOrderedDictMask) <= cMaxTableSizeInBits;
 
                     # Compile the indexing/unindexing functions.
-                    fnToIndex   = self.compactDictAlgoToLambda(aaiMaskToIdxAlgo);
-                    fnFromIndex = self.compactDictAlgoToLambdaRev(aaiMaskToIdxAlgo);
+                    fnToIndex   = MaskZipper.algoToZipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
+                    fnFromIndex = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
 
                     # Create an temporary table empty with empty lists as entries.
                     ## @todo is there a better way for doing this? collections.defaultdict?
@@ -1241,9 +1182,11 @@ class DecoderNode(object):
 
                     # Insert the instructions into the temporary table.
                     for oInstr in self.aoInstructions:
-                        idx = fnToIndex(oInstr.fFixedValue);
-                        #assert idx == self.toIndexByMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
-                        #assert idx == fnToIndex(fnFromIndex(idx));
+                        idx = fnToIndex(oInstr.fFixedValue, aaiMaskToIdxAlgo);
+                        #assert idx == MaskZipper.zipMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
+                        #assert idx == fnToIndex(fnFromIndex(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
+                        #assert idx == MaskZipper.zipMask(MaskZipper.unzipMask(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
+
                         #print('%s%#010x -> %#05x %s' % (sDbgPrefix, oInstr.fFixedValue, idx, oInstr.sName));
                         aoList = aaoTmp[idx];
                         aoList.append(oInstr);
@@ -1254,7 +1197,7 @@ class DecoderNode(object):
                     for idx, aoInstrs in enumerate(aaoTmp):
                         oChild = DecoderNode(aoInstrs,
                                              self.fCheckedMask  | fMask,
-                                             self.fCheckedValue | fnFromIndex(idx),
+                                             self.fCheckedValue | fnFromIndex(idx, aaiMaskToIdxAlgo),
                                              self.uDepth + 1);
                         aoChildrenTmp.append(oChild);
                         uCostTmp += oChild.constructNextLevel();
@@ -1574,6 +1517,16 @@ if __name__ == '__main__':
         printException(oXcptOuter);
         rcExit = 2;
     if oProfiler:
-        oProfiler.print_stats(sort='tottime');
+        if not oProfiler:
+            oProfiler.print_stats(sort='tottime');
+        else:
+            oStringStream = io.StringIO();
+            pstats.Stats(oProfiler, stream = oStringStream).strip_dirs().sort_stats('tottime').print_stats(64);
+            for iStatLine, sStatLine in enumerate(oStringStream.getvalue().split('\n')):
+                if iStatLine > 20:
+                    asStatWords = sStatLine.split();
+                    if asStatWords[1] in { '0.000', '0.001', '0.002', '0.003', '0.004', '0.005' }:
+                        break;
+                print(sStatLine);
     sys.exit(rcExit);
 

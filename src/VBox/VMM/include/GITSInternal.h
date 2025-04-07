@@ -42,6 +42,30 @@
  * @{
  */
 
+/**
+ * GITS error diagnostics.
+ * Sorted alphabetically so it's easier to add and locate items, no other reason.
+ *
+ * @note Members of this enum are used as array indices, so no gaps in enum
+ *       values are not allowed. Update g_apszItsDiagDesc when you modify
+ *       fields in this enum.
+ */
+typedef enum GITSDIAG
+{
+    /* No error, this must be zero! */
+    kGitsDiag_None = 0,
+
+    /* Command queue errors. */
+    kGitsDiag_CmdQueue_PhysAddr_Invalid,
+
+    /* Member for determining array index limit. */
+    kGitsDiag_End,
+
+    /* Usual 32-bit hack. */
+    kGitsDiag_32Bit_Hack = 0x7fffffff
+} GITSDIAG;
+AssertCompileSize(GITSDIAG, 4);
+
 #if 0
 /**
  * Interrupt Translation Table Base.
@@ -79,21 +103,19 @@ typedef struct GITSDEV
 {
     /** @name Control registers.
      * @{ */
-    /** Whether the ITS is enabled. */
-    bool                    fEnabled;
-    /** Whether unmapped MSI reporting interrupt is enabled. */
-    bool                    fUnmappedMsiReport;
-    /** Whether the ITS is quiescent and can be powered down. */
-    bool                    fQuiescent;
-    /** Padding. */
-    bool                    fPadding0;
-    /** The ITS table descriptor registers. */
+    /** The ITS control register (GITS_CTLR). */
+    uint32_t                uCtrlReg;
+    /** Implmentation-specific error diagnostic. */
+    GITSDIAG                enmDiag;
+    /** The ITS type register (GITS_TYPER). */
+    RTUINT64U               uTypeReg;
+    /** The ITS table descriptor registers (GITS_BASER<n>). */
     RTUINT64U               aItsTableRegs[8];
-    /** The ITS command queue base registers. */
+    /** The ITS command queue base registers (GITS_CBASER). */
     RTUINT64U               uCmdBaseReg;
-    /** The ITS command read register. */
+    /** The ITS command read register (GITS_CREADR). */
     uint32_t                uCmdReadReg;
-    /** The ITS command write register. */
+    /** The ITS command write register (GITS_CWRITER). */
     uint32_t                uCmdWriteReg;
     /** @} */
 
@@ -101,12 +123,16 @@ typedef struct GITSDEV
      * @{ */
     /** @} */
 
-    /** @name Command queue thread.
+    /** @name Command queue.
      * @{ */
     /** The command-queue thread. */
     R3PTRTYPE(PPDMTHREAD)   pCmdQueueThread;
     /** The event semaphore the command-queue thread waits on. */
     SUPSEMEVENT             hEvtCmdQueue;
+    /** Errors while processing command-queue. */
+    uint32_t                uCmdQueueError;
+    /** Padding. */
+    uint32_t                uPadding0;
     /** @} */
 
     /** @name Configurables.
@@ -122,6 +148,10 @@ typedef GITSDEV *PGITSDEV;
 /** Pointer to a const GITS device. */
 typedef GITSDEV const *PCGITSDEV;
 AssertCompileSizeAlignment(GITSDEV, 8);
+AssertCompileMemberAlignment(GITSDEV, aItsTableRegs, 8);
+AssertCompileMemberAlignment(GITSDEV, uCmdReadReg, 4);
+AssertCompileMemberAlignment(GITSDEV, uCmdWriteReg, 4);
+AssertCompileMemberAlignment(GITSDEV, hEvtCmdQueue, 8);
 AssertCompileMemberAlignment(GITSDEV, uArchRev, 8);
 
 DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);
@@ -134,8 +164,6 @@ DECL_HIDDEN_CALLBACK(void)         gitsMmioWriteTranslate(PGITSDEV pGitsDev, uin
 #ifdef IN_RING3
 DECL_HIDDEN_CALLBACK(void)         gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp, const char *pszArgs);
 DECL_HIDDEN_CALLBACK(int)          gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf);
-DECL_HIDDEN_CALLBACK(bool)         gitsR3CmdQueueCanProcessRequests(PCGITSDEV pGitsDev);
-DECL_HIDDEN_CALLBACK(bool)         gitsR3CmdQueueIsEmpty(PCGITSDEV pGitsDev);
 #endif
 
 #ifdef LOG_ENABLED

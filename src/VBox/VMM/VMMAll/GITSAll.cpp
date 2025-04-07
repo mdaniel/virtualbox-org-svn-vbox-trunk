@@ -66,6 +66,20 @@ typedef struct GITSITE
 } GITSITE;
 AssertCompileSize(GITSITE, 8);
 
+/** GITS diagnostic enum description expansion.
+ * The below construct ensures typos in the input to this macro are caught
+ * during compile time. */
+#define GITSDIAG_DESC(a_Name)        RT_CONCAT(kGitsDiag_, a_Name) < kGitsDiag_End ? RT_STR(a_Name) : "Ignored"
+/** GITS diagnostics description for members in GITSDIAG. */
+static const char *const g_apszGitsDiagDesc[] =
+{
+    GITSDIAG_DESC(None),
+    GITSDIAG_DESC(CmdQueue_PhysAddr_Invalid),
+    /* kGitsDiag_End */
+};
+AssertCompile(RT_ELEMENTS(g_apszGitsDiagDesc) == kGitsDiag_End);
+#undef GITSDIAG_DESC
+
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
@@ -107,6 +121,17 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
     }
 }
 
+static void gitsCmdQueueSetError(PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
+{
+    /* Record the error and stall the queue. */
+    pGitsDev->uCmdQueueError = enmError;
+    if (fStallQueue)
+        pGitsDev->uCmdReadReg |= GITS_BF_CTRL_REG_CREADR_STALLED_MASK;
+
+    /* Since we don't support SEIs, so there should be nothing more to do here. */
+    Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_SEIS));
+}
+
 
 DECL_FORCE_INLINE(bool) gitsCmdQueueIsEmptyEx(PCGITSDEV pGitsDev, uint32_t *poffRead, uint32_t *poffWrite)
 {
@@ -116,7 +141,7 @@ DECL_FORCE_INLINE(bool) gitsCmdQueueIsEmptyEx(PCGITSDEV pGitsDev, uint32_t *poff
 }
 
 
-DECL_HIDDEN_CALLBACK(bool) gitsCmdQueueIsEmpty(PCGITSDEV pGitsDev)
+DECL_FORCE_INLINE(bool) gitsCmdQueueIsEmpty(PCGITSDEV pGitsDev)
 {
     uint32_t offRead;
     uint32_t offWrite;
@@ -124,9 +149,9 @@ DECL_HIDDEN_CALLBACK(bool) gitsCmdQueueIsEmpty(PCGITSDEV pGitsDev)
 }
 
 
-DECL_HIDDEN_CALLBACK(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
+DECL_FORCE_INLINE(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
 {
-    if (     pGitsDev->fEnabled
+    if (    (pGitsDev->uTypeReg.u    & GITS_BF_CTRL_REG_CTLR_ENABLED_MASK)
         &&  (pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_VALID_MASK)
         && !(pGitsDev->uCmdReadReg   & GITS_BF_CTRL_REG_CREADR_STALLED_MASK))
         return true;
@@ -168,8 +193,7 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
     {
         case GITS_CTRL_REG_CTLR_OFF:
             Assert(cb == 4);
-            uReg = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_ENABLED,   pGitsDev->fEnabled)
-                 | RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, pGitsDev->fQuiescent);
+            uReg = pGitsDev->uCtrlReg;
             break;
 
         case GITS_CTRL_REG_PIDR2_OFF:
@@ -192,28 +216,7 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t off
         case GITS_CTRL_REG_TYPER_OFF:
         case GITS_CTRL_REG_TYPER_OFF + 4:
         {
-            uint64_t const uVal = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)      /* Physical LPIs supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,   0) */   /* Virtual LPIs not supported. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,       0)      /* Collections in memory not supported. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,   31)     /* 32-bit event IDs. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,  31)     /* 32-bit device IDs. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */   /** @todo SEI support. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,       0) */   /* Target is VCPU ID not address. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,       255)    /* Collection count. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  0) */   /* CIL specifies collection ID size. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       0) */   /* 16-bit collection IDs. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,     0) */   /* VMOVP not supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,      0) */   /* MPAM no supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,      0) */   /* VSGI not supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMAPP,     0) */   /* VMAPP not supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SVPET,     0) */   /* SVPET not supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_NID,       0) */   /* NID (doorbell) not supported. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,      0) */   /** @todo Reporting receipt of unmapped MSIs. */
-                              /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ,  0) */   /** @todo Generating interrupt on unmapped MSI. */
-                                | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);     /* ITS caches invalidated when clearing
-                                                                                          GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
-            uReg = uVal >> ((offReg & 7) << 3 /* to bits */);
+            uReg = pGitsDev->uTypeReg.u >> ((offReg & 7) << 3 /* to bits */);
             break;
         }
 
@@ -288,7 +291,8 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsD
     {
         case GITS_CTRL_REG_CTLR_OFF:
             Assert(cb == 4);
-            pGitsDev->fEnabled = RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED);
+            Assert(!(pGitsDev->uTypeReg.u & GITS_BF_CTRL_REG_TYPER_UMSI_IRQ_MASK));
+            pGitsDev->uCtrlReg = uValue & GITS_BF_CTRL_REG_CTLR_RW_MASK;
             gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
@@ -339,9 +343,29 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t of
 DECL_HIDDEN_CALLBACK(void) gitsInit(PGITSDEV pGitsDev)
 {
     Log4Func(("\n"));
-    pGitsDev->fEnabled           = false;
-    pGitsDev->fUnmappedMsiReport = false;
-    pGitsDev->fQuiescent         = true;
+
+    pGitsDev->uCtrlReg   = RT_BF_MAKE(GITS_BF_CTRL_REG_CTLR_QUIESCENT, 1);
+    pGitsDev->uTypeReg.u = RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PHYSICAL,  1)     /* Physical LPIs supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VIRTUAL,   0) */  /* Virtual LPIs not supported. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CCT,       0)     /* Collections in memory not supported. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ITT_ENTRY_SIZE, sizeof(GITSITE)) /* ITE size in bytes. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_ID_BITS,   31)    /* 32-bit event IDs. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_DEV_BITS,  31)    /* 32-bit device IDs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SEIS,      0) */  /* Locally generated errors not recommended. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_PTA,       0) */  /* Target is VCPU ID not address. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_HCC,       255)   /* Collection count. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CID_BITS,  0) */  /* CIL specifies collection ID size. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_CIL,       0) */  /* 16-bit collection IDs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMOVP,     0) */  /* VMOVP not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_MPAM,      0) */  /* MPAM no supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VSGI,      0) */  /* VSGI not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_VMAPP,     0) */  /* VMAPP not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_SVPET,     0) */  /* SVPET not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_NID,       0) */  /* NID (doorbell) not supported. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI,      0) */  /** @todo Reporting receipt of unmapped MSIs. */
+                       /*| RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_UMSI_IRQ,  0) */  /** @todo Generating interrupt on unmapped MSI. */
+                         | RT_BF_MAKE(GITS_BF_CTRL_REG_TYPER_INV,       1);    /* ITS caches invalidated when clearing
+                                                                                  GITS_CTLR.Enabled and GITS_BASER<n>.Valid. */
     RT_ZERO(pGitsDev->aItsTableRegs);
     pGitsDev->uCmdBaseReg.u      = 0;
     pGitsDev->uCmdReadReg        = 0;
@@ -355,10 +379,19 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
     RT_NOREF(pszArgs);
 
     pHlp->pfnPrintf(pHlp, "GIC ITS:\n");
-    pHlp->pfnPrintf(pHlp, "  uArchRev           = %u\n",      pGitsDev->uArchRev);
-    pHlp->pfnPrintf(pHlp, "  fEnabled           = %RTbool\n", pGitsDev->fEnabled);
-    pHlp->pfnPrintf(pHlp, "  fUnmappedMsiReport = %RTbool\n", pGitsDev->fUnmappedMsiReport);
-    pHlp->pfnPrintf(pHlp, "  fQuiescent         = %RTbool\n", pGitsDev->fQuiescent);
+
+    /* Basic info, GITS_CTLR and GITS_TYPER. */
+    {
+        GITSDIAG const    enmDiag  = pGitsDev->enmDiag;
+        const char *const pszDiag  = enmDiag < RT_ELEMENTS(g_apszGitsDiagDesc) ? g_apszGitsDiagDesc[enmDiag] : "(Unknown)";
+        uint32_t const    uCtrlReg = pGitsDev->uCtrlReg;
+        pHlp->pfnPrintf(pHlp, "  Error              = %#RX32 (%s)\n", enmDiag, pszDiag);
+        pHlp->pfnPrintf(pHlp, "  uArchRev           = %u\n",      pGitsDev->uArchRev);
+        pHlp->pfnPrintf(pHlp, "  uCtrlReg           = %#RX32\n",  uCtrlReg);
+        pHlp->pfnPrintf(pHlp, "    Enabled            = %RTbool\n", RT_BF_GET(uCtrlReg, GITS_BF_CTRL_REG_CTLR_ENABLED));
+        pHlp->pfnPrintf(pHlp, "    UMSI IRQ           = %RTbool\n", RT_BF_GET(uCtrlReg, GITS_BF_CTRL_REG_CTLR_UMSI_IRQ));
+        pHlp->pfnPrintf(pHlp, "    Quiescent          = %RTbool\n", RT_BF_GET(uCtrlReg, GITS_BF_CTRL_REG_CTLR_QUIESCENT));
+    }
 
     /* GITS_BASER<n>. */
     for (unsigned i = 0; i < RT_ELEMENTS(pGitsDev->aItsTableRegs); i++)
@@ -419,6 +452,7 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
 
 DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf)
 {
+    /* Hold the critical section as we could be accessing the device state simultaneously with MMIO accesses. */
     int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
     PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
 
@@ -433,58 +467,26 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             uint32_t const cbCmdQueue     = cCmdQueuePages << GITS_CMD_QUEUE_PAGE_SHIFT;
             AssertRelease(cbCmdQueue <= cbBuf); /** @todo Paranoia; make this a debug assert later. */
 
-#if 0
             /*
-             * Allocate space for the command-queue if we haven't done so already.
-             */
-            if (pGitsDev->pvCmdQueue != NULL)
-            {
-                if (pGitsDev->cbCmdQueue <= cbCmdQueue)
-                {   /* Already allocated sufficient space. */   }
-                else
-                {
-                    /* Free old allocation and allocate a new one. */
-                    RTMemFree(pGitsDev->pvCmdQueue);
-                    pGitsDev->cbCmdQueue = cbCmdQueue;
-                    pGitsDev->pvCmdQueue = RTMemAllocZ(cbCmdQueue);
-                    if (pGitsDev->pvCmdQueue)
-                    { /* likely */ }
-                    else
-                        return VERR_NO_MEMORY;
-                }
-            }
-            else
-            {
-                /* Allocate one. */
-                pGitsDev->cbCmdQueue = cbCmdQueue;
-                pGitsDev->pvCmdQueue = RTMemAllocZ(cbCmdQueue);
-                if (pGitsDev->pvCmdQueue)
-                { /* likely */ }
-                else
-                    return VERR_NO_MEMORY;
-            }
-#endif
-
-            /*
-             * Read all the commands into the command queue.
+             * Read all the commands from guest memory into our command queue buffer.
              */
             RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
 
-            /* Leave the critical section before reading (a potentially large amount of) commands. */
+            /* Temporarily leave the critical section while reading (a potentially large number of) commands from guest memory. */
             PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
 
             int      rc;
             uint32_t cbCmds;
             if (offWrite > offRead)
             {
-                /* The commands have not wrapped around, read them in one go. */
+                /* The write offset has not wrapped around, read them in one go. */
                 cbCmds = offWrite - offRead;
                 Assert(cbCmds <= cbBuf);
                 rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbCmds);
             }
             else
             {
-                /* The commands have wrapped around, read forward and wrapped-around. */
+                /* The write offset has wrapped around, read till end of buffer followed by wrapped-around data. */
                 uint32_t const cbForward = cbCmdQueue - offRead;
                 uint32_t const cbWrapped = offWrite;
                 Assert(cbForward + cbWrapped <= cbBuf);
@@ -505,7 +507,6 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
              */
             if (RT_SUCCESS(rc))
             {
-
                 uint32_t const cCmds = cbCmds / GITS_CMD_SIZE;
                 for (uint32_t idxCmd = 0; idxCmd < cCmds; idxCmd++)
                 {
@@ -518,9 +519,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             }
 
             /* Failed to read command queue from the physical address specified by the guest, stall queue and retry later. */
-
-
-            /** @todo Stall the command queue. */
+            gitsCmdQueueSetError(pGitsDev, kGitsDiag_CmdQueue_PhysAddr_Invalid, true /* fStall */);
             return VINF_TRY_AGAIN;
         }
     }

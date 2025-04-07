@@ -52,6 +52,9 @@
 /** The guest page shift (x86). */
 #define GITS_CMD_QUEUE_PAGE_SHIFT                               12
 
+/** The GITS command size in bytes.  */
+#define GITS_CMD_SIZE                                           32
+
 /** GITS_CTLR: Control register - RW. */
 #define GITS_CTRL_REG_CTLR_OFF                                  0x0000
 /** GITS_CTLR: Enabled. */
@@ -77,6 +80,12 @@
 #define GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK                    UINT32_C(0x80000000)
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CTLR_, UINT32_C(0), UINT32_MAX,
                             (ENABLED, IM_DE, RSVD_3_2, ITS_NUMBER, UMSI_IRQ, RSVD_30_9, QUIESCENT));
+/** GITS_CTLR: Mask of valid read-write bits. */
+#define GITS_BF_CTRL_REG_CTLR_RW_MASK                           (UINT32_MAX & ~(  GITS_BF_CTRL_REG_CTLR_IM_DE_MASK      \
+                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_3_2_MASK   \
+                                                                                | GITS_BF_CTRL_REG_CTLR_ITS_NUMBER_MASK \
+                                                                                | GITS_BF_CTRL_REG_CTLR_RSVD_30_9_MASK  \
+                                                                                | GITS_BF_CTRL_REG_CTLR_QUIESCENT_MASK))
 
 /** GITS_IIDR: Implementer and revision register - RO. */
 #define GITS_CTRL_REG_IIDR_OFF                                  0x0004
@@ -391,9 +400,6 @@ typedef enum GITSITSTYPE
     GITSITSTYPE_INTR_COLLECTIONS
 } GITSITSTYPE;
 
-/** GITS command size in bytes.  */
-#define GITS_CMD_SIZE                                           32
-
 /**
  * ITS command.
  * In accordance to the ARM GIC spec.
@@ -417,7 +423,7 @@ typedef union GITSCMD
 typedef GITSCMD *PGITSCMD;
 /** Pointer to a const ITS command. */
 typedef GITSCMD const *PCGITSCMD;
-
+AssertCompileSize(GITSCMD, GITS_CMD_SIZE);
 
 #endif /* !VBOX_INCLUDED_gic_its_h */
 

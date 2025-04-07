@@ -1264,7 +1264,7 @@ static int utsInit(void)
 
     RTListInit(&g_LstClientsNew);
 
-    rc = RTJsonParseFromFile(&g_hCfgJson, g_szCfgPath, pErrInfo);
+    rc = RTJsonParseFromFile(&g_hCfgJson, 0 /*fFlags*/, g_szCfgPath, pErrInfo);
     if (RT_SUCCESS(rc))
     {
         rc = utsPlatformInit();

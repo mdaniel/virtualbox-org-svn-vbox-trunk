@@ -50,6 +50,20 @@
 /** Gets whether the given register offset is within the specified range. */
 #define GITS_IS_REG_IN_RANGE(a_offReg, a_offFirst, a_cbRegion)    ((uint32_t)(a_offReg) - (a_offFirst) < (a_cbRegion))
 
+/** Acquire the device critical section. */
+#define GITS_CRIT_SECT_ENTER(a_pDevIns) \
+    do \
+    { \
+        int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS); \
+        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock); \
+    } while(0)
+
+/** Release the device critical section. */
+#define GITS_CRIT_SECT_LEAVE(a_pDevIns)         PDMDevHlpCritSectLeave((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
+
+/** Returns whether the critical section is held. */
+#define GITS_CRIT_SECT_IS_OWNER(a_pDevIns)      PDMDevHlpCritSectIsOwner((a_pDevIns), (a_pDevIns)->CTX_SUFF(pCritSectRo))
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -161,7 +175,7 @@ DECL_FORCE_INLINE(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
 
 static void gitsCmdQueueThreadWakeUpIfNeeded(PPDMDEVINS pDevIns, PGITSDEV pGitsDev)
 {
-    Assert(PDMDevHlpCritSectIsOwner(pDevIns, pDevIns->CTX_SUFF(pCritSectRo)));
+    Assert(GITS_CRIT_SECT_IS_OWNER(pDevIns));
     if (    gitsCmdQueueCanProcessRequests(pGitsDev)
         && !gitsCmdQueueIsEmpty(pGitsDev))
     {
@@ -453,8 +467,7 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
 DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf)
 {
     /* Hold the critical section as we could be accessing the device state simultaneously with MMIO accesses. */
-    int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
-    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+    GITS_CRIT_SECT_ENTER(pDevIns);
 
     if (gitsCmdQueueCanProcessRequests(pGitsDev))
     {
@@ -473,7 +486,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
 
             /* Temporarily leave the critical section while reading (a potentially large number of) commands from guest memory. */
-            PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+            GITS_CRIT_SECT_LEAVE(pDevIns);
 
             int      rc;
             uint32_t cbCmds;
@@ -499,8 +512,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             }
 
             /* Re-acquire the critical section as we now need to modify device state. */
-            int const rcLock2 = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
-            PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock2);
+            GITS_CRIT_SECT_ENTER(pDevIns);
 
             /*
              * Process the commands in the queue.
@@ -514,7 +526,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                     AssertReleaseMsgFailed(("Cmd=%#x\n", pCmd->clear.uCmdId));
                 }
 
-                PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+                GITS_CRIT_SECT_LEAVE(pDevIns);
                 return VINF_SUCCESS;
             }
 
@@ -524,7 +536,7 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
         }
     }
 
-    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    GITS_CRIT_SECT_LEAVE(pDevIns);
     return VINF_SUCCESS;
 }
 #endif /* IN_RING3 */

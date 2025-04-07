@@ -44,10 +44,14 @@ import os;
 import re;
 import sys;
 import tarfile;
+import time;
 import traceback;
 # profiling:
 import cProfile;
 import pstats
+
+
+g_nsProgStart = int(time.time_ns())
 
 
 #
@@ -419,15 +423,21 @@ class ArmInstruction(object):
         # State related to decoder.
         self.fDecoderLeafCheckNeeded = False;    ##< Whether we need to check fixed value/mask in leaf decoder functions.
 
+    def toString(self, cchName = 0, fEncoding = False):
+        if self.sName == self.sMnemonic:
+            sRet = 'sName=%-*s' % (cchName, self.sName,);
+        else:
+            sRet = 'sName=%-*s sMnemonic=%-*s' % (cchName, self.sName, cchName, self.sMnemonic);
+        if not fEncoding:
+            return '%s fFixedValue/Mask=%#x/%#x #encoding=%s' % (sRet, self.fFixedValue, self.fFixedMask, len(self.aoEncodesets));
+        return '%s fFixedValue/Mask=%#x/%#x encoding=\n    %s' \
+             % (sRet, self.fFixedValue, self.fFixedMask, ',\n    '.join([str(s) for s in self.aoEncodesets]),);
+
     def __str__(self):
-        sRet = 'sName=%s; sMnemonic=%s fFixedValue/Mask=%#x/%#x encoding=\n    %s' % (
-            self.sName, self.sMnemonic, self.fFixedValue, self.fFixedMask,
-            ',\n    '.join([str(s) for s in self.aoEncodesets]),
-        );
-        return sRet;
+        return self.toString();
 
     def __repr__(self):
-        return self.__str__();
+        return self.toString();
 
     def getCName(self):
         # Get rid of trailing underscore as it seems pointless.
@@ -824,7 +834,7 @@ class MaskZipper(object):
         Version of compileAlgo that returns an empty list if there are
         more than three sections.
         """
-        assert fMask;
+        #assert fMask;
 
         #
         # Chunk 0:
@@ -1021,34 +1031,38 @@ class MaskIterator(object):
     # This is implied by the code in MaskZipper.compileAlgoLimited.
     kcMaxMaskParts = 3
 
-    def __init__(self, fMask, cMaxTableSizeInBits, dDictDoneAlready, fCompileIt = False):
+    def __init__(self, fMask, cMinTableSizeInBits, cMaxTableSizeInBits, fMaskNotDoneYet):
         self.fMask               = fMask;
         self.aaiAlgo             = MaskZipper.compileAlgo(fMask);
         self.fCompactMask        = MaskZipper.zipMask(fMask, self.aaiAlgo);
-        #print('debug: fMask=%#x -> fCompactMask=%#x aaiAlgo=%s' % (fMask, self.fCompactMask, self.aaiAlgo));
-        self.fnExpandMask        = MaskZipper.algoToUnzipLambda(self.aaiAlgo, fMask, fCompileIt);
+        self.fnExpandMask        = MaskZipper.algoToUnzipLambda(self.aaiAlgo, fMask,
+                                                                self.fCompactMask.bit_count() >= 8);
+        self.cMinTableSizeInBits = cMinTableSizeInBits;
         self.cMaxTableSizeInBits = cMaxTableSizeInBits;
-        self.dDictDoneAlready    = dDictDoneAlready;
-        self.cReturned           = 0;
+        self.fCompactMaskNotDoneYet = MaskZipper.zipMask(fMaskNotDoneYet, self.aaiAlgo);
+        #print('debug: fMask=%#x -> fCompactMask=%#x aaiAlgo=%s' % (fMask, self.fCompactMask, self.aaiAlgo));
+        #self.cReturned           = 0;
 
     def __iter__(self):
         return self;
 
     def __next__(self):
-        fCompactMask = self.fCompactMask;
+        fCompactMask           = self.fCompactMask;
+        fCompactMaskNotDoneYet = self.fCompactMaskNotDoneYet;
+        cMinTableSizeInBits    = self.cMinTableSizeInBits
+        cMaxTableSizeInBits    = self.cMaxTableSizeInBits
         while fCompactMask != 0:
-            cCurBits = fCompactMask.bit_count();
-            if cCurBits <= self.cMaxTableSizeInBits:
-                fMask = self.fnExpandMask(fCompactMask, self.aaiAlgo);
-                if fMask not in self.dDictDoneAlready:
+            if fCompactMask & fCompactMaskNotDoneYet:
+                cCurBits = fCompactMask.bit_count();
+                if cMinTableSizeInBits <= cCurBits <= cMaxTableSizeInBits:
+                    fMask = self.fnExpandMask(fCompactMask, self.aaiAlgo);
                     aaiMaskAlgo = MaskZipper.compileAlgoLimited(fMask);
                     if aaiMaskAlgo:
                         #assert aaiMaskAlgo == MaskZipper.compileAlgo(fMask), \
                         #    '%s vs %s' % (aaiMaskAlgo, MaskZipper.compileAlgo(fMask));
-                        self.dDictDoneAlready[fMask] = 1;
+                        #self.cReturned += 1;
                         self.fCompactMask = fCompactMask - 1;
-                        self.cReturned += 1;
-                        return (fMask, MaskZipper.algoToBitList(aaiMaskAlgo), aaiMaskAlgo);
+                        return (fMask, cCurBits, aaiMaskAlgo);
             fCompactMask -= 1;
         self.fCompactMask = 0;
         #print('MaskIterator: fMask=%#x -> %u items returned' % (self.fMask, self.cReturned));
@@ -1076,26 +1090,27 @@ class DecoderNode(object):
         15,     # [2^14 =16384] => 32768
     );
 
-    def __init__(self, aoInstructions, fCheckedMask, fCheckedValue, uDepth):
-        assert (~fCheckedMask & fCheckedValue) == 0;
-        for idxInstr, oInstr in enumerate(aoInstructions):
-            assert ((oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask) == 0, \
-                    '%s: fFixedValue=%#x fFixedMask=%#x fCheckedValue=%#x fCheckedMask=%#x -> %#x\naoInstructions: len=%s\n %s' \
-                    % (idxInstr, oInstr.fFixedValue, oInstr.fFixedMask, fCheckedValue, fCheckedMask,
-                       (oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask,
-                       len(aoInstructions),
-                       '\n '.join(['%s%s: %#010x/%#010x %s' % ('*' if i == idxInstr else ' ', i,
-                                                               oInstr2.fFixedValue, oInstr2.fFixedMask, oInstr2.sName)
-                                   for i, oInstr2 in enumerate(aoInstructions[:idxInstr+8])]));
+    class TooExpensive(Exception):
+        def __init__(self):
+            Exception.__init__(self, None);
+
+    def __init__(self, aoInstructions, fCheckedMask, fCheckedValue):
+        #assert (~fCheckedMask & fCheckedValue) == 0;
+        #for idxInstr, oInstr in enumerate(aoInstructions):
+        #    assert ((oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask) == 0, \
+        #            '%s: fFixedValue=%#x fFixedMask=%#x fCheckedValue=%#x fCheckedMask=%#x -> %#x\naoInstructions: len=%s\n %s' \
+        #            % (idxInstr, oInstr.fFixedValue, oInstr.fFixedMask, fCheckedValue, fCheckedMask,
+        #               (oInstr.fFixedValue ^ fCheckedValue) & fCheckedMask & oInstr.fFixedMask,
+        #               len(aoInstructions),
+        #               '\n '.join(['%s%s: %#010x/%#010x %s' % ('*' if i == idxInstr else ' ', i,
+        #                                                       oInstr2.fFixedValue, oInstr2.fFixedMask, oInstr2.sName)
+        #                           for i, oInstr2 in enumerate(aoInstructions[:idxInstr+8])]));
 
         self.aoInstructions     = aoInstructions;   ##< The instructions at this level.
         self.fCheckedMask       = fCheckedMask;     ##< The opcode bit mask covered thus far.
         self.fCheckedValue      = fCheckedValue;    ##< The value that goes with fCheckedMask.
-        self.uDepth             = uDepth;           ##< The current node depth.
-        self.uCost              = 0;                ##< The cost at this level.
-        self.fLeafCheckNeeded   = len(aoInstructions) == 1 and (aoInstructions[0].fFixedMask & ~self.fCheckedMask) != 0;
         self.fChildMask         = 0;                ##< The mask used to separate the children.
-        self.aoChildren         = [];               ##< Children, populated by constructNextLevel().
+        self.dChildren          = {};               ##< Children, sparsely populated by constructNextLevel().
 
     @staticmethod
     def popCount(uValue):
@@ -1105,32 +1120,60 @@ class DecoderNode(object):
             uValue &= uValue - 1;
         return cBits;
 
-    def constructNextLevel(self):
+    s_uLogLine = 0;
+    @staticmethod
+    def dprint(uDepth, sMsg):
+        msNow = (time.time_ns() - g_nsProgStart) // 1000000;
+        print('%u.%03u: %u: debug/%u: %s%s' % (msNow // 1000, msNow % 1000, DecoderNode.s_uLogLine, uDepth, '  ' * uDepth, sMsg));
+        DecoderNode.s_uLogLine += 1;
+
+    def constructNextLevel(self, uDepth, uMaxCost): # pylint: disable=too-many-locals
         """
         Recursively constructs the
         """
+        if uDepth == 0:
+            for i, oInstr in enumerate(self.aoInstructions):
+                self.dprint(uDepth, '%4u: %s' % (i, oInstr.toString(cchName = 32),));
+
         #
-        # Special case: leaf.
+        # Special cases: 4 or fewer entries.
         #
-        if len(self.aoInstructions) <= 1:
-            assert len(self.aoChildren) == 0;
-            return 16 if self.fLeafCheckNeeded else 0;
-        sDbgPrefix = 'debug/%u: %s' % (self.uDepth, '  ' * self.uDepth);
+        cInstructions = len(self.aoInstructions)
+        if cInstructions <= 4:
+            #assert len(self.dChildren) == 0;
+            uCost = 0;
+            # Special case: 1 instruction - leaf.
+            if cInstructions <= 1:
+                if self.aoInstructions[0].fFixedMask & ~self.fCheckedMask != 0:
+                    uCost = 16;                                                         # 16 = kCostOpcodeValueIf
+
+            # Special case: 2, 3 or 4 instructions - use a sequence of 'if ((uOpcode & fFixedMask) == fFixedValue)' checks.
+            else:
+                self.fChildMask = 0xffffffff;
+                for i, oInstr in enumerate(self.aoInstructions):
+                    self.dChildren[i] = DecoderNode([oInstr], oInstr.fFixedMask, oInstr.fFixedMask);
+                uCost = 32 * cInstructions * 2;                                         # 32 = kCostMultipleOpcodeValueIfs
+            return uCost #<< uDepth;
+
+        #
+        # The cost of one indirect call is 32, so just bail if we don't have
+        # the budget for any of that.
+        #
+        if uMaxCost <= 256:                                                             # 256 = kCostIndirectCall
+            raise DecoderNode.TooExpensive();
+        if uDepth > 5:                                                                  #   5 = kMaxDepth
+            raise DecoderNode.TooExpensive();
 
         #
         # Do an inventory of the fixed masks used by the instructions.
         #
-        dMaskCounts = collections.Counter();
+        dMaskCounts  = collections.Counter();
+        fCheckedMask = self.fCheckedMask;    # (Cache it as a local variable for speed.)
         for oInstr in self.aoInstructions:
-            dMaskCounts[oInstr.fFixedMask & ~self.fCheckedMask] += 1;
-        assert 0 not in dMaskCounts or dMaskCounts[0] <= 1, \
-                'dMaskCounts=%s len(self.aoInstructions)=%s\n%s' % (dMaskCounts, len(self.aoInstructions), self.aoInstructions);
-
-        ## Determine the max table size for the number of instructions we have.
-        #cInstructionsAsShift = 1;
-        #while (1 << cInstructionsAsShift) < len(self.aoInstructions):
-        #    cInstructionsAsShift += 1;
-        #cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cInstructionsAsShift];
+            dMaskCounts[oInstr.fFixedMask & ~fCheckedMask] += 1;
+        #assert 0 not in dMaskCounts or dMaskCounts[0] <= 1, \
+        #        'dMaskCounts=%s cInstructions=%s\n%s' % (dMaskCounts, cInstructions, self.aoInstructions);
+        # 0x00011c00 & 0xfffee000  = 0x0 (0)
 
         #
         # Whether to bother compiling the mask zip/unzip functions.
@@ -1139,88 +1182,147 @@ class DecoderNode(object):
         # away from top of the profiler stats, while at the same time keeping the
         # __zipMaskN and __unzipMaskN methods from taking up too much time.
         #
-        fCompileMaskZipUnzip = len(self.aoInstructions) >= 12;
+        fCompileMaskZipUnzip = cInstructions >= 12;
 
         #
         # Work thru the possible masks and test out the variations (brute force style).
         #
-        uCostBest        = 0x7fffffffffffffff;
+        uCostBest        = uMaxCost;
+        cChildrenBits    = 0;
         fChildrenBest    = 0;
-        aoChildrenBest   = [];
+        dChildrenBest    = {};
 
-        dDictDoneAlready = {};
-        for fOrgMask, cOccurences in dMaskCounts.most_common(8):
-            cOccurencesAsShift = 1;
-            while (1 << cOccurencesAsShift) < cOccurences:
-                cOccurencesAsShift += 1;
-            cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cOccurencesAsShift]; # Not quite sure about this...
-            if self.uDepth <= 1:
-                print('%s===== Start: %#010x (%u) - %u instructions - max tab size %u ====='
-                      % (sDbgPrefix, fOrgMask, self.popCount(fOrgMask), cOccurences, cMaxTableSizeInBits,));
+        fMaskNotDoneYet  = 0xffffffff;
+        fCheckedValue    = self.fCheckedValue; # (Cache it as a local variable for speed.)
+        iOuterLoop       = -1;
+        for fOrgMask, cOccurences in dMaskCounts.most_common(3):
+            iOuterLoop += 1;
 
-            # Skip pointless stuff.
-            if cOccurences >= 2 and fOrgMask > 0 and fOrgMask != 0xffffffff:
+            # Determin the max and min table sizes (in bits) based on the instructions using the mask.
+            cMinTableSizeInBits = cOccurences.bit_length() - 1;
+            if (1 << cMinTableSizeInBits) < cOccurences:
+                cMinTableSizeInBits += 1;
+            cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cMinTableSizeInBits]; # Not quite sure about this...
+            cMinTableSizeInBits -= 1;
+
+            if uDepth <= 7:
+                self.dprint(uDepth,
+                            '%s Start/%u: %#010x (%u) - %u/%u instructions - tab size %u-%u; fChecked=%#x/%#x uCostBest=%#x'
+                            % (('=' if iOuterLoop == 0 else '-') * 5, iOuterLoop, fOrgMask,
+                               self.popCount(fOrgMask), cOccurences, cInstructions, cMinTableSizeInBits, cMaxTableSizeInBits,
+                               fCheckedValue, fCheckedMask, uCostBest,));
+
+            # Skip pointless stuff and things we've already covered.
+            if cOccurences >= 2 and fOrgMask > 0 and fOrgMask != 0xffffffff and (fOrgMask & fMaskNotDoneYet) != 0:
                 #
                 # Brute force relevant mask variations.
-                # (The MaskIterator skips masks that are too wide and too fragmented.)
+                # (The MaskIterator skips masks that are too wide, too fragmented or already covered.)
                 #
-                for fMask, dOrderedDictMask, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMaxTableSizeInBits,
-                                                                              dDictDoneAlready, fCompileMaskZipUnzip):
-                    #print('%s>>> fMask=%#010x dOrderedDictMask=%s aaiMaskToIdxAlgo=%s)...'
-                    #      % (sDbgPrefix, fMask, dOrderedDictMask, aaiMaskToIdxAlgo));
-                    assert len(dOrderedDictMask) <= cMaxTableSizeInBits;
+                for fMask, cMaskBits, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMinTableSizeInBits, cMaxTableSizeInBits,
+                                                                       fMaskNotDoneYet):
+                    if uDepth <= 7:
+                        self.dprint(uDepth, '>>> fMask=%#010x cMaskBits=%s aaiMaskToIdxAlgo=%s)...'
+                                             % (fMask, cMaskBits, aaiMaskToIdxAlgo));
+                    #assert cMaskBits <= cMaxTableSizeInBits;
+
+                    # Calculate base cost and check it against uCostBest before continuing.
+                    uCostTmp    = 256;                                                  # 256 = kCostIndirectCall
+                    uCostTmp   += (len(aaiMaskToIdxAlgo) - 1) * 2;                      #   2 = kCostPerExtraIndexStep
+                    #uCostTmp  <<= uDepth;   # Make the cost exponentially higher with depth. (?)
+                    if uCostTmp >= uCostBest:
+                        if uDepth <= 7:
+                            self.dprint(uDepth, '!!! %#010x too expensive #1: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
+                        continue;
 
                     # Compile the indexing/unindexing functions.
                     fnToIndex   = MaskZipper.algoToZipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
                     fnFromIndex = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
 
-                    # Create an temporary table empty with empty lists as entries.
-                    ## @todo is there a better way for doing this? collections.defaultdict?
-                    aaoTmp = [];
-                    for _ in range(1 << len(dOrderedDictMask)):
-                        aaoTmp.append([]);
-
                     # Insert the instructions into the temporary table.
+                    daoTmp = collections.defaultdict(list);
                     for oInstr in self.aoInstructions:
                         idx = fnToIndex(oInstr.fFixedValue, aaiMaskToIdxAlgo);
                         #assert idx == MaskZipper.zipMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
                         #assert idx == fnToIndex(fnFromIndex(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
                         #assert idx == MaskZipper.zipMask(MaskZipper.unzipMask(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
+                        #self.dprint(uDepth, '%#010x -> %#05x %s' % (oInstr.fFixedValue, idx, oInstr.sName));
+                        daoTmp[idx].append(oInstr);
 
-                        #print('%s%#010x -> %#05x %s' % (sDbgPrefix, oInstr.fFixedValue, idx, oInstr.sName));
-                        aoList = aaoTmp[idx];
-                        aoList.append(oInstr);
+                    # Reject anything that ends up putting all the stuff in a single slot.
+                    if len(daoTmp) <= 1:
+                        if uDepth <= 7: self.dprint(uDepth, '!!! bad distribution #1: fMask=%#x' % (fMask,));
+                        continue;
+
+                    # Add cost for poor average distribution.
+                    rdAvgLen = float(cInstructions) / len(daoTmp);
+                    if rdAvgLen > 1.2:
+                        uCostTmp += int(rdAvgLen * 8)
+                        if uCostTmp >= uCostBest:
+                            if uDepth <= 7:
+                                self.dprint(uDepth, '!!! %#010x too expensive #2: %#x vs %#x (rdAvgLen=%s)'
+                                                    % (fMask, uCostTmp, uCostBest, rdAvgLen));
+                            continue;
+
+                    # Add the cost for unused entries under reasonable table population.
+                    cNominalFill = 1 << (cMaskBits - 1); # 50% full or better is great.
+                    if len(daoTmp) < cNominalFill:
+                        uCostTmp += ((cNominalFill - len(daoTmp)) * 2) #<< uDepth;  # 2 = kCostUnusedTabEntry
+                        if uCostTmp >= uCostBest:
+                            if uDepth <= 7:
+                                self.dprint(uDepth, '!!! %#010x too expensive #3: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
+                            continue;
 
                     # Construct decoder nodes from the aaoTmp lists, construct sub-levels and calculate costs.
-                    uCostTmp      = 0; ## @todo calc base cost from table size and depth.
-                    aoChildrenTmp = [];
-                    for idx, aoInstrs in enumerate(aaoTmp):
-                        oChild = DecoderNode(aoInstrs,
-                                             self.fCheckedMask  | fMask,
-                                             self.fCheckedValue | fnFromIndex(idx, aaiMaskToIdxAlgo),
-                                             self.uDepth + 1);
-                        aoChildrenTmp.append(oChild);
-                        uCostTmp += oChild.constructNextLevel();
+                    dChildrenTmp = {};
+                    try:
+                        for idx, aoInstrs in daoTmp.items():
+                            oChild = DecoderNode(aoInstrs,
+                                                 fCheckedMask  | fMask,
+                                                 fCheckedValue | fnFromIndex(idx, aaiMaskToIdxAlgo));
+                            dChildrenTmp[idx] = oChild;
+                            uCostTmp += oChild.constructNextLevel(uDepth + 1, uCostBest - uCostTmp);
+                            if uCostTmp >= uCostBest:
+                                break;
+                    except DecoderNode.TooExpensive:
+                        if uDepth <= 7:
+                            self.dprint(uDepth, '!!! %#010x too expensive #4: %#x+child vs %#x' % (fMask, uCostTmp, uCostBest));
+                        continue;
 
                     # Is this mask better than the previous?
                     if uCostTmp < uCostBest:
-                        if self.uDepth <= 1:
-                            print('%s~~~ New best! fMask=%#010x uCost=%#x (previous %#010x / %#x) ...'
-                                  % (sDbgPrefix, fMask, uCostTmp, fChildrenBest, uCostBest, ));
+                        if uDepth <= 2:
+                            self.dprint(uDepth,
+                                        '+++ %s best!  %#010x (%u) uCost=%#x; %u ins in %u slots (previous %#010x / %#x) ...'
+                                        % ('New' if cChildrenBits else '1st', fMask, cMaskBits, uCostTmp,
+                                           cInstructions, len(dChildrenTmp), fChildrenBest, uCostBest, ));
                         uCostBest      = uCostTmp;
+                        cChildrenBits  = cMaskBits;
                         fChildrenBest  = fMask;
-                        aoChildrenBest = aoChildrenTmp;
+                        dChildrenBest  = dChildrenTmp;
+                    elif uDepth <= 7:
+                        self.dprint(uDepth, '!!! %#010x too expensive #5: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
 
-        if self.uDepth <= 1:
-            print('%s===== Final: fMask=%#010x uCost=%#x TabSize=%#x Instructions=%u...'
-                  % (sDbgPrefix, fChildrenBest, uCostBest, len(aoChildrenBest), len(self.aoInstructions)));
-        if aoChildrenBest is None:
-            pass; ## @todo
+                # Note that we've covered all the permutations in the given mask.
+                fMaskNotDoneYet &= ~fOrgMask;
+
+        # Drop it if too expensive.
+        if uCostBest >= uMaxCost:
+            raise DecoderNode.TooExpensive();
+
+        if dChildrenBest is None:
+            print('warning! No solution! depth=%u #Instruction=%u' % (uDepth, cInstructions));
+            raise Exception('fixme')
+
+        #assert fChildrenBest.bit_count() == cChildrenBits;
+        #assert len(dChildrenBest) <= (1 << cChildrenBits)
+        if uDepth <= 7:
+            self.dprint(uDepth,
+                        '===== Final: fMask=%#010x uCost=%#x TabSize=%#x #Instructions=%u in %u slots...'
+                        % (fChildrenBest, uCostBest, 1 << cChildrenBits, cInstructions, len(dChildrenBest)));
 
         # Done.
         self.fChildMask = fChildrenBest;
-        self.aoChildren = aoChildrenBest;
-        self.uCost      = uCostBest;
+        self.dChildren  = dChildrenBest;
 
         return uCostBest;
 
@@ -1239,8 +1341,10 @@ class IEMArmGenerator(object):
         """
         Creates the decoder to the best our abilities.
         """
-        self.oDecoderRoot = DecoderNode(g_aoAllArmInstructions, 0, 0, 0);
-        self.oDecoderRoot.constructNextLevel();
+        self.oDecoderRoot = DecoderNode(sorted(g_aoAllArmInstructions,
+                                               key = operator.attrgetter('fFixedMask', 'fFixedValue', 'sName'))[:32],
+                                        0, 0);
+        self.oDecoderRoot.constructNextLevel(0, sys.maxsize);
 
 
     def generateLicenseHeader(self):
@@ -1362,7 +1466,7 @@ class IEMArmGenerator(object):
     def main(self, asArgs):
         """ Main function. """
 
-        #for _ in MaskIterator(0xffc0ff00, 12, {}):
+        #for _ in MaskIterator(0xffc0ff00, 4, 12, {}):
         #    pass;
         #return 2;
 
@@ -1499,11 +1603,13 @@ def printException(oXcpt):
     print('----', flush = True);
 
 if __name__ == '__main__':
-    #for fOrgMask in (1, 3, 7, 15, 31):
+    #for fOrgMask in (0x11c00,):
     #    print('Test %#x:' % (fOrgMask,));
-    #    for x in MaskIterator(fOrgMask, 16, {}):
-    #        print('MaskIterator: fMask=%#04x aiBits=%20s aaiAlgo=%s' % (x[0],x[1],x[2]));
-    fProfileIt = True;
+    #    for x in MaskIterator(fOrgMask, 16, ~0xfffee000):
+    #        print('MaskIterator: fMask=%#05x cBits=%2s aaiAlgo=%s' % (x[0],x[1],x[2]));
+    #sys.exit(1);
+
+    fProfileIt = False;
     oProfiler = cProfile.Profile() if fProfileIt else None;
     try:
         if not oProfiler:

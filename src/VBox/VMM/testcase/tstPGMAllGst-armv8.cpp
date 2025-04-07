@@ -29,7 +29,9 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#include "VMInternal.h" /* createFakeVM */
+#include "VMInternal.h"
+#include <VBox/vmm/cpum.h>
+#include "../include/CPUMInternal-armv8.h"
 #include "../include/PGMInternal.h"
 
 #include <VBox/vmm/vm.h>
@@ -41,50 +43,109 @@
 
 #include <VBox/err.h>
 #include <VBox/log.h>
+#include <iprt/avl.h>
 #include <iprt/assert.h>
 #include <iprt/initterm.h>
+#include <iprt/json.h>
 #include <iprt/message.h>
 #include <iprt/mem.h>
 #include <iprt/string.h>
 #include <iprt/thread.h>
 #include <iprt/test.h>
+#include <iprt/zero.h>
+
+
+/*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
+
+/**
+ * Chunk of physical memory containing data.
+ */
+typedef struct TSTMEMCHUNK
+{
+    /** AVL tree code. */
+    /** @todo Too lazy to introduce support for a ranged RT_GCPHYS based AVL tree right now, so just use uint64_t. */
+    AVLRU64NODECORE Core;
+    /** The memory - variable in size. */
+    uint8_t         abMem[1];
+} TSTMEMCHUNK;
+/** Pointer to a physical memory chunk. */
+typedef TSTMEMCHUNK *PTSTMEMCHUNK;
+/** Pointer to a const physical memory chunk. */
+typedef const TSTMEMCHUNK *PCTSTMEMCHUNK;
+
+
+/**
+ * The current testcase data.
+ */
+typedef struct TSTPGMARMV8MMU
+{
+    /** The address space layout. */
+    AVLRU64TREE     TreeMem;
+    /** The fake VM structure. */
+    PVM             pVM;
+    /** TTBR0 value. */
+    uint64_t        u64RegTtbr0;
+    /** TTBR1 value. */
+    uint64_t        u64RegTtbr1;
+    /** The current exception level. */
+    uint8_t         bEl;
+} TSTPGMARMV8MMU;
+typedef TSTPGMARMV8MMU *PTSTPGMARMV8MMU;
+typedef const TSTPGMARMV8MMU *PCTSTPGMARMV8MMU;
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 static RTTEST g_hTest;
+/** The currently executing testcase config. */
+static TSTPGMARMV8MMU g_MmuCfg;
+
+
+static int pgmPhysGCPhys2CCPtr(RTGCPHYS GCPhys, void **ppv)
+{
+    PCTSTMEMCHUNK pChunk = (PCTSTMEMCHUNK)RTAvlrU64RangeGet(&g_MmuCfg.TreeMem, GCPhys);
+    if (!pChunk)
+    {
+        *ppv = (void *)&g_abRTZero64K[0]; /* This ASSUMES that the page table walking code will never access beyond the end of this page. */
+        return VINF_SUCCESS;
+    }
+
+    uint64_t const off = GCPhys - pChunk->Core.Key;
+    *ppv = (void *)&pChunk->abMem[off];
+    return VINF_SUCCESS;
+}
 
 
 int pgmPhysGCPhys2CCPtrLockless(PVMCPUCC pVCpu, RTGCPHYS GCPhys, void **ppv)
 {
     RT_NOREF(pVCpu, GCPhys, ppv);
-    AssertFailed();
-    return VINF_SUCCESS;
+    return pgmPhysGCPhys2CCPtr(GCPhys, ppv);
 }
 
 
 int pgmPhysGCPhys2R3Ptr(PVMCC pVM, RTGCPHYS GCPhys, PRTR3PTR pR3Ptr)
 {
     RT_NOREF(pVM, GCPhys, pR3Ptr);
-    AssertFailed();
-    return VINF_SUCCESS;
+    return pgmPhysGCPhys2CCPtr(GCPhys, (void **)pR3Ptr);
 }
 
 
 VMM_INT_DECL(uint8_t) CPUMGetGuestEL(PVMCPUCC pVCpu)
 {
     RT_NOREF(pVCpu);
-    AssertFailed();
-    return 0;
+    return g_MmuCfg.bEl;
 }
 
 
 VMM_INT_DECL(RTGCPHYS) CPUMGetEffectiveTtbr(PVMCPUCC pVCpu, RTGCPTR GCPtr)
 {
-    RT_NOREF(pVCpu, GCPtr);
-    AssertFailed();
-    return 0;
+    RT_NOREF(pVCpu);
+    return   (GCPtr & RT_BIT_64(55))
+           ? ARMV8_TTBR_EL1_AARCH64_BADDR_GET(g_MmuCfg.u64RegTtbr1)
+           : ARMV8_TTBR_EL1_AARCH64_BADDR_GET(g_MmuCfg.u64RegTtbr0);
 }
 
 
@@ -96,11 +157,9 @@ VMM_INT_DECL(RTGCPHYS) CPUMGetEffectiveTtbr(PVMCPUCC pVCpu, RTGCPTR GCPtr)
  * Creates a mockup VM structure for testing SSM.
  *
  * @returns 0 on success, 1 on failure.
- * @param   ppVM    Where to store Pointer to the VM.
- *
- * @todo    Move this to VMM/VM since it's stuff done by several testcases.
+ * @param   pMmuCfg         The MMU config to initialize.
  */
-static int createFakeVM(PVM *ppVM)
+static int tstMmuCfgInit(PTSTPGMARMV8MMU pMmuCfg)
 {
     /*
      * Allocate and init the UVM structure.
@@ -133,7 +192,7 @@ static int createFakeVM(PVM *ppVM)
             pVM->apCpusR3[0] = pVCpu;
 
             pUVM->pVM = pVM;
-            *ppVM = pVM;
+            pMmuCfg->pVM = pVM;
             return VINF_SUCCESS;
         }
 
@@ -142,8 +201,30 @@ static int createFakeVM(PVM *ppVM)
     else
         RTTestIFailed("Fatal error: RTTlsSet failed, rc=%Rrc\n", rc);
 
-    *ppVM = NULL;
     return rc;
+}
+
+
+static DECLCALLBACK(int) tstZeroChunk(PAVLRU64NODECORE pCore, void *pvParam)
+{
+    RT_NOREF(pvParam);
+    PTSTMEMCHUNK pChunk = (PTSTMEMCHUNK)pCore;
+    memset(&pChunk->abMem, 0, _64K);
+    return VINF_SUCCESS;
+}
+
+
+static void tstMmuCfgReset(PTSTPGMARMV8MMU pMmuCfg)
+{
+    RTAvlrU64DoWithAll(&pMmuCfg->TreeMem, true /*fFromLeft*/, tstZeroChunk, NULL);
+}
+
+
+static DECLCALLBACK(int) tstDestroyChunk(PAVLRU64NODECORE pCore, void *pvParam)
+{
+    RT_NOREF(pvParam);
+    RTMemPageFree(pCore, _64K);
+    return VINF_SUCCESS;
 }
 
 
@@ -151,12 +232,12 @@ static int createFakeVM(PVM *ppVM)
  * Destroy the VM structure.
  *
  * @param   pVM     Pointer to the VM.
- *
- * @todo    Move this to VMM/VM since it's stuff done by several testcases.
  */
-static void destroyFakeVM(PVM pVM)
+static void tstMmuCfgDestroy(PTSTPGMARMV8MMU pMmuCfg)
 {
-    RT_NOREF(pVM);
+    RTMemPageFree(pMmuCfg->pVM->pUVM, sizeof(*pMmuCfg->pVM->pUVM));
+    RTMemPageFree(pMmuCfg->pVM, sizeof(VM) + sizeof(VMCPU));
+    RTAvlrU64Destroy(&pMmuCfg->TreeMem, tstDestroyChunk, NULL);
 }
 
 
@@ -165,15 +246,452 @@ static void tstBasic(void)
     /*
      * Create an fake VM structure.
      */
-    PVM pVM;
-    int rc = createFakeVM(&pVM);
+    int rc = tstMmuCfgInit(&g_MmuCfg);
     if (RT_FAILURE(rc))
         return;
 
     /** @todo */
 
-    destroyFakeVM(pVM);
+    tstMmuCfgDestroy(&g_MmuCfg);
 }
+
+
+static int tstTestcaseMmuMemoryWrite(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, uint64_t GCPhysAddr, const void *pvData, size_t cbData)
+{
+    size_t cbLeft = cbData;
+    const uint8_t *pbData = (const uint8_t *)pvData;
+    while (cbLeft)
+    {
+        PTSTMEMCHUNK pChunk = (PTSTMEMCHUNK)RTAvlrU64RangeGet(&pMmuCfg->TreeMem, GCPhysAddr);
+        if (!pChunk)
+        {
+            /* Allocate a new chunk (64KiB chunks). */
+            pChunk = (PTSTMEMCHUNK)RTMemPageAllocZ(_64K);
+            if (!pChunk)
+            {
+                RTTestFailed(hTest, "Failed to allocate 64KiB of memory for memory chunk at %#RX64\n", GCPhysAddr);
+                return VERR_NO_MEMORY;
+            }
+
+            pChunk->Core.Key = GCPhysAddr & ~((uint64_t)_64K - 1);
+            pChunk->Core.KeyLast = pChunk->Core.Key + _64K - 1;
+            bool fInsert = RTAvlrU64Insert(&pMmuCfg->TreeMem, &pChunk->Core);
+            AssertRelease(fInsert);
+        }
+
+        uint64_t const off        = GCPhysAddr - pChunk->Core.Key;
+        size_t   const cbThisCopy = RT_MIN(cbLeft, pChunk->Core.KeyLast - off + 1);
+        memcpy(&pChunk->abMem[off], pbData, cbThisCopy);
+        cbLeft     -= cbThisCopy;
+        GCPhysAddr += cbThisCopy;
+        pbData     += cbThisCopy;
+    }
+    return VINF_SUCCESS;
+}
+
+
+static int tstTestcaseMmuMemoryAdd(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, uint64_t GCPhysAddr, RTJSONVAL hMemObj)
+{
+    int rc;
+    RTJSONVALTYPE enmType = RTJsonValueGetType(hMemObj);
+    switch (enmType)
+    {
+        case RTJSONVALTYPE_ARRAY:
+        {
+            RTJSONIT hIt = NIL_RTJSONIT;
+            rc = RTJsonIteratorBeginArray(hMemObj, &hIt);
+            if (RT_SUCCESS(rc))
+            {
+                for (;;)
+                {
+                    RTJSONVAL hData = NIL_RTJSONVAL;
+                    rc = RTJsonIteratorQueryValue(hIt, &hData, NULL /*ppszName*/);
+                    if (RT_SUCCESS(rc))
+                    {
+                        if (RTJsonValueGetType(hData) == RTJSONVALTYPE_INTEGER)
+                        {
+                            int64_t i64Data = 0;
+                            rc = RTJsonValueQueryInteger(hData, &i64Data);
+                            if (RT_SUCCESS(rc))
+                            {
+                                if (i64Data >= 0 && i64Data <= 255)
+                                {
+                                    uint8_t bVal = (uint8_t)i64Data;
+                                    rc = tstTestcaseMmuMemoryWrite(hTest, pMmuCfg, GCPhysAddr, &bVal, sizeof(bVal));
+                                }
+                                else
+                                {
+                                    RTTestFailed(hTest, "Data %#RX64 for address %#RX64 is not a valid byte value", i64Data, GCPhysAddr);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                RTTestFailed(hTest, "Failed to query byte value for address %#RX64", GCPhysAddr);
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            RTTestFailed(hTest, "Data for address %#RX64 contains an invalid value", GCPhysAddr);
+                            break;
+                        }
+
+                        RTJsonValueRelease(hData);
+                    }
+                    else
+                        RTTestFailed(hTest, "Failed to retrieve byte value with %Rrc", rc);
+
+                    rc = RTJsonIteratorNext(hIt);
+                    if (RT_FAILURE(rc))
+                        break;
+
+                    GCPhysAddr++;
+                }
+                if (rc == VERR_JSON_ITERATOR_END)
+                    rc = VINF_SUCCESS;
+                RTJsonIteratorFree(hIt);
+            }
+            else  /* An empty array is also an error */
+                RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
+            break;
+        }
+        case RTJSONVALTYPE_INTEGER:
+        {
+            uint64_t u64Val = 0;
+            rc = RTJsonValueQueryInteger(hMemObj, (int64_t *)&u64Val);
+            if (RT_SUCCESS(rc))
+                rc = tstTestcaseMmuMemoryWrite(hTest, pMmuCfg, GCPhysAddr, &u64Val, sizeof(u64Val));
+            else
+                RTTestFailed(hTest, "Querying data for address %#RX64 failed with %Rrc\n", GCPhysAddr, u64Val);
+            break;
+        }
+        default:
+            RTTestFailed(hTest, "Memory object has an invalid type %d\n", enmType);
+            rc = VERR_NOT_SUPPORTED;
+    }
+
+    return rc;
+}
+
+
+static int tstTestcaseAddressSpacePrepare(RTTEST hTest, RTJSONVAL hTestcase)
+{
+    /* Prepare the memory space. */
+    RTJSONVAL hVal = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hTestcase, "AddressSpace", &hVal);
+    if (RT_SUCCESS(rc))
+    {
+        RTJSONIT hIt = NIL_RTJSONIT;
+        rc = RTJsonIteratorBeginObject(hVal, &hIt);
+        if (RT_SUCCESS(rc))
+        {
+            for (;;)
+            {
+                RTJSONVAL hMemObj = NIL_RTJSONVAL;
+                const char *pszAddress = NULL;
+                rc = RTJsonIteratorQueryValue(hIt, &hMemObj, &pszAddress);
+                if (RT_SUCCESS(rc))
+                {
+                    uint64_t GCPhysAddr = 0;
+                    rc = RTStrToUInt64Full(pszAddress, 0, &GCPhysAddr);
+                    if (rc == VINF_SUCCESS)
+                        rc = tstTestcaseMmuMemoryAdd(hTest, &g_MmuCfg, GCPhysAddr, hMemObj);
+                    else
+                    {
+                        RTTestFailed(hTest, "Address '%s' is not a valid 64-bit physical address", pszAddress);
+                        break;
+                    }
+
+                    RTJsonValueRelease(hMemObj);
+                }
+                else
+                    RTTestFailed(hTest, "Failed to retrieve memory range with %Rrc", rc);
+
+                rc = RTJsonIteratorNext(hIt);
+                if (RT_FAILURE(rc))
+                    break;
+            }
+            if (rc == VERR_JSON_ITERATOR_END)
+                rc = VINF_SUCCESS;
+            RTJsonIteratorFree(hIt);
+        }
+        else
+            RTTestFailed(hTest, "Failed to traverse JSON object with %Rrc", rc);
+
+        RTJsonValueRelease(hVal);
+    }
+    else
+        RTTestFailed(hTest, "Failed to query \"AddressSpace\" containing the address space layout %Rrc", rc);
+
+    return rc;
+}
+
+
+static int tstTestcaseMmuConfigPrepare(RTTEST hTest, PTSTPGMARMV8MMU pMmuCfg, RTJSONVAL hTestcase)
+{
+    PVMCPUCC pVCpu = pMmuCfg->pVM->apCpusR3[0];
+
+    /* Set MMU config (SCTLR, TCR, TTBR, etc.). */
+    int64_t i64Tmp = 0;
+    int rc = RTJsonValueQueryIntegerByName(hTestcase, "SCTLR_EL1", &i64Tmp);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to query \"SCTLR_EL1\" with %Rrc", rc);
+        return rc;
+    }
+    uint64_t const u64RegSctlrEl1 = (uint64_t)i64Tmp;
+
+    rc = RTJsonValueQueryIntegerByName(hTestcase, "TCR_EL1", &i64Tmp);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to query \"TCR_EL1\" with %Rrc", rc);
+        return rc;
+    }
+    uint64_t const u64RegTcrEl1 = (uint64_t)i64Tmp;
+
+    rc = RTJsonValueQueryIntegerByName(hTestcase, "TTBR0_EL1", &i64Tmp);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to query \"TTBR0_EL1\" with %Rrc", rc);
+        return rc;
+    }
+    pVCpu->cpum.s.Guest.Ttbr0.u64 = (uint64_t)i64Tmp;
+
+    rc = RTJsonValueQueryIntegerByName(hTestcase, "TTBR1_EL1", &i64Tmp);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to query \"TTBR1_EL1\" with %Rrc", rc);
+        return rc;
+    }
+    pVCpu->cpum.s.Guest.Ttbr1.u64 = (uint64_t)i64Tmp;
+
+
+    uintptr_t const idxNewGstTtbr0 = pgmR3DeduceTypeFromTcr<ARMV8_TCR_EL1_AARCH64_T0SZ_SHIFT, ARMV8_TCR_EL1_AARCH64_TG0_SHIFT,
+                                                            ARMV8_TCR_EL1_AARCH64_TBI0_BIT, ARMV8_TCR_EL1_AARCH64_EPD0_BIT, false>
+                                                            (u64RegSctlrEl1, u64RegTcrEl1, &pVCpu->pgm.s.afLookupMaskTtbr0[1]);
+    uintptr_t const idxNewGstTtbr1 = pgmR3DeduceTypeFromTcr<ARMV8_TCR_EL1_AARCH64_T1SZ_SHIFT, ARMV8_TCR_EL1_AARCH64_TG1_SHIFT,
+                                                            ARMV8_TCR_EL1_AARCH64_TBI1_BIT, ARMV8_TCR_EL1_AARCH64_EPD1_BIT, true>
+                                                            (u64RegSctlrEl1, u64RegTcrEl1, &pVCpu->pgm.s.afLookupMaskTtbr1[1]);
+    Assert(idxNewGstTtbr0 != 0 && idxNewGstTtbr1 != 0);
+
+    /*
+     * Change the paging mode data indexes.
+     */
+    AssertReturn(idxNewGstTtbr0 < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idxNewGstTtbr0].uType == idxNewGstTtbr0, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnGetPage, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnModifyPage, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnExit, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr0].pfnEnter, VERR_PGM_MODE_IPE);
+
+    AssertReturn(idxNewGstTtbr1 < RT_ELEMENTS(g_aPgmGuestModeData), VERR_PGM_MODE_IPE);
+    AssertReturn(g_aPgmGuestModeData[idxNewGstTtbr1].uType == idxNewGstTtbr1, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnGetPage, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnModifyPage, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnExit, VERR_PGM_MODE_IPE);
+    AssertPtrReturn(g_aPgmGuestModeData[idxNewGstTtbr1].pfnEnter, VERR_PGM_MODE_IPE);
+
+        rc  = g_aPgmGuestModeData[idxNewGstTtbr0].pfnEnter(pVCpu);
+    int rc2 = g_aPgmGuestModeData[idxNewGstTtbr1].pfnEnter(pVCpu);
+
+    /* status codes. */
+    AssertRC(rc);
+    AssertRC(rc2);
+    if (RT_SUCCESS(rc))
+    {
+        rc = rc2;
+        if (RT_SUCCESS(rc)) /* no informational status codes. */
+            rc = VINF_SUCCESS;
+    }
+
+    pVCpu->pgm.s.aidxGuestModeDataTtbr0[1] = idxNewGstTtbr0;
+    pVCpu->pgm.s.aidxGuestModeDataTtbr1[1] = idxNewGstTtbr1;
+
+    /* Also set the value for EL0, saves us an if condition in the hot paths later on. */
+    pVCpu->pgm.s.aidxGuestModeDataTtbr0[0] = idxNewGstTtbr0;
+    pVCpu->pgm.s.aidxGuestModeDataTtbr1[0] = idxNewGstTtbr1;
+
+    pVCpu->pgm.s.afLookupMaskTtbr0[0] = pVCpu->pgm.s.afLookupMaskTtbr0[1];
+    pVCpu->pgm.s.afLookupMaskTtbr1[0] = pVCpu->pgm.s.afLookupMaskTtbr1[1];
+
+    pVCpu->pgm.s.aenmGuestMode[1] = (u64RegSctlrEl1 & ARMV8_SCTLR_EL1_M) ? PGMMODE_VMSA_V8_64 : PGMMODE_NONE;
+    return rc;
+}
+
+
+static void tstExecute(RTTEST hTest, PVM pVM, RTGCPTR GCPtr, RTJSONVAL hMemResult)
+{
+    PVMCPUCC pVCpu = pVM->apCpusR3[0];
+
+    /** @todo Incorporate EL (for nested virt and EL3 later on). */
+    uintptr_t idx =   (GCPtr & RT_BIT_64(55))
+                    ? pVCpu->pgm.s.aidxGuestModeDataTtbr1[1]
+                    : pVCpu->pgm.s.aidxGuestModeDataTtbr0[1];
+
+    PGMPTWALK Walk;
+    AssertReleaseReturnVoid(idx < RT_ELEMENTS(g_aPgmGuestModeData));
+    AssertReleaseReturnVoid(g_aPgmGuestModeData[idx].pfnGetPage);
+    int rc = g_aPgmGuestModeData[idx].pfnGetPage(pVCpu, GCPtr, &Walk);
+    if (RT_SUCCESS(rc))
+    {
+        RT_NOREF(hMemResult);
+    }
+    else
+        RTTestFailed(hTest, "Resolving virtual address %#RX64 to physical address failed with %Rrc", GCPtr, rc);
+}
+
+
+static int tstTestcaseMmuRun(RTTEST hTest, RTJSONVAL hTestcase)
+{
+    RTJSONVAL hVal = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hTestcase, "Tests", &hVal);
+    if (RT_SUCCESS(rc))
+    {
+        RTJSONIT hIt = NIL_RTJSONIT;
+        rc = RTJsonIteratorBeginObject(hVal, &hIt);
+        if (RT_SUCCESS(rc))
+        {
+            for (;;)
+            {
+                RTJSONVAL hMemObj = NIL_RTJSONVAL;
+                const char *pszAddress = NULL;
+                rc = RTJsonIteratorQueryValue(hIt, &hMemObj, &pszAddress);
+                if (RT_SUCCESS(rc))
+                {
+                    uint64_t GCPtr = 0;
+                    rc = RTStrToUInt64Full(pszAddress, 0, &GCPtr);
+                    if (rc == VINF_SUCCESS)
+                        tstExecute(hTest, g_MmuCfg.pVM, GCPtr, hMemObj);
+                    else
+                    {
+                        RTTestFailed(hTest, "Address '%s' is not a valid 64-bit physical address", pszAddress);
+                        break;
+                    }
+
+                    RTJsonValueRelease(hMemObj);
+                }
+                else
+                    RTTestFailed(hTest, "Failed to retrieve memory range with %Rrc", rc);
+
+                rc = RTJsonIteratorNext(hIt);
+                if (RT_FAILURE(rc))
+                    break;
+            }
+            if (rc == VERR_JSON_ITERATOR_END)
+                rc = VINF_SUCCESS;
+            RTJsonIteratorFree(hIt);
+        }
+        else
+            RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
+
+
+        RTJsonValueRelease(hVal);
+    }
+    else
+        RTTestFailed(hTest, "Failed to query \"Tests\" %Rrc", rc);
+
+    return rc;
+}
+
+
+static void tstExecuteTestcase(RTTEST hTest, RTJSONVAL hTestcase)
+{
+    RTJSONVAL hVal = NIL_RTJSONVAL;
+    int rc = RTJsonValueQueryByName(hTestcase, "Name", &hVal);
+    if (RT_SUCCESS(rc))
+    {
+        const char *pszTestcaseName = RTJsonValueGetString(hVal);
+        if (pszTestcaseName)
+        {
+            RTTestSub(hTest, pszTestcaseName);
+
+            /* Reset the config for each testcase. */
+            tstMmuCfgReset(&g_MmuCfg);
+
+            rc = tstTestcaseAddressSpacePrepare(hTest, hTestcase);
+            if (RT_SUCCESS(rc))
+                rc = tstTestcaseMmuConfigPrepare(hTest, &g_MmuCfg, hTestcase);
+            if (RT_SUCCESS(rc))
+                rc = tstTestcaseMmuRun(hTest, hTestcase);
+        }
+        else
+            RTTestFailed(hTest, "The testcase name is not a string");
+        RTJsonValueRelease(hVal);
+    }
+    else
+        RTTestFailed(hTest, "Failed to query the testcase name with %Rrc", rc);
+}
+
+
+static void tstLoadFromFile(RTTEST hTest, const char *pszFilename)
+{
+    int rc = tstMmuCfgInit(&g_MmuCfg);
+    if (RT_FAILURE(rc))
+    {
+        RTTestFailed(hTest, "Failed to initialize MMU config %Rrc", rc);
+        return;
+    }
+
+    /* Load the configuration from the JSON config file. */
+    RTERRINFOSTATIC ErrInfo;
+    RTJSONVAL hRoot = NIL_RTJSONVAL;
+    rc = RTJsonParseFromFile(&hRoot, RTJSON_PARSE_F_JSON5, pszFilename, RTErrInfoInitStatic(&ErrInfo));
+    if (RT_SUCCESS(rc))
+    {
+        RTJSONVALTYPE enmType = RTJsonValueGetType(hRoot);
+        if (enmType == RTJSONVALTYPE_ARRAY)
+        {
+            /* Array of testcases. */
+            RTJSONIT hIt = NIL_RTJSONIT;
+            rc = RTJsonIteratorBeginArray(hRoot, &hIt);
+            if (RT_SUCCESS(rc))
+            {
+                for (;;)
+                {
+                    RTJSONVAL hTestcase = NIL_RTJSONVAL;
+                    rc = RTJsonIteratorQueryValue(hIt, &hTestcase, NULL /*ppszName*/);
+                    if (RT_SUCCESS(rc))
+                    {
+                        tstExecuteTestcase(hTest, hTestcase);
+                        RTJsonValueRelease(hTestcase);
+                    }
+                    else
+                        RTTestFailed(hTest, "Failed to retrieve testcase with %Rrc", rc);
+
+                    rc = RTJsonIteratorNext(hIt);
+                    if (RT_FAILURE(rc))
+                        break;
+                }
+                if (rc == VERR_JSON_ITERATOR_END)
+                    rc = VINF_SUCCESS;
+                RTJsonIteratorFree(hIt);
+            }
+            else  /* An empty array is also an error */
+                RTTestFailed(hTest, "Failed to traverse JSON array with %Rrc", rc);
+        }
+        else if (enmType == RTJSONVALTYPE_OBJECT)
+        {
+            /* Single testcase. */
+            tstExecuteTestcase(hTest, hRoot);
+        }
+        else
+            RTTestFailed(hTest, "JSON root is not an array or object containing a testcase");
+        RTJsonValueRelease(hRoot);
+    }
+    else
+    {
+        if (RTErrInfoIsSet(&ErrInfo.Core))
+            RTTestFailed(hTest, "RTJsonParseFromFile() for \"%s\" failed with %Rrc\n%s",
+                         pszFilename, rc, ErrInfo.Core.pszMsg);
+        else
+            RTTestFailed(hTest, "RTJsonParseFromFile() for \"%s\" failed with %Rrc",
+                         pszFilename, rc);
+    }
+
+    tstMmuCfgDestroy(&g_MmuCfg);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -188,7 +706,10 @@ int main(int argc, char **argv)
         if (RT_SUCCESS(rc))
         {
             RTTestBanner(g_hTest);
-            tstBasic();
+            if (argc == 2)
+                tstLoadFromFile(g_hTest, argv[1]);
+            else
+                tstBasic();
             rcExit = RTTestSummaryAndDestroy(g_hTest);
         }
         else

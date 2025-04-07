@@ -389,7 +389,7 @@ typedef enum GITSATTRMEM
 } GITSMEMATTR;
 
 /**
- * ITS entry type.
+ * GITS entry type.
  * In accordance to the ARM GIC spec.
  */
 typedef enum GITSITSTYPE
@@ -410,20 +410,69 @@ typedef union GITSCMD
     struct
     {
         uint8_t         uCmdId;
-        uint8_t         au8Rsvd[3];
-        uint32_t        uDeviceId;
-
-        uint32_t        uEventId;
-        uint32_t        u32Rsvd;
-
-        uint64_t        au64Rsvd[2];
-    } clear;
+        uint8_t         auData[31];
+    } common;
 } GITSCMD;
 /** Pointer to an ITS command. */
 typedef GITSCMD *PGITSCMD;
 /** Pointer to a const ITS command. */
 typedef GITSCMD const *PCGITSCMD;
 AssertCompileSize(GITSCMD, GITS_CMD_SIZE);
+
+/** @name GITS command IDs.
+ * @{ */
+#define GITS_CMD_ID_CLEAR                                       0x04
+#define GITS_CMD_ID_DISCARD                                     0x0f
+#define GITS_CMD_ID_INT                                         0x03
+#define GITS_CMD_ID_INV                                         0x0c
+#define GITS_CMD_ID_INVALL                                      0x0d
+#define GITS_CMD_ID_INVDB                                       0x2e
+#define GITS_CMD_ID_MAPC                                        0x09
+#define GITS_CMD_ID_MAPD                                        0x08
+#define GITS_CMD_ID_MAPI                                        0x0b
+#define GITS_CMD_ID_MAPTI                                       0x0a
+#define GITS_CMD_ID_MOVALL                                      0x0e
+#define GITS_CMD_ID_MOVI                                        0x01
+#define GITS_CMD_ID_SYNC                                        0x05
+#define GITS_CMD_ID_VINVALL                                     0x2d
+#define GITS_CMD_ID_VMAPI                                       0x2b
+#define GITS_CMD_ID_VMAPP                                       0x29
+#define GITS_CMD_ID_VMAPTI                                      0x2a
+#define GITS_CMD_ID_VMOVI                                       0x21
+#define GITS_CMD_ID_VMOVP                                       0x22
+#define GITS_CMD_ID_VSGI                                        0x23
+#define GITS_CMD_ID_VSYNC                                       0x25
+/** @} */
+
+/** @name GITS command: MAPC.
+ * @{ */
+/** MAPC DW0: Command Id. */
+#define GITS_BF_CMD_MAPC_DW0_CMD_ID_SHIFT                       0
+#define GITS_BF_CMD_MAPC_DW0_CMD_ID_MASK                        UINT64_C(0x00000000000000ff)
+/** MAPC DW0: Reserved (bits 63:8). */
+#define GITS_BF_CMD_MAPC_DW0_RSVD_63_8_SHIFT                    8
+#define GITS_BF_CMD_MAPC_DW0_RSVD_63_8_MASK                     UINT64_C(0xffffffffffffff00)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPC_DW0_, UINT64_C(0), UINT64_MAX,
+                            (CMD_ID, RSVD_63_8));
+
+/** MAPC DW1: Reserved (bits 63:0). */
+#define GITS_BF_CMD_MAPC_DW1_RSVD_63_0_MASK                     UINT64_MAX
+
+/** MAPC DW2: IC ID - The interrupt collection ID. */
+#define GITS_BF_CMD_MAPC_DW2_IC_ID_SHIFT                        0
+#define GITS_BF_CMD_MAPC_DW2_IC_ID_MASK                         UINT64_C(0x000000000000ffff)
+/** MAPC DW2: RDBase - The target redistributor base address or PE number. */
+#define GITS_BF_CMD_MAPC_DW2_RDBASE_SHIFT                       16
+#define GITS_BF_CMD_MAPC_DW2_RDBASE_MASK                        UINT64_C(0x0007ffffffff0000)
+/** MAPC DW2: Reserved (bits 62:51). */
+#define GITS_BF_CMD_MAPC_DW2_RSVD_62_51_SHIFT                   51
+#define GITS_BF_CMD_MAPC_DW2_RSVD_62_51_MASK                    UINT64_C(0x7ff8000000000000)
+/** MAPC DW2: Valid bit. */
+#define GITS_BF_CMD_MAPC_DW2_VALID_SHIFT                        63
+#define GITS_BF_CMD_MAPC_DW2_VALID_MASK                         UINT64_C(0x8000000000000000)
+RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CMD_MAPC_DW2_, UINT64_C(0), UINT64_MAX,
+                            (IC_ID, RDBASE, RSVD_62_51, VALID));
+/** @} */
 
 #endif /* !VBOX_INCLUDED_gic_its_h */
 

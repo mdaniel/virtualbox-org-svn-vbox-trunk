@@ -135,8 +135,43 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
     }
 }
 
-static void gitsCmdQueueSetError(PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
+
+static const char * gitsGetCommandName(uint8_t uCmdId)
 {
+    switch (uCmdId)
+    {
+        case GITS_CMD_ID_CLEAR:     return "CLEAR";
+        case GITS_CMD_ID_DISCARD:   return "DISCARD";
+        case GITS_CMD_ID_INT:       return "INT";
+        case GITS_CMD_ID_INV:       return "INV";
+        case GITS_CMD_ID_INVALL:    return "INVALL";
+        case GITS_CMD_ID_INVDB:     return "INVDB";
+        case GITS_CMD_ID_MAPC:      return "MAPC";
+        case GITS_CMD_ID_MAPD:      return "MAPD";
+        case GITS_CMD_ID_MAPI:      return "MAPI";
+        case GITS_CMD_ID_MAPTI:     return "MAPTI";
+        case GITS_CMD_ID_MOVALL:    return "MOVALL";
+        case GITS_CMD_ID_MOVI:      return "MOVI";
+        case GITS_CMD_ID_SYNC:      return "SYNC";
+        case GITS_CMD_ID_VINVALL:   return "VINVALL";
+        case GITS_CMD_ID_VMAPI:     return "VMAPI";
+        case GITS_CMD_ID_VMAPP:     return "VMAPP";
+        case GITS_CMD_ID_VMAPTI:    return "VMAPTI";
+        case GITS_CMD_ID_VMOVI:     return "VMOVI";
+        case GITS_CMD_ID_VMOVP:     return "VMOVP";
+        case GITS_CMD_ID_VSGI:      return "VSGI";
+        case GITS_CMD_ID_VSYNC:     return "VSYNC";
+        default:
+            return "<UNKNOWN>";
+    }
+}
+
+
+static void gitsCmdQueueSetError(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, GITSDIAG enmError, bool fStallQueue)
+{
+    Assert(GITS_CRIT_SECT_IS_OWNER(pDevIns));
+    NOREF(pDevIns);
+
     /* Record the error and stall the queue. */
     pGitsDev->uCmdQueueError = enmError;
     if (fStallQueue)
@@ -483,13 +518,13 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
             /*
              * Read all the commands from guest memory into our command queue buffer.
              */
-            RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
-
-            /* Temporarily leave the critical section while reading (a potentially large number of) commands from guest memory. */
-            GITS_CRIT_SECT_LEAVE(pDevIns);
-
             int      rc;
             uint32_t cbCmds;
+            RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
+
+            /* Leave the critical section while reading (a potentially large number of) commands from guest memory. */
+            GITS_CRIT_SECT_LEAVE(pDevIns);
+
             if (offWrite > offRead)
             {
                 /* The write offset has not wrapped around, read them in one go. */
@@ -506,32 +541,54 @@ DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGi
                 rc  = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbForward);
                 if (   RT_SUCCESS(rc)
                     && cbWrapped > 0)
-                    rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + cbForward,
-                                               (void *)((uintptr_t)pvBuf + cbForward), cbWrapped);
+                {
+                    rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + cbForward, (void *)((uintptr_t)pvBuf + cbForward),
+                                               cbWrapped);
+                }
                 cbCmds = cbForward + cbWrapped;
             }
 
-            /* Re-acquire the critical section as we now need to modify device state. */
+            /* Indicate to the guest we've fetched all commands. */
             GITS_CRIT_SECT_ENTER(pDevIns);
+            pGitsDev->uCmdReadReg = RT_BF_SET(pGitsDev->uCmdReadReg, GITS_BF_CTRL_REG_CREADR_OFFSET, offWrite);
 
             /*
-             * Process the commands in the queue.
+             * Process the commands in the buffer.
              */
             if (RT_SUCCESS(rc))
             {
+                /* Don't hold the lock while processing commands. */
+                GITS_CRIT_SECT_LEAVE(pDevIns);
+
                 uint32_t const cCmds = cbCmds / GITS_CMD_SIZE;
                 for (uint32_t idxCmd = 0; idxCmd < cCmds; idxCmd++)
                 {
-                    PCGITSCMD pCmd = (PCGITSCMD)((uintptr_t)pvBuf + (idxCmd * sizeof(GITSCMD)));
-                    AssertReleaseMsgFailed(("Cmd=%#x\n", pCmd->clear.uCmdId));
-                }
+                    PCGITSCMD pCmd = (PCGITSCMD)((uintptr_t)pvBuf + (idxCmd * GITS_CMD_SIZE));
+                    uint8_t const uCmdId = pCmd->common.uCmdId;
+                    switch (uCmdId)
+                    {
+                        case GITS_CMD_ID_MAPC:
+                        {
+                            Assert(!RT_BF_GET(pGitsDev->uTypeReg.u, GITS_BF_CTRL_REG_TYPER_PTA)); /* GITS_TYPER is read-only */
+                            /** @todo Implementing me. Figure out interrupt collection, HCC etc. */
+                            //uint64_t const uDw2 = pCmd->au64[2].u;
+                            //bool const     fValid            = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_VALID);
+                            //uint32_t const uTargetCpuId      = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_RDBASE);
+                            //uint16_t const uIntrCollectionId = RT_BF_GET(uDw2, GITS_BF_CMD_MAPC_DW2_IC_ID);
+                            break;
+                        }
 
-                GITS_CRIT_SECT_LEAVE(pDevIns);
+                        default:
+                            AssertReleaseMsgFailed(("Cmd=%#x (%s)\n", uCmdId, gitsGetCommandName(uCmdId)));
+                            break;
+                    }
+                }
                 return VINF_SUCCESS;
             }
 
             /* Failed to read command queue from the physical address specified by the guest, stall queue and retry later. */
-            gitsCmdQueueSetError(pGitsDev, kGitsDiag_CmdQueue_PhysAddr_Invalid, true /* fStall */);
+            gitsCmdQueueSetError(pDevIns, pGitsDev, kGitsDiag_CmdQueue_PhysAddr_Invalid, true /* fStall */);
+            GITS_CRIT_SECT_LEAVE(pDevIns);
             return VINF_TRY_AGAIN;
         }
     }

@@ -1571,7 +1571,7 @@ static int rtFuzzCmdMasterProcessJsonReq(PRTFUZZCMDMASTER pThis, RTJSONVAL hJson
 static int rtFuzzCmdMasterFuzzCfgLoadFromFile(PRTFUZZCMDMASTER pThis, const char *pszFuzzCfg)
 {
     RTJSONVAL hJsonRoot;
-    int rc = RTJsonParseFromFile(&hJsonRoot, pszFuzzCfg, NULL);
+    int rc = RTJsonParseFromFile(&hJsonRoot, 0 /*fFlags*/, pszFuzzCfg, NULL);
     if (RT_SUCCESS(rc))
     {
         rc = rtFuzzCmdMasterProcessJsonReqStart(pThis, hJsonRoot, NULL);
@@ -1688,7 +1688,7 @@ static DECLCALLBACK(int) rtFuzzCmdMasterTcpServe(RTSOCKET hSocket, void *pvUser)
                     RTERRINFOSTATIC ErrInfo;
                     RTErrInfoInitStatic(&ErrInfo);
 
-                    rc = RTJsonParseFromBuf(&hJsonReq, pbReq, cbReq, &ErrInfo.Core);
+                    rc = RTJsonParseFromBuf(&hJsonReq, 0 /*fFlags*/, pbReq, cbReq, &ErrInfo.Core);
                     if (RT_SUCCESS(rc))
                     {
                         rc = rtFuzzCmdMasterProcessJsonReq(pThis, hJsonReq, &ErrInfo.Core);

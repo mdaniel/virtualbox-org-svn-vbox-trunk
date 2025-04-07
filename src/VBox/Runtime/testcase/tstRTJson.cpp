@@ -125,7 +125,60 @@ static void tstBasic(RTTEST hTest)
     {
         RTERRINFOSTATIC ErrInfo;
         RTJSONVAL hJsonVal = NIL_RTJSONVAL;
-        int rc = RTJsonParseFromString(&hJsonVal, aTests[iTest].pszJson, RTErrInfoInitStatic(&ErrInfo));
+        int rc = RTJsonParseFromString(&hJsonVal, 0 /*fFlags*/, aTests[iTest].pszJson, RTErrInfoInitStatic(&ErrInfo));
+        if (rc != aTests[iTest].iRcResult)
+        {
+            if (RTErrInfoIsSet(&ErrInfo.Core))
+                RTTestFailed(hTest, "RTJsonParseFromString() for \"%s\" failed, expected %Rrc got %Rrc\n%s",
+                             aTests[iTest].pszJson, aTests[iTest].iRcResult, rc, ErrInfo.Core.pszMsg);
+            else
+                RTTestFailed(hTest, "RTJsonParseFromString() for \"%s\" failed, expected %Rrc got %Rrc",
+                             aTests[iTest].pszJson, aTests[iTest].iRcResult, rc);
+        }
+        else if (rc == VERR_JSON_MALFORMED && !RTErrInfoIsSet(&ErrInfo.Core))
+            RTTestFailed(hTest, "RTJsonParseFromString() did not return error info for \"%s\" failed", aTests[iTest].pszJson);
+        if (RT_SUCCESS(rc))
+        {
+            if (hJsonVal != NIL_RTJSONVAL)
+                RTJsonValueRelease(hJsonVal);
+            else
+                RTTestFailed(hTest, "RTJsonParseFromString() returned success but no value\n");
+        }
+        else if (hJsonVal != NIL_RTJSONVAL)
+            RTTestFailed(hTest, "RTJsonParseFromString() failed but a JSON value was returned\n");
+    }
+}
+
+/**
+ * Some basic tests to detect malformed JSON5.
+ */
+static void tstBasic5(RTTEST hTest)
+{
+    RTTestSub(hTest, "Basic JSON5 valid/malformed tests");
+    static struct
+    {
+        const char *pszJson;
+        int         iRcResult;
+    } const aTests[] =
+    {
+        { "// This is a single line comment\nnull",     VINF_SUCCESS },
+        { "/* This is a multi line comment\n **/ null", VINF_SUCCESS },
+        { "\'Single quoted \"string\"\'",               VINF_SUCCESS },
+        { "0xc0dec0ffee",                               VINF_SUCCESS },
+        { "-0xffffffffffffffff",                        VINF_SUCCESS },
+        { "0xfffffffffffffffff",                        VERR_JSON_MALFORMED },
+        { "[0, 1, ]",                                   VINF_SUCCESS },
+        { "{ \"name\": 1 , }",                          VINF_SUCCESS },
+        { "{ name: 1 , }",                              VINF_SUCCESS },
+        { "{ _name0: 1 , }",                            VINF_SUCCESS },
+        { "{ $name0x: 1 , }",                           VINF_SUCCESS },
+
+    };
+    for (unsigned iTest = 0; iTest < RT_ELEMENTS(aTests); iTest++)
+    {
+        RTERRINFOSTATIC ErrInfo;
+        RTJSONVAL hJsonVal = NIL_RTJSONVAL;
+        int rc = RTJsonParseFromString(&hJsonVal, RTJSON_PARSE_F_JSON5, aTests[iTest].pszJson, RTErrInfoInitStatic(&ErrInfo));
         if (rc != aTests[iTest].iRcResult)
         {
             if (RTErrInfoIsSet(&ErrInfo.Core))
@@ -324,7 +377,7 @@ static void tstCorrectness(RTTEST hTest)
     RTTestSub(hTest, "Correctness");
 
     RTJSONVAL hJsonVal = NIL_RTJSONVAL;
-    RTTEST_CHECK_RC_OK_RETV(hTest, RTJsonParseFromString(&hJsonVal, g_szJson, NULL));
+    RTTEST_CHECK_RC_OK_RETV(hTest, RTJsonParseFromString(&hJsonVal, 0 /*fFlags*/, g_szJson, NULL));
 
     if (hJsonVal != NIL_RTJSONVAL)
     {
@@ -352,13 +405,14 @@ int main(int argc, char **argv)
     RTTestBanner(hTest);
 
     tstBasic(hTest);
+    tstBasic5(hTest);
     tstCorrectness(hTest);
     for (int i = 1; i < argc; i++)
     {
         RTTestSubF(hTest, "file %Rbn", argv[i]);
         RTERRINFOSTATIC ErrInfo;
         RTJSONVAL       hFileValue = NIL_RTJSONVAL;
-        rc = RTJsonParseFromFile(&hFileValue, argv[i], RTErrInfoInitStatic(&ErrInfo));
+        rc = RTJsonParseFromFile(&hFileValue, 0 /*fFlags*/, argv[i], RTErrInfoInitStatic(&ErrInfo));
         if (RT_SUCCESS(rc))
             RTJsonValueRelease(hFileValue);
         else if (RTErrInfoIsSet(&ErrInfo.Core))

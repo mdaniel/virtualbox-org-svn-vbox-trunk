@@ -377,7 +377,7 @@ void RTCRestClientResponseBase::deserializeBody(const char *a_pchData, size_t a_
 
             RTERRINFOSTATIC ErrInfo;
             RTJSONVAL hValue;
-            rc = RTJsonParseFromBuf(&hValue, (const uint8_t *)a_pchData, a_cbData, RTErrInfoInitStatic(&ErrInfo));
+            rc = RTJsonParseFromBuf(&hValue, 0 /*fFlags*/, (const uint8_t *)a_pchData, a_cbData, RTErrInfoInitStatic(&ErrInfo));
             if (RT_SUCCESS(rc))
             {
                 PrimaryJsonCursorForBody PrimaryCursor(hValue, a_pszBodyName, this); /* note: consumes hValue */

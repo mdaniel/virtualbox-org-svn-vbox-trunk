@@ -248,7 +248,7 @@ static int rtFuzzCfgLoad(PRTFUZZCFGINT pThis, PRTERRINFO pErrInfo)
     int rc = rtFuzzCfgGrabFileFromTarball(pThis->hVfsFile, RTFUZZ_CFG_INDEX_FILE_NAME, true /*fValidateUtf8*/, &hVfsJson);
     if (RT_SUCCESS(rc))
     {
-        rc = RTJsonParseFromVfsFile(&pThis->hJsonRoot, hVfsJson, pErrInfo);
+        rc = RTJsonParseFromVfsFile(&pThis->hJsonRoot, 0 /*fFlags*/, hVfsJson, pErrInfo);
         if (RT_SUCCESS(rc))
         {
             /* Look for the custom config in the JSON and find it in the VFS file. */

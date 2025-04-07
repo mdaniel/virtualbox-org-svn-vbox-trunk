@@ -502,7 +502,7 @@ static int drvTpmEmuQueryTpmVersion(PDRVTPMEMU pThis)
             if (RT_SUCCESS(rc))
             {
                 RTJSONVAL hJsonVal = NIL_RTJSONVAL;
-                rc = RTJsonParseFromBuf(&hJsonVal, &abData[0], RT_BE2H_U32(Resp.cbThis), NULL /*pErrInfo*/);
+                rc = RTJsonParseFromBuf(&hJsonVal, 0 /*fFlags*/, &abData[0], RT_BE2H_U32(Resp.cbThis), NULL /*pErrInfo*/);
                 if (RT_SUCCESS(rc))
                 {
                     RTJSONVAL hJsonTpmSpec = NIL_RTJSONVAL;

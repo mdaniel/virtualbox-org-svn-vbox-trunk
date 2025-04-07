@@ -308,45 +308,45 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
     if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
         return VINF_SUCCESS;
 
-    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
     AssertPtrReturn(pGicDev, VERR_INVALID_PARAMETER);
     LogFlowFunc(("Command-queue thread spawned and initialized\n"));
 
     /*
-     * Pre-allocate the maximum size of the command queue allowed by the spec.
-     * This prevents trashing the heap as well as deal with out-of-memory situations
+     * Pre-allocate the maximum size of the command queue allowed by the ARM GIC spec.
+     * This prevents trashing the heap as well as dealing with out-of-memory situations
      * up-front while starting the VM. It also simplifies the code from having to
      * dynamically grow/shrink the allocation based on how software sizes the queue.
      * Guests normally don't alter the queue size all the time, but that's not an
-     * assumption we can make.
+     * assumption we can make. Another benefit is that we can avoid releasing and
+     * re-acquiring the device critical section if/when guests modifies the command
+     * queue size.
      */
-    uint16_t const cMaxPages  = GITS_BF_CTRL_REG_CBASER_SIZE_MASK + 1;
-    size_t const   cbCmdQueue = cMaxPages << GUEST_PAGE_SHIFT;
-    void *pvCommands = RTMemAllocZ(cbCmdQueue);
-    AssertLogRelMsgReturn(pvCommands, ("Failed to alloc %.Rhcb (%zu bytes) for GITS command queue\n", cbCmdQueue, cbCmdQueue),
+    uint16_t const cMaxPages = GITS_BF_CTRL_REG_CBASER_SIZE_MASK + 1;
+    size_t const   cbCmds    = cMaxPages << GITS_CMD_QUEUE_PAGE_SHIFT;
+    void *pvCmds = RTMemAllocZ(cbCmds);
+    AssertLogRelMsgReturn(pvCmds, ("Failed to alloc %.Rhcb (%zu bytes) for the GITS command queue\n", cbCmds, cbCmds),
                           VERR_NO_MEMORY);
 
     while (pThread->enmState == PDMTHREADSTATE_RUNNING)
     {
-        /*
-         * Sleep until we are woken up.
-         */
+        /* Sleep until we are woken up. */
         {
-            int const rc = PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pGicDev->hEvtCmdQueue, RT_INDEFINITE_WAIT);
-            AssertLogRelMsgReturnStmt(RT_SUCCESS(rc) || rc == VERR_INTERRUPTED, ("%Rrc\n", rc), RTMemFree(pvCommands), rc);
+            int const rcLock = PDMDevHlpSUPSemEventWaitNoResume(pDevIns, pGitsDev->hEvtCmdQueue, RT_INDEFINITE_WAIT);
+            AssertLogRelMsgReturnStmt(RT_SUCCESS(rcLock) || rcLock == VERR_INTERRUPTED, ("%Rrc\n", rcLock),
+                                      RTMemFree(pvCmds), rcLock);
             if (pThread->enmState != PDMTHREADSTATE_RUNNING)
                 break;
         }
 
-        int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
-        PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
-
-        /** @todo Process commands. */
-
-        PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+        /* Process the command queue. */
+        int const rc = gitsR3CmdQueueProcess(pDevIns, pGitsDev, pvCmds, cbCmds);
+        if (RT_FAILURE(rc))
+            break;
     }
 
-    RTMemFree(pvCommands);
+    RTMemFree(pvCmds);
 
     LogFlowFunc(("Command-queue thread terminating\n"));
     return VINF_SUCCESS;
@@ -356,7 +356,7 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
 /**
  * Wakes up the command-queue thread so it can respond to a state change.
  *
- * @returns VBox status code.
+ * @return VBox status code.
  * @param   pDevIns     The device instance.
  * @param   pThread     The command-queue thread.
  *
@@ -364,10 +364,11 @@ static DECLCALLBACK(int) gicItsR3CmdQueueThread(PPDMDEVINS pDevIns, PPDMTHREAD p
  */
 static DECLCALLBACK(int) gicItsR3CmdQueueThreadWakeUp(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
 {
-    RT_NOREF2(pDevIns, pThread);
+    RT_NOREF(pThread);
     LogFlowFunc(("\n"));
-    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    return PDMDevHlpSUPSemEventSignal(pDevIns, pGicDev->hEvtCmdQueue);
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+    return PDMDevHlpSUPSemEventSignal(pDevIns, pGitsDev->hEvtCmdQueue);
 }
 
 
@@ -637,11 +638,12 @@ DECLCALLBACK(int) gicR3Destruct(PPDMDEVINS pDevIns)
     LogFlowFunc(("pDevIns=%p\n", pDevIns));
     PDMDEV_CHECK_VERSIONS_RETURN_QUIET(pDevIns);
 
-    PGICDEV pGicDev = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
-    if (pGicDev->hEvtCmdQueue != NIL_SUPSEMEVENT)
+    PGICDEV  pGicDev  = PDMDEVINS_2_DATA(pDevIns, PGICDEV);
+    PGITSDEV pGitsDev = &pGicDev->Gits;
+    if (pGitsDev->hEvtCmdQueue != NIL_SUPSEMEVENT)
     {
-        PDMDevHlpSUPSemEventClose(pDevIns, pGicDev->hEvtCmdQueue);
-        pGicDev->hEvtCmdQueue = NIL_SUPSEMEVENT;
+        PDMDevHlpSUPSemEventClose(pDevIns, pGitsDev->hEvtCmdQueue);
+        pGitsDev->hEvtCmdQueue = NIL_SUPSEMEVENT;
     }
 
     return VINF_SUCCESS;
@@ -915,14 +917,15 @@ DECLCALLBACK(int) gicR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGMNODE pC
                                            N_("Configuration error: \"Lpi\" must be enabled when ITS is enabled\n"));
 
             /* Create ITS command-queue thread and semaphore. */
+            PGITSDEV pGitsDev = &pGicDev->Gits;
             char szCmdQueueThread[32];
             RT_ZERO(szCmdQueueThread);
             RTStrPrintf(szCmdQueueThread, sizeof(szCmdQueueThread), "Gits-CmdQ-%u", iInstance);
-            rc = PDMDevHlpThreadCreate(pDevIns, &pGicDev->pCmdQueueThread, &pGicDev, gicItsR3CmdQueueThread,
+            rc = PDMDevHlpThreadCreate(pDevIns, &pGitsDev->pCmdQueueThread, &pGicDev, gicItsR3CmdQueueThread,
                                        gicItsR3CmdQueueThreadWakeUp, 0 /* cbStack */, RTTHREADTYPE_IO, szCmdQueueThread);
             AssertLogRelRCReturn(rc, rc);
 
-            rc = PDMDevHlpSUPSemEventCreate(pDevIns, &pGicDev->hEvtCmdQueue);
+            rc = PDMDevHlpSUPSemEventCreate(pDevIns, &pGitsDev->hEvtCmdQueue);
             AssertLogRelRCReturn(rc, rc);
         }
         else

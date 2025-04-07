@@ -34,9 +34,11 @@
 
 #include <VBox/log.h>
 #include <VBox/gic.h>
+#include <VBox/vmm/pdmdev.h>
 #include <VBox/vmm/dbgf.h>
 #include <iprt/errcore.h>       /* VINF_SUCCESS */
 #include <iprt/string.h>        /* RT_ZERO */
+#include <iprt/mem.h>           /* RTMemAllocZ, RTMemFree */
 
 
 /*********************************************************************************************************************************
@@ -102,6 +104,44 @@ DECL_HIDDEN_CALLBACK(const char *) gitsGetTranslationRegDescription(uint16_t off
         case GITS_TRANSLATION_REG_TRANSLATER:   return "GITS_TRANSLATERR";
         default:
             return "<UNKNOWN>";
+    }
+}
+
+
+DECL_FORCE_INLINE(bool) gitsCmdQueueIsEmptyEx(PCGITSDEV pGitsDev, uint32_t *poffRead, uint32_t *poffWrite)
+{
+    *poffRead  = pGitsDev->uCmdReadReg  & GITS_BF_CTRL_REG_CREADR_OFFSET_MASK;
+    *poffWrite = pGitsDev->uCmdWriteReg & GITS_BF_CTRL_REG_CWRITER_OFFSET_MASK;
+    return *poffRead == *poffWrite;
+}
+
+
+DECL_HIDDEN_CALLBACK(bool) gitsCmdQueueIsEmpty(PCGITSDEV pGitsDev)
+{
+    uint32_t offRead;
+    uint32_t offWrite;
+    return gitsCmdQueueIsEmptyEx(pGitsDev, &offRead, &offWrite);
+}
+
+
+DECL_HIDDEN_CALLBACK(bool) gitsCmdQueueCanProcessRequests(PCGITSDEV pGitsDev)
+{
+    if (     pGitsDev->fEnabled
+        &&  (pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_VALID_MASK)
+        && !(pGitsDev->uCmdReadReg   & GITS_BF_CTRL_REG_CREADR_STALLED_MASK))
+        return true;
+    return false;
+}
+
+
+static void gitsCmdQueueThreadWakeUpIfNeeded(PPDMDEVINS pDevIns, PGITSDEV pGitsDev)
+{
+    Assert(PDMDevHlpCritSectIsOwner(pDevIns, pDevIns->CTX_SUFF(pCritSectRo)));
+    if (    gitsCmdQueueCanProcessRequests(pGitsDev)
+        && !gitsCmdQueueIsEmpty(pGitsDev))
+    {
+        int const rc = PDMDevHlpSUPSemEventSignal(pDevIns, pGitsDev->hEvtCmdQueue);
+        AssertRC(rc);
     }
 }
 
@@ -217,7 +257,7 @@ DECL_HIDDEN_CALLBACK(uint64_t) gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_
 }
 
 
-DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
+DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb)
 {
     Assert(cb == 8 || cb == 4);
     Assert(!(offReg & 3));
@@ -249,6 +289,7 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg,
         case GITS_CTRL_REG_CTLR_OFF:
             Assert(cb == 4);
             pGitsDev->fEnabled = RT_BF_GET(uValue, GITS_BF_CTRL_REG_CTLR_ENABLED);
+            gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF:
@@ -257,20 +298,24 @@ DECL_HIDDEN_CALLBACK(void) gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg,
                 pGitsDev->uCmdBaseReg.u = uValue;
             else
                 pGitsDev->uCmdBaseReg.s.Lo = (uint32_t)uValue;
+            gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CBASER_OFF + 4:
             Assert(cb == 4);
             pGitsDev->uCmdBaseReg.s.Hi = uValue & RT_HI_U32(GITS_CTRL_REG_CBASER_RW_MASK);
+            gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CWRITER_OFF:
             pGitsDev->uCmdWriteReg = uValue & RT_LO_U32(GITS_CTRL_REG_CWRITER_RW_MASK);
+            gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         case GITS_CTRL_REG_CWRITER_OFF + 4:
             /* Upper 32-bits are all reserved, ignore write. Fedora 40 arm64 guests (and probably others) do this. */
             Assert(uValue == 0);
+            gitsCmdQueueThreadWakeUpIfNeeded(pDevIns, pGitsDev);
             break;
 
         default:
@@ -369,6 +414,119 @@ DECL_HIDDEN_CALLBACK(void) gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp,
         pHlp->pfnPrintf(pHlp, "  uCmdWriteReg       = 0x%05RX32 (  retry=%RTbool offset=%RU32)\n", uReg,
                         RT_BF_GET(uReg, GITS_BF_CTRL_REG_CWRITER_RETRY), uReg & GITS_BF_CTRL_REG_CWRITER_OFFSET_MASK);
     }
+}
+
+
+DECL_HIDDEN_CALLBACK(int) gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf)
+{
+    int const rcLock = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock);
+
+    if (gitsCmdQueueCanProcessRequests(pGitsDev))
+    {
+        uint32_t   offRead;
+        uint32_t   offWrite;
+        bool const fIsEmpty = gitsCmdQueueIsEmptyEx(pGitsDev, &offRead, &offWrite);
+        if (!fIsEmpty)
+        {
+            uint32_t const cCmdQueuePages = (pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_SIZE_MASK) + 1;
+            uint32_t const cbCmdQueue     = cCmdQueuePages << GITS_CMD_QUEUE_PAGE_SHIFT;
+            AssertRelease(cbCmdQueue <= cbBuf); /** @todo Paranoia; make this a debug assert later. */
+
+#if 0
+            /*
+             * Allocate space for the command-queue if we haven't done so already.
+             */
+            if (pGitsDev->pvCmdQueue != NULL)
+            {
+                if (pGitsDev->cbCmdQueue <= cbCmdQueue)
+                {   /* Already allocated sufficient space. */   }
+                else
+                {
+                    /* Free old allocation and allocate a new one. */
+                    RTMemFree(pGitsDev->pvCmdQueue);
+                    pGitsDev->cbCmdQueue = cbCmdQueue;
+                    pGitsDev->pvCmdQueue = RTMemAllocZ(cbCmdQueue);
+                    if (pGitsDev->pvCmdQueue)
+                    { /* likely */ }
+                    else
+                        return VERR_NO_MEMORY;
+                }
+            }
+            else
+            {
+                /* Allocate one. */
+                pGitsDev->cbCmdQueue = cbCmdQueue;
+                pGitsDev->pvCmdQueue = RTMemAllocZ(cbCmdQueue);
+                if (pGitsDev->pvCmdQueue)
+                { /* likely */ }
+                else
+                    return VERR_NO_MEMORY;
+            }
+#endif
+
+            /*
+             * Read all the commands into the command queue.
+             */
+            RTGCPHYS const GCPhysCmds = pGitsDev->uCmdBaseReg.u & GITS_BF_CTRL_REG_CBASER_PHYS_ADDR_MASK;
+
+            /* Leave the critical section before reading (a potentially large amount of) commands. */
+            PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+
+            int      rc;
+            uint32_t cbCmds;
+            if (offWrite > offRead)
+            {
+                /* The commands have not wrapped around, read them in one go. */
+                cbCmds = offWrite - offRead;
+                Assert(cbCmds <= cbBuf);
+                rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbCmds);
+            }
+            else
+            {
+                /* The commands have wrapped around, read forward and wrapped-around. */
+                uint32_t const cbForward = cbCmdQueue - offRead;
+                uint32_t const cbWrapped = offWrite;
+                Assert(cbForward + cbWrapped <= cbBuf);
+                rc  = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds, pvBuf, cbForward);
+                if (   RT_SUCCESS(rc)
+                    && cbWrapped > 0)
+                    rc = PDMDevHlpPhysReadMeta(pDevIns, GCPhysCmds + cbForward,
+                                               (void *)((uintptr_t)pvBuf + cbForward), cbWrapped);
+                cbCmds = cbForward + cbWrapped;
+            }
+
+            /* Re-acquire the critical section as we now need to modify device state. */
+            int const rcLock2 = PDMDevHlpCritSectEnter(pDevIns, pDevIns->pCritSectRoR3, VINF_SUCCESS);
+            PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, pDevIns->pCritSectRoR3, rcLock2);
+
+            /*
+             * Process the commands in the queue.
+             */
+            if (RT_SUCCESS(rc))
+            {
+
+                uint32_t const cCmds = cbCmds / GITS_CMD_SIZE;
+                for (uint32_t idxCmd = 0; idxCmd < cCmds; idxCmd++)
+                {
+                    PCGITSCMD pCmd = (PCGITSCMD)((uintptr_t)pvBuf + (idxCmd * sizeof(GITSCMD)));
+                    AssertReleaseMsgFailed(("Cmd=%#x\n", pCmd->clear.uCmdId));
+                }
+
+                PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+                return VINF_SUCCESS;
+            }
+
+            /* Failed to read command queue from the physical address specified by the guest, stall queue and retry later. */
+
+
+            /** @todo Stall the command queue. */
+            return VINF_TRY_AGAIN;
+        }
+    }
+
+    PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+    return VINF_SUCCESS;
 }
 #endif /* IN_RING3 */
 

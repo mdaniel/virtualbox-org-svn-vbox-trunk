@@ -3356,7 +3356,7 @@ DECL_HIDDEN_CALLBACK(VBOXSTRICTRC) gicItsMmioWrite(PPDMDEVINS pDevIns, void *pvU
     {
         /* Control registers space. */
         uint16_t const offReg = off & 0xfffc;
-        gitsMmioWriteCtrl(pGitsDev, offReg, uValue, cb);
+        gitsMmioWriteCtrl(pDevIns, pGitsDev, offReg, uValue, cb);
         LogFlowFunc(("offReg=%#RX16 (%s) written %#RX64\n", offReg, gitsGetCtrlRegDescription(offReg), uValue));
     }
     else

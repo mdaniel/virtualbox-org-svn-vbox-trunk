@@ -31,8 +31,10 @@
 # pragma once
 #endif
 
+#include <iprt/cdefs.h>
 #include <VBox/types.h>
 #include <VBox/gic-its.h>
+#include <VBox/vmm/pdmthread.h>
 
 /** @defgroup grp_gits_int       Internal
  * @ingroup grp_gits
@@ -81,7 +83,7 @@ typedef struct GITSDEV
     bool                    fEnabled;
     /** Whether unmapped MSI reporting interrupt is enabled. */
     bool                    fUnmappedMsiReport;
-    /** Whether ITS is quiescent and can be powered down. */
+    /** Whether the ITS is quiescent and can be powered down. */
     bool                    fQuiescent;
     /** Padding. */
     bool                    fPadding0;
@@ -97,6 +99,14 @@ typedef struct GITSDEV
 
     /** @name Interrupt translation space.
      * @{ */
+    /** @} */
+
+    /** @name Command queue thread.
+     * @{ */
+    /** The command-queue thread. */
+    R3PTRTYPE(PPDMTHREAD)   pCmdQueueThread;
+    /** The event semaphore the command-queue thread waits on. */
+    SUPSEMEVENT             hEvtCmdQueue;
     /** @} */
 
     /** @name Configurables.
@@ -118,11 +128,14 @@ DECL_HIDDEN_CALLBACK(void)         gitsInit(PGITSDEV pGitsDev);
 DECL_HIDDEN_CALLBACK(int)          gitsSendMsi(PVMCC pVM, PCIBDF uBusDevFn, PCMSIMSG pMsi, uint32_t uEventId, uint32_t uTagSrc);
 DECL_HIDDEN_CALLBACK(uint64_t)     gitsMmioReadCtrl(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb);
 DECL_HIDDEN_CALLBACK(uint64_t)     gitsMmioReadTranslate(PCGITSDEV pGitsDev, uint16_t offReg, unsigned cb);
-DECL_HIDDEN_CALLBACK(void)         gitsMmioWriteCtrl(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb);
+DECL_HIDDEN_CALLBACK(void)         gitsMmioWriteCtrl(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb);
 DECL_HIDDEN_CALLBACK(void)         gitsMmioWriteTranslate(PGITSDEV pGitsDev, uint16_t offReg, uint64_t uValue, unsigned cb);
 
 #ifdef IN_RING3
 DECL_HIDDEN_CALLBACK(void)         gitsR3DbgInfo(PCGITSDEV pGitsDev, PCDBGFINFOHLP pHlp, const char *pszArgs);
+DECL_HIDDEN_CALLBACK(int)          gitsR3CmdQueueProcess(PPDMDEVINS pDevIns, PGITSDEV pGitsDev, void *pvBuf, uint32_t cbBuf);
+DECL_HIDDEN_CALLBACK(bool)         gitsR3CmdQueueCanProcessRequests(PCGITSDEV pGitsDev);
+DECL_HIDDEN_CALLBACK(bool)         gitsR3CmdQueueIsEmpty(PCGITSDEV pGitsDev);
 #endif
 
 #ifdef LOG_ENABLED

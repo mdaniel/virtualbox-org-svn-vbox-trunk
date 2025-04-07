@@ -45,6 +45,13 @@
 /** Size of the ITS register frame. */
 #define GITS_REG_FRAME_SIZE                                     _64K
 
+/** The GITS command queue page size. */
+#define GITS_CMD_QUEUE_PAGE_SIZE                                0x1000
+/** The GITS command queue page offset mask. */
+#define GITS_CMD_QUEUE_PAGE_OFFSET_MASK                         0xfff
+/** The guest page shift (x86). */
+#define GITS_CMD_QUEUE_PAGE_SHIFT                               12
+
 /** GITS_CTLR: Control register - RW. */
 #define GITS_CTRL_REG_CTLR_OFF                                  0x0000
 /** GITS_CTLR: Enabled. */
@@ -227,11 +234,14 @@ RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_PARTIDR_, UINT32_C(0), UINT32_MAX, 
 RT_BF_ASSERT_COMPILE_CHECKS(GITS_BF_CTRL_REG_CBASER_, UINT64_C(0), UINT64_MAX,
                             (SIZE, RSVD_9_8, SHAREABILITY, PHYS_ADDR, RSVD_52, OUTER_CACHE, RSVD_58_56, INNER_CACHE, RSVD_62,
                              VALID));
+/** GITS_CBASER: Physical address bits [15:12] are reserved MBZ. */
+#define GITS_CTRL_REG_CBASER_PHYS_ADDR_RSVD_15_12_MASK          UINT64_C(0x000000000000f000)
 /** GITS_CBASER: Mask of valid read-write bits. */
 #define GITS_CTRL_REG_CBASER_RW_MASK                            (UINT64_MAX & ~(GITS_BF_CTRL_REG_CBASER_RSVD_9_8_MASK   | \
                                                                                 GITS_BF_CTRL_REG_CBASER_RSVD_52_MASK    | \
                                                                                 GITS_BF_CTRL_REG_CBASER_RSVD_58_56_MASK | \
-                                                                                GITS_BF_CTRL_REG_CBASER_RSVD_62_MASK))
+                                                                                GITS_BF_CTRL_REG_CBASER_RSVD_62_MASK    | \
+                                                                                GITS_CTRL_REG_CBASER_PHYS_ADDR_RSVD_15_12_MASK))
 
 /** GITS_CWRITER: ITS command queue write register - RW. */
 #define GITS_CTRL_REG_CWRITER_OFF                               0x0088
@@ -369,9 +379,8 @@ typedef enum GITSATTRMEM
     GITSATTRMEM_CACHE_RW_ALLOC_WB
 } GITSMEMATTR;
 
-
 /**
- * The ITS entry type.
+ * ITS entry type.
  * In accordance to the ARM GIC spec.
  */
 typedef enum GITSITSTYPE
@@ -381,6 +390,34 @@ typedef enum GITSITSTYPE
     GITSITSTYPE_VPES,
     GITSITSTYPE_INTR_COLLECTIONS
 } GITSITSTYPE;
+
+/** GITS command size in bytes.  */
+#define GITS_CMD_SIZE                                           32
+
+/**
+ * ITS command.
+ * In accordance to the ARM GIC spec.
+ */
+typedef union GITSCMD
+{
+    RTUINT64U au64[4];
+    struct
+    {
+        uint8_t         uCmdId;
+        uint8_t         au8Rsvd[3];
+        uint32_t        uDeviceId;
+
+        uint32_t        uEventId;
+        uint32_t        u32Rsvd;
+
+        uint64_t        au64Rsvd[2];
+    } clear;
+} GITSCMD;
+/** Pointer to an ITS command. */
+typedef GITSCMD *PGITSCMD;
+/** Pointer to a const ITS command. */
+typedef GITSCMD const *PCGITSCMD;
+
 
 #endif /* !VBOX_INCLUDED_gic_its_h */
 

@@ -124,6 +124,7 @@ RTDECL(int) RTJsonParseFromBuf(PRTJSONVAL phJsonVal, uint32_t fFlags, const uint
  * @returns IPRT status code.
  * @retval  VERR_JSON_MALFORMED if the document does not conform to the spec.
  * @param   phJsonVal       Where to store the handle to the JSON value on success.
+ * @param   fFlags          Combination of RTJSON_PARSE_F_XXX.
  * @param   pszStr          The string containing the JSON document.
  * @param   pErrInfo        Where to store extended error info. Optional.
  */
@@ -136,6 +137,7 @@ RTDECL(int) RTJsonParseFromString(PRTJSONVAL phJsonVal, uint32_t fFlags, const c
  * @returns IPRT status code.
  * @retval  VERR_JSON_MALFORMED if the document does not conform to the spec.
  * @param   phJsonVal       Where to store the handle to the JSON value on success.
+ * @param   fFlags          Combination of RTJSON_PARSE_F_XXX.
  * @param   pszFilename     The name of the file containing the JSON document.
  * @param   pErrInfo        Where to store extended error info. Optional.
  */
@@ -148,6 +150,7 @@ RTDECL(int) RTJsonParseFromFile(PRTJSONVAL phJsonVal, uint32_t fFlags, const cha
  * @returns IPRT status code.
  * @retval  VERR_JSON_MALFORMED if the document does not conform to the spec.
  * @param   phJsonVal       Where to store the handle to the JSON value on success.
+ * @param   fFlags          Combination of RTJSON_PARSE_F_XXX.
  * @param   hVfsFile        The VFS file to parse.
  * @param   pErrInfo        Where to store extended error info. Optional.
  */

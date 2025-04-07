@@ -1127,7 +1127,7 @@ class DecoderNode(object):
         print('%u.%03u: %u: debug/%u: %s%s' % (msNow // 1000, msNow % 1000, DecoderNode.s_uLogLine, uDepth, '  ' * uDepth, sMsg));
         DecoderNode.s_uLogLine += 1;
 
-    def constructNextLevel(self, uDepth, uMaxCost): # pylint: disable=too-many-locals
+    def constructNextLevel(self, uDepth, uMaxCost): # pylint: disable=too-many-locals,too-many-statements
         """
         Recursively constructs the
         """
@@ -1205,7 +1205,7 @@ class DecoderNode(object):
             cMaxTableSizeInBits = self.kacMaxTableSizesInBits[cMinTableSizeInBits]; # Not quite sure about this...
             cMinTableSizeInBits -= 1;
 
-            if uDepth <= 7:
+            if uDepth <= 2:
                 self.dprint(uDepth,
                             '%s Start/%u: %#010x (%u) - %u/%u instructions - tab size %u-%u; fChecked=%#x/%#x uCostBest=%#x'
                             % (('=' if iOuterLoop == 0 else '-') * 5, iOuterLoop, fOrgMask,
@@ -1215,14 +1215,20 @@ class DecoderNode(object):
             # Skip pointless stuff and things we've already covered.
             if cOccurences >= 2 and fOrgMask > 0 and fOrgMask != 0xffffffff and (fOrgMask & fMaskNotDoneYet) != 0:
                 #
-                # Brute force relevant mask variations.
-                # (The MaskIterator skips masks that are too wide, too fragmented or already covered.)
+                # Step 1: Brute force relevant mask variations and pick a few masks.
                 #
+                # The MaskIterator skips masks that are too wide, too fragmented or
+                # already covered.
+                #
+                # The cost calculation is mainly based on distribution vs table size,
+                # trying to favor masks with more target slots.
+                #
+                dCandidates = {};
                 for fMask, cMaskBits, aaiMaskToIdxAlgo in MaskIterator(fOrgMask, cMinTableSizeInBits, cMaxTableSizeInBits,
                                                                        fMaskNotDoneYet):
-                    if uDepth <= 7:
-                        self.dprint(uDepth, '>>> fMask=%#010x cMaskBits=%s aaiMaskToIdxAlgo=%s)...'
-                                             % (fMask, cMaskBits, aaiMaskToIdxAlgo));
+                    #if uDepth <= 2:
+                    #    self.dprint(uDepth, '1>> fMask=%#010x cMaskBits=%s aaiMaskToIdxAlgo=%s...'
+                    #                         % (fMask, cMaskBits, aaiMaskToIdxAlgo));
                     #assert cMaskBits <= cMaxTableSizeInBits;
 
                     # Calculate base cost and check it against uCostBest before continuing.
@@ -1230,27 +1236,23 @@ class DecoderNode(object):
                     uCostTmp   += (len(aaiMaskToIdxAlgo) - 1) * 2;                      #   2 = kCostPerExtraIndexStep
                     #uCostTmp  <<= uDepth;   # Make the cost exponentially higher with depth. (?)
                     if uCostTmp >= uCostBest:
-                        if uDepth <= 7:
-                            self.dprint(uDepth, '!!! %#010x too expensive #1: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
+                        #if uDepth <= 2:
+                        #    self.dprint(uDepth, '!!! %#010x too expensive #1: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
                         continue;
 
                     # Compile the indexing/unindexing functions.
                     fnToIndex   = MaskZipper.algoToZipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
-                    fnFromIndex = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
 
                     # Insert the instructions into the temporary table.
                     daoTmp = collections.defaultdict(list);
                     for oInstr in self.aoInstructions:
                         idx = fnToIndex(oInstr.fFixedValue, aaiMaskToIdxAlgo);
-                        #assert idx == MaskZipper.zipMask(oInstr.fFixedValue & fMask, aaiMaskToIdxAlgo);
-                        #assert idx == fnToIndex(fnFromIndex(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
-                        #assert idx == MaskZipper.zipMask(MaskZipper.unzipMask(idx, aaiMaskToIdxAlgo), aaiMaskToIdxAlgo);
                         #self.dprint(uDepth, '%#010x -> %#05x %s' % (oInstr.fFixedValue, idx, oInstr.sName));
                         daoTmp[idx].append(oInstr);
 
                     # Reject anything that ends up putting all the stuff in a single slot.
                     if len(daoTmp) <= 1:
-                        if uDepth <= 7: self.dprint(uDepth, '!!! bad distribution #1: fMask=%#x' % (fMask,));
+                        #if uDepth <= 2: self.dprint(uDepth, '!!! bad distribution #1: fMask=%#x' % (fMask,));
                         continue;
 
                     # Add cost for poor average distribution.
@@ -1258,9 +1260,9 @@ class DecoderNode(object):
                     if rdAvgLen > 1.2:
                         uCostTmp += int(rdAvgLen * 8)
                         if uCostTmp >= uCostBest:
-                            if uDepth <= 7:
-                                self.dprint(uDepth, '!!! %#010x too expensive #2: %#x vs %#x (rdAvgLen=%s)'
-                                                    % (fMask, uCostTmp, uCostBest, rdAvgLen));
+                            #if uDepth <= 2:
+                            #    self.dprint(uDepth, '!!! %#010x too expensive #2: %#x vs %#x (rdAvgLen=%s)'
+                            #                        % (fMask, uCostTmp, uCostBest, rdAvgLen));
                             continue;
 
                     # Add the cost for unused entries under reasonable table population.
@@ -1268,11 +1270,30 @@ class DecoderNode(object):
                     if len(daoTmp) < cNominalFill:
                         uCostTmp += ((cNominalFill - len(daoTmp)) * 2) #<< uDepth;  # 2 = kCostUnusedTabEntry
                         if uCostTmp >= uCostBest:
-                            if uDepth <= 7:
-                                self.dprint(uDepth, '!!! %#010x too expensive #3: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
+                            #if uDepth <= 2:
+                            #    self.dprint(uDepth, '!!! %#010x too expensive #3: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
                             continue;
 
+                    # Record it as a candidate.
+                    dCandidates[uCostTmp] = (fMask, cMaskBits, aaiMaskToIdxAlgo, daoTmp);
+                    if len(dCandidates) > 64:
+                        dOld = dCandidates;
+                        dCandidates = { uKey:dOld[uKey] for uKey in sorted(dCandidates.keys())[:4] };
+                        del dOld;
+
+                #
+                # Step 2: Process the top 4 candidates.
+                #
+                for uCostTmp in sorted(dCandidates.keys())[:4]:
+                    fMask, cMaskBits, aaiMaskToIdxAlgo, daoTmp = dCandidates[uCostTmp];
+
+                    #if uDepth <= 2:
+                    #    self.dprint(uDepth, '2>> fMask=%#010x cMaskBits=%s aaiMaskToIdxAlgo=%s #daoTmp=%s...'
+                    #                         % (fMask, cMaskBits, aaiMaskToIdxAlgo, len(daoTmp),));
+                    #assert cMaskBits <= cMaxTableSizeInBits;
+
                     # Construct decoder nodes from the aaoTmp lists, construct sub-levels and calculate costs.
+                    fnFromIndex  = MaskZipper.algoToUnzipLambda(aaiMaskToIdxAlgo, fMask, fCompileMaskZipUnzip);
                     dChildrenTmp = {};
                     try:
                         for idx, aoInstrs in daoTmp.items():
@@ -1284,8 +1305,8 @@ class DecoderNode(object):
                             if uCostTmp >= uCostBest:
                                 break;
                     except DecoderNode.TooExpensive:
-                        if uDepth <= 7:
-                            self.dprint(uDepth, '!!! %#010x too expensive #4: %#x+child vs %#x' % (fMask, uCostTmp, uCostBest));
+                        #if uDepth <= 2:
+                        #    self.dprint(uDepth, '!!! %#010x too expensive #4: %#x+child vs %#x' % (fMask, uCostTmp, uCostBest));
                         continue;
 
                     # Is this mask better than the previous?
@@ -1299,8 +1320,8 @@ class DecoderNode(object):
                         cChildrenBits  = cMaskBits;
                         fChildrenBest  = fMask;
                         dChildrenBest  = dChildrenTmp;
-                    elif uDepth <= 7:
-                        self.dprint(uDepth, '!!! %#010x too expensive #5: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
+                    #elif uDepth <= 2:
+                    #    self.dprint(uDepth, '!!! %#010x too expensive #5: %#x vs %#x' % (fMask, uCostTmp, uCostBest));
 
                 # Note that we've covered all the permutations in the given mask.
                 fMaskNotDoneYet &= ~fOrgMask;
@@ -1315,10 +1336,10 @@ class DecoderNode(object):
 
         #assert fChildrenBest.bit_count() == cChildrenBits;
         #assert len(dChildrenBest) <= (1 << cChildrenBits)
-        if uDepth <= 7:
+        if uDepth <= 2:
             self.dprint(uDepth,
-                        '===== Final: fMask=%#010x uCost=%#x TabSize=%#x #Instructions=%u in %u slots...'
-                        % (fChildrenBest, uCostBest, 1 << cChildrenBits, cInstructions, len(dChildrenBest)));
+                        '===== Final: fMask=%#010x (%u) uCost=%#x #Instructions=%u in %u slots over %u entries...'
+                        % (fChildrenBest, cChildrenBits, uCostBest, cInstructions, len(dChildrenBest), 1 << cChildrenBits));
 
         # Done.
         self.fChildMask = fChildrenBest;
@@ -1342,7 +1363,7 @@ class IEMArmGenerator(object):
         Creates the decoder to the best our abilities.
         """
         self.oDecoderRoot = DecoderNode(sorted(g_aoAllArmInstructions,
-                                               key = operator.attrgetter('fFixedMask', 'fFixedValue', 'sName'))[:32],
+                                               key = operator.attrgetter('fFixedMask', 'fFixedValue', 'sName')),
                                         0, 0);
         self.oDecoderRoot.constructNextLevel(0, sys.maxsize);
 
